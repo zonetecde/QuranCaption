@@ -62,8 +62,8 @@ class DiscordService {
 	// Méthodes prédéfinies pour différents états
 	async setIdleState(): Promise<void> {
 		await this.updateActivity({
-			details: 'Use Quran Caption',
-			state: 'In the home menu',
+			details: 'Using Quran Caption',
+			state: 'At the Home Menu',
 			large_image_key: 'logo',
 			large_image_text: 'Quran Caption',
 			small_image_key: 'idle',
@@ -75,9 +75,11 @@ class DiscordService {
 	async setEditingState(): Promise<void> {
 		if (!globalState.currentProject) return;
 
+		const { name, reciter } = globalState.currentProject.detail;
 		await this.updateActivity({
-			details: 'Creating Quran Video',
-			state: `${globalState.currentProject.detail.name + (globalState.currentProject.detail.reciter !== 'not set' ? ' (' + globalState.currentProject.detail.reciter + ')' : '')}`,
+			details: 'Creating a Quran video',
+			state:
+				reciter && reciter !== 'not set' ? `Working on ${name} (${reciter})` : `Working on ${name}`,
 			large_image_key: 'logo',
 			large_image_text: 'Quran Caption',
 			small_image_key: 'edit',

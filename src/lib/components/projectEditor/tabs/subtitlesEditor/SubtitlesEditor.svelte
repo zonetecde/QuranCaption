@@ -30,10 +30,10 @@
 	<section
 		class="w-[200px] 2xl:w-[300px] flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col border border-color rounded-lg border-l-0"
 	>
-		<div class="h-full w-full flex flex-col">
-			<VideoPreview showControls={false} />
+		<VideoPreview showControls={false} />
+		<div class="flex-1 min-h-0 overflow-hidden z-15">
+			<SubtitlesList />
 		</div>
-		<SubtitlesList />
 	</section>
 </div>
 

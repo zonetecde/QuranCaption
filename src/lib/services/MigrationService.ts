@@ -38,6 +38,33 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Migre les données de Quran Caption 3.1.5 à Quran Caption 3.1.6
+	 * > Modification du shortcut "Set Start to Previous Punctuation" en "Set End to Previous Punctuation"
+	 */
+	static FromQC315ToQC316() {
+		if (
+			globalState.settings &&
+			//@ts-ignore
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS
+		) {
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS =
+				//@ts-ignore
+				globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS;
+			//@ts-ignore
+			delete globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS;
+
+			const { name: newName, description: newDescription } = new Settings().shortcuts
+				.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS;
+
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS.description =
+				newDescription;
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS.name = newName;
+
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
 	 * > Renommage des tracks "CustomText" à "CustomClip"
 	 */

@@ -89,10 +89,10 @@ export default class Settings extends SerializableBase {
 				name: 'Set End to Next Punctuation',
 				description: 'Move end cursor to the next punctuation mark'
 			},
-			SET_START_TO_PREVIOUS: {
+			SET_END_TO_PREVIOUS: {
 				keys: ['x'],
-				name: 'Set Start to Previous Punctuation',
-				description: 'Move start cursor to the previous punctuation mark'
+				name: 'Set End to Previous Punctuation',
+				description: 'Move end cursor to the previous punctuation mark'
 			},
 			ADD_SUBTITLE: {
 				keys: ['enter'],
@@ -204,6 +204,7 @@ export default class Settings extends SerializableBase {
 
 		// Migration des paramètres si besoin
 		MigrationService.FromQC310ToQC311();
+		MigrationService.FromQC315ToQC316();
 	}
 }
 

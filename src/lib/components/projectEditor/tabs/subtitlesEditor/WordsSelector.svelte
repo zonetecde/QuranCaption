@@ -106,12 +106,18 @@
 			}
 		});
 		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS,
+			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS,
 			onKeyDown: async () => {
-				subtitlesEditorState().startWordIndex =
+				const currentStartWordIndex = subtitlesEditorState().endWordIndex;
+				subtitlesEditorState().endWordIndex =
 					(await selectedVerse())!.getPreviousPunctuationMarkIndex(
-						subtitlesEditorState().startWordIndex
+						subtitlesEditorState().endWordIndex
 					);
+				if (subtitlesEditorState().endWordIndex < subtitlesEditorState().startWordIndex) {
+					const temp = subtitlesEditorState().endWordIndex;
+					subtitlesEditorState().endWordIndex = currentStartWordIndex;
+					subtitlesEditorState().startWordIndex = temp;
+				}
 			}
 		});
 
@@ -175,7 +181,7 @@
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_LAST
 		);
 		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS
+			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS
 		);
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SUBTITLE

@@ -108,15 +108,14 @@
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS,
 			onKeyDown: async () => {
-				const currentStartWordIndex = subtitlesEditorState().endWordIndex;
-				subtitlesEditorState().endWordIndex =
+				const currentStartWordIndex = subtitlesEditorState().startWordIndex;
+				subtitlesEditorState().startWordIndex =
 					(await selectedVerse())!.getPreviousPunctuationMarkIndex(
-						subtitlesEditorState().endWordIndex
+						subtitlesEditorState().startWordIndex
 					);
-				if (subtitlesEditorState().endWordIndex < subtitlesEditorState().startWordIndex) {
-					const temp = subtitlesEditorState().endWordIndex;
-					subtitlesEditorState().endWordIndex = currentStartWordIndex;
-					subtitlesEditorState().startWordIndex = temp;
+				if (currentStartWordIndex === subtitlesEditorState().startWordIndex) {
+					// Si on n'a pas bougé, on reset au début
+					subtitlesEditorState().startWordIndex = 0;
 				}
 			}
 		});

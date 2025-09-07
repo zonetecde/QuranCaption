@@ -104,7 +104,7 @@ export class Verse {
 			for (const signe of signesPonctuation) {
 				if (this.words[i].arabic.includes(signe)) {
 					if (this.words.length > i + 1)
-						return i; // Retourne l'indice du mot contenant la ponctuation+1
+						return i + 1; // Retourne l'indice du mot contenant la ponctuation+1
 					else return 0;
 				}
 			}

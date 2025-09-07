@@ -585,6 +585,12 @@
 		// Pause audio et vidéo
 		if (audioHowl) {
 			audioHowl.pause();
+
+			// Si c'est un audio silencieux (pas de média réel), on le décharge complètement
+			if (!currentVideo() && !currentAudio()) {
+				audioHowl.unload();
+				audioHowl = null;
+			}
 		}
 		if (videoElement) {
 			videoElement.pause();

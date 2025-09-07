@@ -220,12 +220,17 @@
 									// Vérifier si l'opération a été annulée
 									if (abortSignal.aborted) return;
 
+									// Cette marge qu'on calcule permet de prévenir un bug qui fait que si le texte est en bas ou à droite, il dépasse un peu et donc que ça considère que c'est plus grand que le max-height
+									let isVerticalPosNotCentered =
+										globalState.getStyle(target, 'vertical-text-alignment').value !== 'center';
+									let marge = isVerticalPosNotCentered ? 10 : 0; // Marge supplémentaire si le texte n'est pas centré verticalement
+
 									// Tant que la hauteur du texte est supérieure à la hauteur maximale, on réduit la taille de la police
-									while (subtitle.scrollHeight > maxHeightValue && fontSize > 1) {
+									while (subtitle.scrollHeight > maxHeightValue + marge && fontSize > 1) {
 										// Vérifier si l'opération a été annulée
 										if (abortSignal.aborted) return;
 
-										fontSize -= 5;
+										fontSize -= fontSize / 20; // Réduction progressive
 
 										globalState.getVideoStyle
 											.getStylesOfTarget(target)

@@ -1,3 +1,5 @@
+import { VersionService } from './VersionService.svelte';
+
 // Variable pour stocker le timestamp de la dernière requête
 let lastRequestTime = 0;
 const MIN_INTERVAL_MS = 60 * 1000; // 1 minute en millisecondes
@@ -18,6 +20,8 @@ export async function telemetry(msg: string) {
 		);
 		return;
 	}
+
+	msg = '(' + VersionService.currentVersion + ') ' + msg;
 
 	try {
 		const url = 'https://rayanestaszewski.fr/telemetry-quran-caption';

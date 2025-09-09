@@ -259,6 +259,19 @@
 								<div
 									class="text-red-300 text-xs font-mono bg-red-950/50 p-2 rounded overflow-auto max-h-[100px]"
 								>
+									{#if exportation.errorLog.includes('allocate memory')}
+										<p>
+											It appears your computer cannot allocate enough memory for the export process.
+											Try the following:
+										</p>
+										<ol class="ml-4 list-decimal text-sm">
+											<li>Reduce the chunk duration (set it below the FPS value).</li>
+											<li>Lower the video resolution.</li>
+											<li>Remove any background video.</li>
+											<li>Close other applications to free up memory for the export.</li>
+										</ol>
+									{/if}
+
 									{@html exportation.errorLog.replaceAll('\\n', '<br>')}
 								</div>
 							</div>

@@ -1,0 +1,47 @@
+[
+  {
+    "id": 109,
+    "city": "makkah",
+    "name": {
+      "translated": "Los Incrédulos",
+      "transliterated": "Al-Kafirun",
+      "codepoints": [
+        1575,
+        1604,
+        1603,
+        1575,
+        1601,
+        1585,
+        1608,
+        1606
+      ]
+    },
+    "ayahs": 6,
+    "slug": "al-kafirun",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "Di: \"¡Oh, incrédulos"
+  ],
+  [
+    2,
+    "No adoro lo que adoran"
+  ],
+  [
+    3,
+    "Ni adoran ustedes a Quien yo adoro"
+  ],
+  [
+    4,
+    "Y jamás adoraré lo que adoran"
+  ],
+  [
+    5,
+    "Ni adorarán ustedes a Quien yo adoro"
+  ],
+  [
+    6,
+    "Ustedes tienen su religión y yo la mía"
+  ]
+]

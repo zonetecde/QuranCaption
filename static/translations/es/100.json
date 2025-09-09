@@ -1,0 +1,67 @@
+[
+  {
+    "id": 100,
+    "city": "makkah",
+    "name": {
+      "translated": "Los Que Galopan",
+      "transliterated": "Al-'Adiyat",
+      "codepoints": [
+        1575,
+        1604,
+        1593,
+        1575,
+        1583,
+        1610,
+        1575,
+        1578
+      ]
+    },
+    "ayahs": 11,
+    "slug": "al-adiyat",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "Juro por los corceles que se lanzan relinchando"
+  ],
+  [
+    2,
+    "y arrancan chispas con sus cascos"
+  ],
+  [
+    3,
+    "y sorprenden al amanecer"
+  ],
+  [
+    4,
+    "levantando una nube de polvo"
+  ],
+  [
+    5,
+    "e irrumpiendo en las filas del enemigo"
+  ],
+  [
+    6,
+    "que el ser humano es ingrato con su Señor"
+  ],
+  [
+    7,
+    "Y él mismo es testigo de ello"
+  ],
+  [
+    8,
+    "porque tiene una codicia apasionada por los bienes materiales"
+  ],
+  [
+    9,
+    "¿Acaso no sabe que cuando se haga surgir a quienes están en las sepulturas"
+  ],
+  [
+    10,
+    "y se evidencie lo que hay en los corazones"
+  ],
+  [
+    11,
+    "ese día su Señor estará bien informado de lo que hicieron"
+  ]
+]

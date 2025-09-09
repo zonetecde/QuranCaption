@@ -1,0 +1,40 @@
+[
+  {
+    "id": 105,
+    "city": "makkah",
+    "name": {
+      "translated": "El Elefante",
+      "transliterated": "Al-Fil",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1610,
+        1604
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-fil",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "¿No has observado lo que hizo tu Señor con el ejército del elefante"
+  ],
+  [
+    2,
+    "¿No has visto cómo desbarató sus planes [de destruir la Ka‘bah]"
+  ],
+  [
+    3,
+    "Y envió sobre ellos bandadas de aves"
+  ],
+  [
+    4,
+    "que les arrojaron piedras de arcilla dura"
+  ],
+  [
+    5,
+    "y los dejó como heno carcomido"
+  ]
+]

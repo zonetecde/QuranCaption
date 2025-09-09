@@ -1,0 +1,38 @@
+[
+  {
+    "id": 112,
+    "city": "makkah",
+    "name": {
+      "translated": "La Adoración Pura",
+      "transliterated": "Al-Ikhlas",
+      "codepoints": [
+        1575,
+        1604,
+        1573,
+        1582,
+        1604,
+        1575,
+        1589
+      ]
+    },
+    "ayahs": 4,
+    "slug": "al-ikhlas",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "Di: \"Él es Al-lah, Uno"
+  ],
+  [
+    2,
+    "Al-lah es el Absoluto"
+  ],
+  [
+    3,
+    "No engendró ni fue engendrado"
+  ],
+  [
+    4,
+    "Y no hay nada ni nadie que sea semejante a Él"
+  ]
+]

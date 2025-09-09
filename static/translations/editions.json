@@ -3077,6 +3077,17 @@
 		"istiadhah": "Busco refugio en Allah contra Satanás, el maldito",
 		"translations": [
 			{
+				"key": "spa_muhammadisagarc",
+				"name": "spa-muhammadisagarc",
+				"author": "Muhammad Isa Garcia",
+				"language": "Spanish",
+				"direction": "ltr",
+				"source": "http://tanzil.net",
+				"comments": "Ponctuation",
+				"link": "/translations/es/{chapter}.json",
+				"linkmin": "/translations/es/{chapter}.json"
+			},
+			{
 				"key": "spa_abdulqadermouhe",
 				"name": "spa-abdulqadermouhe",
 				"author": "Abdul Qader Mouheddine, Sirhan Ali Sanchez.",
@@ -3131,17 +3142,7 @@
 				"link": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/spa-muhammadasadabd.json",
 				"linkmin": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/spa-muhammadasadabd.min.json"
 			},
-			{
-				"key": "spa_muhammadisagarc",
-				"name": "spa-muhammadisagarc",
-				"author": "Muhammad Isa Garcia",
-				"language": "Spanish",
-				"direction": "ltr",
-				"source": "http://tanzil.net",
-				"comments": "",
-				"link": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/spa-muhammadisagarc.json",
-				"linkmin": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/spa-muhammadisagarc.min.json"
-			},
+
 			{
 				"key": "spa_raulgonzalezbor",
 				"name": "spa-raulgonzalezbor",

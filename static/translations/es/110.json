@@ -1,0 +1,32 @@
+[
+  {
+    "id": 110,
+    "city": "madinah",
+    "name": {
+      "translated": "La Victoria",
+      "transliterated": "An-Nasr",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1589,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "an-nasr",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "[¡Oh, Mujámmad!] Cuando llegue el socorro de Dios y la victoria"
+  ],
+  [
+    2,
+    "y veas a la gente ingresar en masa a la religión de Dios"
+  ],
+  [
+    3,
+    "glorifica alabando a tu Señor y pide Su perdón; Él es Indulgente"
+  ]
+]

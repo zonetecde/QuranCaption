@@ -1,0 +1,50 @@
+[
+  {
+    "id": 107,
+    "city": "makkah",
+    "name": {
+      "translated": "La Ayuda Imprescindible",
+      "transliterated": "Al-Ma'un",
+      "codepoints": [
+        1575,
+        1604,
+        1605,
+        1575,
+        1593,
+        1608,
+        1606
+      ]
+    },
+    "ayahs": 7,
+    "slug": "al-maun",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "¿Acaso has observado a quien desmiente el Día del Juicio"
+  ],
+  [
+    2,
+    "Es quien rechaza al huérfano"
+  ],
+  [
+    3,
+    "y no exhorta a alimentar al pobre"
+  ],
+  [
+    4,
+    "¡Ay de los orantes"
+  ],
+  [
+    5,
+    "que son negligentes en sus oraciones [realizándolas fuera de su horario]"
+  ],
+  [
+    6,
+    "y solo las realizan para hacerse ver"
+  ],
+  [
+    7,
+    "y se niegan a prestar hasta la mínima ayuda"
+  ]
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "id": 114,
+    "city": "makkah",
+    "name": {
+      "translated": "Los Hombres",
+      "transliterated": "An-Nas",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1575,
+        1587
+      ]
+    },
+    "ayahs": 6,
+    "slug": "an-nas",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "Di: \"Me refugio en el Señor de los seres humanos"
+  ],
+  [
+    2,
+    "en el Rey Soberano de los seres humanos"
+  ],
+  [
+    3,
+    "en el [único] Dios de los seres humanos"
+  ],
+  [
+    4,
+    "de la maldad del [demonio] susurrador que huye [cuando el nombre de Dios es mencionado]"
+  ],
+  [
+    5,
+    "que susurra en los corazones de los seres humanos"
+  ],
+  [
+    6,
+    "y existe entre los yinnes y entre los seres humanos"
+  ]
+]

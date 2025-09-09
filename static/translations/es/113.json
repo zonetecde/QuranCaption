@@ -1,0 +1,40 @@
+[
+  {
+    "id": 113,
+    "city": "makkah",
+    "name": {
+      "translated": "El Rayar del Alba",
+      "transliterated": "Al-Falaq",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1604,
+        1602
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-falaq",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "Di: \"Me refugio en el Señor del amanecer"
+  ],
+  [
+    2,
+    "de todo el mal que existe en lo que Él creó"
+  ],
+  [
+    3,
+    "del mal de la oscuridad de la noche cuando se extiende"
+  ],
+  [
+    4,
+    "del mal de las [hechiceras] sopladoras de nudos"
+  ],
+  [
+    5,
+    "y del mal del envidioso cuando envidia"
+  ]
+]

@@ -1,0 +1,33 @@
+[
+  {
+    "id": 108,
+    "city": "makkah",
+    "name": {
+      "translated": "La Abundancia",
+      "transliterated": "Al-Kawthar",
+      "codepoints": [
+        1575,
+        1604,
+        1603,
+        1608,
+        1579,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "al-kawthar",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "[¡Oh, Mujámmad!] te he agraciado con la abundancia"
+  ],
+  [
+    2,
+    "Reza a tu Señor y sacrifica [los animales en Su nombre]"
+  ],
+  [
+    3,
+    "Porque a quien te desdeñe y odie le privaré de todo bien"
+  ]
+]

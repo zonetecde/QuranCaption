@@ -1,0 +1,54 @@
+[
+  {
+    "id": 99,
+    "city": "madinah",
+    "name": {
+      "translated": "El Temblor",
+      "transliterated": "Az-Zalzalah",
+      "codepoints": [
+        1575,
+        1604,
+        1586,
+        1604,
+        1586,
+        1604,
+        1577
+      ]
+    },
+    "ayahs": 8,
+    "slug": "az-zalzalah",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "Cuando la Tierra sea sacudida por el gran terremoto"
+  ],
+  [
+    2,
+    "y expulse su carga [haciendo surgir a los muertos de sus tumbas]"
+  ],
+  [
+    3,
+    "y el hombre diga: \"¿Qué le sucede a la Tierra"
+  ],
+  [
+    4,
+    "Ese día, la Tierra dará testimonio de todo cuanto sucedió sobre ella"
+  ],
+  [
+    5,
+    "por orden de su Señor"
+  ],
+  [
+    6,
+    "Entonces, los seres humanos acudirán al Día del Juicio en grupos para conocer el resultado de sus obras"
+  ],
+  [
+    7,
+    "Quien haya realizado una obra de bien, tan pequeña como un átomo, la encontrará registrada"
+  ],
+  [
+    8,
+    "Y quien haya realizado una mala obra, tan pequeña como un átomo, la encontrará registrada"
+  ]
+]

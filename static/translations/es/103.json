@@ -1,0 +1,32 @@
+[
+  {
+    "id": 103,
+    "city": "makkah",
+    "name": {
+      "translated": "El Tiempo",
+      "transliterated": "Al-'Asr",
+      "codepoints": [
+        1575,
+        1604,
+        1593,
+        1589,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "al-asr",
+    "translator": "Traducción española"
+  },
+  [
+    1,
+    "Juro por el tiempo"
+  ],
+  [
+    2,
+    "que los seres humanos están en la perdición"
+  ],
+  [
+    3,
+    "excepto aquellos que crean, obren rectamente, y se aconsejen mutuamente con la verdad y con la paciencia [ante las adversidades]"
+  ]
+]

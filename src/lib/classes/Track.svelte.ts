@@ -126,8 +126,9 @@ export class Track extends SerializableBase {
 		return new Duration(Math.max(...this.clips.map((clip) => clip.endTime)));
 	}
 
-	getCurrentClip(): Clip | null {
-		const currentTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? 0;
+	getCurrentClip(cursorPos?: number): Clip | null {
+		const currentTime =
+			cursorPos ?? globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? 0;
 
 		for (let index = 0; index < this.clips.length; index++) {
 			const element = this.clips[index];
@@ -393,8 +394,10 @@ export class SubtitleTrack extends Track {
 	 * Retourne la sourate actuellement lue à la position du curseur (pour l'affiche du nom de la
 	 * sourate sur la vidéo)
 	 */
-	getCurrentSurah(): number {
-		const currentClip = this.getCurrentClip();
+	getCurrentSurah(time?: number): number {
+		const cursorPos = time !== undefined ? time : globalState.getTimelineState.cursorPosition;
+
+		const currentClip = this.getCurrentClip(cursorPos);
 
 		if (currentClip instanceof SubtitleClip) {
 			return currentClip.surah;

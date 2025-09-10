@@ -353,26 +353,37 @@
 				// Prend que un seul screenshot et le duplique
 				await duplicateScreenshot(`${sourceIndex}`, imageIndex, chunkImageFolder);
 			} else if (
-				chunkTimings.blankImgs.includes(timing) &&
-				chunkTimings.imgWithNothingShown !== -1
+				hasTiming(chunkTimings.blankImgs, timing).hasIt &&
+				hasBlankImg(
+					chunkTimings.imgWithNothingShown,
+					hasTiming(chunkTimings.blankImgs, timing).surah!
+				)
 			) {
-				// On duplique l'image imgWithNothingShown
-				await duplicateScreenshot('blank', imageIndex, chunkImageFolder);
-				console.log(
-					`Chunk ${chunkIndex}: Duplicating screenshot at timing ${timing} -> image ${imageIndex}`
-				);
+				// Récupérer le numéro de sourate pour ce timing
+				const surahInfo = hasTiming(chunkTimings.blankImgs, timing);
+				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
+
+				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, chunkImageFolder);
+				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
-				globalState.getTimelineState.movePreviewTo = timing;
-				globalState.getTimelineState.cursorPosition = timing;
+				// Important: le +1 sinon le svg de la sourate est le mauvais
+				globalState.getTimelineState.movePreviewTo = timing + 1;
+				globalState.getTimelineState.cursorPosition = timing + 1;
 
 				// si la difference entre timing et celui juste avant est grand, attendre un peu plus
-				await wait(timing, i, chunkTimings.uniqueSorted);
+				await wait();
 
 				await takeScreenshot(`${imageIndex}`, chunkImageFolder);
 
-				// Si c'est l'img blank
-				if (timing === chunkTimings.imgWithNothingShown) {
-					await takeScreenshot('blank');
+				// Vérifier si ce timing correspond à une image blank de référence pour une sourate
+				for (const [surahStr, blankTiming] of Object.entries(chunkTimings.imgWithNothingShown)) {
+					if (timing === blankTiming) {
+						const surahNum = Number(surahStr);
+						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
+						await takeScreenshot(`blank_${surahNum}`, chunkImageFolder);
+						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
+						break; // Une seule sourate par timing
+					}
 				}
 
 				console.log(
@@ -488,6 +499,23 @@
 		}
 	}
 
+	function hasTiming(
+		blankImgs: { [surah: number]: number[] },
+		t: number
+	): {
+		hasIt: boolean;
+		surah: number | null;
+	} {
+		for (const [surahNumb, _timings] of Object.entries(blankImgs)) {
+			if (_timings.includes(t)) return { hasIt: true, surah: Number(surahNumb) };
+		}
+		return { hasIt: false, surah: null };
+	}
+
+	function hasBlankImg(imgWithNothingShown: { [surah: number]: number }, surah: number): boolean {
+		return imgWithNothingShown[surah] !== undefined;
+	}
+
 	async function handleNormalExport(exportStart: number, exportEnd: number, totalDuration: number) {
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
@@ -525,19 +553,34 @@
 				console.log(
 					`Optimisation - Duplicating screenshot from timing ${sourceTimingForDuplication} (image ${sourceIndex}) to timing ${timing} (image ${imageIndex})`
 				);
-			} else if (timings.blankImgs.includes(timing) && timings.imgWithNothingShown !== -1) {
-				await duplicateScreenshot('blank', imageIndex);
+			} else if (
+				hasTiming(timings.blankImgs, timing).hasIt &&
+				hasBlankImg(timings.imgWithNothingShown, hasTiming(timings.blankImgs, timing).surah!)
+			) {
+				// Récupérer le numéro de sourate pour ce timing
+				const surahInfo = hasTiming(timings.blankImgs, timing);
+				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
+
+				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
-				globalState.getTimelineState.movePreviewTo = timing;
-				globalState.getTimelineState.cursorPosition = timing;
+				// Important: le +1 sinon le svg de la sourate est le mauvais
+				globalState.getTimelineState.movePreviewTo = timing + 1;
+				globalState.getTimelineState.cursorPosition = timing + 1;
 
-				await wait(timing, i, timings.uniqueSorted);
+				await wait();
 
 				await takeScreenshot(`${imageIndex}`);
 
-				if (timing === timings.imgWithNothingShown) {
-					await takeScreenshot('blank');
+				// Vérifier si ce timing correspond à une image blank de référence pour une sourate
+				for (const [surahStr, blankTiming] of Object.entries(timings.imgWithNothingShown)) {
+					if (timing === blankTiming) {
+						const surahNum = Number(surahStr);
+						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
+						await takeScreenshot(`blank_${surahNum}`);
+						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
+						break; // Une seule sourate par timing
+					}
 				}
 
 				console.log(`Normal export: Screenshot taken at timing ${timing} -> image ${imageIndex}`);
@@ -601,8 +644,10 @@
 		);
 
 		let timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
-		let imgWithNothingShown: number = -1;
-		let blankImgs: number[] = [];
+		let imgWithNothingShown: { [surah: number]: number } = {}; // Timing où rien n'est affiché (pour dupliquer)
+		let blankImgs: {
+			[surah: number]: number[];
+		} = {};
 		// Map pour stocker les timings qui peuvent être dupliqués
 		let duplicableTimings: Map<number, number> = new Map(); // source -> target
 
@@ -651,10 +696,15 @@
 			} else {
 				console.log('Silence clip detected, skipping fade-in/out timings.');
 
-				if (imgWithNothingShown === -1) {
+				if (
+					imgWithNothingShown[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] ===
+					undefined
+				) {
 					add(endTime);
 				} else {
-					blankImgs.push(Math.round(endTime));
+					blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)].push(
+						Math.round(endTime)
+					);
 				}
 			}
 
@@ -671,10 +721,26 @@
 					return clip.startTime! <= endTime && clip.endTime! >= endTime;
 				})
 			) {
-				if (imgWithNothingShown === -1) {
-					imgWithNothingShown = Math.round(endTime);
+				if (
+					imgWithNothingShown[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] ===
+					undefined
+				) {
+					console.log(
+						'Ajout de limage blank pour sourate ',
+						globalState.getSubtitleTrack.getCurrentSurah(clip.startTime),
+						' au timing ',
+						Math.round(endTime)
+					);
+
+					imgWithNothingShown[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] =
+						Math.round(endTime);
 				} else {
-					blankImgs.push(Math.round(endTime));
+					if (!blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)])
+						blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] = [];
+
+					blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)].push(
+						Math.round(endTime)
+					);
 				}
 			}
 		}
@@ -710,6 +776,8 @@
 		const uniqueSorted = Array.from(new Set(timingsToTakeScreenshots))
 			.filter((t) => t >= rangeStart && t <= rangeEnd)
 			.sort((a, b) => a - b);
+
+		console.log(imgWithNothingShown, blankImgs);
 
 		return { uniqueSorted, imgWithNothingShown, blankImgs, duplicableTimings };
 	}
@@ -957,7 +1025,7 @@
 	 * @param i
 	 * @param uniqueSorted
 	 */
-	async function wait(timing: number, i: number, uniqueSorted: number[]) {
+	async function wait() {
 		// globalState.updateVideoPreviewUI();
 
 		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)

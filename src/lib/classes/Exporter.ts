@@ -208,7 +208,7 @@ export default class Exporter {
 		// Créer une fenêtre Tauri avec la bonne taille
 		const w = new WebviewWindow(exportId, {
 			decorations: false,
-			visible: true,
+			visible: false,
 			alwaysOnTop: false,
 			title: 'QC - ' + exportId,
 			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer

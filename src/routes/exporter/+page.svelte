@@ -294,9 +294,6 @@
 		// Combiner toutes les vidéos en une seule
 		console.log('Concatenating all chunk videos:', generatedVideoFiles);
 
-		// Supprimer les images blanks avant l'export vidéo
-		await deleteBlankImages();
-
 		await concatenateVideos(generatedVideoFiles);
 
 		// Nettoyage final
@@ -958,13 +955,10 @@
 	 * Supprime toutes les images blanks (blank_xxx.png) du dossier spécifié
 	 * @param subfolder Le sous-dossier où supprimer les images blanks (optionnel)
 	 */
-	async function deleteBlankImages(subfolder: string | null = null) {
+	async function deleteBlankImages() {
 		try {
 			// Construire le chemin du dossier
 			const pathComponents = [ExportService.exportFolder, exportId];
-			if (subfolder) pathComponents.push(subfolder);
-
-			const folderPath = await join(...pathComponents);
 
 			// Parcourir tous les fichiers pour trouver les images blank_
 			// On utilise une approche simple en testant les numéros de sourate de 1 à 114

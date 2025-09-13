@@ -193,6 +193,8 @@ export class TranslationsEditorState extends SerializableBase {
 		'completed by default': false
 	});
 
+	searchQuery: string = $state('');
+
 	checkOnlyFilters(list: string[]) {
 		for (const key in this.filters) {
 			if (list.includes(key)) {

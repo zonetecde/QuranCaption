@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Edition } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Section from '../../../Section.svelte';
 	import AskIaModal from '../modal/AskIAModal.svelte';
 	import EditionViewer from './EditionViewer.svelte';
@@ -10,6 +11,21 @@
 	}: {
 		setAddTranslationModalVisibility: (visible: boolean) => void;
 	} = $props();
+
+	// Variable locale pour le search query avant validation
+	let localSearchQuery = $state(globalState.getTranslationsState.searchQuery);
+
+	// Fonction pour valider le search query
+	function validateSearchQuery() {
+		globalState.getTranslationsState.searchQuery = localSearchQuery;
+	}
+
+	// Gestionnaire pour la touche Entrée
+	function handleSearchKeypress(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			validateSearchQuery();
+		}
+	}
 
 	/**
 	 * Récupère le nombre de sous-titres ayant un statut spécifique.
@@ -74,6 +90,34 @@
 			<div class="flex items-center gap-2 mb-4">
 				<span class="material-icons text-accent-primary text-lg">filter_list</span>
 				<h3 class="text-lg font-semibold text-primary">Translation Filters</h3>
+			</div>
+
+			<!-- Search input -->
+			<div class="mb-4 px-1 flex">
+				<input
+					id="search-input"
+					type="text"
+					placeholder="Must contain... (Press Enter to search)"
+					autocomplete="off"
+					class="w-full px-4 py-2 border border-color rounded-r-none! border-r-0!"
+					bind:value={localSearchQuery}
+					onkeypress={handleSearchKeypress}
+				/>
+				<button
+					onclick={validateSearchQuery}
+					class="flex items-center border border-color border-r-0 px-1 hover:bg-blue-300/20"
+				>
+					<span class="material-icons">search</span>
+				</button>
+				<button
+					onclick={() => {
+						localSearchQuery = '';
+						validateSearchQuery();
+					}}
+					class="flex items-center border border-color rounded-r-lg px-1 hover:bg-blue-300/20"
+				>
+					<span class="material-icons">clear</span>
+				</button>
 			</div>
 
 			<!-- Grille des filtres -->

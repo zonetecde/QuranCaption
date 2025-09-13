@@ -40,6 +40,7 @@
 				<button
 					class="group flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-color/30 hover:bg-accent hover:border-blue-300/50 transition-all duration-200 text-left cursor-pointer"
 					onclick={() => {
+						globalState.getTranslationsState.searchQuery = '';
 						// Reset all filters to show everything
 						Object.keys(globalState.getTranslationsState.filters).forEach((key) => {
 							globalState.getTranslationsState.filters[key] = true;

@@ -121,10 +121,15 @@
 			const _ = edition.name;
 		}
 
+		// Lorsqu'on modifie la recherche
+		const search = globalState.getTranslationsState.searchQuery.toLowerCase().trim();
+
 		// Met à jour les traductions à afficher en fonction des filtres
 		const filter = globalState.getTranslationsState.filters;
 
 		untrack(() => {
+			allowedTranslations = {};
+
 			for (const subtitle of globalState.getSubtitleTrack.clips) {
 				if (subtitle.type === 'Subtitle' || subtitle.type === 'Pre-defined Subtitle') {
 					const subtitleId = subtitle.id;
@@ -140,6 +145,14 @@
 
 							// Si son statut est dans le filtre
 							if (filter[translation.status]) {
+								// Si on a une recherche, on regarde si le texte de la traduction contient la recherche
+								if (search) {
+									const translationText = translation.text.toLowerCase();
+									if (!translationText.includes(search)) {
+										continue;
+									}
+								}
+
 								// Si on autorise son affichage dans l'éditeur
 								if (editionsToShowInEditor().some((edition) => edition.name === key)) {
 									// On ajoute l'édition à la liste des traductions autorisées
@@ -161,35 +174,9 @@
 			// Ajuste visibleCount si nécessaire
 			const total = Object.keys(allowedTranslations).length;
 			if (visibleCount > total) visibleCount = total;
+			if (visibleCount === 0 && total > 0) visibleCount = Math.min(PAGE_SIZE, total);
 		});
 	});
-
-	// Fonction pour détecter si le verset a changé par rapport au précédent
-	function isNewVerse(currentIndex: number): boolean {
-		if (currentIndex === 0) return false;
-
-		const currentSubtitle = globalState.getSubtitleTrack.clips[currentIndex];
-		if (!(currentSubtitle.type === 'Subtitle' || currentSubtitle.type === 'Pre-defined Subtitle')) {
-			return false;
-		}
-
-		// Cherche le sous-titre précédent qui est un verset
-		for (let i = currentIndex - 1; i >= 0; i--) {
-			const prevSubtitle = globalState.getSubtitleTrack.clips[i];
-			if (prevSubtitle.type === 'Subtitle' || prevSubtitle.type === 'Pre-defined Subtitle') {
-				// Compare avec SubtitleClip seulement
-				if (currentSubtitle instanceof SubtitleClip && prevSubtitle instanceof SubtitleClip) {
-					return (
-						currentSubtitle.surah !== prevSubtitle.surah ||
-						currentSubtitle.verse !== prevSubtitle.verse
-					);
-				}
-				return true; // Changement si l'un n'est pas SubtitleClip
-			}
-		}
-
-		return false;
-	}
 </script>
 
 <section

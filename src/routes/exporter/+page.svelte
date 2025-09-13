@@ -269,9 +269,12 @@
 			totalTime: totalDuration
 		} as ExportProgress);
 
+		let chunkFolders = [];
+
 		for (let chunkIndex = 0; chunkIndex < chunkInfo.chunks.length; chunkIndex++) {
 			const chunk = chunkInfo.chunks[chunkIndex];
 			const chunkImageFolder = `chunk_${chunkIndex}`;
+			chunkFolders.push(chunkImageFolder);
 			const chunkActualDuration = chunk.end - chunk.start;
 
 			// Générer la vidéo pour ce chunk
@@ -290,6 +293,10 @@
 
 		// Combiner toutes les vidéos en une seule
 		console.log('Concatenating all chunk videos:', generatedVideoFiles);
+
+		// Supprimer les images blanks avant l'export vidéo
+		await deleteBlankImages();
+
 		await concatenateVideos(generatedVideoFiles);
 
 		// Nettoyage final
@@ -380,7 +387,7 @@
 					if (timing === blankTiming) {
 						const surahNum = Number(surahStr);
 						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
-						await takeScreenshot(`blank_${surahNum}`, chunkImageFolder);
+						await takeScreenshot(`blank_${surahNum}`);
 						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
 						break; // Une seule sourate par timing
 					}
@@ -439,9 +446,6 @@
 		);
 
 		console.log(`Generating video for chunk ${chunkIndex}: ${chunkFinalFilePath}`);
-
-		// Supprimer les images blanks avant l'export vidéo
-		await deleteBlankImages(chunkImageFolder);
 
 		try {
 			await invoke('export_video', {
@@ -600,6 +604,8 @@
 				totalTime: totalDuration
 			} as ExportProgress);
 		}
+
+		await deleteBlankImages();
 
 		// Générer la vidéo normale
 		await generateNormalVideo(exportStart, totalDuration);
@@ -925,7 +931,7 @@
 		const targetPathComponents = [ExportService.exportFolder, exportId];
 
 		if (subfolder) {
-			if (sourceFileName !== 'blank') sourcePathComponents.push(subfolder);
+			if (!sourceFileName.toString().includes('blank')) sourcePathComponents.push(subfolder);
 			targetPathComponents.push(subfolder);
 		}
 

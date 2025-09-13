@@ -137,7 +137,7 @@ export default class Exporter {
 					const timeFormatted = Exporter.formatTimeForYouTube(clip.startTime);
 					chapters.push({
 						time: timeFormatted,
-						title: `${clip.surah}:${clip.verse}`
+						title: `Surah ${clip.surah}, Verse ${clip.verse}`
 					});
 				}
 			}

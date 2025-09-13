@@ -460,7 +460,8 @@
 				duration: Math.round(chunkDuration),
 				audios: audios,
 				videos: videos,
-				chunkIndex: chunkIndex
+				chunkIndex: chunkIndex,
+				blur: globalState.getStyle('global', 'overlay-blur')!.value as number
 			});
 
 			console.log(`✅ Chunk ${chunkIndex} video generated successfully`);
@@ -826,7 +827,8 @@
 				startTime: exportStart,
 				duration: Math.round(duration),
 				audios: audios,
-				videos: videos
+				videos: videos,
+				blur: globalState.getStyle('global', 'overlay-blur')!.value as number
 			});
 		} catch (e: any) {
 			emitProgress({

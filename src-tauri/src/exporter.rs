@@ -324,14 +324,27 @@ fn choose_best_codec(prefer_hw: bool) -> (String, Vec<String>, HashMap<String, O
     (codec, params, extra)
 }
 
-fn ffmpeg_preprocess_video(src: &str, dst: &str, w: i32, h: i32, fps: i32, prefer_hw: bool, start_ms: Option<i32>, duration_ms: Option<i32>) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+fn ffmpeg_preprocess_video(src: &str, dst: &str, w: i32, h: i32, fps: i32, prefer_hw: bool, start_ms: Option<i32>, duration_ms: Option<i32>, blur: Option<f64>) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let (codec, params, extra) = choose_best_codec(prefer_hw);
     let exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
 
-    let vf = format!(
-        "scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,fps={},setsar=1",
-        w, h, w, h, fps
-    );
+    // Construire le filtre vidéo avec blur optionnel
+    let mut vf_parts = vec![
+        format!("scale=w={}:h={}:force_original_aspect_ratio=decrease", w, h),
+        format!("pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black", w, h),
+    ];
+    
+    // Ajouter le flou si spécifié et > 0
+    if let Some(blur_value) = blur {
+        if blur_value > 0.0 {
+            vf_parts.push(format!("gblur=sigma={}", blur_value));
+        }
+    }
+    
+    vf_parts.push(format!("fps={}", fps));
+    vf_parts.push("setsar=1".to_string());
+    
+    let vf = vf_parts.join(",");
 
     let mut cmd = Command::new(&exe);
 
@@ -380,15 +393,23 @@ fn ffmpeg_preprocess_video(src: &str, dst: &str, w: i32, h: i32, fps: i32, prefe
     Ok(())
 }
 
-fn create_video_from_image(image_path: &str, output_path: &str, w: i32, h: i32, fps: i32, duration_s: f64, prefer_hw: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn create_video_from_image(image_path: &str, output_path: &str, w: i32, h: i32, fps: i32, duration_s: f64, prefer_hw: bool, blur: Option<f64>) -> Result<(), Box<dyn std::error::Error>> {
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     
-    // Filtres pour imiter object-cover CSS :
-    // 1. scale pour ajuster la taille en gardant le ratio
-    // 2. crop pour centrer et recadrer si nécessaire
-    let scale_filter = format!("scale={}:{}:force_original_aspect_ratio=increase", w, h);
-    let crop_filter = format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h);
-    let video_filter = format!("{},{}", scale_filter, crop_filter);
+    // Construire le filtre vidéo avec blur optionnel
+    let mut vf_parts = vec![
+        format!("scale={}:{}:force_original_aspect_ratio=increase", w, h),
+        format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h),
+    ];
+    
+    // Ajouter le flou si spécifié et > 0
+    if let Some(blur_value) = blur {
+        if blur_value > 0.0 {
+            vf_parts.push(format!("gblur=sigma={}", blur_value));
+        }
+    }
+    
+    let video_filter = vf_parts.join(",");
     
     // Choisir le meilleur codec avec détection automatique
     let (codec, codec_params, codec_extra) = choose_best_codec(prefer_hw);
@@ -447,7 +468,7 @@ fn is_image_file(path: &str) -> bool {
     path_lower.ends_with(".tiff") || path_lower.ends_with(".tif")
 }
 
-fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32, prefer_hw: bool, start_time_ms: i32, duration_ms: Option<i32>) -> Vec<String> {
+fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32, prefer_hw: bool, start_time_ms: i32, duration_ms: Option<i32>, blur: Option<f64>) -> Vec<String> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
     fs::create_dir_all(&cache_dir).ok();
@@ -462,13 +483,16 @@ fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32
         };
 
         // Construire un nom de cache unique pour l'image
-        let hash_input = format!("{}-{}x{}-{}-dur{}", image_path, w, h, fps, duration_s);
+        let blur_suffix = if let Some(b) = blur {
+            if b > 0.0 { format!("-blur{}", b) } else { String::new() }
+        } else { String::new() };
+        let hash_input = format!("{}-{}x{}-{}-dur{}{}", image_path, w, h, fps, duration_s, blur_suffix);
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("img-bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
 
         if !dst.exists() {
-            match create_video_from_image(image_path, &dst.to_string_lossy(), w, h, fps, duration_s, prefer_hw) {
+            match create_video_from_image(image_path, &dst.to_string_lossy(), w, h, fps, duration_s, prefer_hw, blur) {
                 Ok(_) => {},
                 Err(e) => {
                     println!("[preproc][ERREUR] Impossible de créer la vidéo à partir de l'image: {:?}", e);
@@ -522,15 +546,18 @@ fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32
             continue;
         }
 
-        // Construire un nom de cache unique qui inclut les offsets
-        let hash_input = format!("{}-{}x{}-{}-start{}-len{}", p, w, h, fps, start_within, take_ms);
+        // Construire un nom de cache unique qui inclut les offsets et le blur
+        let blur_suffix = if let Some(b) = blur {
+            if b > 0.0 { format!("-blur{}", b) } else { String::new() }
+        } else { String::new() };
+        let hash_input = format!("{}-{}x{}-{}-start{}-len{}{}", p, w, h, fps, start_within, take_ms, blur_suffix);
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
 
         if !dst.exists() {
             // Appeler ffmpeg_preprocess_video avec les offsets locaux
-            match ffmpeg_preprocess_video(p, &dst.to_string_lossy(), w, h, fps, prefer_hw, Some(start_within as i32), Some(take_ms as i32)) {
+            match ffmpeg_preprocess_video(p, &dst.to_string_lossy(), w, h, fps, prefer_hw, Some(start_within as i32), Some(take_ms as i32), blur) {
                 Ok(_) => {},
                 Err(e) => {
                     println!("[preproc][ERREUR] {:?}", e);
@@ -595,6 +622,7 @@ fn build_and_run_ffmpeg_filter_complex(
     imgs_cwd: Option<&str>,
     duration_ms: Option<i32>,
     chunk_index: Option<i32>,
+    blur: Option<f64>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let (w, h) = target_size;
@@ -638,7 +666,7 @@ fn build_and_run_ffmpeg_filter_complex(
     
     let mut pre_videos = Vec::new();
     if !bg_videos.is_empty() {
-        pre_videos = preprocess_background_videos(bg_videos, w, h, fps, prefer_hw, start_time_ms, duration_ms);
+        pre_videos = preprocess_background_videos(bg_videos, w, h, fps, prefer_hw, start_time_ms, duration_ms, blur);
     }
     
     let mut total_bg_s = 0.0;
@@ -1088,6 +1116,7 @@ pub async fn export_video(
     audios: Option<Vec<String>>,
     videos: Option<Vec<String>>,
     chunk_index: Option<i32>,
+    blur: Option<f64>,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     let t0 = Instant::now();
@@ -1222,6 +1251,7 @@ pub async fn export_video(
             Some(&imgs_folder_resolved),
             duration,
             chunk_index,
+            blur,
             app_handle,
         )
     }).await

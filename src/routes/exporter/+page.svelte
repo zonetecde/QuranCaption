@@ -673,6 +673,7 @@
 			if (duration <= 0) continue;
 
 			if (!(clip instanceof SilenceClip)) {
+				console.log('Processing subtitle clip:', clip);
 				const fadeInEnd = Math.min(startTime + fadeDuration, endTime);
 				const fadeOutStart = endTime - fadeDuration;
 
@@ -709,6 +710,9 @@
 				) {
 					add(endTime);
 				} else {
+					if (!blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)])
+						blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] = [];
+
 					blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)].push(
 						Math.round(endTime)
 					);

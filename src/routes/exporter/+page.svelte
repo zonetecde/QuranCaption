@@ -371,8 +371,8 @@
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
-				globalState.getTimelineState.movePreviewTo = timing + 1;
-				globalState.getTimelineState.cursorPosition = timing + 1;
+				globalState.getTimelineState.movePreviewTo = timing;
+				globalState.getTimelineState.cursorPosition = timing;
 
 				// si la difference entre timing et celui juste avant est grand, attendre un peu plus
 				await wait();
@@ -382,6 +382,10 @@
 				// Vérifier si ce timing correspond à une image blank de référence pour une sourate
 				for (const [surahStr, blankTiming] of Object.entries(chunkTimings.imgWithNothingShown)) {
 					if (timing === blankTiming) {
+						// monte de 1 le timing pour avoir le svg correct
+						globalState.getTimelineState.movePreviewTo = timing - 1;
+						globalState.getTimelineState.cursorPosition = timing - 1;
+						await wait();
 						const surahNum = Number(surahStr);
 						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
 						await takeScreenshot(`blank_${surahNum}`);
@@ -1090,5 +1094,13 @@
 		<div class="hidden">
 			<Timeline />
 		</div>
+
+		<!-- affiche le current timing -->
+		<!-- <div
+			id="export-timing-indicator"
+			class="absolute top-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-md text-sm select-none z-[99999]"
+		>
+			{globalState.getTimelineState.cursorPosition}
+		</div> -->
 	</div>
 {/if}

@@ -133,6 +133,9 @@ export class VideoPreviewState extends SerializableBase {
 	// Indique si on doit mute la vidéo
 	showVideosAndAudios: boolean = $state(false);
 
+	// Fonction pour toggle play/pause, sera définie par le composant VideoPreview
+	togglePlayPause: () => void = () => {};
+
 	async toggleFullScreen() {
 		const appWindow = getCurrentWindow();
 

@@ -131,6 +131,16 @@ class GlobalState {
 		globalState.getTimelineState.cursorPosition =
 			globalState.getTimelineState.cursorPosition + 0.01;
 	}
+
+	getEditionFromAuthor(author: string): Edition | null {
+		for (const lang of Object.keys(this.availableTranslations)) {
+			const edition = this.availableTranslations[lang].translations.find(
+				(e) => e.author === author
+			);
+			if (edition) return edition;
+		}
+		return null;
+	}
 }
 
 export const globalState = new GlobalState();

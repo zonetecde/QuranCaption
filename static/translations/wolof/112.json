@@ -1,0 +1,38 @@
+[
+  {
+    "id": 112,
+    "city": "makkah",
+    "name": {
+      "translated": "The Sincerity",
+      "transliterated": "Al-Ikhlas",
+      "codepoints": [
+        1575,
+        1604,
+        1573,
+        1582,
+        1604,
+        1575,
+        1589
+      ]
+    },
+    "ayahs": 4,
+    "slug": "al-ikhlas",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jagglewaakoon bi) Neel Yàlla keen la"
+  ],
+  [
+    2,
+    "Yàlla Mooy jubluwaay [ba ñépp soxla te soxlaalul kenn]"
+  ],
+  [
+    3,
+    "jurul juréefu Ko"
+  ],
+  [
+    4,
+    "Te amul been nawle, kenn a la"
+  ]
+]

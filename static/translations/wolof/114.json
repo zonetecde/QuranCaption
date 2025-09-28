@@ -1,0 +1,44 @@
+[
+  {
+    "id": 114,
+    "city": "makkah",
+    "name": {
+      "translated": "Mankind",
+      "transliterated": "An-Nas",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1575,
+        1587
+      ]
+    },
+    "ayahs": 6,
+    "slug": "an-nas",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jagglewaakoon bi) Neel Maa ngi làqu ci Boroom nit ñi"
+  ],
+  [
+    2,
+    "Di Buuru nit ñi"
+  ],
+  [
+    3,
+    "Di Yàlla nit ñi"
+  ],
+  [
+    4,
+    "[Ngir mu musël ma] ci ayu kiy jaxjaxal di njuuy"
+  ],
+  [
+    5,
+    "Di jaxjaxal ci xolu nit ñi"
+  ],
+  [
+    6,
+    "Te bokk ci jiiné yi ak ci nit ñi"
+  ]
+]

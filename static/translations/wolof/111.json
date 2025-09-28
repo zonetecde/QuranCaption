@@ -1,0 +1,40 @@
+[
+  {
+    "id": 111,
+    "city": "makkah",
+    "name": {
+      "translated": "The Palm Fiber",
+      "transliterated": "Al-Masad",
+      "codepoints": [
+        1575,
+        1604,
+        1605,
+        1587,
+        1583
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-masad",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jagglewaakoon bi) Pexeem Abu Lahab alku na te sànku na [moom ci boppam]"
+  ],
+  [
+    2,
+    "Alalam ak la mu fàggu woon du ñu ko jariñ dara"
+  ],
+  [
+    3,
+    "di na séndëlu ci safara suy boroomi tàkktàkk"
+  ],
+  [
+    4,
+    "ak jabaram yanukatu matta"
+  ],
+  [
+    5,
+    "nekk na ca loosam wa buumu xillit [nuum gu dëgër teñagas]"
+  ]
+]

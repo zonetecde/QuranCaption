@@ -1,0 +1,47 @@
+[
+  {
+    "id": 109,
+    "city": "makkah",
+    "name": {
+      "translated": "The Disbelievers",
+      "transliterated": "Al-Kafirun",
+      "codepoints": [
+        1575,
+        1604,
+        1603,
+        1575,
+        1601,
+        1585,
+        1608,
+        1606
+      ]
+    },
+    "ayahs": 6,
+    "slug": "al-kafirun",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Neel : éey yéen yéeféer yi"
+  ],
+  [
+    2,
+    "du ma Jaamu li ngéen di jaamu"
+  ],
+  [
+    3,
+    "Te yéenit doo léen jàamu li may jàamu"
+  ],
+  [
+    4,
+    "Te déet nun nuy way jàamu li ngéen di jàamu"
+  ],
+  [
+    5,
+    "Te yéenit doo léen jàamu li may jàamu"
+  ],
+  [
+    6,
+    "Ñeel na léen séen diiné man it ñeel na ma sama diiné"
+  ]
+]

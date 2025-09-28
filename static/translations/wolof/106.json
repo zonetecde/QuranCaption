@@ -1,0 +1,35 @@
+[
+  {
+    "id": 106,
+    "city": "makkah",
+    "name": {
+      "translated": "Quraysh",
+      "transliterated": "Quraysh",
+      "codepoints": [
+        1602,
+        1585,
+        1610,
+        1588
+      ]
+    },
+    "ayahs": 4,
+    "slug": "quraysh",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jaglewaakoon bi) Ngir wa xuraysin déggóo"
+  ],
+  [
+    2,
+    "déggóo ci tukki jamano sedd ak bu tàngaay"
+  ],
+  [
+    3,
+    "Na ñu jaamu Boroom néeg bii [Kaaba gi]"
+  ],
+  [
+    4,
+    "Moom Mi léen di xettali ci dund bu léen fegal xiif, te jox léen kóoluté ci fegal léen njàqare"
+  ]
+]

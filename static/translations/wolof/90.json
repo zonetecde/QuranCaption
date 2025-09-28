@@ -1,0 +1,100 @@
+[
+  {
+    "id": 90,
+    "city": "makkah",
+    "name": {
+      "translated": "The City",
+      "transliterated": "Al-Balad",
+      "codepoints": [
+        1575,
+        1604,
+        1576,
+        1604,
+        1583
+      ]
+    },
+    "ayahs": 20,
+    "slug": "al-balad",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Maa ngi waat ci réew mii"
+  ],
+  [
+    2,
+    "te yow yaa ngi dëkk ci réew mii"
+  ],
+  [
+    3,
+    "ak ki jur ak la mu jur"
+  ],
+  [
+    4,
+    "ca dëgg bind na Nu nit ci coono"
+  ],
+  [
+    5,
+    "ndax dafa njort u ne kenn man alu ko dara"
+  ],
+  [
+    6,
+    "mu naan sànk naa alal ju bari"
+  ],
+  [
+    7,
+    "ndax dafa defe ne kenn gisu ko"
+  ],
+  [
+    8,
+    "ndax da Nu ko defalul ñaari gët"
+  ],
+  [
+    9,
+    "ak làmmeñ ak ñaari tuñ"
+  ],
+  [
+    10,
+    "Nu won ko ñaari yoon yi"
+  ],
+  [
+    11,
+    "Lu teewoon mu jéema joggi njoggal ma"
+  ],
+  [
+    12,
+    "Lu lay xamal luy joggal ma"
+  ],
+  [
+    13,
+    "[mooy] xobbi jaam"
+  ],
+  [
+    14,
+    "walla lele ci bésu xiif"
+  ],
+  [
+    15,
+    "[jox ñam] jirim bu di ku ñàkk"
+  ],
+  [
+    16,
+    "walla néew ji doole bu di ku ñàkk"
+  ],
+  [
+    17,
+    "Te fekk mu bokk ci way gëm ñi , te ñuy dénkante muñ di dénkante yërmëndé"
+  ],
+  [
+    18,
+    "ñooñu ñooy waa ndijjoor"
+  ],
+  [
+    19,
+    "waaye ñi weddi Sumuy kàddu ñoom ñooy waa càmmoñ"
+  ],
+  [
+    20,
+    "[di na ñu nekk] ci safara su ñu dëpp ci séen kow"
+  ]
+]

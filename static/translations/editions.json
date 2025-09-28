@@ -3969,6 +3969,24 @@
 			}
 		]
 	},
+	"Wolof": {
+		"flag": "https://flagsapi.com/SN/flat/64.png",
+		"basmala": "Ci turu Yàlla yërëmaakoon bi [biy xéewël mbindéefam yépp ci àddina] jaglewaakoon [biy berndee waay gëm yi ca àllaaxira]",
+		"istiadhah": "Nuy joxoon Yàlla ci sañ-sañu shaytan",
+		"translations": [
+			{
+				"key": "wol_assanesylla",
+				"name": "wol-assanesylla",
+				"author": "Professor Assane Sylla",
+				"language": "Wolof",
+				"direction": "ltr",
+				"source": "https://alhafiz.jappandal.org/",
+				"comments": "Ponctuation",
+				"link": "/translations/wolof/{chapter}.json",
+				"linkmin": "/translations/wolof/{chapter}.json"
+			}
+		]
+	},
 	"Xhosa": {
 		"flag": "https://flagsapi.com/ZA/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",

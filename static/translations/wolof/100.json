@@ -1,0 +1,67 @@
+[
+  {
+    "id": 100,
+    "city": "makkah",
+    "name": {
+      "translated": "The Courser",
+      "transliterated": "Al-'Adiyat",
+      "codepoints": [
+        1575,
+        1604,
+        1593,
+        1575,
+        1583,
+        1610,
+        1575,
+        1578
+      ]
+    },
+    "ayahs": 11,
+    "slug": "al-adiyat",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi  jaglewaakoon bi ) Giñ Naa ci fas yay daw di xiixët"
+  ],
+  [
+    2,
+    "di taal ay ferñeent [ca séen suufu we],"
+  ],
+  [
+    3,
+    "di waay song ca subë"
+  ],
+  [
+    4,
+    "te ñuy ca jexxi pënd,"
+  ],
+  [
+    5,
+    "di bàyyi mboolo ca diggi [pënd ba],"
+  ],
+  [
+    6,
+    "ne nakka nit ku goreedi la ci Boroomam [ngir dey fakk jëf]"
+  ],
+  [
+    7,
+    "Te loolu moom ci boppam nekk na ci seede"
+  ],
+  [
+    8,
+    "te moom dafa bëgg alal mbëggéel gu tar"
+  ],
+  [
+    9,
+    "Ndax da fa xamul ne bu ñu dekkalee li nekk ci biir bàmmeel yi,"
+  ],
+  [
+    10,
+    "te ñu liññëntu li nekk ci dënë yi,"
+  ],
+  [
+    11,
+    "séen Boroom kéroog ku xam séen lépp la [ku deñ ciy kump la]"
+  ]
+]

@@ -1,0 +1,333 @@
+[
+  {
+    "id": 55,
+    "city": "madinah",
+    "name": {
+      "translated": "The Beneficent",
+      "transliterated": "Ar-Rahman",
+      "codepoints": [
+        1575,
+        1604,
+        1585,
+        1581,
+        1605,
+        1606
+      ]
+    },
+    "ayahs": 78,
+    "slug": "ar-rahman",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Yërëmaakoon bi,"
+  ],
+  [
+    2,
+    "xamle Na alxuraan"
+  ],
+  [
+    3,
+    "Moo bind nit"
+  ],
+  [
+    4,
+    "xamal ko wax [juy leeral xelaatam]"
+  ],
+  [
+    5,
+    "janta bi ak weer wi nekk na ñu cik nattale [gu méngëlé séen dawin]"
+  ],
+  [
+    6,
+    "Te gàncax yi ak garab yi di na ñu toroxlu"
+  ],
+  [
+    7,
+    "Asamaan si Moo ko yékëti tërël màndute."
+  ],
+  [
+    8,
+    "Ngir ngéen baña jeng ci peeseekaay yi."
+  ],
+  [
+    9,
+    "Te ngéen jubël peese, di ko def ak màndute, te bu léen wàññi peese"
+  ],
+  [
+    10,
+    "Te suuf si defar Na ko ngir [njariñi] mbindéef"
+  ],
+  [
+    11,
+    "Am na ci ay meññent aki garabu tàndarma yu di boroomi këmbóot"
+  ],
+  [
+    12,
+    "aki pepp yu sàngoo séen cox ak [tóortóor] yay xeeñ."
+  ],
+  [
+    13,
+    "Koon ban ci séen xéewËli Boroom ngéen di weddi [yéen ñaar , nit ak jinné] ?"
+  ],
+  [
+    14,
+    "Bind Na nit ci ban bu woow koŋ ba mel ni xàndeer"
+  ],
+  [
+    15,
+    "Te bind jinné [Ibliis baayi jinné yi] ci tàkk-tàkk safara, bu amul saxaar"
+  ],
+  [
+    16,
+    "Koon ban ci séen xéewëli Boroom ngéen di weddi"
+  ],
+  [
+    17,
+    "Moom Miy Boroom ñaari penku yi tey Boroom ñaari sowu yi,"
+  ],
+  [
+    18,
+    "Koon ban ci séen xéewëli Boroom ngéen di weddi"
+  ],
+  [
+    19,
+    "Moo yolal ñaari géej ñu daje"
+  ],
+  [
+    20,
+    "ab digëlé nekk ci séen digënté ba du ñu jaxasoo"
+  ],
+  [
+    21,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    22,
+    "wurusu luulu ak bu marjaan di na ñu génn ci ñoom ñaar."
+  ],
+  [
+    23,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    24,
+    "Moo moom gaal ya ñu sos, ñuy daw ci géej mel niy tundu doj"
+  ],
+  [
+    25,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    26,
+    "Lépp lu ne ci kow suuf dey dee"
+  ],
+  [
+    27,
+    "Des fi sa jëmmu Boroom bi di Boroom màgg ak teraanga"
+  ],
+  [
+    28,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    29,
+    "Kepp ku nekk ci asamaan yi ak ci suuf si di na Ko ñaan, te bés bu nekk , Mu ngi ci mbir mu bees"
+  ],
+  [
+    30,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    31,
+    "Di na Nu jublu ci yèen , yèen ñaari way diis ñi"
+  ],
+  [
+    32,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    33,
+    "yéen mbooleem jinné ak nit , ndéem man ngéen-a génn dem ca goxu asamaan ak suuf si dem léen , doo léen man  génn ludul ci kàntan"
+  ],
+  [
+    34,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    35,
+    "Dees na léen sànni ay jumu safara ak jumu saxaar te du ngéen ci man dara"
+  ],
+  [
+    36,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    37,
+    "Bu asamaan si xaree , mu nekk lu xonq mel ni der [wu ñu wulli]"
+  ],
+  [
+    38,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    39,
+    "Bés booba deesul laaj nit ak jinné dara ci séen bàkkaar"
+  ],
+  [
+    40,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    41,
+    "Def na xàmmee saay-saay ña ca séeni màndarga , deff na léen jàppa ci séeni jubbë ak séeni ndëggu [tànk]"
+  ],
+  [
+    42,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    43,
+    "Lii moodi safar bi saay-saay yi daan weddi"
+  ],
+  [
+    44,
+    "Di na ñu ca nekk di wër ci digëntéem ak ndox mu tàng jér."
+  ],
+  [
+    45,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    46,
+    "Ñeel na képp ku ragal taxawaayu Boroomam ñaari àjjana"
+  ],
+  [
+    47,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    48,
+    "ñoom ñaar ñépp di boroomi cëq cËqi [meññent]"
+  ],
+  [
+    49,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    50,
+    "Ci ñoom ñaar ñépp nekk na ca ñaari bËti ndox yuy daw"
+  ],
+  [
+    51,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    52,
+    "nekk na ci ñoom ñaar ñaari xeet ci ci bépp foytéef"
+  ],
+  [
+    53,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    54,
+    "[way texe ña] sëwaanu ciy lal yoo xam ne laltaay ya sooy bu tal la, te meññent ñaari àjjana yooyu nekk lu léen jigeñ"
+  ],
+  [
+    55,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    56,
+    "nekk na ca jiggéen yu séen gis gàtta [yam ci séen jëkër], kenn mosu léen laal , du nit , du jiiné , lu léen jiitu."
+  ],
+  [
+    57,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    58,
+    "Da ñu mel ni wurusu yaxuut ak bu marjaan"
+  ],
+  [
+    59,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    60,
+    "Ndax peyu lu rafet nekkul di lu rafet"
+  ],
+  [
+    61,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    62,
+    "Te ginnaaw ñoom ñaar , am na yeneen ñaari tool"
+  ],
+  [
+    63,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    64,
+    "yu nëtëx ba xaw ñuul"
+  ],
+  [
+    65,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    66,
+    "nekk na ci ñoom ñaar sewnde yuy balla"
+  ],
+  [
+    67,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    68,
+    "nekk na ca ñoom ñaar ay foytéef , ay garabu tàndarma ak bu grënaad"
+  ],
+  [
+    69,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    70,
+    "nekk na ca ñoom ñaar ay tànneefu jigéen yu rafet"
+  ],
+  [
+    71,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    72,
+    "di ñu séen bët weex, di ñu ñu ga ca séen kër ya."
+  ],
+  [
+    73,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    74,
+    "keen mosul léen laal , lu léen jiitu , du nit du jinné"
+  ],
+  [
+    75,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    76,
+    "ñu sëwéenu [ñoom jigéen ñooñu] ciy negenaay yu am melo xobu garab , ak ci laltaay yu rafet lool."
+  ],
+  [
+    77,
+    "koon ban ci séen xéewëli Boroom ngéen di weddi ?"
+  ],
+  [
+    78,
+    "Barkeel na sa tutu Boroom bi di Boroomug màgg ak teraanga"
+  ]
+]

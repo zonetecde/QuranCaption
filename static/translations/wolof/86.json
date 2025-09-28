@@ -1,0 +1,89 @@
+[
+  {
+    "id": 86,
+    "city": "makkah",
+    "name": {
+      "translated": "The Nightcommer",
+      "transliterated": "At-Tariq",
+      "codepoints": [
+        1575,
+        1604,
+        1591,
+        1575,
+        1585,
+        1602
+      ]
+    },
+    "ayahs": 17,
+    "slug": "at-tariq",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Giñ Naa ci asamaan si ak biddéew [bu léer bi] Taarix"
+  ],
+  [
+    2,
+    "Lu lay xamal Taarix"
+  ],
+  [
+    3,
+    "Biddéew bu léer la"
+  ],
+  [
+    4,
+    "Amul benn baken bu amul aji wottu bu nekk ci moom"
+  ],
+  [
+    5,
+    "Na nit seetlu li ñu ko bindé"
+  ],
+  [
+    6,
+    "bindéef na ko ci ndox mu jiñu ak doole,"
+  ],
+  [
+    7,
+    "mu génné ci digënté ndigg ak yaxu baat"
+  ],
+  [
+    8,
+    "Te Moom [Yàlla] am na kàntan ci dellu bindaat ko"
+  ],
+  [
+    9,
+    "Bés bu ñu nattoo mbóot ya [feeñal léen]"
+  ],
+  [
+    10,
+    "[keroog nit] du am doole du am ndimmël"
+  ],
+  [
+    11,
+    "Giñ Naa ci asamaan si di boroom [taw buy] déllu si"
+  ],
+  [
+    12,
+    "ak suuf si di boroom xar-xar"
+  ],
+  [
+    13,
+    "nakka moom [alxuraan] wax la juy teqale [dëgg ak fén]."
+  ],
+  [
+    14,
+    "Du waxu caaxaan"
+  ],
+  [
+    15,
+    "Nakka ñoom fexe na ñu pexe"
+  ],
+  [
+    16,
+    "Ma fexe am pexe"
+  ],
+  [
+    17,
+    "Koon na nga muñël weddi ñi, na nga léen muñël def léen ndànk"
+  ]
+]

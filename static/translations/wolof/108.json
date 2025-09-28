@@ -1,0 +1,33 @@
+[
+  {
+    "id": 108,
+    "city": "makkah",
+    "name": {
+      "translated": "The Abundance",
+      "transliterated": "Al-Kawthar",
+      "codepoints": [
+        1575,
+        1604,
+        1603,
+        1608,
+        1579,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "al-kawthar",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jaglewaakoon bi) Nun mey na Nu la Kawsara"
+  ],
+  [
+    2,
+    "Koon jullilal sa Boroom te nga rendi"
+  ],
+  [
+    3,
+    "ki la bañ moom mooy ki ñàkk ngirte"
+  ]
+]

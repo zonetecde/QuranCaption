@@ -1,0 +1,40 @@
+[
+  {
+    "id": 105,
+    "city": "makkah",
+    "name": {
+      "translated": "The Elephant",
+      "transliterated": "Al-Fil",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1610,
+        1604
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-fil",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jaglewaakoon bi) Ndax gis nga ni sa Borom def ak boroomi ñay wa ?"
+  ],
+  [
+    2,
+    "Ndax deful séen pexe ma yàqu"
+  ],
+  [
+    3,
+    "Mu yónnée léen ay picc yu nekk ay naax"
+  ],
+  [
+    4,
+    "Yu léen sànni ay xeer yu jógé Sijjiil"
+  ],
+  [
+    5,
+    "[ñu riitëlé léen] ba ñu mel ni dank bu ñu yéy"
+  ]
+]

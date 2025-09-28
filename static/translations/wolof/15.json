@@ -1,0 +1,416 @@
+[
+  {
+    "id": 15,
+    "city": "makkah",
+    "name": {
+      "translated": "The Rocky Tract",
+      "transliterated": "Al-Hijr",
+      "codepoints": [
+        1575,
+        1604,
+        1581,
+        1580,
+        1585
+      ]
+    },
+    "ayahs": 99,
+    "slug": "al-hijr",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Alif Lam Raa, àttey téeré bi, ñu ngi nii, dim njàngale buy birël [dëgg]"
+  ],
+  [
+    2,
+    "Amaana, ñi weddi ñu ngi ne seew nek jullit."
+  ],
+  [
+    3,
+    "Bàyyi léen ñuy lekk ak xéewlu, tey mébët li léen soxlaal, di na ñu mosa xami;"
+  ],
+  [
+    4,
+    "Du Nu alag benn dëkk te fekka amul àppa bu ñu xam."
+  ],
+  [
+    5,
+    "Benn xeet du jiitu àppam te it manu ko weesu."
+  ],
+  [
+    6,
+    "Ñu naan ko: éey yow mi wàcceef na ci yow téeré bi, yow dof dëgg nga."
+  ],
+  [
+    7,
+    "Lu teewoon nga indil nu ay malaaka ndéem bokk nga ci ñu dëggu ñi"
+  ],
+  [
+    8,
+    "Nun du Nu wàcce ay malaaka, ludul ci dëgg [gu ñu doxal mu jéex] te koon doo léen nekk ñu ñu muñël ab diir."
+  ],
+  [
+    9,
+    "Nun Noo wàcce téeré bi te Nun Noo koy wottu"
+  ],
+  [
+    10,
+    "Yónni na Nu, ca la la jiitu, ay yonnenta ca kurél yu jëkk ya."
+  ],
+  [
+    11,
+    "Te ab yonnenta daawu léen dikkal te nekku ñu di ko yéjj [di ko ñaawal]."
+  ],
+  [
+    12,
+    "Noonu la Nu koy tàbbale ci xolu saay-saay yi."
+  ],
+  [
+    13,
+    "Du ñu ko gëm, te aaday ñu jëkk ña wéy na."
+  ],
+  [
+    14,
+    "Te su Nu léen ubbiloon ab bunta ci asamaan ñu man caa yendoo yéeg."
+  ],
+  [
+    15,
+    "Koonit faw ñu wax : da ñu gëlëmël sunuy bët, wàlla mbook nu nekk ay nit yu ñu jibar."
+  ],
+  [
+    16,
+    "Def na Nu ci asamaan ay ngunu, Nu rafetal léen ci ñi léen di xool."
+  ],
+  [
+    17,
+    "Te Nu wottu ko ba bépp Seytaane bu ñu rëbb [du fa àgg]"
+  ],
+  [
+    18,
+    "Ginnaaw kay jéemë sàcc lu mu dégg, tax ay njum yuy tàkk toppali ko."
+  ],
+  [
+    19,
+    "Suuf si tàllal na Nu ko te sampa na Nu ci ay tundu doj [yu tax mu dal] te Nu saxal ci bépp xeetu gàncax yu ñu nattale."
+  ],
+  [
+    20,
+    "Nu defal léen si loo léen dundé yéen ak ñeneen ñoo xam ne nekkuléen ñi léen di wërsëgël."
+  ],
+  [
+    21,
+    "Amul dara loo xam ne ndambam [lu ne gàññ] nekkul ci Nun, waaye du Nu ci wàcce ludul cib natta bu ñu xam [bu yam ak li doy]"
+  ],
+  [
+    22,
+    "Nu yónni ngilaw luy sos [taw ci niir yi], Nu wàcce ndox mu jógé asamaan, Nu nàndal léen ci, te nekku léen woon ñu ko man a denc."
+  ],
+  [
+    23,
+    "Te Nun, Nooy dundël, Nooy rey, te Nun Nooy way donna [àddina bi yépp]"
+  ],
+  [
+    24,
+    "Sunu xamxam ëmbë na ña jiituwoon ak ñay mujj ci yéen."
+  ],
+  [
+    25,
+    "Nakka sa Boroom Moom di Na léen fang [dajale] ñoom ñépp, nakka Moom aji xereñ la aji xam la."
+  ],
+  [
+    26,
+    "Bind na Nu nit ci ban bu wow bu jógé ci binit buy tàwiku."
+  ],
+  [
+    27,
+    "Té jinné bind na Nu ko ci lu jiitu loolu, ci safara wu xonx coy."
+  ],
+  [
+    28,
+    "[Fàttalikul] ba sa Boroom waxee Malaaka yi : Man damay bind nit ci ban bu wow jógé ci binit buy tàwiku"
+  ],
+  [
+    29,
+    "Te bu Ma ko yamalee, ba wol ci dara ci Suma Ruu, na ngéen rot sujjóotal ko."
+  ],
+  [
+    30,
+    "Malaaka yép sujjóot,"
+  ],
+  [
+    31,
+    "Ginnaw Ibliis, bañ naa bokk ci way sujjóot ñi."
+  ],
+  [
+    32,
+    "Mu ne [Moom Yàlla], yow Ibliis lu la dal ba bokku loo ci way sujjóot ñi."
+  ],
+  [
+    33,
+    "Mu tontu ne nekku ma di kuy sujjóotal nit boo bind ci ban bu wow bu jógé ci binit buy tàwiku."
+  ],
+  [
+    34,
+    "Mu ne ko génnal, nakka yow ku ñu dàqa nga."
+  ],
+  [
+    35,
+    "Te nekk na ci sa kow am rëbb ba bésu Pénc ma."
+  ],
+  [
+    36,
+    "Mu ne Yow sama Boroom muñël ma ba bésu dekki ba."
+  ],
+  [
+    37,
+    "Mu ne ko, yow bokka nga ca ña nu muñël."
+  ],
+  [
+    38,
+    "Ba bés ba ñu xam àppam."
+  ],
+  [
+    39,
+    "Ibliis ne, Yow sama Boroom, ci sababas li Nga ma beewloo, faw di naa léen rafetal ci àddina [lu bon] te faw di naa léen beewloo ñoom ñépp."
+  ],
+  [
+    40,
+    "Ginnaaw sa jaam yi di way sellal ci ñoom."
+  ],
+  [
+    41,
+    "[Boroom bi tontu ko ne] : li mooy yoon wu jub wi jëm ci Man."
+  ],
+  [
+    42,
+    "Nakka Samay jaam, doo am benn kàntan ci séen kow ginnaaw ñi la topp ca way beew ña."
+  ],
+  [
+    43,
+    "Te safara mooy la ñu léen dig, ñoom ñépp"
+  ],
+  [
+    44,
+    "Nakka moom safara am na juróom ñaari bunt, te bunt bu ne am na xaaj bu ñu ko sédd [ci way beew ñi]."
+  ],
+  [
+    45,
+    "Way ragal Yàlla ya, ñu ngay nekk ciy Àjjana aki bëti ndox [yuy balla]."
+  ],
+  [
+    46,
+    "[Ñu ne léen] dugg léen ci jàmma ànd ak kóoluté."
+  ],
+  [
+    47,
+    "Te Nu raxas lu nekkoon ca séeni xol cik noonoo, ñu nekk ay mbokk yu jàaxaan ca séeni lal jàkaarloo."
+  ],
+  [
+    48,
+    "Coono du léen fa laal te du ñu nekk ñu mosa génn foofa."
+  ],
+  [
+    49,
+    "Xamalal Samay jaam ne nakka Man jéggëlaakoon laa, jaglewaakoon la."
+  ],
+  [
+    50,
+    "Waaye Sama mbugël , mooy mbugël mu metti ma."
+  ],
+  [
+    51,
+    "Te nga nettali léen la xewoon ca ganu Ibraaiima."
+  ],
+  [
+    52,
+    "Ba ñu aksee ca moom ne ko jàmma ngaam mu ne léen am naa njàqre ci yéen."
+  ],
+  [
+    53,
+    "Ñu ne ko, bul jàq ci nun, nun ngi lay bégëlé doom bu góor bu bari xamxam, booy am."
+  ],
+  [
+    54,
+    "Mu ne, li ngéen may bégëlé ndax ànda naak sama mage, li ngéen may yëgël mooy lan ?"
+  ],
+  [
+    55,
+    "Ñu ne ko yëgël na nu la ko ci dëgg, bul bokk ci way naagu ña."
+  ],
+  [
+    56,
+    "Mu ne, kan mooy naagu ci yërmëndé Boroomam ñudul ña réer."
+  ],
+  [
+    57,
+    "Mu ne léen waaw lan mooy séen mbir yéen ñi ñu yónni ?"
+  ],
+  [
+    58,
+    "Ñu ne yónnéef na nu ciw nit ñu bari bàkkaar,"
+  ],
+  [
+    59,
+    "Ginnaaw njabootu Lóot, di na nu léen musël ñoom ñépp,"
+  ],
+  [
+    60,
+    "Ginnaaw jabaram, dogal na nu ne moom ca way des ña lay bokk."
+  ],
+  [
+    61,
+    "Ba ña ñu yónni aksee ca waa kër Lóot,"
+  ],
+  [
+    62,
+    "Lóot ne léen yéen, nit yu ma xamul ngéen"
+  ],
+  [
+    63,
+    "Ñu ne ko, axakañ, dikkël na nu la ànd ak la ñu doon sikki-sàkka."
+  ],
+  [
+    64,
+    "Te ñëw na nu ci yow indil la dëgg te nekk na nu ñu  dëggu."
+  ],
+  [
+    65,
+    "Na nga dem yaak sa waa kër, ci bu guddi gi xaaajee, te ngéen topp séen ginnaaw, te bu kenn ci yéen geestu, te ngéen jubël fa ñu léen digël"
+  ],
+  [
+    66,
+    "Noo xamal Lóot Sunu ndigël loolu, ne di na Nu alag nitam ña ca njël."
+  ],
+  [
+    67,
+    "Waa dëkk ba aksi ànd ak mbégté"
+  ],
+  [
+    68,
+    "Lóot ne léen ñii samay gan la ñu bu léen ma rusloo."
+  ],
+  [
+    69,
+    "Te ngéen ragal Yàlla te bu léen ma teg gàcce"
+  ],
+  [
+    70,
+    "Ñu ne ndax tere wu nu la woon ngay woo nit ñi [ci sa diiné ji]."
+  ],
+  [
+    71,
+    "Mu ne léen samay dóom yu jigéen a ngi nii ndéem bëgg ngéen  def [li ngéen nar]"
+  ],
+  [
+    72,
+    "Giñ Naa ci sa dund [yow Muhammad] , ne nakka ñoom nekkoon na ñu di dengi-dengi ci séen ngëlënté."
+  ],
+  [
+    73,
+    "Am xaacu sadda léen ci subë cuuy."
+  ],
+  [
+    74,
+    "Nu wëlbëti la nekkoon ca kow [dëkk ba] dëpp ko mu féeté suuf, Nu sotti ca kow ab tawu xeer jógé Sijjiil."
+  ],
+  [
+    75,
+    "Loolu nekk ay kéemaan ci ñiy settantal"
+  ],
+  [
+    76,
+    "Te [dëkk booba] nekk na ci yoon wu ñuy faral di jaar"
+  ],
+  [
+    77,
+    "Nekk na ci loolu kéemaan ci way gëm ñi."
+  ],
+  [
+    78,
+    "Te waa Gol ba it nekkoon na ñu ca dëgg ay tooñkat ."
+  ],
+  [
+    79,
+    "Nu mbugël léen, te ñaari [dëkk yooyu] ñu ngi ci yoon wu neex a xam."
+  ],
+  [
+    80,
+    "Weddiwoon na ñu it yonnenta ya, waa Hijr."
+  ],
+  [
+    81,
+    "Nu joxoon léen Sunuy kaawtéef, ñu dëddu léen"
+  ],
+  [
+    82,
+    "Ñu nekkoon ñu daan yatta néeg yu ñu wóolu ci tundu doj."
+  ],
+  [
+    83,
+    "Am xaacu sadd léen ci subë cuuy."
+  ],
+  [
+    84,
+    "La ñu doon fàggu jariñu léen dara."
+  ],
+  [
+    85,
+    "Te Nun bindu Nu asamaan yi ak suuf si ak li nekk ci séen digënté ludul ci dëgg, te Saa [jéexu addina sii] di na dikk, koon na nga dëddu, [way weddi ñi] dëddu gu rafet."
+  ],
+  [
+    86,
+    "Sama Boroom Mooy aji bind ji di aji xam."
+  ],
+  [
+    87,
+    "Mey na Nu la juróom ñaar ci yu ñu ñaarñaaral [faatiha] ak alxuraan ju màgg ji."
+  ],
+  [
+    88,
+    "Bul tàllal say bët [di xool] li Nu xéewël ay kurél ci ñoom, bul am naqar ci ñoom te na nga suufeel say mbagg ñeel way gëm ñi."
+  ],
+  [
+    89,
+    "Te neel man aji laayebiir laa ci lu wér [ci xamal léen dëgg]"
+  ],
+  [
+    90,
+    "Noonu it la Nu wàcceeloon [ab téeré] way xàjaatloo [ci séen diine]"
+  ],
+  [
+    91,
+    "Te ñu séddëlé téeré bi ay xaaj"
+  ],
+  [
+    92,
+    "Giñ Naa ci sa màggu Boroom, faw di na Nu léen laaj ñoom ñépp."
+  ],
+  [
+    93,
+    "La ñu nekkoon di ko def [ciy ñaawtéef]"
+  ],
+  [
+    94,
+    "Waxal ca kow li ñu la digël te nga dëddu way bokkaale ñi"
+  ],
+  [
+    95,
+    "Nakka Nun fegal na Nu la ñi lay yéjj."
+  ],
+  [
+    96,
+    "ñi nga xam ne da ñuy boole Yàlla ak yeneen yàlla, di na ñu mos a xam."
+  ],
+  [
+    97,
+    "Xam na Nu ne li ñuy wax tiis na ci sa xol"
+  ],
+  [
+    98,
+    "Sabbaalal sa Boroom mi yayoo cant te na nga bokk ci way sujjóot ña."
+  ],
+  [
+    99,
+    "Te na nga jaamu sa Boroom ba lu bir la [dee] aksi."
+  ]
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 110,
+    "city": "madinah",
+    "name": {
+      "translated": "The Divine Support",
+      "transliterated": "An-Nasr",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1589,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "an-nasr",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Bu ndimmëlu Yàlla aksee ak ubbée ga"
+  ],
+  [
+    2,
+    "di nga gis nit ñi ñuy dugg ci diiné Yàlla ji def ay mbooloo"
+  ],
+  [
+    3,
+    "Koon màggalal sa Boroom cik santa Ko te nga baalu Ko,nakka Moom nanguwaa koonu tuub la"
+  ]
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 103,
+    "city": "makkah",
+    "name": {
+      "translated": "The Declining Day",
+      "transliterated": "Al-'Asr",
+      "codepoints": [
+        1575,
+        1604,
+        1593,
+        1589,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "al-asr",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jaglewaakoon bi) Giiy na ci jamano"
+  ],
+  [
+    2,
+    "Nit mi ngi ci  yàggule"
+  ],
+  [
+    3,
+    "Ba mu dess ñi gëm tey jëf jëf ju yiw , di denkante dëg , ak di denkante mugn"
+  ]
+]

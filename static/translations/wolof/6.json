@@ -1,0 +1,682 @@
+[
+  {
+    "id": 6,
+    "city": "makkah",
+    "name": {
+      "translated": "The Cattle",
+      "transliterated": "Al-An'am",
+      "codepoints": [
+        1575,
+        1604,
+        1571,
+        1606,
+        1593,
+        1575,
+        1605
+      ]
+    },
+    "ayahs": 165,
+    "slug": "al-anam",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Cant ñeel na Yàlla Mi bind asamaan yi ak suuf si, te sos lëndëm yi ak leer, topp ñi weddi, di dendale séen Boroom ak leneen."
+  ],
+  [
+    2,
+    "Moom Mooy ki léen mbind ci ban, topp Mu dogal ab àpp [ci dund gu ne] ak àpp bu ñu tudd ca Moom, [ci jéexu àddina si], topp ngéen di am ay sikki-sàkka."
+  ],
+  [
+    3,
+    "Te Moom Yàlla, ci asamaan yi ak suuf si, Mooy ki xam séen mbóot yi nëbbu ak yi ngéen feeñal te xam it li ngéen fàggu."
+  ],
+  [
+    4,
+    "Te du léen dikkël benn ndigël ci séen ndigëlu Boroom, te nekku ñu di ko dëddu."
+  ],
+  [
+    5,
+    "Weddi na ñu dëgg ba mu dikkée ca ñoom, waaye di na léen mosa dikkël xewxewi la ñu doon yéjj."
+  ],
+  [
+    6,
+    "Ndax da ñu xamul ñaata maas la Nu alag ci ñi léen jiitu , ñoo xam ne meyoon na Nu léen ci suuf si, lu Nu léen meyul, te Nu dotti loo asamaan ci séen kow taw bu bari, Nu def it dex yuy daw ci séen suuf, waaye Nu alag léen ngir séeni bàkkaar, Nu sosaat ci séen ginnaaw yeneen maas."
+  ],
+  [
+    7,
+    "Bu Nu la wàcceeloon téeré bu ñu bind ci këyit ju ñu man a laal ak séen loxo, koon ñi weddi di na ñu wax lii nekkul ludul njibar tigi."
+  ],
+  [
+    8,
+    "Te ñuy wa, lu teewoon ñu wàcce ci moom malaaka, waaye bu Nu wàcce woon malaaka, koon mbir yi sottikoon na ndax du ñu léen muñëndiku."
+  ],
+  [
+    9,
+    "Te sax su Nu ko defoon muy malaaka, jëmmu nit la Nu koy jox, te koon Nu lëntël ci ñoom, la ñu lëntël ci séen bopp."
+  ],
+  [
+    10,
+    "Daan na ñu yéjj ay yonnenta, lu la jiitu, waaye ñi léen doon ree taan, la ñu daan yéjj wàcc na ci ñoom[alag léen]"
+  ],
+  [
+    11,
+    "Neel, dox léen ci suuf si, te ngéen seetlu nakka la mujju way weddi ña deme."
+  ],
+  [
+    12,
+    "Neel ku moom li nekk ci asamaan yi ak suuf si, neel , ñeel na Yàlla, bind Na ci boppam yërmëndé, faw di Na léen dajale bésub pénc ma, sikki-sàkka nekku ci, ñi yàqal séen bopp ñoom du ñu gëm."
+  ],
+  [
+    13,
+    "Moo moom it lépp lu dal [ne tekk] ci guddi ak ci bëcëg te Moom aji dégg la, aji xam la."
+  ],
+  [
+    14,
+    "Neel ndax ci kenneen kudul Yàlla laay sàkku kiiraay, te Moo bind asamaan yi ak suuf si, te Mooy wërsëgëlé ñam, te kenn du Ko jox ñam, neel digëléef na ma, ma nekk ki jëkk wommatu, bu léen bokk mukk ci way bokkaale yi."
+  ],
+  [
+    15,
+    "Neel ragal naa, su ma moyee sama ndigëlu Boroom, mbugël ca bés bu màgg."
+  ],
+  [
+    16,
+    "Koo xam ne musël na ñu ko, ci mbugël moomu ca bés boobu, kooku Yàlla yërëm Na ko, te loolu mooy texe tigi tigi,"
+  ],
+  [
+    17,
+    "Bu la Yàlla tegee mettit, kenn du man a teggi lor googu, kudul Moom, bu la joxee yiw, xamal ne Moom, lu nekk la man."
+  ],
+  [
+    18,
+    "Te Moom aji not la ci kow jaamam yi, te Moom ku xereñ la, ku deñ la ci kumpa."
+  ],
+  [
+    19,
+    "Neel ana lan moo gën a màgg ci wàllu seede, neel Yàlla, di Na nekk seede ci suma digënté ak yéen, te soleef na ma Alxuraan jii, ngir ma waar léen ci, yéen ak ka mu àgg [ca moom], ndax da ngéen di seede ne Yàlla nekk Na ak yeneen Yàlla, neel man dey seede wu ma loolu, neel Moom daal, nekkul ludul jenn Yàlla doŋŋ, te man aji set wecc laa ci li ngéen koy bokkaale."
+  ],
+  [
+    20,
+    "Ñi nga xam ne jox na Nu léen téeré xam na ñu ko, ni ñu xàmmee séeni doom, ñi nga xam ne yàqal na ñu séen bopp, ñoom du ñu gëm."
+  ],
+  [
+    21,
+    "Ana ku gën a tooñ kiy duural Yàlla aw fen, walla di weddi ay kàddoom, li am mooy ñi tooñ du ñu texe [tey]."
+  ],
+  [
+    22,
+    "Ak ca bés ba Nu léen di fang [dajale léen] ñoom ñépp,ba noppi, Nu waxak ñi daan bokkaale ne léen, ani ñi ngéen sosoon bokkaa le woon léen ak Yàlla [nguuram]"
+  ],
+  [
+    23,
+    "Topp, séen njàqare du léen xiir ci leneen ludul ñu naan, giñ na nu ci Yàlla sunu Boroom ne nekku nu woon di way bokkaale."
+  ],
+  [
+    24,
+    "Gisal ni ñuy fene ci séen bopp, te di na fekk la ñu daan duur réer léen."
+  ],
+  [
+    25,
+    "Am na ci ñoom ñu lay déglu, waare def na Nu ci séen xol muu raay, ba du ñu am dégg dégg ci Alxuraan, te ci séeni nopp def na Nu ci saañ, tax na bu ñu gisee laaya bu mu man ti doon du ñu gëm, ba ba ñu ñëwée di dàggeek yow da ñu wax, ñoom ñi weddi, lii du dara ludul léebu mag ñu jëkk ña."
+  ],
+  [
+    26,
+    "Te ñoom da ñuy tere ku jigeñ yonnenta bi, te di ko sore it waaye alagu ñu kenn kudul séen boppp, te yëgu ñu ko ?"
+  ],
+  [
+    27,
+    "Céy boo léen gisoon, fa ñu léen taxawal ca safara, te ñu wax ngalla nun, yellonte koon, ñu delloo nu àddina, ba du nu weddi kàddu sunu Boroom, bokk ci way gëm ña."
+  ],
+  [
+    28,
+    "Déet feeñ na, ci ñoom la ñu doon nëbb bu jëkk ba, te bu ñu léen del loowoon it, ñu delluwaat di def la ñu léen tere woon, ca dëgg ñoom ay fenkat la ñu."
+  ],
+  [
+    29,
+    "Da ñu wax, amul benneen dund budul bu àddina bii, nun [bu nu deewee] du nu nekk ñuy dekki."
+  ],
+  [
+    30,
+    "Céy boo léen gisoon ba ñu léen taxawlee ca séen Boroom Mu wax léen ndax lii nekkul di dëgg, ñu tontu : axakañ giñ na nu ko ci sunu Boroom, Mu ne léen mos léen mbugël mi ngéen daan weddi."
+  ],
+  [
+    31,
+    "Yàqule na ñu, ñi daan weddi dajeek Yàlla, ba Saa dikkël léen cik mbetteel, ñu naan wëy nun yàqule na nu ci li nu daan sàggane, te ñoom ñu gàddu séen yan ca séen ginnaaw, aka bon la ñu yanu."
+  ],
+  [
+    32,
+    "Dundu àddina nekkul ludul po ak caaxan, te kërug àllaaxira moo gën ci ñi ragal Yàlla, ndax da ngéen dul xellu ?"
+  ],
+  [
+    33,
+    "Xam na Nu xéll ne la ñuy wax metti na la lool, waaye way tooñ ñi du yow la ñu weddi, kàdduy Yàlla la ñu weddi."
+  ],
+  [
+    34,
+    "Weddeefoon na ñu ay yonnenta yu la jiitu, ñu muñ la ñu léen weddee , ñu di léen lor ba Sunu ndimmël aksi ci ñoom, kàddu Yàlla du soppiku, te jot nga lenna ci xewxewi yonnenta yi."
+  ],
+  [
+    35,
+    "Ndéem, séen dëddu, dafa réy ci yow, boo manee sàkku ab tëcfël ci biir suuf si walla kerkeraan ci asamaan yi ba tax nga indil léen kéemaan, [def ko, xamal ne] bu neexoon Yàlla mu dajale léen cik njub, koon bul bokk ci way réer ñi."
+  ],
+  [
+    36,
+    "Du la wuyyu ludul ñiy dégg, te ñu dee ñi Yàlla di Na léen dekkal, ñu dellu si ci Moom."
+  ],
+  [
+    37,
+    "Te ñu ngiy wax, lu teewoon ñu wàcce ci ñoom kéemaan gu tukkée ca Yàlla, neel nakka Yàlla ku am kàntan la ci wàcce kéemaan, waaye li ëpp ci ñoom xamu ñu."
+  ],
+  [
+    38,
+    "Amul benn aji dukët ci suuf si, te it amul benn njanaaw juy naaw ak ñaari laafam, te nekku ñu di xeet nikki yéen, bàyyi wu Nu dara ci téeré bi, topp, dees na léen fang jëme ca séen Boroom."
+  ],
+  [
+    39,
+    "Te ñi weddi Sunuy kàddu, da ñu tëx, luu, nekk cik lëndëm, Yàlla, ku Ko soob Mu bàyyi ko cik réeram te it ku Ko soob Mu teg ko ci yoon wu jub wi."
+  ],
+  [
+    40,
+    "Neel soloo léen ma, ndax bu léen mbugëlu Yàlla saddoon, walla Saa taxaw, di ngéen sàkku ndimmëlu kenneen kudul Yàlla, ndéem ñu dëggu ngéen ?"
+  ],
+  [
+    41,
+    "Moom ci boppam, ngéen di woo, Mu teggi li ngéen sàkku ci Moom, bu ko neexee ngéen fàtte li ngéen koy bokkaaleel."
+  ],
+  [
+    42,
+    "Te yónnéewoon na Nu ciy xeet, lu la jiitu, Nu teg léen coono ñàkk aki naqar ndax xeyna ñu toroxlu."
+  ],
+  [
+    43,
+    "Lu teewoon ñu toroxlu ba léen Sunu mbugël dalee waaye séen xol da fa wow, seytaane rafetal léen séeni jëf."
+  ],
+  [
+    44,
+    "Ba ñu fàttee la ñu léen waareewoon, ubbil na Nu léen buntu [teranga] bu nekk, ba ñu bég ca la ñu léen jox, Nu song léen cik mbetteel ba ñu naagu [ne dootu ñu am yërmëndé]"
+  ],
+  [
+    45,
+    "Ba dogeef na ginnawu ñi tooñ, mbooleem cant ga, ñeel na Yàlla Boroom àddina bi."
+  ],
+  [
+    46,
+    "Wax léen ma, bu Yàlla téyé woon séen dégdég, ak sén gisgis, Mu téj séen xol, ban Yàlla kudul Yàlla moo léen man a delloo yooyu ? gisal Yàlla ni Muy leerale tektal yi, te ñoom ñuy jeng."
+  ],
+  [
+    47,
+    "Wax léen ma, bu léen mbugëlu Yàlla daloon cik mbetteel mbaa ci lu fés, ndax kenn di na ci loru kudul nit ñi di way tooñ ?"
+  ],
+  [
+    48,
+    "Du Nu yónni ay yonnenta [ñu def] leneen ludul yëglé ak artu, koon ñi gëm te sellal, njàqare du léen dal du ñu am naqar."
+  ],
+  [
+    49,
+    "Ñi wedi Sunuy kàddu, mbugël di na léen laal ngir la ñu daan jalgati."
+  ],
+  [
+    50,
+    "Waxal ne du ma léen wax ne maa yor ndàmbi Yàlla, te it xamu ma kumpa, te  du ma léen wax it ne malaaka laa, li am mooy da may topp doŋŋ li ñu ma soloo, neel ndax manees na yamale gumba ak njàccaar, ndax da ngéen dul xellu ?"
+  ],
+  [
+    51,
+    "Artul ak Alxuraan ñi ragal ñu fang léen jëme ca séen Boroom, amu ñu benneen kiiraay ak benneen rammu-kat, kudul Moom, ndax xeyna ñu ragal Yàlla."
+  ],
+  [
+    52,
+    "Bul dàq ñiy jaamu séen Boroom subaak ngoon, ngir bëgg jëmmëm, àtte séen mbir waru la ci dara, te it sa àtte waru léen ci dara, tax na boo léen dàqee bokk ca way tooñ ña."
+  ],
+  [
+    53,
+    "Noonu la Nu nattoo ñenn ci ñoom jaare ko ci ñeneen ci ñoom, ngir ñu wax, ndax [ñu doyadi] ñii la Yàlla xéewël ci nun, ndax du Yàlla Moo gën a xam ñi ko gërëm [ciy xéewëlëm]"
+  ],
+  [
+    54,
+    "Ñi gëm Sunuy kàddu bu ñu la dikkëlee neel yalna jàmma nekk ci yéen, Yàlla séen Boroom dogal Na ci boppam, yërmëndé, li am mooy ku def ci yéen ñaawtéef cik ñàkk xam, topp mu réccu tuub ginnaaw loolu, rafetal jëfëm, koon [na xam ne] , Yàlla, jéggëlaakoon la jaglewaakoo la."
+  ],
+  [
+    55,
+    "Te noonu la Nuy leerale tektal yi ngir fésal yoonu way tooñ ña."
+  ],
+  [
+    56,
+    "Neel, man tereef na ma, ma jaamu ñi ngéen di jaamu, bàyyi Yàlla, neel du ma top séen bànneexu baken, ndax koon di naa nekk ku réer te du ma bokk ca ña ñu gindi."
+  ],
+  [
+    57,
+    "Neel man da ma nekk ci lu bir [leer nàññ] lu jógé ci sama Boroom, ngéen weddi ko, li ngéen di [laaj te di ko] yàkamti nekkul ci man, àtte ba Yàlla rekk ko moom, di Nay xamle dëgg, te Mooy gën jaa man a àttey mbir."
+  ],
+  [
+    58,
+    "Neel u fekkoon ne li ngéen [di laaj ] di yàkamti mu ngi ci man, koon mbir yi sotti koon na ci suma digënté ak yéen, te Yàlla gën a xam way tooñ ña."
+  ],
+  [
+    59,
+    "Te Moom Moo yore caabi kumpa yi, kenn xamu léen kudul Moom, te xam Na li nekk ci suuf si ak ci géej gi, te xobu garab du rot te xamu ko, du pepp ci lëndëmu suuf si, du lu tooy walla lu wow, loo xam ne nekkul cib téeré bu leer nàññ."
+  ],
+  [
+    60,
+    "Moom, Moo léen di nelawloo guddi, te xam Na li ngéen di fàggu ci bëcëg, topp Mu yee léen, ngir Mu àtte dig ba ñu dogal ba, topp ngéen dellu ca Moom, Mu birël léen la ngéen doon def."
+  ],
+  [
+    61,
+    "Te Moom Mooy aji nit ci kow jaamam yi, te Mooy yónni ci yéen ay [malaaka] yu léen di wottu ba ker ba dee aksi ci kenna ci yéen, sunuy ndaw rey ko te ñoom sàganu ñu ci dara."
+  ],
+  [
+    62,
+    "Topp delloof léen ca Yàlla, kiy séen kiiraay, tey Dëgg, ndax du Moo moom àtte ba te Moom Moo gën a gaaw ci woññ, way woññ ña."
+  ],
+  [
+    63,
+    "Neel kan Moo léen di musël ci lëndëmu jéeri ak bu géej, boo léen ko woowee ànd ak toroxlu ak nëbbu naan «  boo nu musëlée ci lii boon faw nu bokk ca way gërëm ña [Yàlla] »."
+  ],
+  [
+    64,
+    "Neel Yàlla Moo léen di musël ci loolu ak ci bépp njàqare, ba noppi ngéen di ko bokkaale."
+  ],
+  [
+    65,
+    "Neel Moom am Na kàntan ci yónnée léen mbugël mu léen jógé kow walla bu jógé ci séen suufu tànk mbaa mu dugël ci séen biir juuyoo ba ku nekka mos ngaañ gu jógé ca sa moroom, gisal ni Nuy leerale tektal yi ndax ñoom ñu man léen a dégg."
+  ],
+  [
+    66,
+    "Say nit weddi na ñu ko te moom mooy dëgg, neel nekku ma di séen sàmma."
+  ],
+  [
+    67,
+    "Xewxew bu ne am na waxtoom, di ngéen mosaxami."
+  ],
+  [
+    68,
+    "Boo gisee ñuy doyadil Sunuy kàddu, dëddu léen ba ker ba ñuy xuus ci benneen waxtaan, bu la seytaane fàtteloo lii, boo ko fàttali koo, bul toog ak nit ñu di way tooñ."
+  ],
+  [
+    69,
+    "Ñi ragal Yàlla, waru léen ci dara ñuy àtte ñooñu, waaye xanaa ludul di léen fàttali ndax xeyna ñoom it ñu ragal [Yàlla]"
+  ],
+  [
+    70,
+    "Bàyyil ñi nga xam ne da ñu jàppe séen diiné fo ak caaxam, dun dug àddina nax na léen, waar léen ak Alxuraan ndax benn baken baña yàqule ci sababas la mu doon fàggu, amul benn kiraay walla kuy rammu ginnaaw Yàlla te du ñu ko nangul mu jotu ak benn njotu,ñooñu alageef na léen ngir la ñu fàggu [ciy ñaawtéef] ñeel na léen naan gu tàng jër, ak mbugël mu metti, ndax la ñu weddi woon."
+  ],
+  [
+    71,
+    "Neel ndax da nuy jaamu, bàyyi Yàlla, loo xam ne manu ñu jariñ walla wàññi dara, te koon da nuy dellu ginnaaw, te fekk Yàlla gindi Na nu ba noppi, mel ni ki nga xam ne seytaane réerël na ko ci ñëwël ci nun, Neel njubu Yàlla mooy dëggi-dëggi njub te digëlef na nu wommatu ñeel Boroom àddina si."
+  ],
+  [
+    72,
+    "Te it ngeen taxawal julli te ragal Ko te Moom Mooy Ki nga xam ne dees na léen dajale ca Moom."
+  ],
+  [
+    73,
+    "Moom Mooy Ki bind asamaan ak suuf si ci dëgg, ca bés ba Mu ne nekkal mu nekk, ci waxam jooju di dëgg, ñeel na ko nguur gi bé ba ñuy ëf bufta ba, Mooy xamaakoon-i-kump ak li fés te Moom Mooy Ku xereñ Ki di aji deñ ciy kump."
+  ],
+  [
+    74,
+    "Te [nga fàttaliku] ba Ibraaiima waxee baayam Aazara, ndax da ngay jël ay xérëm def léen ay yàlla, man gis naa la yaak say nit cik réer gu tar."
+  ],
+  [
+    75,
+    "Noonu la Nu wone Ibraaiima moomeelu asamaan yi ak suuf si ndax mu bokk ci way wóolu ña."
+  ],
+  [
+    76,
+    "Ba guddi lëndëmée ci moom, mu gis benn biddéew, mu daldi ne sama Yàlla ngi nii, waaye ba biddéew ba suuxe mu ne soppu ma ñiy suux."
+  ],
+  [
+    77,
+    "Ba mu gisee weer wi mu feq mu ne sama Yàlla ngi nii, waaye ba mu gi suuxée, mu ne bu ma suma Boroom gindiwul faw di naa bokk ca nit ñu réer ña."
+  ],
+  [
+    78,
+    "Ba mu gisee janta bi fenk mu ne sama Yàlla ji gën a màgga ngi nii, ba mu suuxée, mu ne yéen samay nit, man dey, deñ naa ba set wecc ci li ngéen di bokkaale [ak Yàlla]"
+  ],
+  [
+    79,
+    "Man jébbël naa sama bopp Ki bind asamaan yi ak suuf si, di ku Ko wéetël, man dey bokku ma ci way bokkaale yi."
+  ],
+  [
+    80,
+    "Ay nitam dàggeek moom, mu ne léen ndax da ngéen di dàggeek man ci Yàlla, te man gindi na ma, ragalu ma li ngéen koy bokkaale, ludul lenna lu Yàlla namma, xamxamu sama Boroom peeg na yëf yépp, ndax da ngéen dul xelaat ?"
+  ],
+  [
+    81,
+    "Naka laay ragale li ngéen Koy bokkaale te yéen ragalu léen ne yéen, yéen a ngiy bokkaaleek Yàlla yoo xam ne wacceelu ñu léen ci aw lay, koon ñaari kurel yi 5yéen ak nun] ku ci gën a yay ci am kóolute, [wax léen] ndéem xam ngéen."
+  ],
+  [
+    82,
+    "Ñi gëm, te jaxase wu ñu séen ngëm ak tooñeel, ñooñu ñoo am kóolute te ñoom ñooy ñi tegu ci njub."
+  ],
+  [
+    83,
+    "Loolu mooy sunu lay wi nu jox Ibraaiima mu yay ay nitam, di na Nu yékëti ku Nu neex mu kowe, nakka sa Boroom aji xereñ la aji xam la."
+  ],
+  [
+    84,
+    "Mey na Nu ko Isaaxa, ak Yaxuuba, gindi léen teg léen cik njub ñoom ñépp, ak Nóohin it gindi na Nu ko lu jiitu, ak ciy sëtëm, Dauuda ak Suleymaan ak Ayuuba ak Yuusufa ak Muusaa ak Aaruuna, te noonu la Nuy feye way rafatal ñi."
+  ],
+  [
+    85,
+    "Ak Zakariyaa ak Yahyaa ak Iisaa ak Ilyaasa, ñoom ñépp ca way sella ña la ñu bokk."
+  ],
+  [
+    86,
+    "Ak Ismaaiila ak Alyasa aj Yunusa ak Lóota , te ñoom ñépp defal na Nu léen ngënéel ci kow waa àddina si."
+  ],
+  [
+    87,
+    "Te ci biir séeni baay ak séeni sët ak ci séeni mbokk tànna na Nu léen, jubël léen teg léen ci yoon wu jub wi."
+  ],
+  [
+    88,
+    "Loolu mooy njubu Yàlla, di Na ci gindi ku Ko neex ciy jaamam, waaye bu ñu bokkaalewoon koon faw la ñu daan def [ci lu baax] di na yàqu."
+  ],
+  [
+    89,
+    "Ñooñu ñooy ñi Nu jox téeré bi ak àtte yi ak yonnenta gi, nit ñii bu ñu weddee yooyu, di na fekk dénkoon na Nu léen aw xeet wu léen weddiwul woon."
+  ],
+  [
+    90,
+    "Ñooñu Yàlla gindi, royal séen njub, neel laaju ma léen ci loolu pey, moom nekkul ab fàttali ñeel àddina si."
+  ],
+  [
+    91,
+    "Màggalu ñu Yàlla kem ni Mu yayoo ñu màggal Ko, ba ñu waxee ne Yàlla wàccewul dara ci benn nit, neel kan moo wàcce téeré këyit di ko wone ak di ci nëbb lu bari te jàngaleef na léen loo léen xamul woon yéen ak séeni baay, neel Yàlla la, te nga bàyyi léen ñuy fo xa séen werante."
+  ],
+  [
+    92,
+    "Te lii téeré la bu Nu wàcce bu barkeel buy dëggël li ko jiitu, ngir nga waar waa ndeyu jéndë yi ak li ko wër, ñi gëm àllaaxiraa, di na ñu ko gëm te ñoom di na ñu sàmma séeni julli."
+  ],
+  [
+    93,
+    "Ana ku gën a tooñ kuy duural Yàlla aw fen, mbaa di wax, soloo na ñu ma, te fekk soloo wu ñu ko dara, ak kuy wax naan di naa wàcce lu mel ni li Yàlla wàcce, céy boo gisoon way tooñ ña ba ñu nekkee ci wextanu dee te malaaka yi tàllal séeni yoxo [naan léen] génné léen séeni baken, tey jii dees na léen fey mbugël muy toroxale ngir li ngéen nekkoon di wax ci Yàlla ludul dëgg te di réyréylu dëddu ay tektalam."
+  ],
+  [
+    94,
+    "[Mu ne léen] dikk ngéen nak ci Nun ngéen di kenn kenn ni Nu léen bindéwoon ca njalbéen, te ngéen bàyyi ca séen ginnaaw la Nu léen wërsëgëléwoon, te gisu Nu ngéen ànd ak séen yàlla yi ngéen xam ne nekkoon na ñu ci yéen ay bokkaale ak Yàlla, leggi séen digëntéek ñoom dog na, te réer na léen la ngéen doon sos."
+  ],
+  [
+    95,
+    "Yàlla Mooy xar pp ak saal [génné ca luy sax nekk gàncax walla garab], Mooy génné luy dund ci lu dee, tey génné lu dee ci luy dund, Yàllaa ngoogu, waaw nakka la ñu léen wëlbëtée ?"
+  ],
+  [
+    96,
+    "Mooy sos leeraayu subë yi, def gudi muy noflaay, def janta bi ak weer wi ñuy woññukaayu [jamano] loolu mooy nattale aji not ji di aji xam."
+  ],
+  [
+    97,
+    "Moom Moo léen defal ay bidéew ngir ngéen di ci gindiku boo léen nekkee ci lëndëmu jéeri walla géej, leeral na Nu laaya yi ñeel nit ñi xam."
+  ],
+  [
+    98,
+    "Moom Moo léen sos ci benna baken, [ngéen jaar] ci dëkkuwaaay [ca ndiggu baay] ak saxuwaay [ca biiru ndey], leeral na Nu Sunuy kéemaan ñeel nit ñi am dégg-dégg."
+  ],
+  [
+    99,
+    "Moom Mooy wàcce ndox mu jógé asamaan, Nu génné ca gàncaxu lu nekk, Nu génné ca loolu gàncax gu naat, ca loolu Nu génné ca ay pepp yu rànkaloo, ak ci garabu  tàndarma ay cëggu tàndarma yu jógé ca tóortóor ya te jigeñ suuf, ak toolu raseñ, ak yu oliw ak gërënaat yu niróo ak yu niróowul, seetlu léen séen meññent bu ñuy meññ ak séen ñor, nekkal na léen ci loolu kéemaan yu ñeel way gëm ñi."
+  ],
+  [
+    100,
+    "Te ñoom sàkkal na ñu Yàlla ay bokkaale yu diy jinné, te Moo léen bind , sosal na ñu ko it ay doom yu góor ak yu jigéen, ci lu àndul ak benn xamxam, céy sellam ga ak màggam aji xam la lu ne."
+  ],
+  [
+    101,
+    "Moo bind asamaan yi ak suuf si, nakka lay ame doom te amul àndandoo bu jigéen te Moo bind lu nekk, te Moom aji xam la lu ne."
+  ],
+  [
+    102,
+    "Yàllaa ngook ci yéen, séen Boroom, benn Yàlla budul Moom amul, Moom Mi bind lépp lu ne, jaamu léen Ko, Mooy kiy wottu lu ne."
+  ],
+  [
+    103,
+    "Gis-gis manul dal ci Moom, te Moom man Na dal ci gis-gis yi, te Moom Mooy aji ñeemante, di ku deñ ciy kumpa."
+  ],
+  [
+    104,
+    "Ay lay yu leer nàññ dikkël na léen, tukkee ca séen Boroom, ku nan goo gis, boppam la ko defal, ku gëmm [baña gis] boppam la yàqal nekku Nu di séen wottukat."
+  ],
+  [
+    105,
+    "Noonu la Nuy faramfàccee Sunuy àtte, ndax ñu wax : «  jàng nga » ak ngir Nu leeral ko nit ñuy ràññee."
+  ],
+  [
+    106,
+    "Na nga topp li ñu la soloo te muy lu tukkée ca sa Boroom, kenn du Yàlla kudul Moom, na nga dëddu way bokkaale ya."
+  ],
+  [
+    107,
+    "Bu neexoon Yàlla, du ñu  bokkaale, defu Nu la [yow yonnenta bi] nga di séen wottukat te nekkuloo it di ku léen di aar."
+  ],
+  [
+    108,
+    "Bu léen di ŋàññ ñiy jaamu leneen ludul Yàlla ndax koon da ñuy ŋàññ Yàlla cik jalgati ngir ñàkk xam, noonu la Nuy rafetale jëfi bépp xeet [ci séen gis-gis], ba noppi, séen delluwaay jëm ca séen Boroom, Mu leeral léen la ñu nekkoon di ko def."
+  ],
+  [
+    109,
+    "Ñu ngiy waat ci Yàlla, séen gën gaa màgg ngiñ ne bu léen kéemaan dikkëloon koon faw di na ñu ko gëm, waxal ne kéemaan ca coobare Yàlla la aju, lu léen xamal ne bu léen dikkëloon du ñu ko gëm ?"
+  ],
+  [
+    110,
+    "Te di na Nu w¨lbëti séeni xol ak séen gis-gis, ca nawoon ba ñu ko ñàkkee gëm ca njalbéen te di na Nu léen bàyyi ci séen féttéerlu ñuy tuñ-tuñi."
+  ],
+  [
+    111,
+    "Te Sunu wàcce woon ci ñoom ay malaaka , ñu dee ña di waxak ñoom, te Nu dajale ci ñoom lu nekk ñu jàkkaarlook ñoom , du ñu gëm mukk feek neexul Yàlla, waaye li ëpp coi ñoom, da ñu réer."
+  ],
+  [
+    112,
+    "Noonu la Nu sàkkale bépp, yonnenta ab noon muy ay seytaane yu nekk nit walla jinné, yuy rafetal ay wax, ci ñenna ci ñoom jëm ci ñeneen ,ngir wor léen, bu neexoon sa Boroom du ñu ko def, bàyyi léen ak la ñuy duur."
+  ],
+  [
+    113,
+    "Ak ngir xolu ñi gëmul àllaaxira jeng ci wax yooyu, bég ci ak ñu fàggu la ñuy fàggu [ciy bàkkaar]"
+  ],
+  [
+    114,
+    "Ndax ci kenneen kudul Yàlla laay sàkku àttekat te Moom Moo wàcce ci yéen téeré bi faramfàcce [lu ne], te ñi nga xamne joxoon na Nu léen téeré xam na ñu ne nakka moom lu ñu wàcce la mu tukkée ca sa Boroom ci dëgg, bul bokk mukk ci ñi nekk ci sikki-sàkka."
+  ],
+  [
+    115,
+    "Sa kàddu Boroom mat na ci dëgg ak màndute, waxam du soppiku te Moom aji dégg lla aji sant la."
+  ],
+  [
+    116,
+    "Boo toppee li ëpp ci ñi nekk ci suuf si, ñu sànka la nga sore yoonu Yàlla, ngir toppu ñu ludul ay njort te nekke wu ñu ludul di fen."
+  ],
+  [
+    117,
+    "Nakka sa Boroom, Moo Moo gën a xam ka réer sori yoonam, Moo gën a xam it ña tegu ci njub."
+  ],
+  [
+    118,
+    "Lekk léen li ngéen xam ne tuddéef na ca turu Yàlla [ba ñu koy rendi] ndéem nekk ngéen ñu ay kàddoom."
+  ],
+  [
+    119,
+    "Lu léen nekkal ci baña lekk loo xam ne tudd na ñu ca turu Yàlla te Moom leeral Na léen li araam ci yéen, ginnaaw bu fekkee man ngéen a loru [ngir ñàkk am leneen loo léen lekk], waaye ñu bari di na ñu réerëlé ngir topp séen bànneex cik ñàkk xam, nakka sa Boroom Moo gën a xam way jéggi dayo ña."
+  ],
+  [
+    120,
+    "Na ngéen bàyyi bàkkaar bu fés ak bu nëbbu, ñiy sàkku bàkkaar dees na léen fey la ñu fàggu woon."
+  ],
+  [
+    121,
+    "Bu léen lekk loo xam ne tudd ñu ca turu Yàlla, loolu génn topp la, te seytaane di na xir ay nital ñuy dàggeek yéen, te boo léen léen toppee, di ngéen nekk yéen ay way bokkaale."
+  ],
+  [
+    122,
+    "Ndax ki nekkoon ku dee [yéeféer] Nu dundël ko, [gëm loo ko] jox ko leer gu muy leerloo buy dox ci biir nit ñi di na niróok ki nga xam ne nirëléem mooy da fa nekk cik lëndëm gu mu dul génn, noonu la ñu rafetale yéeféer yi la ñu nekkoon di ko def."
+  ],
+  [
+    123,
+    "Te ci noonu def na Nu ci bépp dëkk ay kilifë ca ña dàq tooñ, ngir ñuy fay nas ay pexe, waaye lu ñu fa texe ca séen bopp rekk lay dal, te yëgu ñu loolu."
+  ],
+  [
+    124,
+    "Bu léen laaya dikkëlée, ñu ne du nu gëm ba mbete ñu indil nu lu mel ni la ñu joxoon yonnenti Yàlla ya, Yàllaa gën a xam fa muy wàcce la muy yónnée, way bàkkaar ña toroxte di na léen dal, gu léen Yàlla teg ak mbugël mu tar ngir la ñu daan fexe [ci lu bon]"
+  ],
+  [
+    125,
+    "Ku Yàlla bëgg jubël, da fay ubbi xolam ci lislaam, ku Mu bëgg bàyyi cik réeram def bàyyi xolam nekk cik xat gu tar ba mel ni dey yéeg jëm kow asamaan, noonu la Yàlla di tege mbugël ñi gëmul."
+  ],
+  [
+    126,
+    "Lile mooy sa yoonu Boroom, bu jub xocc bi, leeralal na Nu [Sunuy] tektal, nit ñiy fàttaliku [séen Boroom]."
+  ],
+  [
+    127,
+    "Ñeel na léen kërug jàmm ca séeni Boroom te Moom Moodi séen soppe ngir la ñu daan def [ci lu baax]"
+  ],
+  [
+    128,
+    "Bés ba Mu léen dajalée ñoom ñépp, di Na wax : éey yéen mbooloo jinné yi baril ngéen séen jëf ci nit ñi. Nit ña ñu méngóol ne : Sunu Boroom, lenn ci nun daan na sàkkoo xéewlu ci ñeneen ñi, te aksi na nu ci àpp ba Nga nu àppaloon. Mu ne léen : safaraay séen d¨kkuwaay, te da ngéen fay sax dàkk, ludul lu soob Yàlla, nakka sa Boroom aji xereñ la aji xam la."
+  ],
+  [
+    129,
+    "Noonu la Nuy féetëlée kiliftéefu ñenna tooñkat yi ci kow ñeneen ña ngir a ñu nekkoon di ko fàggu."
+  ],
+  [
+    130,
+    "[Mu ne léen] yéen mbooloo jinné yi ak nit ñi ndax da fa léen dikkëlul woon ay yonnenta yu feeñ ci séen biir , yu léen nettali Smay ndigël, te di léen yëgêl ndaje bésub tey jii, ñu tontu ne : seede na nu loolu mu tegu ci sunu kow, waaye dundu àddina woroon na léen , séen seede dal na ca séen kow, wérël ne ñoom ay yéeféer la ñu woon."
+  ],
+  [
+    131,
+    "Loolu ngir sa Boroom daawul alag ab dëkk ngir tooñeel, bu fekkee ay nitam amu ñu [ku léen gindi] cik réer."
+  ],
+  [
+    132,
+    "Ñoom ñépp di na léen ñeel pey ya méngóok la ñu jëfoon, sa Boroom ñàkkul paal ci séen jëf."
+  ],
+  [
+    133,
+    "Sa Boroom ku oomal la, boroom yërmëndé la bu Ko neexoon Mu jëlé léen fi, wuutal ci séen ginnaaw, lu Ko neex, ni Mu léen sose ngéen nekk ay sët ci ñeneen nit."
+  ],
+  [
+    134,
+    "Li ñu léen dig, luy ñëw la te doo léen man a raw"
+  ],
+  [
+    135,
+    "Neel, yéen samay nit, jef léen ci séeni mbir, man dey aji jëf laa, di ngéen xami ji kan la ñeel kër mujj ga, ani luy mbir, du ñu texe way tooñ ña."
+  ],
+  [
+    136,
+    "Da ñu sédd Yàlla, li Mu bind ci mbey ak ci jur gi, ab cër , daldi wax ne lii moy wàllu Yàlla, ci séen njort, lii mooy wàllu li nu koy bokkaaleel, te li ñu sédd ñii du aksi ca Yàlla, waaye la ñu sédd Yàlla di na àgga ca ña ñu koy bokkaale, na ñuy àttee ñaaw na."
+  ],
+  [
+    137,
+    "Noonu la séen xérëm yooyu rafetale ci ñu bari ci way bokkaale yi, rey séeni doom , ngir alag léen ak lëntël ci ñoom séen diiné, bu neexoon Yàlla du ñu ko def, bàyyi léen ak la ñuy duur."
+  ],
+  [
+    138,
+    "Ñu naan jurgii ak mbey mii araaam na, kenn du ci lekk kudul ku nu neex, ci séen njort, ak jur goo xam ne séen ginnaaw araam na ak yoo xam ne du ñu tudd turu Yàlla ci ñoom, ludul di ko duural, di Na léen feyi la ñu nekkoon di ko duur."
+  ],
+  [
+    139,
+    "Ñu naan li nekk ci biir jur gii dagan na ci sunuy góor waaye araam na ci sunuy jabar, waaye bu dee lu méd, góor ak jigéen  bokk ko, di Na léen fey séen séddëlé, nakka Moom Ku xereñ la ku xam la."
+  ],
+  [
+    140,
+    "Yàqule na ñu, ñi rey séeni doom cik réer ngir ñàkka xam, te ñu dogal araamu lu léen Yàlla wërsëgël cik duural Yàlla, réer na ñu ba noppi, te dootu ñu gindi ku."
+  ],
+  [
+    141,
+    "Moom [Yàlla] Moo sos ay tool yu gàncax ga di law ci suuf, ak yuy jóg taxaw, ak garabu tàndarma ak mbey yu meññenta ya wuute, ak oliiw ak gërënaat yu niróo ak yu niróowul, lekk léen séeni doom bu ñu ñoree, te ngéen génné àqam [asaka] bés ba ngéen di witta, te bu léen yàq ndax Moom bëggul yàqakat."
+  ],
+  [
+    142,
+    "Am na ci jur gi yu man a sëf, ak yu nekk gàtt, lekk léen ci li léen Yàlla wërsëgël te bu léen topp ñalli seytaane, nakka moom séen noon gu tar [nooneel ci yéen la]"
+  ],
+  [
+    143,
+    "[Sos na] juróom ñatta yu nekk ñaar ñaar, ci xar yi ñaar, ci béy yi ñaar, neel ndax ñaar ñu góor ñi ñoo araam walla ñaar ñu jigéen ñi ? walla li ëmbu ci biiri ñaar ñu jigéen ñi, wax léen ma ci xamxam, ndéem nekk ngéen ñu dëggu."
+  ],
+  [
+    144,
+    "Am na ci gëléem yi ñaar ñu jigéen ñi, walla li ëmbu ñu góor ñi ñoo aram walla ñaar ñu jigéen ñi, walla li ëmbu ci biiru ñaar ñu jigéen ñi, am da ngéen nekkoon seede ci lu léen Yàlla dénk ci yooyu. Ana kan moo gën a tooñ kiy duural Yàlla ay fen ngir man a réerël nit ñi ci lu àndul ak xamxam, nakka Yàlla du jubël ay nit ñu diy tooñkat."
+  ],
+  [
+    145,
+    "Neel, man dey gisuma ci li ñu ma soloo, lu araam ci ñam wu ñuy lekk ludul mu nekk lu médd walla deret ju sànniku, walla yàppu mbaam-xuux ndax sobe la, walla lu ñu tudd [bi ñu koy rey] kenneen kudul Yàlla cik génn topp, waaye koo xam ne dafa loru, te du aji beew walla aji jéggi dayo, ci loolu sa Boroom jéggëlaakoon la, jaglewaakoon la."
+  ],
+  [
+    146,
+    "Dogaloon na Nu ci ñi nekk Yauud ne araam na ci ñoom bépp boroomi we, te it araam na ci ñoom nebboonu nag yi ak gàtt yi, ludul bi tegu ci séen ginnaaw, walla bi ne ci séen mbàqa, walla bi jaxasook yax ya, noonu la Nu léen feye séen beew ga te Nun ci dëgg tigi la Nu ne."
+  ],
+  [
+    147,
+    "Bu ñu la weddee neel séen Boroom, boroom yërmëndé ju yaatu la, waaye mbugëlam gu jëm ci nit ñu saay-saay dara manu ko feg."
+  ],
+  [
+    148,
+    "Ñiy bokkaale di na ñu wax ne, bu neexoon Yàlla du nu bokkaale, ak sunuy maam it, te du ñu araamal dara, noonu la weddee woon ñi léen jiitu woon ba ker ba ñu mosee Sunu mbugël, neel ndax nekk na ci yéen xamxam boo léen nu man a génnéel ? nekku léen di topp ludul ay njort te nekku léen ci lenna ludul di fen ?"
+  ],
+  [
+    149,
+    "Neel lay wu mat wi Yàllaa ko moom, bu Ko neexoon Mu jubël léen yéen ñépp."
+  ],
+  [
+    150,
+    "Neel : indi léen séeni seede yu man a seede ne lii Yàlla dafa ko araamal, bu ñu ko seedee, yow bu ci ànd ak ñoom bul topp bànneexu ñi weddi Sunuy ndigël ak ñi gëmul àllaaxira te ñoom da ñuy ñaawal séen digënteek séen Boroom."
+  ],
+  [
+    151,
+    "Neel kaay léen ma taril léen li Yàlla araamal ci yéen, mooy bu léen Ko bokkaaleek dara, te ngéen rafetal jëm ci séeni waajur, te bu léen rey séeni doom ngir ragal ñàkk, ndax Nun [Yàlla] Noo léen di wërsëgël ak ñoom it, te bu léen jigeñ njaaloo ci lu cay feeñ ak lu cay n¨bbu, te bu léen rey baken ndax Yàlla tere Na ko, ndare ci dëgg, loolu la léen ci dénk ndax ngéen xellu"
+  ],
+  [
+    152,
+    "Bu léen laal alalu njirim ludul ci ni mu gën a rafete, ba ker ba muy àgg ci dëgërëm, te na ngéen di mattal natt ak peese cik màndute, Yàlla du teg baken ludul lu mu àntan, boo léen di wax[ci loo léen di àtte], na ngéen ko def ak màndute doonte séen mbokk ngéen di àtte, na ngéen matal it kóllëre Yàlla, loolu la léen ci Yàlla dénk ndaxtelee yéen ngéen fàttaliku."
+  ],
+  [
+    153,
+    "Te loolu mooy Sama yoon wu jub wi, topp léen ko, te bu léen topp ñalla yi, koon ñu teqale léen ak Sama yoon, loolu la léen ci dénk ndaxtelee yéen ngéen ragal Yàlla."
+  ],
+  [
+    154,
+    "Topp Nu jox Muusaa téeré ba, ngir mottali xéewël ca ka rafetal, ak birël lu nekk, ak njub ak yërmënde ndax xeyna ñu gëm séen dajeek séen Boroom."
+  ],
+  [
+    155,
+    "Te téeré bii wàcce na Nu ko barkeel ko koon topp léen ko, te ngéen ragal [Yàlla] ndax xeyna yërëmees léen."
+  ],
+  [
+    156,
+    "Ndax it ngéen bañ wax ne ab téeré wàcceelu ñu ko kenn kudul ñaari kurél [Yauud yi ak nasaraan yi] ci ñi ñu jiitu te nun nekku nu  woon ñu xam la ñu jàngale."
+  ],
+  [
+    157,
+    "Walla ngéen di wax naan bu fekkoon ne ci nun la ñu wàcce téeré bi, koon noo léen di gën a gindiku, te dikkël na léen jógé ca séen Boroom ab leeral gu di njub ak yërmëndé, ana kan moo gën a tooñ kiy weddi kàdduy Yàlla te dummóoyu léen ? Di na Nu fey ñiy dëddu Sunuy Kàddu gën jaa bon mbugël ngir séen dëddu."
+  ],
+  [
+    158,
+    "Ndax da ñuy xaar ay malaaka dikk ca ñoom, walla sa Boroom aksi, walla dikk lenna ci say kéemaani Boroom, bés bu lenna ci say kéemaani Boroom dikkée, baken bu gëmul woon, lu jiitu, doora gëm, du ko jariñ dara, walla ku fàgguwul woon yiw it sa ngëm du la jariñ dara, neel xaar léen nun it nu ngiy xaar."
+  ],
+  [
+    159,
+    "Ñi nga xam ne da ñu xàjale séen diiné ba mu nekk ay pàcc-pàcc, bokku look ñoom dara, séen mbir ca Yàlla doŋŋ la nekk, te di Na léen birël la ñu nekkoon di ko def."
+  ],
+  [
+    160,
+    "Ku dikk ak yiw, ñeel na ko yool bu tol ni fukki yoonu yiw woowu,  ku dikk ak ñaawtéef du ñu ko fey ludul lu tollu ni loolu te ñoom kenn du léen tooñ [ci wàññi walla yokkal léen dara]"
+  ],
+  [
+    161,
+    "Neel sama Boroom gindi Na ma teg ma ci yoon wu jub wi, di diiné ju jub, diiné Ibraaiima mi wéetël Boroomam te bokkul woon ca way bokkaale ña."
+  ],
+  [
+    162,
+    "Neel nakka sama julli, ak sama jaamu ak sama dund ak sama dee ñeel na ñu Yàlla Boroom àddina bi."
+  ],
+  [
+    163,
+    "Amul bokkaale, te loolu la ñu ma digël, te nekk naa ka jiitu ca way wommatu ña."
+  ],
+  [
+    164,
+    "Ndax da may sàkku benneen borom budul Yàlla, te Moom Mooy Boroom lépp lu ne, baken bu ne la mu fàggu ci moom doŋŋ lay, dellu, kenn du yanul kenneen yanam, te ci séen Boroom ngéen di dellu, Mu birël léen la ngéen nekkoon di ca juuyoo."
+  ],
+  [
+    165,
+    "Moom Moo léen def ngéen di kuutaay ci suuf si, Mu yékëti lenna ci yéen ci kow ñeneen ñi ci wàllu ndéey ngir nattu léen ci li Mu léen jox, nakka sa Boroom ku gaaw ci mbugël la te Moom jéggëlaakoon la, jaglewaakoon la."
+  ]
+]

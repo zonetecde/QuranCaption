@@ -1,0 +1,54 @@
+[
+  {
+    "id": 99,
+    "city": "madinah",
+    "name": {
+      "translated": "The Earthquake",
+      "transliterated": "Az-Zalzalah",
+      "codepoints": [
+        1575,
+        1604,
+        1586,
+        1604,
+        1586,
+        1604,
+        1577
+      ]
+    },
+    "ayahs": 8,
+    "slug": "az-zalzalah",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Bu suuf si yëngoo yëngëtoom"
+  ],
+  [
+    2,
+    "te suuf si génné la ko diiséwoon"
+  ],
+  [
+    3,
+    "te nit wax : lu ko jot"
+  ],
+  [
+    4,
+    "bés boobu di na nettali ay xew xeewam."
+  ],
+  [
+    5,
+    "ngiir sa Boroom Moo ko ko soloo"
+  ],
+  [
+    6,
+    "Bés boobu nit ñi di na ñu gongiku di teqalikoo ngir ñu won  léen séeni jëf"
+  ],
+  [
+    7,
+    "Ku defoon lu tollu ni pepp su tuuti lool] cik yiw di na ko giss"
+  ],
+  [
+    8,
+    "Ku defoon lu tollu ni pepp [su tuuti lool] cik ñaawtéef di na ko gis"
+  ]
+]

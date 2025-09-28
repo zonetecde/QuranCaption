@@ -1,0 +1,52 @@
+[
+  {
+    "id": 95,
+    "city": "makkah",
+    "name": {
+      "translated": "The Fig",
+      "transliterated": "At-Tin",
+      "codepoints": [
+        1575,
+        1604,
+        1578,
+        1610,
+        1606
+      ]
+    },
+    "ayahs": 8,
+    "slug": "at-tin",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Giñ Naa ci garabu gah ak bu oliw"
+  ],
+  [
+    2,
+    "ak ci doju siniina"
+  ],
+  [
+    3,
+    "ak ci dëkk bii am koolute [Màkka]"
+  ],
+  [
+    4,
+    "bind na Nu nit ci melo wa gën a rafet"
+  ],
+  [
+    5,
+    "Topp di na Nu ko dellloo ca fa gën a suufe waay suufe ña ,"
+  ],
+  [
+    6,
+    "ginnaaw ñu gëm tey jëf jëf yu yiw , ñooñu ñeel na léen pey gu dul dog"
+  ],
+  [
+    7,
+    "Koon,ginnaaw loulou lan moo lay weddiloo bés Péncé ma"
+  ],
+  [
+    8,
+    "Ndax du Yell Mooy gën jaa man a atte way atte ña"
+  ]
+]

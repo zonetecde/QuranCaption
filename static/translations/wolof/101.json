@@ -1,0 +1,66 @@
+[
+  {
+    "id": 101,
+    "city": "makkah",
+    "name": {
+      "translated": "The Calamity",
+      "transliterated": "Al-Qari'ah",
+      "codepoints": [
+        1575,
+        1604,
+        1602,
+        1575,
+        1585,
+        1593,
+        1577
+      ]
+    },
+    "ayahs": 11,
+    "slug": "al-qariah",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "(Ci turu Yàlla yërëmaakoon bi jaglewaakoon bi ) Aji fëgg ja"
+  ],
+  [
+    2,
+    "lan mooy aji fëgg ja"
+  ],
+  [
+    3,
+    "lan moo lay xamal aji fëgg ja"
+  ],
+  [
+    4,
+    "keroog nit ñi di na ñu mel niy lëpplëpp yu ñu yulli"
+  ],
+  [
+    5,
+    "tundu doj yi mel ni wëttéen wu ñu ëcc"
+  ],
+  [
+    6,
+    "Ku màndaxe yiwam diis"
+  ],
+  [
+    7,
+    "moom di na nekk cik dundu gu neex"
+  ],
+  [
+    8,
+    "Ku màndaxe yiwam woyof"
+  ],
+  [
+    9,
+    "dëkkuwaayam Haawiya"
+  ],
+  [
+    10,
+    "lan moo lay xamal luy Haawiya"
+  ],
+  [
+    11,
+    "safara su tàng la"
+  ]
+]

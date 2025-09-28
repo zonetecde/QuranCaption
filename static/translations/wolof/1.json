@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "city": "makkah",
+    "name": {
+      "translated": "The Opener",
+      "transliterated": "Al-Fatihah",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1575,
+        1578,
+        1581,
+        1577
+      ]
+    },
+    "ayahs": 7,
+    "slug": "al-fatihah",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Ci turu Yàlla yërëmaakoon bi [biy xéewël mbindéefam yépp ci àddina ] jaglewaakoon [biy berndee waay gëm yi ca àllaaxira ]"
+  ],
+  [
+    2,
+    "Cant gépp ñeel na Yàlla Boroom àddina si"
+  ],
+  [
+    3,
+    "Yërëmaakoon bi ak jaglewaakoon bi"
+  ],
+  [
+    4,
+    "Di Buuru bés pénc ma"
+  ],
+  [
+    5,
+    "Yow doƞƞ la nuy jaamu te ci yow doŋŋ la nuy sàkku ndimmël"
+  ],
+  [
+    6,
+    "Gindi nu jëmé nu ci yoon wu jub wi"
+  ],
+  [
+    7,
+    "Yonnu ñi nga xéewël, wuuteek ñi nga mere ak ñi réer"
+  ]
+]

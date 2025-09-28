@@ -1,0 +1,40 @@
+[
+  {
+    "id": 113,
+    "city": "makkah",
+    "name": {
+      "translated": "The Daybreak",
+      "transliterated": "Al-Falaq",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1604,
+        1602
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-falaq",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Neel Maa ngi làqu ci Boroom njël"
+  ],
+  [
+    2,
+    "Ci ayu lu mu bind"
+  ],
+  [
+    3,
+    "Ci ayu lëndëm sa yu kukkee"
+  ],
+  [
+    4,
+    "Ak ci ayu ñiy wàll ëff ci pàss pàss yi (njéebal kat yi )"
+  ],
+  [
+    5,
+    "Ak ci ayu ki iñaan sa yu fëssale iñaan ga"
+  ]
+]

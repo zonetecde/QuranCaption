@@ -1,0 +1,40 @@
+[
+  {
+    "id": 97,
+    "city": "makkah",
+    "name": {
+      "translated": "The Power",
+      "transliterated": "Al-Qadr",
+      "codepoints": [
+        1575,
+        1604,
+        1602,
+        1583,
+        1585
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-qadr",
+    "translator": "Hamza Roberto Piccardo"
+  },
+  [
+    1,
+    "Nun wàcce na Nu ko [al xuraan] ci guddi gu màgg lool"
+  ],
+  [
+    2,
+    "Ku lay xamal luy guddi ga ñu màggal"
+  ],
+  [
+    3,
+    "guddi gu ñu màggal gi moo gën junniy  weer"
+  ],
+  [
+    4,
+    "Malaaka yi ak Ruu ga di na ñu ci wàcci si séen ndigëlu Boroom, [di liijënti] bépp mbir"
+  ],
+  [
+    5,
+    "Jàmma rekk cay nekk ba fajar xar."
+  ]
+]

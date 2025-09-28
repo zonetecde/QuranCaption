@@ -1,6 +1,5 @@
 import { globalState } from '$lib/runes/main.svelte';
-import { stat } from '@tauri-apps/plugin-fs';
-import type { ClipWithTranslation, SubtitleClip } from './Clip.svelte';
+import type { SubtitleClip } from './Clip.svelte';
 import type { Edition } from './Edition';
 import { SerializableBase } from './misc/SerializableBase';
 
@@ -107,6 +106,55 @@ export class VerseTranslation extends Translation {
 
 		// Sinon, retourne juste le texte de la traduction
 		return super.getText();
+	}
+
+	/**
+	 * Recalcule les indexes de début et de fin de la traduction dans le texte original en fonction du texte actuel
+	 */
+	tryRecalculateTranslationIndexes(edition: Edition, verseKey: string): void {
+		const originalTranslationText: string =
+			globalState.currentProject!.content.projectTranslation.getVerseTranslation(edition, verseKey);
+
+		if (originalTranslationText) {
+			if (!originalTranslationText.includes(this.text)) {
+				return; // La traduction a été bruteforcée, on ne fait rien
+			}
+
+			const originalWords = originalTranslationText.split(' ');
+			const currentWords = this.text.split(' ');
+
+			// Si le texte de la traduction n'a pas changé, on ne fait rien
+			if (originalWords.length === currentWords.length) {
+				return;
+			}
+
+			// Trouve maintenant l'index du premier mot de la traduction dans le texte original de telle sorte que tous les mots de la traduction soient présents dans le texte original
+			let startIndex = -1;
+			for (let i = 0; i < originalWords.length; i++) {
+				if (originalWords[i] === currentWords[0]) {
+					// Potentiel début trouvé, vérifie que tous les mots suivants sont présents
+					let allMatch = true;
+					for (let j = 1; j < currentWords.length; j++) {
+						if (originalWords[i + j] !== currentWords[j]) {
+							allMatch = false;
+							break;
+						}
+					}
+					if (allMatch) {
+						startIndex = i;
+						break;
+					}
+				}
+			}
+			if (startIndex !== -1) {
+				this.startWordIndex = startIndex;
+				this.endWordIndex = startIndex + currentWords.length - 1;
+				this.isBruteForce = false;
+			} else {
+				// La traduction a été bruteforcée, on ne fait rien
+				this.isBruteForce = true;
+			}
+		}
 	}
 }
 

@@ -160,6 +160,11 @@
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP,
 			onKeyDown: () => addCustomTextClip()
 		});
+
+		ShortcutService.registerShortcut({
+			key: { keys: ['Escape'], description: 'Exit subtitle editing' },
+			onKeyDown: () => (globalState.getSubtitlesEditorState.editSubtitle = null)
+		});
 	});
 
 	onDestroy(() => {
@@ -206,6 +211,7 @@
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP
 		);
+		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: 'Exit subtitle editing' });
 	});
 
 	function editLastSubtitle(): void {

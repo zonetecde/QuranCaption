@@ -693,6 +693,8 @@
 		if (globalState.getVideoPreviewState.isFullscreen) {
 			globalState.getVideoPreviewState.toggleFullScreen();
 		}
+
+		globalState.getVideoPreviewState.togglePlayPause = togglePlayPause;
 	});
 </script>
 

@@ -95,7 +95,32 @@
 			}
 		}
 	}
-	// Remove the old $effect since we handle preview loading manually now
+
+	let recentTranslations: Edition[] = $state([]);
+
+	onMount(() => {
+		// Récupère les éditions de traduction des 10 derniers projets ouverts (pour avoir des traductions récentes)
+		const recentProjects = globalState.userProjectsDetails
+			.filter((p) => p.updatedAt)
+			.sort((a, b) => b.updatedAt!.getTime() - a.updatedAt!.getTime())
+			.slice(0, 10);
+
+		const recentEditionsSet = new Set<string>();
+		for (const projectDetail of recentProjects) {
+			if (projectDetail.id === globalState.currentProject?.detail.id) continue; // Skip current project
+
+			for (const editionName of Object.keys(projectDetail.translations)) {
+				console.log('Found recent edition:', editionName);
+				if (!recentEditionsSet.has(editionName)) {
+					const edition = globalState.getEditionFromAuthor(editionName);
+					if (edition) {
+						recentTranslations.push(edition);
+						recentEditionsSet.add(editionName);
+					}
+				}
+			}
+		}
+	});
 </script>
 
 <div
@@ -140,6 +165,51 @@
 				>search</span
 			>
 		</div>
+
+		<!-- Recent translations section -->
+		{#if recentTranslations.length > 0 && !searchQuery}
+			<div class="mt-4">
+				<div class="flex items-center gap-2 mb-2">
+					<span class="material-icons text-accent-primary text-sm">history</span>
+					<span class="text-sm font-medium text-primary">Recent Translations</span>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					{#each recentTranslations.slice(0, 8) as translation}
+						{@const isSelected = isTranslationSelected(translation)}
+						<button
+							class="px-3 py-1.5 text-xs bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 flex items-center gap-1.5
+							       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
+							onclick={() => {
+								const languageKey = Object.keys(globalState.availableTranslations).find((lang) =>
+									globalState.availableTranslations[lang].translations.some(
+										(t) => t.name === translation.name
+									)
+								);
+								if (languageKey) {
+									toggleTranslationSelection(translation, languageKey);
+								}
+							}}
+						>
+							{#if isSelected}
+								<span class="material-icons text-accent-primary" style="font-size: 12px;"
+									>check_circle</span
+								>
+							{:else}
+								<span class="material-icons text-thirdly opacity-50" style="font-size: 12px;"
+									>add_circle_outline</span
+								>
+							{/if}
+							<span class="text-primary font-medium">{translation.author}</span>
+						</button>
+					{/each}
+					{#if recentTranslations.length > 8}
+						<span class="px-2 py-1.5 text-xs text-thirdly bg-accent rounded-lg border border-color">
+							+{recentTranslations.length - 8} more
+						</span>
+					{/if}
+				</div>
+			</div>
+		{/if}
 	</div>
 	<!-- Content area -->
 	<div class="flex-1 overflow-hidden">

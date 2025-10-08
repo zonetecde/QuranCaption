@@ -3225,7 +3225,7 @@ dependencies = [
 
 [[package]]
 name = "qurancaption"
-version = "3.2.0"
+version = "3.2.1"
 dependencies = [
  "dirs",
  "discord-rich-presence",
@@ -5935,7 +5935,7 @@ dependencies = [
 
 [[package]]
 name = "zvariant_utils"
-version = "3.2.0"
+version = "3.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16edfee43e5d7b553b77872d99bc36afdda75c223ca7ad5e3fbecd82ca5fc34"
 dependencies = [

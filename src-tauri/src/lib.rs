@@ -1,9 +1,13 @@
-use std::fs;
-use std::path::{Path};
-use std::process::Command;
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
+
+mod binary_resolver;
 mod exporter;
+
+use binary_resolver::{resolve_ffmpeg, resolve_ffprobe, resolve_yt_dlp};
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 
 use font_kit::source::SystemSource;
@@ -41,81 +45,72 @@ fn configure_command_no_window(cmd: &mut Command) {
 
 #[tauri::command]
 async fn download_from_youtube(
+    app: tauri::AppHandle,
     url: String,
     _type: String,
     download_path: String,
 ) -> Result<String, String> {
-    // Créer le dossier de téléchargement s'il n'existe pas
     if let Err(e) = fs::create_dir_all(&download_path) {
         return Err(format!("Unable to create directory: {}", e));
     }
 
-    // Chemin vers yt-dlp dans le dossier binaries (relatif au working directory)
-    let yt_dlp_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("yt-dlp.exe")
-    } else {
-        Path::new("binaries").join("yt-dlp")
-    };
+    let yt_dlp =
+        resolve_yt_dlp(&app).map_err(|e| format!("Unable to locate yt-dlp binary: {}", e))?;
+    let ffmpeg =
+        resolve_ffmpeg(&app).map_err(|e| format!("Unable to locate ffmpeg binary: {}", e))?;
 
-    // Vérifier que le binaire existe
-    if !yt_dlp_path.exists() {
-        return Err(format!("yt-dlp binary not found at: {}", yt_dlp_path.display()));
+    let mut args: Vec<String> = vec!["--force-ipv4".to_string()];
+
+    if let Some(dir) = ffmpeg.directory.clone() {
+        args.push("--ffmpeg-location".to_string());
+        args.push(dir.to_string_lossy().to_string());
     }
 
-    // Chemin vers le dossier contenant ffmpeg et ffprobe
-    let binaries_dir = Path::new("binaries");
-
-    // Convertir le chemin en String pour éviter les problèmes de lifetime
-    let binaries_dir_str = binaries_dir.to_string_lossy().to_string();
-
-    // Configuration selon le type (audio ou vidéo)
-    let mut args = vec!["--force-ipv4"];
-
-    // Ajouter le chemin vers le dossier contenant ffmpeg et ffprobe
-    args.push("--ffmpeg-location");
-    args.push(&binaries_dir_str);
-
-    // Pattern de sortie avec le titre de la vidéo et le nom de la chaîne
-    let output_pattern = format!("{}/%(title)s (%(uploader)s).%(ext)s", download_path);
+    let output_pattern = Path::new(&download_path)
+        .join("%(title)s (%(uploader)s).%(ext)s")
+        .to_string_lossy()
+        .to_string();
 
     match _type.as_str() {
         "audio" => {
-            // Pour l'audio : qualité maximale, format MP3, bitrate constant
-            args.extend_from_slice(&[
-                "--extract-audio",
-                "--audio-format",
-                "mp3",
-                "--audio-quality",
-                "0", // Qualité maximale
-                "--postprocessor-args",
-                "ffmpeg:-b:a 320k -ar 44100", // Bitrate constant 320k
-                "-o",
-                &output_pattern,
-            ]);
+            args.extend(
+                [
+                    "--extract-audio",
+                    "--audio-format",
+                    "mp3",
+                    "--audio-quality",
+                    "0",
+                    "--postprocessor-args",
+                    "ffmpeg:-b:a 320k -ar 44100",
+                ]
+                .into_iter()
+                .map(|s| s.to_string()),
+            );
         }
         "video" => {
-            // Pour la vidéo : 1080p ou moins, format MP4, bitrate constant
-            args.extend_from_slice(&[
-                "--format",
-                "best[height<=1080][ext=mp4]/best[ext=mp4]/best",
-                "--merge-output-format",
-                "mp4",
-                "--postprocessor-args",
-                "ffmpeg:-b:v 2000k -maxrate 2000k -bufsize 4000k -b:a 128k",
-                "-o",
-                &output_pattern,
-            ]);
+            args.extend(
+                [
+                    "--format",
+                    "best[height<=1080][ext=mp4]/best[ext=mp4]/best",
+                    "--merge-output-format",
+                    "mp4",
+                    "--postprocessor-args",
+                    "ffmpeg:-b:v 2000k -maxrate 2000k -bufsize 4000k -b:a 128k",
+                ]
+                .into_iter()
+                .map(|s| s.to_string()),
+            );
         }
         _ => {
             return Err("Invalid type: must be 'audio' or 'video'".to_string());
         }
     }
 
-    // Ajouter l'URL à la fin
-    args.push(&url);
+    args.push("-o".to_string());
+    args.push(output_pattern);
+    args.push(url);
 
-    // Exécuter yt-dlp
-    let mut cmd = Command::new(&yt_dlp_path);
+    let mut cmd = Command::new(&yt_dlp.command);
     cmd.args(&args);
     configure_command_no_window(&mut cmd);
     let output = cmd.output();
@@ -126,10 +121,8 @@ async fn download_from_youtube(
                 let output_str = String::from_utf8_lossy(&result.stdout);
                 println!("yt-dlp output: {}", output_str);
 
-                // Chercher le fichier téléchargé dans le dossier
                 let extension = if _type == "audio" { "mp3" } else { "mp4" };
 
-                // Lire le dossier pour trouver le fichier téléchargé
                 match fs::read_dir(&download_path) {
                     Ok(entries) => {
                         for entry in entries {
@@ -139,7 +132,6 @@ async fn download_from_youtube(
                                     if ext == extension {
                                         if let Some(_filename) = path.file_name() {
                                             let file_path = path.to_string_lossy().to_string();
-
                                             return Ok(file_path);
                                         }
                                     }
@@ -162,24 +154,17 @@ async fn download_from_youtube(
 
 // Fonction pour obtenir la durée précise du fichier téléchargé avec ffprobe
 #[tauri::command]
-fn get_duration(file_path: &str) -> Result<i64, String> {
-    // If the file does not exist, return -1
+fn get_duration(app: tauri::AppHandle, file_path: &str) -> Result<i64, String> {
     if !std::path::Path::new(file_path).exists() {
         return Ok(-1);
     }
 
-    let ffprobe_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffprobe.exe")
-    } else {
-        Path::new("binaries").join("ffprobe")
+    let ffprobe = match resolve_ffprobe(&app) {
+        Ok(bin) => bin,
+        Err(_) => return Ok(-1),
     };
 
-    // Vérifier que le binaire existe
-    if !ffprobe_path.exists() {
-        return Ok(-1); // Si ffprobe n'existe pas, retourner -1
-    }
-
-    let mut cmd = Command::new(&ffprobe_path);
+    let mut cmd = Command::new(&ffprobe.command);
     cmd.args(&[
         "-v",
         "quiet",
@@ -199,7 +184,6 @@ fn get_duration(file_path: &str) -> Result<i64, String> {
                 let duration_line = output_str.trim();
 
                 if let Ok(duration_seconds) = duration_line.parse::<f64>() {
-                    // Convertir en millisecondes avec précision
                     Ok((duration_seconds * 1000.0).round() as i64)
                 } else {
                     Err("Unable to parse duration from ffprobe output".to_string())
@@ -228,20 +212,23 @@ fn get_new_file_path(start_time: u64, asset_name: &str) -> Result<String, String
     for entry in entries {
         if let Ok(entry) = entry {
             if let Ok(metadata) = entry.metadata() {
-                if let Ok(created) = metadata.created() {
-                    let created_time = created
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .map_err(|_| "Time went backwards")?
-                        .as_millis() as u64;
+                let created_time = metadata
+                    .created()
+                    .or_else(|_| metadata.modified())
+                    .ok()
+                    .and_then(|time| {
+                        time.duration_since(std::time::UNIX_EPOCH)
+                            .ok()
+                            .map(|duration| duration.as_millis() as u64)
+                    });
 
-                    // If the creation date is greater than start_time, check the file name
+                if let Some(created_time) = created_time {
                     if created_time > start_time {
                         let file_path = entry.path();
                         if let Some(file_name) = file_path.file_name() {
                             let file_name_str = file_name.to_string_lossy();
                             let asset_name_trimmed = asset_name.trim();
 
-                            // Check if the file name contains the asset name
                             if file_name_str.contains(asset_name_trimmed) {
                                 return Ok(file_path.to_string_lossy().to_string());
                             } else {
@@ -259,15 +246,14 @@ fn get_new_file_path(start_time: u64, asset_name: &str) -> Result<String, String
 #[tauri::command]
 fn move_file(source: String, destination: String) -> Result<(), String> {
     use std::path::Path;
-    
-    let source_path = Path::new(&source);
+
     let dest_path = Path::new(&destination);
-    
+
     // If destination exists, remove it first to force the move
     if dest_path.exists() {
         std::fs::remove_file(&destination).map_err(|e| e.to_string())?;
     }
-    
+
     // Try rename first (works if on same drive/filesystem)
     match std::fs::rename(&source, &destination) {
         Ok(()) => Ok(()),
@@ -297,7 +283,7 @@ fn get_system_fonts() -> Result<Vec<String>, String> {
         // Load the font to get its properties
         let handle = font.load().map_err(|e| e.to_string())?;
         let family = handle.family_name();
-        
+
         // Only add the font name if we haven't seen it before
         if seen_names.insert(family.clone()) {
             font_names.push(family);
@@ -312,7 +298,7 @@ fn get_system_fonts() -> Result<Vec<String>, String> {
 #[tauri::command]
 fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
     let path = Path::new(&file_path);
-    
+
     // Vérifier que le fichier existe
     if !path.exists() {
         return Err(format!("File not found: {}", file_path));
@@ -333,16 +319,14 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
                 // car explorer.exe peut retourner des codes de sortie non-zéro même quand ça marche
                 Ok(())
             }
-            Err(e) => Err(format!("Failed to execute explorer command: {}", e))
+            Err(e) => Err(format!("Failed to execute explorer command: {}", e)),
         }
     }
 
     #[cfg(target_os = "macos")]
     {
         // Sur macOS, utiliser 'open' avec -R pour révéler le fichier dans Finder
-        let output = Command::new("open")
-            .args(&["-R", &file_path])
-            .output();
+        let output = Command::new("open").args(&["-R", &file_path]).output();
 
         match output {
             Ok(result) => {
@@ -351,10 +335,8 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
                 } else {
                     // Fallback: ouvrir juste le dossier parent
                     if let Some(parent) = path.parent() {
-                        let fallback_output = Command::new("open")
-                            .arg(parent)
-                            .output();
-                        
+                        let fallback_output = Command::new("open").arg(parent).output();
+
                         match fallback_output {
                             Ok(fallback_result) => {
                                 if fallback_result.status.success() {
@@ -363,14 +345,14 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
                                     Err("Failed to open Finder".to_string())
                                 }
                             }
-                            Err(e) => Err(format!("Failed to execute open command: {}", e))
+                            Err(e) => Err(format!("Failed to execute open command: {}", e)),
                         }
                     } else {
                         Err("Failed to open Finder and no parent directory found".to_string())
                     }
                 }
             }
-            Err(e) => Err(format!("Failed to execute open command: {}", e))
+            Err(e) => Err(format!("Failed to execute open command: {}", e)),
         }
     }
 
@@ -379,12 +361,10 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
         // Sur Linux, essayer plusieurs gestionnaires de fichiers
         let file_managers = ["nautilus", "dolphin", "thunar", "pcmanfm", "caja"];
         let parent_dir = path.parent().ok_or("No parent directory found")?;
-        
+
         for manager in &file_managers {
-            let output = Command::new(manager)
-                .arg(parent_dir)
-                .output();
-                
+            let output = Command::new(manager).arg(parent_dir).output();
+
             match output {
                 Ok(result) => {
                     if result.status.success() {
@@ -394,11 +374,9 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
                 Err(_) => continue, // Essayer le gestionnaire suivant
             }
         }
-        
+
         // Fallback: utiliser xdg-open pour ouvrir le dossier parent
-        let output = Command::new("xdg-open")
-            .arg(parent_dir)
-            .output();
+        let output = Command::new("xdg-open").arg(parent_dir).output();
 
         match output {
             Ok(result) => {
@@ -408,7 +386,7 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
                     Err("Failed to open file manager".to_string())
                 }
             }
-            Err(e) => Err(format!("Failed to execute xdg-open command: {}", e))
+            Err(e) => Err(format!("Failed to execute xdg-open command: {}", e)),
         }
     }
 
@@ -420,24 +398,17 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
-    // Vérifier que le fichier existe
+fn get_video_dimensions(
+    app: tauri::AppHandle,
+    file_path: &str,
+) -> Result<serde_json::Value, String> {
     if !std::path::Path::new(file_path).exists() {
         return Err(format!("File not found: {}", file_path));
     }
 
-    let ffprobe_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffprobe.exe")
-    } else {
-        Path::new("binaries").join("ffprobe")
-    };
+    let ffprobe = resolve_ffprobe(&app).map_err(|e| format!("ffprobe binary not found: {}", e))?;
 
-    // Vérifier que le binaire existe
-    if !ffprobe_path.exists() {
-        return Err(format!("ffprobe binary not found at: {}", ffprobe_path.display()));
-    }
-
-    let mut cmd = Command::new(&ffprobe_path);
+    let mut cmd = Command::new(&ffprobe.command);
     cmd.args(&[
         "-v",
         "quiet",
@@ -445,7 +416,7 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
         "json",
         "-show_streams",
         "-select_streams",
-        "v:0", // Sélectionner le premier stream vidéo
+        "v:0",
         file_path,
     ]);
     configure_command_no_window(&mut cmd);
@@ -455,28 +426,22 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
         Ok(result) => {
             if result.status.success() {
                 let output_str = String::from_utf8_lossy(&result.stdout);
-                
-                // Parser le JSON de ffprobe
+
                 let json_value: serde_json::Value = serde_json::from_str(&output_str)
                     .map_err(|e| format!("Failed to parse ffprobe JSON output: {}", e))?;
-                
-                // Extraire les dimensions du premier stream vidéo
+
                 if let Some(streams) = json_value.get("streams") {
                     if let Some(stream) = streams.get(0) {
-                        let width = stream.get("width")
-                            .and_then(|w| w.as_i64())
-                            .unwrap_or(0);
-                        let height = stream.get("height")
-                            .and_then(|h| h.as_i64())
-                            .unwrap_or(0);
-                        
+                        let width = stream.get("width").and_then(|w| w.as_i64()).unwrap_or(0);
+                        let height = stream.get("height").and_then(|h| h.as_i64()).unwrap_or(0);
+
                         return Ok(serde_json::json!({
                             "width": width,
                             "height": height
                         }));
                     }
                 }
-                
+
                 Err("No video stream found in file".to_string())
             } else {
                 let stderr = String::from_utf8_lossy(&result.stderr);
@@ -488,105 +453,75 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
-    // Vérifier que le fichier existe
+fn convert_audio_to_cbr(app: tauri::AppHandle, file_path: String) -> Result<(), String> {
     if !std::path::Path::new(&file_path).exists() {
         return Err(format!("File not found: {}", file_path));
     }
 
-    let ffmpeg_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffmpeg.exe")
-    } else {
-        Path::new("binaries").join("ffmpeg")
-    };
+    let ffmpeg = resolve_ffmpeg(&app).map_err(|e| format!("ffmpeg binary not found: {}", e))?;
 
-    // Vérifier que le binaire existe
-    if !ffmpeg_path.exists() {
-        return Err(format!("ffmpeg binary not found at: {}", ffmpeg_path.display()));
-    }
-
-    // Extraire l'extension du fichier d'origine
-    let path = Path::new(&file_path);
-    let extension = path.extension()
+    let path = std::path::Path::new(&file_path);
+    let extension = path
+        .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("mp4");
-    
-    // Créer un fichier temporaire avec la même extension
-    let file_stem = path.file_stem()
+    let file_stem = path
+        .file_stem()
         .and_then(|stem| stem.to_str())
         .unwrap_or("temp");
-    let parent_dir = path.parent()
-        .map(|p| p.to_str().unwrap_or(""))
-        .unwrap_or("");
-    
-    let temp_path = if parent_dir.is_empty() {
-        format!("{}_temp.{}", file_stem, extension)
-    } else {
-        format!("{}\\{}_temp.{}", parent_dir, file_stem, extension)
-    };
 
-    // Commande ffmpeg pour convertir en CBR - adapter selon le type de fichier
-    let mut cmd = Command::new(&ffmpeg_path);
-    
-    // Détecter si c'est un fichier audio ou vidéo basé sur l'extension
-    let is_audio_only = matches!(extension.to_lowercase().as_str(), "mp3" | "wav" | "flac" | "aac" | "ogg" | "m4a");
-    
+    let temp_path = path.with_file_name(format!("{}_temp.{}", file_stem, extension));
+
+    let mut cmd = Command::new(&ffmpeg.command);
+
+    let is_audio_only = matches!(
+        extension.to_lowercase().as_str(),
+        "mp3" | "wav" | "flac" | "aac" | "ogg" | "m4a"
+    );
+
     if is_audio_only {
-        // Pour les fichiers audio seulement - paramètres identiques à Audacity
-        cmd.args(&[
-            "-i", &file_path,
-            "-codec:a", "libmp3lame",    // Encodeur LAME comme Audacity
-            "-b:a", "192k",              // Bitrate constant 192k comme dans l'image
-            "-cbr", "1",                 // Force CBR (Constant Bitrate)
-            "-ar", "44100",              // Sample rate 44100 Hz comme Audacity
-            "-ac", "2",                  // Stéréo comme Audacity
-            "-f", "mp3",                 // Format MP3
-            "-y",                        // Overwrite output file
-            &temp_path,
-        ]);
+        cmd.arg("-i").arg(&file_path);
+        cmd.arg("-codec:a").arg("libmp3lame");
+        cmd.arg("-b:a").arg("192k");
+        cmd.arg("-cbr").arg("1");
+        cmd.arg("-ar").arg("44100");
+        cmd.arg("-ac").arg("2");
+        cmd.arg("-f").arg("mp3");
+        cmd.arg("-y");
+        cmd.arg(temp_path.as_os_str());
     } else {
-        // Pour les fichiers vidéo
-        cmd.args(&[
-            "-i", &file_path,
-            "-b:v", "1200k",         // Bitrate vidéo
-            "-minrate", "1200k",     // Bitrate minimum
-            "-maxrate", "1200k",     // Bitrate maximum
-            "-bufsize", "1200k",     // Buffer size
-            "-b:a", "64k",           // Bitrate audio
-            "-vcodec", "libx264",    // Codec vidéo
-            "-acodec", "aac",        // Codec audio
-            "-strict", "-2",         // Strict mode
-            "-ac", "2",              // Canaux audio (stéréo)
-            "-ar", "44100",          // Sample rate
-            "-s", "320x240",         // Résolution vidéo
-            "-y",                    // Overwrite output file
-            &temp_path,
-        ]);
+        cmd.arg("-i").arg(&file_path);
+        cmd.arg("-b:v").arg("1200k");
+        cmd.arg("-minrate").arg("1200k");
+        cmd.arg("-maxrate").arg("1200k");
+        cmd.arg("-bufsize").arg("1200k");
+        cmd.arg("-b:a").arg("64k");
+        cmd.arg("-vcodec").arg("libx264");
+        cmd.arg("-acodec").arg("aac");
+        cmd.arg("-strict").arg("-2");
+        cmd.arg("-ac").arg("2");
+        cmd.arg("-ar").arg("44100");
+        cmd.arg("-preset").arg("medium");
+        cmd.arg("-y");
+        cmd.arg(temp_path.as_os_str());
     }
+
     configure_command_no_window(&mut cmd);
-    
     let output = cmd.output();
 
     match output {
         Ok(result) => {
             if result.status.success() {
-                // Remplacer le fichier original par le fichier converti
-                if let Err(e) = std::fs::remove_file(&file_path) {
-                    return Err(format!("Failed to remove original file: {}", e));
-                }
-                if let Err(e) = std::fs::rename(&temp_path, &file_path) {
-                    return Err(format!("Failed to replace original file: {}", e));
-                }
+                std::fs::rename(&temp_path, &file_path)
+                    .map_err(|e| format!("Failed to replace original file: {}", e))?;
                 Ok(())
             } else {
-                // Nettoyer le fichier temporaire en cas d'erreur
-                let _ = std::fs::remove_file(&temp_path);
                 let stderr = String::from_utf8_lossy(&result.stderr);
+                let _ = std::fs::remove_file(&temp_path);
                 Err(format!("ffmpeg error: {}", stderr))
             }
         }
         Err(e) => {
-            // Nettoyer le fichier temporaire en cas d'erreur
             let _ = std::fs::remove_file(&temp_path);
             Err(format!("Unable to execute ffmpeg: {}", e))
         }
@@ -596,16 +531,16 @@ fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
 #[tauri::command]
 async fn init_discord_rpc(app_id: String) -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
-    
+
     // Fermer la connexion existante si elle existe
     if let Some(ref mut client) = *client_guard {
         let _ = client.close();
     }
-    
+
     // Créer une nouvelle connexion
     let mut client = DiscordIpcClient::new(&app_id).map_err(|e| e.to_string())?;
     client.connect().map_err(|e| e.to_string())?;
-    
+
     *client_guard = Some(client);
     Ok(())
 }
@@ -613,20 +548,20 @@ async fn init_discord_rpc(app_id: String) -> Result<(), String> {
 #[tauri::command]
 async fn update_discord_activity(activity_data: DiscordActivity) -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
-    
+
     if let Some(ref mut client) = *client_guard {
         let mut activity_builder = activity::Activity::new();
-        
+
         // Traiter les détails
         if let Some(ref details) = activity_data.details {
             activity_builder = activity_builder.details(details);
         }
-        
+
         // Traiter l'état
         if let Some(ref state) = activity_data.state {
             activity_builder = activity_builder.state(state);
         }
-        
+
         // Ajouter le timestamp de début (utilise start_timestamp si fourni, sinon l'heure actuelle)
         let start_time = activity_data.start_timestamp.unwrap_or_else(|| {
             std::time::SystemTime::now()
@@ -634,46 +569,47 @@ async fn update_discord_activity(activity_data: DiscordActivity) -> Result<(), S
                 .unwrap()
                 .as_secs() as i64
         });
-        
-        activity_builder = activity_builder.timestamps(
-            activity::Timestamps::new().start(start_time)
-        );
-        
+
+        activity_builder =
+            activity_builder.timestamps(activity::Timestamps::new().start(start_time));
+
         // Construire les assets si nécessaire
         let has_large_image = activity_data.large_image_key.is_some();
         let has_small_image = activity_data.small_image_key.is_some();
-        
+
         if has_large_image || has_small_image {
             let mut assets_builder = activity::Assets::new();
-            
+
             if let Some(ref large_image_key) = activity_data.large_image_key {
                 assets_builder = assets_builder.large_image(large_image_key);
-                
+
                 if let Some(ref large_image_text) = activity_data.large_image_text {
                     assets_builder = assets_builder.large_text(large_image_text);
                 }
             }
-            
+
             if let Some(ref small_image_key) = activity_data.small_image_key {
                 assets_builder = assets_builder.small_image(small_image_key);
-                
+
                 if let Some(ref small_image_text) = activity_data.small_image_text {
                     assets_builder = assets_builder.small_text(small_image_text);
                 }
             }
-            
+
             activity_builder = activity_builder.assets(assets_builder);
         }
-        
+
         // Construire la party si nécessaire
-        if let (Some(party_size), Some(party_max)) = (activity_data.party_size, activity_data.party_max) {
+        if let (Some(party_size), Some(party_max)) =
+            (activity_data.party_size, activity_data.party_max)
+        {
             let party = activity::Party::new().size([party_size as i32, party_max as i32]);
             activity_builder = activity_builder.party(party);
         }
-        
+
         let activity = activity_builder;
         client.set_activity(activity).map_err(|e| e.to_string())?;
-        
+
         Ok(())
     } else {
         Err("Discord client not initialized. Call init_discord_rpc first.".to_string())
@@ -683,7 +619,7 @@ async fn update_discord_activity(activity_data: DiscordActivity) -> Result<(), S
 #[tauri::command]
 async fn clear_discord_activity() -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
-    
+
     if let Some(ref mut client) = *client_guard {
         client.clear_activity().map_err(|e| e.to_string())?;
         Ok(())
@@ -695,7 +631,7 @@ async fn clear_discord_activity() -> Result<(), String> {
 #[tauri::command]
 async fn close_discord_rpc() -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
-    
+
     if let Some(ref mut client) = *client_guard {
         client.close().map_err(|e| e.to_string())?;
         *client_guard = None;
@@ -711,7 +647,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_opener::init())        .invoke_handler(tauri::generate_handler![
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![
             download_from_youtube,
             get_duration,
             get_new_file_path,

@@ -10,9 +10,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-13 # Intel Mac for x86_64 build
-            target: x86_64-apple-darwin
-            arch: intel
+          # - os: macos-13 # Intel Mac for x86_64 build
+          #   target: x86_64-apple-darwin
+          #   arch: intel
           - os: macos-latest # ARM Mac for M1/M2/M3 build
             target: aarch64-apple-darwin
             arch: arm

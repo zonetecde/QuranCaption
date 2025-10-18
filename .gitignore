@@ -27,3 +27,5 @@ src-tauri/2
 src-tauri/binaries/*.exe
 *.bak
 ffmpeg_failed_*.txt
+
+tmp/

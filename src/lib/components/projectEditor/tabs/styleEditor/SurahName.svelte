@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount, untrack } from 'svelte';
-	import { mouseDrag } from '$lib/services/verticalDrag';
-	import { draw, fade } from 'svelte/transition';
-	import CompositeText from './CompositeText.svelte';
-	import { VerseRange } from '$lib/classes';
+import { onMount } from 'svelte';
+import { mouseDrag } from '$lib/services/verticalDrag';
+import { draw, fade } from 'svelte/transition';
+import CompositeText from './CompositeText.svelte';
+import { VerseRange } from '$lib/classes';
 
-	const currentSurah = $derived(() => {
-		return globalState.getSubtitleTrack.getCurrentSurah();
-	});
+const currentSurah = $derived(() => {
+	return globalState.getSubtitleTrack.getCurrentSurah();
+});
 
 	let surahNameSettings = $derived(() => {
 		return {
@@ -46,6 +46,99 @@
 				.getStyle('global', 'surah-latin-text-style')!
 				.getCompositeStyle('text-glow-blur')!.value
 		};
+});
+
+const supportedTranslationLanguages = ['English', 'Spanish', 'French'] as const;
+type SupportedTranslationLanguage = (typeof supportedTranslationLanguages)[number];
+
+const supportedSurahTranslationUrls: Record<SupportedTranslationLanguage, string> = {
+	English: '/translations/surahNames/en.json',
+	Spanish: '/translations/surahNames/es.json',
+	French: '/translations/surahNames/fr.json'
+};
+
+let supportedSurahTranslations: Record<SupportedTranslationLanguage, string[]> = $state({
+	English: [],
+	Spanish: [],
+	French: []
+});
+
+onMount(() => {
+	loadSurahNameTranslations();
+});
+
+async function loadSurahNameTranslations() {
+	await Promise.all(
+		supportedTranslationLanguages.map(async (language) => {
+			const url = supportedSurahTranslationUrls[language];
+
+			try {
+				const response = await fetch(url);
+
+				if (!response.ok) {
+					throw new Error(`Failed to fetch surah names for ${language}: ${response.status}`);
+				}
+
+				const names: unknown = await response.json();
+
+				if (Array.isArray(names)) {
+					supportedSurahTranslations[language] = names as string[];
+				} else {
+					console.warn(`Unexpected surah name format for ${language}`, names);
+					supportedSurahTranslations[language] = [];
+				}
+			} catch (error) {
+				console.error(`Error loading surah names for ${language}:`, error);
+				supportedSurahTranslations[language] = [];
+			}
+		})
+	);
+}
+
+const defaultTranslationLanguage: SupportedTranslationLanguage = 'English';
+
+const isSupportedTranslationLanguage = (
+	language: string
+	): language is SupportedTranslationLanguage =>
+		supportedTranslationLanguages.includes(language as SupportedTranslationLanguage);
+
+	const preferredTranslationLanguage = $derived(() => {
+		const editions = globalState.getProjectTranslation.addedTranslationEditions;
+
+		if (!editions || editions.length === 0) {
+			return defaultTranslationLanguage;
+		}
+
+		for (let i = editions.length - 1; i >= 0; i--) {
+			const language = editions[i].language;
+			if (isSupportedTranslationLanguage(language)) {
+				return language;
+			}
+		}
+
+		return defaultTranslationLanguage;
+	});
+
+	const surahTranslatedName = $derived(() => {
+		const surahIndex = currentSurah() - 1;
+		if (surahIndex < 0 || surahIndex >= Quran.surahs.length) {
+			return '';
+		}
+
+		const language = preferredTranslationLanguage();
+		const translations = supportedSurahTranslations[language];
+		const translationFromPreferred = translations?.[surahIndex];
+
+		if (translationFromPreferred && translationFromPreferred.trim().length > 0) {
+			return translationFromPreferred;
+		}
+
+		const englishFallback = supportedSurahTranslations.English?.[surahIndex];
+		if (englishFallback && englishFallback.trim().length > 0) {
+			return englishFallback;
+		}
+
+		return Quran.surahs[surahIndex]?.translation ?? '';
 	});
 </script>
 
@@ -76,7 +169,7 @@
 				{surahNameSettings()
 					.surahNameFormat.replace('<number>', currentSurah().toString())
 					.replace('<transliteration>', Quran.surahs[currentSurah() - 1].name)
-					.replace('<translation>', Quran.surahs[currentSurah() - 1].translation)
+					.replace('<translation>', surahTranslatedName())
 					.replace(
 						'<min-range>',
 						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah()).verseStart.toString()

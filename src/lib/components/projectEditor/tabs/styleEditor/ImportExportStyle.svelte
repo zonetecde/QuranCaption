@@ -1,8 +1,12 @@
 <script lang="ts">
-	import { CustomTextClip } from '$lib/classes';
+	import { CustomTextClip, StylePreset } from '$lib/classes';
 	import { CustomClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
+	import Settings from '$lib/classes/Settings.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import toast from 'svelte-5-french-toast';
+	import { extractStyleSnapshotFromProject } from '$lib/services/StylePresetService';
 
 	interface Props {
 		isVisible: boolean;
@@ -41,6 +45,40 @@
 	});
 
 	let includedExportClips = new Set<number>();
+
+	async function saveCurrentStylesAsPreset() {
+		if (!globalState.currentProject) {
+			toast.error('Open a project before saving a style preset.');
+			return;
+		}
+
+		if (!globalState.settings) {
+			await Settings.load();
+		}
+
+		const presetName = await ModalManager.inputModal(
+			'Choose a name for this style preset',
+			globalState.currentProject.detail.name,
+			80,
+			'Preset name'
+		);
+
+		const trimmedName = presetName.trim();
+		if (!trimmedName) {
+			toast.error('Preset name cannot be empty.');
+			return;
+		}
+
+		const snapshot = extractStyleSnapshotFromProject(globalState.currentProject);
+		const preset = new StylePreset(trimmedName, globalState.currentProject.detail.id, snapshot);
+
+		globalState.settings!.stylePresets.unshift(preset);
+		globalState.settings!.lastUsedStylePresetId = preset.id.toString();
+
+		await Settings.save();
+
+		toast.success('Style preset saved for future projects.');
+	}
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -62,6 +100,23 @@
 				onclick={async () => await globalState.getVideoStyle.resetStyles()}
 			>
 				Reset Project Styles
+			</button>
+		</div>
+
+		<!-- Section Save Preset -->
+		<div class="border border-[var(--border-color)] rounded-lg p-3">
+			<h3 class="text-sm font-medium text-[var(--text-primary)] mb-2 flex items-center gap-2">
+				<span class="material-icons-outlined text-base">bookmark_add</span>
+				Save Style Preset
+			</h3>
+			<p class="text-xs text-[var(--text-secondary)] mb-3">
+				Store the current project styles as a reusable preset for future projects.
+			</p>
+			<button
+				class="btn-accent w-full bg-[var(--accent-primary)] text-white px-3 py-2 rounded transition-colors text-sm"
+				onclick={saveCurrentStylesAsPreset}
+			>
+				Save Preset
 			</button>
 		</div>
 

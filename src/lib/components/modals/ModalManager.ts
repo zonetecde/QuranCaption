@@ -4,7 +4,10 @@ import Input from './Input.svelte';
 import Error from './Error.svelte';
 import Settings from '../settings/Settings.svelte';
 import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
+import CreateStylePresetModal from '../home/modals/CreateStylePresetModal.svelte';
+import ManageStylePresetsModal from '../home/modals/ManageStylePresetsModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
+import type { StylePreset } from '$lib/classes/StylePreset.svelte';
 
 export default class ModalManager {
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
@@ -131,6 +134,44 @@ export default class ModalManager {
 					resolve: () => {
 						// Nettoyer et résoudre
 						unmount(confirm);
+						document.body.removeChild(container);
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	static async createStylePresetModal(): Promise<StylePreset | null> {
+		return new Promise<StylePreset | null>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(CreateStylePresetModal, {
+				target: container,
+				props: {
+					resolve: (result: StylePreset | null) => {
+						unmount(modal);
+						document.body.removeChild(container);
+						resolve(result);
+					}
+				}
+			});
+		});
+	}
+
+	static async manageStylePresetsModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(ManageStylePresetsModal, {
+				target: container,
+				props: {
+					resolve: () => {
+						unmount(modal);
 						document.body.removeChild(container);
 						resolve();
 					}

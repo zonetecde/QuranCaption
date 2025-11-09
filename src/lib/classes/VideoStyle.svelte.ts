@@ -676,7 +676,7 @@ export class VideoStyle extends SerializableBase {
 		videoStyle.getStylesOfTarget('arabic').setStyle('vertical-position', -110);
 
 		// Load les styles composites
-		videoStyle.getStylesOfTarget('global').loadCompositeStyles();
+		await videoStyle.loadAllCompositeStyles();
 
 		// S'il manque des styles à une traduction, on les ajoute
 		if (globalState.currentProject)
@@ -695,6 +695,10 @@ export class VideoStyle extends SerializableBase {
 	getStylesOfTarget(target: 'global' | 'arabic' | string): StylesData {
 		const styles = this.styles.find((s) => s.target === target);
 		return styles ? styles : new StylesData(target);
+	}
+
+	async loadAllCompositeStyles() {
+		await Promise.all(this.styles.map((stylesData) => stylesData.loadCompositeStyles()));
 	}
 
 	/**
@@ -831,7 +835,7 @@ export class VideoStyle extends SerializableBase {
 	 * @return Les données exportées en format JSON
 	 */
 	exportStyles(includedExportClips: Set<number>): string {
-		let exportData: videoStyleFileData = {
+		let exportData: VideoStyleFileData = {
 			videoStyle: JSON.parse(JSON.stringify(this)),
 			customClips: []
 		};
@@ -871,7 +875,7 @@ export class VideoStyle extends SerializableBase {
 		}
 	}
 
-	async importStyles(json: videoStyleFileData) {
+	async importStyles(json: VideoStyleFileData) {
 		// Crée une nouvelle instance VideoStyle à partir des données JSON
 		const importedVideoStyle = VideoStyle.fromJSON(json.videoStyle);
 		const currentProjectTranslations = globalState.getProjectTranslation.addedTranslationEditions;
@@ -1011,9 +1015,9 @@ export class VideoStyle extends SerializableBase {
 	}
 }
 
-interface videoStyleFileData {
-	videoStyle: VideoStyle;
-	customClips: CustomTextClip[];
+export interface VideoStyleFileData {
+	videoStyle: any;
+	customClips: any[];
 }
 
 SerializableBase.registerChildClass(VideoStyle, 'styles', StylesData);

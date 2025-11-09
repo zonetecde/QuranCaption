@@ -1,8 +1,9 @@
-import { SerializableBase } from './misc/SerializableBase';
-import { Status } from './Status';
+﻿import { ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
+import { StylePreset } from './StylePreset.svelte';
 
-import { ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
-import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+import { SerializableBase } from './misc/SerializableBase';
+
+import { writeTextFile, readTextFile, exists } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import { telemetry } from '$lib/services/Telemetry';
@@ -140,6 +141,9 @@ export default class Settings extends SerializableBase {
 	// Version du logiciel
 	appVersion: string = $state('0.0.0');
 
+	stylePresets: StylePreset[] = $state([]);
+	lastUsedStylePresetId: string | null = $state(null);
+
 	constructor() {
 		super();
 	}
@@ -213,3 +217,7 @@ export enum SettingsTab {
 	THEME = 'theme',
 	ABOUT = 'about'
 }
+
+SerializableBase.registerChildClass(Settings, 'stylePresets', StylePreset);
+
+

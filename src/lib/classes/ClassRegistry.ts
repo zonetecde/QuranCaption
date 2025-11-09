@@ -1,5 +1,5 @@
 import { SerializableBase } from './misc/SerializableBase';
-import { Asset, Category, Style, StylesData, VerseRange, VideoStyle } from '.';
+import { Asset, Category, Style, StylePreset, StylesData, VerseRange, VideoStyle } from '.';
 import {
 	Clip,
 	SubtitleClip,
@@ -47,6 +47,7 @@ export function initializeClassRegistry() {
 	SerializableBase.registerClass('Category', Category);
 	SerializableBase.registerClass('Style', Style);
 	SerializableBase.registerClass('StylesData', StylesData);
+	SerializableBase.registerClass('StylePreset', StylePreset);
 
 	// Classes de clips
 	SerializableBase.registerClass('Clip', Clip);

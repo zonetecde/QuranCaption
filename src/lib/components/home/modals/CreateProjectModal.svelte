@@ -1,19 +1,94 @@
 <script lang="ts">
 	import { Project, ProjectContent, ProjectDetail } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectService } from '$lib/services/ProjectService';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
-	import type Reciter from '$lib/classes/Reciter';
 	import RecitersManager from '$lib/classes/Reciter';
 	import { telemetry } from '$lib/services/Telemetry';
 	import { discordService } from '$lib/services/DiscordService';
+	import Settings from '$lib/classes/Settings.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import { applyStyleSnapshotToProject } from '$lib/services/StylePresetService';
 
 	let { close } = $props();
 
 	let name: string = $state('');
 	let reciter: string = $state('');
+
+	const STYLE_NONE_VALUE = 'none';
+	const STYLE_CREATE_VALUE = 'create';
+
+	let selectedStylePresetId: string = $state(STYLE_NONE_VALUE);
+	let stylePresets = $derived(() => globalState.settings?.stylePresets ?? []);
+
+onMount(async () => {
+	if (!globalState.settings) {
+		await Settings.load();
+	}
+
+	const storedPresetId = globalState.settings?.lastUsedStylePresetId;
+	if (storedPresetId) {
+		selectedStylePresetId = storedPresetId;
+	}
+});
+
+$effect(() => {
+	if (
+		selectedStylePresetId !== STYLE_NONE_VALUE &&
+		selectedStylePresetId !== STYLE_CREATE_VALUE &&
+		!stylePresets().some((preset) => preset.id.toString() === selectedStylePresetId)
+	) {
+		selectedStylePresetId = STYLE_NONE_VALUE;
+		persistSelectedPreset(STYLE_NONE_VALUE);
+	}
+});
+
+function getSelectedStylePreset() {
+	return stylePresets().find((preset) => preset.id.toString() === selectedStylePresetId);
+}
+
+function persistSelectedPreset(value: string) {
+	if (!globalState.settings) return;
+	const storedValue =
+		value === STYLE_NONE_VALUE || value === STYLE_CREATE_VALUE ? null : value;
+	globalState.settings.lastUsedStylePresetId = storedValue;
+	void Settings.save();
+}
+
+async function handleStylePresetChange(event: Event) {
+	const value = (event.target as HTMLSelectElement).value;
+	if (value === STYLE_CREATE_VALUE) {
+		const newPreset = await ModalManager.createStylePresetModal();
+		if (newPreset) {
+			selectedStylePresetId = newPreset.id.toString();
+			persistSelectedPreset(selectedStylePresetId);
+		} else {
+			const storedPreset = globalState.settings?.lastUsedStylePresetId;
+			selectedStylePresetId = storedPreset ?? STYLE_NONE_VALUE;
+		}
+		return;
+	}
+
+	selectedStylePresetId = value;
+	persistSelectedPreset(value);
+}
+
+async function openManageStylePresets() {
+	await ModalManager.manageStylePresetsModal();
+	const storedPreset = globalState.settings?.lastUsedStylePresetId;
+	if (
+		storedPreset &&
+		stylePresets().some((preset) => preset.id.toString() === storedPreset)
+	) {
+		selectedStylePresetId = storedPreset;
+	} else if (
+		!stylePresets().some((preset) => preset.id.toString() === selectedStylePresetId)
+	) {
+		selectedStylePresetId = STYLE_NONE_VALUE;
+		persistSelectedPreset(STYLE_NONE_VALUE);
+	}
+}
 
 	async function createProjectButtonClick() {
 		// Vérifie que le nom du projet n'est pas vide
@@ -27,22 +102,30 @@
 			await ProjectContent.getDefaultProjectContent()
 		);
 
-		await telemetry(
-			'QC3 | New Project Created with Name "' +
-				name.trim() +
-				'" and Reciter "' +
-				reciter.trim() +
-				'"'
-		);
+		const presetToApply =
+			selectedStylePresetId !== STYLE_NONE_VALUE ? getSelectedStylePreset() : null;
+
+		if (presetToApply) {
+			await applyStyleSnapshotToProject(project, presetToApply.data);
+		}
+
+		globalState.currentProject = project;
+		discordService.setEditingState();
+
+		try {
+			await telemetry(
+				'QC3 | New Project Created with Name "' +
+					name.trim() +
+					'" and Reciter "' +
+					reciter.trim() +
+					'"'
+			);
+		} catch (err) {
+			console.warn('Telemetry failed', err);
+		}
 
 		// Sauvegarde le projet sur le disque
 		await project.save();
-
-		// Ouvre le projet
-		globalState.currentProject = project;
-
-		// Discord Rich Presence
-		discordService.setEditingState();
 
 		close();
 	}
@@ -120,6 +203,42 @@
 				label="Reciter"
 				onEnterPress={createProjectButtonClick}
 			/>
+		</div>
+
+		<div class="space-y-2">
+			<label class="flex items-center gap-2 text-sm font-semibold text-primary">
+				<span class="material-icons text-accent-primary text-base">palette</span>
+				Copy Styles From
+			</label>
+			<div class="flex gap-2 items-start">
+				<select
+					class="w-full bg-accent border border-color rounded-lg px-3 py-2 text-sm text-primary"
+					bind:value={selectedStylePresetId}
+					onchange={handleStylePresetChange}
+				>
+					<option value={STYLE_NONE_VALUE}>Use default Quran Caption style</option>
+					{#each stylePresets() as preset}
+						<option value={preset.id.toString()}>{preset.name}</option>
+					{/each}
+					<option value={STYLE_CREATE_VALUE}>Create a new style preset...</option>
+				</select>
+				<button
+					type="button"
+					class="px-3 py-2 rounded-lg border border-color text-xs font-medium text-primary hover:bg-secondary/40 whitespace-nowrap"
+					onclick={openManageStylePresets}
+				>
+					Manage
+				</button>
+			</div>
+			{#if stylePresets().length === 0}
+				<p class="text-xs text-thirdly">
+					No saved styles yet. Choose "Create a new style preset..." to store your favorite look.
+				</p>
+			{:else}
+				<p class="text-xs text-thirdly">
+					The selected style preset will be applied automatically after the project is created.
+				</p>
+			{/if}
 		</div>
 	</div>
 

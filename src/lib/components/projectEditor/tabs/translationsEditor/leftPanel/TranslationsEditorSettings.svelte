@@ -154,6 +154,16 @@
 			<!-- Boutons d'action rapide -->
 			<div class="space-y-2 px-1">
 				<button
+					class="btn w-full px-4 py-2.5 text-sm font-medium hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
+					onclick={() => {
+						globalState.getTranslationsState.checkOnlyFilters(['fetched']);
+					}}
+				>
+					<span class="material-icons text-base">download_done</span>
+					Show Fetched
+				</button>
+
+				<button
 					class="btn w-full px-4 py-2.5 text-sm font-medium hover:bg-accent-primary hover:border-accent-primary hover:text-black transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
 					onclick={() => {
 						globalState.getTranslationsState.checkOnlyFilters([
@@ -169,13 +179,25 @@
 				</button>
 
 				<button
-					class="btn w-full px-4 py-2.5 text-sm font-medium hover:bg-orange-500 hover:border-orange-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
+					class="btn w-full mb-3 px-4 py-2.5 text-sm font-medium hover:bg-orange-500 hover:border-orange-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
 					onclick={() => {
 						globalState.getTranslationsState.checkOnlyFilters(['to review', 'ai error']);
 					}}
 				>
 					<span class="material-icons text-base">priority_high</span>
 					Show Needs Review
+				</button>
+
+				<button
+					class="btn w-full mb-3 px-4 py-2.5 text-sm font-medium hover:bg-blue-500 hover:border-blue-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
+					onclick={() => {
+						globalState.getTranslationsState.checkOnlyFilters(
+							Object.keys(globalState.getTranslationsState.filters)
+						);
+					}}
+				>
+					<span class="material-icons text-base">select_all</span>
+					Show All
 				</button>
 			</div>
 		</div>

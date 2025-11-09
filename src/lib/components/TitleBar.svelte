@@ -8,6 +8,8 @@
 	import ModalManager from './modals/ModalManager';
 	import { discordService } from '$lib/services/DiscordService';
 
+	let showHelpPopover = false;
+
 	async function minimizeButtonClick() {
 		getCurrentWindow().minimize();
 	}
@@ -42,6 +44,20 @@
 				!exportMonitor.contains(event.target as Node)
 			) {
 				globalState.uiState.showExportMonitor = false;
+			}
+		}
+
+		if (showHelpPopover) {
+			const helpButton = document.getElementById('help-popover-button');
+			const helpPopover = document.getElementById('help-popover');
+
+			if (
+				helpButton &&
+				helpPopover &&
+				!helpButton.contains(event.target as Node) &&
+				!helpPopover.contains(event.target as Node)
+			) {
+				showHelpPopover = false;
 			}
 		}
 	}
@@ -92,13 +108,59 @@
 			<span class="material-icons pt-2">settings</span>
 		</button>
 		<button
-			class="w-10 cursor-pointer rounded-full hover:bg-gray-700"
-			onclick={async () => {
-				await openUrl('https://qurancaption-project.vercel.app/documentation');
-			}}
+			id="help-popover-button"
+			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
 			type="button"
+			onclick={(event) => {
+				event.stopPropagation();
+				showHelpPopover = !showHelpPopover;
+			}}
+			aria-haspopup="dialog"
+			aria-expanded={showHelpPopover}
 		>
 			<span class="material-icons pt-2">help_outline</span>
+
+			{#if showHelpPopover}
+				<div
+					id="help-popover"
+					class="absolute right-0 mt-2 w-96 bg-primary border border-color rounded-lg shadow-lg p-4 z-50 text-sm text-secondary"
+				>
+					<div class="flex items-center justify-between mb-2">
+						<h3 class="text-base font-semibold text-primary">Need Assistance?</h3>
+						<!-- svelte-ignore node_invalid_placement_ssr -->
+						<button
+							class="material-icons text-secondary hover:text-primary"
+							type="button"
+							onclick={() => (showHelpPopover = false)}
+						>
+							close
+						</button>
+					</div>
+					<p class="text-thirdly text-left text-xs mb-3">
+						Watch the walkthrough below or open the full documentation for more details.
+					</p>
+					<div class="rounded-md overflow-hidden border border-color mb-3">
+						<iframe
+							class="w-full aspect-video"
+							src="https://www.youtube.com/embed/vCRUjzATRDk"
+							title="Quran Caption Overview"
+							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+							allowfullscreen
+						></iframe>
+					</div>
+					<!-- svelte-ignore node_invalid_placement_ssr -->
+					<button
+						class="btn-accent w-full text-center py-2 text-sm font-medium"
+						type="button"
+						onclick={async () => {
+							await openUrl('https://qurancaption-project.vercel.app/documentation');
+							showHelpPopover = false;
+						}}
+					>
+						Open Online Documentation
+					</button>
+				</div>
+			{/if}
 		</button>
 		<button
 			id="export-button"

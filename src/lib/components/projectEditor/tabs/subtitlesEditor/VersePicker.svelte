@@ -53,7 +53,25 @@
 		<div
 			class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
 		>
-			Press <span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the
+			<div class="space-y-2 mb-3">
+				<div class="text-secondary text-sm font-semibold">Need a visual walkthrough?</div>
+				<p class="text-xs text-thirdly">
+					Here is a short video that demonstrates how the subtitles editor works:
+				</p>
+				<div class="relative w-full overflow-hidden rounded-md border border-color">
+					<iframe
+						class="w-full aspect-video"
+						src="https://www.youtube.com/embed/vCRUjzATRDk?start=35"
+						title="Subtitles editor walkthrough"
+						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+						allowfullscreen
+					></iframe>
+				</div>
+			</div>
+
+			<div class="border-t border-color my-3"></div>
+
+			Press<span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the
 			recitation.
 			<br />
 			<!-- arrowup/arrowdown -->

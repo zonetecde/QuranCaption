@@ -99,6 +99,17 @@ export default class Exporter {
 	static exportYtbChapters() {
 		const choice = globalState.getExportState.ytbChaptersChoice;
 		const subtitlesClips: SubtitleClip[] = globalState.getSubtitleClips;
+		const exportStart = globalState.getExportState.videoStartTime || 0;
+		const exportEnd = globalState.getExportState.videoEndTime || 0;
+		const hasEndBound = exportEnd > exportStart;
+
+		const clipWithinExportRange = (clip: SubtitleClip) => {
+			if (clip.endTime <= exportStart) return false;
+			if (hasEndBound && clip.startTime >= exportEnd) return false;
+			return true;
+		};
+
+		const normalizeTime = (timeMs: number) => Math.max(0, timeMs - exportStart);
 
 		if (!subtitlesClips || subtitlesClips.length === 0) {
 			console.error('No subtitle clips available for export.');
@@ -109,15 +120,16 @@ export default class Exporter {
 
 		if (choice === 'Each Surah') {
 			// Groupe par sourate
-			let currentSurah = -1;
+			let lastSurahAdded = -1;
 
 			for (const clip of subtitlesClips) {
 				if (!(clip instanceof SubtitleClip)) continue;
+				if (!clipWithinExportRange(clip)) continue;
 
-				if (clip.surah !== currentSurah) {
-					currentSurah = clip.surah;
-					const timeFormatted = Exporter.formatTimeForYouTube(clip.startTime);
-					const surahName = Quran.surahs[currentSurah - 1]?.name || `Surah ${currentSurah}`;
+				if (clip.surah !== lastSurahAdded) {
+					lastSurahAdded = clip.surah;
+					const timeFormatted = Exporter.formatTimeForYouTube(normalizeTime(clip.startTime));
+					const surahName = Quran.surahs[clip.surah - 1]?.name || `Surah ${clip.surah}`;
 					chapters.push({
 						time: timeFormatted,
 						title: `Surah ${surahName}`
@@ -130,11 +142,12 @@ export default class Exporter {
 
 			for (const clip of subtitlesClips) {
 				if (!(clip instanceof SubtitleClip)) continue;
+				if (!clipWithinExportRange(clip)) continue;
 
 				const currentSurahVerse = `${clip.surah}:${clip.verse}`;
 				if (currentSurahVerse !== lastSurahVerse) {
 					lastSurahVerse = currentSurahVerse;
-					const timeFormatted = Exporter.formatTimeForYouTube(clip.startTime);
+					const timeFormatted = Exporter.formatTimeForYouTube(normalizeTime(clip.startTime));
 					chapters.push({
 						time: timeFormatted,
 						title: `Surah ${clip.surah}, Verse ${clip.verse}`

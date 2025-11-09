@@ -1,7 +1,26 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
+	import { SubtitleClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
+
+	onMount(() => {
+		const uniqueSurahs = new Set<number>();
+
+		for (const clip of globalState.getSubtitleClips) {
+			if (clip instanceof SubtitleClip) {
+				uniqueSurahs.add(clip.surah);
+				if (uniqueSurahs.size > 1) {
+					break;
+				}
+			}
+		}
+
+		if (uniqueSurahs.size === 1 && globalState.getExportState.ytbChaptersChoice === 'Each Surah') {
+			globalState.getExportState.ytbChaptersChoice = 'Each Verse';
+		}
+	});
 </script>
 
 <!-- Export YouTube Chapters Configuration -->

@@ -1,7 +1,7 @@
 {
 	"$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
 	"productName": "Quran Caption",
-	"version": "3.2.2",
+	"version": "3.2.3",
 	"identifier": "com.qurancaption",
 	"build": {
 		"frontendDist": "../build",

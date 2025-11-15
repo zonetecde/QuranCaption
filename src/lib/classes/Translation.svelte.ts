@@ -115,44 +115,104 @@ export class VerseTranslation extends Translation {
 		const originalTranslationText: string =
 			globalState.currentProject!.content.projectTranslation.getVerseTranslation(edition, verseKey);
 
-		if (originalTranslationText) {
-			if (!originalTranslationText.includes(this.text)) {
-				return; // La traduction a été bruteforcée, on ne fait rien
-			}
-
-			const originalWords = originalTranslationText.split(' ');
-			const currentWords = this.text.split(' ');
-
-			// Si le texte de la traduction n'a pas changé, on ne fait rien
-			if (originalWords.length === currentWords.length) {
-				return;
-			}
-
-			// Trouve maintenant l'index du premier mot de la traduction dans le texte original de telle sorte que tous les mots de la traduction soient présents dans le texte original
-			let startIndex = -1;
-			for (let i = 0; i < originalWords.length; i++) {
-				if (originalWords[i] === currentWords[0]) {
-					// Potentiel début trouvé, vérifie que tous les mots suivants sont présents
-					let allMatch = true;
-					for (let j = 1; j < currentWords.length; j++) {
-						if (originalWords[i + j] !== currentWords[j]) {
-							allMatch = false;
+		// Nouvelle logique robuste de recalcul des index
+		if (!originalTranslationText) return;
+		const normalizeWord = (w: string) =>
+			w
+				.replace(/\u00A0/g, ' ')
+				.normalize('NFKC')
+				.toLowerCase()
+				.replace(/[\u2013\u2014]/g, '-')
+				.replace(/^([^\p{L}\p{N}]+)|([^\p{L}\p{N}]+)$/gu, '');
+		const splitWords = (s: string) =>
+			s
+				.replace(/\u00A0/g, ' ')
+				.replace(/\s+/g, ' ')
+				.trim()
+				.split(' ');
+		const originalWords = splitWords(originalTranslationText);
+		const currentWords = splitWords(this.text);
+		const sameContent =
+			originalWords.length === currentWords.length &&
+			originalWords.every((w, i) => normalizeWord(w) === normalizeWord(currentWords[i]));
+		if (!sameContent) {
+			const originalNorm = originalWords.map(normalizeWord);
+			const currentNorm = currentWords.map(normalizeWord);
+			if (currentNorm.length > 0 && originalNorm.length >= currentNorm.length) {
+				const candidates: number[] = [];
+				for (let i = 0; i <= originalNorm.length - currentNorm.length; i++) {
+					let ok = true;
+					for (let j = 0; j < currentNorm.length; j++) {
+						if (originalNorm[i + j] !== currentNorm[j]) {
+							ok = false;
 							break;
 						}
 					}
-					if (allMatch) {
-						startIndex = i;
-						break;
+					if (ok) candidates.push(i);
+				}
+				if (candidates.length > 0) {
+					const prev = this.startWordIndex ?? 0;
+					let best = candidates[0];
+					let bestDist = Math.abs(best - prev);
+					for (let k = 1; k < candidates.length; k++) {
+						const dist = Math.abs(candidates[k] - prev);
+						if (dist < bestDist) {
+							best = candidates[k];
+							bestDist = dist;
+						}
+					}
+					this.startWordIndex = best;
+					this.endWordIndex = best + currentNorm.length - 1;
+					this.isBruteForce = false;
+					return;
+				} else {
+					this.isBruteForce = true;
+					return;
+				}
+			} else {
+				// Texte identique après normalisation: ne rien faire
+				return;
+			}
+
+			if (originalTranslationText) {
+				if (!originalTranslationText.includes(this.text)) {
+					return; // La traduction a été bruteforcée, on ne fait rien
+				}
+
+				const originalWords = originalTranslationText.split(' ');
+				const currentWords = this.text.split(' ');
+
+				// Si le texte de la traduction n'a pas changé, on ne fait rien
+				if (originalWords.length === currentWords.length) {
+					return;
+				}
+
+				// Trouve maintenant l'index du premier mot de la traduction dans le texte original de telle sorte que tous les mots de la traduction soient présents dans le texte original
+				let startIndex = -1;
+				for (let i = 0; i < originalWords.length; i++) {
+					if (originalWords[i] === currentWords[0]) {
+						// Potentiel début trouvé, vérifie que tous les mots suivants sont présents
+						let allMatch = true;
+						for (let j = 1; j < currentWords.length; j++) {
+							if (originalWords[i + j] !== currentWords[j]) {
+								allMatch = false;
+								break;
+							}
+						}
+						if (allMatch) {
+							startIndex = i;
+							break;
+						}
 					}
 				}
-			}
-			if (startIndex !== -1) {
-				this.startWordIndex = startIndex;
-				this.endWordIndex = startIndex + currentWords.length - 1;
-				this.isBruteForce = false;
-			} else {
-				// La traduction a été bruteforcée, on ne fait rien
-				this.isBruteForce = true;
+				if (startIndex !== -1) {
+					this.startWordIndex = startIndex;
+					this.endWordIndex = startIndex + currentWords.length - 1;
+					this.isBruteForce = false;
+				} else {
+					// La traduction a été bruteforcée, on ne fait rien
+					this.isBruteForce = true;
+				}
 			}
 		}
 	}

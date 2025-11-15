@@ -10,6 +10,7 @@
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
+    import { PredefinedSubtitleClip } from '$lib/classes';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
@@ -23,6 +24,43 @@
 		const _ = getTimelineSettings().cursorPosition;
 		return untrack(() => {
 			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
+		});
+	});
+
+	// Sous-titre de référence pour afficher les backgrounds en continu
+	let backgroundSubtitle = $derived(() => {
+		const _ = getTimelineSettings().cursorPosition;
+		return untrack(() => {
+			const track = globalState.getSubtitleTrack;
+			const cur = track.getCurrentSubtitleToDisplay();
+			if (cur) return cur;
+
+			const clips = track.clips;
+			if (!clips || clips.length === 0) return null;
+
+			const time = getTimelineSettings().cursorPosition;
+			let indexAfter = clips.findIndex((c) => time < c.startTime);
+
+			// Cherche d'abord le sous-titre (normal ou prédéfini) précédent
+			if (indexAfter === -1) {
+				// Après le dernier clip: on cherche depuis la fin
+				for (let i = clips.length - 1; i >= 0; i--) {
+					const c = clips[i];
+					if (c instanceof SubtitleClip || c instanceof PredefinedSubtitleClip) return c;
+				}
+			} else {
+				for (let i = indexAfter - 1; i >= 0; i--) {
+					const c = clips[i];
+					if (c instanceof SubtitleClip || c instanceof PredefinedSubtitleClip) return c;
+				}
+				// Pas de précédent: on prend le prochain
+				for (let i = indexAfter; i < clips.length; i++) {
+					const c = clips[i];
+					if (c instanceof SubtitleClip || c instanceof PredefinedSubtitleClip) return c;
+				}
+			}
+
+			return null;
 		});
 	});
 
@@ -76,6 +114,11 @@
 
 	let getTailwind = $derived((target: string) => {
 		return globalState.getVideoStyle.getStylesOfTarget(target).generateTailwind();
+	});
+
+	// Liste des éditions de traduction configurées dans le projet (pour backgrounds)
+	let projectTranslationEditionNames = $derived(() => {
+		return globalState.getProjectTranslation.addedTranslationEditions.map((e) => e.name);
 	});
 
 	let helperStyles = $derived((target: string) => {
@@ -399,6 +442,25 @@
 		<div class="absolute inset-0" style="backdrop-filter: blur({overlaySettings().blur}px);"></div>
 	{/if}
 
+	<!-- Backgrounds des sous-titres: toujours visibles, basés sur le dernier/next sous-titre -->
+	<div id="subtitles-backgrounds" class="absolute inset-0 flex flex-col items-center justify-center">
+		<!-- Background arabe -->
+		<div
+			class={'arabic absolute subtitle select-none' + getTailwind('arabic') + helperStyles('arabic')}
+			style="{getCss('arabic', backgroundSubtitle() ? backgroundSubtitle()!.id : undefined)};"
+		></div>
+
+		<!-- Backgrounds des traductions -->
+		{#each projectTranslationEditionNames() as edition}
+			{#if globalState.getVideoStyle.doesTargetStyleExist(edition)}
+				<div
+					class={'translation absolute subtitle select-none ' + edition + getTailwind(edition) + helperStyles(edition)}
+					style="{getCss(edition, backgroundSubtitle() ? backgroundSubtitle()!.id : undefined)};"
+				></div>
+			{/if}
+		{/each}
+	</div>
+
 	<div class="w-full h-full absolute inset-0 flex flex-col items-center justify-center">
 		{#if currentSubtitle()}
 			{@const subtitle = currentSubtitle()}
@@ -407,14 +469,6 @@
 				class="absolute inset-0 flex flex-col items-center justify-center"
 			>
 				{#if subtitle && subtitle.id}
-					<!-- Background du sous-titre -->
-					<div
-						class={'arabic absolute subtitle select-none' +
-							getTailwind('arabic') +
-							helperStyles('arabic')}
-						style="{getCss('arabic', subtitle.id)};"
-					></div>
-
 					<p
 						ondblclick={() => {
 							globalState.getVideoStyle.highlightCategory('arabic', 'general');
@@ -442,14 +496,6 @@
 					]}
 
 					{#if globalState.getVideoStyle.doesTargetStyleExist(edition)}
-						<!-- Background du sous-titre -->
-						<div
-							class={'translation absolute subtitle select-none' +
-								getTailwind(edition) +
-								helperStyles(edition)}
-							style="{getCss(edition)};"
-						></div>
-
 						<p
 							ondblclick={() => {
 								globalState.getVideoStyle.highlightCategory(

@@ -1,9 +1,10 @@
 use std::fs;
-use std::path::{Path};
+use std::path::Path;
 use std::process::Command;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 mod exporter;
+mod binaries;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 
 use font_kit::source::SystemSource;
@@ -50,30 +51,20 @@ async fn download_from_youtube(
         return Err(format!("Unable to create directory: {}", e));
     }
 
-    // Chemin vers yt-dlp dans le dossier binaries (relatif au working directory)
-    let yt_dlp_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("yt-dlp.exe")
-    } else {
-        Path::new("binaries").join("yt-dlp")
-    };
+    let yt_dlp_path = binaries::resolve_binary("yt-dlp")
+        .ok_or_else(|| "yt-dlp binary not found".to_string())?;
 
-    // Vérifier que le binaire existe
-    if !yt_dlp_path.exists() {
-        return Err(format!("yt-dlp binary not found at: {}", yt_dlp_path.display()));
-    }
-
-    // Chemin vers le dossier contenant ffmpeg et ffprobe
-    let binaries_dir = Path::new("binaries");
-
-    // Convertir le chemin en String pour éviter les problèmes de lifetime
-    let binaries_dir_str = binaries_dir.to_string_lossy().to_string();
+    let binaries_dir = Path::new(&yt_dlp_path)
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "binaries".to_string());
 
     // Configuration selon le type (audio ou vidéo)
     let mut args = vec!["--force-ipv4"];
 
     // Ajouter le chemin vers le dossier contenant ffmpeg et ffprobe
     args.push("--ffmpeg-location");
-    args.push(&binaries_dir_str);
+    args.push(&binaries_dir);
 
     // Pattern de sortie avec le titre de la vidéo et le nom de la chaîne
     let output_pattern = format!("{}/%(title)s (%(uploader)s).%(ext)s", download_path);
@@ -168,16 +159,10 @@ fn get_duration(file_path: &str) -> Result<i64, String> {
         return Ok(-1);
     }
 
-    let ffprobe_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffprobe.exe")
-    } else {
-        Path::new("binaries").join("ffprobe")
+    let ffprobe_path = match binaries::resolve_binary("ffprobe") {
+        Some(p) => p,
+        None => return Ok(-1),
     };
-
-    // Vérifier que le binaire existe
-    if !ffprobe_path.exists() {
-        return Ok(-1); // Si ffprobe n'existe pas, retourner -1
-    }
 
     let mut cmd = Command::new(&ffprobe_path);
     cmd.args(&[
@@ -426,16 +411,8 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
         return Err(format!("File not found: {}", file_path));
     }
 
-    let ffprobe_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffprobe.exe")
-    } else {
-        Path::new("binaries").join("ffprobe")
-    };
-
-    // Vérifier que le binaire existe
-    if !ffprobe_path.exists() {
-        return Err(format!("ffprobe binary not found at: {}", ffprobe_path.display()));
-    }
+    let ffprobe_path = binaries::resolve_binary("ffprobe")
+        .ok_or_else(|| "ffprobe binary not found".to_string())?;
 
     let mut cmd = Command::new(&ffprobe_path);
     cmd.args(&[
@@ -494,16 +471,8 @@ fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
         return Err(format!("File not found: {}", file_path));
     }
 
-    let ffmpeg_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffmpeg.exe")
-    } else {
-        Path::new("binaries").join("ffmpeg")
-    };
-
-    // Vérifier que le binaire existe
-    if !ffmpeg_path.exists() {
-        return Err(format!("ffmpeg binary not found at: {}", ffmpeg_path.display()));
-    }
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
 
     // Extraire l'extension du fichier d'origine
     let path = Path::new(&file_path);

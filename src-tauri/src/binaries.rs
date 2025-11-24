@@ -1,5 +1,12 @@
 use std::path::{Path, PathBuf};
 
+/// Returns a list of candidate paths where the given binary may be found.
+///
+/// This helper handles platform-specific path resolution logic, including
+/// searching in locations relevant to macOS, Linux, and Windows, as well as
+/// considering environment variables and build-time directories. This is
+/// necessary because binary locations can vary depending on how the application
+/// is packaged or run.
 fn binary_candidates(bin: &str) -> Vec<PathBuf> {
     let mut paths = vec![Path::new("binaries").join(bin)];
 

@@ -7,6 +7,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Instant;
 use tauri::Emitter;
 use tokio::task;
+use crate::binaries;
 
 // Expose la dernière durée d'export terminée (en secondes)
 static LAST_EXPORT_TIME_S: Mutex<Option<f64>> = Mutex::new(None);
@@ -25,56 +26,8 @@ fn configure_command_no_window(cmd: &mut Command) {
 }
 
 fn resolve_ffmpeg_binary() -> Option<String> {
-    // Essayer d'abord le chemin relatif standard
-    let ffmpeg_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffmpeg.exe")
-    } else {
-        Path::new("binaries").join("ffmpeg")
-    };
-
-    if ffmpeg_path.exists() {
-        // Convertir en chemin absolu pour éviter les problèmes de working directory
-        if let Ok(absolute_path) = ffmpeg_path.canonicalize() {
-            return Some(absolute_path.to_string_lossy().to_string());
-        } else {
-            return Some(ffmpeg_path.to_string_lossy().to_string());
-        }
-    }
-
-    // Si le chemin relatif ne fonctionne pas, essayer depuis le dossier de l'executable
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let alt_path = if cfg!(target_os = "windows") {
-                exe_dir.join("binaries").join("ffmpeg.exe")
-            } else {
-                exe_dir.join("binaries").join("ffmpeg")
-            };
-            
-            if alt_path.exists() {
-                if let Ok(absolute_path) = alt_path.canonicalize() {
-                    return Some(absolute_path.to_string_lossy().to_string());
-                } else {
-                    return Some(alt_path.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
-    // En dernier recours, essayer depuis CARGO_MANIFEST_DIR si disponible
-    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        let manifest_path = if cfg!(target_os = "windows") {
-            Path::new(&manifest_dir).join("binaries").join("ffmpeg.exe")
-        } else {
-            Path::new(&manifest_dir).join("binaries").join("ffmpeg")
-        };
-        
-        if manifest_path.exists() {
-            if let Ok(absolute_path) = manifest_path.canonicalize() {
-                return Some(absolute_path.to_string_lossy().to_string());
-            } else {
-                return Some(manifest_path.to_string_lossy().to_string());
-            }
-        }
+    if let Some(path) = binaries::resolve_binary("ffmpeg") {
+        return Some(path);
     }
 
     // En dernier recours, utiliser ffmpeg du PATH système
@@ -89,56 +42,8 @@ fn resolve_ffmpeg_binary() -> Option<String> {
 }
 
 fn resolve_ffprobe_binary() -> String {
-    // Essayer d'abord le chemin relatif standard
-    let ffprobe_path = if cfg!(target_os = "windows") {
-        Path::new("binaries").join("ffprobe.exe")
-    } else {
-        Path::new("binaries").join("ffprobe")
-    };
-
-    if ffprobe_path.exists() {
-        // Convertir en chemin absolu pour éviter les problèmes de working directory
-        if let Ok(absolute_path) = ffprobe_path.canonicalize() {
-            return absolute_path.to_string_lossy().to_string();
-        } else {
-            return ffprobe_path.to_string_lossy().to_string();
-        }
-    }
-
-    // Si le chemin relatif ne fonctionne pas, essayer depuis le dossier de l'executable
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let alt_path = if cfg!(target_os = "windows") {
-                exe_dir.join("binaries").join("ffprobe.exe")
-            } else {
-                exe_dir.join("binaries").join("ffprobe")
-            };
-            
-            if alt_path.exists() {
-                if let Ok(absolute_path) = alt_path.canonicalize() {
-                    return absolute_path.to_string_lossy().to_string();
-                } else {
-                    return alt_path.to_string_lossy().to_string();
-                }
-            }
-        }
-    }
-
-    // En dernier recours, essayer depuis CARGO_MANIFEST_DIR si disponible
-    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        let manifest_path = if cfg!(target_os = "windows") {
-            Path::new(&manifest_dir).join("binaries").join("ffprobe.exe")
-        } else {
-            Path::new(&manifest_dir).join("binaries").join("ffprobe")
-        };
-        
-        if manifest_path.exists() {
-            if let Ok(absolute_path) = manifest_path.canonicalize() {
-                return absolute_path.to_string_lossy().to_string();
-            } else {
-                return manifest_path.to_string_lossy().to_string();
-            }
-        }
+    if let Some(path) = binaries::resolve_binary("ffprobe") {
+        return path;
     }
 
     // En dernier recours, utiliser ffprobe du PATH système

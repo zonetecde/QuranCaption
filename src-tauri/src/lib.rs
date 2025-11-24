@@ -54,17 +54,22 @@ async fn download_from_youtube(
     let yt_dlp_path = binaries::resolve_binary("yt-dlp")
         .ok_or_else(|| "yt-dlp binary not found".to_string())?;
 
-    let binaries_dir = Path::new(&yt_dlp_path)
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    let ffmpeg_dir = Path::new(&ffmpeg_path)
         .parent()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| "binaries".to_string());
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(|p| p.to_string_lossy().to_string());
 
     // Configuration selon le type (audio ou vidéo)
     let mut args = vec!["--force-ipv4"];
 
     // Ajouter le chemin vers le dossier contenant ffmpeg et ffprobe
-    args.push("--ffmpeg-location");
-    args.push(&binaries_dir);
+    if let Some(dir) = ffmpeg_dir {
+        args.push("--ffmpeg-location");
+        args.push(&dir);
+    }
 
     // Pattern de sortie avec le titre de la vidéo et le nom de la chaîne
     let output_pattern = format!("{}/%(title)s (%(uploader)s).%(ext)s", download_path);

@@ -63,12 +63,15 @@ async fn download_from_youtube(
         .map(|p| p.to_string_lossy().to_string());
 
     // Configuration selon le type (audio ou vidéo)
-    let mut args = vec!["--force-ipv4"];
-
+    let mut args: Vec<&str> = vec!["--force-ipv4"];
+    
     // Ajouter le chemin vers le dossier contenant ffmpeg et ffprobe
+    // Créer une variable statique pour garder la valeur en mémoire
+    let ffmpeg_dir_str;
     if let Some(dir) = ffmpeg_dir {
+        ffmpeg_dir_str = dir;
         args.push("--ffmpeg-location");
-        args.push(&dir);
+        args.push(&ffmpeg_dir_str);
     }
 
     // Pattern de sortie avec le titre de la vidéo et le nom de la chaîne

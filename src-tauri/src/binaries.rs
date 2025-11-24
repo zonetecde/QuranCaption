@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 /// Returns a list of candidate paths where the given binary may be found.
 ///
@@ -53,6 +54,13 @@ pub fn resolve_binary(name: &str) -> Option<String> {
         if path.exists() {
             let canonical = path.canonicalize().unwrap_or(path);
             return Some(canonical.to_string_lossy().to_string());
+        }
+    }
+
+    let base = bin.strip_suffix(".exe").unwrap_or(&bin);
+    for name in [bin.as_str(), base] {
+        if Command::new(name).arg("-version").output().is_ok() {
+            return Some(name.to_string());
         }
     }
 

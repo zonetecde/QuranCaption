@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
-import { onMount } from 'svelte';
-import { mouseDrag } from '$lib/services/verticalDrag';
-import { draw, fade } from 'svelte/transition';
-import CompositeText from './CompositeText.svelte';
-import { VerseRange } from '$lib/classes';
+	import { onMount } from 'svelte';
+	import { mouseDrag } from '$lib/services/verticalDrag';
+	import { draw, fade } from 'svelte/transition';
+	import CompositeText from './CompositeText.svelte';
+	import { VerseRange } from '$lib/classes';
 
-const currentSurah = $derived(() => {
-	return globalState.getSubtitleTrack.getCurrentSurah();
-});
+	const currentSurah = $derived(() => {
+		return globalState.getSubtitleTrack.getCurrentSurah();
+	});
 
 	let surahNameSettings = $derived(() => {
 		return {
@@ -46,59 +46,59 @@ const currentSurah = $derived(() => {
 				.getStyle('global', 'surah-latin-text-style')!
 				.getCompositeStyle('text-glow-blur')!.value
 		};
-});
+	});
 
-const supportedTranslationLanguages = ['English', 'Spanish', 'French'] as const;
-type SupportedTranslationLanguage = (typeof supportedTranslationLanguages)[number];
+	const supportedTranslationLanguages = ['English', 'Spanish', 'French'] as const;
+	type SupportedTranslationLanguage = (typeof supportedTranslationLanguages)[number];
 
-const supportedSurahTranslationUrls: Record<SupportedTranslationLanguage, string> = {
-	English: '/translations/surahNames/en.json',
-	Spanish: '/translations/surahNames/es.json',
-	French: '/translations/surahNames/fr.json'
-};
+	const supportedSurahTranslationUrls: Record<SupportedTranslationLanguage, string> = {
+		English: '/translations/surahNames/en.json',
+		Spanish: '/translations/surahNames/es.json',
+		French: '/translations/surahNames/fr.json'
+	};
 
-let supportedSurahTranslations: Record<SupportedTranslationLanguage, string[]> = $state({
-	English: [],
-	Spanish: [],
-	French: []
-});
+	let supportedSurahTranslations: Record<SupportedTranslationLanguage, string[]> = $state({
+		English: [],
+		Spanish: [],
+		French: []
+	});
 
-onMount(() => {
-	loadSurahNameTranslations();
-});
+	onMount(() => {
+		loadSurahNameTranslations();
+	});
 
-async function loadSurahNameTranslations() {
-	await Promise.all(
-		supportedTranslationLanguages.map(async (language) => {
-			const url = supportedSurahTranslationUrls[language];
+	async function loadSurahNameTranslations() {
+		await Promise.all(
+			supportedTranslationLanguages.map(async (language) => {
+				const url = supportedSurahTranslationUrls[language];
 
-			try {
-				const response = await fetch(url);
+				try {
+					const response = await fetch(url);
 
-				if (!response.ok) {
-					throw new Error(`Failed to fetch surah names for ${language}: ${response.status}`);
-				}
+					if (!response.ok) {
+						throw new Error(`Failed to fetch surah names for ${language}: ${response.status}`);
+					}
 
-				const names: unknown = await response.json();
+					const names: unknown = await response.json();
 
-				if (Array.isArray(names)) {
-					supportedSurahTranslations[language] = names as string[];
-				} else {
-					console.warn(`Unexpected surah name format for ${language}`, names);
+					if (Array.isArray(names)) {
+						supportedSurahTranslations[language] = names as string[];
+					} else {
+						console.warn(`Unexpected surah name format for ${language}`, names);
+						supportedSurahTranslations[language] = [];
+					}
+				} catch (error) {
+					console.error(`Error loading surah names for ${language}:`, error);
 					supportedSurahTranslations[language] = [];
 				}
-			} catch (error) {
-				console.error(`Error loading surah names for ${language}:`, error);
-				supportedSurahTranslations[language] = [];
-			}
-		})
-	);
-}
+			})
+		);
+	}
 
-const defaultTranslationLanguage: SupportedTranslationLanguage = 'English';
+	const defaultTranslationLanguage: SupportedTranslationLanguage = 'English';
 
-const isSupportedTranslationLanguage = (
-	language: string
+	const isSupportedTranslationLanguage = (
+		language: string
 	): language is SupportedTranslationLanguage =>
 		supportedTranslationLanguages.includes(language as SupportedTranslationLanguage);
 
@@ -152,7 +152,7 @@ const isSupportedTranslationLanguage = (
 			verticalStyleId: 'surah-name-vertical-position',
 			horizontalStyleId: 'surah-name-horizontal-position'
 		}}
-		class="w-[100px] absolute flex flex-col items-center cursor-move select-none"
+		class="w-[100px] absolute flex flex-col items-center cursor-move select- z-10"
 		style={`transform: translateY(${surahNameSettings().verticalPosition}px) translateX(${surahNameSettings().horizontalPosition}px); opacity: ${surahNameSettings().opacity}; `}
 	>
 		<p

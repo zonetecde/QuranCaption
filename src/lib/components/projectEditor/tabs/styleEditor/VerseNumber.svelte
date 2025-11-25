@@ -85,7 +85,7 @@
 			verticalStyleId: 'verse-number-vertical-position',
 			horizontalStyleId: 'verse-number-horizontal-position'
 		}}
-		class="w-[100px] absolute flex flex-col items-center cursor-move select-none"
+		class="w-[100px] absolute flex flex-col items-center cursor-move select-none z-10"
 		style={`opacity: ${verseNumberOpacity()}; transform: translateY(${verseNumberSettings().verticalPosition}px) translateX(${verseNumberSettings().horizontalPosition}px);`}
 	>
 		<div class="w-[700px] text-center">

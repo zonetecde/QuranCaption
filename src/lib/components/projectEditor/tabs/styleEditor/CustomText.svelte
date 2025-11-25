@@ -71,7 +71,7 @@
 		horizontalMax: horizontalStyle.valueMax,
 		horizontalMin: horizontalStyle.valueMin
 	}}
-	class="absolute customtext cursor-move select-none"
+	class="absolute customtext cursor-move select-none z-10"
 	style={`transform: translateY(${customTextSettings().verticalPosition}px) translateX(${customTextSettings().horizontalPosition}px); opacity: ${customTextSettings().opacity()}; `}
 >
 	<CompositeText compositeStyle={customText.getCompositeStyle()!}>

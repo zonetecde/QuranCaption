@@ -10,7 +10,7 @@
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
-    import { PredefinedSubtitleClip } from '$lib/classes';
+	import { PredefinedSubtitleClip } from '$lib/classes';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
@@ -443,10 +443,15 @@
 	{/if}
 
 	<!-- Backgrounds des sous-titres: toujours visibles, basés sur le dernier/next sous-titre -->
-	<div id="subtitles-backgrounds" class="absolute inset-0 flex flex-col items-center justify-center">
+	<div
+		id="subtitles-backgrounds"
+		class="absolute inset-0 flex flex-col items-center justify-center"
+	>
 		<!-- Background arabe -->
 		<div
-			class={'arabic absolute subtitle select-none' + getTailwind('arabic') + helperStyles('arabic')}
+			class={'arabic absolute subtitle select-none' +
+				getTailwind('arabic') +
+				helperStyles('arabic')}
 			style="{getCss('arabic', backgroundSubtitle() ? backgroundSubtitle()!.id : undefined)};"
 		></div>
 
@@ -454,7 +459,10 @@
 		{#each projectTranslationEditionNames() as edition}
 			{#if globalState.getVideoStyle.doesTargetStyleExist(edition)}
 				<div
-					class={'translation absolute subtitle select-none ' + edition + getTailwind(edition) + helperStyles(edition)}
+					class={'translation absolute subtitle select-none ' +
+						edition +
+						getTailwind(edition) +
+						helperStyles(edition)}
 					style="{getCss(edition, backgroundSubtitle() ? backgroundSubtitle()!.id : undefined)};"
 				></div>
 			{/if}
@@ -478,7 +486,7 @@
 							verticalStyleId: 'vertical-position',
 							horizontalStyleId: 'horizontal-position'
 						}}
-						class={'arabic absolute subtitle select-none ' +
+						class={'arabic absolute subtitle select-none z-10 ' +
 							getTailwind('arabic') +
 							helperStyles('arabic')}
 						style="opacity: {subtitleOpacity('arabic')}; {getCss('arabic', subtitle.id, [
@@ -508,7 +516,7 @@
 								verticalStyleId: 'vertical-position',
 								horizontalStyleId: 'horizontal-position'
 							}}
-							class={`translation absolute subtitle select-none ${edition} ${getTailwind(edition)} ${helperStyles(edition)}`}
+							class={`translation absolute subtitle select-none z-10 ${edition} ${getTailwind(edition)} ${helperStyles(edition)}`}
 							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(edition, subtitle!.id, [
 								'background',
 								'border'

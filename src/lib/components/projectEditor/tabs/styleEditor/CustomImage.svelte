@@ -73,7 +73,7 @@
 		horizontalMax: horizontalStyle.valueMax,
 		horizontalMin: horizontalStyle.valueMin
 	}}
-	class="absolute customtext cursor-move select-none"
+	class="absolute customtext cursor-move select-none z-5"
 	style={`transform: translateY(${customImageSettings().verticalPosition}px) translateX(${customImageSettings().horizontalPosition}px) scale(${customImageSettings().scale}); opacity: ${customImageSettings().opacity()}; `}
 >
 	<img src={convertFileSrc(customImageSettings().filepath)} alt={customImageSettings().filepath} />

@@ -115,13 +115,25 @@ export class Asset extends SerializableBase {
 	}
 
 	private async initializeDuration() {
-		this.duration = new Duration(
-			(await invoke('get_duration', { filePath: this.filePath })) as number
-		);
+		try {
+			const durationMs = (await invoke('get_duration', {
+				filePath: this.filePath
+			})) as number;
 
-		if (this.duration.ms === -1) {
+			this.duration = new Duration(durationMs);
+
+			if (durationMs === -1) {
+				this.duration = new Duration(0);
+				this.exists = false;
+			}
+		} catch (error) {
 			this.duration = new Duration(0);
-			this.exists = false;
+
+			if (this.isFfprobeMissingError(error)) {
+				await this.showMissingFfmpegModal();
+			} else {
+				console.error('Unable to retrieve media duration', error);
+			}
 		}
 	}
 
@@ -235,6 +247,50 @@ export class Asset extends SerializableBase {
 			default:
 				return AssetType.Unknown;
 		}
+	}
+
+	private isFfprobeMissingError(error: unknown): boolean {
+		const message = this.extractErrorMessage(error).toUpperCase();
+		return message.includes('FFPROBE_NOT_FOUND');
+	}
+
+	private extractErrorMessage(error: unknown): string {
+		if (typeof error === 'string') {
+			return error;
+		}
+
+		if (
+			error &&
+			typeof error === 'object' &&
+			'message' in error &&
+			typeof (error as any).message === 'string'
+		) {
+			return (error as { message: string }).message;
+		}
+
+		return String(error ?? '');
+	}
+
+	private async showMissingFfmpegModal(): Promise<void> {
+		const instructions = this.getFfmpegInstallInstructions();
+		await ModalManager.errorModal(
+			'FFmpeg is required',
+			`QuranCaption needs FFmpeg (ffmpeg + ffprobe) to analyze your media files. Please install both tools and ensure they are available in your PATH.\n\n${instructions}`
+		);
+	}
+
+	private getFfmpegInstallInstructions(): string {
+		const userAgent = navigator?.userAgent?.toLowerCase() ?? '';
+
+		if (userAgent.includes('mac')) {
+			return 'macOS: install with Homebrew using `brew install ffmpeg`, which also provides ffprobe.';
+		}
+
+		if (userAgent.includes('linux')) {
+			return 'Linux: install via your distribution package manager (e.g. `sudo apt install ffmpeg`, `sudo dnf install ffmpeg`, or `sudo pacman -S ffmpeg`) and ensure ffmpeg/ffprobe are on your PATH.';
+		}
+
+		return 'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.';
 	}
 }
 

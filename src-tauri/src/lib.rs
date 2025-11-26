@@ -32,6 +32,8 @@ struct DiscordActivity {
     start_timestamp: Option<i64>,
 }
 
+const FFPROBE_NOT_FOUND_ERROR: &str = "FFPROBE_NOT_FOUND";
+
 fn configure_command_no_window(cmd: &mut Command) {
     #[cfg(target_os = "windows")]
     {
@@ -169,7 +171,7 @@ fn get_duration(file_path: &str) -> Result<i64, String> {
 
     let ffprobe_path = match binaries::resolve_binary("ffprobe") {
         Some(p) => p,
-        None => return Ok(-1),
+        None => return Err(FFPROBE_NOT_FOUND_ERROR.to_string()),
     };
 
     let mut cmd = Command::new(&ffprobe_path);

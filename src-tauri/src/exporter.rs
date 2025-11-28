@@ -511,6 +511,25 @@ fn ffprobe_duration_sec(path: &str) -> f64 {
     txt.parse::<f64>().unwrap_or(0.0)
 }
 
+fn video_has_audio(path: &str) -> bool {
+    let exe = resolve_ffprobe_binary();
+
+    let output = Command::new(&exe)
+        .args(&[
+            "-v", "error",
+            "-select_streams", "a",
+            "-show_entries", "stream=index",
+            "-of", "csv=p=0",
+            path,
+        ])
+        .output();
+
+    match output {
+        Ok(out) => !out.stdout.is_empty(),
+        Err(_) => false,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn build_and_run_ffmpeg_filter_complex(
     export_id: &str,
@@ -1326,13 +1345,29 @@ pub async fn concat_videos(
     cmd.args(&[
         "-y",                           // Écraser le fichier de sortie
         "-hide_banner",                 // Masquer le banner FFmpeg
-        "-loglevel", "info",           // Niveau de log
-        "-f", "concat",                // Format d'entrée concat
-        "-safe", "0",                  // Permettre les chemins absolus
+        "-loglevel", "info",            // Niveau de log
+        "-fflags", "+genpts",           // Régénère les pts pour éviter les gaps
+        "-f", "concat",                 // Format d'entrée concat
+        "-safe", "0",                   // Permettre les chemins absolus
         "-i", &list_file_path.to_string_lossy(), // Fichier de liste
-        "-c", "copy",                  // Copier sans réencodage
-        &output_path                   // Fichier de sortie
+        "-avoid_negative_ts", "make_zero", // Normalise les timestamps
+        "-map", "0:v",                  // Vidéo
+        "-c:v", "copy",                 // Pas de ré-encodage vidéo
     ]);
+
+    // Ré-encoder l'audio pour lisser les timestamps et éviter les micro-cuts
+    if video_paths.iter().any(|p| video_has_audio(p)) {
+        cmd.args(&[
+            "-map", "0:a?",                          // Map audio si présent (sans échouer si absent)
+            "-af", "aresample=async=1:first_pts=0",  // Corrige les horloges audio
+            "-c:a", "aac",
+            "-b:a", "192k",
+        ]);
+    } else {
+        cmd.arg("-an"); // Aucun audio trouvé, on désactive l'audio
+    }
+
+    cmd.arg(&output_path);                  // Fichier de sortie
     
     // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);

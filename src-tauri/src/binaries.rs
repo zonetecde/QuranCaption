@@ -11,9 +11,13 @@ use std::process::Command;
 fn binary_candidates(bin: &str) -> Vec<PathBuf> {
     let mut paths = vec![Path::new("binaries").join(bin)];
 
+    // Common "resources/binaries" layout used by Tauri on non-Windows targets
+    paths.push(Path::new("resources").join("binaries").join(bin));
+
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             paths.push(dir.join("binaries").join(bin));
+            paths.push(dir.join("resources").join("binaries").join(bin));
 
             #[cfg(target_os = "macos")]
             {
@@ -23,6 +27,8 @@ fn binary_candidates(bin: &str) -> Vec<PathBuf> {
             #[cfg(target_os = "linux")]
             {
                 paths.push(dir.join(format!("../lib/{}/binaries", env!("CARGO_PKG_NAME"))).join(bin));
+                paths.push(dir.join(format!("../lib/{}/resources/binaries", env!("CARGO_PKG_NAME"))).join(bin));
+                paths.push(dir.join("../resources/binaries").join(bin)); // AppImage layout
             }
         }
     }
@@ -31,13 +37,18 @@ fn binary_candidates(bin: &str) -> Vec<PathBuf> {
     {
         if let Ok(appdir) = std::env::var("APPDIR") {
             paths.push(Path::new(&appdir).join(format!("usr/lib/{}/binaries", env!("CARGO_PKG_NAME"))).join(bin));
+            paths.push(Path::new(&appdir).join(format!("usr/lib/{}/resources/binaries", env!("CARGO_PKG_NAME"))).join(bin));
+            paths.push(Path::new(&appdir).join("usr/resources/binaries").join(bin)); // AppImage when resources sit in usr/resources
         }
 
         paths.push(Path::new("/usr/lib").join(env!("CARGO_PKG_NAME")).join("binaries").join(bin));
+        paths.push(Path::new("/usr/lib").join(env!("CARGO_PKG_NAME")).join("resources").join("binaries").join(bin));
+        paths.push(Path::new("/usr/lib/resources/binaries").join(bin)); // Some distro layouts
     }
 
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         paths.push(Path::new(&manifest_dir).join("binaries").join(bin));
+        paths.push(Path::new(&manifest_dir).join("resources").join("binaries").join(bin));
     }
 
     paths

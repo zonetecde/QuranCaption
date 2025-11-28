@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Project, ProjectContent, ProjectDetail } from '$lib/classes';
+	import { Project, ProjectContent, ProjectDetail, Utilities } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { onMount } from 'svelte';
@@ -19,6 +19,15 @@
 		// Vérifie que le nom du projet n'est pas vide
 		if (name.trim() === '') {
 			toast.error('Project name cannot be empty.');
+			return;
+		}
+
+		// Vérifie que ni le nom ni le récitateur contiennent des chars interdit
+		// par windows pour les noms de fichiers
+		if (Utilities.isPathNotSafe(name) || Utilities.isPathNotSafe(reciter)) {
+			toast.error(
+				'Project name and Reciter cannot contain the following characters: < > : " / \\ | ? *'
+			);
 			return;
 		}
 

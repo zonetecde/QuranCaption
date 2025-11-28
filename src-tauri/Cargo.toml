@@ -1,6 +1,6 @@
 [package]
 name = "qurancaption"
-version = "3.2.5"
+version = "3.2.6"
 description = "Transform Quranic recitations into stunning captioned videos with professional quality subtitles and translations in 40+ languages."
 authors = ["Rayane STASZEWSKI"]
 license = "Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)"

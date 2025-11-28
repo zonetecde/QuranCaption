@@ -50,7 +50,7 @@
 			verticalStyleId: 'reciter-name-vertical-position',
 			horizontalStyleId: 'reciter-name-horizontal-position'
 		}}
-		class="w-[100px] absolute flex flex-col items-center cursor-move select-none"
+		class="w-[100px] absolute flex flex-col items-center cursor-move select-none z-10"
 		style={`transform: translateY(${reciterNameSettings().verticalPosition}px) translateX(${reciterNameSettings().horizontalPosition}px); opacity: ${reciterNameSettings().opacity};`}
 	>
 		{#if reciter().number !== -1}

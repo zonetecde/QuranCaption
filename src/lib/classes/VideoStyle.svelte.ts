@@ -135,6 +135,8 @@ export type CustomTextStyleName =
 	| 'time-disappearance'
 	| 'text'
 	| 'filepath'
+	| 'opacity'
+	| 'above-overlay'
 	| 'always-show'
 	| 'custom-css'
 	| 'custom-text-composite';

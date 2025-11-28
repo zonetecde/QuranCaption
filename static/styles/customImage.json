@@ -80,6 +80,29 @@
 			"css": "",
 			"tailwind": false,
 			"icon": "access_time"
+		},
+		{
+			"id": "above-overlay",
+			"name": "Above Overlay",
+			"description": "Make the image appear above/below the background overlay",
+			"value": false,
+			"valueType": "boolean",
+			"css": "",
+			"tailwind": false,
+			"icon": "layers"
+		},
+		{
+			"id": "opacity",
+			"name": "Opacity",
+			"description": "Change the opacity of the image",
+			"valueType": "number",
+			"value": 1,
+			"valueMin": 0,
+			"valueMax": 1,
+			"step": 0.05,
+			"css": "",
+			"tailwind": false,
+			"icon": "opacity"
 		}
 	]
 }

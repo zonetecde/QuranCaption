@@ -108,14 +108,21 @@
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS,
 			onKeyDown: async () => {
-				const currentStartWordIndex = subtitlesEditorState().startWordIndex;
-				subtitlesEditorState().startWordIndex =
-					(await selectedVerse())!.getPreviousPunctuationMarkIndex(
-						subtitlesEditorState().startWordIndex
-					);
-				if (currentStartWordIndex === subtitlesEditorState().startWordIndex) {
-					// Si on n'a pas bougé, on reset au début
-					subtitlesEditorState().startWordIndex = 0;
+				const verse = await selectedVerse();
+				if (!verse) return; // Sans verset actif, on ne peut pas chercher de ponctuation
+
+				const previousEndIndex = verse.getPreviousPunctuationMarkIndex(
+					subtitlesEditorState().endWordIndex
+				);
+
+				if (previousEndIndex === subtitlesEditorState().endWordIndex) {
+					return; // Déjà sur un signe d'arrêt, on ne bouge pas
+				}
+
+				subtitlesEditorState().endWordIndex = previousEndIndex;
+				if (subtitlesEditorState().startWordIndex > subtitlesEditorState().endWordIndex) {
+					// Garde une sélection valide en ramenant le début sur la fin
+					subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
 				}
 			}
 		});

@@ -72,6 +72,16 @@
 		"icon": "format_bold"
 	},
 	{
+		"id": "enable-italic",
+		"name": "Enable Italic",
+		"description": "Enable italic styling for the text",
+		"value": false,
+		"valueType": "boolean",
+		"css": "font-style: italic;",
+		"tailwind": false,
+		"icon": "format_italic"
+	},
+	{
 		"id": "custom-css",
 		"name": "Custom CSS",
 		"description": "Write any custom CSS for custom text. Use !important if needed.",

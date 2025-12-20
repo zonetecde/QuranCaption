@@ -59,6 +59,7 @@ export type TextStyleName =
 	| 'font-size'
 	| 'font-family'
 	| 'font-weight'
+	| 'enable-italic'
 	| 'text-transform'
 	| 'letter-spacing'
 	| 'word-spacing'
@@ -230,6 +231,10 @@ export class Style extends SerializableBase {
 				continue;
 			}
 
+			if (element.id === 'enable-italic' && !Boolean(element.value)) {
+				continue;
+			}
+
 			if (element.id && element.css)
 				css += element.css.replaceAll('{value}', String(element.value)) + '\n';
 		}
@@ -354,13 +359,22 @@ export class StylesData extends SerializableBase {
 
 				// Pour les catégories de styles qui peuvent être désactivées (border, outline, ...),
 				// si la propriété d'activation est false, on ne génère pas le CSS des autres styles
-				if (style.valueType === 'boolean' && style.id.includes('enable')) {
+				const isCategoryToggle =
+					style.valueType === 'boolean' &&
+					style.id.includes('enable') &&
+					style.id !== 'enable-italic';
+
+				if (isCategoryToggle) {
 					if (!Boolean(effectiveValue)) {
 						skipCategory = true;
 						break;
 					} else {
 						continue; // ne pas générer la règle pour le flag lui-même
 					}
+				}
+
+				if (style.id === 'enable-italic' && !Boolean(effectiveValue)) {
+					continue;
 				}
 
 				// Si la catégorie est dans la liste des catégories à exclure, on skip tout le CSS

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount, untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import Track from './track/Track.svelte';
 	import { Duration, TrackType, ProjectEditorTabs } from '$lib/classes';
 	import { slide } from 'svelte/transition';
@@ -23,6 +23,47 @@
 	let timelineState = $derived(() => globalState.currentProject?.projectEditorState.timeline!);
 
 	let timelineDiv: HTMLDivElement | null = null;
+	let removeShortcutRegistered = false;
+
+	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
+	function handleRemoveSelectedSubtitles(): void {
+		const currentProject = globalState.currentProject;
+		if (!currentProject) return;
+
+		const selectedClipIds = globalState.getStylesState.selectedSubtitles.map(
+			(subtitle) => subtitle.id
+		);
+		if (selectedClipIds.length === 0) return;
+
+		const subtitleTrack = globalState.getSubtitleTrack;
+		globalState.getStylesState.clearSelection();
+
+		selectedClipIds.forEach((id) => subtitleTrack.removeClip(id, true));
+		currentProject.detail.updateVideoDetailAttributes();
+	}
+
+	// Enregistre le raccourci Backspace pour virer les sous-titres sélectionnés lorsque l'on est dans l'onglet Style
+	function registerRemoveShortcut(): void {
+		if (!globalState.settings) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE,
+			onKeyDown: handleRemoveSelectedSubtitles
+		});
+
+		removeShortcutRegistered = true;
+	}
+
+	// unbind le raccourci Backspace quand on quitte Style
+	function unregisterRemoveShortcut(): void {
+		if (!removeShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE
+		);
+
+		removeShortcutRegistered = false;
+	}
 
 	onMount(() => {
 		// Restitue le scroll
@@ -30,6 +71,9 @@
 
 		// Au cas où il serait en false après un changement de taille de sous-titre
 		globalState.getTimelineState.showCursor = true;
+		if (globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style) {
+			registerRemoveShortcut();
+		}
 	});
 
 	// Fonction pour déterminer l'intervalle d'affichage des timestamps selon le zoom
@@ -147,6 +191,10 @@
 			}
 		}
 	}
+
+	onDestroy(() => {
+		unregisterRemoveShortcut();
+	});
 </script>
 
 <section

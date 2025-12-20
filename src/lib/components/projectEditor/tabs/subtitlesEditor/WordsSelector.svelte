@@ -331,6 +331,16 @@
 	function removeLastSubtitle(): void {
 		const subtitleTrack = globalState.getSubtitleTrack;
 
+		// Si un sous-titre est en cours d'édition, on le supprime explicitement plutôt que le dernier ajouté
+		const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		if (editedSubtitle) {
+			subtitleTrack.removeClip(editedSubtitle.id, true);
+			globalState.getSubtitlesEditorState.editSubtitle = null;
+			globalState.currentProject!.detail.updateVideoDetailAttributes();
+			globalState.updateVideoPreviewUI();
+			return;
+		}
+
 		subtitleTrack.removeLastClip();
 
 		globalState.currentProject!.detail.updateVideoDetailAttributes();

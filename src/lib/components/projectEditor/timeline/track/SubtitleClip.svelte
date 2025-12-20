@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SubtitleClip, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
+	import { SubtitleClip, TrackType, ProjectEditorTabs, type AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
@@ -105,6 +105,16 @@
 		}
 	}
 
+	// Sur clic gauche, ouvre l'édition si l'on est dans Subtitles Editor sinon gère la sélection Style
+	function handleClipClick() {
+		const currentTab = globalState.currentProject!.projectEditorState.currentTab;
+		if (currentTab === ProjectEditorTabs.SubtitlesEditor) {
+			editSubtitle();
+		} else {
+			clipClicked();
+		}
+	}
+
 	function editSubtitle(): void {
 		// Modifie le sous-titre
 		if (globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id) {
@@ -129,7 +139,7 @@
 		e.preventDefault();
 		contextMenu!.show(e);
 	}}
-	onclick={clipClicked}
+	onclick={handleClipClick}
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
 		<!-- Icône override (haut gauche) -->

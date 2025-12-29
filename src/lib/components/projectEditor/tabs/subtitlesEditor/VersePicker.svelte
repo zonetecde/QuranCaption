@@ -2,8 +2,11 @@
 	import { Quran, type Verse } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
+	import { invoke } from '@tauri-apps/api/core';
+	import toast from 'svelte-5-french-toast';
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
+	let isSegmenting = $state(false);
 
 	// Create suggestions array for autocomplete
 	let surahSuggestions = $derived(() => {
@@ -43,16 +46,55 @@
 			handleSurahSelection(surahSearchValue);
 		}
 	});
+
+	async function requestQuranSegmentation() {
+		// Avoid double-clicks while the request is running.
+		if (isSegmenting) return;
+
+		// Use the first audio clip from the audio track as the source.
+		const audioClip: any = globalState.getAudioTrack?.clips?.[0];
+		if (!audioClip || audioClip.assetId === undefined) {
+			toast.error('No audio clip found in the project.');
+			return;
+		}
+
+		const audioAsset = globalState.currentProject!.content.getAssetById(audioClip.assetId);
+		if (!audioAsset?.filePath) {
+			toast.error('Audio file path is missing.');
+			return;
+		}
+
+		isSegmenting = true;
+
+		try {
+			// Send the audio to Rust; Rust handles resampling + API calls.
+			const payload = await invoke('segment_quran_audio', {
+				audioPath: audioAsset.filePath,
+				minSilenceMs: 200,
+				minSpeechMs: 1000,
+				padMs: 50
+			});
+
+			// For now, just log the response payload.
+			console.log('Quran segmentation payload:', payload);
+		} catch (error) {
+			console.error('Segmentation request failed:', error);
+			toast.error('Segmentation request failed.');
+		} finally {
+			isSegmenting = false;
+		}
+	}
 </script>
 
 <section
 	class="w-full flex gap-3 items-center px-3 bg-secondary border border-color rounded-lg py-2"
 >
-	<div class="flex gap-2 items-center group relative">
-		<span class="material-icons text-2xl!">help</span>
-		<div
-			class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
-		>
+	<div class="flex gap-2 items-center">
+		<div class="flex gap-2 items-center group relative">
+			<span class="material-icons text-2xl!">help</span>
+			<div
+				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+			>
 			<div class="space-y-2 mb-3">
 				<div class="text-secondary text-sm font-semibold">Need a visual walkthrough?</div>
 				<p class="text-xs text-thirdly">
@@ -94,7 +136,19 @@
 					<span class="font-mono bg-accent px-1 rounded-sm">{shortcut.keys.join(', ')}</span>
 				</div>
 			{/each}
+			</div>
 		</div>
+
+		<button
+			class="btn-accent px-2 py-1 rounded-md text-xs flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+			type="button"
+			title="Auto segment audio into Quran verses"
+			onclick={requestQuranSegmentation}
+			disabled={isSegmenting}
+		>
+			<span class="material-icons text-base">graphic_eq</span>
+			{isSegmenting ? 'Segmenting...' : 'Auto-Segment'}
+		</button>
 	</div>
 
 	<!-- Surah Selector with Autocomplete -->

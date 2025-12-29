@@ -36,3 +36,4 @@ md5 = "0.7"
 image = "0.24"
 discord-rich-presence = "0.2"
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+reqwest = { version = "0.12", features = ["json", "multipart"] }

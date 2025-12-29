@@ -5,6 +5,36 @@
 	import TimeInput from './TimeInput.svelte';
 	import Style from '../styleEditor/Style.svelte';
 	import { VerseRange } from '$lib/classes';
+	import { open } from '@tauri-apps/plugin-dialog';
+	import ExportService from '$lib/services/ExportService';
+	import Settings from '$lib/classes/Settings.svelte';
+	import { onMount } from 'svelte';
+
+	let currentExportFolder = $state('');
+
+	onMount(async () => {
+		currentExportFolder = await ExportService.getExportFolder();
+	});
+
+	async function changeExportFolder() {
+		const selected = await open({
+			directory: true,
+			multiple: false,
+			defaultPath: currentExportFolder
+		});
+
+		if (selected) {
+			globalState.settings!.persistentUiState.videoExportFolder = selected as string;
+			currentExportFolder = selected as string;
+			await Settings.save();
+		}
+	}
+
+	async function resetExportFolder() {
+		globalState.settings!.persistentUiState.videoExportFolder = '';
+		currentExportFolder = await ExportService.getExportFolder();
+		await Settings.save();
+	}
 
 	// Initialize export state values if not set
 	$effect(() => {
@@ -79,6 +109,60 @@
 						{VerseRange.getExportVerseRange().toString()}
 					</span>
 				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Video Filename -->
+	<div class="mb-6">
+		<h4 class="text-base font-medium text-secondary mb-3">Video Filename</h4>
+		<div class="bg-accent rounded-lg p-4 border border-color">
+			<p class="text-thirdly text-sm mb-4">
+				Enter a name for your video file. If left empty, a default name will be generated.
+			</p>
+
+			<div class="flex flex-col gap-2">
+				<input
+					type="text"
+					class="input w-full"
+					placeholder={globalState.currentProject?.detail.generateExportFileName()}
+					bind:value={globalState.getExportState.customFileName}
+				/>
+				<p class="text-thirdly text-xs italic">
+					Extension (.mp4) will be added automatically.
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Export Location -->
+	<div class="mb-6">
+		<h4 class="text-base font-medium text-secondary mb-3">Export Location</h4>
+		<div class="bg-accent rounded-lg p-4 border border-color">
+			<p class="text-thirdly text-sm mb-4">
+				Choose where your exported videos will be saved.
+			</p>
+
+			<div class="flex flex-col gap-2">
+				<div class="flex items-center gap-2">
+					<div
+						class="flex-1 bg-secondary border border-color rounded p-2 text-sm text-secondary truncate"
+						title={currentExportFolder}
+					>
+						{currentExportFolder}
+					</div>
+					<button class="btn-secondary px-3 py-2 text-sm cursor-pointer" onclick={changeExportFolder}>
+						Browse
+					</button>
+				</div>
+				{#if globalState.settings?.persistentUiState.videoExportFolder}
+					<button
+						class="text-accent-primary text-xs self-start hover:underline cursor-pointer"
+						onclick={resetExportFolder}
+					>
+						Reset to default location
+					</button>
+				{/if}
 			</div>
 		</div>
 	</div>

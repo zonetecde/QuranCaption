@@ -9,7 +9,7 @@ import { listen } from '@tauri-apps/api/event';
 export default class ExportService {
 	static exportFolder: string = 'exports/';
 
-	constructor() {}
+	constructor() { }
 
 	/**
 	 * Charge un projet (utiliser par la fenêtre d'export)
@@ -40,6 +40,10 @@ export default class ExportService {
 	 * @returns Le chemin du dossier d'export
 	 */
 	static async getExportFolder(): Promise<string> {
+		if (globalState.settings?.persistentUiState.videoExportFolder) {
+			return globalState.settings.persistentUiState.videoExportFolder;
+		}
+
 		return join(await appDataDir(), this.exportFolder);
 	}
 
@@ -140,7 +144,7 @@ export default class ExportService {
 			// Construis le chemin d'accès vers le projet
 			const filePath = await join(exportPath, `${exportIdId}.json`);
 			await remove(filePath);
-		} catch (e) {}
+		} catch (e) { }
 	}
 
 	static findExportById(id: number) {

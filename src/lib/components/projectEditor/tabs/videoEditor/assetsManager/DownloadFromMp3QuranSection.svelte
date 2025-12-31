@@ -45,7 +45,7 @@
 				options.push({
 					reciterId: r.id,
 					moshafId: m.id,
-					label: `${r.name} - ${m.name}`,
+					label: `${r.name} - (${m.name})`,
 					server: m.server,
 					surah_list: m.surah_list
 				});

@@ -81,10 +81,10 @@ export class Asset extends SerializableBase {
 			// Demande confirmation à l'utilisateur
 			const confirm = await ModalManager.confirmModal(
 				'Would you like to set the project dimensions to match this video? (' +
-					assetDimensions.width +
-					'x' +
-					assetDimensions.height +
-					')',
+				assetDimensions.width +
+				'x' +
+				assetDimensions.height +
+				')',
 				true
 			);
 
@@ -144,7 +144,14 @@ export class Asset extends SerializableBase {
 	}
 
 	async openParentDirectory() {
-		const parentDir = this.getParentDirectory();
+		let parentDir = this.getParentDirectory();
+		const userAgent = navigator?.userAgent?.toLowerCase() ?? '';
+		// Windows Explorer handles paths with forward slashes incorrectly when opening a directory via the opener plugin.
+		// It often defaults to the Documents folder or times out.
+		// We force backslashes for Windows to ensure the correct directory opens immediately.
+		if (userAgent.includes('win')) {
+			parentDir = parentDir.replace(/\//g, '\\');
+		}
 		await openPath(parentDir);
 	}
 

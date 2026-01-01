@@ -150,6 +150,11 @@ export default class Settings extends SerializableBase {
 				keys: ['t'],
 				description: 'Add a custom text clip between the last subtitle and the current position',
 				name: 'Add Custom Text Clip'
+			},
+			SPLIT_SUBTITLE: {
+				keys: ['d'],
+				description: 'Split the selected subtitle at the cursor position',
+				name: 'Split Subtitle'
 			}
 		}
 	};

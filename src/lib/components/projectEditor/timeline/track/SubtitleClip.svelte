@@ -160,7 +160,10 @@
 	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
 		(isSelected() ? ' bg-[#6265af]/50! border-[#6265af]/40! ' : '') +
 		(isLowConfidence() && !isSelected() ? ' ai-low-confidence ' : '') +
-		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ? 'cursor-pointer' : '')}
+		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ||
+		globalState.currentProject!.projectEditorState.currentTab === 'Video editor'
+			? 'cursor-pointer'
+			: '')}
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
 	transition:slide={{ duration: 500, axis: 'x' }}
 	oncontextmenu={(e) => {

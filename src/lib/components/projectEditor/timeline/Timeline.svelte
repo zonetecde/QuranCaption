@@ -24,6 +24,7 @@
 
 	let timelineDiv: HTMLDivElement | null = null;
 	let removeShortcutRegistered = false;
+	let splitShortcutRegistered = false;
 
 	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
 	function handleRemoveSelectedSubtitles(): void {
@@ -42,9 +43,46 @@
 		currentProject.detail.updateVideoDetailAttributes();
 	}
 
+	function handleSplitSubtitle(): void {
+		const currentProject = globalState.currentProject;
+		if (!currentProject) return;
+
+		let clipToSplit: any = null;
+
+		const selectedSubtitles = globalState.getStylesState.selectedSubtitles;
+		if (selectedSubtitles.length === 1) {
+			clipToSplit = selectedSubtitles[0];
+		} else {
+			// Fallback: check if a subtitle is being edited (Subtitles Editor)
+			const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+			if (
+				editedSubtitle &&
+				(editedSubtitle.type === 'Subtitle' || editedSubtitle.type === 'Pre-defined Subtitle')
+			) {
+				clipToSplit = editedSubtitle;
+			}
+		}
+
+		if (
+			clipToSplit &&
+			(clipToSplit.type === 'Subtitle' || clipToSplit.type === 'Pre-defined Subtitle')
+		) {
+			const success = globalState.getSubtitleTrack.splitSubtitle(clipToSplit.id);
+			if (success) {
+				currentProject.detail.updateVideoDetailAttributes();
+				globalState.getStylesState.clearSelection();
+
+				// If we split the edited subtitle, stop editing to avoid issues with the old reference
+				if (globalState.getSubtitlesEditorState.editSubtitle?.id === clipToSplit.id) {
+					globalState.getSubtitlesEditorState.editSubtitle = null;
+				}
+			}
+		}
+	}
+
 	// Enregistre le raccourci Backspace pour virer les sous-titres sélectionnés lorsque l'on est dans l'onglet Style
 	function registerRemoveShortcut(): void {
-		if (!globalState.settings) return;
+		if (!globalState.settings || removeShortcutRegistered) return;
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE,
@@ -54,7 +92,6 @@
 		removeShortcutRegistered = true;
 	}
 
-	// unbind le raccourci Backspace quand on quitte Style
 	function unregisterRemoveShortcut(): void {
 		if (!removeShortcutRegistered || !globalState.settings) return;
 
@@ -65,15 +102,74 @@
 		removeShortcutRegistered = false;
 	}
 
+	function registerSplitShortcut(): void {
+		if (!globalState.settings || splitShortcutRegistered) return;
+
+		// Split shortcut
+		const splitShortcut = globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE ?? {
+			keys: ['d'],
+			description: 'Split the selected subtitle at the cursor position',
+			name: 'Split Subtitle'
+		};
+
+		ShortcutService.registerShortcut({
+			key: splitShortcut,
+			onKeyDown: handleSplitSubtitle
+		});
+
+		splitShortcutRegistered = true;
+	}
+
+	function unregisterSplitShortcut(): void {
+		if (!splitShortcutRegistered || !globalState.settings) return;
+
+		const splitShortcut = globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE ?? {
+			keys: ['d'],
+			description: 'Split the selected subtitle at the cursor position',
+			name: 'Split Subtitle'
+		};
+
+		ShortcutService.unregisterShortcut(splitShortcut);
+
+		splitShortcutRegistered = false;
+	}
+
+	$effect(() => {
+		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
+
+		// On active le shortcut de split dans Style, Video Editor et Subtitles Editor
+		const tabsWithSplitShortcut = [
+			ProjectEditorTabs.Style,
+			ProjectEditorTabs.VideoEditor,
+			ProjectEditorTabs.SubtitlesEditor
+		];
+
+		if (currentTab && tabsWithSplitShortcut.includes(currentTab)) {
+			registerSplitShortcut();
+		} else {
+			unregisterSplitShortcut();
+		}
+
+		// Le raccourci de suppression (Backspace) reste spécifique à l'onglet Style pour l'instant
+		// (pour éviter de supprimer par erreur dans d'autres contextes)
+		if (currentTab === ProjectEditorTabs.Style) {
+			registerRemoveShortcut();
+		} else {
+			unregisterRemoveShortcut();
+		}
+
+		return () => {
+			unregisterSplitShortcut();
+			unregisterRemoveShortcut();
+		};
+	});
+
 	onMount(() => {
 		// Restitue le scroll
 		timelineDiv!.scrollLeft = timelineState().scrollX;
 
 		// Au cas où il serait en false après un changement de taille de sous-titre
 		globalState.getTimelineState.showCursor = true;
-		if (globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style) {
-			registerRemoveShortcut();
-		}
 	});
 
 	// Fonction pour déterminer l'intervalle d'affichage des timestamps selon le zoom
@@ -193,6 +289,7 @@
 	}
 
 	onDestroy(() => {
+		unregisterSplitShortcut();
 		unregisterRemoveShortcut();
 	});
 </script>

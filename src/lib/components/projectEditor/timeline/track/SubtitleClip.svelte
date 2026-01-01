@@ -255,6 +255,14 @@
 			<span class="material-icons-outlined text-sm mr-1">space_bar</span>Add silence (on the left)
 		</div></Item
 	>
+	<Item
+		on:click={() => {
+			(track as SubtitleTrack).splitSubtitle(clip.id);
+		}}
+		><div class="btn-icon">
+			<span class="material-icons-outlined text-sm mr-1">call_split</span>Split subtitle
+		</div></Item
+	>
 	<Item on:click={removeSubtitle}
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove subtitle

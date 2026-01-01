@@ -310,6 +310,60 @@ export class SubtitleTrack extends Track {
 		}
 	}
 
+	splitSubtitle(clipId: number): boolean {
+		const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
+		if (clipIndex === -1) return false;
+
+		const clip = this.clips[clipIndex] as SubtitleClip;
+		const splitTime = globalState.getTimelineState.cursorPosition;
+
+		// Check if the split time is within the clip
+		if (splitTime <= clip.startTime || splitTime >= clip.endTime) {
+			toast.error('The cursor must be strictly inside the subtitle to split it.');
+			return false;
+		}
+
+		// Minimum duration check (e.g. 100ms) for both parts
+		if (splitTime - clip.startTime < 100 || clip.endTime - splitTime < 100) {
+			toast.error('Resulting clips would be too short (min 100ms).');
+			return false;
+		}
+
+		const originalEndTime = clip.endTime;
+
+		// Update the first part (original clip)
+		clip.endTime = splitTime;
+		clip.duration = clip.endTime - clip.startTime;
+
+		// Create the second part (new clip)
+		// We clone the properties of the original clip
+		// Ideally we would want to recalculate "isFullVerse" / "isLastWordsOfVerse" if we were splitting text logic, 
+		// but here we just duplicate the entity on the timeline.
+		// The user is expected to edit the text afterwards.
+		const newClip = new SubtitleClip(
+			splitTime + 1,
+			originalEndTime,
+			clip.surah,
+			clip.verse,
+			clip.startWordIndex,
+			clip.endWordIndex,
+			clip.text,
+			JSON.parse(JSON.stringify(clip.wbwTranslation)), // Deep copy or just ref if read-only? Strings are immutables. Array needs copy.
+			clip.isFullVerse,
+			clip.isLastWordsOfVerse,
+			// Deep copy translations if needed, but they are objects. 
+			// For simplicity we pass the reference or shallow copy. 
+			// Since VerseTranslation objects might be shared or immutable, let's just pass them.
+			// Actually best to try and get fresh props if possible, but duplication is safer to match current state.
+			{ ...clip.translations }
+		);
+
+		// Insert the new clip after the original
+		this.clips.splice(clipIndex + 1, 0, newClip);
+
+		return true;
+	}
+
 	async addSubtitle(
 		verse: Verse,
 		firstWordIndex: number,

@@ -78,6 +78,11 @@ export default class Settings extends SerializableBase {
 				keys: ['f11'],
 				name: 'Toggle Fullscreen',
 				description: 'Enter or exit fullscreen mode'
+			},
+			GO_TO_START: {
+				keys: ['i'],
+				name: 'Go to Start',
+				description: 'Stop playback and jump to the beginning of the video'
 			}
 		},
 		SUBTITLES_EDITOR: {

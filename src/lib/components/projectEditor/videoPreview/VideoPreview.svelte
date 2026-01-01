@@ -26,14 +26,14 @@
 	// Récupère l'asset vidéo actuellement sous le curseur de la timeline
 	// Seulement si movePreviewTo est défini (pour éviter les recalculs inutiles)
 	let currentVideo = $derived(() => {
-		if (getTimelineSettings().movePreviewTo)
+		if (getTimelineSettings().movePreviewTo !== undefined)
 			return untrack(() => {
 				return globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Video);
 			});
 	});
 
 	let currentImage = $derived(() => {
-		if (getTimelineSettings().movePreviewTo)
+		if (getTimelineSettings().movePreviewTo !== undefined)
 			return untrack(() => {
 				return globalState.currentProject!.content.timeline.getBackgroundImage();
 			});
@@ -41,7 +41,7 @@
 
 	// Récupère l'asset audio actuellement sous le curseur de la timeline
 	let currentAudio = $derived(() => {
-		if (getTimelineSettings().movePreviewTo)
+		if (getTimelineSettings().movePreviewTo !== undefined)
 			return untrack(() => {
 				return globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Audio);
 			});
@@ -208,6 +208,19 @@
 				globalState.getVideoPreviewState.toggleFullScreen();
 			}
 		});
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START ?? {
+				keys: ['i'],
+				name: 'Go to Start',
+				description: 'Stop playback and jump to the beginning of the video'
+			},
+			onKeyDown: (e) => {
+				pause(); // Arrête la lecture
+				getTimelineSettings().cursorPosition = 1; // Revient au début (1ms pour éviter les bugs)
+				getTimelineSettings().movePreviewTo = 1; // Force la mise à jour de la prévisualisation
+			}
+		});
 	});
 
 	function setPlaybackSpeed(speed: number) {
@@ -256,6 +269,13 @@
 		);
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN
+		);
+		ShortcutService.unregisterShortcut(
+			globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START ?? {
+				keys: ['i'],
+				name: 'Go to Start',
+				description: 'Stop playback and jump to the beginning of the video'
+			}
 		);
 	});
 
@@ -597,13 +617,15 @@
 		}
 
 		// Prépare la synchronisation pour la prochaine lecture
-		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
 
-		// Arrête la mise à jour du curseur audio
+		// Arrête la mise à jour du curseur audio AVANT de set le movePreviewTo
 		if (audioUpdateInterval) {
 			clearInterval(audioUpdateInterval);
 			audioUpdateInterval = null;
 		}
+
+		// Prépare la synchronisation pour la prochaine lecture
+		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
 	}
 
 	/**

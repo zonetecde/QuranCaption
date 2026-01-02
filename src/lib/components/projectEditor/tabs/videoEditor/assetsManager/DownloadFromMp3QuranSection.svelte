@@ -26,7 +26,6 @@
 	};
 
 	let reciters: Reciter[] = $state([]);
-	let selectedReciterId: number | null = $state(null);
 	let selectedSurahId: number | null = $state(null);
 	let isDownloading: boolean = $state(false);
 	let isLoadingReciters: boolean = $state(true);
@@ -51,14 +50,14 @@
 				});
 			}
 		}
-		return options.sort((a, b) => a.label.localeCompare(b.label));
+		return options;
 	});
 
 	let selectedOptionIndex: number = $state(-1); // Index in flattenedOptions
 
 	let availableSurahs = $derived.by(() => {
 		if (selectedOptionIndex === -1) return [];
-		const option = flattenedOptions[selectedOptionIndex];
+		const option = sortedOptions[selectedOptionIndex];
 		const surahIds = option.surah_list.split(',').map(Number);
 
 		// Map surah IDs to names using the Quran class
@@ -78,7 +77,17 @@
 
 			const response = await fetch('https://mp3quran.net/api/v3/reciters?language=eng');
 			if (!response.ok) throw new Error('Failed to fetch reciters');
+
+			const contentType = response.headers.get('content-type');
+			if (!contentType?.includes('application/json')) {
+				throw new Error('Invalid response format: expected JSON');
+			}
+
 			const data = await response.json();
+			if (!data.reciters || !Array.isArray(data.reciters)) {
+				throw new Error('Invalid response structure: missing or invalid reciters array');
+			}
+
 			reciters = data.reciters;
 		} catch (error) {
 			console.error('Error fetching reciters:', error);
@@ -86,6 +95,11 @@
 		} finally {
 			isLoadingReciters = false;
 		}
+	});
+
+	// Sort flattened options once after reciters are loaded
+	let sortedOptions = $derived.by(() => {
+		return [...flattenedOptions].sort((a, b) => a.label.localeCompare(b.label));
 	});
 
 	async function downloadAsset() {
@@ -100,10 +114,13 @@
 		const surahName =
 			availableSurahs.find((s) => s.id === selectedSurahId)?.name.split(' (')[0] ??
 			`Surah ${formattedSurahId}`;
-		const fileName = `${option.label.split(' - ')[0]} - ${surahName}.mp3`.replace(
-			/[<>:"/\\|?*]/g,
-			''
-		);
+
+		const rawBaseName = `${option.label.split(' - ')[0]} - ${surahName}`;
+		let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
+		if (!sanitizedBaseName) {
+			sanitizedBaseName = `surah-${formattedSurahId}`;
+		}
+		const fileName = `${sanitizedBaseName}.mp3`;
 
 		let toastId: string | undefined;
 		try {
@@ -128,7 +145,7 @@
 				content: uint8Array
 			});
 
-			globalState.currentProject!.content.addAsset(fullPath, url);
+			globalState.currentProject!.content.addAsset(fullPath, url, true);
 
 			toast.success('Download successful!', { id: toastId });
 		} catch (error) {
@@ -151,12 +168,13 @@
 				       focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
 				bind:value={selectedOptionIndex}
 				disabled={isLoadingReciters}
+				onchange={() => (selectedSurahId = null)}
 			>
 				{#if isLoadingReciters}
 					<option value={-1}>Loading reciters...</option>
 				{:else}
 					<option value={-1}>Select a reciter</option>
-					{#each flattenedOptions as option, index}
+					{#each sortedOptions as option, index}
 						<option value={index}>{option.label}</option>
 					{/each}
 				{/if}

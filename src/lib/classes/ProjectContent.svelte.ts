@@ -52,8 +52,8 @@ export class ProjectContent extends SerializableBase {
 		);
 	}
 
-	addAsset(filePath: string, youtubeUrl?: string): void {
-		const asset = new Asset(filePath, youtubeUrl);
+	addAsset(filePath: string, youtubeUrl?: string, fromMp3Quran: boolean = false): void {
+		const asset = new Asset(filePath, youtubeUrl, fromMp3Quran);
 		if (asset.type === AssetType.Unknown) {
 			toast.error('This file format is not supported.');
 			return;

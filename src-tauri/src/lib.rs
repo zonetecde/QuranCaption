@@ -251,6 +251,7 @@ fn get_new_file_path(start_time: u64, asset_name: &str) -> Result<String, String
     Err("Downloaded file not found".to_string())
 }
 
+
 #[tauri::command]
 fn save_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
     if let Some(parent) = std::path::Path::new(&path).parent() {

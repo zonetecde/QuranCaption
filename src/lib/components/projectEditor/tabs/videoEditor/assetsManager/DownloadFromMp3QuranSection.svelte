@@ -56,18 +56,14 @@
 	let selectedOptionIndex: number = $state(-1); // Index in flattenedOptions
 
 	let availableSurahs = $derived.by(() => {
-		if (selectedOptionIndex === -1) return [];
-		const option = sortedOptions[selectedOptionIndex];
-		const surahIds = option.surah_list.split(',').map(Number);
+		const option = selectedOptionIndex === -1 ? null : sortedOptions[selectedOptionIndex];
+		const surahIds = option ? new Set(option.surah_list.split(',').map(Number)) : new Set<number>();
 
-		// Map surah IDs to names using the Quran class
-		return surahIds.map((id) => {
-			const surah = Quran.getSurahs().find((s) => s.id === id);
-			return {
-				id: id,
-				name: surah ? `${id}. ${surah.name} (${surah.translation})` : `Surah ${id}`
-			};
-		});
+		return Quran.getSurahs().map((surah) => ({
+			id: surah.id,
+			name: `${surah.id}. ${surah.name} (${surah.translation})`,
+			supported: surahIds.has(surah.id)
+		}));
 	});
 
 	onMount(async () => {
@@ -106,7 +102,7 @@
 		if (selectedOptionIndex === -1 || !selectedSurahId) return;
 
 		isDownloading = true;
-		const option = flattenedOptions[selectedOptionIndex];
+		const option = sortedOptions[selectedOptionIndex];
 
 		// Format surah ID to 3 digits (e.g. 001, 012, 114)
 		const formattedSurahId = selectedSurahId.toString().padStart(3, '0');
@@ -194,7 +190,9 @@
 			>
 				<option value={null}>Select a Surah</option>
 				{#each availableSurahs as surah}
-					<option value={surah.id}>{surah.name}</option>
+					<option value={surah.id} disabled={!surah.supported}>
+						{surah.name}
+					</option>
 				{/each}
 			</select>
 		</div>

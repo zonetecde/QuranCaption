@@ -17,8 +17,9 @@ export class Asset extends SerializableBase {
 	exists: boolean = $state(true);
 	fromYoutube: boolean = $state(false);
 	youtubeUrl?: string = $state(undefined);
+	fromMp3Quran: boolean = $state(false);
 
-	constructor(filePath: string = '', youtubeUrl?: string) {
+	constructor(filePath: string = '', youtubeUrl?: string, fromMp3Quran: boolean = false) {
 		super();
 
 		// Si l'arg est undefined (cas de désérialisation)
@@ -37,6 +38,7 @@ export class Asset extends SerializableBase {
 		} else {
 			this.fromYoutube = false;
 		}
+		this.fromMp3Quran = fromMp3Quran;
 
 		const fileName = this.getFileName(this.filePath);
 

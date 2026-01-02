@@ -128,17 +128,11 @@
 				`Downloading Surah ${surahName.split('.')[1].trim()} by ${option.label.split(' - ')[0]}...`
 			);
 
-			const response = await fetch(url);
-			if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-			const buffer = await response.arrayBuffer();
-			const uint8Array = new Uint8Array(buffer);
-
 			const fullPath = await join(downloadPath, fileName);
 
-			await invoke('save_binary_file', {
-				path: fullPath,
-				content: uint8Array
+			await invoke('download_file', {
+				url,
+				path: fullPath
 			});
 
 			globalState.currentProject!.content.addAsset(fullPath, url, true);

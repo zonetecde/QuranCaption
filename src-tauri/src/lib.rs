@@ -261,6 +261,32 @@ fn save_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn download_file(url: String, path: String) -> Result<(), String> {
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("HTTP error: {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    tokio::fs::write(&path, &bytes)
+        .await
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
 fn delete_file(path: String) -> Result<(), String> {
     fs::remove_file(path).map_err(|e| format!("Failed to delete file: {}", e))
 }
@@ -709,6 +735,7 @@ pub fn run() {
             get_duration,
             get_new_file_path,
             save_binary_file,
+            download_file,
             delete_file,
             move_file,
             get_system_fonts,

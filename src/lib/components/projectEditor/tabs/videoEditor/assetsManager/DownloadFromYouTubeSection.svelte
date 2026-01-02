@@ -41,7 +41,7 @@
 	}
 </script>
 
-<Section icon="cloud_download" name="Download from YouTube" classes="mt-7">
+<Section icon="cloud_download" name="Download from YouTube">
 	<!-- URL Input with enhanced styling -->
 	<div class="mt-4 space-y-4">
 		<div class="relative">

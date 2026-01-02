@@ -111,7 +111,9 @@
 				globalState.currentProject!.detail.id
 			);
 
-			toastId = toast.loading(`Downloading ${surahName}...`);
+			toastId = toast.loading(
+				`Downloading Surah ${surahName.split('.')[1].trim()} by ${option.label.split(' - ')[0]}...`
+			);
 
 			const response = await fetch(url);
 			if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -138,13 +140,11 @@
 	}
 </script>
 
-<Section icon="mosque" name="Download from MP3Quran" classes="mt-7">
+<Section icon="mosque" name="Download from MP3Quran">
 	<div class="mt-4 space-y-4">
 		<!-- Reciter Selection -->
 		<div class="space-y-2">
-			<label for="reciter-select" class="text-sm font-medium text-secondary"
-				>Reciter (Recitation)</label
-			>
+			<label for="reciter-select" class="text-sm font-medium text-secondary">Reciter</label>
 			<select
 				id="reciter-select"
 				class="w-full bg-secondary border border-color rounded-lg py-3 px-4 text-sm text-primary

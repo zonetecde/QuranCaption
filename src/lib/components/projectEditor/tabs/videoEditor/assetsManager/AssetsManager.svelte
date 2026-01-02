@@ -14,6 +14,6 @@
 	</div>
 
 	<ProjectAssetSection />
-	<DownloadFromYouTubeSection />
 	<DownloadFromMp3QuranSection />
+	<DownloadFromYouTubeSection />
 </div>

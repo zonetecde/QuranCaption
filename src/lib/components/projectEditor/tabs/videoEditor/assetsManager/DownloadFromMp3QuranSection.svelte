@@ -26,20 +26,24 @@
 	};
 
 	let reciters: Reciter[] = $state([]);
-	let selectedSurahId: number | null = $state(null);
+	let selectedSurahId: number = $state(-1);
 	let isDownloading: boolean = $state(false);
 	let isLoadingReciters: boolean = $state(true);
 
 	// Derived state
-	let flattenedOptions = $derived.by(() => {
-		const options: {
-			reciterId: number;
-			moshafId: number;
-			label: string;
-			server: string;
-			surah_list: string;
-		}[] = [];
-		for (const r of reciters) {
+	type FlattenedOption = {
+		reciterId: number;
+		moshafId: number;
+		label: string;
+		server: string;
+		surah_list: string;
+	};
+
+	let sortedOptions: FlattenedOption[] = $state([]);
+
+	function buildSortedOptions(recitersList: Reciter[]): FlattenedOption[] {
+		const options: FlattenedOption[] = [];
+		for (const r of recitersList) {
 			for (const m of r.moshaf) {
 				options.push({
 					reciterId: r.id,
@@ -50,8 +54,8 @@
 				});
 			}
 		}
-		return options;
-	});
+		return options.sort((a, b) => a.label.localeCompare(b.label));
+	}
 
 	let selectedOptionIndex: number = $state(-1); // Index in flattenedOptions
 
@@ -85,6 +89,7 @@
 			}
 
 			reciters = data.reciters;
+			sortedOptions = buildSortedOptions(reciters);
 		} catch (error) {
 			console.error('Error fetching reciters:', error);
 			toast.error('Failed to load reciters list.');
@@ -93,13 +98,8 @@
 		}
 	});
 
-	// Sort flattened options once after reciters are loaded
-	let sortedOptions = $derived.by(() => {
-		return [...flattenedOptions].sort((a, b) => a.label.localeCompare(b.label));
-	});
-
 	async function downloadAsset() {
-		if (selectedOptionIndex === -1 || !selectedSurahId) return;
+		if (selectedOptionIndex === -1 || selectedSurahId === -1) return;
 
 		isDownloading = true;
 		const option = sortedOptions[selectedOptionIndex];
@@ -164,7 +164,7 @@
 				       focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
 				bind:value={selectedOptionIndex}
 				disabled={isLoadingReciters}
-				onchange={() => (selectedSurahId = null)}
+				onchange={() => (selectedSurahId = -1)}
 			>
 				{#if isLoadingReciters}
 					<option value={-1}>Loading reciters...</option>
@@ -188,7 +188,7 @@
 				bind:value={selectedSurahId}
 				disabled={selectedOptionIndex === -1}
 			>
-				<option value={null}>Select a Surah</option>
+				<option value={-1}>Select a Surah</option>
 				{#each availableSurahs as surah}
 					<option value={surah.id} disabled={!surah.supported}>
 						{surah.name}
@@ -205,7 +205,7 @@
 			       shadow-lg hover:shadow-xl relative overflow-hidden"
 			type="button"
 			onclick={downloadAsset}
-			disabled={selectedOptionIndex === -1 || !selectedSurahId || isDownloading}
+			disabled={selectedOptionIndex === -1 || selectedSurahId === -1 || isDownloading}
 		>
 			{#if isDownloading}
 				<span class="material-icons animate-spin text-lg">sync</span>

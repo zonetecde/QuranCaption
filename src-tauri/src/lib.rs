@@ -43,7 +43,7 @@ const QURAN_SEGMENTATION_QUEUE_DATA_URL: &str =
     "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/queue/data";
 // Hard-coded index for /process_audio_json in the current Space config.
 const QURAN_SEGMENTATION_FN_INDEX: u32 = 5;
-const QURAN_SEGMENTATION_USE_MOCK: bool = true;
+const QURAN_SEGMENTATION_USE_MOCK: bool = false;
 const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
 {
     "segments": [

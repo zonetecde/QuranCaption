@@ -11,7 +11,7 @@ const reciterFilePath = path.join(__dirname, '..', 'static', '/reciters/reciters
 const reciters = JSON.parse(fs.readFileSync(reciterFilePath, 'utf8'));
 
 // Transformer le tableau de strings en tableau d'objets
-const transformedReciters = reciters.map((reciterName, index) => ({
+const transformedReciters = reciters.map((reciterName) => ({
 	arabic: '', // vide comme demandé
 	latin: reciterName,
 	number: -1 // -1 comme demandé

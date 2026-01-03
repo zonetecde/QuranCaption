@@ -137,7 +137,7 @@ export default class MigrationService {
 			projectUpdatedAt
 		);
 
-		let newIds: { [oldId: string]: number } = {};
+		const newIds: { [oldId: string]: number } = {};
 
 		const projectContent = await ProjectContent.getDefaultProjectContent();
 
@@ -221,7 +221,7 @@ export default class MigrationService {
 		if (project.timeline.subtitlesTracks[0].clips.length > 0) {
 			for (const clip of project.timeline.subtitlesTracks[0].clips) {
 				if ((clip.surah === -1 || clip.verse === -1) && !clip.isSilence && !clip.isCustomText) {
-					let translations: { [key: string]: Translation } = {};
+					const translations: { [key: string]: Translation } = {};
 
 					// predefined subtitle clip
 					const sub = new PredefinedSubtitleClip(
@@ -275,7 +275,7 @@ export default class MigrationService {
 						subtitlesProperties.translations
 					);
 
-					let translations: { [key: string]: Translation } = {};
+					const translations: { [key: string]: Translation } = {};
 
 					for (const [key, value] of Object.entries(clip.translations)) {
 						const tr = new VerseTranslation(value as string, 'reviewed');

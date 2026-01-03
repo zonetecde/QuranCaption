@@ -5,7 +5,7 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 
-	let { customImage: customImage }: { customImage: Category } = $props();
+	let { customImage }: { customImage: Category } = $props();
 
 	let customImageSettings = $derived(() => {
 		return {

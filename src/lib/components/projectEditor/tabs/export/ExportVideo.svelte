@@ -123,7 +123,7 @@
 
 			<Style
 				style={globalState.getStyle('global', 'video-dimension')!}
-				target={'global'}
+				target="global"
 				applyValueSimple={(v) => {
 					globalState.getStyle('global', 'video-dimension')!.value = v;
 				}}

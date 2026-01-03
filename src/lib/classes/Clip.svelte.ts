@@ -323,7 +323,7 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		}
 
 		// Ajoute les traductions du clip
-		let translations: { [key: string]: Translation } = {};
+		const translations: { [key: string]: Translation } = {};
 
 		// Récupère les traductions ajoutées au projet
 		if (globalState.currentProject)
@@ -406,8 +406,8 @@ export class CustomTextClip extends CustomClip {
 			return;
 		}
 
-		let startTime = category.getStyle('time-appearance')!.value as number;
-		let endTime = category.getStyle('time-disappearance')!.value as number;
+		const startTime = category.getStyle('time-appearance')!.value as number;
+		const endTime = category.getStyle('time-disappearance')!.value as number;
 
 		super(startTime, endTime, 'text', category);
 		this.category = category;
@@ -426,8 +426,8 @@ export class CustomImageClip extends CustomClip {
 			return;
 		}
 
-		let startTime = category.getStyle('time-appearance')!.value as number;
-		let endTime = category.getStyle('time-disappearance')!.value as number;
+		const startTime = category.getStyle('time-appearance')!.value as number;
+		const endTime = category.getStyle('time-disappearance')!.value as number;
 
 		super(startTime, endTime, 'image', category);
 		this.category = category;

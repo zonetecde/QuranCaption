@@ -42,8 +42,8 @@ export class QPCFontProvider {
 		const style = document.createElement('style');
 
 		// Les polices contenant les basmala/isti3adha sont au format ttf
-		let extension = fontName.includes('BSML') ? 'ttf' : 'woff2';
-		let format = fontName.includes('BSML') ? 'truetype' : 'woff2';
+		const extension = fontName.includes('BSML') ? 'ttf' : 'woff2';
+		const format = fontName.includes('BSML') ? 'truetype' : 'woff2';
 
 		style.textContent = `
 			@font-face {

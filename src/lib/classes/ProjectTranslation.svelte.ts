@@ -118,7 +118,7 @@ export class ProjectTranslation extends SerializableBase {
 		}
 
 		// Pour les éditions normales, on prend juste la sourate complète
-		let baseUrl = edition.link.replace('.json', '');
+		const baseUrl = edition.link.replace('.json', '');
 		return `${baseUrl}/${surah}.json`;
 	}
 

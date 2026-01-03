@@ -22,7 +22,7 @@ class VersionService {
 	// normalise "v1.2.3" -> "1.2.3", garde 3 segments
 	private normalizeVersion(v: string): string {
 		if (!v) return '0.0.0';
-		let s = v
+		const s = v
 			.trim()
 			.replace(/^v/i, '')
 			.replace(/^qc[-_]?/i, '');

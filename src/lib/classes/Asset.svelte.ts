@@ -83,10 +83,10 @@ export class Asset extends SerializableBase {
 			// Demande confirmation à l'utilisateur
 			const confirm = await ModalManager.confirmModal(
 				'Would you like to set the project dimensions to match this video? (' +
-				assetDimensions.width +
-				'x' +
-				assetDimensions.height +
-				')',
+					assetDimensions.width +
+					'x' +
+					assetDimensions.height +
+					')',
 				true
 			);
 

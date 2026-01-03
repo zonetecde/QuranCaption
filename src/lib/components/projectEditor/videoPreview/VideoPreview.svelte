@@ -710,7 +710,7 @@
 		id="preview-container"
 	>
 		<!-- Conteneur de la prévisualisation vidéo avec mise à l'échelle -->
-		<div class={'relative origin-top-left bg-black'} id="preview">
+		<div class="relative origin-top-left bg-black" id="preview">
 			{#if !globalState.getVideoPreviewState.showVideosAndAudios}
 				{#if currentVideo()}
 					<video

@@ -615,7 +615,7 @@ export class CustomTextTrack extends Track {
 	getCurrentClips(): CustomClip[] {
 		// Retourne tout les clips à afficher
 		const currentTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? 0;
-		let clips: CustomClip[] = [];
+		const clips: CustomClip[] = [];
 
 		for (let index = 0; index < this.clips.length; index++) {
 			const element = this.clips[index] as CustomClip;

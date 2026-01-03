@@ -32,7 +32,9 @@ export default class ModalManager {
 		});
 	}
 
-	static async deleteConfirmationModal(text: string): Promise<{ confirmed: boolean; deleteFile: boolean }> {
+	static async deleteConfirmationModal(
+		text: string
+	): Promise<{ confirmed: boolean; deleteFile: boolean }> {
 		return new Promise<{ confirmed: boolean; deleteFile: boolean }>((resolve) => {
 			// Créer un conteneur pour le modal
 			const container = document.createElement('div');

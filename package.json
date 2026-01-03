@@ -10,8 +10,9 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write --ignore-unknown .",
+		"lint": "prettier --check --ignore-unknown . && eslint .",
+		"lint:fix": "prettier --write --ignore-unknown . && eslint . --fix",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
 		"tauri": "tauri"

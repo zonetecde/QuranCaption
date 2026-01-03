@@ -231,7 +231,7 @@ export class Style extends SerializableBase {
 				continue;
 			}
 
-			if (element.id === 'enable-italic' && !Boolean(element.value)) {
+			if (element.id === 'enable-italic' && !element.value) {
 				continue;
 			}
 
@@ -365,7 +365,7 @@ export class StylesData extends SerializableBase {
 					style.id !== 'enable-italic';
 
 				if (isCategoryToggle) {
-					if (!Boolean(effectiveValue)) {
+					if (!effectiveValue) {
 						skipCategory = true;
 						break;
 					} else {
@@ -373,7 +373,7 @@ export class StylesData extends SerializableBase {
 					}
 				}
 
-				if (style.id === 'enable-italic' && !Boolean(effectiveValue)) {
+				if (style.id === 'enable-italic' && !effectiveValue) {
 					continue;
 				}
 
@@ -429,7 +429,7 @@ export class StylesData extends SerializableBase {
 						const r = parseInt(effectiveValue.slice(1, 3), 16);
 						const g = parseInt(effectiveValue.slice(3, 5), 16);
 						const b = parseInt(effectiveValue.slice(5, 7), 16);
-						let valeur = `rgba(${r}, ${g}, ${b}, var(--background-opacity))`;
+						const valeur = `rgba(${r}, ${g}, ${b}, var(--background-opacity))`;
 
 						css += 'background-color: ' + valeur + ';\n';
 						continue;
@@ -438,7 +438,7 @@ export class StylesData extends SerializableBase {
 
 				// Cas particulier pour `show-subtitles`
 				if (style.id === 'show-subtitles') {
-					if (!Boolean(effectiveValue)) {
+					if (!effectiveValue) {
 						return 'display: none;';
 					}
 				}
@@ -476,7 +476,7 @@ export class StylesData extends SerializableBase {
 				if (!style.tailwind || !style.tailwindClass) continue;
 
 				// Remplace {value} par la valeur actuelle
-				let tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(style.value));
+				const tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(style.value));
 
 				if (tailwindClass.trim()) {
 					tailwindClasses += tailwindClass + ' ';
@@ -847,7 +847,7 @@ export class VideoStyle extends SerializableBase {
 	 * @return Les données exportées en format JSON
 	 */
 	exportStyles(includedExportClips: Set<number>): string {
-		let exportData: videoStyleFileData = {
+		const exportData: videoStyleFileData = {
 			videoStyle: JSON.parse(JSON.stringify(this)),
 			customClips: []
 		};

@@ -4,3 +4,20 @@ pnpm-lock.yaml
 yarn.lock
 bun.lock
 bun.lockb
+*.json
+*.woff
+*.woff2
+
+# Dependencies / generated
+node_modules
+.svelte-kit
+build
+.output
+.vercel
+.netlify
+.wrangler
+tmp
+src-tauri/target
+src-tauri/binaries
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

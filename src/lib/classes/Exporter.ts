@@ -25,7 +25,7 @@ export default class Exporter {
 			exportVerseNumbers: es.exportVerseNumbers
 		};
 
-		let subtitles: {
+		const subtitles: {
 			startTimeMs: number;
 			endTimeMs: number;
 			text: string;
@@ -116,7 +116,7 @@ export default class Exporter {
 			return;
 		}
 
-		let chapters: { time: string; title: string }[] = [];
+		const chapters: { time: string; title: string }[] = [];
 
 		if (choice === 'Each Surah') {
 			// Groupe par sourate

@@ -1066,25 +1066,36 @@
 
 	/**
 	 * Attendre un peu plus longtemps si le timing est très espacé du précédent (sous-titre long)
-	 * @param timing
-	 * @param i
-	 * @param uniqueSorted
+	 * Includes timeout protection to prevent infinite loops on Linux/macOS
 	 */
 	async function wait() {
-		// globalState.updateVideoPreviewUI();
+		const MAX_WAIT_MS = 5000; // Maximum 5 seconds to prevent infinite loop
+		const POLL_INTERVAL_MS = 10;
+		let elapsed = 0;
 
-		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
-		let subtitlesContainer: HTMLElement;
-		subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement;
+		let subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement;
 
 		if (!subtitlesContainer) {
 			await new Promise((resolve) => setTimeout(resolve, 200));
 			return;
 		}
 
-		do {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-		} while (subtitlesContainer.style.opacity !== '1');
+		// Wait for opacity to be '1' with timeout protection
+		while (elapsed < MAX_WAIT_MS) {
+			const opacity = subtitlesContainer.style.opacity;
+			// Check for '1' or empty string (which means full opacity in CSS)
+			if (opacity === '1' || opacity === '') {
+				break;
+			}
+			await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+			elapsed += POLL_INTERVAL_MS;
+		}
+
+		if (elapsed >= MAX_WAIT_MS) {
+			console.warn(
+				`wait() timed out after ${MAX_WAIT_MS}ms - opacity was: "${subtitlesContainer.style.opacity}"`
+			);
+		}
 	}
 </script>
 

@@ -17,7 +17,11 @@
 	const hasAudio = $derived(() => !!audioInfo());
 
 	function formatVerseRange(resultData: AutoSegmentationResult | null): string {
-		if (!resultData || resultData.status !== 'completed' || resultData.verseRange.parts.length === 0) {
+		if (
+			!resultData ||
+			resultData.status !== 'completed' ||
+			resultData.verseRange.parts.length === 0
+		) {
 			return 'No verse range detected.';
 		}
 
@@ -83,13 +87,27 @@
 
 	<!-- Body -->
 	<div class="px-6 py-5 space-y-4">
-		<div class="bg-primary border border-color rounded-xl p-4 space-y-2">
-			<p class="text-sm text-secondary leading-relaxed">
-				This will upload the first audio clip from the project timeline to the AI segmentation
-				service. Segments with confidence below 0.75 will be colored yellow and should be
-				manually reviewed.
-			</p>
-			<div class="flex items-start gap-2 text-xs text-thirdly">
+		<!-- Body -->
+		<div class="bg-accent border border-color rounded-xl p-4 space-y-3">
+			<div class="space-y-2">
+				<p class="text-sm text-secondary leading-relaxed">
+					This will analyze the <span class="text-primary font-medium">first audio clip</span> in your
+					timeline and automatically generate subtitle clips from it.
+				</p>
+
+				<ul class="text-sm text-secondary leading-relaxed list-disc pl-5 space-y-1">
+					<li>
+						Existing subtitles will be <span class="text-primary font-medium">replaced</span>.
+					</li>
+					<li>
+						Each generated segment includes a confidence score. Anything <span
+							class="text-primary font-medium">below 0.75</span
+						> will be highlighted in yellow and should be reviewed.
+					</li>
+				</ul>
+			</div>
+
+			<div class="flex items-center gap-2 text-xs text-thirdly">
 				<span class="material-icons text-sm mt-0.5">info</span>
 				<span>
 					Audio source:
@@ -125,6 +143,9 @@
 				<div class="text-sm text-secondary">
 					Low-confidence segments:
 					<span class="text-primary font-semibold">{result.lowConfidenceSegments}</span>
+					{#if result.lowConfidenceSegments > 0}
+						<span class="text-thirdly"> (make sure to review them manually)</span>
+					{/if}
 				</div>
 			</div>
 		{:else if errorMessage}

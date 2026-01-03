@@ -46,7 +46,6 @@
 			handleSurahSelection(surahSearchValue);
 		}
 	});
-
 </script>
 
 <section
@@ -108,7 +107,7 @@
 			title="Auto segment audio into Quran verses"
 			onclick={() => (autoSegmentationModalVisible = true)}
 		>
-			<span class="material-icons text-base">graphic_eq</span>
+			<span class="material-icons text-base">auto_awesome</span>
 			Auto-Segment
 		</button>
 	</div>

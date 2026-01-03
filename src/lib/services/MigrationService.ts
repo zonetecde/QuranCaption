@@ -111,7 +111,7 @@ export default class MigrationService {
 					// Migre vers le nouveau format
 					if (assetAny.fromMp3Quran) {
 						asset.sourceType = SourceType.Mp3Quran;
-						asset.sourceUrl = assetAny.mp3QuranUrl || assetAny.youtubeUrl;
+						asset.sourceUrl = assetAny.mp3QuranUrl;
 					} else if (assetAny.fromYoutube) {
 						asset.sourceType = SourceType.YouTube;
 						asset.sourceUrl = assetAny.youtubeUrl;

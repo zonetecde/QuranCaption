@@ -299,28 +299,6 @@ export class Asset extends SerializableBase {
 
 		return 'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.';
 	}
-
-	static override fromJSON<T extends SerializableBase>(this: new (...args: any[]) => T, data: any): T {
-		// Appel de la méthode parente pour la désérialisation de base
-		const instance = SerializableBase.fromJSON.call(this, data) as Asset;
-
-		// Migration des anciens fichiers projet :
-		// Convertit fromYoutube/fromMp3Quran/youtubeUrl/mp3QuranUrl vers sourceUrl/sourceType
-		if (data.fromMp3Quran || data.fromYoutube || data.youtubeUrl || data.mp3QuranUrl) {
-			// Détermine le sourceType
-			if (data.fromMp3Quran) {
-				instance.sourceType = SourceType.Mp3Quran;
-				instance.sourceUrl = data.mp3QuranUrl || data.youtubeUrl;
-			} else if (data.fromYoutube) {
-				instance.sourceType = SourceType.YouTube;
-				instance.sourceUrl = data.youtubeUrl;
-			} else {
-				instance.sourceType = SourceType.Local;
-			}
-		}
-
-		return instance as unknown as T;
-	}
 }
 
 // Enregistre les classes enfants pour la désérialisation automatique

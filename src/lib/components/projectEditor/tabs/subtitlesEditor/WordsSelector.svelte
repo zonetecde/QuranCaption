@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SubtitleClip, TrackType } from '$lib/classes';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import type { PredefinedSubtitleClip, PredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import { Quran, type Verse, type Word } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -226,6 +227,9 @@
 			globalState.getSubtitlesEditorState.editSubtitle = null;
 			return;
 		}
+		if (clip instanceof ClipWithTranslation) {
+			clip.markAsManualEdit();
+		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
 
@@ -356,6 +360,9 @@
 		const lastSubtitle = subtitleTrack.getLastClip();
 		if (lastSubtitle) {
 			lastSubtitle.setEndTime(globalState.getTimelineState.cursorPosition);
+			if (lastSubtitle instanceof SubtitleClip) {
+				lastSubtitle.markAsManualEdit();
+			}
 		}
 	}
 

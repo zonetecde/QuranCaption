@@ -65,8 +65,9 @@
 	});
 
 	let currentSubtitleTranslations = $derived(() => {
-		if (!currentSubtitle()) return [];
-		return currentSubtitle()!.translations;
+		const subtitle = currentSubtitle();
+		if (!subtitle) return [];
+		return subtitle.translations;
 	});
 
 	// Contient les textes custom à afficher à ce moment précis
@@ -536,11 +537,9 @@
 		<SurahName />
 		<ReciterName />
 
-		{#if currentSubtitle() && currentSubtitle() instanceof SubtitleClip}
-			<VerseNumber
-				currentSurah={(currentSubtitle() as SubtitleClip).surah}
-				currentVerse={(currentSubtitle() as SubtitleClip).verse}
-			/>
+		{#if currentSubtitle() instanceof SubtitleClip}
+			{@const verseSubtitle = currentSubtitle() as SubtitleClip}
+			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
 		{/if}
 
 		{#each currentCustomClips() as customText}

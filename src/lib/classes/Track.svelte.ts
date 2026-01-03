@@ -304,6 +304,10 @@ export class SubtitleTrack extends Track {
 			subtitle.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
 			subtitle.translations = subtitlesProperties.translations;
 		}
+
+		if (subtitle instanceof SubtitleClip) {
+			subtitle.markAsManualEdit();
+		}
 	}
 
 	async addSubtitle(

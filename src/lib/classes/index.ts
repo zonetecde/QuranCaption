@@ -15,7 +15,8 @@ export {
 	AssetClip,
 	SubtitleClip,
 	PredefinedSubtitleClip,
-	CustomTextClip
+	CustomTextClip,
+	SilenceClip
 } from './Clip.svelte.js';
 export { Asset } from './Asset.svelte.js';
 export { TrackType, AssetType, ProjectEditorTabs } from './enums.js';

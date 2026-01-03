@@ -48,55 +48,65 @@ const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
 {
     "segments": [
         {
-            "confidence": 1,
-            "error": null,
-            "matched_text": "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ",
-            "ref_from": "Basmala",
-            "ref_to": "Basmala",
-            "segment": 1,
-            "time_from": 0.11,
-            "time_to": 2.93
-        },
-        {
-            "confidence": 1,
-            "error": null,
-            "matched_text": "قُلْ هُوَ ٱللَّهُ أَحَدٌ",
-            "ref_from": "112:1:1",
-            "ref_to": "112:1:4",
-            "segment": 2,
-            "time_from": 3.85,
-            "time_to": 6.17
-        },
-        {
-            "confidence": 1,
-            "error": null,
-            "matched_text": "ٱللَّهُ ٱلصَّمَدُ",
-            "ref_from": "112:2:1",
-            "ref_to": "112:2:2",
-            "segment": 3,
-            "time_from": 6.39,
-            "time_to": 8.25
-        },
-        {
-            "confidence": 1,
-            "error": null,
-            "matched_text": "لَمْ يَلِدْ وَلَمْ يُولَدْ",
-            "ref_from": "112:3:1",
-            "ref_to": "112:3:4",
-            "segment": 4,
-            "time_from": 8.41,
-            "time_to": 10.95
-        },
-        {
-            "confidence": 1,
-            "error": null,
-            "matched_text": "وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدُۢ",
-            "ref_from": "112:4:1",
-            "ref_to": "112:4:5",
-            "segment": 5,
-            "time_from": 11.05,
-            "time_to": 14.77
-        }
+        "confidence": 0.5,
+        "error": null,
+        "matched_text": "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
+        "ref_from": "Isti'adha",
+        "ref_to": "Isti'adha",
+        "segment": 1,
+        "time_from": 0.63,
+        "time_to": 6.11
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ",
+        "ref_from": "Basmala",
+        "ref_to": "Basmala",
+        "segment": 2,
+        "time_from": 7.99,
+        "time_to": 13.53
+    },
+    {
+        "confidence": 0.75,
+        "error": null,
+        "matched_text": "قُلْ هُوَ ٱللَّهُ أَحَدٌ",
+        "ref_from": "112:1:1",
+        "ref_to": "112:1:4",
+        "segment": 3,
+        "time_from": 15.15,
+        "time_to": 18.05
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "ٱللَّهُ ٱلصَّمَدُ",
+        "ref_from": "112:2:1",
+        "ref_to": "112:2:2",
+        "segment": 4,
+        "time_from": 19.47,
+        "time_to": 21.965
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "لَمْ يَلِدْ وَلَمْ يُولَدْ",
+        "ref_from": "112:3:1",
+        "ref_to": "112:3:4",
+        "segment": 5,
+        "time_from": 23.185,
+        "time_to": 26.665
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدُۢ",
+        "ref_from": "112:4:1",
+        "ref_to": "112:4:5",
+        "segment": 6,
+        "time_from": 27.945,
+        "time_to": 32.665
+    }
     ]
 }
 "#;

@@ -13,6 +13,12 @@ export enum AssetType {
 	Unknown = 'unknown'
 }
 
+export enum SourceType {
+	Local = 'local',
+	YouTube = 'youtube',
+	Mp3Quran = 'mp3quran'
+}
+
 export enum ProjectEditorTabs {
 	VideoEditor = 'Video editor',
 	SubtitlesEditor = 'Subtitles editor',

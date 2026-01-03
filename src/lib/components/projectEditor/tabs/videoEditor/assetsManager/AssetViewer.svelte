@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AssetType, type Asset } from '$lib/classes';
+	import { AssetType, SourceType, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 	import { exists, readDir } from '@tauri-apps/plugin-fs';
@@ -8,9 +8,10 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-	import { BaseDirectory, downloadDir } from '@tauri-apps/api/path';
+	import { BaseDirectory, downloadDir, join } from '@tauri-apps/api/path';
 	import toast from 'svelte-5-french-toast';
 	import { open } from '@tauri-apps/plugin-dialog';
+	import { ProjectService } from '$lib/services/ProjectService';
 
 	let {
 		asset = $bindable()
@@ -19,6 +20,8 @@
 	} = $props();
 
 	let isHovered = $state(false);
+	let isRedownloading = $state(false);
+	let mediaKey = $state(0);
 
 	onMount(async () => {
 		asset.checkExistence();
@@ -120,6 +123,55 @@
 			}
 		);
 	}
+
+	async function redownloadAsset() {
+		if (!asset.sourceUrl) return;
+
+		isRedownloading = true;
+		let toastId: string | undefined;
+
+		try {
+			const downloadPath = await ProjectService.getAssetFolderForProject(
+				globalState.currentProject!.detail.id
+			);
+
+			if (asset.sourceType === SourceType.YouTube) {
+				// Re-download from YouTube using yt-dlp
+				const type = asset.type === AssetType.Video ? 'video' : 'audio';
+
+				toastId = toast.loading('Re-downloading from YouTube...');
+
+				const result: string = await invoke('download_from_youtube', {
+					url: asset.sourceUrl,
+					type: type,
+					downloadPath: downloadPath
+				});
+
+				asset.updateFilePath(result);
+				mediaKey++; // Force re-render of audio/video element
+				toast.success('Re-download successful!', { id: toastId });
+			} else if (asset.sourceType === SourceType.Mp3Quran) {
+				// Re-download from MP3Quran
+				const fullPath = await join(downloadPath, asset.fileName);
+
+				toastId = toast.loading('Re-downloading from MP3Quran...');
+
+				await invoke('download_file', {
+					url: asset.sourceUrl,
+					path: fullPath
+				});
+
+				asset.updateFilePath(fullPath);
+				mediaKey++; // Force re-render of audio/video element
+				toast.success('Re-download successful!', { id: toastId });
+			}
+		} catch (error) {
+			console.error('Re-download error:', error);
+			toast.error(`Error re-downloading: ${error}`, { id: toastId, duration: 5000 });
+		} finally {
+			isRedownloading = false;
+		}
+	}
 </script>
 
 <div
@@ -164,20 +216,24 @@
 	{#if asset.type === AssetType.Audio}
 		{#if isHovered}
 			<div transition:slide class="mt-4 p-3 bg-accent rounded-lg border border-color">
-				<audio class="w-full h-8 opacity-80" controls>
-					<source src={convertFileSrc(asset.filePath)} type="audio/mp3" />
-					Your browser does not support the audio element.
-				</audio>
+				{#key mediaKey}
+					<audio class="w-full h-8 opacity-80" controls>
+						<source src={convertFileSrc(asset.filePath)} type="audio/mp3" />
+						Your browser does not support the audio element.
+					</audio>
+				{/key}
 			</div>
 		{/if}
 	{:else if asset.type === AssetType.Video}
 		{#if isHovered}
 			<div transition:slide class="mt-4 p-2 bg-accent rounded-lg border border-color">
-				<video class="w-full h-[180px] rounded-lg object-cover" controls>
-					<track kind="captions" />
-					<source src={convertFileSrc(asset.filePath)} type="video/mp4" />
-					Your browser does not support the video tag.
-				</video>
+				{#key mediaKey}
+					<video class="w-full h-[180px] rounded-lg object-cover" controls>
+						<track kind="captions" />
+						<source src={convertFileSrc(asset.filePath)} type="video/mp4" />
+						Your browser does not support the video tag.
+					</video>
+				{/key}
 			</div>
 		{/if}
 	{:else if asset.type === AssetType.Image}
@@ -233,6 +289,23 @@
 						<span class="material-icons text-lg">folder_open</span>
 						Relocate
 					</button>
+					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran)}
+						<button
+							class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
+							       hover:scale-105 transition-all duration-200 text-green-400 hover:text-green-300
+							       hover:bg-green-500/10"
+							onclick={redownloadAsset}
+							disabled={isRedownloading}
+						>
+							{#if isRedownloading}
+								<span class="material-icons text-lg animate-spin">sync</span>
+								Downloading...
+							{:else}
+								<span class="material-icons text-lg">cloud_download</span>
+								Re-download
+							{/if}
+						</button>
+					{/if}
 				{/if}
 
 				<button
@@ -240,7 +313,7 @@
 					       hover:scale-105 transition-all duration-200 text-red-400 hover:text-red-300
 					       hover:bg-red-500/10"
 					onclick={async () => {
-						if (asset.fromMp3Quran) {
+						if (asset.sourceType === SourceType.Mp3Quran) {
 							const result = await ModalManager.deleteConfirmationModal(
 								'Are you sure you want to remove this asset from the project?'
 							);

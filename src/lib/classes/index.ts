@@ -19,6 +19,6 @@ export {
 	SilenceClip
 } from './Clip.svelte.js';
 export { Asset } from './Asset.svelte.js';
-export { TrackType, AssetType, ProjectEditorTabs } from './enums.js';
+export { TrackType, AssetType, SourceType, ProjectEditorTabs } from './enums.js';
 export { Utilities } from './misc/Utilities.js';
 export { VerseRange } from './VerseRange.svelte.js';

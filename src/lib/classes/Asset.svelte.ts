@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { AssetType, TrackType } from './enums.js';
+import { AssetType, SourceType, TrackType } from './enums.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import { Utilities } from './misc/Utilities.js';
 import { openPath } from '@tauri-apps/plugin-opener';
@@ -15,11 +15,10 @@ export class Asset extends SerializableBase {
 	type: AssetType = $state(AssetType.Unknown);
 	duration: Duration = $state(new Duration(0));
 	exists: boolean = $state(true);
-	fromYoutube: boolean = $state(false);
-	youtubeUrl?: string = $state(undefined);
-	fromMp3Quran: boolean = $state(false);
+	sourceUrl?: string = $state(undefined);
+	sourceType: SourceType = $state(SourceType.Local);
 
-	constructor(filePath: string = '', youtubeUrl?: string, fromMp3Quran: boolean = false) {
+	constructor(filePath: string = '', sourceUrl?: string, sourceType: SourceType = SourceType.Local) {
 		super();
 
 		// Si l'arg est undefined (cas de désérialisation)
@@ -32,13 +31,12 @@ export class Asset extends SerializableBase {
 
 		this.filePath = this.normalizeFilePath(filePath);
 
-		if (youtubeUrl) {
-			this.youtubeUrl = youtubeUrl;
-			this.fromYoutube = true;
+		if (sourceUrl) {
+			this.sourceUrl = sourceUrl;
+			this.sourceType = sourceType;
 		} else {
-			this.fromYoutube = false;
+			this.sourceType = SourceType.Local;
 		}
-		this.fromMp3Quran = fromMp3Quran;
 
 		const fileName = this.getFileName(this.filePath);
 
@@ -83,10 +81,10 @@ export class Asset extends SerializableBase {
 			// Demande confirmation à l'utilisateur
 			const confirm = await ModalManager.confirmModal(
 				'Would you like to set the project dimensions to match this video? (' +
-					assetDimensions.width +
-					'x' +
-					assetDimensions.height +
-					')',
+				assetDimensions.width +
+				'x' +
+				assetDimensions.height +
+				')',
 				true
 			);
 

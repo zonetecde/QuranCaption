@@ -3,6 +3,7 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { SourceType } from '$lib/classes';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { Quran } from '$lib/classes/Quran';
 	import { onMount } from 'svelte';
@@ -135,7 +136,7 @@
 				path: fullPath
 			});
 
-			globalState.currentProject!.content.addAsset(fullPath, url, true);
+			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran);
 
 			toast.success('Download successful!', { id: toastId });
 		} catch (error) {

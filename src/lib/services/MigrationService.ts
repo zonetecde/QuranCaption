@@ -7,6 +7,7 @@ import {
 	ProjectContent,
 	ProjectDetail,
 	ProjectTranslation,
+	SourceType,
 	SubtitleClip,
 	Timeline,
 	TrackType,
@@ -80,6 +81,53 @@ export default class MigrationService {
 					hasChanges = true;
 				}
 			});
+
+			if (hasChanges) {
+				globalState.currentProject.save();
+			}
+		}
+	}
+
+	/**
+	 * Migre les données de Quran Caption 3.2.6 à Quran Caption 3.2.7
+	 * > Conversion des anciens champs fromYoutube/youtubeUrl/fromMp3Quran/mp3QuranUrl
+	 *   vers le nouveau format sourceUrl/sourceType
+	 */
+	static FromQC326ToQC327() {
+		if (globalState.currentProject) {
+			const assets = globalState.currentProject.content.assets;
+			let hasChanges = false;
+
+			for (const asset of assets) {
+				const assetAny = asset as any;
+
+				// Vérifie si l'asset a les anciens champs
+				if (
+					assetAny.fromMp3Quran !== undefined ||
+					assetAny.fromYoutube !== undefined ||
+					assetAny.youtubeUrl !== undefined ||
+					assetAny.mp3QuranUrl !== undefined
+				) {
+					// Migre vers le nouveau format
+					if (assetAny.fromMp3Quran) {
+						asset.sourceType = SourceType.Mp3Quran;
+						asset.sourceUrl = assetAny.mp3QuranUrl;
+					} else if (assetAny.fromYoutube) {
+						asset.sourceType = SourceType.YouTube;
+						asset.sourceUrl = assetAny.youtubeUrl;
+					} else {
+						asset.sourceType = SourceType.Local;
+					}
+
+					// Supprime les anciens champs
+					delete assetAny.fromMp3Quran;
+					delete assetAny.fromYoutube;
+					delete assetAny.youtubeUrl;
+					delete assetAny.mp3QuranUrl;
+
+					hasChanges = true;
+				}
+			}
 
 			if (hasChanges) {
 				globalState.currentProject.save();

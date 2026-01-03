@@ -3,7 +3,7 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { Asset, AssetType } from '$lib/classes';
+	import { Asset, AssetType, SourceType } from '$lib/classes';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 
 	let url: string = $state('');
@@ -34,7 +34,7 @@
 			);
 
 			// Ajoute le fichier téléchargé à la liste des assets du projet
-			globalState.currentProject!.content.addAsset(result, url);
+			globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube);
 		} catch (error) {
 			toast.error('Error downloading from YouTube: ' + error);
 		}

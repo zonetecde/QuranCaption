@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { AssetType, TrackType } from './enums.js';
+import { AssetType, SourceType, TrackType } from './enums.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import { Utilities } from './misc/Utilities.js';
 import { openPath } from '@tauri-apps/plugin-opener';
@@ -15,12 +15,10 @@ export class Asset extends SerializableBase {
 	type: AssetType = $state(AssetType.Unknown);
 	duration: Duration = $state(new Duration(0));
 	exists: boolean = $state(true);
-	fromYoutube: boolean = $state(false);
-	youtubeUrl?: string = $state(undefined);
-	mp3QuranUrl?: string = $state(undefined);
-	fromMp3Quran: boolean = $state(false);
+	sourceUrl?: string = $state(undefined);
+	sourceType: SourceType = $state(SourceType.Local);
 
-	constructor(filePath: string = '', youtubeUrl?: string, fromMp3Quran: boolean = false) {
+	constructor(filePath: string = '', sourceUrl?: string, sourceType: SourceType = SourceType.Local) {
 		super();
 
 		// Si l'arg est undefined (cas de désérialisation)
@@ -33,19 +31,11 @@ export class Asset extends SerializableBase {
 
 		this.filePath = this.normalizeFilePath(filePath);
 
-
-		this.fromMp3Quran = fromMp3Quran;
-
-		if (youtubeUrl) {
-			if (this.fromMp3Quran) {
-				this.mp3QuranUrl = youtubeUrl;
-				this.fromYoutube = false;
-			} else {
-				this.youtubeUrl = youtubeUrl;
-				this.fromYoutube = true;
-			}
+		if (sourceUrl) {
+			this.sourceUrl = sourceUrl;
+			this.sourceType = sourceType;
 		} else {
-			this.fromYoutube = false;
+			this.sourceType = SourceType.Local;
 		}
 
 		const fileName = this.getFileName(this.filePath);
@@ -91,10 +81,10 @@ export class Asset extends SerializableBase {
 			// Demande confirmation à l'utilisateur
 			const confirm = await ModalManager.confirmModal(
 				'Would you like to set the project dimensions to match this video? (' +
-					assetDimensions.width +
-					'x' +
-					assetDimensions.height +
-					')',
+				assetDimensions.width +
+				'x' +
+				assetDimensions.height +
+				')',
 				true
 			);
 
@@ -310,26 +300,26 @@ export class Asset extends SerializableBase {
 		return 'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.';
 	}
 
-	static fromJSON(data: any): Asset {
+	static override fromJSON<T extends SerializableBase>(this: new (...args: any[]) => T, data: any): T {
 		// Appel de la méthode parente pour la désérialisation de base
-		const instance = super.fromJSON(data) as Asset;
+		const instance = SerializableBase.fromJSON.call(this, data) as Asset;
 
-		// Migration des données existantes :
-		// Si l'asset est marqué comme venant de Mp3Quran mais a aussi fromYoutube=true (ancien bug),
-		// on corrige les flags et on déplace l'URL si nécessaire.
-		if (instance.fromMp3Quran) {
-			if (instance.fromYoutube) {
-				instance.fromYoutube = false;
-			}
-
-			// Si l'URL est dans youtubeUrl et mp3QuranUrl est vide, on la déplace
-			if (instance.youtubeUrl && !instance.mp3QuranUrl) {
-				instance.mp3QuranUrl = instance.youtubeUrl;
-				instance.youtubeUrl = undefined;
+		// Migration des anciens fichiers projet :
+		// Convertit fromYoutube/fromMp3Quran/youtubeUrl/mp3QuranUrl vers sourceUrl/sourceType
+		if (data.fromMp3Quran || data.fromYoutube || data.youtubeUrl || data.mp3QuranUrl) {
+			// Détermine le sourceType
+			if (data.fromMp3Quran) {
+				instance.sourceType = SourceType.Mp3Quran;
+				instance.sourceUrl = data.mp3QuranUrl || data.youtubeUrl;
+			} else if (data.fromYoutube) {
+				instance.sourceType = SourceType.YouTube;
+				instance.sourceUrl = data.youtubeUrl;
+			} else {
+				instance.sourceType = SourceType.Local;
 			}
 		}
 
-		return instance;
+		return instance as unknown as T;
 	}
 }
 

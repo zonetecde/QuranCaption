@@ -239,7 +239,32 @@
 					class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
 					       hover:scale-105 transition-all duration-200 text-red-400 hover:text-red-300
 					       hover:bg-red-500/10"
-					onclick={() => globalState.currentProject?.content.removeAsset(asset)}
+					onclick={async () => {
+						if (asset.fromMp3Quran) {
+							const result = await ModalManager.deleteConfirmationModal(
+								'Are you sure you want to remove this asset from the project?'
+							);
+							if (result.confirmed) {
+								if (result.deleteFile) {
+									try {
+										await invoke('delete_file', { path: asset.filePath });
+									} catch (error) {
+										const errorMessage = error instanceof Error ? error.message : String(error);
+										toast.error('Failed to delete file from disk: ' + errorMessage);
+									}
+								}
+								globalState.currentProject?.content.removeAsset(asset);
+							}
+							return;
+						}
+
+						const confirmed = await ModalManager.confirmModal(
+							'Are you sure you want to remove this asset from the project?'
+						);
+						if (confirmed) {
+							globalState.currentProject?.content.removeAsset(asset);
+						}
+					}}
 				>
 					<span class="material-icons text-lg">delete</span>
 					Remove

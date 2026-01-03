@@ -17,7 +17,8 @@ export default class Settings extends SerializableBase {
 		// Indique si on affiche le moniteur d'exportation
 		projectCardView: 'grid' as 'grid' | 'list',
 		showWaveforms: true,
-		lastClosedUpdateModal: new Date(0).toISOString()
+		lastClosedUpdateModal: new Date(0).toISOString(),
+		videoExportFolder: ''
 	});
 
 	// Shortcut categories metadata

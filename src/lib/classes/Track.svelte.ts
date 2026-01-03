@@ -208,7 +208,7 @@ export class SubtitleTrack extends Track {
 	 * @param presetChoice Le type de sous-titre pré-défini à appliquer.
 	 */
 	editSubtitleToSpecial(
-		subtitle: SubtitleClip | PredefinedSubtitleClip,
+		subtitle: SubtitleClip | PredefinedSubtitleClip | SilenceClip,
 		presetChoice: 'Silence' | 'Istiadhah' | 'Basmala'
 	) {
 		let newSubtitleClip: SilenceClip | PredefinedSubtitleClip | undefined = undefined;

@@ -126,7 +126,9 @@
 	function clipClicked() {
 		// Sélectionne le clip si on est dans la page de style
 		if (globalState.currentProject!.projectEditorState.currentTab === 'Style') {
-			globalState.getStylesState.toggleSelection(clip);
+			if (clip instanceof SubtitleClip) {
+				globalState.getStylesState.toggleSelection(clip);
+			}
 		}
 	}
 

@@ -50,6 +50,8 @@
 				errorMessage = 'Segmentation failed. Please check the console for details.';
 			} else if (response.status === 'cancelled') {
 				errorMessage = 'Segmentation canceled.';
+			} else if (response.status === 'failed') {
+				errorMessage = response.message;
 			} else {
 				result = response;
 			}
@@ -149,8 +151,9 @@
 				</div>
 			</div>
 		{:else if errorMessage}
-			<div class="bg-danger-color/10 border border-danger-color rounded-xl px-4 py-3 text-sm">
-				{errorMessage}
+			<div class="bg-danger-color/10 border border-danger-color rounded-xl px-4 py-3 text-sm space-y-1">
+				<div class="font-semibold text-danger-color">Segmentation failed</div>
+				<div class="text-secondary break-words">{errorMessage}</div>
 			</div>
 		{/if}
 	</div>

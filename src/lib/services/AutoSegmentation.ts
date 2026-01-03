@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import toast from 'svelte-5-french-toast';
 
 import { Quran } from '$lib/classes/Quran';
-import { PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
+import { PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } from '$lib/classes';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
@@ -39,6 +39,10 @@ export type AutoSegmentationResult =
 	  }
 	| {
 			status: 'cancelled';
+	  }
+	| {
+			status: 'failed';
+			message: string;
 	  };
 
 export type AutoSegmentationAudioInfo = {
@@ -214,8 +218,9 @@ export async function runAutoSegmentation(
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
 	if (!audioInfo) {
-		toast.error('No audio clip found in the project.');
-		return null;
+		const message = 'No audio clip found in the project.';
+		toast.error(message);
+		return { status: 'failed', message };
 	}
 
 	const subtitleTrack = globalState.getSubtitleTrack;
@@ -241,8 +246,9 @@ export async function runAutoSegmentation(
 		const segments: SegmentationSegment[] = response?.segments ?? [];
 
 		if (segments.length === 0) {
-			toast.error('No segments returned from the segmentation service.');
-			return null;
+			const message = 'No segments returned from the segmentation service.';
+			toast.error(message);
+			return { status: 'failed', message };
 		}
 
 		// Replace existing subtitle clips entirely.
@@ -304,7 +310,7 @@ export async function runAutoSegmentation(
 			const endIndex: number = Math.min(verse.words.length - 1, endRef.word - 1);
 
 			const arabicText: string = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
-			const wbwTranslation: string = verse.getWordByWordTranslationBetweenTwoIndexes(
+			const wbwTranslation: string[] = verse.getWordByWordTranslationBetweenTwoIndexes(
 				startIndex,
 				endIndex
 			);
@@ -312,7 +318,7 @@ export async function runAutoSegmentation(
 			const subtitlesProperties: {
 				isFullVerse: boolean;
 				isLastWordsOfVerse: boolean;
-				translations: unknown;
+				translations: { [key: string]: Translation };
 			} = await subtitleTrack.getSubtitlesProperties(verse, startIndex, endIndex, startRef.surah);
 
 			const clip: SubtitleClip = new SubtitleClip(
@@ -338,9 +344,12 @@ export async function runAutoSegmentation(
 
 		// Normalize timing and explicit silence.
 		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
-		closeSmallSubtitleGaps(subtitleTrack.clips, SMALL_GAP_MS);
+		const subtitleClips = subtitleTrack.clips.filter(
+			(clip) => clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'
+		) as Array<SubtitleClip | PredefinedSubtitleClip>;
+		closeSmallSubtitleGaps(subtitleClips, SMALL_GAP_MS);
 
-		subtitleTrack.clips = insertSilenceClips(subtitleTrack.clips, SMALL_GAP_MS);
+		subtitleTrack.clips = insertSilenceClips(subtitleClips, SMALL_GAP_MS);
 		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
 
 		const verseRange: VerseRange = VerseRange.getVerseRange(0, subtitleTrack.getDuration().ms);
@@ -358,7 +367,12 @@ export async function runAutoSegmentation(
 		};
 	} catch (error) {
 		console.error('Segmentation request failed:', error);
-		toast.error('Segmentation request failed.');
-		return null;
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		if (errorMessage.toLowerCase().includes('gpu quota')) {
+			toast.error('GPU quota exceeded. No GPU quota left. Please try again later.');
+		} else {
+			toast.error('Segmentation request failed.');
+		}
+		return { status: 'failed', message: errorMessage };
 	}
 }

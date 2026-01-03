@@ -2,11 +2,8 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
-	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
-	import { fade } from 'svelte/transition';
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
-	let autoSegmentationModalVisible = $state(false);
 
 	// Create suggestions array for autocomplete
 	let surahSuggestions = $derived(() => {
@@ -101,15 +98,6 @@
 			</div>
 		</div>
 
-		<button
-			class="btn-accent px-2 py-1 rounded-md text-xs flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-			type="button"
-			title="Auto segment audio into Quran verses"
-			onclick={() => (autoSegmentationModalVisible = true)}
-		>
-			<span class="material-icons text-base">auto_awesome</span>
-			Auto-Segment
-		</button>
 	</div>
 
 	<!-- Surah Selector with Autocomplete -->
@@ -149,9 +137,3 @@
 		/>
 	</div>
 </section>
-
-{#if autoSegmentationModalVisible}
-	<div class="modal-wrapper" transition:fade>
-		<AutoSegmentationModal close={() => (autoSegmentationModalVisible = false)} />
-	</div>
-{/if}

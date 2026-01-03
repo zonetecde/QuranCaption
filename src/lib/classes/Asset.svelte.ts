@@ -17,6 +17,7 @@ export class Asset extends SerializableBase {
 	exists: boolean = $state(true);
 	fromYoutube: boolean = $state(false);
 	youtubeUrl?: string = $state(undefined);
+	mp3QuranUrl?: string = $state(undefined);
 	fromMp3Quran: boolean = $state(false);
 
 	constructor(filePath: string = '', youtubeUrl?: string, fromMp3Quran: boolean = false) {
@@ -32,13 +33,20 @@ export class Asset extends SerializableBase {
 
 		this.filePath = this.normalizeFilePath(filePath);
 
+
+		this.fromMp3Quran = fromMp3Quran;
+
 		if (youtubeUrl) {
-			this.youtubeUrl = youtubeUrl;
-			this.fromYoutube = true;
+			if (this.fromMp3Quran) {
+				this.mp3QuranUrl = youtubeUrl;
+				this.fromYoutube = false;
+			} else {
+				this.youtubeUrl = youtubeUrl;
+				this.fromYoutube = true;
+			}
 		} else {
 			this.fromYoutube = false;
 		}
-		this.fromMp3Quran = fromMp3Quran;
 
 		const fileName = this.getFileName(this.filePath);
 
@@ -300,6 +308,28 @@ export class Asset extends SerializableBase {
 		}
 
 		return 'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.';
+	}
+
+	static fromJSON(data: any): Asset {
+		// Appel de la méthode parente pour la désérialisation de base
+		const instance = super.fromJSON(data) as Asset;
+
+		// Migration des données existantes :
+		// Si l'asset est marqué comme venant de Mp3Quran mais a aussi fromYoutube=true (ancien bug),
+		// on corrige les flags et on déplace l'URL si nécessaire.
+		if (instance.fromMp3Quran) {
+			if (instance.fromYoutube) {
+				instance.fromYoutube = false;
+			}
+
+			// Si l'URL est dans youtubeUrl et mp3QuranUrl est vide, on la déplace
+			if (instance.youtubeUrl && !instance.mp3QuranUrl) {
+				instance.mp3QuranUrl = instance.youtubeUrl;
+				instance.youtubeUrl = undefined;
+			}
+		}
+
+		return instance;
 	}
 }
 

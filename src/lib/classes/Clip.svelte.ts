@@ -153,17 +153,28 @@ export class AssetClip extends Clip {
 export class ClipWithTranslation extends Clip {
 	translations: { [key: string]: Translation } = $state({});
 	text: string = $state('');
+	comeFromIA: boolean = $state(false);
+	confidence: number | null = $state(null); // Entre 0 et 1
 
 	constructor(
 		text: string,
 		startTime: number,
 		endTime: number,
 		type: ClipType,
-		translations: { [key: string]: Translation } = {}
+		translations: { [key: string]: Translation } = {},
+		comeFromIA: boolean = false,
+		confidence: number | null = null
 	) {
 		super(startTime, endTime, type);
 		this.translations = translations;
 		this.text = text;
+		this.comeFromIA = comeFromIA;
+		this.confidence = comeFromIA ? confidence : null;
+	}
+
+	markAsManualEdit() {
+		this.comeFromIA = false;
+		this.confidence = null;
 	}
 
 	/**
@@ -201,9 +212,11 @@ export class SubtitleClip extends ClipWithTranslation {
 		wbwTranslation: string[],
 		isFullVerse: boolean,
 		isLastWordsOfVerse: boolean,
-		translations: { [key: string]: Translation } = {}
+		translations: { [key: string]: Translation } = {},
+		comeFromIA: boolean = false,
+		confidence: number | null = null
 	) {
-		super(text, startTime, endTime, 'Subtitle', translations);
+		super(text, startTime, endTime, 'Subtitle', translations, comeFromIA, confidence);
 		this.surah = $state(surah);
 		this.verse = $state(verse);
 		this.startWordIndex = $state(startWordIndex);
@@ -276,7 +289,14 @@ export type PredefinedSubtitleType =
 export class PredefinedSubtitleClip extends ClipWithTranslation {
 	predefinedSubtitleType: PredefinedSubtitleType = $state('Other');
 
-	constructor(startTime: number, endTime: number, type: PredefinedSubtitleType, text?: string) {
+	constructor(
+		startTime: number,
+		endTime: number,
+		type: PredefinedSubtitleType,
+		text?: string,
+		comeFromIA: boolean = false,
+		confidence: number | null = null
+	) {
 		let _text = '';
 		switch (type) {
 			case 'Basmala':
@@ -312,7 +332,7 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 					globalState.getProjectTranslation.getPredefinedSubtitleTranslation(edition, type);
 			}
 
-		super(_text, startTime, endTime, 'Pre-defined Subtitle', translations);
+		super(_text, startTime, endTime, 'Pre-defined Subtitle', translations, comeFromIA, confidence);
 
 		this.predefinedSubtitleType = type;
 	}

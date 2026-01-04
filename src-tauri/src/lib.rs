@@ -978,29 +978,90 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
 
     // Install CUDA-enabled PyTorch by default on Windows.
     if cfg!(target_os = "windows") {
-        let mut torch_cmd = Command::new(python_cmd);
-        torch_cmd.args(&[
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "--force-reinstall",
-            "torch",
-            "--index-url",
-            "https://download.pytorch.org/whl/cu118",
-            "--quiet",
-        ]);
-        configure_command_no_window(&mut torch_cmd);
+        let mut cuda_install_errors: Vec<String> = Vec::new();
+        let cuda_indexes = ["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"];
 
-        let torch_output = torch_cmd
-            .output()
-            .map_err(|e| format!("Failed to run pip (torch): {}", e))?;
+        for index_url in cuda_indexes {
+            let mut torch_cmd = Command::new(python_cmd);
+            torch_cmd.args(&[
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--force-reinstall",
+                "torch",
+                "torchvision",
+                "torchaudio",
+                "--index-url",
+                index_url,
+                "--quiet",
+            ]);
+            configure_command_no_window(&mut torch_cmd);
 
-        if !torch_output.status.success() {
-            let stderr = String::from_utf8_lossy(&torch_output.stderr);
-            return Err(format!("pip install torch (CUDA) failed: {}", stderr));
+            let torch_output = torch_cmd
+                .output()
+                .map_err(|e| format!("Failed to run pip (torch): {}", e))?;
+
+            if !torch_output.status.success() {
+                let stderr = String::from_utf8_lossy(&torch_output.stderr);
+                cuda_install_errors.push(format!("CUDA index {} failed: {}", index_url, stderr));
+                continue;
+            }
+
+            let mut cuda_check = Command::new(python_cmd);
+            cuda_check.args(&[
+                "-c",
+                "import torch; print(torch.version.cuda or '')",
+            ]);
+            configure_command_no_window(&mut cuda_check);
+
+            let cuda_output = cuda_check
+                .output()
+                .map_err(|e| format!("Failed to verify CUDA torch: {}", e))?;
+            let cuda_str = String::from_utf8_lossy(&cuda_output.stdout).trim().to_string();
+
+            if !cuda_str.is_empty() {
+                cuda_install_errors.clear();
+                break;
+            }
+
+            cuda_install_errors.push(format!(
+                "CUDA index {} installed CPU-only torch",
+                index_url
+            ));
+        }
+
+        if !cuda_install_errors.is_empty() {
+            return Err(format!(
+                "Failed to install CUDA-enabled torch. {}",
+                cuda_install_errors.join(" | ")
+            ));
         }
     }
+
+    let requirements_to_use = if cfg!(target_os = "windows") {
+        let requirements_content = std::fs::read_to_string(&requirements_path)
+            .map_err(|e| format!("Failed to read requirements.txt: {}", e))?;
+        let filtered: String = requirements_content
+            .lines()
+            .filter(|line| {
+                let trimmed = line.trim();
+                if trimmed.is_empty() || trimmed.starts_with('#') {
+                    return false;
+                }
+                let lower = trimmed.to_lowercase();
+                !(lower.starts_with("torch") || lower.starts_with("torchvision") || lower.starts_with("torchaudio"))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let filtered_path = std::env::temp_dir().join("qurancaption_requirements_no_torch.txt");
+        std::fs::write(&filtered_path, filtered)
+            .map_err(|e| format!("Failed to write filtered requirements: {}", e))?;
+        filtered_path
+    } else {
+        requirements_path
+    };
 
     let mut cmd = Command::new(python_cmd);
     cmd.args(&[
@@ -1008,7 +1069,7 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
         "pip",
         "install",
         "-r",
-        requirements_path.to_string_lossy().as_ref(),
+        requirements_to_use.to_string_lossy().as_ref(),
         "--quiet",
     ]);
     configure_command_no_window(&mut cmd);

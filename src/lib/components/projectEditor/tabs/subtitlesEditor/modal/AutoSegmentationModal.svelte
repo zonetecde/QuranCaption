@@ -546,7 +546,7 @@
 					<button
 						class="btn-accent px-5 py-2 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 						onclick={startSegmentation}
-						disabled={isRunning || !hasAudio()}
+						disabled={isRunning || !hasAudio() || isCheckingStatus}
 					>
 						<span class="material-icons text-base">auto_awesome</span>
 						Start segmentation

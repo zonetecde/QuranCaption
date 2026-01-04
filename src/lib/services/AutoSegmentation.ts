@@ -79,10 +79,16 @@ export async function getPreferredSegmentationMode(): Promise<SegmentationMode> 
 	return status.ready ? 'local' : 'api';
 }
 
-type AutoSegmentationOptions = {
+/**
+ * Whisper model size for local processing
+ */
+export type WhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
+
+export type AutoSegmentationOptions = {
 	minSilenceMs?: number;
 	minSpeechMs?: number;
 	padMs?: number;
+	whisperModel?: WhisperModelSize;
 };
 
 export type AutoSegmentationResult =
@@ -272,6 +278,7 @@ export async function runAutoSegmentation(
 	const minSilenceMs: number = options.minSilenceMs ?? 200;
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
 	const padMs: number = options.padMs ?? 50;
+	const whisperModel: string = options.whisperModel ?? 'base';
 
 	// Determine mode if not specified
 	const effectiveMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
@@ -303,7 +310,8 @@ export async function runAutoSegmentation(
 			audioPath: audioInfo.filePath,
 			minSilenceMs,
 			minSpeechMs,
-			padMs
+			padMs,
+			whisperModel: effectiveMode === 'local' ? whisperModel : undefined
 		});
 
 		const response: SegmentationResponse = payload as SegmentationResponse;

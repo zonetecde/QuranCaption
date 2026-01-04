@@ -147,6 +147,9 @@ Examples:
                         help="Minimum speech duration for valid segment (ms)")
     parser.add_argument("--pad-ms", type=int, default=50,
                         help="Padding around segments (ms)")
+    parser.add_argument("--whisper-model", type=str, default="base",
+                        choices=["tiny", "base", "medium", "large"],
+                        help="Whisper model size: tiny (~60MB), base (~150MB), medium (~800MB), large (~3GB)")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Show verbose output to stderr")
     
@@ -203,7 +206,8 @@ Examples:
             sample_rate=sample_rate,
             min_silence_ms=args.min_silence_ms,
             min_speech_ms=args.min_speech_ms,
-            pad_ms=args.pad_ms
+            pad_ms=args.pad_ms,
+            whisper_model=args.whisper_model
         )
         
     except Exception as e:

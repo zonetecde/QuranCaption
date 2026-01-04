@@ -257,9 +257,13 @@ def load_segmenter():
         return None, None, 0.0
 
 
-def load_whisper():
+def load_whisper(model_name: str = None):
     """Load the Whisper ASR model. Returns (model, processor, gen_config, load_time)."""
-    if _whisper_cache["loaded"]:
+    # Use provided model name or default from config
+    actual_model = model_name or WHISPER_MODEL
+    
+    # Check cache - but only if model matches
+    if _whisper_cache["loaded"] and _whisper_cache.get("model_name") == actual_model:
         return (_whisper_cache["model"], _whisper_cache["processor"], 
                 _whisper_cache["gen_config"], _whisper_cache["load_time"])
 
@@ -269,17 +273,17 @@ def load_whisper():
     try:
         from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
-        print(f"Loading Whisper: {WHISPER_MODEL}")
+        print(f"Loading Whisper: {actual_model}")
         device, dtype = _get_device_and_dtype()
 
         model = WhisperForConditionalGeneration.from_pretrained(
-            WHISPER_MODEL,
+            actual_model,
             torch_dtype=dtype,
             low_cpu_mem_usage=True
         ).to(device)
         model.eval()
 
-        processor = WhisperProcessor.from_pretrained(WHISPER_MODEL)
+        processor = WhisperProcessor.from_pretrained(actual_model)
         gen_config = model.generation_config
 
         load_time = time.time() - start_time
@@ -288,6 +292,7 @@ def load_whisper():
         _whisper_cache["gen_config"] = gen_config
         _whisper_cache["loaded"] = True
         _whisper_cache["load_time"] = load_time
+        _whisper_cache["model_name"] = actual_model
 
         print(f"Whisper loaded on {device} in {load_time:.2f}s")
         return model, processor, gen_config, load_time
@@ -382,7 +387,8 @@ def detect_speech_segments(
 # =============================================================================
 def transcribe_segments_batched(
     segment_audios: List[np.ndarray],
-    sample_rate: int
+    sample_rate: int,
+    model_name: str = None
 ) -> Tuple[List[str], dict]:
     """
     Transcribe multiple audio segments in a batch.
@@ -392,7 +398,7 @@ def transcribe_segments_batched(
     if not segment_audios:
         return [], {"model_load_time": 0.0, "inference_time": 0.0}
 
-    model, processor, gen_config, model_load_time = load_whisper()
+    model, processor, gen_config, model_load_time = load_whisper(model_name)
     if model is None:
         return [""] * len(segment_audios), {"model_load_time": 0.0, "inference_time": 0.0}
 
@@ -464,12 +470,21 @@ def run_text_matching(
 
 
 # =============================================================================
+# Model name mapping for different sizes
+WHISPER_MODELS = {
+    "tiny": "tarteel-ai/whisper-tiny-ar-quran",
+    "base": "tarteel-ai/whisper-base-ar-quran",
+    "medium": "openai/whisper-medium",
+    "large": "IJyad/whisper-large-v3-Tarteel",
+}
+
 def process_audio_full(
     audio: np.ndarray,
     sample_rate: int,
     min_silence_ms: int = 200,
     min_speech_ms: int = 1000,
-    pad_ms: int = 50
+    pad_ms: int = 50,
+    whisper_model: str = "base"
 ) -> dict:
     """
     Full processing pipeline: VAD -> Whisper -> Text matching.
@@ -516,7 +531,11 @@ def process_audio_full(
 
     # Step 2: Whisper transcription (batched)
     whisper_start = time.time()
-    transcribed_texts, whisper_profiling = transcribe_segments_batched(segment_audios, sample_rate)
+    # Get model name from mapping or use default
+    whisper_model_name = WHISPER_MODELS.get(whisper_model, WHISPER_MODELS["base"])
+    transcribed_texts, whisper_profiling = transcribe_segments_batched(
+        segment_audios, sample_rate, whisper_model_name
+    )
     profiling.asr_model_load_time = whisper_profiling.get("model_load_time", 0.0)
     profiling.asr_inference_time = whisper_profiling.get("inference_time", 0.0)
     print(f"[PROCESS] Whisper: {time.time() - whisper_start:.2f}s")

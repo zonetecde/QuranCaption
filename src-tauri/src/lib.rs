@@ -1002,6 +1002,7 @@ async fn segment_quran_audio_local(
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
+    whisper_model: Option<String>,
 ) -> Result<serde_json::Value, String> {
     // Validate input file exists
     if !Path::new(&audio_path).exists() {
@@ -1055,6 +1056,10 @@ async fn segment_quran_audio_local(
     if let Some(ms) = pad_ms {
         args.push("--pad-ms".to_string());
         args.push(ms.to_string());
+    }
+    if let Some(model) = whisper_model {
+        args.push("--whisper-model".to_string());
+        args.push(model);
     }
 
     let mut cmd = Command::new(python_cmd);

@@ -24,6 +24,47 @@
 	let isCheckingStatus = $state(true);
 	let isInstallingDeps = $state(false);
 
+	// Advanced settings state
+	let showAdvancedSettings = $state(false);
+	let minSilenceMs = $state(200);
+	let minSpeechMs = $state(1000);
+	let padMs = $state(50);
+
+	// Model selection for local processing
+	type WhisperModel = 'tiny' | 'base' | 'medium' | 'large';
+	let selectedModel = $state<WhisperModel>('base');
+
+	const modelOptions = [
+		{
+			value: 'tiny' as const,
+			label: 'Tiny',
+			description: 'Fastest, less accurate (~60 MB)',
+			size: '~60 MB',
+			source: 'tarteel-ai/whisper-tiny-ar-quran'
+		},
+		{
+			value: 'base' as const,
+			label: 'Base',
+			description: 'Balanced speed/accuracy (~150 MB)',
+			size: '~150 MB',
+			source: 'tarteel-ai/whisper-base-ar-quran'
+		},
+		{
+			value: 'medium' as const,
+			label: 'Medium',
+			description: 'Very accurate, slower (~800 MB)',
+			size: '~800 MB',
+			source: 'openai/whisper-medium'
+		},
+		{
+			value: 'large' as const,
+			label: 'Large',
+			description: 'Most accurate, slowest (~3 GB)',
+			size: '~3 GB',
+			source: 'IJyad/whisper-large-v3-Tarteel'
+		}
+	];
+
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
 	const hasAudio = $derived(() => !!audioInfo());
 
@@ -88,7 +129,15 @@
 		result = null;
 
 		try {
-			const response = await runAutoSegmentation({}, selectedMode);
+			const response = await runAutoSegmentation(
+				{
+					minSilenceMs,
+					minSpeechMs,
+					padMs,
+					whisperModel: selectedMode === 'local' ? selectedModel : undefined
+				},
+				selectedMode
+			);
 			if (!response) {
 				errorMessage = 'Segmentation failed. Please check the console for details.';
 			} else if (response.status === 'cancelled') {
@@ -133,37 +182,39 @@
 	<!-- Body -->
 	<div class="px-6 py-5 space-y-4">
 		<!-- Body -->
-		<div class="bg-accent border border-color rounded-xl p-4 space-y-3">
-			<div class="space-y-2">
-				<p class="text-sm text-secondary leading-relaxed">
-					This will analyze the <span class="text-primary font-medium">first audio clip</span> in your
-					timeline and automatically generate subtitle clips from it.
-				</p>
+		{#if !showAdvancedSettings}
+			<div class="bg-accent border border-color rounded-xl p-4 space-y-3" transition:slide>
+				<div class="space-y-2">
+					<p class="text-sm text-secondary leading-relaxed">
+						This will analyze the <span class="text-primary font-medium">first audio clip</span> in your
+						timeline and automatically generate subtitle clips from it.
+					</p>
 
-				<ul class="text-sm text-secondary leading-relaxed list-disc pl-5 space-y-1">
-					<li>
-						Existing subtitles will be <span class="text-primary font-medium">replaced</span>.
-					</li>
-					<li>
-						Each generated segment includes a confidence score. Anything <span
-							class="text-primary font-medium">below 0.75</span
-						> will be highlighted in yellow and should be reviewed.
-					</li>
-				</ul>
-			</div>
+					<ul class="text-sm text-secondary leading-relaxed list-disc pl-5 space-y-1">
+						<li>
+							Existing subtitles will be <span class="text-primary font-medium">replaced</span>.
+						</li>
+						<li>
+							Each generated segment includes a confidence score. Anything <span
+								class="text-primary font-medium">below 0.75</span
+							> will be highlighted in yellow and should be reviewed.
+						</li>
+					</ul>
+				</div>
 
-			<div class="flex items-center gap-2 text-xs text-thirdly">
-				<span class="material-icons text-sm mt-0.5">info</span>
-				<span>
-					Audio source:
-					{#if hasAudio()}
-						<span class="text-primary font-medium">{audioInfo()?.fileName}</span>
-					{:else}
-						<span class="text-danger-color font-medium">No audio clip found</span>
-					{/if}
-				</span>
+				<div class="flex items-center gap-2 text-xs text-thirdly">
+					<span class="material-icons text-sm mt-0.5">info</span>
+					<span>
+						Audio source:
+						{#if hasAudio()}
+							<span class="text-primary font-medium">{audioInfo()?.fileName}</span>
+						{:else}
+							<span class="text-danger-color font-medium">No audio clip found</span>
+						{/if}
+					</span>
+				</div>
 			</div>
-		</div>
+		{/if}
 
 		<!-- Processing Mode Selection -->
 		<div class="bg-accent border border-color rounded-xl p-4 space-y-3">
@@ -276,6 +327,125 @@
 						</div>
 					</div>
 				{/if}
+			{/if}
+		</div>
+
+		<!-- Advanced Settings (Collapsible) -->
+		<div
+			class="bg-accent border border-color rounded-xl overflow-hidden overflow-y-auto max-h-[200px] xl:max-h-[400px]"
+		>
+			<button
+				class="w-full px-4 py-3 flex items-center justify-between hover:bg-[rgba(255,255,255,0.03)] transition-colors"
+				onclick={() => (showAdvancedSettings = !showAdvancedSettings)}
+			>
+				<div class="flex items-center gap-2 text-sm text-primary font-medium">
+					<span class="material-icons text-base"
+						>{showAdvancedSettings ? 'expand_less' : 'expand_more'}</span
+					>
+					Advanced Settings
+				</div>
+				<span class="text-xs text-thirdly">
+					{showAdvancedSettings ? 'Hide' : 'Show'}
+				</span>
+			</button>
+
+			{#if showAdvancedSettings}
+				<div class="px-4 pb-4 space-y-4 border-t border-color" transition:slide={{ duration: 200 }}>
+					<!-- Model Selection (Local only) -->
+					{#if selectedMode === 'local'}
+						<div class="space-y-3 pt-3 border-t border-color">
+							<div class="text-xs text-thirdly font-medium uppercase">Whisper Model</div>
+							<div class="space-y-2">
+								{#each modelOptions as option}
+									<label
+										class="flex items-center gap-3 p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] cursor-pointer transition-colors {selectedModel ===
+										option.value
+											? 'bg-[rgba(0,200,255,0.1)]'
+											: ''}"
+									>
+										<input
+											type="radio"
+											name="model"
+											value={option.value}
+											bind:group={selectedModel}
+											class="accent-accent-primary"
+										/>
+										<div class="flex-1">
+											<div class="flex flex-col">
+												<div class="flex items-center gap-2">
+													<span class="text-sm text-primary font-medium">{option.label}</span>
+													<span
+														class="text-[10px] bg-secondary/10 px-1.5 py-0.5 rounded text-secondary/70 font-mono border border-[var(--text-secondary)]/10 truncate max-w-[200px]"
+														title="HuggingFace Model: {option.source}"
+													>
+														{option.source}
+													</span>
+												</div>
+												<div class="text-xs text-thirdly">{option.description}</div>
+											</div>
+										</div></label
+									>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Timing Parameters -->
+					<div class="pt-3 space-y-3">
+						<div class="text-xs text-thirdly font-medium uppercase">Timing Parameters</div>
+
+						<!-- Min Silence -->
+						<div>
+							<div class="flex items-center justify-between mb-1">
+								<label class="text-sm text-secondary">Min Silence Duration</label>
+								<span class="text-xs text-primary font-mono">{minSilenceMs} ms</span>
+							</div>
+							<input
+								type="range"
+								min="50"
+								max="1000"
+								step="50"
+								bind:value={minSilenceMs}
+								class="w-full accent-accent-primary"
+							/>
+							<p class="text-xs text-thirdly mt-1">Minimum pause between segments</p>
+						</div>
+
+						<!-- Min Speech -->
+						<div>
+							<div class="flex items-center justify-between mb-1">
+								<label class="text-sm text-secondary">Min Speech Duration</label>
+								<span class="text-xs text-primary font-mono">{minSpeechMs} ms</span>
+							</div>
+							<input
+								type="range"
+								min="500"
+								max="3000"
+								step="100"
+								bind:value={minSpeechMs}
+								class="w-full accent-accent-primary"
+							/>
+							<p class="text-xs text-thirdly mt-1">Minimum segment length to keep</p>
+						</div>
+
+						<!-- Padding -->
+						<div>
+							<div class="flex items-center justify-between mb-1">
+								<label class="text-sm text-secondary">Padding</label>
+								<span class="text-xs text-primary font-mono">{padMs} ms</span>
+							</div>
+							<input
+								type="range"
+								min="0"
+								max="300"
+								step="10"
+								bind:value={padMs}
+								class="w-full accent-accent-primary"
+							/>
+							<p class="text-xs text-thirdly mt-1">Extra time added before/after each segment</p>
+						</div>
+					</div>
+				</div>
 			{/if}
 		</div>
 

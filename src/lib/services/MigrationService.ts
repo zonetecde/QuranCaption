@@ -66,6 +66,34 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Assure que les nouveaux shortcuts (Split, Go to Start) existent dans les settings.
+	 */
+	static EnsureNewShortcutsExist() {
+		if (!globalState.settings) return;
+
+		let hasChanges = false;
+		const defaultShortcuts = new Settings().shortcuts;
+
+		// Check Split Subtitle
+		if (!globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE) {
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE =
+				defaultShortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE;
+			hasChanges = true;
+		}
+
+		// Check Go To Start
+		if (!globalState.settings.shortcuts.VIDEO_PREVIEW.GO_TO_START) {
+			globalState.settings.shortcuts.VIDEO_PREVIEW.GO_TO_START =
+				defaultShortcuts.VIDEO_PREVIEW.GO_TO_START;
+			hasChanges = true;
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
 	 * > Renommage des tracks "CustomText" à "CustomClip"
 	 */

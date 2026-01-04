@@ -314,6 +314,10 @@ export async function runAutoSegmentation(
 			whisperModel: effectiveMode === 'local' ? whisperModel : undefined
 		});
 
+		if (effectiveMode === 'local') {
+			console.log('[AutoSegmentation] Local segmentation raw response:', payload);
+		}
+
 		const response: SegmentationResponse = payload as SegmentationResponse;
 		const segments: SegmentationSegment[] = response?.segments ?? [];
 
@@ -329,6 +333,70 @@ export async function runAutoSegmentation(
 
 		let segmentsApplied: number = 0;
 		let lowConfidenceSegments: number = 0;
+
+		const pushSubtitleClip = async (params: {
+			startMs: number;
+			endMs: number;
+			surah: number;
+			verseNumber: number;
+			startIndex: number;
+			endIndex: number;
+			verse: Awaited<ReturnType<typeof Quran.getVerse>>;
+			confidence: number | null;
+			isLowConfidence: boolean;
+			needsReview: boolean;
+		}): Promise<void> => {
+			const {
+				startMs,
+				endMs,
+				surah,
+				verseNumber,
+				startIndex,
+				endIndex,
+				verse,
+				confidence,
+				isLowConfidence,
+				needsReview
+			} = params;
+
+			if (!verse) return;
+
+			const arabicText: string = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
+			const wbwTranslation: string[] = verse.getWordByWordTranslationBetweenTwoIndexes(
+				startIndex,
+				endIndex
+			);
+
+			const subtitlesProperties: {
+				isFullVerse: boolean;
+				isLastWordsOfVerse: boolean;
+				translations: { [key: string]: Translation };
+			} = await subtitleTrack.getSubtitlesProperties(verse, startIndex, endIndex, surah);
+
+			const clip: SubtitleClip = new SubtitleClip(
+				startMs,
+				endMs,
+				surah,
+				verseNumber,
+				startIndex,
+				endIndex,
+				arabicText,
+				wbwTranslation,
+				subtitlesProperties.isFullVerse,
+				subtitlesProperties.isLastWordsOfVerse,
+				subtitlesProperties.translations,
+				true,
+				confidence
+			);
+
+			if (needsReview) {
+				markClipTranslationsForReview(clip);
+			}
+
+			subtitleTrack.clips.push(clip);
+			segmentsApplied += 1;
+			if (isLowConfidence) lowConfidenceSegments += 1;
+		};
 
 		const orderedSegments: SegmentationSegment[] = [...segments].sort(
 			(a, b) => (a.time_from ?? 0) - (b.time_from ?? 0)
@@ -368,8 +436,167 @@ export async function runAutoSegmentation(
 				continue;
 			}
 
-			if (startRef.surah !== endRef.surah || startRef.verse !== endRef.verse) {
-				console.warn('Cross-verse segment detected, using ref_from:', segment);
+			const isCrossVerse =
+				startRef.surah !== endRef.surah || startRef.verse !== endRef.verse;
+			if (isCrossVerse && startRef.surah === endRef.surah && startRef.verse <= endRef.verse) {
+				console.warn('Cross-verse segment detected, splitting into multiple clips', {
+					segment,
+					startRef,
+					endRef
+				});
+
+				const splitDefinitions: Array<{
+					startMs: number;
+					endMs: number;
+					surah: number;
+					verseNumber: number;
+					startIndex: number;
+					endIndex: number;
+					wordCount: number;
+					needsReview: boolean;
+				}> = [];
+
+				let splitNeedsReview = false;
+
+				for (let verseNumber = startRef.verse; verseNumber <= endRef.verse; verseNumber += 1) {
+					const verse = await Quran.getVerse(startRef.surah, verseNumber);
+					if (!verse) {
+						console.warn('Verse not found for cross-verse segment:', {
+							segment,
+							verseNumber
+						});
+						continue;
+					}
+
+					const verseWordCount = verse.words.length;
+					if (verseWordCount === 0) {
+						console.error('Verse has no word data in cross-verse segment', {
+							segment,
+							verseNumber
+						});
+						continue;
+					}
+
+					const clampIndex = (value: number) =>
+						Math.min(Math.max(value, 0), verseWordCount - 1);
+
+					let startIndex = 0;
+					let endIndex = verseWordCount - 1;
+					let needsReview = false;
+
+					if (verseNumber === startRef.verse) {
+						const rawStartIndex = startRef.word - 1;
+						startIndex = clampIndex(rawStartIndex);
+						if (rawStartIndex < 0 || rawStartIndex >= verseWordCount) {
+							needsReview = true;
+							console.error(
+								'Cross-verse start index out of bounds, clamping to verse limits',
+								{
+									segment,
+									verseWordCount,
+									startRef,
+									rawStartIndex,
+									startIndex
+								}
+							);
+						}
+					}
+
+					if (verseNumber === endRef.verse) {
+						const rawEndIndex = endRef.word - 1;
+						endIndex = clampIndex(rawEndIndex);
+						if (rawEndIndex < 0 || rawEndIndex >= verseWordCount) {
+							needsReview = true;
+							console.error(
+								'Cross-verse end index out of bounds, clamping to verse limits',
+								{
+									segment,
+									verseWordCount,
+									endRef,
+									rawEndIndex,
+									endIndex
+								}
+							);
+						}
+					}
+
+					if (startIndex > endIndex) {
+						needsReview = true;
+						console.error('Cross-verse word range inverted, swapping values', {
+							segment,
+							verseWordCount,
+							startIndex,
+							endIndex
+						});
+						[startIndex, endIndex] = [endIndex, startIndex];
+					}
+
+					splitNeedsReview = splitNeedsReview || needsReview;
+
+					splitDefinitions.push({
+						startMs,
+						endMs,
+						surah: startRef.surah,
+						verseNumber,
+						startIndex,
+						endIndex,
+						wordCount: endIndex - startIndex + 1,
+						needsReview
+					});
+				}
+
+				const totalWords = splitDefinitions.reduce((sum, def) => sum + def.wordCount, 0);
+				if (splitDefinitions.length > 0 && totalWords > 0) {
+					const totalSpan = endMs - startMs + 1;
+					let currentStart = startMs;
+
+					for (let i = 0; i < splitDefinitions.length; i += 1) {
+						const def = splitDefinitions[i];
+						const remainingParts = splitDefinitions.length - i;
+						const remainingSpan = endMs - currentStart + 1;
+						const minRemaining = remainingParts - 1;
+
+						let length = remainingSpan;
+						if (i < splitDefinitions.length - 1) {
+							const rawLength = Math.round((def.wordCount / totalWords) * totalSpan);
+							const maxLength = Math.max(1, remainingSpan - minRemaining);
+							length = Math.min(Math.max(1, rawLength), maxLength);
+						}
+
+						def.startMs = currentStart;
+						def.endMs = currentStart + length - 1;
+						currentStart = def.endMs + 1;
+					}
+
+					for (const def of splitDefinitions) {
+						const verse = await Quran.getVerse(def.surah, def.verseNumber);
+						if (!verse) {
+							console.warn('Verse not found when building split clip:', def);
+							continue;
+						}
+
+						await pushSubtitleClip({
+							startMs: def.startMs,
+							endMs: def.endMs,
+							surah: def.surah,
+							verseNumber: def.verseNumber,
+							startIndex: def.startIndex,
+							endIndex: def.endIndex,
+							verse,
+							confidence,
+							isLowConfidence,
+							needsReview: splitNeedsReview || def.needsReview
+						});
+					}
+
+					continue;
+				}
+			} else if (isCrossVerse) {
+				console.warn('Cross-verse segment detected but unable to split safely, falling back', {
+					segment,
+					startRef,
+					endRef
+				});
 			}
 
 			const verse = await Quran.getVerse(startRef.surah, startRef.verse);
@@ -378,40 +605,71 @@ export async function runAutoSegmentation(
 				continue;
 			}
 
-			const startIndex: number = Math.max(0, startRef.word - 1);
-			const endIndex: number = Math.min(verse.words.length - 1, endRef.word - 1);
+			const verseWordCount = verse.words.length;
+			if (verseWordCount === 0) {
+				console.error('Verse has no word data, skipping segment', {
+					segment,
+					startRef,
+					endRef
+				});
+				continue;
+			}
 
-			const arabicText: string = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
-			const wbwTranslation: string[] = verse.getWordByWordTranslationBetweenTwoIndexes(
-				startIndex,
-				endIndex
-			);
+			const clampIndex = (value: number) =>
+				Math.min(Math.max(value, 0), verseWordCount - 1);
+			const rawStartIndex = startRef.word - 1;
+			const rawEndIndex = endRef.word - 1;
+			let startIndex = clampIndex(rawStartIndex);
+			let endIndex = clampIndex(rawEndIndex);
 
-			const subtitlesProperties: {
-				isFullVerse: boolean;
-				isLastWordsOfVerse: boolean;
-				translations: { [key: string]: Translation };
-			} = await subtitleTrack.getSubtitlesProperties(verse, startIndex, endIndex, startRef.surah);
+			let clipNeedsReview = false;
 
-			const clip: SubtitleClip = new SubtitleClip(
+			if (
+				rawStartIndex < 0 ||
+				rawStartIndex >= verseWordCount ||
+				rawEndIndex < 0 ||
+				rawEndIndex >= verseWordCount
+			) {
+				clipNeedsReview = true;
+				console.error('Segment word indexes out of bounds, clamping to verse limits', {
+					segment,
+					verseWordCount,
+					startRef,
+					endRef,
+					rawStartIndex,
+					rawEndIndex,
+					startIndex,
+					endIndex
+				});
+			}
+
+			if (startIndex > endIndex) {
+				clipNeedsReview = true;
+				console.error('Segment word range inverted, swapping values', {
+					segment,
+					verseWordCount,
+					startRef,
+					endRef,
+					rawStartIndex,
+					rawEndIndex,
+					startIndex,
+					endIndex
+				});
+				[startIndex, endIndex] = [endIndex, startIndex];
+			}
+
+			await pushSubtitleClip({
 				startMs,
 				endMs,
-				startRef.surah,
-				startRef.verse,
+				surah: startRef.surah,
+				verseNumber: startRef.verse,
 				startIndex,
 				endIndex,
-				arabicText,
-				wbwTranslation,
-				subtitlesProperties.isFullVerse,
-				subtitlesProperties.isLastWordsOfVerse,
-				subtitlesProperties.translations,
-				true,
-				confidence
-			);
-
-			subtitleTrack.clips.push(clip);
-			segmentsApplied += 1;
-			if (isLowConfidence) lowConfidenceSegments += 1;
+				verse,
+				confidence,
+				isLowConfidence,
+				needsReview: clipNeedsReview
+			});
 		}
 
 		// Normalize timing and explicit silence.
@@ -446,5 +704,19 @@ export async function runAutoSegmentation(
 			toast.error('Segmentation request failed.');
 		}
 		return { status: 'failed', message: errorMessage };
+	}
+}
+
+function markClipTranslationsForReview(clip: SubtitleClip): void {
+	if (!globalState.currentProject) return;
+
+	const addedEditions = globalState.getProjectTranslation.addedTranslationEditions;
+	if (!addedEditions) return;
+
+	for (const edition of addedEditions) {
+		const translation = clip.translations[edition.name];
+		if (translation && typeof translation.updateStatus === 'function') {
+			translation.updateStatus('to review', edition);
+		}
 	}
 }

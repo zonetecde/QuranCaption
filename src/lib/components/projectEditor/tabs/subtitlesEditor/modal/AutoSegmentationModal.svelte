@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
 	import { Quran } from '$lib/classes/Quran';
+	import Settings, { type AutoSegmentationSettings } from '$lib/classes/Settings.svelte';
+	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import {
 		getAutoSegmentationAudioInfo,
@@ -67,20 +69,48 @@
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
 	const hasAudio = $derived(() => !!audioInfo());
+	const savedSettings = $derived(() => globalState.settings?.autoSegmentationSettings);
+
+	$effect(() => {
+		const persisted = savedSettings();
+		if (!persisted) return;
+
+		minSilenceMs = persisted.minSilenceMs;
+		minSpeechMs = persisted.minSpeechMs;
+		padMs = persisted.padMs;
+		selectedModel = persisted.whisperModel;
+		selectedMode = persisted.mode === 'local' && localStatus?.ready ? 'local' : 'api';
+	});
 
 	// Check local segmentation status on mount
 	onMount(async () => {
 		isCheckingStatus = true;
 		try {
 			localStatus = await checkLocalSegmentationStatus();
-			// Default to local if ready, otherwise API
-			selectedMode = localStatus.ready ? 'local' : 'api';
 		} catch {
 			localStatus = null;
 		} finally {
 			isCheckingStatus = false;
 		}
 	});
+
+	function persistAutoSegmentationSettings(next: Partial<AutoSegmentationSettings>): void {
+		if (!globalState.settings) return;
+		Object.assign(globalState.settings.autoSegmentationSettings, next);
+		void Settings.save();
+	}
+
+	function persistTimingSettings(): void {
+		persistAutoSegmentationSettings({ minSilenceMs, minSpeechMs, padMs });
+	}
+
+	function persistModeSettings(): void {
+		persistAutoSegmentationSettings({ mode: selectedMode });
+	}
+
+	function persistModelSettings(): void {
+		persistAutoSegmentationSettings({ whisperModel: selectedModel });
+	}
 
 	async function handleInstallDeps() {
 		if (isInstallingDeps) return;
@@ -90,9 +120,6 @@
 			await installLocalSegmentationDeps();
 			// Re-check status after installation
 			localStatus = await checkLocalSegmentationStatus();
-			if (localStatus?.ready) {
-				selectedMode = 'local';
-			}
 		} catch (error) {
 			errorMessage = `Failed to install dependencies: ${error}`;
 		} finally {
@@ -238,6 +265,7 @@
 							name="mode"
 							value="api"
 							bind:group={selectedMode}
+							onchange={persistModeSettings}
 							class="mt-0.5 accent-accent-primary"
 						/>
 						<div class="flex-1">
@@ -257,6 +285,7 @@
 							name="mode"
 							value="local"
 							bind:group={selectedMode}
+							onchange={persistModeSettings}
 							disabled={!localStatus?.ready}
 							class="mt-0.5 accent-accent-primary"
 						/>
@@ -368,6 +397,7 @@
 											name="model"
 											value={option.value}
 											bind:group={selectedModel}
+											onchange={persistModelSettings}
 											class="accent-accent-primary"
 										/>
 										<div class="flex-1">
@@ -397,7 +427,10 @@
 						<!-- Min Silence -->
 						<div>
 							<div class="flex items-center justify-between mb-1">
-								<label class="text-sm text-secondary">Min Silence Duration</label>
+								<label class="text-sm text-secondary"
+									>Min Silence Duration <span class="text-xs text-thirdly">(default: 200ms)</span
+									></label
+								>
 								<span class="text-xs text-primary font-mono">{minSilenceMs} ms</span>
 							</div>
 							<input
@@ -406,6 +439,7 @@
 								max="1000"
 								step="50"
 								bind:value={minSilenceMs}
+								onchange={persistTimingSettings}
 								class="w-full accent-accent-primary"
 							/>
 							<p class="text-xs text-thirdly mt-1">Minimum pause between segments</p>
@@ -414,7 +448,10 @@
 						<!-- Min Speech -->
 						<div>
 							<div class="flex items-center justify-between mb-1">
-								<label class="text-sm text-secondary">Min Speech Duration</label>
+								<label class="text-sm text-secondary"
+									>Min Speech Duration <span class="text-xs text-thirdly">(default: 1000ms)</span
+									></label
+								>
 								<span class="text-xs text-primary font-mono">{minSpeechMs} ms</span>
 							</div>
 							<input
@@ -423,6 +460,7 @@
 								max="3000"
 								step="100"
 								bind:value={minSpeechMs}
+								onchange={persistTimingSettings}
 								class="w-full accent-accent-primary"
 							/>
 							<p class="text-xs text-thirdly mt-1">Minimum segment length to keep</p>
@@ -431,7 +469,9 @@
 						<!-- Padding -->
 						<div>
 							<div class="flex items-center justify-between mb-1">
-								<label class="text-sm text-secondary">Padding</label>
+								<label class="text-sm text-secondary"
+									>Padding <span class="text-xs text-thirdly">(default: 50ms)</span></label
+								>
 								<span class="text-xs text-primary font-mono">{padMs} ms</span>
 							</div>
 							<input
@@ -440,6 +480,7 @@
 								max="300"
 								step="10"
 								bind:value={padMs}
+								onchange={persistTimingSettings}
 								class="w-full accent-accent-primary"
 							/>
 							<p class="text-xs text-thirdly mt-1">Extra time added before/after each segment</p>

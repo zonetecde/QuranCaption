@@ -976,15 +976,46 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
         }
     };
 
+    // Install CUDA-enabled PyTorch by default on Windows.
+    if cfg!(target_os = "windows") {
+        let mut torch_cmd = Command::new(python_cmd);
+        torch_cmd.args(&[
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "--force-reinstall",
+            "torch",
+            "--index-url",
+            "https://download.pytorch.org/whl/cu118",
+            "--quiet",
+        ]);
+        configure_command_no_window(&mut torch_cmd);
+
+        let torch_output = torch_cmd
+            .output()
+            .map_err(|e| format!("Failed to run pip (torch): {}", e))?;
+
+        if !torch_output.status.success() {
+            let stderr = String::from_utf8_lossy(&torch_output.stderr);
+            return Err(format!("pip install torch (CUDA) failed: {}", stderr));
+        }
+    }
+
     let mut cmd = Command::new(python_cmd);
     cmd.args(&[
-        "-m", "pip", "install", "-r", 
+        "-m",
+        "pip",
+        "install",
+        "-r",
         requirements_path.to_string_lossy().as_ref(),
-        "--quiet"
+        "--quiet",
     ]);
     configure_command_no_window(&mut cmd);
-    
-    let output = cmd.output().map_err(|e| format!("Failed to run pip: {}", e))?;
+
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to run pip: {}", e))?;
 
     if output.status.success() {
         Ok("Dependencies installed successfully".to_string())

@@ -1,0 +1,5 @@
+# Ignore Python folder from hot reload
+python/
+python/**
+*.pyc
+__pycache__/

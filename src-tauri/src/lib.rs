@@ -8,6 +8,7 @@ mod exporter;
 mod binaries;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use reqwest::multipart::{Form, Part};
+use tauri::Manager;
 
 use font_kit::source::SystemSource;
 
@@ -889,6 +890,205 @@ async fn segment_quran_audio(
     Err("Segmentation queue ended without a result".to_string())
 }
 
+/// Check if Python and required packages are available for local segmentation
+#[tauri::command]
+fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
+    // Try to find Python executable
+    let python_cmd = if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    };
+
+    // Check if Python is available
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&["--version"]);
+    configure_command_no_window(&mut cmd);
+    
+    let python_available = match cmd.output() {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    };
+
+    if !python_available {
+        return Ok(serde_json::json!({
+            "ready": false,
+            "pythonInstalled": false,
+            "packagesInstalled": false,
+            "message": "Python is not installed. Please install Python 3.10+ from python.org"
+        }));
+    }
+
+    // Check if required packages are installed
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&["-c", "import torch, transformers, librosa, numpy, soundfile; print('ok')"]);
+    configure_command_no_window(&mut cmd);
+    
+    let packages_available = match cmd.output() {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    };
+
+    Ok(serde_json::json!({
+        "ready": packages_available,
+        "pythonInstalled": true,
+        "packagesInstalled": packages_available,
+        "message": if packages_available {
+            "Local segmentation is ready"
+        } else {
+            "Python packages need to be installed (~3GB download)"
+        }
+    }))
+}
+
+/// Install Python dependencies for local segmentation
+#[tauri::command]
+async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let python_cmd = if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    };
+
+    // Get the path to the requirements.txt in the app bundle
+    let resource_path = app_handle
+        .path()
+        .resolve("python/requirements.txt", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| e.to_string())?;
+
+    // If resource path doesn't exist, try the development path
+    let requirements_path = if resource_path.exists() {
+        resource_path
+    } else {
+        // Development fallback - try to find it relative to the executable
+        let exe_dir = std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .ok_or("Cannot get executable directory")?
+            .to_path_buf();
+        
+        // Try a few locations
+        let dev_path = exe_dir.join("..").join("..").join("python").join("requirements.txt");
+        if dev_path.exists() {
+            dev_path
+        } else {
+            return Err("requirements.txt not found".to_string());
+        }
+    };
+
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&[
+        "-m", "pip", "install", "-r", 
+        requirements_path.to_string_lossy().as_ref(),
+        "--quiet"
+    ]);
+    configure_command_no_window(&mut cmd);
+    
+    let output = cmd.output().map_err(|e| format!("Failed to run pip: {}", e))?;
+
+    if output.status.success() {
+        Ok("Dependencies installed successfully".to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("pip install failed: {}", stderr))
+    }
+}
+
+/// Run local segmentation using the Python script
+#[tauri::command]
+async fn segment_quran_audio_local(
+    app_handle: tauri::AppHandle,
+    audio_path: String,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    // Validate input file exists
+    if !Path::new(&audio_path).exists() {
+        return Err(format!("Audio file not found: {}", audio_path));
+    }
+
+    let python_cmd = if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    };
+
+    // Get the path to the Python script
+    let resource_path = app_handle
+        .path()
+        .resolve("python/local_segmenter.py", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| e.to_string())?;
+
+    // Development fallback
+    let script_path = if resource_path.exists() {
+        resource_path
+    } else {
+        let exe_dir = std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .ok_or("Cannot get executable directory")?
+            .to_path_buf();
+        
+        let dev_path = exe_dir.join("..").join("..").join("python").join("local_segmenter.py");
+        if dev_path.exists() {
+            dev_path
+        } else {
+            return Err("local_segmenter.py not found".to_string());
+        }
+    };
+
+    // Build command arguments
+    let mut args = vec![
+        script_path.to_string_lossy().to_string(),
+        audio_path,
+    ];
+
+    if let Some(ms) = min_silence_ms {
+        args.push("--min-silence-ms".to_string());
+        args.push(ms.to_string());
+    }
+    if let Some(ms) = min_speech_ms {
+        args.push("--min-speech-ms".to_string());
+        args.push(ms.to_string());
+    }
+    if let Some(ms) = pad_ms {
+        args.push("--pad-ms".to_string());
+        args.push(ms.to_string());
+    }
+
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&args);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd.output().map_err(|e| format!("Failed to run Python: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let result: serde_json::Value = serde_json::from_str(&stdout)
+            .map_err(|e| format!("Failed to parse Python output: {}", e))?;
+        
+        // Check if there's an error in the JSON response
+        if let Some(error) = result.get("error") {
+            return Err(error.as_str().unwrap_or("Unknown error").to_string());
+        }
+        
+        Ok(result)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        
+        // Try to parse error from stdout (our script outputs JSON errors)
+        if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+            if let Some(error) = error_json.get("error") {
+                return Err(error.as_str().unwrap_or("Unknown error").to_string());
+            }
+        }
+        
+        Err(format!("Python script failed: {}\n{}", stderr, stdout))
+    }
+}
+
 #[tauri::command]
 async fn init_discord_rpc(app_id: String) -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
@@ -1023,6 +1223,9 @@ pub fn run() {
             exporter::concat_videos,
             convert_audio_to_cbr,
             segment_quran_audio,
+            segment_quran_audio_local,
+            check_local_segmentation_ready,
+            install_local_segmentation_deps,
             init_discord_rpc,
             update_discord_activity,
             clear_discord_activity,

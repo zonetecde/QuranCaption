@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
 	import { Quran } from '$lib/classes/Quran';
+	import { onMount } from 'svelte';
 	import {
 		getAutoSegmentationAudioInfo,
 		runAutoSegmentation,
-		type AutoSegmentationResult
+		checkLocalSegmentationStatus,
+		installLocalSegmentationDeps,
+		type AutoSegmentationResult,
+		type SegmentationMode,
+		type LocalSegmentationStatus
 	} from '$lib/services/AutoSegmentation';
 
 	let { close } = $props();
@@ -13,8 +18,46 @@
 	let result: AutoSegmentationResult | null = $state(null);
 	let errorMessage = $state<string | null>(null);
 
+	// Mode selection state
+	let selectedMode = $state<SegmentationMode>('api');
+	let localStatus = $state<LocalSegmentationStatus | null>(null);
+	let isCheckingStatus = $state(true);
+	let isInstallingDeps = $state(false);
+
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
 	const hasAudio = $derived(() => !!audioInfo());
+
+	// Check local segmentation status on mount
+	onMount(async () => {
+		isCheckingStatus = true;
+		try {
+			localStatus = await checkLocalSegmentationStatus();
+			// Default to local if ready, otherwise API
+			selectedMode = localStatus.ready ? 'local' : 'api';
+		} catch {
+			localStatus = null;
+		} finally {
+			isCheckingStatus = false;
+		}
+	});
+
+	async function handleInstallDeps() {
+		if (isInstallingDeps) return;
+		isInstallingDeps = true;
+		errorMessage = null;
+		try {
+			await installLocalSegmentationDeps();
+			// Re-check status after installation
+			localStatus = await checkLocalSegmentationStatus();
+			if (localStatus?.ready) {
+				selectedMode = 'local';
+			}
+		} catch (error) {
+			errorMessage = `Failed to install dependencies: ${error}`;
+		} finally {
+			isInstallingDeps = false;
+		}
+	}
 
 	function formatVerseRange(resultData: AutoSegmentationResult | null): string {
 		if (
@@ -45,7 +88,7 @@
 		result = null;
 
 		try {
-			const response = await runAutoSegmentation();
+			const response = await runAutoSegmentation({}, selectedMode);
 			if (!response) {
 				errorMessage = 'Segmentation failed. Please check the console for details.';
 			} else if (response.status === 'cancelled') {
@@ -122,6 +165,120 @@
 			</div>
 		</div>
 
+		<!-- Processing Mode Selection -->
+		<div class="bg-accent border border-color rounded-xl p-4 space-y-3">
+			<div class="text-sm text-primary font-medium">Processing Mode</div>
+
+			{#if isCheckingStatus}
+				<div class="flex items-center gap-2 text-sm text-secondary">
+					<div
+						class="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"
+					></div>
+					Checking local processing availability...
+				</div>
+			{:else}
+				<div class="space-y-2">
+					<!-- API Mode -->
+					<label
+						class="flex items-start gap-3 p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] cursor-pointer transition-colors"
+					>
+						<input
+							type="radio"
+							name="mode"
+							value="api"
+							bind:group={selectedMode}
+							class="mt-0.5 accent-accent-primary"
+						/>
+						<div class="flex-1">
+							<div class="text-sm text-primary font-medium">Cloud API</div>
+							<div class="text-xs text-thirdly">Fast, but limited by GPU quota</div>
+						</div>
+						<span class="material-icons text-accent-primary text-lg">cloud</span>
+					</label>
+
+					<!-- Local Mode -->
+					<label
+						class="flex items-start gap-3 p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] cursor-pointer transition-colors"
+						class:opacity-50={!localStatus?.ready && !localStatus?.pythonInstalled}
+					>
+						<input
+							type="radio"
+							name="mode"
+							value="local"
+							bind:group={selectedMode}
+							disabled={!localStatus?.ready}
+							class="mt-0.5 accent-accent-primary"
+						/>
+						<div class="flex-1">
+							<div class="text-sm text-primary font-medium flex items-center gap-2">
+								Local Processing
+								{#if localStatus?.ready}
+									<span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full"
+										>Ready</span
+									>
+								{:else if localStatus?.pythonInstalled && !localStatus?.packagesInstalled}
+									<span class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full"
+										>Setup needed</span
+									>
+								{:else if !localStatus?.pythonInstalled}
+									<span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full"
+										>Python required</span
+									>
+								{/if}
+							</div>
+							<div class="text-xs text-thirdly">
+								No quota limits, requires Python + ML packages (~3 GB)
+							</div>
+						</div>
+						<span class="material-icons text-accent-primary text-lg">computer</span>
+					</label>
+				</div>
+
+				<!-- Installation prompt if needed -->
+				{#if localStatus?.pythonInstalled && !localStatus?.packagesInstalled}
+					<div
+						class="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3"
+					>
+						<span class="material-icons text-yellow-400">download</span>
+						<div class="flex-1">
+							<div class="text-sm text-primary">Python packages need to be installed</div>
+							<div class="text-xs text-thirdly">This will download ~3 GB of ML libraries</div>
+						</div>
+						<button
+							class="btn-accent px-3 py-1.5 text-xs flex items-center gap-1.5"
+							onclick={handleInstallDeps}
+							disabled={isInstallingDeps}
+						>
+							{#if isInstallingDeps}
+								<div
+									class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
+								></div>
+								Installing...
+							{:else}
+								<span class="material-icons text-sm">download</span>
+								Install
+							{/if}
+						</button>
+					</div>
+				{:else if !localStatus?.pythonInstalled}
+					<div
+						class="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3"
+					>
+						<span class="material-icons text-red-400">warning</span>
+						<div class="flex-1">
+							<div class="text-sm text-primary">Python is not installed</div>
+							<div class="text-xs text-thirdly">
+								Install Python 3.10+ from
+								<a href="https://python.org" target="_blank" class="text-accent-primary underline"
+									>python.org</a
+								>
+							</div>
+						</div>
+					</div>
+				{/if}
+			{/if}
+		</div>
+
 		{#if isRunning}
 			<div class="flex items-center gap-3 bg-accent border border-color rounded-xl px-4 py-3">
 				<div
@@ -151,7 +308,9 @@
 				</div>
 			</div>
 		{:else if errorMessage}
-			<div class="bg-danger-color/10 border border-danger-color rounded-xl px-4 py-3 text-sm space-y-1">
+			<div
+				class="bg-danger-color/10 border border-danger-color rounded-xl px-4 py-3 text-sm space-y-1"
+			>
 				<div class="font-semibold text-danger-color">Segmentation failed</div>
 				<div class="text-secondary break-words">{errorMessage}</div>
 			</div>

@@ -24,6 +24,61 @@ type SegmentationResponse = {
 	segments?: SegmentationSegment[];
 };
 
+/**
+ * Segmentation processing mode
+ */
+export type SegmentationMode = 'api' | 'local';
+
+/**
+ * Status of local segmentation readiness
+ */
+export type LocalSegmentationStatus = {
+	ready: boolean;
+	pythonInstalled: boolean;
+	packagesInstalled: boolean;
+	message: string;
+};
+
+/**
+ * Check if local segmentation is available and ready.
+ */
+export async function checkLocalSegmentationStatus(): Promise<LocalSegmentationStatus> {
+	try {
+		const result = await invoke('check_local_segmentation_ready');
+		return result as LocalSegmentationStatus;
+	} catch (error) {
+		console.error('Failed to check local segmentation status:', error);
+		return {
+			ready: false,
+			pythonInstalled: false,
+			packagesInstalled: false,
+			message: 'Failed to check local segmentation status'
+		};
+	}
+}
+
+/**
+ * Install dependencies for local segmentation.
+ * Returns a promise that resolves when installation is complete.
+ */
+export async function installLocalSegmentationDeps(): Promise<void> {
+	try {
+		await invoke('install_local_segmentation_deps');
+	} catch (error) {
+		console.error('Failed to install local segmentation deps:', error);
+		throw error;
+	}
+}
+
+/**
+ * Get the preferred segmentation mode.
+ * Returns 'local' if ready, otherwise 'api'.
+ */
+export async function getPreferredSegmentationMode(): Promise<SegmentationMode> {
+	const status = await checkLocalSegmentationStatus();
+	return status.ready ? 'local' : 'api';
+}
+
 type AutoSegmentationOptions = {
 	minSilenceMs?: number;
 	minSpeechMs?: number;
@@ -207,14 +262,20 @@ function insertSilenceClips(
  * - Refresh project UI and return summary
  *
  * @param {AutoSegmentationOptions} options - Segmentation tuning.
+ * @param {SegmentationMode} mode - Processing mode ('api' or 'local'). If not provided, uses preferred mode.
  * @returns {Promise<AutoSegmentationResult | null>} Result summary or null on error.
  */
 export async function runAutoSegmentation(
-	options: AutoSegmentationOptions = {}
+	options: AutoSegmentationOptions = {},
+	mode?: SegmentationMode
 ): Promise<AutoSegmentationResult | null> {
 	const minSilenceMs: number = options.minSilenceMs ?? 200;
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
 	const padMs: number = options.padMs ?? 50;
+
+	// Determine mode if not specified
+	const effectiveMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
+	console.log(`[AutoSegmentation] Using ${effectiveMode} mode`);
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
 	if (!audioInfo) {
@@ -234,8 +295,11 @@ export async function runAutoSegmentation(
 	}
 
 	try {
-		// Rust handles resampling + API calls.
-		const payload: unknown = await invoke('segment_quran_audio', {
+		// Choose command based on mode
+		const command =
+			effectiveMode === 'local' ? 'segment_quran_audio_local' : 'segment_quran_audio';
+
+		const payload: unknown = await invoke(command, {
 			audioPath: audioInfo.filePath,
 			minSilenceMs,
 			minSpeechMs,

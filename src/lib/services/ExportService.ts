@@ -40,6 +40,10 @@ export default class ExportService {
 	 * @returns Le chemin du dossier d'export
 	 */
 	static async getExportFolder(): Promise<string> {
+		if (globalState.settings?.persistentUiState.videoExportFolder) {
+			return globalState.settings.persistentUiState.videoExportFolder;
+		}
+
 		return join(await appDataDir(), this.exportFolder);
 	}
 

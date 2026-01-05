@@ -37,6 +37,7 @@
 
 		// Migration si besoin
 		MigrationService.FromQC313ToQC314();
+		MigrationService.FromQC326ToQC327();
 
 		// Discord Rich Presence
 		discordService.setEditingState();

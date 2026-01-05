@@ -94,7 +94,7 @@
 
 			<EditableText
 				bind:value={globalState.currentProject.detail.name}
-				text={'Project Name'}
+				text="Project Name"
 				parentClasses="absolute left-1/2 -translate-x-1/2 pr-[18px]"
 			></EditableText>
 		{/if}

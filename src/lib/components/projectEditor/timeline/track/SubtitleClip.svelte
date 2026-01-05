@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { SubtitleClip, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
+	import {
+		PredefinedSubtitleClip,
+		SubtitleClip,
+		TrackType,
+		ProjectEditorTabs,
+		type AssetClip,
+		type Clip,
+		type Track
+	} from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
@@ -11,7 +19,7 @@
 		nextIsSameVerse = false,
 		previousIsSameVerse = false
 	}: {
-		clip: SubtitleClip;
+		clip: SubtitleClip | PredefinedSubtitleClip;
 		track: Track;
 		nextIsSameVerse?: boolean;
 		previousIsSameVerse?: boolean;
@@ -26,6 +34,17 @@
 	// Détecte s'il existe des overrides de style pour ce clip (utilise VideoStyle)
 	const hasOverrides = $derived(() => {
 		return globalState.getVideoStyle.hasAnyOverrideForClip(clip.id);
+	});
+
+	const isSelected = $derived(() => {
+		return (
+			globalState.getStylesState.isSelected(clip.id) ||
+			globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id
+		);
+	});
+
+	const isLowConfidence = $derived(() => {
+		return clip.comeFromIA && clip.confidence !== null && clip.confidence <= 0.75;
 	});
 
 	let dragStartX: number | null = null;
@@ -51,6 +70,9 @@
 		document.removeEventListener('mousemove', onLeftDragging);
 		document.removeEventListener('mouseup', stopLeftDragging);
 		globalState.getTimelineState.showCursor = true;
+		if (clip.type !== 'Silence') {
+			clip.markAsManualEdit();
+		}
 	}
 
 	function startRightDragging(e: MouseEvent) {
@@ -72,6 +94,9 @@
 		document.removeEventListener('mousemove', onRightDragging);
 		document.removeEventListener('mouseup', stopRightDragging);
 		globalState.getTimelineState.showCursor = true;
+		if (clip.type !== 'Silence') {
+			clip.markAsManualEdit();
+		}
 	}
 
 	function addSilence(): void {
@@ -101,7 +126,19 @@
 	function clipClicked() {
 		// Sélectionne le clip si on est dans la page de style
 		if (globalState.currentProject!.projectEditorState.currentTab === 'Style') {
-			globalState.getStylesState.toggleSelection(clip);
+			if (clip instanceof SubtitleClip) {
+				globalState.getStylesState.toggleSelection(clip);
+			}
+		}
+	}
+
+	// Sur clic gauche, ouvre l'édition si l'on est dans Subtitles Editor sinon gère la sélection Style
+	function handleClipClick() {
+		const currentTab = globalState.currentProject!.projectEditorState.currentTab;
+		if (currentTab === ProjectEditorTabs.SubtitlesEditor) {
+			editSubtitle();
+		} else {
+			clipClicked();
 		}
 	}
 
@@ -112,16 +149,17 @@
 			globalState.getSubtitlesEditorState.editSubtitle = null;
 			return;
 		}
+		if (clip.type !== 'Silence') {
+			clip.markAsManualEdit();
+		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
 </script>
 
 <div
 	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
-		(globalState.getStylesState.isSelected(clip.id) ||
-		globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id
-			? ' bg-[#6265af]/50! border-[#6265af]/40! '
-			: '') +
+		(isSelected() ? ' bg-[#6265af]/50! border-[#6265af]/40! ' : '') +
+		(isLowConfidence() && !isSelected() ? ' ai-low-confidence ' : '') +
 		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ? 'cursor-pointer' : '')}
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
 	transition:slide={{ duration: 500, axis: 'x' }}
@@ -129,7 +167,7 @@
 		e.preventDefault();
 		contextMenu!.show(e);
 	}}
-	onclick={clipClicked}
+	onclick={handleClipClick}
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
 		<!-- Icône override (haut gauche) -->
@@ -232,5 +270,10 @@
 
 	.clip-path-end {
 		clip-path: polygon(0% 50%, 100% 40%, 100% 100%);
+	}
+
+	.ai-low-confidence {
+		background-color: rgba(230, 195, 60, 0.35) !important;
+		border-color: rgba(230, 195, 60, 0.6) !important;
 	}
 </style>

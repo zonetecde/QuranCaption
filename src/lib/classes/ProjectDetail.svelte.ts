@@ -128,6 +128,12 @@ export class ProjectDetail extends SerializableBase {
 	 * Génère, en fonction des paramètres d'export actuels, le nom du fichier d'export.
 	 */
 	generateExportFileName(): string {
+		// Si un nom de fichier personnalisé est défini, l'utiliser
+		if (globalState.getExportState.customFileName) {
+			const sanitized = globalState.getExportState.customFileName.replace(/[/\\:*?"<>|]/g, '_');
+			return sanitized;
+		}
+
 		// Nom du projet (Nom du récitateur) - Al Insan 12-21, XXX
 		const finalFileName =
 			globalState.currentProject!.detail.name +

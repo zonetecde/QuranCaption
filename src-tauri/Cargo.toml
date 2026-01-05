@@ -1,6 +1,6 @@
 [package]
 name = "qurancaption"
-version = "3.2.6"
+version = "3.2.8"
 description = "Transform Quranic recitations into stunning captioned videos with professional quality subtitles and translations in 40+ languages."
 authors = ["Rayane STASZEWSKI"]
 license = "Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)"
@@ -29,7 +29,8 @@ tauri-plugin-store = "2"
 dirs = "6.0.0"
 tauri-plugin-dialog = "2"
 font-kit = "0.14.3"
-tokio = { version = "1.0", features = ["process", "io-util", "rt-multi-thread"] }
+tokio = { version = "1.0", features = ["process", "io-util", "rt-multi-thread", "fs"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "multipart"] }
 regex = "1.0"
 lazy_static = "1.4"
 md5 = "0.7"

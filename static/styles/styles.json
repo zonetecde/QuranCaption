@@ -99,6 +99,16 @@
 				"icon": "format_bold"
 			},
 			{
+				"id": "enable-italic",
+				"name": "Enable Italic",
+				"description": "Enable italic styling for the text",
+				"value": false,
+				"valueType": "boolean",
+				"css": "font-style: italic;",
+				"tailwind": false,
+				"icon": "format_italic"
+			},
+			{
 				"id": "text-transform",
 				"name": "Text Transform",
 				"description": "Transform the case of the text",

@@ -19,7 +19,7 @@ function getBoundingBox(element) {
 		if (!tagName) return;
 
 		switch (tagName.toLowerCase()) {
-			case 'path':
+			case 'path': {
 				const d = el.getAttribute('d');
 				if (d) {
 					const pathBounds = getPathBounds(d);
@@ -31,8 +31,9 @@ function getBoundingBox(element) {
 					}
 				}
 				break;
+			}
 
-			case 'rect':
+			case 'rect': {
 				const x = parseFloat(el.getAttribute('x') || '0');
 				const y = parseFloat(el.getAttribute('y') || '0');
 				const width = parseFloat(el.getAttribute('width') || '0');
@@ -42,8 +43,9 @@ function getBoundingBox(element) {
 				maxX = Math.max(maxX, x + width);
 				maxY = Math.max(maxY, y + height);
 				break;
+			}
 
-			case 'circle':
+			case 'circle': {
 				const cx = parseFloat(el.getAttribute('cx') || '0');
 				const cy = parseFloat(el.getAttribute('cy') || '0');
 				const r = parseFloat(el.getAttribute('r') || '0');
@@ -52,8 +54,9 @@ function getBoundingBox(element) {
 				maxX = Math.max(maxX, cx + r);
 				maxY = Math.max(maxY, cy + r);
 				break;
+			}
 
-			case 'ellipse':
+			case 'ellipse': {
 				const ecx = parseFloat(el.getAttribute('cx') || '0');
 				const ecy = parseFloat(el.getAttribute('cy') || '0');
 				const rx = parseFloat(el.getAttribute('rx') || '0');
@@ -63,8 +66,9 @@ function getBoundingBox(element) {
 				maxX = Math.max(maxX, ecx + rx);
 				maxY = Math.max(maxY, ecy + ry);
 				break;
+			}
 
-			case 'line':
+			case 'line': {
 				const x1 = parseFloat(el.getAttribute('x1') || '0');
 				const y1 = parseFloat(el.getAttribute('y1') || '0');
 				const x2 = parseFloat(el.getAttribute('x2') || '0');
@@ -74,9 +78,10 @@ function getBoundingBox(element) {
 				maxX = Math.max(maxX, x1, x2);
 				maxY = Math.max(maxY, y1, y2);
 				break;
+			}
 
 			case 'polygon':
-			case 'polyline':
+			case 'polyline': {
 				const points = el.getAttribute('points');
 				if (points) {
 					const coords = points
@@ -93,6 +98,7 @@ function getBoundingBox(element) {
 					}
 				}
 				break;
+			}
 		}
 
 		// Traiter les éléments enfants

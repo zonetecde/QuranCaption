@@ -7,6 +7,7 @@ import {
 	ProjectContent,
 	ProjectDetail,
 	ProjectTranslation,
+	SourceType,
 	SubtitleClip,
 	Timeline,
 	TrackType,
@@ -88,6 +89,53 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Migre les données de Quran Caption 3.2.6 à Quran Caption 3.2.7
+	 * > Conversion des anciens champs fromYoutube/youtubeUrl/fromMp3Quran/mp3QuranUrl
+	 *   vers le nouveau format sourceUrl/sourceType
+	 */
+	static FromQC326ToQC327() {
+		if (globalState.currentProject) {
+			const assets = globalState.currentProject.content.assets;
+			let hasChanges = false;
+
+			for (const asset of assets) {
+				const assetAny = asset as any;
+
+				// Vérifie si l'asset a les anciens champs
+				if (
+					assetAny.fromMp3Quran !== undefined ||
+					assetAny.fromYoutube !== undefined ||
+					assetAny.youtubeUrl !== undefined ||
+					assetAny.mp3QuranUrl !== undefined
+				) {
+					// Migre vers le nouveau format
+					if (assetAny.fromMp3Quran) {
+						asset.sourceType = SourceType.Mp3Quran;
+						asset.sourceUrl = assetAny.mp3QuranUrl;
+					} else if (assetAny.fromYoutube) {
+						asset.sourceType = SourceType.YouTube;
+						asset.sourceUrl = assetAny.youtubeUrl;
+					} else {
+						asset.sourceType = SourceType.Local;
+					}
+
+					// Supprime les anciens champs
+					delete assetAny.fromMp3Quran;
+					delete assetAny.fromYoutube;
+					delete assetAny.youtubeUrl;
+					delete assetAny.mp3QuranUrl;
+
+					hasChanges = true;
+				}
+			}
+
+			if (hasChanges) {
+				globalState.currentProject.save();
+			}
+		}
+	}
+
+	/**
 	 * Vérifie si des données de Quran Caption 2 sont présentes
 	 * @returns true si des données sont trouvées, sinon false
 	 */
@@ -137,7 +185,7 @@ export default class MigrationService {
 			projectUpdatedAt
 		);
 
-		let newIds: { [oldId: string]: number } = {};
+		const newIds: { [oldId: string]: number } = {};
 
 		const projectContent = await ProjectContent.getDefaultProjectContent();
 
@@ -221,7 +269,7 @@ export default class MigrationService {
 		if (project.timeline.subtitlesTracks[0].clips.length > 0) {
 			for (const clip of project.timeline.subtitlesTracks[0].clips) {
 				if ((clip.surah === -1 || clip.verse === -1) && !clip.isSilence && !clip.isCustomText) {
-					let translations: { [key: string]: Translation } = {};
+					const translations: { [key: string]: Translation } = {};
 
 					// predefined subtitle clip
 					const sub = new PredefinedSubtitleClip(
@@ -275,7 +323,7 @@ export default class MigrationService {
 						subtitlesProperties.translations
 					);
 
-					let translations: { [key: string]: Translation } = {};
+					const translations: { [key: string]: Translation } = {};
 
 					for (const [key, value] of Object.entries(clip.translations)) {
 						const tr = new VerseTranslation(value as string, 'reviewed');

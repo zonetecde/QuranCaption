@@ -1,11 +1,14 @@
-use std::fs;
-use std::path::Path;
-use std::process::Command;
 use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 mod exporter;
 mod binaries;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
+use reqwest::multipart::{Form, Part};
+use tauri::Manager;
 
 use font_kit::source::SystemSource;
 
@@ -33,6 +36,90 @@ struct DiscordActivity {
 }
 
 const FFPROBE_NOT_FOUND_ERROR: &str = "FFPROBE_NOT_FOUND";
+const QURAN_SEGMENTATION_UPLOAD_URL: &str =
+    "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/upload";
+const QURAN_SEGMENTATION_QUEUE_JOIN_URL: &str =
+    "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/queue/join";
+const QURAN_SEGMENTATION_QUEUE_DATA_URL: &str =
+    "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/queue/data";
+// Hard-coded index for /process_audio_json in the current Space config.
+const QURAN_SEGMENTATION_FN_INDEX: u32 = 5;
+const QURAN_SEGMENTATION_USE_MOCK: bool = false;
+const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
+{
+    "segments": [
+        {
+        "confidence": 0.5,
+        "error": null,
+        "matched_text": "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
+        "ref_from": "Isti'adha",
+        "ref_to": "Isti'adha",
+        "segment": 1,
+        "time_from": 0.63,
+        "time_to": 6.11
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ",
+        "ref_from": "Basmala",
+        "ref_to": "Basmala",
+        "segment": 2,
+        "time_from": 7.99,
+        "time_to": 13.53
+    },
+    {
+        "confidence": 0.75,
+        "error": null,
+        "matched_text": "قُلْ هُوَ ٱللَّهُ أَحَدٌ",
+        "ref_from": "112:1:1",
+        "ref_to": "112:1:4",
+        "segment": 3,
+        "time_from": 15.15,
+        "time_to": 18.05
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "ٱللَّهُ ٱلصَّمَدُ",
+        "ref_from": "112:2:1",
+        "ref_to": "112:2:2",
+        "segment": 4,
+        "time_from": 19.47,
+        "time_to": 21.965
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "لَمْ يَلِدْ وَلَمْ يُولَدْ",
+        "ref_from": "112:3:1",
+        "ref_to": "112:3:4",
+        "segment": 5,
+        "time_from": 23.185,
+        "time_to": 26.665
+    },
+    {
+        "confidence": 1,
+        "error": null,
+        "matched_text": "وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدُۢ",
+        "ref_from": "112:4:1",
+        "ref_to": "112:4:5",
+        "segment": 6,
+        "time_from": 27.945,
+        "time_to": 32.665
+    }
+    ]
+}
+"#;
+
+// Simple guard to remove temp files even if we early-return on error.
+struct TempFileGuard(PathBuf);
+
+impl Drop for TempFileGuard {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
 
 fn configure_command_no_window(cmd: &mut Command) {
     #[cfg(target_os = "windows")]
@@ -249,6 +336,46 @@ fn get_new_file_path(start_time: u64, asset_name: &str) -> Result<String, String
         }
     }
     Err("Downloaded file not found".to_string())
+}
+
+
+#[tauri::command]
+fn save_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+    fs::write(&path, content).map_err(|e| format!("Failed to write file: {}", e))
+}
+
+#[tauri::command]
+async fn download_file(url: String, path: String) -> Result<(), String> {
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("HTTP error: {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    tokio::fs::write(&path, &bytes)
+        .await
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_file(path: String) -> Result<(), String> {
+    fs::remove_file(path).map_err(|e| format!("Failed to delete file: {}", e))
 }
 
 #[tauri::command]
@@ -573,6 +700,493 @@ fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn segment_quran_audio(
+    audio_path: String,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    // Early-return mock payload to avoid external API calls during testing.
+    if QURAN_SEGMENTATION_USE_MOCK {
+        return serde_json::from_str(QURAN_SEGMENTATION_MOCK_PAYLOAD)
+            .map_err(|e| format!("Mock segmentation JSON invalid: {}", e));
+    }
+
+    // Basic input validation before we do any heavy work.
+    if !Path::new(&audio_path).exists() {
+        return Err(format!("Audio file not found: {}", audio_path));
+    }
+
+    // Resolve ffmpeg so we can resample to 16kHz mono as required by the API.
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    // Build a unique temp file path for the resampled WAV.
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_millis();
+    let temp_path = std::env::temp_dir().join(format!("qurancaption-seg-{}.wav", stamp));
+    let _temp_guard = TempFileGuard(temp_path.clone());
+
+    // Resample to 16kHz mono WAV with ffmpeg.
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(&[
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        &audio_path,
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-c:a",
+        "pcm_s16le",
+        "-vn",
+        temp_path.to_string_lossy().as_ref(),
+    ]);
+    configure_command_no_window(&mut cmd);
+    let output = cmd.output().map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg error: {}", stderr));
+    }
+
+    // Read the resampled file into memory for upload.
+    let audio_bytes =
+        fs::read(&temp_path).map_err(|e| format!("Failed to read resampled audio: {}", e))?;
+
+    // Upload the file to the Gradio space and get a server-side path back.
+    let client = reqwest::Client::new();
+    let upload_part = Part::bytes(audio_bytes)
+        .file_name("audio.wav")
+        .mime_str("audio/wav")
+        .map_err(|e| e.to_string())?;
+    let upload_form = Form::new().part("files", upload_part);
+
+    let upload_response = client
+        .post(QURAN_SEGMENTATION_UPLOAD_URL)
+        .multipart(upload_form)
+        .send()
+        .await
+        .map_err(|e| format!("Upload request failed: {}", e))?
+        .error_for_status()
+        .map_err(|e| format!("Upload request error: {}", e))?;
+
+    let uploaded_paths: Vec<String> = upload_response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse upload response: {}", e))?;
+
+    let uploaded_path = uploaded_paths
+        .get(0)
+        .ok_or_else(|| "Upload response was empty".to_string())?;
+
+    // Build the API payload in Gradio "queue" format.
+    let file_payload = serde_json::json!({
+        "path": uploaded_path,
+        "orig_name": "audio.wav",
+        "mime_type": "audio/wav",
+        "meta": { "_type": "gradio.FileData" }
+    });
+    let session_hash = format!("qc{}", stamp);
+    let join_payload = serde_json::json!({
+        "data": [
+            file_payload,
+            min_silence_ms.unwrap_or(200),
+            min_speech_ms.unwrap_or(1000),
+            pad_ms.unwrap_or(50)
+        ],
+        "fn_index": QURAN_SEGMENTATION_FN_INDEX,
+        "session_hash": session_hash
+    });
+
+    // Join the Gradio queue to start processing.
+    let join_response = client
+        .post(QURAN_SEGMENTATION_QUEUE_JOIN_URL)
+        .json(&join_payload)
+        .send()
+        .await
+        .map_err(|e| format!("Queue join failed: {}", e))?
+        .error_for_status()
+        .map_err(|e| format!("Queue join error: {}", e))?;
+
+    let join_json: serde_json::Value = join_response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse queue join response: {}", e))?;
+
+    let event_id = join_json
+        .get("event_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "Queue join did not return an event_id".to_string())?
+        .to_string();
+
+    // Poll the queue stream (SSE) until the job completes.
+    let queue_url = format!(
+        "{}?session_hash={}",
+        QURAN_SEGMENTATION_QUEUE_DATA_URL, session_hash
+    );
+    let sse_text = client
+        .get(queue_url)
+        .send()
+        .await
+        .map_err(|e| format!("Queue stream request failed: {}", e))?
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read queue stream: {}", e))?;
+
+    for line in sse_text.lines() {
+        let line = line.trim();
+        if !line.starts_with("data:") {
+            continue;
+        }
+
+        let json_str = line.trim_start_matches("data:").trim();
+        if json_str.is_empty() {
+            continue;
+        }
+
+        let event: serde_json::Value = serde_json::from_str(json_str)
+            .map_err(|e| format!("Failed to parse queue event: {}", e))?;
+
+        // Ignore events for other jobs.
+        if let Some(eid) = event.get("event_id").and_then(|v| v.as_str()) {
+            if eid != event_id {
+                continue;
+            }
+        }
+
+        let msg = event.get("msg").and_then(|v| v.as_str()).unwrap_or("");
+        if msg != "process_completed" {
+            continue;
+        }
+
+        let success = event.get("success").and_then(|v| v.as_bool()).unwrap_or(true);
+        let output = event.get("output").cloned().unwrap_or_else(|| event.clone());
+
+        if !success {
+            let error_msg = output
+                .get("error")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Segmentation failed")
+                .to_string();
+            return Err(error_msg);
+        }
+
+        // Gradio returns output.data[0] for JSON components; unwrap it when present.
+        if let Some(data) = output.get("data").and_then(|v| v.as_array()) {
+            if let Some(first) = data.first() {
+                return Ok(first.clone());
+            }
+        }
+
+        return Ok(output);
+    }
+
+    Err("Segmentation queue ended without a result".to_string())
+}
+
+/// Check if Python and required packages are available for local segmentation
+#[tauri::command]
+fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
+    // Try to find Python executable
+    let python_cmd = if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    };
+
+    // Check if Python is available
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&["--version"]);
+    configure_command_no_window(&mut cmd);
+    
+    let python_available = match cmd.output() {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    };
+
+    if !python_available {
+        return Ok(serde_json::json!({
+            "ready": false,
+            "pythonInstalled": false,
+            "packagesInstalled": false,
+            "message": "Python is not installed. Please install Python 3.10+ from python.org"
+        }));
+    }
+
+    // Check if required packages are installed
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&["-c", "import torch, transformers, librosa, numpy, soundfile; print('ok')"]);
+    configure_command_no_window(&mut cmd);
+    
+    let packages_available = match cmd.output() {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    };
+
+    Ok(serde_json::json!({
+        "ready": packages_available,
+        "pythonInstalled": true,
+        "packagesInstalled": packages_available,
+        "message": if packages_available {
+            "Local segmentation is ready"
+        } else {
+            "Python packages need to be installed (~3GB download)"
+        }
+    }))
+}
+
+/// Install Python dependencies for local segmentation
+#[tauri::command]
+async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let python_cmd = if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    };
+
+    // Get the path to the requirements.txt in the app bundle
+    let resource_path = app_handle
+        .path()
+        .resolve("python/requirements.txt", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| e.to_string())?;
+
+    // If resource path doesn't exist, try the development path
+    let requirements_path = if resource_path.exists() {
+        resource_path
+    } else {
+        // Development fallback - try to find it relative to the executable
+        let exe_dir = std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .ok_or("Cannot get executable directory")?
+            .to_path_buf();
+        
+        // Try a few locations
+        let dev_path = exe_dir.join("..").join("..").join("python").join("requirements.txt");
+        if dev_path.exists() {
+            dev_path
+        } else {
+            return Err("requirements.txt not found".to_string());
+        }
+    };
+
+    // Install CUDA-enabled PyTorch by default on Windows.
+    if cfg!(target_os = "windows") {
+        let mut cuda_install_errors: Vec<String> = Vec::new();
+        let cuda_indexes = ["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"];
+
+        for index_url in cuda_indexes {
+            let mut torch_cmd = Command::new(python_cmd);
+            torch_cmd.args(&[
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--force-reinstall",
+                "torch",
+                "torchvision",
+                "torchaudio",
+                "--index-url",
+                index_url,
+                "--quiet",
+            ]);
+            configure_command_no_window(&mut torch_cmd);
+
+            let torch_output = torch_cmd
+                .output()
+                .map_err(|e| format!("Failed to run pip (torch): {}", e))?;
+
+            if !torch_output.status.success() {
+                let stderr = String::from_utf8_lossy(&torch_output.stderr);
+                cuda_install_errors.push(format!("CUDA index {} failed: {}", index_url, stderr));
+                continue;
+            }
+
+            let mut cuda_check = Command::new(python_cmd);
+            cuda_check.args(&[
+                "-c",
+                "import torch; print(torch.version.cuda or '')",
+            ]);
+            configure_command_no_window(&mut cuda_check);
+
+            let cuda_output = cuda_check
+                .output()
+                .map_err(|e| format!("Failed to verify CUDA torch: {}", e))?;
+            let cuda_str = String::from_utf8_lossy(&cuda_output.stdout).trim().to_string();
+
+            if !cuda_str.is_empty() {
+                cuda_install_errors.clear();
+                break;
+            }
+
+            cuda_install_errors.push(format!(
+                "CUDA index {} installed CPU-only torch",
+                index_url
+            ));
+        }
+
+        if !cuda_install_errors.is_empty() {
+            return Err(format!(
+                "Failed to install CUDA-enabled torch. {}",
+                cuda_install_errors.join(" | ")
+            ));
+        }
+    }
+
+    let requirements_to_use = if cfg!(target_os = "windows") {
+        let requirements_content = std::fs::read_to_string(&requirements_path)
+            .map_err(|e| format!("Failed to read requirements.txt: {}", e))?;
+        let filtered: String = requirements_content
+            .lines()
+            .filter(|line| {
+                let trimmed = line.trim();
+                if trimmed.is_empty() || trimmed.starts_with('#') {
+                    return false;
+                }
+                let lower = trimmed.to_lowercase();
+                !(lower.starts_with("torch") || lower.starts_with("torchvision") || lower.starts_with("torchaudio"))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let filtered_path = std::env::temp_dir().join("qurancaption_requirements_no_torch.txt");
+        std::fs::write(&filtered_path, filtered)
+            .map_err(|e| format!("Failed to write filtered requirements: {}", e))?;
+        filtered_path
+    } else {
+        requirements_path
+    };
+
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&[
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        requirements_to_use.to_string_lossy().as_ref(),
+        "--quiet",
+    ]);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to run pip: {}", e))?;
+
+    if output.status.success() {
+        Ok("Dependencies installed successfully".to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("pip install failed: {}", stderr))
+    }
+}
+
+/// Run local segmentation using the Python script
+#[tauri::command]
+async fn segment_quran_audio_local(
+    app_handle: tauri::AppHandle,
+    audio_path: String,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    whisper_model: Option<String>,
+) -> Result<serde_json::Value, String> {
+    // Validate input file exists
+    if !Path::new(&audio_path).exists() {
+        return Err(format!("Audio file not found: {}", audio_path));
+    }
+
+    let python_cmd = if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    };
+
+    // Get the path to the Python script
+    let resource_path = app_handle
+        .path()
+        .resolve("python/local_segmenter.py", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| e.to_string())?;
+
+    // Development fallback
+    let script_path = if resource_path.exists() {
+        resource_path
+    } else {
+        let exe_dir = std::env::current_exe()
+            .map_err(|e| e.to_string())?
+            .parent()
+            .ok_or("Cannot get executable directory")?
+            .to_path_buf();
+        
+        let dev_path = exe_dir.join("..").join("..").join("python").join("local_segmenter.py");
+        if dev_path.exists() {
+            dev_path
+        } else {
+            return Err("local_segmenter.py not found".to_string());
+        }
+    };
+
+    // Build command arguments
+    let mut args = vec![
+        script_path.to_string_lossy().to_string(),
+        audio_path,
+    ];
+
+    if let Some(ms) = min_silence_ms {
+        args.push("--min-silence-ms".to_string());
+        args.push(ms.to_string());
+    }
+    if let Some(ms) = min_speech_ms {
+        args.push("--min-speech-ms".to_string());
+        args.push(ms.to_string());
+    }
+    if let Some(ms) = pad_ms {
+        args.push("--pad-ms".to_string());
+        args.push(ms.to_string());
+    }
+    if let Some(model) = whisper_model {
+        args.push("--whisper-model".to_string());
+        args.push(model);
+    }
+
+    let mut cmd = Command::new(python_cmd);
+    cmd.args(&args);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd.output().map_err(|e| format!("Failed to run Python: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let result: serde_json::Value = serde_json::from_str(&stdout)
+            .map_err(|e| format!("Failed to parse Python output: {}", e))?;
+        
+        // Check if there's an error in the JSON response
+        if let Some(error) = result.get("error") {
+            return Err(error.as_str().unwrap_or("Unknown error").to_string());
+        }
+        
+        Ok(result)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        
+        // Try to parse error from stdout (our script outputs JSON errors)
+        if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+            if let Some(error) = error_json.get("error") {
+                return Err(error.as_str().unwrap_or("Unknown error").to_string());
+            }
+        }
+        
+        Err(format!("Python script failed: {}\n{}", stderr, stdout))
+    }
+}
+
+#[tauri::command]
 async fn init_discord_rpc(app_id: String) -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
     
@@ -694,6 +1308,9 @@ pub fn run() {
             download_from_youtube,
             get_duration,
             get_new_file_path,
+            save_binary_file,
+            download_file,
+            delete_file,
             move_file,
             get_system_fonts,
             open_explorer_with_file_selected,
@@ -702,6 +1319,10 @@ pub fn run() {
             exporter::cancel_export,
             exporter::concat_videos,
             convert_audio_to_cbr,
+            segment_quran_audio,
+            segment_quran_audio_local,
+            check_local_segmentation_ready,
+            install_local_segmentation_deps,
             init_discord_rpc,
             update_discord_activity,
             clear_discord_activity,

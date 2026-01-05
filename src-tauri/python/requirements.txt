@@ -1,0 +1,9 @@
+# Requirements for local Quran audio segmentation
+# Total size: ~2-3 GB (PyTorch + models)
+
+torch>=2.0.0
+transformers>=4.30.0
+librosa>=0.10.0
+numpy>=1.24.0
+soundfile>=0.12.0
+recitations_segmenter>=1.0.0

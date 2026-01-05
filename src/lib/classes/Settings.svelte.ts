@@ -9,6 +9,14 @@ import { telemetry } from '$lib/services/Telemetry';
 import { VersionService } from '$lib/services/VersionService.svelte';
 import MigrationService from '$lib/services/MigrationService';
 
+export type AutoSegmentationSettings = {
+	mode: 'api' | 'local';
+	minSilenceMs: number;
+	minSpeechMs: number;
+	padMs: number;
+	whisperModel: 'tiny' | 'base' | 'medium' | 'large';
+};
+
 export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 
@@ -17,7 +25,16 @@ export default class Settings extends SerializableBase {
 		// Indique si on affiche le moniteur d'exportation
 		projectCardView: 'grid' as 'grid' | 'list',
 		showWaveforms: true,
-		lastClosedUpdateModal: new Date(0).toISOString()
+		lastClosedUpdateModal: new Date(0).toISOString(),
+		videoExportFolder: ''
+	});
+
+	autoSegmentationSettings = $state<AutoSegmentationSettings>({
+		mode: 'local',
+		minSilenceMs: 200,
+		minSpeechMs: 1000,
+		padMs: 50,
+		whisperModel: 'base'
 	});
 
 	// Shortcut categories metadata

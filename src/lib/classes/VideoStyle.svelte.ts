@@ -59,6 +59,7 @@ export type TextStyleName =
 	| 'font-size'
 	| 'font-family'
 	| 'font-weight'
+	| 'enable-italic'
 	| 'text-transform'
 	| 'letter-spacing'
 	| 'word-spacing'
@@ -230,6 +231,10 @@ export class Style extends SerializableBase {
 				continue;
 			}
 
+			if (element.id === 'enable-italic' && !element.value) {
+				continue;
+			}
+
 			if (element.id && element.css)
 				css += element.css.replaceAll('{value}', String(element.value)) + '\n';
 		}
@@ -354,13 +359,22 @@ export class StylesData extends SerializableBase {
 
 				// Pour les catégories de styles qui peuvent être désactivées (border, outline, ...),
 				// si la propriété d'activation est false, on ne génère pas le CSS des autres styles
-				if (style.valueType === 'boolean' && style.id.includes('enable')) {
-					if (!Boolean(effectiveValue)) {
+				const isCategoryToggle =
+					style.valueType === 'boolean' &&
+					style.id.includes('enable') &&
+					style.id !== 'enable-italic';
+
+				if (isCategoryToggle) {
+					if (!effectiveValue) {
 						skipCategory = true;
 						break;
 					} else {
 						continue; // ne pas générer la règle pour le flag lui-même
 					}
+				}
+
+				if (style.id === 'enable-italic' && !effectiveValue) {
+					continue;
 				}
 
 				// Si la catégorie est dans la liste des catégories à exclure, on skip tout le CSS
@@ -415,7 +429,7 @@ export class StylesData extends SerializableBase {
 						const r = parseInt(effectiveValue.slice(1, 3), 16);
 						const g = parseInt(effectiveValue.slice(3, 5), 16);
 						const b = parseInt(effectiveValue.slice(5, 7), 16);
-						let valeur = `rgba(${r}, ${g}, ${b}, var(--background-opacity))`;
+						const valeur = `rgba(${r}, ${g}, ${b}, var(--background-opacity))`;
 
 						css += 'background-color: ' + valeur + ';\n';
 						continue;
@@ -424,7 +438,7 @@ export class StylesData extends SerializableBase {
 
 				// Cas particulier pour `show-subtitles`
 				if (style.id === 'show-subtitles') {
-					if (!Boolean(effectiveValue)) {
+					if (!effectiveValue) {
 						return 'display: none;';
 					}
 				}
@@ -462,7 +476,7 @@ export class StylesData extends SerializableBase {
 				if (!style.tailwind || !style.tailwindClass) continue;
 
 				// Remplace {value} par la valeur actuelle
-				let tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(style.value));
+				const tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(style.value));
 
 				if (tailwindClass.trim()) {
 					tailwindClasses += tailwindClass + ' ';
@@ -833,7 +847,7 @@ export class VideoStyle extends SerializableBase {
 	 * @return Les données exportées en format JSON
 	 */
 	exportStyles(includedExportClips: Set<number>): string {
-		let exportData: videoStyleFileData = {
+		const exportData: videoStyleFileData = {
 			videoStyle: JSON.parse(JSON.stringify(this)),
 			customClips: []
 		};

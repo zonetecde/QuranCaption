@@ -1,7 +1,7 @@
 import { Timeline } from './Timeline.svelte.js';
 import { Asset } from './Asset.svelte.js';
 import { AssetTrack, CustomTextTrack, SubtitleTrack, Track } from './Track.svelte.js';
-import { AssetType, TrackType } from './enums.js';
+import { AssetType, SourceType, TrackType } from './enums.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import toast from 'svelte-5-french-toast';
 import { ProjectTranslation, VideoStyle } from './index.js';
@@ -52,8 +52,8 @@ export class ProjectContent extends SerializableBase {
 		);
 	}
 
-	addAsset(filePath: string, youtubeUrl?: string): void {
-		const asset = new Asset(filePath, youtubeUrl);
+	addAsset(filePath: string, sourceUrl?: string, sourceType: SourceType = SourceType.Local): void {
+		const asset = new Asset(filePath, sourceUrl, sourceType);
 		if (asset.type === AssetType.Unknown) {
 			toast.error('This file format is not supported.');
 			return;

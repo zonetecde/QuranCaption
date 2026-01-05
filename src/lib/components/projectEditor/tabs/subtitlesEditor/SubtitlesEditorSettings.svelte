@@ -1,10 +1,27 @@
 <script lang="ts">
-	import { PredefinedSubtitleClip, ProjectTranslation } from '$lib/classes';
+	import { PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { fade, slide } from 'svelte/transition';
+	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
+	import { fade } from 'svelte/transition';
 
 	let presetChoice: string = $state('');
+	let autoSegmentationModalVisible = $state(false);
+
+	type SpecialPreset = 'Silence' | 'Istiadhah' | 'Basmala';
+
+	function isSpecialPreset(value: string): value is SpecialPreset {
+		return value === 'Silence' || value === 'Istiadhah' || value === 'Basmala';
+	}
+
+	function isEditableSubtitle(
+		clip: { type?: string } | null
+	): clip is SubtitleClip | PredefinedSubtitleClip | SilenceClip {
+		return (
+			!!clip &&
+			(clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle' || clip.type === 'Silence')
+		);
+	}
 
 	$effect(() => {
 		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
@@ -47,11 +64,11 @@
 		} else {
 			// Sinon on applique le changement de sous-titre
 			const subtitleTrack = globalState.getSubtitleTrack;
-			subtitleTrack.editSubtitleToSpecial(
-				globalState.getSubtitlesEditorState.editSubtitle!,
-				//@ts-ignore
-				presetChoice
-			);
+			const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+			if (!isSpecialPreset(presetChoice) || !isEditableSubtitle(editSubtitle)) {
+				return;
+			}
+			subtitleTrack.editSubtitleToSpecial(editSubtitle, presetChoice);
 			globalState.getSubtitlesEditorState.editSubtitle = null;
 		}
 	}
@@ -223,8 +240,27 @@
 				</div>
 			</div>
 		</div>
+
+		<div class="space-y-3">
+			<h3 class="text-sm font-medium text-secondary mb-3">AI-Assisted Segmentation</h3>
+			<button
+				class="btn-accent w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2"
+				type="button"
+				title="Auto segment audio into Quran verses"
+				onclick={() => (autoSegmentationModalVisible = true)}
+			>
+				<span class="material-icons text-base">auto_awesome</span>
+				Auto-Segment
+			</button>
+		</div>
 	{/if}
 </div>
+
+{#if autoSegmentationModalVisible}
+	<div class="modal-wrapper" transition:fade>
+		<AutoSegmentationModal close={() => (autoSegmentationModalVisible = false)} />
+	</div>
+{/if}
 
 <style>
 	.animate-pulse {

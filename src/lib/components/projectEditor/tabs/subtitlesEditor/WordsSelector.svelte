@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SubtitleClip, TrackType } from '$lib/classes';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import type { PredefinedSubtitleClip, PredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import { Quran, type Verse, type Word } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -233,6 +234,9 @@
 			globalState.getSubtitlesEditorState.editSubtitle = null;
 			return;
 		}
+		if (clip instanceof ClipWithTranslation) {
+			clip.markAsManualEdit();
+		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
 
@@ -338,6 +342,16 @@
 	function removeLastSubtitle(): void {
 		const subtitleTrack = globalState.getSubtitleTrack;
 
+		// Si un sous-titre est en cours d'édition, on le supprime explicitement plutôt que le dernier ajouté
+		const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		if (editedSubtitle) {
+			subtitleTrack.removeClip(editedSubtitle.id, true);
+			globalState.getSubtitlesEditorState.editSubtitle = null;
+			globalState.currentProject!.detail.updateVideoDetailAttributes();
+			globalState.updateVideoPreviewUI();
+			return;
+		}
+
 		subtitleTrack.removeLastClip();
 
 		globalState.currentProject!.detail.updateVideoDetailAttributes();
@@ -353,6 +367,9 @@
 		const lastSubtitle = subtitleTrack.getLastClip();
 		if (lastSubtitle) {
 			lastSubtitle.setEndTime(globalState.getTimelineState.cursorPosition);
+			if (lastSubtitle instanceof SubtitleClip) {
+				lastSubtitle.markAsManualEdit();
+			}
 		}
 	}
 

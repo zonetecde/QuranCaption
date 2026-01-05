@@ -4,6 +4,7 @@
 	import Settings, { type AutoSegmentationSettings } from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import {
 		getAutoSegmentationAudioInfo,
 		runAutoSegmentation,
@@ -25,6 +26,8 @@
 	let localStatus = $state<LocalSegmentationStatus | null>(null);
 	let isCheckingStatus = $state(true);
 	let isInstallingDeps = $state(false);
+	let currentStatus = $state<string>('');
+	let installStatus = $state<string>('');
 
 	// Advanced settings state
 	let showAdvancedSettings = $state(false);
@@ -116,6 +119,13 @@
 		if (isInstallingDeps) return;
 		isInstallingDeps = true;
 		errorMessage = null;
+		installStatus = 'Starting installation...';
+
+		// Listen for install status updates
+		const unlisten = await listen<{ message: string }>('install-status', (event) => {
+			installStatus = event.payload.message;
+		});
+
 		try {
 			await installLocalSegmentationDeps();
 			// Re-check status after installation
@@ -124,6 +134,8 @@
 			errorMessage = `Failed to install dependencies: ${error}`;
 		} finally {
 			isInstallingDeps = false;
+			installStatus = '';
+			unlisten();
 		}
 	}
 
@@ -154,6 +166,15 @@
 		isRunning = true;
 		errorMessage = null;
 		result = null;
+		currentStatus = '';
+
+		// Listen for status updates from local segmentation
+		let unlisten: UnlistenFn | null = null;
+		if (selectedMode === 'local') {
+			unlisten = await listen<{ step: string; message: string }>('segmentation-status', (event) => {
+				currentStatus = event.payload.message;
+			});
+		}
 
 		try {
 			const response = await runAutoSegmentation(
@@ -176,6 +197,8 @@
 			}
 		} finally {
 			isRunning = false;
+			currentStatus = '';
+			if (unlisten) unlisten();
 		}
 	}
 </script>
@@ -334,7 +357,7 @@
 							<div
 								class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
 							></div>
-							Installing...
+							{installStatus || 'Installing...'}
 						{:else}
 							<span class="material-icons text-sm">download</span>
 							Install
@@ -493,7 +516,15 @@
 				<div
 					class="w-6 h-6 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"
 				></div>
-				<div class="text-sm text-secondary">Segmenting audio... please wait.</div>
+				<div class="text-sm text-secondary">
+					{#if currentStatus}
+						{currentStatus}
+					{:else if selectedMode === 'api'}
+						Sending audio to cloud API...
+					{:else}
+						Starting local processing...
+					{/if}
+				</div>
 			</div>
 		{:else if result && result.status === 'completed'}
 			<div class="bg-accent border border-color rounded-xl px-4 py-3 space-y-2">

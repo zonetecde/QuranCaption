@@ -944,10 +944,17 @@ fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
 /// Install Python dependencies for local segmentation
 #[tauri::command]
 async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result<String, String> {
+    use tauri::Emitter;
+
     let python_cmd = if cfg!(target_os = "windows") {
         "python"
     } else {
         "python3"
+    };
+
+    // Helper to emit install status
+    let emit_status = |message: &str| {
+        let _ = app_handle.emit("install-status", serde_json::json!({ "message": message }));
     };
 
     // Get the path to the requirements.txt in the app bundle
@@ -978,6 +985,7 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
 
     // Install CUDA-enabled PyTorch by default on Windows, with CPU fallback.
     if cfg!(target_os = "windows") {
+        emit_status("Installing PyTorch (trying CUDA)...");
         let mut cuda_install_errors: Vec<String> = Vec::new();
         let cuda_indexes = ["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"];
         let mut cuda_success = false;
@@ -1035,6 +1043,7 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
 
         // Fallback to CPU-only torch if CUDA installation failed
         if !cuda_success {
+            emit_status("Installing PyTorch (CPU version)...");
             let mut cpu_cmd = Command::new(python_cmd);
             cpu_cmd.args(&[
                 "-m",
@@ -1092,6 +1101,7 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
         requirements_path
     };
 
+    emit_status("Installing ML packages (transformers, librosa...)...");
     let mut cmd = Command::new(python_cmd);
     cmd.args(&[
         "-m",
@@ -1125,6 +1135,10 @@ async fn segment_quran_audio_local(
     pad_ms: Option<u32>,
     whisper_model: Option<String>,
 ) -> Result<serde_json::Value, String> {
+    use std::process::Stdio;
+    use std::io::{BufRead, BufReader};
+    use tauri::Emitter;
+
     // Validate input file exists
     if !Path::new(&audio_path).exists() {
         return Err(format!("Audio file not found: {}", audio_path));
@@ -1185,9 +1199,36 @@ async fn segment_quran_audio_local(
 
     let mut cmd = Command::new(python_cmd);
     cmd.args(&args);
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
     configure_command_no_window(&mut cmd);
 
-    let output = cmd.output().map_err(|e| format!("Failed to run Python: {}", e))?;
+    let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn Python: {}", e))?;
+    
+    // Read stderr in a separate thread for status updates
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+    let app_handle_clone = app_handle.clone();
+    
+    let stderr_handle = std::thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines() {
+            if let Ok(line) = line {
+                // Check for STATUS: prefix
+                if line.starts_with("STATUS:") {
+                    let json_str = line.trim_start_matches("STATUS:");
+                    if let Ok(status_data) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        let _ = app_handle_clone.emit("segmentation-status", status_data);
+                    }
+                }
+            }
+        }
+    });
+
+    // Wait for process to complete
+    let output = child.wait_with_output().map_err(|e| format!("Failed to wait for Python: {}", e))?;
+    
+    // Wait for stderr thread to finish
+    let _ = stderr_handle.join();
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -1201,7 +1242,6 @@ async fn segment_quran_audio_local(
         
         Ok(result)
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
         
         // Try to parse error from stdout (our script outputs JSON errors)
@@ -1211,9 +1251,10 @@ async fn segment_quran_audio_local(
             }
         }
         
-        Err(format!("Python script failed: {}\n{}", stderr, stdout))
+        Err(format!("Python script failed: {}", stdout))
     }
 }
+
 
 #[tauri::command]
 async fn init_discord_rpc(app_id: String) -> Result<(), String> {

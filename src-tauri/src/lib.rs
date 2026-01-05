@@ -976,10 +976,11 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
         }
     };
 
-    // Install CUDA-enabled PyTorch by default on Windows.
+    // Install CUDA-enabled PyTorch by default on Windows, with CPU fallback.
     if cfg!(target_os = "windows") {
         let mut cuda_install_errors: Vec<String> = Vec::new();
         let cuda_indexes = ["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"];
+        let mut cuda_success = false;
 
         for index_url in cuda_indexes {
             let mut torch_cmd = Command::new(python_cmd);
@@ -1021,6 +1022,7 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
             let cuda_str = String::from_utf8_lossy(&cuda_output.stdout).trim().to_string();
 
             if !cuda_str.is_empty() {
+                cuda_success = true;
                 cuda_install_errors.clear();
                 break;
             }
@@ -1031,13 +1033,40 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
             ));
         }
 
-        if !cuda_install_errors.is_empty() {
-            return Err(format!(
-                "Failed to install CUDA-enabled torch. {}",
-                cuda_install_errors.join(" | ")
-            ));
+        // Fallback to CPU-only torch if CUDA installation failed
+        if !cuda_success {
+            let mut cpu_cmd = Command::new(python_cmd);
+            cpu_cmd.args(&[
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--force-reinstall",
+                "torch",
+                "torchvision",
+                "torchaudio",
+                "--index-url",
+                "https://download.pytorch.org/whl/cpu",
+                "--quiet",
+            ]);
+            configure_command_no_window(&mut cpu_cmd);
+
+            let cpu_output = cpu_cmd
+                .output()
+                .map_err(|e| format!("Failed to run pip (torch CPU): {}", e))?;
+
+            if !cpu_output.status.success() {
+                let stderr = String::from_utf8_lossy(&cpu_output.stderr);
+                return Err(format!(
+                    "Failed to install torch. CUDA attempts: {} | CPU fallback failed: {}",
+                    cuda_install_errors.join(" | "),
+                    stderr
+                ));
+            }
+            // CPU installation succeeded - continue with other packages
         }
     }
+
 
     let requirements_to_use = if cfg!(target_os = "windows") {
         let requirements_content = std::fs::read_to_string(&requirements_path)

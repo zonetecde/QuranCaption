@@ -247,35 +247,35 @@
 		<div class="bg-accent border border-color rounded-xl p-4 space-y-3">
 			<div class="text-sm text-primary font-medium">Processing Mode</div>
 
-			{#if isCheckingStatus}
-				<div class="flex items-center gap-2 text-sm text-secondary">
-					<div
-						class="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"
-					></div>
-					Checking local processing availability...
-				</div>
-			{:else}
-				<div class="space-y-2">
-					<!-- API Mode -->
-					<label
-						class="flex items-start gap-3 p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] cursor-pointer transition-colors"
-					>
-						<input
-							type="radio"
-							name="mode"
-							value="api"
-							bind:group={selectedMode}
-							onchange={persistModeSettings}
-							class="mt-0.5 accent-accent-primary"
-						/>
-						<div class="flex-1">
-							<div class="text-sm text-primary font-medium">Cloud API</div>
-							<div class="text-xs text-thirdly">Fast, but limited by GPU quota</div>
-						</div>
-						<span class="material-icons text-accent-primary text-lg">cloud</span>
-					</label>
+			<div class="space-y-2">
+				<!-- API Mode - Always visible -->
+				<label
+					class="flex items-start gap-3 p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] cursor-pointer transition-colors"
+				>
+					<input
+						type="radio"
+						name="mode"
+						value="api"
+						bind:group={selectedMode}
+						onchange={persistModeSettings}
+						class="mt-0.5 accent-accent-primary"
+					/>
+					<div class="flex-1">
+						<div class="text-sm text-primary font-medium">Cloud API</div>
+						<div class="text-xs text-thirdly">Fast, but limited by GPU quota</div>
+					</div>
+					<span class="material-icons text-accent-primary text-lg">cloud</span>
+				</label>
 
-					<!-- Local Mode -->
+				<!-- Local Mode - Shows loading while checking, then actual status -->
+				{#if isCheckingStatus}
+					<div class="flex items-center gap-2 text-sm text-secondary p-2">
+						<div
+							class="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"
+						></div>
+						Checking local processing availability...
+					</div>
+				{:else if localStatus}
 					<label
 						class="flex items-start gap-3 p-2 rounded-lg hover:bg-[rgba(255,255,255,0.05)] cursor-pointer transition-colors"
 						class:opacity-50={!localStatus?.ready && !localStatus?.pythonInstalled}
@@ -312,50 +312,48 @@
 						</div>
 						<span class="material-icons text-accent-primary text-lg">computer</span>
 					</label>
-				</div>
-
-				<!-- Installation prompt if needed -->
-				{#if localStatus?.pythonInstalled && !localStatus?.packagesInstalled}
-					<div
-						class="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3"
-					>
-						<span class="material-icons text-yellow-400">download</span>
-						<div class="flex-1">
-							<div class="text-sm text-primary">Python packages need to be installed</div>
-							<div class="text-xs text-thirdly">This will download ~3 GB of ML libraries</div>
-						</div>
-						<button
-							class="btn-accent px-3 py-1.5 text-xs flex items-center gap-1.5"
-							onclick={handleInstallDeps}
-							disabled={isInstallingDeps}
-						>
-							{#if isInstallingDeps}
-								<div
-									class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
-								></div>
-								Installing...
-							{:else}
-								<span class="material-icons text-sm">download</span>
-								Install
-							{/if}
-						</button>
-					</div>
-				{:else if !localStatus?.pythonInstalled}
-					<div
-						class="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3"
-					>
-						<span class="material-icons text-red-400">warning</span>
-						<div class="flex-1">
-							<div class="text-sm text-primary">Python is not installed</div>
-							<div class="text-xs text-thirdly">
-								Install Python 3.10+ from
-								<a href="https://python.org" target="_blank" class="text-accent-primary underline"
-									>python.org</a
-								>
-							</div>
-						</div>
-					</div>
 				{/if}
+			</div>
+
+			<!-- Installation prompt if needed (only after check completes) -->
+			{#if !isCheckingStatus && localStatus?.pythonInstalled && !localStatus?.packagesInstalled}
+				<div
+					class="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3"
+				>
+					<span class="material-icons text-yellow-400">download</span>
+					<div class="flex-1">
+						<div class="text-sm text-primary">Python packages need to be installed</div>
+						<div class="text-xs text-thirdly">This will download ~3 GB of ML libraries</div>
+					</div>
+					<button
+						class="btn-accent px-3 py-1.5 text-xs flex items-center gap-1.5"
+						onclick={handleInstallDeps}
+						disabled={isInstallingDeps}
+					>
+						{#if isInstallingDeps}
+							<div
+								class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"
+							></div>
+							Installing...
+						{:else}
+							<span class="material-icons text-sm">download</span>
+							Install
+						{/if}
+					</button>
+				</div>
+			{:else if !isCheckingStatus && localStatus && !localStatus?.pythonInstalled}
+				<div class="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+					<span class="material-icons text-red-400">warning</span>
+					<div class="flex-1">
+						<div class="text-sm text-primary">Python is not installed</div>
+						<div class="text-xs text-thirdly">
+							Install Python 3.10+ from
+							<a href="https://python.org" target="_blank" class="text-accent-primary underline"
+								>python.org</a
+							>
+						</div>
+					</div>
+				</div>
 			{/if}
 		</div>
 

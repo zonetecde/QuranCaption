@@ -402,9 +402,13 @@ export async function runAutoSegmentation(
 			(a, b) => (a.time_from ?? 0) - (b.time_from ?? 0)
 		);
 
+		// Collect segment errors to surface them if all segments fail
+		const segmentErrors: string[] = [];
+
 		for (const segment of orderedSegments) {
 			if (segment.error) {
-				console.warn('Skipping segment with error:', segment);
+				console.warn('Segment has error:', segment);
+				segmentErrors.push(segment.error);
 				continue;
 			}
 
@@ -670,6 +674,15 @@ export async function runAutoSegmentation(
 				isLowConfidence,
 				needsReview: clipNeedsReview
 			});
+		}
+
+		// If all segments had errors, surface the error to the user
+		if (segmentsApplied === 0 && segmentErrors.length > 0) {
+			// Get unique error messages
+			const uniqueErrors = [...new Set(segmentErrors)];
+			const message = `All segments failed to process: ${uniqueErrors.join(', ')}`;
+			toast.error(message);
+			return { status: 'failed', message };
 		}
 
 		// Normalize timing and explicit silence.

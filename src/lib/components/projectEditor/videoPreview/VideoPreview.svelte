@@ -17,6 +17,8 @@
 		showControls: boolean;
 	} = $props();
 
+	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
+
 	// === ÉTATS RÉACTIFS DÉRIVÉS ===
 	// Récupère les paramètres de la timeline depuis l'état global
 	let getTimelineSettings = $derived(() => {
@@ -478,7 +480,7 @@
 			audioHowl = new Howl({
 				mute: globalState.getVideoPreviewState.showVideosAndAudios,
 				src: [convertFileSrc(audioAsset.filePath)],
-				html5: true, // Important pour les gros fichiers et le VBR (Variable Bit Rate)
+				html5: !isLinux, // Use Web Audio API only on Linux for better compatibility
 				rate: audioSpeed, // Vitesse de lecture initiale
 				onplay: () => {
 					// Synchronise la position dans l'audio avec la position du curseur
@@ -488,6 +490,20 @@
 					if (!audioUpdateInterval) {
 						audioUpdateInterval = setInterval(handleAudioTimeUpdate, 10); // Mise à jour toutes les 10ms
 					}
+				},
+				onloaderror: (id, error) => {
+					console.error('Howler load error:', error);
+					// On Linux, Web Audio API might report decoding errors even if it works partially or for VBR.
+					if (isLinux && error === 'Decoding audio data failed.') {
+						return;
+					}
+					toast.error('Erreur lors du chargement de l\'audio : ' + error);
+				},
+				onplayerror: (id, error) => {
+					console.error('Howler play error:', error);
+					toast.error('Erreur lors de la lecture de l\'audio : ' + error);
+					// Fallback si la lecture échoue
+					pause();
 				},
 				onpause: () => {
 					// Arrête la mise à jour du curseur lors de la pause
@@ -524,7 +540,7 @@
 		// Crée une nouvelle instance Howl pour silent.ogg
 		audioHowl = new Howl({
 			src: ['/silent.ogg'], // Chemin vers le fichier silent.ogg dans static/
-			html5: true,
+			html5: !isLinux,
 			loop: true, // Répète en boucle pour simuler une lecture continue
 			volume: 0, // Volume à 0 pour être réellement silencieux
 			onplay: () => {

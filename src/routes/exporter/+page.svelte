@@ -246,54 +246,92 @@
 			totalTime: totalDuration
 		} as ExportProgress);
 
-		// BOUCLE SÉQUENTIELLE : Générer images -> Générer vidéo -> Nettoyer -> Suivant
-		console.log('=== STARTING SEQUENTIAL CHUNK PROCESSING ===');
+		// BOUCLE PIPELINE : On encode le chunk N pendant qu'on génère les images du chunk N+1
+		console.log('=== STARTING PIPELINED CHUNK PROCESSING ===');
 
-		for (let chunkIndex = 0; chunkIndex < chunkInfo.chunks.length; chunkIndex++) {
-			const chunk = chunkInfo.chunks[chunkIndex];
-			const chunkImageFolder = `chunk_${chunkIndex}`;
-			const chunkActualDuration = chunk.end - chunk.start;
+		// 1. Initialiser le pipeline avec le premier chunk (génération d'images uniquement)
+		let currentChunkIndex = 0;
+		console.log(`Pipeline Init: Generating images for Chunk ${currentChunkIndex}...`);
+		await createChunkImageFolder(`chunk_${currentChunkIndex}`);
+		
+		const firstChunk = chunkInfo.chunks[currentChunkIndex];
+		const firstChunkProgressWeight = 100 / chunkInfo.chunks.length;
+		
+		await generateImagesForChunk(
+			currentChunkIndex,
+			firstChunk.start,
+			firstChunk.end,
+			`chunk_${currentChunkIndex}`,
+			chunkInfo.chunks.length,
+			0,
+			firstChunkProgressWeight
+		);
 
-			console.log(`Processing Chunk ${chunkIndex + 1}/${chunkInfo.chunks.length}...`);
+		// 2. Boucle principale du pipeline
+		// À chaque itération i :
+		// - On lance l'encodage vidéo du chunk i
+		// - EN MÊME TEMPS, on lance la génération d'images du chunk i+1 (si existe)
+		// - On attend que les DEUX soient finis
+		// - On nettoie les images du chunk i
+		
+		for (let i = 0; i < chunkInfo.chunks.length; i++) {
+			console.log(`Pipeline Step ${i}: Encoding Video ${i} + Generating Images ${i + 1}`);
+			
+			const chunkI = chunkInfo.chunks[i];
+			const chunkImageFolderI = `chunk_${i}`;
+			const chunkActualDurationI = chunkI.end - chunkI.start;
 
-			// 1. Créer le dossier d'images pour ce chunk
-			await createChunkImageFolder(chunkImageFolder);
+			// Tâche 1: Encodage vidéo du chunk actuel (Backend)
+			const videoTask = (async () => {
+				emitProgress({
+					exportId: Number(exportId),
+					progress: (i + 1) * (100 / chunkInfo.chunks.length), // On avance le progrès
+					currentState: ExportState.CreatingVideo,
+					currentTime: chunkI.end - exportStart,
+					totalTime: totalDuration
+				} as ExportProgress);
 
-			// 2. Générer les images pour ce chunk
-			// On calcule la progression relative : chaque chunk représente une part du total
-			const chunkProgressWeight = 100 / chunkInfo.chunks.length;
-			const baseProgress = chunkIndex * chunkProgressWeight;
+				const path = await generateVideoForChunk(
+					i,
+					chunkImageFolderI,
+					chunkI.start,
+					chunkActualDurationI
+				);
+				return path;
+			})();
 
-			await generateImagesForChunk(
-				chunkIndex,
-				chunk.start,
-				chunk.end,
-				chunkImageFolder,
-				chunkInfo.chunks.length,
-				baseProgress,
-				baseProgress + chunkProgressWeight
-			);
+			// Tâche 2: Génération images du chunk suivant (Frontend)
+			const nextChunkIndex = i + 1;
+			let imageTask = Promise.resolve();
 
-			// 3. Générer la vidéo pour ce chunk
-			emitProgress({
-				exportId: Number(exportId),
-				progress: baseProgress + chunkProgressWeight, // On considère que la génération vidéo est rapide/intermédiaire
-				currentState: ExportState.CreatingVideo,
-				currentTime: chunk.end - exportStart, // On affiche la fin du chunk comme temps courant
-				totalTime: totalDuration
-			} as ExportProgress);
+			if (nextChunkIndex < chunkInfo.chunks.length) {
+				imageTask = (async () => {
+					const chunkNext = chunkInfo.chunks[nextChunkIndex];
+					const chunkImageFolderNext = `chunk_${nextChunkIndex}`;
+					const nextProgressWeight = 100 / chunkInfo.chunks.length;
+					const nextBaseProgress = nextChunkIndex * nextProgressWeight;
 
-			const chunkVideoPath = await generateVideoForChunk(
-				chunkIndex,
-				chunkImageFolder,
-				chunk.start,
-				chunkActualDuration
-			);
+					await createChunkImageFolder(chunkImageFolderNext);
+					await generateImagesForChunk(
+						nextChunkIndex,
+						chunkNext.start,
+						chunkNext.end,
+						chunkImageFolderNext,
+						chunkInfo.chunks.length,
+						nextBaseProgress,
+						nextBaseProgress + nextProgressWeight
+					);
+				})();
+			}
 
-			generatedVideoFiles.push(chunkVideoPath);
+			// Attendre que les deux tâches soient finies
+			const [videoPath, _] = await Promise.all([videoTask, imageTask]);
+			
+			generatedVideoFiles.push(videoPath);
 
-			// 4. Nettoyer les images du chunk IMMÉDIATEMENT pour libérer de l'espace
-			await removeChunkImageFolder(chunkImageFolder);
+			// Nettoyer les images du chunk terminé (i) pour libérer la place
+			// C'est safe car la vidéo i est finie, et on a fini de générer les images i+1
+			await removeChunkImageFolder(chunkImageFolderI);
 		}
 
 		// PHASE FINALE: Concaténation

@@ -1228,6 +1228,46 @@ async fn segment_quran_audio_local(
         return Err(format!("Audio file not found: {}", audio_path));
     }
 
+    // Resolve ffmpeg for audio preprocessing
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    // Build a unique temp file path for the resampled WAV (same as cloud mode)
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_millis();
+    let temp_path = std::env::temp_dir().join(format!("qurancaption-local-seg-{}.wav", stamp));
+    let _temp_guard = TempFileGuard(temp_path.clone());
+
+    // Resample to 16kHz mono WAV with ffmpeg (same preprocessing as cloud mode)
+    let mut resample_cmd = Command::new(&ffmpeg_path);
+    resample_cmd.args(&[
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        &audio_path,
+        "-ac",
+        "1",           // mono
+        "-ar",
+        "16000",       // 16kHz
+        "-c:a",
+        "pcm_s16le",   // 16-bit PCM
+        "-vn",
+        temp_path.to_string_lossy().as_ref(),
+    ]);
+    configure_command_no_window(&mut resample_cmd);
+    
+    let resample_output = resample_cmd.output()
+        .map_err(|e| format!("Unable to execute ffmpeg for preprocessing: {}", e))?;
+
+    if !resample_output.status.success() {
+        let stderr = String::from_utf8_lossy(&resample_output.stderr);
+        return Err(format!("ffmpeg preprocessing error: {}", stderr));
+    }
+
     let python_cmd = if cfg!(target_os = "windows") {
         "python"
     } else {
@@ -1258,10 +1298,10 @@ async fn segment_quran_audio_local(
         }
     };
 
-    // Build command arguments
+    // Build command arguments - use the preprocessed temp file instead of original
     let mut args = vec![
         script_path.to_string_lossy().to_string(),
-        audio_path,
+        temp_path.to_string_lossy().to_string(), // Use preprocessed audio
     ];
 
     if let Some(ms) = min_silence_ms {

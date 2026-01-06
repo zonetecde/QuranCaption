@@ -198,7 +198,12 @@
 	 */
 	$effect(() => {
 		(async () => {
-			if (!currentSubtitle()) return;
+			if (!currentSubtitle()) {
+				if (subtitlesContainer) {
+					subtitlesContainer.style.opacity = '1';
+				}
+				return;
+			}
 
 			currentSubtitle()!.id;
 
@@ -476,6 +481,7 @@
 			<div
 				id="subtitles-container"
 				class="absolute inset-0 flex flex-col items-center justify-center"
+				style="opacity: 1;"
 			>
 				{#if subtitle && subtitle.id}
 					<p

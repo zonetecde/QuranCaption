@@ -484,14 +484,24 @@ def process_audio_full(
     min_silence_ms: int = 200,
     min_speech_ms: int = 1000,
     pad_ms: int = 50,
-    whisper_model: str = "base"
+    whisper_model: str = "base",
+    status_callback=None
 ) -> dict:
     """
     Full processing pipeline: VAD -> Whisper -> Text matching.
     
     Returns JSON-serializable dict with segments.
+    
+    Args:
+        status_callback: Optional callable(step: str, message: str) to report progress
     """
     import time
+
+    def emit_status(step: str, message: str):
+        """Emit status update."""
+        if status_callback:
+            status_callback(step, message)
+        print(f"[STATUS] {step}: {message}")
 
     total_start = time.time()
     profiling = ProfilingData()
@@ -510,6 +520,7 @@ def process_audio_full(
     print(f"\n[PROCESS] Audio: {audio_duration:.2f}s")
 
     # Step 1: VAD segmentation
+    emit_status("vad", "Detecting speech segments...")
     vad_start = time.time()
     intervals, vad_profiling = detect_speech_segments(audio, sample_rate, min_silence_ms, min_speech_ms, pad_ms)
     profiling.vad_model_load_time = vad_profiling.get("model_load_time", 0.0)
@@ -530,6 +541,7 @@ def process_audio_full(
         segment_audios.append(audio[start_sample:end_sample])
 
     # Step 2: Whisper transcription (batched)
+    emit_status("whisper", f"Transcribing {len(segment_audios)} segments...")
     whisper_start = time.time()
     # Get model name from mapping or use default
     whisper_model_name = WHISPER_MODELS.get(whisper_model, WHISPER_MODELS["base"])
@@ -548,6 +560,7 @@ def process_audio_full(
         print("[SPECIAL] Split combined Isti'adha + Basmala in first segment")
 
     # Step 3: Text matching (CPU)
+    emit_status("matching", "Matching text to Quran...")
     match_start = time.time()
     match_results, match_profiling = run_text_matching(transcribed_texts)
     profiling.text_match_total_time = match_profiling.get("total_time", 0.0)

@@ -180,6 +180,20 @@ Examples:
     old_stdout = sys.stdout
     old_stderr = sys.stderr
     
+    # Save original stderr fd for status messages (before any redirection)
+    original_stderr_fd = os.dup(2)
+    original_stderr_file = os.fdopen(original_stderr_fd, 'w', encoding='utf-8')
+    
+    def emit_status_to_stderr(step: str, message: str):
+        """Write status in a parsable format to original stderr."""
+        try:
+            import json
+            status_json = json.dumps({"step": step, "message": message}, ensure_ascii=False)
+            original_stderr_file.write(f"STATUS:{status_json}\n")
+            original_stderr_file.flush()
+        except:
+            pass
+    
     if not args.verbose:
         # Redirect both stdout and stderr to suppress library output
         sys.stderr = io.StringIO()
@@ -195,6 +209,9 @@ Examples:
     error_result = None
     
     try:
+        # Emit loading status
+        emit_status_to_stderr("loading", "Loading audio file...")
+        
         # Load audio
         audio, sample_rate = load_audio(args.audio_path)
         
@@ -207,7 +224,8 @@ Examples:
             min_silence_ms=args.min_silence_ms,
             min_speech_ms=args.min_speech_ms,
             pad_ms=args.pad_ms,
-            whisper_model=args.whisper_model
+            whisper_model=args.whisper_model,
+            status_callback=emit_status_to_stderr
         )
         
     except Exception as e:

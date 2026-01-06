@@ -90,25 +90,25 @@ export class Verse {
 			'ۜ' // waqf
 		];
 
-		let startPos = startWordIndex;
 
-		if (startPos > 0) {
-			for (const signe of signesPonctuation) {
-				if (this.words[startPos].arabic.includes(signe)) {
-					startPos--;
-				}
+		const hasPunctuation = (wordIndex: number) => {
+			if (wordIndex < 0 || wordIndex >= this.words.length) return false;
+			return signesPonctuation.some((signe) => this.words[wordIndex].arabic.includes(signe));
+		};
+
+		let searchIndex = Math.min(startWordIndex, this.words.length - 1);
+
+		// Si on est deja sur un signe d'arret, on le saute pour trouver le precedent
+		if (hasPunctuation(searchIndex)) {
+			searchIndex--;
+		}
+
+		for (let i = searchIndex; i >= 0; i--) {
+			if (hasPunctuation(i)) {
+				return i;
 			}
 		}
 
-		for (let i = startPos; i >= 0; i--) {
-			for (const signe of signesPonctuation) {
-				if (this.words[i].arabic.includes(signe)) {
-					if (this.words.length > i + 1)
-						return i + 1; // Retourne l'indice du mot contenant la ponctuation+1
-					else return 0;
-				}
-			}
-		}
 		return 0;
 	}
 }

@@ -1024,74 +1024,121 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
         }
     };
 
-    // Install CUDA-enabled PyTorch by default on Windows, with CPU fallback.
+    // Install PyTorch - detect CUDA availability first, then install appropriate version
     if cfg!(target_os = "windows") {
-        emit_status("Installing PyTorch (trying CUDA)...");
-        let mut cuda_install_errors: Vec<String> = Vec::new();
-        let cuda_indexes = ["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"];
-        let mut cuda_success = false;
+        // First, check if CUDA is available on this system using nvidia-smi
+        emit_status("Detecting GPU capabilities...");
+        let mut nvidia_check = Command::new("nvidia-smi");
+        configure_command_no_window(&mut nvidia_check);
+        
+        let has_cuda_gpu = match nvidia_check.output() {
+            Ok(output) => output.status.success(),
+            Err(_) => false,
+        };
+        
+        if has_cuda_gpu {
+            // CUDA GPU detected - try to install CUDA version
+            emit_status("CUDA GPU detected, installing PyTorch with CUDA support...");
+            let mut cuda_install_errors: Vec<String> = Vec::new();
+            let cuda_indexes = ["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"];
+            let mut cuda_success = false;
 
-        for index_url in cuda_indexes {
-            let mut torch_cmd = Command::new(python_cmd);
-            torch_cmd.args(&[
-                "-m",
-                "pip",
-                "install",
-                "--upgrade",
-                "--force-reinstall",
-                "torch",
-                "torchvision",
-                "torchaudio",
-                "--index-url",
-                index_url,
-                "--quiet",
-            ]);
-            configure_command_no_window(&mut torch_cmd);
+            for index_url in cuda_indexes {
+                let mut torch_cmd = Command::new(python_cmd);
+                torch_cmd.args(&[
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "torch",
+                    "torchvision",
+                    "torchaudio",
+                    "--index-url",
+                    index_url,
+                    "--quiet",
+                ]);
+                configure_command_no_window(&mut torch_cmd);
 
-            let torch_output = torch_cmd
-                .output()
-                .map_err(|e| format!("Failed to run pip (torch): {}", e))?;
+                let torch_output = torch_cmd
+                    .output()
+                    .map_err(|e| format!("Failed to run pip (torch): {}", e))?;
 
-            if !torch_output.status.success() {
-                let stderr = String::from_utf8_lossy(&torch_output.stderr);
-                cuda_install_errors.push(format!("CUDA index {} failed: {}", index_url, stderr));
-                continue;
+                if !torch_output.status.success() {
+                    let stderr = String::from_utf8_lossy(&torch_output.stderr);
+                    cuda_install_errors.push(format!("CUDA index {} failed: {}", index_url, stderr));
+                    continue;
+                }
+
+                // Verify CUDA is actually available in the installed torch
+                let mut cuda_check = Command::new(python_cmd);
+                cuda_check.args(&[
+                    "-c",
+                    "import torch; assert torch.cuda.is_available(), 'no cuda'; print('ok')",
+                ]);
+                configure_command_no_window(&mut cuda_check);
+
+                let cuda_output = cuda_check.output();
+                if let Ok(output) = cuda_output {
+                    if output.status.success() {
+                        cuda_success = true;
+                        cuda_install_errors.clear();
+                        emit_status("PyTorch with CUDA installed successfully!");
+                        break;
+                    }
+                }
+
+                cuda_install_errors.push(format!(
+                    "CUDA index {} installed but CUDA not available in torch",
+                    index_url
+                ));
             }
 
-            let mut cuda_check = Command::new(python_cmd);
-            cuda_check.args(&[
-                "-c",
-                "import torch; print(torch.version.cuda or '')",
-            ]);
-            configure_command_no_window(&mut cuda_check);
+            // If CUDA installation failed, fall back to CPU
+            if !cuda_success {
+                emit_status("CUDA setup failed, falling back to CPU version...");
+                
+                // Uninstall potentially broken CUDA torch first
+                let mut uninstall_cmd = Command::new(python_cmd);
+                uninstall_cmd.args(&["-m", "pip", "uninstall", "torch", "torchvision", "torchaudio", "-y"]);
+                configure_command_no_window(&mut uninstall_cmd);
+                let _ = uninstall_cmd.output(); // Ignore errors
+                
+                // Install CPU version
+                let mut cpu_cmd = Command::new(python_cmd);
+                cpu_cmd.args(&[
+                    "-m",
+                    "pip",
+                    "install",
+                    "torch",
+                    "torchvision",
+                    "torchaudio",
+                    "--index-url",
+                    "https://download.pytorch.org/whl/cpu",
+                    "--quiet",
+                ]);
+                configure_command_no_window(&mut cpu_cmd);
 
-            let cuda_output = cuda_check
-                .output()
-                .map_err(|e| format!("Failed to verify CUDA torch: {}", e))?;
-            let cuda_str = String::from_utf8_lossy(&cuda_output.stdout).trim().to_string();
+                let cpu_output = cpu_cmd
+                    .output()
+                    .map_err(|e| format!("Failed to run pip (torch CPU): {}", e))?;
 
-            if !cuda_str.is_empty() {
-                cuda_success = true;
-                cuda_install_errors.clear();
-                break;
+                if !cpu_output.status.success() {
+                    let stderr = String::from_utf8_lossy(&cpu_output.stderr);
+                    return Err(format!(
+                        "Failed to install torch. CUDA attempts: {} | CPU fallback failed: {}",
+                        cuda_install_errors.join(" | "),
+                        stderr
+                    ));
+                }
             }
-
-            cuda_install_errors.push(format!(
-                "CUDA index {} installed CPU-only torch",
-                index_url
-            ));
-        }
-
-        // Fallback to CPU-only torch if CUDA installation failed
-        if !cuda_success {
-            emit_status("Installing PyTorch (CPU version)...");
+        } else {
+            // No CUDA GPU detected - install CPU version directly
+            emit_status("No CUDA GPU detected, installing PyTorch CPU version...");
             let mut cpu_cmd = Command::new(python_cmd);
             cpu_cmd.args(&[
                 "-m",
                 "pip",
                 "install",
-                "--upgrade",
-                "--force-reinstall",
                 "torch",
                 "torchvision",
                 "torchaudio",
@@ -1107,13 +1154,9 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
 
             if !cpu_output.status.success() {
                 let stderr = String::from_utf8_lossy(&cpu_output.stderr);
-                return Err(format!(
-                    "Failed to install torch. CUDA attempts: {} | CPU fallback failed: {}",
-                    cuda_install_errors.join(" | "),
-                    stderr
-                ));
+                return Err(format!("Failed to install torch CPU: {}", stderr));
             }
-            // CPU installation succeeded - continue with other packages
+            emit_status("PyTorch CPU version installed successfully!");
         }
     }
 

@@ -310,6 +310,40 @@ export class SubtitleTrack extends Track {
 		}
 	}
 
+	splitSubtitle(clipId: number): boolean {
+		const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
+		if (clipIndex === -1) return false;
+
+		const clip = this.clips[clipIndex] as SubtitleClip;
+		const splitTime = globalState.getTimelineState.cursorPosition;
+
+		// Check if the split time is within the clip
+		if (splitTime <= clip.startTime || splitTime >= clip.endTime) {
+			toast.error('The cursor must be strictly inside the subtitle to split it.');
+			return false;
+		}
+
+		// Minimum duration check (e.g. 100ms) for both parts
+		if (splitTime - clip.startTime < 100 || clip.endTime - splitTime < 100) {
+			toast.error('Resulting clips would be too short (min 100ms).');
+			return false;
+		}
+
+		const originalEndTime = clip.endTime;
+
+		// Update le temps de fin du premier clip
+		clip.endTime = splitTime;
+		clip.duration = clip.endTime - clip.startTime;
+
+		// Créer le deuxième clip avec les mêmes propriétés
+		const newClip = clip.cloneWithTimes(splitTime, originalEndTime);
+
+		// Insérer le nouveau clip après le clip original
+		this.clips.splice(clipIndex + 1, 0, newClip);
+
+		return true;
+	}
+
 	async addSubtitle(
 		verse: Verse,
 		firstWordIndex: number,

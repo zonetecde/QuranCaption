@@ -271,6 +271,33 @@ export class SubtitleClip extends ClipWithTranslation {
 			);
 		}
 	}
+
+	/**
+	 * Crée un clone du clip avec de nouveaux timestamps.
+	 * @param newStartTime Le nouveau temps de début.
+	 * @param newEndTime Le nouveau temps de fin.
+	 * @returns Un nouveau SubtitleClip avec les mêmes propriétés mais des timestamps différents.
+	 */
+	cloneWithTimes(newStartTime: number, newEndTime: number): SubtitleClip {
+		return new SubtitleClip(
+			newStartTime,
+			newEndTime,
+			this.surah,
+			this.verse,
+			this.startWordIndex,
+			this.endWordIndex,
+			this.text,
+			JSON.parse(JSON.stringify(this.wbwTranslation)),
+			this.isFullVerse,
+			this.isLastWordsOfVerse,
+			Object.fromEntries(
+				Object.entries(this.translations).map(([key, t]) => [
+					key,
+					typeof t.clone === 'function' ? t.clone() : JSON.parse(JSON.stringify(t))
+				])
+			)
+		);
+	}
 }
 
 export class SilenceClip extends Clip {
@@ -441,3 +468,5 @@ export class CustomImageClip extends CustomClip {
 SerializableBase.registerChildClass(SubtitleClip, 'translations', Translation);
 SerializableBase.registerChildClass(ClipWithTranslation, 'translations', Translation);
 SerializableBase.registerChildClass(CustomTextClip, 'translations', Translation);
+
+

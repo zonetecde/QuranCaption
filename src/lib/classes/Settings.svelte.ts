@@ -78,6 +78,11 @@ export default class Settings extends SerializableBase {
 				keys: ['f11'],
 				name: 'Toggle Fullscreen',
 				description: 'Enter or exit fullscreen mode'
+			},
+			GO_TO_START: {
+				keys: ['i'],
+				name: 'Go to Start',
+				description: 'Stop playback and jump to the beginning of the video'
 			}
 		},
 		SUBTITLES_EDITOR: {
@@ -150,6 +155,11 @@ export default class Settings extends SerializableBase {
 				keys: ['t'],
 				description: 'Add a custom text clip between the last subtitle and the current position',
 				name: 'Add Custom Text Clip'
+			},
+			SPLIT_SUBTITLE: {
+				keys: ['d'],
+				description: 'Split the selected subtitle at the cursor position',
+				name: 'Split Subtitle'
 			}
 		}
 	};
@@ -222,6 +232,7 @@ export default class Settings extends SerializableBase {
 		// Migration des paramètres si besoin
 		MigrationService.FromQC310ToQC311();
 		MigrationService.FromQC315ToQC316();
+		MigrationService.FromQC327ToQC328();
 	}
 }
 

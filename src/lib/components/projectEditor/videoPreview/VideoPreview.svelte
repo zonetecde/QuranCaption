@@ -210,11 +210,7 @@
 		});
 
 		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START ?? {
-				keys: ['i'],
-				name: 'Go to Start',
-				description: 'Stop playback and jump to the beginning of the video'
-			},
+			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START,
 			onKeyDown: (e) => {
 				pause(); // Arrête la lecture
 				getTimelineSettings().cursorPosition = 1; // Revient au début (1ms pour éviter les bugs)
@@ -270,13 +266,7 @@
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN
 		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START ?? {
-				keys: ['i'],
-				name: 'Go to Start',
-				description: 'Stop playback and jump to the beginning of the video'
-			}
-		);
+		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START);
 	});
 
 	// Effect pour s'assurer que l'événement ontimeupdate est toujours assigné à l'élément vidéo

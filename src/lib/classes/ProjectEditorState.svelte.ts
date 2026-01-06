@@ -96,6 +96,7 @@ export class StylesEditorState extends SerializableBase {
 	}
 
 	clearSelection() {
+		globalState.getSubtitlesEditorState.editSubtitle = null;
 		this.selectedSubtitles = [];
 	}
 }

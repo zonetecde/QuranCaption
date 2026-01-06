@@ -331,34 +331,14 @@ export class SubtitleTrack extends Track {
 
 		const originalEndTime = clip.endTime;
 
-		// Update the first part (original clip)
+		// Update le temps de fin du premier clip
 		clip.endTime = splitTime;
 		clip.duration = clip.endTime - clip.startTime;
 
-		// Create the second part (new clip)
-		// We clone the properties of the original clip
-		// Ideally we would want to recalculate "isFullVerse" / "isLastWordsOfVerse" if we were splitting text logic, 
-		// but here we just duplicate the entity on the timeline.
-		// The user is expected to edit the text afterwards.
-		const newClip = new SubtitleClip(
-			splitTime + 1,
-			originalEndTime,
-			clip.surah,
-			clip.verse,
-			clip.startWordIndex,
-			clip.endWordIndex,
-			clip.text,
-			JSON.parse(JSON.stringify(clip.wbwTranslation)), // Deep copy or just ref if read-only? Strings are immutables. Array needs copy.
-			clip.isFullVerse,
-			clip.isLastWordsOfVerse,
-			// Deep copy translations if needed, but they are objects. 
-			// For simplicity we pass the reference or shallow copy. 
-			// Since VerseTranslation objects might be shared or immutable, let's just pass them.
-			// Actually best to try and get fresh props if possible, but duplication is safer to match current state.
-			{ ...clip.translations }
-		);
+		// Créer le deuxième clip avec les mêmes propriétés
+		const newClip = clip.cloneWithTimes(splitTime, originalEndTime);
 
-		// Insert the new clip after the original
+		// Insérer le nouveau clip après le clip original
 		this.clips.splice(clipIndex + 1, 0, newClip);
 
 		return true;

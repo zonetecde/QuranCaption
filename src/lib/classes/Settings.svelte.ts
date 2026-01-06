@@ -232,7 +232,7 @@ export default class Settings extends SerializableBase {
 		// Migration des paramètres si besoin
 		MigrationService.FromQC310ToQC311();
 		MigrationService.FromQC315ToQC316();
-		MigrationService.EnsureNewShortcutsExist();
+		MigrationService.FromQC327ToQC328();
 	}
 }
 

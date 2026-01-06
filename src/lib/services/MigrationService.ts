@@ -68,7 +68,7 @@ export default class MigrationService {
 	/**
 	 * Assure que les nouveaux shortcuts (Split, Go to Start) existent dans les settings.
 	 */
-	static EnsureNewShortcutsExist() {
+	static FromQC327ToQC328() {
 		if (!globalState.settings) return;
 
 		let hasChanges = false;

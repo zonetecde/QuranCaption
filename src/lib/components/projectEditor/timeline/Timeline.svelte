@@ -55,18 +55,12 @@
 		} else {
 			// Fallback: check if a subtitle is being edited (Subtitles Editor)
 			const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-			if (
-				editedSubtitle &&
-				(editedSubtitle.type === 'Subtitle' || editedSubtitle.type === 'Pre-defined Subtitle')
-			) {
+			if (editedSubtitle && editedSubtitle.type === 'Subtitle') {
 				clipToSplit = editedSubtitle;
 			}
 		}
 
-		if (
-			clipToSplit &&
-			(clipToSplit.type === 'Subtitle' || clipToSplit.type === 'Pre-defined Subtitle')
-		) {
+		if (clipToSplit && clipToSplit.type === 'Subtitle') {
 			const success = globalState.getSubtitleTrack.splitSubtitle(clipToSplit.id);
 			if (success) {
 				currentProject.detail.updateVideoDetailAttributes();
@@ -106,11 +100,7 @@
 		if (!globalState.settings || splitShortcutRegistered) return;
 
 		// Split shortcut
-		const splitShortcut = globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE ?? {
-			keys: ['d'],
-			description: 'Split the selected subtitle at the cursor position',
-			name: 'Split Subtitle'
-		};
+		const splitShortcut = globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE;
 
 		ShortcutService.registerShortcut({
 			key: splitShortcut,
@@ -137,12 +127,8 @@
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
-		// On active le shortcut de split dans Style, Video Editor et Subtitles Editor
-		const tabsWithSplitShortcut = [
-			ProjectEditorTabs.Style,
-			ProjectEditorTabs.VideoEditor,
-			ProjectEditorTabs.SubtitlesEditor
-		];
+		// On active le shortcut de split dans Style et Subtitles Editor
+		const tabsWithSplitShortcut = [ProjectEditorTabs.Style, ProjectEditorTabs.SubtitlesEditor];
 
 		if (currentTab && tabsWithSplitShortcut.includes(currentTab)) {
 			registerSplitShortcut();

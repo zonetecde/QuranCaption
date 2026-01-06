@@ -264,7 +264,8 @@
 			`chunk_${currentChunkIndex}`,
 			chunkInfo.chunks.length,
 			0,
-			firstChunkProgressWeight
+			firstChunkProgressWeight,
+			false // silent=false pour le tout premier chunk (on veut voir le démarrage)
 		);
 
 		// 2. Boucle principale du pipeline
@@ -281,16 +282,9 @@
 			const chunkImageFolderI = `chunk_${i}`;
 			const chunkActualDurationI = chunkI.end - chunkI.start;
 
-			// Tâche 1: Encodage vidéo du chunk actuel (Backend)
+				// Tâche 1: Encodage vidéo du chunk actuel (Backend)
 			const videoTask = (async () => {
-				emitProgress({
-					exportId: Number(exportId),
-					progress: (i + 1) * (100 / chunkInfo.chunks.length), // On avance le progrès
-					currentState: ExportState.CreatingVideo,
-					currentTime: chunkI.end - exportStart,
-					totalTime: totalDuration
-				} as ExportProgress);
-
+				// On laisse le backend émettre la progression via les events 'export-progress'
 				const path = await generateVideoForChunk(
 					i,
 					chunkImageFolderI,
@@ -319,7 +313,8 @@
 						chunkImageFolderNext,
 						chunkInfo.chunks.length,
 						nextBaseProgress,
-						nextBaseProgress + nextProgressWeight
+						nextBaseProgress + nextProgressWeight,
+						true // silent=true : on génère en background, donc pas de mise à jour de la barre de progression (évite le jitter)
 					);
 				})();
 			}
@@ -383,7 +378,8 @@
 		chunkImageFolder: string,
 		totalChunks: number,
 		phaseStartProgress: number = 0,
-		phaseEndProgress: number = 100
+		phaseEndProgress: number = 100,
+		silent: boolean = false
 	) {
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
@@ -463,17 +459,19 @@
 
 			// Progress pour ce chunk dans la phase spécifiée
 			const chunkImageProgress = (i / chunkTimings.uniqueSorted.length) * 100;
-			const chunkPhaseProgress = (chunkIndex * 100 + chunkImageProgress) / totalChunks;
+			// Map local 0-100 to [phaseStart, phaseEnd]
 			const globalProgress =
-				phaseStartProgress + (chunkPhaseProgress * (phaseEndProgress - phaseStartProgress)) / 100;
+				phaseStartProgress + (chunkImageProgress * (phaseEndProgress - phaseStartProgress)) / 100;
 
-			emitProgress({
-				exportId: Number(exportId),
-				progress: globalProgress,
-				currentState: ExportState.CapturingFrames,
-				currentTime: timing - exportData!.videoStartTime,
-				totalTime: exportData!.videoEndTime - exportData!.videoStartTime
-			} as ExportProgress);
+			if (!silent) {
+				emitProgress({
+					exportId: Number(exportId),
+					progress: globalProgress,
+					currentState: ExportState.CapturingFrames,
+					currentTime: timing - exportData!.videoStartTime,
+					totalTime: exportData!.videoEndTime - exportData!.videoStartTime
+				} as ExportProgress);
+			}
 		}
 	}
 

@@ -170,11 +170,11 @@
 			globalState.getStyle('global', 'fade-duration')!.value =
 				(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
 
-			// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
-			// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
 			const chunkSize = globalState.getExportState.chunkSize;
-			const minDuration = 30 * 1000; // 30 secondes en ms
-			const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
+			// Formule linéaire: chunkSize=1 -> 10s, chunkSize=200 -> 20s
+			// Ces valeurs sont réduites pour éviter la saturation mémoire (crash FFmpeg)
+			const minDuration = 10 * 1000; // 10 secondes en ms
+			const maxDuration = 60 * 1000; // 20 secondes en ms
 			CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
 
 			console.log(
@@ -228,7 +228,7 @@
 		exportEnd: number,
 		totalDuration: number
 	) {
-		// Calculer les chunks en s'arrêtant au prochain fade-out après 10 minutes
+		// Calculer les chunks en s'arrêtant au prochain fade-out après la durée max
 		const chunkInfo = calculateChunksWithFadeOut(exportStart, exportEnd);
 		const generatedVideoFiles: string[] = [];
 
@@ -236,31 +236,8 @@
 		chunkInfo.chunks.forEach((chunk, i) => {
 			console.log(`Chunk ${i + 1}: ${chunk.start} -> ${chunk.end} (${chunk.end - chunk.start}ms)`);
 		});
-		// PHASE 1: Génération de TOUS les screenshots (0 à 100% du progrès total)
-		console.log('=== PHASE 1: Génération de tous les screenshots ===');
-		for (let chunkIndex = 0; chunkIndex < chunkInfo.chunks.length; chunkIndex++) {
-			const chunk = chunkInfo.chunks[chunkIndex];
-			const chunkImageFolder = `chunk_${chunkIndex}`;
 
-			// Créer le dossier d'images pour ce chunk
-			await createChunkImageFolder(chunkImageFolder);
-
-			// Générer les images pour ce chunk
-			await generateImagesForChunk(
-				chunkIndex,
-				chunk.start,
-				chunk.end,
-				chunkImageFolder,
-				chunkInfo.chunks.length,
-				0, // phase start (0%)
-				100 // phase end (100%)
-			);
-		}
-
-		// PHASE 2: Génération de TOUTES les vidéos
-		console.log('=== PHASE 2: Génération de toutes les vidéos ===');
-
-		// Initialiser l'état avant l'export vidéo
+		// Initialiser l'état
 		emitProgress({
 			exportId: Number(exportId),
 			progress: 0,
@@ -269,15 +246,43 @@
 			totalTime: totalDuration
 		} as ExportProgress);
 
-		let chunkFolders = [];
+		// BOUCLE SÉQUENTIELLE : Générer images -> Générer vidéo -> Nettoyer -> Suivant
+		console.log('=== STARTING SEQUENTIAL CHUNK PROCESSING ===');
 
 		for (let chunkIndex = 0; chunkIndex < chunkInfo.chunks.length; chunkIndex++) {
 			const chunk = chunkInfo.chunks[chunkIndex];
 			const chunkImageFolder = `chunk_${chunkIndex}`;
-			chunkFolders.push(chunkImageFolder);
 			const chunkActualDuration = chunk.end - chunk.start;
 
-			// Générer la vidéo pour ce chunk
+			console.log(`Processing Chunk ${chunkIndex + 1}/${chunkInfo.chunks.length}...`);
+
+			// 1. Créer le dossier d'images pour ce chunk
+			await createChunkImageFolder(chunkImageFolder);
+
+			// 2. Générer les images pour ce chunk
+			// On calcule la progression relative : chaque chunk représente une part du total
+			const chunkProgressWeight = 100 / chunkInfo.chunks.length;
+			const baseProgress = chunkIndex * chunkProgressWeight;
+
+			await generateImagesForChunk(
+				chunkIndex,
+				chunk.start,
+				chunk.end,
+				chunkImageFolder,
+				chunkInfo.chunks.length,
+				baseProgress,
+				baseProgress + chunkProgressWeight
+			);
+
+			// 3. Générer la vidéo pour ce chunk
+			emitProgress({
+				exportId: Number(exportId),
+				progress: baseProgress + chunkProgressWeight, // On considère que la génération vidéo est rapide/intermédiaire
+				currentState: ExportState.CreatingVideo,
+				currentTime: chunk.end - exportStart, // On affiche la fin du chunk comme temps courant
+				totalTime: totalDuration
+			} as ExportProgress);
+
 			const chunkVideoPath = await generateVideoForChunk(
 				chunkIndex,
 				chunkImageFolder,
@@ -286,10 +291,13 @@
 			);
 
 			generatedVideoFiles.push(chunkVideoPath);
+
+			// 4. Nettoyer les images du chunk IMMÉDIATEMENT pour libérer de l'espace
+			await removeChunkImageFolder(chunkImageFolder);
 		}
 
-		// PHASE 3: Concaténation
-		console.log('=== PHASE 3: Concaténation des vidéos ===');
+		// PHASE FINALE: Concaténation
+		console.log('=== FINAL PHASE: Concatenation ===');
 
 		// Combiner toutes les vidéos en une seule
 		console.log('Concatenating all chunk videos:', generatedVideoFiles);
@@ -306,6 +314,19 @@
 			currentTime: totalDuration,
 			totalTime: totalDuration
 		} as ExportProgress);
+	}
+
+	async function removeChunkImageFolder(chunkImageFolder: string) {
+		try {
+			const chunkPath = await join(ExportService.exportFolder, exportId, chunkImageFolder);
+			await remove(chunkPath, {
+				baseDir: BaseDirectory.AppData,
+				recursive: true
+			});
+			console.log(`Deleted chunk folder: ${chunkPath}`);
+		} catch (e) {
+			console.warn(`Could not delete chunk folder ${chunkImageFolder}:`, e);
+		}
 	}
 
 	async function createChunkImageFolder(chunkImageFolder: string) {

@@ -1084,7 +1084,7 @@
 		}
 
 		const startTime = Date.now();
-		const timeout = 500; // 500ms maximum timeout to avoid infinite hang
+		const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
 
 		do {
 			if (Date.now() - startTime > timeout) {

@@ -174,7 +174,7 @@
 			// Formule linéaire: chunkSize=1 -> 10s, chunkSize=200 -> 20s
 			// Ces valeurs sont réduites pour éviter la saturation mémoire (crash FFmpeg)
 			const minDuration = 10 * 1000; // 10 secondes en ms
-			const maxDuration = 60 * 1000; // 20 secondes en ms
+			const maxDuration = 20 * 1000; // 20 secondes en ms
 			CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
 
 			console.log(

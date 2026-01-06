@@ -375,7 +375,7 @@
 				globalState.getTimelineState.cursorPosition = timing;
 
 				// si la difference entre timing et celui juste avant est grand, attendre un peu plus
-				await wait();
+				await wait(timing);
 
 				await takeScreenshot(`${imageIndex}`, chunkImageFolder);
 
@@ -385,7 +385,7 @@
 						// monte de 1 le timing pour avoir le svg correct
 						globalState.getTimelineState.movePreviewTo = timing - 1;
 						globalState.getTimelineState.cursorPosition = timing - 1;
-						await wait();
+						await wait(timing - 1);
 						const surahNum = Number(surahStr);
 						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
 						await takeScreenshot(`blank_${surahNum}`);
@@ -577,7 +577,7 @@
 				globalState.getTimelineState.movePreviewTo = timing + 1;
 				globalState.getTimelineState.cursorPosition = timing + 1;
 
-				await wait();
+				await wait(timing + 1);
 
 				await takeScreenshot(`${imageIndex}`);
 
@@ -1070,8 +1070,9 @@
 	 * @param i
 	 * @param uniqueSorted
 	 */
-	async function wait() {
+	async function wait(timing: number) {
 		// globalState.updateVideoPreviewUI();
+		console.log(`Waiting for frame at ${timing}ms...`);
 
 		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
 		let subtitlesContainer: HTMLElement;
@@ -1082,7 +1083,14 @@
 			return;
 		}
 
+		const startTime = Date.now();
+		const timeout = 500; // 500ms maximum timeout to avoid infinite hang
+
 		do {
+			if (Date.now() - startTime > timeout) {
+				console.warn(`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`);
+				break;
+			}
 			await new Promise((resolve) => setTimeout(resolve, 10));
 		} while (subtitlesContainer.style.opacity !== '1');
 	}

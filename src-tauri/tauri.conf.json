@@ -83,8 +83,16 @@
 	},
 	"bundle": {
 		"active": true,
-		"targets": ["deb", "appimage", "dmg", "nsis"],
-		"resources": ["binaries/**/*", "python/**/*"],
+		"targets": [
+			"deb",
+			"appimage",
+			"dmg",
+			"nsis"
+		],
+		"resources": [
+			"binaries/**/*",
+			"python/**/*"
+		],
 		"icon": [
 			"icons/32x32.png",
 			"icons/128x128.png",
@@ -103,7 +111,11 @@
 		},
 		"linux": {
 			"deb": {
-				"depends": ["libc6", "libgtk-3-0", "libwebkit2gtk-4.0-37"]
+				"depends": [
+					"libc6",
+					"libgtk-3-0",
+					"libwebkit2gtk-4.1-0"
+				]
 			}
 		}
 	}

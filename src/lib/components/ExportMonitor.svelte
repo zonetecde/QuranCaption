@@ -280,9 +280,16 @@
 						<!-- Export Success Info (if completed) -->
 						{#if exportation.currentState === ExportState.Exported}
 							<div class="mt-3 p-2 bg-green-900/10 border border-green-600/30 rounded-lg">
-								<div class="flex items-center gap-2 text-green-200 text-sm mb-1">
-									<span class="material-icons text-sm">check_circle</span>
-									<span class="font-medium">Export completed successfully</span>
+								<div class="flex items-center justify-between text-green-200 text-sm mb-1">
+									<div class="flex items-center gap-2">
+										<span class="material-icons text-sm">check_circle</span>
+										<span class="font-medium">Export completed successfully</span>
+									</div>
+									{#if exportation.completedDate}
+										<div class="text-xs opacity-70">
+											Duration: {formatDuration(new Date(exportation.completedDate).getTime() - new Date(exportation.date).getTime())}
+										</div>
+									{/if}
 								</div>
 								<div
 									class="text-green-100/80 text-xs flex gap-x-2"

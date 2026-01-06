@@ -172,6 +172,12 @@ function exportProgress(event: any): void {
 		}
 
 		exportation.percentageProgress = data.progress;
+		
+		// Si l'état change pour "Exported", on enregistre la date de fin
+		if (data.currentState === ExportState.Exported && exportation.currentState !== ExportState.Exported) {
+			exportation.completedDate = new Date().toISOString();
+		}
+		
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
 

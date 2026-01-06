@@ -29,6 +29,7 @@ export default class Exportation extends SerializableBase {
 	errorLog: string;
 	fps: number;
 	date: string;
+	completedDate: string | undefined;
 
 	constructor(
 		exportId: number,
@@ -59,6 +60,7 @@ export default class Exportation extends SerializableBase {
 		this.currentTreatedTime = $state(currentTreatedTime);
 		this.errorLog = $state(errorLog);
 		this.date = $state(new Date().toISOString());
+		this.completedDate = $state(undefined);
 	}
 
 	isOnGoing() {

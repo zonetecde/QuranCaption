@@ -891,54 +891,95 @@ async fn segment_quran_audio(
 }
 
 /// Check if Python and required packages are available for local segmentation
+/// This is async to avoid blocking the UI thread during slow Python imports
 #[tauri::command]
-fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
-    // Try to find Python executable
-    let python_cmd = if cfg!(target_os = "windows") {
-        "python"
-    } else {
-        "python3"
-    };
-
-    // Check if Python is available
-    let mut cmd = Command::new(python_cmd);
-    cmd.args(&["--version"]);
-    configure_command_no_window(&mut cmd);
+async fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
+    use tokio::time::{timeout, Duration};
     
-    let python_available = match cmd.output() {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
-    };
+    // Run the blocking checks in a background thread with a timeout
+    let check_result = timeout(
+        Duration::from_secs(30), // 30 second timeout
+        tokio::task::spawn_blocking(|| {
+            // Try to find Python executable
+            let python_cmd = if cfg!(target_os = "windows") {
+                "python"
+            } else {
+                "python3"
+            };
 
-    if !python_available {
-        return Ok(serde_json::json!({
-            "ready": false,
-            "pythonInstalled": false,
-            "packagesInstalled": false,
-            "message": "Python is not installed. Please install Python 3.10+ from python.org"
-        }));
-    }
+            // Check if Python is available (quick check)
+            let mut cmd = Command::new(python_cmd);
+            cmd.args(&["--version"]);
+            configure_command_no_window(&mut cmd);
+            
+            let python_available = match cmd.output() {
+                Ok(output) => output.status.success(),
+                Err(_) => false,
+            };
 
-    // Check if required packages are installed
-    let mut cmd = Command::new(python_cmd);
-    cmd.args(&["-c", "import torch, transformers, librosa, numpy, soundfile; print('ok')"]);
-    configure_command_no_window(&mut cmd);
+            if !python_available {
+                return serde_json::json!({
+                    "ready": false,
+                    "pythonInstalled": false,
+                    "packagesInstalled": false,
+                    "message": "Python is not installed. Please install Python 3.10+ from python.org"
+                });
+            }
+
+            // Check if required packages are installed using pip show (FAST - doesn't import)
+            // This is much faster than importing the packages which loads heavy ML libraries
+            let mut cmd = Command::new(python_cmd);
+            cmd.args(&[
+                "-m", "pip", "show", 
+                "torch", "transformers", "librosa", "numpy", "soundfile"
+            ]);
+            configure_command_no_window(&mut cmd);
+            
+            let packages_available = match cmd.output() {
+                Ok(output) => {
+                    // pip show returns success if ALL packages are found
+                    // Check stdout contains info for all packages
+                    if output.status.success() {
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        // Verify we got info for each package
+                        stdout.contains("Name: torch") && 
+                        stdout.contains("Name: transformers") &&
+                        stdout.contains("Name: librosa") &&
+                        stdout.contains("Name: numpy") &&
+                        stdout.contains("Name: soundfile")
+                    } else {
+                        false
+                    }
+                },
+                Err(_) => false,
+            };
+
+            serde_json::json!({
+                "ready": packages_available,
+                "pythonInstalled": true,
+                "packagesInstalled": packages_available,
+                "message": if packages_available {
+                    "Local segmentation is ready"
+                } else {
+                    "Python packages need to be installed (~3GB download)"
+                }
+            })
+        })
+    ).await;
     
-    let packages_available = match cmd.output() {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
-    };
-
-    Ok(serde_json::json!({
-        "ready": packages_available,
-        "pythonInstalled": true,
-        "packagesInstalled": packages_available,
-        "message": if packages_available {
-            "Local segmentation is ready"
-        } else {
-            "Python packages need to be installed (~3GB download)"
+    match check_result {
+        Ok(Ok(result)) => Ok(result),
+        Ok(Err(e)) => Err(format!("Task failed: {}", e)),
+        Err(_) => {
+            // Timeout occurred - return a safe default
+            Ok(serde_json::json!({
+                "ready": false,
+                "pythonInstalled": true,
+                "packagesInstalled": false,
+                "message": "Check timed out - packages may need to be installed"
+            }))
         }
-    }))
+    }
 }
 
 /// Install Python dependencies for local segmentation

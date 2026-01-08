@@ -12,6 +12,23 @@ use crate::binaries;
 // Expose la dernière durée d'export terminée (en secondes)
 static LAST_EXPORT_TIME_S: Mutex<Option<f64>> = Mutex::new(None);
 
+// CONFIG DE DEVELOPPEMENT
+// Mettre à `true` pour tester l'export CPU même si une carte Nvidia est dispo
+// En PROD (release), cette valeur est ignorée et on privilégie toujours le GPU.
+#[cfg(debug_assertions)]
+const DEV_FORCE_CPU_ENCODING: bool = true;
+
+fn should_prefer_hw_encoding() -> bool {
+    #[cfg(debug_assertions)]
+    {
+        if DEV_FORCE_CPU_ENCODING {
+            println!("[DEV] Forçage de l'encodage CPU activé (DEV_FORCE_CPU_ENCODING = true)");
+            return false;
+        }
+    }
+    true
+}
+
 // Gestionnaire des processus actifs pour pouvoir les annuler
 static ACTIVE_EXPORTS: LazyLock<Mutex<HashMap<String, Arc<Mutex<Option<std::process::Child>>>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
@@ -197,9 +214,12 @@ fn choose_best_codec(prefer_hw: bool) -> (String, Vec<String>, HashMap<String, O
             if test_nvenc_availability(ffmpeg_exe.as_deref()) {
                 println!("[codec] Utilisation de NVENC (accélération GPU NVIDIA)");
                 let codec = hw[0].clone();
-                let params = vec!["-pix_fmt".to_string(), "yuv420p".to_string()];
+                let params = vec![
+                    "-pix_fmt".to_string(), "yuv420p".to_string(),
+                    "-bf".to_string(), "0".to_string(),
+                ];
                 let mut extra = HashMap::new();
-                extra.insert("preset".to_string(), Some("fast".to_string()));
+                extra.insert("preset".to_string(), Some("p4".to_string()));
                 return (codec, params, extra);
             } else {
                 println!("[codec] NVENC détecté mais non fonctionnel, fallback vers libx264");
@@ -263,6 +283,9 @@ fn ffmpeg_preprocess_video(src: &str, dst: &str, w: i32, h: i32, fps: i32, prefe
     cmd.arg("-y")
         .arg("-hide_banner")
         .arg("-loglevel").arg("error")
+        .arg("-fflags").arg("+genpts")
+        .arg("-avoid_negative_ts").arg("make_zero")
+        .arg("-vsync").arg("cfr")
         .arg("-i").arg(src);
 
     // Si une durée de découpe est fournie, la limiter
@@ -271,10 +294,12 @@ fn ffmpeg_preprocess_video(src: &str, dst: &str, w: i32, h: i32, fps: i32, prefe
         cmd.arg("-t").arg(d);
     }
 
+    let gop = fps * 2;
     cmd.arg("-an")
         .arg("-vf").arg(&vf)
         .arg("-pix_fmt").arg("yuv420p")
-        .arg("-c:v").arg(&codec);
+        .arg("-c:v").arg(&codec)
+        .arg("-g").arg(gop.to_string());
 
     if let Some(Some(preset)) = extra.get("preset") {
         cmd.arg("-preset").arg(preset);
@@ -325,11 +350,15 @@ fn create_video_from_image(image_path: &str, output_path: &str, w: i32, h: i32, 
         "-y",
         "-hide_banner", 
         "-loglevel", "info",
+        "-fflags", "+genpts",
+        "-avoid_negative_ts", "make_zero",
+        "-vsync", "cfr",
         "-loop", "1",
         "-i", image_path,
         "-vf", &video_filter,
         "-c:v", &codec,
         "-r", &fps.to_string(),
+        "-g", &(fps * 2).to_string(),
         "-t", &format!("{:.6}", duration_s),
     ]);
     
@@ -392,7 +421,7 @@ fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 { format!("-blur{}", b) } else { String::new() }
         } else { String::new() };
-        let hash_input = format!("{}-{}x{}-{}-dur{}{}", image_path, w, h, fps, duration_s, blur_suffix);
+        let hash_input = format!("{}-{}x{}-{}-dur{}{}-hw{}", image_path, w, h, fps, duration_s, blur_suffix, prefer_hw);
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("img-bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
@@ -456,7 +485,7 @@ fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 { format!("-blur{}", b) } else { String::new() }
         } else { String::new() };
-        let hash_input = format!("{}-{}x{}-{}-start{}-len{}{}", p, w, h, fps, start_within, take_ms, blur_suffix);
+        let hash_input = format!("{}-{}x{}-{}-start{}-len{}{}-hw{}", p, w, h, fps, start_within, take_ms, blur_suffix, prefer_hw);
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
@@ -634,6 +663,9 @@ fn build_and_run_ffmpeg_filter_complex(
         "-y".to_string(),
         "-hide_banner".to_string(),
         "-loglevel".to_string(), "info".to_string(),
+        "-fflags".to_string(), "+genpts".to_string(),
+        "-avoid_negative_ts".to_string(), "make_zero".to_string(),
+        "-vsync".to_string(), "cfr".to_string(),
         "-stats".to_string(),
         "-progress".to_string(), "pipe:2".to_string(),
     ]);
@@ -830,7 +862,12 @@ fn build_and_run_ffmpeg_filter_complex(
     }
     
     // Codec vidéo + audio
-    cmd.extend_from_slice(&["-r".to_string(), fps.to_string(), "-c:v".to_string(), vcodec]);
+    let gop = fps * 2;
+    cmd.extend_from_slice(&[
+        "-r".to_string(), fps.to_string(), 
+        "-g".to_string(), gop.to_string(),
+        "-c:v".to_string(), vcodec
+    ]);
     if let Some(Some(preset)) = vextra.get("preset") {
         cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
     }
@@ -1172,7 +1209,7 @@ pub async fn export_video(
             start_time,
             &audios_vec,
             &videos_vec,
-            true,
+            should_prefer_hw_encoding(),
             Some(&imgs_folder_resolved),
             duration,
             chunk_index,

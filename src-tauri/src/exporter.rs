@@ -927,7 +927,22 @@ fn build_and_run_ffmpeg_filter_complex(
     cmd.extend(vparams);
     
     if have_audio {
-        cmd.extend_from_slice(&["-c:a".to_string(), "aac".to_string(), "-b:a".to_string(), "192k".to_string()]);
+        // HYPOTHESE 1 : Si c'est un "Chunk" intermédiaire, on utilise du LOSSLESS (ALAC)
+        // pour éviter la dégradation lors de la concaténation.
+        // Si c'est un export final (direct), on utilise du AAC 320k standard.
+        // ALAC est supporté dans le conteneur MP4/M4A.
+        if chunk_index.is_some() {
+            cmd.extend_from_slice(&[
+                "-c:a".to_string(), "alac".to_string(), 
+                "-ac".to_string(), "2".to_string()      // Force stéréo
+            ]);
+        } else {
+            cmd.extend_from_slice(&[
+                "-c:a".to_string(), "aac".to_string(), 
+                "-b:a".to_string(), "320k".to_string(), // Qualité MAX pour éviter perte
+                "-ac".to_string(), "2".to_string()      // Force stéréo
+            ]);
+        }
     }
     
     // Assure la durée exacte
@@ -1452,7 +1467,8 @@ pub async fn concat_videos(
             "-map", "0:a?",                          // Map audio si présent (sans échouer si absent)
             "-af", "aresample=async=1:first_pts=0",  // Corrige les horloges audio
             "-c:a", "aac",
-            "-b:a", "192k",
+            "-b:a", "320k",                          // Qualité MAX
+            "-ac", "2",                              // Force stéréo
         ]);
     } else {
         cmd.arg("-an"); // Aucun audio trouvé, on désactive l'audio

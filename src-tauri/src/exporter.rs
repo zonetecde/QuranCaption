@@ -16,7 +16,7 @@ static LAST_EXPORT_TIME_S: Mutex<Option<f64>> = Mutex::new(None);
 // Mettre à `true` pour tester l'export CPU même si une carte Nvidia est dispo
 // En PROD (release), cette valeur est ignorée et on privilégie toujours le GPU.
 #[cfg(debug_assertions)]
-const DEV_FORCE_CPU_ENCODING: bool = true;
+const DEV_FORCE_CPU_ENCODING: bool = false;
 
 fn should_prefer_hw_encoding() -> bool {
     #[cfg(debug_assertions)]

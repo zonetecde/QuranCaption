@@ -603,13 +603,48 @@ fn build_and_run_ffmpeg_filter_complex(
     }
     
     let total_by_ts = (timestamps_ms[n - 1] + tail_ms) as f64 / 1000.0;
-    let duration_s = if let Some(dur_ms) = duration_ms {
-        dur_ms as f64 / 1000.0
-    } else {
-        total_by_ts
-    };
     
-    let mut starts_s = Vec::new();
+    // Note: durations_s will be recalculated below with snapping logic
+    // We keep existing logic for now just to satisfy variable initialization before override
+    // SNAP TO GRID (GLOBAL): Align start/end to absolute frame boundaries
+    // This prevents cumulative drift (desync) while ensuring no gaps (glitches).
+    let frame_duration = 1.0 / (fps as f64);
+    
+    // Helper function to snap a timestamp (ms) to the nearest frame time (s)
+    let snap_time = |ms: i32| -> f64 {
+        let seconds = ms as f64 / 1000.0;
+        let frames = (seconds / frame_duration).round();
+        frames * frame_duration
+    };
+
+    let start_s = snap_time(start_time_ms);
+    // Use snap(end) - snap(start) for total duration
+    // End time is start_time + calculated duration
+    let end_ms = if let Some(dur_ms) = duration_ms {
+        start_time_ms + dur_ms
+    } else {
+        (total_by_ts * 1000.0) as i32
+    };
+    let end_s = snap_time(end_ms);
+    let duration_s = (end_s - start_s).max(frame_duration);
+    
+    let mut starts_s = Vec::new(); // Not strictly needed anymore for calculation but kept for logic structure
+    // Recalculate durations_s using the same snapping logic
+    durations_s.clear();
+    
+    for i in 0..n {
+        let t_curr = timestamps_ms[i];
+        let t_next = if i < n - 1 { timestamps_ms[i + 1] } else { timestamps_ms[i] + tail_ms };
+        
+        let s_curr = snap_time(t_curr);
+        let s_next = snap_time(t_next);
+        
+        // Duration is difference between snapped timestamps => precise frame count
+        let dur = (s_next - s_curr).max(0.001);
+        durations_s.push(dur);
+    }
+    
+    // Rebuild starts logic for verify
     let mut acc = 0.0;
     for &d in &durations_s {
         starts_s.push(acc);
@@ -650,8 +685,14 @@ fn build_and_run_ffmpeg_filter_complex(
     writeln!(concat_file, "ffconcat version 1.0")?;
     for (i, p) in image_paths.iter().enumerate() {
         writeln!(concat_file, "file '{}'", p)?;
-        writeln!(concat_file, "duration {:.6}", durations_s[i])?;
+        // Ajouter le fade_s à chaque image pour avoir de la "marge" pour le xfade
+        // SAUF pour la toute dernière si on ne veut pas de marge à la fin, 
+        // mais pour simplifier la logique de trim on peut l'ajouter partout.
+        // Le xfade mangera cette marge.
+        let duration_with_padding = durations_s[i] + fade_s;
+        writeln!(concat_file, "duration {:.6}", duration_with_padding)?;
     }
+    // Dernière entrée neutre pour fermer le concat (pas utilisée visuellement)
     writeln!(concat_file, "file '{}'", image_paths[n - 1])?;
     
     println!("[concat] Fichier ffconcat -> {:?}", concat_path);
@@ -716,21 +757,33 @@ fn build_and_run_ffmpeg_filter_complex(
     ));
     
     // Pour chaque segment, extraire la fenêtre temporelle et séparer couleur/alpha
+    // Pour chaque segment, extraire la fenêtre temporelle et séparer couleur/alpha
+    let mut current_concat_time = 0.0;
     for i in 0..n {
-        let s = starts_s[i];
-        let e = s + durations_s[i];
+        let duration_chunk = durations_s[i];
+        
+        // Dans le flux concaténé (qui contient le padding), le segment i se trouve à :
+        // Start = current_concat_time
+        // End   = Start + duration_chunk + fade_s
+        let s = current_concat_time;
+        let e = s + duration_chunk + fade_s;
+        
         filter_lines.push(format!(
             "[b{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,fps={},split=2[s{}witha][s{}foralpha]",
             i, s, e, fps, i, i
         ));
         filter_lines.push(format!("[s{}foralpha]extractplanes=a[s{}a]", i, i));
         filter_lines.push(format!("[s{}witha]format=yuv444p[s{}c]", i, i));
+        
+        // Avancer le curseur pour le prochain segment
+        current_concat_time += duration_chunk + fade_s;
     }
     
     // Chaîne xfade pour couleur et alpha séparément
     let mut curr_c = "s0c".to_string();
     let mut curr_a = "s0a".to_string();
-    let mut curr_duration = durations_s[0];
+    // La première vidéo 's0c' a maintenant une durée de 'durations_s[0] + fade_s' (padding)
+    let mut curr_duration = durations_s[0] + fade_s;
     
     for i in 0..(n - 1) {
         let fade_i = durations_s[i].min(fade_s);
@@ -741,7 +794,11 @@ fn build_and_run_ffmpeg_filter_complex(
             filter_lines.push(format!("[{}][s{}a]concat=n=2:v=1:a=0[{}]", curr_a, i + 1, out_a));
             curr_c = out_c;
             curr_a = out_a;
-            curr_duration += durations_s[i + 1];
+            // En concat simple, on ajoute toute la durée du segment suivant (qui inclut son padding)
+            // Note: si on concatène sans fade, le padding précédent reste présent...
+            // Mais logiquement si fade_s > 0, on ne passe pas ici ou rarement.
+            // Si on passe ici alors que fade_s > 0 (car slide trop court), on garde tout.
+            curr_duration += durations_s[i + 1] + fade_s;
         } else {
             let out_c = format!("xc{}", i);
             let out_a = format!("xa{}", i);
@@ -756,7 +813,15 @@ fn build_and_run_ffmpeg_filter_complex(
             ));
             curr_c = out_c;
             curr_a = out_a;
-            curr_duration = curr_duration + durations_s[i + 1] - fade_i;
+            
+            // Nouvelle logique de durée avec padding :
+            // Ancienne fin théorique = Offset + Durée(Next)
+            // Durée(Next) = durations_s[i+1] + fade_s
+            // Donc Nouvelle Durée = (Curr - fade_i) + (Next + fade_s)
+            //                     = Curr + Next + (fade_s - fade_i)
+            // Si fade_i == fade_s, ça devient simplement Curr + Next.
+            let extra_padding = fade_s - fade_i;
+            curr_duration = curr_duration + durations_s[i + 1] + extra_padding;
         }
     }
     

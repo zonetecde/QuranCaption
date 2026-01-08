@@ -685,12 +685,8 @@ fn build_and_run_ffmpeg_filter_complex(
     writeln!(concat_file, "ffconcat version 1.0")?;
     for (i, p) in image_paths.iter().enumerate() {
         writeln!(concat_file, "file '{}'", p)?;
-        // Ajouter le fade_s à chaque image pour avoir de la "marge" pour le xfade
-        // SAUF pour la toute dernière si on ne veut pas de marge à la fin, 
-        // mais pour simplifier la logique de trim on peut l'ajouter partout.
-        // Le xfade mangera cette marge.
-        let duration_with_padding = durations_s[i] + fade_s;
-        writeln!(concat_file, "duration {:.6}", duration_with_padding)?;
+        // Pas de padding (test utilisateur)
+        writeln!(concat_file, "duration {:.6}", durations_s[i])?;
     }
     // Dernière entrée neutre pour fermer le concat (pas utilisée visuellement)
     writeln!(concat_file, "file '{}'", image_paths[n - 1])?;
@@ -762,11 +758,9 @@ fn build_and_run_ffmpeg_filter_complex(
     for i in 0..n {
         let duration_chunk = durations_s[i];
         
-        // Dans le flux concaténé (qui contient le padding), le segment i se trouve à :
-        // Start = current_concat_time
-        // End   = Start + duration_chunk + fade_s
         let s = current_concat_time;
-        let e = s + duration_chunk + fade_s;
+        // Sans padding, la fin est juste s + duration
+        let e = s + duration_chunk;
         
         filter_lines.push(format!(
             "[b{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,fps={},split=2[s{}witha][s{}foralpha]",
@@ -776,14 +770,13 @@ fn build_and_run_ffmpeg_filter_complex(
         filter_lines.push(format!("[s{}witha]format=yuv444p[s{}c]", i, i));
         
         // Avancer le curseur pour le prochain segment
-        current_concat_time += duration_chunk + fade_s;
+        current_concat_time += duration_chunk;
     }
     
     // Chaîne xfade pour couleur et alpha séparément
     let mut curr_c = "s0c".to_string();
     let mut curr_a = "s0a".to_string();
-    // La première vidéo 's0c' a maintenant une durée de 'durations_s[0] + fade_s' (padding)
-    let mut curr_duration = durations_s[0] + fade_s;
+    let mut curr_duration = durations_s[0];
     
     for i in 0..(n - 1) {
         let fade_i = durations_s[i].min(fade_s);
@@ -794,11 +787,7 @@ fn build_and_run_ffmpeg_filter_complex(
             filter_lines.push(format!("[{}][s{}a]concat=n=2:v=1:a=0[{}]", curr_a, i + 1, out_a));
             curr_c = out_c;
             curr_a = out_a;
-            // En concat simple, on ajoute toute la durée du segment suivant (qui inclut son padding)
-            // Note: si on concatène sans fade, le padding précédent reste présent...
-            // Mais logiquement si fade_s > 0, on ne passe pas ici ou rarement.
-            // Si on passe ici alors que fade_s > 0 (car slide trop court), on garde tout.
-            curr_duration += durations_s[i + 1] + fade_s;
+            curr_duration += durations_s[i + 1];
         } else {
             let out_c = format!("xc{}", i);
             let out_a = format!("xa{}", i);
@@ -814,19 +803,18 @@ fn build_and_run_ffmpeg_filter_complex(
             curr_c = out_c;
             curr_a = out_a;
             
-            // Nouvelle logique de durée avec padding :
-            // Ancienne fin théorique = Offset + Durée(Next)
-            // Durée(Next) = durations_s[i+1] + fade_s
-            // Donc Nouvelle Durée = (Curr - fade_i) + (Next + fade_s)
-            //                     = Curr + Next + (fade_s - fade_i)
-            // Si fade_i == fade_s, ça devient simplement Curr + Next.
-            let extra_padding = fade_s - fade_i;
-            curr_duration = curr_duration + durations_s[i + 1] + extra_padding;
+            // Logique standard sans padding (xfade mange la durée)
+            // Duration = Curr + Next - Fade
+            curr_duration = curr_duration + durations_s[i + 1] - fade_i;
         }
     }
     
     // Reconstituer RGBA pour l'overlay final
     filter_lines.push(format!("[{}][{}]alphamerge,format=yuva444p[overlay]", curr_c, curr_a));
+    
+    // DEBUG: On a retiré le TRIM ici car il causait un "Jump to last".
+    // On revient à l'état désynchronisé mais stable pour investiguer.
+    // filter_lines.push(format!("[overlay_raw]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS[overlay]", start_s, end_s));
     
     // Construction de la vidéo de fond [bg]
     let avail_bg_after = total_bg_s;

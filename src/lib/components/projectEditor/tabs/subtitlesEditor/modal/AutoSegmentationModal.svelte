@@ -39,6 +39,9 @@
 	type WhisperModel = 'tiny' | 'base' | 'medium' | 'large';
 	let selectedModel = $state<WhisperModel>('base');
 
+	// Fill gaps by silence option
+	let fillBySilence = $state(true);
+
 	const modelOptions = [
 		{
 			value: 'tiny' as const,
@@ -82,6 +85,7 @@
 		minSpeechMs = persisted.minSpeechMs;
 		padMs = persisted.padMs;
 		selectedModel = persisted.whisperModel;
+		fillBySilence = persisted.fillBySilence ?? true;
 		selectedMode = persisted.mode === 'local' && localStatus?.ready ? 'local' : 'api';
 	});
 
@@ -113,6 +117,10 @@
 
 	function persistModelSettings(): void {
 		persistAutoSegmentationSettings({ whisperModel: selectedModel });
+	}
+
+	function persistFillBySilenceSettings(): void {
+		persistAutoSegmentationSettings({ fillBySilence });
 	}
 
 	async function handleInstallDeps() {
@@ -182,7 +190,8 @@
 					minSilenceMs,
 					minSpeechMs,
 					padMs,
-					whisperModel: selectedMode === 'local' ? selectedModel : undefined
+					whisperModel: selectedMode === 'local' ? selectedModel : undefined,
+					fillBySilence
 				},
 				selectedMode
 			);
@@ -506,6 +515,25 @@
 							/>
 							<p class="text-xs text-thirdly mt-1">Extra time added before/after each segment</p>
 						</div>
+					</div>
+
+					<!-- Fill by Silence Option -->
+					<div class="pt-3 border-t border-color">
+						<label class="flex items-start gap-3 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={fillBySilence}
+								onchange={persistFillBySilenceSettings}
+								class="accent-accent-primary mt-0.5 w-4 h-4"
+							/>
+							<div class="flex-1">
+								<div class="text-sm text-primary font-medium">Fill gaps with silence clips</div>
+								<p class="text-xs text-thirdly mt-0.5">
+									When enabled, gaps between subtitles are filled with explicit silence clips. When
+									disabled, each subtitle is extended to meet the next one.
+								</p>
+							</div>
+						</label>
 					</div>
 				</div>
 			{/if}

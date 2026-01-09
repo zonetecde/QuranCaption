@@ -15,6 +15,7 @@ export type AutoSegmentationSettings = {
 	minSpeechMs: number;
 	padMs: number;
 	whisperModel: 'tiny' | 'base' | 'medium' | 'large';
+	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 };
 
 export default class Settings extends SerializableBase {
@@ -34,7 +35,8 @@ export default class Settings extends SerializableBase {
 		minSilenceMs: 200,
 		minSpeechMs: 1000,
 		padMs: 50,
-		whisperModel: 'base'
+		whisperModel: 'base',
+		fillBySilence: true
 	});
 
 	// Shortcut categories metadata

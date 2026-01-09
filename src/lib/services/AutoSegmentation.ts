@@ -89,6 +89,7 @@ export type AutoSegmentationOptions = {
 	minSpeechMs?: number;
 	padMs?: number;
 	whisperModel?: WhisperModelSize;
+	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
 };
 
 export type AutoSegmentationResult =
@@ -258,6 +259,30 @@ function insertSilenceClips(
 }
 
 /**
+ * Extend subtitle end times to fill gaps (no silence clips inserted).
+ * The end of each subtitle is extended to meet the start of the next one - 1ms.
+ *
+ * @param {Array<SubtitleClip | PredefinedSubtitleClip>} clips - Timeline clips.
+ */
+function extendSubtitlesToFillGaps(
+	clips: Array<SubtitleClip | PredefinedSubtitleClip>
+): void {
+	if (clips.length === 0) return;
+
+	const ordered = [...clips].sort((a, b) => a.startTime - b.startTime);
+
+	for (let i: number = 0; i < ordered.length - 1; i += 1) {
+		const current = ordered[i];
+		const next = ordered[i + 1];
+
+		// Extend current subtitle to meet the next one
+		if (current.endTime < next.startTime - 1) {
+			current.setEndTime(next.startTime - 1);
+		}
+	}
+}
+
+/**
  * Apply segmentation output to the project subtitle track.
  *
  * Steps:
@@ -279,10 +304,11 @@ export async function runAutoSegmentation(
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
 	const padMs: number = options.padMs ?? 50;
 	const whisperModel: string = options.whisperModel ?? 'base';
+	const fillBySilence: boolean = options.fillBySilence ?? true; // Par défaut, on insère des SilenceClip
 
 	// Determine mode if not specified
 	const effectiveMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
-	console.log(`[AutoSegmentation] Using ${effectiveMode} mode`);
+	console.log(`[AutoSegmentation] Using ${effectiveMode} mode, fillBySilence=${fillBySilence}`);
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
 	if (!audioInfo) {
@@ -692,7 +718,14 @@ export async function runAutoSegmentation(
 		) as Array<SubtitleClip | PredefinedSubtitleClip>;
 		closeSmallSubtitleGaps(subtitleClips, SMALL_GAP_MS);
 
-		subtitleTrack.clips = insertSilenceClips(subtitleClips, SMALL_GAP_MS);
+		if (fillBySilence) {
+			// Insère des SilenceClip dans les gaps
+			subtitleTrack.clips = insertSilenceClips(subtitleClips, SMALL_GAP_MS);
+		} else {
+			// Étend la fin de chaque sous-titre pour combler les gaps
+			extendSubtitlesToFillGaps(subtitleClips);
+			subtitleTrack.clips = subtitleClips;
+		}
 		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
 
 		const verseRange: VerseRange = VerseRange.getVerseRange(0, subtitleTrack.getDuration().ms);

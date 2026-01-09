@@ -1031,19 +1031,58 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
         let mut nvidia_check = Command::new("nvidia-smi");
         configure_command_no_window(&mut nvidia_check);
         
-        let has_cuda_gpu = match nvidia_check.output() {
-            Ok(output) => output.status.success(),
-            Err(_) => false,
+        // Parse nvidia-smi output to get CUDA version
+        let cuda_version: Option<(u32, u32)> = match nvidia_check.output() {
+            Ok(output) if output.status.success() => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                // Look for "CUDA Version: X.Y" in the output
+                // nvidia-smi output format: "CUDA Version: 12.1"
+                if let Some(pos) = stdout.find("CUDA Version:") {
+                    let version_str = &stdout[pos + 13..];
+                    let version_str = version_str.trim();
+                    // Take until space or newline
+                    let end = version_str.find(|c: char| c.is_whitespace() || c == '|').unwrap_or(version_str.len());
+                    let version_str = &version_str[..end].trim();
+                    let parts: Vec<&str> = version_str.split('.').collect();
+                    if parts.len() >= 2 {
+                        if let (Ok(major), Ok(minor)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
+                            Some((major, minor))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            },
+            _ => None,
         };
         
-        if has_cuda_gpu {
-            // CUDA GPU detected - try to install CUDA version
-            emit_status("CUDA GPU detected, installing PyTorch with CUDA support...");
+        if let Some((major, minor)) = cuda_version {
+            emit_status(&format!("CUDA {} detected, installing PyTorch with CUDA support...", format!("{}.{}", major, minor)));
+            
+            // Select appropriate CUDA index based on detected version
+            // PyTorch wheels: cu124 (12.4+), cu121 (12.1-12.3), cu118 (11.8-12.0)
+            let cuda_indexes: Vec<&str> = if major >= 12 && minor >= 4 {
+                vec!["https://download.pytorch.org/whl/cu124", "https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"]
+            } else if major >= 12 && minor >= 1 {
+                vec!["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu124", "https://download.pytorch.org/whl/cu118"]
+            } else if major >= 11 && minor >= 8 {
+                vec!["https://download.pytorch.org/whl/cu118", "https://download.pytorch.org/whl/cu121"]
+            } else if major >= 11 {
+                vec!["https://download.pytorch.org/whl/cu118"]
+            } else {
+                // CUDA too old, skip to CPU
+                vec![]
+            };
+            
             let mut cuda_install_errors: Vec<String> = Vec::new();
-            let cuda_indexes = ["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"];
             let mut cuda_success = false;
 
             for index_url in cuda_indexes {
+                emit_status(&format!("Trying PyTorch from {}...", index_url));
                 let mut torch_cmd = Command::new(python_cmd);
                 torch_cmd.args(&[
                     "-m",
@@ -1065,7 +1104,7 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
 
                 if !torch_output.status.success() {
                     let stderr = String::from_utf8_lossy(&torch_output.stderr);
-                    cuda_install_errors.push(format!("CUDA index {} failed: {}", index_url, stderr));
+                    cuda_install_errors.push(format!("Index {} failed: {}", index_url, stderr));
                     continue;
                 }
 
@@ -1082,13 +1121,13 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
                     if output.status.success() {
                         cuda_success = true;
                         cuda_install_errors.clear();
-                        emit_status("PyTorch with CUDA installed successfully!");
+                        emit_status(&format!("PyTorch with CUDA ({}) installed successfully!", index_url.split('/').last().unwrap_or("cu")));
                         break;
                     }
                 }
 
                 cuda_install_errors.push(format!(
-                    "CUDA index {} installed but CUDA not available in torch",
+                    "Index {} installed but CUDA not available in torch",
                     index_url
                 ));
             }
@@ -1132,8 +1171,51 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
                 }
             }
         } else {
-            // No CUDA GPU detected - install CPU version directly
-            emit_status("No CUDA GPU detected, installing PyTorch CPU version...");
+            // Check if nvidia-smi was available but version couldn't be parsed
+            let mut nvidia_fallback = Command::new("nvidia-smi");
+            configure_command_no_window(&mut nvidia_fallback);
+            let has_nvidia = nvidia_fallback.output().map(|o| o.status.success()).unwrap_or(false);
+            
+            if has_nvidia {
+                // nvidia-smi worked but couldn't parse CUDA version - try CUDA anyway
+                emit_status("NVIDIA GPU detected but couldn't determine CUDA version, trying CUDA install...");
+                
+                let mut cuda_success = false;
+                for index_url in &["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"] {
+                    emit_status(&format!("Trying PyTorch from {}...", index_url));
+                    let mut torch_cmd = Command::new(python_cmd);
+                    torch_cmd.args(&[
+                        "-m", "pip", "install", "--upgrade", "torch", "torchvision", "torchaudio",
+                        "--index-url", index_url, "--quiet",
+                    ]);
+                    configure_command_no_window(&mut torch_cmd);
+
+                    if torch_cmd.output().map(|o| o.status.success()).unwrap_or(false) {
+                        let mut cuda_check = Command::new(python_cmd);
+                        cuda_check.args(&["-c", "import torch; assert torch.cuda.is_available()"]);
+                        configure_command_no_window(&mut cuda_check);
+                        
+                        if cuda_check.output().map(|o| o.status.success()).unwrap_or(false) {
+                            cuda_success = true;
+                            emit_status(&format!("PyTorch with CUDA ({}) installed!", index_url.split('/').last().unwrap_or("cu")));
+                            break;
+                        }
+                    }
+                }
+                
+                if !cuda_success {
+                    emit_status("CUDA setup failed, falling back to CPU...");
+                    let mut cpu_cmd = Command::new(python_cmd);
+                    cpu_cmd.args(&[
+                        "-m", "pip", "install", "torch", "torchvision", "torchaudio",
+                        "--index-url", "https://download.pytorch.org/whl/cpu", "--quiet",
+                    ]);
+                    configure_command_no_window(&mut cpu_cmd);
+                    let _ = cpu_cmd.output();
+                }
+            } else {
+                // No CUDA GPU detected - install CPU version directly
+                emit_status("No CUDA GPU detected, installing PyTorch CPU version...");
             let mut cpu_cmd = Command::new(python_cmd);
             cpu_cmd.args(&[
                 "-m",
@@ -1157,6 +1239,7 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
                 return Err(format!("Failed to install torch CPU: {}", stderr));
             }
             emit_status("PyTorch CPU version installed successfully!");
+            }
         }
     }
 

@@ -181,13 +181,16 @@ def _special_overlap_score(asr_text: str, canonical_text: str) -> float:
     return (canonical_coverage + asr_coverage) / 2
 
 
-def split_combined_special(vad_segments, segment_audios, transcribed_texts):
+def split_combined_special(vad_segments, segment_audios, transcribed_texts, transcription_errors=None):
     """
     Detect if the first segment contains both Isti'adha and Basmala
     and split it into two segments at the midpoint.
     """
+    if transcription_errors is None:
+        transcription_errors = [None] * len(transcribed_texts)
+        
     if not vad_segments or not segment_audios or not transcribed_texts:
-        return vad_segments, segment_audios, transcribed_texts, False
+        return vad_segments, segment_audios, transcribed_texts, transcription_errors, False
 
     first_text = transcribed_texts[0]
     score_i = _special_overlap_score(first_text, SPECIAL_SEGMENTS.get("Isti'adha", ""))
@@ -211,16 +214,18 @@ def split_combined_special(vad_segments, segment_audios, transcribed_texts):
             SPECIAL_SEGMENTS.get("Isti'adha", ""),
             SPECIAL_SEGMENTS.get("Basmala", ""),
         ]
+        new_errors = [None, None]  # Special segments have no errors
 
         # Append remaining segments and reindex
         for i, vs in enumerate(vad_segments[1:], start=2):
             new_vads.append(VadSegment(start_time=vs.start_time, end_time=vs.end_time, segment_idx=i))
         new_audios.extend(segment_audios[1:])
         new_texts.extend(transcribed_texts[1:])
+        new_errors.extend(transcription_errors[1:])
 
-        return new_vads, new_audios, new_texts, True
+        return new_vads, new_audios, new_texts, new_errors, True
 
-    return vad_segments, segment_audios, transcribed_texts, False
+    return vad_segments, segment_audios, transcribed_texts, transcription_errors, False
 
 
 def load_segmenter():
@@ -295,11 +300,14 @@ def load_whisper(model_name: str = None):
         _whisper_cache["model_name"] = actual_model
 
         print(f"Whisper loaded on {device} in {load_time:.2f}s")
-        return model, processor, gen_config, load_time
+        return model, processor, gen_config, load_time, None
 
     except Exception as e:
-        print(f"Failed to load Whisper: {e}")
-        return None, None, None, 0.0
+        error_msg = f"Failed to load Whisper model '{actual_model}': {str(e)}"
+        print(error_msg)
+        import traceback
+        traceback.print_exc()
+        return None, None, None, 0.0, error_msg
 
 
 # =============================================================================
@@ -383,24 +391,29 @@ def detect_speech_segments(
         inference_time = time.time() - inference_start
         return [(0, len(audio) / sample_rate)], {"model_load_time": model_load_time, "inference_time": inference_time}
 
-
 # =============================================================================
 def transcribe_segments_batched(
     segment_audios: List[np.ndarray],
     sample_rate: int,
     model_name: str = None
-) -> Tuple[List[str], dict]:
+) -> Tuple[List[str], List[str], dict]:
     """
     Transcribe multiple audio segments in a batch.
+    
+    Returns:
+        texts: List of transcribed texts (empty string if failed)
+        errors: List of error messages (None if success, error string if failed)
+        profiling: Dict with timing information
     """
     import time
 
     if not segment_audios:
-        return [], {"model_load_time": 0.0, "inference_time": 0.0}
+        return [], [], {"model_load_time": 0.0, "inference_time": 0.0}
 
-    model, processor, gen_config, model_load_time = load_whisper(model_name)
+    model, processor, gen_config, model_load_time, load_error = load_whisper(model_name)
     if model is None:
-        return [""] * len(segment_audios), {"model_load_time": 0.0, "inference_time": 0.0}
+        error_msg = load_error or "Failed to load Whisper model (unknown error)"
+        return [""] * len(segment_audios), [error_msg] * len(segment_audios), {"model_load_time": 0.0, "inference_time": 0.0}
 
     inference_start = time.time()
 
@@ -442,14 +455,16 @@ def transcribe_segments_batched(
         inference_time = time.time() - inference_start
         print(f"[WHISPER BATCH] {len(segment_audios)} segments in {inference_time:.2f}s")
 
-        return texts, {"model_load_time": model_load_time, "inference_time": inference_time}
+        # No errors
+        return texts, [None] * len(texts), {"model_load_time": model_load_time, "inference_time": inference_time}
 
     except Exception as e:
+        error_msg = f"Whisper transcription error: {str(e)}"
         print(f"Batched Whisper error: {e}")
         import traceback
         traceback.print_exc()
         inference_time = time.time() - inference_start
-        return [""] * len(segment_audios), {"model_load_time": model_load_time, "inference_time": inference_time}
+        return [""] * len(segment_audios), [error_msg] * len(segment_audios), {"model_load_time": model_load_time, "inference_time": inference_time}
 
 
 # =============================================================================
@@ -545,7 +560,7 @@ def process_audio_full(
     whisper_start = time.time()
     # Get model name from mapping or use default
     whisper_model_name = WHISPER_MODELS.get(whisper_model, WHISPER_MODELS["base"])
-    transcribed_texts, whisper_profiling = transcribe_segments_batched(
+    transcribed_texts, transcription_errors, whisper_profiling = transcribe_segments_batched(
         segment_audios, sample_rate, whisper_model_name
     )
     profiling.asr_model_load_time = whisper_profiling.get("model_load_time", 0.0)
@@ -553,8 +568,8 @@ def process_audio_full(
     print(f"[PROCESS] Whisper: {time.time() - whisper_start:.2f}s")
 
     # Detect combined Isti'adha + Basmala in first segment and split if needed
-    vad_segments, segment_audios, transcribed_texts, special_split = split_combined_special(
-        vad_segments, segment_audios, transcribed_texts
+    vad_segments, segment_audios, transcribed_texts, transcription_errors, special_split = split_combined_special(
+        vad_segments, segment_audios, transcribed_texts, transcription_errors
     )
     if special_split:
         print("[SPECIAL] Split combined Isti'adha + Basmala in first segment")
@@ -584,7 +599,9 @@ def process_audio_full(
     segments = []
     total_segments = len(vad_segments)
 
-    for idx, (seg, text, (matched_text, score, matched_ref)) in enumerate(zip(vad_segments, transcribed_texts, match_results)):
+    for idx, (seg, text, trans_error, (matched_text, score, matched_ref)) in enumerate(
+        zip(vad_segments, transcribed_texts, transcription_errors, match_results)
+    ):
         error = None
 
         # Apply end-of-verse penalty to final segment if it doesn't end a verse
@@ -592,8 +609,11 @@ def process_audio_full(
             if not _is_end_of_verse(matched_ref):
                 score = max(0.0, score - 0.25)
 
-        if not text:
-            error = "Transcription failed"
+        # Check for transcription error first
+        if trans_error:
+            error = trans_error
+        elif not text:
+            error = "Transcription returned empty text"
         elif score < MIN_MATCH_SCORE:
             matched_text = ""
             matched_ref = ""

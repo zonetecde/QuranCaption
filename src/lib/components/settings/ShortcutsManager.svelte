@@ -260,7 +260,7 @@
 				<span
 					class="i loader mr-1 animate-spin h-3 w-3 border-2 border-accent border-t-transparent rounded-full"
 				></span>
-				<span>Appuyez…</span>
+				<span>Press a key</span>
 			{:else}
 				<span class="material-icons text-xs opacity-70">keyboard</span>
 				<span>{formatKey(value)}</span>

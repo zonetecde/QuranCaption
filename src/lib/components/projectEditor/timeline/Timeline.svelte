@@ -54,10 +54,15 @@
 		if (selectedSubtitles.length === 1) {
 			clipToSplit = selectedSubtitles[0];
 		} else {
-			// Fallback: check if a subtitle is being edited (Subtitles Editor)
-			const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-			if (editedSubtitle && editedSubtitle.type === 'Subtitle') {
-				clipToSplit = editedSubtitle;
+			const cursorPosition = globalState.getTimelineState.cursorPosition;
+			const subtitleTrack = globalState.getSubtitleTrack;
+			const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
+
+			if (
+				clipUnderCursor &&
+				(clipUnderCursor.type === 'Subtitle' || clipUnderCursor.type === 'Pre-defined Subtitle')
+			) {
+				clipToSplit = clipUnderCursor;
 			}
 		}
 
@@ -67,9 +72,13 @@
 				currentProject.detail.updateVideoDetailAttributes();
 				globalState.getStylesState.clearSelection();
 
-				// If we split the edited subtitle, stop editing to avoid issues with the old reference
-				if (globalState.getSubtitlesEditorState.editSubtitle?.id === clipToSplit.id) {
-					globalState.getSubtitlesEditorState.editSubtitle = null;
+				// Start editing the first subtitle
+				// only if we are on the subtitles editor tab
+				if (
+					globalState.currentProject?.projectEditorState.currentTab ===
+					ProjectEditorTabs.SubtitlesEditor
+				) {
+					globalState.getSubtitlesEditorState.editSubtitle = clipToSplit;
 				}
 			}
 		}
@@ -185,14 +194,8 @@
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
-		// On active le shortcut de split dans Style et Subtitles Editor
-		const tabsWithSplitShortcut = [ProjectEditorTabs.Style, ProjectEditorTabs.SubtitlesEditor];
-
-		if (currentTab && tabsWithSplitShortcut.includes(currentTab)) {
-			registerSplitShortcut();
-		} else {
-			unregisterSplitShortcut();
-		}
+		// On active le shortcut de split pour tous les onglets
+		registerSplitShortcut();
 
 		// Le raccourci de suppression (Backspace) reste spécifique à l'onglet Style pour l'instant
 		// (pour éviter de supprimer par erreur dans d'autres contextes)

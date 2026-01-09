@@ -160,7 +160,7 @@ export default class Settings extends SerializableBase {
 			},
 			SPLIT_SUBTITLE: {
 				keys: ['d'],
-				description: 'Split the selected subtitle at the cursor position',
+				description: 'Split the subtitle at the cursor position',
 				name: 'Split Subtitle'
 			}
 		}

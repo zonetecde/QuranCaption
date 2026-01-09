@@ -150,11 +150,6 @@
 		});
 
 		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END,
-			onKeyDown: setLastSubtitleEnd
-		});
-
-		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_BASMALA,
 			onKeyDown: () => addPredefinedSubtitle('Basmala')
 		});
@@ -207,9 +202,7 @@
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE
 		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END
-		);
+
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_BASMALA
 		);
@@ -356,21 +349,6 @@
 
 		globalState.currentProject!.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
-	}
-
-	/**
-	 * Définit la fin du dernier sous-titre à la position actuelle du curseur (shortcut SET_LAST_SUBTITLE_END).
-	 */
-	function setLastSubtitleEnd(): void {
-		const subtitleTrack = globalState.getSubtitleTrack;
-
-		const lastSubtitle = subtitleTrack.getLastClip();
-		if (lastSubtitle) {
-			lastSubtitle.setEndTime(globalState.getTimelineState.cursorPosition);
-			if (lastSubtitle instanceof SubtitleClip) {
-				lastSubtitle.markAsManualEdit();
-			}
-		}
 	}
 
 	/**

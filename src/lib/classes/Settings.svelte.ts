@@ -141,7 +141,7 @@ export default class Settings extends SerializableBase {
 			SET_LAST_SUBTITLE_END: {
 				keys: ['m'],
 				name: 'Set Subtitle End Time',
-				description: 'Set end time of last subtitle to current position'
+				description: 'Set end time of subtitle at cursor position and adjust next subtitle start'
 			},
 			ADD_BASMALA: {
 				keys: ['b'],

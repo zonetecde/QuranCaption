@@ -187,7 +187,6 @@ export class ClipWithTranslation extends Clip {
 	 * @return La traduction associée à l'édition.
 	 */
 	getTranslation(edition: Edition | string): Translation {
-		//@ts-ignore
 		return this.translations[typeof edition === 'string' ? edition : edition.name];
 	}
 
@@ -273,6 +272,22 @@ export class SubtitleClip extends ClipWithTranslation {
 				this.isLastWordsOfVerse,
 				fontFamily.value === 'QPC1' ? '1' : '2'
 			);
+		}
+	}
+
+	override setEndTime(newEndTime: number) {
+		super.setEndTime(newEndTime);
+		// Si la modification a bien été prise en compte (pas d'erreur dans le super)
+		if (this.endTime === newEndTime) {
+			this.markAsManualEdit();
+		}
+	}
+
+	override setStartTime(newStartTime: number) {
+		super.setStartTime(newStartTime);
+		// Si la modification a bien été prise en compte (pas d'erreur dans le super)
+		if (this.startTime === newStartTime) {
+			this.markAsManualEdit();
 		}
 	}
 

@@ -699,6 +699,9 @@ export async function runAutoSegmentation(
 
 		globalState.currentProject?.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
+		
+		// Set le nbre de segment à review initialement pour la barre de progression
+		globalState.getSubtitlesEditorState.initialLowConfidenceCount = lowConfidenceSegments;
 
 		console.log('Quran segmentation payload:', payload);
 

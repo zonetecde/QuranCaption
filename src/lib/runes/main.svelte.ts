@@ -48,10 +48,6 @@ class GlobalState {
 		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'about'
 	});
 
-	// ==========================================
-	// Shortcut pour le projet actuel
-	//==========================================
-
 	get getSubtitleTrack() {
 		return this.currentProject!.content.timeline.getFirstTrack(
 			TrackType.Subtitle

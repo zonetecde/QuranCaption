@@ -8,6 +8,33 @@
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
 
+	// Compte le nombre de segments à revue
+	let segmentsNeedingReview = $derived(
+		(globalState.getSubtitleClips || []).filter((clip) => clip.needsReview === true).length
+	);
+	// Compte le nombre de segments initialement à review
+	let initialLowConfidenceCount = $derived(
+		globalState.getSubtitlesEditorState?.initialLowConfidenceCount ?? 0
+	);
+	// Compte le nombre de segments revus
+	let reviewedCount = $derived(Math.max(0, initialLowConfidenceCount - segmentsNeedingReview));
+
+	// Navigation vers le prochain segment à review
+	function goToNextSegmentToReview() {
+		const clips = globalState.getSubtitleClips || [];
+		// Trouve le premier segment à review (trié par startTime)
+		const nextSegment = clips
+			.filter((clip) => clip.needsReview === true)
+			.sort((a, b) => a.startTime - b.startTime)[0];
+
+		if (nextSegment) {
+			// Déplace le curseur de la timeline au début du segment
+			globalState.getTimelineState.cursorPosition = nextSegment.startTime + 750;
+			globalState.getTimelineState.movePreviewTo = nextSegment.startTime + 750;
+			globalState.getVideoPreviewState.scrollTimelineToCursor();
+		}
+	}
+
 	type SpecialPreset = 'Silence' | 'Istiadhah' | 'Basmala';
 
 	function isSpecialPreset(value: string): value is SpecialPreset {
@@ -252,6 +279,40 @@
 				<span class="material-icons text-base">auto_awesome</span>
 				Auto-Segment
 			</button>
+
+			{#if initialLowConfidenceCount > 0 && segmentsNeedingReview > 0}
+				<div class="bg-accent rounded-lg p-3 space-y-2">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-1.5">
+							<span class="material-icons text-yellow-400 text-sm">warning</span>
+							<span class="text-xs text-secondary">Segments to review</span>
+						</div>
+						<span class="text-xs font-bold text-yellow-400">
+							{segmentsNeedingReview} remaining
+						</span>
+					</div>
+					<div class="w-full bg-secondary rounded-full h-2 relative overflow-hidden">
+						<div
+							class="bg-gradient-to-r from-green-500 to-green-400 h-full rounded-full transition-all duration-500 ease-out"
+							style="width: {initialLowConfidenceCount > 0
+								? (reviewedCount / initialLowConfidenceCount) * 100
+								: 0}%"
+						></div>
+					</div>
+					<div class="flex items-center justify-between text-[10px] text-thirdly">
+						<span>{reviewedCount} reviewed</span>
+						<span>{initialLowConfidenceCount} low-confidence</span>
+					</div>
+					<button
+						class="w-full mt-2 px-2 py-1.5 rounded-md bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-yellow-500/30 transition cursor-pointer"
+						type="button"
+						onclick={goToNextSegmentToReview}
+					>
+						<span class="material-icons text-sm">skip_next</span>
+						Next Segment
+					</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

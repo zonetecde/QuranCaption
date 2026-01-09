@@ -507,11 +507,11 @@
 					if (isLinux && error === 'Decoding audio data failed.') {
 						return;
 					}
-					toast.error('Erreur lors du chargement de l\'audio : ' + error);
+					toast.error("Erreur lors du chargement de l'audio : " + error);
 				},
 				onplayerror: (id, error) => {
 					console.error('Howler play error:', error);
-					toast.error('Erreur lors de la lecture de l\'audio : ' + error);
+					toast.error("Erreur lors de la lecture de l'audio : " + error);
 					// Fallback si la lecture échoue
 					pause();
 				},

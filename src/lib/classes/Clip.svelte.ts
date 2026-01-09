@@ -155,6 +155,7 @@ export class ClipWithTranslation extends Clip {
 	text: string = $state('');
 	comeFromIA: boolean = $state(false);
 	confidence: number | null = $state(null); // Entre 0 et 1
+	needsReview: boolean = $state(false); // Vrai si c'est un segment à low-confidence et qu'il n'a pas encore été reviewé
 
 	constructor(
 		text: string,
@@ -170,11 +171,14 @@ export class ClipWithTranslation extends Clip {
 		this.text = text;
 		this.comeFromIA = comeFromIA;
 		this.confidence = comeFromIA ? confidence : null;
+		// Le segment est marqué comme besoin de review si c'est un segment IA et qu'il a une confiance inférieure à 75%
+		this.needsReview = comeFromIA && confidence !== null && confidence <= 0.75;
 	}
 
 	markAsManualEdit() {
 		this.comeFromIA = false;
 		this.confidence = null;
+		this.needsReview = false; // Le segment n'a plus besoin de review
 	}
 
 	/**

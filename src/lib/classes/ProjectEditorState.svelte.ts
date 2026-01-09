@@ -137,6 +137,9 @@ export class VideoPreviewState extends SerializableBase {
 	// Fonction pour toggle play/pause, sera définie par le composant VideoPreview
 	togglePlayPause: () => void = () => {};
 
+	// Fonction pour scroll la timeline à la position du curseur, sera définie par le composant Timeline
+	scrollTimelineToCursor: () => void = () => {};
+
 	async toggleFullScreen() {
 		const appWindow = getCurrentWindow();
 
@@ -181,6 +184,10 @@ export class SubtitlesEditorState extends SerializableBase {
 	// Indique le sous-titre à éditer dans l'éditeur de sous-titres (null si aucun)
 	editSubtitle: SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation | SilenceClip | null =
 		$state(null);
+	
+	// Nombre initial de segments à faible confiance (set lors de l'auto-segmentation)
+	// Utilisé pour afficher la barre de progression des segments à review
+	initialLowConfidenceCount: number = $state(0);
 }
 
 export class TranslationsEditorState extends SerializableBase {

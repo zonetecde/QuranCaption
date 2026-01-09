@@ -156,7 +156,22 @@
 
 		// Au cas où il serait en false après un changement de taille de sous-titre
 		globalState.getTimelineState.showCursor = true;
+
+		globalState.getVideoPreviewState.scrollTimelineToCursor = scrollTimelineToCursor;
 	});
+
+	/**
+	 * Scroll la timeline à la position du curseur
+	 */
+	function scrollTimelineToCursor() {
+		if (!timelineDiv) return;
+		// Calcule la position du curseur en pixels (même formule que le playhead)
+		const cursorPixelPosition =
+			(globalState.getTimelineState.cursorPosition / 1000) * timelineState().zoom + 180;
+		// Centre le curseur dans la vue (soustrait la moitié de la largeur visible)
+		const viewportWidth = timelineDiv.clientWidth;
+		timelineDiv.scrollLeft = Math.max(0, cursorPixelPosition - viewportWidth / 2);
+	}
 
 	// Fonction pour déterminer l'intervalle d'affichage des timestamps selon le zoom
 	function getTimestampInterval(zoom: number): number {

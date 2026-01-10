@@ -1,5 +1,5 @@
 import posthog from 'posthog-js';
-import { PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { browser } from '$app/environment';
 import { VersionService } from './VersionService.svelte';
 
@@ -15,14 +15,14 @@ export class AnalyticsService {
 	static async init() {
 		if (!browser || this.isInitialized) return;
 
-		if (!PUBLIC_POSTHOG_KEY || !PUBLIC_POSTHOG_HOST) {
+		if (!env.PUBLIC_POSTHOG_KEY || !env.PUBLIC_POSTHOG_HOST) {
 			console.warn('Analytics skipped: Missing PUBLIC_POSTHOG_KEY or PUBLIC_POSTHOG_HOST');
 			return;
 		}
 
 		try {
-			posthog.init(PUBLIC_POSTHOG_KEY, {
-				api_host: PUBLIC_POSTHOG_HOST,
+			posthog.init(env.PUBLIC_POSTHOG_KEY, {
+				api_host: env.PUBLIC_POSTHOG_HOST,
 				capture_pageview: false, // We handle this manually in +layout.svelte
 				capture_pageleave: false,
 				capture_exceptions: false, // Disable auto-capture of console errors (too noisy)

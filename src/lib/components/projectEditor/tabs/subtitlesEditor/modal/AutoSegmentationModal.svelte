@@ -554,10 +554,12 @@
 								class="accent-accent-primary mt-0.5 w-4 h-4"
 							/>
 							<div class="flex-1">
-								<div class="text-sm text-primary font-medium">Include word-by-word timestamps</div>
+								<div class="text-sm text-primary font-medium">
+									Include word-by-word timestamps (useless for now, do not enable)
+								</div>
 								<p class="text-xs text-thirdly mt-0.5">
-									Adds per-word timing data to each segment. This increases processing time and
-									uses more resources.
+									Adds per-word timing data to each segment. This increases processing time and uses
+									more resources.
 								</p>
 							</div>
 						</label>

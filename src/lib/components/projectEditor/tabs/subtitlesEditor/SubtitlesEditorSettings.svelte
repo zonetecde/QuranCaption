@@ -3,10 +3,12 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
+	import ShiftSubtitlesModal from './modal/ShiftSubtitlesModal.svelte';
 	import { fade } from 'svelte/transition';
 
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
+	let shiftModalVisible = $state(false);
 
 	// Compte le nombre de segments à revue
 	let segmentsNeedingReview = $derived(
@@ -280,6 +282,16 @@
 				Auto-Segment
 			</button>
 
+			<button
+				class="btn-secondary w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2 border border-color hover:bg-secondary/60 transition cursor-pointer"
+				type="button"
+				title="Shift all subtitles"
+				onclick={() => (shiftModalVisible = true)}
+			>
+				<span class="material-icons text-base">move_down</span>
+				Shift All Subtitles
+			</button>
+
 			{#if initialLowConfidenceCount > 0 && segmentsNeedingReview > 0}
 				<div class="bg-accent rounded-lg p-3 space-y-2">
 					<div class="flex items-center justify-between">
@@ -320,6 +332,12 @@
 {#if autoSegmentationModalVisible}
 	<div class="modal-wrapper" transition:fade>
 		<AutoSegmentationModal close={() => (autoSegmentationModalVisible = false)} />
+	</div>
+{/if}
+
+{#if shiftModalVisible}
+	<div class="modal-wrapper" transition:fade>
+		<ShiftSubtitlesModal close={() => (shiftModalVisible = false)} />
 	</div>
 {/if}
 

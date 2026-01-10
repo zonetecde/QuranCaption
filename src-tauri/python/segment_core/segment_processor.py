@@ -483,7 +483,9 @@ def transcribe_segments_batched(
     segment_audios: List[np.ndarray],
     sample_rate: int,
     model_name: str = None,
-    return_errors: bool = True
+    return_errors: bool = True,
+    batch_size: int = 8,
+    status_callback=None
 ) -> Tuple[List[str], Optional[List[str]], dict]:
     """
     Transcribe multiple audio segments in a batch.
@@ -508,44 +510,57 @@ def transcribe_segments_batched(
     inference_start = time.time()
 
     try:
-        # Resample all to 16kHz
-        resampled = []
-        for audio in segment_audios:
-            if sample_rate != 16000:
-                audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
-            resampled.append(audio)
-
         device = next(model.parameters()).device
         dtype = model.dtype
 
-        # Process all audios
-        batch_features = []
-        for audio in resampled:
-            feats = processor(audio=audio, sampling_rate=16000, return_tensors="pt")["input_features"]
-            batch_features.append(feats)
+        texts: List[str] = []
+        errors: Optional[List[str]] = [] if return_errors else None
+        total = len(segment_audios)
+        effective_batch = max(1, batch_size)
 
-        # Stack into batch
-        batch_input = torch.cat(batch_features, dim=0).to(device=device, dtype=dtype)
-        attention_mask = torch.ones(batch_input.shape[:2], dtype=torch.long, device=device)
+        for start_idx in range(0, total, effective_batch):
+            end_idx = min(start_idx + effective_batch, total)
+            if status_callback:
+                status_callback("whisper", f"Transcribing segment {start_idx + 1}/{total}...")
 
-        # Generate
-        with torch.no_grad():
-            out_ids = model.generate(
-                batch_input,
-                attention_mask=attention_mask,
-                generation_config=gen_config,
-                max_new_tokens=200,
-                do_sample=False,
-                num_beams=1,
-            )
+            # Resample batch to 16kHz
+            resampled = []
+            for audio in segment_audios[start_idx:end_idx]:
+                if sample_rate != 16000:
+                    audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
+                resampled.append(audio)
 
-        texts = processor.batch_decode(out_ids, skip_special_tokens=True)
-        texts = [t.strip() for t in texts]
+            # Process batch audios
+            batch_features = []
+            for audio in resampled:
+                feats = processor(audio=audio, sampling_rate=16000, return_tensors="pt")["input_features"]
+                batch_features.append(feats)
+
+            # Stack into batch
+            batch_input = torch.cat(batch_features, dim=0).to(device=device, dtype=dtype)
+            attention_mask = torch.ones(batch_input.shape[:2], dtype=torch.long, device=device)
+
+            # Generate
+            with torch.no_grad():
+                out_ids = model.generate(
+                    batch_input,
+                    attention_mask=attention_mask,
+                    generation_config=gen_config,
+                    max_new_tokens=200,
+                    do_sample=False,
+                    num_beams=1,
+                )
+
+            batch_texts = processor.batch_decode(out_ids, skip_special_tokens=True)
+            batch_texts = [t.strip() for t in batch_texts]
+            texts.extend(batch_texts)
+
+            if errors is not None:
+                errors.extend([None] * len(batch_texts))
 
         inference_time = time.time() - inference_start
         print(f"[WHISPER BATCH] {len(segment_audios)} segments in {inference_time:.2f}s")
 
-        errors = [None] * len(texts) if return_errors else None
         return texts, errors, {"model_load_time": model_load_time, "inference_time": inference_time}
 
     except Exception as e:
@@ -781,12 +796,16 @@ def process_audio_full(
         segment_audios.append(audio[start_sample:end_sample])
 
     # Step 2: Whisper transcription (batched)
-    emit_status("whisper", f"Transcribing {len(segment_audios)} segments...")
+    emit_status("whisper", f"Transcribing segment 1/{len(segment_audios)}...")
     whisper_start = time.time()
     # Get model name from mapping or use default
     whisper_model_name = WHISPER_MODELS.get(whisper_model, WHISPER_MODELS["base"])
     transcribed_texts, transcription_errors, whisper_profiling = transcribe_segments_batched(
-        segment_audios, sample_rate, whisper_model_name, return_errors=True
+        segment_audios,
+        sample_rate,
+        whisper_model_name,
+        return_errors=True,
+        status_callback=status_callback
     )
     profiling.asr_model_load_time = whisper_profiling.get("model_load_time", 0.0)
     profiling.asr_inference_time = whisper_profiling.get("inference_time", 0.0)

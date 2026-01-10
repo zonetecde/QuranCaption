@@ -18,6 +18,6 @@
 
 			<ClickableLink url="https://ko-fi.com/vzero" label="Donate" />
 		</div>
-		<p class="mb-1">© 2025 Quran Caption. Made by Rayane STASZEWSKI.</p>
+		<p class="mb-1">© 2026 Quran Caption. Made by Rayane STASZEWSKI.</p>
 	</div>
 </footer>

@@ -1,11 +1,8 @@
 import { SerializableBase } from './misc/SerializableBase';
-import { Status } from './Status';
-
-import { ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
-import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+import { writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
-import { telemetry } from '$lib/services/Telemetry';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 import { VersionService } from '$lib/services/VersionService.svelte';
 import MigrationService from '$lib/services/MigrationService';
 
@@ -206,8 +203,10 @@ export default class Settings extends SerializableBase {
 			globalState.settings = new Settings();
 
 			// Signifie que c'est la première ouverture
-			await telemetry('QC3 | A new user has started QuranCaption 3 for the first time');
 			globalState.settings.appVersion = await VersionService.getAppVersion();
+
+			// Telemetry
+			AnalyticsService.trackAppInstalled(globalState.settings.appVersion || '0.0.0');
 
 			await this.save();
 			return;
@@ -221,13 +220,13 @@ export default class Settings extends SerializableBase {
 
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
-		const currentVersion = await VersionService.getAppVersion();
-		if (globalState.settings.appVersion !== currentVersion) {
-			// Signifie qu'on a mis à jour
-			await telemetry(
-				`QC3 | User has updated QuranCaption 3 from version ${globalState.settings.appVersion} to ${currentVersion}`
-			);
-			globalState.settings.appVersion = currentVersion || '0.0.0';
+		const latestVersion = await VersionService.getAppVersion();
+		if (globalState.settings.appVersion !== latestVersion) {
+			// Telemetry
+			AnalyticsService.trackAppUpdated(globalState.settings.appVersion, latestVersion || '0.0.0');
+
+			// Met à jour la version
+			globalState.settings.appVersion = latestVersion || '0.0.0';
 
 			// Sauvegarde les paramètres mis à jour
 			await this.save();

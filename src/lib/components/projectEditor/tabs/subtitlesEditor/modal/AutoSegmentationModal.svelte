@@ -14,6 +14,7 @@
 		type SegmentationMode,
 		type LocalSegmentationStatus
 	} from '$lib/services/AutoSegmentation';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let { close } = $props();
 
@@ -182,6 +183,7 @@
 		errorMessage = null;
 		result = null;
 		currentStatus = '';
+		let response: AutoSegmentationResult | null = null;
 
 		// Listen for status updates from local segmentation
 		let unlisten: UnlistenFn | null = null;
@@ -192,7 +194,7 @@
 		}
 
 		try {
-			const response = await runAutoSegmentation(
+			response = await runAutoSegmentation(
 				{
 					minSilenceMs,
 					minSpeechMs,
@@ -213,6 +215,32 @@
 				result = response;
 			}
 		} finally {
+			const completedResponse = response?.status === 'completed' ? response : null;
+			const verseRangeValue = completedResponse
+				? completedResponse.verseRange.parts
+						.map((part) => `${part.surah}:${part.verseStart}-${part.verseEnd}`)
+						.join(', ')
+				: undefined;
+
+			// Track segmentation result
+			AnalyticsService.trackAIUsage('segmentation', {
+				status: response?.status ?? 'unknown',
+				range: verseRangeValue,
+				verse_range: verseRangeValue,
+				provider: selectedMode === 'local' ? selectedModel : 'whisper',
+				min_silence_ms: minSilenceMs,
+				min_speech_ms: minSpeechMs,
+				pad_ms: padMs,
+				fill_by_silence: fillBySilence,
+				include_word_by_word: includeWordByWord,
+				mode: selectedMode,
+				whisper_model: selectedMode === 'local' ? selectedModel : undefined,
+				audio_filename: audioInfo()?.fileName,
+				segments_applied: completedResponse?.segmentsApplied,
+				low_confidence_segments: completedResponse?.lowConfidenceSegments,
+				error_message: response?.status === 'failed' ? response.message : undefined
+			});
+
 			isRunning = false;
 			currentStatus = '';
 			if (unlisten) unlisten();

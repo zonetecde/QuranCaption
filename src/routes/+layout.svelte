@@ -8,8 +8,16 @@
 	import TitleBar from '$lib/components/TitleBar.svelte';
 	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 	import { on } from 'svelte/events';
+	import { browser } from '$app/environment';
+	import { beforeNavigate, afterNavigate } from '$app/navigation';
+	import posthog from 'posthog-js';
 
 	let { children } = $props();
+
+	if (browser) {
+		beforeNavigate(() => posthog.capture('$pageleave'));
+		afterNavigate(() => posthog.capture('$pageview'));
+	}
 
 	onMount(() => {
 		initializeClassRegistry();

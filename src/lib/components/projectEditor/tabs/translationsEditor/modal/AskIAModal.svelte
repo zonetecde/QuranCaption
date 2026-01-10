@@ -3,6 +3,7 @@
 	import type { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import ClickableLink from '$lib/components/home/ClickableLink.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
@@ -250,6 +251,19 @@
 			}
 
 			if (successfulVerses > 0) {
+				AnalyticsService.trackAIUsage('translation', {
+					range: `indices ${startIndex}-${endIndex}`,
+					start_index: startIndex,
+					end_index: endIndex,
+					total_verses: totalVerses,
+					processed_verses: processedVerses,
+					successful_verses: successfulVerses,
+					had_errors: errorMessages.length > 0,
+					edition_key: edition.key,
+					edition_name: edition.name,
+					edition_author: edition.author,
+					edition_language: edition.language
+				});
 				close(); // Close modal only if at least some translations were successful
 			}
 		} catch (error: any) {

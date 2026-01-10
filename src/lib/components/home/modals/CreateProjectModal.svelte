@@ -7,8 +7,8 @@
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import type Reciter from '$lib/classes/Reciter';
 	import RecitersManager from '$lib/classes/Reciter';
-	import { telemetry } from '$lib/services/Telemetry';
 	import { discordService } from '$lib/services/DiscordService';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let { close } = $props();
 
@@ -36,13 +36,7 @@
 			await ProjectContent.getDefaultProjectContent()
 		);
 
-		await telemetry(
-			'QC3 | New Project Created with Name "' +
-				name.trim() +
-				'" and Reciter "' +
-				reciter.trim() +
-				'"'
-		);
+		AnalyticsService.trackProjectCreated(name.trim(), reciter.trim());
 
 		// Sauvegarde le projet sur le disque
 		await project.save();

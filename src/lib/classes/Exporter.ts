@@ -1,14 +1,14 @@
-import { globalState } from '$lib/runes/main.svelte';
+﻿import { globalState } from '$lib/runes/main.svelte';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { currentMonitor } from '@tauri-apps/api/window';
 import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
 import { Utilities } from './misc/Utilities';
-import type { Project } from '.';
 import ExportService from '$lib/services/ExportService';
 import { BaseDirectory, join } from '@tauri-apps/api/path';
 import { remove } from '@tauri-apps/plugin-fs';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export default class Exporter {
 	/**
@@ -66,6 +66,13 @@ export default class Exporter {
 			settings.format
 		);
 
+		AnalyticsService.trackSubtitlesExport(
+			settings.format,
+			settings.includedTargets,
+			settings.exportVerseNumbers,
+			subtitles.length
+		);
+
 		// Téléchargez le fichier
 		const blob = new Blob([fileContent], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
@@ -76,7 +83,6 @@ export default class Exporter {
 		a.click();
 		document.body.removeChild(a);
 	}
-
 	static exportProjectData() {
 		const projectData = globalState.currentProject;
 
@@ -95,7 +101,6 @@ export default class Exporter {
 		a.click();
 		document.body.removeChild(a);
 	}
-
 	static exportYtbChapters() {
 		const choice = globalState.getExportState.ytbChaptersChoice;
 		const subtitlesClips: SubtitleClip[] = globalState.getSubtitleClips;
@@ -167,6 +172,8 @@ export default class Exporter {
 			fileContent += `${chapter.time} ${chapter.title}\n`;
 		}
 
+		AnalyticsService.trackYtbChaptersExport(choice, chapters.length, exportStart, exportEnd);
+
 		// Télécharge le fichier
 		const blob = new Blob([fileContent], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
@@ -177,7 +184,6 @@ export default class Exporter {
 		a.click();
 		document.body.removeChild(a);
 	}
-
 	/**
 	 * Convertit le temps en millisecondes au format YouTube (MM:SS ou HH:MM:SS)
 	 */

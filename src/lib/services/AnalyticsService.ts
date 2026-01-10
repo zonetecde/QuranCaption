@@ -119,6 +119,34 @@ export class AnalyticsService {
         });
     }
 
+    static trackSubtitlesExport(
+        format: string,
+        includedTargets: string[],
+        exportVerseNumbers: Record<string, boolean>,
+        subtitlesCount?: number
+    ) {
+        this.track('subtitles_exported', {
+            format,
+            included_targets: includedTargets,
+            export_verse_numbers: exportVerseNumbers,
+            subtitles_count: subtitlesCount
+        });
+    }
+
+    static trackYtbChaptersExport(
+        choice: string,
+        chaptersCount: number,
+        exportStartMs?: number,
+        exportEndMs?: number
+    ) {
+        this.track('ytb_chapters_exported', {
+            choice,
+            chapters_count: chaptersCount,
+            export_start_ms: exportStartMs,
+            export_end_ms: exportEndMs
+        });
+    }
+
     static trackError(error: Error) {
         this.track('error', {
             name: error.name,

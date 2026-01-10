@@ -587,6 +587,44 @@ export class SubtitleTrack extends Track {
 		}
 		return null;
 	}
+
+	/**
+	 * Décale tous les sous-titres de la piste d'un certain temps.
+	 * @param offsetMs Le décalage en millisecondes (positif ou négatif).
+	 * @returns true si le décalage a été appliqué, false sinon (ex: décalage impossible car temps < 0).
+	 */
+	shiftAllClips(offsetMs: number): boolean {
+		if (this.clips.length === 0) return true;
+
+		// Vérification préliminaire : est-ce que le décalage rendrait un temps négatif ?
+		// On assume que les clips sont triés par ordre chronologique ou au moins que le premier a le startTime le plus bas
+		// Pour être sûr, on check tous les clips
+		for (const clip of this.clips) {
+			if (clip.startTime + offsetMs < 0) {
+				toast.error('Cannot shift: one or more subtitles would start before 0ms.');
+				return false;
+			}
+		}
+
+		// Applique le décalage
+		for (const clip of this.clips) {
+			// On met à jour directement les propriétés sans passer par les setters 'intelligents'
+			// qui checkent les chevauchements avec les voisins, car ON DÉCALE TOUT LE MONDE EN MÊME TEMPS.
+			// Cependant, on utilise quand même setStartTime/setEndTime pour la consistance si besoin,
+			// mais ici on fait confiance à la logique globale.
+			// Attention : clip.startTime et clip.endTime sont des $state, donc réactifs.
+
+			// On modifie d'abord endTime puis startTime ou l'inverse n'a pas d'importance
+			// tant qu'on ne trigger pas de logique de collision inter-clips.
+			// Les clips ne se chevaucheront pas plus qu'avant puisqu'ils bougent tous de la même valeur.
+
+			clip.startTime += offsetMs;
+			clip.endTime += offsetMs;
+			// duration reste la même
+		}
+
+		return true;
+	}
 }
 
 export class CustomTextTrack extends Track {

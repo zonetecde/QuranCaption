@@ -2,6 +2,7 @@
 	import { ProjectDetail } from '$lib/classes';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { globalState } from '$lib/runes/main.svelte';
 	import EditableText from '../misc/EditableText.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -27,9 +28,15 @@
 		) {
 			await ProjectService.delete(projectDetail.id); // Supprime le projet
 		} else {
-			contextMenu!.close();
+			currentMenu.set(null);
 		}
 	}
+
+	$effect(() => {
+		return () => {
+			currentMenu.set(null);
+		};
+	});
 
 	async function openProjectButtonClick() {
 		// Ouvre le projet

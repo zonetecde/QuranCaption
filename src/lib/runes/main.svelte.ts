@@ -7,6 +7,7 @@ import {
 	type PredefinedSubtitleClip,
 	ProjectTranslation
 } from '$lib/classes';
+import { currentMenu } from 'svelte-contextmenu/stores';
 import type Exportation from '$lib/classes/Exportation.svelte';
 import type Settings from '$lib/classes/Settings.svelte';
 import { Status } from '$lib/classes/Status';
@@ -136,6 +137,18 @@ class GlobalState {
 			if (edition) return edition;
 		}
 		return null;
+	}
+
+	closeAllMenus() {
+		currentMenu.set(null);
+		// Force close any existing portal elements just in case reactivity fails
+		if (typeof document !== 'undefined') {
+			const portal = document.getElementById('context-menu-portal');
+			if (portal) {
+				const menus = portal.querySelectorAll('.context-menu');
+				menus.forEach((m) => m.classList.remove('show'));
+			}
+		}
 	}
 }
 

@@ -11,6 +11,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 
 	let {
@@ -154,6 +155,12 @@
 		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
+
+	$effect(() => {
+		return () => {
+			currentMenu.set(null);
+		};
+	});
 </script>
 
 <div

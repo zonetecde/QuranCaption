@@ -6,6 +6,7 @@
 	import { fade, slide } from 'svelte/transition';
 	import WaveSurfer from 'wavesurfer.js';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
 
 	let {
 		clip = $bindable(),
@@ -14,6 +15,12 @@
 		clip: Clip;
 		track: Track;
 	} = $props();
+
+	$effect(() => {
+		return () => {
+			currentMenu.set(null);
+		};
+	});
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 

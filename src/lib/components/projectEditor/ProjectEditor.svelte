@@ -21,10 +21,25 @@
 		saveInterval = setInterval(() => {
 			globalState.currentProject?.save();
 		}, 5000);
+
+		// Fermer les menus contextuels lors d'un clic en dehors
+		const handleGlobalClick = (e: MouseEvent) => {
+			const portal = document.getElementById('context-menu-portal');
+			if (portal && portal.contains(e.target as Node)) {
+				return;
+			}
+			globalState.closeAllMenus();
+		};
+		window.addEventListener('mousedown', handleGlobalClick, true);
+
+		return () => {
+			clearInterval(saveInterval);
+			window.removeEventListener('mousedown', handleGlobalClick, true);
+		};
 	});
 
 	onDestroy(() => {
-		clearInterval(saveInterval);
+		// Le cleanup est géré par onMount return
 	});
 </script>
 

@@ -172,16 +172,25 @@ function exportProgress(event: any): void {
 			return;
 		}
 
-		if (exportation.currentState !== ExportState.Exported && data.currentState === ExportState.Exported) {
-			AnalyticsService.trackExport((exportation.videoLength) / 1000, exportation.verseRange, exportation.videoDimensions.width + 'x' + exportation.videoDimensions.height, exportation.fps);
+		if (
+			exportation.currentState !== ExportState.Exported &&
+			data.currentState === ExportState.Exported
+		) {
+			AnalyticsService.trackExport(
+				exportation.videoLength / 1000,
+				exportation.verseRange,
+				exportation.videoDimensions.width + 'x' + exportation.videoDimensions.height,
+				exportation.fps
+			);
 		}
-
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
+			// Telemetry
+			AnalyticsService.trackExportError(JSON.stringify(exportation), data.errorLog);
 		}
 	}
 

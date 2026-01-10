@@ -15,7 +15,6 @@
 	let { children } = $props();
 
 	if (browser) {
-		beforeNavigate(() => posthog.capture('$pageleave'));
 		afterNavigate(() => posthog.capture('$pageview'));
 	}
 

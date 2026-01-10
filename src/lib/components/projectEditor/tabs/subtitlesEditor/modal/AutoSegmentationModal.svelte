@@ -226,7 +226,6 @@
 			AnalyticsService.trackAIUsage('segmentation', {
 				status: response?.status ?? 'unknown',
 				range: verseRangeValue,
-				verse_range: verseRangeValue,
 				provider: selectedMode === 'local' ? selectedModel : 'whisper',
 				min_silence_ms: minSilenceMs,
 				min_speech_ms: minSpeechMs,

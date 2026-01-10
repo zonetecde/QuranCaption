@@ -13,8 +13,7 @@ export const ssr = false;
 
 // Initialize PostHog on the client
 export const load = async () => {
-    await AnalyticsService.init();
-    return;
+	AnalyticsService.init();
 };
 
 // Load le Qur'an au démarrage de l'application
@@ -37,26 +36,26 @@ ProjectTranslation.loadAvailableTranslations();
 
 // main.ts ou entrypoint
 window.addEventListener('error', (event) => {
-  event.preventDefault();
-  showErrorDialog(event.error);
+	event.preventDefault();
+	showErrorDialog(event.error);
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-  console.error(event);
-  // event.preventDefault();
-  // showErrorDialog(event.reason as Error);
+	console.error(event);
+	// event.preventDefault();
+	// showErrorDialog(event.reason as Error);
 });
 
 function showErrorDialog(error: Error) {
-  console.error(error);
+	console.error(error);
 
-  ModalManager.errorModal(
-    'An unexpected error occurred',
-    'Sorry — an error occurred while processing your request. It has been reported automatically. Please consider posting details about what you were doing on the Quran Caption Discord server to help me investigate! :)',
-    JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
-  );
+	ModalManager.errorModal(
+		'An unexpected error occurred',
+		'Sorry — an error occurred while processing your request. It has been reported automatically. Please consider posting details about what you were doing on the Quran Caption Discord server to help me investigate! :)',
+		JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+	);
 
-  if (import.meta.env.PROD) {
-    AnalyticsService.trackError(error);
-  }
+	if (import.meta.env.PROD) {
+		AnalyticsService.trackError(error);
+	}
 }

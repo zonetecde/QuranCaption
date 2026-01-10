@@ -1,5 +1,5 @@
 import { SerializableBase } from './misc/SerializableBase';
-import { writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+import { writeTextFile, readTextFile, exists } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -223,7 +223,10 @@ export default class Settings extends SerializableBase {
 		const latestVersion = await VersionService.getAppVersion();
 		if (globalState.settings.appVersion !== latestVersion) {
 			// Telemetry
-			AnalyticsService.trackAppUpdated(globalState.settings.appVersion, latestVersion || '0.0.0');
+			AnalyticsService.trackAppUpdated(
+				globalState.settings.appVersion || 'unknown',
+				latestVersion || '0.0.0'
+			);
 
 			// Met à jour la version
 			globalState.settings.appVersion = latestVersion || '0.0.0';

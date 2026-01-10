@@ -5,6 +5,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { Asset, AssetType, SourceType } from '$lib/classes';
 	import Section from '$lib/components/projectEditor/Section.svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let url: string = $state('');
 	let type: string = $state('audio'); // Default to audio
@@ -35,6 +36,9 @@
 
 			// Ajoute le fichier téléchargé à la liste des assets du projet
 			globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube);
+
+			// Telemetry
+			AnalyticsService.downloadFromYouTube(url, type);
 		} catch (error) {
 			toast.error('Error downloading from YouTube: ' + error);
 		}

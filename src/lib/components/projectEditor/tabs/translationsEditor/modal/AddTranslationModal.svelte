@@ -4,6 +4,7 @@
 	import SubtitleClip from '$lib/components/projectEditor/timeline/track/SubtitleClip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 
@@ -86,6 +87,12 @@
 					globalState.currentProject?.content.projectTranslation.addTranslation(
 						translation,
 						preview
+					);
+					AnalyticsService.trackTranslationAdded(
+						translation.name,
+						translation.author,
+						translation.key,
+						translation.language
 					);
 				}
 				close();

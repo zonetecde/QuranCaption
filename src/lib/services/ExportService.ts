@@ -5,6 +5,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 import { ProjectService } from './ProjectService';
 import { listen } from '@tauri-apps/api/event';
+import { AnalyticsService } from './AnalyticsService';
 
 export default class ExportService {
 	static exportFolder: string = 'exports/';
@@ -171,12 +172,25 @@ function exportProgress(event: any): void {
 			return;
 		}
 
+		if (
+			exportation.currentState !== ExportState.Exported &&
+			data.currentState === ExportState.Exported
+		) {
+			AnalyticsService.trackExport(
+				exportation.videoLength / 1000,
+				exportation.verseRange,
+				exportation.videoDimensions.width + 'x' + exportation.videoDimensions.height,
+				exportation.fps
+			);
+		}
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
+			// Telemetry
+			AnalyticsService.trackExportError(JSON.stringify(exportation), data.errorLog);
 		}
 	}
 

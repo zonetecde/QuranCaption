@@ -8,6 +8,7 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { onMount } from 'svelte';
 	import { join } from '@tauri-apps/api/path';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	// Types for MP3Quran API
 	type Reciter = {
@@ -139,6 +140,9 @@
 			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran);
 
 			toast.success('Download successful!', { id: toastId });
+
+			// Telemetry
+			AnalyticsService.downloadFromMP3Quran(option.label.split(' - ')[0], surahName, fileName);
 		} catch (error) {
 			console.error('Download error:', error);
 			toast.error(`Error downloading: ${error}`, { id: toastId, duration: 5000 });

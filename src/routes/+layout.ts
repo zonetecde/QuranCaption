@@ -5,10 +5,16 @@ import Settings from '$lib/classes/Settings.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import ExportService from '$lib/services/ExportService';
 import QPCFontProvider from '$lib/services/FontProvider';
-import { telemetry } from '$lib/services/Telemetry';
+
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export const prerender = true;
 export const ssr = false;
+
+// Initialize PostHog on the client
+export const load = async () => {
+	AnalyticsService.init();
+};
 
 // Load le Qur'an au démarrage de l'application
 Quran.load();
@@ -50,6 +56,6 @@ function showErrorDialog(error: Error) {
 	);
 
 	if (import.meta.env.PROD) {
-		telemetry('Une erreur est survenue sur Quran Caption: ' + error.message);
+		AnalyticsService.trackError(error);
 	}
 }

@@ -66,6 +66,7 @@
 		"markdown-it-task-lists": "^2.1.1",
 		"material-icons": "^1.13.14",
 		"plyr": "^3.7.8",
+		"posthog-js": "^1.318.1",
 		"reflect-metadata": "^0.2.2",
 		"sharp": "^0.34.3",
 		"svelte-5-french-toast": "^2.0.4",

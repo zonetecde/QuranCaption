@@ -14,6 +14,7 @@
 		type SegmentationMode,
 		type LocalSegmentationStatus
 	} from '$lib/services/AutoSegmentation';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let { close } = $props();
 
@@ -182,6 +183,7 @@
 		errorMessage = null;
 		result = null;
 		currentStatus = '';
+		let response: AutoSegmentationResult | null = null;
 
 		// Listen for status updates from local segmentation
 		let unlisten: UnlistenFn | null = null;
@@ -192,7 +194,7 @@
 		}
 
 		try {
-			const response = await runAutoSegmentation(
+			response = await runAutoSegmentation(
 				{
 					minSilenceMs,
 					minSpeechMs,
@@ -213,6 +215,31 @@
 				result = response;
 			}
 		} finally {
+			const completedResponse = response?.status === 'completed' ? response : null;
+			const verseRangeValue = completedResponse
+				? completedResponse.verseRange.parts
+						.map((part) => `${part.surah}:${part.verseStart}-${part.verseEnd}`)
+						.join(', ')
+				: undefined;
+
+			// Track segmentation result
+			AnalyticsService.trackAIUsage('segmentation', {
+				status: response?.status ?? 'unknown',
+				range: verseRangeValue,
+				provider: selectedMode === 'local' ? selectedModel : 'whisper',
+				min_silence_ms: minSilenceMs,
+				min_speech_ms: minSpeechMs,
+				pad_ms: padMs,
+				fill_by_silence: fillBySilence,
+				include_word_by_word: includeWordByWord,
+				mode: selectedMode,
+				whisper_model: selectedMode === 'local' ? selectedModel : undefined,
+				audio_filename: audioInfo()?.fileName,
+				segments_applied: completedResponse?.segmentsApplied,
+				low_confidence_segments: completedResponse?.lowConfidenceSegments,
+				error_message: response?.status === 'failed' ? response.message : undefined
+			});
+
 			isRunning = false;
 			currentStatus = '';
 			if (unlisten) unlisten();
@@ -554,10 +581,12 @@
 								class="accent-accent-primary mt-0.5 w-4 h-4"
 							/>
 							<div class="flex-1">
-								<div class="text-sm text-primary font-medium">Include word-by-word timestamps</div>
+								<div class="text-sm text-primary font-medium">
+									Include word-by-word timestamps (useless for now, do not enable)
+								</div>
 								<p class="text-xs text-thirdly mt-0.5">
-									Adds per-word timing data to each segment. This increases processing time and
-									uses more resources.
+									Adds per-word timing data to each segment. This increases processing time and uses
+									more resources.
 								</p>
 							</div>
 						</label>

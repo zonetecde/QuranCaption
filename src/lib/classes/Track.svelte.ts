@@ -20,6 +20,7 @@ import { VerseTranslation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export class Track extends SerializableBase {
 	type: TrackType = $state(TrackType.Unknown);
@@ -386,6 +387,8 @@ export class SubtitleTrack extends Track {
 				subtitlesProperties.translations // translations
 			)
 		);
+
+		AnalyticsService.trackSubtitleAdded(surah);
 
 		return true;
 	}

@@ -10,23 +10,64 @@ import os
 PROJECT_ROOT = Path(__file__).parent.absolute()
 DATA_PATH = PROJECT_ROOT / "data"
 
-# Default data path - will be set to AppData if not found locally
+
 def get_data_path():
     """Get the data path, either local or from AppData."""
     if DATA_PATH.exists():
         return DATA_PATH
-    
+
     # Fallback to AppData
     appdata = os.environ.get('APPDATA', os.path.expanduser('~'))
     return Path(appdata) / 'QuranCaption' / 'segmentation_data'
 
-# VAD segmenter model from HuggingFace
+
+# Port for local development
+PORT = 6902
+
+# =============================================================================
+# Model paths
+# =============================================================================
+
+# VAD segmenter model
 SEGMENTER_MODEL = "obadx/recitation-segmenter-v2"
 
-# Whisper model for Arabic ASR (Quran-specific fine-tuned)
+# Whisper model for Arabic ASR
 WHISPER_MODEL = "tarteel-ai/whisper-base-ar-quran"
 
 # =============================================================================
+# Data paths (local to segments_app)
+# =============================================================================
+
+SURAH_INFO_PATH = get_data_path() / "surah_info.json"
+
+# =============================================================================
+# ZeroGPU settings
+# =============================================================================
+
+
+def get_gpu_duration(audio, sample_rate, min_silence_ms, min_speech_ms, pad_ms):
+    """Dynamic GPU duration."""
+    duration_seconds = len(audio) / sample_rate
+    if duration_seconds > 5400:       # > 1.5 hours
+        return 150
+    elif duration_seconds > 3600:     # > 1 hour
+        return 120
+    elif duration_seconds > 1800:     # > 30 minutes
+        return 90
+    else:                             # < 30 minutes
+        return 60
+
+
+# Batch processing
+INFERENCE_BATCH_SIZE = 512
+
+# Maximum segments to embed audio players
+MAX_AUDIO_EMBEDS = 500
+
+# =============================================================================
+# Text matching settings
+# =============================================================================
+
 # Special segments (Basmala/Isti'adha) - displayed with their own labels
 SPECIAL_SEGMENTS = {
     "Basmala": "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم",
@@ -35,13 +76,11 @@ SPECIAL_SEGMENTS = {
 SPECIAL_MATCH_SCORE = 0.7           # Minimum F1 score for special segment match
 SPECIAL_WORD_THRESHOLD = 0.55       # Word similarity threshold for special segments
 
-# Anchor detection
 ANCHOR_SEGMENTS = 5                 # Global search for first N segments
 ANCHOR_MIN_SCORE = 0.7              # Minimum confidence to trust an anchor candidate
 ANCHOR_TOP_K = 50                   # Max candidates per anchor segment
 ANCHOR_ALIGN_SLACK = 1              # Allow small shift from anchor word position
 
-# Text matching
 MIN_MATCH_SCORE = 0.5               # Minimum overall confidence for accepting a match
 WORD_MATCH_THRESHOLD = 0.45         # Fuzzy word similarity threshold
 LOOKBACK_WORDS = 25                 # Words to look back from pointer for starting positions
@@ -51,7 +90,11 @@ WORD_SLACK = 5                      # +/- for ASR word count variance
 MAX_CONSECUTIVE_FAILURES = 2        # Re-anchor after this many failures
 
 # Debug/profiling
-TEXT_MATCH_DEBUG = False            # Enable detailed text matching logging
+TEXT_MATCH_DEBUG = True             # Enable detailed text matching logging
+
+# =============================================================================
+# Segmentation slider settings
+# =============================================================================
 
 # Min silence duration (ms) - pause between segments
 MIN_SILENCE_DEFAULT = 200
@@ -72,12 +115,50 @@ PAD_MAX = 300
 PAD_STEP = 25
 
 # =============================================================================
+# Confidence thresholds for color coding
+# =============================================================================
+
 CONFIDENCE_HIGH = 0.85   # >= this: Green
 CONFIDENCE_MED = 0.7     # >= this: Yellow, below: Red
+
+REVIEW_SUMMARY_MAX_SEGMENTS = 10  # Max segment numbers to list before truncating
+
+# =============================================================================
+# UI settings
+# =============================================================================
+
+# Arabic font stack
+ARABIC_FONT_STACK = "'DigitalKhatt', 'Traditional Arabic', 'Scheherazade', 'Amiri', 'Noto Naskh Arabic', sans-serif"
+
+QURAN_TEXT_SIZE_PX = 22  # Size for Quran text in segment cards
+ARABIC_WORD_SPACING = "0.2em"  # Word spacing for Arabic text
+
+# =============================================================================
+# Word-by-word animation settings
+# =============================================================================
+
+WORD_HIGHLIGHT_COLOR = "#ffd700"  # Gold/yellow for highlighting active word
+WORD_HIGHLIGHT_TRANSITION_MS = 50  # CSS transition duration in milliseconds
+WORD_HIGHLIGHT_CHECK_INTERVAL_MS = 16  # Check frequency in ms (16ms ~ 60fps)
+
+# =============================================================================
+# Lafzize (word-level forced alignment) settings
+# =============================================================================
+
+LAFZIZE_MODEL = "MahmoudAshraf/mms-300m-1130-forced-aligner"
+LAFZIZE_BATCH_SIZE = 4
+LAFZIZE_WINDOW_SIZE = 30  # Window size in seconds for audio chunking
+LAFZIZE_CONTEXT_SIZE = 2  # Context size for alignment
+
+# Lafzize data paths (reuse existing data files)
+LAFZIZE_WORDS_PATH = get_data_path() / "qpc-hafs-word-by-word.json"
+LAFZIZE_METADATA_PATH = get_data_path() / "quran-metadata-misc.json"
+
 
 # Paths for data files
 def get_surah_info_path():
     return get_data_path() / "surah_info.json"
+
 
 def get_quran_script_path():
     return get_data_path() / "digital_khatt_v2_script.json"

@@ -18,6 +18,12 @@ type SegmentationSegment = {
 	segment?: number;
 	time_from?: number;
 	time_to?: number;
+	word_timestamps?: Array<{
+		key: string;
+		start: number;
+		end: number;
+		type: string;
+	}>;
 };
 
 type SegmentationResponse = {
@@ -90,6 +96,7 @@ export type AutoSegmentationOptions = {
 	padMs?: number;
 	whisperModel?: WhisperModelSize;
 	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
+	includeWordByWord?: boolean; // If true, request word-by-word timestamps.
 };
 
 export type AutoSegmentationResult =
@@ -305,6 +312,7 @@ export async function runAutoSegmentation(
 	const padMs: number = options.padMs ?? 50;
 	const whisperModel: string = options.whisperModel ?? 'base';
 	const fillBySilence: boolean = options.fillBySilence ?? true; // Par défaut, on insère des SilenceClip
+	const includeWordByWord: boolean = options.includeWordByWord ?? false;
 
 	// Determine mode if not specified
 	const effectiveMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
@@ -337,7 +345,8 @@ export async function runAutoSegmentation(
 			minSilenceMs,
 			minSpeechMs,
 			padMs,
-			whisperModel: effectiveMode === 'local' ? whisperModel : undefined
+			whisperModel: effectiveMode === 'local' ? whisperModel : undefined,
+			includeWordByWord
 		});
 
 		if (effectiveMode === 'local') {

@@ -2,9 +2,11 @@
 # Total size: ~2-3 GB (PyTorch + models)
 
 torch>=2.0.0
+torchaudio>=2.0.0
 transformers>=4.40.0
 librosa>=0.10.0
 numpy>=1.24.0
 soundfile>=0.12.0
 recitations_segmenter>=1.0.0
 accelerate>=0.26.0
+git+https://github.com/MahmoudAshraf97/ctc-forced-aligner.git

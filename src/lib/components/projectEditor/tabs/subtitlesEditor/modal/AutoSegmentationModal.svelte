@@ -41,6 +41,8 @@
 
 	// Fill gaps by silence option
 	let fillBySilence = $state(true);
+	// Word-by-word timestamps option
+	let includeWordByWord = $state(false);
 
 	const modelOptions = [
 		{
@@ -86,6 +88,7 @@
 		padMs = persisted.padMs;
 		selectedModel = persisted.whisperModel;
 		fillBySilence = persisted.fillBySilence ?? true;
+		includeWordByWord = persisted.includeWordByWord ?? false;
 		selectedMode = persisted.mode === 'local' && localStatus?.ready ? 'local' : 'api';
 	});
 
@@ -121,6 +124,10 @@
 
 	function persistFillBySilenceSettings(): void {
 		persistAutoSegmentationSettings({ fillBySilence });
+	}
+
+	function persistIncludeWordByWordSettings(): void {
+		persistAutoSegmentationSettings({ includeWordByWord });
 	}
 
 	async function handleInstallDeps() {
@@ -191,7 +198,8 @@
 					minSpeechMs,
 					padMs,
 					whisperModel: selectedMode === 'local' ? selectedModel : undefined,
-					fillBySilence
+					fillBySilence,
+					includeWordByWord
 				},
 				selectedMode
 			);
@@ -531,6 +539,25 @@
 								<p class="text-xs text-thirdly mt-0.5">
 									When enabled, gaps between subtitles are filled with explicit silence clips. When
 									disabled, each subtitle is extended to meet the next one.
+								</p>
+							</div>
+						</label>
+					</div>
+
+					<!-- Word-by-word timestamps option -->
+					<div class="pt-3 border-t border-color">
+						<label class="flex items-start gap-3 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={includeWordByWord}
+								onchange={persistIncludeWordByWordSettings}
+								class="accent-accent-primary mt-0.5 w-4 h-4"
+							/>
+							<div class="flex-1">
+								<div class="text-sm text-primary font-medium">Include word-by-word timestamps</div>
+								<p class="text-xs text-thirdly mt-0.5">
+									Adds per-word timing data to each segment. This increases processing time and
+									uses more resources.
 								</p>
 							</div>
 						</label>

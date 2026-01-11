@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { fade, scale } from 'svelte/transition';
+	import { slide, fade } from 'svelte/transition';
 	import toast from 'svelte-5-french-toast';
 
 	let { close } = $props();
@@ -19,7 +19,7 @@
 		if (unit === 'seconds') {
 			offsetMs *= 1000;
 		}
-		
+
 		if (direction === 'left') {
 			offsetMs = -offsetMs;
 		}
@@ -32,204 +32,108 @@
 	}
 </script>
 
-<div class="modal-backdrop" onclick={close} transition:fade>
-	<div
-		class="modal-content bg-secondary border border-color"
-		onclick={(e) => e.stopPropagation()}
-		transition:scale={{ start: 0.95 }}
-	>
-		<div class="modal-header">
-			<h3>Shift All Subtitles</h3>
-			<button class="close-btn" onclick={close}>
-				<span class="material-icons">close</span>
-			</button>
-		</div>
-
-		<div class="modal-body space-y-6">
-			<p class="text-sm text-secondary">
-				Move all subtitles forward or backward in time. This is useful for fixing global sync issues.
-			</p>
-
-			<!-- Direction Selection -->
-			<div class="grid grid-cols-2 gap-3">
-				<button
-					class="direction-card {direction === 'left' ? 'selected' : ''}"
-					onclick={() => (direction = 'left')}
-				>
-					<span class="material-icons">keyboard_double_arrow_left</span>
-					<span>Backward (Left)</span>
-				</button>
-				<button
-					class="direction-card {direction === 'right' ? 'selected' : ''}"
-					onclick={() => (direction = 'right')}
-				>
-					<span>Forward (Right)</span>
-					<span class="material-icons">keyboard_double_arrow_right</span>
-				</button>
-			</div>
-
-			<!-- Amount Input -->
-			<div class="input-group">
-				<label for="shift-amount" class="text-sm font-medium text-primary block mb-2"
-					>Shift Amount</label
-				>
-				<div class="flex gap-2">
-					<input
-						id="shift-amount"
-						type="number"
-						bind:value={shiftAmount}
-						min="0"
-						step="0.1"
-						class="flex-1 bg-accent border border-color rounded-md px-3 py-2 text-primary focus:border-accent-primary focus:outline-none"
-						placeholder="0.0"
-					/>
-					<select
-						bind:value={unit}
-						class="bg-accent border border-color rounded-md px-3 py-2 text-primary focus:border-accent-primary focus:outline-none"
-					>
-						<option value="seconds">Seconds</option>
-						<option value="milliseconds">Milliseconds</option>
-					</select>
+<div
+	class="bg-secondary border-color border rounded-2xl w-[500px] max-w-[90vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	transition:slide
+>
+	<!-- Header -->
+	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<div class="w-8 h-8 bg-accent-primary rounded-full flex items-center justify-center">
+					<span class="material-icons text-black text-lg">move_down</span>
+				</div>
+				<div>
+					<h2 class="text-xl font-bold text-primary">Shift All Subtitles</h2>
+					<p class="text-sm text-thirdly">Move all subtitles forward or backward in time</p>
 				</div>
 			</div>
 
-			<div class="bg-accent/50 rounded-lg p-3 text-xs text-secondary flex gap-2 items-start">
-				<span class="material-icons text-sm text-accent-primary mt-0.5">info</span>
-				<p>
-					This action will move <strong>{globalState.getSubtitleTrack.clips.length}</strong> subtitles.
-					Please ensure no subtitles will be pushed before 0:00.
-				</p>
+			<button
+				class="w-8 h-8 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary cursor-pointer"
+				onclick={close}
+			>
+				<span class="material-icons text-lg">close</span>
+			</button>
+		</div>
+	</div>
+
+	<!-- Body -->
+	<div class="px-6 py-5 space-y-6">
+		<p class="text-sm text-secondary leading-relaxed">
+			Move all subtitles forward or backward in time. This is useful for fixing global sync issues.
+		</p>
+
+		<!-- Direction Selection -->
+		<div class="grid grid-cols-2 gap-3">
+			<button
+				class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-200 cursor-pointer {direction ===
+				'left'
+					? 'bg-accent-primary text-black border-accent-primary shadow-lg shadow-accent-primary/20'
+					: 'bg-accent border-color text-secondary hover:bg-secondary/60'}"
+				onclick={() => (direction = 'left')}
+			>
+				<span class="material-icons">keyboard_double_arrow_left</span>
+				<span class="text-sm font-medium">Backward (Left)</span>
+			</button>
+			<button
+				class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-200 cursor-pointer {direction ===
+				'right'
+					? 'bg-accent-primary text-black border-accent-primary shadow-lg shadow-accent-primary/20'
+					: 'bg-accent border-color text-secondary hover:bg-secondary/60'}"
+				onclick={() => (direction = 'right')}
+			>
+				<span class="material-icons">keyboard_double_arrow_right</span>
+				<span class="text-sm font-medium">Forward (Right)</span>
+			</button>
+		</div>
+
+		<!-- Amount Input -->
+		<div class="space-y-2">
+			<label for="shift-amount" class="text-sm font-medium text-primary block">Shift Amount</label>
+			<div class="flex gap-2">
+				<input
+					id="shift-amount"
+					type="number"
+					bind:value={shiftAmount}
+					min="0"
+					step="0.1"
+					class="flex-1 bg-accent border border-color rounded-lg px-3 py-2 text-primary focus:border-accent-primary focus:outline-none transition-colors"
+					placeholder="0.0"
+				/>
+				<select
+					bind:value={unit}
+					class="bg-accent border border-color rounded-lg px-3 py-2 text-primary focus:border-accent-primary focus:outline-none transition-colors cursor-pointer"
+				>
+					<option value="seconds">Seconds</option>
+					<option value="milliseconds">Milliseconds</option>
+				</select>
 			</div>
 		</div>
 
-		<div class="modal-footer">
-			<button class="btn-secondary" onclick={close}>Cancel</button>
-			<button class="btn-primary" onclick={applyShift}>Apply Shift</button>
+		<div
+			class="bg-accent/50 rounded-xl p-4 text-xs text-secondary flex gap-3 items-start border border-color/50"
+		>
+			<span class="material-icons text-sm text-accent-primary mt-0.5">info</span>
+			<p class="leading-relaxed">
+				This action will move <strong class="text-primary"
+					>{globalState.getSubtitleTrack.clips.length}</strong
+				> subtitles. Please ensure no subtitles will be pushed before 0:00.
+			</p>
+		</div>
+	</div>
+
+	<!-- Footer -->
+	<div class="border-t border-color bg-primary px-6 py-4">
+		<div class="flex items-center justify-between">
+			<div class="text-xs text-thirdly">Ready to apply changes.</div>
+			<div class="flex gap-3">
+				<button class="btn px-5 py-2 text-sm" onclick={close}>Cancel</button>
+				<button class="btn-accent px-5 py-2 text-sm flex items-center gap-2" onclick={applyShift}>
+					<span class="material-icons text-base">done</span>
+					Apply Shift
+				</button>
+			</div>
 		</div>
 	</div>
 </div>
-
-<style>
-	.modal-backdrop {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background-color: rgba(0, 0, 0, 0.5);
-		backdrop-filter: blur(4px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-	}
-
-	.modal-content {
-		width: 100%;
-		max-width: 450px;
-		border-radius: 12px;
-		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-		overflow: hidden;
-	}
-
-	.modal-header {
-		padding: 1rem 1.5rem;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		border-bottom: 1px solid var(--border-color);
-	}
-
-	.modal-header h3 {
-		font-size: 1.125rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		margin: 0;
-	}
-
-	.close-btn {
-		background: none;
-		border: none;
-		color: var(--text-secondary);
-		cursor: pointer;
-		padding: 0.25rem;
-		border-radius: 0.375rem;
-		transition: all 0.2s;
-	}
-
-	.close-btn:hover {
-		background-color: var(--bg-accent);
-		color: var(--text-primary);
-	}
-
-	.modal-body {
-		padding: 1.5rem;
-	}
-
-	.direction-card {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		padding: 1rem;
-		border-radius: 0.5rem;
-		border: 1px solid var(--border-color);
-		background-color: var(--bg-accent);
-		color: var(--text-secondary);
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.direction-card:hover {
-		background-color: var(--bg-secondary);
-		border-color: var(--accent-primary);
-	}
-
-	.direction-card.selected {
-		background-color: var(--accent-primary);
-		color: black;
-		border-color: var(--accent-primary);
-	}
-
-	.modal-footer {
-		padding: 1rem 1.5rem;
-		background-color: var(--bg-accent);
-		border-top: 1px solid var(--border-color);
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.75rem;
-	}
-
-	.btn-secondary {
-		padding: 0.5rem 1rem;
-		border-radius: 0.375rem;
-		font-weight: 500;
-		font-size: 0.875rem;
-		color: var(--text-primary);
-		background-color: transparent;
-		border: 1px solid var(--border-color);
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.btn-secondary:hover {
-		background-color: var(--bg-secondary);
-	}
-
-	.btn-primary {
-		padding: 0.5rem 1rem;
-		border-radius: 0.375rem;
-		font-weight: 500;
-		font-size: 0.875rem;
-		color: black;
-		background-color: var(--accent-primary);
-		border: none;
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.btn-primary:hover {
-		filter: brightness(1.1);
-	}
-</style>

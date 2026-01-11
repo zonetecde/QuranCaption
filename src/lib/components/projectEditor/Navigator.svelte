@@ -80,6 +80,16 @@
 					<span class="material-icons text-lg">move_down</span>
 					Shift All Subtitles
 				</button>
+				<button
+					class="w-full text-left px-4 py-2 text-sm text-secondary hover:bg-accent hover:text-primary transition-colors flex items-center gap-3"
+					onclick={() => {
+						showToolsMenu = false;
+						ModalManager.audioCutterModal();
+					}}
+				>
+					<span class="material-icons text-lg">content_cut</span>
+					Audio Cutter
+				</button>
 				<!-- Add future tools here -->
 			</div>
 		{/if}

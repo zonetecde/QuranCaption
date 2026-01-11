@@ -602,6 +602,53 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+fn cut_audio(source_path: String, start_ms: u64, end_ms: u64, output_path: String) -> Result<(), String> {
+    // Vérifier que le fichier source existe
+    if !std::path::Path::new(&source_path).exists() {
+        return Err(format!("Source file not found: {}", source_path));
+    }
+
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    // Convertir les millisecondes en secondes pour ffmpeg (format HH:MM:SS.ms)
+    let start_secs = start_ms as f64 / 1000.0;
+    let duration_secs = (end_ms as f64 - start_ms as f64) / 1000.0;
+
+    if duration_secs <= 0.0 {
+        return Err("Duration must be positive".to_string());
+    }
+
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(&[
+        "-ss", &start_secs.to_string(),
+        "-t", &duration_secs.to_string(),
+        "-i", &source_path,
+        "-c", "copy", // On copie le flux pour garder le format original sans ré-encoder
+        "-y",        // Overwrite output file
+        &output_path,
+    ]);
+    configure_command_no_window(&mut cmd);
+    
+    let output = cmd.output();
+
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                Ok(())
+            } else {
+                let stderr = String::from_utf8_lossy(&result.stderr);
+                // Si la copie brute échoue (parfois dû à des problèmes de bitstream), 
+                // on peut tenter un ré-encodage minimal si c'est nécessaire.
+                // Pour l'instant on reste sur copy car c'est plus rapide et préserve la qualité.
+                Err(format!("ffmpeg error: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
+    }
+}
+
+#[tauri::command]
 fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
     // Vérifier que le fichier existe
     if !std::path::Path::new(&file_path).exists() {
@@ -1602,6 +1649,7 @@ pub fn run() {
             exporter::cancel_export,
             exporter::concat_videos,
             convert_audio_to_cbr,
+            cut_audio,
             segment_quran_audio,
             segment_quran_audio_local,
             check_local_segmentation_ready,

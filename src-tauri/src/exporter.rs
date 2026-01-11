@@ -640,11 +640,7 @@ fn build_and_run_ffmpeg_filter_complex(
     let mut current_idx = 0;
     
     // Entrée unique: concat demuxer
-    let concat_name = if imgs_cwd.is_some() {
-        concat_path.file_name().unwrap().to_string_lossy().to_string()
-    } else {
-        concat_path.to_string_lossy().to_string()
-    };
+    let concat_name = concat_path.to_string_lossy().to_string();
     
     cmd.extend_from_slice(&[
         "-safe".to_string(), "0".to_string(),
@@ -814,11 +810,7 @@ fn build_and_run_ffmpeg_filter_complex(
     fs::write(&fg_path, &filter_complex)?;
     println!("[ffmpeg] filter_complex_script -> {:?}", fg_path);
     
-    let fg_name = if imgs_cwd.is_some() {
-        fg_path.file_name().unwrap().to_string_lossy().to_string()
-    } else {
-        fg_path.to_string_lossy().to_string()
-    };
+    let fg_name = fg_path.to_string_lossy().to_string();
     
     cmd.extend_from_slice(&["-filter_complex_script".to_string(), fg_name]);
     
@@ -871,10 +863,6 @@ fn build_and_run_ffmpeg_filter_complex(
     
     // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut command);
-    
-    if let Some(cwd) = imgs_cwd {
-        command.current_dir(cwd);
-    }
     
     let mut child = command.spawn()?;
     
@@ -1117,7 +1105,7 @@ pub async fn export_video(
     
     let path_strs: Vec<String> = files
         .iter()
-        .map(|p| p.file_name().unwrap().to_string_lossy().to_string())
+        .map(|p| p.to_string_lossy().to_string())
         .collect();
     
     let ts_preview: Vec<i32> = ts.iter().take(10).cloned().collect();

@@ -760,6 +760,60 @@ fn cut_audio(source_path: String, start_ms: u64, end_ms: u64, output_path: Strin
 }
 
 #[tauri::command]
+fn concat_audio(source_paths: Vec<String>, output_path: String) -> Result<(), String> {
+    if source_paths.is_empty() {
+        return Err("No source files provided".to_string());
+    }
+
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    // Create a temporary file for the concat list
+    let temp_dir = std::env::temp_dir();
+    let list_file_path = temp_dir.join(format!("concat_audio_{}.txt", 
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()));
+    
+    let mut list_content = String::new();
+    for path in &source_paths {
+        // Enclose in single quotes for ffmpeg concat demuxer
+        // single quotes in the path should be escaped as '\''
+        let escaped_path = path.replace("'", "'\\''");
+        list_content.push_str(&format!("file '{}'\n", escaped_path));
+    }
+
+    fs::write(&list_file_path, list_content)
+        .map_err(|e| format!("Failed to write concat list: {}", e))?;
+
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(&[
+        "-f", "concat",
+        "-safe", "0",
+        "-i", &list_file_path.to_string_lossy(),
+        "-c", "copy",
+        "-y",
+        &output_path,
+    ]);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd.output();
+
+    // Clean up
+    let _ = fs::remove_file(&list_file_path);
+
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                Ok(())
+            } else {
+                let stderr = String::from_utf8_lossy(&result.stderr);
+                Err(format!("ffmpeg error: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
+    }
+}
+
+#[tauri::command]
 fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
     let file_path = path_utils::normalize_existing_path(&file_path);
     let file_path_str = file_path.to_string_lossy().to_string();
@@ -1820,6 +1874,7 @@ pub fn run() {
             exporter::concat_videos,
             convert_audio_to_cbr,
             cut_audio,
+            concat_audio,
             segment_quran_audio,
             segment_quran_audio_local,
             check_local_segmentation_ready,

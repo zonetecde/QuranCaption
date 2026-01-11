@@ -6,6 +6,7 @@ import Settings from '../settings/Settings.svelte';
 import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from '../projectEditor/tabs/subtitlesEditor/modal/ShiftSubtitlesModal.svelte';
+import AudioCutterModal from '../projectEditor/tabs/toolsEditor/modal/AudioCutterModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 
 export default class ModalManager {
@@ -175,6 +176,28 @@ export default class ModalManager {
 
 			// Monter le composant Svelte 5
 			const modal = mount(ShiftSubtitlesModal, {
+				target: container,
+				props: {
+					close: () => {
+						// Nettoyer et résoudre
+						unmount(modal);
+						document.body.removeChild(container);
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	static async audioCutterModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			// Créer un conteneur pour le modal
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			// Monter le composant Svelte 5
+			const modal = mount(AudioCutterModal, {
 				target: container,
 				props: {
 					close: () => {

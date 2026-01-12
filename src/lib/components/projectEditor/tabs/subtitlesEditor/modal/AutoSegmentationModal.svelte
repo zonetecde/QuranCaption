@@ -234,7 +234,10 @@
 				include_word_by_word: includeWordByWord,
 				mode: selectedMode,
 				whisper_model: selectedMode === 'local' ? selectedModel : undefined,
-				audio_filename: audioInfo()?.fileName,
+				audio_filename:
+					(audioInfo()?.clipCount || 0) > 1
+						? `${audioInfo()?.fileName} (+${audioInfo()!.clipCount - 1} more)`
+						: audioInfo()?.fileName,
 				segments_applied: completedResponse?.segmentsApplied,
 				low_confidence_segments: completedResponse?.lowConfidenceSegments,
 				error_message: response?.status === 'failed' ? response.message : undefined
@@ -280,8 +283,8 @@
 			<div class="bg-accent border border-color rounded-xl p-4 space-y-3" transition:slide>
 				<div class="space-y-2">
 					<p class="text-sm text-secondary leading-relaxed">
-						This will analyze the <span class="text-primary font-medium">first audio clip</span> in your
-						timeline and automatically generate subtitle clips from it.
+						This will analyze <span class="text-primary font-medium">all audio clips</span> in your
+						timeline and automatically generate subtitle clips from them.
 					</p>
 
 					<ul class="text-sm text-secondary leading-relaxed list-disc pl-5 space-y-1">
@@ -301,7 +304,12 @@
 					<span>
 						Audio source:
 						{#if hasAudio()}
-							<span class="text-primary font-medium">{audioInfo()?.fileName}</span>
+							<span class="text-primary font-medium">
+								{audioInfo()?.fileName}
+								{#if (audioInfo()?.clipCount || 0) > 1}
+									<span class="text-thirdly"> (+{audioInfo()!.clipCount - 1} more)</span>
+								{/if}
+							</span>
 						{:else}
 							<span class="text-danger-color font-medium">No audio clip found</span>
 						{/if}

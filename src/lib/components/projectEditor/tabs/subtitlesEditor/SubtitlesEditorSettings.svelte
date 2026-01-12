@@ -29,8 +29,8 @@
 
 		if (nextSegment) {
 			// Déplace le curseur de la timeline au début du segment
-			globalState.getTimelineState.cursorPosition = nextSegment.startTime + 750;
-			globalState.getTimelineState.movePreviewTo = nextSegment.startTime + 750;
+			globalState.getTimelineState.cursorPosition = nextSegment.startTime;
+			globalState.getTimelineState.movePreviewTo = nextSegment.startTime;
 			globalState.getVideoPreviewState.scrollTimelineToCursor();
 		}
 	}

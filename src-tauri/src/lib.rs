@@ -122,6 +122,109 @@ impl Drop for TempFileGuard {
     }
 }
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SegmentationAudioClip {
+    path: String,
+    start_ms: i64,
+    end_ms: i64,
+}
+
+fn merge_audio_clips_for_segmentation(
+    ffmpeg_path: &str,
+    clips: &[SegmentationAudioClip],
+) -> Result<(PathBuf, TempFileGuard), String> {
+    if clips.is_empty() {
+        return Err("No audio clips provided for merge".to_string());
+    }
+
+    let mut normalized: Vec<(PathBuf, i64, i64)> = Vec::new();
+    for clip in clips {
+        let path = path_utils::normalize_existing_path(&clip.path);
+        if !path.exists() {
+            return Err(format!(
+                "Audio file not found: {}",
+                path.to_string_lossy()
+            ));
+        }
+
+        let start_ms = clip.start_ms.max(0);
+        let end_ms = clip.end_ms.max(start_ms);
+        if end_ms == start_ms {
+            continue;
+        }
+
+        normalized.push((path, start_ms, end_ms));
+    }
+
+    if normalized.is_empty() {
+        return Err("No valid audio clips to merge".to_string());
+    }
+
+    let total_end_ms = normalized
+        .iter()
+        .map(|(_, _, end_ms)| *end_ms)
+        .max()
+        .unwrap_or(0);
+
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_millis();
+    let merged_path = std::env::temp_dir().join(format!("qurancaption-seg-merged-{}.wav", stamp));
+    let guard = TempFileGuard(merged_path.clone());
+
+    let mut cmd = Command::new(ffmpeg_path);
+    cmd.args(&["-y", "-hide_banner", "-loglevel", "error"]);
+    for (path, _, _) in &normalized {
+        cmd.arg("-i").arg(path.to_string_lossy().as_ref());
+    }
+
+    let mut filters: Vec<String> = Vec::new();
+    for (idx, (_, start_ms, end_ms)) in normalized.iter().enumerate() {
+        let duration_ms = (end_ms - start_ms).max(0);
+        let duration_s = duration_ms as f64 / 1000.0;
+        filters.push(format!(
+            "[{}:a]atrim=start=0:end={:.6},asetpts=PTS-STARTPTS,adelay={}|{}[a{}]",
+            idx, duration_s, start_ms, start_ms, idx
+        ));
+    }
+
+    let mut inputs = String::new();
+    for idx in 0..normalized.len() {
+        inputs.push_str(&format!("[a{}]", idx));
+    }
+    let total_s = total_end_ms as f64 / 1000.0;
+    filters.push(format!(
+        "{}amix=inputs={}:duration=longest:dropout_transition=0,atrim=end={:.6},asetpts=PTS-STARTPTS[mix]",
+        inputs,
+        normalized.len(),
+        total_s
+    ));
+
+    let filter_complex = filters.join(";");
+    cmd.args(&[
+        "-filter_complex",
+        &filter_complex,
+        "-map",
+        "[mix]",
+        "-c:a",
+        "pcm_s16le",
+        "-t",
+        &format!("{:.6}", total_s),
+        merged_path.to_string_lossy().as_ref(),
+    ]);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd.output().map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg merge error: {}", stderr));
+    }
+
+    Ok((merged_path, guard))
+}
+
 fn configure_command_no_window(cmd: &mut Command) {
     #[cfg(target_os = "windows")]
     {
@@ -706,7 +809,8 @@ fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn segment_quran_audio(
-    audio_path: String,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
@@ -720,15 +824,44 @@ async fn segment_quran_audio(
 
     // Basic input validation before we do any heavy work.
     let _include_word_by_word = include_word_by_word.unwrap_or(false);
-    let audio_path = path_utils::normalize_existing_path(&audio_path);
+    // Resolve ffmpeg so we can merge (if needed) and resample to 16kHz mono as required by the API.
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    let mut _merged_guard: Option<TempFileGuard> = None;
+    let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
+        println!(
+            "[segmentation] Merging {} audio clip(s) for cloud segmentation",
+            clips.len()
+        );
+        for (idx, clip) in clips.iter().enumerate() {
+            println!(
+                "[segmentation] clip[{}] path={} start_ms={} end_ms={}",
+                idx, clip.path, clip.start_ms, clip.end_ms
+            );
+        }
+        let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
+        if needs_merge {
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+            _merged_guard = Some(guard);
+            println!(
+                "[segmentation] Using merged audio for cloud: {}",
+                merged_path.to_string_lossy()
+            );
+            merged_path
+        } else {
+            path_utils::normalize_existing_path(&clips[0].path)
+        }
+    } else if let Some(path) = audio_path.as_ref() {
+        path_utils::normalize_existing_path(path)
+    } else {
+        return Err("Audio file not found: missing audioPath/audioClips".to_string());
+    };
+
     let audio_path_str = audio_path.to_string_lossy().to_string();
     if !audio_path.exists() {
         return Err(format!("Audio file not found: {}", audio_path_str));
     }
-
-    // Resolve ffmpeg so we can resample to 16kHz mono as required by the API.
-    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
-        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
 
     // Build a unique temp file path for the resampled WAV.
     let stamp = SystemTime::now()
@@ -1306,7 +1439,8 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
 #[tauri::command]
 async fn segment_quran_audio_local(
     app_handle: tauri::AppHandle,
-    audio_path: String,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
@@ -1318,15 +1452,41 @@ async fn segment_quran_audio_local(
     use tauri::Emitter;
 
     // Validate input file exists
-    let audio_path = path_utils::normalize_existing_path(&audio_path);
+    // Resolve ffmpeg for audio preprocessing
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    let mut _merged_guard: Option<TempFileGuard> = None;
+    let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
+     
+        for (idx, clip) in clips.iter().enumerate() {
+            println!(
+                "[segmentation] clip[{}] path={} start_ms={} end_ms={}",
+                idx, clip.path, clip.start_ms, clip.end_ms
+            );
+        }
+        let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
+        if needs_merge {
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+            _merged_guard = Some(guard);
+            println!(
+                "[segmentation] Using merged audio for local: {}",
+                merged_path.to_string_lossy()
+            );
+            merged_path
+        } else {
+            path_utils::normalize_existing_path(&clips[0].path)
+        }
+    } else if let Some(path) = audio_path.as_ref() {
+        path_utils::normalize_existing_path(path)
+    } else {
+        return Err("Audio file not found: missing audioPath/audioClips".to_string());
+    };
+
     let audio_path_str = audio_path.to_string_lossy().to_string();
     if !audio_path.exists() {
         return Err(format!("Audio file not found: {}", audio_path_str));
     }
-
-    // Resolve ffmpeg for audio preprocessing
-    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
-        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
 
     // Build a unique temp file path for the resampled WAV (same as cloud mode)
     let stamp = SystemTime::now()

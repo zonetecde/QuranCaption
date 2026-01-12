@@ -117,6 +117,14 @@ export type AutoSegmentationResult =
 export type AutoSegmentationAudioInfo = {
 	filePath: string;
 	fileName: string;
+	clipCount: number;
+};
+
+export type AutoSegmentationAudioClip = {
+	filePath: string;
+	fileName: string;
+	startMs: number;
+	endMs: number;
 };
 
 type VerseRef = {
@@ -133,29 +141,50 @@ type PredefinedType = 'Basmala' | 'Istiadhah';
  *
  * @returns {AutoSegmentationAudioInfo | null} Audio info if available, otherwise null.
  */
-export function getAutoSegmentationAudioInfo(): AutoSegmentationAudioInfo | null {
-	const audioClip: unknown = globalState.getAudioTrack?.clips?.[0];
-
-	const hasAssetId: boolean =
-		typeof audioClip === 'object' &&
-		audioClip !== null &&
-		'assetId' in audioClip &&
-		(audioClip as { assetId?: unknown }).assetId !== undefined;
-
-	if (!audioClip || !hasAssetId) return null;
-
-	const assetId: unknown = (audioClip as { assetId?: unknown }).assetId;
-	if (typeof assetId !== 'number') return null;
-
+export function getAutoSegmentationAudioClips(): AutoSegmentationAudioClip[] {
 	const project = globalState.currentProject;
-	if (!project) return null;
+	const audioTrack = globalState.getAudioTrack;
 
-	const audioAsset = project.content.getAssetById(assetId);
-	const filePath: string | undefined = audioAsset?.filePath;
-	if (!filePath) return null;
+	if (!project || !audioTrack) return [];
 
-	const fileName: string = filePath.split(/[/\\]/).pop() || filePath;
-	return { filePath, fileName };
+	const clips: AutoSegmentationAudioClip[] = [];
+
+	for (const clip of audioTrack.clips) {
+		if (!clip || typeof clip !== 'object') continue;
+
+		const assetId = (clip as { assetId?: unknown }).assetId;
+		if (typeof assetId !== 'number') continue;
+
+		const startTime = (clip as { startTime?: unknown }).startTime;
+		const endTime = (clip as { endTime?: unknown }).endTime;
+		if (typeof startTime !== 'number' || typeof endTime !== 'number') continue;
+
+		const audioAsset = project.content.getAssetById(assetId);
+		const filePath: string | undefined = audioAsset?.filePath;
+		if (!filePath) continue;
+
+		const fileName: string = filePath.split(/[/\\]/).pop() || filePath;
+		clips.push({
+			filePath,
+			fileName,
+			startMs: Math.max(0, Math.round(startTime)),
+			endMs: Math.max(0, Math.round(endTime))
+		});
+	}
+
+	return clips.sort((a, b) => a.startMs - b.startMs);
+}
+
+export function getAutoSegmentationAudioInfo(): AutoSegmentationAudioInfo | null {
+	const clips = getAutoSegmentationAudioClips();
+	if (clips.length === 0) return null;
+
+	const first = clips[0];
+	return {
+		filePath: first.filePath,
+		fileName: first.fileName,
+		clipCount: clips.length
+	};
 }
 
 /**
@@ -319,7 +348,8 @@ export async function runAutoSegmentation(
 	console.log(`[AutoSegmentation] Using ${effectiveMode} mode, fillBySilence=${fillBySilence}`);
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
-	if (!audioInfo) {
+	const audioClips = getAutoSegmentationAudioClips();
+	if (!audioInfo || audioClips.length === 0) {
 		const message = 'No audio clip found in the project.';
 		toast.error(message);
 		return { status: 'failed', message };
@@ -342,6 +372,11 @@ export async function runAutoSegmentation(
 
 		const payload: unknown = await invoke(command, {
 			audioPath: audioInfo.filePath,
+			audioClips: audioClips.map((clip) => ({
+				path: clip.filePath,
+				startMs: clip.startMs,
+				endMs: clip.endMs
+			})),
 			minSilenceMs,
 			minSpeechMs,
 			padMs,

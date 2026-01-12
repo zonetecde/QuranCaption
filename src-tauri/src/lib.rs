@@ -807,7 +807,8 @@ async fn segment_quran_audio(
             file_payload,
             min_silence_ms.unwrap_or(200),
             min_speech_ms.unwrap_or(1000),
-            pad_ms.unwrap_or(50)
+            pad_ms.unwrap_or(50),
+            _include_word_by_word
         ],
         "fn_index": QURAN_SEGMENTATION_FN_INDEX,
         "session_hash": session_hash

@@ -98,7 +98,7 @@
 	function addInTheTimelineButtonClick(video: boolean, audio: boolean) {
 		if (asset.duration.isNull() && asset.type !== AssetType.Image) {
 			toast(
-				'Please wait for the asset to be loaded before adding it to the timeline. If this is recurrent and you are on MacOS or Linux, please install ffmpeg and ffprobe through Homebrew.',
+				'Please wait for the asset to be loaded before adding it to the timeline. If this is recurrent and you are on MacOS or Linux, please install ffmpeg and ffprobe through Homebrew and re-import the asset.',
 				{
 					duration: 5000
 				}

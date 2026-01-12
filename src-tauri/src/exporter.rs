@@ -8,6 +8,7 @@ use std::time::Instant;
 use tauri::Emitter;
 use tokio::task;
 use crate::binaries;
+use crate::path_utils;
 
 // Expose la dernière durée d'export terminée (en secondes)
 static LAST_EXPORT_TIME_S: Mutex<Option<f64>> = Mutex::new(None);
@@ -619,10 +620,12 @@ fn build_and_run_ffmpeg_filter_complex(
     let mut concat_file = fs::File::create(&concat_path)?;
     writeln!(concat_file, "ffconcat version 1.0")?;
     for (i, p) in image_paths.iter().enumerate() {
-        writeln!(concat_file, "file '{}'", p)?;
+        let escaped = path_utils::escape_ffconcat_path(p);
+        writeln!(concat_file, "file '{}'", escaped)?;
         writeln!(concat_file, "duration {:.6}", durations_s[i])?;
     }
-    writeln!(concat_file, "file '{}'", image_paths[n - 1])?;
+    let escaped_last = path_utils::escape_ffconcat_path(&image_paths[n - 1]);
+    writeln!(concat_file, "file '{}'", escaped_last)?;
     
     println!("[concat] Fichier ffconcat -> {:?}", concat_path);
     
@@ -637,8 +640,6 @@ fn build_and_run_ffmpeg_filter_complex(
         "-progress".to_string(), "pipe:2".to_string(),
     ]);
     
-    let mut current_idx = 0;
-    
     // Entrée unique: concat demuxer
     let concat_name = concat_path.to_string_lossy().to_string();
     
@@ -647,7 +648,7 @@ fn build_and_run_ffmpeg_filter_complex(
         "-f".to_string(), "concat".to_string(),
         "-i".to_string(), concat_name,
     ]);
-    current_idx = 1;
+    let mut current_idx = 1;
     
     // Entrées vidéos de fond
     let bg_start_idx = current_idx;
@@ -736,7 +737,6 @@ fn build_and_run_ffmpeg_filter_complex(
             "-f".to_string(), "lavfi".to_string(),
             "-i".to_string(), format!("color=c=black:s={}x{}:r={}:d={:.6}", w, h, fps, duration_s),
         ]);
-        current_idx += 1;
         format!("{}:v", color_full_idx)
     } else {
         let prev = if pre_videos.len() > 1 {
@@ -760,7 +760,6 @@ fn build_and_run_ffmpeg_filter_complex(
                 "-f".to_string(), "lavfi".to_string(),
                 "-i".to_string(), format!("color=c=black:s={}x{}:r={}:d={:.6}", w, h, fps, remain),
             ]);
-            current_idx += 1;
             filter_lines.push(format!("[{}:v]setsar=1[colorpad]", color_pad_idx));
             filter_lines.push(format!("[bgtrim][colorpad]concat=n=2:v=1:a=0[bg]"));
             bg_label = "bg".to_string();
@@ -1053,10 +1052,10 @@ pub async fn export_video(
     }
     
     // Liste des PNG triés par timestamp
-    let folder = Path::new(&imgs_folder);
-    println!("[scan] Parcours du dossier: {:?}", folder.canonicalize().unwrap_or_else(|_| folder.to_path_buf()));
+    let folder = path_utils::normalize_existing_path(&imgs_folder);
+    println!("[scan] Parcours du dossier: {:?}", folder.canonicalize().unwrap_or_else(|_| folder.clone()));
     
-    let mut files: Vec<_> = fs::read_dir(folder)
+    let mut files: Vec<_> = fs::read_dir(&folder)
         .map_err(|e| format!("Erreur lecture dossier: {}", e))?
         .filter_map(|entry| {
             let entry = entry.ok()?;
@@ -1075,6 +1074,10 @@ pub async fn export_video(
             .and_then(|s| s.parse::<i32>().ok())
             .unwrap_or(0)
     });
+    let files: Vec<PathBuf> = files
+        .into_iter()
+        .map(|p| p.canonicalize().unwrap_or(p))
+        .collect();
     
     println!("[scan] {} image(s) trouvée(s)", files.len());
     
@@ -1130,27 +1133,36 @@ pub async fn export_video(
     println!("[timeline] Durée totale: {} ms ({:.3} s)", total_duration_ms, duration_s);
     println!("[perf] Préparation terminée en {:.0} ms", t0.elapsed().as_millis());
     
-    let out_path = Path::new(&final_file_path);
+    let out_path = path_utils::normalize_output_path(&final_file_path);
     if let Some(parent) = out_path.parent() {
         println!("[fs] Création du dossier de sortie si besoin: {:?}", parent);
         fs::create_dir_all(parent).map_err(|e| format!("Erreur création dossier: {}", e))?;
     }
     
     let imgs_folder_resolved = folder.canonicalize()
-        .map_err(|e| format!("Erreur résolution chemin: {}", e))?
+        .unwrap_or_else(|_| folder.clone())
         .to_string_lossy()
         .to_string();
     
     let out_path_str = out_path.to_string_lossy().to_string();
-    let audios_vec = audios.unwrap_or_default();
-    let videos_vec = videos.unwrap_or_default();
+    let out_path_str_for_task = out_path_str.clone();
+    let audios_vec: Vec<String> = audios
+        .unwrap_or_default()
+        .into_iter()
+        .map(|p| path_utils::normalize_existing_path(&p).to_string_lossy().to_string())
+        .collect();
+    let videos_vec: Vec<String> = videos
+        .unwrap_or_default()
+        .into_iter()
+        .map(|p| path_utils::normalize_existing_path(&p).to_string_lossy().to_string())
+        .collect();
     let app_handle = app.clone();
     let export_id_clone = export_id.clone();
     
     task::spawn_blocking(move || {
         build_and_run_ffmpeg_filter_complex(
             &export_id_clone,
-            &out_path_str,
+            &out_path_str_for_task,
             &path_strs,
             &ts,
             target_size,
@@ -1176,7 +1188,7 @@ pub async fn export_video(
     println!("[metric] export_time_seconds={:.3}", export_time_s);
     
     // Extraire le nom de fichier de sortie
-    let output_file_name = Path::new(&final_file_path)
+    let output_file_name = out_path
         .file_name()
         .unwrap_or_default()
         .to_string_lossy()
@@ -1186,7 +1198,7 @@ pub async fn export_video(
     let mut completion_data = serde_json::json!({
         "filename": output_file_name,
         "exportId": export_id,
-        "fullPath": final_file_path
+        "fullPath": out_path_str
     });
     
     // Ajouter chunk_index si fourni
@@ -1197,7 +1209,7 @@ pub async fn export_video(
     // Émettre l'événement de succès
     let _ = app.emit("export-complete", completion_data);
     
-    Ok(final_file_path)
+    Ok(out_path_str)
 }
 
 // Fonctions utilitaires pour parser la progression FFmpeg
@@ -1282,23 +1294,30 @@ pub async fn concat_videos(
     video_paths: Vec<String>,
     output_path: String,
 ) -> Result<String, String> {
-    println!("[concat_videos] Début de la concaténation de {} vidéos", video_paths.len());
-    println!("[concat_videos] Fichier de sortie: {}", output_path);
+    let normalized_video_paths: Vec<String> = video_paths
+        .into_iter()
+        .map(|p| path_utils::normalize_existing_path(&p).to_string_lossy().to_string())
+        .collect();
+    let output_path_buf = path_utils::normalize_output_path(&output_path);
+    let output_path_str = output_path_buf.to_string_lossy().to_string();
+
+    println!("[concat_videos] Début de la concaténation de {} vidéos", normalized_video_paths.len());
+    println!("[concat_videos] Fichier de sortie: {}", output_path_str);
     
-    if video_paths.is_empty() {
+    if normalized_video_paths.is_empty() {
         return Err("Aucune vidéo fournie pour la concaténation".to_string());
     }
     
-    if video_paths.len() == 1 {
+    if normalized_video_paths.len() == 1 {
         // Si une seule vidéo, on peut simplement la copier ou la renommer
         println!("[concat_videos] Une seule vidéo, copie vers le fichier final");
-        std::fs::copy(&video_paths[0], &output_path)
+        std::fs::copy(&normalized_video_paths[0], &output_path_str)
             .map_err(|e| format!("Erreur lors de la copie: {}", e))?;
-        return Ok(output_path);
+        return Ok(output_path_str);
     }
     
     // Créer le dossier de sortie si nécessaire
-    if let Some(parent) = Path::new(&output_path).parent() {
+    if let Some(parent) = output_path_buf.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| format!("Erreur création dossier de sortie: {}", e))?;
     }
@@ -1313,12 +1332,13 @@ pub async fn concat_videos(
     
     // Écrire la liste des fichiers à concaténer
     let mut list_content = String::new();
-    for video_path in &video_paths {
+    for video_path in &normalized_video_paths {
         // Vérifier que le fichier existe
         if !Path::new(video_path).exists() {
             return Err(format!("Fichier vidéo non trouvé: {}", video_path));
         }
-        list_content.push_str(&format!("file '{}'\n", video_path));
+        let escaped = path_utils::escape_ffconcat_path(video_path);
+        list_content.push_str(&format!("file '{}'\n", escaped));
     }
     
     fs::write(&list_file_path, list_content)
@@ -1344,7 +1364,7 @@ pub async fn concat_videos(
     ]);
 
     // Ré-encoder l'audio pour lisser les timestamps et éviter les micro-cuts
-    if video_paths.iter().any(|p| video_has_audio(p)) {
+    if normalized_video_paths.iter().any(|p| video_has_audio(p)) {
         cmd.args(&[
             "-map", "0:a?",                          // Map audio si présent (sans échouer si absent)
             "-af", "aresample=async=1:first_pts=0",  // Corrige les horloges audio
@@ -1355,7 +1375,7 @@ pub async fn concat_videos(
         cmd.arg("-an"); // Aucun audio trouvé, on désactive l'audio
     }
 
-    cmd.arg(&output_path);                  // Fichier de sortie
+    cmd.arg(&output_path_str);                  // Fichier de sortie
     
     // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
@@ -1384,10 +1404,10 @@ pub async fn concat_videos(
     }
     
     // Vérifier que le fichier de sortie a été créé
-    if !Path::new(&output_path).exists() {
+    if !Path::new(&output_path_str).exists() {
         return Err("Le fichier de sortie n'a pas été créé".to_string());
     }
     
-    println!("[concat_videos] ✅ Concaténation réussie: {}", output_path);
-    Ok(output_path)
+    println!("[concat_videos] ✅ Concaténation réussie: {}", output_path_str);
+    Ok(output_path_str)
 }

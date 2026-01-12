@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 mod exporter;
 mod binaries;
+mod path_utils;
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use reqwest::multipart::{Form, Part};
 use tauri::Manager;
@@ -135,8 +136,10 @@ async fn download_from_youtube(
     _type: String,
     download_path: String,
 ) -> Result<String, String> {
+    let download_path_buf = path_utils::normalize_input_path(&download_path);
+    let download_path_str = download_path_buf.to_string_lossy().to_string();
     // Créer le dossier de téléchargement s'il n'existe pas
-    if let Err(e) = fs::create_dir_all(&download_path) {
+    if let Err(e) = fs::create_dir_all(&download_path_buf) {
         return Err(format!("Unable to create directory: {}", e));
     }
 
@@ -164,7 +167,7 @@ async fn download_from_youtube(
     }
 
     // Pattern de sortie avec le titre de la vidéo et le nom de la chaîne
-    let output_pattern = format!("{}/%(title)s (%(uploader)s).%(ext)s", download_path);
+    let output_pattern = format!("{}/%(title)s (%(uploader)s).%(ext)s", download_path_str);
 
     match _type.as_str() {
         "audio" => {
@@ -218,7 +221,7 @@ async fn download_from_youtube(
                 let extension = if _type == "audio" { "mp3" } else { "mp4" };
 
                 // Lire le dossier pour trouver le fichier téléchargé
-                match fs::read_dir(&download_path) {
+    match fs::read_dir(&download_path_buf) {
                     Ok(entries) => {
                         for entry in entries {
                             if let Ok(entry) = entry {
@@ -251,8 +254,9 @@ async fn download_from_youtube(
 // Fonction pour obtenir la durée précise du fichier téléchargé avec ffprobe
 #[tauri::command]
 fn get_duration(file_path: &str) -> Result<i64, String> {
+    let file_path = path_utils::normalize_existing_path(file_path);
     // If the file does not exist, return -1
-    if !std::path::Path::new(file_path).exists() {
+    if !file_path.exists() {
         return Ok(-1);
     }
 
@@ -269,7 +273,7 @@ fn get_duration(file_path: &str) -> Result<i64, String> {
         "format=duration",
         "-of",
         "csv=p=0",
-        file_path,
+        file_path.to_string_lossy().as_ref(),
     ]);
     configure_command_no_window(&mut cmd);
     let output = cmd.output();
@@ -341,15 +345,17 @@ fn get_new_file_path(start_time: u64, asset_name: &str) -> Result<String, String
 
 #[tauri::command]
 fn save_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
-    if let Some(parent) = std::path::Path::new(&path).parent() {
+    let path_buf = path_utils::normalize_output_path(&path);
+    if let Some(parent) = path_buf.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
-    fs::write(&path, content).map_err(|e| format!("Failed to write file: {}", e))
+    fs::write(&path_buf, content).map_err(|e| format!("Failed to write file: {}", e))
 }
 
 #[tauri::command]
 async fn download_file(url: String, path: String) -> Result<(), String> {
-    if let Some(parent) = std::path::Path::new(&path).parent() {
+    let path_buf = path_utils::normalize_output_path(&path);
+    if let Some(parent) = path_buf.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
@@ -366,7 +372,7 @@ async fn download_file(url: String, path: String) -> Result<(), String> {
         .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
 
-    tokio::fs::write(&path, &bytes)
+    tokio::fs::write(&path_buf, &bytes)
         .await
         .map_err(|e| format!("Failed to write file: {}", e))?;
 
@@ -375,31 +381,30 @@ async fn download_file(url: String, path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn delete_file(path: String) -> Result<(), String> {
-    fs::remove_file(path).map_err(|e| format!("Failed to delete file: {}", e))
+    let path_buf = path_utils::normalize_existing_path(&path);
+    fs::remove_file(path_buf).map_err(|e| format!("Failed to delete file: {}", e))
 }
 
 #[tauri::command]
 fn move_file(source: String, destination: String) -> Result<(), String> {
-    use std::path::Path;
-    
-    let source_path = Path::new(&source);
-    let dest_path = Path::new(&destination);
+    let source_path = path_utils::normalize_existing_path(&source);
+    let dest_path = path_utils::normalize_output_path(&destination);
     
     // If destination exists, remove it first to force the move
     if dest_path.exists() {
-        std::fs::remove_file(&destination).map_err(|e| e.to_string())?;
+        std::fs::remove_file(&dest_path).map_err(|e| e.to_string())?;
     }
     
     // Try rename first (works if on same drive/filesystem)
-    match std::fs::rename(&source, &destination) {
+    match std::fs::rename(&source_path, &dest_path) {
         Ok(()) => Ok(()),
         Err(e) => {
             // If rename fails with cross-device error (Windows: 17, Unix: 18), do copy + delete
             if e.raw_os_error() == Some(17) || e.raw_os_error() == Some(18) {
                 // Copy the file
-                std::fs::copy(&source, &destination).map_err(|e| e.to_string())?;
+                std::fs::copy(&source_path, &dest_path).map_err(|e| e.to_string())?;
                 // Remove the original
-                std::fs::remove_file(&source).map_err(|e| e.to_string())?;
+                std::fs::remove_file(&source_path).map_err(|e| e.to_string())?;
                 Ok(())
             } else {
                 Err(e.to_string())
@@ -433,11 +438,12 @@ fn get_system_fonts() -> Result<Vec<String>, String> {
 
 #[tauri::command]
 fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
-    let path = Path::new(&file_path);
+    let path = path_utils::normalize_existing_path(&file_path);
+    let file_path_str = path.to_string_lossy().to_string();
     
     // Vérifier que le fichier existe
     if !path.exists() {
-        return Err(format!("File not found: {}", file_path));
+        return Err(format!("File not found: {}", file_path_str));
     }
 
     #[cfg(target_os = "windows")]
@@ -445,7 +451,7 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
         // Sur Windows, utiliser explorer.exe avec /select pour sélectionner le fichier
         // Note: explorer.exe peut retourner un code de sortie non-zéro même en cas de succès
         let mut cmd = Command::new("explorer");
-        cmd.args(&["/select,", &file_path]);
+        cmd.args(&["/select,", &file_path_str]);
         configure_command_no_window(&mut cmd);
         let output = cmd.output();
 
@@ -463,7 +469,7 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
     {
         // Sur macOS, utiliser 'open' avec -R pour révéler le fichier dans Finder
         let output = Command::new("open")
-            .args(&["-R", &file_path])
+            .args(&["-R", &file_path_str])
             .output();
 
         match output {
@@ -543,9 +549,11 @@ fn open_explorer_with_file_selected(file_path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
+    let file_path = path_utils::normalize_existing_path(file_path);
+    let file_path_str = file_path.to_string_lossy().to_string();
     // Vérifier que le fichier existe
-    if !std::path::Path::new(file_path).exists() {
-        return Err(format!("File not found: {}", file_path));
+    if !file_path.exists() {
+        return Err(format!("File not found: {}", file_path_str));
     }
 
     let ffprobe_path = binaries::resolve_binary("ffprobe")
@@ -560,7 +568,7 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
         "-show_streams",
         "-select_streams",
         "v:0", // Sélectionner le premier stream vidéo
-        file_path,
+        &file_path_str,
     ]);
     configure_command_no_window(&mut cmd);
     let output = cmd.output();
@@ -603,32 +611,29 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
+    let file_path = path_utils::normalize_existing_path(&file_path);
+    let file_path_str = file_path.to_string_lossy().to_string();
     // Vérifier que le fichier existe
-    if !std::path::Path::new(&file_path).exists() {
-        return Err(format!("File not found: {}", file_path));
+    if !file_path.exists() {
+        return Err(format!("File not found: {}", file_path_str));
     }
 
     let ffmpeg_path = binaries::resolve_binary("ffmpeg")
         .ok_or_else(|| "ffmpeg binary not found".to_string())?;
 
     // Extraire l'extension du fichier d'origine
-    let path = Path::new(&file_path);
-    let extension = path.extension()
+    let extension = file_path.extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("mp4");
     
     // Créer un fichier temporaire avec la même extension
-    let file_stem = path.file_stem()
+    let file_stem = file_path.file_stem()
         .and_then(|stem| stem.to_str())
         .unwrap_or("temp");
-    let parent_dir = path.parent()
-        .map(|p| p.to_str().unwrap_or(""))
-        .unwrap_or("");
-    
-    let temp_path = if parent_dir.is_empty() {
-        format!("{}_temp.{}", file_stem, extension)
+    let temp_path = if let Some(parent_dir) = file_path.parent() {
+        parent_dir.join(format!("{}_temp.{}", file_stem, extension))
     } else {
-        format!("{}\\{}_temp.{}", parent_dir, file_stem, extension)
+        PathBuf::from(format!("{}_temp.{}", file_stem, extension))
     };
 
     // Commande ffmpeg pour convertir en CBR - adapter selon le type de fichier
@@ -640,7 +645,7 @@ fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
     if is_audio_only {
         // Pour les fichiers audio seulement - paramètres identiques à Audacity
         cmd.args(&[
-            "-i", &file_path,
+            "-i", &file_path_str,
             "-codec:a", "libmp3lame",    // Encodeur LAME comme Audacity
             "-b:a", "192k",              // Bitrate constant 192k comme dans l'image
             "-cbr", "1",                 // Force CBR (Constant Bitrate)
@@ -648,12 +653,12 @@ fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
             "-ac", "2",                  // Stéréo comme Audacity
             "-f", "mp3",                 // Format MP3
             "-y",                        // Overwrite output file
-            &temp_path,
+            temp_path.to_string_lossy().as_ref(),
         ]);
     } else {
         // Pour les fichiers vidéo
         cmd.args(&[
-            "-i", &file_path,
+            "-i", &file_path_str,
             "-b:v", "1200k",         // Bitrate vidéo
             "-minrate", "1200k",     // Bitrate minimum
             "-maxrate", "1200k",     // Bitrate maximum
@@ -666,7 +671,7 @@ fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
             "-ar", "44100",          // Sample rate
             "-s", "320x240",         // Résolution vidéo
             "-y",                    // Overwrite output file
-            &temp_path,
+            temp_path.to_string_lossy().as_ref(),
         ]);
     }
     configure_command_no_window(&mut cmd);
@@ -715,8 +720,10 @@ async fn segment_quran_audio(
 
     // Basic input validation before we do any heavy work.
     let _include_word_by_word = include_word_by_word.unwrap_or(false);
-    if !Path::new(&audio_path).exists() {
-        return Err(format!("Audio file not found: {}", audio_path));
+    let audio_path = path_utils::normalize_existing_path(&audio_path);
+    let audio_path_str = audio_path.to_string_lossy().to_string();
+    if !audio_path.exists() {
+        return Err(format!("Audio file not found: {}", audio_path_str));
     }
 
     // Resolve ffmpeg so we can resample to 16kHz mono as required by the API.
@@ -739,7 +746,7 @@ async fn segment_quran_audio(
         "-loglevel",
         "error",
         "-i",
-        &audio_path,
+        &audio_path_str,
         "-ac",
         "1",
         "-ar",
@@ -1310,8 +1317,10 @@ async fn segment_quran_audio_local(
     use tauri::Emitter;
 
     // Validate input file exists
-    if !Path::new(&audio_path).exists() {
-        return Err(format!("Audio file not found: {}", audio_path));
+    let audio_path = path_utils::normalize_existing_path(&audio_path);
+    let audio_path_str = audio_path.to_string_lossy().to_string();
+    if !audio_path.exists() {
+        return Err(format!("Audio file not found: {}", audio_path_str));
     }
 
     // Resolve ffmpeg for audio preprocessing
@@ -1334,7 +1343,7 @@ async fn segment_quran_audio_local(
         "-loglevel",
         "error",
         "-i",
-        &audio_path,
+        &audio_path_str,
         "-ac",
         "1",           // mono
         "-ar",

@@ -122,80 +122,66 @@
 		>
 			<span class="material-icons pt-2">settings</span>
 		</button>
+
+		<!-- Si un projet est actif, alors on affiche les outils -->
 		{#if globalState.currentProject}
-			<div
+			<button
 				id="tools-popover-button"
-				class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative {showToolsPopover
-					? 'bg-gray-700'
-					: ''}"
+				class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
+				type="button"
 				onclick={(event) => {
 					event.stopPropagation();
 					showToolsPopover = !showToolsPopover;
 				}}
-				role="button"
-				tabindex="0"
-				onkeydown={(e) => e.key === 'Enter' && (showToolsPopover = !showToolsPopover)}
 				aria-haspopup="dialog"
 				aria-expanded={showToolsPopover}
 			>
-				<span class="material-icons pt-2 flex justify-center">construction</span>
-
+				<span class="material-icons pt-2">construction</span>
 				{#if showToolsPopover}
 					<div
 						id="tools-popover"
 						class="absolute right-0 mt-2 w-56 bg-primary border border-color rounded-lg shadow-xl py-2 z-50 overflow-hidden"
 					>
+						<!-- svelte-ignore node_invalid_placement_ssr -->
 						<button
-							class="w-full text-left px-4 py-2 text-sm text-secondary hover:bg-accent hover:text-primary transition-colors flex items-center gap-3"
-							onclick={() => {
+							class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+							onclick={(event) => {
+								event.stopPropagation();
 								showToolsPopover = false;
 								ModalManager.shiftSubtitlesModal();
 							}}
 						>
-							<span class="material-icons text-lg text-indigo-400">move_down</span>
+							<span class="material-icons text-lg text-accent">move_down</span>
 							Shift All Subtitles
 						</button>
+						<!-- svelte-ignore node_invalid_placement_ssr -->
 						<button
-							class="w-full text-left px-4 py-2 text-sm text-secondary hover:bg-accent hover:text-primary transition-colors flex items-center gap-3"
-							onclick={() => {
+							class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+							onclick={(event) => {
+								event.stopPropagation();
 								showToolsPopover = false;
 								ModalManager.audioCutterModal();
 							}}
 						>
-							<span class="material-icons text-lg text-indigo-400">content_cut</span>
+							<span class="material-icons text-lg text-accent">content_cut</span>
 							Audio Cutter
-						</button>
-						<button
-							class="w-full text-left px-4 py-2 text-sm text-secondary hover:bg-accent hover:text-primary transition-colors flex items-center gap-3"
-							onclick={() => {
-								showToolsPopover = false;
-								ModalManager.audioMergeModal();
-							}}
-						>
-							<span class="material-icons text-lg text-indigo-400">merge</span>
-							Audio Merge
 						</button>
 					</div>
 				{/if}
-			</div>
+			</button>
 		{/if}
-		<div
+		<button
 			id="help-popover-button"
-			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative {showHelpPopover
-				? 'bg-gray-700'
-				: ''}"
+			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
+			type="button"
 			onclick={(event) => {
 				event.stopPropagation();
 				showHelpPopover = !showHelpPopover;
 			}}
-			role="button"
-			tabindex="0"
-			onkeydown={(e) => e.key === 'Enter' && (showHelpPopover = !showHelpPopover)}
 			aria-haspopup="dialog"
 			aria-expanded={showHelpPopover}
 		>
-			<span class="material-icons pt-2 flex justify-center">help_outline</span>
-
+			<span class="material-icons pt-2">help_outline</span>
 			{#if showHelpPopover}
 				<div
 					id="help-popover"
@@ -207,7 +193,10 @@
 						<button
 							class="material-icons text-secondary hover:text-primary"
 							type="button"
-							onclick={() => (showHelpPopover = false)}
+							onclick={(event) => {
+								event.stopPropagation();
+								showHelpPopover = false;
+							}}
 						>
 							close
 						</button>
@@ -237,7 +226,7 @@
 					</button>
 				</div>
 			{/if}
-		</div>
+		</button>
 		<button
 			id="export-button"
 			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"

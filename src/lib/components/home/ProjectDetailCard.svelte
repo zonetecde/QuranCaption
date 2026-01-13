@@ -10,6 +10,7 @@
 	import { slide } from 'svelte/transition';
 	import MigrationService from '$lib/services/MigrationService';
 	import { discordService } from '$lib/services/DiscordService';
+	import { onDestroy } from 'svelte';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -32,10 +33,8 @@
 		}
 	}
 
-	$effect(() => {
-		return () => {
-			currentMenu.set(null);
-		};
+	onDestroy(() => {
+		currentMenu.set(null);
 	});
 
 	async function openProjectButtonClick() {

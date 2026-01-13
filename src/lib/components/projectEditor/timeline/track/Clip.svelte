@@ -2,7 +2,7 @@
 	import { AssetType, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import WaveSurfer from 'wavesurfer.js';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
@@ -16,10 +16,8 @@
 		track: Track;
 	} = $props();
 
-	$effect(() => {
-		return () => {
-			currentMenu.set(null);
-		};
+	onDestroy(() => {
+		currentMenu.set(null);
 	});
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state

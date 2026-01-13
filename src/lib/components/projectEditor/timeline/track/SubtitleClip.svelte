@@ -13,6 +13,7 @@
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
+	import { onDestroy } from 'svelte';
 
 	let {
 		clip = $bindable(),
@@ -156,10 +157,8 @@
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
 
-	$effect(() => {
-		return () => {
-			currentMenu.set(null);
-		};
+	onDestroy(() => {
+		currentMenu.set(null);
 	});
 </script>
 

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { ProjectEditorTabs } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { currentMenu } from 'svelte-contextmenu/stores';
 
 	let tabs = $state([
 		{ name: 'Video editor', icon: 'edit', value: ProjectEditorTabs.VideoEditor },
@@ -12,7 +11,6 @@
 	]);
 
 	function setActiveTab(tabValue: ProjectEditorTabs) {
-		globalState.closeAllMenus();
 		globalState.getStylesState.clearSelection();
 		globalState.currentProject!.projectEditorState.currentTab = tabValue;
 	}

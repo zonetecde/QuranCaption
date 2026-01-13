@@ -5,6 +5,7 @@
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { CustomClip, CustomImageClip } from '$lib/classes/Clip.svelte';
+	import { onDestroy } from 'svelte';
 
 	let {
 		clip = $bindable(),
@@ -14,10 +15,8 @@
 		track: Track;
 	} = $props();
 
-	$effect(() => {
-		return () => {
-			currentMenu.set(null);
-		};
+	onDestroy(() => {
+		currentMenu.set(null);
 	});
 
 	let positionLeft = $derived(() => {

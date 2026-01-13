@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import VideoPreview from './videoPreview/VideoPreview.svelte';
 	import Timeline from './timeline/Timeline.svelte';
@@ -36,10 +36,6 @@
 			clearInterval(saveInterval);
 			window.removeEventListener('mousedown', handleGlobalClick, true);
 		};
-	});
-
-	onDestroy(() => {
-		// Le cleanup est géré par onMount return
 	});
 </script>
 

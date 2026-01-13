@@ -5,6 +5,8 @@ import Error from './Error.svelte';
 import Settings from '../settings/Settings.svelte';
 import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
+import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
+import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 
 export default class ModalManager {
@@ -73,7 +75,7 @@ export default class ModalManager {
 						unmount(confirm);
 						document.body.removeChild(container);
 						resolve();
-					}
+					},
 				}
 			});
 		});
@@ -97,7 +99,7 @@ export default class ModalManager {
 						unmount(confirm);
 						document.body.removeChild(container);
 						resolve();
-					}
+					},
 				}
 			});
 		});
@@ -159,7 +161,50 @@ export default class ModalManager {
 						unmount(confirm);
 						document.body.removeChild(container);
 						resolve();
+					},
+				}
+			});
+		});
+	}
+
+	static async shiftSubtitlesModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			// Create a container for the modal
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			// Mount the Svelte component
+			const modal = mount(ShiftSubtitlesModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						document.body.removeChild(container);
+						resolve();
 					}
+				}
+			});
+		});
+	}
+
+	static async audioCutterModal(initialAssetId?: number): Promise<void> {
+		return new Promise<void>((resolve) => {
+			// Create a container for the modal
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			// Mount the Svelte component
+			const modal = mount(AudioCutterModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						document.body.removeChild(container);
+						resolve();
+					},
+					initialAssetId
 				}
 			});
 		});

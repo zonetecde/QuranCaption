@@ -8,7 +8,8 @@
 	import ModalManager from './modals/ModalManager';
 	import { discordService } from '$lib/services/DiscordService';
 
-	let showHelpPopover = false;
+	let showHelpPopover = $state(false);
+	let showToolsPopover = $state(false);
 
 	async function minimizeButtonClick() {
 		getCurrentWindow().minimize();
@@ -60,6 +61,20 @@
 				showHelpPopover = false;
 			}
 		}
+
+		if (showToolsPopover) {
+			const toolsButton = document.getElementById('tools-popover-button');
+			const toolsPopover = document.getElementById('tools-popover');
+
+			if (
+				toolsButton &&
+				toolsPopover &&
+				!toolsButton.contains(event.target as Node) &&
+				!toolsPopover.contains(event.target as Node)
+			) {
+				showToolsPopover = false;
+			}
+		}
 	}
 </script>
 
@@ -107,6 +122,54 @@
 		>
 			<span class="material-icons pt-2">settings</span>
 		</button>
+
+		<!-- Si un projet est actif, alors on affiche les outils -->
+		{#if globalState.currentProject}
+			<button
+				id="tools-popover-button"
+				class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
+				type="button"
+				onclick={(event) => {
+					event.stopPropagation();
+					showToolsPopover = !showToolsPopover;
+				}}
+				aria-haspopup="dialog"
+				aria-expanded={showToolsPopover}
+			>
+				<span class="material-icons pt-2">construction</span>
+				{#if showToolsPopover}
+					<div
+						id="tools-popover"
+						class="absolute right-0 mt-2 w-56 bg-primary border border-color rounded-lg shadow-xl py-2 z-50 overflow-hidden"
+					>
+						<!-- svelte-ignore node_invalid_placement_ssr -->
+						<button
+							class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+							onclick={(event) => {
+								event.stopPropagation();
+								showToolsPopover = false;
+								ModalManager.shiftSubtitlesModal();
+							}}
+						>
+							<span class="material-icons text-lg text-accent">move_down</span>
+							Shift All Subtitles
+						</button>
+						<!-- svelte-ignore node_invalid_placement_ssr -->
+						<button
+							class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+							onclick={(event) => {
+								event.stopPropagation();
+								showToolsPopover = false;
+								ModalManager.audioCutterModal();
+							}}
+						>
+							<span class="material-icons text-lg text-accent">content_cut</span>
+							Asset Trimmer
+						</button>
+					</div>
+				{/if}
+			</button>
+		{/if}
 		<button
 			id="help-popover-button"
 			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
@@ -119,7 +182,6 @@
 			aria-expanded={showHelpPopover}
 		>
 			<span class="material-icons pt-2">help_outline</span>
-
 			{#if showHelpPopover}
 				<div
 					id="help-popover"
@@ -131,7 +193,10 @@
 						<button
 							class="material-icons text-secondary hover:text-primary"
 							type="button"
-							onclick={() => (showHelpPopover = false)}
+							onclick={(event) => {
+								event.stopPropagation();
+								showHelpPopover = false;
+							}}
 						>
 							close
 						</button>

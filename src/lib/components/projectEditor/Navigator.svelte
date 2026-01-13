@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { ProjectEditorTabs } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import ModalManager from '../modals/ModalManager';
 
 	let tabs = $state([
 		{ name: 'Video editor', icon: 'edit', value: ProjectEditorTabs.VideoEditor },

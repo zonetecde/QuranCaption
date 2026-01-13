@@ -2,13 +2,10 @@
 	import { AssetType, SourceType, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-	import { exists, readDir } from '@tauri-apps/plugin-fs';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import ModalManager from '$lib/components/modals/ModalManager';
-	import { openUrl } from '@tauri-apps/plugin-opener';
-	import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-	import { BaseDirectory, downloadDir, join } from '@tauri-apps/api/path';
+	import { join } from '@tauri-apps/api/path';
 	import toast from 'svelte-5-french-toast';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -27,60 +24,12 @@
 		asset.checkExistence();
 	});
 
-	async function editAsset() {
-		const response = await ModalManager.confirmModal(
-			'This will open a website that allows you to crop and trim your asset. Once you are done, you can download the edited file and close the window once the download is complete. The new file will be automatically detected by the application.'
-		);
-		if (response) {
-			let startTime = new Date().getTime();
-
-			// tauri open windows on url: https://online-video-cutter.com/
-			const webview = new WebviewWindow('editor', {
-				url:
-					asset.type === AssetType.Video
-						? 'https://online-video-cutter.com/'
-						: asset.type === AssetType.Audio
-							? 'https://mp3cut.net/'
-							: 'https://www.iloveimg.com/crop-image',
-				width: 1200,
-				height: 800,
-				title: 'Asset Editor',
-				dragDropEnabled: true
-			});
-
-			webview.once('tauri://close-requested', async function (e) {
-				// check for new file in the download directory
-				try {
-					const newFilePath: string = await invoke('get_new_file_path', {
-						startTime: startTime,
-						assetName: asset.getFileNameWithoutExtension()
-					});
-
-					console.log('New file path:', newFilePath);
-					if (newFilePath) {
-						// move le fichier newFilePath dans le dossier parent du fichier de l'asset
-						const parentDir = asset.getParentDirectory();
-						// ajoute au nom du fichier (edited) pour éviter les conflits
-						const newFileName =
-							asset.getFileNameWithoutExtension() + ' (edited).' + asset.getFileExtension();
-						const newFilePathWithName = parentDir + '/' + newFileName;
-						// déplace le fichier
-						await invoke('move_file', {
-							source: newFilePath,
-							destination: newFilePathWithName
-						});
-						// met à jour le chemin du fichier de l'asset
-						asset.updateFilePath(newFilePathWithName);
-					}
-				} catch (error) {
-					// Aucun fichier trouvé - probablement l'utilisateur a fermé la fenêtre sans télécharger de fichier
-					console.log('No new file detected or error occurred:', error);
-					console.log(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-				}
-
-				webview.close();
-			});
+	function trimAsset() {
+		if (asset.type === AssetType.Image) {
+			toast.error('Trim is only available for audio and video assets.');
+			return;
 		}
+		ModalManager.audioCutterModal(asset.id);
 	}
 
 	async function relocateAsset() {
@@ -275,14 +224,16 @@
 						Convert to CBR
 					</button>
 
-					<button
-						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
-						       hover:scale-105 transition-all duration-200"
-						onclick={editAsset}
-					>
-						<span class="material-icons text-lg">crop</span>
-						Edit
-					</button>
+					{#if asset.type !== AssetType.Image}
+						<button
+							class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
+							       hover:scale-105 transition-all duration-200"
+							onclick={trimAsset}
+						>
+							<span class="material-icons text-lg">content_cut</span>
+							Trim
+						</button>
+					{/if}
 				{:else}
 					<button
 						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
@@ -316,28 +267,18 @@
 					       hover:scale-105 transition-all duration-200 text-red-400 hover:text-red-300
 					       hover:bg-red-500/10"
 					onclick={async () => {
-						if (asset.sourceType === SourceType.Mp3Quran) {
-							const result = await ModalManager.deleteConfirmationModal(
-								'Are you sure you want to remove this asset from the project?'
-							);
-							if (result.confirmed) {
-								if (result.deleteFile) {
-									try {
-										await invoke('delete_file', { path: asset.filePath });
-									} catch (error) {
-										const errorMessage = error instanceof Error ? error.message : String(error);
-										toast.error('Failed to delete file from disk: ' + errorMessage);
-									}
-								}
-								globalState.currentProject?.content.removeAsset(asset);
-							}
-							return;
-						}
-
-						const confirmed = await ModalManager.confirmModal(
+						const result = await ModalManager.deleteConfirmationModal(
 							'Are you sure you want to remove this asset from the project?'
 						);
-						if (confirmed) {
+						if (result.confirmed) {
+							if (result.deleteFile) {
+								try {
+									await invoke('delete_file', { path: asset.filePath });
+								} catch (error) {
+									const errorMessage = error instanceof Error ? error.message : String(error);
+									toast.error('Failed to delete file from disk: ' + errorMessage);
+								}
+							}
 							globalState.currentProject?.content.removeAsset(asset);
 						}
 					}}
@@ -404,3 +345,6 @@
 		</div>
 	{/if}
 </div>
+
+
+

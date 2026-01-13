@@ -3,10 +3,12 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
+
 	import { fade } from 'svelte/transition';
 
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
+
 
 	// Compte le nombre de segments à revue
 	let segmentsNeedingReview = $derived(
@@ -268,17 +270,24 @@
 			</div>
 		</div>
 
-		<div class="space-y-3">
+		<div class="space-y-4">
 			<h3 class="text-sm font-medium text-secondary mb-3">AI-Assisted Segmentation</h3>
-			<button
-				class="btn-accent w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2"
-				type="button"
-				title="Auto segment audio into Quran verses"
-				onclick={() => (autoSegmentationModalVisible = true)}
-			>
-				<span class="material-icons text-base">auto_awesome</span>
-				Auto-Segment
-			</button>
+			<div class="bg-accent rounded-lg p-4">
+				<button
+					class="btn-accent w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2"
+					type="button"
+					title="Auto segment audio into Quran verses"
+					onclick={() => (autoSegmentationModalVisible = true)}
+				>
+					<span class="material-icons text-base">auto_awesome</span>
+					Auto-Segment
+				</button>
+			</div>
+		</div>
+
+
+
+		<div class="space-y-3">
 
 			{#if initialLowConfidenceCount > 0 && segmentsNeedingReview > 0}
 				<div class="bg-accent rounded-lg p-3 space-y-2">
@@ -322,6 +331,8 @@
 		<AutoSegmentationModal close={() => (autoSegmentationModalVisible = false)} />
 	</div>
 {/if}
+
+
 
 <style>
 	.animate-pulse {

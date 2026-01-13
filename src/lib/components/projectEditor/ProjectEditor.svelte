@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import VideoPreview from './videoPreview/VideoPreview.svelte';
 	import Timeline from './timeline/Timeline.svelte';
@@ -21,10 +21,21 @@
 		saveInterval = setInterval(() => {
 			globalState.currentProject?.save();
 		}, 5000);
-	});
 
-	onDestroy(() => {
-		clearInterval(saveInterval);
+		// Fermer les menus contextuels lors d'un clic en dehors
+		const handleGlobalClick = (e: MouseEvent) => {
+			const portal = document.getElementById('context-menu-portal');
+			if (portal && portal.contains(e.target as Node)) {
+				return;
+			}
+			globalState.closeAllMenus();
+		};
+		window.addEventListener('mousedown', handleGlobalClick, true);
+
+		return () => {
+			clearInterval(saveInterval);
+			window.removeEventListener('mousedown', handleGlobalClick, true);
+		};
 	});
 </script>
 

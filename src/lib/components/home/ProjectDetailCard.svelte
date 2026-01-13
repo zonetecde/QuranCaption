@@ -2,6 +2,7 @@
 	import { ProjectDetail } from '$lib/classes';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { globalState } from '$lib/runes/main.svelte';
 	import EditableText from '../misc/EditableText.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -9,6 +10,7 @@
 	import { slide } from 'svelte/transition';
 	import MigrationService from '$lib/services/MigrationService';
 	import { discordService } from '$lib/services/DiscordService';
+	import { onDestroy } from 'svelte';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -27,9 +29,13 @@
 		) {
 			await ProjectService.delete(projectDetail.id); // Supprime le projet
 		} else {
-			contextMenu!.close();
+			currentMenu.set(null);
 		}
 	}
+
+	onDestroy(() => {
+		currentMenu.set(null);
+	});
 
 	async function openProjectButtonClick() {
 		// Ouvre le projet

@@ -11,7 +11,9 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
+	import { onDestroy } from 'svelte';
 
 	let {
 		clip = $bindable(),
@@ -154,6 +156,10 @@
 		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
+
+	onDestroy(() => {
+		currentMenu.set(null);
+	});
 </script>
 
 <div

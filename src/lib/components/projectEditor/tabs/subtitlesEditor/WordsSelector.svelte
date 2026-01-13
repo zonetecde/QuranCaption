@@ -141,7 +141,7 @@
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
-			onKeyDown: editLastSubtitle
+			onKeyDown: editCurrentOrLastSubtitle
 		});
 
 		ShortcutService.registerShortcut({
@@ -215,11 +215,21 @@
 		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: 'Exit subtitle editing' });
 	});
 
-	function editLastSubtitle(): void {
-		if (globalState.getSubtitleTrack.clips.length <= 0) return;
-		const clip = globalState.getSubtitleTrack.getLastClip() as
-			| SubtitleClip
-			| PredefinedSubtitleClip;
+	function editCurrentOrLastSubtitle(): void {
+		const subtitleTrack = globalState.getSubtitleTrack;
+		if (subtitleTrack.clips.length <= 0) return;
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
+
+		let clip: SubtitleClip | PredefinedSubtitleClip | null = null;
+		if (clipUnderCursor) {
+			clip = clipUnderCursor as SubtitleClip | PredefinedSubtitleClip;
+		} else {
+			clip = subtitleTrack.getLastClip() as SubtitleClip | PredefinedSubtitleClip | null;
+		}
+
+		if (!clip) return;
 
 		// Modifie le sous-titre
 		if (globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id) {

@@ -129,8 +129,8 @@ export default class Settings extends SerializableBase {
 			},
 			EDIT_LAST_SUBTITLE: {
 				keys: ['e'],
-				name: 'Edit Last Subtitle',
-				description: 'Modify the most recent subtitle'
+				name: 'Edit Subtitle at Cursor',
+				description: 'Edit the subtitle under the cursor, or the last one if none'
 			},
 			ADD_SILENCE: {
 				keys: ['s'],

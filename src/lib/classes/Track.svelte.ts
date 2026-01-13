@@ -572,7 +572,9 @@ export class SubtitleTrack extends Track {
 		return this.clips[i] as SubtitleClip | null;
 	}
 
-	getCurrentSubtitleToDisplay(): SubtitleClip | PredefinedSubtitleClip | null {
+	getCurrentSubtitleToDisplay(
+		anyType: boolean = false
+	): SubtitleClip | PredefinedSubtitleClip | null | Clip {
 		const cursorPos = globalState.getTimelineState.cursorPosition;
 		for (let i = 0; i < this.clips.length; i++) {
 			const clip = this.clips[i];
@@ -580,7 +582,7 @@ export class SubtitleTrack extends Track {
 			if (
 				cursorPos >= clip.startTime &&
 				cursorPos <= clip.endTime &&
-				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)
+				(anyType || clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)
 			) {
 				return clip;
 			}

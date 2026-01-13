@@ -2,6 +2,24 @@
 	import { Clip, Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { ClipWithTranslation, SilenceClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { untrack } from 'svelte';
+
+	// div contenant tout les sous-titres
+	let subtitlesListElement: HTMLDivElement | null = $state(null);
+	let lastSubtitleId = 0;
+
+	// timeline settings
+	let getTimelineSettings = $derived(() => {
+		return globalState.currentProject!.projectEditorState.timeline;
+	});
+
+	// récupère le sous-titre actuellement en train d'être joué
+	let currentSubtitle = $derived(() => {
+		const _ = getTimelineSettings().cursorPosition;
+		return untrack(() => {
+			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay(true);
+		});
+	});
 
 	$effect(() => {
 		const _ = globalState.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips
@@ -13,6 +31,35 @@
 			list.scrollTop = list.scrollHeight;
 		}
 	});
+
+	$effect(() => {
+		// scroll sur le sous-titre actuellement en train d'être joué
+		const subtitle = currentSubtitle();
+		if (!subtitle || !globalState.getVideoPreviewState.isPlaying) {
+			return;
+		}
+		if (subtitle.id === lastSubtitleId) {
+			return;
+		}
+		lastSubtitleId = subtitle.id;
+
+		const listElement = subtitlesListElement;
+		if (!listElement) return;
+
+		const target = listElement.querySelector(
+			`[data-subtitle-id="${subtitle.id}"]`
+		) as HTMLElement | null;
+		if (!target) return;
+
+		// si le scroll est petit, alors smooth, sinon instant
+		const targetTop = target.offsetTop;
+		const listScrollTop = listElement.scrollTop;
+		const listHeight = listElement.clientHeight;
+		const targetCenter = targetTop - listScrollTop - listHeight / 2;
+		const scrollDistance = Math.abs(targetCenter);
+		const behavior = scrollDistance < 500 ? 'smooth' : 'instant';
+		target.scrollIntoView({ block: 'center', behavior });
+	});
 </script>
 
 <div class="subtitles-panel z-20">
@@ -23,11 +70,12 @@
 		</div>
 	</div>
 
-	<div class="subtitles-list">
+	<div class="subtitles-list" bind:this={subtitlesListElement}>
 		{#each globalState.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips as _clip, index (_clip.id)}
 			{@const clip = _clip as Clip}
 			{@const subtitleClip = clip as SubtitleClip}
 			<div
+				data-subtitle-id={clip.id}
 				onclick={() => {
 					const s = globalState.currentProject!.projectEditorState.subtitlesEditor;
 					if (s.editSubtitle && s.editSubtitle.id === clip.id) {
@@ -47,6 +95,7 @@
 				class:predefined={subtitleClip.type === 'Pre-defined Subtitle'}
 				class:selected={globalState.currentProject!.projectEditorState.subtitlesEditor.editSubtitle
 					?.id === clip.id}
+				class:current={currentSubtitle()?.id === clip.id}
 			>
 				<div class="card-header">
 					<div class="timing-info">
@@ -165,6 +214,11 @@
 	.subtitle-card.selected:hover {
 		border-color: orange !important;
 		border-width: 1.5px;
+	}
+
+	.subtitle-card.current {
+		border-color: #866322 !important;
+		box-shadow: 0 6px 16px rgba(242, 201, 76, 0.25);
 	}
 
 	.subtitle-card.silence {

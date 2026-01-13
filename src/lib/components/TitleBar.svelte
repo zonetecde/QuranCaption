@@ -164,7 +164,7 @@
 							}}
 						>
 							<span class="material-icons text-lg text-accent">content_cut</span>
-							Audio Cutter
+							Asset Trimmer
 						</button>
 					</div>
 				{/if}

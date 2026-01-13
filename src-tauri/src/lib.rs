@@ -760,6 +760,51 @@ fn cut_audio(source_path: String, start_ms: u64, end_ms: u64, output_path: Strin
 }
 
 #[tauri::command]
+fn cut_video(source_path: String, start_ms: u64, end_ms: u64, output_path: String) -> Result<(), String> {
+    // VÇ¸rifier que le fichier source existe
+    if !std::path::Path::new(&source_path).exists() {
+        return Err(format!("Source file not found: {}", source_path));
+    }
+
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    // Convertir les millisecondes en secondes pour ffmpeg (format HH:MM:SS.ms)
+    let start_secs = start_ms as f64 / 1000.0;
+    let duration_secs = (end_ms as f64 - start_ms as f64) / 1000.0;
+
+    if duration_secs <= 0.0 {
+        return Err("Duration must be positive".to_string());
+    }
+
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(&[
+        "-ss", &start_secs.to_string(),
+        "-t", &duration_secs.to_string(),
+        "-i", &source_path,
+        "-map", "0",
+        "-c", "copy", // On copie le flux pour garder le format original sans rÇ¸-encoder
+        "-y",        // Overwrite output file
+        &output_path,
+    ]);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd.output();
+
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                Ok(())
+            } else {
+                let stderr = String::from_utf8_lossy(&result.stderr);
+                Err(format!("ffmpeg error: {}", stderr))
+            }
+        }
+        Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
+    }
+}
+
+#[tauri::command]
 fn concat_audio(source_paths: Vec<String>, output_path: String) -> Result<(), String> {
     if source_paths.is_empty() {
         return Err("No source files provided".to_string());
@@ -1874,6 +1919,7 @@ pub fn run() {
             exporter::concat_videos,
             convert_audio_to_cbr,
             cut_audio,
+            cut_video,
             concat_audio,
             segment_quran_audio,
             segment_quran_audio_local,

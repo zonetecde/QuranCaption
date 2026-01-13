@@ -75,7 +75,7 @@ export default class ModalManager {
 						unmount(confirm);
 						document.body.removeChild(container);
 						resolve();
-					}
+					},
 				}
 			});
 		});
@@ -99,7 +99,7 @@ export default class ModalManager {
 						unmount(confirm);
 						document.body.removeChild(container);
 						resolve();
-					}
+					},
 				}
 			});
 		});
@@ -161,7 +161,7 @@ export default class ModalManager {
 						unmount(confirm);
 						document.body.removeChild(container);
 						resolve();
-					}
+					},
 				}
 			});
 		});
@@ -169,17 +169,16 @@ export default class ModalManager {
 
 	static async shiftSubtitlesModal(): Promise<void> {
 		return new Promise<void>((resolve) => {
-			// Créer un conteneur pour le modal
+			// Create a container for the modal
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
 			document.body.appendChild(container);
 
-			// Monter le composant Svelte 5
+			// Mount the Svelte component
 			const modal = mount(ShiftSubtitlesModal, {
 				target: container,
 				props: {
 					close: () => {
-						// Nettoyer et résoudre
 						unmount(modal);
 						document.body.removeChild(container);
 						resolve();
@@ -189,23 +188,23 @@ export default class ModalManager {
 		});
 	}
 
-	static async audioCutterModal(): Promise<void> {
+	static async audioCutterModal(initialAssetId?: number): Promise<void> {
 		return new Promise<void>((resolve) => {
-			// Créer un conteneur pour le modal
+			// Create a container for the modal
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
 			document.body.appendChild(container);
 
-			// Monter le composant Svelte 5
+			// Mount the Svelte component
 			const modal = mount(AudioCutterModal, {
 				target: container,
 				props: {
 					close: () => {
-						// Nettoyer et résoudre
 						unmount(modal);
 						document.body.removeChild(container);
 						resolve();
-					}
+					},
+					initialAssetId
 				}
 			});
 		});

@@ -3,7 +3,9 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { fade, slide } from 'svelte/transition';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { CustomClip, CustomImageClip } from '$lib/classes/Clip.svelte';
+	import { onDestroy } from 'svelte';
 
 	let {
 		clip = $bindable(),
@@ -12,6 +14,10 @@
 		clip: CustomClip;
 		track: Track;
 	} = $props();
+
+	onDestroy(() => {
+		currentMenu.set(null);
+	});
 
 	let positionLeft = $derived(() => {
 		// Si le custom text est visible sur toute la vidéo, on force le début à 0.

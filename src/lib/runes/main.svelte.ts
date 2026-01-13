@@ -7,6 +7,7 @@ import {
 	type PredefinedSubtitleClip,
 	ProjectTranslation
 } from '$lib/classes';
+import { currentMenu } from 'svelte-contextmenu/stores';
 import type Exportation from '$lib/classes/Exportation.svelte';
 import type Settings from '$lib/classes/Settings.svelte';
 import { Status } from '$lib/classes/Status';
@@ -136,6 +137,10 @@ class GlobalState {
 			if (edition) return edition;
 		}
 		return null;
+	}
+
+	closeAllMenus() {
+		currentMenu.set(null);
 	}
 }
 

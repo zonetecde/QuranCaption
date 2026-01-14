@@ -49,6 +49,10 @@
 		return clip.comeFromIA && clip.confidence !== null && clip.confidence <= 0.75;
 	});
 
+	const isCoverageGap = $derived(() => {
+		return clip.needsCoverageReview === true;
+	});
+
 	let dragStartX: number | null = null;
 
 	function startLeftDragging(e: MouseEvent) {
@@ -165,7 +169,8 @@
 <div
 	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
 		(isSelected() ? ' bg-[#6265af]/50! border-[#6265af]/40! ' : '') +
-		(isLowConfidence() && !isSelected() ? ' ai-low-confidence ' : '') +
+		(isCoverageGap() && !isSelected() ? ' ai-coverage-gap ' : '') +
+		(!isCoverageGap() && isLowConfidence() && !isSelected() ? ' ai-low-confidence ' : '') +
 		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ||
 		globalState.currentProject!.projectEditorState.currentTab === 'Video editor'
 			? 'cursor-pointer'
@@ -294,5 +299,10 @@
 	.ai-low-confidence {
 		background-color: rgba(230, 195, 60, 0.35) !important;
 		border-color: rgba(230, 195, 60, 0.6) !important;
+	}
+
+	.ai-coverage-gap {
+		background-color: rgba(219, 128, 92, 0.35) !important;
+		border-color: rgba(219, 92, 92, 0.7) !important;
 	}
 </style>

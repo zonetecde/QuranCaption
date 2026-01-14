@@ -74,7 +74,7 @@ const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
         "error": null,
         "matched_text": "قُلْ هُوَ ٱللَّهُ أَحَدٌ",
         "ref_from": "112:1:1",
-        "ref_to": "112:1:4",
+        "ref_to": "112:1:2",
         "segment": 3,
         "time_from": 15.15,
         "time_to": 18.05
@@ -83,8 +83,8 @@ const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
         "confidence": 1,
         "error": null,
         "matched_text": "ٱللَّهُ ٱلصَّمَدُ",
-        "ref_from": "112:2:1",
-        "ref_to": "112:2:2",
+        "ref_from": "112:1:4",
+        "ref_to": "112:1:4",
         "segment": 4,
         "time_from": 19.47,
         "time_to": 21.965
@@ -93,8 +93,8 @@ const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
         "confidence": 1,
         "error": null,
         "matched_text": "لَمْ يَلِدْ وَلَمْ يُولَدْ",
-        "ref_from": "112:3:1",
-        "ref_to": "112:3:4",
+        "ref_from": "112:2:1",
+        "ref_to": "112:2:2",
         "segment": 5,
         "time_from": 23.185,
         "time_to": 26.665

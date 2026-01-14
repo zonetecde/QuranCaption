@@ -104,6 +104,7 @@ export type AutoSegmentationResult =
 			status: 'completed';
 			segmentsApplied: number;
 			lowConfidenceSegments: number;
+			coverageGapSegments: number;
 			verseRange: VerseRange;
 	  }
 	| {
@@ -206,6 +207,238 @@ function parseVerseRef(ref?: string): VerseRef | null {
 	};
 }
 
+function compareVerseRefs(a: VerseRef, b: VerseRef): number {
+	if (a.surah !== b.surah) return a.surah - b.surah;
+	if (a.verse !== b.verse) return a.verse - b.verse;
+	return a.word - b.word;
+}
+
+type CoverageGapDependencies = {
+	getVerseWordCount: (surah: number, verse: number) => Promise<number | null>;
+	getVerseCount: (surah: number) => number;
+	getSurahCount: () => number;
+};
+
+export async function detectCoverageGapIndices(
+	orderedSegments: Array<Pick<SegmentationSegment, 'ref_from' | 'ref_to' | 'error'>>,
+	deps: CoverageGapDependencies
+): Promise<Set<number>> {
+	const { getVerseWordCount, getVerseCount, getSurahCount } = deps;
+
+	const normalizeRef = async (ref: VerseRef): Promise<VerseRef | null> => {
+		const wordCount = await getVerseWordCount(ref.surah, ref.verse);
+		if (!wordCount || wordCount <= 0) return null;
+
+		let word = ref.word;
+		if (word < 1) word = 1;
+		if (word > wordCount) word = wordCount;
+
+		return { surah: ref.surah, verse: ref.verse, word };
+	};
+
+	const getExpectedNextRef = async (ref: VerseRef): Promise<VerseRef | null> => {
+		const wordCount = await getVerseWordCount(ref.surah, ref.verse);
+		if (!wordCount || wordCount <= 0) return null;
+
+		if (ref.word < wordCount) {
+			return { surah: ref.surah, verse: ref.verse, word: ref.word + 1 };
+		}
+
+		const verseCount = getVerseCount(ref.surah);
+		if (verseCount > 0 && ref.verse < verseCount) {
+			return { surah: ref.surah, verse: ref.verse + 1, word: 1 };
+		}
+
+		const surahCount = getSurahCount();
+		if (ref.surah < surahCount) {
+			return { surah: ref.surah + 1, verse: 1, word: 1 };
+		}
+
+		return null;
+	};
+
+	const coverageMap = new Map<string, Set<number>>();
+	const normalizedSegments: Array<{ startRef: VerseRef; endRef: VerseRef } | null> = Array(
+		orderedSegments.length
+	).fill(null);
+
+	const addCoverageRange = (
+		surah: number,
+		verse: number,
+		startWord: number,
+		endWord: number
+	): void => {
+		if (startWord > endWord) return;
+
+		const key = `${surah}:${verse}`;
+		let covered = coverageMap.get(key);
+		if (!covered) {
+			covered = new Set<number>();
+			coverageMap.set(key, covered);
+		}
+
+		for (let word = startWord; word <= endWord; word += 1) {
+			covered.add(word);
+		}
+	};
+
+	for (let i = 0; i < orderedSegments.length; i += 1) {
+		const segment = orderedSegments[i];
+		if (segment.error) continue;
+		if (getPredefinedType(segment.ref_from)) continue;
+
+		const rawStartRef = parseVerseRef(segment.ref_from);
+		const rawEndRef = parseVerseRef(segment.ref_to);
+		if (!rawStartRef || !rawEndRef) continue;
+		if (rawStartRef.surah !== rawEndRef.surah) continue;
+
+		let startRef = await normalizeRef(rawStartRef);
+		let endRef = await normalizeRef(rawEndRef);
+		if (!startRef || !endRef) continue;
+
+		if (compareVerseRefs(startRef, endRef) > 0) {
+			[startRef, endRef] = [endRef, startRef];
+		}
+
+		normalizedSegments[i] = { startRef, endRef };
+
+		if (startRef.verse === endRef.verse) {
+			addCoverageRange(startRef.surah, startRef.verse, startRef.word, endRef.word);
+			continue;
+		}
+
+		for (let verseNumber = startRef.verse; verseNumber <= endRef.verse; verseNumber += 1) {
+			const wordCount = await getVerseWordCount(startRef.surah, verseNumber);
+			if (!wordCount || wordCount <= 0) continue;
+
+			let rangeStart = 1;
+			let rangeEnd = wordCount;
+			if (verseNumber === startRef.verse) rangeStart = startRef.word;
+			if (verseNumber === endRef.verse) rangeEnd = endRef.word;
+			if (rangeStart > rangeEnd) [rangeStart, rangeEnd] = [rangeEnd, rangeStart];
+
+			addCoverageRange(startRef.surah, verseNumber, rangeStart, rangeEnd);
+		}
+	}
+
+	const getPreviousRef = async (ref: VerseRef): Promise<VerseRef | null> => {
+		const wordCount = await getVerseWordCount(ref.surah, ref.verse);
+		if (!wordCount || wordCount <= 0) return null;
+
+		if (ref.word > 1) {
+			return { surah: ref.surah, verse: ref.verse, word: ref.word - 1 };
+		}
+
+		const prevVerse = ref.verse - 1;
+		if (prevVerse >= 1) {
+			const prevWordCount = await getVerseWordCount(ref.surah, prevVerse);
+			if (!prevWordCount || prevWordCount <= 0) return null;
+			return { surah: ref.surah, verse: prevVerse, word: prevWordCount };
+		}
+
+		const prevSurah = ref.surah - 1;
+		if (prevSurah < 1) return null;
+
+		const prevVerseCount = getVerseCount(prevSurah);
+		if (prevVerseCount <= 0) return null;
+
+		const prevWordCount = await getVerseWordCount(prevSurah, prevVerseCount);
+		if (!prevWordCount || prevWordCount <= 0) return null;
+
+		return { surah: prevSurah, verse: prevVerseCount, word: prevWordCount };
+	};
+
+	const isRangeFullyCovered = async (start: VerseRef, end: VerseRef): Promise<boolean> => {
+		if (compareVerseRefs(start, end) > 0) return true;
+
+		let current: VerseRef = { ...start };
+		while (true) {
+			const wordCount = await getVerseWordCount(current.surah, current.verse);
+			if (!wordCount || wordCount <= 0) return false;
+
+			const isLastVerse = current.surah === end.surah && current.verse === end.verse;
+			const endWord = isLastVerse ? end.word : wordCount;
+			const key = `${current.surah}:${current.verse}`;
+			const covered = coverageMap.get(key);
+			if (!covered) return false;
+
+			for (let word = current.word; word <= endWord; word += 1) {
+				if (!covered.has(word)) return false;
+			}
+
+			if (isLastVerse) {
+				break;
+			}
+
+			const verseCount = getVerseCount(current.surah);
+			if (verseCount <= 0) return false;
+
+			if (current.verse < verseCount) {
+				current = { surah: current.surah, verse: current.verse + 1, word: 1 };
+				continue;
+			}
+
+			const surahCount = getSurahCount();
+			if (current.surah >= surahCount) return false;
+			current = { surah: current.surah + 1, verse: 1, word: 1 };
+		}
+
+		return true;
+	};
+
+	const coverageGapIndices = new Set<number>();
+	let progressRef: VerseRef | null = null;
+	let progressIndex: number | null = null;
+
+	for (let i = 0; i < orderedSegments.length; i += 1) {
+		const segment = orderedSegments[i];
+		if (segment.error) {
+			progressRef = null;
+			progressIndex = null;
+			continue;
+		}
+
+		if (getPredefinedType(segment.ref_from)) {
+			continue;
+		}
+
+		const normalized = normalizedSegments[i];
+		if (!normalized) {
+			progressRef = null;
+			progressIndex = null;
+			continue;
+		}
+
+		const { startRef, endRef } = normalized;
+
+		if (!progressRef) {
+			progressRef = endRef;
+			progressIndex = i;
+			continue;
+		}
+
+		const expectedNextRef = await getExpectedNextRef(progressRef);
+		if (expectedNextRef && compareVerseRefs(startRef, expectedNextRef) > 0) {
+			const gapEndRef = await getPreviousRef(startRef);
+			const gapCovered = gapEndRef ? await isRangeFullyCovered(expectedNextRef, gapEndRef) : false;
+
+			if (!gapCovered) {
+				if (progressIndex !== null) {
+					coverageGapIndices.add(progressIndex);
+				}
+				coverageGapIndices.add(i);
+			}
+		}
+
+		if (compareVerseRefs(endRef, progressRef) > 0) {
+			progressRef = endRef;
+			progressIndex = i;
+		}
+	}
+
+	return coverageGapIndices;
+}
+
 /**
  * Detect if the segment reference is a predefined clip such as basmala or istiadhah.
  *
@@ -300,9 +533,7 @@ function insertSilenceClips(
  *
  * @param {Array<SubtitleClip | PredefinedSubtitleClip>} clips - Timeline clips.
  */
-function extendSubtitlesToFillGaps(
-	clips: Array<SubtitleClip | PredefinedSubtitleClip>
-): void {
+function extendSubtitlesToFillGaps(clips: Array<SubtitleClip | PredefinedSubtitleClip>): void {
 	if (clips.length === 0) return;
 
 	const ordered = [...clips].sort((a, b) => a.startTime - b.startTime);
@@ -367,8 +598,7 @@ export async function runAutoSegmentation(
 
 	try {
 		// Choose command based on mode
-		const command =
-			effectiveMode === 'local' ? 'segment_quran_audio_local' : 'segment_quran_audio';
+		const command = effectiveMode === 'local' ? 'segment_quran_audio_local' : 'segment_quran_audio';
 
 		const payload: unknown = await invoke(command, {
 			audioPath: audioInfo.filePath,
@@ -403,6 +633,8 @@ export async function runAutoSegmentation(
 
 		let segmentsApplied: number = 0;
 		let lowConfidenceSegments: number = 0;
+		let coverageGapSegments: number = 0;
+		let reviewSegments: number = 0;
 
 		const pushSubtitleClip = async (params: {
 			startMs: number;
@@ -415,6 +647,7 @@ export async function runAutoSegmentation(
 			confidence: number | null;
 			isLowConfidence: boolean;
 			needsReview: boolean;
+			needsCoverageReview: boolean;
 		}): Promise<void> => {
 			const {
 				startMs,
@@ -426,7 +659,8 @@ export async function runAutoSegmentation(
 				verse,
 				confidence,
 				isLowConfidence,
-				needsReview
+				needsReview,
+				needsCoverageReview
 			} = params;
 
 			if (!verse) return;
@@ -459,23 +693,51 @@ export async function runAutoSegmentation(
 				confidence
 			);
 
-			if (needsReview) {
+			if (needsReview || needsCoverageReview) {
+				clip.needsReview = true;
+				if (needsCoverageReview) {
+					clip.needsCoverageReview = true;
+				}
 				markClipTranslationsForReview(clip);
 			}
 
 			subtitleTrack.clips.push(clip);
 			segmentsApplied += 1;
 			if (isLowConfidence) lowConfidenceSegments += 1;
+			if (needsCoverageReview) coverageGapSegments += 1;
+			if (clip.needsReview) reviewSegments += 1;
 		};
 
 		const orderedSegments: SegmentationSegment[] = [...segments].sort(
 			(a, b) => (a.time_from ?? 0) - (b.time_from ?? 0)
 		);
 
+		const verseWordCountCache = new Map<string, number>();
+
+		const getVerseWordCount = async (surah: number, verse: number): Promise<number | null> => {
+			const key = `${surah}:${verse}`;
+			const cached = verseWordCountCache.get(key);
+			if (cached !== undefined) return cached;
+
+			const verseData = await Quran.getVerse(surah, verse);
+			if (!verseData) return null;
+
+			const count = verseData.words.length;
+			verseWordCountCache.set(key, count);
+			return count;
+		};
+
+		const coverageGapIndices = await detectCoverageGapIndices(orderedSegments, {
+			getVerseWordCount,
+			getVerseCount: (surah) => Quran.getVerseCount(surah),
+			getSurahCount: () => Quran.getSurahs().length
+		});
+
 		// Collect segment errors to surface them if all segments fail
 		const segmentErrors: string[] = [];
 
-		for (const segment of orderedSegments) {
+		for (let segmentIndex = 0; segmentIndex < orderedSegments.length; segmentIndex += 1) {
+			const segment = orderedSegments[segmentIndex];
 			if (segment.error) {
 				console.warn('Segment has error:', segment);
 				segmentErrors.push(segment.error);
@@ -488,16 +750,24 @@ export async function runAutoSegmentation(
 			const confidence: number | null = segment.confidence ?? null;
 			const isLowConfidence: boolean =
 				segment.confidence !== undefined && segment.confidence <= 0.75;
+			const needsCoverageReview: boolean = coverageGapIndices.has(segmentIndex);
 
 			// Predefined segments (basmala / istiadhah)
 			const predefinedType: PredefinedType | null = getPredefinedType(segment.ref_from);
 			if (predefinedType) {
-				subtitleTrack.clips.push(
-					new PredefinedSubtitleClip(startMs, endMs, predefinedType, undefined, true, confidence)
+				const clip = new PredefinedSubtitleClip(
+					startMs,
+					endMs,
+					predefinedType,
+					undefined,
+					true,
+					confidence
 				);
+				subtitleTrack.clips.push(clip);
 
 				segmentsApplied += 1;
 				if (isLowConfidence) lowConfidenceSegments += 1;
+				if (clip.needsReview) reviewSegments += 1;
 				continue;
 			}
 
@@ -510,8 +780,7 @@ export async function runAutoSegmentation(
 				continue;
 			}
 
-			const isCrossVerse =
-				startRef.surah !== endRef.surah || startRef.verse !== endRef.verse;
+			const isCrossVerse = startRef.surah !== endRef.surah || startRef.verse !== endRef.verse;
 			if (isCrossVerse && startRef.surah === endRef.surah && startRef.verse <= endRef.verse) {
 				console.warn('Cross-verse segment detected, splitting into multiple clips', {
 					segment,
@@ -551,8 +820,7 @@ export async function runAutoSegmentation(
 						continue;
 					}
 
-					const clampIndex = (value: number) =>
-						Math.min(Math.max(value, 0), verseWordCount - 1);
+					const clampIndex = (value: number) => Math.min(Math.max(value, 0), verseWordCount - 1);
 
 					let startIndex = 0;
 					let endIndex = verseWordCount - 1;
@@ -563,16 +831,13 @@ export async function runAutoSegmentation(
 						startIndex = clampIndex(rawStartIndex);
 						if (rawStartIndex < 0 || rawStartIndex >= verseWordCount) {
 							needsReview = true;
-							console.error(
-								'Cross-verse start index out of bounds, clamping to verse limits',
-								{
-									segment,
-									verseWordCount,
-									startRef,
-									rawStartIndex,
-									startIndex
-								}
-							);
+							console.error('Cross-verse start index out of bounds, clamping to verse limits', {
+								segment,
+								verseWordCount,
+								startRef,
+								rawStartIndex,
+								startIndex
+							});
 						}
 					}
 
@@ -581,16 +846,13 @@ export async function runAutoSegmentation(
 						endIndex = clampIndex(rawEndIndex);
 						if (rawEndIndex < 0 || rawEndIndex >= verseWordCount) {
 							needsReview = true;
-							console.error(
-								'Cross-verse end index out of bounds, clamping to verse limits',
-								{
-									segment,
-									verseWordCount,
-									endRef,
-									rawEndIndex,
-									endIndex
-								}
-							);
+							console.error('Cross-verse end index out of bounds, clamping to verse limits', {
+								segment,
+								verseWordCount,
+								endRef,
+								rawEndIndex,
+								endIndex
+							});
 						}
 					}
 
@@ -659,7 +921,8 @@ export async function runAutoSegmentation(
 							verse,
 							confidence,
 							isLowConfidence,
-							needsReview: splitNeedsReview || def.needsReview
+							needsReview: splitNeedsReview || def.needsReview,
+							needsCoverageReview
 						});
 					}
 
@@ -689,8 +952,7 @@ export async function runAutoSegmentation(
 				continue;
 			}
 
-			const clampIndex = (value: number) =>
-				Math.min(Math.max(value, 0), verseWordCount - 1);
+			const clampIndex = (value: number) => Math.min(Math.max(value, 0), verseWordCount - 1);
 			const rawStartIndex = startRef.word - 1;
 			const rawEndIndex = endRef.word - 1;
 			let startIndex = clampIndex(rawStartIndex);
@@ -742,7 +1004,8 @@ export async function runAutoSegmentation(
 				verse,
 				confidence,
 				isLowConfidence,
-				needsReview: clipNeedsReview
+				needsReview: clipNeedsReview,
+				needsCoverageReview
 			});
 		}
 
@@ -776,9 +1039,9 @@ export async function runAutoSegmentation(
 
 		globalState.currentProject?.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
-		
+
 		// Set le nbre de segment à review initialement pour la barre de progression
-		globalState.getSubtitlesEditorState.initialLowConfidenceCount = lowConfidenceSegments;
+		globalState.getSubtitlesEditorState.initialLowConfidenceCount = reviewSegments;
 
 		console.log('Quran segmentation payload:', payload);
 
@@ -786,6 +1049,7 @@ export async function runAutoSegmentation(
 			status: 'completed',
 			segmentsApplied,
 			lowConfidenceSegments,
+			coverageGapSegments,
 			verseRange
 		};
 	} catch (error) {

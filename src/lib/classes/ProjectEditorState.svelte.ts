@@ -184,8 +184,8 @@ export class SubtitlesEditorState extends SerializableBase {
 	// Indique le sous-titre à éditer dans l'éditeur de sous-titres (null si aucun)
 	editSubtitle: SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation | SilenceClip | null =
 		$state(null);
-	
-	// Nombre initial de segments à faible confiance (set lors de l'auto-segmentation)
+
+	// Nombre initial de segments à review (set lors de l'auto-segmentation)
 	// Utilisé pour afficher la barre de progression des segments à review
 	initialLowConfidenceCount: number = $state(0);
 }

@@ -310,7 +310,7 @@
 					</div>
 					<div class="flex items-center justify-between text-[10px] text-thirdly">
 						<span>{reviewedCount} reviewed</span>
-						<span>{initialLowConfidenceCount} low-confidence</span>
+						<span>{initialLowConfidenceCount} needs review</span>
 					</div>
 					<button
 						class="w-full mt-2 px-2 py-1.5 rounded-md bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-yellow-500/30 transition cursor-pointer"

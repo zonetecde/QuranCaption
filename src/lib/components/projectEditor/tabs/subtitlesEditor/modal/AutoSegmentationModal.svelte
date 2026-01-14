@@ -55,7 +55,7 @@
 		},
 		{
 			value: 'base' as const,
-			label: 'Base',
+			label: 'Base (recommended)',
 			description: 'Balanced speed/accuracy (~150 MB)',
 			size: '~150 MB',
 			source: 'tarteel-ai/whisper-base-ar-quran'
@@ -240,6 +240,7 @@
 						: audioInfo()?.fileName,
 				segments_applied: completedResponse?.segmentsApplied,
 				low_confidence_segments: completedResponse?.lowConfidenceSegments,
+				coverage_gap_segments: completedResponse?.coverageGapSegments,
 				error_message: response?.status === 'failed' ? response.message : undefined
 			});
 
@@ -283,8 +284,8 @@
 			<div class="bg-accent border border-color rounded-xl p-4 space-y-3" transition:slide>
 				<div class="space-y-2">
 					<p class="text-sm text-secondary leading-relaxed">
-						This will analyze <span class="text-primary font-medium">all audio clips</span> in your
-						timeline and automatically generate subtitle clips from them.
+						This will analyze <span class="text-primary font-medium">all audio clips</span> in your timeline
+						and automatically generate subtitle clips from them.
 					</p>
 
 					<ul class="text-sm text-secondary leading-relaxed list-disc pl-5 space-y-1">
@@ -295,6 +296,10 @@
 							Each generated segment includes a confidence score. Anything <span
 								class="text-primary font-medium">below 0.75</span
 							> will be highlighted in yellow and should be reviewed.
+						</li>
+						<li>
+							Segments that appear to skip words or verses are highlighted in violet and should be
+							reviewed.
 						</li>
 					</ul>
 				</div>
@@ -636,6 +641,13 @@
 					<span class="text-primary font-semibold">{result.lowConfidenceSegments}</span>
 					{#if result.lowConfidenceSegments > 0}
 						<span class="text-thirdly"> (make sure to review them manually)</span>
+					{/if}
+				</div>
+				<div class="text-sm text-secondary">
+					Coverage gap segments:
+					<span class="text-primary font-semibold">{result.coverageGapSegments}</span>
+					{#if result.coverageGapSegments > 0}
+						<span class="text-thirdly"> (words or verses may be missing)</span>
 					{/if}
 				</div>
 			</div>

@@ -156,6 +156,7 @@ export class ClipWithTranslation extends Clip {
 	comeFromIA: boolean = $state(false);
 	confidence: number | null = $state(null); // Entre 0 et 1
 	needsReview: boolean = $state(false); // Vrai si c'est un segment à low-confidence et qu'il n'a pas encore été reviewé
+	needsCoverageReview: boolean = $state(false); // Vrai si des lacunes de couverture sont détectées
 
 	constructor(
 		text: string,
@@ -178,7 +179,8 @@ export class ClipWithTranslation extends Clip {
 	markAsManualEdit() {
 		this.comeFromIA = false;
 		this.confidence = null;
-		this.needsReview = false; // Le segment n'a plus besoin de review
+		this.needsReview = false; // Le segment n'a plus besoin de review de confiance
+		this.needsCoverageReview = false; // Le segment n'a plus besoin de review de couverture
 	}
 
 	/**
@@ -487,5 +489,3 @@ export class CustomImageClip extends CustomClip {
 SerializableBase.registerChildClass(SubtitleClip, 'translations', Translation);
 SerializableBase.registerChildClass(ClipWithTranslation, 'translations', Translation);
 SerializableBase.registerChildClass(CustomTextClip, 'translations', Translation);
-
-

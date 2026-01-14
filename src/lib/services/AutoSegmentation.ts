@@ -1236,6 +1236,33 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 			segmentsApplied++;
 		}
 		
+		// --- Post-Processing (Standardizing Logic) ---
+		// 1. Sort clips by time
+		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+
+		// 2. Close small gaps (micro-silences)
+		closeSmallSubtitleGaps(subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip>, SMALL_GAP_MS);
+
+		// 3. Fill gaps with explicit SilenceClips (Strategy: Fill By Silence to preserve accurate native timing)
+		subtitleTrack.clips = insertSilenceClips(subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>, SMALL_GAP_MS);
+
+		// 4. Handle Trailing Silence (to ensure 100% completion)
+		const audioDuration = audioTrack.getDuration().ms;
+		const lastClip = subtitleTrack.clips[subtitleTrack.clips.length - 1];
+		
+		if (lastClip && lastClip.endTime < audioDuration - SMALL_GAP_MS) {
+			const silenceStart = lastClip.endTime + 1;
+			const silenceEnd = audioDuration; // Cover until the very end
+			if (silenceEnd > silenceStart) {
+				subtitleTrack.clips.push(new SilenceClip(silenceStart, silenceEnd));
+			}
+		}
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+		// Reset review count as these are trusted segments
+		globalState.getSubtitlesEditorState.initialLowConfidenceCount = 0;
+
 		toast.success(`Applied ${segmentsApplied} subtitles from Mp3Quran!`, { id: toastId });
 
 		return {

@@ -49,17 +49,24 @@
 	function buildSortedOptions(recitersList: Reciter[]): FlattenedOption[] {
 		const options: FlattenedOption[] = [];
 		for (const r of recitersList) {
+			const isSupported = supportedTimingReciterIds.has(r.id);
+			const prefix = isSupported ? '✨ ' : '';
 			for (const m of r.moshaf) {
 				options.push({
 					reciterId: r.id,
 					moshafId: m.id,
-					label: `${r.name} - (${m.name})`,
+					label: `${prefix}${r.name} - (${m.name})`,
 					server: m.server,
 					surah_list: m.surah_list
 				});
 			}
 		}
-		return options.sort((a, b) => a.label.localeCompare(b.label));
+		// Sort by the label but ignore the "✨ " prefix for the sort comparison
+		return options.sort((a, b) => {
+			const labelA = a.label.startsWith('✨ ') ? a.label.substring(2) : a.label;
+			const labelB = b.label.startsWith('✨ ') ? b.label.substring(2) : b.label;
+			return labelA.localeCompare(labelB);
+		});
 	}
 
 	let selectedOptionIndex: number = $state(-1); // Index in flattenedOptions
@@ -111,7 +118,9 @@
 			availableSurahs.find((s) => s.id === selectedSurahId)?.name.split(' (')[0] ??
 			`Surah ${formattedSurahId}`;
 
-		const rawBaseName = `${option.label.split(' - ')[0]} - ${surahName}`;
+		// Clean up the label to remove the icon for the filename
+		const cleanLabel = option.label.replace('✨ ', '');
+		const rawBaseName = `${cleanLabel.split(' - ')[0]} - ${surahName}`;
 		let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 		if (!sanitizedBaseName) {
 			sanitizedBaseName = `surah-${formattedSurahId}`;
@@ -125,7 +134,7 @@
 			);
 
 			toastId = toast.loading(
-				`Downloading Surah ${surahName.split('.')[1].trim()} by ${option.label.split(' - ')[0]}...`
+				`Downloading Surah ${surahName.split('.')[1].trim()} by ${cleanLabel.split(' - ')[0]}...`
 			);
 
 			const fullPath = await join(downloadPath, fileName);
@@ -169,7 +178,7 @@
 			}
 
 			// Telemetry
-			AnalyticsService.downloadFromMP3Quran(option.label.split(' - ')[0], surahName, fileName);
+			AnalyticsService.downloadFromMP3Quran(cleanLabel.split(' - ')[0], surahName, fileName);
 		} catch (error) {
 			console.error('Download error:', error);
 			toast.error(`Error downloading: ${error}`, { id: toastId, duration: 5000 });
@@ -246,7 +255,8 @@
 		<div class="flex items-start gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
 			<span class="material-icons text-sm text-green-400 mt-0.5">verified</span>
 			<p class="text-xs text-green-300 leading-relaxed">
-				High quality MP3s provided by mp3quran.net API.
+				Reciters marked with <strong>✨</strong> supports
+				<span class="font-bold">Native Auto-Segmentation</span> (Official Timing).
 			</p>
 		</div>
 	</div>

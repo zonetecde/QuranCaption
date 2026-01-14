@@ -6,6 +6,7 @@ import { PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } f
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
+import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 
 const SMALL_GAP_MS = 200;
 
@@ -1097,5 +1098,157 @@ function markClipTranslationsForReview(clip: SubtitleClip): void {
 		if (translation && typeof translation.updateStatus === 'function') {
 			translation.updateStatus('to review', edition);
 		}
+	}
+}
+/**
+ * Handles the "Native" segmentation flow using Mp3Quran timing data.
+ */
+export async function runNativeSegmentation(): Promise<AutoSegmentationResult | null> {
+	// 1. Find the audio clip on the timeline
+	// We assume there's one main audio clip we want to segment, or we take the first one that has metadata.
+	const audioTrack = globalState.getAudioTrack;
+	const clipWithMetadata = audioTrack.clips.find((clip) => {
+		if (!clip || typeof clip !== 'object') return false;
+		const assetId = (clip as any).assetId;
+		const asset = globalState.currentProject?.content.getAssetById(assetId);
+		return asset?.metadata?.mp3Quran;
+	});
+
+	if (!clipWithMetadata) {
+		toast.error('No Mp3Quran audio clip found on the timeline.');
+		return { status: 'failed', message: 'No Mp3Quran audio clip found.' };
+	}
+
+	const asset = globalState.currentProject!.content.getAssetById(
+		(clipWithMetadata as any).assetId
+	);
+	const { reciterId, surahId } = asset.metadata.mp3Quran;
+
+	// 2. Warn about overwriting
+	const subtitleTrack = globalState.getSubtitleTrack;
+	if (subtitleTrack.clips.length > 0) {
+		const confirmOverwrite = await ModalManager.confirmModal(
+			'There are already subtitles in this project. This process will replace them with Mp3Quran timing. Continue?',
+			true
+		);
+		if (!confirmOverwrite) return { status: 'cancelled' };
+	}
+
+	let toastId: string | undefined;
+
+	try {
+		toastId = toast.loading('Fetching timing data from Mp3Quran...');
+		
+		// 3. Fetch timing data
+		// Note from plan: We assume reciterId matches readId.
+		// If this fails often, we might need a lookup table.
+		const timingData = await Mp3QuranService.getSurahTiming(reciterId, surahId);
+		
+		if (!timingData || timingData.length === 0) {
+			toast.error('No timing data found for this reciter/surah.', { id: toastId });
+			return { status: 'failed', message: 'No timing data returned from API.' };
+		}
+
+		// 4. Load Quran Data
+		await Quran.load();
+
+		// 5. Build Subtitle Clips
+		// The timing data gives us start/end in MS relative to the audio file start.
+		// We need to map this to the timeline.
+		// Since we added the FULL file to the timeline, the clip's source offset is likely 0,
+		// but the clip on timeline might start at a different position (clip.startTime).
+		
+		// Ideally, we align the subtitles with the CLIP's start time on the timeline.
+		// clip_timeline_start = clip.startTime
+		// clip_source_offset = clip.offset ?? 0 (if user trimmed the start)
+		
+		// Subtitle Start = clip.startTime + (TimingStart - clip.offset)
+		// We will assume for now the user dropped the raw file and didn't trim it internally yet, 
+		// OR that they want the subtitles to match the audio content regardless of trim.
+		// Let's stick to: Subtitle Start = Timing Start + Clip Start Time (assuming offset is 0 for fresh imports).
+		// If offset > 0, we should subtract it: (TimingStart - Offset) + ClipStartTime.
+		// If (TimingStart - Offset) < 0, that part of audio is trimmed out.
+
+		// Let's get the clip properties
+		const clipStartTime = (clipWithMetadata as any).startTime || 0;
+		const clipOffset = (clipWithMetadata as any).mediaOffset || 0; // if your clip class has 'mediaOffset' or similar
+
+		subtitleTrack.clips = [];
+		let segmentsApplied = 0;
+
+		for (const verseTiming of timingData) {
+			// timing in ms
+			const timingStart = verseTiming.start_time;
+			const timingEnd = verseTiming.end_time;
+
+			// Adjusted for timeline
+			// Valid part of the verse must be visible in the clip
+			// If the verse ends before the clip starts (due to offset), skip.
+			if (timingEnd < clipOffset) continue;
+
+			const relativeStart = timingStart - clipOffset;
+			const relativeEnd = timingEnd - clipOffset;
+
+			// Calculate absolute timeline position
+			const absStart = clipStartTime + relativeStart;
+			const absEnd = clipStartTime + relativeEnd;
+
+			// If segments starts before timeline 0 (unlikely if clip is at 0), clamp? 
+			// Or if it starts before clip's visible area?
+			// Let's just apply it.
+
+			// Fetch Verse
+			const verse = await Quran.getVerse(surahId, verseTiming.ayah);
+			if (!verse) continue;
+
+			// Create Clip
+			// Using full verse range (startIndex=0, endIndex=verse.words.length-1)
+			const startIndex = 0;
+			const endIndex = verse.words.length - 1;
+			
+			const arabicText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
+			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startIndex, endIndex);
+
+			const subtitlesProperties = await subtitleTrack.getSubtitlesProperties(
+				verse,
+				startIndex,
+				endIndex,
+				surahId
+			);
+
+			const clip = new SubtitleClip(
+				 Math.max(0, absStart),
+				 Math.max(0, absEnd),
+				 surahId,
+				 verseTiming.ayah,
+				 startIndex,
+				 endIndex,
+				 arabicText,
+				 wbwTranslation,
+				 subtitlesProperties.isFullVerse,
+				 subtitlesProperties.isLastWordsOfVerse,
+				 subtitlesProperties.translations,
+				 true, // isArabic
+				 1.0   // Confidence 100% since it's manual/official
+			);
+
+			subtitleTrack.clips.push(clip);
+			segmentsApplied++;
+		}
+		
+		toast.success(`Applied ${segmentsApplied} subtitles from Mp3Quran!`, { id: toastId });
+
+		return {
+			status: 'completed',
+			segmentsApplied,
+			lowConfidenceSegments: 0,
+			coverageGapSegments: 0,
+			verseRange: new VerseRange() // We could populate this but it's optional for the result summary
+		};
+
+	} catch (error) {
+		console.error('Native segmentation error:', error);
+		toast.error(`Error: ${error}`, { id: toastId });
+		return { status: 'failed', message: String(error) };
 	}
 }

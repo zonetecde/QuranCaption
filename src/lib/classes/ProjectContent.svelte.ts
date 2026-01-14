@@ -52,8 +52,13 @@ export class ProjectContent extends SerializableBase {
 		);
 	}
 
-	addAsset(filePath: string, sourceUrl?: string, sourceType: SourceType = SourceType.Local): void {
-		const asset = new Asset(filePath, sourceUrl, sourceType);
+	addAsset(
+		filePath: string,
+		sourceUrl?: string,
+		sourceType: SourceType = SourceType.Local,
+		metadata: Record<string, any> = {}
+	): void {
+		const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
 		if (asset.type === AssetType.Unknown) {
 			toast.error('This file format is not supported.');
 			return;

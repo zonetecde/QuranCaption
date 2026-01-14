@@ -8,6 +8,7 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { onMount } from 'svelte';
 	import { join } from '@tauri-apps/api/path';
+	import { Mp3QuranService, type TimingReciter } from '$lib/services/Mp3QuranService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	// Types for MP3Quran API
@@ -28,6 +29,8 @@
 	};
 
 	let reciters: Reciter[] = $state([]);
+	let timingReciters: TimingReciter[] = $state([]);
+	let supportedTimingReciterIds: Set<number> = $state(new Set());
 	let selectedSurahId: number = $state(-1);
 	let isDownloading: boolean = $state(false);
 	let isLoadingReciters: boolean = $state(true);
@@ -77,20 +80,15 @@
 			// Ensure Quran data is loaded for Surah names
 			await Quran.load();
 
-			const response = await fetch('https://mp3quran.net/api/v3/reciters?language=eng');
-			if (!response.ok) throw new Error('Failed to fetch reciters');
+			const [recitersData, timingRecitersData] = await Promise.all([
+				Mp3QuranService.getReciters(),
+				Mp3QuranService.getTimingReciters()
+			]);
 
-			const contentType = response.headers.get('content-type');
-			if (!contentType?.includes('application/json')) {
-				throw new Error('Invalid response format: expected JSON');
-			}
+			reciters = recitersData;
+			timingReciters = timingRecitersData;
+			supportedTimingReciterIds = new Set(timingReciters.map((r) => r.id));
 
-			const data = await response.json();
-			if (!data.reciters || !Array.isArray(data.reciters)) {
-				throw new Error('Invalid response structure: missing or invalid reciters array');
-			}
-
-			reciters = data.reciters;
 			sortedOptions = buildSortedOptions(reciters);
 		} catch (error) {
 			console.error('Error fetching reciters:', error);
@@ -137,9 +135,38 @@
 				path: fullPath
 			});
 
-			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran);
+			// Check if this reciter matches a timing reciter
+			// Note: We use the reciter ID. Sometimes Mp3Quran 'reads' ID matches 'reciters' ID.
+			// We trust the ID mapping for now as per plan.
+			const supportsTiming = supportedTimingReciterIds.has(option.reciterId);
+
+			const metadata = supportsTiming
+				? { mp3Quran: { reciterId: option.reciterId, surahId: selectedSurahId } }
+				: {};
+
+			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran, metadata);
 
 			toast.success('Download successful!', { id: toastId });
+
+			if (supportsTiming) {
+				// Show a persistent/longer toast strictly explaining the next step
+				toast.custom(
+					(t: any) => `
+					<div class="bg-secondary border border-[var(--accent-primary)] rounded-lg shadow-lg p-4 flex items-start cursor-pointer hover:bg-black/20" onclick="toast.dismiss('${t.id}')">
+						<span class="material-icons text-[var(--accent-primary)] text-xl mr-3 mt-0.5">auto_awesome</span>
+						<div class="flex-1">
+							<h3 class="text-sm font-bold text-primary">Native Auto-Segmentation Available</h3>
+							<p class="text-xs text-secondary mt-1">
+								This Surah has official timing data! Add it to the timeline, then look for the 
+								<span class="text-[var(--accent-primary)]">Mp3Quran Auto-Segment</span> option in the Subtitles Editor.
+							</p>
+						</div>
+						<button class="ml-2 text-secondary hover:text-primary"><span class="material-icons text-sm">close</span></button>
+					</div>
+				`,
+					{ duration: 8000 }
+				);
+			}
 
 			// Telemetry
 			AnalyticsService.downloadFromMP3Quran(option.label.split(' - ')[0], surahName, fileName);

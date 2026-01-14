@@ -1104,25 +1104,31 @@ function markClipTranslationsForReview(clip: SubtitleClip): void {
  * Handles the "Native" segmentation flow using Mp3Quran timing data.
  */
 export async function runNativeSegmentation(): Promise<AutoSegmentationResult | null> {
-	// 1. Find the audio clip on the timeline
-	// We assume there's one main audio clip we want to segment, or we take the first one that has metadata.
+	// 1. Identify valid audio clip and metadata
 	const audioTrack = globalState.getAudioTrack;
-	const clipWithMetadata = audioTrack.clips.find((clip) => {
-		if (!clip || typeof clip !== 'object') return false;
-		const assetId = (clip as any).assetId;
-		const asset = globalState.currentProject?.content.getAssetById(assetId);
-		return asset?.metadata?.mp3Quran;
-	});
+	let targetClip: AssetClip | null = null;
+	let mp3QuranMeta: { reciterId: number; surahId: number; moshafId?: number } | null = null;
+	let clipStartTime = 0;
+	let clipOffset = 0;
 
-	if (!clipWithMetadata) {
-		toast.error('No Mp3Quran audio clip found on the timeline.');
-		return { status: 'failed', message: 'No Mp3Quran audio clip found.' };
+	for (const clip of audioTrack.clips) {
+		if (clip instanceof AssetClip) {
+			const asset = globalState.currentProject?.content.getAssetById(clip.assetId);
+			if (asset?.metadata?.mp3Quran) {
+				mp3QuranMeta = asset.metadata.mp3Quran;
+				targetClip = clip;
+				clipStartTime = clip.startTime;
+				// clip.offset might not exist on AssetClip type definition yet but let's assume valid access for now or cast
+				clipOffset = (clip as any).offset || 0; 
+				break;
+			}
+		}
 	}
 
-	const asset = globalState.currentProject!.content.getAssetById(
-		(clipWithMetadata as any).assetId
-	);
-	const { reciterId, surahId } = asset.metadata.mp3Quran;
+	if (!targetClip || !mp3QuranMeta) {
+		toast.error('No Mp3Quran audio found on timeline.');
+		return { status: 'failed', message: 'No Mp3Quran audio found' };
+	}
 
 	// 2. Warn about overwriting
 	const subtitleTrack = globalState.getSubtitleTrack;
@@ -1133,6 +1139,11 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 		);
 		if (!confirmOverwrite) return { status: 'cancelled' };
 	}
+
+	const { reciterId, surahId, moshafId } = mp3QuranMeta;
+	// Use moshafId (readId) if available, otherwise fallback to reciterId (legacy/fallback)
+	const readId = moshafId ?? reciterId;
+
 
 	let toastId: string | undefined;
 

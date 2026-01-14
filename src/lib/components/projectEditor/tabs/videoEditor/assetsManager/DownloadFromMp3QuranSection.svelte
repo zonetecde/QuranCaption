@@ -30,7 +30,7 @@
 
 	let reciters: Reciter[] = $state([]);
 	let timingReciters: TimingReciter[] = $state([]);
-	let supportedTimingReciterIds: Set<number> = $state(new Set());
+	let supportedReadIds: Set<number> = $state(new Set());
 	let selectedSurahId: number = $state(-1);
 	let isDownloading: boolean = $state(false);
 	let isLoadingReciters: boolean = $state(true);
@@ -49,9 +49,10 @@
 	function buildSortedOptions(recitersList: Reciter[]): FlattenedOption[] {
 		const options: FlattenedOption[] = [];
 		for (const r of recitersList) {
-			const isSupported = supportedTimingReciterIds.has(r.id);
-			const prefix = isSupported ? '✨ ' : '';
 			for (const m of r.moshaf) {
+				const isSupported = supportedReadIds.has(m.id);
+				// Display Moshaf ID for verification purposes as requested
+				const prefix = isSupported ? `✨ [${m.id}] ` : '';
 				options.push({
 					reciterId: r.id,
 					moshafId: m.id,
@@ -61,11 +62,11 @@
 				});
 			}
 		}
-		// Sort by the label but ignore the "✨ " prefix for the sort comparison
+		// Sort by the label but ignore the prefix for the sort comparison
 		return options.sort((a, b) => {
-			const labelA = a.label.startsWith('✨ ') ? a.label.substring(2) : a.label;
-			const labelB = b.label.startsWith('✨ ') ? b.label.substring(2) : b.label;
-			return labelA.localeCompare(labelB);
+			const cleanA = a.label.replace(/^✨ \[\d+\] /, '');
+			const cleanB = b.label.replace(/^✨ \[\d+\] /, '');
+			return cleanA.localeCompare(cleanB);
 		});
 	}
 
@@ -93,8 +94,10 @@
 			]);
 
 			reciters = recitersData;
+			// The timing API returns "Reads" (Moshafs), so we map their IDs.
+			// timingRecitersData is actually a list of supported Reads.
 			timingReciters = timingRecitersData;
-			supportedTimingReciterIds = new Set(timingReciters.map((r) => r.id));
+			supportedReadIds = new Set(timingReciters.map((r) => r.id));
 
 			sortedOptions = buildSortedOptions(reciters);
 		} catch (error) {
@@ -118,8 +121,8 @@
 			availableSurahs.find((s) => s.id === selectedSurahId)?.name.split(' (')[0] ??
 			`Surah ${formattedSurahId}`;
 
-		// Clean up the label to remove the icon for the filename
-		const cleanLabel = option.label.replace('✨ ', '');
+		// Clean up the label to remove the icon and ID for the filename
+		const cleanLabel = option.label.replace(/^✨ \[\d+\] /, '');
 		const rawBaseName = `${cleanLabel.split(' - ')[0]} - ${surahName}`;
 		let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 		if (!sanitizedBaseName) {
@@ -144,13 +147,17 @@
 				path: fullPath
 			});
 
-			// Check if this reciter matches a timing reciter
-			// Note: We use the reciter ID. Sometimes Mp3Quran 'reads' ID matches 'reciters' ID.
-			// We trust the ID mapping for now as per plan.
-			const supportsTiming = supportedTimingReciterIds.has(option.reciterId);
+			// Check if this moshaf (read) matches a timing-enabled read
+			const supportsTiming = supportedReadIds.has(option.moshafId);
 
 			const metadata = supportsTiming
-				? { mp3Quran: { reciterId: option.reciterId, surahId: selectedSurahId } }
+				? {
+						mp3Quran: {
+							reciterId: option.reciterId,
+							moshafId: option.moshafId,
+							surahId: selectedSurahId
+						}
+					}
 				: {};
 
 			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran, metadata);

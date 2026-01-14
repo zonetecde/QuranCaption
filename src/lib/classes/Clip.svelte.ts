@@ -293,6 +293,16 @@ export class SubtitleClip extends ClipWithTranslation {
 		}
 	}
 
+	// Utilise pour les ajustements automatiques qui ne doivent pas annuler l'origine IA.
+	setStartTimeSilently(newStartTime: number) {
+		super.setStartTime(newStartTime);
+	}
+
+	// Utilise pour les ajustements automatiques qui ne doivent pas annuler l'origine IA.
+	setEndTimeSilently(newEndTime: number) {
+		super.setEndTime(newEndTime);
+	}
+
 	/**
 	 * Crée un clone du clip avec de nouveaux timestamps.
 	 * @param newStartTime Le nouveau temps de début.

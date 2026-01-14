@@ -455,6 +455,28 @@ function getPredefinedType(ref?: string): PredefinedType | null {
 	return null;
 }
 
+function setClipStartTime(
+	clip: SubtitleClip | PredefinedSubtitleClip | SilenceClip,
+	newStartTime: number
+): void {
+	if (clip instanceof SubtitleClip && typeof clip.setStartTimeSilently === 'function') {
+		clip.setStartTimeSilently(newStartTime);
+	} else {
+		clip.setStartTime(newStartTime);
+	}
+}
+
+function setClipEndTime(
+	clip: SubtitleClip | PredefinedSubtitleClip | SilenceClip,
+	newEndTime: number
+): void {
+	if (clip instanceof SubtitleClip && typeof clip.setEndTimeSilently === 'function') {
+		clip.setEndTimeSilently(newEndTime);
+	} else {
+		clip.setEndTime(newEndTime);
+	}
+}
+
 /**
  * Remove tiny gaps by snapping the next clip start to the previous clip end.
  * This avoids "micro silences" caused by rounding or segmentation jitter.
@@ -477,7 +499,7 @@ function closeSmallSubtitleGaps(
 
 		const gapMs: number = next.startTime - current.endTime - 1;
 		if (gapMs > 0 && gapMs < maxGapMs) {
-			next.setStartTime(current.endTime + 1);
+			setClipStartTime(next, current.endTime + 1);
 		}
 	}
 }
@@ -505,7 +527,7 @@ function insertSilenceClips(
 
 	// Normalize timeline start to 0, or insert leading silence.
 	if (first.startTime < minGapMs) {
-		first.setStartTime(0);
+		setClipStartTime(first, 0);
 	} else {
 		result.push(new SilenceClip(0, first.startTime - 1));
 	}
@@ -544,7 +566,7 @@ function extendSubtitlesToFillGaps(clips: Array<SubtitleClip | PredefinedSubtitl
 
 		// Extend current subtitle to meet the next one
 		if (current.endTime < next.startTime - 1) {
-			current.setEndTime(next.startTime - 1);
+			setClipEndTime(current, next.startTime - 1);
 		}
 	}
 }

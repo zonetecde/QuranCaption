@@ -60,25 +60,8 @@ export default class ModalManager {
 	}
 
 	static async settingsModal(): Promise<void> {
-		return new Promise<void>((resolve) => {
-			// Créer un conteneur pour le modal
-			const container = document.createElement('div');
-			container.classList.add('modal-wrapper');
-			document.body.appendChild(container);
-
-			// Monter le composant Svelte 5
-			const confirm = mount(Settings, {
-				target: container,
-				props: {
-					resolve: () => {
-						// Nettoyer et résoudre
-						unmount(confirm);
-						document.body.removeChild(container);
-						resolve();
-					},
-				}
-			});
-		});
+		const { globalState } = await import('$lib/runes/main.svelte');
+		globalState.uiState.isSettingsOpen = !globalState.uiState.isSettingsOpen;
 	}
 
 	static async errorModal(title: string, message: string, logs?: string): Promise<void> {

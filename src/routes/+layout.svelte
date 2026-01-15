@@ -24,31 +24,23 @@
 
 	$effect(() => {
 		if (!browser) return;
-		const theme = globalState.settings?.persistentUiState?.theme || 'default';
+		const settings = globalState.settings;
+		const theme = settings?.persistentUiState?.theme || 'default';
+		console.log('--- Theme Change Detected ---');
+		console.log('Current theme value:', theme);
+		console.log('Is Settings defined:', !!settings);
 
-		document.body.classList.remove(
-			'theme-blue-ocean',
-			'theme-orange-mechanic',
-			'theme-blue-light-ocean',
-			'theme-cyber-violet',
-			'theme-emerald-forest',
-			'theme-polar-ice',
-			'theme-desert-gold'
-		);
-		if (theme === 'blue-ocean') {
-			document.body.classList.add('theme-blue-ocean');
-		} else if (theme === 'orange-mechanic') {
-			document.body.classList.add('theme-orange-mechanic');
-		} else if (theme === 'blue-light-ocean') {
-			document.body.classList.add('theme-blue-light-ocean');
-		} else if (theme === 'cyber-violet') {
-			document.body.classList.add('theme-cyber-violet');
-		} else if (theme === 'emerald-forest') {
-			document.body.classList.add('theme-emerald-forest');
-		} else if (theme === 'polar-ice') {
-			document.body.classList.add('theme-polar-ice');
-		} else if (theme === 'desert-gold') {
-			document.body.classList.add('theme-desert-gold');
+		// Remove any existing theme- classes
+		const currentClasses = Array.from(document.body.classList);
+		currentClasses.forEach((cls) => {
+			if (cls.startsWith('theme-')) {
+				document.body.classList.remove(cls);
+			}
+		});
+
+		// Add the new theme class if it's not 'default'
+		if (theme !== 'default') {
+			document.body.classList.add(`theme-${theme}`);
 		}
 	});
 </script>

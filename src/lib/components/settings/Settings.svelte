@@ -72,11 +72,14 @@
 						<!-- Default Theme -->
 						<button
 							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings.persistentUiState.theme ===
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
 								'default'}
-							class:border-color={globalState.settings.persistentUiState.theme !== 'default'}
-							class:bg-accent={globalState.settings.persistentUiState.theme === 'default'}
-							onclick={() => (globalState.settings.persistentUiState.theme = 'default')}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'default'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'default'}
+							onclick={() => {
+								console.log('Switching to Default');
+								if (globalState.settings) globalState.settings.persistentUiState.theme = 'default';
+							}}
 						>
 							<div
 								class="w-full h-24 rounded-lg bg-[#0d1117] relative border border-white/10 shadow-sm overflow-hidden"
@@ -94,7 +97,7 @@
 							</div>
 							<div class="flex items-center justify-between w-full">
 								<span class="font-medium text-sm">Default</span>
-								{#if globalState.settings.persistentUiState.theme === 'default'}
+								{#if globalState.settings?.persistentUiState?.theme === 'default'}
 									<span class="material-icons text-accent-primary text-sm">check_circle</span>
 								{/if}
 							</div>
@@ -284,14 +287,18 @@
 							</div>
 						</button>
 
-						<!-- Desert Gold (New) -->
+						<!-- Desert Gold -->
 						<button
 							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
 							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
 								'desert-gold'}
 							class:border-color={globalState.settings?.persistentUiState?.theme !== 'desert-gold'}
 							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'desert-gold'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'desert-gold')}
+							onclick={() => {
+								console.log('Switching to Desert Gold');
+								if (globalState.settings)
+									globalState.settings.persistentUiState.theme = 'desert-gold';
+							}}
 						>
 							<div
 								class="w-full h-24 rounded-lg bg-[#fcfaf7] relative border border-black/10 shadow-sm overflow-hidden"
@@ -309,6 +316,41 @@
 							<div class="flex items-center justify-between w-full">
 								<span class="font-medium text-sm">Desert Gold</span>
 								{#if globalState.settings?.persistentUiState?.theme === 'desert-gold'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Crimson Ember -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'crimson-ember'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'crimson-ember'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'crimson-ember'}
+							onclick={() => {
+								console.log('Switching to Crimson Ember');
+								if (globalState.settings)
+									globalState.settings.persistentUiState.theme = 'crimson-ember';
+							}}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#0f0f12] relative border border-white/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#16161d] border-b border-white/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#f63049] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Crimson Ember</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'crimson-ember'}
 									<span class="material-icons text-accent-primary text-sm">check_circle</span>
 								{/if}
 							</div>

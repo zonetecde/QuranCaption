@@ -292,6 +292,29 @@
 	--text-on-selected-word: var(--text-primary);
 }
 
+.theme-crimson-ember {
+	/* Deep Charcoal/Dark Red base */
+	--bg-primary: #0f0f12;
+	--bg-secondary: #16161d;
+	--bg-titlebar: #16161d;
+	--bg-accent: #25181a;
+	
+	--text-primary: #f5f5f7;
+	--text-secondary: #a1a1aa;
+	--border-color: #27272a;
+	
+	--accent-primary: #f63049;
+	--accent-secondary: #dc2626;
+	--text-accent: #ff4d63;
+
+	--timeline-track-border: rgba(246, 48, 73, 0.1);
+	--timeline-scrollbar: rgba(246, 48, 73, 0.6);
+	--timeline-scrollbar-hover: rgba(246, 48, 73, 0.8);
+	--subtitle-selection-bg: rgba(246, 48, 73, 0.5);
+	--subtitle-selection-border: rgba(246, 48, 73, 0.4);
+	--text-on-selected-word: white;
+}
+
 /* Pour tout les p, hN, span etc empecher la selection de texte */
 * {
 	user-select: none;

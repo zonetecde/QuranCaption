@@ -282,31 +282,33 @@
 					Auto-Segment
 				</button>
 
-				{#if (globalState.getAudioTrack?.clips || []).some((c) => globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran)}
+			</div>
+		</div>
+
+		{#if (globalState.getAudioTrack?.clips || []).some((c) => globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran)}
+			<div class="space-y-4">
+				<h3 class="text-sm font-medium text-secondary mb-3">Native Timing</h3>
+				<div class="bg-accent rounded-lg p-4 space-y-3">
 					<div
-						class="bg-secondary/30 border border-dashed border-[var(--accent-primary)]/50 rounded-lg p-3"
+						class="flex items-center gap-2 mb-1 text-xs text-[var(--accent-primary)] font-medium"
 					>
-						<div
-							class="flex items-center gap-2 mb-2 text-xs text-[var(--accent-primary)] font-medium"
-						>
-							<span class="material-icons text-sm">verified</span>
-							Available Native Timing
-						</div>
-						<button
-							class="w-full px-3 py-2 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[var(--accent-primary)]/20 transition cursor-pointer"
-							type="button"
-							onclick={async () => {
+						<span class="material-icons text-sm">verified</span>
+						Available Native Timing
+					</div>
+					<button
+						class="w-full px-3 py-2 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[var(--accent-primary)]/20 transition cursor-pointer"
+						type="button"
+						onclick={async () => {
 							const { runNativeSegmentation } = await import('$lib/services/AutoSegmentation');
 							await runNativeSegmentation();
 						}}
-						>
-							<span class="material-icons text-base">flash_on</span>
-							Auto-Segment (Mp3Quran)
-						</button>
-					</div>
-				{/if}
+					>
+						<span class="material-icons text-base">flash_on</span>
+						Auto-Segment (Mp3Quran)
+					</button>
+				</div>
 			</div>
-		</div>
+		{/if}
 
 		<div class="space-y-3">
 			{#if initialLowConfidenceCount > 0 && segmentsNeedingReview > 0}

@@ -355,6 +355,136 @@
 								{/if}
 							</div>
 						</button>
+
+						<!-- Vintage Paper -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background-color: #f4ecd8;"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'vintage-paper'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'vintage-paper'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'vintage-paper'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'vintage-paper')}
+						>
+							<div
+								class="w-full h-24 rounded-sm bg-[#ece2c6] relative border border-[#c4b494] shadow-sm overflow-hidden"
+								style="background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');"
+							>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#e4d8b9] border-b border-[#c4b494] flex items-center px-2"
+								>
+									<div class="w-2 h-2 rounded-full bg-[#3d3420]/20 mr-1"></div>
+									<div class="w-2 h-2 rounded-full bg-[#3d3420]/20"></div>
+								</div>
+								<div
+									class="absolute top-10 left-3 w-16 h-4 rounded-sm bg-[#8b4513] opacity-80"
+								></div>
+								<div class="absolute top-16 left-3 w-20 h-1.5 bg-[#3d3420]/30"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm !text-[#3d3420]">Vintage Paper</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'vintage-paper'}
+									<span class="material-icons text-[#8b4513] text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- OLED Stealth -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background-color: #000000;"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'oled-stealth'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'oled-stealth'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'oled-stealth'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'oled-stealth')}
+						>
+							<div
+								class="w-full h-24 rounded-none bg-black relative border border-[#222222] shadow-sm overflow-hidden"
+							>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-black border-b border-[#222222] flex items-center px-2"
+								>
+									<div class="w-2 h-2 rounded-none bg-[#222222] mr-1"></div>
+									<div class="w-2 h-2 rounded-none bg-[#222222]"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded-none bg-[#00ff41]"></div>
+								<div class="absolute top-16 left-3 w-24 h-1.5 bg-[#333333]"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm text-white">OLED Stealth</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'oled-stealth'}
+									<span class="material-icons text-[#00ff41] text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Ethereal Glass -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background: linear-gradient(135deg, #1e293b, #0f172a);"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'ethereal-glass'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'ethereal-glass'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'ethereal-glass'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'ethereal-glass')}
+						>
+							<div
+								class="w-full h-24 rounded-2xl bg-white/5 backdrop-blur-md relative border border-white/10 shadow-xl overflow-hidden"
+							>
+								<div
+									class="absolute -top-10 -right-10 w-24 h-24 bg-pink-500/20 rounded-full blur-2xl"
+								></div>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-white/5 border-b border-white/5 flex items-center px-2"
+								>
+									<div class="w-2 h-2 rounded-full bg-white/20 mr-1"></div>
+								</div>
+								<div
+									class="absolute top-10 left-3 w-16 h-4 rounded-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.5)]"
+								></div>
+								<div class="absolute top-16 left-3 w-20 h-2 rounded-full bg-white/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm text-white">Ethereal Glass</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'ethereal-glass'}
+									<span class="material-icons text-pink-500 text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Matrix Terminal -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background-color: #000000;"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'matrix-terminal'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'matrix-terminal'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'matrix-terminal'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'matrix-terminal')}
+						>
+							<div
+								class="w-full h-24 rounded-none bg-black relative border border-[#003b00] shadow-sm overflow-hidden"
+								style="background-image: linear-gradient(rgba(0, 59, 0, 0.1) 1px, transparent 1px); background-size: 100% 3px;"
+							>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-black border-b border-[#003b00] flex items-center px-2"
+								>
+									<span class="text-[8px] text-[#00ff41] font-mono">root@system:~#</span>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 bg-[#00ff41] opacity-60"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 border border-[#00ff41]/30"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm text-[#00ff41] font-mono">Matrix/Terminal</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'matrix-terminal'}
+									<span class="material-icons text-[#00ff41] text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.ABOUT}

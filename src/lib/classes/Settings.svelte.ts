@@ -26,7 +26,20 @@ export default class Settings extends SerializableBase {
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		videoExportFolder: '',
-		theme: 'default' as 'default' | 'blue-ocean' | 'orange-mechanic' | 'blue-light-ocean' | 'cyber-violet' | 'emerald-forest' | 'polar-ice' | 'desert-gold' | 'crimson-ember'
+		theme: 'default' as
+			| 'default'
+			| 'blue-ocean'
+			| 'orange-mechanic'
+			| 'blue-light-ocean'
+			| 'cyber-violet'
+			| 'emerald-forest'
+			| 'polar-ice'
+			| 'desert-gold'
+			| 'crimson-ember'
+			| 'vintage-paper'
+			| 'oled-stealth'
+			| 'ethereal-glass'
+			| 'matrix-terminal'
 	});
 
 	autoSegmentationSettings = $state<AutoSegmentationSettings>({

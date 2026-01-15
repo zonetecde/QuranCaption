@@ -92,10 +92,24 @@
 	/* Context menu */
 	--ctx-menu-background: var(--bg-secondary);
 	--ctx-menu-border: 1px solid var(--border-color);
-	--ctx-menu-border-radius: 0.5rem;
+	--ctx-menu-border-radius: var(--radius-m);
 	--ctx-menu-hover-bg: var(--bg-accent);
 	--ctx-menu-font-size: 0.9rem;
 	--ctx-menu-padding: 0.375rem 0.5rem;
+
+	/* NEW: Structural & Visual Variables */
+	--radius-m: 0.375rem;
+	--radius-l: 0.5rem;
+	--radius-full: 9999px;
+	--border-w: 1px;
+	--font-ui: 'Inter', sans-serif;
+	--font-mono: 'IBM Plex Mono', monospace;
+	--font-heading: 'Inter', sans-serif;
+	--surface-blur: 0px;
+	--shadow-ui: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+	--transition-speed: 0.2s;
+	--transition-timing: ease;
+	--bg-texture: none;
 }
 
 .theme-blue-ocean {
@@ -324,6 +338,85 @@
 	--text-on-accent: white;
 }
 
+/* --- NEW Advanced Themes --- */
+
+.theme-vintage-paper {
+	--bg-primary: #f4ecd8;
+	--bg-secondary: #ece2c6;
+	--bg-titlebar: #e4d8b9;
+	--bg-accent: #dfd1ac;
+	--border-color: #c4b494;
+	--text-primary: #3d3420;
+	--text-secondary: #5c5036;
+	--accent-primary: #8b4513; 
+	--accent-secondary: #5d2e0d;
+	--text-on-accent: #f4ecd8;
+	
+	--font-ui: 'Hafs', serif; /* Using Hafs as it has a more classic feel, or system serif */
+	--font-heading: 'Hafs', serif;
+	--radius-m: 2px;
+	--radius-l: 4px;
+	--border-w: 2px;
+	--bg-texture: url("https://www.transparenttextures.com/patterns/paper-fibers.png");
+	--shadow-ui: 2px 2px 0px rgba(0,0,0,0.1);
+}
+
+.theme-oled-stealth {
+	--bg-primary: #000000;
+	--bg-secondary: #0a0a0a;
+	--bg-titlebar: #000000;
+	--bg-accent: #151515;
+	--border-color: #222222;
+	--text-primary: #ffffff;
+	--text-secondary: #888888;
+	--accent-primary: #00ff41; /* Matrix Green */
+	--accent-secondary: #008f11;
+	--text-on-accent: black;
+	
+	--radius-m: 0px;
+	--radius-l: 0px;
+	--border-w: 1px;
+	--shadow-ui: none;
+	--transition-speed: 0.1s;
+}
+
+.theme-ethereal-glass {
+	--bg-primary: #0f172a;
+	--bg-secondary: rgba(30, 41, 59, 0.7);
+	--bg-titlebar: rgba(15, 23, 42, 0.8);
+	--bg-accent: rgba(51, 65, 85, 0.5);
+	--border-color: rgba(255, 255, 255, 0.1);
+	--text-primary: #f8fafc;
+	--text-secondary: #94a3b8;
+	--accent-primary: #ec4899; /* Pink 500 */
+	--accent-secondary: #db2777;
+	--text-on-accent: white;
+	
+	--surface-blur: 16px;
+	--radius-m: 1rem;
+	--radius-l: 1.5rem;
+	--shadow-ui: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+.theme-matrix-terminal {
+	--bg-primary: #000000;
+	--bg-secondary: #050505;
+	--bg-accent: #0a0a0a;
+	--border-color: #003b00;
+	--text-primary: #00ff41;
+	--text-secondary: #008f11;
+	--accent-primary: #00ff41;
+	--accent-secondary: #003b00;
+	--text-on-accent: black;
+	
+	--font-ui: 'IBM Plex Mono', monospace;
+	--font-heading: 'IBM Plex Mono', monospace;
+	--radius-m: 0px;
+	--border-w: 1px;
+	--bg-texture: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+	--bg-texture-size: 100% 2px, 3px 100%;
+}
+
 /* Pour tout les p, hN, span etc empecher la selection de texte */
 * {
 	user-select: none;
@@ -392,8 +485,11 @@
 
 body {
 	background-color: var(--bg-primary);
+	background-image: var(--bg-texture);
+	background-size: var(--bg-texture-size, auto);
 	color: var(--text-primary);
-	font-family: 'Inter', sans-serif;
+	font-family: var(--font-ui);
+	transition: background-color var(--transition-speed) var(--transition-timing);
 }
 
 .modal-wrapper {
@@ -403,7 +499,7 @@ body {
 	left: 0;
 	width: 100vw;
 	height: 100vh;
-	backdrop-filter: blur(8px);
+	backdrop-filter: blur(var(--surface-blur));
 	z-index: 999;
 	display: flex;
 	justify-content: center;
@@ -412,13 +508,14 @@ body {
 
 .btn {
 	background-color: var(--bg-secondary);
-	border: 1px solid var(--border-color);
+	border: var(--border-w) solid var(--border-color);
 	color: var(--text-secondary);
-	border-radius: 0.375rem;
+	border-radius: var(--radius-m);
 	transition:
-		background-color 0.2s ease,
-		color 0.2s ease,
-		border-color 0.2s ease;
+		background-color var(--transition-speed) var(--transition-timing),
+		color var(--transition-speed) var(--transition-timing),
+		border-color var(--transition-speed) var(--transition-timing),
+		scale var(--transition-speed) var(--transition-timing);
 }
 
 button {
@@ -436,9 +533,9 @@ button {
 	background-color: var(--accent-primary);
 	border-color: var(--accent-primary);
 	color: var(--text-on-accent);
-	border: 1px solid rgba(0,0,0,0.1);
-	border-radius: 0.375rem;
-	transition: scale 0.2s ease;
+	border: var(--border-w) solid rgba(0,0,0,0.1);
+	border-radius: var(--radius-m);
+	transition: scale var(--transition-speed) var(--transition-timing);
 	outline: none;
 }
 
@@ -454,27 +551,27 @@ button {
 input[type='text'] {
 	background-color: var(--bg-secondary);
 	color: var(--text-primary);
-	border: 1px solid var(--border-color);
-	border-radius: 0.5rem;
+	border: var(--border-w) solid var(--border-color);
+	border-radius: var(--radius-l);
 	padding: 0.5rem 1rem 0.5rem 0.5rem;
 	font-size: 0.875rem;
 	outline: none;
 	transition:
-		border-color 0.2s ease,
-		box-shadow 0.2s ease;
+		border-color var(--transition-speed) var(--transition-timing),
+		box-shadow var(--transition-speed) var(--transition-timing);
 }
 
 textarea {
 	background-color: var(--bg-secondary);
 	color: var(--text-primary);
-	border: 1px solid var(--border-color);
-	border-radius: 0.5rem;
+	border: var(--border-w) solid var(--border-color);
+	border-radius: var(--radius-l);
 	padding: 0.5rem 1rem 0.5rem 0.5rem;
 	font-size: 0.875rem;
 	outline: none;
 	transition:
-		border-color 0.2s ease,
-		box-shadow 0.2s ease;
+		border-color var(--transition-speed) var(--transition-timing),
+		box-shadow var(--transition-speed) var(--transition-timing);
 	resize: vertical;
 	min-height: 3rem;
 	max-height: 20rem;
@@ -504,9 +601,9 @@ input[type='range'] {
 	width: 100%;
 	height: 0.7rem;
 	background: #838383;
-	border-radius: 0.25rem;
+	border-radius: var(--radius-m);
 	outline: none;
-	border: solid 1px var(--border-color);
+	border: solid var(--border-w) var(--border-color);
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -535,7 +632,7 @@ input[type='checkbox'] {
 	background-color: var(--bg-secondary);
 	color: var(--accent-primary);
 	border: 1.5px solid var(--accent-primary);
-	border-radius: 0.25rem;
+	border-radius: var(--radius-m);
 	width: 1.1rem;
 	height: 1.1rem;
 	outline: none;
@@ -663,10 +760,11 @@ input[type='time'] {
 }
 
 select {
-	@apply border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent hover:border-[var(--accent-primary)] transition-all duration-200;
+	@apply border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent hover:border-[var(--accent-primary)] transition-all duration-200;
 	background-color: var(--bg-accent);
 	color: var(--text-primary);
-	border: 1px solid var(--border-color);
+	border: var(--border-w) solid var(--border-color);
+	border-radius: var(--radius-l);
 }
 
 /* Highlight animation for scroll-to-element */

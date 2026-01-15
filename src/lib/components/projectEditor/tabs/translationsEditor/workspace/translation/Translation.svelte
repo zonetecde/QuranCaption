@@ -199,8 +199,8 @@
 					<span class="text-xs text-secondary font-medium">Status:</span>
 					<div
 						class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 {isCompleted
-							? 'bg-green-900/20 text-green-400 border border-green-800/30 hover:bg-green-900/30'
-							: 'bg-orange-900/20 text-orange-400 border border-orange-800/30 hover:bg-orange-900/30'}"
+							? 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30 hover:bg-green-500/30'
+							: 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 hover:bg-orange-500/30'}"
 					>
 						<div
 							class="w-1.5 h-1.5 rounded-full {isCompleted ? 'bg-green-500' : 'bg-orange-500'}"
@@ -254,7 +254,7 @@
 							: ''}
 						{isSelected
 							? // Effet jaune si le mot est sélectionné alors que pourtant il ne devrait pas comme c'est la suite de la traduction du verset précédent
-								`translation-word-selected ${isPreviousSubtitleTranslation ? 'bg-purple-500/30! border-purple-400/70! hover:bg-purple-500/80! hover:border-purple-400/80!' : ''} text-white ${
+								`translation-word-selected ${isPreviousSubtitleTranslation ? 'bg-purple-500/30! border-purple-400/70! hover:bg-purple-500/80! hover:border-purple-400/80!' : ''} text-[var(--text-on-selected-word)] ${
 									isSingleSelected
 										? 'translation-word-first-selected translation-word-last-selected'
 										: isLastSelected
@@ -374,6 +374,7 @@
 
 	.translation-word-selected:hover {
 		background: var(--bg-accent);
+		color: var(--text-primary);
 		z-index: 10;
 		position: relative;
 	}

@@ -21,6 +21,28 @@
 	onMount(() => {
 		initializeClassRegistry();
 	});
+
+	$effect(() => {
+		if (!browser) return;
+		const settings = globalState.settings;
+		const theme = settings?.persistentUiState?.theme || 'default';
+		console.log('--- Theme Change Detected ---');
+		console.log('Current theme value:', theme);
+		console.log('Is Settings defined:', !!settings);
+
+		// Remove any existing theme- classes
+		const currentClasses = Array.from(document.body.classList);
+		currentClasses.forEach((cls) => {
+			if (cls.startsWith('theme-')) {
+				document.body.classList.remove(cls);
+			}
+		});
+
+		// Add the new theme class if it's not 'default'
+		if (theme !== 'default') {
+			document.body.classList.add(`theme-${theme}`);
+		}
+	});
 </script>
 
 {@render children()}

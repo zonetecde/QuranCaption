@@ -70,7 +70,7 @@
 <Section icon="folder_open" name="Project Assets">
 	<div bind:this={dropZone}>
 		<button
-			class="w-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded-md text-sm mt-2 cursor-pointer transition-colors duration-200"
+			class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm mt-2 cursor-pointer transition-colors duration-200"
 			type="button"
 			onclick={addAssetButtonClick}
 		>

@@ -214,7 +214,7 @@
 		</div>
 
 		<div class="flex space-x-2">
-			<button class="btn btn-primary btn-sm flex-grow text-xs" onclick={openProjectButtonClick}
+			<button class="btn-accent flex-grow text-xs py-1" onclick={openProjectButtonClick}
 				>Open</button
 			>
 			<button

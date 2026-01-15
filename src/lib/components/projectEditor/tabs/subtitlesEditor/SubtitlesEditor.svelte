@@ -33,7 +33,7 @@
 		<VideoPreview showControls={false} />
 
 		<button
-			class="flex items-center justify-center w-8 h-8 text-white hover:bg-gray-700 rounded-full transition-colors cursor-pointer duration-200 absolute top-2 right-2 z-20 border-2"
+			class="flex items-center justify-center w-8 h-8 text-[var(--text-on-hover)] bg-accent/20 hover:bg-accent rounded-full transition-colors cursor-pointer duration-200 absolute top-2 right-2 z-20 border-2 border-color"
 			onclick={() => {
 				globalState.getVideoPreviewState.togglePlayPause();
 			}}

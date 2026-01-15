@@ -434,7 +434,7 @@
 						class="word-button flex h-fit flex-col outline-none text-center px-3 cursor-pointer
 					       transition-all border-2 duration-200 border-transparent py-3 -mx-0.5 select-none
 					       {isSelected
-							? `word-selected text-white  ${
+							? `word-selected text-[var(--text-on-selected-word)]  ${
 									isSingleSelected
 										? 'word-first-selected word-last-selected'
 										: isLastSelected

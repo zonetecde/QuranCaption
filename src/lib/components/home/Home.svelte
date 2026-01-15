@@ -202,7 +202,7 @@
 		</div>
 
 		<div placeholder="Recent projects" class="mt-8 flex justify-between items-center">
-			<h3 class="text-2xl font-semibold text-white">Recent Projects</h3>
+			<h3 class="text-2xl font-semibold text-primary">Recent Projects</h3>
 
 			<div class="flex items-center space-x-4">
 				<InputWithIcon

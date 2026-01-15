@@ -168,7 +168,9 @@
 
 <div
 	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
-		(isSelected() ? ' bg-[#6265af]/50! border-[#6265af]/40! ' : '') +
+		(isSelected()
+			? ' bg-[var(--subtitle-selection-bg)]! border-[var(--subtitle-selection-border)]! '
+			: '') +
 		(isCoverageGap() && !isSelected() ? ' ai-coverage-gap ' : '') +
 		(!isCoverageGap() && isLowConfidence() && !isSelected() ? ' ai-low-confidence ' : '') +
 		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ||
@@ -197,7 +199,9 @@
 		<div class="absolute inset-0 z-5 flex px-2 py-2">
 			<div class="w-full h-full flex flex-col justify-center items-center gap-1">
 				<p
-					class="arabic truncate text-[var(--text-primary)] leading-tight text-center min-h-5 max-w-full overflow-hidden"
+					class="arabic truncate leading-tight text-center min-h-5 max-w-full overflow-hidden"
+					class:text-[var(--text-primary)]={!isSelected()}
+					class:text-[var(--text-on-selection)]={isSelected()}
 					dir="rtl"
 				>
 					{clip.text}
@@ -207,7 +211,9 @@
 					<div class="w-full flex flex-col items-center gap-0.5 mt-1">
 						{#each Object.entries(clip.translations) as [lang, translation]}
 							<p
-								class="text-[11px] sm:text-[12px] truncate w-full text-[var(--text-secondary)] font-medium mx-auto my-auto text-center italic"
+								class="text-[11px] sm:text-[12px] truncate w-full font-medium mx-auto my-auto text-center italic"
+								class:text-[var(--text-secondary)]={!isSelected()}
+								class:text-[var(--text-on-selection)]={isSelected()}
 								title={translation.text}
 							>
 								{translation.text}

@@ -18,9 +18,7 @@
 	transition:slide
 >
 	<!-- Header -->
-	<div
-		class="bg-gradient-to-r from-accent to-bg-accent px-6 py-5 border-b border-color flex items-center justify-between gap-4"
-	>
+	<div class="bg-secondary px-6 py-5 border-b border-color flex items-center justify-between gap-4">
 		<div class="flex items-center gap-4">
 			<div
 				class="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center shadow-md"
@@ -35,7 +33,7 @@
 
 		<!-- Close btn -->
 		<button
-			class="w-10 h-10 rounded-full hover:bg-[rgba(255,255,255,0.06)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary"
+			class="w-10 h-10 rounded-full hover:bg-accent flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary"
 			onclick={() => resolve(false)}
 		>
 			<span class="material-icons text-lg">close</span>
@@ -69,8 +67,253 @@
 				<div class="space-y-4">
 					<h3 class="text-lg font-medium text-primary">Theme</h3>
 					<p class="text-sm text-thirdly">Select application theme and accent colors.</p>
-					<!-- Exemple simple de réglage : -->
-					<p>Coming soon...</p>
+
+					<div class="grid grid-cols-3 gap-4">
+						<!-- Default Theme -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings.persistentUiState.theme ===
+								'default'}
+							class:border-color={globalState.settings.persistentUiState.theme !== 'default'}
+							class:bg-accent={globalState.settings.persistentUiState.theme === 'default'}
+							onclick={() => (globalState.settings.persistentUiState.theme = 'default')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#0d1117] relative border border-white/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#161b22] border-b border-white/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-red-500/50"></div>
+									<div class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+									<div class="w-2 h-2 rounded-full bg-green-500/50"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#58a6ff] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Default</span>
+								{#if globalState.settings.persistentUiState.theme === 'default'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Blue Ocean -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'blue-ocean'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'blue-ocean'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'blue-ocean'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'blue-ocean')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#0f172a] relative border border-white/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#0f172a] border-b border-white/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#0ea5e9] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Blue Ocean</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'blue-ocean'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Orange Mechanic -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'orange-mechanic'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'orange-mechanic'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'orange-mechanic'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'orange-mechanic')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#0f172a] relative border border-white/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#1e293b] border-b border-white/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#f97316] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Orange Mechanic</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'orange-mechanic'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Blue Light Ocean -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'blue-light-ocean'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'blue-light-ocean'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme ===
+								'blue-light-ocean'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'blue-light-ocean')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#f8fafc] relative border border-black/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#ffffff] border-b border-black/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-black/10"></div>
+									<div class="w-2 h-2 rounded-full bg-black/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#0ea5e9] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-black/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Blue Light Ocean</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'blue-light-ocean'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Cyber Violet (New) -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'cyber-violet'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'cyber-violet'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'cyber-violet'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'cyber-violet')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#0b0e14] relative border border-white/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#13111c] border-b border-white/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#8b5cf6] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Cyber Violet</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'cyber-violet'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Emerald Forest (New) -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'emerald-forest'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'emerald-forest'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'emerald-forest'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'emerald-forest')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#060908] relative border border-white/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#0c120e] border-b border-white/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+									<div class="w-2 h-2 rounded-full bg-white/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#10b981] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Emerald Forest</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'emerald-forest'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Polar Ice (New) -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'polar-ice'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'polar-ice'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'polar-ice'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'polar-ice')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#f3f6f9] relative border border-black/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#ffffff] border-b border-black/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-black/10"></div>
+									<div class="w-2 h-2 rounded-full bg-black/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#6366f1] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-black/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Polar Ice</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'polar-ice'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Desert Gold (New) -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'desert-gold'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'desert-gold'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'desert-gold'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'desert-gold')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-[#fcfaf7] relative border border-black/10 shadow-sm overflow-hidden"
+							>
+								<!-- Mock UI -->
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#fffcf9] border-b border-black/5 flex items-center px-2 gap-1"
+								>
+									<div class="w-2 h-2 rounded-full bg-black/10"></div>
+									<div class="w-2 h-2 rounded-full bg-black/10"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#d4a017] opacity-80"></div>
+								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-black/10"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm">Desert Gold</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'desert-gold'}
+									<span class="material-icons text-accent-primary text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.ABOUT}
 				<About />
@@ -81,7 +324,7 @@
 	<!-- Footer -->
 	<div class="border-t border-color bg-primary px-6 py-4 flex items-center justify-end gap-3">
 		<button
-			class="px-4 py-2 rounded-md text-sm text-thirdly hover:bg-white/5 transition-colors"
+			class="px-4 py-2 rounded-md text-sm text-thirdly hover:bg-accent transition-colors"
 			onclick={() => resolve(false)}
 		>
 			Cancel

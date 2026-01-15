@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import toast from 'svelte-5-french-toast';
 
 import { Quran } from '$lib/classes/Quran';
-import { PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } from '$lib/classes';
+import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } from '$lib/classes';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
@@ -1181,8 +1181,14 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 		// If (TimingStart - Offset) < 0, that part of audio is trimmed out.
 
 		// Let's get the clip properties
-		const clipStartTime = (clipWithMetadata as any).startTime || 0;
-		const clipOffset = (clipWithMetadata as any).mediaOffset || 0; // if your clip class has 'mediaOffset' or similar
+		// clipStartTime is already defined above: let clipStartTime = ...
+		// clipOffset is already defined above: let clipOffset = ...
+		// We just need to ensure they are up to date if we needed them, but we set them when finding the clip.
+		
+		// Re-assigning them here just to be safe/clear or removing these lines if they are redundant.
+		// Since we already set them in step 1, we can just use the variables from outer scope:
+		// const clipStartTime = (targetClip as any).startTime || 0; // Already set
+		// const clipOffset = (targetClip as any).mediaOffset || 0;    // Already set
 
 		subtitleTrack.clips = [];
 		let segmentsApplied = 0;

@@ -485,6 +485,136 @@
 								{/if}
 							</div>
 						</button>
+
+						<!-- Midnight Aurora -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background-color: #050112;"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'midnight-aurora'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'midnight-aurora'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'midnight-aurora'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'midnight-aurora')}
+						>
+							<div
+								class="w-full h-24 rounded-xl bg-[#0b0224] relative border border-[#2e0d8f] shadow-lg overflow-hidden"
+							>
+								<div
+									class="absolute -top-12 -left-12 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl"
+								></div>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#050112] border-b border-[#2e0d8f] flex items-center px-2"
+								>
+									<div class="w-2 h-2 rounded-full bg-teal-500/20 mr-1"></div>
+								</div>
+								<div
+									class="absolute top-10 left-3 w-16 h-4 rounded-full bg-teal-400 shadow-[0_0_15px_rgba(45,212,191,0.4)]"
+								></div>
+								<div class="absolute top-16 left-3 w-20 h-2 rounded-full bg-white/5"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm text-[#e0f2fe]">Midnight Aurora</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'midnight-aurora'}
+									<span class="material-icons text-teal-400 text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Minimalist Zen -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background-color: #f9f9f9;"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'minimal-zen'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'minimal-zen'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'minimal-zen'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'minimal-zen')}
+						>
+							<div
+								class="w-full h-24 rounded-lg bg-white relative border border-gray-200 shadow-sm overflow-hidden"
+							>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#f9f9f9] border-b border-gray-100 flex items-center px-2"
+								>
+									<div class="w-2 h-2 rounded-full bg-gray-200 mr-1"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded-md bg-gray-900"></div>
+								<div class="absolute top-16 left-3 w-24 h-1.5 bg-gray-100"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm text-gray-900">Minimalist Zen</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'minimal-zen'}
+									<span class="material-icons text-gray-900 text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Industrial Steel -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background-color: #1e293b;"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'industrial-steel'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !==
+								'industrial-steel'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme ===
+								'industrial-steel'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'industrial-steel')}
+						>
+							<div
+								class="w-full h-24 rounded-none bg-[#0f172a] relative border border-[#475569] shadow-sm overflow-hidden"
+							>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#1e293b] border-b border-[#475569] flex items-center px-2"
+								>
+									<div class="w-1.5 h-1.5 bg-[#475569] mr-1"></div>
+									<div class="w-1.5 h-1.5 bg-[#475569]"></div>
+								</div>
+								<div class="absolute top-10 left-3 w-16 h-4 rounded-none bg-orange-500"></div>
+								<div class="absolute top-16 left-3 w-24 h-1.5 bg-[#334155]"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm text-[#f8fafc] font-mono">Industrial Steel</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'industrial-steel'}
+									<span class="material-icons text-orange-500 text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
+
+						<!-- Royal Velvet -->
+						<button
+							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
+							style="background-color: #1a0b2e;"
+							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
+								'royal-velvet'}
+							class:border-color={globalState.settings?.persistentUiState?.theme !== 'royal-velvet'}
+							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'royal-velvet'}
+							onclick={() => (globalState.settings!.persistentUiState.theme = 'royal-velvet')}
+						>
+							<div
+								class="w-full h-24 rounded-xl bg-[#241142] relative border border-[#4c2889] shadow-inner overflow-hidden"
+							>
+								<div
+									class="absolute -top-10 -right-10 w-32 h-32 bg-[#d4af37]/5 rounded-full blur-2xl"
+								></div>
+								<div
+									class="absolute top-0 left-0 w-full h-6 bg-[#1a0b2e] border-b border-[#4c2889] flex items-center px-2"
+								>
+									<div class="w-2 h-2 rounded-full bg-[#d4af37]/20 mr-1"></div>
+								</div>
+								<div
+									class="absolute top-10 left-3 w-16 h-4 rounded-lg bg-[#d4af37] shadow-lg"
+								></div>
+								<div class="absolute top-16 left-3 w-20 h-2 rounded-lg bg-[#fdf4ff]/5"></div>
+							</div>
+							<div class="flex items-center justify-between w-full">
+								<span class="font-medium text-sm text-[#fdf4ff]">Royal Velvet</span>
+								{#if globalState.settings?.persistentUiState?.theme === 'royal-velvet'}
+									<span class="material-icons text-[#d4af37] text-sm">check_circle</span>
+								{/if}
+							</div>
+						</button>
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.ABOUT}

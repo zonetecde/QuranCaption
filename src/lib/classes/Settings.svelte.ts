@@ -40,6 +40,10 @@ export default class Settings extends SerializableBase {
 			| 'oled-stealth'
 			| 'ethereal-glass'
 			| 'matrix-terminal'
+			| 'midnight-aurora'
+			| 'minimal-zen'
+			| 'industrial-steel'
+			| 'royal-velvet'
 	});
 
 	autoSegmentationSettings = $state<AutoSegmentationSettings>({

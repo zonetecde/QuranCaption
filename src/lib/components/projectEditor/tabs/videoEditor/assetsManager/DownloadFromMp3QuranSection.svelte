@@ -8,7 +8,9 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { onMount } from 'svelte';
 	import { join } from '@tauri-apps/api/path';
+	import { Mp3QuranService, type TimingReciter } from '$lib/services/Mp3QuranService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import AutoSegmentationToast from './AutoSegmentationToast.svelte';
 
 	// Types for MP3Quran API
 	type Reciter = {
@@ -28,6 +30,8 @@
 	};
 
 	let reciters: Reciter[] = $state([]);
+	let timingReciters: TimingReciter[] = $state([]);
+	let supportedReadIds: Set<number> = $state(new Set());
 	let selectedSurahId: number = $state(-1);
 	let isDownloading: boolean = $state(false);
 	let isLoadingReciters: boolean = $state(true);
@@ -47,16 +51,24 @@
 		const options: FlattenedOption[] = [];
 		for (const r of recitersList) {
 			for (const m of r.moshaf) {
+				const isSupported = supportedReadIds.has(m.id);
+				// Display Moshaf ID for verification purposes as requested
+				const prefix = isSupported ? `✨ [${m.id}] ` : '';
 				options.push({
 					reciterId: r.id,
 					moshafId: m.id,
-					label: `${r.name} - (${m.name})`,
+					label: `${prefix}${r.name} - (${m.name})`,
 					server: m.server,
 					surah_list: m.surah_list
 				});
 			}
 		}
-		return options.sort((a, b) => a.label.localeCompare(b.label));
+		// Sort by the label but ignore the prefix for the sort comparison
+		return options.sort((a, b) => {
+			const cleanA = a.label.replace(/^✨ \[\d+\] /, '');
+			const cleanB = b.label.replace(/^✨ \[\d+\] /, '');
+			return cleanA.localeCompare(cleanB);
+		});
 	}
 
 	let selectedOptionIndex: number = $state(-1); // Index in flattenedOptions
@@ -77,20 +89,17 @@
 			// Ensure Quran data is loaded for Surah names
 			await Quran.load();
 
-			const response = await fetch('https://mp3quran.net/api/v3/reciters?language=eng');
-			if (!response.ok) throw new Error('Failed to fetch reciters');
+			const [recitersData, timingRecitersData] = await Promise.all([
+				Mp3QuranService.getReciters(),
+				Mp3QuranService.getTimingReciters()
+			]);
 
-			const contentType = response.headers.get('content-type');
-			if (!contentType?.includes('application/json')) {
-				throw new Error('Invalid response format: expected JSON');
-			}
+			reciters = recitersData;
+			// The timing API returns "Reads" (Moshafs), so we map their IDs.
+			// timingRecitersData is actually a list of supported Reads.
+			timingReciters = timingRecitersData;
+			supportedReadIds = new Set(timingReciters.map((r) => r.id));
 
-			const data = await response.json();
-			if (!data.reciters || !Array.isArray(data.reciters)) {
-				throw new Error('Invalid response structure: missing or invalid reciters array');
-			}
-
-			reciters = data.reciters;
 			sortedOptions = buildSortedOptions(reciters);
 		} catch (error) {
 			console.error('Error fetching reciters:', error);
@@ -113,7 +122,9 @@
 			availableSurahs.find((s) => s.id === selectedSurahId)?.name.split(' (')[0] ??
 			`Surah ${formattedSurahId}`;
 
-		const rawBaseName = `${option.label.split(' - ')[0]} - ${surahName}`;
+		// Clean up the label to remove the icon and ID for the filename
+		const cleanLabel = option.label.replace(/^✨ \[\d+\] /, '');
+		const rawBaseName = `${cleanLabel.split(' - ')[0]} - ${surahName}`;
 		let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 		if (!sanitizedBaseName) {
 			sanitizedBaseName = `surah-${formattedSurahId}`;
@@ -127,7 +138,7 @@
 			);
 
 			toastId = toast.loading(
-				`Downloading Surah ${surahName.split('.')[1].trim()} by ${option.label.split(' - ')[0]}...`
+				`Downloading Surah ${surahName.split('.')[1].trim()} by ${cleanLabel.split(' - ')[0]}...`
 			);
 
 			const fullPath = await join(downloadPath, fileName);
@@ -137,12 +148,30 @@
 				path: fullPath
 			});
 
-			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran);
+			// Check if this moshaf (read) matches a timing-enabled read
+			const supportsTiming = supportedReadIds.has(option.moshafId);
+
+			const metadata = supportsTiming
+				? {
+						mp3Quran: {
+							reciterId: option.reciterId,
+							moshafId: option.moshafId,
+							surahId: selectedSurahId
+						}
+					}
+				: {};
+
+			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran, metadata);
 
 			toast.success('Download successful!', { id: toastId });
 
+			if (supportsTiming) {
+				// Show a persistent/longer toast strictly explaining the next step
+				toast.custom(AutoSegmentationToast as any, { duration: 8000 });
+			}
+
 			// Telemetry
-			AnalyticsService.downloadFromMP3Quran(option.label.split(' - ')[0], surahName, fileName);
+			AnalyticsService.downloadFromMP3Quran(cleanLabel.split(' - ')[0], surahName, fileName);
 		} catch (error) {
 			console.error('Download error:', error);
 			toast.error(`Error downloading: ${error}`, { id: toastId, duration: 5000 });
@@ -219,7 +248,8 @@
 		<div class="flex items-start gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
 			<span class="material-icons text-sm text-green-400 mt-0.5">verified</span>
 			<p class="text-xs text-green-300 leading-relaxed">
-				High quality MP3s provided by mp3quran.net API.
+				Reciters marked with <strong>✨</strong> supports
+				<span class="font-bold">Native Auto-Segmentation</span> (Official Timing).
 			</p>
 		</div>
 	</div>

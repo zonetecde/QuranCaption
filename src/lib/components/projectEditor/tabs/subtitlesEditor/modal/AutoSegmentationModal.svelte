@@ -14,6 +14,7 @@
 		type SegmentationMode,
 		type LocalSegmentationStatus
 	} from '$lib/services/AutoSegmentation';
+	import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let { close } = $props();

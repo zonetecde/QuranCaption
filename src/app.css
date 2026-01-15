@@ -72,6 +72,7 @@
 	--subtitle-selection-border: rgba(98, 101, 175, 0.4);
 	--text-on-selection: white;
 	--text-on-selected-word: white;
+	--text-on-accent: white;
 
 	/* Timeline specific colors */
 	--timeline-bg-primary: #0d1117;
@@ -108,6 +109,7 @@
 	--subtitle-selection-bg: rgba(14, 165, 233, 0.5);
 	--subtitle-selection-border: rgba(14, 165, 233, 0.4);
 	--bg-titlebar: #0f172a;
+	--text-on-accent: white;
 }
 
 .theme-orange-mechanic {
@@ -122,6 +124,7 @@
 	--subtitle-selection-bg: rgba(249, 115, 22, 0.5);
 	--subtitle-selection-border: rgba(249, 115, 22, 0.4);
 	--bg-titlebar: #1e293b;
+	--text-on-accent: white;
 }
 
 .theme-blue-light-ocean {
@@ -162,6 +165,7 @@
 	--subtitle-selection-border: rgba(14, 165, 233, 0.6);
 	--text-on-selection: white;
 	--text-on-selected-word: var(--text-primary);
+	--text-on-accent: white;
 }
 
 /* --- Premium Themes --- */
@@ -187,6 +191,7 @@
 	--subtitle-selection-bg: rgba(139, 92, 246, 0.5);
 	--subtitle-selection-border: rgba(139, 92, 246, 0.4);
 	--text-on-selected-word: white;
+	--text-on-accent: white;
 }
 
 .theme-emerald-forest {
@@ -210,6 +215,7 @@
 	--subtitle-selection-bg: rgba(16, 185, 129, 0.5);
 	--subtitle-selection-border: rgba(16, 185, 129, 0.4);
 	--text-on-selected-word: white;
+	--text-on-accent: white;
 }
 
 .theme-polar-ice {
@@ -250,6 +256,7 @@
 	--subtitle-selection-border: rgba(99, 102, 241, 0.8);
 	--text-on-selection: white;
 	--text-on-selected-word: var(--text-primary);
+	--text-on-accent: white;
 }
 
 .theme-desert-gold {
@@ -290,6 +297,7 @@
 	--subtitle-selection-border: rgba(212, 160, 23, 0.8);
 	--text-on-selection: white;
 	--text-on-selected-word: var(--text-primary);
+	--text-on-accent: white;
 }
 
 .theme-crimson-ember {
@@ -313,6 +321,7 @@
 	--subtitle-selection-bg: rgba(246, 48, 73, 0.5);
 	--subtitle-selection-border: rgba(246, 48, 73, 0.4);
 	--text-on-selected-word: white;
+	--text-on-accent: white;
 }
 
 /* Pour tout les p, hN, span etc empecher la selection de texte */
@@ -426,8 +435,8 @@ button {
 .btn-accent {
 	background-color: var(--accent-primary);
 	border-color: var(--accent-primary);
-	color: black;
-	border: 1px solid black;
+	color: var(--text-on-accent);
+	border: 1px solid rgba(0,0,0,0.1);
 	border-radius: 0.375rem;
 	transition: scale 0.2s ease;
 	outline: none;

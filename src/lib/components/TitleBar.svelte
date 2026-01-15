@@ -7,6 +7,8 @@
 	import ExportMonitor from './ExportMonitor.svelte';
 	import ModalManager from './modals/ModalManager';
 	import { discordService } from '$lib/services/DiscordService';
+	import { slide, fade } from 'svelte/transition';
+	import Settings from './settings/Settings.svelte';
 
 	let showHelpPopover = $state(false);
 	let showToolsPopover = $state(false);
@@ -119,6 +121,8 @@
 			class="w-10 cursor-pointer rounded-full hover:bg-gray-700"
 			type="button"
 			onclick={ModalManager.settingsModal}
+			aria-haspopup="dialog"
+			aria-expanded={globalState.uiState.isSettingsOpen}
 		>
 			<span class="material-icons pt-2">settings</span>
 		</button>
@@ -141,6 +145,7 @@
 					<div
 						id="tools-popover"
 						class="absolute right-0 mt-2 w-56 bg-primary border border-color rounded-lg shadow-xl py-2 z-50 overflow-hidden"
+						transition:slide
 					>
 						<!-- svelte-ignore node_invalid_placement_ssr -->
 						<button
@@ -186,6 +191,7 @@
 				<div
 					id="help-popover"
 					class="absolute right-0 mt-2 w-96 bg-primary border border-color rounded-lg shadow-lg p-4 z-50 text-sm text-secondary"
+					transition:slide
 				>
 					<div class="flex items-center justify-between mb-2">
 						<h3 class="text-base font-semibold text-primary">Need Assistance?</h3>
@@ -268,6 +274,20 @@
 		</button>
 	</div>
 </header>
+
+{#if globalState.uiState.isSettingsOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="modal-wrapper"
+		transition:fade={{ duration: 200 }}
+		onclick={() => (globalState.uiState.isSettingsOpen = false)}
+	>
+		<div onclick={(e) => e.stopPropagation()}>
+			<Settings resolve={() => (globalState.uiState.isSettingsOpen = false)} />
+		</div>
+	</div>
+{/if}
 
 <!-- Export Monitor -->
 <ExportMonitor />

@@ -41,26 +41,19 @@
 			const currentIndex = subtitleTrack.clips.indexOf(clipUnderCursor);
 			targetClip =
 				direction === 'previous'
-					? subtitleTrack.getSubtitleBefore(currentIndex)
-					: subtitleTrack.getSubtitleAfter(currentIndex);
+					? subtitleTrack.getSubtitleBefore(currentIndex, true)
+					: subtitleTrack.getSubtitleAfter(currentIndex, true);
 		} else {
+			const subtitles = subtitleTrack.clips.filter(
+				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+			) as (SubtitleClip | PredefinedSubtitleClip)[];
 			const isPrevious = direction === 'previous';
-			const startIndex = isPrevious ? subtitleTrack.clips.length - 1 : 0;
-			const step = isPrevious ? -1 : 1;
-			const compare = isPrevious
-				? (clipStart: number) => clipStart < cursorPosition
-				: (clipStart: number) => clipStart > cursorPosition;
-
-			for (let i = startIndex; i >= 0 && i < subtitleTrack.clips.length; i += step) {
-				const clip = subtitleTrack.clips[i];
-				if (
-					(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
-					compare(clip.startTime)
-				) {
-					targetClip = clip as SubtitleClip | PredefinedSubtitleClip;
-					break;
-				}
-			}
+			const targetList = subtitles
+				.filter((clip) =>
+					isPrevious ? clip.startTime < cursorPosition : clip.startTime > cursorPosition
+				)
+				.sort((a, b) => (isPrevious ? b.startTime - a.startTime : a.startTime - b.startTime));
+			targetClip = targetList[0] ?? null;
 		}
 
 		if (!targetClip) return;

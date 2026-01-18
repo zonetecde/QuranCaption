@@ -543,14 +543,20 @@ export class SubtitleTrack extends Track {
 	 * @param i L'index du clip pour lequel on veut trouver le clip de sous-titre précédent.
 	 * @returns Le clip de sous-titre précédent ou null s'il n'existe pas.
 	 */
-	getSubtitleBefore(i: number): SubtitleClip | null {
+	getSubtitleBefore(i: number, allowPredefined: boolean = false): SubtitleClip | null {
 		if (i <= 0) {
 			return null;
 		}
 
 		do {
 			i--;
-		} while (i >= 0 && !(this.clips[i] instanceof SubtitleClip));
+		} while (
+			i >= 0 &&
+			!(
+				this.clips[i] instanceof SubtitleClip ||
+				(allowPredefined && this.clips[i] instanceof PredefinedSubtitleClip)
+			)
+		);
 
 		return this.clips[i] as SubtitleClip | null;
 	}
@@ -560,14 +566,20 @@ export class SubtitleTrack extends Track {
 	 * @param i L'index du clip pour lequel on veut trouver le clip de sous-titre suivant.
 	 * @returns Le clip de sous-titre suivant ou null s'il n'existe pas.
 	 */
-	getSubtitleAfter(i: number): SubtitleClip | null {
+	getSubtitleAfter(i: number, allowPredefined: boolean = false): SubtitleClip | null {
 		if (i < 0 || i >= this.clips.length - 1) {
 			return null;
 		}
 
 		do {
 			i++;
-		} while (i < this.clips.length && !(this.clips[i] instanceof SubtitleClip));
+		} while (
+			i < this.clips.length &&
+			!(
+				this.clips[i] instanceof SubtitleClip ||
+				(allowPredefined && this.clips[i] instanceof PredefinedSubtitleClip)
+			)
+		);
 
 		return this.clips[i] as SubtitleClip | null;
 	}

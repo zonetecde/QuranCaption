@@ -324,18 +324,15 @@ async fn download_from_youtube(
                 let extension = if _type == "audio" { "mp3" } else { "mp4" };
 
                 // Lire le dossier pour trouver le fichier téléchargé
-    match fs::read_dir(&download_path_buf) {
+                match fs::read_dir(&download_path_buf) {
                     Ok(entries) => {
                         for entry in entries {
                             if let Ok(entry) = entry {
                                 let path = entry.path();
                                 if let Some(ext) = path.extension() {
                                     if ext == extension {
-                                        if let Some(_filename) = path.file_name() {
-                                            let file_path = path.to_string_lossy().to_string();
-
-                                            return Ok(file_path);
-                                        }
+                                        let file_path = path.to_string_lossy().to_string();
+                                        return Ok(file_path);
                                     }
                                 }
                             }
@@ -344,6 +341,9 @@ async fn download_from_youtube(
                     }
                     Err(e) => Err(format!("Error reading directory: {}", e)),
                 }
+
+
+
             } else {
                 let stderr = String::from_utf8_lossy(&result.stderr);
                 let stdout = String::from_utf8_lossy(&result.stdout);
@@ -426,17 +426,16 @@ fn get_new_file_path(start_time: u64, asset_name: &str) -> Result<String, String
                     // If the creation date is greater than start_time, check the file name
                     if created_time > start_time {
                         let file_path = entry.path();
-                        if let Some(file_name) = file_path.file_name() {
-                            let file_name_str = file_name.to_string_lossy();
-                            let asset_name_trimmed = asset_name.trim();
+                        let file_path_str = file_path.to_string_lossy().to_string();
+                        let asset_name_trimmed = asset_name.trim();
 
-                            // Check if the file name contains the asset name
-                            if file_name_str.contains(asset_name_trimmed) {
-                                return Ok(file_path.to_string_lossy().to_string());
-                            } else {
-                                return Ok(file_path.to_string_lossy().to_string());
-                            }
+                        // Check if the file name contains the asset name
+                        if file_path_str.contains(asset_name_trimmed) {
+                            return Ok(file_path_str);
+                        } else {
+                            return Ok(file_path_str);
                         }
+
                     }
                 }
             }
@@ -454,6 +453,16 @@ fn save_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
     }
     fs::write(&path_buf, content).map_err(|e| format!("Failed to write file: {}", e))
 }
+
+#[tauri::command]
+fn save_file(location: String, content: String) -> Result<(), String> {
+    let path_buf = path_utils::normalize_output_path(&location);
+    if let Some(parent) = path_buf.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+    fs::write(&path_buf, content).map_err(|e| format!("Failed to write file: {}", e))
+}
+
 
 #[tauri::command]
 async fn download_file(url: String, path: String) -> Result<(), String> {
@@ -1908,11 +1917,13 @@ pub fn run() {
             get_duration,
             get_new_file_path,
             save_binary_file,
+            save_file,
             download_file,
             delete_file,
             move_file,
             get_system_fonts,
             open_explorer_with_file_selected,
+
             get_video_dimensions,
             exporter::export_video,
             exporter::cancel_export,

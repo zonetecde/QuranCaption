@@ -217,6 +217,7 @@
 				pause(); // Arrête la lecture
 				getTimelineSettings().cursorPosition = 1; // Revient au début (1ms pour éviter les bugs)
 				getTimelineSettings().movePreviewTo = 1; // Force la mise à jour de la prévisualisation
+				globalState.getVideoPreviewState.scrollTimelineToCursor();
 			}
 		});
 	});

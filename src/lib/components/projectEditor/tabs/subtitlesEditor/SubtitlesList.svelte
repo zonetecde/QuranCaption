@@ -8,6 +8,27 @@
 	let subtitlesListElement: HTMLDivElement | null = $state(null);
 	let lastSubtitleId = 0;
 
+	let minWordCount = $state(0);
+
+	let allClips = $derived(() => {
+		return (
+			globalState.currentProject?.content.timeline.getFirstTrack(TrackType.Subtitle)?.clips ?? []
+		);
+	});
+
+	let filteredClips = $derived(() => {
+		const clips = allClips();
+		if (minWordCount <= 0) return clips;
+
+		return clips.filter((clip) => {
+			if (clip instanceof SubtitleClip) {
+				const wordCount = clip.text.trim().split(/\s+/).length;
+				return wordCount > minWordCount;
+			}
+			return false; // Hide other clip types when filtering
+		});
+	});
+
 	// timeline settings
 	let getTimelineSettings = $derived(() => {
 		return globalState.currentProject!.projectEditorState.timeline;
@@ -65,13 +86,26 @@
 <div class="subtitles-panel z-20">
 	<div class="panel-header">
 		<h3 class="text-primary">Subtitles</h3>
-		<div class="count-badge">
-			{globalState.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips.length}
+
+		<div class="flex items-center gap-2 ml-4">
+			<span class="text-[0.65rem] text-secondary font-medium uppercase tracking-wide"
+				>Min words</span
+			>
+			<input
+				type="number"
+				class="w-14 bg-[var(--bg-accent)] border border-[var(--border-color)] rounded px-1 py-0.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+				bind:value={minWordCount}
+				min="0"
+			/>
+		</div>
+
+		<div class="count-badge ml-auto">
+			{filteredClips().length}
 		</div>
 	</div>
 
 	<div class="subtitles-list" bind:this={subtitlesListElement}>
-		{#each globalState.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips as _clip, index (_clip.id)}
+		{#each filteredClips() as _clip, index (_clip.id)}
 			{@const clip = _clip as Clip}
 			{@const subtitleClip = clip as SubtitleClip}
 			<div
@@ -88,6 +122,11 @@
 							clip.markAsManualEdit();
 						}
 						s.editSubtitle = clip;
+
+						// Synchronize timeline and video preview
+						globalState.currentProject!.projectEditorState.timeline.cursorPosition = clip.startTime;
+						globalState.currentProject!.projectEditorState.timeline.movePreviewTo = clip.startTime;
+						globalState.currentProject!.projectEditorState.videoPreview.scrollTimelineToCursor();
 					}
 				}}
 				class="subtitle-card cursor-pointer hover:border-[var(--accent-primary)] hover:bg-opacity-80! hover:-translate-y-0.5! transition-all duration-200"

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { AssetType, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { onDestroy, onMount } from 'svelte';
+	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import WaveSurfer from 'wavesurfer.js';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
@@ -36,12 +36,32 @@
 			globalState.settings?.persistentUiState.showWaveforms &&
 			track.type === TrackType.Audio
 		) {
-			const wavesurfer = WaveSurfer.create({
-				container: '#clip-' + clip.id,
-				waveColor: '#9d99cc',
-				progressColor: '#9d99cc',
-				url: file,
-				height: 'auto'
+			untrack(async () => {
+				try {
+					const peaks = await invoke<number[]>('get_audio_waveform', {
+						filePath: asset.filePath
+					});
+
+					const wavesurfer = WaveSurfer.create({
+						container: '#clip-' + clip.id,
+						waveColor: '#9d99cc',
+						progressColor: '#9d99cc',
+						url: file,
+						peaks: [peaks], // Pass peaks to avoid decoding
+						duration: asset.duration.ms / 1000,
+						height: 'auto'
+					});
+				} catch (e) {
+					console.error('Failed to load waveform:', e);
+					// Fallback to normal loading if backend fails
+					const wavesurfer = WaveSurfer.create({
+						container: '#clip-' + clip.id,
+						waveColor: '#9d99cc',
+						progressColor: '#9d99cc',
+						url: file,
+						height: 'auto'
+					});
+				}
 			});
 		}
 	});

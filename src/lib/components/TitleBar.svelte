@@ -9,6 +9,7 @@
 	import { discordService } from '$lib/services/DiscordService';
 	import { slide, fade } from 'svelte/transition';
 	import Settings from './settings/Settings.svelte';
+	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 
 	let showHelpPopover = $state(false);
 	let showToolsPopover = $state(false);
@@ -170,6 +171,18 @@
 						>
 							<span class="material-icons text-lg text-accent">content_cut</span>
 							Asset Trimmer
+						</button>
+						<!-- svelte-ignore node_invalid_placement_ssr -->
+						<button
+							class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+							onclick={(event) => {
+								event.stopPropagation();
+								showToolsPopover = false;
+								WaveformService.clearAllCache();
+							}}
+						>
+							<span class="material-icons text-lg text-accent">graphic_eq</span>
+							Regenerate Waveforms
 						</button>
 					</div>
 				{/if}

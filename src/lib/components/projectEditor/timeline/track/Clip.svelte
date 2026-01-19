@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { AssetType, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import WaveSurfer from 'wavesurfer.js';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
+	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 
 	let {
 		clip = $bindable(),
@@ -28,21 +29,27 @@
 
 	let asset = globalState.currentProject?.content.getAssetById((clip as AssetClip).assetId)!;
 	let file = $state(convertFileSrc(asset.filePath));
-	let showWaveform = $state(false);
 
+	let wavesurfer: WaveSurfer | undefined;
 	$effect(() => {
 		if (
-			(asset.duration.ms < 45 * 60 * 1000 || showWaveform) &&
+			(asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) &&
 			globalState.settings?.persistentUiState.showWaveforms &&
 			track.type === TrackType.Audio
 		) {
-			untrack(async () => {
-				try {
-					const peaks = await invoke<number[]>('get_audio_waveform', {
-						filePath: asset.filePath
-					});
+			// On dépend de refreshVersion pour forcer le recalcul si besoin
+			const _v = WaveformService.refreshVersion;
 
-					const wavesurfer = WaveSurfer.create({
+			untrack(async () => {
+				if (wavesurfer) {
+					wavesurfer.destroy();
+					wavesurfer = undefined;
+				}
+
+				try {
+					const peaks = await WaveformService.getPeaks(asset.filePath);
+
+					wavesurfer = WaveSurfer.create({
 						container: '#clip-' + clip.id,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
@@ -54,7 +61,7 @@
 				} catch (e) {
 					console.error('Failed to load waveform:', e);
 					// Fallback to normal loading if backend fails
-					const wavesurfer = WaveSurfer.create({
+					wavesurfer = WaveSurfer.create({
 						container: '#clip-' + clip.id,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
@@ -64,6 +71,13 @@
 				}
 			});
 		}
+
+		return () => {
+			if (wavesurfer) {
+				wavesurfer.destroy();
+				wavesurfer = undefined;
+			}
+		};
 	});
 
 	function removeClip() {
@@ -85,10 +99,10 @@
 		contextMenu!.show(e);
 	}}
 >
-	{#if (asset.duration.ms < 45 * 60 * 1000 || showWaveform) && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
+	{#if (asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
 		<div class="h-full w-full" id={'clip-' + clip.id}></div>
 	{:else if asset.duration.ms >= 45 * 60 * 1000 && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
-		<div class="h-full w-full" onclick={() => (showWaveform = true)}>
+		<div class="h-full w-full" onclick={() => (clip.showWaveform = true)}>
 			Click to generate waveform (disabled by default for long audio to save memory)
 		</div>
 	{:else}

@@ -1942,6 +1942,9 @@ pub fn run() {
             close_discord_rpc
         ])
         .setup(|app| {
+            if let Ok(resource_dir) = app.path().resource_dir() {
+                binaries::init_resource_dir(resource_dir);
+            }
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()

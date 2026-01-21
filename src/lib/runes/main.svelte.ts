@@ -43,11 +43,11 @@ class GlobalState {
 	uiState = $state({
 		// Indique si on affiche le moniteur d'exportation
 		showExportMonitor: false,
+		isSettingsOpen: false,
 		selectedStatuses: Status.getAllStatuses(),
 		filteredProjects: [] as ProjectDetail[],
 		searchQuery: '',
-		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'about',
-		isSettingsOpen: false
+		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'about'
 	});
 
 	get getSubtitleTrack() {

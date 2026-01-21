@@ -105,7 +105,7 @@
 				/>
 				<button
 					onclick={validateSearchQuery}
-					class="flex items-center border border-color border-r-0 px-1 hover:bg-blue-300/20"
+					class="flex items-center border border-color border-r-0 px-1 hover:bg-accent"
 				>
 					<span class="material-icons">search</span>
 				</button>
@@ -114,7 +114,7 @@
 						localSearchQuery = '';
 						validateSearchQuery();
 					}}
-					class="flex items-center border border-color rounded-r-lg px-1 hover:bg-blue-300/20"
+					class="flex items-center border border-color rounded-r-lg px-1 hover:bg-accent"
 				>
 					<span class="material-icons">clear</span>
 				</button>
@@ -132,7 +132,7 @@
 								type="checkbox"
 								id="filter-checkbox-{filter}"
 								bind:checked={globalState.getTranslationsState.filters[filter]}
-								class="w-4 h-4 rounded transition-all duration-200 focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 focus:ring-offset-bg-accent"
+								class="w-4 h-4 rounded transition-all duration-200 focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-accent)]"
 							/>
 							<span class="text-sm text-secondary font-medium capitalize">
 								{filter.replace(/([a-z])([A-Z])/g, '$1 $2')}

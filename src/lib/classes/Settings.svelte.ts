@@ -25,7 +25,17 @@ export default class Settings extends SerializableBase {
 		projectCardView: 'grid' as 'grid' | 'list',
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
-		videoExportFolder: ''
+		videoExportFolder: '',
+		theme: 'default' as
+			| 'default'
+			| 'emerald-forest'
+			| 'polar-ice'
+			| 'desert-gold'
+			| 'vintage-paper'
+			| 'oled-stealth'
+			| 'ethereal-glass'
+			| 'minimal-zen'
+			| 'industrial-steel'
 	});
 
 	autoSegmentationSettings = $state<AutoSegmentationSettings>({

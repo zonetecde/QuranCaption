@@ -90,7 +90,7 @@
 						s.editSubtitle = clip;
 					}
 				}}
-				class="subtitle-card cursor-pointer hover:border-blue-500 hover:bg-opacity-80! hover:-translate-y-0.5! transition-all duration-200"
+				class="subtitle-card cursor-pointer hover:border-[var(--accent-primary)] hover:bg-opacity-80! hover:-translate-y-0.5! transition-all duration-200"
 				class:silence={subtitleClip.type === 'Silence'}
 				class:predefined={subtitleClip.type === 'Pre-defined Subtitle'}
 				class:selected={globalState.currentProject!.projectEditorState.subtitlesEditor.editSubtitle

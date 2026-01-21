@@ -96,7 +96,7 @@
 			}}
 		>
 			<img class="text-indigo-400 w-8 pb-0.25" alt="Logo" src="favicon.png" />
-			<h1 class="text-lg font-semibold text-gray-100 pt-0.75">Quran Caption</h1>
+			<h1 class="text-lg font-semibold text-primary pt-0.75">Quran Caption</h1>
 		</button>
 		{#if globalState.currentProject}
 			<button
@@ -116,7 +116,7 @@
 	</div>
 	<div class="flex items-center space-x-2">
 		<button
-			class="w-10 cursor-pointer rounded-full hover:bg-gray-700"
+			class="w-10 cursor-pointer rounded-full hover:bg-accent"
 			type="button"
 			onclick={ModalManager.settingsModal}
 		>
@@ -246,14 +246,14 @@
 			{/if}
 		</button>
 		<button
-			class="w-10 cursor-pointer rounded-full hover:bg-gray-700"
+			class="w-10 cursor-pointer rounded-full hover:bg-accent"
 			type="button"
 			onclick={minimizeButtonClick}
 		>
 			<span class="material-icons pt-2">minimize</span>
 		</button>
 		<button
-			class="w-10 cursor-pointer rounded-full hover:bg-gray-700"
+			class="w-10 cursor-pointer rounded-full hover:bg-accent"
 			type="button"
 			onclick={maximalizeButtonClick}
 		>

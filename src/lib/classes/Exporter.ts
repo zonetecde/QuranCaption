@@ -1,6 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
+import { LogicalPosition } from '@tauri-apps/api/dpi';
 import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
@@ -10,6 +10,7 @@ import { BaseDirectory, join } from '@tauri-apps/api/path';
 import { remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
+import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 
 export default class Exporter {
 	/**
@@ -210,6 +211,7 @@ export default class Exporter {
 
 		// Créer une fenêtre Tauri avec la bonne taille
 		const w = new WebviewWindow(exportId, {
+			center: false,
 			decorations: false,
 			visible: true,
 			focus: false,
@@ -217,10 +219,19 @@ export default class Exporter {
 			preventOverflow: false,
 			x: -10000,
 			y: -10000,
-			backgroundThrottling: BackgroundThrottlingPolicy.Disabled,
+			backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
 			alwaysOnTop: false,
+			alwaysOnBottom: true,
 			title: 'QC - ' + exportId,
 			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
+		});
+
+		w.once('tauri://created', async () => {
+			try {
+				await w.setPosition(new LogicalPosition(-10000, -10000));
+			} catch (error) {
+				console.warn('Unable to move export window off-screen:', error);
+			}
 		});
 
 		// listen  to close

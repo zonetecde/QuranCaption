@@ -1,5 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
@@ -210,7 +211,13 @@ export default class Exporter {
 		// Créer une fenêtre Tauri avec la bonne taille
 		const w = new WebviewWindow(exportId, {
 			decorations: false,
-			visible: false,
+			visible: true,
+			focus: false,
+			skipTaskbar: true,
+			preventOverflow: false,
+			x: -10000,
+			y: -10000,
+			backgroundThrottling: BackgroundThrottlingPolicy.Disabled,
 			alwaysOnTop: false,
 			title: 'QC - ' + exportId,
 			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer

@@ -3,6 +3,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import ExportFolderPicker from './ExportFolderPicker.svelte';
 
 	onMount(() => {
 		for (const target of [
@@ -201,6 +202,14 @@
 					{/if}
 				</div>
 			{/each}
+		</div>
+	</div>
+
+	<!-- Export Folder -->
+	<div class="mb-6">
+		<h4 class="text-base font-medium text-secondary mb-3">Export Folder</h4>
+		<div class="bg-accent rounded-lg p-4 border border-color">
+			<ExportFolderPicker />
 		</div>
 	</div>
 

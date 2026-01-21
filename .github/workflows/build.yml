@@ -131,6 +131,9 @@ jobs:
 
       - name: Build the app
         run: npm run tauri build --verbose
+        env:
+          PUBLIC_POSTHOG_KEY: ${{ secrets.PUBLIC_POSTHOG_KEY }}
+          PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
         timeout-minutes: 45
 
       - name: Upload macOS DMG

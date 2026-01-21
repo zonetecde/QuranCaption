@@ -1,6 +1,5 @@
-﻿import { globalState } from '$lib/runes/main.svelte';
+import { globalState } from '$lib/runes/main.svelte';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { currentMonitor } from '@tauri-apps/api/window';
 import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
@@ -9,12 +8,13 @@ import ExportService from '$lib/services/ExportService';
 import { BaseDirectory, join } from '@tauri-apps/api/path';
 import { remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
+import ExportFileService from '$lib/services/ExportFileService';
 
 export default class Exporter {
 	/**
 	 * Exporte le projet sous forme de sous-titres
 	 */
-	static exportSubtitles() {
+	static async exportSubtitles() {
 		const es = globalState.getExportState;
 
 		const settings = {
@@ -73,17 +73,11 @@ export default class Exporter {
 			subtitles.length
 		);
 
-		// Téléchargez le fichier
-		const blob = new Blob([fileContent], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `qurancaption_subtitles_${globalState.currentProject!.detail.name}.${settings.format.toLowerCase()}`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
+		const projectName = ExportFileService.getProjectNameForFile();
+		const fileName = `qurancaption_subtitles_${projectName}.${settings.format.toLowerCase()}`;
+		await ExportFileService.saveTextFile(fileName, fileContent);
 	}
-	static exportProjectData() {
+	static async exportProjectData() {
 		const projectData = globalState.currentProject;
 
 		if (!projectData) {
@@ -92,16 +86,11 @@ export default class Exporter {
 		}
 
 		const json = JSON.stringify(projectData, null, 2);
-		const blob = new Blob([json], { type: 'application/json' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `qurancaption_project_${projectData.detail.name}.json`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
+		const projectName = ExportFileService.getProjectNameForFile();
+		const fileName = `qurancaption_project_${projectName}.json`;
+		await ExportFileService.saveTextFile(fileName, json);
 	}
-	static exportYtbChapters() {
+	static async exportYtbChapters() {
 		const choice = globalState.getExportState.ytbChaptersChoice;
 		const subtitlesClips: SubtitleClip[] = globalState.getSubtitleClips;
 		const exportStart = globalState.getExportState.videoStartTime || 0;
@@ -174,15 +163,9 @@ export default class Exporter {
 
 		AnalyticsService.trackYtbChaptersExport(choice, chapters.length, exportStart, exportEnd);
 
-		// Télécharge le fichier
-		const blob = new Blob([fileContent], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `qurancaption_chapters_${globalState.currentProject!.detail.name}.txt`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
+		const projectName = ExportFileService.getProjectNameForFile();
+		const fileName = `qurancaption_chapters_${projectName}.txt`;
+		await ExportFileService.saveTextFile(fileName, fileContent);
 	}
 	/**
 	 * Convertit le temps en millisecondes au format YouTube (MM:SS ou HH:MM:SS)

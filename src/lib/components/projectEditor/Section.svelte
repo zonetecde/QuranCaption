@@ -49,11 +49,11 @@
 
 <div class="flex flex-col gap-2" data-category={dataCategory}>
 	<div class={'flex ' + classes} onclick={() => (extended = !extended)}>
-		<h3 class="text-sm font-semibold text-gray-100 flex items-center truncate">
+		<h3 class="text-sm font-semibold text-primary flex items-center truncate">
 			{#if icon.includes('png') || icon.includes('svg')}
 				<img src={icon} alt={name} class="w-6 h-6 mr-2" /><span class="truncate">{name}</span>
 			{:else}
-				<span class="material-icons mr-2 text-lg text-indigo-400">{icon}</span><span
+				<span class="material-icons mr-2 text-lg text-accent-primary">{icon}</span><span
 					class="truncate">{name}</span
 				>
 			{/if}
@@ -63,7 +63,7 @@
 			class={'flex items-center ml-auto cursor-pointer transition-all duration-100 ' +
 				(extended ? 'rotate-180' : '')}
 		>
-			<span class="material-icons text-4xl! text-indigo-400">arrow_drop_down</span>
+			<span class="material-icons text-4xl! text-accent-primary">arrow_drop_down</span>
 		</button>
 	</div>
 

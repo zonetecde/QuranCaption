@@ -148,11 +148,13 @@
 		</div>
 		<div class="flex-1 min-w-0">
 			<p
-				class="text-sm font-semibold text-primary truncate group-hover:text-white transition-colors duration-300"
+				class="text-sm font-semibold text-primary truncate group-hover:text-[var(--text-on-hover)] transition-colors duration-300"
 			>
 				{asset.fileName}
 			</p>
-			<p class="text-xs text-thirdly mt-1 group-hover:text-gray-300 transition-colors duration-300">
+			<p
+				class="text-xs text-thirdly mt-1 group-hover:text-[var(--text-secondary-on-hover)] transition-colors duration-300"
+			>
 				{asset.type.charAt(0).toUpperCase() + asset.type.slice(1)} Asset
 			</p>
 		</div>
@@ -345,6 +347,3 @@
 		</div>
 	{/if}
 </div>
-
-
-

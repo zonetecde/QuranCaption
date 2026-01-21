@@ -22,13 +22,11 @@
 		initializeClassRegistry();
 	});
 
+	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');
+
 	$effect(() => {
 		if (!browser) return;
-		const settings = globalState.settings;
-		const theme = settings?.persistentUiState?.theme || 'default';
-		console.log('--- Theme Change Detected ---');
-		console.log('Current theme value:', theme);
-		console.log('Is Settings defined:', !!settings);
+		const theme = currentTheme;
 
 		// Remove any existing theme- classes
 		const currentClasses = Array.from(document.body.classList);

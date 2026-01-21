@@ -5,12 +5,89 @@
 	import ShortcutsManager from './ShortcutsManager.svelte';
 	import { onMount } from 'svelte';
 	import About from './About.svelte';
+	import ThemeButton from './ThemeButton.svelte';
+	import type { ThemeConfig } from './ThemeButton.svelte';
 
 	let {
 		resolve
 	}: {
 		resolve: (result: boolean) => void;
 	} = $props();
+
+	const themes: ThemeConfig[] = [
+		{
+			id: 'default',
+			name: 'Default',
+			mockBg: '#0d1117',
+			mockTitlebar: '#161b22',
+			mockAccent: '#58a6ff',
+			mockDots: 'rgba(255,255,255,0.3)'
+		},
+		{
+			id: 'emerald-forest',
+			name: 'Emerald Forest',
+			mockBg: '#060908',
+			mockTitlebar: '#0c120e',
+			mockAccent: '#10b981'
+		},
+		{
+			id: 'polar-ice',
+			name: 'Polar Ice',
+			mockBg: '#f3f6f9',
+			mockTitlebar: '#ffffff',
+			mockAccent: '#6366f1',
+			mockDots: 'rgba(0,0,0,0.1)',
+			mockText: 'rgba(0,0,0,0.1)'
+		},
+		{
+			id: 'desert-gold',
+			name: 'Desert Gold',
+			mockBg: '#f4ecd8',
+			mockTitlebar: '#e4d8b9',
+			mockAccent: '#d4a017',
+			mockDots: 'rgba(0,0,0,0.2)',
+			mockText: 'rgba(0,0,0,0.2)'
+		},
+		{
+			id: 'vintage-paper',
+			name: 'Vintage Paper',
+			mockBg: '#f4ecd8',
+			mockTitlebar: '#e4d8b9',
+			mockAccent: '#8b4513',
+			mockDots: 'rgba(0,0,0,0.2)',
+			mockText: 'rgba(0,0,0,0.2)'
+		},
+		{
+			id: 'oled-stealth',
+			name: 'OLED Stealth',
+			mockBg: '#000000',
+			mockAccent: '#00ff41',
+			mockDots: 'rgba(255,255,255,0.2)'
+		},
+		{
+			id: 'ethereal-glass',
+			name: 'Ethereal Glass',
+			mockBg: 'rgba(15, 23, 42, 0.8)',
+			mockAccent: '#ec4899',
+			mockDots: 'rgba(255,255,255,0.2)',
+			specialStyle: 'backdrop-filter: blur(16px);'
+		},
+		{
+			id: 'minimal-zen',
+			name: 'Minimalist Zen',
+			mockBg: '#f9f9f9',
+			mockAccent: '#111827',
+			mockDots: 'rgba(0,0,0,0.1)',
+			mockText: 'rgba(0,0,0,0.1)'
+		},
+		{
+			id: 'industrial-steel',
+			name: 'Industrial Steel',
+			mockBg: '#1e293b',
+			mockAccent: '#f97316',
+			mockDots: 'rgba(255,255,255,0.2)'
+		}
+	];
 </script>
 
 <div
@@ -63,558 +140,15 @@
 			{#if globalState.uiState.settingsTab === SettingsTab.SHORTCUTS}
 				<ShortcutsManager />
 			{:else if globalState.uiState.settingsTab === SettingsTab.THEME}
-				<!-- Simple theme placeholder, keep it épuré. -->
+				<!-- Theme Selection -->
 				<div class="space-y-4">
 					<h3 class="text-lg font-medium text-primary">Theme</h3>
 					<p class="text-sm text-thirdly">Select application theme and accent colors.</p>
 
 					<div class="grid grid-cols-3 gap-4">
-						<!-- Default Theme -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'default'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'default'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'default'}
-							onclick={() => {
-								console.log('Switching to Default');
-								if (globalState.settings) globalState.settings.persistentUiState.theme = 'default';
-							}}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#0d1117] relative border border-white/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#161b22] border-b border-white/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-red-500/50"></div>
-									<div class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
-									<div class="w-2 h-2 rounded-full bg-green-500/50"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#58a6ff] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Default</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'default'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Blue Ocean -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'blue-ocean'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'blue-ocean'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'blue-ocean'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'blue-ocean')}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#0f172a] relative border border-white/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#0f172a] border-b border-white/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#0ea5e9] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Blue Ocean</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'blue-ocean'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Orange Mechanic -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'orange-mechanic'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'orange-mechanic'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'orange-mechanic'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'orange-mechanic')}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#0f172a] relative border border-white/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#1e293b] border-b border-white/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#f97316] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Orange Mechanic</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'orange-mechanic'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Blue Light Ocean -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'blue-light-ocean'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'blue-light-ocean'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme ===
-								'blue-light-ocean'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'blue-light-ocean')}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#f8fafc] relative border border-black/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#ffffff] border-b border-black/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-black/10"></div>
-									<div class="w-2 h-2 rounded-full bg-black/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#0ea5e9] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-black/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Blue Light Ocean</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'blue-light-ocean'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Cyber Violet (New) -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'cyber-violet'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'cyber-violet'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'cyber-violet'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'cyber-violet')}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#0b0e14] relative border border-white/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#13111c] border-b border-white/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#8b5cf6] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Cyber Violet</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'cyber-violet'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Emerald Forest (New) -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'emerald-forest'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'emerald-forest'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'emerald-forest'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'emerald-forest')}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#060908] relative border border-white/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#0c120e] border-b border-white/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#10b981] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Emerald Forest</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'emerald-forest'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Polar Ice (New) -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'polar-ice'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'polar-ice'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'polar-ice'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'polar-ice')}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#f3f6f9] relative border border-black/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#ffffff] border-b border-black/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-black/10"></div>
-									<div class="w-2 h-2 rounded-full bg-black/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#6366f1] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-black/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Polar Ice</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'polar-ice'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Desert Gold -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'desert-gold'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'desert-gold'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'desert-gold'}
-							onclick={() => {
-								console.log('Switching to Desert Gold');
-								if (globalState.settings)
-									globalState.settings.persistentUiState.theme = 'desert-gold';
-							}}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#fcfaf7] relative border border-black/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#fffcf9] border-b border-black/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-black/10"></div>
-									<div class="w-2 h-2 rounded-full bg-black/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#d4a017] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-black/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Desert Gold</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'desert-gold'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Crimson Ember -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'crimson-ember'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'crimson-ember'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'crimson-ember'}
-							onclick={() => {
-								console.log('Switching to Crimson Ember');
-								if (globalState.settings)
-									globalState.settings.persistentUiState.theme = 'crimson-ember';
-							}}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-[#0f0f12] relative border border-white/10 shadow-sm overflow-hidden"
-							>
-								<!-- Mock UI -->
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#16161d] border-b border-white/5 flex items-center px-2 gap-1"
-								>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-									<div class="w-2 h-2 rounded-full bg-white/10"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded bg-[#f63049] opacity-80"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 rounded bg-white/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm">Crimson Ember</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'crimson-ember'}
-									<span class="material-icons text-accent-primary text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Vintage Paper -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background-color: #f4ecd8;"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'vintage-paper'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'vintage-paper'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'vintage-paper'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'vintage-paper')}
-						>
-							<div
-								class="w-full h-24 rounded-sm bg-[#ece2c6] relative border border-[#c4b494] shadow-sm overflow-hidden"
-								style="background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');"
-							>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#e4d8b9] border-b border-[#c4b494] flex items-center px-2"
-								>
-									<div class="w-2 h-2 rounded-full bg-[#3d3420]/20 mr-1"></div>
-									<div class="w-2 h-2 rounded-full bg-[#3d3420]/20"></div>
-								</div>
-								<div
-									class="absolute top-10 left-3 w-16 h-4 rounded-sm bg-[#8b4513] opacity-80"
-								></div>
-								<div class="absolute top-16 left-3 w-20 h-1.5 bg-[#3d3420]/30"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm !text-[#3d3420]">Vintage Paper</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'vintage-paper'}
-									<span class="material-icons text-[#8b4513] text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- OLED Stealth -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background-color: #000000;"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'oled-stealth'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'oled-stealth'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'oled-stealth'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'oled-stealth')}
-						>
-							<div
-								class="w-full h-24 rounded-none bg-black relative border border-[#222222] shadow-sm overflow-hidden"
-							>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-black border-b border-[#222222] flex items-center px-2"
-								>
-									<div class="w-2 h-2 rounded-none bg-[#222222] mr-1"></div>
-									<div class="w-2 h-2 rounded-none bg-[#222222]"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded-none bg-[#00ff41]"></div>
-								<div class="absolute top-16 left-3 w-24 h-1.5 bg-[#333333]"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm text-white">OLED Stealth</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'oled-stealth'}
-									<span class="material-icons text-[#00ff41] text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Ethereal Glass -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background: linear-gradient(135deg, #1e293b, #0f172a);"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'ethereal-glass'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'ethereal-glass'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'ethereal-glass'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'ethereal-glass')}
-						>
-							<div
-								class="w-full h-24 rounded-2xl bg-white/5 backdrop-blur-md relative border border-white/10 shadow-xl overflow-hidden"
-							>
-								<div
-									class="absolute -top-10 -right-10 w-24 h-24 bg-pink-500/20 rounded-full blur-2xl"
-								></div>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-white/5 border-b border-white/5 flex items-center px-2"
-								>
-									<div class="w-2 h-2 rounded-full bg-white/20 mr-1"></div>
-								</div>
-								<div
-									class="absolute top-10 left-3 w-16 h-4 rounded-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.5)]"
-								></div>
-								<div class="absolute top-16 left-3 w-20 h-2 rounded-full bg-white/10"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm text-white">Ethereal Glass</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'ethereal-glass'}
-									<span class="material-icons text-pink-500 text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Matrix Terminal -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background-color: #000000;"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'matrix-terminal'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'matrix-terminal'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'matrix-terminal'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'matrix-terminal')}
-						>
-							<div
-								class="w-full h-24 rounded-none bg-black relative border border-[#003b00] shadow-sm overflow-hidden"
-								style="background-image: linear-gradient(rgba(0, 59, 0, 0.1) 1px, transparent 1px); background-size: 100% 3px;"
-							>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-black border-b border-[#003b00] flex items-center px-2"
-								>
-									<span class="text-[8px] text-[#00ff41] font-mono">root@system:~#</span>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 bg-[#00ff41] opacity-60"></div>
-								<div class="absolute top-16 left-3 w-24 h-2 border border-[#00ff41]/30"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm text-[#00ff41] font-mono">Matrix/Terminal</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'matrix-terminal'}
-									<span class="material-icons text-[#00ff41] text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Midnight Aurora -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background-color: #050112;"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'midnight-aurora'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'midnight-aurora'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'midnight-aurora'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'midnight-aurora')}
-						>
-							<div
-								class="w-full h-24 rounded-xl bg-[#0b0224] relative border border-[#2e0d8f] shadow-lg overflow-hidden"
-							>
-								<div
-									class="absolute -top-12 -left-12 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl"
-								></div>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#050112] border-b border-[#2e0d8f] flex items-center px-2"
-								>
-									<div class="w-2 h-2 rounded-full bg-teal-500/20 mr-1"></div>
-								</div>
-								<div
-									class="absolute top-10 left-3 w-16 h-4 rounded-full bg-teal-400 shadow-[0_0_15px_rgba(45,212,191,0.4)]"
-								></div>
-								<div class="absolute top-16 left-3 w-20 h-2 rounded-full bg-white/5"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm text-[#e0f2fe]">Midnight Aurora</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'midnight-aurora'}
-									<span class="material-icons text-teal-400 text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Minimalist Zen -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background-color: #f9f9f9;"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'minimal-zen'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'minimal-zen'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'minimal-zen'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'minimal-zen')}
-						>
-							<div
-								class="w-full h-24 rounded-lg bg-white relative border border-gray-200 shadow-sm overflow-hidden"
-							>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#f9f9f9] border-b border-gray-100 flex items-center px-2"
-								>
-									<div class="w-2 h-2 rounded-full bg-gray-200 mr-1"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded-md bg-gray-900"></div>
-								<div class="absolute top-16 left-3 w-24 h-1.5 bg-gray-100"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm text-gray-900">Minimalist Zen</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'minimal-zen'}
-									<span class="material-icons text-gray-900 text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Industrial Steel -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background-color: #1e293b;"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'industrial-steel'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !==
-								'industrial-steel'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme ===
-								'industrial-steel'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'industrial-steel')}
-						>
-							<div
-								class="w-full h-24 rounded-none bg-[#0f172a] relative border border-[#475569] shadow-sm overflow-hidden"
-							>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#1e293b] border-b border-[#475569] flex items-center px-2"
-								>
-									<div class="w-1.5 h-1.5 bg-[#475569] mr-1"></div>
-									<div class="w-1.5 h-1.5 bg-[#475569]"></div>
-								</div>
-								<div class="absolute top-10 left-3 w-16 h-4 rounded-none bg-orange-500"></div>
-								<div class="absolute top-16 left-3 w-24 h-1.5 bg-[#334155]"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm text-[#f8fafc] font-mono">Industrial Steel</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'industrial-steel'}
-									<span class="material-icons text-orange-500 text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
-
-						<!-- Royal Velvet -->
-						<button
-							class="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all relative overflow-hidden group"
-							style="background-color: #1a0b2e;"
-							class:border-accent-primary={globalState.settings?.persistentUiState?.theme ===
-								'royal-velvet'}
-							class:border-color={globalState.settings?.persistentUiState?.theme !== 'royal-velvet'}
-							class:bg-accent={globalState.settings?.persistentUiState?.theme === 'royal-velvet'}
-							onclick={() => (globalState.settings!.persistentUiState.theme = 'royal-velvet')}
-						>
-							<div
-								class="w-full h-24 rounded-xl bg-[#241142] relative border border-[#4c2889] shadow-inner overflow-hidden"
-							>
-								<div
-									class="absolute -top-10 -right-10 w-32 h-32 bg-[#d4af37]/5 rounded-full blur-2xl"
-								></div>
-								<div
-									class="absolute top-0 left-0 w-full h-6 bg-[#1a0b2e] border-b border-[#4c2889] flex items-center px-2"
-								>
-									<div class="w-2 h-2 rounded-full bg-[#d4af37]/20 mr-1"></div>
-								</div>
-								<div
-									class="absolute top-10 left-3 w-16 h-4 rounded-lg bg-[#d4af37] shadow-lg"
-								></div>
-								<div class="absolute top-16 left-3 w-20 h-2 rounded-lg bg-[#fdf4ff]/5"></div>
-							</div>
-							<div class="flex items-center justify-between w-full">
-								<span class="font-medium text-sm text-[#fdf4ff]">Royal Velvet</span>
-								{#if globalState.settings?.persistentUiState?.theme === 'royal-velvet'}
-									<span class="material-icons text-[#d4af37] text-sm">check_circle</span>
-								{/if}
-							</div>
-						</button>
+						{#each themes as theme}
+							<ThemeButton {theme} />
+						{/each}
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.ABOUT}
@@ -622,46 +156,11 @@
 			{/if}
 		</div>
 	</div>
-
-	<!-- Footer -->
-	<div class="border-t border-color bg-primary px-6 py-4 flex items-center justify-end gap-3">
-		<button
-			class="px-4 py-2 rounded-md text-sm text-thirdly hover:bg-accent transition-colors"
-			onclick={() => resolve(false)}
-		>
-			Cancel
-		</button>
-
-		<button
-			class="btn-accent px-5 py-2.5 text-sm font-medium rounded-md shadow-lg hover:scale-[1.02] transition-all duration-150"
-			onclick={() => {
-				Settings.save();
-				resolve(true);
-			}}
-		>
-			Apply and Close
-		</button>
-	</div>
 </div>
 
 <style>
-	/* Override for the small icon color in sidebar */
-	.material-icons.text-accent-secondary {
-		color: var(--accent-primary);
-	}
-
-	@keyframes modalSlideIn {
-		from {
-			opacity: 0;
-			transform: scale(0.98) translateY(-8px);
-		}
-		to {
-			opacity: 1;
-			transform: scale(1) translateY(0);
-		}
-	}
-
-	.btn-accent:hover {
-		box-shadow: 0 8px 30px rgba(17, 24, 39, 0.18);
+	.selected {
+		background-color: var(--bg-accent) !important;
+		color: var(--text-primary) !important;
 	}
 </style>

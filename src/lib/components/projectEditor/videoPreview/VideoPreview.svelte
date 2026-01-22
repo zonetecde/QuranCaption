@@ -61,6 +61,15 @@
 		resizeVideoToFitScreen();
 	});
 
+	// Effect qui redimensionne la vidéo quand on change d'onglet (ex: revenir de Translations)
+	$effect(() => {
+		const _ = globalState.currentProject?.projectEditorState.currentTab;
+		// On laisse un petit délai pour que le DOM se mette à jour (display: none -> block)
+		setTimeout(() => {
+			resizeVideoToFitScreen();
+		}, 0);
+	});
+
 	// Effect qui recharge l'audio quand l'asset audio change
 	$effect(() => {
 		if (currentAudio()) {
@@ -165,6 +174,20 @@
 	onMount(() => {
 		resizeVideoToFitScreen(); // Redimensionne initial
 		window.addEventListener('resize', resizeVideoToFitScreen); // Écoute le redimensionnement de fenêtre
+
+        // Observer le redimensionnement du conteneur parent pour gérer les changements de taille (ex: sidebar qui change)
+        const previewContainer = document.getElementById('preview-container');
+        if (previewContainer && window.ResizeObserver) {
+            const resizeObserver = new ResizeObserver(() => {
+                resizeVideoToFitScreen();
+            });
+            resizeObserver.observe(previewContainer);
+            
+            return () => {
+                resizeObserver.disconnect();
+                window.removeEventListener('resize', resizeVideoToFitScreen);
+            };
+        }
 
 		// Force la synchronisation initiale vidéo/audio avec la position du curseur
 		triggerVideoAndAudioToFitCursor();

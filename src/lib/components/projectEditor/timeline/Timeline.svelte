@@ -23,9 +23,6 @@
 	let timelineState = $derived(() => globalState.currentProject?.projectEditorState.timeline!);
 
 	let timelineDiv: HTMLDivElement | null = null;
-	let removeShortcutRegistered = false;
-	let splitShortcutRegistered = false;
-	let setEndShortcutRegistered = false;
 
 	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
 	function handleRemoveSelectedSubtitles(): void {
@@ -84,52 +81,6 @@
 		}
 	}
 
-	// Enregistre le raccourci Backspace pour virer les sous-titres sélectionnés lorsque l'on est dans l'onglet Style
-	function registerRemoveShortcut(): void {
-		if (!globalState.settings || removeShortcutRegistered) return;
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE,
-			onKeyDown: handleRemoveSelectedSubtitles
-		});
-
-		removeShortcutRegistered = true;
-	}
-
-	function unregisterRemoveShortcut(): void {
-		if (!removeShortcutRegistered || !globalState.settings) return;
-
-		ShortcutService.unregisterShortcut(
-			globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE
-		);
-
-		removeShortcutRegistered = false;
-	}
-
-	function registerSplitShortcut(): void {
-		if (!globalState.settings || splitShortcutRegistered) return;
-
-		// Split shortcut
-		const splitShortcut = globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE;
-
-		ShortcutService.registerShortcut({
-			key: splitShortcut,
-			onKeyDown: handleSplitSubtitle
-		});
-
-		splitShortcutRegistered = true;
-	}
-
-	function unregisterSplitShortcut(): void {
-		if (!splitShortcutRegistered || !globalState.settings) return;
-
-		const splitShortcut = globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE;
-
-		ShortcutService.unregisterShortcut(splitShortcut);
-
-		splitShortcutRegistered = false;
-	}
-
 	/**
 	 * Définit la fin du sous-titre actuel (sous le curseur) à la position du curseur.
 	 * Si un sous-titre suivant existe, ajuste son temps de début à cursorPosition + 1.
@@ -170,48 +121,48 @@
 		}
 	}
 
-	function registerSetEndShortcut(): void {
-		if (!globalState.settings || setEndShortcutRegistered) return;
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END,
-			onKeyDown: handleSetSubtitleEndTime
-		});
-
-		setEndShortcutRegistered = true;
-	}
-
-	function unregisterSetEndShortcut(): void {
-		if (!setEndShortcutRegistered || !globalState.settings) return;
-
-		ShortcutService.unregisterShortcut(
-			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END
-		);
-
-		setEndShortcutRegistered = false;
-	}
-
 	$effect(() => {
+		if (!globalState.settings) return;
+
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
+        const ids: { [key: string]: string } = {};
 
 		// On active le shortcut de split pour tous les onglets
-		registerSplitShortcut();
+        const splitShortcut = globalState.settings.shortcuts.SUBTITLES_EDITOR.SPLIT_SUBTITLE;
+		ids.SPLIT_SUBTITLE = ShortcutService.registerShortcut({
+			key: splitShortcut,
+			onKeyDown: handleSplitSubtitle
+		});
 
 		// Le raccourci de suppression (Backspace) reste spécifique à l'onglet Style pour l'instant
 		// (pour éviter de supprimer par erreur dans d'autres contextes)
 		if (currentTab === ProjectEditorTabs.Style) {
-			registerRemoveShortcut();
-		} else {
-			unregisterRemoveShortcut();
+            ids.REMOVE_LAST_SUBTITLE = ShortcutService.registerShortcut({
+                key: globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE,
+                onKeyDown: handleRemoveSelectedSubtitles
+            });
 		}
 
 		// Le raccourci M pour définir la fin du sous-titre fonctionne dans tous les tabs maintenant
-		registerSetEndShortcut();
+        ids.SET_LAST_SUBTITLE_END = ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END,
+			onKeyDown: handleSetSubtitleEndTime
+		});
 
 		return () => {
-			unregisterSplitShortcut();
-			unregisterRemoveShortcut();
-			unregisterSetEndShortcut();
+            ShortcutService.unregisterShortcut(splitShortcut, ids.SPLIT_SUBTITLE);
+            
+            if (ids.REMOVE_LAST_SUBTITLE) {
+                ShortcutService.unregisterShortcut(
+                    globalState.settings!.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE,
+                    ids.REMOVE_LAST_SUBTITLE
+                );
+            }
+
+            ShortcutService.unregisterShortcut(
+                globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END,
+                ids.SET_LAST_SUBTITLE_END
+            );
 		};
 	});
 
@@ -355,8 +306,7 @@
 	}
 
 	onDestroy(() => {
-		unregisterSplitShortcut();
-		unregisterRemoveShortcut();
+		// Cleanup handled by effect
 	});
 </script>
 

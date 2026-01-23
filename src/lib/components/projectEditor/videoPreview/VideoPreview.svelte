@@ -19,6 +19,16 @@
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
 
+    // Identifiants des raccourcis enregistrés
+    let shortcutIds = {
+        PLAY_PAUSE: '',
+        MOVE_FORWARD: '',
+        MOVE_BACKWARD: '',
+        INCREASE_SPEED: '',
+        TOGGLE_FULLSCREEN: '',
+        GO_TO_START: ''
+    };
+
 	// === ÉTATS RÉACTIFS DÉRIVÉS ===
 	// Récupère les paramètres de la timeline depuis l'état global
 	let getTimelineSettings = $derived(() => {
@@ -191,59 +201,83 @@
 
 		// Force la synchronisation initiale vidéo/audio avec la position du curseur
 		triggerVideoAndAudioToFitCursor();
-		// Set les shortcuts pour le preview
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.PLAY_PAUSE,
-			onKeyDown: (e) => {
-				togglePlayPause();
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_FORWARD,
-			onKeyDown: (e) => {
-				const currentTime = getTimelineSettings().cursorPosition;
-				getTimelineSettings().cursorPosition = currentTime + 2000; // Avance de 2 secondes
-				getTimelineSettings().movePreviewTo = currentTime + 2000;
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_BACKWARD,
-			onKeyDown: (e) => {
-				const currentTime = getTimelineSettings().cursorPosition;
-				getTimelineSettings().cursorPosition = Math.max(1, currentTime - 2000); // Recule de 2 secondes
-				getTimelineSettings().movePreviewTo = Math.max(1, currentTime - 2000);
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.INCREASE_SPEED,
-			onKeyDown: (e) => {
-				setPlaybackSpeed(getSpeed() + 1);
-			},
-			onKeyUp: (e) => {
-				setPlaybackSpeed(getSpeed());
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN,
-			onKeyDown: (e) => {
-				globalState.getVideoPreviewState.toggleFullScreen();
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START,
-			onKeyDown: (e) => {
-				pause(); // Arrête la lecture
-				getTimelineSettings().cursorPosition = 1; // Revient au début (1ms pour éviter les bugs)
-				getTimelineSettings().movePreviewTo = 1; // Force la mise à jour de la prévisualisation
-				globalState.getVideoPreviewState.scrollTimelineToCursor();
-			}
-		});
 	});
+
+    // Enregistrement des raccourcis
+    $effect(() => {
+        if (!globalState.settings) return;
+
+        // Store shortcut IDs to unregister them safely later
+        const ids = {
+            PLAY_PAUSE: ShortcutService.registerShortcut({
+                key: globalState.settings.shortcuts.VIDEO_PREVIEW.PLAY_PAUSE,
+                onKeyDown: (e) => {
+                    togglePlayPause();
+                }
+            }),
+
+            MOVE_FORWARD: ShortcutService.registerShortcut({
+                key: globalState.settings.shortcuts.VIDEO_PREVIEW.MOVE_FORWARD,
+                onKeyDown: (e) => {
+                    const currentTime = getTimelineSettings().cursorPosition;
+                    getTimelineSettings().cursorPosition = currentTime + 2000; // Avance de 2 secondes
+                    getTimelineSettings().movePreviewTo = currentTime + 2000;
+                }
+            }),
+
+            MOVE_BACKWARD: ShortcutService.registerShortcut({
+                key: globalState.settings.shortcuts.VIDEO_PREVIEW.MOVE_BACKWARD,
+                onKeyDown: (e) => {
+                    const currentTime = getTimelineSettings().cursorPosition;
+                    getTimelineSettings().cursorPosition = Math.max(1, currentTime - 2000); // Recule de 2 secondes
+                    getTimelineSettings().movePreviewTo = Math.max(1, currentTime - 2000);
+                }
+            }),
+
+            INCREASE_SPEED: ShortcutService.registerShortcut({
+                key: globalState.settings.shortcuts.VIDEO_PREVIEW.INCREASE_SPEED,
+                onKeyDown: (e) => {
+                    setPlaybackSpeed(getSpeed() + 1);
+                },
+                onKeyUp: (e) => {
+                    setPlaybackSpeed(getSpeed());
+                }
+            }),
+
+            TOGGLE_FULLSCREEN: ShortcutService.registerShortcut({
+                key: globalState.settings.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN,
+                onKeyDown: (e) => {
+                    globalState.getVideoPreviewState.toggleFullScreen();
+                }
+            }),
+
+            GO_TO_START: ShortcutService.registerShortcut({
+                key: globalState.settings.shortcuts.VIDEO_PREVIEW.GO_TO_START,
+                onKeyDown: (e) => {
+                    pause(); // Arrête la lecture
+                    getTimelineSettings().cursorPosition = 1; // Revient au début (1ms pour éviter les bugs)
+                    getTimelineSettings().movePreviewTo = 1; // Force la mise à jour de la prévisualisation
+                    globalState.getVideoPreviewState.scrollTimelineToCursor();
+                }
+            })
+        };
+
+        return () => {
+             // Enlève tout les shortcuts enregistrés avec leurs IDs
+            ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.PLAY_PAUSE, ids.PLAY_PAUSE);
+            ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_FORWARD, ids.MOVE_FORWARD);
+            ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_BACKWARD, ids.MOVE_BACKWARD);
+            ShortcutService.unregisterShortcut(
+                globalState.settings!.shortcuts.VIDEO_PREVIEW.INCREASE_SPEED,
+                ids.INCREASE_SPEED
+            );
+            ShortcutService.unregisterShortcut(
+                globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN,
+                ids.TOGGLE_FULLSCREEN
+            );
+            ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START, ids.GO_TO_START);
+        };
+    });
 
 	function setPlaybackSpeed(speed: number) {
 		audioSpeed = speed; // Met à jour la vitesse audio
@@ -281,18 +315,6 @@
 		if (backgroundDiv) {
 			backgroundDiv.remove();
 		}
-
-		// Enlève tout les shortcuts enregistrés
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.PLAY_PAUSE);
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_FORWARD);
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_BACKWARD);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.VIDEO_PREVIEW.INCREASE_SPEED
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN
-		);
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START);
 	});
 
 	// Effect pour s'assurer que l'événement ontimeupdate est toujours assigné à l'élément vidéo

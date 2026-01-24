@@ -87,11 +87,12 @@
 	<div
 		class="flex h-9 shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
 	>
-		<h3 class="m-0 text-base font-semibold text-[var(--text-primary)]">Subtitles</h3>
+		<h3 class="m-0 text-sm font-semibold text-[var(--text-primary)] hidden xl:block">Subtitles</h3>
 
-		<div class="flex justify-center items-center gap-2 ml-4">
-			<span
-				class="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--text-secondary)]"
+		<div
+			class="flex justify-center items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
+		>
+			<span class="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--text-secondary)]"
 				>Min words</span
 			>
 			<input
@@ -103,7 +104,7 @@
 		</div>
 
 		<div
-			class="ml-auto min-w-[1.5rem] rounded-lg bg-[var(--bg-primary)] px-2 py-1 text-center text-xs font-semibold text-[var(--text-secondary)]"
+			class="min-w-[1.5rem] rounded-lg bg-[var(--bg-primary)] px-2 py-1 text-center text-xs font-semibold text-[var(--text-secondary)]"
 		>
 			{filteredClips().length}
 		</div>
@@ -148,9 +149,7 @@
 					}
 				}}
 				class={`relative cursor-pointer rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent-primary)] hover:bg-opacity-80 ${
-					isSilence
-						? 'border-l-[3px] border-l-[var(--text-thirdly)] !bg-[var(--bg-accent)]'
-						: ''
+					isSilence ? 'border-l-[3px] border-l-[var(--text-thirdly)] !bg-[var(--bg-accent)]' : ''
 				} ${isPredefined ? 'border-l-[3px] border-l-[var(--accent-secondary)]' : ''} ${
 					isCurrent
 						? '!border-[#866322] shadow-[0_6px_16px_rgba(242,201,76,0.25)]'

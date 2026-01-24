@@ -24,6 +24,7 @@ export class Clip extends SerializableBase {
 	duration: number = $state(0);
 
 	type: ClipType;
+	showWaveform: boolean = $state(false);
 
 	constructor(startTime: number, endTime: number, type: ClipType) {
 		super();

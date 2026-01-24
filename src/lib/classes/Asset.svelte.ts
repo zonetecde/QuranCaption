@@ -7,6 +7,7 @@ import { exists, open, remove } from '@tauri-apps/plugin-fs';
 import { globalState } from '$lib/runes/main.svelte.js';
 import { Duration } from './index.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
+import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 
 export class Asset extends SerializableBase {
 	id: number = $state(0);
@@ -209,7 +210,9 @@ export class Asset extends SerializableBase {
 	}
 
 	updateFilePath(element: string) {
+		const oldPath = this.filePath;
 		this.filePath = this.normalizeFilePath(element);
+		WaveformService.clearCache(oldPath);
 		this.exists = true; // Réinitialise l'existence à vrai
 		if (this.type === AssetType.Audio || this.type === AssetType.Video) {
 			this.duration = new Duration(0);

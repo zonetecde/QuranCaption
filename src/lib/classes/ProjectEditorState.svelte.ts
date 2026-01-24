@@ -188,6 +188,9 @@ export class SubtitlesEditorState extends SerializableBase {
 	// Nombre initial de segments à review (set lors de l'auto-segmentation)
 	// Utilisé pour afficher la barre de progression des segments à review
 	initialLowConfidenceCount: number = $state(0);
+
+	// Filtre par nombre de mots minimum dans la liste des sous-titres
+	minWordCount: number = $state(0);
 }
 
 export class TranslationsEditorState extends SerializableBase {

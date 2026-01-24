@@ -8,6 +8,26 @@
 	let subtitlesListElement: HTMLDivElement | null = $state(null);
 	let lastSubtitleId = 0;
 
+	let allClips = $derived(() => {
+		return (
+			globalState.currentProject?.content.timeline.getFirstTrack(TrackType.Subtitle)?.clips ?? []
+		);
+	});
+
+	let filteredClips = $derived(() => {
+		const s = globalState.currentProject!.projectEditorState.subtitlesEditor;
+		const clips = allClips();
+		if (s.minWordCount <= 0) return clips;
+
+		return clips.filter((clip) => {
+			if (clip instanceof SubtitleClip) {
+				const wordCount = clip.text.trim().split(/\s+/).length;
+				return wordCount > s.minWordCount;
+			}
+			return false; // Hide other clip types when filtering
+		});
+	});
+
 	// timeline settings
 	let getTimelineSettings = $derived(() => {
 		return globalState.currentProject!.projectEditorState.timeline;
@@ -62,18 +82,45 @@
 	});
 </script>
 
-<div class="subtitles-panel z-20">
-	<div class="panel-header">
-		<h3 class="text-primary">Subtitles</h3>
-		<div class="count-badge">
-			{globalState.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips.length}
+<div class="z-20 flex h-full flex-col border-l border-[var(--border-color)] bg-[var(--bg-primary)]">
+	<div
+		class="flex h-9 shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
+	>
+		<h3 class="m-0 text-sm font-semibold text-[var(--text-primary)] hidden xl:block">Subtitles</h3>
+
+		<div
+			class="flex justify-center items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
+		>
+			<span class="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--text-secondary)]"
+				>Min words</span
+			>
+			<input
+				type="number"
+				class="w-14 h-5 text-xs! bg-[var(--bg-accent)] border border-[var(--border-color)] rounded px-1 py-0.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+				bind:value={globalState.currentProject!.projectEditorState.subtitlesEditor.minWordCount}
+				min="0"
+			/>
+		</div>
+
+		<div
+			class="min-w-[1.5rem] rounded-lg bg-[var(--bg-primary)] px-2 py-1 text-center text-xs font-semibold text-[var(--text-secondary)]"
+		>
+			{filteredClips().length}
 		</div>
 	</div>
 
-	<div class="subtitles-list" bind:this={subtitlesListElement}>
-		{#each globalState.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips as _clip, index (_clip.id)}
+	<div
+		class="subtitles-list flex flex-1 flex-col gap-2 overflow-y-auto p-2"
+		bind:this={subtitlesListElement}
+	>
+		{#each filteredClips() as _clip, index (_clip.id)}
 			{@const clip = _clip as Clip}
 			{@const subtitleClip = clip as SubtitleClip}
+			{@const isSilence = subtitleClip.type === 'Silence'}
+			{@const isPredefined = subtitleClip.type === 'Pre-defined Subtitle'}
+			{@const isSelected =
+				globalState.currentProject!.projectEditorState.subtitlesEditor.editSubtitle?.id === clip.id}
+			{@const isCurrent = currentSubtitle()?.id === clip.id}
 			<div
 				data-subtitle-id={clip.id}
 				onclick={() => {
@@ -88,31 +135,49 @@
 							clip.markAsManualEdit();
 						}
 						s.editSubtitle = clip;
+
+						// get fade duration from timeline settings
+						const fadeDuration = globalState.getStyle('global', 'fade-duration')!.value as number;
+
+						// Synchronize timeline and video preview
+						globalState.currentProject!.projectEditorState.timeline.cursorPosition =
+							clip.startTime + fadeDuration;
+						globalState.currentProject!.projectEditorState.timeline.movePreviewTo =
+							clip.startTime + fadeDuration;
+						globalState.currentProject!.projectEditorState.videoPreview.scrollTimelineToCursor();
 					}
 				}}
-				class="subtitle-card cursor-pointer hover:border-[var(--accent-primary)] hover:bg-opacity-80! hover:-translate-y-0.5! transition-all duration-200"
-				class:silence={subtitleClip.type === 'Silence'}
-				class:predefined={subtitleClip.type === 'Pre-defined Subtitle'}
-				class:selected={globalState.currentProject!.projectEditorState.subtitlesEditor.editSubtitle
-					?.id === clip.id}
-				class:current={currentSubtitle()?.id === clip.id}
+				class={`relative cursor-pointer rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent-primary)] hover:bg-opacity-80 ${
+					isSilence ? 'border-l-[3px] border-l-[var(--text-thirdly)] !bg-[var(--bg-accent)]' : ''
+				} ${isPredefined ? 'border-l-[3px] border-l-[var(--accent-secondary)]' : ''} ${
+					isCurrent
+						? '!border-[#866322] shadow-[0_6px_16px_rgba(242,201,76,0.25)]'
+						: isSelected
+							? '!border-[#ffa500] !border-[1.5px]'
+							: ''
+				}`}
 			>
-				<div class="card-header">
-					<div class="timing-info">
-						<span class="timestamp monospaced"
+				<div class="mb-3 flex items-center justify-between">
+					<div>
+						<span
+							class="monospaced rounded-md border border-[var(--border-color)] bg-[var(--bg-accent)] px-2 py-1 text-xs font-medium text-[var(--accent-primary)]"
 							>{new Duration(clip.startTime).getFormattedTime(false, false)}</span
 						>
 					</div>
 
 					{#if subtitleClip.type !== 'Silence' && subtitleClip.type !== 'Pre-defined Subtitle'}
-						<div class="verse-number">
+						<div
+							class="rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1 text-xs font-semibold text-[var(--text-secondary)]"
+						>
 							<span class="monospaced">{subtitleClip.surah}:{subtitleClip.verse}</span>
 						</div>
 					{:else}
 						<div
-							class="type-badge"
-							class:silence={subtitleClip.type === 'Silence'}
-							class:predefined={subtitleClip.type === 'Pre-defined Subtitle'}
+							class={`rounded-md px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] ${
+								isSilence
+									? 'border border-[var(--text-thirdly)] bg-[var(--bg-accent)] text-[var(--text-thirdly)]'
+									: 'border border-[var(--accent-secondary)] bg-[var(--accent-secondary)] text-black'
+							}`}
 						>
 							{subtitleClip.type === 'Silence' ? 'SILENCE' : 'PRE-DEFINED'}
 						</div>
@@ -120,26 +185,30 @@
 				</div>
 
 				{#if subtitleClip.type === 'Silence'}
-					<div class="silence-indicator h-0">
-						<div class="silence-icon">🔇</div>
-						<span class="silence-text text-thirdly">Silent segment</span>
+					<div class="flex h-0 items-center justify-center gap-2 py-4">
+						<div class="text-2xl opacity-70">🔇</div>
+						<span class="text-sm italic text-[var(--text-thirdly)]">Silent segment</span>
 					</div>
 				{:else}
 					<div
-						class="text-content arabic"
-						class:custom={subtitleClip.type === 'Pre-defined Subtitle'}
+						dir="rtl"
+						class={`arabic mb-3 text-lg leading-[1.8] text-right text-[var(--text-primary)] ${
+							isPredefined ? 'italic text-[var(--text-secondary)]' : ''
+						}`}
 					>
 						{subtitleClip.text}
 					</div>
 
 					{#if Object.keys(subtitleClip.translations).length > 0}
-						<div class="translations">
+						<div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
 							{#each Object.keys(subtitleClip.translations) as translation}
 								{#if translation.startsWith('type') === false}
-									<div class="translation-item">
-										<span class="lang-code monospaced">{translation.slice(0, 3).toUpperCase()}</span
+									<div class="flex items-start gap-2">
+										<span
+											class="monospaced mt-0.5 shrink-0 rounded border border-[var(--border-color)] bg-[var(--bg-accent)] px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase text-[var(--text-thirdly)]"
+											>{translation.slice(0, 3).toUpperCase()}</span
 										>
-										<span class="translation-text text-secondary">
+										<span class="flex-1 text-sm leading-[1.5] text-[var(--text-secondary)]">
 											{subtitleClip.translations[translation].text}
 										</span>
 									</div>
@@ -152,219 +221,3 @@
 		{/each}
 	</div>
 </div>
-
-<style>
-	.subtitles-panel {
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		background-color: var(--bg-primary);
-		border-left: 1px solid var(--border-color);
-	}
-
-	.panel-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 1rem;
-		border-bottom: 1px solid var(--border-color);
-		background-color: var(--bg-secondary);
-		flex-shrink: 0;
-	}
-
-	.panel-header h3 {
-		margin: 0;
-		font-size: 1rem;
-		font-weight: 600;
-		color: var(--text-primary);
-	}
-
-	.count-badge {
-		background-color: var(--accent-primary);
-		color: black;
-		font-size: 0.75rem;
-		font-weight: 600;
-		padding: 0.25rem 0.5rem;
-		border-radius: 0.5rem;
-		min-width: 1.5rem;
-		text-align: center;
-	}
-
-	.subtitles-list {
-		flex: 1;
-		overflow-y: auto;
-		padding: 0.5rem;
-		gap: 0.5rem;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.subtitle-card {
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		border-radius: 0.75rem;
-		padding: 1rem;
-		position: relative;
-	}
-
-	.subtitle-card.selected {
-		border-color: orange !important;
-		border-width: 1.5px;
-	}
-	.subtitle-card.selected:hover {
-		border-color: orange !important;
-		border-width: 1.5px;
-	}
-
-	.subtitle-card.current {
-		border-color: #866322 !important;
-		box-shadow: 0 6px 16px rgba(242, 201, 76, 0.25);
-	}
-
-	.subtitle-card.silence {
-		border-left: 3px solid var(--text-thirdly);
-		background-color: var(--bg-accent);
-	}
-
-	.subtitle-card.predefined {
-		border-left: 3px solid var(--accent-secondary);
-	}
-
-	.card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.75rem;
-	}
-
-	.timing-info .timestamp {
-		background-color: var(--bg-accent);
-		color: var(--accent-primary);
-		font-size: 0.75rem;
-		font-weight: 500;
-		padding: 0.25rem 0.5rem;
-		border-radius: 0.375rem;
-		border: 1px solid var(--border-color);
-	}
-
-	.verse-number {
-		background-color: var(--bg-primary);
-		color: var(--text-secondary);
-		font-size: 0.75rem;
-		font-weight: 600;
-		padding: 0.25rem 0.5rem;
-		border-radius: 0.375rem;
-		border: 1px solid var(--border-color);
-	}
-
-	.type-badge {
-		font-size: 0.6875rem;
-		font-weight: 700;
-		padding: 0.25rem 0.5rem;
-		border-radius: 0.375rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.type-badge.silence {
-		background-color: var(--bg-accent);
-		color: var(--text-thirdly);
-		border: 1px solid var(--text-thirdly);
-	}
-
-	.type-badge.predefined {
-		background-color: var(--accent-secondary);
-		color: black;
-		border: 1px solid var(--accent-secondary);
-	}
-
-	.text-content {
-		font-size: 1rem;
-		line-height: 1.6;
-		color: var(--text-primary);
-		margin-bottom: 0.75rem;
-	}
-
-	.text-content.arabic {
-		font-family: 'Hafs', serif;
-		font-size: 1.125rem;
-		line-height: 1.8;
-		text-align: right;
-		direction: rtl;
-	}
-
-	.text-content.custom {
-		font-style: italic;
-		color: var(--text-secondary);
-	}
-
-	.silence-indicator {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		justify-content: center;
-		padding: 1rem 0;
-	}
-
-	.silence-icon {
-		font-size: 1.5rem;
-		opacity: 0.7;
-	}
-
-	.silence-text {
-		font-style: italic;
-		font-size: 0.875rem;
-	}
-
-	.translations {
-		border-top: 1px solid var(--border-color);
-		padding-top: 0.75rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.translation-item {
-		display: flex;
-		gap: 0.5rem;
-		align-items: flex-start;
-	}
-
-	.lang-code {
-		background-color: var(--bg-accent);
-		color: var(--text-thirdly);
-		font-size: 0.6875rem;
-		font-weight: 600;
-		padding: 0.125rem 0.375rem;
-		border-radius: 0.25rem;
-		text-transform: uppercase;
-		flex-shrink: 0;
-		margin-top: 0.125rem;
-		border: 1px solid var(--border-color);
-	}
-
-	.translation-text {
-		font-size: 0.875rem;
-		line-height: 1.5;
-		flex: 1;
-	}
-
-	/* Scrollbar styling to match app theme */
-	.subtitles-list::-webkit-scrollbar {
-		width: 8px;
-	}
-
-	.subtitles-list::-webkit-scrollbar-track {
-		background-color: var(--bg-secondary);
-		border-radius: 4px;
-	}
-
-	.subtitles-list::-webkit-scrollbar-thumb {
-		background-color: var(--text-thirdly);
-		border-radius: 4px;
-	}
-
-	.subtitles-list::-webkit-scrollbar-thumb:hover {
-		background-color: var(--text-secondary);
-	}
-</style>

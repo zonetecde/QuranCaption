@@ -272,43 +272,52 @@
 		}
 	}
 
+	let isAddingSubtitle = false;
+
 	/**
 	 * Ajoute une sous-titre avec les mots sélectionnés.
 	 */
 	async function addSubtitle() {
-		// Ajoute une sous-titre avec les mots sélectionnés
-		const verse = await selectedVerse();
-		if (!verse) return;
+		if (isAddingSubtitle) return;
+		isAddingSubtitle = true;
 
-		const subtitleTrack = globalState.getSubtitleTrack;
+		try {
+			// Ajoute une sous-titre avec les mots sélectionnés
+			const verse = await selectedVerse();
+			if (!verse) return;
 
-		if (subtitlesEditorState().editSubtitle) {
-			await subtitleTrack.editSubtitle(
-				subtitlesEditorState().editSubtitle as any,
+			const subtitleTrack = globalState.getSubtitleTrack;
+
+			if (subtitlesEditorState().editSubtitle) {
+				await subtitleTrack.editSubtitle(
+					subtitlesEditorState().editSubtitle as any,
+					verse,
+					subtitlesEditorState().startWordIndex,
+					subtitlesEditorState().endWordIndex,
+					subtitlesEditorState().selectedSurah
+				);
+
+				globalState.getSubtitlesEditorState.editSubtitle = null; // Reset l'édition après modification
+				toast.success('Subtitle updated successfully!');
+				await selectNextWord();
+				subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
+				return;
+			}
+
+			const success = await subtitleTrack.addSubtitle(
 				verse,
 				subtitlesEditorState().startWordIndex,
 				subtitlesEditorState().endWordIndex,
 				subtitlesEditorState().selectedSurah
 			);
 
-			globalState.getSubtitlesEditorState.editSubtitle = null; // Reset l'édition après modification
-			toast.success('Subtitle updated successfully!');
-			await selectNextWord();
-			subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
-			return;
-		}
-
-		const success = await subtitleTrack.addSubtitle(
-			verse,
-			subtitlesEditorState().startWordIndex,
-			subtitlesEditorState().endWordIndex,
-			subtitlesEditorState().selectedSurah
-		);
-
-		if (success) {
-			await selectNextWord();
-			subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
-			globalState.currentProject!.detail.updateVideoDetailAttributes();
+			if (success) {
+				await selectNextWord();
+				subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
+				globalState.currentProject!.detail.updateVideoDetailAttributes();
+			}
+		} finally {
+			isAddingSubtitle = false;
 		}
 	}
 

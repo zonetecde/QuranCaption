@@ -1906,6 +1906,82 @@ async fn close_discord_rpc() -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+async fn get_audio_waveform(file_path: String) -> Result<Vec<f32>, String> {
+    let path_buf = path_utils::normalize_existing_path(&file_path);
+    if !path_buf.exists() {
+        return Err(format!("File not found: {}", path_buf.to_string_lossy()));
+    }
+
+    let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+        .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    // On downsample à 4000Hz pour avoir assez de précision mais pas trop de données
+    // Format s16le (signed 16-bit little endian)
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(&[
+        "-i",
+        &path_buf.to_string_lossy(),
+        "-ac",
+        "1", // Mono
+        "-filter:a",
+        "aresample=4000", // Downsample to 4kHz
+        "-map",
+        "0:a",
+        "-c:a",
+        "pcm_s16le", // Raw 16-bit audio
+        "-f",
+        "s16le", // Format brut
+        "-",     // Output to stdout
+    ]);
+    configure_command_no_window(&mut cmd);
+
+    // On capture la sortie standard directement
+    // Note: Pour des très gros fichiers, charger tout en mémoire via output() peut être lourd,
+    // mais 4kHz 16-bit mono = 8KB/s. Une heure = 28MB. C'est gérable en mémoire.
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg error: {}", stderr));
+    }
+
+    let raw_data = output.stdout;
+    let mut peaks = Vec::new();
+    let samples_per_peak = 40; // 4000Hz / 40 = 100 peaks par seconde
+
+    // Traitement des données brutes
+    let mut chunk_max = 0.0;
+    let mut sample_count = 0;
+
+    for chunk in raw_data.chunks_exact(2) {
+        // Conversion des 2 bytes en i16 (little endian)
+        let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+        let abs_sample = sample.abs() as f32 / 32768.0; // Normalisation 0.0 - 1.0
+
+        if abs_sample > chunk_max {
+            chunk_max = abs_sample;
+        }
+
+        sample_count += 1;
+
+        if sample_count >= samples_per_peak {
+            peaks.push(chunk_max);
+            chunk_max = 0.0;
+            sample_count = 0;
+        }
+    }
+
+    // Ajoute le dernier pic partiel si nécessaire
+    if sample_count > 0 {
+        peaks.push(chunk_max);
+    }
+
+    Ok(peaks)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1939,7 +2015,8 @@ pub fn run() {
             init_discord_rpc,
             update_discord_activity,
             clear_discord_activity,
-            close_discord_rpc
+            close_discord_rpc,
+            get_audio_waveform
         ])
         .setup(|app| {
             if let Ok(resource_dir) = app.path().resource_dir() {

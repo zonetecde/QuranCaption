@@ -8,6 +8,8 @@
 	let subtitlesListElement: HTMLDivElement | null = $state(null);
 	let lastSubtitleId = 0;
 
+	let minWordCount = $state(0);
+
 	let allClips = $derived(() => {
 		return (
 			globalState.currentProject?.content.timeline.getFirstTrack(TrackType.Subtitle)?.clips ?? []
@@ -15,14 +17,13 @@
 	});
 
 	let filteredClips = $derived(() => {
-		const s = globalState.currentProject!.projectEditorState.subtitlesEditor;
 		const clips = allClips();
-		if (s.minWordCount <= 0) return clips;
+		if (minWordCount <= 0) return clips;
 
 		return clips.filter((clip) => {
 			if (clip instanceof SubtitleClip) {
 				const wordCount = clip.text.trim().split(/\s+/).length;
-				return wordCount > s.minWordCount;
+				return wordCount > minWordCount;
 			}
 			return false; // Hide other clip types when filtering
 		});
@@ -96,8 +97,8 @@
 			>
 			<input
 				type="number"
-				class="w-14 bg-[var(--bg-accent)] border border-[var(--border-color)] rounded px-1 py-0.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
-				bind:value={globalState.currentProject!.projectEditorState.subtitlesEditor.minWordCount}
+				class="w-14 h-5 text-xs! bg-[var(--bg-accent)] border border-[var(--border-color)] rounded px-1 py-0.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
+				bind:value={minWordCount}
 				min="0"
 			/>
 		</div>

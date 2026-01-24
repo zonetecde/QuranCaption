@@ -13,6 +13,8 @@ export type AutoSegmentationSettings = {
 	padMs: number;
 	whisperModel: 'tiny' | 'base' | 'medium' | 'large';
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
+	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
+	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
 	includeWordByWord: boolean; // If true, request word-by-word timestamps.
 };
 
@@ -45,6 +47,8 @@ export default class Settings extends SerializableBase {
 		padMs: 50,
 		whisperModel: 'base',
 		fillBySilence: true,
+	extendBeforeSilence: false,
+	extendBeforeSilenceMs: 50,
 		includeWordByWord: false
 	});
 

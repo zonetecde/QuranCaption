@@ -103,6 +103,8 @@ export type AutoSegmentationOptions = {
 	padMs?: number;
 	whisperModel?: WhisperModelSize;
 	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
+	extendBeforeSilence?: boolean; // If true, extend subtitles before silence clips.
+	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
 	includeWordByWord?: boolean; // If true, request word-by-word timestamps.
 };
 
@@ -557,6 +559,34 @@ function insertSilenceClips(
 }
 
 /**
+ * Extend subtitles into the following silence clip by a fixed amount (when possible).
+ * This shortens the silence clip by the same amount to keep the timeline consistent.
+ */
+function extendSubtitlesBeforeSilence(
+	clips: Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
+	extendMs: number
+): void {
+	if (extendMs <= 0) return;
+
+	const ordered = [...clips].sort((a, b) => a.startTime - b.startTime);
+
+	for (let i = 1; i < ordered.length; i += 1) {
+		const current = ordered[i];
+		if (!(current instanceof SilenceClip)) continue;
+
+		const prev = ordered[i - 1];
+		if (!(prev instanceof SubtitleClip || prev instanceof PredefinedSubtitleClip)) continue;
+
+		const silenceDuration = current.endTime - current.startTime + 1;
+		if (silenceDuration <= extendMs) continue;
+		const delta = extendMs;
+
+		setClipEndTime(prev, prev.endTime + delta);
+		setClipStartTime(current, current.startTime + delta);
+	}
+}
+
+/**
  * Extend subtitle end times to fill gaps (no silence clips inserted).
  * The end of each subtitle is extended to meet the start of the next one - 1ms.
  *
@@ -601,6 +631,8 @@ export async function runAutoSegmentation(
 	const padMs: number = options.padMs ?? 50;
 	const whisperModel: string = options.whisperModel ?? 'base';
 	const fillBySilence: boolean = options.fillBySilence ?? true; // Par défaut, on insère des SilenceClip
+	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
+	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
 	const includeWordByWord: boolean = options.includeWordByWord ?? false;
 
 	// Determine mode if not specified
@@ -1057,6 +1089,12 @@ export async function runAutoSegmentation(
 		if (fillBySilence) {
 			// Insère des SilenceClip dans les gaps
 			subtitleTrack.clips = insertSilenceClips(subtitleClips, SMALL_GAP_MS);
+			if (extendBeforeSilence && extendBeforeSilenceMs > 0) {
+				extendSubtitlesBeforeSilence(
+					subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
+					extendBeforeSilenceMs
+				);
+			}
 		} else {
 			// Étend la fin de chaque sous-titre pour combler les gaps
 			extendSubtitlesToFillGaps(subtitleClips);

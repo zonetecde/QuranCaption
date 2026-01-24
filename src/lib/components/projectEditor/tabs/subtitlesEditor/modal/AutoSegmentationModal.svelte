@@ -35,7 +35,7 @@
 	let showAdvancedSettings = $state(false);
 	let minSilenceMs = $state(200);
 	let minSpeechMs = $state(1000);
-	let padMs = $state(50);
+	let padMs = $state(250);
 
 	// Model selection for local processing
 	type WhisperModel = 'tiny' | 'base' | 'medium' | 'large';
@@ -43,6 +43,8 @@
 
 	// Fill gaps by silence option
 	let fillBySilence = $state(true);
+	let extendBeforeSilence = $state(false);
+	let extendBeforeSilenceMs = $state(50);
 	// Word-by-word timestamps option
 	let includeWordByWord = $state(false);
 
@@ -90,6 +92,8 @@
 		padMs = persisted.padMs;
 		selectedModel = persisted.whisperModel;
 		fillBySilence = persisted.fillBySilence ?? true;
+		extendBeforeSilence = persisted.extendBeforeSilence ?? false;
+		extendBeforeSilenceMs = persisted.extendBeforeSilenceMs ?? 50;
 		includeWordByWord = persisted.includeWordByWord ?? false;
 		selectedMode = persisted.mode === 'local' && localStatus?.ready ? 'local' : 'api';
 	});
@@ -126,6 +130,14 @@
 
 	function persistFillBySilenceSettings(): void {
 		persistAutoSegmentationSettings({ fillBySilence });
+	}
+
+	function persistExtendBeforeSilenceSettings(): void {
+		persistAutoSegmentationSettings({ extendBeforeSilence });
+	}
+
+	function persistExtendBeforeSilenceMsSettings(): void {
+		persistAutoSegmentationSettings({ extendBeforeSilenceMs });
 	}
 
 	function persistIncludeWordByWordSettings(): void {
@@ -202,6 +214,8 @@
 					padMs,
 					whisperModel: selectedMode === 'local' ? selectedModel : undefined,
 					fillBySilence,
+					extendBeforeSilence,
+					extendBeforeSilenceMs,
 					includeWordByWord
 				},
 				selectedMode
@@ -232,6 +246,8 @@
 				min_speech_ms: minSpeechMs,
 				pad_ms: padMs,
 				fill_by_silence: fillBySilence,
+				extend_before_silence: extendBeforeSilence,
+				extend_before_silence_ms: extendBeforeSilenceMs,
 				include_word_by_word: includeWordByWord,
 				mode: selectedMode,
 				whisper_model: selectedMode === 'local' ? selectedModel : undefined,
@@ -583,6 +599,28 @@
 								</p>
 							</div>
 						</label>
+						{#if fillBySilence}
+							<label class="mt-3 flex items-center gap-2 text-xs text-secondary cursor-pointer">
+								<input
+									type="checkbox"
+									bind:checked={extendBeforeSilence}
+									onchange={persistExtendBeforeSilenceSettings}
+									class="accent-accent-primary w-4 h-4"
+								/>
+								<span>Add</span>
+								<input
+									type="number"
+									min="0"
+									max="2000"
+									step="10"
+									bind:value={extendBeforeSilenceMs}
+									onchange={persistExtendBeforeSilenceMsSettings}
+									disabled={!extendBeforeSilence}
+									class="w-20 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-primary focus:outline-none focus:border-[var(--accent-primary)] disabled:opacity-60"
+								/>
+								<span>ms to each subtitle before silence</span>
+							</label>
+						{/if}
 					</div>
 
 					<!-- Word-by-word timestamps option -->

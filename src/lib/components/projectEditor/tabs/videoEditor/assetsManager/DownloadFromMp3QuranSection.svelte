@@ -10,7 +10,8 @@
 	import { join } from '@tauri-apps/api/path';
 	import { Mp3QuranService, type TimingReciter } from '$lib/services/Mp3QuranService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
-	import AutoSegmentationToast from './AutoSegmentationToast.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import { runNativeSegmentation } from '$lib/services/AutoSegmentation';
 
 	// Types for MP3Quran API
 	type Reciter = {
@@ -53,11 +54,11 @@
 			for (const m of r.moshaf) {
 				const isSupported = supportedReadIds.has(m.id);
 				// Display Moshaf ID for verification purposes as requested
-				const prefix = isSupported ? `✨ [${m.id}] ` : '';
+				const suffix = isSupported ? `✨` : '';
 				options.push({
 					reciterId: r.id,
 					moshafId: m.id,
-					label: `${prefix}${r.name} - (${m.name})`,
+					label: `${r.name} - (${m.name}) ${suffix}`,
 					server: m.server,
 					surah_list: m.surah_list
 				});
@@ -123,7 +124,7 @@
 			`Surah ${formattedSurahId}`;
 
 		// Clean up the label to remove the icon and ID for the filename
-		const cleanLabel = option.label.replace(/^✨ \[\d+\] /, '');
+		const cleanLabel = option.label.replace(/^\[\d+\]✨/, '');
 		const rawBaseName = `${cleanLabel.split(' - ')[0]} - ${surahName}`;
 		let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 		if (!sanitizedBaseName) {
@@ -161,13 +162,27 @@
 					}
 				: {};
 
-			globalState.currentProject!.content.addAsset(fullPath, url, SourceType.Mp3Quran, metadata);
+			const projectContent = globalState.currentProject!.content;
+			projectContent.addAsset(fullPath, url, SourceType.Mp3Quran, metadata);
 
 			toast.success('Download successful!', { id: toastId });
 
 			if (supportsTiming) {
-				// Show a persistent/longer toast strictly explaining the next step
-				toast.custom(AutoSegmentationToast as any, { duration: 8000 });
+				const normalizedFullPath = fullPath.replace(/\\/g, '/').replace(/\/+/g, '/');
+				const addedAsset = projectContent.assets.find(
+					(asset) => asset.filePath === normalizedFullPath
+				);
+				if (addedAsset) {
+					const confirmTimingLoad = await ModalManager.confirmModal(
+						'This audio includes official MP3Quran timings. Add it to the timeline and load the subtitles now?',
+						true
+					);
+
+					if (confirmTimingLoad) {
+						await addedAsset.addToTimeline(false, true);
+						await runNativeSegmentation(addedAsset.id);
+					}
+				}
 			}
 
 			// Telemetry
@@ -186,6 +201,7 @@
 		<!-- Reciter Selection -->
 		<div class="space-y-2">
 			<label for="reciter-select" class="text-sm font-medium text-secondary">Reciter</label>
+
 			<select
 				id="reciter-select"
 				class="w-full bg-secondary border border-color rounded-lg py-3 px-4 text-sm text-primary
@@ -203,6 +219,15 @@
 					{/each}
 				{/if}
 			</select>
+
+			<!-- Info hint -->
+			<div
+				class="flex items-start gap-2 px-3 py-2 bg-green-500/5 border border-green-500/10 rounded-lg"
+			>
+				<p class="text-[11px] text-secondary/80 leading-relaxed">
+					<strong>✨</strong> indicates official MP3Quran timing support.
+				</p>
+			</div>
 		</div>
 
 		<!-- Surah Selection -->
@@ -243,14 +268,5 @@
 				<span>Download MP3</span>
 			{/if}
 		</button>
-
-		<!-- Info hint -->
-		<div class="flex items-start gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-			<span class="material-icons text-sm text-green-400 mt-0.5">verified</span>
-			<p class="text-xs text-green-300 leading-relaxed">
-				Reciters marked with <strong>✨</strong> supports
-				<span class="font-bold">Native Auto-Segmentation</span> (Official Timing).
-			</p>
-		</div>
 	</div>
 </Section>

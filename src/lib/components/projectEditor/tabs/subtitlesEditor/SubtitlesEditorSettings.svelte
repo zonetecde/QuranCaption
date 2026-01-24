@@ -289,12 +289,6 @@
 			<div class="space-y-4">
 				<h3 class="text-sm font-medium text-secondary mb-3">Native Timing</h3>
 				<div class="bg-accent rounded-lg p-4 space-y-3">
-					<div
-						class="flex items-center gap-2 mb-1 text-xs text-[var(--accent-primary)] font-medium"
-					>
-						<span class="material-icons text-sm">verified</span>
-						Available Native Timing
-					</div>
 					<button
 						class="w-full px-3 py-2 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[var(--accent-primary)]/20 transition cursor-pointer"
 						type="button"
@@ -303,8 +297,7 @@
 							await runNativeSegmentation();
 						}}
 					>
-						<span class="material-icons text-base">flash_on</span>
-						Auto-Segment (Mp3Quran)
+						Load subtitles from MP3Quran
 					</button>
 				</div>
 			</div>

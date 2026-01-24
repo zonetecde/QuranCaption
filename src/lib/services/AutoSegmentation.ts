@@ -2,7 +2,13 @@ import { invoke } from '@tauri-apps/api/core';
 import toast from 'svelte-5-french-toast';
 
 import { Quran } from '$lib/classes/Quran';
-import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } from '$lib/classes';
+import {
+	AssetClip,
+	PredefinedSubtitleClip,
+	SilenceClip,
+	SubtitleClip,
+	type Translation
+} from '$lib/classes';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
@@ -1103,7 +1109,9 @@ function markClipTranslationsForReview(clip: SubtitleClip): void {
 /**
  * Handles the "Native" segmentation flow using Mp3Quran timing data.
  */
-export async function runNativeSegmentation(): Promise<AutoSegmentationResult | null> {
+export async function runNativeSegmentation(
+	targetAssetId?: number
+): Promise<AutoSegmentationResult | null> {
 	// 1. Identify valid audio clip and metadata
 	const audioTrack = globalState.getAudioTrack;
 	let targetClip: AssetClip | null = null;
@@ -1113,13 +1121,16 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 
 	for (const clip of audioTrack.clips) {
 		if (clip instanceof AssetClip) {
+			if (typeof targetAssetId === 'number' && clip.assetId !== targetAssetId) {
+				continue;
+			}
 			const asset = globalState.currentProject?.content.getAssetById(clip.assetId);
 			if (asset?.metadata?.mp3Quran) {
 				mp3QuranMeta = asset.metadata.mp3Quran;
 				targetClip = clip;
 				clipStartTime = clip.startTime;
 				// clip.offset might not exist on AssetClip type definition yet but let's assume valid access for now or cast
-				clipOffset = (clip as any).offset || 0; 
+				clipOffset = (clip as any).offset || 0;
 				break;
 			}
 		}
@@ -1144,17 +1155,16 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 	// Use moshafId (readId) if available, otherwise fallback to reciterId (legacy/fallback)
 	const readId = moshafId ?? reciterId;
 
-
 	let toastId: string | undefined;
 
 	try {
 		toastId = toast.loading('Fetching timing data from Mp3Quran...');
-		
+
 		// 3. Fetch timing data
 		// Note from plan: We assume reciterId matches readId.
 		// If this fails often, we might need a lookup table.
-		const timingData = await Mp3QuranService.getSurahTiming(reciterId, surahId);
-		
+		const timingData = await Mp3QuranService.getSurahTiming(readId, surahId);
+
 		if (!timingData || timingData.length === 0) {
 			toast.error('No timing data found for this reciter/surah.', { id: toastId });
 			return { status: 'failed', message: 'No timing data returned from API.' };
@@ -1164,32 +1174,6 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 		await Quran.load();
 
 		// 5. Build Subtitle Clips
-		// The timing data gives us start/end in MS relative to the audio file start.
-		// We need to map this to the timeline.
-		// Since we added the FULL file to the timeline, the clip's source offset is likely 0,
-		// but the clip on timeline might start at a different position (clip.startTime).
-		
-		// Ideally, we align the subtitles with the CLIP's start time on the timeline.
-		// clip_timeline_start = clip.startTime
-		// clip_source_offset = clip.offset ?? 0 (if user trimmed the start)
-		
-		// Subtitle Start = clip.startTime + (TimingStart - clip.offset)
-		// We will assume for now the user dropped the raw file and didn't trim it internally yet, 
-		// OR that they want the subtitles to match the audio content regardless of trim.
-		// Let's stick to: Subtitle Start = Timing Start + Clip Start Time (assuming offset is 0 for fresh imports).
-		// If offset > 0, we should subtract it: (TimingStart - Offset) + ClipStartTime.
-		// If (TimingStart - Offset) < 0, that part of audio is trimmed out.
-
-		// Let's get the clip properties
-		// clipStartTime is already defined above: let clipStartTime = ...
-		// clipOffset is already defined above: let clipOffset = ...
-		// We just need to ensure they are up to date if we needed them, but we set them when finding the clip.
-		
-		// Re-assigning them here just to be safe/clear or removing these lines if they are redundant.
-		// Since we already set them in step 1, we can just use the variables from outer scope:
-		// const clipStartTime = (targetClip as any).startTime || 0; // Already set
-		// const clipOffset = (targetClip as any).mediaOffset || 0;    // Already set
-
 		subtitleTrack.clips = [];
 		let segmentsApplied = 0;
 
@@ -1210,7 +1194,7 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 			const absStart = clipStartTime + relativeStart;
 			const absEnd = clipStartTime + relativeEnd;
 
-			// If segments starts before timeline 0 (unlikely if clip is at 0), clamp? 
+			// If segments starts before timeline 0 (unlikely if clip is at 0), clamp?
 			// Or if it starts before clip's visible area?
 			// Let's just apply it.
 
@@ -1222,7 +1206,7 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 			// Using full verse range (startIndex=0, endIndex=verse.words.length-1)
 			const startIndex = 0;
 			const endIndex = verse.words.length - 1;
-			
+
 			const arabicText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
 			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startIndex, endIndex);
 
@@ -1234,45 +1218,63 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 			);
 
 			const clip = new SubtitleClip(
-				 Math.max(0, absStart),
-				 Math.max(0, absEnd),
-				 surahId,
-				 verseTiming.ayah,
-				 startIndex,
-				 endIndex,
-				 arabicText,
-				 wbwTranslation,
-				 subtitlesProperties.isFullVerse,
-				 subtitlesProperties.isLastWordsOfVerse,
-				 subtitlesProperties.translations,
-				 true, // isArabic
-				 1.0   // Confidence 100% since it's manual/official
+				Math.max(0, absStart),
+				Math.max(0, absEnd),
+				surahId,
+				verseTiming.ayah,
+				startIndex,
+				endIndex,
+				arabicText,
+				wbwTranslation,
+				subtitlesProperties.isFullVerse,
+				subtitlesProperties.isLastWordsOfVerse,
+				subtitlesProperties.translations,
+				true, // isArabic
+				1.0 // Confidence 100% since it's manual/official
 			);
 
 			subtitleTrack.clips.push(clip);
 			segmentsApplied++;
 		}
-		
+
 		// --- Post-Processing (Standardizing Logic) ---
 		// 1. Sort clips by time
 		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
 
 		// 2. Close small gaps (micro-silences)
-		closeSmallSubtitleGaps(subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip>, SMALL_GAP_MS);
+		closeSmallSubtitleGaps(
+			subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip>,
+			SMALL_GAP_MS
+		);
 
 		// 3. Fill gaps with explicit SilenceClips (Strategy: Fill By Silence to preserve accurate native timing)
-		subtitleTrack.clips = insertSilenceClips(subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>, SMALL_GAP_MS);
+		subtitleTrack.clips = insertSilenceClips(
+			subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
+			SMALL_GAP_MS
+		);
 
 		// 4. Handle Trailing Silence (to ensure 100% completion)
 		const audioDuration = audioTrack.getDuration().ms;
 		const lastClip = subtitleTrack.clips[subtitleTrack.clips.length - 1];
-		
+
 		if (lastClip && lastClip.endTime < audioDuration - SMALL_GAP_MS) {
 			const silenceStart = lastClip.endTime + 1;
 			const silenceEnd = audioDuration; // Cover until the very end
 			if (silenceEnd > silenceStart) {
 				subtitleTrack.clips.push(new SilenceClip(silenceStart, silenceEnd));
 			}
+		}
+
+		// 5. Replace the first clip with basmala if it's silence
+		const firstClip = subtitleTrack.clips[0];
+		const secondClip = subtitleTrack.clips[1];
+		if (firstClip && firstClip instanceof SilenceClip && secondClip instanceof SubtitleClip) {
+			const basmalaClip = new PredefinedSubtitleClip(
+				firstClip.startTime,
+				firstClip.endTime,
+				secondClip.surah !== 9 ? 'Basmala' : 'Istiadhah'
+			);
+			subtitleTrack.clips[0] = basmalaClip;
 		}
 
 		globalState.currentProject?.detail.updateVideoDetailAttributes();
@@ -1289,7 +1291,6 @@ export async function runNativeSegmentation(): Promise<AutoSegmentationResult | 
 			coverageGapSegments: 0,
 			verseRange: new VerseRange() // We could populate this but it's optional for the result summary
 		};
-
 	} catch (error) {
 		console.error('Native segmentation error:', error);
 		toast.error(`Error: ${error}`, { id: toastId });

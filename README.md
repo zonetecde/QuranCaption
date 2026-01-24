@@ -1,19 +1,34 @@
-# Quran Caption — Quranic Video Editor
+# Quran Caption — AI-Powered Quranic Video Editor
 
-I am pleased to announce, after months of hard work, that **Quran Caption** is now officially
-available to the public.
+**Quran Caption** is a modern Quranic video editor designed to help you create high-quality
+recitation videos with subtitles, translations, and advanced visual styling — powered by AI.
 
-With its brand-new interface, refined algorithms, and hundreds of customization options, Quran
-Caption makes it simple and fast to create unique Quran recitation videos — easily shareable on
-platforms like YouTube, TikTok, and Instagram.
+With its refined interface, optimized algorithms, and hundreds of customization options, Quran
+Caption makes it simple and fast to produce unique Quran recitation videos, easily shareable on
+platforms like **YouTube, TikTok, and Instagram**.
 
-Quran Caption is the result of countless hours of coding, debugging, and testing — but above all, it
-is the fruit of the continuous support and collaboration of the
-[Discord community](https://discord.gg/Hxfqq2QA2J).  
-I sincerely thank everyone who helped bring this project to life, and I pray that Allah grants them
-ḥasanāt for every video generated and viewed through this software.
+## AI-Powered Features
 
-🌙 Don’t wait any longer — download **Quran Caption 3** today!
+Quran Caption integrates **artificial intelligence** to drastically reduce manual work and speed up
+the entire creation workflow — from subtitles to translations.
+
+### Automatic Audio & Video Segmentation
+- **Automatic subtitle generation using AI** from an audio or video recitation.
+- Supports:
+  - Mid-verse cuts  
+  - Silence detection  
+  - Basmala detection  
+  - Istiʿādha detection  
+
+### AI-Assisted Translation
+- **AI-assisted translation trimming** when a verse is cut in the middle.
+- When subtitles are split or partially selected, the **translation is automatically adjusted**
+  to match the exact spoken segment.
+- This ensures translations stay **accurate, aligned, and natural**, even with mid-verse cuts.
+- Manual review is always possible, keeping full control in the editor.
+
+Together, these features mean **no more manual subtitle placement and far less manual translation
+editing** — you focus on review and fine-tuning instead of repetitive work.
 
 ---
 

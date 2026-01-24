@@ -1,5 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::OnceLock;
+
+static RESOURCE_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+pub fn init_resource_dir(dir: PathBuf) {
+    let _ = RESOURCE_DIR.set(dir);
+}
 
 /// Returns a list of candidate paths where the given binary may be found.
 ///
@@ -13,6 +20,11 @@ fn binary_candidates(bin: &str) -> Vec<PathBuf> {
 
     // Common "resources/binaries" layout used by Tauri on non-Windows targets
     paths.push(Path::new("resources").join("binaries").join(bin));
+
+    if let Some(resource_dir) = RESOURCE_DIR.get() {
+        paths.push(resource_dir.join("binaries").join(bin));
+        paths.push(resource_dir.join("resources").join("binaries").join(bin));
+    }
 
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {

@@ -290,7 +290,7 @@
 
 <div
 	class={'flex flex-col duration-150 rounded-xl overflow-hidden ' +
-		(extended ? 'bg-white/5 ring-1 ring-white/10 my-2' : 'hover:bg-white/5') +
+		(extended ? 'bg-accent/40 ring-1 ring-color my-2' : 'hover:bg-accent/20') +
 		(isMixed()
 			? ' border border-fuchsia-400/60'
 			: isOverridden()
@@ -300,7 +300,7 @@
 	<!-- Header -->
 	<div
 		class={'flex items-center justify-between py-1.25 px-2 cursor-pointer select-none ' +
-			(extended ? 'border-b border-white/10 ' : '') +
+			(extended ? 'border-b border-color ' : '') +
 			(disabled ? 'opacity-50 pointer-events-none' : '')}
 		onclick={() => {
 			// Impossible d'étendre un style booléen, comme on a le switch directement pour le mettre en true/false
@@ -343,8 +343,8 @@
 							onchange={(e) => applyValue((e.target as HTMLInputElement).checked)}
 						/>
 						<div
-							class="relative w-11 h-6 rounded-full border border-white/10 bg-white/5
-			transition-colors duration-150 peer-checked:bg-blue-500
+							class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
+			transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
 			peer-checked:[&>span]:translate-x-5"
 						>
 							<span
@@ -541,7 +541,7 @@
 						<button
 							type="button"
 							onclick={selectFile}
-							class="w-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
+							class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
 							{disabled}
 						>
 							<span class="material-icons mr-2 text-base">folder_open</span>

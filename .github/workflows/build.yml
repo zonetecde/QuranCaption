@@ -10,9 +10,9 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: macos-13 # Intel Mac for x86_64 build
-          #   target: x86_64-apple-darwin
-          #   arch: intel
+          - os: macos-15-intel # Intel Mac for x86_64 build
+            target: x86_64-apple-darwin
+            arch: intel
           - os: macos-latest # ARM Mac for M1/M2/M3 build
             target: aarch64-apple-darwin
             arch: arm
@@ -131,6 +131,9 @@ jobs:
 
       - name: Build the app
         run: npm run tauri build --verbose
+        env:
+          PUBLIC_POSTHOG_KEY: ${{ secrets.PUBLIC_POSTHOG_KEY }}
+          PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
         timeout-minutes: 45
 
       - name: Upload macOS DMG

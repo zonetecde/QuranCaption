@@ -12,7 +12,7 @@ interface Shortcut {
  * Fournit une interface propre pour enregistrer, gérer et exécuter des raccourcis clavier
  */
 class ShortcutService {
-	private static shortcuts = new Map<string, Shortcut>();
+	private static shortcuts = new Map<string, Shortcut & { id: string }>();
 	private static keydownListener: ((event: KeyboardEvent) => void) | null = null;
 	private static keyupListener: ((event: KeyboardEvent) => void) | null = null;
 	private static isInitialized = false;
@@ -90,38 +90,49 @@ class ShortcutService {
 	}
 	/**
 	 * Enregistre un nouveau raccourci
+	 * @returns Un identifiant unique pour le raccourci enregistré, à utiliser pour le désenregistrer
 	 */
 	static registerShortcut(options: {
 		key: { keys: string[]; description: string };
 		onKeyDown: (event: KeyboardEvent) => void;
 		onKeyUp?: (event: KeyboardEvent) => void;
 		preventDefault?: boolean;
-	}): void {
+	}): string {
 		const normalizedKeys = this.normalizeKeys(options.key.keys);
+		const id = Math.random().toString(36).substring(2, 15); // Simple unique ID
 
-		const shortcut: Shortcut = {
+		const shortcut: Shortcut & { id: string } = {
 			keys: normalizedKeys,
 			onKeyDown: options.onKeyDown,
-			onKeyUp: options.onKeyUp
+			onKeyUp: options.onKeyUp,
+			id
 		};
 
 		// Enregistre le raccourci pour chaque clé
 		normalizedKeys.forEach((key) => {
 			this.shortcuts.set(key, shortcut);
 		});
+
+		return id;
 	}
 	/**
 	 * Supprime un raccourci
+	 * @param id L'identifiant du raccourci retourné par registerShortcut
 	 */
-	static unregisterShortcut(key: { keys: string[]; description: string }): boolean {
+	static unregisterShortcut(key: { keys: string[]; description: string }, id?: string): boolean {
 		if (!key) return false;
 
 		const normalizedKeys = this.normalizeKeys(key.keys);
 		let hasDeleted = false;
 
 		normalizedKeys.forEach((normalizedKey) => {
-			if (this.shortcuts.delete(normalizedKey)) {
-				hasDeleted = true;
+			const currentShortcut = this.shortcuts.get(normalizedKey);
+			// Si un ID est fourni, on ne supprime que si ça correspond
+			// Si pas d'ID (backward compatibility ou force delete), on supprime
+			if (currentShortcut && (!id || currentShortcut.id === id)) {
+				if (this.shortcuts.delete(normalizedKey)) {
+					hasDeleted = true;
+				}
 			}
 		});
 

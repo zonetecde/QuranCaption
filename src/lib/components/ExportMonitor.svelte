@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
+	import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 	import { openPath, openUrl } from '@tauri-apps/plugin-opener';
 	import { exists } from '@tauri-apps/plugin-fs';
 	import { invoke } from '@tauri-apps/api/core';
@@ -32,6 +32,19 @@
 		const minutes = Math.floor(totalSeconds / 60);
 		const seconds = totalSeconds % 60;
 		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+	}
+
+	function isTextExport(exportation: Exportation): boolean {
+		return exportation.exportKind === ExportKind.Text;
+	}
+
+	function getFileExtension(fileName: string): string {
+		const trimmed = (fileName || '').trim();
+		const dotIndex = trimmed.lastIndexOf('.');
+		if (dotIndex === -1 || dotIndex === trimmed.length - 1) {
+			return 'FILE';
+		}
+		return trimmed.slice(dotIndex + 1).toUpperCase();
 	}
 
 	// Fonction pour obtenir la couleur selon l'état
@@ -145,7 +158,7 @@
 				class="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600"
 			>
 				{#each globalState.exportations as exportation (exportation.exportId)}
-					<div class="p-4 border-b border-gray-800 last:border-b-0 relative">
+					<div class="p-2 border-b border-gray-800 last:border-b-0 relative">
 						<!-- delete cross -->
 						<button
 							class="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -179,11 +192,14 @@
 						</button>
 
 						<!-- Export Header -->
-						<div class="flex items-start justify-between mb-3">
+						<div class="flex items-start justify-between mb-2">
 							<div class="flex-1 min-w-0">
 								<h4 class="text-white font-medium truncate mb-1" title={exportation.finalFileName}>
 									{exportation.finalFileName}
 								</h4>
+								{#if isTextExport(exportation) && exportation.exportLabel}
+									<div class="text-xs text-gray-400 truncate">{exportation.exportLabel}</div>
+								{/if}
 								<div class="flex items-center gap-2 text-sm">
 									<span class="material-icons text-xs {getStateColor(exportation.currentState)}">
 										{getStateIcon(exportation.currentState)}
@@ -197,7 +213,7 @@
 
 						<!-- Progress Bar (only if in progress) -->
 						{#if exportation.isOnGoing()}
-							<div class="mb-3">
+							<div class="mb-2">
 								<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
 									<span>Progress</span>
 									<span>{Math.round(exportation.percentageProgress)}%</span>
@@ -226,38 +242,56 @@
 						{/if}
 
 						<!-- Export Details -->
-						<div class="grid grid-cols-4 grid-rows-1 gap-3 text-xs">
-							<div class="bg-gray-800/50 rounded-lg p-2">
-								<div class="text-gray-400 mb-1 text-center">Dimensions</div>
-								<div class="text-white font-mono text-center">
-									{exportation.videoDimensions.width}×{exportation.videoDimensions.height}
+						{#if isTextExport(exportation)}
+							<div class="grid grid-cols-2 grid-rows-1 gap-2 text-xs">
+								<div class="bg-gray-800/50 rounded-lg p-1">
+									<div class="text-gray-400 mb-1 text-center">Type</div>
+									<div class="text-white font-mono text-center">
+										{exportation.exportLabel || 'Text export'}
+									</div>
 								</div>
-							</div>
 
-							<div class="bg-gray-800/50 rounded-lg p-2">
-								<div class="text-gray-400 mb-1 text-center">Duration</div>
-								<div class="text-white font-mono text-center">
-									{formatDuration(exportation.videoLength)}
+								<div class="bg-gray-800/50 rounded-lg p-1">
+									<div class="text-gray-400 mb-1 text-center">Format</div>
+									<div class="text-white font-mono text-center">
+										{getFileExtension(exportation.finalFileName)}
+									</div>
 								</div>
 							</div>
+						{:else}
+							<div class="grid grid-cols-4 grid-rows-1 gap-2 text-xs">
+								<div class="bg-gray-800/50 rounded-lg p-1">
+									<div class="text-gray-400 mb-1 text-center">Dimensions</div>
+									<div class="text-white font-mono text-center">
+										{exportation.videoDimensions.width}×{exportation.videoDimensions.height}
+									</div>
+								</div>
 
-							<div class="bg-gray-800/50 rounded-lg p-2 col-span-2">
-								<div class="text-gray-400 mb-1 text-center">Verses</div>
-								<div class="text-white truncate text-center" title={exportation.verseRange}>
-									{exportation.verseRange}
+								<div class="bg-gray-800/50 rounded-lg p-1">
+									<div class="text-gray-400 mb-1 text-center">Duration</div>
+									<div class="text-white font-mono text-center">
+										{formatDuration(exportation.videoLength)}
+									</div>
+								</div>
+
+								<div class="bg-gray-800/50 rounded-lg p-1 col-span-2">
+									<div class="text-gray-400 mb-1 text-center">Verses</div>
+									<div class="text-white truncate text-center" title={exportation.verseRange}>
+										{exportation.verseRange}
+									</div>
 								</div>
 							</div>
-						</div>
+						{/if}
 
 						<!-- Error Message (if error) -->
 						{#if exportation.currentState === ExportState.Error && exportation.errorLog}
-							<div class="mt-3 p-2 bg-red-900/30 border border-red-700 rounded-lg">
+							<div class="mt-2 p-1 bg-red-900/30 border border-red-700 rounded-lg">
 								<div class="flex items-center gap-2 text-red-400 text-sm mb-1">
 									<span class="material-icons text-sm">error</span>
 									<span class="font-medium">Export Error</span>
 								</div>
 								<div
-									class="text-red-300 text-xs font-mono bg-red-950/50 p-2 rounded overflow-auto max-h-[100px]"
+									class="text-red-300 text-xs font-mono bg-red-950/50 p-1 rounded overflow-auto max-h-[100px]"
 								>
 									{#if exportation.errorLog.includes('allocate memory')}
 										<p>
@@ -279,7 +313,7 @@
 
 						<!-- Export Success Info (if completed) -->
 						{#if exportation.currentState === ExportState.Exported}
-							<div class="mt-3 p-2 bg-green-900/10 border border-green-600/30 rounded-lg">
+							<div class="mt-2 p-1 bg-green-900/10 border border-green-600/30 rounded-lg">
 								<div class="flex items-center gap-2 text-green-200 text-sm mb-1">
 									<span class="material-icons text-sm">check_circle</span>
 									<span class="font-medium">Export completed successfully</span>

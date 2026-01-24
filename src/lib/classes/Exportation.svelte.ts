@@ -14,10 +14,17 @@ export enum ExportState {
 	Initializing = 'Initializing...'
 }
 
+export enum ExportKind {
+	Video = 'Video',
+	Text = 'Text'
+}
+
 export default class Exportation extends SerializableBase {
 	exportId: number;
 	finalFileName: string;
 	finalFilePath: string;
+	exportKind: ExportKind;
+	exportLabel: string;
 	videoDimensions: { width: number; height: number };
 	videoLength: number;
 	videoStartTime: number;
@@ -42,18 +49,24 @@ export default class Exportation extends SerializableBase {
 		fps: number,
 		percentageProgress: number = 0,
 		currentTreatedTime: number = 0,
-		errorLog: string = ''
+		errorLog: string = '',
+		exportKind: ExportKind = ExportKind.Video,
+		exportLabel: string = ''
 	) {
 		super();
+		const safeStartTime = videoStartTime ?? 0;
+		const safeEndTime = videoEndTime ?? safeStartTime;
 		this.exportId = exportId;
 		this.finalFileName = finalFileName;
 		this.finalFilePath = finalFilePath;
-		this.videoDimensions = videoDimensions;
-		this.videoStartTime = videoStartTime;
-		this.videoEndTime = videoEndTime;
-		this.videoLength = videoEndTime - videoStartTime;
+		this.exportKind = $state(exportKind ?? ExportKind.Video);
+		this.exportLabel = $state(exportLabel ?? '');
+		this.videoDimensions = videoDimensions ?? { width: 0, height: 0 };
+		this.videoStartTime = safeStartTime;
+		this.videoEndTime = safeEndTime;
+		this.videoLength = safeEndTime - safeStartTime;
 		this.verseRange = verseRange;
-		this.fps = fps;
+		this.fps = fps ?? 0;
 		this.currentState = $state(currentState);
 		this.percentageProgress = $state(percentageProgress);
 		this.currentTreatedTime = $state(currentTreatedTime);

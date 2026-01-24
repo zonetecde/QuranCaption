@@ -75,7 +75,7 @@ export default class Exporter {
 
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_subtitles_${projectName}.${settings.format.toLowerCase()}`;
-		await ExportFileService.saveTextFile(fileName, fileContent);
+		await ExportFileService.saveTextFile(fileName, fileContent, 'Subtitles');
 	}
 	static async exportProjectData() {
 		const projectData = globalState.currentProject;
@@ -88,7 +88,7 @@ export default class Exporter {
 		const json = JSON.stringify(projectData, null, 2);
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_project_${projectName}.json`;
-		await ExportFileService.saveTextFile(fileName, json);
+		await ExportFileService.saveTextFile(fileName, json, 'Project data');
 	}
 	static async exportYtbChapters() {
 		const choice = globalState.getExportState.ytbChaptersChoice;
@@ -165,7 +165,7 @@ export default class Exporter {
 
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_chapters_${projectName}.txt`;
-		await ExportFileService.saveTextFile(fileName, fileContent);
+		await ExportFileService.saveTextFile(fileName, fileContent, 'YouTube chapters');
 	}
 	/**
 	 * Convertit le temps en millisecondes au format YouTube (MM:SS ou HH:MM:SS)

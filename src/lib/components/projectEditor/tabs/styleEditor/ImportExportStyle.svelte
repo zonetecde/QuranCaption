@@ -2,6 +2,7 @@
 	import { CustomTextClip } from '$lib/classes';
 	import { CustomClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import ExportFileService from '$lib/services/ExportFileService';
 	import { slide } from 'svelte/transition';
 
 	interface Props {
@@ -136,16 +137,11 @@
 
 				<button
 					class="btn w-full bg-black/20! text-[var(--text-primary)] px-3 py-2 rounded transition-colors hover:bg-[#30363d] border border-[var(--border-color)] text-sm"
-					onclick={() => {
+					onclick={async () => {
 						const json = globalState.getVideoStyle.exportStyles(includedExportClips);
-						// Télécharger le fichier JSON
-						const blob = new Blob([json], { type: 'application/json' });
-						const url = URL.createObjectURL(blob);
-						const a = document.createElement('a');
-						a.href = url;
-						a.download = `exported_styles_${globalState.currentProject!.detail.name}.json`;
-						a.click();
-						URL.revokeObjectURL(url);
+						const projectName = ExportFileService.getProjectNameForFile();
+						const fileName = `exported_styles_${projectName}.json`;
+						await ExportFileService.saveTextFile(fileName, json, 'Styles');
 					}}
 				>
 					Export to File

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
+	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 
 	let isDragging = $state(false);
 	let containerRef: HTMLElement | null = $state(null);
@@ -32,6 +33,7 @@
 		isDragging = false;
 		document.removeEventListener('mousemove', resize);
 		document.removeEventListener('mouseup', stopResize);
+		WaveformService.clearAllCache();
 	}
 </script>
 

@@ -17,8 +17,14 @@ export class Asset extends SerializableBase {
 	exists: boolean = $state(true);
 	sourceUrl?: string = $state(undefined);
 	sourceType: SourceType = $state(SourceType.Local);
+	metadata: Record<string, any> = $state({});
 
-	constructor(filePath: string = '', sourceUrl?: string, sourceType: SourceType = SourceType.Local) {
+	constructor(
+		filePath: string = '',
+		sourceUrl?: string,
+		sourceType: SourceType = SourceType.Local,
+		metadata: Record<string, any> = {}
+	) {
 		super();
 
 		// Si l'arg est undefined (cas de désérialisation)
@@ -37,6 +43,8 @@ export class Asset extends SerializableBase {
 		} else {
 			this.sourceType = SourceType.Local;
 		}
+
+		this.metadata = metadata;
 
 		const fileName = this.getFileName(this.filePath);
 

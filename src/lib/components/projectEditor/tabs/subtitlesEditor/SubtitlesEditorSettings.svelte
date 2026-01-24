@@ -9,7 +9,6 @@
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
 
-
 	// Compte le nombre de segments à revue
 	let segmentsNeedingReview = $derived(
 		(globalState.getSubtitleClips || []).filter((clip) => clip.needsReview === true).length
@@ -272,7 +271,7 @@
 
 		<div class="space-y-4">
 			<h3 class="text-sm font-medium text-secondary mb-3">AI-Assisted Segmentation</h3>
-			<div class="bg-accent rounded-lg p-4">
+			<div class="bg-accent rounded-lg p-4 space-y-3">
 				<button
 					class="btn-accent w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2"
 					type="button"
@@ -282,13 +281,29 @@
 					<span class="material-icons text-base">auto_awesome</span>
 					Auto-Segment
 				</button>
+
 			</div>
 		</div>
 
-
+		{#if (globalState.getAudioTrack?.clips || []).some((c) => globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran)}
+			<div class="space-y-4">
+				<h3 class="text-sm font-medium text-secondary mb-3">Native Timing</h3>
+				<div class="bg-accent rounded-lg p-4 space-y-3">
+					<button
+						class="w-full px-3 py-2 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[var(--accent-primary)]/20 transition cursor-pointer"
+						type="button"
+						onclick={async () => {
+							const { runNativeSegmentation } = await import('$lib/services/AutoSegmentation');
+							await runNativeSegmentation();
+						}}
+					>
+						Load subtitles from MP3Quran
+					</button>
+				</div>
+			</div>
+		{/if}
 
 		<div class="space-y-3">
-
 			{#if initialLowConfidenceCount > 0 && segmentsNeedingReview > 0}
 				<div class="bg-accent rounded-lg p-3 space-y-2">
 					<div class="flex items-center justify-between">
@@ -331,8 +346,6 @@
 		<AutoSegmentationModal close={() => (autoSegmentationModalVisible = false)} />
 	</div>
 {/if}
-
-
 
 <style>
 	.animate-pulse {

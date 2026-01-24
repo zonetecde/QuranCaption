@@ -2,10 +2,17 @@ import { invoke } from '@tauri-apps/api/core';
 import toast from 'svelte-5-french-toast';
 
 import { Quran } from '$lib/classes/Quran';
-import { PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } from '$lib/classes';
+import {
+	AssetClip,
+	PredefinedSubtitleClip,
+	SilenceClip,
+	SubtitleClip,
+	type Translation
+} from '$lib/classes';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
+import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 
 const SMALL_GAP_MS = 200;
 
@@ -1097,5 +1104,196 @@ function markClipTranslationsForReview(clip: SubtitleClip): void {
 		if (translation && typeof translation.updateStatus === 'function') {
 			translation.updateStatus('to review', edition);
 		}
+	}
+}
+/**
+ * Handles the "Native" segmentation flow using Mp3Quran timing data.
+ */
+export async function runNativeSegmentation(
+	targetAssetId?: number
+): Promise<AutoSegmentationResult | null> {
+	// 1. Identify valid audio clip and metadata
+	const audioTrack = globalState.getAudioTrack;
+	let targetClip: AssetClip | null = null;
+	let mp3QuranMeta: { reciterId: number; surahId: number; moshafId?: number } | null = null;
+	let clipStartTime = 0;
+	let clipOffset = 0;
+
+	for (const clip of audioTrack.clips) {
+		if (clip instanceof AssetClip) {
+			if (typeof targetAssetId === 'number' && clip.assetId !== targetAssetId) {
+				continue;
+			}
+			const asset = globalState.currentProject?.content.getAssetById(clip.assetId);
+			if (asset?.metadata?.mp3Quran) {
+				mp3QuranMeta = asset.metadata.mp3Quran;
+				targetClip = clip;
+				clipStartTime = clip.startTime;
+				// clip.offset might not exist on AssetClip type definition yet but let's assume valid access for now or cast
+				clipOffset = (clip as any).offset || 0;
+				break;
+			}
+		}
+	}
+
+	if (!targetClip || !mp3QuranMeta) {
+		toast.error('No Mp3Quran audio found on timeline.');
+		return { status: 'failed', message: 'No Mp3Quran audio found' };
+	}
+
+	// 2. Warn about overwriting
+	const subtitleTrack = globalState.getSubtitleTrack;
+	if (subtitleTrack.clips.length > 0) {
+		const confirmOverwrite = await ModalManager.confirmModal(
+			'There are already subtitles in this project. This process will replace them with Mp3Quran timing. Continue?',
+			true
+		);
+		if (!confirmOverwrite) return { status: 'cancelled' };
+	}
+
+	const { reciterId, surahId, moshafId } = mp3QuranMeta;
+	// Use moshafId (readId) if available, otherwise fallback to reciterId (legacy/fallback)
+	const readId = moshafId ?? reciterId;
+
+	let toastId: string | undefined;
+
+	try {
+		toastId = toast.loading('Fetching timing data from Mp3Quran...');
+
+		// 3. Fetch timing data
+		// Note from plan: We assume reciterId matches readId.
+		// If this fails often, we might need a lookup table.
+		const timingData = await Mp3QuranService.getSurahTiming(readId, surahId);
+
+		if (!timingData || timingData.length === 0) {
+			toast.error('No timing data found for this reciter/surah.', { id: toastId });
+			return { status: 'failed', message: 'No timing data returned from API.' };
+		}
+
+		// 4. Load Quran Data
+		await Quran.load();
+
+		// 5. Build Subtitle Clips
+		subtitleTrack.clips = [];
+		let segmentsApplied = 0;
+
+		for (const verseTiming of timingData) {
+			// timing in ms
+			const timingStart = verseTiming.start_time;
+			const timingEnd = verseTiming.end_time;
+
+			// Adjusted for timeline
+			// Valid part of the verse must be visible in the clip
+			// If the verse ends before the clip starts (due to offset), skip.
+			if (timingEnd < clipOffset) continue;
+
+			const relativeStart = timingStart - clipOffset;
+			const relativeEnd = timingEnd - clipOffset;
+
+			// Calculate absolute timeline position
+			const absStart = clipStartTime + relativeStart;
+			const absEnd = clipStartTime + relativeEnd;
+
+			// If segments starts before timeline 0 (unlikely if clip is at 0), clamp?
+			// Or if it starts before clip's visible area?
+			// Let's just apply it.
+
+			// Fetch Verse
+			const verse = await Quran.getVerse(surahId, verseTiming.ayah);
+			if (!verse) continue;
+
+			// Create Clip
+			// Using full verse range (startIndex=0, endIndex=verse.words.length-1)
+			const startIndex = 0;
+			const endIndex = verse.words.length - 1;
+
+			const arabicText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
+			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startIndex, endIndex);
+
+			const subtitlesProperties = await subtitleTrack.getSubtitlesProperties(
+				verse,
+				startIndex,
+				endIndex,
+				surahId
+			);
+
+			const clip = new SubtitleClip(
+				Math.max(0, absStart),
+				Math.max(0, absEnd),
+				surahId,
+				verseTiming.ayah,
+				startIndex,
+				endIndex,
+				arabicText,
+				wbwTranslation,
+				subtitlesProperties.isFullVerse,
+				subtitlesProperties.isLastWordsOfVerse,
+				subtitlesProperties.translations,
+				true, // isArabic
+				1.0 // Confidence 100% since it's manual/official
+			);
+
+			subtitleTrack.clips.push(clip);
+			segmentsApplied++;
+		}
+
+		// --- Post-Processing (Standardizing Logic) ---
+		// 1. Sort clips by time
+		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+
+		// 2. Close small gaps (micro-silences)
+		closeSmallSubtitleGaps(
+			subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip>,
+			SMALL_GAP_MS
+		);
+
+		// 3. Fill gaps with explicit SilenceClips (Strategy: Fill By Silence to preserve accurate native timing)
+		subtitleTrack.clips = insertSilenceClips(
+			subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
+			SMALL_GAP_MS
+		);
+
+		// 4. Handle Trailing Silence (to ensure 100% completion)
+		const audioDuration = audioTrack.getDuration().ms;
+		const lastClip = subtitleTrack.clips[subtitleTrack.clips.length - 1];
+
+		if (lastClip && lastClip.endTime < audioDuration - SMALL_GAP_MS) {
+			const silenceStart = lastClip.endTime + 1;
+			const silenceEnd = audioDuration; // Cover until the very end
+			if (silenceEnd > silenceStart) {
+				subtitleTrack.clips.push(new SilenceClip(silenceStart, silenceEnd));
+			}
+		}
+
+		// 5. Replace the first clip with basmala if it's silence
+		const firstClip = subtitleTrack.clips[0];
+		const secondClip = subtitleTrack.clips[1];
+		if (firstClip && firstClip instanceof SilenceClip && secondClip instanceof SubtitleClip) {
+			const basmalaClip = new PredefinedSubtitleClip(
+				firstClip.startTime,
+				firstClip.endTime,
+				secondClip.surah !== 9 ? 'Basmala' : 'Istiadhah'
+			);
+			subtitleTrack.clips[0] = basmalaClip;
+		}
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+		// Reset review count as these are trusted segments
+		globalState.getSubtitlesEditorState.initialLowConfidenceCount = 0;
+
+		toast.success(`Applied ${segmentsApplied} subtitles from Mp3Quran!`, { id: toastId });
+
+		return {
+			status: 'completed',
+			segmentsApplied,
+			lowConfidenceSegments: 0,
+			coverageGapSegments: 0,
+			verseRange: new VerseRange() // We could populate this but it's optional for the result summary
+		};
+	} catch (error) {
+		console.error('Native segmentation error:', error);
+		toast.error(`Error: ${error}`, { id: toastId });
+		return { status: 'failed', message: String(error) };
 	}
 }

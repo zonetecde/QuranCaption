@@ -28,6 +28,7 @@ export default class Settings extends SerializableBase {
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		videoExportFolder: '',
+		themeIntensity: 100,
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'

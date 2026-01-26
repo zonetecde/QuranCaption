@@ -51,10 +51,9 @@
 	--text-secondary: #c9d1d9;
 	--text-placeholder: #656a6e;
 	--text-thirdly: #8b949e;
-	--text-selection: rgba(88, 166, 255, 0.3);
-	--accent-primary: #58a6ff;
+	--accent-primary-raw: #58a6ff;
 	--selected-word-bg: #22272d;
-	--accent-secondary: #3fb950;
+	--accent-secondary-raw: #3fb950;
 	--danger-color: #f85149;
 	--timeline-audio-clip-color: rgba(139, 92, 246, 0.4);
 	--timeline-audio-clip-border: rgba(139, 92, 246, 0.7);
@@ -110,6 +109,14 @@
 	--transition-speed: 0.2s;
 	--transition-timing: ease;
 	--bg-texture: none;
+	--bg-texture: none;
+	--theme-intensity: 100%;
+}
+
+body {
+	--accent-primary: color-mix(in srgb, var(--accent-primary-raw), #808080 calc(100% - var(--theme-intensity)));
+	--accent-secondary: color-mix(in srgb, var(--accent-secondary-raw), #808080 calc(100% - var(--theme-intensity)));
+	--text-accent: color-mix(in srgb, var(--text-accent-raw, var(--accent-primary-raw)), #808080 calc(100% - var(--theme-intensity)));
 }
 
 .theme-emerald-forest {
@@ -123,9 +130,11 @@
 	--text-secondary: #9ca3af;
 	--border-color: #1f2937;
 
-	--accent-primary: #10b981; /* Emerald 500 */
-	--accent-secondary: #059669; /* Emerald 600 */
-	--text-accent: #34d399;
+	--accent-primary-raw: #10b981;
+	/* Emerald 500 */
+	--accent-secondary-raw: #059669;
+	/* Emerald 600 */
+	--text-accent-raw: #34d399;
 
 	--timeline-track-border: rgba(16, 185, 129, 0.1);
 	--timeline-scrollbar: rgba(16, 185, 129, 0.6);
@@ -149,9 +158,11 @@
 
 	--border-color: #e2e8f0;
 
-	--accent-primary: #6366f1; /* Indigo 500 */
-	--accent-secondary: #4f46e5; /* Indigo 600 */
-	--text-accent: #6366f1;
+	--accent-primary-raw: #6366f1;
+	/* Indigo 500 */
+	--accent-secondary-raw: #4f46e5;
+	/* Indigo 600 */
+	--text-accent-raw: #6366f1;
 
 	--text-selection: rgba(99, 102, 241, 0.2);
 	--selected-word-bg: #e0e7ff;
@@ -190,9 +201,11 @@
 
 	--border-color: #e6d5bc;
 
-	--accent-primary: #d4a017; /* Gold 600ish */
-	--accent-secondary: #b8860b; /* Dark Goldenrod */
-	--text-accent: #d4a017;
+	--accent-primary-raw: #d4a017;
+	/* Gold 600ish */
+	--accent-secondary-raw: #b8860b;
+	/* Dark Goldenrod */
+	--text-accent-raw: #d4a017;
 
 	--text-selection: rgba(212, 160, 23, 0.2);
 	--selected-word-bg: #fdf2d5;
@@ -228,8 +241,8 @@
 	--border-color: #c4b494;
 	--text-primary: #3d3420;
 	--text-secondary: #5c5036;
-	--accent-primary: #8b4513;
-	--accent-secondary: #5d2e0d;
+	--accent-primary-raw: #8b4513;
+	--accent-secondary-raw: #5d2e0d;
 	--text-on-accent: #f4ecd8;
 
 	--radius-m: 2px;
@@ -247,8 +260,9 @@
 	--border-color: #222222;
 	--text-primary: #ffffff;
 	--text-secondary: #888888;
-	--accent-primary: #00ff41; /* Matrix Green */
-	--accent-secondary: #008f11;
+	--accent-primary-raw: #00ff41;
+	/* Matrix Green */
+	--accent-secondary-raw: #008f11;
 	--text-on-accent: black;
 
 	--radius-m: 0px;
@@ -266,8 +280,9 @@
 	--border-color: rgba(255, 255, 255, 0.1);
 	--text-primary: #f8fafc;
 	--text-secondary: #94a3b8;
-	--accent-primary: #ec4899; /* Pink 500 */
-	--accent-secondary: #db2777;
+	--accent-primary-raw: #ec4899;
+	/* Pink 500 */
+	--accent-secondary-raw: #db2777;
 	--text-on-accent: white;
 
 	--surface-blur: 16px;
@@ -284,8 +299,8 @@
 	--border-color: #e5e7eb;
 	--text-primary: #111827;
 	--text-secondary: #4b5563;
-	--accent-primary: #111827;
-	--accent-secondary: #374151;
+	--accent-primary-raw: #111827;
+	--accent-secondary-raw: #374151;
 	--text-on-accent: white;
 
 	--radius-m: 0.75rem;
@@ -303,8 +318,9 @@
 	--border-color: #475569;
 	--text-primary: #f8fafc;
 	--text-secondary: #94a3b8;
-	--accent-primary: #f97316; /* Safety Orange */
-	--accent-secondary: #ea580c;
+	--accent-primary-raw: #f97316;
+	/* Safety Orange */
+	--accent-secondary-raw: #ea580c;
 	--text-on-accent: white;
 
 	--radius-m: 0px;
@@ -321,60 +337,78 @@
 .bg-titlebar {
 	background-color: var(--bg-titlebar);
 }
+
 .selected {
 	background-color: var(--bg-accent) !important;
 	color: var(--text-primary) !important;
 }
+
 .accent-accent {
 	accent-color: var(--accent-primary);
 }
+
 .bg-primary {
 	background-color: var(--bg-primary);
 }
+
 .bg-secondary {
 	background-color: var(--bg-secondary);
 }
+
 .bg-accent {
 	background-color: var(--bg-accent);
 }
+
 .border-color {
 	border-color: var(--border-color);
 }
+
 .divide-color {
 	:where(& > :not(:last-child)) {
 		border-color: var(--border-color);
 	}
 }
+
 .text-secondary {
 	color: var(--text-secondary);
 }
+
 .text-thirdly {
 	color: var(--text-thirdly);
 }
+
 .text-accent {
 	color: var(--accent-primary);
 }
+
 .text-accent-primary {
 	color: var(--accent-primary);
 }
+
 .bg-accent-primary {
 	background-color: var(--accent-primary);
 }
+
 .text-accent-secondary {
 	color: var(--accent-secondary);
 }
+
 .bg-accent-secondary {
 	background-color: var(--accent-secondary);
 }
+
 .border-accent-secondary {
 	border-color: var(--accent-secondary);
 }
+
 .danger-color {
 	color: var(--danger-color);
 }
+
 .bg-danger-color {
 	background-color: var(--danger-color);
 }
+
 .border-danger-color {
 	border-color: var(--danger-color);
 }
@@ -600,17 +634,21 @@ input[type='number']::-webkit-inner-spin-button:hover {
 	width: 8px;
 	height: 10px;
 }
+
 ::-webkit-scrollbar-thumb {
 	background-color: var(--text-thirdly);
 	border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
 	background-color: var(--text-secondary);
 }
+
 ::-webkit-scrollbar-track {
 	background-color: var(--bg-secondary);
 	border-radius: 4px;
 }
+
 ::-webkit-scrollbar-corner {
 	background-color: var(--bg-secondary);
 }
@@ -619,24 +657,26 @@ input[type='number']::-webkit-inner-spin-button:hover {
 .timeline-scrollbar::-webkit-scrollbar {
 	height: 12px;
 }
+
 .timeline-scrollbar::-webkit-scrollbar-thumb {
 	background: linear-gradient(90deg, var(--timeline-scrollbar) 0%, var(--accent-primary) 100%);
 	border-radius: 6px;
 	border: 1px solid var(--timeline-bg-secondary);
 }
+
 .timeline-scrollbar::-webkit-scrollbar-thumb:hover {
-	background: linear-gradient(
-		90deg,
-		var(--timeline-scrollbar-hover) 0%,
-		var(--accent-primary) 100%
-	);
+	background: linear-gradient(90deg,
+			var(--timeline-scrollbar-hover) 0%,
+			var(--accent-primary) 100%);
 	box-shadow: 0 0 8px var(--timeline-cursor-shadow);
 }
+
 .timeline-scrollbar::-webkit-scrollbar-track {
 	background: var(--timeline-bg-primary);
 	border-radius: 6px;
 	border: 1px solid var(--border-color);
 }
+
 .timeline-scrollbar::-webkit-scrollbar-corner {
 	background: var(--timeline-bg-secondary);
 }
@@ -676,11 +716,13 @@ select {
 		box-shadow: 0 0 0 2px var(--highlight-color);
 		border-color: var(--highlight-color);
 	}
+
 	50% {
 		background-color: var(--highlight-bg);
 		box-shadow: 0 0 0 1px var(--highlight-color);
 		border-color: var(--highlight-color);
 	}
+
 	100% {
 		background-color: transparent;
 		box-shadow: none;

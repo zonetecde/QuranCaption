@@ -143,7 +143,26 @@
 				<!-- Theme Selection -->
 				<div class="space-y-4">
 					<h3 class="text-lg font-medium text-primary">Theme</h3>
-					<p class="text-sm text-thirdly">Select application theme and accent colors.</p>
+					<h3 class="text-lg font-medium text-primary">Theme</h3>
+					<div class="flex items-center justify-between">
+					    <p class="text-sm text-thirdly">Select application theme and accent colors.</p>
+                        
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-thirdly uppercase font-mono tracking-wider">Intensity</span>
+                            <div class="flex items-center gap-2 bg-secondary border border-color rounded-lg p-1">
+                                <span class="material-icons text-white/50 text-sm">contrast</span>
+                                <input 
+                                    type="range" 
+                                    min="20" 
+                                    max="100" 
+                                    class="w-24 h-1.5 accent-accent-primary"
+                                    bind:value={globalState.settings.persistentUiState.themeIntensity}
+                                    onchange={() => Settings.save()}
+                                />
+                                <span class="text-xs w-8 text-right font-mono">{globalState.settings.persistentUiState.themeIntensity}%</span>
+                            </div>
+                        </div>
+                    </div>
 
 					<div class="grid grid-cols-3 gap-4">
 						{#each themes as theme}

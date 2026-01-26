@@ -40,6 +40,10 @@
 		if (theme !== 'default') {
 			document.body.classList.add(`theme-${theme}`);
 		}
+
+		// Apply intensity
+		const intensity = globalState.settings?.persistentUiState?.themeIntensity ?? 100;
+		document.body.style.setProperty('--theme-intensity', `${intensity}%`);
 	});
 </script>
 

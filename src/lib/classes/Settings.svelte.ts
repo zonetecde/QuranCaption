@@ -28,6 +28,7 @@ export default class Settings extends SerializableBase {
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		videoExportFolder: '',
+		themeIntensity: 100,
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'
@@ -37,7 +38,7 @@ export default class Settings extends SerializableBase {
 			| 'oled-stealth'
 			| 'ethereal-glass'
 			| 'minimal-zen'
-			| 'industrial-steel'
+			| 'inverted-minimal-zen'
 	});
 
 	autoSegmentationSettings = $state<AutoSegmentationSettings>({

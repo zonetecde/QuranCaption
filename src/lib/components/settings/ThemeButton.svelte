@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
+	import Settings from '$lib/classes/Settings.svelte';
+
 
 	export type ThemeId =
 		| 'default'
@@ -10,7 +12,7 @@
 		| 'oled-stealth'
 		| 'ethereal-glass'
 		| 'minimal-zen'
-		| 'industrial-steel';
+		| 'inverted-minimal-zen';
 
 	export type ThemeConfig = {
 		id: ThemeId;
@@ -27,9 +29,10 @@
 
 	const isSelected = $derived(globalState.settings?.persistentUiState?.theme === theme.id);
 
-	function selectTheme() {
+	async function selectTheme() {
 		if (globalState.settings) {
 			globalState.settings.persistentUiState.theme = theme.id;
+			await Settings.save();
 		}
 	}
 </script>

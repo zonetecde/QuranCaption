@@ -12,7 +12,7 @@
 		| 'oled-stealth'
 		| 'ethereal-glass'
 		| 'minimal-zen'
-		| 'industrial-steel';
+		| 'inverted-minimal-zen';
 
 	export type ThemeConfig = {
 		id: ThemeId;

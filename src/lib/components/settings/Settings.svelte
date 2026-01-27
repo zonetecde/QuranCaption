@@ -81,11 +81,12 @@
 			mockText: 'rgba(0,0,0,0.1)'
 		},
 		{
-			id: 'industrial-steel',
-			name: 'Industrial Steel',
-			mockBg: '#1e293b',
-			mockAccent: '#f97316',
-			mockDots: 'rgba(255,255,255,0.2)'
+			id: 'inverted-minimal-zen',
+			name: 'Inverted Minimalist Zen',
+			mockBg: '#111827',
+			mockAccent: '#ffffff',
+			mockDots: 'rgba(255,255,255,0.2)',
+			mockText: 'rgba(255,255,255,0.1)'
 		}
 	];
 </script>

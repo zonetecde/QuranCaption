@@ -310,23 +310,23 @@ body {
 	--transition-speed: 0.5s;
 }
 
-.theme-industrial-steel {
-	--bg-primary: #1e293b;
+.theme-inverted-minimal-zen {
+	--bg-primary: #111827;
 	--bg-secondary: #0f172a;
-	--bg-titlebar: #1e293b;
-	--bg-accent: #334155;
-	--border-color: #475569;
-	--text-primary: #f8fafc;
-	--text-secondary: #94a3b8;
-	--accent-primary-raw: #f97316;
-	/* Safety Orange */
-	--accent-secondary-raw: #ea580c;
-	--text-on-accent: white;
+	--bg-titlebar: #111827;
+	--bg-accent: #1f2937;
+	--border-color: #374151;
+	--text-primary: #f9fafb;
+	--text-secondary: #d1d5db;
+	--accent-primary-raw: #ffffff;
+	--accent-secondary-raw: #e5e7eb;
+	--text-on-accent: #111827;
 
-	--radius-m: 0px;
-	--radius-l: 0px;
+	--radius-m: 0.75rem;
+	--radius-l: 1.25rem;
 	--border-w: 1px;
-	--shadow-ui: none;
+	--shadow-ui: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	--transition-speed: 0.5s;
 }
 
 /* Pour tout les p, hN, span etc empecher la selection de texte */

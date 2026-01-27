@@ -38,7 +38,7 @@ export default class Settings extends SerializableBase {
 			| 'oled-stealth'
 			| 'ethereal-glass'
 			| 'minimal-zen'
-			| 'industrial-steel'
+			| 'inverted-minimal-zen'
 	});
 
 	autoSegmentationSettings = $state<AutoSegmentationSettings>({

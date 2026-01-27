@@ -14,22 +14,7 @@
 		resolve: (result: boolean) => void;
 	} = $props();
 
-	const themes: ThemeConfig[] = [
-		{
-			id: 'default',
-			name: 'Default',
-			mockBg: '#0d1117',
-			mockTitlebar: '#161b22',
-			mockAccent: '#58a6ff',
-			mockDots: 'rgba(255,255,255,0.3)'
-		},
-		{
-			id: 'emerald-forest',
-			name: 'Emerald Forest',
-			mockBg: '#060908',
-			mockTitlebar: '#0c120e',
-			mockAccent: '#10b981'
-		},
+	const lightThemes: ThemeConfig[] = [
 		{
 			id: 'polar-ice',
 			name: 'Polar Ice',
@@ -39,6 +24,17 @@
 			mockDots: 'rgba(0,0,0,0.1)',
 			mockText: 'rgba(0,0,0,0.1)'
 		},
+		{
+			id: 'minimal-zen',
+			name: 'Minimalist Zen',
+			mockBg: '#f9f9f9',
+			mockAccent: '#111827',
+			mockDots: 'rgba(0,0,0,0.1)',
+			mockText: 'rgba(0,0,0,0.1)'
+		}
+	];
+
+	const sepiaThemes: ThemeConfig[] = [
 		{
 			id: 'desert-gold',
 			name: 'Desert Gold',
@@ -56,6 +52,24 @@
 			mockAccent: '#8b4513',
 			mockDots: 'rgba(0,0,0,0.2)',
 			mockText: 'rgba(0,0,0,0.2)'
+		}
+	];
+
+	const darkThemes: ThemeConfig[] = [
+		{
+			id: 'default',
+			name: 'Default',
+			mockBg: '#0d1117',
+			mockTitlebar: '#161b22',
+			mockAccent: '#58a6ff',
+			mockDots: 'rgba(255,255,255,0.3)'
+		},
+		{
+			id: 'emerald-forest',
+			name: 'Emerald Forest',
+			mockBg: '#060908',
+			mockTitlebar: '#0c120e',
+			mockAccent: '#10b981'
 		},
 		{
 			id: 'oled-stealth',
@@ -71,14 +85,6 @@
 			mockAccent: '#ec4899',
 			mockDots: 'rgba(255,255,255,0.2)',
 			specialStyle: 'backdrop-filter: blur(16px);'
-		},
-		{
-			id: 'minimal-zen',
-			name: 'Minimalist Zen',
-			mockBg: '#f9f9f9',
-			mockAccent: '#111827',
-			mockDots: 'rgba(0,0,0,0.1)',
-			mockText: 'rgba(0,0,0,0.1)'
 		},
 		{
 			id: 'inverted-minimal-zen',
@@ -172,10 +178,33 @@
 						{/if}
 					</div>
 
-					<div class="grid grid-cols-3 gap-4">
-						{#each themes as theme}
-							<ThemeButton {theme} />
-						{/each}
+					<div class="space-y-6">
+						<div class="space-y-3">
+							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Dark</p>
+							<div class="grid grid-cols-3 gap-4">
+								{#each darkThemes as theme}
+									<ThemeButton {theme} />
+								{/each}
+							</div>
+						</div>
+
+						<div class="space-y-3">
+							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Light</p>
+							<div class="grid grid-cols-3 gap-4">
+								{#each lightThemes as theme}
+									<ThemeButton {theme} />
+								{/each}
+							</div>
+						</div>
+
+						<div class="space-y-3">
+							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Sepia</p>
+							<div class="grid grid-cols-3 gap-4">
+								{#each sepiaThemes as theme}
+									<ThemeButton {theme} />
+								{/each}
+							</div>
+						</div>
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.ABOUT}

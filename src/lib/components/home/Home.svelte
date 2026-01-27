@@ -5,6 +5,7 @@
 	import Header from './Header.svelte';
 	import CreateProjectModal from './modals/CreateProjectModal.svelte';
 	import ProjectDetailCard from './ProjectDetailCard.svelte';
+	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
 	import FilterMenu from './FilterMenu.svelte';
 	import SortMenu from './SortMenu.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -251,16 +252,11 @@
 		</div>
 
 		{#await promise}
-			<div class="items-center justify-center absolute inset-0 flex flex-col gap-y-3">
-				<div
-					class="flex items-center flex-col px-30 rounded-4xl border-black/50 border-2 bg-black/30 py-10"
-				>
-					<span class="material-icons animate-spin text-4xl text-gray-400 text-[40px]!"
-						>autorenew</span
-					>
-
-					<p class="text-xl">Please wait, we are currently loading your projects...</p>
-				</div>
+			<div class="mt-6">
+				<ProjectDetailCardSkeleton
+					isListView={(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'}
+					count={8}
+				/>
 			</div>
 		{:then}
 			{#if globalState.uiState.filteredProjects.length === 0}
@@ -307,3 +303,4 @@
 		<MigrationFromV2Modal close={() => (migrationFromV2ModalVisibility = false)} />
 	</div>
 {/if}
+

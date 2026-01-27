@@ -51,6 +51,7 @@
 	--text-secondary: #c9d1d9;
 	--text-placeholder: #656a6e;
 	--text-thirdly: #8b949e;
+	--text-selection: rgba(88, 166, 255, 0.3);
 	--accent-primary-raw: #58a6ff;
 	--selected-word-bg: #22272d;
 	--accent-secondary-raw: #3fb950;
@@ -108,7 +109,6 @@
 	--shadow-ui: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 	--transition-speed: 0.2s;
 	--transition-timing: ease;
-	--bg-texture: none;
 	--bg-texture: none;
 	--theme-intensity: 100%;
 }
@@ -378,7 +378,7 @@ body {
 }
 
 .text-accent {
-	color: var(--accent-primary);
+	color: var(--text-accent);
 }
 
 .text-accent-primary {

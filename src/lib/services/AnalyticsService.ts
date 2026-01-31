@@ -147,12 +147,6 @@ export class AnalyticsService {
 		});
 	}
 
-	static trackSubtitleAdded(surah?: string | number) {
-		this.track('subtitle_added', {
-			surah
-		});
-	}
-
 	static trackTranslationAdded(
 		editionName: string,
 		author: string,

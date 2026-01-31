@@ -388,8 +388,6 @@ export class SubtitleTrack extends Track {
 			)
 		);
 
-		AnalyticsService.trackSubtitleAdded(surah);
-
 		return true;
 	}
 

@@ -26,6 +26,7 @@
 	let removeShortcutRegistered = false;
 	let splitShortcutRegistered = false;
 	let setEndShortcutRegistered = false;
+	let setStartShortcutRegistered = false;
 
 	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
 	function handleRemoveSelectedSubtitles(): void {
@@ -131,8 +132,8 @@
 	}
 
 	/**
-	 * Définit la fin du sous-titre actuel (sous le curseur) à la position du curseur.
-	 * Si un sous-titre suivant existe, ajuste son temps de début à cursorPosition + 1.
+	 * Definit la fin du sous-titre actuel (sous le curseur) a la position du curseur.
+	 * Si un sous-titre suivant existe, ajuste son temps de debut a cursorPosition + 1.
 	 */
 	function handleSetSubtitleEndTime(): void {
 		const subtitleTrack = globalState.getSubtitleTrack;
@@ -142,15 +143,15 @@
 		const currentClip = subtitleTrack.getCurrentClip(cursorPosition);
 
 		if (currentClip) {
-			// Vérifie que le curseur est dans une position valide (pas au tout début du clip)
+			// Verifie que le curseur est dans une position valide (pas au tout debut du clip)
 			if (cursorPosition <= currentClip.startTime + 50) {
-				return; // Curseur trop proche du début, ne rien faire
+				return; // Curseur trop proche du debut, ne rien faire
 			}
 
-			// Définit la fin du sous-titre actuel à la position du curseur
+			// Definit la fin du sous-titre actuel a la position du curseur
 			currentClip.setEndTime(cursorPosition);
 
-			// Trouve le sous-titre suivant et ajuste son temps de début
+			// Trouve le sous-titre suivant et ajuste son temps de debut
 			const nextClip = subtitleTrack.getClipAfter(currentClip.id);
 			if (nextClip) {
 				nextClip.setStartTime(cursorPosition + 1);
@@ -163,6 +164,46 @@
 			const lastClip = subtitleTrack.getLastClip();
 			if (lastClip) {
 				lastClip.setEndTime(cursorPosition);
+
+				globalState.currentProject?.detail.updateVideoDetailAttributes();
+				globalState.updateVideoPreviewUI();
+			}
+		}
+	}
+
+	/**
+	 * Definit le debut du sous-titre actuel (sous le curseur) a la position du curseur.
+	 * Si un sous-titre precedent existe, ajuste son temps de fin a cursorPosition - 1.
+	 */
+	function handleSetSubtitleStartTime(): void {
+		const subtitleTrack = globalState.getSubtitleTrack;
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+
+		// Trouve le sous-titre sous le curseur
+		const currentClip = subtitleTrack.getCurrentClip(cursorPosition);
+
+		if (currentClip) {
+			// VÃ©rifie que le curseur est dans une position valide (pas Ã  la toute fin du clip)
+			if (cursorPosition >= currentClip.endTime - 50) {
+				return; // Curseur trop proche de la fin, ne rien faire
+			}
+
+			// Definit le debut du sous-titre actuel a la position du curseur
+			currentClip.setStartTime(cursorPosition);
+
+			// Trouve le sous-titre precedent et ajuste son temps de fin
+			const previousClip = subtitleTrack.getClipBefore(currentClip.id);
+			if (previousClip) {
+				previousClip.setEndTime(cursorPosition - 1);
+			}
+
+			globalState.currentProject?.detail.updateVideoDetailAttributes();
+			globalState.updateVideoPreviewUI();
+		} else {
+			// Fallback: Si aucun clip sous le curseur, on prend le premier sous-titre
+			const firstClip = subtitleTrack.clips[0];
+			if (firstClip) {
+				firstClip.setStartTime(cursorPosition);
 
 				globalState.currentProject?.detail.updateVideoDetailAttributes();
 				globalState.updateVideoPreviewUI();
@@ -191,6 +232,27 @@
 		setEndShortcutRegistered = false;
 	}
 
+	function registerSetStartShortcut(): void {
+		if (!globalState.settings || setStartShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START,
+			onKeyDown: handleSetSubtitleStartTime
+		});
+
+		setStartShortcutRegistered = true;
+	}
+
+	function unregisterSetStartShortcut(): void {
+		if (!setStartShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START
+		);
+
+		setStartShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -207,11 +269,13 @@
 
 		// Le raccourci M pour définir la fin du sous-titre fonctionne dans tous les tabs maintenant
 		registerSetEndShortcut();
+		registerSetStartShortcut();
 
 		return () => {
 			unregisterSplitShortcut();
 			unregisterRemoveShortcut();
 			unregisterSetEndShortcut();
+			unregisterSetStartShortcut();
 		};
 	});
 
@@ -357,6 +421,8 @@
 	onDestroy(() => {
 		unregisterSplitShortcut();
 		unregisterRemoveShortcut();
+		unregisterSetEndShortcut();
+		unregisterSetStartShortcut();
 	});
 </script>
 

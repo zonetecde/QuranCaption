@@ -94,6 +94,26 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Assure que le nouveau shortcut "Set Subtitle Start Time" existe dans les settings.
+	 */
+	static FromQC331ToQC332() {
+		if (!globalState.settings) return;
+
+		let hasChanges = false;
+		const defaultShortcuts = new Settings().shortcuts;
+
+		if (!globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START) {
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START =
+				defaultShortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START;
+			hasChanges = true;
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
 	 * > Renommage des tracks "CustomText" à "CustomClip"
 	 */

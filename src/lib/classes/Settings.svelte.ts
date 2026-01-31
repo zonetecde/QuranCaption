@@ -1,4 +1,4 @@
-import { SerializableBase } from './misc/SerializableBase';
+﻿import { SerializableBase } from './misc/SerializableBase';
 import { writeTextFile, readTextFile, exists } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
@@ -48,8 +48,8 @@ export default class Settings extends SerializableBase {
 		padMs: 50,
 		whisperModel: 'base',
 		fillBySilence: true,
-	extendBeforeSilence: false,
-	extendBeforeSilenceMs: 50,
+		extendBeforeSilence: false,
+		extendBeforeSilenceMs: 50,
 		includeWordByWord: false
 	});
 
@@ -157,6 +157,12 @@ export default class Settings extends SerializableBase {
 				name: 'Set Subtitle End Time',
 				description: 'Set end time of subtitle at cursor position and adjust next subtitle start'
 			},
+			SET_LAST_SUBTITLE_START: {
+				keys: ['n'],
+				name: 'Set Subtitle Start Time',
+				description:
+					'Set start time of subtitle at cursor position and adjust previous subtitle end'
+			},
 			ADD_BASMALA: {
 				keys: ['b'],
 				description: 'Add a subtitle with the basmala ("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")',
@@ -254,6 +260,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC310ToQC311();
 		MigrationService.FromQC315ToQC316();
 		MigrationService.FromQC327ToQC328();
+		MigrationService.FromQC331ToQC332();
 	}
 }
 

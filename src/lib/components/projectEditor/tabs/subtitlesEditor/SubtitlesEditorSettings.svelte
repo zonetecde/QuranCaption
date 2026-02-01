@@ -5,6 +5,7 @@
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 
 	import { fade } from 'svelte/transition';
+	import { onDestroy, onMount } from 'svelte';
 
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
@@ -100,6 +101,39 @@
 			globalState.getSubtitlesEditorState.editSubtitle = null;
 		}
 	}
+
+	function handleEditModeShortcut(event: KeyboardEvent) {
+		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		if (!isEditableSubtitle(editSubtitle)) return;
+
+		if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+			return;
+		}
+
+		const key = event.key.toLowerCase();
+		let newPreset: string | null = null;
+
+		if (key === 's') newPreset = 'Silence';
+		else if (key === 'b') newPreset = 'Basmala';
+		else if (key === 'i') newPreset = 'Istiadhah';
+
+		if (!newPreset) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+		event.stopImmediatePropagation();
+
+		presetChoice = newPreset;
+		void applySubtitleChanges();
+	}
+
+	onMount(() => {
+		document.addEventListener('keydown', handleEditModeShortcut, true);
+	});
+
+	onDestroy(() => {
+		document.removeEventListener('keydown', handleEditModeShortcut, true);
+	});
 </script>
 
 <div class="bg-secondary h-full border border-color rounded-lg py-6 px-3 space-y-6 border-r-0">

@@ -54,11 +54,14 @@
 	});
 
 	let dragStartX: number | null = null;
+	let didDrag = false;
+	let suppressNextClick = false;
 
 	function startLeftDragging(e: MouseEvent) {
 		if (e.button === 0) {
 			// vient de cliquer sur le bord gauche du clip
 			dragStartX = e.clientX;
+			didDrag = false;
 			globalState.getTimelineState.showCursor = false;
 			document.addEventListener('mousemove', onLeftDragging);
 			document.addEventListener('mouseup', stopLeftDragging);
@@ -69,6 +72,7 @@
 		if (dragStartX === null) return;
 
 		clip.updateStartTime(globalState.currentProject?.projectEditorState.timeline.cursorPosition!);
+		didDrag = true;
 	}
 
 	function stopLeftDragging() {
@@ -79,11 +83,15 @@
 		if (clip.type !== 'Silence') {
 			clip.markAsManualEdit();
 		}
+		if (didDrag) {
+			suppressNextClick = true;
+		}
 	}
 
 	function startRightDragging(e: MouseEvent) {
 		// vient de cliquer sur le bord droit du clip
 		dragStartX = e.clientX;
+		didDrag = false;
 		document.addEventListener('mousemove', onRightDragging);
 		document.addEventListener('mouseup', stopRightDragging);
 		globalState.getTimelineState.showCursor = false;
@@ -93,6 +101,7 @@
 		if (dragStartX === null) return;
 
 		clip.updateEndTime(globalState.currentProject?.projectEditorState.timeline.cursorPosition!);
+		didDrag = true;
 	}
 
 	function stopRightDragging() {
@@ -102,6 +111,9 @@
 		globalState.getTimelineState.showCursor = true;
 		if (clip.type !== 'Silence') {
 			clip.markAsManualEdit();
+		}
+		if (didDrag) {
+			suppressNextClick = true;
 		}
 	}
 
@@ -140,6 +152,10 @@
 
 	// Sur clic gauche, ouvre l'édition si l'on est dans Subtitles Editor sinon gère la sélection Style
 	function handleClipClick() {
+		if (suppressNextClick) {
+			suppressNextClick = false;
+			return;
+		}
 		const currentTab = globalState.currentProject!.projectEditorState.currentTab;
 		if (currentTab === ProjectEditorTabs.SubtitlesEditor) {
 			editSubtitle();

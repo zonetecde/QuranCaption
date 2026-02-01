@@ -315,8 +315,18 @@ export class SubtitleTrack extends Track {
 		const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
 		if (clipIndex === -1) return false;
 
-		const clip = this.clips[clipIndex] as SubtitleClip;
+		const clip = this.clips[clipIndex] as SubtitleClip | PredefinedSubtitleClip | SilenceClip;
 		const splitTime = globalState.getTimelineState.cursorPosition;
+
+		if (
+			!(
+				clip instanceof SubtitleClip ||
+				clip instanceof PredefinedSubtitleClip ||
+				clip instanceof SilenceClip
+			)
+		) {
+			return false;
+		}
 
 		// Check if the split time is within the clip
 		if (splitTime <= clip.startTime || splitTime >= clip.endTime) {
@@ -333,11 +343,30 @@ export class SubtitleTrack extends Track {
 		const originalEndTime = clip.endTime;
 
 		// Update le temps de fin du premier clip
-		clip.endTime = splitTime;
-		clip.duration = clip.endTime - clip.startTime;
+		clip.setEndTime(splitTime);
 
-		// Créer le deuxième clip avec les mêmes propriétés
-		const newClip = clip.cloneWithTimes(splitTime, originalEndTime);
+		let newClip: SubtitleClip | PredefinedSubtitleClip | SilenceClip;
+		if (clip instanceof SubtitleClip) {
+			// Créer le deuxième clip avec les mêmes propriétés
+			newClip = clip.cloneWithTimes(splitTime, originalEndTime);
+		} else if (clip instanceof PredefinedSubtitleClip) {
+			newClip = new PredefinedSubtitleClip(
+				splitTime,
+				originalEndTime,
+				clip.predefinedSubtitleType,
+				clip.text,
+				clip.comeFromIA,
+				clip.confidence
+			);
+			newClip.translations = Object.fromEntries(
+				Object.entries(clip.translations || {}).map(([key, t]) => [
+					key,
+					typeof (t as any)?.clone === 'function' ? (t as any).clone() : { ...(t as any) }
+				])
+			);
+		} else {
+			newClip = new SilenceClip(splitTime, originalEndTime);
+		}
 
 		// Insérer le nouveau clip après le clip original
 		this.clips.splice(clipIndex + 1, 0, newClip);
@@ -726,3 +755,4 @@ export class CustomTextTrack extends Track {
 
 // Enregistre les classes enfants pour la désérialisation automatique
 SerializableBase.registerChildClass(Track, 'clips', Clip);
+

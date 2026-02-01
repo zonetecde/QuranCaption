@@ -185,6 +185,9 @@ export class SubtitlesEditorState extends SerializableBase {
 	editSubtitle: SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation | SilenceClip | null =
 		$state(null);
 
+	// Si défini, passe automatiquement au clip suivant après la prochaine validation d'édition.
+	pendingSplitEditNextId: number | null = $state(null);
+
 	// Nombre initial de segments à review (set lors de l'auto-segmentation)
 	// Utilisé pour afficher la barre de progression des segments à review
 	initialLowConfidenceCount: number = $state(0);

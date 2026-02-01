@@ -166,7 +166,10 @@
 
 		ShortcutService.registerShortcut({
 			key: { keys: ['Escape'], description: 'Exit subtitle editing' },
-			onKeyDown: () => (globalState.getSubtitlesEditorState.editSubtitle = null)
+			onKeyDown: () => {
+				globalState.getSubtitlesEditorState.editSubtitle = null;
+				globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
+			}
 		});
 	});
 
@@ -214,6 +217,31 @@
 		);
 		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: 'Exit subtitle editing' });
 	});
+
+	/**
+	 * Avance l'édition au sous-titre suivant si un ID de sous-titre est en attente (après une division).
+	 * @param currentId L'ID du sous-titre actuellement édité.
+	 * @returns true si l'édition a été avancée, false sinon.
+	 */
+	function advanceSplitEditIfNeeded(currentId: number | null): boolean {
+		const pendingId = subtitlesEditorState().pendingSplitEditNextId;
+		if (!pendingId) return false;
+
+		subtitlesEditorState().pendingSplitEditNextId = null;
+
+		if (currentId !== pendingId) {
+			// Passe au sous-titre suivant
+			const nextClip = globalState.getSubtitleTrack.getClipById(pendingId);
+			if (nextClip) {
+				// Modifie le sous-titre
+				globalState.getSubtitlesEditorState.editSubtitle = nextClip as any;
+				return true;
+			}
+		}
+
+		globalState.getSubtitlesEditorState.editSubtitle = null;
+		return true;
+	}
 
 	function editCurrentOrLastSubtitle(): void {
 		const subtitleTrack = globalState.getSubtitleTrack;
@@ -289,18 +317,23 @@
 			const subtitleTrack = globalState.getSubtitleTrack;
 
 			if (subtitlesEditorState().editSubtitle) {
+				const currentEdited = subtitlesEditorState().editSubtitle;
 				await subtitleTrack.editSubtitle(
-					subtitlesEditorState().editSubtitle as any,
+					currentEdited as any,
 					verse,
 					subtitlesEditorState().startWordIndex,
 					subtitlesEditorState().endWordIndex,
 					subtitlesEditorState().selectedSurah
 				);
 
-				globalState.getSubtitlesEditorState.editSubtitle = null; // Reset l'édition après modification
+				// Si on était en train de diviser un sous-titre, on passe au suivant
+				const didAdvance = advanceSplitEditIfNeeded(currentEdited?.id ?? null);
 				toast.success('Subtitle updated successfully!');
-				await selectNextWord();
-				subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
+				if (!didAdvance) {
+					globalState.getSubtitlesEditorState.editSubtitle = null; // Reset l'édition après modification
+					await selectNextWord();
+					subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
+				}
 				return;
 			}
 

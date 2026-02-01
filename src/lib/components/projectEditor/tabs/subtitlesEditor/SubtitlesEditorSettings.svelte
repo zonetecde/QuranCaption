@@ -98,7 +98,16 @@
 				return;
 			}
 			subtitleTrack.editSubtitleToSpecial(editSubtitle, presetChoice);
-			globalState.getSubtitlesEditorState.editSubtitle = null;
+
+			// Si un ID de sous-titre suivant est en attente (après une division), on passe à ce sous-titre
+			const pendingId = globalState.getSubtitlesEditorState.pendingSplitEditNextId;
+			if (pendingId && editSubtitle.id !== pendingId) {
+				const nextClip = subtitleTrack.getClipById(pendingId);
+				globalState.getSubtitlesEditorState.editSubtitle = nextClip ?? null;
+			} else {
+				globalState.getSubtitlesEditorState.editSubtitle = null;
+			}
+			globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 		}
 	}
 
@@ -227,6 +236,7 @@
 					class="flex items-center gap-2 px-3 py-2 rounded-md border border-color text-secondary text-xs hover:bg-secondary/60 transition cursor-pointer"
 					onclick={() => {
 						globalState.getSubtitlesEditorState.editSubtitle = null;
+						globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 					}}
 				>
 					<span class="material-icons text-base">close</span>

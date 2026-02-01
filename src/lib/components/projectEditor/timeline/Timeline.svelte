@@ -61,14 +61,22 @@
 
 			if (
 				clipUnderCursor &&
-				(clipUnderCursor.type === 'Subtitle' || clipUnderCursor.type === 'Pre-defined Subtitle')
+				(clipUnderCursor.type === 'Subtitle' ||
+					clipUnderCursor.type === 'Pre-defined Subtitle' ||
+					clipUnderCursor.type === 'Silence')
 			) {
 				clipToSplit = clipUnderCursor;
 			}
 		}
 
-		if (clipToSplit && clipToSplit.type === 'Subtitle') {
-			const success = globalState.getSubtitleTrack.splitSubtitle(clipToSplit.id);
+		if (
+			clipToSplit &&
+			(clipToSplit.type === 'Subtitle' ||
+				clipToSplit.type === 'Pre-defined Subtitle' ||
+				clipToSplit.type === 'Silence')
+		) {
+			const subtitleTrack = globalState.getSubtitleTrack;
+			const success = subtitleTrack.splitSubtitle(clipToSplit.id);
 			if (success) {
 				currentProject.detail.updateVideoDetailAttributes();
 				globalState.getStylesState.clearSelection();
@@ -80,6 +88,8 @@
 					ProjectEditorTabs.SubtitlesEditor
 				) {
 					globalState.getSubtitlesEditorState.editSubtitle = clipToSplit;
+					const nextClip = subtitleTrack.getClipAfter(clipToSplit.id);
+					globalState.getSubtitlesEditorState.pendingSplitEditNextId = nextClip?.id ?? null;
 				}
 			}
 		}

@@ -168,7 +168,7 @@
 			</div>
 			<!-- Presets -->
 			<div class="grid grid-cols-2 gap-3 pt-1">
-				{#each [{ label: 'Silence', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: 'Istiadhah', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: "Qur'an", icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }] as preset}
+				{#each [{ label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: 'Istiadhah', shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }] as preset}
 					<button
 						class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
 						preset.label
@@ -184,7 +184,7 @@
 								? 'opacity-75'
 								: 'opacity-0 group-hover:opacity-90'}"
 						></div>
-						<div class="relative flex flex-col items-center justify-center py-4 gap-2">
+						<div class="relative flex flex-col items-center justify-center py-4 gap-1">
 							<span
 								class="material-icons text-xl transition-all duration-300 {presetChoice ===
 								preset.label
@@ -200,6 +200,14 @@
 									: 'text-secondary group-hover:text-white'}"
 							>
 								{preset.label}
+							</span>
+							<span
+								class="text-[9px] opacity-45 uppercase tracking-wide transition-all duration-300 {presetChoice ===
+								preset.label
+									? 'text-white/90'
+									: 'text-secondary/70 group-hover:text-white/90'}"
+							>
+								{preset.shortcut}
 							</span>
 						</div>
 					</button>
@@ -315,7 +323,6 @@
 					<span class="material-icons text-base">auto_awesome</span>
 					Auto-Segment
 				</button>
-
 			</div>
 		</div>
 

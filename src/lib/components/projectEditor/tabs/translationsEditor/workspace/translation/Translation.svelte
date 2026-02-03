@@ -71,7 +71,8 @@
 				!previousSubtitleTranslation.isBruteForce // vérifie que la traduction du sous-titre précédent a été trimmed via l'outil
 			) {
 				// Commence la sélection de la traduction du verset actuel à celle de fin de la traduction du sous-titre précédent
-				if (translation().status !== 'reviewed') {
+				const currentStatus = translation().status;
+				if (currentStatus === 'undefined' || currentStatus === 'to review') {
 					translation().startWordIndex = previousSubtitleTranslationEndIndex + 1;
 					if (translation().startWordIndex > translation().endWordIndex) {
 						translation().endWordIndex = originalTranslation.split(' ').length - 1;
@@ -88,7 +89,8 @@
 			} else if (
 				previousSubtitleTranslation.status === 'reviewed' &&
 				subtitle.startWordIndex === previousSubtitle.startWordIndex &&
-				subtitle.endWordIndex === previousSubtitle.endWordIndex
+				subtitle.endWordIndex === previousSubtitle.endWordIndex &&
+				translation().status !== 'ai error'
 			) {
 				// Si c'est exactement la même sélection que le sous-titre précédent, alors on applique la même traduction que lui
 				translation().startWordIndex = previousSubtitleTranslation.startWordIndex;

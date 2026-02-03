@@ -1,29 +1,11 @@
 **Task**:  
-Map **Arabic segments** from Quranic verses to their corresponding **word indices** in pre-existing indexed translations. For each verse, identify which words in the translation correspond to each Arabic segment and return#### **Example 7: Strategic Overlapping for Complete Coverage**
-- **Input**:  
-  ```json
-  [
-    {
-      "index": 0,
-      "verseKey": "2:255",
-      "segments": ["اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ", "الْحَيُّ الْقَيُّومُ"],
-      "translation": "0:Allah 1:- 2:there 3:is 4:no 5:deity 6:except 7:Him, 8:the 9:Ever-Living, 10:the 11:Sustainer 12:of 13:existence."
-    }
-  ]
-  ```  
-- **Output**:  
-  ```json
-  {
-    "0": [[0, 7], [8, 13]]
-  }
-  ```  
-- **Coverage Check**: Translation has words 0-13 (14 words). Output covers all 0-13 ✓ Complete coverage.
+Map **Arabic segments** from Quranic verses to their corresponding **word indices** in pre-existing indexed translations. For each verse, identify which words in the translation correspond to each Arabic segment and return **only JSON**.
 
 ---
 
 **Inputs**:  
 An array of objects, where each object contains:  
-1. `index` (number): Sequential index of the verse.
+1. `index` (number): **Timeline position** of the first subtitle segment for that verse in the project (not necessarily sequential).
 2. `verseKey` (string): The surah and verse number in the format "s:v" (e.g., "1:5").  
 3. `segments` (array of strings): Arabic phrases to map from the verse.  
 4. `translation` (string): Compact indexed translation format "index:word index:word..."
@@ -41,18 +23,21 @@ An array of objects, where each object contains:
 ```
 
 **IMPORTANT PARSING NOTE**:  
-- **Punctuation as separate words**: Pay attention that punctuation marks can be separate indexed words.
-- **Example**: `"1:: 2:\"Il"` means index 1 is ":" (colon) and index 2 is "Il".
-- **Do NOT ignore punctuation indices** - they must be included in ranges to ensure complete coverage.
-- **Format parsing**: Split by spaces first, then by first colon to separate index from word.
+- **Punctuation as separate words**: punctuation can be its own indexed word.
+- **Example**: `"1:: 2:\"Il"` means index 1 is ":" and index 2 is "Il".
+- **Do NOT ignore punctuation indices** - they must be included in ranges for complete coverage.
+- **Format parsing**: split by spaces first, then by the **first colon** to separate index from word.
 
 ---
 
 **Output Requirements**:  
 - Return a **JSON object** with string keys corresponding to the `index` of each input verse.
 - Each key maps to an array of index ranges `[start, end]` for each segment in the same order as provided.
-- Each range `[start, end]` represents the **inclusive** indices of words in the translation that correspond to the Arabic segment.
+- Each range `[start, end]` represents the **inclusive** indices of words in the translation.
 - If a segment cannot be mapped, return `null` for that segment.
+- **Output array length must equal `segments.length`** for that verse.
+- **Do not renumber indexes** — use the exact `index` values provided in the input.
+- All ranges must be within the translation index bounds `[0, maxIndex]`.
 - **Output Format**: Pure JSON only, no additional text or explanation.
 
 **Output Structure**:  
@@ -66,43 +51,58 @@ An array of objects, where each object contains:
 
 ---
 
-**Core Rules**:
+**Core Rules (MUST FOLLOW)**:
 
-1. **COMPLETE COVERAGE REQUIREMENT**:
-   - **CRITICAL**: Every word index in the translation MUST appear in at least one segment range.
-   - If a translation has 14 words (indices 0-13), ALL indices from 0 to 13 must be covered by the output ranges.
-   - No translation word can be left unmapped. This is the most important rule.
+1. **COMPLETE COVERAGE REQUIREMENT** (CRITICAL):
+   - Every word index in the translation **must** appear in at least one segment range.
+   - If translation has words 0-13, output must cover **all indices 0-13**.
+   - Coverage must be achieved **without violating boundaries**; use the attachment rules below for filler/neutral tokens.
 
-2. **Index Range Mapping**:
-   - Map each Arabic segment to the **continuous range of word indices** in the translation that best represents the segment's meaning.
-   - Ranges are **inclusive** - `[2, 4]` means indices 2, 3, and 4.
-   - Ensure the mapped words form a **contiguous sequence** in the translation array.
+2. **EXACT SEGMENT BOUNDARIES** (CRITICAL):
+   - Map only the words that correspond to the Arabic segment.
+   - **Never extend** a segment into words that belong to the next segment.
+   - If Arabic ends with "إِلَّا" (except), stop exactly at "except" — do **not** include what follows.
 
-3. **Accurate Correspondence**:
-   - Each segment's mapped indices must accurately represent the **complete meaning** of the Arabic segment.
-   - **CRITICAL**: Map ONLY the words that correspond to the Arabic segment - DO NOT extend beyond the segment boundary.
-   - **Example**: If Arabic segment ends with "إِلَّا" (except), the translation must stop at "except" and NOT continue to following words.
-   - Include all necessary words to capture the full semantic content of the segment, but do not include words from subsequent segments.
-   - Do not truncate or omit words that are essential to the segment's meaning.
+3. **CONTIGUOUS RANGES ONLY**:
+   - Each segment must map to a **continuous** index range.
+   - Valid: `[4, 7]` → indices 4,5,6,7.
+   - Invalid: `[4, 7]` if index 5-6 do not belong to that segment.
 
-4. **Overlapping Segments Allowed**:
-   - Arabic segments can overlap, and their corresponding index ranges can also overlap.
-   - If two segments share Arabic words, their index ranges can share translation word indices.
-   - Use overlaps strategically to ensure complete coverage of all translation words.
+4. **OVERLAP POLICY (MINIMIZE)**:
+   - Arabic segments can overlap; translation ranges can overlap too.
+   - **Minimize overlap**; use it only when required for shared boundary tokens, repeated clauses, or to keep coordination tokens.
+   - Prefer overlap of **boundary tokens only** (1–2 tokens) unless a longer shared phrase is clearly repeated.
 
-5. **Contiguous Requirement**:
-   - Each index range must represent **consecutive** indices in the translation array.
-   - Invalid: `[1, 5]` if indices 2, 3, 4 don't correspond to the Arabic segment.
-   - Valid: `[1, 3]` representing indices 1, 2, 3 in sequence.
+5. **COORDINATION & FUNCTION WORDS (CRITICAL)**:
+   - If a segment **starts** with coordination particles (وَ, فَ, ثُمَّ, أَوْ, بَلْ, لَٰكِنْ, أَمْ),
+     the mapped range **must include** their translation tokens (e.g., "and", "so", "then", "or", "rather", "but").
+   - When clauses **repeat across segments**, keep the **conjunctions/prepositions** attached to the repeated clause.
+   - **Do not drop "and/then/so"** just because the clause also appears in another segment.
 
-6. **Handle Non-Mappable Cases**:
-   - If an Arabic segment cannot be mapped to any contiguous sequence of translation words, return `null`.
-   - However, ensure other segments compensate to maintain complete coverage.
-   - Only use `null` if absolutely no reasonable mapping exists for that segment.
+6. **ACCURATE CORRESPONDENCE**:
+   - Include all words needed to capture the full meaning of the segment.
+   - Do not truncate essential words or include words from a different segment.
+
+7. **UNALIGNED FILLER WORDS** (e.g., "indeed", "surely", "O"):
+   - Attach filler words to the **nearest segment on the right**.
+   - If there is no segment on the right, attach to the last segment on the left.
+   - If multiple filler tokens are contiguous, attach them as a block to the chosen segment.
+
+8. **PUNCTUATION ATTACHMENT**:
+   - Punctuation belongs to the segment whose range contains the **nearest content word to the left**.
+   - If punctuation appears at the very start (no left content word), attach it to the first segment.
+
+9. **PRIORITY ORDER (TIE-BREAKERS)**:
+   - **Boundaries + coordination tokens** > **contiguity** > **overlap policy** > **coverage**.
+   - If coverage conflicts with boundaries, keep boundaries and assign leftover tokens using the attachment rules.
+
+10. **NON-MAPPABLE SEGMENTS**:
+   - If a segment truly cannot be mapped to any contiguous range, return `null`.
+   - Still ensure coverage using attachment rules; **do not** violate boundaries.
 
 ---
 
-**Examples**:  
+**Examples**:
 
 #### **Example 1: Basic Sequential Mapping**
 - **Input**:  
@@ -122,9 +122,9 @@ An array of objects, where each object contains:
     "0": [[0, 3], [4, 10]]
   }
   ```  
-- **Coverage Check**: Translation has words 0-10 (11 words). Output covers 0,1,2,3,4,5,6,7,8,9,10 ✓ Complete coverage.
+- **Coverage Check**: 0-10 covered ✓
 
-#### **Example 2: Overlapping Segments**  
+#### **Example 2: Overlapping Segments**
 - **Input**:  
   ```json
   [
@@ -142,30 +142,69 @@ An array of objects, where each object contains:
     "0": [[0, 3], [3, 5]]
   }
   ```  
-- **Coverage Check**: Translation has words 0-5 (6 words). Output covers 0,1,2,3,3,4,5 → unique: 0,1,2,3,4,5 ✓ Complete coverage.
+- **Coverage Check**: 0-5 covered ✓
 
-#### **Example 3: Complex Structure with Complete Coverage**
+#### **Example 3: Precise Boundaries with "except"**
 - **Input**:  
   ```json
   [
     {
       "index": 0,
-      "verseKey": "2:2",
-      "segments": ["ذَٰلِكَ الْكِتَابُ", "لَا رَيْبَ فِيهِ", "هُدًى لِّلْمُتَّقِينَ", "لَا رَيْبَ فِيهِ هُدًى لِّلْمُتَّقِينَ"],
-      "translation": "0:This 1:is 2:the 3:Book 4:about 5:which 6:there 7:is 8:no 9:doubt, 10:a 11:guidance 12:for 13:those 14:conscious 15:of 16:Allah."
+      "verseKey": "38:24",
+      "segments": ["وَإِنَّ كَثِيرًا مِّنَ ٱلْخُلَطَآءِ لَيَبْغِى بَعْضُهُمْ عَلَىٰ بَعْضٍ إِلَّا", "إِلَّا ٱلَّذِينَ ءَامَنُوا۟ وَعَمِلُوا۟ ٱلصَّٰلِحَٰتِ"],
+      "translation": "0:And 1:indeed, 2:many 3:associates 4:oppress 5:one 6:another, 7:except 8:for 9:those 10:who 11:believe 12:and 13:do 14:righteous 15:deeds."
     }
   ]
   ```  
 - **Output**:  
   ```json
   {
-    "0": [[0, 3], [4, 9], [10, 16], [4, 16]]
+    "0": [[0, 7], [7, 15]]
   }
   ```  
-- **Coverage Check**: Translation has words 0-16 (17 words). Output covers all indices 0-16 ✓ Complete coverage.
-- **Overlapping Check**: The last segment overlaps with the second and third, and it is OK and it should overlap to ensure full coverage.
+- **Boundary Check**: first segment ends at "except" (index 7).
 
-#### **Example 4: Punctuation as Separate Words** ⚠️ **CRITICAL CASE**
+#### **Example 4: Coordination Must Be Preserved**
+- **Input**:  
+  ```json
+  [
+    {
+      "index": 0,
+      "verseKey": "33:9",
+      "segments": ["إِذْ جَاءَتْكُمْ جُنُودٌ", "وَأَرْسَلْنَا عَلَيْهِمْ رِيحًا"],
+      "translation": "0:When 1:armies 2:came 3:to 4:you 5:and 6:We 7:sent 8:against 9:them 10:a 11:wind."
+    }
+  ]
+  ```  
+- **Output**:  
+  ```json
+  {
+    "0": [[0, 4], [5, 11]]
+  }
+  ```  
+- **Coordination Check**: second segment starts with "وَ" → must include "and" (index 5).
+
+#### **Example 5: Overlap With Repeated Clause + Conjunction**
+- **Input**:  
+  ```json
+  [
+    {
+      "index": 0,
+      "verseKey": "x:y",
+      "segments": ["إِذْ جَاءَتْكُمْ جُنُودٌ", "وَإِذْ جَاءَتْكُمْ جُنُودٌ"],
+      "translation": "0:When 1:armies 2:came 3:to 4:you 5:and 6:when 7:armies 8:came 9:to 10:you"
+    }
+  ]
+  ```  
+- **Output**:  
+  ```json
+  {
+    "0": [[0, 4], [5, 10]]
+  }
+  ```  
+- **Repetition Rule**: second segment must include "and" (index 5) because it starts with "وَ".
+
+#### **Example 6: Punctuation as Separate Words**
 - **Input**:  
   ```json
   [
@@ -183,127 +222,21 @@ An array of objects, where each object contains:
     "0": [[0, 1], [2, 2], [3, 4], [5, 5]]
   }
   ```  
-- **Coverage Check**: Translation has words 0-5 (6 words). Output covers 0,1,2,3,4,5 ✓ Complete coverage.
-- **Parsing Note**: Index 1 is ":" (colon punctuation), index 2 is "Il" - both must be included in ranges.
-
-#### **Example 5: Single Word Segments**
-- **Input**:  
-  ```json
-  [
-    {
-      "index": 0,
-      "verseKey": "112:1",
-      "segments": ["قُلْ", "هُوَ", "اللَّهُ", "أَحَدٌ"],
-      "translation": "0:Say, 1:He 2:is 3:Allah, 4:One."
-    }
-  ]
-  ```  
-- **Output**:  
-  ```json
-  {
-    "0": [[0, 0], [1, 1], [2, 3], [4, 4]]
-  }
-  ```  
-- **Coverage Check**: Translation has words 0-4 (5 words). Output covers 0,1,2,3,4 ✓ Complete coverage.
-
-#### **Example 6: Multiple Verses**
-- **Input**:  
-  ```json
-  [
-    {
-      "index": 0,
-      "verseKey": "1:1",
-      "segments": ["بِسْمِ اللَّهِ", "الرَّحْمَٰنِ الرَّحِيمِ"],
-      "translation": "0:In 1:the 2:name 3:of 4:Allah, 5:the 6:Entirely 7:Merciful, 8:the 9:Especially 10:Merciful."
-    },
-    {
-      "index": 1,
-      "verseKey": "1:2",
-      "segments": ["الْحَمْدُ لِلَّهِ", "رَبِّ الْعَالَمِينَ"],
-      "translation": "0:Praise 1:is 2:due 3:to 4:Allah, 5:Lord 6:of 7:the 8:worlds."
-    }
-  ]
-  ```  
-- **Output**:  
-  ```json
-  {
-    "0": [[0, 4], [5, 10]],
-    "1": [[0, 4], [5, 8]]
-  }
-  ```  
-- **Coverage Check**: 
-  - Verse 0: Translation has words 0-10 (11 words). Output covers all 0-10 ✓
-  - Verse 1: Translation has words 0-8 (9 words). Output covers all 0-8 ✓
-
-
-#### **Example 7: Precise Segment Boundaries** ⚠️ **CRITICAL - DO NOT OVERSTEP**
-- **Input**:  
-  ```json
-  [
-    {
-      "index": 0,
-      "verseKey": "38:24",
-      "segments": ["قَالَ لَقَدْ ظَلَمَكَ بِسُؤَالِ نَعْجَتِكَ إِلَىٰ نِعَاجِهِۦ", "وَإِنَّ كَثِيرًا مِّنَ ٱلْخُلَطَآءِ لَيَبْغِى بَعْضُهُمْ عَلَىٰ بَعْضٍ إِلَّا", "إِلَّا ٱلَّذِينَ ءَامَنُوا۟ وَعَمِلُوا۟ ٱلصَّٰلِحَٰتِ وَقَلِيلٌ مَّا هُمْ", "وَظَنَّ دَاوُۥدُ أَنَّمَا فَتَنَّٰهُ فَٱسْتَغْفَرَ رَبَّهُۥ وَخَرَّ رَاكِعًا وَأَنَابَ"],
-      "translation": "0:[David] 1:said, 2:\"He 3:has 4:certainly 5:wronged 6:you 7:in 8:demanding 9:your 10:ewe 11:[in 12:addition] 13:to 14:his 15:ewes. 16:And 17:indeed, 18:many 19:associates 20:oppress 21:one 22:another, 23:except 24:for 25:those 26:who 27:believe 28:and 29:do 30:righteous 31:deeds 32:– 33:and 34:few 35:are 36:they.\" 37:And 38:David 39:became 40:certain 41:that 42:We 43:had 44:tried 45:him, 46:and 47:he 48:asked 49:forgiveness 50:of 51:his 52:Lord 53:and 54:fell 55:down 56:bowing 57:[in 58:prostration] 59:and 60:turned 61:in 62:repentance 63:[to 64:Allah]."
-    }
-  ]
-  ```  
-- **Output**:  
-  ```json
-  {
-    "0": [[0, 15], [16, 23], [23, 36], [37, 64]]
-  }
-  ```  
-- **Coverage Check**: Translation has words 0-64 (65 words). Output covers all 0-64 ✓ Complete coverage.
-- **Boundary Check**: 
-  - Segment 2 ends with "إِلَّا" (except) → Maps to [16, 23] stopping at "except" (index 23)
-  - **WRONG would be**: [16, 27] which includes "for those who believe" from the next Arabic segment
-  - **CORRECT**: Each segment maps to its exact boundary without overstepping into the next segment
-  - **Segment 3**: "ٱلَّذِينَ ءَامَنُوا۟..." correctly starts at [24] with "for those who believe"
-- **Overlapping Check**: Segment 2 and 3 overlap at index 23 ("إِلَّا" / "except"), which is correct.
-
-#### **Example 8: Strategic Overlapping for Complete Coverage**
-- **Input**:  
-  ```json
-  [
-    {
-      "index": 0,
-      "verseKey": "2:255",
-      "segments": ["اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ", "إِلَّا هُوَ الْحَيُّ الْقَيُّومُ "],
-      "translation": "0:Allah 1:- 2:there 3:is 4:no 5:deity 6:except 7:Him, 8:the 9:Ever-Living, 10:the 11:Sustainer 12:of 13:existence."
-    }
-  ]
-  ```  
-- **Output**:  
-  ```json
-  {
-    "0": [[0, 7], [6, 13]]
-  }
-  ```  
-- **Coverage Check**: Translation has words 0-13 (14 words). Output covers all 0-13 ✓ Complete coverage.
-- **Overlapping Check**: "إِلَّا هُوَ" is repeated in both segments, so it should overlap in indices [6,7].
-
-**SEGMENT BOUNDARY RULE**: 
-- **NEVER extend a segment mapping beyond its Arabic boundary**
-- **Each Arabic segment has precise start/end points - respect them exactly**
-- **If Arabic ends with "إِلَّا" (except), translation must stop at "except", not continue to "those who..."**
+- **Punctuation Check**: index 1 ":" must be included.
 
 ---
 
 **Edge Cases**:  
-- **Empty Translation Array**: If `translation` is empty, return `[]` for that verse.  
-- **No Mappable Segments**: If no segments can be mapped, return an array of `null` values.  
+- **Empty Translation Array**: If `translation` is empty, return an array of `null` with length `segments.length`.  
+- **No Mappable Segments**: If no segments can be mapped, return an array of `null` with length `segments.length`.  
 - **Empty Input Array**: Return `{}`.  
-- **Single Word Segments**: Map to single indices, e.g., `[2, 2]` for one word at index 2.  
+- **Single Word Segments**: Map to `[n, n]`.
 
 ---
 
 **Final Notes**:  
-- **Return ONLY valid JSON** - no explanations, comments, or additional text.
-- Index ranges are **inclusive** - `[0, 2]` includes indices 0, 1, and 2.
-- Prioritize **accuracy** over coverage - if unsure, return `null` rather than incorrect mapping.
-- Ensure mapped ranges represent **contiguous** word sequences in the translation.
-- Overlapping ranges are expected when Arabic segments overlap semantically.
+- **Return ONLY valid JSON** - no explanations or extra text.  
+- Index ranges are **inclusive**.  
+- Prioritize **accuracy** and **boundaries**, but still ensure **complete coverage**.
 
 # The input :
-

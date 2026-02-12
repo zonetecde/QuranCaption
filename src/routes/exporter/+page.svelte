@@ -187,7 +187,7 @@
 			do {
 				await new Promise((resolve) => setTimeout(resolve, 100));
 				videoElement = document.getElementById('video-preview-section') as HTMLElement;
-				videoElement.style.objectFit = 'contain';
+				videoElement.style.objectFit = 'cover';
 				videoElement.style.top = '0';
 				videoElement.style.left = '0';
 				videoElement.style.width = '100%';

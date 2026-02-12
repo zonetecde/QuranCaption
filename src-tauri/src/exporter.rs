@@ -236,8 +236,8 @@ fn ffmpeg_preprocess_video(src: &str, dst: &str, w: i32, h: i32, fps: i32, prefe
 
     // Construire le filtre vidéo avec blur optionnel
     let mut vf_parts = vec![
-        format!("scale=w={}:h={}:force_original_aspect_ratio=decrease", w, h),
-        format!("pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black", w, h),
+        format!("scale=w={}:h={}:force_original_aspect_ratio=increase", w, h),
+        format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h),
     ];
     
     // Ajouter le flou si spécifié et > 0
@@ -289,7 +289,7 @@ fn ffmpeg_preprocess_video(src: &str, dst: &str, w: i32, h: i32, fps: i32, prefe
     // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
 
-    println!("[preproc] ffmpeg scale+pad -> {}", Path::new(dst).file_name().unwrap_or_default().to_string_lossy());
+    println!("[preproc] ffmpeg scale+crop (cover) -> {}", Path::new(dst).file_name().unwrap_or_default().to_string_lossy());
 
     let status = cmd.status()?;
     if !status.success() {
@@ -377,6 +377,7 @@ fn is_image_file(path: &str) -> bool {
 fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32, prefer_hw: bool, start_time_ms: i32, duration_ms: Option<i32>, blur: Option<f64>) -> Vec<String> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
+    let preproc_cache_version = "cover-v2";
     fs::create_dir_all(&cache_dir).ok();
 
     // Cas spécial : une seule image
@@ -392,7 +393,10 @@ fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 { format!("-blur{}", b) } else { String::new() }
         } else { String::new() };
-        let hash_input = format!("{}-{}x{}-{}-dur{}{}", image_path, w, h, fps, duration_s, blur_suffix);
+        let hash_input = format!(
+            "{}-{}-{}x{}-{}-dur{}{}",
+            preproc_cache_version, image_path, w, h, fps, duration_s, blur_suffix
+        );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("img-bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
@@ -456,7 +460,10 @@ fn preprocess_background_videos(video_paths: &[String], w: i32, h: i32, fps: i32
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 { format!("-blur{}", b) } else { String::new() }
         } else { String::new() };
-        let hash_input = format!("{}-{}x{}-{}-start{}-len{}{}", p, w, h, fps, start_within, take_ms, blur_suffix);
+        let hash_input = format!(
+            "{}-{}-{}x{}-{}-start{}-len{}{}",
+            preproc_cache_version, p, w, h, fps, start_within, take_ms, blur_suffix
+        );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
@@ -750,7 +757,10 @@ fn build_and_run_ffmpeg_filter_complex(
             format!("{}:v", bg_start_idx)
         };
         
-        filter_lines.push(format!("[{}]setpts=PTS-STARTPTS,setsar=1[bgtrim]", prev));
+        filter_lines.push(format!(
+            "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})/2:(in_h-{})/2,setsar=1[bgtrim]",
+            prev, w, h, w, h, w, h
+        ));
         let mut bg_label = "bgtrim".to_string();
         
         if avail_bg_after + 1e-6 < duration_s {

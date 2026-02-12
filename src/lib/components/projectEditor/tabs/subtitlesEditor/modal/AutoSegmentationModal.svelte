@@ -45,8 +45,6 @@
 	let fillBySilence = $state(true);
 	let extendBeforeSilence = $state(false);
 	let extendBeforeSilenceMs = $state(50);
-	// Word-by-word timestamps option
-	let includeWordByWord = $state(false);
 
 	const modelOptions = [
 		{
@@ -94,7 +92,6 @@
 		fillBySilence = persisted.fillBySilence ?? true;
 		extendBeforeSilence = persisted.extendBeforeSilence ?? false;
 		extendBeforeSilenceMs = persisted.extendBeforeSilenceMs ?? 50;
-		includeWordByWord = persisted.includeWordByWord ?? false;
 		selectedMode = persisted.mode === 'local' && localStatus?.ready ? 'local' : 'api';
 	});
 
@@ -138,10 +135,6 @@
 
 	function persistExtendBeforeSilenceMsSettings(): void {
 		persistAutoSegmentationSettings({ extendBeforeSilenceMs });
-	}
-
-	function persistIncludeWordByWordSettings(): void {
-		persistAutoSegmentationSettings({ includeWordByWord });
 	}
 
 	async function handleInstallDeps() {
@@ -223,8 +216,7 @@
 					whisperModel: selectedMode === 'local' ? selectedModel : undefined,
 					fillBySilence,
 					extendBeforeSilence,
-					extendBeforeSilenceMs,
-					includeWordByWord
+					extendBeforeSilenceMs
 				},
 				selectedMode
 			);
@@ -256,7 +248,6 @@
 				fill_by_silence: fillBySilence,
 				extend_before_silence: extendBeforeSilence,
 				extend_before_silence_ms: extendBeforeSilenceMs,
-				include_word_by_word: includeWordByWord,
 				mode: selectedMode,
 				whisper_model: selectedMode === 'local' ? selectedModel : undefined,
 				audio_filename:
@@ -631,26 +622,6 @@
 						{/if}
 					</div>
 
-					<!-- Word-by-word timestamps option -->
-					<div class="pt-3 border-t border-color">
-						<label class="flex items-start gap-3 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={includeWordByWord}
-								onchange={persistIncludeWordByWordSettings}
-								class="accent-accent-primary mt-0.5 w-4 h-4"
-							/>
-							<div class="flex-1">
-								<div class="text-sm text-primary font-medium">
-									Include word-by-word timestamps (useless for now, do not enable)
-								</div>
-								<p class="text-xs text-thirdly mt-0.5">
-									Adds per-word timing data to each segment. This increases processing time and uses
-									more resources.
-								</p>
-							</div>
-						</label>
-					</div>
 				</div>
 			{/if}
 		</div>

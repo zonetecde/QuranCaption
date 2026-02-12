@@ -114,6 +114,22 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Nettoie l'ancien flag auto-segmentation includeWordByWord retiré.
+	 */
+	static FromQC332ToQC333() {
+		if (!globalState.settings) return;
+
+		const autoSegmentationSettings = globalState.settings.autoSegmentationSettings as {
+			includeWordByWord?: boolean;
+		};
+
+		if ('includeWordByWord' in autoSegmentationSettings) {
+			delete autoSegmentationSettings.includeWordByWord;
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
 	 * > Renommage des tracks "CustomText" à "CustomClip"
 	 */

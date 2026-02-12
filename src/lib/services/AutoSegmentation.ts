@@ -105,7 +105,6 @@ export type AutoSegmentationOptions = {
 	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
 	extendBeforeSilence?: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
-	includeWordByWord?: boolean; // If true, request word-by-word timestamps.
 };
 
 export type AutoSegmentationResult =
@@ -633,7 +632,6 @@ export async function runAutoSegmentation(
 	const fillBySilence: boolean = options.fillBySilence ?? true; // Par défaut, on insère des SilenceClip
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
-	const includeWordByWord: boolean = options.includeWordByWord ?? false;
 
 	// Determine mode if not specified
 	const effectiveMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
@@ -671,8 +669,7 @@ export async function runAutoSegmentation(
 			minSilenceMs,
 			minSpeechMs,
 			padMs,
-			whisperModel: effectiveMode === 'local' ? whisperModel : undefined,
-			includeWordByWord
+			whisperModel: effectiveMode === 'local' ? whisperModel : undefined
 		});
 
 		if (effectiveMode === 'local') {
@@ -1335,3 +1332,4 @@ export async function runNativeSegmentation(
 		return { status: 'failed', message: String(error) };
 	}
 }
+

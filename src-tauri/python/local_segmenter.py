@@ -34,8 +34,6 @@ def download_data_files():
         get_data_path,
         get_quran_script_path,
         get_surah_info_path,
-        LAFZIZE_WORDS_PATH,
-        LAFZIZE_METADATA_PATH,
     )
     
     data_path = get_data_path()
@@ -55,12 +53,6 @@ def download_data_files():
     if not surah_info_path.exists():
         files_to_download.append(("surah_info.json", surah_info_path, 425295))
 
-    if not LAFZIZE_WORDS_PATH.exists():
-        files_to_download.append(("qpc-hafs-word-by-word.json", LAFZIZE_WORDS_PATH, 8841417))
-
-    if not LAFZIZE_METADATA_PATH.exists():
-        files_to_download.append(("quran-metadata-misc.json", LAFZIZE_METADATA_PATH, 6126))
-    
     if files_to_download:
         print("[SETUP] Downloading required data files...", file=sys.stderr)
         
@@ -162,8 +154,6 @@ Examples:
     parser.add_argument("--whisper-model", type=str, default="base",
                         choices=["tiny", "base", "medium", "large"],
                         help="Whisper model size: tiny (~60MB), base (~150MB), medium (~800MB), large (~3GB)")
-    parser.add_argument("--include-word-timestamps", action="store_true",
-                        help="Include word-by-word timestamps (slower)")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Show verbose output to stderr")
     
@@ -239,8 +229,7 @@ Examples:
             min_speech_ms=args.min_speech_ms,
             pad_ms=args.pad_ms,
             whisper_model=args.whisper_model,
-            status_callback=emit_status_to_stderr,
-            include_word_timestamps=args.include_word_timestamps
+            status_callback=emit_status_to_stderr
         )
         
     except Exception as e:

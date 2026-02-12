@@ -160,7 +160,15 @@
 			// Re-check status after installation
 			localStatus = await checkLocalSegmentationStatus();
 		} catch (error) {
-			errorMessage = `Failed to install dependencies: ${error}`;
+			const installErrorMessage = error instanceof Error ? error.message : String(error);
+			errorMessage = `Failed to install dependencies: ${installErrorMessage}`;
+			AnalyticsService.track('local_segmentation_dependencies_install_failed', {
+				feature: 'segmentation',
+				mode: 'local',
+				error_message: installErrorMessage,
+				python_installed: localStatus?.pythonInstalled,
+				packages_installed: localStatus?.packagesInstalled
+			});
 		} finally {
 			isInstallingDeps = false;
 			installStatus = '';
@@ -269,7 +277,7 @@
 </script>
 
 <div
-	class="bg-secondary border-color border rounded-2xl w-[680px] max-w-[90vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	class="bg-secondary border-color border rounded-2xl w-[680px] max-w-[90vw] max-h-[90vh] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
 	transition:slide
 >
 	<!-- Header -->
@@ -295,7 +303,7 @@
 	</div>
 
 	<!-- Body -->
-	<div class="px-6 py-5 space-y-4">
+	<div class="px-6 py-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
 		<!-- Body -->
 		{#if !showAdvancedSettings}
 			<div class="bg-accent border border-color rounded-xl p-4 space-y-3" transition:slide>
@@ -695,7 +703,7 @@
 				class="bg-danger-color/10 border border-danger-color rounded-xl px-4 py-3 text-sm space-y-1"
 			>
 				<div class="font-semibold text-danger-color">Segmentation failed</div>
-				<div class="text-secondary break-words">{errorMessage}</div>
+				<div class="text-secondary break-words max-h-40 overflow-y-auto">{errorMessage}</div>
 			</div>
 		{/if}
 	</div>

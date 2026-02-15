@@ -1051,7 +1051,6 @@ async fn segment_quran_audio(
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
-    include_word_by_word: Option<bool>,
 ) -> Result<serde_json::Value, String> {
     // Early-return mock payload to avoid external API calls during testing.
     if QURAN_SEGMENTATION_USE_MOCK {
@@ -1059,8 +1058,6 @@ async fn segment_quran_audio(
             .map_err(|e| format!("Mock segmentation JSON invalid: {}", e));
     }
 
-    // Basic input validation before we do any heavy work.
-    let _include_word_by_word = include_word_by_word.unwrap_or(false);
     // Resolve ffmpeg so we can merge (if needed) and resample to 16kHz mono as required by the API.
     let ffmpeg_path = binaries::resolve_binary("ffmpeg")
         .ok_or_else(|| "ffmpeg binary not found".to_string())?;
@@ -1178,7 +1175,7 @@ async fn segment_quran_audio(
             min_silence_ms.unwrap_or(200),
             min_speech_ms.unwrap_or(1000),
             pad_ms.unwrap_or(50),
-            _include_word_by_word
+            false
         ],
         "fn_index": QURAN_SEGMENTATION_FN_INDEX,
         "session_hash": session_hash
@@ -1682,7 +1679,6 @@ async fn segment_quran_audio_local(
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
     whisper_model: Option<String>,
-    include_word_by_word: Option<bool>,
 ) -> Result<serde_json::Value, String> {
     use std::process::Stdio;
     use std::io::{BufRead, BufReader};
@@ -1812,9 +1808,6 @@ async fn segment_quran_audio_local(
     if let Some(model) = whisper_model {
         args.push("--whisper-model".to_string());
         args.push(model);
-    }
-    if include_word_by_word.unwrap_or(false) {
-        args.push("--include-word-timestamps".to_string());
     }
 
     let mut cmd = Command::new(python_cmd);

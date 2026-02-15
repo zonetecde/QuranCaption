@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Edition, SubtitleClip } from '$lib/classes';
 	import type { VerseTranslation } from '$lib/classes/Translation.svelte';
+	import Settings from '$lib/classes/Settings.svelte';
 	import ClickableLink from '$lib/components/home/ClickableLink.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -23,6 +24,13 @@
 	let startIndex: number = $state(0);
 	let endIndex: number = $state(0);
 	let fullVerseArray: any[] = $state([]);
+
+	function persistAiTranslationSettings(): void {
+		if (!globalState.settings) return;
+		void Settings.save();
+		void updatePromptWithRange();
+	}
+
 	// Fonction pour traiter la réponse de l'IA et mettre à jour les traductions
 	function setTranslationsFromAIResponse(aiResponseStr: string): void {
 		try {
@@ -78,7 +86,7 @@
 				const translationWords = parseCompactTranslation(verseData.translation);
 
 				if (verses[verseKey]) {
-					indexToSubtitleMapping[i] = {
+					indexToSubtitleMapping[verseData.index] = {
 						subtitles: verses[verseKey],
 						verseKey: verseKey,
 						translation: translationWords
@@ -281,8 +289,8 @@
 	async function generatePrompt() {
 		// Génère le tableau complet des versets
 		const array = [];
-		let index = 0;
 		let verses: { [key: string]: SubtitleClip[] } = {};
+		const verseFirstIndex: { [key: string]: number } = {};
 
 		for (let i: number = 0; i < globalState.getSubtitleClips.length; i++) {
 			const subtitle = globalState.getSubtitleClips[i];
@@ -291,6 +299,7 @@
 			if (verses[verseKey] === undefined) {
 				if (subtitle.isFullVerse) continue; // Si verset complet la traduction est faite par défaut
 				verses[verseKey] = [];
+				verseFirstIndex[verseKey] = i; // Position du premier segment dans la timeline
 			}
 
 			verses[verseKey].push(subtitle);
@@ -328,7 +337,7 @@
 
 			if (verse.length > 0) {
 				array.push({
-					index: index++,
+					index: verseFirstIndex[verseKey],
 					verseKey: verseKey,
 					segments: verse.map((subtitle) => subtitle.text),
 					translation: translationString
@@ -350,13 +359,12 @@
 		// Filtre le tableau selon la plage sélectionnée
 		const filteredArray = fullVerseArray.slice(startIndex, endIndex + 1);
 
-		// Réindexe les éléments filtrés pour que l'index commence à 0
-		const reindexedArray = filteredArray.map((item, index) => ({
-			...item,
-			index: index
-		}));
+		const json = JSON.stringify(filteredArray);
+		if (globalState.settings?.aiTranslationSettings?.omitPromptPrefix) {
+			aiPrompt = json;
+			return;
+		}
 
-		const json = JSON.stringify(reindexedArray);
 		let prompt = await (await fetch('/prompts/translation.txt')).text();
 
 		aiPrompt = prompt + '\n\n' + json;
@@ -609,6 +617,18 @@
 								<span class="material-icons text-base">content_copy</span>
 								Copy Prompt
 							</button>
+						</div>
+						<div class="flex items-center gap-3 mb-3">
+							<input
+								id="ai-prompt-input-only"
+								type="checkbox"
+								bind:checked={globalState.settings!.aiTranslationSettings.omitPromptPrefix}
+								onchange={persistAiTranslationSettings}
+								class="w-4 h-4 rounded transition-all duration-200 focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-accent)]"
+							/>
+							<label for="ai-prompt-input-only" class="text-sm text-secondary">
+								Use input only (no prompt prefix)
+							</label>
 						</div>
 						<textarea
 							id="ai-prompt"

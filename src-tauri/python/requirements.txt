@@ -9,4 +9,3 @@ numpy>=1.24.0
 soundfile>=0.12.0
 recitations_segmenter>=1.0.0
 accelerate>=0.26.0
-git+https://github.com/MahmoudAshraf97/ctc-forced-aligner.git

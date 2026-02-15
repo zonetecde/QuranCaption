@@ -132,14 +132,6 @@ def ensure_models_on_gpu():
             model.to(device, dtype=dtype)
             print("[GPU] Whisper on CUDA")
 
-    # Move Lafzize to GPU
-    try:
-        from .lafzize_integration import ensure_lafzize_on_gpu
-        ensure_lafzize_on_gpu()
-    except ImportError:
-        pass  # Lafzize not available
-
-
 def _load_surah_info():
     """Load surah info JSON with caching."""
     if _surah_info_cache["loaded"]:
@@ -739,8 +731,7 @@ def process_audio_full(
     min_speech_ms: int = 1000,
     pad_ms: int = 50,
     whisper_model: str = "base",
-    status_callback=None,
-    include_word_timestamps: bool = False
+    status_callback=None
 ) -> dict:
     """
     Full processing pipeline: VAD -> Whisper -> Text matching.
@@ -843,24 +834,6 @@ def process_audio_full(
             return parts[0], parts[1] if len(parts) > 1 else parts[0]
         return matched_ref, matched_ref
 
-    def get_word_timestamps_safe(seg_audio, ref_from, ref_to, segment_duration):
-        """Best-effort word timestamps; returns [] on failure/unavailable."""
-        if not include_word_timestamps:
-            return []
-        if not ref_from or not ref_to:
-            return []
-        try:
-            from .lafzize_integration import get_word_timestamps_dict
-            return get_word_timestamps_dict(
-                seg_audio,
-                sample_rate,
-                ref_from,
-                ref_to,
-                segment_duration=segment_duration
-            )
-        except Exception:
-            return []
-
     segments = []
     total_segments = len(vad_segments)
 
@@ -886,14 +859,6 @@ def process_audio_full(
 
         ref_from, ref_to = parse_ref(matched_ref)
 
-        seg_duration = seg.end_time - seg.start_time
-        word_timestamps = get_word_timestamps_safe(
-            segment_audios[idx],
-            ref_from,
-            ref_to,
-            seg_duration
-        )
-
         segments.append({
             "segment": idx + 1,
             "time_from": round(seg.start_time, 3),
@@ -903,7 +868,7 @@ def process_audio_full(
             "matched_text": matched_text or "",
             "confidence": round(score, 3),
             "error": error,
-            "word_timestamps": word_timestamps
+            "word_timestamps": []
         })
 
     total_time = time.time() - total_start

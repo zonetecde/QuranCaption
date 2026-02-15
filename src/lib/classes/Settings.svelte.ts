@@ -15,7 +15,10 @@ export type AutoSegmentationSettings = {
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
-	includeWordByWord: boolean; // If true, request word-by-word timestamps.
+};
+
+export type AITranslationSettings = {
+	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
 };
 
 export default class Settings extends SerializableBase {
@@ -49,8 +52,11 @@ export default class Settings extends SerializableBase {
 		whisperModel: 'base',
 		fillBySilence: true,
 		extendBeforeSilence: false,
-		extendBeforeSilenceMs: 50,
-		includeWordByWord: false
+		extendBeforeSilenceMs: 50
+	});
+
+	aiTranslationSettings = $state<AITranslationSettings>({
+		omitPromptPrefix: false
 	});
 
 	// Shortcut categories metadata
@@ -261,6 +267,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC315ToQC316();
 		MigrationService.FromQC327ToQC328();
 		MigrationService.FromQC331ToQC332();
+		MigrationService.FromQC332ToQC333();
 	}
 }
 

@@ -45,8 +45,6 @@
 	let fillBySilence = $state(true);
 	let extendBeforeSilence = $state(false);
 	let extendBeforeSilenceMs = $state(50);
-	// Word-by-word timestamps option
-	let includeWordByWord = $state(false);
 
 	const modelOptions = [
 		{
@@ -94,7 +92,6 @@
 		fillBySilence = persisted.fillBySilence ?? true;
 		extendBeforeSilence = persisted.extendBeforeSilence ?? false;
 		extendBeforeSilenceMs = persisted.extendBeforeSilenceMs ?? 50;
-		includeWordByWord = persisted.includeWordByWord ?? false;
 		selectedMode = persisted.mode === 'local' && localStatus?.ready ? 'local' : 'api';
 	});
 
@@ -140,10 +137,6 @@
 		persistAutoSegmentationSettings({ extendBeforeSilenceMs });
 	}
 
-	function persistIncludeWordByWordSettings(): void {
-		persistAutoSegmentationSettings({ includeWordByWord });
-	}
-
 	async function handleInstallDeps() {
 		if (isInstallingDeps) return;
 		isInstallingDeps = true;
@@ -160,7 +153,15 @@
 			// Re-check status after installation
 			localStatus = await checkLocalSegmentationStatus();
 		} catch (error) {
-			errorMessage = `Failed to install dependencies: ${error}`;
+			const installErrorMessage = error instanceof Error ? error.message : String(error);
+			errorMessage = `Failed to install dependencies: ${installErrorMessage}`;
+			AnalyticsService.track('local_segmentation_dependencies_install_failed', {
+				feature: 'segmentation',
+				mode: 'local',
+				error_message: installErrorMessage,
+				python_installed: localStatus?.pythonInstalled,
+				packages_installed: localStatus?.packagesInstalled
+			});
 		} finally {
 			isInstallingDeps = false;
 			installStatus = '';
@@ -215,8 +216,7 @@
 					whisperModel: selectedMode === 'local' ? selectedModel : undefined,
 					fillBySilence,
 					extendBeforeSilence,
-					extendBeforeSilenceMs,
-					includeWordByWord
+					extendBeforeSilenceMs
 				},
 				selectedMode
 			);
@@ -248,7 +248,6 @@
 				fill_by_silence: fillBySilence,
 				extend_before_silence: extendBeforeSilence,
 				extend_before_silence_ms: extendBeforeSilenceMs,
-				include_word_by_word: includeWordByWord,
 				mode: selectedMode,
 				whisper_model: selectedMode === 'local' ? selectedModel : undefined,
 				audio_filename:
@@ -269,7 +268,7 @@
 </script>
 
 <div
-	class="bg-secondary border-color border rounded-2xl w-[680px] max-w-[90vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	class="bg-secondary border-color border rounded-2xl w-[680px] max-w-[90vw] max-h-[90vh] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
 	transition:slide
 >
 	<!-- Header -->
@@ -295,7 +294,7 @@
 	</div>
 
 	<!-- Body -->
-	<div class="px-6 py-5 space-y-4">
+	<div class="px-6 py-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
 		<!-- Body -->
 		{#if !showAdvancedSettings}
 			<div class="bg-accent border border-color rounded-xl p-4 space-y-3" transition:slide>
@@ -623,26 +622,6 @@
 						{/if}
 					</div>
 
-					<!-- Word-by-word timestamps option -->
-					<div class="pt-3 border-t border-color">
-						<label class="flex items-start gap-3 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={includeWordByWord}
-								onchange={persistIncludeWordByWordSettings}
-								class="accent-accent-primary mt-0.5 w-4 h-4"
-							/>
-							<div class="flex-1">
-								<div class="text-sm text-primary font-medium">
-									Include word-by-word timestamps (useless for now, do not enable)
-								</div>
-								<p class="text-xs text-thirdly mt-0.5">
-									Adds per-word timing data to each segment. This increases processing time and uses
-									more resources.
-								</p>
-							</div>
-						</label>
-					</div>
 				</div>
 			{/if}
 		</div>
@@ -695,7 +674,7 @@
 				class="bg-danger-color/10 border border-danger-color rounded-xl px-4 py-3 text-sm space-y-1"
 			>
 				<div class="font-semibold text-danger-color">Segmentation failed</div>
-				<div class="text-secondary break-words">{errorMessage}</div>
+				<div class="text-secondary break-words max-h-40 overflow-y-auto">{errorMessage}</div>
 			</div>
 		{/if}
 	</div>

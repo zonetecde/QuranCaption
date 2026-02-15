@@ -133,28 +133,6 @@ ARABIC_FONT_STACK = "'DigitalKhatt', 'Traditional Arabic', 'Scheherazade', 'Amir
 QURAN_TEXT_SIZE_PX = 22  # Size for Quran text in segment cards
 ARABIC_WORD_SPACING = "0.2em"  # Word spacing for Arabic text
 
-# =============================================================================
-# Word-by-word animation settings
-# =============================================================================
-
-WORD_HIGHLIGHT_COLOR = "#ffd700"  # Gold/yellow for highlighting active word
-WORD_HIGHLIGHT_TRANSITION_MS = 50  # CSS transition duration in milliseconds
-WORD_HIGHLIGHT_CHECK_INTERVAL_MS = 16  # Check frequency in ms (16ms ~ 60fps)
-
-# =============================================================================
-# Lafzize (word-level forced alignment) settings
-# =============================================================================
-
-LAFZIZE_MODEL = "MahmoudAshraf/mms-300m-1130-forced-aligner"
-LAFZIZE_BATCH_SIZE = 4
-LAFZIZE_WINDOW_SIZE = 30  # Window size in seconds for audio chunking
-LAFZIZE_CONTEXT_SIZE = 2  # Context size for alignment
-
-# Lafzize data paths (reuse existing data files)
-LAFZIZE_WORDS_PATH = get_data_path() / "qpc-hafs-word-by-word.json"
-LAFZIZE_METADATA_PATH = get_data_path() / "quran-metadata-misc.json"
-
-
 # Paths for data files
 def get_surah_info_path():
     return get_data_path() / "surah_info.json"

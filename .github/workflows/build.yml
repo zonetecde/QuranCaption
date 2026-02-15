@@ -136,6 +136,54 @@ jobs:
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
         timeout-minutes: 45
 
+      - name: Verify bundled binaries (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          APP_PATH=$(find src-tauri/target -type d -path "*/bundle/macos/*.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found in src-tauri/target"
+            exit 1
+          fi
+
+          for bin in ffmpeg ffprobe yt-dlp; do
+            BIN_PATH="$APP_PATH/Contents/Resources/binaries/$bin"
+            if [ ! -f "$BIN_PATH" ]; then
+              echo "Missing bundled binary: $BIN_PATH"
+              exit 1
+            fi
+          done
+
+      - name: Verify bundled binaries (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          APPIMAGE=$(find src-tauri/target -type f -name "*.AppImage" | head -n 1)
+          DEB=$(find src-tauri/target -type f -name "*.deb" | head -n 1)
+
+          if [ -z "$APPIMAGE" ] || [ -z "$DEB" ]; then
+            echo "Missing Linux artifacts (AppImage or deb)"
+            exit 1
+          fi
+
+          rm -rf squashfs-root
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" --appimage-extract >/dev/null
+
+          for bin in ffmpeg ffprobe yt-dlp; do
+            if [ -f "squashfs-root/usr/lib/qurancaption/resources/binaries/$bin" ] || [ -f "squashfs-root/usr/resources/binaries/$bin" ]; then
+              echo "Found $bin in AppImage"
+            else
+              echo "Missing $bin in AppImage"
+              exit 1
+            fi
+
+            if dpkg-deb -c "$DEB" | grep -q "resources/binaries/$bin$"; then
+              echo "Found $bin in deb"
+            else
+              echo "Missing $bin in deb"
+              exit 1
+            fi
+          done
+
       - name: Upload macOS DMG
         if: startsWith(matrix.os, 'macos')
         uses: actions/upload-artifact@v4

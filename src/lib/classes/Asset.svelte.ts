@@ -9,6 +9,8 @@ import { Duration } from './index.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 
+type DurationLoadState = 'idle' | 'loading' | 'success' | 'error';
+
 export class Asset extends SerializableBase {
 	id: number = $state(0);
 	fileName: string = $state('');
@@ -19,6 +21,8 @@ export class Asset extends SerializableBase {
 	sourceUrl?: string = $state(undefined);
 	sourceType: SourceType = $state(SourceType.Local);
 	metadata: Record<string, any> = $state({});
+	durationLoadState: DurationLoadState = $state('idle');
+	durationLoadError: string | null = $state(null);
 
 	constructor(
 		filePath: string = '',
@@ -90,10 +94,10 @@ export class Asset extends SerializableBase {
 			// Demande confirmation à l'utilisateur
 			const confirm = await ModalManager.confirmModal(
 				'Would you like to set the project dimensions to match this video? (' +
-				assetDimensions.width +
-				'x' +
-				assetDimensions.height +
-				')',
+					assetDimensions.width +
+					'x' +
+					assetDimensions.height +
+					')',
 				true
 			);
 
@@ -124,12 +128,16 @@ export class Asset extends SerializableBase {
 	}
 
 	private async initializeDuration() {
+		this.durationLoadState = 'loading';
+		this.durationLoadError = null;
+
 		try {
 			const durationMs = (await invoke('get_duration', {
 				filePath: this.filePath
 			})) as number;
 
 			this.duration = new Duration(durationMs);
+			this.durationLoadState = 'success';
 
 			if (durationMs === -1) {
 				this.duration = new Duration(0);
@@ -137,10 +145,15 @@ export class Asset extends SerializableBase {
 			}
 		} catch (error) {
 			this.duration = new Duration(0);
+			this.durationLoadState = 'error';
 
-			if (this.isFfprobeMissingError(error)) {
-				await this.showMissingFfmpegModal();
+			const ffprobeError = this.parseFfprobeError(error);
+			if (ffprobeError) {
+				const message = this.getFfmpegErrorMessage(ffprobeError.code, ffprobeError.details);
+				this.durationLoadError = message;
+				await this.showMissingFfmpegModal(message);
 			} else {
+				this.durationLoadError = 'Unable to retrieve media duration. Please check the logs.';
 				console.error('Unable to retrieve media duration', error);
 			}
 		}
@@ -205,7 +218,7 @@ export class Asset extends SerializableBase {
 			}
 		}
 
-		// Cas général
+		// Cas général.
 		return normalized.substring(0, lastSeparatorIndex);
 	}
 
@@ -216,6 +229,8 @@ export class Asset extends SerializableBase {
 		this.exists = true; // Réinitialise l'existence à vrai
 		if (this.type === AssetType.Audio || this.type === AssetType.Video) {
 			this.duration = new Duration(0);
+			this.durationLoadState = 'idle';
+			this.durationLoadError = null;
 			this.initializeDuration(); // Réinitialise la durée
 		}
 	}
@@ -267,9 +282,16 @@ export class Asset extends SerializableBase {
 		}
 	}
 
-	private isFfprobeMissingError(error: unknown): boolean {
-		const message = this.extractErrorMessage(error).toUpperCase();
-		return message.includes('FFPROBE_NOT_FOUND');
+	isDurationLoading(): boolean {
+		return this.durationLoadState === 'loading';
+	}
+
+	hasDurationLoadError(): boolean {
+		return this.durationLoadState === 'error';
+	}
+
+	getDurationLoadErrorMessage(): string | null {
+		return this.durationLoadError;
 	}
 
 	private extractErrorMessage(error: unknown): string {
@@ -289,12 +311,56 @@ export class Asset extends SerializableBase {
 		return String(error ?? '');
 	}
 
-	private async showMissingFfmpegModal(): Promise<void> {
+	/**
+	 * Parses FFprobe errors.
+	 * @param error The error object to parse.
+	 * @returns An object containing the error code and optional details.
+	 */
+	private parseFfprobeError(error: unknown): { code: string; details?: string } | null {
+		const rawMessage = this.extractErrorMessage(error);
+		const message = rawMessage.toUpperCase();
+
+		if (message.includes('FFPROBE_NOT_FOUND')) {
+			return { code: 'FFPROBE_NOT_FOUND' };
+		}
+
+		if (message.includes('FFPROBE_NOT_EXECUTABLE')) {
+			const details = rawMessage.split(':').slice(1).join(':').trim();
+			return { code: 'FFPROBE_NOT_EXECUTABLE', details: details || undefined };
+		}
+
+		if (message.includes('FFPROBE_EXEC_FAILED:')) {
+			const marker = 'FFPROBE_EXEC_FAILED:';
+			const index = rawMessage.toUpperCase().indexOf(marker);
+			const details = index >= 0 ? rawMessage.substring(index + marker.length).trim() : '';
+			return { code: 'FFPROBE_EXEC_FAILED', details: details || undefined };
+		}
+
+		return null;
+	}
+
+	/**
+	 * Generates a user-friendly error message based on FFprobe error codes and details.
+	 * @param code The error code to include in the message.
+	 * @param details Optional additional details about the error.
+	 * @returns A user-friendly error message.
+	 */
+	private getFfmpegErrorMessage(code: string, details?: string): string {
 		const instructions = this.getFfmpegInstallInstructions();
-		await ModalManager.errorModal(
-			'FFmpeg is required',
-			`QuranCaption needs FFmpeg (ffmpeg + ffprobe) to analyze your media files. Please install both tools and ensure they are available in your PATH.\n\n${instructions}`
-		);
+
+		if (code === 'FFPROBE_NOT_FOUND') {
+			return `FFprobe could not be found. QuranCaption needs FFmpeg (ffmpeg + ffprobe).\n\n${instructions}`;
+		}
+
+		if (code === 'FFPROBE_NOT_EXECUTABLE') {
+			return `FFprobe was found but could not be executed.${details ? `\nReason: ${details}` : ''}\n\nTry reinstalling FFmpeg for your CPU architecture and remove macOS quarantine if needed.\n\n${instructions}`;
+		}
+
+		return `FFprobe execution failed.${details ? `\nReason: ${details}` : ''}\n\n${instructions}`;
+	}
+
+	private async showMissingFfmpegModal(message: string): Promise<void> {
+		await ModalManager.errorModal('FFmpeg is required', message);
 	}
 
 	private getFfmpegInstallInstructions(): string {

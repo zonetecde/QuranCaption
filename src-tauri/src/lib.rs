@@ -37,6 +37,8 @@ struct DiscordActivity {
 }
 
 const FFPROBE_NOT_FOUND_ERROR: &str = "FFPROBE_NOT_FOUND";
+const FFPROBE_NOT_EXECUTABLE_ERROR: &str = "FFPROBE_NOT_EXECUTABLE";
+const FFPROBE_EXEC_FAILED_ERROR_PREFIX: &str = "FFPROBE_EXEC_FAILED:";
 const QURAN_SEGMENTATION_UPLOAD_URL: &str =
     "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/upload";
 const QURAN_SEGMENTATION_QUEUE_JOIN_URL: &str =
@@ -233,6 +235,80 @@ fn configure_command_no_window(cmd: &mut Command) {
     }
 }
 
+fn map_ffprobe_resolve_error(err: binaries::BinaryResolveError) -> String {
+    match err.code.as_str() {
+        "BINARY_NOT_FOUND" => FFPROBE_NOT_FOUND_ERROR.to_string(),
+        "BINARY_NOT_EXECUTABLE" => {
+            format!("{}: {}", FFPROBE_NOT_EXECUTABLE_ERROR, err.details)
+        }
+        "BINARY_EXEC_FAILED" => format!("{}{}", FFPROBE_EXEC_FAILED_ERROR_PREFIX, err.details),
+        _ => format!("{}{}", FFPROBE_EXEC_FAILED_ERROR_PREFIX, err.details),
+    }
+}
+
+fn format_ffprobe_exec_failed(details: &str) -> String {
+    format!(
+        "{}{}",
+        FFPROBE_EXEC_FAILED_ERROR_PREFIX,
+        details.trim()
+    )
+}
+
+#[derive(serde::Serialize)]
+struct BinaryDiagnosticResult {
+    name: String,
+    resolved_path: Option<String>,
+    error_code: Option<String>,
+    error_details: Option<String>,
+    attempts: Vec<binaries::BinaryResolutionAttempt>,
+    version_output: Option<String>,
+}
+
+fn get_binary_version_line(binary_path: &str) -> Option<String> {
+    let mut cmd = Command::new(binary_path);
+    cmd.arg("-version");
+    configure_command_no_window(&mut cmd);
+    match cmd.output() {
+        Ok(output) if output.status.success() => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            stdout.lines().next().map(|line| line.trim().to_string())
+        }
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let line = stderr.lines().next().unwrap_or("").trim().to_string();
+            if line.is_empty() {
+                None
+            } else {
+                Some(line)
+            }
+        }
+        Err(_) => None,
+    }
+}
+
+#[tauri::command]
+fn diagnose_media_binaries() -> Vec<BinaryDiagnosticResult> {
+    ["ffmpeg", "ffprobe", "yt-dlp"]
+        .iter()
+        .map(|name| {
+            let debug = binaries::resolve_binary_debug(name);
+            let version_output = debug
+                .resolved_path
+                .as_deref()
+                .and_then(get_binary_version_line);
+
+            BinaryDiagnosticResult {
+                name: debug.name,
+                resolved_path: debug.resolved_path,
+                error_code: debug.error_code,
+                error_details: debug.error_details,
+                attempts: debug.attempts,
+                version_output,
+            }
+        })
+        .collect()
+}
+
 #[tauri::command]
 async fn download_from_youtube(
     url: String,
@@ -363,9 +439,9 @@ fn get_duration(file_path: &str) -> Result<i64, String> {
         return Ok(-1);
     }
 
-    let ffprobe_path = match binaries::resolve_binary("ffprobe") {
-        Some(p) => p,
-        None => return Err(FFPROBE_NOT_FOUND_ERROR.to_string()),
+    let ffprobe_path = match binaries::resolve_binary_detailed("ffprobe") {
+        Ok(p) => p,
+        Err(err) => return Err(map_ffprobe_resolve_error(err)),
     };
 
     let mut cmd = Command::new(&ffprobe_path);
@@ -395,10 +471,13 @@ fn get_duration(file_path: &str) -> Result<i64, String> {
                 }
             } else {
                 let stderr = String::from_utf8_lossy(&result.stderr);
-                Err(format!("ffprobe error: {}", stderr))
+                Err(format_ffprobe_exec_failed(&stderr))
             }
         }
-        Err(e) => Err(format!("Unable to execute ffprobe: {}", e)),
+        Err(e) => Err(format_ffprobe_exec_failed(&format!(
+            "Unable to execute ffprobe: {}",
+            e
+        ))),
     }
 }
 
@@ -668,8 +747,8 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
         return Err(format!("File not found: {}", file_path_str));
     }
 
-    let ffprobe_path = binaries::resolve_binary("ffprobe")
-        .ok_or_else(|| "ffprobe binary not found".to_string())?;
+    let ffprobe_path = binaries::resolve_binary_detailed("ffprobe")
+        .map_err(map_ffprobe_resolve_error)?;
 
     let mut cmd = Command::new(&ffprobe_path);
     cmd.args(&[
@@ -714,10 +793,13 @@ fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
                 Err("No video stream found in file".to_string())
             } else {
                 let stderr = String::from_utf8_lossy(&result.stderr);
-                Err(format!("ffprobe error: {}", stderr))
+                Err(format_ffprobe_exec_failed(&stderr))
             }
         }
-        Err(e) => Err(format!("Unable to execute ffprobe: {}", e)),
+        Err(e) => Err(format_ffprobe_exec_failed(&format!(
+            "Unable to execute ffprobe: {}",
+            e
+        ))),
     }
 }
 
@@ -2016,7 +2098,8 @@ pub fn run() {
             update_discord_activity,
             clear_discord_activity,
             close_discord_rpc,
-            get_audio_waveform
+            get_audio_waveform,
+            diagnose_media_binaries
         ])
         .setup(|app| {
             if let Ok(resource_dir) = app.path().resource_dir() {

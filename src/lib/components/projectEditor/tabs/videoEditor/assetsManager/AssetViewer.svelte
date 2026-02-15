@@ -45,18 +45,31 @@
 	}
 
 	function addInTheTimelineButtonClick(video: boolean, audio: boolean) {
-		if (asset.duration.isNull() && asset.type !== AssetType.Image) {
-			toast(
-				'Please wait for the asset to be loaded before adding it to the timeline. If this is recurrent and you are on MacOS or Linux, please install ffmpeg and ffprobe through Homebrew and re-import the asset.',
-				{
-					duration: 5000
-				}
-			);
-
+		if (asset.type !== AssetType.Image && asset.isDurationLoading()) {
+			toast('Please wait for the asset to be loaded before adding it to the timeline.', {
+				duration: 5000
+			});
 			return;
 		}
 
-		// Ajoute l'asset à la timeline
+		if (asset.type !== AssetType.Image && asset.hasDurationLoadError()) {
+			toast.error(
+				asset.getDurationLoadErrorMessage() ||
+					'Unable to analyze this media file. Please check FFmpeg/FFprobe setup.',
+				{
+					duration: 7000
+				}
+			);
+			return;
+		}
+
+		if (asset.duration.isNull() && asset.type !== AssetType.Image) {
+			toast.error('Unable to load this asset duration. Please re-import the file.', {
+				duration: 5000
+			});
+			return;
+		}
+
 		asset.addToTimeline(video, audio);
 	}
 

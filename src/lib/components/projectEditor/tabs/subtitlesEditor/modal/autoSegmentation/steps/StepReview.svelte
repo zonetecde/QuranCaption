@@ -6,7 +6,7 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">5. Review and run</h3>
+		<h3 class="text-lg font-semibold text-primary">Review and run</h3>
 		<p class="text-sm text-thirdly">Confirm your configuration before launching auto-segmentation.</p>
 	</div>
 

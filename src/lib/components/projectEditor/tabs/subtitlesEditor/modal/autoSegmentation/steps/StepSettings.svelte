@@ -7,7 +7,7 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">4. Segmentation settings</h3>
+		<h3 class="text-lg font-semibold text-primary">Segmentation settings</h3>
 		<p class="text-sm text-thirdly">Use presets first, then fine-tune timing and silence behavior.</p>
 	</div>
 

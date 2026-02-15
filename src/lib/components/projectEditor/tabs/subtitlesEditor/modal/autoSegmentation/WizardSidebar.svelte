@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { WIZARD_STEPS } from './constants';
 	import { getSharedWizard } from './sharedWizard';
 
 	const wizard = getSharedWizard();
@@ -25,15 +24,15 @@
 	</div>
 
 	<nav class="space-y-2">
-		{#each WIZARD_STEPS as step}
+		{#each wizard.steps as step, index}
 			<button
 				type="button"
 				class="w-full rounded-xl border px-3 py-2 text-left transition-colors"
-				class:border-accent-primary={wizard.currentStep === step.id}
-				class:bg-accent={wizard.currentStep === step.id}
-				class:border-color={wizard.currentStep !== step.id}
-				class:opacity-80={wizard.currentStep !== step.id}
-				onclick={() => wizard.goToStep(step.id)}
+				class:border-accent-primary={wizard.currentStep === index}
+				class:bg-accent={wizard.currentStep === index}
+				class:border-color={wizard.currentStep !== index}
+				class:opacity-80={wizard.currentStep !== index}
+				onclick={() => wizard.goToStep(index)}
 			>
 				<div class="flex items-center gap-2">
 					<span class="material-icons text-accent-primary text-[20px]">{step.icon}</span>

@@ -12,8 +12,8 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">3. Model and device</h3>
-		<p class="text-sm text-thirdly">The wizard adapts model options to your selected version and runtime.</p>
+		<h3 class="text-lg font-semibold text-primary">Model selection</h3>
+		<p class="text-sm text-thirdly">Available models and local packages adapt to your selected version.</p>
 	</div>
 
 	{#if wizard.selection.mode === 'local'}
@@ -52,14 +52,15 @@
 		</div>
 	{/if}
 
-	<div class="space-y-2 rounded-xl border border-color p-3">
-		<div class="text-xs uppercase text-thirdly">Device</div>
-		<div class="grid grid-cols-2 gap-2">
-			<button type="button" class="rounded-lg border p-2 text-sm" class:border-accent-primary={wizard.selection.device === 'GPU'} class:border-color={wizard.selection.device !== 'GPU'} disabled={isLegacyLocal()} onclick={() => wizard.setDevice('GPU')}>GPU</button>
-			<button type="button" class="rounded-lg border p-2 text-sm" class:border-accent-primary={wizard.selection.device === 'CPU'} class:border-color={wizard.selection.device !== 'CPU'} disabled={isLegacyLocal()} onclick={() => wizard.setDevice('CPU')}>CPU</button>
+	{#if !isLegacyLocal()}
+		<div class="space-y-2 rounded-xl border border-color p-3">
+			<div class="text-xs uppercase text-thirdly">Device</div>
+			<div class="grid grid-cols-2 gap-2">
+				<button type="button" class="rounded-lg border p-2 text-sm" class:border-accent-primary={wizard.selection.device === 'GPU'} class:border-color={wizard.selection.device !== 'GPU'} onclick={() => wizard.setDevice('GPU')}>GPU</button>
+				<button type="button" class="rounded-lg border p-2 text-sm" class:border-accent-primary={wizard.selection.device === 'CPU'} class:border-color={wizard.selection.device !== 'CPU'} onclick={() => wizard.setDevice('CPU')}>CPU</button>
+			</div>
 		</div>
-		{#if isLegacyLocal()}<p class="text-xs text-thirdly">Legacy V1 uses automatic device detection.</p>{/if}
-	</div>
+	{/if}
 
 	{#if isMultiLocal()}
 		<div class="rounded-xl border border-color bg-accent/70 p-3">
@@ -73,12 +74,17 @@
 	{/if}
 
 	{#if wizard.selection.mode === 'local'}
-		<div class="space-y-2">
+		<div class="space-y-2 rounded-xl border border-color p-3">
+			<div class="text-xs uppercase text-thirdly">Required local packages</div>
+			<p class="text-xs text-thirdly">Install the Python packages required for the selected local engine.</p>
 			{#if wizard.isCheckingStatus}
 				<div class="text-sm text-secondary">Checking local engines in background...</div>
 			{:else}
-				<LocalEngineCard title="Legacy Whisper" status={wizard.localStatus?.engines?.legacy ?? null} isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'legacy'} isInstalled={!!wizard.localStatus?.engines?.legacy?.ready} onInstall={() => void wizard.installEngine('legacy')} />
-				<LocalEngineCard title="Multi-Aligner" status={wizard.localStatus?.engines?.multi ?? null} isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'multi'} isInstalled={!!wizard.localStatus?.engines?.multi?.ready} onInstall={() => void wizard.installEngine('multi')} />
+				{#if wizard.selection.aiVersion === 'legacy_v1'}
+					<LocalEngineCard title="Legacy Whisper" status={wizard.localStatus?.engines?.legacy ?? null} isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'legacy'} isInstalled={!!wizard.localStatus?.engines?.legacy?.ready} onInstall={() => void wizard.installEngine('legacy')} />
+				{:else}
+					<LocalEngineCard title="Multi-Aligner" status={wizard.localStatus?.engines?.multi ?? null} isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'multi'} isInstalled={!!wizard.localStatus?.engines?.multi?.ready} onInstall={() => void wizard.installEngine('multi')} />
+				{/if}
 			{/if}
 			{#if wizard.installStatus}<div class="text-xs text-thirdly">{wizard.installStatus}</div>{/if}
 		</div>

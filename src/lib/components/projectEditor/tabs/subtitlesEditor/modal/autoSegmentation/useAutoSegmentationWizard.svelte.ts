@@ -14,7 +14,7 @@ import {
 	type SegmentationDevice,
 	type SegmentationMode
 } from '$lib/services/AutoSegmentation';
-import { WIZARD_STEPS } from './constants';
+import { getWizardSteps } from './constants';
 import { trackInstallFailure, trackSegmentationRun } from './helpers/analytics';
 import {
 	buildAudioLabel,
@@ -30,7 +30,6 @@ export function useAutoSegmentationWizard() {
 	const persisted = globalState.settings?.autoSegmentationSettings as
 		| AutoSegmentationSettings
 		| undefined;
-	const maxStep = WIZARD_STEPS.length - 1;
 	const selection = $state<WizardSelectionState>(deriveSelectionState(persisted));
 	let minSilenceMs = $state(persisted?.minSilenceMs ?? 200);
 	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
@@ -51,6 +50,9 @@ export function useAutoSegmentationWizard() {
 	let warningMessage = $state<string | null>(null);
 	let fallbackMessage = $state<string | null>(null);
 	let cloudCpuFallbackMessage = $state<string | null>(null);
+	const steps = $derived(() => getWizardSteps(selection.aiVersion));
+	const maxStep = $derived(() => Math.max(0, steps().length - 1));
+	const currentStepKey = $derived(() => steps()[currentStep]?.key ?? 'review');
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
 	const hasAudio = $derived(() => !!audioInfo());
@@ -77,7 +79,7 @@ export function useAutoSegmentationWizard() {
 		result?.status === 'completed'
 			? 'Segmentation completed. You can close and review the subtitles.'
 			: selection.mode === 'local'
-				? 'Local mode can fallback to cloud when setup is unavailable.'
+				? "Local mode uses your computer's resources."
 				: 'Cloud mode uses Quran Multi-Aligner v2.'
 	);
 
@@ -103,6 +105,7 @@ export function useAutoSegmentationWizard() {
 		selection.aiVersion = aiVersion;
 		selection.mode = aiVersion === 'legacy_v1' ? 'local' : 'api';
 		selection.localAsrMode = aiVersion === 'legacy_v1' ? 'legacy_whisper' : 'multi_aligner';
+		currentStep = Math.max(0, Math.min(currentStep, maxStep()));
 		persistPatch({ mode: selection.mode, localAsrMode: selection.localAsrMode });
 		if (selection.mode === 'local') void refreshLocalStatus();
 	}
@@ -324,7 +327,7 @@ export function useAutoSegmentationWizard() {
 	}
 	/** Goes to any wizard step within bounds. */
 	function goToStep(step: number): void {
-		currentStep = Math.max(0, Math.min(maxStep, step));
+		currentStep = Math.max(0, Math.min(maxStep(), step));
 	}
 	/** Moves to the next wizard step. */
 	function goNext(): void {
@@ -336,9 +339,17 @@ export function useAutoSegmentationWizard() {
 	}
 
 	return {
-		maxStep,
 		get selection() {
 			return selection;
+		},
+		get steps() {
+			return steps();
+		},
+		get maxStep() {
+			return maxStep();
+		},
+		get currentStepKey() {
+			return currentStepKey();
 		},
 		get minSilenceMs() {
 			return minSilenceMs;

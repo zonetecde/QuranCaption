@@ -701,14 +701,13 @@ export async function runAutoSegmentation(
 	let fallbackToCloud = false;
 	let cloudGpuFallbackToCpu = false;
 	console.log(
-		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device}`
+		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device} allowCloudFallback=${allowCloudFallback}`
 	);
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
 	const audioClips = getAutoSegmentationAudioClips();
 	if (!audioInfo || audioClips.length === 0) {
 		const message = 'No audio clip found in the project.';
-		toast.error(message);
 		return { status: 'failed', message };
 	}
 
@@ -791,18 +790,8 @@ export async function runAutoSegmentation(
 			try {
 				payload = await invokeLocal();
 			} catch (localError) {
-				console.warn('[AutoSegmentation] Local mode failed, fallback to cloud:', localError);
-				if (!allowCloudFallback) throw localError;
-				effectiveMode = 'api';
-				fallbackToCloud = true;
-				const localErrorMessage =
-					localError instanceof Error ? localError.message : String(localError);
-				const compactReason =
-					localErrorMessage.length > 120
-						? `${localErrorMessage.slice(0, 117)}...`
-						: localErrorMessage;
-				toast(`Local AI unavailable (${compactReason}). Switched to Cloud API.`);
-				payload = await invokeCloud();
+				console.warn('[AutoSegmentation] Local mode failed (no cloud fallback):', localError);
+				throw localError;
 			}
 		}
 
@@ -822,7 +811,6 @@ export async function runAutoSegmentation(
 
 		if (segments.length === 0) {
 			const message = response.error || 'No segments returned from the segmentation service.';
-			toast.error(message);
 			return { status: 'failed', message };
 		}
 
@@ -1216,7 +1204,6 @@ export async function runAutoSegmentation(
 			// Get unique error messages
 			const uniqueErrors = [...new Set(segmentErrors)];
 			const message = `All segments failed to process: ${uniqueErrors.join(', ')}`;
-			toast.error(message);
 			return { status: 'failed', message };
 		}
 
@@ -1268,11 +1255,6 @@ export async function runAutoSegmentation(
 	} catch (error) {
 		console.error('Segmentation request failed:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		if (errorMessage.toLowerCase().includes('gpu quota')) {
-			toast.error('GPU quota exceeded. No GPU quota left. Please try again later.');
-		} else {
-			toast.error('Segmentation request failed.');
-		}
 		return { status: 'failed', message: errorMessage };
 	}
 }

@@ -30,14 +30,26 @@
 	onDestroy(disposeModal);
 </script>
 
-<div class="flex min-h-[92vh] w-[clamp(1200px,96vw,1700px)] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-color bg-secondary shadow-2xl shadow-black">
+<div
+	class="flex h-[92vh] xl:h-[80vh] w-[clamp(1200px,96vw,1700px)] max-w-[90vw] xl:max-w-[66vw] flex-col overflow-hidden rounded-2xl border border-color bg-secondary shadow-2xl shadow-black"
+>
 	<WizardHeader onClose={close} />
 	<div class="flex min-h-0 flex-1">
 		<WizardSidebar />
 		<section class="flex min-w-0 flex-1 flex-col">
 			<div class="flex-1 overflow-y-auto p-6">
 				<div class="mx-auto max-w-4xl space-y-6">
-					{#if wizard.currentStep === 0}<StepVersion />{:else if wizard.currentStep === 1}<StepRuntime />{:else if wizard.currentStep === 2}<StepModels />{:else if wizard.currentStep === 3}<StepSettings />{:else}<StepReview />{/if}
+					{#if wizard.currentStepKey === 'version'}
+						<StepVersion />
+					{:else if wizard.currentStepKey === 'runtime'}
+						<StepRuntime />
+					{:else if wizard.currentStepKey === 'models'}
+						<StepModels />
+					{:else if wizard.currentStepKey === 'settings'}
+						<StepSettings />
+					{:else}
+						<StepReview />
+					{/if}
 					<ResultPanel />
 				</div>
 			</div>

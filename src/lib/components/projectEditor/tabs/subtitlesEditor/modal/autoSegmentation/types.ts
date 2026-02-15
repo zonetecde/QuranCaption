@@ -11,11 +11,14 @@ export type AiVersion = 'legacy_v1' | 'multi_v2';
 
 /** Represents a wizard navigation item. */
 export type WizardStep = {
-	id: number;
+	key: WizardStepKey;
 	title: string;
 	subtitle: string;
 	icon: MaterialIconName;
 };
+
+/** Stable keys for wizard step routing. */
+export type WizardStepKey = 'version' | 'runtime' | 'models' | 'settings' | 'review';
 
 /** Represents one segmentation timing preset. */
 export type SegmentationPreset = {

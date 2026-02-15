@@ -1,14 +1,27 @@
 import type { LegacyWhisperModelSize, MultiAlignerModel } from '$lib/services/AutoSegmentation';
-import type { ModelOption, SegmentationPreset, WizardStep } from './types';
+import type { AiVersion, ModelOption, SegmentationPreset, WizardStep } from './types';
 
 /** Ordered steps for the landscape wizard navigation rail. */
-export const WIZARD_STEPS: WizardStep[] = [
-	{ id: 0, title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
-	{ id: 1, title: 'Runtime', subtitle: 'Cloud or local', icon: 'storage' },
-	{ id: 2, title: 'Models', subtitle: 'Engine and device', icon: 'memory' },
-	{ id: 3, title: 'Segmentation', subtitle: 'Presets and timing', icon: 'tune' },
-	{ id: 4, title: 'Run', subtitle: 'Review and launch', icon: 'play_arrow' }
+export const WIZARD_STEPS_V2: WizardStep[] = [
+	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
+	{ key: 'runtime', title: 'Runtime', subtitle: 'Cloud or local', icon: 'storage' },
+	{ key: 'models', title: 'Models', subtitle: 'Engine and device', icon: 'memory' },
+	{ key: 'settings', title: 'Segmentation', subtitle: 'Presets and timing', icon: 'tune' },
+	{ key: 'review', title: 'Run', subtitle: 'Review and launch', icon: 'play_arrow' }
 ];
+
+/** Legacy V1 flow omits runtime because V1 is always local. */
+export const WIZARD_STEPS_V1: WizardStep[] = [
+	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
+	{ key: 'models', title: 'Models', subtitle: 'Legacy model selection', icon: 'memory' },
+	{ key: 'settings', title: 'Segmentation', subtitle: 'Presets and timing', icon: 'tune' },
+	{ key: 'review', title: 'Run', subtitle: 'Review and launch', icon: 'play_arrow' }
+];
+
+/** Returns the active step sequence for the selected AI version. */
+export function getWizardSteps(aiVersion: AiVersion): WizardStep[] {
+	return aiVersion === 'legacy_v1' ? WIZARD_STEPS_V1 : WIZARD_STEPS_V2;
+}
 
 /** Timing presets shown in the segmentation settings step. */
 export const SEGMENTATION_PRESETS: SegmentationPreset[] = [

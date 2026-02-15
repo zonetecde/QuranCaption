@@ -2,7 +2,9 @@
 	import { getSharedWizard } from './sharedWizard';
 
 	const wizard = getSharedWizard();
-	const chipTone = $derived(() => (wizard.hasAudio() ? 'text-green-300 bg-green-500/15' : 'text-red-300 bg-red-500/15'));
+	const chipTone = $derived(() =>
+		wizard.hasAudio() ? 'text-green-300 bg-green-500/15' : 'text-red-300 bg-red-500/15'
+	);
 </script>
 
 <aside class="w-[320px] min-w-[280px] border-r border-color bg-primary/80 p-5 space-y-4">
@@ -19,7 +21,10 @@
 		</div>
 		<div class="text-xs text-secondary break-words">{wizard.audioLabel()}</div>
 		<div class="text-[11px] text-thirdly">
-			Version: {wizard.selection.aiVersion === 'legacy_v1' ? 'V1 Legacy' : 'V2 Multi-Aligner'} | {wizard.selection.mode === 'api' ? 'Cloud' : 'Local'}
+			Version: {wizard.selection.aiVersion === 'legacy_v1' ? 'V1 Legacy' : 'V2 Multi-Aligner'} | {wizard
+				.selection.mode === 'api'
+				? 'Cloud'
+				: 'Local'}
 		</div>
 	</div>
 

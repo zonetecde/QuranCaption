@@ -90,7 +90,6 @@ export class Verse {
 			'ۜ' // waqf
 		];
 
-
 		const hasPunctuation = (wordIndex: number) => {
 			if (wordIndex < 0 || wordIndex >= this.words.length) return false;
 			return signesPonctuation.some((signe) => this.words[wordIndex].arabic.includes(signe));

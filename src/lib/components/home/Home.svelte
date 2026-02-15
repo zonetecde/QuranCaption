@@ -254,7 +254,8 @@
 		{#await promise}
 			<div class="mt-6">
 				<ProjectDetailCardSkeleton
-					isListView={(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'}
+					isListView={(globalState.settings?.persistentUiState.projectCardView ?? 'grid') ===
+						'list'}
 					count={8}
 				/>
 			</div>
@@ -303,4 +304,3 @@
 		<MigrationFromV2Modal close={() => (migrationFromV2ModalVisibility = false)} />
 	</div>
 {/if}
-

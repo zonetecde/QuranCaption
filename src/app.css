@@ -114,9 +114,21 @@
 }
 
 body {
-	--accent-primary: color-mix(in srgb, var(--accent-primary-raw), #808080 calc(100% - var(--theme-intensity)));
-	--accent-secondary: color-mix(in srgb, var(--accent-secondary-raw), #808080 calc(100% - var(--theme-intensity)));
-	--text-accent: color-mix(in srgb, var(--text-accent-raw, var(--accent-primary-raw)), #808080 calc(100% - var(--theme-intensity)));
+	--accent-primary: color-mix(
+		in srgb,
+		var(--accent-primary-raw),
+		#808080 calc(100% - var(--theme-intensity))
+	);
+	--accent-secondary: color-mix(
+		in srgb,
+		var(--accent-secondary-raw),
+		#808080 calc(100% - var(--theme-intensity))
+	);
+	--text-accent: color-mix(
+		in srgb,
+		var(--text-accent-raw, var(--accent-primary-raw)),
+		#808080 calc(100% - var(--theme-intensity))
+	);
 }
 
 .theme-emerald-forest {
@@ -665,9 +677,11 @@ input[type='number']::-webkit-inner-spin-button:hover {
 }
 
 .timeline-scrollbar::-webkit-scrollbar-thumb:hover {
-	background: linear-gradient(90deg,
-			var(--timeline-scrollbar-hover) 0%,
-			var(--accent-primary) 100%);
+	background: linear-gradient(
+		90deg,
+		var(--timeline-scrollbar-hover) 0%,
+		var(--accent-primary) 100%
+	);
 	box-shadow: 0 0 8px var(--timeline-cursor-shadow);
 }
 

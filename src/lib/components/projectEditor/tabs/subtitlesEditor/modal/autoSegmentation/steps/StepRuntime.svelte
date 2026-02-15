@@ -8,22 +8,12 @@
 <section class="space-y-4">
 	<div>
 		<h3 class="text-lg font-semibold text-primary">2. Choose runtime</h3>
-		<p class="text-sm text-thirdly">V1 runs locally only. V2 supports both cloud and local execution.</p>
+		<p class="text-sm text-thirdly">
+			V1 runs locally only. V2 supports both cloud and local execution.
+		</p>
 	</div>
 
 	<div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
-		<button
-			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
-			class:border-accent-primary={wizard.selection.mode === 'local'}
-			class:bg-accent={wizard.selection.mode === 'local'}
-			class:border-color={wizard.selection.mode !== 'local'}
-			onclick={() => wizard.onModeChange('local')}
-		>
-			<div class="mb-1 flex items-center gap-2 text-primary"><span class="material-icons">computer</span>Local runtime</div>
-			<p class="text-sm text-thirdly">Runs on your machine with installable Python dependencies.</p>
-		</button>
-
 		<button
 			type="button"
 			class="rounded-xl border p-4 text-left transition-colors"
@@ -34,10 +24,28 @@
 			disabled={cloudDisabled()}
 			onclick={() => wizard.onModeChange('api')}
 		>
-			<div class="mb-1 flex items-center gap-2 text-primary"><span class="material-icons">cloud</span>Cloud runtime</div>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">cloud</span>Cloud runtime
+			</div>
 			<p class="text-sm text-thirdly">
-				{cloudDisabled() ? 'Cloud is disabled for Legacy V1.' : 'Uses Quran Multi-Aligner v2 remotely.'}
+				{cloudDisabled()
+					? 'Cloud is disabled for Legacy V1.'
+					: 'Uses Quran Multi-Aligner v2 remotely.'}
 			</p>
+		</button>
+
+		<button
+			type="button"
+			class="rounded-xl border p-4 text-left transition-colors"
+			class:border-accent-primary={wizard.selection.mode === 'local'}
+			class:bg-accent={wizard.selection.mode === 'local'}
+			class:border-color={wizard.selection.mode !== 'local'}
+			onclick={() => wizard.onModeChange('local')}
+		>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">computer</span>Local runtime
+			</div>
+			<p class="text-sm text-thirdly">Runs on your machine with installable Python dependencies.</p>
 		</button>
 	</div>
 </section>

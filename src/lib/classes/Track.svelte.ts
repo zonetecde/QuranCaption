@@ -755,4 +755,3 @@ export class CustomTextTrack extends Track {
 
 // Enregistre les classes enfants pour la désérialisation automatique
 SerializableBase.registerChildClass(Track, 'clips', Clip);
-

@@ -19,7 +19,9 @@
 			class:border-color={wizard.selection.aiVersion !== 'legacy_v1'}
 			onclick={() => wizard.onVersionChange('legacy_v1')}
 		>
-			<div class="mb-1 flex items-center gap-2 text-primary"><span class="material-icons">memory</span>Legacy V1</div>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">memory</span>Legacy V1
+			</div>
 			<p class="text-sm text-thirdly">Local-only Whisper workflow with 4 legacy model sizes.</p>
 		</button>
 
@@ -31,7 +33,9 @@
 			class:border-color={wizard.selection.aiVersion !== 'multi_v2'}
 			onclick={() => wizard.onVersionChange('multi_v2')}
 		>
-			<div class="mb-1 flex items-center gap-2 text-primary"><span class="material-icons">auto_awesome</span>Multi-Aligner V2</div>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">auto_awesome</span>Multi-Aligner V2
+			</div>
 			<p class="text-sm text-thirdly">Cloud or local flow with alignment-focused transcription.</p>
 		</button>
 	</div>

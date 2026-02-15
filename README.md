@@ -13,17 +13,19 @@ Quran Caption integrates **artificial intelligence** to drastically reduce manua
 the entire creation workflow — from subtitles to translations.
 
 ### Automatic Audio & Video Segmentation
+
 - **Automatic subtitle generation using AI** from an audio or video recitation.
 - Supports:
-  - Mid-verse cuts  
-  - Silence detection  
-  - Basmala detection  
-  - Istiʿādha detection  
+  - Mid-verse cuts
+  - Silence detection
+  - Basmala detection
+  - Istiʿādha detection
 
 ### AI-Assisted Translation
+
 - **AI-assisted translation trimming** when a verse is cut in the middle.
-- When subtitles are split or partially selected, the **translation is automatically adjusted**
-  to match the exact spoken segment.
+- When subtitles are split or partially selected, the **translation is automatically adjusted** to
+  match the exact spoken segment.
 - This ensures translations stay **accurate, aligned, and natural**, even with mid-verse cuts.
 - Manual review is always possible, keeping full control in the editor.
 

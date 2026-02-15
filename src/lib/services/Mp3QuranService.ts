@@ -1,5 +1,3 @@
-
-
 export interface Mp3QuranReciter {
 	id: number;
 	name: string;

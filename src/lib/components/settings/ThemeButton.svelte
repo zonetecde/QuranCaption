@@ -2,7 +2,6 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import Settings from '$lib/classes/Settings.svelte';
 
-
 	export type ThemeId =
 		| 'default'
 		| 'emerald-forest'

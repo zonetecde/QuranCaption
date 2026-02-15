@@ -14,16 +14,31 @@
 				<button class="btn-accent px-4 py-2 text-sm" onclick={onClose}>Finish</button>
 			{:else}
 				<button class="btn px-4 py-2 text-sm" onclick={onClose}>Close</button>
-				<button type="button" class="btn inline-flex items-center px-4 py-2 text-sm" onclick={wizard.goBack} disabled={wizard.currentStep === 0 || wizard.isRunning}>
+				<button
+					type="button"
+					class="btn inline-flex items-center px-4 py-2 text-sm"
+					onclick={wizard.goBack}
+					disabled={wizard.currentStep === 0 || wizard.isRunning}
+				>
 					<span class="material-icons text-base leading-none">arrow_back</span>
 				</button>
 				{#if isLastStep()}
-					<button type="button" class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-50" onclick={() => void wizard.startSegmentation()} disabled={!wizard.canStart() || wizard.isRunning}>
+					<button
+						type="button"
+						class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-50"
+						onclick={() => void wizard.startSegmentation()}
+						disabled={!wizard.canStart() || wizard.isRunning}
+					>
 						<span class="material-icons text-base leading-none">play_arrow</span>
 						Start segmentation
 					</button>
 				{:else}
-					<button type="button" class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm" onclick={wizard.goNext} disabled={wizard.isRunning}>
+					<button
+						type="button"
+						class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm"
+						onclick={wizard.goNext}
+						disabled={wizard.isRunning}
+					>
 						Next
 						<span class="material-icons text-base leading-none">arrow_forward</span>
 					</button>

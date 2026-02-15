@@ -21,15 +21,22 @@ export function formatVerseRange(resultData: AutoSegmentationResult | null): str
 	if (resultData.verseRange.parts.length === 0) return 'No verse range detected.';
 	return resultData.verseRange.parts
 		.map((part) => {
-			const surah = Quran.getSurahsNames()[part.surah - 1]?.transliteration || `Surah ${part.surah}`;
-			const range = part.verseStart === part.verseEnd ? `${part.verseStart}` : `${part.verseStart}-${part.verseEnd}`;
+			const surah =
+				Quran.getSurahsNames()[part.surah - 1]?.transliteration || `Surah ${part.surah}`;
+			const range =
+				part.verseStart === part.verseEnd
+					? `${part.verseStart}`
+					: `${part.verseStart}-${part.verseEnd}`;
 			return `${surah}: ${range}`;
 		})
 		.join(', ');
 }
 
 /** Builds a human-readable audio source label. */
-export function buildAudioLabel(fileName: string | undefined, clipCount: number | undefined): string {
+export function buildAudioLabel(
+	fileName: string | undefined,
+	clipCount: number | undefined
+): string {
 	if (!fileName) return 'No audio clip found in the timeline.';
 	if (!clipCount || clipCount <= 1) return fileName;
 	return `${fileName} (+${clipCount - 1} more clips)`;

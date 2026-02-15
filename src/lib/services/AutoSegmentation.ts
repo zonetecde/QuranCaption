@@ -750,8 +750,7 @@ export async function runAutoSegmentation(
 			} catch (cloudError) {
 				const cloudErrorMessage = getErrorMessage(cloudError).toLowerCase();
 				const shouldRetryOnCpu =
-					device === 'GPU' &&
-					cloudErrorMessage.includes('cloud segmentation stream error: null');
+					device === 'GPU' && cloudErrorMessage.includes('cloud segmentation stream error: null');
 
 				if (!shouldRetryOnCpu) throw cloudError;
 
@@ -1463,4 +1462,3 @@ export async function runNativeSegmentation(
 		return { status: 'failed', message: String(error) };
 	}
 }
-

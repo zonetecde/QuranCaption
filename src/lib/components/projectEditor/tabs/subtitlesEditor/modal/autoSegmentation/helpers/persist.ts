@@ -12,15 +12,13 @@ export function deriveAiVersion(settings?: AutoSegmentationSettings): AiVersion 
 }
 
 /** Creates a full wizard selection state from persisted settings. */
-export function deriveSelectionState(
-	settings?: AutoSegmentationSettings
-): WizardSelectionState {
+export function deriveSelectionState(settings?: AutoSegmentationSettings): WizardSelectionState {
 	const aiVersion = deriveAiVersion(settings);
 	return {
 		aiVersion,
-		mode: aiVersion === 'legacy_v1' ? 'local' : settings?.mode ?? 'api',
+		mode: aiVersion === 'legacy_v1' ? 'local' : (settings?.mode ?? 'api'),
 		localAsrMode:
-			aiVersion === 'legacy_v1' ? 'legacy_whisper' : settings?.localAsrMode ?? 'multi_aligner',
+			aiVersion === 'legacy_v1' ? 'legacy_whisper' : (settings?.localAsrMode ?? 'multi_aligner'),
 		legacyModel: settings?.legacyWhisperModel ?? 'base',
 		multiModel: settings?.multiAlignerModel ?? 'Base',
 		cloudModel: settings?.cloudModel ?? 'Base',

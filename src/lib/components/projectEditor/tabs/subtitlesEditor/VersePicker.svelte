@@ -97,7 +97,6 @@
 				{/each}
 			</div>
 		</div>
-
 	</div>
 
 	<!-- Surah Selector with Autocomplete -->

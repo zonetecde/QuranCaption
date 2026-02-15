@@ -163,8 +163,7 @@ export default class MigrationService {
 			hasChanges = true;
 		}
 		if (!autoSegmentationSettings.legacyWhisperModel) {
-			autoSegmentationSettings.legacyWhisperModel =
-				autoSegmentationSettings.whisperModel || 'base';
+			autoSegmentationSettings.legacyWhisperModel = autoSegmentationSettings.whisperModel || 'base';
 			hasChanges = true;
 		}
 		if (!autoSegmentationSettings.multiAlignerModel) {

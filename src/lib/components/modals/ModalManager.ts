@@ -82,7 +82,7 @@ export default class ModalManager {
 						unmount(confirm);
 						container.remove();
 						resolve();
-					},
+					}
 				}
 			});
 		});
@@ -96,7 +96,6 @@ export default class ModalManager {
 		inputType: 'text' | 'reciters' = 'text'
 	): Promise<string> {
 		return new Promise<string>((resolve) => {
-
 			// Créer un conteneur pour le modal
 			const container = document.createElement('div');
 			container.className = 'modal-wrapper';
@@ -139,7 +138,7 @@ export default class ModalManager {
 						unmount(confirm);
 						container.remove();
 						resolve();
-					},
+					}
 				}
 			});
 		});
@@ -188,4 +187,3 @@ export default class ModalManager {
 		});
 	}
 }
-

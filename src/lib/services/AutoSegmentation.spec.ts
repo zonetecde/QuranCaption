@@ -45,10 +45,7 @@ describe('detectCoverageGapIndices', () => {
 			{ ref_from: '112:1:1', ref_to: '112:1:4' },
 			{ ref_from: '112:3:1', ref_to: '112:3:4' }
 		];
-		const deps = createDeps(
-			{ '112:1': 4, '112:2': 2, '112:3': 4, '112:4': 5 },
-			{ 112: 4 }
-		);
+		const deps = createDeps({ '112:1': 4, '112:2': 2, '112:3': 4, '112:4': 5 }, { 112: 4 });
 
 		const result = await detectCoverageGapIndices(segments, deps);
 

@@ -30,6 +30,8 @@
 		</div>
 		{#if wizard.cloudCpuFallbackMessage}<div class="text-xs text-thirdly">{wizard.cloudCpuFallbackMessage}</div>{/if}
 		<div class="text-sm text-secondary">Segments: <span class="font-semibold text-primary">{wizard.result.segmentsApplied}</span></div>
+		<div class="text-sm text-secondary">Low-confidence segments: <span class="font-semibold text-primary">{wizard.result.lowConfidenceSegments}</span></div>
+		<div class="text-sm text-secondary">Possible missing-words segments: <span class="font-semibold text-primary">{wizard.result.coverageGapSegments}</span></div>
 		<div class="text-sm text-secondary">Verse range: <span class="font-semibold text-primary">{wizard.verseRange()}</span></div>
 	</div>
 {:else if wizard.errorMessage}

@@ -8,10 +8,15 @@ import MigrationService from '$lib/services/MigrationService';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
+	localAsrMode: 'legacy_whisper' | 'multi_aligner';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
-	whisperModel: 'tiny' | 'base' | 'medium' | 'large';
+	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
+	multiAlignerModel: 'Base' | 'Large';
+	cloudModel: 'Base' | 'Large';
+	device: 'GPU' | 'CPU';
+	hfToken: string;
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
@@ -45,11 +50,16 @@ export default class Settings extends SerializableBase {
 	});
 
 	autoSegmentationSettings = $state<AutoSegmentationSettings>({
-		mode: 'local',
+		mode: 'api',
+		localAsrMode: 'legacy_whisper',
 		minSilenceMs: 200,
 		minSpeechMs: 1000,
-		padMs: 50,
-		whisperModel: 'base',
+		padMs: 100,
+		legacyWhisperModel: 'base',
+		multiAlignerModel: 'Base',
+		cloudModel: 'Base',
+		device: 'GPU',
+		hfToken: '',
 		fillBySilence: true,
 		extendBeforeSilence: false,
 		extendBeforeSilenceMs: 50
@@ -268,6 +278,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC327ToQC328();
 		MigrationService.FromQC331ToQC332();
 		MigrationService.FromQC332ToQC333();
+		MigrationService.FromQC333ToQC334();
 	}
 }
 

@@ -26,7 +26,7 @@ export default class ModalManager {
 					resolve: (result: boolean) => {
 						// Nettoyer et résoudre
 						unmount(confirm);
-						document.body.removeChild(container);
+						container.remove();
 						resolve(result);
 					}
 				}
@@ -51,7 +51,7 @@ export default class ModalManager {
 					resolve: (result: { confirmed: boolean; deleteFile: boolean }) => {
 						// Nettoyer et résoudre
 						unmount(confirm);
-						document.body.removeChild(container);
+						container.remove();
 						resolve(result);
 					}
 				}
@@ -80,7 +80,7 @@ export default class ModalManager {
 					resolve: () => {
 						// Nettoyer et résoudre
 						unmount(confirm);
-						document.body.removeChild(container);
+						container.remove();
 						resolve();
 					},
 				}
@@ -96,11 +96,6 @@ export default class ModalManager {
 		inputType: 'text' | 'reciters' = 'text'
 	): Promise<string> {
 		return new Promise<string>((resolve) => {
-			// Supprime l'ancien modal s'il existe
-			const existingModal = document.querySelector('.modal-wrapper');
-			if (existingModal) {
-				document.body.removeChild(existingModal);
-			}
 
 			// Créer un conteneur pour le modal
 			const container = document.createElement('div');
@@ -119,7 +114,7 @@ export default class ModalManager {
 					resolve: (result: string) => {
 						// Nettoyer et résoudre
 						unmount(input);
-						document.body.removeChild(container);
+						container.remove();
 						resolve(result);
 					}
 				}
@@ -142,7 +137,7 @@ export default class ModalManager {
 					resolve: () => {
 						// Nettoyer et résoudre
 						unmount(confirm);
-						document.body.removeChild(container);
+						container.remove();
 						resolve();
 					},
 				}
@@ -163,7 +158,7 @@ export default class ModalManager {
 				props: {
 					close: () => {
 						unmount(modal);
-						document.body.removeChild(container);
+						container.remove();
 						resolve();
 					}
 				}
@@ -184,7 +179,7 @@ export default class ModalManager {
 				props: {
 					close: () => {
 						unmount(modal);
-						document.body.removeChild(container);
+						container.remove();
 						resolve();
 					},
 					initialAssetId
@@ -193,3 +188,4 @@ export default class ModalManager {
 		});
 	}
 }
+

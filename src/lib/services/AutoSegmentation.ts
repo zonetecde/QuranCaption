@@ -19,6 +19,8 @@ const SMALL_GAP_MS = 200;
 type SegmentationSegment = {
 	confidence?: number;
 	error?: string | null;
+	has_missing_words?: boolean;
+	potentially_undersegmented?: boolean;
 	matched_text?: string;
 	ref_from?: string;
 	ref_to?: string;
@@ -34,6 +36,8 @@ type SegmentationSegment = {
 };
 
 type SegmentationResponse = {
+	error?: string;
+	warning?: string;
 	segments?: SegmentationSegment[];
 };
 
@@ -41,6 +45,20 @@ type SegmentationResponse = {
  * Segmentation processing mode
  */
 export type SegmentationMode = 'api' | 'local';
+export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner';
+export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
+export type MultiAlignerModel = 'Base' | 'Large';
+export type SegmentationDevice = 'GPU' | 'CPU';
+
+export type LocalEngineStatus = {
+	ready: boolean;
+	venvExists: boolean;
+	packagesInstalled: boolean;
+	usable: boolean;
+	message: string;
+	tokenRequired?: boolean;
+	tokenProvided?: boolean;
+};
 
 /**
  * Status of local segmentation readiness
@@ -50,14 +68,22 @@ export type LocalSegmentationStatus = {
 	pythonInstalled: boolean;
 	packagesInstalled: boolean;
 	message: string;
+	engines?: {
+		legacy: LocalEngineStatus;
+		multi: LocalEngineStatus;
+	};
 };
 
 /**
  * Check if local segmentation is available and ready.
  */
-export async function checkLocalSegmentationStatus(): Promise<LocalSegmentationStatus> {
+export async function checkLocalSegmentationStatus(
+	hfToken?: string
+): Promise<LocalSegmentationStatus> {
 	try {
-		const result = await invoke('check_local_segmentation_ready');
+		const result = await invoke('check_local_segmentation_ready', {
+			hfToken: hfToken && hfToken.trim().length > 0 ? hfToken : undefined
+		});
 		return result as LocalSegmentationStatus;
 	} catch (error) {
 		console.error('Failed to check local segmentation status:', error);
@@ -65,7 +91,25 @@ export async function checkLocalSegmentationStatus(): Promise<LocalSegmentationS
 			ready: false,
 			pythonInstalled: false,
 			packagesInstalled: false,
-			message: 'Failed to check local segmentation status'
+			message: 'Failed to check local segmentation status',
+			engines: {
+				legacy: {
+					ready: false,
+					venvExists: false,
+					packagesInstalled: false,
+					usable: false,
+					message: 'Status check failed'
+				},
+				multi: {
+					ready: false,
+					venvExists: false,
+					packagesInstalled: false,
+					usable: false,
+					tokenRequired: true,
+					tokenProvided: false,
+					message: 'Status check failed'
+				}
+			}
 		};
 	}
 }
@@ -74,9 +118,15 @@ export async function checkLocalSegmentationStatus(): Promise<LocalSegmentationS
  * Install dependencies for local segmentation.
  * Returns a promise that resolves when installation is complete.
  */
-export async function installLocalSegmentationDeps(): Promise<void> {
+export async function installLocalSegmentationDeps(
+	engine: 'legacy' | 'multi',
+	hfToken?: string
+): Promise<void> {
 	try {
-		await invoke('install_local_segmentation_deps');
+		await invoke('install_local_segmentation_deps', {
+			engine,
+			hfToken: hfToken && hfToken.trim().length > 0 ? hfToken : undefined
+		});
 	} catch (error) {
 		console.error('Failed to install local segmentation deps:', error);
 		throw error;
@@ -92,16 +142,17 @@ export async function getPreferredSegmentationMode(): Promise<SegmentationMode> 
 	return status.ready ? 'local' : 'api';
 }
 
-/**
- * Whisper model size for local processing
- */
-export type WhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
-
 export type AutoSegmentationOptions = {
 	minSilenceMs?: number;
 	minSpeechMs?: number;
 	padMs?: number;
-	whisperModel?: WhisperModelSize;
+	localAsrMode?: LocalAsrMode;
+	legacyWhisperModel?: LegacyWhisperModelSize;
+	multiAlignerModel?: MultiAlignerModel;
+	cloudModel?: MultiAlignerModel;
+	device?: SegmentationDevice;
+	hfToken?: string;
+	allowCloudFallback?: boolean;
 	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
 	extendBeforeSilence?: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
@@ -114,6 +165,11 @@ export type AutoSegmentationResult =
 			lowConfidenceSegments: number;
 			coverageGapSegments: number;
 			verseRange: VerseRange;
+			fallbackToCloud?: boolean;
+			cloudGpuFallbackToCpu?: boolean;
+			warning?: string;
+			requestedMode?: SegmentationMode;
+			effectiveMode?: SegmentationMode;
 	  }
 	| {
 			status: 'cancelled';
@@ -627,15 +683,26 @@ export async function runAutoSegmentation(
 ): Promise<AutoSegmentationResult | null> {
 	const minSilenceMs: number = options.minSilenceMs ?? 200;
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
-	const padMs: number = options.padMs ?? 50;
-	const whisperModel: string = options.whisperModel ?? 'base';
+	const padMs: number = options.padMs ?? 100;
+	const localAsrMode: LocalAsrMode = options.localAsrMode ?? 'legacy_whisper';
+	const legacyWhisperModel: LegacyWhisperModelSize = options.legacyWhisperModel ?? 'base';
+	const multiAlignerModel: MultiAlignerModel = options.multiAlignerModel ?? 'Base';
+	const cloudModel: MultiAlignerModel = options.cloudModel ?? 'Base';
+	const device: SegmentationDevice = options.device ?? 'GPU';
+	const hfToken: string = (options.hfToken ?? '').trim();
+	const allowCloudFallback: boolean = options.allowCloudFallback ?? true;
 	const fillBySilence: boolean = options.fillBySilence ?? true; // Par défaut, on insère des SilenceClip
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
 
 	// Determine mode if not specified
-	const effectiveMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
-	console.log(`[AutoSegmentation] Using ${effectiveMode} mode, fillBySilence=${fillBySilence}`);
+	const requestedMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
+	let effectiveMode: SegmentationMode = requestedMode;
+	let fallbackToCloud = false;
+	let cloudGpuFallbackToCpu = false;
+	console.log(
+		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device}`
+	);
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
 	const audioClips = getAutoSegmentationAudioClips();
@@ -656,10 +723,7 @@ export async function runAutoSegmentation(
 	}
 
 	try {
-		// Choose command based on mode
-		const command = effectiveMode === 'local' ? 'segment_quran_audio_local' : 'segment_quran_audio';
-
-		const payload: unknown = await invoke(command, {
+		const basePayload = {
 			audioPath: audioInfo.filePath,
 			audioClips: audioClips.map((clip) => ({
 				path: clip.filePath,
@@ -668,19 +732,96 @@ export async function runAutoSegmentation(
 			})),
 			minSilenceMs,
 			minSpeechMs,
-			padMs,
-			whisperModel: effectiveMode === 'local' ? whisperModel : undefined
-		});
+			padMs
+		};
+
+		const getErrorMessage = (error: unknown): string =>
+			error instanceof Error ? error.message : String(error);
+
+		const invokeCloudWithDevice = async (targetDevice: SegmentationDevice): Promise<unknown> =>
+			await invoke('segment_quran_audio', {
+				...basePayload,
+				modelName: cloudModel,
+				device: targetDevice
+			});
+
+		const invokeCloud = async (): Promise<unknown> => {
+			try {
+				return await invokeCloudWithDevice(device);
+			} catch (cloudError) {
+				const cloudErrorMessage = getErrorMessage(cloudError).toLowerCase();
+				const shouldRetryOnCpu =
+					device === 'GPU' &&
+					cloudErrorMessage.includes('cloud segmentation stream error: null');
+
+				if (!shouldRetryOnCpu) throw cloudError;
+
+				console.warn(
+					'[AutoSegmentation] Cloud GPU failed with null stream error, retrying on CPU.'
+				);
+				cloudGpuFallbackToCpu = true;
+				return await invokeCloudWithDevice('CPU');
+			}
+		};
+
+		const invokeLocal = async (): Promise<unknown> => {
+			if (localAsrMode === 'legacy_whisper') {
+				return await invoke('segment_quran_audio_local', {
+					...basePayload,
+					whisperModel: legacyWhisperModel
+				});
+			}
+
+			if (!hfToken) {
+				throw new Error('HF token is required for local Multi-Aligner mode.');
+			}
+
+			return await invoke('segment_quran_audio_local_multi', {
+				...basePayload,
+				modelName: multiAlignerModel,
+				device,
+				hfToken
+			});
+		};
+
+		let payload: unknown;
+		if (effectiveMode === 'api') {
+			payload = await invokeCloud();
+		} else {
+			try {
+				payload = await invokeLocal();
+			} catch (localError) {
+				console.warn('[AutoSegmentation] Local mode failed, fallback to cloud:', localError);
+				if (!allowCloudFallback) throw localError;
+				effectiveMode = 'api';
+				fallbackToCloud = true;
+				const localErrorMessage =
+					localError instanceof Error ? localError.message : String(localError);
+				const compactReason =
+					localErrorMessage.length > 120
+						? `${localErrorMessage.slice(0, 117)}...`
+						: localErrorMessage;
+				toast(`Local AI unavailable (${compactReason}). Switched to Cloud API.`);
+				payload = await invokeCloud();
+			}
+		}
 
 		if (effectiveMode === 'local') {
 			console.log('[AutoSegmentation] Local segmentation raw response:', payload);
 		}
 
 		const response: SegmentationResponse = payload as SegmentationResponse;
+		if (response.warning) {
+			toast(response.warning);
+		}
+		if (response.error) {
+			return { status: 'failed', message: response.error };
+		}
+
 		const segments: SegmentationSegment[] = response?.segments ?? [];
 
 		if (segments.length === 0) {
-			const message = 'No segments returned from the segmentation service.';
+			const message = response.error || 'No segments returned from the segmentation service.';
 			toast.error(message);
 			return { status: 'failed', message };
 		}
@@ -808,7 +949,10 @@ export async function runAutoSegmentation(
 			const confidence: number | null = segment.confidence ?? null;
 			const isLowConfidence: boolean =
 				segment.confidence !== undefined && segment.confidence <= 0.75;
-			const needsCoverageReview: boolean = coverageGapIndices.has(segmentIndex);
+			const needsCoverageReview: boolean =
+				coverageGapIndices.has(segmentIndex) ||
+				segment.has_missing_words === true ||
+				segment.potentially_undersegmented === true;
 
 			// Predefined segments (basmala / istiadhah)
 			const predefinedType: PredefinedType | null = getPredefinedType(segment.ref_from);
@@ -1114,7 +1258,12 @@ export async function runAutoSegmentation(
 			segmentsApplied,
 			lowConfidenceSegments,
 			coverageGapSegments,
-			verseRange
+			verseRange,
+			fallbackToCloud,
+			cloudGpuFallbackToCpu,
+			warning: response.warning,
+			requestedMode,
+			effectiveMode
 		};
 	} catch (error) {
 		console.error('Segmentation request failed:', error);

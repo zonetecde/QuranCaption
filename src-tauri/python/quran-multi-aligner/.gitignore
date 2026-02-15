@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+.pytest_cache
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+.claude
+CLAUDE.md
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Gradio
+flagged/
+
+# Exported models
+models/
+
+
+docs/api.md
+scripts/
+tests/
+
+# optional demo/UI assets not required for local segmentation runtime
+data/*.mp3
+data/DigitalKhattV2.otf
+data/surah-name-v2.ttf
+data/font_data.py
+data/ligatures.json

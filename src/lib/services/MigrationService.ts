@@ -130,6 +130,94 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Migre les settings auto-segmentation vers le schéma cloud-v2 + moteurs locaux.
+	 */
+	static FromQC333ToQC334() {
+		if (!globalState.settings) return;
+
+		const autoSegmentationSettings = globalState.settings.autoSegmentationSettings as {
+			mode?: 'api' | 'local';
+			minSilenceMs?: number;
+			minSpeechMs?: number;
+			padMs?: number;
+			whisperModel?: 'tiny' | 'base' | 'medium' | 'large';
+			legacyWhisperModel?: 'tiny' | 'base' | 'medium' | 'large';
+			localAsrMode?: 'legacy_whisper' | 'multi_aligner';
+			multiAlignerModel?: 'Base' | 'Large';
+			cloudModel?: 'Base' | 'Large';
+			device?: 'GPU' | 'CPU';
+			hfToken?: string;
+			fillBySilence?: boolean;
+			extendBeforeSilence?: boolean;
+			extendBeforeSilenceMs?: number;
+		};
+
+		let hasChanges = false;
+
+		if (!autoSegmentationSettings.mode) {
+			autoSegmentationSettings.mode = 'api';
+			hasChanges = true;
+		}
+		if (!autoSegmentationSettings.localAsrMode) {
+			autoSegmentationSettings.localAsrMode = 'legacy_whisper';
+			hasChanges = true;
+		}
+		if (!autoSegmentationSettings.legacyWhisperModel) {
+			autoSegmentationSettings.legacyWhisperModel =
+				autoSegmentationSettings.whisperModel || 'base';
+			hasChanges = true;
+		}
+		if (!autoSegmentationSettings.multiAlignerModel) {
+			autoSegmentationSettings.multiAlignerModel = 'Base';
+			hasChanges = true;
+		}
+		if (!autoSegmentationSettings.cloudModel) {
+			autoSegmentationSettings.cloudModel = 'Base';
+			hasChanges = true;
+		}
+		if (!autoSegmentationSettings.device) {
+			autoSegmentationSettings.device = 'GPU';
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.hfToken !== 'string') {
+			autoSegmentationSettings.hfToken = '';
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.minSilenceMs !== 'number') {
+			autoSegmentationSettings.minSilenceMs = 200;
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.minSpeechMs !== 'number') {
+			autoSegmentationSettings.minSpeechMs = 1000;
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.padMs !== 'number') {
+			autoSegmentationSettings.padMs = 100;
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.fillBySilence !== 'boolean') {
+			autoSegmentationSettings.fillBySilence = true;
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.extendBeforeSilence !== 'boolean') {
+			autoSegmentationSettings.extendBeforeSilence = false;
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.extendBeforeSilenceMs !== 'number') {
+			autoSegmentationSettings.extendBeforeSilenceMs = 50;
+			hasChanges = true;
+		}
+		if ('whisperModel' in autoSegmentationSettings) {
+			delete autoSegmentationSettings.whisperModel;
+			hasChanges = true;
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
 	 * > Renommage des tracks "CustomText" à "CustomClip"
 	 */

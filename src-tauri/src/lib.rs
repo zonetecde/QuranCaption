@@ -39,14 +39,12 @@ struct DiscordActivity {
 const FFPROBE_NOT_FOUND_ERROR: &str = "FFPROBE_NOT_FOUND";
 const FFPROBE_NOT_EXECUTABLE_ERROR: &str = "FFPROBE_NOT_EXECUTABLE";
 const FFPROBE_EXEC_FAILED_ERROR_PREFIX: &str = "FFPROBE_EXEC_FAILED:";
-const QURAN_SEGMENTATION_UPLOAD_URL: &str =
-    "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/upload";
-const QURAN_SEGMENTATION_QUEUE_JOIN_URL: &str =
-    "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/queue/join";
-const QURAN_SEGMENTATION_QUEUE_DATA_URL: &str =
-    "https://hetchyy-quran-segmentation-transcription.hf.space/gradio_api/queue/data";
-// Hard-coded index for /process_audio_json in the current Space config.
-const QURAN_SEGMENTATION_FN_INDEX: u32 = 5;
+const QURAN_MULTI_ALIGNER_BASE_URL: &str =
+    "https://hetchyy-quran-multi-aligner.hf.space/gradio_api";
+const QURAN_MULTI_ALIGNER_UPLOAD_URL: &str =
+    "https://hetchyy-quran-multi-aligner.hf.space/gradio_api/upload";
+const QURAN_MULTI_ALIGNER_PROCESS_CALL_URL: &str =
+    "https://hetchyy-quran-multi-aligner.hf.space/gradio_api/call/process_audio_session";
 const QURAN_SEGMENTATION_USE_MOCK: bool = false;
 const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
 {
@@ -130,6 +128,379 @@ struct SegmentationAudioClip {
     path: String,
     start_ms: i64,
     end_ms: i64,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum LocalSegmentationEngine {
+    LegacyWhisper,
+    MultiAligner,
+}
+
+impl LocalSegmentationEngine {
+    fn from_raw(raw: &str) -> Result<Self, String> {
+        match raw {
+            "legacy" | "legacy_whisper" => Ok(Self::LegacyWhisper),
+            "multi" | "multi_aligner" => Ok(Self::MultiAligner),
+            _ => Err(format!(
+                "Unknown local segmentation engine '{}'. Expected 'legacy' or 'multi'.",
+                raw
+            )),
+        }
+    }
+
+    fn as_key(&self) -> &'static str {
+        match self {
+            Self::LegacyWhisper => "legacy",
+            Self::MultiAligner => "multi",
+        }
+    }
+
+    fn as_label(&self) -> &'static str {
+        match self {
+            Self::LegacyWhisper => "Legacy Whisper",
+            Self::MultiAligner => "Multi-Aligner",
+        }
+    }
+
+    fn requirements_relative_path(&self) -> &'static str {
+        match self {
+            Self::LegacyWhisper => "python/requirements.txt",
+            Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
+        }
+    }
+
+    fn script_relative_path(&self) -> &'static str {
+        match self {
+            Self::LegacyWhisper => "python/local_segmenter.py",
+            Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
+        }
+    }
+
+    fn required_import_modules(&self) -> &'static [&'static str] {
+        match self {
+            Self::LegacyWhisper => &[
+                "torch",
+                "transformers",
+                "librosa",
+                "numpy",
+                "soundfile",
+            ],
+            Self::MultiAligner => &[
+                "torch",
+                "transformers",
+                "librosa",
+                "numpy",
+                "soundfile",
+                "recitations_segmenter",
+                "gradio",
+                "accelerate",
+                "pyarrow",
+                "requests",
+            ],
+        }
+    }
+}
+
+fn get_system_python_cmd() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "python"
+    } else {
+        "python3"
+    }
+}
+
+fn resolve_python_resource_path(
+    app_handle: &tauri::AppHandle,
+    relative_path: &str,
+) -> Result<PathBuf, String> {
+    let resource_path = app_handle
+        .path()
+        .resolve(relative_path, tauri::path::BaseDirectory::Resource)
+        .map_err(|e| e.to_string())?;
+
+    if resource_path.exists() {
+        return Ok(resource_path);
+    }
+
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| e.to_string())?
+        .parent()
+        .ok_or("Cannot get executable directory")?
+        .to_path_buf();
+
+    let dev_path = exe_dir.join("..").join("..").join(relative_path);
+    if dev_path.exists() {
+        Ok(dev_path)
+    } else {
+        Err(format!("Path not found in resources or dev mode: {}", relative_path))
+    }
+}
+
+fn get_local_venv_root(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    let venv_root = app_data_dir.join("python_envs");
+    fs::create_dir_all(&venv_root).map_err(|e| {
+        format!(
+            "Failed to create local python env directory '{}': {}",
+            venv_root.to_string_lossy(),
+            e
+        )
+    })?;
+    Ok(venv_root)
+}
+
+fn get_engine_venv_path(
+    app_handle: &tauri::AppHandle,
+    engine: LocalSegmentationEngine,
+) -> Result<PathBuf, String> {
+    Ok(get_local_venv_root(app_handle)?.join(format!("seg-{}", engine.as_key())))
+}
+
+fn get_venv_python_exe(venv_dir: &Path) -> PathBuf {
+    if cfg!(target_os = "windows") {
+        venv_dir.join("Scripts").join("python.exe")
+    } else {
+        venv_dir.join("bin").join("python3")
+    }
+}
+
+fn sanitize_cmd_error(output: &std::process::Output) -> String {
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !stderr.is_empty() {
+        return stderr;
+    }
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+fn apply_hf_token_env(cmd: &mut Command, token: &str) {
+    let trimmed = token.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+
+    // Different libs read different token env vars.
+    cmd.env("HF_TOKEN", trimmed);
+    cmd.env("HF_HUB_TOKEN", trimmed);
+    cmd.env("HUGGING_FACE_HUB_TOKEN", trimmed);
+}
+
+fn run_python_import_check(
+    python_exe: &Path,
+    modules: &[&str],
+) -> (bool, Vec<String>) {
+    if !python_exe.exists() {
+        return (false, modules.iter().map(|module| module.to_string()).collect());
+    }
+
+    let modules_json = serde_json::to_string(modules).unwrap_or_else(|_| "[]".to_string());
+    let check_script = format!(
+        r#"
+from importlib.util import find_spec
+import json
+import sys
+
+modules = {modules_json}
+missing = []
+for name in modules:
+    try:
+        if find_spec(name) is None:
+            missing.append(name)
+    except Exception:
+        missing.append(name)
+
+print(json.dumps(missing))
+sys.exit(0 if not missing else 1)
+"#
+    );
+
+    let mut cmd = Command::new(python_exe);
+    cmd.args(["-c", &check_script]);
+    configure_command_no_window(&mut cmd);
+    match cmd.output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let missing = serde_json::from_str::<Vec<String>>(&stdout).unwrap_or_default();
+            (output.status.success(), missing)
+        }
+        Err(_) => (false, modules.iter().map(|module| module.to_string()).collect()),
+    }
+}
+
+fn run_python_any_import_check(python_exe: &Path, candidates: &[&str]) -> bool {
+    for module in candidates {
+        let (ok, missing) = run_python_import_check(python_exe, &[*module]);
+        if ok && missing.is_empty() {
+            return true;
+        }
+    }
+    false
+}
+
+fn create_venv_if_missing(
+    app_handle: &tauri::AppHandle,
+    engine: LocalSegmentationEngine,
+) -> Result<PathBuf, String> {
+    let venv_dir = get_engine_venv_path(app_handle, engine)?;
+    let python_exe = get_venv_python_exe(&venv_dir);
+    if python_exe.exists() {
+        return Ok(venv_dir);
+    }
+
+    let system_python = get_system_python_cmd();
+    let mut cmd = Command::new(system_python);
+    cmd.args([
+        "-m",
+        "venv",
+        venv_dir.to_string_lossy().as_ref(),
+    ]);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to create Python venv for {}: {}", engine.as_label(), e))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Failed to create Python venv for {}: {}",
+            engine.as_label(),
+            sanitize_cmd_error(&output)
+        ));
+    }
+
+    if !python_exe.exists() {
+        return Err(format!(
+            "Python venv created for {} but python executable was not found at {}",
+            engine.as_label(),
+            python_exe.to_string_lossy()
+        ));
+    }
+
+    Ok(venv_dir)
+}
+
+fn resolve_engine_python_exe(
+    app_handle: &tauri::AppHandle,
+    engine: LocalSegmentationEngine,
+) -> Result<PathBuf, String> {
+    let venv_dir = get_engine_venv_path(app_handle, engine)?;
+    let python_exe = get_venv_python_exe(&venv_dir);
+    if python_exe.exists() {
+        Ok(python_exe)
+    } else {
+        Err(format!(
+            "{} local environment is not installed yet. Install dependencies first.",
+            engine.as_label()
+        ))
+    }
+}
+
+fn prepare_multi_requirements_file(source_path: &Path) -> Result<PathBuf, String> {
+    let content = fs::read_to_string(source_path).map_err(|e| {
+        format!(
+            "Failed to read multi-aligner requirements '{}': {}",
+            source_path.to_string_lossy(),
+            e
+        )
+    })?;
+
+    let patched_lines: Vec<String> = content
+        .lines()
+        .map(|line| {
+            let trimmed = line.trim();
+            if trimmed.starts_with("git+https://github.com/Hetchy/Quranic-Phonemizer.git@") {
+                "https://github.com/Hetchy/Quranic-Phonemizer/archive/1b6a8cc.zip".to_string()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect();
+
+    let patched_path = std::env::temp_dir().join("qurancaption_multi_requirements_patched.txt");
+    fs::write(&patched_path, patched_lines.join("\n")).map_err(|e| {
+        format!(
+            "Failed to write patched multi-aligner requirements '{}': {}",
+            patched_path.to_string_lossy(),
+            e
+        )
+    })?;
+    Ok(patched_path)
+}
+
+fn prepare_windows_safe_quranic_phonemizer_source(python_exe: &Path) -> Result<PathBuf, String> {
+    let source_root = std::env::temp_dir().join("qurancaption_quranic_phonemizer_1b6a8cc");
+    let setup_py = source_root.join("setup.py");
+    if setup_py.exists() {
+        return Ok(source_root);
+    }
+
+    if source_root.exists() {
+        fs::remove_dir_all(&source_root).map_err(|e| {
+            format!(
+                "Failed to clean previous Quranic-Phonemizer source '{}': {}",
+                source_root.to_string_lossy(),
+                e
+            )
+        })?;
+    }
+    fs::create_dir_all(&source_root).map_err(|e| {
+        format!(
+            "Failed to create Quranic-Phonemizer source directory '{}': {}",
+            source_root.to_string_lossy(),
+            e
+        )
+    })?;
+
+    let patch_script = r#"
+import io
+import os
+import pathlib
+import shutil
+import urllib.request
+import zipfile
+
+target = pathlib.Path(os.environ["QC_QP_TARGET"])
+target.mkdir(parents=True, exist_ok=True)
+
+url = "https://github.com/Hetchy/Quranic-Phonemizer/archive/1b6a8cc.zip"
+raw = urllib.request.urlopen(url, timeout=120).read()
+
+with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+    root_prefix = None
+    for info in zf.infolist():
+        name = info.filename
+        if name.endswith("/"):
+            continue
+        if root_prefix is None:
+            root_prefix = name.split("/", 1)[0] + "/"
+        rel = name[len(root_prefix):] if name.startswith(root_prefix) else name
+        rel = rel.replace("->", "-to-")
+        out = target / rel
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with zf.open(info) as src, open(out, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+"#;
+
+    let mut cmd = Command::new(python_exe);
+    cmd.args(["-c", patch_script]);
+    cmd.env("QC_QP_TARGET", source_root.to_string_lossy().to_string());
+    configure_command_no_window(&mut cmd);
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to patch Quranic-Phonemizer source on Windows: {}", e))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Failed to patch Quranic-Phonemizer source on Windows: {}",
+            sanitize_cmd_error(&output)
+        ));
+    }
+
+    if !setup_py.exists() {
+        return Err(format!(
+            "Patched Quranic-Phonemizer source is incomplete (missing setup.py at {})",
+            setup_py.to_string_lossy()
+        ));
+    }
+
+    Ok(source_root)
 }
 
 fn merge_audio_clips_for_segmentation(
@@ -1051,6 +1422,8 @@ async fn segment_quran_audio(
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
+    model_name: Option<String>,
+    device: Option<String>,
 ) -> Result<serde_json::Value, String> {
     // Early-return mock payload to avoid external API calls during testing.
     if QURAN_SEGMENTATION_USE_MOCK {
@@ -1144,7 +1517,7 @@ async fn segment_quran_audio(
     let upload_form = Form::new().part("files", upload_part);
 
     let upload_response = client
-        .post(QURAN_SEGMENTATION_UPLOAD_URL)
+        .post(QURAN_MULTI_ALIGNER_UPLOAD_URL)
         .multipart(upload_form)
         .send()
         .await
@@ -1161,134 +1534,175 @@ async fn segment_quran_audio(
         .get(0)
         .ok_or_else(|| "Upload response was empty".to_string())?;
 
-    // Build the API payload in Gradio "queue" format.
+    let selected_model = model_name.unwrap_or_else(|| "Base".to_string());
+    if selected_model != "Base" && selected_model != "Large" {
+        return Err(format!(
+            "Invalid model_name '{}'. Expected 'Base' or 'Large'.",
+            selected_model
+        ));
+    }
+
+    let selected_device = device
+        .unwrap_or_else(|| "GPU".to_string())
+        .to_uppercase();
+    if selected_device != "GPU" && selected_device != "CPU" {
+        return Err(format!(
+            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
+            selected_device
+        ));
+    }
+
+    // Build the API payload in Gradio modern "call" format.
     let file_payload = serde_json::json!({
         "path": uploaded_path,
         "orig_name": "audio.wav",
         "mime_type": "audio/wav",
         "meta": { "_type": "gradio.FileData" }
     });
-    let session_hash = format!("qc{}", stamp);
-    let join_payload = serde_json::json!({
+    let call_payload = serde_json::json!({
         "data": [
             file_payload,
             min_silence_ms.unwrap_or(200),
             min_speech_ms.unwrap_or(1000),
-            pad_ms.unwrap_or(50),
-            false
-        ],
-        "fn_index": QURAN_SEGMENTATION_FN_INDEX,
-        "session_hash": session_hash
+            pad_ms.unwrap_or(100),
+            selected_model,
+            selected_device
+        ]
     });
 
-    // Join the Gradio queue to start processing.
-    let join_response = client
-        .post(QURAN_SEGMENTATION_QUEUE_JOIN_URL)
-        .json(&join_payload)
+    // Start the remote job.
+    let call_response = client
+        .post(QURAN_MULTI_ALIGNER_PROCESS_CALL_URL)
+        .json(&call_payload)
         .send()
         .await
-        .map_err(|e| format!("Queue join failed: {}", e))?
+        .map_err(|e| format!("Process call failed: {}", e))?
         .error_for_status()
-        .map_err(|e| format!("Queue join error: {}", e))?;
+        .map_err(|e| format!("Process call error: {}", e))?;
 
-    let join_json: serde_json::Value = join_response
+    let call_json: serde_json::Value = call_response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse queue join response: {}", e))?;
+        .map_err(|e| format!("Failed to parse process call response: {}", e))?;
 
-    let event_id = join_json
+    let event_id = call_json
         .get("event_id")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "Queue join did not return an event_id".to_string())?
+        .ok_or_else(|| "Process call did not return an event_id".to_string())?
         .to_string();
 
-    // Poll the queue stream (SSE) until the job completes.
-    let queue_url = format!(
-        "{}?session_hash={}",
-        QURAN_SEGMENTATION_QUEUE_DATA_URL, session_hash
+    // Read the SSE completion stream.
+    let stream_url = format!(
+        "{}/call/process_audio_session/{}",
+        QURAN_MULTI_ALIGNER_BASE_URL, event_id
     );
     let sse_text = client
-        .get(queue_url)
+        .get(&stream_url)
         .send()
         .await
-        .map_err(|e| format!("Queue stream request failed: {}", e))?
+        .map_err(|e| format!("Process stream request failed: {}", e))?
         .text()
         .await
-        .map_err(|e| format!("Failed to read queue stream: {}", e))?;
+        .map_err(|e| format!("Failed to read process stream: {}", e))?;
 
-    for line in sse_text.lines() {
-        let line = line.trim();
-        if !line.starts_with("data:") {
-            continue;
-        }
+    // Parse SSE events and prioritize the "complete" event payload.
+    let mut current_event = String::new();
+    let mut current_data = String::new();
+    let mut latest_payload: Option<serde_json::Value> = None;
+    let mut complete_payload: Option<serde_json::Value> = None;
 
-        let json_str = line.trim_start_matches("data:").trim();
-        if json_str.is_empty() {
-            continue;
-        }
+    for raw_line in sse_text
+        .lines()
+        .chain(std::iter::once(""))
+    {
+        let line = raw_line.trim_end();
+        if line.is_empty() {
+            let data_block = current_data.trim();
+            if !data_block.is_empty() {
+                if data_block == "[DONE]" {
+                    current_event.clear();
+                    current_data.clear();
+                    continue;
+                }
 
-        let event: serde_json::Value = serde_json::from_str(json_str)
-            .map_err(|e| format!("Failed to parse queue event: {}", e))?;
+                let payload: serde_json::Value = serde_json::from_str(data_block)
+                    .map_err(|e| format!("Failed to parse process stream payload: {}", e))?;
 
-        // Ignore events for other jobs.
-        if let Some(eid) = event.get("event_id").and_then(|v| v.as_str()) {
-            if eid != event_id {
-                continue;
+                if current_event == "error" {
+                    if let Some(error_message) = payload
+                        .get("error")
+                        .and_then(|value| value.as_str())
+                    {
+                        return Err(format!("Cloud segmentation stream error: {}", error_message));
+                    }
+                    return Err(format!("Cloud segmentation stream error: {}", payload));
+                }
+
+                if !payload.is_null() {
+                    latest_payload = Some(payload.clone());
+                    if current_event == "complete" {
+                        complete_payload = Some(payload);
+                    }
+                }
             }
-        }
 
-        let msg = event.get("msg").and_then(|v| v.as_str()).unwrap_or("");
-        if msg != "process_completed" {
+            current_event.clear();
+            current_data.clear();
             continue;
         }
 
-        let success = event.get("success").and_then(|v| v.as_bool()).unwrap_or(true);
-        let output = event.get("output").cloned().unwrap_or_else(|| event.clone());
-
-        if !success {
-            let error_msg = output
-                .get("error")
-                .and_then(|v| v.as_str())
-                .unwrap_or("Segmentation failed")
-                .to_string();
-            return Err(error_msg);
+        if let Some(event_value) = line.strip_prefix("event:") {
+            current_event = event_value.trim().to_string();
+            continue;
         }
 
-        // Gradio returns output.data[0] for JSON components; unwrap it when present.
-        if let Some(data) = output.get("data").and_then(|v| v.as_array()) {
-            if let Some(first) = data.first() {
-                return Ok(first.clone());
+        if let Some(data_value) = line.strip_prefix("data:") {
+            if !current_data.is_empty() {
+                current_data.push('\n');
             }
+            current_data.push_str(data_value.trim());
         }
-
-        return Ok(output);
     }
 
-    Err("Segmentation queue ended without a result".to_string())
+    let payload = complete_payload
+        .or(latest_payload)
+        .ok_or_else(|| "Process stream ended without a result".to_string())?;
+
+    // Gradio /call streams component outputs as: [ { ... } ]
+    if let Some(values) = payload.as_array() {
+        if let Some(first) = values.first() {
+            return Ok(first.clone());
+        }
+    }
+
+    Ok(payload)
 }
 
 /// Check if Python and required packages are available for local segmentation
 /// This is async to avoid blocking the UI thread during slow Python imports
 #[tauri::command]
-async fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
+async fn check_local_segmentation_ready(
+    app_handle: tauri::AppHandle,
+    hf_token: Option<String>,
+) -> Result<serde_json::Value, String> {
     use tokio::time::{timeout, Duration};
-    
+
+    let token_provided = hf_token
+        .as_ref()
+        .map(|t| !t.trim().is_empty())
+        .unwrap_or(false);
+
     // Run the blocking checks in a background thread with a timeout
     let check_result = timeout(
-        Duration::from_secs(30), // 30 second timeout
-        tokio::task::spawn_blocking(|| {
-            // Try to find Python executable
-            let python_cmd = if cfg!(target_os = "windows") {
-                "python"
-            } else {
-                "python3"
-            };
+        Duration::from_secs(25), // find_spec-based checks should stay fast
+        tokio::task::spawn_blocking(move || {
+            let python_cmd = get_system_python_cmd();
 
             // Check if Python is available (quick check)
             let mut cmd = Command::new(python_cmd);
             cmd.args(&["--version"]);
             configure_command_no_window(&mut cmd);
-            
+
             let python_available = match cmd.output() {
                 Ok(output) => output.status.success(),
                 Err(_) => false,
@@ -1299,51 +1713,183 @@ async fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
                     "ready": false,
                     "pythonInstalled": false,
                     "packagesInstalled": false,
-                    "message": "Python is not installed. Please install Python 3.10+ from python.org"
+                    "message": "Python is not installed. Please install Python 3.10+ from python.org",
+                    "engines": {
+                        "legacy": {
+                            "ready": false,
+                            "venvExists": false,
+                            "packagesInstalled": false,
+                            "usable": false,
+                            "message": "Python not installed"
+                        },
+                        "multi": {
+                            "ready": false,
+                            "venvExists": false,
+                            "packagesInstalled": false,
+                            "tokenRequired": true,
+                            "tokenProvided": token_provided,
+                            "usable": false,
+                            "message": "Python not installed"
+                        }
+                    }
                 });
             }
 
-            // Check if required packages are installed using pip show (FAST - doesn't import)
-            // This is much faster than importing the packages which loads heavy ML libraries
-            let mut cmd = Command::new(python_cmd);
-            cmd.args(&[
-                "-m", "pip", "show", 
-                "torch", "transformers", "librosa", "numpy", "soundfile"
-            ]);
-            configure_command_no_window(&mut cmd);
-            
-            let packages_available = match cmd.output() {
-                Ok(output) => {
-                    // pip show returns success if ALL packages are found
-                    // Check stdout contains info for all packages
-                    if output.status.success() {
-                        let stdout = String::from_utf8_lossy(&output.stdout);
-                        // Verify we got info for each package
-                        stdout.contains("Name: torch") && 
-                        stdout.contains("Name: transformers") &&
-                        stdout.contains("Name: librosa") &&
-                        stdout.contains("Name: numpy") &&
-                        stdout.contains("Name: soundfile")
-                    } else {
-                        false
-                    }
-                },
-                Err(_) => false,
+            let legacy_venv = match get_engine_venv_path(&app_handle, LocalSegmentationEngine::LegacyWhisper) {
+                Ok(path) => path,
+                Err(error) => {
+                    return serde_json::json!({
+                        "ready": false,
+                        "pythonInstalled": true,
+                        "packagesInstalled": false,
+                        "message": format!("Failed to resolve local env paths: {}", error),
+                        "engines": {
+                            "legacy": {
+                                "ready": false,
+                                "venvExists": false,
+                                "packagesInstalled": false,
+                                "usable": false,
+                                "message": "Failed to resolve local env path"
+                            },
+                            "multi": {
+                                "ready": false,
+                                "venvExists": false,
+                                "packagesInstalled": false,
+                                "tokenRequired": true,
+                                "tokenProvided": token_provided,
+                                "usable": false,
+                                "message": "Failed to resolve local env path"
+                            }
+                        }
+                    });
+                }
+            };
+            let multi_venv = match get_engine_venv_path(&app_handle, LocalSegmentationEngine::MultiAligner) {
+                Ok(path) => path,
+                Err(error) => {
+                    return serde_json::json!({
+                        "ready": false,
+                        "pythonInstalled": true,
+                        "packagesInstalled": false,
+                        "message": format!("Failed to resolve local env paths: {}", error),
+                        "engines": {
+                            "legacy": {
+                                "ready": false,
+                                "venvExists": false,
+                                "packagesInstalled": false,
+                                "usable": false,
+                                "message": "Failed to resolve local env path"
+                            },
+                            "multi": {
+                                "ready": false,
+                                "venvExists": false,
+                                "packagesInstalled": false,
+                                "tokenRequired": true,
+                                "tokenProvided": token_provided,
+                                "usable": false,
+                                "message": "Failed to resolve local env path"
+                            }
+                        }
+                    });
+                }
+            };
+
+            let legacy_python = get_venv_python_exe(&legacy_venv);
+            let multi_python = get_venv_python_exe(&multi_venv);
+
+            let legacy_venv_exists = legacy_python.exists();
+            let multi_venv_exists = multi_python.exists();
+
+            let (legacy_imports_ok, legacy_missing_modules) = run_python_import_check(
+                &legacy_python,
+                LocalSegmentationEngine::LegacyWhisper.required_import_modules(),
+            );
+            let (multi_imports_ok, multi_missing_modules) = run_python_import_check(
+                &multi_python,
+                LocalSegmentationEngine::MultiAligner.required_import_modules(),
+            );
+            // Quranic-Phonemizer exposes `core.phonemizer` in current builds.
+            // Keep a fallback candidate to avoid false negatives across package layouts.
+            let multi_phonemizer_ok = run_python_any_import_check(
+                &multi_python,
+                &["core.phonemizer", "quranic_phonemizer"],
+            );
+
+            let legacy_packages = legacy_imports_ok;
+            let multi_packages = multi_imports_ok && multi_phonemizer_ok;
+
+            let legacy_ready = legacy_venv_exists && legacy_packages;
+            let multi_ready = multi_venv_exists && multi_packages;
+            let multi_usable = multi_ready && token_provided;
+            let any_ready = legacy_ready || multi_usable;
+
+            let overall_message = if any_ready {
+                "Local segmentation is ready".to_string()
+            } else if legacy_ready && !multi_usable {
+                "Legacy local engine is ready. Multi-aligner requires a Hugging Face token.".to_string()
+            } else if !legacy_venv_exists && !multi_venv_exists {
+                "Local engines are not installed yet. Install dependencies for Legacy Whisper and/or Multi-Aligner.".to_string()
+            } else {
+                "Local engines need setup or a valid Hugging Face token for Multi-Aligner.".to_string()
             };
 
             serde_json::json!({
-                "ready": packages_available,
+                "ready": any_ready,
                 "pythonInstalled": true,
-                "packagesInstalled": packages_available,
-                "message": if packages_available {
-                    "Local segmentation is ready"
-                } else {
-                    "Python packages need to be installed (~3GB download)"
+                "packagesInstalled": legacy_ready || multi_ready,
+                "message": overall_message,
+                "engines": {
+                    "legacy": {
+                        "ready": legacy_ready,
+                        "venvExists": legacy_venv_exists,
+                        "packagesInstalled": legacy_packages,
+                        "usable": legacy_ready,
+                        "message": if legacy_ready {
+                            "Legacy Whisper local engine is ready".to_string()
+                        } else if !legacy_venv_exists {
+                            "Legacy Whisper dependencies are not installed".to_string()
+                        } else if !legacy_missing_modules.is_empty() {
+                            format!(
+                                "Legacy Whisper packages are incomplete (missing imports: {})",
+                                legacy_missing_modules.join(", ")
+                            )
+                        } else {
+                            "Legacy Whisper packages are incomplete".to_string()
+                        }
+                    },
+                    "multi": {
+                        "ready": multi_ready,
+                        "venvExists": multi_venv_exists,
+                        "packagesInstalled": multi_packages,
+                        "tokenRequired": true,
+                        "tokenProvided": token_provided,
+                        "usable": multi_usable,
+                        "message": if multi_usable {
+                            "Multi-Aligner local engine is ready".to_string()
+                        } else if !multi_venv_exists {
+                            "Multi-Aligner dependencies are not installed".to_string()
+                        } else if !multi_imports_ok {
+                            if !multi_missing_modules.is_empty() {
+                                format!(
+                                    "Multi-Aligner packages are incomplete (missing imports: {})",
+                                    multi_missing_modules.join(", ")
+                                )
+                            } else {
+                                "Multi-Aligner packages are incomplete".to_string()
+                            }
+                        } else if !multi_phonemizer_ok {
+                            "Multi-Aligner phonemizer dependency is incomplete".to_string()
+                        } else if !token_provided {
+                            "Multi-Aligner requires a Hugging Face token".to_string()
+                        } else {
+                            "Multi-Aligner packages are incomplete".to_string()
+                        }
+                    }
                 }
             })
         })
     ).await;
-    
+
     match check_result {
         Ok(Ok(result)) => Ok(result),
         Ok(Err(e)) => Err(format!("Task failed: {}", e)),
@@ -1353,7 +1899,25 @@ async fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
                 "ready": false,
                 "pythonInstalled": true,
                 "packagesInstalled": false,
-                "message": "Check timed out - packages may need to be installed"
+                "message": "Check timed out - packages may need to be installed",
+                "engines": {
+                    "legacy": {
+                        "ready": false,
+                        "venvExists": false,
+                        "packagesInstalled": false,
+                        "usable": false,
+                        "message": "Check timed out"
+                    },
+                    "multi": {
+                        "ready": false,
+                        "venvExists": false,
+                        "packagesInstalled": false,
+                        "tokenRequired": true,
+                        "tokenProvided": token_provided,
+                        "usable": false,
+                        "message": "Check timed out"
+                    }
+                }
             }))
         }
     }
@@ -1361,107 +1925,119 @@ async fn check_local_segmentation_ready() -> Result<serde_json::Value, String> {
 
 /// Install Python dependencies for local segmentation
 #[tauri::command]
-async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result<String, String> {
+async fn install_local_segmentation_deps(
+    app_handle: tauri::AppHandle,
+    engine: String,
+    hf_token: Option<String>,
+) -> Result<String, String> {
     use tauri::Emitter;
 
-    let python_cmd = if cfg!(target_os = "windows") {
-        "python"
-    } else {
-        "python3"
-    };
+    let selected_engine = LocalSegmentationEngine::from_raw(engine.as_str())?;
 
     // Helper to emit install status
     let emit_status = |message: &str| {
         let _ = app_handle.emit("install-status", serde_json::json!({ "message": message }));
     };
 
-    // Get the path to the requirements.txt in the app bundle
-    let resource_path = app_handle
-        .path()
-        .resolve("python/requirements.txt", tauri::path::BaseDirectory::Resource)
-        .map_err(|e| e.to_string())?;
+    let system_python = get_system_python_cmd();
+    let mut py_check = Command::new(system_python);
+    py_check.arg("--version");
+    configure_command_no_window(&mut py_check);
+    let py_output = py_check
+        .output()
+        .map_err(|e| format!("Python is required to install local dependencies: {}", e))?;
+    if !py_output.status.success() {
+        return Err("Python is required to install local dependencies.".to_string());
+    }
 
-    // If resource path doesn't exist, try the development path
-    let requirements_path = if resource_path.exists() {
-        resource_path
-    } else {
-        // Development fallback - try to find it relative to the executable
-        let exe_dir = std::env::current_exe()
-            .map_err(|e| e.to_string())?
-            .parent()
-            .ok_or("Cannot get executable directory")?
-            .to_path_buf();
-        
-        // Try a few locations
-        let dev_path = exe_dir.join("..").join("..").join("python").join("requirements.txt");
-        if dev_path.exists() {
-            dev_path
-        } else {
-            return Err("requirements.txt not found".to_string());
+    emit_status(&format!(
+        "Preparing {} local environment...",
+        selected_engine.as_label()
+    ));
+    let venv_dir = create_venv_if_missing(&app_handle, selected_engine)?;
+    let python_exe = get_venv_python_exe(&venv_dir);
+    let normalized_hf_token = hf_token
+        .as_ref()
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty());
+
+    let run_python_cmd = |args: &[&str], context: &str| -> Result<(), String> {
+        let mut cmd = Command::new(&python_exe);
+        cmd.args(args);
+        if let Some(token) = normalized_hf_token.as_deref() {
+            apply_hf_token_env(&mut cmd, token);
         }
+        configure_command_no_window(&mut cmd);
+        let output = cmd
+            .output()
+            .map_err(|e| format!("{}: failed to run python: {}", context, e))?;
+        if !output.status.success() {
+            return Err(format!("{}: {}", context, sanitize_cmd_error(&output)));
+        }
+        Ok(())
     };
 
-    // Install PyTorch - detect CUDA availability first, then install appropriate version
-    if cfg!(target_os = "windows") {
-        // First, check if CUDA is available on this system using nvidia-smi
-        emit_status("Detecting GPU capabilities...");
-        let mut nvidia_check = Command::new("nvidia-smi");
-        configure_command_no_window(&mut nvidia_check);
-        
-        // Parse nvidia-smi output to get CUDA version
-        let cuda_version: Option<(u32, u32)> = match nvidia_check.output() {
-            Ok(output) if output.status.success() => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                // Look for "CUDA Version: X.Y" in the output
-                // nvidia-smi output format: "CUDA Version: 12.1"
-                if let Some(pos) = stdout.find("CUDA Version:") {
-                    let version_str = &stdout[pos + 13..];
-                    let version_str = version_str.trim();
-                    // Take until space or newline
-                    let end = version_str.find(|c: char| c.is_whitespace() || c == '|').unwrap_or(version_str.len());
-                    let version_str = &version_str[..end].trim();
-                    let parts: Vec<&str> = version_str.split('.').collect();
-                    if parts.len() >= 2 {
-                        if let (Ok(major), Ok(minor)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
-                            Some((major, minor))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            },
-            _ => None,
-        };
-        
-        if let Some((major, minor)) = cuda_version {
-            emit_status(&format!("CUDA {} detected, installing PyTorch with CUDA support...", format!("{}.{}", major, minor)));
-            
-            // Select appropriate CUDA index based on detected version
-            // PyTorch wheels: cu124 (12.4+), cu121 (12.1-12.3), cu118 (11.8-12.0)
-            let cuda_indexes: Vec<&str> = if major >= 12 && minor >= 4 {
-                vec!["https://download.pytorch.org/whl/cu124", "https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"]
-            } else if major >= 12 && minor >= 1 {
-                vec!["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu124", "https://download.pytorch.org/whl/cu118"]
-            } else if major >= 11 && minor >= 8 {
-                vec!["https://download.pytorch.org/whl/cu118", "https://download.pytorch.org/whl/cu121"]
-            } else if major >= 11 {
-                vec!["https://download.pytorch.org/whl/cu118"]
-            } else {
-                // CUDA too old, skip to CPU
-                vec![]
-            };
-            
-            let mut cuda_install_errors: Vec<String> = Vec::new();
-            let mut cuda_success = false;
+    emit_status("Upgrading pip...");
+    run_python_cmd(
+        &["-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel", "--quiet"],
+        "Failed to upgrade pip",
+    )?;
 
-            for index_url in cuda_indexes {
-                emit_status(&format!("Trying PyTorch from {}...", index_url));
-                let mut torch_cmd = Command::new(python_cmd);
-                torch_cmd.args(&[
+    if cfg!(target_os = "windows") {
+        emit_status("Installing PyTorch (CPU fallback available)...");
+        let mut cuda_installed = false;
+        let mut nvidia_cmd = Command::new("nvidia-smi");
+        configure_command_no_window(&mut nvidia_cmd);
+        let has_nvidia = nvidia_cmd
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+
+        if has_nvidia {
+            for index_url in [
+                "https://download.pytorch.org/whl/cu124",
+                "https://download.pytorch.org/whl/cu121",
+                "https://download.pytorch.org/whl/cu118",
+            ] {
+                emit_status(&format!("Trying CUDA PyTorch from {}...", index_url));
+                let result = run_python_cmd(
+                    &[
+                        "-m",
+                        "pip",
+                        "install",
+                        "--upgrade",
+                        "torch",
+                        "torchvision",
+                        "torchaudio",
+                        "--index-url",
+                        index_url,
+                        "--quiet",
+                    ],
+                    "Failed to install CUDA PyTorch",
+                );
+                if result.is_ok() {
+                    let mut verify_cuda = Command::new(&python_exe);
+                    verify_cuda.args(&[
+                        "-c",
+                        "import torch; assert torch.cuda.is_available(), 'cuda not available'",
+                    ]);
+                    configure_command_no_window(&mut verify_cuda);
+                    if verify_cuda
+                        .output()
+                        .map(|output| output.status.success())
+                        .unwrap_or(false)
+                    {
+                        cuda_installed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if !cuda_installed {
+            emit_status("Installing PyTorch CPU build...");
+            run_python_cmd(
+                &[
                     "-m",
                     "pip",
                     "install",
@@ -1470,228 +2046,167 @@ async fn install_local_segmentation_deps(app_handle: tauri::AppHandle) -> Result
                     "torchvision",
                     "torchaudio",
                     "--index-url",
-                    index_url,
-                    "--quiet",
-                ]);
-                configure_command_no_window(&mut torch_cmd);
-
-                let torch_output = torch_cmd
-                    .output()
-                    .map_err(|e| format!("Failed to run pip (torch): {}", e))?;
-
-                if !torch_output.status.success() {
-                    let stderr = String::from_utf8_lossy(&torch_output.stderr);
-                    cuda_install_errors.push(format!("Index {} failed: {}", index_url, stderr));
-                    continue;
-                }
-
-                // Verify CUDA is actually available in the installed torch
-                let mut cuda_check = Command::new(python_cmd);
-                cuda_check.args(&[
-                    "-c",
-                    "import torch; assert torch.cuda.is_available(), 'no cuda'; print('ok')",
-                ]);
-                configure_command_no_window(&mut cuda_check);
-
-                let cuda_output = cuda_check.output();
-                if let Ok(output) = cuda_output {
-                    if output.status.success() {
-                        cuda_success = true;
-                        cuda_install_errors.clear();
-                        emit_status(&format!("PyTorch with CUDA ({}) installed successfully!", index_url.split('/').last().unwrap_or("cu")));
-                        break;
-                    }
-                }
-
-                cuda_install_errors.push(format!(
-                    "Index {} installed but CUDA not available in torch",
-                    index_url
-                ));
-            }
-
-            // If CUDA installation failed, fall back to CPU
-            if !cuda_success {
-                emit_status("CUDA setup failed, falling back to CPU version...");
-                
-                // Uninstall potentially broken CUDA torch first
-                let mut uninstall_cmd = Command::new(python_cmd);
-                uninstall_cmd.args(&["-m", "pip", "uninstall", "torch", "torchvision", "torchaudio", "-y"]);
-                configure_command_no_window(&mut uninstall_cmd);
-                let _ = uninstall_cmd.output(); // Ignore errors
-                
-                // Install CPU version
-                let mut cpu_cmd = Command::new(python_cmd);
-                cpu_cmd.args(&[
-                    "-m",
-                    "pip",
-                    "install",
-                    "torch",
-                    "torchvision",
-                    "torchaudio",
-                    "--index-url",
                     "https://download.pytorch.org/whl/cpu",
                     "--quiet",
-                ]);
-                configure_command_no_window(&mut cpu_cmd);
-
-                let cpu_output = cpu_cmd
-                    .output()
-                    .map_err(|e| format!("Failed to run pip (torch CPU): {}", e))?;
-
-                if !cpu_output.status.success() {
-                    let stderr = String::from_utf8_lossy(&cpu_output.stderr);
-                    return Err(format!(
-                        "Failed to install torch. CUDA attempts: {} | CPU fallback failed: {}",
-                        cuda_install_errors.join(" | "),
-                        stderr
-                    ));
-                }
-            }
-        } else {
-            // Check if nvidia-smi was available but version couldn't be parsed
-            let mut nvidia_fallback = Command::new("nvidia-smi");
-            configure_command_no_window(&mut nvidia_fallback);
-            let has_nvidia = nvidia_fallback.output().map(|o| o.status.success()).unwrap_or(false);
-            
-            if has_nvidia {
-                // nvidia-smi worked but couldn't parse CUDA version - try CUDA anyway
-                emit_status("NVIDIA GPU detected but couldn't determine CUDA version, trying CUDA install...");
-                
-                let mut cuda_success = false;
-                for index_url in &["https://download.pytorch.org/whl/cu121", "https://download.pytorch.org/whl/cu118"] {
-                    emit_status(&format!("Trying PyTorch from {}...", index_url));
-                    let mut torch_cmd = Command::new(python_cmd);
-                    torch_cmd.args(&[
-                        "-m", "pip", "install", "--upgrade", "torch", "torchvision", "torchaudio",
-                        "--index-url", index_url, "--quiet",
-                    ]);
-                    configure_command_no_window(&mut torch_cmd);
-
-                    if torch_cmd.output().map(|o| o.status.success()).unwrap_or(false) {
-                        let mut cuda_check = Command::new(python_cmd);
-                        cuda_check.args(&["-c", "import torch; assert torch.cuda.is_available()"]);
-                        configure_command_no_window(&mut cuda_check);
-                        
-                        if cuda_check.output().map(|o| o.status.success()).unwrap_or(false) {
-                            cuda_success = true;
-                            emit_status(&format!("PyTorch with CUDA ({}) installed!", index_url.split('/').last().unwrap_or("cu")));
-                            break;
-                        }
-                    }
-                }
-                
-                if !cuda_success {
-                    emit_status("CUDA setup failed, falling back to CPU...");
-                    let mut cpu_cmd = Command::new(python_cmd);
-                    cpu_cmd.args(&[
-                        "-m", "pip", "install", "torch", "torchvision", "torchaudio",
-                        "--index-url", "https://download.pytorch.org/whl/cpu", "--quiet",
-                    ]);
-                    configure_command_no_window(&mut cpu_cmd);
-                    let _ = cpu_cmd.output();
-                }
-            } else {
-                // No CUDA GPU detected - install CPU version directly
-                emit_status("No CUDA GPU detected, installing PyTorch CPU version...");
-            let mut cpu_cmd = Command::new(python_cmd);
-            cpu_cmd.args(&[
+                ],
+                "Failed to install CPU PyTorch",
+            )?;
+        }
+    } else {
+        emit_status("Installing PyTorch...");
+        run_python_cmd(
+            &[
                 "-m",
                 "pip",
                 "install",
+                "--upgrade",
                 "torch",
                 "torchvision",
                 "torchaudio",
-                "--index-url",
-                "https://download.pytorch.org/whl/cpu",
                 "--quiet",
-            ]);
-            configure_command_no_window(&mut cpu_cmd);
-
-            let cpu_output = cpu_cmd
-                .output()
-                .map_err(|e| format!("Failed to run pip (torch CPU): {}", e))?;
-
-            if !cpu_output.status.success() {
-                let stderr = String::from_utf8_lossy(&cpu_output.stderr);
-                return Err(format!("Failed to install torch CPU: {}", stderr));
-            }
-            emit_status("PyTorch CPU version installed successfully!");
-            }
-        }
+            ],
+            "Failed to install PyTorch",
+        )?;
     }
 
-
-    let requirements_to_use = if cfg!(target_os = "windows") {
-        let requirements_content = std::fs::read_to_string(&requirements_path)
-            .map_err(|e| format!("Failed to read requirements.txt: {}", e))?;
-        let filtered: String = requirements_content
-            .lines()
-            .filter(|line| {
-                let trimmed = line.trim();
-                if trimmed.is_empty() || trimmed.starts_with('#') {
-                    return false;
-                }
-                let lower = trimmed.to_lowercase();
-                !(lower.starts_with("torch") || lower.starts_with("torchvision") || lower.starts_with("torchaudio"))
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let filtered_path = std::env::temp_dir().join("qurancaption_requirements_no_torch.txt");
-        std::fs::write(&filtered_path, filtered)
-            .map_err(|e| format!("Failed to write filtered requirements: {}", e))?;
-        filtered_path
+    let requirements_path = resolve_python_resource_path(
+        &app_handle,
+        selected_engine.requirements_relative_path(),
+    )?;
+    let requirements_path = if matches!(selected_engine, LocalSegmentationEngine::MultiAligner) {
+        prepare_multi_requirements_file(&requirements_path)?
     } else {
         requirements_path
     };
 
-    emit_status("Installing ML packages (transformers, librosa...)...");
-    let mut cmd = Command::new(python_cmd);
-    cmd.args(&[
-        "-m",
-        "pip",
-        "install",
-        "-r",
-        requirements_to_use.to_string_lossy().as_ref(),
-        "--quiet",
-    ]);
-    configure_command_no_window(&mut cmd);
+    let requirements_content = fs::read_to_string(&requirements_path).map_err(|e| {
+        format!(
+            "Failed to read requirements '{}': {}",
+            requirements_path.to_string_lossy(),
+            e
+        )
+    })?;
+    let filtered_requirements: String = requirements_content
+        .lines()
+        .filter(|line| {
+            let trimmed = line.trim().to_lowercase();
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                return false;
+            }
+            let is_quranic_phonemizer_dep =
+                trimmed.starts_with("git+https://github.com/hetchy/quranic-phonemizer.git@")
+                    || trimmed.contains("quranic-phonemizer");
+            !(trimmed.starts_with("torch")
+                || trimmed.starts_with("torchvision")
+                || trimmed.starts_with("torchaudio")
+                || is_quranic_phonemizer_dep)
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let filtered_requirements_path = std::env::temp_dir()
+        .join(format!("qurancaption_requirements_{}.txt", selected_engine.as_key()));
+    fs::write(&filtered_requirements_path, filtered_requirements).map_err(|e| {
+        format!(
+            "Failed to write filtered requirements '{}': {}",
+            filtered_requirements_path.to_string_lossy(),
+            e
+        )
+    })?;
 
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Failed to run pip: {}", e))?;
+    emit_status("Installing Python packages...");
+    run_python_cmd(
+        &[
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            filtered_requirements_path.to_string_lossy().as_ref(),
+            "--quiet",
+        ],
+        "pip install failed",
+    )?;
 
-    if output.status.success() {
-        Ok("Dependencies installed successfully".to_string())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(format!("pip install failed: {}", stderr))
+    if matches!(selected_engine, LocalSegmentationEngine::MultiAligner) {
+        emit_status("Installing Quranic-Phonemizer dependency...");
+        if cfg!(target_os = "windows") {
+            let patched_source =
+                prepare_windows_safe_quranic_phonemizer_source(&python_exe)?;
+            let patched_source_str = patched_source.to_string_lossy().to_string();
+            run_python_cmd(
+                &[
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    patched_source_str.as_str(),
+                    "--quiet",
+                ],
+                "Failed to install patched Quranic-Phonemizer",
+            )?;
+        } else {
+            run_python_cmd(
+                &[
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "https://github.com/Hetchy/Quranic-Phonemizer/archive/1b6a8cc.zip",
+                    "--quiet",
+                ],
+                "Failed to install Quranic-Phonemizer",
+            )?;
+        }
     }
+
+    emit_status("Local dependencies installed successfully.");
+    Ok(format!(
+        "{} dependencies installed successfully",
+        selected_engine.as_label()
+    ))
 }
 
 /// Run local segmentation using the Python script
-#[tauri::command]
-async fn segment_quran_audio_local(
+fn run_local_segmentation_script(
     app_handle: tauri::AppHandle,
+    engine: LocalSegmentationEngine,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
-    whisper_model: Option<String>,
+    mut extra_args: Vec<String>,
+    hf_token: Option<String>,
 ) -> Result<serde_json::Value, String> {
     use std::process::Stdio;
     use std::io::{BufRead, BufReader};
     use tauri::Emitter;
 
-    // Validate input file exists
-    // Resolve ffmpeg for audio preprocessing
+    println!(
+        "[segmentation][local][debug] engine={} min_silence_ms={:?} min_speech_ms={:?} pad_ms={:?} extra_args={:?} hf_token_present={}",
+        engine.as_key(),
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        extra_args,
+        hf_token
+            .as_ref()
+            .map(|token| !token.trim().is_empty())
+            .unwrap_or(false)
+    );
+
     let ffmpeg_path = binaries::resolve_binary("ffmpeg")
         .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    println!(
+        "[segmentation][local][debug] resolved ffmpeg path={}",
+        ffmpeg_path
+    );
 
     let mut _merged_guard: Option<TempFileGuard> = None;
     let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
-     
+        println!(
+            "[segmentation][local][debug] received {} audio clip(s)",
+            clips.len()
+        );
         for (idx, clip) in clips.iter().enumerate() {
             println!(
                 "[segmentation] clip[{}] path={} start_ms={} end_ms={}",
@@ -1720,16 +2235,23 @@ async fn segment_quran_audio_local(
     if !audio_path.exists() {
         return Err(format!("Audio file not found: {}", audio_path_str));
     }
+    println!(
+        "[segmentation][local][debug] normalized audio path={} (exists={})",
+        audio_path_str,
+        audio_path.exists()
+    );
 
-    // Build a unique temp file path for the resampled WAV (same as cloud mode)
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("qurancaption-local-seg-{}.wav", stamp));
+    let temp_path = std::env::temp_dir().join(format!(
+        "qurancaption-local-{}-{}.wav",
+        engine.as_key(),
+        stamp
+    ));
     let _temp_guard = TempFileGuard(temp_path.clone());
 
-    // Resample to 16kHz mono WAV with ffmpeg (same preprocessing as cloud mode)
     let mut resample_cmd = Command::new(&ffmpeg_path);
     resample_cmd.args(&[
         "-y",
@@ -1739,58 +2261,55 @@ async fn segment_quran_audio_local(
         "-i",
         &audio_path_str,
         "-ac",
-        "1",           // mono
+        "1",
         "-ar",
-        "16000",       // 16kHz
+        "16000",
         "-c:a",
-        "pcm_s16le",   // 16-bit PCM
+        "pcm_s16le",
         "-vn",
         temp_path.to_string_lossy().as_ref(),
     ]);
     configure_command_no_window(&mut resample_cmd);
-    
+    println!(
+        "[segmentation][local][debug] running ffmpeg preprocess -> {}",
+        temp_path.to_string_lossy()
+    );
+
     let resample_output = resample_cmd.output()
         .map_err(|e| format!("Unable to execute ffmpeg for preprocessing: {}", e))?;
 
     if !resample_output.status.success() {
         let stderr = String::from_utf8_lossy(&resample_output.stderr);
+        eprintln!(
+            "[segmentation][local][debug] ffmpeg preprocessing failed (status={:?}): {}",
+            resample_output.status.code(),
+            stderr
+        );
         return Err(format!("ffmpeg preprocessing error: {}", stderr));
     }
+    let temp_size = fs::metadata(&temp_path).map(|m| m.len()).unwrap_or(0);
+    println!(
+        "[segmentation][local][debug] ffmpeg preprocessing ok temp_wav={} size={}B",
+        temp_path.to_string_lossy(),
+        temp_size
+    );
 
-    let python_cmd = if cfg!(target_os = "windows") {
-        "python"
-    } else {
-        "python3"
-    };
+    let python_exe = resolve_engine_python_exe(&app_handle, engine)?;
+    let script_path = resolve_python_resource_path(&app_handle, engine.script_relative_path())?;
+    println!(
+        "[segmentation][local][debug] python_exe={} script_path={}",
+        python_exe.to_string_lossy(),
+        script_path.to_string_lossy()
+    );
+    println!(
+        "[segmentation][local][debug] script_exists={} temp_exists={}",
+        script_path.exists(),
+        temp_path.exists()
+    );
 
-    // Get the path to the Python script
-    let resource_path = app_handle
-        .path()
-        .resolve("python/local_segmenter.py", tauri::path::BaseDirectory::Resource)
-        .map_err(|e| e.to_string())?;
-
-    // Development fallback
-    let script_path = if resource_path.exists() {
-        resource_path
-    } else {
-        let exe_dir = std::env::current_exe()
-            .map_err(|e| e.to_string())?
-            .parent()
-            .ok_or("Cannot get executable directory")?
-            .to_path_buf();
-        
-        let dev_path = exe_dir.join("..").join("..").join("python").join("local_segmenter.py");
-        if dev_path.exists() {
-            dev_path
-        } else {
-            return Err("local_segmenter.py not found".to_string());
-        }
-    };
-
-    // Build command arguments - use the preprocessed temp file instead of original
     let mut args = vec![
         script_path.to_string_lossy().to_string(),
-        temp_path.to_string_lossy().to_string(), // Use preprocessed audio
+        temp_path.to_string_lossy().to_string(),
     ];
 
     if let Some(ms) = min_silence_ms {
@@ -1805,23 +2324,60 @@ async fn segment_quran_audio_local(
         args.push("--pad-ms".to_string());
         args.push(ms.to_string());
     }
-    if let Some(model) = whisper_model {
-        args.push("--whisper-model".to_string());
-        args.push(model);
+    args.append(&mut extra_args);
+    println!(
+        "[segmentation][local][debug] python args={:?}",
+        args
+    );
+
+    let mut version_cmd = Command::new(&python_exe);
+    version_cmd.arg("--version");
+    configure_command_no_window(&mut version_cmd);
+    match version_cmd.output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            let text = if !stdout.is_empty() { stdout } else { stderr };
+            println!(
+                "[segmentation][local][debug] python --version status={:?} value={}",
+                output.status.code(),
+                text
+            );
+        }
+        Err(err) => {
+            eprintln!(
+                "[segmentation][local][debug] python --version failed: {}",
+                err
+            );
+        }
     }
 
-    let mut cmd = Command::new(python_cmd);
+    let mut cmd = Command::new(&python_exe);
     cmd.args(&args);
+    if let Some(token) = hf_token {
+        if !token.trim().is_empty() {
+            apply_hf_token_env(&mut cmd, token.trim());
+        }
+    }
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
     configure_command_no_window(&mut cmd);
 
     let mut child = cmd.spawn().map_err(|e| format!("Failed to spawn Python: {}", e))?;
-    
-    // Read stderr in a separate thread for status updates
+    println!(
+        "[segmentation][local][debug] spawned python pid={} engine={}",
+        child.id(),
+        engine.as_key()
+    );
+
+    // Read stderr in a separate thread for status updates and diagnostics.
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
     let app_handle_clone = app_handle.clone();
-    
+    let engine_key = engine.as_key().to_string();
+    let engine_key_for_thread = engine_key.clone();
+    let stderr_lines = Arc::new(Mutex::new(Vec::<String>::new()));
+    let stderr_lines_clone = Arc::clone(&stderr_lines);
+
     let stderr_handle = std::thread::spawn(move || {
         let reader = BufReader::new(stderr);
         for line in reader.lines() {
@@ -1832,40 +2388,191 @@ async fn segment_quran_audio_local(
                     if let Ok(status_data) = serde_json::from_str::<serde_json::Value>(json_str) {
                         let _ = app_handle_clone.emit("segmentation-status", status_data);
                     }
+                    println!(
+                        "[segmentation][local][status][{}] {}",
+                        engine_key_for_thread, line
+                    );
+                } else if !line.trim().is_empty() {
+                    eprintln!(
+                        "[segmentation][local][stderr][{}] {}",
+                        engine_key_for_thread, line
+                    );
+                    if let Ok(mut locked) = stderr_lines_clone.lock() {
+                        locked.push(line);
+                        // Keep only the latest lines to avoid unbounded memory growth.
+                        if locked.len() > 120 {
+                            let drain_count = locked.len() - 120;
+                            locked.drain(0..drain_count);
+                        }
+                    }
                 }
             }
         }
     });
 
-    // Wait for process to complete
     let output = child.wait_with_output().map_err(|e| format!("Failed to wait for Python: {}", e))?;
-    
-    // Wait for stderr thread to finish
+    println!(
+        "[segmentation][local][debug] python process finished engine={} status={:?}",
+        engine_key,
+        output.status.code()
+    );
+
     let _ = stderr_handle.join();
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let result: serde_json::Value = serde_json::from_str(&stdout)
-            .map_err(|e| format!("Failed to parse Python output: {}", e))?;
-        
-        // Check if there's an error in the JSON response
+        println!(
+            "[segmentation][local][debug] python stdout bytes={} (success path)",
+            output.stdout.len()
+        );
+        let result: serde_json::Value = serde_json::from_str(&stdout).map_err(|e| {
+            let stderr_text = stderr_lines
+                .lock()
+                .ok()
+                .map(|lines| lines.join("\n"))
+                .unwrap_or_default();
+            if stderr_text.trim().is_empty() {
+                format!("Failed to parse Python output: {}", e)
+            } else {
+                format!(
+                    "Failed to parse Python output: {} (stderr: {})",
+                    e, stderr_text
+                )
+            }
+        })?;
+
         if let Some(error) = result.get("error") {
             return Err(error.as_str().unwrap_or("Unknown error").to_string());
         }
-        
+
         Ok(result)
     } else {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        
-        // Try to parse error from stdout (our script outputs JSON errors)
+        let stderr_text = stderr_lines
+            .lock()
+            .ok()
+            .map(|lines| lines.join("\n"))
+            .unwrap_or_default();
+        eprintln!(
+            "[segmentation][local][debug] python failure engine={} stdout_bytes={} stderr_buffered_lines={}",
+            engine_key,
+            output.stdout.len(),
+            stderr_lines.lock().map(|lines| lines.len()).unwrap_or(0)
+        );
+        if !stdout.trim().is_empty() {
+            eprintln!(
+                "[segmentation][local][debug] python failure stdout: {}",
+                stdout
+            );
+        }
+        if !stderr_text.trim().is_empty() {
+            eprintln!(
+                "[segmentation][local][debug] python failure stderr: {}",
+                stderr_text
+            );
+        }
+
         if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&stdout) {
             if let Some(error) = error_json.get("error") {
                 return Err(error.as_str().unwrap_or("Unknown error").to_string());
             }
         }
-        
-        Err(format!("Python script failed: {}", stdout))
+
+        if !stdout.trim().is_empty() {
+            Err(format!("Python script failed: {}", stdout))
+        } else if !stderr_text.trim().is_empty() {
+            Err(format!("Python script failed: {}", stderr_text))
+        } else {
+            Err("Python script failed with no output".to_string())
+        }
     }
+}
+
+#[tauri::command]
+async fn segment_quran_audio_local(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    whisper_model: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let mut extra_args: Vec<String> = Vec::new();
+    if let Some(model) = whisper_model {
+        extra_args.push("--whisper-model".to_string());
+        extra_args.push(model);
+    }
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::LegacyWhisper,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        extra_args,
+        None,
+    )
+}
+
+#[tauri::command]
+async fn segment_quran_audio_local_multi(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    model_name: Option<String>,
+    device: Option<String>,
+    hf_token: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let selected_model = model_name.unwrap_or_else(|| "Base".to_string());
+    if selected_model != "Base" && selected_model != "Large" {
+        return Err(format!(
+            "Invalid model_name '{}'. Expected 'Base' or 'Large'.",
+            selected_model
+        ));
+    }
+
+    let selected_device = device
+        .unwrap_or_else(|| "GPU".to_string())
+        .to_uppercase();
+    if selected_device != "GPU" && selected_device != "CPU" {
+        return Err(format!(
+            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
+            selected_device
+        ));
+    }
+
+    let token_present = hf_token
+        .as_ref()
+        .map(|token| !token.trim().is_empty())
+        .unwrap_or(false);
+    if !token_present {
+        return Err("HF token is required for local Multi-Aligner mode.".to_string());
+    }
+
+    let extra_args = vec![
+        "--model-name".to_string(),
+        selected_model,
+        "--device".to_string(),
+        selected_device,
+    ];
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::MultiAligner,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        extra_args,
+        hf_token,
+    )
 }
 
 
@@ -2085,6 +2792,7 @@ pub fn run() {
             concat_audio,
             segment_quran_audio,
             segment_quran_audio_local,
+            segment_quran_audio_local_multi,
             check_local_segmentation_ready,
             install_local_segmentation_deps,
             init_discord_rpc,

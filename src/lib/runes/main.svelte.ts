@@ -50,6 +50,10 @@ class GlobalState {
 		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'about'
 	});
 
+	shared = $state({
+		autoSegmentationWizard: null as unknown
+	});
+
 	get getSubtitleTrack() {
 		return this.currentProject!.content.timeline.getFirstTrack(
 			TrackType.Subtitle

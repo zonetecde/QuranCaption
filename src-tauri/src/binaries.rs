@@ -145,8 +145,21 @@ fn classify_spawn_error(error: &std::io::Error) -> (&'static str, String) {
     ("exec_failed", msg)
 }
 
-fn test_binary_version(binary: &str) -> Result<(), (String, String)> {
-    match Command::new(binary).arg("-version").output() {
+fn probe_args_for(binary_name: &str) -> &'static [&'static str] {
+    let normalized = binary_name
+        .strip_suffix(".exe")
+        .unwrap_or(binary_name)
+        .to_ascii_lowercase();
+
+    match normalized.as_str() {
+        "yt-dlp" => &["--version"],
+        _ => &["-version"],
+    }
+}
+
+fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, String)> {
+    let probe_args = probe_args_for(binary_name);
+    match Command::new(binary).args(probe_args).output() {
         Ok(output) => {
             if output.status.success() {
                 Ok(())
@@ -191,7 +204,7 @@ fn resolve_binary_with_attempts(
         if path.exists() {
             let canonical = path.canonicalize().unwrap_or(path);
             let candidate = canonical.to_string_lossy().to_string();
-            match test_binary_version(&candidate) {
+            match test_binary_version(&candidate, name) {
                 Ok(()) => {
                     attempts.push(BinaryResolutionAttempt {
                         candidate: candidate.clone(),
@@ -222,7 +235,7 @@ fn resolve_binary_with_attempts(
 
     let base = bin.strip_suffix(".exe").unwrap_or(&bin);
     for name in [bin.as_str(), base] {
-        match test_binary_version(name) {
+        match test_binary_version(name, name) {
             Ok(()) => {
                 attempts.push(BinaryResolutionAttempt {
                     candidate: name.to_string(),

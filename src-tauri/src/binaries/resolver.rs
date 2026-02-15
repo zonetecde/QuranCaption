@@ -4,23 +4,18 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
 
+use super::diagnostics::{BinaryResolutionAttempt, BinaryResolveDebugInfo, BinaryResolveError};
+
 static RESOURCE_DIR: OnceLock<PathBuf> = OnceLock::new();
 
+/// Initialise le repertoire de ressources utilise pour resoudre les binaires embarques.
 pub fn init_resource_dir(dir: PathBuf) {
     let _ = RESOURCE_DIR.set(dir);
 }
 
-/// Returns a list of candidate paths where the given binary may be found.
-///
-/// This helper handles platform-specific path resolution logic, including
-/// searching in locations relevant to macOS, Linux, and Windows, as well as
-/// considering environment variables and build-time directories. This is
-/// necessary because binary locations can vary depending on how the application
-/// is packaged or run.
+/// Retourne la liste ordonnee des emplacements candidats pour un binaire donne.
 fn binary_candidates(bin: &str) -> Vec<PathBuf> {
     let mut paths = vec![Path::new("binaries").join(bin)];
-
-    // Common "resources/binaries" layout used by Tauri on non-Windows targets
     paths.push(Path::new("resources").join("binaries").join(bin));
 
     if let Some(resource_dir) = RESOURCE_DIR.get() {
@@ -40,24 +35,48 @@ fn binary_candidates(bin: &str) -> Vec<PathBuf> {
 
             #[cfg(target_os = "linux")]
             {
-                paths.push(dir.join(format!("../lib/{}/binaries", env!("CARGO_PKG_NAME"))).join(bin));
-                paths.push(dir.join(format!("../lib/{}/resources/binaries", env!("CARGO_PKG_NAME"))).join(bin));
-                paths.push(dir.join("../resources/binaries").join(bin)); // AppImage layout
+                let package = env!("CARGO_PKG_NAME");
+                paths.push(dir.join(format!("../lib/{package}/binaries")).join(bin));
+                paths.push(
+                    dir.join(format!("../lib/{package}/resources/binaries"))
+                        .join(bin),
+                );
+                paths.push(dir.join("../resources/binaries").join(bin));
             }
         }
     }
 
     #[cfg(target_os = "linux")]
     {
+        let package = env!("CARGO_PKG_NAME");
         if let Ok(appdir) = std::env::var("APPDIR") {
-            paths.push(Path::new(&appdir).join(format!("usr/lib/{}/binaries", env!("CARGO_PKG_NAME"))).join(bin));
-            paths.push(Path::new(&appdir).join(format!("usr/lib/{}/resources/binaries", env!("CARGO_PKG_NAME"))).join(bin));
-            paths.push(Path::new(&appdir).join("usr/resources/binaries").join(bin)); // AppImage when resources sit in usr/resources
+            paths.push(
+                Path::new(&appdir)
+                    .join(format!("usr/lib/{package}/binaries"))
+                    .join(bin),
+            );
+            paths.push(
+                Path::new(&appdir)
+                    .join(format!("usr/lib/{package}/resources/binaries"))
+                    .join(bin),
+            );
+            paths.push(Path::new(&appdir).join("usr/resources/binaries").join(bin));
         }
 
-        paths.push(Path::new("/usr/lib").join(env!("CARGO_PKG_NAME")).join("binaries").join(bin));
-        paths.push(Path::new("/usr/lib").join(env!("CARGO_PKG_NAME")).join("resources").join("binaries").join(bin));
-        paths.push(Path::new("/usr/lib/resources/binaries").join(bin)); // Some distro layouts
+        paths.push(
+            Path::new("/usr/lib")
+                .join(package)
+                .join("binaries")
+                .join(bin),
+        );
+        paths.push(
+            Path::new("/usr/lib")
+                .join(package)
+                .join("resources")
+                .join("binaries")
+                .join(bin),
+        );
+        paths.push(Path::new("/usr/lib/resources/binaries").join(bin));
         paths.push(Path::new("/usr/local/bin").join(bin));
         paths.push(Path::new("/usr/bin").join(bin));
         paths.push(Path::new("/bin").join(bin));
@@ -72,12 +91,18 @@ fn binary_candidates(bin: &str) -> Vec<PathBuf> {
 
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         paths.push(Path::new(&manifest_dir).join("binaries").join(bin));
-        paths.push(Path::new(&manifest_dir).join("resources").join("binaries").join(bin));
+        paths.push(
+            Path::new(&manifest_dir)
+                .join("resources")
+                .join("binaries")
+                .join(bin),
+        );
     }
 
     dedupe_paths(paths)
 }
 
+/// Supprime les chemins dupliques en conservant l'ordre.
 fn dedupe_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
     let mut seen = HashSet::new();
     let mut deduped = Vec::new();
@@ -90,6 +115,7 @@ fn dedupe_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
     deduped
 }
 
+/// Retourne la premiere ligne non vide d'un texte.
 fn first_non_empty_line(text: &str) -> String {
     text.lines()
         .find(|line| !line.trim().is_empty())
@@ -97,30 +123,7 @@ fn first_non_empty_line(text: &str) -> String {
         .unwrap_or_else(|| text.trim().to_string())
 }
 
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct BinaryResolutionAttempt {
-    pub candidate: String,
-    pub source: String,
-    pub outcome: String,
-    pub detail: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BinaryResolveError {
-    pub code: String,
-    pub details: String,
-    pub attempts: Vec<BinaryResolutionAttempt>,
-}
-
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct BinaryResolveDebugInfo {
-    pub name: String,
-    pub resolved_path: Option<String>,
-    pub error_code: Option<String>,
-    pub error_details: Option<String>,
-    pub attempts: Vec<BinaryResolutionAttempt>,
-}
-
+/// Classe une erreur de lancement de process en resultat applicatif stable.
 fn classify_spawn_error(error: &std::io::Error) -> (&'static str, String) {
     if error.kind() == ErrorKind::NotFound {
         return ("missing", "Binary not found".to_string());
@@ -145,6 +148,7 @@ fn classify_spawn_error(error: &std::io::Error) -> (&'static str, String) {
     ("exec_failed", msg)
 }
 
+/// Retourne les arguments de probe appropries pour un binaire donne.
 fn probe_args_for(binary_name: &str) -> &'static [&'static str] {
     let normalized = binary_name
         .strip_suffix(".exe")
@@ -157,6 +161,7 @@ fn probe_args_for(binary_name: &str) -> &'static [&'static str] {
     }
 }
 
+/// Verifie qu'un binaire peut etre execute et renvoie un diagnostic exploitable.
 fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, String)> {
     let probe_args = probe_args_for(binary_name);
     match Command::new(binary).args(probe_args).output() {
@@ -189,6 +194,7 @@ fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, S
     }
 }
 
+/// Tente de resoudre un binaire et retourne le chemin retenu plus les tentatives.
 fn resolve_binary_with_attempts(
     name: &str,
 ) -> Result<(String, Vec<BinaryResolutionAttempt>), BinaryResolveError> {
@@ -234,20 +240,20 @@ fn resolve_binary_with_attempts(
     }
 
     let base = bin.strip_suffix(".exe").unwrap_or(&bin);
-    for name in [bin.as_str(), base] {
-        match test_binary_version(name, name) {
+    for candidate in [bin.as_str(), base] {
+        match test_binary_version(candidate, name) {
             Ok(()) => {
                 attempts.push(BinaryResolutionAttempt {
-                    candidate: name.to_string(),
+                    candidate: candidate.to_string(),
                     source: "system_path".to_string(),
                     outcome: "ok".to_string(),
                     detail: None,
                 });
-                return Ok((name.to_string(), attempts));
+                return Ok((candidate.to_string(), attempts));
             }
             Err((outcome, detail)) => {
                 attempts.push(BinaryResolutionAttempt {
-                    candidate: name.to_string(),
+                    candidate: candidate.to_string(),
                     source: "system_path".to_string(),
                     outcome,
                     detail: Some(detail),
@@ -261,7 +267,7 @@ fn resolve_binary_with_attempts(
     let details = attempts
         .iter()
         .find_map(|a| a.detail.clone())
-        .unwrap_or_else(|| format!("No usable binary found for {}", name));
+        .unwrap_or_else(|| format!("No usable binary found for {name}"));
     let code = if has_not_executable {
         "BINARY_NOT_EXECUTABLE"
     } else if has_exec_failed {
@@ -277,14 +283,17 @@ fn resolve_binary_with_attempts(
     })
 }
 
+/// Retourne le chemin du binaire ou une erreur structuree.
 pub fn resolve_binary_detailed(name: &str) -> Result<String, BinaryResolveError> {
     resolve_binary_with_attempts(name).map(|(path, _)| path)
 }
 
+/// Retourne le chemin du binaire quand il est resolu, sinon `None`.
 pub fn resolve_binary(name: &str) -> Option<String> {
     resolve_binary_detailed(name).ok()
 }
 
+/// Retourne un diagnostic complet de resolution d'un binaire.
 pub fn resolve_binary_debug(name: &str) -> BinaryResolveDebugInfo {
     match resolve_binary_with_attempts(name) {
         Ok((path, attempts)) => BinaryResolveDebugInfo {

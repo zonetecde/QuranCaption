@@ -195,20 +195,47 @@ jobs:
           chmod +x "$APPIMAGE"
           "$APPIMAGE" --appimage-extract >/dev/null
 
-          for bin in ffmpeg ffprobe yt-dlp; do
-            if [ -f "squashfs-root/usr/lib/qurancaption/resources/binaries/$bin" ] || [ -f "squashfs-root/usr/resources/binaries/$bin" ]; then
-              echo "Found $bin in AppImage"
-            else
-              echo "Missing $bin in AppImage"
-              exit 1
+          check_appimage_bin() {
+            local bin="$1"
+            local found=""
+            for p in \
+              "squashfs-root/usr/lib/qurancaption/resources/binaries/$bin" \
+              "squashfs-root/usr/lib/qurancaption/binaries/$bin" \
+              "squashfs-root/usr/resources/binaries/$bin" \
+              "squashfs-root/usr/binaries/$bin"
+            do
+              if [ -f "$p" ]; then
+                found="$p"
+                break
+              fi
+            done
+
+            if [ -z "$found" ]; then
+              found=$(find squashfs-root -type f \( -path "*/resources/binaries/$bin" -o -path "*/binaries/$bin" \) | head -n 1 || true)
             fi
 
-            if dpkg-deb -c "$DEB" | grep -q "resources/binaries/$bin$"; then
-              echo "Found $bin in deb"
-            else
-              echo "Missing $bin in deb"
-              exit 1
+            if [ -n "$found" ]; then
+              echo "Found $bin in AppImage: $found"
+              return 0
             fi
+
+            echo "Missing $bin in AppImage"
+            return 1
+          }
+
+          check_deb_bin() {
+            local bin="$1"
+            if dpkg-deb -c "$DEB" | grep -qE "(resources/)?binaries/$bin$"; then
+              echo "Found $bin in deb"
+              return 0
+            fi
+            echo "Missing $bin in deb"
+            return 1
+          }
+
+          for bin in ffmpeg ffprobe yt-dlp; do
+            check_appimage_bin "$bin" || exit 1
+            check_deb_bin "$bin" || exit 1
           done
 
       - name: Upload macOS DMG

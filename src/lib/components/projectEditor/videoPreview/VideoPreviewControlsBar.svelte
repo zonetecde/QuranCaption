@@ -60,6 +60,7 @@
 		const previewStart = getSubtitlePreviewStart(targetClip);
 		globalState.getTimelineState.cursorPosition = previewStart;
 		globalState.getTimelineState.movePreviewTo = previewStart;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
 	}
 
 	function goToPreviousSubtitleStart(): void {

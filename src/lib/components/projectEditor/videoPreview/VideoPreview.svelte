@@ -182,6 +182,7 @@
 				const currentTime = getTimelineSettings().cursorPosition;
 				getTimelineSettings().cursorPosition = currentTime + 2000; // Avance de 2 secondes
 				getTimelineSettings().movePreviewTo = currentTime + 2000;
+				globalState.getVideoPreviewState.scrollTimelineToCursor();
 			}
 		});
 
@@ -191,6 +192,7 @@
 				const currentTime = getTimelineSettings().cursorPosition;
 				getTimelineSettings().cursorPosition = Math.max(1, currentTime - 2000); // Recule de 2 secondes
 				getTimelineSettings().movePreviewTo = Math.max(1, currentTime - 2000);
+				globalState.getVideoPreviewState.scrollTimelineToCursor();
 			}
 		});
 

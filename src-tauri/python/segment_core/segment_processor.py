@@ -339,6 +339,26 @@ def load_whisper(model_name: str = None):
         processor = WhisperProcessor.from_pretrained(actual_model)
         gen_config = model.generation_config
 
+        # Keep Arabic transcription behavior stable across transformers releases.
+        forced_decoder_ids = None
+        for language in ("arabic", "ar"):
+            try:
+                forced_decoder_ids = processor.get_decoder_prompt_ids(
+                    language=language,
+                    task="transcribe"
+                )
+                if forced_decoder_ids:
+                    break
+            except Exception:
+                continue
+
+        if forced_decoder_ids:
+            gen_config.forced_decoder_ids = forced_decoder_ids
+        if hasattr(gen_config, "language"):
+            gen_config.language = "ar"
+        if hasattr(gen_config, "task"):
+            gen_config.task = "transcribe"
+
         load_time = time.time() - start_time
         _whisper_cache["model"] = model
         _whisper_cache["processor"] = processor
@@ -704,8 +724,8 @@ def process_audio(
         if not text:
             error = "Transcription failed"
         elif score < MIN_MATCH_SCORE:
-            matched_text = ""
-            matched_ref = ""
+            # Conserver la meilleure correspondance trouvée même en faible confiance
+            # afin de garder ref/matched_text disponibles côté frontend pour review.
             error = f"Low confidence ({score:.0%})"
 
         segments.append(SegmentInfo(
@@ -853,8 +873,8 @@ def process_audio_full(
         elif not text:
             error = "Transcription failed"
         elif score < MIN_MATCH_SCORE:
-            matched_text = ""
-            matched_ref = ""
+            # Conserver la meilleure correspondance trouvée même en faible confiance
+            # afin de garder ref/matched_text disponibles côté frontend pour review.
             error = f"Low confidence ({score:.0%})"
 
         ref_from, ref_to = parse_ref(matched_ref)

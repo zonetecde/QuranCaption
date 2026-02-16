@@ -92,7 +92,7 @@ pub async fn segment_quran_audio(
             .map_err(|e| format!("Mock segmentation JSON invalid: {}", e));
     }
 
-    // Pré-traitement audio identique au flux historique: merge éventuel puis resample 16k mono.
+    // Pré-traitement cloud: merge éventuel puis encodage FLAC (pas de resample forcé).
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
     let mut _merged_guard: Option<TempFileGuard> = None;
@@ -134,7 +134,7 @@ pub async fn segment_quran_audio(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("qurancaption-seg-{}.wav", stamp));
+    let temp_path = std::env::temp_dir().join(format!("qurancaption-seg-{}.flac", stamp));
     let _temp_guard = TempFileGuard(temp_path.clone());
 
     let mut cmd = Command::new(&ffmpeg_path);
@@ -145,12 +145,8 @@ pub async fn segment_quran_audio(
         "error",
         "-i",
         &audio_path_str,
-        "-ac",
-        "1",
-        "-ar",
-        "16000",
         "-c:a",
-        "pcm_s16le",
+        "flac",
         "-vn",
         temp_path.to_string_lossy().as_ref(),
     ]);
@@ -164,12 +160,12 @@ pub async fn segment_quran_audio(
     }
 
     let audio_bytes =
-        fs::read(&temp_path).map_err(|e| format!("Failed to read resampled audio: {}", e))?;
+        fs::read(&temp_path).map_err(|e| format!("Failed to read FLAC audio: {}", e))?;
 
     let client = reqwest::Client::new();
     let upload_part = Part::bytes(audio_bytes)
-        .file_name("audio.wav")
-        .mime_str("audio/wav")
+        .file_name("audio.flac")
+        .mime_str("audio/flac")
         .map_err(|e| e.to_string())?;
     let upload_form = Form::new().part("files", upload_part);
 
@@ -208,8 +204,8 @@ pub async fn segment_quran_audio(
 
     let file_payload = serde_json::json!({
         "path": uploaded_path,
-        "orig_name": "audio.wav",
-        "mime_type": "audio/wav",
+        "orig_name": "audio.flac",
+        "mime_type": "audio/flac",
         "meta": { "_type": "gradio.FileData" }
     });
     let call_payload = serde_json::json!({

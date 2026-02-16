@@ -113,11 +113,54 @@ def check_dependencies():
         import soundfile
     except ImportError:
         missing.append("soundfile")
-    
+
     if missing:
         print(f"[ERROR] Missing required packages: {', '.join(missing)}", file=sys.stderr)
         print(f"[ERROR] Please install with: pip install {' '.join(missing)}", file=sys.stderr)
         return False
+
+    try:
+        from importlib import metadata
+
+        def major(version: str) -> int:
+            try:
+                return int(str(version).split(".", 1)[0])
+            except Exception:
+                return -1
+
+        versions = {
+            "transformers": metadata.version("transformers"),
+            "numpy": metadata.version("numpy"),
+            "librosa": metadata.version("librosa"),
+            "soundfile": metadata.version("soundfile"),
+            "accelerate": metadata.version("accelerate"),
+        }
+
+        incompatible = []
+        if major(versions["transformers"]) >= 5:
+            incompatible.append(f"transformers={versions['transformers']} (need <5)")
+        if major(versions["numpy"]) >= 2:
+            incompatible.append(f"numpy={versions['numpy']} (need <2)")
+        if not versions["librosa"].startswith("0.10."):
+            incompatible.append(f"librosa={versions['librosa']} (need 0.10.x)")
+        if not versions["soundfile"].startswith("0.12."):
+            incompatible.append(f"soundfile={versions['soundfile']} (need 0.12.x)")
+        if major(versions["accelerate"]) >= 1:
+            incompatible.append(f"accelerate={versions['accelerate']} (need <1)")
+
+        if incompatible:
+            print(
+                "[ERROR] Incompatible package versions for legacy local segmentation:",
+                file=sys.stderr,
+            )
+            print(f"[ERROR] {', '.join(incompatible)}", file=sys.stderr)
+            print(
+                "[ERROR] Reinstall Legacy Whisper dependencies from the app to downgrade to supported versions.",
+                file=sys.stderr,
+            )
+            return False
+    except Exception as e:
+        print(f"[WARNING] Could not validate package versions: {e}", file=sys.stderr)
     
     return True
 

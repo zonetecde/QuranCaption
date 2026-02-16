@@ -9,6 +9,109 @@ use super::python_env::{
 };
 use super::types::LocalSegmentationEngine;
 
+/// Vérifie que les versions Python critiques du moteur legacy restent compatibles.
+fn check_legacy_python_versions(python_exe: &std::path::Path) -> (bool, Option<String>) {
+    if !python_exe.exists() {
+        return (false, Some("Legacy Python environment not found".to_string()));
+    }
+
+    let script = r#"
+import json
+from importlib import metadata
+
+def major(version: str) -> int:
+    try:
+        token = str(version).split('.', 1)[0]
+        return int(token)
+    except Exception:
+        return -1
+
+def package_version(name: str) -> str:
+    try:
+        return metadata.version(name)
+    except Exception:
+        return "unknown"
+
+try:
+    versions = {
+        "transformers": package_version("transformers"),
+        "numpy": package_version("numpy"),
+        "librosa": package_version("librosa"),
+        "soundfile": package_version("soundfile"),
+        "accelerate": package_version("accelerate"),
+    }
+    checks = [
+        major(versions["transformers"]) < 5,
+        major(versions["numpy"]) < 2,
+        major(versions["librosa"]) <= 0 or versions["librosa"].startswith("0.10."),
+        major(versions["soundfile"]) <= 0 or versions["soundfile"].startswith("0.12."),
+        major(versions["accelerate"]) < 1,
+    ]
+    print(json.dumps({"ok": all(checks), "versions": versions}))
+except Exception as e:
+    print(json.dumps({"ok": False, "error": str(e)}))
+"#;
+
+    let mut cmd = Command::new(python_exe);
+    cmd.args(["-c", script]);
+    configure_command_no_window(&mut cmd);
+
+    let output = match cmd.output() {
+        Ok(value) => value,
+        Err(error) => {
+            return (
+                false,
+                Some(format!("Failed to validate legacy package versions: {}", error)),
+            );
+        }
+    };
+
+    if !output.status.success() {
+        return (
+            false,
+            Some("Legacy package version check failed".to_string()),
+        );
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let parsed = match serde_json::from_str::<serde_json::Value>(&stdout) {
+        Ok(value) => value,
+        Err(_) => {
+            return (
+                false,
+                Some("Legacy package version check returned invalid JSON".to_string()),
+            );
+        }
+    };
+
+    if parsed.get("ok").and_then(|v| v.as_bool()).unwrap_or(false) {
+        return (true, None);
+    }
+
+    if let Some(error) = parsed.get("error").and_then(|v| v.as_str()) {
+        return (
+            false,
+            Some(format!("Legacy package version check error: {}", error)),
+        );
+    }
+
+    let versions_text = parsed
+        .get("versions")
+        .and_then(|v| v.as_object())
+        .map(|map| {
+            map.iter()
+                .map(|(key, value)| format!("{}={}", key, value.as_str().unwrap_or("unknown")))
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .unwrap_or_else(|| "unknown versions".to_string());
+
+    (
+        false,
+        Some(format!("Incompatible legacy package versions: {}", versions_text)),
+    )
+}
+
 /// Vérifie l'état de préparation des moteurs de segmentation locale.
 pub async fn check_local_segmentation_ready(
     app_handle: tauri::AppHandle,
@@ -106,6 +209,8 @@ pub async fn check_local_segmentation_ready(
                 &legacy_python,
                 LocalSegmentationEngine::LegacyWhisper.required_import_modules(),
             );
+            let (legacy_versions_ok, legacy_versions_message) =
+                check_legacy_python_versions(&legacy_python);
             let (multi_imports_ok, multi_missing_modules) = run_python_import_check(
                 &multi_python,
                 LocalSegmentationEngine::MultiAligner.required_import_modules(),
@@ -126,7 +231,7 @@ pub async fn check_local_segmentation_ready(
                     None
                 });
 
-            let legacy_packages = legacy_imports_ok;
+            let legacy_packages = legacy_imports_ok && legacy_versions_ok;
             let multi_packages = multi_imports_ok && multi_phonemizer_ok && multi_data_error.is_none();
             let legacy_ready = legacy_venv_exists && legacy_packages;
             let multi_ready = multi_venv_exists && multi_packages;
@@ -162,6 +267,11 @@ pub async fn check_local_segmentation_ready(
                             format!(
                                 "Legacy Whisper packages are incomplete (missing imports: {})",
                                 legacy_missing_modules.join(", ")
+                            )
+                        } else if let Some(version_message) = legacy_versions_message {
+                            format!(
+                                "Legacy Whisper packages need reinstall ({})",
+                                version_message
                             )
                         } else {
                             "Legacy Whisper packages are incomplete".to_string()

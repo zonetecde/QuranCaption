@@ -3,6 +3,7 @@ pub mod types;
 
 mod audio_merge;
 mod cloud;
+mod data_files;
 mod install;
 mod local;
 mod python_env;

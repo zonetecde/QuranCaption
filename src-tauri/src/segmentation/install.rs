@@ -5,6 +5,9 @@ use tauri::Emitter;
 
 use crate::utils::process::configure_command_no_window;
 
+use super::data_files::{
+    required_multi_aligner_data_files, resolve_multi_aligner_data_dir, validate_pickle_data_file,
+};
 use super::python_env::{
     apply_hf_token_env, create_venv_if_missing, get_system_python_cmd, get_venv_python_exe,
     resolve_python_resource_path,
@@ -15,6 +18,65 @@ use super::requirements::{
 use super::types::LocalSegmentationEngine;
 
 /// Installe les dépendances Python du moteur local demandé.
+/// Télécharge un fichier binaire distant et l'écrit localement.
+async fn download_binary_file(url: &str, destination_path: &std::path::Path) -> Result<(), String> {
+    let response = reqwest::get(url)
+        .await
+        .map_err(|e| format!("Failed to download '{}': {}", url, e))?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "Failed to download '{}': HTTP {}",
+            url,
+            response.status()
+        ));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read downloaded bytes from '{}': {}", url, e))?;
+    if bytes.is_empty() {
+        return Err(format!("Downloaded file from '{}' is empty", url));
+    }
+
+    fs::write(destination_path, &bytes).map_err(|e| {
+        format!(
+            "Failed to write '{}': {}",
+            destination_path.to_string_lossy(),
+            e
+        )
+    })?;
+    Ok(())
+}
+
+/// Vérifie les fichiers data du Multi-Aligner et retélécharge ceux invalides.
+async fn ensure_multi_aligner_data_files(
+    app_handle: &tauri::AppHandle,
+) -> Result<Vec<String>, String> {
+    let data_dir = resolve_multi_aligner_data_dir(app_handle)?;
+    fs::create_dir_all(&data_dir).map_err(|e| {
+        format!(
+            "Failed to create Multi-Aligner data directory '{}': {}",
+            data_dir.to_string_lossy(),
+            e
+        )
+    })?;
+
+    let mut repaired_files: Vec<String> = Vec::new();
+    for (file_name, url) in required_multi_aligner_data_files() {
+        let file_path = data_dir.join(file_name);
+        if validate_pickle_data_file(&file_path).is_ok() {
+            continue;
+        }
+
+        download_binary_file(url, &file_path).await?;
+        validate_pickle_data_file(&file_path)?;
+        repaired_files.push((*file_name).to_string());
+    }
+
+    Ok(repaired_files)
+}
+
 pub async fn install_local_segmentation_deps(
     app_handle: tauri::AppHandle,
     engine: String,
@@ -229,6 +291,15 @@ pub async fn install_local_segmentation_deps(
 
     // Installation explicite de Quranic-Phonemizer pour multi-aligner.
     if matches!(selected_engine, LocalSegmentationEngine::MultiAligner) {
+        emit_status("Checking Multi-Aligner data files...");
+        let repaired_files = ensure_multi_aligner_data_files(&app_handle).await?;
+        if !repaired_files.is_empty() {
+            emit_status(&format!(
+                "Repaired Multi-Aligner data files: {}",
+                repaired_files.join(", ")
+            ));
+        }
+
         emit_status("Installing Quranic-Phonemizer dependency...");
         if cfg!(target_os = "windows") {
             let patched_source = prepare_windows_safe_quranic_phonemizer_source(&python_exe)?;

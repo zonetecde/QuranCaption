@@ -25,6 +25,7 @@ if sys.platform == "win32":
 SCRIPT_DIR = Path(__file__).parent.absolute()
 MULTI_ALIGNER_ROOT = SCRIPT_DIR / "quran-multi-aligner"
 sys.path.insert(0, str(MULTI_ALIGNER_ROOT))
+LFS_POINTER_PREFIX = b"version https://git-lfs.github.com/spec/v1"
 
 
 def emit_status(original_stderr, step: str, message: str) -> None:
@@ -97,6 +98,34 @@ def validate_hf_model_access(token: str) -> Optional[str]:
     return None
 
 
+def validate_local_data_pickles() -> Optional[str]:
+    data_dir = MULTI_ALIGNER_ROOT / "data"
+    required = ["phoneme_cache.pkl", "phoneme_ngram_index_5.pkl"]
+
+    for file_name in required:
+        file_path = data_dir / file_name
+        if not file_path.exists():
+            return f"Missing required data file: {file_path}"
+
+        try:
+            with open(file_path, "rb") as f:
+                head = f.read(80)
+            if head.startswith(LFS_POINTER_PREFIX):
+                return (
+                    f"Invalid data file (Git LFS pointer): {file_path}. "
+                    "This file must be real binary content, not a Git LFS pointer."
+                )
+            if not head or head[0] != 0x80:
+                return (
+                    f"Invalid pickle header for data file: {file_path}. "
+                    "Expected a binary pickle file."
+                )
+        except Exception as error:
+            return f"Failed to validate data file {file_path}: {error}"
+
+    return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Local Quran Multi-Aligner wrapper")
     parser.add_argument("audio_path", help="Path to audio file")
@@ -156,6 +185,12 @@ def main() -> int:
         if token_error:
             error_payload = {"error": token_error}
         else:
+            emit_status(original_stderr, "data", "Validating local Multi-Aligner data files...")
+            data_error = validate_local_data_pickles()
+            if data_error:
+                error_payload = {"error": data_error}
+                raise RuntimeError(data_error)
+
             emit_status(original_stderr, "loading", "Loading audio file...")
             sample_rate, audio = load_audio(args.audio_path)
 

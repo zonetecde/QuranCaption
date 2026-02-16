@@ -10,7 +10,9 @@
 			</div>
 			<div>
 				<h2 class="text-xl font-semibold text-primary">Auto-Segmentation Wizard</h2>
-				<p class="text-sm text-thirdly">Guided setup for Legacy V1 and Multi-Aligner V2</p>
+				<p class="text-sm text-tertiary">
+					Guided setup to automatically add subtitles to your video
+				</p>
 			</div>
 		</div>
 

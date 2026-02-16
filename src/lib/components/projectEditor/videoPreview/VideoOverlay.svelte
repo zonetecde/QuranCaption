@@ -567,15 +567,13 @@
 			</div>
 		{/if}
 
-		<div class="relative z-1">
-			<SurahName />
-			<ReciterName />
+		<SurahName />
+		<ReciterName />
 
-			{#if currentSubtitle() instanceof SubtitleClip}
-				{@const verseSubtitle = currentSubtitle() as SubtitleClip}
-				<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
-			{/if}
-		</div>
+		{#if currentSubtitle() instanceof SubtitleClip}
+			{@const verseSubtitle = currentSubtitle() as SubtitleClip}
+			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
+		{/if}
 
 		{#each currentCustomClips() as customText}
 			{#if customText.type === 'Custom Text'}

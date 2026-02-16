@@ -443,10 +443,27 @@
 	 * Ajoute un custom text clip à la timeline entre le dernier sous-titre et la position actuelle du curseur.
 	 */
 	function addCustomTextClip(): void {
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const lastSubtitleEndTime = globalState.getSubtitleTrack.getLastClip()?.endTime;
+		const threeSecondsInMs = 3000;
+
+		let startTime = lastSubtitleEndTime ?? Math.max(0, cursorPosition - threeSecondsInMs);
+		let endTime = cursorPosition;
+
+		// Si le dernier sous-titre finit après le curseur, on crée un clip de 3s qui se termine au curseur.
+		if (lastSubtitleEndTime !== undefined && lastSubtitleEndTime > cursorPosition) {
+			startTime = Math.max(0, cursorPosition - threeSecondsInMs);
+		}
+
+		// Sécurise une plage valide même si le curseur est très tôt.
+		if (startTime > endTime) {
+			startTime = Math.max(0, endTime - threeSecondsInMs);
+		}
+
 		globalState.getVideoStyle.addCustomClip(
 			'text',
-			globalState.getSubtitleTrack.getLastClip()?.endTime ?? 0,
-			globalState.getTimelineState.cursorPosition
+			startTime,
+			endTime
 		);
 	}
 </script>

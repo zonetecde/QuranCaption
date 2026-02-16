@@ -2,7 +2,9 @@ use std::process::Command;
 
 use crate::utils::process::configure_command_no_window;
 
-use super::data_files::{required_multi_aligner_data_files, resolve_multi_aligner_data_dir, validate_pickle_data_file};
+use super::data_files::{
+    required_multi_aligner_data_files, resolve_multi_aligner_data_dir, validate_pickle_data_file,
+};
 use super::python_env::{
     get_engine_venv_path, get_system_python_cmd, get_venv_python_exe, run_python_any_import_check,
     run_python_import_check,
@@ -12,7 +14,10 @@ use super::types::LocalSegmentationEngine;
 /// Vérifie que les versions Python critiques du moteur legacy restent compatibles.
 fn check_legacy_python_versions(python_exe: &std::path::Path) -> (bool, Option<String>) {
     if !python_exe.exists() {
-        return (false, Some("Legacy Python environment not found".to_string()));
+        return (
+            false,
+            Some("Legacy Python environment not found".to_string()),
+        );
     }
 
     let script = r#"
@@ -61,7 +66,10 @@ except Exception as e:
         Err(error) => {
             return (
                 false,
-                Some(format!("Failed to validate legacy package versions: {}", error)),
+                Some(format!(
+                    "Failed to validate legacy package versions: {}",
+                    error
+                )),
             );
         }
     };
@@ -108,7 +116,10 @@ except Exception as e:
 
     (
         false,
-        Some(format!("Incompatible legacy package versions: {}", versions_text)),
+        Some(format!(
+            "Incompatible legacy package versions: {}",
+            versions_text
+        )),
     )
 }
 

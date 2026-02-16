@@ -4,6 +4,7 @@ use crate::segmentation::types::SegmentationAudioClip;
 /// Lance une segmentation Quran cloud via l'API Multi-Aligner.
 #[tauri::command]
 pub async fn segment_quran_audio(
+    app_handle: tauri::AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     min_silence_ms: Option<u32>,
@@ -13,6 +14,7 @@ pub async fn segment_quran_audio(
     device: Option<String>,
 ) -> Result<serde_json::Value, String> {
     segmentation::segment_quran_audio(
+        app_handle,
         audio_path,
         audio_clips,
         min_silence_ms,

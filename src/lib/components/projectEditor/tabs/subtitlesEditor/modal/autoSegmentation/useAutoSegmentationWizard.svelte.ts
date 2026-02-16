@@ -46,6 +46,7 @@ export function useAutoSegmentationWizard() {
 	let installingEngine = $state<'legacy' | 'multi' | null>(null);
 	let installStatus = $state('');
 	let currentStatus = $state('');
+	let currentStatusProgress = $state<number | null>(null);
 	let errorMessage = $state<string | null>(null);
 	let warningMessage = $state<string | null>(null);
 	let fallbackMessage = $state<string | null>(null);
@@ -172,12 +173,18 @@ export function useAutoSegmentationWizard() {
 		}
 	}
 
-	/** Returns a local progress listener used only for local runs. */
+	/** Returns a segmentation status listener for both local and cloud runs. */
 	async function listenSegmentationStatus(): Promise<UnlistenFn | null> {
-		if (selection.mode !== 'local') return null;
-		return listen<{ message: string }>(
+		return listen<{ message?: string; progress?: number }>(
 			'segmentation-status',
-			(event) => (currentStatus = event.payload.message)
+			(event) => {
+				if (typeof event.payload.message === 'string') currentStatus = event.payload.message;
+				if (typeof event.payload.progress === 'number') {
+					currentStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
+				} else {
+					currentStatusProgress = null;
+				}
+			}
 		);
 	}
 
@@ -214,6 +221,7 @@ export function useAutoSegmentationWizard() {
 		fallbackMessage = null;
 		cloudCpuFallbackMessage = null;
 		currentStatus = '';
+		currentStatusProgress = null;
 		const unlisten = await listenSegmentationStatus();
 		let response: AutoSegmentationResult | null = null;
 		try {
@@ -240,6 +248,7 @@ export function useAutoSegmentationWizard() {
 			unlisten?.();
 			isRunning = false;
 			currentStatus = '';
+			currentStatusProgress = null;
 			trackSegmentationRun({
 				response,
 				requestedMode: selection.mode,
@@ -395,6 +404,9 @@ export function useAutoSegmentationWizard() {
 		},
 		get currentStatus() {
 			return currentStatus;
+		},
+		get currentStatusProgress() {
+			return currentStatusProgress;
 		},
 		get errorMessage() {
 			return errorMessage;

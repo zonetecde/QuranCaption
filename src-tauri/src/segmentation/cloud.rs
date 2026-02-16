@@ -1,8 +1,12 @@
+use std::cmp::min;
 use std::fs;
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use bytes::Bytes;
+use futures_util::stream;
 use reqwest::multipart::{Form, Part};
+use tauri::Emitter;
 
 use crate::binaries;
 use crate::path_utils;
@@ -14,6 +18,21 @@ use super::types::{
     SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_PROCESS_CALL_URL,
     QURAN_MULTI_ALIGNER_UPLOAD_URL, QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
 };
+
+/// Émet un état de progression de segmentation vers le frontend.
+fn emit_cloud_status(
+    app_handle: &tauri::AppHandle,
+    step: &str,
+    message: String,
+    progress: Option<f64>,
+) {
+    let payload = serde_json::json!({
+        "step": step,
+        "message": message,
+        "progress": progress,
+    });
+    let _ = app_handle.emit("segmentation-status", payload);
+}
 
 /// Parse le flux SSE brut Gradio et renvoie le payload final (événement `complete` prioritaire).
 fn parse_process_stream_payload(sse_text: &str) -> Result<serde_json::Value, String> {
@@ -79,6 +98,7 @@ fn parse_process_stream_payload(sse_text: &str) -> Result<serde_json::Value, Str
 
 /// Exécute la segmentation cloud via Quran Multi-Aligner (upload, call, stream SSE).
 pub async fn segment_quran_audio(
+    app_handle: tauri::AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     min_silence_ms: Option<u32>,
@@ -91,6 +111,13 @@ pub async fn segment_quran_audio(
         return serde_json::from_str(QURAN_SEGMENTATION_MOCK_PAYLOAD)
             .map_err(|e| format!("Mock segmentation JSON invalid: {}", e));
     }
+
+    emit_cloud_status(
+        &app_handle,
+        "cloud_prepare",
+        "Preparing audio for cloud...".to_string(),
+        Some(0.0),
+    );
 
     // Pré-traitement cloud: merge éventuel puis encodage FLAC (pas de resample forcé).
     let ffmpeg_path =
@@ -158,12 +185,67 @@ pub async fn segment_quran_audio(
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!("ffmpeg error: {}", stderr));
     }
+    emit_cloud_status(
+        &app_handle,
+        "cloud_prepare",
+        "Audio prepared. Starting upload...".to_string(),
+        Some(0.0),
+    );
 
     let audio_bytes =
         fs::read(&temp_path).map_err(|e| format!("Failed to read FLAC audio: {}", e))?;
+    let total_bytes = audio_bytes.len() as u64;
+    if total_bytes == 0 {
+        return Err("Cloud upload payload is empty after preprocessing".to_string());
+    }
+    let total_mb = total_bytes as f64 / (1024.0 * 1024.0);
+    emit_cloud_status(
+        &app_handle,
+        "cloud_upload",
+        format!("Uploading {:.1} MB to cloud...", total_mb),
+        Some(0.0),
+    );
 
-    let client = reqwest::Client::new();
-    let upload_part = Part::bytes(audio_bytes)
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(15 * 60))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+    let bytes = Bytes::from(audio_bytes);
+    let upload_chunk_size: usize = 256 * 1024;
+    let upload_app_handle = app_handle.clone();
+    let upload_stream = stream::unfold((bytes, 0usize, 0u64), move |state| {
+        let app_handle = upload_app_handle.clone();
+        async move {
+            let (bytes, offset, last_percent) = state;
+            if offset >= bytes.len() {
+                return None;
+            }
+
+            let end = min(offset + upload_chunk_size, bytes.len());
+            let chunk = bytes.slice(offset..end);
+            let percent = ((end as f64 / bytes.len() as f64) * 100.0).min(100.0);
+            let rounded_percent = percent.floor() as u64;
+            if rounded_percent > last_percent {
+                emit_cloud_status(
+                    &app_handle,
+                    "cloud_upload",
+                    format!(
+                        "Uploading {:.1} MB to cloud... {}%",
+                        total_mb, rounded_percent
+                    ),
+                    Some(percent),
+                );
+            }
+
+            Some((
+                Ok::<Bytes, std::io::Error>(chunk),
+                (bytes, end, rounded_percent.max(last_percent)),
+            ))
+        }
+    });
+    let upload_body = reqwest::Body::wrap_stream(upload_stream);
+    let upload_part = Part::stream_with_length(upload_body, total_bytes)
         .file_name("audio.flac")
         .mime_str("audio/flac")
         .map_err(|e| e.to_string())?;
@@ -177,6 +259,12 @@ pub async fn segment_quran_audio(
         .map_err(|e| format!("Upload request failed: {}", e))?
         .error_for_status()
         .map_err(|e| format!("Upload request error: {}", e))?;
+    emit_cloud_status(
+        &app_handle,
+        "cloud_upload",
+        "Cloud upload complete. Starting segmentation...".to_string(),
+        Some(100.0),
+    );
 
     let uploaded_paths: Vec<String> = upload_response
         .json()
@@ -227,6 +315,12 @@ pub async fn segment_quran_audio(
         .map_err(|e| format!("Process call failed: {}", e))?
         .error_for_status()
         .map_err(|e| format!("Process call error: {}", e))?;
+    emit_cloud_status(
+        &app_handle,
+        "cloud_process",
+        "Cloud job accepted. Waiting for segmentation results...".to_string(),
+        Some(100.0),
+    );
     let call_json: serde_json::Value = call_response
         .json()
         .await
@@ -251,6 +345,12 @@ pub async fn segment_quran_audio(
         .map_err(|e| format!("Failed to read process stream: {}", e))?;
 
     let payload = parse_process_stream_payload(&sse_text)?;
+    emit_cloud_status(
+        &app_handle,
+        "cloud_complete",
+        "Cloud segmentation completed.".to_string(),
+        None,
+    );
     if let Some(values) = payload.as_array() {
         if let Some(first) = values.first() {
             return Ok(first.clone());

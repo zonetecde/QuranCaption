@@ -3338,10 +3338,12 @@ dependencies = [
 name = "qurancaption"
 version = "3.3.3"
 dependencies = [
+ "bytes",
  "dirs",
  "discord-rich-presence",
  "fix-path-env",
  "font-kit",
+ "futures-util",
  "image",
  "lazy_static",
  "log",

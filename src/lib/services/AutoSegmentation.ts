@@ -734,9 +734,6 @@ export async function runAutoSegmentation(
 			padMs
 		};
 
-		const getErrorMessage = (error: unknown): string =>
-			error instanceof Error ? error.message : String(error);
-
 		const invokeCloudWithDevice = async (targetDevice: SegmentationDevice): Promise<unknown> =>
 			await invoke('segment_quran_audio', {
 				...basePayload,
@@ -744,23 +741,7 @@ export async function runAutoSegmentation(
 				device: targetDevice
 			});
 
-		const invokeCloud = async (): Promise<unknown> => {
-			try {
-				return await invokeCloudWithDevice(device);
-			} catch (cloudError) {
-				const cloudErrorMessage = getErrorMessage(cloudError).toLowerCase();
-				const shouldRetryOnCpu =
-					device === 'GPU' && cloudErrorMessage.includes('cloud segmentation stream error: null');
-
-				if (!shouldRetryOnCpu) throw cloudError;
-
-				console.warn(
-					'[AutoSegmentation] Cloud GPU failed with null stream error, retrying on CPU.'
-				);
-				cloudGpuFallbackToCpu = true;
-				return await invokeCloudWithDevice('CPU');
-			}
-		};
+		const invokeCloud = async (): Promise<unknown> => await invokeCloudWithDevice(device);
 
 		const invokeLocal = async (): Promise<unknown> => {
 			if (localAsrMode === 'legacy_whisper') {

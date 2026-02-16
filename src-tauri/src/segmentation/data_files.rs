@@ -44,8 +44,13 @@ pub(crate) fn validate_pickle_data_file(path: &Path) -> Result<(), String> {
         return Err(format!("Missing data file: {}", path.to_string_lossy()));
     }
 
-    let head = fs::read(path)
-        .map_err(|e| format!("Unable to read data file '{}': {}", path.to_string_lossy(), e))?;
+    let head = fs::read(path).map_err(|e| {
+        format!(
+            "Unable to read data file '{}': {}",
+            path.to_string_lossy(),
+            e
+        )
+    })?;
     let head = &head[..head.len().min(128)];
 
     if is_lfs_pointer(head) {
@@ -64,4 +69,3 @@ pub(crate) fn validate_pickle_data_file(path: &Path) -> Result<(), String> {
 
     Ok(())
 }
-

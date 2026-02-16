@@ -15,6 +15,20 @@
 					? 'Sending audio to cloud...'
 					: 'Running local segmentation...')}
 		</div>
+		{#if wizard.currentStatusProgress !== null}
+			<div class="mt-3">
+				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">
+					<span>Upload progress</span>
+					<span>{Math.round(wizard.currentStatusProgress)}%</span>
+				</div>
+				<div class="h-2 overflow-hidden rounded-full bg-thirdly/25">
+					<div
+						class="h-full rounded-full bg-accent-primary transition-all duration-200"
+						style={`width: ${wizard.currentStatusProgress}%`}
+					></div>
+				</div>
+			</div>
+		{/if}
 	</div>
 {:else if wizard.result && wizard.result.status === 'completed'}
 	<div class="rounded-xl border border-color bg-accent px-4 py-3 space-y-2">

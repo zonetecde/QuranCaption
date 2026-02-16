@@ -154,6 +154,7 @@ export class AssetClip extends Clip {
 export class ClipWithTranslation extends Clip {
 	translations: { [key: string]: Translation } = $state({});
 	text: string = $state('');
+	associatedImagePath: string | null = $state(null);
 	comeFromIA: boolean = $state(false);
 	confidence: number | null = $state(null); // Entre 0 et 1
 	needsReview: boolean = $state(false); // Vrai si c'est un segment à low-confidence et qu'il n'a pas encore été reviewé
@@ -195,6 +196,18 @@ export class ClipWithTranslation extends Clip {
 
 	getText(): string {
 		return this.text;
+	}
+
+	getAssociatedImagePath(): string | null {
+		return this.associatedImagePath;
+	}
+
+	hasAssociatedImage(): boolean {
+		return !!this.associatedImagePath;
+	}
+
+	setAssociatedImagePath(path: string | null): void {
+		this.associatedImagePath = path;
 	}
 }
 
@@ -311,7 +324,7 @@ export class SubtitleClip extends ClipWithTranslation {
 	 * @returns Un nouveau SubtitleClip avec les mêmes propriétés mais des timestamps différents.
 	 */
 	cloneWithTimes(newStartTime: number, newEndTime: number): SubtitleClip {
-		return new SubtitleClip(
+		const clonedClip = new SubtitleClip(
 			newStartTime,
 			newEndTime,
 			this.surah,
@@ -329,6 +342,9 @@ export class SubtitleClip extends ClipWithTranslation {
 				])
 			)
 		);
+
+		clonedClip.associatedImagePath = this.associatedImagePath;
+		return clonedClip;
 	}
 }
 

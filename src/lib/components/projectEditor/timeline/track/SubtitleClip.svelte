@@ -13,7 +13,8 @@
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, tick } from 'svelte';
+	import { open } from '@tauri-apps/plugin-dialog';
 
 	let {
 		clip = $bindable(),
@@ -36,6 +37,17 @@
 	// Détecte s'il existe des overrides de style pour ce clip (utilise VideoStyle)
 	const hasOverrides = $derived(() => {
 		return globalState.getVideoStyle.hasAnyOverrideForClip(clip.id);
+	});
+
+	/**
+	 * Affiche l'icône d'image sur les clips de sous-titres s'il en existe au moins un qui a une image associée
+	 */
+	const showImageIconOnAllSubtitleClips = $derived(() => {
+		const clips = globalState.getSubtitleTrack?.clips ?? [];
+		return clips.some(
+			(c) =>
+				(c instanceof SubtitleClip || c instanceof PredefinedSubtitleClip) && c.hasAssociatedImage()
+		);
 	});
 
 	const isSelected = $derived(() => {
@@ -118,7 +130,7 @@
 	}
 
 	function addSilence(): void {
-		// Ajoute un silence à gauche du clip
+		// Add a silence clip on the left of the current subtitle clip.
 		(track as SubtitleTrack).addSilence(clip.id);
 	}
 
@@ -139,6 +151,40 @@
 
 	function editStyle(e: MouseEvent): void {
 		clipClicked();
+	}
+
+	async function selectLinkedImage(event?: MouseEvent): Promise<void> {
+		if (event) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
+
+		const result = await open({
+			multiple: false,
+			directory: false,
+			filters: [
+				{
+					name: 'Image Files',
+					extensions: ['png', 'jpg', 'jpeg', 'gif']
+				}
+			]
+		});
+
+		if (!result || Array.isArray(result)) return;
+
+		clip.setAssociatedImagePath(result);
+		globalState.updateVideoPreviewUI();
+	}
+
+	async function selectLinkedImageFromContextMenu(): Promise<void> {
+		currentMenu.set(null);
+		await tick();
+		await selectLinkedImage();
+	}
+
+	function removeLinkedImage(): void {
+		clip.setAssociatedImagePath(null);
+		globalState.updateVideoPreviewUI();
 	}
 
 	function clipClicked() {
@@ -202,15 +248,29 @@
 	onclick={handleClipClick}
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
-		<!-- Icône override (haut gauche) -->
-		{#if hasOverrides()}
-			<span
-				class="material-icons-outlined text-[10px] absolute top-0.5 left-0.5 opacity-80"
-				title="Styles individuels appliqués"
-			>
-				auto_fix_high
-			</span>
-		{/if}
+		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
+			{#if hasOverrides()}
+				<span
+					class="material-icons-outlined text-[10px] opacity-80"
+					title="Styles individuels appliqués"
+				>
+					auto_fix_high
+				</span>
+			{/if}
+
+				{#if showImageIconOnAllSubtitleClips()}
+					<span
+						class={'material-icons-outlined text-[17px]! cursor-pointer transition-opacity ' +
+							(clip.hasAssociatedImage() ? 'opacity-90' : 'opacity-20 hover:opacity-90')}
+						title={clip.hasAssociatedImage()
+							? 'Linked image on this clip'
+							: 'A linked image exists on another clip'}
+						onclick={selectLinkedImage}
+					>
+						image
+					</span>
+				{/if}
+		</div>
 
 		<div class="absolute inset-0 z-5 flex px-2 py-2">
 			<div class="w-full h-full flex flex-col justify-center items-center gap-1">
@@ -298,6 +358,23 @@
 			}}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split subtitle
+			</div></Item
+		>
+	{/if}
+	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
+		<Item on:click={selectLinkedImageFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">image</span>{clip.hasAssociatedImage()
+					? 'Change linked image'
+					: 'Link image'}
+			</div></Item
+		>
+	{/if}
+	{#if (clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle') && clip.hasAssociatedImage()}
+		<Item on:click={removeLinkedImage}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">image_not_supported</span>Remove linked
+				image
 			</div></Item
 		>
 	{/if}

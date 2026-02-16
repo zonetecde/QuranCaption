@@ -228,6 +228,10 @@ export class SubtitleTrack extends Track {
 
 		// Modiife le clip existant ou le remplace par le nouveau clip pré-défini
 		if (newSubtitleClip) {
+			if (newSubtitleClip instanceof ClipWithTranslation && subtitle instanceof ClipWithTranslation) {
+				newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
+			}
+
 			const clipIndex = this.clips.findIndex((clip) => clip.id === subtitle.id);
 			if (clipIndex !== -1) {
 				this.clips[clipIndex] = newSubtitleClip;
@@ -276,6 +280,9 @@ export class SubtitleTrack extends Track {
 				subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
 				subtitlesProperties.translations // translations
 			);
+			if (subtitle instanceof ClipWithTranslation) {
+				newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
+			}
 
 			// Remplace l'ancien clip par le nouveau dans le tableau clips
 			const clipIndex = this.clips.findIndex((clip) => clip.id === subtitle!.id);
@@ -350,7 +357,7 @@ export class SubtitleTrack extends Track {
 			// Créer le deuxième clip avec les mêmes propriétés
 			newClip = clip.cloneWithTimes(splitTime, originalEndTime);
 		} else if (clip instanceof PredefinedSubtitleClip) {
-			newClip = new PredefinedSubtitleClip(
+			const newPredefinedClip = new PredefinedSubtitleClip(
 				splitTime,
 				originalEndTime,
 				clip.predefinedSubtitleType,
@@ -358,12 +365,14 @@ export class SubtitleTrack extends Track {
 				clip.comeFromIA,
 				clip.confidence
 			);
-			newClip.translations = Object.fromEntries(
+			newPredefinedClip.translations = Object.fromEntries(
 				Object.entries(clip.translations || {}).map(([key, t]) => [
 					key,
 					typeof (t as any)?.clone === 'function' ? (t as any).clone() : { ...(t as any) }
 				])
 			);
+			newPredefinedClip.associatedImagePath = clip.associatedImagePath;
+			newClip = newPredefinedClip;
 		} else {
 			newClip = new SilenceClip(splitTime, originalEndTime);
 		}

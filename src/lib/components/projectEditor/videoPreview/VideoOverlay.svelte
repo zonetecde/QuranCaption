@@ -11,6 +11,7 @@
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { PredefinedSubtitleClip } from '$lib/classes';
+	import { convertFileSrc } from '@tauri-apps/api/core';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
@@ -76,6 +77,22 @@
 		return untrack(() => {
 			return globalState.getCustomClipTrack.getCurrentClips();
 		});
+	});
+
+	let subtitleImageFailedToLoad = $state(false);
+
+	let currentSubtitleImagePath = $derived(() => {
+		const subtitle = currentSubtitle();
+		if (!subtitle) return null;
+		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
+			return null;
+
+		return subtitle.getAssociatedImagePath();
+	});
+
+	$effect(() => {
+		currentSubtitleImagePath();
+		subtitleImageFailedToLoad = false;
 	});
 
 	// Calcul de l'opacité des sous-titres (prend en compte les overrides par clip)
@@ -436,22 +453,32 @@
 </script>
 
 <div class="inset-0 absolute" style="" id="overlay">
+	{#if currentSubtitleImagePath() && !subtitleImageFailedToLoad}
+		<div
+			class="absolute inset-0 z-0 pointer-events-none select-none"
+			style={`opacity: ${subtitleOpacity('arabic')}; background-image: url('${convertFileSrc(currentSubtitleImagePath()!)}'); background-size: contain; background-position: center; background-repeat: no-repeat;`}
+		></div>
+	{/if}
+
 	{#if overlaySettings().enable}
 		<div
-			class="absolute inset-0"
+			class="absolute inset-0 z-0"
 			style="
 					background-color: {overlaySettings().color};
 					opacity: {overlaySettings().opacity}; {overlaySettings().customCSS};
 				"
 		></div>
 
-		<div class="absolute inset-0" style="backdrop-filter: blur({overlaySettings().blur}px);"></div>
+		<div
+			class="absolute inset-0 z-0"
+			style="backdrop-filter: blur({overlaySettings().blur}px);"
+		></div>
 	{/if}
 
 	<!-- Backgrounds des sous-titres: toujours visibles, basés sur le dernier/next sous-titre -->
 	<div
 		id="subtitles-backgrounds"
-		class="absolute inset-0 flex flex-col items-center justify-center"
+		class="absolute inset-0 z-1 flex flex-col items-center justify-center"
 	>
 		<!-- Background arabe -->
 		<div
@@ -480,7 +507,7 @@
 			{@const subtitle = currentSubtitle()}
 			<div
 				id="subtitles-container"
-				class="absolute inset-0 flex flex-col items-center justify-center"
+				class="absolute inset-0 z-1 flex flex-col items-center justify-center"
 				style="opacity: 1;"
 			>
 				{#if subtitle && subtitle.id}
@@ -540,13 +567,15 @@
 			</div>
 		{/if}
 
-		<SurahName />
-		<ReciterName />
+		<div class="relative z-1">
+			<SurahName />
+			<ReciterName />
 
-		{#if currentSubtitle() instanceof SubtitleClip}
-			{@const verseSubtitle = currentSubtitle() as SubtitleClip}
-			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
-		{/if}
+			{#if currentSubtitle() instanceof SubtitleClip}
+				{@const verseSubtitle = currentSubtitle() as SubtitleClip}
+				<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
+			{/if}
+		</div>
 
 		{#each currentCustomClips() as customText}
 			{#if customText.type === 'Custom Text'}

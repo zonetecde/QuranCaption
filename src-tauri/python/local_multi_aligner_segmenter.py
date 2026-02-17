@@ -27,6 +27,14 @@ SCRIPT_DIR = Path(__file__).parent.absolute()
 MULTI_ALIGNER_ROOT = SCRIPT_DIR / "quran-multi-aligner"
 sys.path.insert(0, str(MULTI_ALIGNER_ROOT))
 LFS_POINTER_PREFIX = b"version https://git-lfs.github.com/spec/v1"
+DATA_FILE_URLS = {
+    "phoneme_cache.pkl": "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/phoneme_cache.pkl?download=true",
+    "phoneme_ngram_index_5.pkl": "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/phoneme_ngram_index_5.pkl?download=true",
+    "qpc_hafs.json": "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/qpc_hafs.json?download=true",
+    "surah_info.json": "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/surah_info.json?download=true",
+    "digital_khatt_v2_script.json": "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/digital_khatt_v2_script.json?download=true",
+    "phoneme_sub_costs.json": "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/phoneme_sub_costs.json?download=true",
+}
 
 
 def emit_status(original_stderr, step: str, message: str) -> None:
@@ -99,7 +107,7 @@ def validate_hf_model_access(token: str) -> Optional[str]:
     return None
 
 
-def validate_local_data_pickles() -> Optional[str]:
+def validate_local_data_pickles(status_writer=None) -> Optional[str]:
     data_dir = MULTI_ALIGNER_ROOT / "data"
     required_pickles = ["phoneme_cache.pkl", "phoneme_ngram_index_5.pkl"]
     required_json = [
@@ -109,49 +117,126 @@ def validate_local_data_pickles() -> Optional[str]:
         "phoneme_sub_costs.json",
     ]
 
+    def emit(step: str, message: str) -> None:
+        if callable(status_writer):
+            try:
+                status_writer(step, message)
+            except Exception:
+                pass
+
+    def download_data_file(file_name: str, file_path: Path) -> Optional[str]:
+        url = DATA_FILE_URLS.get(file_name)
+        if not url:
+            return f"No download URL configured for data file: {file_name}"
+
+        try:
+            emit("data", f"Repairing local data file: {file_name}...")
+            request = urllib.request.Request(
+                url,
+                headers={"User-Agent": "QuranCaption/3"},
+                method="GET",
+            )
+            with urllib.request.urlopen(request, timeout=120) as response:
+                payload = response.read()
+            if not payload:
+                return f"Downloaded empty payload for: {file_name}"
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(payload)
+            return None
+        except Exception as error:
+            return f"Failed to download {file_name}: {error}"
+
     for file_name in required_pickles:
         file_path = data_dir / file_name
         if not file_path.exists():
-            return f"Missing required data file: {file_path}"
+            download_error = download_data_file(file_name, file_path)
+            if download_error:
+                return f"Missing required data file: {file_path} ({download_error})"
 
         try:
             with open(file_path, "rb") as f:
                 head = f.read(80)
             if head.startswith(LFS_POINTER_PREFIX):
-                return (
-                    f"Invalid data file (Git LFS pointer): {file_path}. "
-                    "This file must be real binary content, not a Git LFS pointer."
-                )
+                download_error = download_data_file(file_name, file_path)
+                if download_error:
+                    return (
+                        f"Invalid data file (Git LFS pointer): {file_path}. "
+                        f"Auto-repair failed: {download_error}"
+                    )
+                with open(file_path, "rb") as f:
+                    head = f.read(80)
+                if head.startswith(LFS_POINTER_PREFIX):
+                    return (
+                        f"Invalid data file (Git LFS pointer): {file_path}. "
+                        "This file must be real binary content, not a Git LFS pointer."
+                    )
             if not head or head[0] != 0x80:
-                return (
-                    f"Invalid pickle header for data file: {file_path}. "
-                    "Expected a binary pickle file."
-                )
+                download_error = download_data_file(file_name, file_path)
+                if download_error:
+                    return (
+                        f"Invalid pickle header for data file: {file_path}. "
+                        f"Auto-repair failed: {download_error}"
+                    )
+                with open(file_path, "rb") as f:
+                    head = f.read(80)
+                if not head or head[0] != 0x80:
+                    return (
+                        f"Invalid pickle header for data file: {file_path}. "
+                        "Expected a binary pickle file."
+                    )
         except Exception as error:
             return f"Failed to validate data file {file_path}: {error}"
 
     for file_name in required_json:
         file_path = data_dir / file_name
         if not file_path.exists():
-            return f"Missing required data file: {file_path}"
+            download_error = download_data_file(file_name, file_path)
+            if download_error:
+                return f"Missing required data file: {file_path} ({download_error})"
 
         try:
             with open(file_path, "rb") as f:
                 head = f.read(256)
             if head.startswith(LFS_POINTER_PREFIX):
-                return (
-                    f"Invalid data file (Git LFS pointer): {file_path}. "
-                    "This file must be real JSON content, not a Git LFS pointer."
-                )
+                download_error = download_data_file(file_name, file_path)
+                if download_error:
+                    return (
+                        f"Invalid data file (Git LFS pointer): {file_path}. "
+                        f"Auto-repair failed: {download_error}"
+                    )
+                with open(file_path, "rb") as f:
+                    head = f.read(256)
+                if head.startswith(LFS_POINTER_PREFIX):
+                    return (
+                        f"Invalid data file (Git LFS pointer): {file_path}. "
+                        "This file must be real JSON content, not a Git LFS pointer."
+                    )
             if not head.strip().startswith((b"{", b"[")):
-                return (
-                    f"Invalid JSON header for data file: {file_path}. "
-                    "Expected a JSON file."
-                )
+                download_error = download_data_file(file_name, file_path)
+                if download_error:
+                    return (
+                        f"Invalid JSON header for data file: {file_path}. "
+                        f"Auto-repair failed: {download_error}"
+                    )
+                with open(file_path, "rb") as f:
+                    head = f.read(256)
+                if not head.strip().startswith((b"{", b"[")):
+                    return (
+                        f"Invalid JSON header for data file: {file_path}. "
+                        "Expected a JSON file."
+                    )
             with open(file_path, "r", encoding="utf-8") as f:
                 json.load(f)
         except json.JSONDecodeError as error:
-            return f"Invalid JSON data file {file_path}: {error}"
+            download_error = download_data_file(file_name, file_path)
+            if download_error:
+                return f"Invalid JSON data file {file_path}: {error} (auto-repair failed: {download_error})"
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    json.load(f)
+            except Exception as second_error:
+                return f"Invalid JSON data file {file_path}: {second_error}"
         except Exception as error:
             return f"Failed to validate data file {file_path}: {error}"
 
@@ -218,7 +303,9 @@ def main() -> int:
             error_payload = {"error": token_error}
         else:
             emit_status(original_stderr, "data", "Validating local Multi-Aligner data files...")
-            data_error = validate_local_data_pickles()
+            data_error = validate_local_data_pickles(
+                lambda step, message: emit_status(original_stderr, step, message)
+            )
             if data_error:
                 error_payload = {"error": data_error}
                 raise RuntimeError(data_error)

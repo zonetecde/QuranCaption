@@ -3,7 +3,8 @@ use std::process::Command;
 use crate::utils::process::configure_command_no_window;
 
 use super::data_files::{
-    required_multi_aligner_data_files, resolve_multi_aligner_data_dir, validate_pickle_data_file,
+    required_multi_aligner_data_files, resolve_multi_aligner_data_dir,
+    validate_multi_aligner_data_file,
 };
 use super::python_env::{
     get_engine_venv_path, get_system_python_cmd, get_venv_python_exe, run_python_any_import_check,
@@ -235,7 +236,7 @@ pub async fn check_local_segmentation_ready(
                 .and_then(|data_dir| {
                     for (file_name, _) in required_multi_aligner_data_files() {
                         let file_path = data_dir.join(file_name);
-                        if let Err(error) = validate_pickle_data_file(&file_path) {
+                        if let Err(error) = validate_multi_aligner_data_file(&file_path) {
                             return Some(error);
                         }
                     }

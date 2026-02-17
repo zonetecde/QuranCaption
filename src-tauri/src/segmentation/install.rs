@@ -6,7 +6,8 @@ use tauri::Emitter;
 use crate::utils::process::configure_command_no_window;
 
 use super::data_files::{
-    required_multi_aligner_data_files, resolve_multi_aligner_data_dir, validate_pickle_data_file,
+    required_multi_aligner_data_files, resolve_multi_aligner_data_dir,
+    validate_multi_aligner_data_file,
 };
 use super::python_env::{
     apply_hf_token_env, create_venv_if_missing, get_system_python_cmd, get_venv_python_exe,
@@ -65,12 +66,12 @@ async fn ensure_multi_aligner_data_files(
     let mut repaired_files: Vec<String> = Vec::new();
     for (file_name, url) in required_multi_aligner_data_files() {
         let file_path = data_dir.join(file_name);
-        if validate_pickle_data_file(&file_path).is_ok() {
+        if validate_multi_aligner_data_file(&file_path).is_ok() {
             continue;
         }
 
         download_binary_file(url, &file_path).await?;
-        validate_pickle_data_file(&file_path)?;
+        validate_multi_aligner_data_file(&file_path)?;
         repaired_files.push((*file_name).to_string());
     }
 

@@ -11,6 +11,7 @@ import io
 import json
 import os
 import sys
+import traceback
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -100,9 +101,15 @@ def validate_hf_model_access(token: str) -> Optional[str]:
 
 def validate_local_data_pickles() -> Optional[str]:
     data_dir = MULTI_ALIGNER_ROOT / "data"
-    required = ["phoneme_cache.pkl", "phoneme_ngram_index_5.pkl"]
+    required_pickles = ["phoneme_cache.pkl", "phoneme_ngram_index_5.pkl"]
+    required_json = [
+        "qpc_hafs.json",
+        "surah_info.json",
+        "digital_khatt_v2_script.json",
+        "phoneme_sub_costs.json",
+    ]
 
-    for file_name in required:
+    for file_name in required_pickles:
         file_path = data_dir / file_name
         if not file_path.exists():
             return f"Missing required data file: {file_path}"
@@ -120,6 +127,31 @@ def validate_local_data_pickles() -> Optional[str]:
                     f"Invalid pickle header for data file: {file_path}. "
                     "Expected a binary pickle file."
                 )
+        except Exception as error:
+            return f"Failed to validate data file {file_path}: {error}"
+
+    for file_name in required_json:
+        file_path = data_dir / file_name
+        if not file_path.exists():
+            return f"Missing required data file: {file_path}"
+
+        try:
+            with open(file_path, "rb") as f:
+                head = f.read(256)
+            if head.startswith(LFS_POINTER_PREFIX):
+                return (
+                    f"Invalid data file (Git LFS pointer): {file_path}. "
+                    "This file must be real JSON content, not a Git LFS pointer."
+                )
+            if not head.strip().startswith((b"{", b"[")):
+                return (
+                    f"Invalid JSON header for data file: {file_path}. "
+                    "Expected a JSON file."
+                )
+            with open(file_path, "r", encoding="utf-8") as f:
+                json.load(f)
+        except json.JSONDecodeError as error:
+            return f"Invalid JSON data file {file_path}: {error}"
         except Exception as error:
             return f"Failed to validate data file {file_path}: {error}"
 
@@ -214,9 +246,16 @@ def main() -> int:
                     error_payload = {"error": "Pipeline returned no JSON output"}
                 else:
                     result_payload = json_output
+    except json.JSONDecodeError as exc:
+        error_payload = {
+            "error": (
+                f"Invalid JSON content detected ({exc}). "
+                "A local Multi-Aligner data file is likely corrupted or still a Git LFS pointer. "
+                "Reinstall Multi-Aligner local dependencies from the app."
+            ),
+            "details": traceback.format_exc(),
+        }
     except Exception as exc:
-        import traceback
-
         error_payload = {"error": str(exc), "details": traceback.format_exc()}
     finally:
         if not args.verbose and devnull is not None:

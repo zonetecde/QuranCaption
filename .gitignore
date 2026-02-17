@@ -34,3 +34,4 @@ ffmpeg_failed_*.txt
 tmp/
 src-tauri/python/segment_core/__pycache__/
 src-tauri/usage_logs/
+src-tauri/python/__pycache__/

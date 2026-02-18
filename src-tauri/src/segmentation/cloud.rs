@@ -4,7 +4,7 @@ use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use bytes::Bytes;
-use futures_util::stream;
+use futures_util::{stream, StreamExt};
 use reqwest::multipart::{Form, Part};
 use tauri::Emitter;
 
@@ -34,66 +34,82 @@ fn emit_cloud_status(
     let _ = app_handle.emit("segmentation-status", payload);
 }
 
-/// Parse le flux SSE brut Gradio et renvoie le payload final (événement `complete` prioritaire).
-fn parse_process_stream_payload(sse_text: &str) -> Result<serde_json::Value, String> {
-    let mut current_event = String::new();
-    let mut current_data = String::new();
-    let mut latest_payload: Option<serde_json::Value> = None;
-    let mut complete_payload: Option<serde_json::Value> = None;
+/// Maintient l'état d'analyse d'un flux SSE Gradio et extrait le payload final.
+#[derive(Default)]
+struct SseAccumulator {
+    current_event: String,
+    current_data: String,
+    latest_payload: Option<serde_json::Value>,
+    complete_payload: Option<serde_json::Value>,
+}
 
-    for raw_line in sse_text.lines().chain(std::iter::once("")) {
-        let line = raw_line.trim_end();
+impl SseAccumulator {
+    /// Ingère une ligne SSE; renvoie `Some(payload)` dès qu'un événement `complete` est reçu.
+    fn push_line(&mut self, line: &str) -> Result<Option<serde_json::Value>, String> {
+        let line = line.trim_end_matches('\r');
         if line.is_empty() {
-            let data_block = current_data.trim();
-            if !data_block.is_empty() {
-                if data_block == "[DONE]" {
-                    current_event.clear();
-                    current_data.clear();
-                    continue;
-                }
-
-                let payload: serde_json::Value = serde_json::from_str(data_block)
-                    .map_err(|e| format!("Failed to parse process stream payload: {}", e))?;
-                if current_event == "error" {
-                    if let Some(error_message) =
-                        payload.get("error").and_then(|value| value.as_str())
-                    {
-                        return Err(format!(
-                            "Cloud segmentation stream error: {}",
-                            error_message
-                        ));
-                    }
-                    return Err(format!("Cloud segmentation stream error: {}", payload));
-                }
-
-                if !payload.is_null() {
-                    latest_payload = Some(payload.clone());
-                    if current_event == "complete" {
-                        complete_payload = Some(payload);
-                    }
-                }
-            }
-
-            current_event.clear();
-            current_data.clear();
-            continue;
+            return self.flush_event();
         }
-
         if let Some(event_value) = line.strip_prefix("event:") {
-            current_event = event_value.trim().to_string();
-            continue;
+            self.current_event = event_value.trim().to_string();
+            return Ok(None);
         }
         if let Some(data_value) = line.strip_prefix("data:") {
-            if !current_data.is_empty() {
-                current_data.push('\n');
+            if !self.current_data.is_empty() {
+                self.current_data.push('\n');
             }
-            current_data.push_str(data_value.trim());
+            self.current_data.push_str(data_value.trim());
         }
+        Ok(None)
     }
 
-    complete_payload
-        .or(latest_payload)
-        .ok_or_else(|| "Process stream ended without a result".to_string())
+    /// Finalise un bloc SSE (séparé par une ligne vide) et gère les événements d'erreur.
+    fn flush_event(&mut self) -> Result<Option<serde_json::Value>, String> {
+        let data_block = self.current_data.trim();
+        if data_block.is_empty() {
+            self.current_event.clear();
+            self.current_data.clear();
+            return Ok(None);
+        }
+        if data_block == "[DONE]" {
+            self.current_event.clear();
+            self.current_data.clear();
+            return Ok(None);
+        }
+
+        let payload: serde_json::Value = serde_json::from_str(data_block)
+            .map_err(|e| format!("Failed to parse process stream payload: {}", e))?;
+        if self.current_event == "error" {
+            if let Some(error_message) = payload.get("error").and_then(|value| value.as_str()) {
+                return Err(format!("Cloud segmentation stream error: {}", error_message));
+            }
+            return Err(format!("Cloud segmentation stream error: {}", payload));
+        }
+
+        if !payload.is_null() {
+            self.latest_payload = Some(payload.clone());
+            if self.current_event == "complete" {
+                self.complete_payload = Some(payload.clone());
+                self.current_event.clear();
+                self.current_data.clear();
+                return Ok(Some(payload));
+            }
+        }
+
+        self.current_event.clear();
+        self.current_data.clear();
+        Ok(None)
+    }
+
+    /// Retourne le meilleur payload disponible à la fin du flux (`complete` prioritaire).
+    fn finish(mut self) -> Result<serde_json::Value, String> {
+        if let Some(payload) = self.flush_event()? {
+            return Ok(payload);
+        }
+        self.complete_payload
+            .or(self.latest_payload)
+            .ok_or_else(|| "Process stream ended without a result".to_string())
+    }
 }
 
 /// Exécute la segmentation cloud via Quran Multi-Aligner (upload, call, stream SSE).
@@ -212,7 +228,6 @@ pub async fn segment_quran_audio(
 
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(20))
-        .timeout(Duration::from_secs(15 * 60))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
     let bytes = Bytes::from(audio_bytes);
@@ -339,16 +354,55 @@ pub async fn segment_quran_audio(
         "{}/call/process_audio_session/{}",
         QURAN_MULTI_ALIGNER_BASE_URL, event_id
     );
-    let sse_text = client
+    let stream_response = client
         .get(&stream_url)
         .send()
         .await
         .map_err(|e| format!("Process stream request failed: {}", e))?
-        .text()
-        .await
-        .map_err(|e| format!("Failed to read process stream: {}", e))?;
+        .error_for_status()
+        .map_err(|e| format!("Process stream request error: {}", e))?;
 
-    let payload = parse_process_stream_payload(&sse_text)?;
+    let mut sse_parser = SseAccumulator::default();
+    let mut buffered_bytes: Vec<u8> = Vec::new();
+    let mut completed_payload: Option<serde_json::Value> = None;
+    let mut stream = stream_response.bytes_stream();
+
+    'stream_loop: while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.map_err(|e| format!("Failed to read process stream: {}", e))?;
+        if chunk.is_empty() {
+            continue;
+        }
+
+        buffered_bytes.extend_from_slice(&chunk);
+        while let Some(newline_pos) = buffered_bytes.iter().position(|byte| *byte == b'\n') {
+            let line_bytes = buffered_bytes.drain(..=newline_pos).collect::<Vec<u8>>();
+            let mut line_slice = line_bytes.as_slice();
+            if line_slice.ends_with(b"\n") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+            if line_slice.ends_with(b"\r") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+            let line = String::from_utf8_lossy(line_slice);
+            if let Some(payload) = sse_parser.push_line(&line)? {
+                completed_payload = Some(payload);
+                break 'stream_loop;
+            }
+        }
+    }
+
+    if completed_payload.is_none() && !buffered_bytes.is_empty() {
+        let trailing_line = String::from_utf8_lossy(&buffered_bytes);
+        if let Some(payload) = sse_parser.push_line(&trailing_line)? {
+            completed_payload = Some(payload);
+        }
+    }
+
+    let payload = if let Some(payload) = completed_payload {
+        payload
+    } else {
+        sse_parser.finish()?
+    };
     emit_cloud_status(
         &app_handle,
         "cloud_complete",

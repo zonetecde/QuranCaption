@@ -1005,6 +1005,17 @@
 				"linkmin": "/translations/en-mustafakhattab/{chapter}.json"
 			},
 			{
+				"key": "eng_saheehinternational_2",
+				"name": "eng-saheehinternational-2",
+				"author": "Saheeh International (New Version)",
+				"language": "English",
+				"direction": "ltr",
+				"source": "qul.tarteel.ai",
+				"comments": "Saheeh International",
+				"link": "/translations/en-saheehinternational-2/saheehinternational-2.json",
+				"linkmin": "/translations/en-saheehinternational-2/saheehinternational-2.json"
+			},
+			{
 				"key": "eng_saheehinternational",
 				"name": "eng-saheehinternational",
 				"author": "Saheeh International",

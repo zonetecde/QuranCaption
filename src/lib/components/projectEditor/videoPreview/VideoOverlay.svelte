@@ -13,6 +13,9 @@
 	import { PredefinedSubtitleClip } from '$lib/classes';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 
+	const ARABIC_BRACKET_CLOSE = '\uFD3F';
+	const ARABIC_BRACKET_OPEN = '\uFD3E';
+
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
 	});
@@ -75,10 +78,32 @@
 		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
 	});
 
-	function getArabicSubtitleText(subtitle: SubtitleClip | PredefinedSubtitleClip): string {
-		const baseText = subtitle.getText();
-		if (!showDecorativeBrackets() || !baseText.trim()) return baseText;
-		return `﴾ ${baseText} ﴿`;
+	let decorativeBracketsFontFamily = $derived(() => {
+		return String(
+			globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'Hafs'
+		);
+	});
+
+	/**
+	 * Génère le CSS pour les crochets décoratifs en fonction de la police sélectionnée.
+	 * Petites retouches de positionnement et d'échelle pour chaque police.
+	 */
+	function getDecorativeBracketCss(): string {
+		const fontFamily = decorativeBracketsFontFamily();
+		let transform = '';
+
+		if (fontFamily === 'Aref Ruqaa') {
+			transform = 'translateY(-25px) scale(1.2)';
+		} else if (fontFamily === 'Markazi Text') {
+			transform = 'translateY(10px) scale(1.5)';
+		} else if (fontFamily === 'Lateef') {
+			transform = 'translateY(-10px) scale(1.6)';
+		} else if (fontFamily === 'Noto Naskh Arabic') {
+			transform = 'scale(1.1)';
+		}
+
+		const transformCss = transform ? `transform: ${transform};` : '';
+		return `font-family: '${fontFamily}', serif; display: inline-block; ${transformCss}`;
 	}
 
 	// Contient les textes custom à afficher à ce moment précis
@@ -539,7 +564,14 @@
 						])};"
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
-							{getArabicSubtitleText(subtitle)}
+							{@const arabicText = subtitle.getText()}
+							{#if showDecorativeBrackets() && arabicText.trim()}
+								<span style={getDecorativeBracketCss()}>{ARABIC_BRACKET_OPEN}</span>{' '}
+								<span>{arabicText}</span>{' '}
+								<span style={getDecorativeBracketCss()}>{ARABIC_BRACKET_CLOSE}</span>
+							{:else}
+								{arabicText}
+							{/if}
 						{/if}
 					</p>
 				{/if}

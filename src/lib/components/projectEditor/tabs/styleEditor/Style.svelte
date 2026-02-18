@@ -13,6 +13,9 @@
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 
+	const ARABIC_BRACKET_OPEN = '\uFD3F';
+	const ARABIC_BRACKET_CLOSE = '\uFD3E';
+
 	let {
 		style,
 		target,
@@ -458,6 +461,20 @@
 								<option value={option}>{option}</option>
 							{/each}
 						{/if}
+					</select>
+				</div>
+			{:else if style.valueType === 'brackets-font'}
+				<div class="relative">
+					<select
+						class="w-full mt-1"
+						value={String(inputValue)}
+						onchange={(e) => {
+							applyValue((e.target as HTMLSelectElement).value);
+						}}
+					>
+						{#each style.options || [] as option}
+							<option value={option}>{option}</option>
+						{/each}
 					</select>
 				</div>
 			{:else if style.valueType === 'text'}

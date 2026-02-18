@@ -36,6 +36,25 @@
 				"icon": "format_quote"
 			},
 			{
+				"id": "decorative-brackets-font-family",
+				"name": "Decorative Brackets Font",
+				"description": "Choose a font only for decorative brackets",
+				"value": "Hafs",
+				"valueType": "brackets-font",
+				"options": [
+					"Hafs",
+					"Noto Naskh Arabic",
+					"Amiri",
+					"Scheherazade New",
+					"Lateef",
+					"Aref Ruqaa",
+					"Markazi Text"
+				],
+				"css": "",
+				"tailwind": false,
+				"icon": "font_download"
+			},
+			{
 				"id": "verse-number-format",
 				"name": "Verse Number Format",
 				"description": "Change the format of verse numbers. Use <number> tag to customize.",

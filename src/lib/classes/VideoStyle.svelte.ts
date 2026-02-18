@@ -16,6 +16,7 @@ export type StyleValueType =
 	| 'color'
 	| 'number'
 	| 'select'
+	| 'brackets-font'
 	| 'boolean'
 	| 'text'
 	| 'time'
@@ -46,6 +47,7 @@ export type GeneralStyleName =
 	| 'show-subtitles'
 	| 'show-verse-number'
 	| 'show-decorative-brackets'
+	| 'decorative-brackets-font-family'
 	| 'verse-number-format'
 	| 'verse-number-position';
 

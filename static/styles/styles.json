@@ -26,6 +26,16 @@
 				"icon": "123"
 			},
 			{
+				"id": "show-decorative-brackets",
+				"name": "Decorative Brackets",
+				"description": "Wrap Arabic subtitle text with decorative brackets",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "format_quote"
+			},
+			{
 				"id": "verse-number-format",
 				"name": "Verse Number Format",
 				"description": "Change the format of verse numbers. Use <number> tag to customize.",

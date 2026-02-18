@@ -71,6 +71,16 @@
 		return subtitle.translations;
 	});
 
+	let showDecorativeBrackets = $derived(() => {
+		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
+	});
+
+	function getArabicSubtitleText(subtitle: SubtitleClip | PredefinedSubtitleClip): string {
+		const baseText = subtitle.getText();
+		if (!showDecorativeBrackets() || !baseText.trim()) return baseText;
+		return `﴾ ${baseText} ﴿`;
+	}
+
 	// Contient les textes custom à afficher à ce moment précis
 	let currentCustomClips = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
@@ -528,7 +538,9 @@
 							'border'
 						])};"
 					>
-						{subtitle.getText()}
+						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
+							{getArabicSubtitleText(subtitle)}
+						{/if}
 					</p>
 				{/if}
 

@@ -45,6 +45,7 @@ export type StyleCategoryName =
 export type GeneralStyleName =
 	| 'show-subtitles'
 	| 'show-verse-number'
+	| 'show-decorative-brackets'
 	| 'verse-number-format'
 	| 'verse-number-position';
 

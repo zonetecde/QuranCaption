@@ -244,6 +244,7 @@
 							Deuxième cas spécial : on ne veut pas pouvoir individuellement modifier les styles suivants:
 								- show-subtitles
 								- show-verse-number
+								- show-decorative-brackets
 								- verse-number-format
 								- verse-number-position
 								- max-height
@@ -252,7 +253,7 @@
 							Troisième cas :
 							On empêche l'affichage du style "reactive-font-size" et "reactive-y-position" qui sont des styles utilitaire censé être non-visible. 
 								  -->
-							{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position')) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'verse-number-position')) && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
+							{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'verse-number-position')) && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
 								<!-- On veut désactiver certains style, comme par exemple
 							 - Si on a le style "Always Show" pour les customs text d'enable, alors on disable les styles permettant
 							 de set les propriétés de temps de début d'affichage et de fin d'affichage -->

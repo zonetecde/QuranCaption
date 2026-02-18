@@ -1,4 +1,8 @@
 use std::fs;
+use std::time::Duration;
+
+use reqwest::header::{ACCEPT, ACCEPT_ENCODING, RANGE, USER_AGENT};
+use tokio::io::AsyncWriteExt;
 
 use crate::path_utils;
 
@@ -59,21 +63,115 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    let response = reqwest::get(&url)
-        .await
-        .map_err(|e| format!("Request failed: {}", e))?;
-    if !response.status().is_success() {
-        return Err(format!("HTTP error: {}", response.status()));
+    let mut temp_os = path_buf.as_os_str().to_os_string();
+    temp_os.push(".part");
+    let temp_path = std::path::PathBuf::from(temp_os);
+    let _ = tokio::fs::remove_file(&temp_path).await;
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(15 * 60))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let max_retries = 3usize;
+    let mut downloaded = 0u64;
+    let mut last_error = String::new();
+
+    for attempt in 1..=max_retries {
+        let mut request = client
+            .get(&url)
+            .header(USER_AGENT, "QuranCaption/3")
+            .header(ACCEPT, "*/*")
+            .header(ACCEPT_ENCODING, "identity");
+
+        if downloaded > 0 {
+            request = request.header(RANGE, format!("bytes={}-", downloaded));
+        }
+
+        let response = match request.send().await {
+            Ok(response) => response,
+            Err(e) => {
+                last_error = format!(
+                    "Request failed (attempt {}/{}): {}",
+                    attempt, max_retries, e
+                );
+                continue;
+            }
+        };
+
+        if !response.status().is_success() {
+            last_error = format!(
+                "HTTP error (attempt {}/{}): {}",
+                attempt,
+                max_retries,
+                response.status()
+            );
+            continue;
+        }
+
+        if downloaded > 0 && response.status() == reqwest::StatusCode::OK {
+            downloaded = 0;
+        }
+
+        let mut file = if downloaded == 0 {
+            tokio::fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(&temp_path)
+                .await
+                .map_err(|e| format!("Failed to open temp file: {}", e))?
+        } else {
+            tokio::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&temp_path)
+                .await
+                .map_err(|e| format!("Failed to open temp file: {}", e))?
+        };
+
+        let mut response = response;
+        let mut request_completed = false;
+        loop {
+            match response.chunk().await {
+                Ok(Some(chunk)) => {
+                    file.write_all(&chunk)
+                        .await
+                        .map_err(|e| format!("Failed to write file: {}", e))?;
+                    downloaded += chunk.len() as u64;
+                }
+                Ok(None) => {
+                    file.flush()
+                        .await
+                        .map_err(|e| format!("Failed to flush file: {}", e))?;
+                    request_completed = true;
+                    break;
+                }
+                Err(e) => {
+                    last_error = format!(
+                        "Failed to read response (attempt {}/{}): {}",
+                        attempt, max_retries, e
+                    );
+                    break;
+                }
+            }
+        }
+
+        if request_completed {
+            tokio::fs::rename(&temp_path, &path_buf)
+                .await
+                .map_err(|e| format!("Failed to finalize file: {}", e))?;
+            return Ok(());
+        }
     }
 
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to read response: {}", e))?;
-    tokio::fs::write(&path_buf, &bytes)
-        .await
-        .map_err(|e| format!("Failed to write file: {}", e))?;
-    Ok(())
+    let _ = tokio::fs::remove_file(&temp_path).await;
+    if last_error.is_empty() {
+        Err("Download failed after retries".to_string())
+    } else {
+        Err(last_error)
+    }
 }
 
 /// Supprime un fichier existant.

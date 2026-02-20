@@ -104,6 +104,8 @@ export type OverlayStyleName =
 	| 'overlay-enable'
 	| 'overlay-color'
 	| 'overlay-opacity'
+	| 'background-overlay-mode'
+	| 'background-overlay-fade-intensity'
 	| 'overlay-custom-css'
 	| 'overlay-blur';
 
@@ -754,6 +756,55 @@ export class VideoStyle extends SerializableBase {
 		stylesData.setStyle('vertical-position', 70); // Définit la hauteur de ligne par défaut
 
 		this.styles.push(stylesData);
+	}
+
+	/**
+	 * Merge les styles manquants avec les JSON par défaut, sans écraser les valeurs existantes.
+	 * Utile quand de nouveaux styles sont ajoutés dans une update.
+	 */
+	async ensureStylesSchemaUpToDate(): Promise<boolean> {
+		let hasChanges = false;
+
+		const globalDefaults = await (await fetch('./styles/globalStyles.json')).json();
+		hasChanges = this.mergeMissingStylesForTarget('global', globalDefaults) || hasChanges;
+
+		const subtitleDefaults = await (await fetch('./styles/styles.json')).json();
+		for (const stylesData of this.styles) {
+			if (stylesData.target === 'global') continue;
+			hasChanges = this.mergeMissingStylesForTarget(stylesData.target, subtitleDefaults) || hasChanges;
+		}
+
+		return hasChanges;
+	}
+
+	private mergeMissingStylesForTarget(target: string, defaultCategoriesRaw: any[]): boolean {
+		let hasChanges = false;
+
+		let targetStyles = this.styles.find((s) => s.target === target);
+		if (!targetStyles) {
+			this.styles.push(new StylesData(target, defaultCategoriesRaw));
+			return true;
+		}
+
+		for (const defaultCategoryRaw of defaultCategoriesRaw) {
+			let targetCategory = targetStyles.categories.find((c) => c.id === defaultCategoryRaw.id);
+
+			if (!targetCategory) {
+				targetStyles.categories.push(new Category(defaultCategoryRaw));
+				hasChanges = true;
+				continue;
+			}
+
+			for (const defaultStyleRaw of defaultCategoryRaw.styles || []) {
+				const exists = targetCategory.styles.some((s) => s.id === defaultStyleRaw.id);
+				if (!exists) {
+					targetCategory.styles.push(new Style(defaultStyleRaw));
+					hasChanges = true;
+				}
+			}
+		}
+
+		return hasChanges;
 	}
 
 	async getDefaultCustomTextCategory(): Promise<Category> {

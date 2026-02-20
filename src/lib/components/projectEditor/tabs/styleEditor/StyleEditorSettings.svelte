@@ -24,6 +24,9 @@
 	let importExportMenuVisible = $state(false);
 
 	onMount(async () => {
+		// Assure la présence des nouveaux styles ajoutés par les updates.
+		await globalState.getVideoStyle.ensureStylesSchemaUpToDate();
+
 		stylesContainer!.scrollTop =
 			globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition;
 

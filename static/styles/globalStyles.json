@@ -96,6 +96,30 @@
 				"icon": "opacity"
 			},
 			{
+				"id": "background-overlay-mode",
+				"name": "Overlay Mode",
+				"description": "Uniform or vertical fade (up, down, or center)",
+				"value": "uniform",
+				"valueType": "select",
+				"options": ["uniform", "fade-up", "fade-down", "fade-center"],
+				"css": "",
+				"tailwind": false,
+				"icon": "gradient"
+			},
+			{
+				"id": "background-overlay-fade-intensity",
+				"name": "Fade Intensity",
+				"description": "Controls fade strength when overlay mode is not uniform",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "tune"
+			},
+			{
 				"id": "overlay-blur",
 				"name": "Overlay Blur",
 				"description": "Blur level of the overlay",

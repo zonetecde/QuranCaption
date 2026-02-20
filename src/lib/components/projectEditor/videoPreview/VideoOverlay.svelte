@@ -11,6 +11,7 @@
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { PredefinedSubtitleClip } from '$lib/classes';
+	import { Utilities } from '$lib/classes/misc/Utilities';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 
 	const ARABIC_BRACKET_CLOSE = '\uFD3F';
@@ -482,9 +483,39 @@
 			blur: globalState.getStyle('global', 'overlay-blur')!.value,
 			opacity: globalState.getStyle('global', 'overlay-opacity')!.value,
 			color: globalState.getStyle('global', 'overlay-color')!.value,
+			mode: globalState.getStyle('global', 'background-overlay-mode')!.value,
+			fadeIntensity: globalState.getStyle('global', 'background-overlay-fade-intensity')!.value,
 			customCSS: globalState.getStyle('global', 'overlay-custom-css')!.value
 		};
 	});
+
+	function getOverlayLayerCss(): string {
+		const settings = overlaySettings();
+		const mode = String(settings.mode || 'uniform');
+		const opacity = Utilities.clamp01(Number(settings.opacity));
+
+		if (mode === 'uniform') {
+			return `background-color: ${settings.color}; opacity: ${opacity};`;
+		}
+
+		const intensity = Utilities.clamp01(Number(settings.fadeIntensity));
+		const [r, g, b] = Utilities.parseColorToRgb(String(settings.color || '#000000'));
+		const edgeOpacity = opacity * (1 - intensity);
+		const centerOpacity = opacity;
+
+		let gradient = '';
+		if (mode === 'fade-up') {
+			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 100%)`;
+		} else if (mode === 'fade-down') {
+			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
+		} else if (mode === 'fade-center') {
+			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 50%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
+		} else {
+			return `background-color: ${settings.color}; opacity: ${opacity};`;
+		}
+
+		return `background: ${gradient}; opacity: 1;`;
+	}
 </script>
 
 <div class="inset-0 absolute" style="" id="overlay">
@@ -498,10 +529,7 @@
 	{#if overlaySettings().enable}
 		<div
 			class="absolute inset-0 z-0"
-			style="
-					background-color: {overlaySettings().color};
-					opacity: {overlaySettings().opacity}; {overlaySettings().customCSS};
-				"
+			style="{getOverlayLayerCss()} {overlaySettings().customCSS};"
 		></div>
 
 		<div

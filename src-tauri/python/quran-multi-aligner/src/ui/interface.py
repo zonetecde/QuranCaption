@@ -66,6 +66,7 @@ def build_interface():
         c.cached_model_name = gr.State(value=None)
         c.cached_segment_dir = gr.State(value=None)
         c.cached_log_row = gr.State(value=None)
+        c.is_preset = gr.State(value=False)
         c.resegment_panel_visible = gr.State(value=False)
 
         # Session API components (hidden, API-only)
@@ -77,6 +78,8 @@ def build_interface():
         c.api_model = gr.Textbox(visible=False)
         c.api_device = gr.Textbox(visible=False)
         c.api_timestamps = gr.JSON(visible=False)
+        c.api_mfa_segments = gr.JSON(visible=False)
+        c.api_mfa_granularity = gr.Textbox(visible=False)
         c.api_result = gr.JSON(visible=False)
 
         wire_events(app, c)
@@ -90,7 +93,7 @@ def _build_left_column(c):
         c.audio_input = gr.Audio(
             label="Upload Recitation",
             sources=["upload", "microphone"],
-            type="numpy"
+            type="filepath"
         )
 
         # Example audio files
@@ -109,7 +112,7 @@ def _build_left_column(c):
                     choices=["Base", "Large"],
                     value="Base",
                     label="ASR Model",
-                    info="Large: more robust to noisy/non-studio recitations but much slower (10x bigger)"
+                    info="Large: more robust to noisy/non-studio recitations but slower"
                 )
                 c.device_radio = gr.Radio(
                     choices=["GPU", "CPU"],

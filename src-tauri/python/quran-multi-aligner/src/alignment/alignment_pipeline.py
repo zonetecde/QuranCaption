@@ -18,7 +18,7 @@ def run_phoneme_matching(
     first_quran_idx: int = 0,
     special_results: List[tuple] = None,
     start_pointer: int = 0,
-) -> Tuple[List[tuple], dict, set]:
+) -> Tuple[List[tuple], dict, set, dict]:
     """
     Phoneme-based segment matching using substring DP.
 
@@ -30,8 +30,9 @@ def run_phoneme_matching(
         start_pointer: Initial word pointer from anchor voting
 
     Returns:
-        (results, profiling_dict, gap_segments)
+        (results, profiling_dict, gap_segments, merged_into)
         results: List[(matched_text, score, matched_ref), ...]
+        merged_into: dict mapping consumed segment indices to their target segment index
     """
     from .phoneme_matcher import align_segment, get_matched_text
     from .phoneme_matcher_cache import get_chapter_reference
@@ -62,13 +63,22 @@ def run_phoneme_matching(
         result_build_total = 0.0
 
     # Track whether the next segment might have Basmala fused with verse content
-    from .special_segments import SPECIAL_PHONEMES, SPECIAL_TEXT
+    from .special_segments import (
+        SPECIAL_PHONEMES, SPECIAL_TEXT, TRANSITION_TEXT,
+        detect_transition_segment, detect_inter_chapter_specials,
+    )
     basmala_already_detected = any(
         r[2] in ("Basmala", "Isti'adha+Basmala") for r in (special_results or [])
     )
     is_first_after_transition = not basmala_already_detected
 
     special_merges = 0
+
+    # Transition segment state
+    transition_mode = False
+    transition_skips = 0
+    tahmeed_merge_skip = 0
+    merged_into = {}  # {consumed_idx: target_idx}
 
     # Gap tracking (initialized here so inline chapter-transition checks can add entries)
     gap_segments = set()
@@ -111,8 +121,59 @@ def run_phoneme_matching(
             skip_count -= 1
             continue
 
+        # Handle segments consumed by Tahmeed merge (sami'a + rabbana in separate segments)
+        if tahmeed_merge_skip > 0:
+            # This segment's audio was merged into the previous Tahmeed segment
+            results.append(("", 0.0, ""))
+            word_indices.append(None)
+            tahmeed_merge_skip -= 1
+            transition_skips += 1
+            continue
+
         segment_idx = first_quran_idx + i + 1  # 1-indexed for display
         segments_attempted += 1
+
+        # Transition mode: keep checking for transitions before trying alignment
+        if transition_mode:
+            trans_name, trans_conf = detect_transition_segment(asr_phonemes)
+            if trans_name:
+                print(f"  [TRANSITION-MODE] Segment {segment_idx}: {trans_name} (conf={trans_conf:.2f})")
+                results.append((TRANSITION_TEXT[trans_name], trans_conf, trans_name))
+                word_indices.append(None)
+                transition_skips += 1
+
+                # Tahmeed peek-ahead for merge
+                if trans_name == "Tahmeed":
+                    next_abs = first_quran_idx + i + 1
+                    if next_abs < len(phoneme_texts) and phoneme_texts[next_abs]:
+                        resp_name, resp_conf = detect_transition_segment(
+                            phoneme_texts[next_abs], allowed={"Tahmeed"})
+                        if resp_name:
+                            merged_into[next_abs] = first_quran_idx + i
+                            tahmeed_merge_skip = 1
+                            print(f"  [TAHMEED-MERGE] Next segment merged into Tahmeed")
+
+                continue
+            else:
+                # Exit transition mode, global reanchor
+                transition_mode = False
+                print(f"  [TRANSITION-MODE] Exiting at segment {segment_idx}, running global reanchor...")
+                remaining_idx = first_quran_idx + i
+                remaining_texts = phoneme_texts[remaining_idx:]
+                if remaining_texts:
+                    reanchor_surah, reanchor_ayah = find_anchor_by_voting(
+                        remaining_texts, get_ngram_index(), ANCHOR_SEGMENTS,
+                    )
+                    if reanchor_surah > 0:
+                        if reanchor_surah != detected_surah:
+                            detected_surah = reanchor_surah
+                            chapter_ref = get_chapter_reference(detected_surah)
+                        pointer = verse_to_word_index(chapter_ref, reanchor_ayah)
+                        transition_expected_pointer = pointer
+                        print(f"  [GLOBAL-REANCHOR] Jumped to Surah {detected_surah}, "
+                              f"Ayah {reanchor_ayah}, word {pointer}")
+                    consecutive_failures = 0
+                # Fall through to normal alignment below
 
         alignment, timing = align_segment(asr_phonemes, chapter_ref, pointer, segment_idx)
         num_segments += 1
@@ -125,8 +186,22 @@ def run_phoneme_matching(
 
         # Chapter transition: pointer past end of chapter
         if alignment is None and pointer >= chapter_ref.num_words:
-            from .special_segments import detect_inter_chapter_specials
             remaining_phonemes = phoneme_texts[first_quran_idx + i:]
+            amin_consumed = 0
+
+            if chapter_ref.surah == 1:
+                # Check for Amin after Al-Fatiha before inter-chapter specials
+                amin_name, amin_conf = detect_transition_segment(
+                    asr_phonemes, allowed={"Amin"})
+                if amin_name:
+                    print(f"  [AMIN] Detected after Surah 1 (conf={amin_conf:.2f})")
+                    results.append((TRANSITION_TEXT["Amin"], amin_conf, "Amin"))
+                    word_indices.append(None)
+                    transition_skips += 1
+                    amin_consumed = 1
+                    # Re-slice remaining phonemes to start after Amin
+                    remaining_phonemes = phoneme_texts[first_quran_idx + i + 1:]
+
             inter_specials, num_consumed = detect_inter_chapter_specials(remaining_phonemes)
 
             if chapter_ref.surah == 1:
@@ -134,8 +209,8 @@ def run_phoneme_matching(
                 print(f"  [CHAPTER-END] Surah 1 complete at segment {segment_idx}, "
                       f"running global reanchor...")
 
-                # Use segments after specials for anchor voting
-                anchor_offset = first_quran_idx + i + num_consumed
+                # Use segments after Amin + specials for anchor voting
+                anchor_offset = first_quran_idx + i + amin_consumed + num_consumed
                 anchor_remaining = phoneme_texts[anchor_offset:]
 
                 reanchor_surah, reanchor_ayah = find_anchor_by_voting(
@@ -146,7 +221,8 @@ def run_phoneme_matching(
                     next_surah = reanchor_surah
                     chapter_ref = get_chapter_reference(next_surah)
                     pointer = verse_to_word_index(chapter_ref, reanchor_ayah)
-                    transition_expected_pointer = pointer
+                    # Don't set transition_expected_pointer — after Surah 1 the next
+                    # chapter is arbitrary (global reanchor), so gaps are expected.
                     print(f"  [GLOBAL-REANCHOR] Anchored to Surah {next_surah}, "
                           f"Ayah {reanchor_ayah}, word {pointer}")
                 else:
@@ -154,13 +230,29 @@ def run_phoneme_matching(
                     next_surah = 2
                     chapter_ref = get_chapter_reference(next_surah)
                     pointer = 0
-                    transition_expected_pointer = 0
                     print(f"  [GLOBAL-REANCHOR] No anchor found, falling back to Surah 2")
             else:
                 next_surah = chapter_ref.surah + 1
                 if next_surah > 114:
                     pass  # No more chapters — fall through to failure handling
                 else:
+                    # Check for transition before committing to next sequential surah
+                    if num_consumed == 0:
+                        trans_name, trans_conf = detect_transition_segment(asr_phonemes)
+                        if trans_name:
+                            print(f"  [CHAPTER-END-TRANSITION] Segment {segment_idx}: {trans_name} "
+                                  f"at end of Surah {chapter_ref.surah} (conf={trans_conf:.2f})")
+                            results.append((TRANSITION_TEXT[trans_name], trans_conf, trans_name))
+                            word_indices.append(None)
+                            transition_skips += 1
+                            transition_mode = True
+                            detected_surah = next_surah
+                            chapter_ref = get_chapter_reference(next_surah)
+                            pointer = 0
+                            transition_expected_pointer = 0
+                            consecutive_failures = 0
+                            continue
+
                     print(f"  [CHAPTER-END] Surah {chapter_ref.surah} complete at segment {segment_idx}, "
                           f"transitioning to Surah {next_surah}")
                     chapter_ref = get_chapter_reference(next_surah)
@@ -170,6 +262,18 @@ def run_phoneme_matching(
             if next_surah <= 114:
                 detected_surah = next_surah
                 consecutive_failures = 0
+
+                if amin_consumed > 0:
+                    # Current segment was Amin (already appended above).
+                    # Queue inter-chapter specials for subsequent segments.
+                    has_basmala = any(s[2] in ("Basmala", "Isti'adha+Basmala") for s in inter_specials)
+                    is_first_after_transition = not has_basmala
+                    if num_consumed > 0:
+                        pending_specials = list(inter_specials)
+                        skip_count = num_consumed
+                    else:
+                        is_first_after_transition = True
+                    continue
 
                 if num_consumed > 0:
                     has_basmala = any(s[2] in ("Basmala", "Isti'adha+Basmala") for s in inter_specials)
@@ -237,6 +341,29 @@ def run_phoneme_matching(
             _check_transition_gap(alignment.start_word_idx)
             segments_passed += 1
         else:
+            # === Check for transition segment before retry tiers ===
+            trans_name, trans_conf = detect_transition_segment(asr_phonemes)
+            if trans_name:
+                print(f"  [TRANSITION] Segment {segment_idx}: {trans_name} (conf={trans_conf:.2f})")
+                result = (TRANSITION_TEXT[trans_name], trans_conf, trans_name)
+                word_indices.append(None)
+                transition_skips += 1
+                transition_mode = True
+
+                # Tahmeed peek-ahead for merge
+                if trans_name == "Tahmeed":
+                    next_abs = first_quran_idx + i + 1
+                    if next_abs < len(phoneme_texts) and phoneme_texts[next_abs]:
+                        resp_name, resp_conf = detect_transition_segment(
+                            phoneme_texts[next_abs], allowed={"Tahmeed"})
+                        if resp_name:
+                            merged_into[next_abs] = first_quran_idx + i
+                            tahmeed_merge_skip = 1
+                            print(f"  [TAHMEED-MERGE] Next segment merged into Tahmeed")
+
+                results.append(result)
+                continue
+
             # === Graduated retry ===
             # Tier 1: expanded window, same threshold
             tier1_attempts += 1
@@ -320,16 +447,23 @@ def run_phoneme_matching(
             continue
 
         if prev_matched_idx is not None:
-            prev_end = word_indices[prev_matched_idx][1]
-            curr_start = word_indices[idx][0]
-            gap = curr_start - prev_end - 1
+            # Skip gap check across chapter transitions — word indices are per-chapter
+            prev_ref = results[prev_matched_idx][2]
+            curr_ref = results[idx][2]
+            prev_surah = prev_ref.split(":")[0] if prev_ref and ":" in prev_ref else None
+            curr_surah = curr_ref.split(":")[0] if curr_ref and ":" in curr_ref else None
 
-            if gap > 0:
-                gap_segments.add(prev_matched_idx)
-                gap_segments.add(idx)
+            if prev_surah is not None and prev_surah == curr_surah:
+                prev_end = word_indices[prev_matched_idx][1]
+                curr_start = word_indices[idx][0]
+                gap = curr_start - prev_end - 1
 
-                print(f"  [GAP] {gap} word(s) missing between segments "
-                      f"{prev_matched_idx + 1} and {idx + 1}")
+                if gap > 0:
+                    gap_segments.add(prev_matched_idx)
+                    gap_segments.add(idx)
+
+                    print(f"  [GAP] {gap} word(s) missing between segments "
+                          f"{prev_matched_idx + 1} and {idx + 1}")
 
         prev_matched_idx = idx
 
@@ -381,6 +515,7 @@ def run_phoneme_matching(
             "segments_attempted": segments_attempted,
             "segments_passed": segments_passed,
             "special_merges": special_merges,
+            "transition_skips": transition_skips,
         }
     else:
         profiling = {
@@ -395,6 +530,7 @@ def run_phoneme_matching(
             "segments_attempted": segments_attempted,
             "segments_passed": segments_passed,
             "special_merges": special_merges,
+            "transition_skips": transition_skips,
         }
 
-    return results, profiling, gap_segments
+    return results, profiling, gap_segments, merged_into

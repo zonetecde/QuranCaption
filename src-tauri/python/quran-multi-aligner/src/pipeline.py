@@ -102,6 +102,7 @@ def _run_post_vad_pipeline(
     precomputed_asr=None,
     min_silence_ms=0, min_speech_ms=0, pad_ms=0,
     request=None, log_row=None,
+    is_preset=False,
 ):
     """Shared pipeline after VAD: ASR → specials → anchor → matching → results.
 
@@ -173,8 +174,12 @@ def _run_post_vad_pipeline(
 
     # If segments were split (combined Isti'adha+Basmala), pad phoneme_texts
     # with empty placeholders so indices stay aligned.
+    # The split replaces one segment with two, so vad_segments is 1 longer.
+    # Insert an empty placeholder at the split position (= first_quran_idx - 2
+    # is where the combined segment was, but simpler: find the gap).
     if len(vad_segments) != len(phoneme_texts):
-        phoneme_texts = [[], []] + phoneme_texts[1:]
+        split_idx = first_quran_idx - 2  # Combined was split into 2 entries starting here
+        phoneme_texts = phoneme_texts[:split_idx] + [[], []] + phoneme_texts[split_idx + 1:]
 
     # Anchor detection via phoneme n-gram voting
     progress(*progress_steps["anchor"])
@@ -205,7 +210,7 @@ def _run_post_vad_pipeline(
 
     # Phoneme-based DP alignment
     match_start = time.time()
-    match_results, match_profiling, gap_segments = run_phoneme_matching(
+    match_results, match_profiling, gap_segments, merged_into = run_phoneme_matching(
         phoneme_texts,
         surah,
         first_quran_idx,
@@ -236,6 +241,7 @@ def _run_post_vad_pipeline(
     profiling.tier2_segments = match_profiling.get("tier2_segments", [])
     profiling.consec_reanchors = match_profiling.get("consec_reanchors", 0)
     profiling.special_merges = match_profiling.get("special_merges", 0)
+    profiling.transition_skips = match_profiling.get("transition_skips", 0)
     profiling.segments_attempted = match_profiling.get("segments_attempted", 0)
     profiling.segments_passed = match_profiling.get("segments_passed", 0)
 
@@ -248,7 +254,7 @@ def _run_post_vad_pipeline(
 
     # Convert full audio to int16 once
     t_wav = time.time()
-    audio_int16 = (audio * 32767).astype(np.int16)
+    audio_int16 = np.clip(audio * 32767, -32768, 32767).astype(np.int16)
     audio_encode_time = time.time() - t_wav
 
     # Create a per-request directory for segment WAV files
@@ -267,9 +273,19 @@ def _run_post_vad_pipeline(
     _underseg_by_words: list[int] = []
     _underseg_by_ayah: list[int] = []
 
+    # Pre-compute merged end times: extend target segment's end_time
+    _merged_end_times = {}  # {target_idx: extended_end_time}
+    for consumed_idx, target_idx in merged_into.items():
+        if consumed_idx < len(vad_segments):
+            _merged_end_times[target_idx] = vad_segments[consumed_idx].end_time
+
     for idx, (seg, (matched_text, score, matched_ref)) in enumerate(
         zip(vad_segments, match_results)
     ):
+        # Skip segments consumed by Tahmeed merge
+        if idx in merged_into:
+            continue
+
         if idx == last_display_idx and matched_ref:
             if not is_end_of_verse(matched_ref):
                 score = max(0.0, score - 0.25)
@@ -282,13 +298,15 @@ def _run_post_vad_pipeline(
             matched_ref = ""
             error = f"Low confidence ({score:.0%})"
 
-        duration = seg.end_time - seg.start_time
+        # Extend end_time if this segment absorbed a merged segment
+        seg_end_time = _merged_end_times.get(idx, seg.end_time)
+        duration = seg_end_time - seg.start_time
         word_count, ayah_span = get_segment_word_stats(matched_ref)
         underseg = check_undersegmented(matched_ref, duration)
 
         segments.append(SegmentInfo(
             start_time=seg.start_time,
-            end_time=seg.end_time,
+            end_time=seg_end_time,
             transcribed_text=phoneme_text,
             matched_text=matched_text,
             matched_ref=matched_ref,
@@ -317,9 +335,6 @@ def _run_post_vad_pipeline(
     result_build_total_time = time.time() - result_build_start
     profiling.result_build_time = result_build_total_time
     profiling.result_audio_encode_time = audio_encode_time
-
-    progress(*progress_steps["done"])
-    print("[STAGE] Done!")
 
     # Print profiling summary
     profiling.total_time = time.time() - pipeline_start
@@ -369,90 +384,95 @@ def _run_post_vad_pipeline(
         print(f"  Undersegmented: 0")
 
     # --- Usage logging ---
-    try:
-        from src.core.usage_logger import log_alignment, update_alignment_row
+    if is_preset:
+        print("[USAGE_LOG] Skipped (preset audio)")
+    else:
+        try:
+            from src.core.usage_logger import log_alignment, update_alignment_row
 
-        # Reciter stats (default 0.0 when no matched segments)
-        _log_wpm = wpm if matched_words else 0.0
-        _log_pps = pps if matched_words else 0.0
-        _log_avg_d = avg_d if matched_words else 0.0
-        _log_std_d = std_d if matched_words else 0.0
-        _log_avg_p = avg_p if (matched_words and pauses) else 0.0
-        _log_std_p = std_p if (matched_words and pauses) else 0.0
+            # Reciter stats (default 0.0 when no matched segments)
+            _log_wpm = wpm if matched_words else 0.0
+            _log_pps = pps if matched_words else 0.0
+            _log_avg_d = avg_d if matched_words else 0.0
+            _log_std_d = std_d if matched_words else 0.0
+            _log_avg_p = avg_p if (matched_words and pauses) else 0.0
+            _log_std_p = std_p if (matched_words and pauses) else 0.0
 
-        # Mean confidence across all segments
-        all_scores = [seg.match_score for seg in segments]
-        _log_mean_conf = sum(all_scores) / len(all_scores) if all_scores else 0.0
+            # Mean confidence across all segments
+            all_scores = [seg.match_score for seg in segments]
+            _log_mean_conf = sum(all_scores) / len(all_scores) if all_scores else 0.0
 
-        # Build per-segment objects for logging
-        _log_segments = []
-        for i, seg in enumerate(segments):
-            sp_type = None
-            if i < len(special_results) and special_results[i]:
-                sp_type = special_results[i]
-            _log_segments.append({
-                "idx": i + 1,
-                "start": round(seg.start_time, 2),
-                "end": round(seg.end_time, 2),
-                "duration": round(seg.end_time - seg.start_time, 2),
-                "ref": seg.matched_ref or "",
-                "confidence": round(seg.match_score, 2),
-                "word_count": _seg_word_counts[i] if i < len(_seg_word_counts) else 0,
-                "ayah_span": _seg_ayah_spans[i] if i < len(_seg_ayah_spans) else 0,
-                "phoneme_count": _seg_phoneme_counts[i] if i < len(_seg_phoneme_counts) else 0,
-                "undersegmented": seg.potentially_undersegmented,
-                "missing_words": seg.has_missing_words,
-                "special_type": sp_type,
-                "error": seg.error,
-            })
+            # Build per-segment objects for logging
+            _log_segments = []
+            for i, seg in enumerate(segments):
+                sp_type = None
+                if i < len(special_results) and special_results[i]:
+                    sp_type = special_results[i]
+                _log_segments.append({
+                    "idx": i + 1,
+                    "start": round(seg.start_time, 2),
+                    "end": round(seg.end_time, 2),
+                    "duration": round(seg.end_time - seg.start_time, 2),
+                    "ref": seg.matched_ref or "",
+                    "confidence": round(seg.match_score, 2),
+                    "word_count": _seg_word_counts[i] if i < len(_seg_word_counts) else 0,
+                    "ayah_span": _seg_ayah_spans[i] if i < len(_seg_ayah_spans) else 0,
+                    "phoneme_count": _seg_phoneme_counts[i] if i < len(_seg_phoneme_counts) else 0,
+                    "undersegmented": seg.potentially_undersegmented,
+                    "missing_words": seg.has_missing_words,
+                    "special_type": sp_type,
+                    "error": seg.error,
+                })
 
-        _r = lambda v: round(v, 2)
-        _log_kwargs = dict(
-            audio_duration_s=_r(len(audio) / sample_rate),
-            num_segments=len(segments),
-            surah=surah,
-            min_silence_ms=min_silence_ms,
-            min_speech_ms=min_speech_ms,
-            pad_ms=pad_ms,
-            asr_model=model_name,
-            device=device,
-            total_time=_r(profiling.total_time),
-            vad_queue_time=_r(getattr(profiling, "vad_wall_time", 0.0) - getattr(profiling, "vad_gpu_time", 0.0)),
-            vad_gpu_time=_r(getattr(profiling, "vad_gpu_time", 0.0)),
-            asr_gpu_time=_r(getattr(profiling, "asr_gpu_time", 0.0)),
-            dp_total_time=_r(getattr(profiling, "phoneme_dp_total_time", 0.0)),
-            segments_passed=getattr(profiling, "segments_passed", 0),
-            segments_failed=getattr(profiling, "segments_attempted", 0) - getattr(profiling, "segments_passed", 0),
-            mean_confidence=_r(_log_mean_conf),
-            tier1_retries=getattr(profiling, "tier1_attempts", 0),
-            tier1_passed=getattr(profiling, "tier1_passed", 0),
-            tier2_retries=getattr(profiling, "tier2_attempts", 0),
-            tier2_passed=getattr(profiling, "tier2_passed", 0),
-            reanchors=getattr(profiling, "consec_reanchors", 0),
-            special_merges=getattr(profiling, "special_merges", 0),
-            words_per_minute=_r(_log_wpm),
-            phonemes_per_second=_r(_log_pps),
-            avg_segment_duration=_r(_log_avg_d),
-            std_segment_duration=_r(_log_std_d),
-            avg_pause_duration=_r(_log_avg_p),
-            std_pause_duration=_r(_log_std_p),
-            log_segments=_log_segments,
-        )
-
-        if log_row is not None:
-            # Resegment / retranscribe: mutate existing row in-place
-            _action = "retranscribe" if log_row.get("asr_model") != model_name else "resegment"
-            update_alignment_row(log_row, action=_action, **_log_kwargs)
-        else:
-            # Initial run: create new row
-            log_row = log_alignment(
-                audio=audio,
-                sample_rate=sample_rate,
-                request=request,
-                **_log_kwargs,
+            _r = lambda v: round(v, 2)
+            actual_device = device
+            _log_kwargs = dict(
+                audio_duration_s=_r(len(audio) / sample_rate),
+                num_segments=len(segments),
+                surah=surah,
+                min_silence_ms=min_silence_ms,
+                min_speech_ms=min_speech_ms,
+                pad_ms=pad_ms,
+                asr_model=model_name,
+                device=actual_device,
+                total_time=_r(profiling.total_time),
+                vad_queue_time=_r(getattr(profiling, "vad_wall_time", 0.0) - getattr(profiling, "vad_gpu_time", 0.0)),
+                vad_gpu_time=_r(getattr(profiling, "vad_gpu_time", 0.0)),
+                asr_gpu_time=_r(getattr(profiling, "asr_gpu_time", 0.0)),
+                dp_total_time=_r(getattr(profiling, "phoneme_dp_total_time", 0.0)),
+                segments_passed=getattr(profiling, "segments_passed", 0),
+                segments_failed=getattr(profiling, "segments_attempted", 0) - getattr(profiling, "segments_passed", 0),
+                mean_confidence=_r(_log_mean_conf),
+                tier1_retries=getattr(profiling, "tier1_attempts", 0),
+                tier1_passed=getattr(profiling, "tier1_passed", 0),
+                tier2_retries=getattr(profiling, "tier2_attempts", 0),
+                tier2_passed=getattr(profiling, "tier2_passed", 0),
+                reanchors=getattr(profiling, "consec_reanchors", 0),
+                special_merges=getattr(profiling, "special_merges", 0),
+                words_per_minute=_r(_log_wpm),
+                phonemes_per_second=_r(_log_pps),
+                avg_segment_duration=_r(_log_avg_d),
+                std_segment_duration=_r(_log_std_d),
+                avg_pause_duration=_r(_log_avg_p),
+                std_pause_duration=_r(_log_std_p),
+                log_segments=_log_segments,
             )
-    except Exception as e:
-        print(f"[USAGE_LOG] Failed: {e}")
+
+            if log_row is not None:
+                # Resegment / retranscribe: mutate existing row in-place
+                _action = "retranscribe" if log_row.get("asr_model") != model_name else "resegment"
+                update_alignment_row(log_row, action=_action, **_log_kwargs)
+            else:
+                # Initial run: create new row (async FLAC encode in background)
+                log_row = log_alignment(
+                    audio=audio,
+                    sample_rate=sample_rate,
+                    request=request,
+                    **_log_kwargs,
+                    _async=True,
+                )
+        except Exception as e:
+            print(f"[USAGE_LOG] Failed: {e}")
 
     # Build JSON output for API consumers
     def parse_ref(matched_ref):
@@ -463,25 +483,34 @@ def _run_post_vad_pipeline(
             return parts[0], parts[1] if len(parts) > 1 else parts[0]
         return matched_ref, matched_ref
 
+    from src.alignment.special_segments import ALL_SPECIAL_REFS
+
     segments_list = []
     for i, seg in enumerate(segments):
+        is_special = seg.matched_ref in ALL_SPECIAL_REFS
         segment_data = {
             "segment": i + 1,
             "time_from": round(seg.start_time, 3),
             "time_to": round(seg.end_time, 3),
-            "ref_from": parse_ref(seg.matched_ref)[0],
-            "ref_to": parse_ref(seg.matched_ref)[1],
+            "ref_from": "" if is_special else parse_ref(seg.matched_ref)[0],
+            "ref_to": "" if is_special else parse_ref(seg.matched_ref)[1],
             "matched_text": seg.matched_text or "",
             "confidence": round(seg.match_score, 3),
             "has_missing_words": seg.has_missing_words,
             "potentially_undersegmented": seg.potentially_undersegmented,
+            "special_type": seg.matched_ref if is_special else None,
             "error": seg.error
         }
         segments_list.append(segment_data)
 
     json_output = {"segments": segments_list}
 
-    return render_segments(segments, audio_int16, sample_rate, segment_dir=segment_dir), json_output, str(segment_dir), log_row
+    html = render_segments(segments, audio_int16, sample_rate, segment_dir=segment_dir)
+
+    progress(*progress_steps["done"])
+    print("[STAGE] Done!")
+
+    return html, json_output, str(segment_dir), log_row
 
 
 def process_audio(
@@ -491,10 +520,15 @@ def process_audio(
     pad_ms,
     model_name="Base",
     device="GPU",
+    is_preset=False,
     request: gr.Request = None,
     progress=gr.Progress(),
 ):
     """Process uploaded audio and extract segments with automatic verse detection.
+
+    Args:
+        audio_data: File path string (from gr.Audio type="filepath") or
+                    (sample_rate, numpy_array) tuple (from API's type="numpy").
 
     Returns:
         (html, json_output, raw_speech_intervals, raw_is_complete, preprocessed_audio, sample_rate, intervals, segment_dir, log_row)
@@ -525,26 +559,36 @@ def process_audio(
     profiling = ProfilingData()
     pipeline_start = time.time()
 
-    sample_rate, audio = audio_data
-
-    # Convert to float32
-    if audio.dtype == np.int16:
-        audio = audio.astype(np.float32) / 32768.0
-    elif audio.dtype == np.int32:
-        audio = audio.astype(np.float32) / 2147483648.0
-
-    # Convert stereo to mono
-    if len(audio.shape) > 1:
-        audio = audio.mean(axis=1)
-
-    # Resample to 16kHz once (both VAD and ASR models require 16kHz)
-    if sample_rate != 16000:
+    if isinstance(audio_data, str):
+        # File path from gr.Audio(type="filepath") — load after progress bar is visible
         progress(*PROGRESS_PROCESS_AUDIO["resampling"])
-        resample_start = time.time()
-        audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000, res_type=RESAMPLE_TYPE)
-        profiling.resample_time = time.time() - resample_start
-        print(f"[PROFILE] Resampling {sample_rate}Hz -> 16000Hz took {profiling.resample_time:.3f}s (audio length: {len(audio)/16000:.1f}s, res_type={RESAMPLE_TYPE})")
-        sample_rate = 16000
+        load_start = time.time()
+        audio, sample_rate = librosa.load(audio_data, sr=16000, mono=True, res_type=RESAMPLE_TYPE)
+        profiling.resample_time = time.time() - load_start
+        print(f"[PROFILE] Audio loaded and resampled to 16kHz in {profiling.resample_time:.3f}s "
+              f"(duration: {len(audio)/16000:.1f}s, res_type={RESAMPLE_TYPE})")
+    else:
+        # (sample_rate, numpy_array) tuple from gr.Audio(type="numpy") — API path
+        sample_rate, audio = audio_data
+
+        # Convert to float32
+        if audio.dtype == np.int16:
+            audio = audio.astype(np.float32) / 32768.0
+        elif audio.dtype == np.int32:
+            audio = audio.astype(np.float32) / 2147483648.0
+
+        # Convert stereo to mono
+        if len(audio.shape) > 1:
+            audio = audio.mean(axis=1)
+
+        # Resample to 16kHz once (both VAD and ASR models require 16kHz)
+        if sample_rate != 16000:
+            progress(*PROGRESS_PROCESS_AUDIO["resampling"])
+            resample_start = time.time()
+            audio = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000, res_type=RESAMPLE_TYPE)
+            profiling.resample_time = time.time() - resample_start
+            print(f"[PROFILE] Resampling {sample_rate}Hz -> 16000Hz took {profiling.resample_time:.3f}s (audio length: {len(audio)/16000:.1f}s, res_type={RESAMPLE_TYPE})")
+            sample_rate = 16000
 
     progress(*PROGRESS_PROCESS_AUDIO["vad_asr"])
     print("[STAGE] Running VAD + ASR...")
@@ -586,6 +630,7 @@ def process_audio(
         precomputed_asr=(asr_results, asr_batch_profiling, asr_sorting_time, asr_batch_build_time, asr_gpu_move_time, asr_gpu_time),
         min_silence_ms=min_silence_ms, min_speech_ms=min_speech_ms, pad_ms=pad_ms,
         request=request,
+        is_preset=is_preset,
     )
 
     return html, json_output, raw_speech_intervals, raw_is_complete, audio, sample_rate, intervals, seg_dir, log_row
@@ -597,6 +642,7 @@ def resegment_audio(
     min_silence_ms, min_speech_ms, pad_ms,
     model_name="Base", device="GPU",
     cached_log_row=None,
+    is_preset=False,
     request: gr.Request = None,
     progress=gr.Progress(),
 ):
@@ -633,9 +679,16 @@ def resegment_audio(
     print("[STAGE] Resegmenting...")
 
     # Re-clean speech intervals with new parameters (CPU, no GPU needed)
+    # Convert numpy→torch if needed (VAD returns numpy for picklability)
+    import torch as _torch
+    _intervals_tensor = (
+        _torch.from_numpy(cached_speech_intervals)
+        if isinstance(cached_speech_intervals, np.ndarray)
+        else cached_speech_intervals
+    )
     from recitations_segmenter import clean_speech_intervals
     clean_out = clean_speech_intervals(
-        cached_speech_intervals,
+        _intervals_tensor,
         cached_is_complete,
         min_silence_duration_ms=int(min_silence_ms),
         min_speech_duration_ms=int(min_speech_ms),
@@ -662,6 +715,7 @@ def resegment_audio(
         progress=progress,
         min_silence_ms=min_silence_ms, min_speech_ms=min_speech_ms, pad_ms=pad_ms,
         request=request, log_row=cached_log_row,
+        is_preset=is_preset,
     )
 
     # Pass through cached state unchanged, but update intervals
@@ -675,6 +729,7 @@ def retranscribe_audio(
     model_name,
     device="GPU",
     cached_log_row=None,
+    is_preset=False,
     min_silence_ms=0, min_speech_ms=0, pad_ms=0,
     request: gr.Request = None,
     progress=gr.Progress(),
@@ -716,6 +771,7 @@ def retranscribe_audio(
         progress=progress,
         min_silence_ms=min_silence_ms, min_speech_ms=min_speech_ms, pad_ms=pad_ms,
         request=request, log_row=cached_log_row,
+        is_preset=is_preset,
     )
 
     # Pass through all cached state unchanged
@@ -778,6 +834,7 @@ def _retranscribe_wrapper(
     cached_model_name, device,
     cached_log_row=None,
     min_silence_ms=0, min_speech_ms=0, pad_ms=0,
+    is_preset=False,
     request: gr.Request = None,
     progress=gr.Progress(),
 ):
@@ -788,6 +845,7 @@ def _retranscribe_wrapper(
         cached_speech_intervals, cached_is_complete,
         opposite, device,
         cached_log_row=cached_log_row,
+        is_preset=is_preset,
         min_silence_ms=min_silence_ms, min_speech_ms=min_speech_ms, pad_ms=pad_ms,
         request=request,
         progress=progress,
@@ -810,5 +868,5 @@ def save_json_export(json_data):
 
     # Create temp file with JSON
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
-        json.dump(json_data, f, indent=2, ensure_ascii=False)
+        json.dump(json_data, f, separators=(',', ':'), ensure_ascii=False)
         return f.name

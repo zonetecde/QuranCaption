@@ -80,6 +80,11 @@ export default class Settings extends SerializableBase {
 			name: 'Subtitles Editor',
 			icon: 'subtitles',
 			description: 'Controls for editing and managing subtitles'
+		},
+		PREDEFINED_SUBTITLES: {
+			name: 'Pre-defined Subtitles',
+			icon: 'auto_awesome',
+			description: 'Shortcuts to insert pre-defined subtitle clips'
 		}
 	};
 
@@ -179,6 +184,18 @@ export default class Settings extends SerializableBase {
 				description:
 					'Set start time of subtitle at cursor position and adjust previous subtitle end'
 			},
+			ADD_CUSTOM_TEXT_CLIP: {
+				keys: ['t'],
+				description: 'Add a custom text clip between the last subtitle and the current position',
+				name: 'Add Custom Text Clip'
+			},
+			SPLIT_SUBTITLE: {
+				keys: ['d'],
+				description: 'Split the subtitle at the cursor position',
+				name: 'Split Subtitle'
+			}
+		},
+		PREDEFINED_SUBTITLES: {
 			ADD_BASMALA: {
 				keys: ['b'],
 				description: 'Add a subtitle with the basmala ("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")',
@@ -189,15 +206,36 @@ export default class Settings extends SerializableBase {
 				description: `Add a subtitle with the isti'adhah ("أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ")`,
 				name: "Add Isti'adhah"
 			},
-			ADD_CUSTOM_TEXT_CLIP: {
-				keys: ['t'],
-				description: 'Add a custom text clip between the last subtitle and the current position',
-				name: 'Add Custom Text Clip'
+			ADD_ISTIADHA_BASMALA: {
+				keys: [],
+				description:
+					`Add a subtitle with isti'adhah + basmala ("أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ\\nبِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")`,
+				name: "Add Isti'adhah+Basmala"
 			},
-			SPLIT_SUBTITLE: {
-				keys: ['d'],
-				description: 'Split the subtitle at the cursor position',
-				name: 'Split Subtitle'
+			ADD_AMIN: {
+				keys: [],
+				description: 'Add a subtitle with amin ("آمِين")',
+				name: 'Add Amin'
+			},
+			ADD_TAKBIR: {
+				keys: [],
+				description: 'Add a subtitle with takbir ("اللَّهُ أَكْبَر")',
+				name: 'Add Takbir'
+			},
+			ADD_TAHMEED: {
+				keys: [],
+				description: 'Add a subtitle with tahmeed ("سَمِعَ اللَّهُ لِمَنْ حَمِدَه")',
+				name: 'Add Tahmeed'
+			},
+			ADD_TASLEEM: {
+				keys: [],
+				description: 'Add a subtitle with tasleem ("ٱلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ ٱللَّه")',
+				name: 'Add Tasleem'
+			},
+			ADD_SADAQA: {
+				keys: [],
+				description: 'Add a subtitle with sadaqa ("صَدَقَ ٱللَّهُ ٱلْعَظِيم")',
+				name: 'Add Sadaqa'
 			}
 		}
 	};
@@ -279,6 +317,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC331ToQC332();
 		MigrationService.FromQC332ToQC333();
 		MigrationService.FromQC333ToQC334();
+		MigrationService.FromQC334ToQC335();
 	}
 }
 

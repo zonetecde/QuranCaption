@@ -1,5 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
 import type { SubtitleClip } from './Clip.svelte';
+import { canonicalizePredefinedSubtitleType } from './Clip.svelte';
 import type { Edition } from './Edition';
 import { TrackType } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
@@ -197,10 +198,26 @@ export class ProjectTranslation extends SerializableBase {
 
 		for (const predefinedSubtitle of globalState.getPredefinedSubtitleClips) {
 			// Ajoute les versets des sous-titres pré-définis
-			if (predefinedSubtitle.predefinedSubtitleType === 'Basmala') {
+			const type = canonicalizePredefinedSubtitleType(predefinedSubtitle.predefinedSubtitleType);
+			if (type === 'Other') continue;
+
+			if (type === 'Basmala') {
 				translations['Basmala'] = globalState.availableTranslations[edition.language].basmala;
-			} else if (predefinedSubtitle.predefinedSubtitleType === 'Istiadhah') {
-				translations['Istiadhah'] = globalState.availableTranslations[edition.language].istiadhah;
+			} else if (type === "Isti'adha") {
+				translations["Isti'adha"] = globalState.availableTranslations[edition.language].istiadhah;
+			} else if (type === "Isti'adha+Basmala") {
+				translations["Isti'adha+Basmala"] =
+					globalState.availableTranslations[edition.language].istiadhah_basmala;
+			} else if (type === 'Amin') {
+				translations['Amin'] = globalState.availableTranslations[edition.language].amin;
+			} else if (type === 'Takbir') {
+				translations['Takbir'] = globalState.availableTranslations[edition.language].takbir;
+			} else if (type === 'Tahmeed') {
+				translations['Tahmeed'] = globalState.availableTranslations[edition.language].tahmeed;
+			} else if (type === 'Tasleem') {
+				translations['Tasleem'] = globalState.availableTranslations[edition.language].tasleem;
+			} else if (type === 'Sadaqa') {
+				translations['Sadaqa'] = globalState.availableTranslations[edition.language].sadaqa;
 			}
 		}
 
@@ -270,12 +287,25 @@ export class ProjectTranslation extends SerializableBase {
 
 	getPredefinedSubtitleTranslation(edition: Edition, type: string): PredefinedSubtitleTranslation {
 		const lang = globalState.availableTranslations[edition.language];
+		const canonicalType = canonicalizePredefinedSubtitleType(type);
 
-		switch (type) {
+		switch (canonicalType) {
 			case 'Basmala':
 				return new PredefinedSubtitleTranslation(lang.basmala);
-			case 'Istiadhah':
+			case "Isti'adha":
 				return new PredefinedSubtitleTranslation(lang.istiadhah);
+			case "Isti'adha+Basmala":
+				return new PredefinedSubtitleTranslation(lang.istiadhah_basmala);
+			case 'Amin':
+				return new PredefinedSubtitleTranslation(lang.amin);
+			case 'Takbir':
+				return new PredefinedSubtitleTranslation(lang.takbir);
+			case 'Tahmeed':
+				return new PredefinedSubtitleTranslation(lang.tahmeed);
+			case 'Tasleem':
+				return new PredefinedSubtitleTranslation(lang.tasleem);
+			case 'Sadaqa':
+				return new PredefinedSubtitleTranslation(lang.sadaqa);
 			default:
 				return new PredefinedSubtitleTranslation('');
 		}

@@ -67,6 +67,7 @@ class ProfilingData:
     segments_attempted: int = 0
     segments_passed: int = 0
     special_merges: int = 0
+    transition_skips: int = 0
     # Result building profiling
     result_build_time: float = 0.0           # Total result building time
     result_audio_encode_time: float = 0.0    # Audio-to-data-URL encoding
@@ -140,6 +141,7 @@ class ProfilingData:
             f"    Tier 2 Retries:  {self.tier2_passed}/{self.tier2_attempts} passed   segments: {t2_segs}",
             f"    Reanchors (consec failures): {self.consec_reanchors}",
             f"    Special Merges:  {self.special_merges}",
+            f"    Transition Skips: {self.transition_skips}",
             "-" * 60,
         ]
         profiled_sum = (self.resample_time + self.vad_wall_time + self.asr_time

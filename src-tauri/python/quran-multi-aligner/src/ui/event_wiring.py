@@ -1,6 +1,7 @@
 """Event wiring — connects all Gradio component events."""
 import gradio as gr
 
+from src.core.zero_gpu import QuotaExhaustedError
 from src.pipeline import (
     process_audio, resegment_audio,
     _retranscribe_wrapper, save_json_export,
@@ -8,6 +9,7 @@ from src.pipeline import (
 from src.api.session_api import (
     process_audio_session, resegment_session,
     retranscribe_session, realign_from_timestamps,
+    mfa_timestamps_session, mfa_timestamps_direct,
 )
 from src.mfa import compute_mfa_timestamps
 from src.ui.handlers import (
@@ -67,20 +69,50 @@ def _wire_audio_input(c):
         api_name=False, show_progress="hidden"
     )
 
-    c.btn_ex_112.click(fn=lambda: ("data/112.mp3", "GPU"), inputs=[], outputs=[c.audio_input, c.device_radio], api_name=False)
-    c.btn_ex_84.click(fn=lambda: ("data/84.mp3", "GPU"), inputs=[], outputs=[c.audio_input, c.device_radio], api_name=False)
-    c.btn_ex_7.click(fn=lambda: ("data/7.mp3", "GPU"), inputs=[], outputs=[c.audio_input, c.device_radio], api_name=False)
-    c.btn_ex_juz30.click(fn=lambda: ("data/Juz' 30.mp3", "GPU"), inputs=[], outputs=[c.audio_input, c.device_radio], api_name=False)
+    c.btn_ex_112.click(fn=lambda: ("data/112.mp3", "GPU", True), inputs=[], outputs=[c.audio_input, c.device_radio, c.is_preset], api_name=False)
+    c.btn_ex_84.click(fn=lambda: ("data/84.mp3", "GPU", True), inputs=[], outputs=[c.audio_input, c.device_radio, c.is_preset], api_name=False)
+    c.btn_ex_7.click(fn=lambda: ("data/7.mp3", "GPU", True), inputs=[], outputs=[c.audio_input, c.device_radio, c.is_preset], api_name=False)
+    c.btn_ex_juz30.click(fn=lambda: ("data/Juz' 30.mp3", "GPU", True), inputs=[], outputs=[c.audio_input, c.device_radio, c.is_preset], api_name=False)
+
+    # Reset is_preset when user uploads/records their own audio (.input fires only on user interaction, not programmatic changes)
+    c.audio_input.input(fn=lambda: False, inputs=[], outputs=[c.is_preset], api_name=False, show_progress="hidden")
 
 
 def _wire_extract_chain(c):
-    """Extract segments -> save JSON -> show action buttons."""
+    """Extract segments + save JSON + show action buttons in one round-trip."""
+    def _extract_all(audio_data, silence, speech, pad, model, device, is_preset,
+                     request: gr.Request = None, progress=gr.Progress()):
+        try:
+            result = process_audio(audio_data, silence, speech, pad, model, device,
+                                   is_preset=is_preset, request=request, progress=progress)
+        except QuotaExhaustedError as e:
+            reset_msg = f" Resets in {e.reset_time}." if e.reset_time else ""
+            gr.Warning(f"GPU quota reached — retrying on CPU (slower).{reset_msg}")
+            result = process_audio(audio_data, silence, speech, pad, model, "CPU",
+                                   is_preset=is_preset, request=request, progress=progress)
+        # result: (html, json, speech_intervals, is_complete, audio, sr, intervals, seg_dir, log_row)
+        json_data = result[1]
+        return (
+            *result,                                                            # 9 pipeline outputs
+            save_json_export(json_data),                                        # export_file
+            gr.update(visible=False),                                           # hide extract_btn
+            gr.update(visible=True, interactive=True, variant="primary"),       # show compute_ts_btn
+            gr.update(visible=True),                                            # show resegment_toggle_btn
+            gr.update(                                                          # show retranscribe_btn
+                visible=True,
+                value=f"Retranscribe with {'Large' if model == 'Base' else 'Base'} Model"
+            ),
+            silence, speech, pad,                                               # sync to resegment panel
+            model,                                                              # cache model name
+        )
+
     c.extract_btn.click(
-        fn=process_audio,
+        fn=_extract_all,
         inputs=[
             c.audio_input,
             c.min_silence_slider, c.min_speech_slider, c.pad_slider,
             c.model_radio, c.device_radio,
+            c.is_preset,
         ],
         outputs=[
             c.output_html, c.output_json,
@@ -88,29 +120,11 @@ def _wire_extract_chain(c):
             c.cached_audio, c.cached_sample_rate,
             c.cached_intervals, c.cached_segment_dir,
             c.cached_log_row,
+            c.export_file, c.extract_btn, c.compute_ts_btn,
+            c.resegment_toggle_btn, c.retranscribe_btn,
+            c.rs_silence, c.rs_speech, c.rs_pad, c.cached_model_name,
         ],
         api_name=False, show_progress="minimal"
-    ).then(
-        fn=save_json_export,
-        inputs=[c.output_json],
-        outputs=[c.export_file],
-        show_progress="hidden"
-    ).then(
-        fn=lambda silence, speech, pad, model: (
-            gr.update(visible=False),                                       # hide extract_btn
-            gr.update(visible=True, interactive=True, variant="primary"),   # show compute_ts_btn
-            gr.update(visible=True),                                        # show resegment_toggle_btn
-            gr.update(                                                      # show retranscribe_btn
-                visible=True,
-                value=f"Retranscribe with {'Large' if model == 'Base' else 'Base'} Model"
-            ),
-            silence, speech, pad,                                           # sync to resegment panel
-            model,                                                          # cache model name
-        ),
-        inputs=[c.min_silence_slider, c.min_speech_slider, c.pad_slider, c.model_radio],
-        outputs=[c.extract_btn, c.compute_ts_btn, c.resegment_toggle_btn, c.retranscribe_btn,
-                 c.rs_silence, c.rs_speech, c.rs_pad, c.cached_model_name],
-        api_name=False, show_progress="hidden"
     )
 
 
@@ -138,14 +152,43 @@ def _wire_resegment_chain(c):
         api_name=False, show_progress="hidden"
     )
 
+    def _resegment_all(speech_intervals, is_complete, audio, sr,
+                       silence, speech, pad, model, device, log_row, is_preset,
+                       request: gr.Request = None, progress=gr.Progress()):
+        try:
+            result = resegment_audio(speech_intervals, is_complete, audio, sr,
+                                     silence, speech, pad, model, device, log_row,
+                                     is_preset=is_preset, request=request, progress=progress)
+        except QuotaExhaustedError as e:
+            reset_msg = f" Resets in {e.reset_time}." if e.reset_time else ""
+            gr.Warning(f"GPU quota reached — retrying on CPU (slower).{reset_msg}")
+            result = resegment_audio(speech_intervals, is_complete, audio, sr,
+                                     silence, speech, pad, model, "CPU", log_row,
+                                     is_preset=is_preset, request=request, progress=progress)
+        json_data = result[1]
+        return (
+            *result,                                                            # 9 pipeline outputs
+            gr.update(visible=False), False,                                    # close resegment_panel
+            save_json_export(json_data),                                        # export_file
+            silence, speech, pad,                                               # sync sliders back
+            model,                                                              # update cached_model_name
+            gr.update(visible=True, interactive=True, variant="primary"),       # re-enable compute_ts_btn
+            gr.update(visible=False),                                           # hide animate_all_html
+            gr.update(                                                          # re-show retranscribe_btn
+                visible=True,
+                value=f"Retranscribe with {'Large' if model == 'Base' else 'Base'} Model"
+            ),
+        )
+
     c.resegment_btn.click(
-        fn=resegment_audio,
+        fn=_resegment_all,
         inputs=[
             c.cached_speech_intervals, c.cached_is_complete,
             c.cached_audio, c.cached_sample_rate,
             c.rs_silence, c.rs_speech, c.rs_pad,
             c.model_radio, c.device_radio,
             c.cached_log_row,
+            c.is_preset,
         ],
         outputs=[
             c.output_html, c.output_json,
@@ -153,46 +196,51 @@ def _wire_resegment_chain(c):
             c.cached_audio, c.cached_sample_rate,
             c.cached_intervals, c.cached_segment_dir,
             c.cached_log_row,
+            c.resegment_panel, c.resegment_panel_visible,
+            c.export_file,
+            c.min_silence_slider, c.min_speech_slider, c.pad_slider,
+            c.cached_model_name, c.compute_ts_btn, c.animate_all_html, c.retranscribe_btn,
         ],
         api_name=False, show_progress="minimal"
-    ).then(
-        fn=lambda: (gr.update(visible=False), False),
-        inputs=[],
-        outputs=[c.resegment_panel, c.resegment_panel_visible],
-        api_name=False, show_progress="hidden"
-    ).then(
-        fn=save_json_export,
-        inputs=[c.output_json],
-        outputs=[c.export_file],
-        show_progress="hidden"
-    ).then(
-        fn=lambda silence, speech, pad, model: (
-            silence, speech, pad,                                            # sync sliders back
-            model,                                                           # update cached_model_name
-            gr.update(visible=True, interactive=True, variant="primary"),    # re-enable compute_ts_btn
-            gr.update(visible=False),                                        # hide animate_all_html
-            gr.update(                                                       # re-show retranscribe_btn
-                visible=True,
-                value=f"Retranscribe with {'Large' if model == 'Base' else 'Base'} Model"
-            ),
-        ),
-        inputs=[c.rs_silence, c.rs_speech, c.rs_pad, c.model_radio],
-        outputs=[c.min_silence_slider, c.min_speech_slider, c.pad_slider,
-                 c.cached_model_name, c.compute_ts_btn, c.animate_all_html, c.retranscribe_btn],
-        api_name=False, show_progress="hidden"
     )
 
 
 def _wire_retranscribe_chain(c):
-    """Retranscribe -> save -> hide button -> update model name."""
+    """Retranscribe + save + hide button + update model name in one round-trip."""
+    def _retranscribe_all(intervals, audio, sr, speech_intervals, is_complete,
+                          model_name, device, log_row, silence, speech, pad, is_preset,
+                          request: gr.Request = None, progress=gr.Progress()):
+        try:
+            result = _retranscribe_wrapper(intervals, audio, sr, speech_intervals,
+                                           is_complete, model_name, device, log_row,
+                                           silence, speech, pad,
+                                           is_preset=is_preset, request=request, progress=progress)
+        except QuotaExhaustedError as e:
+            reset_msg = f" Resets in {e.reset_time}." if e.reset_time else ""
+            gr.Warning(f"GPU quota reached — retrying on CPU (slower).{reset_msg}")
+            result = _retranscribe_wrapper(intervals, audio, sr, speech_intervals,
+                                           is_complete, model_name, "CPU", log_row,
+                                           silence, speech, pad,
+                                           is_preset=is_preset, request=request, progress=progress)
+        json_data = result[1]
+        return (
+            *result,                                                            # 9 pipeline outputs
+            save_json_export(json_data),                                        # export_file
+            gr.update(visible=False),                                           # hide retranscribe_btn
+            gr.update(visible=True, interactive=True, variant="primary"),       # re-enable compute_ts_btn
+            gr.update(visible=False),                                           # hide animate_all_html
+            "Large" if model_name == "Base" else "Base",                        # flip cached_model_name
+        )
+
     c.retranscribe_btn.click(
-        fn=_retranscribe_wrapper,
+        fn=_retranscribe_all,
         inputs=[
             c.cached_intervals, c.cached_audio, c.cached_sample_rate,
             c.cached_speech_intervals, c.cached_is_complete,
             c.cached_model_name, c.device_radio,
             c.cached_log_row,
             c.min_silence_slider, c.min_speech_slider, c.pad_slider,
+            c.is_preset,
         ],
         outputs=[
             c.output_html, c.output_json,
@@ -200,23 +248,10 @@ def _wire_retranscribe_chain(c):
             c.cached_audio, c.cached_sample_rate,
             c.cached_intervals, c.cached_segment_dir,
             c.cached_log_row,
+            c.export_file, c.retranscribe_btn, c.compute_ts_btn,
+            c.animate_all_html, c.cached_model_name,
         ],
         api_name=False, show_progress="minimal"
-    ).then(
-        fn=save_json_export,
-        inputs=[c.output_json],
-        outputs=[c.export_file],
-        show_progress="hidden"
-    ).then(
-        fn=lambda model_name: (
-            gr.update(visible=False),                                       # hide retranscribe_btn
-            gr.update(visible=True, interactive=True, variant="primary"),   # re-enable compute_ts_btn
-            gr.update(visible=False),                                       # hide animate_all_html
-            "Large" if model_name == "Base" else "Base",                    # flip cached_model_name
-        ),
-        inputs=[c.cached_model_name],
-        outputs=[c.retranscribe_btn, c.compute_ts_btn, c.animate_all_html, c.cached_model_name],
-        api_name=False, show_progress="hidden"
     )
 
 
@@ -448,4 +483,16 @@ def _wire_api_endpoint(c):
         inputs=[c.api_audio_id, c.api_timestamps, c.api_model, c.api_device],
         outputs=[c.api_result],
         api_name="realign_from_timestamps",
+    )
+    gr.Button(visible=False).click(
+        fn=mfa_timestamps_session,
+        inputs=[c.api_audio_id, c.api_mfa_segments, c.api_mfa_granularity],
+        outputs=[c.api_result],
+        api_name="mfa_timestamps_session",
+    )
+    gr.Button(visible=False).click(
+        fn=mfa_timestamps_direct,
+        inputs=[c.api_audio, c.api_mfa_segments, c.api_mfa_granularity],
+        outputs=[c.api_result],
+        api_name="mfa_timestamps_direct",
     )

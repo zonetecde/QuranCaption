@@ -150,13 +150,43 @@
 		});
 
 		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_BASMALA,
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_BASMALA,
 			onKeyDown: () => addPredefinedSubtitle('Basmala')
 		});
 
 		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_ISTIADHAH,
-			onKeyDown: () => addPredefinedSubtitle('Istiadhah')
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHAH,
+			onKeyDown: () => addPredefinedSubtitle("Isti'adha")
+		});
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHA_BASMALA,
+			onKeyDown: () => addPredefinedSubtitle("Isti'adha+Basmala")
+		});
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_AMIN,
+			onKeyDown: () => addPredefinedSubtitle('Amin')
+		});
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAKBIR,
+			onKeyDown: () => addPredefinedSubtitle('Takbir')
+		});
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAHMEED,
+			onKeyDown: () => addPredefinedSubtitle('Tahmeed')
+		});
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TASLEEM,
+			onKeyDown: () => addPredefinedSubtitle('Tasleem')
+		});
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_SADAQA,
+			onKeyDown: () => addPredefinedSubtitle('Sadaqa')
 		});
 
 		ShortcutService.registerShortcut({
@@ -207,10 +237,28 @@
 		);
 
 		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_BASMALA
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_BASMALA
 		);
 		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_ISTIADHAH
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHAH
+		);
+		ShortcutService.unregisterShortcut(
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHA_BASMALA
+		);
+		ShortcutService.unregisterShortcut(
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_AMIN
+		);
+		ShortcutService.unregisterShortcut(
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAKBIR
+		);
+		ShortcutService.unregisterShortcut(
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAHMEED
+		);
+		ShortcutService.unregisterShortcut(
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TASLEEM
+		);
+		ShortcutService.unregisterShortcut(
+			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_SADAQA
 		);
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP

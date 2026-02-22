@@ -25,6 +25,7 @@
 
 	let originalTranslation: string = $state('');
 	let translationInput: HTMLInputElement | null = $state(null);
+	let editableTranslationValue: string = $state('');
 
 	let previousSubtitleTranslationStartIndex: number = $state(-1);
 	let previousSubtitleTranslationEndIndex: number = $state(-1);
@@ -168,6 +169,38 @@
 			handleMouseUp();
 		}
 	}
+
+	/**
+	 * Convertis les vrais \n en \n pour affichage dans l'input traduction
+	 */
+	function escapeNewlinesForInput(value: string): string {
+		return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\\n');
+	}
+
+	/**
+	 * Convertit les \n écrit brute en vrai \n
+	 */
+	function normalizeInputToTranslation(value: string): string {
+		return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\n/g, '\n');
+	}
+
+	function handleTranslationInput(event: Event): void {
+		const rawValue = (event.target as HTMLInputElement).value;
+		editableTranslationValue = rawValue;
+
+		const translationValue = normalizeInputToTranslation(rawValue);
+		(subtitle.translations[edition.name] as VerseTranslation).text = translationValue;
+	}
+
+	$effect(() => {
+		const sourceValue = String(
+			(subtitle.translations[edition.name] as VerseTranslation).text ?? ''
+		);
+		const escapedValue = escapeNewlinesForInput(sourceValue);
+		if (editableTranslationValue !== escapedValue) {
+			editableTranslationValue = escapedValue;
+		}
+	});
 </script>
 
 <div
@@ -328,9 +361,10 @@
 				<input
 				bind:this={translationInput}
 				type="text"
-				bind:value={(subtitle.translations[edition.name] as VerseTranslation).text}
+				value={editableTranslationValue}
+				oninput={handleTranslationInput}
 				class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
-				placeholder="Enter your translation here..."
+				placeholder="Enter your translation here... (use \\n for line break)"
 			/>
 			{/if}
 		</div>

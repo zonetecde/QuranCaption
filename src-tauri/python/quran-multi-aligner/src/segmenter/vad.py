@@ -7,6 +7,7 @@ import torch
 
 from .segmenter_aoti import is_aoti_applied
 from .segmenter_model import load_segmenter, _log_env_once
+from ..core.zero_gpu import is_user_forced_cpu
 
 
 def detect_speech_segments(
@@ -48,8 +49,13 @@ def detect_speech_segments(
 
         audio_tensor = torch.from_numpy(audio).float()
 
-        device = next(model.parameters()).device
         dtype = next(model.parameters()).dtype
+
+        # Determine inference device.
+        if is_user_forced_cpu():
+            device = torch.device("cpu")
+        else:
+            device = next(model.parameters()).device
 
         # Log AoTI status
         if is_aoti_applied():
@@ -86,6 +92,12 @@ def detect_speech_segments(
 
         raw_speech_intervals = outputs[0].speech_intervals
         raw_is_complete = outputs[0].is_complete
+        # Convert to numpy: prevents CUDA tensor refs escaping the lease
+        # and ensures picklability for CPU subprocess isolation
+        if hasattr(raw_speech_intervals, 'detach'):
+            raw_speech_intervals = raw_speech_intervals.detach().cpu().numpy()
+        if hasattr(raw_is_complete, 'detach'):
+            raw_is_complete = raw_is_complete.detach().cpu().numpy()
 
         return [(start, end) for start, end in intervals], {"model_load_time": model_load_time, "inference_time": inference_time}, raw_speech_intervals, raw_is_complete
 

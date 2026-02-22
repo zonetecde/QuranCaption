@@ -165,6 +165,16 @@ if _HAS_DEPS:
                         row[feature] = None
 
             table = pa.Table.from_pylist(rows)
+
+            # Cast null-typed columns to string so all parquet shards share
+            # the same Arrow schema (prevents HF viewer concat errors).
+            for i, field in enumerate(table.schema):
+                if pa.types.is_null(field.type):
+                    table = table.set_column(
+                        i, field.name,
+                        pa.array([None] * len(table), type=pa.string()),
+                    )
+
             table = table.replace_schema_metadata(
                 {"huggingface": json.dumps({"info": {"features": schema}})}
             )
@@ -173,7 +183,12 @@ if _HAS_DEPS:
             try:
                 import tempfile
                 archive = tempfile.NamedTemporaryFile(suffix=".parquet", delete=False)
-                pq.write_table(table, archive.name)
+                pq.write_table(
+                    table,
+                    archive.name,
+                    row_group_size=1,
+                    write_page_index=True,
+                )
                 self.api.upload_file(
                     repo_id=self.repo_id,
                     repo_type=self.repo_type,
@@ -284,16 +299,33 @@ def _compute_audio_id(audio: np.ndarray, ts: datetime) -> str:
     return f"{audio_hash}:{ts.strftime('%Y%m%dT%H%M%S')}"
 
 
-def _encode_audio_flac(audio: np.ndarray, sample_rate: int, audio_id: str) -> str:
-    """Encode audio to a temp FLAC file; returns the file path."""
+def _encode_audio_ogg(audio: np.ndarray, sample_rate: int, audio_id: str) -> str:
+    """Encode audio to a temp OGG Vorbis file; returns the file path.
+
+    Uses Vorbis instead of Opus because libsndfile (used by the HF dataset
+    viewer) has buggy Opus support and crashes on many valid Opus files.
+    """
     import soundfile as sf
+    import subprocess
 
     tmp_dir = LOG_DIR / "tmp_audio"
     tmp_dir.mkdir(parents=True, exist_ok=True)
     safe_id = audio_id.replace(":", "-")
-    filepath = tmp_dir / f"{safe_id}.flac"
-    sf.write(str(filepath), audio, sample_rate, format="FLAC")
-    return str(filepath)
+
+    wav_path = tmp_dir / f"{safe_id}.wav"
+    ogg_path = tmp_dir / f"{safe_id}.ogg"
+    sf.write(str(wav_path), audio, sample_rate, format="WAV")
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(wav_path),
+             "-c:a", "libvorbis", "-q:a", "2",
+             "-ar", "16000", "-ac", "1",
+             str(ogg_path)],
+            capture_output=True, check=True,
+        )
+    finally:
+        wav_path.unlink(missing_ok=True)
+    return str(ogg_path)
 
 
 def _sync_row_to_scheduler(row: Dict[str, Any]) -> None:
@@ -363,16 +395,21 @@ def log_alignment(
     std_pause_duration: float,
     # Segments
     log_segments: List[dict],
+    _async: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """Log an alignment run. Returns the row dict reference for in-place mutation.
 
     The returned dict can be stored in gr.State and mutated on
     resegment/retranscribe/timestamps before the scheduler pushes.
+
+    When _async=True, the expensive FLAC encoding and SHA256 hash run in a
+    background daemon thread.  The row is appended to the scheduler
+    immediately (with audio=None) and updated in-place once the thread
+    finishes.
     """
     _ensure_schedulers()
     try:
         ts = datetime.now()
-        audio_id = _compute_audio_id(audio, ts)
         user_id = get_user_id(request) if request else "unknown"
 
         # Build the segments JSON: array of run objects
@@ -384,11 +421,14 @@ def log_alignment(
             "segments": log_segments,
         }]
 
-        # Encode audio to FLAC temp file (scheduler embeds bytes on push)
-        audio_path = _encode_audio_flac(audio, sample_rate, audio_id)
+        if _async:
+            # Fast path: UUID-based audio_id avoids blocking SHA256
+            audio_id = f"{uuid4().hex[:16]}:{ts.strftime('%Y%m%dT%H%M%S')}"
+        else:
+            audio_id = _compute_audio_id(audio, ts)
 
         row: Dict[str, Any] = {
-            "audio": audio_path,
+            "audio": None,  # filled by FLAC encode (sync or async)
             "audio_id": audio_id,
             "timestamp": ts.isoformat(timespec="seconds"),
             "user_id": user_id,
@@ -435,10 +475,25 @@ def log_alignment(
             "error": None,
         }
 
-        if _aligner_scheduler is not None:
-            _aligner_scheduler.append(row)
+        def _encode_and_append():
+            """Encode FLAC and register row with scheduler/fallback."""
+            try:
+                row["audio"] = _encode_audio_ogg(audio, sample_rate, audio_id)
+            except Exception as e:
+                print(f"[USAGE_LOG] FLAC encoding failed: {e}")
+            if _aligner_scheduler is None:
+                _write_fallback(row)
+
+        if _async:
+            # Append row immediately so _sync_row_to_scheduler can find it;
+            # background thread fills in row["audio"] in-place.
+            if _aligner_scheduler is not None:
+                _aligner_scheduler.append(row)
+            threading.Thread(target=_encode_and_append, daemon=True).start()
         else:
-            _write_fallback(row)
+            _encode_and_append()
+            if _aligner_scheduler is not None:
+                _aligner_scheduler.append(row)
 
         return row
 

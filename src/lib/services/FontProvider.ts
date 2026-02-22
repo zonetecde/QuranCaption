@@ -126,6 +126,10 @@ export class QPCFontProvider {
 				return '';
 		}
 	}
+
+	static getSadaqaGlyph(): string {
+		return 'A@ ?';
+	}
 }
 
 export default QPCFontProvider;

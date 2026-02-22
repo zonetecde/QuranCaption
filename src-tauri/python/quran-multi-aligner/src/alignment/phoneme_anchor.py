@@ -11,7 +11,7 @@ anchor to the first ayah of that run.
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
-from config import ANCHOR_DEBUG, ANCHOR_RARITY_WEIGHTING, ANCHOR_RUN_TRIM_RATIO
+from config import ANCHOR_DEBUG, ANCHOR_RARITY_WEIGHTING, ANCHOR_RUN_TRIM_RATIO, ANCHOR_TOP_CANDIDATES
 from .ngram_index import PhonemeNgramIndex
 from .phoneme_matcher import ChapterReference
 
@@ -82,9 +82,9 @@ def find_anchor_by_voting(
     Vote on (surah, ayah) using n-gram rarity weighting.
 
     Two-phase selection:
-    1. Raw voting determines the winning surah (highest total weight across all ayahs)
-    2. Within that surah, find the best contiguous run of ayahs and return
-       the first ayah of that run as the anchor point.
+    1. Raw voting accumulates (surah, ayah) weights; top N surahs by total weight are shortlisted
+    2. Each candidate surah is evaluated by its best contiguous ayah run; the surah
+       with the highest run weight wins (prevents scattered noise votes from long surahs)
 
     Args:
         phoneme_texts: Phoneme lists for segments (starting from first Quran segment)
@@ -153,48 +153,51 @@ def find_anchor_by_voting(
         return (0, 0)
 
     # =========================================================================
-    # Phase 1b: Determine winning surah (by total weight across all ayahs)
+    # Phase 1b: Pre-filter surahs by total weight
     # =========================================================================
     surah_totals: Dict[int, float] = defaultdict(float)
     for (s, a), w in votes.items():
         surah_totals[s] += w
 
-    winning_surah = max(surah_totals, key=surah_totals.get)
-
-    if ANCHOR_DEBUG:
-        ranked_surahs = sorted(surah_totals.items(), key=lambda kv: kv[1], reverse=True)
-        print(f"\n  Surah vote totals (top 5):")
-        print(f"  {'Surah':>5}  {'Total Weight':>12}")
-        print(f"  {'-' * 20}")
-        for s, w in ranked_surahs[:5]:
-            marker = " <-- winner" if s == winning_surah else ""
-            print(f"  {s:>5}  {w:>12.3f}{marker}")
+    ranked_surahs = sorted(surah_totals.items(), key=lambda kv: kv[1], reverse=True)
+    top_surahs = [s for s, _ in ranked_surahs[:ANCHOR_TOP_CANDIDATES]]
 
     # =========================================================================
-    # Phase 2: Within winning surah, find best contiguous ayah run
+    # Phase 2: Evaluate best contiguous run for each candidate surah
     # =========================================================================
-    ayah_weights: Dict[int, float] = {}
-    for (s, a), w in votes.items():
-        if s == winning_surah:
-            ayah_weights[a] = w
+    best_surah = 0
+    best_run_start = 0
+    best_run_end = 0
+    best_run_weight = -1.0
+    candidate_results: List[Tuple[int, float, int, int, float]] = []  # (surah, total, run_start, run_end, run_weight)
 
-    run_start, run_end, run_weight = _find_best_contiguous_run(ayah_weights)
+    for s in top_surahs:
+        ayah_weights: Dict[int, float] = {}
+        for (sv, av), w in votes.items():
+            if sv == s:
+                ayah_weights[av] = w
+
+        run_start, run_end, run_weight = _find_best_contiguous_run(ayah_weights)
+        candidate_results.append((s, surah_totals[s], run_start, run_end, run_weight))
+
+        if run_weight > best_run_weight:
+            best_run_weight = run_weight
+            best_surah = s
+            best_run_start = run_start
+            best_run_end = run_end
 
     if ANCHOR_DEBUG:
-        # Show per-ayah votes in this surah
-        print(f"\n  Surah {winning_surah} ayah votes:")
-        print(f"  {'Ayah':>5}  {'Weight':>8}  {'In Best Run':>11}")
-        print(f"  {'-' * 28}")
-        for a in sorted(ayah_weights.keys()):
-            in_run = "***" if run_start <= a <= run_end else ""
-            print(f"  {a:>5}  {ayah_weights[a]:>8.3f}  {in_run:>11}")
+        print(f"\n  Surah ranking (top {len(top_surahs)} by total weight, re-ranked by best run):")
+        print(f"  {'Surah':>5}  {'Total Weight':>12}  {'Run':>10}  {'Run Weight':>10}")
+        print(f"  {'-' * 45}")
+        for s, total, rs, re_, rw in sorted(candidate_results, key=lambda x: x[4], reverse=True):
+            marker = " <-- winner" if s == best_surah else ""
+            print(f"  {s:>5}  {total:>12.3f}  {rs:>4}-{re_:<4}  {rw:>10.3f}{marker}")
 
-        print(f"\n  Best contiguous run (after trim): ayahs {run_start}-{run_end} "
-              f"(weight={run_weight:.3f}, trim_ratio={ANCHOR_RUN_TRIM_RATIO})")
-        print(f"  RESULT: Surah {winning_surah}, Ayah {run_start} (start of run)")
+        print(f"\n  RESULT: Surah {best_surah}, Ayah {best_run_start} (start of best run)")
         print(f"{'=' * 60}\n")
 
-    return (winning_surah, run_start)
+    return (best_surah, best_run_start)
 
 
 def reanchor_within_surah(

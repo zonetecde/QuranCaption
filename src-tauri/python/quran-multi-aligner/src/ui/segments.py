@@ -16,6 +16,7 @@ from config import (
     SURAH_INFO_PATH,
 )
 from src.core.segment_types import SegmentInfo
+from src.alignment.special_segments import ALL_SPECIAL_REFS
 
 
 def format_timestamp(seconds: float) -> str:
@@ -130,11 +131,22 @@ def split_into_char_groups(text):
 
     Each group is one visible "letter" — a base character followed by any
     diacritics (tashkeel) or other combining marks attached to it.
+    Tatweel (U+0640) and Word Joiner (U+2060) are folded into the current
+    group as zero-width visual extensions.
+    Hamza above/below (U+0654/U+0655) start their own group so MFA can
+    assign them separate timestamps.
     """
     groups = []
     current = ""
     for ch in text:
-        if unicodedata.category(ch).startswith('M') and ch != '\u0670':
+        if ch in ('\u0640', '\u2060'):
+            current += ch  # Tatweel / Word Joiner fold into current group
+        elif ch in ('\u0654', '\u0655'):
+            # Hamza above/below: start own group (MFA gives separate timestamps)
+            if current:
+                groups.append(current)
+            current = ch
+        elif unicodedata.category(ch).startswith('M') and ch != '\u0670':
             current += ch
         else:
             if current:
@@ -145,14 +157,11 @@ def split_into_char_groups(text):
     return groups
 
 
-ZWSP = '\u200b'
+ZWSP = '\u2060'  # Word Joiner: zero-width non-breaking (avoids mid-word line breaks)
 DAGGER_ALEF = '\u0670'
 
 def _wrap_word_with_chars(word_text, pos=None):
     """Wrap a word in <span class="word"> with nested <span class="char"> per letter group."""
-    # Strip tatweel (U+0640) — MFA doesn't output it, so keeping it causes
-    # index misalignment during timestamp injection
-    word_text = word_text.replace('\u0640', '')
     # Insert ZWSP before dagger alef so it can be highlighted independently
     spans = []
     for g in split_into_char_groups(word_text):
@@ -229,11 +238,14 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
         render_key: Unique key to prevent browser caching between renders
         segment_dir: Directory to write segment WAV files into
     """
+    is_special = seg.matched_ref in ALL_SPECIAL_REFS
     confidence_class = get_confidence_class(seg.match_score)
     confidence_badge_class = confidence_class  # preserve original for badge color
-    if seg.has_missing_words:
+    if is_special:
+        confidence_class = "segment-special"
+    elif seg.has_missing_words:
         confidence_class = "segment-low"
-    if seg.potentially_undersegmented and confidence_class != "segment-low":
+    elif seg.potentially_undersegmented and confidence_class != "segment-low":
         confidence_class = "segment-underseg"
 
     timestamp = f"{format_timestamp(seg.start_time)} - {format_timestamp(seg.end_time)}"
@@ -264,9 +276,12 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
     audio_html = ""
     if audio_int16 is not None and sample_rate > 0 and segment_dir is not None:
         audio_src = encode_segment_audio(audio_int16, sample_rate, seg.start_time, seg.end_time, segment_dir, idx, inline=audio_inline)
-        # Add animate button only if segment has matched_ref (Quran text with word spans)
+        # Add animate button only if segment has a Quran verse ref (word spans for animation).
+        # Basmala/Isti'adha get animate because they have indexed word spans for MFA.
+        # Transition segments (Amin, Takbir, Tahmeed) don't.
         animate_btn = ""
-        if seg.matched_ref:
+        _ANIMATABLE_SPECIALS = {"Basmala", "Isti'adha", "Isti'adha+Basmala"}
+        if seg.matched_ref and (seg.matched_ref not in ALL_SPECIAL_REFS or seg.matched_ref in _ANIMATABLE_SPECIALS):
             animate_btn = f'<button class="animate-btn" data-segment="{idx}" disabled>Animate</button>'
         audio_html = f'''
         <div class="segment-audio">
@@ -309,7 +324,7 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
             # Special ref (Basmala/Isti'adha): wrap words with indexed data-pos
             # so MFA timestamps can be injected later
             if seg.matched_ref and seg.matched_text:
-                words = seg.matched_text.split()
+                words = seg.matched_text.replace(" \u06dd ", " ").split()
                 text_html = " ".join(
                     _wrap_word_with_chars(w, pos=f"{seg.matched_ref}:0:0:{i+1}")
                     for i, w in enumerate(words)
@@ -322,7 +337,12 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
     else:
         text_html = ""
 
-    confidence_badge = "" if seg.has_missing_words else f'<div class="segment-badge {confidence_badge_class}-badge">{confidence_pct}</div>'
+    if is_special:
+        confidence_badge = f'<div class="segment-badge segment-special-badge">{seg.matched_ref}</div>'
+    elif seg.has_missing_words:
+        confidence_badge = ""
+    else:
+        confidence_badge = f'<div class="segment-badge {confidence_badge_class}-badge">{confidence_pct}</div>'
 
     # Build inline header: Segment N | ref | duration | time range
     header_parts = [f"Segment {idx + 1}"]
@@ -381,9 +401,11 @@ def render_segments(segments: list, audio_int16: np.ndarray = None, sample_rate:
             wf.writeframes(audio_int16.tobytes())
         full_audio_url = f"/gradio_api/file={full_path}"
 
-    # Categorize segments by confidence level (1-indexed for display)
-    med_segments = [i + 1 for i, s in enumerate(segments) if CONFIDENCE_MED <= s.match_score < CONFIDENCE_HIGH]
-    low_segments = [i + 1 for i, s in enumerate(segments) if s.match_score < CONFIDENCE_MED]
+    # Categorize segments by confidence level (1-indexed for display), excluding specials
+    med_segments = [i + 1 for i, s in enumerate(segments)
+                    if CONFIDENCE_MED <= s.match_score < CONFIDENCE_HIGH and s.matched_ref not in ALL_SPECIAL_REFS]
+    low_segments = [i + 1 for i, s in enumerate(segments)
+                    if s.match_score < CONFIDENCE_MED and s.matched_ref not in ALL_SPECIAL_REFS]
 
     # Build header with confidence summary
     header_parts = []

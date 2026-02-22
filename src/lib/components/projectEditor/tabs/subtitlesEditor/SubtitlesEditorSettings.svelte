@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
+	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
@@ -37,10 +38,29 @@
 		}
 	}
 
-	type SpecialPreset = 'Silence' | 'Istiadhah' | 'Basmala';
+	type SpecialPreset =
+		| 'Silence'
+		| 'Basmala'
+		| "Isti'adha"
+		| "Isti'adha+Basmala"
+		| 'Amin'
+		| 'Takbir'
+		| 'Tahmeed'
+		| 'Tasleem'
+		| 'Sadaqa';
 
 	function isSpecialPreset(value: string): value is SpecialPreset {
-		return value === 'Silence' || value === 'Istiadhah' || value === 'Basmala';
+		return (
+			value === 'Silence' ||
+			value === 'Basmala' ||
+			value === "Isti'adha" ||
+			value === "Isti'adha+Basmala" ||
+			value === 'Amin' ||
+			value === 'Takbir' ||
+			value === 'Tahmeed' ||
+			value === 'Tasleem' ||
+			value === 'Sadaqa'
+		);
 	}
 
 	function isEditableSubtitle(
@@ -61,16 +81,10 @@
 					break;
 				case 'Pre-defined Subtitle':
 					const predefinedSubtitle = editSubtitle as PredefinedSubtitleClip;
-					switch (predefinedSubtitle.predefinedSubtitleType) {
-						case 'Istiadhah':
-							presetChoice = 'Istiadhah';
-							break;
-						case 'Basmala':
-							presetChoice = 'Basmala';
-							break;
-						default:
-							presetChoice = '';
-					}
+					const normalizedType = canonicalizePredefinedSubtitleType(
+						predefinedSubtitle.predefinedSubtitleType
+					);
+					presetChoice = normalizedType === 'Other' ? '' : normalizedType;
 					break;
 				case 'Subtitle':
 					presetChoice = "Qur'an";
@@ -124,7 +138,7 @@
 
 		if (key === 's') newPreset = 'Silence';
 		else if (key === 'b') newPreset = 'Basmala';
-		else if (key === 'i') newPreset = 'Istiadhah';
+		else if (key === 'i') newPreset = "Isti'adha";
 
 		if (!newPreset) return;
 
@@ -177,7 +191,7 @@
 			</div>
 			<!-- Presets -->
 			<div class="grid grid-cols-2 gap-3 pt-1">
-				{#each [{ label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: 'Istiadhah', shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }] as preset}
+				{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: "Isti'adha+Basmala", shortcut: 'none', icon: 'splitscreen', gradient: 'from-cyan-600 to-cyan-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset}
 					<button
 						class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
 						preset.label

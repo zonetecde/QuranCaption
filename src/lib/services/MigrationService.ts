@@ -13,7 +13,12 @@ import {
 	TrackType,
 	Translation
 } from '$lib/classes';
-import { AssetClip, SilenceClip } from '$lib/classes/Clip.svelte';
+import {
+	AssetClip,
+	SilenceClip,
+	getPredefinedArabicText,
+	type PredefinedSubtitleType
+} from '$lib/classes/Clip.svelte';
 import { Quran } from '$lib/classes/Quran';
 import Settings from '$lib/classes/Settings.svelte';
 import type { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
@@ -217,6 +222,81 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Assure que les nouveaux shortcuts de pre-defined subtitles existent (non bindés par défaut).
+	 */
+	static FromQC334ToQC335() {
+		if (!globalState.settings) return;
+
+		let hasChanges = false;
+		const defaults = new Settings();
+		const settingsAny = globalState.settings as any;
+		const keyNames = [
+			'ADD_BASMALA',
+			'ADD_ISTIADHAH',
+			'ADD_ISTIADHA_BASMALA',
+			'ADD_AMIN',
+			'ADD_TAKBIR',
+			'ADD_TAHMEED',
+			'ADD_TASLEEM',
+			'ADD_SADAQA'
+		];
+
+		settingsAny.shortcutCategories = settingsAny.shortcutCategories || {};
+		settingsAny.shortcuts = settingsAny.shortcuts || {};
+		settingsAny.shortcuts.SUBTITLES_EDITOR = settingsAny.shortcuts.SUBTITLES_EDITOR || {};
+
+		if (!settingsAny.shortcutCategories.PREDEFINED_SUBTITLES) {
+			settingsAny.shortcutCategories.PREDEFINED_SUBTITLES =
+				defaults.shortcutCategories.PREDEFINED_SUBTITLES;
+			hasChanges = true;
+		}
+
+		if (!settingsAny.shortcuts.PREDEFINED_SUBTITLES) {
+			settingsAny.shortcuts.PREDEFINED_SUBTITLES = { ...defaults.shortcuts.PREDEFINED_SUBTITLES };
+			hasChanges = true;
+		}
+
+		for (const key of Object.keys(defaults.shortcuts.PREDEFINED_SUBTITLES)) {
+			if (!settingsAny.shortcuts.PREDEFINED_SUBTITLES[key]) {
+				settingsAny.shortcuts.PREDEFINED_SUBTITLES[key] =
+					defaults.shortcuts.PREDEFINED_SUBTITLES[
+						key as keyof typeof defaults.shortcuts.PREDEFINED_SUBTITLES
+					];
+				hasChanges = true;
+			}
+		}
+
+		for (const keyName of keyNames) {
+			if (!settingsAny.shortcuts.PREDEFINED_SUBTITLES[keyName]) {
+				settingsAny.shortcuts.PREDEFINED_SUBTITLES[keyName] =
+					defaults.shortcuts.PREDEFINED_SUBTITLES[
+						keyName as keyof typeof defaults.shortcuts.PREDEFINED_SUBTITLES
+					];
+				hasChanges = true;
+			}
+
+			const oldAction = settingsAny.shortcuts.SUBTITLES_EDITOR[keyName];
+			const newAction = settingsAny.shortcuts.PREDEFINED_SUBTITLES[keyName];
+
+			if (oldAction) {
+				const oldKeys = Array.isArray(oldAction.keys) ? oldAction.keys : [];
+				const currentNewKeys = Array.isArray(newAction?.keys) ? newAction.keys : [];
+				if (oldKeys.length > 0 && currentNewKeys.length === 0) {
+					settingsAny.shortcuts.PREDEFINED_SUBTITLES[keyName].keys = [...oldKeys];
+					hasChanges = true;
+				}
+
+				delete settingsAny.shortcuts.SUBTITLES_EDITOR[keyName];
+				hasChanges = true;
+			}
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
 	 * > Renommage des tracks "CustomText" à "CustomClip"
 	 */
@@ -283,6 +363,39 @@ export default class MigrationService {
 			if (hasChanges) {
 				globalState.currentProject.save();
 			}
+		}
+	}
+
+	/**
+	 * Migre les anciens noms de pre-defined subtitles vers les noms canoniques.
+	 * - Istiadhah -> Isti'adha
+	 * - Sadaqallahul Azim -> Sadaqa
+	 */
+	static FromQC334ToQC335_2() {
+		if (!globalState.currentProject) return;
+
+		let hasChanges = false;
+		const legacyTypeMap: Record<string, PredefinedSubtitleType> = {
+			Istiadhah: "Isti'adha",
+			'Sadaqallahul Azim': 'Sadaqa'
+		};
+
+		for (const track of globalState.currentProject.content.timeline.tracks) {
+			for (const clip of track.clips) {
+				if (!(clip instanceof PredefinedSubtitleClip)) continue;
+
+				const rawType = clip.predefinedSubtitleType as string;
+				const migratedType = legacyTypeMap[rawType];
+				if (!migratedType) continue;
+
+				clip.predefinedSubtitleType = migratedType;
+				clip.text = getPredefinedArabicText(migratedType);
+				hasChanges = true;
+			}
+		}
+
+		if (hasChanges) {
+			globalState.currentProject.save();
 		}
 	}
 
@@ -426,7 +539,7 @@ export default class MigrationService {
 					const sub = new PredefinedSubtitleClip(
 						clip.start,
 						clip.end,
-						clip.text.includes('بِسْمِ') ? 'Basmala' : 'Istiadhah'
+						clip.text.includes('بِسْمِ') ? 'Basmala' : "Isti'adha"
 					);
 
 					for (const [key, value] of Object.entries(clip.translations)) {

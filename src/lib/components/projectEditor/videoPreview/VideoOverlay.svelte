@@ -589,7 +589,7 @@
 						style="opacity: {subtitleOpacity('arabic')}; {getCss('arabic', subtitle.id, [
 							'background',
 							'border'
-						])};"
+						])}; white-space: pre-line;"
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const arabicText = subtitle.getText()}
@@ -626,7 +626,7 @@
 							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(edition, subtitle!.id, [
 								'background',
 								'border'
-							])};`}
+							])}; white-space: pre-line;`}
 						>
 							{#if translation.type === 'verse'}
 								{translation.getText(edition, (subtitle as SubtitleClip)!)}

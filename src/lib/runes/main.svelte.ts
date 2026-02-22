@@ -31,6 +31,12 @@ class GlobalState {
 			flag: string;
 			basmala: string;
 			istiadhah: string;
+			istiadhah_basmala: string;
+			amin: string;
+			takbir: string;
+			tahmeed: string;
+			tasleem: string;
+			sadaqa: string;
 			translations: Edition[];
 		}
 	> = $state({});

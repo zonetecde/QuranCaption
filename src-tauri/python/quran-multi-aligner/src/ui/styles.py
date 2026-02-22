@@ -225,7 +225,7 @@ def build_css() -> str:
         letter-spacing: normal;
     }}
     .segment-card.hidden-for-mega {{ display: none; }}
-    #mega-styling-row {{ display: none; }}
+
     .mega-top-bar {{
         display: flex; justify-content: center; gap: 8px;
         margin-top: 12px; margin-bottom: 8px;
@@ -400,6 +400,8 @@ def build_css() -> str:
     .segment-low-badge {{ background: #dc3545; }}
     .segment-underseg {{ background: #ffe5cc; border-color: #ff8c00; }}
     .segment-underseg-badge {{ background: #ff8c00; }}
+    .segment-special {{ background: #e8eaf6; border-color: #5c6bc0; border-style: dashed; }}
+    .segment-special-badge {{ background: #5c6bc0; }}
 
     /* Review summary text colors */
     .segments-review-summary {{ margin-bottom: 8px; font-size: 14px; }}
@@ -421,11 +423,13 @@ def build_css() -> str:
         .segment-med {{ background: rgba(255, 193, 7, 0.2); border-color: #ffc107; }}
         .segment-low {{ background: rgba(220, 53, 69, 0.2); border-color: #dc3545; }}
         .segment-underseg {{ background: rgba(255, 140, 0, 0.2); border-color: #ff8c00; }}
+        .segment-special {{ background: rgba(92, 107, 192, 0.2); border-color: #5c6bc0; border-style: dashed; }}
     }}
     /* Also support Gradio's dark class */
     .dark .segment-high {{ background: rgba(40, 167, 69, 0.2); border-color: #28a745; }}
     .dark .segment-med {{ background: rgba(255, 193, 7, 0.2); border-color: #ffc107; }}
     .dark .segment-low {{ background: rgba(220, 53, 69, 0.2); border-color: #dc3545; }}
     .dark .segment-underseg {{ background: rgba(255, 140, 0, 0.2); border-color: #ff8c00; }}
+    .dark .segment-special {{ background: rgba(92, 107, 192, 0.2); border-color: #5c6bc0; border-style: dashed; }}
 
     """

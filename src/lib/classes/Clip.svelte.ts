@@ -356,10 +356,98 @@ export class SilenceClip extends Clip {
 
 export type PredefinedSubtitleType =
 	| 'Basmala'
-	| 'Istiadhah'
-	| 'Sadaqallahul Azim'
+	| "Isti'adha"
+	| "Isti'adha+Basmala"
+	| 'Amin'
 	| 'Takbir'
+	| 'Tahmeed'
+	| 'Tasleem'
+	| 'Sadaqa'
 	| 'Other';
+
+const PREDEFINED_ARABIC_TEXT: Record<PredefinedSubtitleType, string> = {
+	Basmala: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم',
+	"Isti'adha": 'أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم',
+	"Isti'adha+Basmala":
+		'أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم',
+	Amin: 'آمِين',
+	Takbir: 'اللَّهُ أَكْبَر',
+	Tahmeed: 'سَمِعَ اللَّهُ لِمَنْ حَمِدَه',
+	Tasleem: 'ٱلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ ٱللَّه',
+	Sadaqa: 'صَدَقَ ٱللَّهُ ٱلْعَظِيم',
+	Other: ''
+};
+
+export function canonicalizePredefinedSubtitleType(
+	type?: string
+): PredefinedSubtitleType | 'Other' {
+	switch (type) {
+		case 'Basmala':
+			return 'Basmala';
+		case "Isti'adha":
+		case 'Istiadhah':
+			return "Isti'adha";
+		case "Isti'adha+Basmala":
+			return "Isti'adha+Basmala";
+		case 'Amin':
+			return 'Amin';
+		case 'Takbir':
+			return 'Takbir';
+		case 'Tahmeed':
+			return 'Tahmeed';
+		case 'Tasleem':
+			return 'Tasleem';
+		case 'Sadaqa':
+		case 'Sadaqallahul Azim':
+			return 'Sadaqa';
+		default:
+			return 'Other';
+	}
+}
+
+export function getPredefinedArabicText(type: PredefinedSubtitleType | 'Other'): string {
+	return PREDEFINED_ARABIC_TEXT[type] ?? '';
+}
+
+/**
+ * Force certaines polices pour les sous-titres prédéfinis
+ *
+ * Règle:
+ * - Si on a QPC1 ou QPC2 alors on force Hafs pour les sous-titres prédéfinis non-supporté par ces polices
+ * - Si la police supporte un texte pré-défini comme le sadaqa, alors on force la police correspondante
+ * - Si la police est une police personnalisée, alors on ne force aucune police
+ *
+ * @param type Le type de sous-titre prédéfini
+ * @returns La police à utiliser ou null si aucune police n'est forcée
+ */
+export function getForcedFontForPredefinedSubtitle(
+	type?: string,
+	currentArabicFontFamily?: string
+): string | null {
+	const canonicalType = canonicalizePredefinedSubtitleType(type);
+
+	const activeFontFamily =
+		currentArabicFontFamily ?? String(globalState.getStyle('arabic', 'font-family')?.value ?? '');
+
+	const isQpcFont = activeFontFamily === 'QPC1' || activeFontFamily === 'QPC2';
+
+	// Sadaqa a un glyph spécifique en QPC2
+	if (canonicalType === 'Sadaqa') return isQpcFont ? 'QPC2BSML' : null;
+
+	// Toutes les autres polices ont Hafs si on est en QPC1 ou QPC2
+	const shouldForceHafs = isQpcFont;
+
+	if (
+		shouldForceHafs &&
+		(canonicalType === 'Amin' ||
+			canonicalType === 'Takbir' ||
+			canonicalType === 'Tahmeed' ||
+			canonicalType === 'Tasleem')
+	) {
+		return 'Hafs';
+	}
+	return null;
+}
 
 export class PredefinedSubtitleClip extends ClipWithTranslation {
 	predefinedSubtitleType: PredefinedSubtitleType = $state('Other');
@@ -372,27 +460,11 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		comeFromIA: boolean = false,
 		confidence: number | null = null
 	) {
-		let _text = '';
-		switch (type) {
-			case 'Basmala':
-				_text = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
-				break;
-			case 'Istiadhah':
-				_text = 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ';
-				break;
-			case 'Sadaqallahul Azim':
-				_text = 'صَدَقَ اللَّهُ الْعَظِيمُ';
-				break;
-			case 'Takbir':
-				_text = 'اللَّهُ أَكْبَرُ';
-				break;
-			case 'Other':
-				_text = text || '';
-				break;
-		}
+		const canonicalType = canonicalizePredefinedSubtitleType(type);
+		const _text = canonicalType === 'Other' ? text || '' : getPredefinedArabicText(canonicalType);
 
 		if (startTime === undefined) {
-			// Déserialisation
+			// Deserialisation
 			super(_text, 0, 0, 'Pre-defined Subtitle');
 			return;
 		}
@@ -400,38 +472,65 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		// Ajoute les traductions du clip
 		const translations: { [key: string]: Translation } = {};
 
-		// Récupère les traductions ajoutées au projet
+		// Recupere les traductions ajoutees au projet
 		if (globalState.currentProject)
 			for (const edition of globalState.getProjectTranslation.addedTranslationEditions) {
 				translations[edition.name] =
-					globalState.getProjectTranslation.getPredefinedSubtitleTranslation(edition, type);
+					globalState.getProjectTranslation.getPredefinedSubtitleTranslation(
+						edition,
+						canonicalType
+					);
 			}
 
 		super(_text, startTime, endTime, 'Pre-defined Subtitle', translations, comeFromIA, confidence);
 
-		this.predefinedSubtitleType = type;
+		this.predefinedSubtitleType = canonicalType;
+	}
+
+	private getCanonicalType(): PredefinedSubtitleType {
+		const canonicalType = canonicalizePredefinedSubtitleType(this.predefinedSubtitleType);
+		if (this.predefinedSubtitleType !== canonicalType) {
+			this.predefinedSubtitleType = canonicalType;
+		}
+		return canonicalType;
 	}
 
 	/**
-	 * Retourne le texte du clip en fonction de la police d'écriture
+	 * Retourne le texte du clip en fonction de la police d'ecriture
 	 * @returns Le texte du clip
 	 */
 	override getText(): string {
-		// En fonction de la police d'écriture, renvoie le bon texte
+		const canonicalType = this.getCanonicalType();
+
+		// En fonction de la police d'ecriture, renvoie le bon texte
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
+		const qpcVersion = fontFamily.value === 'QPC1' ? '1' : fontFamily.value === 'QPC2' ? '2' : null;
 
-		// Si on a pas une police avec les caractères spéciaux
-		if (fontFamily.value !== 'QPC1' && fontFamily.value !== 'QPC2') {
-			return super.getText();
-		} else {
-			if (this.predefinedSubtitleType === 'Basmala')
-				return QPCFontProvider.getBasmalaGlyph(fontFamily.value === 'QPC1' ? '1' : '2');
-			else if (this.predefinedSubtitleType === 'Istiadhah')
-				return QPCFontProvider.getIstiadhahGlyph(fontFamily.value === 'QPC1' ? '1' : '2');
+		if (canonicalType === 'Sadaqa') {
+			return qpcVersion ? QPCFontProvider.getSadaqaGlyph() : super.getText();
+		}
 
-			// Dans ce cas, on retourne le texte par défaut
+		if (canonicalType === "Isti'adha+Basmala") {
+			if (qpcVersion) {
+				return (
+					QPCFontProvider.getBasmalaGlyph(qpcVersion) +
+					'\n' +
+					QPCFontProvider.getIstiadhahGlyph(qpcVersion)
+				);
+			}
+			return getPredefinedArabicText('Basmala') + '\n' + getPredefinedArabicText("Isti'adha");
+		}
+
+		// Si on a pas une police avec les caracteres speciaux
+		if (!qpcVersion) {
 			return super.getText();
 		}
+
+		if (canonicalType === 'Basmala') return QPCFontProvider.getBasmalaGlyph(qpcVersion);
+		if (canonicalType === "Isti'adha") return QPCFontProvider.getIstiadhahGlyph(qpcVersion);
+
+		// Dans ce cas, on retourne le texte par defaut
+		return super.getText();
 	}
 }
 

@@ -10,7 +10,11 @@ import QPCFontProvider from '$lib/services/FontProvider';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile, readTextFile } from '@tauri-apps/plugin-fs';
 import ModalManager from '$lib/components/modals/ModalManager';
-import { CustomImageClip } from './Clip.svelte';
+import {
+	CustomImageClip,
+	PredefinedSubtitleClip,
+	getForcedFontForPredefinedSubtitle
+} from './Clip.svelte';
 
 export type StyleValueType =
 	| 'color'
@@ -388,6 +392,23 @@ export class StylesData extends SerializableBase {
 				}
 
 				if (skipCategory) break;
+
+				// Gestion des polices pour les sous-titres prédéfinis
+				// On force une certaine police pour afficher par exemple "Sadaqallahul Azim" ou les autres textes arabes
+				if (this.target === 'arabic' && style.id === 'font-family' && clipId) {
+					const subtitleClip = globalState.getSubtitleTrack.getClipById(clipId);
+					if (subtitleClip instanceof PredefinedSubtitleClip) {
+						const forcedFont = getForcedFontForPredefinedSubtitle(
+							subtitleClip.predefinedSubtitleType,
+							String(effectiveValue)
+						);
+						if (forcedFont) {
+							if (forcedFont === 'Hafs') css += `font-family: 'Hafs', sans-serif;\n`;
+							else css += `font-family: ${forcedFont};\n`;
+							continue;
+						}
+					}
+				}
 
 				// Propriétés spécifiques à ignorer
 				if (style.id === 'font-family' && String(effectiveValue) === 'Hafs') continue; // Gérer par une classe Tailwind
@@ -771,7 +792,8 @@ export class VideoStyle extends SerializableBase {
 		const subtitleDefaults = await (await fetch('./styles/styles.json')).json();
 		for (const stylesData of this.styles) {
 			if (stylesData.target === 'global') continue;
-			hasChanges = this.mergeMissingStylesForTarget(stylesData.target, subtitleDefaults) || hasChanges;
+			hasChanges =
+				this.mergeMissingStylesForTarget(stylesData.target, subtitleDefaults) || hasChanges;
 		}
 
 		return hasChanges;

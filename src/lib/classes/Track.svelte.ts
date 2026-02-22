@@ -9,6 +9,7 @@ import {
 	PredefinedSubtitleClip,
 	SilenceClip,
 	SubtitleClip,
+	canonicalizePredefinedSubtitleType,
 	type PredefinedSubtitleType
 } from './Clip.svelte.js';
 import { SerializableBase } from './misc/SerializableBase.js';
@@ -210,20 +211,29 @@ export class SubtitleTrack extends Track {
 	 */
 	editSubtitleToSpecial(
 		subtitle: SubtitleClip | PredefinedSubtitleClip | SilenceClip,
-		presetChoice: 'Silence' | 'Istiadhah' | 'Basmala'
+		presetChoice:
+			| 'Silence'
+			| 'Basmala'
+			| "Isti'adha"
+			| "Isti'adha+Basmala"
+			| 'Amin'
+			| 'Takbir'
+			| 'Tahmeed'
+			| 'Tasleem'
+			| 'Sadaqa'
 	) {
 		let newSubtitleClip: SilenceClip | PredefinedSubtitleClip | undefined = undefined;
 
 		if (presetChoice === 'Silence') {
 			newSubtitleClip = new SilenceClip(subtitle.startTime, subtitle.endTime);
-		} else if (presetChoice === 'Istiadhah') {
+		} else if (presetChoice === 'Basmala') {
+			newSubtitleClip = new PredefinedSubtitleClip(subtitle.startTime, subtitle.endTime, 'Basmala');
+		} else {
 			newSubtitleClip = new PredefinedSubtitleClip(
 				subtitle.startTime,
 				subtitle.endTime,
-				'Istiadhah'
+				canonicalizePredefinedSubtitleType(presetChoice)
 			);
-		} else if (presetChoice === 'Basmala') {
-			newSubtitleClip = new PredefinedSubtitleClip(subtitle.startTime, subtitle.endTime, 'Basmala');
 		}
 
 		// Modiife le clip existant ou le remplace par le nouveau clip pré-défini

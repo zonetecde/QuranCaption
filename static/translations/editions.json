@@ -3,6 +3,12 @@
 		"flag": "https://flagsapi.com/ID/flat/64.png",
 		"basmala": "Dengan nama Allah Yang Maha Pemurah lagi Maha Penyayang",
 		"istiadhah": "Saya berlindung kepada Allah dari syaitan yang terkutuk",
+		"istiadhah_basmala": "Dengan nama Allah Yang Maha Pemurah lagi Maha Penyayang\nSaya berlindung kepada Allah dari syaitan yang terkutuk",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ace_tgkhmahjiddinju",
@@ -21,6 +27,12 @@
 		"flag": "https://flagsapi.com/DJ/flat/64.png",
 		"basmala": "Bismi Allaahi arraHmaani arraHiim",
 		"istiadhah": "AuuDhu billaahi minash shayTaanir rajiim",
+		"istiadhah_basmala": "Bismi Allaahi arraHmaani arraHiim\nAuuDhu billaahi minash shayTaanir rajiim",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "aar_sheikhmahmoudab",
@@ -39,6 +51,12 @@
 		"flag": "https://flagsapi.com/ZA/flat/64.png",
 		"basmala": "In die naam van Allah, die Barmhartige, die Genadige",
 		"istiadhah": "Ek soek beskerming by Allah teen die vervloekte Satan",
+		"istiadhah_basmala": "In die naam van Allah, die Barmhartige, die Genadige\nEk soek beskerming by Allah teen die vervloekte Satan",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "afr_imammabaker",
@@ -57,6 +75,12 @@
 		"flag": "https://flagsapi.com/AL/flat/64.png",
 		"basmala": "Në emër të Allahut, të Gjithëmëshirshmit, Mëshirëplotit",
 		"istiadhah": "Kërkoj strehim tek Allahu nga djalli i mallkuar",
+		"istiadhah_basmala": "Në emër të Allahut, të Gjithëmëshirshmit, Mëshirëplotit\nKërkoj strehim tek Allahu nga djalli i mallkuar",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "sqi_fetimehdiu",
@@ -119,6 +143,12 @@
 		"flag": "https://flagsapi.com/ET/flat/64.png",
 		"basmala": "በአላህ ስም በሩህሩህ በመሃሪው",
 		"istiadhah": "ከተረገመው ሰይጣን አላህን እጠይቃለሁ",
+		"istiadhah_basmala": "በአላህ ስም በሩህሩህ በመሃሪው\nከተረገመው ሰይጣን አላህን እጠይቃለሁ",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "amh_muhammedsadiqan",
@@ -137,6 +167,12 @@
 		"flag": "https://flagsapi.com/SA/flat/64.png",
 		"basmala": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
 		"istiadhah": "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
+		"istiadhah_basmala": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\nأَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ara_jalaladdinalmah",
@@ -386,6 +422,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "আল্লাহৰ নামত, যি দয়ালু আৰু কৰুণাময়",
 		"istiadhah": "মই শাপগ্ৰস্ত চয়তানৰ পৰা আল্লাহৰ ওচৰত আশ্ৰয় বিচাৰো",
+		"istiadhah_basmala": "আল্লাহৰ নামত, যি দয়ালু আৰু কৰুণাময়\nমই শাপগ্ৰস্ত চয়তানৰ পৰা আল্লাহৰ ওচৰত আশ্ৰয় বিচাৰো",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "asm_shaykhrafeequli",
@@ -404,6 +446,12 @@
 		"flag": "https://flagsapi.com/AZ/flat/64.png",
 		"basmala": "Allah adı ilə, Rəhman və Rəhim olan",
 		"istiadhah": "Lənətlənmiş şeytandan Allah-a sığınıram",
+		"istiadhah_basmala": "Allah adı ilə, Rəhman və Rəhim olan\nLənətlənmiş şeytandan Allah-a sığınıram",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "aze_alikhanmusayev",
@@ -444,6 +492,12 @@
 		"flag": "https://flagsapi.com/ML/flat/64.png",
 		"basmala": "Allah togo la, hinɛ ni badenya la",
 		"istiadhah": "N bε tugu Allah la, saytan juguman ma",
+		"istiadhah_basmala": "Allah togo la, hinɛ ni badenya la\nN bε tugu Allah la, saytan juguman ma",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "bam_deenmuhammad",
@@ -484,6 +538,12 @@
 		"flag": "https://flagsapi.com/BD/flat/64.png",
 		"basmala": "আল্লাহর নামে, যিনি করুণাময়, পরম দয়ালু",
 		"istiadhah": "আমি অভিশপ্ত শয়তান থেকে আল্লাহর কাছে আশ্রয় চাই",
+		"istiadhah_basmala": "আল্লাহর নামে, যিনি করুণাময়, পরম দয়ালু\nআমি অভিশপ্ত শয়তান থেকে আল্লাহর কাছে আশ্রয় চাই",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ben_abubakrzakaria",
@@ -524,6 +584,12 @@
 		"flag": "https://flagsapi.com/MA/flat/64.png",
 		"basmala": "S yisem n Rebbi, Win iḥennen, Win yeṛḥamen",
 		"istiadhah": "Ttabaɛ-d ɣer Rebbi seg ccitan amalɛun",
+		"istiadhah_basmala": "S yisem n Rebbi, Win iḥennen, Win yeṛḥamen\nTtabaɛ-d ɣer Rebbi seg ccitan amalɛun",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ber_ramdaneatmansou",
@@ -542,6 +608,12 @@
 		"flag": "https://flagsapi.com/BA/flat/64.png",
 		"basmala": "U ime Allaha, Milostivog, Samilosnog",
 		"istiadhah": "Tražim zaštitu kod Allaha od prokletog šejtana",
+		"istiadhah_basmala": "U ime Allaha, Milostivog, Samilosnog\nTražim zaštitu kod Allaha od prokletog šejtana",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "bos_besimkorkut",
@@ -615,6 +687,12 @@
 		"flag": "https://flagsapi.com/BG/flat/64.png",
 		"basmala": "В името на Аллах, Милостивия, Милосърдния",
 		"istiadhah": "Търся защита при Аллах от прокълнатия Сатана",
+		"istiadhah_basmala": "В името на Аллах, Милостивия, Милосърдния\nТърся защита при Аллах от прокълнатия Сатана",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "bul_tzvetantheophan",
@@ -633,6 +711,12 @@
 		"flag": "https://flagsapi.com/MM/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "mya_alinuyin",
@@ -684,6 +768,12 @@
 		"flag": "https://flagsapi.com/ES/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "cat_yousseflyoussi",
@@ -702,6 +792,12 @@
 		"flag": "https://flagsapi.com/MW/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "nya_alhajiyusufmuha",
@@ -731,6 +827,12 @@
 		"flag": "https://flagsapi.com/CN/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "zho_majian",
@@ -771,6 +873,12 @@
 		"flag": "https://flagsapi.com/TW/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "zho_anonymousgroupo",
@@ -800,6 +908,12 @@
 		"flag": "https://flagsapi.com/HR/flat/64.png",
 		"basmala": "U ime Allaha, Milostivog, Samilosnog",
 		"istiadhah": "Tražim zaštitu kod Allaha od prokletog Sotone",
+		"istiadhah_basmala": "U ime Allaha, Milostivog, Samilosnog\nTražim zaštitu kod Allaha od prokletog Sotone",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "hrv_unknown",
@@ -818,6 +932,12 @@
 		"flag": "https://flagsapi.com/CZ/flat/64.png",
 		"basmala": "Ve jménu Alláha, Milosrdného, Slitovného",
 		"istiadhah": "Hledám útočiště u Alláha před prokletým Satanem",
+		"istiadhah_basmala": "Ve jménu Alláha, Milosrdného, Slitovného\nHledám útočiště u Alláha před prokletým Satanem",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ces_arnykl",
@@ -858,6 +978,12 @@
 		"flag": "https://flagsapi.com/GH/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "dag_muhammadbabaght",
@@ -876,6 +1002,12 @@
 		"flag": "https://flagsapi.com/DK/flat/64.png",
 		"basmala": "I Allahs navn, den Barmhjertige, den Nådige",
 		"istiadhah": "Jeg søger tilflugt hos Allah mod den forbandede Satan",
+		"istiadhah_basmala": "I Allahs navn, den Barmhjertige, den Nådige\nJeg søger tilflugt hos Allah mod den forbandede Satan",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "dan_hadiabdollahian",
@@ -905,6 +1037,12 @@
 		"flag": "https://flagsapi.com/AF/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "prs_mawlawimuhammad",
@@ -923,6 +1061,12 @@
 		"flag": "https://flagsapi.com/MV/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "div_officeofthepres",
@@ -941,6 +1085,12 @@
 		"flag": "https://flagsapi.com/NL/flat/64.png",
 		"basmala": "In de naam van Allah, de Barmhartige, de Genadige",
 		"istiadhah": "Ik zoek bescherming bij Allah tegen de vervloekte Satan",
+		"istiadhah_basmala": "In de naam van Allah, de Barmhartige, de Genadige\nIk zoek bescherming bij Allah tegen de vervloekte Satan",
+		"amin": "Amin",
+		"takbir": "Allah is de Grootste",
+		"tahmeed": "Allah hoort wie Hem prijst",
+		"tasleem": "Vrede en de barmhartigheid van Allah zij met jullie",
+		"sadaqa": "Allah de Verhevene heeft de waarheid gesproken",
 		"translations": [
 			{
 				"key": "nld_sofianssiregar",
@@ -992,6 +1142,12 @@
 		"flag": "https://flagsapi.com/GB/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "eng_mustafakhattaba",
@@ -1582,6 +1738,12 @@
 		"flag": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Flag_of_Esperanto.svg",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "epo_hadiabdollahian",
@@ -1600,6 +1762,12 @@
 		"flag": "https://flagsapi.com/PH/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Si Allah ang Pinakadakila",
+		"tahmeed": "Dinirinig ni Allah ang sinumang pumupuri sa Kanya",
+		"tasleem": "Sumainyo ang kapayapaan at awa ni Allah",
+		"sadaqa": "Nagsabi ng katotohanan si Allah, ang Kataas-taasan",
 		"translations": [
 			{
 				"key": "fil_abdullatifeduar",
@@ -1629,6 +1797,12 @@
 		"flag": "https://flagsapi.com/FI/flat/64.png",
 		"basmala": "Allahin nimessä, Armollisen, Laupiaiden",
 		"istiadhah": "Etsin turvaa Allahilta kirotulta Saatanalta",
+		"istiadhah_basmala": "Allahin nimessä, Armollisen, Laupiaiden\nEtsin turvaa Allahilta kirotulta Saatanalta",
+		"amin": "Aamen",
+		"takbir": "Allah on Suurin",
+		"tahmeed": "Allah kuulee sitä, joka ylistää Häntä",
+		"tasleem": "Rauha ja Allahin armo olkoon teidän yllänne",
+		"sadaqa": "Allah, Korkein, on puhunut totta",
 		"translations": [
 			{
 				"key": "fin_unknown",
@@ -1647,6 +1821,12 @@
 		"flag": "https://flagsapi.com/FR/flat/64.png",
 		"basmala": "Au nom d'Allah, le Tout Miséricordieux, le Très Miséricordieux",
 		"istiadhah": "Je cherche refuge auprès d'Allah contre Satan le maudit",
+		"istiadhah_basmala": "Au nom d'Allah, le Tout Miséricordieux, le Très Miséricordieux\nJe cherche refuge auprès d'Allah contre Satan le maudit",
+		"amin": "Âmîn",
+		"takbir": "Allah est le Plus Grand",
+		"tahmeed": "Allah entend celui qui Le loue",
+		"tasleem": "Que la paix et la miséricorde d'Allah soient sur vous",
+		"sadaqa": "Allah le Très-Haut a dit vrai",
 		"translations": [
 			{
 				"key": "fra_muhammadhameedu",
@@ -1698,6 +1878,12 @@
 		"flag": "https://flagsapi.com/SN/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ful_rowadtranslatio",
@@ -1716,6 +1902,12 @@
 		"flag": "https://flagsapi.com/UG/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "lug_fareeqmusa",
@@ -1734,6 +1926,12 @@
 		"flag": "https://flagsapi.com/DE/flat/64.png",
 		"basmala": "Im Namen Allahs, des Gnädigen, des Barmherzigen",
 		"istiadhah": "Ich suche Zuflucht bei Allah vor Satan, dem Verfluchten",
+		"istiadhah_basmala": "Im Namen Allahs, des Gnädigen, des Barmherzigen\nIch suche Zuflucht bei Allah vor Satan, dem Verfluchten",
+		"amin": "Amen",
+		"takbir": "Allah ist der Größte",
+		"tahmeed": "Allah hört den, der Ihn lobt",
+		"tasleem": "Friede und Allahs Barmherzigkeit seien mit euch",
+		"sadaqa": "Allah, der Erhabene, hat die Wahrheit gesprochen",
 		"translations": [
 			{
 				"key": "deu_frankbubenheima",
@@ -1785,6 +1983,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "અલ્લાહના નામે, જે દયાળુ અને કરુણાશીલ છે",
 		"istiadhah": "હું શાપિત શેતાનથી અલ્લાહની પાસે આશ્રય માગું છું",
+		"istiadhah_basmala": "અલ્લાહના નામે, જે દયાળુ અને કરુણાશીલ છે\nહું શાપિત શેતાનથી અલ્લાહની પાસે આશ્રય માગું છું",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "guj_rabilaalomari",
@@ -1803,6 +2007,12 @@
 		"flag": "https://flagsapi.com/NG/flat/64.png",
 		"basmala": "Da sunan Allah, Mai rahama, Mai jin kai",
 		"istiadhah": "Ina neman mafaka ga Allah daga Shaidan mai la'ana",
+		"istiadhah_basmala": "Da sunan Allah, Mai rahama, Mai jin kai\nIna neman mafaka ga Allah daga Shaidan mai la'ana",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "hau_abubakarmahmood",
@@ -1832,6 +2042,12 @@
 		"flag": "https://flagsapi.com/PS/flat/64.png",
 		"basmala": "בשם אללה, הרחמן והחנון",
 		"istiadhah": "אני מבקש מקלט אצל אללה מהשטן הארור",
+		"istiadhah_basmala": "בשם אללה, הרחמן והחנון\nאני מבקש מקלט אצל אללה מהשטן הארור",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "heb_darusalamhousei",
@@ -1861,6 +2077,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "अल्लाह के नाम से, जो दयालु और कृपालु है",
 		"istiadhah": "मैं शापित शैतान से अल्लाह की शरण मांगता हूं",
+		"istiadhah_basmala": "अल्लाह के नाम से, जो दयालु और कृपालु है\nमैं शापित शैतान से अल्लाह की शरण मांगता हूं",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "hin_maulanaazizulha",
@@ -1901,6 +2123,12 @@
 		"flag": "https://flagsapi.com/HU/flat/64.png",
 		"basmala": "Allah nevében, a Kegyelmes, az Irgalmas",
 		"istiadhah": "Menedéket keresek Allahnál az átkozott Sátán ellen",
+		"istiadhah_basmala": "Allah nevében, a Kegyelmes, az Irgalmas\nMenedéket keresek Allahnál az átkozott Sátán ellen",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "hun_drahmedabdelrah",
@@ -1919,6 +2147,12 @@
 		"flag": "https://flagsapi.com/ID/flat/64.png",
 		"basmala": "Dengan nama Allah Yang Maha Pemurah lagi Maha Penyayang",
 		"istiadhah": "Aku berlindung kepada Allah dari setan yang terkutuk",
+		"istiadhah_basmala": "Dengan nama Allah Yang Maha Pemurah lagi Maha Penyayang\nAku berlindung kepada Allah dari setan yang terkutuk",
+		"amin": "Amin",
+		"takbir": "Allah Maha Besar",
+		"tahmeed": "Allah mendengar orang yang memuji-Nya",
+		"tasleem": "Semoga salam dan rahmat Allah tercurah atas kalian",
+		"sadaqa": "Allah Yang Maha Agung telah berfirman benar",
 		"translations": [
 			{
 				"key": "ind_indonesianislam",
@@ -1992,6 +2226,12 @@
 		"flag": "https://flagsapi.com/PH/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ilp_abdulazizgroaal",
@@ -2010,6 +2250,12 @@
 		"flag": "https://flagsapi.com/IT/flat/64.png",
 		"basmala": "Nel nome di Allah, il Compassionevole, il Misericordioso",
 		"istiadhah": "Cerco rifugio in Allah da Satana il maledetto",
+		"istiadhah_basmala": "Nel nome di Allah, il Compassionevole, il Misericordioso\nCerco rifugio in Allah da Satana il maledetto",
+		"amin": "Amen",
+		"takbir": "Allah è il più Grande",
+		"tahmeed": "Allah ascolta chi Lo loda",
+		"tasleem": "La pace e la misericordia di Allah siano su di voi",
+		"sadaqa": "Allah, l'Altissimo, ha detto la verità",
 		"translations": [
 			{
 				"key": "ita_hamzarobertopic",
@@ -2028,6 +2274,12 @@
 		"flag": "https://flagsapi.com/JP/flat/64.png",
 		"basmala": "慈悲あまねく慈愛深きアッラーの御名において",
 		"istiadhah": "呪われた悪魔からアッラーの御加護を求めます",
+		"istiadhah_basmala": "慈悲あまねく慈愛深きアッラーの御名において\n呪われた悪魔からアッラーの御加護を求めます",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "jpn_ryoichimita",
@@ -2046,6 +2298,12 @@
 		"flag": "https://flagsapi.com/ID/flat/64.png",
 		"basmala": "Kanthi asmane Allah ingkang Maha Asih lan Maha Welasan",
 		"istiadhah": "Aku ngungsi marang Allah saka setan ingkang kinalenatan",
+		"istiadhah_basmala": "Kanthi asmane Allah ingkang Maha Asih lan Maha Welasan\nAku ngungsi marang Allah saka setan ingkang kinalenatan",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "jav_unknown",
@@ -2064,6 +2322,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "ದಯಾಳು ಮತ್ತು ಕರುಣಾಮಯನಾದ ಅಲ್ಲಾಹನ ಹೆಸರಿನಲ್ಲಿ",
 		"istiadhah": "ನಾನು ಶಾಪಗ್ರಸ್ತ ಸೈತಾನನಿಂದ ಅಲ್ಲಾಹನ ಆಶ್ರಯವನ್ನು ಹುಡುಕುತ್ತೇನೆ",
+		"istiadhah_basmala": "ದಯಾಳು ಮತ್ತು ಕರುಣಾಮಯನಾದ ಅಲ್ಲಾಹನ ಹೆಸರಿನಲ್ಲಿ\nನಾನು ಶಾಪಗ್ರಸ್ತ ಸೈತಾನನಿಂದ ಅಲ್ಲಾಹನ ಆಶ್ರಯವನ್ನು ಹುಡುಕುತ್ತೇನೆ",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "kan_abdussalamputhi",
@@ -2082,6 +2346,12 @@
 		"flag": "https://flagsapi.com/KZ/flat/64.png",
 		"basmala": "Мейірімді, Ешкімге мейірім көрсететін Алланың атымен",
 		"istiadhah": "Мен қарғыс алған шайтаннан Алланың қорғауын сұраймын",
+		"istiadhah_basmala": "Мейірімді, Ешкімге мейірім көрсететін Алланың атымен\nМен қарғыс алған шайтаннан Алланың қорғауын сұраймын",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "kaz_khalifahaltai",
@@ -2111,6 +2381,12 @@
 		"flag": "https://flagsapi.com/ID/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "knx_unknown",
@@ -2129,6 +2405,12 @@
 		"flag": "https://flagsapi.com/KH/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "khm_cambodianmuslim",
@@ -2147,6 +2429,12 @@
 		"flag": "https://flagsapi.com/RW/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "kin_rmcrwanda",
@@ -2176,6 +2464,12 @@
 		"flag": "https://flagsapi.com/KG/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "kir_shamsaldinhakim",
@@ -2194,6 +2488,12 @@
 		"flag": "https://flagsapi.com/KR/flat/64.png",
 		"basmala": "자비로우시고 자애로우신 알라의 이름으로",
 		"istiadhah": "저는 저주받은 사탄으로부터 알라의 보호를 구합니다",
+		"istiadhah_basmala": "자비로우시고 자애로우신 알라의 이름으로\n저는 저주받은 사탄으로부터 알라의 보호를 구합니다",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "kor_hamidchoi",
@@ -2223,6 +2523,12 @@
 		"flag": "https://flagsapi.com/IQ/flat/64.png",
 		"basmala": "Bi navê Xwedê, yê dilovan û mihriban",
 		"istiadhah": "Ez ji şeytanê nefretî penaberiya Xwedê dixwazim",
+		"istiadhah_basmala": "Bi navê Xwedê, yê dilovan û mihriban\nEz ji şeytanê nefretî penaberiya Xwedê dixwazim",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "kur_burhanmuhammada",
@@ -2252,6 +2558,12 @@
 		"flag": "https://flagsapi.com/TR/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "kmr_unknown",
@@ -2270,6 +2582,12 @@
 		"flag": "https://flagsapi.com/VA/flat/64.png",
 		"basmala": "In nomine Dei, misericordis, clementis",
 		"istiadhah": "Confugium quaero apud Deum a Satana maledicto",
+		"istiadhah_basmala": "In nomine Dei, misericordis, clementis\nConfugium quaero apud Deum a Satana maledicto",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "lat_hadiabdollahian",
@@ -2288,6 +2606,12 @@
 		"flag": "https://flagsapi.com/CD/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "lin_zakariyamuhamme",
@@ -2306,6 +2630,12 @@
 		"flag": "https://flagsapi.com/KE/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "luy_mohammadramadha",
@@ -2324,6 +2654,12 @@
 		"flag": "https://flagsapi.com/MK/flat/64.png",
 		"basmala": "Во име на Алах, Милостивиот, Сомилосниот",
 		"istiadhah": "Барам заштита кај Алах од проколнатиот Сатана",
+		"istiadhah_basmala": "Во име на Алах, Милостивиот, Сомилосниот\nБарам заштита кај Алах од проколнатиот Сатана",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "mkd_macedonianschol",
@@ -2353,6 +2689,12 @@
 		"flag": "https://flagsapi.com/MY/flat/64.png",
 		"basmala": "Dengan nama Allah Yang Maha Pemurah lagi Maha Mengasihani",
 		"istiadhah": "Aku berlindung kepada Allah daripada syaitan yang terkutuk",
+		"istiadhah_basmala": "Dengan nama Allah Yang Maha Pemurah lagi Maha Mengasihani\nAku berlindung kepada Allah daripada syaitan yang terkutuk",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "msa_abdullahmuhamma",
@@ -2371,6 +2713,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "കരുണാമയനും ദയാലുവുമായ അല്ലാഹുവിന്റെ നാമത്തിൽ",
 		"istiadhah": "ശപിക്കപ്പെട്ട പിശാചിൽ നിന്ന് ഞാൻ അല്ലാഹുവിന്റെ അഭയം തേടുന്നു",
+		"istiadhah_basmala": "കരുണാമയനും ദയാലുവുമായ അല്ലാഹുവിന്റെ നാമത്തിൽ\nശപിക്കപ്പെട്ട പിശാചിൽ നിന്ന് ഞാൻ അല്ലാഹുവിന്റെ അഭയം തേടുന്നു",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "mal_abdulhameedmada",
@@ -2411,6 +2759,12 @@
 		"flag": "https://flagsapi.com/MT/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "mlt_martinrzammitmu",
@@ -2429,6 +2783,12 @@
 		"flag": "https://flagsapi.com/PH/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "mrw_guroalimsaroman",
@@ -2447,6 +2807,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "दयाळू आणि कृपाळू अल्लाहच्या नावाने",
 		"istiadhah": "मी शापित सैतानापासून अल्लाहचा आश्रय घेतो",
+		"istiadhah_basmala": "दयाळू आणि कृपाळू अल्लाहच्या नावाने\nमी शापित सैतानापासून अल्लाहचा आश्रय घेतो",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "mar_muhammadshafiia",
@@ -2465,6 +2831,12 @@
 		"flag": "https://flagsapi.com/NP/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "nep_ahlalhadithcent",
@@ -2483,6 +2855,12 @@
 		"flag": "https://flagsapi.com/NO/flat/64.png",
 		"basmala": "I Allahs navn, den Barmhjertige, den Nådige",
 		"istiadhah": "Jeg søker tilflukt hos Allah fra den forbannede Satan",
+		"istiadhah_basmala": "I Allahs navn, den Barmhjertige, den Nådige\nJeg søker tilflukt hos Allah fra den forbannede Satan",
+		"amin": "Amen",
+		"takbir": "Allah er størst",
+		"tahmeed": "Allah hører den som priser Ham",
+		"tasleem": "Fred og Allahs barmhjertighet være med dere",
+		"sadaqa": "Allah, Den Opphøyde, har talt sannhet",
 		"translations": [
 			{
 				"key": "nor_einarberg",
@@ -2501,6 +2879,12 @@
 		"flag": "https://flagsapi.com/ET/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "orm_ghaliapapurapag",
@@ -2519,6 +2903,12 @@
 		"flag": "https://flagsapi.com/PK/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "pan_drmuhamadhabibb",
@@ -2537,6 +2927,12 @@
 		"flag": "https://flagsapi.com/IR/flat/64.png",
 		"basmala": "به نام خداوند رحمان رحیم",
 		"istiadhah": "از شیطان رانده شده به خدا پناه می‌برم",
+		"istiadhah_basmala": "به نام خداوند رحمان رحیم\nاز شیطان رانده شده به خدا پناه می‌برم",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "fas_abdolmohammaday",
@@ -2709,6 +3105,12 @@
 		"flag": "https://flagsapi.com/PL/flat/64.png",
 		"basmala": "W imię Allaha, Miłosiernego, Litościwego",
 		"istiadhah": "Szukam schronienia u Allaha przed przeklętym Szatanem",
+		"istiadhah_basmala": "W imię Allaha, Miłosiernego, Litościwego\nSzukam schronienia u Allaha przed przeklętym Szatanem",
+		"amin": "Amen",
+		"takbir": "Allah jest Największy",
+		"tahmeed": "Allah słyszy tego, kto Go wychwala",
+		"tasleem": "Pokój i miłosierdzie Allaha niech będą z wami",
+		"sadaqa": "Allah, Najwyższy, powiedział prawdę",
 		"translations": [
 			{
 				"key": "pol_jozefabielawski",
@@ -2727,6 +3129,12 @@
 		"flag": "https://flagsapi.com/PT/flat/64.png",
 		"basmala": "Em nome de Allah, o Clemente, o Misericordioso",
 		"istiadhah": "Busco refúgio em Allah contra Satanás, o maldito",
+		"istiadhah_basmala": "Em nome de Allah, o Clemente, o Misericordioso\nBusco refúgio em Allah contra Satanás, o maldito",
+		"amin": "Amém",
+		"takbir": "Allah é o Maior",
+		"tahmeed": "Allah ouve quem O louva",
+		"tasleem": "Que a paz e a misericórdia de Allah estejam convosco",
+		"sadaqa": "Allah, o Altíssimo, falou a verdade",
 		"translations": [
 			{
 				"key": "por_samirelhayek",
@@ -2756,6 +3164,12 @@
 		"flag": "https://flagsapi.com/AF/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "pus_abdulwalikhan",
@@ -2785,6 +3199,12 @@
 		"flag": "https://flagsapi.com/RO/flat/64.png",
 		"basmala": "În numele lui Allah, Cel Milostiv, Îndurătorul",
 		"istiadhah": "Caut refugiu la Allah de Satana cel blestemat",
+		"istiadhah_basmala": "În numele lui Allah, Cel Milostiv, Îndurătorul\nCaut refugiu la Allah de Satana cel blestemat",
+		"amin": "Amin",
+		"takbir": "Allah este Cel mai Mare",
+		"tahmeed": "Allah îl aude pe cel care Îl laudă",
+		"tasleem": "Pacea și mila lui Allah să fie asupra voastră",
+		"sadaqa": "Allah, Cel Preaînalt, a spus adevărul",
 		"translations": [
 			{
 				"key": "ron_georgegrigore",
@@ -2825,6 +3245,12 @@
 		"flag": "https://flagsapi.com/BI/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "run_sheikhamissirad",
@@ -2843,6 +3269,12 @@
 		"flag": "https://flagsapi.com/RU/flat/64.png",
 		"basmala": "Во имя Аллаха, Милостивого, Милосердного",
 		"istiadhah": "Ищу защиты у Аллаха от проклятого Сатаны",
+		"istiadhah_basmala": "Во имя Аллаха, Милостивого, Милосердного\nИщу защиты у Аллаха от проклятого Сатаны",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "rus_abuadel",
@@ -2927,6 +3359,12 @@
 		"flag": "https://flagsapi.com/RS/flat/64.png",
 		"basmala": "У име Алаха, Милостивог, Самилосног",
 		"istiadhah": "Тражим заштиту код Алаха од проклетог Сотоне",
+		"istiadhah_basmala": "У име Алаха, Милостивог, Самилосног\nТражим заштиту код Алаха од проклетог Сотоне",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "srp_rowwadtranslati",
@@ -2945,6 +3383,12 @@
 		"flag": "https://flagsapi.com/ZW/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "sna_abdullahjmadini",
@@ -2963,6 +3407,12 @@
 		"flag": "https://flagsapi.com/PK/flat/64.png",
 		"basmala": "الله جي نالي سان، جيڪو رحمان ۽ رحيم آهي",
 		"istiadhah": "آئون لعنتي شيطان کان الله جي پناهه گهران ٿو",
+		"istiadhah_basmala": "الله جي نالي سان، جيڪو رحمان ۽ رحيم آهي\nآئون لعنتي شيطان کان الله جي پناهه گهران ٿو",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "snd_tajmehmoodamrot",
@@ -2981,6 +3431,12 @@
 		"flag": "https://flagsapi.com/LK/flat/64.png",
 		"basmala": "කරුණාවන්ත සහ දයාවන්ත අල්ලාහ්ගේ නාමයෙන්",
 		"istiadhah": "මම ශාපවලට ලක්වූ සාතන්ගෙන් අල්ලාහ්ගේ ආරක්ෂාව සොයමි",
+		"istiadhah_basmala": "කරුණාවන්ත සහ දයාවන්ත අල්ලාහ්ගේ නාමයෙන්\nමම ශාපවලට ලක්වූ සාතන්ගෙන් අල්ලාහ්ගේ ආරක්ෂාව සොයමි",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "sin_naseemismailand",
@@ -3010,6 +3466,12 @@
 		"flag": "https://flagsapi.com/SK/flat/64.png",
 		"basmala": "V mene Allaha, Milosrdného, Zľutovného",
 		"istiadhah": "Hľadám útočisko u Allaha pred prekliατým Satanom",
+		"istiadhah_basmala": "V mene Allaha, Milosrdného, Zľutovného\nHľadám útočisko u Allaha pred prekliατým Satanom",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "slk_hadiabdollahian",
@@ -3028,6 +3490,12 @@
 		"flag": "https://flagsapi.com/SO/flat/64.png",
 		"basmala": "Magaca Illaah ee Raxmaanka Raxiimka ah",
 		"istiadhah": "Waxaan u magangalyoonayaa Illaah Shaydaanka inkaaranka ah",
+		"istiadhah_basmala": "Magaca Illaah ee Raxmaanka Raxiimka ah\nWaxaan u magangalyoonayaa Illaah Shaydaanka inkaaranka ah",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "som_abdullahhasanja",
@@ -3068,6 +3536,12 @@
 		"flag": "https://flagsapi.com/LS/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "sot_sheikheliaskeke",
@@ -3086,6 +3560,12 @@
 		"flag": "https://flagsapi.com/ES/flat/64.png",
 		"basmala": "En el nombre de Allah, el Clemente, el Misericordioso",
 		"istiadhah": "Busco refugio en Allah contra Satanás, el maldito",
+		"istiadhah_basmala": "En el nombre de Allah, el Clemente, el Misericordioso\nBusco refugio en Allah contra Satanás, el maldito",
+		"amin": "Amén",
+		"takbir": "Alá es el Más Grande",
+		"tahmeed": "Alá escucha a quien Le alaba",
+		"tasleem": "La paz y la misericordia de Alá sean con vosotros",
+		"sadaqa": "Alá, el Altísimo, ha dicho la verdad",
 		"translations": [
 			{
 				"key": "spa_muhammadisagarc",
@@ -3153,7 +3633,6 @@
 				"link": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/spa-muhammadasadabd.json",
 				"linkmin": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/spa-muhammadasadabd.min.json"
 			},
-
 			{
 				"key": "spa_raulgonzalezbor",
 				"name": "spa-raulgonzalezbor",
@@ -3171,6 +3650,12 @@
 		"flag": "https://flagsapi.com/KE/flat/64.png",
 		"basmala": "Kwa jina la Allah, Mwingi wa rehema, Mwenye kurehemu",
 		"istiadhah": "Nakimbilia kwa Allah kutoka kwa Shetani aliyelaaniwa",
+		"istiadhah_basmala": "Kwa jina la Allah, Mwingi wa rehema, Mwenye kurehemu\nNakimbilia kwa Allah kutoka kwa Shetani aliyelaaniwa",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "swa_abdullahmuhamma",
@@ -3200,6 +3685,12 @@
 		"flag": "https://flagsapi.com/SE/flat/64.png",
 		"basmala": "I Allahs namn, den Barmhärtige, den Nådige",
 		"istiadhah": "Jag söker skydd hos Allah från den förbannelsen Satan",
+		"istiadhah_basmala": "I Allahs namn, den Barmhärtige, den Nådige\nJag söker skydd hos Allah från den förbannelsen Satan",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "swe_knutbernstrom",
@@ -3218,6 +3709,12 @@
 		"flag": "https://flagsapi.com/TJ/flat/64.png",
 		"basmala": "Ба номи Худованди Раҳмони Раҳим",
 		"istiadhah": "Аз шайтони ронда шуда ба Худо паноҳ мебарам",
+		"istiadhah_basmala": "Ба номи Худованди Раҳмони Раҳим\nАз шайтони ронда шуда ба Худо паноҳ мебарам",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "tgk_abdolmohammaday",
@@ -3258,6 +3755,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "கருணையுள்ள அல்லாஹ்வின் பெயரால்",
 		"istiadhah": "நான் சபிக்கப்பட்ட சைத்தானிடமிருந்து அல்லாஹ்விடம் பாதுகாப்பு தேடுகிறேன்",
+		"istiadhah_basmala": "கருணையுள்ள அல்லாஹ்வின் பெயரால்\nநான் சபிக்கப்பட்ட சைத்தானிடமிருந்து அல்லாஹ்விடம் பாதுகாப்பு தேடுகிறேன்",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "tam_abdulhameedbaqa",
@@ -3287,6 +3790,12 @@
 		"flag": "https://flagsapi.com/RU/flat/64.png",
 		"basmala": "Рәхимле, Рәхмәтле Аллаһ исеме белән",
 		"istiadhah": "Ләгънәтле шайтаннан Аллаһка сыенам",
+		"istiadhah_basmala": "Рәхимле, Рәхмәтле Аллаһ исеме белән\nЛәгънәтле шайтаннан Аллаһка сыенам",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "tat_yakubibnnugman",
@@ -3305,6 +3814,12 @@
 		"flag": "https://flagsapi.com/IN/flat/64.png",
 		"basmala": "దయాళువు మరియు కరుణామయుడైన అల్లాహ్ పేరుతో",
 		"istiadhah": "నేను శాపగ్రస్తుడైన సైతాను నుండి అల్లాహ్ దగ్గర ఆశ్రయం తీసుకుంటాను",
+		"istiadhah_basmala": "దయాళువు మరియు కరుణామయుడైన అల్లాహ్ పేరుతో\nనేను శాపగ్రస్తుడైన సైతాను నుండి అల్లాహ్ దగ్గర ఆశ్రయం తీసుకుంటాను",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "tel_abdulraheemmoha",
@@ -3334,6 +3849,12 @@
 		"flag": "https://flagsapi.com/TH/flat/64.png",
 		"basmala": "ในนามของอัลลอห์ ผู้ทรงเมตตา ผู้ทรงกรุณา",
 		"istiadhah": "ข้าพเจ้าขอความคุ้มครองจากอัลลอห์จากซาตานผู้ถูกสาปแช่ง",
+		"istiadhah_basmala": "ในนามของอัลลอห์ ผู้ทรงเมตตา ผู้ทรงกรุณา\nข้าพเจ้าขอความคุ้มครองจากอัลลอห์จากซาตานผู้ถูกสาปแช่ง",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "tha_groupfromthesoc",
@@ -3363,6 +3884,12 @@
 		"flag": "https://flagsapi.com/TR/flat/64.png",
 		"basmala": "Rahman ve Rahim olan Allah'ın adıyla",
 		"istiadhah": "Lanetli şeytandan Allah'a sığınırım",
+		"istiadhah_basmala": "Rahman ve Rahim olan Allah'ın adıyla\nLanetli şeytandan Allah'a sığınırım",
+		"amin": "Âmin",
+		"takbir": "Allah en büyüktür",
+		"tahmeed": "Allah, kendisini hamd eden kimseyi işitir",
+		"tasleem": "Allah'ın selamı ve rahmeti üzerinize olsun",
+		"sadaqa": "Yüce Allah doğruyu söylemiştir",
 		"translations": [
 			{
 				"key": "tur_abdulbakigolpin",
@@ -3689,6 +4216,12 @@
 		"flag": "https://flagsapi.com/GH/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "twi_sheikhharounism",
@@ -3707,6 +4240,12 @@
 		"flag": "https://flagsapi.com/CN/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "uig_muhammadsaleh",
@@ -3736,6 +4275,12 @@
 		"flag": "https://flagsapi.com/UA/flat/64.png",
 		"basmala": "В ім'я Аллаха, Милостивого, Милосердного",
 		"istiadhah": "Шукаю захисту в Аллаха від проклятого Сатани",
+		"istiadhah_basmala": "В ім'я Аллаха, Милостивого, Милосердного\nШукаю захисту в Аллаха від проклятого Сатани",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "ukr_drmikhailoyaqub",
@@ -3787,6 +4332,12 @@
 		"flag": "https://flagsapi.com/PK/flat/64.png",
 		"basmala": "اللہ کے نام سے جو رحمان اور رحیم ہے",
 		"istiadhah": "میں ملعون شیطان سے اللہ کی پناہ مانگتا ہوں",
+		"istiadhah_basmala": "اللہ کے نام سے جو رحمان اور رحیم ہے\nمیں ملعون شیطان سے اللہ کی پناہ مانگتا ہوں",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "urd_abulaalamaududi",
@@ -3915,6 +4466,12 @@
 		"flag": "https://flagsapi.com/UZ/flat/64.png",
 		"basmala": "Mehribon va rahmli Alloh nomi bilan",
 		"istiadhah": "La'natlangan shaytonndan Allohga panoh so'rayman",
+		"istiadhah_basmala": "Mehribon va rahmli Alloh nomi bilan\nLa'natlangan shaytonndan Allohga panoh so'rayman",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "uzb_alaaudeenmansou",
@@ -3955,6 +4512,12 @@
 		"flag": "https://flagsapi.com/VN/flat/64.png",
 		"basmala": "Nhân danh Allah, Đấng Từ Bi, Đấng Thương Xót",
 		"istiadhah": "Tôi cầu xin Allah bảo vệ khỏi Satan bị nguyền rủa",
+		"istiadhah_basmala": "Nhân danh Allah, Đấng Từ Bi, Đấng Thương Xót\nTôi cầu xin Allah bảo vệ khỏi Satan bị nguyền rủa",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "vie_hassanabdulkari",
@@ -3984,6 +4547,12 @@
 		"flag": "https://flagsapi.com/SN/flat/64.png",
 		"basmala": "Ci turu Yàlla yërëmaakoon bi [biy xéewël mbindéefam yépp ci àddina] jaglewaakoon [biy berndee waay gëm yi ca àllaaxira]",
 		"istiadhah": "Nuy joxoon Yàlla ci sañ-sañu shaytan",
+		"istiadhah_basmala": "Ci turu Yàlla yërëmaakoon bi [biy xéewël mbindéefam yépp ci àddina] jaglewaakoon [biy berndee waay gëm yi ca àllaaxira]\nNuy joxoon Yàlla ci sañ-sañu shaytan",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "wol_assanesylla",
@@ -4002,6 +4571,12 @@
 		"flag": "https://flagsapi.com/ZA/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "xho_imaamismaaeelng",
@@ -4020,6 +4595,12 @@
 		"flag": "https://flagsapi.com/PG/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "yuw_muhammadbinabdu",
@@ -4038,6 +4619,12 @@
 		"flag": "https://flagsapi.com/NG/flat/64.png",
 		"basmala": "Ni oruko Allah, aanu ati alaanu",
 		"istiadhah": "Mo wa aabo lodo Allah lati owo esu ti a fi epe",
+		"istiadhah_basmala": "Ni oruko Allah, aanu ati alaanu\nMo wa aabo lodo Allah lati owo esu ti a fi epe",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "yor_shaykhaburahima",
@@ -4056,6 +4643,12 @@
 		"flag": "https://flagsapi.com/ZA/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
+		"istiadhah_basmala": "In the name of Allah, the Most Gracious, the Most Merciful\nI seek refuge with Allah from Satan the cursed",
+		"amin": "Amen",
+		"takbir": "Allah is the Greatest",
+		"tahmeed": "Allah hears whoever praises Him",
+		"tasleem": "Peace be upon you and the mercy of Allah",
+		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
 				"key": "zul_iqembulezifundi",

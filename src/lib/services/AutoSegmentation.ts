@@ -9,6 +9,7 @@ import {
 	SubtitleClip,
 	type Translation
 } from '$lib/classes';
+import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
@@ -22,6 +23,7 @@ type SegmentationSegment = {
 	has_missing_words?: boolean;
 	potentially_undersegmented?: boolean;
 	matched_text?: string;
+	special_type?: string;
 	ref_from?: string;
 	ref_to?: string;
 	segment?: number;
@@ -198,7 +200,15 @@ type VerseRef = {
 	word: number;
 };
 
-type PredefinedType = 'Basmala' | 'Istiadhah';
+type PredefinedType =
+	| 'Basmala'
+	| "Isti'adha"
+	| "Isti'adha+Basmala"
+	| 'Amin'
+	| 'Takbir'
+	| 'Tahmeed'
+	| 'Tasleem'
+	| 'Sadaqa';
 
 /**
  * Return the audio file used as input for auto segmentation.
@@ -284,7 +294,7 @@ type CoverageGapDependencies = {
 };
 
 export async function detectCoverageGapIndices(
-	orderedSegments: Array<Pick<SegmentationSegment, 'ref_from' | 'ref_to' | 'error'>>,
+	orderedSegments: Array<Pick<SegmentationSegment, 'ref_from' | 'ref_to' | 'error' | 'special_type'>>,
 	deps: CoverageGapDependencies
 ): Promise<Set<number>> {
 	const { getVerseWordCount, getVerseCount, getSurahCount } = deps;
@@ -349,7 +359,7 @@ export async function detectCoverageGapIndices(
 	for (let i = 0; i < orderedSegments.length; i += 1) {
 		const segment = orderedSegments[i];
 		if (segment.error) continue;
-		if (getPredefinedType(segment.ref_from)) continue;
+		if (getPredefinedType(segment.ref_from, segment.special_type)) continue;
 
 		const rawStartRef = parseVerseRef(segment.ref_from);
 		const rawEndRef = parseVerseRef(segment.ref_to);
@@ -462,7 +472,7 @@ export async function detectCoverageGapIndices(
 			continue;
 		}
 
-		if (getPredefinedType(segment.ref_from)) {
+		if (getPredefinedType(segment.ref_from, segment.special_type)) {
 			continue;
 		}
 
@@ -509,12 +519,31 @@ export async function detectCoverageGapIndices(
  * @param {string | undefined} ref - Segment reference string.
  * @returns {PredefinedType | null} Predefined type or null if none.
  */
-function getPredefinedType(ref?: string): PredefinedType | null {
-	if (!ref) return null;
+function getPredefinedType(ref?: string, specialType?: string): PredefinedType | null {
+	const explicitType = canonicalizePredefinedSubtitleType(specialType);
+	if (explicitType !== 'Other') return explicitType;
 
-	const normalized: string = ref.toLowerCase();
+	if (!ref) return null;
+	const normalized = ref.toLowerCase().trim();
+
+	if (normalized.includes("isti'adha+basmala") || normalized.includes('istiadha+basmala')) {
+		return "Isti'adha+Basmala";
+	}
+	if (normalized.includes("isti'adha") || normalized.includes('istiadha') || normalized.includes('isti')) {
+		return "Isti'adha";
+	}
 	if (normalized.includes('basmala')) return 'Basmala';
-	if (normalized.includes('isti')) return 'Istiadhah';
+	if (normalized.includes('amin') || normalized.includes('ameen')) return 'Amin';
+	if (normalized.includes('takbir')) return 'Takbir';
+	if (normalized.includes('tahmeed') || normalized.includes('hamidah')) return 'Tahmeed';
+	if (normalized.includes('tasleem') || normalized.includes('salam')) return 'Tasleem';
+	if (
+		normalized.includes('sadaqa') ||
+		normalized.includes('sadaqallah') ||
+		normalized.includes('sadaqallahul azim')
+	) {
+		return 'Sadaqa';
+	}
 
 	return null;
 }
@@ -923,7 +952,10 @@ export async function runAutoSegmentation(
 				segment.potentially_undersegmented === true;
 
 			// Predefined segments (basmala / istiadhah)
-			const predefinedType: PredefinedType | null = getPredefinedType(segment.ref_from);
+			const predefinedType: PredefinedType | null = getPredefinedType(
+				segment.ref_from,
+				segment.special_type
+			);
 			if (predefinedType) {
 				const clip = new PredefinedSubtitleClip(
 					startMs,
@@ -1418,7 +1450,7 @@ export async function runNativeSegmentation(
 			const basmalaClip = new PredefinedSubtitleClip(
 				firstClip.startTime,
 				firstClip.endTime,
-				secondClip.surah !== 9 ? 'Basmala' : 'Istiadhah'
+				secondClip.surah !== 9 ? 'Basmala' : "Isti'adha"
 			);
 			subtitleTrack.clips[0] = basmalaClip;
 		}

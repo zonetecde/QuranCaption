@@ -86,7 +86,9 @@
 				<div class="border-t border-color my-3"></div>
 
 				<!-- list of shortcuts -->
-				{#each Object.entries(globalState.settings!.shortcuts.SUBTITLES_EDITOR).concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [action, shortcut]}
+				{#each Object.entries(globalState.settings!.shortcuts.SUBTITLES_EDITOR)
+					.concat(Object.entries(globalState.settings!.shortcuts.PREDEFINED_SUBTITLES || {}))
+					.concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [action, shortcut]}
 					<div class="flex items-center justify-between py-1 border-b border-color last:border-0">
 						<div class="flex flex-col">
 							<span class="text-sm font-medium text-secondary">{shortcut.name}</span>

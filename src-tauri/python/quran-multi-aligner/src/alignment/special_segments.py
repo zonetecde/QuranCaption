@@ -16,7 +16,7 @@ from typing import List, Tuple, Optional
 # Constants
 # =============================================================================
 
-from config import MAX_SPECIAL_EDIT_DISTANCE
+from config import MAX_SPECIAL_EDIT_DISTANCE, MAX_TRANSITION_EDIT_DISTANCE
 
 # Special phoneme sequences
 SPECIAL_PHONEMES = {
@@ -39,6 +39,69 @@ SPECIAL_TEXT = {
     "Isti'adha": "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم",
     "Basmala": "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم",
 }
+
+# Transition phoneme sequences (non-Quranic phrases within recitations)
+TRANSITION_PHONEMES = {
+    "Amin": ["ʔ", "a:", "m", "i:", "n"],
+
+    "Takbir": [
+        "ʔ", "a", "lˤlˤ", "aˤ:", "h", "u",
+        "ʔ", "a", "k", "b", "a", "rˤ",
+    ],
+
+    "Takbir_double": [
+        "ʔ", "a", "lˤlˤ", "aˤ:", "h", "u",
+        "ʔ", "a", "k", "b", "a", "rˤ",
+        "ʔ", "a", "lˤlˤ", "aˤ:", "h", "u",
+        "ʔ", "a", "k", "b", "a", "rˤ",
+    ],
+
+    "Tahmeed": [
+        "s", "a", "m", "i", "ʕ", "a",
+        "lˤlˤ", "aˤ:", "h", "u",
+        "l", "i", "m", "a", "n",
+        "ħ", "a", "m", "i", "d", "a", "h",
+    ],
+
+    "Tahmeed_combined": [
+        "s", "a", "m", "i", "ʕ", "a",
+        "lˤlˤ", "aˤ:", "h", "u",
+        "l", "i", "m", "a", "n",
+        "ħ", "a", "m", "i", "d", "a", "h", "u",
+        "rˤ", "aˤ", "bb", "a", "n", "a:",
+        "w", "a", "l", "a", "k", "a",
+        "l", "ħ", "a", "m", "d",
+    ],
+
+    "Tahmeed_response": [
+        "rˤ", "aˤ", "bb", "a", "n", "a:",
+        "w", "a", "l", "a", "k", "a",
+        "l", "ħ", "a", "m", "d",
+    ],
+
+    "Tasleem": [
+        "ʔ", "a", "ss", "a", "l", "a", "m", "u",
+        "ʔ", "a", "l", "a", "j", "k", "u", "m",
+        "w", "a", "rˤ", "aˤ", "ħ", "m", "a", "t", "u", "lˤlˤ", "a", "h",
+    ],
+
+    "Sadaqa": [
+        "sˤ", "a", "d", "a", "q", "a",
+        "lˤlˤ", "aˤ:", "h", "u",
+        "l", "ʕ", "a", "ðˤ", "i:", "m",
+    ],
+}
+
+TRANSITION_TEXT = {
+    "Amin": "آمِين",
+    "Takbir": "اللَّهُ أَكْبَر",
+    "Tahmeed": "سَمِعَ اللَّهُ لِمَنْ حَمِدَه",
+    "Tasleem": "ٱلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ ٱللَّه",
+    "Sadaqa": "صَدَقَ ٱللَّهُ ٱلْعَظِيم",
+}
+
+# All special segment reference names (for unified rendering)
+ALL_SPECIAL_REFS = {"Basmala", "Isti'adha", "Isti'adha+Basmala", "Amin", "Takbir", "Tahmeed", "Tasleem", "Sadaqa"}
 
 
 # =============================================================================
@@ -141,8 +204,25 @@ def detect_special_segments(
 
     special_results: List[Tuple[str, float, str]] = []
 
-    # Segment 0 phonemes (already a list)
+    # ==========================================================================
+    # 0. Check segment 0 for Takbir (recitation opener before Isti'adha/Basmala)
+    # ==========================================================================
+    takbir_offset = 0
     seg0_phonemes = phoneme_texts[0] if phoneme_texts[0] else []
+    takbir_name, takbir_conf = detect_transition_segment(seg0_phonemes, allowed={"Takbir"})
+    if takbir_name:
+        print(f"[SPECIAL] Takbir detected on segment 0 (conf={takbir_conf:.2f})")
+        special_results.append((TRANSITION_TEXT["Takbir"], takbir_conf, "Takbir"))
+        takbir_offset = 1
+        # Re-point to the next segment for Isti'adha/Basmala detection
+        if len(phoneme_texts) > 1:
+            seg0_phonemes = phoneme_texts[1] if phoneme_texts[1] else []
+        else:
+            return vad_segments, segment_audios, special_results, takbir_offset
+
+    # seg0_phonemes now points to the first non-Takbir segment
+    # (segment 0 if no Takbir, segment 1 if Takbir detected)
+    check_idx = takbir_offset  # Index into phoneme_texts for Isti'adha/Basmala detection
 
     # ==========================================================================
     # 1. Try COMBINED (Isti'adha + Basmala in one segment)
@@ -152,82 +232,88 @@ def detect_special_segments(
     if combined_dist <= MAX_SPECIAL_EDIT_DISTANCE:
         print(f"[SPECIAL] Combined Isti'adha+Basmala detected (dist={combined_dist:.2f})")
 
-        # Split segment 0 by midpoint
-        seg = vad_segments[0]
-        audio = segment_audios[0]
+        # Split the combined segment by midpoint
+        seg = vad_segments[check_idx]
+        audio = segment_audios[check_idx]
         mid_time = (seg.start_time + seg.end_time) / 2.0
         mid_sample = max(1, len(audio) // 2)
 
-        # Create two new segments
-        new_vads = [
-            VadSegment(start_time=seg.start_time, end_time=mid_time, segment_idx=0),
-            VadSegment(start_time=mid_time, end_time=seg.end_time, segment_idx=1),
-        ]
-        new_audios = [
-            audio[:mid_sample],
-            audio[mid_sample:],
-        ]
+        # Rebuild vad/audio lists: keep segments before check_idx, split, then rest
+        new_vads = list(vad_segments[:check_idx])
+        new_audios = list(segment_audios[:check_idx])
+
+        split_start_idx = len(new_vads)
+        new_vads.append(VadSegment(start_time=seg.start_time, end_time=mid_time, segment_idx=split_start_idx))
+        new_vads.append(VadSegment(start_time=mid_time, end_time=seg.end_time, segment_idx=split_start_idx + 1))
+        new_audios.append(audio[:mid_sample])
+        new_audios.append(audio[mid_sample:])
 
         # Add remaining segments with reindexed segment_idx
-        for i, vs in enumerate(vad_segments[1:], start=2):
+        for ii, vs in enumerate(vad_segments[check_idx + 1:], start=split_start_idx + 2):
             new_vads.append(VadSegment(
                 start_time=vs.start_time,
                 end_time=vs.end_time,
-                segment_idx=i
+                segment_idx=ii
             ))
-        new_audios.extend(segment_audios[1:])
+        new_audios.extend(segment_audios[check_idx + 1:])
 
         # Special results for both (confidence = 1 - distance)
         confidence = 1.0 - combined_dist
-        special_results = [
+        special_results.extend([
             (SPECIAL_TEXT["Isti'adha"], confidence, "Isti'adha"),
             (SPECIAL_TEXT["Basmala"], confidence, "Basmala"),
-        ]
+        ])
 
-        return new_vads, new_audios, special_results, 2
+        return new_vads, new_audios, special_results, takbir_offset + 2
 
     # ==========================================================================
-    # 2. Try Isti'adha on segment 0
+    # 2. Try Isti'adha on the check segment
     # ==========================================================================
     istiadha_dist = phoneme_edit_distance(seg0_phonemes, SPECIAL_PHONEMES["Isti'adha"])
 
     if istiadha_dist <= MAX_SPECIAL_EDIT_DISTANCE:
-        print(f"[SPECIAL] Isti'adha detected on segment 0 (dist={istiadha_dist:.2f})")
+        print(f"[SPECIAL] Isti'adha detected on segment {check_idx} (dist={istiadha_dist:.2f})")
         special_results.append(
             (SPECIAL_TEXT["Isti'adha"], 1.0 - istiadha_dist, "Isti'adha")
         )
 
-        # Try Basmala on segment 1
-        if len(phoneme_texts) >= 2 and phoneme_texts[1]:
-            seg1_phonemes = phoneme_texts[1]
+        # Try Basmala on the next segment
+        next_idx = check_idx + 1
+        if next_idx < len(phoneme_texts) and phoneme_texts[next_idx]:
+            seg1_phonemes = phoneme_texts[next_idx]
             basmala_dist = phoneme_edit_distance(seg1_phonemes, SPECIAL_PHONEMES["Basmala"])
 
             if basmala_dist <= MAX_SPECIAL_EDIT_DISTANCE:
-                print(f"[SPECIAL] Basmala detected on segment 1 (dist={basmala_dist:.2f})")
+                print(f"[SPECIAL] Basmala detected on segment {next_idx} (dist={basmala_dist:.2f})")
                 special_results.append(
                     (SPECIAL_TEXT["Basmala"], 1.0 - basmala_dist, "Basmala")
                 )
-                return vad_segments, segment_audios, special_results, 2
+                return vad_segments, segment_audios, special_results, takbir_offset + 2
             else:
-                print(f"[SPECIAL] No Basmala on segment 1 (dist={basmala_dist:.2f})")
+                print(f"[SPECIAL] No Basmala on segment {next_idx} (dist={basmala_dist:.2f})")
 
-        return vad_segments, segment_audios, special_results, 1
+        return vad_segments, segment_audios, special_results, takbir_offset + 1
 
     # ==========================================================================
-    # 3. Try Basmala on segment 0
+    # 3. Try Basmala on the check segment
     # ==========================================================================
     basmala_dist = phoneme_edit_distance(seg0_phonemes, SPECIAL_PHONEMES["Basmala"])
 
     if basmala_dist <= MAX_SPECIAL_EDIT_DISTANCE:
-        print(f"[SPECIAL] Basmala detected on segment 0 (dist={basmala_dist:.2f})")
+        print(f"[SPECIAL] Basmala detected on segment {check_idx} (dist={basmala_dist:.2f})")
         special_results.append(
             (SPECIAL_TEXT["Basmala"], 1.0 - basmala_dist, "Basmala")
         )
-        return vad_segments, segment_audios, special_results, 1
+        return vad_segments, segment_audios, special_results, takbir_offset + 1
 
     # ==========================================================================
-    # 4. No specials detected
+    # 4. No specials detected (beyond Takbir if any)
     # ==========================================================================
+    if takbir_offset > 0:
+        print(f"[SPECIAL] Only Takbir detected, no Isti'adha/Basmala "
+              f"(istiadha={istiadha_dist:.2f}, basmala={basmala_dist:.2f})")
+        return vad_segments, segment_audios, special_results, takbir_offset
+
     print(f"[SPECIAL] No special segments detected "
           f"(istiadha={istiadha_dist:.2f}, basmala={basmala_dist:.2f})")
 
@@ -293,3 +379,57 @@ def detect_inter_chapter_specials(
     print(f"[INTER-CHAPTER] No special segments detected "
           f"(istiadha={istiadha_dist:.2f}, basmala={basmala_dist:.2f})")
     return [], 0
+
+
+# =============================================================================
+# Transition Segment Detection
+# =============================================================================
+
+# Mapping from variant names to their base/display name
+_TRANSITION_BASE_NAMES = {
+    "Takbir_double": "Takbir",
+    "Tahmeed_combined": "Tahmeed",
+    "Tahmeed_response": "Tahmeed",
+}
+
+
+def detect_transition_segment(
+    asr_phonemes: List[str],
+    allowed: Optional[set] = None,
+) -> Tuple[Optional[str], float]:
+    """Best-match transition (lowest edit dist under threshold).
+
+    Compares against all TRANSITION_PHONEMES entries. For entries with variant
+    suffixes (e.g. Takbir_double), the returned name is the base name (Takbir)
+    — variants only affect internal matching, not display. Best match = lowest
+    normalized edit distance.
+
+    Args:
+        asr_phonemes: ASR output phoneme sequence for one segment
+        allowed: Optional set of base names to restrict detection to
+                 (e.g. {"Amin"} to only check Amin)
+
+    Returns:
+        (name, confidence) where name is the base transition name or None,
+        and confidence = 1 - normalized_edit_distance.
+    """
+    if not asr_phonemes:
+        return None, 0.0
+
+    best_name = None
+    best_dist = float("inf")
+
+    for key, ref_phonemes in TRANSITION_PHONEMES.items():
+        base_name = _TRANSITION_BASE_NAMES.get(key, key)
+        if allowed is not None and base_name not in allowed:
+            continue
+
+        dist = phoneme_edit_distance(asr_phonemes, ref_phonemes)
+        if dist < best_dist:
+            best_dist = dist
+            best_name = base_name
+
+    if best_dist <= MAX_TRANSITION_EDIT_DISTANCE and best_name is not None:
+        return best_name, 1.0 - best_dist
+
+    return None, 0.0

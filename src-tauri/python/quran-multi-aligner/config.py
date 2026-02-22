@@ -50,7 +50,7 @@ SURAH_INFO_PATH = DATA_PATH / "surah_info.json"
 
 # Quran script paths
 QURAN_SCRIPT_PATH_COMPUTE = DATA_PATH / "qpc_hafs.json"
-QURAN_SCRIPT_PATH_DISPLAY = DATA_PATH / "qpc_hafs.json"
+QURAN_SCRIPT_PATH_DISPLAY = DATA_PATH / "digital_khatt_v2_script.json"
 
 # Pre-built phoneme cache (all 114 chapters)
 PHONEME_CACHE_PATH = DATA_PATH / "phoneme_cache.pkl"
@@ -64,33 +64,35 @@ NGRAM_INDEX_PATH = DATA_PATH / f"phoneme_ngram_index_{NGRAM_SIZE}.pkl"
 # =============================================================================
 
 def get_vad_duration(minutes):
-    """GPU seconds needed for VAD based on audio minutes."""
+    """GPU seconds needed for VAD based on audio minutes.
+
+    VAD GPU time scales linearly at ~0.28s per audio minute.
+    Tuned from 50-run log analysis (Feb 2026): previous leases were tight
+    at 30-60 min (15s lease vs 17s actual) and 60-120 min (25s vs 26s).
+    """
     if minutes > 180:
         return 60
     elif minutes > 120:
-        return 40
+        return 45      # was 40 — 137 min audio hit 38.3s (95% of old lease)
     elif minutes > 60:
-        return 25
+        return 30      # was 25 — 89 min audio hit 25.8s (exceeded old lease)
     elif minutes > 30:
-        return 15
+        return 20      # was 15 — 58 min audio hit 17s (exceeded old lease)
     elif minutes > 15:
         return 10
     else:
         return 5
 
 def get_asr_duration(minutes, model_name="Base"):
-    """GPU seconds needed for ASR based on audio minutes and model size."""
-    if minutes > 180:
-        return 20
-    elif minutes > 60:
-        base = 15
-    else:
-        base = 10
+    """GPU seconds needed for ASR.
 
+    ASR GPU time is nearly constant regardless of audio length due to batch
+    processing — no range tiers needed.  Tuned from 50-run log analysis
+    (Feb 2026): Base uses 0.2-2.5s (warm), Large uses 0.8-5.6s (warm).
+    """
     if model_name == "Large":
-        LARGE_MODEL_DURATION_FACTOR = 3
-        return int(base * LARGE_MODEL_DURATION_FACTOR)
-    return base
+        return 10      # max warm 5.6s, cold start 10.4s
+    return 3           # max warm 2.5s, cold start 5.6s
 
 # Batching strategy
 BATCHING_STRATEGY = "dynamic"  # "naive" (fixed count) or "dynamic" (seconds + pad waste)
@@ -99,8 +101,8 @@ BATCHING_STRATEGY = "dynamic"  # "naive" (fixed count) or "dynamic" (seconds + p
 INFERENCE_BATCH_SIZE = 32      # Fixed segments per batch (used when BATCHING_STRATEGY="naive")
 
 # Dynamic batching constraints
-MAX_BATCH_SECONDS = 300      # Max total audio seconds per batch (sum of durations)
-MAX_PAD_WASTE = 0.15         # Max fraction of padded tensor that is wasted (0=no waste, 1=all waste)
+MAX_BATCH_SECONDS = 600      # Max total audio seconds per batch (sum of durations)
+MAX_PAD_WASTE = 0.2          # Max fraction of padded tensor that is wasted (0=no waste, 1=all waste)
 MIN_BATCH_SIZE = 8           # Minimum segments per batch (prevents underutilization)
 
 # Model precision
@@ -120,7 +122,8 @@ AOTI_HUB_REPO = "hetchyy/quran-aligner-aoti"  # Hub repo for compiled model cach
 
 ANCHOR_SEGMENTS = 5                 # N-gram voting uses first N Quran segments
 ANCHOR_RARITY_WEIGHTING = True      # Weight votes by 1/count (rarity); False = equal weight
-ANCHOR_RUN_TRIM_RATIO = 0.15        # Trim leading/trailing ayahs whose weight < ratio * max weight in run
+ANCHOR_RUN_TRIM_RATIO = 0.2         # Trim leading/trailing ayahs whose weight < ratio * max weight in run
+ANCHOR_TOP_CANDIDATES = 20          # Evaluate top N surahs by total weight for contiguous run comparison
 
 # Edit operation costs (Levenshtein hyperparameters)
 COST_SUBSTITUTION = 1.0             # Default phoneme substitution cost
@@ -128,16 +131,17 @@ COST_INSERTION = 1.0                # Insert phoneme from reference (R)
 COST_DELETION = 0.8                 # Delete phoneme from ASR (P)
 
 # Alignment thresholds (normalized edit distance: 0 = identical, 1 = completely different)
-LOOKBACK_WORDS = 15                 # Window words to look back from pointer for starting positions
+LOOKBACK_WORDS = 30                 # Window words to look back from pointer for starting positions
 LOOKAHEAD_WORDS = 10                # Window words to look ahead after expected end position
 MAX_EDIT_DISTANCE = 0.25            # Max normalized edit distance for valid ayah match
 MAX_SPECIAL_EDIT_DISTANCE = 0.35    # Max normalized edit distance for Basmala/Isti'adha detection
+MAX_TRANSITION_EDIT_DISTANCE = 0.45 # Max normalized edit distance for transition segments (Amin/Takbir/Tahmeed)
 START_PRIOR_WEIGHT = 0.005          # Penalty per word away from expected position
 
 # Failed Segments
-RETRY_LOOKBACK_WORDS = 60           # Expanded lookback for retry tier 1+2
+RETRY_LOOKBACK_WORDS = 70           # Expanded lookback for retry tier 1+2
 RETRY_LOOKAHEAD_WORDS = 40          # Expanded lookahead for retry tier 1+2
-MAX_EDIT_DISTANCE_RELAXED = 0.45    # Relaxed threshold for retry tier 2
+MAX_EDIT_DISTANCE_RELAXED = 0.4     # Relaxed threshold for retry tier 2
 MAX_CONSECUTIVE_FAILURES = 2        # Re-anchor within surah after this many DP failures
 
 # Debug output
@@ -151,7 +155,7 @@ PHONEME_ALIGNMENT_PROFILING = True  # Track and log timing breakdown (DP, window
 
 # Segmentation presets: (min_silence_ms, min_speech_ms, pad_ms)
 PRESET_MUJAWWAD = (600, 1500, 300)   # Slow / Mujawwad recitation
-PRESET_MURATTAL = (200, 1000, 100)    # Normal pace (default)
+PRESET_MURATTAL = (200, 750, 100)    # Normal pace (default)
 PRESET_FAST     = (75, 750, 40)     # Fast recitation
 
 # Slider ranges (defaults come from PRESET_MURATTAL)
@@ -186,14 +190,14 @@ UNDERSEG_MIN_DURATION = 15      # Duration gate (seconds)
 # =============================================================================
 
 MFA_SPACE_URL = "https://hetchyy-quran-phoneme-mfa.hf.space"
-MFA_TIMEOUT = 120
+MFA_TIMEOUT = 180
 
 # =============================================================================
 # Usage logging (pushed to HF Hub via ParquetScheduler)
 # =============================================================================
 
 USAGE_LOG_DATASET_REPO = "hetchyy/quran-aligner-logs"
-USAGE_LOG_PUSH_INTERVAL_MINUTES = 60
+USAGE_LOG_PUSH_INTERVAL_MINUTES = 15
 
 # =============================================================================
 # Progress bar settings
@@ -201,7 +205,7 @@ USAGE_LOG_PUSH_INTERVAL_MINUTES = 60
 
 PROGRESS_PROCESS_AUDIO = {
     "preparing":        (0.00, "Preparing audio..."),
-    "resampling":       (0.00, "Resampling audio..."),
+    "resampling":       (0.00, "Loading audio..."),
     "vad_asr":          (0.05, "Segmenting and transcribing..."),
     "asr":              (0.15, "Running ASR..."),
     "special_segments": (0.50, "Detecting special segments..."),

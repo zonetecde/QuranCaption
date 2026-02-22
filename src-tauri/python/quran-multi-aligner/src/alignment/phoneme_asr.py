@@ -11,7 +11,7 @@ from config import (
     BATCHING_STRATEGY, INFERENCE_BATCH_SIZE,
     MAX_BATCH_SECONDS, MAX_PAD_WASTE, MIN_BATCH_SIZE,
 )
-from ..core.zero_gpu import ZERO_GPU_AVAILABLE, is_quota_exhausted
+from ..core.zero_gpu import ZERO_GPU_AVAILABLE, is_user_forced_cpu, model_device_lock
 
 
 _cache = {}  # model_name -> {"model": Model, "processor": Processor, "device": str}
@@ -50,43 +50,50 @@ def load_phoneme_asr(model_name=PHONEME_ASR_MODEL_DEFAULT):
     Models are loaded once and cached per model_name. Both base and large
     can be cached simultaneously. Use move_phoneme_asr_to_gpu() inside
     GPU-decorated functions to move to CUDA.
+    Thread-safe: uses model_device_lock with double-checked locking.
     """
     if model_name in _cache:
         entry = _cache[model_name]
         return entry["model"], entry["processor"]
 
-    import logging
-    from transformers import AutoModelForCTC, AutoProcessor
+    with model_device_lock:
+        # Re-check after acquiring lock — another thread may have loaded it
+        if model_name in _cache:
+            entry = _cache[model_name]
+            return entry["model"], entry["processor"]
 
-    # Suppress verbose transformers logging during load
-    logging.getLogger("transformers").setLevel(logging.WARNING)
+        import logging
+        from transformers import AutoModelForCTC, AutoProcessor
 
-    model_path = PHONEME_ASR_MODELS[model_name]
-    print(f"Loading phoneme ASR: {model_path} ({model_name})")
+        # Suppress verbose transformers logging during load
+        logging.getLogger("transformers").setLevel(logging.WARNING)
 
-    # Use HF_TOKEN for private model access
-    hf_token = _get_hf_token()
+        model_path = PHONEME_ASR_MODELS[model_name]
+        print(f"Loading phoneme ASR: {model_path} ({model_name})")
 
-    device, dtype = _get_device_and_dtype()
+        # Use HF_TOKEN for private model access
+        hf_token = _get_hf_token()
 
-    model = AutoModelForCTC.from_pretrained(
-        model_path, token=hf_token, attn_implementation="sdpa"
-    )
-    model.to(device, dtype=dtype)
-    model.eval()
-    if TORCH_COMPILE and not (IS_HF_SPACE or ZERO_GPU_AVAILABLE):
-        model = torch.compile(model, mode="reduce-overhead")
+        device, dtype = _get_device_and_dtype()
 
-    processor = AutoProcessor.from_pretrained(model_path, token=hf_token)
+        model = AutoModelForCTC.from_pretrained(
+            model_path, token=hf_token, attn_implementation="sdpa"
+        )
+        model.to(device, dtype=dtype)
+        model.eval()
+        if TORCH_COMPILE and not (IS_HF_SPACE or ZERO_GPU_AVAILABLE):
+            model = torch.compile(model, mode="reduce-overhead")
 
-    _cache[model_name] = {
-        "model": model,
-        "processor": processor,
-        "device": device.type,
-    }
+        processor = AutoProcessor.from_pretrained(model_path, token=hf_token)
 
-    print(f"Phoneme ASR ({model_name}) loaded on {device}")
-    return model, processor
+        _cache[model_name] = {
+            "model": model,
+            "processor": processor,
+            "device": device.type,
+        }
+
+        print(f"Phoneme ASR ({model_name}) loaded on {device}")
+        return model, processor
 
 
 def move_phoneme_asr_to_gpu(model_name=None):
@@ -99,45 +106,45 @@ def move_phoneme_asr_to_gpu(model_name=None):
     Idempotent: checks current device before moving.
     Skips if quota exhausted or CUDA unavailable.
     """
-    if is_quota_exhausted() or not torch.cuda.is_available():
+    if is_user_forced_cpu() or not torch.cuda.is_available():
         return
 
     names = [model_name] if model_name else list(_cache.keys())
     device = torch.device("cuda")
 
-    for name in names:
-        if name not in _cache:
-            continue
-        entry = _cache[name]
-        model = entry["model"]
-        if next(model.parameters()).device.type != "cuda":
-            entry["model"] = model.to(device, dtype=_TORCH_DTYPE)
-            entry["device"] = "cuda"
-            print(f"[PHONEME ASR] Moved '{name}' to CUDA")
+    with model_device_lock:
+        for name in names:
+            if name not in _cache:
+                continue
+            entry = _cache[name]
+            model = entry["model"]
+            if next(model.parameters()).device.type != "cuda":
+                try:
+                    entry["model"] = model.to(device, dtype=_TORCH_DTYPE)
+                    entry["device"] = "cuda"
+                    print(f"[PHONEME ASR] Moved '{name}' to CUDA")
+                except RuntimeError as e:
+                    print(f"[PHONEME ASR] CUDA move failed for '{name}', staying on CPU: {e}")
 
 
-def move_phoneme_asr_to_cpu(model_name=None):
-    """Move cached phoneme ASR model(s) back to CPU.
+def invalidate_asr_cache(model_name=None):
+    """Drop cached ASR model(s) so the next load_phoneme_asr() creates fresh ones.
 
     Args:
-        model_name: Move only this model. If None, move all cached models.
+        model_name: Invalidate only this model. If None, invalidate all.
 
-    Called when GPU lease fails or quota is exhausted so that
-    CPU fallback inference can proceed.
-    Idempotent: checks current device before moving.
+    Called from _drain_stale_models() inside a GPU lease. No CUDA ops —
+    just removes references and lets GC reclaim tensors.
     """
-    names = [model_name] if model_name else list(_cache.keys())
-    device = torch.device("cpu")
-
-    for name in names:
-        if name not in _cache:
-            continue
-        entry = _cache[name]
-        model = entry["model"]
-        if next(model.parameters()).device.type != "cpu":
-            entry["model"] = model.to(device, dtype=_TORCH_DTYPE)
-            entry["device"] = "cpu"
-            print(f"[PHONEME ASR] Moved '{name}' to CPU")
+    if model_name:
+        if model_name in _cache:
+            del _cache[model_name]
+            print(f"[PHONEME ASR] Cache invalidated for '{model_name}'")
+    else:
+        if _cache:
+            names = list(_cache.keys())
+            _cache.clear()
+            print(f"[PHONEME ASR] Cache invalidated: {names}")
 
 
 def ids_to_phoneme_list(ids: List[int], tokenizer, pad_id: int) -> List[str]:
@@ -269,7 +276,10 @@ def _transcribe_batch_pytorch(
             outputs = model(input_values, attention_mask=attention_mask)
             logits = outputs.logits
         if device.type == "cuda":
-            torch.cuda.synchronize()
+            try:
+                torch.cuda.synchronize()
+            except RuntimeError:
+                pass  # GPU may have been deallocated at lease boundary
         infer_time = time.time() - t_infer_start
 
         # CTC greedy decode
@@ -322,8 +332,14 @@ def transcribe_batch(segment_audios: List[np.ndarray], sample_rate: int, model_n
     if model is None:
         return [[] for _ in segment_audios], [], 0.0, 0.0
 
-    device = next(model.parameters()).device
+    # Determine inference device.
+    if is_user_forced_cpu():
+        device = torch.device("cpu")
+    else:
+        device = next(model.parameters()).device
+
     dtype = next(model.parameters()).dtype
+
     tokenizer = processor.tokenizer
     pad_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else 0
 

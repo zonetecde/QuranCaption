@@ -211,9 +211,12 @@ export function useAutoSegmentationWizard() {
 		if (
 			selection.mode === 'local' &&
 			selection.localAsrMode === 'multi_aligner' &&
-			!selection.hfToken
-		)
-			await promptHFToken();
+			!selection.hfToken.trim()
+		) {
+			errorMessage =
+				'Local V2 requires a Hugging Face token with access to private models (hetchyy/r15_95m, hetchyy/r7).';
+			return;
+		}
 		isRunning = true;
 		result = null;
 		errorMessage = null;
@@ -236,7 +239,7 @@ export function useAutoSegmentationWizard() {
 					cloudModel: selection.cloudModel,
 					device: selection.device,
 					hfToken: selection.hfToken,
-					allowCloudFallback: true,
+					allowCloudFallback: selection.mode !== 'local',
 					fillBySilence,
 					extendBeforeSilence,
 					extendBeforeSilenceMs

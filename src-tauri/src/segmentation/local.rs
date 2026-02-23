@@ -391,7 +391,10 @@ pub async fn segment_quran_audio_local_multi(
         .map(|token| !token.trim().is_empty())
         .unwrap_or(false);
     if !token_present {
-        return Err("HF token is required for local Multi-Aligner mode.".to_string());
+        return Err(
+            "HF token with access to private models (hetchyy/r15_95m, hetchyy/r7) is required for local Multi-Aligner mode."
+                .to_string(),
+        );
     }
 
     let extra_args = vec![

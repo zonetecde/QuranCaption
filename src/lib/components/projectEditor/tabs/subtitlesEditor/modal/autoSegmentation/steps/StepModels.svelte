@@ -104,7 +104,10 @@
 
 	{#if isMultiLocal()}
 		<div class="rounded-xl border border-color bg-accent/70 p-3">
-			<div class="mb-2 text-xs uppercase text-thirdly">Hugging Face token</div>
+			<div class="mb-2 text-xs uppercase text-thirdly">Hugging Face token (required)</div>
+			<p class="mb-2 text-xs text-thirdly">
+				Required for Local V2 private models (`hetchyy/r15_95m`, `hetchyy/r7`).
+			</p>
 			<div class="mb-2 text-sm font-mono text-primary">{maskToken(wizard.selection.hfToken)}</div>
 			<div class="flex gap-2">
 				<button class="btn-accent px-3 py-1.5 text-xs" onclick={() => void wizard.promptHFToken()}

@@ -7,8 +7,8 @@ use super::data_files::{
     validate_multi_aligner_data_file,
 };
 use super::python_env::{
-    get_engine_venv_path, get_system_python_cmd, get_venv_python_exe, run_python_any_import_check,
-    run_python_import_check,
+    get_engine_venv_path, get_venv_python_exe, resolve_system_python, run_python_any_import_check,
+    run_python_import_check, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
 };
 use super::types::LocalSegmentationEngine;
 
@@ -140,21 +140,18 @@ pub async fn check_local_segmentation_ready(
     let check_result = timeout(
         Duration::from_secs(25),
         tokio::task::spawn_blocking(move || {
-            let python_cmd = get_system_python_cmd();
-            let mut cmd = Command::new(python_cmd);
-            cmd.args(["--version"]);
-            configure_command_no_window(&mut cmd);
-
-            let python_available = match cmd.output() {
-                Ok(output) => output.status.success(),
-                Err(_) => false,
-            };
-            if !python_available {
+            let python = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR);
+            if let Err(error) = python {
                 return serde_json::json!({
                     "ready": false,
                     "pythonInstalled": false,
                     "packagesInstalled": false,
-                    "message": "Python is not installed. Please install Python 3.10+ from python.org",
+                    "message": format!(
+                        "Python {}.{}+ is required: {}",
+                        MIN_LOCAL_PYTHON_MAJOR,
+                        MIN_LOCAL_PYTHON_MINOR,
+                        error
+                    ),
                     "engines": {
                         "legacy": {
                             "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
@@ -253,11 +250,11 @@ pub async fn check_local_segmentation_ready(
             let overall_message = if any_ready {
                 "Local segmentation is ready".to_string()
             } else if legacy_ready && !multi_usable {
-                "Legacy local engine is ready. Multi-aligner requires a Hugging Face token.".to_string()
+                "Legacy local engine is ready. Multi-aligner requires a Hugging Face token with access to private models.".to_string()
             } else if !legacy_venv_exists && !multi_venv_exists {
                 "Local engines are not installed yet. Install dependencies for Legacy Whisper and/or Multi-Aligner.".to_string()
             } else {
-                "Local engines need setup or a valid Hugging Face token for Multi-Aligner.".to_string()
+                "Local engines need setup or a Hugging Face token with private model access for Multi-Aligner.".to_string()
             };
 
             serde_json::json!({
@@ -314,7 +311,7 @@ pub async fn check_local_segmentation_ready(
                         } else if let Some(error) = multi_data_error {
                             format!("Multi-Aligner data files are invalid: {}", error)
                         } else if !token_provided {
-                            "Multi-Aligner requires a Hugging Face token".to_string()
+                            "Multi-Aligner requires a Hugging Face token with private model access".to_string()
                         } else {
                             "Multi-Aligner packages are incomplete".to_string()
                         }

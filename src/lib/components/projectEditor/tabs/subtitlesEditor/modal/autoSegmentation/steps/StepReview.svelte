@@ -32,11 +32,12 @@
 		<div class="text-secondary">
 			Audio: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
-		{#if wizard.selection.aiVersion === 'multi_v2' && wizard.selection.mode === 'local' && !wizard.selection.hfToken}
+		{#if wizard.selection.aiVersion === 'multi_v2' && wizard.selection.mode === 'local'}
 			<div
 				class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-300"
 			>
-				Local V2 requires a Hugging Face token. You will be prompted on start.
+				Local V2 uses private HF models (`hetchyy/r15_95m`, `hetchyy/r7`) and may require an
+				authorized token. If the token is missing, segmentation will stop in Local mode.
 			</div>
 		{/if}
 		{#if !wizard.hasAudio()}

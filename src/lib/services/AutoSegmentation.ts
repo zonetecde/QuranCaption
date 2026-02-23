@@ -293,7 +293,9 @@ type CoverageGapDependencies = {
 };
 
 export async function detectCoverageGapIndices(
-	orderedSegments: Array<Pick<SegmentationSegment, 'ref_from' | 'ref_to' | 'error' | 'special_type'>>,
+	orderedSegments: Array<
+		Pick<SegmentationSegment, 'ref_from' | 'ref_to' | 'error' | 'special_type'>
+	>,
 	deps: CoverageGapDependencies
 ): Promise<Set<number>> {
 	const { getVerseWordCount, getVerseCount, getSurahCount } = deps;
@@ -525,7 +527,11 @@ function getPredefinedType(ref?: string, specialType?: string): PredefinedType |
 	if (!ref) return null;
 	const normalized = ref.toLowerCase().trim();
 
-	if (normalized.includes("isti'adha") || normalized.includes('istiadha') || normalized.includes('isti')) {
+	if (
+		normalized.includes("isti'adha") ||
+		normalized.includes('istiadha') ||
+		normalized.includes('isti')
+	) {
 		return "Isti'adha";
 	}
 	if (normalized.includes('basmala')) return 'Basmala';
@@ -716,17 +722,18 @@ export async function runAutoSegmentation(
 	const device: SegmentationDevice = options.device ?? 'GPU';
 	const hfToken: string = (options.hfToken ?? '').trim();
 	const allowCloudFallback: boolean = options.allowCloudFallback ?? true;
-	const fillBySilence: boolean = options.fillBySilence ?? true; // Par défaut, on insère des SilenceClip
+	const fillBySilence: boolean = options.fillBySilence ?? true; //  Par défaut, on insère des SilenceClip
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
 
 	// Determine mode if not specified
 	const requestedMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
+	const allowCloudFallbackEffective: boolean = allowCloudFallback && requestedMode !== 'local';
 	let effectiveMode: SegmentationMode = requestedMode;
 	let fallbackToCloud = false;
 	let cloudGpuFallbackToCpu = false;
 	console.log(
-		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device} allowCloudFallback=${allowCloudFallback}`
+		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device} allowCloudFallback=${allowCloudFallbackEffective}`
 	);
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
@@ -776,10 +783,6 @@ export async function runAutoSegmentation(
 				});
 			}
 
-			if (!hfToken) {
-				throw new Error('HF token is required for local Multi-Aligner mode.');
-			}
-
 			return await invoke('segment_quran_audio_local_multi', {
 				...basePayload,
 				modelName: multiAlignerModel,
@@ -788,6 +791,7 @@ export async function runAutoSegmentation(
 			});
 		};
 
+		let fallbackWarning: string | undefined;
 		let payload: unknown;
 		if (effectiveMode === 'api') {
 			payload = await invokeCloud();
@@ -795,8 +799,17 @@ export async function runAutoSegmentation(
 			try {
 				payload = await invokeLocal();
 			} catch (localError) {
-				console.warn('[AutoSegmentation] Local mode failed (no cloud fallback):', localError);
-				throw localError;
+				if (!allowCloudFallbackEffective) {
+					console.warn('[AutoSegmentation] Local mode failed (no cloud fallback):', localError);
+					throw localError;
+				}
+
+				const localMessage = localError instanceof Error ? localError.message : String(localError);
+				console.warn('[AutoSegmentation] Local mode failed, falling back to cloud:', localMessage);
+				fallbackWarning = `Local mode failed and was switched to Cloud: ${localMessage}`;
+				fallbackToCloud = true;
+				effectiveMode = 'api';
+				payload = await invokeCloud();
 			}
 		}
 
@@ -1223,7 +1236,7 @@ export async function runAutoSegmentation(
 		closeSmallSubtitleGaps(subtitleClips, SMALL_GAP_MS);
 
 		if (fillBySilence) {
-			// Insère des SilenceClip dans les gaps
+			// InsÃƒÂ¨re des SilenceClip dans les gaps
 			subtitleTrack.clips = insertSilenceClips(subtitleClips, SMALL_GAP_MS);
 			if (extendBeforeSilence && extendBeforeSilenceMs > 0) {
 				extendSubtitlesBeforeSilence(
@@ -1256,7 +1269,7 @@ export async function runAutoSegmentation(
 			verseRange,
 			fallbackToCloud,
 			cloudGpuFallbackToCpu,
-			warning: response.warning,
+			warning: response.warning ?? fallbackWarning,
 			requestedMode,
 			effectiveMode
 		};

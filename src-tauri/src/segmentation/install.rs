@@ -10,16 +10,16 @@ use super::data_files::{
     validate_multi_aligner_data_file,
 };
 use super::python_env::{
-    apply_hf_token_env, create_venv_if_missing, get_system_python_cmd, get_venv_python_exe,
-    resolve_python_resource_path,
+    apply_hf_token_env, create_venv_if_missing, get_venv_python_exe, resolve_python_resource_path,
+    resolve_system_python, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
 };
 use super::requirements::{
     prepare_multi_requirements_file, prepare_windows_safe_quranic_phonemizer_source,
 };
 use super::types::LocalSegmentationEngine;
 
-/// Installe les dépendances Python du moteur local demandé.
-/// Télécharge un fichier binaire distant et l'écrit localement.
+/// Installs Python dependencies for the selected local engine.
+/// Downloads a remote binary file and writes it locally.
 async fn download_binary_file(url: &str, destination_path: &std::path::Path) -> Result<(), String> {
     let response = reqwest::get(url)
         .await
@@ -50,7 +50,7 @@ async fn download_binary_file(url: &str, destination_path: &std::path::Path) -> 
     Ok(())
 }
 
-/// Vérifie les fichiers data du Multi-Aligner et retélécharge ceux invalides.
+/// Validates Multi-Aligner data files and re-downloads invalid ones.
 async fn ensure_multi_aligner_data_files(
     app_handle: &tauri::AppHandle,
 ) -> Result<Vec<String>, String> {
@@ -88,18 +88,18 @@ pub async fn install_local_segmentation_deps(
         let _ = app_handle.emit("install-status", serde_json::json!({ "message": message }));
     };
 
-    // Validation Python système puis préparation du venv dédié.
-    let system_python = get_system_python_cmd();
-    let mut py_check = Command::new(system_python);
-    py_check.arg("--version");
-    configure_command_no_window(&mut py_check);
-    let py_output = py_check
-        .output()
-        .map_err(|e| format!("Python is required to install local dependencies: {}", e))?;
-    if !py_output.status.success() {
-        return Err("Python is required to install local dependencies.".to_string());
-    }
-
+    // Validate system Python and prepare the dedicated venv.
+    let system_python =
+        resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR).map_err(|e| {
+            format!(
+                "Python {}.{}+ is required to install local dependencies: {}",
+                MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR, e
+            )
+        })?;
+    emit_status(&format!(
+        "Using Python {}.{}.{} ({})",
+        system_python.major, system_python.minor, system_python.patch, system_python.executable
+    ));
     emit_status(&format!(
         "Preparing {} local environment...",
         selected_engine.as_label()
@@ -233,7 +233,7 @@ pub async fn install_local_segmentation_deps(
         )?;
     }
 
-    // Installation requirements hors paquets torch et dépendance phonemizer.
+    // Install non-torch requirements and skip phonemizer Git dependency.
     let requirements_path =
         resolve_python_resource_path(&app_handle, selected_engine.requirements_relative_path())?;
     let requirements_path = if matches!(selected_engine, LocalSegmentationEngine::MultiAligner) {
@@ -337,3 +337,4 @@ pub async fn install_local_segmentation_deps(
         selected_engine.as_label()
     ))
 }
+

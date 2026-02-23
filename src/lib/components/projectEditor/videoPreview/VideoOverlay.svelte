@@ -14,10 +14,7 @@
 	import { Utilities } from '$lib/classes/misc/Utilities';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 
-	const ARABIC_BRACKET_CLOSE = '\uFD3F';
-	const ARABIC_BRACKET_OPEN = '\uFD3E';
-
-	const fadeDuration = $derived(() => {
+const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
 	});
 
@@ -79,9 +76,9 @@
 		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
 	});
 
-	let decorativeBracketsFontFamily = $derived(() => {
+	let decorativeBracketsGlyphPair = $derived(() => {
 		return String(
-			globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'Hafs'
+			globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM'
 		);
 	});
 
@@ -90,21 +87,17 @@
 	 * Petites retouches de positionnement et d'échelle pour chaque police.
 	 */
 	function getDecorativeBracketCss(): string {
-		const fontFamily = decorativeBracketsFontFamily();
-		let transform = '';
+		return "font-family: 'QPC2BSML', serif; display: inline-block;";
+	}
 
-		if (fontFamily === 'Aref Ruqaa') {
-			transform = 'translateY(-25px) scale(1.2)';
-		} else if (fontFamily === 'Markazi Text') {
-			transform = 'translateY(10px) scale(1.5)';
-		} else if (fontFamily === 'Lateef') {
-			transform = 'translateY(-10px) scale(1.6)';
-		} else if (fontFamily === 'Noto Naskh Arabic') {
-			transform = 'scale(1.1)';
+	function getDecorativeBracketGlyphs(): { opening: string; closing: string } {
+		const raw = decorativeBracketsGlyphPair();
+		const compact = raw.replaceAll(' ', '').replaceAll('/', '').replaceAll('-', '');
+		const allowedPairs = ['LM', 'NO', 'PQ', 'RS', 'TU', 'VW', 'XY', 'Z:', '()'];
+		if (allowedPairs.includes(compact) && compact.length >= 2) {
+			return { opening: compact[0], closing: compact[1] };
 		}
-
-		const transformCss = transform ? `transform: ${transform};` : '';
-		return `font-family: '${fontFamily}', serif; display: inline-block; ${transformCss}`;
+		return { opening: 'L', closing: 'M' };
 	}
 
 	// Contient les textes custom à afficher à ce moment précis
@@ -593,10 +586,11 @@
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const arabicText = subtitle.getText()}
+							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
 							{#if showDecorativeBrackets() && arabicText.trim()}
-								<span style={getDecorativeBracketCss()}>{ARABIC_BRACKET_OPEN}</span>{' '}
-								<span>{arabicText}</span>{' '}
-								<span style={getDecorativeBracketCss()}>{ARABIC_BRACKET_CLOSE}</span>
+								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>{' '}
+								<span>{arabicText}</span>{' '}
+								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
 							{:else}
 								{arabicText}
 							{/if}
@@ -656,3 +650,4 @@
 		{/each}
 	</div>
 </div>
+

@@ -13,9 +13,6 @@
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 
-	const ARABIC_BRACKET_OPEN = '\uFD3F';
-	const ARABIC_BRACKET_CLOSE = '\uFD3E';
-
 	let {
 		style,
 		target,
@@ -467,13 +464,14 @@
 				<div class="relative">
 					<select
 						class="w-full mt-1"
+						style="font-family: 'QPC2BSML', serif;"
 						value={String(inputValue)}
 						onchange={(e) => {
 							applyValue((e.target as HTMLSelectElement).value);
 						}}
 					>
 						{#each style.options || [] as option}
-							<option value={option}>{option}</option>
+							<option value={option} style="font-family: 'QPC2BSML', serif;">{option}</option>
 						{/each}
 					</select>
 				</div>

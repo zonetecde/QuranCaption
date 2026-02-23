@@ -37,19 +37,11 @@
 			},
 			{
 				"id": "decorative-brackets-font-family",
-				"name": "Decorative Brackets Font",
-				"description": "Choose a font only for decorative brackets",
-				"value": "Hafs",
+				"name": "Decorative Brackets Style",
+				"description": "Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.",
+				"value": "LM",
 				"valueType": "brackets-font",
-				"options": [
-					"Hafs",
-					"Noto Naskh Arabic",
-					"Amiri",
-					"Scheherazade New",
-					"Lateef",
-					"Aref Ruqaa",
-					"Markazi Text"
-				],
+				"options": ["LM", "NO", "PQ", "RS", "TU", "VW", "XY", "Z:", "()"],
 				"css": "",
 				"tailwind": false,
 				"icon": "font_download"

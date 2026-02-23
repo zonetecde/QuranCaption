@@ -215,7 +215,6 @@ export class SubtitleTrack extends Track {
 			| 'Silence'
 			| 'Basmala'
 			| "Isti'adha"
-			| "Isti'adha+Basmala"
 			| 'Amin'
 			| 'Takbir'
 			| 'Tahmeed'

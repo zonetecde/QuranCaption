@@ -160,11 +160,6 @@
 		});
 
 		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHA_BASMALA,
-			onKeyDown: () => addPredefinedSubtitle("Isti'adha+Basmala")
-		});
-
-		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_AMIN,
 			onKeyDown: () => addPredefinedSubtitle('Amin')
 		});
@@ -241,9 +236,6 @@
 		);
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHAH
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHA_BASMALA
 		);
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_AMIN

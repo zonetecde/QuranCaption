@@ -203,7 +203,6 @@ type VerseRef = {
 type PredefinedType =
 	| 'Basmala'
 	| "Isti'adha"
-	| "Isti'adha+Basmala"
 	| 'Amin'
 	| 'Takbir'
 	| 'Tahmeed'
@@ -526,9 +525,6 @@ function getPredefinedType(ref?: string, specialType?: string): PredefinedType |
 	if (!ref) return null;
 	const normalized = ref.toLowerCase().trim();
 
-	if (normalized.includes("isti'adha+basmala") || normalized.includes('istiadha+basmala')) {
-		return "Isti'adha+Basmala";
-	}
 	if (normalized.includes("isti'adha") || normalized.includes('istiadha') || normalized.includes('isti')) {
 		return "Isti'adha";
 	}

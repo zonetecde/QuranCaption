@@ -357,7 +357,6 @@ export class SilenceClip extends Clip {
 export type PredefinedSubtitleType =
 	| 'Basmala'
 	| "Isti'adha"
-	| "Isti'adha+Basmala"
 	| 'Amin'
 	| 'Takbir'
 	| 'Tahmeed'
@@ -368,8 +367,6 @@ export type PredefinedSubtitleType =
 const PREDEFINED_ARABIC_TEXT: Record<PredefinedSubtitleType, string> = {
 	Basmala: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم',
 	"Isti'adha": 'أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم',
-	"Isti'adha+Basmala":
-		'أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم',
 	Amin: 'آمِين',
 	Takbir: 'اللَّهُ أَكْبَر',
 	Tahmeed: 'سَمِعَ اللَّهُ لِمَنْ حَمِدَه',
@@ -387,8 +384,6 @@ export function canonicalizePredefinedSubtitleType(
 		case "Isti'adha":
 		case 'Istiadhah':
 			return "Isti'adha";
-		case "Isti'adha+Basmala":
-			return "Isti'adha+Basmala";
 		case 'Amin':
 			return 'Amin';
 		case 'Takbir':
@@ -510,16 +505,6 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 			return qpcVersion ? QPCFontProvider.getSadaqaGlyph() : super.getText();
 		}
 
-		if (canonicalType === "Isti'adha+Basmala") {
-			if (qpcVersion) {
-				return (
-					QPCFontProvider.getBasmalaGlyph(qpcVersion) +
-					'\n' +
-					QPCFontProvider.getIstiadhahGlyph(qpcVersion)
-				);
-			}
-			return getPredefinedArabicText('Basmala') + '\n' + getPredefinedArabicText("Isti'adha");
-		}
 
 		// Si on a pas une police avec les caracteres speciaux
 		if (!qpcVersion) {
@@ -615,3 +600,4 @@ export class CustomImageClip extends CustomClip {
 SerializableBase.registerChildClass(SubtitleClip, 'translations', Translation);
 SerializableBase.registerChildClass(ClipWithTranslation, 'translations', Translation);
 SerializableBase.registerChildClass(CustomTextClip, 'translations', Translation);
+

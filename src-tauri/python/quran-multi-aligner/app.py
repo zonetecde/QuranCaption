@@ -1,6 +1,19 @@
 """Quran Aligner — Automatic Quran recitation segmentation and alignment."""
+import os
 import sys
 from pathlib import Path
+
+# Suppress HF model download progress bars (hundreds of lines on cold start)
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+
+# Load .env file for local dev (HF_TOKEN for private model access)
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _key, _val = _line.split("=", 1)
+            os.environ.setdefault(_key.strip(), _val.strip())
 
 # Add paths for imports BEFORE importing anything else
 _app_path = Path(__file__).parent.resolve()

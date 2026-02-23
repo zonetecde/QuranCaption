@@ -233,7 +233,6 @@ export default class MigrationService {
 		const keyNames = [
 			'ADD_BASMALA',
 			'ADD_ISTIADHAH',
-			'ADD_ISTIADHA_BASMALA',
 			'ADD_AMIN',
 			'ADD_TAKBIR',
 			'ADD_TAHMEED',
@@ -289,6 +288,16 @@ export default class MigrationService {
 				delete settingsAny.shortcuts.SUBTITLES_EDITOR[keyName];
 				hasChanges = true;
 			}
+		}
+
+		// Nettoie l'ancien shortcut retiré (Isti'adha+Basmala)
+		if (settingsAny.shortcuts.SUBTITLES_EDITOR?.ADD_ISTIADHA_BASMALA) {
+			delete settingsAny.shortcuts.SUBTITLES_EDITOR.ADD_ISTIADHA_BASMALA;
+			hasChanges = true;
+		}
+		if (settingsAny.shortcuts.PREDEFINED_SUBTITLES?.ADD_ISTIADHA_BASMALA) {
+			delete settingsAny.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHA_BASMALA;
+			hasChanges = true;
 		}
 
 		if (hasChanges) {
@@ -377,6 +386,7 @@ export default class MigrationService {
 		let hasChanges = false;
 		const legacyTypeMap: Record<string, PredefinedSubtitleType> = {
 			Istiadhah: "Isti'adha",
+			"Isti'adha+Basmala": "Isti'adha",
 			'Sadaqallahul Azim': 'Sadaqa'
 		};
 

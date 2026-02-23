@@ -206,12 +206,6 @@ export default class Settings extends SerializableBase {
 				description: `Add a subtitle with the isti'adhah ("أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ")`,
 				name: "Add Isti'adhah"
 			},
-			ADD_ISTIADHA_BASMALA: {
-				keys: [],
-				description:
-					`Add a subtitle with isti'adhah + basmala ("أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ\\nبِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")`,
-				name: "Add Isti'adhah+Basmala"
-			},
 			ADD_AMIN: {
 				keys: [],
 				description: 'Add a subtitle with amin ("آمِين")',

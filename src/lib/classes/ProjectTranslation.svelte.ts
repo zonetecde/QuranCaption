@@ -205,9 +205,6 @@ export class ProjectTranslation extends SerializableBase {
 				translations['Basmala'] = globalState.availableTranslations[edition.language].basmala;
 			} else if (type === "Isti'adha") {
 				translations["Isti'adha"] = globalState.availableTranslations[edition.language].istiadhah;
-			} else if (type === "Isti'adha+Basmala") {
-				translations["Isti'adha+Basmala"] =
-					globalState.availableTranslations[edition.language].istiadhah_basmala;
 			} else if (type === 'Amin') {
 				translations['Amin'] = globalState.availableTranslations[edition.language].amin;
 			} else if (type === 'Takbir') {
@@ -294,8 +291,6 @@ export class ProjectTranslation extends SerializableBase {
 				return new PredefinedSubtitleTranslation(lang.basmala);
 			case "Isti'adha":
 				return new PredefinedSubtitleTranslation(lang.istiadhah);
-			case "Isti'adha+Basmala":
-				return new PredefinedSubtitleTranslation(lang.istiadhah_basmala);
 			case 'Amin':
 				return new PredefinedSubtitleTranslation(lang.amin);
 			case 'Takbir':

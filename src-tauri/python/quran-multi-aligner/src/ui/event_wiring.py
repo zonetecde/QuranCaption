@@ -1,6 +1,7 @@
 """Event wiring — connects all Gradio component events."""
 import gradio as gr
 
+from config import DEV_TAB_VISIBLE
 from src.core.zero_gpu import QuotaExhaustedError
 from src.pipeline import (
     process_audio, resegment_audio,
@@ -34,6 +35,8 @@ def wire_events(app, c):
     _wire_animation_settings(c)
     _wire_settings_restoration(app, c)
     _wire_api_endpoint(c)
+    if DEV_TAB_VISIBLE:
+        _wire_dev_tab(c)
 
 
 def _wire_preset_buttons(c):
@@ -495,4 +498,77 @@ def _wire_api_endpoint(c):
         inputs=[c.api_audio, c.api_mfa_segments, c.api_mfa_granularity],
         outputs=[c.api_result],
         api_name="mfa_timestamps_direct",
+    )
+
+
+def _wire_dev_tab(c):
+    """Wire dev tab event handlers."""
+    from src.ui.dev_tools import (
+        load_logs_handler, filter_and_sort_handler, select_log_row_handler,
+        build_profiling_plots_handler,
+    )
+
+    # Load / Refresh buttons
+    _load_outputs = [c.dev_all_rows, c.dev_filtered_indices, c.dev_status, c.dev_table]
+
+    _plot_outputs = [c.dev_gpu_plot, c.dev_cpu_plot]
+
+    c.dev_load_btn.click(
+        fn=load_logs_handler,
+        inputs=[],
+        outputs=_load_outputs,
+        api_name=False, show_progress="minimal",
+    ).then(
+        fn=build_profiling_plots_handler,
+        inputs=[c.dev_all_rows, c.dev_filtered_indices],
+        outputs=_plot_outputs,
+        show_progress="hidden",
+    )
+    c.dev_refresh_btn.click(
+        fn=load_logs_handler,
+        inputs=[],
+        outputs=_load_outputs,
+        api_name=False, show_progress="minimal",
+    ).then(
+        fn=build_profiling_plots_handler,
+        inputs=[c.dev_all_rows, c.dev_filtered_indices],
+        outputs=_plot_outputs,
+        show_progress="hidden",
+    )
+
+    # Filter / Sort changes
+    _filter_inputs = [c.dev_all_rows, c.dev_filter_device, c.dev_filter_model,
+                      c.dev_filter_status, c.dev_sort, c.dev_days_filter]
+    _filter_outputs = [c.dev_filtered_indices, c.dev_table]
+
+    for component in [c.dev_filter_device, c.dev_filter_model,
+                      c.dev_filter_status, c.dev_sort, c.dev_days_filter]:
+        component.change(
+            fn=filter_and_sort_handler,
+            inputs=_filter_inputs,
+            outputs=_filter_outputs,
+            api_name=False, show_progress="hidden",
+        ).then(
+            fn=build_profiling_plots_handler,
+            inputs=[c.dev_all_rows, c.dev_filtered_indices],
+            outputs=_plot_outputs,
+            show_progress="hidden",
+        )
+
+    # Table row selection — returns 6-tuple with timestamps + controls
+    c.dev_table.select(
+        fn=select_log_row_handler,
+        inputs=[c.dev_all_rows, c.dev_filtered_indices],
+        outputs=[c.dev_detail_html, c.dev_json_output, c.dev_segment_dir,
+                 c.dev_compute_ts_btn, c.dev_animate_all_html, c.dev_compute_ts_progress],
+        api_name=False, show_progress="minimal",
+    )
+
+    # Compute Timestamps button — uses same MFA flow as main tab
+    c.dev_compute_ts_btn.click(
+        fn=compute_mfa_timestamps,
+        inputs=[c.dev_detail_html, c.dev_json_output, c.dev_segment_dir],
+        outputs=[c.dev_detail_html, c.dev_compute_ts_btn, c.dev_animate_all_html,
+                 c.dev_compute_ts_progress, c.dev_json_output],
+        api_name=False, show_progress="hidden",
     )

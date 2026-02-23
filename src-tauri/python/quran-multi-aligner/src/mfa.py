@@ -3,11 +3,10 @@ import gradio as gr
 from config import MFA_SPACE_URL, MFA_TIMEOUT, MFA_PROGRESS_SEGMENT_RATE
 
 # Lowercase special ref names for case-insensitive matching
-_SPECIAL_REFS = {"basmala", "isti'adha", "isti'adha+basmala"}
+_SPECIAL_REFS = {"basmala", "isti'adha"}
 
 _BASMALA_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم"
 _ISTIATHA_TEXT = "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم"
-_COMBINED_PREFIX = _ISTIATHA_TEXT + " ۝ " + _BASMALA_TEXT
 
 
 def _mfa_upload_and_submit(refs, audio_paths):
@@ -100,6 +99,65 @@ def _mfa_wait_result(event_id, headers, base):
 
 
 # ---------------------------------------------------------------------------
+# MFA split helper (used by pipeline post-processing)
+# ---------------------------------------------------------------------------
+
+def mfa_split_timestamps(audio_int16, sample_rate, mfa_refs):
+    """Call MFA to get word timestamps for splitting segments.
+
+    Args:
+        audio_int16: List of int16 audio arrays (one per segment to split).
+        sample_rate: Audio sample rate.
+        mfa_refs: List of MFA ref strings (one per segment).
+
+    Returns:
+        List of results (one per segment), each a list of
+        {location, start, end} dicts, or None on failure for that segment.
+    """
+    import tempfile
+    import wave
+
+    if not mfa_refs or not audio_int16:
+        return [None] * len(mfa_refs)
+
+    # Write segment audio to temp WAV files
+    audio_paths = []
+    for audio in audio_int16:
+        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        with wave.open(tmp.name, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(audio.tobytes())
+        audio_paths.append(tmp.name)
+
+    try:
+        event_id, headers, base = _mfa_upload_and_submit(mfa_refs, audio_paths)
+        results = _mfa_wait_result(event_id, headers, base)
+        print(f"[MFA_SPLIT] Got {len(results)} results from MFA API")
+
+        out = []
+        for result in results:
+            if result.get("status") != "ok":
+                print(f"[MFA_SPLIT] Segment failed: ref={result.get('ref')} error={result.get('error')}")
+                out.append(None)
+            else:
+                out.append(result.get("words", []))
+        return out
+
+    except Exception as e:
+        print(f"[MFA_SPLIT] MFA call failed: {e}")
+        return [None] * len(mfa_refs)
+    finally:
+        import os as _os
+        for p in audio_paths:
+            try:
+                _os.unlink(p)
+            except OSError:
+                pass
+
+
+# ---------------------------------------------------------------------------
 # Reusable helpers (shared by UI generator and API function)
 # ---------------------------------------------------------------------------
 
@@ -136,9 +194,7 @@ def _build_mfa_ref(seg):
     _is_special_ref = ref_from.strip().lower() in _SPECIAL_REFS
     if not _is_special_ref:
         matched_text = seg.get("matched_text", "")
-        if matched_text.startswith(_COMBINED_PREFIX):
-            mfa_ref = f"Isti'adha+Basmala+{mfa_ref}"
-        elif matched_text.startswith(_ISTIATHA_TEXT):
+        if matched_text.startswith(_ISTIATHA_TEXT):
             mfa_ref = f"Isti'adha+{mfa_ref}"
         elif matched_text.startswith(_BASMALA_TEXT):
             mfa_ref = f"Basmala+{mfa_ref}"
@@ -289,9 +345,7 @@ def _reconstruct_ref_key(seg):
     is_special = ref_from.strip().lower() in _SPECIAL_REFS
     if not is_special:
         matched_text = seg.get("matched_text", "")
-        if matched_text.startswith(_COMBINED_PREFIX):
-            ref_key = f"Isti'adha+Basmala+{ref_key}"
-        elif matched_text.startswith(_ISTIATHA_TEXT):
+        if matched_text.startswith(_ISTIATHA_TEXT):
             ref_key = f"Isti'adha+{ref_key}"
         elif matched_text.startswith(_BASMALA_TEXT):
             ref_key = f"Basmala+{ref_key}"
@@ -629,16 +683,81 @@ def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_ro
         )
         raise
 
-    # Build timestamp lookups using shared helper
+    html, enriched_json = inject_timestamps_into_html(
+        current_html, segments, results, seg_to_result_idx, segment_dir
+    )
+
+    # Log word and char timestamps to usage logger
+    if cached_log_row is not None:
+        try:
+            import json as _json
+            from src.core.usage_logger import update_word_timestamps
+            _ts_log = []
+            _char_ts_log = []
+            for result in results:
+                if result.get("status") != "ok":
+                    continue
+                _ts_log.append({
+                    "ref": result.get("ref", ""),
+                    "words": [
+                        {"word": w.get("word", ""), "start": round(w["start"], 4), "end": round(w["end"], 4)}
+                        for w in result.get("words", []) if w.get("start") is not None and w.get("end") is not None
+                    ],
+                })
+                _char_ts_log.append({
+                    "ref": result.get("ref", ""),
+                    "words": [
+                        {
+                            "word": w.get("word", ""),
+                            "location": w.get("location", ""),
+                            "letters": [
+                                {"char": lt.get("char", ""), "start": round(lt["start"], 4), "end": round(lt["end"], 4)}
+                                for lt in w.get("letters", []) if lt.get("start") is not None and lt.get("end") is not None
+                            ],
+                        }
+                        for w in result.get("words", []) if w.get("letters")
+                    ],
+                })
+            update_word_timestamps(
+                cached_log_row,
+                _json.dumps(_ts_log),
+                _json.dumps(_char_ts_log) if any(entry["words"] for entry in _char_ts_log) else None,
+            )
+        except Exception as e:
+            print(f"[USAGE_LOG] Failed to log word timestamps: {e}")
+
+    # Final yield: updated HTML, hide progress bar, show Animate All, enriched JSON
+    animate_all_btn_html = '<button class="animate-all-btn">Animate All</button>'
+    yield (
+        html,
+        gr.update(visible=False),
+        gr.update(value=animate_all_btn_html, visible=True),
+        gr.update(visible=False),
+        enriched_json,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Reusable HTML timestamp injection (shared by UI generator and Dev tab)
+# ---------------------------------------------------------------------------
+
+def inject_timestamps_into_html(current_html, segments, results, seg_to_result_idx, segment_dir):
+    """Inject word and char timestamps into rendered segment HTML.
+
+    Builds lookups, cross-word groups, extends timestamps, then performs
+    regex-based injection of data-start/data-end attributes into word and
+    char spans. Reusable by both the main MFA flow and the Dev tab
+    log-based flow.
+
+    Returns (enriched_html, enriched_json).
+    """
+    import re
+    import unicodedata
+
+    # Build timestamp lookups
     word_timestamps, letter_timestamps, word_to_all_results = _build_timestamp_lookups(results)
-
-    # Build cross-word groups using shared helper
     crossword_groups = _build_crossword_groups(results, letter_timestamps)
-
-    # Extend word timestamps using shared helper
     _extend_word_timestamps(word_timestamps, segments, seg_to_result_idx, results, segment_dir)
-
-    # --- HTML injection (UI-only, not shared with API) ---
 
     # Inject timestamps into word spans, using segment boundaries to determine result_idx
     seg_boundaries = []
@@ -700,8 +819,6 @@ def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_ro
     html = re.sub(r'(<button class="animate-btn"[^>]*?)\s+disabled(?:="[^"]*")?', r'\1', html)
 
     # Stamp char spans with MFA letter timestamps
-    import unicodedata
-
     def _stamp_chars_with_mfa(word_m):
         word_open = word_m.group(1)
         word_abs_start = float(word_m.group(2))
@@ -819,57 +936,10 @@ def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_ro
 
     print(f"[MFA_TS] Done — injected timestamps for {len(word_timestamps)} words")
 
-    # Log word and char timestamps to usage logger
-    if cached_log_row is not None:
-        try:
-            import json as _json
-            from src.core.usage_logger import update_word_timestamps
-            _ts_log = []
-            _char_ts_log = []
-            for result in results:
-                if result.get("status") != "ok":
-                    continue
-                _ts_log.append({
-                    "ref": result.get("ref", ""),
-                    "words": [
-                        {"word": w.get("word", ""), "start": round(w["start"], 4), "end": round(w["end"], 4)}
-                        for w in result.get("words", []) if w.get("start") is not None and w.get("end") is not None
-                    ],
-                })
-                _char_ts_log.append({
-                    "ref": result.get("ref", ""),
-                    "words": [
-                        {
-                            "word": w.get("word", ""),
-                            "location": w.get("location", ""),
-                            "letters": [
-                                {"char": lt.get("char", ""), "start": round(lt["start"], 4), "end": round(lt["end"], 4)}
-                                for lt in w.get("letters", []) if lt.get("start") is not None and lt.get("end") is not None
-                            ],
-                        }
-                        for w in result.get("words", []) if w.get("letters")
-                    ],
-                })
-            update_word_timestamps(
-                cached_log_row,
-                _json.dumps(_ts_log),
-                _json.dumps(_char_ts_log) if any(entry["words"] for entry in _char_ts_log) else None,
-            )
-        except Exception as e:
-            print(f"[USAGE_LOG] Failed to log word timestamps: {e}")
-
-    # Build enriched JSON using shared helper (UI always includes letters)
+    # Build enriched JSON (UI always includes letters)
     enriched_json = _build_enriched_json(
         segments, results, seg_to_result_idx,
         word_timestamps, letter_timestamps, "words+chars",
     )
 
-    # Final yield: updated HTML, hide progress bar, show Animate All, enriched JSON
-    animate_all_btn_html = '<button class="animate-all-btn">Animate All</button>'
-    yield (
-        html,
-        gr.update(visible=False),
-        gr.update(value=animate_all_btn_html, visible=True),
-        gr.update(visible=False),
-        enriched_json,
-    )
+    return html, enriched_json

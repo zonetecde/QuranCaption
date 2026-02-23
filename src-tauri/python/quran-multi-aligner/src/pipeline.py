@@ -95,6 +95,241 @@ def test_aoti_compilation_gpu():
     return test_vad_aoti_export()
 
 
+def _split_fused_segments(segments, audio_int16, sample_rate):
+    """Post-processing: split combined/fused segments into separate ones via MFA.
+
+    Scans for:
+    - Combined "Isti'adha+Basmala" specials → split into Isti'adha + Basmala
+    - Fused Basmala+verse → split into Basmala + verse
+    - Fused Isti'adha+verse → split into Isti'adha + verse
+
+    Uses MFA word timestamps to find accurate split boundaries.
+    On MFA failure: midpoint fallback for combined, keep-as-is for fused.
+
+    Args:
+        segments: List of SegmentInfo objects.
+        audio_int16: Full recording as int16 numpy array.
+        sample_rate: Audio sample rate.
+
+    Returns:
+        New list of SegmentInfo objects with splits applied.
+    """
+    from src.alignment.special_segments import SPECIAL_TEXT, ALL_SPECIAL_REFS
+
+    _BASMALA_TEXT = SPECIAL_TEXT["Basmala"]
+    _ISTIATHA_TEXT = SPECIAL_TEXT["Isti'adha"]
+    _COMBINED_TEXT = _ISTIATHA_TEXT + " ۝ " + _BASMALA_TEXT
+
+    # Number of words in each special
+    _ISTIATHA_WORD_COUNT = len(_ISTIATHA_TEXT.split())  # 5
+    _BASMALA_WORD_COUNT = len(_BASMALA_TEXT.split())     # 4
+
+    # Identify segments that need splitting
+    split_indices = []  # (idx, case, mfa_ref, split_info)
+    for idx, seg in enumerate(segments):
+        if seg.matched_ref == "Isti'adha+Basmala":
+            # Combined special — always split
+            split_indices.append((idx, "combined", "Isti'adha+Basmala", None))
+        elif seg.matched_ref and seg.matched_ref not in ALL_SPECIAL_REFS and seg.matched_text:
+            if seg.matched_text.startswith(_COMBINED_TEXT):
+                # Fused Isti'adha+Basmala+verse
+                split_indices.append((idx, "fused_combined", f"Isti'adha+Basmala+{seg.matched_ref}", seg.matched_ref))
+            elif seg.matched_text.startswith(_ISTIATHA_TEXT):
+                # Fused Isti'adha+verse
+                split_indices.append((idx, "fused_istiatha", f"Isti'adha+{seg.matched_ref}", seg.matched_ref))
+            elif seg.matched_text.startswith(_BASMALA_TEXT):
+                # Fused Basmala+verse
+                split_indices.append((idx, "fused_basmala", f"Basmala+{seg.matched_ref}", seg.matched_ref))
+
+    if not split_indices:
+        return segments
+
+    print(f"[MFA_SPLIT] {len(split_indices)} segments to split: "
+          f"{[(i, c) for i, c, _, _ in split_indices]}")
+
+    # Extract audio for each segment and call MFA in batch
+    mfa_audios = []
+    mfa_refs = []
+    for idx, case, mfa_ref, _ in split_indices:
+        seg = segments[idx]
+        start_sample = int(seg.start_time * sample_rate)
+        end_sample = int(seg.end_time * sample_rate)
+        mfa_audios.append(audio_int16[start_sample:end_sample])
+        mfa_refs.append(mfa_ref)
+
+    from src.mfa import mfa_split_timestamps
+    mfa_results = mfa_split_timestamps(mfa_audios, sample_rate, mfa_refs)
+
+    # Build new segment list with splits
+    new_segments = []
+    split_set = {idx for idx, _, _, _ in split_indices}
+    split_map = {idx: (i, case, mfa_ref, verse_ref) for i, (idx, case, mfa_ref, verse_ref) in enumerate(split_indices)}
+
+    for idx, seg in enumerate(segments):
+        if idx not in split_set:
+            new_segments.append(seg)
+            continue
+
+        batch_i, case, mfa_ref, verse_ref = split_map[idx]
+        words = mfa_results[batch_i]
+
+        if words is None:
+            # MFA failed — fallback
+            if case == "combined":
+                # Midpoint fallback for combined
+                mid_time = (seg.start_time + seg.end_time) / 2.0
+                new_segments.append(SegmentInfo(
+                    start_time=seg.start_time, end_time=mid_time,
+                    transcribed_text="", matched_text=_ISTIATHA_TEXT,
+                    matched_ref="Isti'adha", match_score=seg.match_score,
+                ))
+                new_segments.append(SegmentInfo(
+                    start_time=mid_time, end_time=seg.end_time,
+                    transcribed_text="", matched_text=_BASMALA_TEXT,
+                    matched_ref="Basmala", match_score=seg.match_score,
+                ))
+                print(f"[MFA_SPLIT] Segment {idx}: combined fallback to midpoint split")
+            else:
+                # Keep fused as-is when MFA fails
+                new_segments.append(seg)
+                print(f"[MFA_SPLIT] Segment {idx}: fused fallback, keeping as-is")
+            continue
+
+        # Find split boundaries from MFA word timestamps
+        seg_start = seg.start_time
+
+        if case == "combined":
+            # Split after Isti'adha words (0:0:1..0:0:5), Basmala starts at 0:0:6
+            istiatha_end = None
+            for w in words:
+                loc = w.get("location", "")
+                if loc == f"0:0:{_ISTIATHA_WORD_COUNT}":
+                    istiatha_end = seg_start + w["end"]
+                    break
+            if istiatha_end is None:
+                # Fallback: midpoint
+                istiatha_end = (seg.start_time + seg.end_time) / 2.0
+
+            new_segments.append(SegmentInfo(
+                start_time=seg.start_time, end_time=istiatha_end,
+                transcribed_text="", matched_text=_ISTIATHA_TEXT,
+                matched_ref="Isti'adha", match_score=seg.match_score,
+            ))
+            new_segments.append(SegmentInfo(
+                start_time=istiatha_end, end_time=seg.end_time,
+                transcribed_text="", matched_text=_BASMALA_TEXT,
+                matched_ref="Basmala", match_score=seg.match_score,
+            ))
+            print(f"[MFA_SPLIT] Segment {idx}: combined split at {istiatha_end:.3f}s")
+
+        elif case == "fused_combined":
+            # Isti'adha (0:0:1..5) + Basmala (0:0:6..9) + verse
+            istiatha_end = None
+            basmala_end = None
+            basmala_last_loc = f"0:0:{_ISTIATHA_WORD_COUNT + _BASMALA_WORD_COUNT}"
+            for w in words:
+                loc = w.get("location", "")
+                if loc == f"0:0:{_ISTIATHA_WORD_COUNT}":
+                    istiatha_end = seg_start + w["end"]
+                if loc == basmala_last_loc:
+                    basmala_end = seg_start + w["end"]
+            if istiatha_end is None:
+                istiatha_end = seg.start_time + (seg.end_time - seg.start_time) / 3.0
+            if basmala_end is None:
+                basmala_end = seg.start_time + 2 * (seg.end_time - seg.start_time) / 3.0
+
+            # Strip prefix text from matched_text to get verse text
+            verse_text = seg.matched_text
+            if verse_text.startswith(_COMBINED_TEXT):
+                verse_text = verse_text[len(_COMBINED_TEXT):].lstrip()
+
+            new_segments.append(SegmentInfo(
+                start_time=seg.start_time, end_time=istiatha_end,
+                transcribed_text="", matched_text=_ISTIATHA_TEXT,
+                matched_ref="Isti'adha", match_score=seg.match_score,
+            ))
+            new_segments.append(SegmentInfo(
+                start_time=istiatha_end, end_time=basmala_end,
+                transcribed_text="", matched_text=_BASMALA_TEXT,
+                matched_ref="Basmala", match_score=seg.match_score,
+            ))
+            new_segments.append(SegmentInfo(
+                start_time=basmala_end, end_time=seg.end_time,
+                transcribed_text=seg.transcribed_text, matched_text=verse_text,
+                matched_ref=verse_ref, match_score=seg.match_score,
+                error=seg.error, has_missing_words=seg.has_missing_words,
+                potentially_undersegmented=seg.potentially_undersegmented,
+            ))
+            print(f"[MFA_SPLIT] Segment {idx}: fused_combined split at "
+                  f"{istiatha_end:.3f}s / {basmala_end:.3f}s")
+
+        elif case == "fused_istiatha":
+            # Isti'adha (0:0:1..5) + verse
+            istiatha_end = None
+            for w in words:
+                loc = w.get("location", "")
+                if loc == f"0:0:{_ISTIATHA_WORD_COUNT}":
+                    istiatha_end = seg_start + w["end"]
+                    break
+            if istiatha_end is None:
+                # Keep as-is if we can't find the boundary
+                new_segments.append(seg)
+                print(f"[MFA_SPLIT] Segment {idx}: fused_istiatha boundary not found, keeping as-is")
+                continue
+
+            verse_text = seg.matched_text
+            if verse_text.startswith(_ISTIATHA_TEXT):
+                verse_text = verse_text[len(_ISTIATHA_TEXT):].lstrip()
+
+            new_segments.append(SegmentInfo(
+                start_time=seg.start_time, end_time=istiatha_end,
+                transcribed_text="", matched_text=_ISTIATHA_TEXT,
+                matched_ref="Isti'adha", match_score=seg.match_score,
+            ))
+            new_segments.append(SegmentInfo(
+                start_time=istiatha_end, end_time=seg.end_time,
+                transcribed_text=seg.transcribed_text, matched_text=verse_text,
+                matched_ref=verse_ref, match_score=seg.match_score,
+                error=seg.error, has_missing_words=seg.has_missing_words,
+                potentially_undersegmented=seg.potentially_undersegmented,
+            ))
+            print(f"[MFA_SPLIT] Segment {idx}: fused_istiatha split at {istiatha_end:.3f}s")
+
+        elif case == "fused_basmala":
+            # Basmala (0:0:1..4) + verse
+            basmala_end = None
+            for w in words:
+                loc = w.get("location", "")
+                if loc == f"0:0:{_BASMALA_WORD_COUNT}":
+                    basmala_end = seg_start + w["end"]
+                    break
+            if basmala_end is None:
+                new_segments.append(seg)
+                print(f"[MFA_SPLIT] Segment {idx}: fused_basmala boundary not found, keeping as-is")
+                continue
+
+            verse_text = seg.matched_text
+            if verse_text.startswith(_BASMALA_TEXT):
+                verse_text = verse_text[len(_BASMALA_TEXT):].lstrip()
+
+            new_segments.append(SegmentInfo(
+                start_time=seg.start_time, end_time=basmala_end,
+                transcribed_text="", matched_text=_BASMALA_TEXT,
+                matched_ref="Basmala", match_score=seg.match_score,
+            ))
+            new_segments.append(SegmentInfo(
+                start_time=basmala_end, end_time=seg.end_time,
+                transcribed_text=seg.transcribed_text, matched_text=verse_text,
+                matched_ref=verse_ref, match_score=seg.match_score,
+                error=seg.error, has_missing_words=seg.has_missing_words,
+                potentially_undersegmented=seg.potentially_undersegmented,
+            ))
+            print(f"[MFA_SPLIT] Segment {idx}: fused_basmala split at {basmala_end:.3f}s")
+
+    print(f"[MFA_SPLIT] {len(segments)} segments → {len(new_segments)} segments")
+    return new_segments
+
+
 def _run_post_vad_pipeline(
     audio, sample_rate, intervals,
     model_name, device, profiling, pipeline_start, progress_steps,
@@ -171,15 +406,6 @@ def _run_post_vad_pipeline(
     vad_segments, segment_audios, special_results, first_quran_idx = detect_special_segments(
         phoneme_texts, vad_segments, segment_audios
     )
-
-    # If segments were split (combined Isti'adha+Basmala), pad phoneme_texts
-    # with empty placeholders so indices stay aligned.
-    # The split replaces one segment with two, so vad_segments is 1 longer.
-    # Insert an empty placeholder at the split position (= first_quran_idx - 2
-    # is where the combined segment was, but simpler: find the gap).
-    if len(vad_segments) != len(phoneme_texts):
-        split_idx = first_quran_idx - 2  # Combined was split into 2 entries starting here
-        phoneme_texts = phoneme_texts[:split_idx] + [[], []] + phoneme_texts[split_idx + 1:]
 
     # Anchor detection via phoneme n-gram voting
     progress(*progress_steps["anchor"])
@@ -264,15 +490,6 @@ def _run_post_vad_pipeline(
 
     last_display_idx = len(vad_segments) - 1
 
-    # Tracking lists for segment stats logging
-    _seg_word_counts: list[int] = []
-    _seg_durations: list[float] = []
-    _seg_phoneme_counts: list[int] = []
-    _seg_ayah_spans: list[int] = []
-    _underseg_indices: list[int] = []
-    _underseg_by_words: list[int] = []
-    _underseg_by_ayah: list[int] = []
-
     # Pre-compute merged end times: extend target segment's end_time
     _merged_end_times = {}  # {target_idx: extended_end_time}
     for consumed_idx, target_idx in merged_into.items():
@@ -300,9 +517,6 @@ def _run_post_vad_pipeline(
 
         # Extend end_time if this segment absorbed a merged segment
         seg_end_time = _merged_end_times.get(idx, seg.end_time)
-        duration = seg_end_time - seg.start_time
-        word_count, ayah_span = get_segment_word_stats(matched_ref)
-        underseg = check_undersegmented(matched_ref, duration)
 
         segments.append(SegmentInfo(
             start_time=seg.start_time,
@@ -313,22 +527,35 @@ def _run_post_vad_pipeline(
             match_score=score,
             error=error,
             has_missing_words=idx in gap_segments,
-            potentially_undersegmented=underseg,
+            potentially_undersegmented=False,  # Recomputed after splits
         ))
 
-        # Track per-segment stats for logging
+    # Post-processing: split combined/fused segments via MFA timestamps
+    segments = _split_fused_segments(segments, audio_int16, sample_rate)
+
+    # Recompute stats from final segments list (after splits may have changed it)
+    _seg_word_counts = []
+    _seg_durations = []
+    _seg_phoneme_counts = []
+    _seg_ayah_spans = []
+    _underseg_indices = []
+    _underseg_by_words = []
+    _underseg_by_ayah = []
+    for i, seg in enumerate(segments):
+        word_count, ayah_span = get_segment_word_stats(seg.matched_ref)
+        duration = seg.end_time - seg.start_time
+        underseg = check_undersegmented(seg.matched_ref, duration) if seg.matched_ref else False
         _seg_word_counts.append(word_count)
         _seg_durations.append(duration)
-        _seg_phoneme_counts.append(len(phoneme_texts[idx]) if idx < len(phoneme_texts) else 0)
+        _seg_phoneme_counts.append(0)  # phoneme counts not available after split
         _seg_ayah_spans.append(ayah_span)
         if underseg:
-            _underseg_indices.append(idx + 1)
+            _underseg_indices.append(i + 1)
             if word_count >= UNDERSEG_MIN_WORDS:
-                _underseg_by_words.append(idx + 1)
+                _underseg_by_words.append(i + 1)
             if ayah_span >= UNDERSEG_MIN_AYAH_SPAN:
-                _underseg_by_ayah.append(idx + 1)
+                _underseg_by_ayah.append(i + 1)
 
-    # Recompute from actual output
     profiling.segments_attempted = len(segments)
     profiling.segments_passed = sum(1 for s in segments if s.match_score > 0.0)
 
@@ -383,6 +610,8 @@ def _run_post_vad_pipeline(
     else:
         print(f"  Undersegmented: 0")
 
+    from src.alignment.special_segments import ALL_SPECIAL_REFS
+
     # --- Usage logging ---
     if is_preset:
         print("[USAGE_LOG] Skipped (preset audio)")
@@ -405,9 +634,7 @@ def _run_post_vad_pipeline(
             # Build per-segment objects for logging
             _log_segments = []
             for i, seg in enumerate(segments):
-                sp_type = None
-                if i < len(special_results) and special_results[i]:
-                    sp_type = special_results[i]
+                sp_type = seg.matched_ref if seg.matched_ref in ALL_SPECIAL_REFS else None
                 _log_segments.append({
                     "idx": i + 1,
                     "start": round(seg.start_time, 2),
@@ -482,8 +709,6 @@ def _run_post_vad_pipeline(
             parts = matched_ref.split("-")
             return parts[0], parts[1] if len(parts) > 1 else parts[0]
         return matched_ref, matched_ref
-
-    from src.alignment.special_segments import ALL_SPECIAL_REFS
 
     segments_list = []
     for i, seg in enumerate(segments):

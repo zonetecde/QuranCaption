@@ -280,7 +280,7 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
         # Basmala/Isti'adha get animate because they have indexed word spans for MFA.
         # Transition segments (Amin, Takbir, Tahmeed) don't.
         animate_btn = ""
-        _ANIMATABLE_SPECIALS = {"Basmala", "Isti'adha", "Isti'adha+Basmala"}
+        _ANIMATABLE_SPECIALS = {"Basmala", "Isti'adha"}
         if seg.matched_ref and (seg.matched_ref not in ALL_SPECIAL_REFS or seg.matched_ref in _ANIMATABLE_SPECIALS):
             animate_btn = f'<button class="animate-btn" data-segment="{idx}" disabled>Animate</button>'
         audio_html = f'''
@@ -296,8 +296,7 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
     # Build matched text with verse markers at all verse boundaries
     BASMALA_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم"
     ISTIATHA_TEXT = "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم"
-    COMBINED_PREFIX = ISTIATHA_TEXT + " ۝ " + BASMALA_TEXT
-    _SPECIAL_PREFIXES = [COMBINED_PREFIX, ISTIATHA_TEXT, BASMALA_TEXT]
+    _SPECIAL_PREFIXES = [ISTIATHA_TEXT, BASMALA_TEXT]
 
     # Helper to wrap words in spans
     def wrap_words_in_spans(text):
@@ -308,8 +307,7 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
         text_html = get_text_with_markers(seg.matched_ref)
         if text_html and seg.matched_text:
             # Check for any special prefix (fused or forward-merged)
-            for _sp_name, _sp in [("Isti'adha+Basmala", COMBINED_PREFIX),
-                                   ("Isti'adha", ISTIATHA_TEXT),
+            for _sp_name, _sp in [("Isti'adha", ISTIATHA_TEXT),
                                    ("Basmala", BASMALA_TEXT)]:
                 if seg.matched_text.startswith(_sp):
                     mfa_prefix = f"{_sp_name}+{seg.matched_ref}"
@@ -375,7 +373,7 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
     return html
 
 
-def render_segments(segments: list, audio_int16: np.ndarray = None, sample_rate: int = 0, segment_dir: Path = None) -> str:
+def render_segments(segments: list, audio_int16: np.ndarray = None, sample_rate: int = 0, segment_dir: Path = None, skip_full_audio: bool = False) -> str:
     """Render all segments as HTML with optional audio players.
 
     Args:
@@ -392,7 +390,7 @@ def render_segments(segments: list, audio_int16: np.ndarray = None, sample_rate:
 
     # Write full audio file for unified megacard playback
     full_audio_url = ""
-    if audio_int16 is not None and sample_rate > 0 and segment_dir:
+    if audio_int16 is not None and sample_rate > 0 and segment_dir and not skip_full_audio:
         full_path = segment_dir / "full.wav"
         with wave.open(str(full_path), 'wb') as wf:
             wf.setnchannels(1)

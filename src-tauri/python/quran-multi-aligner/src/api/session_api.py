@@ -420,11 +420,22 @@ def _create_segment_wavs(audio_np, sample_rate, segments):
 # MFA timestamp helpers
 # ---------------------------------------------------------------------------
 
+_SPECIAL_TEXT = {
+    "Basmala": "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم",
+    "Isti'adha": "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم",
+    "Amin": "آمِين",
+    "Takbir": "اللَّهُ أَكْبَر",
+    "Tahmeed": "سَمِعَ اللَّهُ لِمَنْ حَمِدَه",
+    "Tasleem": "ٱلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ ٱللَّه",
+    "Sadaqa": "صَدَقَ ٱللَّهُ ٱلْعَظِيم",
+}
+
+
 def _normalize_segments(segments):
     """Fill defaults so callers can pass minimal segment dicts (timestamps + refs).
 
-    Auto-assigns ``segment`` numbers and defaults ``confidence`` to 1.0 so
-    segments are not accidentally skipped by ``_build_mfa_refs``.
+    Auto-assigns ``segment`` numbers, defaults ``confidence`` to 1.0, and
+    derives ``matched_text`` from ``special_type`` for special segments.
     """
     normalized = []
     for i, seg in enumerate(segments):
@@ -434,7 +445,8 @@ def _normalize_segments(segments):
         if "confidence" not in entry:
             entry["confidence"] = 1.0
         if "matched_text" not in entry:
-            entry["matched_text"] = ""
+            special = entry.get("special_type", "")
+            entry["matched_text"] = _SPECIAL_TEXT.get(special, "")
         normalized.append(entry)
     return normalized
 

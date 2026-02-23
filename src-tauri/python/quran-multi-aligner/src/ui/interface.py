@@ -7,6 +7,7 @@ import gradio as gr
 
 from config import (
     DELETE_CACHE_FREQUENCY, DELETE_CACHE_AGE,
+    DEV_TAB_VISIBLE,
     ANIM_WORD_COLOR, ANIM_STYLE_ROW_SCALES,
     ANIM_DISPLAY_MODES, ANIM_DISPLAY_MODE_DEFAULT,
     ANIM_OPACITY_PREV_DEFAULT, ANIM_OPACITY_AFTER_DEFAULT, ANIM_OPACITY_STEP,
@@ -41,10 +42,9 @@ def build_interface():
         gr.Markdown("""
 - Transcribe and split any recitation by pauses within 1-2 minutes
 - Get precise pause-, verse-, word- and character-level timestamps, exportable as JSON
-- GPU-powered API usage with daily quotas, and unlimited CPU usage 
+- GPU-powered <a href="https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/blob/main/docs/client_api.md" target="_blank">API usage</a> with daily quotas, and unlimited CPU usage 
 - Reliable confidence system to flag uncertain segments and missed words — no silent errors
-- Robust tolerance to noise, speaker variation and suboptimal audio quality, particularly with the large model
-- Not intended for incorrect or fragmented recitations; most suited for correct, continuous recitations (repetitions handled)
+- Robust tolerance to noise, speaker variation and low audio quality, particularly with the large model
 - <a href="https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/discussions" target="_blank">Feedback/contributions are welcome</a>
 """)
 
@@ -53,9 +53,18 @@ def build_interface():
         with gr.Accordion("\U0001f4e1 API Usage", open=False):
             gr.Markdown(_api_doc)
 
-        with gr.Row(elem_id="main-row"):
-            _build_left_column(c)
-            _build_right_column(c)
+        if DEV_TAB_VISIBLE:
+            with gr.Tabs():
+                with gr.Tab("Results"):
+                    with gr.Row(elem_id="main-row"):
+                        _build_left_column(c)
+                        _build_right_column(c)
+                with gr.Tab("Dev"):
+                    _build_dev_tab(c)
+        else:
+            with gr.Row(elem_id="main-row"):
+                _build_left_column(c)
+                _build_right_column(c)
 
         # State components for caching VAD data between runs
         c.cached_speech_intervals = gr.State(value=None)
@@ -207,34 +216,45 @@ def _build_animation_settings(c):
 def _build_right_column(c):
     """Build the right output column."""
     with gr.Column(scale=RIGHT_COLUMN_SCALE):
-        c.extract_btn = gr.Button("Extract Segments", variant="primary", size="lg")
-        with gr.Row(elem_id="action-btns-row"):
-            c.resegment_toggle_btn = gr.Button(
-                "Resegment with New Settings", variant="primary", size="lg", visible=False
-            )
-            c.retranscribe_btn = gr.Button(
-                "Retranscribe with Large Model", variant="primary", size="lg", visible=False
-            )
-        with gr.Row(elem_id="ts-row"):
-            c.compute_ts_btn = gr.Button(
-                "Compute Timestamps", variant="secondary", size="lg", interactive=False, visible=False
-            )
-            c.compute_ts_progress = gr.HTML(value="", visible=False)
-            c.animate_all_html = gr.HTML(value="", visible=False)
+        _build_results_content(c)
 
-        with gr.Column(visible=False) as c.resegment_panel:
-            gr.Markdown(
-                "Uses cached data, skipping the heavy computation, "
-                "so it's much faster. Useful if results are over-segmented "
-                "or under-segmented"
-            )
-            c.rs_silence, c.rs_speech, c.rs_pad, \
-                c.rs_btn_muj, c.rs_btn_mur, c.rs_btn_fast = create_segmentation_settings(id_suffix="-rs")
-            c.resegment_btn = gr.Button("Resegment", variant="primary", size="lg")
 
-        c.output_html = gr.HTML(
-            value='<div style="text-align: center; color: #666; padding: 60px;">Upload audio and click "Extract Segments" to begin</div>',
-            elem_classes=["output-html"]
+def _build_results_content(c):
+    """Build the main results content (extract/resegment/output)."""
+    c.extract_btn = gr.Button("Extract Segments", variant="primary", size="lg")
+    with gr.Row(elem_id="action-btns-row"):
+        c.resegment_toggle_btn = gr.Button(
+            "Resegment with New Settings", variant="primary", size="lg", visible=False
         )
-        # Hidden JSON output for API consumers
-        c.output_json = gr.JSON(visible=False, label="JSON Output")
+        c.retranscribe_btn = gr.Button(
+            "Retranscribe with Large Model", variant="primary", size="lg", visible=False
+        )
+    with gr.Row(elem_id="ts-row"):
+        c.compute_ts_btn = gr.Button(
+            "Compute Timestamps", variant="secondary", size="lg", interactive=False, visible=False
+        )
+        c.compute_ts_progress = gr.HTML(value="", visible=False)
+        c.animate_all_html = gr.HTML(value="", visible=False)
+
+    with gr.Column(visible=False) as c.resegment_panel:
+        gr.Markdown(
+            "Uses cached data, skipping the heavy computation, "
+            "so it's much faster. Useful if results are over-segmented "
+            "or under-segmented"
+        )
+        c.rs_silence, c.rs_speech, c.rs_pad, \
+            c.rs_btn_muj, c.rs_btn_mur, c.rs_btn_fast = create_segmentation_settings(id_suffix="-rs")
+        c.resegment_btn = gr.Button("Resegment", variant="primary", size="lg")
+
+    c.output_html = gr.HTML(
+        value='<div style="text-align: center; color: #666; padding: 60px;">Upload audio and click "Extract Segments" to begin</div>',
+        elem_classes=["output-html"]
+    )
+    # Hidden JSON output for API consumers
+    c.output_json = gr.JSON(visible=False, label="JSON Output")
+
+
+def _build_dev_tab(c):
+    """Build the Dev tab UI (delegates to dev_tools module)."""
+    from src.ui.dev_tools import build_dev_tab_ui
+    build_dev_tab_ui(c)

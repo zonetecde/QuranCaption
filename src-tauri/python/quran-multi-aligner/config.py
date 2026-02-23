@@ -6,6 +6,7 @@ from pathlib import Path
 
 # HF Spaces detection
 IS_HF_SPACE = os.environ.get("SPACE_ID") is not None
+DEV_TAB_VISIBLE = not IS_HF_SPACE
 
 # Get project root directory
 PROJECT_ROOT = Path(__file__).parent.absolute()
@@ -141,12 +142,12 @@ START_PRIOR_WEIGHT = 0.005          # Penalty per word away from expected positi
 # Failed Segments
 RETRY_LOOKBACK_WORDS = 70           # Expanded lookback for retry tier 1+2
 RETRY_LOOKAHEAD_WORDS = 40          # Expanded lookahead for retry tier 1+2
-MAX_EDIT_DISTANCE_RELAXED = 0.4     # Relaxed threshold for retry tier 2
+MAX_EDIT_DISTANCE_RELAXED = 0.5     # Relaxed threshold for retry tier 2
 MAX_CONSECUTIVE_FAILURES = 2        # Re-anchor within surah after this many DP failures
 
 # Debug output
-ANCHOR_DEBUG = True                 # Show detailed n-gram voting info (votes, top candidates)
-PHONEME_ALIGNMENT_DEBUG = True      # Show detailed alignment info (R, P, edit costs)
+ANCHOR_DEBUG = False                # Show detailed n-gram voting info (votes, top candidates)
+PHONEME_ALIGNMENT_DEBUG = False     # Show detailed alignment info (R, P, edit costs)
 PHONEME_ALIGNMENT_PROFILING = True  # Track and log timing breakdown (DP, window setup, etc.)
 
 # =============================================================================
@@ -181,7 +182,7 @@ REVIEW_SUMMARY_MAX_SEGMENTS = 15  # Max segment numbers to list before truncatin
 
 # Undersegmentation detection thresholds
 # Flagged when (word_count >= MIN_WORDS OR ayah_span >= MIN_AYAH_SPAN) AND duration >= MIN_DURATION
-UNDERSEG_MIN_WORDS = 20         # Word count threshold
+UNDERSEG_MIN_WORDS = 25         # Word count threshold
 UNDERSEG_MIN_AYAH_SPAN = 2      # Ayah span threshold (segment crosses ayah boundary)
 UNDERSEG_MIN_DURATION = 15      # Duration gate (seconds)
 
@@ -197,7 +198,7 @@ MFA_TIMEOUT = 180
 # =============================================================================
 
 USAGE_LOG_DATASET_REPO = "hetchyy/quran-aligner-logs"
-USAGE_LOG_PUSH_INTERVAL_MINUTES = 15
+USAGE_LOG_PUSH_INTERVAL_MINUTES = 240
 
 # =============================================================================
 # Progress bar settings

@@ -232,39 +232,14 @@ def detect_special_segments(
     if combined_dist <= MAX_SPECIAL_EDIT_DISTANCE:
         print(f"[SPECIAL] Combined Isti'adha+Basmala detected (dist={combined_dist:.2f})")
 
-        # Split the combined segment by midpoint
-        seg = vad_segments[check_idx]
-        audio = segment_audios[check_idx]
-        mid_time = (seg.start_time + seg.end_time) / 2.0
-        mid_sample = max(1, len(audio) // 2)
-
-        # Rebuild vad/audio lists: keep segments before check_idx, split, then rest
-        new_vads = list(vad_segments[:check_idx])
-        new_audios = list(segment_audios[:check_idx])
-
-        split_start_idx = len(new_vads)
-        new_vads.append(VadSegment(start_time=seg.start_time, end_time=mid_time, segment_idx=split_start_idx))
-        new_vads.append(VadSegment(start_time=mid_time, end_time=seg.end_time, segment_idx=split_start_idx + 1))
-        new_audios.append(audio[:mid_sample])
-        new_audios.append(audio[mid_sample:])
-
-        # Add remaining segments with reindexed segment_idx
-        for ii, vs in enumerate(vad_segments[check_idx + 1:], start=split_start_idx + 2):
-            new_vads.append(VadSegment(
-                start_time=vs.start_time,
-                end_time=vs.end_time,
-                segment_idx=ii
-            ))
-        new_audios.extend(segment_audios[check_idx + 1:])
-
-        # Special results for both (confidence = 1 - distance)
+        # Return as a single combined entry — post-processing will split via MFA
         confidence = 1.0 - combined_dist
-        special_results.extend([
-            (SPECIAL_TEXT["Isti'adha"], confidence, "Isti'adha"),
-            (SPECIAL_TEXT["Basmala"], confidence, "Basmala"),
-        ])
+        combined_text = SPECIAL_TEXT["Isti'adha"] + " ۝ " + SPECIAL_TEXT["Basmala"]
+        special_results.append(
+            (combined_text, confidence, "Isti'adha+Basmala")
+        )
 
-        return new_vads, new_audios, special_results, takbir_offset + 2
+        return vad_segments, segment_audios, special_results, takbir_offset + 1
 
     # ==========================================================================
     # 2. Try Isti'adha on the check segment

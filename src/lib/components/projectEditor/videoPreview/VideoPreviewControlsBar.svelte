@@ -81,13 +81,13 @@
 	<!-- play/pause button with material icons -->
 	<section class="flex items-center gap-x-2">
 		<button
-			class="flex items-center justify-center w-8 h-8 text-white hover:bg-gray-700 rounded-full transition-colors cursor-pointer duration-200"
+			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
 			onclick={goToPreviousSubtitleStart}
 		>
 			<span class="material-icons text-xl pt-0.25">chevron_left</span>
 		</button>
 		<button
-			class="flex items-center justify-center w-8 h-8 text-white hover:bg-gray-700 rounded-full transition-colors cursor-pointer duration-200"
+			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
 			onclick={togglePlayPause}
 		>
 			<span class="material-icons text-xl pt-0.25">
@@ -95,7 +95,7 @@
 			</span>
 		</button>
 		<button
-			class="flex items-center justify-center w-8 h-8 text-white hover:bg-gray-700 rounded-full transition-colors cursor-pointer duration-200"
+			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
 			onclick={goToNextSubtitleStart}
 		>
 			<span class="material-icons text-xl pt-0.25">chevron_right</span>
@@ -108,10 +108,21 @@
 			<p class="text-thirdly">Press F11 to toggle fullscreen</p>
 			<button
 				onclick={globalState.getVideoPreviewState.toggleFullScreen}
-				class="flex items-center justify-center w-8 h-8 text-white hover:bg-gray-700 rounded-full transition-colors cursor-pointer duration-200"
+				class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
 			>
 				<span class="material-icons text-xl pt-0.25">fullscreen</span>
 			</button>
 		</div>
 	</section>
 </div>
+
+<style>
+	.preview-control-btn {
+		color: var(--text-primary);
+	}
+
+	.preview-control-btn:hover {
+		background-color: var(--bg-accent);
+		color: var(--text-primary);
+	}
+</style>

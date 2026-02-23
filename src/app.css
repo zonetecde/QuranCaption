@@ -96,7 +96,7 @@
 	--timeline-timestamp-major: var(--text-secondary);
 	--timeline-cursor: var(--danger-color);
 	--timeline-cursor-shadow: color-mix(in srgb, var(--danger-color) 40%, transparent);
-	--timeline-track-border: color-mix(in srgb, var(--accent-primary) 24%, transparent);
+	--timeline-track-border: color-mix(in srgb, var(--border-color) 88%, transparent);
 	--timeline-scrollbar: color-mix(in srgb, var(--accent-primary) 60%, transparent);
 	--timeline-scrollbar-hover: color-mix(in srgb, var(--accent-primary) 80%, transparent);
 

@@ -149,7 +149,7 @@
 		}, 0);
 	}
 
-	function editStyle(e: MouseEvent): void {
+	function editStyle(): void {
 		clipClicked();
 	}
 
@@ -187,17 +187,22 @@
 		globalState.updateVideoPreviewUI();
 	}
 
-	function clipClicked() {
+	function clipClicked(event?: MouseEvent) {
 		// Sélectionne le clip si on est dans la page de style
 		if (globalState.currentProject!.projectEditorState.currentTab === 'Style') {
 			if (clip instanceof SubtitleClip) {
-				globalState.getStylesState.toggleSelection(clip);
+				const isMultiSelect = Boolean(event?.ctrlKey || event?.metaKey);
+				if (isMultiSelect) {
+					globalState.getStylesState.toggleSelection(clip);
+				} else {
+					globalState.getStylesState.selectOnly(clip);
+				}
 			}
 		}
 	}
 
 	// Sur clic gauche, ouvre l'édition si l'on est dans Subtitles Editor sinon gère la sélection Style
-	function handleClipClick() {
+	function handleClipClick(event: MouseEvent) {
 		if (suppressNextClick) {
 			suppressNextClick = false;
 			return;
@@ -206,7 +211,7 @@
 		if (currentTab === ProjectEditorTabs.SubtitlesEditor) {
 			editSubtitle();
 		} else {
-			clipClicked();
+			clipClicked(event);
 		}
 	}
 

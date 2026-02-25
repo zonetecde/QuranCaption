@@ -204,6 +204,16 @@
 				</button>
 			</div>
 		{/if}
+
+		<div
+			class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-sky-100"
+		>
+			<span class="material-icons-outlined text-base mt-0.5">info</span>
+			<p class="text-xs leading-relaxed">
+				Click a subtitle to select only it. Hold <span class="font-semibold">Ctrl + Click</span> to
+				select multiple subtitles.
+			</p>
+		</div>
 	</div>
 	<div
 		class="flex flex-col gap-y-2 px-1 bg-[var(--bg-primary)]/60 rounded-xl border border-[var(--border-color)]/50 overflow-y-auto pb-10 rounded-t-none border-t-2 flex-1 py-1"

@@ -91,6 +91,11 @@ export class StylesEditorState extends SerializableBase {
 		}
 	}
 
+	selectOnly(clip: SubtitleClip) {
+		if (clip instanceof SubtitleClip === false) return;
+		this.selectedSubtitles = [clip];
+	}
+
 	removeSelection(id: number) {
 		this.selectedSubtitles = this.selectedSubtitles.filter((subtitle) => subtitle.id !== id);
 	}

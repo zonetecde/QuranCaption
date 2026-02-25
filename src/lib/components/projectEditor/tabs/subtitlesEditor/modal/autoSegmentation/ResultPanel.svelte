@@ -11,7 +11,9 @@
 				class="h-5 w-5 animate-spin rounded-full border-2 border-accent-primary border-t-transparent"
 			></div>
 			{wizard.currentStatus ||
-				(wizard.selection.mode === 'api'
+				(wizard.selection.runtime === 'hf_json'
+					? 'Applying imported JSON segments...'
+					: wizard.selection.mode === 'api'
 					? 'Sending audio to cloud...'
 					: 'Running local segmentation...')}
 		</div>
@@ -46,20 +48,28 @@
 			>
 				{wizard.warningMessage}
 			</div>{/if}
-		<div class="flex flex-wrap items-center gap-2 text-sm text-secondary">
-			<div>
-				Model: <span class="font-semibold text-primary">{wizard.selectedModel()}</span>
-				({wizard.effectiveDeviceLabel()})
+		{#if wizard.selection.runtime !== 'hf_json'}
+			<div class="flex flex-wrap items-center gap-2 text-sm text-secondary">
+				<div>
+					Model: <span class="font-semibold text-primary">{wizard.selectedModel()}</span>
+					({wizard.effectiveDeviceLabel()})
+				</div>
+				{#if wizard.cloudCpuFallbackMessage}
+					<span
+						class="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] text-blue-300"
+					>
+						<span class="material-icons text-[14px] leading-none">sync</span>
+						Retried on CPU
+					</span>
+				{/if}
 			</div>
-			{#if wizard.cloudCpuFallbackMessage}
-				<span
-					class="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] text-blue-300"
+		{:else}
+			<div class="text-sm text-secondary">
+				Import source: <span class="font-semibold text-primary"
+					>{wizard.importedJsonFileName || 'Pasted JSON content'}</span
 				>
-					<span class="material-icons text-[14px] leading-none">sync</span>
-					Retried on CPU
-				</span>
-			{/if}
-		</div>
+			</div>
+		{/if}
 		{#if wizard.cloudCpuFallbackMessage}<div class="text-xs text-thirdly">
 				{wizard.cloudCpuFallbackMessage}
 			</div>{/if}

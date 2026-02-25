@@ -19,16 +19,25 @@
 			>
 		</div>
 		<div class="text-secondary">
-			Runtime: <span class="text-primary font-semibold"
-				>{wizard.selection.mode === 'api' ? 'Cloud' : 'Local'}</span
-			>
+			Runtime: <span class="text-primary font-semibold">{wizard.runtimeLabel()}</span>
 		</div>
-		<div class="text-secondary">
-			Model: <span class="text-primary font-semibold">{wizard.selectedModel()}</span>
-		</div>
-		<div class="text-secondary">
-			Device: <span class="text-primary font-semibold">{wizard.selectedDevice()}</span>
-		</div>
+		{#if wizard.selection.runtime !== 'hf_json'}
+			<div class="text-secondary">
+				Model: <span class="text-primary font-semibold">{wizard.selectedModel()}</span>
+			</div>
+			<div class="text-secondary">
+				Device: <span class="text-primary font-semibold">{wizard.selectedDevice()}</span>
+			</div>
+		{:else}
+			<div class="text-secondary">
+				Import source: <span class="text-primary font-semibold"
+					>{wizard.importedJsonFileName || 'Pasted JSON content'}</span
+				>
+			</div>
+			<div class="text-secondary">
+				Parsed segments: <span class="text-primary font-semibold">{wizard.importedJsonSegmentCount}</span>
+			</div>
+		{/if}
 		<div class="text-secondary">
 			Audio: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>

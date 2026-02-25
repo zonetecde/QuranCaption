@@ -4,7 +4,7 @@ import type {
 	LocalSegmentationStatus,
 	SegmentationMode
 } from '$lib/services/AutoSegmentation';
-import type { AiVersion } from '../types';
+import type { AiVersion, WizardRuntime } from '../types';
 
 /** Tracks installation failures for local segmentation engines. */
 export function trackInstallFailure(
@@ -27,6 +27,7 @@ export function trackInstallFailure(
 export function trackSegmentationRun(params: {
 	response: AutoSegmentationResult | null;
 	requestedMode: SegmentationMode;
+	runtime: WizardRuntime;
 	version: AiVersion;
 	model: string;
 	device: string;
@@ -43,11 +44,16 @@ export function trackSegmentationRun(params: {
 	const range = completed?.verseRange.parts
 		.map((part) => `${part.surah}:${part.verseStart}-${part.verseEnd}`)
 		.join(', ');
+	const provider =
+		params.runtime === 'hf_json' ? 'hf_space_json' : params.requestedMode === 'api' ? 'cloud_v2' : params.version;
+	const inputSource =
+		params.runtime === 'hf_json' ? 'hf_space_json' : params.requestedMode === 'api' ? 'cloud' : 'local';
 
 	AnalyticsService.trackAIUsage('segmentation', {
 		status: params.response?.status ?? 'unknown',
 		range,
-		provider: params.requestedMode === 'api' ? 'cloud_v2' : params.version,
+		provider,
+		input_source: inputSource,
 		requested_mode: params.requestedMode,
 		effective_mode: completed?.effectiveMode ?? params.requestedMode,
 		asr_mode: params.version,

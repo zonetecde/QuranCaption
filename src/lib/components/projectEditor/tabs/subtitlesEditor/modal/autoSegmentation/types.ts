@@ -18,7 +18,10 @@ export type WizardStep = {
 };
 
 /** Stable keys for wizard step routing. */
-export type WizardStepKey = 'version' | 'runtime' | 'models' | 'settings' | 'review';
+export type WizardStepKey = 'version' | 'runtime' | 'models' | 'settings' | 'import' | 'review';
+
+/** UI runtime choices for V2 flow. */
+export type WizardRuntime = 'cloud' | 'local' | 'hf_json';
 
 /** Represents one segmentation timing preset. */
 export type SegmentationPreset = {
@@ -43,15 +46,27 @@ export type MaterialIconName =
 	| 'memory'
 	| 'cloud'
 	| 'storage'
+	| 'upload_file'
+	| 'note_add'
 	| 'tune'
 	| 'play_arrow'
 	| 'check_circle'
 	| 'warning';
 
+/** Parsed import payload state for HF JSON runtime. */
+export type ImportedJsonState = {
+	raw: string;
+	fileName: string;
+	segmentCount: number;
+	parseError: string | null;
+	parsed: unknown | null;
+};
+
 /** Shared UI state passed between wizard step components. */
 export type WizardSelectionState = {
 	aiVersion: AiVersion;
 	mode: SegmentationMode;
+	runtime: WizardRuntime;
 	localAsrMode: LocalAsrMode;
 	legacyModel: LegacyWhisperModelSize;
 	multiModel: MultiAlignerModel;

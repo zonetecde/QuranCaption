@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { detectCoverageGapIndices } from './AutoSegmentation';
+import { detectCoverageGapIndices, parseImportedSegmentationJson } from './AutoSegmentation';
 
 type Segment = {
 	ref_from?: string;
@@ -63,5 +63,49 @@ describe('detectCoverageGapIndices', () => {
 		const result = await detectCoverageGapIndices(segments, deps);
 
 		expect(toSortedArray(result)).toEqual([]);
+	});
+});
+
+describe('parseImportedSegmentationJson', () => {
+	it('parses valid JSON string payload', () => {
+		const payload = JSON.stringify({
+			segments: [
+				{
+					segment: 1,
+					time_from: 0.5,
+					time_to: 1.2,
+					ref_from: '112:1:1',
+					ref_to: '112:1:4',
+					confidence: 0.98,
+					error: null
+				}
+			]
+		});
+
+		const parsed = parseImportedSegmentationJson(payload);
+		expect(parsed.segmentCount).toBe(1);
+		expect(parsed.response.segments?.[0].time_from).toBe(0.5);
+	});
+
+	it('parses valid object payload', () => {
+		const parsed = parseImportedSegmentationJson({
+			segments: [{ segment: 1, time_from: '0.25', time_to: '2.5', error: null }]
+		});
+		expect(parsed.segmentCount).toBe(1);
+		expect(parsed.response.segments?.[0].time_to).toBe(2.5);
+	});
+
+	it("throws when payload has no 'segments' array", () => {
+		expect(() => parseImportedSegmentationJson({ foo: 'bar' })).toThrow(
+			"Invalid payload: missing 'segments' array."
+		);
+	});
+
+	it('throws when a segment is invalid', () => {
+		expect(() =>
+			parseImportedSegmentationJson({
+				segments: [{ segment: 1, time_from: 1.2 }]
+			})
+		).toThrow("Invalid segment at index 0: 'time_from' and 'time_to' are required.");
 	});
 });

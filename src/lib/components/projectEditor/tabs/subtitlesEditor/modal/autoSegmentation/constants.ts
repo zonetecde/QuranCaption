@@ -1,13 +1,20 @@
 import type { LegacyWhisperModelSize, MultiAlignerModel } from '$lib/services/AutoSegmentation';
-import type { AiVersion, ModelOption, SegmentationPreset, WizardStep } from './types';
+import type { AiVersion, ModelOption, SegmentationPreset, WizardRuntime, WizardStep } from './types';
 
 /** Ordered steps for the landscape wizard navigation rail. */
 export const WIZARD_STEPS_V2: WizardStep[] = [
 	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
-	{ key: 'runtime', title: 'Runtime', subtitle: 'Cloud or local', icon: 'storage' },
+	{ key: 'runtime', title: 'Runtime', subtitle: 'Cloud, local, or JSON import', icon: 'storage' },
 	{ key: 'models', title: 'Models', subtitle: 'Engine and device', icon: 'memory' },
 	{ key: 'settings', title: 'Segmentation', subtitle: 'Presets and timing', icon: 'tune' },
 	{ key: 'review', title: 'Run', subtitle: 'Review and launch', icon: 'play_arrow' }
+];
+
+/** V2 flow for JSON import skips the model step. */
+export const WIZARD_STEPS_V2_JSON: WizardStep[] = [
+	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
+	{ key: 'runtime', title: 'Runtime', subtitle: 'Cloud, local, or JSON import', icon: 'storage' },
+	{ key: 'import', title: 'Import JSON', subtitle: 'Paste or drop exported segments', icon: 'note_add' }
 ];
 
 /** Legacy V1 flow omits runtime because V1 is always local. */
@@ -19,8 +26,9 @@ export const WIZARD_STEPS_V1: WizardStep[] = [
 ];
 
 /** Returns the active step sequence for the selected AI version. */
-export function getWizardSteps(aiVersion: AiVersion): WizardStep[] {
-	return aiVersion === 'legacy_v1' ? WIZARD_STEPS_V1 : WIZARD_STEPS_V2;
+export function getWizardSteps(aiVersion: AiVersion, runtime: WizardRuntime): WizardStep[] {
+	if (aiVersion === 'legacy_v1') return WIZARD_STEPS_V1;
+	return runtime === 'hf_json' ? WIZARD_STEPS_V2_JSON : WIZARD_STEPS_V2;
 }
 
 /** Timing presets shown in the segmentation settings step. */

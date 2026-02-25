@@ -7,6 +7,7 @@
 	import WizardHeader from './autoSegmentation/WizardHeader.svelte';
 	import WizardSidebar from './autoSegmentation/WizardSidebar.svelte';
 	import StepModels from './autoSegmentation/steps/StepModels.svelte';
+	import StepImportJson from './autoSegmentation/steps/StepImportJson.svelte';
 	import StepReview from './autoSegmentation/steps/StepReview.svelte';
 	import StepRuntime from './autoSegmentation/steps/StepRuntime.svelte';
 	import StepSettings from './autoSegmentation/steps/StepSettings.svelte';
@@ -47,6 +48,8 @@
 						<StepModels />
 					{:else if wizard.currentStepKey === 'settings'}
 						<StepSettings />
+					{:else if wizard.currentStepKey === 'import'}
+						<StepImportJson />
 					{:else}
 						<StepReview />
 					{/if}

@@ -9,7 +9,7 @@
 	<div>
 		<h3 class="text-lg font-semibold text-primary">2. Choose runtime</h3>
 		<p class="text-sm text-thirdly">
-			V1 runs locally only. V2 supports both cloud and local execution.
+			V1 runs locally only. V2 supports cloud, local, and JSON import from Hugging Face.
 		</p>
 	</div>
 
@@ -18,11 +18,11 @@
 			type="button"
 			class="rounded-xl border p-4 text-left transition-colors"
 			class:opacity-50={cloudDisabled()}
-			class:border-accent-primary={wizard.selection.mode === 'api' && !cloudDisabled()}
-			class:bg-accent={wizard.selection.mode === 'api' && !cloudDisabled()}
-			class:border-color={wizard.selection.mode !== 'api' || cloudDisabled()}
+			class:border-accent-primary={wizard.selection.runtime === 'cloud' && !cloudDisabled()}
+			class:bg-accent={wizard.selection.runtime === 'cloud' && !cloudDisabled()}
+			class:border-color={wizard.selection.runtime !== 'cloud' || cloudDisabled()}
 			disabled={cloudDisabled()}
-			onclick={() => wizard.onModeChange('api')}
+			onclick={() => wizard.setRuntime('cloud')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
 				<span class="material-icons">cloud</span>Cloud runtime
@@ -37,15 +37,33 @@
 		<button
 			type="button"
 			class="rounded-xl border p-4 text-left transition-colors"
-			class:border-accent-primary={wizard.selection.mode === 'local'}
-			class:bg-accent={wizard.selection.mode === 'local'}
-			class:border-color={wizard.selection.mode !== 'local'}
-			onclick={() => wizard.onModeChange('local')}
+			class:border-accent-primary={wizard.selection.runtime === 'local'}
+			class:bg-accent={wizard.selection.runtime === 'local'}
+			class:border-color={wizard.selection.runtime !== 'local'}
+			onclick={() => wizard.setRuntime('local')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
 				<span class="material-icons">computer</span>Local runtime
 			</div>
 			<p class="text-sm text-thirdly">Runs on your machine with installable Python dependencies.</p>
+		</button>
+
+		<button
+			type="button"
+			class="rounded-xl border p-4 text-left transition-colors xl:col-span-2"
+			class:opacity-50={cloudDisabled()}
+			class:border-accent-primary={wizard.selection.runtime === 'hf_json' && !cloudDisabled()}
+			class:bg-accent={wizard.selection.runtime === 'hf_json' && !cloudDisabled()}
+			class:border-color={wizard.selection.runtime !== 'hf_json' || cloudDisabled()}
+			disabled={cloudDisabled()}
+			onclick={() => wizard.setRuntime('hf_json')}
+		>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">upload_file</span>Paste from Hugging Face
+			</div>
+			<p class="text-sm text-thirdly">
+				Import the downloaded JSON from Quran Multi-Aligner and add subtitles directly.
+			</p>
 		</button>
 	</div>
 </section>

@@ -17,6 +17,8 @@ export function deriveSelectionState(settings?: AutoSegmentationSettings): Wizar
 	return {
 		aiVersion,
 		mode: aiVersion === 'legacy_v1' ? 'local' : (settings?.mode ?? 'api'),
+		runtime:
+			aiVersion === 'legacy_v1' ? 'local' : (settings?.mode === 'local' ? 'local' : 'cloud'),
 		localAsrMode:
 			aiVersion === 'legacy_v1' ? 'legacy_whisper' : (settings?.localAsrMode ?? 'multi_aligner'),
 		legacyModel: settings?.legacyWhisperModel ?? 'base',

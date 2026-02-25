@@ -6,7 +6,9 @@ import {
 	checkLocalSegmentationStatus,
 	getAutoSegmentationAudioInfo,
 	installLocalSegmentationDeps,
+	parseImportedSegmentationJson,
 	runAutoSegmentation,
+	runAutoSegmentationFromImportedJson,
 	type AutoSegmentationResult,
 	type LegacyWhisperModelSize,
 	type LocalSegmentationStatus,
@@ -23,7 +25,7 @@ import {
 	getSelectedModelLabel
 } from './helpers/format';
 import { deriveSelectionState, persistSettingsPatch } from './helpers/persist';
-import type { AiVersion, SegmentationPreset, WizardSelectionState } from './types';
+import type { AiVersion, SegmentationPreset, WizardRuntime, WizardSelectionState } from './types';
 
 /** Creates modal state and actions for the auto-segmentation wizard. */
 export function useAutoSegmentationWizard() {
@@ -51,35 +53,61 @@ export function useAutoSegmentationWizard() {
 	let warningMessage = $state<string | null>(null);
 	let fallbackMessage = $state<string | null>(null);
 	let cloudCpuFallbackMessage = $state<string | null>(null);
-	const steps = $derived(() => getWizardSteps(selection.aiVersion));
+	let importedJsonRaw = $state('');
+	let importedJsonFileName = $state('');
+	let importedJsonSegmentCount = $state(0);
+	let importedJsonParseError = $state<string | null>(null);
+	const steps = $derived(() => getWizardSteps(selection.aiVersion, selection.runtime));
 	const maxStep = $derived(() => Math.max(0, steps().length - 1));
 	const currentStepKey = $derived(() => steps()[currentStep]?.key ?? 'review');
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
 	const hasAudio = $derived(() => !!audioInfo());
 	const audioLabel = $derived(() => buildAudioLabel(audioInfo()?.fileName, audioInfo()?.clipCount));
+	const runtimeLabel = $derived(() =>
+		selection.runtime === 'cloud'
+			? 'Cloud'
+			: selection.runtime === 'local'
+				? 'Local'
+				: 'Hugging Face JSON import'
+	);
 	const selectedModel = $derived(() =>
-		getSelectedModelLabel(
-			selection.aiVersion,
-			selection.mode,
-			selection.legacyModel,
-			selection.multiModel,
-			selection.cloudModel
-		)
+		selection.runtime === 'hf_json'
+			? 'From imported JSON'
+			: getSelectedModelLabel(
+					selection.aiVersion,
+					selection.mode,
+					selection.legacyModel,
+					selection.multiModel,
+					selection.cloudModel
+				)
 	);
 	const selectedDevice = $derived(() =>
-		getDeviceLabel(selection.aiVersion, selection.mode, selection.device)
+		selection.runtime === 'hf_json'
+			? 'N/A'
+			: getDeviceLabel(selection.aiVersion, selection.mode, selection.device)
 	);
 	const effectiveDeviceLabel = $derived(() => {
+		if (selection.runtime === 'hf_json') return 'N/A';
 		if (result?.status === 'completed' && result.cloudGpuFallbackToCpu) return 'CPU';
 		return selectedDevice();
 	});
 	const verseRange = $derived(() => formatVerseRange(result));
-	const canStart = $derived(() => hasAudio() && !isRunning);
+	const canStart = $derived(() => {
+		if (selection.runtime === 'hf_json')
+			return hasAudio() && importedJsonRaw.trim().length > 0 && !isRunning;
+		return hasAudio() && !isRunning;
+	});
+	const canGoNext = $derived(() => {
+		if (isRunning) return false;
+		return true;
+	});
 	const helperText = $derived(() =>
 		result?.status === 'completed'
 			? 'Segmentation completed. You can close and review the subtitles.'
-			: selection.mode === 'local'
+			: selection.runtime === 'hf_json'
+				? 'Import and parse a JSON export from Hugging Face, then apply it to your timeline.'
+				: selection.mode === 'local'
 				? "Local mode uses your computer's resources."
 				: 'Cloud mode uses Quran Multi-Aligner v2.'
 	);
@@ -105,6 +133,7 @@ export function useAutoSegmentationWizard() {
 	function onVersionChange(aiVersion: AiVersion): void {
 		selection.aiVersion = aiVersion;
 		selection.mode = aiVersion === 'legacy_v1' ? 'local' : 'api';
+		selection.runtime = aiVersion === 'legacy_v1' ? 'local' : 'cloud';
 		selection.localAsrMode = aiVersion === 'legacy_v1' ? 'legacy_whisper' : 'multi_aligner';
 		currentStep = Math.max(0, Math.min(currentStep, maxStep()));
 		persistPatch({ mode: selection.mode, localAsrMode: selection.localAsrMode });
@@ -114,10 +143,55 @@ export function useAutoSegmentationWizard() {
 	/** Updates runtime while preserving legacy local-only behavior. */
 	function onModeChange(mode: SegmentationMode): void {
 		selection.mode = selection.aiVersion === 'legacy_v1' ? 'local' : mode;
+		selection.runtime = selection.mode === 'local' ? 'local' : 'cloud';
 		if (selection.mode === 'local' && selection.aiVersion === 'multi_v2')
 			selection.localAsrMode = 'multi_aligner';
 		persistPatch({ mode: selection.mode, localAsrMode: selection.localAsrMode });
 		if (selection.mode === 'local') void refreshLocalStatus();
+	}
+
+	/** Updates runtime for V2 while preserving persisted mode compatibility. */
+	function setRuntime(runtime: WizardRuntime): void {
+		if (selection.aiVersion === 'legacy_v1') {
+			onModeChange('local');
+			return;
+		}
+
+		if (runtime === 'hf_json') {
+			selection.runtime = 'hf_json';
+			selection.mode = 'api';
+			currentStep = Math.max(0, Math.min(currentStep, maxStep()));
+			return;
+		}
+
+		onModeChange(runtime === 'local' ? 'local' : 'api');
+	}
+
+	/** Sets raw JSON import text and resets parsed state. */
+	function setImportedJsonRaw(value: string): void {
+		importedJsonRaw = value;
+		importedJsonParseError = null;
+		importedJsonSegmentCount = 0;
+	}
+
+	/** Loads a dropped/browsed JSON file for parsing. */
+	async function loadImportedJsonFile(file: File): Promise<void> {
+		importedJsonFileName = file.name;
+		setImportedJsonRaw(await file.text());
+	}
+
+	/** Loads a JSON payload from a dropped desktop file path. */
+	async function loadImportedJsonPath(filePath: string, fileContent: string): Promise<void> {
+		importedJsonFileName = filePath.split(/[/\\]/).pop() ?? filePath;
+		setImportedJsonRaw(fileContent);
+	}
+
+	/** Clears import payload and parse state. */
+	function clearImportedJson(): void {
+		importedJsonRaw = '';
+		importedJsonFileName = '';
+		importedJsonSegmentCount = 0;
+		importedJsonParseError = null;
 	}
 
 	/** Prompts and stores the Hugging Face token for local V2. */
@@ -208,6 +282,10 @@ export function useAutoSegmentationWizard() {
 	/** Executes segmentation while preserving fallback and analytics behavior. */
 	async function startSegmentation(): Promise<void> {
 		if (!canStart()) return;
+		if (selection.runtime === 'hf_json' && importedJsonRaw.trim().length === 0) {
+			errorMessage = 'Please provide a Hugging Face JSON payload before adding subtitles.';
+			return;
+		}
 		if (
 			selection.mode === 'local' &&
 			selection.localAsrMode === 'multi_aligner' &&
@@ -228,24 +306,40 @@ export function useAutoSegmentationWizard() {
 		const unlisten = await listenSegmentationStatus();
 		let response: AutoSegmentationResult | null = null;
 		try {
-			response = await runAutoSegmentation(
-				{
-					minSilenceMs,
-					minSpeechMs,
-					padMs,
-					localAsrMode: selection.localAsrMode,
-					legacyWhisperModel: selection.legacyModel,
-					multiAlignerModel: selection.multiModel,
-					cloudModel: selection.cloudModel,
-					device: selection.device,
-					hfToken: selection.hfToken,
-					allowCloudFallback: selection.mode !== 'local',
+			if (selection.runtime === 'hf_json') {
+				const parsed = parseImportedSegmentationJson(importedJsonRaw);
+				importedJsonSegmentCount = parsed.segmentCount;
+				importedJsonParseError = null;
+				response = await runAutoSegmentationFromImportedJson(parsed.response, {
 					fillBySilence,
 					extendBeforeSilence,
 					extendBeforeSilenceMs
-				},
-				selection.mode
-			);
+				});
+			} else {
+				response = await runAutoSegmentation(
+					{
+						minSilenceMs,
+						minSpeechMs,
+						padMs,
+						localAsrMode: selection.localAsrMode,
+						legacyWhisperModel: selection.legacyModel,
+						multiAlignerModel: selection.multiModel,
+						cloudModel: selection.cloudModel,
+						device: selection.device,
+						hfToken: selection.hfToken,
+						allowCloudFallback: selection.mode !== 'local',
+						fillBySilence,
+						extendBeforeSilence,
+						extendBeforeSilenceMs
+					},
+					selection.mode
+				);
+			}
+			applySegmentationResponse(response);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (selection.runtime === 'hf_json') importedJsonParseError = message;
+			response = { status: 'failed', message };
 			applySegmentationResponse(response);
 		} finally {
 			unlisten?.();
@@ -254,7 +348,8 @@ export function useAutoSegmentationWizard() {
 			currentStatusProgress = null;
 			trackSegmentationRun({
 				response,
-				requestedMode: selection.mode,
+				requestedMode: selection.runtime === 'hf_json' ? 'api' : selection.mode,
+				runtime: selection.runtime,
 				version: selection.aiVersion,
 				model: selectedModel(),
 				device: selectedDevice(),
@@ -343,6 +438,10 @@ export function useAutoSegmentationWizard() {
 	}
 	/** Moves to the next wizard step. */
 	function goNext(): void {
+		if (!canGoNext()) {
+			errorMessage = 'Parse the Hugging Face JSON payload before continuing.';
+			return;
+		}
 		goToStep(currentStep + 1);
 	}
 	/** Moves to the previous wizard step. */
@@ -423,19 +522,38 @@ export function useAutoSegmentationWizard() {
 		get cloudCpuFallbackMessage() {
 			return cloudCpuFallbackMessage;
 		},
+		get importedJsonRaw() {
+			return importedJsonRaw;
+		},
+		get importedJsonFileName() {
+			return importedJsonFileName;
+		},
+		get importedJsonSegmentCount() {
+			return importedJsonSegmentCount;
+		},
+		get importedJsonParseError() {
+			return importedJsonParseError;
+		},
 		hasAudio,
 		audioLabel,
+		runtimeLabel,
 		selectedModel,
 		selectedDevice,
 		effectiveDeviceLabel,
 		verseRange,
 		canStart,
+		canGoNext,
 		helperText,
 		refreshLocalStatus,
 		onVersionChange,
 		onModeChange,
+		setRuntime,
 		promptHFToken,
 		clearHFToken,
+		setImportedJsonRaw,
+		loadImportedJsonFile,
+		loadImportedJsonPath,
+		clearImportedJson,
 		installEngine,
 		startSegmentation,
 		applyPreset,

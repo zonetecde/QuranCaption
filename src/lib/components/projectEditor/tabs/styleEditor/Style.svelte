@@ -286,6 +286,10 @@
 			return (style.value as any).width + 'x' + (style.value as any).height;
 		} else return String(style.value);
 	}
+
+	function getHeaderPreviewStyle() {
+		return style.id === 'decorative-brackets-font-family' ? "font-family: 'QPC2BSML', serif;" : '';
+	}
 </script>
 
 <div
@@ -327,10 +331,11 @@
 							class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 border border-amber-400/40 flex items-center gap-1 cursor-auto"
 						>
 							<span class="material-icons-outlined text-[12px]">auto_fix_high</span>
-							override: {getEffectiveForSelection().value}
+							override:
+							<span style={getHeaderPreviewStyle()}>{getEffectiveForSelection().value}</span>
 						</span>
 					{:else}
-						<span>{String(inputValue)}</span>
+						<span style={getHeaderPreviewStyle()}>{String(inputValue)}</span>
 					{/if}
 				{:else if style.valueType === 'time'}
 					<span>{msToTimeValue(Number(inputValue))}</span>
@@ -355,7 +360,9 @@
 						</div>
 					</label>
 				{:else}
-					<span class="truncate max-w-[140px]">{getStyleValue()}</span>
+					<span class="truncate max-w-[140px]" style={getHeaderPreviewStyle()}
+						>{getStyleValue()}</span
+					>
 				{/if}
 
 				{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed) && target !== 'global'}

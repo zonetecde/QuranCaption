@@ -1063,6 +1063,10 @@ export class VideoStyle extends SerializableBase {
 					: CustomImageClip.fromJSON(clipData);
 			globalState.getCustomClipTrack.clips.push(clip);
 		}
+
+		// Garantit que les styles ajoutes dans les nouvelles versions existent aussi apres import
+		// d'un ancien fichier de styles.
+		await this.ensureStylesSchemaUpToDate();
 	}
 
 	/**

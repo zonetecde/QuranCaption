@@ -35,7 +35,8 @@ export default class ModalManager {
 	}
 
 	static async deleteConfirmationModal(
-		text: string
+		text: string,
+		allowDeleteFromDisk: boolean = true
 	): Promise<{ confirmed: boolean; deleteFile: boolean }> {
 		return new Promise<{ confirmed: boolean; deleteFile: boolean }>((resolve) => {
 			// Créer un conteneur pour le modal
@@ -48,6 +49,7 @@ export default class ModalManager {
 				target: container,
 				props: {
 					text: text,
+					allowDeleteFromDisk: allowDeleteFromDisk,
 					resolve: (result: { confirmed: boolean; deleteFile: boolean }) => {
 						// Nettoyer et résoudre
 						unmount(confirm);

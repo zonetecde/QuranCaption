@@ -3,9 +3,11 @@
 
 	let {
 		text,
+		allowDeleteFromDisk = true,
 		resolve
 	}: {
 		text: string;
+		allowDeleteFromDisk?: boolean;
 		resolve: (result: { confirmed: boolean; deleteFile: boolean }) => void;
 	} = $props();
 
@@ -32,23 +34,25 @@
 	<div class="mb-5 mt-4">
 		<p class="text-secondary leading-relaxed text-sm">{text}</p>
 
-		<div
-			class="mt-4 flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-color hover:bg-primary/10 transition-colors cursor-pointer"
-			onclick={() => (alsoDeleteFromDisk = !alsoDeleteFromDisk)}
-		>
-			<input
-				type="checkbox"
-				bind:checked={alsoDeleteFromDisk}
-				class="w-4 h-4 rounded border-gray-300 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] cursor-pointer"
-			/>
-			<span class="text-sm font-medium text-primary cursor-pointer select-none"
-				>Also delete file from computer</span
+		{#if allowDeleteFromDisk}
+			<div
+				class="mt-4 flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-color hover:bg-primary/10 transition-colors cursor-pointer"
+				onclick={() => (alsoDeleteFromDisk = !alsoDeleteFromDisk)}
 			>
-		</div>
-		{#if alsoDeleteFromDisk}
-			<p class="text-xs text-red-400 mt-2 ml-1">
-				<span class="font-bold">Warning:</span> This action cannot be undone.
-			</p>
+				<input
+					type="checkbox"
+					bind:checked={alsoDeleteFromDisk}
+					class="w-4 h-4 rounded border-gray-300 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] cursor-pointer"
+				/>
+				<span class="text-sm font-medium text-primary cursor-pointer select-none"
+					>Also delete file from computer</span
+				>
+			</div>
+			{#if alsoDeleteFromDisk}
+				<p class="text-xs text-red-400 mt-2 ml-1">
+					<span class="font-bold">Warning:</span> This action cannot be undone.
+				</p>
+			{/if}
 		{/if}
 	</div>
 
@@ -69,7 +73,7 @@
 				   bg-red-500 hover:bg-red-600"
 			onclick={(e) => {
 				e.stopPropagation();
-				resolve({ confirmed: true, deleteFile: alsoDeleteFromDisk });
+				resolve({ confirmed: true, deleteFile: allowDeleteFromDisk && alsoDeleteFromDisk });
 			}}
 		>
 			Remove

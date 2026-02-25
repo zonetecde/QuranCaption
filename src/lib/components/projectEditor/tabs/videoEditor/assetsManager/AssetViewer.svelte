@@ -283,7 +283,8 @@
 					       hover:bg-red-500/10"
 					onclick={async () => {
 						const result = await ModalManager.deleteConfirmationModal(
-							'Are you sure you want to remove this asset from the project?'
+							'Are you sure you want to remove this asset from the project?',
+							asset.sourceType !== SourceType.Local
 						);
 						if (result.confirmed) {
 							if (result.deleteFile) {

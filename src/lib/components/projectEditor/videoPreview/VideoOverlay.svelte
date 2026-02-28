@@ -570,6 +570,7 @@ const fadeDuration = $derived(() => {
 			{@const subtitle = currentSubtitle()}
 			<div
 				id="subtitles-container"
+				data-subtitle-id={subtitle?.id ?? ''}
 				class="absolute inset-0 z-1 flex flex-col items-center justify-center"
 				style="opacity: 1;"
 			>

@@ -1074,25 +1074,45 @@
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
 
-		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
-		let subtitlesContainer: HTMLElement;
-		subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement;
+		// Laisse passer un cycle de rendu complet pour que VideoOverlay traite le nouveau cursorPosition.
+		await new Promise<void>((resolve) =>
+			requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+		);
 
+		const expectedSubtitle = globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
+		const expectedSubtitleId = expectedSubtitle?.id ?? null;
+
+		// Attend que l'élément `subtitles-container` soit visible et aligné avec le sous-titre attendu.
+		let subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
 		if (!subtitlesContainer) {
 			await new Promise((resolve) => setTimeout(resolve, 200));
 			return;
 		}
 
 		const startTime = Date.now();
-		const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
+		const timeout = 1500; // limite haute pour éviter un blocage infini
 
 		do {
 			if (Date.now() - startTime > timeout) {
 				console.warn(`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`);
 				break;
 			}
+
+			subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+			if (!subtitlesContainer) {
+				await new Promise((resolve) => setTimeout(resolve, 16));
+				continue;
+			}
+
+			const opacity = Number(window.getComputedStyle(subtitlesContainer).opacity || '0');
+			const renderedSubtitleId = subtitlesContainer.getAttribute('data-subtitle-id');
+			const isVisible = opacity >= 0.99;
+			const isSubtitleAligned =
+				expectedSubtitleId === null ? true : renderedSubtitleId === String(expectedSubtitleId);
+
+			if (isVisible && isSubtitleAligned) break;
 			await new Promise((resolve) => setTimeout(resolve, 10));
-		} while (subtitlesContainer.style.opacity !== '1');
+		} while (true);
 	}
 </script>
 

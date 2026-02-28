@@ -27,7 +27,7 @@
 		<!-- Description with better typography -->
 		<p class="text-secondary text-base leading-relaxed mb-8 px-4">
 			All your subtitles are either completed or don't match the current filter settings. Try
-			adjusting your filters in the Translation Settings panel.
+			adjusting your filters in the Translation Settings panel, including overlap filtering.
 		</p>
 		<!-- Quick actions with modern design -->
 		<div class="bg-accent/50 border border-color/50 rounded-xl p-6 backdrop-blur-sm">
@@ -41,6 +41,7 @@
 					class="group flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-color/30 hover:bg-accent hover:border-blue-300/50 transition-all duration-200 text-left cursor-pointer"
 					onclick={() => {
 						globalState.getTranslationsState.searchQuery = '';
+						globalState.getTranslationsState.onlyShowOverlappingSubtitles = false;
 						// Reset all filters to show everything
 						Object.keys(globalState.getTranslationsState.filters).forEach((key) => {
 							globalState.getTranslationsState.filters[key] = true;

@@ -151,6 +151,23 @@
 					{/each}
 				</div>
 			</div>
+
+			<div
+				class="mx-1 rounded-lg border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/15 p-3"
+			>
+				<label
+					for="overlap-only-checkbox"
+					class="flex cursor-pointer items-center gap-3 rounded-md p-2 transition-all duration-200 hover:bg-[var(--accent-primary)]/10"
+				>
+					<input
+						id="overlap-only-checkbox"
+						type="checkbox"
+						bind:checked={globalState.getTranslationsState.onlyShowOverlappingSubtitles}
+						class="h-4 w-4 rounded border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
+					/>
+					<span class="text-sm font-semibold text-primary">Only show overlapping subtitles</span>
+				</label>
+			</div>
 			<!-- Boutons d'action rapide -->
 			<div class="space-y-2 px-1">
 				<button

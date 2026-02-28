@@ -5,9 +5,8 @@
 		type ClipWithTranslation
 	} from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import NoTranslationsToShow from './NoTranslationsToShow.svelte';
-	import { Quran } from '$lib/classes/Quran';
 	import Translation from './translation/Translation.svelte';
 	import ArabicText from './ArabicText.svelte';
 
@@ -35,15 +34,31 @@
 	const PAGE_SIZE = 10;
 	let visibleCount = $state(PAGE_SIZE); // nombre actuel de sous-titres autorisés affichés
 
-	// Liste des index (dans clips) correspondant aux sous-titres autorisés dans l'ordre original
-	let allowedSubtitleIndices = $derived(() =>
-		globalState.getSubtitleTrack.clips.reduce((acc, clip, index) => {
-			if (allowedTranslations[clip.id]) acc.push(index);
-			return acc;
-		}, [] as number[])
-	);
+	/**
+	 * Vérifie si le clip actuel a un chevauchement avec le clip précédent en arabe.
+	 * @param currentIndex L'index du clip actuel.
+	 */
+	function hasArabicOverlapWithPrevious(currentIndex: number): boolean {
+		const currentClip = globalState.getSubtitleTrack.clips[currentIndex];
+		if (!(currentClip instanceof SubtitleClip)) return false;
+
+		const previousClip = globalState.getSubtitleTrack.getSubtitleBefore(currentIndex);
+		if (!(previousClip instanceof SubtitleClip)) return false;
+
+		if (currentClip.surah !== previousClip.surah || currentClip.verse !== previousClip.verse) {
+			return false;
+		}
+
+		return currentClip.startWordIndex <= previousClip.endWordIndex;
+	}
+
+	function mergeEditions(existing: string[] | undefined, incoming: string[]): string[] {
+		if (!existing) return [...incoming];
+		return [...new Set([...existing, ...incoming])];
+	}
 
 	let subtitlesInGroups = $derived(() => {
+		const allowedClipIds = new Set(Object.keys(allowedTranslations));
 		// Prends tout les sous-titres du projet et les groupes par verset (même surah:verse)
 		// Seulement ceux qui sont à la suite l'un à l'autre, sinon on crée un nouveau groupe
 		const groups: number[][] = [];
@@ -53,6 +68,8 @@
 
 		for (let index = 0; index < globalState.getSubtitleTrack.clips.length; index++) {
 			const subtitle = globalState.getSubtitleTrack.clips[index];
+			if (!allowedClipIds.has(String(subtitle.id))) continue;
+
 			if (subtitle.type === 'Subtitle') {
 				const subtitleClip = subtitle as SubtitleClip;
 				// Si ce n'est pas le même verset que le précédent, on crée un nouveau groupe
@@ -66,24 +83,24 @@
 				}
 			} else if (subtitle.type === 'Pre-defined Subtitle') {
 				// Pour les Pre-defined Subtitle, on les ajoute à un nouveau groupe isolé
+				if (currentGroup.length > 0) {
+					groups.push(currentGroup);
+					currentGroup = [];
+					lastSurah = -1;
+					lastVerse = -1;
+				}
 				groups.push([index]);
 			}
 		}
 
 		// Ajoute le dernier groupe s'il n'est pas vide
 		if (currentGroup.length > 0) groups.push(currentGroup);
-
-		// Une fois ça, on garde que les groupes qui ont au moins un sous-titre autorisé
-		const filteredGroups = groups.filter((group) =>
-			group.some((index) => allowedTranslations[globalState.getSubtitleTrack.clips[index].id])
-		);
-
-		return filteredGroups;
+		return groups;
 	});
 
 	// Réinitialise le compteur si les filtres changent et qu'on a moins d'éléments
 	$effect(() => {
-		const total = allowedSubtitleIndices().length;
+		const total = subtitlesInGroups().length;
 		if (visibleCount > total) {
 			visibleCount = total;
 		}
@@ -96,7 +113,7 @@
 	function loadMoreIfNeeded(container: HTMLElement) {
 		const threshold = 50; // px avant le bas
 		if (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold) {
-			const total = allowedSubtitleIndices().length;
+			const total = subtitlesInGroups().length;
 			if (visibleCount < total) {
 				visibleCount = Math.min(visibleCount + PAGE_SIZE, total);
 			}
@@ -123,56 +140,83 @@
 
 		// Lorsqu'on modifie la recherche
 		const search = globalState.getTranslationsState.searchQuery.toLowerCase().trim();
-
 		// Met à jour les traductions à afficher en fonction des filtres
 		const filter = globalState.getTranslationsState.filters;
+		const onlyShowOverlappingSubtitles =
+			globalState.getTranslationsState.onlyShowOverlappingSubtitles;
+		const visibleEditions = editionsToShowInEditor().map((edition) => edition.name);
 
 		untrack(() => {
 			allowedTranslations = {};
 
-			for (const subtitle of globalState.getSubtitleTrack.clips) {
-				if (subtitle.type === 'Subtitle' || subtitle.type === 'Pre-defined Subtitle') {
-					const subtitleId = subtitle.id;
+			for (let index = 0; index < globalState.getSubtitleTrack.clips.length; index += 1) {
+				const subtitle = globalState.getSubtitleTrack.clips[index];
+				if (subtitle.type !== 'Subtitle' && subtitle.type !== 'Pre-defined Subtitle') continue;
 
-					// Regarde ses traductions
-					const translations = (subtitle as ClipWithTranslation).translations;
-					let authorizedEditions: string[] = [];
+				const subtitleId = subtitle.id;
+				// Regarde ses traductions
+				const translations = (subtitle as ClipWithTranslation).translations;
+				let authorizedEditions: string[] = [];
 
-					if (translations) {
-						// Regarde s'il a des traductions correspondant au filtre
-						for (const key in translations) {
-							const translation = translations[key];
+				if (translations) {
+					// Regarde s'il a des traductions correspondant au filtre
+					for (const key in translations) {
+						const translation = translations[key];
 
-							// Si son statut est dans le filtre
-							if (filter[translation.status]) {
-								// Si on a une recherche, on regarde si le texte de la traduction contient la recherche
-								if (search) {
-									const translationText = translation.text.toLowerCase();
-									if (!translationText.includes(search)) {
-										continue;
-									}
-								}
+						// Si son statut est dans le filtre
+						if (!filter[translation.status]) continue;
 
-								// Si on autorise son affichage dans l'éditeur
-								if (editionsToShowInEditor().some((edition) => edition.name === key)) {
-									// On ajoute l'édition à la liste des traductions autorisées
-									authorizedEditions.push(key);
-								}
-							}
+						// Si on a une recherche, on regarde si le texte de la traduction contient la recherche
+						if (search) {
+							const translationText = translation.text.toLowerCase();
+							if (!translationText.includes(search)) continue;
+						}
+
+						// Si on autorise son affichage dans l'éditeur
+						if (visibleEditions.includes(key)) {
+							// On ajoute l'édition à la liste des traductions autorisées
+							authorizedEditions.push(key);
 						}
 					}
+				}
 
+				if (!onlyShowOverlappingSubtitles) {
 					if (authorizedEditions.length > 0) {
 						allowedTranslations[subtitleId] = authorizedEditions;
 					} else {
 						// Si aucune traduction n'est autorisée, on supprime l'entrée
 						delete allowedTranslations[subtitleId];
 					}
+					continue;
+				}
+
+				if (!(subtitle instanceof SubtitleClip)) {
+					delete allowedTranslations[subtitleId];
+					continue;
+				}
+
+				// Vérifie si le clip actuel a un chevauchement avec le clip précédent en arabe.
+				const hasOverlap = hasArabicOverlapWithPrevious(index);
+				if (authorizedEditions.length > 0 && hasOverlap) {
+					allowedTranslations[subtitleId] = mergeEditions(
+						allowedTranslations[subtitleId],
+						authorizedEditions
+					);
+
+					const previousSubtitle = globalState.getSubtitleTrack.getSubtitleBefore(index);
+					if (previousSubtitle) {
+						allowedTranslations[previousSubtitle.id] = mergeEditions(
+							allowedTranslations[previousSubtitle.id],
+							visibleEditions
+						);
+					}
+				} else {
+					delete allowedTranslations[subtitleId];
 				}
 			}
 
-			// Ajuste visibleCount si nécessaire
 			const total = Object.keys(allowedTranslations).length;
+			// Ajuste visibleCount si nécessaire
 			if (visibleCount > total) visibleCount = total;
 			if (visibleCount === 0 && total > 0) visibleCount = Math.min(PAGE_SIZE, total);
 		});
@@ -215,7 +259,7 @@
 				<NoTranslationsToShow />
 			{:else}
 				{#key visibleCount}
-					{#each subtitlesInGroups().slice(0, visibleCount) as group, i}
+					{#each subtitlesInGroups().slice(0, visibleCount) as group}
 						{@const firstClipInGroup = globalState.getSubtitleTrack.clips[group[0]] as
 							| SubtitleClip
 							| PredefinedSubtitleClip}
@@ -234,7 +278,7 @@
 								<!-- clipIndex est l'index réel dans clips -->
 								<section class="relative">
 									<ArabicText subtitle={globalState.getSubtitleTrack.clips[_clipIndex]} />
-									{#each editionsToShowInEditor() as edition, j}
+									{#each editionsToShowInEditor() as edition}
 										{#key edition.name}
 											<Translation
 												{edition}

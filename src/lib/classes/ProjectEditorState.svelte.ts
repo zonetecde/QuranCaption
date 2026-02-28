@@ -216,6 +216,7 @@ export class TranslationsEditorState extends SerializableBase {
 	});
 
 	searchQuery: string = $state('');
+	onlyShowOverlappingSubtitles: boolean = $state(false);
 
 	checkOnlyFilters(list: string[]) {
 		for (const key in this.filters) {

@@ -612,6 +612,14 @@ export async function detectCoverageGapIndices(
 			continue;
 		}
 
+		// Cross-surah jumps are often intentional (e.g. selected recitation excerpts),
+		// so we don't treat them as missing-word coverage gaps.
+		if (startRef.surah !== progressRef.surah) {
+			progressRef = endRef;
+			progressIndex = i;
+			continue;
+		}
+
 		const expectedNextRef = await getExpectedNextRef(progressRef);
 		if (expectedNextRef && compareVerseRefs(startRef, expectedNextRef) > 0) {
 			const gapEndRef = await getPreviousRef(startRef);

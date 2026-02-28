@@ -26,6 +26,17 @@ pub async fn segment_quran_audio(
     .await
 }
 
+/// Estime la durée d'un endpoint Multi-Aligner cloud.
+#[tauri::command]
+pub async fn estimate_segmentation_duration(
+    endpoint: String,
+    audio_duration_s: f64,
+    model_name: Option<String>,
+    device: Option<String>,
+) -> Result<serde_json::Value, String> {
+    segmentation::estimate_duration(endpoint, audio_duration_s, model_name, device).await
+}
+
 /// Vérifie la disponibilité des moteurs de segmentation locale.
 #[tauri::command]
 pub async fn check_local_segmentation_ready(

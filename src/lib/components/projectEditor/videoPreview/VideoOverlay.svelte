@@ -478,6 +478,7 @@ const fadeDuration = $derived(() => {
 			color: globalState.getStyle('global', 'overlay-color')!.value,
 			mode: globalState.getStyle('global', 'background-overlay-mode')!.value,
 			fadeIntensity: globalState.getStyle('global', 'background-overlay-fade-intensity')!.value,
+			fadeCoverage: globalState.getStyle('global', 'background-overlay-fade-coverage')!.value,
 			customCSS: globalState.getStyle('global', 'overlay-custom-css')!.value
 		};
 	});
@@ -492,17 +493,23 @@ const fadeDuration = $derived(() => {
 		}
 
 		const intensity = Utilities.clamp01(Number(settings.fadeIntensity));
+		const fadeCoverage = Utilities.clamp01(Number(settings.fadeCoverage));
 		const [r, g, b] = Utilities.parseColorToRgb(String(settings.color || '#000000'));
 		const edgeOpacity = opacity * (1 - intensity);
 		const centerOpacity = opacity;
 
 		let gradient = '';
 		if (mode === 'fade-up') {
-			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 100%)`;
+			const fadeEndPct = Math.max(0, Math.min(100, fadeCoverage * 100));
+			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${fadeEndPct}%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 100%)`;
 		} else if (mode === 'fade-down') {
-			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
+			const fadeStartPct = Math.max(0, Math.min(100, 100 - fadeCoverage * 100));
+			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${fadeStartPct}%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
 		} else if (mode === 'fade-center') {
-			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 50%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
+			const fadeEdgePct = Math.max(0, Math.min(50, fadeCoverage * 50));
+			const centerStartPct = fadeEdgePct;
+			const centerEndPct = 100 - fadeEdgePct;
+			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${centerStartPct}%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${centerEndPct}%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
 		} else {
 			return `background-color: ${settings.color}; opacity: ${opacity};`;
 		}

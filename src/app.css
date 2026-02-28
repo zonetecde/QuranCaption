@@ -80,6 +80,9 @@
 	--text-on-selection: white;
 	--text-on-selected-word: white;
 	--text-on-accent: black;
+	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 88%, black);
+	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 70%, black);
+	--wbw-tooltip-text: var(--text-primary);
 
 	/* Timeline specific colors */
 	--timeline-bg-primary: var(--bg-primary);
@@ -225,6 +228,9 @@ body {
 	--text-on-selection: white;
 	--text-on-selected-word: var(--text-primary);
 	--text-on-accent: white;
+	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 92%, var(--bg-accent) 8%);
+	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 78%, var(--bg-primary) 22%);
+	--wbw-tooltip-text: var(--text-primary);
 }
 
 .theme-desert-gold {
@@ -268,6 +274,9 @@ body {
 	--text-on-selection: white;
 	--text-on-selected-word: var(--text-primary);
 	--text-on-accent: white;
+	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 90%, var(--bg-accent) 10%);
+	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 82%, var(--bg-primary) 18%);
+	--wbw-tooltip-text: var(--text-primary);
 }
 
 /* --- NEW Advanced Themes --- */
@@ -283,6 +292,8 @@ body {
 	--accent-primary-raw: #8b4513;
 	--accent-secondary-raw: #5d2e0d;
 	--text-on-accent: #f4ecd8;
+	--selected-word-bg: #fdf2d5;
+	--text-on-selected-word: var(--text-primary);
 
 	--radius-m: 2px;
 	--radius-l: 4px;
@@ -300,6 +311,9 @@ body {
 	--timeline-track-border: rgba(139, 69, 19, 0.2);
 	--timeline-scrollbar: rgba(139, 69, 19, 0.5);
 	--timeline-scrollbar-hover: rgba(139, 69, 19, 0.7);
+	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 88%, var(--bg-accent) 12%);
+	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 82%, var(--bg-primary) 18%);
+	--wbw-tooltip-text: var(--text-primary);
 }
 
 .theme-oled-stealth {
@@ -857,4 +871,10 @@ select {
 		box-shadow: none;
 		border-color: var(--border-color);
 	}
+}
+
+.word-translation-tooltip {
+	background-color: var(--wbw-tooltip-bg);
+	border-color: var(--wbw-tooltip-border);
+	color: var(--wbw-tooltip-text);
 }

@@ -199,6 +199,13 @@ export type AutoSegmentationAudioClip = {
 	endMs: number;
 };
 
+export type DurationEstimateResult = {
+	endpoint: string;
+	estimated_duration_s: number;
+	device: SegmentationDevice;
+	model_name: MultiAlignerModel;
+};
+
 type VerseRef = {
 	surah: number;
 	verse: number;
@@ -1338,6 +1345,35 @@ export async function runAutoSegmentation(
 		console.error('Segmentation request failed:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		return { status: 'failed', message: errorMessage };
+	}
+}
+
+export function getAutoSegmentationAudioDurationS(): number {
+	const clips = getAutoSegmentationAudioClips();
+	if (clips.length === 0) return 0;
+	const totalMs = clips.reduce((sum, clip) => sum + Math.max(0, clip.endMs - clip.startMs), 0);
+	return totalMs / 1000;
+}
+
+export async function estimateSegmentationDuration(options: {
+	endpoint?: string;
+	audioDurationS: number;
+	modelName: MultiAlignerModel;
+	device: SegmentationDevice;
+}): Promise<DurationEstimateResult | null> {
+	const endpoint = options.endpoint ?? 'process_audio_session';
+	if (!Number.isFinite(options.audioDurationS) || options.audioDurationS <= 0) return null;
+	try {
+		const result = await invoke('estimate_segmentation_duration', {
+			endpoint,
+			audioDurationS: options.audioDurationS,
+			modelName: options.modelName,
+			device: options.device
+		});
+		return result as DurationEstimateResult;
+	} catch (error) {
+		console.warn('[AutoSegmentation] Failed to estimate duration:', error);
+		return null;
 	}
 }
 

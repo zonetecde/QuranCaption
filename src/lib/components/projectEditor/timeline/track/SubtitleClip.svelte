@@ -195,7 +195,14 @@
 				if (isMultiSelect) {
 					globalState.getStylesState.toggleSelection(clip);
 				} else {
-					globalState.getStylesState.selectOnly(clip);
+					const alreadyOnlySelected =
+						globalState.getStylesState.selectedSubtitles.length === 1 &&
+						globalState.getStylesState.isSelected(clip.id);
+					if (alreadyOnlySelected) {
+						globalState.getStylesState.clearSelection();
+					} else {
+						globalState.getStylesState.selectOnly(clip);
+					}
 				}
 			}
 		}

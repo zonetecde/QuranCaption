@@ -185,7 +185,7 @@
 			>
 				<div class="flex items-center gap-2 text-secondary text-sm">
 					<span class="material-icons-outlined text-base">select_all</span>
-					<span>
+					<span class="style-selection-count-label">
 						{globalState.getStylesState.selectedSubtitles.length} subtitle{globalState
 							.getStylesState.selectedSubtitles.length > 1
 							? 's'
@@ -206,12 +206,13 @@
 		{/if}
 
 		<div
-			class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-sky-100"
+			class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-[var(--text-primary)]"
 		>
 			<span class="material-icons-outlined text-base mt-0.5">info</span>
-			<p class="text-xs leading-relaxed">
-				Click a subtitle to select only it. Hold <span class="font-semibold">Ctrl + Click</span> to
-				select multiple subtitles.
+			<p class="text-xs leading-relaxed style-selection-hint-label">
+				Click a subtitle to select only it. Press <span class="font-semibold"
+					>Ctrl + Left Click</span
+				> to select multiple subtitles.
 			</p>
 		</div>
 	</div>
@@ -363,3 +364,13 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	@media (max-width: 1440px) {
+		.style-selection-count-label,
+		.style-selection-hint-label {
+			font-size: 0.625rem;
+			line-height: 1.1;
+		}
+	}
+</style>

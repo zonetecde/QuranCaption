@@ -15,8 +15,9 @@ use crate::utils::temp_file::TempFileGuard;
 
 use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{
-    SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_PROCESS_CALL_URL,
-    QURAN_MULTI_ALIGNER_UPLOAD_URL, QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
+    SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL,
+    QURAN_MULTI_ALIGNER_PROCESS_CALL_URL, QURAN_MULTI_ALIGNER_UPLOAD_URL,
+    QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
 };
 
 /// Émet un état de progression de segmentation vers le frontend.
@@ -110,6 +111,126 @@ impl SseAccumulator {
             .or(self.latest_payload)
             .ok_or_else(|| "Process stream ended without a result".to_string())
     }
+}
+
+/// Estime la durée de traitement de l'endpoint Multi-Aligner côté cloud.
+pub async fn estimate_duration(
+    endpoint: String,
+    audio_duration_s: f64,
+    model_name: Option<String>,
+    device: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let selected_model = model_name.unwrap_or_else(|| "Base".to_string());
+    if selected_model != "Base" && selected_model != "Large" {
+        return Err(format!(
+            "Invalid model_name '{}'. Expected 'Base' or 'Large'.",
+            selected_model
+        ));
+    }
+
+    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
+    if selected_device != "GPU" && selected_device != "CPU" {
+        return Err(format!(
+            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
+            selected_device
+        ));
+    }
+
+    if !audio_duration_s.is_finite() || audio_duration_s <= 0.0 {
+        return Err("audio_duration_s must be a positive finite number.".to_string());
+    }
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let call_payload = serde_json::json!({
+        "data": [
+            endpoint,
+            audio_duration_s,
+            serde_json::Value::Null,
+            selected_model,
+            selected_device
+        ]
+    });
+    let call_response = client
+        .post(QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL)
+        .json(&call_payload)
+        .send()
+        .await
+        .map_err(|e| format!("Estimate call failed: {}", e))?
+        .error_for_status()
+        .map_err(|e| format!("Estimate call error: {}", e))?;
+    let call_json: serde_json::Value = call_response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse estimate call response: {}", e))?;
+
+    let event_id = call_json
+        .get("event_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "Estimate call did not return an event_id".to_string())?;
+
+    let stream_url = format!(
+        "{}/call/estimate_duration/{}",
+        QURAN_MULTI_ALIGNER_BASE_URL, event_id
+    );
+    let stream_response = client
+        .get(&stream_url)
+        .send()
+        .await
+        .map_err(|e| format!("Estimate stream request failed: {}", e))?
+        .error_for_status()
+        .map_err(|e| format!("Estimate stream request error: {}", e))?;
+
+    let mut sse_parser = SseAccumulator::default();
+    let mut buffered_bytes: Vec<u8> = Vec::new();
+    let mut completed_payload: Option<serde_json::Value> = None;
+    let mut stream = stream_response.bytes_stream();
+
+    'stream_loop: while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.map_err(|e| format!("Failed to read estimate stream: {}", e))?;
+        if chunk.is_empty() {
+            continue;
+        }
+
+        buffered_bytes.extend_from_slice(&chunk);
+        while let Some(newline_pos) = buffered_bytes.iter().position(|byte| *byte == b'\n') {
+            let line_bytes = buffered_bytes.drain(..=newline_pos).collect::<Vec<u8>>();
+            let mut line_slice = line_bytes.as_slice();
+            if line_slice.ends_with(b"\n") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+            if line_slice.ends_with(b"\r") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+            let line = String::from_utf8_lossy(line_slice);
+            if let Some(payload) = sse_parser.push_line(&line)? {
+                completed_payload = Some(payload);
+                break 'stream_loop;
+            }
+        }
+    }
+
+    if completed_payload.is_none() && !buffered_bytes.is_empty() {
+        let trailing_line = String::from_utf8_lossy(&buffered_bytes);
+        if let Some(payload) = sse_parser.push_line(&trailing_line)? {
+            completed_payload = Some(payload);
+        }
+    }
+
+    let payload = if let Some(payload) = completed_payload {
+        payload
+    } else {
+        sse_parser.finish()?
+    };
+    if let Some(values) = payload.as_array() {
+        if let Some(first) = values.first() {
+            return Ok(first.clone());
+        }
+    }
+    Ok(payload)
 }
 
 /// Exécute la segmentation cloud via Quran Multi-Aligner (upload, call, stream SSE).

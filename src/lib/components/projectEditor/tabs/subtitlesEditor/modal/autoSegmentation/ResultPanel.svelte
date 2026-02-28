@@ -30,6 +30,24 @@
 					></div>
 				</div>
 			</div>
+		{:else if wizard.estimatedProgress !== null}
+			<div class="mt-3">
+				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">
+					<span>Estimated progress</span>
+					<span>{Math.round(wizard.estimatedProgress)}%</span>
+				</div>
+				<div class="h-2 overflow-hidden rounded-full bg-thirdly/25">
+					<div
+						class="h-full rounded-full bg-accent-primary transition-all duration-300"
+						style={`width: ${wizard.estimatedProgress}%`}
+					></div>
+				</div>
+				{#if wizard.estimatedRemainingS !== null}
+					<div class="mt-1 text-[11px] text-thirdly">
+						Estimated time left: ~{wizard.estimatedRemainingS}s
+					</div>
+				{/if}
+			</div>
 		{/if}
 	</div>
 {:else if wizard.result && wizard.result.status === 'completed'}

@@ -41,7 +41,10 @@
 		<div class="text-secondary">
 			Audio: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
-		{#if wizard.selection.aiVersion === 'multi_v2' && wizard.selection.mode === 'local'}
+		{#if
+			wizard.selection.aiVersion === 'multi_v2' &&
+			wizard.selection.mode === 'local' &&
+			!wizard.selection.hfToken.trim()}
 			<div
 				class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-300"
 			>

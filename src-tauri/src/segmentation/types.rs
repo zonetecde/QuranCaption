@@ -7,6 +7,9 @@ pub const QURAN_MULTI_ALIGNER_UPLOAD_URL: &str =
 /// Endpoint d'appel du pipeline complet.
 pub const QURAN_MULTI_ALIGNER_PROCESS_CALL_URL: &str =
     "https://hetchyy-quran-multi-aligner.hf.space/gradio_api/call/process_audio_session";
+/// Endpoint d'appel de l'estimation de durée.
+pub const QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL: &str =
+    "https://hetchyy-quran-multi-aligner.hf.space/gradio_api/call/estimate_duration";
 
 /// Flag de développement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;

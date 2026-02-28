@@ -110,6 +110,7 @@ export type OverlayStyleName =
 	| 'overlay-opacity'
 	| 'background-overlay-mode'
 	| 'background-overlay-fade-intensity'
+	| 'background-overlay-fade-coverage'
 	| 'overlay-custom-css'
 	| 'overlay-blur';
 

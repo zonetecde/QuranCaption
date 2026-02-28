@@ -6,6 +6,8 @@ import {
 	checkLocalSegmentationStatus,
 	getAutoSegmentationAudioInfo,
 	installLocalSegmentationDeps,
+	estimateSegmentationDuration,
+	getAutoSegmentationAudioDurationS,
 	parseImportedSegmentationJson,
 	runAutoSegmentation,
 	runAutoSegmentationFromImportedJson,
@@ -49,6 +51,9 @@ export function useAutoSegmentationWizard() {
 	let installStatus = $state('');
 	let currentStatus = $state('');
 	let currentStatusProgress = $state<number | null>(null);
+	let estimatedDurationS = $state<number | null>(null);
+	let estimatedProgress = $state<number | null>(null);
+	let estimatedRemainingS = $state<number | null>(null);
 	let errorMessage = $state<string | null>(null);
 	let warningMessage = $state<string | null>(null);
 	let fallbackMessage = $state<string | null>(null);
@@ -57,6 +62,8 @@ export function useAutoSegmentationWizard() {
 	let importedJsonFileName = $state('');
 	let importedJsonSegmentCount = $state(0);
 	let importedJsonParseError = $state<string | null>(null);
+	let estimationTimer: ReturnType<typeof setInterval> | null = null;
+	let runStartedAtMs: number | null = null;
 	const steps = $derived(() => getWizardSteps(selection.aiVersion, selection.runtime));
 	const maxStep = $derived(() => Math.max(0, steps().length - 1));
 	const currentStepKey = $derived(() => steps()[currentStep]?.key ?? 'review');
@@ -262,6 +269,41 @@ export function useAutoSegmentationWizard() {
 		);
 	}
 
+	function stopEstimationTimer(): void {
+		if (estimationTimer) {
+			clearInterval(estimationTimer);
+			estimationTimer = null;
+		}
+	}
+
+	function resetEstimatedProgress(): void {
+		stopEstimationTimer();
+		runStartedAtMs = null;
+		estimatedDurationS = null;
+		estimatedProgress = null;
+		estimatedRemainingS = null;
+	}
+
+	function startEstimatedProgressTimer(durationS: number): void {
+		stopEstimationTimer();
+		if (!Number.isFinite(durationS) || durationS <= 0) return;
+		runStartedAtMs = Date.now();
+		estimatedDurationS = durationS;
+		const tick = () => {
+			if (!runStartedAtMs || !estimatedDurationS) {
+				estimatedProgress = null;
+				estimatedRemainingS = null;
+				return;
+			}
+			const elapsedS = (Date.now() - runStartedAtMs) / 1000;
+			const ratio = Math.max(0, Math.min(1, elapsedS / estimatedDurationS));
+			estimatedProgress = ratio * 100;
+			estimatedRemainingS = Math.max(0, Math.ceil(estimatedDurationS - elapsedS));
+		};
+		tick();
+		estimationTimer = setInterval(tick, 400);
+	}
+
 	/** Stores response metadata for result/error panels. */
 	function applySegmentationResponse(response: AutoSegmentationResult | null): void {
 		if (!response) errorMessage = 'Segmentation failed. Please inspect logs.';
@@ -303,6 +345,23 @@ export function useAutoSegmentationWizard() {
 		cloudCpuFallbackMessage = null;
 		currentStatus = '';
 		currentStatusProgress = null;
+		resetEstimatedProgress();
+
+		if (
+			selection.runtime !== 'hf_json' &&
+			(selection.mode === 'api' || selection.localAsrMode === 'multi_aligner')
+		) {
+			const audioDurationS = getAutoSegmentationAudioDurationS();
+			const estimated = await estimateSegmentationDuration({
+				endpoint: 'process_audio_session',
+				audioDurationS,
+				modelName: selection.mode === 'api' ? selection.cloudModel : selection.multiModel,
+				device: selection.device
+			});
+			if (estimated?.estimated_duration_s && estimated.estimated_duration_s > 0) {
+				startEstimatedProgressTimer(estimated.estimated_duration_s);
+			}
+		}
 		const unlisten = await listenSegmentationStatus();
 		let response: AutoSegmentationResult | null = null;
 		try {
@@ -346,6 +405,7 @@ export function useAutoSegmentationWizard() {
 			isRunning = false;
 			currentStatus = '';
 			currentStatusProgress = null;
+			resetEstimatedProgress();
 			trackSegmentationRun({
 				response,
 				requestedMode: selection.runtime === 'hf_json' ? 'api' : selection.mode,
@@ -509,6 +569,15 @@ export function useAutoSegmentationWizard() {
 		},
 		get currentStatusProgress() {
 			return currentStatusProgress;
+		},
+		get estimatedDurationS() {
+			return estimatedDurationS;
+		},
+		get estimatedProgress() {
+			return estimatedProgress;
+		},
+		get estimatedRemainingS() {
+			return estimatedRemainingS;
 		},
 		get errorMessage() {
 			return errorMessage;

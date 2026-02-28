@@ -20,7 +20,7 @@
 				<!-- Si ce n'est pas le numéro de verset -->
 				{#if i !== words.length - 1 || !subtitle.isLastWordsOfVerse}
 					<span
-						class="word-translation-tooltip group-hover:block hidden text-sm absolute top-10 w-max px-1.5 bg-slate-700 border-slate-800 border-2 rounded-lg text-center z-20"
+						class="word-translation-tooltip group-hover:block hidden text-sm absolute top-10 w-max px-1.5 border-2 rounded-lg text-center z-20"
 						dir="ltr"
 					>
 						{subtitle.wbwTranslation[wordIndex - subtitle.startWordIndex] || ''}

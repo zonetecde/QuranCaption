@@ -190,7 +190,7 @@
 	function clipClicked(event?: MouseEvent) {
 		// Sélectionne le clip si on est dans la page de style
 		if (globalState.currentProject!.projectEditorState.currentTab === 'Style') {
-			if (clip instanceof SubtitleClip) {
+			if (clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) {
 				const isMultiSelect = Boolean(event?.ctrlKey || event?.metaKey);
 				if (isMultiSelect) {
 					globalState.getStylesState.toggleSelection(clip);
@@ -344,7 +344,7 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
-	{#if globalState.currentProject!.projectEditorState.currentTab === 'Style' && clip.type === 'Subtitle'}
+	{#if globalState.currentProject!.projectEditorState.currentTab === 'Style' && (clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle')}
 		<Item on:click={editStyle}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">auto_fix_high</span>Edit style

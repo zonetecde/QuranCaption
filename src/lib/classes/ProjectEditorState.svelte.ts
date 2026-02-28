@@ -65,7 +65,7 @@ export class StylesEditorState extends SerializableBase {
 	searchQuery: string = $state('');
 
 	// Indique les sous-titres actuellement sélectionnés dans l'éditeur de styles
-	selectedSubtitles: SubtitleClip[] = $state([]);
+	selectedSubtitles: Array<SubtitleClip | PredefinedSubtitleClip> = $state([]);
 
 	// Indique la catégorie sur laquelle on doit scroll et highlight quelque seconde
 	scrollAndHighlight: string | null = $state(null);
@@ -81,8 +81,8 @@ export class StylesEditorState extends SerializableBase {
 		return this.selectedSubtitles.some((subtitle) => subtitle.id === id);
 	}
 
-	toggleSelection(clip: SubtitleClip) {
-		if (clip instanceof SubtitleClip === false) return;
+	toggleSelection(clip: SubtitleClip | PredefinedSubtitleClip) {
+		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
 
 		if (this.isSelected(clip.id)) {
 			this.selectedSubtitles = this.selectedSubtitles.filter((subtitle) => subtitle.id !== clip.id);
@@ -91,8 +91,8 @@ export class StylesEditorState extends SerializableBase {
 		}
 	}
 
-	selectOnly(clip: SubtitleClip) {
-		if (clip instanceof SubtitleClip === false) return;
+	selectOnly(clip: SubtitleClip | PredefinedSubtitleClip) {
+		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
 		this.selectedSubtitles = [clip];
 	}
 

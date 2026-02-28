@@ -273,7 +273,7 @@
 								</div>
 							{/if}
 
-							{#each group as clipIndex}
+							{#each group as clipIndex (globalState.getSubtitleTrack.clips[clipIndex].id)}
 								{@const _clipIndex = clipIndex}
 								<!-- clipIndex est l'index réel dans clips -->
 								<section class="relative">
@@ -282,7 +282,7 @@
 										{#key edition.name}
 											<Translation
 												{edition}
-												bind:subtitle={
+												subtitle={
 													globalState.getSubtitleTrack.clips[_clipIndex] as SubtitleClip
 												}
 												previousSubtitle={_clipIndex > 0

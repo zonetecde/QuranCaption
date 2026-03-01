@@ -57,8 +57,7 @@
 		return [...new Set([...existing, ...incoming])];
 	}
 
-	let subtitlesInGroups = $derived(() => {
-		const allowedClipIds = new Set(Object.keys(allowedTranslations));
+	let allSubtitlesInGroups = $derived(() => {
 		// Prends tout les sous-titres du projet et les groupes par verset (même surah:verse)
 		// Seulement ceux qui sont à la suite l'un à l'autre, sinon on crée un nouveau groupe
 		const groups: number[][] = [];
@@ -68,8 +67,6 @@
 
 		for (let index = 0; index < globalState.getSubtitleTrack.clips.length; index++) {
 			const subtitle = globalState.getSubtitleTrack.clips[index];
-			if (!allowedClipIds.has(String(subtitle.id))) continue;
-
 			if (subtitle.type === 'Subtitle') {
 				const subtitleClip = subtitle as SubtitleClip;
 				// Si ce n'est pas le même verset que le précédent, on crée un nouveau groupe
@@ -96,6 +93,28 @@
 		// Ajoute le dernier groupe s'il n'est pas vide
 		if (currentGroup.length > 0) groups.push(currentGroup);
 		return groups;
+	});
+
+	let subtitlesInGroups = $derived(() => {
+		const allowedClipIds = new Set(Object.keys(allowedTranslations));
+		const onlyShowOverlappingSubtitles =
+			globalState.getTranslationsState.onlyShowOverlappingSubtitles;
+
+		// Mode overlap: n'affiche que les clips explicitement autorisés (overlap + contexte précédent)
+		if (onlyShowOverlappingSubtitles) {
+			return allSubtitlesInGroups()
+				.map((group) =>
+					group.filter((index) =>
+						allowedClipIds.has(String(globalState.getSubtitleTrack.clips[index].id))
+					)
+				)
+				.filter((group) => group.length > 0);
+		}
+
+		// Mode normal: si un clip du verset match, on affiche tout le groupe pour garder le contexte
+		return allSubtitlesInGroups().filter((group) =>
+			group.some((index) => allowedClipIds.has(String(globalState.getSubtitleTrack.clips[index].id)))
+		);
 	});
 
 	// Réinitialise le compteur si les filtres changent et qu'on a moins d'éléments

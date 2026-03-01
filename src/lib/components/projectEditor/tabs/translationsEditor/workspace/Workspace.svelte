@@ -49,6 +49,14 @@
 			return false;
 		}
 
+		// Si les deux clips couvrent exactement les mêmes mots, ce n'est pas un overlap à traiter.
+		if (
+			currentClip.startWordIndex === previousClip.startWordIndex &&
+			currentClip.endWordIndex === previousClip.endWordIndex
+		) {
+			return false;
+		}
+
 		return currentClip.startWordIndex <= previousClip.endWordIndex;
 	}
 

@@ -35,6 +35,7 @@ export default class Settings extends SerializableBase {
 		projectCardView: 'grid' as 'grid' | 'list',
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
+		lastClosedSupportPromptModal: new Date(0).toISOString(),
 		videoExportFolder: '',
 		themeIntensity: 100,
 		theme: 'default' as
@@ -312,6 +313,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC332ToQC333();
 		MigrationService.FromQC333ToQC334();
 		MigrationService.FromQC334ToQC335();
+		MigrationService.FromQC336ToQC337();
 	}
 }
 

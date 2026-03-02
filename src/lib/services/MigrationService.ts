@@ -306,6 +306,35 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Assure la présence d'un timestamp valide pour le mini-modal de support.
+	 */
+	static FromQC336ToQC337() {
+		if (!globalState.settings) return;
+
+		const settingsAny = globalState.settings as any;
+		settingsAny.persistentUiState = settingsAny.persistentUiState || {};
+
+		const value = settingsAny.persistentUiState.lastClosedSupportPromptModal;
+		const parsedDate =
+			value instanceof Date
+				? value
+				: new Date(typeof value === 'string' ? value : '');
+		const hasValidDate = !Number.isNaN(parsedDate.getTime());
+
+		if (!hasValidDate) {
+			settingsAny.persistentUiState.lastClosedSupportPromptModal = new Date(0).toISOString();
+			Settings.save();
+			return;
+		}
+
+		// Normalise en string ISO pour garder un format stable dans persistentUiState.
+		if (value instanceof Date) {
+			settingsAny.persistentUiState.lastClosedSupportPromptModal = value.toISOString();
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
 	 * > Renommage des tracks "CustomText" à "CustomClip"
 	 */

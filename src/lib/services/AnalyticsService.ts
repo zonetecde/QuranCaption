@@ -174,6 +174,15 @@ export class AnalyticsService {
 		});
 	}
 
+	static trackReview(rating: number, comment: string, source: 'support_prompt') {
+		this.track('review', {
+			rating,
+			comment,
+			source,
+			created_at_iso: new Date().toISOString()
+		});
+	}
+
 	static trackSubtitlesExport(
 		format: string,
 		includedTargets: string[],

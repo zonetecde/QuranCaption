@@ -769,6 +769,12 @@ export class CustomTextTrack extends Track {
 			(clip) => clip instanceof CustomTextClip && clip.category!.id === categoryId
 		) as CustomTextClip | undefined;
 	}
+
+	getCustomClipWithId(categoryId: string) {
+		return this.clips.find(
+			(clip) => clip instanceof CustomClip && clip.category?.id === categoryId
+		) as CustomClip | undefined;
+	}
 }
 
 // Enregistre les classes enfants pour la désérialisation automatique

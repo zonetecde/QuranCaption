@@ -317,13 +317,19 @@
 									]
 								}
 								applyValueSimple={(v) => {
+									const targetCustomClip = globalState.getCustomClipTrack.getCustomClipWithId(category.id);
+									if (!targetCustomClip) {
+										style.value = v;
+										return;
+									}
+
 									// Pour time-appearance et time-disappearance on modifie le clip lui-même
 									// en plus du style. 
 									if (style.id === 'time-appearance') {
-										globalState.getCustomClipTrack.getCustomTextWithId(category.id)!.setStartTime(v);
+										targetCustomClip.setStartTime(v);
 									}
 									if (style.id === 'time-disappearance') {
-										globalState.getCustomClipTrack.getCustomTextWithId(category.id)!.setEndTime(v);
+										targetCustomClip.setEndTime(v);
 									}
 									style.value = v;
 								}}

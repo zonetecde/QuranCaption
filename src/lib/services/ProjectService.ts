@@ -10,6 +10,61 @@ import { globalState } from '$lib/runes/main.svelte';
 export class ProjectService {
 	private static projectsFolder: string = 'projects/';
 	private static assetsFolder: string = 'assets/';
+	private static detailsLoadConcurrency = 16;
+
+	private static async mapWithConcurrency<T, R>(
+		items: T[],
+		concurrency: number,
+		mapper: (item: T, index: number) => Promise<R>
+	): Promise<R[]> {
+		if (items.length === 0) return [];
+
+		// Préserve l'ordre final des résultats même si le traitement est parallèle.
+		const results: R[] = new Array(items.length);
+		let cursor = 0;
+		const workerCount = Math.min(concurrency, items.length);
+
+		// Pool de workers asynchrones avec concurrence bornée.
+		const workers = Array.from({ length: workerCount }, async () => {
+			while (true) {
+				const index = cursor++;
+				if (index >= items.length) break;
+				results[index] = await mapper(items[index], index);
+			}
+		});
+
+		await Promise.all(workers);
+		return results;
+	}
+
+	/**
+	 * Lit les détails d'un projet à partir d'un fichier.
+	 * @param projectsPath Le chemin vers le dossier des projets
+	 * @param fileName Le nom du fichier à lire
+	 * @returns Les détails du projet ou null si le fichier n'existe pas
+	 */
+	private static async readProjectDetailFromFile(
+		projectsPath: string,
+		fileName: string
+	): Promise<ProjectDetail | null> {
+		// Extraction de l'ID du nom de fichier (ex: "123.json" -> 123)
+		const projectId = parseInt(fileName.replace('.json', ''), 10);
+		if (isNaN(projectId)) return null;
+
+		try {
+			const filePath = await join(projectsPath, fileName);
+			const fileContent = await readTextFile(filePath);
+			const projectData = JSON.parse(fileContent);
+			if (!projectData?.detail) {
+				throw new Error('Missing detail object in project file');
+			}
+			// Charge uniquement les détails du projet pour accélérer la homepage.
+			return ProjectDetail.fromJSON(projectData.detail);
+		} catch (error) {
+			console.warn(`Impossible de charger le projet ${projectId}:`, error);
+			return null;
+		}
+	}
 
 	/**
 	 * S'assure que le dossier des projets existe
@@ -98,15 +153,6 @@ export class ProjectService {
 	}
 
 	/**
-	 * Charge uniquement les détails d'un projet.
-	 * @param projectId L'id du projet
-	 * @returns Les détails du projet
-	 */
-	static async loadDetail(projectId: number): Promise<ProjectDetail> {
-		return (await this.load(projectId, true)).detail;
-	}
-
-	/**
 	 * Supprime un projet de l'ordinateur.
 	 * @param projectId L'id du projet à supprimer
 	 */
@@ -151,25 +197,19 @@ export class ProjectService {
 
 			// Récupère tout les fichiers projets
 			const entries = await readDir(projectsPath);
-			const projects: ProjectDetail[] = [];
+			const projectFiles = entries
+				// Conserve uniquement les fichiers JSON de projet.
+				.filter((entry) => entry.isFile && !!entry.name && entry.name.endsWith('.json'))
+				.map((entry) => entry.name as string);
 
-			// Parcoure chaque fichier .json et charge le projet
-			for (const entry of entries) {
-				if (entry.isFile && entry.name.endsWith('.json')) {
-					// Extraction de l'ID du nom de fichier (ex: "123.json" -> 123)
-					const projectId = parseInt(entry.name.replace('.json', ''));
-
-					if (!isNaN(projectId)) {
-						try {
-							// Charger le projet depuis le stockage
-							// et récupérer les détails du projet
-							projects.push(await this.loadDetail(projectId));
-						} catch (error) {
-							console.warn(`Impossible de charger le projet ${projectId}:`, error);
-						}
-					}
-				}
-			}
+			// Charge les détails en parallèle (au lieu d'un await séquentiel par fichier).
+			const loaded = await this.mapWithConcurrency(
+				projectFiles,
+				this.detailsLoadConcurrency,
+				(fileName) => this.readProjectDetailFromFile(projectsPath, fileName)
+			);
+			// Ignore les fichiers invalides/corrompus tout en gardant les projets valides.
+			const projects = loaded.filter((project): project is ProjectDetail => project !== null);
 
 			// Trie les projets par date de création décroissante
 			projects.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());

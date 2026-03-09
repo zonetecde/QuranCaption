@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AssetType, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
+	import { AssetType, TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -123,6 +123,30 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
+	{#if track.type === TrackType.Video && clip instanceof AssetClip}
+		<Item
+			on:click={() => {
+				const assetClip = clip as AssetClip;
+				assetClip.loopUntilAudioEnd = !assetClip.loopUntilAudioEnd;
+				if (assetClip.loopUntilAudioEnd) {
+					const audioTrack = globalState.currentProject?.content.timeline.getFirstTrack(
+						TrackType.Audio
+					);
+					if (audioTrack) {
+						assetClip.setEndTime(audioTrack.getDuration().ms);
+					}
+				}
+			}}
+		>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">
+					{(clip as AssetClip).loopUntilAudioEnd ? 'check_box' : 'check_box_outline_blank'}
+				</span>
+				Loop until audio end
+			</div>
+		</Item>
+		<Divider />
+	{/if}
 	<Item on:click={removeClip}
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove clip

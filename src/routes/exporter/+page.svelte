@@ -434,9 +434,10 @@
 		);
 
 		// Récupère le chemin de fichier de toutes les vidéos du projet
-		const videos = globalState.getVideoTrack.clips.map(
-			(clip: any) => globalState.currentProject!.content.getAssetById(clip.assetId).filePath
-		);
+		const videos = globalState.getVideoTrack.clips.map((clip: any) => ({
+			path: globalState.currentProject!.content.getAssetById(clip.assetId).filePath,
+			loop_until_audio_end: clip.loopUntilAudioEnd
+		}));
 
 		const chunkVideoFileName = `chunk_${chunkIndex}_video.mp4`;
 		const chunkFinalFilePath = await join(
@@ -816,9 +817,10 @@
 		);
 
 		// Récupère le chemin de fichier de toutes les vidéos du projet
-		const videos = globalState.getVideoTrack.clips.map(
-			(clip: any) => globalState.currentProject!.content.getAssetById(clip.assetId).filePath
-		);
+		const videos = globalState.getVideoTrack.clips.map((clip: any) => ({
+			path: globalState.currentProject!.content.getAssetById(clip.assetId).filePath,
+			loop_until_audio_end: clip.loopUntilAudioEnd
+		}));
 
 		console.log(exportData!.finalFilePath);
 

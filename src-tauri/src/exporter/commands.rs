@@ -281,17 +281,18 @@ fn ffmpeg_preprocess_video(
     start_ms: Option<i32>,
     duration_ms: Option<i32>,
     blur: Option<f64>,
+    loop_video: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let (codec, params, extra) = choose_best_codec(prefer_hw);
     let exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
 
-    // Construire le filtre vidÃƒÂ©o avec blur optionnel
+    // Construire le filtre vidéo avec blur optionnel
     let mut vf_parts = vec![
         format!("scale=w={}:h={}:force_original_aspect_ratio=increase", w, h),
         format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h),
     ];
 
-    // Ajouter le flou si spÃƒÂ©cifiÃƒÂ© et > 0
+    // Ajouter le flou si spécifié et > 0
     if let Some(blur_value) = blur {
         if blur_value > 0.0 {
             vf_parts.push(format!("gblur=sigma={}", blur_value));
@@ -305,7 +306,12 @@ fn ffmpeg_preprocess_video(
 
     let mut cmd = Command::new(&exe);
 
-    // Si un offset de dÃƒÂ©but est fourni, l'ajouter avant -i pour seek rapide
+    // Si le bouclage est activé, l'ajouter avant l'entrée
+    if loop_video {
+        cmd.arg("-stream_loop").arg("-1");
+    }
+
+    // Si un offset de début est fourni, l'ajouter avant -i pour seek rapide
     if let Some(sms) = start_ms {
         let s = format!("{:.3}", (sms as f64) / 1000.0);
         cmd.arg("-ss").arg(s);
@@ -469,7 +475,7 @@ fn is_image_file(path: &str) -> bool {
 
 /// Fonction du module export.
 fn preprocess_background_videos(
-    video_paths: &[String],
+    video_inputs: &[VideoInput],
     w: i32,
     h: i32,
     fps: i32,
@@ -483,13 +489,13 @@ fn preprocess_background_videos(
     let preproc_cache_version = "cover-v2";
     fs::create_dir_all(&cache_dir).ok();
 
-    // Cas spÃƒÂ©cial : une seule image
-    if video_paths.len() == 1 && is_image_file(&video_paths[0]) {
-        let image_path = &video_paths[0];
+    // Cas spécial : une seule image
+    if video_inputs.len() == 1 && is_image_file(&video_inputs[0].path) {
+        let image_path = &video_inputs[0].path;
         let duration_s = if let Some(dur_ms) = duration_ms {
             dur_ms as f64 / 1000.0
         } else {
-            30.0 // DurÃƒÂ©e par dÃƒÂ©faut si non spÃƒÂ©cifiÃƒÂ©e
+            30.0 // Durée par défaut si non spécifiée
         };
 
         // Construire un nom de cache unique pour l'image
@@ -524,7 +530,7 @@ fn preprocess_background_videos(
                 Ok(_) => {}
                 Err(e) => {
                     println!(
-                        "[preproc][ERREUR] Impossible de crÃƒÂ©er la vidÃƒÂ©o ÃƒÂ  partir de l'image: {:?}",
+                        "[preproc][ERREUR] Impossible de créer la vidéo à partir de l'image: {:?}",
                         e
                     );
                     return vec![];
@@ -536,46 +542,54 @@ fn preprocess_background_videos(
         return out_paths;
     }
 
-    // Calculer les durÃƒÂ©es (ms) de chaque vidÃƒÂ©o
+    // Calculer les durées (ms) de chaque vidéo
     let mut video_durations_ms: Vec<i64> = Vec::new();
-    for p in video_paths {
-        let d = (ffprobe_duration_sec(p) * 1000.0).round() as i64;
+    for input in video_inputs {
+        let d = (ffprobe_duration_sec(&input.path) * 1000.0).round() as i64;
         video_durations_ms.push(d);
     }
 
-    // Limite de la plage demandÃƒÂ©e
+    // Limite de la plage demandée
     let limit_ms: i64 = if let Some(dur) = duration_ms {
         dur as i64
     } else {
         i64::MAX
     };
 
-    // Parcourir les vidÃƒÂ©os et extraire uniquement les segments pertinents
+    // Parcourir les vidéos et extraire uniquement les segments pertinents
     let mut cum_start: i64 = 0;
-    for (idx, p) in video_paths.iter().enumerate() {
-        let vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
+    for (idx, input) in video_inputs.iter().enumerate() {
+        let vid_path = &input.path;
+        let mut vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
+        let is_loop = input.loop_until_audio_end.unwrap_or(false);
+
+        // Si le bouclage est activé, la vidéo peut couvrir tout le reste de la plage
+        if is_loop {
+            vid_len = limit_ms;
+        }
+
         let cum_end = cum_start + vid_len;
 
-        // Si la vidÃƒÂ©o se termine avant le dÃƒÂ©but recherchÃƒÂ©, on l'ignore complÃƒÂ¨tement
+        // Si la vidéo se termine avant le début recherché, on l'ignore complètement
         if cum_end <= start_time_ms as i64 {
             cum_start = cum_end;
             continue;
         }
 
-        // Si on a dÃƒÂ©jÃƒÂ  dÃƒÂ©passÃƒÂ© la limite demandÃƒÂ©e, on arrÃƒÂªte
+        // Si on a déjà dépassé la limite demandée, on arrête
         let elapsed_so_far = cum_start - (start_time_ms as i64);
         if elapsed_so_far >= limit_ms {
             break;
         }
 
-        // DÃƒÂ©terminer le dÃƒÂ©but ÃƒÂ  l'intÃƒÂ©rieur de cette vidÃƒÂ©o
+        // Déterminer le début à l'intérieur de cette vidéo
         let start_within = if start_time_ms as i64 > cum_start {
             start_time_ms as i64 - cum_start
         } else {
             0
         };
 
-        // DurÃƒÂ©e restante ÃƒÂ  prendre dans cette vidÃƒÂ©o
+        // Durée restante à prendre dans cette vidéo
         let elapsed_from_start = (cum_start + start_within) - (start_time_ms as i64);
         let remaining_needed = (limit_ms - elapsed_from_start).max(0);
         let take_ms = remaining_needed.min(vid_len - start_within);
@@ -585,7 +599,7 @@ fn preprocess_background_videos(
             continue;
         }
 
-        // Construire un nom de cache unique qui inclut les offsets et le blur
+        // Construire un nom de cache unique qui inclut les offsets, le blur et le flag loop
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 {
                 format!("-blur{}", b)
@@ -595,18 +609,20 @@ fn preprocess_background_videos(
         } else {
             String::new()
         };
+        let loop_suffix = if is_loop { "-loop" } else { "" };
+
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}{}",
-            preproc_cache_version, p, w, h, fps, start_within, take_ms, blur_suffix
+            "{}-{}-{}x{}-{}-start{}-len{}{}{}",
+            preproc_cache_version, vid_path, w, h, fps, start_within, take_ms, blur_suffix, loop_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
 
         if !dst.exists() {
-            // Appeler ffmpeg_preprocess_video avec les offsets locaux
+            // Appeler ffmpeg_preprocess_video avec les offsets locaux et le flag loop
             match ffmpeg_preprocess_video(
-                p,
+                vid_path,
                 &dst.to_string_lossy(),
                 w,
                 h,
@@ -615,12 +631,13 @@ fn preprocess_background_videos(
                 Some(start_within as i32),
                 Some(take_ms as i32),
                 blur,
+                is_loop,
             ) {
                 Ok(_) => {}
                 Err(e) => {
                     println!("[preproc][ERREUR] {:?}", e);
-                    // En cas d'ÃƒÂ©chec, utiliser la vidÃƒÂ©o originale (et laisser ffmpeg final gÃƒÂ©rer le trim)
-                    out_paths.push(p.clone());
+                    // En cas d'échec, utiliser la vidéo originale
+                    out_paths.push(vid_path.clone());
                     cum_start = cum_end;
                     continue;
                 }
@@ -629,7 +646,7 @@ fn preprocess_background_videos(
 
         out_paths.push(dst.to_string_lossy().to_string());
 
-        // Si on a atteint la limite, on arrÃƒÂªte
+        // Si on a atteint la limite, on arrête
         let elapsed_total = (cum_start + start_within + take_ms) - (start_time_ms as i64);
         if elapsed_total >= limit_ms {
             break;
@@ -704,7 +721,7 @@ fn build_and_run_ffmpeg_filter_complex(
     fade_duration_ms: i32,
     start_time_ms: i32,
     audio_paths: &[String],
-    bg_videos: &[String],
+    video_inputs: &[VideoInput],
     prefer_hw: bool,
     imgs_cwd: Option<&str>,
     duration_ms: Option<i32>,
@@ -759,9 +776,9 @@ fn build_and_run_ffmpeg_filter_complex(
     let (vcodec, vparams, vextra) = choose_best_codec(prefer_hw);
 
     let mut pre_videos = Vec::new();
-    if !bg_videos.is_empty() {
+    if !video_inputs.is_empty() {
         pre_videos = preprocess_background_videos(
-            bg_videos,
+            video_inputs,
             w,
             h,
             fps,
@@ -1274,6 +1291,12 @@ fn build_and_run_ffmpeg_filter_complex(
     Ok(())
 }
 
+#[derive(serde::Deserialize, Debug)]
+pub struct VideoInput {
+    pub path: String,
+    pub loop_until_audio_end: Option<bool>,
+}
+
 #[tauri::command]
 /// Fonction du module export.
 pub async fn export_video(
@@ -1285,7 +1308,7 @@ pub async fn export_video(
     start_time: i32,
     duration: Option<i32>,
     audios: Option<Vec<String>>,
-    videos: Option<Vec<String>>,
+    videos: Option<Vec<VideoInput>>,
     chunk_index: Option<i32>,
     blur: Option<f64>,
     app: tauri::AppHandle,
@@ -1393,8 +1416,9 @@ pub async fn export_video(
     let target_size = {
         let img_data = fs::read(&files[0]).map_err(|e| format!("Erreur lecture image: {}", e))?;
         let img = image::load_from_memory(&img_data)
-            .map_err(|e| format!("Erreur dÃƒÂ©codage image: {}", e))?;
-        (img.width() as i32, img.height() as i32)
+            .map_err(|e| format!("Erreur décodage image: {}", e))?;
+        // Forcer des dimensions paires pour la compatibilité YUV420P
+        ((img.width() as i32 / 2) * 2, (img.height() as i32 / 2) * 2)
     };
 
     println!("[image] Taille cible: {}x{}", target_size.0, target_size.1);
@@ -1439,15 +1463,12 @@ pub async fn export_video(
                 .to_string()
         })
         .collect();
-    let videos_vec: Vec<String> = videos
-        .unwrap_or_default()
-        .into_iter()
-        .map(|p| {
-            path_utils::normalize_existing_path(&p)
-                .to_string_lossy()
-                .to_string()
-        })
-        .collect();
+    let mut videos_vec = videos.unwrap_or_default();
+    for v in &mut videos_vec {
+        v.path = path_utils::normalize_existing_path(&v.path)
+            .to_string_lossy()
+            .to_string();
+    }
     let app_handle = app.clone();
     let export_id_clone = export_id.clone();
 
@@ -1462,7 +1483,7 @@ pub async fn export_video(
             fade_ms,
             start_time,
             &audios_vec,
-            &videos_vec,
+            &videos_vec, // Now it's Vec<VideoInput>
             true,
             Some(&imgs_folder_resolved),
             duration,

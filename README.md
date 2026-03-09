@@ -63,10 +63,8 @@ Full documentation is available at:
 
 ### 🧩 Note for Developers
 
-After cloning the repository, ensure that you add the `ffprobe`, `ffmpeg`, and `yt-dlp` files to the
-`src-tauri/binaries` folder.
+Detailed development documentation, including setup instructions, architecture overview, and tech
+stack details, can be found in [DEVELOPMENT.md](DEVELOPMENT.md).
 
-###### 🔧 How to do that?
-
-You can find detailed instructions and download links in the
-[`src-tauri/binaries/README.md`](src-tauri/binaries/README.md) file.
+For setting up required binaries (ffmpeg, etc.), see
+[`src-tauri/binaries/README.md`](src-tauri/binaries/README.md).

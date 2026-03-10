@@ -9,6 +9,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::files::get_new_file_path,
         commands::files::save_binary_file,
         commands::files::save_file,
+        commands::files::copy_file,
         commands::files::download_file,
         commands::files::delete_file,
         commands::files::move_file,

@@ -16,7 +16,7 @@
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
-	import DomToImage from 'dom-to-image';
+	import { domToBlob } from 'modern-screenshot';
 	import SubtitleClip from '$lib/components/projectEditor/timeline/track/SubtitleClip.svelte';
 	import { ClipWithTranslation, CustomTextClip, SilenceClip } from '$lib/classes/Clip.svelte';
 
@@ -402,6 +402,11 @@
 			base += fadeDuration;
 			i++;
 
+			// Toutes les 20 captures, laisser respirer le GC pour éviter l'OOM
+			if (i % 20 === 0) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+
 			// Progress pour ce chunk dans la phase spécifiée
 			const chunkImageProgress = (i / chunkTimings.uniqueSorted.length) * 100;
 			const chunkPhaseProgress = (chunkIndex * 100 + chunkImageProgress) / totalChunks;
@@ -597,6 +602,11 @@
 
 			base += fadeDuration;
 			i++;
+
+			// Toutes les 20 captures, laisser respirer le GC pour éviter l'OOM
+			if (i % 20 === 0) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
 
 			emitProgress({
 				exportId: Number(exportId),
@@ -870,9 +880,6 @@
 		// L'élément à transformer en image
 		let node = document.getElementById('overlay')!;
 
-		// Qualité de l'image
-		let scale = 1.0;
-
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
 		// je veux pouvoir avoir la dimension trouvée dans les paramètres d'export
 		const targetWidth = exportData!.videoDimensions.width;
@@ -881,23 +888,22 @@
 		// Calcul du scale
 		const scaleX = targetWidth / node.clientWidth;
 		const scaleY = targetHeight / node.clientHeight;
-		scale = Math.min(scaleX, scaleY);
+		const scale = Math.min(scaleX, scaleY);
 
-		// Utilisation de DomToImage pour transformer la div en image
 		try {
-			const dataUrl = await DomToImage.toPng(node, {
+			// modern-screenshot : pas de fuite mémoire contrairement à dom-to-image
+			const blob: Blob | null = await domToBlob(node, {
 				width: node.clientWidth * scale,
 				height: node.clientHeight * scale,
-				style: {
-					// Set de la qualité
-					transform: 'scale(' + scale + ')',
-					transformOrigin: 'top left'
-				},
+				scale: scale,
 				quality: 1
 			});
 
-			// Si on est en mode portrait, on crop pour avoir un ratio 9:16
-			let finalDataUrl = dataUrl;
+			if (!blob) throw new Error('domToBlob returned null');
+
+			// Convertir le blob directement en Uint8Array (une seule copie en mémoire)
+			const buffer = await blob.arrayBuffer();
+			const bytes = new Uint8Array(buffer);
 
 			// Déterminer le chemin du fichier
 			const pathComponents = [ExportService.exportFolder, exportId];
@@ -905,14 +911,6 @@
 			pathComponents.push(fileName + '.png');
 
 			const filePathWithName = await join(...pathComponents);
-
-			// Convertir dataUrl base64 en ArrayBuffer sans utiliser fetch
-			const base64Data = finalDataUrl.replace(/^data:image\/png;base64,/, '');
-			const binaryString = window.atob(base64Data);
-			const bytes = new Uint8Array(binaryString.length);
-			for (let i = 0; i < binaryString.length; i++) {
-				bytes[i] = binaryString.charCodeAt(i);
-			}
 
 			await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 			console.log('Screenshot saved to:', filePathWithName);
@@ -948,17 +946,24 @@
 		const sourceFilePathWithName = await join(...sourcePathComponents);
 		const targetFilePathWithName = await join(...targetPathComponents);
 
-		// Vérifie que le fichier source existe
-		if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
-			console.error('Source screenshot does not exist:', sourceFilePathWithName);
-			return;
+		// Utiliser la commande Rust pour copier le fichier côté backend,
+		// évitant de charger tout le contenu du fichier en mémoire JS
+		try {
+			await invoke('copy_file', {
+				source: await join(await appDataDir(), sourceFilePathWithName),
+				destination: await join(await appDataDir(), targetFilePathWithName)
+			});
+			console.log('Duplicate screenshot saved to:', targetFilePathWithName);
+		} catch {
+			// Fallback: lire et écrire si la commande Rust n'existe pas
+			if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
+				console.error('Source screenshot does not exist:', sourceFilePathWithName);
+				return;
+			}
+			const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
+			await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });
+			console.log('Duplicate screenshot saved to (fallback):', targetFilePathWithName);
 		}
-
-		// Lit le fichier source
-		const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
-		// Écrit le fichier cible
-		await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });
-		console.log('Duplicate screenshot saved to:', targetFilePathWithName);
 	}
 
 	/**

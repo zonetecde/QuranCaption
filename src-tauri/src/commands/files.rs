@@ -45,6 +45,19 @@ pub fn save_binary_file(path: String, content: Vec<u8>) -> Result<(), String> {
     fs::write(&path_buf, content).map_err(|e| format!("Failed to write file: {}", e))
 }
 
+/// Copie un fichier sans charger son contenu en mémoire JS.
+#[tauri::command]
+pub fn copy_file(source: String, destination: String) -> Result<(), String> {
+    let src = path_utils::normalize_output_path(&source);
+    let dst = path_utils::normalize_output_path(&destination);
+    if let Some(parent) = dst.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+    fs::copy(&src, &dst)
+        .map_err(|e| format!("Failed to copy file: {}", e))?;
+    Ok(())
+}
+
 /// Écrit un fichier texte en créant son dossier parent si nécessaire.
 #[tauri::command]
 pub fn save_file(location: String, content: String) -> Result<(), String> {

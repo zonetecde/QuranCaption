@@ -179,7 +179,7 @@ export class AssetTrack extends Track {
 			if (this.clips.some((c) => c instanceof AssetClip && (c as AssetClip).loopUntilAudioEnd)) {
 				ModalManager.errorModal(
 					'Clip Addition Error',
-					'You cannot add more clips because a clip with "Loop until audio end" is already present.'
+					'You cannot add more clips because a clip with "Loop until the end" is already present.'
 				);
 				return false;
 			}
@@ -248,7 +248,10 @@ export class SubtitleTrack extends Track {
 
 		// Modiife le clip existant ou le remplace par le nouveau clip pré-défini
 		if (newSubtitleClip) {
-			if (newSubtitleClip instanceof ClipWithTranslation && subtitle instanceof ClipWithTranslation) {
+			if (
+				newSubtitleClip instanceof ClipWithTranslation &&
+				subtitle instanceof ClipWithTranslation
+			) {
 				newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
 			}
 

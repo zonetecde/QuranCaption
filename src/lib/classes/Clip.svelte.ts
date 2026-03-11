@@ -506,7 +506,6 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 			return qpcVersion ? QPCFontProvider.getSadaqaGlyph() : super.getText();
 		}
 
-
 		// Si on a pas une police avec les caracteres speciaux
 		if (!qpcVersion) {
 			return super.getText();
@@ -601,4 +600,3 @@ export class CustomImageClip extends CustomClip {
 SerializableBase.registerChildClass(SubtitleClip, 'translations', Translation);
 SerializableBase.registerChildClass(ClipWithTranslation, 'translations', Translation);
 SerializableBase.registerChildClass(CustomTextClip, 'translations', Translation);
-

@@ -10,14 +10,14 @@ use std::time::Instant;
 use tauri::Emitter;
 use tokio::task;
 
-// Expose la derniÃƒÂ¨re durÃƒÂ©e d'export terminÃƒÂ©e (en secondes)
+// Expose la dernière durée d'export terminée (en secondes)
 static LAST_EXPORT_TIME_S: Mutex<Option<f64>> = Mutex::new(None);
 
 // Gestionnaire des processus actifs pour pouvoir les annuler
 static ACTIVE_EXPORTS: LazyLock<Mutex<HashMap<String, Arc<Mutex<Option<std::process::Child>>>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-// Fonction utilitaire pour configurer les commandes et cacher les fenÃƒÂªtres CMD sur Windows
+// Fonction utilitaire pour configurer les commandes et cacher les fenêtres CMD sur Windows
 /// Fonction du module export.
 fn configure_command_no_window(cmd: &mut Command) {
     #[cfg(target_os = "windows")]
@@ -34,17 +34,17 @@ fn resolve_ffmpeg_binary() -> Option<String> {
         return Some(path);
     }
 
-    // En dernier recours, utiliser ffmpeg du PATH systÃƒÂ¨me
-    println!("[ffmpeg] Tentative d'utilisation de ffmpeg du systÃƒÂ¨me (PATH)");
+    // En dernier recours, utiliser ffmpeg du PATH système
+    println!("[ffmpeg] Tentative d'utilisation de ffmpeg du système (PATH)");
     if let Ok(_) = std::process::Command::new("ffmpeg")
         .arg("-version")
         .output()
     {
-        println!("[ffmpeg] Ã¢Å“â€œ FFmpeg trouvÃƒÂ© dans le PATH systÃƒÂ¨me");
+        println!("[ffmpeg] ✓ FFmpeg trouvé dans le PATH système");
         return Some("ffmpeg".to_string());
     }
 
-    // Aucun binaire FFmpeg trouvÃƒÂ©
+    // Aucun binaire FFmpeg trouvé
     None
 }
 
@@ -54,28 +54,28 @@ fn resolve_ffprobe_binary() -> String {
         return path;
     }
 
-    // En dernier recours, utiliser ffprobe du PATH systÃƒÂ¨me
-    println!("[ffprobe] Tentative d'utilisation de ffprobe du systÃƒÂ¨me (PATH)");
+    // En dernier recours, utiliser ffprobe du PATH système
+    println!("[ffprobe] Tentative d'utilisation de ffprobe du système (PATH)");
     if let Ok(_) = std::process::Command::new("ffprobe")
         .arg("-version")
         .output()
     {
-        println!("[ffprobe] Ã¢Å“â€œ FFprobe trouvÃƒÂ© dans le PATH systÃƒÂ¨me");
+        println!("[ffprobe] ✓ FFprobe trouvé dans le PATH système");
         return "ffprobe".to_string();
     }
 
-    // Fallback vers le binaire systÃƒÂ¨me
+    // Fallback vers le binaire système
     "ffprobe".to_string()
 }
 
-/// Teste si NVENC est rÃƒÂ©ellement disponible en essayant un encodage rapide
+/// Teste si NVENC est réellement disponible en essayant un encodage rapide
 fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
     let exe = ffmpeg_path.unwrap_or("ffmpeg");
 
-    println!("[nvenc_test] Test de disponibilitÃƒÂ© NVENC...");
+    println!("[nvenc_test] Test de disponibilité NVENC...");
 
-    // CrÃƒÂ©er une entrÃƒÂ©e vidÃƒÂ©o de test trÃƒÂ¨s courte (1 frame noir)
-    // NVENC nÃƒÂ©cessite une rÃƒÂ©solution minimale (gÃƒÂ©nÃƒÂ©ralement 128x128 ou plus)
+    // Créer une entrée vidéo de test très courte (1 frame noir)
+    // NVENC nécessite une résolution minimale (généralement 128x128 ou plus)
     let mut cmd = Command::new(exe);
     cmd.args(&[
         "-y",
@@ -85,7 +85,7 @@ fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
         "-f",
         "lavfi",
         "-i",
-        "color=c=black:s=128x128:r=1:d=0.04", // RÃƒÂ©solution minimum NVENC, trÃƒÂ¨s courte
+        "color=c=black:s=128x128:r=1:d=0.04", // Résolution minimum NVENC, très courte
         "-c:v",
         "h264_nvenc",
         "-preset",
@@ -95,7 +95,7 @@ fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
         "-frames:v",
         "1",
         "-f",
-        "null", // Sortie nulle pour ÃƒÂ©viter d'ÃƒÂ©crire un fichier
+        "null", // Sortie nulle pour éviter d'écrire un fichier
         "-",
     ]);
 
@@ -107,7 +107,7 @@ fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
             let stderr = String::from_utf8_lossy(&output.stderr);
 
             if success {
-                println!("[nvenc_test] Ã¢Å“â€œ NVENC disponible et fonctionnel");
+                println!("[nvenc_test] ✓ NVENC disponible et fonctionnel");
                 true
             } else {
                 // Analyser les erreurs pour distinguer "pas disponible" vs "erreur de config"
@@ -118,20 +118,20 @@ fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
                     || stderr_lower.contains("cuda")
                     || stderr_lower.contains("driver")
                 {
-                    println!("[nvenc_test] Ã¢Å“â€” NVENC non disponible (pas de GPU NVIDIA ou drivers manquants)");
+                    println!("[nvenc_test] ✗ NVENC non disponible (pas de GPU NVIDIA ou drivers manquants)");
                     false
                 } else if stderr_lower.contains("frame dimension") {
-                    // Si c'est juste un problÃƒÂ¨me de dimensions, essayer avec une plus grande rÃƒÂ©solution
-                    println!("[nvenc_test] Retry avec rÃƒÂ©solution plus grande...");
+                    // Si c'est juste un problème de dimensions, essayer avec une plus grande résolution
+                    println!("[nvenc_test] Retry avec résolution plus grande...");
                     test_nvenc_with_larger_resolution(ffmpeg_path)
                 } else {
-                    println!("[nvenc_test] Ã¢Å“â€” NVENC erreur: {}", stderr.trim());
+                    println!("[nvenc_test] ✗ NVENC erreur: {}", stderr.trim());
                     false
                 }
             }
         }
         Err(e) => {
-            println!("[nvenc_test] Ã¢Å“â€” Erreur lors du test NVENC: {}", e);
+            println!("[nvenc_test] ✗ Erreur lors du test NVENC: {}", e);
             false
         }
     }
@@ -150,7 +150,7 @@ fn test_nvenc_with_larger_resolution(ffmpeg_path: Option<&str>) -> bool {
         "-f",
         "lavfi",
         "-i",
-        "color=c=black:s=256x256:r=1:d=0.04", // RÃƒÂ©solution encore plus grande
+        "color=c=black:s=256x256:r=1:d=0.04", // Résolution encore plus grande
         "-c:v",
         "h264_nvenc",
         "-preset",
@@ -170,11 +170,11 @@ fn test_nvenc_with_larger_resolution(ffmpeg_path: Option<&str>) -> bool {
         Ok(output) => {
             let success = output.status.success();
             if success {
-                println!("[nvenc_test] Ã¢Å“â€œ NVENC disponible avec rÃƒÂ©solution 256x256");
+                println!("[nvenc_test] ✓ NVENC disponible avec résolution 256x256");
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 println!(
-                    "[nvenc_test] Ã¢Å“â€” NVENC toujours non disponible: {}",
+                    "[nvenc_test] ✗ NVENC toujours non disponible: {}",
                     stderr.trim()
                 );
             }
@@ -182,7 +182,7 @@ fn test_nvenc_with_larger_resolution(ffmpeg_path: Option<&str>) -> bool {
         }
         Err(e) => {
             println!(
-                "[nvenc_test] Ã¢Å“â€” Erreur test rÃƒÂ©solution plus grande: {}",
+                "[nvenc_test] ✗ Erreur test résolution plus grande: {}",
                 e
             );
             false
@@ -228,17 +228,17 @@ fn choose_best_codec(prefer_hw: bool) -> (String, Vec<String>, HashMap<String, O
     };
 
     if !hw.is_empty() {
-        // Tester spÃƒÂ©cifiquement NVENC s'il est dÃƒÂ©tectÃƒÂ©
+        // Tester spécifiquement NVENC s'il est détecté
         if hw[0] == "h264_nvenc" {
             if test_nvenc_availability(ffmpeg_exe.as_deref()) {
-                println!("[codec] Utilisation de NVENC (accÃƒÂ©lÃƒÂ©ration GPU NVIDIA)");
+                println!("[codec] Utilisation de NVENC (accélération GPU NVIDIA)");
                 let codec = hw[0].clone();
                 let params = vec!["-pix_fmt".to_string(), "yuv420p".to_string()];
                 let mut extra = HashMap::new();
                 extra.insert("preset".to_string(), Some("fast".to_string()));
                 return (codec, params, extra);
             } else {
-                println!("[codec] NVENC dÃƒÂ©tectÃƒÂ© mais non fonctionnel, fallback vers libx264");
+                println!("[codec] NVENC détecté mais non fonctionnel, fallback vers libx264");
             }
         } else {
             // Pour les autres encodeurs hardware (QSV, AMF), utiliser directement
@@ -324,7 +324,7 @@ fn ffmpeg_preprocess_video(
         .arg("-i")
         .arg(src);
 
-    // Si une durÃƒÂ©e de dÃƒÂ©coupe est fournie, la limiter
+    // Si une durée de découpe est fournie, la limiter
     if let Some(dms) = duration_ms {
         let d = format!("{:.3}", (dms as f64) / 1000.0);
         cmd.arg("-t").arg(d);
@@ -348,7 +348,7 @@ fn ffmpeg_preprocess_video(
 
     cmd.arg(dst);
 
-    // Configurer la commande pour cacher les fenÃƒÂªtres CMD sur Windows
+    // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
 
     println!(
@@ -383,13 +383,13 @@ fn create_video_from_image(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
 
-    // Construire le filtre vidÃƒÂ©o avec blur optionnel
+    // Construire le filtre vidéo avec blur optionnel
     let mut vf_parts = vec![
         format!("scale={}:{}:force_original_aspect_ratio=increase", w, h),
         format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h),
     ];
 
-    // Ajouter le flou si spÃƒÂ©cifiÃƒÂ© et > 0
+    // Ajouter le flou si spécifié et > 0
     if let Some(blur_value) = blur {
         if blur_value > 0.0 {
             vf_parts.push(format!("gblur=sigma={}", blur_value));
@@ -398,7 +398,7 @@ fn create_video_from_image(
 
     let video_filter = vf_parts.join(",");
 
-    // Choisir le meilleur codec avec dÃƒÂ©tection automatique
+    // Choisir le meilleur codec avec détection automatique
     let (codec, codec_params, codec_extra) = choose_best_codec(prefer_hw);
 
     let mut cmd = Command::new(&ffmpeg_exe);
@@ -426,12 +426,12 @@ fn create_video_from_image(
         cmd.arg("-preset").arg(preset);
     }
 
-    // Ajouter les paramÃƒÂ¨tres du codec
+    // Ajouter les paramètres du codec
     for param in codec_params {
         cmd.arg(param);
     }
 
-    // Ajouter des paramÃƒÂ¨tres de qualitÃƒÂ© selon le codec
+    // Ajouter des paramètres de qualité selon le codec
     if codec == "libx264" {
         cmd.args(&["-crf", "23"]);
     } else if codec.contains("nvenc") {
@@ -440,11 +440,11 @@ fn create_video_from_image(
 
     cmd.arg(output_path);
 
-    // Configurer la commande pour cacher les fenÃƒÂªtres CMD sur Windows
+    // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
 
     println!(
-        "[preproc][IMG] CrÃƒÂ©ation vidÃƒÂ©o depuis image: {} -> {}",
+        "[preproc][IMG] Création vidéo depuis image: {} -> {}",
         image_path, output_path
     );
     println!("[preproc][IMG] Commande: {:?}", cmd);
@@ -673,7 +673,7 @@ fn ffprobe_duration_sec(path: &str) -> f64 {
         path,
     ]);
 
-    // Configurer la commande pour cacher les fenÃƒÂªtres CMD sur Windows
+    // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
 
     let output = match cmd.output() {
@@ -800,7 +800,7 @@ fn build_and_run_ffmpeg_filter_complex(
     }
     let have_audio = !audio_paths.is_empty() && start_s < total_audio_s - 1e-6;
 
-    // PrÃƒÂ©parer le fichier concat
+    // Préparer le fichier concat
     let base_dir = if let Some(cwd) = imgs_cwd {
         PathBuf::from(cwd)
     } else {
@@ -837,7 +837,7 @@ fn build_and_run_ffmpeg_filter_complex(
         "pipe:2".to_string(),
     ]);
 
-    // EntrÃƒÂ©e unique: concat demuxer
+    // Entrée unique: concat demuxer
     let concat_name = concat_path.to_string_lossy().to_string();
 
     cmd.extend_from_slice(&[
@@ -850,14 +850,14 @@ fn build_and_run_ffmpeg_filter_complex(
     ]);
     let mut current_idx = 1;
 
-    // EntrÃƒÂ©es vidÃƒÂ©os de fond
+    // Entrées vidéos de fond
     let bg_start_idx = current_idx;
     for p in &pre_videos {
         cmd.extend_from_slice(&["-i".to_string(), p.clone()]);
         current_idx += 1;
     }
 
-    // EntrÃƒÂ©es audio
+    // Entrées audio
     let audio_start_idx = current_idx;
     if have_audio {
         for p in audio_paths {
@@ -868,7 +868,7 @@ fn build_and_run_ffmpeg_filter_complex(
 
     let mut filter_lines = Vec::new();
 
-    // Base: prÃƒÂ©parer le flux vidÃƒÂ©o unique [0:v]
+    // Base: préparer le flux vidéo unique [0:v]
     let mut split_outputs = String::new();
     for i in 0..n {
         split_outputs.push_str(&format!("[b{}]", i));
@@ -879,7 +879,7 @@ fn build_and_run_ffmpeg_filter_complex(
         w, h, w, h, fps, n, split_outputs
     ));
 
-    // Pour chaque segment, extraire la fenÃƒÂªtre temporelle et sÃƒÂ©parer couleur/alpha
+    // Pour chaque segment, extraire la fenêtre temporelle et séparer couleur/alpha
     for i in 0..n {
         let s = starts_s[i];
         let e = s + durations_s[i];
@@ -891,7 +891,7 @@ fn build_and_run_ffmpeg_filter_complex(
         filter_lines.push(format!("[s{}witha]format=yuv444p[s{}c]", i, i));
     }
 
-    // ChaÃƒÂ®ne xfade pour couleur et alpha sÃƒÂ©parÃƒÂ©ment
+    // Chaîne xfade pour couleur et alpha séparément
     let mut curr_c = "s0c".to_string();
     let mut curr_a = "s0a".to_string();
     let mut curr_duration = durations_s[0];
@@ -948,7 +948,7 @@ fn build_and_run_ffmpeg_filter_complex(
         curr_c, curr_a
     ));
 
-    // Construction de la vidÃƒÂ©o de fond [bg]
+    // Construction de la vidéo de fond [bg]
     let avail_bg_after = total_bg_s;
     let need_black_full = pre_videos.is_empty() || avail_bg_after <= 1e-6;
 
@@ -1006,7 +1006,7 @@ fn build_and_run_ffmpeg_filter_complex(
         "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0,format=yuv420p[vout]"
     ));
 
-    // Audio: concat, skip start_s, clamp ÃƒÂ  duration_s
+    // Audio: concat, skip start_s, clamp à duration_s
     if have_audio {
         let a = audio_paths.len();
         if a == 1 {
@@ -1035,7 +1035,7 @@ fn build_and_run_ffmpeg_filter_complex(
 
     let filter_complex = filter_lines.join(";");
 
-    // Ãƒâ€°crit le filtergraph dans un fichier temporaire
+    // Écrit le filtergraph dans un fichier temporaire
     let tmp_dir = if let Some(cwd) = imgs_cwd {
         PathBuf::from(cwd)
     } else {
@@ -1059,7 +1059,7 @@ fn build_and_run_ffmpeg_filter_complex(
         cmd.extend_from_slice(&["-map".to_string(), "[aout]".to_string()]);
     }
 
-    // Codec vidÃƒÂ©o + audio
+    // Codec vidéo + audio
     cmd.extend_from_slice(&[
         "-r".to_string(),
         fps.to_string(),
@@ -1080,7 +1080,7 @@ fn build_and_run_ffmpeg_filter_complex(
         ]);
     }
 
-    // Assure la durÃƒÂ©e exacte
+    // Assure la durée exacte
     cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", duration_s)]);
 
     // Faststart pour formats MP4/MOV
@@ -1105,12 +1105,12 @@ fn build_and_run_ffmpeg_filter_complex(
     };
     println!("  {}", preview);
 
-    // ExÃƒÂ©cution avec capture de la progression
+    // Exécution avec capture de la progression
     let mut command = Command::new(&cmd[0]);
     command.args(&cmd[1..]);
     command.stderr(Stdio::piped());
 
-    // Configurer la commande pour cacher les fenÃƒÂªtres CMD sur Windows
+    // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut command);
 
     let child = command.spawn()?;
@@ -1167,7 +1167,7 @@ fn build_and_run_ffmpeg_filter_complex(
                         duration_s
                     );
 
-                    // PrÃƒÂ©parer les donnÃƒÂ©es de progression
+                    // Préparer les données de progression
                     let mut progress_data = serde_json::json!({
                         "export_id": export_id,
                         "progress": progress,
@@ -1181,7 +1181,7 @@ fn build_and_run_ffmpeg_filter_complex(
                             serde_json::Value::Number(serde_json::Number::from(chunk_idx));
                     }
 
-                    // Ãƒâ€°mettre l'ÃƒÂ©vÃƒÂ©nement de progression vers le frontend
+                    // Émettre l'événement de progression vers le frontend
                     let _ = app_handle.emit("export-progress", progress_data);
                 }
             }
@@ -1196,7 +1196,7 @@ fn build_and_run_ffmpeg_filter_complex(
         if let Some(mut child) = child_guard.take() {
             child.wait()?
         } else {
-            // Le processus a ÃƒÂ©tÃƒÂ© annulÃƒÂ©
+            // Le processus a été annulé
             let error_msg = format!("Export {} was cancelled", export_id);
             let mut error_data = serde_json::json!({
                 "export_id": export_id,
@@ -1226,7 +1226,7 @@ fn build_and_run_ffmpeg_filter_complex(
     }
 
     if !status.success() {
-        // CrÃƒÂ©er un fichier de log avec la date d'aujourd'hui
+        // Créer un fichier de log avec la date d'aujourd'hui
         let now = std::time::SystemTime::now();
         let timestamp = now
             .duration_since(std::time::UNIX_EPOCH)
@@ -1257,7 +1257,7 @@ fn build_and_run_ffmpeg_filter_complex(
             }
         );
 
-        // Ãƒâ€°crire le fichier de log
+        // Écrire le fichier de log
         if let Err(log_err) = std::fs::write(&log_filename, &log_content) {
             eprintln!("Failed to write log file {}: {}", log_filename, log_err);
         } else {
@@ -1335,12 +1335,12 @@ pub async fn export_video(
     }
 
     if let Some(ref videos) = videos {
-        println!("[video] {} fichier(s) vidÃƒÂ©o fourni(s)", videos.len());
+        println!("[video] {} fichier(s) vidéo fourni(s)", videos.len());
     } else {
-        println!("[video] aucune vidÃƒÂ©o de fond fournie");
+        println!("[video] aucune vidéo de fond fournie");
     }
 
-    // Liste des PNG triÃƒÂ©s par timestamp
+    // Liste des PNG triés par timestamp
     let folder = path_utils::normalize_existing_path(&imgs_folder);
     println!(
         "[scan] Parcours du dossier: {:?}",
@@ -1371,10 +1371,10 @@ pub async fn export_video(
         .map(|p| p.canonicalize().unwrap_or(p))
         .collect();
 
-    println!("[scan] {} image(s) trouvÃƒÂ©e(s)", files.len());
+    println!("[scan] {} image(s) trouvée(s)", files.len());
 
     if files.is_empty() {
-        return Err("Aucune image .png trouvÃƒÂ©e dans imgs_folder".to_string());
+        return Err("Aucune image .png trouvée dans imgs_folder".to_string());
     }
 
     let first_stem = files[0]
@@ -1384,7 +1384,7 @@ pub async fn export_video(
         .unwrap_or(-1);
 
     if first_stem != 0 {
-        return Err("La premiÃƒÂ¨re image doit ÃƒÂªtre '0.png' (timestamp 0 ms).".to_string());
+        return Err("La première image doit être '0.png' (timestamp 0 ms).".to_string());
     }
 
     // Timeline et chemins
@@ -1412,7 +1412,7 @@ pub async fn export_video(
     println!("[timeline] Nombre d'images: {}", ts.len());
 
     // Taille cible = taille de 0.png
-    println!("[image] Ouverture de la premiÃƒÂ¨re image pour taille cible...");
+    println!("[image] Ouverture de la première image pour taille cible...");
     let target_size = {
         let img_data = fs::read(&files[0]).map_err(|e| format!("Erreur lecture image: {}", e))?;
         let img = image::load_from_memory(&img_data)
@@ -1423,27 +1423,27 @@ pub async fn export_video(
 
     println!("[image] Taille cible: {}x{}", target_size.0, target_size.1);
 
-    // DurÃƒÂ©e totale
+    // Durée totale
     let fade_ms = fade_duration;
     let tail_ms = fade_ms.max(1000);
     let total_duration_ms = ts[ts.len() - 1] + tail_ms;
     let duration_s = total_duration_ms as f64 / 1000.0;
     println!(
-        "[timeline] DurÃƒÂ©e totale: {} ms ({:.3} s)",
+        "[timeline] Durée totale: {} ms ({:.3} s)",
         total_duration_ms, duration_s
     );
     println!(
-        "[perf] PrÃƒÂ©paration terminÃƒÂ©e en {:.0} ms",
+        "[perf] Préparation terminée en {:.0} ms",
         t0.elapsed().as_millis()
     );
 
     let out_path = path_utils::normalize_output_path(&final_file_path);
     if let Some(parent) = out_path.parent() {
         println!(
-            "[fs] CrÃƒÂ©ation du dossier de sortie si besoin: {:?}",
+            "[fs] Création du dossier de sortie si besoin: {:?}",
             parent
         );
-        fs::create_dir_all(parent).map_err(|e| format!("Erreur crÃƒÂ©ation dossier: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Erreur création dossier: {}", e))?;
     }
 
     let imgs_folder_resolved = folder
@@ -1493,12 +1493,12 @@ pub async fn export_video(
         )
     })
     .await
-    .map_err(|e| format!("Erreur tÃƒÂ¢che: {}", e))?
+    .map_err(|e| format!("Erreur tâche: {}", e))?
     .map_err(|e| format!("Erreur ffmpeg: {}", e))?;
 
     let export_time_s = t0.elapsed().as_secs_f64();
     *LAST_EXPORT_TIME_S.lock().unwrap() = Some(export_time_s);
-    println!("[done] Export terminÃƒÂ© en {:.2}s", export_time_s);
+    println!("[done] Export terminé en {:.2}s", export_time_s);
     println!("[metric] export_time_seconds={:.3}", export_time_s);
 
     // Extraire le nom de fichier de sortie
@@ -1508,7 +1508,7 @@ pub async fn export_video(
         .to_string_lossy()
         .to_string();
 
-    // PrÃƒÂ©parer les donnÃƒÂ©es de completion
+    // Préparer les données de completion
     let mut completion_data = serde_json::json!({
         "filename": output_file_name,
         "exportId": export_id,
@@ -1521,7 +1521,7 @@ pub async fn export_video(
             serde_json::Value::Number(serde_json::Number::from(chunk_idx));
     }
 
-    // Ãƒâ€°mettre l'ÃƒÂ©vÃƒÂ©nement de succÃƒÂ¨s
+    // Émettre l'événement de succès
     let _ = app.emit("export-complete", completion_data);
 
     Ok(out_path_str)
@@ -1536,7 +1536,7 @@ fn extract_time_from_ffmpeg_line(line: &str) -> Option<String> {
         if let Some(end) = line[start..].find(char::is_whitespace) {
             return Some(line[start..start + end].to_string());
         } else {
-            // Si pas d'espace trouvÃƒÂ©, prendre jusqu'ÃƒÂ  la fin
+            // Si pas d'espace trouvé, prendre jusqu'à la fin
             return Some(line[start..].to_string());
         }
     }
@@ -1557,7 +1557,7 @@ fn extract_time_from_ffmpeg_line(line: &str) -> Option<String> {
 
 /// Fonction du module export.
 fn parse_ffmpeg_time(time_str: &str) -> f64 {
-    // Si c'est dÃƒÂ©jÃƒÂ  en secondes (format dÃƒÂ©cimal)
+    // Si c'est déjà en secondes (format décimal)
     if let Ok(seconds) = time_str.parse::<f64>() {
         return seconds;
     }
@@ -1594,15 +1594,15 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
                 match child.kill() {
                     Ok(_) => {
                         println!(
-                            "[cancel_export] Processus FFmpeg tuÃƒÂ© avec succÃƒÂ¨s pour export_id: {}",
+                            "[cancel_export] Processus FFmpeg tué avec succès pour export_id: {}",
                             export_id
                         );
                         let _ = child.wait(); // Nettoyer le processus zombie
-                        Ok(format!("Export {} annulÃƒÂ© avec succÃƒÂ¨s", export_id))
+                        Ok(format!("Export {} annulé avec succès", export_id))
                     }
                     Err(e) => {
                         println!(
-                            "[cancel_export] Erreur lors de l'arrÃƒÂªt du processus: {:?}",
+                            "[cancel_export] Erreur lors de l'arrêt du processus: {:?}",
                             e
                         );
                         Err(format!("Erreur lors de l'annulation: {}", e))
@@ -1610,7 +1610,7 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
                 }
             } else {
                 println!(
-                    "[cancel_export] Aucun processus actif trouvÃƒÂ© pour export_id: {}",
+                    "[cancel_export] Aucun processus actif trouvé pour export_id: {}",
                     export_id
                 );
                 Err(format!("Aucun processus actif pour l'export {}", export_id))
@@ -1620,11 +1620,11 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
         }
     } else {
         println!(
-            "[cancel_export] Export_id non trouvÃƒÂ© dans les exports actifs: {}",
+            "[cancel_export] Export_id non trouvé dans les exports actifs: {}",
             export_id
         );
         Err(format!(
-            "Export {} non trouvÃƒÂ© ou dÃƒÂ©jÃƒÂ  terminÃƒÂ©",
+            "Export {} non trouvé ou déjà terminé",
             export_id
         ))
     }
@@ -1648,30 +1648,30 @@ pub async fn concat_videos(
     let output_path_str = output_path_buf.to_string_lossy().to_string();
 
     println!(
-        "[concat_videos] DÃƒÂ©but de la concatÃƒÂ©nation de {} vidÃƒÂ©os",
+        "[concat_videos] Début de la concaténation de {} vidéos",
         normalized_video_paths.len()
     );
     println!("[concat_videos] Fichier de sortie: {}", output_path_str);
 
     if normalized_video_paths.is_empty() {
-        return Err("Aucune vidÃƒÂ©o fournie pour la concatÃƒÂ©nation".to_string());
+        return Err("Aucune vidéo fournie pour la concaténation".to_string());
     }
 
     if normalized_video_paths.len() == 1 {
-        // Si une seule vidÃƒÂ©o, on peut simplement la copier ou la renommer
-        println!("[concat_videos] Une seule vidÃƒÂ©o, copie vers le fichier final");
+        // Si une seule vidéo, on peut simplement la copier ou la renommer
+        println!("[concat_videos] Une seule vidéo, copie vers le fichier final");
         std::fs::copy(&normalized_video_paths[0], &output_path_str)
             .map_err(|e| format!("Erreur lors de la copie: {}", e))?;
         return Ok(output_path_str);
     }
 
-    // CrÃƒÂ©er le dossier de sortie si nÃƒÂ©cessaire
+    // Créer le dossier de sortie si nécessaire
     if let Some(parent) = output_path_buf.parent() {
         fs::create_dir_all(parent)
-            .map_err(|e| format!("Erreur crÃƒÂ©ation dossier de sortie: {}", e))?;
+            .map_err(|e| format!("Erreur création dossier de sortie: {}", e))?;
     }
 
-    // CrÃƒÂ©er un fichier de liste temporaire pour FFmpeg
+    // Créer un fichier de liste temporaire pour FFmpeg
     let temp_dir = std::env::temp_dir();
     let list_file_path = temp_dir.join(format!(
         "concat_list_{}.txt",
@@ -1681,38 +1681,38 @@ pub async fn concat_videos(
             .as_secs()
     ));
 
-    // Ãƒâ€°crire la liste des fichiers ÃƒÂ  concatÃƒÂ©ner
+    // Écrire la liste des fichiers à concaténer
     let mut list_content = String::new();
     for video_path in &normalized_video_paths {
-        // VÃƒÂ©rifier que le fichier existe
+        // Vérifier que le fichier existe
         if !Path::new(video_path).exists() {
-            return Err(format!("Fichier vidÃƒÂ©o non trouvÃƒÂ©: {}", video_path));
+            return Err(format!("Fichier vidéo non trouvé: {}", video_path));
         }
         let escaped = path_utils::escape_ffconcat_path(video_path);
         list_content.push_str(&format!("file '{}'\n", escaped));
     }
 
     fs::write(&list_file_path, list_content)
-        .map_err(|e| format!("Erreur ÃƒÂ©criture fichier liste: {}", e))?;
+        .map_err(|e| format!("Erreur écriture fichier liste: {}", e))?;
 
     println!(
-        "[concat_videos] Fichier liste crÃƒÂ©ÃƒÂ©: {:?}",
+        "[concat_videos] Fichier liste créé: {:?}",
         list_file_path
     );
 
-    // PrÃƒÂ©parer la commande FFmpeg
+    // Préparer la commande FFmpeg
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
 
     let mut cmd = Command::new(&ffmpeg_exe);
     cmd.args(&[
-        "-y",           // Ãƒâ€°craser le fichier de sortie
+        "-y",           // Écraser le fichier de sortie
         "-hide_banner", // Masquer le banner FFmpeg
         "-loglevel",
         "info", // Niveau de log
         "-fflags",
-        "+genpts", // RÃƒÂ©gÃƒÂ©nÃƒÂ¨re les pts pour ÃƒÂ©viter les gaps
+        "+genpts", // Régénère les pts pour éviter les gaps
         "-f",
-        "concat", // Format d'entrÃƒÂ©e concat
+        "concat", // Format d'entrée concat
         "-safe",
         "0", // Permettre les chemins absolus
         "-i",
@@ -1720,16 +1720,16 @@ pub async fn concat_videos(
         "-avoid_negative_ts",
         "make_zero", // Normalise les timestamps
         "-map",
-        "0:v", // VidÃƒÂ©o
+        "0:v", // Vidéo
         "-c:v",
-        "copy", // Pas de rÃƒÂ©-encodage vidÃƒÂ©o
+        "copy", // Pas de ré-encodage vidéo
     ]);
 
-    // RÃƒÂ©-encoder l'audio pour lisser les timestamps et ÃƒÂ©viter les micro-cuts
+    // Ré-encoder l'audio pour lisser les timestamps et éviter les micro-cuts
     if normalized_video_paths.iter().any(|p| video_has_audio(p)) {
         cmd.args(&[
             "-map",
-            "0:a?", // Map audio si prÃƒÂ©sent (sans ÃƒÂ©chouer si absent)
+            "0:a?", // Map audio si présent (sans échouer si absent)
             "-af",
             "aresample=async=1:first_pts=0", // Corrige les horloges audio
             "-c:a",
@@ -1738,19 +1738,19 @@ pub async fn concat_videos(
             "192k",
         ]);
     } else {
-        cmd.arg("-an"); // Aucun audio trouvÃƒÂ©, on dÃƒÂ©sactive l'audio
+        cmd.arg("-an"); // Aucun audio trouvé, on désactive l'audio
     }
 
     cmd.arg(&output_path_str); // Fichier de sortie
 
-    // Configurer la commande pour cacher les fenÃƒÂªtres CMD sur Windows
+    // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
 
-    println!("[concat_videos] ExÃƒÂ©cution de FFmpeg...");
+    println!("[concat_videos] Exécution de FFmpeg...");
 
     let output = cmd
         .output()
-        .map_err(|e| format!("Erreur exÃƒÂ©cution FFmpeg: {}", e))?;
+        .map_err(|e| format!("Erreur exécution FFmpeg: {}", e))?;
 
     // Nettoyer le fichier temporaire
     let _ = fs::remove_file(&list_file_path);
@@ -1764,19 +1764,19 @@ pub async fn concat_videos(
         println!("STDERR: {}", stderr);
 
         return Err(format!(
-            "FFmpeg a ÃƒÂ©chouÃƒÂ© lors de la concatÃƒÂ©nation (code: {:?})\nSTDERR: {}",
+            "FFmpeg a échoué lors de la concaténation (code: {:?})\nSTDERR: {}",
             output.status.code(),
             stderr
         ));
     }
 
-    // VÃƒÂ©rifier que le fichier de sortie a ÃƒÂ©tÃƒÂ© crÃƒÂ©ÃƒÂ©
+    // Vérifier que le fichier de sortie a été créé
     if !Path::new(&output_path_str).exists() {
-        return Err("Le fichier de sortie n'a pas ÃƒÂ©tÃƒÂ© crÃƒÂ©ÃƒÂ©".to_string());
+        return Err("Le fichier de sortie n'a pas été créé".to_string());
     }
 
     println!(
-        "[concat_videos] Ã¢Å“â€¦ ConcatÃƒÂ©nation rÃƒÂ©ussie: {}",
+        "[concat_videos] ✅ Concaténation réussie: {}",
         output_path_str
     );
     Ok(output_path_str)

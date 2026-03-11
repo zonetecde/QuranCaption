@@ -2,7 +2,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import Track from './track/Track.svelte';
-	import { Duration, TrackType, ProjectEditorTabs, SubtitleClip } from '$lib/classes';
+	import { Duration, TrackType, ProjectEditorTabs, SubtitleClip, AssetClip } from '$lib/classes';
 	import { slide } from 'svelte/transition';
 	import ShortcutService from '$lib/services/ShortcutService';
 
@@ -275,6 +275,23 @@
 			registerRemoveShortcut();
 		} else {
 			unregisterRemoveShortcut();
+		}
+
+		// Le raccourci de synchronisation des clips bouclés
+		if (globalState.currentProject) {
+			const timeline = globalState.currentProject.content.timeline;
+			const longestMs = timeline.getLongestTrackDurationIgnoringLoopedVideo().ms;
+
+			const videoTrack = timeline.tracks.find((t) => t.type === TrackType.Video);
+			if (videoTrack) {
+				const loopedClip = videoTrack.clips.find(
+					(clip) => clip instanceof AssetClip && (clip as AssetClip).loopUntilAudioEnd
+				);
+
+				if (loopedClip && loopedClip.endTime !== longestMs) {
+					loopedClip.setEndTime(longestMs);
+				}
+			}
 		}
 
 		// Le raccourci M pour définir la fin du sous-titre fonctionne dans tous les tabs maintenant

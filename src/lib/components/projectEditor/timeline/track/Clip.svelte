@@ -129,11 +129,21 @@
 				const assetClip = clip as AssetClip;
 				assetClip.loopUntilAudioEnd = !assetClip.loopUntilAudioEnd;
 				if (assetClip.loopUntilAudioEnd) {
-					const audioTrack = globalState.currentProject?.content.timeline.getFirstTrack(
-						TrackType.Audio
-					);
-					if (audioTrack) {
-						assetClip.setEndTime(audioTrack.getDuration().ms);
+					// If there are other clips in the track, the loop cannot be activated.
+					if (track.clips.length > 1) {
+						assetClip.loopUntilAudioEnd = false;
+						ModalManager.errorModal(
+							'Looping Error',
+							'You can only enable "Loop until audio end" if this is the only clip in the track.'
+						);
+						return;
+					}
+
+					if (globalState.currentProject) {
+						assetClip.setEndTime(
+							globalState.currentProject.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
+								.ms
+						);
 					}
 				}
 			}}

@@ -245,6 +245,22 @@
 						? globalState.getStylesState.currentSelectionTranslation
 						: category.id}
 				>
+					{#if category.id === 'background'}
+						<div
+							class="mx-2 mb-2 flex items-start gap-2 rounded-md border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 translate-y-1.5"
+						>
+							<span
+								class="material-icons-outlined text-sm mt-0.5 text-sky-200"
+								title="Background is visible only when 'Max Height' style is set.">info</span
+							>
+							<p class="text-xs text-sky-100 leading-relaxed">
+								Background is visible only when <span class="font-semibold">Max Height</span> style
+								is
+								<span class="font-semibold">set</span>.
+							</p>
+						</div>
+					{/if}
+
 					{#each category.styles as style, styleIndex}
 						{#if globalState.getStylesState.searchQuery === '' || style.name
 								.toLowerCase()

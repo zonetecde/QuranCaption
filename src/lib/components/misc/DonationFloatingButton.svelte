@@ -1,8 +1,8 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import 'material-icons/iconfont/material-icons.css';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
 	import {
 		getSupportPromptDelayMs,
 		shouldShowSupportPrompt
@@ -10,19 +10,11 @@
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onDestroy } from 'svelte';
 	import toast from 'svelte-5-french-toast';
-	import { fade } from 'svelte/transition';
 
 	let isPromptVisible = $state(false);
-	let isReviewModalOpen = $state(false);
-	let reviewRating = $state(0);
-	let hoveredRating = $state(0);
-	let reviewComment = $state('');
-	let isSubmittingReview = $state(false);
+	let supportModalTab = $state<'review' | 'feedback'>('review');
+	let isSupportModalOpen = $state(false);
 	let showPromptTimer: ReturnType<typeof setTimeout> | undefined = undefined;
-
-	const canSubmitReview = $derived(
-		!isSubmittingReview && reviewRating > 0 && reviewComment.trim().length > 0
-	);
 
 	function clearPromptTimer() {
 		if (!showPromptTimer) return;
@@ -91,56 +83,15 @@
 	}
 
 	function openReviewModal() {
-		isReviewModalOpen = true;
+		supportModalTab = 'review';
+		isSupportModalOpen = true;
 	}
 
-	function closeReviewModal() {
-		isReviewModalOpen = false;
-		hoveredRating = 0;
-	}
-
-	function resetReviewForm() {
-		reviewRating = 0;
-		hoveredRating = 0;
-		reviewComment = '';
-	}
-
-	async function submitReview() {
-		if (!canSubmitReview) return;
-
-		isSubmittingReview = true;
-		try {
-			AnalyticsService.trackReview(reviewRating, reviewComment.trim(), 'support_prompt');
-			toast.success('Thanks for your review.');
-			resetReviewForm();
-			closeReviewModal();
-		} catch (error) {
-			console.error('Failed to submit review event:', error);
-			toast.error('Unable to send review.');
-		} finally {
-			isSubmittingReview = false;
-		}
-	}
-
-	function setRating(star: number) {
-		reviewRating = star;
-	}
-
-	function handleStarKeyDown(event: KeyboardEvent, star: number) {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
-		event.preventDefault();
-		setRating(star);
-	}
-
-	function handleWindowKeyDown(event: KeyboardEvent) {
-		if (!isReviewModalOpen) return;
-		if (event.key !== 'Escape') return;
-		event.preventDefault();
-		closeReviewModal();
+	function openFeedbackModal() {
+		supportModalTab = 'feedback';
+		isSupportModalOpen = true;
 	}
 </script>
-
-<svelte:window onkeydown={handleWindowKeyDown} />
 
 {#if isPromptVisible}
 	<section
@@ -151,7 +102,16 @@
 				<span class="material-icons-outlined text-accent mt-[1px]">volunteer_activism</span>
 				<div class="min-w-0">
 					<p class="text-sm font-semibold text-primary leading-5">Enjoying Quran Caption?</p>
-					<p class="text-xs text-secondary leading-5">Your feedback helps improve the app.</p>
+					<div class="flex items-center gap-2">
+						<p class="text-xs text-secondary leading-5">Your feedback helps improve the app.</p>
+						<button
+							class="tiny-feedback-btn"
+							onclick={openFeedbackModal}
+							aria-label="Request feature or report bug"
+						>
+							Feature/Bug
+						</button>
+					</div>
 				</div>
 			</div>
 
@@ -186,83 +146,13 @@
 	</section>
 {/if}
 
-{#if isReviewModalOpen}
-	<div
-		class="fixed inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3"
-		transition:fade
-	>
-		<div
-			class="w-[560px] max-w-full rounded-2xl border border-color bg-secondary shadow-2xl overflow-hidden"
-		>
-			<div
-				class="px-5 py-4 border-b border-color bg-gradient-to-r from-accent-primary/15 to-transparent"
-			>
-				<div class="flex items-center justify-between gap-3">
-					<div>
-						<h3 class="text-lg font-semibold text-primary">Leave a review</h3>
-						<p class="text-sm text-secondary">Share your experience to help improve the app.</p>
-					</div>
-					<button
-						class="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-primary/10 transition-colors"
-						onclick={closeReviewModal}
-						aria-label="Close review modal"
-					>
-						<span class="material-icons-outlined">close</span>
-					</button>
-				</div>
-			</div>
-
-			<div class="p-5">
-				<p class="text-sm font-medium text-primary">Your rating</p>
-				<div class="mt-2 flex items-center gap-1">
-					{#each [1, 2, 3, 4, 5] as star}
-						<button
-							class="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-primary/10"
-							onclick={() => setRating(star)}
-							onmouseenter={() => (hoveredRating = star)}
-							onmouseleave={() => (hoveredRating = 0)}
-							onkeydown={(event) => handleStarKeyDown(event, star)}
-							aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
-						>
-							<span
-								class={`material-icons ${
-									(hoveredRating || reviewRating) >= star ? 'text-amber-400' : 'text-secondary'
-								}`}
-							>
-								{(hoveredRating || reviewRating) >= star ? 'star' : 'star_border'}
-							</span>
-						</button>
-					{/each}
-				</div>
-
-				<label for="support-review-comment" class="mt-4 block text-sm font-medium text-primary">
-					Comment
-				</label>
-				<textarea
-					id="support-review-comment"
-					rows="5"
-					maxlength={500}
-					placeholder="Share your thoughts about the app..."
-					class="mt-2 w-full text-sm resize-y min-h-[120px]"
-					bind:value={reviewComment}
-				></textarea>
-				<p class="mt-1 text-xs text-thirdly">{reviewComment.length}/500</p>
-			</div>
-
-			<div class="px-5 py-4 border-t border-color flex items-center justify-end gap-2">
-				<button class="btn px-4 py-2 text-sm" onclick={closeReviewModal}>Cancel</button>
-				<button
-					class="btn-accent px-4 py-2 text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-					onclick={submitReview}
-					disabled={!canSubmitReview}
-					aria-label="Send review"
-				>
-					<span class="material-icons-outlined text-sm">send</span>
-					{isSubmittingReview ? 'Sending...' : 'Send review'}
-				</button>
-			</div>
-		</div>
-	</div>
+{#if isSupportModalOpen}
+	<SupportFeedbackModal
+		initialTab={supportModalTab}
+		close={() => {
+			isSupportModalOpen = false;
+		}}
+	/>
 {/if}
 
 <style>
@@ -289,5 +179,25 @@
 		border-color: color-mix(in srgb, var(--accent-secondary) 68%, var(--border-color));
 		color: var(--text-primary);
 		scale: 1.02;
+	}
+
+	.tiny-feedback-btn {
+		padding: 0.1rem 0.45rem;
+		font-size: 0.65rem;
+		line-height: 1rem;
+		border-radius: 9999px;
+		border: var(--border-w) solid color-mix(in srgb, var(--accent-primary) 48%, var(--border-color));
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-secondary));
+		transition:
+			background-color var(--transition-speed) var(--transition-timing),
+			color var(--transition-speed) var(--transition-timing),
+			border-color var(--transition-speed) var(--transition-timing);
+	}
+
+	.tiny-feedback-btn:hover {
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--accent-primary) 24%, var(--bg-secondary));
+		border-color: color-mix(in srgb, var(--accent-primary) 76%, var(--border-color));
 	}
 </style>

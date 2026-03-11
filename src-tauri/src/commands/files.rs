@@ -194,6 +194,29 @@ pub fn delete_file(path: String) -> Result<(), String> {
     fs::remove_file(path_buf).map_err(|e| format!("Failed to delete file: {}", e))
 }
 
+/// Effectue une requête HTTP GET et renvoie le code de statut.
+#[tauri::command]
+pub async fn send_http_get(url: String) -> Result<u16, String> {
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let response = client
+        .get(&url)
+        .header(USER_AGENT, "QuranCaption/3")
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?;
+
+    let status = response.status().as_u16();
+    if !response.status().is_success() {
+        return Err(format!("HTTP error: {}", status));
+    }
+    Ok(status)
+}
+
 /// Déplace un fichier avec fallback copy+delete sur erreur cross-device.
 #[tauri::command]
 pub fn move_file(source: String, destination: String) -> Result<(), String> {

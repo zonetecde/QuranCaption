@@ -170,11 +170,20 @@ export class AssetTrack extends Track {
 		super(type);
 	}
 
-	addAsset(asset: Asset) {
+	addAsset(asset: Asset): boolean {
 		// Récupère le dernier clip de la piste, s'il existe
 		const lastClip = this.clips.length > 0 ? this.clips[this.clips.length - 1] : null;
 
 		if (lastClip) {
+			// Prevent adding if an existing clip has the loop option enabled
+			if (this.clips.some((c) => c instanceof AssetClip && (c as AssetClip).loopUntilAudioEnd)) {
+				ModalManager.errorModal(
+					'Clip Addition Error',
+					'You cannot add more clips because a clip with "Loop until the end" is already present.'
+				);
+				return false;
+			}
+
 			// S'il y a un dernier clip alors qu'on essaie de mettre une image dans la timeline (= mettre une image en
 			// tant que background pour la vidéo), alors on informe l'utilisateur que ce n'est pas possible.
 			if (asset.type === AssetType.Image) {
@@ -182,7 +191,7 @@ export class AssetTrack extends Track {
 					'Background Image Error',
 					'You cannot add a background image to the timeline because there is already a video or image clip in the video track.'
 				);
-				return;
+				return false;
 			}
 
 			this.clips.push(
@@ -196,6 +205,8 @@ export class AssetTrack extends Track {
 
 			globalState.getTimelineState.movePreviewTo = globalState.getTimelineState.cursorPosition + 1;
 		}, 0);
+
+		return true;
 	}
 }
 
@@ -237,7 +248,10 @@ export class SubtitleTrack extends Track {
 
 		// Modiife le clip existant ou le remplace par le nouveau clip pré-défini
 		if (newSubtitleClip) {
-			if (newSubtitleClip instanceof ClipWithTranslation && subtitle instanceof ClipWithTranslation) {
+			if (
+				newSubtitleClip instanceof ClipWithTranslation &&
+				subtitle instanceof ClipWithTranslation
+			) {
 				newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
 			}
 

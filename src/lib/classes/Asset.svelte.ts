@@ -66,10 +66,11 @@ export class Asset extends SerializableBase {
 	}
 
 	async addToTimeline(asVideo: boolean, asAudio: boolean) {
-		if (asVideo) globalState.getVideoTrack.addAsset(this);
+		let wasAddedToVideo = false;
+		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this);
 		if (asAudio) globalState.getAudioTrack.addAsset(this);
 
-		if (asVideo && this.type === AssetType.Video) {
+		if (asVideo && wasAddedToVideo && this.type === AssetType.Video) {
 			// Demande à l'utilisateur s'il veut que le format de les dimensions de la vidéo soient appliquées au projet
 			// Récupère les dimensions de la vidéo
 			const assetDimensions = (await invoke('get_video_dimensions', {

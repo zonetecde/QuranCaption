@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Asset, AssetType, ProjectEditorTabs, TrackType } from '$lib/classes';
+	import { Asset, AssetType, ProjectEditorTabs, TrackType, AssetClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { mount, onDestroy, onMount, unmount, untrack } from 'svelte';
@@ -47,6 +47,23 @@
 			return untrack(() => {
 				return globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Audio);
 			});
+	});
+
+	let currentVideoClip = $derived(() => {
+		if (!globalState.currentProject) return null;
+		try {
+			const track = globalState.currentProject.content.timeline.tracks.find(
+				(t) => t.type === TrackType.Video
+			);
+			return track?.getCurrentClip() ?? null;
+		} catch (e) {
+			return null;
+		}
+	});
+
+	let isVideoLooping = $derived(() => {
+		const clip = currentVideoClip();
+		return clip instanceof AssetClip && clip.loopUntilAudioEnd;
 	});
 
 	// === ÉTATS LOCAUX ===
@@ -144,11 +161,18 @@
 	 */
 	function getCurrentVideoTimeToPlay(): number {
 		const currentClip = globalState.getVideoTrack.getCurrentClip();
+		const asset = currentVideo();
 
-		if (!currentClip) return 0;
+		if (!currentClip || !asset) return 0;
 
 		// Le temps dans la vidéo = position du curseur - début du clip
-		const timeInClip = getTimelineSettings().movePreviewTo - currentClip.startTime;
+		const refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition;
+		let timeInClip = refTime - currentClip.startTime;
+
+		if (isVideoLooping() && !asset.duration.isNull()) {
+			timeInClip = timeInClip % asset.duration.ms;
+		}
+
 		return Math.max(0, timeInClip / 1000); // Convertit en secondes pour l'élément video HTML
 	}
 
@@ -304,11 +328,15 @@
 
 		// Utilise la vidéo pour mettre à jour le curseur de la timeline
 		if (videoElement && videoElement.currentTime !== undefined && isPlaying) {
-			const currentVideoClip = globalState.getVideoTrack.getCurrentClip();
+			const currentClip = globalState.getVideoTrack.getCurrentClip();
 
-			if (currentVideoClip) {
+			if (currentClip) {
+				if (isVideoLooping()) {
+					return;
+				}
+
 				// La position du curseur = début du clip + temps écoulé dans la vidéo (en ms)
-				const absolutePosition = currentVideoClip.startTime + videoElement.currentTime * 1000;
+				const absolutePosition = currentClip.startTime + videoElement.currentTime * 1000;
 				getTimelineSettings().cursorPosition = absolutePosition;
 			}
 		}
@@ -592,6 +620,10 @@
 			return;
 		}
 
+		if (!currentAudio() && isVideoLooping()) {
+			playSilentAudio();
+		}
+
 		isPlaying = true;
 		globalState.getVideoPreviewState.isPlaying = true;
 
@@ -748,6 +780,7 @@
 						bind:this={videoElement}
 						src={convertFileSrc(currentVideo()!.filePath)}
 						muted
+						loop={isVideoLooping()}
 						onended={goNextVideo}
 					></video>
 				{:else if currentImage()}

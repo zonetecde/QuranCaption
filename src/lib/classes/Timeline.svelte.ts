@@ -15,6 +15,23 @@ export class Timeline extends SerializableBase {
 		return new Duration(Math.max(...this.tracks.map((track) => track.getDuration().ms)));
 	}
 
+	getLongestTrackDurationIgnoringLoopedVideo(): Duration {
+		return new Duration(
+			Math.max(
+				...this.tracks.map((track) => {
+					if (track.type === TrackType.Video) {
+						const nonLoopedClips = track.clips.filter(
+							(clip) => !(clip instanceof AssetClip && clip.loopUntilAudioEnd)
+						);
+						if (nonLoopedClips.length === 0) return 0;
+						return Math.max(...nonLoopedClips.map((clip) => clip.endTime));
+					}
+					return track.getDuration().ms;
+				})
+			)
+		);
+	}
+
 	removeAssetFromTracks(asset: Asset) {
 		this.tracks.forEach((track) => {
 			if (track.type === TrackType.Audio || track.type === TrackType.Video) {

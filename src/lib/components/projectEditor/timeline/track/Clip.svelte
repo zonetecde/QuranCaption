@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AssetType, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
+	import { AssetType, TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -8,6 +8,7 @@
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
+	import ModalManager from '$lib/components/modals/ModalManager';
 
 	let {
 		clip = $bindable(),
@@ -85,6 +86,35 @@
 			track.removeClip(clip.id);
 		});
 	}
+	function loopUntilTheEndClicked(): void {
+		const assetClip = clip as AssetClip;
+		const willEnable = !assetClip.loopUntilAudioEnd;
+		assetClip.loopUntilAudioEnd = willEnable;
+
+		if (assetClip.loopUntilAudioEnd) {
+			// If there are other clips in the track, the loop cannot be activated.
+			if (track.clips.length > 1) {
+				assetClip.loopUntilAudioEnd = false;
+				ModalManager.errorModal(
+					'Looping Error',
+					'You can only enable "Loop until the end" if this is the only clip in the track.'
+				);
+				return;
+			}
+
+			if (globalState.currentProject) {
+				assetClip.setEndTime(
+					globalState.currentProject.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
+						.ms
+				);
+			}
+		} else {
+			const asset = globalState.currentProject?.content.getAssetById(assetClip.assetId);
+			if (asset) {
+				assetClip.setEndTime(assetClip.startTime + asset.duration.ms);
+			}
+		}
+	}
 </script>
 
 <div
@@ -123,6 +153,17 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
+	{#if track.type === TrackType.Video && clip instanceof AssetClip}
+		<Item on:click={loopUntilTheEndClicked}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">
+					{(clip as AssetClip).loopUntilAudioEnd ? 'check_box' : 'check_box_outline_blank'}
+				</span>
+				Loop until the end
+			</div>
+		</Item>
+		<Divider />
+	{/if}
 	<Item on:click={removeClip}
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove clip

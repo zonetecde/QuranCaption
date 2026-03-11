@@ -88,6 +88,7 @@
 			}
 		};
 		globalState.settings = next;
+		void Settings.save();
 	}
 
 	function clearKey(category: string, action: string, index: number) {

@@ -115,8 +115,10 @@ export class VerseTranslation extends Translation {
 		const originalTranslationText: string =
 			globalState.currentProject!.content.projectTranslation.getVerseTranslation(edition, verseKey);
 
-		// Nouvelle logique robuste de recalcul des index
 		if (!originalTranslationText) return;
+
+		// Normalise un mot pour comparer les contenus sans être sensible à la casse,
+		// aux espaces spéciaux, aux variantes de tirets et à la ponctuation de bord.
 		const normalizeWord = (w: string) =>
 			w
 				.replace(/\u00A0/g, ' ')
@@ -124,97 +126,93 @@ export class VerseTranslation extends Translation {
 				.toLowerCase()
 				.replace(/[\u2013\u2014]/g, '-')
 				.replace(/^([^\p{L}\p{N}]+)|([^\p{L}\p{N}]+)$/gu, '');
+
+		// Découpe robuste en mots, sans produire [''] quand la chaîne est vide.
 		const splitWords = (s: string) =>
 			s
 				.replace(/\u00A0/g, ' ')
 				.replace(/\s+/g, ' ')
 				.trim()
-				.split(' ');
-		const originalWords = splitWords(originalTranslationText);
-		const currentWords = splitWords(this.text);
-		const sameContent =
-			originalWords.length === currentWords.length &&
-			originalWords.every((w, i) => normalizeWord(w) === normalizeWord(currentWords[i]));
-		if (!sameContent) {
-			const originalNorm = originalWords.map(normalizeWord);
-			const currentNorm = currentWords.map(normalizeWord);
-			if (currentNorm.length > 0 && originalNorm.length >= currentNorm.length) {
-				const candidates: number[] = [];
-				for (let i = 0; i <= originalNorm.length - currentNorm.length; i++) {
-					let ok = true;
-					for (let j = 0; j < currentNorm.length; j++) {
-						if (originalNorm[i + j] !== currentNorm[j]) {
-							ok = false;
-							break;
-						}
-					}
-					if (ok) candidates.push(i);
+				.split(' ')
+				.filter((w) => w.length > 0);
+
+		type IndexedToken = { value: string; sourceWordIndex: number };
+
+		// Transforme un texte en tokens normalisés tout en conservant l'index
+		// du mot source. Les tokens vides (ex: ponctuation seule) sont ignorés.
+		const toIndexedTokens = (text: string): IndexedToken[] =>
+			splitWords(text)
+				.map((word, sourceWordIndex) => ({
+					value: normalizeWord(word),
+					sourceWordIndex
+				}))
+				.filter((token) => token.value.length > 0);
+
+		const originalTokens = toIndexedTokens(originalTranslationText);
+		const currentTokens = toIndexedTokens(this.text);
+
+		// Si le texte courant est vide/invalide après normalisation,
+		// ou plus long que l'original, aucun alignement fiable n'est possible.
+		if (
+			currentTokens.length === 0 ||
+			originalTokens.length === 0 ||
+			currentTokens.length > originalTokens.length
+		) {
+			this.isBruteForce = true;
+			return;
+		}
+
+		// Cas simple: contenu identique après normalisation.
+		// On force isBruteForce à false pour éviter un état stale à true.
+		const sameNormalizedContent =
+			originalTokens.length === currentTokens.length &&
+			originalTokens.every((token, i) => token.value === currentTokens[i].value);
+		if (sameNormalizedContent) {
+			this.startWordIndex = originalTokens[0].sourceWordIndex;
+			this.endWordIndex = originalTokens[originalTokens.length - 1].sourceWordIndex;
+			this.isBruteForce = false;
+			return;
+		}
+
+		// Recherche d'une correspondance contiguë du texte courant dans le texte original.
+		const candidates: number[] = [];
+		for (let i = 0; i <= originalTokens.length - currentTokens.length; i++) {
+			let ok = true;
+			for (let j = 0; j < currentTokens.length; j++) {
+				if (originalTokens[i + j].value !== currentTokens[j].value) {
+					ok = false;
+					break;
 				}
-				if (candidates.length > 0) {
-					const prev = this.startWordIndex ?? 0;
-					let best = candidates[0];
-					let bestDist = Math.abs(best - prev);
-					for (let k = 1; k < candidates.length; k++) {
-						const dist = Math.abs(candidates[k] - prev);
-						if (dist < bestDist) {
-							best = candidates[k];
-							bestDist = dist;
-						}
-					}
-					this.startWordIndex = best;
-					this.endWordIndex = best + currentNorm.length - 1;
-					this.isBruteForce = false;
-					return;
-				} else {
-					this.isBruteForce = true;
-					return;
-				}
-			} else {
-				// Texte identique après normalisation: ne rien faire
-				return;
 			}
+			if (ok) candidates.push(i);
+		}
 
-			if (originalTranslationText) {
-				if (!originalTranslationText.includes(this.text)) {
-					return; // La traduction a été bruteforcée, on ne fait rien
-				}
+		if (candidates.length === 0) {
+			this.isBruteForce = true;
+			return;
+		}
 
-				const originalWords = originalTranslationText.split(' ');
-				const currentWords = this.text.split(' ');
+		// S'il y a plusieurs matches, on choisit celui le plus proche de l'ancien index.
+		const previousStart = this.startWordIndex ?? 0;
+		let bestTokenStart = candidates[0];
+		let bestWordStart = originalTokens[bestTokenStart].sourceWordIndex;
+		let bestDistance = Math.abs(bestWordStart - previousStart);
 
-				// Si le texte de la traduction n'a pas changé, on ne fait rien
-				if (originalWords.length === currentWords.length) {
-					return;
-				}
-
-				// Trouve maintenant l'index du premier mot de la traduction dans le texte original de telle sorte que tous les mots de la traduction soient présents dans le texte original
-				let startIndex = -1;
-				for (let i = 0; i < originalWords.length; i++) {
-					if (originalWords[i] === currentWords[0]) {
-						// Potentiel début trouvé, vérifie que tous les mots suivants sont présents
-						let allMatch = true;
-						for (let j = 1; j < currentWords.length; j++) {
-							if (originalWords[i + j] !== currentWords[j]) {
-								allMatch = false;
-								break;
-							}
-						}
-						if (allMatch) {
-							startIndex = i;
-							break;
-						}
-					}
-				}
-				if (startIndex !== -1) {
-					this.startWordIndex = startIndex;
-					this.endWordIndex = startIndex + currentWords.length - 1;
-					this.isBruteForce = false;
-				} else {
-					// La traduction a été bruteforcée, on ne fait rien
-					this.isBruteForce = true;
-				}
+		for (let k = 1; k < candidates.length; k++) {
+			const candidateTokenStart = candidates[k];
+			const candidateWordStart = originalTokens[candidateTokenStart].sourceWordIndex;
+			const candidateDistance = Math.abs(candidateWordStart - previousStart);
+			if (candidateDistance < bestDistance) {
+				bestTokenStart = candidateTokenStart;
+				bestWordStart = candidateWordStart;
+				bestDistance = candidateDistance;
 			}
 		}
+
+		const bestTokenEnd = bestTokenStart + currentTokens.length - 1;
+		this.startWordIndex = originalTokens[bestTokenStart].sourceWordIndex;
+		this.endWordIndex = originalTokens[bestTokenEnd].sourceWordIndex;
+		this.isBruteForce = false;
 	}
 }
 

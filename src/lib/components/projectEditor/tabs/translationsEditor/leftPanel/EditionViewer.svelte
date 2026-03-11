@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { SubtitleClip, TrackType, type Edition } from '$lib/classes';
-	import type { VerseTranslation } from '$lib/classes/Translation.svelte';
+	import type { TranslationStatus, VerseTranslation } from '$lib/classes/Translation.svelte';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -12,75 +12,126 @@
 	let showAskIAModal = $state(false);
 	let aiModalTranslationEdition: Edition | null = $state(null);
 
+	// Date de séparation QC1/QC2 utilisée quand on appuie sur Ctrl/Cmd.
+	// (only fetch QC2 projects)
+	const QC1_RELEASE_DATE = new Date('2025-08-29');
+
+	// Priorité métier: ces statuts passent avant "ai trimmed" et "fetched",
+	// même si les projets correspondants sont plus anciens.
+	const HIGH_PRIORITY_FETCH_STATUSES: Set<TranslationStatus> = new Set([
+		'completed by default',
+		'reviewed',
+		'automatically trimmed'
+	]);
+
+	// Statuts de secours, utilisés seulement après la passe prioritaire.
+	const LOW_PRIORITY_FETCH_STATUSES: Set<TranslationStatus> = new Set(['ai trimmed', 'fetched']);
+
+	// Clé de matching d'un sous-titre entre deux projets.
+	function getSubtitleLookupKey(clip: SubtitleClip): string {
+		return `${clip.surah}:${clip.verse}:${clip.startWordIndex}:${clip.endWordIndex}`;
+	}
+
 	async function fetchFromOtherProjects(event: MouseEvent) {
 		let skipQC1Projects = false;
 
-		// if ctrl was pressed
+		// Ctrl/Cmd: ne garder que les projets créés après la sortie QC1.
 		if (event.ctrlKey || event.metaKey) {
 			skipQC1Projects = true;
 		}
 
-		const fetchPromise = new Promise(async (resolve, reject) => {
+		const fetchPromise = new Promise<number>(async (resolve, reject) => {
 			try {
-				let doneSubtitlesIds: Set<number> = new Set();
+				const doneSubtitlesIds: Set<number> = new Set();
 
-				// Parcours tout les autres projets, et si on trouve le meme sous-titre et que la traduction existe, on la copie
-				for (const existingProjects of globalState.userProjectsDetails) {
-					// Si ce n'est pas le projet courant
-					if (existingProjects.id === globalState.currentProject!.detail.id) continue;
+				// Index rapide des sous-titres encore incomplets dans le projet courant.
+				// Dès qu'un sous-titre est fetch, on le retire de cette map pour éviter
+				// toute re-recherche dans les itérations suivantes.
+				const pendingSubtitlesByKey: Map<string, SubtitleClip[]> = new Map();
+				for (const subtitle of globalState.getSubtitleClips) {
+					const subtitleTranslation = subtitle.translations[edition.name] as
+						| VerseTranslation
+						| undefined;
+					if (!subtitleTranslation || subtitleTranslation.isStatusComplete()) continue;
 
-					// Regarde si le projet contient la traduction et qu'elle est suffisamment avancée
-					if (
-						!(
-							existingProjects.translations[edition.author] &&
-							existingProjects.translations[edition.author] > 40
-						)
-					)
-						continue;
-
-					// Regarde si le projet date d'avant le 29/08/2025 (date de la QC1)
-					// et que l'on veut skip les projets d'avant la QC1
-					if (skipQC1Projects && existingProjects.createdAt < new Date('2025-08-29')) {
-						continue;
+					const subtitleKey = getSubtitleLookupKey(subtitle);
+					const bucket = pendingSubtitlesByKey.get(subtitleKey);
+					if (bucket) {
+						bucket.push(subtitle);
+					} else {
+						pendingSubtitlesByKey.set(subtitleKey, [subtitle]);
 					}
+				}
 
-					const project = await ProjectService.load(existingProjects.id);
-					if (project) {
+				// Parcours des projets du plus récent au plus ancien.
+				// On trie une copie pour ne pas muter l'ordre global.
+				const sortedEligibleProjects = globalState.userProjectsDetails
+					.filter((projectDetail) => {
+						if (projectDetail.id === globalState.currentProject!.detail.id) return false;
+						if (
+							!(
+								projectDetail.translations[edition.author] &&
+								projectDetail.translations[edition.author] > 40
+							)
+						)
+							return false;
+						if (skipQC1Projects && projectDetail.createdAt < QC1_RELEASE_DATE) return false;
+						return true;
+					})
+					.slice()
+					.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+				// Stratégie en 2 passes:
+				// 1) statuts prioritaires sur tous les projets (récent -> ancien)
+				// 2) statuts de secours sur tous les projets (récent -> ancien)
+				// => la priorité de statut passe avant la récence.
+				const statusPasses: Array<Set<TranslationStatus>> = [
+					HIGH_PRIORITY_FETCH_STATUSES,
+					LOW_PRIORITY_FETCH_STATUSES
+				];
+
+				for (const allowedStatuses of statusPasses) {
+					if (pendingSubtitlesByKey.size === 0) break;
+
+					for (const projectDetail of sortedEligibleProjects) {
+						if (pendingSubtitlesByKey.size === 0) break;
+
+						const project = await ProjectService.load(projectDetail.id);
+						if (!project) continue;
+
 						for (const clip of project.content.timeline.getFirstTrack(TrackType.Subtitle).clips) {
+							if (pendingSubtitlesByKey.size === 0) break;
 							if (!(clip instanceof SubtitleClip)) continue;
-							// Si la traduction est reviewed
-							if (!clip.translations[edition.name].isStatusComplete()) continue;
 
-							const matchingSubtitle = globalState.getSubtitleClips.find(
-								(c) =>
-									// Si la traduction du projet n'est pas reviewed
-									!c.translations[edition.name].isStatusComplete() &&
-									// et qu'on ne l'a pas encore fetch d'un autre projet
-									!doneSubtitlesIds.has(c.id) &&
-									c.verse === clip.verse &&
-									c.surah === clip.surah &&
-									c.startWordIndex === clip.startWordIndex &&
-									c.endWordIndex === clip.endWordIndex
-							) as SubtitleClip | undefined;
+							const src = clip.translations[edition.name] as VerseTranslation | undefined;
+							if (!src || !allowedStatuses.has(src.status)) continue;
 
-							if (matchingSubtitle) {
-								doneSubtitlesIds.add(matchingSubtitle.id);
+							const matchingSubtitleKey = getSubtitleLookupKey(clip);
+							const pendingMatches = pendingSubtitlesByKey.get(matchingSubtitleKey);
+							if (!pendingMatches || pendingMatches.length === 0) continue;
 
-								const src = clip.translations[edition.name] as VerseTranslation;
-								const tgt = matchingSubtitle.translations[edition.name] as VerseTranslation;
+							const matchingSubtitle = pendingMatches.shift();
+							if (!matchingSubtitle) continue;
 
-								Object.assign(tgt, {
-									text: src.text,
-									startWordIndex: src.startWordIndex,
-									endWordIndex: src.endWordIndex,
-									isBruteForce: src.isBruteForce,
-									status: 'fetched'
-								});
+							// Bucket vide = plus rien à chercher pour cette clé.
+							if (pendingMatches.length === 0) {
+								pendingSubtitlesByKey.delete(matchingSubtitleKey);
+							}
 
-								if (src.isBruteForce) {
-									// Essaie quand même de le mettre en non-bruteforce et donc de recalculer les indexes
-									tgt.tryRecalculateTranslationIndexes(edition, clip.getVerseKey());
-								}
+							doneSubtitlesIds.add(matchingSubtitle.id);
+
+							const tgt = matchingSubtitle.translations[edition.name] as VerseTranslation;
+							Object.assign(tgt, {
+								text: src.text,
+								startWordIndex: src.startWordIndex,
+								endWordIndex: src.endWordIndex,
+								isBruteForce: src.isBruteForce,
+								status: 'fetched'
+							});
+
+							if (src.isBruteForce) {
+								// Tente de retrouver des indexes propres apres import.
+								tgt.tryRecalculateTranslationIndexes(edition, clip.getVerseKey());
 							}
 						}
 					}

@@ -147,7 +147,7 @@ returns a JSON with timestamps used to create `Clip` objects.
 
 Exporting is handled by combining:
 
-- **Frontend**: `dom-to-image` for capturing styled verses as high-quality images.
+- **Frontend**: `modern-screenshot` for capturing styled verses as high-quality images.
 - **Backend (Rust)**: `ffmpeg` commands to assemble frames, audio, and background videos into the
   final output.
 

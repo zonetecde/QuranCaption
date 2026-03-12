@@ -9,6 +9,29 @@
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import { slide } from 'svelte/transition';
+
+	type TranslationWord = { i: number; w: string };
+	type PromptSegment = {
+		i: number;
+		arabic: string;
+		locked: boolean;
+		lockedRange?: [number, number];
+		lockedText?: string;
+	};
+	type PromptVersePayload = {
+		index: number;
+		verseKey: string;
+		segments: PromptSegment[];
+		translation: string;
+	};
+	type VerseRuntimeMapping = {
+		verseKey: string;
+		subtitles: SubtitleClip[];
+		translationWords: TranslationWord[];
+		segmentLocks: boolean[];
+		promptLockedRanges: Array<[number, number] | null>;
+	};
+
 	let {
 		close,
 		edition
@@ -16,6 +39,7 @@
 		close: () => void;
 		edition: Edition;
 	} = $props();
+
 	let aiPrompt: string = $state('');
 	let aiResponse: string = $state('');
 
@@ -23,12 +47,71 @@
 	let totalVerses: number = $state(0);
 	let startIndex: number = $state(0);
 	let endIndex: number = $state(0);
-	let fullVerseArray: any[] = $state([]);
+	let fullVerseArray: PromptVersePayload[] = $state([]);
 
 	function persistAiTranslationSettings(): void {
 		if (!globalState.settings) return;
 		void Settings.save();
 		void updatePromptWithRange();
+	}
+
+	// Accepte soit l'ancien format array (fallback), soit le format objet indexé attendu.
+	function normalizeResponseJson(raw: unknown, expectedIndexes: number[]): Record<string, unknown> {
+		if (Array.isArray(raw)) {
+			const normalized: Record<string, unknown> = {};
+			for (let i = 0; i < expectedIndexes.length; i++) {
+				normalized[String(expectedIndexes[i])] = raw[i];
+			}
+			return normalized;
+		}
+
+		if (raw && typeof raw === 'object') {
+			return raw as Record<string, unknown>;
+		}
+
+		throw new Error('Invalid AI response format: expected a JSON object or array.');
+	}
+
+	// Parser la traduction compacte "index:word index:word..."
+	function parseCompactTranslation(translationStr: string): TranslationWord[] {
+		return translationStr
+			.split(' ')
+			.map((item) => {
+				const colonIndex = item.indexOf(':');
+				const index = Number(item.substring(0, colonIndex));
+				const word = item.substring(colonIndex + 1);
+				return { i: index, w: word };
+			})
+			.filter((item) => Number.isFinite(item.i));
+	}
+
+	function toValidRange(range: unknown, totalWords: number): [number, number] | null {
+		if (!Array.isArray(range) || range.length !== 2) return null;
+
+		const start = Number(range[0]);
+		const end = Number(range[1]);
+
+		if (!Number.isInteger(start) || !Number.isInteger(end)) return null;
+		if (start < 0 || end < 0) return null;
+		if (start > end) return null;
+		if (start >= totalWords || end >= totalWords) return null;
+
+		return [start, end];
+	}
+
+	// Lit la range sauvegardée d'un segment déjà complété et la valide contre la traduction courante.
+	function getLockedRange(
+		translation: VerseTranslation | null | undefined,
+		totalWords: number
+	): [number, number] | null {
+		if (!translation) return null;
+		if (totalWords <= 0) return null;
+		const start = Number(translation.startWordIndex);
+		const end = Number(translation.endWordIndex);
+		if (!Number.isInteger(start) || !Number.isInteger(end)) return null;
+		if (start < 0 || end < 0 || start > end) return null;
+		if (start >= totalWords || end >= totalWords) return null;
+		return [start, end];
 	}
 
 	// Fonction pour traiter la réponse de l'IA et mettre à jour les traductions
@@ -37,43 +120,32 @@
 			aiResponseStr = aiResponseStr.replace('```json', '');
 			aiResponseStr = aiResponseStr.replace('```', '');
 
-			const aiResponse = JSON.parse(aiResponseStr);
-
-			// Parser la traduction compacte "index:word index:word..."
-			const parseCompactTranslation = (translationStr: string) => {
-				return translationStr.split(' ').map((item) => {
-					const colonIndex = item.indexOf(':');
-					const index = parseInt(item.substring(0, colonIndex));
-					const word = item.substring(colonIndex + 1);
-					return { i: index, w: word };
-				});
-			};
+			const parsed = JSON.parse(aiResponseStr);
 
 			// Error tracking
 			const errorMessages: string[] = [];
 			let processedVerses = 0;
 			let successfulVerses = 0;
+			let lockedSegmentsCount = 0;
+			let updatedUnlockedSegmentsCount = 0;
+			let skippedLockedSegmentsCount = 0;
 
 			// Utilise le tableau filtré pour le mapping
 			const filteredArray = fullVerseArray.slice(startIndex, endIndex + 1);
-			const indexToSubtitleMapping: {
-				[key: number]: { subtitles: any[]; verseKey: string; translation: any[] };
-			} = {};
+			const indexToSubtitleMapping: Record<number, VerseRuntimeMapping> = {};
 
 			// Reconstruit le mapping pour les versets sélectionnés
-			let verses: { [key: string]: SubtitleClip[] } = {};
-
+			const verses: Record<string, SubtitleClip[]> = {};
 			// Collecte les sous-titres par verset
-			for (let i: number = 0; i < globalState.getSubtitleClips.length; i++) {
+			for (let i = 0; i < globalState.getSubtitleClips.length; i++) {
 				const subtitle = globalState.getSubtitleClips[i];
 				const verseKey = subtitle.getVerseKey();
 
 				if (subtitle.isFullVerse) continue; // If complete verse, translation is done by default
 
-				if (verses[verseKey] === undefined) {
+				if (!verses[verseKey]) {
 					verses[verseKey] = [];
 				}
-
 				verses[verseKey].push(subtitle);
 			}
 
@@ -82,76 +154,185 @@
 				const verseData = filteredArray[i];
 				const verseKey = verseData.verseKey;
 
+				if (!verses[verseKey]) continue;
+
+				const subtitles = verses[verseKey];
 				// Convertir le format compact en objets
 				const translationWords = parseCompactTranslation(verseData.translation);
+				const segmentLocks = subtitles.map((subtitle, segmentIndex) => {
+					const promptSegment = verseData.segments?.[segmentIndex];
+					if (promptSegment && typeof promptSegment === 'object' && 'locked' in promptSegment) {
+						return Boolean(promptSegment.locked);
+					}
+					const subtitleTranslation = subtitle.translations[edition.name] as VerseTranslation;
+					return subtitleTranslation?.isStatusComplete() ?? false;
+				});
+				const promptLockedRanges = subtitles.map((_, segmentIndex) => {
+					const promptSegment = verseData.segments?.[segmentIndex];
+					if (!promptSegment?.locked) return null;
+					return toValidRange(promptSegment.lockedRange, translationWords.length);
+				});
 
-				if (verses[verseKey]) {
-					indexToSubtitleMapping[verseData.index] = {
-						subtitles: verses[verseKey],
-						verseKey: verseKey,
-						translation: translationWords
-					};
+				lockedSegmentsCount += segmentLocks.filter(Boolean).length;
+
+				indexToSubtitleMapping[verseData.index] = {
+					verseKey,
+					subtitles,
+					translationWords,
+					segmentLocks,
+					promptLockedRanges
+				};
+			}
+
+			const expectedIndexes = filteredArray
+				.map((item) => item.index)
+				.filter((index) => indexToSubtitleMapping[index] !== undefined);
+			if (expectedIndexes.length === 0) {
+				ModalManager.errorModal(
+					'AI Translation Errors',
+					'No eligible verses were found for this prompt range.',
+					'Regenerate the prompt and try again.'
+				);
+				return;
+			}
+
+			const aiResponse = normalizeResponseJson(parsed, expectedIndexes);
+
+			// Traite chaque réponse de l'IA
+			for (const responseKey in aiResponse) {
+				const responseIndex = Number(responseKey);
+				if (!Number.isFinite(responseIndex)) continue;
+				if (!indexToSubtitleMapping[responseIndex]) {
+					errorMessages.push(
+						`Index ${responseIndex}: No corresponding verse found in the selected prompt range`
+					);
 				}
 			}
 
-			// Traite chaque réponse de l'IA
-			for (const indexStr in aiResponse) {
-				const indexNum = parseInt(indexStr);
-				const segmentRanges = aiResponse[indexStr];
+			for (const indexNum of expectedIndexes) {
+				const mappingData = indexToSubtitleMapping[indexNum];
+				const segmentRangesRaw = aiResponse[String(indexNum)];
 
-				if (!indexToSubtitleMapping[indexNum]) {
-					errorMessages.push(`Index ${indexNum}: No corresponding verse found in project`);
-					continue;
-				}
-
-				if (!Array.isArray(segmentRanges)) {
+				if (typeof segmentRangesRaw === 'undefined') {
 					errorMessages.push(
-						`Index ${indexNum} (${indexToSubtitleMapping[indexNum].verseKey}): Invalid response format - expected array`
+						`Index ${indexNum} (${mappingData.verseKey}): Missing entry in AI response`
 					);
 					continue;
 				}
 
-				const mappingData = indexToSubtitleMapping[indexNum];
-				const subtitlesForVerse = mappingData.subtitles;
-				const translationWords = mappingData.translation;
-				const verseKey = mappingData.verseKey;
+				if (!Array.isArray(segmentRangesRaw)) {
+					errorMessages.push(
+						`Index ${indexNum} (${mappingData.verseKey}): Invalid response format - expected array`
+					);
+					continue;
+				}
 
 				processedVerses++;
 
-				// Check if number of segments matches number of subtitles
-				if (segmentRanges.length !== subtitlesForVerse.length) {
-					errorMessages.push(
-						`Verse ${verseKey}: Mismatch between AI segments (${segmentRanges.length}) and actual subtitles (${subtitlesForVerse.length})`
-					);
+				const subtitlesForVerse = mappingData.subtitles;
+				const translationWords = mappingData.translationWords;
+				const segmentLocks = mappingData.segmentLocks;
+				const promptLockedRanges = mappingData.promptLockedRanges;
+				const verseKey = mappingData.verseKey;
+
+				const totalWords = translationWords.length;
+				if (totalWords === 0) {
+					errorMessages.push(`Verse ${verseKey}: Translation has no words to map`);
+					for (let segmentIndex = 0; segmentIndex < subtitlesForVerse.length; segmentIndex++) {
+						if (segmentLocks[segmentIndex]) continue;
+						const verseTranslation = subtitlesForVerse[segmentIndex].translations[
+							edition.name
+						] as VerseTranslation;
+						verseTranslation.updateStatus('ai error', edition);
+					}
 					continue;
 				}
 
+				const effectiveRanges: Array<[number, number] | null> = new Array(
+					subtitlesForVerse.length
+				).fill(null);
+				const parsedUnlockedRanges: Array<[number, number] | null> = new Array(
+					subtitlesForVerse.length
+				).fill(null);
+
+				let verseUpdatedUnlocked = 0;
 				let verseHasError = false;
 
-				// Vérification de la couverture complète des indices
-				const coveredIndices = new Set<number>();
-				const totalWords = translationWords.length;
+				for (let segmentIndex = 0; segmentIndex < subtitlesForVerse.length; segmentIndex++) {
+					const subtitle = subtitlesForVerse[segmentIndex];
+					const verseTranslation = subtitle.translations[edition.name] as VerseTranslation;
+					const isLocked = segmentLocks[segmentIndex] === true;
 
-				// Collecte tous les indices couverts par les segments valides
-				for (const range of segmentRanges) {
-					if (range !== null && Array.isArray(range) && range.length === 2) {
-						const [start, end] = range;
-						if (start >= 0 && end >= 0 && start <= end && end < totalWords) {
-							for (let i = start; i <= end; i++) {
-								coveredIndices.add(i);
-							}
+					if (isLocked) {
+						skippedLockedSegmentsCount++;
+						// Segment verrouillé = contexte seulement: on n'écrit jamais dessus.
+						// On prend la range actuelle, sinon le snapshot envoyé dans le prompt.
+						const lockedRange =
+							getLockedRange(verseTranslation, totalWords) ?? promptLockedRanges[segmentIndex];
+						if (!lockedRange) {
+							// Locked segments are immutable context-only anchors; do not block processing.
+							continue;
 						}
+
+						effectiveRanges[segmentIndex] = lockedRange;
+						continue;
+					}
+
+					const rawRange =
+						segmentIndex < segmentRangesRaw.length ? segmentRangesRaw[segmentIndex] : undefined;
+					if (rawRange === null || typeof rawRange === 'undefined') {
+						errorMessages.push(
+							`Verse ${verseKey}, segment ${segmentIndex + 1}: AI returned null/missing range`
+						);
+						verseTranslation.updateStatus('ai error', edition);
+						verseHasError = true;
+						continue;
+					}
+
+					const range = toValidRange(rawRange, totalWords);
+					if (!range) {
+						errorMessages.push(
+							`Verse ${verseKey}, segment ${segmentIndex + 1}: Invalid range format or out-of-bounds range`
+						);
+						verseTranslation.updateStatus('ai error', edition);
+						verseHasError = true;
+						continue;
+					}
+
+					const [rangeStart, rangeEnd] = range;
+					// Extrait le texte de traduction correspondant aux indices
+					const translationText = translationWords
+						.slice(rangeStart, rangeEnd + 1)
+						.map((word) => word.w)
+						.join(' ');
+
+					// Met à jour la traduction du sous-titre
+					verseTranslation.text = translationText;
+					verseTranslation.startWordIndex = rangeStart;
+					verseTranslation.endWordIndex = rangeEnd;
+
+					parsedUnlockedRanges[segmentIndex] = range;
+					effectiveRanges[segmentIndex] = range;
+					verseUpdatedUnlocked++;
+					updatedUnlockedSegmentsCount++;
+				}
+
+				const coveredIndices = new Set<number>();
+				// Vérification de la couverture complète des indices (locked + unlocked).
+				// Important: on valide la couverture effective, pas uniquement la sortie IA brute.
+				for (const range of effectiveRanges) {
+					if (!range) continue;
+					const [start, end] = range;
+					for (let i = start; i <= end; i++) {
+						coveredIndices.add(i);
 					}
 				}
 
-				// Vérifie si tous les indices de 0 à totalWords-1 sont couverts
 				const incompleteCoverage = coveredIndices.size !== totalWords;
 				if (incompleteCoverage) {
-					const missingIndices = [];
+					const missingIndices: number[] = [];
 					for (let i = 0; i < totalWords; i++) {
-						if (!coveredIndices.has(i)) {
-							missingIndices.push(i);
-						}
+						if (!coveredIndices.has(i)) missingIndices.push(i);
 					}
 					errorMessages.push(
 						`Verse ${verseKey}: Incomplete word coverage - missing indices ${missingIndices.join(', ')} (covered ${coveredIndices.size}/${totalWords} words)`
@@ -159,71 +340,13 @@
 					verseHasError = true;
 				}
 
-				// Applique chaque range à son sous-titre correspondant
-				for (let segmentIndex = 0; segmentIndex < segmentRanges.length; segmentIndex++) {
-					const range = segmentRanges[segmentIndex];
-					const subtitle = subtitlesForVerse[segmentIndex];
-					const verseTranslation: VerseTranslation = subtitle.translations[edition.name];
-
-					if (range === null) {
-						errorMessages.push(
-							`Verse ${verseKey}, segment ${segmentIndex + 1}: AI returned null (unmappable segment)`
-						);
-						verseTranslation.updateStatus('ai error', edition);
-						verseHasError = true;
-						continue;
-					}
-
-					if (!Array.isArray(range) || range.length !== 2) {
-						errorMessages.push(
-							`Verse ${verseKey}, segment ${segmentIndex + 1}: Invalid range format - expected [start, end]`
-						);
-						verseTranslation.updateStatus('ai error', edition);
-						verseHasError = true;
-						continue;
-					}
-
-					const [startIndex, endIndex] = range;
-
-					// Validate indices
-					if (startIndex < 0 || endIndex < 0) {
-						errorMessages.push(
-							`Verse ${verseKey}, segment ${segmentIndex + 1}: Negative indices not allowed (${startIndex}, ${endIndex})`
-						);
-						verseTranslation.updateStatus('ai error', edition);
-						verseHasError = true;
-						continue;
-					}
-
-					if (startIndex > endIndex) {
-						errorMessages.push(
-							`Verse ${verseKey}, segment ${segmentIndex + 1}: Start index (${startIndex}) cannot be greater than end index (${endIndex})`
-						);
-						verseTranslation.updateStatus('ai error', edition);
-						verseHasError = true;
-						continue;
-					}
-
-					if (startIndex >= translationWords.length || endIndex >= translationWords.length) {
-						errorMessages.push(
-							`Verse ${verseKey}, segment ${segmentIndex + 1}: Indices out of range (${startIndex}-${endIndex}), translation has only ${translationWords.length} words`
-						);
-
-						verseTranslation.updateStatus('ai error', edition);
-						verseHasError = true;
-						continue;
-					}
-
-					// Extrait le texte de traduction correspondant aux indices
-					const translationText = translationWords
-						.slice(startIndex, endIndex + 1)
-						.map((word) => word.w)
-						.join(' ');
-
-					// Met à jour la traduction du sous-titre
-					verseTranslation.text = translationText;
-					verseTranslation.startWordIndex = startIndex;
-					verseTranslation.endWordIndex = endIndex;
+				for (let segmentIndex = 0; segmentIndex < subtitlesForVerse.length; segmentIndex++) {
+					if (segmentLocks[segmentIndex]) continue;
+					const appliedRange = parsedUnlockedRanges[segmentIndex];
+					if (!appliedRange) continue;
+					const verseTranslation = subtitlesForVerse[segmentIndex].translations[
+						edition.name
+					] as VerseTranslation;
 
 					// Met le statut approprié : 'ai error' si couverture incomplète, sinon 'ai trimmed'
 					if (incompleteCoverage) {
@@ -233,10 +356,12 @@
 					}
 				}
 
-				// Même en cas d'erreur de couverture, on considère le verset comme traité avec succès
-				// car les sous-titres ont été appliqués (même s'ils sont marqués 'ai error')
-				if (!verseHasError || incompleteCoverage) {
+				// Même en cas d'erreur partielle, on compte le verset comme réussi si au moins
+				// un segment non verrouillé a été mis à jour.
+				if (verseUpdatedUnlocked > 0) {
 					successfulVerses++;
+				} else if (!verseHasError) {
+					errorMessages.push(`Verse ${verseKey}: No unlocked segments were updated`);
 				}
 			}
 
@@ -251,7 +376,7 @@
 			if (errorMessages.length > 0) {
 				ModalManager.errorModal(
 					'AI Translation Errors',
-					`Errors detected in ${errorMessages.length} verse${errorMessages.length > 1 ? 's' : ''}. You can either try again with a new AI response or manually fix the affected subtitles.`,
+					`Errors detected in ${errorMessages.length} item${errorMessages.length > 1 ? 's' : ''}. Locked segments are preserved and were not overwritten.`,
 					summaryMessage
 				);
 			} else {
@@ -267,6 +392,9 @@
 					processed_verses: processedVerses,
 					successful_verses: successfulVerses,
 					had_errors: errorMessages.length > 0,
+					locked_segments_count: lockedSegmentsCount,
+					updated_unlocked_segments_count: updatedUnlockedSegmentsCount,
+					skipped_locked_segments_count: skippedLockedSegmentsCount,
 					edition_key: edition.key,
 					edition_name: edition.name,
 					edition_author: edition.author,
@@ -286,13 +414,14 @@
 	onMount(async () => {
 		generatePrompt();
 	});
+
 	async function generatePrompt() {
 		// Génère le tableau complet des versets
-		const array = [];
-		let verses: { [key: string]: SubtitleClip[] } = {};
-		const verseFirstIndex: { [key: string]: number } = {};
+		const array: PromptVersePayload[] = [];
+		const verses: Record<string, SubtitleClip[]> = {};
+		const verseFirstIndex: Record<string, number> = {};
 
-		for (let i: number = 0; i < globalState.getSubtitleClips.length; i++) {
+		for (let i = 0; i < globalState.getSubtitleClips.length; i++) {
 			const subtitle = globalState.getSubtitleClips[i];
 			const verseKey = subtitle.getVerseKey();
 
@@ -305,10 +434,10 @@
 			verses[verseKey].push(subtitle);
 		}
 
-		// Si tout les sous-titres d'un même verset on un status qui montre que c'est déjà traduit, on ne les traite pas
+		// Si tout les sous-titres d'un même verset ont un status qui montre que c'est déjà traduit,
+		// on ne les traite pas.
 		for (const verseKey in verses) {
 			const subtitlesForVerse = verses[verseKey];
-
 			if (
 				subtitlesForVerse.every((subtitle) =>
 					subtitle.translations[edition.name]?.isStatusComplete()
@@ -330,16 +459,40 @@
 			const translation = globalState.getProjectTranslation.getVerseTranslation(edition, verseKey);
 
 			// Format compact : "index:word index:word..."
-			let translationString = translation
+			const translationString = translation
 				.split(' ')
 				.map((word, index) => `${index}:${word}`)
 				.join(' ');
 
 			if (verse.length > 0) {
+				const translationWords = parseCompactTranslation(translationString);
+				const segments: PromptSegment[] = verse.map((subtitle, segmentIndex) => {
+					const subtitleTranslation = subtitle.translations[edition.name] as VerseTranslation;
+					const isLocked = subtitleTranslation?.isStatusComplete() ?? false;
+
+					const segment: PromptSegment = {
+						i: segmentIndex,
+						arabic: subtitle.text,
+						locked: isLocked
+					};
+
+					if (isLocked) {
+						// On envoie les segments complets comme ancres de contexte pour l'IA.
+						// Ils ne seront jamais écrasés pendant l'ingestion.
+						const lockedRange = getLockedRange(subtitleTranslation, translationWords.length);
+						if (lockedRange) segment.lockedRange = lockedRange;
+						if (subtitleTranslation.text?.trim()) {
+							segment.lockedText = subtitleTranslation.text;
+						}
+					}
+
+					return segment;
+				});
+
 				array.push({
 					index: verseFirstIndex[verseKey],
-					verseKey: verseKey,
-					segments: verse.map((subtitle) => subtitle.text),
+					verseKey,
+					segments,
 					translation: translationString
 				});
 			}
@@ -365,7 +518,7 @@
 			return;
 		}
 
-		let prompt = await (await fetch('/prompts/translation.txt')).text();
+		const prompt = await (await fetch('/prompts/translation.txt')).text();
 
 		aiPrompt = prompt + '\n\n' + json;
 	}
@@ -851,3 +1004,4 @@
 		box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
 	}
 </style>
+

@@ -7,7 +7,13 @@ Map **Arabic segments** from Quranic verses to their corresponding **word indice
 An array of objects, where each object contains:  
 1. `index` (number): **Timeline position** of the first subtitle segment for that verse in the project (not necessarily sequential).
 2. `verseKey` (string): The surah and verse number in the format "s:v" (e.g., "1:5").  
-3. `segments` (array of strings): Arabic phrases to map from the verse.  
+3. `segments` (array): Arabic phrases to map from the verse. Preferred format is an array of objects:
+   - `i` (number): segment position in verse order.
+   - `arabic` (string): Arabic segment text.
+   - `locked` (boolean): `true` if already reviewed/completed and immutable.
+   - `lockedRange` (optional `[start, end]`): existing fixed range for locked segments.
+   - `lockedText` (optional string): existing translated text for context only.
+   For backward readability, examples may still show `segments` as string arrays (equivalent to unlocked segments in the same order).  
 4. `translation` (string): Compact indexed translation format "index:word index:word..."
 
 **Input Structure**:  
@@ -53,6 +59,12 @@ An array of objects, where each object contains:
 
 **Core Rules (MUST FOLLOW)**:
 
+0. **LOCKED SEGMENTS ARE IMMUTABLE** (CRITICAL):
+   - If a segment has `locked=true`, treat it as a fixed anchor.
+   - If `lockedRange` is provided, return that exact range unchanged.
+   - Do not reinterpret, expand, or shrink locked segments.
+   - Use locked segments as context anchors for mapping nearby unlocked segments.
+
 1. **COMPLETE COVERAGE REQUIREMENT** (CRITICAL):
    - Every word index in the translation **must** appear in at least one segment range.
    - If translation has words 0-13, output must cover **all indices 0-13**.
@@ -93,7 +105,7 @@ An array of objects, where each object contains:
    - If punctuation appears at the very start (no left content word), attach it to the first segment.
 
 9. **PRIORITY ORDER (TIE-BREAKERS)**:
-   - **Boundaries + coordination tokens** > **contiguity** > **overlap policy** > **coverage**.
+   - **Locked anchors + boundaries + coordination tokens** > **contiguity** > **overlap policy** > **coverage**.
    - If coverage conflicts with boundaries, keep boundaries and assign leftover tokens using the attachment rules.
 
 10. **NON-MAPPABLE SEGMENTS**:

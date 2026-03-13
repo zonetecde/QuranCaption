@@ -26,6 +26,16 @@
 				"icon": "123"
 			},
 			{
+				"id": "text-direction",
+				"name": "Right-to-Left",
+				"description": "Set the text direction to Right-to-Left",
+				"value": false,
+				"valueType": "boolean",
+				"css": "direction: rtl;",
+				"tailwind": false,
+				"icon": "format_align_right"
+			},
+			{
 				"id": "show-decorative-brackets",
 				"name": "Decorative Brackets",
 				"description": "Wrap Arabic subtitle text with decorative brackets",

@@ -53,7 +53,8 @@ export type GeneralStyleName =
 	| 'show-decorative-brackets'
 	| 'decorative-brackets-font-family'
 	| 'verse-number-format'
-	| 'verse-number-position';
+	| 'verse-number-position'
+	| 'text-direction';
 
 export type GlobalAnimationStyleName =
 	| 'video-dimension'
@@ -468,6 +469,10 @@ export class StylesData extends SerializableBase {
 					if (!effectiveValue) {
 						return 'display: none;';
 					}
+				}
+
+				if (style.id === 'text-direction' && !effectiveValue) {
+					continue;
 				}
 
 				// Remplace {value} par la valeur effective

@@ -275,6 +275,7 @@
 								- show-subtitles
 								- show-verse-number
 								- show-decorative-brackets
+								- text-direction
 								- decorative-brackets-font-family
 								- verse-number-format
 								- verse-number-position

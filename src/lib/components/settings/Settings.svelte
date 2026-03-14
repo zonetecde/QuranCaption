@@ -154,6 +154,7 @@ import toast from 'svelte-5-french-toast';
 					{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' },
 					{ name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' },
 					{ name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' },
+					{ name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' },
 					{ name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }
 				] as setting}
 					<button
@@ -237,7 +238,23 @@ import toast from 'svelte-5-french-toast';
 				<div class="space-y-5">
 					<h3 class="text-lg font-medium text-primary">Support</h3>
 					<p class="text-sm text-thirdly">
-						If you enjoy Quran Caption, support helps improve the app.
+						If you enjoy Quran Caption, a donation helps maintain and improve the app.
+					</p>
+					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
+						<button
+							class="support-action-btn support-donate w-full"
+							onclick={() => openSupportLink('https://ko-fi.com/vzero', 'donation page')}
+						>
+							<span class="material-icons-outlined text-sm">favorite</span>
+							Donate on Ko-fi
+						</button>
+					</div>
+				</div>
+			{:else if globalState.uiState.settingsTab === SettingsTab.CONTACT}
+				<div class="space-y-5">
+					<h3 class="text-lg font-medium text-primary">Contact</h3>
+					<p class="text-sm text-thirdly">
+						Leave a review, request a feature, report a bug, or join the community.
 					</p>
 					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
 						<div class="grid grid-cols-2 gap-2">
@@ -253,22 +270,13 @@ import toast from 'svelte-5-french-toast';
 								Feature / Bug
 							</button>
 						</div>
-						<div class="grid grid-cols-2 gap-2">
-							<button
-								class="support-action-btn support-discord"
-								onclick={() => openSupportLink('https://discord.gg/Hxfqq2QA2J', 'Discord')}
-							>
-								<span class="material-icons-outlined text-sm">question_answer</span>
-								Discord
-							</button>
-							<button
-								class="support-action-btn support-donate"
-								onclick={() => openSupportLink('https://ko-fi.com/vzero', 'donation page')}
-							>
-								<span class="material-icons-outlined text-sm">favorite</span>
-								Donate
-							</button>
-						</div>
+						<button
+							class="support-action-btn support-discord w-full"
+							onclick={() => openSupportLink('https://discord.gg/Hxfqq2QA2J', 'Discord')}
+						>
+							<span class="material-icons-outlined text-sm">question_answer</span>
+							Join Discord
+						</button>
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.ABOUT}

@@ -321,5 +321,6 @@ export enum SettingsTab {
 	SHORTCUTS = 'shortcuts',
 	THEME = 'theme',
 	SUPPORT = 'support',
+	CONTACT = 'contact',
 	ABOUT = 'about'
 }

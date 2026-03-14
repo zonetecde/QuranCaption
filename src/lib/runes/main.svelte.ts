@@ -52,7 +52,7 @@ class GlobalState {
 		selectedStatuses: Status.getAllStatuses(),
 		filteredProjects: [] as ProjectDetail[],
 		searchQuery: '',
-		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'support' | 'about'
+		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'support' | 'contact' | 'about'
 	});
 
 	shared = $state({

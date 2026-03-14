@@ -897,7 +897,11 @@
 			const blob: Blob | null = await domToBlob(node, {
 				width: node.clientWidth * scale,
 				height: node.clientHeight * scale,
-				scale: scale,
+				style: {
+					// Garder la logique historique de mise à l'échelle pour préserver le centrage.
+					transform: 'scale(' + scale + ')',
+					transformOrigin: 'top left'
+				},
 				quality: 1
 			});
 

@@ -7,6 +7,7 @@
 	import ModalManager from './modals/ModalManager';
 	import { slide } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
+	import toast from 'svelte-5-french-toast';
 
 	// Variable réactive pour forcer les mises à jour
 	let currentTime = $state(Date.now());
@@ -108,6 +109,32 @@
 				'File not found',
 				'The exported file could not be found on your system. It has either been deleted or moved.'
 			);
+		}
+	}
+
+	async function copyErrorLog(errorLog: string) {
+		try {
+			let normalizedError = errorLog;
+
+			// If error was JSON-stringified, decode escaped characters first.
+			try {
+				const parsed = JSON.parse(errorLog);
+				if (typeof parsed === 'string') {
+					normalizedError = parsed;
+				}
+			} catch {
+				// Keep raw string fallback.
+			}
+
+			normalizedError = normalizedError
+				.replaceAll('\\r\\n', '\n')
+				.replaceAll('\\n', '\n')
+				.replaceAll('\\t', '\t');
+
+			await navigator.clipboard.writeText(normalizedError);
+			toast.success('Error copied to clipboard');
+		} catch {
+			toast.error('Failed to copy error');
 		}
 	}
 
@@ -286,9 +313,19 @@
 						<!-- Error Message (if error) -->
 						{#if exportation.currentState === ExportState.Error && exportation.errorLog}
 							<div class="mt-2 p-1 bg-red-900/30 border border-red-700 rounded-lg">
-								<div class="flex items-center gap-2 text-red-400 text-sm mb-1">
-									<span class="material-icons text-sm">error</span>
-									<span class="font-medium">Export Error</span>
+								<div class="flex items-center justify-between text-red-400 text-sm mb-1">
+									<div class="flex items-center gap-2">
+										<span class="material-icons text-sm">error</span>
+										<span class="font-medium">Export Error</span>
+									</div>
+									<button
+										class="text-xs px-2 py-0.5 rounded border border-red-600 hover:bg-red-800/30 transition-colors cursor-pointer flex items-center gap-1"
+										onclick={() => copyErrorLog(exportation.errorLog)}
+										title="Copy export error details"
+									>
+										<span class="material-icons text-[14px]">content_copy</span>
+										Copy error
+									</button>
 								</div>
 								<div
 									class="text-red-300 text-xs font-mono bg-red-950/50 p-1 rounded overflow-auto max-h-[100px]"

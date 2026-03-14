@@ -8,6 +8,7 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Instant;
 use tauri::Emitter;
+use tauri::Manager;
 use tokio::task;
 
 // Expose la dernière durée d'export terminée (en secondes)
@@ -729,6 +730,9 @@ fn build_and_run_ffmpeg_filter_complex(
     blur: Option<f64>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    // TEMP TEST: force FFmpeg failure on every export to test error handling UI.
+    const FORCE_EXPORT_CRASH_FOR_TEST: bool = false;
+
     let (w, h) = target_size;
     let fade_s = (fade_duration_ms as f64 / 1000.0).max(0.0);
     let start_s = (start_time_ms as f64 / 1000.0).max(0.0);
@@ -1095,6 +1099,14 @@ fn build_and_run_ffmpeg_filter_complex(
     }
 
     // Fichier de sortie
+    if FORCE_EXPORT_CRASH_FOR_TEST {
+        // Unknown option -> FFmpeg exits with error, which triggers the existing failure/log pipeline.
+        cmd.extend_from_slice(&[
+            "-qurancaption_force_export_crash".to_string(),
+            "1".to_string(),
+        ]);
+    }
+
     cmd.push(out_path.to_string());
 
     println!("[ffmpeg] Commande:");
@@ -1233,6 +1245,7 @@ fn build_and_run_ffmpeg_filter_complex(
             .unwrap_or_default()
             .as_secs();
         let log_filename = format!("ffmpeg_failed_{}.txt", timestamp);
+        let log_relative_path = PathBuf::from("logs").join(&log_filename);
 
         let log_content = format!(
             "FFmpeg Export Failure Log\n\
@@ -1258,16 +1271,32 @@ fn build_and_run_ffmpeg_filter_complex(
         );
 
         // Écrire le fichier de log
-        if let Err(log_err) = std::fs::write(&log_filename, &log_content) {
-            eprintln!("Failed to write log file {}: {}", log_filename, log_err);
+        let log_write_path = app_handle
+            .path()
+            .app_data_dir()
+            .map(|dir| dir.join(&log_relative_path))
+            .unwrap_or_else(|_| PathBuf::from(&log_filename));
+        let log_write_path_display = log_write_path.to_string_lossy().replace('\\', "/");
+
+        if let Some(parent) = log_write_path.parent() {
+            if let Err(mkdir_err) = fs::create_dir_all(parent) {
+                eprintln!("Failed to create log directory {:?}: {}", parent, mkdir_err);
+            }
+        }
+
+        if let Err(log_err) = std::fs::write(&log_write_path, &log_content) {
+            eprintln!("Failed to write log file {:?}: {}", log_write_path, log_err);
         } else {
-            println!("FFmpeg error details saved to: {}", log_filename);
+            println!(
+                "FFmpeg error details saved to: {}",
+                log_write_path_display
+            );
         }
 
         let error_msg = format!(
             "ffmpeg failed during video exportation (exit code: {:?})\n\nSee the log file: {}\n\nLog details:\n{}",
             status.code(),
-            log_filename,
+            log_write_path_display,
             log_content
         );
         let mut error_data = serde_json::json!({

@@ -320,5 +320,6 @@ export default class Settings extends SerializableBase {
 export enum SettingsTab {
 	SHORTCUTS = 'shortcuts',
 	THEME = 'theme',
+	SUPPORT = 'support',
 	ABOUT = 'about'
 }

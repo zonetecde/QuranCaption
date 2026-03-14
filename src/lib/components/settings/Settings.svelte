@@ -1,12 +1,16 @@
 <script lang="ts">
-	import Settings, { SettingsTab } from '$lib/classes/Settings.svelte';
-	import { globalState } from '$lib/runes/main.svelte';
-	import { slide } from 'svelte/transition';
-	import ShortcutsManager from './ShortcutsManager.svelte';
-	import { onMount } from 'svelte';
-	import About from './About.svelte';
-	import ThemeButton from './ThemeButton.svelte';
-	import type { ThemeConfig } from './ThemeButton.svelte';
+import Settings, { SettingsTab } from '$lib/classes/Settings.svelte';
+import { globalState } from '$lib/runes/main.svelte';
+import { slide } from 'svelte/transition';
+import ShortcutsManager from './ShortcutsManager.svelte';
+import { onMount } from 'svelte';
+import About from './About.svelte';
+import ThemeButton from './ThemeButton.svelte';
+import type { ThemeConfig } from './ThemeButton.svelte';
+
+import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import toast from 'svelte-5-french-toast';
 
 	let {
 		resolve
@@ -33,6 +37,23 @@
 			mockText: 'rgba(0,0,0,0.1)'
 		}
 	];
+
+	let supportModalTab = $state<'review' | 'feedback'>('review');
+	let isSupportModalOpen = $state(false);
+
+	function openSupportModal(tab: 'review' | 'feedback') {
+		supportModalTab = tab;
+		isSupportModalOpen = true;
+	}
+
+	async function openSupportLink(url: string, fallbackLabel: string) {
+		try {
+			await openUrl(url);
+		} catch (error) {
+			console.error(`Failed to open ${fallbackLabel} URL:`, error);
+			toast.error(`Unable to open ${fallbackLabel}.`);
+		}
+	}
 
 	const sepiaThemes: ThemeConfig[] = [
 		{
@@ -129,7 +150,12 @@
 		<!-- Sidebar -->
 		<div class="bg-primary border-r border-color p-3 overflow-auto">
 			<div class="flex flex-col gap-2">
-				{#each [{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' }, { name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }] as setting}
+				{#each [
+					{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' },
+					{ name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' },
+					{ name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' },
+					{ name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }
+				] as setting}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
 						class:selected={globalState.uiState.settingsTab === setting.tab}
@@ -207,6 +233,44 @@
 						</div>
 					</div>
 				</div>
+			{:else if globalState.uiState.settingsTab === SettingsTab.SUPPORT}
+				<div class="space-y-5">
+					<h3 class="text-lg font-medium text-primary">Support</h3>
+					<p class="text-sm text-thirdly">
+						If you enjoy Quran Caption, support helps improve the app.
+					</p>
+					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
+						<div class="grid grid-cols-2 gap-2">
+							<button class="support-action-btn support-review" onclick={() => openSupportModal('review')}>
+								<span class="material-icons-outlined text-sm">star</span>
+								Leave a Review
+							</button>
+							<button
+								class="support-action-btn support-feedback"
+								onclick={() => openSupportModal('feedback')}
+							>
+								<span class="material-icons-outlined text-sm">construction</span>
+								Feature / Bug
+							</button>
+						</div>
+						<div class="grid grid-cols-2 gap-2">
+							<button
+								class="support-action-btn support-discord"
+								onclick={() => openSupportLink('https://discord.gg/Hxfqq2QA2J', 'Discord')}
+							>
+								<span class="material-icons-outlined text-sm">question_answer</span>
+								Discord
+							</button>
+							<button
+								class="support-action-btn support-donate"
+								onclick={() => openSupportLink('https://ko-fi.com/vzero', 'donation page')}
+							>
+								<span class="material-icons-outlined text-sm">favorite</span>
+								Donate
+							</button>
+						</div>
+					</div>
+				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.ABOUT}
 				<About />
 			{/if}
@@ -214,9 +278,87 @@
 	</div>
 </div>
 
+{#if isSupportModalOpen}
+	<SupportFeedbackModal
+		initialTab={supportModalTab}
+		close={() => {
+			isSupportModalOpen = false;
+		}}
+	/>
+{/if}
+
 <style>
 	.selected {
 		background-color: var(--bg-accent) !important;
 		color: var(--text-primary) !important;
+	}
+
+	.support-action-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		height: 2.75rem;
+		padding-inline: 0.75rem;
+		border-radius: var(--radius-l);
+		border: 1px solid var(--border-color);
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.8rem;
+		font-weight: 500;
+		transition:
+			background-color 0.18s ease,
+			border-color 0.18s ease,
+			color 0.18s ease,
+			transform 0.18s ease,
+			box-shadow 0.18s ease;
+	}
+
+	.support-action-btn:hover {
+		transform: translateY(-1px);
+	}
+
+	.support-action-btn.support-review {
+		color: color-mix(in srgb, var(--accent-secondary) 85%, var(--text-secondary));
+		border-color: color-mix(in srgb, var(--accent-secondary) 30%, var(--border-color));
+	}
+
+	.support-action-btn.support-review:hover {
+		color: var(--text-primary);
+		border-color: color-mix(in srgb, var(--accent-secondary) 55%, var(--border-color));
+		background: color-mix(in srgb, var(--accent-secondary) 12%, transparent);
+	}
+
+	.support-action-btn.support-feedback {
+		color: color-mix(in srgb, var(--accent-primary) 75%, var(--text-secondary));
+		border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-color));
+	}
+
+	.support-action-btn.support-feedback:hover {
+		color: var(--text-primary);
+		border-color: color-mix(in srgb, var(--accent-primary) 55%, var(--border-color));
+		background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+	}
+
+	.support-action-btn.support-discord {
+		color: color-mix(in srgb, #5865f2 75%, var(--text-secondary));
+		border-color: color-mix(in srgb, #5865f2 25%, var(--border-color));
+	}
+
+	.support-action-btn.support-discord:hover {
+		color: #5865f2;
+		border-color: color-mix(in srgb, #5865f2 55%, var(--border-color));
+		background: rgba(88, 101, 242, 0.08);
+	}
+
+	.support-action-btn.support-donate {
+		color: color-mix(in srgb, #ff4f9a 75%, var(--text-secondary));
+		border-color: color-mix(in srgb, #ff4f9a 25%, var(--border-color));
+	}
+
+	.support-action-btn.support-donate:hover {
+		color: #ff4f9a;
+		border-color: color-mix(in srgb, #ff4f9a 55%, var(--border-color));
+		background: rgba(255, 79, 154, 0.08);
 	}
 </style>

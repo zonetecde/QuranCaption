@@ -534,6 +534,12 @@
 				},
 				onloaderror: (id, error) => {
 					console.error('Howler load error:', error);
+					if (error === 'No codec support for selected audio sources.') {
+						toast.error(
+							'Pleae convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)'
+						);
+						return;
+					}
 					// On Linux, Web Audio API might report decoding errors even if it works partially or for VBR.
 					if (isLinux && error === 'Decoding audio data failed.') {
 						return;

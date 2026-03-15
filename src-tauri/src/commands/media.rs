@@ -64,15 +64,24 @@ pub fn get_duration(file_path: &str) -> Result<i64, String> {
 #[tauri::command]
 pub fn get_system_fonts() -> Result<Vec<String>, String> {
     let source = SystemSource::new();
+    // all_families() is the most portable API and avoids loading every single font file.
+    if let Ok(mut families) = source.all_families() {
+        families.sort();
+        families.dedup();
+        return Ok(families);
+    }
+
+    // Fallback path: enumerate handles and ignore fonts that fail to load.
     let fonts = source.all_fonts().map_err(|e| e.to_string())?;
     let mut font_names = Vec::new();
     let mut seen_names = HashSet::new();
 
     for font in fonts {
-        let handle = font.load().map_err(|e| e.to_string())?;
-        let family = handle.family_name();
-        if seen_names.insert(family.clone()) {
-            font_names.push(family);
+        if let Ok(handle) = font.load() {
+            let family = handle.family_name();
+            if seen_names.insert(family.clone()) {
+                font_names.push(family);
+            }
         }
     }
 

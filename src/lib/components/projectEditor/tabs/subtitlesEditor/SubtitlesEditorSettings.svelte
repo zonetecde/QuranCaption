@@ -172,7 +172,7 @@
 			>
 				<div class="flex items-start gap-3">
 					<span class="material-icons text-accent text-3xl">edit_note</span>
-					<div class="space-y-1">
+					<div class="xl:space-y-1">
 						<h3 class="text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
 							Editing Subtitle
 							<span
@@ -188,51 +188,53 @@
 				</div>
 			</div>
 			<!-- Presets -->
-			<div class="grid grid-cols-2 gap-3 pt-1">
-				{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset}
-					<button
-						class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
-						preset.label
-							? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/30'
-							: 'border-[var(--border-color)]/50 bg-secondary/70 hover:shadow-lg hover:shadow-accent-primary/20'} focus:ring-2 focus:ring-accent-primary/60"
-						onclick={() => {
-							presetChoice = preset.label;
-						}}
-					>
-						<div
-							class="absolute inset-0 bg-gradient-to-br transition-opacity duration-300 {preset.gradient} {presetChoice ===
+			<div class="max-h-[39vh] overflow-y-auto pr-1 pt-1">
+				<div class="grid grid-cols-2 gap-3">
+					{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset}
+						<button
+							class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
 							preset.label
-								? 'opacity-75'
-								: 'opacity-0 group-hover:opacity-90'}"
-						></div>
-						<div class="relative flex flex-col items-center justify-center py-4 gap-1">
-							<span
-								class="material-icons text-xl transition-all duration-300 {presetChoice ===
+								? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/30'
+								: 'border-[var(--border-color)]/50 bg-secondary/70 hover:shadow-lg hover:shadow-accent-primary/20'} focus:ring-2 focus:ring-accent-primary/60"
+							onclick={() => {
+								presetChoice = preset.label;
+							}}
+						>
+							<div
+								class="absolute inset-0 bg-gradient-to-br transition-opacity duration-300 {preset.gradient} {presetChoice ===
 								preset.label
-									? 'text-white scale-110'
-									: 'text-accent-primary group-hover:scale-110 group-hover:text-white'}"
-							>
-								{preset.icon}
-							</span>
-							<span
-								class="text-xs font-medium tracking-wide transition-all duration-300 {presetChoice ===
-								preset.label
-									? 'text-white'
-									: 'text-secondary group-hover:text-white'}"
-							>
-								{preset.label}
-							</span>
-							<span
-								class="text-[9px] opacity-45 uppercase tracking-wide transition-all duration-300 {presetChoice ===
-								preset.label
-									? 'text-white/90'
-									: 'text-secondary/70 group-hover:text-white/90'}"
-							>
-								{preset.shortcut}
-							</span>
-						</div>
-					</button>
-				{/each}
+									? 'opacity-75'
+									: 'opacity-0 group-hover:opacity-90'}"
+							></div>
+							<div class="relative flex flex-col items-center justify-center py-4 gap-1">
+								<span
+									class="material-icons text-xl transition-all duration-300 {presetChoice ===
+									preset.label
+										? 'text-white scale-110'
+										: 'text-accent-primary group-hover:scale-110 group-hover:text-white'}"
+								>
+									{preset.icon}
+								</span>
+								<span
+									class="text-xs font-medium tracking-wide transition-all duration-300 {presetChoice ===
+									preset.label
+										? 'text-white'
+										: 'text-secondary group-hover:text-white'}"
+								>
+									{preset.label}
+								</span>
+								<span
+									class="text-[9px] opacity-45 uppercase tracking-wide transition-all duration-300 {presetChoice ===
+									preset.label
+										? 'text-white/90'
+										: 'text-secondary/70 group-hover:text-white/90'}"
+								>
+									{preset.shortcut}
+								</span>
+							</div>
+						</button>
+					{/each}
+				</div>
 			</div>
 
 			<!-- Actions -->

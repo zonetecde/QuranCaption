@@ -5,6 +5,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { open } from '@tauri-apps/plugin-dialog';
+	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 
@@ -14,6 +16,9 @@
 	let searchQuery: string = $state('');
 	let translationPreviews: Record<string, Record<string, string>> = $state({});
 	let isLoadingPreview = $state(false);
+	let isImportingTxt = $state(false);
+	let showTxtImportHelp = $state(false);
+	let txtImportError: string | null = $state(null);
 
 	// Helper function to check if a translation is selected
 	function isTranslationSelected(translation: Edition): boolean {
@@ -100,6 +105,125 @@
 				toast.error('Failed to add translations to project');
 				console.error('Error adding translations:', error);
 			}
+		}
+	}
+
+	function cleanTxtLine(line: string): string {
+		// Keep the verse line exactly as provided by user (including verse numbers in text).
+		return line.replace(/^\uFEFF/, '').trim();
+	}
+
+	async function importTranslationFromTxt() {
+		showTxtImportHelp = true;
+		txtImportError = null;
+
+		if (isImportingTxt) return;
+
+		try {
+			isImportingTxt = true;
+
+			const selection = await open({
+				multiple: false,
+				directory: false,
+				filters: [{ name: 'Text', extensions: ['txt'] }]
+			});
+
+			if (!selection || Array.isArray(selection)) return;
+
+			const quranSubtitles = globalState.getSubtitleClips.filter(
+				(subtitle) => subtitle.surah > 0 && subtitle.verse > 0
+			);
+
+			if (quranSubtitles.length === 0) {
+				throw new Error('No Quran verses found in this project.');
+			}
+
+			const surahSet = new Set<number>(quranSubtitles.map((subtitle) => subtitle.surah));
+			if (surahSet.size !== 1) {
+				throw new Error(
+					'TXT import supports only one surah at a time. Please use a project containing a single surah.'
+				);
+			}
+
+			const surah = Array.from(surahSet)[0];
+			const neededVerseNumbers = Array.from(
+				new Set<number>(quranSubtitles.map((subtitle) => subtitle.verse))
+			).sort((a, b) => a - b);
+
+			const rawFile = await readTextFile(selection);
+			const normalized = rawFile.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+			const lines = normalized.split('\n');
+			if (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+				lines.pop();
+			}
+			const cleanedLines = lines.map(cleanTxtLine);
+
+			const missingVerses: number[] = [];
+			const downloadedTranslations: Record<string, string> = {};
+
+			for (const verse of neededVerseNumbers) {
+				const txtLine = cleanedLines[verse - 1];
+				if (!txtLine || txtLine.trim() === '') {
+					missingVerses.push(verse);
+					continue;
+				}
+				downloadedTranslations[`${surah}:${verse}`] = txtLine;
+			}
+
+			if (missingVerses.length > 0) {
+				throw new Error(`Missing lines for verses: ${missingVerses.join(', ')}`);
+			}
+
+			const availableLanguages = Object.keys(globalState.availableTranslations);
+			if (availableLanguages.length === 0) {
+				throw new Error('No available language metadata loaded.');
+			}
+			const language = availableLanguages.includes('English') ? 'English' : availableLanguages[0];
+			const direction =
+				globalState.availableTranslations[language]?.translations?.[0]?.direction || 'ltr';
+
+			const now = new Date();
+			const uniqueSuffix = now.getTime();
+			const formattedTime = now.toLocaleTimeString([], {
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit'
+			});
+
+			const edition = new Edition(
+				`txt-manual-${uniqueSuffix}`,
+				`txt-manual-${uniqueSuffix}`,
+				`TXT Import S${surah} (${formattedTime})`,
+				language,
+				direction,
+				'manual-txt-import',
+				'Manual txt import (one line per verse, without basmala)',
+				'',
+				''
+			);
+
+			await globalState.currentProject?.content.projectTranslation.addTranslation(
+				edition,
+				downloadedTranslations
+			);
+
+			AnalyticsService.trackTranslationAdded(
+				edition.name,
+				edition.author,
+				edition.key,
+				edition.language
+			);
+
+			toast.success(
+				`TXT translation imported successfully (${neededVerseNumbers.length} verses from surah ${surah}).`
+			);
+			close();
+		} catch (error: any) {
+			txtImportError = error?.message || 'Failed to import translation from txt.';
+			toast.error(txtImportError);
+			console.error('Error importing txt translation:', error);
+		} finally {
+			isImportingTxt = false;
 		}
 	}
 
@@ -233,6 +357,68 @@
 					</div>
 
 					<div class="space-y-4">
+						<!-- Import from TXT section -->
+						<div class="bg-accent border border-color rounded-lg overflow-hidden">
+							<!-- TXT Import header -->
+							<div
+								class="flex items-center gap-3 p-3 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
+							>
+								<span class="material-icons text-accent-primary">note_add</span>
+								<div>
+									<h4 class="font-semibold text-primary">Import from TXT</h4>
+									<p class="text-xs text-thirdly">Load custom translation from file</p>
+								</div>
+							</div>
+
+							<!-- TXT Import button -->
+							<div class="p-3">
+								<button
+									class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
+									onclick={importTranslationFromTxt}
+									disabled={isImportingTxt}
+								>
+									<div class="flex items-center gap-2">
+										<span
+											class="material-icons text-thirdly group-hover:text-accent-primary transition-colors duration-200"
+										>
+											{isImportingTxt ? 'hourglass_top' : 'upload_file'}
+										</span>
+										<span
+											class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200 text-sm"
+										>
+											{isImportingTxt ? 'Importing txt...' : 'Browse and import TXT'}
+										</span>
+									</div>
+									<span
+										class="material-icons text-thirdly text-sm opacity-50 group-hover:opacity-100 transition-opacity"
+									>
+										chevron_right
+									</span>
+								</button>
+
+								{#if showTxtImportHelp}
+									<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
+										<p class="text-xs text-secondary font-medium mb-2">Format expected:</p>
+										<p class="text-xs text-thirdly">
+											TXT file with one line per verse translation, in surah verse order, <strong
+												class="text-primary">without basmala</strong
+											>.
+										</p>
+										<div
+											class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
+										>
+											<p>1 First verse translation</p>
+											<p>2 Second verse translation</p>
+											<p>3 Third verse translation</p>
+										</div>
+										{#if txtImportError}
+											<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
+										{/if}
+									</div>
+								{/if}
+							</div>
+						</div>
+
 						{#each Object.keys(filteredTranslations()) as language}
 							{@const translationFlag = filteredTranslations()[language].flag}
 							{@const translations = filteredTranslations()[language].translations}
@@ -443,6 +629,70 @@
 						{/if}
 					</div>
 				{:else}
+					<!-- Import from TXT section at top (hidden when searching) -->
+					{#if !searchQuery}
+						<div class="bg-accent border border-color rounded-xl overflow-hidden">
+							<!-- TXT Import header -->
+							<div
+								class="flex items-center gap-3 p-4 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
+							>
+								<span class="material-icons text-accent-primary">note_add</span>
+								<div>
+									<h3 class="font-bold text-lg text-primary">Import from TXT</h3>
+									<p class="text-sm text-thirdly">Load custom translation from file</p>
+								</div>
+							</div>
+
+							<!-- TXT Import button -->
+							<div class="p-4">
+								<button
+									class="w-full p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
+									onclick={importTranslationFromTxt}
+									disabled={isImportingTxt}
+								>
+									<div class="flex items-center gap-2">
+										<span
+											class="material-icons text-thirdly group-hover:text-accent-primary transition-colors duration-200"
+										>
+											{isImportingTxt ? 'hourglass_top' : 'upload_file'}
+										</span>
+										<span
+											class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200"
+										>
+											{isImportingTxt ? 'Importing txt...' : 'Browse and import TXT'}
+										</span>
+									</div>
+									<span
+										class="material-icons text-thirdly opacity-50 group-hover:opacity-100 transition-opacity"
+									>
+										chevron_right
+									</span>
+								</button>
+
+								{#if showTxtImportHelp}
+									<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
+										<p class="text-xs text-secondary font-medium mb-2">Format expected:</p>
+										<p class="text-xs text-thirdly">
+											TXT file with one line per verse translation, in surah verse order, <strong
+												class="text-primary">without basmala</strong
+											>.
+										</p>
+										<div
+											class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
+										>
+											<p>1 First verse translation</p>
+											<p>2 Second verse translation</p>
+											<p>3 Third verse translation</p>
+										</div>
+										{#if txtImportError}
+											<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
+										{/if}
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
+
 					{#each Object.keys(filteredTranslations()) as language}
 						{@const translationFlag = filteredTranslations()[language].flag}
 						{@const translations = filteredTranslations()[language].translations}
@@ -533,11 +783,13 @@
 			</div>
 
 			<div class="flex gap-3">
-				<button class="btn px-6 py-2.5 font-medium" onclick={close}> Cancel </button>
+				<button class="btn px-6 py-2.5 font-medium" onclick={close} disabled={isImportingTxt}>
+					Cancel
+				</button>
 				<button
 					class="btn-accent px-6 py-2.5 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 					onclick={addTranslationButtonClick}
-					disabled={selectedTranslations.length === 0}
+					disabled={selectedTranslations.length === 0 || isImportingTxt}
 				>
 					<span class="material-icons text-lg">add</span>
 					Add Translation{selectedTranslations.length > 1 ? 's' : ''}

@@ -97,7 +97,7 @@
 				<input
 					id="search-input"
 					type="text"
-					placeholder="Must contain... (Press Enter to search)"
+					placeholder="SS:VV format or must contain... (Press Enter to search)"
 					autocomplete="off"
 					class="w-full px-4 py-2 border border-color rounded-r-none! border-r-0!"
 					bind:value={localSearchQuery}

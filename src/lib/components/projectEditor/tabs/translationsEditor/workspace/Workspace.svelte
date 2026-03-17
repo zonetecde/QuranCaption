@@ -121,7 +121,9 @@
 
 		// Mode normal: si un clip du verset match, on affiche tout le groupe pour garder le contexte
 		return allSubtitlesInGroups().filter((group) =>
-			group.some((index) => allowedClipIds.has(String(globalState.getSubtitleTrack.clips[index].id)))
+			group.some((index) =>
+				allowedClipIds.has(String(globalState.getSubtitleTrack.clips[index].id))
+			)
 		);
 	});
 
@@ -167,6 +169,19 @@
 
 		// Lorsqu'on modifie la recherche
 		const search = globalState.getTranslationsState.searchQuery.toLowerCase().trim();
+
+		// Si on recherche au format "sourate:verset", on parse la recherche pour filtrer directement sur ces champs des clips
+		const isSurahVerseSearch = search.split(':').length === 2;
+		const parsedSurahVerse = (() => {
+			if (!isSurahVerseSearch) return null;
+			const [searchSurahRaw, searchVerseRaw] = search.split(':');
+			const searchSurah = searchSurahRaw?.trim();
+			const searchVerse = searchVerseRaw?.trim();
+			if (!searchSurah || !searchVerse) return null;
+			if (isNaN(Number(searchSurah)) || isNaN(Number(searchVerse))) return null;
+			return { searchSurah, searchVerse };
+		})();
+
 		// Met à jour les traductions à afficher en fonction des filtres
 		const filter = globalState.getTranslationsState.filters;
 		const onlyShowOverlappingSubtitles =
@@ -179,6 +194,21 @@
 			for (let index = 0; index < globalState.getSubtitleTrack.clips.length; index += 1) {
 				const subtitle = globalState.getSubtitleTrack.clips[index];
 				if (subtitle.type !== 'Subtitle' && subtitle.type !== 'Pre-defined Subtitle') continue;
+
+				// Recherche au format "sourate:verset" => on filtre *les clips* directement sur ce couple
+				// (et on ne demande pas que les textes de traduction contiennent littéralement "s:v").
+				if (parsedSurahVerse) {
+					if (!(subtitle instanceof SubtitleClip)) {
+						// Les Pre-defined Subtitle n'ont pas (surah, verse)
+						continue;
+					}
+					if (
+						String(subtitle.surah) !== parsedSurahVerse.searchSurah ||
+						String(subtitle.verse) !== parsedSurahVerse.searchVerse
+					) {
+						continue;
+					}
+				}
 
 				const subtitleId = subtitle.id;
 				// Regarde ses traductions
@@ -195,8 +225,10 @@
 
 						// Si on a une recherche, on regarde si le texte de la traduction contient la recherche
 						if (search) {
-							const translationText = translation.text.toLowerCase();
-							if (!translationText.includes(search)) continue;
+							if (!parsedSurahVerse) {
+								const translationText = translation.text.toLowerCase();
+								if (!translationText.includes(search)) continue;
+							}
 						}
 
 						// Si on autorise son affichage dans l'éditeur
@@ -309,9 +341,7 @@
 										{#key edition.name}
 											<Translation
 												{edition}
-												subtitle={
-													globalState.getSubtitleTrack.clips[_clipIndex] as SubtitleClip
-												}
+												subtitle={globalState.getSubtitleTrack.clips[_clipIndex] as SubtitleClip}
 												previousSubtitle={_clipIndex > 0
 													? (globalState.getSubtitleTrack.getSubtitleBefore(
 															_clipIndex

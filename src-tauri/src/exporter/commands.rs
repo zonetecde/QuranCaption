@@ -474,6 +474,13 @@ fn is_image_file(path: &str) -> bool {
         || path_lower.ends_with(".tif")
 }
 
+#[derive(Clone, Debug)]
+struct PreprocessedVideoInput {
+    path: String,
+    input_seek_ms: Option<i32>,
+    input_duration_ms: Option<i32>,
+}
+
 /// Fonction du module export.
 fn preprocess_background_videos(
     video_inputs: &[VideoInput],
@@ -484,20 +491,23 @@ fn preprocess_background_videos(
     start_time_ms: i32,
     duration_ms: Option<i32>,
     blur: Option<f64>,
-) -> Vec<String> {
+    preprocess_window_start_ms: Option<i32>,
+    preprocess_window_duration_ms: Option<i32>,
+) -> Vec<PreprocessedVideoInput> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "cover-v2";
+    let preproc_cache_version = "cover-v3";
     fs::create_dir_all(&cache_dir).ok();
+    let to_i32 = |v: i64| -> i32 { v.clamp(0, i32::MAX as i64) as i32 };
+    const REUSE_BASE_WITH_INPUT_TRIM_THRESHOLD: f64 = 0.8;
+    let use_shared_preprocess =
+        preprocess_window_start_ms.is_some() || preprocess_window_duration_ms.is_some();
 
     // Cas spécial : une seule image
     if video_inputs.len() == 1 && is_image_file(&video_inputs[0].path) {
         let image_path = &video_inputs[0].path;
-        let duration_s = if let Some(dur_ms) = duration_ms {
-            dur_ms as f64 / 1000.0
-        } else {
-            30.0 // Durée par défaut si non spécifiée
-        };
+        let cache_duration_ms = preprocess_window_duration_ms.or(duration_ms).unwrap_or(30_000);
+        let duration_s = (cache_duration_ms as f64 / 1000.0).max(0.001);
 
         // Construire un nom de cache unique pour l'image
         let blur_suffix = if let Some(b) = blur {
@@ -511,7 +521,7 @@ fn preprocess_background_videos(
         };
         let hash_input = format!(
             "{}-{}-{}x{}-{}-dur{}{}",
-            preproc_cache_version, image_path, w, h, fps, duration_s, blur_suffix
+            preproc_cache_version, image_path, w, h, fps, cache_duration_ms, blur_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
@@ -539,7 +549,11 @@ fn preprocess_background_videos(
             }
         }
 
-        out_paths.push(dst.to_string_lossy().to_string());
+        out_paths.push(PreprocessedVideoInput {
+            path: dst.to_string_lossy().to_string(),
+            input_seek_ms: None,
+            input_duration_ms: None,
+        });
         return out_paths;
     }
 
@@ -550,57 +564,62 @@ fn preprocess_background_videos(
         video_durations_ms.push(d);
     }
 
-    // Limite de la plage demandée
-    let limit_ms: i64 = if let Some(dur) = duration_ms {
-        dur as i64
-    } else {
-        i64::MAX
-    };
+    let segment_start_ms = start_time_ms as i64;
+    let segment_limit_ms = duration_ms.map(|dur| dur as i64).unwrap_or(i64::MAX);
+    let cache_start_ms = preprocess_window_start_ms.unwrap_or(start_time_ms) as i64;
+    let cache_limit_ms = preprocess_window_duration_ms
+        .or(duration_ms)
+        .map(|dur| dur as i64)
+        .unwrap_or(segment_limit_ms);
 
     // Parcourir les vidéos et extraire uniquement les segments pertinents
     let mut cum_start: i64 = 0;
     for (idx, input) in video_inputs.iter().enumerate() {
         let vid_path = &input.path;
-        let mut vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
+        let source_len = video_durations_ms.get(idx).cloned().unwrap_or(0).max(0);
         let is_loop = input.loop_until_audio_end.unwrap_or(false);
+        let mut vid_len = source_len;
 
-        // Si le bouclage est activé, la vidéo peut couvrir tout le reste de la plage
+        // Si loop est actif, ce clip peut couvrir la plage demandee.
         if is_loop {
-            vid_len = limit_ms;
+            let max_needed = segment_limit_ms.max(cache_limit_ms);
+            if max_needed != i64::MAX {
+                vid_len = max_needed.max(0);
+            }
         }
 
         let cum_end = cum_start + vid_len;
 
         // Si la vidéo se termine avant le début recherché, on l'ignore complètement
-        if cum_end <= start_time_ms as i64 {
+        if cum_end <= segment_start_ms {
             cum_start = cum_end;
             continue;
         }
 
         // Si on a déjà dépassé la limite demandée, on arrête
-        let elapsed_so_far = cum_start - (start_time_ms as i64);
-        if elapsed_so_far >= limit_ms {
+        let elapsed_so_far = cum_start - segment_start_ms;
+        if elapsed_so_far >= segment_limit_ms {
             break;
         }
 
         // Déterminer le début à l'intérieur de cette vidéo
-        let start_within = if start_time_ms as i64 > cum_start {
-            start_time_ms as i64 - cum_start
+        let segment_start_within = if segment_start_ms > cum_start {
+            segment_start_ms - cum_start
         } else {
             0
         };
 
         // Durée restante à prendre dans cette vidéo
-        let elapsed_from_start = (cum_start + start_within) - (start_time_ms as i64);
-        let remaining_needed = (limit_ms - elapsed_from_start).max(0);
-        let take_ms = remaining_needed.min(vid_len - start_within);
+        let segment_elapsed_from_start = (cum_start + segment_start_within) - segment_start_ms;
+        let segment_remaining_needed = (segment_limit_ms - segment_elapsed_from_start).max(0);
+        let segment_take_ms =
+            segment_remaining_needed.min((vid_len - segment_start_within).max(0));
 
-        if take_ms <= 0 {
+        if segment_take_ms <= 0 {
             cum_start = cum_end;
             continue;
         }
 
-        // Construire un nom de cache unique qui inclut les offsets, le blur et le flag loop
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 {
                 format!("-blur{}", b)
@@ -612,47 +631,220 @@ fn preprocess_background_videos(
         };
         let loop_suffix = if is_loop { "-loop" } else { "" };
 
-        let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}{}{}",
-            preproc_cache_version, vid_path, w, h, fps, start_within, take_ms, blur_suffix, loop_suffix
-        );
-        let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
-        let stem_hash = &stem_hash[..10.min(stem_hash.len())];
-        let dst = cache_dir.join(format!("bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
+        if use_shared_preprocess {
+            // Build a shared preprocessed window (same blur) reused by multiple segments.
+            let mut cache_start_within = if cache_start_ms > cum_start {
+                cache_start_ms - cum_start
+            } else {
+                0
+            };
+            let cache_elapsed_from_start = (cum_start + cache_start_within) - cache_start_ms;
+            let cache_remaining_needed = (cache_limit_ms - cache_elapsed_from_start).max(0);
+            let mut cache_take_ms =
+                cache_remaining_needed.min((vid_len - cache_start_within).max(0));
 
-        if !dst.exists() {
-            // Appeler ffmpeg_preprocess_video avec les offsets locaux et le flag loop
-            match ffmpeg_preprocess_video(
+            if cache_take_ms <= 0 {
+                cache_start_within = segment_start_within;
+                cache_take_ms = segment_take_ms;
+            }
+
+            let base_hash_input = format!(
+                "{}-base-{}-{}x{}-{}-start{}-len{}{}{}",
+                preproc_cache_version,
                 vid_path,
-                &dst.to_string_lossy(),
                 w,
                 h,
                 fps,
-                prefer_hw,
-                Some(start_within as i32),
-                Some(take_ms as i32),
-                blur,
-                is_loop,
-            ) {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("[preproc][ERREUR] {:?}", e);
-                    // En cas d'échec, utiliser la vidéo originale
-                    out_paths.push(vid_path.clone());
+                cache_start_within,
+                cache_take_ms,
+                blur_suffix,
+                loop_suffix
+            );
+            let base_stem_hash = format!("{:x}", md5::compute(base_hash_input.as_bytes()));
+            let base_stem_hash = &base_stem_hash[..10.min(base_stem_hash.len())];
+            let base_dst =
+                cache_dir.join(format!("bgbase-{}-{}x{}-{}.mp4", base_stem_hash, w, h, fps));
+            let base_dst_string = base_dst.to_string_lossy().to_string();
+
+            if !base_dst.exists() {
+                match ffmpeg_preprocess_video(
+                    vid_path,
+                    &base_dst_string,
+                    w,
+                    h,
+                    fps,
+                    prefer_hw,
+                    Some(to_i32(cache_start_within)),
+                    Some(to_i32(cache_take_ms)),
+                    blur,
+                    is_loop,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        println!("[preproc][ERREUR][BASE] {:?}", e);
+                        out_paths.push(PreprocessedVideoInput {
+                            path: vid_path.clone(),
+                            input_seek_ms: None,
+                            input_duration_ms: None,
+                        });
+                        cum_start = cum_end;
+                        continue;
+                    }
+                }
+            }
+
+            if segment_start_within == cache_start_within && segment_take_ms == cache_take_ms {
+                out_paths.push(PreprocessedVideoInput {
+                    path: base_dst_string,
+                    input_seek_ms: None,
+                    input_duration_ms: None,
+                });
+            } else {
+                let relative_start_in_base = (segment_start_within - cache_start_within).max(0);
+                let max_take_in_base = (cache_take_ms - relative_start_in_base).max(0);
+                let segment_take_from_base = segment_take_ms.min(max_take_in_base);
+
+                if segment_take_from_base <= 0 {
+                    out_paths.push(PreprocessedVideoInput {
+                        path: base_dst_string,
+                        input_seek_ms: None,
+                        input_duration_ms: None,
+                    });
                     cum_start = cum_end;
                     continue;
                 }
-            }
-        }
 
-        out_paths.push(dst.to_string_lossy().to_string());
+                let coverage_ratio = if cache_take_ms > 0 {
+                    segment_take_from_base as f64 / cache_take_ms as f64
+                } else {
+                    0.0
+                };
+
+                if coverage_ratio >= REUSE_BASE_WITH_INPUT_TRIM_THRESHOLD {
+                    out_paths.push(PreprocessedVideoInput {
+                        path: base_dst_string,
+                        input_seek_ms: if relative_start_in_base > 0 {
+                            Some(to_i32(relative_start_in_base))
+                        } else {
+                            None
+                        },
+                        input_duration_ms: Some(to_i32(segment_take_from_base)),
+                    });
+                    cum_start = cum_end;
+                    continue;
+                }
+
+                let slice_hash_input = format!(
+                    "{}-slice-{}-{}x{}-{}-start{}-len{}",
+                    preproc_cache_version,
+                    base_dst_string,
+                    w,
+                    h,
+                    fps,
+                    relative_start_in_base,
+                    segment_take_from_base
+                );
+                let slice_stem_hash = format!("{:x}", md5::compute(slice_hash_input.as_bytes()));
+                let slice_stem_hash = &slice_stem_hash[..10.min(slice_stem_hash.len())];
+                let slice_dst =
+                    cache_dir.join(format!("bgslice-{}-{}x{}-{}.mp4", slice_stem_hash, w, h, fps));
+                let slice_dst_string = slice_dst.to_string_lossy().to_string();
+
+                if !slice_dst.exists() {
+                    match ffmpeg_preprocess_video(
+                        &base_dst_string,
+                        &slice_dst_string,
+                        w,
+                        h,
+                        fps,
+                        prefer_hw,
+                        Some(to_i32(relative_start_in_base)),
+                        Some(to_i32(segment_take_from_base)),
+                        None,
+                        false,
+                        ) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            println!("[preproc][ERREUR][SLICE] {:?}", e);
+                            out_paths.push(PreprocessedVideoInput {
+                                path: base_dst_string,
+                                input_seek_ms: if relative_start_in_base > 0 {
+                                    Some(to_i32(relative_start_in_base))
+                                } else {
+                                    None
+                                },
+                                input_duration_ms: Some(to_i32(segment_take_from_base)),
+                            });
+                            cum_start = cum_end;
+                            continue;
+                        }
+                    }
+                }
+
+                out_paths.push(PreprocessedVideoInput {
+                    path: slice_dst_string,
+                    input_seek_ms: None,
+                    input_duration_ms: None,
+                });
+            }
+        } else {
+            let hash_input = format!(
+                "{}-{}-{}x{}-{}-start{}-len{}{}{}",
+                preproc_cache_version,
+                vid_path,
+                w,
+                h,
+                fps,
+                segment_start_within,
+                segment_take_ms,
+                blur_suffix,
+                loop_suffix
+            );
+            let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
+            let stem_hash = &stem_hash[..10.min(stem_hash.len())];
+            let dst = cache_dir.join(format!("bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
+            let dst_string = dst.to_string_lossy().to_string();
+
+            if !dst.exists() {
+                match ffmpeg_preprocess_video(
+                    vid_path,
+                    &dst_string,
+                    w,
+                    h,
+                    fps,
+                    prefer_hw,
+                    Some(to_i32(segment_start_within)),
+                    Some(to_i32(segment_take_ms)),
+                    blur,
+                    is_loop,
+                ) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        println!("[preproc][ERREUR] {:?}", e);
+                        out_paths.push(PreprocessedVideoInput {
+                            path: vid_path.clone(),
+                            input_seek_ms: None,
+                            input_duration_ms: None,
+                        });
+                        cum_start = cum_end;
+                        continue;
+                    }
+                }
+            }
+
+            out_paths.push(PreprocessedVideoInput {
+                path: dst_string,
+                input_seek_ms: None,
+                input_duration_ms: None,
+            });
+        }
 
         // Si on a atteint la limite, on arrête
-        let elapsed_total = (cum_start + start_within + take_ms) - (start_time_ms as i64);
-        if elapsed_total >= limit_ms {
+        let elapsed_total =
+            (cum_start + segment_start_within + segment_take_ms) - segment_start_ms;
+        if elapsed_total >= segment_limit_ms {
             break;
         }
-
         cum_start = cum_end;
     }
 
@@ -728,6 +920,8 @@ fn build_and_run_ffmpeg_filter_complex(
     duration_ms: Option<i32>,
     chunk_index: Option<i32>,
     blur: Option<f64>,
+    preprocess_window_start_ms: Option<i32>,
+    preprocess_window_duration_ms: Option<i32>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // TEMP TEST: force FFmpeg failure on every export to test error handling UI.
@@ -790,12 +984,18 @@ fn build_and_run_ffmpeg_filter_complex(
             start_time_ms,
             duration_ms,
             blur,
+            preprocess_window_start_ms,
+            preprocess_window_duration_ms,
         );
     }
 
     let mut total_bg_s = 0.0;
     for p in &pre_videos {
-        total_bg_s += ffprobe_duration_sec(p);
+        if let Some(dms) = p.input_duration_ms {
+            total_bg_s += dms as f64 / 1000.0;
+        } else {
+            total_bg_s += ffprobe_duration_sec(&p.path);
+        }
     }
 
     let mut total_audio_s = 0.0;
@@ -857,7 +1057,13 @@ fn build_and_run_ffmpeg_filter_complex(
     // Entrées vidéos de fond
     let bg_start_idx = current_idx;
     for p in &pre_videos {
-        cmd.extend_from_slice(&["-i".to_string(), p.clone()]);
+        if let Some(seek_ms) = p.input_seek_ms {
+            cmd.extend_from_slice(&["-ss".to_string(), format!("{:.3}", seek_ms as f64 / 1000.0)]);
+        }
+        if let Some(take_ms) = p.input_duration_ms {
+            cmd.extend_from_slice(&["-t".to_string(), format!("{:.3}", take_ms as f64 / 1000.0)]);
+        }
+        cmd.extend_from_slice(&["-i".to_string(), p.path.clone()]);
         current_idx += 1;
     }
 
@@ -1340,6 +1546,8 @@ pub async fn export_video(
     videos: Option<Vec<VideoInput>>,
     chunk_index: Option<i32>,
     blur: Option<f64>,
+    preprocess_window_start: Option<i32>,
+    preprocess_window_duration: Option<i32>,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     let t0 = Instant::now();
@@ -1518,6 +1726,8 @@ pub async fn export_video(
             duration,
             chunk_index,
             blur,
+            preprocess_window_start,
+            preprocess_window_duration,
             app_handle,
         )
     })

@@ -13,6 +13,11 @@
 	import { getCurrentWebview } from '@tauri-apps/api/webview';
 	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
+	import {
+		buildBlurSegmentsForRange,
+		type BlurSegment,
+		type TimeRange
+	} from '$lib/services/OverlayBlurSegmentation';
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -35,6 +40,7 @@
 	// Durée de chunk calculée dynamiquement basée sur chunkSize (1-200)
 	// chunkSize = 1 -> 30s, chunkSize = 50 -> 2min30, chunkSize = 200 -> 10min
 	let CHUNK_DURATION = 0; // Sera calculé dans onMount
+	let activeVideoSegments: TimeRange[] = [];
 
 	async function exportProgress(event: any) {
 		const data = event.payload as {
@@ -53,27 +59,36 @@
 				`Export Progress: ${data.progress.toFixed(1)}% (${data.current_time.toFixed(1)}s / ${data.total_time?.toFixed(1)}s)`
 			);
 
-			const chunkIndex = data.chunk_index || 0;
+			const chunkIndex = data.chunk_index ?? 0;
 			const totalDuration = exportData!.videoEndTime - exportData!.videoStartTime;
-			const totalChunks = Math.ceil(totalDuration / CHUNK_DURATION);
 
 			// Calculer le pourcentage global et le temps actuel global
 			let globalProgress: number;
 			let globalCurrentTime: number;
 
 			if (data.chunk_index !== undefined) {
-				// Mode chunked export
-				// Chaque chunk représente une portion égale du pourcentage total
-				// Calcul donc le pourcentage global basé sur le chunk actuel et son progrès
-				const chunkProgressWeight = 100 / totalChunks;
-				const baseProgress = chunkIndex * chunkProgressWeight;
-				const chunkLocalProgress = (data.progress / 100) * chunkProgressWeight;
-				globalProgress = baseProgress + chunkLocalProgress;
+				// Mode segmenté: utiliser les bornes réelles des segments.
+				const segment = activeVideoSegments[chunkIndex];
+				const segmentStart = segment?.start ?? exportData!.videoStartTime;
+				const segmentEnd = segment?.end ?? exportData!.videoEndTime;
+				const segmentDuration = Math.max(0, segmentEnd - segmentStart);
+				const baseElapsed = Math.max(0, segmentStart - exportData!.videoStartTime);
 
-				// Calculer le temps global basé sur la position du chunk et son progrès
-				const chunkDuration = Math.min(CHUNK_DURATION, totalDuration - chunkIndex * CHUNK_DURATION);
-				const chunkLocalTime = (data.current_time / (data.total_time || 1)) * chunkDuration;
-				globalCurrentTime = chunkIndex * CHUNK_DURATION + chunkLocalTime;
+				let segmentElapsed = 0;
+				if (data.total_time && data.total_time > 0) {
+					segmentElapsed = (data.current_time / data.total_time) * segmentDuration;
+				} else if (data.progress > 0) {
+					segmentElapsed = (data.progress / 100) * segmentDuration;
+				} else {
+					segmentElapsed = data.current_time * 1000;
+				}
+
+				segmentElapsed = Math.min(Math.max(segmentElapsed, 0), segmentDuration);
+				globalCurrentTime = Math.min(baseElapsed + segmentElapsed, totalDuration);
+				globalProgress =
+					totalDuration > 0
+						? Math.min(100, Math.max(0, (globalCurrentTime / totalDuration) * 100))
+						: 100;
 			} else {
 				// Mode export normal (sans chunks)
 				globalProgress = data.progress;
@@ -215,12 +230,121 @@
 
 		// Si la durée est supérieure à 10 minutes, on découpe en chunks
 		if (totalDuration > CHUNK_DURATION) {
-			console.log('Duration > 10 minutes, using chunked export');
-			await handleChunkedExport(exportStart, exportEnd, totalDuration);
-		} else {
-			console.log('Duration <= 10 minutes, using normal export');
-			await handleNormalExport(exportStart, exportEnd, totalDuration);
+			const baseRanges = calculateChunksWithFadeOut(exportStart, exportEnd).chunks;
+			const renderSegments = createBlurAwareRenderSegments(baseRanges);
+			await handleSegmentedExport(renderSegments, totalDuration);
+			return;
 		}
+
+		const shortExportBlurSegments = getBlurSegmentsForRange(exportStart, exportEnd);
+		if (shortExportBlurSegments.length > 1) {
+			await handleSegmentedExport(shortExportBlurSegments, totalDuration);
+			return;
+		}
+
+		activeVideoSegments = [{ start: exportStart, end: exportEnd }];
+		const blur = shortExportBlurSegments[0]?.blur ?? 0;
+		await handleNormalExport(exportStart, exportEnd, totalDuration, blur);
+	}
+
+	function getOverlayBlurAt(time: number): number {
+		const roundedTime = Math.round(time);
+		const clip = globalState.getVideoTrack.getCurrentClip(roundedTime);
+		const clipId = clip?.id;
+		return Number(
+			globalState
+				.getVideoStyle
+				.getStylesOfTarget('global')
+				.getEffectiveValue('overlay-blur', clipId)
+		);
+	}
+
+	function getVideoBlurBoundaries(rangeStart: number, rangeEnd: number): number[] {
+		const boundaries: number[] = [];
+		for (const clip of globalState.getVideoTrack.clips) {
+			if (clip.endTime < rangeStart || clip.startTime > rangeEnd) continue;
+			boundaries.push(clip.startTime);
+			// Clips are inclusive [start, end], next segment starts at end + 1.
+			boundaries.push(clip.endTime + 1);
+		}
+		return boundaries;
+	}
+
+	function getBlurSegmentsForRange(rangeStart: number, rangeEnd: number): BlurSegment[] {
+		const boundaries = getVideoBlurBoundaries(rangeStart, rangeEnd);
+		return buildBlurSegmentsForRange(
+			{ start: rangeStart, end: rangeEnd },
+			boundaries,
+			getOverlayBlurAt
+		);
+	}
+
+	function createBlurAwareRenderSegments(baseRanges: TimeRange[]): BlurSegment[] {
+		const renderSegments: BlurSegment[] = [];
+		for (const range of baseRanges) {
+			renderSegments.push(...getBlurSegmentsForRange(range.start, range.end));
+		}
+		return renderSegments;
+	}
+
+	async function handleSegmentedExport(renderSegments: BlurSegment[], totalDuration: number) {
+		if (renderSegments.length === 0) return;
+		activeVideoSegments = renderSegments.map((segment) => ({
+			start: segment.start,
+			end: segment.end
+		}));
+
+		const generatedVideoFiles: string[] = [];
+		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
+			const segment = renderSegments[segmentIndex];
+			const segmentImageFolder = `segment_${segmentIndex}`;
+
+			await createChunkImageFolder(segmentImageFolder);
+			await generateImagesForChunk(
+				segmentIndex,
+				segment.start,
+				segment.end,
+				segmentImageFolder,
+				renderSegments.length,
+				0,
+				100
+			);
+		}
+
+		emitProgress({
+			exportId: Number(exportId),
+			progress: 0,
+			currentState: ExportState.Initializing,
+			currentTime: 0,
+			totalTime: totalDuration
+		} as ExportProgress);
+
+		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
+			const segment = renderSegments[segmentIndex];
+			const segmentImageFolder = `segment_${segmentIndex}`;
+			const segmentDuration = segment.end - segment.start;
+
+			const segmentVideoPath = await generateVideoForChunk(
+				segmentIndex,
+				segmentImageFolder,
+				segment.start,
+				segmentDuration,
+				segment.blur
+			);
+
+			generatedVideoFiles.push(segmentVideoPath);
+		}
+
+		await concatenateVideos(generatedVideoFiles);
+		await finalCleanup();
+
+		emitProgress({
+			exportId: Number(exportId),
+			progress: 100,
+			currentState: ExportState.Exported,
+			currentTime: totalDuration,
+			totalTime: totalDuration
+		} as ExportProgress);
 	}
 
 	async function handleChunkedExport(
@@ -427,7 +551,8 @@
 		chunkIndex: number,
 		chunkImageFolder: string,
 		chunkStart: number,
-		chunkDuration: number
+		chunkDuration: number,
+		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
 	): Promise<string> {
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
@@ -471,7 +596,7 @@
 				audios: audios,
 				videos: videos,
 				chunkIndex: chunkIndex,
-				blur: globalState.getStyle('global', 'overlay-blur')!.value as number
+				blur: blur
 			});
 
 			console.log(`✅ Chunk ${chunkIndex} video generated successfully`);
@@ -531,7 +656,12 @@
 		return imgWithNothingShown[surah] !== undefined;
 	}
 
-	async function handleNormalExport(exportStart: number, exportEnd: number, totalDuration: number) {
+	async function handleNormalExport(
+		exportStart: number,
+		exportEnd: number,
+		totalDuration: number,
+		blur: number
+	) {
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
@@ -621,7 +751,7 @@
 		await deleteBlankImages();
 
 		// Générer la vidéo normale
-		await generateNormalVideo(exportStart, totalDuration);
+		await generateNormalVideo(exportStart, totalDuration, blur);
 
 		// Nettoyage
 		await finalCleanup();
@@ -808,7 +938,7 @@
 		return { uniqueSorted, imgWithNothingShown, blankImgs, duplicableTimings };
 	}
 
-	async function generateNormalVideo(exportStart: number, duration: number) {
+	async function generateNormalVideo(exportStart: number, duration: number, blur: number) {
 		emitProgress({
 			exportId: Number(exportId),
 			progress: 0,
@@ -848,7 +978,7 @@
 				duration: Math.round(duration),
 				audios: audios,
 				videos: videos,
-				blur: globalState.getStyle('global', 'overlay-blur')!.value as number
+				blur: blur
 			});
 		} catch (e: any) {
 			emitProgress({

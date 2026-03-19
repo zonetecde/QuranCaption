@@ -1,6 +1,7 @@
 import type SubtitlesEditor from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesEditor.svelte';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
+	AssetClip,
 	ClipWithTranslation,
 	PredefinedSubtitleClip,
 	SilenceClip,
@@ -67,6 +68,9 @@ export class StylesEditorState extends SerializableBase {
 	// Indique les sous-titres actuellement sélectionnés dans l'éditeur de styles
 	selectedSubtitles: Array<SubtitleClip | PredefinedSubtitleClip> = $state([]);
 
+	// Indique les clips vidéo actuellement sélectionnés dans l'éditeur de styles
+	selectedVideos: Array<AssetClip> = $state([]);
+
 	// Indique la catégorie sur laquelle on doit scroll et highlight quelque seconde
 	scrollAndHighlight: string | null = $state(null);
 
@@ -81,8 +85,14 @@ export class StylesEditorState extends SerializableBase {
 		return this.selectedSubtitles.some((subtitle) => subtitle.id === id);
 	}
 
+	isSelectedVideo(id: number) {
+		return this.selectedVideos.some((clip) => clip.id === id);
+	}
+
 	toggleSelection(clip: SubtitleClip | PredefinedSubtitleClip) {
 		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
+		// Les sélections sous-titres/vidéos sont mutuellement exclusives.
+		this.selectedVideos = [];
 
 		if (this.isSelected(clip.id)) {
 			this.selectedSubtitles = this.selectedSubtitles.filter((subtitle) => subtitle.id !== clip.id);
@@ -93,6 +103,8 @@ export class StylesEditorState extends SerializableBase {
 
 	selectOnly(clip: SubtitleClip | PredefinedSubtitleClip) {
 		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
+		// Les sélections sous-titres/vidéos sont mutuellement exclusives.
+		this.selectedVideos = [];
 		this.selectedSubtitles = [clip];
 	}
 
@@ -100,9 +112,33 @@ export class StylesEditorState extends SerializableBase {
 		this.selectedSubtitles = this.selectedSubtitles.filter((subtitle) => subtitle.id !== id);
 	}
 
+	toggleVideoSelection(clip: AssetClip) {
+		if (!(clip instanceof AssetClip)) return;
+		// Les sélections sous-titres/vidéos sont mutuellement exclusives.
+		this.selectedSubtitles = [];
+
+		if (this.isSelectedVideo(clip.id)) {
+			this.selectedVideos = this.selectedVideos.filter((videoClip) => videoClip.id !== clip.id);
+		} else {
+			this.selectedVideos.push(clip);
+		}
+	}
+
+	selectOnlyVideo(clip: AssetClip) {
+		if (!(clip instanceof AssetClip)) return;
+		// Les sélections sous-titres/vidéos sont mutuellement exclusives.
+		this.selectedSubtitles = [];
+		this.selectedVideos = [clip];
+	}
+
+	removeVideoSelection(id: number) {
+		this.selectedVideos = this.selectedVideos.filter((videoClip) => videoClip.id !== id);
+	}
+
 	clearSelection() {
 		globalState.getSubtitlesEditorState.editSubtitle = null;
 		this.selectedSubtitles = [];
+		this.selectedVideos = [];
 	}
 }
 

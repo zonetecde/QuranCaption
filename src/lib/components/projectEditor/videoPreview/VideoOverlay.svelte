@@ -22,6 +22,11 @@ const fadeDuration = $derived(() => {
 		return globalState.currentProject!.projectEditorState.timeline;
 	});
 
+	let currentVideoClip = $derived(() => {
+		const _ = getTimelineSettings().cursorPosition;
+		return untrack(() => globalState.getVideoTrack.getCurrentClip(getTimelineSettings().cursorPosition));
+	});
+
 	let currentSubtitle = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
 		return untrack(() => {
@@ -471,15 +476,21 @@ const fadeDuration = $derived(() => {
 	});
 
 	let overlaySettings = $derived(() => {
+		const clipId = currentVideoClip()?.id;
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
 		return {
-			enable: globalState.getStyle('global', 'overlay-enable')!.value,
-			blur: globalState.getStyle('global', 'overlay-blur')!.value,
-			opacity: globalState.getStyle('global', 'overlay-opacity')!.value,
-			color: globalState.getStyle('global', 'overlay-color')!.value,
-			mode: globalState.getStyle('global', 'background-overlay-mode')!.value,
-			fadeIntensity: globalState.getStyle('global', 'background-overlay-fade-intensity')!.value,
-			fadeCoverage: globalState.getStyle('global', 'background-overlay-fade-coverage')!.value,
-			customCSS: globalState.getStyle('global', 'overlay-custom-css')!.value
+			enable: Boolean(globalStyles.getEffectiveValue('overlay-enable', clipId)),
+			blur: Number(globalStyles.getEffectiveValue('overlay-blur', clipId)),
+			opacity: Number(globalStyles.getEffectiveValue('overlay-opacity', clipId)),
+			color: String(globalStyles.getEffectiveValue('overlay-color', clipId)),
+			mode: String(globalStyles.getEffectiveValue('background-overlay-mode', clipId)),
+			fadeIntensity: Number(
+				globalStyles.getEffectiveValue('background-overlay-fade-intensity', clipId)
+			),
+			fadeCoverage: Number(
+				globalStyles.getEffectiveValue('background-overlay-fade-coverage', clipId)
+			),
+			customCSS: String(globalStyles.getEffectiveValue('overlay-custom-css', clipId))
 		};
 	});
 

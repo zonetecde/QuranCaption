@@ -31,6 +31,19 @@
 	let asset = globalState.currentProject?.content.getAssetById((clip as AssetClip).assetId)!;
 	let file = $state(convertFileSrc(asset.filePath));
 
+	const isSelectedVideo = $derived(() => {
+		return (
+			track.type === TrackType.Video &&
+			globalState.currentProject!.projectEditorState.currentTab === 'Style' &&
+			globalState.getStylesState.isSelectedVideo(clip.id)
+		);
+	});
+
+	const hasOverlayOverride = $derived(() => {
+		if (track.type !== TrackType.Video) return false;
+		return globalState.getVideoStyle.getStylesOfTarget('global').hasAnyOverrideForClip(clip.id);
+	});
+
 	let wavesurfer: WaveSurfer | undefined;
 	$effect(() => {
 		if (
@@ -83,8 +96,36 @@
 
 	function removeClip() {
 		setTimeout(() => {
+			if (track.type === TrackType.Video && globalState.getStylesState.isSelectedVideo(clip.id)) {
+				globalState.getStylesState.removeVideoSelection(clip.id);
+			}
 			track.removeClip(clip.id);
 		});
+	}
+
+	function handleClipClick(event: MouseEvent) {
+		if (
+			track.type !== TrackType.Video ||
+			globalState.currentProject!.projectEditorState.currentTab !== 'Style' ||
+			!(clip instanceof AssetClip)
+		) {
+			return;
+		}
+
+		// click simple = sélection unique, Ctrl/Cmd+click = multi.
+		const isMultiSelect = Boolean(event.ctrlKey || event.metaKey);
+		if (isMultiSelect) {
+			globalState.getStylesState.toggleVideoSelection(clip);
+		} else {
+			const alreadyOnlySelected =
+				globalState.getStylesState.selectedVideos.length === 1 &&
+				globalState.getStylesState.isSelectedVideo(clip.id);
+			if (alreadyOnlySelected) {
+				globalState.getStylesState.clearSelection();
+			} else {
+				globalState.getStylesState.selectOnlyVideo(clip);
+			}
+		}
 	}
 	function loopUntilTheEndClicked(): void {
 		const assetClip = clip as AssetClip;
@@ -121,14 +162,29 @@
 	class={'absolute inset-0 z-10 border rounded-md group ' +
 		(track.type === TrackType.Audio
 			? 'border-[var(--timeline-audio-clip-border)] bg-[var(--timeline-audio-clip-color)]'
-			: 'border-[var(--timeline-video-clip-border)] bg-[var(--timeline-video-clip-color)]')}
+			: 'border-[var(--timeline-video-clip-border)] bg-[var(--timeline-video-clip-color)]') +
+		(isSelectedVideo()
+			? ' bg-[var(--video-clip-selection)]! ring-1 ring-[var(--video-clip-selection)]/60'
+			: '')}
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
 	transition:slide={{ duration: 500, axis: 'x' }}
+	onclick={handleClipClick}
 	oncontextmenu={(e) => {
 		e.preventDefault();
 		contextMenu!.show(e);
 	}}
 >
+	{#if track.type === TrackType.Video && hasOverlayOverride()}
+		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
+			<span
+				class="material-icons-outlined text-[10px] opacity-80"
+				title="Overlay individuel appliqué"
+			>
+				auto_fix_high
+			</span>
+		</div>
+	{/if}
+
 	{#if (asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
 		<div class="h-full w-full" id={'clip-' + clip.id}></div>
 	{:else if asset.duration.ms >= 45 * 60 * 1000 && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
@@ -145,7 +201,10 @@
 		<!-- delete clip -->
 		<button
 			class="text-[var(--text-secondary)] text-sm cursor-pointer opacity-0 group-hover:opacity-100"
-			onclick={removeClip}
+			onclick={(e) => {
+				e.stopPropagation();
+				removeClip();
+			}}
 		>
 			<span class="material-icons">delete</span>
 		</button>

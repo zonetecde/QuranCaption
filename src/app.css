@@ -67,6 +67,7 @@
 	--timeline-audio-clip-border: rgba(139, 92, 246, 0.7);
 	--timeline-video-clip-color: rgba(61, 124, 89, 0.6);
 	--timeline-video-clip-border: rgba(61, 124, 89, 0.8);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 	--timeline-customtext-clip-color: rgba(24, 175, 155, 0.6);
 	--timeline-customtext-clip-border: rgba(23, 131, 116, 0.8);
 	--timeline-subtitle-clip-color: rgba(88, 166, 255, 0.4);
@@ -181,6 +182,7 @@ body {
 	--timeline-track-border: rgba(16, 185, 129, 0.1);
 	--timeline-scrollbar: rgba(16, 185, 129, 0.6);
 	--timeline-scrollbar-hover: rgba(16, 185, 129, 0.8);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 	--subtitle-selection-bg: rgba(16, 185, 129, 0.5);
 	--subtitle-selection-border: rgba(16, 185, 129, 0.4);
 	--text-on-selected-word: white;
@@ -221,6 +223,7 @@ body {
 	--timeline-track-border: rgba(99, 102, 241, 0.2);
 	--timeline-scrollbar: rgba(99, 102, 241, 0.5);
 	--timeline-scrollbar-hover: rgba(99, 102, 241, 0.7);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 	--text-on-hover: var(--accent-primary);
 	--text-secondary-on-hover: var(--text-secondary);
 	--subtitle-selection-bg: rgba(99, 102, 241, 0.6);
@@ -267,6 +270,7 @@ body {
 	--timeline-track-border: rgba(212, 160, 23, 0.2);
 	--timeline-scrollbar: rgba(212, 160, 23, 0.5);
 	--timeline-scrollbar-hover: rgba(212, 160, 23, 0.7);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 	--text-on-hover: var(--accent-primary);
 	--text-secondary-on-hover: var(--text-secondary);
 	--subtitle-selection-bg: rgba(212, 160, 23, 0.6);
@@ -311,6 +315,7 @@ body {
 	--timeline-track-border: rgba(139, 69, 19, 0.2);
 	--timeline-scrollbar: rgba(139, 69, 19, 0.5);
 	--timeline-scrollbar-hover: rgba(139, 69, 19, 0.7);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 88%, var(--bg-accent) 12%);
 	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 82%, var(--bg-primary) 18%);
 	--wbw-tooltip-text: var(--text-primary);
@@ -345,6 +350,7 @@ body {
 	--timeline-track-border: rgba(0, 255, 65, 0.18);
 	--timeline-scrollbar: rgba(0, 255, 65, 0.55);
 	--timeline-scrollbar-hover: rgba(0, 255, 65, 0.75);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 }
 
 .theme-ethereal-glass {
@@ -375,6 +381,7 @@ body {
 	--timeline-track-border: rgba(236, 72, 153, 0.22);
 	--timeline-scrollbar: rgba(236, 72, 153, 0.55);
 	--timeline-scrollbar-hover: rgba(236, 72, 153, 0.75);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 	--ctx-menu-background: rgba(15, 23, 42, 0.92);
 	--ctx-menu-hover-bg: rgba(51, 65, 85, 0.75);
 	--ctx-menu-border: 1px solid rgba(148, 163, 184, 0.35);
@@ -408,6 +415,7 @@ body {
 	--timeline-track-border: rgba(17, 24, 39, 0.2);
 	--timeline-scrollbar: rgba(17, 24, 39, 0.45);
 	--timeline-scrollbar-hover: rgba(17, 24, 39, 0.65);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 }
 
 .theme-inverted-minimal-zen {
@@ -438,6 +446,7 @@ body {
 	--timeline-track-border: rgba(255, 255, 255, 0.2);
 	--timeline-scrollbar: rgba(255, 255, 255, 0.45);
 	--timeline-scrollbar-hover: rgba(255, 255, 255, 0.7);
+	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
 }
 
 /* Pour tout les p, hN, span etc empecher la selection de texte */

@@ -205,14 +205,40 @@
 			</div>
 		{/if}
 
+		{#if globalState.getStylesState.selectedVideos.length > 0}
+			<div
+				class="mt-2 flex items-center justify-between bg-white/5 border border-[var(--border-color)] rounded-lg px-2 py-1"
+			>
+				<div class="flex items-center gap-2 text-secondary text-sm">
+					<span class="material-icons-outlined text-base">movie</span>
+					<span class="style-selection-count-label">
+						{globalState.getStylesState.selectedVideos.length} video clip{globalState.getStylesState
+							.selectedVideos.length > 1
+							? 's'
+							: ''} selected. Overlay styles will apply only to these clips.
+					</span>
+				</div>
+				<button
+					class="btn px-2 py-1 rounded-md flex items-center gap-1"
+					onclick={() => {
+						globalState.getStylesState.clearSelection();
+					}}
+					title="Clear selection"
+				>
+					<span class="material-icons-outlined text-sm">backspace</span>
+					<span class="text-sm">Clear</span>
+				</button>
+			</div>
+		{/if}
+
 		<div
 			class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-[var(--text-primary)]"
 		>
 			<span class="material-icons-outlined text-base mt-0.5">info</span>
 			<p class="text-xs leading-relaxed style-selection-hint-label">
-				Click a subtitle to select only it. Press <span class="font-semibold"
+				Click a subtitle or a video clip to select only it. Press <span class="font-semibold"
 					>Ctrl + Left Click</span
-				> to select multiple subtitles.
+				> to select multiple clips.
 			</p>
 		</div>
 	</div>
@@ -230,8 +256,8 @@
 			>
 				<span class="material-icons-outlined text-base mt-0.5">info</span>
 				<p class="text-sm">
-					You cannot edit global styles when clips are selected, because global styles apply to the
-					entire video. Please clear your selection first.
+					You cannot edit global styles when subtitle clips are selected, because global styles apply
+					to the entire video. Please clear your selection first.
 				</p>
 			</div>
 		{:else}

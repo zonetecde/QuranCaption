@@ -119,9 +119,33 @@
 	});
 
 	// Gestion sélection de clips
-	const selectedClipIds = $derived(() =>
-		globalState.currentProject!.projectEditorState.stylesEditor.selectedSubtitles.map((s) => s.id)
-	);
+	const overlayGlobalStyleIds = new Set<string>([
+		'overlay-enable',
+		'overlay-color',
+		'overlay-opacity',
+		'background-overlay-mode',
+		'background-overlay-fade-intensity',
+		'background-overlay-fade-coverage',
+		'overlay-custom-css',
+		'overlay-blur'
+	]);
+
+	function isGlobalOverlayStyle(): boolean {
+		return target === 'global' && overlayGlobalStyleIds.has(style.id);
+	}
+
+	const selectedClipIds = $derived(() => {
+		// Pour les targets de sous-titres/traductions: sélection de sous-titres.
+		if (target && target !== 'global') {
+			return globalState.getStylesState.selectedSubtitles.map((s) => s.id);
+		}
+		// Pour global.overlay.*: sélection de clips vidéo.
+		if (isGlobalOverlayStyle()) {
+			return globalState.getStylesState.selectedVideos.map((clip) => clip.id);
+		}
+		// Les autres styles globaux restent strictement globaux.
+		return [];
+	});
 
 	function getEffectiveForSelection(): {
 		value: any;
@@ -365,7 +389,7 @@
 					>
 				{/if}
 
-				{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed) && target !== 'global'}
+				{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed)}
 					<button
 						class="ml-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
 						title="Reset override for selection"

@@ -180,6 +180,21 @@ export type StyleName =
 	| GlobalAnimationStyleName
 	| VerseNumberStyleName;
 
+const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
+	'overlay-enable',
+	'overlay-color',
+	'overlay-opacity',
+	'background-overlay-mode',
+	'background-overlay-fade-intensity',
+	'background-overlay-fade-coverage',
+	'overlay-custom-css',
+	'overlay-blur'
+]);
+
+function isGlobalOverlayStyleId(styleId: StyleName): styleId is OverlayStyleName {
+	return GLOBAL_OVERLAY_STYLE_IDS.has(styleId as OverlayStyleName);
+}
+
 export class Style extends SerializableBase {
 	id: string = $state('');
 	name: string = '';
@@ -549,9 +564,9 @@ export class StylesData extends SerializableBase {
 	 * Définit un style pour un ou plusieurs clips sélectionnés (override partiel)
 	 */
 	setStyleForClips(clipIds: number[], styleId: StyleName, value: string | number | boolean) {
-		// Les styles du target 'global' sont uniques et ne peuvent pas être individualisés
-		if (this.target === 'global') {
-			return; // Il n'y a pas de style individuel pour les styles globaux
+		// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
+		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
+			return;
 		}
 
 		for (const clipId of clipIds) {
@@ -576,8 +591,8 @@ export class StylesData extends SerializableBase {
 	 * @param styleId L'ID du style à supprimer
 	 */
 	clearStyleForClips(clipIds: number[], styleId: StyleName): void {
-		// Aucun override à supprimer pour 'global'
-		if (this.target === 'global') {
+		// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
+		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
 			return;
 		}
 
@@ -606,13 +621,12 @@ export class StylesData extends SerializableBase {
 	getEffectiveValue(styleId: StyleName, clipId?: number): string | number | boolean {
 		const style = this.findStyle(styleId);
 
-		// Si target est 'global', on ignore toujours les overrides
-		if (this.target === 'global') {
-			return style ? (style.value as string | number | boolean) : '';
-		}
+		const canUseClipOverride =
+			this.target !== 'global' || (this.target === 'global' && isGlobalOverlayStyleId(styleId));
 
 		// Structure des overrides pour StylesData : overrides[clipId][styleId] = value
 		if (
+			canUseClipOverride &&
 			clipId !== undefined &&
 			this.overrides[clipId] &&
 			this.overrides[clipId][styleId] !== undefined
@@ -630,8 +644,7 @@ export class StylesData extends SerializableBase {
 	 * @returns true si le clip a un override pour le style, false sinon
 	 */
 	hasOverrideForAny(clipIds: number[], styleId: StyleName): boolean {
-		// Jamais d'override pour 'global'
-		if (this.target === 'global') return false;
+		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) return false;
 
 		return clipIds.some((clipId) => {
 			const byClip = this.overrides[clipId];
@@ -901,8 +914,9 @@ export class VideoStyle extends SerializableBase {
 	 * un clip donné
 	 * @param id L'ID du clip à vérifier
 	 */
-	hasAnyOverrideForClip(id: number): any {
+	hasAnyOverrideForClip(id: number, includeGlobal: boolean = false): any {
 		for (const stylesData of this.styles) {
+			if (!includeGlobal && stylesData.target === 'global') continue;
 			if (stylesData.hasAnyOverrideForClip(id)) {
 				return true;
 			}

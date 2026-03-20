@@ -343,15 +343,17 @@ async fn install_ffmpeg_and_ffprobe(
             "Extracting FFmpeg binaries...",
             Some(45.0),
         );
+        let ffmpeg_output_path = tools_bin_dir.join(binary_file_name("ffmpeg"));
+        let ffprobe_output_path = tools_bin_dir.join(binary_file_name("ffprobe"));
         extract_ffmpeg_and_ffprobe_from_tar_xz(
             &archive_path,
             if write_ffmpeg {
-                Some(&tools_bin_dir.join(binary_file_name("ffmpeg")))
+                Some(ffmpeg_output_path.as_path())
             } else {
                 None
             },
             if write_ffprobe {
-                Some(&tools_bin_dir.join(binary_file_name("ffprobe")))
+                Some(ffprobe_output_path.as_path())
             } else {
                 None
             },

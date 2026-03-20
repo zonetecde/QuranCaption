@@ -7,42 +7,76 @@ const FFPROBE_NOT_FOUND_ERROR: &str = "FFPROBE_NOT_FOUND";
 const FFPROBE_NOT_EXECUTABLE_ERROR: &str = "FFPROBE_NOT_EXECUTABLE";
 const FFPROBE_EXEC_FAILED_ERROR_PREFIX: &str = "FFPROBE_EXEC_FAILED:";
 
-/// Résultat de diagnostic d'un binaire multimédia.
+/// Resultat de diagnostic d'un binaire multimedia.
 #[derive(serde::Serialize)]
 pub struct BinaryDiagnosticResult {
     /// Nom logique du binaire.
     pub name: String,
-    /// Chemin résolu si disponible.
+    /// Chemin resolu si disponible.
     pub resolved_path: Option<String>,
-    /// Code d'erreur stable si échec.
+    /// Code d'erreur stable si echec.
     pub error_code: Option<String>,
-    /// Détail d'erreur si échec.
+    /// Detail d'erreur si echec.
     pub error_details: Option<String>,
-    /// Historique des tentatives de résolution.
+    /// Historique des tentatives de resolution.
     pub attempts: Vec<binaries::BinaryResolutionAttempt>,
-    /// Première ligne de version si exécutable.
+    /// Premiere ligne de version si executable.
     pub version_output: Option<String>,
 }
 
-/// Convertit une erreur de résolution ffprobe en message attendu côté frontend.
-pub fn map_ffprobe_resolve_error(err: binaries::BinaryResolveError) -> String {
-    match err.code.as_str() {
-        "BINARY_NOT_FOUND" => FFPROBE_NOT_FOUND_ERROR.to_string(),
-        "BINARY_NOT_EXECUTABLE" => format!("{}: {}", FFPROBE_NOT_EXECUTABLE_ERROR, err.details),
-        "BINARY_EXEC_FAILED" => format!("{}{}", FFPROBE_EXEC_FAILED_ERROR_PREFIX, err.details),
-        _ => format!("{}{}", FFPROBE_EXEC_FAILED_ERROR_PREFIX, err.details),
+fn media_error_tokens(name: &str) -> (&'static str, &'static str, &'static str) {
+    match name {
+        "ffmpeg" => (
+            "FFMPEG_NOT_FOUND",
+            "FFMPEG_NOT_EXECUTABLE",
+            "FFMPEG_EXEC_FAILED:",
+        ),
+        "yt-dlp" => (
+            "YTDLP_NOT_FOUND",
+            "YTDLP_NOT_EXECUTABLE",
+            "YTDLP_EXEC_FAILED:",
+        ),
+        _ => (
+            FFPROBE_NOT_FOUND_ERROR,
+            FFPROBE_NOT_EXECUTABLE_ERROR,
+            FFPROBE_EXEC_FAILED_ERROR_PREFIX,
+        ),
     }
 }
 
-/// Formate une erreur d'exécution ffprobe avec le préfixe contractuel IPC.
+/// Convertit une erreur de resolution en message stable cote frontend.
+pub fn map_media_binary_resolve_error(name: &str, err: binaries::BinaryResolveError) -> String {
+    let (not_found, not_executable, exec_failed_prefix) = media_error_tokens(name);
+    match err.code.as_str() {
+        "BINARY_NOT_FOUND" => not_found.to_string(),
+        "BINARY_NOT_EXECUTABLE" => format!("{not_executable}: {}", err.details),
+        "BINARY_EXEC_FAILED" => format!("{exec_failed_prefix}{}", err.details),
+        _ => format!("{exec_failed_prefix}{}", err.details),
+    }
+}
+
+/// Convertit une erreur de resolution ffprobe en message attendu cote frontend.
+pub fn map_ffprobe_resolve_error(err: binaries::BinaryResolveError) -> String {
+    map_media_binary_resolve_error("ffprobe", err)
+}
+
+/// Formate une erreur d'execution ffprobe avec le prefixe contractuel IPC.
 pub fn format_ffprobe_exec_failed(details: &str) -> String {
     format!("{}{}", FFPROBE_EXEC_FAILED_ERROR_PREFIX, details.trim())
 }
 
-/// Extrait la première ligne de sortie de version d'un binaire.
-fn get_binary_version_line(binary_path: &str) -> Option<String> {
+fn version_args_for(binary_name: &str) -> &'static [&'static str] {
+    if binary_name == "yt-dlp" {
+        &["--version"]
+    } else {
+        &["-version"]
+    }
+}
+
+/// Extrait la premiere ligne de sortie de version d'un binaire.
+fn get_binary_version_line(binary_name: &str, binary_path: &str) -> Option<String> {
     let mut cmd = Command::new(binary_path);
-    cmd.arg("-version");
+    cmd.args(version_args_for(binary_name));
     configure_command_no_window(&mut cmd);
     match cmd.output() {
         Ok(output) if output.status.success() => {
@@ -62,7 +96,7 @@ fn get_binary_version_line(binary_path: &str) -> Option<String> {
     }
 }
 
-/// Commande IPC de diagnostic de résolution des binaires ffmpeg/ffprobe/yt-dlp.
+/// Commande IPC de diagnostic de resolution des binaires ffmpeg/ffprobe/yt-dlp.
 #[tauri::command]
 pub fn diagnose_media_binaries() -> Vec<BinaryDiagnosticResult> {
     ["ffmpeg", "ffprobe", "yt-dlp"]
@@ -72,7 +106,7 @@ pub fn diagnose_media_binaries() -> Vec<BinaryDiagnosticResult> {
             let version_output = debug
                 .resolved_path
                 .as_deref()
-                .and_then(get_binary_version_line);
+                .and_then(|path| get_binary_version_line(name, path));
             BinaryDiagnosticResult {
                 name: debug.name,
                 resolved_path: debug.resolved_path,

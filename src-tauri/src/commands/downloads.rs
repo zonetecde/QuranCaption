@@ -3,6 +3,7 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::binaries;
+use crate::commands::diagnostics::map_media_binary_resolve_error;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 
@@ -19,10 +20,10 @@ pub async fn download_from_youtube(
         return Err(format!("Unable to create directory: {}", e));
     }
 
-    let yt_dlp_path =
-        binaries::resolve_binary("yt-dlp").ok_or_else(|| "yt-dlp binary not found".to_string())?;
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let yt_dlp_path = binaries::resolve_binary_detailed("yt-dlp")
+        .map_err(|err| map_media_binary_resolve_error("yt-dlp", err))?;
+    let ffmpeg_path = binaries::resolve_binary_detailed("ffmpeg")
+        .map_err(|err| map_media_binary_resolve_error("ffmpeg", err))?;
     let ffmpeg_dir = Path::new(&ffmpeg_path)
         .parent()
         .filter(|p| !p.as_os_str().is_empty())

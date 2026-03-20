@@ -9,6 +9,10 @@
 	import toast from 'svelte-5-french-toast';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import {
+		checkMediaDependencies,
+		isYtDlpMissingError
+	} from '$lib/services/MediaDependenciesService';
 
 	let {
 		asset = $bindable()
@@ -101,6 +105,17 @@
 			);
 
 			if (asset.sourceType === SourceType.YouTube) {
+				// Vérifie que yt-dlp est installé avant de lancer le téléchargement, sinon affiche le modal pour l'installer
+				const before = await checkMediaDependencies();
+				if (before.isYtDlpMissing) {
+					await ModalManager.mediaDependenciesModal('youtube');
+					const after = await checkMediaDependencies();
+					if (after.isYtDlpMissing) {
+						toast.error('yt-dlp is still missing. Please install it to continue.');
+						return;
+					}
+				}
+
 				// Re-download from YouTube using yt-dlp
 				const type = asset.type === AssetType.Video ? 'video' : 'audio';
 
@@ -131,6 +146,10 @@
 				toast.success('Re-download successful!', { id: toastId });
 			}
 		} catch (error) {
+			if (isYtDlpMissingError(error)) {
+				await ModalManager.mediaDependenciesModal('youtube');
+				return;
+			}
 			console.error('Re-download error:', error);
 			toast.error(`Error re-downloading: ${error}`, { id: toastId, duration: 5000 });
 		} finally {

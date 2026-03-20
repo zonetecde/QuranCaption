@@ -35,6 +35,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::discord::clear_discord_activity,
         commands::discord::close_discord_rpc,
         commands::waveform::get_audio_waveform,
-        commands::diagnostics::diagnose_media_binaries
+        commands::diagnostics::diagnose_media_binaries,
+        commands::media_dependencies::install_media_binaries
     ])
 }

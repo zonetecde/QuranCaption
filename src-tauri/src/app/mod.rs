@@ -1,5 +1,3 @@
-use tauri::Manager;
-
 use crate::binaries;
 
 mod invoke;
@@ -16,9 +14,9 @@ pub fn run() {
 
     builder
         .setup(|app| {
-            // Initialisation de la résolution des binaires embarqués.
-            if let Ok(resource_dir) = app.path().resource_dir() {
-                binaries::init_resource_dir(resource_dir);
+            // Prepare local media tools directory and ensure it is available in process PATH.
+            if let Err(error) = binaries::prepare_media_tools_path(&app.handle().clone()) {
+                eprintln!("[media-deps] unable to prepare tools path: {}", error);
             }
 
             // Activation du logging Tauri en debug pour faciliter le diagnostic local.

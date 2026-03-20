@@ -39,3 +39,6 @@ discord-rich-presence = "0.2"
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 bytes = "1"
 futures-util = "0.3"
+zip = { version = "2.2.0", default-features = false, features = ["deflate"] }
+tar = "0.4"
+xz2 = "0.1"

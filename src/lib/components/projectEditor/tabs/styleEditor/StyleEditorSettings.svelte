@@ -256,8 +256,8 @@
 			>
 				<span class="material-icons-outlined text-base mt-0.5">info</span>
 				<p class="text-sm">
-					You cannot edit global styles when subtitle clips are selected, because global styles apply
-					to the entire video. Please clear your selection first.
+					You cannot edit global styles when subtitle clips are selected, because global styles
+					apply to the entire video. Please clear your selection first.
 				</p>
 			</div>
 		{:else}
@@ -273,13 +273,13 @@
 				>
 					{#if category.id === 'background'}
 						<div
-							class="mx-2 mb-2 flex items-start gap-2 rounded-md border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 translate-y-1.5"
+							class="mx-2 mb-2 flex items-start gap-2 rounded-md border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 translate-y-1.5 text-[var(--text-primary)]"
 						>
 							<span
-								class="material-icons-outlined text-sm mt-0.5 text-sky-200"
+								class="material-icons-outlined text-sm mt-0.5"
 								title="Background is visible only when 'Max Height' style is set.">info</span
 							>
-							<p class="text-xs text-sky-100 leading-relaxed">
+							<p class="text-xs leading-relaxed">
 								Background is visible only when <span class="font-semibold">Max Height</span> style
 								is
 								<span class="font-semibold">set</span>.

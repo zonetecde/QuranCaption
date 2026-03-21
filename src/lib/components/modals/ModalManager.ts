@@ -7,7 +7,6 @@ import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
-import MediaDependenciesModal from '../home/modals/MediaDependenciesModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 
 export default class ModalManager {
@@ -185,26 +184,6 @@ export default class ModalManager {
 						resolve();
 					},
 					initialAssetId
-				}
-			});
-		});
-	}
-
-	static async mediaDependenciesModal(mode: 'startup' | 'youtube' = 'youtube'): Promise<void> {
-		return new Promise<void>((resolve) => {
-			const container = document.createElement('div');
-			container.classList.add('modal-wrapper');
-			document.body.appendChild(container);
-
-			const modal = mount(MediaDependenciesModal, {
-				target: container,
-				props: {
-					mode,
-					close: () => {
-						unmount(modal);
-						container.remove();
-						resolve();
-					}
 				}
 			});
 		});

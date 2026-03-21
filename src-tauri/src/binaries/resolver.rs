@@ -1,7 +1,119 @@
+use std::collections::HashSet;
 use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::OnceLock;
 
 use super::diagnostics::{BinaryResolutionAttempt, BinaryResolveDebugInfo, BinaryResolveError};
+
+static RESOURCE_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+/// Initialise le repertoire de ressources utilise pour resoudre les binaires embarques.
+pub fn init_resource_dir(dir: PathBuf) {
+    let _ = RESOURCE_DIR.set(dir);
+}
+
+/// Retourne la liste ordonnee des emplacements candidats pour un binaire donne.
+fn binary_candidates(bin: &str) -> Vec<PathBuf> {
+    let mut paths = vec![Path::new("binaries").join(bin)];
+    paths.push(Path::new("resources").join("binaries").join(bin));
+
+    if let Some(resource_dir) = RESOURCE_DIR.get() {
+        paths.push(resource_dir.join("binaries").join(bin));
+        paths.push(resource_dir.join("resources").join("binaries").join(bin));
+    }
+
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            paths.push(dir.join("binaries").join(bin));
+            paths.push(dir.join("resources").join("binaries").join(bin));
+
+            #[cfg(target_os = "macos")]
+            {
+                paths.push(dir.join("../Resources/binaries").join(bin));
+            }
+
+            #[cfg(target_os = "linux")]
+            {
+                let package = env!("CARGO_PKG_NAME");
+                paths.push(dir.join(format!("../lib/{package}/binaries")).join(bin));
+                paths.push(
+                    dir.join(format!("../lib/{package}/resources/binaries"))
+                        .join(bin),
+                );
+                paths.push(dir.join("../resources/binaries").join(bin));
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let package = env!("CARGO_PKG_NAME");
+        if let Ok(appdir) = std::env::var("APPDIR") {
+            paths.push(
+                Path::new(&appdir)
+                    .join(format!("usr/lib/{package}/binaries"))
+                    .join(bin),
+            );
+            paths.push(
+                Path::new(&appdir)
+                    .join(format!("usr/lib/{package}/resources/binaries"))
+                    .join(bin),
+            );
+            paths.push(Path::new(&appdir).join("usr/resources/binaries").join(bin));
+        }
+
+        paths.push(
+            Path::new("/usr/lib")
+                .join(package)
+                .join("binaries")
+                .join(bin),
+        );
+        paths.push(
+            Path::new("/usr/lib")
+                .join(package)
+                .join("resources")
+                .join("binaries")
+                .join(bin),
+        );
+        paths.push(Path::new("/usr/lib/resources/binaries").join(bin));
+        paths.push(Path::new("/usr/local/bin").join(bin));
+        paths.push(Path::new("/usr/bin").join(bin));
+        paths.push(Path::new("/bin").join(bin));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        paths.push(Path::new("/opt/homebrew/bin").join(bin));
+        paths.push(Path::new("/usr/local/bin").join(bin));
+        paths.push(Path::new("/opt/local/bin").join(bin));
+    }
+
+    if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+        paths.push(Path::new(&manifest_dir).join("binaries").join(bin));
+        paths.push(
+            Path::new(&manifest_dir)
+                .join("resources")
+                .join("binaries")
+                .join(bin),
+        );
+    }
+
+    dedupe_paths(paths)
+}
+
+/// Supprime les chemins dupliques en conservant l'ordre.
+fn dedupe_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
+    let mut seen = HashSet::new();
+    let mut deduped = Vec::new();
+    for path in paths {
+        let key = path.to_string_lossy().to_string();
+        if seen.insert(key) {
+            deduped.push(path);
+        }
+    }
+    deduped
+}
 
 /// Retourne la premiere ligne non vide d'un texte.
 fn first_non_empty_line(text: &str) -> String {
@@ -82,37 +194,66 @@ fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, S
     }
 }
 
-/// Tente de resoudre un binaire en ne consultant que le PATH process.
+/// Tente de resoudre un binaire et retourne le chemin retenu plus les tentatives.
 fn resolve_binary_with_attempts(
     name: &str,
 ) -> Result<(String, Vec<BinaryResolutionAttempt>), BinaryResolveError> {
-    let primary = if cfg!(target_os = "windows") {
+    let bin = if cfg!(target_os = "windows") {
         format!("{name}.exe")
     } else {
         name.to_string()
     };
-    let fallback = primary.strip_suffix(".exe").unwrap_or(&primary).to_string();
 
     let mut attempts = Vec::new();
-    let mut candidates = vec![primary];
-    if !candidates.iter().any(|candidate| candidate == &fallback) {
-        candidates.push(fallback);
+
+    for path in binary_candidates(&bin) {
+        if path.exists() {
+            let canonical = path.canonicalize().unwrap_or(path);
+            let candidate = canonical.to_string_lossy().to_string();
+            match test_binary_version(&candidate, name) {
+                Ok(()) => {
+                    attempts.push(BinaryResolutionAttempt {
+                        candidate: candidate.clone(),
+                        source: "bundled_or_known_path".to_string(),
+                        outcome: "ok".to_string(),
+                        detail: None,
+                    });
+                    return Ok((candidate, attempts));
+                }
+                Err((outcome, detail)) => {
+                    attempts.push(BinaryResolutionAttempt {
+                        candidate,
+                        source: "bundled_or_known_path".to_string(),
+                        outcome,
+                        detail: Some(detail),
+                    });
+                }
+            }
+        } else {
+            attempts.push(BinaryResolutionAttempt {
+                candidate: path.to_string_lossy().to_string(),
+                source: "bundled_or_known_path".to_string(),
+                outcome: "missing".to_string(),
+                detail: None,
+            });
+        }
     }
 
-    for candidate in candidates {
-        match test_binary_version(&candidate, name) {
+    let base = bin.strip_suffix(".exe").unwrap_or(&bin);
+    for candidate in [bin.as_str(), base] {
+        match test_binary_version(candidate, name) {
             Ok(()) => {
                 attempts.push(BinaryResolutionAttempt {
-                    candidate: candidate.clone(),
+                    candidate: candidate.to_string(),
                     source: "system_path".to_string(),
                     outcome: "ok".to_string(),
                     detail: None,
                 });
-                return Ok((candidate, attempts));
+                return Ok((candidate.to_string(), attempts));
             }
             Err((outcome, detail)) => {
                 attempts.push(BinaryResolutionAttempt {
-                    candidate,
+                    candidate: candidate.to_string(),
                     source: "system_path".to_string(),
                     outcome,
                     detail: Some(detail),

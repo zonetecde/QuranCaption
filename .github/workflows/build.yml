@@ -42,6 +42,56 @@ jobs:
           echo "CARGO_BUILD_JOBS=2" >> $GITHUB_ENV
           echo "CARGO_NET_GIT_FETCH_WITH_CLI=true" >> $GITHUB_ENV
 
+      # macOS setup
+      - name: Download yt-dlp (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          curl -L -o yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
+          chmod +x yt-dlp
+          mkdir -p src-tauri/binaries
+          mv yt-dlp src-tauri/binaries/yt-dlp
+
+      - name: Install ffmpeg and copy binaries (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew update
+          brew install ffmpeg
+          mkdir -p src-tauri/binaries
+          cp "$(brew --prefix)/bin/ffprobe" src-tauri/binaries/ffprobe
+          cp "$(brew --prefix)/bin/ffmpeg" src-tauri/binaries/ffmpeg
+          chmod +x src-tauri/binaries/ffprobe
+          chmod +x src-tauri/binaries/ffmpeg
+
+      # Windows setup
+      - name: Download yt-dlp (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path src-tauri/binaries -Force | Out-Null
+          curl -L -o yt-dlp.exe https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+          Move-Item yt-dlp.exe src-tauri/binaries/yt-dlp.exe
+
+      - name: Download and extract ffmpeg and ffprobe (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $binDir = "src-tauri/binaries"
+          New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+
+          # Download latest static build zip from BtbN
+          $ffmpegZip = "ffmpeg.zip"
+          curl -L -o $ffmpegZip "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+
+          # Extract using built-in PowerShell
+          $extractDir = "ffmpeg-extracted"
+          if (Test-Path $extractDir) { Remove-Item -Recurse -Force $extractDir }
+          Expand-Archive -Path $ffmpegZip -DestinationPath $extractDir -Force
+
+          # Find extracted root (contains bin/ffmpeg.exe & bin/ffprobe.exe)
+          $rootDir = Get-ChildItem -Directory -Path $extractDir | Select-Object -First 1
+          Copy-Item -Path (Join-Path $rootDir.FullName "bin/ffmpeg.exe") -Destination $binDir -Force
+          Copy-Item -Path (Join-Path $rootDir.FullName "bin/ffprobe.exe") -Destination $binDir -Force
+
       # Linux setup
       - name: Install Linux build dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -54,6 +104,27 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
           # Additional dependencies for better Linux compatibility
           sudo apt-get install -y xdg-utils desktop-file-utils
+
+      - name: Download yt-dlp (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          curl -L -o yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp
+          chmod +x yt-dlp
+          mkdir -p src-tauri/binaries
+          mv yt-dlp src-tauri/binaries/yt-dlp
+
+      - name: Download and extract ffmpeg and ffprobe (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p src-tauri/binaries
+          curl -L -o ffmpeg.tar.xz "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+          rm -rf ffmpeg-extracted
+          mkdir ffmpeg-extracted
+          tar -xJf ffmpeg.tar.xz -C ffmpeg-extracted
+          rootdir=$(find ffmpeg-extracted -maxdepth 1 -mindepth 1 -type d | head -n 1)
+          cp "$rootdir/ffmpeg" src-tauri/binaries/ffmpeg
+          cp "$rootdir/ffprobe" src-tauri/binaries/ffprobe
+          chmod +x src-tauri/binaries/ffmpeg src-tauri/binaries/ffprobe
 
       - name: Install app dependencies
         run: npm install

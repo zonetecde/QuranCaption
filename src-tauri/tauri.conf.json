@@ -90,6 +90,7 @@
 			"nsis"
 		],
 		"resources": [
+			"binaries/**/*",
 			"python/**/*"
 		],
 		"icon": [

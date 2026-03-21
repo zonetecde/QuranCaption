@@ -3,37 +3,17 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { SourceType } from '$lib/classes';
+	import { Asset, AssetType, SourceType } from '$lib/classes';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
-	import ModalManager from '$lib/components/modals/ModalManager';
-	import {
-		checkMediaDependencies,
-		isYtDlpMissingError
-	} from '$lib/services/MediaDependenciesService';
 
 	let url: string = $state('');
 	let type: string = $state('audio'); // Default to audio
-
-	// Vérifie avant de lancer le téléchargement si yt-dlp est installé, sinon affiche le modal pour l'installer
-	async function ensureYtDlpReady(): Promise<boolean> {
-		const before = await checkMediaDependencies();
-		if (!before.isYtDlpMissing) return true;
-
-		await ModalManager.mediaDependenciesModal('youtube');
-		const after = await checkMediaDependencies();
-		return !after.isYtDlpMissing;
-	}
 
 	async function downloadAssetFromYouTube() {
 		try {
 			if (!url.trim()) {
 				toast.error('Please enter a valid YouTube video URL.');
-				return;
-			}
-
-			if (!(await ensureYtDlpReady())) {
-				toast.error('yt-dlp is still missing. Please install it to continue.');
 				return;
 			}
 
@@ -60,10 +40,6 @@
 			// Telemetry
 			AnalyticsService.downloadFromYouTube(url, type);
 		} catch (error) {
-			if (isYtDlpMissingError(error)) {
-				await ModalManager.mediaDependenciesModal('youtube');
-				return;
-			}
 			toast.error('Error downloading from YouTube: ' + error);
 		}
 	}

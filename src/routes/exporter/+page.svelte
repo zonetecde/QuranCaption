@@ -293,9 +293,6 @@
 			start: segment.start,
 			end: segment.end
 		}));
-		const preprocessWindowStart = renderSegments[0].start;
-		const preprocessWindowDuration =
-			renderSegments[renderSegments.length - 1].end - preprocessWindowStart;
 
 		const generatedVideoFiles: string[] = [];
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
@@ -332,9 +329,7 @@
 				segmentImageFolder,
 				segment.start,
 				segmentDuration,
-				segment.blur,
-				preprocessWindowStart,
-				preprocessWindowDuration
+				segment.blur
 			);
 
 			generatedVideoFiles.push(segmentVideoPath);
@@ -557,9 +552,7 @@
 		chunkImageFolder: string,
 		chunkStart: number,
 		chunkDuration: number,
-		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number,
-		preprocessWindowStart?: number,
-		preprocessWindowDuration?: number
+		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
 	): Promise<string> {
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
@@ -600,12 +593,6 @@
 				fadeDuration: fadeDuration,
 				startTime: Math.round(chunkStart), // Le startTime pour l'audio/vidéo de fond
 				duration: Math.round(chunkDuration),
-				preprocessWindowStart:
-					preprocessWindowStart !== undefined ? Math.round(preprocessWindowStart) : undefined,
-				preprocessWindowDuration:
-					preprocessWindowDuration !== undefined
-						? Math.round(preprocessWindowDuration)
-						: undefined,
 				audios: audios,
 				videos: videos,
 				chunkIndex: chunkIndex,

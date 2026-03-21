@@ -15,6 +15,28 @@
 		currentExportFolder = await ExportService.getExportFolder();
 	});
 
+	function setCustomExportFolder(value: string) {
+		currentExportFolder = value;
+		if (!globalState.settings) return;
+		globalState.settings.persistentUiState.videoExportFolder = value.trim();
+	}
+
+	async function persistCustomExportFolder() {
+		if (!globalState.settings) return;
+
+		const normalizedPath = currentExportFolder.trim();
+		globalState.settings.persistentUiState.videoExportFolder = normalizedPath;
+
+		// Empty input means "use default export location".
+		if (!normalizedPath) {
+			currentExportFolder = await ExportService.getExportFolder();
+		} else {
+			currentExportFolder = normalizedPath;
+		}
+
+		await Settings.save();
+	}
+
 	async function changeExportFolder() {
 		const selected = await open({
 			directory: true,
@@ -44,10 +66,17 @@
 	<div class="flex items-center gap-2">
 		<input
 			type="text"
-			readonly
-			class="flex-1 bg-secondary border border-color rounded p-2 text-sm text-secondary truncate"
+			class="flex-1 bg-secondary border border-color rounded p-2 text-sm text-secondary"
 			title={currentExportFolder}
 			bind:value={currentExportFolder}
+			oninput={(event) =>
+				setCustomExportFolder((event.currentTarget as HTMLInputElement).value)}
+			onblur={persistCustomExportFolder}
+			onkeydown={(event) => {
+				if (event.key === 'Enter') {
+					(event.currentTarget as HTMLInputElement).blur();
+				}
+			}}
 		/>
 		<button class="btn-accent px-3 py-2 text-sm cursor-pointer" onclick={changeExportFolder}>
 			Browse

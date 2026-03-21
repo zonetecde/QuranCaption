@@ -11,8 +11,134 @@ import { remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
+import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 
 export default class Exporter {
+	private static queueIntervalId: number | null = null;
+	private static isQueueTickRunning = false;
+	private static isExportListenerSetup = false;
+	private static readonly QUEUE_POLL_INTERVAL_MS = 750;
+
+	/**
+	 * Ensure that background workers are started for exporting.
+	 * @returns {void}
+	 */
+	private static ensureBackgroundWorkersStarted() {
+		if (!Exporter.isExportListenerSetup) {
+			ExportService.setupListener();
+			Exporter.isExportListenerSetup = true;
+		}
+
+		if (Exporter.queueIntervalId !== null) return;
+		Exporter.queueIntervalId = window.setInterval(() => {
+			void Exporter.processExportQueue();
+		}, Exporter.QUEUE_POLL_INTERVAL_MS);
+	}
+
+	/**
+	 * Checks if there is an active video export.
+	 * @returns {boolean}
+	 */
+	private static hasActiveVideoExport(): boolean {
+		return globalState.exportations.some((exp) => {
+			if (exp.exportKind !== ExportKind.Video) return false;
+			return (
+				exp.currentState === ExportState.CapturingFrames ||
+				exp.currentState === ExportState.Initializing ||
+				exp.currentState === ExportState.CreatingVideo ||
+				exp.currentState === ExportState.Recording ||
+				exp.currentState === ExportState.AddingAudio
+			);
+		});
+	}
+
+	/**
+	 * Get the next pending video export.
+	 * @returns {Exportation | undefined}
+	 */
+	private static getNextPendingVideoExport(): Exportation | undefined {
+		return globalState.exportations
+			.filter(
+				(exp) =>
+					exp.exportKind === ExportKind.Video && exp.currentState === ExportState.WaitingForRecord
+			)
+			.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+	}
+
+	// Queue rule: only one active video export at a time (FIFO for pending exports).
+	private static async processExportQueue() {
+		if (Exporter.isQueueTickRunning) return;
+		Exporter.isQueueTickRunning = true;
+		let nextExport: Exportation | undefined;
+
+		try {
+			if (Exporter.hasActiveVideoExport()) return;
+
+			nextExport = Exporter.getNextPendingVideoExport();
+			if (!nextExport) return;
+
+			nextExport.currentState = ExportState.CapturingFrames;
+			nextExport.percentageProgress = 0;
+			nextExport.currentTreatedTime = 0;
+			await ExportService.saveExports();
+
+			await Exporter.openExportWindow(nextExport.exportId.toString());
+		} catch (error) {
+			console.error('Unable to start next pending export:', error);
+			if (nextExport && nextExport.currentState === ExportState.CapturingFrames) {
+				nextExport.currentState = ExportState.Error;
+				nextExport.percentageProgress = 100;
+				nextExport.errorLog = String(error);
+				await ExportService.saveExports();
+			}
+		} finally {
+			Exporter.isQueueTickRunning = false;
+		}
+	}
+
+	private static async openExportWindow(exportId: string) {
+		// Créer une fenêtre Tauri avec la bonne taille
+		const w = new WebviewWindow(exportId, {
+			center: false,
+			decorations: false,
+			visible: true,
+			focus: false,
+			skipTaskbar: true,
+			preventOverflow: false,
+			x: -10000,
+			y: -10000,
+			backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
+			alwaysOnTop: false,
+			alwaysOnBottom: true,
+			title: 'QC - ' + exportId,
+			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
+		});
+
+		w.once('tauri://created', async () => {
+			try {
+				await w.setPosition(new LogicalPosition(-10000, -10000));
+			} catch (error) {
+				console.warn('Unable to move export window off-screen:', error);
+			}
+		});
+
+		// listen  to close
+		w.listen('tauri://close-requested', async () => {
+			try {
+				// Supprime le dossier temporaire des images
+				await remove(await join(ExportService.exportFolder, exportId), {
+					baseDir: BaseDirectory.AppData,
+					recursive: true
+				});
+			} catch (error) {
+				console.error('Error removing temporary images folder:', error);
+			} finally {
+				// ferme la fenêtre
+				await w.destroy();
+			}
+		});
+	}
+
 	/**
 	 * Exporte le projet sous forme de sous-titres
 	 */
@@ -191,6 +317,8 @@ export default class Exporter {
 	static async exportVideo() {
 		// Génère un ID d'export unique.
 		const exportId = Utilities.randomId().toString();
+		const shouldQueue =
+			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
 
 		// Fait une copie du projet à l'état actuelle
 		const project = globalState.currentProject!.clone();
@@ -200,55 +328,17 @@ export default class Exporter {
 		await ExportService.saveProject(project);
 
 		// Ajoute à la liste des exports en cours
-		await ExportService.addExport(project);
+		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable');
 
 		// Ouvre le popup de monitor d'export
 		globalState.uiState.showExportMonitor = true;
 
 		// Set-up l'écouteur d'évènement pour suivre
 		// le progrès des projets en cours d'exportation
-		ExportService.setupListener();
+		Exporter.ensureBackgroundWorkersStarted();
 
-		// Créer une fenêtre Tauri avec la bonne taille
-		const w = new WebviewWindow(exportId, {
-			center: false,
-			decorations: false,
-			visible: true,
-			focus: false,
-			skipTaskbar: true,
-			preventOverflow: false,
-			x: -10000,
-			y: -10000,
-			backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
-			alwaysOnTop: false,
-			alwaysOnBottom: true,
-			title: 'QC - ' + exportId,
-			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
-		});
-
-		w.once('tauri://created', async () => {
-			try {
-				await w.setPosition(new LogicalPosition(-10000, -10000));
-			} catch (error) {
-				console.warn('Unable to move export window off-screen:', error);
-			}
-		});
-
-		// listen  to close
-		w.listen('tauri://close-requested', async (e) => {
-			try {
-				// Supprime le dossier temporaire des images
-				await remove(await join(ExportService.exportFolder, exportId), {
-					baseDir: BaseDirectory.AppData,
-					recursive: true
-				});
-			} catch (error) {
-				console.error('Error removing temporary images folder:', error);
-			} finally {
-				// ferme la fenêtre
-				await w.destroy();
-			}
-		});
+		if (!shouldQueue) {
+			await Exporter.openExportWindow(exportId);
+		}
 	}
 }
-

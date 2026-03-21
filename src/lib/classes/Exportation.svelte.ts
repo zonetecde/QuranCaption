@@ -3,7 +3,7 @@ import { SerializableBase } from './misc/SerializableBase';
 import { invoke } from '@tauri-apps/api/core';
 
 export enum ExportState {
-	WaitingForRecord = 'Waiting for Record',
+	WaitingForRecord = 'Pending',
 	Recording = 'Recording',
 	AddingAudio = 'Adding Audio',
 	Exported = 'Exported',

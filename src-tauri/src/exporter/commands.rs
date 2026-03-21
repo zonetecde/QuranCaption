@@ -20,12 +20,12 @@ static ACTIVE_EXPORTS: LazyLock<Mutex<HashMap<String, Arc<Mutex<Option<std::proc
 
 // Fonction utilitaire pour configurer les commandes et cacher les fenêtres CMD sur Windows
 /// Fonction du module export.
-fn configure_command_no_window(_cmd: &mut Command) {
+fn configure_command_no_window(cmd: &mut Command) {
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        _cmd.creation_flags(CREATE_NO_WINDOW);
+        cmd.creation_flags(CREATE_NO_WINDOW);
     }
 }
 

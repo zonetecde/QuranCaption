@@ -2,7 +2,6 @@ use std::io::ErrorKind;
 use std::process::Command;
 
 use super::diagnostics::{BinaryResolutionAttempt, BinaryResolveDebugInfo, BinaryResolveError};
-use crate::utils::process::configure_command_no_window;
 
 /// Retourne la premiere ligne non vide d'un texte.
 fn first_non_empty_line(text: &str) -> String {
@@ -53,10 +52,7 @@ fn probe_args_for(binary_name: &str) -> &'static [&'static str] {
 /// Verifie qu'un binaire peut etre execute et renvoie un diagnostic exploitable.
 fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, String)> {
     let probe_args = probe_args_for(binary_name);
-    let mut cmd = Command::new(binary);
-    cmd.args(probe_args);
-    configure_command_no_window(&mut cmd);
-    match cmd.output() {
+    match Command::new(binary).args(probe_args).output() {
         Ok(output) => {
             if output.status.success() {
                 Ok(())

@@ -1,42 +1,46 @@
 import { invoke } from '@tauri-apps/api/core';
+import { appDataDir, join } from '@tauri-apps/api/path';
 import { ProjectService } from './ProjectService';
+import { Mp3QuranService } from './Mp3QuranService';
 import { globalState } from '$lib/runes/main.svelte';
 
 const TUTORIAL_PROJECT_NAME = 'Tutorial Project';
 const TUTORIAL_AUDIO_FILENAME = 'Yasser Al-Dosari - 1. Al-Fatihah.mp3';
+const YASSER_AL_DOSARI_ID = 92;
+
+async function downloadTutorialAudio(): Promise<string> {
+	const reciters = await Mp3QuranService.getReciters();
+	const yasser = reciters.find((r) => r.id === YASSER_AL_DOSARI_ID);
+	if (!yasser || yasser.moshaf.length === 0) {
+		throw new Error('Yasser Al-Dosari (ID 92) not found on mp3quran');
+	}
+	const url = `${yasser.moshaf[0].server}001.mp3`;
+	const destPath = await join(await appDataDir(), 'assets', 'tutorial', TUTORIAL_AUDIO_FILENAME);
+	await invoke('download_file', { url, path: destPath });
+	return destPath;
+}
 
 /**
- * Imports the tutorial project, replacing the {{tutorial_audio}} placeholder with
- * the resolved filesystem path of the bundled audio file.
- *
+ * Imports the tutorial project, downloading Al-Fatiha by Yasser Al-Dosari from mp3quran.
  * @param force - When true, deletes any existing tutorial project first (used for reset).
  */
 export async function setupTutorialProject(force = false): Promise<void> {
-	// Delete existing tutorial project if force-resetting
 	if (force) {
 		const existing = globalState.userProjectsDetails.find(
 			(p) => p.name === TUTORIAL_PROJECT_NAME
 		);
-		if (existing) {
-			await ProjectService.delete(existing.id);
-		}
+		if (existing) await ProjectService.delete(existing.id);
 	} else {
-		// Skip if tutorial project already exists
 		if (globalState.userProjectsDetails.some((p) => p.name === TUTORIAL_PROJECT_NAME)) return;
 	}
 
-	const audioPath = await invoke<string>('get_tutorial_asset_path', {
-		filename: TUTORIAL_AUDIO_FILENAME
-	});
-
-	const response = await fetch('/tutorial/1774428451900961.json');
-	const jsonText = await response.text();
+	const audioPath = await downloadTutorialAudio();
+	const jsonText = await (await fetch('/tutorial/1774428451900961.json')).text();
 	const processedText = jsonText.replace(
 		'"{{tutorial_audio}}"',
 		JSON.stringify(audioPath.replace(/\\/g, '/'))
 	);
-	const json = JSON.parse(processedText);
 
-	await ProjectService.importProject(json);
+	await ProjectService.importProject(JSON.parse(processedText));
 	await ProjectService.loadUserProjectsDetails();
 }

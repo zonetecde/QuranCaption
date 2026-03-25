@@ -306,7 +306,7 @@
 
 			<!-- Timeline Actions -->
 			{#if asset.exists}
-				<div class="space-y-2 pt-2 border-t border-color">
+				<div data-tour-id="asset-timeline-actions" class="space-y-2 pt-2 border-t border-color">
 					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">Add to Timeline</h4>
 					{#if asset.type === AssetType.Video}
 						<div class="space-y-2">

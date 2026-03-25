@@ -1,0 +1,3614 @@
+{
+  "__className": "Project",
+  "detail": {
+    "__className": "ProjectDetail",
+    "id": 1774428451900961,
+    "verseRange": {
+      "__className": "VerseRange",
+      "parts": [
+        {
+          "surah": 1,
+          "verseStart": 2,
+          "verseEnd": 7
+        }
+      ]
+    },
+    "duration": {
+      "__className": "Duration",
+      "ms": 48013
+    },
+    "name": "Tutorial Project",
+    "reciter": "Yasser Al-Dosari",
+    "createdAt": "2026-03-25T08:47:31.900Z",
+    "updatedAt": "2026-03-25T08:58:51.259Z",
+    "percentageCaptioned": 100,
+    "status": {
+      "__className": "Status",
+      "status": "Not Set",
+      "color": "#ffffff"
+    },
+    "translations": {
+      "Mustafa Khattab Allah Edition": 100
+    }
+  },
+  "content": {
+    "__className": "ProjectContent",
+    "timeline": {
+      "__className": "Timeline",
+      "tracks": [
+        {
+          "__className": "CustomTextTrack",
+          "type": "CustomClip",
+          "clips": []
+        },
+        {
+          "__className": "SubtitleTrack",
+          "type": "Subtitle",
+          "clips": [
+            {
+              "__className": "PredefinedSubtitleClip",
+              "id": 1774428495736480,
+              "type": "Pre-defined Subtitle",
+              "predefinedSubtitleType": "Basmala",
+              "translations": {
+                "eng-mustafakhattaba": {
+                  "__className": "PredefinedSubtitleTranslation",
+                  "type": "predefined",
+                  "text": "In the name of Allah, the Most Gracious, the Most Merciful",
+                  "status": "completed by default"
+                }
+              },
+              "text": "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 1,
+              "endTime": 3254.482,
+              "duration": 3253.482,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1774428500629565,
+              "type": "Subtitle",
+              "surah": 1,
+              "verse": 2,
+              "startWordIndex": 0,
+              "endWordIndex": 3,
+              "wbwTranslation": [
+                "All praises and thanks",
+                "(be) to Allah",
+                "(the) Lord",
+                "(of all) the worlds"
+              ],
+              "isFullVerse": true,
+              "isLastWordsOfVerse": true,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 0,
+                  "endWordIndex": 8,
+                  "isBruteForce": false,
+                  "text": "All praise is for Allah— Lord of all worlds,",
+                  "status": "completed by default"
+                }
+              },
+              "text": "ٱلۡحَمۡدُ لِلَّهِ رَبِّ ٱلۡعَٰلَمِينَ",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 3255.482,
+              "endTime": 9148.194,
+              "duration": 5892.7119999999995,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1774428503974563,
+              "type": "Subtitle",
+              "surah": 1,
+              "verse": 3,
+              "startWordIndex": 0,
+              "endWordIndex": 1,
+              "wbwTranslation": [
+                "The Most Gracious",
+                "the Most Merciful"
+              ],
+              "isFullVerse": true,
+              "isLastWordsOfVerse": true,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 0,
+                  "endWordIndex": 4,
+                  "isBruteForce": false,
+                  "text": "the Most Compassionate, Most Merciful,",
+                  "status": "completed by default"
+                }
+              },
+              "text": "ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 9149.194,
+              "endTime": 15782.439999999999,
+              "duration": 6633.245999999999,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1774428507221946,
+              "type": "Subtitle",
+              "surah": 1,
+              "verse": 4,
+              "startWordIndex": 0,
+              "endWordIndex": 2,
+              "wbwTranslation": [
+                "Master",
+                "(of the) Day",
+                "(of) [the] Judgment"
+              ],
+              "isFullVerse": true,
+              "isLastWordsOfVerse": true,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 0,
+                  "endWordIndex": 5,
+                  "isBruteForce": false,
+                  "text": "Master of the Day of Judgment.",
+                  "status": "completed by default"
+                }
+              },
+              "text": "مَٰلِكِ يَوۡمِ ٱلدِّينِ",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 15783.439999999999,
+              "endTime": 22308.405,
+              "duration": 6524.965,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1774428510632513,
+              "type": "Subtitle",
+              "surah": 1,
+              "verse": 5,
+              "startWordIndex": 0,
+              "endWordIndex": 3,
+              "wbwTranslation": [
+                "You Alone",
+                "we worship",
+                "and You Alone",
+                "we ask for help"
+              ],
+              "isFullVerse": true,
+              "isLastWordsOfVerse": true,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 0,
+                  "endWordIndex": 10,
+                  "isBruteForce": false,
+                  "text": "You ˹alone˺ we worship and You ˹alone˺ we ask for help.",
+                  "status": "completed by default"
+                }
+              },
+              "text": "إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 22309.405,
+              "endTime": 29123.554,
+              "duration": 6814.149000000001,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1774428513561497,
+              "type": "Subtitle",
+              "surah": 1,
+              "verse": 6,
+              "startWordIndex": 0,
+              "endWordIndex": 2,
+              "wbwTranslation": [
+                "Guide us",
+                "(to) the path",
+                "the straight"
+              ],
+              "isFullVerse": true,
+              "isLastWordsOfVerse": true,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 0,
+                  "endWordIndex": 5,
+                  "isBruteForce": false,
+                  "text": "Guide us along the Straight Path,",
+                  "status": "completed by default"
+                }
+              },
+              "text": "ٱهۡدِنَا ٱلصِّرَٰطَ ٱلۡمُسۡتَقِيمَ",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 29124.554,
+              "endTime": 32025.001000000004,
+              "duration": 2900.4470000000038,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1774428516797177,
+              "type": "Subtitle",
+              "surah": 1,
+              "verse": 7,
+              "startWordIndex": 0,
+              "endWordIndex": 3,
+              "wbwTranslation": [
+                "(The) path",
+                "(of) those",
+                "You have bestowed (Your) Favors",
+                "on them"
+              ],
+              "isFullVerse": false,
+              "isLastWordsOfVerse": false,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 0,
+                  "endWordIndex": 6,
+                  "isBruteForce": false,
+                  "text": "the Path of those You have blessed—",
+                  "status": "reviewed"
+                }
+              },
+              "text": "صِرَٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 32026.001000000004,
+              "endTime": 35942.025,
+              "duration": 3916.0239999999976,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1774428522518135,
+              "type": "Subtitle",
+              "surah": 1,
+              "verse": 7,
+              "startWordIndex": 4,
+              "endWordIndex": 8,
+              "wbwTranslation": [
+                "not (of)",
+                "those who earned (Your) wrath",
+                "on themselves",
+                "and not",
+                "(of) those who go astray"
+              ],
+              "isFullVerse": false,
+              "isLastWordsOfVerse": true,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 7,
+                  "endWordIndex": 17,
+                  "isBruteForce": false,
+                  "text": "not those You are displeased with, or those who are astray.",
+                  "status": "automatically trimmed"
+                }
+              },
+              "text": "غَيۡرِ ٱلۡمَغۡضُوبِ عَلَيۡهِمۡ وَلَا ٱلضَّآلِّينَ",
+              "associatedImagePath": null,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 35943.025,
+              "endTime": 46784.804000000004,
+              "duration": 10841.779000000002,
+              "showWaveform": false
+            }
+          ]
+        },
+        {
+          "__className": "AssetTrack",
+          "type": "Video",
+          "clips": []
+        },
+        {
+          "__className": "AssetTrack",
+          "type": "Audio",
+          "clips": [
+            {
+              "__className": "AssetClip",
+              "id": 1774428492308336,
+              "type": "Asset",
+              "assetId": 1774428486358819,
+              "loopUntilAudioEnd": false,
+              "startTime": 0,
+              "endTime": 48013,
+              "duration": 48013,
+              "showWaveform": false
+            }
+          ]
+        }
+      ]
+    },
+    "assets": [
+      {
+        "__className": "Asset",
+        "id": 1774428486358819,
+        "fileName": "Yasser Al-Dosari - 1. Al-Fatihah.mp3",
+        "filePath": "{{tutorial_audio}}",
+        "type": "audio",
+        "duration": {
+          "__className": "Duration",
+          "ms": 48013
+        },
+        "exists": true,
+        "sourceUrl": "https://server11.mp3quran.net/yasser/001.mp3",
+        "sourceType": "mp3quran",
+        "metadata": {
+          "mp3Quran": {
+            "reciterId": 92,
+            "moshafId": 92,
+            "surahId": 1
+          }
+        },
+        "durationLoadState": "success",
+        "durationLoadError": null
+      }
+    ],
+    "projectTranslation": {
+      "__className": "ProjectTranslation",
+      "TEXT_NO_TRANSLATION_AVAILABLE": "No translation found",
+      "addedTranslationEditions": [
+        {
+          "key": "eng_mustafakhattaba",
+          "name": "eng-mustafakhattaba",
+          "author": "Mustafa Khattab Allah Edition",
+          "language": "English",
+          "direction": "ltr",
+          "source": "",
+          "comments": "Ponctuation",
+          "link": "/translations/en-mustafakhattab/{chapter}.json",
+          "linkmin": "/translations/en-mustafakhattab/{chapter}.json",
+          "showInTranslationsEditor": true
+        }
+      ],
+      "versesTranslations": {
+        "eng-mustafakhattaba": {
+          "1:2": "All praise is for Allah— Lord of all worlds,",
+          "1:3": "the Most Compassionate, Most Merciful,",
+          "1:4": "Master of the Day of Judgment.",
+          "1:5": "You ˹alone˺ we worship and You ˹alone˺ we ask for help.",
+          "1:6": "Guide us along the Straight Path,",
+          "1:7": "the Path of those You have blessed— not those You are displeased with, or those who are astray."
+        }
+      }
+    },
+    "videoStyle": {
+      "__className": "VideoStyle",
+      "styles": [
+        {
+          "__className": "StylesData",
+          "categories": [
+            {
+              "__className": "Category",
+              "name": "General Settings",
+              "description": "Configure general settings for the video",
+              "icon": "animation",
+              "id": "general",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Video Quality & Orientation",
+                  "description": "Quality and orientation of the video",
+                  "valueType": "dimension",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "screen_rotation",
+                  "id": "video-dimension",
+                  "value": {
+                    "width": 1920,
+                    "height": 1080
+                  },
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Duration",
+                  "description": "Duration of fade in/out effect in milliseconds",
+                  "valueType": "number",
+                  "step": 50,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "fade-duration",
+                  "value": 500,
+                  "valueMin": 0,
+                  "valueMax": 4000
+                },
+                {
+                  "__className": "Style",
+                  "name": "Subtitles Anti-Collision",
+                  "description": "Prevent subtitle overlap",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "block",
+                  "id": "anti-collision",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Subtitle Spacing",
+                  "description": "Minimum spacing between subtitles (in pixels)",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "space_bar",
+                  "id": "spacing",
+                  "value": 10,
+                  "valueMin": -25,
+                  "valueMax": 200
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Overlay",
+              "description": "Add a color overlay on top of the video",
+              "icon": "layers",
+              "id": "overlay",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Overlay",
+                  "description": "Enable or disable the overlay",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "overlay-enable",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Overlay Color",
+                  "description": "Color of the overlay",
+                  "valueType": "color",
+                  "css": "--overlay-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "overlay-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Overlay Opacity",
+                  "description": "Opacity of the overlay",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "--overlay-opacity: {value};",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "overlay-opacity",
+                  "value": 0.65,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Overlay Mode",
+                  "description": "Uniform or vertical fade (up, down, or center)",
+                  "valueType": "select",
+                  "options": [
+                    "uniform",
+                    "fade-up",
+                    "fade-down",
+                    "fade-center"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "gradient",
+                  "id": "background-overlay-mode",
+                  "value": "uniform",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Intensity",
+                  "description": "Controls fade strength when overlay mode is not uniform",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "tune",
+                  "id": "background-overlay-fade-intensity",
+                  "value": 1,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Coverage",
+                  "description": "Controls how much vertical area is used by fade versus non-fade zones",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "gradient",
+                  "id": "background-overlay-fade-coverage",
+                  "value": 0.75,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Overlay Blur",
+                  "description": "Blur level of the overlay",
+                  "valueType": "number",
+                  "step": 0.1,
+                  "css": "--overlay-blur: {value}px;",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "overlay-blur",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 30
+                },
+                {
+                  "__className": "Style",
+                  "name": "Custom CSS",
+                  "description": "Add custom CSS to the overlay (e.g., animations)",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "code",
+                  "id": "overlay-custom-css",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Surah Name",
+              "description": "Control display of the Surah name",
+              "icon": "title",
+              "id": "surah-name",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Show Surah Name",
+                  "description": "Show or hide the Surah name",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "show-surah-name",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Position",
+                  "description": "Change the vertical position of the surah name (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "surah-name-vertical-position",
+                  "value": -400,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Position",
+                  "description": "Change the horizontal position of the surah name (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "horizontal_rule",
+                  "id": "surah-name-horizontal-position",
+                  "value": 0,
+                  "valueMin": -960,
+                  "valueMax": 960
+                },
+                {
+                  "__className": "Style",
+                  "name": "Latin Text Format",
+                  "description": "Format of the Surah name display. Use <number>, <transliteration>, <translation>, <min-range> and <max-range> tags to customize.",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_quote",
+                  "id": "surah-name-format",
+                  "value": "Surah <transliteration>",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Show Arabic",
+                  "description": "Show the Surah name in Arabic",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "translate",
+                  "id": "surah-show-arabic",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Show Latin",
+                  "description": "Show additional Latin text (see Latin Text Format)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "translate",
+                  "id": "surah-show-latin",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Size",
+                  "description": "Scale size of Surah Calligraphy",
+                  "valueType": "number",
+                  "step": 0.1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "zoom_in",
+                  "id": "surah-size",
+                  "value": 9.3,
+                  "valueMin": 1,
+                  "valueMax": 10
+                },
+                {
+                  "__className": "Style",
+                  "name": "Spacing",
+                  "description": "Adjust spacing between the Arabic Surah name and its Latin equivalent",
+                  "valueType": "number",
+                  "step": 0.1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_line_spacing",
+                  "id": "surah-latin-spacing",
+                  "value": 4.6,
+                  "valueMin": -10,
+                  "valueMax": 25
+                },
+                {
+                  "__className": "Style",
+                  "name": "Opacity",
+                  "description": "Adjust the opacity of the Surah name",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "surah-opacity",
+                  "value": 0.75,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Styles",
+                  "description": "Style for the Latin transliteration of the Surah name",
+                  "valueType": "composite",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "auto_fix_high",
+                  "id": "surah-latin-text-style",
+                  "value": [
+                    {
+                      "__className": "Style",
+                      "name": "Text Opacity",
+                      "description": "Control the transparency of the text",
+                      "valueType": "number",
+                      "step": 0.01,
+                      "css": "opacity: {value};",
+                      "tailwind": false,
+                      "icon": "opacity",
+                      "id": "opacity",
+                      "value": 1,
+                      "valueMin": 0,
+                      "valueMax": 1
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font",
+                      "description": "Select the font family for the text",
+                      "valueType": "select",
+                      "options": [],
+                      "css": "font-family: '{value}', sans-serif;",
+                      "tailwind": false,
+                      "icon": "font_download",
+                      "id": "font-family",
+                      "value": "Book Antiqua",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font Size",
+                      "description": "Adjust the size of the text",
+                      "valueType": "number",
+                      "css": "font-size: {value}px;",
+                      "tailwind": false,
+                      "icon": "format_size",
+                      "id": "font-size",
+                      "value": 38,
+                      "valueMin": 4,
+                      "valueMax": 200
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Color",
+                      "description": "Change the color of the text",
+                      "valueType": "color",
+                      "css": "color: {value};",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-color",
+                      "value": "#ffffff",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Text Transform",
+                      "description": "Control the capitalization of the text",
+                      "valueType": "select",
+                      "options": [
+                        "none",
+                        "capitalize",
+                        "uppercase",
+                        "lowercase"
+                      ],
+                      "css": "text-transform: {value};",
+                      "tailwind": false,
+                      "icon": "text_fields",
+                      "id": "text-transform",
+                      "value": "none",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font Weight",
+                      "description": "Set the thickness of the font",
+                      "valueType": "select",
+                      "options": [
+                        "normal",
+                        "bold",
+                        "lighter",
+                        "bolder"
+                      ],
+                      "css": "font-weight: {value};",
+                      "tailwind": false,
+                      "icon": "format_bold",
+                      "id": "font-weight",
+                      "value": "normal",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Enable Italic",
+                      "description": "Enable italic styling for the text",
+                      "valueType": "boolean",
+                      "css": "font-style: italic;",
+                      "tailwind": false,
+                      "icon": "format_italic",
+                      "id": "enable-italic",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Custom CSS",
+                      "description": "Write any custom CSS for custom text. Use !important if needed.",
+                      "valueType": "text",
+                      "css": "{value}",
+                      "tailwind": false,
+                      "icon": "code",
+                      "id": "custom-css",
+                      "value": "",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline",
+                      "description": "Enable or disable text outline",
+                      "valueType": "boolean",
+                      "css": "",
+                      "tailwind": false,
+                      "icon": "toggle_on",
+                      "id": "outline-enable",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline Thickness",
+                      "description": "Set the width of the text outline",
+                      "valueType": "number",
+                      "step": 0.01,
+                      "css": "text-shadow: -{value}px -{value}px 0 var(--text-outline-color), {value}px -{value}px 0 var(--text-outline-color), -{value}px {value}px 0 var(--text-outline-color), {value}px {value}px 0 var(--text-outline-color), -{value}px 0 0 var(--text-outline-color), {value}px 0 0 var(--text-outline-color), 0 -{value}px 0 var(--text-outline-color), 0 {value}px 0 var(--text-outline-color), calc(-{value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color) !important;",
+                      "tailwind": false,
+                      "icon": "line_weight",
+                      "id": "text-outline",
+                      "value": 4,
+                      "valueMin": 0,
+                      "valueMax": 20
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline Colour",
+                      "description": "Set the color of the text outline",
+                      "valueType": "color",
+                      "css": "--text-outline-color: {value};",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-outline-color",
+                      "value": "#000000",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Enable Glow",
+                      "description": "Enable or disable text glow",
+                      "valueType": "boolean",
+                      "css": "",
+                      "tailwind": false,
+                      "icon": "toggle_on",
+                      "id": "text-glow-enable",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Glow Color",
+                      "description": "Set the color of the text glow",
+                      "valueType": "color",
+                      "css": "--text-glow-color: {value};  text-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 1.5) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); filter: drop-shadow(0 0 var(--text-glow-blur) var(--text-glow-color)) brightness(calc(100% + 5 * 50%));",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-glow-color",
+                      "value": "#ffffff",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Glow Blur",
+                      "description": "Set the blur radius of the text glow",
+                      "valueType": "number",
+                      "css": "--text-glow-blur: {value}px;",
+                      "tailwind": false,
+                      "icon": "blur_on",
+                      "id": "text-glow-blur",
+                      "value": 10,
+                      "valueMin": 0,
+                      "valueMax": 50
+                    }
+                  ],
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Reciter Name",
+              "description": "Control display of the Reciter name",
+              "icon": "person",
+              "id": "reciter-name",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Show Reciter Name",
+                  "description": "Show or hide the Reciter name",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "show-reciter-name",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Reciter Name",
+                  "description": "Change the reciter of the project",
+                  "valueType": "reciter",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_quote",
+                  "id": "reciter-name",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Position",
+                  "description": "Change the vertical position of the reciter name (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "reciter-name-vertical-position",
+                  "value": 350,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Position",
+                  "description": "Change the horizontal position of the reciter name (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "horizontal_rule",
+                  "id": "reciter-name-horizontal-position",
+                  "value": 0,
+                  "valueMin": -960,
+                  "valueMax": 960
+                },
+                {
+                  "__className": "Style",
+                  "name": "Latin Text Format",
+                  "description": "Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_quote",
+                  "id": "reciter-name-format",
+                  "value": "<transliteration>",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Show Arabic",
+                  "description": "Show the Reciter name in Arabic",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "translate",
+                  "id": "reciter-show-arabic",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Show Latin",
+                  "description": "Show additional Latin text (see Latin Text Format)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "translate",
+                  "id": "reciter-show-latin",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Size",
+                  "description": "Size of Reciter Arabic Calligraphy Name",
+                  "valueType": "number",
+                  "step": 0.05,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "zoom_in",
+                  "id": "reciter-size",
+                  "value": 6.5,
+                  "valueMin": 1,
+                  "valueMax": 16
+                },
+                {
+                  "__className": "Style",
+                  "name": "Spacing",
+                  "description": "Adjust spacing between the Arabic Reciter name and its Latin equivalent",
+                  "valueType": "number",
+                  "step": 0.1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_line_spacing",
+                  "id": "reciter-latin-spacing",
+                  "value": 11,
+                  "valueMin": 0.2,
+                  "valueMax": 25
+                },
+                {
+                  "__className": "Style",
+                  "name": "Opacity",
+                  "description": "Adjust the opacity of the Reciter name",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "reciter-opacity",
+                  "value": 0.75,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Styles",
+                  "description": "Style for the Latin transliteration of the Reciter name",
+                  "valueType": "composite",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "auto_fix_high",
+                  "id": "reciter-latin-text-style",
+                  "value": [
+                    {
+                      "__className": "Style",
+                      "name": "Text Opacity",
+                      "description": "Control the transparency of the text",
+                      "valueType": "number",
+                      "step": 0.01,
+                      "css": "opacity: {value};",
+                      "tailwind": false,
+                      "icon": "opacity",
+                      "id": "opacity",
+                      "value": 1,
+                      "valueMin": 0,
+                      "valueMax": 1
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font",
+                      "description": "Select the font family for the text",
+                      "valueType": "select",
+                      "options": [],
+                      "css": "font-family: '{value}', sans-serif;",
+                      "tailwind": false,
+                      "icon": "font_download",
+                      "id": "font-family",
+                      "value": "Book Antiqua",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font Size",
+                      "description": "Adjust the size of the text",
+                      "valueType": "number",
+                      "css": "font-size: {value}px;",
+                      "tailwind": false,
+                      "icon": "format_size",
+                      "id": "font-size",
+                      "value": 38,
+                      "valueMin": 4,
+                      "valueMax": 200
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Color",
+                      "description": "Change the color of the text",
+                      "valueType": "color",
+                      "css": "color: {value};",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-color",
+                      "value": "#ffffff",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Text Transform",
+                      "description": "Control the capitalization of the text",
+                      "valueType": "select",
+                      "options": [
+                        "none",
+                        "capitalize",
+                        "uppercase",
+                        "lowercase"
+                      ],
+                      "css": "text-transform: {value};",
+                      "tailwind": false,
+                      "icon": "text_fields",
+                      "id": "text-transform",
+                      "value": "none",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font Weight",
+                      "description": "Set the thickness of the font",
+                      "valueType": "select",
+                      "options": [
+                        "normal",
+                        "bold",
+                        "lighter",
+                        "bolder"
+                      ],
+                      "css": "font-weight: {value};",
+                      "tailwind": false,
+                      "icon": "format_bold",
+                      "id": "font-weight",
+                      "value": "normal",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Enable Italic",
+                      "description": "Enable italic styling for the text",
+                      "valueType": "boolean",
+                      "css": "font-style: italic;",
+                      "tailwind": false,
+                      "icon": "format_italic",
+                      "id": "enable-italic",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Custom CSS",
+                      "description": "Write any custom CSS for custom text. Use !important if needed.",
+                      "valueType": "text",
+                      "css": "{value}",
+                      "tailwind": false,
+                      "icon": "code",
+                      "id": "custom-css",
+                      "value": "",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline",
+                      "description": "Enable or disable text outline",
+                      "valueType": "boolean",
+                      "css": "",
+                      "tailwind": false,
+                      "icon": "toggle_on",
+                      "id": "outline-enable",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline Thickness",
+                      "description": "Set the width of the text outline",
+                      "valueType": "number",
+                      "step": 0.01,
+                      "css": "text-shadow: -{value}px -{value}px 0 var(--text-outline-color), {value}px -{value}px 0 var(--text-outline-color), -{value}px {value}px 0 var(--text-outline-color), {value}px {value}px 0 var(--text-outline-color), -{value}px 0 0 var(--text-outline-color), {value}px 0 0 var(--text-outline-color), 0 -{value}px 0 var(--text-outline-color), 0 {value}px 0 var(--text-outline-color), calc(-{value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color) !important;",
+                      "tailwind": false,
+                      "icon": "line_weight",
+                      "id": "text-outline",
+                      "value": 4,
+                      "valueMin": 0,
+                      "valueMax": 20
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline Colour",
+                      "description": "Set the color of the text outline",
+                      "valueType": "color",
+                      "css": "--text-outline-color: {value};",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-outline-color",
+                      "value": "#000000",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Enable Glow",
+                      "description": "Enable or disable text glow",
+                      "valueType": "boolean",
+                      "css": "",
+                      "tailwind": false,
+                      "icon": "toggle_on",
+                      "id": "text-glow-enable",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Glow Color",
+                      "description": "Set the color of the text glow",
+                      "valueType": "color",
+                      "css": "--text-glow-color: {value};  text-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 1.5) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); filter: drop-shadow(0 0 var(--text-glow-blur) var(--text-glow-color)) brightness(calc(100% + 5 * 50%));",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-glow-color",
+                      "value": "#ffffff",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Glow Blur",
+                      "description": "Set the blur radius of the text glow",
+                      "valueType": "number",
+                      "css": "--text-glow-blur: {value}px;",
+                      "tailwind": false,
+                      "icon": "blur_on",
+                      "id": "text-glow-blur",
+                      "value": 10,
+                      "valueMin": 0,
+                      "valueMax": 50
+                    }
+                  ],
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Verse Number (Separated From Text)",
+              "description": "Control display of the Verse number",
+              "icon": "format_list_numbered",
+              "id": "verse-number",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Show Verse Number",
+                  "description": "Show or hide the Verse number",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "show-verse-number",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Position",
+                  "description": "Change the vertical position of the Verse number (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "verse-number-vertical-position",
+                  "value": -250,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Position",
+                  "description": "Change the horizontal position of the Verse number (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "horizontal_rule",
+                  "id": "verse-number-horizontal-position",
+                  "value": 0,
+                  "valueMin": -960,
+                  "valueMax": 960
+                },
+                {
+                  "__className": "Style",
+                  "name": "Format",
+                  "description": "Change the format of the Verse number display. Use <surah>, <verse>, <min-range> and <max-range> tags to customize.",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_quote",
+                  "id": "verse-number-format",
+                  "value": "<surah>:<verse>",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Styles",
+                  "description": "Change the style of the Verse number display",
+                  "valueType": "composite",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "auto_fix_high",
+                  "id": "verse-number-text-style",
+                  "value": [
+                    {
+                      "__className": "Style",
+                      "name": "Text Opacity",
+                      "description": "Control the transparency of the text",
+                      "valueType": "number",
+                      "step": 0.01,
+                      "css": "opacity: {value};",
+                      "tailwind": false,
+                      "icon": "opacity",
+                      "id": "opacity",
+                      "value": 1,
+                      "valueMin": 0,
+                      "valueMax": 1
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font",
+                      "description": "Select the font family for the text",
+                      "valueType": "select",
+                      "options": [],
+                      "css": "font-family: '{value}', sans-serif;",
+                      "tailwind": false,
+                      "icon": "font_download",
+                      "id": "font-family",
+                      "value": "Candara",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font Size",
+                      "description": "Adjust the size of the text",
+                      "valueType": "number",
+                      "css": "font-size: {value}px;",
+                      "tailwind": false,
+                      "icon": "format_size",
+                      "id": "font-size",
+                      "value": 60,
+                      "valueMin": 4,
+                      "valueMax": 200
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Color",
+                      "description": "Change the color of the text",
+                      "valueType": "color",
+                      "css": "color: {value};",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-color",
+                      "value": "#ffffff",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Text Transform",
+                      "description": "Control the capitalization of the text",
+                      "valueType": "select",
+                      "options": [
+                        "none",
+                        "capitalize",
+                        "uppercase",
+                        "lowercase"
+                      ],
+                      "css": "text-transform: {value};",
+                      "tailwind": false,
+                      "icon": "text_fields",
+                      "id": "text-transform",
+                      "value": "none",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Font Weight",
+                      "description": "Set the thickness of the font",
+                      "valueType": "select",
+                      "options": [
+                        "normal",
+                        "bold",
+                        "lighter",
+                        "bolder"
+                      ],
+                      "css": "font-weight: {value};",
+                      "tailwind": false,
+                      "icon": "format_bold",
+                      "id": "font-weight",
+                      "value": "normal",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Enable Italic",
+                      "description": "Enable italic styling for the text",
+                      "valueType": "boolean",
+                      "css": "font-style: italic;",
+                      "tailwind": false,
+                      "icon": "format_italic",
+                      "id": "enable-italic",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Custom CSS",
+                      "description": "Write any custom CSS for custom text. Use !important if needed.",
+                      "valueType": "text",
+                      "css": "{value}",
+                      "tailwind": false,
+                      "icon": "code",
+                      "id": "custom-css",
+                      "value": "",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline",
+                      "description": "Enable or disable text outline",
+                      "valueType": "boolean",
+                      "css": "",
+                      "tailwind": false,
+                      "icon": "toggle_on",
+                      "id": "outline-enable",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline Thickness",
+                      "description": "Set the width of the text outline",
+                      "valueType": "number",
+                      "step": 0.01,
+                      "css": "text-shadow: -{value}px -{value}px 0 var(--text-outline-color), {value}px -{value}px 0 var(--text-outline-color), -{value}px {value}px 0 var(--text-outline-color), {value}px {value}px 0 var(--text-outline-color), -{value}px 0 0 var(--text-outline-color), {value}px 0 0 var(--text-outline-color), 0 -{value}px 0 var(--text-outline-color), 0 {value}px 0 var(--text-outline-color), calc(-{value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color) !important;",
+                      "tailwind": false,
+                      "icon": "line_weight",
+                      "id": "text-outline",
+                      "value": 4,
+                      "valueMin": 0,
+                      "valueMax": 20
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Outline Colour",
+                      "description": "Set the color of the text outline",
+                      "valueType": "color",
+                      "css": "--text-outline-color: {value};",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-outline-color",
+                      "value": "#000000",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Enable Glow",
+                      "description": "Enable or disable text glow",
+                      "valueType": "boolean",
+                      "css": "",
+                      "tailwind": false,
+                      "icon": "toggle_on",
+                      "id": "text-glow-enable",
+                      "value": false,
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Glow Color",
+                      "description": "Set the color of the text glow",
+                      "valueType": "color",
+                      "css": "--text-glow-color: {value};  text-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 1.5) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); filter: drop-shadow(0 0 var(--text-glow-blur) var(--text-glow-color)) brightness(calc(100% + 5 * 50%));",
+                      "tailwind": false,
+                      "icon": "palette",
+                      "id": "text-glow-color",
+                      "value": "#ffffff",
+                      "valueMin": -540,
+                      "valueMax": 540
+                    },
+                    {
+                      "__className": "Style",
+                      "name": "Glow Blur",
+                      "description": "Set the blur radius of the text glow",
+                      "valueType": "number",
+                      "css": "--text-glow-blur: {value}px;",
+                      "tailwind": false,
+                      "icon": "blur_on",
+                      "id": "text-glow-blur",
+                      "value": 10,
+                      "valueMin": 0,
+                      "valueMax": 50
+                    }
+                  ],
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            }
+          ],
+          "target": "global",
+          "overrides": {}
+        },
+        {
+          "__className": "StylesData",
+          "categories": [
+            {
+              "__className": "Category",
+              "name": "General",
+              "description": "General styling options for subtitles",
+              "icon": "settings",
+              "id": "general",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Show Subtitles",
+                  "description": "Toggle the visibility of subtitles",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "show-subtitles",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Show Verse Number",
+                  "description": "Toggle the visibility of verse numbers",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "123",
+                  "id": "show-verse-number",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Right-to-Left",
+                  "description": "Set the text direction to Right-to-Left",
+                  "valueType": "boolean",
+                  "css": "direction: rtl;",
+                  "tailwind": false,
+                  "icon": "format_align_right",
+                  "id": "text-direction",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Decorative Brackets",
+                  "description": "Wrap Arabic subtitle text with decorative brackets",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_quote",
+                  "id": "show-decorative-brackets",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Decorative Brackets Style",
+                  "description": "Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.",
+                  "valueType": "brackets-font",
+                  "options": [
+                    "LM",
+                    "NO",
+                    "PQ",
+                    "RS",
+                    "TU",
+                    "VW",
+                    "XY",
+                    "Z:",
+                    "()"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "font_download",
+                  "id": "decorative-brackets-font-family",
+                  "value": "LM",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Format",
+                  "description": "Change the format of verse numbers. Use <number> tag to customize.",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "text_format",
+                  "id": "verse-number-format",
+                  "value": "<number>. ",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Position",
+                  "description": "Set the position of verse numbers",
+                  "valueType": "select",
+                  "options": [
+                    "before",
+                    "after"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "123",
+                  "id": "verse-number-position",
+                  "value": "before",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Text Styling",
+              "description": "Control the appearance and formatting of subtitle text",
+              "icon": "text_fields",
+              "id": "text",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Text Color",
+                  "description": "Change the color of the text",
+                  "valueType": "color",
+                  "css": "color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Font Size",
+                  "description": "Adjust the size of the text",
+                  "valueType": "number",
+                  "css": "font-size: {value}px;",
+                  "tailwind": false,
+                  "icon": "format_size",
+                  "id": "font-size",
+                  "value": 90,
+                  "valueMin": 16,
+                  "valueMax": 200
+                },
+                {
+                  "__className": "Style",
+                  "name": "Font Family",
+                  "description": "Select the font family for the text",
+                  "valueType": "select",
+                  "options": [],
+                  "css": "font-family: '{value}', sans-serif;",
+                  "tailwind": false,
+                  "icon": "font_download",
+                  "id": "font-family",
+                  "value": "QPC2",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Font Weight",
+                  "description": "Set the thickness of the font",
+                  "valueType": "select",
+                  "options": [
+                    "normal",
+                    "bold",
+                    "lighter",
+                    "bolder"
+                  ],
+                  "css": "font-weight: {value};",
+                  "tailwind": false,
+                  "icon": "format_bold",
+                  "id": "font-weight",
+                  "value": "normal",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable Italic",
+                  "description": "Enable italic styling for the text",
+                  "valueType": "boolean",
+                  "css": "font-style: italic;",
+                  "tailwind": false,
+                  "icon": "format_italic",
+                  "id": "enable-italic",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Transform",
+                  "description": "Transform the case of the text",
+                  "valueType": "select",
+                  "options": [
+                    "none",
+                    "uppercase",
+                    "lowercase",
+                    "capitalize"
+                  ],
+                  "css": "text-transform: {value};",
+                  "tailwind": false,
+                  "icon": "text_format",
+                  "id": "text-transform",
+                  "value": "none",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Letter Spacing",
+                  "description": "Adjust spacing between characters",
+                  "valueType": "number",
+                  "css": "letter-spacing: {value}px;",
+                  "tailwind": false,
+                  "icon": "horizontal_distribute",
+                  "id": "letter-spacing",
+                  "value": 0,
+                  "valueMin": -10,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Word Spacing",
+                  "description": "Adjust spacing between words",
+                  "valueType": "number",
+                  "css": "word-spacing: {value}px;",
+                  "tailwind": false,
+                  "icon": "horizontal_distribute",
+                  "id": "word-spacing",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 60
+                },
+                {
+                  "__className": "Style",
+                  "name": "Line Height",
+                  "description": "Adjust spacing between lines",
+                  "valueType": "number",
+                  "step": 0.1,
+                  "css": "line-height: {value};",
+                  "tailwind": false,
+                  "icon": "format_line_spacing",
+                  "id": "line-height",
+                  "value": 1.6,
+                  "valueMin": 0.8,
+                  "valueMax": 3
+                },
+                {
+                  "__className": "Style",
+                  "name": "Max Height (Make Text Fit)",
+                  "description": "Limit text height and auto-adjust font size to fit. 0 = no limit.",
+                  "valueType": "number",
+                  "css": "max-height: {value}px; height: {value}px;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "max-height",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 800
+                },
+                {
+                  "__className": "Style",
+                  "name": "Reactive Font Size",
+                  "description": "Used by the 'Make Text Fit' feature to adjust font size based on container size",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "font-size: {value}px !important;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "reactive-font-size",
+                  "value": "none",
+                  "valueMin": 10,
+                  "valueMax": 100
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Position & Layout",
+              "description": "Control the position and spacing of subtitles on screen",
+              "icon": "open_with",
+              "id": "positioning",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Reactive Y Position",
+                  "description": "Used if the 'Make Text Fit' feature is not set to adjust Y position based on other subtitles positions so that they do not overlap",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "--reactive-y-position: {value}px;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "reactive-y-position",
+                  "value": 0,
+                  "valueMin": -600,
+                  "valueMax": 600
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Position",
+                  "description": "Change the vertical position of the text (pixels from center)",
+                  "valueType": "number",
+                  "css": "--translate-y: calc({value}px + var(--reactive-y-position));",
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "vertical-position",
+                  "value": -110,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Position",
+                  "description": "Change the horizontal position of the text (pixels from center)",
+                  "valueType": "number",
+                  "css": "--translate-x: {value}px; transform: translate(var(--translate-x), var(--translate-y)) rotate(var(--rotation)) scale(var(--scale));",
+                  "tailwind": false,
+                  "icon": "horizontal_rule",
+                  "id": "horizontal-position",
+                  "value": 0,
+                  "valueMin": -960,
+                  "valueMax": 960
+                },
+                {
+                  "__className": "Style",
+                  "name": "Width",
+                  "description": "Set width of subtitle container",
+                  "valueType": "number",
+                  "css": "width: {value}%;",
+                  "tailwind": false,
+                  "icon": "width_full",
+                  "id": "width",
+                  "value": 80,
+                  "valueMin": 10,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Text Alignment",
+                  "description": "Set the alignment of the text",
+                  "valueType": "select",
+                  "options": [
+                    "left",
+                    "center",
+                    "right",
+                    "justify"
+                  ],
+                  "css": {
+                    "left": "text-align: left; justify-content: flex-start;",
+                    "center": "text-align: center; justify-content: center;",
+                    "right": "text-align: right; justify-content: flex-end;",
+                    "justify": "text-align: justify; justify-content: space-between;"
+                  },
+                  "tailwind": false,
+                  "icon": "format_align_center",
+                  "id": "horizontal-text-alignment",
+                  "value": "center",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Text Alignment",
+                  "description": "Align text vertically when paragraph height is large",
+                  "valueType": "select",
+                  "options": [
+                    "top",
+                    "center",
+                    "bottom"
+                  ],
+                  "css": {
+                    "top": "display: flex; align-items: flex-start;",
+                    "center": "display: flex; align-items: center;",
+                    "bottom": "display: flex; align-items: flex-end;"
+                  },
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "vertical-text-alignment",
+                  "value": "center",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Background & Container",
+              "description": "Style the background and container of subtitles",
+              "icon": "square",
+              "id": "background",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Background",
+                  "description": "Enable or disable background styling",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "background-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Background Color",
+                  "description": "Add a background color behind the text",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_color_fill",
+                  "id": "background-color",
+                  "value": "rgba(0,0,0,0.8)",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Background Opacity",
+                  "description": "Control the transparency of the background",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "--background-opacity: {value};",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "background-opacity",
+                  "value": 80,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Radius",
+                  "description": "Round the corners of the background",
+                  "valueType": "number",
+                  "css": "border-radius: {value}px;",
+                  "tailwind": false,
+                  "icon": "rounded_corner",
+                  "id": "border-radius",
+                  "value": 8,
+                  "valueMin": 0,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Custom CSS for Background",
+                  "description": "Write any CSS for custom Background (gradient, pattern, ...). Use !important if needed. Exemple: background: linear-gradient(to right, #ff0000, #0000ff) !important;",
+                  "valueType": "text",
+                  "css": "{value}",
+                  "tailwind": false,
+                  "icon": "code",
+                  "id": "background-css",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Container Border",
+              "description": "Add borders around subtitle containers",
+              "icon": "border_all",
+              "id": "border",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Border",
+                  "description": "Enable or disable container border",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "border-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Width",
+                  "description": "Set the width of the border",
+                  "valueType": "number",
+                  "step": 0.5,
+                  "css": "border: {value}px solid;",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "border-width",
+                  "value": 2,
+                  "valueMin": 0,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Color",
+                  "description": "Set the color of the border",
+                  "valueType": "color",
+                  "css": "border-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "border-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Style",
+                  "description": "Choose the style of the border",
+                  "valueType": "select",
+                  "options": [
+                    "solid",
+                    "dashed",
+                    "dotted",
+                    "double",
+                    "groove",
+                    "ridge"
+                  ],
+                  "css": "border-style: {value};",
+                  "tailwind": false,
+                  "icon": "more_horiz",
+                  "id": "border-style",
+                  "value": "solid",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Shadow Effects",
+              "description": "Add shadow effects to text and containers",
+              "icon": "filter_drama",
+              "id": "shadow",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Shadows",
+                  "description": "Enable or disable shadow effects",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "shadow-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Shadow",
+                  "description": "Add shadow effect to the text",
+                  "valueType": "number",
+                  "css": "text-shadow: {value}px {value}px 8px var(--text-shadow-color);",
+                  "tailwind": false,
+                  "icon": "text_fields",
+                  "id": "text-shadow",
+                  "value": 4,
+                  "valueMin": 0,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Shadow Color",
+                  "description": "Set the color of the text shadow",
+                  "valueType": "color",
+                  "css": "--text-shadow-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-shadow-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Container Shadow",
+                  "description": "Add shadow to the subtitle container",
+                  "valueType": "number",
+                  "css": "box-shadow: 0 {value}px {value}px var(--box-shadow-color);",
+                  "tailwind": false,
+                  "icon": "square",
+                  "id": "box-shadow",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 40
+                },
+                {
+                  "__className": "Style",
+                  "name": "Container Shadow Color",
+                  "description": "Set the color of the container shadow",
+                  "valueType": "color",
+                  "css": "--box-shadow-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "box-shadow-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Text Outline",
+              "description": "Add outlines and strokes around text",
+              "icon": "border_outer",
+              "id": "outline",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Outline",
+                  "description": "Enable or disable text outline",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "outline-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Outline Width",
+                  "description": "Set the width of the text outline (shadow-based for better Arabic support)",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "filter: drop-shadow({value}px 0 0 var(--text-outline-color)) drop-shadow(-{value}px 0 0 var(--text-outline-color)) drop-shadow(0 {value}px 0 var(--text-outline-color)) drop-shadow(0 -{value}px 0 var(--text-outline-color)) drop-shadow({value}px {value}px 0 var(--text-outline-color)) drop-shadow(-{value}px -{value}px 0 var(--text-outline-color)) drop-shadow({value}px -{value}px 0 var(--text-outline-color)) drop-shadow(-{value}px {value}px 0 var(--text-outline-color)) !important;",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "text-outline",
+                  "value": 0.25,
+                  "valueMin": 0,
+                  "valueMax": 10
+                },
+                {
+                  "__className": "Style",
+                  "name": "Outline Color",
+                  "description": "Set the color of the text outline",
+                  "valueType": "color",
+                  "css": "--text-outline-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-outline-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Text Glow",
+              "description": "Add a glow effect to the text",
+              "icon": "wb_incandescent",
+              "id": "text-glow",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Glow",
+                  "description": "Enable or disable text glow",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "text-glow-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow Color",
+                  "description": "Set the color of the text glow",
+                  "valueType": "color",
+                  "css": "--text-glow-color: {value};  text-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 1.5) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); filter: drop-shadow(0 0 var(--text-glow-blur) var(--text-glow-color)) brightness(calc(100% + 5 * 50%));",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-glow-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow Blur",
+                  "description": "Set the blur radius of the text glow",
+                  "valueType": "number",
+                  "css": "--text-glow-blur: {value}px;",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "text-glow-blur",
+                  "value": 10,
+                  "valueMin": 0,
+                  "valueMax": 50
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Neon Effect",
+              "description": "Add a neon light effect to the text",
+              "icon": "light_mode",
+              "id": "text-neon",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Neon Effect",
+                  "description": "Enable or disable neon effect",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "text-neon-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Neon Color",
+                  "description": "Set the color of the neon effect",
+                  "valueType": "color",
+                  "css": "--text-neon-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-neon-color",
+                  "value": "#00ff00",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Neon Intensity",
+                  "description": "Set the intensity of the neon effect",
+                  "valueType": "number",
+                  "css": "--text-neon-size: {value}px; color: var(--text-neon-color); text-shadow: 0 0 calc(var(--text-neon-size) * 0.5) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 1) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 2) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 4) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 8) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 9) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 10) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 15) var(--text-neon-color);",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "text-intensity",
+                  "value": 10,
+                  "valueMin": 0,
+                  "valueMax": 50
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Visual Effects",
+              "description": "Add visual effects and filters to enhance subtitle appearance",
+              "icon": "auto_fix_high",
+              "id": "effects",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Text Opacity",
+                  "description": "Control the transparency of the text",
+                  "valueType": "number",
+                  "step": 0.05,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "opacity",
+                  "value": 1,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Blur Effect",
+                  "description": "Apply blur effect to the text",
+                  "valueType": "number",
+                  "css": "--blur: {value}px; filter: blur(var(--blur, 0px)) brightness(var(--brightness, 100%)) contrast(var(--contrast, 100%));",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "blur",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Brightness",
+                  "description": "Adjust the brightness of the text",
+                  "valueType": "number",
+                  "css": "--brightness: {value}%;",
+                  "tailwind": false,
+                  "icon": "brightness_6",
+                  "id": "brightness",
+                  "value": 100,
+                  "valueMin": 0,
+                  "valueMax": 200
+                },
+                {
+                  "__className": "Style",
+                  "name": "Contrast",
+                  "description": "Adjust the contrast of the text",
+                  "valueType": "number",
+                  "css": "--contrast: {value}%;",
+                  "tailwind": false,
+                  "icon": "contrast",
+                  "id": "contrast",
+                  "value": 100,
+                  "valueMin": 0,
+                  "valueMax": 200
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Animation & Transitions",
+              "description": "Add motion and transition effects to subtitles",
+              "icon": "animation",
+              "id": "animation",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Scale",
+                  "description": "Scale the size of the subtitle",
+                  "valueType": "number",
+                  "css": "--scale: {value}%;",
+                  "tailwind": false,
+                  "icon": "zoom_in",
+                  "id": "scale",
+                  "value": 100,
+                  "valueMin": 25,
+                  "valueMax": 300
+                },
+                {
+                  "__className": "Style",
+                  "name": "Rotation",
+                  "description": "Rotate the subtitle in degrees",
+                  "valueType": "number",
+                  "css": "--rotation: {value}deg;",
+                  "tailwind": false,
+                  "icon": "rotate_right",
+                  "id": "rotation",
+                  "value": 0,
+                  "valueMin": -180,
+                  "valueMax": 180
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Custom CSS",
+              "description": "Add your own custom CSS to fully customize subtitle appearance",
+              "icon": "code",
+              "id": "custom-css",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Custom CSS",
+                  "description": "Write any custom CSS for subtitles. Use !important if needed.",
+                  "valueType": "text",
+                  "css": "{value}",
+                  "tailwind": false,
+                  "icon": "code",
+                  "id": "custom-css",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            }
+          ],
+          "target": "arabic",
+          "overrides": {}
+        },
+        {
+          "__className": "StylesData",
+          "categories": [
+            {
+              "__className": "Category",
+              "name": "General",
+              "description": "General styling options for subtitles",
+              "icon": "settings",
+              "id": "general",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Show Subtitles",
+                  "description": "Toggle the visibility of subtitles",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "show-subtitles",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Show Verse Number",
+                  "description": "Toggle the visibility of verse numbers",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "123",
+                  "id": "show-verse-number",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Right-to-Left",
+                  "description": "Set the text direction to Right-to-Left",
+                  "valueType": "boolean",
+                  "css": "direction: rtl;",
+                  "tailwind": false,
+                  "icon": "format_align_right",
+                  "id": "text-direction",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Decorative Brackets",
+                  "description": "Wrap Arabic subtitle text with decorative brackets",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_quote",
+                  "id": "show-decorative-brackets",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Decorative Brackets Style",
+                  "description": "Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.",
+                  "valueType": "brackets-font",
+                  "options": [
+                    "LM",
+                    "NO",
+                    "PQ",
+                    "RS",
+                    "TU",
+                    "VW",
+                    "XY",
+                    "Z:",
+                    "()"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "font_download",
+                  "id": "decorative-brackets-font-family",
+                  "value": "LM",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Format",
+                  "description": "Change the format of verse numbers. Use <number> tag to customize.",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "text_format",
+                  "id": "verse-number-format",
+                  "value": "<number>. ",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Position",
+                  "description": "Set the position of verse numbers",
+                  "valueType": "select",
+                  "options": [
+                    "before",
+                    "after"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "123",
+                  "id": "verse-number-position",
+                  "value": "before",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Text Styling",
+              "description": "Control the appearance and formatting of subtitle text",
+              "icon": "text_fields",
+              "id": "text",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Text Color",
+                  "description": "Change the color of the text",
+                  "valueType": "color",
+                  "css": "color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Font Size",
+                  "description": "Adjust the size of the text",
+                  "valueType": "number",
+                  "css": "font-size: {value}px;",
+                  "tailwind": false,
+                  "icon": "format_size",
+                  "id": "font-size",
+                  "value": 60,
+                  "valueMin": 16,
+                  "valueMax": 200
+                },
+                {
+                  "__className": "Style",
+                  "name": "Font Family",
+                  "description": "Select the font family for the text",
+                  "valueType": "select",
+                  "options": [],
+                  "css": "font-family: '{value}', sans-serif;",
+                  "tailwind": false,
+                  "icon": "font_download",
+                  "id": "font-family",
+                  "value": "Georgia",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Font Weight",
+                  "description": "Set the thickness of the font",
+                  "valueType": "select",
+                  "options": [
+                    "normal",
+                    "bold",
+                    "lighter",
+                    "bolder"
+                  ],
+                  "css": "font-weight: {value};",
+                  "tailwind": false,
+                  "icon": "format_bold",
+                  "id": "font-weight",
+                  "value": "normal",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable Italic",
+                  "description": "Enable italic styling for the text",
+                  "valueType": "boolean",
+                  "css": "font-style: italic;",
+                  "tailwind": false,
+                  "icon": "format_italic",
+                  "id": "enable-italic",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Transform",
+                  "description": "Transform the case of the text",
+                  "valueType": "select",
+                  "options": [
+                    "none",
+                    "uppercase",
+                    "lowercase",
+                    "capitalize"
+                  ],
+                  "css": "text-transform: {value};",
+                  "tailwind": false,
+                  "icon": "text_format",
+                  "id": "text-transform",
+                  "value": "none",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Letter Spacing",
+                  "description": "Adjust spacing between characters",
+                  "valueType": "number",
+                  "css": "letter-spacing: {value}px;",
+                  "tailwind": false,
+                  "icon": "horizontal_distribute",
+                  "id": "letter-spacing",
+                  "value": 0,
+                  "valueMin": -10,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Word Spacing",
+                  "description": "Adjust spacing between words",
+                  "valueType": "number",
+                  "css": "word-spacing: {value}px;",
+                  "tailwind": false,
+                  "icon": "horizontal_distribute",
+                  "id": "word-spacing",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 60
+                },
+                {
+                  "__className": "Style",
+                  "name": "Line Height",
+                  "description": "Adjust spacing between lines",
+                  "valueType": "number",
+                  "step": 0.1,
+                  "css": "line-height: {value};",
+                  "tailwind": false,
+                  "icon": "format_line_spacing",
+                  "id": "line-height",
+                  "value": 1.2,
+                  "valueMin": 0.8,
+                  "valueMax": 3
+                },
+                {
+                  "__className": "Style",
+                  "name": "Max Height (Make Text Fit)",
+                  "description": "Limit text height and auto-adjust font size to fit. 0 = no limit.",
+                  "valueType": "number",
+                  "css": "max-height: {value}px; height: {value}px;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "max-height",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 800
+                },
+                {
+                  "__className": "Style",
+                  "name": "Reactive Font Size",
+                  "description": "Used by the 'Make Text Fit' feature to adjust font size based on container size",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "font-size: {value}px !important;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "reactive-font-size",
+                  "value": "none",
+                  "valueMin": 10,
+                  "valueMax": 100
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Position & Layout",
+              "description": "Control the position and spacing of subtitles on screen",
+              "icon": "open_with",
+              "id": "positioning",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Reactive Y Position",
+                  "description": "Used if the 'Make Text Fit' feature is not set to adjust Y position based on other subtitles positions so that they do not overlap",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "--reactive-y-position: {value}px;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "reactive-y-position",
+                  "value": 0,
+                  "valueMin": -600,
+                  "valueMax": 600
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Position",
+                  "description": "Change the vertical position of the text (pixels from center)",
+                  "valueType": "number",
+                  "css": "--translate-y: calc({value}px + var(--reactive-y-position));",
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "vertical-position",
+                  "value": 70,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Position",
+                  "description": "Change the horizontal position of the text (pixels from center)",
+                  "valueType": "number",
+                  "css": "--translate-x: {value}px; transform: translate(var(--translate-x), var(--translate-y)) rotate(var(--rotation)) scale(var(--scale));",
+                  "tailwind": false,
+                  "icon": "horizontal_rule",
+                  "id": "horizontal-position",
+                  "value": 0,
+                  "valueMin": -960,
+                  "valueMax": 960
+                },
+                {
+                  "__className": "Style",
+                  "name": "Width",
+                  "description": "Set width of subtitle container",
+                  "valueType": "number",
+                  "css": "width: {value}%;",
+                  "tailwind": false,
+                  "icon": "width_full",
+                  "id": "width",
+                  "value": 80,
+                  "valueMin": 10,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Text Alignment",
+                  "description": "Set the alignment of the text",
+                  "valueType": "select",
+                  "options": [
+                    "left",
+                    "center",
+                    "right",
+                    "justify"
+                  ],
+                  "css": {
+                    "left": "text-align: left; justify-content: flex-start;",
+                    "center": "text-align: center; justify-content: center;",
+                    "right": "text-align: right; justify-content: flex-end;",
+                    "justify": "text-align: justify; justify-content: space-between;"
+                  },
+                  "tailwind": false,
+                  "icon": "format_align_center",
+                  "id": "horizontal-text-alignment",
+                  "value": "center",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Text Alignment",
+                  "description": "Align text vertically when paragraph height is large",
+                  "valueType": "select",
+                  "options": [
+                    "top",
+                    "center",
+                    "bottom"
+                  ],
+                  "css": {
+                    "top": "display: flex; align-items: flex-start;",
+                    "center": "display: flex; align-items: center;",
+                    "bottom": "display: flex; align-items: flex-end;"
+                  },
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "vertical-text-alignment",
+                  "value": "center",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Background & Container",
+              "description": "Style the background and container of subtitles",
+              "icon": "square",
+              "id": "background",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Background",
+                  "description": "Enable or disable background styling",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "background-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Background Color",
+                  "description": "Add a background color behind the text",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_color_fill",
+                  "id": "background-color",
+                  "value": "rgba(0,0,0,0.8)",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Background Opacity",
+                  "description": "Control the transparency of the background",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "--background-opacity: {value};",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "background-opacity",
+                  "value": 80,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Radius",
+                  "description": "Round the corners of the background",
+                  "valueType": "number",
+                  "css": "border-radius: {value}px;",
+                  "tailwind": false,
+                  "icon": "rounded_corner",
+                  "id": "border-radius",
+                  "value": 8,
+                  "valueMin": 0,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Custom CSS for Background",
+                  "description": "Write any CSS for custom Background (gradient, pattern, ...). Use !important if needed. Exemple: background: linear-gradient(to right, #ff0000, #0000ff) !important;",
+                  "valueType": "text",
+                  "css": "{value}",
+                  "tailwind": false,
+                  "icon": "code",
+                  "id": "background-css",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Container Border",
+              "description": "Add borders around subtitle containers",
+              "icon": "border_all",
+              "id": "border",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Border",
+                  "description": "Enable or disable container border",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "border-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Width",
+                  "description": "Set the width of the border",
+                  "valueType": "number",
+                  "step": 0.5,
+                  "css": "border: {value}px solid;",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "border-width",
+                  "value": 2,
+                  "valueMin": 0,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Color",
+                  "description": "Set the color of the border",
+                  "valueType": "color",
+                  "css": "border-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "border-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Border Style",
+                  "description": "Choose the style of the border",
+                  "valueType": "select",
+                  "options": [
+                    "solid",
+                    "dashed",
+                    "dotted",
+                    "double",
+                    "groove",
+                    "ridge"
+                  ],
+                  "css": "border-style: {value};",
+                  "tailwind": false,
+                  "icon": "more_horiz",
+                  "id": "border-style",
+                  "value": "solid",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Shadow Effects",
+              "description": "Add shadow effects to text and containers",
+              "icon": "filter_drama",
+              "id": "shadow",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Shadows",
+                  "description": "Enable or disable shadow effects",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "shadow-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Shadow",
+                  "description": "Add shadow effect to the text",
+                  "valueType": "number",
+                  "css": "text-shadow: {value}px {value}px 8px var(--text-shadow-color);",
+                  "tailwind": false,
+                  "icon": "text_fields",
+                  "id": "text-shadow",
+                  "value": 4,
+                  "valueMin": 0,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Text Shadow Color",
+                  "description": "Set the color of the text shadow",
+                  "valueType": "color",
+                  "css": "--text-shadow-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-shadow-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Container Shadow",
+                  "description": "Add shadow to the subtitle container",
+                  "valueType": "number",
+                  "css": "box-shadow: 0 {value}px {value}px var(--box-shadow-color);",
+                  "tailwind": false,
+                  "icon": "square",
+                  "id": "box-shadow",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 40
+                },
+                {
+                  "__className": "Style",
+                  "name": "Container Shadow Color",
+                  "description": "Set the color of the container shadow",
+                  "valueType": "color",
+                  "css": "--box-shadow-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "box-shadow-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Text Outline",
+              "description": "Add outlines and strokes around text",
+              "icon": "border_outer",
+              "id": "outline",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Outline",
+                  "description": "Enable or disable text outline",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "outline-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Outline Width",
+                  "description": "Set the width of the text outline (shadow-based for better Arabic support)",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "filter: drop-shadow({value}px 0 0 var(--text-outline-color)) drop-shadow(-{value}px 0 0 var(--text-outline-color)) drop-shadow(0 {value}px 0 var(--text-outline-color)) drop-shadow(0 -{value}px 0 var(--text-outline-color)) drop-shadow({value}px {value}px 0 var(--text-outline-color)) drop-shadow(-{value}px -{value}px 0 var(--text-outline-color)) drop-shadow({value}px -{value}px 0 var(--text-outline-color)) drop-shadow(-{value}px {value}px 0 var(--text-outline-color)) !important;",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "text-outline",
+                  "value": 0.25,
+                  "valueMin": 0,
+                  "valueMax": 10
+                },
+                {
+                  "__className": "Style",
+                  "name": "Outline Color",
+                  "description": "Set the color of the text outline",
+                  "valueType": "color",
+                  "css": "--text-outline-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-outline-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Text Glow",
+              "description": "Add a glow effect to the text",
+              "icon": "wb_incandescent",
+              "id": "text-glow",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Glow",
+                  "description": "Enable or disable text glow",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "text-glow-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow Color",
+                  "description": "Set the color of the text glow",
+                  "valueType": "color",
+                  "css": "--text-glow-color: {value};  text-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 1.5) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); filter: drop-shadow(0 0 var(--text-glow-blur) var(--text-glow-color)) brightness(calc(100% + 5 * 50%));",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-glow-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow Blur",
+                  "description": "Set the blur radius of the text glow",
+                  "valueType": "number",
+                  "css": "--text-glow-blur: {value}px;",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "text-glow-blur",
+                  "value": 10,
+                  "valueMin": 0,
+                  "valueMax": 50
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Neon Effect",
+              "description": "Add a neon light effect to the text",
+              "icon": "light_mode",
+              "id": "text-neon",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Neon Effect",
+                  "description": "Enable or disable neon effect",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "text-neon-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Neon Color",
+                  "description": "Set the color of the neon effect",
+                  "valueType": "color",
+                  "css": "--text-neon-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "text-neon-color",
+                  "value": "#00ff00",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Neon Intensity",
+                  "description": "Set the intensity of the neon effect",
+                  "valueType": "number",
+                  "css": "--text-neon-size: {value}px; color: var(--text-neon-color); text-shadow: 0 0 calc(var(--text-neon-size) * 0.5) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 1) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 2) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 4) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 8) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 9) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 10) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 15) var(--text-neon-color);",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "text-intensity",
+                  "value": 10,
+                  "valueMin": 0,
+                  "valueMax": 50
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Visual Effects",
+              "description": "Add visual effects and filters to enhance subtitle appearance",
+              "icon": "auto_fix_high",
+              "id": "effects",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Text Opacity",
+                  "description": "Control the transparency of the text",
+                  "valueType": "number",
+                  "step": 0.05,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "opacity",
+                  "value": 1,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Blur Effect",
+                  "description": "Apply blur effect to the text",
+                  "valueType": "number",
+                  "css": "--blur: {value}px; filter: blur(var(--blur, 0px)) brightness(var(--brightness, 100%)) contrast(var(--contrast, 100%));",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "blur",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 20
+                },
+                {
+                  "__className": "Style",
+                  "name": "Brightness",
+                  "description": "Adjust the brightness of the text",
+                  "valueType": "number",
+                  "css": "--brightness: {value}%;",
+                  "tailwind": false,
+                  "icon": "brightness_6",
+                  "id": "brightness",
+                  "value": 100,
+                  "valueMin": 0,
+                  "valueMax": 200
+                },
+                {
+                  "__className": "Style",
+                  "name": "Contrast",
+                  "description": "Adjust the contrast of the text",
+                  "valueType": "number",
+                  "css": "--contrast: {value}%;",
+                  "tailwind": false,
+                  "icon": "contrast",
+                  "id": "contrast",
+                  "value": 100,
+                  "valueMin": 0,
+                  "valueMax": 200
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Animation & Transitions",
+              "description": "Add motion and transition effects to subtitles",
+              "icon": "animation",
+              "id": "animation",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Scale",
+                  "description": "Scale the size of the subtitle",
+                  "valueType": "number",
+                  "css": "--scale: {value}%;",
+                  "tailwind": false,
+                  "icon": "zoom_in",
+                  "id": "scale",
+                  "value": 100,
+                  "valueMin": 25,
+                  "valueMax": 300
+                },
+                {
+                  "__className": "Style",
+                  "name": "Rotation",
+                  "description": "Rotate the subtitle in degrees",
+                  "valueType": "number",
+                  "css": "--rotation: {value}deg;",
+                  "tailwind": false,
+                  "icon": "rotate_right",
+                  "id": "rotation",
+                  "value": 0,
+                  "valueMin": -180,
+                  "valueMax": 180
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Custom CSS",
+              "description": "Add your own custom CSS to fully customize subtitle appearance",
+              "icon": "code",
+              "id": "custom-css",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Custom CSS",
+                  "description": "Write any custom CSS for subtitles. Use !important if needed.",
+                  "valueType": "text",
+                  "css": "{value}",
+                  "tailwind": false,
+                  "icon": "code",
+                  "id": "custom-css",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            }
+          ],
+          "target": "eng-mustafakhattaba",
+          "overrides": {}
+        }
+      ],
+      "lastUpdated": "2026-03-25T08:47:31.900Z"
+    }
+  },
+  "projectEditorState": {
+    "__className": "ProjectEditorState",
+    "currentTab": "Video editor",
+    "showDropScreen": false,
+    "sections": {
+      "Project Assets": {
+        "extended": true
+      },
+      "Download from MP3Quran": {
+        "extended": true
+      },
+      "Download from YouTube": {
+        "extended": true
+      },
+      "Mustafa Khattab Allah Edition": {
+        "extended": true
+      },
+      "video-dimension": {
+        "extended": false
+      },
+      "fade-duration": {
+        "extended": false
+      },
+      "anti-collision": {
+        "extended": false
+      },
+      "spacing": {
+        "extended": false
+      },
+      "General Settings": {
+        "extended": true
+      },
+      "overlay-enable": {
+        "extended": false
+      },
+      "overlay-color": {
+        "extended": false
+      },
+      "overlay-opacity": {
+        "extended": false
+      },
+      "background-overlay-mode": {
+        "extended": false
+      },
+      "background-overlay-fade-intensity": {
+        "extended": false
+      },
+      "background-overlay-fade-coverage": {
+        "extended": false
+      },
+      "overlay-blur": {
+        "extended": false
+      },
+      "overlay-custom-css": {
+        "extended": false
+      },
+      "Overlay": {
+        "extended": true
+      },
+      "show-surah-name": {
+        "extended": false
+      },
+      "surah-name-vertical-position": {
+        "extended": false
+      },
+      "surah-name-horizontal-position": {
+        "extended": false
+      },
+      "surah-name-format": {
+        "extended": false
+      },
+      "surah-show-arabic": {
+        "extended": false
+      },
+      "surah-show-latin": {
+        "extended": false
+      },
+      "surah-size": {
+        "extended": false
+      },
+      "surah-latin-spacing": {
+        "extended": false
+      },
+      "surah-opacity": {
+        "extended": false
+      },
+      "surah-latin-text-style": {
+        "extended": false
+      },
+      "Surah Name": {
+        "extended": true
+      },
+      "show-reciter-name": {
+        "extended": false
+      },
+      "reciter-name": {
+        "extended": false
+      },
+      "reciter-name-vertical-position": {
+        "extended": false
+      },
+      "reciter-name-horizontal-position": {
+        "extended": false
+      },
+      "reciter-name-format": {
+        "extended": false
+      },
+      "reciter-show-arabic": {
+        "extended": false
+      },
+      "reciter-show-latin": {
+        "extended": false
+      },
+      "reciter-size": {
+        "extended": false
+      },
+      "reciter-latin-spacing": {
+        "extended": false
+      },
+      "reciter-opacity": {
+        "extended": false
+      },
+      "reciter-latin-text-style": {
+        "extended": false
+      },
+      "Reciter Name": {
+        "extended": true
+      },
+      "show-verse-number": {
+        "extended": false
+      },
+      "verse-number-vertical-position": {
+        "extended": false
+      },
+      "verse-number-horizontal-position": {
+        "extended": false
+      },
+      "verse-number-format": {
+        "extended": false
+      },
+      "verse-number-text-style": {
+        "extended": false
+      },
+      "Verse Number (Separated From Text)": {
+        "extended": true
+      },
+      "opacity": {
+        "extended": false
+      },
+      "font-family": {
+        "extended": false
+      },
+      "font-size": {
+        "extended": false
+      },
+      "text-color": {
+        "extended": false
+      },
+      "text-transform": {
+        "extended": false
+      },
+      "font-weight": {
+        "extended": false
+      },
+      "enable-italic": {
+        "extended": false
+      },
+      "custom-css": {
+        "extended": false
+      },
+      "outline-enable": {
+        "extended": false
+      },
+      "text-outline": {
+        "extended": false
+      },
+      "text-outline-color": {
+        "extended": false
+      },
+      "text-glow-enable": {
+        "extended": false
+      },
+      "text-glow-color": {
+        "extended": false
+      },
+      "text-glow-blur": {
+        "extended": false
+      }
+    },
+    "timeline": {
+      "__className": "TimelineState",
+      "zoom": 29.25,
+      "cursorPosition": 15453.051452991454,
+      "showCursor": true,
+      "movePreviewTo": 15453.051452991454,
+      "scrollX": 450
+    },
+    "videoPreview": {
+      "__className": "VideoPreviewState",
+      "isPlaying": false,
+      "isFullscreen": false,
+      "showVideosAndAudios": false
+    },
+    "subtitlesEditor": {
+      "__className": "SubtitlesEditorState",
+      "selectedSurah": 1,
+      "selectedVerse": 1,
+      "startWordIndex": 0,
+      "endWordIndex": 0,
+      "playbackSpeed": 1,
+      "showWordTranslation": true,
+      "showWordTransliteration": false,
+      "editSubtitle": null,
+      "pendingSplitEditNextId": null,
+      "initialLowConfidenceCount": 0,
+      "minWordCount": 0
+    },
+    "translationsEditor": {
+      "__className": "TranslationsEditorState",
+      "showAIInstructions": false,
+      "filters": {
+        "to review": true,
+        "ai error": true,
+        "ai trimmed": true,
+        "automatically trimmed": true,
+        "reviewed": false,
+        "completed by default": false,
+        "fetched": false
+      },
+      "searchQuery": "",
+      "onlyShowOverlappingSubtitles": false
+    },
+    "stylesEditor": {
+      "__className": "StylesEditorState",
+      "scrollPosition": 0,
+      "currentSelection": "global",
+      "currentSelectionTranslation": "eng-mustafakhattaba",
+      "searchQuery": "",
+      "selectedSubtitles": [],
+      "selectedVideos": [],
+      "scrollAndHighlight": null
+    },
+    "export": {
+      "__className": "SerializableBase",
+      "selectedChoice": "video",
+      "subtitleFormat": "SRT",
+      "includedTarget": {},
+      "exportVerseNumbers": {},
+      "arabicTextFormat": "Plain",
+      "ytbChaptersChoice": "Each Surah",
+      "videoStartTime": 0,
+      "videoEndTime": 48013,
+      "fps": 30,
+      "chunkSize": 50,
+      "customFileName": ""
+    },
+    "upperSectionHeight": 68
+  }
+}

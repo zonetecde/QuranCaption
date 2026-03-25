@@ -32,7 +32,7 @@
 		};
 		window.addEventListener('mousedown', handleGlobalClick, true);
 
-		return () => {
+return () => {
 			clearInterval(saveInterval);
 			window.removeEventListener('mousedown', handleGlobalClick, true);
 		};

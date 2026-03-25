@@ -15,9 +15,11 @@
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
 	let {
-		projectDetail = $bindable()
+		projectDetail = $bindable(),
+		isTutorial = false
 	}: {
 		projectDetail: ProjectDetail;
+		isTutorial?: boolean;
 	} = $props();
 
 	async function deleteProjectButtonClick(e: MouseEvent) {
@@ -81,6 +83,7 @@
 
 <div
 	class="bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between hover:shadow-2xl transition-all duration-300"
+	data-tour-id={isTutorial ? 'tutorial-project-card' : undefined}
 >
 	<div>
 		{#if globalState.settings!.persistentUiState.projectCardView === 'grid'}

@@ -22,6 +22,8 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import NewUpdateModal from './modals/NewUpdateModal.svelte';
 	import { VersionService } from '$lib/services/VersionService.svelte';
+	import TourManager from '$lib/components/tour/TourManager';
+	import { setupTutorialProject } from '$lib/services/TutorialService';
 
 	let migrationFromV2ModalVisibility = $state(false);
 	let createNewProjectModalVisible: boolean = $state(false);
@@ -150,6 +152,17 @@
 					migrationFromV2ModalVisibility = true;
 				}
 			});
+
+		// Onboarding tour for first-time users
+		if (globalState.settings && !globalState.settings.persistentUiState.hasSeenTour) {
+			try {
+				await setupTutorialProject();
+				applyFilterAndSort();
+			} catch (e) {
+				console.warn('Tutorial project setup failed:', e);
+			}
+			setTimeout(() => TourManager.start(), 600);
+		}
 	});
 
 	$effect(() => {
@@ -193,7 +206,7 @@
 				<h4 class="text-secondary">Let's create something amazing today.</h4>
 			</section>
 			<section class="ml-auto flex gap-x-4">
-				<button class="btn-accent btn-icon h-12 px-4 xl:px-7" onclick={newProjectButtonClick}>
+				<button data-tour-id="new-project-button" class="btn-accent btn-icon h-12 px-4 xl:px-7" onclick={newProjectButtonClick}>
 					<span class="material-icons-outlined mr-2">add_circle_outline</span> New Project
 				</button>
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
@@ -282,7 +295,10 @@
 				>
 					{#each globalState.uiState.filteredProjects as project, index}
 						{#if globalState.uiState.searchQuery === '' || project.matchSearchQuery(globalState.uiState.searchQuery)}
-							<ProjectDetailCard bind:projectDetail={globalState.uiState.filteredProjects[index]} />
+							<ProjectDetailCard
+							bind:projectDetail={globalState.uiState.filteredProjects[index]}
+							isTutorial={project.name === 'Tutorial Project'}
+						/>
 						{/if}
 					{/each}
 				</div>

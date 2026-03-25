@@ -155,6 +155,8 @@
 
 		// Onboarding tour for first-time users
 		if (globalState.settings && !globalState.settings.persistentUiState.hasSeenTour) {
+			// Ensure projects are fully loaded before checking for existing tutorial project
+			if (promise) await promise;
 			try {
 				await setupTutorialProject();
 				applyFilterAndSort();

@@ -90,6 +90,7 @@
 	<div class="flex items-center space-x-5">
 		<button
 			class="flex space-x-2 cursor-pointer"
+			disabled={globalState.uiState.isTourActive}
 			onclick={async () => {
 				// go home
 				await globalState.currentProject?.save();
@@ -113,6 +114,7 @@
 			<EditableText
 				bind:value={globalState.currentProject.detail.name}
 				text="Project Name"
+				disabled={globalState.uiState.isTourActive}
 				parentClasses="absolute left-1/2 -translate-x-1/2 pr-[18px]"
 			></EditableText>
 		{/if}
@@ -121,6 +123,7 @@
 		<button
 			class="w-10 cursor-pointer rounded-full hover:bg-accent"
 			type="button"
+			disabled={globalState.uiState.isTourActive}
 			onclick={ModalManager.settingsModal}
 			aria-haspopup="dialog"
 			aria-expanded={globalState.uiState.isSettingsOpen}
@@ -134,6 +137,7 @@
 				id="tools-popover-button"
 				class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
 				type="button"
+				disabled={globalState.uiState.isTourActive}
 				onclick={(event) => {
 					event.stopPropagation();
 					showToolsPopover = !showToolsPopover;
@@ -192,6 +196,7 @@
 			id="help-popover-button"
 			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
 			type="button"
+			disabled={globalState.uiState.isTourActive}
 			onclick={(event) => {
 				event.stopPropagation();
 				showHelpPopover = !showHelpPopover;
@@ -250,6 +255,7 @@
 			id="export-button"
 			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
 			type="button"
+			disabled={globalState.uiState.isTourActive}
 			onclick={() => {
 				globalState.uiState.showExportMonitor = !globalState.uiState.showExportMonitor;
 			}}

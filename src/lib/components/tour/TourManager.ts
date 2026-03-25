@@ -1,5 +1,6 @@
 import { mount, unmount } from 'svelte';
 import OnboardingTour from './OnboardingTour.svelte';
+import { globalState } from '$lib/runes/main.svelte';
 
 export default class TourManager {
 	private static _component: ReturnType<typeof mount> | null = null;
@@ -13,6 +14,8 @@ export default class TourManager {
 		container.id = 'onboarding-tour-container';
 		document.body.appendChild(container);
 		this._container = container;
+
+		globalState.uiState.isTourActive = true;
 
 		this._component = mount(OnboardingTour, {
 			target: container,
@@ -31,5 +34,6 @@ export default class TourManager {
 			this._container.remove();
 			this._container = null;
 		}
+		globalState.uiState.isTourActive = false;
 	}
 }

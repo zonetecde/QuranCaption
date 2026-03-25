@@ -156,6 +156,15 @@
 
 	let { close }: { close: () => void } = $props();
 
+	// Measure title bar height so the overlay never covers it
+	let titleBarHeight = $state(0);
+	$effect(() => {
+		const titleBar = document.querySelector('[data-tauri-drag-region]');
+		if (titleBar) {
+			titleBarHeight = titleBar.getBoundingClientRect().height;
+		}
+	});
+
 	let currentStepIndex = $state(0);
 	let currentStep = $derived(TOUR_STEPS[currentStepIndex]);
 
@@ -177,7 +186,7 @@
 
 	function computePlacement(rect: { x: number; y: number; w: number; h: number }) {
 		const vw = window.innerWidth;
-		const vh = window.innerHeight;
+		const vh = window.innerHeight - titleBarHeight;
 		const spaceBottom = vh - (rect.y + rect.h);
 		const spaceTop = rect.y;
 		const spaceRight = vw - (rect.x + rect.w);
@@ -194,7 +203,8 @@
 		placement: typeof tooltipPlacement
 	) {
 		const vw = window.innerWidth;
-		const vh = window.innerHeight;
+		// Available height excludes the title bar (overlay starts below it)
+		const vh = window.innerHeight - titleBarHeight;
 		const OFFSET = 16;
 		let left = 0,
 			top = 0;
@@ -227,9 +237,10 @@
 
 	function updateSpotlight(el: Element) {
 		const r = el.getBoundingClientRect();
+		// Subtract titleBarHeight because the overlay container starts below the title bar
 		spotlightRect = {
 			x: r.left - PAD,
-			y: r.top - PAD,
+			y: r.top - titleBarHeight - PAD,
 			w: r.width + PAD * 2,
 			h: r.height + PAD * 2
 		};
@@ -271,10 +282,10 @@
 					updateSpotlight(el);
 					setupResizeObserver(el);
 				} else {
-					// Fallback: no spotlight hole, tooltip centered
+					// Fallback: no spotlight hole, tooltip centered within the overlay area (below titlebar)
 					spotlightRect = { x: -9999, y: -9999, w: 0, h: 0 };
 					tooltipLeft = window.innerWidth / 2 - TOOLTIP_W / 2;
-					tooltipTop = window.innerHeight / 2 - TOOLTIP_H / 2;
+					tooltipTop = (window.innerHeight - titleBarHeight) / 2 - TOOLTIP_H / 2;
 				}
 				tooltipVisible = true;
 			});
@@ -287,7 +298,8 @@
 		if (step.advanceMode !== 'auto' || !step.advanceCondition) return;
 		const met = step.advanceCondition();
 		if (met) {
-			setTimeout(() => advance(), 400);
+			const tid = setTimeout(() => advance(), 400);
+			return () => clearTimeout(tid);
 		}
 	});
 
@@ -314,8 +326,10 @@
 	/** Handle click on the blocking overlay: forward only if this step allows spotlight interaction */
 	function handleBlockingClick(e: MouseEvent) {
 		const { clientX, clientY } = e;
+		// clientY is viewport-relative; spotlightRect.y is relative to the overlay container (below titlebar)
+		const relY = clientY - titleBarHeight;
 		const { x, y, w, h } = spotlightRect;
-		const insideSpotlight = clientX >= x && clientX <= x + w && clientY >= y && clientY <= y + h;
+		const insideSpotlight = clientX >= x && clientX <= x + w && relY >= y && relY <= y + h;
 		if (insideSpotlight && currentStep.allowSpotlightClick) {
 			forwardEventThrough(e);
 		}
@@ -328,8 +342,9 @@
 	function handleBlockingMouseMove(e: MouseEvent) {
 		if (!currentStep.allowSpotlightClick) return;
 		const { clientX, clientY } = e;
+		const relY = clientY - titleBarHeight;
 		const { x, y, w, h } = spotlightRect;
-		if (clientX >= x && clientX <= x + w && clientY >= y && clientY <= y + h) {
+		if (clientX >= x && clientX <= x + w && relY >= y && relY <= y + h) {
 			forwardEventThrough(e);
 		}
 	}
@@ -357,8 +372,8 @@
 	}
 </script>
 
-<!-- Root container: position fixed, covers full viewport, isolated from document layout -->
-<div style="position: fixed; inset: 0; z-index: 9997; pointer-events: none; overflow: hidden;">
+<!-- Root container: position fixed, starts below the title bar so window controls remain accessible -->
+<div style="position: fixed; top: {titleBarHeight}px; left: 0; right: 0; bottom: 0; z-index: 9997; pointer-events: none; overflow: hidden;">
 
 	<!-- Blocking overlay: always present, blocks all interactions outside the spotlight -->
 	<div

@@ -232,10 +232,10 @@ export class ProjectService {
 	 * Importe un projet à partir d'un fichier JSON.
 	 * @param json Le contenu JSON du projet
 	 */
-	static importProject(json: any) {
+	static async importProject(json: any) {
 		json.detail.id = Utilities.randomId(); // Applique un nouvel ID unique au projet
 
 		const projectObject = Project.fromJSON(json);
-		projectObject.save(); // Enregistre le projet importé sur le disque
+		await projectObject.save(); // Enregistre le projet importé sur le disque
 	}
 }

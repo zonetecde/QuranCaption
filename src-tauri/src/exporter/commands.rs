@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, LazyLock, Mutex};
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::Emitter;
 use tauri::Manager;
 use tokio::task;
@@ -27,6 +27,48 @@ fn configure_command_no_window(cmd: &mut Command) {
         const CREATE_NO_WINDOW: u32 = 0x08000000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
+}
+
+/// Construit un chemin temporaire dans le même dossier que la destination finale.
+/// Le fichier conserve la même extension pour laisser FFmpeg choisir le bon conteneur.
+fn build_temp_output_path(dst: &Path) -> PathBuf {
+    let stem = dst.file_stem().and_then(|s| s.to_str()).unwrap_or("preproc");
+    let ext = dst.extension().and_then(|s| s.to_str()).unwrap_or("mp4");
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let filename = format!("{}-tmp-{}-{}.{}", stem, std::process::id(), nonce, ext);
+    dst.with_file_name(filename)
+}
+
+/// Remplace la destination finale par le fichier temporaire généré.
+fn replace_preproc_file(tmp: &Path, dst: &Path) -> std::io::Result<()> {
+    if dst.exists() {
+        fs::remove_file(dst).ok();
+    }
+    fs::rename(tmp, dst)
+}
+
+/// Vérifie qu'une vidéo de cache est lisible et respecte une durée minimale attendue.
+fn is_cached_video_valid(path: &Path, min_duration_s: f64) -> bool {
+    let metadata = match fs::metadata(path) {
+        Ok(meta) => meta,
+        Err(_) => return false,
+    };
+
+    if metadata.len() < 2048 {
+        return false;
+    }
+
+    let path_str = path.to_string_lossy();
+    let duration = ffprobe_duration_sec(path_str.as_ref());
+    if !duration.is_finite() || duration <= 0.0 {
+        return false;
+    }
+
+    let tolerance_s = 0.15;
+    duration + tolerance_s >= min_duration_s.max(0.0)
 }
 
 /// Fonction du module export.
@@ -286,6 +328,12 @@ fn ffmpeg_preprocess_video(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let (codec, params, extra) = choose_best_codec(prefer_hw);
     let exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let dst_path = Path::new(dst);
+    if let Some(parent) = dst_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let tmp_path = build_temp_output_path(dst_path);
+    let tmp_output = tmp_path.to_string_lossy().to_string();
 
     // Construire le filtre vidéo avec blur optionnel
     let mut vf_parts = vec![
@@ -347,7 +395,7 @@ fn ffmpeg_preprocess_video(
         cmd.arg(param);
     }
 
-    cmd.arg(dst);
+    cmd.arg(&tmp_output);
 
     // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
@@ -362,11 +410,26 @@ fn ffmpeg_preprocess_video(
 
     let status = cmd.status()?;
     if !status.success() {
+        fs::remove_file(&tmp_path).ok();
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             "FFmpeg preprocessing failed",
         )));
     }
+
+    let expected_duration_s = duration_ms
+        .map(|ms| ms as f64 / 1000.0)
+        .unwrap_or(0.001)
+        .max(0.001);
+    if !is_cached_video_valid(&tmp_path, expected_duration_s) {
+        fs::remove_file(&tmp_path).ok();
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "FFmpeg preprocessing produced an invalid output file",
+        )));
+    }
+
+    replace_preproc_file(&tmp_path, dst_path)?;
 
     Ok(())
 }
@@ -383,6 +446,12 @@ fn create_video_from_image(
     blur: Option<f64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let dst_path = Path::new(output_path);
+    if let Some(parent) = dst_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let tmp_path = build_temp_output_path(dst_path);
+    let tmp_output = tmp_path.to_string_lossy().to_string();
 
     // Construire le filtre vidéo avec blur optionnel
     let mut vf_parts = vec![
@@ -439,7 +508,7 @@ fn create_video_from_image(
         cmd.args(&["-cq", "23"]);
     }
 
-    cmd.arg(output_path);
+    cmd.arg(&tmp_output);
 
     // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
@@ -452,11 +521,22 @@ fn create_video_from_image(
 
     let status = cmd.status()?;
     if !status.success() {
+        fs::remove_file(&tmp_path).ok();
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             "FFmpeg image-to-video failed",
         )));
     }
+
+    if !is_cached_video_valid(&tmp_path, duration_s.max(0.001)) {
+        fs::remove_file(&tmp_path).ok();
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "FFmpeg image-to-video produced an invalid output file",
+        )));
+    }
+
+    replace_preproc_file(&tmp_path, dst_path)?;
 
     Ok(())
 }
@@ -487,7 +567,7 @@ fn preprocess_background_videos(
 ) -> Vec<String> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "cover-v2";
+    let preproc_cache_version = "cover-v3";
     fs::create_dir_all(&cache_dir).ok();
 
     // Cas spécial : une seule image
@@ -516,8 +596,17 @@ fn preprocess_background_videos(
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("img-bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
+        let expected_duration_s = duration_s.max(0.001);
 
-        if !dst.exists() {
+        let must_regenerate = !is_cached_video_valid(&dst, expected_duration_s);
+        if must_regenerate {
+            if dst.exists() {
+                println!(
+                    "[preproc][cache] Fichier invalide détecté, régénération: {}",
+                    dst.display()
+                );
+                fs::remove_file(&dst).ok();
+            }
             match create_video_from_image(
                 image_path,
                 &dst.to_string_lossy(),
@@ -619,8 +708,17 @@ fn preprocess_background_videos(
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
         let dst = cache_dir.join(format!("bg-{}-{}x{}-{}.mp4", stem_hash, w, h, fps));
+        let expected_duration_s = (take_ms as f64 / 1000.0).max(0.001);
 
-        if !dst.exists() {
+        let must_regenerate = !is_cached_video_valid(&dst, expected_duration_s);
+        if must_regenerate {
+            if dst.exists() {
+                println!(
+                    "[preproc][cache] Fichier invalide détecté, régénération: {}",
+                    dst.display()
+                );
+                fs::remove_file(&dst).ok();
+            }
             // Appeler ffmpeg_preprocess_video avec les offsets locaux et le flag loop
             match ffmpeg_preprocess_video(
                 vid_path,

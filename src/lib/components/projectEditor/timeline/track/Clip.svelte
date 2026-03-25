@@ -2,8 +2,7 @@
 	import { AssetType, TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { onDestroy, onMount, untrack } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
+	import { onDestroy, untrack } from 'svelte';
 	import WaveSurfer from 'wavesurfer.js';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -167,7 +166,6 @@
 			? ' bg-[var(--video-clip-selection)]! ring-1 ring-[var(--video-clip-selection)]/60'
 			: '')}
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
-	transition:slide={{ duration: 500, axis: 'x' }}
 	onclick={handleClipClick}
 	oncontextmenu={(e) => {
 		e.preventDefault();

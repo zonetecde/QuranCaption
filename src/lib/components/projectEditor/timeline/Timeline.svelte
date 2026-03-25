@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Track from './track/Track.svelte';
 	import { Duration, TrackType, ProjectEditorTabs, SubtitleClip, AssetClip } from '$lib/classes';
-	import { slide } from 'svelte/transition';
 	import ShortcutService from '$lib/services/ShortcutService';
 
 	let totalDuration = $derived(() => {
@@ -22,7 +21,16 @@
 
 	let timelineState = $derived(() => globalState.currentProject?.projectEditorState.timeline!);
 
+	const TIMELINE_LEFT_HEADER_WIDTH_PX = 180;
+	const OVERSCAN_MS = 120000;
+
 	let timelineDiv: HTMLDivElement | null = null;
+	let timelineTracksDiv: HTMLDivElement | null = null;
+	let tracksResizeObserver: ResizeObserver | null = null;
+	let tracksViewportWidth = $state(0);
+	let visibleRangeStartMs = $state(0);
+	let visibleRangeEndMs = $state(0);
+
 	let removeShortcutRegistered = false;
 	let splitShortcutRegistered = false;
 	let setEndShortcutRegistered = false;
@@ -308,12 +316,49 @@
 
 	onMount(() => {
 		// Restitue le scroll
-		timelineDiv!.scrollLeft = timelineState().scrollX;
+		if (timelineDiv) {
+			timelineDiv.scrollLeft = timelineState().scrollX;
+		}
+		if (timelineTracksDiv) {
+			timelineTracksDiv.scrollLeft = timelineState().scrollX;
+			tracksViewportWidth = timelineTracksDiv.clientWidth;
+
+			tracksResizeObserver = new ResizeObserver((entries) => {
+				const [entry] = entries;
+				if (!entry) return;
+				tracksViewportWidth = entry.contentRect.width;
+			});
+			tracksResizeObserver.observe(timelineTracksDiv);
+		}
 
 		// Au cas où il serait en false après un changement de taille de sous-titre
 		globalState.getTimelineState.showCursor = true;
 
 		globalState.getVideoPreviewState.scrollTimelineToCursor = scrollTimelineToCursor;
+
+		return () => {
+			tracksResizeObserver?.disconnect();
+			tracksResizeObserver = null;
+		};
+	});
+
+	$effect(() => {
+		const scrollX = timelineState().scrollX;
+		const safeZoom = Math.max(timelineState().zoom, 0.0001);
+		const viewportWidthPx = tracksViewportWidth;
+		const totalDurationMs = totalDuration().ms;
+
+		const viewportStartMs = Math.max(
+			0,
+			((scrollX - TIMELINE_LEFT_HEADER_WIDTH_PX) / safeZoom) * 1000
+		);
+		const viewportEndMs = Math.max(
+			viewportStartMs,
+			((scrollX + viewportWidthPx - TIMELINE_LEFT_HEADER_WIDTH_PX) / safeZoom) * 1000
+		);
+
+		visibleRangeStartMs = Math.max(0, viewportStartMs - OVERSCAN_MS);
+		visibleRangeEndMs = Math.min(totalDurationMs, viewportEndMs + OVERSCAN_MS);
 	});
 
 	/**
@@ -450,6 +495,8 @@
 		unregisterRemoveShortcut();
 		unregisterSetEndShortcut();
 		unregisterSetStartShortcut();
+		tracksResizeObserver?.disconnect();
+		tracksResizeObserver = null;
 	});
 </script>
 
@@ -500,7 +547,7 @@
 		</div>
 
 		<!-- Timeline Tracks Area -->
-		<div class="timeline-tracks" onscroll={syncScroll} id="timeline">
+		<div class="timeline-tracks" onscroll={syncScroll} id="timeline" bind:this={timelineTracksDiv}>
 			<div
 				class="tracks-content grid outline-none"
 				style="width: {totalDuration().toSeconds() * timelineState().zoom + 180}px;"
@@ -525,7 +572,11 @@
 					{#each globalState.currentProject!.content.timeline.tracks as track, i}
 						<!-- N'affiche pas la track des customs texts s'il y en a pas dans le projet -->
 						{#if !(track.type === TrackType.CustomClip && track.clips.length === 0)}
-							<Track bind:track={globalState.currentProject!.content.timeline.tracks[i]} />
+							<Track
+								bind:track={globalState.currentProject!.content.timeline.tracks[i]}
+								visibleRangeStartMs={visibleRangeStartMs}
+								visibleRangeEndMs={visibleRangeEndMs}
+							/>
 						{/if}
 					{/each}
 				</div>

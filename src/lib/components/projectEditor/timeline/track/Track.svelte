@@ -1,11 +1,8 @@
 <script lang="ts">
 	import {
 		TrackType,
-		type AssetType,
 		type Track,
-		type SubtitleClip as SubtitleClipType,
-		Clip,
-		SubtitleClip
+		type SubtitleClip as SubtitleClipType
 	} from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ClipComponent from './Clip.svelte';
@@ -15,10 +12,25 @@
 	import { CustomClip } from '$lib/classes/Clip.svelte';
 
 	let {
-		track = $bindable()
+		track = $bindable(),
+		visibleRangeStartMs = 0,
+		visibleRangeEndMs = Number.POSITIVE_INFINITY
 	}: {
 		track: Track;
+		visibleRangeStartMs: number;
+		visibleRangeEndMs: number;
 	} = $props();
+
+	let visibleClips = $derived(() =>
+		track.clips
+			.map((clip, clipIndex) => ({ clip, clipIndex }))
+			.filter(
+				({ clip }) =>
+					(track.type === TrackType.CustomClip &&
+						(clip as CustomClip).getAlwaysShow?.() === true) ||
+					(clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs)
+			)
+	);
 </script>
 
 <div
@@ -57,30 +69,30 @@
 			{@const total = track.clips.length}
 			<!-- Container relatif pour positionner chaque lane -->
 			<div class="absolute inset-0">
-				{#each track.clips as clip, index (clip.id)}
+				{#each visibleClips() as { clip, clipIndex } (clip.id)}
 					<div
 						class="absolute left-0 right-0"
-						style="top: {((total - 1 - index) * 100) / total}%; height: {100 / total}%;"
+						style="top: {((total - 1 - clipIndex) * 100) / total}%; height: {100 / total}%;"
 					>
 						<div class="relative h-full">
-							<CustomClipComponent bind:clip={track.clips[index] as CustomClip} {track} />
+							<CustomClipComponent bind:clip={track.clips[clipIndex] as CustomClip} {track} />
 						</div>
 					</div>
 				{/each}
 			</div>
 		{:else}
 			<div class="flex items-center h-full px-3 gap-2">
-				{#each track.clips as clip, index}
+				{#each visibleClips() as { clip, clipIndex } (clip.id)}
 					{#if track.type === TrackType.Subtitle}
 						{@const nextIsSameVerse =
-							(track as SubtitleTrack).getSubtitleAfter(index)?.verse ===
+							(track as SubtitleTrack).getSubtitleAfter(clipIndex)?.verse ===
 							(clip as SubtitleClipType).verse}
 						{@const previousIsSameVerse =
-							(track as SubtitleTrack).getSubtitleBefore(index)?.verse ===
+							(track as SubtitleTrack).getSubtitleBefore(clipIndex)?.verse ===
 							(clip as SubtitleClipType).verse}
 
 						<SubtitleClipComponent
-							bind:clip={track.clips[index] as SubtitleClipType}
+							bind:clip={track.clips[clipIndex] as SubtitleClipType}
 							{track}
 							{nextIsSameVerse}
 							{previousIsSameVerse}

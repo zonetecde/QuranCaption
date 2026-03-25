@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { CustomTextClip, TrackType, type AssetClip, type Clip, type Track } from '$lib/classes';
+	import { CustomTextClip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { fade, slide } from 'svelte/transition';
 	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { CustomClip, CustomImageClip } from '$lib/classes/Clip.svelte';
@@ -143,7 +142,6 @@
 		? ''
 		: 'cursor-move'}"
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
-	transition:slide={{ duration: 500, axis: 'x' }}
 	oncontextmenu={(e) => {
 		e.preventDefault();
 		contextMenu!.show(e);

@@ -93,8 +93,10 @@
 			disabled={globalState.uiState.isTourActive}
 			onclick={async () => {
 				// go home
-				await globalState.currentProject?.save();
-				globalState.currentProject = null;
+				if (globalState.currentProject) {
+					await globalState.currentProject?.save();
+					globalState.currentProject = null;
+				}
 				// Discord Rich Presence
 				discordService.setIdleState();
 			}}

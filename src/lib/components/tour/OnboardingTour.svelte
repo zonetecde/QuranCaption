@@ -88,7 +88,7 @@
 			targetId: 'subtitles-help-button',
 			title: 'Shortcuts & walkthrough',
 			description:
-				'Hover the <strong>?</strong> icon to see all available shortcuts (basmala, isti\'adha, silence, and more). You\'ll also find a short <strong>interactive video</strong> that walks you through the manual subtitle workflow.',
+				"Hover the <strong>?</strong> icon to see all available shortcuts (basmala, isti'adha, silence, and more). You'll also find a short <strong>interactive video</strong> that walks you through the manual subtitle workflow.",
 			advanceMode: 'button',
 			buttonLabel: 'Next'
 		},
@@ -531,7 +531,7 @@
 		align-items: center;
 		justify-content: center;
 		background: var(--bg-accent);
-		color: var(--text-thirdly);
+		color: var(--text-primary);
 		cursor: pointer;
 		border: none;
 		transition: all 0.2s;

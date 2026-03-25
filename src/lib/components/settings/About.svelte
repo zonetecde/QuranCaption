@@ -45,6 +45,11 @@
 			}
 			// Close settings modal
 			globalState.uiState.isSettingsOpen = false;
+			// Go to homepage
+			if (globalState.currentProject) {
+				await globalState.currentProject?.save();
+				globalState.currentProject = null;
+			}
 			// Re-import tutorial project (force = true deletes and recreates it)
 			try {
 				await setupTutorialProject(true);

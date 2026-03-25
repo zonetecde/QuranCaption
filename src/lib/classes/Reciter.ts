@@ -1,3 +1,5 @@
+import { globalState } from '$lib/runes/main.svelte';
+
 export class Reciter {
 	arabic: string;
 	latin: string;
@@ -23,6 +25,25 @@ export default class RecitersManager {
 		} catch (error) {
 			console.error('Failed to load reciters:', error);
 		}
+	}
+
+	static getRecitersWithCustomOnes() {
+		const reciters: { label: string; isCustom: boolean }[] = this.reciters.map((r) => ({
+			label: r.latin,
+			isCustom: false
+		}));
+		// Ajoute aussi tout les récitateurs des autres projets qui sont "custom"
+		if (globalState.userProjectsDetails) {
+			globalState.userProjectsDetails.forEach((project) => {
+				if (project.reciter && !reciters.find((r) => r.label === project.reciter)) {
+					reciters.push({ label: project.reciter, isCustom: true });
+				}
+			});
+		}
+
+		console.log('nbre reciteur custom :', reciters.filter((r) => r.isCustom).length);
+
+		return reciters;
 	}
 
 	static getReciterObject(latinName: string): Reciter {

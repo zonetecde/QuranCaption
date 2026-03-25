@@ -3,7 +3,7 @@
 
 	type Props = {
 		value: string;
-		suggestions: string[];
+		suggestions: { label: string; isCustom: boolean }[];
 		showEverything?: boolean;
 		clearOnFocus?: boolean;
 		placeholder?: string;
@@ -36,7 +36,7 @@
 		}
 	});
 
-	let filteredSuggestions: string[] = $state([]);
+	let filteredSuggestions: { label: string; isCustom: boolean }[] = $state([]);
 	let showSuggestions: boolean = $state(false);
 	let selectedSuggestionIndex: number = $state(-1);
 	function normalizeText(text: string): string {
@@ -62,7 +62,7 @@
 		}
 
 		const query = normalizeText(value);
-		filteredSuggestions = suggestions.filter((s) => normalizeText(s).includes(query));
+		filteredSuggestions = suggestions.filter((s) => normalizeText(s.label).includes(query));
 
 		showSuggestions = filteredSuggestions.length > 0;
 		selectedSuggestionIndex = 0;
@@ -99,7 +99,7 @@
 			case 'Enter':
 				event.preventDefault();
 				if (selectedSuggestionIndex >= 0) {
-					selectSuggestion(filteredSuggestions[selectedSuggestionIndex]);
+					selectSuggestion(filteredSuggestions[selectedSuggestionIndex].label);
 				} else if (onEnterPress) {
 					onEnterPress();
 				}
@@ -166,11 +166,13 @@
 					<button
 						class="w-full px-4 py-3 text-left hover:bg-accent transition-colors duration-200 flex items-center gap-3 border-b border-color last:border-b-0
 						       {index === selectedSuggestionIndex ? 'bg-accent border-accent-primary' : ''}"
-						onclick={() => selectSuggestion(suggestion)}
+						onclick={() => selectSuggestion(suggestion.label)}
 						type="button"
 					>
-						<span class="material-icons text-accent-primary text-sm">{icon}</span>
-						<span class="text-primary font-medium">{suggestion}</span>
+						<span class="material-icons text-accent-primary text-sm"
+							>{suggestion.isCustom ? 'star' : icon}</span
+						>
+						<span class="text-primary font-medium">{suggestion.label}</span>
 					</button>
 				{/each}
 			</div>

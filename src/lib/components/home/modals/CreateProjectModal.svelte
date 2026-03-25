@@ -115,7 +115,7 @@
 		<div style="position: relative; z-index: 1000;">
 			<AutocompleteInput
 				bind:value={reciter}
-				suggestions={RecitersManager.reciters.map((r) => r.latin)}
+				suggestions={RecitersManager.getRecitersWithCustomOnes()}
 				placeholder="Start typing to search reciters..."
 				maxlength={ProjectDetail.RECITER_MAX_LENGTH}
 				icon="Person"

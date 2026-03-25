@@ -15,9 +15,16 @@
 	import { CustomTextClip } from '$lib/classes';
 
 	const getCategoriesToDisplay = $derived(() => {
-		return globalState.getVideoStyle.getStylesOfTarget(
-			globalState.getStylesState.getCurrentSelection()
-		).categories;
+		const target = globalState.getStylesState.getCurrentSelection();
+		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
+
+		// Quand des clips vidéo sont sélectionnés dans l'onglet Style,
+		// on n'affiche que la catégorie Overlay côté global.
+		if (target === 'global' && globalState.getStylesState.selectedVideos.length > 0) {
+			return categories.filter((category) => category.id === 'overlay');
+		}
+
+		return categories;
 	});
 
 	let stylesContainer: HTMLDivElement | undefined;
@@ -335,7 +342,7 @@
 			{/each}
 
 			<!-- Ajoute maintenant les customs texts -->
-			{#if globalState.getStylesState.currentSelection === 'global'}
+			{#if globalState.getStylesState.currentSelection === 'global' && globalState.getStylesState.selectedVideos.length === 0}
 				{#each globalState.getCustomClipTrack.clips as customTextClip, i}
 					{@const category = (customTextClip as CustomTextClip).category!}
 					<Section
@@ -385,7 +392,7 @@
 			{/if}
 		{/if}
 
-		{#if globalState.getStylesState.getCurrentSelection() === 'global'}
+		{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedVideos.length === 0}
 			<div class="grid grid-cols-2 mb-20 gap-x-1.5 mt-4 pr-2">
 				<!-- Bouton pour ajouter un texte custom -->
 				<button

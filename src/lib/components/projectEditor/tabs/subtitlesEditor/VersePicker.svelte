@@ -49,7 +49,7 @@
 	class="w-full flex gap-3 items-center px-3 bg-secondary border border-color rounded-lg py-2"
 >
 	<div class="flex gap-2 items-center">
-		<div class="flex gap-2 items-center group relative">
+		<div class="flex gap-2 items-center group relative" data-tour-id="subtitles-help-button">
 			<span class="material-icons text-2xl!">help</span>
 			<div
 				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"

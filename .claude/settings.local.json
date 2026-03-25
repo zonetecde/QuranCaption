@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"static.*tutorial\\\\|/tutorial\\\\|1774428451900961\" c:UserszonedetecDocumentssourcetauriQuranCaption-2src --include=*.ts --include=*.svelte)",
+      "Bash(grep -r CreateProjectModal c:UserszonedetecDocumentssourcetauriQuranCaption-2src --include=*.svelte)",
+      "Bash(grep -r \"static\\\\|import.*json\\\\|fetch.*json\" c:UserszonedetecDocumentssourcetauriQuranCaption-2srclibcomponentshome --include=*.svelte)",
+      "Read(//c/Users/zonedetec/AppData/Local/Quran Caption/**)",
+      "Bash(find 'c:/Users/zonedetec/AppData/Local/Quran Caption/' -name *.mp3)"
+    ]
+  }
+}

@@ -58,9 +58,8 @@
 				'Hover over the asset card in the list on the left and click <strong>Add to Timeline</strong> to load it into the editing timeline.',
 			advanceMode: 'auto',
 			advanceCondition: () =>
-				(globalState.currentProject?.content.timeline
-					.getFirstTrack(TrackType.Audio)
-					?.clips?.length ?? 0) > 0,
+				(globalState.currentProject?.content.timeline.getFirstTrack(TrackType.Audio)?.clips
+					?.length ?? 0) > 0,
 			allowSpotlightClick: true,
 			hint: 'Hover the asset and click "Add to Timeline" to continue'
 		},
@@ -81,7 +80,15 @@
 			targetId: 'verse-picker-area',
 			title: 'Manual segmentation',
 			description:
-				'Press <strong>Space</strong> to play/pause. Use <strong>↑</strong> / <strong>↓</strong> to select words. When the reciter finishes a verse or part of one, press <strong>Enter</strong> to add a subtitle at the current timestamp.',
+				'Subtitles are added in real time as the recitation plays. Press <strong>Space</strong> to play/pause, then use <strong>↑</strong> / <strong>↓</strong> to select the words currently being recited. When the reciter finishes a verse or part of one, press <strong>Enter</strong> to validate — the subtitle is added between the end of the previous one and the current playback position.',
+			advanceMode: 'button',
+			buttonLabel: 'Next'
+		},
+		{
+			targetId: 'subtitles-help-button',
+			title: 'Shortcuts & walkthrough',
+			description:
+				'Hover the <strong>?</strong> icon to see all available shortcuts (basmala, isti\'adha, silence, and more). You\'ll also find a short <strong>interactive video</strong> that walks you through the manual subtitle workflow.',
 			advanceMode: 'button',
 			buttonLabel: 'Next'
 		},
@@ -148,7 +155,7 @@
 			targetId: 'export-range',
 			title: 'Export your video',
 			description:
-				'Use the range inputs to export only a <strong>portion</strong> of the video if needed. No need for 4K — it\'s mostly text and will only slow down your machine!',
+				"Use the range inputs to export only a <strong>portion</strong> of the video if needed. No need for 4K — it's mostly text and will only slow down your machine!",
 			advanceMode: 'button',
 			buttonLabel: 'Finish'
 		}
@@ -198,10 +205,7 @@
 		return 'left';
 	}
 
-	function computeTooltipPosition(
-		rect: typeof spotlightRect,
-		placement: typeof tooltipPlacement
-	) {
+	function computeTooltipPosition(rect: typeof spotlightRect, placement: typeof tooltipPlacement) {
 		const vw = window.innerWidth;
 		// Available height excludes the title bar (overlay starts below it)
 		const vh = window.innerHeight - titleBarHeight;
@@ -373,8 +377,9 @@
 </script>
 
 <!-- Root container: position fixed, starts below the title bar so window controls remain accessible -->
-<div style="position: fixed; top: {titleBarHeight}px; left: 0; right: 0; bottom: 0; z-index: 9997; pointer-events: none; overflow: hidden;">
-
+<div
+	style="position: fixed; top: {titleBarHeight}px; left: 0; right: 0; bottom: 0; z-index: 9997; pointer-events: none; overflow: hidden;"
+>
 	<!-- Blocking overlay: always present, blocks all interactions outside the spotlight -->
 	<div
 		style="position: absolute; inset: 0; pointer-events: auto; cursor: default;"
@@ -500,8 +505,9 @@
 			<div class="tour-arrow tour-arrow-{tooltipPlacement}"></div>
 		</div>
 	{/if}
+</div>
 
-</div><!-- end root fixed container -->
+<!-- end root fixed container -->
 
 <style>
 	.tour-tooltip {

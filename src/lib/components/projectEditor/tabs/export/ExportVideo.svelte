@@ -43,7 +43,7 @@
 	</div>
 
 	<!-- Time Range Selection -->
-	<div class="mb-6">
+	<div data-tour-id="export-range" class="mb-6">
 		<h4 class="text-base font-medium text-secondary mb-3">Export Range</h4>
 		<p class="text-thirdly text-sm mb-4">Select the time range of your video to export:</p>
 

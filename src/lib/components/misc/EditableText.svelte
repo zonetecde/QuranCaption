@@ -10,7 +10,8 @@
 		action = () => {},
 		parentClasses = '',
 		textClasses = '',
-		inputType = 'text'
+		inputType = 'text',
+		disabled = false
 	}: {
 		text?: string;
 		value?: string;
@@ -20,6 +21,7 @@
 		parentClasses?: string;
 		textClasses?: string;
 		inputType?: 'text' | 'reciters';
+		disabled?: boolean;
 	} = $props();
 
 	async function textClicked() {
@@ -33,6 +35,7 @@
 
 <button
 	onclick={textClicked}
+	{disabled}
 	class={'text-left text-nowrap group/name flex items-center cursor-pointer ' + parentClasses}
 >
 	<h4 class={'group-hover/name:underline ' + textClasses}>{value}</h4>

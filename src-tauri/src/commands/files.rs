@@ -1,10 +1,56 @@
 use std::fs;
 use std::time::Duration;
+use tauri::Manager;
 
 use reqwest::header::{ACCEPT, ACCEPT_ENCODING, RANGE, USER_AGENT};
 use tokio::io::AsyncWriteExt;
 
 use crate::path_utils;
+
+/// Resolve the filesystem path of a tutorial asset file.
+/// Checks the resource directory (production) then walks up from the
+/// current executable to find the dev-mode static folder.
+#[tauri::command]
+pub async fn get_tutorial_asset_path(
+    app: tauri::AppHandle,
+    filename: String,
+) -> Result<String, String> {
+    // 1. Production: resource_dir/tutorial/<filename>
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let path = resource_dir.join("tutorial").join(&filename);
+        if path.exists() {
+            return Ok(path.to_string_lossy().into_owned());
+        }
+    }
+
+    // 2. Dev mode: walk up from current exe to find project_root/static/tutorial/
+    if let Ok(exe) = std::env::current_exe() {
+        let mut current = exe.as_path();
+        for _ in 0..6 {
+            if let Some(parent) = current.parent() {
+                let candidate = parent.join("static").join("tutorial").join(&filename);
+                if candidate.exists() {
+                    return Ok(candidate.to_string_lossy().into_owned());
+                }
+                current = parent;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // 3. Relative to current working directory
+    for base in &[".", ".."] {
+        let path = std::path::Path::new(base).join("static").join("tutorial").join(&filename);
+        if path.exists() {
+            if let Ok(abs) = path.canonicalize() {
+                return Ok(abs.to_string_lossy().into_owned());
+            }
+        }
+    }
+
+    Err(format!("Tutorial asset '{}' not found", filename))
+}
 
 /// Recherche dans le dossier téléchargements un fichier créé après `start_time`.
 #[tauri::command]

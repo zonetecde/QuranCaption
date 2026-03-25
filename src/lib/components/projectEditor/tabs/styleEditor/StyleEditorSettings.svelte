@@ -112,7 +112,7 @@
 		class="flex flex-col px-3 py-3 bg-[var(--bg-primary)]/60 border border-b-0 rounded-b-none border-[var(--border-color)]/50 rounded-xl gap-y-2"
 	>
 		<p class="text-sm text-secondary">Choose a target</p>
-		<div class="w-full grid grid-cols-3 gap-2">
+		<div data-tour-id="style-subtabs" class="w-full grid grid-cols-3 gap-2">
 			{#each ['global', 'arabic', 'translation'] as selection}
 				<button
 					onclick={() => {

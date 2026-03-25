@@ -26,6 +26,15 @@
 				: ''}"
 			type="button"
 			onclick={() => setActiveTab(tab.value)}
+			data-tour-id={tab.value === ProjectEditorTabs.SubtitlesEditor
+				? 'nav-tab-subtitles'
+				: tab.value === ProjectEditorTabs.Translations
+					? 'nav-tab-translations'
+					: tab.value === ProjectEditorTabs.Style
+						? 'nav-tab-style'
+						: tab.value === ProjectEditorTabs.Export
+							? 'nav-tab-export'
+							: undefined}
 		>
 			<span class="material-icons mr-2">{tab.icon}</span>{tab.name}
 		</button>

@@ -6,6 +6,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
     builder.invoke_handler(tauri::generate_handler![
         commands::downloads::download_from_youtube,
         commands::media::get_duration,
+        commands::files::get_tutorial_asset_path,
         commands::files::get_new_file_path,
         commands::files::save_binary_file,
         commands::files::save_file,

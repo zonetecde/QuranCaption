@@ -91,7 +91,8 @@
 		],
 		"resources": [
 			"binaries/**/*",
-			"python/**/*"
+			"python/**/*",
+			"../static/tutorial/**/*"
 		],
 		"icon": [
 			"icons/32x32.png",

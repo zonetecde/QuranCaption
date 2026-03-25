@@ -6,6 +6,7 @@
 </script>
 
 <section
+	data-tour-id="verse-picker-area"
 	class="overflow-hidden min-h-0 bg-primary border border-color rounded-lg shadow-lg"
 	style="height: {globalState.currentProject!.projectEditorState.upperSectionHeight}%;"
 >

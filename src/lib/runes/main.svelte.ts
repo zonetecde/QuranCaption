@@ -52,7 +52,8 @@ class GlobalState {
 		selectedStatuses: Status.getAllStatuses(),
 		filteredProjects: [] as ProjectDetail[],
 		searchQuery: '',
-		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'support' | 'contact' | 'about'
+		settingsTab: 'shortcuts' as 'shortcuts' | 'theme' | 'support' | 'contact' | 'about',
+		isTourActive: false
 	});
 
 	shared = $state({

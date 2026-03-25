@@ -283,6 +283,7 @@
 </script>
 
 <section
+	data-tour-id="translations-workspace"
 	class="min-h-0 bg-secondary border border-color rounded-lg shadow-lg h-full overflow-y-auto overflow-x-hidden"
 	id="translations-workspace"
 	onscroll={(e) => {

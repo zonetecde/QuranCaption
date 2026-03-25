@@ -38,6 +38,7 @@ export default class Settings extends SerializableBase {
 		lastClosedSupportPromptModal: new Date(0).toISOString(),
 		videoExportFolder: '',
 		themeIntensity: 100,
+		hasSeenTour: false,
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'

@@ -7,6 +7,7 @@
 	// div contenant tout les sous-titres
 	let subtitlesListElement: HTMLDivElement | null = $state(null);
 	let lastSubtitleId = 0;
+	let currentSubtitleId: number | null = $state(null);
 
 	let allClips = $derived(() => {
 		return (
@@ -34,11 +35,14 @@
 	});
 
 	// récupère le sous-titre actuellement en train d'être joué
-	let currentSubtitle = $derived(() => {
-		const _ = getTimelineSettings().cursorPosition;
-		return untrack(() => {
-			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay(true);
-		});
+	$effect(() => {
+		const _cursor = getTimelineSettings().cursorPosition;
+		const _clipsLen = allClips().length;
+		const subtitle = untrack(() => globalState.getSubtitleTrack.getCurrentSubtitleToDisplay(true));
+		const nextId = subtitle?.id ?? null;
+		if (nextId !== currentSubtitleId) {
+			currentSubtitleId = nextId;
+		}
 	});
 
 	$effect(() => {
@@ -54,20 +58,20 @@
 
 	$effect(() => {
 		// scroll sur le sous-titre actuellement en train d'être joué
-		const subtitle = currentSubtitle();
-		if (!subtitle || !globalState.getVideoPreviewState.isPlaying) {
+		const subtitleId = currentSubtitleId;
+		if (!subtitleId || !globalState.getVideoPreviewState.isPlaying) {
 			return;
 		}
-		if (subtitle.id === lastSubtitleId) {
+		if (subtitleId === lastSubtitleId) {
 			return;
 		}
-		lastSubtitleId = subtitle.id;
+		lastSubtitleId = subtitleId;
 
 		const listElement = subtitlesListElement;
 		if (!listElement) return;
 
 		const target = listElement.querySelector(
-			`[data-subtitle-id="${subtitle.id}"]`
+			`[data-subtitle-id="${subtitleId}"]`
 		) as HTMLElement | null;
 		if (!target) return;
 
@@ -120,7 +124,7 @@
 			{@const isPredefined = subtitleClip.type === 'Pre-defined Subtitle'}
 			{@const isSelected =
 				globalState.currentProject!.projectEditorState.subtitlesEditor.editSubtitle?.id === clip.id}
-			{@const isCurrent = currentSubtitle()?.id === clip.id}
+			{@const isCurrent = currentSubtitleId === clip.id}
 			<div
 				data-subtitle-id={clip.id}
 				onclick={() => {

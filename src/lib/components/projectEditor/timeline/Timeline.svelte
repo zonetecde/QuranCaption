@@ -574,8 +574,8 @@
 						{#if !(track.type === TrackType.CustomClip && track.clips.length === 0)}
 							<Track
 								bind:track={globalState.currentProject!.content.timeline.tracks[i]}
-								visibleRangeStartMs={visibleRangeStartMs}
-								visibleRangeEndMs={visibleRangeEndMs}
+								{visibleRangeStartMs}
+								{visibleRangeEndMs}
 							/>
 						{/if}
 					{/each}

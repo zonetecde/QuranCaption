@@ -650,7 +650,8 @@ fn preprocess_background_videos(
     let mut cum_start: i64 = 0;
     for (idx, input) in video_inputs.iter().enumerate() {
         let vid_path = &input.path;
-        let mut vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
+        let real_vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
+        let mut vid_len = real_vid_len;
         let is_loop = input.loop_until_audio_end.unwrap_or(false);
 
         // Si le bouclage est activé, la vidéo peut couvrir tout le reste de la plage
@@ -661,7 +662,7 @@ fn preprocess_background_videos(
         let cum_end = cum_start + vid_len;
 
         // Si la vidéo se termine avant le début recherché, on l'ignore complètement
-        if cum_end <= start_time_ms as i64 {
+        if !is_loop && cum_end <= start_time_ms as i64 {
             cum_start = cum_end;
             continue;
         }
@@ -673,16 +674,28 @@ fn preprocess_background_videos(
         }
 
         // Déterminer le début à l'intérieur de cette vidéo
-        let start_within = if start_time_ms as i64 > cum_start {
+        let mut start_within = if start_time_ms as i64 > cum_start {
             start_time_ms as i64 - cum_start
         } else {
             0
         };
 
+        // Pour un clip loopé, on replie l'offset dans la durée réelle du média.
+        // Cela permet d'exporter correctement un segment long avec répétitions
+        // (y compris la dernière itération partielle) sans retomber sur du pad noir.
+        if is_loop && real_vid_len > 0 {
+            start_within %= real_vid_len;
+        }
+
         // Durée restante à prendre dans cette vidéo
         let elapsed_from_start = (cum_start + start_within) - (start_time_ms as i64);
         let remaining_needed = (limit_ms - elapsed_from_start).max(0);
-        let take_ms = remaining_needed.min(vid_len - start_within);
+        let available_in_this_clip = if is_loop {
+            remaining_needed
+        } else {
+            (vid_len - start_within).max(0)
+        };
+        let take_ms = remaining_needed.min(available_in_this_clip);
 
         if take_ms <= 0 {
             cum_start = cum_end;

@@ -118,7 +118,7 @@
 				suggestions={RecitersManager.getRecitersWithCustomOnes()}
 				placeholder="Start typing to search reciters..."
 				maxlength={ProjectDetail.RECITER_MAX_LENGTH}
-				icon="Person"
+				icon="person"
 				labelIcon="record_voice_over"
 				label="Reciter"
 				onEnterPress={createProjectButtonClick}

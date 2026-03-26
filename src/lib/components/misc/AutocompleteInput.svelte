@@ -3,7 +3,7 @@
 
 	type Props = {
 		value: string;
-		suggestions: { label: string; isCustom: boolean }[];
+		suggestions: { label: string; isCustom: boolean }[] | string[];
 		showEverything?: boolean;
 		clearOnFocus?: boolean;
 		placeholder?: string;
@@ -17,16 +17,34 @@
 
 	let {
 		value = $bindable(),
-		suggestions,
+		suggestions: rawSuggestions = [],
 		showEverything = false,
 		clearOnFocus = false,
 		placeholder = 'Start typing to search...',
 		maxlength = NaN,
 		label,
-		labelIcon: icon,
+		labelIcon,
+		icon,
 		focusOnMount,
 		onEnterPress
 	}: Props = $props();
+
+	// Suggestions state
+	let suggestions: { label: string; isCustom: boolean }[] = $state([]);
+	let isStringSuggestionsMode: boolean = $state(false);
+
+	// Effect to convert raw suggestions into a uniform format
+	$effect(() => {
+		isStringSuggestionsMode = rawSuggestions.length === 0 || typeof rawSuggestions[0] === 'string';
+
+		if (isStringSuggestionsMode) {
+			// Convert string suggestions to uniform format
+			suggestions = (rawSuggestions as string[]).map((label) => ({ label, isCustom: false }));
+			return;
+		}
+
+		suggestions = rawSuggestions as { label: string; isCustom: boolean }[];
+	});
 
 	let input: HTMLInputElement | undefined = $state(undefined);
 	onMount(() => {
@@ -170,7 +188,7 @@
 						type="button"
 					>
 						<span class="material-icons text-accent-primary text-sm"
-							>{suggestion.isCustom ? 'star' : icon}</span
+							>{isStringSuggestionsMode ? icon : suggestion.isCustom ? 'star' : icon}</span
 						>
 						<span class="text-primary font-medium">{suggestion.label}</span>
 					</button>

@@ -588,26 +588,22 @@
 								<span>Recent activity</span>
 							</div>
 
-							<div class="max-h-72 space-y-2 overflow-y-auto pr-1">
+							<div
+								class="max-h-72 overflow-y-auto rounded-lg border border-color bg-secondary px-3 py-2 text-[12px] leading-5 [font-family:Consolas,monospace]"
+							>
 								{#if activityLog.length === 0}
-									<div
-										class="rounded-lg border border-dashed border-color bg-secondary p-3 text-sm text-thirdly"
-									>
-										No activity yet.
-									</div>
+									<div class="text-thirdly">No activity yet.</div>
 								{:else}
 									{#each activityLog as entry}
 										<div
-											class="rounded-lg border px-3 py-2 text-xs {entry.tone === 'error'
-												? 'border-red-500/30 bg-red-500/10 text-red-200'
+											class="border-b border-color/50 py-1.5 last:border-b-0 {entry.tone === 'error'
+												? 'text-red-200'
 												: entry.tone === 'success'
-													? 'border-green-500/30 bg-green-500/10 text-green-200'
-													: 'border-color bg-secondary text-secondary'}"
+													? 'text-green-200'
+													: 'text-secondary'}"
 										>
-											<div class="mb-1 font-semibold uppercase tracking-wide text-[11px]">
-												{entry.step}
-											</div>
-											<div>{entry.message}</div>
+											<span class="mr-2 uppercase opacity-70">[{entry.step}]</span>
+											<span>{entry.message}</span>
 										</div>
 									{/each}
 								{/if}

@@ -483,19 +483,6 @@
 							</div>
 							<div class="mt-2 text-xs text-thirdly">{advancedEstimate.reasoningNote}</div>
 						</div>
-
-						<div class="mt-4 space-y-2">
-							{#each advancedBatches as batch}
-								<div
-									class="rounded-lg border border-color bg-secondary px-3 py-2 text-xs text-secondary"
-								>
-									<span class="font-semibold text-primary">{batch.batchId}</span>
-									: {batch.verses.length} verse(s), {batch.wordCount} words, {formatUsd(
-										batch.estimatedCostUsd
-									)}
-								</div>
-							{/each}
-						</div>
 					</div>
 				</div>
 

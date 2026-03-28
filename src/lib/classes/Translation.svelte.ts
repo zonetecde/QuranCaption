@@ -137,6 +137,11 @@ export class VerseTranslation extends Translation {
 				.filter((w) => w.length > 0);
 
 		type IndexedToken = { value: string; sourceWordIndex: number };
+		type MatchCandidate = {
+			tokenStart: number;
+			tokenEnd: number;
+			similarity: number;
+		};
 
 		// Transforme un texte en tokens normalisés tout en conservant l'index
 		// du mot source. Les tokens vides (ex: ponctuation seule) sont ignorés.
@@ -147,6 +152,77 @@ export class VerseTranslation extends Translation {
 					sourceWordIndex
 				}))
 				.filter((token) => token.value.length > 0);
+
+		const normalizeTextForFuzzy = (text: string) =>
+			text
+				.replace(/\u00A0/g, ' ')
+				.normalize('NFKC')
+				.toLowerCase()
+				.replace(/[\u2013\u2014]/g, '-')
+				.replace(/\s*-\s*/g, '-')
+				.replace(/[^\p{L}\p{N}\s-]+/gu, ' ')
+				.replace(/\s+/g, ' ')
+				.trim();
+
+		const levenshteinDistance = (left: string, right: string): number => {
+			if (left === right) return 0;
+			if (left.length === 0) return right.length;
+			if (right.length === 0) return left.length;
+
+			const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+			const current = new Array<number>(right.length + 1).fill(0);
+
+			for (let i = 1; i <= left.length; i++) {
+				current[0] = i;
+				for (let j = 1; j <= right.length; j++) {
+					const substitutionCost = left[i - 1] === right[j - 1] ? 0 : 1;
+					current[j] = Math.min(
+						current[j - 1] + 1,
+						previous[j] + 1,
+						previous[j - 1] + substitutionCost
+					);
+				}
+				for (let j = 0; j <= right.length; j++) {
+					previous[j] = current[j];
+				}
+			}
+
+			return previous[right.length];
+		};
+
+		const getSimilarity = (left: string, right: string): number => {
+			const normalizedLeft = normalizeTextForFuzzy(left);
+			const normalizedRight = normalizeTextForFuzzy(right);
+			if (!normalizedLeft || !normalizedRight) return 0;
+			if (normalizedLeft === normalizedRight) return 1;
+			const maxLength = Math.max(normalizedLeft.length, normalizedRight.length);
+			if (maxLength === 0) return 1;
+			return 1 - levenshteinDistance(normalizedLeft, normalizedRight) / maxLength;
+		};
+
+		const chooseBestCandidate = (candidates: MatchCandidate[]): MatchCandidate => {
+			const previousStart = this.startWordIndex ?? 0;
+			let bestCandidate = candidates[0];
+			let bestDistance = Math.abs(
+				originalTokens[bestCandidate.tokenStart].sourceWordIndex - previousStart
+			);
+
+			for (let i = 1; i < candidates.length; i++) {
+				const candidate = candidates[i];
+				const candidateDistance = Math.abs(
+					originalTokens[candidate.tokenStart].sourceWordIndex - previousStart
+				);
+				if (
+					candidate.similarity > bestCandidate.similarity ||
+					(candidate.similarity === bestCandidate.similarity && candidateDistance < bestDistance)
+				) {
+					bestCandidate = candidate;
+					bestDistance = candidateDistance;
+				}
+			}
+
+			return bestCandidate;
+		};
 
 		const originalTokens = toIndexedTokens(originalTranslationText);
 		const currentTokens = toIndexedTokens(this.text);
@@ -175,7 +251,7 @@ export class VerseTranslation extends Translation {
 		}
 
 		// Recherche d'une correspondance contiguë du texte courant dans le texte original.
-		const candidates: number[] = [];
+		const candidates: MatchCandidate[] = [];
 		for (let i = 0; i <= originalTokens.length - currentTokens.length; i++) {
 			let ok = true;
 			for (let j = 0; j < currentTokens.length; j++) {
@@ -184,34 +260,54 @@ export class VerseTranslation extends Translation {
 					break;
 				}
 			}
-			if (ok) candidates.push(i);
-		}
-
-		if (candidates.length === 0) {
-			this.isBruteForce = true;
-			return;
-		}
-
-		// S'il y a plusieurs matches, on choisit celui le plus proche de l'ancien index.
-		const previousStart = this.startWordIndex ?? 0;
-		let bestTokenStart = candidates[0];
-		let bestWordStart = originalTokens[bestTokenStart].sourceWordIndex;
-		let bestDistance = Math.abs(bestWordStart - previousStart);
-
-		for (let k = 1; k < candidates.length; k++) {
-			const candidateTokenStart = candidates[k];
-			const candidateWordStart = originalTokens[candidateTokenStart].sourceWordIndex;
-			const candidateDistance = Math.abs(candidateWordStart - previousStart);
-			if (candidateDistance < bestDistance) {
-				bestTokenStart = candidateTokenStart;
-				bestWordStart = candidateWordStart;
-				bestDistance = candidateDistance;
+			if (ok) {
+				candidates.push({
+					tokenStart: i,
+					tokenEnd: i + currentTokens.length - 1,
+					similarity: 1
+				});
 			}
 		}
 
-		const bestTokenEnd = bestTokenStart + currentTokens.length - 1;
-		this.startWordIndex = originalTokens[bestTokenStart].sourceWordIndex;
-		this.endWordIndex = originalTokens[bestTokenEnd].sourceWordIndex;
+		if (candidates.length === 0) {
+			const currentTextForFuzzy = currentTokens.map((token) => token.value).join(' ');
+			const fuzzyCandidates: MatchCandidate[] = [];
+			const minWindowSize = Math.max(1, currentTokens.length - 2);
+			const maxWindowSize = Math.min(originalTokens.length, currentTokens.length + 2);
+
+			for (let windowSize = minWindowSize; windowSize <= maxWindowSize; windowSize++) {
+				for (let tokenStart = 0; tokenStart <= originalTokens.length - windowSize; tokenStart++) {
+					const tokenEnd = tokenStart + windowSize - 1;
+					const candidateText = originalTokens
+						.slice(tokenStart, tokenEnd + 1)
+						.map((token) => token.value)
+						.join(' ');
+					const similarity = getSimilarity(currentTextForFuzzy, candidateText);
+					if (similarity >= 0.95) {
+						fuzzyCandidates.push({
+							tokenStart,
+							tokenEnd,
+							similarity
+						});
+					}
+				}
+			}
+
+			if (fuzzyCandidates.length === 0) {
+				this.isBruteForce = true;
+				return;
+			}
+
+			const bestFuzzyCandidate = chooseBestCandidate(fuzzyCandidates);
+			this.startWordIndex = originalTokens[bestFuzzyCandidate.tokenStart].sourceWordIndex;
+			this.endWordIndex = originalTokens[bestFuzzyCandidate.tokenEnd].sourceWordIndex;
+			this.isBruteForce = false;
+			return;
+		}
+
+		const bestCandidate = chooseBestCandidate(candidates);
+		this.startWordIndex = originalTokens[bestCandidate.tokenStart].sourceWordIndex;
+		this.endWordIndex = originalTokens[bestCandidate.tokenEnd].sourceWordIndex;
 		this.isBruteForce = false;
 	}
 }

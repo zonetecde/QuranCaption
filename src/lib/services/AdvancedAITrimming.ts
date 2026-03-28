@@ -159,6 +159,15 @@ function charsToTokens(charCount: number): number {
 	return Math.max(1, Math.ceil(charCount / 4));
 }
 
+function rangesOverlap(
+	leftStart: number,
+	leftEnd: number,
+	rightStart: number,
+	rightEnd: number
+): boolean {
+	return leftStart <= rightEnd && rightStart <= leftEnd;
+}
+
 function buildRequestPayload(verses: AdvancedTrimVerseCandidate[]): {
 	verses: AdvancedTrimBatchVersePayload[];
 } {
@@ -514,38 +523,92 @@ export function applyAdvancedTrimValidationSuccess(
 	const errors: string[] = [];
 
 	for (const success of validVerses) {
-		let verseHasAlignmentError = false;
+		const verseTranslations: Array<VerseTranslation | null> = [];
+		const erroredIndexes = new Set<number>();
+		const verseErrors: string[] = [];
 
 		for (let index = 0; index < success.candidate.subtitles.length; index++) {
 			const subtitle = success.candidate.subtitles[index];
 			const verseTranslation = subtitle.translations[edition.name] as VerseTranslation;
 			const nextText = success.result.segments[index]?.text;
+			verseTranslations[index] = verseTranslation ?? null;
 			if (!verseTranslation || typeof nextText !== 'string') continue;
 
 			verseTranslation.text = nextText;
 			verseTranslation.isBruteForce = false;
 			verseTranslation.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
+			appliedSegments++;
 
 			if (verseTranslation.isBruteForce) {
-				verseTranslation.updateStatus('ai error', edition);
-				erroredSegments++;
-				verseHasAlignmentError = true;
-				errors.push(
+				erroredIndexes.add(index);
+				verseErrors.push(
 					`Verse ${success.candidate.verseKey}, segment ${index + 1}: failed to map the AI text back to a contiguous source range.`
 				);
+			}
+		}
+
+		for (let leftIndex = 0; leftIndex < success.candidate.subtitles.length; leftIndex++) {
+			if (erroredIndexes.has(leftIndex)) continue;
+			const leftSubtitle = success.candidate.subtitles[leftIndex];
+			const leftTranslation = verseTranslations[leftIndex];
+			if (!leftTranslation) continue;
+
+			for (
+				let rightIndex = leftIndex + 1;
+				rightIndex < success.candidate.subtitles.length;
+				rightIndex++
+			) {
+				if (erroredIndexes.has(rightIndex)) continue;
+				const rightSubtitle = success.candidate.subtitles[rightIndex];
+				const rightTranslation = verseTranslations[rightIndex];
+				if (!rightTranslation) continue;
+
+				const hasArabicOverlap = rangesOverlap(
+					leftSubtitle.startWordIndex,
+					leftSubtitle.endWordIndex,
+					rightSubtitle.startWordIndex,
+					rightSubtitle.endWordIndex
+				);
+				if (!hasArabicOverlap) continue;
+
+				const hasTranslationOverlap = rangesOverlap(
+					leftTranslation.startWordIndex,
+					leftTranslation.endWordIndex,
+					rightTranslation.startWordIndex,
+					rightTranslation.endWordIndex
+				);
+
+				if (!hasTranslationOverlap) {
+					erroredIndexes.add(leftIndex);
+					erroredIndexes.add(rightIndex);
+					verseErrors.push(
+						`Verse ${success.candidate.verseKey}, segments ${leftIndex + 1} and ${rightIndex + 1}: Arabic segments overlap but mapped translation ranges do not overlap.`
+					);
+				}
+			}
+		}
+
+		for (let index = 0; index < success.candidate.subtitles.length; index++) {
+			const verseTranslation = verseTranslations[index];
+			if (!verseTranslation) continue;
+
+			if (erroredIndexes.has(index)) {
+				verseTranslation.isBruteForce = true;
+				verseTranslation.updateStatus('ai error', edition);
+				erroredSegments++;
 			} else {
 				verseTranslation.updateStatus('ai trimmed', edition);
 				alignedSegments++;
 			}
-
-			appliedSegments++;
 		}
 
-		if (verseHasAlignmentError) {
+		if (erroredIndexes.size > 0) {
 			erroredVerses++;
 		} else {
 			alignedVerses++;
 		}
+
+		errors.push(...verseErrors);
 	}
 
 	return {

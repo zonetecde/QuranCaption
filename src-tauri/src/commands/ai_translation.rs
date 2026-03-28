@@ -13,7 +13,9 @@ Rules:
 - Use only words that already exist in the provided verse translation.
 - Across all output segments of a verse, every word from the source translation must appear at least once.
 - The global order may change when the recitation repeats, overlaps, or returns to an earlier clause.
-- Overlap between segments is allowed when needed for fidelity or natural phrasing.
+- Overlap between segments is allowed and often required when the Arabic overlaps on a repeated word or phrase.
+- If two Arabic segments share a boundary word or phrase, the translated outputs should normally share the corresponding translated words too.
+- Do not drop the repeated overlap from the later segment just because it already appeared in the previous one.
 - Each segment must sound natural and complete in the target language.
 - Each segment may include a word-by-word English helper for the Arabic. Use it only to understand the Arabic segment better.
 - Keep essential function words with the phrase when needed for local meaning: articles, pronouns, auxiliaries, conjunctions, prepositions, particles.
@@ -226,6 +228,7 @@ fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, String>
     Ok(format!(
         "Trim this batch of verses and return JSON only.\n\
          Respect overlap/repetition in the recitation when needed.\n\
+         Pay special attention to overlapping Arabic segments: when a word or phrase is repeated across two segments, keep the corresponding translated overlap in both outputs when natural.\n\
          Keep each segment natural in the target language while using only words from the source translation.\n\
          Each segment also includes a wordByWordEnglish helper array for Arabic understanding only.\n\n\
          Batch JSON:\n{}",

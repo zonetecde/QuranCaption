@@ -608,7 +608,7 @@ export function applyAdvancedTrimValidationSuccess(
 			if (verseTranslation.isBruteForce) {
 				erroredIndexes.add(index);
 				verseErrors.push(
-					`Verse ${success.candidate.verseKey}, segment ${index + 1}: failed to map the AI text back to a contiguous source range.`
+					`Verse ${success.candidate.verseKey}, segment ${index + 1}: failed to map the AI text back to a contiguous source range in the original translation. The AI text was still written to the segment, but it was marked as "AI Error". Please verify it manually because it no longer matches a contiguous word range from the original translation.`
 				);
 			}
 		}

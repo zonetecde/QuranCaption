@@ -229,14 +229,23 @@ function estimateBatchCost(
 	const estimatedInputTokens = charsToTokens(APPROX_SYSTEM_PROMPT_CHARS + serializedInput.length);
 	const estimatedOutputTokens = charsToTokens(serializedOutputCharBudget);
 	const pricing = MODEL_PRICING[model];
+	const reasoningMultiplier =
+		reasoningEffort === 'high'
+			? 1.5
+			: reasoningEffort === 'medium'
+				? 1.25
+				: reasoningEffort === 'low'
+					? 1.1
+					: 1;
 	const estimatedCostUsd =
-		(estimatedInputTokens / 1_000_000) * pricing.inputPerMillionUsd +
-		(estimatedOutputTokens / 1_000_000) * pricing.outputPerMillionUsd;
+		((estimatedInputTokens / 1_000_000) * pricing.inputPerMillionUsd +
+			(estimatedOutputTokens / 1_000_000) * pricing.outputPerMillionUsd) *
+		reasoningMultiplier;
 
 	return {
 		estimatedInputTokens,
 		estimatedOutputTokens,
-		estimatedCostUsd: reasoningEffort === 'none' ? estimatedCostUsd : estimatedCostUsd
+		estimatedCostUsd
 	};
 }
 
@@ -523,7 +532,7 @@ export function validateAdvancedTrimBatchResult(
 			seenIndexes.add(returnedIndex);
 
 			if (returnedText.length === 0) {
-				errors.push(`Verse ${candidate.verseKey}, segment ${index + 1}: empty text.`);
+				errors.push(`Verse ${candidate.verseKey}, segment ${returnedIndex + 1}: empty text.`);
 				isValid = false;
 				break;
 			}

@@ -11,6 +11,8 @@ export type AdvancedTrimSegment = {
 	i: number;
 	arabic: string;
 	wordByWordEnglish: string[];
+	needsAi: boolean;
+	existingText: string;
 	subtitle: SubtitleClip;
 };
 
@@ -20,6 +22,7 @@ export type AdvancedTrimVerseCandidate = {
 	startTime: number;
 	endTime: number;
 	subtitles: SubtitleClip[];
+	coverageOnlyTexts: string[];
 	sourceTranslation: string;
 	wordCount: number;
 	segments: AdvancedTrimSegment[];
@@ -177,11 +180,13 @@ function buildRequestPayload(verses: AdvancedTrimVerseCandidate[]): {
 		verses: verses.map((verse) => ({
 			verseKey: verse.verseKey,
 			translation: verse.sourceTranslation,
-			segments: verse.segments.map((segment) => ({
-				i: segment.i,
-				arabic: segment.arabic,
-				wordByWordEnglish: segment.wordByWordEnglish
-			}))
+			segments: verse.segments
+				.filter((segment) => segment.needsAi)
+				.map((segment) => ({
+					i: segment.i,
+					arabic: segment.arabic,
+					wordByWordEnglish: segment.wordByWordEnglish
+				}))
 		}))
 	};
 }
@@ -224,6 +229,7 @@ export function buildAdvancedTrimVerseCandidates(
 	edition: Edition,
 	includeReviewed: boolean
 ): AdvancedTrimVerseCandidate[] {
+	const allSubtitlesByVerse = new Map<string, SubtitleClip[]>();
 	const grouped = new Map<
 		string,
 		{
@@ -234,9 +240,16 @@ export function buildAdvancedTrimVerseCandidates(
 
 	for (let i = 0; i < globalState.getSubtitleClips.length; i++) {
 		const subtitle = globalState.getSubtitleClips[i];
+		const verseKey = subtitle.getVerseKey();
+		const allSubtitles = allSubtitlesByVerse.get(verseKey);
+		if (allSubtitles) {
+			allSubtitles.push(subtitle);
+		} else {
+			allSubtitlesByVerse.set(verseKey, [subtitle]);
+		}
+
 		if (subtitle.isFullVerse) continue;
 
-		const verseKey = subtitle.getVerseKey();
 		const bucket = grouped.get(verseKey);
 		if (bucket) {
 			bucket.subtitles.push(subtitle);
@@ -250,24 +263,40 @@ export function buildAdvancedTrimVerseCandidates(
 
 	return Array.from(grouped.entries())
 		.map(([verseKey, entry]) => {
+			const allVerseSubtitles = allSubtitlesByVerse.get(verseKey) ?? entry.subtitles;
 			const sourceTranslation = globalState.getProjectTranslation.getVerseTranslation(
 				edition,
 				verseKey
 			);
-			const segments = entry.subtitles.map((subtitle, segmentIndex) => ({
-				i: segmentIndex,
-				arabic: subtitle.text,
-				wordByWordEnglish: subtitle.wbwTranslation ?? [],
-				subtitle
-			}));
+			const segments = entry.subtitles.map((subtitle, segmentIndex) => {
+				const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
+				const isComplete = translation?.isStatusComplete() ?? false;
+
+				return {
+					i: segmentIndex,
+					arabic: subtitle.text,
+					wordByWordEnglish: subtitle.wbwTranslation ?? [],
+					needsAi: includeReviewed ? true : !isComplete,
+					existingText: translation?.text ?? '',
+					subtitle
+				};
+			});
 			const isAlreadyReviewed = isVerseAlreadyReviewed(entry.subtitles, edition);
+			const coverageOnlyTexts = allVerseSubtitles
+				.filter((subtitle) => subtitle.isFullVerse)
+				.map((subtitle) => {
+					const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
+					return translation?.text ?? '';
+				})
+				.filter((text) => text.trim().length > 0);
 
 			return {
 				index: entry.index,
 				verseKey,
-				startTime: Math.min(...entry.subtitles.map((subtitle) => subtitle.startTime)),
-				endTime: Math.max(...entry.subtitles.map((subtitle) => subtitle.endTime)),
+				startTime: Math.min(...allVerseSubtitles.map((subtitle) => subtitle.startTime)),
+				endTime: Math.max(...allVerseSubtitles.map((subtitle) => subtitle.endTime)),
 				subtitles: entry.subtitles,
+				coverageOnlyTexts,
 				sourceTranslation,
 				wordCount: splitWords(sourceTranslation).length,
 				segments,
@@ -432,9 +461,11 @@ export function validateAdvancedTrimBatchResult(
 			continue;
 		}
 
-		if (result.segments.length !== candidate.segments.length) {
+		const aiSegments = candidate.segments.filter((segment) => segment.needsAi);
+		const aiSegmentIndexes = new Set(aiSegments.map((segment) => segment.i));
+		if (result.segments.length !== aiSegments.length) {
 			errors.push(
-				`Verse ${candidate.verseKey}: expected ${candidate.segments.length} segments, received ${result.segments.length}.`
+				`Verse ${candidate.verseKey}: expected ${aiSegments.length} AI segments, received ${result.segments.length}.`
 			);
 			continue;
 		}
@@ -446,19 +477,27 @@ export function validateAdvancedTrimBatchResult(
 		});
 		let isValid = true;
 		const normalizedTexts: string[] = [];
+		const seenIndexes = new Set<number>();
 
 		for (let index = 0; index < sortedSegments.length; index++) {
 			const segment = sortedSegments[index] as Record<string, unknown>;
 			const returnedIndex = Number(segment.i);
 			const returnedText = typeof segment.text === 'string' ? segment.text.trim() : '';
 
-			if (!Number.isInteger(returnedIndex) || returnedIndex !== index) {
+			if (!Number.isInteger(returnedIndex) || !aiSegmentIndexes.has(returnedIndex)) {
 				errors.push(
-					`Verse ${candidate.verseKey}: expected segment index ${index}, received ${String(segment.i)}.`
+					`Verse ${candidate.verseKey}: received an unexpected AI segment index ${String(segment.i)}.`
 				);
 				isValid = false;
 				break;
 			}
+
+			if (seenIndexes.has(returnedIndex)) {
+				errors.push(`Verse ${candidate.verseKey}: duplicate AI segment index ${returnedIndex}.`);
+				isValid = false;
+				break;
+			}
+			seenIndexes.add(returnedIndex);
 
 			if (returnedText.length === 0) {
 				errors.push(`Verse ${candidate.verseKey}, segment ${index + 1}: empty text.`);
@@ -469,14 +508,29 @@ export function validateAdvancedTrimBatchResult(
 			normalizedTexts.push(returnedText);
 		}
 
+		if (isValid && seenIndexes.size !== aiSegmentIndexes.size) {
+			errors.push(
+				`Verse ${candidate.verseKey}: AI response is missing one or more requested segments.`
+			);
+			isValid = false;
+		}
+
 		if (!isValid) continue;
 
 		const sourceTokens = tokenizeForCoverage(candidate.sourceTranslation);
-		const outputTokens = tokenizeForCoverage(normalizedTexts.join(' '));
+		const skippedSegmentTexts = candidate.segments
+			.filter((segment) => !segment.needsAi)
+			.map((segment) => segment.existingText)
+			.filter((text) => text.trim().length > 0);
+		const aiOutputTokens = tokenizeForCoverage(normalizedTexts.join(' '));
+		const outputTokens = tokenizeForCoverage(
+			[...normalizedTexts, ...skippedSegmentTexts, ...candidate.coverageOnlyTexts].join(' ')
+		);
 		const sourceCounts = countTokens(sourceTokens);
+		const aiOutputCounts = countTokens(aiOutputTokens);
 		const outputCounts = countTokens(outputTokens);
 
-		for (const token of outputCounts.keys()) {
+		for (const token of aiOutputCounts.keys()) {
 			if (!sourceCounts.has(token)) {
 				errors.push(
 					`Verse ${candidate.verseKey}: AI introduced a token not present in source translation ("${token}").`
@@ -530,12 +584,20 @@ export function applyAdvancedTrimValidationSuccess(
 		const verseTranslations: Array<VerseTranslation | null> = [];
 		const erroredIndexes = new Set<number>();
 		const verseErrors: string[] = [];
+		const aiSegmentIndexes = new Set(
+			success.candidate.segments.filter((segment) => segment.needsAi).map((segment) => segment.i)
+		);
+		const resultTextByIndex = new Map(
+			success.result.segments.map((segment) => [segment.i, segment.text] as const)
+		);
 
 		for (let index = 0; index < success.candidate.subtitles.length; index++) {
 			const subtitle = success.candidate.subtitles[index];
 			const verseTranslation = subtitle.translations[edition.name] as VerseTranslation;
-			const nextText = success.result.segments[index]?.text;
 			verseTranslations[index] = verseTranslation ?? null;
+			if (!aiSegmentIndexes.has(index)) continue;
+
+			const nextText = resultTextByIndex.get(index);
 			if (!verseTranslation || typeof nextText !== 'string') continue;
 
 			verseTranslation.text = nextText;
@@ -594,7 +656,7 @@ export function applyAdvancedTrimValidationSuccess(
 
 		for (let index = 0; index < success.candidate.subtitles.length; index++) {
 			const verseTranslation = verseTranslations[index];
-			if (!verseTranslation) continue;
+			if (!verseTranslation || !aiSegmentIndexes.has(index)) continue;
 
 			if (erroredIndexes.has(index)) {
 				verseTranslation.isBruteForce = true;

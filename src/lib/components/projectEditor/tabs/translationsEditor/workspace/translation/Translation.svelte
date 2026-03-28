@@ -106,8 +106,14 @@
 
 	let lastClickedWordIndex = $state(-1);
 
+	function beginWordSelectionEditing(): void {
+		if (translation().type !== 'verse' || !translation().isBruteForce) return;
+		translation().isBruteForce = false;
+	}
+
 	function wordClicked(i: number): any {
 		if (translation().type === 'verse') {
+			beginWordSelectionEditing();
 			if (i < translation().startWordIndex) {
 				// Si le mot est avant le début de la traduction, on le sélectionne
 				translation().startWordIndex = i;
@@ -142,6 +148,7 @@
 
 	function handleMouseDown(i: number, event: MouseEvent): void {
 		if (translation().type === 'verse') {
+			beginWordSelectionEditing();
 			event.preventDefault();
 			isDragging = true;
 			dragStartIndex = i;
@@ -151,6 +158,7 @@
 
 	function handleMouseEnter(i: number): void {
 		if (isDragging && translation().type === 'verse') {
+			beginWordSelectionEditing();
 			const startIndex = Math.min(dragStartIndex, i);
 			const endIndex = Math.max(dragStartIndex, i);
 			translation().startWordIndex = startIndex;
@@ -264,10 +272,13 @@
 				</div>
 			</div>
 		</div>
-		{#if translation().type === 'verse' && !translation().isBruteForce}
+		{#if translation().type === 'verse'}
 			<!-- Affiche la traduction complète du verset mot à mot -->
 			<div
-				class="flex flex-row select-none flex-wrap items-center gap-y-1 opacity-20 group-hover:opacity-100 duration-300"
+				class="flex flex-row select-none flex-wrap items-center gap-y-1 duration-300 {translation()
+					.isBruteForce
+					? 'opacity-[0.14] group-hover:opacity-[0.55]'
+					: 'opacity-20 group-hover:opacity-100'}"
 				role="presentation"
 				onmouseup={handleGlobalMouseUp}
 				transition:slide

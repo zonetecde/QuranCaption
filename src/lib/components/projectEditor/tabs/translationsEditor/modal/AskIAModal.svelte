@@ -23,6 +23,8 @@
 	type PromptVersePayload = {
 		index: number;
 		verseKey: string;
+		startTime: number;
+		endTime: number;
 		segments: PromptSegment[];
 		translation: string;
 	};
@@ -50,8 +52,8 @@
 
 	// Variables pour le slider de sélection de plage
 	let totalVerses: number = $state(0);
-	let startIndex: number = $state(0);
-	let endIndex: number = $state(0);
+	let selectedStartTimeMs: number = $state(0);
+	let selectedEndTimeMs: number = $state(0);
 	let fullVerseArray: PromptVersePayload[] = $state([]);
 
 	function persistAiTranslationSettings(): void {
@@ -65,6 +67,29 @@
 		if (!globalState.settings) return;
 		globalState.settings.aiTranslationSettings.activeModalTab = nextTab;
 		void Settings.save();
+	}
+
+	function getSelectionMaxDurationMs(): number {
+		return (
+			globalState.getAudioTrack?.getDuration().ms ||
+			globalState.getSubtitleTrack?.getDuration().ms ||
+			Math.max(...fullVerseArray.map((verse) => verse.endTime), 0)
+		);
+	}
+
+	function rangesOverlap(
+		leftStart: number,
+		leftEnd: number,
+		rightStart: number,
+		rightEnd: number
+	): boolean {
+		return leftStart <= rightEnd && rightStart <= leftEnd;
+	}
+
+	function getSelectedPromptVerses(): PromptVersePayload[] {
+		return fullVerseArray.filter((verse) =>
+			rangesOverlap(verse.startTime, verse.endTime, selectedStartTimeMs, selectedEndTimeMs)
+		);
 	}
 
 	// Accepte soit l'ancien format array (fallback), soit le format objet indexé attendu.
@@ -143,7 +168,7 @@
 			let skippedLockedSegmentsCount = 0;
 
 			// Utilise le tableau filtré pour le mapping
-			const filteredArray = fullVerseArray.slice(startIndex, endIndex + 1);
+			const filteredArray = getSelectedPromptVerses();
 			const indexToSubtitleMapping: Record<number, VerseRuntimeMapping> = {};
 
 			// Reconstruit le mapping pour les versets sélectionnés
@@ -397,9 +422,9 @@
 
 			if (successfulVerses > 0) {
 				AnalyticsService.trackAIUsage('translation', {
-					range: `indices ${startIndex}-${endIndex}`,
-					start_index: startIndex,
-					end_index: endIndex,
+					range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
+					start_time_ms: selectedStartTimeMs,
+					end_time_ms: selectedEndTimeMs,
 					total_verses: totalVerses,
 					processed_verses: processedVerses,
 					successful_verses: successfulVerses,
@@ -504,6 +529,8 @@
 				array.push({
 					index: verseFirstIndex[verseKey],
 					verseKey,
+					startTime: Math.min(...verse.map((subtitle) => subtitle.startTime)),
+					endTime: Math.max(...verse.map((subtitle) => subtitle.endTime)),
 					segments,
 					translation: translationString
 				});
@@ -513,16 +540,16 @@
 		// Stocke le tableau complet et initialise les valeurs du slider
 		fullVerseArray = array;
 		totalVerses = array.length;
-		startIndex = 0;
-		endIndex = Math.max(0, totalVerses - 1);
+		selectedStartTimeMs = 0;
+		selectedEndTimeMs = getSelectionMaxDurationMs();
 
 		// Génère le prompt initial avec tous les versets
 		await updatePromptWithRange();
 	}
 
 	async function updatePromptWithRange() {
-		// Filtre le tableau selon la plage sélectionnée
-		const filteredArray = fullVerseArray.slice(startIndex, endIndex + 1);
+		// Filtre le tableau selon la plage temporelle sélectionnée
+		const filteredArray = getSelectedPromptVerses();
 
 		const json = JSON.stringify(filteredArray);
 		if (globalState.settings?.aiTranslationSettings?.omitPromptPrefix) {
@@ -688,11 +715,16 @@
 				<!-- Range Selection Section -->
 				{#if totalVerses > 1}
 					<VerseRangeSelector
+						totalDurationMs={getSelectionMaxDurationMs()}
 						totalItems={totalVerses}
-						bind:startIndex
-						bind:endIndex
-						startVerseKey={fullVerseArray[startIndex]?.verseKey || 'N/A'}
-						endVerseKey={fullVerseArray[endIndex]?.verseKey || 'N/A'}
+						selectedItems={getSelectedPromptVerses().length}
+						bind:startTimeMs={selectedStartTimeMs}
+						bind:endTimeMs={selectedEndTimeMs}
+						title="Time Selection"
+						icon="schedule"
+						totalLabel="eligible verses"
+						selectionLabel="Select time range to include in prompt:"
+						selectionHint="(in case prompt is too long)"
 						onRangeChange={updatePromptWithRange}
 					/>
 				{/if}

@@ -17,6 +17,8 @@ export type AdvancedTrimSegment = {
 export type AdvancedTrimVerseCandidate = {
 	index: number;
 	verseKey: string;
+	startTime: number;
+	endTime: number;
 	subtitles: SubtitleClip[];
 	sourceTranslation: string;
 	wordCount: number;
@@ -263,6 +265,8 @@ export function buildAdvancedTrimVerseCandidates(
 			return {
 				index: entry.index,
 				verseKey,
+				startTime: Math.min(...entry.subtitles.map((subtitle) => subtitle.startTime)),
+				endTime: Math.max(...entry.subtitles.map((subtitle) => subtitle.endTime)),
 				subtitles: entry.subtitles,
 				sourceTranslation,
 				wordCount: splitWords(sourceTranslation).length,
@@ -278,14 +282,14 @@ export function buildAdvancedTrimBatches(
 	candidates: AdvancedTrimVerseCandidate[],
 	model: AdvancedTrimModel,
 	reasoningEffort: AdvancedTrimReasoningEffort,
-	startIndex: number,
-	endIndex: number
+	startTimeMs: number,
+	endTimeMs: number
 ): AdvancedTrimBatch[] {
 	if (candidates.length === 0) return [];
 
-	const clampedStart = Math.max(0, Math.min(startIndex, candidates.length - 1));
-	const clampedEnd = Math.max(clampedStart, Math.min(endIndex, candidates.length - 1));
-	const selected = candidates.slice(clampedStart, clampedEnd + 1);
+	const selected = candidates.filter(
+		(candidate) => candidate.startTime <= endTimeMs && candidate.endTime >= startTimeMs
+	);
 
 	const batches: AdvancedTrimBatch[] = [];
 	let current: AdvancedTrimVerseCandidate[] = [];

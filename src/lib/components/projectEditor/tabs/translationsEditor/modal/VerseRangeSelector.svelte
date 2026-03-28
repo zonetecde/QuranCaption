@@ -1,22 +1,25 @@
 <script lang="ts">
+	import { Duration } from '$lib/classes';
+	import { VerseRange } from '$lib/classes/VerseRange.svelte';
+
 	let {
+		totalDurationMs,
 		totalItems,
-		startIndex = $bindable(),
-		endIndex = $bindable(),
-		startVerseKey = 'N/A',
-		endVerseKey = 'N/A',
-		title = 'Verse Selection',
-		icon = 'tune',
-		totalLabel = 'verses found',
-		selectionLabel = 'Select verse range to include in prompt:',
-		selectionHint = '(in case prompt is too long)',
+		selectedItems = 0,
+		startTimeMs = $bindable(),
+		endTimeMs = $bindable(),
+		title = 'Time Selection',
+		icon = 'schedule',
+		totalLabel = 'eligible verses',
+		selectionLabel = 'Select time range to include:',
+		selectionHint = '(based on the video timeline)',
 		onRangeChange = () => {}
 	}: {
+		totalDurationMs: number;
 		totalItems: number;
-		startIndex: number;
-		endIndex: number;
-		startVerseKey?: string;
-		endVerseKey?: string;
+		selectedItems?: number;
+		startTimeMs: number;
+		endTimeMs: number;
 		title?: string;
 		icon?: string;
 		totalLabel?: string;
@@ -25,21 +28,30 @@
 		onRangeChange?: () => void;
 	} = $props();
 
+	const SLIDER_STEP_MS = 1000;
+
+	const maxDurationMs = $derived(Math.max(totalDurationMs, 1));
+	const selectedVerseRange = $derived(VerseRange.getVerseRange(startTimeMs, endTimeMs));
+
+	function formatTime(ms: number): string {
+		return new Duration(Math.max(0, ms)).getFormattedTime(false, true);
+	}
+
 	function handleStartInput(event: Event): void {
 		const nextValue = Number((event.target as HTMLInputElement).value);
-		if (nextValue > endIndex) {
-			endIndex = nextValue;
+		if (nextValue > endTimeMs) {
+			endTimeMs = nextValue;
 		}
-		startIndex = nextValue;
+		startTimeMs = nextValue;
 		onRangeChange();
 	}
 
 	function handleEndInput(event: Event): void {
 		const nextValue = Number((event.target as HTMLInputElement).value);
-		if (nextValue < startIndex) {
-			startIndex = nextValue;
+		if (nextValue < startTimeMs) {
+			startTimeMs = nextValue;
 		}
-		endIndex = nextValue;
+		endTimeMs = nextValue;
 		onRangeChange();
 	}
 </script>
@@ -48,32 +60,37 @@
 	<div class="flex items-center gap-2">
 		<span class="material-icons text-accent text-lg">{icon}</span>
 		<h3 class="text-lg font-semibold text-primary">{title}</h3>
-		<span class="bg-accent px-2 py-1 rounded-md text-xs font-semibold">
+		<span class="rounded-md bg-accent px-2 py-1 text-xs font-semibold">
 			{totalItems}
 			{totalLabel}
 		</span>
+		<span
+			class="rounded-md border border-color bg-secondary px-2 py-1 text-xs font-semibold text-primary"
+		>
+			{selectedItems} selected
+		</span>
 	</div>
-	<div class="bg-accent border border-color rounded-lg p-4">
+	<div class="rounded-lg border border-color bg-accent p-4">
 		<div class="mb-4">
-			<div class="flex items-center justify-between mb-2">
+			<div class="mb-2 flex items-center justify-between gap-4">
 				<p class="text-sm font-medium text-secondary">
 					{selectionLabel}
 					{#if selectionHint}
 						<span class="italic">{selectionHint}</span>
 					{/if}
 				</p>
-				<div class="text-sm text-primary font-mono">
-					Indices {startIndex} to {endIndex} ({endIndex - startIndex + 1} verses)
+				<div class="text-sm font-mono text-primary">
+					{formatTime(startTimeMs)} to {formatTime(endTimeMs)}
 				</div>
 			</div>
 
-			<div class="relative mt-6 mb-6">
-				<div class="w-full h-2 bg-secondary rounded-full relative">
+			<div class="relative mb-6 mt-6">
+				<div class="relative h-2 w-full rounded-full bg-secondary">
 					<div
-						class="absolute h-2 bg-accent-primary rounded-full"
-						style="left: {(startIndex / Math.max(1, totalItems - 1)) * 100}%; width: {((endIndex -
-							startIndex) /
-							Math.max(1, totalItems - 1)) *
+						class="absolute h-2 rounded-full bg-accent-primary"
+						style="left: {(startTimeMs / Math.max(1, maxDurationMs)) * 100}%; width: {((endTimeMs -
+							startTimeMs) /
+							Math.max(1, maxDurationMs)) *
 							100}%;"
 					></div>
 				</div>
@@ -81,30 +98,38 @@
 				<input
 					type="range"
 					min="0"
-					max={totalItems - 1}
-					bind:value={startIndex}
+					max={maxDurationMs}
+					step={SLIDER_STEP_MS}
+					bind:value={startTimeMs}
 					oninput={handleStartInput}
-					class="absolute top-0 w-full h-2 appearance-none bg-transparent cursor-pointer range-slider"
+					class="range-slider absolute top-0 h-2 w-full appearance-none bg-transparent cursor-pointer"
 				/>
 
 				<input
 					type="range"
 					min="0"
-					max={totalItems - 1}
-					bind:value={endIndex}
+					max={maxDurationMs}
+					step={SLIDER_STEP_MS}
+					bind:value={endTimeMs}
 					oninput={handleEndInput}
-					class="absolute top-0 w-full h-2 appearance-none bg-transparent cursor-pointer range-slider"
+					class="range-slider absolute top-0 h-2 w-full appearance-none bg-transparent cursor-pointer"
 				/>
 			</div>
 
-			<div class="grid grid-cols-2 gap-4 text-xs">
-				<div class="bg-secondary border border-color rounded-lg p-3">
-					<div class="font-medium text-accent-primary mb-1">Start: Index {startIndex}</div>
-					<div class="text-thirdly">Verse: {startVerseKey}</div>
+			<div class="grid gap-4 md:grid-cols-2">
+				<div class="rounded-lg border border-color bg-secondary p-3 text-xs">
+					<div class="mb-1 font-medium text-accent-primary">Start time</div>
+					<div class="font-mono text-primary">{formatTime(startTimeMs)}</div>
 				</div>
-				<div class="bg-secondary border border-color rounded-lg p-3">
-					<div class="font-medium text-accent-primary mb-1">End: Index {endIndex}</div>
-					<div class="text-thirdly">Verse: {endVerseKey}</div>
+				<div class="rounded-lg border border-color bg-secondary p-3 text-xs">
+					<div class="mb-1 font-medium text-accent-primary">End time</div>
+					<div class="font-mono text-primary">{formatTime(endTimeMs)}</div>
+				</div>
+				<div class="rounded-lg border border-color bg-secondary p-3 text-xs md:col-span-2">
+					<div class="mb-1 font-medium text-accent-primary">Verse range on video</div>
+					<div class="text-secondary">
+						{selectedVerseRange.toString()}
+					</div>
 				</div>
 			</div>
 		</div>

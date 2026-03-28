@@ -63,8 +63,8 @@
 		reasoningNote: 'Approximation based on prompt/output size only.'
 	});
 
-	let startIndex: number = $state(0);
-	let endIndex: number = $state(0);
+	let selectedStartTimeMs: number = $state(0);
+	let selectedEndTimeMs: number = $state(0);
 
 	let isRunning: boolean = $state(false);
 	let completedBatches: number = $state(0);
@@ -110,21 +110,31 @@
 		].slice(0, 80);
 	}
 
-	function clampRange(resetToFullRange: boolean = false): void {
-		if (advancedCandidates.length === 0) {
-			startIndex = 0;
-			endIndex = 0;
+	function getSelectionMaxDurationMs(): number {
+		return (
+			globalState.getAudioTrack?.getDuration().ms ||
+			globalState.getSubtitleTrack?.getDuration().ms ||
+			0
+		);
+	}
+
+	function syncSelectionWindow(resetToFullRange: boolean = false): void {
+		const maxDuration = getSelectionMaxDurationMs();
+		if (resetToFullRange || selectedEndTimeMs <= 0 || selectedEndTimeMs > maxDuration) {
+			selectedStartTimeMs = 0;
+			selectedEndTimeMs = maxDuration;
 			return;
 		}
 
-		if (resetToFullRange) {
-			startIndex = 0;
-			endIndex = advancedCandidates.length - 1;
-			return;
-		}
+		selectedStartTimeMs = Math.max(0, Math.min(selectedStartTimeMs, maxDuration));
+		selectedEndTimeMs = Math.max(selectedStartTimeMs, Math.min(selectedEndTimeMs, maxDuration));
+	}
 
-		startIndex = Math.max(0, Math.min(startIndex, advancedCandidates.length - 1));
-		endIndex = Math.max(startIndex, Math.min(endIndex, advancedCandidates.length - 1));
+	function getSelectedVerseCount(): number {
+		return advancedCandidates.filter(
+			(candidate) =>
+				candidate.startTime <= selectedEndTimeMs && candidate.endTime >= selectedStartTimeMs
+		).length;
 	}
 
 	function refreshBatchPreview(): void {
@@ -132,8 +142,8 @@
 			advancedCandidates,
 			aiSettings().advancedTrimModel,
 			aiSettings().advancedTrimReasoningEffort,
-			startIndex,
-			endIndex
+			selectedStartTimeMs,
+			selectedEndTimeMs
 		);
 		advancedEstimate = estimateAdvancedTrimCost(
 			advancedBatches,
@@ -146,9 +156,7 @@
 			edition,
 			aiSettings().advancedAlsoAskReviewed
 		);
-		clampRange(
-			resetRange || startIndex >= advancedCandidates.length || endIndex >= advancedCandidates.length
-		);
+		syncSelectionWindow(resetRange);
 		refreshBatchPreview();
 	}
 
@@ -362,7 +370,7 @@
 		latestSummary = `Applied ${successfulVerses} verse(s) across ${successfulBatches} fully valid batch(es).`;
 
 		AnalyticsService.trackAIUsage('translation', {
-			range: `indices ${startIndex}-${endIndex}`,
+			range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
 			mode: 'advanced_trim',
 			model: aiSettings().advancedTrimModel,
 			reasoning_effort: aiSettings().advancedTrimReasoningEffort,
@@ -424,13 +432,16 @@
 				<div class="space-y-4">
 					{#if getTotalVerses() > 1}
 						<VerseRangeSelector
+							totalDurationMs={getSelectionMaxDurationMs()}
 							totalItems={getTotalVerses()}
-							bind:startIndex
-							bind:endIndex
-							startVerseKey={advancedCandidates[startIndex]?.verseKey || 'N/A'}
-							endVerseKey={advancedCandidates[endIndex]?.verseKey || 'N/A'}
-							selectionLabel="Select verse range to process:"
-							selectionHint=""
+							selectedItems={getSelectedVerseCount()}
+							bind:startTimeMs={selectedStartTimeMs}
+							bind:endTimeMs={selectedEndTimeMs}
+							title="Time Selection"
+							icon="schedule"
+							totalLabel="eligible verses"
+							selectionLabel="Select time range to process:"
+							selectionHint="(based on the video timeline)"
 							onRangeChange={refreshBatchPreview}
 						/>
 					{/if}

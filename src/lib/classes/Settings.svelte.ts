@@ -325,6 +325,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC333ToQC334();
 		MigrationService.FromQC334ToQC335();
 		MigrationService.FromQC336ToQC337();
+		MigrationService.FromQC339ToQC340();
 	}
 }
 

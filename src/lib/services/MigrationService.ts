@@ -316,9 +316,7 @@ export default class MigrationService {
 
 		const value = settingsAny.persistentUiState.lastClosedSupportPromptModal;
 		const parsedDate =
-			value instanceof Date
-				? value
-				: new Date(typeof value === 'string' ? value : '');
+			value instanceof Date ? value : new Date(typeof value === 'string' ? value : '');
 		const hasValidDate = !Number.isNaN(parsedDate.getTime());
 
 		if (!hasValidDate) {
@@ -435,6 +433,20 @@ export default class MigrationService {
 
 		if (hasChanges) {
 			globalState.currentProject.save();
+		}
+	}
+
+	/**
+	 * Ajoute les nouveaux paramètres pour la nouvelle pipeline
+	 * de trimmage de traduction assistée par IA
+	 */
+	static FromQC339ToQC340() {
+		if (!globalState.settings) return;
+
+		const settingsAny = globalState.settings as any;
+		if (settingsAny.aiTranslationSettings === undefined) {
+			settingsAny.aiTranslationSettings = { ...new Settings().aiTranslationSettings };
+			Settings.save();
 		}
 	}
 

@@ -28,6 +28,7 @@ export type AITranslationSettings = {
 	advancedTrimModel: 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano';
 	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
 	advancedAlsoAskReviewed: boolean;
+	activeModalTab: 'legacy' | 'advanced';
 };
 
 export default class Settings extends SerializableBase {
@@ -76,7 +77,8 @@ export default class Settings extends SerializableBase {
 		openAiApiKey: '',
 		advancedTrimModel: 'gpt-5.4',
 		advancedTrimReasoningEffort: 'none',
-		advancedAlsoAskReviewed: false
+		advancedAlsoAskReviewed: false,
+		activeModalTab: 'legacy'
 	});
 
 	// Shortcut categories metadata

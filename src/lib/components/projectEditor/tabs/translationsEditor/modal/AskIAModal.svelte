@@ -43,7 +43,9 @@
 
 	let aiPrompt: string = $state('');
 	let aiResponse: string = $state('');
-	let activeTab: 'legacy' | 'advanced' = $state('legacy');
+	let activeTab: 'legacy' | 'advanced' = $state(
+		globalState.settings?.aiTranslationSettings?.activeModalTab ?? 'legacy'
+	);
 
 	// Variables pour le slider de sélection de plage
 	let totalVerses: number = $state(0);
@@ -55,6 +57,13 @@
 		if (!globalState.settings) return;
 		void Settings.save();
 		void updatePromptWithRange();
+	}
+
+	function setActiveTab(nextTab: 'legacy' | 'advanced'): void {
+		activeTab = nextTab;
+		if (!globalState.settings) return;
+		globalState.settings.aiTranslationSettings.activeModalTab = nextTab;
+		void Settings.save();
 	}
 
 	// Accepte soit l'ancien format array (fallback), soit le format objet indexé attendu.
@@ -558,14 +567,14 @@
 		<div class="flex gap-2">
 			<button
 				class="tab-button {activeTab === 'legacy' ? 'tab-button-active' : ''}"
-				onclick={() => (activeTab = 'legacy')}
+				onclick={() => setActiveTab('legacy')}
 			>
 				<span class="material-icons text-base">rule</span>
 				Legacy AI Mapping
 			</button>
 			<button
 				class="tab-button {activeTab === 'advanced' ? 'tab-button-active' : ''}"
-				onclick={() => (activeTab = 'advanced')}
+				onclick={() => setActiveTab('advanced')}
 			>
 				<span class="material-icons text-base">auto_awesome</span>
 				Advanced AI Trimming

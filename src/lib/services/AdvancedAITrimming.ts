@@ -575,6 +575,7 @@ export function applyAdvancedTrimValidationSuccess(
 	for (const success of validVerses) {
 		const verseTranslations: Array<VerseTranslation | null> = [];
 		const erroredIndexes = new Set<number>();
+		const remapFailedIndexes = new Set<number>();
 		const verseErrors: string[] = [];
 		const aiSegmentIndexes = new Set(
 			success.candidate.segments.filter((segment) => segment.needsAi).map((segment) => segment.i)
@@ -612,6 +613,7 @@ export function applyAdvancedTrimValidationSuccess(
 
 			if (verseTranslation.isBruteForce) {
 				erroredIndexes.add(index);
+				remapFailedIndexes.add(index);
 				verseErrors.push(
 					`Verse ${success.candidate.verseKey}, segment ${index + 1}: failed to map the AI text back to a contiguous source range in the original translation. The AI text was still written to the segment, but it was marked as "AI Error". Please verify it manually because it no longer matches a contiguous word range from the original translation.`
 				);
@@ -750,7 +752,7 @@ export function applyAdvancedTrimValidationSuccess(
 			if (!verseTranslation || !aiSegmentIndexes.has(index)) continue;
 
 			if (erroredIndexes.has(index)) {
-				verseTranslation.isBruteForce = true;
+				verseTranslation.isBruteForce = remapFailedIndexes.has(index);
 				verseTranslation.updateStatus('ai error', edition);
 				erroredSegments++;
 			} else {

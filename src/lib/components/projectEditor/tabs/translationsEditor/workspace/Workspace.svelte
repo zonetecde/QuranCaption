@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import {
 		PredefinedSubtitleClip,
 		SubtitleClip,
@@ -63,8 +63,6 @@
 	/**
 	 * Récupère la fin de l'overlap arabe avec le clip précédent.
 	 * @param {number} currentIndex L'indice du clip actuel.
-	 *
-	 * @example
 	 */
 	function getArabicOverlapEndWithPrevious(currentIndex: number): number | null {
 		const currentClip = globalState.getSubtitleTrack.clips[currentIndex];

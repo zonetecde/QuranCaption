@@ -500,7 +500,6 @@ export function validateAdvancedTrimBatchResult(
 			return leftIndex - rightIndex;
 		});
 		let isValid = true;
-		const normalizedTexts: string[] = [];
 		const seenIndexes = new Set<number>();
 
 		for (let index = 0; index < sortedSegments.length; index++) {
@@ -528,8 +527,6 @@ export function validateAdvancedTrimBatchResult(
 				isValid = false;
 				break;
 			}
-
-			normalizedTexts.push(returnedText);
 		}
 
 		if (isValid && seenIndexes.size !== aiSegmentIndexes.size) {
@@ -538,8 +535,6 @@ export function validateAdvancedTrimBatchResult(
 			);
 			isValid = false;
 		}
-
-		if (!isValid) continue;
 
 		if (!isValid) continue;
 

@@ -24,6 +24,10 @@ export type AutoSegmentationSettings = {
 
 export type AITranslationSettings = {
 	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
+	openAiApiKey: string;
+	advancedTrimModel: 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano';
+	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
+	advancedAlsoAskReviewed: boolean;
 };
 
 export default class Settings extends SerializableBase {
@@ -68,7 +72,11 @@ export default class Settings extends SerializableBase {
 	});
 
 	aiTranslationSettings = $state<AITranslationSettings>({
-		omitPromptPrefix: false
+		omitPromptPrefix: false,
+		openAiApiKey: '',
+		advancedTrimModel: 'gpt-5.4',
+		advancedTrimReasoningEffort: 'none',
+		advancedAlsoAskReviewed: false
 	});
 
 	// Shortcut categories metadata

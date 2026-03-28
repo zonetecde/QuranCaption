@@ -4,6 +4,7 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import ClickableLink from '$lib/components/home/ClickableLink.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import AdvancedAITrimmingTab from './AdvancedAITrimmingTab.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -42,6 +43,7 @@
 
 	let aiPrompt: string = $state('');
 	let aiResponse: string = $state('');
+	let activeTab: 'legacy' | 'advanced' = $state('legacy');
 
 	// Variables pour le slider de sélection de plage
 	let totalVerses: number = $state(0);
@@ -525,7 +527,7 @@
 </script>
 
 <div
-	class="bg-secondary border-color border rounded-2xl w-[900px] h-[700px] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	class="bg-secondary border-color border rounded-2xl h-[92vh] xl:h-[80vh] w-[clamp(1200px,96vw,1700px)] max-w-[90vw] xl:max-w-[66vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
 	transition:slide
 >
 	<!-- Header with gradient background -->
@@ -552,6 +554,24 @@
 			</button>
 		</div>
 	</div>
+	<div class="border-b border-color bg-primary px-6 py-3">
+		<div class="flex gap-2">
+			<button
+				class="tab-button {activeTab === 'legacy' ? 'tab-button-active' : ''}"
+				onclick={() => (activeTab = 'legacy')}
+			>
+				<span class="material-icons text-base">rule</span>
+				Legacy AI Mapping
+			</button>
+			<button
+				class="tab-button {activeTab === 'advanced' ? 'tab-button-active' : ''}"
+				onclick={() => (activeTab = 'advanced')}
+			>
+				<span class="material-icons text-base">auto_awesome</span>
+				Advanced AI Trimming
+			</button>
+		</div>
+	</div>
 	<!-- Instructions section - Collapsible -->
 	<div class="px-6 py-3 border-b border-color bg-primary">
 		<button
@@ -568,7 +588,11 @@
 						<span class="material-icons text-white text-sm">info</span>
 					</div>
 					<div class="text-left">
-						<h3 class="text-sm font-semibold text-primary">How to use AI Translation</h3>
+						<h3 class="text-sm font-semibold text-primary">
+							{activeTab === 'legacy'
+								? 'How to use Legacy AI Mapping'
+								: 'How to use Advanced AI Trimming'}
+						</h3>
 						<p class="text-xs text-thirdly">
 							Click to {globalState.currentProject!.projectEditorState.translationsEditor
 								.showAIInstructions
@@ -593,47 +617,83 @@
 				class="mt-3 p-4 bg-secondary border border-color rounded-lg"
 				transition:slide={{ duration: 200 }}
 			>
-				<div class="space-y-2 text-sm text-secondary">
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>1</span
-						>
-						<p>
-							Copy the generated prompt below and paste it in <span class="text-accent font-medium"
-								><ClickableLink url="https://grok.com/" label="Grok" /></span
-							> (Recommended)
-						</p>
+				{#if activeTab === 'legacy'}
+					<div class="space-y-2 text-sm text-secondary">
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>1</span
+							>
+							<p>
+								Copy the generated prompt below and paste it in <span
+									class="text-accent font-medium"
+									><ClickableLink url="https://grok.com/" label="Grok" /></span
+								> (Recommended)
+							</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>2</span
+							>
+							<p>Wait for the AI to generate the JSON response</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>3</span
+							>
+							<p>Copy the JSON response and paste it in the response field below</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>4</span
+							>
+							<p>Click "Apply Translations" to update your subtitles</p>
+						</div>
 					</div>
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>2</span
-						>
-						<p>Wait for the AI to generate the JSON response</p>
+				{:else}
+					<div class="space-y-2 text-sm text-secondary">
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>1</span
+							>
+							<p>Set your OpenAI API key, model, reasoning effort, and verse range.</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>2</span
+							>
+							<p>Review the estimated batches and approximate API cost.</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>3</span
+							>
+							<p>Run the batches and watch the live activity / streamed response.</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>4</span
+							>
+							<p>Validated verses are applied automatically; invalid ones are skipped.</p>
+						</div>
 					</div>
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>3</span
-						>
-						<p>Copy the JSON response and paste it in the response field below</p>
-					</div>
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>4</span
-						>
-						<p>Click "Apply Translations" to update your subtitles</p>
-					</div>
-				</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
 	<!-- Content area -->
 	<div class="flex-1 overflow-hidden flex flex-col">
 		<div class="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-			{#if aiPrompt === 'All verses have already been translated for this edition. No AI assistance needed.'}
+			{#if activeTab === 'advanced'}
+				<AdvancedAITrimmingTab {edition} />
+			{:else if aiPrompt === 'All verses have already been translated for this edition. No AI assistance needed.'}
 				<!-- All verses translated message -->
 				<div class="flex flex-col items-center justify-center h-full text-center">
 					<div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
@@ -845,7 +905,11 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				<span class="material-icons text-accent-primary">psychology</span>
-				<span>Using AI to optimize translation segmentation</span>
+				<span>
+					{activeTab === 'legacy'
+						? 'Using AI to optimize translation segmentation'
+						: 'Running OpenAI-powered advanced trimming with live feedback'}
+				</span>
 			</div>
 
 			<div class="flex gap-3">
@@ -1003,5 +1067,27 @@
 	.range-slider:focus::-webkit-slider-thumb {
 		box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
 	}
-</style>
 
+	.tab-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		border-radius: 9999px;
+		border: 1px solid var(--border-color);
+		background: var(--bg-secondary);
+		padding: 0.5rem 0.9rem;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--text-secondary);
+		transition:
+			background 0.2s ease,
+			border-color 0.2s ease,
+			color 0.2s ease;
+	}
+
+	.tab-button-active {
+		border-color: var(--accent-primary);
+		background: color-mix(in srgb, var(--accent-primary) 16%, var(--bg-secondary));
+		color: var(--text-primary);
+	}
+</style>

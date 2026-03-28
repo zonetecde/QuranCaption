@@ -1,3 +1,5 @@
+/// Commandes IA de trimming/traduction.
+pub mod ai_translation;
 /// Commandes de diagnostic des binaires.
 pub mod diagnostics;
 /// Commandes Discord RPC.

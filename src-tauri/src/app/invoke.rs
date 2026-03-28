@@ -4,6 +4,7 @@ use crate::exporter;
 /// Enregistre la liste unique des commandes IPC exposées au frontend.
 pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder.invoke_handler(tauri::generate_handler![
+        commands::ai_translation::run_advanced_ai_trim_batch_streaming,
         commands::downloads::download_from_youtube,
         commands::media::get_duration,
         commands::files::get_new_file_path,

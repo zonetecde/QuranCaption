@@ -2,6 +2,7 @@
 	import type { Edition } from '$lib/classes';
 	import Settings from '$lib/classes/Settings.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		applyAdvancedTrimValidationSuccess,
@@ -422,66 +423,16 @@
 			<div class="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
 				<div class="space-y-4">
 					{#if getTotalVerses() > 1}
-						<div class="rounded-xl border border-color bg-accent p-4">
-							<div class="mb-4 flex items-center justify-between">
-								<div class="flex items-center gap-2">
-									<span class="material-icons text-accent-primary">tune</span>
-									<h3 class="text-lg font-semibold text-primary">Verse Range</h3>
-								</div>
-								<span class="rounded-md bg-secondary px-2 py-1 text-xs font-semibold text-primary">
-									Indices {startIndex} to {endIndex}
-								</span>
-							</div>
-
-							<div class="relative mb-6 mt-6">
-								<div class="relative h-2 w-full rounded-full bg-secondary">
-									<div
-										class="absolute h-2 rounded-full bg-accent-primary"
-										style="left: {(startIndex / Math.max(1, getTotalVerses() - 1)) *
-											100}%; width: {((endIndex - startIndex) / Math.max(1, getTotalVerses() - 1)) *
-											100}%;"
-									></div>
-								</div>
-
-								<input
-									type="range"
-									min="0"
-									max={getTotalVerses() - 1}
-									bind:value={startIndex}
-									oninput={(event) => {
-										const nextValue = Number((event.target as HTMLInputElement).value);
-										if (nextValue > endIndex) endIndex = nextValue;
-										startIndex = nextValue;
-										refreshBatchPreview();
-									}}
-									class="range-slider absolute top-0 h-2 w-full appearance-none bg-transparent"
-								/>
-								<input
-									type="range"
-									min="0"
-									max={getTotalVerses() - 1}
-									bind:value={endIndex}
-									oninput={(event) => {
-										const nextValue = Number((event.target as HTMLInputElement).value);
-										if (nextValue < startIndex) startIndex = nextValue;
-										endIndex = nextValue;
-										refreshBatchPreview();
-									}}
-									class="range-slider absolute top-0 h-2 w-full appearance-none bg-transparent"
-								/>
-							</div>
-
-							<div class="grid gap-3 md:grid-cols-2">
-								<div class="rounded-lg border border-color bg-secondary p-3 text-xs">
-									<div class="mb-1 font-medium text-accent-primary">Start verse</div>
-									<div class="text-thirdly">{advancedCandidates[startIndex]?.verseKey}</div>
-								</div>
-								<div class="rounded-lg border border-color bg-secondary p-3 text-xs">
-									<div class="mb-1 font-medium text-accent-primary">End verse</div>
-									<div class="text-thirdly">{advancedCandidates[endIndex]?.verseKey}</div>
-								</div>
-							</div>
-						</div>
+						<VerseRangeSelector
+							totalItems={getTotalVerses()}
+							bind:startIndex
+							bind:endIndex
+							startVerseKey={advancedCandidates[startIndex]?.verseKey || 'N/A'}
+							endVerseKey={advancedCandidates[endIndex]?.verseKey || 'N/A'}
+							selectionLabel="Select verse range to process:"
+							selectionHint=""
+							onRangeChange={refreshBatchPreview}
+						/>
 					{/if}
 
 					<div class="rounded-xl border border-color bg-accent p-4">
@@ -755,41 +706,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.range-slider {
-		pointer-events: none;
-	}
-
-	.range-slider::-webkit-slider-thumb {
-		appearance: none;
-		width: 18px;
-		height: 18px;
-		border-radius: 9999px;
-		background: var(--accent-primary);
-		border: 3px solid var(--bg-primary);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-		cursor: pointer;
-		pointer-events: all;
-	}
-
-	.range-slider::-moz-range-thumb {
-		width: 18px;
-		height: 18px;
-		border: 3px solid var(--bg-primary);
-		border-radius: 9999px;
-		background: var(--accent-primary);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-		cursor: pointer;
-		pointer-events: all;
-	}
-
-	.range-slider::-moz-range-track {
-		height: 8px;
-		background: transparent;
-	}
-
-	.range-slider:focus {
-		outline: none;
-	}
-</style>

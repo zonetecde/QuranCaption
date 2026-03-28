@@ -5,6 +5,7 @@
 	import ClickableLink from '$lib/components/home/ClickableLink.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import AdvancedAITrimmingTab from './AdvancedAITrimmingTab.svelte';
+	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -686,97 +687,14 @@
 
 				<!-- Range Selection Section -->
 				{#if totalVerses > 1}
-					<div class="space-y-3">
-						<div class="flex items-center gap-2">
-							<span class="material-icons text-accent text-lg">tune</span>
-							<h3 class="text-lg font-semibold text-primary">Verse Selection</h3>
-							<span class="bg-accent px-2 py-1 rounded-md text-xs font-semibold">
-								{totalVerses} verses found
-							</span>
-						</div>
-						<div class="bg-accent border border-color rounded-lg p-4">
-							<div class="mb-4">
-								<div class="flex items-center justify-between mb-2">
-									<p class="text-sm font-medium text-secondary">
-										Select verse range to include in prompt: <span class="italic"
-											>(in case prompt is too long)</span
-										>
-									</p>
-									<div class="text-sm text-primary font-mono">
-										Indices {startIndex} to {endIndex} ({endIndex - startIndex + 1} verses)
-									</div>
-								</div>
-
-								<!-- Custom dual-handle slider -->
-								<div class="relative mt-6 mb-6">
-									<!-- Track background -->
-									<div class="w-full h-2 bg-secondary rounded-full relative">
-										<!-- Active track between handles -->
-										<div
-											class="absolute h-2 bg-accent-primary rounded-full"
-											style="left: {(startIndex / Math.max(1, totalVerses - 1)) *
-												100}%; width: {((endIndex - startIndex) / Math.max(1, totalVerses - 1)) *
-												100}%;"
-										></div>
-									</div>
-
-									<!-- Start handle -->
-									<input
-										type="range"
-										min="0"
-										max={totalVerses - 1}
-										bind:value={startIndex}
-										oninput={(e) => {
-											//@ts-ignore
-											const newStart = parseInt(e.target.value);
-											if (newStart > endIndex) {
-												endIndex = newStart;
-											}
-											startIndex = newStart;
-											updatePromptWithRange();
-										}}
-										class="absolute top-0 w-full h-2 appearance-none bg-transparent cursor-pointer range-slider"
-									/>
-
-									<!-- End handle -->
-									<input
-										type="range"
-										min="0"
-										max={totalVerses - 1}
-										bind:value={endIndex}
-										oninput={(e) => {
-											//@ts-ignore
-											const newEnd = parseInt(e.target.value);
-											if (newEnd < startIndex) {
-												startIndex = newEnd;
-											}
-											endIndex = newEnd;
-											updatePromptWithRange();
-										}}
-										class="absolute top-0 w-full h-2 appearance-none bg-transparent cursor-pointer range-slider"
-									/>
-								</div>
-
-								<!-- Verse preview -->
-								<div class="grid grid-cols-2 gap-4 text-xs">
-									<div class="bg-secondary border border-color rounded-lg p-3">
-										<div class="font-medium text-accent-primary mb-1">
-											Start: Index {startIndex}
-										</div>
-										<div class="text-thirdly">
-											Verse: {fullVerseArray[startIndex]?.verseKey || 'N/A'}
-										</div>
-									</div>
-									<div class="bg-secondary border border-color rounded-lg p-3">
-										<div class="font-medium text-accent-primary mb-1">End: Index {endIndex}</div>
-										<div class="text-thirdly">
-											Verse: {fullVerseArray[endIndex]?.verseKey || 'N/A'}
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+					<VerseRangeSelector
+						totalItems={totalVerses}
+						bind:startIndex
+						bind:endIndex
+						startVerseKey={fullVerseArray[startIndex]?.verseKey || 'N/A'}
+						endVerseKey={fullVerseArray[endIndex]?.verseKey || 'N/A'}
+						onRangeChange={updatePromptWithRange}
+					/>
 				{/if}
 
 				<!-- Prompt section -->
@@ -979,67 +897,6 @@
 	.bg-accent-primary:hover::before,
 	.bg-accent-secondary:hover::before {
 		left: 100%;
-	}
-
-	/* Custom dual-handle range slider styles */
-	.range-slider {
-		pointer-events: none;
-	}
-
-	.range-slider::-webkit-slider-thumb {
-		appearance: none;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: var(--accent-primary);
-		border: 3px solid var(--bg-primary);
-		cursor: pointer;
-		pointer-events: all;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-		transition: all 0.2s ease;
-		position: relative;
-		z-index: 2;
-	}
-
-	.range-slider::-webkit-slider-thumb:hover {
-		transform: scale(1.1);
-		box-shadow: 0 3px 8px rgba(88, 166, 255, 0.4);
-	}
-
-	.range-slider::-webkit-slider-thumb:active {
-		transform: scale(1.05);
-		box-shadow: 0 1px 4px rgba(88, 166, 255, 0.6);
-	}
-
-	.range-slider::-moz-range-thumb {
-		appearance: none;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: var(--accent-primary);
-		border: 3px solid var(--bg-primary);
-		cursor: pointer;
-		pointer-events: all;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-		transition: all 0.2s ease;
-	}
-
-	.range-slider::-moz-range-thumb:hover {
-		transform: scale(1.1);
-		box-shadow: 0 3px 8px rgba(88, 166, 255, 0.4);
-	}
-
-	.range-slider::-moz-range-track {
-		background: transparent;
-		height: 8px;
-	}
-
-	.range-slider:focus {
-		outline: none;
-	}
-
-	.range-slider:focus::-webkit-slider-thumb {
-		box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
 	}
 
 	.tab-button {

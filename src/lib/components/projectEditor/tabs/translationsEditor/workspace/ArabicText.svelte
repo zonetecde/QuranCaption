@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
-	import { Quran } from '$lib/classes/Quran';
-	let { subtitle } = $props();
+
+	let {
+		subtitle,
+		overlapEndWordIndex = null
+	}: {
+		subtitle: SubtitleClip | PredefinedSubtitleClip;
+		overlapEndWordIndex?: number | null;
+	} = $props();
 </script>
 
 {#if subtitle instanceof SubtitleClip}
@@ -10,8 +16,11 @@
 	<div class="text-3xl flex flex-row arabic text-right gap-x-2 flex-wrap gap-y-2" dir="rtl">
 		{#each words as word, i}
 			{@const wordIndex = subtitle.startWordIndex + i}
+			{@const isOverlapWord = overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex}
 			<div
-				class="word group flex flex-col items-center gap-y-2 relative"
+				class="word group flex flex-col items-center gap-y-2 relative {isOverlapWord
+					? 'text-purple-200 decoration-purple-400/60 underline underline-offset-4'
+					: ''}"
 				role="button"
 				tabindex="0"
 			>
@@ -31,7 +40,16 @@
 	</div>
 
 	<p class="text-sm text-thirdly text-left mt-1">
-		{subtitle.wbwTranslation.join(' ')}
+		{#each subtitle.wbwTranslation as word, i}
+			{@const wordIndex = subtitle.startWordIndex + i}
+			<span
+				class={overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex
+					? 'text-purple-200 decoration-purple-400/60 underline underline-offset-2'
+					: ''}
+			>
+				{word}
+			</span>{' '}
+		{/each}
 	</p>
 {:else if subtitle instanceof PredefinedSubtitleClip}
 	<p class="text-3xl arabic text-right" dir="rtl">{subtitle.text}</p>

@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import {
 		PredefinedSubtitleClip,
 		SubtitleClip,
@@ -58,6 +58,34 @@
 		}
 
 		return currentClip.startWordIndex <= previousClip.endWordIndex;
+	}
+
+	/**
+	 * Récupère la fin de l'overlap arabe avec le clip précédent.
+	 * @param {number} currentIndex L'indice du clip actuel.
+	 *
+	 * @example
+	 */
+	function getArabicOverlapEndWithPrevious(currentIndex: number): number | null {
+		const currentClip = globalState.getSubtitleTrack.clips[currentIndex];
+		if (!(currentClip instanceof SubtitleClip)) return null;
+
+		const previousClip = globalState.getSubtitleTrack.getSubtitleBefore(currentIndex);
+		if (!(previousClip instanceof SubtitleClip)) return null;
+
+		if (currentClip.surah !== previousClip.surah || currentClip.verse !== previousClip.verse) {
+			return null;
+		}
+
+		if (
+			currentClip.startWordIndex < previousClip.startWordIndex ||
+			currentClip.startWordIndex > previousClip.endWordIndex
+		) {
+			return null;
+		}
+
+		// Récupère la fin de l'overlap arabe avec le clip précédent.
+		return Math.min(currentClip.endWordIndex, previousClip.endWordIndex);
 	}
 
 	function mergeEditions(existing: string[] | undefined, incoming: string[]): string[] {
@@ -337,7 +365,12 @@
 								{@const _clipIndex = clipIndex}
 								<!-- clipIndex est l'index réel dans clips -->
 								<section class="relative">
-									<ArabicText subtitle={globalState.getSubtitleTrack.clips[_clipIndex]} />
+									<ArabicText
+										subtitle={globalState.getSubtitleTrack.clips[_clipIndex] as
+											| SubtitleClip
+											| PredefinedSubtitleClip}
+										overlapEndWordIndex={getArabicOverlapEndWithPrevious(_clipIndex)}
+									/>
 									{#each editionsToShowInEditor() as edition}
 										{#key edition.name}
 											<Translation

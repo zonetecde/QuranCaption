@@ -52,8 +52,7 @@
 			const previousSubtitleTranslation = previousSubtitle.getTranslation(
 				edition
 			) as VerseTranslation;
-			const isTranslationLocked =
-				translation().status === 'reviewed' || translation().status === 'fetched';
+			const isTranslationLocked = translation().isStatusComplete();
 
 			// Met à jour les indices de début et de fin de la traduction du sous-titre précédent
 			if (

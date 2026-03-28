@@ -581,52 +581,48 @@
 			</button>
 		</div>
 	</div>
-	<!-- Instructions section - Collapsible -->
-	<div class="px-6 py-3 border-b border-color bg-primary">
-		<button
-			class="w-full bg-accent border border-color rounded-lg p-3 transition-all duration-200 hover:bg-[rgba(88,166,255,0.1)]"
-			onclick={() =>
-				(globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions =
-					!globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions)}
-		>
-			<div class="flex items-center justify-between">
-				<div class="flex items-center gap-3">
-					<div
-						class="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0"
-					>
-						<span class="material-icons text-white text-sm">info</span>
-					</div>
-					<div class="text-left">
-						<h3 class="text-sm font-semibold text-primary">
-							{activeTab === 'legacy'
-								? 'How to use Legacy AI Mapping'
-								: 'How to use Advanced AI Trimming'}
-						</h3>
-						<p class="text-xs text-thirdly">
-							Click to {globalState.currentProject!.projectEditorState.translationsEditor
-								.showAIInstructions
-								? 'hide'
-								: 'show'} detailed instructions
-						</p>
-					</div>
-				</div>
-				<span
-					class="material-icons text-secondary transition-transform duration-200 {globalState
-						.currentProject!.projectEditorState.translationsEditor.showAIInstructions
-						? 'rotate-180'
-						: ''}"
-				>
-					expand_more
-				</span>
-			</div>
-		</button>
-
-		{#if globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions}
-			<div
-				class="mt-3 p-4 bg-secondary border border-color rounded-lg"
-				transition:slide={{ duration: 200 }}
+	<!-- Instructions section - Legacy only -->
+	{#if activeTab === 'legacy'}
+		<div class="px-6 py-3 border-b border-color bg-primary">
+			<button
+				class="w-full bg-accent border border-color rounded-lg p-3 transition-all duration-200 hover:bg-[rgba(88,166,255,0.1)]"
+				onclick={() =>
+					(globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions =
+						!globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions)}
 			>
-				{#if activeTab === 'legacy'}
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<div
+							class="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0"
+						>
+							<span class="material-icons text-white text-sm">info</span>
+						</div>
+						<div class="text-left">
+							<h3 class="text-sm font-semibold text-primary">How to use Legacy AI Mapping</h3>
+							<p class="text-xs text-thirdly">
+								Click to {globalState.currentProject!.projectEditorState.translationsEditor
+									.showAIInstructions
+									? 'hide'
+									: 'show'} detailed instructions
+							</p>
+						</div>
+					</div>
+					<span
+						class="material-icons text-secondary transition-transform duration-200 {globalState
+							.currentProject!.projectEditorState.translationsEditor.showAIInstructions
+							? 'rotate-180'
+							: ''}"
+					>
+						expand_more
+					</span>
+				</div>
+			</button>
+
+			{#if globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions}
+				<div
+					class="mt-3 p-4 bg-secondary border border-color rounded-lg"
+					transition:slide={{ duration: 200 }}
+				>
 					<div class="space-y-2 text-sm text-secondary">
 						<div class="flex items-start gap-2">
 							<span
@@ -662,41 +658,10 @@
 							<p>Click "Apply Translations" to update your subtitles</p>
 						</div>
 					</div>
-				{:else}
-					<div class="space-y-2 text-sm text-secondary">
-						<div class="flex items-start gap-2">
-							<span
-								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-								>1</span
-							>
-							<p>Set your OpenAI API key, model, reasoning effort, and verse range.</p>
-						</div>
-						<div class="flex items-start gap-2">
-							<span
-								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-								>2</span
-							>
-							<p>Review the estimated batches and approximate API cost.</p>
-						</div>
-						<div class="flex items-start gap-2">
-							<span
-								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-								>3</span
-							>
-							<p>Run the batches and watch the live activity / streamed response.</p>
-						</div>
-						<div class="flex items-start gap-2">
-							<span
-								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-								>4</span
-							>
-							<p>Validated verses are applied automatically; invalid ones are skipped.</p>
-						</div>
-					</div>
-				{/if}
-			</div>
-		{/if}
-	</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 	<!-- Content area -->
 	<div class="flex-1 overflow-hidden flex flex-col">
 		<div class="flex-1 overflow-y-auto px-6 py-4 space-y-6">

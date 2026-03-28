@@ -449,27 +449,22 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 	predefinedSubtitleType: PredefinedSubtitleType = $state('Other');
 
 	constructor(
-		startTime: number,
-		endTime: number,
-		type: PredefinedSubtitleType,
-		text?: string,
+		startTime: number = 0,
+		endTime: number = 0,
+		type: PredefinedSubtitleType = 'Other',
+		text: string = '',
 		comeFromIA: boolean = false,
 		confidence: number | null = null
 	) {
+		const isDeserializationCall = arguments.length === 0;
 		const canonicalType = canonicalizePredefinedSubtitleType(type);
-		const _text = canonicalType === 'Other' ? text || '' : getPredefinedArabicText(canonicalType);
-
-		if (startTime === undefined) {
-			// Deserialisation
-			super(_text, 0, 0, 'Pre-defined Subtitle');
-			return;
-		}
+		const _text = canonicalType === 'Other' ? text : getPredefinedArabicText(canonicalType);
 
 		// Ajoute les traductions du clip
 		const translations: { [key: string]: Translation } = {};
 
 		// Recupere les traductions ajoutees au projet
-		if (globalState.currentProject)
+		if (!isDeserializationCall && globalState.currentProject)
 			for (const edition of globalState.getProjectTranslation.addedTranslationEditions) {
 				translations[edition.name] =
 					globalState.getProjectTranslation.getPredefinedSubtitleTranslation(
@@ -522,7 +517,7 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 export class CustomClip extends Clip {
 	category: Category | undefined = $state(undefined);
 
-	constructor(startTime: number, endTime: number, type: 'text' | 'image', category: Category) {
+	constructor(startTime: number, endTime: number, type: 'text' | 'image', category?: Category) {
 		super(startTime, endTime, 'Custom Text');
 		this.type = type === 'text' ? 'Custom Text' : 'Custom Image';
 		this.category = category;
@@ -558,15 +553,9 @@ export class CustomClip extends Clip {
 }
 
 export class CustomTextClip extends CustomClip {
-	constructor(category: Category) {
-		// Déserialization
-		if (category === undefined) {
-			super(0, 0, 'text', category);
-			return;
-		}
-
-		const startTime = category.getStyle('time-appearance')!.value as number;
-		const endTime = category.getStyle('time-disappearance')!.value as number;
+	constructor(category?: Category) {
+		const startTime = (category?.getStyle('time-appearance')!.value as number) ?? 0;
+		const endTime = (category?.getStyle('time-disappearance')!.value as number) ?? 0;
 
 		super(startTime, endTime, 'text', category);
 		this.category = category;
@@ -578,15 +567,9 @@ export class CustomTextClip extends CustomClip {
 }
 
 export class CustomImageClip extends CustomClip {
-	constructor(category: Category) {
-		// Déserialization
-		if (category === undefined) {
-			super(0, 0, 'image', category);
-			return;
-		}
-
-		const startTime = category.getStyle('time-appearance')!.value as number;
-		const endTime = category.getStyle('time-disappearance')!.value as number;
+	constructor(category?: Category) {
+		const startTime = (category?.getStyle('time-appearance')!.value as number) ?? 0;
+		const endTime = (category?.getStyle('time-disappearance')!.value as number) ?? 0;
 
 		super(startTime, endTime, 'image', category);
 		this.category = category;

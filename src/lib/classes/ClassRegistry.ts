@@ -18,6 +18,7 @@ import { Project } from './Project';
 import { ProjectDetail } from './ProjectDetail.svelte';
 import {
 	ProjectEditorState,
+	ExportState,
 	StylesEditorState,
 	SubtitlesEditorState,
 	TimelineState,
@@ -75,6 +76,7 @@ export function initializeClassRegistry() {
 	SerializableBase.registerClass('SubtitlesEditorState', SubtitlesEditorState);
 	SerializableBase.registerClass('TimelineState', TimelineState);
 	SerializableBase.registerClass('StylesEditorState', StylesEditorState);
+	SerializableBase.registerClass('ExportState', ExportState);
 	// Classes de traduction
 	SerializableBase.registerClass('ProjectTranslation', ProjectTranslation);
 	SerializableBase.registerClass('Translation', Translation);

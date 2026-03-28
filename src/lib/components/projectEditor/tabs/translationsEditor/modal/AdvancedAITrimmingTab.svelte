@@ -99,15 +99,15 @@
 	): void {
 		activityCounter += 1;
 		activityLog = [
-			...activityLog,
 			{
 				id: `activity-${activityCounter}`,
 				batchId,
 				step,
 				message,
 				tone
-			}
-		].slice(-80);
+			},
+			...activityLog
+		].slice(0, 80);
 	}
 
 	function clampRange(resetToFullRange: boolean = false): void {
@@ -539,8 +539,8 @@
 					<div class="rounded-xl border border-color bg-accent p-4">
 						<div class="mb-3 flex items-center justify-between">
 							<div class="flex items-center gap-2">
-								<span class="material-icons text-accent-primary">stream</span>
-								<h3 class="text-lg font-semibold text-primary">Live Response</h3>
+								<span class="material-icons text-accent-primary">monitoring</span>
+								<h3 class="text-lg font-semibold text-primary">Live Activity & Response</h3>
 							</div>
 							<button
 								class="btn px-3 py-1.5 text-xs"
@@ -550,46 +550,57 @@
 								}}
 								disabled={!streamedResponse}
 							>
-								Copy
+								Copy Response
 							</button>
 						</div>
-						<textarea
-							readonly
-							bind:value={streamedResponse}
-							class="h-48 w-full resize-none rounded-lg border border-color bg-secondary p-3 font-mono text-xs leading-relaxed text-primary"
-							placeholder="Streaming response will appear here..."
-						></textarea>
-					</div>
 
-					<div class="rounded-xl border border-color bg-accent p-4">
-						<div class="mb-3 flex items-center gap-2">
-							<span class="material-icons text-accent-primary">history</span>
-							<h3 class="text-lg font-semibold text-primary">Live Activity</h3>
+						<div class="rounded-lg border border-color bg-secondary p-3">
+							<div
+								class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
+							>
+								<span class="material-icons text-sm">stream</span>
+								<span>Current streamed response</span>
+							</div>
+							<textarea
+								readonly
+								bind:value={streamedResponse}
+								class="h-40 w-full resize-none rounded-lg border border-color bg-[var(--bg-primary)] p-3 font-mono text-xs leading-relaxed text-primary"
+								placeholder="Streaming response will appear here..."
+							></textarea>
 						</div>
 
-						<div class="max-h-72 space-y-2 overflow-y-auto pr-1">
-							{#if activityLog.length === 0}
-								<div
-									class="rounded-lg border border-dashed border-color bg-secondary p-3 text-sm text-thirdly"
-								>
-									No activity yet.
-								</div>
-							{:else}
-								{#each activityLog as entry}
+						<div class="mt-4">
+							<div
+								class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
+							>
+								<span class="material-icons text-sm">history</span>
+								<span>Recent activity</span>
+							</div>
+
+							<div class="max-h-72 space-y-2 overflow-y-auto pr-1">
+								{#if activityLog.length === 0}
 									<div
-										class="rounded-lg border px-3 py-2 text-xs {entry.tone === 'error'
-											? 'border-red-500/30 bg-red-500/10 text-red-200'
-											: entry.tone === 'success'
-												? 'border-green-500/30 bg-green-500/10 text-green-200'
-												: 'border-color bg-secondary text-secondary'}"
+										class="rounded-lg border border-dashed border-color bg-secondary p-3 text-sm text-thirdly"
 									>
-										<div class="mb-1 font-semibold uppercase tracking-wide text-[11px]">
-											{entry.step}
-										</div>
-										<div>{entry.message}</div>
+										No activity yet.
 									</div>
-								{/each}
-							{/if}
+								{:else}
+									{#each activityLog as entry}
+										<div
+											class="rounded-lg border px-3 py-2 text-xs {entry.tone === 'error'
+												? 'border-red-500/30 bg-red-500/10 text-red-200'
+												: entry.tone === 'success'
+													? 'border-green-500/30 bg-green-500/10 text-green-200'
+													: 'border-color bg-secondary text-secondary'}"
+										>
+											<div class="mb-1 font-semibold uppercase tracking-wide text-[11px]">
+												{entry.step}
+											</div>
+											<div>{entry.message}</div>
+										</div>
+									{/each}
+								{/if}
+							</div>
 						</div>
 					</div>
 

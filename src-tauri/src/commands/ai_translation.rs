@@ -20,6 +20,8 @@ Rules:
 - Each segment may include a word-by-word English helper for the Arabic. Use it only to understand the Arabic segment better.
 - Keep essential function words with the phrase when needed for local meaning: articles, pronouns, auxiliaries, conjunctions, prepositions, particles.
 - Avoid unnatural cuts like `reply,` if `they reply,` is the smallest natural phrase.
+- Some source translations contain words wrapped in `˹ ˺`. These words are part of the translation and must be preserved in the final output when they appear in the source.
+- Do not treat words inside `˹ ˺` as optional commentary or removable asides.
 - Never introduce a helper word unless that same word already exists in the provided source translation.
 - Do not invent any word that does not exist in the source translation.
 - Return JSON only, matching the schema exactly.
@@ -230,6 +232,7 @@ fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, String>
          Respect overlap/repetition in the recitation when needed.\n\
          Pay special attention to overlapping Arabic segments: when a word or phrase is repeated across two segments, keep the corresponding translated overlap in both outputs when natural.\n\
          Keep each segment natural in the target language while using only words from the source translation.\n\
+         If the source translation contains words wrapped in ˹ ˺, keep them in the final trimmed output wherever they belong. They are part of the translation, not removable side comments.\n\
          Each segment also includes a wordByWordEnglish helper array for Arabic understanding only.\n\n\
          Batch JSON:\n{}",
         batch_json

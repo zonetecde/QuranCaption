@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Edition } from '$lib/classes';
 	import Settings from '$lib/classes/Settings.svelte';
-	import ModalManager from '$lib/components/modals/ModalManager';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -48,6 +47,16 @@
 		rawText: string;
 		usage?: AdvancedTrimUsage;
 	};
+	type LatestRunStats = {
+		totalBatches: number;
+		successfulBatches: number;
+		failedBatches: number;
+		aiSetSegments: number;
+		aiErrorSegments: number;
+		cleanVerses: number;
+		versesWithIssues: number;
+		rejectedVerses: number;
+	};
 
 	let { edition }: { edition: Edition } = $props();
 
@@ -78,7 +87,7 @@
 	let currentBatchVerseKeys: string = $state('');
 	let streamedResponse: string = $state('');
 	let latestSummary: string = $state('');
-	let latestErrorLog: string = $state('');
+	let latestRunStats: LatestRunStats | null = $state(null);
 	let activityLog: ActivityEntry[] = $state([]);
 	let batchUsageById: Record<string, AdvancedTrimUsage> = $state({});
 	let showOpenAISettings: boolean = $state(false);
@@ -187,7 +196,7 @@
 		currentBatchVerseKeys = '';
 		streamedResponse = '';
 		latestSummary = '';
-		latestErrorLog = '';
+		latestRunStats = null;
 		activityLog = [];
 		batchUsageById = {};
 		activeBatchIds = new Set<string>();
@@ -267,6 +276,9 @@
 
 		const reportLines: string[] = [];
 		let blockingFailure = false;
+		let totalAiSetSegments = 0;
+		let totalAiErrorSegments = 0;
+		let totalRejectedVerses = 0;
 
 		for (let batchIndex = 0; batchIndex < advancedBatches.length; batchIndex++) {
 			const batch = advancedBatches[batchIndex];
@@ -306,6 +318,9 @@
 
 				successfulVerses += applyReport.alignedVerses;
 				failedVerses += validationFailedVerses + applyReport.erroredVerses;
+				totalAiSetSegments += applyReport.appliedSegments;
+				totalAiErrorSegments += applyReport.erroredSegments;
+				totalRejectedVerses += validationFailedVerses;
 
 				if (applyReport.alignedVerses > 0) {
 					addActivity(
@@ -366,8 +381,17 @@
 		isRunning = false;
 		activeBatchIds = new Set<string>();
 		currentBatchStep = blockingFailure ? 'failed' : 'idle';
-		latestErrorLog = reportLines.join('\n');
-		latestSummary = `Applied ${successfulVerses} verse(s) across ${successfulBatches} fully valid batch(es).`;
+		latestRunStats = {
+			totalBatches: advancedBatches.length,
+			successfulBatches,
+			failedBatches,
+			aiSetSegments: totalAiSetSegments,
+			aiErrorSegments: totalAiErrorSegments,
+			cleanVerses: successfulVerses,
+			versesWithIssues: failedVerses,
+			rejectedVerses: totalRejectedVerses
+		};
+		latestSummary = `${successfulBatches}/${advancedBatches.length} batch(es) were fully successful. ${totalAiSetSegments} segment(s) were set by AI, ${totalAiErrorSegments} segment(s) were marked AI Error and need review, and ${failedVerses} verse(s) had issues overall.`;
 
 		AnalyticsService.trackAIUsage('translation', {
 			range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
@@ -388,14 +412,12 @@
 			edition_language: edition.language
 		});
 
-		if (reportLines.length > 0) {
-			await ModalManager.errorModal(
-				'Advanced AI trimming finished with issues',
-				`${latestSummary} ${failedVerses} verse(s) were skipped.`,
-				latestErrorLog
-			);
-		} else {
+		if (reportLines.length === 0) {
 			toast.success(`${latestSummary} ${getActualUsageSummary()}.`);
+		} else {
+			toast(`${latestSummary} Check the activity log for details.`, {
+				duration: 6000
+			});
 		}
 	}
 
@@ -428,6 +450,61 @@
 		</div>
 	{:else}
 		<div class="space-y-4">
+			{#if latestRunStats}
+				<div class="rounded-xl border border-[var(--accent-primary)]/35 bg-accent p-4">
+					<div class="flex items-center gap-2">
+						<span class="material-icons text-accent-primary">summarize</span>
+						<h3 class="text-lg font-semibold text-primary">Latest Run Recap</h3>
+					</div>
+					<div class="mt-2 text-sm text-secondary">{latestSummary}</div>
+
+					<div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+						<div class="rounded-lg border border-color bg-secondary p-3">
+							<div class="text-xs uppercase tracking-wide text-thirdly">
+								Fully Successful Batches
+							</div>
+							<div class="mt-1 text-xl font-semibold text-primary">
+								{latestRunStats.successfulBatches}/{latestRunStats.totalBatches}
+							</div>
+						</div>
+						<div class="rounded-lg border border-color bg-secondary p-3">
+							<div class="text-xs uppercase tracking-wide text-thirdly">Segments Set By AI</div>
+							<div class="mt-1 text-xl font-semibold text-primary">
+								{latestRunStats.aiSetSegments}
+							</div>
+						</div>
+						<div class="rounded-lg border border-color bg-secondary p-3">
+							<div class="text-xs uppercase tracking-wide text-thirdly">
+								AI Error Segments To Review
+							</div>
+							<div class="mt-1 text-xl font-semibold text-red-200">
+								{latestRunStats.aiErrorSegments}
+							</div>
+						</div>
+						<div class="rounded-lg border border-color bg-secondary p-3">
+							<div class="text-xs uppercase tracking-wide text-thirdly">
+								Rejected Verses At Validation
+							</div>
+							<div class="mt-1 text-xl font-semibold text-primary">
+								{latestRunStats.rejectedVerses}
+							</div>
+						</div>
+					</div>
+
+					<div class="mt-3 grid gap-3 md:grid-cols-2">
+						<div class="rounded-lg border border-color bg-secondary p-3 text-sm text-secondary">
+							<span class="font-semibold text-primary">{latestRunStats.cleanVerses}</span>
+							verse(s) were applied cleanly as `AI Trimmed`.
+						</div>
+						<div class="rounded-lg border border-color bg-secondary p-3 text-sm text-secondary">
+							<span class="font-semibold text-primary">{latestRunStats.versesWithIssues}</span>
+							verse(s) had validation or remapping issues. Check the activity log below for the exact
+							reason.
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			<div class="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
 				<div class="space-y-4">
 					{#if getTotalVerses() > 1}
@@ -597,18 +674,6 @@
 							</div>
 						</div>
 					</div>
-
-					{#if latestSummary}
-						<div class="rounded-xl border border-[var(--accent-primary)]/35 bg-accent p-4">
-							<div class="text-sm font-semibold text-primary">Last run summary</div>
-							<div class="mt-1 text-sm text-secondary">{latestSummary}</div>
-							{#if latestErrorLog}
-								<div class="mt-2 text-xs text-thirdly">
-									Some verses were skipped. Check the activity log for details.
-								</div>
-							{/if}
-						</div>
-					{/if}
 				</div>
 			</div>
 

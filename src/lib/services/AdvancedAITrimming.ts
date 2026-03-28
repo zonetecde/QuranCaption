@@ -10,6 +10,7 @@ export type AdvancedTrimReasoningEffort = 'none' | 'low' | 'medium' | 'high';
 export type AdvancedTrimSegment = {
 	i: number;
 	arabic: string;
+	wordByWordEnglish: string[];
 	subtitle: SubtitleClip;
 };
 
@@ -29,6 +30,7 @@ export type AdvancedTrimBatchVersePayload = {
 	segments: Array<{
 		i: number;
 		arabic: string;
+		wordByWordEnglish: string[];
 	}>;
 };
 
@@ -166,7 +168,8 @@ function buildRequestPayload(verses: AdvancedTrimVerseCandidate[]): {
 			translation: verse.sourceTranslation,
 			segments: verse.segments.map((segment) => ({
 				i: segment.i,
-				arabic: segment.arabic
+				arabic: segment.arabic,
+				wordByWordEnglish: segment.wordByWordEnglish
 			}))
 		}))
 	};
@@ -243,6 +246,7 @@ export function buildAdvancedTrimVerseCandidates(
 			const segments = entry.subtitles.map((subtitle, segmentIndex) => ({
 				i: segmentIndex,
 				arabic: subtitle.text,
+				wordByWordEnglish: subtitle.wbwTranslation ?? [],
 				subtitle
 			}));
 			const isAlreadyReviewed = isVerseAlreadyReviewed(entry.subtitles, edition);

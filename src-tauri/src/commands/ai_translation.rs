@@ -15,8 +15,10 @@ Rules:
 - The global order may change when the recitation repeats, overlaps, or returns to an earlier clause.
 - Overlap between segments is allowed when needed for fidelity or natural phrasing.
 - Each segment must sound natural and complete in the target language.
+- Each segment may include a word-by-word English helper for the Arabic. Use it only to understand the Arabic segment better.
 - Keep essential function words with the phrase when needed for local meaning: articles, pronouns, auxiliaries, conjunctions, prepositions, particles.
 - Avoid unnatural cuts like `reply,` if `they reply,` is the smallest natural phrase.
+- Never introduce a helper word unless that same word already exists in the provided source translation.
 - Do not invent any word that does not exist in the source translation.
 - Return JSON only, matching the schema exactly.
 "#;
@@ -50,6 +52,7 @@ pub struct AdvancedTrimVersePayload {
 pub struct AdvancedTrimSegmentPayload {
     i: i32,
     arabic: String,
+    word_by_word_english: Vec<String>,
 }
 
 #[derive(Default)]
@@ -223,7 +226,8 @@ fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, String>
     Ok(format!(
         "Trim this batch of verses and return JSON only.\n\
          Respect overlap/repetition in the recitation when needed.\n\
-         Keep each segment natural in the target language while using only words from the source translation.\n\n\
+         Keep each segment natural in the target language while using only words from the source translation.\n\
+         Each segment also includes a wordByWordEnglish helper array for Arabic understanding only.\n\n\
          Batch JSON:\n{}",
         batch_json
     ))
@@ -292,7 +296,15 @@ pub async fn run_advanced_ai_trim_batch_streaming(
                 + verse
                     .segments
                     .iter()
-                    .map(|segment| segment.arabic.len() + segment.i.unsigned_abs() as usize)
+                    .map(|segment| {
+                        segment.arabic.len()
+                            + segment.i.unsigned_abs() as usize
+                            + segment
+                                .word_by_word_english
+                                .iter()
+                                .map(|word| word.len())
+                                .sum::<usize>()
+                    })
                     .sum::<usize>()
         })
         .sum();

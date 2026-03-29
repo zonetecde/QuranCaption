@@ -1250,7 +1250,7 @@ export async function runAutoSegmentation(
 	const allowCloudFallbackEffective: boolean = allowCloudFallback && requestedMode !== 'local';
 	let effectiveMode: SegmentationMode = requestedMode;
 	let fallbackToCloud = false;
-	let cloudGpuFallbackToCpu = false;
+	const cloudGpuFallbackToCpu = false;
 	console.log(
 		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device} allowCloudFallback=${allowCloudFallbackEffective}`
 	);

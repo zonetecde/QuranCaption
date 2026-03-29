@@ -821,14 +821,14 @@ export class VideoStyle extends SerializableBase {
 	private mergeMissingStylesForTarget(target: string, defaultCategoriesRaw: any[]): boolean {
 		let hasChanges = false;
 
-		let targetStyles = this.styles.find((s) => s.target === target);
+		const targetStyles = this.styles.find((s) => s.target === target);
 		if (!targetStyles) {
 			this.styles.push(new StylesData(target, defaultCategoriesRaw));
 			return true;
 		}
 
 		for (const defaultCategoryRaw of defaultCategoriesRaw) {
-			let targetCategory = targetStyles.categories.find((c) => c.id === defaultCategoryRaw.id);
+			const targetCategory = targetStyles.categories.find((c) => c.id === defaultCategoryRaw.id);
 
 			if (!targetCategory) {
 				targetStyles.categories.push(new Category(defaultCategoryRaw));

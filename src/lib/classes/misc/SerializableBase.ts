@@ -4,10 +4,10 @@
 type SerializableDictionary = Record<string, unknown>;
 
 type RegisteredSerializableClass<T extends SerializableBase = SerializableBase> = {
-	new (): T;
 	fromJSON(data: SerializableDictionary): T;
 	__className?: string;
 	name: string;
+	prototype: T;
 };
 
 const hasClassName = (value: unknown): value is SerializableDictionary & { __className: string } =>
@@ -86,7 +86,7 @@ export class SerializableBase {
 			let className: string | null = null;
 
 			for (const [registeredName, registeredClass] of SerializableBase.__classRegistry.entries()) {
-				if (obj.constructor === registeredClass) {
+				if ((obj.constructor as unknown) === registeredClass) {
 					className = registeredName;
 					break;
 				}
@@ -158,9 +158,11 @@ export class SerializableBase {
 			className && SerializableBase.__classRegistry.has(className)
 				? SerializableBase.__classRegistry.get(className)
 				: undefined;
-		const targetClass = hasFromJSON<T>(registeredClass) ? registeredClass : this;
+		const targetClass = (hasFromJSON<T>(registeredClass) ? registeredClass : this) as
+			RegisteredSerializableClass<T>;
 
-		const instance = new targetClass() as T & SerializableDictionary;
+		const instance = Object.create(targetClass.prototype) as T;
+		const writableInstance = instance as unknown as SerializableDictionary;
 		const childClasses = SerializableBase.__childClasses.get(targetClass.name);
 
 		for (const key in data) {
@@ -172,7 +174,7 @@ export class SerializableBase {
 			if (childClasses?.has(key)) {
 				const childClass = childClasses.get(key);
 				if (Array.isArray(value)) {
-					instance[key] = value.map((item) => {
+					writableInstance[key] = value.map((item) => {
 						if (item && typeof item === 'object') {
 							if (hasClassName(item) && SerializableBase.__classRegistry.has(item.__className)) {
 								const itemClass = SerializableBase.__classRegistry.get(item.__className);
@@ -187,16 +189,16 @@ export class SerializableBase {
 				} else if (value && typeof value === 'object') {
 					if (hasClassName(value) && SerializableBase.__classRegistry.has(value.__className)) {
 						const itemClass = SerializableBase.__classRegistry.get(value.__className);
-						instance[key] = hasFromJSON(itemClass) ? itemClass.fromJSON(value) : value;
+						writableInstance[key] = hasFromJSON(itemClass) ? itemClass.fromJSON(value) : value;
 					} else if (childClass && hasFromJSON(childClass)) {
-						instance[key] = childClass.fromJSON(value as SerializableDictionary);
+						writableInstance[key] = childClass.fromJSON(value as SerializableDictionary);
 					} else {
-						instance[key] = value;
+						writableInstance[key] = value;
 					}
 				} else if (typeof value === 'string' && SerializableBase.isDateString(value)) {
-					instance[key] = new Date(value);
+					writableInstance[key] = new Date(value);
 				} else {
-					instance[key] = value;
+					writableInstance[key] = value;
 				}
 				continue;
 			}
@@ -204,12 +206,12 @@ export class SerializableBase {
 			if (value && typeof value === 'object' && !Array.isArray(value) && hasClassName(value)) {
 				if (SerializableBase.__classRegistry.has(value.__className)) {
 					const itemClass = SerializableBase.__classRegistry.get(value.__className);
-					instance[key] = hasFromJSON(itemClass) ? itemClass.fromJSON(value) : value;
+					writableInstance[key] = hasFromJSON(itemClass) ? itemClass.fromJSON(value) : value;
 				} else {
-					instance[key] = value;
+					writableInstance[key] = value;
 				}
 			} else if (Array.isArray(value)) {
-				instance[key] = value.map((item) => {
+				writableInstance[key] = value.map((item) => {
 					if (item && typeof item === 'object' && hasClassName(item)) {
 						if (SerializableBase.__classRegistry.has(item.__className)) {
 							const itemClass = SerializableBase.__classRegistry.get(item.__className);
@@ -247,11 +249,11 @@ export class SerializableBase {
 						}
 					}
 				}
-				instance[key] = deserializedDict;
+				writableInstance[key] = deserializedDict;
 			} else if (typeof value === 'string' && SerializableBase.isDateString(value)) {
-				instance[key] = new Date(value);
+				writableInstance[key] = new Date(value);
 			} else {
-				instance[key] = value;
+				writableInstance[key] = value;
 			}
 		}
 
@@ -285,7 +287,9 @@ export class SerializableBase {
 	 * Clone l'objet en passant par la serialisation/deserialisation.
 	 */
 	clone<T extends SerializableBase>(this: T): T {
-		const constructorFn = this.constructor as { fromJSON(data: SerializableDictionary): T };
+		const constructorFn = this.constructor as unknown as {
+			fromJSON(data: SerializableDictionary): T;
+		};
 		const data = this.toJSON();
 		return constructorFn.fromJSON(data);
 	}

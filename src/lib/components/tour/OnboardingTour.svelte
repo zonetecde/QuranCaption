@@ -456,7 +456,7 @@
 
 			<!-- Progress dots -->
 			<div class="flex items-center gap-1 mb-3">
-				{#each TOUR_STEPS as step, i (step.id)}
+				{#each TOUR_STEPS as _step, i (i)}
 					<div
 						class="rounded-full transition-all duration-300"
 						style="

@@ -91,7 +91,7 @@
 					keys: newKeys.filter((k): k is string => !!k)
 				}
 			}
-		};
+		} as typeof next.shortcuts;
 		globalState.settings = next;
 		void Settings.save();
 	}
@@ -115,7 +115,7 @@
 					keys: newKeys
 				}
 			}
-		};
+		} as typeof next.shortcuts;
 		globalState.settings = next;
 
 		// Si on a supprimé la 2e touche, referme le slot

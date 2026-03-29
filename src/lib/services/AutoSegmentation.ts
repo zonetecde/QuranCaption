@@ -1473,7 +1473,19 @@ export async function runNativeSegmentation(
 			}
 			const asset = globalState.currentProject?.content.getAssetById(clip.assetId);
 			if (asset?.metadata?.mp3Quran) {
-				mp3QuranMeta = asset.metadata.mp3Quran;
+				const meta = asset.metadata.mp3Quran as Partial<{
+					reciterId: number;
+					surahId: number;
+					moshafId?: number;
+				}>;
+				if (typeof meta.reciterId !== 'number' || typeof meta.surahId !== 'number') {
+					continue;
+				}
+				mp3QuranMeta = {
+					reciterId: meta.reciterId,
+					surahId: meta.surahId,
+					moshafId: meta.moshafId
+				};
 				targetClip = clip;
 				clipStartTime = clip.startTime;
 				clipOffset = getClipOffset(clip);

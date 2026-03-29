@@ -27,7 +27,7 @@
 	</div>
 
 	<nav class="space-y-2">
-		{#each wizard.steps as step, index (step.id)}
+		{#each wizard.steps as step, index (index)}
 			<button
 				type="button"
 				class="w-full rounded-xl border px-3 py-2 text-left transition-colors"

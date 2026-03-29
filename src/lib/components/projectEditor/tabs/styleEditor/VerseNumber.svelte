@@ -30,7 +30,7 @@
 
 	let verseNumberSettings = $derived(() => {
 		return {
-			show: globalState.getStyle('global', 'show-verse-number')!.value,
+			show: Boolean(globalState.getStyle('global', 'show-verse-number')!.value),
 
 			verticalPosition: globalState.getStyle('global', 'verse-number-vertical-position')!
 				.value as number,
@@ -40,7 +40,7 @@
 			verseNumberFormat: globalState.getStyle('global', 'verse-number-format')!.value as string,
 			opacity: globalState
 				.getStyle('global', 'verse-number-text-style')!
-				.getCompositeStyle('opacity')!.value
+				.getCompositeStyle('opacity')!.value as number
 		};
 	});
 

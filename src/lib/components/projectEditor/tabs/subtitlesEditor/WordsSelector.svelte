@@ -362,6 +362,10 @@
 
 			if (subtitlesEditorState().editSubtitle) {
 				const currentEdited = subtitlesEditorState().editSubtitle;
+				if (!(currentEdited instanceof ClipWithTranslation || currentEdited instanceof SubtitleClip)) {
+					globalState.getSubtitlesEditorState.editSubtitle = null;
+					return;
+				}
 				await subtitleTrack.editSubtitle(
 					currentEdited,
 					verse,
@@ -522,7 +526,7 @@
 	>
 		{#await selectedVerse() then verse}
 			{#if verse}
-				{#each verse.words as word, index (word.id ?? `${index}-${word.arabic}`)}
+				{#each verse.words as word, index (`${index}-${word.arabic}`)}
 					{@const isSelected =
 						index >= subtitlesEditorState().startWordIndex &&
 						index <= subtitlesEditorState().endWordIndex}

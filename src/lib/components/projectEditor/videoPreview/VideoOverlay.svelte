@@ -79,6 +79,7 @@ const fadeDuration = $derived(() => {
 	let currentSubtitleTranslations = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!subtitle) return [];
+		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip)) return [];
 		return subtitle.translations;
 	});
 
@@ -256,6 +257,7 @@ const fadeDuration = $derived(() => {
 	 */
 	$effect(() => {
 		(async () => {
+			const subtitlesContainer = document.getElementById('subtitles-container');
 			if (!currentSubtitle()) {
 				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';
@@ -277,7 +279,6 @@ const fadeDuration = $derived(() => {
 
 			// Cache tout les sous-titres pendant le recalcul pour éviter les sauts visuels
 			// sélectionne l'élément d'id subtitles-container
-			const subtitlesContainer = document.getElementById('subtitles-container');
 			if (subtitlesContainer) {
 				subtitlesContainer.style.opacity = '0';
 			}
@@ -309,7 +310,7 @@ const fadeDuration = $derived(() => {
 						if (abortSignal.aborted) return;
 
 						try {
-							const maxHeightValue = globalState.getStyle(target, 'max-height').value;
+							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
 							if (maxHeightValue !== 0) {
 								// Make the font-size responsive
 								let fontSize = globalState.getStyle(target, 'font-size').value as number;
@@ -329,7 +330,8 @@ const fadeDuration = $derived(() => {
 
 									// Cette marge qu'on calcule permet de prévenir un bug qui fait que si le texte est en bas ou à droite, il dépasse un peu et donc que ça considère que c'est plus grand que le max-height
 									let isVerticalPosNotCentered =
-										globalState.getStyle(target, 'vertical-text-alignment').value !== 'center';
+										String(globalState.getStyle(target, 'vertical-text-alignment').value) !==
+										'center';
 									let marge = isVerticalPosNotCentered ? 10 : 0; // Marge supplémentaire si le texte n'est pas centré verticalement
 
 									// Tant que la hauteur du texte est supérieure à la hauteur maximale, on réduit la taille de la police

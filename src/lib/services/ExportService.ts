@@ -67,7 +67,10 @@ export default class ExportService {
 				project.detail.id,
 				fileName,
 				filePath,
-				globalState.getStyle('global', 'video-dimension').value,
+				globalState.getStyle('global', 'video-dimension').value as {
+					width: number;
+					height: number;
+				},
 				project.projectEditorState.export.videoStartTime,
 				project.projectEditorState.export.videoEndTime,
 				VerseRange.getVerseRange(
@@ -129,7 +132,9 @@ export default class ExportService {
 		const json = await readTextFile(filePath);
 		const parsedData: unknown = JSON.parse(json);
 		const data = Array.isArray(parsedData) ? parsedData : [];
-		globalState.exportations = data.map((exp) => Exportation.fromJSON(exp as Record<string, unknown>));
+		globalState.exportations = data.map(
+			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
+		);
 
 		// Tout les exports en cours on les mets en canceled
 		globalState.exportations.forEach((exp) => {

@@ -51,7 +51,8 @@
 					checked={globalState.getExportState.ytbChaptersChoice === 'Each Surah'}
 					onchange={(event: Event) => {
 						const input = event.target as HTMLInputElement;
-						globalState.getExportState.ytbChaptersChoice = input.value;
+						globalState.getExportState.ytbChaptersChoice =
+							input.value === 'Each Surah' ? 'Each Surah' : 'Each Verse';
 					}}
 					class="w-4 h-4 text-accent-primary"
 				/>
@@ -76,7 +77,8 @@
 					checked={globalState.getExportState.ytbChaptersChoice === 'Each Verse'}
 					onchange={(event: Event) => {
 						const input = event.target as HTMLInputElement;
-						globalState.getExportState.ytbChaptersChoice = input.value;
+						globalState.getExportState.ytbChaptersChoice =
+							input.value === 'Each Verse' ? 'Each Verse' : 'Each Surah';
 					}}
 					class="w-4 h-4 text-accent-primary"
 				/>

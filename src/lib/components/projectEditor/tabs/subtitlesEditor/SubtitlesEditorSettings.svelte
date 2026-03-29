@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
+	import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
 	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -352,7 +352,7 @@
 			</div>
 		</div>
 
-		{#if (globalState.getAudioTrack?.clips || []).some((c) => globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran)}
+		{#if (globalState.getAudioTrack?.clips || []).some((c) => c instanceof AssetClip && globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran)}
 			<div class="space-y-4">
 				<h3 class="text-sm font-medium text-secondary mb-3">Native Timing</h3>
 				<div class="bg-accent rounded-lg p-4 space-y-3">

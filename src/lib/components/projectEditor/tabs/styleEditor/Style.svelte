@@ -20,8 +20,10 @@
 		style: Style;
 		target?: string;
 		disabled: boolean;
-		applyValueSimple: (value: unknown) => void;
+		applyValueSimple: (value: Style['value']) => void;
 	} = $props();
+
+	type StyleValue = Style['value'];
 
 	type DimensionValue = { width: number; height: number };
 	function asDimensionValue(value: unknown): DimensionValue {
@@ -192,24 +194,33 @@
 		selectedClipIds().length > 0 ? getEffectiveForSelection().overridden : false
 	);
 
-	let inputValue: unknown = $state(style.value);
+	let inputValue: StyleValue = $state(style.value);
 	$effect(() => {
 		const eff = getEffectiveForSelection();
-		inputValue = eff.value;
+		inputValue = eff.value as StyleValue;
 	});
 
-	function coerce(val: unknown): unknown {
+	function coerce(val: unknown): StyleValue {
 		if (style.valueType === 'number') return Number(val);
 		if (style.valueType === 'boolean') return Boolean(val);
-		return val;
+		if (style.valueType === 'dimension') return asDimensionValue(val);
+		return val as StyleValue;
 	}
 
 	function applyValue(v: unknown) {
 		const value = coerce(v);
 		if (selectedClipIds().length > 0) {
-			globalState.getVideoStyle
-				.getStylesOfTarget(target!)
-				.setStyleForClips(selectedClipIds(), style.id as StyleName, value);
+			if (
+				typeof value === 'string' ||
+				typeof value === 'number' ||
+				typeof value === 'boolean'
+			) {
+				globalState.getVideoStyle
+					.getStylesOfTarget(target!)
+					.setStyleForClips(selectedClipIds(), style.id as StyleName, value);
+			} else {
+				applyValueSimple(value);
+			}
 		} else {
 			applyValueSimple(value);
 		}
@@ -488,7 +499,8 @@
 						{#if style.id === 'font-family'}
 							{#await invoke('get_system_fonts')}
 								<option value="" disabled selected>Loading fonts...</option>
-							{:then fonts}
+							{:then fontsRaw}
+								{@const fonts = fontsRaw as string[]}
 								<option value="QPC2">Uthamic Mushaf QPC2</option>
 								<option value="QPC1">Uthamic Mushaf QPC1</option>
 								<option value="Hafs">Hafs</option>

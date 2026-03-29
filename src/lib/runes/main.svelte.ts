@@ -130,12 +130,13 @@ class GlobalState {
 	getStyle(
 		t: 'arabic' | 'translation' | string,
 		s: StyleName
-	): Style | { value: string } | undefined {
+	): Style {
 		if (this.currentProject) {
 			const style = this.getVideoStyle.getStylesOfTarget(t).findStyle(s);
 			if (style) return style;
-			else return { value: '' };
+			return { value: '' } as unknown as Style;
 		}
+		return { value: '' } as unknown as Style;
 	}
 
 	updateVideoPreviewUI() {

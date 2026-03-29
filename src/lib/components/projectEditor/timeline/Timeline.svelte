@@ -2,7 +2,15 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import Track from './track/Track.svelte';
-	import { Duration, TrackType, ProjectEditorTabs, AssetClip } from '$lib/classes';
+	import {
+		Duration,
+		TrackType,
+		ProjectEditorTabs,
+		AssetClip,
+		SubtitleClip,
+		PredefinedSubtitleClip,
+		SilenceClip
+	} from '$lib/classes';
 	import ShortcutService from '$lib/services/ShortcutService';
 
 	let totalDuration = $derived(() => {
@@ -67,7 +75,7 @@
 		const currentProject = globalState.currentProject;
 		if (!currentProject) return;
 
-		let clipToSplit: { id: number; type: string } | null = null;
+		let clipToSplit: SubtitleClip | PredefinedSubtitleClip | SilenceClip | null = null;
 
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles;
 		if (selectedSubtitles.length === 1) {

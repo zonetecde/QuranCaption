@@ -41,7 +41,7 @@ export class ProjectTranslation extends SerializableBase {
 		// Charge les traductions disponibles
 		const object = (await (await fetch('/translations/editions.json')).json()) as TranslationEditionsResponse;
 
-		globalState.availableTranslations = object;
+		globalState.availableTranslations = object as typeof globalState.availableTranslations;
 	}
 
 	getVerseTranslation(edition: Edition, verseKey: string): string {

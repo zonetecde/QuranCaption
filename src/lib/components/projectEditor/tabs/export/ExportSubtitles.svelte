@@ -194,7 +194,7 @@
 														? 'text-black/80'
 														: 'text-thirdly'}"
 												>
-													{arabicFormatDescriptions[format]}
+													{arabicFormatDescriptions[format as 'Plain' | 'V1' | 'V2']}
 												</div>
 											</div>
 										</label>

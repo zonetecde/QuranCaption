@@ -60,7 +60,7 @@ export class ProjectService {
 				throw new Error('Missing detail object in project file');
 			}
 			// Charge uniquement les détails du projet pour accélérer la homepage.
-			return ProjectDetail.fromJSON(projectData.detail);
+			return ProjectDetail.fromJSON(projectData.detail) as ProjectDetail;
 		} catch (error) {
 			console.warn(`Impossible de charger le projet ${projectId}:`, error);
 			return null;
@@ -137,11 +137,11 @@ export class ProjectService {
 
 		if (onlyDetail) {
 			// Évite de charger le contenu du projet si on ne veut que les détails
-			return new Project(ProjectDetail.fromJSON(projectData.detail));
+			return new Project(ProjectDetail.fromJSON(projectData.detail) as ProjectDetail);
 		}
 
 		// Utilise la méthode fromJSON automatique pour récupérer l'instance correcte
-		const project = Project.fromJSON(projectData);
+		const project = Project.fromJSON(projectData) as Project;
 
 		// Si le projet ne contient pas de styles vidéo, on initialise avec un style par défaut
 		// || true
@@ -236,7 +236,7 @@ export class ProjectService {
 	static async importProject(json: ImportedProjectPayload) {
 		json.detail.id = Utilities.randomId(); // Applique un nouvel ID unique au projet
 
-		const projectObject = Project.fromJSON(json);
+		const projectObject = Project.fromJSON(json) as Project;
 		await projectObject.save(); // Enregistre le projet importé sur le disque
 	}
 }

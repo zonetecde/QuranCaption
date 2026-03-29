@@ -297,20 +297,21 @@ export default class Settings extends SerializableBase {
 		const fileContent = await readTextFile(filePath);
 		const settingsData = JSON.parse(fileContent);
 
-		globalState.settings = Settings.fromJSON(settingsData);
+		globalState.settings = Settings.fromJSON(settingsData) as Settings;
+		const settings = globalState.settings;
 
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
 		const latestVersion = await VersionService.getAppVersion();
-		if (globalState.settings.appVersion !== latestVersion) {
+		if (settings.appVersion !== latestVersion) {
 			// Telemetry
 			AnalyticsService.trackAppUpdated(
-				globalState.settings.appVersion || 'unknown',
+				settings.appVersion || 'unknown',
 				latestVersion || '0.0.0'
 			);
 
 			// Met à jour la version
-			globalState.settings.appVersion = latestVersion || '0.0.0';
+			settings.appVersion = latestVersion || '0.0.0';
 
 			// Sauvegarde les paramètres mis à jour
 			await this.save();

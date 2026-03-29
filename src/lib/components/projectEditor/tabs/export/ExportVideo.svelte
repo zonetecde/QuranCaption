@@ -96,7 +96,10 @@
 				style={globalState.getStyle('global', 'video-dimension')!}
 				target="global"
 				applyValueSimple={(v) => {
-					globalState.getStyle('global', 'video-dimension')!.value = v;
+					globalState.getStyle('global', 'video-dimension')!.value = v as {
+						width: number;
+						height: number;
+					};
 				}}
 				disabled={false}
 			/>

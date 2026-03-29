@@ -72,7 +72,10 @@ export type TextStyleName =
 	| 'line-height'
 	| 'max-height'
 	| 'reactive-font-size'
-	| 'reactive-y-position';
+	| 'reactive-y-position'
+	| 'text-glow-enable'
+	| 'text-glow-color'
+	| 'text-glow-blur';
 
 export type PositioningStyleName =
 	| 'vertical-position'
@@ -177,6 +180,9 @@ export type StyleName =
 	| CustomTextStyleName
 	| GlobalAnimationStyleName
 	| VerseNumberStyleName;
+
+type RawStyle = Partial<Style> & { id: string };
+type RawCategory = Partial<Category> & { id: string; styles?: RawStyle[] };
 
 const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
 	'overlay-enable',
@@ -820,12 +826,12 @@ export class VideoStyle extends SerializableBase {
 		return hasChanges;
 	}
 
-	private mergeMissingStylesForTarget(target: string, defaultCategoriesRaw: unknown[]): boolean {
+	private mergeMissingStylesForTarget(target: string, defaultCategoriesRaw: RawCategory[]): boolean {
 		let hasChanges = false;
 
 		const targetStyles = this.styles.find((s) => s.target === target);
 		if (!targetStyles) {
-			this.styles.push(new StylesData(target, defaultCategoriesRaw));
+			this.styles.push(new StylesData(target, defaultCategoriesRaw.map((c) => new Category(c))));
 			return true;
 		}
 
@@ -946,12 +952,15 @@ export class VideoStyle extends SerializableBase {
 	 * @return Les données exportées en format JSON
 	 */
 	exportStyles(includedExportClips: Set<number>): string {
+		const serializedVideoStyle = JSON.parse(JSON.stringify(this)) as Record<string, unknown> & {
+			styles: Array<{ overrides: Record<string, unknown> }>;
+		};
 		const exportData: videoStyleFileData = {
-			videoStyle: JSON.parse(JSON.stringify(this)),
+			videoStyle: serializedVideoStyle,
 			customClips: []
 		};
 		// Enlève tout les overrides
-		for (const style of exportData.videoStyle.styles) {
+		for (const style of serializedVideoStyle.styles) {
 			style.overrides = {};
 		}
 		// Ajoute les customs texts clips
@@ -988,7 +997,9 @@ export class VideoStyle extends SerializableBase {
 
 	async importStyles(json: videoStyleFileData) {
 		// Crée une nouvelle instance VideoStyle à partir des données JSON
-		const importedVideoStyle = VideoStyle.fromJSON(json.videoStyle);
+		const importedVideoStyle = VideoStyle.fromJSON(
+			json.videoStyle as unknown as Record<string, unknown>
+		) as VideoStyle;
 		const currentProjectTranslations = globalState.getProjectTranslation.addedTranslationEditions;
 
 		// Gérer l'import des styles 'arabic' et 'global' (toujours override)
@@ -1059,10 +1070,13 @@ export class VideoStyle extends SerializableBase {
 						const existingStyleIndex = this.styles.findIndex(
 							(s) => s.target === projectTranslation.name
 						);
+						const parsedStyle = StylesData.fromJSON(
+							newStyle as unknown as Record<string, unknown>
+						) as StylesData;
 						if (existingStyleIndex !== -1) {
-							this.styles[existingStyleIndex] = StylesData.fromJSON(newStyle);
+							this.styles[existingStyleIndex] = parsedStyle;
 						} else {
-							this.styles.push(StylesData.fromJSON(newStyle));
+							this.styles.push(parsedStyle);
 						}
 
 						break; // Arrêter dès qu'un style est appliqué
@@ -1072,15 +1086,18 @@ export class VideoStyle extends SerializableBase {
 		}
 
 		// Ajoute les customs text clips en créant des instances correctes
-		//@ts-expect-error `json.customTextClips` pour les fichiers styles de l'ancienne version (3.1.3->3.1.4)
-		for (const clipData of json.customClips || json.customTextClips) {
+		for (const clipData of json.customClips || json.customTextClips || []) {
 			clipData.id = Utilities.randomId(); // Assure qu'il a un ID unique
 
 			// Crée une nouvelle instance CustomTextClip à partir des données JSON
-			const clip =
+			const clip: CustomTextClip | CustomImageClip =
 				clipData.type === 'Custom Text'
-					? CustomTextClip.fromJSON(clipData)
-					: CustomImageClip.fromJSON(clipData);
+					? (CustomTextClip.fromJSON(
+							clipData as unknown as Record<string, unknown>
+						) as CustomTextClip)
+					: (CustomImageClip.fromJSON(
+							clipData as unknown as Record<string, unknown>
+						) as CustomImageClip);
 			globalState.getCustomClipTrack.clips.push(clip);
 		}
 
@@ -1128,8 +1145,9 @@ export class VideoStyle extends SerializableBase {
 }
 
 interface videoStyleFileData {
-	videoStyle: VideoStyle;
-	customClips: CustomTextClip[];
+	videoStyle: Record<string, unknown>;
+	customClips: Array<Record<string, unknown>>;
+	customTextClips?: Array<Record<string, unknown>>;
 }
 
 SerializableBase.registerChildClass(VideoStyle, 'styles', StylesData);

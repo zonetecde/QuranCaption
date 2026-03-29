@@ -523,9 +523,9 @@ export class CustomClip extends Clip {
 
 	setStyle(styleId: StyleName, value: string | number | boolean) {
 		if (styleId === 'time-appearance') {
-			this.setStartTime(value);
+			if (typeof value === 'number') this.setStartTime(value);
 		} else if (styleId === 'time-disappearance') {
-			this.setEndTime(value);
+			if (typeof value === 'number') this.setEndTime(value);
 		}
 
 		this.category!.styles.find((style) => style.id === styleId)!.value = value;

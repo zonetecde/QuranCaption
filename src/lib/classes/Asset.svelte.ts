@@ -85,7 +85,10 @@ export class Asset extends SerializableBase {
 				return;
 			}
 			// Si les dimensions sont déjà les mêmes, on ne fait rien non plus
-			const currentProjectDimensions = globalState.getStyle('global', 'video-dimension').value;
+			const currentProjectDimensions = globalState.getStyle('global', 'video-dimension').value as {
+				width: number;
+				height: number;
+			};
 			if (
 				assetDimensions.width === currentProjectDimensions.width &&
 				assetDimensions.height === currentProjectDimensions.height

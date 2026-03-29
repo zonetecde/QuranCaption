@@ -325,7 +325,7 @@
 									target={globalState.getStylesState.getCurrentSelection()}
 									disabled={toDisable as boolean}
 									applyValueSimple={(v) => {
-										style.value = v;
+										style.value = v as typeof style.value;
 									}}
 								/>
 							{/if}
@@ -354,23 +354,23 @@
 
 								<!-- prettier-ignore -->
 								<StyleComponent
-								bind:style={style}
+								{style}
 								applyValueSimple={(v) => {
 									const targetCustomClip = globalState.getCustomClipTrack.getCustomClipWithId(category.id);
 									if (!targetCustomClip) {
-										style.value = v;
+										style.value = v as typeof style.value;
 										return;
 									}
 
 									// Pour time-appearance et time-disappearance on modifie le clip lui-même
 									// en plus du style. 
-									if (style.id === 'time-appearance') {
+									if (style.id === 'time-appearance' && typeof v === 'number') {
 										targetCustomClip.setStartTime(v);
 									}
-									if (style.id === 'time-disappearance') {
+									if (style.id === 'time-disappearance' && typeof v === 'number') {
 										targetCustomClip.setEndTime(v);
 									}
-									style.value = v;
+									style.value = v as typeof style.value;
 								}}
 								disabled={toDisable as boolean}
 							/>

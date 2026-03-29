@@ -17,7 +17,7 @@ import { Duration, type Asset } from './index.js';
 import { globalState } from '$lib/runes/main.svelte.js';
 import type { Verse } from './Quran.js';
 import toast from 'svelte-5-french-toast';
-import { VerseTranslation } from './Translation.svelte.js';
+import { Translation, VerseTranslation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -387,14 +387,11 @@ export class SubtitleTrack extends Track {
 				clip.comeFromIA,
 				clip.confidence
 			);
-			newPredefinedClip.translations = Object.fromEntries(
-				Object.entries(clip.translations || {}).map(([key, t]) => [
-					key,
-					typeof (t as { clone?: unknown })?.clone === 'function'
-						? (t as { clone: () => unknown }).clone()
-						: { ...(t as Record<string, unknown>) }
-				])
-			);
+			const clonedTranslations: Record<string, Translation> = {};
+			for (const [key, t] of Object.entries(clip.translations || {})) {
+				clonedTranslations[key] = t.clone();
+			}
+			newPredefinedClip.translations = clonedTranslations;
 			newPredefinedClip.associatedImagePath = clip.associatedImagePath;
 			newClip = newPredefinedClip;
 		} else {

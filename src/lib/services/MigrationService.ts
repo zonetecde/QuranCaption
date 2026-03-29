@@ -25,7 +25,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { join, localDataDir } from '@tauri-apps/api/path';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 
-type ShortcutAction = { keys?: string[]; name?: string; description?: string };
+type ShortcutAction = { keys: string[]; name: string; description: string };
 type ShortcutBucket = Record<string, ShortcutAction>;
 type MutableSettingsForMigration = {
 	shortcutCategories: Record<string, unknown>;
@@ -596,7 +596,7 @@ export default class MigrationService {
 		}
 
 		// Translations
-		projectContent.projectTranslation.addedTranslationEditions = await Promise.all(
+		const migratedEditions = await Promise.all(
 			project.projectSettings.addedTranslations.map(async (s: string) => {
 				for (const [_key, value] of Object.entries(globalState.availableTranslations)) {
 					for (const tr of value.translations) {
@@ -617,6 +617,9 @@ export default class MigrationService {
 
 				return null;
 			})
+		);
+		projectContent.projectTranslation.addedTranslationEditions = migratedEditions.filter(
+			(edition): edition is NonNullable<typeof edition> => edition !== null
 		);
 
 		// Subtitles

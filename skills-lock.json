@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "fix-eslint": {
+      "source": "otrebu/agents",
+      "sourceType": "github",
+      "computedHash": "ef402abc9cf23bc9da4364f8577b69a6d90061a1f38ae8d5470d408766dc203b"
+    }
+  }
+}

@@ -2,12 +2,13 @@ import posthog from 'posthog-js';
 import { env } from '$env/dynamic/public';
 import { browser } from '$app/environment';
 import { VersionService } from './VersionService.svelte';
+import type { UnknownRecord } from '$lib/types/common';
 
 export class AnalyticsService {
 	private static isInitialized = false;
 	private static eventQueue: Array<{
 		eventName: string;
-		properties?: Record<string, any>;
+		properties?: UnknownRecord;
 		type: 'capture' | 'identify';
 		userId?: string;
 	}> = [];
@@ -74,7 +75,7 @@ export class AnalyticsService {
 		posthog.identify(userId);
 	}
 
-	static track(eventName: string, properties?: Record<string, any>) {
+	static track(eventName: string, properties?: UnknownRecord) {
 		if (!this.isInitialized) {
 			this.eventQueue.push({ eventName, properties, type: 'capture' });
 			return;
@@ -129,7 +130,7 @@ export class AnalyticsService {
 	 */
 	static trackAIUsage(
 		feature: 'translation' | 'segmentation',
-		rangeOrProperties?: string | Record<string, any>,
+		rangeOrProperties?: string | UnknownRecord,
 		provider?: string
 	) {
 		if (typeof rangeOrProperties === 'string' || rangeOrProperties === undefined) {

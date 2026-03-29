@@ -12,7 +12,7 @@ import type Exportation from '$lib/classes/Exportation.svelte';
 import type Settings from '$lib/classes/Settings.svelte';
 import { Status } from '$lib/classes/Status';
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
-import type { StyleName } from '$lib/classes/VideoStyle.svelte';
+import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
@@ -127,7 +127,10 @@ class GlobalState {
 		return this.currentProject!.projectEditorState.timeline;
 	}
 
-	getStyle(t: 'arabic' | 'translation' | string, s: StyleName): any {
+	getStyle(
+		t: 'arabic' | 'translation' | string,
+		s: StyleName
+	): Style | { value: string } | undefined {
 		if (this.currentProject) {
 			const style = this.getVideoStyle.getStylesOfTarget(t).findStyle(s);
 			if (style) return style;

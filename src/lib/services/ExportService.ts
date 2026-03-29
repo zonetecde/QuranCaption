@@ -4,7 +4,7 @@ import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 import { ProjectService } from './ProjectService';
-import { listen } from '@tauri-apps/api/event';
+import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
 
 export default class ExportService {
@@ -102,7 +102,7 @@ export default class ExportService {
 	 */
 	static async saveExports() {
 		// S'assure que le dossier existe
-		const exportsPath = await ProjectService.ensureFolder(this.exportFolder);
+		await ProjectService.ensureFolder(this.exportFolder);
 
 		// Construis le chemin d'accès vers le fichier contenant tout les exports
 		const filePath = await join(await appDataDir(), `exports.json`);
@@ -127,8 +127,9 @@ export default class ExportService {
 		}
 
 		const json = await readTextFile(filePath);
-		const data = JSON.parse(json);
-		globalState.exportations = data.map((exp: any) => Exportation.fromJSON(exp));
+		const parsedData: unknown = JSON.parse(json);
+		const data = Array.isArray(parsedData) ? parsedData : [];
+		globalState.exportations = data.map((exp) => Exportation.fromJSON(exp as Record<string, unknown>));
 
 		// Tout les exports en cours on les mets en canceled
 		globalState.exportations.forEach((exp) => {
@@ -145,7 +146,9 @@ export default class ExportService {
 			// Construis le chemin d'accès vers le projet
 			const filePath = await join(exportPath, `${exportIdId}.json`);
 			await remove(filePath);
-		} catch (e) {}
+		} catch (_e) {
+			// Ignore file removal failures (already deleted or missing access rights).
+		}
 	}
 
 	static findExportById(id: number) {
@@ -162,7 +165,7 @@ export default class ExportService {
 	}
 }
 
-function exportProgress(event: any): void {
+function exportProgress(event: TauriEvent<ExportProgress>): void {
 	const data = event.payload as ExportProgress;
 
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);

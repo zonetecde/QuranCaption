@@ -1,14 +1,12 @@
 import { globalState } from '$lib/runes/main.svelte';
-import toast from 'svelte-5-french-toast';
 import { CustomTextClip, SubtitleClip } from '.';
 import { ProjectEditorTabs, TrackType } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
 import { CustomTextTrack } from './Track.svelte';
-import type { a } from 'vitest/dist/chunks/suite.d.FvehnV49.js';
 import QPCFontProvider from '$lib/services/FontProvider';
 import { open } from '@tauri-apps/plugin-dialog';
-import { readFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import ModalManager from '$lib/components/modals/ModalManager';
 import {
 	CustomImageClip,
@@ -310,7 +308,7 @@ export class Category extends SerializableBase {
 		super();
 		if (!init) return;
 		// assign simples
-		const { styles, ...rest } = init as any;
+		const { styles, ...rest } = init;
 		Object.assign(this, rest);
 
 		// s'assurer que les styles sont des instances de Style
@@ -340,7 +338,9 @@ export class Category extends SerializableBase {
 		for (const style of this.styles) {
 			if (style.valueType === 'composite' && !(style.value instanceof Array)) {
 				// Charge les styles composites (JSON brut)
-				const raw: any[] = await (await fetch('./styles/compositeStyles.json')).json();
+				const raw = (await (await fetch('./styles/compositeStyles.json')).json()) as Array<
+					Style | Partial<Style>
+				>;
 				// Transforme chaque entrée en véritable instance de Style
 				style.value = raw.map((s) => (s instanceof Style ? s : new Style(s)));
 
@@ -366,7 +366,7 @@ export class StylesData extends SerializableBase {
 		this.target = target;
 		// S'assurer que chaque élément passé est bien une instance de Category
 		// (les JSON importés depuis les fichiers contiennent seulement les attributs)
-		this.categories = (categories || []).map((c: any) =>
+		this.categories = (categories || []).map((c) =>
 			c instanceof Category ? c : new Category(c)
 		);
 	}
@@ -460,8 +460,8 @@ export class StylesData extends SerializableBase {
 
 				// Cas particulier pour l'alignement vertical/horizontal du texte
 				if (style.id === 'vertical-text-alignment' || style.id === 'horizontal-text-alignment') {
-					// @ts-ignore: style.css peut être un objet map
-					css += style.css[effectiveValue as any] + '\n';
+					const cssMap = style.css as unknown as Record<string, string>;
+					css += (cssMap[String(effectiveValue)] ?? '') + '\n';
 					continue;
 				}
 
@@ -571,7 +571,9 @@ export class StylesData extends SerializableBase {
 
 		for (const clipId of clipIds) {
 			// Créez un nouvel objet d'override pour le clip s'il n'existe pas
-			if (!this.overrides[clipId]) this.overrides[clipId] = {} as any;
+			if (!this.overrides[clipId]) {
+				this.overrides[clipId] = {} as Partial<Record<StyleName, string | number | boolean>>;
+			}
 
 			// Regarde si pour la valeur qu'on veut appliquer à ce style pour ces clip
 			// si c'est la valeur par déjà du style
@@ -818,7 +820,7 @@ export class VideoStyle extends SerializableBase {
 		return hasChanges;
 	}
 
-	private mergeMissingStylesForTarget(target: string, defaultCategoriesRaw: any[]): boolean {
+	private mergeMissingStylesForTarget(target: string, defaultCategoriesRaw: unknown[]): boolean {
 		let hasChanges = false;
 
 		const targetStyles = this.styles.find((s) => s.target === target);
@@ -914,7 +916,7 @@ export class VideoStyle extends SerializableBase {
 	 * un clip donné
 	 * @param id L'ID du clip à vérifier
 	 */
-	hasAnyOverrideForClip(id: number, includeGlobal: boolean = false): any {
+	hasAnyOverrideForClip(id: number, includeGlobal: boolean = false): boolean {
 		for (const stylesData of this.styles) {
 			if (!includeGlobal && stylesData.target === 'global') continue;
 			if (stylesData.hasAnyOverrideForClip(id)) {
@@ -929,12 +931,13 @@ export class VideoStyle extends SerializableBase {
 	 * @param customTextId L'id du customText
 	 * @returns
 	 */
-	getCustomTextCompositeStyles(customTextId: string): any {
+	getCustomTextCompositeStyles(customTextId: string): Style[] {
 		for (const clip of globalState.getCustomClipTrack.clips) {
 			if (!(clip instanceof CustomTextClip)) continue;
 			const style = clip.category!.getStyle(customTextId as StyleName);
 			if (style) return style.value as Style[];
 		}
+		return [];
 	}
 
 	/**
@@ -1037,8 +1040,6 @@ export class VideoStyle extends SerializableBase {
 			if (!existsInImported) {
 				// Cette traduction du projet n'existe pas dans le fichier importé
 				// Proposer d'appliquer les styles disponibles dans le fichier importé
-				let styleApplied = false;
-
 				const availableImportedTranslations = importedVideoStyle.styles.filter(
 					(s) => s.target !== 'arabic' && s.target !== 'global'
 				);
@@ -1064,7 +1065,6 @@ export class VideoStyle extends SerializableBase {
 							this.styles.push(StylesData.fromJSON(newStyle));
 						}
 
-						styleApplied = true;
 						break; // Arrêter dès qu'un style est appliqué
 					}
 				}
@@ -1072,7 +1072,7 @@ export class VideoStyle extends SerializableBase {
 		}
 
 		// Ajoute les customs text clips en créant des instances correctes
-		//@ts-ignore - `json.customTextClips` pour les fichiers styles de l'ancienne version (3.1.3->3.1.4)
+		//@ts-expect-error `json.customTextClips` pour les fichiers styles de l'ancienne version (3.1.3->3.1.4)
 		for (const clipData of json.customClips || json.customTextClips) {
 			clipData.id = Utilities.randomId(); // Assure qu'il a un ID unique
 

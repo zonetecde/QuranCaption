@@ -1,5 +1,4 @@
 import { globalState } from '$lib/runes/main.svelte';
-import type { SubtitleClip } from './Clip.svelte';
 import { SerializableBase } from './misc/SerializableBase';
 import { Quran } from './Quran';
 

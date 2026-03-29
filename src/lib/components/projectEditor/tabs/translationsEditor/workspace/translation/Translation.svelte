@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { SubtitleClip, type Edition, type Translation } from '$lib/classes';
+	import { SubtitleClip, type Edition } from '$lib/classes';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount, untrack } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
+	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
 
 	let {
 		edition,
@@ -110,7 +110,7 @@
 		translation().isBruteForce = false;
 	}
 
-	function wordClicked(i: number): any {
+	function wordClicked(i: number): void {
 		if (translation().type === 'verse') {
 			beginWordSelectionEditing();
 			if (i < translation().startWordIndex) {
@@ -282,13 +282,12 @@
 				onmouseup={handleGlobalMouseUp}
 				transition:slide
 			>
-				{#each originalTranslation.split(' ') as word, i}
+				{#each originalTranslation.split(' ') as word, i (`${i}-${word}`)}
 					{@const isSelected = translation().startWordIndex <= i && i <= translation().endWordIndex}
 					{@const isFirstSelected = isSelected && i === translation().startWordIndex}
 					{@const isLastSelected = isSelected && i === translation().endWordIndex}
 					{@const isSingleSelected =
 						isSelected && translation().startWordIndex === translation().endWordIndex}
-					{@const isMiddleSelected = isSelected && !isFirstSelected && !isLastSelected}
 					{@const isPreviousSubtitleTranslation =
 						previousSubtitleTranslationStartIndex !== -1 &&
 						previousSubtitleTranslationStartIndex <= i &&

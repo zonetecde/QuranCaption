@@ -1,5 +1,4 @@
-<script lang="ts">
-	import { globalState } from '$lib/runes/main.svelte';
+	<script lang="ts">
 	import Timeline from '../../timeline/Timeline.svelte';
 	import VideoPreview from '../../videoPreview/VideoPreview.svelte';
 	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';

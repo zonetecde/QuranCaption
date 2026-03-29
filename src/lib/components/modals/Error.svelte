@@ -47,10 +47,8 @@
 					</summary>
 					<div class="px-4 py-3 border-t border-color bg-primary/5">
 						<pre
-							class="text-xs text-thirdly font-mono whitespace-pre-wrap overflow-x-auto overflow-y-auto max-h-[300px]">{@html logs.replaceAll(
-								'\\n',
-								'<br />'
-							)}</pre>
+							class="text-xs text-thirdly font-mono whitespace-pre-wrap overflow-x-auto overflow-y-auto max-h-[300px]"
+						>{logs}</pre>
 					</div>
 				</details>
 

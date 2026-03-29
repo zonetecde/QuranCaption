@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { CustomTextClip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { CustomClip, CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { onDestroy } from 'svelte';
@@ -32,7 +32,7 @@
 	let originalStartTime = 0;
 	let originalDuration = 0;
 
-	function removeClip(e: MouseEvent): void {
+	function removeClip(_e: MouseEvent): void {
 		setTimeout(() => {
 			track.removeClip(clip.id);
 		});
@@ -47,9 +47,10 @@
 		document.addEventListener('mouseup', stopLeftDragging);
 	}
 
-	function onLeftDragging(e: MouseEvent) {
+	function onLeftDragging(_e: MouseEvent) {
 		if (dragStartX === null) return;
-		const newStart = globalState.currentProject?.projectEditorState.timeline.cursorPosition!;
+		const newStart = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
+		if (newStart === undefined) return;
 		// Durée minimale 100ms
 		if (clip.endTime - newStart < 100) return;
 		clip.setStartTime(newStart);
@@ -76,9 +77,10 @@
 		document.addEventListener('mouseup', stopRightDragging);
 	}
 
-	function onRightDragging(e: MouseEvent) {
+	function onRightDragging(_e: MouseEvent) {
 		if (dragStartX === null) return;
-		const newEnd = globalState.currentProject?.projectEditorState.timeline.cursorPosition!;
+		const newEnd = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
+		if (newEnd === undefined) return;
 		if (newEnd - clip.startTime < 100) return;
 		clip.setEndTime(newEnd);
 		if (clip.category) {
@@ -132,7 +134,7 @@
 		globalState.getTimelineState.showCursor = true;
 	}
 
-	function toggleAlwaysShow(e: MouseEvent): void {
+	function toggleAlwaysShow(_e: MouseEvent): void {
 		clip.setStyle('always-show', !clip.getAlwaysShow());
 	}
 </script>

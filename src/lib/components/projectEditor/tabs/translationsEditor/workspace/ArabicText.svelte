@@ -14,7 +14,7 @@
 	{@const words = subtitle.getTextWithVerseNumber().split(' ')}
 
 	<div class="text-3xl flex flex-row arabic text-right gap-x-2 flex-wrap gap-y-2" dir="rtl">
-		{#each words as word, i}
+		{#each words as word, i (`${subtitle.id}-${i}-${word}`)}
 			{@const wordIndex = subtitle.startWordIndex + i}
 			{@const isOverlapWord = overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex}
 			<div
@@ -40,7 +40,7 @@
 	</div>
 
 	<p class="text-sm text-thirdly text-left mt-1">
-		{#each subtitle.wbwTranslation as word, i}
+		{#each subtitle.wbwTranslation as word, i (`${subtitle.id}-wbw-${i}`)}
 			{@const wordIndex = subtitle.startWordIndex + i}
 			<span
 				class={overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex
@@ -48,7 +48,7 @@
 					: ''}
 			>
 				{word}
-			</span>{' '}
+			</span> 
 		{/each}
 	</p>
 {:else if subtitle instanceof PredefinedSubtitleClip}

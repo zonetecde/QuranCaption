@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { Edition, Project, ProjectContent, ProjectDetail, TrackType } from '$lib/classes';
-	import Section from '$lib/components/projectEditor/Section.svelte';
-	import SubtitleClip from '$lib/components/projectEditor/timeline/track/SubtitleClip.svelte';
+	import { Edition } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectService } from '$lib/services/ProjectService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
@@ -11,7 +8,6 @@
 	import toast from 'svelte-5-french-toast';
 
 	let { close } = $props();
-	let selectedLanguage: string | null = $state(null);
 	let selectedTranslations: Edition[] = $state([]);
 	let searchQuery: string = $state('');
 	let translationPreviews: Record<string, Record<string, string>> = $state({});
@@ -20,13 +16,19 @@
 	let showTxtImportHelp = $state(false);
 	let txtImportError: string | null = $state(null);
 
+	type TranslationLanguageData = {
+		flag: string;
+		translations: Edition[];
+	};
+	type AvailableTranslationsMap = Record<string, TranslationLanguageData>;
+
 	// Helper function to check if a translation is selected
 	function isTranslationSelected(translation: Edition): boolean {
 		return selectedTranslations.some((t) => t.name === translation.name);
 	}
 
 	// Toggle translation selection
-	function toggleTranslationSelection(translation: Edition, language: string) {
+	function toggleTranslationSelection(translation: Edition) {
 		if (isTranslationSelected(translation)) {
 			// Remove from selection
 			selectedTranslations = selectedTranslations.filter((t) => t.name !== translation.name);
@@ -34,7 +36,6 @@
 		} else {
 			// Add to selection
 			selectedTranslations = [...selectedTranslations, translation];
-			selectedLanguage = language;
 			// Load preview for this translation
 			loadTranslationPreview(translation);
 		}
@@ -51,7 +52,7 @@
 					translation
 				);
 			translationPreviews[translation.name] = preview;
-		} catch (error) {
+		} catch (_error) {
 			translationPreviews[translation.name] = {};
 		}
 		isLoadingPreview = false;
@@ -59,16 +60,17 @@
 
 	// Computed filtered translations based on search
 	const filteredTranslations = $derived(() => {
+		const availableTranslations = globalState.availableTranslations as AvailableTranslationsMap;
 		if (!searchQuery) return globalState.availableTranslations;
 
-		const filtered: any = {};
+		const filtered: AvailableTranslationsMap = {};
 		const query = searchQuery.toLowerCase();
 
-		for (const [language, data] of Object.entries(globalState.availableTranslations)) {
+		for (const [language, data] of Object.entries(availableTranslations)) {
 			if (language.toLowerCase().includes(query)) {
 				filtered[language] = data;
 			} else {
-				const matchingTranslations = data.translations.filter((t: any) =>
+				const matchingTranslations = data.translations.filter((t) =>
 					t.author.toLowerCase().includes(query)
 				);
 
@@ -218,8 +220,14 @@
 				`TXT translation imported successfully (${neededVerseNumbers.length} verses from surah ${surah}).`
 			);
 			close();
-		} catch (error: any) {
-			txtImportError = error?.message || 'Failed to import translation from txt.';
+		} catch (error: unknown) {
+			txtImportError =
+				error && typeof error === 'object' && 'message' in error
+					? String((error as { message?: unknown }).message ?? '')
+					: 'Failed to import translation from txt.';
+			if (!txtImportError) {
+				txtImportError = 'Failed to import translation from txt.';
+			}
 			toast.error(txtImportError);
 			console.error('Error importing txt translation:', error);
 		} finally {
@@ -305,7 +313,7 @@
 					<span class="text-sm font-medium text-primary">Recent Translations</span>
 				</div>
 				<div class="flex flex-wrap gap-2">
-					{#each recentTranslations.slice(0, 8) as translation}
+					{#each recentTranslations.slice(0, 8) as translation (translation.key)}
 						{@const isSelected = isTranslationSelected(translation)}
 						<button
 							class="px-3 py-1.5 text-xs bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 flex items-center gap-1.5
@@ -317,7 +325,7 @@
 									)
 								);
 								if (languageKey) {
-									toggleTranslationSelection(translation, languageKey);
+									toggleTranslationSelection(translation);
 								}
 							}}
 						>
@@ -419,7 +427,7 @@
 							</div>
 						</div>
 
-						{#each Object.keys(filteredTranslations()) as language}
+						{#each Object.keys(filteredTranslations()) as language (language)}
 							{@const translationFlag = filteredTranslations()[language].flag}
 							{@const translations = filteredTranslations()[language].translations}
 
@@ -438,12 +446,12 @@
 
 								<!-- Translations -->
 								<div class="p-3 space-y-2">
-									{#each translations as translationDetail}
+									{#each translations as translationDetail (translationDetail.key)}
 										{@const isSelected = isTranslationSelected(translationDetail)}
 										<button
 											class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 text-left
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
-											onclick={() => toggleTranslationSelection(translationDetail, language)}
+											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
 											<div class="flex items-center justify-between">
 												<div class="flex items-center gap-2">
@@ -528,7 +536,7 @@
 						{:else}
 							<!-- Full translation preview -->
 							<div class="space-y-3">
-								{#each Object.entries(preview) as [verseKey, translationText]}
+								{#each Object.entries(preview) as [verseKey, translationText] (verseKey)}
 									{@const [surah, verse] =
 										verseKey.split(':').length === 2 ? verseKey.split(':') : [null, null]}
 									<div
@@ -555,7 +563,7 @@
 					{:else}
 						<!-- Multiple translations - Condensed preview showing first 3 verses max per translation -->
 						<div class="space-y-4">
-							{#each selectedTranslations as translation}
+							{#each selectedTranslations as translation (translation.key)}
 								{@const preview = translationPreviews[translation.name] || {}}
 								<div class="border border-color rounded-lg p-4 bg-secondary">
 									<div class="flex items-center gap-2 mb-3">
@@ -573,7 +581,7 @@
 									{:else}
 										<!-- Show max 3 verses per translation in condensed mode -->
 										<div class="space-y-2">
-											{#each Object.entries(preview).slice(0, 3) as [verseKey, translationText]}
+											{#each Object.entries(preview).slice(0, 3) as [verseKey, translationText] (verseKey)}
 												<div class="bg-accent rounded p-3 border border-color">
 													<div class="flex items-center gap-2 mb-2">
 														<span
@@ -693,7 +701,7 @@
 						</div>
 					{/if}
 
-					{#each Object.keys(filteredTranslations()) as language}
+					{#each Object.keys(filteredTranslations()) as language (language)}
 						{@const translationFlag = filteredTranslations()[language].flag}
 						{@const translations = filteredTranslations()[language].translations}
 
@@ -717,12 +725,12 @@
 							<!-- Translations grid -->
 							<div class="p-4">
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-									{#each translations as translationDetail}
+									{#each translations as translationDetail (translationDetail.key)}
 										{@const isSelected = isTranslationSelected(translationDetail)}
 										<button
 											class="group relative p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left cursor-pointer
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
-											onclick={() => toggleTranslationSelection(translationDetail, language)}
+											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
 											<!-- Selection indicator -->
 											<div

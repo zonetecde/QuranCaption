@@ -1,18 +1,26 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { onMount } from 'svelte';
 	import MarkdownIt from 'markdown-it';
 	import anchor from 'markdown-it-anchor';
 	import { slide } from 'svelte/transition';
-	import toast from 'svelte-5-french-toast';
 	import { openUrl } from '@tauri-apps/plugin-opener';
-	import type { UpdateInfo } from '$lib/services/VersionService.svelte';
-	import { VersionService } from '$lib/services/VersionService.svelte';
+	import { VersionService, type UpdateInfo } from '$lib/services/VersionService.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 
 	let { update, resolve }: { update: UpdateInfo; resolve: () => void } = $props();
 	let html = '<p>Loading...</p>';
 	let sanitized = $state('<p>Loading...</p>');
-	let DOMPurify: any | undefined;
+	type DomPurifyLike = { sanitize: (dirty: string) => string };
+	let DOMPurify: DomPurifyLike | undefined;
+
+	function isDomPurifyLike(value: unknown): value is DomPurifyLike {
+		return (
+			typeof value === 'object' &&
+			value !== null &&
+			'sanitize' in value &&
+			typeof (value as DomPurifyLike).sanitize === 'function'
+		);
+	}
 
 	// markdown-it configuré avec plugins utiles
 	const md = new MarkdownIt({ html: true, linkify: true, typographer: true }).use(anchor);
@@ -20,14 +28,16 @@
 	onMount(async () => {
 		// DOMPurify nécessite window -> import dynamique pour éviter les erreurs côté SSR
 		try {
-			//@ts-ignore
 			const mod = await import('dompurify');
-			DOMPurify = mod && (mod.default || mod);
+			const maybeDefault = (mod as { default?: unknown }).default ?? mod;
 			// some bundlers export a factory; if so, call it with window
-			if (typeof DOMPurify === 'function' && typeof DOMPurify.sanitize !== 'function') {
-				DOMPurify = DOMPurify(window);
+			if (typeof maybeDefault === 'function') {
+				const maybeInstance = (maybeDefault as (targetWindow: Window) => unknown)(window);
+				DOMPurify = isDomPurifyLike(maybeInstance) ? maybeInstance : undefined;
+			} else if (isDomPurifyLike(maybeDefault)) {
+				DOMPurify = maybeDefault;
 			}
-		} catch (e) {
+		} catch (_e) {
 			DOMPurify = undefined;
 		}
 
@@ -211,7 +221,12 @@
 				<div
 					class="changelog-prose prose prose-sm max-w-none h-full bg-accent px-4 rounded-lg overflow-auto border border-color"
 				>
-					{@html sanitized}
+					<iframe
+						title="Update changelog"
+						class="h-full w-full rounded-lg"
+						srcdoc={sanitized}
+						sandbox="allow-popups allow-popups-to-escape-sandbox"
+					></iframe>
 				</div>
 			</div>
 		{/if}
@@ -373,3 +388,5 @@
 		transform: rotate(90deg);
 	}
 </style>
+
+

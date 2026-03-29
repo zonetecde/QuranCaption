@@ -88,7 +88,7 @@
 
 		<!-- Liste des statuts -->
 		<div class="max-h-64 overflow-y-auto">
-			{#each allStatuses as status}
+			{#each allStatuses as status (status.status)}
 				<label
 					class="flex items-center gap-3 px-3 py-2 hover:bg-white/5 cursor-pointer transition-colors"
 				>

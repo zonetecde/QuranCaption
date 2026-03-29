@@ -1,12 +1,16 @@
 import { globalState } from '$lib/runes/main.svelte';
-import type { SubtitleClip } from './Clip.svelte';
 import { canonicalizePredefinedSubtitleType } from './Clip.svelte';
 import type { Edition } from './Edition';
-import { TrackType } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
-import toast from 'svelte-5-french-toast';
-import { PredefinedSubtitleTranslation, Translation, VerseTranslation } from './Translation.svelte';
+import { PredefinedSubtitleTranslation, VerseTranslation } from './Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
+
+type TranslationEditionsResponse = Record<string, unknown>;
+type PunctuationVerseItem = [number, string];
+type SaheehVerseItem = { surah: number; ayah: number; verse: string };
+type SaheehResponse = { quran?: { 'en.sahih'?: Record<string, SaheehVerseItem> } };
+type StandardSurahVerse = { verse: number; text: string };
+type StandardSurahResponse = { chapter?: StandardSurahVerse[] };
 
 export class ProjectTranslation extends SerializableBase {
 	private TEXT_NO_TRANSLATION_AVAILABLE = 'No translation found';
@@ -35,7 +39,7 @@ export class ProjectTranslation extends SerializableBase {
 		}
 
 		// Charge les traductions disponibles
-		const object: any = await (await fetch('/translations/editions.json')).json();
+		const object = (await (await fetch('/translations/editions.json')).json()) as TranslationEditionsResponse;
 
 		globalState.availableTranslations = object;
 	}
@@ -126,25 +130,24 @@ export class ProjectTranslation extends SerializableBase {
 	/**
 	 * Extract all verses from a surah response
 	 */
-	private extractSurahFromResponse(
-		data: any,
-		surah: number,
-		edition: Edition
-	): Array<{ verse: number; text: string }> {
+	private extractSurahFromResponse(data: unknown, surah: number, edition: Edition): Array<{ verse: number; text: string }> {
 		if (edition.comments === 'Ponctuation') {
 			// Format: array with verse index as key
 			const verses = [];
-			for (let i = 1; i < data.length; i++) {
-				if (data[i]) {
-					verses.push({ verse: i, text: data[i][1] });
+			const punctuationData = Array.isArray(data) ? (data as Array<PunctuationVerseItem | undefined>) : [];
+			for (let i = 1; i < punctuationData.length; i++) {
+				const item = punctuationData[i];
+				if (item && typeof item[1] === 'string') {
+					verses.push({ verse: i, text: item[1] });
 				}
 			}
 			return verses;
 		} else if (edition.comments === 'Saheeh International') {
 			// Format: nested object structure
 			const verses = [];
-			for (const key in data['quran']['en.sahih']) {
-				const item = data['quran']['en.sahih'][key];
+			const saheehData = (data as SaheehResponse).quran?.['en.sahih'] ?? {};
+			for (const key in saheehData) {
+				const item = saheehData[key];
 				if (item.surah === surah) {
 					verses.push({ verse: item.ayah, text: item.verse });
 				}
@@ -152,8 +155,9 @@ export class ProjectTranslation extends SerializableBase {
 			return verses;
 		} else {
 			// Format standard: { "chapter": [{"chapter": 1, "verse": 1, "text": "..."}, ...] }
-			if (data.chapter && Array.isArray(data.chapter)) {
-				return data.chapter.map((item: any) => ({
+			const standardData = data as StandardSurahResponse;
+			if (standardData.chapter && Array.isArray(standardData.chapter)) {
+				return standardData.chapter.map((item) => ({
 					verse: item.verse,
 					text: item.text
 				}));

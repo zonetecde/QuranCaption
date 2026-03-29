@@ -3,7 +3,6 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
-	import { draw, fade } from 'svelte/transition';
 	import CompositeText from './CompositeText.svelte';
 	import { VerseRange } from '$lib/classes';
 

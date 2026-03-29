@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
-	import { openPath, openUrl } from '@tauri-apps/plugin-opener';
 	import { exists } from '@tauri-apps/plugin-fs';
 	import { invoke } from '@tauri-apps/api/core';
 	import ModalManager from './modals/ModalManager';
@@ -343,7 +342,7 @@
 										</ol>
 									{/if}
 
-									{@html exportation.errorLog.replaceAll('\\n', '<br>')}
+									<pre class="whitespace-pre-wrap break-words">{exportation.errorLog}</pre>
 								</div>
 							</div>
 						{/if}

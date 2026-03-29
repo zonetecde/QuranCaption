@@ -439,11 +439,12 @@
 				});
 				close(); // Close modal only if at least some translations were successful
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
 			ModalManager.errorModal(
 				'Error processing AI response',
 				'An error occurred while processing the AI response.',
-				error.message
+				errorMessage
 			);
 		}
 	}

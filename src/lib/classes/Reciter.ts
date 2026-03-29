@@ -12,6 +12,16 @@ export class Reciter {
 	}
 }
 
+function isReciterData(value: unknown): value is { arabic: string; latin: string; number: number } {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'arabic' in value &&
+		'latin' in value &&
+		'number' in value
+	);
+}
+
 export default class RecitersManager {
 	static reciters: Reciter[] = [];
 
@@ -20,8 +30,12 @@ export default class RecitersManager {
 	static async loadReciters() {
 		try {
 			const response = await fetch('/reciters/reciters.json');
-			const data = await response.json();
-			this.reciters = data.map((item: any) => new Reciter(item));
+			const data: unknown = await response.json();
+			if (!Array.isArray(data)) {
+				this.reciters = [];
+				return;
+			}
+			this.reciters = data.filter(isReciterData).map((item) => new Reciter(item));
 		} catch (error) {
 			console.error('Failed to load reciters:', error);
 		}

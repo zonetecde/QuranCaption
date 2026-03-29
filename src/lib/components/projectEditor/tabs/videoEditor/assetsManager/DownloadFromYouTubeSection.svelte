@@ -3,7 +3,7 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { Asset, AssetType, SourceType } from '$lib/classes';
+	import { SourceType } from '$lib/classes';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
@@ -21,8 +21,8 @@
 				globalState.currentProject!.detail.id
 			);
 
-			const result: any = await toast.promise(
-				invoke('download_from_youtube', {
+			const result = await toast.promise(
+				invoke<string>('download_from_youtube', {
 					url: url.trim(),
 					type: type,
 					downloadPath: downloadPath

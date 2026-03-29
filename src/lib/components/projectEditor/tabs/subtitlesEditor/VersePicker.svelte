@@ -11,18 +11,13 @@
 	});
 
 	// Current search value for surah
-	let surahSearchValue = $state('');
+	let surahSearchValue = $state(currentSurahName());
 
 	// Get current surah name for display
 	let currentSurahName = $derived(() => {
 		const surahId = globalState.getSubtitlesEditorState.selectedSurah;
 		const surah = Quran.getSurahsNames().find((s) => s.id === surahId);
 		return surah ? `${surah.id}. ${surah.transliteration}` : '';
-	});
-
-	// Update search value when current surah changes
-	$effect(() => {
-		surahSearchValue = currentSurahName();
 	});
 
 	function handleSurahSelection(selectedValue: string) {
@@ -88,7 +83,7 @@
 				<!-- list of shortcuts -->
 				{#each Object.entries(globalState.settings!.shortcuts.SUBTITLES_EDITOR)
 					.concat(Object.entries(globalState.settings!.shortcuts.PREDEFINED_SUBTITLES || {}))
-					.concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [action, shortcut]}
+					.concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [_action, shortcut], index (`${shortcut.name}-${index}`)}
 					<div class="flex items-center justify-between py-1 border-b border-color last:border-0">
 						<div class="flex flex-col">
 							<span class="text-sm font-medium text-secondary">{shortcut.name}</span>

@@ -37,7 +37,7 @@
 			document.body.appendChild(container);
 
 			// Monter le composant Svelte 5
-			const input = mount(DropOverlay, {
+			mount(DropOverlay, {
 				target: container
 			});
 
@@ -78,8 +78,8 @@
 		</button>
 
 		<div class="flex flex-col gap-2 mt-2">
-			{#each globalState.currentProject!.content.assets as asset, i}
-				<AssetViewer bind:asset={globalState.currentProject!.content.assets[i]} />
+			{#each globalState.currentProject!.content.assets as asset (asset.id)}
+				<AssetViewer bind:asset />
 			{/each}
 		</div>
 

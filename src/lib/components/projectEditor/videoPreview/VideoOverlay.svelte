@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { CustomTextClip, ProjectEditorTabs, SubtitleClip, Translation } from '$lib/classes';
+	import {
+		CustomTextClip,
+		PredefinedSubtitleClip,
+		ProjectEditorTabs,
+		SubtitleClip,
+		Translation
+	} from '$lib/classes';
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -10,7 +16,6 @@
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
-	import { PredefinedSubtitleClip } from '$lib/classes';
 	import { Utilities } from '$lib/classes/misc/Utilities';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 
@@ -228,6 +233,8 @@ const fadeDuration = $derived(() => {
 		return null;
 	}
 
+	function consumeReactiveDependencies(..._deps: unknown[]): void {}
+
 	async function wait(abortSignal: AbortSignal) {
 		await new Promise((resolve, reject) => {
 			if (abortSignal.aborted) {
@@ -256,17 +263,17 @@ const fadeDuration = $derived(() => {
 				return;
 			}
 
-			currentSubtitle()!.id;
-
 			// si le sous-titre actuel n'a pas changé (pendant la lecture vidéo)
 			if (currentSubtitle()!.id === lastSubtitleId && globalState.getVideoPreviewState.isPlaying)
 				return;
 			lastSubtitleId = currentSubtitle()!.id;
 
-			globalState.getTimelineState.movePreviewTo;
-			globalState.getStyle('arabic', 'max-height').value;
-			globalState.getStyle('arabic', 'font-size').value;
-			globalState.getStyle('global', 'spacing').value;
+			consumeReactiveDependencies(
+				globalState.getTimelineState.movePreviewTo,
+				globalState.getStyle('arabic', 'max-height').value,
+				globalState.getStyle('arabic', 'font-size').value,
+				globalState.getStyle('global', 'spacing').value
+			);
 
 			// Cache tout les sous-titres pendant le recalcul pour éviter les sauts visuels
 			// sélectionne l'élément d'id subtitles-container
@@ -563,7 +570,7 @@ const fadeDuration = $derived(() => {
 		></div>
 
 		<!-- Backgrounds des traductions -->
-		{#each projectTranslationEditionNames() as edition}
+		{#each projectTranslationEditionNames() as edition (edition)}
 			{#if globalState.getVideoStyle.doesTargetStyleExist(edition)}
 				<div
 					class={'translation absolute subtitle select-none ' +
@@ -606,8 +613,8 @@ const fadeDuration = $derived(() => {
 							{@const arabicText = subtitle.getText()}
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
 							{#if showDecorativeBrackets() && arabicText.trim()}
-								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>{' '}
-								<span>{arabicText}</span>{' '}
+								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
+								<span>{arabicText}</span>
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
 							{:else}
 								{arabicText}
@@ -616,7 +623,7 @@ const fadeDuration = $derived(() => {
 					</p>
 				{/if}
 
-				{#each Object.keys(currentSubtitleTranslations()!) as edition}
+				{#each Object.keys(currentSubtitleTranslations()!) as edition (edition)}
 					{@const translation = (currentSubtitleTranslations()! as Record<string, Translation>)[
 						edition
 					]}
@@ -659,7 +666,7 @@ const fadeDuration = $derived(() => {
 			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
 		{/if}
 
-		{#each currentCustomClips() as customText}
+		{#each currentCustomClips() as customText (customText.id)}
 			{#if customText.type === 'Custom Text'}
 				<CustomText customText={(customText as CustomTextClip).category!} />
 			{:else if customText.type === 'Custom Image'}

@@ -77,13 +77,14 @@
 				case 'Silence':
 					presetChoice = 'Silence';
 					break;
-				case 'Pre-defined Subtitle':
+				case 'Pre-defined Subtitle': {
 					const predefinedSubtitle = editSubtitle as PredefinedSubtitleClip;
 					const normalizedType = canonicalizePredefinedSubtitleType(
 						predefinedSubtitle.predefinedSubtitleType
 					);
 					presetChoice = normalizedType === 'Other' ? '' : normalizedType;
 					break;
+				}
 				case 'Subtitle':
 					presetChoice = "Qur'an";
 					break;
@@ -190,7 +191,7 @@
 			<!-- Presets -->
 			<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pr-1 pt-1">
 				<div class="grid grid-cols-2 gap-3">
-					{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset}
+					{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset (preset.label)}
 						<button
 							class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
 							preset.label
@@ -263,7 +264,7 @@
 		<div class="space-y-3">
 			<h3 class="text-sm font-medium text-secondary mb-3">Playback Speed</h3>
 			<div class="flex items-center justify-center gap-1 2xl:gap-2">
-				{#each [0.75, 1, 1.5, 1.75, 2] as speed}
+				{#each [0.75, 1, 1.5, 1.75, 2] as speed (speed)}
 					<button
 						class="px-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer hover:scale-105 border {globalState
 							.currentProject!.projectEditorState.subtitlesEditor.playbackSpeed === speed

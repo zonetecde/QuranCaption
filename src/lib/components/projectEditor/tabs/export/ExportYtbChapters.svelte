@@ -49,7 +49,10 @@
 					name="ytb-chapters"
 					value="Each Surah"
 					checked={globalState.getExportState.ytbChaptersChoice === 'Each Surah'}
-					onchange={(e: any) => (globalState.getExportState.ytbChaptersChoice = e.target.value)}
+					onchange={(event: Event) => {
+						const input = event.target as HTMLInputElement;
+						globalState.getExportState.ytbChaptersChoice = input.value;
+					}}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<div class="flex-1">
@@ -71,7 +74,10 @@
 					name="ytb-chapters"
 					value="Each Verse"
 					checked={globalState.getExportState.ytbChaptersChoice === 'Each Verse'}
-					onchange={(e: any) => (globalState.getExportState.ytbChaptersChoice = e.target.value)}
+					onchange={(event: Event) => {
+						const input = event.target as HTMLInputElement;
+						globalState.getExportState.ytbChaptersChoice = input.value;
+					}}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<div class="flex-1">

@@ -35,7 +35,7 @@
 
 	{#if wizard.selection.mode === 'api'}
 		<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
-			{#each MULTI_MODEL_OPTIONS as option}
+			{#each MULTI_MODEL_OPTIONS as option (option.value)}
 				<button
 					type="button"
 					class="rounded-lg border p-3 text-left"
@@ -50,7 +50,7 @@
 		</div>
 	{:else if isLegacyLocal()}
 		<div class="space-y-2">
-			{#each LEGACY_MODEL_OPTIONS as option}
+			{#each LEGACY_MODEL_OPTIONS as option (option.value)}
 				<button
 					type="button"
 					class="w-full rounded-lg border p-3 text-left"
@@ -65,7 +65,7 @@
 		</div>
 	{:else if isMultiLocal()}
 		<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
-			{#each MULTI_MODEL_OPTIONS as option}
+			{#each MULTI_MODEL_OPTIONS as option (option.value)}
 				<button
 					type="button"
 					class="rounded-lg border p-3 text-left"

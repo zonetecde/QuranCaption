@@ -1,13 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
-import { AssetType, SourceType, TrackType } from './enums.js';
+import { AssetType, SourceType } from './enums.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import { Utilities } from './misc/Utilities.js';
 import { openPath } from '@tauri-apps/plugin-opener';
-import { exists, open, remove } from '@tauri-apps/plugin-fs';
+import { exists } from '@tauri-apps/plugin-fs';
 import { globalState } from '$lib/runes/main.svelte.js';
 import { Duration } from './index.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
+import type { UnknownRecord } from '$lib/types/common.js';
 
 type DurationLoadState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -20,7 +21,7 @@ export class Asset extends SerializableBase {
 	exists: boolean = $state(true);
 	sourceUrl?: string = $state(undefined);
 	sourceType: SourceType = $state(SourceType.Local);
-	metadata: Record<string, any> = $state({});
+	metadata: UnknownRecord = $state({});
 	durationLoadState: DurationLoadState = $state('idle');
 	durationLoadError: string | null = $state(null);
 
@@ -28,7 +29,7 @@ export class Asset extends SerializableBase {
 		filePath: string = '',
 		sourceUrl?: string,
 		sourceType: SourceType = SourceType.Local,
-		metadata: Record<string, any> = {}
+		metadata: UnknownRecord = {}
 	) {
 		super();
 
@@ -300,13 +301,11 @@ export class Asset extends SerializableBase {
 			return error;
 		}
 
-		if (
-			error &&
-			typeof error === 'object' &&
-			'message' in error &&
-			typeof (error as any).message === 'string'
-		) {
-			return (error as { message: string }).message;
+		if (error && typeof error === 'object' && 'message' in error) {
+			const maybeError = error as { message?: unknown };
+			if (typeof maybeError.message === 'string') {
+				return maybeError.message;
+			}
 		}
 
 		return String(error ?? '');

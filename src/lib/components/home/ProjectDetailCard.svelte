@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ProjectDetail } from '$lib/classes';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { globalState } from '$lib/runes/main.svelte';
 	import EditableText from '../misc/EditableText.svelte';
@@ -123,7 +123,7 @@
 						<ul
 							class="absolute top-full right-0 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl py-1 z-20 backdrop-blur-sm"
 						>
-							{#each statuses as s}
+							{#each statuses as s (s.status)}
 								<li
 									class={`flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer select-none transition-colors hover:bg-white/5 rounded-sm ${s === projectDetail.status ? 'bg-white/10' : ''}`}
 									onclick={() => selectStatus(s)}
@@ -194,7 +194,7 @@
 						</div>
 					</div>
 					<div class="space-y-2">
-						{#each Object.entries(projectDetail.translations) as [language, percentage]}
+						{#each Object.entries(projectDetail.translations) as [language, percentage] (language)}
 							<div class="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
 								<span>Translation ({language}) </span>
 								<span class="font-medium text-[var(--text-primary)]">{percentage}%</span>

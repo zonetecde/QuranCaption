@@ -1,5 +1,4 @@
-import type { AutoSegmentationSettings } from '$lib/classes/Settings.svelte';
-import Settings from '$lib/classes/Settings.svelte';
+import Settings, { type AutoSegmentationSettings } from '$lib/classes/Settings.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import type { AiVersion, WizardSelectionState } from '../types';
 

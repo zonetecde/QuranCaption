@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+﻿import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -32,7 +32,7 @@ async function fetchSurahTranslation(surahNumber) {
 		}
 
 		return data.result;
-	} catch (error) {
+	} catch (_error) {
 		console.error(`Erreur lors de la récupération de la sourate ${surahNumber}:`, error.message);
 		throw error;
 	}
@@ -44,13 +44,13 @@ async function readExistingFile(surahNumber) {
 		const filePath = path.join(TRANSLATIONS_DIR, `${surahNumber}.json`);
 		const fileContent = await fs.readFile(filePath, 'utf8');
 		return JSON.parse(fileContent);
-	} catch (error) {
+	} catch (_error) {
 		console.error(`Erreur lors de la lecture du fichier ${surahNumber}.json:`, error.message);
 		throw error;
 	}
 }
 
-// Fonction pour mettre à jour le fichier avec les nouvelles traductions
+// Fonction pour mettre a jour le fichier avec les nouvelles traductions
 async function updateSurahFile(surahNumber, apiData) {
 	try {
 		// Lire le fichier existant pour conserver les métadonnées
@@ -82,21 +82,24 @@ async function updateSurahFile(surahNumber, apiData) {
 			newContent.push([verseNumber, translation]);
 		}
 
-		// Écrire le fichier mis à jour
+		// Ecrire le fichier mis a jour
 		const filePath = path.join(TRANSLATIONS_DIR, `${surahNumber}.json`);
 		await fs.writeFile(filePath, JSON.stringify(newContent, null, 2), 'utf8');
 
-		console.log(`✅ Sourate ${surahNumber} mise à jour (${apiData.length} versets)`);
-	} catch (error) {
-		console.error(`❌ Erreur lors de la mise à jour de la sourate ${surahNumber}:`, error.message);
+		console.log(`[OK] Sourate ${surahNumber} mise a jour (${apiData.length} versets)`);
+	} catch (_error) {
+		console.error(
+			`[ERROR] Erreur lors de la mise a jour de la sourate ${surahNumber}:`,
+			error.message
+		);
 		throw error;
 	}
 }
 
 // Fonction principale
 async function updateAllTranslations() {
-	console.log('🚀 Début de la mise à jour des traductions espagnoles...');
-	console.log(`📁 Répertoire: ${TRANSLATIONS_DIR}`);
+	console.log('[START] Debut de la mise a jour des traductions espagnoles...');
+	console.log(`[INFO] Repertoire: ${TRANSLATIONS_DIR}`);
 
 	let successCount = 0;
 	let errorCount = 0;
@@ -107,7 +110,7 @@ async function updateAllTranslations() {
 			// Récupérer les données de l'API
 			const apiData = await fetchSurahTranslation(surahNumber);
 
-			// Mettre à jour le fichier
+			// Mettre a jour le fichier
 			await updateSurahFile(surahNumber, apiData);
 
 			successCount++;
@@ -116,14 +119,14 @@ async function updateAllTranslations() {
 			if (surahNumber < 114) {
 				await sleep(DELAY_BETWEEN_REQUESTS);
 			}
-		} catch (error) {
+		} catch (_error) {
 			errorCount++;
 			errors.push({
 				surah: surahNumber,
 				error: error.message
 			});
 
-			console.error(`❌ Erreur pour la sourate ${surahNumber}: ${error.message}`);
+			console.error(`[ERROR] Erreur pour la sourate ${surahNumber}: ${error.message}`);
 
 			// Continuer avec la sourate suivante même en cas d'erreur
 			continue;
@@ -131,22 +134,22 @@ async function updateAllTranslations() {
 	}
 
 	// Rapport final
-	console.log('\n📊 Rapport final:');
-	console.log(`✅ Succès: ${successCount}/114 sourates`);
-	console.log(`❌ Erreurs: ${errorCount}/114 sourates`);
+	console.log('\n[REPORT] Rapport final:');
+	console.log(`[OK] Succes: ${successCount}/114 sourates`);
+	console.log(`[ERROR] Erreurs: ${errorCount}/114 sourates`);
 
 	if (errors.length > 0) {
-		console.log('\n❌ Détails des erreurs:');
+		console.log('\n[ERROR] Details des erreurs:');
 		errors.forEach(({ surah, error }) => {
 			console.log(`  - Sourate ${surah}: ${error}`);
 		});
 	}
 
 	if (successCount === 114) {
-		console.log('\n🎉 Toutes les traductions ont été mises à jour avec succès !');
+		console.log('\n[DONE] Toutes les traductions ont ete mises a jour avec succes !');
 	} else {
 		console.log(
-			`\n⚠️  ${errorCount} erreur(s) rencontrée(s). Veuillez vérifier les fichiers concernés.`
+			`\n[WARN] ${errorCount} erreur(s) rencontree(s). Veuillez verifier les fichiers concernes.`
 		);
 	}
 }
@@ -155,10 +158,10 @@ async function updateAllTranslations() {
 async function checkDirectory() {
 	try {
 		await fs.access(TRANSLATIONS_DIR);
-		console.log(`✅ Répertoire trouvé: ${TRANSLATIONS_DIR}`);
-	} catch (error) {
-		console.error(`❌ Répertoire non trouvé: ${TRANSLATIONS_DIR}`);
-		console.error('Veuillez vérifier le chemin et réessayer.');
+		console.log(`[OK] Repertoire trouve: ${TRANSLATIONS_DIR}`);
+	} catch (_error) {
+		console.error(`[ERROR] Repertoire non trouve: ${TRANSLATIONS_DIR}`);
+		console.error('Veuillez verifier le chemin et reessayer.');
 		process.exit(1);
 	}
 }
@@ -168,10 +171,13 @@ async function main() {
 	try {
 		await checkDirectory();
 		await updateAllTranslations();
-	} catch (error) {
-		console.error('❌ Erreur fatale:', error.message);
+	} catch (_error) {
+		console.error('[ERROR] Erreur fatale:', error.message);
 		process.exit(1);
 	}
 }
 
 main();
+
+
+

@@ -1,6 +1,6 @@
 import { Asset, AssetClip, Clip, Duration, TrackType } from './index.js';
 import { SerializableBase } from './misc/SerializableBase.js';
-import { AssetTrack, Track } from './Track.svelte.js';
+import { Track } from './Track.svelte.js';
 import { globalState } from '$lib/runes/main.svelte.js';
 
 export class Timeline extends SerializableBase {

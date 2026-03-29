@@ -189,7 +189,7 @@
 				<div class="bg-accent rounded-lg p-5 border border-color">
 					<p class="text-sm font-semibold text-primary mb-3">Your rating</p>
 					<div class="flex items-center gap-1.5">
-						{#each [1, 2, 3, 4, 5] as star}
+						{#each [1, 2, 3, 4, 5] as star (star)}
 							<button
 								class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 cursor-pointer"
 								onclick={() => setRating(star)}

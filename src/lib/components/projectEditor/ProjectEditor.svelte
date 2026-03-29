@@ -1,20 +1,15 @@
-<script lang="ts">
+	<script lang="ts">
 	import { onMount } from 'svelte';
-	import { getCurrentWindow } from '@tauri-apps/api/window';
-	import VideoPreview from './videoPreview/VideoPreview.svelte';
-	import Timeline from './timeline/Timeline.svelte';
 	import Navigator from './Navigator.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectEditorTabs } from '$lib/classes';
 	import VideoEditor from './tabs/videoEditor/VideoEditor.svelte';
 	import SubtitlesEditor from './tabs/subtitlesEditor/SubtitlesEditor.svelte';
-	import toast from 'svelte-5-french-toast';
 	import TranslationsEditor from './tabs/translationsEditor/TranslationsEditor.svelte';
 	import StyleEditor from './tabs/styleEditor/StyleEditor.svelte';
-	import QPCFontProvider from '$lib/services/FontProvider';
 	import Export from './tabs/export/Export.svelte';
 
-	let saveInterval: any;
+	let saveInterval: ReturnType<typeof setInterval> | undefined;
 
 	onMount(() => {
 		// Sauvegarde automatique du projet toutes les 5 secondes
@@ -33,7 +28,9 @@
 		window.addEventListener('mousedown', handleGlobalClick, true);
 
 		return () => {
-			clearInterval(saveInterval);
+			if (saveInterval !== undefined) {
+				clearInterval(saveInterval);
+			}
 			window.removeEventListener('mousedown', handleGlobalClick, true);
 		};
 	});

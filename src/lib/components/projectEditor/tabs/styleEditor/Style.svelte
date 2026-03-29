@@ -4,11 +4,9 @@
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
-	import type { Style, StyleCategoryName, StyleName } from '$lib/classes/VideoStyle.svelte';
+	import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 	import { default as StyleComponent } from '$lib/components/projectEditor/tabs/styleEditor/Style.svelte';
-	import toast from 'svelte-5-french-toast';
-	import { ProjectDetail, type CustomTextClip } from '$lib/classes';
-	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
+	import { ProjectDetail } from '$lib/classes';
 	import RecitersManager from '$lib/classes/Reciter';
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -22,8 +20,23 @@
 		style: Style;
 		target?: string;
 		disabled: boolean;
-		applyValueSimple: (value: any) => void;
+		applyValueSimple: (value: unknown) => void;
 	} = $props();
+
+	type DimensionValue = { width: number; height: number };
+	function asDimensionValue(value: unknown): DimensionValue {
+		if (
+			typeof value === 'object' &&
+			value !== null &&
+			'width' in value &&
+			'height' in value &&
+			typeof (value as DimensionValue).width === 'number' &&
+			typeof (value as DimensionValue).height === 'number'
+		) {
+			return value as DimensionValue;
+		}
+		return { width: 1920, height: 1080 };
+	}
 
 	onMount(async () => {
 		// Par défaut fermé
@@ -83,7 +96,7 @@
 	// Initialize orientation and quality based on current dimensions
 	$effect(() => {
 		if (style.valueType === 'dimension') {
-			const current = style.value as any;
+			const current = asDimensionValue(style.value);
 			// Detect current orientation and quality
 			if (current.width > current.height) {
 				selectedOrientation = 'landscape';
@@ -148,7 +161,7 @@
 	});
 
 	function getEffectiveForSelection(): {
-		value: any;
+		value: unknown;
 		mixed: boolean;
 		overridden: boolean;
 	} {
@@ -179,19 +192,19 @@
 		selectedClipIds().length > 0 ? getEffectiveForSelection().overridden : false
 	);
 
-	let inputValue: any = $state(style.value);
+	let inputValue: unknown = $state(style.value);
 	$effect(() => {
 		const eff = getEffectiveForSelection();
 		inputValue = eff.value;
 	});
 
-	function coerce(val: any) {
+	function coerce(val: unknown): unknown {
 		if (style.valueType === 'number') return Number(val);
 		if (style.valueType === 'boolean') return Boolean(val);
-		return val as any;
+		return val;
 	}
 
-	function applyValue(v: any) {
+	function applyValue(v: unknown) {
 		const value = coerce(v);
 		if (selectedClipIds().length > 0) {
 			globalState.getVideoStyle
@@ -307,7 +320,8 @@
 		} else if (style.valueType === 'reciter') {
 			return globalState.currentProject!.detail.reciter || 'No reciter selected';
 		} else if (style.valueType === 'dimension') {
-			return (style.value as any).width + 'x' + (style.value as any).height;
+			const dimension = asDimensionValue(style.value);
+			return dimension.width + 'x' + dimension.height;
 		} else return String(style.value);
 	}
 
@@ -474,18 +488,18 @@
 						{#if style.id === 'font-family'}
 							{#await invoke('get_system_fonts')}
 								<option value="" disabled selected>Loading fonts...</option>
-							{:then fonts: any}
+							{:then fonts}
 								<option value="QPC2">Uthamic Mushaf QPC2</option>
 								<option value="QPC1">Uthamic Mushaf QPC1</option>
 								<option value="Hafs">Hafs</option>
-								{#each fonts as font}
+								{#each fonts as font (`${font}`)}
 									<option value={font}>{font}</option>
 								{/each}
 							{:catch error}
 								<option value="" disabled>Error loading fonts: {error.message}</option>
 							{/await}
 						{:else}
-							{#each style.options || [] as option}
+							{#each style.options || [] as option (`${option}`)}
 								<option value={option}>{option}</option>
 							{/each}
 						{/if}
@@ -501,7 +515,7 @@
 							applyValue((e.target as HTMLSelectElement).value);
 						}}
 					>
-						{#each style.options || [] as option}
+						{#each style.options || [] as option (`${option}`)}
 							<option value={option} style="font-family: 'QPC2BSML', serif;">{option}</option>
 						{/each}
 					</select>
@@ -544,7 +558,7 @@
 					<button
 						class="btn-accent text-sm py-1 min-w-[150px]"
 						title="Use the preview timeline cursor time and put it into the time field"
-						onclick={(e) => {
+						onclick={() => {
 							let currentPreviewTime = globalState.getTimelineState.cursorPosition;
 
 							applyValue(currentPreviewTime);
@@ -608,7 +622,7 @@
 					<div class="flex flex-col gap-2">
 						<p class="text-sm font-medium">Orientation:</p>
 						<div class="flex gap-4">
-							{#each [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as orientation}
+							{#each [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as orientation (orientation.value)}
 								<label class="flex items-center gap-2 cursor-pointer">
 									<input
 										type="radio"
@@ -627,7 +641,7 @@
 					<div class="flex flex-col gap-2">
 						<p class="text-sm font-medium">Quality:</p>
 						<div class="flex gap-4 flex-wrap">
-							{#each [{ value: '720p', label: '720p', width: 1280, height: 720 }, { value: '1080p', label: '1080p', width: 1920, height: 1080 }, { value: '1440p', label: '1440p (2K)', width: 2560, height: 1440 }, { value: '2160p', label: '2160p (4K)', width: 3840, height: 2160 }] as quality}
+							{#each [{ value: '720p', label: '720p', width: 1280, height: 720 }, { value: '1080p', label: '1080p', width: 1920, height: 1080 }, { value: '1440p', label: '1440p (2K)', width: 2560, height: 1440 }, { value: '2160p', label: '2160p (4K)', width: 3840, height: 2160 }] as quality (quality.value)}
 								<label class="flex items-center gap-2 cursor-pointer">
 									<input
 										type="radio"
@@ -660,10 +674,10 @@
 								class="w-full"
 								oninput={(e) => {
 									const width = parseInt((e.target as HTMLInputElement).value);
-									const height = (style.value as any).height;
+									const height = asDimensionValue(style.value).height;
 									applyValue({ width, height });
 								}}
-								value={(style.value as any).width}
+								value={asDimensionValue(style.value).width}
 								min="256"
 								max="7680"
 							/>
@@ -672,11 +686,11 @@
 								type="number"
 								class="w-full"
 								oninput={(e) => {
-									const width = (style.value as any).width;
+									const width = asDimensionValue(style.value).width;
 									const height = parseInt((e.target as HTMLInputElement).value);
 									applyValue({ width, height });
 								}}
-								value={(style.value as any).height}
+								value={asDimensionValue(style.value).height}
 								min="144"
 								max="4320"
 							/>
@@ -687,7 +701,7 @@
 				<div class="flex flex-col gap-2">
 					{#each globalState.getVideoStyle
 						.getStylesOfTarget(target!)
-						.getCompositeStyles(style.id as StyleName) as subStyle}
+						.getCompositeStyles(style.id as StyleName) as subStyle (subStyle.id)}
 						<StyleComponent
 							style={subStyle}
 							target={style.id}

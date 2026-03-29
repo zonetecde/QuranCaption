@@ -1,12 +1,10 @@
 import { globalState } from '$lib/runes/main.svelte';
 import toast from 'svelte-5-french-toast';
-import { Edition, TrackType, Translation } from '.';
-import type { Asset } from './Asset.svelte';
+import { Edition, Translation } from '.';
 import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
-import { PredefinedSubtitleTranslation, type VerseTranslation } from './Translation.svelte';
-import type { Category, StyleName, TextStyleName } from './VideoStyle.svelte';
+import type { Category, StyleName } from './VideoStyle.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
 
 type ClipType =
@@ -37,16 +35,16 @@ export class Clip extends SerializableBase {
 	}
 
 	getWidth(): number {
+		const timelineZoom = globalState.currentProject?.projectEditorState.timeline.zoom ?? 0;
 		if (this.duration === 0) {
 			// C'est dans le cas où l'asset est une image. C'est alors l'image de fond de la vidéo.
 			// Elle prend la taille de la timeline.
-			return (
-				globalState.currentProject!.content.timeline.getLongestTrackDuration().toSeconds() *
-				globalState.currentProject?.projectEditorState.timeline.zoom!
-			);
+			const longestTrackDuration =
+				globalState.currentProject?.content.timeline.getLongestTrackDuration().toSeconds() ?? 0;
+			return longestTrackDuration * timelineZoom;
 		}
 
-		return (this.duration / 1000) * globalState.currentProject?.projectEditorState.timeline.zoom!;
+		return (this.duration / 1000) * timelineZoom;
 	}
 
 	/**
@@ -523,7 +521,7 @@ export class CustomClip extends Clip {
 		this.category = category;
 	}
 
-	setStyle(styleId: StyleName, value: any) {
+	setStyle(styleId: StyleName, value: string | number | boolean) {
 		if (styleId === 'time-appearance') {
 			this.setStartTime(value);
 		} else if (styleId === 'time-disappearance') {
@@ -538,13 +536,13 @@ export class CustomClip extends Clip {
 	}
 
 	override getWidth(): number {
+		const timelineZoom = globalState.currentProject?.projectEditorState.timeline.zoom ?? 0;
 		// Si le custom text s'affiche sur toute la durée de la vidéo, alors retourne le temps
 		// total de la vidéo
 		if (this.getAlwaysShow()) {
-			return (
-				globalState.currentProject!.content.timeline.getLongestTrackDuration().toSeconds() *
-				globalState.currentProject?.projectEditorState.timeline.zoom!
-			);
+			const longestTrackDuration =
+				globalState.currentProject?.content.timeline.getLongestTrackDuration().toSeconds() ?? 0;
+			return longestTrackDuration * timelineZoom;
 		} else {
 			// Appel du getWidth du parent
 			return super.getWidth();

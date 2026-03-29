@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { ProjectEditorTabs } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import ModalManager from '../modals/ModalManager';
 
 	let tabs = $state([
 		{ name: 'Video editor', icon: 'edit', value: ProjectEditorTabs.VideoEditor },
@@ -18,7 +17,7 @@
 </script>
 
 <div class="w-full h-11 flex items-center justify-center space-x-1 border-color flex-shrink-0">
-	{#each tabs as tab}
+	{#each tabs as tab (tab.value)}
 		<button
 			class="tab-button ring-0 outline-none flex items-center {globalState.currentProject!
 				.projectEditorState.currentTab === tab.value

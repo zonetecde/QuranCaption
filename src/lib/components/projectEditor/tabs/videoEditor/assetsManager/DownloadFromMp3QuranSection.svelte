@@ -214,7 +214,7 @@
 					<option value={-1}>Loading reciters...</option>
 				{:else}
 					<option value={-1}>Select a reciter</option>
-					{#each sortedOptions as option, index}
+					{#each sortedOptions as option, index (`${option.reciterId}-${option.moshafId}`)}
 						<option value={index}>{option.label}</option>
 					{/each}
 				{/if}
@@ -242,7 +242,7 @@
 				disabled={selectedOptionIndex === -1}
 			>
 				<option value={-1}>Select a Surah</option>
-				{#each availableSurahs as surah}
+				{#each availableSurahs as surah (surah.id)}
 					<option value={surah.id} disabled={!surah.supported}>
 						{surah.name}
 					</option>

@@ -68,7 +68,7 @@
 				onchange={handlePropertyChange}
 				class="w-full bg-[#0d1117] border border-[var(--border-color)] rounded px-3 py-2 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
 			>
-				{#each sortOptions as option}
+				{#each sortOptions as option (option.key)}
 					<option value={option.key}>{option.label}</option>
 				{/each}
 			</select>

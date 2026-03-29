@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Category } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import CompositeText from './CompositeText.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 

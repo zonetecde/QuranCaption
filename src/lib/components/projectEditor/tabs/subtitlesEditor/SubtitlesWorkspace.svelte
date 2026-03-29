@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Quran, type Verse } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import VersePicker from './VersePicker.svelte';
 	import WordsSelector from './WordsSelector.svelte';

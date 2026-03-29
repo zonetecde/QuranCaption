@@ -1,15 +1,10 @@
-<script lang="ts">
-	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
+	<script lang="ts">
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectService } from '$lib/services/ProjectService';
-	import { Toaster } from 'svelte-5-french-toast';
-	import TitleBar from '$lib/components/TitleBar.svelte';
 	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
-	import { on } from 'svelte/events';
 	import { browser } from '$app/environment';
-	import { beforeNavigate, afterNavigate } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 	import posthog from 'posthog-js';
 
 	let { children } = $props();

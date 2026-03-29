@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { Category, Style } from '$lib/classes';
-	import { globalState } from '$lib/runes/main.svelte';
+	import type { Style } from '$lib/classes';
+	import type { Snippet } from 'svelte';
 
 	let {
 		compositeStyle,
 		children
 	}: {
 		compositeStyle: Style;
-		children: any;
+		children: Snippet;
 	} = $props();
 
 	let getCss = $derived(() => {

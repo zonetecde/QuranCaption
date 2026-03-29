@@ -1,4 +1,3 @@
-import type SubtitlesEditor from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesEditor.svelte';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
 	AssetClip,
@@ -190,7 +189,7 @@ export class VideoPreviewState extends SerializableBase {
 			await appWindow.setFullscreen(
 				globalState.currentProject!.projectEditorState.videoPreview.isFullscreen
 			);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			ModalManager.errorModal(
 				'Error',
 				'There was an error toggling fullscreen!',

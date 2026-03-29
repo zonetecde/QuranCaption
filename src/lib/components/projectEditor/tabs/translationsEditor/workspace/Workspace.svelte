@@ -345,7 +345,7 @@
 				<NoTranslationsToShow />
 			{:else}
 				{#key visibleCount}
-					{#each subtitlesInGroups().slice(0, visibleCount) as group}
+					{#each subtitlesInGroups().slice(0, visibleCount) as group, groupIndex (`group-${group[0]}-${groupIndex}`)}
 						{@const firstClipInGroup = globalState.getSubtitleTrack.clips[group[0]] as
 							| SubtitleClip
 							| PredefinedSubtitleClip}
@@ -369,7 +369,7 @@
 											| PredefinedSubtitleClip}
 										overlapEndWordIndex={getArabicOverlapEndWithPrevious(_clipIndex)}
 									/>
-									{#each editionsToShowInEditor() as edition}
+									{#each editionsToShowInEditor() as edition (edition.name)}
 										{#key edition.name}
 											<Translation
 												{edition}

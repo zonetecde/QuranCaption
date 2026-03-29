@@ -153,14 +153,6 @@ function tokenizeForCoverage(text: string): string[] {
 		.filter(Boolean);
 }
 
-function countTokens(tokens: string[]): Map<string, number> {
-	const counts = new Map<string, number>();
-	for (const token of tokens) {
-		counts.set(token, (counts.get(token) ?? 0) + 1);
-	}
-	return counts;
-}
-
 function charsToTokens(charCount: number): number {
 	return Math.max(1, Math.ceil(charCount / 4));
 }

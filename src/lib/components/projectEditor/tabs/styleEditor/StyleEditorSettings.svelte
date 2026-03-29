@@ -1,17 +1,10 @@
 <script lang="ts">
-	import {
-		type Style,
-		type Category,
-		VideoStyle,
-		type StyleCategoryName
-	} from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import Section from '../../Section.svelte';
 	import StyleComponent from './Style.svelte';
 	import ImportExportStyle from './ImportExportStyle.svelte';
-	import { fade, slide } from 'svelte/transition';
-	import { currentMenu } from 'svelte-contextmenu/stores';
+	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
 
 	const getCategoriesToDisplay = $derived(() => {
@@ -120,7 +113,7 @@
 	>
 		<p class="text-sm text-secondary">Choose a target</p>
 		<div data-tour-id="style-subtabs" class="w-full grid grid-cols-3 gap-2">
-			{#each ['global', 'arabic', 'translation'] as selection}
+			{#each ['global', 'arabic', 'translation'] as selection (selection)}
 				<button
 					onclick={() => {
 						globalState.getStylesState.currentSelection = selection as
@@ -150,7 +143,7 @@
 						transition:slide
 						title="Select translation"
 					>
-						{#each globalState.getProjectTranslation.addedTranslationEditions as translation}
+						{#each globalState.getProjectTranslation.addedTranslationEditions as translation (translation.name)}
 							<option value={translation.name}>{translation.author}</option>
 						{/each}
 					</select>
@@ -252,7 +245,7 @@
 	<div
 		class="flex flex-col gap-y-2 px-1 bg-[var(--bg-primary)]/60 rounded-xl border border-[var(--border-color)]/50 overflow-y-auto pb-10 rounded-t-none border-t-2 flex-1 py-1"
 		bind:this={stylesContainer}
-		onscroll={(e) => {
+		onscroll={(_e) => {
 			globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition =
 				stylesContainer?.scrollTop || 0;
 		}}
@@ -268,7 +261,7 @@
 				</p>
 			</div>
 		{:else}
-			{#each getCategoriesToDisplay() as category}
+			{#each getCategoriesToDisplay() as category (category.id)}
 				<Section
 					name={category.name}
 					icon={category.icon}
@@ -294,7 +287,7 @@
 						</div>
 					{/if}
 
-					{#each category.styles as style, styleIndex}
+					{#each category.styles as style (style.id)}
 						{#if globalState.getStylesState.searchQuery === '' || style.name
 								.toLowerCase()
 								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
@@ -343,7 +336,7 @@
 
 			<!-- Ajoute maintenant les customs texts -->
 			{#if globalState.getStylesState.currentSelection === 'global' && globalState.getStylesState.selectedVideos.length === 0}
-				{#each globalState.getCustomClipTrack.clips as customTextClip, i}
+				{#each globalState.getCustomClipTrack.clips as customTextClip (customTextClip.id)}
 					{@const category = (customTextClip as CustomTextClip).category!}
 					<Section
 						name={category.name}
@@ -351,7 +344,7 @@
 						contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
 						classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 					>
-						{#each category.styles as style, styleIndex}
+						{#each category.styles as style (style.id)}
 							{#if globalState.getStylesState.searchQuery === '' || style.name
 									.toLowerCase()
 									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
@@ -361,11 +354,7 @@
 
 								<!-- prettier-ignore -->
 								<StyleComponent
-								bind:style={
-									category.styles[
-										styleIndex
-									]
-								}
+								bind:style={style}
 								applyValueSimple={(v) => {
 									const targetCustomClip = globalState.getCustomClipTrack.getCustomClipWithId(category.id);
 									if (!targetCustomClip) {

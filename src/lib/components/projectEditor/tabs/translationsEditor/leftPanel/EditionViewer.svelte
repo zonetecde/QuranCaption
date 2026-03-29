@@ -40,8 +40,7 @@
 			skipQC1Projects = true;
 		}
 
-		const fetchPromise = new Promise<number>(async (resolve, reject) => {
-			try {
+		const fetchPromise = (async () => {
 				const doneSubtitlesIds: Set<number> = new Set();
 
 				// Index rapide des sous-titres encore incomplets dans le projet courant.
@@ -138,11 +137,8 @@
 				}
 
 				globalState.currentProject!.detail.updatePercentageTranslated(edition);
-				resolve(doneSubtitlesIds.size);
-			} catch (error) {
-				reject(error);
-			}
-		});
+				return doneSubtitlesIds.size;
+		})();
 
 		toast.promise(fetchPromise, {
 			loading: 'Fetching translations... ' + (skipQC1Projects ? '(only QC2)' : ''),

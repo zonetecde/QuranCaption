@@ -5,8 +5,10 @@
 	import ExportVideo from './ExportVideo.svelte';
 	import ExportYtbChapters from './ExportYtbChapters.svelte';
 
+	type ExportChoiceId = 'video' | 'subtitles' | 'chapters' | 'project';
+
 	// Export choices (English labels & hints)
-	const choices = [
+	const choices: { id: ExportChoiceId; label: string; icon: string; hint: string }[] = [
 		{ id: 'video', label: 'Video', icon: 'movie', hint: 'Export full rendered video' },
 		{
 			id: 'subtitles',
@@ -23,7 +25,7 @@
 		{ id: 'project', label: 'Project Data', icon: 'folder', hint: 'Export project raw data' }
 	];
 
-	function select(id: 'video' | 'subtitles' | 'chapters' | 'project') {
+	function select(id: ExportChoiceId) {
 		globalState.getExportState.selectedChoice = id;
 	}
 </script>
@@ -44,13 +46,13 @@
 			aria-label="Export type"
 			tabindex="0"
 		>
-			{#each choices as c}
+			{#each choices as c (c.id)}
 				<button
 					type="button"
 					role="radio"
 					data-choice={c.id}
 					aria-checked={globalState.getExportState.selectedChoice === c.id}
-					onclick={() => select(c.id as any)}
+					onclick={() => select(c.id)}
 					class="group relative flex flex-col items-start rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 ring-accent/70 hover:bg-white/10 hover:border-white/20 [&.selected]:border-accent/60 [&.selected]:bg-accent/10 cursor-pointer group"
 					class:selected={globalState.getExportState.selectedChoice === c.id}
 					title={c.hint}

@@ -1,7 +1,8 @@
-import { Project, ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
+import { Project, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
+import type { ImportedProjectPayload } from '$lib/types/project';
 
 /**
  * Service pour gérer les projets.
@@ -167,7 +168,7 @@ export class ProjectService {
 			// Supprime le dossier des assets associés au projet
 			const assetsPath = await this.getAssetFolderForProject(projectId);
 			await remove(assetsPath, { recursive: true });
-		} catch (e) {
+		} catch (_e) {
 			// Le projet n'avait pas d'asset
 		}
 
@@ -215,7 +216,7 @@ export class ProjectService {
 			projects.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
 			globalState.userProjectsDetails = projects;
-		} catch (error) {
+		} catch (_error) {
 			return [];
 		}
 	}
@@ -232,7 +233,7 @@ export class ProjectService {
 	 * Importe un projet à partir d'un fichier JSON.
 	 * @param json Le contenu JSON du projet
 	 */
-	static async importProject(json: any) {
+	static async importProject(json: ImportedProjectPayload) {
 		json.detail.id = Utilities.randomId(); // Applique un nouvel ID unique au projet
 
 		const projectObject = Project.fromJSON(json);

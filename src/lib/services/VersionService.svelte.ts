@@ -1,7 +1,6 @@
-import { getTauriVersion, getVersion } from '@tauri-apps/api/app';
-import { check } from '@tauri-apps/plugin-updater';
+import { getVersion } from '@tauri-apps/api/app';
 import { relaunch } from '@tauri-apps/plugin-process';
-import type { Update } from '@tauri-apps/plugin-updater';
+import { check, type Update } from '@tauri-apps/plugin-updater';
 
 export interface UpdateInfo {
 	hasUpdate: boolean;
@@ -10,6 +9,15 @@ export interface UpdateInfo {
 }
 
 export type UpdateState = 'idle' | 'checking' | 'downloading' | 'installing' | 'done' | 'error';
+
+type GitHubRelease = {
+	tag_name?: string;
+	prerelease?: boolean;
+	body?: string;
+};
+
+const isGitHubRelease = (value: unknown): value is GitHubRelease =>
+	typeof value === 'object' && value !== null;
 
 class VersionService {
 	currentVersion: string | null = $state(null);
@@ -170,13 +178,14 @@ class VersionService {
 			if (!response.ok) {
 				throw new Error('Failed to fetch releases');
 			}
-			const releases = await response.json();
-			if (!Array.isArray(releases) || releases.length === 0) {
+			const releasesPayload: unknown = await response.json();
+			if (!Array.isArray(releasesPayload) || releasesPayload.length === 0) {
 				return { hasUpdate: false, changelog: '', latestVersion: '0.0.0' };
 			}
+			const releases = releasesPayload.filter(isGitHubRelease);
 
 			// filtrer seulement les releases qui commencent par "QC-" ou "v" et ne sont pas des pre-releases
-			const qcReleases = releases.filter((r: any) => {
+			const qcReleases = releases.filter((r) => {
 				const tag = r.tag_name || '';
 				return (tag.startsWith('QC-') || tag.startsWith('v')) && !r.prerelease;
 			});
@@ -186,23 +195,23 @@ class VersionService {
 			}
 
 			// déterminer la version la plus élevée trouvée (au cas où l'ordre GitHub ne suit pas SemVer)
-			const highest = qcReleases.reduce((max: string, r: any) => {
+			const highest = qcReleases.reduce((max: string, r) => {
 				const tag = r.tag_name || '0.0.0';
 				return this.compareSemver(tag, max) === 1 ? tag : max;
 			}, qcReleases[0].tag_name || '0.0.0');
 
 			// filtrer les releases strictement supérieures à la version courante
 			const newer = qcReleases
-				.filter((r: any) => {
+				.filter((r) => {
 					const tag = r.tag_name || '';
 					return this.compareSemver(tag, currentVersion) === 1;
 				})
 				// trier par SemVer desc (latest en haut, oldest en bas)
-				.sort((a: any, b: any) => this.compareSemver(b.tag_name || '0.0.0', a.tag_name || '0.0.0'));
+				.sort((a, b) => this.compareSemver(b.tag_name || '0.0.0', a.tag_name || '0.0.0'));
 
 			// concatène les changelogs (ordre chronologique asc)
 			const changelog = newer
-				.map((r: any) => {
+				.map((r) => {
 					const tag = r.tag_name || '';
 					const body = r.body || '';
 					return `## ${tag}\n\n${body}`.trim();

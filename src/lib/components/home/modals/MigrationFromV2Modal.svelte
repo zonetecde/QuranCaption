@@ -1,12 +1,9 @@
 <script lang="ts">
-	import { Project, ProjectContent, ProjectDetail, ProjectTranslation } from '$lib/classes';
-	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import MigrationService from '$lib/services/MigrationService';
-	import { join, localDataDir } from '@tauri-apps/api/path';
-	import { exists, readDir, readFile, readTextFile } from '@tauri-apps/plugin-fs';
+	import { readDir } from '@tauri-apps/plugin-fs';
 
 	let { close } = $props();
 
@@ -329,7 +326,7 @@
 							Failed Projects
 						</h5>
 						<div class="space-y-1">
-							{#each failedProjects as projectName}
+							{#each failedProjects as projectName (projectName)}
 								<div class="text-red-300 text-sm">• {projectName}</div>
 							{/each}
 						</div>

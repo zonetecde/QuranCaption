@@ -1,6 +1,5 @@
-<script lang="ts">
+	<script lang="ts">
 	import { onMount } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
 	import AutocompleteInput from '../misc/AutocompleteInput.svelte';
 	import RecitersManager from '$lib/classes/Reciter';
 	import { ProjectDetail } from '$lib/classes';

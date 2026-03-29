@@ -1,10 +1,11 @@
 import { Timeline } from './Timeline.svelte.js';
 import { Asset } from './Asset.svelte.js';
-import { AssetTrack, CustomTextTrack, SubtitleTrack, Track } from './Track.svelte.js';
+import { AssetTrack, CustomTextTrack, SubtitleTrack } from './Track.svelte.js';
 import { AssetType, SourceType, TrackType } from './enums.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import toast from 'svelte-5-french-toast';
 import { ProjectTranslation, VideoStyle } from './index.js';
+import type { UnknownRecord } from '$lib/types/common';
 
 export class ProjectContent extends SerializableBase {
 	timeline: Timeline;
@@ -56,7 +57,7 @@ export class ProjectContent extends SerializableBase {
 		filePath: string,
 		sourceUrl?: string,
 		sourceType: SourceType = SourceType.Local,
-		metadata: Record<string, any> = {}
+		metadata: UnknownRecord = {}
 	): void {
 		const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
 		if (asset.type === AssetType.Unknown) {

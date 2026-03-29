@@ -22,8 +22,12 @@ export class Utilities {
 	 * @returns true si le nom contient des caractères interdits, false sinon
 	 */
 	static isPathNotSafe(name: string) {
-		const forbiddenChars = /[<>:"/\\|?*\x00-\x1F]/g;
-		return forbiddenChars.test(name);
+		const forbiddenChars = /[<>:"/\\|?*]/g;
+		const hasControlCharacters = [...name].some((char) => {
+			const code = char.charCodeAt(0);
+			return code >= 0 && code <= 31;
+		});
+		return forbiddenChars.test(name) || hasControlCharacters;
 	}
 
 	/**

@@ -1,8 +1,7 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { fade } from 'svelte/transition';
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import Footer from './Footer.svelte';
-	import Header from './Header.svelte';
 	import CreateProjectModal from './modals/CreateProjectModal.svelte';
 	import ProjectDetailCard from './ProjectDetailCard.svelte';
 	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
@@ -13,22 +12,21 @@
 	import { Status } from '$lib/classes/Status';
 	import type { ProjectDetail } from '$lib/classes/ProjectDetail.svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
-	import { readTextFile, exists } from '@tauri-apps/plugin-fs';
+	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import ModalManager from '../modals/ModalManager';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import { join, localDataDir } from '@tauri-apps/api/path';
 	import MigrationFromV2Modal from './modals/MigrationFromV2Modal.svelte';
 	import MigrationService from '$lib/services/MigrationService';
 	import Settings from '$lib/classes/Settings.svelte';
-	import NewUpdateModal from './modals/NewUpdateModal.svelte';
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
+	import type { DurationWithMs } from '$lib/types/common';
 
 	let migrationFromV2ModalVisibility = $state(false);
 	let createNewProjectModalVisible: boolean = $state(false);
 
-	// États pour les menus de filtrage et tri
+	// Etats pour les menus de filtrage et tri
 	let filterMenuVisible = $state(false);
 	let sortMenuVisible = $state(false);
 
@@ -66,6 +64,15 @@
 	/**
 	 * Applique le tri sur les projets
 	 */
+	function hasDurationMs(value: unknown): value is DurationWithMs {
+		return (
+			typeof value === 'object' &&
+			value !== null &&
+			'ms' in value &&
+			typeof (value as DurationWithMs).ms === 'number'
+		);
+	}
+
 	function handleSort(property: keyof ProjectDetail, ascending: boolean) {
 		globalState.uiState.filteredProjects.sort((a, b) => {
 			let valueA = a[property];
@@ -75,10 +82,10 @@
 			if (valueA instanceof Date && valueB instanceof Date) {
 				valueA = valueA.getTime();
 				valueB = valueB.getTime();
-			} else if (typeof valueA === 'object' && valueA && 'ms' in valueA) {
+			} else if (hasDurationMs(valueA) && hasDurationMs(valueB)) {
 				// Pour Duration
-				valueA = (valueA as any).ms;
-				valueB = (valueB as any).ms;
+				valueA = valueA.ms;
+				valueB = valueB.ms;
 			} else if (typeof valueA === 'string' && typeof valueB === 'string') {
 				valueA = valueA.toLowerCase();
 				valueB = valueB.toLowerCase();
@@ -106,12 +113,12 @@
 		}
 	}
 
-	let promise: Promise<any> | undefined = $state(undefined);
+	let promise: Promise<void | ProjectDetail[]> | undefined = $state(undefined);
 
 	onMount(async () => {
 		await VersionService.init();
 
-		// Vérifie les mises à jour
+		// Verifie les mises a jour
 		if (VersionService.latestUpdate?.hasUpdate) {
 			if (!globalState.settings) return;
 
@@ -299,7 +306,7 @@
 							? 'grid grid-cols-1 gap-3'
 							: 'grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6')}
 				>
-					{#each globalState.uiState.filteredProjects as project, index}
+					{#each globalState.uiState.filteredProjects as project, index (project.id)}
 						{#if globalState.uiState.searchQuery === '' || project.matchSearchQuery(globalState.uiState.searchQuery)}
 							<ProjectDetailCard
 								bind:projectDetail={globalState.uiState.filteredProjects[index]}
@@ -326,3 +333,6 @@
 		<MigrationFromV2Modal close={() => (migrationFromV2ModalVisibility = false)} />
 	</div>
 {/if}
+
+
+

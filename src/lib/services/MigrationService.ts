@@ -1,12 +1,10 @@
-import {
+﻿import {
 	Asset,
 	Duration,
-	Edition,
 	PredefinedSubtitleClip,
 	Project,
 	ProjectContent,
 	ProjectDetail,
-	ProjectTranslation,
 	SourceType,
 	SubtitleClip,
 	Timeline,
@@ -25,11 +23,53 @@ import type { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { join, localDataDir } from '@tauri-apps/api/path';
-import { exists, readDir, readFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
+
+type ShortcutAction = { keys?: string[]; name?: string; description?: string };
+type ShortcutBucket = Record<string, ShortcutAction>;
+type MutableSettingsForMigration = {
+	shortcutCategories: Record<string, unknown>;
+	shortcuts: Record<string, ShortcutBucket>;
+	persistentUiState: { lastClosedSupportPromptModal?: string | Date };
+	aiTranslationSettings?: unknown;
+};
+type LegacyAssetFields = {
+	fromMp3Quran?: boolean;
+	fromYoutube?: boolean;
+	youtubeUrl?: string;
+	mp3QuranUrl?: string;
+};
+type V2TrackClip = {
+	start: number;
+	end: number;
+	assetId: string;
+	isMuted?: boolean;
+	isSilence?: boolean;
+	isCustomText?: boolean;
+	surah: number;
+	verse: number;
+	firstWordIndexInVerse: number;
+	lastWordIndexInVerse: number;
+	text: string;
+	translations: Record<string, string>;
+};
+type V2ProjectData = {
+	name: string;
+	createdAt: string;
+	updatedAt: string;
+	reciter: string;
+	assets: Array<{ id: string; filePath: string }>;
+	projectSettings: { addedTranslations: string[] };
+	timeline: {
+		audiosTracks: Array<{ clips: V2TrackClip[] }>;
+		videosTracks: Array<{ clips: V2TrackClip[] }>;
+		subtitlesTracks: Array<{ clips: V2TrackClip[] }>;
+	};
+};
 
 export default class MigrationService {
 	/**
-	 * Migre les données de Quran Caption 3.1.0 à Quran Caption 3.1.1
+	 * Migre les donnees de Quran Caption 3.1.0 a Quran Caption 3.1.1
 	 * > Ajout d'un shortcut pour ajouter un custom text clip facilement.
 	 */
 	static FromQC310ToQC311() {
@@ -44,20 +84,19 @@ export default class MigrationService {
 	}
 
 	/**
-	 * Migre les données de Quran Caption 3.1.5 à Quran Caption 3.1.6
+	 * Migre les donnees de Quran Caption 3.1.5 a Quran Caption 3.1.6
 	 * > Modification du shortcut "Set Start to Previous Punctuation" en "Set End to Previous Punctuation"
 	 */
 	static FromQC315ToQC316() {
+		const subtitlesEditorShortcuts = globalState.settings?.shortcuts
+			.SUBTITLES_EDITOR as ShortcutBucket & { SET_START_TO_PREVIOUS?: ShortcutAction };
 		if (
 			globalState.settings &&
-			//@ts-ignore
-			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS
+			subtitlesEditorShortcuts?.SET_START_TO_PREVIOUS
 		) {
 			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS =
-				//@ts-ignore
-				globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS;
-			//@ts-ignore
-			delete globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_START_TO_PREVIOUS;
+				subtitlesEditorShortcuts.SET_START_TO_PREVIOUS;
+			delete subtitlesEditorShortcuts.SET_START_TO_PREVIOUS;
 
 			const { name: newName, description: newDescription } = new Settings().shortcuts
 				.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS;
@@ -229,7 +268,7 @@ export default class MigrationService {
 
 		let hasChanges = false;
 		const defaults = new Settings();
-		const settingsAny = globalState.settings as any;
+		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
 		const keyNames = [
 			'ADD_BASMALA',
 			'ADD_ISTIADHAH',
@@ -311,7 +350,7 @@ export default class MigrationService {
 	static FromQC336ToQC337() {
 		if (!globalState.settings) return;
 
-		const settingsAny = globalState.settings as any;
+		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
 		settingsAny.persistentUiState = settingsAny.persistentUiState || {};
 
 		const value = settingsAny.persistentUiState.lastClosedSupportPromptModal;
@@ -333,8 +372,8 @@ export default class MigrationService {
 	}
 
 	/**
-	 * Migre les données de Quran Caption 3.1.3 à Quran Caption 3.1.4
-	 * > Renommage des tracks "CustomText" à "CustomClip"
+	 * Migre les donnees de Quran Caption 3.1.3 a Quran Caption 3.1.4
+	 * > Renommage des tracks "CustomText" a "CustomClip"
 	 */
 	static FromQC313ToQC314() {
 		if (globalState.currentProject) {
@@ -356,7 +395,7 @@ export default class MigrationService {
 	}
 
 	/**
-	 * Migre les données de Quran Caption 3.2.6 à Quran Caption 3.2.7
+	 * Migre les donnees de Quran Caption 3.2.6 a Quran Caption 3.2.7
 	 * > Conversion des anciens champs fromYoutube/youtubeUrl/fromMp3Quran/mp3QuranUrl
 	 *   vers le nouveau format sourceUrl/sourceType
 	 */
@@ -366,7 +405,7 @@ export default class MigrationService {
 			let hasChanges = false;
 
 			for (const asset of assets) {
-				const assetAny = asset as any;
+				const assetAny = asset as Asset & LegacyAssetFields;
 
 				// Vérifie si l'asset a les anciens champs
 				if (
@@ -443,7 +482,7 @@ export default class MigrationService {
 	static FromQC339ToQC340() {
 		if (!globalState.settings) return;
 
-		const settingsAny = globalState.settings as any;
+		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
 		if (settingsAny.aiTranslationSettings === undefined) {
 			settingsAny.aiTranslationSettings = { ...new Settings().aiTranslationSettings };
 			Settings.save();
@@ -485,7 +524,7 @@ export default class MigrationService {
 	 */
 	static async importSingleProjectFromV2(qc2Dir: string, fileName: string): Promise<void> {
 		const fileContent = await readTextFile(await join(qc2Dir, fileName));
-		const project: any = JSON.parse(JSON.parse(fileContent)); // Double parse as V2 projects are stringified twice
+		const project = JSON.parse(JSON.parse(fileContent)) as V2ProjectData; // Double parse as V2 projects are stringified twice
 
 		// Project Detail
 		const projectName = project.name;
@@ -559,7 +598,7 @@ export default class MigrationService {
 		// Translations
 		projectContent.projectTranslation.addedTranslationEditions = await Promise.all(
 			project.projectSettings.addedTranslations.map(async (s: string) => {
-				for (const [key, value] of Object.entries(globalState.availableTranslations)) {
+				for (const [_key, value] of Object.entries(globalState.availableTranslations)) {
 					for (const tr of value.translations) {
 						if (
 							tr.name ===
@@ -658,7 +697,7 @@ export default class MigrationService {
 								clip.verse
 							);
 
-							// Ajoute la traduction à l'objet translations
+							// Ajoute la traduction a l'objet translations
 							if (
 								!projectContent.projectTranslation.versesTranslations[formatTranslationName(key)]
 							) {
@@ -706,3 +745,5 @@ function formatTranslationName(key: string) {
 		.replace('fra-muhammadhamidul', 'fra-muhammadhameedu')
 		.replace('deu-asfbubenheimand', 'deu-frankbubenheima');
 }
+
+

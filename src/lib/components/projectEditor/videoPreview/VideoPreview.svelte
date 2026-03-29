@@ -1,14 +1,12 @@
-<script lang="ts">
-	import { Asset, AssetType, ProjectEditorTabs, TrackType, AssetClip } from '$lib/classes';
+﻿<script lang="ts">
+	import { ProjectEditorTabs, TrackType, AssetClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { mount, onDestroy, onMount, unmount, untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { Howl } from 'howler';
 	import toast from 'svelte-5-french-toast';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import VideoPreviewControlsBar from './VideoPreviewControlsBar.svelte';
-	import { getCurrentWindow } from '@tauri-apps/api/window';
-	import ModalManager from '$lib/components/modals/ModalManager';
 	import VideoOverlay from './VideoOverlay.svelte';
 
 	let {
@@ -56,7 +54,7 @@
 				(t) => t.type === TrackType.Video
 			);
 			return track?.getCurrentClip() ?? null;
-		} catch (e) {
+		} catch (_e) {
 			return null;
 		}
 	});
@@ -116,7 +114,7 @@
 			untrack(() => {
 				if (!isPlaying) return;
 
-				// Scroll juqu'à la position du curseur
+				// Scroll jusqu'à la position du curseur
 				const element = document.getElementById('cursor');
 				const timeline = document.getElementById('timeline');
 
@@ -195,14 +193,14 @@
 		// Set les shortcuts pour le preview
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.PLAY_PAUSE,
-			onKeyDown: (e) => {
+			onKeyDown: (_e) => {
 				togglePlayPause();
 			}
 		});
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_FORWARD,
-			onKeyDown: (e) => {
+			onKeyDown: (_e) => {
 				const currentTime = getTimelineSettings().cursorPosition;
 				getTimelineSettings().cursorPosition = currentTime + 2000; // Avance de 2 secondes
 				getTimelineSettings().movePreviewTo = currentTime + 2000;
@@ -212,7 +210,7 @@
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_BACKWARD,
-			onKeyDown: (e) => {
+			onKeyDown: (_e) => {
 				const currentTime = getTimelineSettings().cursorPosition;
 				getTimelineSettings().cursorPosition = Math.max(1, currentTime - 2000); // Recule de 2 secondes
 				getTimelineSettings().movePreviewTo = Math.max(1, currentTime - 2000);
@@ -222,24 +220,24 @@
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.INCREASE_SPEED,
-			onKeyDown: (e) => {
+			onKeyDown: (_e) => {
 				setPlaybackSpeed(getSpeed() + 1);
 			},
-			onKeyUp: (e) => {
+			onKeyUp: (_e) => {
 				setPlaybackSpeed(getSpeed());
 			}
 		});
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN,
-			onKeyDown: (e) => {
+			onKeyDown: (_e) => {
 				globalState.getVideoPreviewState.toggleFullScreen();
 			}
 		});
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START,
-			onKeyDown: (e) => {
+			onKeyDown: (_e) => {
 				pause(); // Arrête la lecture
 				getTimelineSettings().cursorPosition = 1; // Revient au début (1ms pour éviter les bugs)
 				getTimelineSettings().movePreviewTo = 1; // Force la mise à jour de la prévisualisation
@@ -372,7 +370,10 @@
 		const previewContainer = document.getElementById('preview-container');
 		const preview = document.getElementById('preview');
 
-		const outputDimension = globalState.getStyle('global', 'video-dimension')!.value as any;
+		const outputDimension = globalState.getStyle('global', 'video-dimension')!.value as {
+			width: number;
+			height: number;
+		};
 
 		if (previewContainer && preview) {
 			// Calcul du ratio de sortie
@@ -420,8 +421,6 @@
 
 			let targetW: number;
 			let targetH: number;
-			let scale: number;
-
 			if (globalState.getVideoPreviewState.isFullscreen) {
 				// Créer ou récupérer la div de fond
 				let backgroundDiv = document.getElementById('fullscreen-background');
@@ -444,7 +443,6 @@
 				const screenW = window.innerWidth;
 				const screenH = window.innerHeight;
 				const scaleFit = Math.min(screenW / previewWidth, screenH / previewHeight);
-				scale = scaleFit;
 				targetW = previewWidth * scaleFit;
 				targetH = previewHeight * scaleFit;
 
@@ -469,7 +467,6 @@
 				const widthRatio = containerWidth / previewWidth;
 				const heightRatio = containerHeight / previewHeight;
 				const scaleFit = Math.min(widthRatio, heightRatio);
-				scale = scaleFit;
 				preview.style.transform = `scale(${scaleFit})`;
 				previewContainer.style.width = `${previewWidth * scaleFit}px`;
 				previewContainer.style.height = `${previewHeight * scaleFit}px`;
@@ -490,7 +487,6 @@
 	let isPlaying = $state(false); // État de lecture global
 	let audioUpdateInterval: number | null = null; // Intervalle pour la mise à jour du curseur audio
 	let audioSpeed = $state(1); // Vitesse de lecture audio
-	let currentlyPlayingAudio: string = ''; // L'asset audio actuellement joué
 
 	export function togglePlayPause() {
 		if (isPlaying) {
@@ -517,7 +513,6 @@
 		}
 
 		if (audioAsset) {
-			currentlyPlayingAudio = audioAsset.filePath; // Met à jour l'asset actuellement joué
 			audioHowl = new Howl({
 				mute: globalState.getVideoPreviewState.showVideosAndAudios,
 				src: [convertFileSrc(audioAsset.filePath)],
@@ -618,7 +613,7 @@
 	 * Lance la lecture audio et vidéo
 	 * @param fromButton - Indique si l'action vient du bouton play (pour afficher un toast si nécessaire)
 	 */
-	function play(fromButton: boolean = false) {
+	function play(_fromButton: boolean = false) {
 		// Vérification de la présence de médias
 		if (!currentVideo() && !currentAudio()) {
 			// Si aucun média, joue silent.ogg pour simuler une lecture
@@ -724,7 +719,7 @@
 		const videoTrack = globalState.getVideoTrack;
 		const audioTrack = globalState.getAudioTrack;
 
-		const nextClips: { clip: any; startTime: number }[] = [];
+		const nextClips: { clip: { startTime: number }; startTime: number }[] = [];
 
 		// Recherche du prochain clip vidéo
 		if (videoTrack && video) {
@@ -825,3 +820,5 @@
 		display: block;
 	}
 </style>
+
+

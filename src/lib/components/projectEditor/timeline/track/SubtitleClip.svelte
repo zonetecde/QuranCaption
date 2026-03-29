@@ -3,12 +3,10 @@
 		PredefinedSubtitleClip,
 		SubtitleClip,
 		ProjectEditorTabs,
-		type AssetClip,
-		type Clip,
 		type Track
 	} from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
@@ -78,10 +76,11 @@
 		}
 	}
 
-	function onLeftDragging(e: MouseEvent) {
+	function onLeftDragging(_e: MouseEvent) {
 		if (dragStartX === null) return;
-
-		clip.updateStartTime(globalState.currentProject?.projectEditorState.timeline.cursorPosition!);
+		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
+		if (cursorPosition === undefined) return;
+		clip.updateStartTime(cursorPosition);
 		didDrag = true;
 	}
 
@@ -107,10 +106,11 @@
 		globalState.getTimelineState.showCursor = false;
 	}
 
-	function onRightDragging(e: MouseEvent) {
+	function onRightDragging(_e: MouseEvent) {
 		if (dragStartX === null) return;
-
-		clip.updateEndTime(globalState.currentProject?.projectEditorState.timeline.cursorPosition!);
+		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
+		if (cursorPosition === undefined) return;
+		clip.updateEndTime(cursorPosition);
 		didDrag = true;
 	}
 
@@ -294,7 +294,7 @@
 
 				{#if Object.keys(clip.translations).length > 0}
 					<div class="w-full flex flex-col items-center gap-0.5 mt-1">
-						{#each Object.entries(clip.translations) as [lang, translation]}
+						{#each Object.entries(clip.translations) as [lang, translation] (lang)}
 							<p
 								class="text-[11px] sm:text-[12px] truncate w-full font-medium mx-auto my-auto text-center italic"
 								class:text-[var(--text-secondary)]={!isSelected()}

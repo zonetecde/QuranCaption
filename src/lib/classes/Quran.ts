@@ -1,3 +1,15 @@
+type RawWord = { c: string; d: string; e: string };
+type RawVerse = { w: RawWord[] };
+type RawSurah = {
+	id: number;
+	arabic: string;
+	name: string;
+	translation: string;
+	totalAyah: number;
+	arabicLong: string;
+	revelationPlace: string;
+};
+
 export class Word {
 	arabic: string;
 	transliteration: string;
@@ -9,7 +21,7 @@ export class Word {
 		this.translation = translation;
 	}
 
-	static fromJson(data: any): Word {
+	static fromJson(data: RawWord): Word {
 		return new Word(data.c, data.d, data.e);
 	}
 }
@@ -23,8 +35,8 @@ export class Verse {
 		this.words = words;
 	}
 
-	static fromJson(id: string, data: any): Verse {
-		const words = data.w.map((word: any) => Word.fromJson(word));
+	static fromJson(id: string, data: RawVerse): Verse {
+		const words = data.w.map((word) => Word.fromJson(word));
 		return new Verse(parseInt(id), words);
 	}
 
@@ -142,7 +154,7 @@ export class Surah {
 		this.verses = verses;
 	}
 
-	static fromJson(data: any): Surah {
+	static fromJson(data: RawSurah): Surah {
 		return new Surah(
 			data.id,
 			data.arabic,
@@ -167,7 +179,7 @@ export class Quran {
 			return; // Le Coran est déjà chargé
 		}
 		const response = await fetch('/quran/surahs.json');
-		const data: any[] = await response.json();
+		const data = (await response.json()) as RawSurah[];
 
 		this.surahs = data.map((surahData) => Surah.fromJson(surahData));
 	}
@@ -195,12 +207,15 @@ export class Quran {
 	 * Obtient une sourate par son ID
 	 */
 	static async getSurah(id: number): Promise<Surah> {
-		const surah = Quran.surahs.find((surah) => surah.id === id)!;
+		const surah = Quran.surahs.find((item) => item.id === id);
+		if (!surah) {
+			throw new Error(`Surah ${id} not found`);
+		}
 		if (surah.verses.length === 0) {
 			// Charge la sourate depuis le fichier JSON
 			const response = await fetch(`/quran/${id}.json`);
-			const data = await response.json();
-			const verses: Verse[] = Object.entries(data).map(([verseId, verseData]: [string, any]) =>
+			const data = (await response.json()) as Record<string, RawVerse>;
+			const verses: Verse[] = Object.entries(data).map(([verseId, verseData]) =>
 				Verse.fromJson(verseId, verseData)
 			);
 			surah.verses = verses;

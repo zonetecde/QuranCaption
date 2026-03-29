@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
-	import { draw, fade } from 'svelte/transition';
 	import CompositeText from './CompositeText.svelte';
-	import RecitersManager from '$lib/classes/Reciter';
 	import { VerseRange } from '$lib/classes';
 
 	let {

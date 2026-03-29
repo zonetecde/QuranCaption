@@ -9,7 +9,7 @@
 			? 'grid grid-cols-1 gap-3'
 			: 'grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6')}
 >
-	{#each Array(count) as _, index}
+	{#each Array(count) as _, index (index)}
 		<div
 			class="bg-secondary border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between"
 			data-index={index}

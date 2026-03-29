@@ -1,7 +1,6 @@
-<script lang="ts">
+	<script lang="ts">
 	import { Duration, PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { invoke } from '@tauri-apps/api/core';
 
 	let {
 		togglePlayPause

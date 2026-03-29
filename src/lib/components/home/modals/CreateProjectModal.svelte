@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { Project, ProjectContent, ProjectDetail, Utilities } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectService } from '$lib/services/ProjectService';
-	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
-	import type Reciter from '$lib/classes/Reciter';
 	import RecitersManager from '$lib/classes/Reciter';
 	import { discordService } from '$lib/services/DiscordService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';

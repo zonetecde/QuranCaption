@@ -3,10 +3,8 @@ import Settings, { SettingsTab } from '$lib/classes/Settings.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { slide } from 'svelte/transition';
 import ShortcutsManager from './ShortcutsManager.svelte';
-import { onMount } from 'svelte';
 import About from './About.svelte';
-import ThemeButton from './ThemeButton.svelte';
-import type { ThemeConfig } from './ThemeButton.svelte';
+import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
 
 import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -156,7 +154,7 @@ import toast from 'svelte-5-french-toast';
 					{ name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' },
 					{ name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' },
 					{ name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }
-				] as setting}
+				] as setting (setting.tab)}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
 						class:selected={globalState.uiState.settingsTab === setting.tab}
@@ -209,7 +207,7 @@ import toast from 'svelte-5-french-toast';
 						<div class="space-y-3">
 							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Dark</p>
 							<div class="grid grid-cols-3 gap-4">
-								{#each darkThemes as theme}
+								{#each darkThemes as theme (theme.id)}
 									<ThemeButton {theme} />
 								{/each}
 							</div>
@@ -218,7 +216,7 @@ import toast from 'svelte-5-french-toast';
 						<div class="space-y-3">
 							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Light</p>
 							<div class="grid grid-cols-3 gap-4">
-								{#each lightThemes as theme}
+								{#each lightThemes as theme (theme.id)}
 									<ThemeButton {theme} />
 								{/each}
 							</div>
@@ -227,7 +225,7 @@ import toast from 'svelte-5-french-toast';
 						<div class="space-y-3">
 							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Sepia</p>
 							<div class="grid grid-cols-3 gap-4">
-								{#each sepiaThemes as theme}
+								{#each sepiaThemes as theme (theme.id)}
 									<ThemeButton {theme} />
 								{/each}
 							</div>

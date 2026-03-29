@@ -23,7 +23,7 @@
 		placeholder = 'Start typing to search...',
 		maxlength = NaN,
 		label,
-		labelIcon,
+		labelIcon: _labelIcon,
 		icon,
 		focusOnMount,
 		onEnterPress
@@ -180,7 +180,7 @@
 			<div
 				class="autocomplete-dropdown absolute top-full left-0 right-0 mt-1 bg-secondary border border-color rounded-lg shadow-2xl max-h-64 overflow-y-auto"
 			>
-				{#each filteredSuggestions as suggestion, index}
+				{#each filteredSuggestions as suggestion, index (`${suggestion.label}-${index}`)}
 					<button
 						class="w-full px-4 py-3 text-left hover:bg-accent transition-colors duration-200 flex items-center gap-3 border-b border-color last:border-b-0
 						       {index === selectedSuggestionIndex ? 'bg-accent border-accent-primary' : ''}"

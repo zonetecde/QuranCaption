@@ -1,9 +1,14 @@
 <script lang="ts">
 	import Settings from '$lib/classes/Settings.svelte';
+	import type {
+		ShortcutActionDefinition,
+		ShortcutActionsMap,
+		ShortcutCategoryMap
+	} from '$lib/types/settings-shortcuts';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 
-	type ActionDef = { keys: string[]; name: string; description: string };
+	type ActionDef = ShortcutActionDefinition;
 
 	let capturing = $state<{
 		category: string;
@@ -62,7 +67,7 @@
 	function applyKey(category: string, action: string, index: number, key: string) {
 		const s = globalState.settings as Settings | undefined;
 		if (!s) return;
-		const shortcuts = s.shortcuts as unknown as Record<string, Record<string, ActionDef>>;
+		const shortcuts = s.shortcuts as ShortcutActionsMap;
 		const actionDef = shortcuts[category][action];
 		const prevKeys = actionDef?.keys ?? [];
 
@@ -77,12 +82,12 @@
 		if (index === 1) expandedSecond[idFor(category, action)] = true;
 
 		const next = s.clone();
-		(next as any).shortcuts = {
-			...((s as any).shortcuts ?? {}),
+		next.shortcuts = {
+			...(s.shortcuts as ShortcutActionsMap),
 			[category]: {
-				...((s as any).shortcuts?.[category] ?? {}),
+				...((s.shortcuts as ShortcutActionsMap)?.[category] ?? {}),
 				[action]: {
-					...((s as any).shortcuts?.[category]?.[action] ?? {}),
+					...((s.shortcuts as ShortcutActionsMap)?.[category]?.[action] ?? {}),
 					keys: newKeys.filter((k): k is string => !!k)
 				}
 			}
@@ -94,19 +99,19 @@
 	function clearKey(category: string, action: string, index: number) {
 		const s = globalState.settings as Settings | undefined;
 		if (!s) return;
-		const shortcuts = s.shortcuts as unknown as Record<string, Record<string, ActionDef>>;
+		const shortcuts = s.shortcuts as ShortcutActionsMap;
 		const actionDef = shortcuts[category][action];
 		const prevKeys = actionDef?.keys ?? [];
 		const newKeys = [...prevKeys];
 		newKeys.splice(index, 1);
 
 		const next = s.clone();
-		(next as any).shortcuts = {
-			...((s as any).shortcuts ?? {}),
+		next.shortcuts = {
+			...(s.shortcuts as ShortcutActionsMap),
 			[category]: {
-				...((s as any).shortcuts?.[category] ?? {}),
+				...((s.shortcuts as ShortcutActionsMap)?.[category] ?? {}),
 				[action]: {
-					...((s as any).shortcuts?.[category]?.[action] ?? {}),
+					...((s.shortcuts as ShortcutActionsMap)?.[category]?.[action] ?? {}),
 					keys: newKeys
 				}
 			}
@@ -140,19 +145,21 @@
 	});
 
 	function allCategories() {
-		const s: any = globalState.settings;
-		if (!s) return [] as Array<{ key: string; meta: any }>;
+		const s = globalState.settings as Settings | undefined;
+		if (!s) return [] as Array<{ key: string; meta: ShortcutCategoryMap[string] }>;
+		const categories = s.shortcutCategories as ShortcutCategoryMap;
 		return Object.keys(s.shortcutCategories).map((key) => ({
 			key,
-			meta: s.shortcutCategories[key]
+			meta: categories[key]
 		}));
 	}
 	function actionsFor(category: string) {
-		const s: any = globalState.settings;
+		const s = globalState.settings as Settings | undefined;
 		if (!s) return [] as Array<{ key: string; def: ActionDef }>;
-		return Object.keys(s.shortcuts[category]).map((key) => ({
+		const shortcuts = s.shortcuts as ShortcutActionsMap;
+		return Object.keys(shortcuts[category] ?? {}).map((key) => ({
 			key,
-			def: s.shortcuts[category][key]
+			def: shortcuts[category][key]
 		}));
 	}
 
@@ -166,7 +173,7 @@
 	<div class="p-4 text-secondary">Loading shortcuts…</div>
 {:else}
 	<div class="space-y-8">
-		{#each allCategories() as cat}
+		{#each allCategories() as cat (cat.key)}
 			<div class="space-y-4">
 				<div class="flex items-center gap-2">
 					<span class="material-icons text-accent">{cat.meta.icon}</span>
@@ -175,7 +182,7 @@
 				<p class="text-xs text-secondary">{cat.meta.description}</p>
 
 				<div class="mt-2 rounded-xl border border-border-color bg-primary/20">
-					{#each actionsFor(cat.key) as action}
+					{#each actionsFor(cat.key) as action (action.key)}
 						<div
 							class="flex items-center gap-4 p-3 hover:bg-white/5 border-t first:border-t-0 border-border-color"
 						>

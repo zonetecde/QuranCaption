@@ -13,8 +13,6 @@
 		runAdvancedTrimBatchStreaming,
 		type AdvancedTrimBatch,
 		type AdvancedTrimCostEstimate,
-		type AdvancedTrimModel,
-		type AdvancedTrimReasoningEffort,
 		type AdvancedTrimUsage,
 		type AdvancedTrimVerseCandidate,
 		validateAdvancedTrimBatchResult
@@ -658,7 +656,7 @@
 								{#if activityLog.length === 0}
 									<div class="text-thirdly">No activity yet.</div>
 								{:else}
-									{#each activityLog as entry}
+									{#each activityLog as entry (entry.id)}
 										<div
 											class="border-b border-color/50 py-1.5 last:border-b-0 {entry.tone === 'error'
 												? 'text-red-200'

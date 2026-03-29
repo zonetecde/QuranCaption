@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { CustomTextClip } from '$lib/classes';
 	import { CustomClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ExportFileService from '$lib/services/ExportFileService';
@@ -26,7 +25,6 @@
 		if (!button || !menuElement) return;
 
 		const buttonRect = button.getBoundingClientRect();
-		const menuWidth = 320; // w-80 = 320px
 		const padding = 11.5; // ml-2 = 8px
 
 		// Positionner à droite du bouton
@@ -107,7 +105,7 @@
 							</p>
 
 							<div class="flex flex-col gap-2 px-2">
-								{#each globalState.getCustomClipTrack.clips as customClip}
+								{#each globalState.getCustomClipTrack.clips as customClip (customClip.id)}
 									{#if customClip instanceof CustomClip}
 										<label class="flex items-center gap-x-2 cursor-pointer">
 											<input

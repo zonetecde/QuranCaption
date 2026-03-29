@@ -1,6 +1,6 @@
-<script lang="ts">
+	<script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { slide, fade } from 'svelte/transition';
+	import { slide } from 'svelte/transition';
 	import toast from 'svelte-5-french-toast';
 
 	let { close } = $props();

@@ -1,7 +1,7 @@
 import { SerializableBase } from './misc/SerializableBase';
 
 import { globalState } from '$lib/runes/main.svelte';
-import { Edition, TrackType, Utilities } from '.';
+import { Edition, Utilities } from '.';
 import { Duration } from './index.js';
 import { VerseRange } from './VerseRange.svelte';
 import { Status } from './Status';

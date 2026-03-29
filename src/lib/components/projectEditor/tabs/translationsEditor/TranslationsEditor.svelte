@@ -1,10 +1,6 @@
 <script lang="ts">
-	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount } from 'svelte';
-
 	import { fade } from 'svelte/transition';
 	import AddTranslationModal from './modal/AddTranslationModal.svelte';
-	import { ProjectTranslation } from '$lib/classes';
 	import TranslationsEditorSettings from './leftPanel/TranslationsEditorSettings.svelte';
 	import Workspace from './workspace/Workspace.svelte';
 

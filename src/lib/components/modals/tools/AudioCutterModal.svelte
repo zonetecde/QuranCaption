@@ -155,7 +155,7 @@
 				class="w-full bg-accent border border-color rounded-lg px-4 py-3 text-primary focus:ring-2 focus:ring-accent-primary/50 outline-none transition-all cursor-pointer"
 			>
 				<option value={0} disabled>Choose an audio or video file...</option>
-				{#each trimAssets as asset}
+				{#each trimAssets as asset (asset.id)}
 					<option value={asset.id}>{asset.fileName} ({asset.type.toUpperCase()})</option>
 				{/each}
 			</select>

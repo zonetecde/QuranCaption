@@ -160,7 +160,7 @@ export type AutoSegmentationOptions = {
 	device?: SegmentationDevice;
 	hfToken?: string;
 	allowCloudFallback?: boolean;
-	fillBySilence?: boolean; // Si true, insÃ¨re des SilenceClip dans les gaps. Sinon, Ã©tend la fin du sous-titre prÃ©cÃ©dent.
+	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
 	extendBeforeSilence?: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
 };
@@ -1241,7 +1241,7 @@ export async function runAutoSegmentation(
 	const device: SegmentationDevice = options.device ?? 'GPU';
 	const hfToken: string = (options.hfToken ?? '').trim();
 	const allowCloudFallback: boolean = options.allowCloudFallback ?? true;
-	const fillBySilence: boolean = options.fillBySilence ?? true; //  Par dÃ©faut, on insÃ¨re des SilenceClip
+	const fillBySilence: boolean = options.fillBySilence ?? true; //  Par défaut, on insère des SilenceClip
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
 
@@ -1459,6 +1459,12 @@ export async function runNativeSegmentation(
 	let mp3QuranMeta: { reciterId: number; surahId: number; moshafId?: number } | null = null;
 	let clipStartTime = 0;
 	let clipOffset = 0;
+	const getClipOffset = (clip: AssetClip): number => {
+		if ('offset' in clip && typeof clip.offset === 'number') {
+			return clip.offset;
+		}
+		return 0;
+	};
 
 	for (const clip of audioTrack.clips) {
 		if (clip instanceof AssetClip) {
@@ -1470,8 +1476,7 @@ export async function runNativeSegmentation(
 				mp3QuranMeta = asset.metadata.mp3Quran;
 				targetClip = clip;
 				clipStartTime = clip.startTime;
-				// clip.offset might not exist on AssetClip type definition yet but let's assume valid access for now or cast
-				clipOffset = (clip as any).offset || 0;
+				clipOffset = getClipOffset(clip);
 				break;
 			}
 		}
@@ -1638,3 +1643,4 @@ export async function runNativeSegmentation(
 		return { status: 'failed', message: String(error) };
 	}
 }
+

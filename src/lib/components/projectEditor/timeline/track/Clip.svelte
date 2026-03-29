@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { AssetType, TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
+	import { TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { onDestroy, untrack } from 'svelte';
 	import WaveSurfer from 'wavesurfer.js';
-	import ContextMenu, { Item, Divider, Settings } from 'svelte-contextmenu';
+	import ContextMenu, { Item, Divider } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 	import ModalManager from '$lib/components/modals/ModalManager';
@@ -27,7 +27,11 @@
 		return (clip.startTime / 1000) * track.getPixelPerSecond();
 	});
 
-	let asset = globalState.currentProject?.content.getAssetById((clip as AssetClip).assetId)!;
+	const clipAssetId = (clip as AssetClip).assetId;
+	const asset = globalState.currentProject?.content.getAssetById(clipAssetId);
+	if (!asset) {
+		throw new Error(`Missing asset ${clipAssetId} for clip ${clip.id}`);
+	}
 	let file = $state(convertFileSrc(asset.filePath));
 
 	const isSelectedVideo = $derived(() => {

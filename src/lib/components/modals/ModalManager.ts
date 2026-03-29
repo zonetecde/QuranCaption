@@ -2,7 +2,6 @@ import { mount, unmount } from 'svelte';
 import Confirm from './Confirm.svelte';
 import Input from './Input.svelte';
 import Error from './Error.svelte';
-import Settings from '../settings/Settings.svelte';
 import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';

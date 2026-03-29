@@ -117,7 +117,7 @@
 		class="subtitles-list flex flex-1 flex-col gap-2 overflow-y-auto p-2"
 		bind:this={subtitlesListElement}
 	>
-		{#each filteredClips() as _clip, index (_clip.id)}
+		{#each filteredClips() as _clip (_clip.id)}
 			{@const clip = _clip as Clip}
 			{@const subtitleClip = clip as SubtitleClip}
 			{@const isSilence = subtitleClip.type === 'Silence'}
@@ -205,7 +205,7 @@
 
 					{#if Object.keys(subtitleClip.translations).length > 0}
 						<div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
-							{#each Object.keys(subtitleClip.translations) as translation}
+							{#each Object.keys(subtitleClip.translations) as translation (translation)}
 								{#if translation.startsWith('type') === false}
 									<div class="flex items-start gap-2">
 										<span

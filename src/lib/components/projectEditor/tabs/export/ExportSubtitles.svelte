@@ -5,6 +5,12 @@
 	import { slide } from 'svelte/transition';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 
+	const arabicFormatDescriptions: Record<'Plain' | 'V1' | 'V2', string> = {
+		Plain: 'Simple text',
+		V1: '1405H Mushaf by Uthman Taha',
+		V2: '1423H Mushaf by Uthman Taha'
+	};
+
 	onMount(() => {
 		for (const target of [
 			'arabic',
@@ -75,7 +81,7 @@
 		</p>
 
 		<div class="space-y-4">
-			{#each Object.entries(globalState.getExportState.includedTarget) as [target, included]}
+			{#each Object.entries(globalState.getExportState.includedTarget) as [target, included] (target)}
 				<div class="bg-accent rounded-lg p-4 border border-color">
 					<!-- Main content checkbox -->
 					<div class="flex items-start gap-3 mb-3">
@@ -110,12 +116,13 @@
 								class="w-4 h-4 mt-0.5 rounded"
 								id="verse-numbers-{target}"
 								disabled={!included}
-								onchange={(e: any) => {
+								onchange={(event: Event) => {
+									const input = event.target as HTMLInputElement;
 									// Set le style 'show-verse-number' car les méthodes getText() se base dessus
 									// pour afficher les numéros de verset
 									globalState.getVideoStyle
 										.getStylesOfTarget(target)
-										.setStyle('show-verse-number', e.target.checked);
+										.setStyle('show-verse-number', input.checked);
 								}}
 							/>
 							<div class="flex-1">
@@ -143,12 +150,7 @@
 									Choose the formatting style for Arabic text display:
 								</p>
 								<div class="flex gap-2">
-									{#each ['Plain', 'V1', 'V2'] as format}
-										{@const descriptions: any = {
-											Plain: 'Simple text',
-											'V1': '1405H Mushaf by Uthman Taha',
-											'V2': '1423H Mushaf by Uthman Taha'
-										}}
+									{#each ['Plain', 'V1', 'V2'] as format (format)}
 										<label class="flex-1">
 											<input
 												type="radio"
@@ -157,22 +159,23 @@
 												bind:group={globalState.getExportState.arabicTextFormat}
 												class="sr-only"
 												disabled={!included}
-												onchange={(e: any) => {
+												onchange={(event: Event) => {
+													const input = event.target as HTMLInputElement;
 													// Modifie la police d'écriture dans la vidéo (car c'est elle
 													// qui détermine le texte sous-titre pour les polices QPC)
 													const fontFamily = globalState.getStyle('arabic', 'font-family')!.value;
 
 													if (
-														e.target.value === 'Plain' &&
+														input.value === 'Plain' &&
 														(fontFamily === 'QPC1' || fontFamily === 'QPC2')
 													) {
 														globalState.getVideoStyle
 															.getStylesOfTarget('arabic')
 															.setStyle('font-family', 'Hafs');
-													} else if (e.target.value === 'V1' || e.target.value === 'V2') {
+													} else if (input.value === 'V1' || input.value === 'V2') {
 														globalState.getVideoStyle
 															.getStylesOfTarget('arabic')
-															.setStyle('font-family', 'QPC' + e.target.value[1]);
+															.setStyle('font-family', 'QPC' + input.value[1]);
 													}
 
 													globalState.updateVideoPreviewUI();
@@ -191,7 +194,7 @@
 														? 'text-black/80'
 														: 'text-thirdly'}"
 												>
-													{descriptions[format]}
+													{arabicFormatDescriptions[format]}
 												</div>
 											</div>
 										</label>

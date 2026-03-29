@@ -1,6 +1,5 @@
-<script lang="ts">
+	<script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import toast from 'svelte-5-french-toast';
 
 	let {
 		label,

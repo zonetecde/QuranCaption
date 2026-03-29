@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { SubtitleClip, TrackType } from '$lib/classes';
-	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
-	import type { PredefinedSubtitleClip, PredefinedSubtitleType } from '$lib/classes/Clip.svelte';
-	import { Quran, type Verse, type Word } from '$lib/classes/Quran';
+	import { SubtitleClip } from '$lib/classes';
+	import {
+		ClipWithTranslation,
+		type PredefinedSubtitleClip,
+		type PredefinedSubtitleType
+	} from '$lib/classes/Clip.svelte';
+	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -274,7 +277,8 @@
 			const nextClip = globalState.getSubtitleTrack.getClipById(pendingId);
 			if (nextClip) {
 				// Modifie le sous-titre
-				globalState.getSubtitlesEditorState.editSubtitle = nextClip as any;
+				globalState.getSubtitlesEditorState.editSubtitle =
+					nextClip as SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation;
 				return true;
 			}
 		}
@@ -359,7 +363,7 @@
 			if (subtitlesEditorState().editSubtitle) {
 				const currentEdited = subtitlesEditorState().editSubtitle;
 				await subtitleTrack.editSubtitle(
-					currentEdited as any,
+					currentEdited,
 					verse,
 					subtitlesEditorState().startWordIndex,
 					subtitlesEditorState().endWordIndex,
@@ -448,7 +452,7 @@
 	 * Met à jour les indices de début et de fin des mots sélectionnés.
 	 * @param wordIndex L'index du mot cliqué.
 	 */
-	function handleWordClick(wordIndex: number): any {
+	function handleWordClick(wordIndex: number): void {
 		if (wordIndex < subtitlesEditorState().startWordIndex) {
 			subtitlesEditorState().startWordIndex = wordIndex;
 			subtitlesEditorState().endWordIndex = wordIndex;
@@ -518,7 +522,7 @@
 	>
 		{#await selectedVerse() then verse}
 			{#if verse}
-				{#each verse.words as word, index}
+				{#each verse.words as word, index (word.id ?? `${index}-${word.arabic}`)}
 					{@const isSelected =
 						index >= subtitlesEditorState().startWordIndex &&
 						index <= subtitlesEditorState().endWordIndex}
@@ -527,7 +531,6 @@
 					{@const isSingleSelected =
 						isSelected &&
 						subtitlesEditorState().startWordIndex === subtitlesEditorState().endWordIndex}
-					{@const isMiddleSelected = isSelected && !isFirstSelected && !isLastSelected}
 
 					<button
 						class="word-button flex h-fit flex-col outline-none text-center px-3 cursor-pointer

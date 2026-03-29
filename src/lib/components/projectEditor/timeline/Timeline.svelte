@@ -1,13 +1,14 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import Track from './track/Track.svelte';
-	import { Duration, TrackType, ProjectEditorTabs, SubtitleClip, AssetClip } from '$lib/classes';
+	import { Duration, TrackType, ProjectEditorTabs, AssetClip } from '$lib/classes';
 	import ShortcutService from '$lib/services/ShortcutService';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
-		const longestClipEnd = globalState.currentProject?.content.timeline.getLongestTrackDuration()!;
+		const longestClipEnd =
+			globalState.currentProject?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
 
 		globalState.currentProject!.detail.duration = longestClipEnd;
 
@@ -19,7 +20,16 @@
 		else return new Duration(120000); // 2 minutes par défaut
 	});
 
-	let timelineState = $derived(() => globalState.currentProject?.projectEditorState.timeline!);
+	let timelineState = $derived(
+		() =>
+			globalState.currentProject?.projectEditorState.timeline ?? {
+				cursorPosition: 0,
+				movePreviewTo: 0,
+				zoom: 1,
+				scrollX: 0,
+				showCursor: true
+			}
+	);
 
 	const TIMELINE_LEFT_HEADER_WIDTH_PX = 180;
 	const OVERSCAN_MS = 120000;
@@ -57,7 +67,7 @@
 		const currentProject = globalState.currentProject;
 		if (!currentProject) return;
 
-		let clipToSplit: any = null;
+		let clipToSplit: { id: number; type: string } | null = null;
 
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles;
 		if (selectedSubtitles.length === 1) {
@@ -201,7 +211,7 @@
 		const currentClip = subtitleTrack.getCurrentClip(cursorPosition);
 
 		if (currentClip) {
-			// VÃ©rifie que le curseur est dans une position valide (pas Ã  la toute fin du clip)
+			// Verifie que le curseur est dans une position valide (pas a la toute fin du clip)
 			if (cursorPosition >= currentClip.endTime - 50) {
 				return; // Curseur trop proche de la fin, ne rien faire
 			}
@@ -277,7 +287,7 @@
 		// On active le shortcut de split pour tous les onglets
 		registerSplitShortcut();
 
-		// Le raccourci de suppression (Backspace) reste spécifique à l'onglet Style pour l'instant
+		// Le raccourci de suppression (Backspace) reste specifique a l'onglet Style pour l'instant
 		// (pour éviter de supprimer par erreur dans d'autres contextes)
 		if (currentTab === ProjectEditorTabs.Style) {
 			registerRemoveShortcut();
@@ -362,7 +372,7 @@
 	});
 
 	/**
-	 * Scroll la timeline à la position du curseur
+	 * Scroll la timeline a la position du curseur
 	 */
 	function scrollTimelineToCursor() {
 		if (!timelineDiv) return;
@@ -385,7 +395,7 @@
 		return 60; // Chaque minute
 	}
 
-	// Fonction pour déterminer si on doit afficher un timestamp à cette position
+	// Fonction pour determiner si on doit afficher un timestamp a cette position
 	function shouldShowTimestamp(secondIndex: number, zoom: number): boolean {
 		const interval = getTimestampInterval(zoom);
 		return secondIndex % interval === 0;
@@ -396,11 +406,11 @@
 		if (!target) return;
 
 		// Si l'élément est un bouton ou un élément interactif ou son parent direct, on ne fait rien
+		const eventTarget = event.target;
+		if (!(eventTarget instanceof Element)) return;
 		if (
-			//@ts-ignore
-			event.target!.closest('.track-left-part') ||
-			//@ts-ignore
-			event.target.classList.contains('material-icons')
+			eventTarget.closest('.track-left-part') ||
+			(eventTarget instanceof HTMLElement && eventTarget.classList.contains('material-icons'))
 		)
 			return;
 
@@ -418,8 +428,8 @@
 		const target = event.currentTarget as HTMLElement;
 		if (!target) return;
 
-		//@ts-ignore
-		if (event.target!.closest('.track-left-part')) return;
+		const eventTarget = event.target;
+		if (eventTarget instanceof Element && eventTarget.closest('.track-left-part')) return;
 
 		const rect = target.getBoundingClientRect();
 		const clickX = event.clientX - rect.left - 180; // Soustrait la largeur du header
@@ -473,7 +483,7 @@
 		timelineState().scrollX = source.scrollLeft;
 	}
 
-	function handleMouseWheelWheeling(event: any) {
+	function handleMouseWheelWheeling(event: WheelEvent) {
 		// Si la touche CTRL est enfoncée
 		if (event.ctrlKey) {
 			// Zoom avant ou arrière
@@ -519,7 +529,7 @@
 				<div class="ruler-header-spacer"></div>
 
 				<!-- Time markers -->
-				{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i}
+				{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i (i)}
 					{#if shouldShowTimestamp(i, timelineState().zoom)}
 						<div
 							class="time-marker"
@@ -558,7 +568,7 @@
 			>
 				<!-- Background grid -->
 				<div class="timeline-grid">
-					{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i}
+					{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i (i)}
 						<div
 							class="grid-line"
 							class:major={shouldShowTimestamp(i, timelineState().zoom)}
@@ -569,7 +579,7 @@
 
 				<!-- Track lanes -->
 				<div class="track-lanes">
-					{#each globalState.currentProject!.content.timeline.tracks as track, i}
+					{#each globalState.currentProject!.content.timeline.tracks as track, i (i)}
 						<!-- N'affiche pas la track des customs texts s'il y en a pas dans le projet -->
 						{#if !(track.type === TrackType.CustomClip && track.clips.length === 0)}
 							<Track
@@ -844,3 +854,5 @@
 		box-shadow: 0 2px 6px rgba(34, 197, 94, 0.4);
 	}
 </style>
+
+

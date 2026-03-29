@@ -1,47 +1,70 @@
-/**
- * Classe de base pour la sérialisation automatique des objets avec des propriétés $state de Svelte 5
+﻿/**
+ * Classe de base pour la serialization automatique des objets avec des proprietes $state de Svelte 5.
  */
+type SerializableDictionary = Record<string, unknown>;
+
+type RegisteredSerializableClass<T extends SerializableBase = SerializableBase> = {
+	new (): T;
+	fromJSON(data: SerializableDictionary): T;
+	__className?: string;
+	name: string;
+};
+
+const hasClassName = (value: unknown): value is SerializableDictionary & { __className: string } =>
+	typeof value === 'object' && value !== null && typeof (value as { __className?: unknown }).__className === 'string';
+
+const hasFromJSON = <T extends SerializableBase>(
+	value: unknown
+): value is RegisteredSerializableClass<T> =>
+	typeof value === 'function' &&
+	typeof (value as { fromJSON?: unknown }).fromJSON === 'function' &&
+	typeof (value as { name?: unknown }).name === 'string';
+
 export class SerializableBase {
-	// Nom de la classe pour la sérialisation - doit être défini dans chaque classe fille
-	static __className: string = 'SerializableBase';
+	// Nom de la classe pour la serialization - doit etre defini dans chaque classe fille.
+	static __className = 'SerializableBase';
 
-	// Métadonnées pour la désérialisation des objets enfants
-	private static __childClasses = new Map<string, Map<string, any>>();
+	// Metadonnees pour la deserialisation des objets enfants.
+	private static __childClasses = new Map<string, Map<string, RegisteredSerializableClass>>();
 
-	// Registre global des classes pour la désérialisation automatique
-	private static __classRegistry = new Map<string, any>();
+	// Registre global des classes pour la deserialisation automatique.
+	private static __classRegistry = new Map<string, RegisteredSerializableClass>();
 
 	/**
-	 * Enregistre une classe dans le registre global pour permettre la désérialisation automatique
+	 * Enregistre une classe dans le registre global pour permettre la deserialisation automatique.
 	 */
-	static registerClass(className: string, classConstructor: any) {
+	static registerClass(className: string, classConstructor: RegisteredSerializableClass): void {
 		this.__classRegistry.set(className, classConstructor);
-		// Également définir le nom de classe statique
 		classConstructor.__className = className;
 	}
 
 	/**
-	 * Décore une propriété pour indiquer qu'elle doit être désérialisée avec une classe spécifique
+	 * Decore une propriete pour indiquer qu'elle doit etre deserialisee avec une classe specifique.
 	 */
-	static registerChildClass(targetClass: any, propertyKey: string, childClass: any) {
+	static registerChildClass(
+		targetClass: { name: string },
+		propertyKey: string,
+		childClass: RegisteredSerializableClass
+	): void {
 		const className = targetClass.name;
 		if (!this.__childClasses.has(className)) {
 			this.__childClasses.set(className, new Map());
 		}
-		this.__childClasses.get(className)!.set(propertyKey, childClass);
-	}
-	/**
-	 * Méthode toJSON personnalisée qui capture automatiquement toutes les propriétés,
-	 * y compris les propriétés $state de Svelte 5, et traite récursivement les objets imbriqués
-	 */
-	toJSON(): any {
-		return SerializableBase.serializeObject(this);
+		this.__childClasses.get(className)?.set(propertyKey, childClass);
 	}
 
 	/**
-	 * Sérialise récursivement un objet, en ajoutant __className pour tous les objets SerializableBase
+	 * Methode toJSON personnalisee qui capture automatiquement toutes les proprietes,
+	 * y compris les proprietes $state de Svelte 5, et traite recursivement les objets imbriques.
 	 */
-	private static serializeObject(obj: any): any {
+	toJSON(): SerializableDictionary {
+		return SerializableBase.serializeObject(this) as SerializableDictionary;
+	}
+
+	/**
+	 * Serialise recursivement un objet, en ajoutant __className pour tous les objets SerializableBase.
+	 */
+	private static serializeObject(obj: unknown): unknown {
 		if (obj === null || obj === undefined) {
 			return obj;
 		}
@@ -57,12 +80,11 @@ export class SerializableBase {
 		if (obj instanceof Date) {
 			return obj.toISOString();
 		}
-		const result: any = {}; // Ajouter le nom de la classe si c'est un objet SerializableBase
-		if (obj instanceof SerializableBase) {
-			// Rechercher d'abord dans le registre en utilisant le constructeur de l'objet
-			let className = null;
 
-			// Parcourir le registre pour trouver la classe qui correspond exactement au constructeur
+		const result: SerializableDictionary = {};
+		if (obj instanceof SerializableBase) {
+			let className: string | null = null;
+
 			for (const [registeredName, registeredClass] of SerializableBase.__classRegistry.entries()) {
 				if (obj.constructor === registeredClass) {
 					className = registeredName;
@@ -70,7 +92,6 @@ export class SerializableBase {
 				}
 			}
 
-			// Si on n'a pas trouvé dans le registre, essayer avec le nom du constructeur directement
 			if (!className) {
 				const constructorName = obj.constructor.name;
 				if (SerializableBase.__classRegistry.has(constructorName)) {
@@ -78,50 +99,42 @@ export class SerializableBase {
 				}
 			}
 
-			// Si toujours pas trouvé, utiliser la propriété statique ou le nom du constructeur
 			if (!className) {
-				className = (obj.constructor as any).__className || obj.constructor.name;
+				const ctor = obj.constructor as { __className?: string; name: string };
+				className = ctor.__className ?? ctor.name;
 			}
 
 			result.__className = className;
 		}
 
-		// Obtenir toutes les propriétés de l'instance actuelle
-		const instance = obj as any;
-
-		// Parcourir toutes les propriétés énumérables de l'instance
+		const instance = obj as SerializableDictionary;
 		for (const key in instance) {
-			if (instance.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(instance, key)) {
 				const value = instance[key];
-
-				// Exclure les fonctions
 				if (typeof value !== 'function') {
 					result[key] = SerializableBase.serializeObject(value);
 				}
 			}
 		}
 
-		// Obtenir les propriétés du prototype (où Svelte place les accesseurs $state) uniquement pour SerializableBase
 		if (obj instanceof SerializableBase) {
-			let proto = Object.getPrototypeOf(instance);
+			let proto: object | null = Object.getPrototypeOf(instance);
 			while (proto && proto !== Object.prototype) {
 				const descriptors = Object.getOwnPropertyDescriptors(proto);
 
 				for (const [key, descriptor] of Object.entries(descriptors)) {
-					// Ignorer le constructeur et les méthodes
 					if (key === 'constructor' || typeof descriptor.value === 'function') {
 						continue;
 					}
 
-					// Si c'est un getter/setter (propriété $state de Svelte)
-					if (descriptor.get && !result.hasOwnProperty(key)) {
+					if (descriptor.get && !Object.prototype.hasOwnProperty.call(result, key)) {
 						try {
 							const value = descriptor.get.call(instance);
 							if (value !== undefined && typeof value !== 'function') {
 								result[key] = SerializableBase.serializeObject(value);
 							}
-						} catch (error) {
-							// Ignorer les erreurs d'accès aux propriétés
+						} catch (_error) {
+							// Ignore getter access errors.
 						}
 					}
 				}
@@ -132,128 +145,113 @@ export class SerializableBase {
 
 		return result;
 	}
+
 	/**
-	 * Méthode utilitaire pour restaurer les propriétés depuis un objet plain
+	 * Methode utilitaire pour restaurer les proprietes depuis un objet plain.
 	 */
-	static fromJSON<T extends SerializableBase>(this: new (...args: any[]) => T, data: any): T {
-		// Si l'objet contient un nom de classe, utiliser la classe appropriée
-		const className = data.__className;
-		let TargetClass = this;
+	static fromJSON<T extends SerializableBase>(
+		this: RegisteredSerializableClass<T>,
+		data: SerializableDictionary
+	): T {
+		const className = typeof data.__className === 'string' ? data.__className : undefined;
+		const registeredClass =
+			className && SerializableBase.__classRegistry.has(className)
+				? SerializableBase.__classRegistry.get(className)
+				: undefined;
+		const targetClass = hasFromJSON<T>(registeredClass) ? registeredClass : this;
 
-		if (className && SerializableBase.__classRegistry.has(className)) {
-			TargetClass = SerializableBase.__classRegistry.get(className);
-		}
+		const instance = new targetClass() as T & SerializableDictionary;
+		const childClasses = SerializableBase.__childClasses.get(targetClass.name);
 
-		// Créer une instance avec des paramètres par défaut pour éviter les erreurs du constructeur
-		// mais permettre l'initialisation des champs privés $state
-		const instance = new TargetClass() as any;
-
-		// Obtenir les métadonnées des classes enfants pour cette classe
-		const childClasses = SerializableBase.__childClasses?.get(TargetClass.name);
-
-		// Parcourir toutes les propriétés du JSON
 		for (const key in data) {
-			if (Object.prototype.hasOwnProperty.call(data, key) && key !== '__className') {
-				const value = data[key];
+			if (!Object.prototype.hasOwnProperty.call(data, key) || key === '__className') {
+				continue;
+			}
 
-				// Vérifier si cette propriété doit être désérialisée avec une classe spécifique
-				if (childClasses && childClasses.has(key)) {
-					const ChildClass = childClasses.get(key);
-
-					if (Array.isArray(value)) {
-						// Désérialiser un tableau d'objets
-						instance[key] = value.map((item) => {
-							if (item && typeof item === 'object') {
-								// Vérifier si l'item a un nom de classe pour désérialisation automatique
-								if (item.__className && SerializableBase.__classRegistry.has(item.__className)) {
-									const ItemClass = SerializableBase.__classRegistry.get(item.__className);
-									return ItemClass.fromJSON(item);
-								} else if (ChildClass.fromJSON) {
-									return ChildClass.fromJSON(item);
-								}
-							} else if (typeof item === 'string' && SerializableBase.isDateString(item)) {
-								return new Date(item);
+			const value = data[key];
+			if (childClasses?.has(key)) {
+				const childClass = childClasses.get(key);
+				if (Array.isArray(value)) {
+					instance[key] = value.map((item) => {
+						if (item && typeof item === 'object') {
+							if (hasClassName(item) && SerializableBase.__classRegistry.has(item.__className)) {
+								const itemClass = SerializableBase.__classRegistry.get(item.__className);
+								if (hasFromJSON(itemClass)) return itemClass.fromJSON(item);
 							}
-							return item;
-						});
-					} else if (value && typeof value === 'object') {
-						// Vérifier si l'objet a un nom de classe pour désérialisation automatique
-						if (value.__className && SerializableBase.__classRegistry.has(value.__className)) {
-							const ItemClass = SerializableBase.__classRegistry.get(value.__className);
-							instance[key] = ItemClass.fromJSON(value);
-						} else if (ChildClass.fromJSON) {
-							// Désérialiser un objet enfant
-							instance[key] = ChildClass.fromJSON(value);
-						} else {
-							instance[key] = value;
+							if (childClass && hasFromJSON(childClass)) return childClass.fromJSON(item);
+						} else if (typeof item === 'string' && SerializableBase.isDateString(item)) {
+							return new Date(item);
 						}
-					} else if (typeof value === 'string' && SerializableBase.isDateString(value)) {
-						// Convertir les dates dans les propriétés avec classe enfant
-						instance[key] = new Date(value);
+						return item;
+					});
+				} else if (value && typeof value === 'object') {
+					if (hasClassName(value) && SerializableBase.__classRegistry.has(value.__className)) {
+						const itemClass = SerializableBase.__classRegistry.get(value.__className);
+						instance[key] = hasFromJSON(itemClass) ? itemClass.fromJSON(value) : value;
+					} else if (childClass && hasFromJSON(childClass)) {
+						instance[key] = childClass.fromJSON(value as SerializableDictionary);
 					} else {
-						// Valeur primitive
 						instance[key] = value;
 					}
+				} else if (typeof value === 'string' && SerializableBase.isDateString(value)) {
+					instance[key] = new Date(value);
 				} else {
-					// Assigner directement la valeur, mais vérifier d'abord si c'est un objet sérialisé avec une classe
-					if (value && typeof value === 'object' && !Array.isArray(value) && value.__className) {
-						// Objet avec nom de classe - désérialisation automatique
-						if (SerializableBase.__classRegistry.has(value.__className)) {
-							const ItemClass = SerializableBase.__classRegistry.get(value.__className);
-							instance[key] = ItemClass.fromJSON(value);
+					instance[key] = value;
+				}
+				continue;
+			}
+
+			if (value && typeof value === 'object' && !Array.isArray(value) && hasClassName(value)) {
+				if (SerializableBase.__classRegistry.has(value.__className)) {
+					const itemClass = SerializableBase.__classRegistry.get(value.__className);
+					instance[key] = hasFromJSON(itemClass) ? itemClass.fromJSON(value) : value;
+				} else {
+					instance[key] = value;
+				}
+			} else if (Array.isArray(value)) {
+				instance[key] = value.map((item) => {
+					if (item && typeof item === 'object' && hasClassName(item)) {
+						if (SerializableBase.__classRegistry.has(item.__className)) {
+							const itemClass = SerializableBase.__classRegistry.get(item.__className);
+							if (hasFromJSON(itemClass)) {
+								return itemClass.fromJSON(item);
+							}
+						}
+					} else if (typeof item === 'string' && SerializableBase.isDateString(item)) {
+						return new Date(item);
+					}
+					return item;
+				});
+			} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+				const deserializedDict: SerializableDictionary = {};
+				for (const dictKey in value) {
+					if (Object.prototype.hasOwnProperty.call(value, dictKey)) {
+						const dictValue = (value as SerializableDictionary)[dictKey];
+						if (
+							dictValue &&
+							typeof dictValue === 'object' &&
+							hasClassName(dictValue) &&
+							SerializableBase.__classRegistry.has(dictValue.__className)
+						) {
+							const itemClass = SerializableBase.__classRegistry.get(dictValue.__className);
+							deserializedDict[dictKey] = hasFromJSON(itemClass)
+								? itemClass.fromJSON(dictValue)
+								: dictValue;
+						} else if (
+							typeof dictValue === 'string' &&
+							SerializableBase.isDateString(dictValue)
+						) {
+							deserializedDict[dictKey] = new Date(dictValue);
 						} else {
-							instance[key] = value;
+							deserializedDict[dictKey] = dictValue;
 						}
-					} else if (Array.isArray(value)) {
-						// Tableau - vérifier chaque élément pour désérialisation automatique
-						instance[key] = value.map((item) => {
-							if (
-								item &&
-								typeof item === 'object' &&
-								item.__className &&
-								SerializableBase.__classRegistry.has(item.__className)
-							) {
-								const ItemClass = SerializableBase.__classRegistry.get(item.__className);
-								return ItemClass.fromJSON(item);
-							} else if (typeof item === 'string' && SerializableBase.isDateString(item)) {
-								return new Date(item);
-							}
-							return item;
-						});
-					} else if (value && typeof value === 'object' && !Array.isArray(value)) {
-						// Vérifier si c'est un dictionnaire d'objets (comme translations)
-						const deserializedDict: any = {};
-						for (const dictKey in value) {
-							if (Object.prototype.hasOwnProperty.call(value, dictKey)) {
-								const dictValue = value[dictKey];
-								if (
-									dictValue &&
-									typeof dictValue === 'object' &&
-									dictValue.__className &&
-									SerializableBase.__classRegistry.has(dictValue.__className)
-								) {
-									// Désérialiser automatiquement l'objet avec sa classe appropriée
-									const ItemClass = SerializableBase.__classRegistry.get(dictValue.__className);
-									deserializedDict[dictKey] = ItemClass.fromJSON(dictValue);
-								} else if (
-									typeof dictValue === 'string' &&
-									SerializableBase.isDateString(dictValue)
-								) {
-									deserializedDict[dictKey] = new Date(dictValue);
-								} else {
-									deserializedDict[dictKey] = dictValue;
-								}
-							}
-						}
-						instance[key] = deserializedDict;
-					} else if (typeof value === 'string' && SerializableBase.isDateString(value)) {
-						// Convertir les chaînes de date en objets Date
-						instance[key] = new Date(value);
-					} else {
-						// Valeur primitive ou non sérialisée
-						instance[key] = value;
 					}
 				}
+				instance[key] = deserializedDict;
+			} else if (typeof value === 'string' && SerializableBase.isDateString(value)) {
+				instance[key] = new Date(value);
+			} else {
+				instance[key] = value;
 			}
 		}
 
@@ -261,10 +259,10 @@ export class SerializableBase {
 	}
 
 	/**
-	 * Méthode utilitaire pour désérialiser automatiquement n'importe quel objet
-	 * sans avoir à spécifier la classe
+	 * Methode utilitaire pour deserialiser automatiquement n'importe quel objet
+	 * sans avoir a specifier la classe.
 	 */
-	static deserialize(data: any): any {
+	static deserialize(data: unknown): unknown {
 		if (!data || typeof data !== 'object') {
 			return data;
 		}
@@ -273,37 +271,35 @@ export class SerializableBase {
 			return data.map((item) => SerializableBase.deserialize(item));
 		}
 
-		const className = data.__className;
-		if (className && SerializableBase.__classRegistry.has(className)) {
-			const TargetClass = SerializableBase.__classRegistry.get(className);
-			return TargetClass.fromJSON(data);
+		if (hasClassName(data) && SerializableBase.__classRegistry.has(data.__className)) {
+			const targetClass = SerializableBase.__classRegistry.get(data.__className);
+			if (hasFromJSON(targetClass)) {
+				return targetClass.fromJSON(data);
+			}
 		}
 
-		// Si pas de nom de classe, on retourne l'objet tel quel
 		return data;
 	}
 
 	/**
-	 * Clone l'objet en passant par la sérialisation/désérialisation
+	 * Clone l'objet en passant par la serialisation/deserialisation.
 	 */
 	clone<T extends SerializableBase>(this: T): T {
-		const Constructor = this.constructor as new (...args: any[]) => T;
+		const constructorFn = this.constructor as { fromJSON(data: SerializableDictionary): T };
 		const data = this.toJSON();
-		return (Constructor as any).fromJSON(data);
+		return constructorFn.fromJSON(data);
 	}
 
 	/**
-	 * Vérifie si une chaîne de caractères représente une date ISO valide
+	 * Verifie si une chaine de caracteres represente une date ISO valide.
 	 */
 	private static isDateString(value: string): boolean {
-		// Vérifier le format ISO 8601 (exemple: "2025-07-01T11:41:21.148Z")
 		const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
 		if (!isoDateRegex.test(value)) {
 			return false;
 		}
 
-		// Vérifier que la date est valide
 		const date = new Date(value);
-		return !isNaN(date.getTime());
+		return !Number.isNaN(date.getTime());
 	}
 }

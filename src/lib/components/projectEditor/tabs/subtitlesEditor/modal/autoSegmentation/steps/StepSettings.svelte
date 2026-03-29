@@ -14,7 +14,7 @@
 	</div>
 
 	<div class="grid grid-cols-1 gap-2 xl:grid-cols-3">
-		{#each SEGMENTATION_PRESETS as preset}
+		{#each SEGMENTATION_PRESETS as preset (preset.id)}
 			<button
 				type="button"
 				class="rounded-lg border px-3 py-2 text-xs"

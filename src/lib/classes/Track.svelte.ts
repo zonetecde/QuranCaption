@@ -15,13 +15,12 @@ import {
 import { SerializableBase } from './misc/SerializableBase.js';
 import { Duration, type Asset } from './index.js';
 import { globalState } from '$lib/runes/main.svelte.js';
-import { Quran, type Verse } from './Quran.js';
+import type { Verse } from './Quran.js';
 import toast from 'svelte-5-french-toast';
 import { VerseTranslation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
-import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export class Track extends SerializableBase {
 	type: TrackType = $state(TrackType.Unknown);
@@ -118,7 +117,7 @@ export class Track extends SerializableBase {
 	}
 
 	getPixelPerSecond() {
-		return globalState.currentProject?.projectEditorState.timeline.zoom!;
+		return globalState.currentProject?.projectEditorState.timeline.zoom ?? 1;
 	}
 
 	getDuration(): Duration {
@@ -391,7 +390,9 @@ export class SubtitleTrack extends Track {
 			newPredefinedClip.translations = Object.fromEntries(
 				Object.entries(clip.translations || {}).map(([key, t]) => [
 					key,
-					typeof (t as any)?.clone === 'function' ? (t as any).clone() : { ...(t as any) }
+					typeof (t as { clone?: unknown })?.clone === 'function'
+						? (t as { clone: () => unknown }).clone()
+						: { ...(t as Record<string, unknown>) }
 				])
 			);
 			newPredefinedClip.associatedImagePath = clip.associatedImagePath;
@@ -718,7 +719,7 @@ export class CustomTextTrack extends Track {
 			customClipCategory.getStyle('time-disappearance')!.value = endTime;
 		}
 
-		let clip: any;
+		let clip: CustomImageClip | CustomTextClip;
 		if (clipType === 'image') {
 			// Ajoute un clip image
 

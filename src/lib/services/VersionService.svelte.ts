@@ -210,9 +210,7 @@ class VersionService {
 				.join('\n\n');
 
 			// extraire la partie numérique du tag le plus élevé (enlever "QC-" ou "v")
-			const latestVersionNumber = highest
-				.replace(/^QC-/i, '')
-				.replace(/^v/i, '');
+			const latestVersionNumber = highest.replace(/^QC-/i, '').replace(/^v/i, '');
 
 			return {
 				hasUpdate: newer.length > 0,

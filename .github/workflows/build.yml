@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v3.4.0). Must match the version in tauri.conf.json (without "v" prefix).'
+        description:
+          'Release tag (e.g. QC-3.4.0). Must match the version in tauri.conf.json (without "v"
+          prefix).'
         required: true
         type: string
       prerelease:

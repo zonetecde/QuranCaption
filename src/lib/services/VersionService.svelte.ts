@@ -197,8 +197,8 @@ class VersionService {
 					const tag = r.tag_name || '';
 					return this.compareSemver(tag, currentVersion) === 1;
 				})
-				// trier par SemVer asc (de la plus proche de current vers latest)
-				.sort((a: any, b: any) => this.compareSemver(a.tag_name || '0.0.0', b.tag_name || '0.0.0'));
+				// trier par SemVer desc (latest en haut, oldest en bas)
+				.sort((a: any, b: any) => this.compareSemver(b.tag_name || '0.0.0', a.tag_name || '0.0.0'));
 
 			// concatène les changelogs (ordre chronologique asc)
 			const changelog = newer

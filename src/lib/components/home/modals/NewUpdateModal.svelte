@@ -258,6 +258,13 @@
 					Later
 				</button>
 				<button
+					class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2"
+					onclick={openManualDownloadPage}
+				>
+					<span class="material-icons text-sm">open_in_new</span>
+					Download Manually
+				</button>
+				<button
 					class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
 					onclick={startUpdate}
 				>

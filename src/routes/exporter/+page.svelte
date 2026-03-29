@@ -18,8 +18,8 @@
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
-	import { domToBlob } from 'modern-screenshot';
-	import { CustomTextClip, SilenceClip } from '$lib/classes/Clip.svelte';
+	import { createContext, destroyContext, domToCanvas } from 'modern-screenshot';
+	import { ClipWithTranslation, CustomTextClip, SilenceClip } from '$lib/classes/Clip.svelte';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -155,6 +155,53 @@
 		(await getAllWindows()).find((w) => w.label === 'main')!.emit('export-progress-main', progress);
 	}
 
+	/**
+	 * Supprime les traductions cachées du projet d'exportation.
+	 * C'est nécessaire car sinon on va attendre trop longtemps avant de capturer une frame.
+	 */
+	function removeHiddenTranslationsFromExportProject() {
+		const project = globalState.currentProject;
+		if (!project) return;
+
+		const hiddenEditions = project.content.projectTranslation.addedTranslationEditions.filter(
+			(edition) =>
+				project.content.videoStyle.getStylesOfTarget(edition.name).findStyle('show-subtitles')
+					?.value === false
+		);
+
+		if (hiddenEditions.length === 0) return;
+
+		const hiddenEditionNames = new Set(hiddenEditions.map((edition) => edition.name));
+
+		project.content.projectTranslation.addedTranslationEditions =
+			project.content.projectTranslation.addedTranslationEditions.filter(
+				(edition) => !hiddenEditionNames.has(edition.name)
+			);
+
+		for (const edition of hiddenEditions) {
+			delete project.content.projectTranslation.versesTranslations[edition.name];
+			delete project.detail.translations[edition.author];
+		}
+
+		for (const track of project.content.timeline.tracks) {
+			for (const clip of track.clips) {
+				if (!(clip instanceof ClipWithTranslation)) continue;
+
+				for (const editionName of hiddenEditionNames) {
+					delete clip.translations[editionName];
+				}
+			}
+		}
+
+		project.content.videoStyle.styles = project.content.videoStyle.styles.filter(
+			(stylesData) => !hiddenEditionNames.has(stylesData.target)
+		);
+
+		console.log(
+			`Removed hidden export translations: ${hiddenEditions.map((edition) => edition.name).join(', ')}`
+		);
+	}
+
 	onMount(async () => {
 		// Ecoute les evenements de progression d'export donnes par Rust
 		listen('export-progress', exportProgress);
@@ -168,6 +215,7 @@
 
 			// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
 			globalState.currentProject = await ExportService.loadProject(Number(id));
+			removeHiddenTranslationsFromExportProject();
 
 			// Créer le dossier d'export s'il n'existe pas
 			await mkdir(await join(ExportService.exportFolder, exportId), {
@@ -259,8 +307,7 @@
 		const clip = globalState.getVideoTrack.getCurrentClip(roundedTime);
 		const clipId = clip?.id;
 		return Number(
-			globalState
-				.getVideoStyle
+			globalState.getVideoStyle
 				.getStylesOfTarget('global')
 				.getEffectiveValue('overlay-blur', clipId)
 		);
@@ -566,8 +613,9 @@
 		);
 
 		// Récupère le chemin de fichier de tous les audios du projet
-		const audios: string[] = globalState.getAudioTrack.clips.map((clip) =>
-			globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath
+		const audios: string[] = globalState.getAudioTrack.clips.map(
+			(clip) =>
+				globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath
 		);
 
 		// Récupère le chemin de fichier de toutes les vidéos du projet
@@ -707,10 +755,7 @@
 				);
 			} else if (
 				hasTiming(timings.blankImgs, timing).hasIt &&
-				hasBlankImg(
-					timings.imgWithNothingShown,
-					hasTiming(timings.blankImgs, timing).surah ?? -1
-				)
+				hasBlankImg(timings.imgWithNothingShown, hasTiming(timings.blankImgs, timing).surah ?? -1)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
 				const surahInfo = hasTiming(timings.blankImgs, timing);
@@ -960,8 +1005,9 @@
 		);
 
 		// Récupère le chemin de fichier de tous les audios du projet
-		const audios: string[] = globalState.getAudioTrack.clips.map((clip) =>
-			globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath
+		const audios: string[] = globalState.getAudioTrack.clips.map(
+			(clip) =>
+				globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath
 		);
 
 		// Récupère le chemin de fichier de toutes les vidéos du projet
@@ -1029,10 +1075,15 @@
 		const scaleX = targetWidth / node.clientWidth;
 		const scaleY = targetHeight / node.clientHeight;
 		const scale = Math.min(scaleX, scaleY);
+		let canvas: HTMLCanvasElement | null = null;
+		let context: Awaited<
+			ReturnType<typeof createContext<typeof node extends HTMLElement ? HTMLElement : Node>>
+		> | null = null;
 
 		try {
-			// modern-screenshot : pas de fuite memoire contrairement a dom-to-image
-			const blob: Blob | null = await domToBlob(node, {
+			// Create and destroy the screenshot context explicitly so we can
+			// release the canvas backing store right after each capture.
+			context = await createContext(node, {
 				width: node.clientWidth * scale,
 				height: node.clientHeight * scale,
 				style: {
@@ -1040,7 +1091,13 @@
 					transform: 'scale(' + scale + ')',
 					transformOrigin: 'top left'
 				},
-				quality: 1
+				quality: 1,
+				autoDestruct: false
+			});
+			canvas = await domToCanvas(context);
+
+			const blob = await new Promise<Blob | null>((resolve) => {
+				canvas!.toBlob((result) => resolve(result), 'image/png', 1);
 			});
 
 			if (!blob) throw new Error('domToBlob returned null');
@@ -1065,6 +1122,17 @@
 					? String((error as { message?: unknown }).message ?? '')
 					: String(error ?? 'Unknown error');
 			toast.error('Error while taking screenshot: ' + message);
+		} finally {
+			if (context) {
+				destroyContext(context);
+			}
+			if (canvas) {
+				// Shrink the canvas to release its backing store immediately.
+				canvas.width = 0;
+				canvas.height = 0;
+			}
+			canvas = null;
+			context = null;
 		}
 	}
 
@@ -1260,5 +1328,3 @@
 		</div> -->
 	</div>
 {/if}
-
-

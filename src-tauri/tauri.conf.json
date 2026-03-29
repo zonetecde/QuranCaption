@@ -122,7 +122,7 @@
 	},
 	"plugins": {
 		"updater": {
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlDMkYxQzA2QTMyQTFDNDgKUldSSUhDcWpCaHd2bkdwaVZtbWxnUEZleS9SZlFaY25pbkx5S1N5TmZCQ2VrODRFaWxSSlVEak4K",
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc1RkVENzQxMDIzODU2MzUKUldRMVZqZ0NRZGYrZFVBbHVpUXkzbHpzR2luSEZZRWpFaVd5Vm9KaWJKNjNlcmxXVE1TOTZBUW0K",
 			"endpoints": [
 				"https://github.com/zonetecde/QuranCaption/releases/latest/download/latest.json"
 			],

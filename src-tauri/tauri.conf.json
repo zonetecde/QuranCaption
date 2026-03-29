@@ -83,6 +83,7 @@
 	},
 	"bundle": {
 		"active": true,
+		"createUpdaterArtifacts": true,
 		"targets": [
 			"deb",
 			"appimage",
@@ -116,6 +117,17 @@
 					"libgtk-3-0",
 					"libwebkit2gtk-4.1-0"
 				]
+			}
+		}
+	},
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlDMkYxQzA2QTMyQTFDNDgKUldSSUhDcWpCaHd2bkdwaVZtbWxnUEZleS9SZlFaY25pbkx5S1N5TmZCQ2VrODRFaWxSSlVEak4K",
+			"endpoints": [
+				"https://github.com/zonetecde/QuranCaption/releases/latest/download/latest.json"
+			],
+			"windows": {
+				"installMode": "passive"
 			}
 		}
 	}

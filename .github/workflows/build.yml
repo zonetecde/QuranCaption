@@ -1,48 +1,68 @@
-name: Build Tauri Apps
+name: Build & Release
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description:
+          'Release tag (e.g. QC-3.4.0). Must match the version in tauri.conf.json (without "v"
+          prefix).'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release?'
+        required: false
+        default: false
+        type: boolean
+      draft:
+        description: 'Create as draft release?'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
-  build:
+  build-and-release:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: macos-15-intel # Intel Mac for x86_64 build
-            target: x86_64-apple-darwin
-            arch: intel
-          - os: macos-latest # ARM Mac for M1/M2/M3 build
+          - os: macos-latest
             target: aarch64-apple-darwin
-            arch: arm
+            args: '--target aarch64-apple-darwin'
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            args: '--target x86_64-apple-darwin'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            args: ''
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            args: ''
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          targets: ${{ matrix.target }}
 
       # Set up build environment variables for faster builds
       - name: Configure build environment
         run: |
           echo "CARGO_BUILD_JOBS=2" >> $GITHUB_ENV
           echo "CARGO_NET_GIT_FETCH_WITH_CLI=true" >> $GITHUB_ENV
+        shell: bash
 
-      # macOS setup
+      # ─── macOS binary setup ───
       - name: Download yt-dlp (macOS)
         if: startsWith(matrix.os, 'macos')
         run: |
@@ -62,7 +82,7 @@ jobs:
           chmod +x src-tauri/binaries/ffprobe
           chmod +x src-tauri/binaries/ffmpeg
 
-      # Windows setup
+      # ─── Windows binary setup ───
       - name: Download yt-dlp (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
@@ -92,7 +112,7 @@ jobs:
           Copy-Item -Path (Join-Path $rootDir.FullName "bin/ffmpeg.exe") -Destination $binDir -Force
           Copy-Item -Path (Join-Path $rootDir.FullName "bin/ffprobe.exe") -Destination $binDir -Force
 
-      # Linux setup
+      # ─── Linux binary setup ───
       - name: Install Linux build dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -126,84 +146,23 @@ jobs:
           cp "$rootdir/ffprobe" src-tauri/binaries/ffprobe
           chmod +x src-tauri/binaries/ffmpeg src-tauri/binaries/ffprobe
 
+      # ─── Build & Release with tauri-action ───
       - name: Install app dependencies
         run: npm install
 
-      - name: Build the app
-        run: npm run tauri build --verbose
+      - name: Build and create release
+        uses: tauri-apps/tauri-action@v0
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
           PUBLIC_POSTHOG_KEY: ${{ secrets.PUBLIC_POSTHOG_KEY }}
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
-        timeout-minutes: 45
-
-      - name: Upload macOS DMG
-        if: startsWith(matrix.os, 'macos')
-        uses: actions/upload-artifact@v4
         with:
-          name: macos-artifact-${{ matrix.arch || 'x64' }}
-          path: 'src-tauri/target/release/bundle/dmg/*.dmg'
-
-      - name: Upload Windows Installer
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-artifact
-          path: 'src-tauri/target/release/bundle/nsis/Quran Caption_*_x64-setup.exe'
-
-      - name: Upload Linux Artifacts
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-artifact
-          path: |
-            src-tauri/target/release/bundle/appimage/*.AppImage
-            src-tauri/target/release/bundle/deb/*.deb
-
-  release:
-    name: Create Draft Release
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      contents: write
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-
-      - name: Prepare release assets
-        run: |
-          mkdir release-assets
-          cd artifacts/windows-artifact
-          WIN_FILE=$(find . -name "Quran Caption_*_x64-setup.exe")
-          mv "$WIN_FILE" ../../release-assets/QuranCaption.Windows.exe
-
-          # macOS Intel
-          cd ../../artifacts/macos-artifact-intel || true
-          if [ -d . ]; then
-            DMG_FILE=$(find . -name "*.dmg")
-            if [ -n "$DMG_FILE" ]; then
-              mv "$DMG_FILE" ../../release-assets/QuranCaption.MacOS.Intel.dmg
-            fi
-          fi
-
-          # macOS ARM (M1/M2/M3)
-          cd ../../artifacts/macos-artifact-arm || true
-          if [ -d . ]; then
-            DMG_FILE=$(find . -name "*.dmg")
-            if [ -n "$DMG_FILE" ]; then
-              mv "$DMG_FILE" ../../release-assets/QuranCaption.MacOS.ARM.dmg
-            fi
-          fi
-
-          cd ../../artifacts/linux-artifact || true
-          if [ -d . ]; then
-            # Renommer les fichiers Linux avec des noms plus simples
-            find . -name "*.AppImage" -exec mv {} ../../release-assets/QuranCaption.Linux.AppImage \;
-            find . -name "*.deb" -exec mv {} ../../release-assets/QuranCaption.Linux.deb \;
-          fi
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: release-assets/*
+          tagName: ${{ inputs.tag }}
+          releaseName: 'Quran Caption ${{ inputs.tag }}'
+          releaseBody: 'See the changelog below for details.'
+          releaseDraft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          args: ${{ matrix.args }}
+        timeout-minutes: 60

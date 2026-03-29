@@ -35,3 +35,6 @@ tmp/
 src-tauri/python/segment_core/__pycache__/
 src-tauri/usage_logs/
 src-tauri/python/__pycache__/
+
+# Tauri signing keys (NEVER commit private keys)
+.tauri/

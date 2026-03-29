@@ -11,7 +11,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init());
     let builder = invoke::register_invoke_handler(builder);
 
     builder
@@ -20,6 +21,11 @@ pub fn run() {
             if let Ok(resource_dir) = app.path().resource_dir() {
                 binaries::init_resource_dir(resource_dir);
             }
+
+            // Initialisation du plugin updater (desktop uniquement).
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
 
             // Activation du logging Tauri en debug pour faciliter le diagnostic local.
             if cfg!(debug_assertions) {

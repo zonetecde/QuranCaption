@@ -1,4 +1,7 @@
 import { getTauriVersion, getVersion } from '@tauri-apps/api/app';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import type { Update } from '@tauri-apps/plugin-updater';
 
 export interface UpdateInfo {
 	hasUpdate: boolean;
@@ -6,9 +9,21 @@ export interface UpdateInfo {
 	latestVersion: string;
 }
 
+export type UpdateState = 'idle' | 'checking' | 'downloading' | 'installing' | 'done' | 'error';
+
 class VersionService {
 	currentVersion: string | null = $state(null);
 	latestUpdate: UpdateInfo | null = $state(null);
+
+	// Auto-update state
+	updateState: UpdateState = $state('idle');
+	downloadProgress: number = $state(0); // 0-100
+	downloadedBytes: number = $state(0);
+	totalBytes: number = $state(0);
+	updateError: string = $state('');
+
+	// Cached Tauri update object
+	private _tauriUpdate: Update | null = null;
 
 	async init() {
 		this.currentVersion = await this.getAppVersion();
@@ -48,6 +63,102 @@ class VersionService {
 		return 0;
 	}
 
+	/**
+	 * Check for updates using Tauri's built-in updater plugin.
+	 * Returns the Update object if available, null otherwise.
+	 */
+	async checkTauriUpdate(): Promise<Update | null> {
+		try {
+			const update = await check();
+			if (update?.available) {
+				this._tauriUpdate = update;
+				return update;
+			}
+			return null;
+		} catch (error) {
+			console.error('Tauri updater check failed:', error);
+			return null;
+		}
+	}
+
+	/**
+	 * Download and install the update using Tauri's updater.
+	 * Tracks progress and state for the UI.
+	 */
+	async downloadAndInstall(): Promise<void> {
+		if (!this._tauriUpdate) {
+			// Try checking again
+			const update = await this.checkTauriUpdate();
+			if (!update) {
+				this.updateState = 'error';
+				this.updateError = 'No update available';
+				return;
+			}
+		}
+
+		try {
+			this.updateState = 'downloading';
+			this.downloadProgress = 0;
+			this.downloadedBytes = 0;
+			this.totalBytes = 0;
+
+			await this._tauriUpdate!.downloadAndInstall((event) => {
+				switch (event.event) {
+					case 'Started':
+						this.totalBytes = event.data.contentLength ?? 0;
+						this.downloadedBytes = 0;
+						break;
+					case 'Progress':
+						this.downloadedBytes += event.data.chunkLength;
+						if (this.totalBytes > 0) {
+							this.downloadProgress = Math.min(
+								100,
+								Math.round((this.downloadedBytes / this.totalBytes) * 100)
+							);
+						}
+						break;
+					case 'Finished':
+						this.downloadProgress = 100;
+						this.updateState = 'installing';
+						break;
+				}
+			});
+
+			this.updateState = 'done';
+
+			// Relaunch the app after a short delay
+			setTimeout(async () => {
+				await relaunch();
+			}, 1500);
+		} catch (error) {
+			console.error('Update download/install failed:', error);
+			this.updateState = 'error';
+			this.updateError = error instanceof Error ? error.message : String(error);
+		}
+	}
+
+	/**
+	 * Reset the update state (e.g., after dismissing an error).
+	 */
+	resetUpdateState() {
+		this.updateState = 'idle';
+		this.downloadProgress = 0;
+		this.downloadedBytes = 0;
+		this.totalBytes = 0;
+		this.updateError = '';
+	}
+
+	/**
+	 * Format bytes to human-readable string.
+	 */
+	formatBytes(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const k = 1024;
+		const sizes = ['B', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+	}
+
 	async checkForUpdates(): Promise<UpdateInfo> {
 		const currentVersion = (await this.getAppVersion()) || '0.0.0';
 
@@ -64,10 +175,10 @@ class VersionService {
 				return { hasUpdate: false, changelog: '', latestVersion: '0.0.0' };
 			}
 
-			// filtrer seulement les releases qui commencent par "QC-" et ne sont pas des pre-releases
+			// filtrer seulement les releases qui commencent par "QC-" ou "v" et ne sont pas des pre-releases
 			const qcReleases = releases.filter((r: any) => {
 				const tag = r.tag_name || '';
-				return tag.startsWith('QC-') && !r.prerelease;
+				return (tag.startsWith('QC-') || tag.startsWith('v')) && !r.prerelease;
 			});
 
 			if (qcReleases.length === 0) {
@@ -98,8 +209,10 @@ class VersionService {
 				})
 				.join('\n\n');
 
-			// extraire la partie numérique du tag le plus élevé (enlever "QC-")
-			const latestVersionNumber = highest.startsWith('QC-') ? highest.substring(3) : highest;
+			// extraire la partie numérique du tag le plus élevé (enlever "QC-" ou "v")
+			const latestVersionNumber = highest
+				.replace(/^QC-/i, '')
+				.replace(/^v/i, '');
 
 			return {
 				hasUpdate: newer.length > 0,

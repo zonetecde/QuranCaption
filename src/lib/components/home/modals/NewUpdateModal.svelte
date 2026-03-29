@@ -91,7 +91,7 @@
 					{/if}
 				</div>
 				<div>
-					<h2 class="text-2xl font-bold text-white">
+					<h2 class="text-2xl font-bold text-primary">
 						{#if updateState === 'done'}
 							Update Complete!
 						{:else if updateState === 'installing'}
@@ -104,7 +104,7 @@
 							Update Available!
 						{/if}
 					</h2>
-					<p class="text-sm text-white/80">
+					<p class="text-sm text-secondary">
 						{#if updateState === 'done'}
 							Restarting app...
 						{:else if updateState === 'downloading'}
@@ -125,7 +125,7 @@
 			<!-- Close button (hidden during update) -->
 			{#if !isUpdating}
 				<button
-					class="w-10 h-10 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-white/80 hover:text-white group cursor-pointer"
+					class="w-10 h-10 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary group cursor-pointer"
 					onclick={dismissModal}
 				>
 					<span
@@ -149,7 +149,7 @@
 					></div>
 				</div>
 				<div class="flex justify-between mt-1.5">
-					<span class="text-xs text-white/60">
+						<span class="text-xs text-secondary">
 						{#if updateState === 'done'}
 							Complete
 						{:else if updateState === 'installing'}
@@ -158,7 +158,7 @@
 							Downloading...
 						{/if}
 					</span>
-					<span class="text-xs text-white/60 font-medium">
+						<span class="text-xs text-secondary font-medium">
 						{downloadProgress}%
 					</span>
 				</div>
@@ -209,7 +209,7 @@
 			<!-- Changelog content - scrollable -->
 			<div class="flex-1 min-h-0">
 				<div
-					class="prose prose-sm prose-invert max-w-none h-full bg-white/5 px-4 rounded-lg overflow-auto text-white border border-color"
+					class="changelog-prose prose prose-sm max-w-none h-full bg-accent px-4 rounded-lg overflow-auto border border-color"
 				>
 					{@html sanitized}
 				</div>
@@ -278,62 +278,67 @@
 
 <style>
 	/* Enhanced prose styling for better markdown rendering */
-	:global(.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6) {
-		color: white !important;
+	:global(.changelog-prose) {
+		color: var(--text-primary) !important;
+	}
+
+	:global(.changelog-prose h1, .changelog-prose h2, .changelog-prose h3, .changelog-prose h4, .changelog-prose h5, .changelog-prose h6) {
+		color: var(--text-primary) !important;
 		margin-top: 1.5em !important;
 		margin-bottom: 0.5em !important;
 	}
 
-	:global(.prose h1) {
+	:global(.changelog-prose h1) {
 		font-size: 1.5em !important;
 		font-weight: 700 !important;
 	}
 
-	:global(.prose h2) {
+	:global(.changelog-prose h2) {
 		font-size: 1.3em !important;
 		font-weight: 600 !important;
 	}
 
-	:global(.prose h3) {
+	:global(.changelog-prose h3) {
 		font-size: 1.1em !important;
 		font-weight: 600 !important;
 	}
 
-	:global(.prose p) {
-		color: rgba(255, 255, 255, 0.9) !important;
+	:global(.changelog-prose p) {
+		color: var(--text-secondary) !important;
 		margin-bottom: 1em !important;
 	}
 
-	:global(.prose ul, .prose ol) {
-		color: rgba(255, 255, 255, 0.9) !important;
+	:global(.changelog-prose ul, .changelog-prose ol) {
+		color: var(--text-secondary) !important;
 		margin: 1em 0 !important;
 	}
 
-	:global(.prose li) {
-		color: rgba(255, 255, 255, 0.9) !important;
+	:global(.changelog-prose li) {
+		color: var(--text-secondary) !important;
 		margin: 0.25em 0 !important;
 	}
 
-	:global(.prose strong) {
-		color: white !important;
+	:global(.changelog-prose strong) {
+		color: var(--text-primary) !important;
 		font-weight: 600 !important;
 	}
 
-	:global(.prose code) {
-		background-color: rgba(255, 255, 255, 0.1) !important;
-		color: #58a6ff !important;
+	:global(.changelog-prose code) {
+		background-color: var(--bg-secondary) !important;
+		color: var(--accent-primary) !important;
 		padding: 0.2em 0.4em !important;
 		border-radius: 0.25rem !important;
 		font-size: 0.9em !important;
+		border: 1px solid var(--border-color) !important;
 	}
 
-	:global(.prose a) {
-		color: #58a6ff !important;
+	:global(.changelog-prose a) {
+		color: var(--accent-primary) !important;
 		text-decoration: underline !important;
 	}
 
-	:global(.prose a:hover) {
-		color: #79c0ff !important;
+	:global(.changelog-prose a:hover) {
+		color: var(--accent-secondary) !important;
 	}
 
 	/* Spin animation for sync icon */

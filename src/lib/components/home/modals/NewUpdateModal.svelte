@@ -4,8 +4,8 @@
 	import anchor from 'markdown-it-anchor';
 	import { slide } from 'svelte/transition';
 	import toast from 'svelte-5-french-toast';
-	import { openUrl } from '@tauri-apps/plugin-opener';
 	import type { UpdateInfo } from '$lib/services/VersionService.svelte';
+	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 
 	let { update, resolve }: { update: UpdateInfo; resolve: () => void } = $props();
@@ -44,14 +44,24 @@
 		}
 	}
 
-	async function openUpdateUrl() {
-		try {
-			await openUrl('https://github.com/zonetecde/QuranCaption/releases/latest');
-		} catch (error) {
-			console.error('Failed to open URL:', error);
-			toast.error('Failed to open release page');
-		}
+	async function startUpdate() {
+		await VersionService.downloadAndInstall();
 	}
+
+	function dismissModal() {
+		globalState.settings!.persistentUiState.lastClosedUpdateModal = new Date().toISOString();
+		resolve();
+	}
+
+	// Reactive derivations from VersionService state
+	let updateState = $derived(VersionService.updateState);
+	let downloadProgress = $derived(VersionService.downloadProgress);
+	let downloadedBytes = $derived(VersionService.downloadedBytes);
+	let totalBytes = $derived(VersionService.totalBytes);
+	let updateError = $derived(VersionService.updateError);
+	let isUpdating = $derived(
+		updateState === 'downloading' || updateState === 'installing' || updateState === 'done'
+	);
 </script>
 
 <div
@@ -65,71 +75,184 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-4">
 				<div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center shadow-lg">
-					<span class="material-icons text-accent-primary text-xl">system_update</span>
+					{#if updateState === 'done'}
+						<span class="material-icons text-green-400 text-xl">check_circle</span>
+					{:else if updateState === 'error'}
+						<span class="material-icons text-red-400 text-xl">error</span>
+					{:else if isUpdating}
+						<span class="material-icons text-accent-primary text-xl animate-spin">sync</span>
+					{:else}
+						<span class="material-icons text-accent-primary text-xl">system_update</span>
+					{/if}
 				</div>
 				<div>
-					<h2 class="text-2xl font-bold text-white">Update Available!</h2>
-					<p class="text-sm text-white/80">Version {update!.latestVersion || 'Unknown'} is ready</p>
+					<h2 class="text-2xl font-bold text-white">
+						{#if updateState === 'done'}
+							Update Complete!
+						{:else if updateState === 'installing'}
+							Installing...
+						{:else if updateState === 'downloading'}
+							Downloading Update...
+						{:else if updateState === 'error'}
+							Update Failed
+						{:else}
+							Update Available!
+						{/if}
+					</h2>
+					<p class="text-sm text-white/80">
+						{#if updateState === 'done'}
+							Restarting app...
+						{:else if updateState === 'downloading'}
+							{VersionService.formatBytes(downloadedBytes)} / {totalBytes > 0
+								? VersionService.formatBytes(totalBytes)
+								: '...'}
+						{:else if updateState === 'installing'}
+							Applying update...
+						{:else if updateState === 'error'}
+							{updateError || 'An error occurred'}
+						{:else}
+							Version {update!.latestVersion || 'Unknown'} is ready
+						{/if}
+					</p>
 				</div>
 			</div>
 
-			<!-- Close button -->
-			<button
-				class="w-10 h-10 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-white/80 hover:text-white group cursor-pointer"
-				onclick={() => {
-					globalState.settings!.persistentUiState.lastClosedUpdateModal = new Date().toISOString();
-					resolve();
-				}}
-			>
-				<span
-					class="material-icons text-lg group-hover:rotate-90 transition-transform duration-200"
+			<!-- Close button (hidden during update) -->
+			{#if !isUpdating}
+				<button
+					class="w-10 h-10 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-white/80 hover:text-white group cursor-pointer"
+					onclick={dismissModal}
 				>
-					close
-				</span>
-			</button>
+					<span
+						class="material-icons text-lg group-hover:rotate-90 transition-transform duration-200"
+					>
+						close
+					</span>
+				</button>
+			{/if}
 		</div>
+
+		<!-- Progress bar (shown during download/install) -->
+		{#if isUpdating}
+			<div class="mt-4">
+				<div class="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
+					<div
+						class="h-full rounded-full transition-all duration-300 ease-out"
+						class:bg-white={updateState === 'downloading'}
+						class:bg-green-400={updateState === 'done' || updateState === 'installing'}
+						style="width: {downloadProgress}%"
+					></div>
+				</div>
+				<div class="flex justify-between mt-1.5">
+					<span class="text-xs text-white/60">
+						{#if updateState === 'done'}
+							Complete
+						{:else if updateState === 'installing'}
+							Installing...
+						{:else}
+							Downloading...
+						{/if}
+					</span>
+					<span class="text-xs text-white/60 font-medium">
+						{downloadProgress}%
+					</span>
+				</div>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Content -->
 	<div class="flex-1 flex flex-col p-6 min-h-0">
-		<!-- Update info -->
-		<div class="mb-4">
-			<div class="flex items-center gap-2 mb-2">
-				<span class="material-icons text-accent-primary text-base">new_releases</span>
-				<h3 class="text-lg font-semibold text-primary">What's New</h3>
+		{#if updateState === 'error'}
+			<!-- Error state -->
+			<div class="flex-1 flex flex-col items-center justify-center text-center gap-4">
+				<div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center">
+					<span class="material-icons text-red-400 text-3xl">warning</span>
+				</div>
+				<div>
+					<h3 class="text-lg font-semibold text-primary mb-2">Update Failed</h3>
+					<p class="text-sm text-secondary max-w-sm">
+						{updateError || 'Something went wrong while updating. Please try again or download the update manually.'}
+					</p>
+				</div>
 			</div>
-			<div
-				class="w-full h-px bg-gradient-to-r from-transparent via-border-color to-transparent"
-			></div>
-		</div>
+		{:else if updateState === 'done'}
+			<!-- Success state -->
+			<div class="flex-1 flex flex-col items-center justify-center text-center gap-4">
+				<div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center animate-bounce">
+					<span class="material-icons text-green-400 text-3xl">rocket_launch</span>
+				</div>
+				<div>
+					<h3 class="text-lg font-semibold text-primary mb-2">Update Installed!</h3>
+					<p class="text-sm text-secondary">
+						The app will restart automatically in a moment...
+					</p>
+				</div>
+			</div>
+		{:else}
+			<!-- Update info / Changelog -->
+			<div class="mb-4">
+				<div class="flex items-center gap-2 mb-2">
+					<span class="material-icons text-accent-primary text-base">new_releases</span>
+					<h3 class="text-lg font-semibold text-primary">What's New</h3>
+				</div>
+				<div
+					class="w-full h-px bg-gradient-to-r from-transparent via-border-color to-transparent"
+				></div>
+			</div>
 
-		<!-- Changelog content - scrollable -->
-		<div class="flex-1 min-h-0">
-			<div
-				class="prose prose-sm prose-invert max-w-none h-full bg-white/5 px-4 rounded-lg overflow-auto text-white border border-color"
-			>
-				{@html sanitized}
+			<!-- Changelog content - scrollable -->
+			<div class="flex-1 min-h-0">
+				<div
+					class="prose prose-sm prose-invert max-w-none h-full bg-white/5 px-4 rounded-lg overflow-auto text-white border border-color"
+				>
+					{@html sanitized}
+				</div>
 			</div>
-		</div>
+		{/if}
 
 		<!-- Action buttons -->
 		<div class="flex justify-end gap-3 mt-6 pt-4 border-t border-color">
-			<button
-				class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105"
-				onclick={() => {
-					globalState.settings!.persistentUiState.lastClosedUpdateModal = new Date().toISOString();
-					resolve();
-				}}
-			>
-				Later
-			</button>
-			<button
-				class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
-				onclick={openUpdateUrl}
-			>
-				<span class="material-icons text-sm">download</span>
-				Update Now
-			</button>
+			{#if updateState === 'error'}
+				<button
+					class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105"
+					onclick={() => {
+						VersionService.resetUpdateState();
+						dismissModal();
+					}}
+				>
+					Close
+				</button>
+				<button
+					class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
+					onclick={() => {
+						VersionService.resetUpdateState();
+						startUpdate();
+					}}
+				>
+					<span class="material-icons text-sm">refresh</span>
+					Retry
+				</button>
+			{:else if isUpdating}
+				<div class="flex items-center gap-2 text-sm text-secondary">
+					<span class="material-icons text-base animate-spin">hourglass_empty</span>
+					Please don't close the app...
+				</div>
+			{:else}
+				<button
+					class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105"
+					onclick={dismissModal}
+				>
+					Later
+				</button>
+				<button
+					class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
+					onclick={startUpdate}
+				>
+					<span class="material-icons text-sm">download</span>
+					Update Now
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -192,6 +315,33 @@
 
 	:global(.prose a:hover) {
 		color: #79c0ff !important;
+	}
+
+	/* Spin animation for sync icon */
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+	.animate-spin {
+		animation: spin 1s linear infinite;
+	}
+
+	/* Bounce animation for success icon */
+	@keyframes bounce {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
+	}
+	.animate-bounce {
+		animation: bounce 1s ease-in-out infinite;
 	}
 
 	/* Icon rotation on close button hover */

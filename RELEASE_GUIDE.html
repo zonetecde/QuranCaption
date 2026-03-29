@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quran Caption — Release Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1117;
+            --bg-card: #1a1d27;
+            --bg-card-hover: #22263a;
+            --accent: #6c63ff;
+            --accent-glow: rgba(108,99,255,0.25);
+            --accent-secondary: #00d9ff;
+            --green: #22c55e;
+            --green-bg: rgba(34,197,94,0.1);
+            --yellow: #f59e0b;
+            --yellow-bg: rgba(245,158,11,0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239,68,68,0.1);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59,130,246,0.1);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #2a2e3e;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 0;
+        }
+        /* Header */
+        .hero {
+            background: linear-gradient(135deg, #1a1d27 0%, #0f1117 50%, #1a1025 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 60px 40px 50px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 50%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            margin-bottom: 8px;
+        }
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* One-time setup section */
+        .setup-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 40px;
+        }
+        .setup-section h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .setup-section h2 .material-icons {
+            color: var(--yellow);
+            font-size: 1.5rem;
+        }
+
+        /* Steps */
+        .step {
+            position: relative;
+            padding-left: 70px;
+            margin-bottom: 36px;
+        }
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 27px;
+            top: 48px;
+            bottom: -36px;
+            width: 2px;
+            background: var(--border);
+        }
+        .step:last-child::before { display: none; }
+        .step-number {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            border: 2px solid var(--accent);
+            background: var(--bg-card);
+            color: var(--accent);
+            z-index: 1;
+        }
+        .step h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-top: 12px;
+        }
+        .step p { color: var(--text-muted); margin-bottom: 12px; }
+
+        /* Code blocks */
+        .code-block {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.88rem;
+            overflow-x: auto;
+            margin: 12px 0;
+            position: relative;
+            line-height: 1.6;
+        }
+        .code-block .comment { color: #6a737d; }
+        .code-block .string { color: #a5d6ff; }
+        .code-block .keyword { color: #ff7b72; }
+        .code-block .cmd { color: #58a6ff; }
+        .code-block .file { color: #d2a8ff; }
+
+        /* Alert boxes */
+        .alert {
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            font-size: 0.92rem;
+        }
+        .alert .material-icons { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+        .alert-warning { background: var(--yellow-bg); border: 1px solid rgba(245,158,11,0.3); }
+        .alert-warning .material-icons { color: var(--yellow); }
+        .alert-success { background: var(--green-bg); border: 1px solid rgba(34,197,94,0.3); }
+        .alert-success .material-icons { color: var(--green); }
+        .alert-danger { background: var(--red-bg); border: 1px solid rgba(239,68,68,0.3); }
+        .alert-danger .material-icons { color: var(--red); }
+        .alert-info { background: var(--blue-bg); border: 1px solid rgba(59,130,246,0.3); }
+        .alert-info .material-icons { color: var(--blue); }
+
+        /* File tree */
+        .file-tree {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-family: monospace;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin: 12px 0;
+        }
+        .file-tree .highlight { color: var(--accent-secondary); font-weight: 600; }
+
+        /* Section divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 50px 0;
+        }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px 0 10px 32px;
+            position: relative;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(42,46,62,0.5);
+        }
+        .checklist li:last-child { border-bottom: none; }
+        .checklist li::before {
+            content: '☐';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tag-required { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+        .tag-onetime { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+
+        /* Summary box */
+        .summary-box {
+            background: linear-gradient(135deg, rgba(108,99,255,0.08), rgba(0,217,255,0.08));
+            border: 1px solid rgba(108,99,255,0.2);
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-top: 40px;
+        }
+        .summary-box h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .summary-box h3 .material-icons { color: var(--accent); }
+
+        /* Flow diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .flow-step {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+            min-width: 100px;
+        }
+        .flow-arrow {
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+
+        a { color: var(--accent-secondary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        strong { color: var(--text); }
+        code {
+            background: rgba(108,99,255,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+            color: var(--accent-secondary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>📦 Quran Caption Release Guide</h1>
+    <p>Step-by-step instructions for releasing a new version with auto-update</p>
+</div>
+
+<div class="container">
+
+    <!-- ONE-TIME SETUP -->
+    <div class="setup-section">
+        <h2><span class="material-icons">build</span> One-Time Setup <span class="tag tag-onetime">DO THIS ONCE</span></h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Before your first release with auto-update, you need to set up the signing key as a GitHub Secret. Since this feature was added via a Pull Request, you (the repository owner) should generate your own unique signing key.</p>
+
+        <div class="alert alert-danger">
+            <span class="material-icons">warning</span>
+            <div>
+                <strong>Important:</strong> The private signing key must be added as a GitHub Secret.
+                Without it, the CI build will fail because it cannot sign the update artifacts.
+            </div>
+        </div>
+
+        <h4 style="margin: 20px 0 10px;">Steps for the Repository Owner:</h4>
+        <ol style="padding-left: 20px; color: var(--text-muted);">
+            <li style="margin-bottom: 12px;">
+                Open your terminal in the project root and run:
+                <div class="code-block" style="margin-top: 8px;">npm run tauri signer generate -- -w ~/.tauri/qurancaption.key</div>
+                <em>Press Enter when asked for a password (leave it empty).</em>
+            </li>
+            <li style="margin-bottom: 12px;">
+                This generates two files in <code>~/.tauri/</code> (or your user's <code>.tauri</code> folder):
+                <ul>
+                    <li><code>qurancaption.key</code> (Private key - <strong>KEEP SECRET</strong>)</li>
+                    <li><code>qurancaption.key.pub</code> (Public key - safe to share)</li>
+                </ul>
+            </li>
+            <li style="margin-bottom: 12px;">
+                Open <code>src-tauri/tauri.conf.json</code>. Under <code>plugins.updater.pubkey</code>, replace the existing public key with the contents of your new <code>qurancaption.key.pub</code> file. Commit and push this change.
+            </li>
+            <li style="margin-bottom: 12px;">
+                Go to <a href="https://github.com/zonetecde/QuranCaption/settings/secrets/actions" target="_blank">GitHub → Repository Settings → Secrets → Actions</a>
+            </li>
+            <li style="margin-bottom: 12px;">
+                Click <strong>"New repository secret"</strong>
+            </li>
+            <li style="margin-bottom: 12px;">
+                Set the name to <code>TAURI_SIGNING_PRIVATE_KEY</code> and paste the full content of the <code>qurancaption.key</code> (the private key file) as the value.
+            </li>
+            <li>
+                Click <strong>"Add secret"</strong>. That's it! You only need to do this once.
+            </li>
+        </ol>
+
+        <div class="alert alert-info">
+            <span class="material-icons">info</span>
+            <div>The <strong>public key</strong> is embedded in <code>tauri.conf.json</code> and ships with every app build. The <strong>private key</strong> lives only in GitHub Secrets to sign updates.</div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- RELEASE STEPS -->
+    <h2 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 32px;">🚀 How to Release an Update</h2>
+
+    <!-- Step 1 -->
+    <div class="step">
+        <div class="step-number">1</div>
+        <h3>Bump the Version Number</h3>
+        <p>Update the version in <strong>three files</strong>. All three must match exactly.</p>
+
+        <div class="file-tree">
+            📂 QuranCaption/<br>
+            ├── <span class="highlight">package.json</span> → <code>"version": "3.4.0"</code><br>
+            ├── 📂 src-tauri/<br>
+            │   ├── <span class="highlight">tauri.conf.json</span> → <code>"version": "3.4.0"</code><br>
+            │   └── <span class="highlight">Cargo.toml</span> → <code>version = "3.4.0"</code>
+        </div>
+
+        <div class="alert alert-warning">
+            <span class="material-icons">warning</span>
+            <div>The version must follow <a href="https://semver.org" target="_blank">SemVer</a> format: <code>MAJOR.MINOR.PATCH</code> (e.g., <code>3.4.0</code>). <strong>No "v" prefix</strong> in the config files.</div>
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+        <div class="step-number">2</div>
+        <h3>Commit & Push to <code>main</code></h3>
+        <p>Commit your version bump and all code changes, then push to the <code>main</code> branch.</p>
+
+        <div class="code-block">
+            <span class="cmd">git</span> add -A<br>
+            <span class="cmd">git</span> commit -m <span class="string">"release: v3.4.0"</span><br>
+            <span class="cmd">git</span> push origin main
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+        <div class="step-number">3</div>
+        <h3>Trigger the Build Workflow</h3>
+        <p>Go to GitHub Actions and manually trigger the build:</p>
+
+        <ol style="padding-left: 20px; color: var(--text-muted);">
+            <li style="margin-bottom: 8px;">Navigate to <a href="https://github.com/zonetecde/QuranCaption/actions/workflows/build.yml" target="_blank">Actions → "Build & Release"</a></li>
+            <li style="margin-bottom: 8px;">Click <strong>"Run workflow"</strong> on the right side</li>
+            <li style="margin-bottom: 8px;">Enter the tag: <code>v3.4.0</code> (with the "v" prefix!)</li>
+            <li style="margin-bottom: 8px;">Choose whether to create it as a <strong>draft</strong> (recommended: yes)</li>
+            <li>Click <strong>"Run workflow"</strong></li>
+        </ol>
+
+        <div class="alert alert-info">
+            <span class="material-icons">info</span>
+            <div>The workflow builds for <strong>Windows</strong>, <strong>macOS Intel</strong>, <strong>macOS ARM</strong>, and <strong>Linux</strong> simultaneously. It typically takes <strong>20–45 minutes</strong>.</div>
+        </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+        <div class="step-number">4</div>
+        <h3>Wait for CI to Complete</h3>
+        <p>Monitor the workflow run. Once all 4 platform builds succeed, a GitHub Release draft will be created automatically with all the assets, including:</p>
+
+        <div class="file-tree">
+            📦 Release Assets (auto-generated):<br>
+            ├── Quran Caption_3.4.0_x64-setup.exe &nbsp;&nbsp;&nbsp;<span class="highlight">← Windows installer</span><br>
+            ├── Quran Caption_3.4.0_x64-setup.exe.sig<br>
+            ├── Quran Caption_3.4.0_aarch64.dmg &nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">← macOS ARM</span><br>
+            ├── Quran Caption_3.4.0_x64.dmg &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">← macOS Intel</span><br>
+            ├── Quran Caption_3.4.0_amd64.AppImage &nbsp;<span class="highlight">← Linux</span><br>
+            ├── Quran Caption_3.4.0_amd64.AppImage.sig<br>
+            ├── Quran Caption.app.tar.gz<br>
+            ├── Quran Caption.app.tar.gz.sig<br>
+            └── <span class="highlight">latest.json</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">← Auto-update manifest!</span>
+        </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+        <div class="step-number">5</div>
+        <h3>Edit & Publish the Release</h3>
+        <p>If you created the release as a draft:</p>
+        <ol style="padding-left: 20px; color: var(--text-muted);">
+            <li style="margin-bottom: 8px;">Go to <a href="https://github.com/zonetecde/QuranCaption/releases" target="_blank">Releases</a></li>
+            <li style="margin-bottom: 8px;">Find the draft release (it will have a "Draft" badge)</li>
+            <li style="margin-bottom: 8px;">Click <strong>"Edit"</strong> → write a proper changelog</li>
+            <li style="margin-bottom: 8px;">Make sure <strong>"Set as the latest release"</strong> is checked</li>
+            <li>Click <strong>"Publish release"</strong></li>
+        </ol>
+
+        <div class="alert alert-success">
+            <span class="material-icons">check_circle</span>
+            <div><strong>That's it!</strong> Once published as "latest", all existing users will see the update prompt in-app and can update with one click.</div>
+        </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step">
+        <div class="step-number">6</div>
+        <h3>Users Get the Update Automatically ✨</h3>
+        <p>When users open Quran Caption, the app checks for updates by fetching <code>latest.json</code> from the latest GitHub Release. If a newer version is found:</p>
+        <ol style="padding-left: 20px; color: var(--text-muted);">
+            <li style="margin-bottom: 8px;">A beautiful modal appears showing the changelog</li>
+            <li style="margin-bottom: 8px;">User clicks <strong>"Update Now"</strong></li>
+            <li style="margin-bottom: 8px;">The update downloads with a progress bar</li>
+            <li style="margin-bottom: 8px;">It installs automatically</li>
+            <li>The app restarts on the new version 🎉</li>
+        </ol>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- FLOW DIAGRAM -->
+    <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; text-align: center;">How Auto-Update Works</h2>
+
+    <div class="flow">
+        <div class="flow-step">Bump version</div>
+        <span class="flow-arrow material-icons">arrow_forward</span>
+        <div class="flow-step">Push to main</div>
+        <span class="flow-arrow material-icons">arrow_forward</span>
+        <div class="flow-step">Run workflow</div>
+        <span class="flow-arrow material-icons">arrow_forward</span>
+        <div class="flow-step" style="border-color: var(--accent);">CI builds + signs</div>
+        <span class="flow-arrow material-icons">arrow_forward</span>
+        <div class="flow-step">Publish release</div>
+        <span class="flow-arrow material-icons">arrow_forward</span>
+        <div class="flow-step" style="border-color: var(--green); color: var(--green);">Users auto-update!</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- QUICK REFERENCE CHECKLIST -->
+    <div class="summary-box">
+        <h3><span class="material-icons">checklist</span> Quick Release Checklist</h3>
+        <ul class="checklist">
+            <li>Version bumped in <code>package.json</code>, <code>tauri.conf.json</code>, <code>Cargo.toml</code></li>
+            <li>Changes committed and pushed to <code>main</code></li>
+            <li>GitHub Action "Build & Release" triggered with tag <code>vX.Y.Z</code></li>
+            <li>All 4 platform builds passed (Windows, macOS Intel, macOS ARM, Linux)</li>
+            <li>Release draft edited with changelog</li>
+            <li>"Set as the latest release" is checked</li>
+            <li>Release published!</li>
+        </ul>
+    </div>
+
+    <!-- TROUBLESHOOTING -->
+    <div class="divider"></div>
+    <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 20px;">🔧 Troubleshooting</h2>
+
+    <div class="alert alert-danger">
+        <span class="material-icons">error</span>
+        <div>
+            <strong>Build fails with "TAURI_SIGNING_PRIVATE_KEY not set"</strong><br>
+            You haven't added the signing private key as a GitHub Secret. Follow the "One-Time Setup" section above.
+        </div>
+    </div>
+
+    <div class="alert alert-warning">
+        <span class="material-icons">warning</span>
+        <div>
+            <strong>Users don't see the update</strong><br>
+            Make sure the release is marked as <strong>"latest"</strong> (not draft, not pre-release). The app fetches <code>latest.json</code> from the <code>/releases/latest/download/</code> endpoint which only works for the latest non-draft, non-prerelease release.
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <span class="material-icons">info</span>
+        <div>
+            <strong>Version tag format</strong><br>
+            The tag you enter in the GitHub Action must start with <code>v</code> (e.g., <code>v3.4.0</code>), while the version in the config files should NOT have the <code>v</code> prefix (e.g., <code>3.4.0</code>).
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

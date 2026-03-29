@@ -39,3 +39,7 @@ discord-rich-presence = "0.2"
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 bytes = "1"
 futures-util = "0.3"
+tauri-plugin-process = "2"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2"

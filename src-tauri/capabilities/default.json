@@ -61,6 +61,8 @@
 		"core:window:allow-set-fullscreen",
 		"core:window:allow-set-skip-taskbar",
 		"core:window:allow-set-always-on-top",
-		"core:window:allow-set-position"
+		"core:window:allow-set-position",
+		"updater:default",
+		"process:allow-restart"
 	]
 }

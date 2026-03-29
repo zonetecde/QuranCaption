@@ -161,7 +161,14 @@ export class SerializableBase {
 		const targetClass = (hasFromJSON<T>(registeredClass) ? registeredClass : this) as
 			RegisteredSerializableClass<T>;
 
-		const instance = Object.create(targetClass.prototype) as T;
+		let instance: T;
+		try {
+			// Important: call the constructor so private fields are initialized.
+			instance = new (targetClass as unknown as { new (): T })();
+		} catch {
+			// Fallback for unusual classes that cannot be constructed without args.
+			instance = Object.create(targetClass.prototype) as T;
+		}
 		const writableInstance = instance as unknown as SerializableDictionary;
 		const childClasses = SerializableBase.__childClasses.get(targetClass.name);
 

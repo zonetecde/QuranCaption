@@ -4,6 +4,8 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import ClickableLink from '$lib/components/home/ClickableLink.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import AdvancedAITrimmingTab from './AdvancedAITrimmingTab.svelte';
+	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -21,6 +23,8 @@
 	type PromptVersePayload = {
 		index: number;
 		verseKey: string;
+		startTime: number;
+		endTime: number;
 		segments: PromptSegment[];
 		translation: string;
 	};
@@ -42,17 +46,50 @@
 
 	let aiPrompt: string = $state('');
 	let aiResponse: string = $state('');
+	let activeTab: 'legacy' | 'advanced' = $state(
+		globalState.settings?.aiTranslationSettings?.activeModalTab ?? 'legacy'
+	);
 
 	// Variables pour le slider de sélection de plage
 	let totalVerses: number = $state(0);
-	let startIndex: number = $state(0);
-	let endIndex: number = $state(0);
+	let selectedStartTimeMs: number = $state(0);
+	let selectedEndTimeMs: number = $state(0);
 	let fullVerseArray: PromptVersePayload[] = $state([]);
 
 	function persistAiTranslationSettings(): void {
 		if (!globalState.settings) return;
 		void Settings.save();
 		void updatePromptWithRange();
+	}
+
+	function setActiveTab(nextTab: 'legacy' | 'advanced'): void {
+		activeTab = nextTab;
+		if (!globalState.settings) return;
+		globalState.settings.aiTranslationSettings.activeModalTab = nextTab;
+		void Settings.save();
+	}
+
+	function getSelectionMaxDurationMs(): number {
+		return (
+			globalState.getAudioTrack?.getDuration().ms ||
+			globalState.getSubtitleTrack?.getDuration().ms ||
+			Math.max(...fullVerseArray.map((verse) => verse.endTime), 0)
+		);
+	}
+
+	function rangesOverlap(
+		leftStart: number,
+		leftEnd: number,
+		rightStart: number,
+		rightEnd: number
+	): boolean {
+		return leftStart <= rightEnd && rightStart <= leftEnd;
+	}
+
+	function getSelectedPromptVerses(): PromptVersePayload[] {
+		return fullVerseArray.filter((verse) =>
+			rangesOverlap(verse.startTime, verse.endTime, selectedStartTimeMs, selectedEndTimeMs)
+		);
 	}
 
 	// Accepte soit l'ancien format array (fallback), soit le format objet indexé attendu.
@@ -131,7 +168,7 @@
 			let skippedLockedSegmentsCount = 0;
 
 			// Utilise le tableau filtré pour le mapping
-			const filteredArray = fullVerseArray.slice(startIndex, endIndex + 1);
+			const filteredArray = getSelectedPromptVerses();
 			const indexToSubtitleMapping: Record<number, VerseRuntimeMapping> = {};
 
 			// Reconstruit le mapping pour les versets sélectionnés
@@ -385,9 +422,9 @@
 
 			if (successfulVerses > 0) {
 				AnalyticsService.trackAIUsage('translation', {
-					range: `indices ${startIndex}-${endIndex}`,
-					start_index: startIndex,
-					end_index: endIndex,
+					range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
+					start_time_ms: selectedStartTimeMs,
+					end_time_ms: selectedEndTimeMs,
 					total_verses: totalVerses,
 					processed_verses: processedVerses,
 					successful_verses: successfulVerses,
@@ -492,6 +529,8 @@
 				array.push({
 					index: verseFirstIndex[verseKey],
 					verseKey,
+					startTime: Math.min(...verse.map((subtitle) => subtitle.startTime)),
+					endTime: Math.max(...verse.map((subtitle) => subtitle.endTime)),
 					segments,
 					translation: translationString
 				});
@@ -501,16 +540,16 @@
 		// Stocke le tableau complet et initialise les valeurs du slider
 		fullVerseArray = array;
 		totalVerses = array.length;
-		startIndex = 0;
-		endIndex = Math.max(0, totalVerses - 1);
+		selectedStartTimeMs = 0;
+		selectedEndTimeMs = getSelectionMaxDurationMs();
 
 		// Génère le prompt initial avec tous les versets
 		await updatePromptWithRange();
 	}
 
 	async function updatePromptWithRange() {
-		// Filtre le tableau selon la plage sélectionnée
-		const filteredArray = fullVerseArray.slice(startIndex, endIndex + 1);
+		// Filtre le tableau selon la plage temporelle sélectionnée
+		const filteredArray = getSelectedPromptVerses();
 
 		const json = JSON.stringify(filteredArray);
 		if (globalState.settings?.aiTranslationSettings?.omitPromptPrefix) {
@@ -525,7 +564,7 @@
 </script>
 
 <div
-	class="bg-secondary border-color border rounded-2xl w-[900px] h-[700px] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	class="bg-secondary border-color border rounded-2xl h-[92vh] xl:h-[80vh] w-[clamp(1200px,96vw,1700px)] max-w-[90vw] xl:max-w-[66vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
 	transition:slide
 >
 	<!-- Header with gradient background -->
@@ -552,88 +591,111 @@
 			</button>
 		</div>
 	</div>
-	<!-- Instructions section - Collapsible -->
-	<div class="px-6 py-3 border-b border-color bg-primary">
-		<button
-			class="w-full bg-accent border border-color rounded-lg p-3 transition-all duration-200 hover:bg-[rgba(88,166,255,0.1)]"
-			onclick={() =>
-				(globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions =
-					!globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions)}
-		>
-			<div class="flex items-center justify-between">
-				<div class="flex items-center gap-3">
-					<div
-						class="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0"
-					>
-						<span class="material-icons text-white text-sm">info</span>
-					</div>
-					<div class="text-left">
-						<h3 class="text-sm font-semibold text-primary">How to use AI Translation</h3>
-						<p class="text-xs text-thirdly">
-							Click to {globalState.currentProject!.projectEditorState.translationsEditor
-								.showAIInstructions
-								? 'hide'
-								: 'show'} detailed instructions
-						</p>
-					</div>
-				</div>
-				<span
-					class="material-icons text-secondary transition-transform duration-200 {globalState
-						.currentProject!.projectEditorState.translationsEditor.showAIInstructions
-						? 'rotate-180'
-						: ''}"
-				>
-					expand_more
-				</span>
-			</div>
-		</button>
-
-		{#if globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions}
-			<div
-				class="mt-3 p-4 bg-secondary border border-color rounded-lg"
-				transition:slide={{ duration: 200 }}
+	<div class="border-b border-color bg-primary px-6 py-3">
+		<div class="flex gap-2">
+			<button
+				class="tab-button {activeTab === 'legacy' ? 'tab-button-active' : ''}"
+				onclick={() => setActiveTab('legacy')}
 			>
-				<div class="space-y-2 text-sm text-secondary">
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>1</span
+				<span class="material-icons text-base">rule</span>
+				Legacy AI Mapping
+			</button>
+			<button
+				class="tab-button {activeTab === 'advanced' ? 'tab-button-active' : ''}"
+				onclick={() => setActiveTab('advanced')}
+			>
+				<span class="material-icons text-base">auto_awesome</span>
+				Advanced AI Trimming
+			</button>
+		</div>
+	</div>
+	<!-- Instructions section - Legacy only -->
+	{#if activeTab === 'legacy'}
+		<div class="px-6 py-3 border-b border-color bg-primary">
+			<button
+				class="w-full bg-accent border border-color rounded-lg p-3 transition-all duration-200 hover:bg-[rgba(88,166,255,0.1)]"
+				onclick={() =>
+					(globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions =
+						!globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions)}
+			>
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<div
+							class="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0"
 						>
-						<p>
-							Copy the generated prompt below and paste it in <span class="text-accent font-medium"
-								><ClickableLink url="https://grok.com/" label="Grok" /></span
-							> (Recommended)
-						</p>
+							<span class="material-icons text-white text-sm">info</span>
+						</div>
+						<div class="text-left">
+							<h3 class="text-sm font-semibold text-primary">How to use Legacy AI Mapping</h3>
+							<p class="text-xs text-thirdly">
+								Click to {globalState.currentProject!.projectEditorState.translationsEditor
+									.showAIInstructions
+									? 'hide'
+									: 'show'} detailed instructions
+							</p>
+						</div>
 					</div>
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>2</span
-						>
-						<p>Wait for the AI to generate the JSON response</p>
-					</div>
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>3</span
-						>
-						<p>Copy the JSON response and paste it in the response field below</p>
-					</div>
-					<div class="flex items-start gap-2">
-						<span
-							class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-							>4</span
-						>
-						<p>Click "Apply Translations" to update your subtitles</p>
+					<span
+						class="material-icons text-secondary transition-transform duration-200 {globalState
+							.currentProject!.projectEditorState.translationsEditor.showAIInstructions
+							? 'rotate-180'
+							: ''}"
+					>
+						expand_more
+					</span>
+				</div>
+			</button>
+
+			{#if globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions}
+				<div
+					class="mt-3 p-4 bg-secondary border border-color rounded-lg"
+					transition:slide={{ duration: 200 }}
+				>
+					<div class="space-y-2 text-sm text-secondary">
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>1</span
+							>
+							<p>
+								Copy the generated prompt below and paste it in <span
+									class="text-accent font-medium"
+									><ClickableLink url="https://grok.com/" label="Grok" /></span
+								> (Recommended)
+							</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>2</span
+							>
+							<p>Wait for the AI to generate the JSON response</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>3</span
+							>
+							<p>Copy the JSON response and paste it in the response field below</p>
+						</div>
+						<div class="flex items-start gap-2">
+							<span
+								class="flex-shrink-0 w-5 h-5 bg-accent-primary text-black rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+								>4</span
+							>
+							<p>Click "Apply Translations" to update your subtitles</p>
+						</div>
 					</div>
 				</div>
-			</div>
-		{/if}
-	</div>
+			{/if}
+		</div>
+	{/if}
 	<!-- Content area -->
 	<div class="flex-1 overflow-hidden flex flex-col">
 		<div class="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-			{#if aiPrompt === 'All verses have already been translated for this edition. No AI assistance needed.'}
+			{#if activeTab === 'advanced'}
+				<AdvancedAITrimmingTab {edition} />
+			{:else if aiPrompt === 'All verses have already been translated for this edition. No AI assistance needed.'}
 				<!-- All verses translated message -->
 				<div class="flex flex-col items-center justify-center h-full text-center">
 					<div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
@@ -652,97 +714,19 @@
 
 				<!-- Range Selection Section -->
 				{#if totalVerses > 1}
-					<div class="space-y-3">
-						<div class="flex items-center gap-2">
-							<span class="material-icons text-accent text-lg">tune</span>
-							<h3 class="text-lg font-semibold text-primary">Verse Selection</h3>
-							<span class="bg-accent px-2 py-1 rounded-md text-xs font-semibold">
-								{totalVerses} verses found
-							</span>
-						</div>
-						<div class="bg-accent border border-color rounded-lg p-4">
-							<div class="mb-4">
-								<div class="flex items-center justify-between mb-2">
-									<p class="text-sm font-medium text-secondary">
-										Select verse range to include in prompt: <span class="italic"
-											>(in case prompt is too long)</span
-										>
-									</p>
-									<div class="text-sm text-primary font-mono">
-										Indices {startIndex} to {endIndex} ({endIndex - startIndex + 1} verses)
-									</div>
-								</div>
-
-								<!-- Custom dual-handle slider -->
-								<div class="relative mt-6 mb-6">
-									<!-- Track background -->
-									<div class="w-full h-2 bg-secondary rounded-full relative">
-										<!-- Active track between handles -->
-										<div
-											class="absolute h-2 bg-accent-primary rounded-full"
-											style="left: {(startIndex / Math.max(1, totalVerses - 1)) *
-												100}%; width: {((endIndex - startIndex) / Math.max(1, totalVerses - 1)) *
-												100}%;"
-										></div>
-									</div>
-
-									<!-- Start handle -->
-									<input
-										type="range"
-										min="0"
-										max={totalVerses - 1}
-										bind:value={startIndex}
-										oninput={(e) => {
-											//@ts-ignore
-											const newStart = parseInt(e.target.value);
-											if (newStart > endIndex) {
-												endIndex = newStart;
-											}
-											startIndex = newStart;
-											updatePromptWithRange();
-										}}
-										class="absolute top-0 w-full h-2 appearance-none bg-transparent cursor-pointer range-slider"
-									/>
-
-									<!-- End handle -->
-									<input
-										type="range"
-										min="0"
-										max={totalVerses - 1}
-										bind:value={endIndex}
-										oninput={(e) => {
-											//@ts-ignore
-											const newEnd = parseInt(e.target.value);
-											if (newEnd < startIndex) {
-												startIndex = newEnd;
-											}
-											endIndex = newEnd;
-											updatePromptWithRange();
-										}}
-										class="absolute top-0 w-full h-2 appearance-none bg-transparent cursor-pointer range-slider"
-									/>
-								</div>
-
-								<!-- Verse preview -->
-								<div class="grid grid-cols-2 gap-4 text-xs">
-									<div class="bg-secondary border border-color rounded-lg p-3">
-										<div class="font-medium text-accent-primary mb-1">
-											Start: Index {startIndex}
-										</div>
-										<div class="text-thirdly">
-											Verse: {fullVerseArray[startIndex]?.verseKey || 'N/A'}
-										</div>
-									</div>
-									<div class="bg-secondary border border-color rounded-lg p-3">
-										<div class="font-medium text-accent-primary mb-1">End: Index {endIndex}</div>
-										<div class="text-thirdly">
-											Verse: {fullVerseArray[endIndex]?.verseKey || 'N/A'}
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+					<VerseRangeSelector
+						totalDurationMs={getSelectionMaxDurationMs()}
+						totalItems={totalVerses}
+						selectedItems={getSelectedPromptVerses().length}
+						bind:startTimeMs={selectedStartTimeMs}
+						bind:endTimeMs={selectedEndTimeMs}
+						title="Time Selection"
+						icon="schedule"
+						totalLabel="eligible verses"
+						selectionLabel="Select time range to include in prompt:"
+						selectionHint="(in case prompt is too long)"
+						onRangeChange={updatePromptWithRange}
+					/>
 				{/if}
 
 				<!-- Prompt section -->
@@ -845,7 +829,11 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				<span class="material-icons text-accent-primary">psychology</span>
-				<span>Using AI to optimize translation segmentation</span>
+				<span>
+					{activeTab === 'legacy'
+						? 'Using AI to optimize translation segmentation'
+						: 'Running OpenAI-powered advanced trimming with live feedback'}
+				</span>
 			</div>
 
 			<div class="flex gap-3">
@@ -943,65 +931,26 @@
 		left: 100%;
 	}
 
-	/* Custom dual-handle range slider styles */
-	.range-slider {
-		pointer-events: none;
+	.tab-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		border-radius: 9999px;
+		border: 1px solid var(--border-color);
+		background: var(--bg-secondary);
+		padding: 0.5rem 0.9rem;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--text-secondary);
+		transition:
+			background 0.2s ease,
+			border-color 0.2s ease,
+			color 0.2s ease;
 	}
 
-	.range-slider::-webkit-slider-thumb {
-		appearance: none;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: var(--accent-primary);
-		border: 3px solid var(--bg-primary);
-		cursor: pointer;
-		pointer-events: all;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-		transition: all 0.2s ease;
-		position: relative;
-		z-index: 2;
-	}
-
-	.range-slider::-webkit-slider-thumb:hover {
-		transform: scale(1.1);
-		box-shadow: 0 3px 8px rgba(88, 166, 255, 0.4);
-	}
-
-	.range-slider::-webkit-slider-thumb:active {
-		transform: scale(1.05);
-		box-shadow: 0 1px 4px rgba(88, 166, 255, 0.6);
-	}
-
-	.range-slider::-moz-range-thumb {
-		appearance: none;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: var(--accent-primary);
-		border: 3px solid var(--bg-primary);
-		cursor: pointer;
-		pointer-events: all;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-		transition: all 0.2s ease;
-	}
-
-	.range-slider::-moz-range-thumb:hover {
-		transform: scale(1.1);
-		box-shadow: 0 3px 8px rgba(88, 166, 255, 0.4);
-	}
-
-	.range-slider::-moz-range-track {
-		background: transparent;
-		height: 8px;
-	}
-
-	.range-slider:focus {
-		outline: none;
-	}
-
-	.range-slider:focus::-webkit-slider-thumb {
-		box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
+	.tab-button-active {
+		border-color: var(--accent-primary);
+		background: color-mix(in srgb, var(--accent-primary) 16%, var(--bg-secondary));
+		color: var(--text-primary);
 	}
 </style>
-

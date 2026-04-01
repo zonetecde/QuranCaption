@@ -15,6 +15,7 @@
 		type BlurSegment,
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
+	import QPCFontProvider from '$lib/services/FontProvider';
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -1312,6 +1313,8 @@
 			}
 			await new Promise((resolve) => setTimeout(resolve, 10));
 		} while (subtitlesContainer.style.opacity !== '1');
+
+		await QPCFontProvider.waitForFontsInElement(subtitlesContainer.querySelector('.arabic'));
 	}
 </script>
 

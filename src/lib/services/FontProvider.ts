@@ -1,4 +1,4 @@
-import { globalState } from '$lib/runes/main.svelte';
+﻿import { globalState } from '$lib/runes/main.svelte';
 
 export class QPCFontProvider {
 	static qpc2Glyphs: Record<string, string> | undefined = undefined;
@@ -6,6 +6,7 @@ export class QPCFontProvider {
 	static verseMappingV2: Record<string, string> | undefined = undefined;
 	static verseMappingV1: Record<string, string> | undefined = undefined;
 	static loadedFonts: Set<string> = new Set();
+	static fontLoadPromises: Map<string, Promise<void>> = new Map();
 
 	static async loadQPC2Data() {
 		if (!QPCFontProvider.qpc2Glyphs) {
@@ -32,31 +33,53 @@ export class QPCFontProvider {
 	/**
 	 * Charge dynamiquement une police QCP si elle n'est pas déjà chargée
 	 */
-	static loadFontIfNotLoaded(fontName: string, version: '1' | '2') {
+	static loadFontIfNotLoaded(fontName: string, version: '1' | '2'): Promise<void> {
+		if (typeof document === 'undefined') return Promise.resolve();
 		// Vérifie si la police est déjà chargée
-		if (this.loadedFonts.has(fontName)) {
-			return;
+
+		if (!this.loadedFonts.has(fontName)) {
+			// Crée une nouvelle règle @font-face
+			const style = document.createElement('style');
+
+			// Les polices contenant les basmala/isti3adha sont au format ttf
+			const extension = fontName.includes('BSML') ? 'ttf' : 'woff2';
+			const format = fontName.includes('BSML') ? 'truetype' : 'woff2';
+
+			style.textContent = `
+				@font-face {
+					font-family: '${fontName}';
+					src: url('/QPC${version}/fonts/${fontName}.${extension}') format('${format}');
+					font-weight: normal;
+					font-style: normal;
+				}
+			`;
+			document.head.appendChild(style);
+			// Marque la police comme chargée
+			this.loadedFonts.add(fontName);
 		}
 
-		// Crée une nouvelle règle @font-face
-		const style = document.createElement('style');
+		return this.waitForFontFamily(fontName);
+	}
 
-		// Les polices contenant les basmala/isti3adha sont au format ttf
-		const extension = fontName.includes('BSML') ? 'ttf' : 'woff2';
-		const format = fontName.includes('BSML') ? 'truetype' : 'woff2';
+	static async waitForFontsInElement(element: Element | null | undefined): Promise<void> {
+		if (!element || typeof document === 'undefined' || !('fonts' in document)) return;
 
-		style.textContent = `
-			@font-face {
-				font-family: '${fontName}';
-				src: url('/QPC${version}/fonts/${fontName}.${extension}') format('${format}');
-				font-weight: normal;
-				font-style: normal;
+		const fontFamilies = new Set<string>();
+		const nodes = [element, ...Array.from(element.querySelectorAll('*'))];
+
+		for (const node of nodes) {
+			const familyValue = window.getComputedStyle(node).fontFamily;
+			for (const family of familyValue.split(',')) {
+				const trimmed = family.trim().replace(/^['"]|['"]$/g, '');
+				if (!trimmed || this.isGenericFontFamily(trimmed)) continue;
+				fontFamilies.add(trimmed);
 			}
-		`;
-		document.head.appendChild(style);
+		}
 
-		// Marque la police comme chargée
-		this.loadedFonts.add(fontName);
+		await Promise.all(
+			Array.from(fontFamilies).map((fontFamily) => this.waitForFontFamily(fontFamily))
+		);
+		await this.waitForNextPaint();
 	}
 
 	static getFontNameForVerse(surah: number, verse: number, qpcVersion: '1' | '2'): string {
@@ -129,6 +152,57 @@ export class QPCFontProvider {
 
 	static getSadaqaGlyph(): string {
 		return 'A@ ?';
+	}
+
+	/**
+	 * Attends une police spécifique dans le document.
+	 * @param fontFamily Le nom de la police à attendre.
+	 * @returns Une promesse qui se résout lorsque la police est chargée.
+	 */
+	private static waitForFontFamily(fontFamily: string): Promise<void> {
+		if (typeof document === 'undefined' || !('fonts' in document)) return Promise.resolve();
+		if (this.isGenericFontFamily(fontFamily)) return Promise.resolve();
+
+		const existingPromise = this.fontLoadPromises.get(fontFamily);
+		if (existingPromise) return existingPromise;
+
+		const escapedFontFamily = fontFamily.replace(/(["\\])/g, '\\$1');
+		const fontSpec = `normal 32px "${escapedFontFamily}"`;
+
+		const loadPromise = (async () => {
+			if (document.fonts.check(fontSpec)) return;
+			try {
+				await document.fonts.load(fontSpec);
+			} catch (error) {
+				console.warn(`Could not finish loading font "${fontFamily}" before capture.`, error);
+			}
+		})();
+
+		this.fontLoadPromises.set(fontFamily, loadPromise);
+		return loadPromise;
+	}
+
+	private static isGenericFontFamily(fontFamily: string): boolean {
+		return (
+			fontFamily === 'serif' ||
+			fontFamily === 'sans-serif' ||
+			fontFamily === 'monospace' ||
+			fontFamily === 'cursive' ||
+			fontFamily === 'fantasy' ||
+			fontFamily === 'system-ui' ||
+			fontFamily === 'emoji' ||
+			fontFamily === 'math' ||
+			fontFamily === 'fangsong' ||
+			fontFamily === 'ui-serif' ||
+			fontFamily === 'ui-sans-serif' ||
+			fontFamily === 'ui-monospace' ||
+			fontFamily === 'ui-rounded'
+		);
+	}
+
+	private static async waitForNextPaint(): Promise<void> {
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 	}
 }
 

@@ -337,8 +337,8 @@ fn ffmpeg_preprocess_video(
 
     // Construire le filtre vidéo avec blur optionnel
     let mut vf_parts = vec![
-        format!("scale=w={}:h={}:force_original_aspect_ratio=increase", w, h),
-        format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h),
+        format!("scale=w={}:h={}:force_original_aspect_ratio=decrease", w, h),
+        format!("pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black", w, h),
     ];
 
     // Ajouter le flou si spécifié et > 0
@@ -401,7 +401,7 @@ fn ffmpeg_preprocess_video(
     configure_command_no_window(&mut cmd);
 
     println!(
-        "[preproc] ffmpeg scale+crop (cover) -> {}",
+        "[preproc] ffmpeg scale+pad (contain) -> {}",
         Path::new(dst)
             .file_name()
             .unwrap_or_default()
@@ -567,7 +567,7 @@ fn preprocess_background_videos(
 ) -> Vec<String> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "cover-v3";
+    let preproc_cache_version = "fit-v4";
     fs::create_dir_all(&cache_dir).ok();
 
     // Cas spécial : une seule image
@@ -1093,8 +1093,8 @@ fn build_and_run_ffmpeg_filter_complex(
         };
 
         filter_lines.push(format!(
-            "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})/2:(in_h-{})/2,setsar=1[bgtrim]",
-            prev, w, h, w, h, w, h
+            "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
+            prev, w, h, w, h
         ));
         let mut bg_label = "bgtrim".to_string();
 

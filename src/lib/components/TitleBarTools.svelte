@@ -26,6 +26,28 @@
 		showToolsPopover = false;
 		action();
 	}
+
+	async function removeAllSubtitles() {
+		if (!globalState.currentProject) return;
+
+		const subtitleCount = globalState.getSubtitleTrack.clips.length;
+		if (subtitleCount === 0) {
+			await ModalManager.errorModal('No subtitles', 'There are no subtitles to remove.');
+			return;
+		}
+
+		const confirmed = await ModalManager.confirmModal(
+			`This will permanently remove all ${subtitleCount} subtitles from the current project. Continue?`,
+			true
+		);
+
+		if (!confirmed) return;
+
+		globalState.getSubtitleTrack.clips = [];
+		globalState.getStylesState.clearSelection();
+		globalState.getSubtitlesEditorState.editSubtitle = null;
+		globalState.updateVideoPreviewUI();
+	}
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -71,6 +93,7 @@
 				<span class="material-icons text-lg text-accent">content_cut</span>
 				Asset Trimmer
 			</button>
+
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
 				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
@@ -82,7 +105,19 @@
 				<span class="material-icons text-lg text-accent">graphic_eq</span>
 				Regenerate Waveforms
 			</button>
+			<!-- svelte-ignore node_invalid_placement_ssr -->
+			<button
+				class="w-full text-left px-4 py-2 text-sm text-red-300 transition-colors flex items-center gap-3"
+				onclick={(event) => {
+					event.stopPropagation();
+					runAction(() => {
+						void removeAllSubtitles();
+					});
+				}}
+			>
+				<span class="material-icons text-lg text-red-400">delete_sweep</span>
+				Remove All Subtitles
+			</button>
 		</div>
 	{/if}
 </button>
-

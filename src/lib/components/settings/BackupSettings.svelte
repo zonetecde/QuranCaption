@@ -3,6 +3,7 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import type { ImportedProjectPayload } from '$lib/types/project';
+	import { invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import toast from 'svelte-5-french-toast';
@@ -69,6 +70,20 @@
 			isImporting = false;
 		}
 	}
+
+	async function openProjectsDirectory() {
+		try {
+			const projectsFolder = await ProjectService.getProjectsFolderPath();
+			await invoke('open_directory', { directoryPath: projectsFolder });
+		} catch (error) {
+			console.error('Failed to open projects directory:', error);
+			await ModalManager.errorModal(
+				'Unable to open projects folder',
+				'Quran Caption could not open the projects directory on this system.',
+				JSON.stringify(error, Object.getOwnPropertyNames(error))
+			);
+		}
+	}
 </script>
 
 <div class="space-y-6">
@@ -78,6 +93,11 @@
 			Export all projects into one backup file, or import a full backup later. Existing projects
 			with the same IDs are kept and skipped automatically during import.
 		</p>
+		<div class="pt-1">
+			<button class="btn px-4 py-2 text-sm" onclick={() => void openProjectsDirectory()}>
+				Open projects folder
+			</button>
+		</div>
 	</div>
 
 	<div class="grid gap-4 xl:grid-rows-2">

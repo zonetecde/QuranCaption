@@ -78,6 +78,10 @@ export class ProjectService {
 		return folderPath;
 	}
 
+	static async getProjectsFolderPath(): Promise<string> {
+		return this.ensureFolder(this.projectsFolder);
+	}
+
 	/**
 	 * Sauvegarde un projet sur l'ordinateur
 	 * @param project Le projet à sauver

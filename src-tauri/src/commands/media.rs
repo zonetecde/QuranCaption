@@ -162,6 +162,68 @@ pub fn open_explorer_with_file_selected(file_path: String) -> Result<(), String>
     }
 }
 
+/// Ouvre un dossier dans le gestionnaire de fichiers natif.
+#[tauri::command]
+pub fn open_directory(directory_path: String) -> Result<(), String> {
+    let path = path_utils::normalize_existing_path(&directory_path);
+    let path_str = path.to_string_lossy().to_string();
+    if !path.exists() {
+        return Err(format!("Directory not found: {}", path_str));
+    }
+    if !path.is_dir() {
+        return Err(format!("Path is not a directory: {}", path_str));
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let mut cmd = Command::new("explorer");
+        cmd.arg(&path_str);
+        configure_command_no_window(&mut cmd);
+        return cmd
+            .output()
+            .map(|_| ())
+            .map_err(|e| format!("Failed to execute explorer command: {}", e));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("open").arg(&path_str).output();
+        return match output {
+            Ok(result) if result.status.success() => Ok(()),
+            Ok(_) => Err("Failed to open Finder".to_string()),
+            Err(e) => Err(format!("Failed to execute open command: {}", e)),
+        };
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let file_managers = ["nautilus", "dolphin", "thunar", "pcmanfm", "caja"];
+
+        for manager in &file_managers {
+            if Command::new(manager)
+                .arg(&path)
+                .output()
+                .map(|result| result.status.success())
+                .unwrap_or(false)
+            {
+                return Ok(());
+            }
+        }
+
+        let output = Command::new("xdg-open").arg(&path).output();
+        return match output {
+            Ok(result) if result.status.success() => Ok(()),
+            Ok(_) => Err("Failed to open directory".to_string()),
+            Err(e) => Err(format!("Failed to execute xdg-open command: {}", e)),
+        };
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Err("Unsupported operating system".to_string())
+    }
+}
+
 /// Retourne les dimensions vidéo (width/height) du premier stream vidéo.
 #[tauri::command]
 pub fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {

@@ -12,6 +12,8 @@ import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
+import type { Project } from './Project';
+import { ProjectService } from '$lib/services/ProjectService';
 
 export default class Exporter {
 	private static queueIntervalId: number | null = null;
@@ -205,8 +207,8 @@ export default class Exporter {
 		const fileName = `qurancaption_subtitles_${projectName}.${settings.format.toLowerCase()}`;
 		await ExportFileService.saveTextFile(fileName, fileContent, 'Subtitles');
 	}
-	static async exportProjectData() {
-		const projectData = globalState.currentProject;
+	static async exportProjectData(project?: Project | null) {
+		const projectData = project || globalState.currentProject;
 
 		if (!projectData) {
 			console.error('No project data available for export.');
@@ -217,6 +219,25 @@ export default class Exporter {
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_project_${projectName}.json`;
 		await ExportFileService.saveTextFile(fileName, json, 'Project data');
+	}
+	static async backupAllProjects() {
+		const projectsDetails = globalState.userProjectsDetails;
+		if (!projectsDetails || projectsDetails.length === 0) {
+			console.error('No projects available for backup.');
+			return;
+		}
+
+		const projects: Project[] = [];
+		for (const project of projectsDetails) {
+			const json = await ProjectService.load(project.id);
+			projects.push(json);
+		}
+
+		await ExportFileService.saveTextFile(
+			`qurancaption_backup_${Date.now()}.json`,
+			JSON.stringify(projects),
+			'Project backup'
+		);
 	}
 	static async exportYtbChapters() {
 		const choice = globalState.getExportState.ytbChaptersChoice;

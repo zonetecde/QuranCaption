@@ -11,6 +11,7 @@
 	import MigrationService from '$lib/services/MigrationService';
 	import { discordService } from '$lib/services/DiscordService';
 	import { onDestroy } from 'svelte';
+	import Exporter from '$lib/classes/Exporter';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -33,6 +34,11 @@
 		} else {
 			currentMenu.set(null);
 		}
+	}
+
+	async function exportProjectButtonClick(e: MouseEvent) {
+		if (e.button !== 0) return; // Only handle left click
+		await Exporter.exportProjectData(await ProjectService.load(projectDetail.id));
 	}
 
 	onDestroy(() => {
@@ -232,6 +238,11 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
+	<Item on:click={exportProjectButtonClick}
+		><div class="btn-icon">
+			<span class="material-icons-outlined text-sm mr-1">file_download</span>Export project
+		</div></Item
+	>
 	<Item on:click={deleteProjectButtonClick}
 		><div class="btn-icon danger-color">
 			<span class="material-icons-outlined text-sm mr-1">delete</span>Delete project

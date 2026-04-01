@@ -77,7 +77,7 @@
 
 	<!-- Export Button -->
 	<div class="flex flex-col items-center">
-		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportProjectData}>
+		<button class="btn-accent px-6 py-3 font-medium" onclick={() => Exporter.exportProjectData()}>
 			Export Project Data
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">

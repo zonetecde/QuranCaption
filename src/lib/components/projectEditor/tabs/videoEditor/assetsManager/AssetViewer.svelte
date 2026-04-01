@@ -101,10 +101,10 @@
 			);
 
 			if (asset.sourceType === SourceType.YouTube) {
-				// Re-download from YouTube using yt-dlp
+				// Re-download from an online source using yt-dlp
 				const type = asset.type === AssetType.Video ? 'video' : 'audio';
 
-				toastId = toast.loading('Re-downloading from YouTube...');
+				toastId = toast.loading('Re-downloading from source...');
 
 				const result: string = await invoke('download_from_youtube', {
 					url: asset.sourceUrl,

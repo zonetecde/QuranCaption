@@ -10,10 +10,10 @@
 	let url: string = $state('');
 	let type: string = $state('audio'); // Default to audio
 
-	async function downloadAssetFromYouTube() {
+	async function downloadAssetFromUrl() {
 		try {
 			if (!url.trim()) {
-				toast.error('Please enter a valid YouTube video URL.');
+				toast.error('Please enter a valid public media URL.');
 				return;
 			}
 
@@ -28,7 +28,7 @@
 					downloadPath: downloadPath
 				}),
 				{
-					loading: 'Downloading from YouTube...',
+					loading: 'Downloading media from link...',
 					success: 'Download successful!',
 					error: 'Download failed!'
 				}
@@ -40,12 +40,12 @@
 			// Telemetry
 			AnalyticsService.downloadFromYouTube(url, type);
 		} catch (error) {
-			toast.error('Error downloading from YouTube: ' + error);
+			toast.error('Error downloading media from link: ' + error);
 		}
 	}
 </script>
 
-<Section icon="cloud_download" name="Download from YouTube">
+<Section icon="cloud_download" name="Download from Social Media">
 	<!-- URL Input with enhanced styling -->
 	<div class="mt-4 space-y-4">
 		<div class="relative">
@@ -55,7 +55,7 @@
 				       placeholder-[var(--text-placeholder)] focus:outline-none focus:ring-2
 				       focus:ring-[var(--accent-primary)] focus:border-transparent transition-all duration-200
 				       hover:border-[var(--accent-primary)]"
-				placeholder="Enter YouTube video URL"
+				placeholder="Paste a public media URL"
 				bind:value={url}
 			/>
 			<div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -124,18 +124,20 @@
 			       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
 			       shadow-lg hover:shadow-xl"
 			type="button"
-			onclick={downloadAssetFromYouTube}
+			onclick={downloadAssetFromUrl}
 			disabled={!url.trim()}
 		>
 			<span class="material-icons text-lg">download</span>
-			Download from YouTube
+			Download from Link
 		</button>
 
 		<!-- Info hint -->
 		<div class="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
 			<span class="material-icons text-sm text-blue-400 mt-0.5">info</span>
 			<p class="text-xs text-blue-300 leading-relaxed">
-				The downloaded file will be automatically added to your project assets.
+				Supported public links include YouTube, full surah or mushaf uploads on SoundCloud, Internet
+				Archive collections, public Google Drive links, and short recitation clips from Facebook,
+				Instagram, TikTok, or X/Twitter.
 			</p>
 		</div>
 	</div>

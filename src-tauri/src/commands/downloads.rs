@@ -1,10 +1,105 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
+
+fn find_latest_downloaded_file(
+    download_path: &Path,
+    extension: &str,
+) -> Result<PathBuf, String> {
+    let mut latest_path: Option<PathBuf> = None;
+    let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
+
+    let entries = fs::read_dir(download_path).map_err(|e| format!("Error reading directory: {}", e))?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        let has_extension = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.eq_ignore_ascii_case(extension))
+            .unwrap_or(false);
+        if !has_extension {
+            continue;
+        }
+
+        let modified = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+        if latest_path.is_none() || modified >= latest_modified {
+            latest_modified = modified;
+            latest_path = Some(path);
+        }
+    }
+
+    latest_path.ok_or_else(|| "Downloaded file not found".to_string())
+}
+
+fn transcode_to_web_compatible_mp4(file_path: &Path, ffmpeg_path: &str) -> Result<(), String> {
+    let file_stem = file_path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("video");
+    let temp_path = file_path.with_file_name(format!("{}_webview.mp4", file_stem));
+
+    let file_path_str = file_path.to_string_lossy().to_string();
+    let temp_path_str = temp_path.to_string_lossy().to_string();
+
+    let mut cmd = Command::new(ffmpeg_path);
+    cmd.args([
+        "-y",
+        "-i",
+        &file_path_str,
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a?",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "20",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        &temp_path_str,
+    ]);
+    configure_command_no_window(&mut cmd);
+
+    match cmd.output() {
+        Ok(result) if result.status.success() => {
+            fs::remove_file(file_path)
+                .map_err(|e| format!("Failed to remove original downloaded video: {}", e))?;
+            fs::rename(&temp_path, file_path)
+                .map_err(|e| format!("Failed to replace downloaded video: {}", e))?;
+            Ok(())
+        }
+        Ok(result) => {
+            let _ = fs::remove_file(&temp_path);
+            Err(format!(
+                "ffmpeg compatibility transcode failed: {}",
+                String::from_utf8_lossy(&result.stderr)
+            ))
+        }
+        Err(e) => {
+            let _ = fs::remove_file(&temp_path);
+            Err(format!("Unable to execute ffmpeg for compatibility transcode: {}", e))
+        }
+    }
+}
 
 /// Télécharge un média YouTube (audio MP3 ou vidéo MP4) via yt-dlp.
 #[tauri::command]
@@ -29,7 +124,12 @@ pub async fn download_from_youtube(
         .map(|p| p.to_string_lossy().to_string());
 
     // Construction des arguments selon le type de téléchargement demandé.
-    let mut args: Vec<&str> = vec!["--force-ipv4"];
+    let mut args: Vec<&str> = vec![
+        "--force-ipv4",
+        "--restrict-filenames",
+        "--trim-filenames",
+        "120",
+    ];
     let ffmpeg_dir_str;
     if let Some(dir) = ffmpeg_dir {
         ffmpeg_dir_str = dir;
@@ -52,7 +152,7 @@ pub async fn download_from_youtube(
         ]),
         "video" => args.extend_from_slice(&[
             "--format",
-            "best[height<=1080][ext=mp4]/best[ext=mp4]/best",
+            "bv*[height<=1080][ext=mp4][vcodec~='^(avc1|h264)']+ba[ext=m4a]/b[height<=1080][ext=mp4][vcodec~='^(avc1|h264)']/best[height<=1080][ext=mp4]/best[ext=mp4]/best",
             "--merge-output-format",
             "mp4",
             "--postprocessor-args",
@@ -76,17 +176,14 @@ pub async fn download_from_youtube(
                 println!("yt-dlp output: {}", output_str);
 
                 let extension = if _type == "audio" { "mp3" } else { "mp4" };
-                match fs::read_dir(&download_path_buf) {
-                    Ok(entries) => {
-                        for entry in entries.flatten() {
-                            let path = entry.path();
-                            if path.extension().is_some_and(|ext| ext == extension) {
-                                return Ok(path.to_string_lossy().to_string());
-                            }
+                match find_latest_downloaded_file(&download_path_buf, extension) {
+                    Ok(path) => {
+                        if _type == "video" {
+                            transcode_to_web_compatible_mp4(&path, &ffmpeg_path)?;
                         }
-                        Err("Downloaded file not found".to_string())
+                        Ok(path.to_string_lossy().to_string())
                     }
-                    Err(e) => Err(format!("Error reading directory: {}", e)),
+                    Err(error) => Err(error),
                 }
             } else {
                 let stderr = String::from_utf8_lossy(&result.stderr);

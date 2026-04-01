@@ -39,7 +39,7 @@
 		{/each}
 	</div>
 
-	<p class="text-sm text-thirdly text-left mt-1">
+	<p class="text-sm text-thirdly text-left mt-1 space-x-1">
 		{#each subtitle.wbwTranslation as word, i (`${subtitle.id}-wbw-${i}`)}
 			{@const wordIndex = subtitle.startWordIndex + i}
 			<span
@@ -48,7 +48,7 @@
 					: ''}
 			>
 				{word}
-			</span> 
+			</span>
 		{/each}
 	</p>
 {:else if subtitle instanceof PredefinedSubtitleClip}

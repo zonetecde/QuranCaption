@@ -52,7 +52,8 @@
 			const previousSubtitleTranslation = previousSubtitle.getTranslation(
 				edition
 			) as VerseTranslation;
-			const isTranslationLocked = translation().isStatusComplete();
+			const isTranslationLocked =
+				translation().isStatusComplete() && translation().status !== 'automatically trimmed';
 
 			// Met à jour les indices de début et de fin de la traduction du sous-titre précédent
 			if (

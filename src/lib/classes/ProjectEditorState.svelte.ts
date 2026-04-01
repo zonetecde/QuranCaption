@@ -302,6 +302,7 @@ export class ExportState extends SerializableBase {
 	videoEndTime: number = $state(0);
 	fps: number = $state(30);
 	chunkSize: number = $state(50);
+	performanceProfile: 'fastest' | 'balanced' | 'low_cpu' = $state('fastest');
 	customFileName: string = $state('');
 }
 

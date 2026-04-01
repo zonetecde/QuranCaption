@@ -7,6 +7,32 @@
 	import { VerseRange } from '$lib/classes';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 
+	type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
+
+	const performanceProfiles: {
+		id: PerformanceProfile;
+		label: string;
+		description: string;
+	}[] = [
+		{
+			id: 'fastest',
+			label: 'Fastest',
+			description: 'Prioritizes export speed and may use more CPU.'
+		},
+		{
+			id: 'balanced',
+			label: 'Balanced',
+			description: 'Keeps the current default behavior.'
+		},
+		{
+			id: 'low_cpu',
+			label: 'Low CPU',
+			description: 'Reduces CPU usage at the cost of slower exports.'
+		}
+	];
+
+	let showAdvancedSettings = $state(false);
+
 	// Initialize export state values if not set
 	$effect(() => {
 		if (!globalState.getExportState.videoStartTime) {
@@ -173,5 +199,64 @@
 		<p class="text-thirdly text-xs mt-2 text-center">
 			Start the video export process with your selected time range
 		</p>
+	</div>
+
+	<div class="mt-5">
+		<button
+			type="button"
+			class="w-full flex items-center justify-between rounded-lg border border-color bg-accent px-4 py-3 text-left transition-colors hover:bg-primary/60"
+			onclick={() => {
+				showAdvancedSettings = !showAdvancedSettings;
+			}}
+			aria-expanded={showAdvancedSettings}
+		>
+			<div>
+				<p class="text-sm font-medium text-primary">Advanced Settings</p>
+				<p class="text-xs text-thirdly">
+					Control export performance without exposing raw ffmpeg flags.
+				</p>
+			</div>
+			<span
+				class="material-icons text-secondary transition-transform duration-200"
+				style={`transform: rotate(${showAdvancedSettings ? 180 : 0}deg);`}
+			>
+				expand_more
+			</span>
+		</button>
+
+		{#if showAdvancedSettings}
+			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
+				<div class="mb-4">
+					<h4 class="text-base font-medium text-secondary mb-1">Export Performance</h4>
+					<p class="text-thirdly text-sm">
+						Choose how aggressively the exporter should use your CPU during ffmpeg work.
+					</p>
+				</div>
+
+				<div class="grid grid-cols-1 gap-3">
+					{#each performanceProfiles as profile (profile.id)}
+						<button
+							type="button"
+							class="rounded-xl border p-4 text-left transition-colors"
+							class:border-accent-primary={globalState.getExportState.performanceProfile ===
+								profile.id}
+							class:bg-primary={globalState.getExportState.performanceProfile === profile.id}
+							class:border-color={globalState.getExportState.performanceProfile !== profile.id}
+							onclick={() => {
+								globalState.getExportState.performanceProfile = profile.id;
+							}}
+						>
+							<div class="flex items-center justify-between gap-3">
+								<p class="text-sm font-medium text-primary">{profile.label}</p>
+								{#if globalState.getExportState.performanceProfile === profile.id}
+									<span class="material-icons text-accent-primary text-lg">check_circle</span>
+								{/if}
+							</div>
+							<p class="mt-1 text-xs text-thirdly">{profile.description}</p>
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>

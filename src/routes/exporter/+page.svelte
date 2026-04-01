@@ -651,7 +651,8 @@
 				audios: audios,
 				videos: videos,
 				chunkIndex: chunkIndex,
-				blur: blur
+				blur: blur,
+				performanceProfile: globalState.getExportState.performanceProfile
 			});
 
 			console.log(`[OK] Chunk ${chunkIndex} video generated successfully`);
@@ -668,7 +669,8 @@
 		try {
 			const finalVideoPath = await invoke('concat_videos', {
 				videoPaths: videoFilePaths,
-				outputPath: exportData!.finalFilePath
+				outputPath: exportData!.finalFilePath,
+				performanceProfile: globalState.getExportState.performanceProfile
 			});
 
 			console.log('[OK] Videos concatenated successfully:', finalVideoPath);
@@ -1032,7 +1034,8 @@
 				duration: Math.round(duration),
 				audios: audios,
 				videos: videos,
-				blur: blur
+				blur: blur,
+				performanceProfile: globalState.getExportState.performanceProfile
 			});
 		} catch (e: unknown) {
 			emitProgress({

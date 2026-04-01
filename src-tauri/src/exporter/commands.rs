@@ -261,6 +261,32 @@ fn probe_hw_encoders(ffmpeg_path: Option<&str>) -> Vec<String> {
     found
 }
 
+#[derive(serde::Deserialize, Debug, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportPerformanceProfile {
+    Fastest,
+    Balanced,
+    LowCpu,
+}
+
+fn compute_ffmpeg_thread_cap(profile: ExportPerformanceProfile) -> Option<usize> {
+    let cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+
+    match profile {
+        ExportPerformanceProfile::Fastest => None,
+        ExportPerformanceProfile::Balanced => Some((((cores * 3) + 3) / 4).max(2)),
+        ExportPerformanceProfile::LowCpu => Some(cores.div_ceil(2).max(1)),
+    }
+}
+
+fn append_thread_cap(cmd: &mut Command, profile: ExportPerformanceProfile) {
+    if let Some(thread_cap) = compute_ffmpeg_thread_cap(profile) {
+        cmd.arg("-threads").arg(thread_cap.to_string());
+    }
+}
+
 /// Fonction du module export.
 fn choose_best_codec(prefer_hw: bool) -> (String, Vec<String>, HashMap<String, Option<String>>) {
     let ffmpeg_exe = resolve_ffmpeg_binary();
@@ -325,6 +351,7 @@ fn ffmpeg_preprocess_video(
     duration_ms: Option<i32>,
     blur: Option<f64>,
     loop_video: bool,
+    performance_profile: ExportPerformanceProfile,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let (codec, params, extra) = choose_best_codec(prefer_hw);
     let exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
@@ -378,6 +405,8 @@ fn ffmpeg_preprocess_video(
         let d = format!("{:.3}", (dms as f64) / 1000.0);
         cmd.arg("-t").arg(d);
     }
+
+    append_thread_cap(&mut cmd, performance_profile);
 
     cmd.arg("-an")
         .arg("-vf")
@@ -444,6 +473,7 @@ fn create_video_from_image(
     duration_s: f64,
     prefer_hw: bool,
     blur: Option<f64>,
+    performance_profile: ExportPerformanceProfile,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let dst_path = Path::new(output_path);
@@ -490,6 +520,8 @@ fn create_video_from_image(
         "-t",
         &format!("{:.6}", duration_s),
     ]);
+
+    append_thread_cap(&mut cmd, performance_profile);
 
     // Ajouter le preset si disponible
     if let Some(Some(preset)) = codec_extra.get("preset") {
@@ -564,6 +596,7 @@ fn preprocess_background_videos(
     start_time_ms: i32,
     duration_ms: Option<i32>,
     blur: Option<f64>,
+    performance_profile: ExportPerformanceProfile,
 ) -> Vec<String> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
@@ -616,6 +649,7 @@ fn preprocess_background_videos(
                 duration_s,
                 prefer_hw,
                 blur,
+                performance_profile,
             ) {
                 Ok(_) => {}
                 Err(e) => {
@@ -744,6 +778,7 @@ fn preprocess_background_videos(
                 Some(take_ms as i32),
                 blur,
                 is_loop,
+                performance_profile,
             ) {
                 Ok(_) => {}
                 Err(e) => {
@@ -839,6 +874,7 @@ fn build_and_run_ffmpeg_filter_complex(
     duration_ms: Option<i32>,
     chunk_index: Option<i32>,
     blur: Option<f64>,
+    performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // TEMP TEST: force FFmpeg failure on every export to test error handling UI.
@@ -901,6 +937,7 @@ fn build_and_run_ffmpeg_filter_complex(
             start_time_ms,
             duration_ms,
             blur,
+            performance_profile,
         );
     }
 
@@ -963,6 +1000,9 @@ fn build_and_run_ffmpeg_filter_complex(
         "-i".to_string(),
         concat_name,
     ]);
+    if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
     let mut current_idx = 1;
 
     // Entrées vidéos de fond
@@ -1451,6 +1491,7 @@ pub async fn export_video(
     videos: Option<Vec<VideoInput>>,
     chunk_index: Option<i32>,
     blur: Option<f64>,
+    performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     let t0 = Instant::now();
@@ -1466,6 +1507,11 @@ pub async fn export_video(
     println!(
         "[env] CPU cores: {:?}",
         std::thread::available_parallelism().map(|n| n.get())
+    );
+    println!("[perf] profile={:?}", performance_profile);
+    println!(
+        "[perf] thread_cap={:?}",
+        compute_ffmpeg_thread_cap(performance_profile)
     );
 
     if let Some(ref audios) = audios {
@@ -1629,6 +1675,7 @@ pub async fn export_video(
             duration,
             chunk_index,
             blur,
+            performance_profile,
             app_handle,
         )
     })
@@ -1775,6 +1822,7 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
 pub async fn concat_videos(
     video_paths: Vec<String>,
     output_path: String,
+    performance_profile: ExportPerformanceProfile,
 ) -> Result<String, String> {
     let normalized_video_paths: Vec<String> = video_paths
         .into_iter()
@@ -1864,6 +1912,8 @@ pub async fn concat_videos(
         "-c:v",
         "copy", // Pas de ré-encodage vidéo
     ]);
+
+    append_thread_cap(&mut cmd, performance_profile);
 
     // Ré-encoder l'audio pour lisser les timestamps et éviter les micro-cuts
     if normalized_video_paths.iter().any(|p| video_has_audio(p)) {

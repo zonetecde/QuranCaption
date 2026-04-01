@@ -155,7 +155,7 @@
 
 {#if globalState.uiState.showExportMonitor}
 	<div
-		class="absolute top-12 right-4 w-[650px] max-h-[500px] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl z-50 overflow-hidden"
+		class="absolute top-12 right-4 w-[650px] max-h-[500px] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl z-[999] overflow-hidden"
 		role="dialog"
 		aria-labelledby="export-monitor-title"
 		transition:slide

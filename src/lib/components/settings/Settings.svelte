@@ -4,6 +4,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { slide } from 'svelte/transition';
 import ShortcutsManager from './ShortcutsManager.svelte';
 import About from './About.svelte';
+import BackupSettings from './BackupSettings.svelte';
 import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
 
 import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
@@ -130,7 +131,7 @@ import toast from 'svelte-5-french-toast';
 			</div>
 			<div>
 				<h2 class="text-xl font-semibold text-primary">Settings</h2>
-				<p class="text-sm text-thirdly">Customize your experience and shortcuts</p>
+				<p class="text-sm text-thirdly">Customize your experience, shortcuts, and backups</p>
 			</div>
 		</div>
 
@@ -151,6 +152,7 @@ import toast from 'svelte-5-french-toast';
 				{#each [
 					{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' },
 					{ name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' },
+					{ name: 'Backup', tab: SettingsTab.BACKUP, icon: 'archive' },
 					{ name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' },
 					{ name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' },
 					{ name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }
@@ -232,6 +234,8 @@ import toast from 'svelte-5-french-toast';
 						</div>
 					</div>
 				</div>
+			{:else if globalState.uiState.settingsTab === SettingsTab.BACKUP}
+				<BackupSettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.SUPPORT}
 				<div class="space-y-5">
 					<h3 class="text-lg font-medium text-primary">Support</h3>

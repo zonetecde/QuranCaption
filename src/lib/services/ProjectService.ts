@@ -239,4 +239,62 @@ export class ProjectService {
 		const projectObject = Project.fromJSON(json) as Project;
 		await projectObject.save(); // Enregistre le projet importé sur le disque
 	}
+
+	/**
+	 * Import projects from a backup.
+	 * @param projects The list of projects to import
+	 * @returns An object containing the import results
+	 */
+	static async importProjectsBackup(projects: ImportedProjectPayload[]): Promise<{
+		imported: number;
+		skipped: number;
+		invalid: number;
+	}> {
+		if (!Array.isArray(projects)) {
+			throw new Error('Backup file must contain an array of projects.');
+		}
+
+		const projectsPath = await this.ensureFolder(this.projectsFolder);
+		const existingEntries = await readDir(projectsPath);
+		const existingIds = new Set<number>(
+			existingEntries
+				.filter((entry) => entry.isFile && !!entry.name && entry.name.endsWith('.json'))
+				.map((entry) => Number.parseInt((entry.name as string).replace('.json', ''), 10))
+				.filter((id) => Number.isFinite(id))
+		);
+
+		let imported = 0;
+		let skipped = 0;
+		let invalid = 0;
+		const seenBackupIds = new Set<number>();
+
+		for (const rawProject of projects) {
+			const projectId = rawProject?.detail?.id;
+
+			if (typeof projectId !== 'number' || !Number.isFinite(projectId)) {
+				invalid++;
+				continue;
+			}
+
+			if (existingIds.has(projectId) || seenBackupIds.has(projectId)) {
+				skipped++;
+				continue;
+			}
+
+			try {
+				const projectObject = Project.fromJSON(rawProject) as Project;
+				await this.save(projectObject);
+				existingIds.add(projectId);
+				seenBackupIds.add(projectId);
+				imported++;
+			} catch (error) {
+				console.warn(`Failed to import backup project ${projectId}:`, error);
+				invalid++;
+			}
+		}
+
+		await this.loadUserProjectsDetails();
+
+		return { imported, skipped, invalid };
+	}
 }

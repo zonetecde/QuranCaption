@@ -240,7 +240,7 @@
 							class="rounded-xl border p-4 text-left transition-colors"
 							class:border-accent-primary={globalState.getExportState.performanceProfile ===
 								profile.id}
-							class:bg-primary={globalState.getExportState.performanceProfile === profile.id}
+							class:bg-secondary={globalState.getExportState.performanceProfile === profile.id}
 							class:border-color={globalState.getExportState.performanceProfile !== profile.id}
 							onclick={() => {
 								globalState.getExportState.performanceProfile = profile.id;

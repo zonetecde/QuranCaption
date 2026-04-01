@@ -139,6 +139,14 @@ export class StylesEditorState extends SerializableBase {
 		this.selectedSubtitles = [];
 		this.selectedVideos = [];
 	}
+
+	selectAllSubtitles() {
+		this.selectedVideos = [];
+		this.selectedSubtitles = globalState.getSubtitleTrack.clips.filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+		);
+	}
 }
 
 /**

@@ -1,6 +1,5 @@
 use std::fs;
 use std::time::Duration;
-use tauri::Manager;
 
 use reqwest::header::{ACCEPT, ACCEPT_ENCODING, RANGE, USER_AGENT};
 use tokio::io::AsyncWriteExt;
@@ -217,6 +216,34 @@ pub async fn send_http_get(url: String) -> Result<u16, String> {
         return Err(format!("HTTP error: {}", status));
     }
     Ok(status)
+}
+
+/// Effectue une requête HTTP GET et renvoie le corps de la réponse.
+#[tauri::command]
+pub async fn send_http_text(url: String) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let response = client
+        .get(&url)
+        .header(USER_AGENT, "QuranCaption/3")
+        .header(ACCEPT, "application/json,text/plain,*/*")
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request failed: {}", e))?;
+
+    let status = response.status().as_u16();
+    if !response.status().is_success() {
+        return Err(format!("HTTP error: {}", status));
+    }
+
+    response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read HTTP response body: {}", e))
 }
 
 /// Déplace un fichier avec fallback copy+delete sur erreur cross-device.

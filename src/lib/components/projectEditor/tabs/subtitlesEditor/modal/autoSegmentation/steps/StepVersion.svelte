@@ -1,7 +1,26 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { getSharedWizard } from '../sharedWizard';
+	import {
+		fetchQuranMultiAlignerChangelog,
+		type HuggingFaceChangelogSection
+	} from '$lib/services/HuggingFaceChangelog';
 
 	const wizard = getSharedWizard();
+	let changelogSections = $state<HuggingFaceChangelogSection[]>([]);
+	let isLoadingChangelog = $state(true);
+	let changelogError = $state<string | null>(null);
+
+	onMount(async () => {
+		try {
+			changelogSections = await fetchQuranMultiAlignerChangelog();
+		} catch (error) {
+			console.error('Failed to load Quran Multi-Aligner changelog:', error);
+			changelogError = 'Unable to load the latest changelog right now.';
+		} finally {
+			isLoadingChangelog = false;
+		}
+	});
 </script>
 
 <section class="space-y-4">
@@ -55,4 +74,35 @@
 			</p>
 		</button>
 	</div>
+
+	<section class="rounded-xl border border-color bg-primary p-4">
+		<div class="mb-3 flex items-center gap-2 text-primary">
+			<span class="material-icons">history</span>
+			<h4 class="text-sm font-semibold">Latest changelog</h4>
+		</div>
+
+		{#if isLoadingChangelog}
+			<p class="text-sm text-thirdly">Loading latest Quran Multi-Aligner updates...</p>
+		{:else if changelogError}
+			<p class="text-sm text-thirdly">{changelogError}</p>
+		{:else if changelogSections.length === 0}
+			<p class="text-sm text-thirdly">No recent changelog entries were found.</p>
+		{:else}
+			<div class="space-y-3">
+				{#each changelogSections as section (section.title)}
+					<div class="rounded-lg border border-color bg-accent/60 p-3">
+						<p class="text-sm font-medium text-primary">{section.title}</p>
+						<ul class="mt-2 space-y-2 text-sm text-thirdly">
+							{#each section.items as item}
+								<li class="flex gap-2">
+									<span class="mt-[2px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary"></span>
+									<span>{item}</span>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</section>
 </section>

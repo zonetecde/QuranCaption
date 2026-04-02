@@ -1,70 +1,156 @@
-# Quran Caption — AI-Powered Quranic Video Editor
+<div align="center">
 
-**Quran Caption** is a modern Quranic video editor designed to help you create high-quality
-recitation videos with subtitles, translations, and advanced visual styling — powered by AI.
+<img src="https://qurancaption.com/icon.png" width="100" alt="Quran Caption logo" />
 
-With its refined interface, optimized algorithms, and hundreds of customization options, Quran
-Caption makes it simple and fast to produce unique Quran recitation videos, easily shareable on
-platforms like **YouTube, TikTok, and Instagram**.
+<h1>Quran Caption</h1>
 
-## AI-Powered Features
+<p><strong>Create captioned Quran videos — AI-powered subtitles, 40+ languages, full visual control.</strong></p>
 
-Quran Caption integrates **artificial intelligence** to drastically reduce manual work and speed up
-the entire creation workflow — from subtitles to translations.
+<p>
+  <a href="https://github.com/zonetecde/QuranCaption/releases/latest"><img src="https://img.shields.io/github/v/release/zonetecde/QuranCaption?style=for-the-badge&color=4ade80" alt="Latest release" /></a>
+  <a href="https://github.com/zonetecde/QuranCaption/releases"><img src="https://img.shields.io/github/downloads/zonetecde/QuranCaption/total?style=for-the-badge&color=60a5fa" alt="Total downloads" /></a>
+  <a href="https://github.com/zonetecde/QuranCaption/stargazers"><img src="https://img.shields.io/github/stars/zonetecde/QuranCaption?style=for-the-badge&color=facc15" alt="Stars" /></a>  <a href="https://github.com/zonetecde/QuranCaption/commits/main"><img src="https://img.shields.io/github/last-commit/zonetecde/QuranCaption?style=for-the-badge" alt="Last commit" /></a>
+</p>
 
-### Automatic Audio & Video Segmentation
+<p>
+  <a href="https://qurancaption.com/documentation/download-and-installation">
+    <img src="https://img.shields.io/badge/⬇ Download-Free-brightgreen?style=for-the-badge" alt="Download" />
+  </a>
+  <a href="https://qurancaption.com/documentation">
+    <img src="https://img.shields.io/badge/📘 Documentation-qurancaption.com-blue?style=for-the-badge" alt="Docs" />
+  </a>
+  <a href="https://discord.gg/Hxfqq2QA2J">
+    <img src="https://img.shields.io/badge/💬 Discord-Join-5865F2?style=for-the-badge" alt="Discord" />
+  </a>
+</p>
 
-- **Automatic subtitle generation using AI** from an audio or video recitation.
-- Supports:
-  - Mid-verse cuts
-  - Silence detection
-  - Basmala detection
-  - Istiʿādha detection
+<br/>
 
-### AI-Assisted Translation
+[![Demo Video](https://img.youtube.com/vi/vCRUjzATRDk/maxresdefault.jpg)](https://youtu.be/vCRUjzATRDk)
+<sub>▶ Click to watch the demo</sub>
 
-- **AI-assisted translation trimming** when a verse is cut in the middle.
-- When subtitles are split or partially selected, the **translation is automatically adjusted** to
-  match the exact spoken segment.
-- This ensures translations stay **accurate, aligned, and natural**, even with mid-verse cuts.
-- Manual review is always possible, keeping full control in the editor.
-
-Together, these features mean **no more manual subtitle placement and far less manual translation
-editing** — you focus on review and fine-tuning instead of repetitive work.
-
----
-
-### 🎥 Quick Demonstration
-
-Watch the demo video below to see Quran Caption in action:
-
-[![Quran Caption 3 Demo](https://img.youtube.com/vi/vCRUjzATRDk/maxresdefault.jpg)](https://youtu.be/vCRUjzATRDk)
+</div>
 
 ---
 
-<img width="1920" height="1040" alt="image" src="https://github.com/user-attachments/assets/3875c5c9-2537-414c-a7cc-973e306fb302" />
+## What is Quran Caption?
+
+Quran Caption is a desktop video editor built specifically for Quranic recitations. Upload an audio or video file, let the AI generate perfectly-timed subtitles, pick your translation(s), customize the look, and export — ready for YouTube, TikTok, or Instagram.
+
+No video editing experience required.
 
 ---
 
-<img width="1920" height="1040" alt="image" src="https://github.com/user-attachments/assets/f2ec1ddc-14bc-4b54-8a2d-5e7aea83458f" />
+## Features
+
+### 🤖 AI Subtitle Generation
+Drop in any recitation and Quran Caption automatically segments it verse by verse. The AI handles:
+- Mid-verse cuts
+- Silence detection
+- Basmala & Istiʿādha detection
+
+Both cloud and local processing are supported.
+
+### ✂️ AI Translation Trimmer
+When a verse is split mid-way, the translation is automatically trimmed to match exactly what's being recited. No more manually editing translation segments — the AI takes care of alignment, and you can always review and override.
+
+### 🌍 100+ Translations in 40+ Languages
+A built-in library of translations syncs automatically with subtitles. Supported languages include English, French, Spanish, Dutch, Turkish, and 35+ more. All translations are editable.
+
+### 🎨 Full Visual Customization
+Every visual aspect is adjustable:
+- Font family, weight, size, spacing, alignment
+- Text colors, outline, shadow, background overlays
+- Subtitle placement and margins
+- Creator branding, reciter name (calligraphy), surah name, verse numbers
+- Custom images and video overlays
+
+### 📤 Export-Ready
+Output videos optimized for any platform — YouTube, Instagram Reels, TikTok, and more.
 
 ---
 
-<img width="1920" height="1040" alt="image" src="https://github.com/user-attachments/assets/0119f716-f918-48d6-9b23-38530a65ae51" />
+## Screenshots
+
+<img width="1920" alt="Quran Caption editor" src="https://github.com/user-attachments/assets/3875c5c9-2537-414c-a7cc-973e306fb302" />
+
+<img width="1920" alt="Quran Caption translations panel" src="https://github.com/user-attachments/assets/f2ec1ddc-14bc-4b54-8a2d-5e7aea83458f" />
+
+<img width="1920" alt="Quran Caption customization" src="https://github.com/user-attachments/assets/0119f716-f918-48d6-9b23-38530a65ae51" />
 
 ---
 
-### 📘 Documentation
+## Download
 
-Full documentation is available at:
-[**qurancaption.com/documentation**](http://qurancaption.com/documentation)
+| Platform | Link |
+|----------|------|
+| 🪟 Windows | [Direct download (.exe)](https://github.com/zonetecde/QuranCaption/releases/latest/download/QuranCaption.Windows.exe) |
+| 🍎 macOS (Apple Silicon & Intel) | [Installation guide](https://qurancaption.com/documentation/download-and-installation) |
+| 🐧 Linux (Ubuntu, Debian, Arch) | [Installation guide](https://qurancaption.com/documentation/download-and-installation) |
+
+Free and open source. Always.
 
 ---
 
-### 🧩 Note for Developers
+## Trusted by creators
 
-Detailed development documentation, including setup instructions, architecture overview, and tech
-stack details, can be found in [DEVELOPMENT.md](DEVELOPMENT.md).
+Quran Caption is used by channels from small community pages to dedicated Quran media teams:
 
-For setting up required binaries (ffmpeg, etc.), see
-[`src-tauri/binaries/README.md`](src-tauri/binaries/README.md).
+[@QuranCaption](https://www.youtube.com/@QuranCaption) · [@SimpleQuran-tv](https://www.youtube.com/@SimpleQuran-tv) · [@curlyhairedmuslim](https://www.youtube.com/@curlyhairedmuslim) · [@quran.español](https://www.youtube.com/@quran.español) · [@QuranTheNūr](https://www.youtube.com/@QuranTheNūr) · [@quran_traduit](https://www.youtube.com/@quran_traduit) · [@quranicoasis1](https://www.youtube.com/@quranicoasis1) · [@MasjidDTWS](https://www.youtube.com/@MasjidDTWS) · and hundreds more 🤲
+
+---
+
+## Stats
+
+<div align="center">
+
+| 📥 Downloads | 🌍 Languages | 🎬 Videos Created | ⭐ Rating |
+|:-----------:|:-----------:|:----------------:|:--------:|
+| 7 000+ | 40+ | 10 000+ | 4.8 / 5 |
+
+</div>
+
+---
+
+## Documentation
+
+Full documentation — installation, features, style editor, export settings — at:
+
+**[qurancaption.com/documentation](https://qurancaption.com/documentation)**
+
+---
+
+## For Developers
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the full setup guide, architecture overview, and tech stack details.
+
+After cloning, you'll need to add `ffmpeg`, `ffprobe`, and `yt-dlp` binaries to `src-tauri/binaries/`. Instructions and download links are in [`src-tauri/binaries/README.md`](src-tauri/binaries/README.md).
+
+**Stack:** Svelte · TypeScript · Rust · Tauri · Python · Tailwind CSS
+
+---
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=zonetecde%2Fqurancaption&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=zonetecde/qurancaption&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=zonetecde/qurancaption&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=zonetecde/qurancaption&type=date&legend=top-left" />
+ </picture>
+</a>
+---
+
+## Contributing
+
+Issues and pull requests are welcome. If you've found a bug or have a feature idea, open an issue or jump into the [Discord](https://discord.gg/Hxfqq2QA2J).
+
+---
+
+<div align="center">
+
+Made with ❤️ by [Rayane Staszewski](https://rayanestaszewski.fr)
+
+[Website](https://qurancaption.com) · [Discord](https://discord.gg/Hxfqq2QA2J) · [Ko-fi](https://ko-fi.com/vzero)
+
+</div>

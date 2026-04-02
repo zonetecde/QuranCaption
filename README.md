@@ -132,14 +132,8 @@ After cloning, you'll need to add `ffmpeg`, `ffprobe`, and `yt-dlp` binaries to 
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=zonetecde%2Fqurancaption&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=zonetecde/qurancaption&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=zonetecde/qurancaption&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=zonetecde/qurancaption&type=date&legend=top-left" />
- </picture>
-</a>
----
+[![Star History Chart](https://api.star-history.com/image?repos=zonetecde/QuranCaption&type=date&legend=top-left)](https://www.star-history.com/?repos=zonetecde%2FQuranCaption&type=date&legend=top-left)
+
 
 ## Contributing
 

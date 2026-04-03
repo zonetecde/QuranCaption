@@ -5,10 +5,11 @@
 		type ClipWithTranslation
 	} from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import NoTranslationsToShow from './NoTranslationsToShow.svelte';
 	import Translation from './translation/Translation.svelte';
 	import ArabicText from './ArabicText.svelte';
+	import { createWorkspaceLastRead } from './utils/lastRead.svelte';
 
 	function addTranslationButtonClick() {
 		// Affiche le pop-up pour ajouter une nouvelle traduction
@@ -90,6 +91,33 @@
 		if (!existing) return [...incoming];
 		return [...new Set([...existing, ...incoming])];
 	}
+
+	function translationsEditorState() {
+		return globalState.currentProject!.projectEditorState.translationsEditor;
+	}
+
+	/**
+	 * Récupère l'index du groupe auquel appartient un clip.
+	 * @param clipId L'ID du clip.
+	 */
+	function getGroupIndexForClipId(clipId: number): number {
+		return subtitlesInGroups().findIndex((group) =>
+			group.some((index) => globalState.getSubtitleTrack.clips[index].id === clipId)
+		);
+	}
+
+	/**
+	 * Setup du suivi de la dernière lecture.
+	 */
+	const lastRead = createWorkspaceLastRead({
+		getEditorState: translationsEditorState,
+		getGroupIndexForClipId,
+		getVisibleCount: () => visibleCount,
+		setVisibleCount: (count) => {
+			visibleCount = count;
+		},
+		saveProject: () => globalState.currentProject?.save(false)
+	});
 
 	let allSubtitlesInGroups = $derived(() => {
 		// Prends tout les sous-titres du projet et les groupes par verset (même surah:verse)
@@ -174,6 +202,10 @@
 			}
 		}
 	}
+
+	$effect(() => {
+		lastRead.tryResume();
+	});
 
 	$effect(() => {
 		// Permet de trigger la réactivité en forçant la lecture des status
@@ -306,16 +338,26 @@
 			if (visibleCount === 0 && total > 0) visibleCount = Math.min(PAGE_SIZE, total);
 		});
 	});
+
+	onMount(() => {
+		lastRead.init();
+	});
+
+	onDestroy(() => {
+		lastRead.cleanup();
+	});
 </script>
 
 <section
 	data-tour-id="translations-workspace"
 	class="min-h-0 bg-secondary border border-color rounded-lg shadow-lg h-full overflow-y-auto overflow-x-hidden"
 	id="translations-workspace"
+	bind:this={lastRead.container}
 	onscroll={(e) => {
 		// Sauvegarde la position du scroll
 		const el = e.target as HTMLElement;
 		loadMoreIfNeeded(el);
+		lastRead.scheduleViewportCapture(el);
 	}}
 >
 	{#if globalState.currentProject!.content.projectTranslation.addedTranslationEditions.length === 0}
@@ -361,12 +403,24 @@
 
 							{#each group as clipIndex (globalState.getSubtitleTrack.clips[clipIndex].id)}
 								{@const _clipIndex = clipIndex}
+								{@const clip = globalState.getSubtitleTrack.clips[_clipIndex]}
 								<!-- clipIndex est l'index réel dans clips -->
-								<section class="relative">
+								<section
+									class="relative rounded-xl transition-all duration-500 {lastRead.highlightedClipId ===
+									clip.id
+										? 'bg-[var(--accent-primary)]/8 ring-1 p-3 ring-[var(--accent-primary)]/40 shadow-[0_0_0_1px_rgba(0,0,0,0.02)]'
+										: ''}"
+									data-translation-clip-id={clip.id}
+								>
+									{#if lastRead.highlightedClipId === clip.id}
+										<div
+											class="absolute left-4 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
+										>
+											Last read
+										</div>
+									{/if}
 									<ArabicText
-										subtitle={globalState.getSubtitleTrack.clips[_clipIndex] as
-											| SubtitleClip
-											| PredefinedSubtitleClip}
+										subtitle={clip as SubtitleClip | PredefinedSubtitleClip}
 										overlapEndWordIndex={getArabicOverlapEndWithPrevious(_clipIndex)}
 									/>
 									{#each editionsToShowInEditor() as edition (edition.name)}

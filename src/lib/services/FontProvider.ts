@@ -7,6 +7,7 @@ export class QPCFontProvider {
 	static verseMappingV1: Record<string, string> | undefined = undefined;
 	static loadedFonts: Set<string> = new Set();
 	static fontLoadPromises: Map<string, Promise<void>> = new Map();
+	private static readonly FONT_WAIT_TIMEOUT_MS = 1200;
 
 	static async loadQPC2Data() {
 		if (!QPCFontProvider.qpc2Glyphs) {
@@ -71,10 +72,13 @@ export class QPCFontProvider {
 			const familyValue = window.getComputedStyle(node).fontFamily;
 			for (const family of familyValue.split(',')) {
 				const trimmed = family.trim().replace(/^['"]|['"]$/g, '');
-				if (!trimmed || this.isGenericFontFamily(trimmed)) continue;
+				if (!trimmed || this.isGenericFontFamily(trimmed) || !this.shouldWaitForFontFamily(trimmed))
+					continue;
 				fontFamilies.add(trimmed);
 			}
 		}
+
+		if (fontFamilies.size === 0) return;
 
 		await Promise.all(
 			Array.from(fontFamilies).map((fontFamily) => this.waitForFontFamily(fontFamily))
@@ -172,7 +176,12 @@ export class QPCFontProvider {
 		const loadPromise = (async () => {
 			if (document.fonts.check(fontSpec)) return;
 			try {
-				await document.fonts.load(fontSpec);
+				const didLoad = await this.waitWithTimeout(document.fonts.load(fontSpec));
+				if (!didLoad) {
+					console.warn(
+						`Timed out while waiting for font "${fontFamily}" before export capture.`
+					);
+				}
 			} catch (error) {
 				console.warn(`Could not finish loading font "${fontFamily}" before capture.`, error);
 			}
@@ -198,6 +207,30 @@ export class QPCFontProvider {
 			fontFamily === 'ui-monospace' ||
 			fontFamily === 'ui-rounded'
 		);
+	}
+
+	private static shouldWaitForFontFamily(fontFamily: string): boolean {
+		return (
+			this.loadedFonts.has(fontFamily) ||
+			fontFamily === 'Hafs' ||
+			fontFamily === 'Reciters' ||
+			fontFamily === 'Surahs' ||
+			fontFamily === 'QPC1BSML' ||
+			fontFamily === 'QPC2BSML' ||
+			fontFamily.startsWith('QPC1') ||
+			fontFamily.startsWith('QPC2')
+		);
+	}
+
+	private static async waitWithTimeout(promise: Promise<unknown>): Promise<boolean> {
+		const result = await Promise.race([
+			promise.then(() => true).catch(() => false),
+			new Promise<boolean>((resolve) =>
+				setTimeout(() => resolve(false), this.FONT_WAIT_TIMEOUT_MS)
+			)
+		]);
+
+		return result;
 	}
 
 	private static async waitForNextPaint(): Promise<void> {

@@ -84,6 +84,8 @@
 	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 88%, black);
 	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 70%, black);
 	--wbw-tooltip-text: var(--text-primary);
+	--translation-overlap-text: #d8b4fe;
+	--translation-overlap-decoration: rgba(196, 181, 253, 0.75);
 
 	/* Timeline specific colors */
 	--timeline-bg-primary: var(--bg-primary);
@@ -187,6 +189,8 @@ body {
 	--subtitle-selection-border: rgba(16, 185, 129, 0.4);
 	--text-on-selected-word: white;
 	--text-on-accent: white;
+	--translation-overlap-text: #c084fc;
+	--translation-overlap-decoration: rgba(192, 132, 252, 0.72);
 }
 
 .theme-polar-ice {
@@ -234,6 +238,8 @@ body {
 	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 92%, var(--bg-accent) 8%);
 	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 78%, var(--bg-primary) 22%);
 	--wbw-tooltip-text: var(--text-primary);
+	--translation-overlap-text: #6d28d9;
+	--translation-overlap-decoration: rgba(109, 40, 217, 0.55);
 }
 
 .theme-desert-gold {
@@ -281,6 +287,8 @@ body {
 	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 90%, var(--bg-accent) 10%);
 	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 82%, var(--bg-primary) 18%);
 	--wbw-tooltip-text: var(--text-primary);
+	--translation-overlap-text: #7c3aed;
+	--translation-overlap-decoration: rgba(124, 58, 237, 0.52);
 }
 
 /* --- NEW Advanced Themes --- */
@@ -319,6 +327,8 @@ body {
 	--wbw-tooltip-bg: color-mix(in srgb, var(--bg-secondary) 88%, var(--bg-accent) 12%);
 	--wbw-tooltip-border: color-mix(in srgb, var(--border-color) 82%, var(--bg-primary) 18%);
 	--wbw-tooltip-text: var(--text-primary);
+	--translation-overlap-text: #7c3aed;
+	--translation-overlap-decoration: rgba(124, 58, 237, 0.5);
 }
 
 .theme-oled-stealth {
@@ -351,6 +361,8 @@ body {
 	--timeline-scrollbar: rgba(0, 255, 65, 0.55);
 	--timeline-scrollbar-hover: rgba(0, 255, 65, 0.75);
 	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
+	--translation-overlap-text: #d8b4fe;
+	--translation-overlap-decoration: rgba(216, 180, 254, 0.75);
 }
 
 .theme-ethereal-glass {
@@ -373,7 +385,11 @@ body {
 	--timeline-bg-primary: #0b1326;
 	--timeline-bg-secondary: rgba(30, 41, 59, 0.82);
 	--timeline-bg-accent: rgba(51, 65, 85, 0.58);
-	--timeline-ruler-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(51, 65, 85, 0.62) 100%);
+	--timeline-ruler-bg: linear-gradient(
+		135deg,
+		rgba(30, 41, 59, 0.9) 0%,
+		rgba(51, 65, 85, 0.62) 100%
+	);
 	--timeline-grid-minor: rgba(148, 163, 184, 0.1);
 	--timeline-grid-major: rgba(148, 163, 184, 0.2);
 	--timeline-timestamp: #cbd5e1;
@@ -385,6 +401,8 @@ body {
 	--ctx-menu-background: rgba(15, 23, 42, 0.92);
 	--ctx-menu-hover-bg: rgba(51, 65, 85, 0.75);
 	--ctx-menu-border: 1px solid rgba(148, 163, 184, 0.35);
+	--translation-overlap-text: #f0abfc;
+	--translation-overlap-decoration: rgba(240, 171, 252, 0.72);
 }
 
 .theme-minimal-zen {
@@ -416,6 +434,8 @@ body {
 	--timeline-scrollbar: rgba(17, 24, 39, 0.45);
 	--timeline-scrollbar-hover: rgba(17, 24, 39, 0.65);
 	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
+	--translation-overlap-text: #6d28d9;
+	--translation-overlap-decoration: rgba(109, 40, 217, 0.52);
 }
 
 .theme-inverted-minimal-zen {
@@ -447,6 +467,8 @@ body {
 	--timeline-scrollbar: rgba(255, 255, 255, 0.45);
 	--timeline-scrollbar-hover: rgba(255, 255, 255, 0.7);
 	--video-clip-selection: color-mix(in srgb, var(--timeline-video-clip-color) 60%, black);
+	--translation-overlap-text: #d8b4fe;
+	--translation-overlap-decoration: rgba(216, 180, 254, 0.76);
 }
 
 /* Pour tout les p, hN, span etc empecher la selection de texte */

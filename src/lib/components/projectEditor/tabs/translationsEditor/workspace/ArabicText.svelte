@@ -19,7 +19,7 @@
 			{@const isOverlapWord = overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex}
 			<div
 				class="word group flex flex-col items-center gap-y-2 relative {isOverlapWord
-					? 'text-purple-200 decoration-purple-400/60 underline underline-offset-4'
+					? 'overlap-arabic-word'
 					: ''}"
 				role="button"
 				tabindex="0"
@@ -44,7 +44,7 @@
 			{@const wordIndex = subtitle.startWordIndex + i}
 			<span
 				class={overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex
-					? 'text-purple-200 decoration-purple-400/60 underline underline-offset-2'
+					? 'overlap-wbw-word'
 					: ''}
 			>
 				{word}
@@ -54,3 +54,21 @@
 {:else if subtitle instanceof PredefinedSubtitleClip}
 	<p class="text-3xl arabic text-right" dir="rtl">{subtitle.text}</p>
 {/if}
+
+<style>
+	.overlap-arabic-word {
+		color: var(--translation-overlap-text);
+		text-decoration-line: underline;
+		text-decoration-color: var(--translation-overlap-decoration);
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.35rem;
+	}
+
+	.overlap-wbw-word {
+		color: var(--translation-overlap-text);
+		text-decoration-line: underline;
+		text-decoration-color: var(--translation-overlap-decoration);
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.2rem;
+	}
+</style>

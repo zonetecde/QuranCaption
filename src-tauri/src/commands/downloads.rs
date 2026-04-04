@@ -42,6 +42,43 @@ fn find_latest_downloaded_file(
     latest_path.ok_or_else(|| "Downloaded file not found".to_string())
 }
 
+fn find_downloaded_file_by_suffix(
+    download_path: &Path,
+    extension: &str,
+    file_suffix: &str,
+) -> Result<PathBuf, String> {
+    let entries = fs::read_dir(download_path).map_err(|e| format!("Error reading directory: {}", e))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        let has_extension = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.eq_ignore_ascii_case(extension))
+            .unwrap_or(false);
+        if !has_extension {
+            continue;
+        }
+
+        let file_name_matches = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name| name.contains(file_suffix))
+            .unwrap_or(false);
+        if !file_name_matches {
+            continue;
+        }
+
+        return Ok(path);
+    }
+
+    Err("Downloaded file not found".to_string())
+}
+
 fn transcode_to_web_compatible_mp4(file_path: &Path, ffmpeg_path: &str) -> Result<(), String> {
     let file_stem = file_path
         .file_stem()
@@ -136,7 +173,18 @@ pub async fn download_from_youtube(
         args.push("--ffmpeg-location");
         args.push(&ffmpeg_dir_str);
     }
-    let output_pattern = format!("{}/%(title)s (%(uploader)s).%(ext)s", download_path_str);
+    let download_request_id = format!(
+        "_{:03}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| format!("System time error: {}", e))?
+            .subsec_millis()
+            % 1000
+    );
+    let output_pattern = format!(
+        "{}/%(title)s (%(uploader)s){}.%(ext)s",
+        download_path_str, download_request_id
+    );
 
     match _type.as_str() {
         "audio" => args.extend_from_slice(&[
@@ -176,7 +224,13 @@ pub async fn download_from_youtube(
                 println!("yt-dlp output: {}", output_str);
 
                 let extension = if _type == "audio" { "mp3" } else { "mp4" };
-                match find_latest_downloaded_file(&download_path_buf, extension) {
+                match find_downloaded_file_by_suffix(
+                    &download_path_buf,
+                    extension,
+                    &download_request_id,
+                )
+                .or_else(|_| find_latest_downloaded_file(&download_path_buf, extension))
+                {
                     Ok(path) => {
                         if _type == "video" {
                             transcode_to_web_compatible_mp4(&path, &ffmpeg_path)?;

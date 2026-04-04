@@ -280,18 +280,18 @@
 				</span>
 			{/if}
 
-				{#if showImageIconOnAllSubtitleClips()}
-					<span
-						class={'material-icons-outlined text-[17px]! cursor-pointer transition-opacity ' +
-							(clip.hasAssociatedImage() ? 'opacity-90' : 'opacity-20 hover:opacity-90')}
-						title={clip.hasAssociatedImage()
-							? 'Linked image on this clip'
-							: 'A linked image exists on another clip'}
-						onclick={selectLinkedImage}
-					>
-						image
-					</span>
-				{/if}
+			{#if showImageIconOnAllSubtitleClips()}
+				<span
+					class={'material-icons-outlined text-[17px]! cursor-pointer transition-opacity ' +
+						(clip.hasAssociatedImage() ? 'opacity-90' : 'opacity-20 hover:opacity-90')}
+					title={clip.hasAssociatedImage()
+						? 'Linked image on this clip'
+						: 'A linked image exists on another clip'}
+					onclick={selectLinkedImage}
+				>
+					image
+				</span>
+			{/if}
 		</div>
 
 		<div class="absolute inset-0 z-5 flex px-2 py-2">
@@ -405,7 +405,7 @@
 			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove subtitle
 		</div></Item
 	>
-	{#if clip.type === 'Subtitle'}
+	{#if clip.type === 'Subtitle' && canBookmarkWithQuran()}
 		<Divider />
 		<Item
 			on:click={bookmarkVerseFromContextMenu}

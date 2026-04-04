@@ -47,7 +47,7 @@
 			targetId: 'assets-manager',
 			title: 'The Video Editor',
 			description:
-				'Here you import your Quran recitation. Three options: <strong>Add Asset</strong> (local file), <strong>Download from MP3Quran</strong>, or <strong>Download from Social Media</strong> for YouTube and other public platforms. The tutorial project already has an audio asset ready for you.',
+				'Here you import your Quran recitation. Three options: <strong>Add Asset</strong> (local file), <strong>Download Quran Recitation</strong> (Quran.com or MP3Quran), or <strong>Download from Social Media</strong> for YouTube and other public platforms. The tutorial project already has an audio asset ready for you.',
 			advanceMode: 'button',
 			buttonLabel: 'Next'
 		},

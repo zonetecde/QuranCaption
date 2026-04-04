@@ -16,7 +16,8 @@ export enum AssetType {
 export enum SourceType {
 	Local = 'local',
 	YouTube = 'youtube',
-	Mp3Quran = 'mp3quran'
+	Mp3Quran = 'mp3quran',
+	QuranFoundation = 'quranfoundation'
 }
 
 export enum ProjectEditorTabs {

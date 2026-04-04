@@ -115,11 +115,18 @@
 				asset.updateFilePath(result);
 				mediaKey++; // Force re-render of audio/video element
 				toast.success('Re-download successful!', { id: toastId });
-			} else if (asset.sourceType === SourceType.Mp3Quran) {
-				// Re-download from MP3Quran
+			} else if (
+				asset.sourceType === SourceType.Mp3Quran ||
+				asset.sourceType === SourceType.QuranFoundation
+			) {
+				// Re-download from a Quran audio catalog source.
 				const fullPath = await join(downloadPath, asset.fileName);
 
-				toastId = toast.loading('Re-downloading from MP3Quran...');
+				toastId = toast.loading(
+					asset.sourceType === SourceType.QuranFoundation
+						? 'Re-downloading from Quran.com...'
+						: 'Re-downloading from MP3Quran...'
+				);
 
 				await invoke('download_file', {
 					url: asset.sourceUrl,
@@ -258,7 +265,7 @@
 						<span class="material-icons text-lg">folder_open</span>
 						Relocate
 					</button>
-					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran)}
+					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
 						<button
 							class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
 							       hover:scale-105 transition-all duration-200 text-green-400 hover:text-green-300

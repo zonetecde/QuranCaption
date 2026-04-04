@@ -1,6 +1,6 @@
 <script>
+	import DownloadFromQuranSourceSection from './DownloadFromQuranSourceSection.svelte';
 	import DownloadFromYouTubeSection from './DownloadFromYouTubeSection.svelte';
-	import DownloadFromMp3QuranSection from './DownloadFromMp3QuranSection.svelte';
 	import ProjectAssetSection from './ProjectAssetSection.svelte';
 </script>
 
@@ -15,6 +15,6 @@
 	</div>
 
 	<ProjectAssetSection />
-	<DownloadFromMp3QuranSection />
+	<DownloadFromQuranSourceSection />
 	<DownloadFromYouTubeSection />
 </div>

@@ -352,7 +352,7 @@
 			</div>
 		</div>
 
-		{#if (globalState.getAudioTrack?.clips || []).some((c) => c instanceof AssetClip && globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran)}
+		{#if (globalState.getAudioTrack?.clips || []).some((c) => c instanceof AssetClip && (globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.nativeTiming || globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran))}
 			<div class="space-y-4">
 				<h3 class="text-sm font-medium text-secondary mb-3">Native Timing</h3>
 				<div class="bg-accent rounded-lg p-4 space-y-3">
@@ -364,7 +364,7 @@
 							await runNativeSegmentation();
 						}}
 					>
-						Load subtitles from MP3Quran
+						Load subtitles from native timing
 					</button>
 				</div>
 			</div>

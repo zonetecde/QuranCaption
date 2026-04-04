@@ -235,6 +235,15 @@ export class AnalyticsService {
 		});
 	}
 
+	static downloadRecitationAudio(source: string, reciter: string, surah: string, fileName: string) {
+		this.track('download_recitation_audio', {
+			source,
+			reciter,
+			surah,
+			file_name: fileName
+		});
+	}
+
 	static downloadFromYouTube(url: string, type: string) {
 		this.track('download_from_youtube', {
 			url,

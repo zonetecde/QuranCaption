@@ -14,6 +14,7 @@ import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
 import { Mp3QuranService } from '$lib/services/Mp3QuranService';
+import { QdcRecitationService } from '$lib/services/QdcRecitationService';
 
 const SMALL_GAP_MS = 200;
 
@@ -1456,7 +1457,19 @@ export async function runNativeSegmentation(
 	// 1. Identify valid audio clip and metadata
 	const audioTrack = globalState.getAudioTrack;
 	let targetClip: AssetClip | null = null;
-	let mp3QuranMeta: { reciterId: number; surahId: number; moshafId?: number } | null = null;
+	let nativeTimingMeta:
+		| {
+				provider: 'mp3quran';
+				reciterId: number;
+				surahId: number;
+				moshafId?: number;
+		  }
+		| {
+				provider: 'qdc';
+				recitationId: number;
+				surahId: number;
+		  }
+		| null = null;
 	let clipStartTime = 0;
 	let clipOffset = 0;
 	const getClipOffset = (clip: AssetClip): number => {
@@ -1472,6 +1485,41 @@ export async function runNativeSegmentation(
 				continue;
 			}
 			const asset = globalState.currentProject?.content.getAssetById(clip.assetId);
+			if (asset?.metadata?.nativeTiming) {
+				const meta = asset.metadata.nativeTiming as Partial<{
+					provider: 'mp3quran' | 'qdc';
+					reciterId: number;
+					recitationId: number;
+					surahId: number;
+					moshafId?: number;
+				}>;
+				if (meta.provider === 'mp3quran') {
+					if (typeof meta.reciterId !== 'number' || typeof meta.surahId !== 'number') {
+						continue;
+					}
+					nativeTimingMeta = {
+						provider: 'mp3quran',
+						reciterId: meta.reciterId,
+						surahId: meta.surahId,
+						moshafId: meta.moshafId
+					};
+				} else if (meta.provider === 'qdc') {
+					if (typeof meta.recitationId !== 'number' || typeof meta.surahId !== 'number') {
+						continue;
+					}
+					nativeTimingMeta = {
+						provider: 'qdc',
+						recitationId: meta.recitationId,
+						surahId: meta.surahId
+					};
+				} else {
+					continue;
+				}
+				targetClip = clip;
+				clipStartTime = clip.startTime;
+				clipOffset = getClipOffset(clip);
+				break;
+			}
 			if (asset?.metadata?.mp3Quran) {
 				const meta = asset.metadata.mp3Quran as Partial<{
 					reciterId: number;
@@ -1481,7 +1529,8 @@ export async function runNativeSegmentation(
 				if (typeof meta.reciterId !== 'number' || typeof meta.surahId !== 'number') {
 					continue;
 				}
-				mp3QuranMeta = {
+				nativeTimingMeta = {
+					provider: 'mp3quran',
 					reciterId: meta.reciterId,
 					surahId: meta.surahId,
 					moshafId: meta.moshafId
@@ -1494,34 +1543,48 @@ export async function runNativeSegmentation(
 		}
 	}
 
-	if (!targetClip || !mp3QuranMeta) {
-		toast.error('No Mp3Quran audio found on timeline.');
-		return { status: 'failed', message: 'No Mp3Quran audio found' };
+	if (!targetClip || !nativeTimingMeta) {
+		toast.error('No native-timing audio found on timeline.');
+		return { status: 'failed', message: 'No native-timing audio found' };
 	}
 
 	// 2. Warn about overwriting
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {
 		const confirmOverwrite = await ModalManager.confirmModal(
-			'There are already subtitles in this project. This process will replace them with Mp3Quran timing. Continue?',
+			'There are already subtitles in this project. This process will replace them with native timing. Continue?',
 			true
 		);
 		if (!confirmOverwrite) return { status: 'cancelled' };
 	}
 
-	const { reciterId, surahId, moshafId } = mp3QuranMeta;
-	// Use moshafId (readId) if available, otherwise fallback to reciterId (legacy/fallback)
-	const readId = moshafId ?? reciterId;
+	const surahId = nativeTimingMeta.surahId;
 
 	let toastId: string | undefined;
 
 	try {
-		toastId = toast.loading('Fetching timing data from Mp3Quran...');
+		toastId = toast.loading(
+			nativeTimingMeta.provider === 'qdc'
+				? 'Fetching timing data from Quran.com...'
+				: 'Fetching timing data from MP3Quran...'
+		);
 
 		// 3. Fetch timing data
-		// Note from plan: We assume reciterId matches readId.
-		// If this fails often, we might need a lookup table.
-		const timingData = await Mp3QuranService.getSurahTiming(readId, surahId);
+		const timingData =
+			nativeTimingMeta.provider === 'qdc'
+				? (await QdcRecitationService.getChapterAudio(
+						nativeTimingMeta.recitationId,
+						surahId,
+						true
+					))?.timestamps?.map((timestamp) => ({
+						ayah: Number(timestamp.verse_key.split(':')[1]),
+						start_time: timestamp.timestamp_from,
+						end_time: timestamp.timestamp_to
+					})) ?? []
+				: await Mp3QuranService.getSurahTiming(
+						nativeTimingMeta.moshafId ?? nativeTimingMeta.reciterId,
+						surahId
+					);
 
 		if (!timingData || timingData.length === 0) {
 			toast.error('No timing data found for this reciter/surah.', { id: toastId });

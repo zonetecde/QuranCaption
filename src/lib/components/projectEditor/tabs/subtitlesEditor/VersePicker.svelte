@@ -12,6 +12,7 @@
 
 	// Current search value for surah
 	let surahSearchValue = $state('');
+	let isSyncingSurahSearchValue = $state(false);
 
 	// Get current surah name for display
 	let currentSurahName = $derived(() => {
@@ -32,14 +33,21 @@
 		}
 	}
 
-	// Watch for changes in search value to update selection
 	$effect(() => {
-		if (!surahSearchValue) {
-			surahSearchValue = currentSurahName();
-		}
+		const currentName = currentSurahName();
+		if (!currentName || surahSearchValue === currentName) return;
+
+		isSyncingSurahSearchValue = true;
+		surahSearchValue = currentName;
 	});
 
+	// Watch for changes in search value to update selection
 	$effect(() => {
+		if (isSyncingSurahSearchValue) {
+			isSyncingSurahSearchValue = false;
+			return;
+		}
+
 		if (surahSearchValue && surahSearchValue !== currentSurahName()) {
 			handleSurahSelection(surahSearchValue);
 		}

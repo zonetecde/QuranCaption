@@ -7,13 +7,14 @@ import { Quran } from './Quran';
 import { Utilities } from './misc/Utilities';
 import ExportService from '$lib/services/ExportService';
 import { BaseDirectory, join } from '@tauri-apps/api/path';
-import { remove } from '@tauri-apps/plugin-fs';
+import { exists, remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
+import ModalManager from '$lib/components/modals/ModalManager';
 
 export default class Exporter {
 	private static queueIntervalId: number | null = null;
@@ -336,6 +337,18 @@ export default class Exporter {
 	 * Exporte le projet sous forme de vidéo.
 	 */
 	static async exportVideo() {
+		const exportFileName = globalState.currentProject!.detail.generateExportFileName() + '.mp4';
+		const exportFilePath = await join(await ExportService.getExportFolder(), exportFileName);
+		if (await exists(exportFilePath)) {
+			const confirmOverwrite = await ModalManager.confirmModal(
+				'An exported video with the same name already exists. It will be overwritten. Continue?',
+				true
+			);
+			if (!confirmOverwrite) {
+				return;
+			}
+		}
+
 		// Génère un ID d'export unique.
 		const exportId = Utilities.randomId().toString();
 		const shouldQueue =

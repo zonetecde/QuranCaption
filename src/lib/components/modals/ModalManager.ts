@@ -6,6 +6,7 @@ import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
+import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 
 export default class ModalManager {
@@ -183,6 +184,27 @@ export default class ModalManager {
 						resolve();
 					},
 					initialAssetId
+				}
+			});
+		});
+	}
+
+	static async bookmarkVerseModal(surah: number, verse: number): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(BookmarkVerseModal, {
+				target: container,
+				props: {
+					surah,
+					verse,
+					resolve: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
 				}
 			});
 		});

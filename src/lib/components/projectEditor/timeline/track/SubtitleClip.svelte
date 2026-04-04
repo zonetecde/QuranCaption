@@ -5,8 +5,10 @@
 		ProjectEditorTabs,
 		type Track
 	} from '$lib/classes';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
-	import ContextMenu, { Item } from 'svelte-contextmenu';
+	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
+	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
@@ -60,6 +62,8 @@
 	const isCoverageGap = $derived(() => {
 		return clip.needsCoverageReview === true;
 	});
+
+	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
 	let dragStartX: number | null = null;
 	let didDrag = false;
@@ -233,6 +237,15 @@
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
 
+	async function bookmarkVerseFromContextMenu(): Promise<void> {
+		if (!canBookmarkWithQuran()) return;
+		if (!(clip instanceof SubtitleClip)) return;
+
+		currentMenu.set(null);
+		await tick();
+		await ModalManager.bookmarkVerseModal(clip.surah, clip.verse);
+	}
+
 	onDestroy(() => {
 		currentMenu.set(null);
 	});
@@ -392,6 +405,19 @@
 			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove subtitle
 		</div></Item
 	>
+	{#if clip.type === 'Subtitle'}
+		<Divider />
+		<Item
+			on:click={bookmarkVerseFromContextMenu}
+			disabled={!canBookmarkWithQuran()}
+			title={!canBookmarkWithQuran()
+				? 'Connect Quran.com first'
+				: 'Add this verse to a Quran.com collection'}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">bookmark_add</span>Bookmark
+			</div></Item
+		>
+	{/if}
 </ContextMenu>
 
 <style>

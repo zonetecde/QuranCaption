@@ -14,6 +14,7 @@ export interface QuranAuthSession {
 	expiresAt: string;
 	grantedScopes: string[];
 	user: QuranAuthUser;
+	clientId?: string | null;
 }
 
 export interface QuranAuthPublicState {
@@ -22,4 +23,10 @@ export interface QuranAuthPublicState {
 	grantedScopes: string[];
 	expiresAt: string | null;
 	errorMessage: string | null;
+}
+
+export interface QuranCollection {
+	id: string;
+	updatedAt: string;
+	name: string;
 }

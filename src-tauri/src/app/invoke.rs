@@ -5,6 +5,9 @@ use crate::exporter;
 pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder.invoke_handler(tauri::generate_handler![
         commands::ai_translation::run_advanced_ai_trim_batch_streaming,
+        commands::auth::quran_auth_secure_set,
+        commands::auth::quran_auth_secure_get,
+        commands::auth::quran_auth_secure_delete,
         commands::downloads::download_from_youtube,
         commands::media::get_duration,
         commands::files::get_new_file_path,

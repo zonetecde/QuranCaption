@@ -305,10 +305,7 @@ export default class Settings extends SerializableBase {
 		const latestVersion = await VersionService.getAppVersion();
 		if (settings.appVersion !== latestVersion) {
 			// Telemetry
-			AnalyticsService.trackAppUpdated(
-				settings.appVersion || 'unknown',
-				latestVersion || '0.0.0'
-			);
+			AnalyticsService.trackAppUpdated(settings.appVersion || 'unknown', latestVersion || '0.0.0');
 
 			// Met à jour la version
 			settings.appVersion = latestVersion || '0.0.0';
@@ -333,6 +330,7 @@ export default class Settings extends SerializableBase {
 export enum SettingsTab {
 	SHORTCUTS = 'shortcuts',
 	THEME = 'theme',
+	QURAN_INTEGRATION = 'quran-integration',
 	BACKUP = 'backup',
 	SUPPORT = 'support',
 	CONTACT = 'contact',

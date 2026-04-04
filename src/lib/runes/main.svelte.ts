@@ -55,6 +55,7 @@ class GlobalState {
 		settingsTab: 'shortcuts' as
 			| 'shortcuts'
 			| 'theme'
+			| 'quran-integration'
 			| 'backup'
 			| 'support'
 			| 'contact'
@@ -133,10 +134,7 @@ class GlobalState {
 		return this.currentProject!.projectEditorState.timeline;
 	}
 
-	getStyle(
-		t: 'arabic' | 'translation' | string,
-		s: StyleName
-	): Style {
+	getStyle(t: 'arabic' | 'translation' | string, s: StyleName): Style {
 		if (this.currentProject) {
 			const style = this.getVideoStyle.getStylesOfTarget(t).findStyle(s);
 			if (style) return style;

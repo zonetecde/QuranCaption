@@ -122,6 +122,13 @@
 		}
 	},
 	"plugins": {
+		"deep-link": {
+			"desktop": {
+				"schemes": [
+					"qurancaption"
+				]
+			}
+		},
 		"updater": {
 			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc1RkVENzQxMDIzODU2MzUKUldRMVZqZ0NRZGYrZFVBbHVpUXkzbHpzR2luSEZZRWpFaVd5Vm9KaWJKNjNlcmxXVE1TOTZBUW0K",
 			"endpoints": [

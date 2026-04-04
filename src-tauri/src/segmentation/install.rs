@@ -337,4 +337,3 @@ pub async fn install_local_segmentation_deps(
         selected_engine.as_label()
     ))
 }
-

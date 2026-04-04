@@ -12,7 +12,7 @@
 
 	/** Opens the official Hugging Face space page. */
 	async function openHuggingFaceSpace(): Promise<void> {
-		await openUrl('https://huggingface.co/spaces/hetchyy/Quran-multi-aligner');
+		await openUrl('https://huggingface.co/spaces/hetchyy/quranic-universal-aligner');
 	}
 
 	/** Reads a dropped JSON file path and stores its content in the wizard state. */

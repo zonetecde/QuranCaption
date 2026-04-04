@@ -8,27 +8,27 @@ const LFS_POINTER_PREFIX: &[u8] = b"version https://git-lfs.github.com/spec/v1";
 const MULTI_ALIGNER_DATA_FILES: [(&str, &str); 6] = [
     (
         "phoneme_cache.pkl",
-        "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/phoneme_cache.pkl?download=true",
+        "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/phoneme_cache.pkl?download=true",
     ),
     (
         "phoneme_ngram_index_5.pkl",
-        "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/phoneme_ngram_index_5.pkl?download=true",
+        "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/phoneme_ngram_index_5.pkl?download=true",
     ),
     (
         "qpc_hafs.json",
-        "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/qpc_hafs.json?download=true",
+        "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/qpc_hafs.json?download=true",
     ),
     (
         "surah_info.json",
-        "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/surah_info.json?download=true",
+        "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/surah_info.json?download=true",
     ),
     (
         "digital_khatt_v2_script.json",
-        "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/digital_khatt_v2_script.json?download=true",
+        "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/digital_khatt_v2_script.json?download=true",
     ),
     (
         "phoneme_sub_costs.json",
-        "https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/resolve/main/data/phoneme_sub_costs.json?download=true",
+        "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/phoneme_sub_costs.json?download=true",
     ),
 ];
 

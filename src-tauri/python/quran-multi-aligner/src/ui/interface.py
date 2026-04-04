@@ -42,10 +42,10 @@ def build_interface():
         gr.Markdown("""
 - Transcribe and split any recitation by pauses within 1-2 minutes
 - Get precise pause-, verse-, word- and character-level timestamps, exportable as JSON
-- GPU-powered <a href="https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/blob/main/docs/client_api.md" target="_blank">API usage</a> with daily quotas, and unlimited CPU usage 
+- GPU-powered <a href="https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/blob/main/docs/client_api.md" target="_blank">API usage</a> with daily quotas, and unlimited CPU usage 
 - Reliable confidence system to flag uncertain segments and missed words — no silent errors
 - Robust tolerance to noise, speaker variation and low audio quality, particularly with the large model
-- <a href="https://huggingface.co/spaces/hetchyy/Quran-multi-aligner/discussions" target="_blank">Feedback/contributions are welcome</a>
+- <a href="https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/discussions" target="_blank">Feedback/contributions are welcome</a>
 """)
 
         # API Documentation accordion

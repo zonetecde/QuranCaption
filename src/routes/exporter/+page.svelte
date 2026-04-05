@@ -22,6 +22,26 @@
 	import { createContext, destroyContext, domToCanvas } from 'modern-screenshot';
 	import { ClipWithTranslation, CustomTextClip, SilenceClip } from '$lib/classes/Clip.svelte';
 
+	const SCREENSHOT_CAPTURE_TIMEOUT_MS = 6_000;
+	const SCREENSHOT_CAPTURE_TIMEOUT_MIN_MS = 500;
+	const SCREENSHOT_CAPTURE_TIMEOUT_STEP_MS = 500;
+	let screenshotCaptureTimeoutMs = SCREENSHOT_CAPTURE_TIMEOUT_MS;
+
+	async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+		let timeoutId: ReturnType<typeof setTimeout> | undefined;
+		const timeoutPromise = new Promise<never>((_, reject) => {
+			timeoutId = setTimeout(() => {
+				reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+			}, timeoutMs);
+		});
+
+		try {
+			return await Promise.race([promise, timeoutPromise]);
+		} finally {
+			if (timeoutId !== undefined) clearTimeout(timeoutId);
+		}
+	}
+
 	// Contient l'ID de l'export
 	let exportId = '';
 
@@ -1083,26 +1103,39 @@
 		let context: Awaited<
 			ReturnType<typeof createContext<typeof node extends HTMLElement ? HTMLElement : Node>>
 		> | null = null;
+		const currentTimeoutMs = screenshotCaptureTimeoutMs;
 
 		try {
 			// Create and destroy the screenshot context explicitly so we can
 			// release the canvas backing store right after each capture.
-			context = await createContext(node, {
-				width: node.clientWidth * scale,
-				height: node.clientHeight * scale,
-				style: {
-					// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-					transform: 'scale(' + scale + ')',
-					transformOrigin: 'top left'
-				},
-				quality: 1,
-				autoDestruct: false
-			});
-			canvas = await domToCanvas(context);
+			context = await withTimeout(
+				createContext(node, {
+					width: node.clientWidth * scale,
+					height: node.clientHeight * scale,
+					style: {
+						// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+						transform: 'scale(' + scale + ')',
+						transformOrigin: 'top left'
+					},
+					quality: 1,
+					autoDestruct: false
+				}),
+				currentTimeoutMs,
+				`Screenshot context creation for ${fileName}`
+			);
+			canvas = await withTimeout(
+				domToCanvas(context),
+				currentTimeoutMs,
+				`Screenshot rendering for ${fileName}`
+			);
 
-			const blob = await new Promise<Blob | null>((resolve) => {
-				canvas!.toBlob((result) => resolve(result), 'image/png', 1);
-			});
+			const blob = await withTimeout(
+				new Promise<Blob | null>((resolve) => {
+					canvas!.toBlob((result) => resolve(result), 'image/png', 1);
+				}),
+				currentTimeoutMs,
+				`Screenshot encoding for ${fileName}`
+			);
 
 			if (!blob) throw new Error('domToBlob returned null');
 
@@ -1126,6 +1159,16 @@
 					? String((error as { message?: unknown }).message ?? '')
 					: String(error ?? 'Unknown error');
 			toast.error('Error while taking screenshot: ' + message);
+
+			if (message.toLowerCase().includes('timed out')) {
+				screenshotCaptureTimeoutMs = Math.max(
+					SCREENSHOT_CAPTURE_TIMEOUT_MIN_MS,
+					screenshotCaptureTimeoutMs - SCREENSHOT_CAPTURE_TIMEOUT_STEP_MS
+				);
+				console.warn(
+					`Reduced screenshot timeout to ${screenshotCaptureTimeoutMs}ms after timeout.`
+				);
+			}
 		} finally {
 			if (context) {
 				destroyContext(context);

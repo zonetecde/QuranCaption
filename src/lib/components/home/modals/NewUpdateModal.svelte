@@ -10,6 +10,7 @@
 	let { update, resolve }: { update: UpdateInfo; resolve: () => void } = $props();
 	let html = '<p>Loading...</p>';
 	let sanitized = $state('<p>Loading...</p>');
+	let changelogSrcdoc = $state('<!doctype html><html><body>Loading...</body></html>');
 	type DomPurifyLike = { sanitize: (dirty: string) => string };
 	let DOMPurify: DomPurifyLike | undefined;
 
@@ -53,6 +54,154 @@
 			// fallback si pas encore chargé: afficher le HTML non-sanitized (normalement on est client)
 			sanitized = html;
 		}
+		changelogSrcdoc = buildChangelogSrcdoc(sanitized);
+	}
+
+	/**
+	 * Build the changelog iframe srcdoc.
+	 * Uses the current document's styles for theming.
+	 * @param content
+	 */
+	function buildChangelogSrcdoc(content: string): string {
+		if (typeof document === 'undefined') {
+			return `<!doctype html><html><body>${content}</body></html>`;
+		}
+
+		const rootStyles = getComputedStyle(document.body);
+		const bgPrimary = rootStyles.getPropertyValue('--bg-primary').trim() || '#111827';
+		const bgSecondary = rootStyles.getPropertyValue('--bg-secondary').trim() || '#1f2937';
+		const bgAccent = rootStyles.getPropertyValue('--bg-accent').trim() || '#0f172a';
+		const textPrimary = rootStyles.getPropertyValue('--text-primary').trim() || '#f9fafb';
+		const textSecondary = rootStyles.getPropertyValue('--text-secondary').trim() || '#d1d5db';
+		const textThirdly = rootStyles.getPropertyValue('--text-thirdly').trim() || '#9ca3af';
+		const borderColor = rootStyles.getPropertyValue('--border-color').trim() || '#374151';
+		const accentPrimary = rootStyles.getPropertyValue('--accent-primary').trim() || '#60a5fa';
+		const accentSecondary = rootStyles.getPropertyValue('--accent-secondary').trim() || '#3b82f6';
+
+		return `<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<style>
+		:root {
+			color-scheme: dark;
+			--bg-primary: ${bgPrimary};
+			--bg-secondary: ${bgSecondary};
+			--bg-accent: ${bgAccent};
+			--text-primary: ${textPrimary};
+			--text-secondary: ${textSecondary};
+			--text-thirdly: ${textThirdly};
+			--border-color: ${borderColor};
+			--accent-primary: ${accentPrimary};
+			--accent-secondary: ${accentSecondary};
+		}
+
+		html, body {
+			margin: 0;
+			min-height: 100%;
+			background: var(--bg-accent);
+			color: var(--text-primary);
+			font-family: Arial, sans-serif;
+		}
+
+		body {
+			box-sizing: border-box;
+			padding: 1rem;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		p, li, blockquote, td, th {
+			color: var(--text-secondary);
+			line-height: 1.65;
+		}
+
+		h1, h2, h3, h4, h5, h6 {
+			color: var(--text-primary);
+			margin: 1.25em 0 0.5em;
+			line-height: 1.25;
+		}
+
+		h1 { font-size: 1.5rem; }
+		h2 { font-size: 1.25rem; }
+		h3 { font-size: 1.1rem; }
+
+		strong, b {
+			color: var(--text-primary);
+			font-weight: 700;
+		}
+
+		a {
+			color: var(--accent-primary);
+		}
+
+		a:hover {
+			color: var(--accent-secondary);
+		}
+
+		code {
+			background: var(--bg-secondary);
+			color: var(--accent-primary);
+			padding: 0.15rem 0.35rem;
+			border-radius: 0.35rem;
+			border: 1px solid color-mix(in srgb, var(--border-color) 85%, transparent);
+		}
+
+		pre {
+			background: var(--bg-primary);
+			color: var(--text-primary);
+			padding: 1rem;
+			border-radius: 0.75rem;
+			border: 1px solid var(--border-color);
+			overflow: auto;
+		}
+
+		pre code {
+			background: transparent;
+			border: 0;
+			padding: 0;
+			color: inherit;
+		}
+
+		hr {
+			border: 0;
+			border-top: 1px solid var(--border-color);
+			margin: 1.25rem 0;
+		}
+
+		blockquote {
+			margin: 1rem 0;
+			padding: 0.75rem 1rem;
+			border-left: 4px solid var(--accent-primary);
+			background: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+
+		th, td {
+			border: 1px solid var(--border-color);
+			padding: 0.5rem 0.75rem;
+		}
+
+		ul, ol {
+			padding-left: 1.5rem;
+		}
+
+		img {
+			max-width: 100%;
+		}
+	</style>
+</head>
+<body>
+	${content}
+</body>
+</html>`;
 	}
 
 	async function startUpdate() {
@@ -74,9 +223,15 @@
 	let downloadedBytes = $derived(VersionService.downloadedBytes);
 	let totalBytes = $derived(VersionService.totalBytes);
 	let updateError = $derived(VersionService.updateError);
+	let currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');
 	let isUpdating = $derived(
 		updateState === 'downloading' || updateState === 'installing' || updateState === 'done'
 	);
+
+	$effect(() => {
+		currentTheme;
+		renderMarkdown();
+	});
 </script>
 
 <div
@@ -159,7 +314,7 @@
 					></div>
 				</div>
 				<div class="flex justify-between mt-1.5">
-						<span class="text-xs text-secondary">
+					<span class="text-xs text-secondary">
 						{#if updateState === 'done'}
 							Complete
 						{:else if updateState === 'installing'}
@@ -168,7 +323,7 @@
 							Downloading...
 						{/if}
 					</span>
-						<span class="text-xs text-secondary font-medium">
+					<span class="text-xs text-secondary font-medium">
 						{downloadProgress}%
 					</span>
 				</div>
@@ -187,21 +342,22 @@
 				<div>
 					<h3 class="text-lg font-semibold text-primary mb-2">Update Failed</h3>
 					<p class="text-sm text-secondary max-w-sm">
-						{updateError || 'Something went wrong while updating. Please try again or download the update manually.'}
+						{updateError ||
+							'Something went wrong while updating. Please try again or download the update manually.'}
 					</p>
 				</div>
 			</div>
 		{:else if updateState === 'done'}
 			<!-- Success state -->
 			<div class="flex-1 flex flex-col items-center justify-center text-center gap-4">
-				<div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center animate-bounce">
+				<div
+					class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center animate-bounce"
+				>
 					<span class="material-icons text-green-400 text-3xl">rocket_launch</span>
 				</div>
 				<div>
 					<h3 class="text-lg font-semibold text-primary mb-2">Update Installed!</h3>
-					<p class="text-sm text-secondary">
-						The app will restart automatically in a moment...
-					</p>
+					<p class="text-sm text-secondary">The app will restart automatically in a moment...</p>
 				</div>
 			</div>
 		{:else}
@@ -224,7 +380,7 @@
 					<iframe
 						title="Update changelog"
 						class="h-full w-full rounded-lg"
-						srcdoc={sanitized}
+						srcdoc={changelogSrcdoc}
 						sandbox="allow-popups allow-popups-to-escape-sandbox"
 					></iframe>
 				</div>
@@ -297,7 +453,14 @@
 		color: var(--text-primary) !important;
 	}
 
-	:global(.changelog-prose h1, .changelog-prose h2, .changelog-prose h3, .changelog-prose h4, .changelog-prose h5, .changelog-prose h6) {
+	:global(
+		.changelog-prose h1,
+		.changelog-prose h2,
+		.changelog-prose h3,
+		.changelog-prose h4,
+		.changelog-prose h5,
+		.changelog-prose h6
+	) {
 		color: var(--text-primary) !important;
 		margin-top: 1.5em !important;
 		margin-bottom: 0.5em !important;
@@ -388,5 +551,3 @@
 		transform: rotate(90deg);
 	}
 </style>
-
-

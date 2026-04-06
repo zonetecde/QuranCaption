@@ -12,7 +12,6 @@
 
 	// Current search value for surah
 	let surahSearchValue = $state('');
-	let isSyncingSurahSearchValue = $state(false);
 
 	// Get current surah name for display
 	let currentSurahName = $derived(() => {
@@ -21,35 +20,29 @@
 		return surah ? `${surah.id}. ${surah.transliteration}` : '';
 	});
 
+	let lastSelectedSurahId = $state(globalState.getSubtitlesEditorState.selectedSurah);
+
 	function handleSurahSelection(selectedValue: string) {
 		// Extract ID from the selected value (format: "1. Al-Fatihah")
 		const match = selectedValue.match(/^(\d+)\./);
 		if (match) {
 			const surahId = parseInt(match[1]);
-			globalState.getSubtitlesEditorState.selectedSurah = surahId;
-			subtitlesEditorState().selectedVerse = 1;
-			subtitlesEditorState().startWordIndex = 0;
-			subtitlesEditorState().endWordIndex = 0;
+			if (globalState.getSubtitlesEditorState.selectedSurah !== surahId) {
+				globalState.getSubtitlesEditorState.selectedSurah = surahId;
+				lastSelectedSurahId = surahId; // update local tracking
+				subtitlesEditorState().selectedVerse = 1;
+				subtitlesEditorState().startWordIndex = 0;
+				subtitlesEditorState().endWordIndex = 0;
+			}
 		}
 	}
 
+	// Update search value ONLY when current surah changes EXTERNALLY
 	$effect(() => {
-		const currentName = currentSurahName();
-		if (!currentName || surahSearchValue === currentName) return;
-
-		isSyncingSurahSearchValue = true;
-		surahSearchValue = currentName;
-	});
-
-	// Watch for changes in search value to update selection
-	$effect(() => {
-		if (isSyncingSurahSearchValue) {
-			isSyncingSurahSearchValue = false;
-			return;
-		}
-
-		if (surahSearchValue && surahSearchValue !== currentSurahName()) {
-			handleSurahSelection(surahSearchValue);
+		const currentId = globalState.getSubtitlesEditorState.selectedSurah;
+		if (currentId !== lastSelectedSurahId) {
+			lastSelectedSurahId = currentId;
+			surahSearchValue = currentSurahName();
 		}
 	});
 </script>
@@ -121,6 +114,7 @@
 				suggestions={surahSuggestions()}
 				placeholder="Search surah"
 				icon=""
+				onSelect={(val) => handleSurahSelection(val)}
 			/>
 		</div>
 	</div>

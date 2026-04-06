@@ -13,6 +13,7 @@
 		icon: string;
 		focusOnMount?: boolean;
 		onEnterPress?: () => void;
+		onSelect?: (value: string) => void;
 	};
 
 	let {
@@ -26,7 +27,8 @@
 		labelIcon: _labelIcon,
 		icon,
 		focusOnMount,
-		onEnterPress
+		onEnterPress,
+		onSelect
 	}: Props = $props();
 
 	// Suggestions state
@@ -91,6 +93,9 @@
 		value = suggestion;
 		showSuggestions = false;
 		selectedSuggestionIndex = 0;
+		if (onSelect) {
+			onSelect(suggestion);
+		}
 	}
 
 	// Handle keyboard navigation in suggestions
@@ -152,6 +157,14 @@
 			class="w-full"
 			{placeholder}
 			autocomplete="off"
+			onclick={() => {
+				if (!showSuggestions) {
+					if (clearOnFocus) {
+						value = '';
+					}
+					updateSuggestions();
+				}
+			}}
 			oninput={updateSuggestions}
 			onkeydown={handleKeydown}
 			onfocus={() => {
@@ -184,7 +197,10 @@
 					<button
 						class="w-full px-4 py-3 text-left hover:bg-accent transition-colors duration-200 flex items-center gap-3 border-b border-color last:border-b-0
 						       {index === selectedSuggestionIndex ? 'bg-accent border-accent-primary' : ''}"
-						onclick={() => selectSuggestion(suggestion.label)}
+						onmousedown={(e) => {
+							e.preventDefault();
+							selectSuggestion(suggestion.label);
+						}}
 						type="button"
 					>
 						<span class="material-icons text-accent-primary text-sm"

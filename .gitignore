@@ -38,3 +38,4 @@ src-tauri/python/__pycache__/
 
 # Tauri signing keys (NEVER commit private keys)
 .tauri/
+__screenshots__

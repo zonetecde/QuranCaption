@@ -74,13 +74,13 @@ describe('Subtitles editor workflow', () => {
 
 		await expect.element(surahInput).toHaveValue('1. Al-Fatihah');
 		await expect.element(workspace.getByPlaceholder('1')).toHaveValue(1);
-		await expect.element(workspace.getByText('W1V1-1', { exact: true })).toBeVisible();
+		await expect.element(workspace.getByText('W1V1-1', { exact: true }).first()).toBeVisible();
 
 		const verseInput = workspace.getByPlaceholder('1');
 		await verseInput.fill('2');
 		await expect.element(verseInput).toHaveValue(2);
-		await expect.element(workspace.getByText('W1V2-1', { exact: true })).toBeVisible();
-		await expect.element(workspace.getByText('W1V2-2', { exact: true })).toBeVisible();
+		await expect.element(workspace.getByText('W1V2-1', { exact: true }).first()).toBeVisible();
+		await expect.element(workspace.getByText('W1V2-2', { exact: true }).first()).toBeVisible();
 	});
 
 	test('clicking an added subtitle syncs the selected verse and word range', async () => {

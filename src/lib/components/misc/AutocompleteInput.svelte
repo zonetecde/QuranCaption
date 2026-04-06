@@ -13,6 +13,7 @@
 		icon: string;
 		focusOnMount?: boolean;
 		onEnterPress?: () => void;
+		onSelect?: (value: string) => void;
 	};
 
 	let {
@@ -26,7 +27,8 @@
 		labelIcon: _labelIcon,
 		icon,
 		focusOnMount,
-		onEnterPress
+		onEnterPress,
+		onSelect
 	}: Props = $props();
 
 	// Suggestions state
@@ -91,6 +93,9 @@
 		value = suggestion;
 		showSuggestions = false;
 		selectedSuggestionIndex = 0;
+		if (onSelect) {
+			onSelect(suggestion);
+		}
 	}
 
 	// Handle keyboard navigation in suggestions

@@ -19,6 +19,7 @@ const ignorePatterns = [
 	'src-tauri/target',
 	'src-tauri/binaries',
 	'src-tauri/python/quran-multi-aligner',
+	'**/*.cjs',
 	'vite.config.js.timestamp-*',
 	'vite.config.ts.timestamp-*'
 ];

@@ -2,6 +2,9 @@ import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
+const vitestBrowserHeadless =
+	Reflect.get(globalThis, 'process')?.env?.VITEST_BROWSER_HEADLESS !== 'false';
+
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	test: {
@@ -13,6 +16,7 @@ export default defineConfig({
 					environment: 'browser',
 					browser: {
 						enabled: true,
+						headless: vitestBrowserHeadless,
 						provider: 'playwright',
 						instances: [{ browser: 'chromium' }]
 					},

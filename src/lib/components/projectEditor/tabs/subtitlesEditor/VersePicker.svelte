@@ -12,6 +12,7 @@
 
 	// Current search value for surah
 	let surahSearchValue = $state('');
+	let isSurahSearchInitialized = $state(false);
 
 	// Get current surah name for display
 	let currentSurahName = $derived(() => {
@@ -40,9 +41,10 @@
 	// Update search value ONLY when current surah changes EXTERNALLY
 	$effect(() => {
 		const currentId = globalState.getSubtitlesEditorState.selectedSurah;
-		if (currentId !== lastSelectedSurahId) {
+		if (!isSurahSearchInitialized || currentId !== lastSelectedSurahId) {
 			lastSelectedSurahId = currentId;
 			surahSearchValue = currentSurahName();
+			isSurahSearchInitialized = true;
 		}
 	});
 </script>

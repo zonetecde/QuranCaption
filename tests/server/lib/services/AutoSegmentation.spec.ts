@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { detectCoverageGapIndices, parseImportedSegmentationJson } from './AutoSegmentation';
+import {
+	detectCoverageGapIndices,
+	parseImportedSegmentationJson
+} from '$lib/services/AutoSegmentation';
 
 type Segment = {
 	ref_from?: string;

@@ -147,16 +147,4 @@
 	.integration-btn.integration-danger:hover:enabled {
 		background: rgba(239, 68, 68, 0.14);
 	}
-
-	.scope-chip {
-		display: inline-flex;
-		align-items: center;
-		border-radius: 9999px;
-		padding: 0.35rem 0.65rem;
-		border: 1px solid color-mix(in srgb, var(--accent-secondary) 25%, var(--border-color));
-		background: color-mix(in srgb, var(--accent-secondary) 10%, transparent);
-		color: var(--text-primary);
-		font-size: 0.72rem;
-		font-weight: 600;
-	}
 </style>

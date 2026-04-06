@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildBlurSegmentsForRange, splitRangeByBoundaries } from './OverlayBlurSegmentation';
+import {
+	buildBlurSegmentsForRange,
+	splitRangeByBoundaries
+} from '$lib/services/OverlayBlurSegmentation';
 
 describe('splitRangeByBoundaries', () => {
 	it('splits a range using internal boundaries only', () => {
-		const result = splitRangeByBoundaries(
-			{ start: 0, end: 1000 },
-			[-50, 0, 200, 500, 1000, 1200]
-		);
+		const result = splitRangeByBoundaries({ start: 0, end: 1000 }, [-50, 0, 200, 500, 1000, 1200]);
 		expect(result).toEqual([
 			{ start: 0, end: 200 },
 			{ start: 200, end: 500 },
@@ -18,10 +18,8 @@ describe('splitRangeByBoundaries', () => {
 
 describe('buildBlurSegmentsForRange', () => {
 	it('merges adjacent segments with identical blur values', () => {
-		const result = buildBlurSegmentsForRange(
-			{ start: 0, end: 1000 },
-			[200, 500, 800],
-			(time) => (time < 500 ? 5 : 10)
+		const result = buildBlurSegmentsForRange({ start: 0, end: 1000 }, [200, 500, 800], (time) =>
+			time < 500 ? 5 : 10
 		);
 
 		expect(result).toEqual([
@@ -36,10 +34,8 @@ describe('buildBlurSegmentsForRange', () => {
 	});
 
 	it('normalizes invalid blur values to 0', () => {
-		const result = buildBlurSegmentsForRange(
-			{ start: 0, end: 100 },
-			[50],
-			(time) => (time < 50 ? Number.NaN : Number.POSITIVE_INFINITY)
+		const result = buildBlurSegmentsForRange({ start: 0, end: 100 }, [50], (time) =>
+			time < 50 ? Number.NaN : Number.POSITIVE_INFINITY
 		);
 		expect(result).toEqual([{ start: 0, end: 100, blur: 0 }]);
 	});

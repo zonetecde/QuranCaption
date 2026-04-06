@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { SUPPORT_PROMPT_COOLDOWN_MS, shouldShowSupportPrompt } from './SupportPromptService';
+import {
+	SUPPORT_PROMPT_COOLDOWN_MS,
+	shouldShowSupportPrompt
+} from '$lib/services/SupportPromptService';
 
 describe('shouldShowSupportPrompt', () => {
 	it('returns true when last close timestamp is the epoch', () => {

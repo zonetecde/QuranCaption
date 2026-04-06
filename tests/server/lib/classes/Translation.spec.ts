@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { Edition } from './Edition';
-import { VerseTranslation } from './Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import { Edition } from '$lib/classes/Edition';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
 
 describe('VerseTranslation.tryRecalculateTranslationIndexes', () => {
 	const edition = new Edition('test', 'test', 'Test Author', 'en', 'ltr', 'test', '', '', '');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Category, Style, StylesData } from './VideoStyle.svelte';
+import { Category, Style, StylesData } from '$lib/classes/VideoStyle.svelte';
 
 describe('StylesData overlay overrides on global target', () => {
 	function createGlobalStylesData() {
@@ -46,4 +46,3 @@ describe('StylesData overlay overrides on global target', () => {
 		expect(styles.hasOverrideForAny([1001], 'overlay-enable')).toBe(false);
 	});
 });
-

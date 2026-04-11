@@ -12,6 +12,7 @@ export class ProjectService {
 	private static projectsFolder: string = 'projects/';
 	private static assetsFolder: string = 'assets/';
 	private static detailsLoadConcurrency = 16;
+	private static exportLogsLimit = 50000;
 
 	private static async mapWithConcurrency<T, R>(
 		items: T[],
@@ -97,12 +98,20 @@ export class ProjectService {
 	}
 
 	static async appendExportLog(projectId: number, logEntry: string): Promise<void> {
+		await this.appendExportLogs(projectId, [logEntry]);
+	}
+
+	static async appendExportLogs(projectId: number, logEntries: string[]): Promise<void> {
+		if (logEntries.length === 0) return;
+
 		try {
 			const project = await this.load(projectId);
 			const existingLogs = Array.isArray(project.projectEditorState.export.exportLogs)
 				? project.projectEditorState.export.exportLogs
 				: [];
-			project.projectEditorState.export.exportLogs = [...existingLogs, logEntry].slice(-200);
+			project.projectEditorState.export.exportLogs = [...existingLogs, ...logEntries].slice(
+				-this.exportLogsLimit
+			);
 			await this.save(project);
 
 			if (globalState.currentProject?.detail.id === projectId) {
@@ -110,7 +119,7 @@ export class ProjectService {
 					project.projectEditorState.export.exportLogs;
 			}
 		} catch (error) {
-			console.warn(`Failed to append export log to project ${projectId}:`, error);
+			console.warn(`Failed to append export logs to project ${projectId}:`, error);
 		}
 	}
 

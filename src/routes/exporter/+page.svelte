@@ -64,6 +64,9 @@
 	let hasTerminalState = false;
 	let heartbeatState: ExportState = ExportState.CapturingFrames;
 	let heartbeatCurrentTime = 0;
+	let exportTraceSequence = 0;
+	let pendingProjectExportLogs: string[] = [];
+	let isFlushingProjectExportLogs = false;
 	const capturePlatform = detectExportCapturePlatform(
 		typeof navigator === 'undefined' ? null : navigator.userAgent
 	);
@@ -152,6 +155,12 @@
 
 		// Vérifie que c'est bien pour cette exportation
 		if (data.export_id !== exportId) return;
+		await traceExportStep('rust_export_progress_event', {
+			progress: data.progress ?? null,
+			currentTimeSeconds: data.current_time,
+			totalTimeSeconds: data.total_time ?? null,
+			chunkIndex: data.chunk_index ?? null
+		});
 
 		if (data.progress !== null && data.progress !== undefined) {
 			console.log(
@@ -212,7 +221,7 @@
 		if (data.exportId !== exportId) return;
 
 		console.log(`[OK] Export complete! File saved as: ${data.filename}`);
-		await appendProjectExportLog('export_complete', {
+		await traceExportStep('export_complete', {
 			filename: data.filename,
 			chunkIndex: data.chunkIndex ?? null
 		});
@@ -237,7 +246,7 @@
 
 		if (error.export_id !== exportId) return;
 
-		await appendProjectExportLog('export_error_event', {
+		await traceExportStep('export_error_event', {
 			error: error.error
 		});
 		await failExport(error.error);
@@ -246,6 +255,12 @@
 	async function emitProgress(progress: ExportProgress) {
 		heartbeatState = progress.currentState;
 		heartbeatCurrentTime = progress.currentTime ?? heartbeatCurrentTime;
+		await appendProjectExportLog('emit_progress', {
+			state: progress.currentState,
+			progress: progress.progress,
+			currentTime: progress.currentTime ?? null,
+			errorLog: progress.errorLog ?? null
+		});
 		(await getAllWindows()).find((w) => w.label === 'main')!.emit('export-progress-main', progress);
 	}
 
@@ -294,6 +309,36 @@
 		return globalState.currentProject?.projectEditorState.export.originalProjectId ?? null;
 	}
 
+	async function flushProjectExportLogs(): Promise<void> {
+		if (isFlushingProjectExportLogs || pendingProjectExportLogs.length === 0) return;
+
+		const originalProjectId = getOriginalProjectId();
+		if (!originalProjectId) {
+			pendingProjectExportLogs = [];
+			return;
+		}
+
+		isFlushingProjectExportLogs = true;
+		const logBatch = pendingProjectExportLogs.splice(0, pendingProjectExportLogs.length);
+
+		try {
+			await ProjectService.appendExportLogs(originalProjectId, logBatch);
+			await (
+				await getAllWindows()
+			)
+				.find((w) => w.label === 'main')
+				?.emit('project-export-log-batch-main', {
+					projectId: originalProjectId,
+					logEntries: logBatch
+				});
+		} finally {
+			isFlushingProjectExportLogs = false;
+			if (pendingProjectExportLogs.length > 0) {
+				await flushProjectExportLogs();
+			}
+		}
+	}
+
 	async function appendProjectExportLog(
 		event: string,
 		payload: Record<string, unknown> = {}
@@ -301,10 +346,23 @@
 		const originalProjectId = getOriginalProjectId();
 		if (!originalProjectId) return;
 
-		await ProjectService.appendExportLog(
-			originalProjectId,
-			createProjectExportLogEntry(event, payload)
-		);
+		const logEntry = createProjectExportLogEntry(event, payload);
+		pendingProjectExportLogs.push(logEntry);
+		if (pendingProjectExportLogs.length >= 25) {
+			await flushProjectExportLogs();
+		}
+	}
+
+	async function traceExportStep(
+		event: string,
+		payload: Record<string, unknown> = {}
+	): Promise<void> {
+		const sequence = ++exportTraceSequence;
+		console.log(`[EXPORT_TRACE #${sequence}] ${event}`, payload);
+		await appendProjectExportLog(event, {
+			sequence,
+			...payload
+		});
 	}
 
 	async function failExport(error: unknown) {
@@ -324,7 +382,7 @@
 		}
 
 		console.error('[ERROR] Export failed irrecoverably:', error);
-		await appendProjectExportLog('export_failed', {
+		await traceExportStep('export_failed', {
 			errorLog
 		});
 		toast.error('Error while exporting video: ' + errorLog);
@@ -344,6 +402,7 @@
 			} as ExportProgress);
 		}
 
+		await flushProjectExportLogs();
 		await finalCleanup();
 	}
 
@@ -451,32 +510,46 @@
 		const heartbeatIntervalId = window.setInterval(() => {
 			void emitHeartbeat();
 		}, 2000);
+		const logFlushIntervalId = window.setInterval(() => {
+			void flushProjectExportLogs();
+		}, 500);
 
 		void (async () => {
 			await AnalyticsService.init();
+			await traceExportStep('export_window_mount_initialized');
 
 			// Récupère l'id de l'export, qui est en paramètre d'URL
 			const id = new URLSearchParams(window.location.search).get('id');
 			if (id) {
 				try {
 					exportId = id;
+					await traceExportStep('export_window_id_detected', {
+						exportId
+					});
 
 					// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
 					globalState.currentProject = await ExportService.loadProject(Number(id));
+					await traceExportStep('export_project_loaded', {
+						loadedProjectId: globalState.currentProject.detail.id,
+						originalProjectId: getOriginalProjectId()
+					});
 					removeHiddenTranslationsFromExportProject();
+					await traceExportStep('hidden_translations_removed');
 
 					// Créer le dossier d'export s'il n'existe pas
 					await mkdir(await join(ExportService.exportFolder, exportId), {
 						baseDir: BaseDirectory.AppData,
 						recursive: true
 					});
+					await traceExportStep('export_temp_folder_ready');
 
 					// Supprime le fichier projet JSON
 					ExportService.deleteProjectFile(Number(id));
+					await traceExportStep('export_project_file_delete_requested');
 
 					// Récupère les données d'export
 					exportData = ExportService.findExportById(Number(id))!;
-					await appendProjectExportLog('export_window_started', {
+					await traceExportStep('export_window_started', {
 						originalProjectId: getOriginalProjectId()
 					});
 
@@ -501,9 +574,10 @@
 					CHUNK_DURATION =
 						minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
 
-					console.log(
-						`Chunk size: ${chunkSize}, Chunk duration: ${CHUNK_DURATION}ms (${CHUNK_DURATION / 1000}s)`
-					);
+					await traceExportStep('export_chunk_duration_computed', {
+						chunkSize,
+						chunkDurationMs: CHUNK_DURATION
+					});
 
 					// Enlève tout les styles de position de la vidéo
 					let videoElement: HTMLElement;
@@ -520,6 +594,7 @@
 
 					// Attend 2 secondes que tout soit prêt
 					await new Promise((resolve) => setTimeout(resolve, 2000));
+					await traceExportStep('export_window_ready_after_initial_wait');
 
 					// Démarrer l'export
 					await startExport();
@@ -531,6 +606,8 @@
 
 		return () => {
 			window.clearInterval(heartbeatIntervalId);
+			window.clearInterval(logFlushIntervalId);
+			void flushProjectExportLogs();
 		};
 	});
 
@@ -541,24 +618,39 @@
 		const exportEnd = Math.round(exportData.videoEndTime);
 		const totalDuration = exportEnd - exportStart;
 
-		console.log(`Export duration: ${totalDuration}ms (${totalDuration / 1000 / 60} minutes)`);
+		await traceExportStep('start_export', {
+			exportStart,
+			exportEnd,
+			totalDuration,
+			chunkDurationMs: CHUNK_DURATION
+		});
 
 		// Si la duree est superieure a 10 minutes, on decoupe en chunks
 		if (totalDuration > CHUNK_DURATION) {
 			const baseRanges = calculateChunksWithFadeOut(exportStart, exportEnd).chunks;
 			const renderSegments = createBlurAwareRenderSegments(baseRanges);
+			await traceExportStep('start_export_segmented_due_to_duration', {
+				baseRangeCount: baseRanges.length,
+				renderSegmentCount: renderSegments.length
+			});
 			await handleSegmentedExport(renderSegments, totalDuration);
 			return;
 		}
 
 		const shortExportBlurSegments = getBlurSegmentsForRange(exportStart, exportEnd);
 		if (shortExportBlurSegments.length > 1) {
+			await traceExportStep('start_export_segmented_due_to_blur_segments', {
+				renderSegmentCount: shortExportBlurSegments.length
+			});
 			await handleSegmentedExport(shortExportBlurSegments, totalDuration);
 			return;
 		}
 
 		activeVideoSegments = [{ start: exportStart, end: exportEnd }];
 		const blur = shortExportBlurSegments[0]?.blur ?? 0;
+		await traceExportStep('start_export_normal', {
+			blur
+		});
 		await handleNormalExport(exportStart, exportEnd, totalDuration, blur);
 	}
 
@@ -603,6 +695,10 @@
 
 	async function handleSegmentedExport(renderSegments: BlurSegment[], totalDuration: number) {
 		if (renderSegments.length === 0) return;
+		await traceExportStep('handle_segmented_export_start', {
+			renderSegmentCount: renderSegments.length,
+			totalDuration
+		});
 		activeVideoSegments = renderSegments.map((segment) => ({
 			start: segment.start,
 			end: segment.end
@@ -612,6 +708,12 @@
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
 			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
+			await traceExportStep('handle_segmented_export_generate_images_for_segment_start', {
+				segmentIndex,
+				segmentStart: segment.start,
+				segmentEnd: segment.end,
+				blur: segment.blur
+			});
 
 			await createChunkImageFolder(segmentImageFolder);
 			await generateImagesForChunk(
@@ -623,6 +725,9 @@
 				0,
 				100
 			);
+			await traceExportStep('handle_segmented_export_generate_images_for_segment_done', {
+				segmentIndex
+			});
 		}
 
 		emitProgress({
@@ -637,6 +742,10 @@
 			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 			const segmentDuration = segment.end - segment.start;
+			await traceExportStep('handle_segmented_export_generate_video_for_segment_start', {
+				segmentIndex,
+				segmentDuration
+			});
 
 			const segmentVideoPath = await generateVideoForChunk(
 				segmentIndex,
@@ -647,9 +756,17 @@
 			);
 
 			generatedVideoFiles.push(segmentVideoPath);
+			await traceExportStep('handle_segmented_export_generate_video_for_segment_done', {
+				segmentIndex,
+				segmentVideoPath
+			});
 		}
 
+		await traceExportStep('handle_segmented_export_concatenate_start', {
+			videoFileCount: generatedVideoFiles.length
+		});
 		await concatenateVideos(generatedVideoFiles);
+		await traceExportStep('handle_segmented_export_concatenate_done');
 		await finalCleanup();
 
 		emitProgress({
@@ -753,6 +870,10 @@
 			recursive: true
 		});
 		console.log(`Created chunk folder: ${chunkPath}`);
+		await traceExportStep('create_chunk_image_folder_done', {
+			chunkImageFolder,
+			chunkPath
+		});
 	}
 
 	async function generateImagesForChunk(
@@ -764,6 +885,13 @@
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
 	) {
+		await traceExportStep('generate_images_for_chunk_start', {
+			chunkIndex,
+			chunkStart,
+			chunkEnd,
+			chunkImageFolder,
+			totalChunks
+		});
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
@@ -784,6 +912,12 @@
 			const sourceTimingForDuplication = Array.from(chunkTimings.duplicableTimings.entries()).find(
 				([target]) => target === timing // target = timing qui doit être dupliqué
 			)?.[1];
+			await traceExportStep('generate_images_for_chunk_iteration_start', {
+				chunkIndex,
+				timing,
+				imageIndex,
+				sourceTimingForDuplication: sourceTimingForDuplication ?? null
+			});
 
 			// Si c'est dupliquable
 			if (sourceTimingForDuplication !== undefined) {
@@ -797,6 +931,13 @@
 					chunkIndex,
 					timing,
 					imageIndex
+				});
+				await traceExportStep('generate_images_for_chunk_iteration_duplicate', {
+					chunkIndex,
+					timing,
+					imageIndex,
+					sourceIndex,
+					duplicateType: 'frame'
 				});
 			} else if (
 				hasTiming(chunkTimings.blankImgs, timing).hasIt &&
@@ -814,6 +955,13 @@
 					timing,
 					imageIndex
 				});
+				await traceExportStep('generate_images_for_chunk_iteration_duplicate', {
+					chunkIndex,
+					timing,
+					imageIndex,
+					duplicateType: 'blank',
+					surah: surahInfo.surah
+				});
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
@@ -826,6 +974,11 @@
 				await takeScreenshot({
 					fileName: `${imageIndex}`,
 					subfolder: chunkImageFolder,
+					chunkIndex,
+					timing,
+					imageIndex
+				});
+				await traceExportStep('generate_images_for_chunk_iteration_capture_done', {
 					chunkIndex,
 					timing,
 					imageIndex
@@ -845,6 +998,11 @@
 							chunkIndex,
 							timing,
 							imageIndex: `blank_${surahNum}`
+						});
+						await traceExportStep('generate_images_for_chunk_blank_capture_done', {
+							chunkIndex,
+							timing,
+							surahNum
 						});
 						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
 						break; // Une seule sourate par timing
@@ -878,6 +1036,10 @@
 				totalTime: exportData!.videoEndTime - exportData!.videoStartTime
 			} as ExportProgress);
 		}
+		await traceExportStep('generate_images_for_chunk_done', {
+			chunkIndex,
+			totalCapturedFrames: chunkTimings.uniqueSorted.length
+		});
 	}
 
 	async function generateVideoForChunk(
@@ -887,6 +1049,13 @@
 		chunkDuration: number,
 		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
 	): Promise<string> {
+		await traceExportStep('generate_video_for_chunk_start', {
+			chunkIndex,
+			chunkImageFolder,
+			chunkStart,
+			chunkDuration,
+			blur
+		});
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
@@ -935,15 +1104,27 @@
 			});
 
 			console.log(`[OK] Chunk ${chunkIndex} video generated successfully`);
+			await traceExportStep('generate_video_for_chunk_done', {
+				chunkIndex,
+				chunkFinalFilePath
+			});
 			return chunkFinalFilePath;
 		} catch (e: unknown) {
 			console.error(`[ERROR] Error generating chunk ${chunkIndex} video:`, e);
+			await traceExportStep('generate_video_for_chunk_failed', {
+				chunkIndex,
+				error: stringifyError(e)
+			});
 			throw e;
 		}
 	}
 
 	async function concatenateVideos(videoFilePaths: string[]) {
 		console.log('Starting video concatenation...');
+		await traceExportStep('concatenate_videos_start', {
+			videoFileCount: videoFilePaths.length,
+			videoFilePaths
+		});
 
 		try {
 			const finalVideoPath = await invoke('concat_videos', {
@@ -963,8 +1144,14 @@
 					console.warn(`Could not delete chunk video ${videoPath}:`, e);
 				}
 			}
+			await traceExportStep('concatenate_videos_done', {
+				videoFileCount: videoFilePaths.length
+			});
 		} catch (e: unknown) {
 			console.error('[ERROR] Error concatenating videos:', e);
+			await traceExportStep('concatenate_videos_failed', {
+				error: stringifyError(e)
+			});
 			throw e;
 		}
 	}
@@ -992,6 +1179,12 @@
 		totalDuration: number,
 		blur: number
 	) {
+		await traceExportStep('handle_normal_export_start', {
+			exportStart,
+			exportEnd,
+			totalDuration,
+			blur
+		});
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
@@ -1017,6 +1210,11 @@
 			const sourceTimingForDuplication = Array.from(timings.duplicableTimings.entries()).find(
 				([target]) => target === timing
 			)?.[1];
+			await traceExportStep('handle_normal_export_iteration_start', {
+				timing,
+				imageIndex,
+				sourceTimingForDuplication: sourceTimingForDuplication ?? null
+			});
 
 			if (sourceTimingForDuplication !== undefined) {
 				// Ce timing peut être dupliqué depuis sourceTimingForDuplication
@@ -1027,6 +1225,12 @@
 				await duplicateScreenshot(`${sourceIndex}`, imageIndex, null, {
 					timing,
 					imageIndex
+				});
+				await traceExportStep('handle_normal_export_iteration_duplicate', {
+					timing,
+					imageIndex,
+					sourceIndex,
+					duplicateType: 'frame'
 				});
 				console.log(
 					`Optimisation - Duplicating screenshot from timing ${sourceTimingForDuplication} (image ${sourceIndex}) to timing ${timing} (image ${imageIndex})`
@@ -1043,6 +1247,12 @@
 					timing,
 					imageIndex
 				});
+				await traceExportStep('handle_normal_export_iteration_duplicate', {
+					timing,
+					imageIndex,
+					duplicateType: 'blank',
+					surah: surahInfo.surah
+				});
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
@@ -1056,6 +1266,10 @@
 					timing,
 					imageIndex
 				});
+				await traceExportStep('handle_normal_export_iteration_capture_done', {
+					timing,
+					imageIndex
+				});
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
 				for (const [surahStr, blankTiming] of Object.entries(timings.imgWithNothingShown)) {
@@ -1066,6 +1280,10 @@
 							fileName: `blank_${surahNum}`,
 							timing,
 							imageIndex: `blank_${surahNum}`
+						});
+						await traceExportStep('handle_normal_export_blank_capture_done', {
+							timing,
+							surahNum
 						});
 						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
 						break; // Une seule sourate par timing
@@ -1093,12 +1311,15 @@
 		}
 
 		await deleteBlankImages();
+		await traceExportStep('handle_normal_export_blank_images_deleted');
 
 		// Générer la vidéo normale
 		await generateNormalVideo(exportStart, totalDuration, blur);
+		await traceExportStep('handle_normal_export_video_generated');
 
 		// Nettoyage
 		await finalCleanup();
+		await traceExportStep('handle_normal_export_done');
 	}
 
 	/**
@@ -1281,6 +1502,11 @@
 	}
 
 	async function generateNormalVideo(exportStart: number, duration: number, blur: number) {
+		await traceExportStep('generate_normal_video_start', {
+			exportStart,
+			duration,
+			blur
+		});
 		emitProgress({
 			exportId: Number(exportId),
 			progress: 0,
@@ -1309,6 +1535,7 @@
 
 		// Supprimer les images blanks avant l'export vidéo
 		await deleteBlankImages();
+		await traceExportStep('generate_normal_video_blank_images_deleted');
 
 		try {
 			await invoke('export_video', {
@@ -1324,7 +1551,11 @@
 				blur: blur,
 				performanceProfile: globalState.getExportState.performanceProfile
 			});
+			await traceExportStep('generate_normal_video_invoke_done');
 		} catch (e: unknown) {
+			await traceExportStep('generate_normal_video_failed', {
+				error: stringifyError(e)
+			});
 			throw e;
 		}
 	}
@@ -1332,6 +1563,7 @@
 	async function finalCleanup() {
 		if (isCleaningUp) return;
 		isCleaningUp = true;
+		await traceExportStep('final_cleanup_start');
 
 		try {
 			// Supprime le dossier temporaire des images
@@ -1341,22 +1573,40 @@
 			});
 
 			console.log('Temporary images folder removed.');
+			await traceExportStep('final_cleanup_temp_folder_removed');
 		} catch (e) {
 			console.warn('Could not remove temporary folder:', e);
+			await traceExportStep('final_cleanup_temp_folder_remove_failed', {
+				error: stringifyError(e)
+			});
 		}
 
 		// Ferme la fenêtre d'export
 		try {
+			await flushProjectExportLogs();
 			await getCurrentWebviewWindow().close();
 		} catch (error) {
 			console.warn('Could not close export window:', error);
+			await traceExportStep('final_cleanup_window_close_failed', {
+				error: stringifyError(error)
+			});
 		}
 	}
 
 	async function takeScreenshot(metadata: ScreenshotCaptureMetadata) {
 		const { fileName, subfolder = null } = metadata;
+		await traceExportStep('take_screenshot_called', {
+			fileName,
+			subfolder,
+			chunkIndex: metadata.chunkIndex ?? null,
+			timing: metadata.timing ?? null,
+			imageIndex: metadata.imageIndex ?? metadata.fileName
+		});
 		const node = document.getElementById('overlay');
 		if (!node) {
+			await traceExportStep('take_screenshot_overlay_missing', {
+				fileName
+			});
 			throw new ScreenshotCaptureError(metadata, {
 				stage: 'createContext',
 				attempt: 1,
@@ -1375,6 +1625,14 @@
 		const scaleX = targetWidth / node.clientWidth;
 		const scaleY = targetHeight / node.clientHeight;
 		const scale = Math.min(scaleX, scaleY);
+		await traceExportStep('take_screenshot_dimensions_ready', {
+			fileName,
+			targetWidth,
+			targetHeight,
+			nodeWidth: node.clientWidth,
+			nodeHeight: node.clientHeight,
+			scale
+		});
 		let previousFailureStage: ScreenshotCaptureStage | null = null;
 
 		for (let attempt = 1; attempt <= EXPORT_CAPTURE_MAX_ATTEMPTS; attempt++) {
@@ -1389,8 +1647,19 @@
 				previousFailureStage
 			);
 			let stage: ScreenshotCaptureStage = 'createContext';
+			await traceExportStep('take_screenshot_attempt_start', {
+				fileName,
+				attempt,
+				timeoutMs,
+				useDataUrlFallback,
+				previousFailureStage
+			});
 
 			try {
+				await traceExportStep('take_screenshot_create_context_start', {
+					fileName,
+					attempt
+				});
 				context = await withTimeout(
 					createContext(node, {
 						width: node.clientWidth * scale,
@@ -1406,18 +1675,43 @@
 					timeoutMs,
 					`Screenshot context creation for ${fileName}`
 				);
+				await traceExportStep('take_screenshot_create_context_done', {
+					fileName,
+					attempt
+				});
 
 				stage = 'domToCanvas';
+				await traceExportStep('take_screenshot_dom_to_canvas_start', {
+					fileName,
+					attempt
+				});
 				canvas = await withTimeout(
 					domToCanvas(context),
 					timeoutMs,
 					`Screenshot rendering for ${fileName}`
 				);
+				await traceExportStep('take_screenshot_dom_to_canvas_done', {
+					fileName,
+					attempt,
+					canvasWidth: canvas.width,
+					canvasHeight: canvas.height
+				});
 
 				stage = 'encode';
+				await traceExportStep('take_screenshot_encode_start', {
+					fileName,
+					attempt,
+					useDataUrlFallback
+				});
 				const bytes = useDataUrlFallback
 					? await encodeCanvasToPngBytesViaDataUrl(canvas, timeoutMs, fileName)
 					: await encodeCanvasToPngBytesViaBlob(canvas, timeoutMs, fileName);
+				await traceExportStep('take_screenshot_encode_done', {
+					fileName,
+					attempt,
+					byteLength: bytes.length,
+					useDataUrlFallback
+				});
 
 				stage = 'writeFile';
 				const pathComponents = [ExportService.exportFolder, exportId];
@@ -1426,15 +1720,29 @@
 
 				const filePathWithName = await join(...pathComponents);
 
+				await traceExportStep('take_screenshot_write_start', {
+					fileName,
+					attempt,
+					filePathWithName
+				});
 				await withTimeout(
 					writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData }),
 					timeoutMs,
 					`Screenshot write for ${fileName}`
 				);
+				await traceExportStep('take_screenshot_write_done', {
+					fileName,
+					attempt,
+					filePathWithName
+				});
 
 				console.log(
 					`Screenshot saved to: ${filePathWithName} (attempt ${attempt}, platform=${capturePlatform}, fallback=${useDataUrlFallback})`
 				);
+				await traceExportStep('take_screenshot_attempt_success', {
+					fileName,
+					attempt
+				});
 				return;
 			} catch (error: unknown) {
 				const message = stringifyError(error);
@@ -1465,7 +1773,15 @@
 					});
 				}
 
+				await traceExportStep('take_screenshot_retry_pause_start', {
+					fileName,
+					attempt
+				});
 				await waitForRetryPause();
+				await traceExportStep('take_screenshot_retry_pause_done', {
+					fileName,
+					attempt
+				});
 			} finally {
 				if (context) {
 					destroyContext(context);
@@ -1476,6 +1792,10 @@
 				}
 				canvas = null;
 				context = null;
+				await traceExportStep('take_screenshot_attempt_cleanup_done', {
+					fileName,
+					attempt
+				});
 			}
 		}
 	}
@@ -1492,6 +1812,14 @@
 		subfolder: string | null = null,
 		metadata: Omit<ScreenshotCaptureMetadata, 'fileName' | 'subfolder'> | null = null
 	) {
+		await traceExportStep('duplicate_screenshot_start', {
+			sourceFileName: String(sourceFileName),
+			targetFileName,
+			subfolder,
+			chunkIndex: metadata?.chunkIndex ?? null,
+			timing: metadata?.timing ?? null,
+			imageIndex: metadata?.imageIndex ?? targetFileName
+		});
 		// Construire les chemins source et cible
 		const sourcePathComponents = [ExportService.exportFolder, exportId];
 		const targetPathComponents = [ExportService.exportFolder, exportId];
@@ -1515,9 +1843,21 @@
 				destination: await join(await appDataDir(), targetFilePathWithName)
 			});
 			console.log('Duplicate screenshot saved to:', targetFilePathWithName);
+			await traceExportStep('duplicate_screenshot_copy_file_done', {
+				sourceFilePathWithName,
+				targetFilePathWithName
+			});
 		} catch {
+			await traceExportStep('duplicate_screenshot_copy_file_failed_fallback', {
+				sourceFilePathWithName,
+				targetFilePathWithName
+			});
 			// Fallback: lire et écrire si la commande Rust n'existe pas
 			if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
+				await traceExportStep('duplicate_screenshot_source_missing', {
+					sourceFilePathWithName,
+					targetFilePathWithName
+				});
 				throw new ScreenshotCaptureError(
 					{
 						fileName: String(targetFileName),
@@ -1538,6 +1878,11 @@
 			const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
 			await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });
 			console.log('Duplicate screenshot saved to (fallback):', targetFilePathWithName);
+			await traceExportStep('duplicate_screenshot_fallback_done', {
+				sourceFilePathWithName,
+				targetFilePathWithName,
+				byteLength: data.length
+			});
 		}
 	}
 
@@ -1546,6 +1891,7 @@
 	 * @param subfolder Le sous-dossier où supprimer les images blanks (optionnel)
 	 */
 	async function deleteBlankImages() {
+		await traceExportStep('delete_blank_images_start');
 		try {
 			// Construire le chemin du dossier
 			const pathComponents = [ExportService.exportFolder, exportId];
@@ -1560,10 +1906,16 @@
 				if (await exists(blankFilePath, { baseDir: BaseDirectory.AppData })) {
 					await remove(blankFilePath, { baseDir: BaseDirectory.AppData });
 					console.log(`Deleted blank image: ${blankFileName}`);
+					await traceExportStep('delete_blank_image_removed', {
+						blankFileName
+					});
 				}
 			}
 		} catch (error) {
 			console.warn('Error deleting blank images:', error);
+			await traceExportStep('delete_blank_images_failed', {
+				error: stringifyError(error)
+			});
 		}
 	}
 
@@ -1648,6 +2000,9 @@
 	async function wait(timing: number) {
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
+		await traceExportStep('wait_for_frame_start', {
+			timing
+		});
 
 		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
 		let subtitlesContainer: HTMLElement;
@@ -1655,6 +2010,9 @@
 
 		if (!subtitlesContainer) {
 			await new Promise((resolve) => setTimeout(resolve, 200));
+			await traceExportStep('wait_for_frame_subtitles_container_missing', {
+				timing
+			});
 			return;
 		}
 
@@ -1664,12 +2022,22 @@
 		do {
 			if (Date.now() - startTime > timeout) {
 				console.warn(`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`);
+				await traceExportStep('wait_for_frame_opacity_timeout', {
+					timing,
+					timeout
+				});
 				break;
 			}
 			await new Promise((resolve) => setTimeout(resolve, 10));
 		} while (subtitlesContainer.style.opacity !== '1');
 
+		await traceExportStep('wait_for_frame_font_wait_start', {
+			timing
+		});
 		await QPCFontProvider.waitForFontsInElement(subtitlesContainer.querySelector('.arabic'));
+		await traceExportStep('wait_for_frame_done', {
+			timing
+		});
 	}
 </script>
 

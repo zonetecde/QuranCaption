@@ -167,6 +167,8 @@ export default class ExportService {
 	static setupListener() {
 		listen('export-progress-main', exportProgress);
 		listen('export-heartbeat-main', exportHeartbeat);
+		listen('project-export-log-main', projectExportLog);
+		listen('project-export-log-batch-main', projectExportLogBatch);
 	}
 
 	static currentlyExportingProjects() {
@@ -338,4 +340,47 @@ export interface ExportHeartbeat {
 	exportId: number;
 	currentState: ExportState;
 	currentTime?: number;
+}
+
+export interface ProjectExportLogEvent {
+	projectId: number;
+	logEntry: string;
+}
+
+function projectExportLog(event: TauriEvent<ProjectExportLogEvent>): void {
+	const data = event.payload as ProjectExportLogEvent;
+
+	if (globalState.currentProject?.detail.id === data.projectId) {
+		const existingLogs = Array.isArray(
+			globalState.currentProject.projectEditorState.export.exportLogs
+		)
+			? globalState.currentProject.projectEditorState.export.exportLogs
+			: [];
+		globalState.currentProject.projectEditorState.export.exportLogs = [
+			...existingLogs,
+			data.logEntry
+		].slice(-50000);
+	}
+}
+
+export interface ProjectExportLogBatchEvent {
+	projectId: number;
+	logEntries: string[];
+}
+
+function projectExportLogBatch(event: TauriEvent<ProjectExportLogBatchEvent>): void {
+	const data = event.payload as ProjectExportLogBatchEvent;
+	if (data.logEntries.length === 0) return;
+
+	if (globalState.currentProject?.detail.id === data.projectId) {
+		const existingLogs = Array.isArray(
+			globalState.currentProject.projectEditorState.export.exportLogs
+		)
+			? globalState.currentProject.projectEditorState.export.exportLogs
+			: [];
+		globalState.currentProject.projectEditorState.export.exportLogs = [
+			...existingLogs,
+			...data.logEntries
+		].slice(-50000);
+	}
 }

@@ -2,13 +2,20 @@ import { VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
-import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
+import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { detectExportCapturePlatform } from './ExportCapturePolicy';
 
 export default class ExportService {
 	static exportFolder: string = 'exports/';
+	private static readonly EXPORT_HEARTBEAT_INTERVAL_MS = 5000;
+	private static readonly EXPORT_HEARTBEAT_TIMEOUT_MS = 45000;
+	private static exportHeartbeatTimers = new Map<number, number>();
+	private static exportHeartbeatLastSeenAt = new Map<number, number>();
+	private static exportHeartbeatLastState = new Map<number, ExportState>();
 
 	constructor() {}
 
@@ -53,8 +60,6 @@ export default class ExportService {
 	 * @param project Le projet à ajouter
 	 */
 	static async addExport(project: Project, mode: 'recording' | 'stable' = 'stable') {
-		// Ajoute le projet à la liste des exports en cours
-
 		const fileName = project.detail.generateExportFileName() + '.mp4';
 		let filePath = await join(await this.getExportFolder(), fileName);
 
@@ -78,22 +83,26 @@ export default class ExportService {
 					project.projectEditorState.export.videoEndTime
 				).toString(),
 				mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
-				project.projectEditorState.export.fps
+				project.projectEditorState.export.fps,
+				0,
+				0,
+				'',
+				ExportKind.Video,
+				'',
+				project.projectEditorState.export.originalProjectId
 			)
 		);
 
-		// Sauvegarde les exports en cours
 		await this.saveExports();
 	}
 
 	private static async checkIfFilePathTooLong(filePath: string): Promise<string> {
-		// Si le chemin est trop long (> 250 caractères), on met `...` dans le nom du fichier (mais pas dans le chemin)
 		if (filePath.length > 250) {
 			const pathParts = filePath.split(/[/\\]/);
 			const fileName = pathParts.pop()!;
 			const dirPath = pathParts.join('/');
 
-			const newFileName = '...' + fileName.slice(-240); // Garde les 240 derniers caractères du nom de fichier
+			const newFileName = '...' + fileName.slice(-240);
 			filePath = await join(dirPath, newFileName);
 		}
 
@@ -104,10 +113,8 @@ export default class ExportService {
 	 * Sauvegarde les exports en cours.
 	 */
 	static async saveExports() {
-		// S'assure que le dossier existe
 		await ProjectService.ensureFolder(this.exportFolder);
 
-		// Construis le chemin d'accès vers le fichier contenant tout les exports
 		const filePath = await join(await appDataDir(), `exports.json`);
 
 		await writeTextFile(
@@ -124,7 +131,6 @@ export default class ExportService {
 		const filePath = await join(await appDataDir(), `exports.json`);
 
 		if ((await exists(filePath)) === false) {
-			// Aucun export trouvé
 			globalState.exportations = [];
 			return;
 		}
@@ -136,7 +142,6 @@ export default class ExportService {
 			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
 		);
 
-		// Tout les exports en cours on les mets en canceled
 		globalState.exportations.forEach((exp) => {
 			if (exp.isOnGoing()) {
 				exp.currentState = ExportState.Canceled;
@@ -148,7 +153,6 @@ export default class ExportService {
 		const exportPath = await join(await appDataDir(), this.exportFolder);
 
 		try {
-			// Construis le chemin d'accès vers le projet
 			const filePath = await join(exportPath, `${exportIdId}.json`);
 			await remove(filePath);
 		} catch (_e) {
@@ -161,22 +165,135 @@ export default class ExportService {
 	}
 
 	static setupListener() {
-		// Écoute les événements de progression d'export donné par Rust
 		listen('export-progress-main', exportProgress);
+		listen('export-heartbeat-main', exportHeartbeat);
 	}
 
 	static currentlyExportingProjects() {
 		return globalState.exportations.filter((exp) => exp.isOnGoing());
 	}
+
+	static startExportHeartbeatWatchdog(
+		exportId: number,
+		initialState: ExportState = ExportState.CapturingFrames
+	) {
+		this.clearExportHeartbeatWatchdog(exportId);
+		this.exportHeartbeatLastSeenAt.set(exportId, Date.now());
+		this.exportHeartbeatLastState.set(exportId, initialState);
+
+		const timerId = window.setInterval(() => {
+			void this.checkExportHeartbeat(exportId);
+		}, this.EXPORT_HEARTBEAT_INTERVAL_MS);
+
+		this.exportHeartbeatTimers.set(exportId, timerId);
+	}
+
+	static registerExportHeartbeat(
+		exportId: number,
+		currentState: ExportState = ExportState.CapturingFrames
+	) {
+		this.exportHeartbeatLastSeenAt.set(exportId, Date.now());
+		this.exportHeartbeatLastState.set(exportId, currentState);
+
+		if (
+			currentState === ExportState.Exported ||
+			currentState === ExportState.Error ||
+			currentState === ExportState.Canceled
+		) {
+			this.clearExportHeartbeatWatchdog(exportId);
+		}
+	}
+
+	static clearExportHeartbeatWatchdog(exportId: number) {
+		const timerId = this.exportHeartbeatTimers.get(exportId);
+		if (timerId !== undefined) {
+			window.clearInterval(timerId);
+			this.exportHeartbeatTimers.delete(exportId);
+		}
+
+		this.exportHeartbeatLastSeenAt.delete(exportId);
+		this.exportHeartbeatLastState.delete(exportId);
+	}
+
+	private static async checkExportHeartbeat(exportId: number) {
+		const exportation = globalState.exportations.find((exp) => exp.exportId === exportId);
+		if (!exportation || !exportation.isOnGoing()) {
+			this.clearExportHeartbeatWatchdog(exportId);
+			return;
+		}
+
+		const lastSeenAt = this.exportHeartbeatLastSeenAt.get(exportId);
+		if (!lastSeenAt) {
+			this.exportHeartbeatLastSeenAt.set(exportId, Date.now());
+			return;
+		}
+
+		const elapsedMs = Date.now() - lastSeenAt;
+		if (elapsedMs < this.EXPORT_HEARTBEAT_TIMEOUT_MS) return;
+
+		this.clearExportHeartbeatWatchdog(exportId);
+
+		const lastState = this.exportHeartbeatLastState.get(exportId) ?? exportation.currentState;
+		const platform = detectExportCapturePlatform(
+			typeof navigator === 'undefined' ? null : navigator.userAgent
+		);
+		const errorPayload = {
+			error: 'export_renderer_heartbeat_timeout',
+			exportId,
+			platform,
+			lastState,
+			timeoutMs: this.EXPORT_HEARTBEAT_TIMEOUT_MS,
+			lastHeartbeatAt: new Date(lastSeenAt).toISOString(),
+			detectedAt: new Date().toISOString(),
+			message:
+				'The export renderer stopped sending heartbeats. This usually means the export webview main thread froze during frame capture.'
+		};
+		const errorLog = JSON.stringify(errorPayload);
+
+		exportation.currentState = ExportState.Error;
+		exportation.percentageProgress = 100;
+		exportation.errorLog = errorLog;
+
+		if (exportation.originalProjectId) {
+			await ProjectService.appendExportLog(
+				exportation.originalProjectId,
+				JSON.stringify({
+					timestamp: new Date().toISOString(),
+					event: 'export_renderer_heartbeat_timeout',
+					exportId,
+					platform,
+					lastState,
+					timeoutMs: this.EXPORT_HEARTBEAT_TIMEOUT_MS
+				})
+			);
+		}
+
+		AnalyticsService.trackExportError(JSON.stringify(exportation), errorLog);
+		AnalyticsService.trackMacOSExportLog(errorLog, {
+			export_id: exportId.toString(),
+			...errorPayload
+		});
+
+		try {
+			const exportWindow = await WebviewWindow.getByLabel(exportId.toString());
+			if (exportWindow) {
+				await exportWindow.close();
+			}
+		} catch (error) {
+			console.warn(`Failed to close frozen export window ${exportId}:`, error);
+		}
+
+		await this.saveExports();
+	}
 }
 
 function exportProgress(event: TauriEvent<ExportProgress>): void {
 	const data = event.payload as ExportProgress;
+	ExportService.registerExportHeartbeat(data.exportId, data.currentState);
 
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
 		if (exportation.currentState === ExportState.Canceled) {
-			// Si l'exportation a été annulée, on ignore les mises à jour
 			return;
 		}
 
@@ -197,12 +314,16 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
-			// Telemetry
 			AnalyticsService.trackExportError(JSON.stringify(exportation), data.errorLog);
 		}
 	}
 
 	ExportService.saveExports();
+}
+
+function exportHeartbeat(event: TauriEvent<ExportHeartbeat>): void {
+	const data = event.payload as ExportHeartbeat;
+	ExportService.registerExportHeartbeat(data.exportId, data.currentState);
 }
 
 export interface ExportProgress {
@@ -211,4 +332,10 @@ export interface ExportProgress {
 	currentState: ExportState;
 	currentTime: number;
 	errorLog?: string;
+}
+
+export interface ExportHeartbeat {
+	exportId: number;
+	currentState: ExportState;
+	currentTime?: number;
 }

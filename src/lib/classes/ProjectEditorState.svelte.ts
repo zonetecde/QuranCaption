@@ -280,6 +280,12 @@ export class ExportState extends SerializableBase {
 	// Indique le type d'export choisie
 	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' = $state('video');
 
+	// Référence le projet source quand une copie d'export temporaire est créée.
+	originalProjectId: number | null = $state(null);
+
+	// Journal de debug temporaire pour les exports. Persisté dans le JSON du projet.
+	exportLogs: string[] = $state([]);
+
 	/*
 	 * ============================================
 	 * SUBTITLES EXPORT STATES

@@ -96,6 +96,24 @@ export class ProjectService {
 		await writeTextFile(filePath, JSON.stringify(project.toJSON(), null, 2));
 	}
 
+	static async appendExportLog(projectId: number, logEntry: string): Promise<void> {
+		try {
+			const project = await this.load(projectId);
+			const existingLogs = Array.isArray(project.projectEditorState.export.exportLogs)
+				? project.projectEditorState.export.exportLogs
+				: [];
+			project.projectEditorState.export.exportLogs = [...existingLogs, logEntry].slice(-200);
+			await this.save(project);
+
+			if (globalState.currentProject?.detail.id === projectId) {
+				globalState.currentProject.projectEditorState.export.exportLogs =
+					project.projectEditorState.export.exportLogs;
+			}
+		} catch (error) {
+			console.warn(`Failed to append export log to project ${projectId}:`, error);
+		}
+	}
+
 	/**
 	 * Sauvegarde les détails d'un projet.
 	 * @param detail Les détails du projet à sauvegarder

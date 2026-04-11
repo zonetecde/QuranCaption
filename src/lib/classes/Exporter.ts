@@ -100,6 +100,7 @@ export default class Exporter {
 	}
 
 	private static async openExportWindow(exportId: string) {
+		ExportService.startExportHeartbeatWatchdog(Number(exportId));
 		// Créer une fenêtre Tauri avec la bonne taille
 		const w = new WebviewWindow(exportId, {
 			center: false,
@@ -356,6 +357,8 @@ export default class Exporter {
 
 		// Fait une copie du projet à l'état actuelle
 		const project = globalState.currentProject!.clone();
+		project.projectEditorState.export.originalProjectId = globalState.currentProject!.detail.id;
+		project.projectEditorState.export.exportLogs = [];
 		project.detail.id = Number(exportId); // L'ID du projet est l'ID d'export
 
 		// Créer le fichier du projet dans le dossier Export afin que l'Exporter le récupère

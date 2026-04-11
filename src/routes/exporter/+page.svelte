@@ -11,6 +11,7 @@
 	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { ProjectService } from '$lib/services/ProjectService';
 	import {
 		buildBlurSegmentsForRange,
 		type BlurSegment,
@@ -61,6 +62,8 @@
 	let activeVideoSegments: TimeRange[] = [];
 	let isCleaningUp = false;
 	let hasTerminalState = false;
+	let heartbeatState: ExportState = ExportState.CapturingFrames;
+	let heartbeatCurrentTime = 0;
 	const capturePlatform = detectExportCapturePlatform(
 		typeof navigator === 'undefined' ? null : navigator.userAgent
 	);
@@ -209,6 +212,10 @@
 		if (data.exportId !== exportId) return;
 
 		console.log(`[OK] Export complete! File saved as: ${data.filename}`);
+		await appendProjectExportLog('export_complete', {
+			filename: data.filename,
+			chunkIndex: data.chunkIndex ?? null
+		});
 
 		// Si c'est un chunk, ne pas emettre 100% maintenant (ca sera fait a la fin de tous les chunks)
 		if (data.chunkIndex === undefined) {
@@ -230,11 +237,30 @@
 
 		if (error.export_id !== exportId) return;
 
+		await appendProjectExportLog('export_error_event', {
+			error: error.error
+		});
 		await failExport(error.error);
 	}
 
 	async function emitProgress(progress: ExportProgress) {
+		heartbeatState = progress.currentState;
+		heartbeatCurrentTime = progress.currentTime ?? heartbeatCurrentTime;
 		(await getAllWindows()).find((w) => w.label === 'main')!.emit('export-progress-main', progress);
+	}
+
+	async function emitHeartbeat() {
+		if (!exportId || hasTerminalState) return;
+
+		await (
+			await getAllWindows()
+		)
+			.find((w) => w.label === 'main')
+			?.emit('export-heartbeat-main', {
+				exportId: Number(exportId),
+				currentState: heartbeatState,
+				currentTime: heartbeatCurrentTime
+			});
 	}
 
 	function stringifyError(error: unknown): string {
@@ -251,6 +277,36 @@
 		}
 	}
 
+	function createProjectExportLogEntry(
+		event: string,
+		payload: Record<string, unknown> = {}
+	): string {
+		return JSON.stringify({
+			timestamp: new Date().toISOString(),
+			event,
+			exportId,
+			platform: capturePlatform,
+			...payload
+		});
+	}
+
+	function getOriginalProjectId(): number | null {
+		return globalState.currentProject?.projectEditorState.export.originalProjectId ?? null;
+	}
+
+	async function appendProjectExportLog(
+		event: string,
+		payload: Record<string, unknown> = {}
+	): Promise<void> {
+		const originalProjectId = getOriginalProjectId();
+		if (!originalProjectId) return;
+
+		await ProjectService.appendExportLog(
+			originalProjectId,
+			createProjectExportLogEntry(event, payload)
+		);
+	}
+
 	async function failExport(error: unknown) {
 		if (hasTerminalState) return;
 		hasTerminalState = true;
@@ -258,27 +314,26 @@
 		const errorLog = stringifyError(error);
 		let analyticsProperties: Record<string, unknown> = {};
 
-		if (capturePlatform === 'macos') {
-			try {
-				const parsed = JSON.parse(errorLog);
-				if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-					analyticsProperties = parsed as Record<string, unknown>;
-				}
-			} catch {
-				analyticsProperties = {};
+		try {
+			const parsed = JSON.parse(errorLog);
+			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+				analyticsProperties = parsed as Record<string, unknown>;
 			}
+		} catch {
+			analyticsProperties = {};
 		}
 
 		console.error('[ERROR] Export failed irrecoverably:', error);
+		await appendProjectExportLog('export_failed', {
+			errorLog
+		});
 		toast.error('Error while exporting video: ' + errorLog);
 
-		if (capturePlatform === 'macos') {
-			AnalyticsService.trackMacOSExportLog(errorLog, {
-				export_id: exportId,
-				platform: capturePlatform,
-				...analyticsProperties
-			});
-		}
+		AnalyticsService.trackMacOSExportLog(errorLog, {
+			export_id: exportId,
+			platform: capturePlatform,
+			...analyticsProperties
+		});
 
 		if (exportId) {
 			await emitProgress({
@@ -387,80 +442,96 @@
 		);
 	}
 
-	onMount(async () => {
+	onMount(() => {
 		// Ecoute les evenements de progression d'export donnes par Rust
 		listen('export-progress', exportProgress);
 		listen('export-complete', exportComplete);
 		listen('export-error', exportError);
 
-		// Récupère l'id de l'export, qui est en paramètre d'URL
-		const id = new URLSearchParams(window.location.search).get('id');
-		if (id) {
-			try {
-				exportId = id;
+		const heartbeatIntervalId = window.setInterval(() => {
+			void emitHeartbeat();
+		}, 2000);
 
-				// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
-				globalState.currentProject = await ExportService.loadProject(Number(id));
-				removeHiddenTranslationsFromExportProject();
+		void (async () => {
+			await AnalyticsService.init();
 
-				// Créer le dossier d'export s'il n'existe pas
-				await mkdir(await join(ExportService.exportFolder, exportId), {
-					baseDir: BaseDirectory.AppData,
-					recursive: true
-				});
+			// Récupère l'id de l'export, qui est en paramètre d'URL
+			const id = new URLSearchParams(window.location.search).get('id');
+			if (id) {
+				try {
+					exportId = id;
 
-				// Supprime le fichier projet JSON
-				ExportService.deleteProjectFile(Number(id));
+					// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
+					globalState.currentProject = await ExportService.loadProject(Number(id));
+					removeHiddenTranslationsFromExportProject();
 
-				// Récupère les données d'export
-				exportData = ExportService.findExportById(Number(id))!;
+					// Créer le dossier d'export s'il n'existe pas
+					await mkdir(await join(ExportService.exportFolder, exportId), {
+						baseDir: BaseDirectory.AppData,
+						recursive: true
+					});
 
-				// Prépare les paramètres pour exporter la vidéo
-				globalState.getVideoPreviewState.isFullscreen = true; // Met la vidéo en plein écran
-				globalState.getVideoPreviewState.isPlaying = false; // Met la vidéo en pause
-				globalState.getVideoPreviewState.showVideosAndAudios = true; // Met la vidéo en sourdine
-				// Met le curseur au début du startTime voulu pour l'export
-				globalState.getTimelineState.cursorPosition = globalState.getExportState.videoStartTime;
-				globalState.getTimelineState.movePreviewTo = globalState.getExportState.videoStartTime;
-				// Hide waveform: consomme des ressources inutilement
-				if (globalState.settings) globalState.settings.persistentUiState.showWaveforms = false;
-				// Divise par 2 le fade duration pour l'export (car l'export le rallonge par deux, ne pas demander pourquoi)
-				globalState.getStyle('global', 'fade-duration')!.value =
-					(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
+					// Supprime le fichier projet JSON
+					ExportService.deleteProjectFile(Number(id));
 
-				// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
-				// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
-				const chunkSize = globalState.getExportState.chunkSize;
-				const minDuration = 30 * 1000; // 30 secondes en ms
-				const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
-				CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
+					// Récupère les données d'export
+					exportData = ExportService.findExportById(Number(id))!;
+					await appendProjectExportLog('export_window_started', {
+						originalProjectId: getOriginalProjectId()
+					});
 
-				console.log(
-					`Chunk size: ${chunkSize}, Chunk duration: ${CHUNK_DURATION}ms (${CHUNK_DURATION / 1000}s)`
-				);
+					// Prépare les paramètres pour exporter la vidéo
+					globalState.getVideoPreviewState.isFullscreen = true; // Met la vidéo en plein écran
+					globalState.getVideoPreviewState.isPlaying = false; // Met la vidéo en pause
+					globalState.getVideoPreviewState.showVideosAndAudios = true; // Met la vidéo en sourdine
+					// Met le curseur au début du startTime voulu pour l'export
+					globalState.getTimelineState.cursorPosition = globalState.getExportState.videoStartTime;
+					globalState.getTimelineState.movePreviewTo = globalState.getExportState.videoStartTime;
+					// Hide waveform: consomme des ressources inutilement
+					if (globalState.settings) globalState.settings.persistentUiState.showWaveforms = false;
+					// Divise par 2 le fade duration pour l'export (car l'export le rallonge par deux, ne pas demander pourquoi)
+					globalState.getStyle('global', 'fade-duration')!.value =
+						(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
 
-				// Enlève tout les styles de position de la vidéo
-				let videoElement: HTMLElement;
-				// Attend que l'élément soit prêt
-				do {
-					await new Promise((resolve) => setTimeout(resolve, 100));
-					videoElement = document.getElementById('video-preview-section') as HTMLElement;
-					videoElement.style.objectFit = 'cover';
-					videoElement.style.top = '0';
-					videoElement.style.left = '0';
-					videoElement.style.width = '100%';
-					videoElement.style.height = '100%';
-				} while (!videoElement);
+					// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
+					// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
+					const chunkSize = globalState.getExportState.chunkSize;
+					const minDuration = 30 * 1000; // 30 secondes en ms
+					const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
+					CHUNK_DURATION =
+						minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
 
-				// Attend 2 secondes que tout soit prêt
-				await new Promise((resolve) => setTimeout(resolve, 2000));
+					console.log(
+						`Chunk size: ${chunkSize}, Chunk duration: ${CHUNK_DURATION}ms (${CHUNK_DURATION / 1000}s)`
+					);
 
-				// Démarrer l'export
-				await startExport();
-			} catch (error) {
-				await failExport(error);
+					// Enlève tout les styles de position de la vidéo
+					let videoElement: HTMLElement;
+					// Attend que l'élément soit prêt
+					do {
+						await new Promise((resolve) => setTimeout(resolve, 100));
+						videoElement = document.getElementById('video-preview-section') as HTMLElement;
+						videoElement.style.objectFit = 'cover';
+						videoElement.style.top = '0';
+						videoElement.style.left = '0';
+						videoElement.style.width = '100%';
+						videoElement.style.height = '100%';
+					} while (!videoElement);
+
+					// Attend 2 secondes que tout soit prêt
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+
+					// Démarrer l'export
+					await startExport();
+				} catch (error) {
+					await failExport(error);
+				}
 			}
-		}
+		})();
+
+		return () => {
+			window.clearInterval(heartbeatIntervalId);
+		};
 	});
 
 	async function startExport() {
@@ -1368,6 +1439,18 @@
 			} catch (error: unknown) {
 				const message = stringifyError(error);
 				previousFailureStage = stage;
+				await appendProjectExportLog('screenshot_capture_attempt_failed', {
+					fileName,
+					chunkIndex: metadata.chunkIndex ?? null,
+					timing: metadata.timing ?? null,
+					imageIndex: metadata.imageIndex ?? metadata.fileName,
+					stage,
+					attempt,
+					timeoutMs,
+					platform: capturePlatform,
+					usedDataUrlFallback: useDataUrlFallback,
+					message
+				});
 				console.warn(
 					`Screenshot capture attempt ${attempt}/${EXPORT_CAPTURE_MAX_ATTEMPTS} failed for ${fileName} at stage ${stage} on ${capturePlatform}: ${message}`
 				);

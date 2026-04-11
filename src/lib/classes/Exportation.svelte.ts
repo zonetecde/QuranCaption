@@ -36,6 +36,7 @@ export default class Exportation extends SerializableBase {
 	errorLog: string;
 	fps: number;
 	date: string;
+	originalProjectId: number | null;
 
 	constructor(
 		exportId: number,
@@ -51,7 +52,8 @@ export default class Exportation extends SerializableBase {
 		currentTreatedTime: number = 0,
 		errorLog: string = '',
 		exportKind: ExportKind = ExportKind.Video,
-		exportLabel: string = ''
+		exportLabel: string = '',
+		originalProjectId: number | null = null
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -72,6 +74,7 @@ export default class Exportation extends SerializableBase {
 		this.currentTreatedTime = $state(currentTreatedTime);
 		this.errorLog = $state(errorLog);
 		this.date = $state(new Date().toISOString());
+		this.originalProjectId = $state(originalProjectId);
 	}
 
 	isOnGoing() {

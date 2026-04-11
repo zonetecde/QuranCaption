@@ -10,22 +10,26 @@
 	import { exists, BaseDirectory, mkdir, writeFile, remove, readFile } from '@tauri-apps/plugin-fs';
 	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import {
 		buildBlurSegmentsForRange,
 		type BlurSegment,
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
+	import {
+		EXPORT_CAPTURE_MAX_ATTEMPTS,
+		detectExportCapturePlatform,
+		getCaptureAttemptTimeoutMs,
+		shouldRetryCapture,
+		shouldUseDataUrlFallback,
+		type ScreenshotCaptureStage
+	} from '$lib/services/ExportCapturePolicy';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
 	import { createContext, destroyContext, domToCanvas } from 'modern-screenshot';
 	import { ClipWithTranslation, CustomTextClip, SilenceClip } from '$lib/classes/Clip.svelte';
-
-	const SCREENSHOT_CAPTURE_TIMEOUT_MS = 6_000;
-	const SCREENSHOT_CAPTURE_TIMEOUT_MIN_MS = 500;
-	const SCREENSHOT_CAPTURE_TIMEOUT_STEP_MS = 500;
-	let screenshotCaptureTimeoutMs = SCREENSHOT_CAPTURE_TIMEOUT_MS;
 
 	async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
 		let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -55,6 +59,68 @@
 	// chunkSize = 1 -> 30s, chunkSize = 50 -> 2min30, chunkSize = 200 -> 10min
 	let CHUNK_DURATION = 0; // Sera calculé dans onMount
 	let activeVideoSegments: TimeRange[] = [];
+	let isCleaningUp = false;
+	let hasTerminalState = false;
+	const capturePlatform = detectExportCapturePlatform(
+		typeof navigator === 'undefined' ? null : navigator.userAgent
+	);
+
+	type ScreenshotCaptureMetadata = {
+		fileName: string;
+		subfolder?: string | null;
+		chunkIndex?: number;
+		timing?: number;
+		imageIndex?: string | number;
+	};
+
+	type ScreenshotAttemptFailure = {
+		stage: ScreenshotCaptureStage;
+		attempt: number;
+		timeoutMs: number;
+		usedDataUrlFallback: boolean;
+		message: string;
+	};
+
+	class ScreenshotCaptureError extends Error {
+		readonly exportId: string;
+		readonly fileName: string;
+		readonly chunkIndex?: number;
+		readonly timing?: number;
+		readonly imageIndex?: string | number;
+		readonly stage: ScreenshotCaptureStage;
+		readonly attempt: number;
+		readonly timeoutMs: number;
+		readonly platform = capturePlatform;
+		readonly usedDataUrlFallback: boolean;
+
+		constructor(metadata: ScreenshotCaptureMetadata, failure: ScreenshotAttemptFailure) {
+			const payload = {
+				error: 'screenshot_capture_failed',
+				exportId,
+				fileName: metadata.fileName,
+				chunkIndex: metadata.chunkIndex,
+				timing: metadata.timing,
+				imageIndex: metadata.imageIndex ?? metadata.fileName,
+				stage: failure.stage,
+				attempt: failure.attempt,
+				timeoutMs: failure.timeoutMs,
+				platform: capturePlatform,
+				usedDataUrlFallback: failure.usedDataUrlFallback,
+				message: failure.message
+			};
+			super(JSON.stringify(payload));
+			this.name = 'ScreenshotCaptureError';
+			this.exportId = exportId;
+			this.fileName = metadata.fileName;
+			this.chunkIndex = metadata.chunkIndex;
+			this.timing = metadata.timing;
+			this.imageIndex = metadata.imageIndex ?? metadata.fileName;
+			this.stage = failure.stage;
+			this.attempt = failure.attempt;
+			this.timeoutMs = failure.timeoutMs;
+			this.usedDataUrlFallback = failure.usedDataUrlFallback;
+		}
+	}
 
 	type ExportProgressEvent = {
 		payload: {
@@ -164,16 +230,114 @@
 
 		if (error.export_id !== exportId) return;
 
-		emitProgress({
-			exportId: Number(exportId),
-			progress: 100,
-			currentState: ExportState.Error,
-			errorLog: error.error
-		} as ExportProgress);
+		await failExport(error.error);
 	}
 
 	async function emitProgress(progress: ExportProgress) {
 		(await getAllWindows()).find((w) => w.label === 'main')!.emit('export-progress-main', progress);
+	}
+
+	function stringifyError(error: unknown): string {
+		if (error instanceof Error) return error.message;
+		if (typeof error === 'string') return error;
+
+		try {
+			if (typeof error === 'object' && error !== null) {
+				return JSON.stringify(error, Object.getOwnPropertyNames(error));
+			}
+			return JSON.stringify(error);
+		} catch {
+			return String(error ?? 'Unknown error');
+		}
+	}
+
+	async function failExport(error: unknown) {
+		if (hasTerminalState) return;
+		hasTerminalState = true;
+
+		const errorLog = stringifyError(error);
+		let analyticsProperties: Record<string, unknown> = {};
+
+		if (capturePlatform === 'macos') {
+			try {
+				const parsed = JSON.parse(errorLog);
+				if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+					analyticsProperties = parsed as Record<string, unknown>;
+				}
+			} catch {
+				analyticsProperties = {};
+			}
+		}
+
+		console.error('[ERROR] Export failed irrecoverably:', error);
+		toast.error('Error while exporting video: ' + errorLog);
+
+		if (capturePlatform === 'macos') {
+			AnalyticsService.trackMacOSExportLog(errorLog, {
+				export_id: exportId,
+				platform: capturePlatform,
+				...analyticsProperties
+			});
+		}
+
+		if (exportId) {
+			await emitProgress({
+				exportId: Number(exportId),
+				progress: 100,
+				currentState: ExportState.Error,
+				errorLog
+			} as ExportProgress);
+		}
+
+		await finalCleanup();
+	}
+
+	async function waitForRetryPause() {
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		await new Promise((resolve) => setTimeout(resolve, 300));
+	}
+
+	async function blobToBytes(blob: Blob): Promise<Uint8Array> {
+		return new Uint8Array(await blob.arrayBuffer());
+	}
+
+	async function encodeCanvasToPngBytesViaBlob(
+		canvas: HTMLCanvasElement,
+		timeoutMs: number,
+		fileName: string
+	): Promise<Uint8Array> {
+		const blob = await withTimeout(
+			new Promise<Blob | null>((resolve) => {
+				canvas.toBlob((result) => resolve(result), 'image/png', 1);
+			}),
+			timeoutMs,
+			`Screenshot encoding for ${fileName}`
+		);
+
+		if (!blob) throw new Error('Canvas.toBlob returned null');
+		return blobToBytes(blob);
+	}
+
+	async function encodeCanvasToPngBytesViaDataUrl(
+		canvas: HTMLCanvasElement,
+		timeoutMs: number,
+		fileName: string
+	): Promise<Uint8Array> {
+		const dataUrl = await withTimeout(
+			Promise.resolve().then(() => canvas.toDataURL('image/png', 1)),
+			timeoutMs,
+			`Screenshot data URL encoding for ${fileName}`
+		);
+		const [, base64Payload = ''] = dataUrl.split(',', 2);
+		if (!base64Payload) throw new Error('Canvas.toDataURL returned an empty payload');
+
+		const binary = atob(base64Payload);
+		const bytes = new Uint8Array(binary.length);
+		for (let i = 0; i < binary.length; i++) {
+			bytes[i] = binary.charCodeAt(i);
+		}
+		return bytes;
 	}
 
 	/**
@@ -232,66 +396,70 @@
 		// Récupère l'id de l'export, qui est en paramètre d'URL
 		const id = new URLSearchParams(window.location.search).get('id');
 		if (id) {
-			exportId = id;
+			try {
+				exportId = id;
 
-			// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
-			globalState.currentProject = await ExportService.loadProject(Number(id));
-			removeHiddenTranslationsFromExportProject();
+				// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
+				globalState.currentProject = await ExportService.loadProject(Number(id));
+				removeHiddenTranslationsFromExportProject();
 
-			// Créer le dossier d'export s'il n'existe pas
-			await mkdir(await join(ExportService.exportFolder, exportId), {
-				baseDir: BaseDirectory.AppData,
-				recursive: true
-			});
+				// Créer le dossier d'export s'il n'existe pas
+				await mkdir(await join(ExportService.exportFolder, exportId), {
+					baseDir: BaseDirectory.AppData,
+					recursive: true
+				});
 
-			// Supprime le fichier projet JSON
-			ExportService.deleteProjectFile(Number(id));
+				// Supprime le fichier projet JSON
+				ExportService.deleteProjectFile(Number(id));
 
-			// Récupère les données d'export
-			exportData = ExportService.findExportById(Number(id))!;
+				// Récupère les données d'export
+				exportData = ExportService.findExportById(Number(id))!;
 
-			// Prépare les paramètres pour exporter la vidéo
-			globalState.getVideoPreviewState.isFullscreen = true; // Met la vidéo en plein écran
-			globalState.getVideoPreviewState.isPlaying = false; // Met la vidéo en pause
-			globalState.getVideoPreviewState.showVideosAndAudios = true; // Met la vidéo en sourdine
-			// Met le curseur au début du startTime voulu pour l'export
-			globalState.getTimelineState.cursorPosition = globalState.getExportState.videoStartTime;
-			globalState.getTimelineState.movePreviewTo = globalState.getExportState.videoStartTime;
-			// Hide waveform: consomme des ressources inutilement
-			if (globalState.settings) globalState.settings.persistentUiState.showWaveforms = false;
-			// Divise par 2 le fade duration pour l'export (car l'export le rallonge par deux, ne pas demander pourquoi)
-			globalState.getStyle('global', 'fade-duration')!.value =
-				(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
+				// Prépare les paramètres pour exporter la vidéo
+				globalState.getVideoPreviewState.isFullscreen = true; // Met la vidéo en plein écran
+				globalState.getVideoPreviewState.isPlaying = false; // Met la vidéo en pause
+				globalState.getVideoPreviewState.showVideosAndAudios = true; // Met la vidéo en sourdine
+				// Met le curseur au début du startTime voulu pour l'export
+				globalState.getTimelineState.cursorPosition = globalState.getExportState.videoStartTime;
+				globalState.getTimelineState.movePreviewTo = globalState.getExportState.videoStartTime;
+				// Hide waveform: consomme des ressources inutilement
+				if (globalState.settings) globalState.settings.persistentUiState.showWaveforms = false;
+				// Divise par 2 le fade duration pour l'export (car l'export le rallonge par deux, ne pas demander pourquoi)
+				globalState.getStyle('global', 'fade-duration')!.value =
+					(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
 
-			// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
-			// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
-			const chunkSize = globalState.getExportState.chunkSize;
-			const minDuration = 30 * 1000; // 30 secondes en ms
-			const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
-			CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
+				// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
+				// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
+				const chunkSize = globalState.getExportState.chunkSize;
+				const minDuration = 30 * 1000; // 30 secondes en ms
+				const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
+				CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
 
-			console.log(
-				`Chunk size: ${chunkSize}, Chunk duration: ${CHUNK_DURATION}ms (${CHUNK_DURATION / 1000}s)`
-			);
+				console.log(
+					`Chunk size: ${chunkSize}, Chunk duration: ${CHUNK_DURATION}ms (${CHUNK_DURATION / 1000}s)`
+				);
 
-			// Enlève tout les styles de position de la vidéo
-			let videoElement: HTMLElement;
-			// Attend que l'élément soit prêt
-			do {
-				await new Promise((resolve) => setTimeout(resolve, 100));
-				videoElement = document.getElementById('video-preview-section') as HTMLElement;
-				videoElement.style.objectFit = 'cover';
-				videoElement.style.top = '0';
-				videoElement.style.left = '0';
-				videoElement.style.width = '100%';
-				videoElement.style.height = '100%';
-			} while (!videoElement);
+				// Enlève tout les styles de position de la vidéo
+				let videoElement: HTMLElement;
+				// Attend que l'élément soit prêt
+				do {
+					await new Promise((resolve) => setTimeout(resolve, 100));
+					videoElement = document.getElementById('video-preview-section') as HTMLElement;
+					videoElement.style.objectFit = 'cover';
+					videoElement.style.top = '0';
+					videoElement.style.left = '0';
+					videoElement.style.width = '100%';
+					videoElement.style.height = '100%';
+				} while (!videoElement);
 
-			// Attend 2 secondes que tout soit prêt
-			await new Promise((resolve) => setTimeout(resolve, 2000));
+				// Attend 2 secondes que tout soit prêt
+				await new Promise((resolve) => setTimeout(resolve, 2000));
 
-			// Démarrer l'export
-			await startExport();
+				// Démarrer l'export
+				await startExport();
+			} catch (error) {
+				await failExport(error);
+			}
 		}
 	});
 
@@ -554,7 +722,11 @@
 					0
 				);
 				// Prend que un seul screenshot et le duplique
-				await duplicateScreenshot(`${sourceIndex}`, imageIndex, chunkImageFolder);
+				await duplicateScreenshot(`${sourceIndex}`, imageIndex, chunkImageFolder, {
+					chunkIndex,
+					timing,
+					imageIndex
+				});
 			} else if (
 				hasTiming(chunkTimings.blankImgs, timing).hasIt &&
 				hasBlankImg(
@@ -566,7 +738,11 @@
 				const surahInfo = hasTiming(chunkTimings.blankImgs, timing);
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
-				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, chunkImageFolder);
+				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, chunkImageFolder, {
+					chunkIndex,
+					timing,
+					imageIndex
+				});
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
@@ -576,7 +752,13 @@
 				// si la difference entre timing et celui juste avant est grand, attendre un peu plus
 				await wait(timing);
 
-				await takeScreenshot(`${imageIndex}`, chunkImageFolder);
+				await takeScreenshot({
+					fileName: `${imageIndex}`,
+					subfolder: chunkImageFolder,
+					chunkIndex,
+					timing,
+					imageIndex
+				});
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
 				for (const [surahStr, blankTiming] of Object.entries(chunkTimings.imgWithNothingShown)) {
@@ -587,7 +769,12 @@
 						await wait(timing - 1);
 						const surahNum = Number(surahStr);
 						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
-						await takeScreenshot(`blank_${surahNum}`);
+						await takeScreenshot({
+							fileName: `blank_${surahNum}`,
+							chunkIndex,
+							timing,
+							imageIndex: `blank_${surahNum}`
+						});
 						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
 						break; // Une seule sourate par timing
 					}
@@ -707,12 +894,6 @@
 			}
 		} catch (e: unknown) {
 			console.error('[ERROR] Error concatenating videos:', e);
-			emitProgress({
-				exportId: Number(exportId),
-				progress: 100,
-				currentState: ExportState.Error,
-				errorLog: JSON.stringify(e, Object.getOwnPropertyNames(e))
-			} as ExportProgress);
 			throw e;
 		}
 	}
@@ -772,7 +953,10 @@
 					Math.round(sourceTimingForDuplication - exportStart - fadeDuration),
 					0
 				);
-				await duplicateScreenshot(`${sourceIndex}`, imageIndex);
+				await duplicateScreenshot(`${sourceIndex}`, imageIndex, null, {
+					timing,
+					imageIndex
+				});
 				console.log(
 					`Optimisation - Duplicating screenshot from timing ${sourceTimingForDuplication} (image ${sourceIndex}) to timing ${timing} (image ${imageIndex})`
 				);
@@ -784,7 +968,10 @@
 				const surahInfo = hasTiming(timings.blankImgs, timing);
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
-				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex);
+				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, null, {
+					timing,
+					imageIndex
+				});
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
@@ -793,14 +980,22 @@
 
 				await wait(timing + 1);
 
-				await takeScreenshot(`${imageIndex}`);
+				await takeScreenshot({
+					fileName: `${imageIndex}`,
+					timing,
+					imageIndex
+				});
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
 				for (const [surahStr, blankTiming] of Object.entries(timings.imgWithNothingShown)) {
 					if (timing === blankTiming) {
 						const surahNum = Number(surahStr);
 						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
-						await takeScreenshot(`blank_${surahNum}`);
+						await takeScreenshot({
+							fileName: `blank_${surahNum}`,
+							timing,
+							imageIndex: `blank_${surahNum}`
+						});
 						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
 						break; // Une seule sourate par timing
 					}
@@ -1059,17 +1254,14 @@
 				performanceProfile: globalState.getExportState.performanceProfile
 			});
 		} catch (e: unknown) {
-			emitProgress({
-				exportId: Number(exportId),
-				progress: 100,
-				currentState: ExportState.Error,
-				errorLog: JSON.stringify(e, Object.getOwnPropertyNames(e))
-			} as ExportProgress);
 			throw e;
 		}
 	}
 
 	async function finalCleanup() {
+		if (isCleaningUp) return;
+		isCleaningUp = true;
+
 		try {
 			// Supprime le dossier temporaire des images
 			await remove(await join(ExportService.exportFolder, exportId), {
@@ -1083,12 +1275,25 @@
 		}
 
 		// Ferme la fenêtre d'export
-		getCurrentWebviewWindow().close();
+		try {
+			await getCurrentWebviewWindow().close();
+		} catch (error) {
+			console.warn('Could not close export window:', error);
+		}
 	}
 
-	async function takeScreenshot(fileName: string, subfolder: string | null = null) {
-		// L'element a transformer en image
-		let node = document.getElementById('overlay')!;
+	async function takeScreenshot(metadata: ScreenshotCaptureMetadata) {
+		const { fileName, subfolder = null } = metadata;
+		const node = document.getElementById('overlay');
+		if (!node) {
+			throw new ScreenshotCaptureError(metadata, {
+				stage: 'createContext',
+				attempt: 1,
+				timeoutMs: getCaptureAttemptTimeoutMs(capturePlatform, 1),
+				usedDataUrlFallback: false,
+				message: 'Overlay element not found.'
+			});
+		}
 
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
 		// je veux pouvoir avoir la dimension trouvée dans les paramètres d'export
@@ -1099,87 +1304,96 @@
 		const scaleX = targetWidth / node.clientWidth;
 		const scaleY = targetHeight / node.clientHeight;
 		const scale = Math.min(scaleX, scaleY);
-		let canvas: HTMLCanvasElement | null = null;
-		let context: Awaited<
-			ReturnType<typeof createContext<typeof node extends HTMLElement ? HTMLElement : Node>>
-		> | null = null;
-		const currentTimeoutMs = screenshotCaptureTimeoutMs;
+		let previousFailureStage: ScreenshotCaptureStage | null = null;
 
-		try {
-			// Create and destroy the screenshot context explicitly so we can
-			// release the canvas backing store right after each capture.
-			context = await withTimeout(
-				createContext(node, {
-					width: node.clientWidth * scale,
-					height: node.clientHeight * scale,
-					style: {
-						// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-						transform: 'scale(' + scale + ')',
-						transformOrigin: 'top left'
-					},
-					quality: 1,
-					autoDestruct: false
-				}),
-				currentTimeoutMs,
-				`Screenshot context creation for ${fileName}`
+		for (let attempt = 1; attempt <= EXPORT_CAPTURE_MAX_ATTEMPTS; attempt++) {
+			let canvas: HTMLCanvasElement | null = null;
+			let context: Awaited<
+				ReturnType<typeof createContext<typeof node extends HTMLElement ? HTMLElement : Node>>
+			> | null = null;
+			const timeoutMs = getCaptureAttemptTimeoutMs(capturePlatform, attempt);
+			const useDataUrlFallback = shouldUseDataUrlFallback(
+				capturePlatform,
+				attempt,
+				previousFailureStage
 			);
-			canvas = await withTimeout(
-				domToCanvas(context),
-				currentTimeoutMs,
-				`Screenshot rendering for ${fileName}`
-			);
+			let stage: ScreenshotCaptureStage = 'createContext';
 
-			const blob = await withTimeout(
-				new Promise<Blob | null>((resolve) => {
-					canvas!.toBlob((result) => resolve(result), 'image/png', 1);
-				}),
-				currentTimeoutMs,
-				`Screenshot encoding for ${fileName}`
-			);
-
-			if (!blob) throw new Error('domToBlob returned null');
-
-			// Convertir le blob directement en Uint8Array (une seule copie en mémoire)
-			const buffer = await blob.arrayBuffer();
-			const bytes = new Uint8Array(buffer);
-
-			// Déterminer le chemin du fichier
-			const pathComponents = [ExportService.exportFolder, exportId];
-			if (subfolder) pathComponents.push(subfolder);
-			pathComponents.push(fileName + '.png');
-
-			const filePathWithName = await join(...pathComponents);
-
-			await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-			console.log('Screenshot saved to:', filePathWithName);
-		} catch (error: unknown) {
-			console.error('Error while taking screenshot: ', error);
-			const message =
-				error && typeof error === 'object' && 'message' in error
-					? String((error as { message?: unknown }).message ?? '')
-					: String(error ?? 'Unknown error');
-			toast.error('Error while taking screenshot: ' + message);
-
-			if (message.toLowerCase().includes('timed out')) {
-				screenshotCaptureTimeoutMs = Math.max(
-					SCREENSHOT_CAPTURE_TIMEOUT_MIN_MS,
-					screenshotCaptureTimeoutMs - SCREENSHOT_CAPTURE_TIMEOUT_STEP_MS
+			try {
+				context = await withTimeout(
+					createContext(node, {
+						width: node.clientWidth * scale,
+						height: node.clientHeight * scale,
+						style: {
+							// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+							transform: 'scale(' + scale + ')',
+							transformOrigin: 'top left'
+						},
+						quality: 1,
+						autoDestruct: false
+					}),
+					timeoutMs,
+					`Screenshot context creation for ${fileName}`
 				);
+
+				stage = 'domToCanvas';
+				canvas = await withTimeout(
+					domToCanvas(context),
+					timeoutMs,
+					`Screenshot rendering for ${fileName}`
+				);
+
+				stage = 'encode';
+				const bytes = useDataUrlFallback
+					? await encodeCanvasToPngBytesViaDataUrl(canvas, timeoutMs, fileName)
+					: await encodeCanvasToPngBytesViaBlob(canvas, timeoutMs, fileName);
+
+				stage = 'writeFile';
+				const pathComponents = [ExportService.exportFolder, exportId];
+				if (subfolder) pathComponents.push(subfolder);
+				pathComponents.push(fileName + '.png');
+
+				const filePathWithName = await join(...pathComponents);
+
+				await withTimeout(
+					writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData }),
+					timeoutMs,
+					`Screenshot write for ${fileName}`
+				);
+
+				console.log(
+					`Screenshot saved to: ${filePathWithName} (attempt ${attempt}, platform=${capturePlatform}, fallback=${useDataUrlFallback})`
+				);
+				return;
+			} catch (error: unknown) {
+				const message = stringifyError(error);
+				previousFailureStage = stage;
 				console.warn(
-					`Reduced screenshot timeout to ${screenshotCaptureTimeoutMs}ms after timeout.`
+					`Screenshot capture attempt ${attempt}/${EXPORT_CAPTURE_MAX_ATTEMPTS} failed for ${fileName} at stage ${stage} on ${capturePlatform}: ${message}`
 				);
+
+				if (!shouldRetryCapture(attempt)) {
+					throw new ScreenshotCaptureError(metadata, {
+						stage,
+						attempt,
+						timeoutMs,
+						usedDataUrlFallback: useDataUrlFallback,
+						message
+					});
+				}
+
+				await waitForRetryPause();
+			} finally {
+				if (context) {
+					destroyContext(context);
+				}
+				if (canvas) {
+					canvas.width = 0;
+					canvas.height = 0;
+				}
+				canvas = null;
+				context = null;
 			}
-		} finally {
-			if (context) {
-				destroyContext(context);
-			}
-			if (canvas) {
-				// Shrink the canvas to release its backing store immediately.
-				canvas.width = 0;
-				canvas.height = 0;
-			}
-			canvas = null;
-			context = null;
 		}
 	}
 
@@ -1192,7 +1406,8 @@
 	async function duplicateScreenshot(
 		sourceFileName: string | number,
 		targetFileName: number,
-		subfolder: string | null = null
+		subfolder: string | null = null,
+		metadata: Omit<ScreenshotCaptureMetadata, 'fileName' | 'subfolder'> | null = null
 	) {
 		// Construire les chemins source et cible
 		const sourcePathComponents = [ExportService.exportFolder, exportId];
@@ -1220,8 +1435,22 @@
 		} catch {
 			// Fallback: lire et écrire si la commande Rust n'existe pas
 			if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
-				console.error('Source screenshot does not exist:', sourceFilePathWithName);
-				return;
+				throw new ScreenshotCaptureError(
+					{
+						fileName: String(targetFileName),
+						subfolder,
+						chunkIndex: metadata?.chunkIndex,
+						timing: metadata?.timing,
+						imageIndex: metadata?.imageIndex ?? targetFileName
+					},
+					{
+						stage: 'writeFile',
+						attempt: 1,
+						timeoutMs: getCaptureAttemptTimeoutMs(capturePlatform, 1),
+						usedDataUrlFallback: false,
+						message: `Source screenshot does not exist: ${sourceFilePathWithName}`
+					}
+				);
 			}
 			const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
 			await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });

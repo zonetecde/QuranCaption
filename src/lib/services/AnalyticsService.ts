@@ -227,6 +227,13 @@ export class AnalyticsService {
 		});
 	}
 
+	static trackMacOSExportLog(errorLog: string, properties?: UnknownRecord) {
+		this.track('EXPORT_LOG_MACOS', {
+			error_log: errorLog,
+			...properties
+		});
+	}
+
 	static downloadFromMP3Quran(reciter: string, surah: string, fileName: string) {
 		this.track('download_from_mp3quran', {
 			reciter,

@@ -1,6 +1,11 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { SubtitleClip, type Edition } from '$lib/classes';
-	import { VerseTranslation } from '$lib/classes/Translation.svelte';
+	import {
+		tokenizeTranslationText,
+		type TranslationInlineStyleFlags,
+		type TranslationInlineTextSegment,
+		VerseTranslation
+	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { onDestroy, onMount } from 'svelte';
@@ -20,9 +25,19 @@
 		return subtitle.getTranslation(edition) as VerseTranslation;
 	});
 
+	let translationsEditorState = $derived(
+		() => globalState.currentProject!.projectEditorState.translationsEditor
+	);
+	let isInlineStyleMode = $derived(() => translationsEditorState().isInlineStyleMode);
+
 	// Variables pour gérer le glisser-déposer
 	let isDragging = $state(false);
 	let dragStartIndex = $state(-1);
+
+	let isInlineDragging = $state(false);
+	let inlineDragStartIndex = $state(-1);
+	let inlineSelectionStart = $state(-1);
+	let inlineSelectionEnd = $state(-1);
 
 	let originalTranslation: string = $state('');
 	let translationInput: HTMLInputElement | null = $state(null);
@@ -31,6 +46,7 @@
 	let previousSubtitleTranslationStartIndex: number = $state(-1);
 	let previousSubtitleTranslationEndIndex: number = $state(-1);
 	let manualReviewTimeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
+	let lastClickedWordIndex = $state(-1);
 
 	onMount(() => {
 		if (translation().type === 'verse') {
@@ -58,10 +74,10 @@
 			previousSubtitle.verse === subtitle.verse &&
 			previousSubtitle.surah === subtitle.surah
 		) {
-			// Alors on highlight toute la traduction du sous-titre précédent
 			const previousSubtitleTranslation = previousSubtitle.getTranslation(
 				edition
 			) as VerseTranslation;
+			// Alors on highlight toute la traduction du sous-titre précédent
 			const isTranslationLocked =
 				translation().isStatusComplete() && translation().status !== 'automatically trimmed';
 
@@ -94,9 +110,11 @@
 					// Si c'est les derniers mots du verset, normalement le trim est fait automatiquement
 					// donc on met le status à 'automatically trimmed'
 					// sinon on le met à 'to review' car il faut encore trim la fin de la traduction
-					if (subtitle.isLastWordsOfVerse)
+					if (subtitle.isLastWordsOfVerse) {
 						translation().updateStatus('automatically trimmed', edition);
-					else translation().updateStatus('to review', edition);
+					} else {
+						translation().updateStatus('to review', edition);
+					}
 				}
 			} else if (
 				previousSubtitleTranslation.status === 'reviewed' &&
@@ -109,17 +127,157 @@
 				translation().endWordIndex = previousSubtitleTranslation.endWordIndex;
 				translation().isBruteForce = previousSubtitleTranslation.isBruteForce;
 				translation().text = previousSubtitleTranslation.text;
+				translation().copyInlineStylesFrom(previousSubtitleTranslation);
 				translation().updateStatus('reviewed', edition);
 			}
 		}
 	});
 
-	let lastClickedWordIndex = $state(-1);
+	type TranslationWordItem = {
+		text: string;
+		wordIndex: number;
+		flags: TranslationInlineStyleFlags;
+	};
 
 	/**
-	 * Flushes the manual review telemetry data.
-	 * This function sends the manual review data to the telemetry service.
+	 * Retourne les toggles de style actuellement actifs dans le panneau de droite.
 	 */
+	function getCurrentInlineStyleFlags(): TranslationInlineStyleFlags {
+		return {
+			bold: translationsEditorState().inlineStyleBoldEnabled,
+			italic: translationsEditorState().inlineStyleItalicEnabled,
+			underline: translationsEditorState().inlineStyleUnderlineEnabled
+		};
+	}
+
+	/**
+	 * Indique si au moins un style (bold/italic/underline) est actif.
+	 */
+	function hasActiveInlineStyleFlags(): boolean {
+		const flags = getCurrentInlineStyleFlags();
+		return flags.bold || flags.italic || flags.underline;
+	}
+
+	/**
+	 * Convertit des flags de style en style inline CSS pour le rendu des mots.
+	 */
+	function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
+		const parts: string[] = [];
+		if (flags.bold) parts.push('font-weight: 700;');
+		if (flags.italic) parts.push('font-style: italic;');
+		if (flags.underline) parts.push('text-decoration: underline;');
+		return parts.join(' ');
+	}
+
+	/**
+	 * Retourne les styles appliques a un index de mot, ou un style vide si aucun run ne couvre ce mot.
+	 */
+	function getFlagsForWordIndex(wordIndex: number): TranslationInlineStyleFlags {
+		for (const run of translation().inlineStyleRuns ?? []) {
+			if (run.startWordIndex <= wordIndex && wordIndex <= run.endWordIndex) {
+				return {
+					bold: run.bold,
+					italic: run.italic,
+					underline: run.underline
+				};
+			}
+		}
+
+		return {
+			bold: false,
+			italic: false,
+			underline: false
+		};
+	}
+
+	/**
+	 * Tokenize la traduction trimmee et annote chaque mot avec ses styles inline.
+	 */
+	function getTrimmedTranslationWords(): TranslationWordItem[] {
+		const tokens = tokenizeTranslationText(translation().text);
+		return tokens
+			.filter((token): token is { text: string; isWord: true; wordIndex: number } =>
+				Boolean(token.isWord && token.wordIndex !== null)
+			)
+			.map((token) => ({
+				text: token.text,
+				wordIndex: token.wordIndex,
+				flags: getFlagsForWordIndex(token.wordIndex)
+			}));
+	}
+
+	/**
+	 * Construit la liste de segments texte/styles pour le rendu final de la traduction.
+	 */
+	function getStyledSegments(): TranslationInlineTextSegment[] {
+		return translation().getInlineStyledSegments();
+	}
+
+	/**
+	 * Réinitialise l'état de sélection de mots utilisé pendant le drag.
+	 */
+	function resetInlineSelection(): void {
+		isInlineDragging = false;
+		inlineDragStartIndex = -1;
+		inlineSelectionStart = -1;
+		inlineSelectionEnd = -1;
+	}
+
+	/**
+	 * Applique (toggle) les styles actifs à la sélection courante puis nettoie la sélection.
+	 */
+	function applyInlineStylesFromSelection(): void {
+		if (
+			translation().type !== 'verse' ||
+			!isInlineStyleMode() ||
+			inlineSelectionStart === -1 ||
+			inlineSelectionEnd === -1
+		) {
+			resetInlineSelection();
+			return;
+		}
+
+		const flags = getCurrentInlineStyleFlags();
+		// Rien a appliquer si aucun toggle n'est actif dans le panneau.
+		if (!hasActiveInlineStyleFlags()) {
+			resetInlineSelection();
+			return;
+		}
+
+		translation().toggleInlineStyles(inlineSelectionStart, inlineSelectionEnd, flags);
+		resetInlineSelection();
+	}
+
+	/**
+	 * Demarre une selection inline a partir d'un mot.
+	 */
+	function handleInlineMouseDown(wordIndex: number, event: MouseEvent): void {
+		if (translation().type !== 'verse' || !isInlineStyleMode()) return;
+		event.preventDefault();
+		isInlineDragging = true;
+		inlineDragStartIndex = wordIndex;
+		inlineSelectionStart = wordIndex;
+		inlineSelectionEnd = wordIndex;
+	}
+
+	/**
+	 * Etend la selection inline pendant le drag.
+	 */
+	function handleInlineMouseEnter(wordIndex: number): void {
+		if (!isInlineDragging || translation().type !== 'verse' || !isInlineStyleMode()) return;
+
+		inlineSelectionStart = Math.min(inlineDragStartIndex, wordIndex);
+		inlineSelectionEnd = Math.max(inlineDragStartIndex, wordIndex);
+	}
+
+	/**
+	 * Termine une selection inline et declenche l'application des styles.
+	 */
+	function handleInlineMouseUp(): void {
+		if (!isInlineDragging) return;
+		applyInlineStylesFromSelection();
+	}
+
 	async function flushManualReviewTelemetry(): Promise<void> {
 		if (!globalState.currentProject || translation().type !== 'verse') return;
 
@@ -144,12 +302,13 @@
 	}
 
 	function beginWordSelectionEditing(): void {
-		if (translation().type !== 'verse' || !translation().isBruteForce) return;
+		if (translation().type !== 'verse' || !translation().isBruteForce || isInlineStyleMode())
+			return;
 		translation().isBruteForce = false;
 	}
 
 	function wordClicked(i: number): void {
-		if (translation().type === 'verse') {
+		if (translation().type === 'verse' && !isInlineStyleMode()) {
 			beginWordSelectionEditing();
 			if (i < translation().startWordIndex) {
 				// Si le mot est avant le début de la traduction, on le sélectionne
@@ -158,14 +317,12 @@
 			} else if (i > translation().endWordIndex) {
 				// Si le mot est après la fin de la traduction, on étend la sélection
 				translation().endWordIndex = i;
-			} else {
+			} else if (i >= translation().startWordIndex && i <= translation().endWordIndex) {
 				// Si le mot est déjà sélectionné, on arrête la traduction à ce mot SI
 				// il nécessite review, sinon reset les curseurs sur ce mot
-				if (i >= translation().startWordIndex && i <= translation().endWordIndex) {
-					translation().endWordIndex = i;
-					if (lastClickedWordIndex === i) {
-						translation().startWordIndex = i;
-					}
+				translation().endWordIndex = i;
+				if (lastClickedWordIndex === i) {
+					translation().startWordIndex = i;
 				}
 			}
 
@@ -176,15 +333,17 @@
 		}
 	}
 
-	function updateTranslationText() {
-		translation().text = originalTranslation
-			.split(' ')
-			.slice(translation().startWordIndex, translation().endWordIndex + 1)
-			.join(' ');
+	function updateTranslationText(): void {
+		translation().setTextAndClearInlineStyles(
+			originalTranslation
+				.split(' ')
+				.slice(translation().startWordIndex, translation().endWordIndex + 1)
+				.join(' ')
+		);
 	}
 
 	function handleMouseDown(i: number, event: MouseEvent): void {
-		if (translation().type === 'verse') {
+		if (translation().type === 'verse' && !isInlineStyleMode()) {
 			beginWordSelectionEditing();
 			event.preventDefault();
 			isDragging = true;
@@ -194,7 +353,7 @@
 	}
 
 	function handleMouseEnter(i: number): void {
-		if (isDragging && translation().type === 'verse') {
+		if (isDragging && translation().type === 'verse' && !isInlineStyleMode()) {
 			beginWordSelectionEditing();
 			const startIndex = Math.min(dragStartIndex, i);
 			const endIndex = Math.max(dragStartIndex, i);
@@ -218,17 +377,20 @@
 		if (isDragging) {
 			handleMouseUp();
 		}
+		if (isInlineDragging) {
+			handleInlineMouseUp();
+		}
 	}
 
 	/**
-	 * Convertis les vrais \n en \n pour affichage dans l'input traduction
+	 * Convertis les vrais \\n en \\n pour affichage dans l'input traduction
 	 */
 	function escapeNewlinesForInput(value: string): string {
 		return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\\n');
 	}
 
 	/**
-	 * Convertit les \n écrit brute en vrai \n
+	 * Convertit les \\n écrit brute en vrai \\n
 	 */
 	function normalizeInputToTranslation(value: string): string {
 		return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\n/g, '\n');
@@ -239,7 +401,9 @@
 		editableTranslationValue = rawValue;
 
 		const translationValue = normalizeInputToTranslation(rawValue);
-		(subtitle.translations[edition.name] as VerseTranslation).text = translationValue;
+		(subtitle.translations[edition.name] as VerseTranslation).setTextAndClearInlineStyles(
+			translationValue
+		);
 		scheduleManualReviewTelemetry();
 	}
 
@@ -258,6 +422,7 @@
 	class="flex flex-col gap-3 mt-4 p-4 bg-accent border border-color rounded-lg transition-all duration-200 group"
 	onmouseleave={() => {
 		handleMouseUp();
+		handleInlineMouseUp();
 	}}
 >
 	{#if translation()}
@@ -314,7 +479,8 @@
 				</div>
 			</div>
 		</div>
-		{#if translation().type === 'verse'}
+
+		{#if translation().type === 'verse' && !isInlineStyleMode()}
 			<!-- Affiche la traduction complète du verset mot à mot -->
 			<div
 				class="flex flex-row select-none flex-wrap items-center gap-y-1 duration-300 {translation()
@@ -365,7 +531,7 @@
 
 		<!-- Indicateur de sélection - toujours visible -->
 		<div class="p-2 bg-secondary border border-color rounded-md relative">
-			{#if translation().type === 'verse'}
+			{#if translation().type === 'verse' && !isInlineStyleMode()}
 				<!-- toggle: brute force -->
 				<label
 					class="absolute top-1 right-1.75 text-primary opacity-40 hover:opacity-100 duration-200 cursor-pointer"
@@ -375,7 +541,7 @@
 					<input
 						type="checkbox"
 						bind:checked={(subtitle.translations[edition.name] as VerseTranslation).isBruteForce}
-				onchange={(e) => {
+						onchange={(e) => {
 							if ((e.target as HTMLInputElement).checked) {
 								translation().updateStatus('reviewed', edition);
 								setTimeout(() => {
@@ -393,10 +559,40 @@
 				</label>
 			{/if}
 
-			<p class="text-xs text-thirdly mb-1">Subtitle translation:</p>
-			{#if translation().type === 'verse' && !translation().isBruteForce}
+			<p class="text-xs text-thirdly mb-1">
+				{isInlineStyleMode() ? 'Styled subtitle translation:' : 'Subtitle translation:'}
+			</p>
+
+			{#if translation().type === 'verse' && isInlineStyleMode()}
+				<div
+					class="translation-style-flow select-none"
+					onmouseup={handleGlobalMouseUp}
+					role="presentation"
+				>
+					{#each getTrimmedTranslationWords() as word (`${word.wordIndex}-${word.text}`)}
+						{@const isSelected =
+							inlineSelectionStart !== -1 &&
+							inlineSelectionEnd !== -1 &&
+							inlineSelectionStart <= word.wordIndex &&
+							word.wordIndex <= inlineSelectionEnd}
+						<button
+							class={`translation-word-style text-sm transition-all duration-150 ${
+								isSelected
+									? 'translation-word-style-selected text-primary shadow-sm'
+									: 'text-primary'
+							}`}
+							style={getInlineStyleCss(word.flags)}
+							onmousedown={(event) => handleInlineMouseDown(word.wordIndex, event)}
+							onmouseenter={() => handleInlineMouseEnter(word.wordIndex)}
+							ondragstart={(event) => event.preventDefault()}
+						>
+							{word.text}
+						</button>
+					{/each}
+				</div>
+			{:else if translation().type === 'verse' && !translation().isBruteForce}
 				<p
-					class="text-sm font-medium"
+					class="text-sm font-medium whitespace-pre-line"
 					ondblclick={() => {
 						(subtitle.translations[edition.name] as VerseTranslation).isBruteForce = true;
 						translation().updateStatus('reviewed', edition);
@@ -408,21 +604,23 @@
 						}, 0);
 					}}
 				>
-					{translation().text}
+					{#each getStyledSegments() as segment, index (`${index}-${segment.text}`)}
+						<span style={getInlineStyleCss(segment)}>{segment.text}</span>
+					{/each}
 				</p>
 			{:else}
 				<!-- prettier-ignore -->
 				<input
-				bind:this={translationInput}
-				type="text"
-				value={editableTranslationValue}
-				oninput={handleTranslationInput}
-				onblur={() => {
-					void flushManualReviewTelemetry();
-				}}
-				class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
-				placeholder="Enter your translation here... (use \\n for line break)"
-			/>
+					bind:this={translationInput}
+					type="text"
+					value={editableTranslationValue}
+					oninput={handleTranslationInput}
+					onblur={() => {
+						void flushManualReviewTelemetry();
+					}}
+					class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
+					placeholder="Enter your translation here... (use \\n for line break)"
+				/>
 			{/if}
 		</div>
 	{/if}
@@ -443,16 +641,13 @@
 	.translation-word-first-selected {
 		border-right: 2px solid var(--accent-primary);
 		border-left: 0px solid var(--accent-primary);
-
 		border-radius: 0 8px 8px 0;
-
 		margin-left: 0;
 	}
 
 	.translation-word-last-selected {
 		border-left: 2px solid var(--accent-primary);
 		border-right: 0px solid var(--accent-primary);
-
 		border-radius: 8px 0 0 8px;
 		margin-right: 0;
 	}
@@ -471,10 +666,38 @@
 		z-index: 10;
 		position: relative;
 	}
+
 	.translation-word-not-selected:hover {
 		background-color: var(--bg-accent);
 		border-color: var(--border-color);
 		color: var(--text-primary);
+	}
+
+	.translation-word-style {
+		display: inline;
+		padding: 0 0.06em;
+		margin: 0 0.16em 0 0;
+		border: none;
+		border-radius: 0.3em;
+		background: transparent;
+		line-height: inherit;
+		min-height: 0;
+		box-shadow: none;
+	}
+
+	.translation-style-flow {
+		font-size: 0.95rem;
+		line-height: 1.7;
+		color: var(--text-primary);
+		cursor: text;
+	}
+
+	.translation-word-style:hover {
+		background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+	}
+
+	.translation-word-style-selected {
+		background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
 	}
 
 	/* Style pour la traduction du sous-titre précédent */

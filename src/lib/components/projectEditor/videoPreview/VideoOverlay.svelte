@@ -6,6 +6,7 @@
 		SubtitleClip,
 		Translation
 	} from '$lib/classes';
+	import { VerseTranslation, type TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -536,6 +537,14 @@ const fadeDuration = $derived(() => {
 
 		return `background: ${gradient}; opacity: 1;`;
 	}
+
+	function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
+		const parts: string[] = [];
+		if (flags.bold) parts.push('font-weight: 700;');
+		if (flags.italic) parts.push('font-style: italic;');
+		if (flags.underline) parts.push('text-decoration: underline;');
+		return parts.join(' ');
+	}
 </script>
 
 <div class="inset-0 absolute" style="" id="overlay">
@@ -650,7 +659,22 @@ const fadeDuration = $derived(() => {
 							])}; white-space: pre-line;`}
 						>
 							{#if translation.type === 'verse'}
-								{translation.getText(edition, (subtitle as SubtitleClip)!)}
+								{@const verseTranslation = translation as VerseTranslation}
+								{@const textParts = verseTranslation.getFormattedTextParts(
+									edition,
+									(subtitle as SubtitleClip)!
+								)}
+								<span class="translation-inline-flow">
+									{#if textParts.prefix}
+										<span>{textParts.prefix}</span>
+									{/if}
+									{#each verseTranslation.getInlineStyledSegments() as segment, index (`${edition}-${index}-${segment.text}`)}
+										<span style={getInlineStyleCss(segment)}>{segment.text}</span>
+									{/each}
+									{#if textParts.suffix}
+										<span>{textParts.suffix}</span>
+									{/if}
+								</span>
 							{:else}
 								{translation.getText()}
 							{/if}
@@ -677,4 +701,11 @@ const fadeDuration = $derived(() => {
 		{/each}
 	</div>
 </div>
+
+<style>
+	.translation-inline-flow {
+		display: inline;
+		white-space: inherit;
+	}
+</style>
 

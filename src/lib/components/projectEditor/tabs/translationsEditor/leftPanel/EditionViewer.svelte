@@ -120,13 +120,12 @@
 							doneSubtitlesIds.add(matchingSubtitle.id);
 
 							const tgt = matchingSubtitle.translations[edition.name] as VerseTranslation;
-							Object.assign(tgt, {
-								text: src.text,
-								startWordIndex: src.startWordIndex,
-								endWordIndex: src.endWordIndex,
-								isBruteForce: src.isBruteForce,
-								status: 'fetched'
-							});
+							tgt.text = src.text;
+							tgt.startWordIndex = src.startWordIndex;
+							tgt.endWordIndex = src.endWordIndex;
+							tgt.isBruteForce = src.isBruteForce;
+							tgt.inlineStyleRuns = [...(src.inlineStyleRuns ?? [])];
+							tgt.status = 'fetched';
 
 							if (src.isBruteForce) {
 								// Tente de retrouver des indexes propres apres import.

@@ -591,7 +591,7 @@ export function applyAdvancedTrimValidationSuccess(
 			const nextText = resultTextByIndex.get(index);
 			if (!verseTranslation || typeof nextText !== 'string') continue;
 
-			verseTranslation.text = nextText;
+			verseTranslation.setTextAndClearInlineStyles(nextText);
 			verseTranslation.isBruteForce = false;
 			verseTranslation.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
 			appliedSegments++;

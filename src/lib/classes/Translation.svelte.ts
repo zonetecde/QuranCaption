@@ -13,6 +13,307 @@ export type TranslationStatus =
 	| 'fetched'
 	| 'undefined';
 
+export type TranslationInlineStyleRun = {
+	startWordIndex: number;
+	endWordIndex: number;
+	bold: boolean;
+	italic: boolean;
+	underline: boolean;
+};
+
+export type TranslationInlineStyleFlags = Pick<
+	TranslationInlineStyleRun,
+	'bold' | 'italic' | 'underline'
+>;
+
+export type TranslationInlineTextSegment = {
+	text: string;
+	bold: boolean;
+	italic: boolean;
+	underline: boolean;
+};
+
+type TranslationTextToken = {
+	text: string;
+	isWord: boolean;
+	wordIndex: number | null;
+};
+
+const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
+	bold: false,
+	italic: false,
+	underline: false
+};
+
+/**
+ * Returns true when at least one inline style flag is active.
+ */
+function hasInlineStyle(flags: TranslationInlineStyleFlags): boolean {
+	return flags.bold || flags.italic || flags.underline;
+}
+
+/**
+ * Compares two inline style flag sets.
+ */
+function sameInlineStyleFlags(
+	left: TranslationInlineStyleFlags,
+	right: TranslationInlineStyleFlags
+): boolean {
+	return (
+		left.bold === right.bold &&
+		left.italic === right.italic &&
+		left.underline === right.underline
+	);
+}
+
+/**
+ * Creates a safe flag object with strict booleans.
+ */
+function cloneInlineStyleFlags(flags: TranslationInlineStyleFlags): TranslationInlineStyleFlags {
+	return {
+		bold: Boolean(flags.bold),
+		italic: Boolean(flags.italic),
+		underline: Boolean(flags.underline)
+	};
+}
+
+/**
+ * Splits translation text into whitespace and word tokens while preserving order,
+ * and assigns incremental word indexes to word tokens only.
+ */
+export function tokenizeTranslationText(text: string): TranslationTextToken[] {
+	const matches = text.match(/(\s+|[^\s]+)/g) ?? [];
+	let wordIndex = 0;
+
+	return matches.map((token) => {
+		const isWord = /\S/.test(token);
+		return {
+			text: token,
+			isWord,
+			wordIndex: isWord ? wordIndex++ : null
+		};
+	});
+}
+
+/**
+ * Counts how many word tokens exist in a translation string.
+ */
+export function getTranslationWordCount(text: string): number {
+	let count = 0;
+	for (const token of tokenizeTranslationText(text)) {
+		if (token.isWord) count++;
+	}
+	return count;
+}
+
+/**
+ * Normalizes inline style runs by:
+ * - clamping to text bounds,
+ * - dropping invalid/empty runs,
+ * - resolving overlaps by latest write,
+ * - and merging adjacent runs with identical flags.
+ */
+export function normalizeTranslationInlineStyleRuns(
+	runs: TranslationInlineStyleRun[],
+	totalWordCount: number
+): TranslationInlineStyleRun[] {
+	if (totalWordCount <= 0 || runs.length === 0) return [];
+
+	const states = Array.from({ length: totalWordCount }, () =>
+		cloneInlineStyleFlags(EMPTY_INLINE_STYLE_FLAGS)
+	);
+
+	for (const run of runs) {
+		const start = Number(run.startWordIndex);
+		const end = Number(run.endWordIndex);
+		if (!Number.isInteger(start) || !Number.isInteger(end) || start > end) continue;
+
+		const boundedStart = Math.max(0, Math.min(totalWordCount - 1, start));
+		const boundedEnd = Math.max(0, Math.min(totalWordCount - 1, end));
+		const flags = cloneInlineStyleFlags(run);
+		if (!hasInlineStyle(flags)) continue;
+
+		for (let index = boundedStart; index <= boundedEnd; index++) {
+			states[index] = cloneInlineStyleFlags(flags);
+		}
+	}
+
+	const normalized: TranslationInlineStyleRun[] = [];
+	let currentStart = -1;
+	let currentFlags = cloneInlineStyleFlags(EMPTY_INLINE_STYLE_FLAGS);
+
+	for (let index = 0; index < states.length; index++) {
+		const flags = states[index];
+		const isStyled = hasInlineStyle(flags);
+
+		if (!isStyled) {
+			if (currentStart !== -1) {
+				normalized.push({
+					startWordIndex: currentStart,
+					endWordIndex: index - 1,
+					...currentFlags
+				});
+				currentStart = -1;
+				currentFlags = cloneInlineStyleFlags(EMPTY_INLINE_STYLE_FLAGS);
+			}
+			continue;
+		}
+
+		if (currentStart === -1) {
+			currentStart = index;
+			currentFlags = cloneInlineStyleFlags(flags);
+			continue;
+		}
+
+		if (!sameInlineStyleFlags(currentFlags, flags)) {
+			normalized.push({
+				startWordIndex: currentStart,
+				endWordIndex: index - 1,
+				...currentFlags
+			});
+			currentStart = index;
+			currentFlags = cloneInlineStyleFlags(flags);
+		}
+	}
+
+	if (currentStart !== -1) {
+		normalized.push({
+			startWordIndex: currentStart,
+			endWordIndex: states.length - 1,
+			...currentFlags
+		});
+	}
+
+	return normalized;
+}
+
+/**
+ * Toggles selected style flags over a word range and returns normalized runs.
+ * Only flags set to true in `toggledFlags` are toggled.
+ */
+export function toggleTranslationInlineStyleRuns(
+	runs: TranslationInlineStyleRun[],
+	totalWordCount: number,
+	startWordIndex: number,
+	endWordIndex: number,
+	toggledFlags: TranslationInlineStyleFlags
+): TranslationInlineStyleRun[] {
+	if (totalWordCount <= 0 || !hasInlineStyle(toggledFlags)) {
+		return normalizeTranslationInlineStyleRuns(runs, totalWordCount);
+	}
+
+	const normalizedRuns = normalizeTranslationInlineStyleRuns(runs, totalWordCount);
+	const states = Array.from({ length: totalWordCount }, () =>
+		cloneInlineStyleFlags(EMPTY_INLINE_STYLE_FLAGS)
+	);
+
+	for (const run of normalizedRuns) {
+		for (let index = run.startWordIndex; index <= run.endWordIndex; index++) {
+			states[index] = {
+				bold: run.bold,
+				italic: run.italic,
+				underline: run.underline
+			};
+		}
+	}
+
+	const selectionStart = Math.max(
+		0,
+		Math.min(totalWordCount - 1, Math.min(startWordIndex, endWordIndex))
+	);
+	const selectionEnd = Math.max(
+		0,
+		Math.min(totalWordCount - 1, Math.max(startWordIndex, endWordIndex))
+	);
+
+	for (let index = selectionStart; index <= selectionEnd; index++) {
+		if (toggledFlags.bold) states[index].bold = !states[index].bold;
+		if (toggledFlags.italic) states[index].italic = !states[index].italic;
+		if (toggledFlags.underline) states[index].underline = !states[index].underline;
+	}
+
+	return normalizeTranslationInlineStyleRuns(
+		states.map((flags, index) => ({
+			startWordIndex: index,
+			endWordIndex: index,
+			...flags
+		})),
+		totalWordCount
+	);
+}
+
+/**
+ * Builds render-ready text segments that preserve original spacing and attach
+ * inline style flags to each segment.
+ */
+export function buildTranslationInlineTextSegments(
+	text: string,
+	runs: TranslationInlineStyleRun[]
+): TranslationInlineTextSegment[] {
+	const tokens = tokenizeTranslationText(text);
+	if (tokens.length === 0) return [];
+
+	const totalWordCount = getTranslationWordCount(text);
+	const normalizedRuns = normalizeTranslationInlineStyleRuns(runs, totalWordCount);
+	const flagsByWordIndex = Array.from({ length: totalWordCount }, () =>
+		cloneInlineStyleFlags(EMPTY_INLINE_STYLE_FLAGS)
+	);
+
+	for (const run of normalizedRuns) {
+		for (let index = run.startWordIndex; index <= run.endWordIndex; index++) {
+			flagsByWordIndex[index] = {
+				bold: run.bold,
+				italic: run.italic,
+				underline: run.underline
+			};
+		}
+	}
+
+	const segments: TranslationInlineTextSegment[] = [];
+
+	// Merge adjacent segments that share the same style flags.
+	function pushText(segmentText: string, flags: TranslationInlineStyleFlags): void {
+		const previous = segments[segments.length - 1];
+		if (previous && sameInlineStyleFlags(previous, flags)) {
+			previous.text += segmentText;
+			return;
+		}
+
+		segments.push({
+			text: segmentText,
+			...cloneInlineStyleFlags(flags)
+		});
+	}
+
+	for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
+		const token = tokens[tokenIndex];
+
+		if (token.isWord && token.wordIndex !== null) {
+			pushText(token.text, flagsByWordIndex[token.wordIndex]);
+			continue;
+		}
+
+		const previousWordToken = [...tokens.slice(0, tokenIndex)].reverse().find((item) => item.isWord);
+		const nextWordToken = tokens.slice(tokenIndex + 1).find((item) => item.isWord);
+		const previousFlags =
+			previousWordToken?.wordIndex !== null && previousWordToken?.wordIndex !== undefined
+				? flagsByWordIndex[previousWordToken.wordIndex]
+				: EMPTY_INLINE_STYLE_FLAGS;
+		const nextFlags =
+			nextWordToken?.wordIndex !== null && nextWordToken?.wordIndex !== undefined
+				? flagsByWordIndex[nextWordToken.wordIndex]
+				: EMPTY_INLINE_STYLE_FLAGS;
+		const whitespaceFlags =
+			hasInlineStyle(previousFlags) && sameInlineStyleFlags(previousFlags, nextFlags)
+				? previousFlags
+				: EMPTY_INLINE_STYLE_FLAGS;
+
+		pushText(token.text, whitespaceFlags);
+	}
+
+	return segments;
+}
+
 export class Translation extends SerializableBase {
 	// Le texte de la traduction
 	text: string = $state('');
@@ -60,6 +361,9 @@ export class VerseTranslation extends Translation {
 	// Indique si la traduction ne se base pas sur la traduction originale
 	isBruteForce: boolean = $state(false);
 
+	// Non-overlapping style runs indexed on trimmed translation words.
+	inlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
+
 	constructor(text: string, status: TranslationStatus) {
 		super(text, status);
 
@@ -68,7 +372,115 @@ export class VerseTranslation extends Translation {
 		this.startWordIndex = 0;
 		this.endWordIndex = text.split(' ').length - 1;
 		this.isBruteForce = false;
+		this.inlineStyleRuns = [];
 		this.type = 'verse';
+	}
+
+	/**
+	 * Removes all inline emphasis styles.
+	 */
+	clearInlineStyles(): void {
+		this.inlineStyleRuns = [];
+	}
+
+	/**
+	 * Reconciles stored style runs with current text word count.
+	 * Useful after import/deserialization or any out-of-band text changes.
+	 */
+	syncInlineStylesWithText(): void {
+		this.inlineStyleRuns = normalizeTranslationInlineStyleRuns(
+			this.inlineStyleRuns ?? [],
+			getTranslationWordCount(this.text)
+		);
+	}
+
+	/**
+	 * Updates text and clears inline style runs.
+	 * This avoids invalid ranges when text content changes.
+	 */
+	setTextAndClearInlineStyles(text: string): void {
+		this.text = text;
+		this.clearInlineStyles();
+	}
+
+	/**
+	 * Copies inline style runs from another translation and normalizes them for
+	 * this translation's current text length.
+	 */
+	copyInlineStylesFrom(other: VerseTranslation | null | undefined): void {
+		if (!other) {
+			this.inlineStyleRuns = [];
+			return;
+		}
+
+		this.inlineStyleRuns = normalizeTranslationInlineStyleRuns(
+			other.inlineStyleRuns ?? [],
+			getTranslationWordCount(this.text)
+		);
+	}
+
+	/**
+	 * Toggles one or more inline style flags on the selected word range.
+	 */
+	toggleInlineStyles(
+		startWordIndex: number,
+		endWordIndex: number,
+		flags: TranslationInlineStyleFlags
+	): void {
+		this.inlineStyleRuns = toggleTranslationInlineStyleRuns(
+			this.inlineStyleRuns ?? [],
+			getTranslationWordCount(this.text),
+			startWordIndex,
+			endWordIndex,
+			flags
+		);
+	}
+
+	/**
+	 * Returns render-ready segments with merged text and per-segment style flags.
+	 */
+	getInlineStyledSegments(): TranslationInlineTextSegment[] {
+		return buildTranslationInlineTextSegments(this.text, this.inlineStyleRuns ?? []);
+	}
+
+	getFormattedTextParts(
+		edition: string,
+		subtitle: SubtitleClip
+	): { prefix: string; text: string; suffix: string } {
+		const text = super.getText();
+		const position = globalState.getStyle(edition, 'verse-number-position').value;
+
+		if (
+			((subtitle.startWordIndex === 0 && position === 'before') ||
+				(subtitle.isLastWordsOfVerse && position === 'after')) &&
+			globalState.getStyle(edition, 'show-verse-number').value
+		) {
+			const format = String(
+				globalState.getStyle(edition, 'verse-number-format').value
+			).replace('<number>', subtitle.verse.toString());
+
+			if (position === 'before' && subtitle.startWordIndex === 0) {
+				return {
+					prefix: format,
+					text,
+					suffix: ''
+				};
+			}
+
+			if (position === 'after' && subtitle.isLastWordsOfVerse) {
+				return {
+					prefix: '',
+					text,
+					suffix: format
+				};
+			}
+		}
+
+		return {
+			prefix: '',
+			text,
+			suffix: ''
+		};
 	}
 
 	/**
@@ -78,34 +490,8 @@ export class VerseTranslation extends Translation {
 	 * @returns Le texte de la traduction avec le numéro de verset si demandé
 	 */
 	override getText(edition: string, subtitle: SubtitleClip): string {
-		// Ajoute le numéro de verset si demandé dans les styles
-		const position = globalState.getStyle(edition, 'verse-number-position').value;
-
-		// Si on doit afficher le numéro de verset et que c'est le début ou la fin du verset (en fonction de où on veut l'afficher)
-		if (
-			((subtitle.startWordIndex === 0 && position === 'before') ||
-				(subtitle.isLastWordsOfVerse && position === 'after')) &&
-			globalState.getStyle(edition, 'show-verse-number').value
-		) {
-			// Le format contient par ex. `<number>. `
-			let format: string = (
-				globalState.getStyle(edition, 'verse-number-format').value as string
-			).replace('<number>', subtitle.verse.toString());
-
-			// Ajoute le texte de la traduction au bon endroit
-			if (position === 'before' && subtitle.startWordIndex === 0) {
-				format = format + super.getText();
-			} else if (position === 'after' && subtitle.isLastWordsOfVerse) {
-				format = super.getText() + format;
-			} else {
-				format = super.getText();
-			}
-
-			return format;
-		}
-
-		// Sinon, retourne juste le texte de la traduction
-		return super.getText();
+		const { prefix, text, suffix } = this.getFormattedTextParts(edition, subtitle);
+		return `${prefix}${text}${suffix}`;
 	}
 
 	/**
@@ -200,6 +586,8 @@ export class VerseTranslation extends Translation {
 			return 1 - levenshteinDistance(normalizedLeft, normalizedRight) / maxLength;
 		};
 
+		const originalTokens = toIndexedTokens(originalTranslationText);
+
 		const chooseBestCandidate = (candidates: MatchCandidate[]): MatchCandidate => {
 			const previousStart = this.startWordIndex ?? 0;
 			let bestCandidate = candidates[0];
@@ -224,7 +612,6 @@ export class VerseTranslation extends Translation {
 			return bestCandidate;
 		};
 
-		const originalTokens = toIndexedTokens(originalTranslationText);
 		const currentTokens = toIndexedTokens(this.text);
 
 		// Si le texte courant est vide/invalide après normalisation,
@@ -325,3 +712,4 @@ export class PredefinedSubtitleTranslation extends Translation {
 		}
 	}
 }
+

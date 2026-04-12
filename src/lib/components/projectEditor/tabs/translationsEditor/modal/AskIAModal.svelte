@@ -378,7 +378,7 @@
 						.join(' ');
 
 					// Met à jour la traduction du sous-titre
-					verseTranslation.text = translationText;
+					verseTranslation.setTextAndClearInlineStyles(translationText);
 					verseTranslation.startWordIndex = rangeStart;
 					verseTranslation.endWordIndex = rangeEnd;
 

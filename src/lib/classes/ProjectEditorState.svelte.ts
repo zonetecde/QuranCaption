@@ -248,6 +248,12 @@ export class TranslationsEditorState extends SerializableBase {
 	// Indique si l'utilisateur montre les instructions pour utiliser l'IA
 	showAIInstructions: boolean = $state(false);
 
+	// Indique si le mode de style en ligne est activé et quels styles sont activés
+	isInlineStyleMode: boolean = $state(false);
+	inlineStyleBoldEnabled: boolean = $state(false);
+	inlineStyleItalicEnabled: boolean = $state(false);
+	inlineStyleUnderlineEnabled: boolean = $state(false);
+
 	// Dernier sous-titre lu dans l'éditeur de traductions pour reprendre là où on s'est arrêté
 	lastReadClipId: number | null = $state(null);
 	lastReadUpdatedAt: string | null = $state(null);

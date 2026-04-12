@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import AddTranslationModal from './modal/AddTranslationModal.svelte';
+	import TranslationInlineStylePanel from './TranslationInlineStylePanel.svelte';
 	import TranslationsEditorSettings from './leftPanel/TranslationsEditorSettings.svelte';
 	import Workspace from './workspace/Workspace.svelte';
 
@@ -26,9 +27,7 @@
 		</section>
 	</section>
 
-	<section
-		class="hidden 2xl:block w-[250px] flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg"
-	></section>
+	<TranslationInlineStylePanel />
 </div>
 
 {#if addTranslationModalVisibility}

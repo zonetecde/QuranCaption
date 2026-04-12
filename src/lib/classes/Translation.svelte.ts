@@ -314,6 +314,48 @@ export function buildTranslationInlineTextSegments(
 	return segments;
 }
 
+/**
+ * Replaces the bold flag for the provided word indexes while preserving existing
+ * italic and underline flags on every word.
+ */
+export function replaceBoldWordIndexesInInlineStyleRuns(
+	runs: TranslationInlineStyleRun[],
+	totalWordCount: number,
+	boldWordIndexes: number[]
+): TranslationInlineStyleRun[] {
+	if (totalWordCount <= 0) return [];
+
+	const normalizedRuns = normalizeTranslationInlineStyleRuns(runs, totalWordCount);
+	const states = Array.from({ length: totalWordCount }, () =>
+		cloneInlineStyleFlags(EMPTY_INLINE_STYLE_FLAGS)
+	);
+
+	for (const run of normalizedRuns) {
+		for (let index = run.startWordIndex; index <= run.endWordIndex; index++) {
+			states[index] = {
+				bold: false,
+				italic: run.italic,
+				underline: run.underline
+			};
+		}
+	}
+
+	for (const rawIndex of boldWordIndexes) {
+		const index = Number(rawIndex);
+		if (!Number.isInteger(index) || index < 0 || index >= totalWordCount) continue;
+		states[index].bold = true;
+	}
+
+	return normalizeTranslationInlineStyleRuns(
+		states.map((flags, index) => ({
+			startWordIndex: index,
+			endWordIndex: index,
+			...flags
+		})),
+		totalWordCount
+	);
+}
+
 export class Translation extends SerializableBase {
 	// Le texte de la traduction
 	text: string = $state('');
@@ -441,6 +483,18 @@ export class VerseTranslation extends Translation {
 	 */
 	getInlineStyledSegments(): TranslationInlineTextSegment[] {
 		return buildTranslationInlineTextSegments(this.text, this.inlineStyleRuns ?? []);
+	}
+
+	/**
+	 * Replaces all existing inline bold on this translation while preserving
+	 * italic and underline runs.
+	 */
+	replaceBoldWordIndexes(boldWordIndexes: number[]): void {
+		this.inlineStyleRuns = replaceBoldWordIndexesInInlineStyleRuns(
+			this.inlineStyleRuns ?? [],
+			getTranslationWordCount(this.text),
+			boldWordIndexes
+		);
 	}
 
 	getFormattedTextParts(

@@ -25,12 +25,20 @@ export type AutoSegmentationSettings = {
 export type AITranslationSettings = {
 	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
 	openAiApiKey: string;
-	advancedTrimModel: 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano';
+	textAiApiEndpoint: string;
+	advancedTrimModel: string;
 	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
 	advancedAlsoAskReviewed: boolean;
+	aiBoldCustomNote: string;
 	activeModalTab: 'legacy' | 'advanced';
 	telemetryConsent: 'unknown' | 'granted' | 'denied';
 };
+
+export type ExportSettings = {
+	chunkSize: number;
+};
+
+const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
 
 export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
@@ -76,11 +84,17 @@ export default class Settings extends SerializableBase {
 	aiTranslationSettings = $state<AITranslationSettings>({
 		omitPromptPrefix: false,
 		openAiApiKey: '',
+		textAiApiEndpoint: DEFAULT_TEXT_AI_ENDPOINT,
 		advancedTrimModel: 'gpt-5.4',
 		advancedTrimReasoningEffort: 'none',
 		advancedAlsoAskReviewed: false,
+		aiBoldCustomNote: '',
 		activeModalTab: 'legacy',
 		telemetryConsent: 'unknown'
+	});
+
+	exportSettings = $state<ExportSettings>({
+		chunkSize: 50
 	});
 
 	// Shortcut categories metadata
@@ -302,6 +316,11 @@ export default class Settings extends SerializableBase {
 		globalState.settings = Settings.fromJSON(settingsData) as Settings;
 		const settings = globalState.settings;
 
+		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
+			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
+			await this.save();
+		}
+
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
 		const latestVersion = await VersionService.getAppVersion();
@@ -332,6 +351,7 @@ export default class Settings extends SerializableBase {
 export enum SettingsTab {
 	SHORTCUTS = 'shortcuts',
 	THEME = 'theme',
+	AI_KEY = 'ai-key',
 	QURAN_INTEGRATION = 'quran-integration',
 	BACKUP = 'backup',
 	SUPPORT = 'support',

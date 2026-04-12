@@ -254,6 +254,13 @@ export class TranslationsEditorState extends SerializableBase {
 	inlineStyleItalicEnabled: boolean = $state(false);
 	inlineStyleUnderlineEnabled: boolean = $state(false);
 
+	// Paramètres persistants du workflow AI Bold
+	aiBoldCustomNote: string = $state('');
+	aiBoldStartTimeMs: number = $state(0);
+	aiBoldEndTimeMs: number = $state(0);
+	aiBoldIncludeAlreadyBolded: boolean = $state(true);
+	aiBoldEditionName: string = $state('');
+
 	// Dernier sous-titre lu dans l'éditeur de traductions pour reprendre là où on s'est arrêté
 	lastReadClipId: number | null = $state(null);
 	lastReadUpdatedAt: string | null = $state(null);

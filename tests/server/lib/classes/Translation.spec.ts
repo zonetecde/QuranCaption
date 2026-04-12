@@ -5,6 +5,7 @@ import { Edition } from '$lib/classes/Edition';
 import {
 	buildTranslationInlineTextSegments,
 	normalizeTranslationInlineStyleRuns,
+	replaceBoldWordIndexesInInlineStyleRuns,
 	toggleTranslationInlineStyleRuns,
 	VerseTranslation
 } from '$lib/classes/Translation.svelte';
@@ -252,6 +253,46 @@ describe('translation inline style runs', () => {
 				text: 'two three',
 				bold: true,
 				italic: false,
+				underline: true
+			}
+		]);
+	});
+
+	it('replaces bold while preserving italic and underline flags', () => {
+		const runs = replaceBoldWordIndexesInInlineStyleRuns(
+			[
+				{
+					startWordIndex: 0,
+					endWordIndex: 2,
+					bold: true,
+					italic: false,
+					underline: false
+				},
+				{
+					startWordIndex: 1,
+					endWordIndex: 3,
+					bold: false,
+					italic: true,
+					underline: true
+				}
+			],
+			4,
+			[3]
+		);
+
+		expect(runs).toEqual([
+			{
+				startWordIndex: 1,
+				endWordIndex: 2,
+				bold: false,
+				italic: true,
+				underline: true
+			},
+			{
+				startWordIndex: 3,
+				endWordIndex: 3,
+				bold: true,
+				italic: true,
 				underline: true
 			}
 		]);

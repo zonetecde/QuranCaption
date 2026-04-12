@@ -245,7 +245,7 @@
 
 			// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
 			// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
-			const chunkSize = globalState.getExportState.chunkSize;
+			const chunkSize = globalState.settings?.exportSettings.chunkSize ?? globalState.getExportState.chunkSize;
 			const minDuration = 30 * 1000; // 30 secondes en ms
 			const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
 			CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);

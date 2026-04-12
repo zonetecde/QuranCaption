@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
+	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
 	import TimeInput from './TimeInput.svelte';
@@ -41,6 +42,14 @@
 		if (!globalState.getExportState.videoEndTime) {
 			globalState.getExportState.videoEndTime = globalState.getAudioTrack.getDuration().ms || 0;
 		}
+		if (
+			globalState.settings &&
+			globalState.settings.exportSettings.chunkSize === 50 &&
+			globalState.getExportState.chunkSize !== 50
+		) {
+			globalState.settings.exportSettings.chunkSize = globalState.getExportState.chunkSize;
+			void Settings.save();
+		}
 	});
 
 	// Helper function to format duration for display
@@ -55,6 +64,10 @@
 		} else {
 			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 		}
+	}
+
+	function persistGlobalChunkSize(): void {
+		void Settings.save();
 	}
 </script>
 
@@ -157,7 +170,8 @@
 					max="200"
 					step="1"
 					class="input w-full h-10"
-					bind:value={globalState.getExportState.chunkSize}
+					bind:value={globalState.settings!.exportSettings.chunkSize}
+					onchange={persistGlobalChunkSize}
 				/>
 			</div>
 		</div>

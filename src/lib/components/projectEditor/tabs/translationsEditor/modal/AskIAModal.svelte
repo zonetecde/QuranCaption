@@ -5,6 +5,7 @@
 	import ClickableLink from '$lib/components/home/ClickableLink.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import AdvancedAITrimmingTab from './AdvancedAITrimmingTab.svelte';
+	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -616,52 +617,37 @@
 	}
 </script>
 
-<div
-	class="bg-secondary border-color border rounded-2xl h-[92vh] xl:h-[80vh] w-[clamp(1200px,96vw,1700px)] max-w-[90vw] xl:max-w-[66vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
-	transition:slide
+<TranslationsEditorModalShell
+	close={close}
+	title="AI Translation Assistant"
+	icon="psychology"
+	shellClass="h-[92vh] xl:h-[80vh] w-[clamp(1200px,96vw,1700px)] max-w-[90vw] xl:max-w-[66vw]"
+	bodyClass="flex-1 min-h-0 overflow-hidden flex flex-col"
 >
-	<!-- Header with gradient background -->
-	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">
-		<div class="flex items-center justify-between">
-			<div class="flex items-center gap-3">
-				<div class="w-10 h-10 bg-accent-primary rounded-full flex items-center justify-center">
-					<span class="material-icons text-black text-xl">psychology</span>
-				</div>
-				<div>
-					<h2 class="text-xl font-bold text-primary">AI Translation Assistant</h2>
-					<p class="text-sm text-thirdly">
-						Generate translations for <strong class="text-accent">{edition.author}</strong> edition
-					</p>
-				</div>
-			</div>
+	{#snippet subtitle()}
+		Generate translations for <strong class="text-accent">{edition.author}</strong> edition
+	{/snippet}
 
-			<!-- Close button -->
-			<button
-				class="w-8 h-8 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary cursor-pointer"
-				onclick={close}
-			>
-				<span class="material-icons text-lg">close</span>
-			</button>
+	{#snippet afterHeader()}
+		<div class="border-b border-color bg-primary px-6 py-3">
+			<div class="flex gap-2">
+				<button
+					class="tab-button {activeTab === 'legacy' ? 'tab-button-active' : ''}"
+					onclick={() => setActiveTab('legacy')}
+				>
+					<span class="material-icons text-base">rule</span>
+					Legacy AI Mapping
+				</button>
+				<button
+					class="tab-button {activeTab === 'advanced' ? 'tab-button-active' : ''}"
+					onclick={() => setActiveTab('advanced')}
+				>
+					<span class="material-icons text-base">auto_awesome</span>
+					Advanced AI Trimming
+				</button>
+			</div>
 		</div>
-	</div>
-	<div class="border-b border-color bg-primary px-6 py-3">
-		<div class="flex gap-2">
-			<button
-				class="tab-button {activeTab === 'legacy' ? 'tab-button-active' : ''}"
-				onclick={() => setActiveTab('legacy')}
-			>
-				<span class="material-icons text-base">rule</span>
-				Legacy AI Mapping
-			</button>
-			<button
-				class="tab-button {activeTab === 'advanced' ? 'tab-button-active' : ''}"
-				onclick={() => setActiveTab('advanced')}
-			>
-				<span class="material-icons text-base">auto_awesome</span>
-				Advanced AI Trimming
-			</button>
-		</div>
-	</div>
+	{/snippet}
 	<!-- Instructions section - Legacy only -->
 	{#if activeTab === 'legacy'}
 		<div class="px-6 py-3 border-b border-color bg-primary">
@@ -876,8 +862,6 @@
 			{/if}
 		</div>
 	</div>
-
-	<!-- Footer -->
 	<div class="border-t border-color bg-primary px-6 py-4">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
@@ -885,7 +869,7 @@
 				<span>
 					{activeTab === 'legacy'
 						? 'Using AI to optimize translation segmentation'
-						: 'Running OpenAI-powered advanced trimming with live feedback'}
+						: 'Running provider-powered advanced trimming with live feedback'}
 				</span>
 			</div>
 
@@ -894,7 +878,7 @@
 			</div>
 		</div>
 	</div>
-</div>
+</TranslationsEditorModalShell>
 
 <style>
 	/* Custom scrollbar */
@@ -915,11 +899,6 @@
 
 	.overflow-y-auto::-webkit-scrollbar-thumb:hover {
 		background: var(--timeline-scrollbar-hover);
-	}
-
-	/* Enhanced gradient backgrounds */
-	.bg-gradient-to-r.from-accent.to-bg-accent {
-		background: linear-gradient(135deg, var(--bg-accent) 0%, var(--bg-secondary) 100%);
 	}
 
 	/* Enhanced hover effects */

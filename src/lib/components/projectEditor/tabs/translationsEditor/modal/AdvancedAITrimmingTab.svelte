@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Edition } from '$lib/classes';
-	import Settings from '$lib/classes/Settings.svelte';
+	import AiActivityLogCard from './shared/AiActivityLogCard.svelte';
+	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
+	import AiRunStatusCard from './shared/AiRunStatusCard.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -9,7 +11,6 @@
 		buildAdvancedTrimVerseCandidates,
 		estimateAdvancedTrimCost,
 		formatUsd,
-		maskApiKey,
 		runAdvancedTrimBatchStreaming,
 		type AdvancedTrimBatch,
 		type AdvancedTrimCostEstimate,
@@ -89,7 +90,6 @@
 	let latestRunStats: LatestRunStats | null = $state(null);
 	let activityLog: ActivityEntry[] = $state([]);
 	let batchUsageById: Record<string, AdvancedTrimUsage> = $state({});
-	let showOpenAISettings: boolean = $state(false);
 
 	let unlistenFns: UnlistenFn[] = [];
 	let activityCounter = 0;
@@ -166,17 +166,6 @@
 		);
 		syncSelectionWindow(resetRange);
 		refreshBatchPreview();
-	}
-
-	function persistSettingsAndRefresh(mode: 'settings' | 'batches' | 'candidates'): void {
-		void Settings.save();
-		if (mode === 'candidates') {
-			refreshCandidates(true);
-			return;
-		}
-		if (mode === 'batches') {
-			refreshBatchPreview();
-		}
 	}
 
 	function isBlockingError(message: string): boolean {
@@ -257,7 +246,13 @@
 
 		const apiKey = aiSettings().openAiApiKey.trim();
 		if (!apiKey) {
-			toast.error('An OpenAI API key is required.');
+			toast.error('Configure your AI API key in Settings > AI Key first.');
+			return;
+		}
+
+		const endpoint = aiSettings().textAiApiEndpoint.trim();
+		if (!endpoint) {
+			toast.error('Configure your text AI endpoint in Settings > AI Key first.');
 			return;
 		}
 		if (advancedBatches.length === 0) {
@@ -296,6 +291,7 @@
 			try {
 				const response = await runAdvancedTrimBatchStreaming({
 					apiKey,
+					endpoint,
 					model: aiSettings().advancedTrimModel,
 					reasoningEffort: aiSettings().advancedTrimReasoningEffort,
 					batchId: batch.batchId,
@@ -530,42 +526,44 @@
 						/>
 					{/if}
 
-					<div class="rounded-xl border border-color bg-accent p-4">
-						<div class="mb-4 flex items-center gap-2">
-							<span class="material-icons text-accent-primary">analytics</span>
-							<h3 class="text-lg font-semibold text-primary">Batch Preview</h3>
-						</div>
+					<AiBatchOverviewCard
+						title="Batch Preview"
+						icon="analytics"
+						metrics={[
+							{ label: 'Verses', value: advancedEstimate.totalVerses },
+							{ label: 'Words', value: advancedEstimate.totalWords },
+							{ label: 'Batches', value: advancedBatches.length }
+						]}
+						estimatedCostLabel={formatUsd(advancedEstimate.totalEstimatedCostUsd)}
+						tokenSummary={`${advancedEstimate.totalEstimatedInputTokens} input tokens estimated, ${advancedEstimate.totalEstimatedOutputTokens} output tokens estimated.`}
+						reasoningNote={advancedEstimate.reasoningNote}
+						columnsClass="md:grid-cols-3"
+					/>
 
-						<div class="grid gap-3 md:grid-cols-3">
-							<div class="rounded-lg border border-color bg-secondary p-3">
-								<div class="text-xs uppercase tracking-wide text-thirdly">Verses</div>
-								<div class="mt-1 text-xl font-semibold text-primary">
-									{advancedEstimate.totalVerses}
+					<div class="rounded-xl border border-color bg-secondary px-4 py-4">
+						<div class="flex items-start gap-3">
+							<div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
+								<span class="material-icons text-accent-primary">settings</span>
+							</div>
+							<div class="space-y-1">
+								<div class="text-sm font-semibold text-primary">AI Provider</div>
+								<p class="text-sm leading-relaxed text-thirdly">
+									Configure your API key, text endpoint, model, and reasoning effort in
+									Settings &gt; AI Key before running Advanced AI Trimming.
+								</p>
+								<div class="text-xs text-thirdly">
+									Current model:
+									<span class="font-medium text-primary">
+										{aiSettings().advancedTrimModel || 'Not set'}
+									</span>
+								</div>
+								<div class="text-xs text-thirdly break-all">
+									Endpoint:
+									<span class="font-medium text-primary">
+										{aiSettings().textAiApiEndpoint || 'Not set'}
+									</span>
 								</div>
 							</div>
-							<div class="rounded-lg border border-color bg-secondary p-3">
-								<div class="text-xs uppercase tracking-wide text-thirdly">Words</div>
-								<div class="mt-1 text-xl font-semibold text-primary">
-									{advancedEstimate.totalWords}
-								</div>
-							</div>
-							<div class="rounded-lg border border-color bg-secondary p-3">
-								<div class="text-xs uppercase tracking-wide text-thirdly">Batches</div>
-								<div class="mt-1 text-xl font-semibold text-primary">
-									{advancedBatches.length}
-								</div>
-							</div>
-						</div>
-
-						<div class="mt-4 rounded-lg border border-[var(--accent-primary)]/30 bg-secondary p-4">
-							<div class="mb-1 text-sm font-medium text-primary">
-								Estimated cost: {formatUsd(advancedEstimate.totalEstimatedCostUsd)}
-							</div>
-							<div class="text-xs text-thirdly">
-								{advancedEstimate.totalEstimatedInputTokens} input tokens estimated,
-								{advancedEstimate.totalEstimatedOutputTokens} output tokens estimated.
-							</div>
-							<div class="mt-2 text-xs text-thirdly">{advancedEstimate.reasoningNote}</div>
 						</div>
 					</div>
 				</div>
@@ -586,36 +584,21 @@
 							</button>
 						</div>
 
-						<div class="mb-3 flex items-center justify-between text-xs text-secondary">
-							<span>{currentBatchLabel || 'Idle'}</span>
-							<span>{getProgressPercent()}%</span>
-						</div>
-						<div class="h-2 overflow-hidden rounded-full bg-secondary">
-							<div
-								class="h-full rounded-full bg-accent-secondary transition-all duration-300"
-								style="width: {getProgressPercent()}%;"
-							></div>
-						</div>
-
-						<div class="mt-4 grid gap-3 md:grid-cols-2">
-							<div class="rounded-lg border border-color bg-secondary p-3">
-								<div class="text-xs uppercase tracking-wide text-thirdly">Current step</div>
-								<div class="mt-1 text-sm font-semibold text-primary">{currentBatchStep}</div>
-							</div>
-							<div class="rounded-lg border border-color bg-secondary p-3">
-								<div class="text-xs uppercase tracking-wide text-thirdly">Usage</div>
-								<div class="mt-1 text-sm font-semibold text-primary">{getActualUsageSummary()}</div>
-							</div>
-						</div>
-
-						{#if currentBatchVerseKeys}
-							<div
-								class="mt-3 rounded-lg border border-color bg-secondary p-3 text-xs text-secondary"
-							>
-								<span class="font-semibold text-primary">Current verses:</span>
-								{currentBatchVerseKeys}
-							</div>
-						{/if}
+						<AiRunStatusCard
+							title="Current run"
+							subtitle={currentBatchLabel || 'Idle'}
+							progressPercent={getProgressPercent()}
+							metrics={[
+								{ label: 'Current step', value: currentBatchStep },
+								{ label: 'Usage', value: getActualUsageSummary() }
+							]}
+							progressTrackClass="bg-secondary"
+							progressBarClass="bg-accent-secondary"
+							containerClass="space-y-3"
+							metricCardClass="rounded-lg border border-color bg-secondary p-3"
+							detailLabel={currentBatchVerseKeys ? 'Current verses: ' : undefined}
+							detailText={currentBatchVerseKeys || undefined}
+						/>
 					</div>
 
 					<div class="rounded-xl border border-color bg-accent p-4">
@@ -652,134 +635,17 @@
 						</div>
 
 						<div class="mt-4">
-							<div
-								class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
-							>
-								<span class="material-icons text-sm">history</span>
-								<span>Recent activity</span>
-							</div>
-
-							<div
-								class="max-h-72 overflow-y-auto rounded-lg border border-color bg-secondary px-3 py-2 text-[12px] leading-5 [font-family:Consolas,monospace]"
-							>
-								{#if activityLog.length === 0}
-									<div class="text-thirdly">No activity yet.</div>
-								{:else}
-									{#each activityLog as entry (entry.id)}
-										<div
-											class="border-b border-color/50 py-1.5 last:border-b-0 {entry.tone === 'error'
-												? 'text-red-200'
-												: entry.tone === 'success'
-													? 'text-green-200'
-													: 'text-secondary'}"
-										>
-											<span class="mr-2 uppercase opacity-70">[{entry.step}]</span>
-											<span>{entry.message}</span>
-										</div>
-									{/each}
-								{/if}
-							</div>
+							<AiActivityLogCard
+								activityLog={activityLog}
+								title="Recent activity"
+								maxHeightClass="max-h-72"
+								containerClass=""
+							/>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<div class="rounded-xl border border-color bg-accent">
-				<button
-					class="flex w-full items-center justify-between px-4 py-4 text-left transition-all duration-200 hover:bg-[rgba(88,166,255,0.08)]"
-					onclick={() => (showOpenAISettings = !showOpenAISettings)}
-				>
-					<div class="flex items-center gap-3">
-						<div class="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
-							<span class="material-icons text-accent-primary">key</span>
-						</div>
-						<div>
-							<div class="text-lg font-semibold text-primary">OpenAI Settings</div>
-							<div class="text-xs text-thirdly">
-								{aiSettings().advancedTrimModel} / {aiSettings().advancedTrimReasoningEffort} /
-								{maskApiKey(aiSettings().openAiApiKey)}
-							</div>
-						</div>
-					</div>
-					<span
-						class="material-icons text-secondary transition-transform duration-200 {showOpenAISettings
-							? 'rotate-180'
-							: ''}"
-					>
-						expand_more
-					</span>
-				</button>
-
-				{#if showOpenAISettings}
-					<div class="border-t border-color px-4 pb-4 pt-4">
-						<div class="grid gap-4 md:grid-cols-2">
-							<label class="space-y-2 md:col-span-2">
-								<span class="text-sm font-medium text-secondary">OpenAI API key</span>
-								<input
-									type="password"
-									bind:value={globalState.settings!.aiTranslationSettings.openAiApiKey}
-									onblur={() => persistSettingsAndRefresh('settings')}
-									placeholder="sk-..."
-									class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
-								/>
-								<span class="text-xs text-thirdly">
-									Stored in plain text in `settings.json`. Current: {maskApiKey(
-										globalState.settings!.aiTranslationSettings.openAiApiKey
-									)}
-								</span>
-							</label>
-
-							<label class="space-y-2">
-								<span class="text-sm font-medium text-secondary">Model</span>
-								<select
-									bind:value={globalState.settings!.aiTranslationSettings.advancedTrimModel}
-									onchange={() => persistSettingsAndRefresh('batches')}
-									class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
-								>
-									<option value="gpt-5.4">gpt-5.4</option>
-									<option value="gpt-5.4-mini">gpt-5.4-mini</option>
-									<option value="gpt-5.4-nano">gpt-5.4-nano</option>
-								</select>
-							</label>
-
-							<label class="space-y-2">
-								<span class="text-sm font-medium text-secondary">Reasoning effort</span>
-								<select
-									bind:value={
-										globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort
-									}
-									onchange={() => persistSettingsAndRefresh('batches')}
-									class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
-								>
-									<option value="none">none</option>
-									<option value="low">low</option>
-									<option value="medium">medium</option>
-									<option value="high">high</option>
-								</select>
-							</label>
-						</div>
-
-						<label
-							class="mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--accent-primary)]/40 bg-secondary px-3 py-3"
-						>
-							<input
-								type="checkbox"
-								bind:checked={globalState.settings!.aiTranslationSettings.advancedAlsoAskReviewed}
-								onchange={() => persistSettingsAndRefresh('candidates')}
-								class="h-4 w-4 rounded"
-							/>
-							<div>
-								<div class="text-sm font-medium text-primary">
-									Also ask for already reviewed verses
-								</div>
-								<div class="text-xs text-thirdly">
-									Include fully reviewed verses in candidate selection.
-								</div>
-							</div>
-						</label>
-					</div>
-				{/if}
-			</div>
 		</div>
 	{/if}
 </div>

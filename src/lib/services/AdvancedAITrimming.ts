@@ -4,7 +4,7 @@ import type { Edition, SubtitleClip } from '$lib/classes';
 import type { VerseTranslation } from '$lib/classes/Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 
-export type AdvancedTrimModel = 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano';
+export type AdvancedTrimModel = string;
 export type AdvancedTrimReasoningEffort = 'none' | 'low' | 'medium' | 'high';
 
 export type AdvancedTrimSegment = {
@@ -109,7 +109,7 @@ const MAX_BATCH_WORDS = 500;
 const APPROX_SYSTEM_PROMPT_CHARS = 2200;
 
 const MODEL_PRICING: Record<
-	AdvancedTrimModel,
+	string,
 	{
 		inputPerMillionUsd: number;
 		outputPerMillionUsd: number;
@@ -229,10 +229,11 @@ function estimateBatchCost(
 				: reasoningEffort === 'low'
 					? 1.1
 					: 1;
-	const estimatedCostUsd =
-		((estimatedInputTokens / 1_000_000) * pricing.inputPerMillionUsd +
-			(estimatedOutputTokens / 1_000_000) * pricing.outputPerMillionUsd) *
-		reasoningMultiplier;
+	const estimatedCostUsd = pricing
+		? ((estimatedInputTokens / 1_000_000) * pricing.inputPerMillionUsd +
+				(estimatedOutputTokens / 1_000_000) * pricing.outputPerMillionUsd) *
+			reasoningMultiplier
+		: 0;
 
 	return {
 		estimatedInputTokens,
@@ -412,9 +413,11 @@ export function estimateAdvancedTrimCost(
 		totalEstimatedOutputTokens,
 		totalEstimatedCostUsd,
 		reasoningNote:
-			reasoningEffort === 'none'
-				? 'Approximation based on prompt/output size only.'
-				: 'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
+			batches.some((batch) => batch.estimatedCostUsd === 0)
+				? 'Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.'
+				: reasoningEffort === 'none'
+					? 'Approximation based on prompt/output size only.'
+					: 'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
 	};
 }
 
@@ -788,6 +791,7 @@ export function maskApiKey(value: string): string {
 
 export async function runAdvancedTrimBatchStreaming(params: {
 	apiKey: string;
+	endpoint: string;
 	model: AdvancedTrimModel;
 	reasoningEffort: AdvancedTrimReasoningEffort;
 	batchId: string;
@@ -796,6 +800,7 @@ export async function runAdvancedTrimBatchStreaming(params: {
 	const result = await invoke('run_advanced_ai_trim_batch_streaming', {
 		request: {
 			apiKey: params.apiKey,
+			endpoint: params.endpoint,
 			model: params.model,
 			reasoningEffort: params.reasoningEffort,
 			batchId: params.batchId,

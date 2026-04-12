@@ -5,6 +5,7 @@
 	import ShortcutsManager from './ShortcutsManager.svelte';
 	import About from './About.svelte';
 	import BackupSettings from './BackupSettings.svelte';
+	import AiKeySettings from './AiKeySettings.svelte';
 	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 	import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
@@ -155,7 +156,7 @@
 		<!-- Sidebar -->
 		<div class="bg-primary border-r border-color p-3 overflow-auto">
 			<div class="flex flex-col gap-2">
-				{#each [{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' }, { name: 'Quran.com Integration', tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: 'Backup', tab: SettingsTab.BACKUP, icon: 'archive' }, { name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' }, { name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
+				{#each [{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' }, { name: 'AI Key', tab: SettingsTab.AI_KEY, icon: 'key' }, { name: 'Quran.com Integration', tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: 'Backup', tab: SettingsTab.BACKUP, icon: 'archive' }, { name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' }, { name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
 						class:selected={globalState.uiState.settingsTab === setting.tab}
@@ -233,6 +234,8 @@
 						</div>
 					</div>
 				</div>
+			{:else if globalState.uiState.settingsTab === SettingsTab.AI_KEY}
+				<AiKeySettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.QURAN_INTEGRATION}
 				<QuranIntegrationSettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.BACKUP}

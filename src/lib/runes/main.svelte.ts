@@ -58,6 +58,7 @@ class GlobalState {
 		settingsTab: 'shortcuts' as
 			| 'shortcuts'
 			| 'theme'
+			| 'ai-key'
 			| 'quran-integration'
 			| 'backup'
 			| 'support'

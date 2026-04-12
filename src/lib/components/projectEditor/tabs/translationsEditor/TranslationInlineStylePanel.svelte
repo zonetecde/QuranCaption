@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition';
 	import { globalState } from '$lib/runes/main.svelte';
+	import AiBoldModal from './modal/AiBoldModal.svelte';
 
 	const translationsEditorState = $derived(
 		() => globalState.currentProject!.projectEditorState.translationsEditor
@@ -12,22 +14,24 @@
 			translationsEditorState().inlineStyleUnderlineEnabled
 	);
 
+	let showAiBoldModal = $state(false);
+
 	function toggleStyle(
 		property: 'inlineStyleBoldEnabled' | 'inlineStyleItalicEnabled' | 'inlineStyleUnderlineEnabled'
-	) {
+	): void {
 		translationsEditorState()[property] = !translationsEditorState()[property];
 	}
 </script>
 
 <section
-	class="hidden 2xl:flex w-[250px] flex-shrink-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
+	class="hidden 2xl:flex w-[330px] flex-shrink-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
 >
 	<div class="px-4 py-4 border-b border-color bg-primary/70">
 		<div class="flex items-start gap-3">
 			<div class="min-w-0">
 				<h3 class="text-sm font-semibold text-primary">Translation Styles</h3>
 				<p class="text-xs text-thirdly mt-1 leading-relaxed">
-					Apply inline emphasis to trimmed translation words.
+					Manual inline emphasis with a dedicated AI assistant modal for automatic bold styling.
 				</p>
 			</div>
 		</div>
@@ -131,6 +135,31 @@
 					<p class="text-[var(--accent-primary)]">Select at least one style before applying it.</p>
 				{/if}
 			</div>
+
+			<div class="rounded-xl border border-color bg-accent overflow-hidden">
+				<div class="px-4 py-4 border-b border-color bg-primary/40">
+					<div class="flex items-start justify-between gap-3">
+						<div>
+							<div class="text-sm font-semibold text-primary">AI Assisted Translation Emphasis</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="space-y-4 p-4">
+					<button
+						class="w-full rounded-lg bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110"
+						onclick={() => (showAiBoldModal = true)}
+					>
+						Open AI Bold Assistant
+					</button>
+				</div>
+			</div>
 		{/if}
 	</div>
 </section>
+
+{#if showAiBoldModal}
+	<div class="modal-wrapper" transition:fade>
+		<AiBoldModal close={() => (showAiBoldModal = false)} />
+	</div>
+{/if}

@@ -288,7 +288,51 @@ fn append_thread_cap(cmd: &mut Command, profile: ExportPerformanceProfile) {
 }
 
 /// Fonction du module export.
-fn choose_best_codec(prefer_hw: bool) -> (String, Vec<String>, HashMap<String, Option<String>>) {
+fn is_high_resolution_export(width: i32, height: i32) -> bool {
+    width >= 2560 || height >= 1440
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CodecUsage {
+    Intermediate,
+    Final,
+}
+
+/// Fonction du module export.
+fn choose_best_codec(
+    prefer_hw: bool,
+    width: i32,
+    height: i32,
+    usage: CodecUsage,
+) -> (String, Vec<String>, HashMap<String, Option<String>>) {
+    let high_resolution = is_high_resolution_export(width, height);
+
+    if high_resolution {
+        println!(
+            "[codec] Export haute résolution détecté ({}x{}), forçage libx264 haute qualité",
+            width, height
+        );
+
+        let codec = "libx264".to_string();
+        let mut extra = HashMap::new();
+        let (preset, crf) = match usage {
+            CodecUsage::Intermediate => ("slow", "14"),
+            CodecUsage::Final => ("slow", "16"),
+        };
+        extra.insert("preset".to_string(), Some(preset.to_string()));
+
+        return (
+            codec,
+            vec![
+                "-pix_fmt".to_string(),
+                "yuv420p".to_string(),
+                "-crf".to_string(),
+                crf.to_string(),
+            ],
+            extra,
+        );
+    }
+
     let ffmpeg_exe = resolve_ffmpeg_binary();
     let hw = if prefer_hw {
         probe_hw_encoders(ffmpeg_exe.as_deref())
@@ -323,18 +367,20 @@ fn choose_best_codec(prefer_hw: bool) -> (String, Vec<String>, HashMap<String, O
     // Fallback libx264
     println!("[codec] Utilisation de libx264 (encodage logiciel)");
     let codec = "libx264".to_string();
-    let params = vec![
-        "-pix_fmt".to_string(),
-        "yuv420p".to_string(),
-        "-crf".to_string(),
-        "22".to_string(),
-        "-tune".to_string(),
-        "zerolatency".to_string(),
-        "-bf".to_string(),
-        "0".to_string(),
-    ];
     let mut extra = HashMap::new();
-    extra.insert("preset".to_string(), Some("ultrafast".to_string()));
+    let params = {
+        extra.insert("preset".to_string(), Some("ultrafast".to_string()));
+        vec![
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+            "-crf".to_string(),
+            "22".to_string(),
+            "-tune".to_string(),
+            "zerolatency".to_string(),
+            "-bf".to_string(),
+            "0".to_string(),
+        ]
+    };
 
     (codec, params, extra)
 }
@@ -353,7 +399,8 @@ fn ffmpeg_preprocess_video(
     loop_video: bool,
     performance_profile: ExportPerformanceProfile,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let (codec, params, extra) = choose_best_codec(prefer_hw);
+    let (codec, params, extra) =
+        choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
     let exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let dst_path = Path::new(dst);
     if let Some(parent) = dst_path.parent() {
@@ -499,7 +546,8 @@ fn create_video_from_image(
     let video_filter = vf_parts.join(",");
 
     // Choisir le meilleur codec avec détection automatique
-    let (codec, codec_params, codec_extra) = choose_best_codec(prefer_hw);
+    let (codec, codec_params, codec_extra) =
+        choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
 
     let mut cmd = Command::new(&ffmpeg_exe);
     cmd.args(&[
@@ -534,9 +582,7 @@ fn create_video_from_image(
     }
 
     // Ajouter des paramètres de qualité selon le codec
-    if codec == "libx264" {
-        cmd.args(&["-crf", "23"]);
-    } else if codec.contains("nvenc") {
+    if codec.contains("nvenc") {
         cmd.args(&["-cq", "23"]);
     }
 
@@ -600,7 +646,7 @@ fn preprocess_background_videos(
 ) -> Vec<String> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v4";
+    let preproc_cache_version = "fit-v7";
     fs::create_dir_all(&cache_dir).ok();
 
     // Cas spécial : une seule image
@@ -924,7 +970,7 @@ fn build_and_run_ffmpeg_filter_complex(
         acc += d;
     }
 
-    let (vcodec, vparams, vextra) = choose_best_codec(prefer_hw);
+    let (vcodec, vparams, vextra) = choose_best_codec(prefer_hw, w, h, CodecUsage::Final);
 
     let mut pre_videos = Vec::new();
     if !video_inputs.is_empty() {

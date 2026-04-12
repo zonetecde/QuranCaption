@@ -6,6 +6,7 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import AdvancedAITrimmingTab from './AdvancedAITrimmingTab.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
+	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -152,7 +153,7 @@
 	}
 
 	// Fonction pour traiter la réponse de l'IA et mettre à jour les traductions
-	function setTranslationsFromAIResponse(aiResponseStr: string): void {
+	async function setTranslationsFromAIResponse(aiResponseStr: string): Promise<void> {
 		try {
 			aiResponseStr = aiResponseStr.replace('```json', '');
 			aiResponseStr = aiResponseStr.replace('```', '');
@@ -166,6 +167,14 @@
 			let lockedSegmentsCount = 0;
 			let updatedUnlockedSegmentsCount = 0;
 			let skippedLockedSegmentsCount = 0;
+			const legacyTelemetryEntries: Array<{
+				verseKey: string;
+				subtitleId: number;
+				segment: string;
+				translationWords: TranslationWord[];
+				aiRange: [number, number] | null;
+				status: 'ai trimmed' | 'ai error';
+			}> = [];
 
 			// Utilise le tableau filtré pour le mapping
 			const filteredArray = getSelectedPromptVerses();
@@ -250,10 +259,26 @@
 				const mappingData = indexToSubtitleMapping[indexNum];
 				const segmentRangesRaw = aiResponse[String(indexNum)];
 
+				const fallbackErrorTelemetryEntries = () => {
+					for (let segmentIndex = 0; segmentIndex < mappingData.subtitles.length; segmentIndex++) {
+						if (mappingData.segmentLocks[segmentIndex]) continue;
+						const subtitle = mappingData.subtitles[segmentIndex];
+						legacyTelemetryEntries.push({
+							verseKey: mappingData.verseKey,
+							subtitleId: subtitle.id,
+							segment: subtitle.text,
+							translationWords: mappingData.translationWords,
+							aiRange: null,
+							status: 'ai error'
+						});
+					}
+				};
+
 				if (typeof segmentRangesRaw === 'undefined') {
 					errorMessages.push(
 						`Index ${indexNum} (${mappingData.verseKey}): Missing entry in AI response`
 					);
+					fallbackErrorTelemetryEntries();
 					continue;
 				}
 
@@ -261,6 +286,7 @@
 					errorMessages.push(
 						`Index ${indexNum} (${mappingData.verseKey}): Invalid response format - expected array`
 					);
+					fallbackErrorTelemetryEntries();
 					continue;
 				}
 
@@ -281,6 +307,14 @@
 							edition.name
 						] as VerseTranslation;
 						verseTranslation.updateStatus('ai error', edition);
+						legacyTelemetryEntries.push({
+							verseKey,
+							subtitleId: subtitlesForVerse[segmentIndex].id,
+							segment: subtitlesForVerse[segmentIndex].text,
+							translationWords,
+							aiRange: null,
+							status: 'ai error'
+						});
 					}
 					continue;
 				}
@@ -379,18 +413,28 @@
 
 				for (let segmentIndex = 0; segmentIndex < subtitlesForVerse.length; segmentIndex++) {
 					if (segmentLocks[segmentIndex]) continue;
-					const appliedRange = parsedUnlockedRanges[segmentIndex];
-					if (!appliedRange) continue;
 					const verseTranslation = subtitlesForVerse[segmentIndex].translations[
 						edition.name
 					] as VerseTranslation;
+					const appliedRange = parsedUnlockedRanges[segmentIndex];
 
 					// Met le statut approprié : 'ai error' si couverture incomplète, sinon 'ai trimmed'
-					if (incompleteCoverage) {
+					const status: 'ai trimmed' | 'ai error' =
+						incompleteCoverage || !appliedRange ? 'ai error' : 'ai trimmed';
+					if (status === 'ai error') {
 						verseTranslation.updateStatus('ai error', edition);
 					} else {
 						verseTranslation.updateStatus('ai trimmed', edition);
 					}
+
+					legacyTelemetryEntries.push({
+						verseKey,
+						subtitleId: subtitlesForVerse[segmentIndex].id,
+						segment: subtitlesForVerse[segmentIndex].text,
+						translationWords,
+						aiRange: appliedRange,
+						status
+					});
 				}
 
 				// Même en cas d'erreur partielle, on compte le verset comme réussi si au moins
@@ -418,6 +462,14 @@
 				);
 			} else {
 				toast.success(summaryMessage);
+			}
+
+			if (globalState.currentProject && legacyTelemetryEntries.length > 0) {
+				await AiTranslationTelemetryService.recordLegacyRun({
+					projectId: globalState.currentProject.detail.id,
+					edition,
+					entries: legacyTelemetryEntries
+				});
 			}
 
 			if (successfulVerses > 0) {

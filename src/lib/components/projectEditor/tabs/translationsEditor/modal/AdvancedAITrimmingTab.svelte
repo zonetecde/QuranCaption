@@ -17,6 +17,7 @@
 		type AdvancedTrimVerseCandidate,
 		validateAdvancedTrimBatchResult
 	} from '$lib/services/AdvancedAITrimming';
+	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
@@ -306,6 +307,14 @@
 
 				const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
 				const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
+				if (globalState.currentProject) {
+					await AiTranslationTelemetryService.recordAdvancedRun({
+						projectId: globalState.currentProject.detail.id,
+						edition,
+						batch,
+						parsedResponse: response.parsed
+					});
+				}
 				const validationFailedVerses = batch.verses.length - validation.validVerses.length;
 
 				if (validationFailedVerses === 0 && applyReport.erroredVerses === 0) {

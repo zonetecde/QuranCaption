@@ -2,7 +2,8 @@
 	import { SubtitleClip, type Edition } from '$lib/classes';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount } from 'svelte';
+	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 
 	let {
@@ -29,6 +30,7 @@
 
 	let previousSubtitleTranslationStartIndex: number = $state(-1);
 	let previousSubtitleTranslationEndIndex: number = $state(-1);
+	let manualReviewTimeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
 
 	onMount(() => {
 		if (translation().type === 'verse') {
@@ -37,6 +39,14 @@
 				subtitle.getVerseKey()
 			);
 		}
+	});
+
+	onDestroy(() => {
+		if (manualReviewTimeoutId) {
+			clearTimeout(manualReviewTimeoutId);
+			manualReviewTimeoutId = undefined;
+		}
+		void flushManualReviewTelemetry();
 	});
 
 	$effect(() => {
@@ -106,6 +116,33 @@
 
 	let lastClickedWordIndex = $state(-1);
 
+	/**
+	 * Flushes the manual review telemetry data.
+	 * This function sends the manual review data to the telemetry service.
+	 */
+	async function flushManualReviewTelemetry(): Promise<void> {
+		if (!globalState.currentProject || translation().type !== 'verse') return;
+
+		await AiTranslationTelemetryService.recordManualReview({
+			projectId: globalState.currentProject.detail.id,
+			editionKey: edition.key,
+			editionName: edition.name,
+			subtitleId: subtitle.id,
+			verseKey: subtitle.getVerseKey(),
+			segment: subtitle.text,
+			status: translation().status,
+			manualReview: translation().text
+		});
+	}
+
+	function scheduleManualReviewTelemetry(): void {
+		if (manualReviewTimeoutId) clearTimeout(manualReviewTimeoutId);
+		manualReviewTimeoutId = setTimeout(() => {
+			manualReviewTimeoutId = undefined;
+			void flushManualReviewTelemetry();
+		}, 400);
+	}
+
 	function beginWordSelectionEditing(): void {
 		if (translation().type !== 'verse' || !translation().isBruteForce) return;
 		translation().isBruteForce = false;
@@ -168,8 +205,12 @@
 	}
 
 	function handleMouseUp(): void {
+		const shouldFlush = isDragging;
 		isDragging = false;
 		dragStartIndex = -1;
+		if (shouldFlush) {
+			void flushManualReviewTelemetry();
+		}
 	}
 
 	// Gestionnaire global pour le mouseup
@@ -199,6 +240,7 @@
 
 		const translationValue = normalizeInputToTranslation(rawValue);
 		(subtitle.translations[edition.name] as VerseTranslation).text = translationValue;
+		scheduleManualReviewTelemetry();
 	}
 
 	$effect(() => {
@@ -333,7 +375,7 @@
 					<input
 						type="checkbox"
 						bind:checked={(subtitle.translations[edition.name] as VerseTranslation).isBruteForce}
-						onchange={(e) => {
+				onchange={(e) => {
 							if ((e.target as HTMLInputElement).checked) {
 								translation().updateStatus('reviewed', edition);
 								setTimeout(() => {
@@ -343,6 +385,7 @@
 								}, 0);
 							} else {
 								updateTranslationText();
+								scheduleManualReviewTelemetry();
 							}
 						}}
 						class="w-2 h-2 scale-75 rounded"
@@ -374,6 +417,9 @@
 				type="text"
 				value={editableTranslationValue}
 				oninput={handleTranslationInput}
+				onblur={() => {
+					void flushManualReviewTelemetry();
+				}}
 				class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
 				placeholder="Enter your translation here... (use \\n for line break)"
 			/>

@@ -29,6 +29,7 @@ export type AITranslationSettings = {
 	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
 	advancedAlsoAskReviewed: boolean;
 	activeModalTab: 'legacy' | 'advanced';
+	telemetryConsent: 'unknown' | 'granted' | 'denied';
 };
 
 export default class Settings extends SerializableBase {
@@ -78,7 +79,8 @@ export default class Settings extends SerializableBase {
 		advancedTrimModel: 'gpt-5.4',
 		advancedTrimReasoningEffort: 'none',
 		advancedAlsoAskReviewed: false,
-		activeModalTab: 'legacy'
+		activeModalTab: 'legacy',
+		telemetryConsent: 'unknown'
 	});
 
 	// Shortcut categories metadata

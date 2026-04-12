@@ -7,6 +7,7 @@
 	import BackupSettings from './BackupSettings.svelte';
 	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 	import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
+	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 
 	import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
 	import { openUrl } from '@tauri-apps/plugin-opener';
@@ -53,6 +54,10 @@
 			console.error(`Failed to open ${fallbackLabel} URL:`, error);
 			toast.error(`Unable to open ${fallbackLabel}.`);
 		}
+	}
+
+	async function updateAiTelemetryConsent(consent: 'unknown' | 'granted' | 'denied') {
+		await AiTranslationTelemetryService.setTelemetryConsent(consent);
 	}
 
 	const sepiaThemes: ThemeConfig[] = [
@@ -238,6 +243,7 @@
 					<p class="text-sm text-thirdly">
 						If you enjoy Quran Caption, a donation helps maintain and improve the app.
 					</p>
+
 					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
 						<button
 							class="support-action-btn support-donate w-full"
@@ -246,6 +252,42 @@
 							<span class="material-icons-outlined text-sm">favorite</span>
 							Donate on Ko-fi
 						</button>
+					</div>
+
+					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
+						<div>
+							<p class="text-sm font-medium text-primary">AI Translation Telemetry</p>
+							<p class="mt-1 text-xs text-thirdly">
+								Choose whether AI-assisted translations and your manual reviews can be sent on
+								export to help improve the app.
+							</p>
+						</div>
+						<div class="grid grid-cols-1 gap-2 md:grid-cols-3">
+							<button
+								class="support-action-btn"
+								class:selected={globalState.settings?.aiTranslationSettings.telemetryConsent ===
+									'unknown'}
+								onclick={() => updateAiTelemetryConsent('unknown')}
+							>
+								Ask on Export
+							</button>
+							<button
+								class="support-action-btn"
+								class:selected={globalState.settings?.aiTranslationSettings.telemetryConsent ===
+									'granted'}
+								onclick={() => updateAiTelemetryConsent('granted')}
+							>
+								Allow Sending
+							</button>
+							<button
+								class="support-action-btn"
+								class:selected={globalState.settings?.aiTranslationSettings.telemetryConsent ===
+									'denied'}
+								onclick={() => updateAiTelemetryConsent('denied')}
+							>
+								Do Not Send
+							</button>
+						</div>
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.CONTACT}

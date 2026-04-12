@@ -15,6 +15,7 @@ import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
+import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 
 export default class Exporter {
 	private static queueIntervalId: number | null = null;
@@ -363,6 +364,8 @@ export default class Exporter {
 
 		// Ajoute à la liste des exports en cours
 		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable');
+
+		void AiTranslationTelemetryService.handleVideoExportRequested();
 
 		// Ouvre le popup de monitor d'export
 		globalState.uiState.showExportMonitor = true;

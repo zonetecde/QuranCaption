@@ -48,6 +48,9 @@ class GlobalState {
 	uiState = $state({
 		// Indique si on affiche le moniteur d'exportation
 		showExportMonitor: false,
+		showAiTranslationTelemetryPrompt: false,
+		aiTranslationTelemetryPendingCount: 0,
+		aiTranslationTelemetrySubmitting: false,
 		isSettingsOpen: false,
 		selectedStatuses: Status.getAllStatuses(),
 		filteredProjects: [] as ProjectDetail[],

@@ -1,4 +1,4 @@
-﻿import { globalState } from '$lib/runes/main.svelte';
+import { globalState } from '$lib/runes/main.svelte';
 
 export class QPCFontProvider {
 	static qpc2Glyphs: Record<string, string> | undefined = undefined;
@@ -234,8 +234,17 @@ export class QPCFontProvider {
 	}
 
 	private static async waitForNextPaint(): Promise<void> {
-		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		const rafOrTimeout = () => new Promise<void>(resolve => {
+			let handled = false;
+			const id = requestAnimationFrame(() => {
+				if (!handled) { handled = true; resolve(); }
+			});
+			setTimeout(() => {
+				if (!handled) { handled = true; cancelAnimationFrame(id); resolve(); }
+			}, 50);
+		});
+		await rafOrTimeout();
+		await rafOrTimeout();
 	}
 }
 

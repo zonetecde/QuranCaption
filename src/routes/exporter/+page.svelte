@@ -16,6 +16,7 @@
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
 	import QPCFontProvider from '$lib/services/FontProvider';
+	import { QdcMushafService } from '$lib/services/QdcMushafService';
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -218,6 +219,11 @@
 			globalState.currentProject = await ExportService.loadProject(Number(id));
 			removeHiddenTranslationsFromExportProject();
 
+			// Si le style de mushaf est Indopak, précharge les données nécessaires pour éviter les lenteurs pendant l'export
+			if (QdcMushafService.isIndopakMushafEnabled()) {
+				await QdcMushafService.prefetchCurrentProjectSurahs();
+			}
+
 			// Créer le dossier d'export s'il n'existe pas
 			await mkdir(await join(ExportService.exportFolder, exportId), {
 				baseDir: BaseDirectory.AppData,
@@ -245,7 +251,8 @@
 
 			// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
 			// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
-			const chunkSize = globalState.settings?.exportSettings.chunkSize ?? globalState.getExportState.chunkSize;
+			const chunkSize =
+				globalState.settings?.exportSettings.chunkSize ?? globalState.getExportState.chunkSize;
 			const minDuration = 30 * 1000; // 30 secondes en ms
 			const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
 			CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);

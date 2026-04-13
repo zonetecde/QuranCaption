@@ -50,6 +50,7 @@ export type GeneralStyleName =
 	| 'show-verse-number'
 	| 'show-decorative-brackets'
 	| 'decorative-brackets-font-family'
+	| 'mushaf-style'
 	| 'verse-number-format'
 	| 'verse-number-position'
 	| 'text-direction';

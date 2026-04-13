@@ -10,6 +10,7 @@
 	import RecitersManager from '$lib/classes/Reciter';
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import { QdcMushafService } from '$lib/services/QdcMushafService';
 
 	let {
 		style,
@@ -234,6 +235,37 @@
 		) {
 			globalState.updateVideoPreviewUI();
 		}
+	}
+
+	async function applySelectValue(value: string) {
+		// Style global arabe (non-overridable): choix du mushaf
+		if (target === 'arabic' && style.id === 'mushaf-style') {
+			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+			arabicStyles.setStyle('mushaf-style', value);
+
+			if (value === 'Indopak') {
+				arabicStyles.setStyle('font-family', 'IndoPak');
+				await QdcMushafService.prefetchCurrentProjectSurahs();
+			} else {
+				arabicStyles.setStyle('font-family', 'Hafs');
+			}
+
+			globalState.updateVideoPreviewUI();
+			return;
+		}
+
+		// Si l'utilisateur choisit explicitement la police IndoPak, synchroniser le style mushaf.
+		if (
+			target === 'arabic' &&
+			style.id === 'font-family' &&
+			value === 'IndoPak' &&
+			selectedClipIds().length === 0
+		) {
+			globalState.getVideoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Indopak');
+			await QdcMushafService.prefetchCurrentProjectSurahs();
+		}
+
+		applyValue(value);
 	}
 
 	/**
@@ -493,7 +525,7 @@
 						class="w-full mt-1"
 						value={String(inputValue)}
 						onchange={(e) => {
-							applyValue((e.target as HTMLSelectElement).value);
+							void applySelectValue((e.target as HTMLSelectElement).value);
 						}}
 					>
 						{#if style.id === 'font-family'}
@@ -504,6 +536,7 @@
 								<option value="QPC2">Uthamic Mushaf QPC2</option>
 								<option value="QPC1">Uthamic Mushaf QPC1</option>
 								<option value="Hafs">Hafs</option>
+								<option value="IndoPak">IndoPak</option>
 								{#each fonts as font (`${font}`)}
 									<option value={font}>{font}</option>
 								{/each}

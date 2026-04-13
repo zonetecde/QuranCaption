@@ -6,7 +6,10 @@
 		SubtitleClip,
 		Translation
 	} from '$lib/classes';
-	import { VerseTranslation, type TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
+	import {
+		VerseTranslation,
+		type TranslationInlineStyleFlags
+	} from '$lib/classes/Translation.svelte';
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -19,8 +22,9 @@
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { Utilities } from '$lib/classes/misc/Utilities';
 	import { convertFileSrc } from '@tauri-apps/api/core';
+	import { QdcMushafService } from '$lib/services/QdcMushafService';
 
-const fadeDuration = $derived(() => {
+	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
 	});
 
@@ -30,7 +34,9 @@ const fadeDuration = $derived(() => {
 
 	let currentVideoClip = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
-		return untrack(() => globalState.getVideoTrack.getCurrentClip(getTimelineSettings().cursorPosition));
+		return untrack(() =>
+			globalState.getVideoTrack.getCurrentClip(getTimelineSettings().cursorPosition)
+		);
 	});
 
 	let currentSubtitle = $derived(() => {
@@ -80,7 +86,8 @@ const fadeDuration = $derived(() => {
 	let currentSubtitleTranslations = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!subtitle) return [];
-		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip)) return [];
+		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
+			return [];
 		return subtitle.translations;
 	});
 
@@ -89,9 +96,7 @@ const fadeDuration = $derived(() => {
 	});
 
 	let decorativeBracketsGlyphPair = $derived(() => {
-		return String(
-			globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM'
-		);
+		return String(globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM');
 	});
 
 	/**
@@ -134,6 +139,14 @@ const fadeDuration = $derived(() => {
 	$effect(() => {
 		currentSubtitleImagePath();
 		subtitleImageFailedToLoad = false;
+	});
+
+	$effect(() => {
+		const project = globalState.currentProject;
+		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+		if (!project || mushafStyle !== 'Indopak') return;
+
+		void QdcMushafService.prefetchCurrentProjectSurahs();
 	});
 
 	// Calcul de l'opacité des sous-titres (prend en compte les overrides par clip)
@@ -622,13 +635,14 @@ const fadeDuration = $derived(() => {
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const arabicText = subtitle.getText()}
+
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
 							{#if showDecorativeBrackets() && arabicText.trim()}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
-								<span>{arabicText}</span>
+								<span>{@html arabicText}</span>
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
 							{:else}
-								{arabicText}
+								<span>{@html arabicText}</span>
 							{/if}
 						{/if}
 					</p>
@@ -708,4 +722,3 @@ const fadeDuration = $derived(() => {
 		white-space: inherit;
 	}
 </style>
-

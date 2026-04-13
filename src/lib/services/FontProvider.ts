@@ -213,6 +213,7 @@ export class QPCFontProvider {
 		return (
 			this.loadedFonts.has(fontFamily) ||
 			fontFamily === 'Hafs' ||
+			fontFamily === 'IndoPak' ||
 			fontFamily === 'Reciters' ||
 			fontFamily === 'Surahs' ||
 			fontFamily === 'QPC1BSML' ||

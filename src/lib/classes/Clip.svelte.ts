@@ -6,6 +6,7 @@ import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
 import type { Category, StyleName } from './VideoStyle.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
+import { QdcMushafService } from '$lib/services/QdcMushafService';
 
 type ClipType =
 	| 'Silence'
@@ -271,9 +272,24 @@ export class SubtitleClip extends ClipWithTranslation {
 		// En fonction de la police d'écriture, renvoie le bon texte
 		// Si on a pas la police QCP2
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
+		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
 
 		// Si ce n'est pas une police avec des caractères spéciaux (QPC1 et QPC2)
 		if (fontFamily.value !== 'QPC1' && fontFamily.value !== 'QPC2') {
+			// Si le style de mushaf est Indopak, on utilise les textes spécifiques à l'Indopak
+			if (mushafStyle === 'Indopak') {
+				const indopakText = QdcMushafService.getIndopakSegmentText({
+					surah: this.surah,
+					verse: this.verse,
+					startWordIndex: this.startWordIndex,
+					endWordIndex: this.endWordIndex,
+					isLastWords: this.isLastWordsOfVerse,
+					includeVerseNumber: Boolean(globalState.getStyle('arabic', 'show-verse-number').value)
+				});
+
+				if (indopakText) return indopakText;
+			}
+
 			// Regarde dans les styles si on doit afficher le numéro de verset
 			if (globalState.getStyle('arabic', 'show-verse-number').value)
 				return this.getTextWithVerseNumber();

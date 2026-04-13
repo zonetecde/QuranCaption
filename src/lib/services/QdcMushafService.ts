@@ -23,6 +23,15 @@ type SegmentRequest = {
 	includeVerseNumber: boolean;
 };
 
+type LocalQuranWord = {
+	c?: string;
+	i?: string;
+};
+
+type LocalQuranVerse = {
+	w?: LocalQuranWord[];
+};
+
 export class QdcMushafService {
 	private static fontLoadPromise: Promise<boolean> | null = null;
 	private static chapterPromises = new Map<number, Promise<Map<number, string[]> | null>>();
@@ -114,6 +123,12 @@ export class QdcMushafService {
 
 		const promise = (async () => {
 			try {
+				const localChapter = await this.loadChapterFromLocalQuran(surah);
+				if (localChapter) {
+					this.chapterWordsCache.set(surah, localChapter);
+					return localChapter;
+				}
+
 				const searchParams = new URLSearchParams({
 					chapterId: String(surah)
 				});
@@ -149,6 +164,41 @@ export class QdcMushafService {
 
 		this.chapterPromises.set(surah, promise);
 		return promise;
+	}
+
+	private static async loadChapterFromLocalQuran(surah: number): Promise<Map<number, string[]> | null> {
+		try {
+			const response = await fetch(`/quran/${surah}.json`);
+			if (!response.ok) return null;
+
+			const payload = (await response.json()) as Record<string, LocalQuranVerse>;
+			const byVerse = new Map<number, string[]>();
+			let hasAtLeastOneIndopakWord = false;
+
+			for (const [verseKey, verseData] of Object.entries(payload)) {
+				const verseNumber = Number(verseKey);
+				if (!Number.isInteger(verseNumber) || verseNumber <= 0) continue;
+
+				const words = (Array.isArray(verseData?.w) ? verseData.w : [])
+					.map((word) => {
+						const indopak = String(word?.i ?? '').trim();
+						const fallback = String(word?.c ?? '').trim();
+						if (indopak.length > 0) {
+							hasAtLeastOneIndopakWord = true;
+							return indopak;
+						}
+						return fallback;
+					})
+					.filter((word) => word.length > 0);
+
+				byVerse.set(verseNumber, words);
+			}
+
+			return hasAtLeastOneIndopakWord ? byVerse : null;
+		} catch (error) {
+			console.warn('QdcMushafService.loadChapterFromLocalQuran error:', error);
+			return null;
+		}
 	}
 
 	private static latinToArabicNumbers(value: number): string {

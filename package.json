@@ -16,6 +16,7 @@
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
 		"verify": "npm run check && npm run test",
+		"sync:indopak-quran": "node scripts/sync-indopak-quran.js",
 		"tauri": "tauri"
 	},
 	"devDependencies": {

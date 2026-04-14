@@ -10,7 +10,6 @@
 	import RecitersManager from '$lib/classes/Reciter';
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import { QdcMushafService } from '$lib/services/QdcMushafService';
 
 	let {
 		style,
@@ -237,7 +236,7 @@
 		}
 	}
 
-	async function applySelectValue(value: string) {
+	function applySelectValue(value: string) {
 		// Style global arabe (non-overridable): choix du mushaf
 		if (target === 'arabic' && style.id === 'mushaf-style') {
 			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
@@ -245,7 +244,6 @@
 
 			if (value === 'Indopak') {
 				arabicStyles.setStyle('font-family', 'IndoPak');
-				await QdcMushafService.prefetchCurrentProjectSurahs();
 			} else {
 				arabicStyles.setStyle('font-family', 'Hafs');
 			}
@@ -262,7 +260,6 @@
 			selectedClipIds().length === 0
 		) {
 			globalState.getVideoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Indopak');
-			await QdcMushafService.prefetchCurrentProjectSurahs();
 		}
 
 		applyValue(value);

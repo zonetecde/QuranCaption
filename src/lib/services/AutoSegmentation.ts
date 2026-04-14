@@ -904,6 +904,11 @@ async function applySegmentationResponseToProject(
 		if (!verse) return;
 
 		const arabicText: string = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
+		const indopakText: string = verse.getArabicTextBetweenTwoIndexes(
+			startIndex,
+			endIndex,
+			'indopak'
+		);
 		const wbwTranslation: string[] = verse.getWordByWordTranslationBetweenTwoIndexes(
 			startIndex,
 			endIndex
@@ -927,6 +932,7 @@ async function applySegmentationResponseToProject(
 			subtitlesProperties.isFullVerse,
 			subtitlesProperties.isLastWordsOfVerse,
 			subtitlesProperties.translations,
+			indopakText,
 			true,
 			confidence
 		);
@@ -1629,6 +1635,11 @@ export async function runNativeSegmentation(
 			const endIndex = verse.words.length - 1;
 
 			const arabicText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
+			const indopakText = verse.getArabicTextBetweenTwoIndexes(
+				startIndex,
+				endIndex,
+				'indopak'
+			);
 			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startIndex, endIndex);
 
 			const subtitlesProperties = await subtitleTrack.getSubtitlesProperties(
@@ -1650,6 +1661,7 @@ export async function runNativeSegmentation(
 				subtitlesProperties.isFullVerse,
 				subtitlesProperties.isLastWordsOfVerse,
 				subtitlesProperties.translations,
+				indopakText,
 				true, // isArabic
 				1.0 // Confidence 100% since it's manual/official
 			);

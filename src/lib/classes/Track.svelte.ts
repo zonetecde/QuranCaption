@@ -300,7 +300,8 @@ export class SubtitleTrack extends Track {
 				verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
 				subtitlesProperties.isFullVerse, // isFullVerse
 				subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-				subtitlesProperties.translations // translations
+				subtitlesProperties.translations, // translations
+				verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
 			);
 			if (subtitle instanceof ClipWithTranslation) {
 				newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
@@ -320,6 +321,11 @@ export class SubtitleTrack extends Track {
 			subtitle.startWordIndex = firstWordIndex;
 			subtitle.endWordIndex = lastWordIndex;
 			subtitle.text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+			subtitle.indopakText = verse.getArabicTextBetweenTwoIndexes(
+				firstWordIndex,
+				lastWordIndex,
+				'indopak'
+			);
 			subtitle.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
 				firstWordIndex,
 				lastWordIndex
@@ -411,6 +417,11 @@ export class SubtitleTrack extends Track {
 		surah: number
 	): Promise<boolean> {
 		const arabicText = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+		const indopakText = verse.getArabicTextBetweenTwoIndexes(
+			firstWordIndex,
+			lastWordIndex,
+			'indopak'
+		);
 		const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
 			firstWordIndex,
 			lastWordIndex
@@ -443,7 +454,8 @@ export class SubtitleTrack extends Track {
 				wbwTranslation,
 				subtitlesProperties.isFullVerse, // isFullVerse
 				subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-				subtitlesProperties.translations // translations
+				subtitlesProperties.translations, // translations
+				indopakText
 			)
 		);
 

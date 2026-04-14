@@ -16,7 +16,6 @@
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
 	import QPCFontProvider from '$lib/services/FontProvider';
-	import { QdcMushafService } from '$lib/services/QdcMushafService';
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -218,11 +217,6 @@
 			// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
 			globalState.currentProject = await ExportService.loadProject(Number(id));
 			removeHiddenTranslationsFromExportProject();
-
-			// Si le style de mushaf est Indopak, précharge les données nécessaires pour éviter les lenteurs pendant l'export
-			if (QdcMushafService.isIndopakMushafEnabled()) {
-				await QdcMushafService.prefetchCurrentProjectSurahs();
-			}
 
 			// Créer le dossier d'export s'il n'existe pas
 			await mkdir(await join(ExportService.exportFolder, exportId), {

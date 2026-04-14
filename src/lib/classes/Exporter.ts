@@ -16,7 +16,6 @@ import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
 import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
-import { QdcMushafService } from '$lib/services/QdcMushafService';
 
 export default class Exporter {
 	private static queueIntervalId: number | null = null;
@@ -149,10 +148,6 @@ export default class Exporter {
 	 */
 	static async exportSubtitles() {
 		const es = globalState.getExportState;
-
-		if (QdcMushafService.isIndopakMushafEnabled()) {
-			await QdcMushafService.prefetchCurrentProjectSurahs();
-		}
 
 		const settings = {
 			format: es.subtitleFormat,

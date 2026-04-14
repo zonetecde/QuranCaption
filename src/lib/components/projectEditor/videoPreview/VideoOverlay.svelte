@@ -22,7 +22,6 @@
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { Utilities } from '$lib/classes/misc/Utilities';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { QdcMushafService } from '$lib/services/QdcMushafService';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
@@ -139,14 +138,6 @@
 	$effect(() => {
 		currentSubtitleImagePath();
 		subtitleImageFailedToLoad = false;
-	});
-
-	$effect(() => {
-		const project = globalState.currentProject;
-		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
-		if (!project || mushafStyle !== 'Indopak') return;
-
-		void QdcMushafService.prefetchCurrentProjectSurahs();
 	});
 
 	// Calcul de l'opacité des sous-titres (prend en compte les overrides par clip)

@@ -1,4 +1,4 @@
-type RawWord = { c: string; d: string; e: string };
+type RawWord = { c: string; d: string; e: string; i?: string };
 type RawVerse = { w: RawWord[] };
 type RawSurah = {
 	id: number;
@@ -12,17 +12,19 @@ type RawSurah = {
 
 export class Word {
 	arabic: string;
+	indopak: string;
 	transliteration: string;
 	translation: string;
 
-	constructor(arabic: string, transliteration: string, translation: string) {
+	constructor(arabic: string, transliteration: string, translation: string, indopak?: string) {
 		this.arabic = arabic;
+		this.indopak = indopak ?? arabic;
 		this.transliteration = transliteration;
 		this.translation = translation;
 	}
 
 	static fromJson(data: RawWord): Word {
-		return new Word(data.c, data.d, data.e);
+		return new Word(data.c, data.d, data.e, data.i);
 	}
 }
 
@@ -40,17 +42,21 @@ export class Verse {
 		return new Verse(parseInt(id), words);
 	}
 
-	getArabicTextBetweenTwoIndexes(startIndex: number, endIndex: number): string {
+	getArabicTextBetweenTwoIndexes(
+		startIndex: number,
+		endIndex: number,
+		script: 'uthmani' | 'indopak' = 'uthmani'
+	): string {
 		if (startIndex < 0 || endIndex >= this.words.length || startIndex > endIndex) {
 			if (endIndex >= this.words.length) {
-				return this.getArabicTextBetweenTwoIndexes(startIndex, this.words.length - 1);
+				return this.getArabicTextBetweenTwoIndexes(startIndex, this.words.length - 1, script);
 			} else {
 				throw new Error('Invalid index range');
 			}
 		}
 		return this.words
 			.slice(startIndex, endIndex + 1)
-			.map((word) => word.arabic)
+			.map((word) => (script === 'indopak' ? word.indopak : word.arabic))
 			.join(' ');
 	}
 

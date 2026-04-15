@@ -10,6 +10,7 @@
 	import RecitersManager from '$lib/classes/Reciter';
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import toast from 'svelte-5-french-toast';
 
 	let {
 		style,
@@ -244,6 +245,9 @@
 
 			if (value === 'Indopak') {
 				arabicStyles.setStyle('font-family', 'IndoPak');
+			} else if (value === 'Tajweed') {
+				arabicStyles.setStyle('font-family', 'QPC2');
+				toast('Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable.');
 			} else {
 				arabicStyles.setStyle('font-family', 'Hafs');
 			}
@@ -256,10 +260,17 @@
 		if (
 			target === 'arabic' &&
 			style.id === 'font-family' &&
-			value === 'IndoPak' &&
 			selectedClipIds().length === 0
 		) {
-			globalState.getVideoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Indopak');
+			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+			if (value === 'IndoPak') {
+				arabicStyles.setStyle('mushaf-style', 'Indopak');
+			} else if (
+				arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' &&
+				value !== 'QPC2'
+			) {
+				arabicStyles.setStyle('mushaf-style', 'Uthmani');
+			}
 		}
 
 		applyValue(value);

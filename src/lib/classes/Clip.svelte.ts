@@ -298,12 +298,14 @@ export class SubtitleClip extends ClipWithTranslation {
 
 	override getText(): string {
 		// En fonction de la police d'écriture, renvoie le bon texte
-		// Si on a pas la police QCP2
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
 
-		// Si ce n'est pas une police avec des caractères spéciaux (QPC1 et QPC2)
-		if (fontFamily.value !== 'QPC1' && fontFamily.value !== 'QPC2') {
+		// Les polices QPC1, QPC2 et Tajweed utilisent des glyphes. Tajweed utilise les glyphes de QPC2.
+		const shouldUseQpcGlyphs =
+			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
+
+		if (!shouldUseQpcGlyphs) {
 			if (mushafStyle === 'Indopak' && !this.indopakText) {
 				void this.hydrateIndopakTextFromLocalQuran();
 			}
@@ -313,16 +315,20 @@ export class SubtitleClip extends ClipWithTranslation {
 			if (globalState.getStyle('arabic', 'show-verse-number').value)
 				return this.getTextWithVerseNumber(baseText);
 			else return baseText;
-		} else {
-			return QPCFontProvider.getQuranVerseGlyph(
-				this.surah,
-				this.verse,
-				this.startWordIndex,
-				this.endWordIndex,
-				this.isLastWordsOfVerse,
-				fontFamily.value === 'QPC1' ? '1' : '2'
-			);
 		}
+
+		// Tajweed utilise les glyphes de QPC2
+		const qpcVersion: '1' | '2' =
+			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
+
+		return QPCFontProvider.getQuranVerseGlyph(
+			this.surah,
+			this.verse,
+			this.startWordIndex,
+			this.endWordIndex,
+			this.isLastWordsOfVerse,
+			qpcVersion
+		);
 	}
 
 	override setEndTime(newEndTime: number) {

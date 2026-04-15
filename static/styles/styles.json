@@ -62,7 +62,7 @@
 				"description": "Choose the Arabic script source for Quran subtitles.",
 				"value": "Uthmani",
 				"valueType": "select",
-				"options": ["Uthmani", "Indopak"],
+				"options": ["Uthmani", "Indopak", "Tajweed"],
 				"css": "",
 				"tailwind": false,
 				"icon": "menu_book"

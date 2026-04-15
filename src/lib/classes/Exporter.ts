@@ -365,7 +365,16 @@ export default class Exporter {
 		// Ajoute à la liste des exports en cours
 		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable');
 
-		void AiTranslationTelemetryService.handleVideoExportRequested();
+		void AiTranslationTelemetryService.handleVideoExportRequested({
+			projectId: globalState.currentProject!.detail.id,
+			exportStartMs: globalState.getExportState.videoStartTime || 0,
+			exportEndMs: globalState.getExportState.videoEndTime || 0,
+			clips: globalState.getSubtitleClips.map((clip) => ({
+				subtitleId: clip.id,
+				startTime: clip.startTime,
+				endTime: clip.endTime
+			}))
+		});
 
 		// Ouvre le popup de monitor d'export
 		globalState.uiState.showExportMonitor = true;

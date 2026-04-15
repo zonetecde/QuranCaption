@@ -38,9 +38,25 @@ export type AiTranslationTelemetryItem = {
 	uploadedAt?: string;
 };
 
+export type AiTranslationTelemetryExportClip = {
+	subtitleId: number;
+	startTime: number;
+	endTime: number;
+};
+
+export type AiTranslationTelemetryExportScope = {
+	id: string;
+	projectId: number;
+	exportStartMs: number;
+	exportEndMs: number;
+	submittedAt: string;
+	itemIds: string[];
+};
+
 export type AiTelemetryFile = {
-	version: 1;
+	version: 2;
 	items: AiTranslationTelemetryItem[];
+	submittedExportScopes: AiTranslationTelemetryExportScope[];
 };
 
 type LegacyTelemetryDiskItem = Partial<AiTranslationTelemetryItem> & {
@@ -73,8 +89,9 @@ const TELEMETRY_FILE_NAME = 'telemetry.json';
 
 function createEmptyTelemetryFile(): AiTelemetryFile {
 	return {
-		version: 1,
-		items: []
+		version: 2,
+		items: [],
+		submittedExportScopes: []
 	};
 }
 
@@ -87,6 +104,107 @@ function createStableItemId(item: Pick<
 	'projectId' | 'editionKey' | 'subtitleId' | 'sourceMode'
 >): string {
 	return `${item.projectId}:${item.editionKey}:${item.subtitleId}:${item.sourceMode}`;
+}
+
+export function normalizeTelemetryExportBounds(
+	exportStartMs: number,
+	exportEndMs: number
+): { exportStartMs: number; exportEndMs: number } {
+	const start = Math.max(0, Math.round(exportStartMs || 0));
+	const roundedEnd = Math.max(0, Math.round(exportEndMs || 0));
+	const end = roundedEnd > start ? roundedEnd : start + 1;
+
+	return {
+		exportStartMs: start,
+		exportEndMs: end
+	};
+}
+
+export function createStableExportScopeId(scope: {
+	projectId: number;
+	exportStartMs: number;
+	exportEndMs: number;
+}): string {
+	const normalized = normalizeTelemetryExportBounds(scope.exportStartMs, scope.exportEndMs);
+	return `${scope.projectId}:${normalized.exportStartMs}:${normalized.exportEndMs}`;
+}
+
+function rangesOverlap(
+	rangeStartMs: number,
+	rangeEndMs: number,
+	clipStartMs: number,
+	clipEndMs: number
+): boolean {
+	return clipEndMs > rangeStartMs && clipStartMs < rangeEndMs;
+}
+
+export function filterTelemetryItemsForExportScope(
+	items: AiTranslationTelemetryItem[],
+	scope: {
+		projectId: number;
+		exportStartMs: number;
+		exportEndMs: number;
+		clips: AiTranslationTelemetryExportClip[];
+	}
+): AiTranslationTelemetryItem[] {
+	const normalized = normalizeTelemetryExportBounds(scope.exportStartMs, scope.exportEndMs);
+	const allowedSubtitleIds = new Set(
+		scope.clips
+			.filter((clip) =>
+				rangesOverlap(
+					normalized.exportStartMs,
+					normalized.exportEndMs,
+					clip.startTime,
+					clip.endTime
+				)
+			)
+			.map((clip) => clip.subtitleId)
+	);
+
+	return items
+		.filter(
+			(item) => item.projectId === scope.projectId && allowedSubtitleIds.has(item.subtitleId)
+		)
+		.sort((left, right) => {
+			if (left.subtitleId !== right.subtitleId) return left.subtitleId - right.subtitleId;
+			if (left.editionKey !== right.editionKey) return left.editionKey.localeCompare(right.editionKey);
+			return left.sourceMode.localeCompare(right.sourceMode);
+		});
+}
+
+function sanitizeSubmittedExportScope(rawScope: unknown): AiTranslationTelemetryExportScope | null {
+	if (!rawScope || typeof rawScope !== 'object') return null;
+
+	const projectId = Number((rawScope as { projectId?: unknown }).projectId);
+	const exportStartMs = Number((rawScope as { exportStartMs?: unknown }).exportStartMs);
+	const exportEndMs = Number((rawScope as { exportEndMs?: unknown }).exportEndMs);
+	const submittedAt =
+		normalizeText((rawScope as { submittedAt?: unknown }).submittedAt as string) ||
+		new Date().toISOString();
+	const itemIds = Array.isArray((rawScope as { itemIds?: unknown[] }).itemIds)
+		? (rawScope as { itemIds: unknown[] }).itemIds
+				.map((itemId) => normalizeText(typeof itemId === 'string' ? itemId : ''))
+				.filter(Boolean)
+		: [];
+
+	if (!Number.isInteger(projectId)) return null;
+
+	const normalized = normalizeTelemetryExportBounds(exportStartMs, exportEndMs);
+
+	return {
+		id:
+			normalizeText((rawScope as { id?: unknown }).id as string) ||
+			createStableExportScopeId({
+				projectId,
+				exportStartMs: normalized.exportStartMs,
+				exportEndMs: normalized.exportEndMs
+			}),
+		projectId,
+		exportStartMs: normalized.exportStartMs,
+		exportEndMs: normalized.exportEndMs,
+		submittedAt,
+		itemIds
+	};
 }
 
 function toTelemetryStatus(value: unknown, fallback?: unknown): AiTranslationTelemetryStatus | null {
@@ -264,6 +382,14 @@ export function extractAdvancedAiTranslations(parsedResponse: unknown): Map<stri
 export default class AiTranslationTelemetryService {
 	private static cache: AiTelemetryFile | null = null;
 	private static mutationQueue: Promise<void> = Promise.resolve();
+	private static pendingExportScope:
+		| {
+				projectId: number;
+				exportStartMs: number;
+				exportEndMs: number;
+				clips: AiTranslationTelemetryExportClip[];
+		  }
+		| null = null;
 
 	private static async getTelemetryFilePath(): Promise<string> {
 		return join(await appDataDir(), TELEMETRY_FILE_NAME);
@@ -279,11 +405,16 @@ export default class AiTranslationTelemetryService {
 			const rawContent = await readTextFile(filePath);
 			const parsed = JSON.parse(rawContent) as Partial<AiTelemetryFile>;
 			return {
-				version: 1,
+				version: 2,
 				items: Array.isArray(parsed.items)
 					? parsed.items
 							.map((item) => sanitizeTelemetryItem(item as LegacyTelemetryDiskItem))
 							.filter((item): item is AiTranslationTelemetryItem => item !== null)
+					: [],
+				submittedExportScopes: Array.isArray(parsed.submittedExportScopes)
+					? parsed.submittedExportScopes
+							.map((scope) => sanitizeSubmittedExportScope(scope))
+							.filter((scope): scope is AiTranslationTelemetryExportScope => scope !== null)
 					: []
 			};
 		} catch (error) {
@@ -324,6 +455,26 @@ export default class AiTranslationTelemetryService {
 		this.cache = file;
 		const filePath = await this.getTelemetryFilePath();
 		await writeTextFile(filePath, JSON.stringify(file, null, 2));
+	}
+
+	private static async getExportItemsFromScope(scope: {
+		projectId: number;
+		exportStartMs: number;
+		exportEndMs: number;
+		clips: AiTranslationTelemetryExportClip[];
+	}): Promise<AiTranslationTelemetryItem[]> {
+		const file = await this.loadFile();
+		return filterTelemetryItemsForExportScope(file.items, scope);
+	}
+
+	private static async hasSubmittedExportScope(scope: {
+		projectId: number;
+		exportStartMs: number;
+		exportEndMs: number;
+	}): Promise<boolean> {
+		const file = await this.loadFile();
+		const scopeId = createStableExportScopeId(scope);
+		return file.submittedExportScopes.some((submittedScope) => submittedScope.id === scopeId);
 	}
 
 	static async getPendingItems(): Promise<AiTranslationTelemetryItem[]> {
@@ -467,12 +618,34 @@ export default class AiTranslationTelemetryService {
 		await Settings.save();
 	}
 
-	static async handleVideoExportRequested(): Promise<void> {
-		const pendingItems = await this.getPendingItems();
+	static async handleVideoExportRequested(params: {
+		projectId: number;
+		exportStartMs: number;
+		exportEndMs: number;
+		clips: AiTranslationTelemetryExportClip[];
+	}): Promise<void> {
+		const normalized = normalizeTelemetryExportBounds(params.exportStartMs, params.exportEndMs);
+		const scope = {
+			projectId: params.projectId,
+			exportStartMs: normalized.exportStartMs,
+			exportEndMs: normalized.exportEndMs,
+			clips: params.clips
+		};
+
+		this.pendingExportScope = scope;
+
+		if (await this.hasSubmittedExportScope(scope)) {
+			this.pendingExportScope = null;
+			this.syncPromptUi(false, 0);
+			return;
+		}
+
+		const pendingItems = await this.getExportItemsFromScope(scope);
 		const pendingCount = pendingItems.length;
 		const consent = globalState.settings?.aiTranslationSettings.telemetryConsent ?? 'unknown';
 
 		if (pendingCount === 0) {
+			this.pendingExportScope = null;
 			this.syncPromptUi(false, 0);
 			return;
 		}
@@ -492,8 +665,21 @@ export default class AiTranslationTelemetryService {
 	}
 
 	static async submitPendingToPostHog(): Promise<boolean> {
-		const pendingItems = await this.getPendingItems();
+		const scope = this.pendingExportScope;
+		if (!scope) {
+			this.syncPromptUi(false, 0);
+			return true;
+		}
+
+		if (await this.hasSubmittedExportScope(scope)) {
+			this.pendingExportScope = null;
+			this.syncPromptUi(false, 0);
+			return true;
+		}
+
+		const pendingItems = await this.getExportItemsFromScope(scope);
 		if (pendingItems.length === 0) {
+			this.pendingExportScope = null;
 			this.syncPromptUi(false, 0);
 			return true;
 		}
@@ -502,6 +688,10 @@ export default class AiTranslationTelemetryService {
 
 		try {
 			AnalyticsService.track('ai_translation_telemetry_submitted', {
+				project_id: scope.projectId,
+				export_start_ms: scope.exportStartMs,
+				export_end_ms: scope.exportEndMs,
+				export_scope_id: createStableExportScopeId(scope),
 				item_count: pendingItems.length,
 				contains_manual_reviews: pendingItems.some((item) => !!item.manualReview),
 				app_version: globalState.settings?.appVersion ?? '0.0.0',
@@ -523,9 +713,22 @@ export default class AiTranslationTelemetryService {
 						? { ...item, uploadedAt, updatedAt: uploadedAt }
 						: item
 				);
+
+				const scopeId = createStableExportScopeId(scope);
+				if (!file.submittedExportScopes.some((submittedScope) => submittedScope.id === scopeId)) {
+					file.submittedExportScopes.push({
+						id: scopeId,
+						projectId: scope.projectId,
+						exportStartMs: scope.exportStartMs,
+						exportEndMs: scope.exportEndMs,
+						submittedAt: uploadedAt,
+						itemIds: pendingItems.map((item) => item.id)
+					});
+				}
 			});
 
 			this.syncPromptUi(false, 0);
+			this.pendingExportScope = null;
 			return true;
 		} catch (error) {
 			console.warn('Failed to submit AI translation telemetry to PostHog:', error);

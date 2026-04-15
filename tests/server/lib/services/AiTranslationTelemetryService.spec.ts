@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	applyManualReviewToTelemetryItem,
+	createStableExportScopeId,
 	extractAdvancedAiTranslations,
+	filterTelemetryItemsForExportScope,
+	normalizeTelemetryExportBounds,
 	reconstructTranslationFromRange,
 	upsertTelemetryItem,
 	type AiTranslationTelemetryItem
@@ -172,5 +175,77 @@ describe('AiTranslationTelemetryService helpers', () => {
 
 		expect(extracted.get('2:1')?.get(0)).toBe('first advanced segment');
 		expect(extracted.get('2:1')?.get(1)).toBe('second advanced segment');
+	});
+
+	it('filters telemetry items to only subtitles overlapping the exported range', () => {
+		const items: AiTranslationTelemetryItem[] = [
+			{
+				id: '7:edition:10:legacy',
+				projectId: 7,
+				editionKey: 'edition',
+				editionName: 'Edition',
+				verseKey: '1:1',
+				subtitleId: 10,
+				sourceMode: 'legacy',
+				status: 'ai trimmed',
+				segment: 'first',
+				createdAt: '2026-01-01T00:00:00.000Z',
+				updatedAt: '2026-01-01T00:00:00.000Z'
+			},
+			{
+				id: '7:edition:11:legacy',
+				projectId: 7,
+				editionKey: 'edition',
+				editionName: 'Edition',
+				verseKey: '1:2',
+				subtitleId: 11,
+				sourceMode: 'legacy',
+				status: 'ai trimmed',
+				segment: 'second',
+				createdAt: '2026-01-01T00:00:00.000Z',
+				updatedAt: '2026-01-01T00:00:00.000Z'
+			},
+			{
+				id: '8:edition:12:legacy',
+				projectId: 8,
+				editionKey: 'edition',
+				editionName: 'Edition',
+				verseKey: '1:3',
+				subtitleId: 12,
+				sourceMode: 'legacy',
+				status: 'ai trimmed',
+				segment: 'other project',
+				createdAt: '2026-01-01T00:00:00.000Z',
+				updatedAt: '2026-01-01T00:00:00.000Z'
+			}
+		];
+
+		const filtered = filterTelemetryItemsForExportScope(items, {
+			projectId: 7,
+			exportStartMs: 1000,
+			exportEndMs: 2500,
+			clips: [
+				{ subtitleId: 10, startTime: 0, endTime: 900 },
+				{ subtitleId: 11, startTime: 1500, endTime: 2600 },
+				{ subtitleId: 12, startTime: 1700, endTime: 1900 }
+			]
+		});
+
+		expect(filtered.map((item) => item.subtitleId)).toEqual([11]);
+	});
+
+	it('creates a stable export scope id from normalized bounds', () => {
+		expect(
+			createStableExportScopeId({
+				projectId: 5,
+				exportStartMs: 1200.4,
+				exportEndMs: 1200.4
+			})
+		).toBe('5:1200:1201');
+
+		expect(normalizeTelemetryExportBounds(2500, 1500)).toEqual({
+			exportStartMs: 2500,
+			exportEndMs: 2501
+		});
 	});
 });

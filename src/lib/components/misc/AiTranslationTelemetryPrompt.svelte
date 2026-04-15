@@ -41,7 +41,7 @@
 				{globalState.uiState.aiTranslationTelemetryPendingCount} pending translation item{globalState
 					.uiState.aiTranslationTelemetryPendingCount > 1
 					? 's'
-					: ''} will be sent only once.
+					: ''} will be sent only once for this export range.
 			</p>
 			<div class="grid grid-cols-2 gap-2">
 				<button

@@ -11,6 +11,12 @@ const QURAN_DIR = path.join(ROOT_DIR, 'static', 'quran');
 const QURAN_CAPTION_BASE_URL = 'https://qurancaption.com';
 const QDC_DIRECT_BASE_URL = 'https://api.qurancdn.com/api/qdc';
 const BIDI_CONTROL_RE = /[\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069]/gu;
+const INDO_PAK_STOP_SIGN_CHARS =
+	'\u06D6\u06D7\u06D8\u06D9\u06DA\u06DB\u06DC\u06E2\u0615\u06EA\u06EB\u0617\u06E5';
+const INDO_PAK_SPACE_BEFORE_STOP_SIGN_RE = new RegExp(
+	`[\\s\\u200B\\u2060\\uFEFF]+([${INDO_PAK_STOP_SIGN_CHARS}])`,
+	'gu'
+);
 
 async function readJson(filePath) {
 	const content = await fs.readFile(filePath, 'utf8');
@@ -28,6 +34,7 @@ async function sleep(ms) {
 function sanitizeArabicWord(value) {
 	return String(value ?? '')
 		.replace(BIDI_CONTROL_RE, '')
+		.replace(INDO_PAK_SPACE_BEFORE_STOP_SIGN_RE, '$1')
 		.trim();
 }
 

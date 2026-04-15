@@ -362,7 +362,7 @@
 		currentBatchStep = blockingFailure ? 'failed' : 'idle';
 		latestSummary = `${successfulSegments}/${aiBoldEstimate().totalSegments} segment(s) updated. ${failedSegments} segment(s) had issues.`;
 
-		AnalyticsService.trackAIUsage('translation', {
+		AnalyticsService.trackAiBoldUsage({
 			range: `time ${translationsEditorState().aiBoldStartTimeMs}-${translationsEditorState().aiBoldEndTimeMs}`,
 			mode: 'advanced_bold',
 			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,

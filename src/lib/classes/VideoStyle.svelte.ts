@@ -50,6 +50,7 @@ export type GeneralStyleName =
 	| 'show-verse-number'
 	| 'show-decorative-brackets'
 	| 'decorative-brackets-font-family'
+	| 'mushaf-style'
 	| 'verse-number-format'
 	| 'verse-number-position'
 	| 'text-direction';
@@ -372,9 +373,7 @@ export class StylesData extends SerializableBase {
 		this.target = target;
 		// S'assurer que chaque élément passé est bien une instance de Category
 		// (les JSON importés depuis les fichiers contiennent seulement les attributs)
-		this.categories = (categories || []).map((c) =>
-			c instanceof Category ? c : new Category(c)
-		);
+		this.categories = (categories || []).map((c) => (c instanceof Category ? c : new Category(c)));
 	}
 
 	/**
@@ -420,6 +419,37 @@ export class StylesData extends SerializableBase {
 				// On force une certaine police pour afficher par exemple "Sadaqallahul Azim" ou les autres textes arabes
 				if (this.target === 'arabic' && style.id === 'font-family' && clipId) {
 					const subtitleClip = globalState.getSubtitleTrack.getClipById(clipId);
+					const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
+
+					// Le mushaf Tajweed est rendu avec les glyphes QPC + la police Tajweed v4 (par page), + gestion des couleurs qui est fait
+					// avec font-palette.
+					if (mushafStyle === 'Tajweed' && subtitleClip instanceof SubtitleClip) {
+						const tajweedFontName = QPCFontProvider.getTajweedFontNameForVerse(
+							subtitleClip.surah,
+							subtitleClip.verse
+						);
+						const qpc2FallbackFontName = QPCFontProvider.getFontNameForVerse(
+							subtitleClip.surah,
+							subtitleClip.verse,
+							'2'
+						);
+						const textColor = String(this.getEffectiveValue('text-color', clipId) ?? '#ffffff');
+						const paletteName = QPCFontProvider.getTajweedFontPaletteNameForVerse(
+							subtitleClip.surah,
+							subtitleClip.verse,
+							textColor
+						);
+						css += `font-family: ${tajweedFontName}, ${qpc2FallbackFontName};\n`;
+						css += `font-palette: ${paletteName};\n`;
+						continue;
+					}
+
+					// Le mushaf IndoPak force la police IndoPak.
+					if (mushafStyle === 'Indopak' && subtitleClip instanceof SubtitleClip) {
+						css += `font-family: IndoPak, sans-serif;\n`;
+						continue;
+					}
+
 					if (subtitleClip instanceof PredefinedSubtitleClip) {
 						const forcedFont = getForcedFontForPredefinedSubtitle(
 							subtitleClip.predefinedSubtitleType,
@@ -826,12 +856,20 @@ export class VideoStyle extends SerializableBase {
 		return hasChanges;
 	}
 
-	private mergeMissingStylesForTarget(target: string, defaultCategoriesRaw: RawCategory[]): boolean {
+	private mergeMissingStylesForTarget(
+		target: string,
+		defaultCategoriesRaw: RawCategory[]
+	): boolean {
 		let hasChanges = false;
 
 		const targetStyles = this.styles.find((s) => s.target === target);
 		if (!targetStyles) {
-			this.styles.push(new StylesData(target, defaultCategoriesRaw.map((c) => new Category(c))));
+			this.styles.push(
+				new StylesData(
+					target,
+					defaultCategoriesRaw.map((c) => new Category(c))
+				)
+			);
 			return true;
 		}
 

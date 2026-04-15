@@ -6,8 +6,11 @@ export class QPCFontProvider {
 	static verseMappingV2: Record<string, string> | undefined = undefined;
 	static verseMappingV1: Record<string, string> | undefined = undefined;
 	static loadedFonts: Set<string> = new Set();
+	static loadedTajweedPalettes: Set<string> = new Set();
 	static fontLoadPromises: Map<string, Promise<void>> = new Map();
 	private static readonly FONT_WAIT_TIMEOUT_MS = 1200;
+	private static readonly TAJWEED_FONT_BASE_URL =
+		'https://cdn.jsdelivr.net/gh/quran/quran.com-frontend-next/public/fonts/quran/hafs/v4/colrv1';
 
 	static async loadQPC2Data() {
 		if (!QPCFontProvider.qpc2Glyphs) {
@@ -101,6 +104,28 @@ export class QPCFontProvider {
 		return fontName;
 	}
 
+	static getTajweedFontNameForVerse(surah: number, verse: number): string {
+		const verseKey = `${surah}:${verse}`;
+		const mappedFontName = this.verseMappingV2![verseKey] || 'QPC2_p001';
+		const pageNumber = this.extractPageNumberFromMappedFontName(mappedFontName);
+		const fontName = `p${pageNumber}-v4`;
+
+		this.loadTajweedFontIfNotLoaded(fontName, pageNumber);
+		return fontName;
+	}
+
+	static getTajweedFontPaletteNameForVerse(
+		surah: number,
+		verse: number,
+		baseTextColor: string = '#ffffff'
+	): string {
+		const fontName = this.getTajweedFontNameForVerse(surah, verse);
+		const normalizedColor = this.normalizeCssColor(baseTextColor);
+		const paletteName = this.getTajweedPaletteNameForFont(fontName, normalizedColor);
+		this.loadTajweedPaletteIfNotLoaded(fontName, paletteName, normalizedColor);
+		return paletteName;
+	}
+
 	static getQuranVerseGlyph(
 		surah: number,
 		verse: number,
@@ -158,6 +183,74 @@ export class QPCFontProvider {
 		return 'A@ ?';
 	}
 
+	private static loadTajweedFontIfNotLoaded(fontName: string, pageNumber: number): Promise<void> {
+		if (typeof document === 'undefined') return Promise.resolve();
+
+		if (!this.loadedFonts.has(fontName)) {
+			const style = document.createElement('style');
+			const page = String(pageNumber);
+			const woff2 = `${this.TAJWEED_FONT_BASE_URL}/woff2/p${page}.woff2`;
+			const woff = `${this.TAJWEED_FONT_BASE_URL}/woff/p${page}.woff`;
+			const ttf = `${this.TAJWEED_FONT_BASE_URL}/ttf/p${page}.ttf`;
+
+			style.textContent = `
+				@font-face {
+					font-family: '${fontName}';
+					src: url('${woff2}') format('woff2'),
+						url('${woff}') format('woff'),
+						url('${ttf}') format('truetype');
+					font-weight: normal;
+					font-style: normal;
+				}
+			`;
+			document.head.appendChild(style);
+			this.loadedFonts.add(fontName);
+		}
+
+		return this.waitForFontFamily(fontName);
+	}
+
+	private static extractPageNumberFromMappedFontName(fontName: string): number {
+		const match = /_p(\d+)/i.exec(fontName);
+		if (!match) return 1;
+		const pageNumber = parseInt(match[1], 10);
+		return Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : 1;
+	}
+
+	private static loadTajweedPaletteIfNotLoaded(
+		fontName: string,
+		paletteName: string,
+		baseTextColor: string
+	): void {
+		if (typeof document === 'undefined') return;
+		if (this.loadedTajweedPalettes.has(paletteName)) return;
+
+		const style = document.createElement('style');
+		style.textContent = `
+			@font-palette-values ${paletteName} {
+				font-family: '${fontName}';
+				base-palette: 1;
+				override-colors: 0 ${baseTextColor};
+			}
+		`;
+		document.head.appendChild(style);
+		this.loadedTajweedPalettes.add(paletteName);
+	}
+
+	private static getTajweedPaletteNameForFont(fontName: string, baseTextColor: string): string {
+		const normalizedFont = fontName.replace(/[^a-zA-Z0-9_-]/g, '-');
+		const normalizedColor = baseTextColor.replace(/[^a-zA-Z0-9_-]/g, '-');
+		return `--${normalizedFont}-palette-${normalizedColor}`;
+	}
+
+	private static normalizeCssColor(input: string): string {
+		const value = String(input ?? '').trim();
+		if (/^#[0-9a-fA-F]{3}$/.test(value) || /^#[0-9a-fA-F]{6}$/.test(value)) return value;
+		if (/^rgb(a)?\(/i.test(value)) return value;
+		if (/^hsl(a)?\(/i.test(value)) return value;
+		return '#ffffff';
+	}
+
 	/**
 	 * Attends une police spécifique dans le document.
 	 * @param fontFamily Le nom de la police à attendre.
@@ -178,9 +271,7 @@ export class QPCFontProvider {
 			try {
 				const didLoad = await this.waitWithTimeout(document.fonts.load(fontSpec));
 				if (!didLoad) {
-					console.warn(
-						`Timed out while waiting for font "${fontFamily}" before export capture.`
-					);
+					console.warn(`Timed out while waiting for font "${fontFamily}" before export capture.`);
 				}
 			} catch (error) {
 				console.warn(`Could not finish loading font "${fontFamily}" before capture.`, error);
@@ -213,6 +304,7 @@ export class QPCFontProvider {
 		return (
 			this.loadedFonts.has(fontFamily) ||
 			fontFamily === 'Hafs' ||
+			fontFamily === 'IndoPak' ||
 			fontFamily === 'Reciters' ||
 			fontFamily === 'Surahs' ||
 			fontFamily === 'QPC1BSML' ||
@@ -225,9 +317,7 @@ export class QPCFontProvider {
 	private static async waitWithTimeout(promise: Promise<unknown>): Promise<boolean> {
 		const result = await Promise.race([
 			promise.then(() => true).catch(() => false),
-			new Promise<boolean>((resolve) =>
-				setTimeout(() => resolve(false), this.FONT_WAIT_TIMEOUT_MS)
-			)
+			new Promise<boolean>((resolve) => setTimeout(() => resolve(false), this.FONT_WAIT_TIMEOUT_MS))
 		]);
 
 		return result;

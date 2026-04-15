@@ -10,6 +10,7 @@
 	import RecitersManager from '$lib/classes/Reciter';
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import toast from 'svelte-5-french-toast';
 
 	let {
 		style,
@@ -234,6 +235,45 @@
 		) {
 			globalState.updateVideoPreviewUI();
 		}
+	}
+
+	function applySelectValue(value: string) {
+		// Style global arabe (non-overridable): choix du mushaf
+		if (target === 'arabic' && style.id === 'mushaf-style') {
+			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+			arabicStyles.setStyle('mushaf-style', value);
+
+			if (value === 'Indopak') {
+				arabicStyles.setStyle('font-family', 'IndoPak');
+			} else if (value === 'Tajweed') {
+				arabicStyles.setStyle('font-family', 'QPC2');
+				toast('Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable.');
+			} else {
+				arabicStyles.setStyle('font-family', 'Hafs');
+			}
+
+			globalState.updateVideoPreviewUI();
+			return;
+		}
+
+		// Si l'utilisateur choisit explicitement la police IndoPak, synchroniser le style mushaf.
+		if (
+			target === 'arabic' &&
+			style.id === 'font-family' &&
+			selectedClipIds().length === 0
+		) {
+			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+			if (value === 'IndoPak') {
+				arabicStyles.setStyle('mushaf-style', 'Indopak');
+			} else if (
+				arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' &&
+				value !== 'QPC2'
+			) {
+				arabicStyles.setStyle('mushaf-style', 'Uthmani');
+			}
+		}
+
+		applyValue(value);
 	}
 
 	/**
@@ -493,7 +533,7 @@
 						class="w-full mt-1"
 						value={String(inputValue)}
 						onchange={(e) => {
-							applyValue((e.target as HTMLSelectElement).value);
+							void applySelectValue((e.target as HTMLSelectElement).value);
 						}}
 					>
 						{#if style.id === 'font-family'}
@@ -504,6 +544,7 @@
 								<option value="QPC2">Uthamic Mushaf QPC2</option>
 								<option value="QPC1">Uthamic Mushaf QPC1</option>
 								<option value="Hafs">Hafs</option>
+								<option value="IndoPak">IndoPak</option>
 								{#each fonts as font (`${font}`)}
 									<option value={font}>{font}</option>
 								{/each}

@@ -57,6 +57,17 @@
 				"icon": "font_download"
 			},
 			{
+				"id": "mushaf-style",
+				"name": "Mushaf",
+				"description": "Choose the Arabic script source for Quran subtitles.",
+				"value": "Uthmani",
+				"valueType": "select",
+				"options": ["Uthmani", "Indopak", "Tajweed"],
+				"css": "",
+				"tailwind": false,
+				"icon": "menu_book"
+			},
+			{
 				"id": "verse-number-format",
 				"name": "Verse Number Format",
 				"description": "Change the format of verse numbers. Use <number> tag to customize.",

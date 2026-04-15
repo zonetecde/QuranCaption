@@ -5,6 +5,7 @@ import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
 import type { Category, StyleName } from './VideoStyle.svelte';
+import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 
 type ClipType =
@@ -215,6 +216,8 @@ export class SubtitleClip extends ClipWithTranslation {
 	verse: number;
 	startWordIndex: number;
 	endWordIndex: number;
+	indopakText: string;
+	private isHydratingIndopakText = false;
 	wbwTranslation: string[]; // Traduction mot à mot
 	isFullVerse: boolean; // Indique si ce clip contient l'intégralité du verset
 	isLastWordsOfVerse: boolean; // Indique si ce clip contient les derniers mots du verset
@@ -231,6 +234,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		isFullVerse: boolean,
 		isLastWordsOfVerse: boolean,
 		translations: { [key: string]: Translation } = {},
+		indopakSegmentText?: string,
 		comeFromIA: boolean = false,
 		confidence: number | null = null
 	) {
@@ -239,6 +243,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		this.verse = $state(verse);
 		this.startWordIndex = $state(startWordIndex);
 		this.endWordIndex = $state(endWordIndex);
+		this.indopakText = $state(indopakSegmentText ?? text);
 		this.translations = translations;
 		this.wbwTranslation = $state(wbwTranslation);
 		this.isFullVerse = $state(isFullVerse);
@@ -253,11 +258,14 @@ export class SubtitleClip extends ClipWithTranslation {
 		return `${this.surah}:${this.verse}`;
 	}
 
-	getTextWithVerseNumber(): string {
+	getTextWithVerseNumber(text: string = this.text): string {
 		if (this.isLastWordsOfVerse) {
-			return this.text + ` ${this.latinToArabicNumbers(this.verse)}`;
+			// if indopak is enabled
+			if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Indopak')
+				return `<span style="direction: rtl; unicode-bidi: isolate;">${text} <span style="font-family:Hafs;">${this.latinToArabicNumbers(this.verse)}</span></span>`;
+			else return text + ` ${this.latinToArabicNumbers(this.verse)}`;
 		}
-		return this.text;
+		return text;
 	}
 
 	private latinToArabicNumbers(n: number): string {
@@ -267,27 +275,60 @@ export class SubtitleClip extends ClipWithTranslation {
 		});
 	}
 
-	override getText(): string {
-		// En fonction de la police d'écriture, renvoie le bon texte
-		// Si on a pas la police QCP2
-		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
+	private async hydrateIndopakTextFromLocalQuran() {
+		if (this.isHydratingIndopakText || this.indopakText) return;
+		this.isHydratingIndopakText = true;
 
-		// Si ce n'est pas une police avec des caractères spéciaux (QPC1 et QPC2)
-		if (fontFamily.value !== 'QPC1' && fontFamily.value !== 'QPC2') {
-			// Regarde dans les styles si on doit afficher le numéro de verset
-			if (globalState.getStyle('arabic', 'show-verse-number').value)
-				return this.getTextWithVerseNumber();
-			else return this.text;
-		} else {
-			return QPCFontProvider.getQuranVerseGlyph(
-				this.surah,
-				this.verse,
+		try {
+			const verse = await Quran.getVerse(this.surah, this.verse);
+			if (!verse) return;
+
+			this.indopakText = verse.getArabicTextBetweenTwoIndexes(
 				this.startWordIndex,
 				this.endWordIndex,
-				this.isLastWordsOfVerse,
-				fontFamily.value === 'QPC1' ? '1' : '2'
+				'indopak'
 			);
+			globalState.updateVideoPreviewUI();
+		} catch {
+			// Keep silent: fallback text remains available.
+		} finally {
+			this.isHydratingIndopakText = false;
 		}
+	}
+
+	override getText(): string {
+		// En fonction de la police d'écriture, renvoie le bon texte
+		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
+		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+
+		// Les polices QPC1, QPC2 et Tajweed utilisent des glyphes. Tajweed utilise les glyphes de QPC2.
+		const shouldUseQpcGlyphs =
+			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
+
+		if (!shouldUseQpcGlyphs) {
+			if (mushafStyle === 'Indopak' && !this.indopakText) {
+				void this.hydrateIndopakTextFromLocalQuran();
+			}
+
+			const baseText = mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text;
+
+			if (globalState.getStyle('arabic', 'show-verse-number').value)
+				return this.getTextWithVerseNumber(baseText);
+			else return baseText;
+		}
+
+		// Tajweed utilise les glyphes de QPC2
+		const qpcVersion: '1' | '2' =
+			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
+
+		return QPCFontProvider.getQuranVerseGlyph(
+			this.surah,
+			this.verse,
+			this.startWordIndex,
+			this.endWordIndex,
+			this.isLastWordsOfVerse,
+			qpcVersion
+		);
 	}
 
 	override setEndTime(newEndTime: number) {
@@ -342,6 +383,7 @@ export class SubtitleClip extends ClipWithTranslation {
 			)
 		);
 
+		clonedClip.indopakText = this.indopakText;
 		clonedClip.associatedImagePath = this.associatedImagePath;
 		return clonedClip;
 	}

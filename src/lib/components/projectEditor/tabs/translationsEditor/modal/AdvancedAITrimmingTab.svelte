@@ -396,8 +396,9 @@
 		};
 		latestSummary = `${successfulBatches}/${advancedBatches.length} batch(es) were fully successful. ${totalAiSetSegments} segment(s) were set by AI, ${totalAiErrorSegments} segment(s) were marked AI Error and need review, and ${failedVerses} verse(s) had issues overall.`;
 
-		AnalyticsService.trackAIUsage('translation', {
+		AnalyticsService.trackTranslationUsage({
 			range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
+			translation_mode: 'advanced',
 			mode: 'advanced_trim',
 			model: aiSettings().advancedTrimModel,
 			reasoning_effort: aiSettings().advancedTrimReasoningEffort,

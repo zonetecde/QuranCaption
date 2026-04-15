@@ -12,6 +12,13 @@
 }
 
 @font-face {
+	font-family: 'IndoPak';
+	src: url('/IndoPak.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
 	font-family: 'Reciters';
 	src: url('/reciters/reciters.ttf') format('truetype');
 	font-weight: normal;

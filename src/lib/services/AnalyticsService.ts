@@ -121,29 +121,47 @@ export class AnalyticsService {
 		});
 	}
 
-	/**
-	 * Track AI usage (translation, segmentation).
-	 * Supports either a simple range string or a full properties object.
-	 * @param feature 'translation' | 'segmentation'
-	 * @param rangeOrProperties The verse range (e.g. "2:1-5") or full properties
-	 * @param provider Optional provider when using a range string
-	 */
-	static trackAIUsage(
-		feature: 'translation' | 'segmentation',
-		rangeOrProperties?: string | UnknownRecord,
-		provider?: string
-	) {
+	/** Track auto-segmentation usage. */
+	static trackSegmentationUsage(rangeOrProperties?: string | UnknownRecord, provider?: string) {
 		if (typeof rangeOrProperties === 'string' || rangeOrProperties === undefined) {
-			this.track('ai_feature_used', {
-				feature,
+			this.track('ai_segmentation_used', {
 				range: rangeOrProperties,
 				provider
 			});
 			return;
 		}
 
-		this.track('ai_feature_used', {
-			feature,
+		this.track('ai_segmentation_used', {
+			...rangeOrProperties
+		});
+	}
+
+	/** Track AI translation usage (legacy or advanced). */
+	static trackTranslationUsage(rangeOrProperties?: string | UnknownRecord, provider?: string) {
+		if (typeof rangeOrProperties === 'string' || rangeOrProperties === undefined) {
+			this.track('ai_translation_used', {
+				range: rangeOrProperties,
+				provider
+			});
+			return;
+		}
+
+		this.track('ai_translation_used', {
+			...rangeOrProperties
+		});
+	}
+
+	/** Track AI bold usage. */
+	static trackAiBoldUsage(rangeOrProperties?: string | UnknownRecord, provider?: string) {
+		if (typeof rangeOrProperties === 'string' || rangeOrProperties === undefined) {
+			this.track('ai_bold_used', {
+				range: rangeOrProperties,
+				provider
+			});
+			return;
+		}
+
+		this.track('ai_bold_used', {
 			...rangeOrProperties
 		});
 	}

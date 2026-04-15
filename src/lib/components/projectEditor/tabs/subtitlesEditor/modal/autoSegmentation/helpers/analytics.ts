@@ -49,7 +49,7 @@ export function trackSegmentationRun(params: {
 	const inputSource =
 		params.runtime === 'hf_json' ? 'hf_space_json' : params.requestedMode === 'api' ? 'cloud' : 'local';
 
-	AnalyticsService.trackAIUsage('segmentation', {
+	AnalyticsService.trackSegmentationUsage({
 		status: params.response?.status ?? 'unknown',
 		range,
 		provider,

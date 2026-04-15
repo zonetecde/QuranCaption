@@ -474,8 +474,9 @@
 			}
 
 			if (successfulVerses > 0) {
-				AnalyticsService.trackAIUsage('translation', {
+				AnalyticsService.trackTranslationUsage({
 					range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
+					translation_mode: 'legacy',
 					start_time_ms: selectedStartTimeMs,
 					end_time_ms: selectedEndTimeMs,
 					total_verses: totalVerses,

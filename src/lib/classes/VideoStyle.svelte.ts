@@ -23,6 +23,7 @@ export type StyleValueType =
 	| 'text'
 	| 'time'
 	| 'dimension'
+	| 'fade'
 	| 'composite'
 	| 'reciter'
 	| 'file';
@@ -58,6 +59,7 @@ export type GeneralStyleName =
 export type GlobalAnimationStyleName =
 	| 'video-dimension'
 	| 'fade-duration'
+	| 'video-and-audio-fade'
 	| 'anti-collision'
 	| 'spacing';
 
@@ -204,7 +206,19 @@ export class Style extends SerializableBase {
 	id: string = $state('');
 	name: string = '';
 	description: string = '';
-	value: string | number | boolean | { width: number; height: number } | Style[] = $state('');
+	value:
+		| string
+		| number
+		| boolean
+		| { width: number; height: number }
+		| {
+				fadeDurationMs: number;
+				videoFadeInEnabled: boolean;
+				videoFadeOutEnabled: boolean;
+				audioFadeInEnabled: boolean;
+				audioFadeOutEnabled: boolean;
+		  }
+		| Style[] = $state('');
 	valueType: StyleValueType = 'text';
 	valueMin?: number = $state(-540);
 	valueMax?: number = $state(540);

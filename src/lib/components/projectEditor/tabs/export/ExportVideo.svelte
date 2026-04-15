@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
 	import Settings from '$lib/classes/Settings.svelte';
+	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
 	import TimeInput from './TimeInput.svelte';
@@ -139,6 +140,24 @@
 						width: number;
 						height: number;
 					};
+				}}
+				disabled={false}
+			/>
+		</div>
+	</div>
+
+	<div class="mb-6">
+		<h4 class="text-base font-medium text-secondary mb-3">Video & Audio Fade</h4>
+		<div class="bg-accent rounded-lg p-4 border border-color">
+			<p class="text-thirdly text-sm mb-4">
+				Enable or disable video and audio fade effects during export and change their duration.
+			</p>
+
+			<Style
+				style={globalState.getStyle('global', 'video-and-audio-fade')!}
+				target="global"
+				applyValueSimple={(v) => {
+					globalState.getStyle('global', 'video-and-audio-fade')!.value = v as FadeValue;
 				}}
 				disabled={false}
 			/>

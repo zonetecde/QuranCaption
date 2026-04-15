@@ -15,6 +15,7 @@
 		type BlurSegment,
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
+	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
@@ -51,6 +52,10 @@
 	type ExportErrorEvent = {
 		payload: { error: string; export_id: string };
 	};
+
+	function getExportFadeSettings(): ExportFadeSettings {
+		return globalState.getStyle('global', 'video-and-audio-fade')!.value as ExportFadeSettings;
+	}
 
 	async function exportProgress(event: ExportProgressEvent) {
 		const data = event.payload as {
@@ -654,6 +659,11 @@
 				videos: videos,
 				chunkIndex: chunkIndex,
 				blur: blur,
+				videoFadeInEnabled: false,
+				videoFadeOutEnabled: false,
+				audioFadeInEnabled: false,
+				audioFadeOutEnabled: false,
+				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile
 			});
 
@@ -667,11 +677,17 @@
 
 	async function concatenateVideos(videoFilePaths: string[]) {
 		console.log('Starting video concatenation...');
+		const exportFadeSettings = getExportFadeSettings();
 
 		try {
 			const finalVideoPath = await invoke('concat_videos', {
 				videoPaths: videoFilePaths,
 				outputPath: exportData!.finalFilePath,
+				videoFadeInEnabled: exportFadeSettings.videoFadeInEnabled,
+				videoFadeOutEnabled: exportFadeSettings.videoFadeOutEnabled,
+				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
+				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
+				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile
 			});
 
@@ -1007,6 +1023,7 @@
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
+		const exportFadeSettings = getExportFadeSettings();
 
 		// Récupère le chemin de fichier de tous les audios du projet
 		const audios: string[] = globalState.getAudioTrack.clips.map(
@@ -1037,6 +1054,11 @@
 				audios: audios,
 				videos: videos,
 				blur: blur,
+				videoFadeInEnabled: exportFadeSettings.videoFadeInEnabled,
+				videoFadeOutEnabled: exportFadeSettings.videoFadeOutEnabled,
+				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
+				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
+				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile
 			});
 		} catch (e: unknown) {

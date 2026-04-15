@@ -20,7 +20,7 @@
 			},
 			{
 				"id": "fade-duration",
-				"name": "Fade Duration",
+				"name": "Subtitle Fade Duration",
 				"description": "Duration of fade in/out effect in milliseconds",
 				"value": 500,
 				"valueType": "number",
@@ -30,6 +30,22 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "blur_on"
+			},
+			{
+				"id": "video-and-audio-fade",
+				"name": "Video & Audio Fade",
+				"description": "Configure export fade in/out for video and audio.",
+				"value": {
+					"fadeDurationMs": 1000,
+					"videoFadeInEnabled": false,
+					"videoFadeOutEnabled": false,
+					"audioFadeInEnabled": false,
+					"audioFadeOutEnabled": false
+				},
+				"valueType": "fade",
+				"css": "",
+				"tailwind": false,
+				"icon": "slow_motion_video"
 			},
 			{
 				"id": "anti-collision",

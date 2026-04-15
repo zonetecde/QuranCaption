@@ -5,6 +5,10 @@
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
+	import type {
+		DimensionValue,
+		FadeValue
+	} from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { default as StyleComponent } from '$lib/components/projectEditor/tabs/styleEditor/Style.svelte';
 	import { ProjectDetail } from '$lib/classes';
 	import RecitersManager from '$lib/classes/Reciter';
@@ -26,7 +30,6 @@
 
 	type StyleValue = Style['value'];
 
-	type DimensionValue = { width: number; height: number };
 	function asDimensionValue(value: unknown): DimensionValue {
 		if (
 			typeof value === 'object' &&
@@ -39,6 +42,18 @@
 			return value as DimensionValue;
 		}
 		return { width: 1920, height: 1080 };
+	}
+
+	function asFadeValue(value: unknown): FadeValue {
+		const raw = (typeof value === 'object' && value !== null ? value : {}) as Partial<FadeValue>;
+
+		return {
+			fadeDurationMs: typeof raw.fadeDurationMs === 'number' ? raw.fadeDurationMs : 1000,
+			videoFadeInEnabled: !!raw.videoFadeInEnabled,
+			videoFadeOutEnabled: !!raw.videoFadeOutEnabled,
+			audioFadeInEnabled: !!raw.audioFadeInEnabled,
+			audioFadeOutEnabled: !!raw.audioFadeOutEnabled
+		};
 	}
 
 	onMount(async () => {
@@ -205,17 +220,14 @@
 		if (style.valueType === 'number') return Number(val);
 		if (style.valueType === 'boolean') return Boolean(val);
 		if (style.valueType === 'dimension') return asDimensionValue(val);
+		if (style.valueType === 'fade') return asFadeValue(val);
 		return val as StyleValue;
 	}
 
 	function applyValue(v: unknown) {
 		const value = coerce(v);
 		if (selectedClipIds().length > 0) {
-			if (
-				typeof value === 'string' ||
-				typeof value === 'number' ||
-				typeof value === 'boolean'
-			) {
+			if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
 				globalState.getVideoStyle
 					.getStylesOfTarget(target!)
 					.setStyleForClips(selectedClipIds(), style.id as StyleName, value);
@@ -247,7 +259,9 @@
 				arabicStyles.setStyle('font-family', 'IndoPak');
 			} else if (value === 'Tajweed') {
 				arabicStyles.setStyle('font-family', 'QPC2');
-				toast('Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable.');
+				toast(
+					'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable.'
+				);
 			} else {
 				arabicStyles.setStyle('font-family', 'Hafs');
 			}
@@ -257,18 +271,11 @@
 		}
 
 		// Si l'utilisateur choisit explicitement la police IndoPak, synchroniser le style mushaf.
-		if (
-			target === 'arabic' &&
-			style.id === 'font-family' &&
-			selectedClipIds().length === 0
-		) {
+		if (target === 'arabic' && style.id === 'font-family' && selectedClipIds().length === 0) {
 			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
 			if (value === 'IndoPak') {
 				arabicStyles.setStyle('mushaf-style', 'Indopak');
-			} else if (
-				arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' &&
-				value !== 'QPC2'
-			) {
+			} else if (arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' && value !== 'QPC2') {
 				arabicStyles.setStyle('mushaf-style', 'Uthmani');
 			}
 		}
@@ -373,7 +380,19 @@
 		} else if (style.valueType === 'dimension') {
 			const dimension = asDimensionValue(style.value);
 			return dimension.width + 'x' + dimension.height;
+		} else if (style.valueType === 'fade') {
+			const fadeValue = getFadeValue();
+			return `${fadeValue.audioFadeInEnabled || fadeValue.audioFadeOutEnabled || fadeValue.videoFadeOutEnabled || fadeValue.videoFadeInEnabled ? 'Enabled - ' + fadeValue.fadeDurationMs + 'ms' : 'Disabled'}`;
 		} else return String(style.value);
+	}
+
+	function getFadeValue(): FadeValue {
+		return asFadeValue(style.value);
+	}
+
+	function updateFadeValue(partial: Partial<FadeValue>) {
+		const nextValue = { ...getFadeValue(), ...partial };
+		applyValue(nextValue);
 	}
 
 	function getHeaderPreviewStyle() {
@@ -747,6 +766,105 @@
 								min="144"
 								max="4320"
 							/>
+						</div>
+					</div>
+				</div>
+			{:else if style.valueType === 'fade'}
+				{@const fadeValue = getFadeValue()}
+				<div class="flex flex-col gap-4">
+					<!-- Note: fade effects apply only to exported videos and are not shown in the preview -->
+					<div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+						<p class="text-sm text-gray-700 dark:text-gray-300">
+							Note: Fade effects are applied only to exported videos and will not appear in the
+							preview.
+						</p>
+					</div>
+
+					<div class="flex flex-col gap-2">
+						<p class="text-sm font-medium">Fade Duration:</p>
+						<input
+							type="number"
+							class="w-full"
+							min="0"
+							max="10000"
+							step="100"
+							value={fadeValue.fadeDurationMs}
+							oninput={(e) => {
+								updateFadeValue({
+									fadeDurationMs: Math.max(
+										0,
+										parseInt((e.target as HTMLInputElement).value || '0', 10)
+									)
+								});
+							}}
+						/>
+					</div>
+
+					<div class="flex flex-col gap-2">
+						<p class="text-sm font-medium">Fade In:</p>
+						<div class="flex gap-4">
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input
+									type="checkbox"
+									class="accent-accent"
+									checked={fadeValue.videoFadeInEnabled}
+									onchange={(e) => {
+										updateFadeValue({
+											videoFadeInEnabled: (e.target as HTMLInputElement).checked
+										});
+									}}
+								/>
+								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
+								<span class="text-sm">Video</span>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input
+									type="checkbox"
+									class="accent-accent"
+									checked={fadeValue.audioFadeInEnabled}
+									onchange={(e) => {
+										updateFadeValue({
+											audioFadeInEnabled: (e.target as HTMLInputElement).checked
+										});
+									}}
+								/>
+								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
+								<span class="text-sm">Audio</span>
+							</label>
+						</div>
+					</div>
+
+					<div class="flex flex-col gap-2">
+						<p class="text-sm font-medium">Fade Out:</p>
+						<div class="flex gap-4">
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input
+									type="checkbox"
+									class="accent-accent"
+									checked={fadeValue.videoFadeOutEnabled}
+									onchange={(e) => {
+										updateFadeValue({
+											videoFadeOutEnabled: (e.target as HTMLInputElement).checked
+										});
+									}}
+								/>
+								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
+								<span class="text-sm">Video</span>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input
+									type="checkbox"
+									class="accent-accent"
+									checked={fadeValue.audioFadeOutEnabled}
+									onchange={(e) => {
+										updateFadeValue({
+											audioFadeOutEnabled: (e.target as HTMLInputElement).checked
+										});
+									}}
+								/>
+								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
+								<span class="text-sm">Audio</span>
+							</label>
 						</div>
 					</div>
 				</div>

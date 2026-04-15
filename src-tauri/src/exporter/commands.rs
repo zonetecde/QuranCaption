@@ -920,6 +920,11 @@ fn build_and_run_ffmpeg_filter_complex(
     duration_ms: Option<i32>,
     chunk_index: Option<i32>,
     blur: Option<f64>,
+    video_fade_in_enabled: bool,
+    video_fade_out_enabled: bool,
+    audio_fade_in_enabled: bool,
+    audio_fade_out_enabled: bool,
+    export_fade_duration_ms: i32,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -962,6 +967,9 @@ fn build_and_run_ffmpeg_filter_complex(
     } else {
         total_by_ts
     };
+    let export_fade_s = (export_fade_duration_ms as f64 / 1000.0)
+        .max(0.0)
+        .min(duration_s.max(0.0));
 
     let mut starts_s = Vec::new();
     let mut acc = 0.0;
@@ -1207,14 +1215,32 @@ fn build_and_run_ffmpeg_filter_complex(
         "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0,format=yuv420p[vout]"
     ));
 
+    let mut mapped_video_label = "vout".to_string();
+    if video_fade_in_enabled && export_fade_s > 0.0 {
+        filter_lines.push(format!(
+            "[{}]fade=t=in:st=0:d={:.6}[vfadein]",
+            mapped_video_label, export_fade_s
+        ));
+        mapped_video_label = "vfadein".to_string();
+    }
+    if video_fade_out_enabled && export_fade_s > 0.0 {
+        let fade_out_start = (duration_s - export_fade_s).max(0.0);
+        filter_lines.push(format!(
+            "[{}]fade=t=out:st={:.6}:d={:.6}[vfadeout]",
+            mapped_video_label, fade_out_start, export_fade_s
+        ));
+        mapped_video_label = "vfadeout".to_string();
+    }
+
     // Audio: concat, skip start_s, clamp à duration_s
+    let mut mapped_audio_label: Option<String> = None;
     if have_audio {
         let a = audio_paths.len();
         if a == 1 {
             let a0 = format!("{}:a", audio_start_idx);
             filter_lines.push(format!("[{}]aresample=48000[aa0]", a0));
             filter_lines.push(format!(
-                "[aa0]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aout]",
+                "[aa0]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
                 start_s, duration_s
             ));
         } else {
@@ -1228,10 +1254,28 @@ fn build_and_run_ffmpeg_filter_complex(
             }
             filter_lines.push(format!("{}concat=n={}:v=0:a=1[aacat]", ins, a));
             filter_lines.push(format!(
-                "[aacat]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aout]",
+                "[aacat]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
                 start_s, duration_s
             ));
         }
+
+        let mut current_audio_label = "aoutraw".to_string();
+        if audio_fade_in_enabled && export_fade_s > 0.0 {
+            filter_lines.push(format!(
+                "[{}]afade=t=in:st=0:d={:.6}[afadein]",
+                current_audio_label, export_fade_s
+            ));
+            current_audio_label = "afadein".to_string();
+        }
+        if audio_fade_out_enabled && export_fade_s > 0.0 {
+            let fade_out_start = (duration_s - export_fade_s).max(0.0);
+            filter_lines.push(format!(
+                "[{}]afade=t=out:st={:.6}:d={:.6}[afadeout]",
+                current_audio_label, fade_out_start, export_fade_s
+            ));
+            current_audio_label = "afadeout".to_string();
+        }
+        mapped_audio_label = Some(current_audio_label);
     }
 
     let filter_complex = filter_lines.join(";");
@@ -1255,9 +1299,10 @@ fn build_and_run_ffmpeg_filter_complex(
     cmd.extend_from_slice(&["-filter_complex_script".to_string(), fg_name]);
 
     // Mapping
-    cmd.extend_from_slice(&["-map".to_string(), "[vout]".to_string()]);
+    cmd.extend_from_slice(&["-map".to_string(), format!("[{}]", mapped_video_label)]);
     if have_audio {
-        cmd.extend_from_slice(&["-map".to_string(), "[aout]".to_string()]);
+        let audio_label = mapped_audio_label.unwrap_or_else(|| "aoutraw".to_string());
+        cmd.extend_from_slice(&["-map".to_string(), format!("[{}]", audio_label)]);
     }
 
     // Codec vidéo + audio
@@ -1537,6 +1582,11 @@ pub async fn export_video(
     videos: Option<Vec<VideoInput>>,
     chunk_index: Option<i32>,
     blur: Option<f64>,
+    video_fade_in_enabled: Option<bool>,
+    video_fade_out_enabled: Option<bool>,
+    audio_fade_in_enabled: Option<bool>,
+    audio_fade_out_enabled: Option<bool>,
+    export_fade_duration_ms: Option<i32>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
@@ -1549,6 +1599,14 @@ pub async fn export_video(
     println!(
         "[start_export] fps={}, fade_duration(ms)={}",
         fps, fade_duration
+    );
+    println!(
+        "[start_export] export_fade: video(in={}, out={}) audio(in={}, out={}) duration(ms)={}",
+        video_fade_in_enabled.unwrap_or(false),
+        video_fade_out_enabled.unwrap_or(false),
+        audio_fade_in_enabled.unwrap_or(false),
+        audio_fade_out_enabled.unwrap_or(false),
+        export_fade_duration_ms.unwrap_or(0)
     );
     println!(
         "[env] CPU cores: {:?}",
@@ -1721,6 +1779,11 @@ pub async fn export_video(
             duration,
             chunk_index,
             blur,
+            video_fade_in_enabled.unwrap_or(false),
+            video_fade_out_enabled.unwrap_or(false),
+            audio_fade_in_enabled.unwrap_or(false),
+            audio_fade_out_enabled.unwrap_or(false),
+            export_fade_duration_ms.unwrap_or(0),
             performance_profile,
             app_handle,
         )
@@ -1868,6 +1931,11 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
 pub async fn concat_videos(
     video_paths: Vec<String>,
     output_path: String,
+    video_fade_in_enabled: Option<bool>,
+    video_fade_out_enabled: Option<bool>,
+    audio_fade_in_enabled: Option<bool>,
+    audio_fade_out_enabled: Option<bool>,
+    export_fade_duration_ms: Option<i32>,
     performance_profile: ExportPerformanceProfile,
 ) -> Result<String, String> {
     let normalized_video_paths: Vec<String> = video_paths
@@ -1886,12 +1954,31 @@ pub async fn concat_videos(
         normalized_video_paths.len()
     );
     println!("[concat_videos] Fichier de sortie: {}", output_path_str);
+    println!(
+        "[concat_videos] export_fade: video(in={}, out={}) audio(in={}, out={}) duration(ms)={}",
+        video_fade_in_enabled.unwrap_or(false),
+        video_fade_out_enabled.unwrap_or(false),
+        audio_fade_in_enabled.unwrap_or(false),
+        audio_fade_out_enabled.unwrap_or(false),
+        export_fade_duration_ms.unwrap_or(0)
+    );
+
+    let apply_video_fade = video_fade_in_enabled.unwrap_or(false) || video_fade_out_enabled.unwrap_or(false);
+    let apply_audio_fade = audio_fade_in_enabled.unwrap_or(false) || audio_fade_out_enabled.unwrap_or(false);
+    let apply_any_fade = apply_video_fade || apply_audio_fade;
+    let total_duration_s: f64 = normalized_video_paths
+        .iter()
+        .map(|p| ffprobe_duration_sec(p))
+        .sum();
+    let fade_s = (export_fade_duration_ms.unwrap_or(0) as f64 / 1000.0)
+        .max(0.0)
+        .min(total_duration_s.max(0.0));
 
     if normalized_video_paths.is_empty() {
         return Err("Aucune vidéo fournie pour la concaténation".to_string());
     }
 
-    if normalized_video_paths.len() == 1 {
+    if normalized_video_paths.len() == 1 && !apply_any_fade {
         // Si une seule vidéo, on peut simplement la copier ou la renommer
         println!("[concat_videos] Une seule vidéo, copie vers le fichier final");
         std::fs::copy(&normalized_video_paths[0], &output_path_str)
@@ -1961,8 +2048,36 @@ pub async fn concat_videos(
 
     append_thread_cap(&mut cmd, performance_profile);
 
+    if apply_video_fade && fade_s > 0.0 {
+        let mut video_filters: Vec<String> = Vec::new();
+        if video_fade_in_enabled.unwrap_or(false) {
+            video_filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
+        }
+        if video_fade_out_enabled.unwrap_or(false) {
+            let fade_out_start = (total_duration_s - fade_s).max(0.0);
+            video_filters.push(format!(
+                "fade=t=out:st={:.6}:d={:.6}",
+                fade_out_start, fade_s
+            ));
+        }
+        if !video_filters.is_empty() {
+            cmd.args(&["-vf", &video_filters.join(",")]);
+        }
+        cmd.args(&[
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+        ]);
+    }
+
     // Ré-encoder l'audio pour lisser les timestamps et éviter les micro-cuts
-    if normalized_video_paths.iter().any(|p| video_has_audio(p)) {
+    let has_audio_stream = normalized_video_paths.iter().any(|p| video_has_audio(p));
+    if has_audio_stream {
         cmd.args(&[
             "-map",
             "0:a?", // Map audio si présent (sans échouer si absent)
@@ -1975,6 +2090,21 @@ pub async fn concat_videos(
         ]);
     } else {
         cmd.arg("-an"); // Aucun audio trouvé, on désactive l'audio
+    }
+
+    if has_audio_stream && apply_audio_fade && fade_s > 0.0 {
+        let mut audio_filters: Vec<String> = vec!["aresample=async=1:first_pts=0".to_string()];
+        if audio_fade_in_enabled.unwrap_or(false) {
+            audio_filters.push(format!("afade=t=in:st=0:d={:.6}", fade_s));
+        }
+        if audio_fade_out_enabled.unwrap_or(false) {
+            let fade_out_start = (total_duration_s - fade_s).max(0.0);
+            audio_filters.push(format!(
+                "afade=t=out:st={:.6}:d={:.6}",
+                fade_out_start, fade_s
+            ));
+        }
+        cmd.args(&["-af", &audio_filters.join(",")]);
     }
 
     cmd.arg(&output_path_str); // Fichier de sortie

@@ -34,10 +34,6 @@ export type AITranslationSettings = {
 	telemetryConsent: 'unknown' | 'granted' | 'denied';
 };
 
-export type ExportSettings = {
-	chunkSize: number;
-};
-
 const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
 
 export default class Settings extends SerializableBase {
@@ -91,10 +87,6 @@ export default class Settings extends SerializableBase {
 		aiBoldCustomNote: '',
 		activeModalTab: 'legacy',
 		telemetryConsent: 'unknown'
-	});
-
-	exportSettings = $state<ExportSettings>({
-		chunkSize: 50
 	});
 
 	// Shortcut categories metadata

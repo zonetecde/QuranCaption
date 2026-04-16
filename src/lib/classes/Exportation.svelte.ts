@@ -1,17 +1,13 @@
-import { getAllWindows } from '@tauri-apps/api/window';
-import { SerializableBase } from './misc/SerializableBase';
 import { invoke } from '@tauri-apps/api/core';
+import { SerializableBase } from './misc/SerializableBase';
+import { getAllWindows } from '@tauri-apps/api/window';
 
 export enum ExportState {
 	WaitingForRecord = 'Pending',
-	Recording = 'Recording',
-	AddingAudio = 'Adding Audio',
+	Exporting = 'Exporting',
 	Exported = 'Exported',
 	Error = 'Error',
-	Canceled = 'Canceled',
-	CreatingVideo = 'Creating Video',
-	CapturingFrames = 'Capturing Frames',
-	Initializing = 'Initializing...'
+	Canceled = 'Canceled'
 }
 
 export enum ExportKind {
@@ -73,38 +69,17 @@ export default class Exportation extends SerializableBase {
 		this.errorLog = $state(errorLog);
 		this.date = $state(new Date().toISOString());
 	}
-
 	isOnGoing() {
-		return (
-			this.currentState === ExportState.WaitingForRecord ||
-			this.currentState === ExportState.Recording ||
-			this.currentState === ExportState.AddingAudio ||
-			this.currentState === ExportState.CreatingVideo ||
-			this.currentState === ExportState.CapturingFrames ||
-			this.currentState === ExportState.Initializing
-		);
+		return this.currentState === ExportState.Exporting;
 	}
 
 	async cancelExport() {
-		if (
-			this.currentState === ExportState.Initializing ||
-			this.currentState === ExportState.CreatingVideo
-		) {
+		if (this.currentState === ExportState.Exporting) {
 			console.log('Canceling export', this.exportId);
-			// Envoie à rust de tuer le processus ffmpeg pour cette exportation
-			await invoke('cancel_export', { exportId: this.exportId.toString() });
+			// TODO
+
+			// Set state to canceled
+			this.currentState = ExportState.Canceled;
 		}
-
-		// Ferme la fenêtre d'exportation si elle est ouverte
-		(await getAllWindows()).forEach((win) => {
-			console.log(win.label, this.exportId.toString());
-			if (win.label === this.exportId.toString()) {
-				win.close();
-				// La fenêtre d'exportation va supprimer le dossier temporaire des images à sa fermeture
-			}
-		});
-
-		// Set state to canceled
-		this.currentState = ExportState.Canceled;
 	}
 }

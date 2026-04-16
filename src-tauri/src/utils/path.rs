@@ -77,7 +77,3 @@ pub fn normalize_output_path(raw: &str) -> PathBuf {
     path
 }
 
-/// Échappe un chemin pour un fichier ffconcat.
-pub fn escape_ffconcat_path(path: &str) -> String {
-    path.replace('\'', "\\'")
-}

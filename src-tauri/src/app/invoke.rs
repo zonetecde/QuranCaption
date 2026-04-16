@@ -1,5 +1,4 @@
 use crate::commands;
-use crate::exporter;
 
 /// Enregistre la liste unique des commandes IPC exposées au frontend.
 pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
@@ -24,9 +23,6 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::open_directory,
         commands::media::open_explorer_with_file_selected,
         commands::media::get_video_dimensions,
-        exporter::commands::export_video,
-        exporter::commands::cancel_export,
-        exporter::commands::concat_videos,
         commands::media::convert_audio_to_cbr,
         commands::media::cut_audio,
         commands::media::cut_video,

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
-	import Settings from '$lib/classes/Settings.svelte';
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
@@ -11,30 +10,6 @@
 
 	type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
 
-	const performanceProfiles: {
-		id: PerformanceProfile;
-		label: string;
-		description: string;
-	}[] = [
-		{
-			id: 'fastest',
-			label: 'Fastest',
-			description: 'Prioritizes export speed and may use more CPU.'
-		},
-		{
-			id: 'balanced',
-			label: 'Balanced',
-			description: 'Keeps the current default behavior.'
-		},
-		{
-			id: 'low_cpu',
-			label: 'Low CPU',
-			description: 'Reduces CPU usage at the cost of slower exports.'
-		}
-	];
-
-	let showAdvancedSettings = $state(false);
-
 	// Initialize export state values if not set
 	$effect(() => {
 		if (!globalState.getExportState.videoStartTime) {
@@ -42,14 +17,6 @@
 		}
 		if (!globalState.getExportState.videoEndTime) {
 			globalState.getExportState.videoEndTime = globalState.getAudioTrack.getDuration().ms || 0;
-		}
-		if (
-			globalState.settings &&
-			globalState.settings.exportSettings.chunkSize === 50 &&
-			globalState.getExportState.chunkSize !== 50
-		) {
-			globalState.settings.exportSettings.chunkSize = globalState.getExportState.chunkSize;
-			void Settings.save();
 		}
 	});
 
@@ -65,10 +32,6 @@
 		} else {
 			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 		}
-	}
-
-	function persistGlobalChunkSize(): void {
-		void Settings.save();
 	}
 </script>
 
@@ -171,10 +134,7 @@
 					Set the <b>frames per second</b> for the exported video (lower values export faster but are
 					less fluid).
 				</p>
-				<p class="text-thirdly text-sm leading-snug">
-					<b>Chunk size</b> for video processing (lower values use less memory). Range: 1-200 (1=30s,
-					50=2min30, 200=10min)
-				</p>
+
 				<input
 					type="number"
 					min="5"
@@ -182,15 +142,6 @@
 					step="1"
 					class="input w-full h-10"
 					bind:value={globalState.getExportState.fps}
-				/>
-				<input
-					type="number"
-					min="1"
-					max="200"
-					step="1"
-					class="input w-full h-10"
-					bind:value={globalState.settings!.exportSettings.chunkSize}
-					onchange={persistGlobalChunkSize}
 				/>
 			</div>
 		</div>
@@ -232,64 +183,5 @@
 		<p class="text-thirdly text-xs mt-2 text-center">
 			Start the video export process with your selected time range
 		</p>
-	</div>
-
-	<div class="mt-5">
-		<button
-			type="button"
-			class="w-full flex items-center justify-between rounded-lg border border-color bg-accent px-4 py-3 text-left transition-colors hover:bg-primary/60"
-			onclick={() => {
-				showAdvancedSettings = !showAdvancedSettings;
-			}}
-			aria-expanded={showAdvancedSettings}
-		>
-			<div>
-				<p class="text-sm font-medium text-primary">Advanced Settings</p>
-				<p class="text-xs text-thirdly">
-					Control export performance without exposing raw ffmpeg flags.
-				</p>
-			</div>
-			<span
-				class="material-icons text-secondary transition-transform duration-200"
-				style={`transform: rotate(${showAdvancedSettings ? 180 : 0}deg);`}
-			>
-				expand_more
-			</span>
-		</button>
-
-		{#if showAdvancedSettings}
-			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
-				<div class="mb-4">
-					<h4 class="text-base font-medium text-secondary mb-1">Export Performance</h4>
-					<p class="text-thirdly text-sm">
-						Choose how aggressively the exporter should use your CPU during ffmpeg work.
-					</p>
-				</div>
-
-				<div class="grid grid-cols-1 gap-3">
-					{#each performanceProfiles as profile (profile.id)}
-						<button
-							type="button"
-							class="rounded-xl border p-4 text-left transition-colors"
-							class:border-accent-primary={globalState.getExportState.performanceProfile ===
-								profile.id}
-							class:bg-secondary={globalState.getExportState.performanceProfile === profile.id}
-							class:border-color={globalState.getExportState.performanceProfile !== profile.id}
-							onclick={() => {
-								globalState.getExportState.performanceProfile = profile.id;
-							}}
-						>
-							<div class="flex items-center justify-between gap-3">
-								<p class="text-sm font-medium text-primary">{profile.label}</p>
-								{#if globalState.getExportState.performanceProfile === profile.id}
-									<span class="material-icons text-accent-primary text-lg">check_circle</span>
-								{/if}
-							</div>
-							<p class="mt-1 text-xs text-thirdly">{profile.description}</p>
-						</button>
-					{/each}
-				</div>
-			</div>
-		{/if}
 	</div>
 </div>

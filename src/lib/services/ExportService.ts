@@ -11,7 +11,6 @@ export default class ExportService {
 	static exportFolder: string = 'exports/';
 
 	constructor() {}
-
 	/**
 	 * Charge un projet (utiliser par la fenêtre d'export)
 	 * @param exportId L'ID d'exportation (qui est aussi l'ID du projet)
@@ -77,7 +76,7 @@ export default class ExportService {
 					project.projectEditorState.export.videoStartTime,
 					project.projectEditorState.export.videoEndTime
 				).toString(),
-				mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
+				mode === 'recording' ? ExportState.WaitingForRecord : ExportState.Exporting,
 				project.projectEditorState.export.fps
 			)
 		);

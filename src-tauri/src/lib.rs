@@ -6,7 +6,6 @@
 mod app;
 mod binaries;
 mod commands;
-mod exporter;
 mod path_utils;
 mod segmentation;
 mod utils;

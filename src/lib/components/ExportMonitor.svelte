@@ -50,24 +50,12 @@
 	// Fonction pour obtenir la couleur selon l'état
 	function getStateColor(state: ExportState): string {
 		switch (state) {
-			case ExportState.WaitingForRecord:
-				return 'text-yellow-400';
-			case ExportState.Recording:
-				return 'text-blue-400';
-			case ExportState.AddingAudio:
-				return 'text-purple-400';
 			case ExportState.Exported:
 				return 'text-green-400';
 			case ExportState.Error:
 				return 'text-red-400';
 			case ExportState.Canceled:
 				return 'text-gray-400';
-			case ExportState.CreatingVideo:
-				return 'text-purple-400';
-			case ExportState.CapturingFrames:
-				return 'text-blue-400';
-			case ExportState.Initializing:
-				return 'text-yellow-400';
 			default:
 				return 'text-gray-400';
 		}
@@ -76,24 +64,12 @@
 	// Fonction pour obtenir l'icône selon l'état
 	function getStateIcon(state: ExportState): string {
 		switch (state) {
-			case ExportState.WaitingForRecord:
-				return 'schedule';
-			case ExportState.Recording:
-				return 'videocam';
-			case ExportState.AddingAudio:
-				return 'audio_file';
 			case ExportState.Exported:
 				return 'check_circle';
 			case ExportState.Error:
 				return 'error';
 			case ExportState.Canceled:
 				return 'cancel';
-			case ExportState.CreatingVideo:
-				return 'movie_creation';
-			case ExportState.CapturingFrames:
-				return 'photo_camera';
-			case ExportState.Initializing:
-				return 'hourglass_top';
 			default:
 				return 'help';
 		}

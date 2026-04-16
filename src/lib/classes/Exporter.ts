@@ -1,21 +1,18 @@
 import { globalState } from '$lib/runes/main.svelte';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { LogicalPosition } from '@tauri-apps/api/dpi';
 import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
-import { Utilities } from './misc/Utilities';
-import ExportService from '$lib/services/ExportService';
-import { BaseDirectory, join } from '@tauri-apps/api/path';
-import { exists, remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
-import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
-import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
-import ModalManager from '$lib/components/modals/ModalManager';
 import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+import ExportService from '$lib/services/ExportService';
+import { Utilities } from './misc/Utilities';
+import { exists } from '@tauri-apps/plugin-fs';
+import { join } from '@tauri-apps/api/path';
+import ModalManager from '$lib/components/modals/ModalManager';
+import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 
 export default class Exporter {
 	private static queueIntervalId: number | null = null;
@@ -46,13 +43,7 @@ export default class Exporter {
 	private static hasActiveVideoExport(): boolean {
 		return globalState.exportations.some((exp) => {
 			if (exp.exportKind !== ExportKind.Video) return false;
-			return (
-				exp.currentState === ExportState.CapturingFrames ||
-				exp.currentState === ExportState.Initializing ||
-				exp.currentState === ExportState.CreatingVideo ||
-				exp.currentState === ExportState.Recording ||
-				exp.currentState === ExportState.AddingAudio
-			);
+			return exp.currentState === ExportState.Exporting;
 		});
 	}
 
@@ -81,15 +72,15 @@ export default class Exporter {
 			nextExport = Exporter.getNextPendingVideoExport();
 			if (!nextExport) return;
 
-			nextExport.currentState = ExportState.CapturingFrames;
+			nextExport.currentState = ExportState.Exporting;
 			nextExport.percentageProgress = 0;
 			nextExport.currentTreatedTime = 0;
 			await ExportService.saveExports();
 
-			await Exporter.openExportWindow(nextExport.exportId.toString());
+			// TODO
 		} catch (error) {
 			console.error('Unable to start next pending export:', error);
-			if (nextExport && nextExport.currentState === ExportState.CapturingFrames) {
+			if (nextExport && nextExport.currentState === ExportState.Exporting) {
 				nextExport.currentState = ExportState.Error;
 				nextExport.percentageProgress = 100;
 				nextExport.errorLog = String(error);
@@ -98,49 +89,6 @@ export default class Exporter {
 		} finally {
 			Exporter.isQueueTickRunning = false;
 		}
-	}
-
-	private static async openExportWindow(exportId: string) {
-		// Créer une fenêtre Tauri avec la bonne taille
-		const w = new WebviewWindow(exportId, {
-			center: false,
-			decorations: false,
-			visible: true,
-			focus: false,
-			skipTaskbar: true,
-			preventOverflow: false,
-			x: -10000,
-			y: -10000,
-			backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
-			alwaysOnTop: false,
-			alwaysOnBottom: true,
-			title: 'QC - ' + exportId,
-			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
-		});
-
-		w.once('tauri://created', async () => {
-			try {
-				await w.setPosition(new LogicalPosition(-10000, -10000));
-			} catch (error) {
-				console.warn('Unable to move export window off-screen:', error);
-			}
-		});
-
-		// listen  to close
-		w.listen('tauri://close-requested', async () => {
-			try {
-				// Supprime le dossier temporaire des images
-				await remove(await join(ExportService.exportFolder, exportId), {
-					baseDir: BaseDirectory.AppData,
-					recursive: true
-				});
-			} catch (error) {
-				console.error('Error removing temporary images folder:', error);
-			} finally {
-				// ferme la fenêtre
-				await w.destroy();
-			}
-		});
 	}
 
 	/**
@@ -164,7 +112,6 @@ export default class Exporter {
 		}[] = [];
 
 		for (const subtitle of globalState.getSubtitleTrack.clips) {
-			// Skip les clips silencieux ou sans texte
 			if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
 				continue;
 
@@ -180,7 +127,7 @@ export default class Exporter {
 					if (subtitle instanceof SubtitleClip)
 						text += subtitle.getTranslation(target).getText(target, subtitle);
 					else if (subtitle instanceof PredefinedSubtitleClip)
-						text += subtitle.getTranslation(target).getText(); // Pas de numéro de verset, donc getText() suffit
+						text += subtitle.getTranslation(target).getText();
 				}
 
 				text += '\n';
@@ -209,6 +156,7 @@ export default class Exporter {
 		const fileName = `qurancaption_subtitles_${projectName}.${settings.format.toLowerCase()}`;
 		await ExportFileService.saveTextFile(fileName, fileContent, 'Subtitles');
 	}
+
 	static async exportProjectData(project?: Project | null) {
 		const projectData = project || globalState.currentProject;
 
@@ -222,6 +170,7 @@ export default class Exporter {
 		const fileName = `qurancaption_project_${projectName}.json`;
 		await ExportFileService.saveTextFile(fileName, json, 'Project data');
 	}
+
 	static async backupAllProjects() {
 		const projectsDetails = globalState.userProjectsDetails;
 		if (!projectsDetails || projectsDetails.length === 0) {
@@ -241,6 +190,7 @@ export default class Exporter {
 			'Project backup'
 		);
 	}
+
 	static async exportYtbChapters() {
 		const choice = globalState.getExportState.ytbChaptersChoice;
 		const subtitlesClips: SubtitleClip[] = globalState.getSubtitleClips;
@@ -264,7 +214,6 @@ export default class Exporter {
 		const chapters: { time: string; title: string }[] = [];
 
 		if (choice === 'Each Surah') {
-			// Groupe par sourate
 			let lastSurahAdded = -1;
 
 			for (const clip of subtitlesClips) {
@@ -282,7 +231,6 @@ export default class Exporter {
 				}
 			}
 		} else if (choice === 'Each Verse') {
-			// Groupe par verset
 			let lastSurahVerse = '';
 
 			for (const clip of subtitlesClips) {
@@ -301,12 +249,10 @@ export default class Exporter {
 			}
 		}
 
-		// S'assurer que le premier timestamp est 0:00 pour la compatibilité YouTube
 		if (chapters.length > 0 && chapters[0].time !== '0:00') {
 			chapters[0].time = '0:00';
 		}
 
-		// Génère le contenu du fichier
 		let fileContent = 'YouTube Chapters:\n\n';
 		for (const chapter of chapters) {
 			fileContent += `${chapter.time} ${chapter.title}\n`;
@@ -318,9 +264,7 @@ export default class Exporter {
 		const fileName = `qurancaption_chapters_${projectName}.txt`;
 		await ExportFileService.saveTextFile(fileName, fileContent, 'YouTube chapters');
 	}
-	/**
-	 * Convertit le temps en millisecondes au format YouTube (MM:SS ou HH:MM:SS)
-	 */
+
 	private static formatTimeForYouTube(timeMs: number): string {
 		const totalSeconds = Math.floor(timeMs / 1000);
 		const hours = Math.floor(totalSeconds / 3600);
@@ -329,9 +273,9 @@ export default class Exporter {
 
 		if (hours > 0) {
 			return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-		} else {
-			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 		}
+
+		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 	}
 
 	/**
@@ -384,7 +328,7 @@ export default class Exporter {
 		Exporter.ensureBackgroundWorkersStarted();
 
 		if (!shouldQueue) {
-			await Exporter.openExportWindow(exportId);
+			// TODO
 		}
 	}
 }

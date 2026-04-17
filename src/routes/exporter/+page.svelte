@@ -35,6 +35,7 @@
 
 	// VideoPreview
 	let videoPreview: VideoPreview | undefined = $state(undefined);
+	const isMacOS = navigator?.userAgent?.toLowerCase().includes('mac') ?? false;
 
 	// Récupère les données d'export de la vidéo
 	let exportData: Exportation | undefined;
@@ -823,12 +824,14 @@
 	}
 
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
-		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map((clip) => ({
-			startTime: clip.startTime,
-			endTime: clip.endTime,
-			kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
-			surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined
-		}));
+		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
+			(clip) => ({
+				startTime: clip.startTime,
+				endTime: clip.endTime,
+				kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
+				surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined
+			})
+		);
 
 		const customTextClips: ExportCustomTextCaptureClip[] = (
 			globalState.getCustomClipTrack?.clips || []
@@ -946,16 +949,26 @@
 		const scale = Math.min(scaleX, scaleY);
 
 		try {
-			const blob: Blob | null = await domToBlob(node, {
-				width: node.clientWidth * scale,
-				height: node.clientHeight * scale,
-				style: {
-					// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-					transform: 'scale(' + scale + ')',
-					transformOrigin: 'top left'
-				},
-				quality: 1
-			});
+			const blob: Blob | null = isMacOS
+				? await domToBlob(node, {
+						// Sur WebKit/macOS, le scale via transform dans le foreignObject fait
+						// disparaitre certains pixels semi-transparents (ombres/glow). On laisse
+						// la lib gerer la resolution via son scale natif.
+						width: node.clientWidth,
+						height: node.clientHeight,
+						scale,
+						quality: 1
+					})
+				: await domToBlob(node, {
+						width: node.clientWidth * scale,
+						height: node.clientHeight * scale,
+						style: {
+							// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+							transform: 'scale(' + scale + ')',
+							transformOrigin: 'top left'
+						},
+						quality: 1
+					});
 
 			if (!blob) throw new Error('domToBlob returned null');
 
@@ -1147,7 +1160,9 @@
 
 			do {
 				if (Date.now() - startTime > timeout) {
-					console.warn(`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`);
+					console.warn(
+						`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`
+					);
 					break;
 				}
 				await new Promise((resolve) => setTimeout(resolve, 10));

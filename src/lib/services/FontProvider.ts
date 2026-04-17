@@ -73,12 +73,17 @@ export class QPCFontProvider {
 
 		for (const node of nodes) {
 			const familyValue = window.getComputedStyle(node).fontFamily;
-			for (const family of familyValue.split(',')) {
-				const trimmed = family.trim().replace(/^['"]|['"]$/g, '');
-				if (!trimmed || this.isGenericFontFamily(trimmed) || !this.shouldWaitForFontFamily(trimmed))
-					continue;
-				fontFamilies.add(trimmed);
+			// On attend la famille principale uniquement: les fallbacks système n'ont pas besoin
+			// d'être "préchargées" et peuvent ralentir inutilement l'export.
+			const primaryFamily = familyValue.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '');
+			if (
+				!primaryFamily ||
+				this.isGenericFontFamily(primaryFamily) ||
+				!this.shouldWaitForFontFamily(primaryFamily)
+			) {
+				continue;
 			}
+			fontFamilies.add(primaryFamily);
 		}
 
 		if (fontFamilies.size === 0) return;
@@ -301,17 +306,12 @@ export class QPCFontProvider {
 	}
 
 	private static shouldWaitForFontFamily(fontFamily: string): boolean {
-		return (
-			this.loadedFonts.has(fontFamily) ||
-			fontFamily === 'Hafs' ||
-			fontFamily === 'IndoPak' ||
-			fontFamily === 'Reciters' ||
-			fontFamily === 'Surahs' ||
-			fontFamily === 'QPC1BSML' ||
-			fontFamily === 'QPC2BSML' ||
-			fontFamily.startsWith('QPC1') ||
-			fontFamily.startsWith('QPC2')
-		);
+		const normalized = fontFamily.trim().toLowerCase();
+		if (!normalized) return false;
+		if (normalized === 'inherit' || normalized === 'initial' || normalized === 'unset') return false;
+
+		// Inclure aussi les polices custom utilisateur (macOS notamment) utilisées dans les styles.
+		return true;
 	}
 
 	private static async waitWithTimeout(promise: Promise<unknown>): Promise<boolean> {

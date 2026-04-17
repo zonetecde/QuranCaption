@@ -15,6 +15,13 @@
 		type BlurSegment,
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
+	import {
+		calculateCaptureTimingsForRange,
+		hasBlankImg,
+		hasTiming,
+		type ExportCustomTextCaptureClip,
+		type ExportSubtitleCaptureClip
+	} from '$lib/services/ExportCaptureTiming';
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import { getAllWindows } from '@tauri-apps/api/window';
@@ -714,23 +721,6 @@
 		}
 	}
 
-	function hasTiming(
-		blankImgs: { [surah: number]: number[] },
-		t: number
-	): {
-		hasIt: boolean;
-		surah: number | null;
-	} {
-		for (const [surahNumb, _timings] of Object.entries(blankImgs)) {
-			if (_timings.includes(t)) return { hasIt: true, surah: Number(surahNumb) };
-		}
-		return { hasIt: false, surah: null };
-	}
-
-	function hasBlankImg(imgWithNothingShown: { [surah: number]: number }, surah: number): boolean {
-		return imgWithNothingShown[surah] !== undefined;
-	}
-
 	async function handleNormalExport(
 		exportStart: number,
 		exportEnd: number,
@@ -832,183 +822,35 @@
 		await finalCleanup();
 	}
 
-	/**
-	 * Analyser l'etat des custom clips a un moment donne
-	 * Retourne un identifiant unique basé sur quels custom clips sont visibles
-	 */
-	function getCustomClipStateAt(timing: number): string {
-		const visibleCustomClips: string[] = [];
-
-		for (const ctClip of globalState.getCustomClipTrack?.clips || []) {
-			const category = (ctClip as CustomTextClip).category;
-			if (!category) continue;
-
-			const alwaysShow = (category.getStyle('always-show')?.value as number) || 0;
-			// Ignorer les custom texts always visible comme demandé
-			if (alwaysShow) continue;
-
-			const startTime = category.getStyle('time-appearance')?.value as number;
-			const endTime = category.getStyle('time-disappearance')?.value as number;
-			if (startTime == null || endTime == null) continue;
-
-			// Vérifier si ce custom text est visible au timing donné (inclusive des bornes)
-			if (timing >= startTime && timing <= endTime) {
-				// Créer une clé unique basée sur l'ID du clip et ses propriétés temporelles
-				const uniqueKey = `${ctClip.id}-${startTime}-${endTime}`;
-				visibleCustomClips.push(uniqueKey);
-			}
-		}
-
-		// Retourner un hash des custom texts visibles, triés pour la cohérence
-		const stateSignature = visibleCustomClips.sort().join('|');
-		return stateSignature;
-	}
-
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
-		const fadeDuration = Math.round(
-			globalState.getStyle('global', 'fade-duration')!.value as number
-		);
+		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map((clip) => ({
+			startTime: clip.startTime,
+			endTime: clip.endTime,
+			kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
+			surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined
+		}));
 
-		let timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
-		let imgWithNothingShown: { [surah: number]: number } = {}; // Timing où rien n'est affiché (pour dupliquer)
-		let blankImgs: {
-			[surah: number]: number[];
-		} = {};
-		// Map pour stocker les timings qui peuvent être dupliqués
-		let duplicableTimings: Map<number, number> = new Map(); // source -> target
+		const customTextClips: ExportCustomTextCaptureClip[] = (
+			globalState.getCustomClipTrack?.clips || []
+		).map((clip) => {
+			const customTextClip = clip as CustomTextClip;
 
-		function add(t: number | undefined) {
-			if (t === undefined) return;
-			if (t < rangeStart || t > rangeEnd) return;
-			timingsToTakeScreenshots.push(Math.round(t));
-		}
+			return {
+				id: customTextClip.id,
+				startTime: customTextClip.startTime,
+				endTime: customTextClip.endTime,
+				alwaysShow: Boolean(customTextClip.category?.getStyle('always-show')?.value)
+			};
+		});
 
-		// --- Sous-titres ---
-		for (const clip of globalState.getSubtitleTrack.clips) {
-			const clipBounds = clip as { startTime?: number; endTime?: number };
-			const { startTime, endTime } = clipBounds;
-			if (startTime == null || endTime == null) continue;
-			if (endTime < rangeStart || startTime > rangeEnd) continue;
-			const duration = endTime - startTime;
-			if (duration <= 0) continue;
-
-			if (!(clip instanceof SilenceClip)) {
-				console.log('Processing subtitle clip:', clip);
-				const fadeInEnd = Math.min(startTime + fadeDuration, endTime);
-				const fadeOutStart = endTime - fadeDuration;
-
-				// Vérifier si on peut optimiser les captures pour ce sous-titre
-				// L'idée : si les custom clips visibles sont identiques entre fadeInEnd et fadeOutStart,
-				// on peut prendre une seule capture et la dupliquer, économisant du temps
-				if (fadeOutStart > startTime && fadeInEnd !== fadeOutStart) {
-					// Récupère les customs clips visibles aux deux timings pour voir si possibilité de duplication
-					const customClipStateAtFadeInEnd = getCustomClipStateAt(fadeInEnd);
-					const customClipStateAtFadeOutStart = getCustomClipStateAt(fadeOutStart);
-
-					// Si l'état des custom clips est identique, on peut dupliquer
-					if (customClipStateAtFadeInEnd === customClipStateAtFadeOutStart) {
-						add(fadeInEnd);
-						// Ajoute a la map de duplication
-						duplicableTimings.set(Math.round(fadeOutStart), Math.round(fadeInEnd));
-					} else {
-						// Etats differents, prendre les deux captures
-						add(fadeInEnd);
-						add(fadeOutStart);
-					}
-				} else {
-					add(fadeInEnd);
-					if (fadeOutStart > startTime) add(fadeOutStart);
-				}
-
-				add(endTime);
-			} else {
-				console.log('Silence clip detected, skipping fade-in/out timings.');
-
-				if (
-					imgWithNothingShown[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] ===
-					undefined
-				) {
-					add(endTime);
-				} else {
-					if (!blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)])
-						blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] = [];
-
-					blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)].push(
-						Math.round(endTime)
-					);
-				}
-			}
-
-			if (
-				!globalState.getCustomClipTrack?.clips.find((ctClip) => {
-					const clip = ctClip as CustomTextClip;
-					const alwaysShow = clip.category!.getStyle('always-show')!.value as boolean;
-
-					if (alwaysShow) {
-						return false;
-					}
-
-					return clip.startTime! <= endTime && clip.endTime! >= endTime;
-				})
-			) {
-				if (
-					imgWithNothingShown[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] ===
-					undefined
-				) {
-					console.log(
-						'Ajout de limage blank pour sourate ',
-						globalState.getSubtitleTrack.getCurrentSurah(clip.startTime),
-						' au timing ',
-						Math.round(endTime)
-					);
-
-					imgWithNothingShown[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] =
-						Math.round(endTime);
-				} else {
-					if (!blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)])
-						blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)] = [];
-
-					blankImgs[globalState.getSubtitleTrack.getCurrentSurah(clip.startTime)].push(
-						Math.round(endTime)
-					);
-				}
-			}
-		}
-
-		// --- Custom Texts ---
-		for (const ctClip of globalState.getCustomClipTrack?.clips || []) {
-			const category = (ctClip as CustomTextClip).category;
-			if (!category) continue;
-			const alwaysShow = (category.getStyle('always-show')?.value as number) || 0;
-			const startTime = category.getStyle('time-appearance')?.value as number;
-			const endTime = category.getStyle('time-disappearance')?.value as number;
-			if (startTime == null || endTime == null) continue;
-			if (endTime < rangeStart || startTime > rangeEnd) continue;
-			const duration = endTime - startTime;
-			if (duration <= 0) continue;
-
-			if (alwaysShow) {
-				add(startTime);
-				add(endTime);
-				continue;
-			}
-
-			const ctFadeInEnd = Math.min(startTime + fadeDuration, endTime);
-			add(ctFadeInEnd);
-
-			const ctFadeOutStart = endTime - fadeDuration;
-			if (ctFadeOutStart > startTime) add(ctFadeOutStart);
-
-			add(endTime);
-		}
-
-		const uniqueSorted = Array.from(new Set(timingsToTakeScreenshots))
-			.filter((t) => t >= rangeStart && t <= rangeEnd)
-			.sort((a, b) => a - b);
-
-		console.log(imgWithNothingShown, blankImgs);
-
-		return { uniqueSorted, imgWithNothingShown, blankImgs, duplicableTimings };
+		return calculateCaptureTimingsForRange({
+			rangeStart,
+			rangeEnd,
+			fadeDuration: Math.round(globalState.getStyle('global', 'fade-duration')!.value as number),
+			subtitleClips,
+			customTextClips,
+			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
+		});
 	}
 
 	async function generateNormalVideo(exportStart: number, duration: number, blur: number) {

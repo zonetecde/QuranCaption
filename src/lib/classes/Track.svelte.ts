@@ -21,6 +21,7 @@ import { Translation, VerseTranslation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
+import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 
 export class Track extends SerializableBase {
 	type: TrackType = $state(TrackType.Unknown);
@@ -507,48 +508,7 @@ export class SubtitleTrack extends Track {
 	getCurrentSurah(time?: number): number {
 		const cursorPos = time !== undefined ? time : globalState.getTimelineState.cursorPosition;
 
-		const currentClip = this.getCurrentClip(cursorPos);
-
-		if (currentClip instanceof SubtitleClip) {
-			return currentClip.surah;
-		} else if (currentClip !== null) {
-			// Prend le clip de sous-titre précédent
-			const previousClip = this.getSubtitleBefore(this.clips.indexOf(currentClip));
-			if (previousClip) {
-				return previousClip.surah;
-			}
-			const nextClip = this.getSubtitleAfter(this.clips.indexOf(currentClip));
-			if (nextClip) {
-				return nextClip.surah;
-			}
-		} else {
-			// Si on est dans un petit trou entre deux clips (souvent causé par des timings décimaux),
-			// prendre d'abord le dernier sous-titre avant le curseur, sinon le prochain.
-			const clips = this.clips;
-			const indexAfter = clips.findIndex((clip) => cursorPos < clip.startTime);
-
-			if (indexAfter === -1) {
-				const lastSubtitleClip = clips.findLast((clip) => clip instanceof SubtitleClip);
-				if (lastSubtitleClip instanceof SubtitleClip) {
-					return lastSubtitleClip.surah;
-				}
-			} else {
-				for (let i = indexAfter - 1; i >= 0; i--) {
-					const clip = clips[i];
-					if (clip instanceof SubtitleClip) {
-						return clip.surah;
-					}
-				}
-
-				for (let i = indexAfter; i < clips.length; i++) {
-					const clip = clips[i];
-					if (clip instanceof SubtitleClip) {
-						return clip.surah;
-					}
-				}
-			}
-		}
-		return -1;
+		return resolveCurrentSurahFromClips(this.clips, cursorPos);
 	}
 
 	/**

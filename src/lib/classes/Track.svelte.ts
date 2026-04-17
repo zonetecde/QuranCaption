@@ -522,10 +522,30 @@ export class SubtitleTrack extends Track {
 				return nextClip.surah;
 			}
 		} else {
-			// Prend le dernier clip qui est un sous-titre dans le projet
-			const lastSubtitleClip = this.clips.findLast((clip) => clip instanceof SubtitleClip);
-			if (lastSubtitleClip) {
-				return lastSubtitleClip.surah;
+			// Si on est dans un petit trou entre deux clips (souvent causé par des timings décimaux),
+			// prendre d'abord le dernier sous-titre avant le curseur, sinon le prochain.
+			const clips = this.clips;
+			const indexAfter = clips.findIndex((clip) => cursorPos < clip.startTime);
+
+			if (indexAfter === -1) {
+				const lastSubtitleClip = clips.findLast((clip) => clip instanceof SubtitleClip);
+				if (lastSubtitleClip instanceof SubtitleClip) {
+					return lastSubtitleClip.surah;
+				}
+			} else {
+				for (let i = indexAfter - 1; i >= 0; i--) {
+					const clip = clips[i];
+					if (clip instanceof SubtitleClip) {
+						return clip.surah;
+					}
+				}
+
+				for (let i = indexAfter; i < clips.length; i++) {
+					const clip = clips[i];
+					if (clip instanceof SubtitleClip) {
+						return clip.surah;
+					}
+				}
 			}
 		}
 		return -1;

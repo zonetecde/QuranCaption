@@ -867,6 +867,56 @@ export class VideoStyle extends SerializableBase {
 				this.mergeMissingStylesForTarget(stylesData.target, subtitleDefaults) || hasChanges;
 		}
 
+		// Migration minimale: ajouter tous les styles manquants de customText.json
+		// aux custom texts existants.
+		const customTextDefaults = (await (
+			await fetch('./styles/customText.json')
+		).json()) as RawCategory;
+		const compositeDefaults = (await (
+			await fetch('./styles/compositeStyles.json')
+		).json()) as RawStyle[];
+		const customTextDefaultStyles = customTextDefaults.styles || [];
+
+		for (const clip of globalState.getCustomClipTrack?.clips || []) {
+			if (!(clip instanceof CustomTextClip) || !clip.category) continue;
+
+			for (const defaultStyle of customTextDefaultStyles) {
+				if (defaultStyle.id === 'custom-text-composite') {
+					const suffix = clip.category.id.startsWith('custom-text-')
+						? clip.category.id.slice('custom-text-'.length)
+						: '';
+					const resolvedCompositeId = suffix
+						? `custom-text-composite-${suffix}`
+						: defaultStyle.id;
+
+					const hasCompositeStyle = clip.category.styles.some(
+						(s) =>
+							s.id === 'custom-text-composite' ||
+							s.id === resolvedCompositeId ||
+							s.id.startsWith('custom-text-composite-')
+					);
+
+					if (!hasCompositeStyle) {
+						clip.category.styles.push(
+							new Style({
+								...defaultStyle,
+								id: resolvedCompositeId,
+								value: compositeDefaults.map((s) => new Style(s))
+							})
+						);
+						hasChanges = true;
+					}
+					continue;
+				}
+
+				const hasStyle = clip.category.styles.some((s) => s.id === defaultStyle.id);
+				if (!hasStyle) {
+					clip.category.styles.push(new Style(defaultStyle));
+					hasChanges = true;
+				}
+			}
+		}
+
 		return hasChanges;
 	}
 

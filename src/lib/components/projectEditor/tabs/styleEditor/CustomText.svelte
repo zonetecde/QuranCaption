@@ -10,6 +10,7 @@
 		return {
 			verticalPosition: customText.getStyle('vertical-position')?.value as number,
 			horizontalPosition: customText.getStyle('horizontal-position')?.value as number,
+			width: Number(customText.getStyle('width')?.value ?? 80),
 			text: customText.getStyle('text')?.value as string,
 
 			opacity: () => {
@@ -71,8 +72,8 @@
 		horizontalMax: horizontalStyle.valueMax,
 		horizontalMin: horizontalStyle.valueMin
 	}}
-	class="absolute customtext cursor-move select-none z-10"
-	style={`transform: translateY(${customTextSettings().verticalPosition}px) translateX(${customTextSettings().horizontalPosition}px); opacity: ${customTextSettings().opacity()}; `}
+	class="absolute customtext cursor-move select-none z-10 text-center"
+	style={`width: ${customTextSettings().width}% ; transform: translateY(${customTextSettings().verticalPosition}px) translateX(${customTextSettings().horizontalPosition}px); opacity: ${customTextSettings().opacity()}; `}
 >
 	<CompositeText compositeStyle={customText.getCompositeStyle()!}>
 		{customTextSettings().text}

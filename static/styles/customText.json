@@ -39,6 +39,18 @@
 			"icon": "horizontal_rule"
 		},
 		{
+			"id": "width",
+			"name": "Width",
+			"description": "Set width of custom text container",
+			"value": 100,
+			"valueType": "number",
+			"valueMin": 10,
+			"valueMax": 100,
+			"css": "",
+			"tailwind": false,
+			"icon": "width_full"
+		},
+		{
 			"id": "always-show",
 			"name": "Always Show",
 			"description": "Always show the text (ignore timing)",

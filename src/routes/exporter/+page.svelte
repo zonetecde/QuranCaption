@@ -1137,26 +1137,24 @@
 		console.log(`Waiting for frame at ${timing}ms...`);
 
 		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
-		let subtitlesContainer: HTMLElement;
-		subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement;
+		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
 
 		if (!subtitlesContainer) {
 			await new Promise((resolve) => setTimeout(resolve, 200));
-			return;
+		} else {
+			const startTime = Date.now();
+			const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
+
+			do {
+				if (Date.now() - startTime > timeout) {
+					console.warn(`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`);
+					break;
+				}
+				await new Promise((resolve) => setTimeout(resolve, 10));
+			} while (subtitlesContainer.style.opacity !== '1');
 		}
 
-		const startTime = Date.now();
-		const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
-
-		do {
-			if (Date.now() - startTime > timeout) {
-				console.warn(`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`);
-				break;
-			}
-			await new Promise((resolve) => setTimeout(resolve, 10));
-		} while (subtitlesContainer.style.opacity !== '1');
-
-		await QPCFontProvider.waitForFontsInElement(subtitlesContainer.querySelector('.arabic'));
+		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
 	}
 </script>
 

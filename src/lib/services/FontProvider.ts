@@ -8,6 +8,7 @@ export class QPCFontProvider {
 	static loadedFonts: Set<string> = new Set();
 	static loadedTajweedPalettes: Set<string> = new Set();
 	static fontLoadPromises: Map<string, Promise<void>> = new Map();
+	static registeredLocalFontFaces: Set<string> = new Set();
 	private static readonly FONT_WAIT_TIMEOUT_MS = 1200;
 	private static readonly TAJWEED_FONT_BASE_URL =
 		'https://cdn.jsdelivr.net/gh/quran/quran.com-frontend-next/public/fonts/quran/hafs/v4/colrv1';
@@ -73,12 +74,18 @@ export class QPCFontProvider {
 
 		for (const node of nodes) {
 			const familyValue = window.getComputedStyle(node).fontFamily;
-			for (const family of familyValue.split(',')) {
-				const trimmed = family.trim().replace(/^['"]|['"]$/g, '');
-				if (!trimmed || this.isGenericFontFamily(trimmed) || !this.shouldWaitForFontFamily(trimmed))
-					continue;
-				fontFamilies.add(trimmed);
+			// Pour l'export, seule la famille principale compte: les fallbacks système n'ont
+			// pas besoin d'être sérialisés.
+			const primaryFamily = familyValue.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '');
+			if (
+				!primaryFamily ||
+				this.isGenericFontFamily(primaryFamily) ||
+				!this.shouldWaitForFontFamily(primaryFamily)
+			) {
+				continue;
 			}
+			this.registerLocalFontFaceIfNeeded(primaryFamily);
+			fontFamilies.add(primaryFamily);
 		}
 
 		if (fontFamilies.size === 0) return;
@@ -301,17 +308,31 @@ export class QPCFontProvider {
 	}
 
 	private static shouldWaitForFontFamily(fontFamily: string): boolean {
-		return (
-			this.loadedFonts.has(fontFamily) ||
-			fontFamily === 'Hafs' ||
-			fontFamily === 'IndoPak' ||
-			fontFamily === 'Reciters' ||
-			fontFamily === 'Surahs' ||
-			fontFamily === 'QPC1BSML' ||
-			fontFamily === 'QPC2BSML' ||
-			fontFamily.startsWith('QPC1') ||
-			fontFamily.startsWith('QPC2')
-		);
+		const normalized = fontFamily.trim().toLowerCase();
+		if (!normalized) return false;
+		if (normalized === 'inherit' || normalized === 'initial' || normalized === 'unset') return false;
+
+		return true;
+	}
+
+	private static registerLocalFontFaceIfNeeded(fontFamily: string): void {
+		if (typeof document === 'undefined') return;
+		if (this.loadedFonts.has(fontFamily)) return;
+		if (this.registeredLocalFontFaces.has(fontFamily)) return;
+		if (this.isGenericFontFamily(fontFamily)) return;
+
+		const escapedFontFamily = fontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+		const style = document.createElement('style');
+		style.textContent = `
+			@font-face {
+				font-family: '${escapedFontFamily}';
+				src: local('${escapedFontFamily}');
+				font-weight: normal;
+				font-style: normal;
+			}
+		`;
+		document.head.appendChild(style);
+		this.registeredLocalFontFaces.add(fontFamily);
 	}
 
 	private static async waitWithTimeout(promise: Promise<unknown>): Promise<boolean> {

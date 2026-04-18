@@ -16,7 +16,7 @@ import type {
 } from './AdvancedAITrimming';
 
 export type AiBoldCandidate = {
-	subtitleId: number;
+	segmentIndex: number;
 	verseKey: string;
 	startTime: number;
 	endTime: number;
@@ -29,7 +29,7 @@ export type AiBoldCandidate = {
 };
 
 export type AiBoldBatchSegmentPayload = {
-	subtitleId: number;
+	segmentIndex: number;
 	verseKey: string;
 	segmentArabic: string;
 	translationIndexed: string;
@@ -55,7 +55,7 @@ export type AiBoldBatchResponse = {
 };
 
 export type AiBoldBatchResultSegment = {
-	subtitleId: number;
+	segmentIndex: number;
 	boldWordIndexes: number[];
 };
 
@@ -139,7 +139,7 @@ export function buildIndexedTranslationText(text: string): string {
 function buildRequestPayload(segments: AiBoldCandidate[]): AiBoldBatch['request'] {
 	return {
 		segments: segments.map((segment) => ({
-			subtitleId: segment.subtitleId,
+			segmentIndex: segment.segmentIndex,
 			verseKey: segment.verseKey,
 			segmentArabic: segment.segmentArabic,
 			translationIndexed: segment.translationIndexed
@@ -190,7 +190,7 @@ export function buildAiBoldCandidates(
 	includeAlreadyBolded: boolean
 ): AiBoldCandidate[] {
 	return globalState.getSubtitleClips
-		.map((subtitle) => {
+		.map((subtitle, segmentIndex) => {
 			const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
 			const translationText = String(translation?.text ?? '').trim();
 			if (!translation || translationText.length === 0) return null;
@@ -202,7 +202,7 @@ export function buildAiBoldCandidates(
 			if (!includeAlreadyBolded && hasBold) return null;
 
 			return {
-				subtitleId: subtitle.id,
+				segmentIndex,
 				verseKey: subtitle.getVerseKey(),
 				startTime: subtitle.startTime,
 				endTime: subtitle.endTime,
@@ -240,7 +240,7 @@ export function buildAiBoldBatches(
 		const estimated = estimateBatchCost(model, reasoningEffort, request);
 		const batchNumber = batches.length + 1;
 		batches.push({
-			batchId: `advanced-bold-batch-${batchNumber}-${current[0].subtitleId}`,
+			batchId: `advanced-bold-batch-${batchNumber}-${current[0].segmentIndex}`,
 			wordCount: currentWordCount,
 			segments: current,
 			request,
@@ -367,20 +367,20 @@ export function validateAiBoldBatchResult(
 			continue;
 		}
 
-		const subtitleId = Number((segmentValue as Record<string, unknown>).subtitleId);
-		if (!Number.isInteger(subtitleId)) {
-			errors.push('AI response contains a segment without a valid subtitleId.');
+		const segmentIndex = Number((segmentValue as Record<string, unknown>).segmentIndex);
+		if (!Number.isInteger(segmentIndex)) {
+			errors.push('AI response contains a segment without a valid segmentIndex.');
 			continue;
 		}
 
-		if (responseMap.has(subtitleId)) {
-			errors.push(`Subtitle ${subtitleId}: duplicate entry in AI response.`);
+		if (responseMap.has(segmentIndex)) {
+			errors.push(`Segment ${segmentIndex}: duplicate entry in AI response.`);
 			continue;
 		}
 
-		const candidate = batch.segments.find((segment) => segment.subtitleId === subtitleId);
+		const candidate = batch.segments.find((segment) => segment.segmentIndex === segmentIndex);
 		if (!candidate) {
-			errors.push(`Subtitle ${subtitleId}: unexpected segment returned by AI.`);
+			errors.push(`Segment ${segmentIndex}: unexpected segment returned by AI.`);
 			continue;
 		}
 
@@ -389,20 +389,20 @@ export function validateAiBoldBatchResult(
 			candidate.wordCount
 		);
 		if (normalized.error) {
-			errors.push(`Subtitle ${subtitleId}: ${normalized.error}`);
+			errors.push(`Segment ${segmentIndex}: ${normalized.error}`);
 			continue;
 		}
 
-		responseMap.set(subtitleId, {
-			subtitleId,
+		responseMap.set(segmentIndex, {
+			segmentIndex,
 			boldWordIndexes: normalized.indexes
 		});
 	}
 
 	for (const candidate of batch.segments) {
-		const result = responseMap.get(candidate.subtitleId);
+		const result = responseMap.get(candidate.segmentIndex);
 		if (!result) {
-			errors.push(`Subtitle ${candidate.subtitleId}: missing from AI response.`);
+			errors.push(`Segment ${candidate.segmentIndex}: missing from AI response.`);
 			continue;
 		}
 
@@ -431,7 +431,7 @@ export function applyAiBoldValidationSuccess(
 			| VerseTranslation
 			| undefined;
 		if (!translation) {
-			errors.push(`Subtitle ${success.candidate.subtitleId}: translation not found.`);
+			errors.push(`Segment ${success.candidate.segmentIndex}: translation not found.`);
 			erroredSegments++;
 			continue;
 		}
@@ -442,7 +442,7 @@ export function applyAiBoldValidationSuccess(
 		} catch (error) {
 			erroredSegments++;
 			errors.push(
-				`Subtitle ${success.candidate.subtitleId}: ${
+				`Segment ${success.candidate.segmentIndex}: ${
 					error instanceof Error ? error.message : String(error)
 				}`
 			);

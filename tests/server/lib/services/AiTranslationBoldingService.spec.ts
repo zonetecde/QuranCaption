@@ -19,7 +19,7 @@ describe('AiTranslationBoldingService', () => {
 			wordCount: 5,
 			segments: [
 				{
-					subtitleId: 11,
+					segmentIndex: 11,
 					verseKey: '1:1',
 					startTime: 0,
 					endTime: 1000,
@@ -40,7 +40,7 @@ describe('AiTranslationBoldingService', () => {
 		} satisfies AiBoldBatch;
 
 		const result = validateAiBoldBatchResult(batch, {
-			segments: [{ subtitleId: 11, boldWordIndexes: [2, 4] }]
+			segments: [{ segmentIndex: 11, boldWordIndexes: [2, 4] }]
 		});
 
 		expect(result.errors).toEqual([]);
@@ -58,7 +58,7 @@ describe('AiTranslationBoldingService', () => {
 			wordCount: 3,
 			segments: [
 				{
-					subtitleId: 15,
+					segmentIndex: 15,
 					verseKey: '1:2',
 					startTime: 0,
 					endTime: 1000,
@@ -79,13 +79,11 @@ describe('AiTranslationBoldingService', () => {
 		} satisfies AiBoldBatch;
 
 		const result = validateAiBoldBatchResult(batch, {
-			segments: [{ subtitleId: 15, boldWordIndexes: [0, 5] }]
+			segments: [{ segmentIndex: 15, boldWordIndexes: [0, 5] }]
 		});
 
 		expect(result.validSegments).toEqual([]);
-		expect(result.errors).toContain(
-			'Subtitle 15: boldWordIndexes contains out-of-bounds index 5.'
-		);
+		expect(result.errors).toContain('Segment 15: boldWordIndexes contains out-of-bounds index 5.');
 	});
 
 	it('deduplicates repeated indexes', () => {
@@ -94,7 +92,7 @@ describe('AiTranslationBoldingService', () => {
 			wordCount: 2,
 			segments: [
 				{
-					subtitleId: 21,
+					segmentIndex: 21,
 					verseKey: '1:3',
 					startTime: 0,
 					endTime: 1000,
@@ -115,20 +113,20 @@ describe('AiTranslationBoldingService', () => {
 		} satisfies AiBoldBatch;
 
 		const result = validateAiBoldBatchResult(batch, {
-			segments: [{ subtitleId: 21, boldWordIndexes: [1, 1, 1] }]
+			segments: [{ segmentIndex: 21, boldWordIndexes: [1, 1, 1] }]
 		});
 
 		expect(result.errors).toEqual([]);
 		expect(result.validSegments[0].boldWordIndexes).toEqual([1]);
 	});
 
-	it('accepts large safe subtitle ids in validation', () => {
+	it('accepts large safe segment indexes in validation', () => {
 		const batch = {
 			batchId: 'batch-4',
 			wordCount: 3,
 			segments: [
 				{
-					subtitleId: 1775994570183630,
+					segmentIndex: 1775994570183630,
 					verseKey: '1:4',
 					startTime: 0,
 					endTime: 1000,
@@ -149,11 +147,11 @@ describe('AiTranslationBoldingService', () => {
 		} satisfies AiBoldBatch;
 
 		const result = validateAiBoldBatchResult(batch, {
-			segments: [{ subtitleId: 1775994570183630, boldWordIndexes: [0, 2] }]
+			segments: [{ segmentIndex: 1775994570183630, boldWordIndexes: [0, 2] }]
 		});
 
 		expect(result.errors).toEqual([]);
-		expect(result.validSegments[0].candidate.subtitleId).toBe(1775994570183630);
+		expect(result.validSegments[0].candidate.segmentIndex).toBe(1775994570183630);
 		expect(result.validSegments[0].boldWordIndexes).toEqual([0, 2]);
 	});
 });

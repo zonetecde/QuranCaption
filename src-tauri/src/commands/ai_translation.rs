@@ -95,7 +95,7 @@ pub struct AdvancedTrimSegmentPayload {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedBoldSegmentPayload {
-    subtitle_id: i64,
+    segment_index: i64,
     verse_key: String,
     segment_arabic: String,
     translation_indexed: String,
@@ -341,7 +341,7 @@ fn build_bold_response_schema() -> Value {
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
-                        "subtitleId": {
+                        "segmentIndex": {
                             "type": "integer"
                         },
                         "boldWordIndexes": {
@@ -351,7 +351,7 @@ fn build_bold_response_schema() -> Value {
                             }
                         }
                     },
-                    "required": ["subtitleId", "boldWordIndexes"]
+                    "required": ["segmentIndex", "boldWordIndexes"]
                 }
             }
         },
@@ -377,7 +377,7 @@ fn build_bold_user_prompt(
         "Choose which translated words should be bolded for each subtitle segment and return JSON only.\n\
          Use the indexed translation as the source of truth for selectable words.\n\
          Do not rewrite the translation.\n\
-         Return only `subtitleId` and `boldWordIndexes`.\n\n\
+         Return only `segmentIndex` and `boldWordIndexes`.\n\n\
          {}\n\n\
          Batch JSON:\n{}",
         note_block, batch_json

@@ -99,7 +99,8 @@ describe('translation inline style runs', () => {
 				endWordIndex: 3,
 				bold: true,
 				italic: false,
-				underline: false
+				underline: false,
+				color: null
 			}
 		]);
 	});
@@ -127,14 +128,16 @@ describe('translation inline style runs', () => {
 				endWordIndex: 0,
 				bold: true,
 				italic: false,
-				underline: false
+				underline: false,
+				color: null
 			},
 			{
 				startWordIndex: 3,
 				endWordIndex: 4,
 				bold: true,
 				italic: false,
-				underline: false
+				underline: false,
+				color: null
 			}
 		]);
 	});
@@ -162,21 +165,24 @@ describe('translation inline style runs', () => {
 				endWordIndex: 0,
 				bold: true,
 				italic: false,
-				underline: false
+				underline: false,
+				color: null
 			},
 			{
 				startWordIndex: 1,
 				endWordIndex: 2,
 				bold: true,
 				italic: true,
-				underline: false
+				underline: false,
+				color: null
 			},
 			{
 				startWordIndex: 3,
 				endWordIndex: 3,
 				bold: true,
 				italic: false,
-				underline: false
+				underline: false,
+				color: null
 			}
 		]);
 	});
@@ -208,7 +214,8 @@ describe('translation inline style runs', () => {
 				endWordIndex: 3,
 				bold: true,
 				italic: false,
-				underline: false
+				underline: false,
+				color: null
 			}
 		]);
 	});
@@ -247,13 +254,15 @@ describe('translation inline style runs', () => {
 				text: 'one ',
 				bold: false,
 				italic: false,
-				underline: false
+				underline: false,
+				color: null
 			},
 			{
 				text: 'two three',
 				bold: true,
 				italic: false,
-				underline: true
+				underline: true,
+				color: null
 			}
 		]);
 	});
@@ -286,14 +295,16 @@ describe('translation inline style runs', () => {
 				endWordIndex: 2,
 				bold: false,
 				italic: true,
-				underline: true
+				underline: true,
+				color: null
 			},
 			{
 				startWordIndex: 3,
 				endWordIndex: 3,
 				bold: true,
 				italic: true,
-				underline: true
+				underline: true,
+				color: null
 			}
 		]);
 	});

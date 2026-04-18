@@ -227,9 +227,9 @@ describe('WordsSelector', () => {
 		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(2);
 
 		await getWordButton(component.container, 'A1').click();
-		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(1);
+		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(0);
 		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(1);
-		expect(getSelectedWordLabels(component.container)).toEqual(['A1']);
+		expect(getSelectedWordLabels(component.container)).toEqual(['P0 ۛ', 'A1']);
 	});
 
 	test('hides translations or transliterations when their toggles are disabled', async () => {

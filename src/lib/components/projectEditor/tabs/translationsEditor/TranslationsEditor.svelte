@@ -34,7 +34,7 @@
 		<TranslationInlineStylePanel />
 	</section>
 
-	<MobileRightDrawer title="Inline Style Panel" icon="tune" triggerTopClass="top-0">
+	<MobileRightDrawer title="Word Styles" icon="tune" triggerTopClass="top-0">
 		<TranslationInlineStylePanel />
 	</MobileRightDrawer>
 </div>

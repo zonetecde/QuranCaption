@@ -1,6 +1,14 @@
 import { globalState } from '$lib/runes/main.svelte';
 import toast from 'svelte-5-french-toast';
 import { Edition, Translation } from '.';
+import {
+	buildTranslationInlineTextSegments,
+	getTranslationWordCount,
+	type TranslationInlineStyleFlags,
+	type TranslationInlineStyleRun,
+	type TranslationInlineTextSegment,
+	toggleTranslationInlineStyleRuns
+} from './Translation.svelte';
 import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
@@ -15,6 +23,12 @@ type ClipType =
 	| 'Custom Text'
 	| 'Custom Image'
 	| 'Asset';
+
+type ArabicRenderParts = {
+	text: string;
+	suffix: string;
+	suffixFontFamily: string | null;
+};
 
 export class Clip extends SerializableBase {
 	id: number;
@@ -217,6 +231,7 @@ export class SubtitleClip extends ClipWithTranslation {
 	startWordIndex: number;
 	endWordIndex: number;
 	indopakText: string;
+	arabicInlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
 	private isHydratingIndopakText = false;
 	wbwTranslation: string[]; // Traduction mot à mot
 	isFullVerse: boolean; // Indique si ce clip contient l'intégralité du verset
@@ -244,6 +259,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		this.startWordIndex = $state(startWordIndex);
 		this.endWordIndex = $state(endWordIndex);
 		this.indopakText = $state(indopakSegmentText ?? text);
+		this.arabicInlineStyleRuns = [];
 		this.translations = translations;
 		this.wbwTranslation = $state(wbwTranslation);
 		this.isFullVerse = $state(isFullVerse);
@@ -273,6 +289,106 @@ export class SubtitleClip extends ClipWithTranslation {
 			const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 			return arabicDigits[parseInt(digit, 10)];
 		});
+	}
+
+	/**
+	 * Retourne les parties du texte arabe à afficher.
+	 * - `editor`: toujours le texte Uthmani brut du segment
+	 * - `preview`: respecte la police arabe active (QPC, Indopak, etc.)
+	 *
+	 * Le numéro de verset est renvoyé à part pour éviter de lui appliquer les styles inline.
+	 */
+	getArabicRenderParts(mode: 'editor' | 'preview' = 'editor'): ArabicRenderParts {
+		const showVerseNumber =
+			this.isLastWordsOfVerse && Boolean(globalState.getStyle('arabic', 'show-verse-number').value);
+
+		if (mode === 'editor') {
+			return {
+				text: this.text,
+				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
+				suffixFontFamily: null
+			};
+		}
+
+		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
+		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+		const shouldUseQpcGlyphs =
+			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
+
+		if (!shouldUseQpcGlyphs) {
+			if (mushafStyle === 'Indopak' && !this.indopakText) {
+				// L'éditeur peut demander un rendu preview avant que le texte IndoPak soit hydraté.
+				void this.hydrateIndopakTextFromLocalQuran();
+			}
+
+			return {
+				text: mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text,
+				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
+				// En mode IndoPak, le numéro de verset reste rendu avec Hafs comme avant.
+				suffixFontFamily:
+					showVerseNumber && mushafStyle === 'Indopak' ? 'Hafs' : null
+			};
+		}
+
+		const qpcVersion: '1' | '2' =
+			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
+
+		return {
+			text: QPCFontProvider.getQuranVerseGlyph(
+				this.surah,
+				this.verse,
+				this.startWordIndex,
+				this.endWordIndex,
+				false,
+				qpcVersion
+			),
+			suffix: showVerseNumber
+				? ` ${QPCFontProvider.getQuranVerseGlyph(
+						this.surah,
+						this.verse,
+						this.endWordIndex + 1,
+						this.endWordIndex,
+						true,
+						qpcVersion
+					)}`.trimEnd()
+				: '',
+			suffixFontFamily: null
+		};
+	}
+
+	clearArabicInlineStyles(): void {
+		this.arabicInlineStyleRuns = [];
+	}
+
+	/**
+	 * Toggle les styles inline sur une plage de mots du segment arabe.
+	 * Les indexes sont basés sur le texte Uthmani stocké dans `this.text`.
+	 */
+	toggleArabicInlineStyles(
+		startWordIndex: number,
+		endWordIndex: number,
+		flags: TranslationInlineStyleFlags
+	): void {
+		this.arabicInlineStyleRuns = toggleTranslationInlineStyleRuns(
+			this.arabicInlineStyleRuns ?? [],
+			getTranslationWordCount(this.text),
+			startWordIndex,
+			endWordIndex,
+			flags
+		);
+	}
+
+	/**
+	 * Construit les segments stylés du texte arabe, sans inclure le numéro de verset.
+	 * Le preview peut demander un texte différent de l'éditeur, mais la même map de mots reste utilisée.
+	 */
+	getArabicInlineStyledSegments(
+		mode: 'editor' | 'preview' = 'editor'
+	): TranslationInlineTextSegment[] {
+		return buildTranslationInlineTextSegments(
+			this.getArabicRenderParts(mode).text,
+			this.arabicInlineStyleRuns ?? []
+		);
 	}
 
 	private async hydrateIndopakTextFromLocalQuran() {
@@ -384,6 +500,9 @@ export class SubtitleClip extends ClipWithTranslation {
 		);
 
 		clonedClip.indopakText = this.indopakText;
+		clonedClip.arabicInlineStyleRuns = JSON.parse(
+			JSON.stringify(this.arabicInlineStyleRuns ?? [])
+		);
 		clonedClip.associatedImagePath = this.associatedImagePath;
 		return clonedClip;
 	}

@@ -95,7 +95,7 @@
 					<div class="text-xs text-[var(--text-secondary)] mb-3">
 						<p class="mb-2">
 							The exported JSON will include all styles used in this video: the global style, the
-							Arabic text style, and all translation styles.
+							Arabic text style, and all word styles.
 						</p>
 
 						{#if globalState.getCustomClipTrack.clips.length > 0}

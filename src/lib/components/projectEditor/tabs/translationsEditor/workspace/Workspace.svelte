@@ -414,7 +414,7 @@
 								>
 									{#if lastRead.highlightedClipId === clip.id}
 										<div
-											class="absolute left-4 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
+											class="absolute left-6 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
 										>
 											Last read
 										</div>

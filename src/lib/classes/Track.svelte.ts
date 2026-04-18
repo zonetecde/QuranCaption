@@ -340,6 +340,7 @@ export class SubtitleTrack extends Track {
 			subtitle.isFullVerse = subtitlesProperties.isFullVerse;
 			subtitle.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
 			subtitle.translations = subtitlesProperties.translations;
+			subtitle.clearArabicInlineStyles();
 		}
 
 		if (subtitle instanceof SubtitleClip) {

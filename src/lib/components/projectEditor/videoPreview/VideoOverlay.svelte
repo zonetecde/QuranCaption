@@ -602,6 +602,31 @@
 	<div class="w-full h-full absolute inset-0 flex flex-col items-center justify-center">
 		{#if currentSubtitle()}
 			{@const subtitle = currentSubtitle()}
+			{#snippet arabicPreviewContent(
+				subtitle: SubtitleClip | PredefinedSubtitleClip,
+				hasArabicInlineStyles: boolean,
+				arabicText: string,
+				arabicDisplayParts: { text: string; suffix: string; suffixFontFamily: string | null }
+			)}
+				{#if hasArabicInlineStyles}
+					<span class="translation-inline-flow">
+						{#each (subtitle as SubtitleClip).getArabicInlineStyledSegments('preview') as segment, index (`arabic-${index}-${segment.text}`)}
+							<span style={getInlineStyleCss(segment)}>{segment.text}</span>
+						{/each}
+						{#if arabicDisplayParts.suffix}
+							<span
+								style={arabicDisplayParts.suffixFontFamily
+									? `font-family: ${arabicDisplayParts.suffixFontFamily};`
+									: ''}
+							>
+								{arabicDisplayParts.suffix}
+							</span>
+						{/if}
+					</span>
+				{:else}
+					<span>{@html arabicText}</span>
+				{/if}
+			{/snippet}
 			<div
 				id="subtitles-container"
 				class="absolute inset-0 z-1 flex flex-col items-center justify-center"
@@ -627,14 +652,31 @@
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const arabicText = subtitle.getText()}
+							{@const hasArabicInlineStyles =
+								subtitle instanceof SubtitleClip &&
+								(subtitle.arabicInlineStyleRuns?.length ?? 0) > 0}
+							{@const arabicDisplayParts =
+								subtitle instanceof SubtitleClip
+									? subtitle.getArabicRenderParts('preview')
+									: { text: arabicText, suffix: '', suffixFontFamily: null }}
 
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
-							{#if showDecorativeBrackets() && arabicText.trim()}
+							{#if showDecorativeBrackets() && (hasArabicInlineStyles ? arabicDisplayParts.text.trim() : arabicText.trim())}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
-								<span>{@html arabicText}</span>
+								{@render arabicPreviewContent(
+									subtitle,
+									hasArabicInlineStyles,
+									arabicText,
+									arabicDisplayParts
+								)}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
 							{:else}
-								<span>{@html arabicText}</span>
+								{@render arabicPreviewContent(
+									subtitle,
+									hasArabicInlineStyles,
+									arabicText,
+									arabicDisplayParts
+								)}
 							{/if}
 						{/if}
 					</p>

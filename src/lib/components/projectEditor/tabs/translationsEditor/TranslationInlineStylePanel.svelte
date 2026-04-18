@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation, SubtitleClip } from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiBoldModal from './modal/AiBoldModal.svelte';
@@ -30,7 +30,7 @@
 		translationsEditorState()[property] = !translationsEditorState()[property];
 	}
 
-	async function resetAllInlineTranslationStyles(): Promise<void> {
+	async function resetAllInlineStyles(): Promise<void> {
 		const confirm = await ModalManager.confirmModal(
 			'Are you sure you want to reset all inline styles?'
 		);
@@ -38,14 +38,19 @@
 		if (!confirm) return;
 
 		for (const clip of globalState.getSubtitleTrack.clips) {
-			if (!(clip instanceof ClipWithTranslation)) continue;
-			for (const translation of Object.values(clip.translations || {})) {
-				if (
-					translation instanceof VerseTranslation &&
-					(translation.inlineStyleRuns?.length ?? 0) > 0
-				) {
-					translation.clearInlineStyles();
+			if (clip instanceof ClipWithTranslation) {
+				for (const translation of Object.values(clip.translations || {})) {
+					if (
+						translation instanceof VerseTranslation &&
+						(translation.inlineStyleRuns?.length ?? 0) > 0
+					) {
+						translation.clearInlineStyles();
+					}
 				}
+			}
+
+			if (clip instanceof SubtitleClip && (clip.arabicInlineStyleRuns?.length ?? 0) > 0) {
+				clip.clearArabicInlineStyles();
 			}
 		}
 
@@ -56,9 +61,11 @@
 <div class="px-4 py-4 border-b border-color bg-primary/70">
 	<div class="flex items-start gap-3">
 		<div class="min-w-0">
-			<h3 class="text-sm font-semibold text-primary">Translation Styles</h3>
+			<h3 class="text-sm font-semibold text-primary">Word Styles</h3>
 			<p class="text-xs text-thirdly mt-1 leading-relaxed">
-				Manual inline emphasis with a dedicated AI assistant modal for automatic bold styling.
+				Manual per-word emphasis on <span class="font-semibold">arabic text</span> and
+				<span class="font-semibold">translations</span> with a dedicated AI assistant modal for automatic
+				bold styling.
 			</p>
 		</div>
 	</div>
@@ -76,7 +83,7 @@
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="text-sm font-semibold">Translation Style Editing</p>
+				<p class="text-sm font-semibold">Word Style Editing</p>
 				<p class="text-xs mt-1 opacity-80">
 					{translationsEditorState().isInlineStyleMode ? 'Enabled' : 'Disabled'}
 				</p>
@@ -174,7 +181,7 @@
 									).value;
 								}}
 								class="h-9 w-11 cursor-pointer rounded border border-color bg-secondary p-1"
-								aria-label="Translation style color"
+								aria-label="Word style color"
 							/>
 
 							<span class="text-xs text-secondary">
@@ -192,11 +199,11 @@
 			<p class="font-semibold text-primary">How it works</p>
 			<p>
 				Enable style mode, keep one or more toggles active, then drag across words in the trimmed
-				translation.
+				translation or the Arabic segment.
 			</p>
 			<p>
 				Bold, italic and underline are toggled on the selected range. Color is applied with the
-				current swatch. Editing the translation text later clears these inline styles.
+				current swatch. Editing the translation text later clears translation word styles.
 			</p>
 			{#if !hasActiveInlineStyle()}
 				<p class="text-[var(--accent-primary)]">Select at least one style before applying it.</p>
@@ -209,9 +216,9 @@
 			</p>
 			<button
 				class="w-full rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
-				onclick={resetAllInlineTranslationStyles}
+				onclick={resetAllInlineStyles}
 			>
-				Reset all translation styles
+				Reset all segment styles
 			</button>
 		</div>
 
@@ -219,7 +226,7 @@
 			<div class="px-4 py-4 border-b border-color bg-primary/40">
 				<div class="flex items-start justify-between gap-3">
 					<div>
-						<div class="text-sm font-semibold text-primary">AI Assisted Translation Emphasis</div>
+						<div class="text-sm font-semibold text-primary">AI Assisted Word Emphasis</div>
 					</div>
 				</div>
 			</div>

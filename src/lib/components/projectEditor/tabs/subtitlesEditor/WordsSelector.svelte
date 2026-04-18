@@ -12,6 +12,10 @@
 	import toast from 'svelte-5-french-toast';
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
+	let isWordDragging = $state(false);
+	let didWordDrag = $state(false);
+	let dragStartWordIndex = $state(-1);
+	let suppressNextWordClick = $state(false);
 
 	function goNextVerse() {
 		if (
@@ -199,6 +203,8 @@
 				globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 			}
 		});
+
+		document.addEventListener('mouseup', handleGlobalWordMouseUp);
 	});
 
 	onDestroy(() => {
@@ -259,6 +265,8 @@
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP
 		);
 		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: 'Exit subtitle editing' });
+
+		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
 	});
 
 	/**
@@ -452,7 +460,12 @@
 	 * Met à jour les indices de début et de fin des mots sélectionnés.
 	 * @param wordIndex L'index du mot cliqué.
 	 */
-function handleWordClick(wordIndex: number): void {
+	function handleWordClick(wordIndex: number): void {
+		if (suppressNextWordClick) {
+			suppressNextWordClick = false;
+			return;
+		}
+
 		if (wordIndex < subtitlesEditorState().startWordIndex) {
 			subtitlesEditorState().startWordIndex = wordIndex;
 			subtitlesEditorState().endWordIndex = wordIndex;
@@ -464,6 +477,41 @@ function handleWordClick(wordIndex: number): void {
 		} else {
 			subtitlesEditorState().endWordIndex = wordIndex;
 		}
+	}
+
+	function handleWordMouseDown(wordIndex: number, event: MouseEvent): void {
+		event.preventDefault();
+		isWordDragging = true;
+		didWordDrag = false;
+		dragStartWordIndex = wordIndex;
+	}
+
+	function handleWordMouseEnter(wordIndex: number): void {
+		if (!isWordDragging) return;
+
+		didWordDrag = true;
+		subtitlesEditorState().startWordIndex = Math.min(dragStartWordIndex, wordIndex);
+		subtitlesEditorState().endWordIndex = Math.max(dragStartWordIndex, wordIndex);
+	}
+
+	function stopWordDrag(): void {
+		if (!isWordDragging) return;
+
+		if (didWordDrag) {
+			suppressNextWordClick = true;
+			// Ne bloque que le clic natif déclenché juste après le drag.
+			setTimeout(() => {
+				suppressNextWordClick = false;
+			}, 0);
+		}
+
+		isWordDragging = false;
+		didWordDrag = false;
+		dragStartWordIndex = -1;
+	}
+
+	function handleGlobalWordMouseUp(): void {
+		stopWordDrag();
 	}
 
 	$effect(() => {
@@ -515,6 +563,7 @@ function handleWordClick(wordIndex: number): void {
 	<div
 		class="min-h-full flex flex-row-reverse flex-wrap justify-start content-center xl:leading-[4.5rem] lg:leading-[3rem] leading-[2.5rem]
 	           px-6 text-4xl xl:text-5xl arabic py-4"
+		onmouseleave={stopWordDrag}
 	>
 		{#await selectedVerse() then verse}
 			{#if verse}
@@ -542,7 +591,10 @@ function handleWordClick(wordIndex: number): void {
 												: 'word-middle-selected'
 								}`
 							: 'word-not-selected text-primary hover:bg-accent hover:border-color rounded-lg'}"
+						onmousedown={(event) => handleWordMouseDown(index, event)}
+						onmouseenter={() => handleWordMouseEnter(index)}
 						onclick={() => handleWordClick(index)}
+						ondragstart={(event) => event.preventDefault()}
 					>
 						<p class="text-center w-full font-medium">{word.arabic}</p>
 						{#if subtitlesEditorState().showWordTranslation}

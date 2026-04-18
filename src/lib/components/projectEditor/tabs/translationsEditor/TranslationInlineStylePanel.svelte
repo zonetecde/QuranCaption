@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { ClipWithTranslation, SubtitleClip } from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiBoldModal from './modal/AiBoldModal.svelte';
@@ -49,7 +49,7 @@
 				}
 			}
 
-			if (clip instanceof SubtitleClip && (clip.arabicInlineStyleRuns?.length ?? 0) > 0) {
+			if (clip instanceof ClipWithTranslation && (clip.arabicInlineStyleRuns?.length ?? 0) > 0) {
 				clip.clearArabicInlineStyles();
 			}
 		}

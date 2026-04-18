@@ -6,6 +6,7 @@
 		SubtitleClip,
 		Translation
 	} from '$lib/classes';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import {
 		VerseTranslation,
 		type TranslationInlineStyleFlags
@@ -603,14 +604,14 @@
 		{#if currentSubtitle()}
 			{@const subtitle = currentSubtitle()}
 			{#snippet arabicPreviewContent(
-				subtitle: SubtitleClip | PredefinedSubtitleClip,
+				subtitle: ClipWithTranslation,
 				hasArabicInlineStyles: boolean,
 				arabicText: string,
 				arabicDisplayParts: { text: string; suffix: string; suffixFontFamily: string | null }
 			)}
 				{#if hasArabicInlineStyles}
 					<span class="translation-inline-flow">
-						{#each (subtitle as SubtitleClip).getArabicInlineStyledSegments('preview') as segment, index (`arabic-${index}-${segment.text}`)}
+						{#each subtitle.getArabicInlineStyledSegments('preview') as segment, index (`arabic-${index}-${segment.text}`)}
 							<span style={getInlineStyleCss(segment)}>{segment.text}</span>
 						{/each}
 						{#if arabicDisplayParts.suffix}
@@ -652,19 +653,16 @@
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const arabicText = subtitle.getText()}
+							{@const clipWithArabicStyles = subtitle as ClipWithTranslation}
 							{@const hasArabicInlineStyles =
-								subtitle instanceof SubtitleClip &&
-								(subtitle.arabicInlineStyleRuns?.length ?? 0) > 0}
-							{@const arabicDisplayParts =
-								subtitle instanceof SubtitleClip
-									? subtitle.getArabicRenderParts('preview')
-									: { text: arabicText, suffix: '', suffixFontFamily: null }}
+								(clipWithArabicStyles.arabicInlineStyleRuns?.length ?? 0) > 0}
+							{@const arabicDisplayParts = clipWithArabicStyles.getArabicRenderParts('preview')}
 
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
 							{#if showDecorativeBrackets() && (hasArabicInlineStyles ? arabicDisplayParts.text.trim() : arabicText.trim())}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
 								{@render arabicPreviewContent(
-									subtitle,
+									clipWithArabicStyles,
 									hasArabicInlineStyles,
 									arabicText,
 									arabicDisplayParts
@@ -672,7 +670,7 @@
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
 							{:else}
 								{@render arabicPreviewContent(
-									subtitle,
+									clipWithArabicStyles,
 									hasArabicInlineStyles,
 									arabicText,
 									arabicDisplayParts

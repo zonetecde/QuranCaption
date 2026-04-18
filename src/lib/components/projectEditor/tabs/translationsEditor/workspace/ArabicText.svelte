@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+	import {
+		ClipWithTranslation,
+		PredefinedSubtitleClip,
+		SubtitleClip
+	} from '$lib/classes/Clip.svelte';
 	import type { TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -28,14 +32,8 @@
 	let inlineSelectionStart = $state(-1);
 	let inlineSelectionEnd = $state(-1);
 
-	let arabicDisplayParts = $derived(() =>
-		subtitle instanceof SubtitleClip
-			? subtitle.getArabicRenderParts()
-			: { text: subtitle.text, suffix: '', suffixFontFamily: null }
-	);
-	let words = $derived(() =>
-		subtitle instanceof SubtitleClip ? arabicDisplayParts().text.split(' ').filter(Boolean) : []
-	);
+	let arabicDisplayParts = $derived(() => subtitle.getArabicRenderParts());
+	let words = $derived(() => arabicDisplayParts().text.split(' ').filter(Boolean));
 	let activeInlineFlags = $derived(() => ({
 		bold: translationsEditorState().inlineStyleBoldEnabled,
 		italic: translationsEditorState().inlineStyleItalicEnabled,
@@ -61,8 +59,6 @@
 	 * Retourne les styles actuellement posés sur un mot arabe.
 	 */
 	function getWordFlags(wordIndex: number): TranslationInlineStyleFlags {
-		if (!(subtitle instanceof SubtitleClip)) return EMPTY_INLINE_FLAGS;
-
 		for (const run of subtitle.arabicInlineStyleRuns) {
 			if (run.startWordIndex <= wordIndex && wordIndex <= run.endWordIndex) {
 				return {
@@ -82,7 +78,7 @@
 	 */
 	function finishInlineDrag(): void {
 		if (
-			subtitle instanceof SubtitleClip &&
+			subtitle instanceof ClipWithTranslation &&
 			isInlineDragging &&
 			isInlineStyleMode() &&
 			inlineSelectionStart !== -1 &&
@@ -110,7 +106,7 @@
 	 * Démarre une sélection par drag sur les mots arabes.
 	 */
 	function handleInlineMouseDown(wordIndex: number, event: MouseEvent): void {
-		if (!(subtitle instanceof SubtitleClip) || !isInlineStyleMode()) return;
+		if (!(subtitle instanceof ClipWithTranslation) || !isInlineStyleMode()) return;
 		event.preventDefault();
 		isInlineDragging = true;
 		inlineDragStartIndex = wordIndex;
@@ -119,7 +115,8 @@
 	}
 
 	function handleInlineMouseEnter(wordIndex: number): void {
-		if (!(subtitle instanceof SubtitleClip) || !isInlineDragging || !isInlineStyleMode()) return;
+		if (!(subtitle instanceof ClipWithTranslation) || !isInlineDragging || !isInlineStyleMode())
+			return;
 
 		inlineSelectionStart = Math.min(inlineDragStartIndex, wordIndex);
 		inlineSelectionEnd = Math.max(inlineDragStartIndex, wordIndex);
@@ -135,16 +132,18 @@
 	});
 </script>
 
-{#if subtitle instanceof SubtitleClip}
+{#if subtitle instanceof ClipWithTranslation}
 	<div
 		class="text-3xl flex flex-row arabic text-right gap-x-2 flex-wrap gap-y-2"
 		dir="rtl"
 		onmouseleave={finishInlineDrag}
 	>
 		{#each words() as word, i (`${subtitle.id}-${i}-${word}`)}
-			{@const absoluteWordIndex = subtitle.startWordIndex + i}
+			{@const absoluteWordIndex = subtitle instanceof SubtitleClip ? subtitle.startWordIndex + i : i}
 			{@const isOverlapWord =
-				overlapEndWordIndex !== null && absoluteWordIndex <= overlapEndWordIndex}
+				subtitle instanceof SubtitleClip &&
+				overlapEndWordIndex !== null &&
+				absoluteWordIndex <= overlapEndWordIndex}
 			{@const isInlineSelected =
 				isInlineStyleMode() &&
 				inlineSelectionStart !== -1 &&
@@ -167,7 +166,9 @@
 					class="word-translation-tooltip group-hover:block hidden text-sm absolute top-10 w-max px-1.5 border-2 rounded-lg text-center z-20"
 					dir="ltr"
 				>
-					{subtitle.wbwTranslation[absoluteWordIndex - subtitle.startWordIndex] || ''}
+					{subtitle instanceof SubtitleClip
+						? subtitle.wbwTranslation[absoluteWordIndex - subtitle.startWordIndex] || ''
+						: ''}
 				</span>
 			</button>
 		{/each}
@@ -179,7 +180,7 @@
 		{/if}
 	</div>
 
-	{#if !isInlineStyleMode()}
+	{#if subtitle instanceof SubtitleClip && !isInlineStyleMode()}
 		<p class="text-sm text-thirdly text-left mt-1 space-x-1">
 			{#each subtitle.wbwTranslation as word, i (`${subtitle.id}-wbw-${i}`)}
 				{@const wordIndex = subtitle.startWordIndex + i}
@@ -193,8 +194,6 @@
 			{/each}
 		</p>
 	{/if}
-{:else if subtitle instanceof PredefinedSubtitleClip}
-	<p class="text-3xl arabic text-right" dir="rtl">{subtitle.text}</p>
 {/if}
 
 <style>

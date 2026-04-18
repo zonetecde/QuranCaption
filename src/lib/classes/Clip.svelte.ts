@@ -168,6 +168,7 @@ export class AssetClip extends Clip {
 export class ClipWithTranslation extends Clip {
 	translations: { [key: string]: Translation } = $state({});
 	text: string = $state('');
+	arabicInlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
 	associatedImagePath: string | null = $state(null);
 	comeFromIA: boolean = $state(false);
 	confidence: number | null = $state(null); // Entre 0 et 1
@@ -212,6 +213,54 @@ export class ClipWithTranslation extends Clip {
 		return this.text;
 	}
 
+	/**
+	 * Retourne les parties du texte arabe à afficher.
+	 * Par défaut, les clips texte simples utilisent toujours `this.text`.
+	 * `SubtitleClip` override cette méthode pour gérer les rendus Quran/QPC/IndoPak.
+	 */
+	getArabicRenderParts(_mode: 'editor' | 'preview' = 'editor'): ArabicRenderParts {
+		return {
+			text: this.text,
+			suffix: '',
+			suffixFontFamily: null
+		};
+	}
+
+	clearArabicInlineStyles(): void {
+		this.arabicInlineStyleRuns = [];
+	}
+
+	/**
+	 * Toggle les styles inline sur une plage de mots du texte arabe.
+	 * Les indexes sont toujours basés sur le texte source stocké dans `this.text`.
+	 */
+	toggleArabicInlineStyles(
+		startWordIndex: number,
+		endWordIndex: number,
+		flags: TranslationInlineStyleFlags
+	): void {
+		this.arabicInlineStyleRuns = toggleTranslationInlineStyleRuns(
+			this.arabicInlineStyleRuns ?? [],
+			getTranslationWordCount(this.text),
+			startWordIndex,
+			endWordIndex,
+			flags
+		);
+	}
+
+	/**
+	 * Construit les segments stylés du texte arabe, sans inclure d'éventuel suffixe
+	 * comme un numéro de verset.
+	 */
+	getArabicInlineStyledSegments(
+		mode: 'editor' | 'preview' = 'editor'
+	): TranslationInlineTextSegment[] {
+		return buildTranslationInlineTextSegments(
+			this.getArabicRenderParts(mode).text,
+			this.arabicInlineStyleRuns ?? []
+		);
+	}
+
 	getAssociatedImagePath(): string | null {
 		return this.associatedImagePath;
 	}
@@ -231,7 +280,6 @@ export class SubtitleClip extends ClipWithTranslation {
 	startWordIndex: number;
 	endWordIndex: number;
 	indopakText: string;
-	arabicInlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
 	private isHydratingIndopakText = false;
 	wbwTranslation: string[]; // Traduction mot à mot
 	isFullVerse: boolean; // Indique si ce clip contient l'intégralité du verset
@@ -259,7 +307,6 @@ export class SubtitleClip extends ClipWithTranslation {
 		this.startWordIndex = $state(startWordIndex);
 		this.endWordIndex = $state(endWordIndex);
 		this.indopakText = $state(indopakSegmentText ?? text);
-		this.arabicInlineStyleRuns = [];
 		this.translations = translations;
 		this.wbwTranslation = $state(wbwTranslation);
 		this.isFullVerse = $state(isFullVerse);
@@ -354,41 +401,6 @@ export class SubtitleClip extends ClipWithTranslation {
 				: '',
 			suffixFontFamily: null
 		};
-	}
-
-	clearArabicInlineStyles(): void {
-		this.arabicInlineStyleRuns = [];
-	}
-
-	/**
-	 * Toggle les styles inline sur une plage de mots du segment arabe.
-	 * Les indexes sont basés sur le texte Uthmani stocké dans `this.text`.
-	 */
-	toggleArabicInlineStyles(
-		startWordIndex: number,
-		endWordIndex: number,
-		flags: TranslationInlineStyleFlags
-	): void {
-		this.arabicInlineStyleRuns = toggleTranslationInlineStyleRuns(
-			this.arabicInlineStyleRuns ?? [],
-			getTranslationWordCount(this.text),
-			startWordIndex,
-			endWordIndex,
-			flags
-		);
-	}
-
-	/**
-	 * Construit les segments stylés du texte arabe, sans inclure le numéro de verset.
-	 * Le preview peut demander un texte différent de l'éditeur, mais la même map de mots reste utilisée.
-	 */
-	getArabicInlineStyledSegments(
-		mode: 'editor' | 'preview' = 'editor'
-	): TranslationInlineTextSegment[] {
-		return buildTranslationInlineTextSegments(
-			this.getArabicRenderParts(mode).text,
-			this.arabicInlineStyleRuns ?? []
-		);
 	}
 
 	private async hydrateIndopakTextFromLocalQuran() {

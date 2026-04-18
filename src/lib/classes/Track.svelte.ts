@@ -272,7 +272,7 @@ export class SubtitleTrack extends Track {
 	 * @param surah Le nouveau numéro de la sourate du sous-titre.
 	 */
 	async editSubtitle(
-		subtitle: SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation | null,
+		subtitle: SubtitleClip | PredefinedSubtitleClip | SilenceClip | ClipWithTranslation | null,
 		verse: Verse,
 		firstWordIndex: number,
 		lastWordIndex: number,

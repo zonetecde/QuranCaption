@@ -362,10 +362,6 @@
 
 			if (subtitlesEditorState().editSubtitle) {
 				const currentEdited = subtitlesEditorState().editSubtitle;
-				if (!(currentEdited instanceof ClipWithTranslation || currentEdited instanceof SubtitleClip)) {
-					globalState.getSubtitlesEditorState.editSubtitle = null;
-					return;
-				}
 				await subtitleTrack.editSubtitle(
 					currentEdited,
 					verse,

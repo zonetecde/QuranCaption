@@ -146,7 +146,10 @@
 		return {
 			bold: translationsEditorState().inlineStyleBoldEnabled,
 			italic: translationsEditorState().inlineStyleItalicEnabled,
-			underline: translationsEditorState().inlineStyleUnderlineEnabled
+			underline: translationsEditorState().inlineStyleUnderlineEnabled,
+			color: translationsEditorState().inlineStyleColorEnabled
+				? translationsEditorState().inlineStyleColorValue
+				: null
 		};
 	}
 
@@ -155,7 +158,7 @@
 	 */
 	function hasActiveInlineStyleFlags(): boolean {
 		const flags = getCurrentInlineStyleFlags();
-		return flags.bold || flags.italic || flags.underline;
+		return flags.bold || flags.italic || flags.underline || Boolean(flags.color);
 	}
 
 	/**
@@ -166,6 +169,7 @@
 		if (flags.bold) parts.push('font-weight: 700;');
 		if (flags.italic) parts.push('font-style: italic;');
 		if (flags.underline) parts.push('text-decoration: underline;');
+		if (flags.color) parts.push(`color: ${flags.color};`);
 		return parts.join(' ');
 	}
 
@@ -178,7 +182,8 @@
 				return {
 					bold: run.bold,
 					italic: run.italic,
-					underline: run.underline
+					underline: run.underline,
+					color: run.color ?? null
 				};
 			}
 		}
@@ -186,7 +191,8 @@
 		return {
 			bold: false,
 			italic: false,
-			underline: false
+			underline: false,
+			color: null
 		};
 	}
 

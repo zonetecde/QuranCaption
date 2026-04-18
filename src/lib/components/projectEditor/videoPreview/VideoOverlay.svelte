@@ -547,6 +547,7 @@
 		if (flags.bold) parts.push('font-weight: 700;');
 		if (flags.italic) parts.push('font-style: italic;');
 		if (flags.underline) parts.push('text-decoration: underline;');
+		if (flags.color) parts.push(`color: ${flags.color};`);
 		return parts.join(' ');
 	}
 </script>

@@ -14,13 +14,18 @@
 		() =>
 			translationsEditorState().inlineStyleBoldEnabled ||
 			translationsEditorState().inlineStyleItalicEnabled ||
-			translationsEditorState().inlineStyleUnderlineEnabled
+			translationsEditorState().inlineStyleUnderlineEnabled ||
+			translationsEditorState().inlineStyleColorEnabled
 	);
 
 	let showAiBoldModal = $state(false);
 
 	function toggleStyle(
-		property: 'inlineStyleBoldEnabled' | 'inlineStyleItalicEnabled' | 'inlineStyleUnderlineEnabled'
+		property:
+			| 'inlineStyleBoldEnabled'
+			| 'inlineStyleItalicEnabled'
+			| 'inlineStyleUnderlineEnabled'
+			| 'inlineStyleColorEnabled'
 	): void {
 		translationsEditorState()[property] = !translationsEditorState()[property];
 	}
@@ -138,6 +143,47 @@
 					>{translationsEditorState().inlineStyleUnderlineEnabled ? 'On' : 'Off'}</span
 				>
 			</button>
+
+			<div
+				class={`rounded-lg border px-3 py-1 transition-all duration-200 ${
+					translationsEditorState().inlineStyleColorEnabled
+						? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,var(--bg-secondary))]'
+						: 'border-color bg-accent'
+				}`}
+			>
+				<div class="flex items-center justify-between gap-3">
+					<button
+						class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left text-sm font-medium text-primary"
+						onclick={() => toggleStyle('inlineStyleColorEnabled')}
+					>
+						<span class="flex items-center gap-2">
+							<span
+								class="inline-block h-4 w-4 rounded-full border border-white/20 shadow-sm"
+								style={`background-color: ${translationsEditorState().inlineStyleColorValue};`}
+							></span>
+							Color
+						</span>
+
+						<div class="flex items-center gap-x-2">
+							<input
+								type="color"
+								value={translationsEditorState().inlineStyleColorValue}
+								oninput={(event) => {
+									translationsEditorState().inlineStyleColorValue = (
+										event.currentTarget as HTMLInputElement
+									).value;
+								}}
+								class="h-9 w-11 cursor-pointer rounded border border-color bg-secondary p-1"
+								aria-label="Translation style color"
+							/>
+
+							<span class="text-xs text-secondary">
+								{translationsEditorState().inlineStyleColorEnabled ? 'On' : 'Off'}
+							</span>
+						</div>
+					</button>
+				</div>
+			</div>
 		</div>
 
 		<div
@@ -149,8 +195,8 @@
 				translation.
 			</p>
 			<p>
-				The active toggles are flipped on the selected range. Editing the translation text later
-				clears these inline styles.
+				Bold, italic and underline are toggled on the selected range. Color is applied with the
+				current swatch. Editing the translation text later clears these inline styles.
 			</p>
 			{#if !hasActiveInlineStyle()}
 				<p class="text-[var(--accent-primary)]">Select at least one style before applying it.</p>

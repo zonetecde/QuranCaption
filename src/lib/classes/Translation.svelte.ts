@@ -1,4 +1,4 @@
-import { globalState } from '$lib/runes/main.svelte';
+﻿import { globalState } from '$lib/runes/main.svelte';
 import type { SubtitleClip } from './Clip.svelte';
 import type { Edition } from './Edition';
 import { SerializableBase } from './misc/SerializableBase';
@@ -60,9 +60,7 @@ function sameInlineStyleFlags(
 	right: TranslationInlineStyleFlags
 ): boolean {
 	return (
-		left.bold === right.bold &&
-		left.italic === right.italic &&
-		left.underline === right.underline
+		left.bold === right.bold && left.italic === right.italic && left.underline === right.underline
 	);
 }
 
@@ -293,7 +291,9 @@ export function buildTranslationInlineTextSegments(
 			continue;
 		}
 
-		const previousWordToken = [...tokens.slice(0, tokenIndex)].reverse().find((item) => item.isWord);
+		const previousWordToken = [...tokens.slice(0, tokenIndex)]
+			.reverse()
+			.find((item) => item.isWord);
 		const nextWordToken = tokens.slice(tokenIndex + 1).find((item) => item.isWord);
 		const previousFlags =
 			previousWordToken?.wordIndex !== null && previousWordToken?.wordIndex !== undefined
@@ -482,7 +482,7 @@ export class VerseTranslation extends Translation {
 	 * Returns render-ready segments with merged text and per-segment style flags.
 	 */
 	getInlineStyledSegments(): TranslationInlineTextSegment[] {
-		return buildTranslationInlineTextSegments(this.text, this.inlineStyleRuns ?? []);
+		return buildTranslationInlineTextSegments(super.getText(), this.inlineStyleRuns ?? []);
 	}
 
 	/**
@@ -509,9 +509,10 @@ export class VerseTranslation extends Translation {
 				(subtitle.isLastWordsOfVerse && position === 'after')) &&
 			globalState.getStyle(edition, 'show-verse-number').value
 		) {
-			const format = String(
-				globalState.getStyle(edition, 'verse-number-format').value
-			).replace('<number>', subtitle.verse.toString());
+			const format = String(globalState.getStyle(edition, 'verse-number-format').value).replace(
+				'<number>',
+				subtitle.verse.toString()
+			);
 
 			if (position === 'before' && subtitle.startWordIndex === 0) {
 				return {
@@ -766,4 +767,3 @@ export class PredefinedSubtitleTranslation extends Translation {
 		}
 	}
 }
-

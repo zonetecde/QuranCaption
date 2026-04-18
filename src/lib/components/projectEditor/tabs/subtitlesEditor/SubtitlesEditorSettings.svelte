@@ -158,7 +158,9 @@
 	});
 </script>
 
-<div class="bg-secondary h-full border border-color rounded-lg py-6 px-3 space-y-6 border-r-0">
+<div
+	class="bg-secondary h-full min-h-0 overflow-y-auto border border-color rounded-lg py-6 px-3 space-y-6 border-r-0 overflow-x-hidden"
+>
 	<!-- Header with icon -->
 	<div class="flex gap-x-2 items-center justify-center">
 		<span class="material-icons text-accent text-xl">subtitles</span>

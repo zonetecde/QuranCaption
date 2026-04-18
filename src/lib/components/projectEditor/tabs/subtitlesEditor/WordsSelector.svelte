@@ -452,21 +452,17 @@
 	 * Met à jour les indices de début et de fin des mots sélectionnés.
 	 * @param wordIndex L'index du mot cliqué.
 	 */
-	function handleWordClick(wordIndex: number): void {
+function handleWordClick(wordIndex: number): void {
 		if (wordIndex < subtitlesEditorState().startWordIndex) {
 			subtitlesEditorState().startWordIndex = wordIndex;
 			subtitlesEditorState().endWordIndex = wordIndex;
 		} else if (wordIndex > subtitlesEditorState().endWordIndex) {
 			subtitlesEditorState().endWordIndex = wordIndex;
+		} else if (wordIndex === subtitlesEditorState().endWordIndex) {
+			subtitlesEditorState().startWordIndex = wordIndex;
+			subtitlesEditorState().endWordIndex = wordIndex;
 		} else {
-			// Si le mot est déjà sélectionné, on le désélectionne
-			if (
-				wordIndex >= subtitlesEditorState().startWordIndex &&
-				wordIndex <= subtitlesEditorState().endWordIndex
-			) {
-				subtitlesEditorState().startWordIndex = wordIndex;
-				subtitlesEditorState().endWordIndex = wordIndex;
-			}
+			subtitlesEditorState().endWordIndex = wordIndex;
 		}
 	}
 

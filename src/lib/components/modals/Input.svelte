@@ -1,4 +1,4 @@
-	<script lang="ts">
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import AutocompleteInput from '../misc/AutocompleteInput.svelte';
@@ -88,7 +88,7 @@
 					suggestions={RecitersManager.reciters.map((r) => r.latin)}
 					placeholder="Start typing to search reciters..."
 					maxlength={ProjectDetail.RECITER_MAX_LENGTH}
-					icon="Person"
+					icon="person"
 					labelIcon="record_voice_over"
 					label="Reciter"
 					onEnterPress={handleConfirm}

@@ -238,6 +238,34 @@ describe('translation inline style runs', () => {
 		expect(translation.inlineStyleRuns).toEqual([]);
 	});
 
+	it('keeps inline styles when setTextAndClearInlineStyles receives the same text', () => {
+		const translation = new VerseTranslation('alpha beta gamma', 'reviewed');
+		translation.inlineStyleRuns = [
+			{
+				startWordIndex: 0,
+				endWordIndex: 1,
+				bold: true,
+				italic: false,
+				underline: true,
+				color: '#ff0000'
+			}
+		];
+
+		translation.setTextAndClearInlineStyles('alpha beta gamma');
+
+		expect(translation.text).toBe('alpha beta gamma');
+		expect(translation.inlineStyleRuns).toEqual([
+			{
+				startWordIndex: 0,
+				endWordIndex: 1,
+				bold: true,
+				italic: false,
+				underline: true,
+				color: '#ff0000'
+			}
+		]);
+	});
+
 	it('preserves whitespace while rendering inline styled segments', () => {
 		const segments = buildTranslationInlineTextSegments('one two three', [
 			{

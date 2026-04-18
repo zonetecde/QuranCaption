@@ -455,6 +455,10 @@ export class VerseTranslation extends Translation {
 	 * This avoids invalid ranges when text content changes.
 	 */
 	setTextAndClearInlineStyles(text: string): void {
+		// Ne vide pas les styles si le texte reste strictement identique.
+		// Ça évite de perdre les word styles sur certains refresh/sync idempotents.
+		if (this.text === text) return;
+
 		this.text = text;
 		this.clearInlineStyles();
 	}

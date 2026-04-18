@@ -57,10 +57,11 @@
 		)
 	);
 
-	const selectedAiBoldEdition = $derived(() =>
-		visibleEditions().find(
-			(edition) => edition.name === translationsEditorState().aiBoldEditionName
-		) ?? visibleEditions()[0]
+	const selectedAiBoldEdition = $derived(
+		() =>
+			visibleEditions().find(
+				(edition) => edition.name === translationsEditorState().aiBoldEditionName
+			) ?? visibleEditions()[0]
 	);
 
 	const aiBoldCandidates = $derived(() => {
@@ -200,7 +201,12 @@
 		if (!activeBatchIds.has(payload.batchId)) return;
 		currentBatchId = payload.batchId;
 		currentBatchStep = payload.step;
-		addActivity(payload.step, payload.message, payload.step === 'failed' ? 'error' : 'info', payload.batchId);
+		addActivity(
+			payload.step,
+			payload.message,
+			payload.step === 'failed' ? 'error' : 'info',
+			payload.batchId
+		);
 	}
 
 	function handleChunkEvent(event: { payload: ChunkEventPayload }): void {
@@ -295,8 +301,7 @@
 					apiKey,
 					endpoint,
 					model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-					reasoningEffort:
-						globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+					reasoningEffort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
 					batchId: batch.batchId,
 					customPromptNote: globalState.settings!.aiTranslationSettings.aiBoldCustomNote,
 					batch: batch.request
@@ -376,7 +381,8 @@
 			failed_segments: failedSegments,
 			estimated_cost_usd: aiBoldEstimate().totalEstimatedCostUsd,
 			include_already_bolded: translationsEditorState().aiBoldIncludeAlreadyBolded,
-			custom_note_length: globalState.settings!.aiTranslationSettings.aiBoldCustomNote.trim().length,
+			custom_note_length:
+				globalState.settings!.aiTranslationSettings.aiBoldCustomNote.trim().length,
 			edition_key: edition.key,
 			edition_name: edition.name,
 			edition_author: edition.author,
@@ -440,14 +446,15 @@
 </script>
 
 <TranslationsEditorModalShell
-	close={close}
+	{close}
 	title="AI Bold Assistant"
 	icon="format_bold"
 	shellClass="h-[92vh] xl:h-[84vh] w-[clamp(1180px,94vw,1500px)] max-w-[94vw] xl:max-w-[82vw]"
 	bodyClass="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
 >
 	{#snippet subtitle()}
-		Choose an edition, a time range, and let your text AI provider return only the word indexes to bold.
+		Choose an edition, a time range, and let your text AI provider return only the word indexes to
+		bold.
 	{/snippet}
 
 	<div class="min-h-0 overflow-y-auto p-6 space-y-5 border-r border-color">
@@ -488,149 +495,151 @@
 			</label>
 		{/if}
 
-			<VerseRangeSelector
-				totalDurationMs={totalDurationMs}
-				totalItems={aiBoldCandidates().length}
-				selectedItems={selectedAiBoldSegments()}
-				title="AI Bold Range"
-				icon="schedule"
-				totalLabel="eligible segments"
-				selectionLabel="Select time range to process:"
-				bind:startTimeMs={aiBoldStartTimeMs}
-				bind:endTimeMs={aiBoldEndTimeMs}
-				onRangeChange={persistAiBoldRange}
+		<VerseRangeSelector
+			{totalDurationMs}
+			totalItems={aiBoldCandidates().length}
+			selectedItems={selectedAiBoldSegments()}
+			title="AI Bold Range"
+			icon="schedule"
+			totalLabel="eligible segments"
+			selectionLabel="Select time range to process:"
+			bind:startTimeMs={aiBoldStartTimeMs}
+			bind:endTimeMs={aiBoldEndTimeMs}
+			onRangeChange={persistAiBoldRange}
+		/>
+
+		<label class="block space-y-2">
+			<span class="text-sm font-medium text-secondary">Custom note</span>
+			<textarea
+				value={globalState.settings!.aiTranslationSettings.aiBoldCustomNote}
+				oninput={(event) => updateAiBoldCustomNote((event.target as HTMLTextAreaElement).value)}
+				onblur={() => void Settings.save()}
+				rows="4"
+				placeholder="Example: Bold invocations and divine attributes, but keep the emphasis restrained."
+				class="w-full resize-y rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
+			></textarea>
+			<span class="text-xs text-thirdly">
+				This note is saved globally in Settings and appended to the fixed AI instruction. The AI
+				still returns indexes only.
+			</span>
+		</label>
+
+		<label
+			class="flex cursor-pointer items-center gap-3 rounded-lg border border-color bg-secondary px-3 py-3"
+		>
+			<input
+				type="checkbox"
+				checked={translationsEditorState().aiBoldIncludeAlreadyBolded}
+				onchange={(event) =>
+					(translationsEditorState().aiBoldIncludeAlreadyBolded = (
+						event.target as HTMLInputElement
+					).checked)}
+				class="h-4 w-4 rounded"
 			/>
-
-			<label class="block space-y-2">
-				<span class="text-sm font-medium text-secondary">Custom note</span>
-				<textarea
-					value={globalState.settings!.aiTranslationSettings.aiBoldCustomNote}
-					oninput={(event) =>
-						updateAiBoldCustomNote((event.target as HTMLTextAreaElement).value)}
-					onblur={() => void Settings.save()}
-					rows="4"
-					placeholder="Example: Bold invocations and divine attributes, but keep the emphasis restrained."
-					class="w-full resize-y rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
-				></textarea>
-				<span class="text-xs text-thirdly">
-					This note is saved globally in Settings and appended to the fixed AI instruction. The AI still returns indexes only.
-				</span>
-			</label>
-
-			<label
-				class="flex cursor-pointer items-center gap-3 rounded-lg border border-color bg-secondary px-3 py-3"
-			>
-				<input
-					type="checkbox"
-					checked={translationsEditorState().aiBoldIncludeAlreadyBolded}
-					onchange={(event) =>
-						(translationsEditorState().aiBoldIncludeAlreadyBolded = (
-							event.target as HTMLInputElement
-						).checked)}
-					class="h-4 w-4 rounded"
-				/>
-				<div>
-					<div class="text-sm font-medium text-primary">Include already bolded segments</div>
-					<div class="text-xs text-thirdly">
-						When enabled, AI Bold can replace bold styling on segments that already contain bold.
-					</div>
+			<div>
+				<div class="text-sm font-medium text-primary">Include already bolded segments</div>
+				<div class="text-xs text-thirdly">
+					When enabled, AI Bold can replace bold styling on segments that already contain bold.
 				</div>
-			</label>
-
-			<AiBatchOverviewCard
-				title="Batch Preview"
-				icon="analytics"
-				metrics={[
-					{ label: 'Segments', value: aiBoldEstimate().totalSegments },
-					{ label: 'Words', value: aiBoldEstimate().totalWords },
-					{ label: 'Batches', value: aiBoldBatches().length },
-					{ label: 'Estimated Cost', value: formatUsd(aiBoldEstimate().totalEstimatedCostUsd) }
-				]}
-				estimatedCostLabel={formatUsd(aiBoldEstimate().totalEstimatedCostUsd)}
-				tokenSummary={`${aiBoldEstimate().totalEstimatedInputTokens} input tokens estimated, ${aiBoldEstimate().totalEstimatedOutputTokens} output tokens estimated.`}
-				reasoningNote={aiBoldEstimate().reasoningNote}
-				columnsClass="grid-cols-2"
-			/>
-
-			<div class="rounded-lg border border-color bg-secondary px-3 py-3 text-xs text-thirdly">
-				Targeting <span class="font-semibold text-primary">{selectedAiBoldEdition()?.author}</span>
-				({selectedAiBoldEdition()?.language}).
 			</div>
+		</label>
 
-			<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-				<div class="flex items-start gap-3">
-					<div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
-						<span class="material-icons text-accent-primary">settings</span>
+		<AiBatchOverviewCard
+			title="Batch Preview"
+			icon="analytics"
+			metrics={[
+				{ label: 'Segments', value: aiBoldEstimate().totalSegments },
+				{ label: 'Words', value: aiBoldEstimate().totalWords },
+				{ label: 'Batches', value: aiBoldBatches().length },
+				{ label: 'Estimated Cost', value: formatUsd(aiBoldEstimate().totalEstimatedCostUsd) }
+			]}
+			estimatedCostLabel={formatUsd(aiBoldEstimate().totalEstimatedCostUsd)}
+			tokenSummary={`${aiBoldEstimate().totalEstimatedInputTokens} input tokens estimated, ${aiBoldEstimate().totalEstimatedOutputTokens} output tokens estimated.`}
+			reasoningNote={aiBoldEstimate().reasoningNote}
+			columnsClass="grid-cols-2"
+		/>
+
+		<div class="rounded-lg border border-color bg-secondary px-3 py-3 text-xs text-thirdly">
+			Targeting <span class="font-semibold text-primary">{selectedAiBoldEdition()?.author}</span>
+			({selectedAiBoldEdition()?.language}).
+		</div>
+
+		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
+			<div class="flex items-start gap-3">
+				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
+					<span class="material-icons text-accent-primary">settings</span>
+				</div>
+				<div class="space-y-1">
+					<div class="text-sm font-semibold text-primary">AI Provider</div>
+					<p class="text-sm leading-relaxed text-thirdly">
+						Configure your API key, text endpoint, model, and reasoning effort in Settings &gt; AI
+						Key before running AI Bold.
+					</p>
+					<div class="text-xs text-thirdly">
+						Current model:
+						<span class="font-medium text-primary">
+							{globalState.settings!.aiTranslationSettings.advancedTrimModel || 'Not set'}
+						</span>
 					</div>
-					<div class="space-y-1">
-						<div class="text-sm font-semibold text-primary">AI Provider</div>
-						<p class="text-sm leading-relaxed text-thirdly">
-							Configure your API key, text endpoint, model, and reasoning effort in
-							Settings &gt; AI Key before running AI Bold.
-						</p>
-						<div class="text-xs text-thirdly">
-							Current model:
-							<span class="font-medium text-primary">
-								{globalState.settings!.aiTranslationSettings.advancedTrimModel || 'Not set'}
-							</span>
-						</div>
-						<div class="text-xs text-thirdly break-all">
-							Endpoint:
-							<span class="font-medium text-primary">
-								{globalState.settings!.aiTranslationSettings.textAiApiEndpoint || 'Not set'}
-							</span>
-						</div>
+					<div class="text-xs text-thirdly break-all">
+						Endpoint:
+						<span class="font-medium text-primary">
+							{globalState.settings!.aiTranslationSettings.textAiApiEndpoint || 'Not set'}
+						</span>
 					</div>
 				</div>
 			</div>
 		</div>
+	</div>
 
 	<div class="min-h-0 overflow-y-auto p-6 space-y-5 bg-primary/30">
-			<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-				<div class="flex items-start justify-between gap-4">
-					<div>
-						<h3 class="text-base font-semibold text-primary">Run</h3>
-						<p class="mt-1 text-sm text-thirdly leading-relaxed">
-							The AI receives Arabic text plus indexed translation words and must return JSON word
-							indexes only.
-						</p>
-					</div>
-					<button
-						class="rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
-						onclick={runAiBold}
-						disabled={isRunning || aiBoldBatches().length === 0 || visibleEditions().length === 0}
-					>
-						{isRunning ? 'Running AI Bold...' : 'Run AI Bold'}
-					</button>
+		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
+			<div class="flex items-start justify-between gap-4">
+				<div>
+					<h3 class="text-base font-semibold text-primary">Run</h3>
+					<p class="mt-1 text-sm text-thirdly leading-relaxed">
+						The AI receives Arabic text plus indexed translation words and must return JSON word
+						indexes only.
+					</p>
+				</div>
+				<button
+					class="rounded-lg bg-[var(--accent-primary)] w-52 px-4 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
+					onclick={runAiBold}
+					disabled={isRunning || aiBoldBatches().length === 0 || visibleEditions().length === 0}
+				>
+					{isRunning ? 'Running AI Bold...' : 'Run AI Bold'}
+				</button>
+			</div>
+		</div>
+
+		<AiRunStatusCard
+			title={isRunning ? 'AI Bold in progress' : 'Latest AI Bold run'}
+			subtitle={isRunning
+				? `${currentBatchLabel || 'Preparing batches...'}`
+				: latestSummary || 'No summary yet.'}
+			progressPercent={getProgressPercent()}
+			metrics={[
+				{ label: 'Successful segments', value: successfulSegments },
+				{ label: 'Failed segments', value: failedSegments },
+				{ label: 'Successful batches', value: successfulBatches },
+				{ label: 'Usage', value: getActualUsageSummary() }
+			]}
+			columnsClass="grid-cols-2"
+		/>
+
+		{#if streamedResponse}
+			<div class="rounded-xl border border-color bg-secondary p-4">
+				<div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
+					Latest streamed JSON
+				</div>
+				<div
+					class="max-h-48 overflow-y-auto rounded-lg border border-color bg-accent px-3 py-2 text-[12px] leading-5 [font-family:Consolas,monospace]"
+				>
+					<pre class="whitespace-pre-wrap break-words text-secondary">{streamedResponse}</pre>
 				</div>
 			</div>
+		{/if}
 
-			<AiRunStatusCard
-				title={isRunning ? 'AI Bold in progress' : 'Latest AI Bold run'}
-				subtitle={isRunning ? `${currentBatchLabel || 'Preparing batches...'}` : latestSummary || 'No summary yet.'}
-				progressPercent={getProgressPercent()}
-				metrics={[
-					{ label: 'Successful segments', value: successfulSegments },
-					{ label: 'Failed segments', value: failedSegments },
-					{ label: 'Successful batches', value: successfulBatches },
-					{ label: 'Usage', value: getActualUsageSummary() }
-				]}
-				columnsClass="grid-cols-2"
-			/>
-
-			{#if streamedResponse}
-				<div class="rounded-xl border border-color bg-secondary p-4">
-					<div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
-						Latest streamed JSON
-					</div>
-					<div
-						class="max-h-48 overflow-y-auto rounded-lg border border-color bg-accent px-3 py-2 text-[12px] leading-5 [font-family:Consolas,monospace]"
-					>
-						<pre class="whitespace-pre-wrap break-words text-secondary">{streamedResponse}</pre>
-					</div>
-				</div>
-			{/if}
-
-			<AiActivityLogCard activityLog={activityLog} maxHeightClass="max-h-[420px]" />
+		<AiActivityLogCard {activityLog} maxHeightClass="max-h-[420px]" />
 	</div>
 </TranslationsEditorModalShell>

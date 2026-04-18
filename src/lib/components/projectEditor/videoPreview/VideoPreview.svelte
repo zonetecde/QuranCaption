@@ -16,6 +16,7 @@
 	} = $props();
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
+	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 
 	// === ÉTATS RÉACTIFS DÉRIVÉS ===
 	// Récupère les paramètres de la timeline depuis l'état global
@@ -539,11 +540,21 @@
 					if (isLinux && error === 'Decoding audio data failed.') {
 						return;
 					}
-					toast.error("Erreur lors du chargement de l'audio : " + error);
+					if (Date.now() - lastTimeErrorShown > 5000) {
+						if (error === 4) {
+							toast.error('The audio file is missing or inaccessible.', { duration: 1000 });
+						} else {
+							toast.error(
+								'An unknown error occurred while loading audio: ' + JSON.stringify(error),
+								{ duration: 1000 }
+							);
+						}
+						lastTimeErrorShown = Date.now();
+					}
 				},
 				onplayerror: (id, error) => {
 					console.error('Howler play error:', error);
-					toast.error("Erreur lors de la lecture de l'audio : " + error);
+					toast.error('The audio failed to play: ' + JSON.stringify(error));
 					// Fallback si la lecture échoue
 					pause();
 				},
@@ -820,5 +831,3 @@
 		display: block;
 	}
 </style>
-
-

@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
+	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiBoldModal from './modal/AiBoldModal.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 
 	const translationsEditorState = $derived(
 		() => globalState.currentProject!.projectEditorState.translationsEditor
@@ -20,6 +23,28 @@
 		property: 'inlineStyleBoldEnabled' | 'inlineStyleItalicEnabled' | 'inlineStyleUnderlineEnabled'
 	): void {
 		translationsEditorState()[property] = !translationsEditorState()[property];
+	}
+
+	async function resetAllInlineTranslationStyles(): Promise<void> {
+		const confirm = await ModalManager.confirmModal(
+			'Are you sure you want to reset all inline styles?'
+		);
+
+		if (!confirm) return;
+
+		for (const clip of globalState.getSubtitleTrack.clips) {
+			if (!(clip instanceof ClipWithTranslation)) continue;
+			for (const translation of Object.values(clip.translations || {})) {
+				if (
+					translation instanceof VerseTranslation &&
+					(translation.inlineStyleRuns?.length ?? 0) > 0
+				) {
+					translation.clearInlineStyles();
+				}
+			}
+		}
+
+		globalState.updateVideoPreviewUI();
 	}
 </script>
 
@@ -130,6 +155,18 @@
 			{#if !hasActiveInlineStyle()}
 				<p class="text-[var(--accent-primary)]">Select at least one style before applying it.</p>
 			{/if}
+		</div>
+
+		<div class="rounded-xl border border-color bg-accent p-3 space-y-2">
+			<p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-thirdly">
+				Global Actions
+			</p>
+			<button
+				class="w-full rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
+				onclick={resetAllInlineTranslationStyles}
+			>
+				Reset all translation styles
+			</button>
 		</div>
 
 		<div class="rounded-xl border border-color bg-accent overflow-hidden">

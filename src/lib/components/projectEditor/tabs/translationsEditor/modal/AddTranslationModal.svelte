@@ -1,19 +1,38 @@
 <script lang="ts">
-	import { Edition, Project, ProjectContent, ProjectDetail, TrackType } from '$lib/classes';
-	import Section from '$lib/components/projectEditor/Section.svelte';
-	import SubtitleClip from '$lib/components/projectEditor/timeline/track/SubtitleClip.svelte';
+	import { Edition } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectService } from '$lib/services/ProjectService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { Quran } from '$lib/classes/Quran';
+	import { open } from '@tauri-apps/plugin-dialog';
+	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
+	import { buildCustomTranslationImport } from '$lib/services/CustomTranslationImport';
 
 	let { close } = $props();
-	let selectedLanguage: string | null = $state(null);
 	let selectedTranslations: Edition[] = $state([]);
 	let searchQuery: string = $state('');
 	let translationPreviews: Record<string, Record<string, string>> = $state({});
 	let isLoadingPreview = $state(false);
+	let customTranslationAuthor = $state('');
+	let customTranslationLanguage = $state('');
+	let customTranslationDirection: 'ltr' | 'rtl' = $state('ltr');
+	let isImportingCustomTranslation = $state(false);
+
+	const requiredProjectSurahs = $derived(() =>
+		Array.from(new Set(globalState.getSubtitleClips.map((subtitle) => subtitle.surah))).sort(
+			(a, b) => a - b
+		)
+	);
+
+	const requiredProjectSurahsLabel = $derived(() => {
+		const surahs = requiredProjectSurahs();
+		if (surahs.length === 0) {
+			return 'Any surah files are fine for this project.';
+		}
+
+		return `Files need to cover the surahs used in this project: ${surahs.join(', ')}.`;
+	});
 
 	// Helper function to check if a translation is selected
 	function isTranslationSelected(translation: Edition): boolean {
@@ -21,7 +40,7 @@
 	}
 
 	// Toggle translation selection
-	function toggleTranslationSelection(translation: Edition, language: string) {
+	function toggleTranslationSelection(translation: Edition) {
 		if (isTranslationSelected(translation)) {
 			// Remove from selection
 			selectedTranslations = selectedTranslations.filter((t) => t.name !== translation.name);
@@ -29,7 +48,6 @@
 		} else {
 			// Add to selection
 			selectedTranslations = [...selectedTranslations, translation];
-			selectedLanguage = language;
 			// Load preview for this translation
 			loadTranslationPreview(translation);
 		}
@@ -84,7 +102,7 @@
 				// Add all selected translations to the project in a single operation
 				for (const translation of selectedTranslations) {
 					const preview = translationPreviews[translation.name] || {};
-					globalState.currentProject?.content.projectTranslation.addTranslation(
+					await globalState.currentProject?.content.projectTranslation.addTranslation(
 						translation,
 						preview
 					);
@@ -100,6 +118,86 @@
 				toast.error('Failed to add translations to project');
 				console.error('Error adding translations:', error);
 			}
+		}
+	}
+
+	async function importCustomTranslation() {
+		const author = customTranslationAuthor.trim();
+		const language = customTranslationLanguage.trim();
+
+		if (author.length === 0) {
+			toast.error('Please enter a translation name.');
+			return;
+		}
+
+		if (language.length === 0) {
+			toast.error('Please enter a language name.');
+			return;
+		}
+
+		if (
+			globalState.currentProject!.content.projectTranslation.addedTranslationEditions.some(
+				(edition) => edition.author.trim().toLowerCase() === author.toLowerCase()
+			)
+		) {
+			toast.error('A translation with that name already exists in this project.');
+			return;
+		}
+
+		const selection = await open({
+			multiple: true,
+			directory: false,
+			filters: [{ name: 'Text files', extensions: ['txt'] }]
+		});
+
+		if (!selection) return;
+
+		const filePaths = Array.isArray(selection) ? selection : [selection];
+		if (filePaths.length === 0) return;
+
+		isImportingCustomTranslation = true;
+
+		try {
+			await Quran.load();
+
+			const files = await Promise.all(
+				filePaths.map(async (filePath) => ({
+					name: filePath,
+					content: await readTextFile(filePath)
+				}))
+			);
+
+			const imported = buildCustomTranslationImport(files, {
+				author,
+				language,
+				direction: customTranslationDirection,
+				getVerseCount: (surah) => Quran.getVerseCount(surah),
+				requiredSurahs: requiredProjectSurahs()
+			});
+
+			await globalState.currentProject!.content.projectTranslation.addTranslation(
+				imported.edition,
+				imported.translations
+			);
+
+			AnalyticsService.trackTranslationAdded(
+				imported.edition.name,
+				imported.edition.author,
+				imported.edition.key,
+				imported.edition.language
+			);
+
+			toast.success(
+				`Imported ${imported.importedSurahs.length} surah file${imported.importedSurahs.length > 1 ? 's' : ''} for ${imported.edition.author}.`
+			);
+			close();
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : 'Failed to import the custom translation.';
+			toast.error(message);
+			console.error('Error importing custom translation:', error);
+		} finally {
+			isImportingCustomTranslation = false;
 		}
 	}
 
@@ -193,7 +291,7 @@
 									)
 								);
 								if (languageKey) {
-									toggleTranslationSelection(translation, languageKey);
+									toggleTranslationSelection(translation);
 								}
 							}}
 						>
@@ -217,6 +315,68 @@
 				</div>
 			</div>
 		{/if}
+
+		<div class="mt-4 rounded-xl border border-dashed border-accent-primary/40 bg-accent/40 p-4">
+			<div class="flex items-start justify-between gap-4">
+				<div>
+					<div class="flex items-center gap-2">
+						<span class="material-icons text-accent-primary text-base">upload_file</span>
+						<span class="text-sm font-semibold text-primary">Import Custom Translation</span>
+					</div>
+					<p class="mt-1 text-xs text-thirdly">
+						Upload surah `.txt` files where each line is one ayah. Name files like `1.txt`,
+						`001.txt`, or `surah-1.txt`.
+					</p>
+					<p class="mt-1 text-xs text-thirdly">{requiredProjectSurahsLabel()}</p>
+				</div>
+			</div>
+
+			<div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1.2fr_1fr_auto]">
+				<input
+					type="text"
+					placeholder="Translation name"
+					bind:value={customTranslationAuthor}
+					class="w-full rounded-lg border border-color bg-secondary px-4 py-2.5 text-sm text-primary focus:border-accent-primary focus:outline-none"
+				/>
+				<input
+					type="text"
+					placeholder="Language"
+					bind:value={customTranslationLanguage}
+					class="w-full rounded-lg border border-color bg-secondary px-4 py-2.5 text-sm text-primary focus:border-accent-primary focus:outline-none"
+				/>
+				<div class="flex rounded-lg border border-color bg-secondary p-1">
+					<button
+						type="button"
+						class="rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 {customTranslationDirection === 'ltr'
+							? 'bg-accent-primary text-black'
+							: 'text-secondary'}"
+						onclick={() => (customTranslationDirection = 'ltr')}
+					>
+						LTR
+					</button>
+					<button
+						type="button"
+						class="rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 {customTranslationDirection === 'rtl'
+							? 'bg-accent-primary text-black'
+							: 'text-secondary'}"
+						onclick={() => (customTranslationDirection = 'rtl')}
+					>
+						RTL
+					</button>
+				</div>
+			</div>
+
+			<div class="mt-3 flex justify-end">
+				<button
+					type="button"
+					class="btn-accent px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+					onclick={() => void importCustomTranslation()}
+					disabled={isImportingCustomTranslation}
+				>
+					{isImportingCustomTranslation ? 'Importing...' : 'Import Surah Text Files'}
+				</button>
+			</div>
+		</div>
 	</div>
 	<!-- Content area -->
 	<div class="flex-1 overflow-hidden">
@@ -257,7 +417,7 @@
 										<button
 											class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 text-left
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
-											onclick={() => toggleTranslationSelection(translationDetail, language)}
+											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
 											<div class="flex items-center justify-between">
 												<div class="flex items-center gap-2">
@@ -472,7 +632,7 @@
 										<button
 											class="group relative p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left cursor-pointer
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
-											onclick={() => toggleTranslationSelection(translationDetail, language)}
+											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
 											<!-- Selection indicator -->
 											<div

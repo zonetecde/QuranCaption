@@ -1,9 +1,5 @@
 <script lang="ts">
-	import type { Edition } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onDestroy, onMount } from 'svelte';
-	import Section from '../../../Section.svelte';
-	import AskIaModal from '../modal/AskIAModal.svelte';
 	import EditionViewer from './EditionViewer.svelte';
 
 	let {
@@ -68,9 +64,7 @@
 		<!-- Liste des traductions -->
 		<div class="space-y-4">
 			{#each globalState.currentProject!.content.projectTranslation.addedTranslationEditions as edition}
-				{#if globalState.availableTranslations && globalState.availableTranslations[edition.language]}
-					<EditionViewer {edition} />
-				{/if}
+				<EditionViewer {edition} />
 			{/each}
 		</div>
 

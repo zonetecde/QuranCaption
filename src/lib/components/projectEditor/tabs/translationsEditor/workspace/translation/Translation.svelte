@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { SubtitleClip, type Edition, type Translation } from '$lib/classes';
+	import { SubtitleClip, type Edition } from '$lib/classes';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onMount, untrack } from 'svelte';
-	import { fade, slide } from 'svelte/transition';
+	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
 
 	let {
 		edition,
@@ -18,6 +18,9 @@
 	let translation = $derived(() => {
 		return subtitle.getTranslation(edition) as VerseTranslation;
 	});
+	let translationFlag = $derived(
+		() => globalState.availableTranslations[edition.language]?.flag || edition.flag || ''
+	);
 
 	// Variables pour gérer le glisser-déposer
 	let isDragging = $state(false);
@@ -217,12 +220,10 @@
 		<!-- En-tête avec flag et info -->
 		<div class="flex items-center gap-3 pb-2 border-b border-color">
 			<div class="flex items-center gap-2">
-				{#if globalState.availableTranslations && globalState.availableTranslations[edition.language]}
-					<img
-						src={globalState.availableTranslations[edition.language].flag}
-						alt={edition.language}
-						class="w-5 h-5 rounded"
-					/>
+				{#if translationFlag()}
+					<img src={translationFlag()} alt={edition.language} class="w-5 h-5 rounded" />
+				{:else}
+					<span class="material-icons text-accent-primary text-lg">translate</span>
 				{/if}
 				<div>
 					<p class="text-primary text-sm font-medium">{edition.language}</p>

@@ -1,10 +1,7 @@
 import { globalState } from '$lib/runes/main.svelte';
-import type { SubtitleClip } from './Clip.svelte';
 import { canonicalizePredefinedSubtitleType } from './Clip.svelte';
 import type { Edition } from './Edition';
-import { TrackType } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
-import toast from 'svelte-5-french-toast';
 import { PredefinedSubtitleTranslation, Translation, VerseTranslation } from './Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 
@@ -41,7 +38,23 @@ export class ProjectTranslation extends SerializableBase {
 	}
 
 	getVerseTranslation(edition: Edition, verseKey: string): string {
-		return this.versesTranslations[edition.name]?.[verseKey] || this.TEXT_NO_TRANSLATION_AVAILABLE;
+		return this.versesTranslations[edition.name]?.[verseKey] ?? this.TEXT_NO_TRANSLATION_AVAILABLE;
+	}
+
+	private getEditionLanguageConfig(edition: Edition) {
+		return (
+			globalState.availableTranslations[edition.language] || {
+				flag: edition.flag || '',
+				basmala: edition.basmala || '',
+				istiadhah: edition.istiadhah || '',
+				amin: edition.amin || '',
+				takbir: edition.takbir || '',
+				tahmeed: edition.tahmeed || '',
+				tasleem: edition.tasleem || '',
+				sadaqa: edition.sadaqa || '',
+				translations: []
+			}
+		);
 	}
 
 	/**
@@ -52,6 +65,12 @@ export class ProjectTranslation extends SerializableBase {
 	 * @returns La traduction ou 'No translation found' si non trouvée
 	 */
 	async downloadVerseTranslation(edition: Edition, surah: number, verse: number): Promise<string> {
+		const verseKey = `${surah}:${verse}`;
+		const storedTranslation = this.versesTranslations[edition.name]?.[verseKey];
+		if (storedTranslation !== undefined) {
+			return storedTranslation;
+		}
+
 		// Regarde si la traduction est déjà dans le cache
 		const cacheKey = `${edition.name}_${surah}_${verse}`;
 		const cached = globalState.caches.get(cacheKey);
@@ -59,6 +78,7 @@ export class ProjectTranslation extends SerializableBase {
 
 		// Récupère l'édition de traduction par son nom
 		if (!edition) return this.TEXT_NO_TRANSLATION_AVAILABLE;
+		if (edition.isCustom) return this.TEXT_NO_TRANSLATION_AVAILABLE;
 
 		// Load les traductions de toute la sourate si pas déjà chargée
 		await this.loadSurahTranslation(edition, surah);
@@ -193,6 +213,7 @@ export class ProjectTranslation extends SerializableBase {
 	async getAllProjectSubtitlesTranslations(edition: Edition) {
 		// Récupère toutes les traductions des sous-titres du projet pour une traduction donnée
 		const translations: { [key: string]: string } = {};
+		const languageData = this.getEditionLanguageConfig(edition);
 
 		const versesInProject = new Set<string>();
 
@@ -202,19 +223,19 @@ export class ProjectTranslation extends SerializableBase {
 			if (type === 'Other') continue;
 
 			if (type === 'Basmala') {
-				translations['Basmala'] = globalState.availableTranslations[edition.language].basmala;
+				translations['Basmala'] = languageData.basmala || '';
 			} else if (type === "Isti'adha") {
-				translations["Isti'adha"] = globalState.availableTranslations[edition.language].istiadhah;
+				translations["Isti'adha"] = languageData.istiadhah || '';
 			} else if (type === 'Amin') {
-				translations['Amin'] = globalState.availableTranslations[edition.language].amin;
+				translations['Amin'] = languageData.amin || '';
 			} else if (type === 'Takbir') {
-				translations['Takbir'] = globalState.availableTranslations[edition.language].takbir;
+				translations['Takbir'] = languageData.takbir || '';
 			} else if (type === 'Tahmeed') {
-				translations['Tahmeed'] = globalState.availableTranslations[edition.language].tahmeed;
+				translations['Tahmeed'] = languageData.tahmeed || '';
 			} else if (type === 'Tasleem') {
-				translations['Tasleem'] = globalState.availableTranslations[edition.language].tasleem;
+				translations['Tasleem'] = languageData.tasleem || '';
 			} else if (type === 'Sadaqa') {
-				translations['Sadaqa'] = globalState.availableTranslations[edition.language].sadaqa;
+				translations['Sadaqa'] = languageData.sadaqa || '';
 			}
 		}
 
@@ -250,18 +271,20 @@ export class ProjectTranslation extends SerializableBase {
 			this.addedTranslationEditions.push(edition);
 		}
 
+		if (!this.versesTranslations[edition.name]) {
+			this.versesTranslations[edition.name] = {};
+		}
+
+		for (const [verseKey, translationText] of Object.entries(downloadedTranslations)) {
+			this.versesTranslations[edition.name][verseKey] = translationText;
+		}
+
 		// Pour chaque sous-titre du projet, ajoute la traduction correspondante
 		for (const subtitle of globalState.getSubtitleClips) {
 			// Récupère la traduction à partir du dictionnaire de traductions téléchargées
 			const verseKey = subtitle.getVerseKey();
 			const translationText =
-				downloadedTranslations[verseKey] || this.TEXT_NO_TRANSLATION_AVAILABLE;
-
-			if (!this.versesTranslations[edition.name]) {
-				this.versesTranslations[edition.name] = {};
-			}
-
-			this.versesTranslations[edition.name][verseKey] = translationText;
+				downloadedTranslations[verseKey] ?? this.TEXT_NO_TRANSLATION_AVAILABLE;
 
 			// Ajoute la traduction à l'objet de traduction du clip
 			subtitle.translations[edition.name] = new VerseTranslation(
@@ -283,7 +306,7 @@ export class ProjectTranslation extends SerializableBase {
 	}
 
 	getPredefinedSubtitleTranslation(edition: Edition, type: string): PredefinedSubtitleTranslation {
-		const lang = globalState.availableTranslations[edition.language];
+		const lang = this.getEditionLanguageConfig(edition);
 		const canonicalType = canonicalizePredefinedSubtitleType(type);
 
 		switch (canonicalType) {
@@ -339,6 +362,12 @@ export class ProjectTranslation extends SerializableBase {
 
 		// Supprime les traductions de l'édition dans les clips de sous-titres
 		for (const subtitle of globalState.getSubtitleClips) {
+			if (subtitle.translations[edition.name]) {
+				delete subtitle.translations[edition.name];
+			}
+		}
+
+		for (const subtitle of globalState.getPredefinedSubtitleClips) {
 			if (subtitle.translations[edition.name]) {
 				delete subtitle.translations[edition.name];
 			}

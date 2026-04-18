@@ -8,6 +8,9 @@
 	import AskIaModal from '../modal/AskIAModal.svelte';
 
 	let { edition } = $props();
+	let editionIcon = $derived(
+		() => globalState.availableTranslations[edition.language]?.flag || edition.flag || 'translate'
+	);
 
 	let showAskIAModal = $state(false);
 	let aiModalTranslationEdition: Edition | null = $state(null);
@@ -157,7 +160,7 @@
 >
 	<Section
 		name={edition.author}
-		icon={globalState.availableTranslations[edition.language].flag}
+		icon={editionIcon()}
 		classes="flex items-center"
 	>
 		<!-- Toggle pour afficher dans l'éditeur -->

@@ -1,16 +1,36 @@
 use std::collections::HashSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use font_kit::file_type::FileType;
+use font_kit::font::Font;
+use font_kit::handle::Handle;
+use font_kit::properties::Style;
 use font_kit::source::SystemSource;
+use serde::Serialize;
 
 use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 
 use super::diagnostics::{format_ffprobe_exec_failed, map_ffprobe_resolve_error};
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemFontSource {
+    pub family: String,
+    pub source_family: String,
+    pub full_name: String,
+    pub postscript_name: Option<String>,
+    pub path: String,
+    pub font_index: u32,
+    pub format: Option<String>,
+    pub font_weight: u16,
+    pub font_weight_range: Option<String>,
+    pub font_style: String,
+}
 
 /// Retourne la durée d'un média en millisecondes via ffprobe.
 #[tauri::command]
@@ -87,6 +107,246 @@ pub fn get_system_fonts() -> Result<Vec<String>, String> {
 
     font_names.sort();
     Ok(font_names)
+}
+
+/// Resolves selected system font families to concrete font files.
+///
+/// The preview renderer can use `font-family: Some Installed Font` directly, but the export
+/// screenshotter needs URL-backed @font-face rules so it can embed the font in the cloned SVG.
+#[tauri::command]
+pub fn get_system_font_sources(
+    font_families: Vec<String>,
+) -> Result<Vec<SystemFontSource>, String> {
+    let mut sources = Vec::new();
+    let mut requested_families = HashSet::new();
+    let mut seen_sources = HashSet::new();
+
+    let requested: Vec<String> = font_families
+        .into_iter()
+        .filter_map(|family| {
+            let family = family.trim().to_string();
+            if family.is_empty() || !requested_families.insert(family.clone()) {
+                None
+            } else {
+                Some(family)
+            }
+        })
+        .collect();
+
+    if requested.is_empty() {
+        return Ok(sources);
+    }
+
+    for directory in default_system_font_directories() {
+        collect_font_sources_from_directory(
+            &directory,
+            &requested,
+            &mut seen_sources,
+            &mut sources,
+        );
+    }
+
+    sources.sort_by(|a, b| {
+        a.family
+            .cmp(&b.family)
+            .then(a.font_style.cmp(&b.font_style))
+            .then(a.font_weight.cmp(&b.font_weight))
+            .then(a.full_name.cmp(&b.full_name))
+            .then(a.path.cmp(&b.path))
+    });
+
+    Ok(sources)
+}
+
+fn collect_font_sources_from_directory(
+    directory: &Path,
+    requested_families: &[String],
+    seen_sources: &mut HashSet<String>,
+    sources: &mut Vec<SystemFontSource>,
+) {
+    let entries = match fs::read_dir(directory) {
+        Ok(entries) => entries,
+        Err(_) => return,
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_font_sources_from_directory(&path, requested_families, seen_sources, sources);
+            continue;
+        }
+
+        if !is_supported_font_path(&path) {
+            continue;
+        }
+
+        let mut file = match fs::File::open(&path) {
+            Ok(file) => file,
+            Err(_) => continue,
+        };
+
+        let file_type = match Font::analyze_file(&mut file) {
+            Ok(file_type) => file_type,
+            Err(_) => continue,
+        };
+
+        match file_type {
+            FileType::Single => {
+                add_font_source_if_requested(&path, 0, requested_families, seen_sources, sources);
+            }
+            FileType::Collection(font_count) => {
+                for font_index in 0..font_count {
+                    add_font_source_if_requested(
+                        &path,
+                        font_index,
+                        requested_families,
+                        seen_sources,
+                        sources,
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn add_font_source_if_requested(
+    path: &Path,
+    font_index: u32,
+    requested_families: &[String],
+    seen_sources: &mut HashSet<String>,
+    sources: &mut Vec<SystemFontSource>,
+) {
+    let handle = Handle::from_path(path.to_owned(), font_index);
+    let font = match handle.load() {
+        Ok(font) => font,
+        Err(_) => return,
+    };
+
+    let source_family = font.family_name();
+    let Some(requested_family) = requested_families
+        .iter()
+        .find(|family| family.as_str() == source_family.as_str())
+    else {
+        return;
+    };
+
+    let properties = font.properties();
+    let full_name = font.full_name();
+    let postscript_name = font.postscript_name();
+    let font_style = match properties.style {
+        Style::Normal => "normal",
+        Style::Italic => "italic",
+        Style::Oblique => "oblique",
+    }
+    .to_string();
+    let font_weight = properties.weight.0.round().clamp(1.0, 1000.0) as u16;
+    let font_weight_range =
+        font_weight_range_for_source(path, &full_name, postscript_name.as_deref());
+    let path_string = path.to_string_lossy().to_string();
+    let key = format!(
+        "{}:{}:{}:{}:{:?}:{}",
+        requested_family, path_string, font_index, font_weight, font_weight_range, font_style
+    );
+
+    if !seen_sources.insert(key) {
+        return;
+    }
+
+    sources.push(SystemFontSource {
+        family: requested_family.to_string(),
+        source_family,
+        full_name,
+        postscript_name,
+        path: path_string,
+        font_index,
+        format: font_format_for_path(path),
+        font_weight,
+        font_weight_range,
+        font_style,
+    });
+}
+
+fn font_weight_range_for_source(
+    path: &Path,
+    full_name: &str,
+    postscript_name: Option<&str>,
+) -> Option<String> {
+    let path_text = path.to_string_lossy().to_ascii_lowercase();
+    let full_name = full_name.to_ascii_lowercase();
+    let postscript_name = postscript_name.unwrap_or_default().to_ascii_lowercase();
+
+    let has_weight_axis = (path_text.contains("variablefont") && path_text.contains("wght"))
+        || path_text.contains("[wght]")
+        || full_name.contains("variable")
+        || postscript_name.contains("variable");
+
+    if has_weight_axis {
+        Some("100 900".to_string())
+    } else {
+        None
+    }
+}
+
+fn default_system_font_directories() -> Vec<PathBuf> {
+    let mut directories = Vec::new();
+
+    #[cfg(target_os = "macos")]
+    {
+        directories.push(PathBuf::from("/System/Library/Fonts"));
+        directories.push(PathBuf::from("/Library/Fonts"));
+        directories.push(PathBuf::from("/Network/Library/Fonts"));
+        if let Some(home_dir) = dirs::home_dir() {
+            directories.push(home_dir.join("Library").join("Fonts"));
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(windir) = std::env::var_os("WINDIR") {
+            directories.push(PathBuf::from(windir).join("Fonts"));
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        directories.push(PathBuf::from("/usr/share/fonts"));
+        directories.push(PathBuf::from("/usr/local/share/fonts"));
+        directories.push(PathBuf::from("/run/host/fonts"));
+        directories.push(PathBuf::from("/run/host/local-fonts"));
+        directories.push(PathBuf::from("/run/host/user-fonts"));
+        if let Some(home_dir) = dirs::home_dir() {
+            directories.push(home_dir.join(".fonts"));
+            directories.push(home_dir.join(".local").join("share").join("fonts"));
+        }
+        if let Some(data_dir) = dirs::data_dir() {
+            directories.push(data_dir.join("fonts"));
+        }
+    }
+
+    directories.sort();
+    directories.dedup();
+    directories
+}
+
+fn is_supported_font_path(path: &Path) -> bool {
+    let Some(extension) = path.extension() else {
+        return false;
+    };
+    matches!(
+        extension.to_string_lossy().to_ascii_lowercase().as_str(),
+        "ttf" | "ttc" | "otf" | "otc" | "woff" | "woff2"
+    )
+}
+
+fn font_format_for_path(path: &Path) -> Option<String> {
+    let extension = path.extension()?.to_string_lossy().to_ascii_lowercase();
+    match extension.as_str() {
+        "ttf" | "ttc" => Some("truetype".to_string()),
+        "otf" | "otc" => Some("opentype".to_string()),
+        "woff" => Some("woff".to_string()),
+        "woff2" => Some("woff2".to_string()),
+        _ => None,
+    }
 }
 
 /// Ouvre l'explorateur de fichiers en sélectionnant le fichier donné.

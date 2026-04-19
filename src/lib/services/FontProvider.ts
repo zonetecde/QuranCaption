@@ -20,7 +20,6 @@ export class QPCFontProvider {
 	static verseMappingV2: Record<string, string> | undefined = undefined;
 	static verseMappingV1: Record<string, string> | undefined = undefined;
 	static loadedFonts: Set<string> = new Set();
-	static loadedTajweedPalettes: Set<string> = new Set();
 	static fontLoadPromises: Map<string, Promise<void>> = new Map();
 	static resolvedSystemFontFamilies: Set<string> = new Set();
 	static registeredSystemFontFaces: Set<string> = new Set();
@@ -136,18 +135,6 @@ export class QPCFontProvider {
 		return fontName;
 	}
 
-	static getTajweedFontPaletteNameForVerse(
-		surah: number,
-		verse: number,
-		baseTextColor: string = '#ffffff'
-	): string {
-		const fontName = this.getTajweedFontNameForVerse(surah, verse);
-		const normalizedColor = this.normalizeCssColor(baseTextColor);
-		const paletteName = this.getTajweedPaletteNameForFont(fontName, normalizedColor);
-		this.loadTajweedPaletteIfNotLoaded(fontName, paletteName, normalizedColor);
-		return paletteName;
-	}
-
 	static getQuranVerseGlyph(
 		surah: number,
 		verse: number,
@@ -237,40 +224,6 @@ export class QPCFontProvider {
 		if (!match) return 1;
 		const pageNumber = parseInt(match[1], 10);
 		return Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : 1;
-	}
-
-	private static loadTajweedPaletteIfNotLoaded(
-		fontName: string,
-		paletteName: string,
-		baseTextColor: string
-	): void {
-		if (typeof document === 'undefined') return;
-		if (this.loadedTajweedPalettes.has(paletteName)) return;
-
-		const style = document.createElement('style');
-		style.textContent = `
-			@font-palette-values ${paletteName} {
-				font-family: '${fontName}';
-				base-palette: 1;
-				override-colors: 0 ${baseTextColor};
-			}
-		`;
-		document.head.appendChild(style);
-		this.loadedTajweedPalettes.add(paletteName);
-	}
-
-	private static getTajweedPaletteNameForFont(fontName: string, baseTextColor: string): string {
-		const normalizedFont = fontName.replace(/[^a-zA-Z0-9_-]/g, '-');
-		const normalizedColor = baseTextColor.replace(/[^a-zA-Z0-9_-]/g, '-');
-		return `--${normalizedFont}-palette-${normalizedColor}`;
-	}
-
-	private static normalizeCssColor(input: string): string {
-		const value = String(input ?? '').trim();
-		if (/^#[0-9a-fA-F]{3}$/.test(value) || /^#[0-9a-fA-F]{6}$/.test(value)) return value;
-		if (/^rgb(a)?\(/i.test(value)) return value;
-		if (/^hsl(a)?\(/i.test(value)) return value;
-		return '#ffffff';
 	}
 
 	/**

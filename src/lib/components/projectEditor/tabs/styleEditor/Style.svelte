@@ -260,7 +260,7 @@
 			} else if (value === 'Tajweed') {
 				arabicStyles.setStyle('font-family', 'QPC2');
 				toast(
-					'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable.'
+					'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable. Tajweed text color is currently forced to black, and you cannot change it.'
 				);
 			} else {
 				arabicStyles.setStyle('font-family', 'Hafs');

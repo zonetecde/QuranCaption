@@ -435,8 +435,7 @@ export class StylesData extends SerializableBase {
 					const subtitleClip = globalState.getSubtitleTrack.getClipById(clipId);
 					const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
 
-					// Le mushaf Tajweed est rendu avec les glyphes QPC + la police Tajweed v4 (par page), + gestion des couleurs qui est fait
-					// avec font-palette.
+					// Le mushaf Tajweed est rendu avec les glyphes QPC + la police Tajweed v4 (par page).
 					if (mushafStyle === 'Tajweed' && subtitleClip instanceof SubtitleClip) {
 						const tajweedFontName = QPCFontProvider.getTajweedFontNameForVerse(
 							subtitleClip.surah,
@@ -447,14 +446,7 @@ export class StylesData extends SerializableBase {
 							subtitleClip.verse,
 							'2'
 						);
-						const textColor = String(this.getEffectiveValue('text-color', clipId) ?? '#ffffff');
-						const paletteName = QPCFontProvider.getTajweedFontPaletteNameForVerse(
-							subtitleClip.surah,
-							subtitleClip.verse,
-							textColor
-						);
 						css += `font-family: ${tajweedFontName}, ${qpc2FallbackFontName};\n`;
-						css += `font-palette: ${paletteName};\n`;
 						continue;
 					}
 

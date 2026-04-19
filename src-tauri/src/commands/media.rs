@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use font_kit::handle::Handle;
 use font_kit::source::SystemSource;
 
 use crate::binaries;
@@ -12,55 +11,6 @@ use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 
 use super::diagnostics::{format_ffprobe_exec_failed, map_ffprobe_resolve_error};
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResolvedSystemFontFile {
-    pub family: String,
-    pub file_path: String,
-    pub format: String,
-    pub font_weight: String,
-    pub font_style: String,
-}
-
-fn detect_font_format(path: &Path) -> String {
-    match path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| ext.to_ascii_lowercase())
-        .as_deref()
-    {
-        Some("ttf") => "truetype".to_string(),
-        Some("otf") => "opentype".to_string(),
-        Some("woff2") => "woff2".to_string(),
-        Some("woff") => "woff".to_string(),
-        _ => "truetype".to_string(),
-    }
-}
-
-fn infer_font_face_descriptors(path: &Path) -> (String, String) {
-    let file_name_lower = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-
-    // Heuristique pratique: la majorité des fichiers variables contiennent "variable" ou "vf".
-    let font_weight =
-        if file_name_lower.contains("variable") || file_name_lower.ends_with("vf.ttf") {
-            "100 900".to_string()
-        } else {
-            "normal".to_string()
-        };
-
-    let font_style = if file_name_lower.contains("italic") || file_name_lower.contains("oblique") {
-        "italic".to_string()
-    } else {
-        "normal".to_string()
-    };
-
-    (font_weight, font_style)
-}
 
 /// Retourne la durée d'un média en millisecondes via ffprobe.
 #[tauri::command]
@@ -137,50 +87,6 @@ pub fn get_system_fonts() -> Result<Vec<String>, String> {
 
     font_names.sort();
     Ok(font_names)
-}
-
-/// Résout une famille de police système vers un fichier de police utilisable pour l'export.
-/// Retourne None si la famille n'est pas trouvée ou si aucun fichier exploitable n'est disponible.
-#[tauri::command]
-pub fn resolve_system_font_file(family: String) -> Result<Option<ResolvedSystemFontFile>, String> {
-    let family = family.trim().to_string();
-    if family.is_empty() {
-        return Ok(None);
-    }
-
-    let source = SystemSource::new();
-    let family_handle = match source.select_family_by_name(&family) {
-        Ok(handle) => handle,
-        Err(_) => return Ok(None),
-    };
-
-    for handle in family_handle.fonts() {
-        let Handle::Path { path, .. } = handle else {
-            continue;
-        };
-
-        if !path.exists() {
-            continue;
-        }
-
-        // Ignore les fichiers de police cassés/non parseables pour éviter les crashs en export.
-        if handle.load().is_err() {
-            continue;
-        }
-
-        let (font_weight, font_style) = infer_font_face_descriptors(path);
-        let format = detect_font_format(path);
-
-        return Ok(Some(ResolvedSystemFontFile {
-            family: family.clone(),
-            file_path: path.to_string_lossy().to_string(),
-            format,
-            font_weight,
-            font_style,
-        }));
-    }
-
-    Ok(None)
 }
 
 /// Ouvre l'explorateur de fichiers en sélectionnant le fichier donné.

@@ -1,13 +1,4 @@
 import { globalState } from '$lib/runes/main.svelte';
-import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-
-type ResolvedSystemFontFile = {
-	family: string;
-	filePath: string;
-	format: string;
-	fontWeight: string;
-	fontStyle: string;
-};
 
 export class QPCFontProvider {
 	static qpc2Glyphs: Record<string, string> | undefined = undefined;
@@ -93,14 +84,11 @@ export class QPCFontProvider {
 			) {
 				continue;
 			}
+			this.registerLocalFontFaceIfNeeded(primaryFamily);
 			fontFamilies.add(primaryFamily);
 		}
 
 		if (fontFamilies.size === 0) return;
-
-		await Promise.all(
-			Array.from(fontFamilies).map((fontFamily) => this.registerLocalFontFaceIfNeeded(fontFamily))
-		);
 
 		await Promise.all(
 			Array.from(fontFamilies).map((fontFamily) => this.waitForFontFamily(fontFamily))
@@ -327,71 +315,24 @@ export class QPCFontProvider {
 		return true;
 	}
 
-	private static async registerLocalFontFaceIfNeeded(fontFamily: string): Promise<void> {
+	private static registerLocalFontFaceIfNeeded(fontFamily: string): void {
 		if (typeof document === 'undefined') return;
 		if (this.loadedFonts.has(fontFamily)) return;
 		if (this.registeredLocalFontFaces.has(fontFamily)) return;
 		if (this.isGenericFontFamily(fontFamily)) return;
 
 		const escapedFontFamily = fontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-		try {
-			const resolved = await invoke<ResolvedSystemFontFile | null>('resolve_system_font_file', {
-				family: fontFamily
-			});
-
-			const style = document.createElement('style');
-			if (resolved?.filePath) {
-				const src = convertFileSrc(resolved.filePath);
-				const format = resolved.format || this.detectFontFormatFromPath(resolved.filePath);
-				const fontWeight = resolved.fontWeight || 'normal';
-				const fontStyle = resolved.fontStyle || 'normal';
-
-				style.textContent = `
-					@font-face {
-						font-family: '${escapedFontFamily}';
-						src: url('${src}') format('${format}');
-						font-weight: ${fontWeight};
-						font-style: ${fontStyle};
-					}
-				`;
-			} else {
-				style.textContent = `
-					@font-face {
-						font-family: '${escapedFontFamily}';
-						src: local('${escapedFontFamily}');
-						font-weight: normal;
-						font-style: normal;
-					}
-				`;
+		const style = document.createElement('style');
+		style.textContent = `
+			@font-face {
+				font-family: '${escapedFontFamily}';
+				src: local('${escapedFontFamily}');
+				font-weight: normal;
+				font-style: normal;
 			}
-
-			document.head.appendChild(style);
-			this.registeredLocalFontFaces.add(fontFamily);
-		} catch (error) {
-			console.warn(`Could not resolve local font file for "${fontFamily}".`, error);
-
-			const style = document.createElement('style');
-			style.textContent = `
-				@font-face {
-					font-family: '${escapedFontFamily}';
-					src: local('${escapedFontFamily}');
-					font-weight: normal;
-					font-style: normal;
-				}
-			`;
-			document.head.appendChild(style);
-			this.registeredLocalFontFaces.add(fontFamily);
-		}
-	}
-
-	private static detectFontFormatFromPath(path: string): string {
-		const lower = String(path || '').toLowerCase();
-		if (lower.endsWith('.ttf')) return 'truetype';
-		if (lower.endsWith('.otf')) return 'opentype';
-		if (lower.endsWith('.woff2')) return 'woff2';
-		if (lower.endsWith('.woff')) return 'woff';
-		return 'truetype';
+		`;
+		document.head.appendChild(style);
+		this.registeredLocalFontFaces.add(fontFamily);
 	}
 
 	private static async waitWithTimeout(promise: Promise<unknown>): Promise<boolean> {

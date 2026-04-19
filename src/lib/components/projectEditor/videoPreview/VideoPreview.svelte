@@ -79,32 +79,17 @@
 
 	// Effect qui recharge l'audio quand l'asset audio change
 	$effect(() => {
-		if (currentAudio()) {
-			untrack(() => {
-				setupAudio(); // Configure le nouveau fichier audio avec Howler
-			});
-		}
+		currentAudio();
+		untrack(() => {
+			setupAudio(); // Configure le nouveau fichier audio avec Howler
+		});
 	});
 
 	// Effect principal de synchronisation - se déclenche quand le curseur bouge
 	$effect(() => {
 		if (globalState.currentProject?.projectEditorState.timeline.movePreviewTo) {
 			untrack(() => {
-				const wasPlaying = isPlaying;
-				pause(); // Met en pause pour synchroniser proprement
-
-				// Synchronise la vidéo avec la position du curseur
-				if (currentVideo()) {
-					if (videoElement) {
-						videoElement.currentTime = getCurrentVideoTimeToPlay();
-					}
-				}
-
-				// La synchronisation audio se fait automatiquement dans le callback onplay de Howl
-
-				if (wasPlaying) {
-					play(); // Reprend la lecture si on était en train de lire
-				}
+				syncMediaToCursorPosition();
 			});
 		}
 	});
@@ -554,8 +539,18 @@
 				},
 				onplayerror: (id, error) => {
 					console.error('Howler play error:', error);
+
+					if (isPlaybackUnlockError(error)) {
+						audioHowl?.once('unlock', () => {
+							if (isPlaying && audioHowl && !audioHowl.playing()) {
+								audioHowl.play();
+							}
+						});
+						return;
+					}
+
 					toast.error('The audio failed to play: ' + JSON.stringify(error));
-					// Fallback si la lecture échoue
+					// Fallback si la lecture échoue réellement
 					pause();
 				},
 				onpause: () => {
@@ -688,6 +683,48 @@
 	function seekAudio(val: number) {
 		if (audioHowl) {
 			audioHowl.seek(val);
+		}
+	}
+
+	/**
+	 * Détecte les erreurs de lecture liées au verrouillage autoplay du navigateur.
+	 */
+	function isPlaybackUnlockError(error: unknown): boolean {
+		if (typeof error !== 'string') return false;
+
+		const normalizedError = error.toLowerCase();
+		return (
+			normalizedError.includes('playback was unable to start') ||
+			normalizedError.includes('notallowederror') ||
+			normalizedError.includes('user interaction')
+		);
+	}
+
+	/**
+	 * Synchronise les médias avec le curseur sans redémarrer inutilement
+	 * la lecture quand un simple seek suffit.
+	 */
+	function syncMediaToCursorPosition() {
+		const shouldKeepPlaying = isPlaying;
+		const video = currentVideo();
+		const audio = currentAudio();
+
+		if (videoElement && video) {
+			videoElement.currentTime = getCurrentVideoTimeToPlay();
+
+			if (shouldKeepPlaying && videoElement.paused) {
+				void videoElement.play().catch(() => {
+					// Vidéo muette: ignorer un blocage ponctuel n'affecte pas l'audio.
+				});
+			}
+		}
+
+		if (audioHowl) {
+			seekAudio(getCurrentAudioTimeToPlay());
+
+			if (shouldKeepPlaying && audio && !audioHowl.playing()) {
+				audioHowl.play();
+			}
 		}
 	}
 

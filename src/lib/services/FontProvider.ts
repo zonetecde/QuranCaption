@@ -1,4 +1,18 @@
 import { globalState } from '$lib/runes/main.svelte';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+
+type SystemFontSource = {
+	family: string;
+	sourceFamily: string;
+	fullName: string;
+	postscriptName: string | null;
+	path: string;
+	fontIndex: number;
+	format: string | null;
+	fontWeight: number;
+	fontWeightRange: string | null;
+	fontStyle: string;
+};
 
 export class QPCFontProvider {
 	static qpc2Glyphs: Record<string, string> | undefined = undefined;
@@ -8,7 +22,8 @@ export class QPCFontProvider {
 	static loadedFonts: Set<string> = new Set();
 	static loadedTajweedPalettes: Set<string> = new Set();
 	static fontLoadPromises: Map<string, Promise<void>> = new Map();
-	static registeredLocalFontFaces: Set<string> = new Set();
+	static resolvedSystemFontFamilies: Set<string> = new Set();
+	static registeredSystemFontFaces: Set<string> = new Set();
 	private static readonly FONT_WAIT_TIMEOUT_MS = 1200;
 	private static readonly TAJWEED_FONT_BASE_URL =
 		'https://cdn.jsdelivr.net/gh/quran/quran.com-frontend-next/public/fonts/quran/hafs/v4/colrv1';
@@ -84,12 +99,12 @@ export class QPCFontProvider {
 			) {
 				continue;
 			}
-			this.registerLocalFontFaceIfNeeded(primaryFamily);
 			fontFamilies.add(primaryFamily);
 		}
 
 		if (fontFamilies.size === 0) return;
 
+		await this.registerSystemFontFacesIfNeeded(Array.from(fontFamilies));
 		await Promise.all(
 			Array.from(fontFamilies).map((fontFamily) => this.waitForFontFamily(fontFamily))
 		);
@@ -315,24 +330,99 @@ export class QPCFontProvider {
 		return true;
 	}
 
-	private static registerLocalFontFaceIfNeeded(fontFamily: string): void {
+	private static async registerSystemFontFacesIfNeeded(fontFamilies: string[]): Promise<void> {
 		if (typeof document === 'undefined') return;
-		if (this.loadedFonts.has(fontFamily)) return;
-		if (this.registeredLocalFontFaces.has(fontFamily)) return;
-		if (this.isGenericFontFamily(fontFamily)) return;
 
-		const escapedFontFamily = fontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+		const familiesToResolve = Array.from(new Set(fontFamilies)).filter((fontFamily) =>
+			this.shouldResolveSystemFontFamily(fontFamily)
+		);
+		if (familiesToResolve.length === 0) return;
+
+		for (const fontFamily of familiesToResolve) {
+			this.resolvedSystemFontFamilies.add(fontFamily);
+		}
+
+		try {
+			const sources = await invoke<SystemFontSource[]>('get_system_font_sources', {
+				fontFamilies: familiesToResolve
+			});
+
+			for (const source of sources) {
+				this.registerSystemFontFace(source);
+			}
+		} catch (error) {
+			console.warn('Could not resolve system font files before export capture.', error);
+		}
+	}
+
+	private static shouldResolveSystemFontFamily(fontFamily: string): boolean {
+		if (!fontFamily) return false;
+		if (this.loadedFonts.has(fontFamily)) return false;
+		if (this.resolvedSystemFontFamilies.has(fontFamily)) return false;
+		if (this.isGenericFontFamily(fontFamily)) return false;
+		if (this.isAppProvidedFontFamily(fontFamily)) return false;
+		return true;
+	}
+
+	private static registerSystemFontFace(source: SystemFontSource): void {
+		if (typeof document === 'undefined') return;
+		if (!source.family || !source.path) return;
+
+		const key = [
+			source.family,
+			source.path,
+			source.fontIndex,
+			source.fontWeight,
+			source.fontWeightRange ?? '',
+			source.fontStyle
+		].join('|');
+		if (this.registeredSystemFontFaces.has(key)) return;
+
+		const fontUrl = convertFileSrc(source.path);
+		const format = source.format ? ` format("${this.escapeCssString(source.format)}")` : '';
+		const fontWeight = this.normalizeCssFontWeight(source.fontWeight, source.fontWeightRange);
+		const fontStyle = this.normalizeCssFontStyle(source.fontStyle);
 		const style = document.createElement('style');
+
 		style.textContent = `
 			@font-face {
-				font-family: '${escapedFontFamily}';
-				src: local('${escapedFontFamily}');
-				font-weight: normal;
-				font-style: normal;
+				font-family: "${this.escapeCssString(source.family)}";
+				src: url("${this.escapeCssString(fontUrl)}")${format};
+				font-weight: ${fontWeight};
+				font-style: ${fontStyle};
 			}
 		`;
 		document.head.appendChild(style);
-		this.registeredLocalFontFaces.add(fontFamily);
+		this.registeredSystemFontFaces.add(key);
+	}
+
+	private static isAppProvidedFontFamily(fontFamily: string): boolean {
+		return (
+			fontFamily === 'Hafs' ||
+			fontFamily === 'IndoPak' ||
+			fontFamily === 'Reciters' ||
+			fontFamily === 'Surahs' ||
+			fontFamily === 'QPC1BSML' ||
+			fontFamily === 'QPC2BSML' ||
+			fontFamily.startsWith('QPC1') ||
+			fontFamily.startsWith('QPC2') ||
+			/^p\d+-v4$/.test(fontFamily)
+		);
+	}
+
+	private static normalizeCssFontWeight(fontWeight: number, fontWeightRange: string | null): string {
+		if (fontWeightRange && /^\d+\s+\d+$/.test(fontWeightRange)) return fontWeightRange;
+		if (!Number.isFinite(fontWeight)) return '400';
+		return String(Math.max(1, Math.min(1000, Math.round(fontWeight))));
+	}
+
+	private static normalizeCssFontStyle(fontStyle: string): string {
+		if (fontStyle === 'italic' || fontStyle === 'oblique') return fontStyle;
+		return 'normal';
+	}
+
+	private static escapeCssString(value: string): string {
+		return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\A ');
 	}
 
 	private static async waitWithTimeout(promise: Promise<unknown>): Promise<boolean> {

@@ -551,9 +551,22 @@
 		if (flags.color) parts.push(`color: ${flags.color};`);
 		return parts.join(' ');
 	}
+
+	let canShowAlignmentOverlay = $derived(() => {
+		const isStyleTab =
+			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style;
+		if (globalState.getVideoPreviewState.showAlignmentGridWhileDragging) return true;
+		return isStyleTab && globalState.getVideoPreviewState.showAlignmentGrid;
+	});
 </script>
 
 <div class="inset-0 absolute" style="" id="overlay">
+	{#if canShowAlignmentOverlay()}
+		<div class="alignment-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
+			<div class="alignment-grid"></div>
+		</div>
+	{/if}
+
 	{#if currentSubtitleImagePath() && !subtitleImageFailedToLoad}
 		<div
 			class="absolute inset-0 z-0 pointer-events-none select-none"
@@ -752,5 +765,26 @@
 	.translation-inline-flow {
 		display: inline;
 		white-space: inherit;
+	}
+
+	.alignment-overlay {
+		z-index: 2;
+	}
+
+	.alignment-grid {
+		position: absolute;
+		inset: 0;
+		background-image:
+			linear-gradient(
+				to right,
+				color-mix(in srgb, var(--text-primary) 28%, transparent) 2px,
+				transparent 2px
+			),
+			linear-gradient(
+				to bottom,
+				color-mix(in srgb, var(--text-primary) 28%, transparent) 2px,
+				transparent 2px
+			);
+		background-size: 10% 10%;
 	}
 </style>

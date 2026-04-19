@@ -83,6 +83,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		}
 
 		dragging = true;
+		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = true;
 		document.addEventListener('mousemove', mousemove);
 		document.addEventListener('mouseup', mouseup);
 		const cls = opts.classWhileDragging || 'dragging-vertical';
@@ -91,6 +92,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 
 	function mousemove(e: MouseEvent) {
 		if (!dragging) return;
+		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = true;
 
 		// Gestion du drag vertical
 		const deltaY = e.clientY - startY;
@@ -203,6 +205,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	function mouseup() {
 		if (!dragging) return;
 		dragging = false;
+		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
 		document.removeEventListener('mousemove', mousemove);
 		document.removeEventListener('mouseup', mouseup);
 		const cls = opts.classWhileDragging || 'dragging-vertical';
@@ -217,6 +220,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 			opts = newOptions;
 		},
 		destroy() {
+			globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
 			node.removeEventListener('mousedown', mousedown);
 			document.removeEventListener('mousemove', mousemove);
 			document.removeEventListener('mouseup', mouseup);

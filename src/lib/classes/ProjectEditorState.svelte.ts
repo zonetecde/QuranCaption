@@ -179,6 +179,12 @@ export class VideoPreviewState extends SerializableBase {
 	// Indique si la prévisualisation vidéo est en plein écran
 	isFullscreen: boolean = $state(false);
 
+	// Indique si la grille d'alignement doit être affichée dans l'onglet Style
+	showAlignmentGrid: boolean = $state(false);
+
+	// Affiche temporairement la grille pendant un drag d'élément dans la preview
+	showAlignmentGridWhileDragging: boolean = $state(false);
+
 	// Indique si on doit mute la vidéo
 	showVideosAndAudios: boolean = $state(false);
 

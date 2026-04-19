@@ -1,6 +1,7 @@
-	<script lang="ts">
-	import { Duration, PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
+<script lang="ts">
+	import { Duration } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { goToAdjacentSubtitleFromCursor } from '$lib/services/SubtitleNavigation';
 
 	let {
 		togglePlayPause
@@ -18,56 +19,12 @@
 		new Duration(globalState.getTimelineState.cursorPosition).getFormattedTime(false, true)
 	);
 
-	function getSubtitlePreviewStart(clip: SubtitleClip | PredefinedSubtitleClip): number {
-		const fadeDuration = globalState.getStyle('global', 'fade-duration').value as number;
-		const targetTime = clip.startTime + fadeDuration;
-		return Math.min(clip.endTime, Math.max(1, targetTime));
-	}
-
-	/**
-	 * Navigate to the start of the previous or next subtitle clip.
-	 * @param direction - 'previous' to go to the previous subtitle, 'next' to go to the next subtitle.
-	 */
-	function goToSubtitleStart(direction: 'previous' | 'next'): void {
-		const subtitleTrack = globalState.getSubtitleTrack;
-		const cursorPosition = globalState.getTimelineState.cursorPosition;
-		if (!subtitleTrack || subtitleTrack.clips.length === 0) return;
-
-		const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
-		let targetClip: SubtitleClip | PredefinedSubtitleClip | null = null;
-
-		if (clipUnderCursor) {
-			const currentIndex = subtitleTrack.clips.indexOf(clipUnderCursor);
-			targetClip =
-				direction === 'previous'
-					? subtitleTrack.getSubtitleBefore(currentIndex, true)
-					: subtitleTrack.getSubtitleAfter(currentIndex, true);
-		} else {
-			const subtitles = subtitleTrack.clips.filter(
-				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
-			) as (SubtitleClip | PredefinedSubtitleClip)[];
-			const isPrevious = direction === 'previous';
-			const targetList = subtitles
-				.filter((clip) =>
-					isPrevious ? clip.startTime < cursorPosition : clip.startTime > cursorPosition
-				)
-				.sort((a, b) => (isPrevious ? b.startTime - a.startTime : a.startTime - b.startTime));
-			targetClip = targetList[0] ?? null;
-		}
-
-		if (!targetClip) return;
-		const previewStart = getSubtitlePreviewStart(targetClip);
-		globalState.getTimelineState.cursorPosition = previewStart;
-		globalState.getTimelineState.movePreviewTo = previewStart;
-		globalState.getVideoPreviewState.scrollTimelineToCursor();
-	}
-
 	function goToPreviousSubtitleStart(): void {
-		goToSubtitleStart('previous');
+		goToAdjacentSubtitleFromCursor('previous');
 	}
 
 	function goToNextSubtitleStart(): void {
-		goToSubtitleStart('next');
+		goToAdjacentSubtitleFromCursor('next');
 	}
 </script>
 

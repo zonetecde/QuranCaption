@@ -55,7 +55,7 @@ export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
 		chunkSize: 200,
-		batchSize: 16
+		batchSize: 12
 	};
 
 	// État UI persistant

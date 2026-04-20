@@ -672,7 +672,7 @@
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
-				batchSize: globalState.settings?.exportSettings.batchSize ?? 16
+				batchSize: globalState.settings?.exportSettings.batchSize ?? 12
 			});
 
 			console.log(`[OK] Chunk ${chunkIndex} video generated successfully`);

@@ -32,6 +32,10 @@ type MutableSettingsForMigration = {
 	shortcuts: Record<string, ShortcutBucket>;
 	persistentUiState: { lastClosedSupportPromptModal?: string | Date };
 	aiTranslationSettings?: unknown;
+	exportSettings?: {
+		chunkSize?: number;
+		batchSize?: number;
+	};
 };
 type LegacyAssetFields = {
 	fromMp3Quran?: boolean;
@@ -90,10 +94,7 @@ export default class MigrationService {
 	static FromQC315ToQC316() {
 		const subtitlesEditorShortcuts = globalState.settings?.shortcuts
 			.SUBTITLES_EDITOR as ShortcutBucket & { SET_START_TO_PREVIOUS?: ShortcutAction };
-		if (
-			globalState.settings &&
-			subtitlesEditorShortcuts?.SET_START_TO_PREVIOUS
-		) {
+		if (globalState.settings && subtitlesEditorShortcuts?.SET_START_TO_PREVIOUS) {
 			globalState.settings.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS =
 				subtitlesEditorShortcuts.SET_START_TO_PREVIOUS;
 			delete subtitlesEditorShortcuts.SET_START_TO_PREVIOUS;
@@ -489,6 +490,32 @@ export default class MigrationService {
 		}
 	}
 
+	/*
+	 * Si la version actuelle est 3.4.4 et "batch size" est undefined (pas encore fait cette migration), change le chunk size en 200
+	 */
+	static FromQC343ToQC344() {
+		if (!globalState.settings) return;
+
+		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
+		const defaultExportSettings = new Settings().exportSettings;
+		let hasChanges = false;
+
+		settingsAny.exportSettings = settingsAny.exportSettings || {};
+
+		// Si on a pas encore le paramètre batchSize
+		if (typeof settingsAny.exportSettings.batchSize !== 'number') {
+			// Set batch size et met chunk size en valeur par défaut (200 normalement)
+			settingsAny.exportSettings.batchSize = defaultExportSettings.batchSize;
+			hasChanges = true;
+			settingsAny.exportSettings.chunkSize = defaultExportSettings.chunkSize;
+			hasChanges = true;
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
 	/**
 	 * Vérifie si des données de Quran Caption 2 sont présentes
 	 * @returns true si des données sont trouvées, sinon false
@@ -753,5 +780,3 @@ function formatTranslationName(key: string) {
 		.replace('fra-muhammadhamidul', 'fra-muhammadhameedu')
 		.replace('deu-asfbubenheimand', 'deu-frankbubenheima');
 }
-
-

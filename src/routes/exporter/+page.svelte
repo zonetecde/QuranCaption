@@ -40,7 +40,7 @@
 	let exportData: Exportation | undefined;
 
 	// Durée de chunk calculée dynamiquement basée sur chunkSize (1-200)
-	// chunkSize = 1 -> 30s, chunkSize = 50 -> 2min30, chunkSize = 200 -> 10min
+	// chunkSize = 1 -> 30s, chunkSize = 100 -> ~5min15, chunkSize = 200 -> 10min
 	let CHUNK_DURATION = 0; // Sera calculé dans onMount
 	let activeVideoSegments: TimeRange[] = [];
 
@@ -256,7 +256,7 @@
 				(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
 
 			// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
-			// Formule linéaire: chunkSize=1 -> 30s, chunkSize=50 -> 2min30, chunkSize=200 -> 10min
+			// Formule linéaire: chunkSize=1 -> 30s, chunkSize=100 -> ~5min15, chunkSize=200 -> 10min
 			const chunkSize =
 				globalState.settings?.exportSettings.chunkSize ?? globalState.getExportState.chunkSize;
 			const minDuration = 30 * 1000; // 30 secondes en ms
@@ -671,7 +671,8 @@
 				audioFadeInEnabled: false,
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
-				performanceProfile: globalState.getExportState.performanceProfile
+				performanceProfile: globalState.getExportState.performanceProfile,
+				batchSize: globalState.settings?.exportSettings.batchSize ?? 16
 			});
 
 			console.log(`[OK] Chunk ${chunkIndex} video generated successfully`);
@@ -823,12 +824,14 @@
 	}
 
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
-		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map((clip) => ({
-			startTime: clip.startTime,
-			endTime: clip.endTime,
-			kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
-			surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined
-		}));
+		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
+			(clip) => ({
+				startTime: clip.startTime,
+				endTime: clip.endTime,
+				kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
+				surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined
+			})
+		);
 
 		const customTextClips: ExportCustomTextCaptureClip[] = (
 			globalState.getCustomClipTrack?.clips || []
@@ -1147,7 +1150,9 @@
 
 			do {
 				if (Date.now() - startTime > timeout) {
-					console.warn(`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`);
+					console.warn(
+						`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`
+					);
 					break;
 				}
 				await new Promise((resolve) => setTimeout(resolve, 10));

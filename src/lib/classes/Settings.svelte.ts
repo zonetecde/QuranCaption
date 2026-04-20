@@ -37,6 +37,7 @@ export type AITranslationSettings = {
 
 export type ExportSettings = {
 	chunkSize: number;
+	batchSize: number;
 };
 
 export type SavedVideoStylePreset = {
@@ -52,6 +53,10 @@ const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
 
 export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
+	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
+		chunkSize: 200,
+		batchSize: 16
+	};
 
 	// État UI persistant
 	persistentUiState = $state({
@@ -103,9 +108,7 @@ export default class Settings extends SerializableBase {
 		telemetryConsent: 'unknown'
 	});
 
-	exportSettings = $state<ExportSettings>({
-		chunkSize: 50
-	});
+	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
 
 	savedVideoStylePresets = $state<SavedVideoStylePreset[]>([]);
 
@@ -327,10 +330,16 @@ export default class Settings extends SerializableBase {
 
 		globalState.settings = Settings.fromJSON(settingsData) as Settings;
 		const settings = globalState.settings;
+		let shouldSave = false;
+
+		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
+			settings.exportSettings = {} as ExportSettings;
+			shouldSave = true;
+		}
 
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
-			await this.save();
+			shouldSave = true;
 		}
 
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
@@ -343,8 +352,7 @@ export default class Settings extends SerializableBase {
 			// Met à jour la version
 			settings.appVersion = latestVersion || '0.0.0';
 
-			// Sauvegarde les paramètres mis à jour
-			await this.save();
+			shouldSave = true;
 		}
 
 		// Migration des paramètres si besoin
@@ -357,6 +365,27 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC334ToQC335();
 		MigrationService.FromQC336ToQC337();
 		MigrationService.FromQC339ToQC340();
+		MigrationService.FromQC343ToQC344();
+
+		if (
+			typeof settings.exportSettings.chunkSize !== 'number' ||
+			Number.isNaN(settings.exportSettings.chunkSize)
+		) {
+			settings.exportSettings.chunkSize = Settings.DEFAULT_EXPORT_SETTINGS.chunkSize;
+			shouldSave = true;
+		}
+
+		if (
+			typeof settings.exportSettings.batchSize !== 'number' ||
+			Number.isNaN(settings.exportSettings.batchSize)
+		) {
+			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
+			shouldSave = true;
+		}
+
+		if (shouldSave) {
+			await this.save();
+		}
 	}
 }
 

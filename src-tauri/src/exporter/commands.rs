@@ -22,6 +22,7 @@ static CANCELLED_EXPORTS: LazyLock<Mutex<HashSet<String>>> =
 
 const MAX_FILTERGRAPH_IMAGES_HIGH_RES: usize = 6;
 const MAX_FILTERGRAPH_IMAGES_STANDARD: usize = 12;
+const DEFAULT_FILTERGRAPH_BATCH_SIZE: usize = 16;
 
 #[derive(Clone, Copy)]
 struct FfmpegProgressContext {
@@ -1189,7 +1190,16 @@ fn video_has_audio(path: &str) -> bool {
     }
 }
 
-fn filtergraph_batch_limit(target_size: (i32, i32)) -> usize {
+fn normalize_filtergraph_batch_size(batch_size: Option<i32>) -> usize {
+    let requested = batch_size.unwrap_or(DEFAULT_FILTERGRAPH_BATCH_SIZE as i32);
+    requested.clamp(2, 64) as usize
+}
+
+fn filtergraph_batch_limit(target_size: (i32, i32), batch_size: Option<i32>) -> usize {
+    if let Some(batch_size) = batch_size {
+        return normalize_filtergraph_batch_size(Some(batch_size));
+    }
+
     if is_high_resolution_export(target_size.0, target_size.1) {
         MAX_FILTERGRAPH_IMAGES_HIGH_RES
     } else {
@@ -1482,6 +1492,7 @@ fn build_and_run_ffmpeg_filter_complex(
     audio_fade_in_enabled: bool,
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
+    batch_size: Option<i32>,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -1502,7 +1513,7 @@ fn build_and_run_ffmpeg_filter_complex(
     let tail_ms = fade_duration_ms.max(1000);
     let full_duration_ms = duration_ms.unwrap_or_else(|| timestamps_ms[n - 1] + tail_ms);
     let full_duration_s = (full_duration_ms as f64 / 1000.0).max(0.001);
-    let batch_limit = filtergraph_batch_limit(target_size);
+    let batch_limit = filtergraph_batch_limit(target_size, batch_size);
 
     if n <= batch_limit {
         return render_ffmpeg_filter_complex_single(
@@ -2133,6 +2144,7 @@ pub async fn export_video(
     audio_fade_in_enabled: Option<bool>,
     audio_fade_out_enabled: Option<bool>,
     export_fade_duration_ms: Option<i32>,
+    batch_size: Option<i32>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
@@ -2163,6 +2175,10 @@ pub async fn export_video(
     println!(
         "[perf] thread_cap={:?}",
         compute_ffmpeg_thread_cap(performance_profile)
+    );
+    println!(
+        "[perf] batch_size={}",
+        normalize_filtergraph_batch_size(batch_size)
     );
 
     if let Some(ref audios) = audios {
@@ -2328,6 +2344,7 @@ pub async fn export_video(
             audio_fade_in_enabled.unwrap_or(false),
             audio_fade_out_enabled.unwrap_or(false),
             export_fade_duration_ms.unwrap_or(0),
+            batch_size,
             performance_profile,
             app_handle,
         )

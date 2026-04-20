@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
 	import Settings from '$lib/classes/Settings.svelte';
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
@@ -43,14 +43,6 @@
 		if (!globalState.getExportState.videoEndTime) {
 			globalState.getExportState.videoEndTime = globalState.getAudioTrack.getDuration().ms || 0;
 		}
-		if (
-			globalState.settings &&
-			globalState.settings.exportSettings.chunkSize === 50 &&
-			globalState.getExportState.chunkSize !== 50
-		) {
-			globalState.settings.exportSettings.chunkSize = globalState.getExportState.chunkSize;
-			void Settings.save();
-		}
 	});
 
 	// Helper function to format duration for display
@@ -68,6 +60,10 @@
 	}
 
 	function persistGlobalChunkSize(): void {
+		void Settings.save();
+	}
+
+	function persistGlobalBatchSize(): void {
 		void Settings.save();
 	}
 </script>
@@ -172,8 +168,8 @@
 					less fluid).
 				</p>
 				<p class="text-thirdly text-sm leading-snug">
-					<b>Chunk size</b> for video processing (lower values use less memory). Range: 1-200 (1=30s,
-					50=2min30, 200=10min)
+					<b>Batch size</b> for ffmpeg transitions. Lower values use less RAM but export slower. Default
+					is 16.
 				</p>
 				<input
 					type="number"
@@ -185,12 +181,12 @@
 				/>
 				<input
 					type="number"
-					min="1"
-					max="200"
+					min="2"
+					max="128"
 					step="1"
 					class="input w-full h-10"
-					bind:value={globalState.settings!.exportSettings.chunkSize}
-					onchange={persistGlobalChunkSize}
+					bind:value={globalState.settings!.exportSettings.batchSize}
+					onchange={persistGlobalBatchSize}
 				/>
 			</div>
 		</div>
@@ -264,6 +260,24 @@
 					<p class="text-thirdly text-sm">
 						Choose how aggressively the exporter should use your CPU during ffmpeg work.
 					</p>
+				</div>
+
+				<div class="mb-4 rounded-lg border border-color p-3">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<p class="text-xs font-medium text-thirdly/80">Chunk size</p>
+							<p class="text-[11px] text-thirdly/60">Only for long exports.</p>
+						</div>
+						<input
+							type="number"
+							min="1"
+							max="200"
+							step="1"
+							class="input h-9 w-24 text-sm"
+							bind:value={globalState.settings!.exportSettings.chunkSize}
+							onchange={persistGlobalChunkSize}
+						/>
+					</div>
 				</div>
 
 				<div class="grid grid-cols-1 gap-3">

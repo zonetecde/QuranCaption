@@ -1,10 +1,10 @@
-﻿use crate::binaries;
+use crate::binaries;
 use crate::path_utils;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, ExitStatus, Stdio};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::Emitter;
@@ -17,6 +17,286 @@ static LAST_EXPORT_TIME_S: Mutex<Option<f64>> = Mutex::new(None);
 // Gestionnaire des processus actifs pour pouvoir les annuler
 static ACTIVE_EXPORTS: LazyLock<Mutex<HashMap<String, Arc<Mutex<Option<std::process::Child>>>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+static CANCELLED_EXPORTS: LazyLock<Mutex<HashSet<String>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
+
+const MAX_FILTERGRAPH_IMAGES_HIGH_RES: usize = 6;
+const MAX_FILTERGRAPH_IMAGES_STANDARD: usize = 12;
+
+#[derive(Clone, Copy)]
+struct FfmpegProgressContext {
+    base_time_s: f64,
+    total_time_s: f64,
+    local_duration_s: f64,
+    chunk_index: Option<i32>,
+}
+
+fn is_export_cancelled(export_id: &str) -> bool {
+    CANCELLED_EXPORTS
+        .lock()
+        .map(|cancelled| cancelled.contains(export_id))
+        .unwrap_or(false)
+}
+
+fn mark_export_cancelled(export_id: &str) {
+    if let Ok(mut cancelled) = CANCELLED_EXPORTS.lock() {
+        cancelled.insert(export_id.to_string());
+    }
+}
+
+fn clear_export_cancelled(export_id: &str) {
+    if let Ok(mut cancelled) = CANCELLED_EXPORTS.lock() {
+        cancelled.remove(export_id);
+    }
+}
+
+fn exit_status_details(status: &ExitStatus) -> String {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+
+        let mut details = format!("Exit Code: {:?}", status.code());
+        if let Some(signal) = status.signal() {
+            details.push_str(&format!("\n             Termination Signal: {}", signal));
+            if signal == 9 {
+                details.push_str(
+                    " (SIGKILL; process was likely killed by the OS, often memory pressure/OOM)",
+                );
+            }
+        }
+
+        details
+    }
+
+    #[cfg(not(unix))]
+    {
+        format!("Exit Code: {:?}", status.code())
+    }
+}
+
+fn ensure_export_not_cancelled(
+    export_id: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    if is_export_cancelled(export_id) {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Interrupted,
+            format!("Export {} was cancelled", export_id),
+        )));
+    }
+
+    Ok(())
+}
+
+fn run_ffmpeg_command(
+    export_id: &str,
+    cmd: &[String],
+    progress_context: Option<FfmpegProgressContext>,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    ensure_export_not_cancelled(export_id)?;
+
+    println!("[ffmpeg] Commande:");
+    let preview = if cmd.len() > 14 {
+        format!("{} ...", cmd[..14].join(" "))
+    } else {
+        cmd.join(" ")
+    };
+    println!("  {}", preview);
+
+    let mut command = Command::new(&cmd[0]);
+    command.args(&cmd[1..]);
+    command.stderr(Stdio::piped());
+
+    configure_command_no_window(&mut command);
+
+    let child = command.spawn()?;
+    let process_ref = Arc::new(Mutex::new(Some(child)));
+    {
+        let mut active_exports = ACTIVE_EXPORTS
+            .lock()
+            .map_err(|_| "Failed to lock active exports")?;
+        active_exports.insert(export_id.to_string(), process_ref.clone());
+    }
+
+    let stderr = {
+        let mut child_guard = process_ref
+            .lock()
+            .map_err(|_| "Failed to lock child process")?;
+        if let Some(ref mut child) = child_guard.as_mut() {
+            child.stderr.take().ok_or("Failed to capture stderr")?
+        } else {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Process was cancelled",
+            )));
+        }
+    };
+
+    let reader = BufReader::new(stderr);
+    let mut stderr_content = String::new();
+
+    for line in reader.lines() {
+        if let Ok(line) = line {
+            println!("[ffmpeg] {}", line);
+
+            stderr_content.push_str(&line);
+            stderr_content.push('\n');
+
+            if let Some(progress_context) = progress_context {
+                if line.contains("time=") || line.contains("out_time_ms=") {
+                    if let Some(time_str) = extract_time_from_ffmpeg_line(&line) {
+                        let local_time_s =
+                            parse_ffmpeg_time(&time_str).min(progress_context.local_duration_s);
+                        let current_time_s = (progress_context.base_time_s + local_time_s)
+                            .min(progress_context.total_time_s);
+                        let progress = if progress_context.total_time_s > 0.0 {
+                            (current_time_s / progress_context.total_time_s * 100.0).min(100.0)
+                        } else {
+                            0.0
+                        };
+
+                        println!(
+                            "[progress] {}% ({:.1}s / {:.1}s)",
+                            progress.round(),
+                            current_time_s,
+                            progress_context.total_time_s
+                        );
+
+                        let mut progress_data = serde_json::json!({
+                            "export_id": export_id,
+                            "progress": progress,
+                            "current_time": current_time_s,
+                            "total_time": progress_context.total_time_s
+                        });
+
+                        if let Some(chunk_idx) = progress_context.chunk_index {
+                            progress_data["chunk_index"] =
+                                serde_json::Value::Number(serde_json::Number::from(chunk_idx));
+                        }
+
+                        let _ = app_handle.emit("export-progress", progress_data);
+                    }
+                }
+            }
+        }
+    }
+
+    let status = {
+        let mut child_guard = process_ref
+            .lock()
+            .map_err(|_| "Failed to lock child process")?;
+        if let Some(mut child) = child_guard.take() {
+            child.wait()?
+        } else {
+            let error_msg = format!("Export {} was cancelled", export_id);
+            let mut error_data = serde_json::json!({
+                "export_id": export_id,
+                "error": error_msg
+            });
+
+            if let Some(progress_context) = progress_context {
+                if let Some(chunk_idx) = progress_context.chunk_index {
+                    error_data["chunk_index"] =
+                        serde_json::Value::Number(serde_json::Number::from(chunk_idx));
+                }
+            }
+
+            let _ = app_handle.emit("export-error", error_data);
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Interrupted,
+                error_msg,
+            )));
+        }
+    };
+
+    {
+        let mut active_exports = ACTIVE_EXPORTS
+            .lock()
+            .map_err(|_| "Failed to lock active exports")?;
+        active_exports.remove(export_id);
+    }
+
+    if !status.success() {
+        let now = std::time::SystemTime::now();
+        let timestamp = now
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let log_filename = format!("ffmpeg_failed_{}.txt", timestamp);
+        let log_relative_path = PathBuf::from("logs").join(&log_filename);
+        let status_details = exit_status_details(&status);
+
+        let log_content = format!(
+            "FFmpeg Export Failure Log\n\
+             =========================\n\
+             Timestamp: {}\n\
+             Export ID: {}\n\
+             {}\n\
+             \n\
+             FFmpeg Command:\n\
+             {}\n\
+             \n\
+             Standard Error Output:\n\
+             {}\n",
+            timestamp,
+            export_id,
+            status_details,
+            cmd.join(" "),
+            if stderr_content.is_empty() {
+                "No stderr output captured".to_string()
+            } else {
+                stderr_content
+            }
+        );
+
+        let log_write_path = app_handle
+            .path()
+            .app_data_dir()
+            .map(|dir| dir.join(&log_relative_path))
+            .unwrap_or_else(|_| PathBuf::from(&log_filename));
+        let log_write_path_display = log_write_path.to_string_lossy().replace('\\', "/");
+
+        if let Some(parent) = log_write_path.parent() {
+            if let Err(mkdir_err) = fs::create_dir_all(parent) {
+                eprintln!("Failed to create log directory {:?}: {}", parent, mkdir_err);
+            }
+        }
+
+        if let Err(log_err) = std::fs::write(&log_write_path, &log_content) {
+            eprintln!("Failed to write log file {:?}: {}", log_write_path, log_err);
+        } else {
+            println!("FFmpeg error details saved to: {}", log_write_path_display);
+        }
+
+        let error_msg = format!(
+            "ffmpeg failed during video exportation ({})\n\nSee the log file: {}\n\nLog details:\n{}",
+            status_details,
+            log_write_path_display,
+            log_content
+        );
+        let mut error_data = serde_json::json!({
+            "export_id": export_id,
+            "error": error_msg
+        });
+
+        if let Some(progress_context) = progress_context {
+            if let Some(chunk_idx) = progress_context.chunk_index {
+                error_data["chunk_index"] =
+                    serde_json::Value::Number(serde_json::Number::from(chunk_idx));
+            }
+        }
+
+        let _ = app_handle.emit("export-error", error_data);
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            error_msg,
+        )));
+    }
+
+    ensure_export_not_cancelled(export_id)?;
+
+    Ok(())
+}
 
 // Fonction utilitaire pour configurer les commandes et cacher les fenêtres CMD sur Windows
 /// Fonction du module export.
@@ -32,7 +312,10 @@ fn configure_command_no_window(cmd: &mut Command) {
 /// Construit un chemin temporaire dans le même dossier que la destination finale.
 /// Le fichier conserve la même extension pour laisser FFmpeg choisir le bon conteneur.
 fn build_temp_output_path(dst: &Path) -> PathBuf {
-    let stem = dst.file_stem().and_then(|s| s.to_str()).unwrap_or("preproc");
+    let stem = dst
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("preproc");
     let ext = dst.extension().and_then(|s| s.to_str()).unwrap_or("mp4");
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -224,10 +507,7 @@ fn test_nvenc_with_larger_resolution(ffmpeg_path: Option<&str>) -> bool {
             success
         }
         Err(e) => {
-            println!(
-                "[nvenc_test] ✗ Erreur test résolution plus grande: {}",
-                e
-            );
+            println!("[nvenc_test] ✗ Erreur test résolution plus grande: {}", e);
             false
         }
     }
@@ -399,8 +679,7 @@ fn ffmpeg_preprocess_video(
     loop_video: bool,
     performance_profile: ExportPerformanceProfile,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let (codec, params, extra) =
-        choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
+    let (codec, params, extra) = choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
     let exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let dst_path = Path::new(dst);
     if let Some(parent) = dst_path.parent() {
@@ -796,7 +1075,15 @@ fn preprocess_background_videos(
 
         let hash_input = format!(
             "{}-{}-{}x{}-{}-start{}-len{}{}{}",
-            preproc_cache_version, vid_path, w, h, fps, start_within, take_ms, blur_suffix, loop_suffix
+            preproc_cache_version,
+            vid_path,
+            w,
+            h,
+            fps,
+            start_within,
+            take_ms,
+            blur_suffix,
+            loop_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
@@ -902,6 +1189,276 @@ fn video_has_audio(path: &str) -> bool {
     }
 }
 
+fn filtergraph_batch_limit(target_size: (i32, i32)) -> usize {
+    if is_high_resolution_export(target_size.0, target_size.1) {
+        MAX_FILTERGRAPH_IMAGES_HIGH_RES
+    } else {
+        MAX_FILTERGRAPH_IMAGES_STANDARD
+    }
+}
+
+fn make_internal_batch_path(base_dir: &Path, export_id: &str, batch_index: usize) -> PathBuf {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    base_dir.join(format!(
+        "internal_batch_{}_{}_{}.mp4",
+        export_id, batch_index, nonce
+    ))
+}
+
+fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> i32 {
+    if timestamps_ms.len() < 2 {
+        return 0;
+    }
+
+    let last = timestamps_ms.len() - 1;
+    (timestamps_ms[last] - timestamps_ms[last - 1])
+        .max(0)
+        .min(fade_duration_ms.max(0))
+}
+
+fn compute_render_output_duration_ms(
+    local_timestamps_ms: &[i32],
+    fade_duration_ms: i32,
+    last_tail_ms: i32,
+) -> i32 {
+    if local_timestamps_ms.is_empty() {
+        return 1;
+    }
+
+    let fade_duration_ms = fade_duration_ms.max(0);
+    let mut total = last_tail_ms.max(1);
+
+    for pair in local_timestamps_ms.windows(2) {
+        let delta = (pair[1] - pair[0]).max(1);
+        total += delta - delta.min(fade_duration_ms);
+    }
+
+    total.max(1)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn concat_internal_batch_videos(
+    export_id: &str,
+    batch_paths: &[String],
+    output_path: &str,
+    total_duration_s: f64,
+    start_time_ms: i32,
+    audio_paths: &[String],
+    video_fade_in_enabled: bool,
+    video_fade_out_enabled: bool,
+    audio_fade_in_enabled: bool,
+    audio_fade_out_enabled: bool,
+    export_fade_duration_ms: i32,
+    performance_profile: ExportPerformanceProfile,
+    app_handle: tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    if batch_paths.is_empty() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Aucune vidéo de batch à concaténer",
+        )));
+    }
+
+    ensure_export_not_cancelled(export_id)?;
+
+    let apply_video_fade = video_fade_in_enabled || video_fade_out_enabled;
+    let apply_audio_fade = audio_fade_in_enabled || audio_fade_out_enabled;
+    let apply_any_fade = apply_video_fade || apply_audio_fade;
+    let start_s = (start_time_ms as f64 / 1000.0).max(0.0);
+    let total_audio_s: f64 = audio_paths.iter().map(|p| ffprobe_duration_sec(p)).sum();
+    let have_audio = !audio_paths.is_empty() && start_s < total_audio_s - 1e-6;
+
+    if batch_paths.len() == 1 && !apply_any_fade && !have_audio {
+        fs::copy(&batch_paths[0], output_path)?;
+        return Ok(());
+    }
+
+    let output_path_buf = path_utils::normalize_output_path(output_path);
+    if let Some(parent) = output_path_buf.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    for batch_path in batch_paths {
+        if !Path::new(batch_path).exists() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Batch video not found: {}", batch_path),
+            )));
+        }
+    }
+
+    let base_dir = output_path_buf
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(std::env::temp_dir);
+    let list_file_path = base_dir.join(format!(
+        "internal_batch_concat_{}_{}.txt",
+        export_id,
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+    ));
+
+    let mut list_content = String::new();
+    for batch_path in batch_paths {
+        let escaped = path_utils::escape_ffconcat_path(batch_path);
+        list_content.push_str(&format!("file '{}'\n", escaped));
+    }
+    fs::write(&list_file_path, list_content)?;
+
+    let fade_s = (export_fade_duration_ms as f64 / 1000.0)
+        .max(0.0)
+        .min(total_duration_s.max(0.0));
+    let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let mut cmd = vec![
+        ffmpeg_exe,
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "info".to_string(),
+        "-stats".to_string(),
+        "-progress".to_string(),
+        "pipe:2".to_string(),
+        "-fflags".to_string(),
+        "+genpts".to_string(),
+        "-f".to_string(),
+        "concat".to_string(),
+        "-safe".to_string(),
+        "0".to_string(),
+        "-i".to_string(),
+        list_file_path.to_string_lossy().to_string(),
+    ];
+
+    for audio_path in audio_paths {
+        cmd.extend_from_slice(&["-i".to_string(), audio_path.clone()]);
+    }
+
+    cmd.extend_from_slice(&[
+        "-avoid_negative_ts".to_string(),
+        "make_zero".to_string(),
+        "-map".to_string(),
+        "0:v".to_string(),
+    ]);
+
+    if apply_video_fade && fade_s > 0.0 {
+        let mut video_filters: Vec<String> = Vec::new();
+        if video_fade_in_enabled {
+            video_filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
+        }
+        if video_fade_out_enabled {
+            let fade_out_start = (total_duration_s - fade_s).max(0.0);
+            video_filters.push(format!(
+                "fade=t=out:st={:.6}:d={:.6}",
+                fade_out_start, fade_s
+            ));
+        }
+        if !video_filters.is_empty() {
+            cmd.extend_from_slice(&["-vf".to_string(), video_filters.join(",")]);
+        }
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libx264".to_string(),
+            "-preset".to_string(),
+            "veryfast".to_string(),
+            "-crf".to_string(),
+            "18".to_string(),
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+        ]);
+    } else {
+        cmd.extend_from_slice(&["-c:v".to_string(), "copy".to_string()]);
+    }
+
+    if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
+
+    if have_audio {
+        let mut filter_lines: Vec<String> = Vec::new();
+        let audio_start_idx = 1;
+        if audio_paths.len() == 1 {
+            filter_lines.push(format!("[{}:a]aresample=48000[aa0]", audio_start_idx));
+            filter_lines.push(format!(
+                "[aa0]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
+                start_s, total_duration_s
+            ));
+        } else {
+            for idx in 0..audio_paths.len() {
+                filter_lines.push(format!(
+                    "[{}:a]aresample=48000[aa{}]",
+                    audio_start_idx + idx,
+                    idx
+                ));
+            }
+            let mut ins = String::new();
+            for idx in 0..audio_paths.len() {
+                ins.push_str(&format!("[aa{}]", idx));
+            }
+            filter_lines.push(format!(
+                "{}concat=n={}:v=0:a=1[aacat]",
+                ins,
+                audio_paths.len()
+            ));
+            filter_lines.push(format!(
+                "[aacat]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
+                start_s, total_duration_s
+            ));
+        }
+
+        let mut current_audio_label = "aoutraw".to_string();
+        if apply_audio_fade && fade_s > 0.0 {
+            if audio_fade_in_enabled {
+                filter_lines.push(format!(
+                    "[{}]afade=t=in:st=0:d={:.6}[afadein]",
+                    current_audio_label, fade_s
+                ));
+                current_audio_label = "afadein".to_string();
+            }
+            if audio_fade_out_enabled {
+                let fade_out_start = (total_duration_s - fade_s).max(0.0);
+                filter_lines.push(format!(
+                    "[{}]afade=t=out:st={:.6}:d={:.6}[afadeout]",
+                    current_audio_label, fade_out_start, fade_s
+                ));
+                current_audio_label = "afadeout".to_string();
+            }
+        }
+
+        cmd.extend_from_slice(&["-filter_complex".to_string(), filter_lines.join(";")]);
+        cmd.extend_from_slice(&[
+            "-map".to_string(),
+            format!("[{}]", current_audio_label),
+            "-c:a".to_string(),
+            "aac".to_string(),
+            "-b:a".to_string(),
+            "192k".to_string(),
+        ]);
+    } else {
+        cmd.push("-an".to_string());
+    }
+
+    cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", total_duration_s)]);
+
+    let ext = output_path_buf
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if matches!(ext.as_str(), "mp4" | "mov" | "m4v") {
+        cmd.extend_from_slice(&["-movflags".to_string(), "+faststart".to_string()]);
+    }
+
+    cmd.push(output_path_buf.to_string_lossy().to_string());
+
+    let run_result = run_ffmpeg_command(export_id, &cmd, None, &app_handle);
+    fs::remove_file(&list_file_path).ok();
+    run_result
+}
+
 #[allow(clippy::too_many_arguments)]
 /// Fonction du module export.
 fn build_and_run_ffmpeg_filter_complex(
@@ -926,6 +1483,219 @@ fn build_and_run_ffmpeg_filter_complex(
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
     performance_profile: ExportPerformanceProfile,
+    app_handle: tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let n = image_paths.len();
+    if n == 0 {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Aucune image fournie",
+        )));
+    }
+    if n != timestamps_ms.len() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Le nombre d'images ne correspond pas au nombre de timestamps",
+        )));
+    }
+
+    let tail_ms = fade_duration_ms.max(1000);
+    let full_duration_ms = duration_ms.unwrap_or_else(|| timestamps_ms[n - 1] + tail_ms);
+    let full_duration_s = (full_duration_ms as f64 / 1000.0).max(0.001);
+    let batch_limit = filtergraph_batch_limit(target_size);
+
+    if n <= batch_limit {
+        return render_ffmpeg_filter_complex_single(
+            export_id,
+            out_path,
+            image_paths,
+            timestamps_ms,
+            target_size,
+            fps,
+            fade_duration_ms,
+            start_time_ms,
+            audio_paths,
+            video_inputs,
+            prefer_hw,
+            imgs_cwd,
+            duration_ms,
+            chunk_index,
+            blur,
+            video_fade_in_enabled,
+            video_fade_out_enabled,
+            audio_fade_in_enabled,
+            audio_fade_out_enabled,
+            export_fade_duration_ms,
+            performance_profile,
+            0.0,
+            full_duration_s,
+            app_handle,
+        );
+    }
+
+    println!(
+        "[batching] {} image(s), limite {}, rendu interne en batchs",
+        n, batch_limit
+    );
+
+    let base_dir = if let Some(cwd) = imgs_cwd {
+        PathBuf::from(cwd)
+    } else {
+        Path::new(out_path)
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(std::env::temp_dir)
+    };
+    fs::create_dir_all(&base_dir).ok();
+
+    let mut batch_paths: Vec<String> = Vec::new();
+    let mut batch_start_idx = 0usize;
+    let mut batch_index = 0usize;
+    let mut batch_base_ms = 0i32;
+    let mut batch_start_completed_fade_ms = 0i32;
+
+    while batch_start_idx < n {
+        ensure_export_not_cancelled(export_id)?;
+
+        let batch_end_idx = (batch_start_idx + batch_limit).min(n);
+        let is_last_batch = batch_end_idx >= n;
+        let batch_start_adjusted_ts = timestamps_ms[batch_start_idx];
+        let batch_slice = &timestamps_ms[batch_start_idx..batch_end_idx];
+        let boundary_fade_ms = if is_last_batch {
+            0
+        } else {
+            transition_fade_duration_ms(batch_slice, fade_duration_ms)
+        };
+        let batch_timestamps: Vec<i32> = batch_slice
+            .iter()
+            .enumerate()
+            .map(|(idx, timestamp)| {
+                let local_ts = timestamp - batch_start_adjusted_ts;
+                if idx == 0 {
+                    0
+                } else {
+                    (local_ts - batch_start_completed_fade_ms).max(1)
+                }
+            })
+            .collect();
+        let last_tail_ms = if is_last_batch {
+            fade_duration_ms.max(1000)
+        } else {
+            1
+        };
+        let mut batch_duration_ms = compute_render_output_duration_ms(
+            &batch_timestamps,
+            fade_duration_ms,
+            last_tail_ms,
+        )
+        .saturating_add(boundary_fade_ms);
+        batch_duration_ms = batch_duration_ms.min((full_duration_ms - batch_base_ms).max(1));
+        let batch_output_path = make_internal_batch_path(&base_dir, export_id, batch_index);
+        let batch_output = batch_output_path.to_string_lossy().to_string();
+
+        println!(
+            "[batching] batch {}: images {}..{} adjusted_start={}ms real_start={}ms start_fade={}ms end_fade={}ms tail={}ms duration={}ms output={}",
+            batch_index,
+            batch_start_idx,
+            batch_end_idx - 1,
+            batch_start_adjusted_ts,
+            batch_base_ms,
+            batch_start_completed_fade_ms,
+            boundary_fade_ms,
+            last_tail_ms,
+            batch_duration_ms,
+            batch_output
+        );
+
+        render_ffmpeg_filter_complex_single(
+            export_id,
+            &batch_output,
+            &image_paths[batch_start_idx..batch_end_idx],
+            &batch_timestamps,
+            target_size,
+            fps,
+            fade_duration_ms,
+            start_time_ms + batch_base_ms,
+            &[],
+            video_inputs,
+            prefer_hw,
+            imgs_cwd,
+            Some(batch_duration_ms),
+            chunk_index,
+            blur,
+            false,
+            false,
+            false,
+            false,
+            0,
+            performance_profile,
+            batch_base_ms as f64 / 1000.0,
+            full_duration_s,
+            app_handle.clone(),
+        )?;
+
+        batch_paths.push(batch_output);
+
+        if is_last_batch {
+            break;
+        }
+
+        batch_base_ms += batch_duration_ms;
+        batch_start_completed_fade_ms = boundary_fade_ms;
+        batch_start_idx = batch_end_idx - 1;
+        batch_index += 1;
+    }
+
+    concat_internal_batch_videos(
+        export_id,
+        &batch_paths,
+        out_path,
+        full_duration_s,
+        start_time_ms,
+        audio_paths,
+        video_fade_in_enabled,
+        video_fade_out_enabled,
+        audio_fade_in_enabled,
+        audio_fade_out_enabled,
+        export_fade_duration_ms,
+        performance_profile,
+        app_handle,
+    )?;
+
+    println!(
+        "[batching] Keeping {} internal batch file(s) for debugging",
+        batch_paths.len()
+    );
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+/// Fonction du module export.
+fn render_ffmpeg_filter_complex_single(
+    export_id: &str,
+    out_path: &str,
+    image_paths: &[String],
+    timestamps_ms: &[i32],
+    target_size: (i32, i32),
+    fps: i32,
+    fade_duration_ms: i32,
+    start_time_ms: i32,
+    audio_paths: &[String],
+    video_inputs: &[VideoInput],
+    prefer_hw: bool,
+    imgs_cwd: Option<&str>,
+    duration_ms: Option<i32>,
+    chunk_index: Option<i32>,
+    blur: Option<f64>,
+    video_fade_in_enabled: bool,
+    video_fade_out_enabled: bool,
+    audio_fade_in_enabled: bool,
+    audio_fade_out_enabled: bool,
+    export_fade_duration_ms: i32,
+    performance_profile: ExportPerformanceProfile,
+    progress_base_s: f64,
+    progress_total_s: f64,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // TEMP TEST: force FFmpeg failure on every export to test error handling UI.
@@ -1170,15 +1940,13 @@ fn build_and_run_ffmpeg_filter_complex(
 
         if avail_bg_after + 1e-6 < duration_s {
             let remain = duration_s - avail_bg_after;
-            let color_pad_idx = current_idx;
-            cmd.extend_from_slice(&[
-                "-f".to_string(),
-                "lavfi".to_string(),
-                "-i".to_string(),
-                format!("color=c=black:s={}x{}:r={}:d={:.6}", w, h, fps, remain),
-            ]);
-            filter_lines.push(format!("[{}:v]setsar=1[colorpad]", color_pad_idx));
-            filter_lines.push(format!("[bgtrim][colorpad]concat=n=2:v=1:a=0[bg]"));
+            // Évite un flash noir à la fin des batchs quand la durée réelle du fond
+            // est légèrement plus courte que la durée demandée: on prolonge la dernière
+            // frame du fond au lieu de concaténer du noir.
+            filter_lines.push(format!(
+                "[bgtrim]tpad=stop_mode=clone:stop_duration={:.6}[bg]",
+                remain
+            ));
             bg_label = "bg".to_string();
         }
 
@@ -1327,215 +2095,17 @@ fn build_and_run_ffmpeg_filter_complex(
 
     cmd.push(out_path.to_string());
 
-    println!("[ffmpeg] Commande:");
-    let preview = if cmd.len() > 14 {
-        format!("{} ...", cmd[..14].join(" "))
-    } else {
-        cmd.join(" ")
-    };
-    println!("  {}", preview);
-
-    // Exécution avec capture de la progression
-    let mut command = Command::new(&cmd[0]);
-    command.args(&cmd[1..]);
-    command.stderr(Stdio::piped());
-
-    // Configurer la commande pour cacher les fenêtres CMD sur Windows
-    configure_command_no_window(&mut command);
-
-    let child = command.spawn()?;
-
-    // Enregistrer le processus dans les exports actifs
-    let process_ref = Arc::new(Mutex::new(Some(child)));
-    {
-        let mut active_exports = ACTIVE_EXPORTS
-            .lock()
-            .map_err(|_| "Failed to lock active exports")?;
-        active_exports.insert(export_id.to_string(), process_ref.clone());
-    }
-
-    let stderr = {
-        let mut child_guard = process_ref
-            .lock()
-            .map_err(|_| "Failed to lock child process")?;
-        if let Some(ref mut child) = child_guard.as_mut() {
-            child.stderr.take().ok_or("Failed to capture stderr")?
-        } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Process was cancelled",
-            )));
-        }
-    };
-
-    // Lire la sortie stderr pour capturer la progression
-    let reader = BufReader::new(stderr);
-    let mut stderr_content = String::new();
-
-    for line in reader.lines() {
-        if let Ok(line) = line {
-            println!("[ffmpeg] {}", line); // Debug: afficher toutes les lignes
-
-            // Sauvegarder toutes les lignes stderr pour le debugging
-            stderr_content.push_str(&line);
-            stderr_content.push('\n');
-
-            // Chercher les lignes de progression FFmpeg qui contiennent "time=" ou "out_time_ms="
-            if line.contains("time=") || line.contains("out_time_ms=") {
-                if let Some(time_str) = extract_time_from_ffmpeg_line(&line) {
-                    let current_time_s = parse_ffmpeg_time(&time_str);
-                    let progress = if duration_s > 0.0 {
-                        (current_time_s / duration_s * 100.0).min(100.0)
-                    } else {
-                        0.0
-                    };
-
-                    println!(
-                        "[progress] {}% ({:.1}s / {:.1}s)",
-                        progress.round(),
-                        current_time_s,
-                        duration_s
-                    );
-
-                    // Préparer les données de progression
-                    let mut progress_data = serde_json::json!({
-                        "export_id": export_id,
-                        "progress": progress,
-                        "current_time": current_time_s,
-                        "total_time": duration_s
-                    });
-
-                    // Ajouter chunk_index si fourni
-                    if let Some(chunk_idx) = chunk_index {
-                        progress_data["chunk_index"] =
-                            serde_json::Value::Number(serde_json::Number::from(chunk_idx));
-                    }
-
-                    // Émettre l'événement de progression vers le frontend
-                    let _ = app_handle.emit("export-progress", progress_data);
-                }
-            }
-        }
-    }
-
-    // Attendre la fin du processus
-    let status = {
-        let mut child_guard = process_ref
-            .lock()
-            .map_err(|_| "Failed to lock child process")?;
-        if let Some(mut child) = child_guard.take() {
-            child.wait()?
-        } else {
-            // Le processus a été annulé
-            let error_msg = format!("Export {} was cancelled", export_id);
-            let mut error_data = serde_json::json!({
-                "export_id": export_id,
-                "error": error_msg
-            });
-
-            // Ajouter chunk_index si fourni
-            if let Some(chunk_idx) = chunk_index {
-                error_data["chunk_index"] =
-                    serde_json::Value::Number(serde_json::Number::from(chunk_idx));
-            }
-
-            let _ = app_handle.emit("export-error", error_data);
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Interrupted,
-                error_msg,
-            )));
-        }
-    };
-
-    // Nettoyer les exports actifs
-    {
-        let mut active_exports = ACTIVE_EXPORTS
-            .lock()
-            .map_err(|_| "Failed to lock active exports")?;
-        active_exports.remove(export_id);
-    }
-
-    if !status.success() {
-        // Créer un fichier de log avec la date d'aujourd'hui
-        let now = std::time::SystemTime::now();
-        let timestamp = now
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        let log_filename = format!("ffmpeg_failed_{}.txt", timestamp);
-        let log_relative_path = PathBuf::from("logs").join(&log_filename);
-
-        let log_content = format!(
-            "FFmpeg Export Failure Log\n\
-             =========================\n\
-             Timestamp: {}\n\
-             Export ID: {}\n\
-             Exit Code: {:?}\n\
-             \n\
-             FFmpeg Command:\n\
-             {}\n\
-             \n\
-             Standard Error Output:\n\
-             {}\n",
-            timestamp,
-            export_id,
-            status.code(),
-            cmd.join(" "),
-            if stderr_content.is_empty() {
-                "No stderr output captured".to_string()
-            } else {
-                stderr_content
-            }
-        );
-
-        // Écrire le fichier de log
-        let log_write_path = app_handle
-            .path()
-            .app_data_dir()
-            .map(|dir| dir.join(&log_relative_path))
-            .unwrap_or_else(|_| PathBuf::from(&log_filename));
-        let log_write_path_display = log_write_path.to_string_lossy().replace('\\', "/");
-
-        if let Some(parent) = log_write_path.parent() {
-            if let Err(mkdir_err) = fs::create_dir_all(parent) {
-                eprintln!("Failed to create log directory {:?}: {}", parent, mkdir_err);
-            }
-        }
-
-        if let Err(log_err) = std::fs::write(&log_write_path, &log_content) {
-            eprintln!("Failed to write log file {:?}: {}", log_write_path, log_err);
-        } else {
-            println!(
-                "FFmpeg error details saved to: {}",
-                log_write_path_display
-            );
-        }
-
-        let error_msg = format!(
-            "ffmpeg failed during video exportation (exit code: {:?})\n\nSee the log file: {}\n\nLog details:\n{}",
-            status.code(),
-            log_write_path_display,
-            log_content
-        );
-        let mut error_data = serde_json::json!({
-            "export_id": export_id,
-            "error": error_msg
-        });
-
-        // Ajouter chunk_index si fourni
-        if let Some(chunk_idx) = chunk_index {
-            error_data["chunk_index"] =
-                serde_json::Value::Number(serde_json::Number::from(chunk_idx));
-        }
-
-        let _ = app_handle.emit("export-error", error_data);
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            error_msg,
-        )));
-    }
-
-    Ok(())
+    run_ffmpeg_command(
+        export_id,
+        &cmd,
+        Some(FfmpegProgressContext {
+            base_time_s: progress_base_s,
+            total_time_s: progress_total_s,
+            local_duration_s: duration_s,
+            chunk_index,
+        }),
+        &app_handle,
+    )
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -1567,6 +2137,7 @@ pub async fn export_video(
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     let t0 = Instant::now();
+    clear_export_cancelled(&export_id);
 
     // Logs init
     println!("[start_export] export_id={}", export_id);
@@ -1705,10 +2276,7 @@ pub async fn export_video(
 
     let out_path = path_utils::normalize_output_path(&final_file_path);
     if let Some(parent) = out_path.parent() {
-        println!(
-            "[fs] Création du dossier de sortie si besoin: {:?}",
-            parent
-        );
+        println!("[fs] Création du dossier de sortie si besoin: {:?}", parent);
         fs::create_dir_all(parent).map_err(|e| format!("Erreur création dossier: {}", e))?;
     }
 
@@ -1770,6 +2338,7 @@ pub async fn export_video(
 
     let export_time_s = t0.elapsed().as_secs_f64();
     *LAST_EXPORT_TIME_S.lock().unwrap() = Some(export_time_s);
+    clear_export_cancelled(&export_id);
     println!("[done] Export terminé en {:.2}s", export_time_s);
     println!("[metric] export_time_seconds={:.3}", export_time_s);
 
@@ -1855,6 +2424,7 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
         "[cancel_export] Demande d'annulation pour export_id: {}",
         export_id
     );
+    mark_export_cancelled(&export_id);
 
     let mut active_exports = ACTIVE_EXPORTS
         .lock()
@@ -1895,10 +2465,7 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
             "[cancel_export] Export_id non trouvé dans les exports actifs: {}",
             export_id
         );
-        Err(format!(
-            "Export {} non trouvé ou déjà terminé",
-            export_id
-        ))
+        Ok(format!("Annulation demandée pour l'export {}", export_id))
     }
 }
 
@@ -1939,8 +2506,10 @@ pub async fn concat_videos(
         export_fade_duration_ms.unwrap_or(0)
     );
 
-    let apply_video_fade = video_fade_in_enabled.unwrap_or(false) || video_fade_out_enabled.unwrap_or(false);
-    let apply_audio_fade = audio_fade_in_enabled.unwrap_or(false) || audio_fade_out_enabled.unwrap_or(false);
+    let apply_video_fade =
+        video_fade_in_enabled.unwrap_or(false) || video_fade_out_enabled.unwrap_or(false);
+    let apply_audio_fade =
+        audio_fade_in_enabled.unwrap_or(false) || audio_fade_out_enabled.unwrap_or(false);
     let apply_any_fade = apply_video_fade || apply_audio_fade;
     let total_duration_s: f64 = normalized_video_paths
         .iter()
@@ -1992,10 +2561,7 @@ pub async fn concat_videos(
     fs::write(&list_file_path, list_content)
         .map_err(|e| format!("Erreur écriture fichier liste: {}", e))?;
 
-    println!(
-        "[concat_videos] Fichier liste créé: {:?}",
-        list_file_path
-    );
+    println!("[concat_videos] Fichier liste créé: {:?}", list_file_path);
 
     // Préparer la commande FFmpeg
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
@@ -2040,14 +2606,7 @@ pub async fn concat_videos(
             cmd.args(&["-vf", &video_filters.join(",")]);
         }
         cmd.args(&[
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "18",
-            "-pix_fmt",
-            "yuv420p",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
         ]);
     }
 

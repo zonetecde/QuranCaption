@@ -2304,15 +2304,27 @@ pub async fn export_video(
 
     let out_path_str = out_path.to_string_lossy().to_string();
     let out_path_str_for_task = out_path_str.clone();
-    let audios_vec: Vec<String> = audios
-        .unwrap_or_default()
-        .into_iter()
-        .map(|p| {
-            path_utils::normalize_existing_path(&p)
-                .to_string_lossy()
-                .to_string()
-        })
-        .collect();
+    let mut audios_vec: Vec<String> = Vec::new();
+    for raw_audio_path in audios.unwrap_or_default() {
+        let normalized = path_utils::normalize_existing_path(&raw_audio_path);
+        if normalized.as_os_str().is_empty() || !normalized.exists() {
+            println!(
+                "[audio][warn] Fichier audio introuvable, export sans ce fichier: {}",
+                raw_audio_path
+            );
+            continue;
+        }
+
+        audios_vec.push(normalized.to_string_lossy().to_string());
+    }
+    if audios_vec.is_empty() {
+        println!("[audio] Aucun fichier audio valide, export sans audio");
+    } else {
+        println!(
+            "[audio] {} fichier(s) audio valide(s) après vérification",
+            audios_vec.len()
+        );
+    }
     let mut videos_vec = videos.unwrap_or_default();
     for v in &mut videos_vec {
         v.path = path_utils::normalize_existing_path(&v.path)

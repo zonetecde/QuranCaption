@@ -52,7 +52,7 @@
 	}
 
 	/**
-	 * Bascule l'affichage du menu Import/Export
+	 * Bascule l'affichage du menu de presets de style
 	 */
 	function toggleImportExportMenu() {
 		importExportMenuVisible = !importExportMenuVisible;
@@ -61,7 +61,11 @@
 	// Fermer le menu en cliquant à l'extérieur
 	function handleClickOutside(event: MouseEvent) {
 		const target = event.target as Element;
-		if (!target.closest('.import-export-menu') && !target.closest('.import-export-button')) {
+		if (
+			!target.closest('.import-export-menu') &&
+			!target.closest('.import-export-button') &&
+			!target.closest('.style-preset-modal')
+		) {
 			importExportMenuVisible = false;
 		}
 	}
@@ -102,7 +106,7 @@
 				class="import-export-button btn-accent flex flex-row items-center px-2 py-1 gap-x-2 text-sm"
 				onclick={toggleImportExportMenu}
 			>
-				<span class="material-icons-outlined text-[20px]!">content_paste</span>Import/Export
+				<span class="material-icons-outlined text-[20px]!">style</span>Presets
 			</button>
 			<ImportExportStyle bind:isVisible={importExportMenuVisible} />
 		</div>

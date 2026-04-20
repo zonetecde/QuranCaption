@@ -5,6 +5,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import { VersionService } from '$lib/services/VersionService.svelte';
 import MigrationService from '$lib/services/MigrationService';
+import type { VideoStyleFileData } from './VideoStyle.svelte';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -36,6 +37,15 @@ export type AITranslationSettings = {
 
 export type ExportSettings = {
 	chunkSize: number;
+};
+
+export type SavedVideoStylePreset = {
+	id: number;
+	name: string;
+	createdAt: string;
+	updatedAt: string;
+	resolution: { width: number; height: number };
+	data: VideoStyleFileData;
 };
 
 const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
@@ -96,6 +106,8 @@ export default class Settings extends SerializableBase {
 	exportSettings = $state<ExportSettings>({
 		chunkSize: 50
 	});
+
+	savedVideoStylePresets = $state<SavedVideoStylePreset[]>([]);
 
 	// Shortcut categories metadata
 	shortcutCategories = {

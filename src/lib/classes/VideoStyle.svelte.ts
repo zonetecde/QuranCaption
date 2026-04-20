@@ -877,9 +877,7 @@ export class VideoStyle extends SerializableBase {
 					const suffix = clip.category.id.startsWith('custom-text-')
 						? clip.category.id.slice('custom-text-'.length)
 						: '';
-					const resolvedCompositeId = suffix
-						? `custom-text-composite-${suffix}`
-						: defaultStyle.id;
+					const resolvedCompositeId = suffix ? `custom-text-composite-${suffix}` : defaultStyle.id;
 
 					const hasCompositeStyle = clip.category.styles.some(
 						(s) =>
@@ -1045,11 +1043,11 @@ export class VideoStyle extends SerializableBase {
 	 * @param includedExportClips Optionnellement, une liste des customs-text à inclure
 	 * @return Les données exportées en format JSON
 	 */
-	exportStyles(includedExportClips: Set<number>): string {
+	exportStylesData(includedExportClips: Set<number>): VideoStyleFileData {
 		const serializedVideoStyle = JSON.parse(JSON.stringify(this)) as Record<string, unknown> & {
 			styles: Array<{ overrides: Record<string, unknown> }>;
 		};
-		const exportData: videoStyleFileData = {
+		const exportData: VideoStyleFileData = {
 			videoStyle: serializedVideoStyle,
 			customClips: []
 		};
@@ -1064,8 +1062,11 @@ export class VideoStyle extends SerializableBase {
 				exportData.customClips.push(_clip);
 			}
 		}
-		// Retourne le JSON
-		return JSON.stringify(exportData, null, 2);
+		return exportData;
+	}
+
+	exportStyles(includedExportClips: Set<number>): string {
+		return JSON.stringify(this.exportStylesData(includedExportClips), null, 2);
 	}
 
 	async importStylesFromFile() {
@@ -1089,7 +1090,7 @@ export class VideoStyle extends SerializableBase {
 		}
 	}
 
-	async importStyles(json: videoStyleFileData) {
+	async importStyles(json: VideoStyleFileData) {
 		// Crée une nouvelle instance VideoStyle à partir des données JSON
 		const importedVideoStyle = VideoStyle.fromJSON(
 			json.videoStyle as unknown as Record<string, unknown>
@@ -1238,7 +1239,7 @@ export class VideoStyle extends SerializableBase {
 	}
 }
 
-interface videoStyleFileData {
+export interface VideoStyleFileData {
 	videoStyle: Record<string, unknown>;
 	customClips: Array<Record<string, unknown>>;
 	customTextClips?: Array<Record<string, unknown>>;

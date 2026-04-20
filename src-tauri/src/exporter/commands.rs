@@ -1,4 +1,4 @@
-use crate::binaries;
+﻿use crate::binaries;
 use crate::path_utils;
 use std::collections::HashMap;
 use std::fs;
@@ -1084,78 +1084,54 @@ fn build_and_run_ffmpeg_filter_complex(
     }
 
     filter_lines.push(format!(
-        "[0:v]format=rgba,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black@0,fps={},setpts=PTS-STARTPTS,setsar=1,format=yuva444p,split={}{}",
+        "[0:v]format=rgba,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black@0,fps={},setpts=PTS-STARTPTS,setsar=1,format=rgba,split={}{}",
         w, h, w, h, fps, n, split_outputs
     ));
 
-    // Pour chaque segment, extraire la fenêtre temporelle et séparer couleur/alpha
+    // Pour chaque segment, extraire la fenêtre temporelle et prémultiplier le RGB par l'alpha.
     for i in 0..n {
         let s = starts_s[i];
         let e = s + durations_s[i];
         filter_lines.push(format!(
-            "[b{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,fps={},split=2[s{}witha][s{}foralpha]",
-            i, s, e, fps, i, i
+            "[b{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,fps={},format=rgba,premultiply=inplace=1[s{}p]",
+            i, s, e, fps, i
         ));
-        filter_lines.push(format!("[s{}foralpha]extractplanes=a[s{}a]", i, i));
-        filter_lines.push(format!("[s{}witha]format=yuv444p[s{}c]", i, i));
     }
 
-    // Chaîne xfade pour couleur et alpha séparément
-    let mut curr_c = "s0c".to_string();
-    let mut curr_a = "s0a".to_string();
+    // Chaine xfade pour overlay RGBA prémultiplié.
+    let mut curr_p = "s0p".to_string();
     let mut curr_duration = durations_s[0];
 
     for i in 0..(n - 1) {
         let fade_i = durations_s[i].min(fade_s);
         if fade_i <= 1e-6 {
-            let out_c = format!("cc{}", i);
-            let out_a = format!("ca{}", i);
+            let out_p = format!("pc{}", i);
             filter_lines.push(format!(
-                "[{}][s{}c]concat=n=2:v=1:a=0[{}]",
-                curr_c,
+                "[{}][s{}p]concat=n=2:v=1:a=0[{}]",
+                curr_p,
                 i + 1,
-                out_c
+                out_p
             ));
-            filter_lines.push(format!(
-                "[{}][s{}a]concat=n=2:v=1:a=0[{}]",
-                curr_a,
-                i + 1,
-                out_a
-            ));
-            curr_c = out_c;
-            curr_a = out_a;
+            curr_p = out_p;
             curr_duration += durations_s[i + 1];
         } else {
-            let out_c = format!("xc{}", i);
-            let out_a = format!("xa{}", i);
+            let out_p = format!("xp{}", i);
             let offset = (curr_duration - fade_i).max(0.0);
             filter_lines.push(format!(
-                "[{}][s{}c]xfade=transition=fade:duration={:.6}:offset={:.6}[{}]",
-                curr_c,
+                "[{}][s{}p]xfade=transition=fade:duration={:.6}:offset={:.6}[{}]",
+                curr_p,
                 i + 1,
                 fade_i,
                 offset,
-                out_c
+                out_p
             ));
-            filter_lines.push(format!(
-                "[{}][s{}a]xfade=transition=fade:duration={:.6}:offset={:.6}[{}]",
-                curr_a,
-                i + 1,
-                fade_i,
-                offset,
-                out_a
-            ));
-            curr_c = out_c;
-            curr_a = out_a;
+            curr_p = out_p;
             curr_duration = curr_duration + durations_s[i + 1] - fade_i;
         }
     }
 
-    // Reconstituer RGBA pour l'overlay final
-    filter_lines.push(format!(
-        "[{}][{}]alphamerge,format=yuva444p[overlay]",
-        curr_c, curr_a
-    ));
+    // Conserver l'overlay prémultiplié jusqu'à la superposition finale.
+    filter_lines.push(format!("[{}]format=yuva444p[overlay]", curr_p));
 
     // Construction de la vidéo de fond [bg]
     let avail_bg_after = total_bg_s;
@@ -1212,7 +1188,7 @@ fn build_and_run_ffmpeg_filter_complex(
     // Superposition de l'overlay (avec alpha) sur le fond
     filter_lines.push(format!("[{}]setsar=1[bg_normalized]", bg_label));
     filter_lines.push(format!(
-        "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0,format=yuv420p[vout]"
+        "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0:alpha=premultiplied,format=yuv420p[vout]"
     ));
 
     let mut mapped_video_label = "vout".to_string();

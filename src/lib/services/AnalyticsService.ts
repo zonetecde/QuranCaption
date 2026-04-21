@@ -193,11 +193,42 @@ export class AnalyticsService {
 		});
 	}
 
-	static trackReview(rating: number, comment: string, source: 'support_prompt') {
+	static trackReview(
+		rating: number,
+		comment: string,
+		source: 'support_prompt' | 'settings_support' | 'donation_post_export'
+	) {
 		this.track('review', {
 			rating,
 			comment,
 			source,
+			created_at_iso: new Date().toISOString()
+		});
+	}
+
+	static trackSupportPanelImpression(context: 'post_export', quoteIndex: number) {
+		this.track('support_panel_impression', {
+			context,
+			quote_index: quoteIndex,
+			created_at_iso: new Date().toISOString()
+		});
+	}
+
+	static trackSupportPanelDismissed(context: 'post_export', action: 'close' | 'remind_later') {
+		this.track('support_panel_dismissed', {
+			context,
+			action,
+			created_at_iso: new Date().toISOString()
+		});
+	}
+
+	static trackSupportPanelCtaClicked(
+		context: 'post_export',
+		cta: 'donate' | 'feedback' | 'discord'
+	) {
+		this.track('support_panel_cta_clicked', {
+			context,
+			cta,
 			created_at_iso: new Date().toISOString()
 		});
 	}

@@ -30,7 +30,10 @@ type ShortcutBucket = Record<string, ShortcutAction>;
 type MutableSettingsForMigration = {
 	shortcutCategories: Record<string, unknown>;
 	shortcuts: Record<string, ShortcutBucket>;
-	persistentUiState: { lastClosedSupportPromptModal?: string | Date };
+	persistentUiState: {
+		lastClosedDonationPromptModal?: string | Date;
+		donationPromptImpressions?: number;
+	};
 	aiTranslationSettings?: unknown;
 	exportSettings?: {
 		batchSize?: number;
@@ -340,33 +343,6 @@ export default class MigrationService {
 		}
 
 		if (hasChanges) {
-			Settings.save();
-		}
-	}
-
-	/**
-	 * Assure la présence d'un timestamp valide pour le mini-modal de support.
-	 */
-	static FromQC336ToQC337() {
-		if (!globalState.settings) return;
-
-		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
-		settingsAny.persistentUiState = settingsAny.persistentUiState || {};
-
-		const value = settingsAny.persistentUiState.lastClosedSupportPromptModal;
-		const parsedDate =
-			value instanceof Date ? value : new Date(typeof value === 'string' ? value : '');
-		const hasValidDate = !Number.isNaN(parsedDate.getTime());
-
-		if (!hasValidDate) {
-			settingsAny.persistentUiState.lastClosedSupportPromptModal = new Date(0).toISOString();
-			Settings.save();
-			return;
-		}
-
-		// Normalise en string ISO pour garder un format stable dans persistentUiState.
-		if (value instanceof Date) {
-			settingsAny.persistentUiState.lastClosedSupportPromptModal = value.toISOString();
 			Settings.save();
 		}
 	}

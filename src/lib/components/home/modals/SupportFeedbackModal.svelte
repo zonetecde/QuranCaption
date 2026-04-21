@@ -7,10 +7,12 @@
 
 	let {
 		close,
-		initialTab = 'review'
+		initialTab = 'review',
+		source = 'support_prompt'
 	}: {
 		close: () => void;
 		initialTab?: 'review' | 'feedback';
+		source?: 'support_prompt' | 'settings_support' | 'donation_post_export';
 	} = $props();
 
 	let activeTab = $state<'review' | 'feedback'>(initialTab);
@@ -67,12 +69,12 @@
 			const trimmedMessage = message.trim();
 
 			if (activeTab === 'review') {
-				AnalyticsService.trackReview(reviewRating, trimmedMessage, 'support_prompt');
+				AnalyticsService.trackReview(reviewRating, trimmedMessage, source);
 			} else {
 				AnalyticsService.track('support_feedback', {
 					type: feedbackType,
 					comment: trimmedMessage,
-					source: 'support_prompt',
+					source,
 					created_at_iso: new Date().toISOString()
 				});
 			}

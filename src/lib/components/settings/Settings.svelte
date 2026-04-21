@@ -41,10 +41,17 @@
 	];
 
 	let supportModalTab = $state<'review' | 'feedback'>('review');
+	let supportModalSource = $state<'support_prompt' | 'settings_support' | 'donation_post_export'>(
+		'settings_support'
+	);
 	let isSupportModalOpen = $state(false);
 
-	function openSupportModal(tab: 'review' | 'feedback') {
+	function openSupportModal(
+		tab: 'review' | 'feedback',
+		source: 'support_prompt' | 'settings_support' | 'donation_post_export' = 'settings_support'
+	) {
 		supportModalTab = tab;
+		supportModalSource = source;
 		isSupportModalOpen = true;
 	}
 
@@ -335,6 +342,7 @@
 {#if isSupportModalOpen}
 	<SupportFeedbackModal
 		initialTab={supportModalTab}
+		source={supportModalSource}
 		close={() => {
 			isSupportModalOpen = false;
 		}}

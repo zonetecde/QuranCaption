@@ -1,30 +1,30 @@
-export const SUPPORT_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // every week
+export const DONATION_PROMPT_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
 
-function parseLastClosed(lastClosedSupportPromptModal: string | Date | undefined): Date | null {
-	if (!lastClosedSupportPromptModal) return null;
+function parseLastClosed(lastClosedDonationPromptModal: string | Date | undefined): Date | null {
+	if (!lastClosedDonationPromptModal) return null;
 	const parsed =
-		lastClosedSupportPromptModal instanceof Date
-			? lastClosedSupportPromptModal
-			: new Date(lastClosedSupportPromptModal);
+		lastClosedDonationPromptModal instanceof Date
+			? lastClosedDonationPromptModal
+			: new Date(lastClosedDonationPromptModal);
 	return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function shouldShowSupportPrompt(
-	lastClosedSupportPromptModal: string | Date | undefined,
+export function shouldShowDonationPrompt(
+	lastClosedDonationPromptModal: string | Date | undefined,
 	now: number = Date.now()
 ): boolean {
-	const parsed = parseLastClosed(lastClosedSupportPromptModal);
+	const parsed = parseLastClosed(lastClosedDonationPromptModal);
 	if (!parsed) return true;
 
-	return now - parsed.getTime() >= SUPPORT_PROMPT_COOLDOWN_MS;
+	return now - parsed.getTime() >= DONATION_PROMPT_COOLDOWN_MS;
 }
 
-export function getSupportPromptDelayMs(
-	lastClosedSupportPromptModal: string | Date | undefined,
+export function getDonationPromptDelayMs(
+	lastClosedDonationPromptModal: string | Date | undefined,
 	now: number = Date.now()
 ): number {
-	const parsed = parseLastClosed(lastClosedSupportPromptModal);
+	const parsed = parseLastClosed(lastClosedDonationPromptModal);
 	if (!parsed) return 0;
 
-	return Math.max(0, parsed.getTime() + SUPPORT_PROMPT_COOLDOWN_MS - now);
+	return Math.max(0, parsed.getTime() + DONATION_PROMPT_COOLDOWN_MS - now);
 }

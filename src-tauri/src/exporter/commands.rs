@@ -1,4 +1,4 @@
-use crate::binaries;
+﻿use crate::binaries;
 use crate::path_utils;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -2533,110 +2533,131 @@ pub async fn concat_videos(
             .map_err(|e| format!("Erreur création dossier de sortie: {}", e))?;
     }
 
-    // Créer un fichier de liste temporaire pour FFmpeg
-    let temp_dir = std::env::temp_dir();
-    let list_file_path = temp_dir.join(format!(
-        "concat_list_{}.txt",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs()
-    ));
-
-    // Écrire la liste des fichiers à concaténer
-    let mut list_content = String::new();
     for video_path in &normalized_video_paths {
-        // Vérifier que le fichier existe
         if !Path::new(video_path).exists() {
             return Err(format!("Fichier vidéo non trouvé: {}", video_path));
         }
-        let escaped = path_utils::escape_ffconcat_path(video_path);
-        list_content.push_str(&format!("file '{}'\n", escaped));
     }
 
-    fs::write(&list_file_path, list_content)
-        .map_err(|e| format!("Erreur écriture fichier liste: {}", e))?;
-
-    println!("[concat_videos] Fichier liste créé: {:?}", list_file_path);
-
-    // Préparer la commande FFmpeg
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
-
     let mut cmd = Command::new(&ffmpeg_exe);
-    cmd.args(&[
-        "-y",           // Écraser le fichier de sortie
-        "-hide_banner", // Masquer le banner FFmpeg
-        "-loglevel",
-        "info", // Niveau de log
-        "-fflags",
-        "+genpts", // Régénère les pts pour éviter les gaps
-        "-f",
-        "concat", // Format d'entrée concat
-        "-safe",
-        "0", // Permettre les chemins absolus
-        "-i",
-        &list_file_path.to_string_lossy(), // Fichier de liste
-        "-avoid_negative_ts",
-        "make_zero", // Normalise les timestamps
-        "-map",
-        "0:v", // Vidéo
-    ]);
+    cmd.args(&["-y", "-hide_banner", "-loglevel", "info", "-stats"]);
+
+    for video_path in &normalized_video_paths {
+        cmd.args(&["-i", video_path]);
+    }
 
     append_thread_cap(&mut cmd, performance_profile);
 
-    let mut video_filters: Vec<String> = vec!["setpts=PTS-STARTPTS".to_string()];
+    let audio_presence: Vec<bool> = normalized_video_paths
+        .iter()
+        .map(|p| video_has_audio(p))
+        .collect();
+    let all_have_audio = !audio_presence.is_empty() && audio_presence.iter().all(|&has| has);
+    let any_have_audio = audio_presence.iter().any(|&has| has);
+    if any_have_audio && !all_have_audio {
+        println!(
+            "[concat_videos][warn] Certains segments n'ont pas d'audio; l'audio final sera désactivé"
+        );
+    }
+
+    let mut filter_lines: Vec<String> = Vec::new();
+    let mut video_inputs = String::new();
+    for idx in 0..normalized_video_paths.len() {
+        filter_lines.push(format!("[{}:v]setpts=PTS-STARTPTS[v{}]", idx, idx));
+        video_inputs.push_str(&format!("[v{}]", idx));
+    }
+    filter_lines.push(format!(
+        "{}concat=n={}:v=1:a=0[vcat]",
+        video_inputs,
+        normalized_video_paths.len()
+    ));
+
+    let mut current_video_label = "vcat".to_string();
     if apply_video_fade && fade_s > 0.0 {
         if video_fade_in_enabled.unwrap_or(false) {
-            video_filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
+            filter_lines.push(format!(
+                "[{}]fade=t=in:st=0:d={:.6}[vfadein]",
+                current_video_label, fade_s
+            ));
+            current_video_label = "vfadein".to_string();
         }
         if video_fade_out_enabled.unwrap_or(false) {
             let fade_out_start = (total_duration_s - fade_s).max(0.0);
-            video_filters.push(format!(
-                "fade=t=out:st={:.6}:d={:.6}",
-                fade_out_start, fade_s
+            filter_lines.push(format!(
+                "[{}]fade=t=out:st={:.6}:d={:.6}[vfadeout]",
+                current_video_label, fade_out_start, fade_s
             ));
+            current_video_label = "vfadeout".to_string();
         }
     }
-    cmd.args(&["-vf", &video_filters.join(",")]);
+
+    let mut current_audio_label: Option<String> = None;
+    if all_have_audio {
+        let mut audio_inputs = String::new();
+        for idx in 0..normalized_video_paths.len() {
+            filter_lines.push(format!(
+                "[{}:a]aresample=48000,asetpts=PTS-STARTPTS[a{}]",
+                idx, idx
+            ));
+            audio_inputs.push_str(&format!("[a{}]", idx));
+        }
+        filter_lines.push(format!(
+            "{}concat=n={}:v=0:a=1[acat]",
+            audio_inputs,
+            normalized_video_paths.len()
+        ));
+
+        let mut audio_label = "acat".to_string();
+        if apply_audio_fade && fade_s > 0.0 {
+            if audio_fade_in_enabled.unwrap_or(false) {
+                filter_lines.push(format!(
+                    "[{}]afade=t=in:st=0:d={:.6}[afadein]",
+                    audio_label, fade_s
+                ));
+                audio_label = "afadein".to_string();
+            }
+            if audio_fade_out_enabled.unwrap_or(false) {
+                let fade_out_start = (total_duration_s - fade_s).max(0.0);
+                filter_lines.push(format!(
+                    "[{}]afade=t=out:st={:.6}:d={:.6}[afadeout]",
+                    audio_label, fade_out_start, fade_s
+                ));
+                audio_label = "afadeout".to_string();
+            }
+        }
+        current_audio_label = Some(audio_label);
+    }
+
+    cmd.args(&["-filter_complex", &filter_lines.join(";")]);
+    cmd.args(&["-map", &format!("[{}]", current_video_label)]);
     cmd.args(&[
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "18",
+        "-pix_fmt",
+        "yuv420p",
     ]);
 
-    // Ré-encoder l'audio pour lisser les timestamps et éviter les micro-cuts
-    let has_audio_stream = normalized_video_paths.iter().any(|p| video_has_audio(p));
-    if has_audio_stream {
+    if let Some(audio_label) = current_audio_label {
         cmd.args(&[
             "-map",
-            "0:a?", // Map audio si présent (sans échouer si absent)
-            "-af",
-            "aresample=async=1:first_pts=0", // Corrige les horloges audio
+            &format!("[{}]", audio_label),
             "-c:a",
             "aac",
             "-b:a",
             "192k",
         ]);
     } else {
-        cmd.arg("-an"); // Aucun audio trouvé, on désactive l'audio
+        cmd.arg("-an");
     }
 
-    if has_audio_stream && apply_audio_fade && fade_s > 0.0 {
-        let mut audio_filters: Vec<String> = vec!["aresample=async=1:first_pts=0".to_string()];
-        if audio_fade_in_enabled.unwrap_or(false) {
-            audio_filters.push(format!("afade=t=in:st=0:d={:.6}", fade_s));
-        }
-        if audio_fade_out_enabled.unwrap_or(false) {
-            let fade_out_start = (total_duration_s - fade_s).max(0.0);
-            audio_filters.push(format!(
-                "afade=t=out:st={:.6}:d={:.6}",
-                fade_out_start, fade_s
-            ));
-        }
-        cmd.args(&["-af", &audio_filters.join(",")]);
-    }
+    cmd.args(&["-movflags", "+faststart"]);
+    cmd.arg(&output_path_str);
 
-    cmd.arg(&output_path_str); // Fichier de sortie
-
-    // Configurer la commande pour cacher les fenêtres CMD sur Windows
     configure_command_no_window(&mut cmd);
 
     println!("[concat_videos] Exécution de FFmpeg...");
@@ -2644,9 +2665,6 @@ pub async fn concat_videos(
     let output = cmd
         .output()
         .map_err(|e| format!("Erreur exécution FFmpeg: {}", e))?;
-
-    // Nettoyer le fichier temporaire
-    let _ = fs::remove_file(&list_file_path);
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

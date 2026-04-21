@@ -1465,7 +1465,7 @@ fn concat_internal_batch_videos(
                 "-c:a".to_string(),
                 "libopus".to_string(),
                 "-b:a".to_string(),
-                "160k".to_string(),
+                "256k".to_string(),
             ]);
         } else {
             cmd.extend_from_slice(&[
@@ -1474,7 +1474,7 @@ fn concat_internal_batch_videos(
                 "-c:a".to_string(),
                 "aac".to_string(),
                 "-b:a".to_string(),
-                "192k".to_string(),
+                "320k".to_string(),
             ]);
         }
     } else {
@@ -2146,14 +2146,14 @@ fn render_ffmpeg_filter_complex_single(
                 "-c:a".to_string(),
                 "libopus".to_string(),
                 "-b:a".to_string(),
-                "160k".to_string(),
+                "256k".to_string(),
             ]);
         } else {
             cmd.extend_from_slice(&[
                 "-c:a".to_string(),
                 "aac".to_string(),
                 "-b:a".to_string(),
-                "192k".to_string(),
+                "320k".to_string(),
             ]);
         }
     }
@@ -2786,7 +2786,7 @@ pub async fn concat_videos(
                 "-c:a",
                 "libopus",
                 "-b:a",
-                "160k",
+                "256k",
             ]);
         } else {
             cmd.args(&[
@@ -2795,7 +2795,7 @@ pub async fn concat_videos(
                 "-c:a",
                 "aac",
                 "-b:a",
-                "192k",
+                "320k",
             ]);
         }
     } else {

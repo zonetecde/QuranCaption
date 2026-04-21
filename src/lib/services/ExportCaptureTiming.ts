@@ -5,37 +5,66 @@ export type ExportSubtitleCaptureClip = {
 	surah?: number;
 };
 
-export type ExportCustomTextCaptureClip = {
-	id: number;
+export type ExportTimedOverlayCaptureClip = {
+	id: number | string;
 	startTime?: number | null;
 	endTime?: number | null;
 	alwaysShow: boolean;
+	captureBoundariesWhenAlwaysShow?: boolean;
+	isVisibleAt?: (timing: number) => boolean;
 };
+
+export type ExportCustomTextCaptureClip = ExportTimedOverlayCaptureClip;
+
+/**
+ * Indique si un overlay temporisé est visible à un instant donné.
+ * - Un clip `alwaysShow` est ignoré par défaut car il n'introduit pas de variation temporelle
+ *   utile pour l'optimisation des captures.
+ * - Le clip doit avoir un intervalle valide (`startTime`/`endTime`) et le temps demandé
+ *   doit être inclus dans cet intervalle.
+ * - Si `isVisibleAt` est fourni, il agit comme garde-fou final (ex: dépendance au sous-titre actif).
+ */
+function isTimedOverlayVisibleAt(
+	clip: ExportTimedOverlayCaptureClip,
+	timing: number,
+	ignoreAlwaysShow: boolean = true
+): boolean {
+	if (ignoreAlwaysShow && clip.alwaysShow) return false;
+	if (clip.startTime == null || clip.endTime == null) return false;
+	if (timing < clip.startTime || timing > clip.endTime) return false;
+	if (clip.isVisibleAt && !clip.isVisibleAt(timing)) return false;
+	return true;
+}
+
+/**
+ * Construit une signature d'état déterministe des overlays temporisés visibles à un instant donné.
+ *
+ * Cette signature sert à comparer deux instants pendant un même sous-titre:
+ * si la signature est identique, la frame peut être dupliquée; sinon une nouvelle capture est requise.
+ */
+export function getTimedOverlayStateAt(
+	timing: number,
+	timedOverlayClips: ExportTimedOverlayCaptureClip[]
+): string {
+	// Analyse l'état des overlays temporisés à un instant donné.
+	// Retourne une signature stable basée sur les overlays visibles.
+	const visibleTimedOverlays: string[] = [];
+
+	for (const clip of timedOverlayClips) {
+		if (!isTimedOverlayVisibleAt(clip, timing)) continue;
+		// Cle unique basée sur l'ID du clip et sa fenêtre temporelle.
+		visibleTimedOverlays.push(`${clip.id}-${clip.startTime}-${clip.endTime}`);
+	}
+
+	// Signature triée pour rester déterministe quel que soit l'ordre d'entrée.
+	return visibleTimedOverlays.sort().join('|');
+}
 
 export function getCustomClipStateAt(
 	timing: number,
 	customTextClips: ExportCustomTextCaptureClip[]
 ): string {
-	/**
-	 * Analyser l'etat des custom clips a un moment donne
-	 * Retourne un identifiant unique basé sur quels custom clips sont visibles
-	 */
-	const visibleCustomClips: string[] = [];
-
-	for (const clip of customTextClips) {
-		// Ignorer les custom texts always visible comme demandé
-		if (clip.alwaysShow) continue;
-		if (clip.startTime == null || clip.endTime == null) continue;
-
-		// Vérifier si ce custom text est visible au timing donné (inclusive des bornes)
-		if (timing >= clip.startTime && timing <= clip.endTime) {
-			// Créer une clé unique basée sur l'ID du clip et ses propriétés temporelles
-			visibleCustomClips.push(`${clip.id}-${clip.startTime}-${clip.endTime}`);
-		}
-	}
-
-	// Retourner un hash des custom texts visibles, triés pour la cohérence
-	return visibleCustomClips.sort().join('|');
+	return getTimedOverlayStateAt(timing, customTextClips);
 }
 
 export function resolveCurrentSurahFromClips(
@@ -50,7 +79,7 @@ export function resolveCurrentSurahFromClips(
 	}
 
 	if (currentClip !== null) {
-		// Prend le clip de sous-titre précédent
+		// Prend d'abord le clip de sous-titre precedent autour du curseur.
 		const currentIndex = clips.indexOf(currentClip);
 
 		for (let i = currentIndex - 1; i >= 0; i--) {
@@ -124,7 +153,7 @@ type CalculateCaptureTimingParams = {
 	rangeEnd: number;
 	fadeDuration: number;
 	subtitleClips: ExportSubtitleCaptureClip[];
-	customTextClips: ExportCustomTextCaptureClip[];
+	timedOverlayClips: ExportTimedOverlayCaptureClip[];
 	getCurrentSurah: (time: number) => number;
 };
 
@@ -133,17 +162,17 @@ export function calculateCaptureTimingsForRange({
 	rangeEnd,
 	fadeDuration,
 	subtitleClips,
-	customTextClips,
+	timedOverlayClips,
 	getCurrentSurah
 }: CalculateCaptureTimingParams) {
 	const timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
-	const imgWithNothingShown: { [surah: number]: number } = {}; // Timing où rien n'est affiché (pour dupliquer)
+	const imgWithNothingShown: { [surah: number]: number } = {}; // Timing ou rien n'est affiche (pour dupliquer)
 	const blankImgs: { [surah: number]: number[] } = {};
-	// Map pour stocker les timings qui peuvent être dupliqués
-	const duplicableTimings: Map<number, number> = new Map(); // source -> target
+	// Map des timings duplicables: target -> source.
+	const duplicableTimings: Map<number, number> = new Map();
 
-	function add(t: number | undefined) {
-		if (t === undefined) return;
+	function add(t: number | undefined | null) {
+		if (t == null) return;
 		if (t < rangeStart || t > rangeEnd) return;
 		timingsToTakeScreenshots.push(Math.round(t));
 	}
@@ -164,20 +193,20 @@ export function calculateCaptureTimingsForRange({
 			// L'idée : si les custom clips visibles sont identiques entre fadeInEnd et fadeOutStart,
 			// on peut prendre une seule capture et la dupliquer, économisant du temps
 			if (fadeOutStart > startTime && fadeInEnd !== fadeOutStart) {
-				// Récupère les customs clips visibles aux deux timings pour voir si possibilité de duplication
-				const customClipStateAtFadeInEnd = getCustomClipStateAt(fadeInEnd, customTextClips);
-				const customClipStateAtFadeOutStart = getCustomClipStateAt(
+				// Compare l'état des overlays temporels aux deux bornes utiles du sous-titre.
+				const timedOverlayStateAtFadeInEnd = getTimedOverlayStateAt(fadeInEnd, timedOverlayClips);
+				const timedOverlayStateAtFadeOutStart = getTimedOverlayStateAt(
 					fadeOutStart,
-					customTextClips
+					timedOverlayClips
 				);
 
-				// Si l'état des custom clips est identique, on peut dupliquer
-				if (customClipStateAtFadeInEnd === customClipStateAtFadeOutStart) {
+				// Si l'état est identique, une seule capture suffit.
+				if (timedOverlayStateAtFadeInEnd === timedOverlayStateAtFadeOutStart) {
 					add(fadeInEnd);
-					// Ajoute a la map de duplication
+					// Ajoute la relation de duplication (target -> source).
 					duplicableTimings.set(Math.round(fadeOutStart), Math.round(fadeInEnd));
 				} else {
-					// Etats differents, prendre les deux captures
+					// États différents, il faut capturer les deux timings.
 					add(fadeInEnd);
 					add(fadeOutStart);
 				}
@@ -188,7 +217,7 @@ export function calculateCaptureTimingsForRange({
 
 			add(endTime);
 		} else {
-			// Silence clip detected, skipping fade-in/out timings.
+			// Clip de silence: pas de bornes fade-in/fade-out à ajouter.
 			const surah = getCurrentSurah(clip.startTime);
 			if (imgWithNothingShown[surah] === undefined) {
 				add(endTime);
@@ -198,15 +227,12 @@ export function calculateCaptureTimingsForRange({
 			}
 		}
 
-		const hasTimedCustomTextAtEndTime = customTextClips.some((clip) => {
-			if (clip.alwaysShow) {
-				return false;
-			}
-
-			return clip.startTime != null && clip.endTime != null && clip.startTime <= endTime && clip.endTime >= endTime;
+		// Si aucun overlay temporel n'est visible à la fin du clip, on peut réutiliser un blank.
+		const hasTimedOverlayAtEndTime = timedOverlayClips.some((timedOverlayClip) => {
+			return isTimedOverlayVisibleAt(timedOverlayClip, endTime);
 		});
 
-		if (!hasTimedCustomTextAtEndTime) {
+		if (!hasTimedOverlayAtEndTime) {
 			const surah = getCurrentSurah(clip.startTime);
 			if (imgWithNothingShown[surah] === undefined) {
 				imgWithNothingShown[surah] = Math.round(endTime);
@@ -217,8 +243,8 @@ export function calculateCaptureTimingsForRange({
 		}
 	}
 
-	// --- Custom Texts ---
-	for (const clip of customTextClips) {
+	// --- Overlays temporisés (custom text + overlays globaux) ---
+	for (const clip of timedOverlayClips) {
 		const { startTime, endTime, alwaysShow } = clip;
 		if (startTime == null || endTime == null) continue;
 		if (endTime < rangeStart || startTime > rangeEnd) continue;
@@ -227,8 +253,10 @@ export function calculateCaptureTimingsForRange({
 		if (duration <= 0) continue;
 
 		if (alwaysShow) {
-			add(startTime);
-			add(endTime);
+			if (clip.captureBoundariesWhenAlwaysShow) {
+				add(startTime);
+				add(endTime);
+			}
 			continue;
 		}
 

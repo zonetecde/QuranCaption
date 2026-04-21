@@ -19,7 +19,7 @@
 		calculateCaptureTimingsForRange,
 		hasBlankImg,
 		hasTiming,
-		type ExportCustomTextCaptureClip,
+		type ExportTimedOverlayCaptureClip,
 		type ExportSubtitleCaptureClip
 	} from '$lib/services/ExportCaptureTiming';
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
@@ -28,7 +28,11 @@
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
 	import { domToBlob } from 'modern-screenshot';
-	import { ClipWithTranslation, CustomTextClip, SilenceClip } from '$lib/classes/Clip.svelte';
+	import {
+		ClipWithTranslation,
+		CustomClip,
+		SilenceClip
+	} from '$lib/classes/Clip.svelte';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -719,25 +723,45 @@
 			})
 		);
 
-		const customTextClips: ExportCustomTextCaptureClip[] = (
-			globalState.getCustomClipTrack?.clips || []
+		const timedOverlayClips: ExportTimedOverlayCaptureClip[] = (
+			(globalState.getCustomClipTrack?.clips || []) as CustomClip[]
 		).map((clip) => {
-			const customTextClip = clip as CustomTextClip;
-
 			return {
-				id: customTextClip.id,
-				startTime: customTextClip.startTime,
-				endTime: customTextClip.endTime,
-				alwaysShow: Boolean(customTextClip.category?.getStyle('always-show')?.value)
+				id: clip.id,
+				startTime: clip.startTime,
+				endTime: clip.endTime,
+				alwaysShow: Boolean(clip.category?.getStyle('always-show')?.value),
+				captureBoundariesWhenAlwaysShow: true
 			};
 		});
+
+		if (globalState.getStyle('global', 'show-surah-name')!.value === true) {
+			timedOverlayClips.push({
+				id: 'surah-name',
+				startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value)
+			});
+		}
+
+		if (
+			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
+			globalState.currentProject?.detail.reciter !== 'not set'
+		) {
+			timedOverlayClips.push({
+				id: 'reciter-name',
+				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
+			});
+		}
 
 		return calculateCaptureTimingsForRange({
 			rangeStart,
 			rangeEnd,
 			fadeDuration: Math.round(globalState.getStyle('global', 'fade-duration')!.value as number),
 			subtitleClips,
-			customTextClips,
+			timedOverlayClips,
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
 		});
 	}

@@ -191,6 +191,36 @@
 				"icon": "visibility"
 			},
 			{
+				"id": "surah-name-always-show",
+				"name": "Always Show",
+				"description": "Always show the Surah name (ignore timing)",
+				"value": true,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "visibility"
+			},
+			{
+				"id": "surah-name-time-appearance",
+				"name": "Time Appearance",
+				"description": "Change the time where the Surah name appears",
+				"value": 0,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
+				"id": "surah-name-time-disappearance",
+				"name": "Time Disappearance",
+				"description": "Change the time where the Surah name disappears",
+				"value": 10000,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
 				"id": "surah-name-vertical-position",
 				"name": "Vertical Position",
 				"description": "Change the vertical position of the surah name (pixels from center)",
@@ -315,6 +345,36 @@
 				"tailwind": false,
 
 				"icon": "visibility"
+			},
+			{
+				"id": "reciter-name-always-show",
+				"name": "Always Show",
+				"description": "Always show the Reciter name (ignore timing)",
+				"value": true,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "visibility"
+			},
+			{
+				"id": "reciter-name-time-appearance",
+				"name": "Time Appearance",
+				"description": "Change the time where the Reciter name appears",
+				"value": 0,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
+				"id": "reciter-name-time-disappearance",
+				"name": "Time Disappearance",
+				"description": "Change the time where the Reciter name disappears",
+				"value": 10000,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
 			},
 			{
 				"id": "reciter-name",

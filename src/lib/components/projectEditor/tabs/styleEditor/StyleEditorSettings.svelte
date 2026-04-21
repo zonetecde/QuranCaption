@@ -70,6 +70,30 @@
 		}
 	}
 
+	/**
+	 * Désactive les styles de timing (appearance/disappearance) des overlays globaux
+	 * `surah-name` et `reciter-name` lorsque leur style `*-always-show` vaut `true`.
+	 */
+	function isGlobalTimedOverlayStyleDisabled(categoryId: string, styleId: string): boolean {
+		const alwaysShowStyleId =
+			categoryId === 'surah-name'
+				? 'surah-name-always-show'
+				: categoryId === 'reciter-name'
+					? 'reciter-name-always-show'
+					: null;
+
+		const isTimingStyle =
+			(categoryId === 'surah-name' &&
+				(styleId === 'surah-name-time-appearance' ||
+					styleId === 'surah-name-time-disappearance')) ||
+			(categoryId === 'reciter-name' &&
+				(styleId === 'reciter-name-time-appearance' ||
+					styleId === 'reciter-name-time-disappearance'));
+
+		if (!alwaysShowStyleId || !isTimingStyle) return false;
+		return Boolean(globalState.getStyle('global', alwaysShowStyleId).value);
+	}
+
 	$effect(() => {
 		const _ = globalState.getStylesState.scrollAndHighlight;
 
@@ -324,9 +348,10 @@
 							 - Si on a le style "Always Show" pour les customs text d'enable, alors on disable les styles permettant
 							 de set les propriétés de temps de début d'affichage et de fin d'affichage -->
 								{@const toDisable =
-									category.id.includes('custom-text') &&
-									category.getStyle('always-show')?.value &&
-									(style.id === 'time-appearance' || style.id === 'time-disappearance')}
+									(category.id.includes('custom-text') &&
+										category.getStyle('always-show')?.value &&
+										(style.id === 'time-appearance' || style.id === 'time-disappearance')) ||
+									isGlobalTimedOverlayStyleDisabled(category.id, style.id)}
 								<!-- Si la recherche est vide ou si le nom du style correspond à la requête de recherche -->
 								<StyleComponent
 									{style}
@@ -364,20 +389,48 @@
 								<StyleComponent
 								{style}
 								applyValueSimple={(v) => {
-									const targetCustomClip = globalState.getCustomClipTrack.getCustomClipWithId(category.id);
+									const targetCustomClip = globalState.getCustomClipTrack.getCustomClipWithId(
+										category.id
+									);
 									if (!targetCustomClip) {
 										style.value = v as typeof style.value;
 										return;
 									}
 
-									// Pour time-appearance et time-disappearance on modifie le clip lui-même
-									// en plus du style. 
+									// Harmonise begin/end pour éviter un état clip/style incoherent.
 									if (style.id === 'time-appearance' && typeof v === 'number') {
+										const endStyle = category.getStyle('time-disappearance');
+										const currentEnd = Number(endStyle?.value ?? 0);
+
+										if (v > currentEnd) {
+											const endFallback = v + 3000;
+											if (endStyle) endStyle.value = endFallback;
+											targetCustomClip.setEndTime(endFallback);
+										}
+
 										targetCustomClip.setStartTime(v);
+										style.value = v as typeof style.value;
+										return;
 									}
+
 									if (style.id === 'time-disappearance' && typeof v === 'number') {
+										const beginStyle = category.getStyle('time-appearance');
+										const currentBegin = Number(beginStyle?.value ?? 0);
+
+										if (v < currentBegin) {
+											const endFallback = v + 3000;
+											if (beginStyle) beginStyle.value = v;
+											targetCustomClip.setStartTime(v);
+											targetCustomClip.setEndTime(endFallback);
+											style.value = endFallback as typeof style.value;
+											return;
+										}
+
 										targetCustomClip.setEndTime(v);
+										style.value = v as typeof style.value;
+										return;
 									}
+
 									style.value = v as typeof style.value;
 								}}
 								disabled={toDisable as boolean}

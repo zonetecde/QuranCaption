@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	calculateCaptureTimingsForRange,
-	getCustomClipStateAt,
+	getTimedOverlayStateAt,
 	hasBlankImg,
 	hasTiming,
 	resolveCurrentSurahFromClips,
-	type ExportCustomTextCaptureClip,
-	type ExportSubtitleCaptureClip
+	type ExportSubtitleCaptureClip,
+	type ExportTimedOverlayCaptureClip
 } from '$lib/services/ExportCaptureTiming';
 
 function subtitle(
@@ -31,13 +31,35 @@ function customText(
 	startTime: number | null,
 	endTime: number | null,
 	alwaysShow: boolean = false
-): ExportCustomTextCaptureClip {
-	return { id, startTime, endTime, alwaysShow };
+): ExportTimedOverlayCaptureClip {
+	return {
+		id,
+		startTime,
+		endTime,
+		alwaysShow,
+		captureBoundariesWhenAlwaysShow: true
+	};
+}
+
+function timedOverlay(
+	id: string,
+	startTime: number | null,
+	endTime: number | null,
+	alwaysShow: boolean = false,
+	isVisibleAt?: (timing: number) => boolean
+): ExportTimedOverlayCaptureClip {
+	return {
+		id,
+		startTime,
+		endTime,
+		alwaysShow,
+		isVisibleAt
+	};
 }
 
 function calculateTimings(
 	subtitleClips: ExportSubtitleCaptureClip[],
-	customTextClips: ExportCustomTextCaptureClip[] = [],
+	timedOverlayClips: ExportTimedOverlayCaptureClip[] = [],
 	rangeStart: number = 0,
 	rangeEnd: number = 5_000,
 	fadeDuration: number = 200
@@ -47,7 +69,7 @@ function calculateTimings(
 		rangeEnd,
 		fadeDuration,
 		subtitleClips,
-		customTextClips,
+		timedOverlayClips,
 		getCurrentSurah: (time) => resolveCurrentSurahFromClips(subtitleClips, time)
 	});
 }
@@ -91,24 +113,30 @@ describe('resolveCurrentSurahFromClips', () => {
 	});
 });
 
-describe('getCustomClipStateAt', () => {
-	it('ignores always-show clips and sorts timed custom clips for a stable signature', () => {
+describe('getTimedOverlayStateAt', () => {
+	it('ignores always-show overlays and sorts timed overlays for a stable signature', () => {
 		const clips = [
 			customText(7, 0, 500, true),
 			customText(2, 0, 500),
-			customText(1, 100, 400)
+			timedOverlay('surah-name', 100, 400)
 		];
 
-		expect(getCustomClipStateAt(200, clips)).toBe('1-100-400|2-0-500');
+		expect(getTimedOverlayStateAt(200, clips)).toBe('2-0-500|surah-name-100-400');
 	});
 
-	it('returns an empty signature when no timed custom text is visible', () => {
-		expect(getCustomClipStateAt(900, [customText(1, 0, 500)])).toBe('');
+	it('returns an empty signature when no timed overlay is visible', () => {
+		expect(getTimedOverlayStateAt(900, [customText(1, 0, 500)])).toBe('');
+	});
+
+	it('respects isVisibleAt for overlays like verse number', () => {
+		const verseNumber = timedOverlay('verse-number', 0, 1_000, false, (timing) => timing >= 200);
+		expect(getTimedOverlayStateAt(100, [verseNumber])).toBe('');
+		expect(getTimedOverlayStateAt(300, [verseNumber])).toBe('verse-number-0-1000');
 	});
 });
 
 describe('calculateCaptureTimingsForRange', () => {
-	it('reuses the fade-out screenshot when custom text visibility is unchanged across the subtitle', () => {
+	it('reuses the fade-out screenshot when timed overlay visibility is unchanged across the subtitle', () => {
 		const result = calculateTimings([subtitle(0, 1_000, 1)], [customText(9, 0, 2_000)]);
 
 		expect(result.uniqueSorted).toEqual([0, 200, 1_000, 1_800, 2_000, 5_000]);
@@ -117,7 +145,7 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.blankImgs).toEqual({});
 	});
 
-	it('keeps distinct fade-in and fade-out captures when timed custom visibility changes mid-subtitle', () => {
+	it('keeps distinct fade-in and fade-out captures when timed overlay visibility changes mid-subtitle', () => {
 		const result = calculateTimings([subtitle(0, 1_000, 1)], [customText(9, 0, 300)]);
 
 		expect(result.uniqueSorted).toEqual([0, 100, 200, 300, 800, 1_000, 5_000]);
@@ -148,14 +176,14 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(hasBlankImg(result.imgWithNothingShown, 1)).toBe(true);
 	});
 
-	it('does not register a blank image when a timed custom text is still visible at subtitle end', () => {
+	it('does not register a blank image when a timed overlay is still visible at subtitle end', () => {
 		const result = calculateTimings([subtitle(0, 500, 1)], [customText(3, 100, 700)]);
 
 		expect(result.imgWithNothingShown).toEqual({});
 		expect(result.blankImgs).toEqual({});
 	});
 
-	it('does register a blank image when the overlapping custom text is always-show', () => {
+	it('does register a blank image when the overlapping overlay is always-show', () => {
 		const result = calculateTimings([subtitle(0, 500, 1)], [customText(3, 100, 700, true)]);
 
 		expect(result.imgWithNothingShown).toEqual({ 1: 500 });
@@ -195,5 +223,49 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.imgWithNothingShown).toEqual({ 3: 400 });
 		expect(result.uniqueSorted).toEqual([0, 300, 400, 1_000]);
+	});
+
+	it('allows duplication when a timed global overlay stays visible for the whole subtitle', () => {
+		const result = calculateTimings([subtitle(0, 1_000, 1)], [timedOverlay('surah-name', 0, 2_000)]);
+
+		expect(result.duplicableTimings).toEqual(new Map([[800, 200]]));
+	});
+
+	it('prevents duplication when a timed global overlay changes state during the subtitle', () => {
+		const result = calculateTimings([subtitle(0, 1_000, 1)], [timedOverlay('reciter-name', 0, 300)]);
+
+		expect(result.duplicableTimings.size).toBe(0);
+		expect(result.uniqueSorted).toEqual([0, 100, 200, 300, 800, 1_000, 5_000]);
+	});
+
+	it('does not create a blank image when a timed global overlay is visible at subtitle end', () => {
+		const result = calculateTimings(
+			[subtitle(0, 500, 1)],
+			[timedOverlay('surah-name', 100, 700)]
+		);
+
+		expect(result.imgWithNothingShown).toEqual({});
+		expect(result.blankImgs).toEqual({});
+	});
+
+	it('combines custom overlays and global overlays in duplication decisions', () => {
+		const result = calculateTimings(
+			[subtitle(0, 1_000, 1)],
+			[customText(1, 0, 2_000), timedOverlay('surah-name', 0, 2_000)]
+		);
+
+		expect(result.duplicableTimings).toEqual(new Map([[800, 200]]));
+	});
+
+	it('keeps verse number hidden outside subtitle-active timings even inside its global timed range', () => {
+		const result = calculateTimings(
+			[subtitle(0, 500, 1), silence(501, 900)],
+			[
+				timedOverlay('verse-number', 0, 1_000, false, (timing) => timing >= 0 && timing <= 500)
+			]
+		);
+
+		expect(result.imgWithNothingShown).toEqual({ 1: 900 });
+		expect(result.blankImgs).toEqual({});
 	});
 });

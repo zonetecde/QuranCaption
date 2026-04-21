@@ -3,6 +3,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import CompositeText from './CompositeText.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
+	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 
 	let { customText }: { customText: Category } = $props();
 
@@ -13,47 +14,15 @@
 			width: Number(customText.getStyle('width')?.value ?? 80),
 			text: customText.getStyle('text')?.value as string,
 
-			opacity: () => {
-				const alwaysShow = customText.getStyle('always-show')?.value as number;
-				const maxOpacity = Number(customText.getStyle('opacity')?.value ?? 1);
-
-				// Si on veut toujours qu'il soit affiché, alors on retourne l'opacité max
-				if (alwaysShow) return maxOpacity;
-
-				const fadeDuration = globalState.getStyle('global', 'fade-duration')!.value as number;
-				const currentTime = globalState.getTimelineState.cursorPosition;
-
-				const startTime = customText.getStyle('time-appearance')?.value as number;
-				const endTime = customText.getStyle('time-disappearance')?.value as number;
-
-				// Avant l'apparition
-				if (currentTime < startTime) return 0;
-
-				// Si la durée de fondu est nulle ou négative, on bascule directement entre 0 et maxOpacity
-				if (fadeDuration <= 0) {
-					if (currentTime >= startTime && currentTime <= endTime) return maxOpacity;
-					return 0;
-				}
-
-				// Fondu entrant : startTime -> startTime + fadeDuration
-				if (currentTime >= startTime && currentTime < startTime + fadeDuration) {
-					const t = (currentTime - startTime) / fadeDuration;
-					return Math.max(0, Math.min(1, t)) * maxOpacity;
-				}
-
-				// Pleine opacité entre la fin du fondu entrant et le début du fondu sortant
-				if (currentTime >= startTime + fadeDuration && currentTime < endTime - fadeDuration)
-					return maxOpacity;
-
-				// Fondu sortant : endTime - fadeDuration -> endTime
-				if (currentTime >= endTime - fadeDuration && currentTime <= endTime) {
-					const t = (endTime - currentTime) / fadeDuration;
-					return Math.max(0, Math.min(1, t)) * maxOpacity;
-				}
-
-				// Après la disparition
-				return 0;
-			}
+			opacity: () =>
+				getTimedOverlayOpacity({
+					alwaysShow: Boolean(customText.getStyle('always-show')?.value),
+					maxOpacity: Number(customText.getStyle('opacity')?.value ?? 1),
+					currentTime: globalState.getTimelineState.cursorPosition,
+					fadeDuration: globalState.getStyle('global', 'fade-duration')!.value as number,
+					startTime: customText.getStyle('time-appearance')?.value as number,
+					endTime: customText.getStyle('time-disappearance')?.value as number
+				})
 		};
 	});
 

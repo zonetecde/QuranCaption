@@ -12,6 +12,7 @@
 		SilenceClip
 	} from '$lib/classes';
 	import ShortcutService from '$lib/services/ShortcutService';
+	import { getTimelineCustomClips } from './track/timelineCustomClip';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
@@ -589,7 +590,7 @@
 				<div class="track-lanes">
 					{#each globalState.currentProject!.content.timeline.tracks as track, i (i)}
 						<!-- N'affiche pas la track des customs texts s'il y en a pas dans le projet -->
-						{#if !(track.type === TrackType.CustomClip && track.clips.length === 0)}
+						{#if !(track.type === TrackType.CustomClip && getTimelineCustomClips().length === 0)}
 							<Track
 								bind:track={globalState.currentProject!.content.timeline.tracks[i]}
 								{visibleRangeStartMs}

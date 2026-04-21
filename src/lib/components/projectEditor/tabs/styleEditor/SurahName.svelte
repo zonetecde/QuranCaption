@@ -5,14 +5,22 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
 	import { VerseRange } from '$lib/classes';
+	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 
 	const currentSurah = $derived(() => {
 		return globalState.getSubtitleTrack.getCurrentSurah();
 	});
 
+	const fadeDuration = $derived(() => {
+		return globalState.getStyle('global', 'fade-duration').value as number;
+	});
+
 	let surahNameSettings = $derived(() => {
 		return {
-			show: globalState.getStyle('global', 'show-surah-name')!.value,
+			show: Boolean(globalState.getStyle('global', 'show-surah-name')!.value),
+			alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value),
+			startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
+			endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
 			size: globalState.getStyle('global', 'surah-size')!.value,
 			showArabic: globalState.getStyle('global', 'surah-show-arabic')!.value,
 			showLatin: globalState.getStyle('global', 'surah-show-latin')!.value,
@@ -45,6 +53,17 @@
 				.getStyle('global', 'surah-latin-text-style')!
 				.getCompositeStyle('text-glow-blur')!.value
 		};
+	});
+
+	const timedSurahOpacity = $derived(() => {
+		return getTimedOverlayOpacity({
+			alwaysShow: surahNameSettings().alwaysShow,
+			maxOpacity: Number(surahNameSettings().opacity ?? 1),
+			currentTime: globalState.getTimelineState.cursorPosition,
+			fadeDuration: fadeDuration(),
+			startTime: surahNameSettings().startTime,
+			endTime: surahNameSettings().endTime
+		});
 	});
 
 	const supportedTranslationLanguages = ['English', 'Spanish', 'French'] as const;
@@ -141,7 +160,7 @@
 	});
 </script>
 
-{#if surahNameSettings().show && currentSurah() >= 1 && currentSurah() <= 114}
+{#if surahNameSettings().show && currentSurah() >= 1 && currentSurah() <= 114 && timedSurahOpacity() > 0}
 	<div
 		ondblclick={() => {
 			globalState.getVideoStyle.highlightCategory('global', 'surah-name');
@@ -152,7 +171,7 @@
 			horizontalStyleId: 'surah-name-horizontal-position'
 		}}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select- z-10"
-		style={`transform: translateY(${surahNameSettings().verticalPosition}px) translateX(${surahNameSettings().horizontalPosition}px); opacity: ${surahNameSettings().opacity}; `}
+		style={`transform: translateY(${surahNameSettings().verticalPosition}px) translateX(${surahNameSettings().horizontalPosition}px); opacity: ${timedSurahOpacity()}; `}
 	>
 		<p
 			class="surahs-font"

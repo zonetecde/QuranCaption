@@ -9,7 +9,10 @@
 	import SubtitleClipComponent from './SubtitleClip.svelte';
 	import CustomClipComponent from './CustomClip.svelte';
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
-	import { CustomClip } from '$lib/classes/Clip.svelte';
+	import {
+		getTimelineCustomClips,
+		type TimelineCustomClipLike
+	} from './timelineCustomClip';
 
 	let {
 		track = $bindable(),
@@ -27,7 +30,17 @@
 			.filter(
 				({ clip }) =>
 					(track.type === TrackType.CustomClip &&
-						(clip as CustomClip).getAlwaysShow?.() === true) ||
+						(clip as TimelineCustomClipLike).getAlwaysShow?.() === true) ||
+					(clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs)
+			)
+	);
+
+	let visibleCustomClips = $derived(() =>
+		getTimelineCustomClips()
+			.map((clip, clipIndex) => ({ clip, clipIndex }))
+			.filter(
+				({ clip }) =>
+					clip.getAlwaysShow?.() === true ||
 					(clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs)
 			)
 	);
@@ -66,16 +79,16 @@
 	</div>
 	<div class="absolute left-[180px] top-0 bottom-0 right-0 z-[5]">
 		{#if track.type === TrackType.CustomClip}
-			{@const total = track.clips.length}
+			{@const total = Math.max(getTimelineCustomClips().length, 1)}
 			<!-- Container relatif pour positionner chaque lane -->
 			<div class="absolute inset-0">
-				{#each visibleClips() as { clip, clipIndex } (clip.id)}
+				{#each visibleCustomClips() as { clip, clipIndex } (clip.id)}
 					<div
 						class="absolute left-0 right-0"
 						style="top: {((total - 1 - clipIndex) * 100) / total}%; height: {100 / total}%;"
 					>
 						<div class="relative h-full">
-							<CustomClipComponent bind:clip={track.clips[clipIndex] as CustomClip} {track} />
+							<CustomClipComponent {clip} {track} />
 						</div>
 					</div>
 				{/each}

@@ -3,14 +3,22 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
 	import RecitersManager from '$lib/classes/Reciter';
+	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 
 	const reciter = $derived(() => {
 		return RecitersManager.getReciterObject(globalState.currentProject!.detail.reciter);
 	});
 
+	const fadeDuration = $derived(() => {
+		return globalState.getStyle('global', 'fade-duration').value as number;
+	});
+
 	let reciterNameSettings = $derived(() => {
 		return {
-			show: globalState.getStyle('global', 'show-reciter-name')!.value,
+			show: Boolean(globalState.getStyle('global', 'show-reciter-name')!.value),
+			alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value),
+			startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
+			endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
 			size: globalState.getStyle('global', 'reciter-size')!.value as number,
 			showArabic: globalState.getStyle('global', 'reciter-show-arabic')!.value,
 			showLatin: globalState.getStyle('global', 'reciter-show-latin')!.value,
@@ -35,9 +43,20 @@
 				.getCompositeStyle('outline-enable')!.value
 		};
 	});
+
+	const timedReciterOpacity = $derived(() => {
+		return getTimedOverlayOpacity({
+			alwaysShow: reciterNameSettings().alwaysShow,
+			maxOpacity: Number(reciterNameSettings().opacity ?? 1),
+			currentTime: globalState.getTimelineState.cursorPosition,
+			fadeDuration: fadeDuration(),
+			startTime: reciterNameSettings().startTime,
+			endTime: reciterNameSettings().endTime
+		});
+	});
 </script>
 
-{#if reciterNameSettings().show && reciter().latin !== 'not set'}
+{#if reciterNameSettings().show && reciter().latin !== 'not set' && timedReciterOpacity() > 0}
 	<div
 		ondblclick={() => {
 			globalState.getVideoStyle.highlightCategory('global', 'reciter-name');
@@ -48,7 +67,7 @@
 			horizontalStyleId: 'reciter-name-horizontal-position'
 		}}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select-none z-10"
-		style={`transform: translateY(${reciterNameSettings().verticalPosition}px) translateX(${reciterNameSettings().horizontalPosition}px); opacity: ${reciterNameSettings().opacity};`}
+		style={`transform: translateY(${reciterNameSettings().verticalPosition}px) translateX(${reciterNameSettings().horizontalPosition}px); opacity: ${timedReciterOpacity()};`}
 	>
 		{#if reciter().number !== -1}
 			<p

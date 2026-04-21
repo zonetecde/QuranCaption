@@ -121,7 +121,10 @@ export type OverlayStyleName =
 
 export type SurahNameStyleName =
 	| 'show-surah-name'
+	| 'surah-name-always-show'
 	| 'surah-name-format'
+	| 'surah-name-time-appearance'
+	| 'surah-name-time-disappearance'
 	| 'surah-show-arabic'
 	| 'surah-name-vertical-position'
 	| 'surah-name-horizontal-position'
@@ -133,7 +136,10 @@ export type SurahNameStyleName =
 
 export type ReciterNameStyleName =
 	| 'show-reciter-name'
+	| 'reciter-name-always-show'
 	| 'reciter-name-format'
+	| 'reciter-name-time-appearance'
+	| 'reciter-name-time-disappearance'
 	| 'reciter-show-arabic'
 	| 'reciter-name-vertical-position'
 	| 'reciter-name-horizontal-position'

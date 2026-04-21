@@ -1,16 +1,20 @@
 <script lang="ts">
-	import { CustomTextClip, type Track } from '$lib/classes';
+	import { type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
-	import type { CustomClip, CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { onDestroy } from 'svelte';
+	import {
+		getTimelineCustomClipLabel,
+		GlobalTimedOverlayTimelineClip,
+		type TimelineCustomClipLike
+	} from './timelineCustomClip';
 
 	let {
 		clip = $bindable(),
 		track = $bindable()
 	}: {
-		clip: CustomClip;
+		clip: TimelineCustomClipLike;
 		track: Track;
 	} = $props();
 
@@ -33,8 +37,9 @@
 	let originalDuration = 0;
 
 	function removeClip(_e: MouseEvent): void {
+		if (clip instanceof GlobalTimedOverlayTimelineClip) return;
 		setTimeout(() => {
-			track.removeClip(clip.id);
+			track.removeClip(Number(clip.id));
 		});
 	}
 
@@ -152,11 +157,9 @@
 >
 	<div class="absolute inset-0 z-5 flex overflow-hidden px-2 py-2">
 		<div class="flex items-center w-full">
-			<span class="text-xs text-[var(--text-secondary)] font-medium"
-				>{clip.type === 'Custom Text'
-					? (clip as CustomTextClip).getText()
-					: (clip as CustomImageClip).getFilePath().split('\\').pop() || 'No Image'}</span
-			>
+			<span class="text-xs text-[var(--text-secondary)] font-medium">
+				{getTimelineCustomClipLabel(clip)}
+			</span>
 		</div>
 	</div>
 
@@ -181,11 +184,13 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
-	<Item on:click={removeClip}
-		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove Custom Text
-		</div></Item
-	>
+	{#if !(clip instanceof GlobalTimedOverlayTimelineClip)}
+		<Item on:click={removeClip}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">remove</span>Remove Custom Text
+			</div></Item
+		>
+	{/if}
 	<Item on:click={toggleAlwaysShow}
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">

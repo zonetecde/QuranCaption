@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
+	import type { CustomClip } from '$lib/classes/Clip.svelte';
 	import type {
 		DimensionValue,
 		FadeValue
@@ -398,6 +399,97 @@
 	function getHeaderPreviewStyle() {
 		return style.id === 'decorative-brackets-font-family' ? "font-family: 'QPC2BSML', serif;" : '';
 	}
+
+	/**
+	 * Harmonise begin/end après clic sur "Use preview cursor time":
+	 * - si on set begin et begin > end, alors end = begin + 3s
+	 * - si on set end et end < begin, alors begin = end et end = end + 3s
+	 */
+	function syncTimeRangeAfterPreviewCursor(cursorMs: number): void {
+		const beginToEndStyle: Partial<Record<StyleName, StyleName>> = {
+			'time-appearance': 'time-disappearance',
+			'surah-name-time-appearance': 'surah-name-time-disappearance',
+			'reciter-name-time-appearance': 'reciter-name-time-disappearance'
+		};
+
+		const endToBeginStyle: Partial<Record<StyleName, StyleName>> = {
+			'time-disappearance': 'time-appearance',
+			'surah-name-time-disappearance': 'surah-name-time-appearance',
+			'reciter-name-time-disappearance': 'reciter-name-time-appearance'
+		};
+
+		const currentStyleId = style.id as StyleName;
+		const endStyleId = beginToEndStyle[currentStyleId];
+
+		if (endStyleId) {
+			const endFallback = cursorMs + 3000;
+
+			// Cas custom clip: synchroniser style et clip pour garder timeline/preview coherents.
+			if (currentStyleId === 'time-appearance') {
+				for (const customClip of (globalState.getCustomClipTrack?.clips || []) as CustomClip[]) {
+					const category = customClip.category;
+					if (!category) continue;
+
+					const isCurrentCategory = category.styles.some((s: Style) => s === style);
+					if (!isCurrentCategory) continue;
+
+					const endStyle = category.styles.find((s: Style) => s.id === endStyleId);
+					if (!endStyle) break;
+
+					const currentEnd = Number(endStyle.value ?? 0);
+					if (cursorMs > currentEnd) {
+						endStyle.value = endFallback;
+						customClip.setEndTime(endFallback);
+					}
+					break;
+				}
+				return;
+			}
+
+			// Cas style global (surah/reciter): simple mise a jour du style global.
+			const globalEndStyle = globalState.getStyle('global', endStyleId);
+			const currentEnd = Number(globalEndStyle.value ?? 0);
+			if (cursorMs > currentEnd) {
+				globalEndStyle.value = endFallback;
+			}
+			return;
+		}
+
+		const beginStyleId = endToBeginStyle[currentStyleId];
+		if (!beginStyleId) return;
+
+		const endFallback = cursorMs + 3000;
+
+		if (currentStyleId === 'time-disappearance') {
+			for (const customClip of (globalState.getCustomClipTrack?.clips || []) as CustomClip[]) {
+				const category = customClip.category;
+				if (!category) continue;
+
+				const isCurrentCategory = category.styles.some((s: Style) => s === style);
+				if (!isCurrentCategory) continue;
+
+				const beginStyle = category.styles.find((s: Style) => s.id === beginStyleId);
+				if (!beginStyle) break;
+
+				const currentBegin = Number(beginStyle.value ?? 0);
+				if (cursorMs < currentBegin) {
+					beginStyle.value = cursorMs;
+					customClip.setStartTime(cursorMs);
+					style.value = endFallback;
+					customClip.setEndTime(endFallback);
+				}
+				break;
+			}
+			return;
+		}
+
+		const globalBeginStyle = globalState.getStyle('global', beginStyleId);
+		const currentBegin = Number(globalBeginStyle.value ?? 0);
+		if (cursorMs < currentBegin) {
+			globalBeginStyle.value = cursorMs;
+			style.value = endFallback;
+		}
+	}
 </script>
 
 <div
@@ -631,9 +723,9 @@
 						class="btn-accent text-sm py-1 min-w-[150px]"
 						title="Use the preview timeline cursor time and put it into the time field"
 						onclick={() => {
-							let currentPreviewTime = globalState.getTimelineState.cursorPosition;
-
+							const currentPreviewTime = globalState.getTimelineState.cursorPosition;
 							applyValue(currentPreviewTime);
+							syncTimeRangeAfterPreviewCursor(currentPreviewTime);
 						}}
 					>
 						Use preview cursor time

@@ -31,12 +31,10 @@
 	let verseNumberSettings = $derived(() => {
 		return {
 			show: Boolean(globalState.getStyle('global', 'show-verse-number')!.value),
-
 			verticalPosition: globalState.getStyle('global', 'verse-number-vertical-position')!
 				.value as number,
 			horizontalPosition: globalState.getStyle('global', 'verse-number-horizontal-position')!
 				.value as number,
-
 			verseNumberFormat: globalState.getStyle('global', 'verse-number-format')!.value as string,
 			opacity: globalState
 				.getStyle('global', 'verse-number-text-style')!
@@ -44,8 +42,7 @@
 		};
 	});
 
-	// Calcul de l'opacité du numéro de verset avec fade in/out
-	let verseNumberOpacity = $derived(() => {
+	let verseNumberSubtitleOpacity = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!subtitle || !verseNumberSettings().show) return 0;
 
@@ -72,7 +69,7 @@
 	});
 </script>
 
-{#if verseNumberSettings().show && currentSurah > 0 && currentVerse > 0 && verseNumberOpacity() > 0}
+{#if verseNumberSettings().show && currentSurah > 0 && currentVerse > 0 && verseNumberSubtitleOpacity() > 0}
 	<div
 		ondblclick={() => {
 			globalState.getVideoStyle.highlightCategory('global', 'verse-number');
@@ -83,7 +80,7 @@
 			horizontalStyleId: 'verse-number-horizontal-position'
 		}}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select-none z-10"
-		style={`opacity: ${verseNumberOpacity()}; transform: translateY(${verseNumberSettings().verticalPosition}px) translateX(${verseNumberSettings().horizontalPosition}px);`}
+		style={`opacity: ${verseNumberSubtitleOpacity()}; transform: translateY(${verseNumberSettings().verticalPosition}px) translateX(${verseNumberSettings().horizontalPosition}px);`}
 	>
 		<div class="w-[700px] text-center">
 			<CompositeText compositeStyle={globalState.getStyle('global', 'verse-number-text-style')!}>

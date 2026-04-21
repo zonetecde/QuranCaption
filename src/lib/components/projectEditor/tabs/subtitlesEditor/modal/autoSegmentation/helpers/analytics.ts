@@ -45,9 +45,17 @@ export function trackSegmentationRun(params: {
 		.map((part) => `${part.surah}:${part.verseStart}-${part.verseEnd}`)
 		.join(', ');
 	const provider =
-		params.runtime === 'hf_json' ? 'hf_space_json' : params.requestedMode === 'api' ? 'cloud_v2' : params.version;
+		params.runtime === 'hf_json'
+			? 'hf_space_json'
+			: params.requestedMode === 'api'
+				? 'cloud_v2'
+				: params.version;
 	const inputSource =
-		params.runtime === 'hf_json' ? 'hf_space_json' : params.requestedMode === 'api' ? 'cloud' : 'local';
+		params.runtime === 'hf_json'
+			? 'hf_space_json'
+			: params.requestedMode === 'api'
+				? 'cloud'
+				: 'local';
 
 	AnalyticsService.trackSegmentationUsage({
 		status: params.response?.status ?? 'unknown',

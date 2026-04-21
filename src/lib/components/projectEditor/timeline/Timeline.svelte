@@ -863,5 +863,3 @@
 		box-shadow: 0 2px 6px rgba(34, 197, 94, 0.4);
 	}
 </style>
-
-

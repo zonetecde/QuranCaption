@@ -113,9 +113,7 @@ async function fetchChapterIndopak(chapterId) {
 	try {
 		return await fetchChapterFromProxy(chapterId);
 	} catch (proxyError) {
-		console.warn(
-			`[${chapterId}] Proxy unavailable (${String(proxyError)}), fallback direct QDC.`
-		);
+		console.warn(`[${chapterId}] Proxy unavailable (${String(proxyError)}), fallback direct QDC.`);
 		return fetchChapterFromDirectQdc(chapterId);
 	}
 }

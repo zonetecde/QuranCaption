@@ -6,14 +6,12 @@ use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 
-fn find_latest_downloaded_file(
-    download_path: &Path,
-    extension: &str,
-) -> Result<PathBuf, String> {
+fn find_latest_downloaded_file(download_path: &Path, extension: &str) -> Result<PathBuf, String> {
     let mut latest_path: Option<PathBuf> = None;
     let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
 
-    let entries = fs::read_dir(download_path).map_err(|e| format!("Error reading directory: {}", e))?;
+    let entries =
+        fs::read_dir(download_path).map_err(|e| format!("Error reading directory: {}", e))?;
     for entry in entries.flatten() {
         let path = entry.path();
         if !path.is_file() {
@@ -47,7 +45,8 @@ fn find_downloaded_file_by_suffix(
     extension: &str,
     file_suffix: &str,
 ) -> Result<PathBuf, String> {
-    let entries = fs::read_dir(download_path).map_err(|e| format!("Error reading directory: {}", e))?;
+    let entries =
+        fs::read_dir(download_path).map_err(|e| format!("Error reading directory: {}", e))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -133,7 +132,10 @@ fn transcode_to_web_compatible_mp4(file_path: &Path, ffmpeg_path: &str) -> Resul
         }
         Err(e) => {
             let _ = fs::remove_file(&temp_path);
-            Err(format!("Unable to execute ffmpeg for compatibility transcode: {}", e))
+            Err(format!(
+                "Unable to execute ffmpeg for compatibility transcode: {}",
+                e
+            ))
         }
     }
 }

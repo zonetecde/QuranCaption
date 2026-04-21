@@ -619,7 +619,7 @@
 </script>
 
 <TranslationsEditorModalShell
-	close={close}
+	{close}
 	title="AI Translation Assistant"
 	icon="psychology"
 	shellClass="h-[92vh] xl:h-[80vh] w-[clamp(1200px,96vw,1700px)] max-w-[90vw] xl:max-w-[66vw]"

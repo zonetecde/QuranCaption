@@ -147,7 +147,9 @@ function createSurah(surahDefinition: TestSurahDefinition): Surah {
 		surahDefinition.verses.length,
 		surahDefinition.arabicLong ?? `${surahDefinition.name} Long`,
 		surahDefinition.revelationPlace ?? 'Meccan',
-		surahDefinition.verses.map((verseDefinition) => createVerse(surahDefinition.id, verseDefinition))
+		surahDefinition.verses.map((verseDefinition) =>
+			createVerse(surahDefinition.id, verseDefinition)
+		)
 	);
 }
 

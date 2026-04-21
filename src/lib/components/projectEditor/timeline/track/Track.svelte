@@ -1,18 +1,11 @@
 <script lang="ts">
-	import {
-		TrackType,
-		type Track,
-		type SubtitleClip as SubtitleClipType
-	} from '$lib/classes';
+	import { TrackType, type Track, type SubtitleClip as SubtitleClipType } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ClipComponent from './Clip.svelte';
 	import SubtitleClipComponent from './SubtitleClip.svelte';
 	import CustomClipComponent from './CustomClip.svelte';
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
-	import {
-		getTimelineCustomClips,
-		type TimelineCustomClipLike
-	} from './timelineCustomClip';
+	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
 
 	let {
 		track = $bindable(),

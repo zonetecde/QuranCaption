@@ -85,13 +85,11 @@ describe('VerseTranslation.tryRecalculateTranslationIndexes', () => {
 
 describe('translation inline style runs', () => {
 	it('adds a style range to an empty translation', () => {
-		const runs = toggleTranslationInlineStyleRuns(
-			[],
-			5,
-			1,
-			3,
-			{ bold: true, italic: false, underline: false }
-		);
+		const runs = toggleTranslationInlineStyleRuns([], 5, 1, 3, {
+			bold: true,
+			italic: false,
+			underline: false
+		});
 
 		expect(runs).toEqual([
 			{

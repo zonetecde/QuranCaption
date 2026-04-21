@@ -205,7 +205,12 @@ fn emit_bold_status(app_handle: &tauri::AppHandle, batch_id: &str, step: &str, m
     );
 }
 
-fn emit_bold_chunk(app_handle: &tauri::AppHandle, batch_id: &str, delta: &str, accumulated_text: &str) {
+fn emit_bold_chunk(
+    app_handle: &tauri::AppHandle,
+    batch_id: &str,
+    delta: &str,
+    accumulated_text: &str,
+) {
     let _ = app_handle.emit(
         "advanced-ai-bold-chunk",
         json!({

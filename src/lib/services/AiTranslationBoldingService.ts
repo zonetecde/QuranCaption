@@ -155,9 +155,7 @@ function estimateBatchCost(
 	const serializedInput = JSON.stringify(requestPayload);
 	const serializedOutputCharBudget =
 		requestPayload.segments.reduce((total, segment) => {
-			const translationWordCount = segment.translationIndexed
-				.split(/\s+/)
-				.filter(Boolean).length;
+			const translationWordCount = segment.translationIndexed.split(/\s+/).filter(Boolean).length;
 			return total + Math.max(32, translationWordCount * 5 + 48);
 		}, 24) + 32;
 
@@ -252,7 +250,8 @@ export function buildAiBoldBatches(
 
 	for (const candidate of selected) {
 		const segmentWordCount = Math.max(candidate.wordCount, 1);
-		const wouldOverflow = current.length > 0 && currentWordCount + segmentWordCount > MAX_BATCH_WORDS;
+		const wouldOverflow =
+			current.length > 0 && currentWordCount + segmentWordCount > MAX_BATCH_WORDS;
 
 		if (wouldOverflow) {
 			pushCurrentBatch();
@@ -294,12 +293,11 @@ export function estimateAiBoldCost(
 		totalEstimatedInputTokens,
 		totalEstimatedOutputTokens,
 		totalEstimatedCostUsd,
-		reasoningNote:
-			batches.some((batch) => batch.estimatedCostUsd === 0)
-				? 'Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.'
-				: reasoningEffort === 'none'
-					? 'Approximation based on prompt/output size only.'
-					: 'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
+		reasoningNote: batches.some((batch) => batch.estimatedCostUsd === 0)
+			? 'Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.'
+			: reasoningEffort === 'none'
+				? 'Approximation based on prompt/output size only.'
+				: 'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
 	};
 }
 

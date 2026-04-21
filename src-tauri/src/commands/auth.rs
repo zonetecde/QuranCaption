@@ -101,10 +101,7 @@ pub fn quran_auth_secure_set(key: String, value: String) -> Result<(), String> {
             set_single_secure_value(&chunk_key(index), chunk)?;
         }
 
-        set_single_secure_value(
-            &key,
-            &format!("{CHUNKED_SENTINEL_PREFIX}{}", chunks.len()),
-        )?;
+        set_single_secure_value(&key, &format!("{CHUNKED_SENTINEL_PREFIX}{}", chunks.len()))?;
         return Ok(());
     }
 

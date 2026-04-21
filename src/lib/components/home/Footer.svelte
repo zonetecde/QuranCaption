@@ -1,4 +1,4 @@
-	<script lang="ts">
+<script lang="ts">
 	import ClickableLink from './ClickableLink.svelte';
 </script>
 

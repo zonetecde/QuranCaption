@@ -41,102 +41,102 @@
 		}
 
 		const fetchPromise = (async () => {
-				const doneSubtitlesIds: Set<number> = new Set();
+			const doneSubtitlesIds: Set<number> = new Set();
 
-				// Index rapide des sous-titres encore incomplets dans le projet courant.
-				// Dès qu'un sous-titre est fetch, on le retire de cette map pour éviter
-				// toute re-recherche dans les itérations suivantes.
-				const pendingSubtitlesByKey: Map<string, SubtitleClip[]> = new Map();
-				for (const subtitle of globalState.getSubtitleClips) {
-					const subtitleTranslation = subtitle.translations[edition.name] as
-						| VerseTranslation
-						| undefined;
-					if (!subtitleTranslation || subtitleTranslation.isStatusComplete()) continue;
+			// Index rapide des sous-titres encore incomplets dans le projet courant.
+			// Dès qu'un sous-titre est fetch, on le retire de cette map pour éviter
+			// toute re-recherche dans les itérations suivantes.
+			const pendingSubtitlesByKey: Map<string, SubtitleClip[]> = new Map();
+			for (const subtitle of globalState.getSubtitleClips) {
+				const subtitleTranslation = subtitle.translations[edition.name] as
+					| VerseTranslation
+					| undefined;
+				if (!subtitleTranslation || subtitleTranslation.isStatusComplete()) continue;
 
-					const subtitleKey = getSubtitleLookupKey(subtitle);
-					const bucket = pendingSubtitlesByKey.get(subtitleKey);
-					if (bucket) {
-						bucket.push(subtitle);
-					} else {
-						pendingSubtitlesByKey.set(subtitleKey, [subtitle]);
-					}
+				const subtitleKey = getSubtitleLookupKey(subtitle);
+				const bucket = pendingSubtitlesByKey.get(subtitleKey);
+				if (bucket) {
+					bucket.push(subtitle);
+				} else {
+					pendingSubtitlesByKey.set(subtitleKey, [subtitle]);
 				}
+			}
 
-				// Parcours des projets du plus récent au plus ancien.
-				// On trie une copie pour ne pas muter l'ordre global.
-				const sortedEligibleProjects = globalState.userProjectsDetails
-					.filter((projectDetail) => {
-						if (projectDetail.id === globalState.currentProject!.detail.id) return false;
-						if (
-							!(
-								projectDetail.translations[edition.author] &&
-								projectDetail.translations[edition.author] > 40
-							)
+			// Parcours des projets du plus récent au plus ancien.
+			// On trie une copie pour ne pas muter l'ordre global.
+			const sortedEligibleProjects = globalState.userProjectsDetails
+				.filter((projectDetail) => {
+					if (projectDetail.id === globalState.currentProject!.detail.id) return false;
+					if (
+						!(
+							projectDetail.translations[edition.author] &&
+							projectDetail.translations[edition.author] > 40
 						)
-							return false;
-						if (skipQC1Projects && projectDetail.createdAt < QC1_RELEASE_DATE) return false;
-						return true;
-					})
-					.slice()
-					.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+					)
+						return false;
+					if (skipQC1Projects && projectDetail.createdAt < QC1_RELEASE_DATE) return false;
+					return true;
+				})
+				.slice()
+				.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-				// Stratégie en 2 passes:
-				// 1) statuts prioritaires sur tous les projets (récent -> ancien)
-				// 2) statuts de secours sur tous les projets (récent -> ancien)
-				// => la priorité de statut passe avant la récence.
-				const statusPasses: Array<Set<TranslationStatus>> = [
-					HIGH_PRIORITY_FETCH_STATUSES,
-					LOW_PRIORITY_FETCH_STATUSES
-				];
+			// Stratégie en 2 passes:
+			// 1) statuts prioritaires sur tous les projets (récent -> ancien)
+			// 2) statuts de secours sur tous les projets (récent -> ancien)
+			// => la priorité de statut passe avant la récence.
+			const statusPasses: Array<Set<TranslationStatus>> = [
+				HIGH_PRIORITY_FETCH_STATUSES,
+				LOW_PRIORITY_FETCH_STATUSES
+			];
 
-				for (const allowedStatuses of statusPasses) {
+			for (const allowedStatuses of statusPasses) {
+				if (pendingSubtitlesByKey.size === 0) break;
+
+				for (const projectDetail of sortedEligibleProjects) {
 					if (pendingSubtitlesByKey.size === 0) break;
 
-					for (const projectDetail of sortedEligibleProjects) {
+					const project = await ProjectService.load(projectDetail.id);
+					if (!project) continue;
+
+					for (const clip of project.content.timeline.getFirstTrack(TrackType.Subtitle).clips) {
 						if (pendingSubtitlesByKey.size === 0) break;
+						if (!(clip instanceof SubtitleClip)) continue;
 
-						const project = await ProjectService.load(projectDetail.id);
-						if (!project) continue;
+						const src = clip.translations[edition.name] as VerseTranslation | undefined;
+						if (!src || !allowedStatuses.has(src.status)) continue;
 
-						for (const clip of project.content.timeline.getFirstTrack(TrackType.Subtitle).clips) {
-							if (pendingSubtitlesByKey.size === 0) break;
-							if (!(clip instanceof SubtitleClip)) continue;
+						const matchingSubtitleKey = getSubtitleLookupKey(clip);
+						const pendingMatches = pendingSubtitlesByKey.get(matchingSubtitleKey);
+						if (!pendingMatches || pendingMatches.length === 0) continue;
 
-							const src = clip.translations[edition.name] as VerseTranslation | undefined;
-							if (!src || !allowedStatuses.has(src.status)) continue;
+						const matchingSubtitle = pendingMatches.shift();
+						if (!matchingSubtitle) continue;
 
-							const matchingSubtitleKey = getSubtitleLookupKey(clip);
-							const pendingMatches = pendingSubtitlesByKey.get(matchingSubtitleKey);
-							if (!pendingMatches || pendingMatches.length === 0) continue;
+						// Bucket vide = plus rien à chercher pour cette clé.
+						if (pendingMatches.length === 0) {
+							pendingSubtitlesByKey.delete(matchingSubtitleKey);
+						}
 
-							const matchingSubtitle = pendingMatches.shift();
-							if (!matchingSubtitle) continue;
+						doneSubtitlesIds.add(matchingSubtitle.id);
 
-							// Bucket vide = plus rien à chercher pour cette clé.
-							if (pendingMatches.length === 0) {
-								pendingSubtitlesByKey.delete(matchingSubtitleKey);
-							}
+						const tgt = matchingSubtitle.translations[edition.name] as VerseTranslation;
+						tgt.text = src.text;
+						tgt.startWordIndex = src.startWordIndex;
+						tgt.endWordIndex = src.endWordIndex;
+						tgt.isBruteForce = src.isBruteForce;
+						tgt.inlineStyleRuns = [...(src.inlineStyleRuns ?? [])];
+						tgt.status = 'fetched';
 
-							doneSubtitlesIds.add(matchingSubtitle.id);
-
-							const tgt = matchingSubtitle.translations[edition.name] as VerseTranslation;
-							tgt.text = src.text;
-							tgt.startWordIndex = src.startWordIndex;
-							tgt.endWordIndex = src.endWordIndex;
-							tgt.isBruteForce = src.isBruteForce;
-							tgt.inlineStyleRuns = [...(src.inlineStyleRuns ?? [])];
-							tgt.status = 'fetched';
-
-							if (src.isBruteForce) {
-								// Tente de retrouver des indexes propres apres import.
-								tgt.tryRecalculateTranslationIndexes(edition, clip.getVerseKey());
-							}
+						if (src.isBruteForce) {
+							// Tente de retrouver des indexes propres apres import.
+							tgt.tryRecalculateTranslationIndexes(edition, clip.getVerseKey());
 						}
 					}
 				}
+			}
 
-				globalState.currentProject!.detail.updatePercentageTranslated(edition);
-				return doneSubtitlesIds.size;
+			globalState.currentProject!.detail.updatePercentageTranslated(edition);
+			return doneSubtitlesIds.size;
 		})();
 
 		toast.promise(fetchPromise, {

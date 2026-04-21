@@ -90,7 +90,10 @@ export class QPCFontProvider {
 			const familyValue = window.getComputedStyle(node).fontFamily;
 			// Pour l'export, seule la famille principale compte: les fallbacks système n'ont
 			// pas besoin d'être sérialisés.
-			const primaryFamily = familyValue.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '');
+			const primaryFamily = familyValue
+				.split(',')[0]
+				?.trim()
+				.replace(/^['"]|['"]$/g, '');
 			if (
 				!primaryFamily ||
 				this.isGenericFontFamily(primaryFamily) ||
@@ -278,7 +281,8 @@ export class QPCFontProvider {
 	private static shouldWaitForFontFamily(fontFamily: string): boolean {
 		const normalized = fontFamily.trim().toLowerCase();
 		if (!normalized) return false;
-		if (normalized === 'inherit' || normalized === 'initial' || normalized === 'unset') return false;
+		if (normalized === 'inherit' || normalized === 'initial' || normalized === 'unset')
+			return false;
 
 		return true;
 	}
@@ -363,7 +367,10 @@ export class QPCFontProvider {
 		);
 	}
 
-	private static normalizeCssFontWeight(fontWeight: number, fontWeightRange: string | null): string {
+	private static normalizeCssFontWeight(
+		fontWeight: number,
+		fontWeightRange: string | null
+	): string {
 		if (fontWeightRange && /^\d+\s+\d+$/.test(fontWeightRange)) return fontWeightRange;
 		if (!Number.isFinite(fontWeight)) return '400';
 		return String(Math.max(1, Math.min(1000, Math.round(fontWeight))));
@@ -388,15 +395,23 @@ export class QPCFontProvider {
 	}
 
 	private static async waitForNextPaint(): Promise<void> {
-		const rafOrTimeout = () => new Promise<void>(resolve => {
-			let handled = false;
-			const id = requestAnimationFrame(() => {
-				if (!handled) { handled = true; resolve(); }
+		const rafOrTimeout = () =>
+			new Promise<void>((resolve) => {
+				let handled = false;
+				const id = requestAnimationFrame(() => {
+					if (!handled) {
+						handled = true;
+						resolve();
+					}
+				});
+				setTimeout(() => {
+					if (!handled) {
+						handled = true;
+						cancelAnimationFrame(id);
+						resolve();
+					}
+				}, 50);
 			});
-			setTimeout(() => {
-				if (!handled) { handled = true; cancelAnimationFrame(id); resolve(); }
-			}, 50);
-		});
 		await rafOrTimeout();
 		await rafOrTimeout();
 	}

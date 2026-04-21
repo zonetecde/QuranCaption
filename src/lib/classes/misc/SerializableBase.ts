@@ -11,7 +11,9 @@ type RegisteredSerializableClass<T extends SerializableBase = SerializableBase> 
 };
 
 const hasClassName = (value: unknown): value is SerializableDictionary & { __className: string } =>
-	typeof value === 'object' && value !== null && typeof (value as { __className?: unknown }).__className === 'string';
+	typeof value === 'object' &&
+	value !== null &&
+	typeof (value as { __className?: unknown }).__className === 'string';
 
 const hasFromJSON = <T extends SerializableBase>(
 	value: unknown
@@ -158,8 +160,9 @@ export class SerializableBase {
 			className && SerializableBase.__classRegistry.has(className)
 				? SerializableBase.__classRegistry.get(className)
 				: undefined;
-		const targetClass = (hasFromJSON<T>(registeredClass) ? registeredClass : this) as
-			RegisteredSerializableClass<T>;
+		const targetClass = (
+			hasFromJSON<T>(registeredClass) ? registeredClass : this
+		) as RegisteredSerializableClass<T>;
 
 		let instance: T;
 		try {
@@ -246,10 +249,7 @@ export class SerializableBase {
 							deserializedDict[dictKey] = hasFromJSON(itemClass)
 								? itemClass.fromJSON(dictValue)
 								: dictValue;
-						} else if (
-							typeof dictValue === 'string' &&
-							SerializableBase.isDateString(dictValue)
-						) {
+						} else if (typeof dictValue === 'string' && SerializableBase.isDateString(dictValue)) {
 							deserializedDict[dictKey] = new Date(dictValue);
 						} else {
 							deserializedDict[dictKey] = dictValue;

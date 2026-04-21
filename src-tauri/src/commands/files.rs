@@ -6,7 +6,6 @@ use tokio::io::AsyncWriteExt;
 
 use crate::path_utils;
 
-
 /// Recherche dans le dossier téléchargements un fichier créé après `start_time`.
 #[tauri::command]
 pub fn get_new_file_path(start_time: u64, asset_name: &str) -> Result<String, String> {
@@ -54,8 +53,7 @@ pub fn copy_file(source: String, destination: String) -> Result<(), String> {
     if let Some(parent) = dst.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
-    fs::copy(&src, &dst)
-        .map_err(|e| format!("Failed to copy file: {}", e))?;
+    fs::copy(&src, &dst).map_err(|e| format!("Failed to copy file: {}", e))?;
     Ok(())
 }
 

@@ -22,12 +22,7 @@ pub(crate) struct PythonInterpreter {
 }
 
 /// Checks whether a Python version satisfies a required minimum.
-pub(crate) fn python_version_meets_min(
-    major: u8,
-    minor: u8,
-    min_major: u8,
-    min_minor: u8,
-) -> bool {
+pub(crate) fn python_version_meets_min(major: u8, minor: u8, min_major: u8, min_minor: u8) -> bool {
     major > min_major || (major == min_major && minor >= min_minor)
 }
 
@@ -80,9 +75,15 @@ fn python_command_candidates() -> Vec<String> {
         );
     } else {
         candidates.extend(
-            ["python3.12", "python3.11", "python3.10", "python3", "python"]
-                .iter()
-                .map(|entry| entry.to_string()),
+            [
+                "python3.12",
+                "python3.11",
+                "python3.10",
+                "python3",
+                "python",
+            ]
+            .iter()
+            .map(|entry| entry.to_string()),
         );
     }
 

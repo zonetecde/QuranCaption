@@ -89,9 +89,7 @@
 		/>
 		<div>
 			<div class="text-sm font-medium text-primary">Also ask for already reviewed verses</div>
-			<div class="text-xs text-thirdly">
-				Include fully reviewed verses in candidate selection.
-			</div>
+			<div class="text-xs text-thirdly">Include fully reviewed verses in candidate selection.</div>
 		</div>
 	</label>
 {/if}

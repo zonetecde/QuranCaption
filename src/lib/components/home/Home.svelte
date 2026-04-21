@@ -333,6 +333,3 @@
 		<MigrationFromV2Modal close={() => (migrationFromV2ModalVisibility = false)} />
 	</div>
 {/if}
-
-
-

@@ -82,7 +82,10 @@ impl SseAccumulator {
             .map_err(|e| format!("Failed to parse process stream payload: {}", e))?;
         if self.current_event == "error" {
             if let Some(error_message) = payload.get("error").and_then(|value| value.as_str()) {
-                return Err(format!("Cloud segmentation stream error: {}", error_message));
+                return Err(format!(
+                    "Cloud segmentation stream error: {}",
+                    error_message
+                ));
             }
             return Err(format!("Cloud segmentation stream error: {}", payload));
         }

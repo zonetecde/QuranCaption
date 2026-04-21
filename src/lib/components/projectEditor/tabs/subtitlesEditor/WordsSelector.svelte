@@ -285,8 +285,10 @@
 			const nextClip = globalState.getSubtitleTrack.getClipById(pendingId);
 			if (nextClip) {
 				// Modifie le sous-titre
-				globalState.getSubtitlesEditorState.editSubtitle =
-					nextClip as SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation;
+				globalState.getSubtitlesEditorState.editSubtitle = nextClip as
+					| SubtitleClip
+					| PredefinedSubtitleClip
+					| ClipWithTranslation;
 				return true;
 			}
 		}
@@ -548,11 +550,7 @@
 			endTime = startTime + threeSecondsInMs;
 		}
 
-		globalState.getVideoStyle.addCustomClip(
-			'text',
-			startTime,
-			endTime
-		);
+		globalState.getVideoStyle.addCustomClip('text', startTime, endTime);
 	}
 </script>
 

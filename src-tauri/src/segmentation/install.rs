@@ -89,8 +89,8 @@ pub async fn install_local_segmentation_deps(
     };
 
     // Validate system Python and prepare the dedicated venv.
-    let system_python =
-        resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR).map_err(|e| {
+    let system_python = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR)
+        .map_err(|e| {
             format!(
                 "Python {}.{}+ is required to install local dependencies: {}",
                 MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR, e

@@ -39,7 +39,9 @@ export class QdcRecitationService {
 	/** Récupère la liste des récitations QDC via le proxy Quran Caption. */
 	static async getRecitations(): Promise<QdcRecitation[]> {
 		try {
-			const response = await fetch(`${QURAN_CAPTION_WEBSITE_BASE_URL}/api/quran/content/recitations`);
+			const response = await fetch(
+				`${QURAN_CAPTION_WEBSITE_BASE_URL}/api/quran/content/recitations`
+			);
 			if (!response.ok) throw new Error('Failed to fetch QDC recitations');
 			const data = (await response.json()) as QdcRecitationsResponse;
 			return data.recitations || [];

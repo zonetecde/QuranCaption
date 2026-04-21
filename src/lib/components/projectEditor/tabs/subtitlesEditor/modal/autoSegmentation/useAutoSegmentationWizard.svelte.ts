@@ -115,8 +115,8 @@ export function useAutoSegmentationWizard() {
 			: selection.runtime === 'hf_json'
 				? 'Import and parse a JSON export from Hugging Face, then apply it to your timeline.'
 				: selection.mode === 'local'
-				? "Local mode uses your computer's resources."
-				: 'Cloud mode uses Quran Multi-Aligner v2.'
+					? "Local mode uses your computer's resources."
+					: 'Cloud mode uses Quran Multi-Aligner v2.'
 	);
 
 	/** Persists a partial settings update. */
@@ -256,17 +256,14 @@ export function useAutoSegmentationWizard() {
 
 	/** Returns a segmentation status listener for both local and cloud runs. */
 	async function listenSegmentationStatus(): Promise<UnlistenFn | null> {
-		return listen<{ message?: string; progress?: number }>(
-			'segmentation-status',
-			(event) => {
-				if (typeof event.payload.message === 'string') currentStatus = event.payload.message;
-				if (typeof event.payload.progress === 'number') {
-					currentStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
-				} else {
-					currentStatusProgress = null;
-				}
+		return listen<{ message?: string; progress?: number }>('segmentation-status', (event) => {
+			if (typeof event.payload.message === 'string') currentStatus = event.payload.message;
+			if (typeof event.payload.progress === 'number') {
+				currentStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
+			} else {
+				currentStatusProgress = null;
 			}
-		);
+		});
 	}
 
 	function stopEstimationTimer(): void {

@@ -21,8 +21,7 @@
 		</div>
 		<div class="text-xs text-secondary break-words">{wizard.audioLabel()}</div>
 		<div class="text-[11px] text-thirdly">
-			Version: {wizard.selection.aiVersion === 'legacy_v1' ? 'V1 Legacy' : 'V2 Multi-Aligner'} | {wizard
-				.runtimeLabel()}
+			Version: {wizard.selection.aiVersion === 'legacy_v1' ? 'V1 Legacy' : 'V2 Multi-Aligner'} | {wizard.runtimeLabel()}
 		</div>
 	</div>
 

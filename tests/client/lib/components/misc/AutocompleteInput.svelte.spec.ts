@@ -74,7 +74,7 @@ describe('AutocompleteInput', () => {
 
 	test('filters string suggestions with normalized matching and hides dropdown without results', async () => {
 		const component = renderAutocomplete({
-			suggestions: ["Al-Fatihah", "Al Baqarah", "An.Nisa'"]
+			suggestions: ['Al-Fatihah', 'Al Baqarah', "An.Nisa'"]
 		});
 
 		const input = component.getByRole('textbox');

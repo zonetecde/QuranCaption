@@ -549,8 +549,8 @@
 							<div class="space-y-1">
 								<div class="text-sm font-semibold text-primary">AI Provider</div>
 								<p class="text-sm leading-relaxed text-thirdly">
-									Configure your API key, text endpoint, model, and reasoning effort in
-									Settings &gt; AI Key before running Advanced AI Trimming.
+									Configure your API key, text endpoint, model, and reasoning effort in Settings
+									&gt; AI Key before running Advanced AI Trimming.
 								</p>
 								<div class="text-xs text-thirdly">
 									Current model:
@@ -637,7 +637,7 @@
 
 						<div class="mt-4">
 							<AiActivityLogCard
-								activityLog={activityLog}
+								{activityLog}
 								title="Recent activity"
 								maxHeightClass="max-h-72"
 								containerClass=""
@@ -646,7 +646,6 @@
 					</div>
 				</div>
 			</div>
-
 		</div>
 	{/if}
 </div>

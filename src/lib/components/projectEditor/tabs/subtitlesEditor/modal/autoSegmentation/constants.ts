@@ -1,5 +1,11 @@
 import type { LegacyWhisperModelSize, MultiAlignerModel } from '$lib/services/AutoSegmentation';
-import type { AiVersion, ModelOption, SegmentationPreset, WizardRuntime, WizardStep } from './types';
+import type {
+	AiVersion,
+	ModelOption,
+	SegmentationPreset,
+	WizardRuntime,
+	WizardStep
+} from './types';
 
 /** Ordered steps for the landscape wizard navigation rail. */
 export const WIZARD_STEPS_V2: WizardStep[] = [
@@ -14,7 +20,12 @@ export const WIZARD_STEPS_V2: WizardStep[] = [
 export const WIZARD_STEPS_V2_JSON: WizardStep[] = [
 	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
 	{ key: 'runtime', title: 'Runtime', subtitle: 'Cloud, local, or JSON import', icon: 'storage' },
-	{ key: 'import', title: 'Import JSON', subtitle: 'Paste or drop exported segments', icon: 'note_add' }
+	{
+		key: 'import',
+		title: 'Import JSON',
+		subtitle: 'Paste or drop exported segments',
+		icon: 'note_add'
+	}
 ];
 
 /** Legacy V1 flow omits runtime because V1 is always local. */

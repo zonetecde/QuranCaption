@@ -19,5 +19,5 @@
 		class="material-icons-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)]"
 		>{icon}</span
 	>
-	<input class={"pl-11! " + classes} {placeholder} type="text" bind:value />
+	<input class={'pl-11! ' + classes} {placeholder} type="text" bind:value />
 </div>

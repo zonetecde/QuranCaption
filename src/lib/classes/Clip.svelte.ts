@@ -372,8 +372,7 @@ export class SubtitleClip extends ClipWithTranslation {
 				text: mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text,
 				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
 				// En mode IndoPak, le numéro de verset reste rendu avec Hafs comme avant.
-				suffixFontFamily:
-					showVerseNumber && mushafStyle === 'Indopak' ? 'Hafs' : null
+				suffixFontFamily: showVerseNumber && mushafStyle === 'Indopak' ? 'Hafs' : null
 			};
 		}
 
@@ -512,9 +511,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		);
 
 		clonedClip.indopakText = this.indopakText;
-		clonedClip.arabicInlineStyleRuns = JSON.parse(
-			JSON.stringify(this.arabicInlineStyleRuns ?? [])
-		);
+		clonedClip.arabicInlineStyleRuns = JSON.parse(JSON.stringify(this.arabicInlineStyleRuns ?? []));
 		clonedClip.associatedImagePath = this.associatedImagePath;
 		return clonedClip;
 	}

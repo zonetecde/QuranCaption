@@ -132,9 +132,7 @@ export function createWorkspaceLastRead(options: CreateWorkspaceLastReadOptions)
 
 		await tick();
 
-		const target = container.querySelector<HTMLElement>(
-			`[data-translation-clip-id="${clipId}"]`
-		);
+		const target = container.querySelector<HTMLElement>(`[data-translation-clip-id="${clipId}"]`);
 		if (!target) return;
 
 		target.scrollIntoView({ block: 'center', behavior: 'auto' });

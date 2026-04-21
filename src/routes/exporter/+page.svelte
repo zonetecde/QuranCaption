@@ -28,11 +28,7 @@
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
 	import { domToBlob } from 'modern-screenshot';
-	import {
-		ClipWithTranslation,
-		CustomClip,
-		SilenceClip
-	} from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation, CustomClip, SilenceClip } from '$lib/classes/Clip.svelte';
 
 	// Contient l'ID de l'export
 	let exportId = '';

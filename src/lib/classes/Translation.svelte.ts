@@ -237,8 +237,7 @@ export function toggleTranslationInlineStyleRuns(
 		if (toggledFlags.italic) states[index].italic = !states[index].italic;
 		if (toggledFlags.underline) states[index].underline = !states[index].underline;
 		if (toggledFlags.color) {
-			states[index].color =
-				states[index].color === toggledFlags.color ? null : toggledFlags.color;
+			states[index].color = states[index].color === toggledFlags.color ? null : toggledFlags.color;
 		}
 	}
 

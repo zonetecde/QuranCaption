@@ -96,13 +96,15 @@ function createEmptyTelemetryFile(): AiTelemetryFile {
 }
 
 function normalizeText(value: string | undefined | null): string {
-	return String(value ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+	return String(value ?? '')
+		.replace(/\r\n/g, '\n')
+		.replace(/\r/g, '\n')
+		.trim();
 }
 
-function createStableItemId(item: Pick<
-	AiTranslationTelemetryItem,
-	'projectId' | 'editionKey' | 'subtitleId' | 'sourceMode'
->): string {
+function createStableItemId(
+	item: Pick<AiTranslationTelemetryItem, 'projectId' | 'editionKey' | 'subtitleId' | 'sourceMode'>
+): string {
 	return `${item.projectId}:${item.editionKey}:${item.subtitleId}:${item.sourceMode}`;
 }
 
@@ -162,12 +164,11 @@ export function filterTelemetryItemsForExportScope(
 	);
 
 	return items
-		.filter(
-			(item) => item.projectId === scope.projectId && allowedSubtitleIds.has(item.subtitleId)
-		)
+		.filter((item) => item.projectId === scope.projectId && allowedSubtitleIds.has(item.subtitleId))
 		.sort((left, right) => {
 			if (left.subtitleId !== right.subtitleId) return left.subtitleId - right.subtitleId;
-			if (left.editionKey !== right.editionKey) return left.editionKey.localeCompare(right.editionKey);
+			if (left.editionKey !== right.editionKey)
+				return left.editionKey.localeCompare(right.editionKey);
 			return left.sourceMode.localeCompare(right.sourceMode);
 		});
 }
@@ -207,7 +208,10 @@ function sanitizeSubmittedExportScope(rawScope: unknown): AiTranslationTelemetry
 	};
 }
 
-function toTelemetryStatus(value: unknown, fallback?: unknown): AiTranslationTelemetryStatus | null {
+function toTelemetryStatus(
+	value: unknown,
+	fallback?: unknown
+): AiTranslationTelemetryStatus | null {
 	if (
 		value === 'ai trimmed' ||
 		value === 'ai error' ||
@@ -233,7 +237,9 @@ function toTelemetrySourceMode(value: unknown): AiTranslationTelemetrySourceMode
 	return 'legacy';
 }
 
-function sanitizeTelemetryItem(rawItem: LegacyTelemetryDiskItem): AiTranslationTelemetryItem | null {
+function sanitizeTelemetryItem(
+	rawItem: LegacyTelemetryDiskItem
+): AiTranslationTelemetryItem | null {
 	const projectId = Number(rawItem.projectId);
 	const subtitleId = Number(rawItem.subtitleId);
 	const editionKey = normalizeText(rawItem.editionKey);
@@ -351,7 +357,9 @@ export function applyManualReviewToTelemetryItem(
 	};
 }
 
-export function extractAdvancedAiTranslations(parsedResponse: unknown): Map<string, Map<number, string>> {
+export function extractAdvancedAiTranslations(
+	parsedResponse: unknown
+): Map<string, Map<number, string>> {
 	const result = new Map<string, Map<number, string>>();
 	if (!parsedResponse || typeof parsedResponse !== 'object') return result;
 
@@ -382,14 +390,12 @@ export function extractAdvancedAiTranslations(parsedResponse: unknown): Map<stri
 export default class AiTranslationTelemetryService {
 	private static cache: AiTelemetryFile | null = null;
 	private static mutationQueue: Promise<void> = Promise.resolve();
-	private static pendingExportScope:
-		| {
-				projectId: number;
-				exportStartMs: number;
-				exportEndMs: number;
-				clips: AiTranslationTelemetryExportClip[];
-		  }
-		| null = null;
+	private static pendingExportScope: {
+		projectId: number;
+		exportStartMs: number;
+		exportEndMs: number;
+		clips: AiTranslationTelemetryExportClip[];
+	} | null = null;
 
 	private static async getTelemetryFilePath(): Promise<string> {
 		return join(await appDataDir(), TELEMETRY_FILE_NAME);
@@ -423,13 +429,17 @@ export default class AiTranslationTelemetryService {
 		}
 	}
 
-	private static async mutateFile<T>(mutator: (file: AiTelemetryFile) => Promise<T> | T): Promise<T> {
+	private static async mutateFile<T>(
+		mutator: (file: AiTelemetryFile) => Promise<T> | T
+	): Promise<T> {
 		let result!: T;
-		const task = this.mutationQueue.catch(() => undefined).then(async () => {
-			const file = await this.loadFile();
-			result = await mutator(file);
-			await this.saveFile(file);
-		});
+		const task = this.mutationQueue
+			.catch(() => undefined)
+			.then(async () => {
+				const file = await this.loadFile();
+				result = await mutator(file);
+				await this.saveFile(file);
+			});
 
 		this.mutationQueue = task.then(
 			() => undefined,
@@ -513,7 +523,8 @@ export default class AiTranslationTelemetryService {
 
 		await this.mutateFile(async (file) => {
 			for (const verse of params.batch.verses) {
-				const parsedTextByIndex = parsedTextByVerse.get(verse.verseKey) ?? new Map<number, string>();
+				const parsedTextByIndex =
+					parsedTextByVerse.get(verse.verseKey) ?? new Map<number, string>();
 
 				for (const segment of verse.segments) {
 					if (!segment.needsAi) continue;

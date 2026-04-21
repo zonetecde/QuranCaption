@@ -1,4 +1,4 @@
-	<script lang="ts">
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { globalState } from '$lib/runes/main.svelte';

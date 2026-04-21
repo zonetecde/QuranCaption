@@ -997,7 +997,14 @@ async function applySegmentationResponseToProject(
 			segment.special_type
 		);
 		if (predefinedType) {
-			const clip = new PredefinedSubtitleClip(startMs, endMs, predefinedType, undefined, true, confidence);
+			const clip = new PredefinedSubtitleClip(
+				startMs,
+				endMs,
+				predefinedType,
+				undefined,
+				true,
+				confidence
+			);
 			subtitleTrack.clips.push(clip);
 			segmentsApplied += 1;
 			if (isLowConfidence) lowConfidenceSegments += 1;
@@ -1174,7 +1181,10 @@ async function applySegmentationResponseToProject(
 
 	if (segmentsApplied === 0 && segmentErrors.length > 0) {
 		const uniqueErrors = [...new Set(segmentErrors)];
-		return { status: 'failed', message: `All segments failed to process: ${uniqueErrors.join(', ')}` };
+		return {
+			status: 'failed',
+			message: `All segments failed to process: ${uniqueErrors.join(', ')}`
+		};
 	}
 
 	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
@@ -1401,7 +1411,10 @@ export async function estimateSegmentationDuration(options: {
  */
 export async function runAutoSegmentationFromImportedJson(
 	importedPayload: string | unknown,
-	options: Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'> = {}
+	options: Pick<
+		AutoSegmentationOptions,
+		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
+	> = {}
 ): Promise<AutoSegmentationResult | null> {
 	const fillBySilence: boolean = options.fillBySilence ?? true;
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
@@ -1578,15 +1591,13 @@ export async function runNativeSegmentation(
 		// 3. Fetch timing data
 		const timingData =
 			nativeTimingMeta.provider === 'qdc'
-				? (await QdcRecitationService.getChapterAudio(
-						nativeTimingMeta.recitationId,
-						surahId,
-						true
-					))?.timestamps?.map((timestamp) => ({
+				? ((
+						await QdcRecitationService.getChapterAudio(nativeTimingMeta.recitationId, surahId, true)
+					)?.timestamps?.map((timestamp) => ({
 						ayah: Number(timestamp.verse_key.split(':')[1]),
 						start_time: timestamp.timestamp_from,
 						end_time: timestamp.timestamp_to
-					})) ?? []
+					})) ?? [])
 				: await Mp3QuranService.getSurahTiming(
 						nativeTimingMeta.moshafId ?? nativeTimingMeta.reciterId,
 						surahId
@@ -1635,11 +1646,7 @@ export async function runNativeSegmentation(
 			const endIndex = verse.words.length - 1;
 
 			const arabicText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
-			const indopakText = verse.getArabicTextBetweenTwoIndexes(
-				startIndex,
-				endIndex,
-				'indopak'
-			);
+			const indopakText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex, 'indopak');
 			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startIndex, endIndex);
 
 			const subtitlesProperties = await subtitleTrack.getSubtitlesProperties(
@@ -1730,4 +1737,3 @@ export async function runNativeSegmentation(
 		return { status: 'failed', message: String(error) };
 	}
 }
-

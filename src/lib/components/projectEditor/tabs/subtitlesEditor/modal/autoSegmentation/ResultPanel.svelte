@@ -14,8 +14,8 @@
 				(wizard.selection.runtime === 'hf_json'
 					? 'Applying imported JSON segments...'
 					: wizard.selection.mode === 'api'
-					? 'Sending audio to cloud...'
-					: 'Running local segmentation...')}
+						? 'Sending audio to cloud...'
+						: 'Running local segmentation...')}
 		</div>
 		{#if wizard.currentStatusProgress !== null}
 			<div class="mt-3">

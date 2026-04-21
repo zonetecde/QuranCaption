@@ -39,7 +39,9 @@ export class ProjectTranslation extends SerializableBase {
 		}
 
 		// Charge les traductions disponibles
-		const object = (await (await fetch('/translations/editions.json')).json()) as TranslationEditionsResponse;
+		const object = (await (
+			await fetch('/translations/editions.json')
+		).json()) as TranslationEditionsResponse;
 
 		globalState.availableTranslations = object as typeof globalState.availableTranslations;
 	}
@@ -130,11 +132,17 @@ export class ProjectTranslation extends SerializableBase {
 	/**
 	 * Extract all verses from a surah response
 	 */
-	private extractSurahFromResponse(data: unknown, surah: number, edition: Edition): Array<{ verse: number; text: string }> {
+	private extractSurahFromResponse(
+		data: unknown,
+		surah: number,
+		edition: Edition
+	): Array<{ verse: number; text: string }> {
 		if (edition.comments === 'Ponctuation') {
 			// Format: array with verse index as key
 			const verses = [];
-			const punctuationData = Array.isArray(data) ? (data as Array<PunctuationVerseItem | undefined>) : [];
+			const punctuationData = Array.isArray(data)
+				? (data as Array<PunctuationVerseItem | undefined>)
+				: [];
 			for (let i = 1; i < punctuationData.length; i++) {
 				const item = punctuationData[i];
 				if (item && typeof item[1] === 'string') {

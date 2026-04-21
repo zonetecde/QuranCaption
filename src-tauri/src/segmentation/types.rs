@@ -1,15 +1,15 @@
 /// URL racine de l'API Gradio Quran Multi-Aligner.
 pub const QURAN_MULTI_ALIGNER_BASE_URL: &str =
-"https://hetchyy-quranic-universal-aligner.hf.space/gradio_api";
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api";
 /// Endpoint d'upload Gradio.
 pub const QURAN_MULTI_ALIGNER_UPLOAD_URL: &str =
-"https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/upload";
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/upload";
 /// Endpoint d'appel du pipeline complet.
 pub const QURAN_MULTI_ALIGNER_PROCESS_CALL_URL: &str =
-"https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/process_audio_session";
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/process_audio_session";
 /// Endpoint d'appel de l'estimation de durée.
 pub const QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL: &str =
-"https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/estimate_duration";
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/estimate_duration";
 
 /// Flag de développement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;

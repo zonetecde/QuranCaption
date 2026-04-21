@@ -11,7 +11,8 @@
 	<div>
 		<h3 class="text-lg font-medium text-primary">AI Key</h3>
 		<p class="mt-1 text-sm text-thirdly">
-			Shared text AI credentials, endpoint, and model settings used by Advanced AI Trimming and AI Bold.
+			Shared text AI credentials, endpoint, and model settings used by Advanced AI Trimming and AI
+			Bold.
 		</p>
 	</div>
 

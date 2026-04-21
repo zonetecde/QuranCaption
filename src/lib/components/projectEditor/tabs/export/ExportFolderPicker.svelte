@@ -69,8 +69,7 @@
 			class="flex-1 bg-secondary border border-color rounded p-2 text-sm text-secondary"
 			title={currentExportFolder}
 			bind:value={currentExportFolder}
-			oninput={(event) =>
-				setCustomExportFolder((event.currentTarget as HTMLInputElement).value)}
+			oninput={(event) => setCustomExportFolder((event.currentTarget as HTMLInputElement).value)}
 			onblur={persistCustomExportFolder}
 			onkeydown={(event) => {
 				if (event.key === 'Enter') {

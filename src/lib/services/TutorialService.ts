@@ -26,9 +26,7 @@ async function downloadTutorialAudio(): Promise<string> {
  */
 export async function setupTutorialProject(force = false): Promise<void> {
 	if (force) {
-		const existing = globalState.userProjectsDetails.find(
-			(p) => p.name === TUTORIAL_PROJECT_NAME
-		);
+		const existing = globalState.userProjectsDetails.find((p) => p.name === TUTORIAL_PROJECT_NAME);
 		if (existing) await ProjectService.delete(existing.id);
 	} else {
 		if (globalState.userProjectsDetails.some((p) => p.name === TUTORIAL_PROJECT_NAME)) return;

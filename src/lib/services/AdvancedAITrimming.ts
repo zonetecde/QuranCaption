@@ -412,12 +412,11 @@ export function estimateAdvancedTrimCost(
 		totalEstimatedInputTokens,
 		totalEstimatedOutputTokens,
 		totalEstimatedCostUsd,
-		reasoningNote:
-			batches.some((batch) => batch.estimatedCostUsd === 0)
-				? 'Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.'
-				: reasoningEffort === 'none'
-					? 'Approximation based on prompt/output size only.'
-					: 'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
+		reasoningNote: batches.some((batch) => batch.estimatedCostUsd === 0)
+			? 'Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.'
+			: reasoningEffort === 'none'
+				? 'Approximation based on prompt/output size only.'
+				: 'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
 	};
 }
 

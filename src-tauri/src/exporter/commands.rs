@@ -1,4 +1,4 @@
-﻿use crate::binaries;
+use crate::binaries;
 use crate::path_utils;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -1624,19 +1624,12 @@ fn build_and_run_ffmpeg_filter_complex(
         } else {
             1
         };
-        let mut batch_duration_ms = compute_render_output_duration_ms(
-            &batch_timestamps,
-            fade_duration_ms,
-            last_tail_ms,
-        )
-        .saturating_add(boundary_fade_ms);
+        let mut batch_duration_ms =
+            compute_render_output_duration_ms(&batch_timestamps, fade_duration_ms, last_tail_ms)
+                .saturating_add(boundary_fade_ms);
         batch_duration_ms = batch_duration_ms.min((full_duration_ms - batch_base_ms).max(1));
-        let batch_output_path = make_internal_batch_path(
-            &base_dir,
-            export_id,
-            batch_index,
-            export_without_background,
-        );
+        let batch_output_path =
+            make_internal_batch_path(&base_dir, export_id, batch_index, export_without_background);
         let batch_output = batch_output_path.to_string_lossy().to_string();
 
         println!(
@@ -2767,14 +2760,7 @@ pub async fn concat_videos(
         ]);
     } else {
         cmd.args(&[
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "18",
-            "-pix_fmt",
-            "yuv420p",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
         ]);
     }
 

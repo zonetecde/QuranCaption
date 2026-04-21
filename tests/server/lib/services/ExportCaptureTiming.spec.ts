@@ -10,11 +10,7 @@ import {
 	type ExportTimedOverlayCaptureClip
 } from '$lib/services/ExportCaptureTiming';
 
-function subtitle(
-	startTime: number,
-	endTime: number,
-	surah: number
-): ExportSubtitleCaptureClip {
+function subtitle(startTime: number, endTime: number, surah: number): ExportSubtitleCaptureClip {
 	return { startTime, endTime, surah, kind: 'subtitle' };
 }
 
@@ -210,11 +206,7 @@ describe('calculateCaptureTimingsForRange', () => {
 
 	it('ignores invalid or zero-length clips', () => {
 		const result = calculateTimings(
-			[
-				subtitle(0, 0, 1),
-				subtitle(100, 100, 2),
-				subtitle(200, 400, 3)
-			],
+			[subtitle(0, 0, 1), subtitle(100, 100, 2), subtitle(200, 400, 3)],
 			[customText(1, 500, 500)],
 			0,
 			1_000,
@@ -226,23 +218,26 @@ describe('calculateCaptureTimingsForRange', () => {
 	});
 
 	it('allows duplication when a timed global overlay stays visible for the whole subtitle', () => {
-		const result = calculateTimings([subtitle(0, 1_000, 1)], [timedOverlay('surah-name', 0, 2_000)]);
+		const result = calculateTimings(
+			[subtitle(0, 1_000, 1)],
+			[timedOverlay('surah-name', 0, 2_000)]
+		);
 
 		expect(result.duplicableTimings).toEqual(new Map([[800, 200]]));
 	});
 
 	it('prevents duplication when a timed global overlay changes state during the subtitle', () => {
-		const result = calculateTimings([subtitle(0, 1_000, 1)], [timedOverlay('reciter-name', 0, 300)]);
+		const result = calculateTimings(
+			[subtitle(0, 1_000, 1)],
+			[timedOverlay('reciter-name', 0, 300)]
+		);
 
 		expect(result.duplicableTimings.size).toBe(0);
 		expect(result.uniqueSorted).toEqual([0, 100, 200, 300, 800, 1_000, 5_000]);
 	});
 
 	it('does not create a blank image when a timed global overlay is visible at subtitle end', () => {
-		const result = calculateTimings(
-			[subtitle(0, 500, 1)],
-			[timedOverlay('surah-name', 100, 700)]
-		);
+		const result = calculateTimings([subtitle(0, 500, 1)], [timedOverlay('surah-name', 100, 700)]);
 
 		expect(result.imgWithNothingShown).toEqual({});
 		expect(result.blankImgs).toEqual({});
@@ -260,9 +255,7 @@ describe('calculateCaptureTimingsForRange', () => {
 	it('keeps verse number hidden outside subtitle-active timings even inside its global timed range', () => {
 		const result = calculateTimings(
 			[subtitle(0, 500, 1), silence(501, 900)],
-			[
-				timedOverlay('verse-number', 0, 1_000, false, (timing) => timing >= 0 && timing <= 500)
-			]
+			[timedOverlay('verse-number', 0, 1_000, false, (timing) => timing >= 0 && timing <= 500)]
 		);
 
 		expect(result.imgWithNothingShown).toEqual({ 1: 900 });

@@ -139,7 +139,8 @@
 		onmouseleave={finishInlineDrag}
 	>
 		{#each words() as word, i (`${subtitle.id}-${i}-${word}`)}
-			{@const absoluteWordIndex = subtitle instanceof SubtitleClip ? subtitle.startWordIndex + i : i}
+			{@const absoluteWordIndex =
+				subtitle instanceof SubtitleClip ? subtitle.startWordIndex + i : i}
 			{@const isOverlapWord =
 				subtitle instanceof SubtitleClip &&
 				overlapEndWordIndex !== null &&
@@ -174,7 +175,11 @@
 		{/each}
 
 		{#if arabicDisplayParts().suffix}
-			<span style={arabicDisplayParts().suffixFontFamily ? `font-family: ${arabicDisplayParts().suffixFontFamily};` : ''}>
+			<span
+				style={arabicDisplayParts().suffixFontFamily
+					? `font-family: ${arabicDisplayParts().suffixFontFamily};`
+					: ''}
+			>
 				{arabicDisplayParts().suffix}
 			</span>
 		{/if}

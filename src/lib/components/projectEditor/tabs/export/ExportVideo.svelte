@@ -169,7 +169,7 @@
 				</p>
 				<p class="text-thirdly text-sm leading-snug">
 					<b>Batch size</b> for ffmpeg transitions. Lower values use less RAM but export slower. Default
-					is 16.
+					is 12.
 				</p>
 				<input
 					type="number"

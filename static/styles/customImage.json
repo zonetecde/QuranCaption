@@ -85,7 +85,7 @@
 			"id": "above-overlay",
 			"name": "Above Overlay",
 			"description": "Make the image appear above/below the background overlay",
-			"value": false,
+			"value": true,
 			"valueType": "boolean",
 			"css": "",
 			"tailwind": false,

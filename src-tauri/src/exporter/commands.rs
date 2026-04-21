@@ -2613,14 +2613,12 @@ pub async fn concat_videos(
         "make_zero", // Normalise les timestamps
         "-map",
         "0:v", // Vidéo
-        "-c:v",
-        "copy", // Pas de ré-encodage vidéo
     ]);
 
     append_thread_cap(&mut cmd, performance_profile);
 
+    let mut video_filters: Vec<String> = vec!["setpts=PTS-STARTPTS".to_string()];
     if apply_video_fade && fade_s > 0.0 {
-        let mut video_filters: Vec<String> = Vec::new();
         if video_fade_in_enabled.unwrap_or(false) {
             video_filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
         }
@@ -2631,13 +2629,11 @@ pub async fn concat_videos(
                 fade_out_start, fade_s
             ));
         }
-        if !video_filters.is_empty() {
-            cmd.args(&["-vf", &video_filters.join(",")]);
-        }
-        cmd.args(&[
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
-        ]);
     }
+    cmd.args(&["-vf", &video_filters.join(",")]);
+    cmd.args(&[
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+    ]);
 
     // Ré-encoder l'audio pour lisser les timestamps et éviter les micro-cuts
     let has_audio_stream = normalized_video_paths.iter().any(|p| video_has_audio(p));

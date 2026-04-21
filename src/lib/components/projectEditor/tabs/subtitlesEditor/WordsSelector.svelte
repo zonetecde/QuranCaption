@@ -543,9 +543,9 @@
 			startTime = Math.max(0, cursorPosition - threeSecondsInMs);
 		}
 
-		// Sécurise une plage valide même si le curseur est très tôt.
-		if (startTime > endTime) {
-			startTime = Math.max(0, endTime - threeSecondsInMs);
+		// Sécurise une plage valide même sur les cas limites (ex: curseur à la fin exacte du dernier sous-titre).
+		if (endTime <= startTime) {
+			endTime = startTime + threeSecondsInMs;
 		}
 
 		globalState.getVideoStyle.addCustomClip(

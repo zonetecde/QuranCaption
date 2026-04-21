@@ -36,7 +36,6 @@ export type AITranslationSettings = {
 };
 
 export type ExportSettings = {
-	chunkSize: number;
 	batchSize: number;
 };
 
@@ -54,7 +53,6 @@ const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
 export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
-		chunkSize: 200,
 		batchSize: 12
 	};
 
@@ -368,18 +366,15 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC343ToQC344();
 
 		if (
-			typeof settings.exportSettings.chunkSize !== 'number' ||
-			Number.isNaN(settings.exportSettings.chunkSize)
-		) {
-			settings.exportSettings.chunkSize = Settings.DEFAULT_EXPORT_SETTINGS.chunkSize;
-			shouldSave = true;
-		}
-
-		if (
 			typeof settings.exportSettings.batchSize !== 'number' ||
 			Number.isNaN(settings.exportSettings.batchSize)
 		) {
 			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
+			shouldSave = true;
+		}
+
+		if ('chunkSize' in (settings.exportSettings as Record<string, unknown>)) {
+			delete (settings.exportSettings as Record<string, unknown>).chunkSize;
 			shouldSave = true;
 		}
 

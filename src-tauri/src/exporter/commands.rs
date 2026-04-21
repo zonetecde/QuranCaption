@@ -29,7 +29,6 @@ struct FfmpegProgressContext {
     base_time_s: f64,
     total_time_s: f64,
     local_duration_s: f64,
-    chunk_index: Option<i32>,
 }
 
 fn is_export_cancelled(export_id: &str) -> bool {
@@ -163,17 +162,12 @@ fn run_ffmpeg_command(
                             progress_context.total_time_s
                         );
 
-                        let mut progress_data = serde_json::json!({
+                        let progress_data = serde_json::json!({
                             "export_id": export_id,
                             "progress": progress,
                             "current_time": current_time_s,
                             "total_time": progress_context.total_time_s
                         });
-
-                        if let Some(chunk_idx) = progress_context.chunk_index {
-                            progress_data["chunk_index"] =
-                                serde_json::Value::Number(serde_json::Number::from(chunk_idx));
-                        }
 
                         let _ = app_handle.emit("export-progress", progress_data);
                     }
@@ -190,17 +184,10 @@ fn run_ffmpeg_command(
             child.wait()?
         } else {
             let error_msg = format!("Export {} was cancelled", export_id);
-            let mut error_data = serde_json::json!({
+            let error_data = serde_json::json!({
                 "export_id": export_id,
                 "error": error_msg
             });
-
-            if let Some(progress_context) = progress_context {
-                if let Some(chunk_idx) = progress_context.chunk_index {
-                    error_data["chunk_index"] =
-                        serde_json::Value::Number(serde_json::Number::from(chunk_idx));
-                }
-            }
 
             let _ = app_handle.emit("export-error", error_data);
             return Err(Box::new(std::io::Error::new(
@@ -275,17 +262,10 @@ fn run_ffmpeg_command(
             log_write_path_display,
             log_content
         );
-        let mut error_data = serde_json::json!({
+        let error_data = serde_json::json!({
             "export_id": export_id,
             "error": error_msg
         });
-
-        if let Some(progress_context) = progress_context {
-            if let Some(chunk_idx) = progress_context.chunk_index {
-                error_data["chunk_index"] =
-                    serde_json::Value::Number(serde_json::Number::from(chunk_idx));
-            }
-        }
 
         let _ = app_handle.emit("export-error", error_data);
         return Err(Box::new(std::io::Error::new(
@@ -1485,7 +1465,6 @@ fn build_and_run_ffmpeg_filter_complex(
     prefer_hw: bool,
     imgs_cwd: Option<&str>,
     duration_ms: Option<i32>,
-    chunk_index: Option<i32>,
     blur: Option<f64>,
     video_fade_in_enabled: bool,
     video_fade_out_enabled: bool,
@@ -1530,7 +1509,6 @@ fn build_and_run_ffmpeg_filter_complex(
             prefer_hw,
             imgs_cwd,
             duration_ms,
-            chunk_index,
             blur,
             video_fade_in_enabled,
             video_fade_out_enabled,
@@ -1632,7 +1610,6 @@ fn build_and_run_ffmpeg_filter_complex(
             prefer_hw,
             imgs_cwd,
             Some(batch_duration_ms),
-            chunk_index,
             blur,
             false,
             false,
@@ -1697,7 +1674,6 @@ fn render_ffmpeg_filter_complex_single(
     prefer_hw: bool,
     imgs_cwd: Option<&str>,
     duration_ms: Option<i32>,
-    chunk_index: Option<i32>,
     blur: Option<f64>,
     video_fade_in_enabled: bool,
     video_fade_out_enabled: bool,
@@ -2113,7 +2089,6 @@ fn render_ffmpeg_filter_complex_single(
             base_time_s: progress_base_s,
             total_time_s: progress_total_s,
             local_duration_s: duration_s,
-            chunk_index,
         }),
         &app_handle,
     )
@@ -2137,7 +2112,6 @@ pub async fn export_video(
     duration: Option<i32>,
     audios: Option<Vec<String>>,
     videos: Option<Vec<VideoInput>>,
-    chunk_index: Option<i32>,
     blur: Option<f64>,
     video_fade_in_enabled: Option<bool>,
     video_fade_out_enabled: Option<bool>,
@@ -2349,7 +2323,6 @@ pub async fn export_video(
             true,
             Some(&imgs_folder_resolved),
             duration,
-            chunk_index,
             blur,
             video_fade_in_enabled.unwrap_or(false),
             video_fade_out_enabled.unwrap_or(false),
@@ -2379,17 +2352,11 @@ pub async fn export_video(
         .to_string();
 
     // Préparer les données de completion
-    let mut completion_data = serde_json::json!({
+    let completion_data = serde_json::json!({
         "filename": output_file_name,
         "exportId": export_id,
         "fullPath": out_path_str
     });
-
-    // Ajouter chunk_index si fourni
-    if let Some(chunk_idx) = chunk_index {
-        completion_data["chunkIndex"] =
-            serde_json::Value::Number(serde_json::Number::from(chunk_idx));
-    }
 
     // Émettre l'événement de succès
     let _ = app.emit("export-complete", completion_data);

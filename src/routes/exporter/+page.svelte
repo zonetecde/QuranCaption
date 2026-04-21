@@ -39,10 +39,9 @@
 	// Récupère les données d'export de la vidéo
 	let exportData: Exportation | undefined;
 
-	// Durée de chunk calculée dynamiquement basée sur chunkSize (1-200)
-	// chunkSize = 1 -> 30s, chunkSize = 100 -> ~5min15, chunkSize = 200 -> 10min
-	let CHUNK_DURATION = 0; // Sera calculé dans onMount
 	let activeVideoSegments: TimeRange[] = [];
+	let currentRenderingSegmentIndex = 0;
+	let isSegmentedVideoExport = false;
 
 	type ExportProgressEvent = {
 		payload: {
@@ -50,12 +49,9 @@
 			current_time: number;
 			total_time?: number;
 			export_id: string;
-			chunk_index?: number;
 		};
 	};
-	type ExportCompleteEvent = {
-		payload: { filename: string; exportId: string; chunkIndex?: number };
-	};
+	type ExportCompleteEvent = { payload: { filename: string; exportId: string } };
 	type ExportErrorEvent = {
 		payload: { error: string; export_id: string };
 	};
@@ -70,7 +66,6 @@
 			current_time: number;
 			total_time?: number;
 			export_id: string;
-			chunk_index?: number;
 		};
 
 		// Vérifie que c'est bien pour cette exportation
@@ -81,16 +76,15 @@
 				`Export Progress: ${data.progress.toFixed(1)}% (${data.current_time.toFixed(1)}s / ${data.total_time?.toFixed(1)}s)`
 			);
 
-			const chunkIndex = data.chunk_index ?? 0;
 			const totalDuration = exportData!.videoEndTime - exportData!.videoStartTime;
 
 			// Calculer le pourcentage global et le temps actuel global
 			let globalProgress: number;
 			let globalCurrentTime: number;
 
-			if (data.chunk_index !== undefined) {
-				// Mode segmenté: utiliser les bornes réelles des segments.
-				const segment = activeVideoSegments[chunkIndex];
+			if (isSegmentedVideoExport && activeVideoSegments.length > 1) {
+				// Mode segmenté: utiliser les bornes réelles du segment actuellement rendu.
+				const segment = activeVideoSegments[currentRenderingSegmentIndex];
 				const segmentStart = segment?.start ?? exportData!.videoStartTime;
 				const segmentEnd = segment?.end ?? exportData!.videoEndTime;
 				const segmentDuration = Math.max(0, segmentEnd - segmentStart);
@@ -112,7 +106,7 @@
 						? Math.min(100, Math.max(0, (globalCurrentTime / totalDuration) * 100))
 						: 100;
 			} else {
-				// Mode export normal (sans chunks)
+				// Mode export normal
 				globalProgress = data.progress;
 				globalCurrentTime = data.current_time * 1000; // Convertir de secondes en millisecondes
 			}
@@ -136,17 +130,12 @@
 
 		console.log(`[OK] Export complete! File saved as: ${data.filename}`);
 
-		// Si c'est un chunk, ne pas emettre 100% maintenant (ca sera fait a la fin de tous les chunks)
-		if (data.chunkIndex === undefined) {
-			// Export normal (sans chunks) - émettre 100%
+		if (!isSegmentedVideoExport) {
 			await emitProgress({
 				exportId: Number(exportId),
 				progress: 100,
 				currentState: ExportState.Exported
 			} as ExportProgress);
-		} else {
-			// Export en chunks - juste logger la completion du chunk
-			console.log(`[OK] Chunk ${data.chunkIndex} completed`);
 		}
 	}
 
@@ -255,18 +244,6 @@
 			globalState.getStyle('global', 'fade-duration')!.value =
 				(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
 
-			// Calculer CHUNK_DURATION basé sur chunkSize (1-200)
-			// Formule linéaire: chunkSize=1 -> 30s, chunkSize=100 -> ~5min15, chunkSize=200 -> 10min
-			const chunkSize =
-				globalState.settings?.exportSettings.chunkSize ?? globalState.getExportState.chunkSize;
-			const minDuration = 30 * 1000; // 30 secondes en ms
-			const maxDuration = 10 * 60 * 1000; // 10 minutes en ms
-			CHUNK_DURATION = minDuration + ((chunkSize - 1) / (200 - 1)) * (maxDuration - minDuration);
-
-			console.log(
-				`Chunk size: ${chunkSize}, Chunk duration: ${CHUNK_DURATION}ms (${CHUNK_DURATION / 1000}s)`
-			);
-
 			// Enlève tout les styles de position de la vidéo
 			let videoElement: HTMLElement;
 			// Attend que l'élément soit prêt
@@ -297,22 +274,14 @@
 
 		console.log(`Export duration: ${totalDuration}ms (${totalDuration / 1000 / 60} minutes)`);
 
-		// Si la duree est superieure a 10 minutes, on decoupe en chunks
-		if (totalDuration > CHUNK_DURATION) {
-			const baseRanges = calculateChunksWithFadeOut(exportStart, exportEnd).chunks;
-			const renderSegments = createBlurAwareRenderSegments(baseRanges);
-			await handleSegmentedExport(renderSegments, totalDuration);
-			return;
-		}
-
-		const shortExportBlurSegments = getBlurSegmentsForRange(exportStart, exportEnd);
-		if (shortExportBlurSegments.length > 1) {
-			await handleSegmentedExport(shortExportBlurSegments, totalDuration);
+		const blurSegments = getBlurSegmentsForRange(exportStart, exportEnd);
+		if (blurSegments.length > 1) {
+			await handleSegmentedExport(blurSegments, totalDuration);
 			return;
 		}
 
 		activeVideoSegments = [{ start: exportStart, end: exportEnd }];
-		const blur = shortExportBlurSegments[0]?.blur ?? 0;
+		const blur = blurSegments[0]?.blur ?? 0;
 		await handleNormalExport(exportStart, exportEnd, totalDuration, blur);
 	}
 
@@ -347,16 +316,9 @@
 		);
 	}
 
-	function createBlurAwareRenderSegments(baseRanges: TimeRange[]): BlurSegment[] {
-		const renderSegments: BlurSegment[] = [];
-		for (const range of baseRanges) {
-			renderSegments.push(...getBlurSegmentsForRange(range.start, range.end));
-		}
-		return renderSegments;
-	}
-
 	async function handleSegmentedExport(renderSegments: BlurSegment[], totalDuration: number) {
 		if (renderSegments.length === 0) return;
+		isSegmentedVideoExport = true;
 		activeVideoSegments = renderSegments.map((segment) => ({
 			start: segment.start,
 			end: segment.end
@@ -367,8 +329,8 @@
 			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 
-			await createChunkImageFolder(segmentImageFolder);
-			await generateImagesForChunk(
+			await createSegmentImageFolder(segmentImageFolder);
+			await generateImagesForSegment(
 				segmentIndex,
 				segment.start,
 				segment.end,
@@ -391,8 +353,9 @@
 			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 			const segmentDuration = segment.end - segment.start;
+			currentRenderingSegmentIndex = segmentIndex;
 
-			const segmentVideoPath = await generateVideoForChunk(
+			const segmentVideoPath = await generateVideoForSegment(
 				segmentIndex,
 				segmentImageFolder,
 				segment.start,
@@ -405,6 +368,7 @@
 
 		await concatenateVideos(generatedVideoFiles);
 		await finalCleanup();
+		isSegmentedVideoExport = false;
 
 		emitProgress({
 			exportId: Number(exportId),
@@ -415,106 +379,21 @@
 		} as ExportProgress);
 	}
 
-	async function _handleChunkedExport(
-		exportStart: number,
-		exportEnd: number,
-		totalDuration: number
-	) {
-		// Calculer les chunks en s'arrêtant au prochain fade-out après 10 minutes
-		const chunkInfo = calculateChunksWithFadeOut(exportStart, exportEnd);
-		const generatedVideoFiles: string[] = [];
-
-		console.log(`Splitting into ${chunkInfo.chunks.length} chunks`);
-		chunkInfo.chunks.forEach((chunk, i) => {
-			console.log(`Chunk ${i + 1}: ${chunk.start} -> ${chunk.end} (${chunk.end - chunk.start}ms)`);
-		});
-		// PHASE 1: Generation de TOUS les screenshots (0 a 100% du progres total)
-		console.log('=== PHASE 1: Génération de tous les screenshots ===');
-		for (let chunkIndex = 0; chunkIndex < chunkInfo.chunks.length; chunkIndex++) {
-			const chunk = chunkInfo.chunks[chunkIndex];
-			const chunkImageFolder = `chunk_${chunkIndex}`;
-
-			// Créer le dossier d'images pour ce chunk
-			await createChunkImageFolder(chunkImageFolder);
-
-			// Générer les images pour ce chunk
-			await generateImagesForChunk(
-				chunkIndex,
-				chunk.start,
-				chunk.end,
-				chunkImageFolder,
-				chunkInfo.chunks.length,
-				0, // phase start (0%)
-				100 // phase end (100%)
-			);
-		}
-
-		// PHASE 2: Génération de TOUTES les vidéos
-		console.log('=== PHASE 2: Génération de toutes les vidéos ===');
-
-		// Initialiser l'état avant l'export vidéo
-		emitProgress({
-			exportId: Number(exportId),
-			progress: 0,
-			currentState: ExportState.Initializing,
-			currentTime: 0,
-			totalTime: totalDuration
-		} as ExportProgress);
-
-		let chunkFolders = [];
-
-		for (let chunkIndex = 0; chunkIndex < chunkInfo.chunks.length; chunkIndex++) {
-			const chunk = chunkInfo.chunks[chunkIndex];
-			const chunkImageFolder = `chunk_${chunkIndex}`;
-			chunkFolders.push(chunkImageFolder);
-			const chunkActualDuration = chunk.end - chunk.start;
-
-			// Générer la vidéo pour ce chunk
-			const chunkVideoPath = await generateVideoForChunk(
-				chunkIndex,
-				chunkImageFolder,
-				chunk.start,
-				chunkActualDuration
-			);
-
-			generatedVideoFiles.push(chunkVideoPath);
-		}
-
-		// PHASE 3: Concaténation
-		console.log('=== PHASE 3: Concaténation des vidéos ===');
-
-		// Combiner toutes les vidéos en une seule
-		console.log('Concatenating all chunk videos:', generatedVideoFiles);
-
-		await concatenateVideos(generatedVideoFiles);
-
-		// Nettoyage final
-		await finalCleanup();
-
-		emitProgress({
-			exportId: Number(exportId),
-			progress: 100,
-			currentState: ExportState.Exported,
-			currentTime: totalDuration,
-			totalTime: totalDuration
-		} as ExportProgress);
-	}
-
-	async function createChunkImageFolder(chunkImageFolder: string) {
-		const chunkPath = await join(ExportService.exportFolder, exportId, chunkImageFolder);
-		await mkdir(chunkPath, {
+	async function createSegmentImageFolder(segmentImageFolder: string) {
+		const segmentPath = await join(ExportService.exportFolder, exportId, segmentImageFolder);
+		await mkdir(segmentPath, {
 			baseDir: BaseDirectory.AppData,
 			recursive: true
 		});
-		console.log(`Created chunk folder: ${chunkPath}`);
+		console.log(`Created segment folder: ${segmentPath}`);
 	}
 
-	async function generateImagesForChunk(
-		chunkIndex: number,
-		chunkStart: number,
-		chunkEnd: number,
-		chunkImageFolder: string,
-		totalChunks: number,
+	async function generateImagesForSegment(
+		segmentIndex: number,
+		segmentStart: number,
+		segmentEnd: number,
+		segmentImageFolder: string,
+		totalSegments: number,
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
 	) {
@@ -522,20 +401,20 @@
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
 
-		// Calculer les timings pour ce chunk spécifique
-		const chunkTimings = calculateTimingsForRange(chunkStart, chunkEnd);
+		// Calculer les timings pour ce segment spécifique
+		const segmentTimings = calculateTimingsForRange(segmentStart, segmentEnd);
 
-		console.log(`Chunk ${chunkIndex}: ${chunkTimings.uniqueSorted.length} screenshots to take`);
+		console.log(`Segment ${segmentIndex}: ${segmentTimings.uniqueSorted.length} screenshots to take`);
 
 		let i = 0;
 		let base = -fadeDuration; // Pour compenser le fade-in du début
 
-		for (const timing of chunkTimings.uniqueSorted) {
-			// Calculer l'index de l'image dans ce chunk (recommence a 0)
-			const imageIndex = Math.max(Math.round(timing - chunkStart + base), 0);
+		for (const timing of segmentTimings.uniqueSorted) {
+			// Calculer l'index de l'image dans ce segment (recommence a 0)
+			const imageIndex = Math.max(Math.round(timing - segmentStart + base), 0);
 
 			// Vérifie si ce timing doit être dupliqué depuis un autre
-			const sourceTimingForDuplication = Array.from(chunkTimings.duplicableTimings.entries()).find(
+			const sourceTimingForDuplication = Array.from(segmentTimings.duplicableTimings.entries()).find(
 				([target]) => target === timing // target = timing qui doit être dupliqué
 			)?.[1];
 
@@ -543,23 +422,23 @@
 			if (sourceTimingForDuplication !== undefined) {
 				// Ce timing peut être dupliqué depuis sourceTimingForDuplication
 				const sourceIndex = Math.max(
-					Math.round(sourceTimingForDuplication - chunkStart - fadeDuration),
+					Math.round(sourceTimingForDuplication - segmentStart - fadeDuration),
 					0
 				);
 				// Prend que un seul screenshot et le duplique
-				await duplicateScreenshot(`${sourceIndex}`, imageIndex, chunkImageFolder);
+				await duplicateScreenshot(`${sourceIndex}`, imageIndex, segmentImageFolder);
 			} else if (
-				hasTiming(chunkTimings.blankImgs, timing).hasIt &&
+				hasTiming(segmentTimings.blankImgs, timing).hasIt &&
 				hasBlankImg(
-					chunkTimings.imgWithNothingShown,
-					hasTiming(chunkTimings.blankImgs, timing).surah!
+					segmentTimings.imgWithNothingShown,
+					hasTiming(segmentTimings.blankImgs, timing).surah!
 				)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
-				const surahInfo = hasTiming(chunkTimings.blankImgs, timing);
+				const surahInfo = hasTiming(segmentTimings.blankImgs, timing);
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
-				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, chunkImageFolder);
+				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, segmentImageFolder);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
@@ -569,10 +448,10 @@
 				// si la difference entre timing et celui juste avant est grand, attendre un peu plus
 				await wait(timing);
 
-				await takeScreenshot(`${imageIndex}`, chunkImageFolder);
+				await takeScreenshot(`${imageIndex}`, segmentImageFolder);
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
-				for (const [surahStr, blankTiming] of Object.entries(chunkTimings.imgWithNothingShown)) {
+				for (const [surahStr, blankTiming] of Object.entries(segmentTimings.imgWithNothingShown)) {
 					if (timing === blankTiming) {
 						// monte de 1 le timing pour avoir le svg correct
 						globalState.getTimelineState.movePreviewTo = timing - 1;
@@ -587,7 +466,7 @@
 				}
 
 				console.log(
-					`Chunk ${chunkIndex}: Screenshot taken at timing ${timing} -> image ${imageIndex}`
+					`Segment ${segmentIndex}: Screenshot taken at timing ${timing} -> image ${imageIndex}`
 				);
 			}
 
@@ -599,11 +478,12 @@
 				await new Promise((resolve) => setTimeout(resolve, 50));
 			}
 
-			// Progress pour ce chunk dans la phase spécifiée
-			const chunkImageProgress = (i / chunkTimings.uniqueSorted.length) * 100;
-			const chunkPhaseProgress = (chunkIndex * 100 + chunkImageProgress) / totalChunks;
+			// Progress pour ce segment dans la phase spécifiée
+			const segmentImageProgress = (i / segmentTimings.uniqueSorted.length) * 100;
+			const segmentPhaseProgress = (segmentIndex * 100 + segmentImageProgress) / totalSegments;
 			const globalProgress =
-				phaseStartProgress + (chunkPhaseProgress * (phaseEndProgress - phaseStartProgress)) / 100;
+				phaseStartProgress +
+				(segmentPhaseProgress * (phaseEndProgress - phaseStartProgress)) / 100;
 
 			emitProgress({
 				exportId: Number(exportId),
@@ -615,11 +495,11 @@
 		}
 	}
 
-	async function generateVideoForChunk(
-		chunkIndex: number,
-		chunkImageFolder: string,
-		chunkStart: number,
-		chunkDuration: number,
+	async function generateVideoForSegment(
+		segmentIndex: number,
+		segmentImageFolder: string,
+		segmentStart: number,
+		segmentDuration: number,
 		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
 	): Promise<string> {
 		const fadeDuration = Math.round(
@@ -638,15 +518,15 @@
 			loop_until_audio_end: (clip as AssetClip).loopUntilAudioEnd
 		}));
 
-		const chunkVideoFileName = `chunk_${chunkIndex}_video.mp4`;
-		const chunkFinalFilePath = await join(
+		const segmentVideoFileName = `segment_${segmentIndex}_video.mp4`;
+		const segmentFinalFilePath = await join(
 			await appDataDir(),
 			ExportService.exportFolder,
 			exportId,
-			chunkVideoFileName
+			segmentVideoFileName
 		);
 
-		console.log(`Generating video for chunk ${chunkIndex}: ${chunkFinalFilePath}`);
+		console.log(`Generating video for segment ${segmentIndex}: ${segmentFinalFilePath}`);
 
 		try {
 			await invoke('export_video', {
@@ -655,16 +535,15 @@
 					await appDataDir(),
 					ExportService.exportFolder,
 					exportId,
-					chunkImageFolder
+					segmentImageFolder
 				),
-				finalFilePath: chunkFinalFilePath,
+				finalFilePath: segmentFinalFilePath,
 				fps: exportData!.fps,
 				fadeDuration: fadeDuration,
-				startTime: Math.round(chunkStart), // Le startTime pour l'audio/vidéo de fond
-				duration: Math.round(chunkDuration),
+				startTime: Math.round(segmentStart), // Le startTime pour l'audio/vidéo de fond
+				duration: Math.round(segmentDuration),
 				audios: audios,
 				videos: videos,
-				chunkIndex: chunkIndex,
 				blur: blur,
 				videoFadeInEnabled: false,
 				videoFadeOutEnabled: false,
@@ -675,10 +554,10 @@
 				batchSize: globalState.settings?.exportSettings.batchSize ?? 12
 			});
 
-			console.log(`[OK] Chunk ${chunkIndex} video generated successfully`);
-			return chunkFinalFilePath;
+			console.log(`[OK] Segment ${segmentIndex} video generated successfully`);
+			return segmentFinalFilePath;
 		} catch (e: unknown) {
-			console.error(`[ERROR] Error generating chunk ${chunkIndex} video:`, e);
+			console.error(`[ERROR] Error generating segment ${segmentIndex} video:`, e);
 			throw e;
 		}
 	}
@@ -701,13 +580,13 @@
 
 			console.log('[OK] Videos concatenated successfully:', finalVideoPath);
 
-			// Supprimer les vidéos de chunks individuelles
+			// Supprimer les vidéos de segments individuelles
 			for (const videoPath of videoFilePaths) {
 				try {
 					await remove(videoPath, { baseDir: BaseDirectory.AppData });
-					console.log(`Deleted chunk video: ${videoPath}`);
+					console.log(`Deleted segment video: ${videoPath}`);
 				} catch (e) {
-					console.warn(`Could not delete chunk video ${videoPath}:`, e);
+					console.warn(`Could not delete segment video ${videoPath}:`, e);
 				}
 			}
 		} catch (e: unknown) {
@@ -904,7 +783,8 @@
 				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
-				performanceProfile: globalState.getExportState.performanceProfile
+				performanceProfile: globalState.getExportState.performanceProfile,
+				batchSize: globalState.settings?.exportSettings.batchSize ?? 12
 			});
 		} catch (e: unknown) {
 			emitProgress({
@@ -1055,78 +935,6 @@
 		} catch (error) {
 			console.warn('Error deleting blank images:', error);
 		}
-	}
-
-	function calculateChunksWithFadeOut(exportStart: number, exportEnd: number) {
-		// Collecter tous les moments de fin de fade-out
-		const fadeOutEndTimes: number[] = [];
-
-		// --- Sous-titres ---
-		for (const clip of globalState.getSubtitleTrack.clips) {
-			const clipBounds = clip as { startTime?: number; endTime?: number };
-			const { startTime, endTime } = clipBounds;
-			if (startTime == null || endTime == null) continue;
-			if (endTime < exportStart || startTime > exportEnd) continue;
-
-			if (!(clip instanceof SilenceClip)) {
-				// Fin de fade-out = endTime (moment où le fade-out se termine)
-				fadeOutEndTimes.push(endTime);
-			}
-		}
-
-		// --- Custom Texts ---
-		for (const ctClip of globalState.getCustomClipTrack?.clips || []) {
-			const category = (ctClip as CustomTextClip).category;
-			if (!category) continue;
-			const alwaysShow = (category.getStyle('always-show')?.value as number) || 0;
-			const startTime = category.getStyle('time-appearance')?.value as number;
-			const endTime = category.getStyle('time-disappearance')?.value as number;
-			if (startTime == null || endTime == null) continue;
-			if (endTime < exportStart || startTime > exportEnd) continue;
-
-			if (!alwaysShow) {
-				// Fin de fade-out = endTime
-				fadeOutEndTimes.push(endTime);
-			}
-		}
-
-		// Trier les fins de fade-out et enlever les doublons
-		const sortedFadeOutEnds = Array.from(new Set(fadeOutEndTimes))
-			.filter((time) => time >= exportStart && time <= exportEnd)
-			.sort((a, b) => a - b);
-
-		console.log('Fins de fade-out détectées:', sortedFadeOutEnds);
-
-		// Calculer les chunks
-		const chunks: Array<{ start: number; end: number }> = [];
-		let currentStart = exportStart;
-
-		while (currentStart < exportEnd) {
-			// Calculer la fin idéale du chunk (currentStart + 10 minutes)
-			const idealChunkEnd = currentStart + CHUNK_DURATION;
-
-			if (idealChunkEnd >= exportEnd) {
-				// Le chunk final
-				chunks.push({ start: currentStart, end: exportEnd });
-				break;
-			}
-
-			// Trouver la prochaine fin de fade-out après idealChunkEnd
-			const nextFadeOutEnd = sortedFadeOutEnds.find((time) => time >= idealChunkEnd);
-
-			if (nextFadeOutEnd && nextFadeOutEnd <= exportEnd) {
-				// S'arreter a cette fin de fade-out
-				chunks.push({ start: currentStart, end: nextFadeOutEnd });
-				currentStart = nextFadeOutEnd;
-			} else {
-				// Pas de fade-out trouve, s'arreter a la fin ideale ou a la fin totale
-				const chunkEnd = Math.min(idealChunkEnd, exportEnd);
-				chunks.push({ start: currentStart, end: chunkEnd });
-				currentStart = chunkEnd;
-			}
-		}
-
-		return { chunks, fadeOutEndTimes: sortedFadeOutEnds };
 	}
 
 	/**

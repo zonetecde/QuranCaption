@@ -59,10 +59,6 @@
 		}
 	}
 
-	function persistGlobalChunkSize(): void {
-		void Settings.save();
-	}
-
 	function persistGlobalBatchSize(): void {
 		void Settings.save();
 	}
@@ -260,24 +256,6 @@
 					<p class="text-thirdly text-sm">
 						Choose how aggressively the exporter should use your CPU during ffmpeg work.
 					</p>
-				</div>
-
-				<div class="mb-4 rounded-lg border border-color p-3">
-					<div class="flex items-center justify-between gap-3">
-						<div>
-							<p class="text-xs font-medium text-thirdly/80">Chunk size</p>
-							<p class="text-[11px] text-thirdly/60">Only for long exports.</p>
-						</div>
-						<input
-							type="number"
-							min="1"
-							max="200"
-							step="1"
-							class="input h-9 w-24 text-sm"
-							bind:value={globalState.settings!.exportSettings.chunkSize}
-							onchange={persistGlobalChunkSize}
-						/>
-					</div>
 				</div>
 
 				<div class="grid grid-cols-1 gap-3">

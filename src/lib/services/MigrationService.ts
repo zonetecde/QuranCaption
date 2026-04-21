@@ -33,7 +33,6 @@ type MutableSettingsForMigration = {
 	persistentUiState: { lastClosedSupportPromptModal?: string | Date };
 	aiTranslationSettings?: unknown;
 	exportSettings?: {
-		chunkSize?: number;
 		batchSize?: number;
 	};
 };
@@ -491,7 +490,8 @@ export default class MigrationService {
 	}
 
 	/*
-	 * Si la version actuelle est 3.4.4 et "batch size" est undefined (pas encore fait cette migration), change le chunk size en 200
+	 * Si la version actuelle est 3.4.4 et "batch size" est undefined (pas encore fait cette migration),
+	 * initialise batch size et supprime l'ancien chunk size s'il est encore présent.
 	 */
 	static FromQC343ToQC344() {
 		if (!globalState.settings) return;
@@ -504,10 +504,13 @@ export default class MigrationService {
 
 		// Si on a pas encore le paramètre batchSize
 		if (typeof settingsAny.exportSettings.batchSize !== 'number') {
-			// Set batch size et met chunk size en valeur par défaut (200 normalement)
 			settingsAny.exportSettings.batchSize = defaultExportSettings.batchSize;
 			hasChanges = true;
-			settingsAny.exportSettings.chunkSize = defaultExportSettings.chunkSize;
+		}
+
+		const exportSettingsRecord = settingsAny.exportSettings as Record<string, unknown>;
+		if ('chunkSize' in exportSettingsRecord) {
+			delete exportSettingsRecord.chunkSize;
 			hasChanges = true;
 		}
 

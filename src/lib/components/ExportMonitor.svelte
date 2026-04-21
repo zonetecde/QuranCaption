@@ -335,7 +335,7 @@
 											Try the following:
 										</p>
 										<ol class="ml-4 list-decimal text-sm">
-											<li>Reduce the chunk duration (set it below the FPS value).</li>
+											<li>Reduce the batch size.</li>
 											<li>Lower the video resolution.</li>
 											<li>Remove any background video.</li>
 											<li>Close other applications to free up memory for the export.</li>

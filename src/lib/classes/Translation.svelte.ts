@@ -399,6 +399,14 @@ export class Translation extends SerializableBase {
 		return this.text.replaceAll('— ', '—'); // Enlève l'espace après le tiret long qu'on a ajouté pour pouvoir sélectionner les mots avant et après le tiret
 	}
 
+	/**
+	 * Default text update path for translations without inline style support.
+	 * VerseTranslation overrides this to also clear inline styles.
+	 */
+	setTextAndClearInlineStyles(text: string): void {
+		this.text = text;
+	}
+
 	updateStatus(status: TranslationStatus, edition: Edition) {
 		this.status = status;
 

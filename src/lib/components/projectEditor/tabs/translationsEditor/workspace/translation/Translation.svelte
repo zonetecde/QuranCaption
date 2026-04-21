@@ -407,16 +407,12 @@
 		editableTranslationValue = rawValue;
 
 		const translationValue = normalizeInputToTranslation(rawValue);
-		(subtitle.translations[edition.name] as VerseTranslation).setTextAndClearInlineStyles(
-			translationValue
-		);
+		subtitle.translations[edition.name]?.setTextAndClearInlineStyles(translationValue);
 		scheduleManualReviewTelemetry();
 	}
 
 	$effect(() => {
-		const sourceValue = String(
-			(subtitle.translations[edition.name] as VerseTranslation).text ?? ''
-		);
+		const sourceValue = String(subtitle.translations[edition.name]?.text ?? '');
 		const escapedValue = escapeNewlinesForInput(sourceValue);
 		if (editableTranslationValue !== escapedValue) {
 			editableTranslationValue = escapedValue;

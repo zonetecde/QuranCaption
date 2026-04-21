@@ -205,7 +205,10 @@
 							placeholder={globalState.currentProject?.detail.generateExportFileName()}
 							bind:value={globalState.getExportState.customFileName}
 						/>
-						<p class="text-thirdly text-xs italic">Extension (.mp4) will be added automatically.</p>
+						<p class="text-thirdly text-xs italic">
+							Extension ({globalState.getExportState.exportWithoutBackground ? '.webm' : '.mp4'})
+							will be added automatically.
+						</p>
 					</div>
 				</div>
 
@@ -251,6 +254,23 @@
 
 		{#if showAdvancedSettings}
 			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
+				<div class="mb-4">
+					<h4 class="text-base font-medium text-secondary mb-1">Background</h4>
+					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
+						<input
+							type="checkbox"
+							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+							bind:checked={globalState.getExportState.exportWithoutBackground}
+						/>
+						<span class="text-sm text-primary">
+							Export without background
+							<span class="block text-xs text-thirdly mt-1">
+								Renders only the overlay with transparency (alpha). Output format becomes `.webm`.
+							</span>
+						</span>
+					</label>
+				</div>
+
 				<div class="mb-4">
 					<h4 class="text-base font-medium text-secondary mb-1">Export Performance</h4>
 					<p class="text-thirdly text-sm">

@@ -55,7 +55,10 @@ export default class ExportService {
 	static async addExport(project: Project, mode: 'recording' | 'stable' = 'stable') {
 		// Ajoute le projet à la liste des exports en cours
 
-		const fileName = project.detail.generateExportFileName() + '.mp4';
+		const videoExtension = project.projectEditorState.export.exportWithoutBackground
+			? 'webm'
+			: 'mp4';
+		const fileName = project.detail.generateExportFileName() + '.' + videoExtension;
 		let filePath = await join(await this.getExportFolder(), fileName);
 
 		filePath = await this.checkIfFilePathTooLong(filePath);

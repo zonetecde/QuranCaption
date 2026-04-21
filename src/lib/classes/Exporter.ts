@@ -338,7 +338,9 @@ export default class Exporter {
 	 * Exporte le projet sous forme de vidéo.
 	 */
 	static async exportVideo() {
-		const exportFileName = globalState.currentProject!.detail.generateExportFileName() + '.mp4';
+		const videoExtension = globalState.getExportState.exportWithoutBackground ? 'webm' : 'mp4';
+		const exportFileName =
+			globalState.currentProject!.detail.generateExportFileName() + '.' + videoExtension;
 		const exportFilePath = await join(await ExportService.getExportFolder(), exportFileName);
 		if (await exists(exportFilePath)) {
 			const confirmOverwrite = await ModalManager.confirmModal(

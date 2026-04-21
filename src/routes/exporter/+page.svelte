@@ -404,7 +404,9 @@
 		// Calculer les timings pour ce segment spécifique
 		const segmentTimings = calculateTimingsForRange(segmentStart, segmentEnd);
 
-		console.log(`Segment ${segmentIndex}: ${segmentTimings.uniqueSorted.length} screenshots to take`);
+		console.log(
+			`Segment ${segmentIndex}: ${segmentTimings.uniqueSorted.length} screenshots to take`
+		);
 
 		let i = 0;
 		let base = -fadeDuration; // Pour compenser le fade-in du début
@@ -414,7 +416,9 @@
 			const imageIndex = Math.max(Math.round(timing - segmentStart + base), 0);
 
 			// Vérifie si ce timing doit être dupliqué depuis un autre
-			const sourceTimingForDuplication = Array.from(segmentTimings.duplicableTimings.entries()).find(
+			const sourceTimingForDuplication = Array.from(
+				segmentTimings.duplicableTimings.entries()
+			).find(
 				([target]) => target === timing // target = timing qui doit être dupliqué
 			)?.[1];
 
@@ -482,8 +486,7 @@
 			const segmentImageProgress = (i / segmentTimings.uniqueSorted.length) * 100;
 			const segmentPhaseProgress = (segmentIndex * 100 + segmentImageProgress) / totalSegments;
 			const globalProgress =
-				phaseStartProgress +
-				(segmentPhaseProgress * (phaseEndProgress - phaseStartProgress)) / 100;
+				phaseStartProgress + (segmentPhaseProgress * (phaseEndProgress - phaseStartProgress)) / 100;
 
 			emitProgress({
 				exportId: Number(exportId),
@@ -518,7 +521,9 @@
 			loop_until_audio_end: (clip as AssetClip).loopUntilAudioEnd
 		}));
 
-		const segmentVideoFileName = `segment_${segmentIndex}_video.mp4`;
+		const segmentVideoExtension =
+			(globalState.getExportState.exportWithoutBackground ?? false) ? 'webm' : 'mp4';
+		const segmentVideoFileName = `segment_${segmentIndex}_video.${segmentVideoExtension}`;
 		const segmentFinalFilePath = await join(
 			await appDataDir(),
 			ExportService.exportFolder,
@@ -551,7 +556,8 @@
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
-				batchSize: globalState.settings?.exportSettings.batchSize ?? 12
+				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
+				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false
 			});
 
 			console.log(`[OK] Segment ${segmentIndex} video generated successfully`);
@@ -575,7 +581,8 @@
 				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
-				performanceProfile: globalState.getExportState.performanceProfile
+				performanceProfile: globalState.getExportState.performanceProfile,
+				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false
 			});
 
 			console.log('[OK] Videos concatenated successfully:', finalVideoPath);
@@ -784,7 +791,8 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
-				batchSize: globalState.settings?.exportSettings.batchSize ?? 12
+				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
+				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false
 			});
 		} catch (e: unknown) {
 			emitProgress({

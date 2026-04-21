@@ -1187,14 +1187,24 @@ fn filtergraph_batch_limit(target_size: (i32, i32), batch_size: Option<i32>) -> 
     }
 }
 
-fn make_internal_batch_path(base_dir: &Path, export_id: &str, batch_index: usize) -> PathBuf {
+fn make_internal_batch_path(
+    base_dir: &Path,
+    export_id: &str,
+    batch_index: usize,
+    export_without_background: bool,
+) -> PathBuf {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
+    let ext = if export_without_background {
+        "webm"
+    } else {
+        "mp4"
+    };
     base_dir.join(format!(
-        "internal_batch_{}_{}_{}.mp4",
-        export_id, batch_index, nonce
+        "internal_batch_{}_{}_{}.{}",
+        export_id, batch_index, nonce, ext
     ))
 }
 
@@ -1242,6 +1252,7 @@ fn concat_internal_batch_videos(
     audio_fade_in_enabled: bool,
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
+    export_without_background: bool,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -1337,28 +1348,56 @@ fn concat_internal_batch_videos(
     if apply_video_fade && fade_s > 0.0 {
         let mut video_filters: Vec<String> = Vec::new();
         if video_fade_in_enabled {
-            video_filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
+            if export_without_background {
+                video_filters.push(format!("fade=t=in:st=0:d={:.6}:alpha=1", fade_s));
+            } else {
+                video_filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
+            }
         }
         if video_fade_out_enabled {
             let fade_out_start = (total_duration_s - fade_s).max(0.0);
-            video_filters.push(format!(
-                "fade=t=out:st={:.6}:d={:.6}",
-                fade_out_start, fade_s
-            ));
+            if export_without_background {
+                video_filters.push(format!(
+                    "fade=t=out:st={:.6}:d={:.6}:alpha=1",
+                    fade_out_start, fade_s
+                ));
+            } else {
+                video_filters.push(format!(
+                    "fade=t=out:st={:.6}:d={:.6}",
+                    fade_out_start, fade_s
+                ));
+            }
         }
         if !video_filters.is_empty() {
             cmd.extend_from_slice(&["-vf".to_string(), video_filters.join(",")]);
         }
-        cmd.extend_from_slice(&[
-            "-c:v".to_string(),
-            "libx264".to_string(),
-            "-preset".to_string(),
-            "veryfast".to_string(),
-            "-crf".to_string(),
-            "18".to_string(),
-            "-pix_fmt".to_string(),
-            "yuv420p".to_string(),
-        ]);
+        if export_without_background {
+            cmd.extend_from_slice(&[
+                "-c:v".to_string(),
+                "libvpx-vp9".to_string(),
+                "-crf".to_string(),
+                "28".to_string(),
+                "-b:v".to_string(),
+                "0".to_string(),
+                "-row-mt".to_string(),
+                "1".to_string(),
+                "-cpu-used".to_string(),
+                "2".to_string(),
+                "-pix_fmt".to_string(),
+                "yuva420p".to_string(),
+            ]);
+        } else {
+            cmd.extend_from_slice(&[
+                "-c:v".to_string(),
+                "libx264".to_string(),
+                "-preset".to_string(),
+                "veryfast".to_string(),
+                "-crf".to_string(),
+                "18".to_string(),
+                "-pix_fmt".to_string(),
+                "yuv420p".to_string(),
+            ]);
+        }
     } else {
         cmd.extend_from_slice(&["-c:v".to_string(), "copy".to_string()]);
     }
@@ -1419,14 +1458,25 @@ fn concat_internal_batch_videos(
         }
 
         cmd.extend_from_slice(&["-filter_complex".to_string(), filter_lines.join(";")]);
-        cmd.extend_from_slice(&[
-            "-map".to_string(),
-            format!("[{}]", current_audio_label),
-            "-c:a".to_string(),
-            "aac".to_string(),
-            "-b:a".to_string(),
-            "192k".to_string(),
-        ]);
+        if export_without_background {
+            cmd.extend_from_slice(&[
+                "-map".to_string(),
+                format!("[{}]", current_audio_label),
+                "-c:a".to_string(),
+                "libopus".to_string(),
+                "-b:a".to_string(),
+                "160k".to_string(),
+            ]);
+        } else {
+            cmd.extend_from_slice(&[
+                "-map".to_string(),
+                format!("[{}]", current_audio_label),
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "192k".to_string(),
+            ]);
+        }
     } else {
         cmd.push("-an".to_string());
     }
@@ -1471,6 +1521,7 @@ fn build_and_run_ffmpeg_filter_complex(
     audio_fade_in_enabled: bool,
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
+    export_without_background: bool,
     batch_size: Option<i32>,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
@@ -1515,6 +1566,7 @@ fn build_and_run_ffmpeg_filter_complex(
             audio_fade_in_enabled,
             audio_fade_out_enabled,
             export_fade_duration_ms,
+            export_without_background,
             performance_profile,
             0.0,
             full_duration_s,
@@ -1579,7 +1631,12 @@ fn build_and_run_ffmpeg_filter_complex(
         )
         .saturating_add(boundary_fade_ms);
         batch_duration_ms = batch_duration_ms.min((full_duration_ms - batch_base_ms).max(1));
-        let batch_output_path = make_internal_batch_path(&base_dir, export_id, batch_index);
+        let batch_output_path = make_internal_batch_path(
+            &base_dir,
+            export_id,
+            batch_index,
+            export_without_background,
+        );
         let batch_output = batch_output_path.to_string_lossy().to_string();
 
         println!(
@@ -1616,6 +1673,7 @@ fn build_and_run_ffmpeg_filter_complex(
             false,
             false,
             0,
+            export_without_background,
             performance_profile,
             batch_base_ms as f64 / 1000.0,
             full_duration_s,
@@ -1646,6 +1704,7 @@ fn build_and_run_ffmpeg_filter_complex(
         audio_fade_in_enabled,
         audio_fade_out_enabled,
         export_fade_duration_ms,
+        export_without_background,
         performance_profile,
         app_handle,
     )?;
@@ -1680,6 +1739,7 @@ fn render_ffmpeg_filter_complex_single(
     audio_fade_in_enabled: bool,
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
+    export_without_background: bool,
     performance_profile: ExportPerformanceProfile,
     progress_base_s: f64,
     progress_total_s: f64,
@@ -1735,10 +1795,29 @@ fn render_ffmpeg_filter_complex_single(
         acc += d;
     }
 
-    let (vcodec, vparams, vextra) = choose_best_codec(prefer_hw, w, h, CodecUsage::Final);
+    let (vcodec, vparams, vextra) = if export_without_background {
+        (
+            "libvpx-vp9".to_string(),
+            vec![
+                "-pix_fmt".to_string(),
+                "yuva420p".to_string(),
+                "-b:v".to_string(),
+                "0".to_string(),
+                "-crf".to_string(),
+                "28".to_string(),
+                "-row-mt".to_string(),
+                "1".to_string(),
+                "-cpu-used".to_string(),
+                "2".to_string(),
+            ],
+            HashMap::new(),
+        )
+    } else {
+        choose_best_codec(prefer_hw, w, h, CodecUsage::Final)
+    };
 
     let mut pre_videos = Vec::new();
-    if !video_inputs.is_empty() {
+    if !export_without_background && !video_inputs.is_empty() {
         pre_videos = preprocess_background_videos(
             video_inputs,
             w,
@@ -1890,76 +1969,89 @@ fn render_ffmpeg_filter_complex_single(
     // Conserver l'overlay prémultiplié jusqu'à la superposition finale.
     filter_lines.push(format!("[{}]format=yuva444p[overlay]", curr_p));
 
-    // Construction de la vidéo de fond [bg]
-    let avail_bg_after = total_bg_s;
-    let need_black_full = pre_videos.is_empty() || avail_bg_after <= 1e-6;
-
-    let bg_label = if need_black_full {
-        let color_full_idx = current_idx;
-        cmd.extend_from_slice(&[
-            "-f".to_string(),
-            "lavfi".to_string(),
-            "-i".to_string(),
-            format!("color=c=black:s={}x{}:r={}:d={:.6}", w, h, fps, duration_s),
-        ]);
-        format!("{}:v", color_full_idx)
+    if export_without_background {
+        // Sortie alpha: conserver uniquement l'overlay.
+        filter_lines.push("[overlay]format=yuva420p[vout]".to_string());
     } else {
-        let prev = if pre_videos.len() > 1 {
-            let mut ins = String::new();
-            for i in 0..pre_videos.len() {
-                ins.push_str(&format!("[{}:v]", bg_start_idx + i));
-            }
-            filter_lines.push(format!(
-                "{}concat=n={}:v=1:a=0[bgcat]",
-                ins,
-                pre_videos.len()
-            ));
-            "bgcat".to_string()
+        // Construction de la vidéo de fond [bg]
+        let avail_bg_after = total_bg_s;
+        let need_black_full = pre_videos.is_empty() || avail_bg_after <= 1e-6;
+
+        let bg_label = if need_black_full {
+            let color_full_idx = current_idx;
+            cmd.extend_from_slice(&[
+                "-f".to_string(),
+                "lavfi".to_string(),
+                "-i".to_string(),
+                format!("color=c=black:s={}x{}:r={}:d={:.6}", w, h, fps, duration_s),
+            ]);
+            format!("{}:v", color_full_idx)
         } else {
-            format!("{}:v", bg_start_idx)
+            let prev = if pre_videos.len() > 1 {
+                let mut ins = String::new();
+                for i in 0..pre_videos.len() {
+                    ins.push_str(&format!("[{}:v]", bg_start_idx + i));
+                }
+                filter_lines.push(format!(
+                    "{}concat=n={}:v=1:a=0[bgcat]",
+                    ins,
+                    pre_videos.len()
+                ));
+                "bgcat".to_string()
+            } else {
+                format!("{}:v", bg_start_idx)
+            };
+
+            filter_lines.push(format!(
+                "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
+                prev, w, h, w, h
+            ));
+            let mut bg_label = "bgtrim".to_string();
+
+            if avail_bg_after + 1e-6 < duration_s {
+                let remain = duration_s - avail_bg_after;
+                // Évite un flash noir à la fin des batchs quand la durée réelle du fond
+                // est légèrement plus courte que la durée demandée: on prolonge la dernière
+                // frame du fond au lieu de concaténer du noir.
+                filter_lines.push(format!(
+                    "[bgtrim]tpad=stop_mode=clone:stop_duration={:.6}[bg]",
+                    remain
+                ));
+                bg_label = "bg".to_string();
+            }
+
+            bg_label
         };
 
-        filter_lines.push(format!(
-            "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
-            prev, w, h, w, h
-        ));
-        let mut bg_label = "bgtrim".to_string();
-
-        if avail_bg_after + 1e-6 < duration_s {
-            let remain = duration_s - avail_bg_after;
-            // Évite un flash noir à la fin des batchs quand la durée réelle du fond
-            // est légèrement plus courte que la durée demandée: on prolonge la dernière
-            // frame du fond au lieu de concaténer du noir.
-            filter_lines.push(format!(
-                "[bgtrim]tpad=stop_mode=clone:stop_duration={:.6}[bg]",
-                remain
-            ));
-            bg_label = "bg".to_string();
-        }
-
-        bg_label
-    };
-
-    // Superposition de l'overlay (avec alpha) sur le fond
-    filter_lines.push(format!("[{}]setsar=1[bg_normalized]", bg_label));
-    filter_lines.push(format!(
-        "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0:alpha=premultiplied,format=yuv420p[vout]"
-    ));
+        // Superposition de l'overlay (avec alpha) sur le fond
+        filter_lines.push(format!("[{}]setsar=1[bg_normalized]", bg_label));
+        filter_lines.push(
+            "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0:alpha=premultiplied,format=yuv420p[vout]"
+                .to_string(),
+        );
+    }
 
     let mut mapped_video_label = "vout".to_string();
     if video_fade_in_enabled && export_fade_s > 0.0 {
-        filter_lines.push(format!(
-            "[{}]fade=t=in:st=0:d={:.6}[vfadein]",
-            mapped_video_label, export_fade_s
-        ));
+        let fade_expr = if export_without_background {
+            format!("fade=t=in:st=0:d={:.6}:alpha=1", export_fade_s)
+        } else {
+            format!("fade=t=in:st=0:d={:.6}", export_fade_s)
+        };
+        filter_lines.push(format!("[{}]{}[vfadein]", mapped_video_label, fade_expr));
         mapped_video_label = "vfadein".to_string();
     }
     if video_fade_out_enabled && export_fade_s > 0.0 {
         let fade_out_start = (duration_s - export_fade_s).max(0.0);
-        filter_lines.push(format!(
-            "[{}]fade=t=out:st={:.6}:d={:.6}[vfadeout]",
-            mapped_video_label, fade_out_start, export_fade_s
-        ));
+        let fade_expr = if export_without_background {
+            format!(
+                "fade=t=out:st={:.6}:d={:.6}:alpha=1",
+                fade_out_start, export_fade_s
+            )
+        } else {
+            format!("fade=t=out:st={:.6}:d={:.6}", fade_out_start, export_fade_s)
+        };
+        filter_lines.push(format!("[{}]{}[vfadeout]", mapped_video_label, fade_expr));
         mapped_video_label = "vfadeout".to_string();
     }
 
@@ -2049,12 +2141,21 @@ fn render_ffmpeg_filter_complex_single(
     cmd.extend(vparams);
 
     if have_audio {
-        cmd.extend_from_slice(&[
-            "-c:a".to_string(),
-            "aac".to_string(),
-            "-b:a".to_string(),
-            "192k".to_string(),
-        ]);
+        if export_without_background {
+            cmd.extend_from_slice(&[
+                "-c:a".to_string(),
+                "libopus".to_string(),
+                "-b:a".to_string(),
+                "160k".to_string(),
+            ]);
+        } else {
+            cmd.extend_from_slice(&[
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "192k".to_string(),
+            ]);
+        }
     }
 
     // Assure la durée exacte
@@ -2118,6 +2219,7 @@ pub async fn export_video(
     audio_fade_in_enabled: Option<bool>,
     audio_fade_out_enabled: Option<bool>,
     export_fade_duration_ms: Option<i32>,
+    export_without_background: Option<bool>,
     batch_size: Option<i32>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
@@ -2140,6 +2242,10 @@ pub async fn export_video(
         audio_fade_in_enabled.unwrap_or(false),
         audio_fade_out_enabled.unwrap_or(false),
         export_fade_duration_ms.unwrap_or(0)
+    );
+    println!(
+        "[start_export] export_without_background={}",
+        export_without_background.unwrap_or(false)
     );
     println!(
         "[env] CPU cores: {:?}",
@@ -2329,6 +2435,7 @@ pub async fn export_video(
             audio_fade_in_enabled.unwrap_or(false),
             audio_fade_out_enabled.unwrap_or(false),
             export_fade_duration_ms.unwrap_or(0),
+            export_without_background.unwrap_or(false),
             batch_size,
             performance_profile,
             app_handle,
@@ -2475,6 +2582,7 @@ pub async fn concat_videos(
     audio_fade_in_enabled: Option<bool>,
     audio_fade_out_enabled: Option<bool>,
     export_fade_duration_ms: Option<i32>,
+    export_without_background: Option<bool>,
     performance_profile: ExportPerformanceProfile,
 ) -> Result<String, String> {
     let normalized_video_paths: Vec<String> = video_paths
@@ -2500,6 +2608,10 @@ pub async fn concat_videos(
         audio_fade_in_enabled.unwrap_or(false),
         audio_fade_out_enabled.unwrap_or(false),
         export_fade_duration_ms.unwrap_or(0)
+    );
+    println!(
+        "[concat_videos] export_without_background={}",
+        export_without_background.unwrap_or(false)
     );
 
     let apply_video_fade =
@@ -2576,18 +2688,25 @@ pub async fn concat_videos(
     let mut current_video_label = "vcat".to_string();
     if apply_video_fade && fade_s > 0.0 {
         if video_fade_in_enabled.unwrap_or(false) {
-            filter_lines.push(format!(
-                "[{}]fade=t=in:st=0:d={:.6}[vfadein]",
-                current_video_label, fade_s
-            ));
+            let fade_expr = if export_without_background.unwrap_or(false) {
+                format!("fade=t=in:st=0:d={:.6}:alpha=1", fade_s)
+            } else {
+                format!("fade=t=in:st=0:d={:.6}", fade_s)
+            };
+            filter_lines.push(format!("[{}]{}[vfadein]", current_video_label, fade_expr));
             current_video_label = "vfadein".to_string();
         }
         if video_fade_out_enabled.unwrap_or(false) {
             let fade_out_start = (total_duration_s - fade_s).max(0.0);
-            filter_lines.push(format!(
-                "[{}]fade=t=out:st={:.6}:d={:.6}[vfadeout]",
-                current_video_label, fade_out_start, fade_s
-            ));
+            let fade_expr = if export_without_background.unwrap_or(false) {
+                format!(
+                    "fade=t=out:st={:.6}:d={:.6}:alpha=1",
+                    fade_out_start, fade_s
+                )
+            } else {
+                format!("fade=t=out:st={:.6}:d={:.6}", fade_out_start, fade_s)
+            };
+            filter_lines.push(format!("[{}]{}[vfadeout]", current_video_label, fade_expr));
             current_video_label = "vfadeout".to_string();
         }
     }
@@ -2631,31 +2750,61 @@ pub async fn concat_videos(
 
     cmd.args(&["-filter_complex", &filter_lines.join(";")]);
     cmd.args(&["-map", &format!("[{}]", current_video_label)]);
-    cmd.args(&[
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-crf",
-        "18",
-        "-pix_fmt",
-        "yuv420p",
-    ]);
+    if export_without_background.unwrap_or(false) {
+        cmd.args(&[
+            "-c:v",
+            "libvpx-vp9",
+            "-crf",
+            "28",
+            "-b:v",
+            "0",
+            "-row-mt",
+            "1",
+            "-cpu-used",
+            "2",
+            "-pix_fmt",
+            "yuva420p",
+        ]);
+    } else {
+        cmd.args(&[
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+        ]);
+    }
 
     if let Some(audio_label) = current_audio_label {
-        cmd.args(&[
-            "-map",
-            &format!("[{}]", audio_label),
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-        ]);
+        if export_without_background.unwrap_or(false) {
+            cmd.args(&[
+                "-map",
+                &format!("[{}]", audio_label),
+                "-c:a",
+                "libopus",
+                "-b:a",
+                "160k",
+            ]);
+        } else {
+            cmd.args(&[
+                "-map",
+                &format!("[{}]", audio_label),
+                "-c:a",
+                "aac",
+                "-b:a",
+                "192k",
+            ]);
+        }
     } else {
         cmd.arg("-an");
     }
 
-    cmd.args(&["-movflags", "+faststart"]);
+    if !export_without_background.unwrap_or(false) {
+        cmd.args(&["-movflags", "+faststart"]);
+    }
     cmd.arg(&output_path_str);
 
     configure_command_no_window(&mut cmd);

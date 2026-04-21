@@ -6,11 +6,17 @@
 	import RecitersManager from '$lib/classes/Reciter';
 	import { discordService } from '$lib/services/DiscordService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import {
+		DEFAULT_PROJECT_TYPE,
+		PROJECT_TYPE_OPTIONS,
+		type ProjectType
+	} from '$lib/types/projectType';
 
 	let { close } = $props();
 
 	let name: string = $state('');
 	let reciter: string = $state('');
+	let projectType: ProjectType = $state(DEFAULT_PROJECT_TYPE);
 
 	async function createProjectButtonClick() {
 		// Vérifie que le nom du projet n'est pas vide
@@ -29,11 +35,11 @@
 		}
 
 		let project = new Project(
-			new ProjectDetail(name.trim(), reciter.trim()),
+			new ProjectDetail(name.trim(), reciter.trim(), undefined, undefined, projectType),
 			await ProjectContent.getDefaultProjectContent()
 		);
 
-		AnalyticsService.trackProjectCreated(name.trim(), reciter.trim());
+		AnalyticsService.trackProjectCreated(name.trim(), reciter.trim(), projectType);
 
 		// Sauvegarde le projet sur le disque
 		await project.save();
@@ -121,6 +127,35 @@
 				onEnterPress={createProjectButtonClick}
 			/>
 		</div>
+
+		<div class="space-y-2">
+			<label
+				for="project-type"
+				class="flex items-center gap-2 text-sm font-semibold text-primary"
+			>
+				<span class="material-icons text-accent-primary text-base">folder_special</span>
+				Project Type
+			</label>
+			<div class="relative">
+				<select
+					id="project-type"
+					bind:value={projectType}
+					class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary shadow-inner"
+				>
+					{#each PROJECT_TYPE_OPTIONS as option (option)}
+						<option value={option}>{option}</option>
+					{/each}
+				</select>
+				<span
+					class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 material-icons text-thirdly"
+				>
+					expand_more
+				</span>
+			</div>
+			<p class="text-xs text-thirdly">
+				This decides which explorer subfolder the project starts in.
+			</p>
+		</div>
 	</div>
 
 	<!-- Footer -->
@@ -128,7 +163,7 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				<span class="material-icons text-accent-secondary">info</span>
-				<span>Fill in the details to create your project</span>
+				<span>Fill in the details and choose the folder classification for the homepage.</span>
 			</div>
 
 			<div class="flex gap-3">

@@ -7,6 +7,11 @@ import { VerseRange } from './VerseRange.svelte';
 import { Status } from './Status';
 import type { ClipWithTranslation } from './Clip.svelte';
 import { VerseTranslation } from './Translation.svelte';
+import {
+	DEFAULT_PROJECT_TYPE,
+	normalizeProjectType,
+	type ProjectType
+} from '$lib/types/projectType';
 
 export class ProjectDetail extends SerializableBase {
 	static NAME_MAX_LENGTH: number = 50;
@@ -16,6 +21,7 @@ export class ProjectDetail extends SerializableBase {
 
 	name: string;
 	reciter: string;
+	projectType: ProjectType;
 	createdAt: Date;
 	updatedAt: Date;
 
@@ -32,13 +38,20 @@ export class ProjectDetail extends SerializableBase {
 	 * @param name Nom du projet
 	 * @param reciter Nom du réciteur
 	 */
-	constructor(name: string, reciter: string, createdAt?: Date, updatedAt?: Date) {
+	constructor(
+		name: string,
+		reciter: string,
+		createdAt?: Date,
+		updatedAt?: Date,
+		projectType: ProjectType = DEFAULT_PROJECT_TYPE
+	) {
 		super();
 
 		this.id = Utilities.randomId();
 
 		this.name = $state(name);
 		this.reciter = $state(reciter || 'not set');
+		this.projectType = $state(normalizeProjectType(projectType));
 		this.createdAt = $state(createdAt || new Date());
 		this.updatedAt = $state(updatedAt || new Date());
 
@@ -116,7 +129,7 @@ export class ProjectDetail extends SerializableBase {
 	}
 
 	matchSearchQuery(searchQuery: string): boolean {
-		const normalizedProjectInfo = `${this.name} ${this.reciter} ${this.verseRange.toString()}`;
+		const normalizedProjectInfo = `${this.name} ${this.reciter} ${this.projectType} ${this.verseRange.toString()}`;
 		return this.normalize(normalizedProjectInfo).includes(this.normalize(searchQuery));
 	}
 
@@ -146,6 +159,15 @@ export class ProjectDetail extends SerializableBase {
 				globalState.getExportState.videoEndTime
 			).toStringForExportFile();
 		return finalFileName;
+	}
+
+	static override fromJSON<T extends SerializableBase>(this: any, data: Record<string, unknown>): T {
+		const detail = super.fromJSON.call(this, data) as T;
+		if (detail instanceof ProjectDetail) {
+			detail.reciter = detail.reciter || 'not set';
+			detail.projectType = normalizeProjectType(detail.projectType);
+		}
+		return detail;
 	}
 }
 

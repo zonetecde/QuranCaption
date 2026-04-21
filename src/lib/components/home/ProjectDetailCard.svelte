@@ -17,11 +17,28 @@
 
 	let {
 		projectDetail = $bindable(),
-		isTutorial = false
+		isTutorial = false,
+		draggable = false,
+		isActiveDrag = false,
+		onProjectDragStart,
+		onProjectDragEnd
 	}: {
 		projectDetail: ProjectDetail;
 		isTutorial?: boolean;
+		draggable?: boolean;
+		isActiveDrag?: boolean;
+		onProjectDragStart?: (projectDetail: ProjectDetail, event: PointerEvent) => void;
+		onProjectDragEnd?: () => void;
 	} = $props();
+
+	let isDragging = $state(false);
+
+	$effect(() => {
+		// Keep the local visual state aligned with the homepage drag lifecycle.
+		if (!isActiveDrag && isDragging) {
+			isDragging = false;
+		}
+	});
 
 	async function deleteProjectButtonClick(e: MouseEvent) {
 		if (e.button !== 0) return; // Only handle left click
@@ -85,17 +102,71 @@
 		e.stopPropagation();
 		showProjectDetails = !showProjectDetails;
 	}
+
+	/**
+	 * Starts the custom pointer-driven drag used by the homepage explorer.
+	 */
+	function handlePointerDragStart(event: PointerEvent) {
+		if (event.button !== 0 || !draggable) return;
+		const target = event.target;
+		if (
+			target instanceof HTMLElement &&
+			target.closest('button, input, textarea, select, a, [contenteditable="true"]')
+		) {
+			return;
+		}
+		event.stopPropagation();
+		event.preventDefault();
+		isDragging = true;
+		onProjectDragStart?.(projectDetail, event);
+	}
+
+	function handlePointerDragEnd() {
+		if (!draggable) return;
+		isDragging = false;
+		onProjectDragEnd?.();
+	}
 </script>
 
 <div
-	class="bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between hover:shadow-2xl transition-all duration-300"
+	class={`bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 ${
+		draggable ? 'hover:-translate-y-1 hover:shadow-2xl' : 'hover:shadow-2xl'
+	} ${isDragging ? 'scale-[0.98] opacity-70 cursor-grabbing' : ''}`}
 	data-tour-id={isTutorial ? 'tutorial-project-card' : undefined}
+	data-project-card={projectDetail.id}
 >
 	<div>
 		{#if globalState.settings!.persistentUiState.projectCardView === 'grid'}
-			<section class="w-full h-40 object-cover rounded-t-lg bg-white/80"></section>
+			<section
+				class={`relative h-40 w-full rounded-t-lg bg-white/80 object-cover ${
+					draggable ? 'cursor-grab active:cursor-grabbing' : ''
+				}`}
+				onpointerdown={handlePointerDragStart}
+			>
+				<div class="absolute right-3 top-3">
+					<!-- Keep the current explorer classification visible directly on the card. -->
+					<span
+						class="inline-flex items-center gap-1 rounded-full bg-[var(--bg-primary)]/30 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-[var(--text-primary)]/90 backdrop-blur-sm"
+						data-project-type
+					>
+						<span class="material-icons-outlined text-xs">folder_special</span>
+						{projectDetail.projectType}
+					</span>
+				</div>
+			</section>
 		{/if}
-		<div class="px-4 pb-4 relative mt-4">
+		<div
+			class={`relative mt-4 px-4 pb-4 ${
+				draggable && (globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
+					? 'cursor-grab active:cursor-grabbing'
+					: ''
+			}`}
+			onpointerdown={
+				(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
+					? handlePointerDragStart
+					: undefined
+			}
+		>
 			<div class="flex justify-between items-start mb-2">
 				<EditableText
 					text="Enter project name"
@@ -143,7 +214,8 @@
 				</div>
 			</div>
 			<div class="flex items-center gap-x-1 text-xs text-[var(--text-secondary)] -mb-0.5">
-				Reciter: <EditableText
+				Reciter:
+				<EditableText
 					text="Enter project reciter"
 					bind:value={projectDetail.reciter}
 					maxLength={ProjectDetail.RECITER_MAX_LENGTH}

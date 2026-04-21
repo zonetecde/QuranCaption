@@ -21,9 +21,13 @@ import { Quran } from '$lib/classes/Quran';
 import Settings from '$lib/classes/Settings.svelte';
 import type { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
+import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
+import { ProjectService } from '$lib/services/ProjectService';
+import type { ProjectType } from '$lib/types/projectType';
 import { join, localDataDir } from '@tauri-apps/api/path';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
+import toast from 'svelte-5-french-toast';
 
 type ShortcutAction = { keys: string[]; name: string; description: string };
 type ShortcutBucket = Record<string, ShortcutAction>;
@@ -72,6 +76,120 @@ type V2ProjectData = {
 		subtitlesTracks: Array<{ clips: V2TrackClip[] }>;
 	};
 };
+
+const PROJECT_TYPE_MIGRATION_RULES: Array<{ projectType: ProjectType; keywords: string[] }> = [
+	{
+		projectType: 'Taraweeh',
+		keywords: [
+			'taraweeh',
+			'tarawih',
+			'taraweh',
+			'taraweh',
+			'taraouih',
+			'tarawihh',
+			'traweeh',
+			'تراويح',
+			'التراويح'
+		]
+	},
+	{
+		projectType: 'Prayer',
+		keywords: [
+			'prayer',
+			'salat',
+			'salah',
+			'salatul',
+			'qiyam',
+			'qiyam al layl',
+			'qiyamul layl',
+			'qiyaam',
+			'tahajjud',
+			'maghreb',
+			'isha',
+			'fajr',
+			'sobh',
+			'witr',
+			'قيام',
+			'قيام الليل',
+			'صلاة',
+			'صلات',
+			'تهجد',
+			'وتر'
+		]
+	},
+	{
+		projectType: 'Studio',
+		keywords: [
+			'studio',
+			'recording',
+			'recorded',
+			'record',
+			'recitation',
+			'juzz',
+			'juz',
+			'hizb',
+			'surah',
+			'sura',
+			'studio session',
+			'تسجيل',
+			'استوديو',
+			'تلاوة'
+		]
+	},
+	{
+		projectType: 'Rare recitation',
+		keywords: ['rare', 'unknown', 'rare recitation', 'unknown recitation', 'نادر', 'مجهول']
+	},
+	{
+		projectType: 'Old recordings',
+		keywords: [
+			'old',
+			'young',
+			'90s',
+			'90 s',
+			'mythic',
+			'archive',
+			'archival',
+			'vintage',
+			'ancien',
+			'old recording',
+			'old rec',
+			'shabb',
+			'شاب',
+			'صغير',
+			'قديم',
+			'تسعينات'
+		]
+	}
+];
+
+function normalizeProjectTitleForMigration(value: string): string {
+	return value
+		.normalize('NFKD')
+		.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+		.replace(/\p{M}/gu, '')
+		.toLowerCase()
+		.replace(/[_-]+/g, ' ')
+		.replace(/[^\p{L}\p{N}\s]/gu, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function inferProjectTypeFromTitle(title: string): ProjectType {
+	const normalizedTitle = normalizeProjectTitleForMigration(title);
+
+	for (const rule of PROJECT_TYPE_MIGRATION_RULES) {
+		if (
+			rule.keywords.some((keyword) =>
+				normalizedTitle.includes(normalizeProjectTitleForMigration(keyword))
+			)
+		) {
+			return rule.projectType;
+		}
+	}
+
+	return 'Others';
+}
 
 export default class MigrationService {
 	/**
@@ -469,7 +587,7 @@ export default class MigrationService {
 	 * Si la version actuelle est 3.4.4 et "batch size" est undefined (pas encore fait cette migration),
 	 * initialise batch size et supprime l'ancien chunk size s'il est encore présent.
 	 */
-	static FromQC343ToQC344() {
+	static async FromQC343ToQC344() {
 		if (!globalState.settings) return;
 
 		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
@@ -492,7 +610,35 @@ export default class MigrationService {
 
 		if (hasChanges) {
 			Settings.save();
+
+			// Deuxième migration : on a désormais une arborescence de projets
+			// Du coup on demande si on veut pas avoir un premier tri intelligent sur ces projets
+			const confirmed = await ModalManager.confirmModal(
+				'This update introduce a new project folder structure. Would you like the software to try to organize your projects into the correct sub-categories for you?'
+			);
+			if (confirmed) {
+				this.organizeExistingProjectsIntoSubCategories();
+			}
 		}
+	}
+
+	/**
+	 * Applies a first-pass classification to existing projects from their title only.
+	 * Priority order:
+	 * Taraweeh > Prayer > Studio > Rare recitation > Old recordings > Others
+	 */
+	static async organizeExistingProjectsIntoSubCategories() {
+		const projectsToUpdate = globalState.userProjectsDetails.filter((project) => {
+			const inferredProjectType = inferProjectTypeFromTitle(project.name);
+			return project.projectType !== inferredProjectType;
+		});
+
+		for (const project of projectsToUpdate) {
+			project.projectType = inferProjectTypeFromTitle(project.name);
+			await ProjectService.saveDetail(project);
+		}
+
+		toast.success('The projects have been organized into sub-categories.');
 	}
 
 	/**

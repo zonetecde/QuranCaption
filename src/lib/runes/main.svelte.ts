@@ -13,10 +13,14 @@ import type Settings from '$lib/classes/Settings.svelte';
 import { Status } from '$lib/classes/Status';
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
+import type { FolderDetail } from '$lib/types/folder';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
 	userProjectsDetails: ProjectDetail[] = $state([]);
+
+	// Liste des dossiers de l'utilisateur
+	userFolders: FolderDetail[] = $state([]);
 
 	// Projet actuellement sélectionné
 	currentProject: Project | null = $state(null);

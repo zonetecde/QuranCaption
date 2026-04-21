@@ -3,6 +3,8 @@ import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@ta
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import type { ImportedProjectPayload } from '$lib/types/project';
+import { FolderService } from './FolderService';
+import toast from 'svelte-5-french-toast';
 
 /**
  * Service pour gérer les projets.
@@ -240,8 +242,31 @@ export class ProjectService {
 	static async importProject(json: ImportedProjectPayload) {
 		json.detail.id = Utilities.randomId(); // Applique un nouvel ID unique au projet
 
+		// Gestion du dossier lors de l'import
+		let folderName: string | null = null;
+		if (json.detail.folderId !== undefined) {
+			const existingFolder = globalState.userFolders.find((f) => f.id === json.detail.folderId);
+			if (existingFolder) {
+				folderName = existingFolder.name;
+			} else if (json.folderDetail) {
+				// Crée le dossier s'il n'existe pas
+				const fd = json.folderDetail;
+				const created = await FolderService.createFolder(fd.name, fd.color);
+				// Réassigne l'id du dossier au nouveau dossier créé
+				json.detail.folderId = created.id;
+				folderName = created.name;
+			} else {
+				// folderId présent mais pas de détails du dossier → on ignore le folderId
+				json.detail.folderId = undefined;
+			}
+		}
+
 		const projectObject = Project.fromJSON(json) as Project;
 		await projectObject.save(); // Enregistre le projet importé sur le disque
+
+		if (folderName) {
+			toast.success(`Imported into folder "${folderName}"`);
+		}
 	}
 
 	/**

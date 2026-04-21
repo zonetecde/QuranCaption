@@ -6,11 +6,15 @@
 	import RecitersManager from '$lib/classes/Reciter';
 	import { discordService } from '$lib/services/DiscordService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { fade } from 'svelte/transition';
+	import CreateFolderModal from './CreateFolderModal.svelte';
 
 	let { close } = $props();
 
 	let name: string = $state('');
 	let reciter: string = $state('');
+	let selectedFolderId: number | undefined = $state(undefined);
+	let createFolderModalVisible = $state(false);
 
 	async function createProjectButtonClick() {
 		// Vérifie que le nom du projet n'est pas vide
@@ -28,10 +32,10 @@
 			return;
 		}
 
-		let project = new Project(
-			new ProjectDetail(name.trim(), reciter.trim()),
-			await ProjectContent.getDefaultProjectContent()
-		);
+		const detail = new ProjectDetail(name.trim(), reciter.trim());
+		detail.folderId = selectedFolderId;
+
+		let project = new Project(detail, await ProjectContent.getDefaultProjectContent());
 
 		AnalyticsService.trackProjectCreated(name.trim(), reciter.trim());
 
@@ -121,6 +125,35 @@
 				onEnterPress={createProjectButtonClick}
 			/>
 		</div>
+
+		<!-- Folder picker -->
+		<div class="space-y-2">
+			<label class="flex items-center gap-2 text-sm font-semibold text-primary">
+				<span class="material-icons text-accent-primary text-base">folder</span>
+				Folder
+				<span class="text-xs font-normal text-thirdly">(optional)</span>
+			</label>
+			<div class="flex items-center gap-2">
+				<select
+					bind:value={selectedFolderId}
+					class="flex-1"
+					style="height: 2.5rem; padding: 0 0.75rem;"
+				>
+					<option value={undefined}>— No folder —</option>
+					{#each globalState.userFolders as folder}
+						<option value={folder.id}>{folder.name}</option>
+					{/each}
+				</select>
+				<button
+					class="flex items-center gap-1 text-xs font-medium text-secondary hover:text-primary border border-color rounded-lg px-3 py-2 hover:bg-accent transition-all duration-200 cursor-pointer whitespace-nowrap"
+					onclick={() => (createFolderModalVisible = true)}
+					type="button"
+				>
+					<span class="material-icons text-sm">create_new_folder</span>
+					New
+				</button>
+			</div>
+		</div>
 	</div>
 
 	<!-- Footer -->
@@ -150,6 +183,15 @@
 		</div>
 	</div>
 </div>
+
+{#if createFolderModalVisible}
+	<div class="modal-wrapper" transition:fade>
+		<CreateFolderModal
+			close={() => (createFolderModalVisible = false)}
+			onCreated={(id) => (selectedFolderId = id)}
+		/>
+	</div>
+{/if}
 
 <style>
 	/* Enhanced gradient backgrounds */

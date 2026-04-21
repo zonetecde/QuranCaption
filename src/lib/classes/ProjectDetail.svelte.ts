@@ -27,6 +27,9 @@ export class ProjectDetail extends SerializableBase {
 	// Format : author: percentage
 	translations: { [author: string]: number };
 
+	// Dossier auquel appartient le projet (optionnel)
+	folderId: number | undefined;
+
 	/**
 	 * Crée une nouvelle instance de ProjectDetail
 	 * @param name Nom du projet
@@ -47,6 +50,7 @@ export class ProjectDetail extends SerializableBase {
 		this.duration = new Duration(0);
 		this.verseRange = new VerseRange();
 		this.translations = $state({});
+		this.folderId = $state(undefined);
 	}
 
 	/**

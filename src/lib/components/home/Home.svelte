@@ -7,6 +7,7 @@
 	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
 	import FilterMenu from './FilterMenu.svelte';
 	import SortMenu from './SortMenu.svelte';
+	import FolderSection from './FolderSection.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import { Status } from '$lib/classes/Status';
@@ -15,6 +16,7 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import ModalManager from '../modals/ModalManager';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import { FolderService } from '$lib/services/FolderService';
 	import MigrationFromV2Modal from './modals/MigrationFromV2Modal.svelte';
 	import MigrationService from '$lib/services/MigrationService';
 	import Settings from '$lib/classes/Settings.svelte';
@@ -25,6 +27,9 @@
 
 	let migrationFromV2ModalVisibility = $state(false);
 	let createNewProjectModalVisible: boolean = $state(false);
+
+	// Navigation dossiers
+	let activeFolderId: number | null = $state(null);
 
 	// Etats pour les menus de filtrage et tri
 	let filterMenuVisible = $state(false);
@@ -102,10 +107,18 @@
 	 * Applique le filtre et maintient le tri actuel
 	 */
 	function applyFilterAndSort() {
+		// Détermine la liste de base selon le contexte (dossier actif ou root)
+		let baseProjects = globalState.userProjectsDetails;
+		if (activeFolderId !== null) {
+			baseProjects = baseProjects.filter((p) => p.folderId === activeFolderId);
+		} else {
+			baseProjects = baseProjects.filter((p) => !p.folderId);
+		}
+
 		if (globalState.uiState.selectedStatuses.length === 0) {
 			globalState.uiState.filteredProjects = [];
 		} else {
-			globalState.uiState.filteredProjects = globalState.userProjectsDetails.filter((project) =>
+			globalState.uiState.filteredProjects = baseProjects.filter((project) =>
 				globalState.uiState.selectedStatuses.some(
 					(status) => status.status === project.status.status
 				)
@@ -116,6 +129,9 @@
 	let promise: Promise<void | ProjectDetail[]> | undefined = $state(undefined);
 
 	onMount(async () => {
+		// Charge les dossiers
+		globalState.userFolders = await FolderService.load();
+
 		await VersionService.init();
 
 		// Verifie les mises a jour
@@ -175,8 +191,8 @@
 	});
 
 	$effect(() => {
-		// Reapplique le filtre quand la liste des projets change
-		if (globalState.userProjectsDetails.length >= 0) {
+		// Reapplique le filtre quand la liste des projets ou le dossier actif change
+		if (globalState.userProjectsDetails.length >= 0 || activeFolderId !== undefined) {
 			applyFilterAndSort();
 		}
 	});
@@ -228,8 +244,27 @@
 			</section>
 		</div>
 
+		<!-- Folders section -->
+		<FolderSection
+			folders={globalState.userFolders}
+			projects={globalState.userProjectsDetails}
+			{activeFolderId}
+			onFolderClick={(id) => {
+				activeFolderId = id;
+				applyFilterAndSort();
+			}}
+			onBack={() => {
+				activeFolderId = null;
+				applyFilterAndSort();
+			}}
+		/>
+
 		<div placeholder="Recent projects" class="mt-8 flex justify-between items-center">
-			<h3 class="text-2xl font-semibold text-primary">Recent Projects</h3>
+			<h3 class="text-2xl font-semibold text-primary">
+				{activeFolderId !== null
+					? (globalState.userFolders.find((f) => f.id === activeFolderId)?.name ?? 'Folder')
+					: 'Recent Projects'}
+			</h3>
 
 			<div class="flex items-center space-x-4">
 				<InputWithIcon
@@ -291,8 +326,12 @@
 					<p class="mt-4">
 						No projects match the current filter. Adjust your status filter to see projects.
 					</p>
-				{:else if globalState.userProjectsDetails.length === 0}
-					<p class="mt-4">You don't have any projects yet. Click "New Project" to create one.</p>
+				{:else if globalState.userProjectsDetails.filter((p) => activeFolderId !== null ? p.folderId === activeFolderId : !p.folderId).length === 0}
+					<p class="mt-4">
+						{activeFolderId !== null
+							? 'This folder is empty. Create a project and assign it to this folder.'
+							: 'You don\'t have any projects yet. Click "New Project" to create one.'}
+					</p>
 				{:else}
 					<p class="mt-4">
 						No projects match the current filter. Try adjusting your status filter.

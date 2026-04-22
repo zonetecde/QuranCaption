@@ -122,19 +122,7 @@
 		toggleReciter(reciter);
 	}
 
-	/**
-	 * Clicking an already selected reciter acts as a lightweight collapse/expand toggle.
-	 */
 	function handleReciterClick(reciter: string) {
-		const isSameReciterSelected =
-			(selection.kind === 'reciter' && selection.reciter === reciter) ||
-			(selection.kind === 'type' && selection.reciter === reciter);
-
-		if (isSameReciterSelected) {
-			toggleReciter(reciter);
-			return;
-		}
-
 		onSelectionChange({ kind: 'reciter', reciter });
 	}
 </script>

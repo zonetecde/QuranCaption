@@ -163,19 +163,6 @@
 		return filterProjectsForSelection(projects, selection).length > 0;
 	}
 
-	function getSelectionLabel(selection: ExplorerSelection): string {
-		switch (selection.kind) {
-			case 'all':
-				return 'All Projects';
-			case 'reciter':
-				return selection.reciter;
-			case 'type':
-				return `${selection.reciter} / ${selection.projectType}`;
-			case 'year':
-				return `${selection.reciter} / ${selection.projectType} / ${selection.year}`;
-		}
-	}
-
 	function getSelectionDescription(selection: ExplorerSelection, count: number): string {
 		if (selection.kind === 'all') {
 			return `${count} project${count === 1 ? '' : 's'} across every reciter folder`;
@@ -197,10 +184,7 @@
 			case 'all':
 				return [{ label: 'All Projects' }];
 			case 'reciter':
-				return [
-					{ label: 'All', target: ALL_PROJECTS_SELECTION },
-					{ label: selection.reciter }
-				];
+				return [{ label: 'All', target: ALL_PROJECTS_SELECTION }, { label: selection.reciter }];
 			case 'type':
 				return [
 					{ label: 'All', target: ALL_PROJECTS_SELECTION },

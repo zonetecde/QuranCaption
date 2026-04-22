@@ -982,7 +982,7 @@
 			await new Promise((resolve) => setTimeout(resolve, 200));
 		} else {
 			const startTime = Date.now();
-			const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
+			const timeout = 2000; // 2000ms maximum timeout to avoid infinite hang
 
 			do {
 				if (Date.now() - startTime > timeout) {

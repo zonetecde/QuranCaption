@@ -214,6 +214,9 @@
 
 	// Variable pour stocker l'AbortController de l'exécution précédente
 	let currentAbortController: AbortController | null = null;
+	// Identifie le dernier run de layout afin d'éviter les remises d'opacité
+	// provoquées par un run annulé alors qu'un run plus récent est en cours.
+	let subtitleLayoutRunId = 0;
 
 	/**
 	 * Détecte le target (arabic, traduction, etc.) d'un élément sous-titre
@@ -263,9 +266,17 @@
 	 */
 	$effect(() => {
 		(async () => {
+			const runId = ++subtitleLayoutRunId;
 			const subtitlesContainer = document.getElementById('subtitles-container');
+
+			// Dépendances explicites: relancer à chaque changement de curseur/preview.
+			consumeReactiveDependencies(
+				globalState.getTimelineState.cursorPosition,
+				globalState.getTimelineState.movePreviewTo
+			);
+
 			if (!currentSubtitle()) {
-				if (subtitlesContainer) {
+				if (subtitlesContainer && runId === subtitleLayoutRunId) {
 					subtitlesContainer.style.opacity = '1';
 				}
 				return;
@@ -277,7 +288,6 @@
 			lastSubtitleId = currentSubtitle()!.id;
 
 			consumeReactiveDependencies(
-				globalState.getTimelineState.movePreviewTo,
 				globalState.getStyle('arabic', 'max-height').value,
 				globalState.getStyle('arabic', 'font-size').value,
 				globalState.getStyle('global', 'spacing').value
@@ -285,7 +295,7 @@
 
 			// Cache tout les sous-titres pendant le recalcul pour éviter les sauts visuels
 			// sélectionne l'élément d'id subtitles-container
-			if (subtitlesContainer) {
+			if (subtitlesContainer && runId === subtitleLayoutRunId) {
 				subtitlesContainer.style.opacity = '0';
 			}
 
@@ -484,7 +494,7 @@
 
 			// Une fois tout ça fait, on remet l'opacité normale
 			// sélectionne l'élément d'id subtitles-container
-			if (subtitlesContainer) {
+			if (subtitlesContainer && runId === subtitleLayoutRunId) {
 				subtitlesContainer.style.opacity = '1';
 			}
 		})();

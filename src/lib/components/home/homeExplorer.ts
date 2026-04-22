@@ -5,7 +5,18 @@ import { DEFAULT_PROJECT_TYPE, PROJECT_TYPE_OPTIONS } from '$lib/types/projectTy
 export type ExplorerSelection =
 	| { kind: 'all' }
 	| { kind: 'reciter'; reciter: string }
-	| { kind: 'type'; reciter: string; projectType: ProjectType };
+	| { kind: 'type'; reciter: string; projectType: ProjectType }
+	| { kind: 'year'; reciter: string; projectType: ProjectType; year: string };
+
+export type ProjectExplorerYearNode = {
+	id: string;
+	kind: 'year';
+	label: string;
+	year: string;
+	projectType: ProjectType;
+	reciter: string;
+	count: number;
+};
 
 export type ProjectExplorerTypeNode = {
 	id: string;
@@ -14,6 +25,7 @@ export type ProjectExplorerTypeNode = {
 	projectType: ProjectType;
 	reciter: string;
 	count: number;
+	years: ProjectExplorerYearNode[];
 };
 
 export type ProjectExplorerReciterNode = {
@@ -62,14 +74,39 @@ export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExpl
 			label: reciter,
 			reciter,
 			count: reciterProjects.length,
-			types: PROJECT_TYPE_OPTIONS.map((projectType) => ({
-				id: `type:${reciter}:${projectType}`,
-				kind: 'type' as const,
-				label: projectType,
-				projectType,
-				reciter,
-				count: reciterProjects.filter((project) => getProjectType(project) === projectType).length
-			}))
+			types: PROJECT_TYPE_OPTIONS.map((projectType) => {
+				const typeProjects = reciterProjects.filter(
+					(project) => getProjectType(project) === projectType
+				);
+				const groupedByYear = new Map<string, number>();
+				for (const project of typeProjects) {
+					const year = extractProjectYear(project.name);
+					if (!year) continue;
+					groupedByYear.set(year, (groupedByYear.get(year) ?? 0) + 1);
+				}
+
+				const years = Array.from(groupedByYear.entries())
+					.sort(([leftYear], [rightYear]) => Number(rightYear) - Number(leftYear))
+					.map(([year, count]) => ({
+						id: `year:${reciter}:${projectType}:${year}`,
+						kind: 'year' as const,
+						label: year,
+						year,
+						projectType,
+						reciter,
+						count
+					}));
+
+				return {
+					id: `type:${reciter}:${projectType}`,
+					kind: 'type' as const,
+					label: projectType,
+					projectType,
+					reciter,
+					count: typeProjects.length,
+					years
+				};
+			})
 		}));
 
 	return {
@@ -91,6 +128,13 @@ export function filterProjectsForSelection(
 			return projects.filter(
 				(project) =>
 					project.reciter === selection.reciter && getProjectType(project) === selection.projectType
+			);
+		case 'year':
+			return projects.filter(
+				(project) =>
+					project.reciter === selection.reciter &&
+					getProjectType(project) === selection.projectType &&
+					extractProjectYear(project.name) === selection.year
 			);
 	}
 }
@@ -118,6 +162,14 @@ export function isSelectionActive(
 		return selection.reciter === target.reciter && selection.projectType === target.projectType;
 	}
 
+	if (selection.kind === 'year' && target.kind === 'year') {
+		return (
+			selection.reciter === target.reciter &&
+			selection.projectType === target.projectType &&
+			selection.year === target.year
+		);
+	}
+
 	return false;
 }
 
@@ -140,6 +192,11 @@ export function resolveDropTargetUpdate(
 				reciter: target.reciter,
 				projectType: target.projectType
 			};
+		case 'year':
+			return {
+				reciter: target.reciter,
+				projectType: target.projectType
+			};
 	}
 }
 
@@ -148,4 +205,24 @@ export function resolveDropTargetUpdate(
  */
 export function getProjectType(project: Pick<ProjectDetail, 'projectType'>): ProjectType {
 	return project.projectType ?? DEFAULT_PROJECT_TYPE;
+}
+
+/**
+ * Extracts the first recognizable Gregorian or Hijri year from a project name.
+ * Supported ranges:
+ * - Gregorian: 1900..2100
+ * - Hijri: 1300..1700
+ */
+export function extractProjectYear(projectName: string | null | undefined): string | null {
+	if (!projectName) return null;
+
+	for (const match of projectName.matchAll(/\b(\d{4})\b/g)) {
+		const yearText = match[1];
+		const year = Number(yearText);
+		if ((year >= 1900 && year <= 2100) || (year >= 1300 && year <= 1700)) {
+			return yearText;
+		}
+	}
+
+	return null;
 }

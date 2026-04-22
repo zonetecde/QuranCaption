@@ -43,6 +43,13 @@ export function getExplorerSelectionFromNodeId(nodeId: string | null | undefined
 		}
 	}
 
+	if (nodeId.startsWith('year:')) {
+		const [, reciter, projectType, year] = nodeId.split(':');
+		if (reciter && projectType && year) {
+			return { kind: 'year', reciter, projectType: normalizeProjectType(projectType), year };
+		}
+	}
+
 	return null;
 }
 

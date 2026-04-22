@@ -19,7 +19,12 @@
 	} = $props();
 
 	let expandedReciters = $state<Set<string>>(new Set());
+	let expandedTypes = $state<Set<string>>(new Set());
 	let lastSelectionKey = $state<string>('all');
+
+	function getTypeKey(reciter: string, projectType: string): string {
+		return `${reciter}:${projectType}`;
+	}
 
 	/**
 	 * Avoids rewriting the set when nothing actually changed.
@@ -40,28 +45,46 @@
 				return `reciter:${selection.reciter}`;
 			case 'type':
 				return `type:${selection.reciter}:${selection.projectType}`;
+			case 'year':
+				return `year:${selection.reciter}:${selection.projectType}:${selection.year}`;
 		}
 	}
 
 	$effect(() => {
 		// Keeps the open state valid when the tree changes and auto-expands the newly selected branch.
 		const validReciters = new Set(tree.reciters.map((node) => node.reciter));
+		const validTypeKeys = new Set(
+			tree.reciters.flatMap((reciterNode) =>
+				reciterNode.types
+					.filter((typeNode) => typeNode.years.length > 0)
+					.map((typeNode) => getTypeKey(typeNode.reciter, typeNode.projectType))
+			)
+		);
 		const nextExpandedReciters = new Set(
 			Array.from(expandedReciters).filter((reciter) => validReciters.has(reciter))
+		);
+		const nextExpandedTypes = new Set(
+			Array.from(expandedTypes).filter((typeKey) => validTypeKeys.has(typeKey))
 		);
 
 		const selectionKey = getSelectionKey(selection);
 		if (
 			selectionKey !== lastSelectionKey &&
-			(selection.kind === 'reciter' || selection.kind === 'type')
+			(selection.kind === 'reciter' || selection.kind === 'type' || selection.kind === 'year')
 		) {
 			nextExpandedReciters.add(selection.reciter);
+			if (selection.kind === 'type' || selection.kind === 'year') {
+				nextExpandedTypes.add(getTypeKey(selection.reciter, selection.projectType));
+			}
 		}
 
 		lastSelectionKey = selectionKey;
 
 		if (!areSetsEqual(expandedReciters, nextExpandedReciters)) {
 			expandedReciters = nextExpandedReciters;
+		}
+		if (!areSetsEqual(expandedTypes, nextExpandedTypes)) {
+			expandedTypes = nextExpandedTypes;
 		}
 	});
 
@@ -77,6 +100,21 @@
 
 	function isExpanded(reciter: string): boolean {
 		return expandedReciters.has(reciter);
+	}
+
+	function toggleType(reciter: string, projectType: string) {
+		const typeKey = getTypeKey(reciter, projectType);
+		const next = new Set(expandedTypes);
+		if (next.has(typeKey)) {
+			next.delete(typeKey);
+		} else {
+			next.add(typeKey);
+		}
+		expandedTypes = next;
+	}
+
+	function isTypeExpanded(reciter: string, projectType: string): boolean {
+		return expandedTypes.has(getTypeKey(reciter, projectType));
 	}
 
 	function handleToggleClick(event: MouseEvent, reciter: string) {
@@ -153,32 +191,122 @@
 				{#if isExpanded(reciterNode.reciter)}
 					<div class="tree-children">
 						{#each reciterNode.types as typeNode (typeNode.id)}
-							<button
-								type="button"
-								class={`tree-row child-row ${
-									isSelectionActive(selection, {
-										kind: 'type',
-										reciter: typeNode.reciter,
-										projectType: typeNode.projectType
-									})
-										? 'active'
-										: ''
-								} ${activeDropNodeId === typeNode.id ? 'drop-target' : ''}`}
-								data-explorer-node={`type:${typeNode.reciter}:${typeNode.projectType}`}
-								onclick={() =>
-									onSelectionChange({
-										kind: 'type',
-										reciter: typeNode.reciter,
-										projectType: typeNode.projectType
-									})}
-							>
-								<span class="tree-branch" aria-hidden="true">
-									<span class="tree-branch-line"></span>
-									<span class="tree-branch-dot"></span>
-								</span>
-								<span class="tree-name">{typeNode.label}</span>
-								<span class="tree-count">{typeNode.count}</span>
-							</button>
+							{#if typeNode.years.length === 0}
+								<button
+									type="button"
+									class={`tree-row child-row ${
+										isSelectionActive(selection, {
+											kind: 'type',
+											reciter: typeNode.reciter,
+											projectType: typeNode.projectType
+										})
+											? 'active'
+											: ''
+									} ${activeDropNodeId === typeNode.id ? 'drop-target' : ''}`}
+									data-explorer-node={`type:${typeNode.reciter}:${typeNode.projectType}`}
+									onclick={() =>
+										onSelectionChange({
+											kind: 'type',
+											reciter: typeNode.reciter,
+											projectType: typeNode.projectType
+										})}
+								>
+									<span class="tree-branch" aria-hidden="true">
+										<span class="tree-branch-line"></span>
+										<span class="tree-branch-dot"></span>
+									</span>
+									<span class="tree-name">{typeNode.label}</span>
+									<span class="tree-count">{typeNode.count}</span>
+								</button>
+							{:else}
+								<div class="tree-group">
+									<div
+										class={`tree-row child-row ${
+											isSelectionActive(selection, {
+												kind: 'type',
+												reciter: typeNode.reciter,
+												projectType: typeNode.projectType
+											})
+												? 'active'
+												: ''
+										} ${activeDropNodeId === typeNode.id ? 'drop-target' : ''}`}
+									>
+										<span class="tree-branch-with-toggle">
+											<span class="tree-branch-line" aria-hidden="true"></span>
+											<button
+												type="button"
+												class="tree-mini-toggle"
+												title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
+													? 'Collapse'
+													: 'Expand'}
+												onclick={(event) => {
+													event.stopPropagation();
+													toggleType(typeNode.reciter, typeNode.projectType);
+												}}
+											>
+												<span
+													class={`material-icons-outlined tree-chevron ${
+														isTypeExpanded(typeNode.reciter, typeNode.projectType)
+															? 'expanded'
+															: ''
+													}`}
+												>
+													chevron_right
+												</span>
+											</button>
+										</span>
+										<button
+											type="button"
+											class="tree-select"
+											data-explorer-node={`type:${typeNode.reciter}:${typeNode.projectType}`}
+											onclick={() =>
+												onSelectionChange({
+													kind: 'type',
+													reciter: typeNode.reciter,
+													projectType: typeNode.projectType
+												})}
+										>
+											<span class="tree-name">{typeNode.label}</span>
+											<span class="tree-count">{typeNode.count}</span>
+										</button>
+									</div>
+
+									{#if isTypeExpanded(typeNode.reciter, typeNode.projectType)}
+										<div class="tree-year-children">
+											{#each typeNode.years as yearNode (yearNode.id)}
+												<button
+													type="button"
+													class={`tree-row child-row ${
+														isSelectionActive(selection, {
+															kind: 'year',
+															reciter: yearNode.reciter,
+															projectType: yearNode.projectType,
+															year: yearNode.year
+														})
+															? 'active'
+															: ''
+													} ${activeDropNodeId === yearNode.id ? 'drop-target' : ''}`}
+													data-explorer-node={`year:${yearNode.reciter}:${yearNode.projectType}:${yearNode.year}`}
+													onclick={() =>
+														onSelectionChange({
+															kind: 'year',
+															reciter: yearNode.reciter,
+															projectType: yearNode.projectType,
+															year: yearNode.year
+														})}
+												>
+													<span class="tree-branch" aria-hidden="true">
+														<span class="tree-branch-line"></span>
+														<span class="tree-branch-dot"></span>
+													</span>
+													<span class="tree-name">{yearNode.label}</span>
+													<span class="tree-count">{yearNode.count}</span>
+												</button>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							{/if}
 						{/each}
 					</div>
 				{/if}
@@ -341,6 +469,34 @@
 
 	.child-row {
 		padding-left: 0.3rem;
+	}
+
+	.tree-year-children {
+		margin-left: 1.1rem;
+		position: relative;
+	}
+
+	.tree-branch-with-toggle {
+		display: inline-flex;
+		align-items: center;
+		width: 1.9rem;
+		flex-shrink: 0;
+		gap: 0.25rem;
+	}
+
+	.tree-mini-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1rem;
+		height: 1rem;
+		border-radius: 0.25rem;
+		color: inherit;
+		flex-shrink: 0;
+	}
+
+	.tree-mini-toggle:hover {
+		background: color-mix(in srgb, var(--bg-accent) 80%, transparent);
 	}
 
 	.tree-branch {

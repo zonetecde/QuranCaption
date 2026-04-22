@@ -149,7 +149,7 @@
 			return true;
 		}
 
-		return projects.some((project) => project.reciter === selection.reciter);
+		return filterProjectsForSelection(projects, selection).length > 0;
 	}
 
 	function getSelectionLabel(selection: ExplorerSelection): string {
@@ -160,6 +160,8 @@
 				return selection.reciter;
 			case 'type':
 				return `${selection.reciter} / ${selection.projectType}`;
+			case 'year':
+				return `${selection.reciter} / ${selection.projectType} / ${selection.year}`;
 		}
 	}
 
@@ -170,6 +172,10 @@
 
 		if (selection.kind === 'reciter') {
 			return `${count} project${count === 1 ? '' : 's'} for this reciter`;
+		}
+
+		if (selection.kind === 'year') {
+			return `${count} project${count === 1 ? '' : 's'} for year ${selection.year}`;
 		}
 
 		return `${count} project${count === 1 ? '' : 's'} in this subfolder`;

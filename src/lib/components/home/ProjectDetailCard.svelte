@@ -6,6 +6,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import EditableText from '../misc/EditableText.svelte';
 	import ModalManager from '../modals/ModalManager';
+	import ProjectTypeSelector from './ProjectTypeSelector.svelte';
 	import { Status } from '$lib/classes/Status';
 	import { slide } from 'svelte/transition';
 	import MigrationService from '$lib/services/MigrationService';
@@ -62,6 +63,9 @@
 	}
 
 	onDestroy(() => {
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('click', handleWindowClick);
+		}
 		currentMenu.set(null);
 	});
 
@@ -93,9 +97,13 @@
 		showStatusMenu = !showStatusMenu;
 	}
 
+	function handleWindowClick() {
+		showStatusMenu = false;
+	}
+
 	// Fermer en cliquant dehors
 	if (typeof window !== 'undefined') {
-		window.addEventListener('click', () => (showStatusMenu = false));
+		window.addEventListener('click', handleWindowClick);
 	}
 
 	// Gestion de l'affichage des détails du projet
@@ -114,7 +122,7 @@
 		const target = event.target;
 		if (
 			target instanceof HTMLElement &&
-			target.closest('button, input, textarea, select, a, [contenteditable="true"]')
+			target.closest('[data-no-drag], button, input, textarea, select, a, [contenteditable="true"]')
 		) {
 			return;
 		}
@@ -155,14 +163,11 @@
 				onpointerdown={handlePointerDragStart}
 			>
 				<div class="absolute right-3 top-3">
-					<!-- Keep the current explorer classification visible directly on the card. -->
-					<span
-						class="inline-flex items-center gap-1 rounded-full bg-[var(--bg-primary)]/30 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-[var(--text-primary)]/90 backdrop-blur-sm"
-						data-project-type
-					>
-						<span class="material-icons-outlined text-xs">folder_special</span>
-						{projectDetail.projectType}
-					</span>
+					<ProjectTypeSelector
+						{projectDetail}
+						variant="badge"
+						onBeforeOpen={() => (showStatusMenu = false)}
+					/>
 				</div>
 			</section>
 		{/if}
@@ -199,6 +204,8 @@
 					{#if showStatusMenu}
 						<ul
 							class="absolute top-full right-0 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl py-1 z-20 backdrop-blur-sm"
+							data-no-drag
+							onpointerdown={(event) => event.stopPropagation()}
 						>
 							{#each statuses as s (s.status)}
 								<li
@@ -213,7 +220,7 @@
 					{/if}
 				</div>
 			</div>
-			<div class="flex items-center gap-x-1 text-xs text-[var(--text-secondary)] -mb-0.5">
+			<div class="flex items-center gap-x-1 text-xs text-[var(--text-secondary)] -mb-1.5">
 				Reciter:
 				<EditableText
 					text="Enter project reciter"
@@ -227,6 +234,10 @@
 					inputType="reciters"
 				/>
 			</div>
+			{#if globalState.settings!.persistentUiState.projectCardView === 'list'}
+				<ProjectTypeSelector {projectDetail} onBeforeOpen={() => (showStatusMenu = false)} />
+			{/if}
+
 			<p class="text-xs text-[var(--text-secondary)] mb-1">
 				Duration: {projectDetail.duration.getFormattedTime(false)}
 			</p>

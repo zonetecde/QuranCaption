@@ -266,7 +266,6 @@
 	 */
 	$effect(() => {
 		(async () => {
-			const runId = ++subtitleLayoutRunId;
 			const subtitlesContainer = document.getElementById('subtitles-container');
 
 			// Dépendances explicites: relancer à chaque changement de curseur/preview.
@@ -275,17 +274,19 @@
 				globalState.getTimelineState.movePreviewTo
 			);
 
-			if (!currentSubtitle()) {
-				if (subtitlesContainer && runId === subtitleLayoutRunId) {
+			const subtitle = currentSubtitle();
+			if (!subtitle) {
+				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';
 				}
 				return;
 			}
 
 			// si le sous-titre actuel n'a pas changé (pendant la lecture vidéo)
-			if (currentSubtitle()!.id === lastSubtitleId && globalState.getVideoPreviewState.isPlaying)
-				return;
-			lastSubtitleId = currentSubtitle()!.id;
+			if (subtitle.id === lastSubtitleId && globalState.getVideoPreviewState.isPlaying) return;
+
+			const runId = ++subtitleLayoutRunId;
+			lastSubtitleId = subtitle.id;
 
 			consumeReactiveDependencies(
 				globalState.getStyle('arabic', 'max-height').value,

@@ -197,9 +197,13 @@
 			case 'all':
 				return [{ label: 'All Projects' }];
 			case 'reciter':
-				return [{ label: selection.reciter }];
+				return [
+					{ label: 'All', target: ALL_PROJECTS_SELECTION },
+					{ label: selection.reciter }
+				];
 			case 'type':
 				return [
+					{ label: 'All', target: ALL_PROJECTS_SELECTION },
 					{
 						label: selection.reciter,
 						target: { kind: 'reciter', reciter: selection.reciter }
@@ -208,6 +212,7 @@
 				];
 			case 'year':
 				return [
+					{ label: 'All', target: ALL_PROJECTS_SELECTION },
 					{
 						label: selection.reciter,
 						target: { kind: 'reciter', reciter: selection.reciter }

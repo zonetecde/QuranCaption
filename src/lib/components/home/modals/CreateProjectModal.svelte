@@ -129,12 +129,9 @@
 		</div>
 
 		<div class="space-y-2">
-			<label
-				for="project-type"
-				class="flex items-center gap-2 text-sm font-semibold text-primary"
-			>
+			<label for="project-type" class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">folder_special</span>
-				Project Type
+				Type
 			</label>
 			<div class="relative">
 				<select
@@ -152,9 +149,6 @@
 					expand_more
 				</span>
 			</div>
-			<p class="text-xs text-thirdly">
-				This decides which explorer subfolder the project starts in.
-			</p>
 		</div>
 	</div>
 
@@ -163,7 +157,7 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				<span class="material-icons text-accent-secondary">info</span>
-				<span>Fill in the details and choose the folder classification for the homepage.</span>
+				<span>Fill in the details to create your project</span>
 			</div>
 
 			<div class="flex gap-3">

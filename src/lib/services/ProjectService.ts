@@ -100,7 +100,7 @@ export class ProjectService {
 	 * Sauvegarde les détails d'un projet.
 	 * @param detail Les détails du projet à sauvegarder
 	 */
-	static async saveDetail(detail: ProjectDetail): Promise<void> {
+	static async saveDetail(detail: ProjectDetail, updateUpdateAt: boolean = true): Promise<void> {
 		// Récupère le projet complet
 		const project = await this.load(detail.id);
 
@@ -108,7 +108,7 @@ export class ProjectService {
 		project.detail = detail;
 
 		// Sauvegarde le projet complet
-		await project.save();
+		await project.save(updateUpdateAt);
 	}
 
 	/**

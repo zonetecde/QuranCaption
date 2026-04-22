@@ -635,7 +635,7 @@ export default class MigrationService {
 
 		for (const project of projectsToUpdate) {
 			project.projectType = inferProjectTypeFromTitle(project.name);
-			await ProjectService.saveDetail(project);
+			await ProjectService.saveDetail(project, false); // On ne met pas à jour le updatedAt pour pas remonter tous les projets dans "Recently Updated"
 		}
 
 		toast.success('The projects have been organized into sub-categories.');

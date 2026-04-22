@@ -45,7 +45,6 @@
 	// Etats pour les menus de filtrage et tri
 	let filterMenuVisible = $state(false);
 	let sortMenuVisible = $state(false);
-	let mobileExplorerOpen = $state(false);
 
 	// Etat du drag interne homepage -> explorateur
 	let draggingProjectId = $state<number | null>(null);
@@ -219,7 +218,6 @@
 	 */
 	function selectExplorerNode(selection: ExplorerSelection) {
 		explorerSelection = selection;
-		mobileExplorerOpen = false;
 		currentPage = 1;
 	}
 
@@ -280,7 +278,6 @@
 		draggingProject = project;
 		dragPointer = getDragPointerPosition(event);
 		activeDropNodeId = null;
-		mobileExplorerOpen = false;
 	}
 
 	/**
@@ -468,13 +465,6 @@
 			</section>
 			<section class="ml-auto flex flex-wrap gap-3 xl:gap-x-4">
 				<button
-					class="btn h-12 px-4 lg:hidden"
-					type="button"
-					onclick={() => (mobileExplorerOpen = true)}
-				>
-					<span class="material-icons-outlined mr-2">folder_open</span> Explorer
-				</button>
-				<button
 					data-tour-id="new-project-button"
 					class="btn-accent btn-icon h-12 px-4 xl:px-7"
 					onclick={newProjectButtonClick}
@@ -488,9 +478,9 @@
 		</div>
 
 		<div
-			class="mt-8 grid items-start gap-8 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]"
+			class="mt-8 grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)] items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[280px_minmax(0,1fr)]"
 		>
-			<div class="hidden lg:block">
+			<div>
 				<ProjectExplorerSidebar
 					tree={explorerTree}
 					selection={explorerSelection}
@@ -670,35 +660,6 @@
 
 	<Footer />
 </div>
-
-{#if mobileExplorerOpen}
-	<div
-		class="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
-		transition:fade
-		onclick={() => (mobileExplorerOpen = false)}
-	>
-		<div
-			class="absolute inset-y-0 left-0 w-[min(92vw,340px)] bg-[var(--bg-primary)] px-4 py-6 shadow-2xl"
-			onclick={(event) => event.stopPropagation()}
-		>
-			<div class="mb-4 flex justify-end">
-				<button
-					class="btn h-11 w-11 p-0"
-					type="button"
-					onclick={() => (mobileExplorerOpen = false)}
-				>
-					<span class="material-icons-outlined">close</span>
-				</button>
-			</div>
-			<ProjectExplorerSidebar
-				tree={explorerTree}
-				selection={explorerSelection}
-				{activeDropNodeId}
-				onSelectionChange={selectExplorerNode}
-			/>
-		</div>
-	</div>
-{/if}
 
 {#if draggingProject}
 	<div

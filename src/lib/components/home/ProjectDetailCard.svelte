@@ -32,6 +32,9 @@
 	} = $props();
 
 	let isDragging = $state(false);
+	let isListView = $derived(
+		(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
+	);
 
 	$effect(() => {
 		// Keep the local visual state aligned with the homepage drag lifecycle.
@@ -121,6 +124,14 @@
 		onProjectDragStart?.(projectDetail, event);
 	}
 
+	function handleDragHandlePointerDown(event: PointerEvent) {
+		if (event.button !== 0 || !draggable) return;
+		event.stopPropagation();
+		event.preventDefault();
+		isDragging = true;
+		onProjectDragStart?.(projectDetail, event);
+	}
+
 	function handlePointerDragEnd() {
 		if (!draggable) return;
 		isDragging = false;
@@ -129,7 +140,7 @@
 </script>
 
 <div
-	class={`bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 ${
+	class={`relative bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 ${
 		draggable ? 'hover:-translate-y-1 hover:shadow-2xl' : 'hover:shadow-2xl'
 	} ${isDragging ? 'scale-[0.98] opacity-70 cursor-grabbing' : ''}`}
 	data-tour-id={isTutorial ? 'tutorial-project-card' : undefined}
@@ -155,18 +166,7 @@
 				</div>
 			</section>
 		{/if}
-		<div
-			class={`relative mt-4 px-4 pb-4 ${
-				draggable && (globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
-					? 'cursor-grab active:cursor-grabbing'
-					: ''
-			}`}
-			onpointerdown={
-				(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
-					? handlePointerDragStart
-					: undefined
-			}
-		>
+		<div class="relative mt-4 px-4 pb-4">
 			<div class="flex justify-between items-start mb-2">
 				<EditableText
 					text="Enter project name"
@@ -295,10 +295,23 @@
 			<span>Updated: {projectDetail.updatedAt.toLocaleDateString()}</span>
 		</div>
 
-		<div class="flex space-x-2">
-			<button class="btn-accent flex-grow text-xs py-1" onclick={openProjectButtonClick}
-				>Open</button
+		<div class={`flex items-center gap-x-2 ${isListView ? 'justify-end' : ''}`}>
+			{#if isListView && draggable}
+				<button
+					class="h-8 w-8 pt-1 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-primary)]/40 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)]/70 hover:text-[var(--text-primary)] cursor-grab active:cursor-grabbing"
+					type="button"
+					title="Drag card"
+					onpointerdown={handleDragHandlePointerDown}
+				>
+					<span class="material-icons-outlined text-[14px] leading-none">drag_indicator</span>
+				</button>
+			{/if}
+			<button
+				class={`btn-accent text-xs py-2 ${isListView ? 'flex-1 h-full' : 'flex-grow'}`}
+				onclick={openProjectButtonClick}
 			>
+				Open
+			</button>
 			<button
 				class="btn btn-secondary btn-sm p-1.5 flex items-center"
 				onclick={contextMenu!.createHandler()}

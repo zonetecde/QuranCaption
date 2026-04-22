@@ -145,10 +145,17 @@
 	}
 
 	function isSelectionAvailable(selection: ExplorerSelection, projects: ProjectDetail[]): boolean {
-		if (selection.kind === 'all') {
-			return true;
+		if (selection.kind === 'all') return true;
+		if (selection.kind === 'reciter') {
+			return projects.some((project) => project.reciter === selection.reciter);
 		}
 
+		// Type folders always exist under a visible reciter node, even when their project count is 0.
+		if (selection.kind === 'type') {
+			return projects.some((project) => project.reciter === selection.reciter);
+		}
+
+		// Year nodes only exist when at least one project matches that year bucket.
 		return filterProjectsForSelection(projects, selection).length > 0;
 	}
 

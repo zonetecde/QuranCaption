@@ -61,6 +61,10 @@
 	let isSortAscending = $state(false);
 
 	let promise: Promise<void | ProjectDetail[]> | undefined = $state(undefined);
+	type SelectionBreadcrumbItem = {
+		label: string;
+		target?: ExplorerSelection;
+	};
 
 	/**
 	 * Affiche le popup pour créer un nouveau projet.
@@ -188,6 +192,39 @@
 		return `${count} project${count === 1 ? '' : 's'} in this subfolder`;
 	}
 
+	function getSelectionBreadcrumb(selection: ExplorerSelection): SelectionBreadcrumbItem[] {
+		switch (selection.kind) {
+			case 'all':
+				return [{ label: 'All Projects' }];
+			case 'reciter':
+				return [{ label: selection.reciter }];
+			case 'type':
+				return [
+					{
+						label: selection.reciter,
+						target: { kind: 'reciter', reciter: selection.reciter }
+					},
+					{ label: selection.projectType }
+				];
+			case 'year':
+				return [
+					{
+						label: selection.reciter,
+						target: { kind: 'reciter', reciter: selection.reciter }
+					},
+					{
+						label: selection.projectType,
+						target: {
+							kind: 'type',
+							reciter: selection.reciter,
+							projectType: selection.projectType
+						}
+					},
+					{ label: selection.year }
+				];
+		}
+	}
+
 	/**
 	 * Centralizes explorer navigation so desktop and mobile stay in sync.
 	 */
@@ -312,6 +349,7 @@
 		const startIndex = (currentPage - 1) * projectsPerPage;
 		return searchedProjects.slice(startIndex, startIndex + projectsPerPage);
 	});
+	let selectionBreadcrumb = $derived.by(() => getSelectionBreadcrumb(explorerSelection));
 
 	$effect(() => {
 		// Replie la sélection vers "All" si le dossier actif n'existe plus avec le filtre courant.
@@ -478,8 +516,23 @@
 					class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"
 				>
 					<div>
-						<h3 class="text-2xl font-semibold text-primary">
-							{getSelectionLabel(explorerSelection)}
+						<h3 class="flex items-center gap-2 text-2xl font-semibold text-primary">
+							{#each selectionBreadcrumb as item, index (item.label + index)}
+								{#if item.target}
+									<button
+										type="button"
+										class="cursor-pointer text-left hover:underline"
+										onclick={() => selectExplorerNode(item.target!)}
+									>
+										{item.label}
+									</button>
+								{:else}
+									<span>{item.label}</span>
+								{/if}
+								{#if index < selectionBreadcrumb.length - 1}
+									<span class="text-[var(--text-secondary)]">/</span>
+								{/if}
+							{/each}
 						</h3>
 						<p class="mt-1 text-sm text-[var(--text-secondary)]">
 							{getSelectionDescription(explorerSelection, sortedSelectedProjects.length)}

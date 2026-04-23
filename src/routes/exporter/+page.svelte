@@ -522,7 +522,11 @@
 		}));
 
 		const segmentVideoExtension =
-			(globalState.getExportState.exportWithoutBackground ?? false) ? 'webm' : 'mp4';
+			(globalState.getExportState.exportWithoutBackground ?? false)
+				? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
+					? 'webm'
+					: 'mov'
+				: 'mp4';
 		const segmentVideoFileName = `segment_${segmentIndex}_video.${segmentVideoExtension}`;
 		const segmentFinalFilePath = await join(
 			await appDataDir(),
@@ -557,7 +561,8 @@
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
 				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
-				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false
+				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
+				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
 
 			console.log(`[OK] Segment ${segmentIndex} video generated successfully`);
@@ -582,7 +587,8 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
-				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false
+				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
+				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
 
 			console.log('[OK] Videos concatenated successfully:', finalVideoPath);
@@ -812,7 +818,8 @@
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
 				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
-				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false
+				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
+				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
 		} catch (e: unknown) {
 			emitProgress({

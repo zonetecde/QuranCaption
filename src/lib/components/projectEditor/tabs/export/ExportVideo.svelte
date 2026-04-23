@@ -206,8 +206,11 @@
 							bind:value={globalState.getExportState.customFileName}
 						/>
 						<p class="text-thirdly text-xs italic">
-							Extension ({globalState.getExportState.exportWithoutBackground ? '.webm' : '.mp4'})
-							will be added automatically.
+							Extension ({globalState.getExportState.exportWithoutBackground
+								? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
+									? '.webm'
+									: '.mov'
+								: '.mp4'}) will be added automatically.
 						</p>
 					</div>
 				</div>
@@ -265,10 +268,30 @@
 						<span class="text-sm text-primary">
 							Export without background
 							<span class="block text-xs text-thirdly mt-1">
-								Renders only the overlay with transparency (alpha). Output format becomes `.webm`.
+								Renders only the overlay with transparency (alpha).
 							</span>
 						</span>
 					</label>
+
+					{#if globalState.getExportState.exportWithoutBackground}
+						<div class="mt-3">
+							<label class="block text-sm text-primary mb-2" for="transparent-export-format">
+								Transparent export format
+							</label>
+							<select
+								id="transparent-export-format"
+								class="input w-full"
+								bind:value={globalState.getExportState.transparentExportFormat}
+							>
+								<option value="webm_vp9_alpha">WEBM (VP9 alpha)</option>
+								<option value="mov_prores_4444">MOV (ProRes 4444)</option>
+							</select>
+							<p class="text-xs text-thirdly mt-2">
+								<code>MOV (ProRes 4444)</code> is selected by default for compatibility, but file
+								sizes are huge.
+							</p>
+						</div>
+					{/if}
 				</div>
 
 				<div class="mb-4">

@@ -56,7 +56,9 @@ export default class ExportService {
 		// Ajoute le projet à la liste des exports en cours
 
 		const videoExtension = project.projectEditorState.export.exportWithoutBackground
-			? 'webm'
+			? project.projectEditorState.export.transparentExportFormat === 'webm_vp9_alpha'
+				? 'webm'
+				: 'mov'
 			: 'mp4';
 		const fileName = project.detail.generateExportFileName() + '.' + videoExtension;
 		let filePath = await join(await this.getExportFolder(), fileName);

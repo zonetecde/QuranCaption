@@ -338,7 +338,11 @@ export default class Exporter {
 	 * Exporte le projet sous forme de vidéo.
 	 */
 	static async exportVideo() {
-		const videoExtension = globalState.getExportState.exportWithoutBackground ? 'webm' : 'mp4';
+		const videoExtension = globalState.getExportState.exportWithoutBackground
+			? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
+				? 'webm'
+				: 'mov'
+			: 'mp4';
 		const exportFileName =
 			globalState.currentProject!.detail.generateExportFileName() + '.' + videoExtension;
 		const exportFilePath = await join(await ExportService.getExportFolder(), exportFileName);

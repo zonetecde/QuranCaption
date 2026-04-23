@@ -1195,13 +1195,14 @@ fn make_internal_batch_path(
     export_id: &str,
     batch_index: usize,
     export_without_background: bool,
+    use_mov_alpha: bool,
 ) -> PathBuf {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     let ext = if export_without_background {
-        "webm"
+        if use_mov_alpha { "mov" } else { "webm" }
     } else {
         "mp4"
     };
@@ -1209,6 +1210,14 @@ fn make_internal_batch_path(
         "internal_batch_{}_{}_{}.{}",
         export_id, batch_index, nonce, ext
     ))
+}
+
+fn transparent_export_uses_mov(
+    export_without_background: bool,
+    transparent_export_format: Option<&str>,
+) -> bool {
+    export_without_background
+        && !matches!(transparent_export_format, Some("webm_vp9_alpha"))
 }
 
 fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> i32 {
@@ -1256,6 +1265,7 @@ fn concat_internal_batch_videos(
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
     export_without_background: bool,
+    transparent_export_format: Option<&str>,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -1271,6 +1281,8 @@ fn concat_internal_batch_videos(
     let apply_video_fade = video_fade_in_enabled || video_fade_out_enabled;
     let apply_audio_fade = audio_fade_in_enabled || audio_fade_out_enabled;
     let apply_any_fade = apply_video_fade || apply_audio_fade;
+    let use_mov_alpha =
+        transparent_export_uses_mov(export_without_background, transparent_export_format);
     let start_s = (start_time_ms as f64 / 1000.0).max(0.0);
     let total_audio_s: f64 = audio_paths.iter().map(|p| ffprobe_duration_sec(p)).sum();
     let have_audio = !audio_paths.is_empty() && start_s < total_audio_s - 1e-6;
@@ -1374,7 +1386,16 @@ fn concat_internal_batch_videos(
         if !video_filters.is_empty() {
             cmd.extend_from_slice(&["-vf".to_string(), video_filters.join(",")]);
         }
-        if export_without_background {
+        if export_without_background && use_mov_alpha {
+            cmd.extend_from_slice(&[
+                "-c:v".to_string(),
+                "prores_ks".to_string(),
+                "-profile:v".to_string(),
+                "4444".to_string(),
+                "-pix_fmt".to_string(),
+                "yuva444p10le".to_string(),
+            ]);
+        } else if export_without_background {
             cmd.extend_from_slice(&[
                 "-c:v".to_string(),
                 "libvpx-vp9".to_string(),
@@ -1461,7 +1482,16 @@ fn concat_internal_batch_videos(
         }
 
         cmd.extend_from_slice(&["-filter_complex".to_string(), filter_lines.join(";")]);
-        if export_without_background {
+        if export_without_background && use_mov_alpha {
+            cmd.extend_from_slice(&[
+                "-map".to_string(),
+                format!("[{}]", current_audio_label),
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "320k".to_string(),
+            ]);
+        } else if export_without_background {
             cmd.extend_from_slice(&[
                 "-map".to_string(),
                 format!("[{}]", current_audio_label),
@@ -1525,6 +1555,7 @@ fn build_and_run_ffmpeg_filter_complex(
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
     export_without_background: bool,
+    transparent_export_format: Option<&str>,
     batch_size: Option<i32>,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
@@ -1570,6 +1601,7 @@ fn build_and_run_ffmpeg_filter_complex(
             audio_fade_out_enabled,
             export_fade_duration_ms,
             export_without_background,
+            transparent_export_format,
             performance_profile,
             0.0,
             full_duration_s,
@@ -1631,8 +1663,13 @@ fn build_and_run_ffmpeg_filter_complex(
             compute_render_output_duration_ms(&batch_timestamps, fade_duration_ms, last_tail_ms)
                 .saturating_add(boundary_fade_ms);
         batch_duration_ms = batch_duration_ms.min((full_duration_ms - batch_base_ms).max(1));
-        let batch_output_path =
-            make_internal_batch_path(&base_dir, export_id, batch_index, export_without_background);
+        let batch_output_path = make_internal_batch_path(
+            &base_dir,
+            export_id,
+            batch_index,
+            export_without_background,
+            transparent_export_uses_mov(export_without_background, transparent_export_format),
+        );
         let batch_output = batch_output_path.to_string_lossy().to_string();
 
         println!(
@@ -1670,6 +1707,7 @@ fn build_and_run_ffmpeg_filter_complex(
             false,
             0,
             export_without_background,
+            transparent_export_format,
             performance_profile,
             batch_base_ms as f64 / 1000.0,
             full_duration_s,
@@ -1701,6 +1739,7 @@ fn build_and_run_ffmpeg_filter_complex(
         audio_fade_out_enabled,
         export_fade_duration_ms,
         export_without_background,
+        transparent_export_format,
         performance_profile,
         app_handle,
     )?;
@@ -1736,6 +1775,7 @@ fn render_ffmpeg_filter_complex_single(
     audio_fade_out_enabled: bool,
     export_fade_duration_ms: i32,
     export_without_background: bool,
+    transparent_export_format: Option<&str>,
     performance_profile: ExportPerformanceProfile,
     progress_base_s: f64,
     progress_total_s: f64,
@@ -1747,6 +1787,8 @@ fn render_ffmpeg_filter_complex_single(
     let (w, h) = target_size;
     let fade_s = (fade_duration_ms as f64 / 1000.0).max(0.0);
     let start_s = (start_time_ms as f64 / 1000.0).max(0.0);
+    let use_mov_alpha =
+        transparent_export_uses_mov(export_without_background, transparent_export_format);
 
     let n = image_paths.len();
     if n == 0 {
@@ -1791,7 +1833,18 @@ fn render_ffmpeg_filter_complex_single(
         acc += d;
     }
 
-    let (vcodec, vparams, vextra) = if export_without_background {
+    let (vcodec, vparams, vextra) = if export_without_background && use_mov_alpha {
+        (
+            "prores_ks".to_string(),
+            vec![
+                "-profile:v".to_string(),
+                "4444".to_string(),
+                "-pix_fmt".to_string(),
+                "yuva444p10le".to_string(),
+            ],
+            HashMap::new(),
+        )
+    } else if export_without_background {
         (
             "libvpx-vp9".to_string(),
             vec![
@@ -1967,7 +2020,11 @@ fn render_ffmpeg_filter_complex_single(
 
     if export_without_background {
         // Sortie alpha: conserver uniquement l'overlay.
-        filter_lines.push("[overlay]format=yuva420p[vout]".to_string());
+        filter_lines.push(if use_mov_alpha {
+            "[overlay]format=yuva444p10le[vout]".to_string()
+        } else {
+            "[overlay]format=yuva420p[vout]".to_string()
+        });
     } else {
         // Construction de la vidéo de fond [bg]
         let avail_bg_after = total_bg_s;
@@ -2137,7 +2194,14 @@ fn render_ffmpeg_filter_complex_single(
     cmd.extend(vparams);
 
     if have_audio {
-        if export_without_background {
+        if export_without_background && use_mov_alpha {
+            cmd.extend_from_slice(&[
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "320k".to_string(),
+            ]);
+        } else if export_without_background {
             cmd.extend_from_slice(&[
                 "-c:a".to_string(),
                 "libopus".to_string(),
@@ -2216,6 +2280,7 @@ pub async fn export_video(
     audio_fade_out_enabled: Option<bool>,
     export_fade_duration_ms: Option<i32>,
     export_without_background: Option<bool>,
+    transparent_export_format: Option<String>,
     batch_size: Option<i32>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
@@ -2242,6 +2307,12 @@ pub async fn export_video(
     println!(
         "[start_export] export_without_background={}",
         export_without_background.unwrap_or(false)
+    );
+    println!(
+        "[start_export] transparent_export_format={}",
+        transparent_export_format
+            .as_deref()
+            .unwrap_or("mov_prores_4444")
     );
     println!(
         "[env] CPU cores: {:?}",
@@ -2432,6 +2503,7 @@ pub async fn export_video(
             audio_fade_out_enabled.unwrap_or(false),
             export_fade_duration_ms.unwrap_or(0),
             export_without_background.unwrap_or(false),
+            transparent_export_format.as_deref(),
             batch_size,
             performance_profile,
             app_handle,
@@ -2579,6 +2651,7 @@ pub async fn concat_videos(
     audio_fade_out_enabled: Option<bool>,
     export_fade_duration_ms: Option<i32>,
     export_without_background: Option<bool>,
+    transparent_export_format: Option<String>,
     performance_profile: ExportPerformanceProfile,
 ) -> Result<String, String> {
     let normalized_video_paths: Vec<String> = video_paths
@@ -2609,12 +2682,22 @@ pub async fn concat_videos(
         "[concat_videos] export_without_background={}",
         export_without_background.unwrap_or(false)
     );
+    println!(
+        "[concat_videos] transparent_export_format={}",
+        transparent_export_format
+            .as_deref()
+            .unwrap_or("mov_prores_4444")
+    );
 
     let apply_video_fade =
         video_fade_in_enabled.unwrap_or(false) || video_fade_out_enabled.unwrap_or(false);
     let apply_audio_fade =
         audio_fade_in_enabled.unwrap_or(false) || audio_fade_out_enabled.unwrap_or(false);
     let apply_any_fade = apply_video_fade || apply_audio_fade;
+    let use_mov_alpha = transparent_export_uses_mov(
+        export_without_background.unwrap_or(false),
+        transparent_export_format.as_deref(),
+    );
     let total_duration_s: f64 = normalized_video_paths
         .iter()
         .map(|p| ffprobe_duration_sec(p))
@@ -2746,7 +2829,16 @@ pub async fn concat_videos(
 
     cmd.args(&["-filter_complex", &filter_lines.join(";")]);
     cmd.args(&["-map", &format!("[{}]", current_video_label)]);
-    if export_without_background.unwrap_or(false) {
+    if export_without_background.unwrap_or(false) && use_mov_alpha {
+        cmd.args(&[
+            "-c:v",
+            "prores_ks",
+            "-profile:v",
+            "4444",
+            "-pix_fmt",
+            "yuva444p10le",
+        ]);
+    } else if export_without_background.unwrap_or(false) {
         cmd.args(&[
             "-c:v",
             "libvpx-vp9",
@@ -2768,7 +2860,16 @@ pub async fn concat_videos(
     }
 
     if let Some(audio_label) = current_audio_label {
-        if export_without_background.unwrap_or(false) {
+        if export_without_background.unwrap_or(false) && use_mov_alpha {
+            cmd.args(&[
+                "-map",
+                &format!("[{}]", audio_label),
+                "-c:a",
+                "aac",
+                "-b:a",
+                "320k",
+            ]);
+        } else if export_without_background.unwrap_or(false) {
             cmd.args(&[
                 "-map",
                 &format!("[{}]", audio_label),

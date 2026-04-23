@@ -328,6 +328,7 @@ export class ExportState extends SerializableBase {
 	fps: number = $state(30);
 	performanceProfile: 'fastest' | 'balanced' | 'low_cpu' = $state('fastest');
 	exportWithoutBackground: boolean = $state(false);
+	transparentExportFormat: 'mov_prores_4444' | 'webm_vp9_alpha' = $state('mov_prores_4444');
 	customFileName: string = $state('');
 }
 

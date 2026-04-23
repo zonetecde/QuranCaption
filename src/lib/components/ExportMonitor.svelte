@@ -41,12 +41,15 @@
 	function getStepInfo(state: ExportState): { current: number; total: number } | null {
 		switch (state) {
 			case ExportState.CapturingFrames:
-				return { current: 1, total: 3 };
+				return { current: 1, total: 4 };
 			case ExportState.Initializing:
+			case ExportState.ProcessingBackground:
+				return { current: 2, total: 4 };
+			case ExportState.AddingSubtitles:
 			case ExportState.CreatingVideo:
-				return { current: 2, total: 3 };
+				return { current: 3, total: 4 };
 			case ExportState.MergingFiles:
-				return { current: 3, total: 3 };
+				return { current: 4, total: 4 };
 			default:
 				return null;
 		}
@@ -76,6 +79,9 @@
 				return 'text-red-400';
 			case ExportState.Canceled:
 				return 'text-gray-400';
+			case ExportState.ProcessingBackground:
+				return 'text-orange-400';
+			case ExportState.AddingSubtitles:
 			case ExportState.CreatingVideo:
 				return 'text-purple-400';
 			case ExportState.MergingFiles:
@@ -104,6 +110,10 @@
 				return 'error';
 			case ExportState.Canceled:
 				return 'cancel';
+			case ExportState.ProcessingBackground:
+				return 'movie_filter';
+			case ExportState.AddingSubtitles:
+				return 'subtitles';
 			case ExportState.CreatingVideo:
 				return 'movie_creation';
 			case ExportState.MergingFiles:

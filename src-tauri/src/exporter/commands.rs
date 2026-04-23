@@ -87,6 +87,25 @@ fn ensure_export_not_cancelled(
     Ok(())
 }
 
+fn emit_export_progress(
+    app_handle: &tauri::AppHandle,
+    export_id: &str,
+    progress: f64,
+    current_time_s: f64,
+    total_time_s: f64,
+    current_state: Option<&str>,
+) {
+    let progress_data = serde_json::json!({
+        "export_id": export_id,
+        "progress": progress,
+        "current_time": current_time_s,
+        "total_time": total_time_s,
+        "current_state": current_state
+    });
+
+    let _ = app_handle.emit("export-progress", progress_data);
+}
+
 fn run_ffmpeg_command(
     export_id: &str,
     cmd: &[String],
@@ -162,15 +181,14 @@ fn run_ffmpeg_command(
                         progress_context.total_time_s
                     );
 
-                    let progress_data = serde_json::json!({
-                        "export_id": export_id,
-                        "progress": progress,
-                        "current_time": current_time_s,
-                        "total_time": progress_context.total_time_s,
-                        "current_state": progress_state
-                    });
-
-                    let _ = app_handle.emit("export-progress", progress_data);
+                    emit_export_progress(
+                        app_handle,
+                        export_id,
+                        progress,
+                        current_time_s,
+                        progress_context.total_time_s,
+                        progress_state,
+                    );
                 }
             }
         }
@@ -660,6 +678,8 @@ fn ffmpeg_preprocess_video(
     blur: Option<f64>,
     loop_video: bool,
     performance_profile: ExportPerformanceProfile,
+    export_id: &str,
+    app_handle: &tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let (codec, params, extra) = choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
     let exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
@@ -670,13 +690,13 @@ fn ffmpeg_preprocess_video(
     let tmp_path = build_temp_output_path(dst_path);
     let tmp_output = tmp_path.to_string_lossy().to_string();
 
-    // Construire le filtre vidéo avec blur optionnel
+    // Construire le filtre video avec blur optionnel
     let mut vf_parts = vec![
         format!("scale=w={}:h={}:force_original_aspect_ratio=decrease", w, h),
         format!("pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black", w, h),
     ];
 
-    // Ajouter le flou si spécifié et > 0
+    // Ajouter le flou si specifie et > 0
     if let Some(blur_value) = blur {
         if blur_value > 0.0 {
             vf_parts.push(format!("gblur=sigma={}", blur_value));
@@ -688,54 +708,56 @@ fn ffmpeg_preprocess_video(
 
     let vf = vf_parts.join(",");
 
-    let mut cmd = Command::new(&exe);
+    let mut cmd = vec![
+        exe,
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "info".to_string(),
+        "-stats".to_string(),
+        "-progress".to_string(),
+        "pipe:2".to_string(),
+    ];
 
-    // Si le bouclage est activé, l'ajouter avant l'entrée
+    // Si le bouclage est active, l'ajouter avant l'entree
     if loop_video {
-        cmd.arg("-stream_loop").arg("-1");
+        cmd.extend_from_slice(&["-stream_loop".to_string(), "-1".to_string()]);
     }
 
-    // Si un offset de début est fourni, l'ajouter avant -i pour seek rapide
+    // Si un offset de debut est fourni, l'ajouter avant -i pour seek rapide
     if let Some(sms) = start_ms {
         let s = format!("{:.3}", (sms as f64) / 1000.0);
-        cmd.arg("-ss").arg(s);
+        cmd.extend_from_slice(&["-ss".to_string(), s]);
     }
 
-    cmd.arg("-y")
-        .arg("-hide_banner")
-        .arg("-loglevel")
-        .arg("error")
-        .arg("-i")
-        .arg(src);
+    cmd.extend_from_slice(&["-i".to_string(), src.to_string()]);
 
-    // Si une durée de découpe est fournie, la limiter
+    // Si une duree de decoupe est fournie, la limiter
     if let Some(dms) = duration_ms {
         let d = format!("{:.3}", (dms as f64) / 1000.0);
-        cmd.arg("-t").arg(d);
+        cmd.extend_from_slice(&["-t".to_string(), d]);
     }
 
-    append_thread_cap(&mut cmd, performance_profile);
+    if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
 
-    cmd.arg("-an")
-        .arg("-vf")
-        .arg(&vf)
-        .arg("-pix_fmt")
-        .arg("yuv420p")
-        .arg("-c:v")
-        .arg(&codec);
+    cmd.extend_from_slice(&[
+        "-an".to_string(),
+        "-vf".to_string(),
+        vf,
+        "-pix_fmt".to_string(),
+        "yuv420p".to_string(),
+        "-c:v".to_string(),
+        codec,
+    ]);
 
     if let Some(Some(preset)) = extra.get("preset") {
-        cmd.arg("-preset").arg(preset);
+        cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
     }
 
-    for param in params {
-        cmd.arg(param);
-    }
-
-    cmd.arg(&tmp_output);
-
-    // Configurer la commande pour cacher les fenêtres CMD sur Windows
-    configure_command_no_window(&mut cmd);
+    cmd.extend(params);
+    cmd.push(tmp_output);
 
     println!(
         "[preproc] ffmpeg scale+pad (contain) -> {}",
@@ -745,12 +767,27 @@ fn ffmpeg_preprocess_video(
             .to_string_lossy()
     );
 
-    let status = cmd.status()?;
-    if !status.success() {
+    let preproc_duration_s = duration_ms
+        .map(|ms| ms as f64 / 1000.0)
+        .unwrap_or(0.001)
+        .max(0.001);
+    let progress_context = Some(FfmpegProgressContext {
+        base_time_s: 0.0,
+        total_time_s: preproc_duration_s,
+        local_duration_s: preproc_duration_s,
+    });
+
+    if let Err(e) = run_ffmpeg_command(
+        export_id,
+        &cmd,
+        progress_context,
+        Some("Processing Background"),
+        app_handle,
+    ) {
         fs::remove_file(&tmp_path).ok();
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
-            "FFmpeg preprocessing failed",
+            format!("FFmpeg preprocessing failed: {}", e),
         )));
     }
 
@@ -770,8 +807,6 @@ fn ffmpeg_preprocess_video(
 
     Ok(())
 }
-
-/// Fonction du module export.
 fn create_video_from_image(
     image_path: &str,
     output_path: &str,
@@ -904,11 +939,31 @@ fn preprocess_background_videos(
     duration_ms: Option<i32>,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
+    export_id: &str,
+    total_duration_s: f64,
+    app_handle: &tauri::AppHandle,
 ) -> Vec<String> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
     let preproc_cache_version = "fit-v7";
     fs::create_dir_all(&cache_dir).ok();
+    let total_inputs = video_inputs.len().max(1);
+    let clamped_total_s = total_duration_s.max(0.001);
+
+    let emit_bg_progress = |processed_inputs: usize| {
+        let progress = ((processed_inputs as f64 / total_inputs as f64) * 100.0).clamp(0.0, 100.0);
+        let current_time_s = (progress / 100.0) * clamped_total_s;
+        emit_export_progress(
+            app_handle,
+            export_id,
+            progress,
+            current_time_s,
+            clamped_total_s,
+            Some("Processing Background"),
+        );
+    };
+
+    emit_bg_progress(0);
 
     // Cas spécial : une seule image
     if video_inputs.len() == 1 && is_image_file(&video_inputs[0].path) {
@@ -970,6 +1025,7 @@ fn preprocess_background_videos(
         }
 
         out_paths.push(dst.to_string_lossy().to_string());
+        emit_bg_progress(total_inputs);
         return out_paths;
     }
 
@@ -1005,12 +1061,14 @@ fn preprocess_background_videos(
         // Si la vidéo se termine avant le début recherché, on l'ignore complètement
         if !is_loop && cum_end <= start_time_ms as i64 {
             cum_start = cum_end;
+            emit_bg_progress(idx + 1);
             continue;
         }
 
         // Si on a déjà dépassé la limite demandée, on arrête
         let elapsed_so_far = cum_start - (start_time_ms as i64);
         if elapsed_so_far >= limit_ms {
+            emit_bg_progress(total_inputs);
             break;
         }
 
@@ -1040,6 +1098,7 @@ fn preprocess_background_videos(
 
         if take_ms <= 0 {
             cum_start = cum_end;
+            emit_bg_progress(idx + 1);
             continue;
         }
 
@@ -1094,6 +1153,8 @@ fn preprocess_background_videos(
                 blur,
                 is_loop,
                 performance_profile,
+                export_id,
+                app_handle,
             ) {
                 Ok(_) => {}
                 Err(e) => {
@@ -1101,12 +1162,14 @@ fn preprocess_background_videos(
                     // En cas d'échec, utiliser la vidéo originale
                     out_paths.push(vid_path.clone());
                     cum_start = cum_end;
+                    emit_bg_progress(idx + 1);
                     continue;
                 }
             }
         }
 
         out_paths.push(dst.to_string_lossy().to_string());
+        emit_bg_progress(idx + 1);
 
         // Si on a atteint la limite, on arrête
         let elapsed_total = (cum_start + start_within + take_ms) - (start_time_ms as i64);
@@ -1117,6 +1180,7 @@ fn preprocess_background_videos(
         cum_start = cum_end;
     }
 
+    emit_bg_progress(total_inputs);
     out_paths
 }
 
@@ -1604,6 +1668,9 @@ fn build_and_run_ffmpeg_filter_complex(
                 Some(full_duration_ms),
                 blur,
                 performance_profile,
+                export_id,
+                full_duration_s,
+                &app_handle,
             )
         } else {
             Vec::new()
@@ -2269,7 +2336,7 @@ fn render_ffmpeg_filter_complex_single(
             total_time_s: progress_total_s,
             local_duration_s: duration_s,
         }),
-        Some("Creating Video"),
+        Some("Adding Subtitles"),
         &app_handle,
     )
 }

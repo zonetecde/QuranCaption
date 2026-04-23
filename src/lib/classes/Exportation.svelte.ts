@@ -6,6 +6,8 @@ export enum ExportState {
 	WaitingForRecord = 'Pending',
 	Recording = 'Recording',
 	AddingAudio = 'Adding Audio',
+	ProcessingBackground = 'Processing Background',
+	AddingSubtitles = 'Adding Subtitles',
 	Exported = 'Exported',
 	Error = 'Error',
 	Canceled = 'Canceled',
@@ -80,6 +82,8 @@ export default class Exportation extends SerializableBase {
 			this.currentState === ExportState.WaitingForRecord ||
 			this.currentState === ExportState.Recording ||
 			this.currentState === ExportState.AddingAudio ||
+			this.currentState === ExportState.ProcessingBackground ||
+			this.currentState === ExportState.AddingSubtitles ||
 			this.currentState === ExportState.CreatingVideo ||
 			this.currentState === ExportState.MergingFiles ||
 			this.currentState === ExportState.CapturingFrames ||
@@ -90,6 +94,8 @@ export default class Exportation extends SerializableBase {
 	async cancelExport() {
 		if (
 			this.currentState === ExportState.Initializing ||
+			this.currentState === ExportState.ProcessingBackground ||
+			this.currentState === ExportState.AddingSubtitles ||
 			this.currentState === ExportState.CreatingVideo ||
 			this.currentState === ExportState.MergingFiles
 		) {

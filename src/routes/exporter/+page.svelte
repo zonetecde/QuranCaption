@@ -42,7 +42,7 @@
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
 	let isSegmentedVideoExport = false;
-	let currentVideoExportState: ExportState = ExportState.CreatingVideo;
+	let currentVideoExportState: ExportState = ExportState.AddingSubtitles;
 
 	type ExportProgressEvent = {
 		payload: {
@@ -93,7 +93,8 @@
 			let globalCurrentTime: number;
 
 			if (
-				currentVideoExportState === ExportState.CreatingVideo &&
+				(currentVideoExportState === ExportState.AddingSubtitles ||
+					currentVideoExportState === ExportState.CreatingVideo) &&
 				isSegmentedVideoExport &&
 				activeVideoSegments.length > 1
 			) {
@@ -519,7 +520,7 @@
 		segmentDuration: number,
 		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
 	): Promise<string> {
-		currentVideoExportState = ExportState.CreatingVideo;
+		currentVideoExportState = ExportState.AddingSubtitles;
 
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
@@ -801,7 +802,7 @@
 	}
 
 	async function generateNormalVideo(exportStart: number, duration: number, blur: number) {
-		currentVideoExportState = ExportState.CreatingVideo;
+		currentVideoExportState = ExportState.AddingSubtitles;
 
 		emitProgress({
 			exportId: Number(exportId),

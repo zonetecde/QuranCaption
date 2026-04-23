@@ -49,6 +49,8 @@ export default class Exporter {
 			return (
 				exp.currentState === ExportState.CapturingFrames ||
 				exp.currentState === ExportState.Initializing ||
+				exp.currentState === ExportState.ProcessingBackground ||
+				exp.currentState === ExportState.AddingSubtitles ||
 				exp.currentState === ExportState.CreatingVideo ||
 				exp.currentState === ExportState.MergingFiles ||
 				exp.currentState === ExportState.Recording ||

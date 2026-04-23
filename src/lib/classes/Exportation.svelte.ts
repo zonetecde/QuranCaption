@@ -10,6 +10,7 @@ export enum ExportState {
 	Error = 'Error',
 	Canceled = 'Canceled',
 	CreatingVideo = 'Creating Video',
+	MergingFiles = 'Merging Files',
 	CapturingFrames = 'Capturing Frames',
 	Initializing = 'Initializing...'
 }
@@ -80,6 +81,7 @@ export default class Exportation extends SerializableBase {
 			this.currentState === ExportState.Recording ||
 			this.currentState === ExportState.AddingAudio ||
 			this.currentState === ExportState.CreatingVideo ||
+			this.currentState === ExportState.MergingFiles ||
 			this.currentState === ExportState.CapturingFrames ||
 			this.currentState === ExportState.Initializing
 		);
@@ -88,7 +90,8 @@ export default class Exportation extends SerializableBase {
 	async cancelExport() {
 		if (
 			this.currentState === ExportState.Initializing ||
-			this.currentState === ExportState.CreatingVideo
+			this.currentState === ExportState.CreatingVideo ||
+			this.currentState === ExportState.MergingFiles
 		) {
 			console.log('Canceling export', this.exportId);
 			// Envoie à rust de tuer le processus ffmpeg pour cette exportation
@@ -108,3 +111,4 @@ export default class Exportation extends SerializableBase {
 		this.currentState = ExportState.Canceled;
 	}
 }
+

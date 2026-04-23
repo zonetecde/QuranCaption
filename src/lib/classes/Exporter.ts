@@ -50,6 +50,7 @@ export default class Exporter {
 				exp.currentState === ExportState.CapturingFrames ||
 				exp.currentState === ExportState.Initializing ||
 				exp.currentState === ExportState.CreatingVideo ||
+				exp.currentState === ExportState.MergingFiles ||
 				exp.currentState === ExportState.Recording ||
 				exp.currentState === ExportState.AddingAudio
 			);

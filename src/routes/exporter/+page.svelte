@@ -42,6 +42,7 @@
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
 	let isSegmentedVideoExport = false;
+	let currentVideoExportState: ExportState = ExportState.CreatingVideo;
 
 	type ExportProgressEvent = {
 		payload: {
@@ -49,6 +50,7 @@
 			current_time: number;
 			total_time?: number;
 			export_id: string;
+			current_state?: string;
 		};
 	};
 	type ExportCompleteEvent = { payload: { filename: string; exportId: string } };
@@ -66,10 +68,18 @@
 			current_time: number;
 			total_time?: number;
 			export_id: string;
+			current_state?: string;
 		};
 
 		// Vérifie que c'est bien pour cette exportation
 		if (data.export_id !== exportId) return;
+
+		if (
+			data.current_state &&
+			Object.values(ExportState).includes(data.current_state as ExportState)
+		) {
+			currentVideoExportState = data.current_state as ExportState;
+		}
 
 		if (data.progress !== null && data.progress !== undefined) {
 			console.log(
@@ -82,7 +92,11 @@
 			let globalProgress: number;
 			let globalCurrentTime: number;
 
-			if (isSegmentedVideoExport && activeVideoSegments.length > 1) {
+			if (
+				currentVideoExportState === ExportState.CreatingVideo &&
+				isSegmentedVideoExport &&
+				activeVideoSegments.length > 1
+			) {
 				// Mode segmenté: utiliser les bornes réelles du segment actuellement rendu.
 				const segment = activeVideoSegments[currentRenderingSegmentIndex];
 				const segmentStart = segment?.start ?? exportData!.videoStartTime;
@@ -114,7 +128,7 @@
 			emitProgress({
 				exportId: Number(exportId),
 				progress: globalProgress,
-				currentState: ExportState.CreatingVideo,
+				currentState: currentVideoExportState,
 				currentTime: globalCurrentTime
 			} as ExportProgress);
 		} else {
@@ -505,6 +519,8 @@
 		segmentDuration: number,
 		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
 	): Promise<string> {
+		currentVideoExportState = ExportState.CreatingVideo;
+
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
@@ -576,9 +592,18 @@
 	async function concatenateVideos(videoFilePaths: string[]) {
 		console.log('Starting video concatenation...');
 		const exportFadeSettings = getExportFadeSettings();
+		currentVideoExportState = ExportState.MergingFiles;
+
+		emitProgress({
+			exportId: Number(exportId),
+			progress: 0,
+			currentState: ExportState.MergingFiles,
+			currentTime: 0
+		} as ExportProgress);
 
 		try {
 			const finalVideoPath = await invoke('concat_videos', {
+				exportId: exportId,
 				videoPaths: videoFilePaths,
 				outputPath: exportData!.finalFilePath,
 				videoFadeInEnabled: exportFadeSettings.videoFadeInEnabled,
@@ -592,6 +617,13 @@
 			});
 
 			console.log('[OK] Videos concatenated successfully:', finalVideoPath);
+
+			emitProgress({
+				exportId: Number(exportId),
+				progress: 100,
+				currentState: ExportState.MergingFiles,
+				currentTime: exportData!.videoEndTime - exportData!.videoStartTime
+			} as ExportProgress);
 
 			// Supprimer les vidéos de segments individuelles
 			for (const videoPath of videoFilePaths) {
@@ -769,6 +801,8 @@
 	}
 
 	async function generateNormalVideo(exportStart: number, duration: number, blur: number) {
+		currentVideoExportState = ExportState.CreatingVideo;
+
 		emitProgress({
 			exportId: Number(exportId),
 			progress: 0,

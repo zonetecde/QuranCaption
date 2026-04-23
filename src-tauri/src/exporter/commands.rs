@@ -91,6 +91,7 @@ fn run_ffmpeg_command(
     export_id: &str,
     cmd: &[String],
     progress_context: Option<FfmpegProgressContext>,
+    progress_state: Option<&str>,
     app_handle: &tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     ensure_export_not_cancelled(export_id)?;
@@ -143,34 +144,33 @@ fn run_ffmpeg_command(
             stderr_content.push('\n');
 
             if let Some(progress_context) = progress_context {
-                if line.contains("time=") || line.contains("out_time_ms=") {
-                    if let Some(time_str) = extract_time_from_ffmpeg_line(&line) {
-                        let local_time_s =
-                            parse_ffmpeg_time(&time_str).min(progress_context.local_duration_s);
-                        let current_time_s = (progress_context.base_time_s + local_time_s)
-                            .min(progress_context.total_time_s);
-                        let progress = if progress_context.total_time_s > 0.0 {
-                            (current_time_s / progress_context.total_time_s * 100.0).min(100.0)
-                        } else {
-                            0.0
-                        };
+                if let Some(time_str) = extract_time_from_ffmpeg_line(&line) {
+                    let local_time_s =
+                        parse_ffmpeg_time(&time_str).min(progress_context.local_duration_s);
+                    let current_time_s = (progress_context.base_time_s + local_time_s)
+                        .min(progress_context.total_time_s);
+                    let progress = if progress_context.total_time_s > 0.0 {
+                        (current_time_s / progress_context.total_time_s * 100.0).min(100.0)
+                    } else {
+                        0.0
+                    };
 
-                        println!(
-                            "[progress] {}% ({:.1}s / {:.1}s)",
-                            progress.round(),
-                            current_time_s,
-                            progress_context.total_time_s
-                        );
+                    println!(
+                        "[progress] {}% ({:.1}s / {:.1}s)",
+                        progress.round(),
+                        current_time_s,
+                        progress_context.total_time_s
+                    );
 
-                        let progress_data = serde_json::json!({
-                            "export_id": export_id,
-                            "progress": progress,
-                            "current_time": current_time_s,
-                            "total_time": progress_context.total_time_s
-                        });
+                    let progress_data = serde_json::json!({
+                        "export_id": export_id,
+                        "progress": progress,
+                        "current_time": current_time_s,
+                        "total_time": progress_context.total_time_s,
+                        "current_state": progress_state
+                    });
 
-                        let _ = app_handle.emit("export-progress", progress_data);
-                    }
+                    let _ = app_handle.emit("export-progress", progress_data);
                 }
             }
         }
@@ -1527,7 +1527,17 @@ fn concat_internal_batch_videos(
 
     cmd.push(output_path_buf.to_string_lossy().to_string());
 
-    let run_result = run_ffmpeg_command(export_id, &cmd, None, &app_handle);
+    let run_result = run_ffmpeg_command(
+        export_id,
+        &cmd,
+        Some(FfmpegProgressContext {
+            base_time_s: 0.0,
+            total_time_s: total_duration_s.max(0.001),
+            local_duration_s: total_duration_s.max(0.001),
+        }),
+        Some("Merging Files"),
+        &app_handle,
+    );
     fs::remove_file(&list_file_path).ok();
     run_result
 }
@@ -2251,6 +2261,7 @@ fn render_ffmpeg_filter_complex_single(
             total_time_s: progress_total_s,
             local_duration_s: duration_s,
         }),
+        Some("Creating Video"),
         &app_handle,
     )
 }
@@ -2643,6 +2654,7 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
 #[tauri::command]
 /// Fonction du module export.
 pub async fn concat_videos(
+    export_id: String,
     video_paths: Vec<String>,
     output_path: String,
     video_fade_in_enabled: Option<bool>,
@@ -2653,6 +2665,7 @@ pub async fn concat_videos(
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
     performance_profile: ExportPerformanceProfile,
+    app: tauri::AppHandle,
 ) -> Result<String, String> {
     let normalized_video_paths: Vec<String> = video_paths
         .into_iter()
@@ -2731,14 +2744,24 @@ pub async fn concat_videos(
     }
 
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
-    let mut cmd = Command::new(&ffmpeg_exe);
-    cmd.args(&["-y", "-hide_banner", "-loglevel", "info", "-stats"]);
+    let mut cmd = vec![
+        ffmpeg_exe,
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "info".to_string(),
+        "-stats".to_string(),
+        "-progress".to_string(),
+        "pipe:2".to_string(),
+    ];
 
     for video_path in &normalized_video_paths {
-        cmd.args(&["-i", video_path]);
+        cmd.extend_from_slice(&["-i".to_string(), video_path.clone()]);
     }
 
-    append_thread_cap(&mut cmd, performance_profile);
+    if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
 
     let audio_presence: Vec<bool> = normalized_video_paths
         .iter()
@@ -2827,99 +2850,103 @@ pub async fn concat_videos(
         current_audio_label = Some(audio_label);
     }
 
-    cmd.args(&["-filter_complex", &filter_lines.join(";")]);
-    cmd.args(&["-map", &format!("[{}]", current_video_label)]);
+    cmd.extend_from_slice(&[
+        "-filter_complex".to_string(),
+        filter_lines.join(";"),
+        "-map".to_string(),
+        format!("[{}]", current_video_label),
+    ]);
     if export_without_background.unwrap_or(false) && use_mov_alpha {
-        cmd.args(&[
-            "-c:v",
-            "prores_ks",
-            "-profile:v",
-            "4444",
-            "-pix_fmt",
-            "yuva444p10le",
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "prores_ks".to_string(),
+            "-profile:v".to_string(),
+            "4444".to_string(),
+            "-pix_fmt".to_string(),
+            "yuva444p10le".to_string(),
         ]);
     } else if export_without_background.unwrap_or(false) {
-        cmd.args(&[
-            "-c:v",
-            "libvpx-vp9",
-            "-crf",
-            "28",
-            "-b:v",
-            "0",
-            "-row-mt",
-            "1",
-            "-cpu-used",
-            "2",
-            "-pix_fmt",
-            "yuva420p",
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libvpx-vp9".to_string(),
+            "-crf".to_string(),
+            "28".to_string(),
+            "-b:v".to_string(),
+            "0".to_string(),
+            "-row-mt".to_string(),
+            "1".to_string(),
+            "-cpu-used".to_string(),
+            "2".to_string(),
+            "-pix_fmt".to_string(),
+            "yuva420p".to_string(),
         ]);
     } else {
-        cmd.args(&[
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libx264".to_string(),
+            "-preset".to_string(),
+            "veryfast".to_string(),
+            "-crf".to_string(),
+            "18".to_string(),
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
         ]);
     }
 
     if let Some(audio_label) = current_audio_label {
         if export_without_background.unwrap_or(false) && use_mov_alpha {
-            cmd.args(&[
-                "-map",
-                &format!("[{}]", audio_label),
-                "-c:a",
-                "aac",
-                "-b:a",
-                "320k",
+            cmd.extend_from_slice(&[
+                "-map".to_string(),
+                format!("[{}]", audio_label),
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "320k".to_string(),
             ]);
         } else if export_without_background.unwrap_or(false) {
-            cmd.args(&[
-                "-map",
-                &format!("[{}]", audio_label),
-                "-c:a",
-                "libopus",
-                "-b:a",
-                "256k",
+            cmd.extend_from_slice(&[
+                "-map".to_string(),
+                format!("[{}]", audio_label),
+                "-c:a".to_string(),
+                "libopus".to_string(),
+                "-b:a".to_string(),
+                "256k".to_string(),
             ]);
         } else {
-            cmd.args(&[
-                "-map",
-                &format!("[{}]", audio_label),
-                "-c:a",
-                "aac",
-                "-b:a",
-                "320k",
+            cmd.extend_from_slice(&[
+                "-map".to_string(),
+                format!("[{}]", audio_label),
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "320k".to_string(),
             ]);
         }
     } else {
-        cmd.arg("-an");
+        cmd.push("-an".to_string());
     }
 
     if !export_without_background.unwrap_or(false) {
-        cmd.args(&["-movflags", "+faststart"]);
+        cmd.extend_from_slice(&["-movflags".to_string(), "+faststart".to_string()]);
     }
-    cmd.arg(&output_path_str);
-
-    configure_command_no_window(&mut cmd);
+    cmd.push(output_path_str.clone());
 
     println!("[concat_videos] Exécution de FFmpeg...");
 
-    let output = cmd
-        .output()
+    let progress_context = FfmpegProgressContext {
+        base_time_s: 0.0,
+        total_time_s: total_duration_s.max(0.001),
+        local_duration_s: total_duration_s.max(0.001),
+    };
+
+    run_ffmpeg_command(
+        &export_id,
+        &cmd,
+        Some(progress_context),
+        Some("Merging Files"),
+        &app,
+    )
         .map_err(|e| format!("Erreur exécution FFmpeg: {}", e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-
-        println!("[concat_videos] Erreur FFmpeg:");
-        println!("STDOUT: {}", stdout);
-        println!("STDERR: {}", stderr);
-
-        return Err(format!(
-            "FFmpeg a échoué lors de la concaténation (code: {:?})\nSTDERR: {}",
-            output.status.code(),
-            stderr
-        ));
-    }
-
     // Vérifier que le fichier de sortie a été créé
     if !Path::new(&output_path_str).exists() {
         return Err("Le fichier de sortie n'a pas été créé".to_string());

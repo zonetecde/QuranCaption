@@ -38,6 +38,20 @@
 		return exportation.exportKind === ExportKind.Text;
 	}
 
+	function getStepInfo(state: ExportState): { current: number; total: number } | null {
+		switch (state) {
+			case ExportState.CapturingFrames:
+				return { current: 1, total: 3 };
+			case ExportState.Initializing:
+			case ExportState.CreatingVideo:
+				return { current: 2, total: 3 };
+			case ExportState.MergingFiles:
+				return { current: 3, total: 3 };
+			default:
+				return null;
+		}
+	}
+
 	function getFileExtension(fileName: string): string {
 		const trimmed = (fileName || '').trim();
 		const dotIndex = trimmed.lastIndexOf('.');
@@ -64,6 +78,8 @@
 				return 'text-gray-400';
 			case ExportState.CreatingVideo:
 				return 'text-purple-400';
+			case ExportState.MergingFiles:
+				return 'text-cyan-400';
 			case ExportState.CapturingFrames:
 				return 'text-blue-400';
 			case ExportState.Initializing:
@@ -90,6 +106,8 @@
 				return 'cancel';
 			case ExportState.CreatingVideo:
 				return 'movie_creation';
+			case ExportState.MergingFiles:
+				return 'merge_type';
 			case ExportState.CapturingFrames:
 				return 'photo_camera';
 			case ExportState.Initializing:
@@ -241,7 +259,13 @@
 						{#if exportation.isOnGoing()}
 							<div class="mb-2">
 								<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-									<span>Progress</span>
+									<span>
+										{#if getStepInfo(exportation.currentState)}
+											Step {getStepInfo(exportation.currentState)?.current}/{getStepInfo(exportation.currentState)?.total}
+										{:else}
+											Progress
+										{/if}
+									</span>
 									<span>{Math.round(exportation.percentageProgress)}%</span>
 								</div>
 								<div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">

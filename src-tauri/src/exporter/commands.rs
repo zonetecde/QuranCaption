@@ -1588,6 +1588,26 @@ fn build_and_run_ffmpeg_filter_complex(
     let full_duration_ms = duration_ms.unwrap_or_else(|| timestamps_ms[n - 1] + tail_ms);
     let full_duration_s = (full_duration_ms as f64 / 1000.0).max(0.001);
     let batch_limit = filtergraph_batch_limit(target_size, batch_size);
+    let (w, h) = target_size;
+
+    // Prétraiter le fond une seule fois pour toute la plage exportée.
+    // Les batches réutilisent ensuite ce fond via un trim local.
+    let preprocessed_background_videos =
+        if !export_without_background && !video_inputs.is_empty() {
+            preprocess_background_videos(
+                video_inputs,
+                w,
+                h,
+                fps,
+                prefer_hw,
+                start_time_ms,
+                Some(full_duration_ms),
+                blur,
+                performance_profile,
+            )
+        } else {
+            Vec::new()
+        };
 
     if n <= batch_limit {
         return render_ffmpeg_filter_complex_single(
@@ -1600,11 +1620,11 @@ fn build_and_run_ffmpeg_filter_complex(
             fade_duration_ms,
             start_time_ms,
             audio_paths,
-            video_inputs,
+            &preprocessed_background_videos,
+            0,
             prefer_hw,
             imgs_cwd,
             duration_ms,
-            blur,
             video_fade_in_enabled,
             video_fade_out_enabled,
             audio_fade_in_enabled,
@@ -1706,11 +1726,11 @@ fn build_and_run_ffmpeg_filter_complex(
             fade_duration_ms,
             start_time_ms + batch_base_ms,
             &[],
-            video_inputs,
+            &preprocessed_background_videos,
+            batch_base_ms,
             prefer_hw,
             imgs_cwd,
             Some(batch_duration_ms),
-            blur,
             false,
             false,
             false,
@@ -1774,11 +1794,11 @@ fn render_ffmpeg_filter_complex_single(
     fade_duration_ms: i32,
     start_time_ms: i32,
     audio_paths: &[String],
-    video_inputs: &[VideoInput],
+    preprocessed_background_videos: &[String],
+    background_offset_ms: i32,
     prefer_hw: bool,
     imgs_cwd: Option<&str>,
     duration_ms: Option<i32>,
-    blur: Option<f64>,
     video_fade_in_enabled: bool,
     video_fade_out_enabled: bool,
     audio_fade_in_enabled: bool,
@@ -1875,25 +1895,12 @@ fn render_ffmpeg_filter_complex_single(
         choose_best_codec(prefer_hw, w, h, CodecUsage::Final)
     };
 
-    let mut pre_videos = Vec::new();
-    if !export_without_background && !video_inputs.is_empty() {
-        pre_videos = preprocess_background_videos(
-            video_inputs,
-            w,
-            h,
-            fps,
-            prefer_hw,
-            start_time_ms,
-            duration_ms,
-            blur,
-            performance_profile,
-        );
-    }
-
     let mut total_bg_s = 0.0;
-    for p in &pre_videos {
+    for p in preprocessed_background_videos {
         total_bg_s += ffprobe_duration_sec(p);
     }
+    let background_offset_s = (background_offset_ms as f64 / 1000.0).max(0.0);
+    let avail_bg_after = (total_bg_s - background_offset_s).max(0.0);
 
     let mut total_audio_s = 0.0;
     for p in audio_paths {
@@ -1956,7 +1963,7 @@ fn render_ffmpeg_filter_complex_single(
 
     // Entrées vidéos de fond
     let bg_start_idx = current_idx;
-    for p in &pre_videos {
+    for p in preprocessed_background_videos {
         cmd.extend_from_slice(&["-i".to_string(), p.clone()]);
         current_idx += 1;
     }
@@ -2037,8 +2044,7 @@ fn render_ffmpeg_filter_complex_single(
         });
     } else {
         // Construction de la vidéo de fond [bg]
-        let avail_bg_after = total_bg_s;
-        let need_black_full = pre_videos.is_empty() || avail_bg_after <= 1e-6;
+        let need_black_full = preprocessed_background_videos.is_empty() || avail_bg_after <= 1e-6;
 
         let bg_label = if need_black_full {
             let color_full_idx = current_idx;
@@ -2050,24 +2056,26 @@ fn render_ffmpeg_filter_complex_single(
             ]);
             format!("{}:v", color_full_idx)
         } else {
-            let prev = if pre_videos.len() > 1 {
+            let prev = if preprocessed_background_videos.len() > 1 {
                 let mut ins = String::new();
-                for i in 0..pre_videos.len() {
+                for i in 0..preprocessed_background_videos.len() {
                     ins.push_str(&format!("[{}:v]", bg_start_idx + i));
                 }
                 filter_lines.push(format!(
                     "{}concat=n={}:v=1:a=0[bgcat]",
                     ins,
-                    pre_videos.len()
+                    preprocessed_background_videos.len()
                 ));
                 "bgcat".to_string()
             } else {
                 format!("{}:v", bg_start_idx)
             };
 
+            let bg_trim_start_s = background_offset_s;
+            let bg_trim_end_s = (bg_trim_start_s + duration_s).min(total_bg_s);
             filter_lines.push(format!(
-                "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
-                prev, w, h, w, h
+                "[{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
+                prev, bg_trim_start_s, bg_trim_end_s, w, h, w, h
             ));
             let mut bg_label = "bgtrim".to_string();
 

@@ -506,6 +506,21 @@
 				// Valeur interdite qui fait beuguer le rendu
 				timelineState().zoom = 10.01;
 			}
+
+			return;
+		}
+
+		if (event.altKey && !globalState.getVideoPreviewState.isPlaying) {
+			const frameDurationMs = 1000 / Math.max(globalState.getExportState.fps, 1);
+			const direction = event.deltaY > 0 ? 1 : -1;
+			const newPosition = Math.max(
+				1,
+				timelineState().cursorPosition + direction * frameDurationMs
+			);
+
+			timelineState().cursorPosition = newPosition;
+			timelineState().movePreviewTo = newPosition;
+			globalState.getVideoPreviewState.scrollTimelineToCursor();
 		}
 	}
 

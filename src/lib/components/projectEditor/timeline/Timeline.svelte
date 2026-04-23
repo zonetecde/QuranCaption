@@ -521,7 +521,23 @@
 			timelineState().cursorPosition = newPosition;
 			timelineState().movePreviewTo = newPosition;
 			globalState.getVideoPreviewState.scrollTimelineToCursor();
+
+			return;
 		}
+
+		const eventTarget = event.target;
+		if (!(eventTarget instanceof Element)) return;
+
+		const scrollTarget = eventTarget.closest('.timeline-ruler')
+			? timelineDiv
+			: eventTarget.closest('.timeline-tracks')
+				? timelineTracksDiv
+				: timelineTracksDiv ?? timelineDiv;
+
+		if (!scrollTarget) return;
+
+		event.preventDefault();
+		scrollTarget.scrollLeft += event.deltaX || event.deltaY;
 	}
 
 	onDestroy(() => {

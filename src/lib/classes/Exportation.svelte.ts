@@ -36,6 +36,13 @@ export default class Exportation extends SerializableBase {
 	currentState: ExportState;
 	percentageProgress: number;
 	currentTreatedTime: number;
+	hasSecondarySegmentProgress: boolean;
+	processingBackgroundProgress: number;
+	processingBackgroundCurrentSegment: number;
+	processingBackgroundTotalSegments: number;
+	mergingFilesProgress: number;
+	mergingFilesCurrentSegment: number;
+	mergingFilesTotalSegments: number;
 	errorLog: string;
 	fps: number;
 	date: string;
@@ -73,6 +80,13 @@ export default class Exportation extends SerializableBase {
 		this.currentState = $state(currentState);
 		this.percentageProgress = $state(percentageProgress);
 		this.currentTreatedTime = $state(currentTreatedTime);
+		this.hasSecondarySegmentProgress = $state(false);
+		this.processingBackgroundProgress = $state(0);
+		this.processingBackgroundCurrentSegment = $state(0);
+		this.processingBackgroundTotalSegments = $state(0);
+		this.mergingFilesProgress = $state(0);
+		this.mergingFilesCurrentSegment = $state(0);
+		this.mergingFilesTotalSegments = $state(0);
 		this.errorLog = $state(errorLog);
 		this.date = $state(new Date().toISOString());
 	}

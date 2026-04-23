@@ -64,6 +64,16 @@
 		return trimmed.slice(dotIndex + 1).toUpperCase();
 	}
 
+	function clampProgress(progress: number): number {
+		return Math.max(0, Math.min(100, progress || 0));
+	}
+
+	function getSegmentLabel(current: number, total: number): string {
+		if (total <= 1) return '';
+		const safeCurrent = Math.max(1, Math.min(total, current || 1));
+		return ` (${safeCurrent}/${total})`;
+	}
+
 	// Fonction pour obtenir la couleur selon l'état
 	function getStateColor(state: ExportState): string {
 		switch (state) {
@@ -269,27 +279,77 @@
 						{#if exportation.isOnGoing()}
 							<div class="mb-2">
 								<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-									<span>
-										{#if getStepInfo(exportation.currentState)}
-											Step {getStepInfo(exportation.currentState)?.current}/{getStepInfo(exportation.currentState)?.total}
-										{:else}
-											Progress
-										{/if}
-									</span>
-									<span>{Math.round(exportation.percentageProgress)}%</span>
+									<span>Progress</span>
+									<span>{Math.round(clampProgress(exportation.percentageProgress))}%</span>
 								</div>
 								<div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
 									<div
 										class="h-2 transition-all duration-300 ease-out bg-gradient-to-r from-blue-400 to-purple-300"
-										style="width: {Math.max(0, Math.min(100, exportation.percentageProgress))}%"
+										style="width: {clampProgress(exportation.percentageProgress)}%"
 									></div>
 								</div>
+								{#if exportation.hasSecondarySegmentProgress}
+									<div class="mt-2">
+										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+											<span>
+												Processing bg video{getSegmentLabel(
+													exportation.processingBackgroundCurrentSegment,
+													exportation.processingBackgroundTotalSegments
+												)}
+											</span>
+											<span
+												>{Math.round(
+													clampProgress(exportation.processingBackgroundProgress)
+												)}%</span
+											>
+										</div>
+										<div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+											<div
+												class="h-1.5 transition-all duration-300 ease-out bg-gradient-to-r from-orange-400 to-amber-300"
+												style="width: {clampProgress(exportation.processingBackgroundProgress)}%"
+											></div>
+										</div>
+									</div>
+									<div class="mt-2">
+										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+											<span>
+												Merging files{getSegmentLabel(
+													exportation.mergingFilesCurrentSegment,
+													exportation.mergingFilesTotalSegments
+												)}
+											</span>
+											<span>{Math.round(clampProgress(exportation.mergingFilesProgress))}%</span>
+										</div>
+										<div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+											<div
+												class="h-1.5 transition-all duration-300 ease-out bg-gradient-to-r from-cyan-400 to-sky-300"
+												style="width: {clampProgress(exportation.mergingFilesProgress)}%"
+											></div>
+										</div>
+									</div>
+								{:else}
+									<div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+										<span>
+											{#if getStepInfo(exportation.currentState)}
+												Step {getStepInfo(exportation.currentState)?.current}/{getStepInfo(
+													exportation.currentState
+												)?.total}
+											{:else}
+												Progress
+											{/if}
+										</span>
+									</div>
+								{/if}
 								<div class="flex justify-between text-xs text-gray-400 mt-1">
 									{#if exportation.currentTreatedTime > 0}
 										<div>
 											Processed time: {formatCurrentTime(exportation.currentTreatedTime)} / {formatDuration(
 												exportation.videoLength
 											)}
+										</div>
+									{:else}
+										<div>
+											Processed time: 0:00 / {formatDuration(exportation.videoLength)}
 										</div>
 									{/if}
 									<div class="ml-auto">

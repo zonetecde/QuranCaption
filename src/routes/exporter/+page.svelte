@@ -43,6 +43,16 @@
 	let currentRenderingSegmentIndex = 0;
 	let isSegmentedVideoExport = false;
 	let currentVideoExportState: ExportState = ExportState.AddingSubtitles;
+	let subtitleMainProgress = 0;
+	let hasCompletedCapturingFrames = false;
+	let hasSecondarySegmentProgress = false;
+	let processingBackgroundProgress = 0;
+	let processingBackgroundCurrentSegment = 0;
+	let processingBackgroundTotalSegments = 0;
+	let mergingFilesProgress = 0;
+	let mergingFilesCurrentSegment = 0;
+	let mergingFilesTotalSegments = 0;
+	let previousDetailedState: ExportState | null = null;
 
 	type ExportProgressEvent = {
 		payload: {
@@ -62,6 +72,32 @@
 		return globalState.getStyle('global', 'video-and-audio-fade')!.value as ExportFadeSettings;
 	}
 
+	function clampProgress(progress: number): number {
+		return Math.max(0, Math.min(100, progress));
+	}
+
+	function isSubtitlesState(state: ExportState): boolean {
+		return state === ExportState.AddingSubtitles || state === ExportState.CreatingVideo;
+	}
+
+	function refreshSecondarySegmentProgressVisibility() {
+		hasSecondarySegmentProgress =
+			isSegmentedVideoExport && activeVideoSegments.length > 1 && hasCompletedCapturingFrames;
+	}
+
+	function resetSegmentProgressTracking() {
+		subtitleMainProgress = 0;
+		hasCompletedCapturingFrames = false;
+		hasSecondarySegmentProgress = false;
+		processingBackgroundProgress = 0;
+		processingBackgroundCurrentSegment = 0;
+		processingBackgroundTotalSegments = 0;
+		mergingFilesProgress = 0;
+		mergingFilesCurrentSegment = 0;
+		mergingFilesTotalSegments = 0;
+		previousDetailedState = null;
+	}
+
 	async function exportProgress(event: ExportProgressEvent) {
 		const data = event.payload as {
 			progress?: number;
@@ -79,6 +115,30 @@
 			Object.values(ExportState).includes(data.current_state as ExportState)
 		) {
 			currentVideoExportState = data.current_state as ExportState;
+		}
+
+		if (currentVideoExportState !== previousDetailedState) {
+			if (currentVideoExportState === ExportState.ProcessingBackground) {
+				processingBackgroundCurrentSegment += 1;
+				if (processingBackgroundTotalSegments > 0) {
+					processingBackgroundCurrentSegment = Math.min(
+						processingBackgroundCurrentSegment,
+						processingBackgroundTotalSegments
+					);
+				}
+			}
+
+			if (currentVideoExportState === ExportState.MergingFiles) {
+				mergingFilesCurrentSegment += 1;
+				if (mergingFilesTotalSegments > 0) {
+					mergingFilesCurrentSegment = Math.min(
+						mergingFilesCurrentSegment,
+						mergingFilesTotalSegments
+					);
+				}
+			}
+
+			previousDetailedState = currentVideoExportState;
 		}
 
 		if (data.progress !== null && data.progress !== undefined) {
@@ -126,9 +186,27 @@
 				globalCurrentTime = data.current_time * 1000; // Convertir de secondes en millisecondes
 			}
 
+			const clampedProgress = clampProgress(globalProgress);
+			if (isSubtitlesState(currentVideoExportState)) {
+				subtitleMainProgress = clampedProgress;
+			}
+			if (currentVideoExportState === ExportState.ProcessingBackground) {
+				processingBackgroundProgress = clampProgress(data.progress);
+			}
+			if (currentVideoExportState === ExportState.MergingFiles) {
+				mergingFilesProgress = clampProgress(data.progress);
+			}
+
+			refreshSecondarySegmentProgressVisibility();
+
+			const mainProgressForMonitor =
+				hasSecondarySegmentProgress && !isSubtitlesState(currentVideoExportState)
+					? subtitleMainProgress
+					: clampedProgress;
+
 			emitProgress({
 				exportId: Number(exportId),
-				progress: globalProgress,
+				progress: mainProgressForMonitor,
 				currentState: currentVideoExportState,
 				currentTime: globalCurrentTime
 			} as ExportProgress);
@@ -169,7 +247,17 @@
 	}
 
 	async function emitProgress(progress: ExportProgress) {
-		(await getAllWindows()).find((w) => w.label === 'main')!.emit('export-progress-main', progress);
+		const payload: ExportProgress = {
+			...progress,
+			hasSecondarySegmentProgress,
+			processingBackgroundProgress,
+			processingBackgroundCurrentSegment,
+			processingBackgroundTotalSegments,
+			mergingFilesProgress,
+			mergingFilesCurrentSegment,
+			mergingFilesTotalSegments
+		};
+		(await getAllWindows()).find((w) => w.label === 'main')!.emit('export-progress-main', payload);
 	}
 
 	/**
@@ -282,6 +370,7 @@
 
 	async function startExport() {
 		if (!exportData) return;
+		resetSegmentProgressTracking();
 
 		const exportStart = Math.round(exportData.videoStartTime);
 		const exportEnd = Math.round(exportData.videoEndTime);
@@ -338,6 +427,9 @@
 			start: segment.start,
 			end: segment.end
 		}));
+		processingBackgroundTotalSegments = activeVideoSegments.length;
+		mergingFilesTotalSegments = activeVideoSegments.length + 1;
+		refreshSecondarySegmentProgressVisibility();
 
 		const generatedVideoFiles: string[] = [];
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
@@ -355,6 +447,9 @@
 				100
 			);
 		}
+
+		hasCompletedCapturingFrames = true;
+		refreshSecondarySegmentProgressVisibility();
 
 		emitProgress({
 			exportId: Number(exportId),
@@ -384,6 +479,7 @@
 		await concatenateVideos(generatedVideoFiles);
 		await finalCleanup();
 		isSegmentedVideoExport = false;
+		refreshSecondarySegmentProgressVisibility();
 
 		emitProgress({
 			exportId: Number(exportId),

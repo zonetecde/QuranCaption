@@ -199,6 +199,15 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
+		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
+		exportation.processingBackgroundProgress = data.processingBackgroundProgress ?? 0;
+		exportation.processingBackgroundCurrentSegment =
+			data.processingBackgroundCurrentSegment ?? 0;
+		exportation.processingBackgroundTotalSegments =
+			data.processingBackgroundTotalSegments ?? 0;
+		exportation.mergingFilesProgress = data.mergingFilesProgress ?? 0;
+		exportation.mergingFilesCurrentSegment = data.mergingFilesCurrentSegment ?? 0;
+		exportation.mergingFilesTotalSegments = data.mergingFilesTotalSegments ?? 0;
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
@@ -215,5 +224,12 @@ export interface ExportProgress {
 	progress: number;
 	currentState: ExportState;
 	currentTime: number;
+	hasSecondarySegmentProgress?: boolean;
+	processingBackgroundProgress?: number;
+	processingBackgroundCurrentSegment?: number;
+	processingBackgroundTotalSegments?: number;
+	mergingFilesProgress?: number;
+	mergingFilesCurrentSegment?: number;
+	mergingFilesTotalSegments?: number;
 	errorLog?: string;
 }

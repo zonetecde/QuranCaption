@@ -1453,11 +1453,9 @@ fn concat_internal_batch_videos(
         if export_without_background && use_mov_alpha {
             cmd.extend_from_slice(&[
                 "-c:v".to_string(),
-                "prores_ks".to_string(),
-                "-profile:v".to_string(),
-                "4444".to_string(),
+                "qtrle".to_string(),
                 "-pix_fmt".to_string(),
-                "yuva444p10le".to_string(),
+                "argb".to_string(),
             ]);
         } else if export_without_background {
             cmd.extend_from_slice(&[
@@ -1932,12 +1930,10 @@ fn render_ffmpeg_filter_complex_single(
 
     let (vcodec, vparams, vextra) = if export_without_background && use_mov_alpha {
         (
-            "prores_ks".to_string(),
+            "qtrle".to_string(),
             vec![
-                "-profile:v".to_string(),
-                "4444".to_string(),
                 "-pix_fmt".to_string(),
-                "yuva444p10le".to_string(),
+                "argb".to_string(),
             ],
             HashMap::new(),
         )
@@ -2105,7 +2101,7 @@ fn render_ffmpeg_filter_complex_single(
     if export_without_background {
         // Sortie alpha: conserver uniquement l'overlay.
         filter_lines.push(if use_mov_alpha {
-            "[overlay]format=yuva444p10le[vout]".to_string()
+            "[overlay]format=argb[vout]".to_string()
         } else {
             "[overlay]format=yuva420p[vout]".to_string()
         });
@@ -2934,11 +2930,9 @@ pub async fn concat_videos(
     if export_without_background.unwrap_or(false) && use_mov_alpha {
         cmd.extend_from_slice(&[
             "-c:v".to_string(),
-            "prores_ks".to_string(),
-            "-profile:v".to_string(),
-            "4444".to_string(),
+            "qtrle".to_string(),
             "-pix_fmt".to_string(),
-            "yuva444p10le".to_string(),
+            "argb".to_string(),
         ]);
     } else if export_without_background.unwrap_or(false) {
         cmd.extend_from_slice(&[

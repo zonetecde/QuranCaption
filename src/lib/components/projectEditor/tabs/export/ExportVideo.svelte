@@ -284,11 +284,10 @@
 								bind:value={globalState.getExportState.transparentExportFormat}
 							>
 								<option value="webm_vp9_alpha">WEBM (VP9 alpha)</option>
-								<option value="mov_prores_4444">MOV (ProRes 4444)</option>
+								<option value="mov_prores_4444">MOV (QTRLE alpha)</option>
 							</select>
 							<p class="text-xs text-thirdly mt-2">
-								<code>MOV (ProRes 4444)</code> is selected by default for compatibility, but file
-								sizes are huge.
+								<code>MOV (QTRLE alpha)</code> improves compatibility with editing tools.
 							</p>
 						</div>
 					{/if}

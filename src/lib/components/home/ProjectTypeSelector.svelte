@@ -55,7 +55,7 @@
 	async function selectProjectType(option: ProjectType) {
 		projectDetail.projectType = option;
 		close();
-		await ProjectService.saveDetail(projectDetail);
+		await ProjectService.saveDetail(projectDetail, false);
 	}
 </script>
 

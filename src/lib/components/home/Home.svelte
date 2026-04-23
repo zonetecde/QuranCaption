@@ -301,7 +301,7 @@
 		) {
 			project.reciter = update.reciter;
 			project.projectType = update.projectType;
-			await ProjectService.saveDetail(project);
+			await ProjectService.saveDetail(project, false);
 		}
 
 		clearDragState();

@@ -34,6 +34,18 @@
 		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 	}
 
+	function getEstimatedRemainingMs(exportation: Exportation, now: number): number | null {
+		const progress = clampProgress(exportation.percentageProgress);
+		if (progress <= 0 || progress >= 100) return null;
+
+		const elapsedMs = Math.max(0, now - new Date(exportation.date).getTime());
+		if (elapsedMs < 3000) return null;
+
+		const estimatedTotalMs = (elapsedMs * 100) / progress;
+		const remainingMs = Math.max(0, estimatedTotalMs - elapsedMs);
+		return Number.isFinite(remainingMs) ? remainingMs : null;
+	}
+
 	function isTextExport(exportation: Exportation): boolean {
 		return exportation.exportKind === ExportKind.Text;
 	}
@@ -343,19 +355,30 @@
 								<div class="flex justify-between text-xs text-gray-400 mt-1">
 									{#if exportation.currentTreatedTime > 0}
 										<div>
-											Processed time: {formatCurrentTime(exportation.currentTreatedTime)} / {formatDuration(
-												exportation.videoLength
-											)}
+											Processed time: <span class="monospaced"
+												>{formatCurrentTime(exportation.currentTreatedTime)} / {formatDuration(
+													exportation.videoLength
+												)}</span
+											>
 										</div>
 									{:else}
 										<div>
-											Processed time: 0:00 / {formatDuration(exportation.videoLength)}
+											Processed time: <span class="monospaced"
+												>0:00 / {formatDuration(exportation.videoLength)}</span
+											>
 										</div>
 									{/if}
 									<div class="ml-auto">
-										Export Time: {formatCurrentTime(
-											currentTime - new Date(exportation.date).getTime()
-										)}
+										Export Time:<span class="monospaced"
+											>{' '}
+											{formatCurrentTime(currentTime - new Date(exportation.date).getTime())}
+										</span>{#if getEstimatedRemainingMs(exportation, currentTime) !== null}
+											<span class="monospaced">
+												{' '}({formatCurrentTime(
+													getEstimatedRemainingMs(exportation, currentTime) || 0
+												)} est.)
+											</span>
+										{/if}
 									</div>
 								</div>
 							</div>

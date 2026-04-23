@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
 
+use crate::utils::process::configure_command_no_window;
+
 use super::diagnostics::{BinaryResolutionAttempt, BinaryResolveDebugInfo, BinaryResolveError};
 
 static RESOURCE_DIR: OnceLock<PathBuf> = OnceLock::new();
@@ -164,7 +166,11 @@ fn probe_args_for(binary_name: &str) -> &'static [&'static str] {
 /// Verifie qu'un binaire peut etre execute et renvoie un diagnostic exploitable.
 fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, String)> {
     let probe_args = probe_args_for(binary_name);
-    match Command::new(binary).args(probe_args).output() {
+    let mut cmd = Command::new(binary);
+    cmd.args(probe_args);
+    configure_command_no_window(&mut cmd);
+
+    match cmd.output() {
         Ok(output) => {
             if output.status.success() {
                 Ok(())

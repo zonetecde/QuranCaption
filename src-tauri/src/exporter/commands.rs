@@ -343,10 +343,10 @@ fn resolve_ffmpeg_binary() -> Option<String> {
 
     // En dernier recours, utiliser ffmpeg du PATH système
     println!("[ffmpeg] Tentative d'utilisation de ffmpeg du système (PATH)");
-    if let Ok(_) = std::process::Command::new("ffmpeg")
-        .arg("-version")
-        .output()
-    {
+    let mut cmd = std::process::Command::new("ffmpeg");
+    cmd.arg("-version");
+    configure_command_no_window(&mut cmd);
+    if let Ok(_) = cmd.output() {
         println!("[ffmpeg] ✓ FFmpeg trouvé dans le PATH système");
         return Some("ffmpeg".to_string());
     }
@@ -363,10 +363,10 @@ fn resolve_ffprobe_binary() -> String {
 
     // En dernier recours, utiliser ffprobe du PATH système
     println!("[ffprobe] Tentative d'utilisation de ffprobe du système (PATH)");
-    if let Ok(_) = std::process::Command::new("ffprobe")
-        .arg("-version")
-        .output()
-    {
+    let mut cmd = std::process::Command::new("ffprobe");
+    cmd.arg("-version");
+    configure_command_no_window(&mut cmd);
+    if let Ok(_) = cmd.output() {
         println!("[ffprobe] ✓ FFprobe trouvé dans le PATH système");
         return "ffprobe".to_string();
     }
@@ -498,10 +498,11 @@ fn test_nvenc_with_larger_resolution(ffmpeg_path: Option<&str>) -> bool {
 fn probe_hw_encoders(ffmpeg_path: Option<&str>) -> Vec<String> {
     let exe = ffmpeg_path.unwrap_or("ffmpeg");
 
-    let output = match Command::new(exe)
-        .args(&["-hide_banner", "-encoders"])
-        .output()
-    {
+    let mut cmd = Command::new(exe);
+    cmd.args(&["-hide_banner", "-encoders"]);
+    configure_command_no_window(&mut cmd);
+
+    let output = match cmd.output() {
         Ok(output) => output,
         Err(_) => return Vec::new(),
     };
@@ -1150,8 +1151,8 @@ fn ffprobe_duration_sec(path: &str) -> f64 {
 fn video_has_audio(path: &str) -> bool {
     let exe = resolve_ffprobe_binary();
 
-    let output = Command::new(&exe)
-        .args(&[
+    let mut cmd = Command::new(&exe);
+    cmd.args(&[
             "-v",
             "error",
             "-select_streams",
@@ -1161,8 +1162,10 @@ fn video_has_audio(path: &str) -> bool {
             "-of",
             "csv=p=0",
             path,
-        ])
-        .output();
+        ]);
+    configure_command_no_window(&mut cmd);
+
+    let output = cmd.output();
 
     match output {
         Ok(out) => !out.stdout.is_empty(),

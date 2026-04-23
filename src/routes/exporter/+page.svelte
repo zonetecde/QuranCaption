@@ -72,19 +72,36 @@
 		return globalState.getStyle('global', 'video-and-audio-fade')!.value as ExportFadeSettings;
 	}
 
+	/**
+	 * Contraint une progression dans l'intervalle [0, 100].
+	 * Évite les débordements visuels côté monitor.
+	 */
 	function clampProgress(progress: number): number {
 		return Math.max(0, Math.min(100, progress));
 	}
 
+	/**
+	 * Indique si l'état courant correspond à l'étape principale "adding subtitles".
+	 * On utilise cette info pour stabiliser la barre de progression principale.
+	 */
 	function isSubtitlesState(state: ExportState): boolean {
 		return state === ExportState.AddingSubtitles || state === ExportState.CreatingVideo;
 	}
 
+	/**
+	 * Active les barres secondaires seulement:
+	 * - en mode export segmenté (plusieurs segments),
+	 * - et après la fin du "capturing frames".
+	 */
 	function refreshSecondarySegmentProgressVisibility() {
 		hasSecondarySegmentProgress =
 			isSegmentedVideoExport && activeVideoSegments.length > 1 && hasCompletedCapturingFrames;
 	}
 
+	/**
+	 * Réinitialise tous les compteurs/progressions liés aux étapes secondaires
+	 * pour éviter de polluer un nouvel export avec l'état du précédent.
+	 */
 	function resetSegmentProgressTracking() {
 		subtitleMainProgress = 0;
 		hasCompletedCapturingFrames = false;
@@ -118,6 +135,8 @@
 		}
 
 		if (currentVideoExportState !== previousDetailedState) {
+			// Incrémente l'index de segment seulement quand l'état change,
+			// pour éviter de compter plusieurs fois le même segment.
 			if (currentVideoExportState === ExportState.ProcessingBackground) {
 				processingBackgroundCurrentSegment += 1;
 				if (processingBackgroundTotalSegments > 0) {
@@ -199,6 +218,8 @@
 
 			refreshSecondarySegmentProgressVisibility();
 
+			// En mode segmenté, la barre principale reste dédiée à "Adding Subtitles".
+			// Les états BG/Merging alimentent les barres secondaires.
 			const mainProgressForMonitor =
 				hasSecondarySegmentProgress && !isSubtitlesState(currentVideoExportState)
 					? subtitleMainProgress
@@ -247,6 +268,7 @@
 	}
 
 	async function emitProgress(progress: ExportProgress) {
+		// Étend le payload standard avec les infos secondaires consommées par ExportMonitor.
 		const payload: ExportProgress = {
 			...progress,
 			hasSecondarySegmentProgress,

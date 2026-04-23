@@ -34,11 +34,16 @@
 		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 	}
 
+	/**
+	 * Estime le temps restant d'un export à partir du ratio temps écoulé / progression.
+	 * Retourne `null` si l'estimation n'est pas encore fiable (démarrage, 0%, 100%).
+	 */
 	function getEstimatedRemainingMs(exportation: Exportation, now: number): number | null {
 		const progress = clampProgress(exportation.percentageProgress);
 		if (progress <= 0 || progress >= 100) return null;
 
 		const elapsedMs = Math.max(0, now - new Date(exportation.date).getTime());
+		// Évite une estimation instable pendant les toutes premières secondes.
 		if (elapsedMs < 3000) return null;
 
 		const estimatedTotalMs = (elapsedMs * 100) / progress;
@@ -76,10 +81,16 @@
 		return trimmed.slice(dotIndex + 1).toUpperCase();
 	}
 
+	/**
+	 * Contraint une progression dans l'intervalle [0, 100] pour protéger l'UI.
+	 */
 	function clampProgress(progress: number): number {
 		return Math.max(0, Math.min(100, progress || 0));
 	}
 
+	/**
+	 * Formate un suffixe de type "(x/N)" pour les étapes répétées par segment.
+	 */
 	function getSegmentLabel(current: number, total: number): string {
 		if (total <= 1) return '';
 		const safeCurrent = Math.max(1, Math.min(total, current || 1));

@@ -544,9 +544,15 @@
 								{/if}
 							{/each}
 						</h3>
-						<p class="mt-1 text-sm text-[var(--text-secondary)]">
-							{getSelectionDescription(explorerSelection, sortedSelectedProjects.length)}
-						</p>
+						{#if draggingProjectId !== null}
+							<p class="mt-1 text-sm text-[var(--accent-primary)]">
+								Drop the card onto a folder on the left to move it.
+							</p>
+						{:else}
+							<p class="mt-1 text-sm text-[var(--text-secondary)]">
+								{getSelectionDescription(explorerSelection, sortedSelectedProjects.length)}
+							</p>
+						{/if}
 					</div>
 
 					<div class="flex flex-wrap items-center gap-3 xl:justify-end">
@@ -631,11 +637,7 @@
 					</div>
 				</div>
 
-				{#if draggingProjectId !== null}
-					<p class="mt-3 text-sm text-[var(--accent-primary)]">
-						Drop the card onto a folder on the left to move it.
-					</p>
-				{:else if globalState.uiState.searchQuery}
+				{#if globalState.uiState.searchQuery}
 					<p class="mt-3 text-sm text-[var(--text-secondary)]">
 						Showing {searchedProjects.length} result{searchedProjects.length === 1 ? '' : 's'} for "{globalState
 							.uiState.searchQuery}".

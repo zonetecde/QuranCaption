@@ -46,6 +46,7 @@ export default class Exportation extends SerializableBase {
 	errorLog: string;
 	fps: number;
 	date: string;
+	totalExportTimeMs: number | null;
 
 	constructor(
 		exportId: number,
@@ -89,6 +90,7 @@ export default class Exportation extends SerializableBase {
 		this.mergingFilesTotalSegments = $state(0);
 		this.errorLog = $state(errorLog);
 		this.date = $state(new Date().toISOString());
+		this.totalExportTimeMs = $state(null);
 	}
 
 	isOnGoing() {

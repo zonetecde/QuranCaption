@@ -7,6 +7,15 @@ import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
 
+/**
+ * Parse une date ISO en timestamp millisecondes.
+ * Retourne `null` si la valeur est invalide.
+ */
+function parseIsoDateMs(value: string): number | null {
+	const parsed = new Date(value).getTime();
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
 export default class ExportService {
 	static exportFolder: string = 'exports/';
 
@@ -180,6 +189,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
+		const wasExported = exportation.currentState === ExportState.Exported;
 		if (exportation.currentState === ExportState.Canceled) {
 			// Si l'exportation a été annulée, on ignore les mises à jour
 			return;
@@ -208,6 +218,12 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.mergingFilesProgress = data.mergingFilesProgress ?? 0;
 		exportation.mergingFilesCurrentSegment = data.mergingFilesCurrentSegment ?? 0;
 		exportation.mergingFilesTotalSegments = data.mergingFilesTotalSegments ?? 0;
+		if (!wasExported && data.currentState === ExportState.Exported) {
+			const startMs = parseIsoDateMs(exportation.date);
+			if (startMs !== null) {
+				exportation.totalExportTimeMs = Math.max(0, Date.now() - startMs);
+			}
+		}
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
@@ -233,3 +249,4 @@ export interface ExportProgress {
 	mergingFilesTotalSegments?: number;
 	errorLog?: string;
 }
+

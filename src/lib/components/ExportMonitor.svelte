@@ -8,6 +8,15 @@
 	import { onMount, onDestroy } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 
+	type ExportTimingSnapshot = {
+		exportStartMs: number;
+		stepStartMs: number;
+		lastStep: number | null;
+		completedAtMs: number | null;
+	};
+
+	const exportTimingSnapshots = new Map<number, ExportTimingSnapshot>();
+
 	// Variable réactive pour forcer les mises à jour
 	let currentTime = $state(Date.now());
 	let intervalId: number | undefined;
@@ -35,14 +44,90 @@
 	}
 
 	/**
+	 * Retourne un timestamp valide en millisecondes depuis une date ISO.
+	 * Si la date est invalide, utilise `fallbackMs`.
+	 */
+	function parseDateMs(value: string, fallbackMs: number): number {
+		const parsed = new Date(value).getTime();
+		return Number.isFinite(parsed) ? parsed : fallbackMs;
+	}
+
+	/**
+	 * Retourne l'indice d'étape principal (1..4) selon l'état courant.
+	 */
+	function getStepIndex(state: ExportState): number | null {
+		return getStepInfo(state)?.current ?? null;
+	}
+
+	/**
+	 * Crée/actualise le snapshot temporel d'un export pour stabiliser
+	 * le chrono global et les transitions entre étapes.
+	 */
+	function getTimingSnapshot(exportation: Exportation, now: number): ExportTimingSnapshot {
+		let snapshot = exportTimingSnapshots.get(exportation.exportId);
+		const stepIndex = getStepIndex(exportation.currentState);
+
+		if (!snapshot) {
+			const startMs = parseDateMs(exportation.date, now);
+			snapshot = {
+				exportStartMs: startMs,
+				stepStartMs: now,
+				lastStep: stepIndex,
+				completedAtMs: null
+			};
+			exportTimingSnapshots.set(exportation.exportId, snapshot);
+		}
+
+		if (snapshot.lastStep !== stepIndex && stepIndex !== null) {
+			snapshot.stepStartMs = now;
+			snapshot.lastStep = stepIndex;
+		}
+
+		if (exportation.currentState === ExportState.Exported && snapshot.completedAtMs === null) {
+			snapshot.completedAtMs = now;
+		}
+
+		return snapshot;
+	}
+
+	/**
+	 * Calcule le temps écoulé global d'export depuis le début.
+	 * Quand l'export est terminé, le temps est figé.
+	 */
+	function getExportElapsedMs(exportation: Exportation, now: number): number {
+		if (exportation.currentState === ExportState.Exported) {
+			const storedTotal = getStoredTotalExportMs(exportation);
+			if (storedTotal !== null) {
+				return storedTotal;
+			}
+		}
+
+		const snapshot = getTimingSnapshot(exportation, now);
+		const endMs = snapshot.completedAtMs ?? now;
+		return Math.max(0, endMs - snapshot.exportStartMs);
+	}
+
+	/**
+	 * Retourne le total sauvegardé d'un export terminé.
+	 * Les anciens exports (avant ajout de ce champ) renvoient `null`.
+	 */
+	function getStoredTotalExportMs(exportation: Exportation): number | null {
+		const value = exportation.totalExportTimeMs;
+		return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+	}
+
+	/**
 	 * Estime le temps restant d'un export à partir du ratio temps écoulé / progression.
 	 * Retourne `null` si l'estimation n'est pas encore fiable (démarrage, 0%, 100%).
 	 */
 	function getEstimatedRemainingMs(exportation: Exportation, now: number): number | null {
+		if (!exportation.isOnGoing()) return null;
+
 		const progress = clampProgress(exportation.percentageProgress);
 		if (progress <= 0 || progress >= 100) return null;
 
-		const elapsedMs = Math.max(0, now - new Date(exportation.date).getTime());
+		const snapshot = getTimingSnapshot(exportation, now);
+		const elapsedMs = Math.max(0, now - snapshot.stepStartMs);
 		// Évite une estimation instable pendant les toutes premières secondes.
 		if (elapsedMs < 3000) return null;
 
@@ -287,13 +372,23 @@
 								{#if isTextExport(exportation) && exportation.exportLabel}
 									<div class="text-xs text-gray-400 truncate">{exportation.exportLabel}</div>
 								{/if}
-								<div class="flex items-center gap-2 text-sm">
-									<span class="material-icons text-xs {getStateColor(exportation.currentState)}">
-										{getStateIcon(exportation.currentState)}
-									</span>
-									<span class={getStateColor(exportation.currentState)}>
-										{exportation.currentState}
-									</span>
+								<div class="flex items-center justify-between gap-2 text-sm">
+									<div class="flex items-center gap-2 min-w-0">
+										<span class="material-icons text-xs {getStateColor(exportation.currentState)}">
+											{getStateIcon(exportation.currentState)}
+										</span>
+										<span class={getStateColor(exportation.currentState)}>
+											{exportation.currentState}
+										</span>
+									</div>
+									{#if exportation.currentState === ExportState.Exported &&
+										getStoredTotalExportMs(exportation) !== null}
+										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
+											Total: <span class="monospaced"
+												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span
+											>
+										</span>
+									{/if}
 								</div>
 							</div>
 						</div>
@@ -382,12 +477,16 @@
 									<div class="ml-auto">
 										Export Time:<span class="monospaced"
 											>{' '}
-											{formatCurrentTime(currentTime - new Date(exportation.date).getTime())}
+											{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}
 										</span>{#if getEstimatedRemainingMs(exportation, currentTime) !== null}
 											<span class="monospaced">
 												{' '}({formatCurrentTime(
 													getEstimatedRemainingMs(exportation, currentTime) || 0
 												)} est.)
+											</span>
+										{:else}
+											<span class="monospaced">
+												{' (0:00 est.)'}
 											</span>
 										{/if}
 									</div>

@@ -1,7 +1,9 @@
 import type { CustomClip, CustomImageClip } from '$lib/classes/Clip.svelte';
-import { CustomTextClip } from '$lib/classes';
+import { CustomTextClip, PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+
+const CUSTOM_CLIP_SNAP_DISTANCE_PX = 8;
 
 /**
  * Configuration minimale pour représenter un bloc global temporisé
@@ -139,6 +141,59 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 	}
 
 	return clips;
+}
+
+function getCustomClipSnapThresholdMs(): number {
+	const zoom = Math.max(globalState.currentProject?.projectEditorState.timeline.zoom ?? 0, 0.0001);
+	// Convertit une tolérance visuelle fixe (en px) en durée selon le zoom courant.
+	return (CUSTOM_CLIP_SNAP_DISTANCE_PX / zoom) * 1000;
+}
+
+/**
+ * Construit la liste des temps d'accroche disponibles pour un custom clip.
+ * On snap sur:
+ * - le début et la fin des autres custom clips
+ * - le début des sous-titres
+ */
+function getTimelineCustomClipSnapPoints(currentClipId: string): number[] {
+	const points: number[] = [];
+
+	for (const clip of getTimelineCustomClips()) {
+		if (String(clip.id) === currentClipId || clip.getAlwaysShow()) continue;
+
+		// On prend les deux bords des autres clips pour pouvoir aligner début ou fin.
+		points.push(clip.startTime, clip.endTime);
+	}
+
+	for (const clip of globalState.getSubtitleTrack?.clips ?? []) {
+		if (clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) {
+			// Le besoin métier ici est d'aligner les custom clips sur le début des sous-titres.
+			points.push(clip.startTime);
+		}
+	}
+
+	return points;
+}
+
+/**
+ * Retourne le temps le plus proche si un point d'accroche est suffisamment proche,
+ * sinon retourne le temps d'origine sans modification.
+ */
+export function getSnappedTimelineCustomClipTime(time: number, currentClipId: string): number {
+	const thresholdMs = getCustomClipSnapThresholdMs();
+	let snappedTime = time;
+	let closestDistance = thresholdMs + 1;
+
+	for (const snapPoint of getTimelineCustomClipSnapPoints(currentClipId)) {
+		const distance = Math.abs(snapPoint - time);
+		// On garde uniquement le point le plus proche à l'intérieur de la zone de snap.
+		if (distance <= thresholdMs && distance < closestDistance) {
+			snappedTime = snapPoint;
+			closestDistance = distance;
+		}
+	}
+
+	return snappedTime;
 }
 
 /**

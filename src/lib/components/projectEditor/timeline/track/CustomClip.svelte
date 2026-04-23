@@ -5,6 +5,7 @@
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { onDestroy } from 'svelte';
 	import {
+		getSnappedTimelineCustomClipTime,
 		getTimelineCustomClipLabel,
 		GlobalTimedOverlayTimelineClip,
 		type TimelineCustomClipLike
@@ -54,8 +55,9 @@
 
 	function onLeftDragging(_e: MouseEvent) {
 		if (dragStartX === null) return;
-		const newStart = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
-		if (newStart === undefined) return;
+		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
+		if (cursorPosition === undefined) return;
+		const newStart = getSnappedTimelineCustomClipTime(cursorPosition, String(clip.id));
 		// Durée minimale 100ms
 		if (clip.endTime - newStart < 100) return;
 		clip.setStartTime(newStart);
@@ -84,8 +86,9 @@
 
 	function onRightDragging(_e: MouseEvent) {
 		if (dragStartX === null) return;
-		const newEnd = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
-		if (newEnd === undefined) return;
+		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
+		if (cursorPosition === undefined) return;
+		const newEnd = getSnappedTimelineCustomClipTime(cursorPosition, String(clip.id));
 		if (newEnd - clip.startTime < 100) return;
 		clip.setEndTime(newEnd);
 		if (clip.category) {
@@ -119,8 +122,9 @@
 		const deltaPixels = e.clientX - clipDragStartX;
 		const deltaSeconds = deltaPixels / track.getPixelPerSecond();
 		const deltaMs = deltaSeconds * 1000;
-		let newStart = Math.max(0, Math.round(originalStartTime + deltaMs));
-		let newEnd = newStart + originalDuration;
+		const rawStart = Math.max(0, Math.round(originalStartTime + deltaMs));
+		const newStart = getSnappedTimelineCustomClipTime(rawStart, String(clip.id));
+		const newEnd = newStart + originalDuration;
 		clip.setStartTime(newStart);
 		clip.setEndTime(newEnd);
 		// Sync styles

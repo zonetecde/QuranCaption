@@ -4,10 +4,12 @@
 
 	interface Props {
 		isVisible: boolean;
+		currentProperty: keyof ProjectDetail;
+		ascending: boolean;
 		onSort: (property: keyof ProjectDetail, ascending: boolean) => void;
 	}
 
-	let { isVisible = $bindable(), onSort }: Props = $props();
+	let { isVisible = $bindable(), currentProperty, ascending, onSort }: Props = $props();
 
 	// Options de tri disponibles
 	const sortOptions = [
@@ -18,8 +20,13 @@
 		{ key: 'duration' as keyof ProjectDetail, label: 'Duration' }
 	];
 
-	let currentSortProperty: keyof ProjectDetail = $state('updatedAt');
-	let isAscending = $state(false);
+	let currentSortProperty: keyof ProjectDetail = $state(currentProperty);
+	let isAscending = $state(ascending);
+
+	$effect(() => {
+		currentSortProperty = currentProperty;
+		isAscending = ascending;
+	});
 
 	/**
 	 * Change l'ordre de tri et applique immédiatement

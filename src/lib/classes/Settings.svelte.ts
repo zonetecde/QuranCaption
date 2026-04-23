@@ -6,6 +6,8 @@ import { AnalyticsService } from '$lib/services/AnalyticsService';
 import { VersionService } from '$lib/services/VersionService.svelte';
 import MigrationService from '$lib/services/MigrationService';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
+import type { ProjectDetail } from './ProjectDetail.svelte';
+import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -49,6 +51,7 @@ export type SavedVideoStylePreset = {
 };
 
 const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
+const DEFAULT_HOME_EXPLORER_SELECTION: ExplorerSelection = { kind: 'all' };
 
 export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
@@ -60,6 +63,9 @@ export default class Settings extends SerializableBase {
 	persistentUiState = $state({
 		// Indique si on affiche le moniteur d'exportation
 		projectCardView: 'grid' as 'grid' | 'list',
+		homeSortProperty: 'updatedAt' as keyof ProjectDetail,
+		homeSortAscending: false,
+		homeExplorerSelection: DEFAULT_HOME_EXPLORER_SELECTION as ExplorerSelection,
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		lastClosedDonationPromptModal: new Date(0).toISOString(),
@@ -340,7 +346,6 @@ export default class Settings extends SerializableBase {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
 			shouldSave = true;
 		}
-
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
 		const latestVersion = await VersionService.getAppVersion();

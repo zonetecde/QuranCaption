@@ -58,6 +58,7 @@
 	let explorerSelection = $state<ExplorerSelection>(ALL_PROJECTS_SELECTION);
 	let currentSortProperty = $state<keyof ProjectDetail>('updatedAt');
 	let isSortAscending = $state(false);
+	let homePreferencesInitialized = $state(false);
 
 	let promise: Promise<void | ProjectDetail[]> | undefined = $state(undefined);
 	type SelectionBreadcrumbItem = {
@@ -132,6 +133,18 @@
 	function handleSort(property: keyof ProjectDetail, ascending: boolean) {
 		currentSortProperty = property;
 		isSortAscending = ascending;
+	}
+
+	/**
+	 * Sauvegarde les préférences de tri et d'explorer dans les settings pour les réappliquer au prochain chargement de la page
+	 */
+	function persistHomePreferences() {
+		if (!globalState.settings || !homePreferencesInitialized) return;
+
+		globalState.settings.persistentUiState.homeSortProperty = currentSortProperty;
+		globalState.settings.persistentUiState.homeSortAscending = isSortAscending;
+		globalState.settings.persistentUiState.homeExplorerSelection = explorerSelection;
+		Settings.save();
 	}
 
 	/**
@@ -345,6 +358,17 @@
 	});
 
 	$effect(() => {
+		const settings = globalState.settings;
+		if (!settings || homePreferencesInitialized) return;
+
+		// Set les préférences de l'utilisateur ou ceux par défaut si premier lancement
+		currentSortProperty = settings.persistentUiState.homeSortProperty ?? 'updatedAt';
+		isSortAscending = settings.persistentUiState.homeSortAscending ?? false;
+		explorerSelection = settings.persistentUiState.homeExplorerSelection ?? ALL_PROJECTS_SELECTION;
+		homePreferencesInitialized = true;
+	});
+
+	$effect(() => {
 		// Toute modification de recherche ou de mode d'affichage repart de la première page.
 		globalState.uiState.searchQuery;
 		globalState.settings?.persistentUiState.projectCardView;
@@ -356,6 +380,13 @@
 		if (currentPage > totalPages) {
 			currentPage = totalPages;
 		}
+	});
+
+	$effect(() => {
+		currentSortProperty;
+		isSortAscending;
+		explorerSelection;
+		persistHomePreferences();
 	});
 
 	onMount(() => {
@@ -569,7 +600,12 @@
 							<button class="sort-button btn text-sm p-2 btn-icon" onclick={toggleSortMenu}>
 								<span class="material-icons-outlined">import_export</span>
 							</button>
-							<SortMenu bind:isVisible={sortMenuVisible} onSort={handleSort} />
+							<SortMenu
+								bind:isVisible={sortMenuVisible}
+								currentProperty={currentSortProperty}
+								ascending={isSortAscending}
+								onSort={handleSort}
+							/>
 						</div>
 
 						<!-- bouton pour changer affichage grid/list -->

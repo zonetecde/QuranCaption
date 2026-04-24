@@ -10,6 +10,7 @@ import { ProjectEditorTabs } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { globalState } from '$lib/runes/main.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
+import type { StoredSegmentationContext } from '$lib/services/AutoSegmentation';
 
 /**
  * État de l'éditeur de projet, utilisé pour gérer l'interface utilisateur et les interactions
@@ -248,6 +249,26 @@ export class SubtitlesEditorState extends SerializableBase {
 
 	// Filtre par nombre de mots minimum dans la liste des sous-titres
 	minWordCount: number = $state(0);
+
+	// Seuil utilisé pour marquer les segments trop longs.
+	longSegmentMinWords: number = $state(12);
+
+	// Contexte courant permettant de rejouer des réajustements depuis la segmentation.
+	segmentationContext: StoredSegmentationContext = $state({
+		audioId: null,
+		source: null,
+		effectiveMode: null,
+		modelName: null,
+		device: null,
+		includeWbwTimestamps: false,
+		alignedSegments: []
+	});
+
+	// Paramètres du panneau de subdivision des segments longs.
+	subdivideMaxVersesPerSegment: number = $state(1);
+	subdivideMaxWordsPerSegment: number = $state(30);
+	subdivideMaxDurationPerSegment: number = $state(30);
+	subdivideOnlySplitAtStopSigns: boolean = $state(false);
 }
 
 export class TranslationsEditorState extends SerializableBase {

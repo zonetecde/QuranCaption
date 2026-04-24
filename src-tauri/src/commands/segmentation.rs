@@ -37,6 +37,27 @@ pub async fn estimate_segmentation_duration(
     segmentation::estimate_duration(endpoint, audio_duration_s, model_name, device).await
 }
 
+/// Récupère les timestamps MFA en réutilisant une session cloud existante.
+#[tauri::command]
+pub async fn get_segmentation_mfa_timestamps_session(
+    audio_id: String,
+    segments: serde_json::Value,
+    granularity: Option<String>,
+) -> Result<serde_json::Value, String> {
+    segmentation::mfa_timestamps_session(audio_id, segments, granularity).await
+}
+
+/// Récupère les timestamps MFA directement depuis l'audio courant du projet.
+#[tauri::command]
+pub async fn get_segmentation_mfa_timestamps_direct(
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    segments: serde_json::Value,
+    granularity: Option<String>,
+) -> Result<serde_json::Value, String> {
+    segmentation::mfa_timestamps_direct(audio_path, audio_clips, segments, granularity).await
+}
+
 /// Vérifie la disponibilité des moteurs de segmentation locale.
 #[tauri::command]
 pub async fn check_local_segmentation_ready(

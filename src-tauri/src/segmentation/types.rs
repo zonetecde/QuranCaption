@@ -10,6 +10,12 @@ pub const QURAN_MULTI_ALIGNER_PROCESS_CALL_URL: &str =
 /// Endpoint d'appel de l'estimation de durée.
 pub const QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/estimate_duration";
+/// Endpoint MFA base sur une session cloud existante.
+pub const QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL: &str =
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/timestamps";
+/// Endpoint MFA direct sur un fichier audio uploade.
+pub const QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL: &str =
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/timestamps_direct";
 
 /// Flag de développement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;

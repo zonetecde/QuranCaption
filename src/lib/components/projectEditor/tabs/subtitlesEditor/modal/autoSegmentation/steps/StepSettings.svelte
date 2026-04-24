@@ -69,6 +69,23 @@
 	</div>
 
 	<div class="rounded-xl border border-color p-4 space-y-2">
+		{#if wizard.selection.aiVersion === 'multi_v2'}
+			<div class="space-y-2 border-b border-color pb-3 mb-3">
+				<label class="flex items-center gap-2 text-sm text-secondary"
+					><input
+						type="checkbox"
+						checked={wizard.includeWbwTimestamps}
+						onchange={(e) =>
+							wizard.setIncludeWbwTimestamps((e.currentTarget as HTMLInputElement).checked)}
+						class="accent-accent-primary"
+					/> Include word-by-word timestamps</label
+				>
+				<p class="text-xs text-thirdly">
+					Store word-by-word timings during segmentation so you can split subtitles instantly later.
+				</p>
+			</div>
+		{/if}
+
 		<label class="flex items-center gap-2 text-sm text-secondary"
 			><input
 				type="checkbox"

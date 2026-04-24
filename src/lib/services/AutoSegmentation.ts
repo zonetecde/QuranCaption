@@ -17,8 +17,53 @@ import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 import { QdcRecitationService } from '$lib/services/QdcRecitationService';
 
 const SMALL_GAP_MS = 200;
+export const SUBDIVIDE_MAX_VERSES_DISABLED = 5;
+export const SUBDIVIDE_MAX_WORDS_DISABLED = 30;
+export const SUBDIVIDE_MAX_DURATION_DISABLED = 30;
 
-type SegmentationSegment = {
+export type SegmentationWordTimestamp = {
+	location: string;
+	start: number;
+	end: number;
+	word?: string;
+};
+
+export type SubtitleAlignmentMetadata = {
+	source: 'api' | 'local' | 'import';
+	segment: number;
+	refFrom: string;
+	refTo: string;
+	matchedText: string;
+	specialType?: string;
+	timeFrom: number;
+	timeTo: number;
+	words: SegmentationWordTimestamp[];
+};
+
+export type StoredAlignedSegment = {
+	clipId: number;
+	type: 'Subtitle' | 'Pre-defined Subtitle';
+	startMs: number;
+	endMs: number;
+	segment: number;
+	refFrom: string;
+	refTo: string;
+	matchedText: string;
+	specialType?: string;
+	words: SegmentationWordTimestamp[];
+};
+
+export type StoredSegmentationContext = {
+	audioId: string | null;
+	source: 'api' | 'local' | 'import' | null;
+	effectiveMode: SegmentationMode | null;
+	modelName: string | null;
+	device: SegmentationDevice | null;
+	includeWbwTimestamps: boolean;
+	alignedSegments: StoredAlignedSegment[];
+};
+
+export type SegmentationSegment = {
 	confidence?: number;
 	error?: string | null;
 	has_missing_words?: boolean;
@@ -30,6 +75,7 @@ type SegmentationSegment = {
 	segment?: number;
 	time_from?: number;
 	time_to?: number;
+	words?: SegmentationWordTimestamp[];
 	word_timestamps?: Array<{
 		key: string;
 		start: number;
@@ -38,7 +84,8 @@ type SegmentationSegment = {
 	}>;
 };
 
-type SegmentationResponse = {
+export type SegmentationResponse = {
+	audio_id?: string;
 	error?: string;
 	warning?: string;
 	segments?: SegmentationSegment[];
@@ -161,6 +208,7 @@ export type AutoSegmentationOptions = {
 	device?: SegmentationDevice;
 	hfToken?: string;
 	allowCloudFallback?: boolean;
+	includeWbwTimestamps?: boolean;
 	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
 	extendBeforeSilence?: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
@@ -310,6 +358,80 @@ function normalizeWordTimestamps(
 		.filter((entry): entry is { key: string; start: number; end: number; type: string } => !!entry);
 }
 
+function normalizeSegmentWords(value: unknown): SegmentationWordTimestamp[] {
+	if (!Array.isArray(value)) return [];
+
+	return value
+		.map((entry) => {
+			if (Array.isArray(entry)) {
+				const location = asNonEmptyString(entry[0]);
+				const start = asFiniteNumber(entry[1]);
+				const end = asFiniteNumber(entry[2]);
+				if (!location || start === undefined || end === undefined) return null;
+				return { location, start, end };
+			}
+
+			if (!entry || typeof entry !== 'object') return null;
+			const location =
+				asNonEmptyString((entry as { location?: unknown }).location) ??
+				asNonEmptyString((entry as { key?: unknown }).key);
+			const start = asFiniteNumber((entry as { start?: unknown }).start);
+			const end = asFiniteNumber((entry as { end?: unknown }).end);
+			const word = asNonEmptyString((entry as { word?: unknown }).word);
+			if (!location || start === undefined || end === undefined) return null;
+			return word ? { location, start, end, word } : { location, start, end };
+		})
+		.filter((entry): entry is SegmentationWordTimestamp => !!entry);
+}
+
+/**
+ * Normalise une réponse MFA partielle en réinjectant les métadonnées manquantes depuis les segments source.
+ *
+ * @param {unknown} value Segments MFA bruts renvoyés par l'API.
+ * @param {SegmentationSegment[]} fallbackSegments Segments source déjà connus côté app.
+ * @returns {SegmentationSegment[]} Segments MFA exploitables par le reste du pipeline.
+ */
+function normalizeMfaSegments(
+	value: unknown,
+	fallbackSegments: SegmentationSegment[]
+): SegmentationSegment[] {
+	if (!Array.isArray(value)) return [];
+
+	const normalizedSegments: SegmentationSegment[] = [];
+
+	for (const [index, entry] of value.entries()) {
+		if (!entry || typeof entry !== 'object') continue;
+
+		const segment = entry as Record<string, unknown>;
+		const fallbackSegment = fallbackSegments[index];
+		const normalizedError =
+			segment.error === null
+				? null
+				: (asNonEmptyString(segment.error) ?? fallbackSegment?.error ?? null);
+
+		normalizedSegments.push({
+			segment: asFiniteNumber(segment.segment) ?? fallbackSegment?.segment ?? index,
+			time_from: asFiniteNumber(segment.time_from) ?? fallbackSegment?.time_from,
+			time_to: asFiniteNumber(segment.time_to) ?? fallbackSegment?.time_to,
+			ref_from: asNonEmptyString(segment.ref_from) ?? fallbackSegment?.ref_from ?? '',
+			ref_to: asNonEmptyString(segment.ref_to) ?? fallbackSegment?.ref_to ?? '',
+			matched_text: asNonEmptyString(segment.matched_text) ?? fallbackSegment?.matched_text ?? '',
+			confidence: asFiniteNumber(segment.confidence) ?? fallbackSegment?.confidence,
+			has_missing_words:
+				asBoolean(segment.has_missing_words) ?? fallbackSegment?.has_missing_words,
+			potentially_undersegmented:
+				asBoolean(segment.potentially_undersegmented) ??
+				fallbackSegment?.potentially_undersegmented,
+			special_type: asNonEmptyString(segment.special_type) ?? fallbackSegment?.special_type,
+			error: normalizedError,
+			words: normalizeSegmentWords(segment.words),
+			word_timestamps: normalizeWordTimestamps(segment.word_timestamps)
+		});
+	}
+
+	return normalizedSegments;
+}
+
 function normalizeImportedSegment(raw: unknown, index: number): SegmentationSegment {
 	if (!raw || typeof raw !== 'object') {
 		throw new Error(`Invalid segment at index ${index}: expected an object.`);
@@ -337,6 +459,7 @@ function normalizeImportedSegment(raw: unknown, index: number): SegmentationSegm
 		potentially_undersegmented: asBoolean(segment.potentially_undersegmented),
 		special_type: asNonEmptyString(segment.special_type),
 		error: normalizedError ?? null,
+		words: normalizeSegmentWords(segment.words),
 		word_timestamps: normalizeWordTimestamps(segment.word_timestamps)
 	};
 }
@@ -374,6 +497,7 @@ export function parseImportedSegmentationJson(
 	}
 
 	const response: SegmentationResponse = {
+		audio_id: asNonEmptyString(root.audio_id),
 		error: asNonEmptyString(root.error),
 		warning: asNonEmptyString(root.warning),
 		segments: normalizedSegments
@@ -823,6 +947,135 @@ function extendSubtitlesToFillGaps(clips: Array<SubtitleClip | PredefinedSubtitl
 	}
 }
 
+/**
+ * Retourne un contexte de segmentation vide.
+ *
+ * @returns {StoredSegmentationContext} Contexte vide sérialisable.
+ */
+export function createEmptySegmentationContext(): StoredSegmentationContext {
+	return {
+		audioId: null,
+		source: null,
+		effectiveMode: null,
+		modelName: null,
+		device: null,
+		includeWbwTimestamps: false,
+		alignedSegments: []
+	};
+}
+
+/**
+ * Convertit la liste brute de mots MFA d'un segment en une liste normalisée.
+ *
+ * @param {SegmentationSegment} segment Segment enrichi par MFA.
+ * @returns {SegmentationWordTimestamp[]} Liste des mots MFA normalisés.
+ */
+function getSegmentWords(segment: SegmentationSegment): SegmentationWordTimestamp[] {
+	return (segment.words ?? []).map((word) => ({
+		location: word.location,
+		start: word.start,
+		end: word.end,
+		word: word.word
+	}));
+}
+
+/**
+ * Filtre les mots MFA d'un segment pour un verset donné.
+ *
+ * @param {SegmentationWordTimestamp[]} words Liste de mots MFA.
+ * @param {number} surah Sourate cible.
+ * @param {number} verse Verse cible.
+ * @returns {SegmentationWordTimestamp[]} Liste filtrée dans l'ordre d'origine.
+ */
+function filterWordsForVerse(
+	words: SegmentationWordTimestamp[],
+	surah: number,
+	verse: number
+): SegmentationWordTimestamp[] {
+	return words.filter(
+		(word) => typeof word.location === 'string' && word.location.startsWith(`${surah}:${verse}:`)
+	);
+}
+
+/**
+ * Construit la métadonnée d'alignement persistée sur un sous-titre Quran.
+ *
+ * @param {'api' | 'local' | 'import'} source Source de la segmentation.
+ * @param {SegmentationSegment} segment Segment source.
+ * @param {SegmentationWordTimestamp[]} words Liste des mots associés au clip.
+ * @returns {SubtitleAlignmentMetadata | null} Métadonnée prête à persister.
+ */
+function buildSubtitleAlignmentMetadata(
+	source: 'api' | 'local' | 'import',
+	segment: SegmentationSegment,
+	words: SegmentationWordTimestamp[]
+): SubtitleAlignmentMetadata | null {
+	const segmentIndex = segment.segment;
+	const timeFrom = segment.time_from;
+	const timeTo = segment.time_to;
+	const refFrom = segment.ref_from ?? '';
+	const refTo = segment.ref_to ?? '';
+	if (
+		segmentIndex === undefined ||
+		timeFrom === undefined ||
+		timeTo === undefined ||
+		!refFrom ||
+		!refTo
+	) {
+		return null;
+	}
+
+	return {
+		source,
+		segment: segmentIndex,
+		refFrom,
+		refTo,
+		matchedText: segment.matched_text ?? '',
+		specialType: segment.special_type,
+		timeFrom,
+		timeTo,
+		words
+	};
+}
+
+/**
+ * Construit l'entrée runtime alignée réutilisée par les outils locaux de split.
+ *
+ * @param {number} clipId Identifiant du clip créé.
+ * @param {'Subtitle' | 'Pre-defined Subtitle'} type Type de clip aligné.
+ * @param {number} startMs Début du clip sur la timeline.
+ * @param {number} endMs Fin du clip sur la timeline.
+ * @param {SegmentationSegment} segment Segment source.
+ * @param {SegmentationWordTimestamp[]} words Mots attachés à ce clip.
+ * @returns {StoredAlignedSegment | null} Entrée runtime sérialisable.
+ */
+function buildStoredAlignedSegment(
+	clipId: number,
+	type: 'Subtitle' | 'Pre-defined Subtitle',
+	startMs: number,
+	endMs: number,
+	segment: SegmentationSegment,
+	words: SegmentationWordTimestamp[]
+): StoredAlignedSegment | null {
+	const segmentIndex = segment.segment;
+	const refFrom = segment.ref_from ?? '';
+	const refTo = segment.ref_to ?? '';
+	if (segmentIndex === undefined || !refFrom || !refTo) return null;
+
+	return {
+		clipId,
+		type,
+		startMs,
+		endMs,
+		segment: segmentIndex,
+		refFrom,
+		refTo,
+		matchedText: segment.matched_text ?? '',
+		specialType: segment.special_type,
+		words
+	};
+}
+
 type ApplySegmentationResponseParams = {
 	response: SegmentationResponse;
 	fillBySilence: boolean;
@@ -832,6 +1085,10 @@ type ApplySegmentationResponseParams = {
 	cloudGpuFallbackToCpu: boolean;
 	requestedMode: SegmentationMode;
 	effectiveMode: SegmentationMode;
+	segmentationSource: 'api' | 'local' | 'import';
+	includeWbwTimestamps: boolean;
+	modelName?: string | null;
+	device?: SegmentationDevice | null;
 	warningOverride?: string;
 	payloadForLog?: unknown;
 };
@@ -848,6 +1105,10 @@ async function applySegmentationResponseToProject(
 		cloudGpuFallbackToCpu,
 		requestedMode,
 		effectiveMode,
+		segmentationSource,
+		includeWbwTimestamps,
+		modelName,
+		device,
 		warningOverride,
 		payloadForLog
 	} = params;
@@ -873,8 +1134,10 @@ async function applySegmentationResponseToProject(
 	let lowConfidenceSegments: number = 0;
 	let coverageGapSegments: number = 0;
 	let reviewSegments: number = 0;
+	const storedAlignedSegments: StoredAlignedSegment[] = [];
 
 	const pushSubtitleClip = async (clipParams: {
+		segment: SegmentationSegment;
 		startMs: number;
 		endMs: number;
 		surah: number;
@@ -888,6 +1151,7 @@ async function applySegmentationResponseToProject(
 		needsCoverageReview: boolean;
 	}): Promise<void> => {
 		const {
+			segment,
 			startMs,
 			endMs,
 			surah,
@@ -936,6 +1200,12 @@ async function applySegmentationResponseToProject(
 			true,
 			confidence
 		);
+		const segmentWords = filterWordsForVerse(getSegmentWords(segment), surah, verseNumber);
+		clip.alignmentMetadata = buildSubtitleAlignmentMetadata(
+			segmentationSource,
+			segment,
+			segmentWords
+		);
 
 		if (needsReview || needsCoverageReview) {
 			clip.needsReview = true;
@@ -944,6 +1214,17 @@ async function applySegmentationResponseToProject(
 		}
 
 		subtitleTrack.clips.push(clip);
+		const storedAlignedSegment = buildStoredAlignedSegment(
+			clip.id,
+			'Subtitle',
+			startMs,
+			endMs,
+			segment,
+			segmentWords
+		);
+		if (storedAlignedSegment) {
+			storedAlignedSegments.push(storedAlignedSegment);
+		}
 		segmentsApplied += 1;
 		if (isLowConfidence) lowConfidenceSegments += 1;
 		if (needsCoverageReview) coverageGapSegments += 1;
@@ -1006,6 +1287,17 @@ async function applySegmentationResponseToProject(
 				confidence
 			);
 			subtitleTrack.clips.push(clip);
+			const storedAlignedSegment = buildStoredAlignedSegment(
+				clip.id,
+				'Pre-defined Subtitle',
+				startMs,
+				endMs,
+				segment,
+				getSegmentWords(segment)
+			);
+			if (storedAlignedSegment) {
+				storedAlignedSegments.push(storedAlignedSegment);
+			}
 			segmentsApplied += 1;
 			if (isLowConfidence) lowConfidenceSegments += 1;
 			if (clip.needsReview) reviewSegments += 1;
@@ -1114,6 +1406,7 @@ async function applySegmentationResponseToProject(
 					const verse = await Quran.getVerse(def.surah, def.verseNumber);
 					if (!verse) continue;
 					await pushSubtitleClip({
+						segment,
 						startMs: def.startMs,
 						endMs: def.endMs,
 						surah: def.surah,
@@ -1165,6 +1458,7 @@ async function applySegmentationResponseToProject(
 		}
 
 		await pushSubtitleClip({
+			segment,
 			startMs,
 			endMs,
 			surah: startRef.surah,
@@ -1206,11 +1500,29 @@ async function applySegmentationResponseToProject(
 		subtitleTrack.clips = subtitleClips;
 	}
 	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+	for (const storedAlignedSegment of storedAlignedSegments) {
+		const clip = subtitleTrack.getClipById(storedAlignedSegment.clipId) as
+			| SubtitleClip
+			| PredefinedSubtitleClip
+			| null;
+		if (!clip) continue;
+		storedAlignedSegment.startMs = clip.startTime;
+		storedAlignedSegment.endMs = clip.endTime;
+	}
 
 	const verseRange: VerseRange = VerseRange.getVerseRange(0, subtitleTrack.getDuration().ms);
 	globalState.currentProject?.detail.updateVideoDetailAttributes();
 	globalState.updateVideoPreviewUI();
 	globalState.getSubtitlesEditorState.initialLowConfidenceCount = reviewSegments;
+	globalState.getSubtitlesEditorState.segmentationContext = {
+		audioId: response.audio_id ?? null,
+		source: segmentationSource,
+		effectiveMode,
+		modelName: modelName ?? null,
+		device: device ?? null,
+		includeWbwTimestamps,
+		alignedSegments: storedAlignedSegments
+	};
 
 	if (payloadForLog !== undefined) {
 		console.log('Quran segmentation payload:', payloadForLog);
@@ -1228,6 +1540,553 @@ async function applySegmentationResponseToProject(
 		requestedMode,
 		effectiveMode
 	};
+}
+
+/**
+ * Enrichit une réponse de segmentation avec des timestamps MFA quand ils sont absents.
+ *
+ * @param {SegmentationResponse} response Réponse brute ou partiellement enrichie.
+ * @returns {Promise<SegmentationResponse>} Réponse avec mots MFA si disponibles.
+ */
+export async function enrichSegmentationResponseWithWordTimestamps(
+	response: SegmentationResponse
+): Promise<SegmentationResponse> {
+	const segments = response.segments ?? [];
+	if (segments.length === 0) return response;
+	if (segments.every((segment) => (segment.words?.length ?? 0) > 0)) return response;
+
+	try {
+		let mfaSource: 'session' | 'direct';
+		let mfaResponse: SegmentationResponse;
+		if (response.audio_id) {
+			try {
+				mfaSource = 'session';
+				mfaResponse = await getSegmentationMfaTimestampsSession(response.audio_id, segments);
+			} catch (error) {
+				console.warn(
+					'[AutoSegmentation] MFA session enrichment failed, falling back to direct MFA:',
+					error
+				);
+				mfaSource = 'direct';
+				mfaResponse = await getSegmentationMfaTimestampsDirect(segments);
+			}
+		} else {
+			mfaSource = 'direct';
+			mfaResponse = await getSegmentationMfaTimestampsDirect(segments);
+		}
+
+		const mfaSegments = normalizeMfaSegments(mfaResponse.segments ?? [], segments);
+		console.log('[AutoSegmentation] MFA timings payload:', {
+			source: mfaSource,
+			audioId: response.audio_id ?? mfaResponse.audio_id ?? null,
+			segments: mfaSegments.map((segment) => ({
+				segment: segment.segment,
+				refFrom: segment.ref_from ?? null,
+				refTo: segment.ref_to ?? null,
+				words: (segment.words ?? []).map((word) => ({
+					location: word.location,
+					start: word.start,
+					end: word.end,
+					word: word.word ?? null
+				}))
+			}))
+		});
+		if (mfaSegments.length === 0) {
+			console.warn('[AutoSegmentation] MFA enrichment returned no segments.', {
+				source: mfaSource,
+				audioId: response.audio_id ?? mfaResponse.audio_id ?? null
+			});
+			return response;
+		}
+
+		const mfaBySegment = new Map<number, SegmentationSegment>();
+		for (const segment of mfaSegments) {
+			if (segment.segment !== undefined) {
+				mfaBySegment.set(segment.segment, segment);
+			}
+		}
+
+		const enrichedResponse = {
+			...response,
+			audio_id: response.audio_id ?? mfaResponse.audio_id,
+			segments: segments.map((segment, index) => {
+				const segmentIndex = segment.segment;
+				const mfaSegmentByIndex = mfaSegments[index];
+				const mfaSegment =
+					mfaSegmentByIndex ??
+					(segmentIndex !== undefined ? mfaBySegment.get(segmentIndex) : undefined);
+				if (!mfaSegment) return segment;
+				return {
+					...segment,
+					words: mfaSegment.words ?? segment.words ?? []
+				};
+			})
+		};
+
+		const segmentsWithoutWords = (enrichedResponse.segments ?? [])
+			.filter((segment) => (segment.words?.length ?? 0) === 0)
+			.map((segment) => ({
+				segment: segment.segment,
+				refFrom: segment.ref_from ?? null,
+				refTo: segment.ref_to ?? null
+			}));
+		if (segmentsWithoutWords.length > 0) {
+			console.warn('[AutoSegmentation] Some segments still have no MFA word timestamps.', {
+				source: mfaSource,
+				segmentsWithoutWords
+			});
+		}
+
+		return enrichedResponse;
+	} catch (error) {
+		console.warn('[AutoSegmentation] Failed to enrich segmentation with MFA timestamps:', error);
+		return response;
+	}
+}
+
+/**
+ * Compte le nombre de mots Quran couverts par un sous-titre.
+ *
+ * @param {SubtitleClip} clip Sous-titre Quran à mesurer.
+ * @returns {number} Nombre de mots dans la plage du clip.
+ */
+export function getSubtitleClipWordCount(clip: SubtitleClip): number {
+	return Math.max(0, clip.endWordIndex - clip.startWordIndex + 1);
+}
+
+/**
+ * Retourne les segments Quran considérés comme longs pour un seuil donné.
+ *
+ * @param {number} minWords Seuil minimal de mots.
+ * @returns {SubtitleClip[]} Liste triée des sous-titres trop longs.
+ */
+export function getLongSubtitleClips(minWords: number): SubtitleClip[] {
+	return globalState.getSubtitleClips
+		.filter((clip) => getSubtitleClipWordCount(clip) >= Math.max(1, minWords))
+		.sort((left, right) => left.startTime - right.startTime);
+}
+
+/**
+ * Marque ou démarque les segments trop longs selon le seuil courant.
+ *
+ * @param {number} minWords Seuil minimal de mots.
+ * @returns {number} Nombre de segments marqués.
+ */
+export function markLongSegmentsForReview(minWords: number): number {
+	const threshold = Math.max(1, minWords);
+	let markedCount = 0;
+
+	for (const clip of globalState.getSubtitleClips) {
+		const isLong = getSubtitleClipWordCount(clip) >= threshold;
+		clip.needsLongReview = isLong;
+		if (isLong) markedCount += 1;
+	}
+
+	return markedCount;
+}
+
+/**
+ * Efface tous les marquages rose "too long".
+ */
+export function clearLongSegmentsReview(): void {
+	for (const clip of globalState.getSubtitleClips) {
+		clip.needsLongReview = false;
+	}
+}
+
+/**
+ * Reconstruit le contexte runtime à partir des clips actuellement présents sur la timeline.
+ *
+ * @param {boolean} preserveAudioId Si true, conserve l'audio_id courant.
+ */
+function refreshSegmentationContextFromTrack(preserveAudioId: boolean): void {
+	const currentContext = globalState.getSubtitlesEditorState.segmentationContext;
+	const existingById = new Map(currentContext.alignedSegments.map((segment) => [segment.clipId, segment]));
+	const alignedSegments: StoredAlignedSegment[] = [];
+
+	for (const rawClip of globalState.getSubtitleTrack.clips) {
+		if (rawClip instanceof SubtitleClip && rawClip.alignmentMetadata) {
+			const metadata = rawClip.alignmentMetadata;
+			alignedSegments.push({
+				clipId: rawClip.id,
+				type: 'Subtitle',
+				startMs: rawClip.startTime,
+				endMs: rawClip.endTime,
+				segment: metadata.segment,
+				refFrom: metadata.refFrom,
+				refTo: metadata.refTo,
+				matchedText: metadata.matchedText,
+				specialType: metadata.specialType,
+				words: metadata.words.map((word) => ({ ...word }))
+			});
+			continue;
+		}
+
+		if (rawClip instanceof PredefinedSubtitleClip) {
+			const existing = existingById.get(rawClip.id);
+			if (existing) {
+				alignedSegments.push({
+					...existing,
+					startMs: rawClip.startTime,
+					endMs: rawClip.endTime
+				});
+			}
+		}
+	}
+
+	globalState.getSubtitlesEditorState.segmentationContext = {
+		...currentContext,
+		audioId: preserveAudioId ? currentContext.audioId : null,
+		includeWbwTimestamps: currentContext.includeWbwTimestamps,
+		alignedSegments
+	};
+}
+
+/**
+ * Applique silencieusement une nouvelle plage de mots à un clip Quran existant.
+ *
+ * @param {SubtitleClip} clip Clip à mettre à jour.
+ * @param {Awaited<ReturnType<typeof Quran.getVerse>>} verse Verset source.
+ * @param {number} startWordIndex Index du premier mot.
+ * @param {number} endWordIndex Index du dernier mot.
+ */
+async function hydrateSubtitleClipRange(
+	clip: SubtitleClip,
+	verse: Awaited<ReturnType<typeof Quran.getVerse>>,
+	startWordIndex: number,
+	endWordIndex: number
+): Promise<void> {
+	if (!verse) return;
+
+	clip.startWordIndex = startWordIndex;
+	clip.endWordIndex = endWordIndex;
+	clip.text = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex);
+	clip.indopakText = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex, 'indopak');
+	clip.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startWordIndex, endWordIndex);
+	const subtitlesProperties = await globalState.getSubtitleTrack.getSubtitlesProperties(
+		verse,
+		startWordIndex,
+		endWordIndex,
+		clip.surah
+	);
+	clip.isFullVerse = subtitlesProperties.isFullVerse;
+	clip.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
+	clip.translations = subtitlesProperties.translations;
+	clip.clearArabicInlineStyles();
+}
+
+/**
+ * Découpe localement les métadonnées d'alignement d'un clip Quran autour d'un mot.
+ *
+ * @param {SubtitleClip} clip Clip source.
+ * @param {number} splitWordIndex Index du dernier mot de la partie gauche.
+ * @returns {Promise<SubtitleClip | null>} Nouveau clip droit créé, ou null si impossible.
+ */
+async function splitSubtitleClipLocally(
+	clip: SubtitleClip,
+	splitWordIndex: number
+): Promise<SubtitleClip | null> {
+	const metadata = clip.alignmentMetadata;
+	if (!metadata) return null;
+	if (splitWordIndex < clip.startWordIndex || splitWordIndex >= clip.endWordIndex) return null;
+
+	const splitLocation = `${clip.surah}:${clip.verse}:${splitWordIndex + 1}`;
+	const splitWord = metadata.words.find((word) => word.location === splitLocation);
+	if (!splitWord) return null;
+
+	const splitAbsoluteMs = Math.round((metadata.timeFrom + splitWord.end) * 1000);
+	if (splitAbsoluteMs - clip.startTime < 100 || clip.endTime - splitAbsoluteMs < 100) {
+		return null;
+	}
+
+	const verse = await Quran.getVerse(clip.surah, clip.verse);
+	if (!verse) return null;
+
+	const originalEndTime = clip.endTime;
+	const originalStartWordIndex = clip.startWordIndex;
+	const originalEndWordIndex = clip.endWordIndex;
+	const originalMetadata = metadata;
+	const originalNeedsReview = clip.needsReview;
+	const originalNeedsCoverageReview = clip.needsCoverageReview;
+	const originalNeedsLongReview = clip.needsLongReview;
+	const originalComeFromIA = clip.comeFromIA;
+	const originalConfidence = clip.confidence;
+
+	clip.setEndTimeSilently(splitAbsoluteMs);
+	await hydrateSubtitleClipRange(clip, verse, originalStartWordIndex, splitWordIndex);
+
+	const rightClip = clip.cloneWithTimes(splitAbsoluteMs, originalEndTime);
+	rightClip.comeFromIA = originalComeFromIA;
+	rightClip.confidence = originalConfidence;
+	rightClip.needsReview = originalNeedsReview;
+	rightClip.needsCoverageReview = originalNeedsCoverageReview;
+	rightClip.needsLongReview = originalNeedsLongReview;
+	await hydrateSubtitleClipRange(rightClip, verse, splitWordIndex + 1, originalEndWordIndex);
+
+	const splitOffsetS = splitWord.end;
+	const leftWords = originalMetadata.words
+		.filter((word) => {
+			const wordIndex = Number(word.location.split(':')[2]);
+			return Number.isFinite(wordIndex) && wordIndex <= splitWordIndex + 1;
+		})
+		.map((word) => ({ ...word }));
+	const rightWords = originalMetadata.words
+		.filter((word) => {
+			const wordIndex = Number(word.location.split(':')[2]);
+			return Number.isFinite(wordIndex) && wordIndex > splitWordIndex + 1;
+		})
+		.map((word) => ({
+			...word,
+			start: Math.max(0, word.start - splitOffsetS),
+			end: Math.max(0, word.end - splitOffsetS)
+		}));
+
+	clip.alignmentMetadata = {
+		...originalMetadata,
+		refFrom: `${clip.surah}:${clip.verse}:${originalStartWordIndex + 1}`,
+		refTo: `${clip.surah}:${clip.verse}:${splitWordIndex + 1}`,
+		matchedText: verse.getArabicTextBetweenTwoIndexes(originalStartWordIndex, splitWordIndex),
+		timeTo: splitAbsoluteMs / 1000,
+		words: leftWords
+	};
+	rightClip.alignmentMetadata = {
+		...originalMetadata,
+		refFrom: `${rightClip.surah}:${rightClip.verse}:${rightClip.startWordIndex + 1}`,
+		refTo: `${rightClip.surah}:${rightClip.verse}:${rightClip.endWordIndex + 1}`,
+		matchedText: verse.getArabicTextBetweenTwoIndexes(
+			rightClip.startWordIndex,
+			rightClip.endWordIndex
+		),
+		timeFrom: splitAbsoluteMs / 1000,
+		words: rightWords
+	};
+
+	const clipIndex = globalState.getSubtitleTrack.clips.findIndex((candidate) => candidate.id === clip.id);
+	if (clipIndex === -1) return null;
+	globalState.getSubtitleTrack.clips.splice(clipIndex + 1, 0, rightClip);
+	return rightClip;
+}
+
+/**
+ * Extrait l'index de mot Quran (0-based) à partir d'une location MFA.
+ *
+ * @param {string} location Clé de mot au format `surah:verse:word`.
+ * @returns {number | null} Index 0-based, ou null si invalide.
+ */
+function getWordIndexFromLocation(location: string): number | null {
+	const wordIndex = Number(location.split(':')[2]);
+	if (!Number.isFinite(wordIndex) || wordIndex <= 0) return null;
+	return wordIndex - 1;
+}
+
+/**
+ * Cherche le meilleur point de coupe sur un waqf proche d'une cible.
+ *
+ * @param {SubtitleClip} clip Clip Quran à inspecter.
+ * @param {Awaited<ReturnType<typeof Quran.getVerse>>} verse Verset source.
+ * @param {number} targetIndex Index cible autour duquel couper.
+ * @returns {number | null} Index du dernier mot de la partie gauche.
+ */
+function findPreferredStopSplitIndex(
+	clip: SubtitleClip,
+	verse: Awaited<ReturnType<typeof Quran.getVerse>>,
+	targetIndex: number
+): number | null {
+	if (!verse) return null;
+
+	const waqfPriority = ['ۗ', 'ۚ', 'ۖ'];
+	for (const waqf of waqfPriority) {
+		const candidates: number[] = [];
+		for (let index = clip.startWordIndex; index < clip.endWordIndex; index += 1) {
+			if (verse.words[index]?.arabic.includes(waqf)) {
+				candidates.push(index);
+			}
+		}
+
+		if (candidates.length > 0) {
+			return [...candidates].sort(
+				(left, right) => Math.abs(left - targetIndex) - Math.abs(right - targetIndex)
+			)[0];
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Calcule le meilleur mot de coupe pour la subdivision locale d'un clip.
+ *
+ * @param {SubtitleClip} clip Clip Quran à subdiviser.
+ * @param {number | null} maxWords Limite de mots active, ou null.
+ * @param {number | null} maxDurationSeconds Limite de durée active, ou null.
+ * @param {boolean} onlyStopSigns Si true, interdit le fallback hors waqf.
+ * @returns {Promise<number | null>} Index du dernier mot de gauche, ou null.
+ */
+async function getAutomaticSplitWordIndex(
+	clip: SubtitleClip,
+	maxWords: number | null,
+	maxDurationSeconds: number | null,
+	onlyStopSigns: boolean
+): Promise<number | null> {
+	const wordCount = getSubtitleClipWordCount(clip);
+	const exceedsWords = maxWords !== null && wordCount > maxWords;
+	const exceedsDuration = maxDurationSeconds !== null && clip.duration / 1000 > maxDurationSeconds;
+	if (!exceedsWords && !exceedsDuration) return null;
+	if (!clip.alignmentMetadata || wordCount < 2) return null;
+
+	const verse = await Quran.getVerse(clip.surah, clip.verse);
+	if (!verse) return null;
+
+	let targetIndex = clip.startWordIndex;
+	if (exceedsWords && maxWords !== null) {
+		targetIndex = Math.min(clip.startWordIndex + maxWords - 1, clip.endWordIndex - 1);
+	} else {
+		targetIndex = Math.min(
+			clip.startWordIndex + Math.max(1, Math.floor(wordCount / 2)) - 1,
+			clip.endWordIndex - 1
+		);
+	}
+
+	const waqfIndex = findPreferredStopSplitIndex(clip, verse, targetIndex);
+	if (waqfIndex !== null) return waqfIndex;
+	return onlyStopSigns ? null : targetIndex;
+}
+
+/**
+ * Coupe automatiquement un sous-titre Quran au mot fourni.
+ *
+ * @param {SubtitleClip} clip Clip Quran actuellement édité.
+ * @param {number} splitWordIndex Index du dernier mot de la partie gauche.
+ * @returns {Promise<boolean>} True si la coupe a été appliquée.
+ */
+export async function automaticSplitSubtitleAtWord(
+	clip: SubtitleClip,
+	splitWordIndex: number
+): Promise<boolean> {
+	const metadata = clip.alignmentMetadata;
+	if (!metadata) {
+		console.warn('[AutoSegmentation] Automatic split aborted: missing alignment metadata.', {
+			clipId: clip.id,
+			surah: clip.surah,
+			verse: clip.verse,
+			splitWordIndex
+		});
+		return false;
+	}
+
+	if (metadata.words.length === 0) {
+		console.warn(
+			'[AutoSegmentation] Automatic split aborted: no MFA word timestamps are available for this clip.',
+			{
+				clipId: clip.id,
+				surah: clip.surah,
+				verse: clip.verse,
+				splitWordIndex,
+				segment: metadata.segment
+			}
+		);
+		return false;
+	}
+
+	const splitLocation = `${clip.surah}:${clip.verse}:${splitWordIndex + 1}`;
+	const splitWord = metadata.words.find((word) => word.location === splitLocation);
+	if (!splitWord) {
+		console.warn(
+			'[AutoSegmentation] Automatic split aborted: selected word timestamp was not found in alignment metadata.',
+			{
+				clipId: clip.id,
+				splitWordIndex,
+				splitLocation,
+				availableLocations: metadata.words.map((word) => word.location)
+			}
+		);
+		return false;
+	}
+
+	const splitTimeMs = Math.round((metadata.timeFrom + splitWord.end) * 1000);
+	if (splitTimeMs - clip.startTime < 100 || clip.endTime - splitTimeMs < 100) {
+		console.warn(
+			'[AutoSegmentation] Automatic split aborted: computed split point would create a segment shorter than 100ms.',
+			{
+				clipId: clip.id,
+				splitWordIndex,
+				splitTimeMs,
+				clipStartTime: clip.startTime,
+				clipEndTime: clip.endTime
+			}
+		);
+		return false;
+	}
+
+	const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
+	if (!rightClip) {
+		console.warn('[AutoSegmentation] Local split failed.', {
+			clipId: clip.id,
+			splitWordIndex,
+			splitLocation
+		});
+		return false;
+	}
+
+	const shouldRefreshLongMarks = globalState.getSubtitleClips.some((candidate) => candidate.needsLongReview);
+	if (shouldRefreshLongMarks) {
+		markLongSegmentsForReview(globalState.getSubtitlesEditorState.longSegmentMinWords);
+	}
+
+	refreshSegmentationContextFromTrack(false);
+	globalState.currentProject?.detail.updateVideoDetailAttributes();
+	globalState.updateVideoPreviewUI();
+	globalState.getSubtitlesEditorState.editSubtitle = rightClip;
+	return true;
+}
+
+/**
+ * Subdivise localement tous les sous-titres Quran dépassant les critères actifs.
+ *
+ * @returns {Promise<number>} Nombre de coupes appliquées.
+ */
+export async function subdivideLongSubtitleSegments(): Promise<number> {
+	const state = globalState.getSubtitlesEditorState;
+	const maxWords =
+		state.subdivideMaxWordsPerSegment >= SUBDIVIDE_MAX_WORDS_DISABLED
+			? null
+			: state.subdivideMaxWordsPerSegment;
+	const maxDurationSeconds =
+		state.subdivideMaxDurationPerSegment >= SUBDIVIDE_MAX_DURATION_DISABLED
+			? null
+			: state.subdivideMaxDurationPerSegment;
+
+	let splitCount = 0;
+	let madeProgress = true;
+	while (madeProgress) {
+		madeProgress = false;
+		const clips = [...globalState.getSubtitleClips].sort((left, right) => left.startTime - right.startTime);
+		for (const clip of clips) {
+			const splitWordIndex = await getAutomaticSplitWordIndex(
+				clip,
+				maxWords,
+				maxDurationSeconds,
+				state.subdivideOnlySplitAtStopSigns
+			);
+			if (splitWordIndex === null) continue;
+
+			const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
+			if (!rightClip) continue;
+
+			splitCount += 1;
+			madeProgress = true;
+			break;
+		}
+	}
+
+	if (splitCount > 0) {
+		markLongSegmentsForReview(state.longSegmentMinWords);
+		refreshSegmentationContextFromTrack(false);
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+	}
+
+	return splitCount;
 }
 
 /**
@@ -1251,6 +2110,7 @@ export async function runAutoSegmentation(
 	const minSilenceMs: number = options.minSilenceMs ?? 200;
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
 	const padMs: number = options.padMs ?? 100;
+	const includeWbwTimestamps: boolean = options.includeWbwTimestamps ?? false;
 	const localAsrMode: LocalAsrMode = options.localAsrMode ?? 'legacy_whisper';
 	const legacyWhisperModel: LegacyWhisperModelSize = options.legacyWhisperModel ?? 'base';
 	const multiAlignerModel: MultiAlignerModel = options.multiAlignerModel ?? 'Base';
@@ -1353,7 +2213,16 @@ export async function runAutoSegmentation(
 			console.log('[AutoSegmentation] Local segmentation raw response:', payload);
 		}
 
-		const response: SegmentationResponse = payload as SegmentationResponse;
+		const rawResponse: SegmentationResponse = payload as SegmentationResponse;
+		const response = includeWbwTimestamps
+			? await enrichSegmentationResponseWithWordTimestamps(rawResponse)
+			: rawResponse;
+		const contextModelName =
+			effectiveMode === 'api'
+				? cloudModel
+				: localAsrMode === 'multi_aligner'
+					? multiAlignerModel
+					: legacyWhisperModel;
 		return await applySegmentationResponseToProject({
 			response,
 			fillBySilence,
@@ -1363,6 +2232,10 @@ export async function runAutoSegmentation(
 			cloudGpuFallbackToCpu,
 			requestedMode,
 			effectiveMode,
+			segmentationSource: effectiveMode === 'api' ? 'api' : 'local',
+			includeWbwTimestamps,
+			modelName: contextModelName,
+			device,
 			warningOverride: fallbackWarning,
 			payloadForLog: payload
 		});
@@ -1403,6 +2276,51 @@ export async function estimateSegmentationDuration(options: {
 }
 
 /**
+ * Recupere les timestamps MFA pour une session cloud existante.
+ *
+ * @param {string} audioId Identifiant de session cloud.
+ * @param {SegmentationSegment[]} segments Segments a enrichir.
+ * @returns {Promise<SegmentationResponse>} Reponse MFA normalisee.
+ */
+export async function getSegmentationMfaTimestampsSession(
+	audioId: string,
+	segments: SegmentationSegment[]
+): Promise<SegmentationResponse> {
+	return (await invoke('get_segmentation_mfa_timestamps_session', {
+		audioId,
+		segments,
+		granularity: 'words'
+	})) as SegmentationResponse;
+}
+
+/**
+ * Recupere les timestamps MFA a partir de l'audio courant du projet.
+ *
+ * @param {SegmentationSegment[]} segments Segments a enrichir.
+ * @returns {Promise<SegmentationResponse>} Reponse MFA normalisee.
+ */
+export async function getSegmentationMfaTimestampsDirect(
+	segments: SegmentationSegment[]
+): Promise<SegmentationResponse> {
+	const audioInfo = getAutoSegmentationAudioInfo();
+	const audioClips = getAutoSegmentationAudioClips();
+	if (!audioInfo || audioClips.length === 0) {
+		throw new Error('No audio clip found in the project.');
+	}
+
+	return (await invoke('get_segmentation_mfa_timestamps_direct', {
+		audioPath: audioInfo.filePath,
+		audioClips: audioClips.map((clip) => ({
+			path: clip.filePath,
+			startMs: clip.startMs,
+			endMs: clip.endMs
+		})),
+		segments,
+		granularity: 'words'
+	})) as SegmentationResponse;
+}
+
+/**
  * Apply subtitles from a Hugging Face Multi-Aligner exported JSON payload.
  *
  * @param {string | unknown} importedPayload - Raw JSON string or parsed JSON object.
@@ -1437,8 +2355,9 @@ export async function runAutoSegmentationFromImportedJson(
 
 	try {
 		const parsed = parseImportedSegmentationJson(importedPayload);
+		const response = await enrichSegmentationResponseWithWordTimestamps(parsed.response);
 		return await applySegmentationResponseToProject({
-			response: parsed.response,
+			response,
 			fillBySilence,
 			extendBeforeSilence,
 			extendBeforeSilenceMs,
@@ -1446,6 +2365,12 @@ export async function runAutoSegmentationFromImportedJson(
 			cloudGpuFallbackToCpu: false,
 			requestedMode: 'api',
 			effectiveMode: 'api',
+			segmentationSource: 'import',
+			includeWbwTimestamps: (response.segments ?? []).some(
+				(segment) => (segment.words?.length ?? 0) > 0
+			),
+			modelName: null,
+			device: null,
 			payloadForLog: importedPayload
 		});
 	} catch (error) {

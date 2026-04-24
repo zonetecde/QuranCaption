@@ -7,8 +7,11 @@
 	} from '$lib/classes/Clip.svelte';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { automaticSplitSubtitleAtWord } from '$lib/services/AutoSegmentation';
 	import ShortcutService from '$lib/services/ShortcutService';
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
@@ -16,6 +19,8 @@
 	let didWordDrag = $state(false);
 	let dragStartWordIndex = $state(-1);
 	let suppressNextWordClick = $state(false);
+	let wordContextMenu: ContextMenu | undefined = $state(undefined);
+	let contextMenuWordIndex: number | null = $state(null);
 
 	function goNextVerse() {
 		if (
@@ -267,6 +272,7 @@
 		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: 'Exit subtitle editing' });
 
 		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
+		currentMenu.set(null);
 	});
 
 	/**
@@ -318,9 +324,6 @@
 			// Si on est déjà en train de modifier ce sous-titre, on le quitte
 			globalState.getSubtitlesEditorState.editSubtitle = null;
 			return;
-		}
-		if (clip instanceof ClipWithTranslation) {
-			clip.markAsManualEdit();
 		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
@@ -482,6 +485,7 @@
 	}
 
 	function handleWordMouseDown(wordIndex: number, event: MouseEvent): void {
+		if (event.button !== 0) return;
 		event.preventDefault();
 		isWordDragging = true;
 		didWordDrag = false;
@@ -514,6 +518,95 @@
 
 	function handleGlobalWordMouseUp(): void {
 		stopWordDrag();
+	}
+
+	/**
+	 * Vérifie si le mot visé peut déclencher un split automatique.
+	 *
+	 * @param {number} wordIndex Index 0-based du mot cliqué.
+	 * @returns {boolean} True si l'action est disponible.
+	 */
+	function canShowAutomaticSplitForWord(wordIndex: number): boolean {
+		const editSubtitle = subtitlesEditorState().editSubtitle;
+		if (!(editSubtitle instanceof SubtitleClip)) return false;
+		if (!editSubtitle.alignmentMetadata) return false;
+		if (wordIndex < editSubtitle.startWordIndex || wordIndex >= editSubtitle.endWordIndex) return false;
+		return (
+			wordIndex >= subtitlesEditorState().startWordIndex &&
+			wordIndex <= subtitlesEditorState().endWordIndex
+		);
+	}
+
+	/**
+	 * Ouvre le menu contextuel du mot si le split automatique est permis.
+	 *
+	 * @param {number} wordIndex Index 0-based du mot cliqué.
+	 * @param {MouseEvent} event Événement natif de clic droit.
+	 */
+	function handleWordContextMenu(wordIndex: number, event: MouseEvent): void {
+		event.preventDefault();
+
+		if (!canShowAutomaticSplitForWord(wordIndex)) {
+			const editSubtitle = subtitlesEditorState().editSubtitle;
+			if (
+				editSubtitle instanceof SubtitleClip &&
+				editSubtitle.alignmentMetadata &&
+				editSubtitle.alignmentMetadata.words.length === 0
+			) {
+				console.warn(
+					'[WordsSelector] Automatic split is unavailable because MFA word timestamps were not loaded for this clip.',
+					{
+						clipId: editSubtitle.id,
+						surah: editSubtitle.surah,
+						verse: editSubtitle.verse,
+						wordIndex
+					}
+				);
+			}
+			contextMenuWordIndex = null;
+			return;
+		}
+
+		event.preventDefault();
+		contextMenuWordIndex = wordIndex;
+		wordContextMenu?.show(event);
+	}
+
+	/**
+	 * Lance le split automatique sur le mot actuellement visé par le menu contextuel.
+	 */
+	async function handleAutomaticSplitFromContextMenu(): Promise<void> {
+		const wordIndex = contextMenuWordIndex;
+		const editSubtitle = subtitlesEditorState().editSubtitle;
+		const segmentationContext = globalState.getSubtitlesEditorState.segmentationContext;
+		contextMenuWordIndex = null;
+		currentMenu.set(null);
+		await tick();
+
+		if (wordIndex === null || !(editSubtitle instanceof SubtitleClip)) return;
+		if (
+			!segmentationContext.includeWbwTimestamps &&
+			(editSubtitle.alignmentMetadata?.words.length ?? 0) === 0
+		) {
+			toast.error(
+				'This subtitle was generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.'
+			);
+			return;
+		}
+
+		await toast.promise(
+			(async () => {
+				const didSplit = await automaticSplitSubtitleAtWord(editSubtitle, wordIndex);
+				if (!didSplit) {
+					throw new Error('Automatic split failed for this word.');
+				}
+			})(),
+			{
+				loading: 'Calculating the split point...',
+				success: 'Subtitle split applied.',
+				error: 'Unable to split this subtitle automatically.'
+			}
+		);
 	}
 
 	$effect(() => {
@@ -592,6 +685,7 @@
 						onmousedown={(event) => handleWordMouseDown(index, event)}
 						onmouseenter={() => handleWordMouseEnter(index)}
 						onclick={() => handleWordClick(index)}
+						oncontextmenu={(event) => handleWordContextMenu(index, event)}
 						ondragstart={(event) => event.preventDefault()}
 					>
 						<p class="text-center w-full font-medium">{word.arabic}</p>
@@ -618,6 +712,17 @@
 		{/await}
 	</div>
 </section>
+
+<ContextMenu bind:this={wordContextMenu}>
+	{#if contextMenuWordIndex !== null}
+		<Item on:click={handleAutomaticSplitFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split automatically
+				at this word
+			</div></Item
+		>
+	{/if}
+</ContextMenu>
 
 <style>
 	.word-selected {

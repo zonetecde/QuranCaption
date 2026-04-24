@@ -35,6 +35,7 @@ export function trackSegmentationRun(params: {
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
+	includeWordByWord: boolean;
 	fillBySilence: boolean;
 	extendBeforeSilence: boolean;
 	extendBeforeSilenceMs: number;
@@ -72,6 +73,7 @@ export function trackSegmentationRun(params: {
 		min_silence_ms: params.minSilenceMs,
 		min_speech_ms: params.minSpeechMs,
 		pad_ms: params.padMs,
+		include_word_by_word: params.includeWordByWord,
 		fill_by_silence: params.fillBySilence,
 		extend_before_silence: params.extendBeforeSilence,
 		extend_before_silence_ms: params.extendBeforeSilenceMs,

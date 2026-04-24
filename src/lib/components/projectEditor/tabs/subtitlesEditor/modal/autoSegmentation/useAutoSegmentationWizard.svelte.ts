@@ -38,6 +38,7 @@ export function useAutoSegmentationWizard() {
 	let minSilenceMs = $state(persisted?.minSilenceMs ?? 200);
 	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
 	let padMs = $state(persisted?.padMs ?? 100);
+	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? false);
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
 	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);
 	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);
@@ -384,6 +385,7 @@ export function useAutoSegmentationWizard() {
 						device: selection.device,
 						hfToken: selection.hfToken,
 						allowCloudFallback: selection.mode !== 'local',
+						includeWbwTimestamps,
 						fillBySilence,
 						extendBeforeSilence,
 						extendBeforeSilenceMs
@@ -414,6 +416,7 @@ export function useAutoSegmentationWizard() {
 				minSilenceMs,
 				minSpeechMs,
 				padMs,
+				includeWordByWord: includeWbwTimestamps,
 				fillBySilence,
 				extendBeforeSilence,
 				extendBeforeSilenceMs,
@@ -474,6 +477,11 @@ export function useAutoSegmentationWizard() {
 		padMs = value;
 		persistPatch({ padMs: value });
 	}
+	/** Active ou non la récupération des timestamps mot à mot. */
+	function setIncludeWbwTimestamps(value: boolean): void {
+		includeWbwTimestamps = value;
+		persistPatch({ includeWbwTimestamps: value });
+	}
 	/** Sets fill-by-silence and persists it. */
 	function setFillBySilence(value: boolean): void {
 		fillBySilence = value;
@@ -527,6 +535,9 @@ export function useAutoSegmentationWizard() {
 		},
 		get padMs() {
 			return padMs;
+		},
+		get includeWbwTimestamps() {
+			return includeWbwTimestamps;
 		},
 		get fillBySilence() {
 			return fillBySilence;
@@ -631,6 +642,7 @@ export function useAutoSegmentationWizard() {
 		setMinSilence,
 		setMinSpeech,
 		setPad,
+		setIncludeWbwTimestamps,
 		setFillBySilence,
 		setExtendBeforeSilence,
 		setExtendBeforeSilenceMs,

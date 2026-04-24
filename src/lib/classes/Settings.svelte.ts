@@ -20,6 +20,7 @@ export type AutoSegmentationSettings = {
 	cloudModel: 'Base' | 'Large';
 	device: 'GPU' | 'CPU';
 	hfToken: string;
+	includeWbwTimestamps: boolean;
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
@@ -96,6 +97,7 @@ export default class Settings extends SerializableBase {
 		cloudModel: 'Base',
 		device: 'GPU',
 		hfToken: '',
+		includeWbwTimestamps: false,
 		fillBySilence: true,
 		extendBeforeSilence: false,
 		extendBeforeSilenceMs: 50

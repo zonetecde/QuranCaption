@@ -3,10 +3,20 @@
 	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
+	import {
+		SUBDIVIDE_MAX_DURATION_DISABLED,
+		SUBDIVIDE_MAX_VERSES_DISABLED,
+		SUBDIVIDE_MAX_WORDS_DISABLED,
+		clearLongSegmentsReview,
+		getLongSubtitleClips,
+		markLongSegmentsForReview,
+		subdivideLongSubtitleSegments
+	} from '$lib/services/AutoSegmentation';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 
 	import { fade } from 'svelte/transition';
 	import { onDestroy, onMount } from 'svelte';
+	import toast from 'svelte-5-french-toast';
 
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
@@ -21,6 +31,12 @@
 	);
 	// Compte le nombre de segments revus
 	let reviewedCount = $derived(Math.max(0, initialLowConfidenceCount - segmentsNeedingReview));
+	let longSegmentsMatchingThreshold = $derived(
+		getLongSubtitleClips(globalState.getSubtitlesEditorState.longSegmentMinWords).length
+	);
+	let longSegmentsMarkedCount = $derived(
+		(globalState.getSubtitleClips || []).filter((clip) => clip.needsLongReview === true).length
+	);
 
 	// Navigation vers le prochain segment à review
 	function goToNextSegmentToReview() {
@@ -36,6 +52,87 @@
 			globalState.getTimelineState.movePreviewTo = nextSegment.startTime;
 			globalState.getVideoPreviewState.scrollTimelineToCursor();
 		}
+	}
+
+	/**
+	 * Déplace le curseur de la timeline sur un sous-titre donné.
+	 *
+	 * @param {SubtitleClip} clip Sous-titre cible.
+	 */
+	function moveCursorToSubtitle(clip: SubtitleClip): void {
+		globalState.getTimelineState.cursorPosition = clip.startTime;
+		globalState.getTimelineState.movePreviewTo = clip.startTime;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
+	}
+
+	/**
+	 * Navigue vers le prochain sous-titre marqué comme trop long.
+	 */
+	function goToNextLongSegment(): void {
+		const clips = (globalState.getSubtitleClips || [])
+			.filter((clip) => clip.needsLongReview === true)
+			.sort((a, b) => a.startTime - b.startTime);
+		if (clips.length === 0) return;
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const nextClip =
+			clips.find((clip) => clip.startTime > cursorPosition) ??
+			clips.find((clip) => clip.endTime >= cursorPosition) ??
+			clips[0];
+		moveCursorToSubtitle(nextClip);
+	}
+
+	/**
+	 * Retourne le libellé affiché à côté d'un slider de subdivision.
+	 *
+	 * @param {number} value Valeur courante.
+	 * @param {number} disabledValue Valeur qui désactive le critère.
+	 * @returns {string} Valeur affichable, ou `Off`.
+	 */
+	function getSubdivideValueLabel(value: number, disabledValue: number): string {
+		return value >= disabledValue ? 'Off' : String(value);
+	}
+
+	/**
+	 * Marque en rose tous les segments dépassant le seuil courant.
+	 */
+	function handleMarkLongSegments(): void {
+		const markedCount = markLongSegmentsForReview(globalState.getSubtitlesEditorState.longSegmentMinWords);
+		if (markedCount <= 0) {
+			toast('No long segment matches the current threshold.');
+			return;
+		}
+
+		toast.success(`${markedCount} long segment${markedCount > 1 ? 's were' : ' was'} marked.`);
+	}
+
+	/**
+	 * Efface tous les marquages roses de segments longs.
+	 */
+	function handleClearLongSegments(): void {
+		clearLongSegmentsReview();
+	}
+
+	/**
+	 * Lance la subdivision automatique des segments longs selon les critères actifs.
+	 */
+	async function handleSubdivideLongSegments(): Promise<void> {
+		if (!globalState.getSubtitlesEditorState.segmentationContext.includeWbwTimestamps) {
+			toast.error(
+				'These subtitles were generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.'
+			);
+			return;
+		}
+
+		const splitCount = await subdivideLongSubtitleSegments();
+		if (splitCount <= 0) {
+			toast('No subtitles match the current split rules.');
+			return;
+		}
+
+		toast.success(
+			`${splitCount} subtitle split${splitCount > 1 ? 's were' : ' was'} applied automatically.`
+		);
 	}
 
 	type SpecialPreset =
@@ -406,6 +503,219 @@
 					</button>
 				</div>
 			{/if}
+
+			<div class="bg-accent rounded-lg p-3 space-y-3">
+				<div class="flex items-center justify-between gap-2">
+					<div class="flex items-center gap-1.5">
+						<span class="material-icons text-pink-400 text-sm">flag</span>
+						<span class="text-xs text-secondary">Long segments</span>
+					</div>
+					<span class="text-xs font-bold text-pink-400">{longSegmentsMarkedCount} marked</span>
+				</div>
+
+				<div class="space-y-2">
+					<label class="text-[11px] text-thirdly" for="long-segment-min-words">
+						Min words
+					</label>
+					<input
+						id="long-segment-min-words"
+						type="number"
+						min="1"
+						bind:value={globalState.getSubtitlesEditorState.longSegmentMinWords}
+						class="w-full rounded-md border border-color bg-secondary px-2 py-1.5 text-sm text-primary"
+					/>
+					<p class="text-[10px] text-thirdly">
+						{longSegmentsMatchingThreshold} segment(s) match the current threshold.
+					</p>
+				</div>
+
+				<div class="grid grid-cols-3 gap-2">
+					<button
+						class="px-2 py-1.5 rounded-md bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-pink-500/30 transition cursor-pointer"
+						type="button"
+						onclick={handleMarkLongSegments}
+					>
+						<span class="material-icons text-sm">flag</span>
+						Mark
+					</button>
+					<button
+						class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+						type="button"
+						onclick={goToNextLongSegment}
+						disabled={longSegmentsMarkedCount <= 0}
+					>
+						<span class="material-icons text-sm">skip_next</span>
+						Next
+					</button>
+					<button
+						class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+						type="button"
+						onclick={handleClearLongSegments}
+						disabled={longSegmentsMarkedCount <= 0}
+					>
+						<span class="material-icons text-sm">cancel</span>
+						Clear
+					</button>
+				</div>
+			</div>
+
+			<div class="bg-accent rounded-lg p-4 space-y-4">
+				<p class="text-sm font-medium text-primary">
+					Subdivide long segments at word boundaries. Sliders at max mean criterion disabled.
+				</p>
+
+				<div class="space-y-4">
+					<div class="space-y-2">
+						<div class="flex items-center justify-between gap-2">
+							<span class="text-sm text-primary">
+								Max verses per segment:
+								{getSubdivideValueLabel(
+									globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment,
+									SUBDIVIDE_MAX_VERSES_DISABLED
+								)}
+							</span>
+							<div class="flex items-center gap-1">
+								<input
+									type="number"
+									min="1"
+									max={SUBDIVIDE_MAX_VERSES_DISABLED}
+									bind:value={globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment}
+									class="w-14 rounded-md border border-color bg-secondary px-2 py-1 text-sm text-primary"
+								/>
+								<button
+									class="rounded-md border border-color px-2 py-1 text-secondary hover:bg-secondary transition cursor-pointer"
+									type="button"
+									onclick={() => {
+										globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment = 1;
+									}}
+								>
+									↺
+								</button>
+							</div>
+						</div>
+						<input
+							type="range"
+							min="1"
+							max={SUBDIVIDE_MAX_VERSES_DISABLED}
+							step="1"
+							bind:value={globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment}
+							class="w-full"
+						/>
+						<div class="flex items-center justify-between text-[10px] text-thirdly">
+							<span>1</span>
+							<span>{SUBDIVIDE_MAX_VERSES_DISABLED}</span>
+						</div>
+					</div>
+
+					<div class="space-y-2">
+						<div class="flex items-center justify-between gap-2">
+							<span class="text-sm text-primary">
+								Max words per segment:
+								{getSubdivideValueLabel(
+									globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment,
+									SUBDIVIDE_MAX_WORDS_DISABLED
+								)}
+							</span>
+							<div class="flex items-center gap-1">
+								<input
+									type="number"
+									min="5"
+									max={SUBDIVIDE_MAX_WORDS_DISABLED}
+									bind:value={globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment}
+									class="w-14 rounded-md border border-color bg-secondary px-2 py-1 text-sm text-primary"
+								/>
+								<button
+									class="rounded-md border border-color px-2 py-1 text-secondary hover:bg-secondary transition cursor-pointer"
+									type="button"
+									onclick={() => {
+										globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment = SUBDIVIDE_MAX_WORDS_DISABLED;
+									}}
+								>
+									↺
+								</button>
+							</div>
+						</div>
+						<input
+							type="range"
+							min="5"
+							max={SUBDIVIDE_MAX_WORDS_DISABLED}
+							step="1"
+							bind:value={globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment}
+							class="w-full"
+						/>
+						<div class="flex items-center justify-between text-[10px] text-thirdly">
+							<span>5</span>
+							<span>{SUBDIVIDE_MAX_WORDS_DISABLED}</span>
+						</div>
+					</div>
+
+					<div class="space-y-2">
+						<div class="flex items-center justify-between gap-2">
+							<span class="text-sm text-primary">
+								Max duration per segment (s):
+								{getSubdivideValueLabel(
+									globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment,
+									SUBDIVIDE_MAX_DURATION_DISABLED
+								)}
+							</span>
+							<div class="flex items-center gap-1">
+								<input
+									type="number"
+									min="5"
+									max={SUBDIVIDE_MAX_DURATION_DISABLED}
+									bind:value={globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment}
+									class="w-14 rounded-md border border-color bg-secondary px-2 py-1 text-sm text-primary"
+								/>
+								<button
+									class="rounded-md border border-color px-2 py-1 text-secondary hover:bg-secondary transition cursor-pointer"
+									type="button"
+									onclick={() => {
+										globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment = SUBDIVIDE_MAX_DURATION_DISABLED;
+									}}
+								>
+									↺
+								</button>
+							</div>
+						</div>
+						<input
+							type="range"
+							min="5"
+							max={SUBDIVIDE_MAX_DURATION_DISABLED}
+							step="1"
+							bind:value={globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment}
+							class="w-full"
+						/>
+						<div class="flex items-center justify-between text-[10px] text-thirdly">
+							<span>5</span>
+							<span>{SUBDIVIDE_MAX_DURATION_DISABLED}</span>
+						</div>
+					</div>
+				</div>
+
+				<label class="flex items-start gap-2 cursor-pointer">
+					<input
+						type="checkbox"
+						bind:checked={globalState.getSubtitlesEditorState.subdivideOnlySplitAtStopSigns}
+						class="mt-0.5 w-4 h-4"
+					/>
+					<span class="space-y-1">
+						<span class="block text-sm text-primary">Only split at stop signs</span>
+						<span class="block text-xs text-thirdly">
+							Segments without a waqf mark stay as-is, even if they exceed word/duration
+							limits. Verse splitting is unaffected.
+						</span>
+					</span>
+				</label>
+
+				<button
+					class="btn-accent w-full px-3 py-2 rounded-md text-sm flex items-center justify-center gap-2"
+					type="button"
+					onclick={handleSubdivideLongSegments}
+				>
+					<span class="material-icons text-base">call_split</span>
+					Split
+				</button>
+			</div>
 		</div>
 	{/if}
 </div>

@@ -16,6 +16,7 @@ use crate::utils::temp_file::TempFileGuard;
 use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{
     SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL,
+    QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL, QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
     QURAN_MULTI_ALIGNER_PROCESS_CALL_URL, QURAN_MULTI_ALIGNER_UPLOAD_URL,
     QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
 };
@@ -234,6 +235,294 @@ pub async fn estimate_duration(
         }
     }
     Ok(payload)
+}
+
+/// Valide la combinaison modèle/device attendue par les endpoints cloud.
+fn validate_model_and_device(
+    model_name: Option<String>,
+    device: Option<String>,
+) -> Result<(String, String), String> {
+    let selected_model = model_name.unwrap_or_else(|| "Base".to_string());
+    if selected_model != "Base" && selected_model != "Large" {
+        return Err(format!(
+            "Invalid model_name '{}'. Expected 'Base' or 'Large'.",
+            selected_model
+        ));
+    }
+
+    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
+    if selected_device != "GPU" && selected_device != "CPU" {
+        return Err(format!(
+            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
+            selected_device
+        ));
+    }
+
+    Ok((selected_model, selected_device))
+}
+
+/// Upload un fichier audio vers Gradio et renvoie le chemin serveur retourné.
+async fn upload_audio_file(
+    client: &reqwest::Client,
+    file_path: &std::path::Path,
+    file_name: &str,
+    mime_type: &str,
+) -> Result<String, String> {
+    let audio_bytes = fs::read(file_path)
+        .map_err(|e| format!("Failed to read audio upload payload: {}", e))?;
+    if audio_bytes.is_empty() {
+        return Err("Audio upload payload is empty".to_string());
+    }
+
+    let upload_part = Part::bytes(audio_bytes)
+        .file_name(file_name.to_string())
+        .mime_str(mime_type)
+        .map_err(|e| e.to_string())?;
+    let upload_form = Form::new().part("files", upload_part);
+
+    let upload_response = client
+        .post(QURAN_MULTI_ALIGNER_UPLOAD_URL)
+        .multipart(upload_form)
+        .send()
+        .await
+        .map_err(|e| format!("Upload request failed: {}", e))?
+        .error_for_status()
+        .map_err(|e| format!("Upload request error: {}", e))?;
+
+    let uploaded_paths: Vec<String> = upload_response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse upload response: {}", e))?;
+
+    uploaded_paths
+        .first()
+        .cloned()
+        .ok_or_else(|| "Upload response was empty".to_string())
+}
+
+/// Lance un endpoint Gradio `call/*` puis attend le payload final sur le flux SSE associé.
+async fn call_gradio_endpoint(
+    client: &reqwest::Client,
+    call_url: &str,
+    stream_endpoint: &str,
+    data: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let call_payload = serde_json::json!({ "data": data });
+    let call_response = client
+        .post(call_url)
+        .json(&call_payload)
+        .send()
+        .await
+        .map_err(|e| format!("Endpoint call failed: {}", e))?
+        .error_for_status()
+        .map_err(|e| format!("Endpoint call error: {}", e))?;
+    let call_json: serde_json::Value = call_response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse endpoint call response: {}", e))?;
+
+    let event_id = call_json
+        .get("event_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "Endpoint call did not return an event_id".to_string())?;
+
+    let stream_url = format!("{}/call/{}/{}", QURAN_MULTI_ALIGNER_BASE_URL, stream_endpoint, event_id);
+    let stream_response = client
+        .get(&stream_url)
+        .send()
+        .await
+        .map_err(|e| format!("Endpoint stream request failed: {}", e))?
+        .error_for_status()
+        .map_err(|e| format!("Endpoint stream request error: {}", e))?;
+
+    let mut sse_parser = SseAccumulator::default();
+    let mut buffered_bytes: Vec<u8> = Vec::new();
+    let mut completed_payload: Option<serde_json::Value> = None;
+    let mut stream = stream_response.bytes_stream();
+
+    'stream_loop: while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.map_err(|e| format!("Failed to read endpoint stream: {}", e))?;
+        if chunk.is_empty() {
+            continue;
+        }
+
+        buffered_bytes.extend_from_slice(&chunk);
+        while let Some(newline_pos) = buffered_bytes.iter().position(|byte| *byte == b'\n') {
+            let line_bytes = buffered_bytes.drain(..=newline_pos).collect::<Vec<u8>>();
+            let mut line_slice = line_bytes.as_slice();
+            if line_slice.ends_with(b"\n") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+            if line_slice.ends_with(b"\r") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+            let line = String::from_utf8_lossy(line_slice);
+            if let Some(payload) = sse_parser.push_line(&line)? {
+                completed_payload = Some(payload);
+                break 'stream_loop;
+            }
+        }
+    }
+
+    if completed_payload.is_none() && !buffered_bytes.is_empty() {
+        let trailing_line = String::from_utf8_lossy(&buffered_bytes);
+        if let Some(payload) = sse_parser.push_line(&trailing_line)? {
+            completed_payload = Some(payload);
+        }
+    }
+
+    let payload = if let Some(payload) = completed_payload {
+        payload
+    } else {
+        sse_parser.finish()?
+    };
+
+    if let Some(values) = payload.as_array() {
+        if let Some(first) = values.first() {
+            return Ok(first.clone());
+        }
+    }
+
+    Ok(payload)
+}
+
+/// Prépare un fichier WAV 16kHz mono réutilisable pour l'endpoint MFA direct.
+fn prepare_audio_for_mfa_direct(
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+) -> Result<(std::path::PathBuf, TempFileGuard, Option<TempFileGuard>), String> {
+    let ffmpeg_path =
+        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+
+    let mut merged_guard: Option<TempFileGuard> = None;
+    let source_audio_path = if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
+        let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
+        if needs_merge {
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+            merged_guard = Some(guard);
+            merged_path
+        } else {
+            path_utils::normalize_existing_path(&clips[0].path)
+        }
+    } else if let Some(path) = audio_path.as_ref() {
+        path_utils::normalize_existing_path(path)
+    } else {
+        return Err("Audio file not found: missing audioPath/audioClips".to_string());
+    };
+
+    if !source_audio_path.exists() {
+        return Err(format!(
+            "Audio file not found: {}",
+            source_audio_path.to_string_lossy()
+        ));
+    }
+
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_millis();
+    let temp_path = std::env::temp_dir().join(format!("qurancaption-mfa-{}.wav", stamp));
+    let temp_guard = TempFileGuard(temp_path.clone());
+
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args([
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        source_audio_path.to_string_lossy().as_ref(),
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-c:a",
+        "pcm_s16le",
+        "-vn",
+        temp_path.to_string_lossy().as_ref(),
+    ]);
+    configure_command_no_window(&mut cmd);
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg error: {}", stderr));
+    }
+
+    Ok((temp_path, temp_guard, merged_guard))
+}
+
+/// Récupère les timestamps MFA pour une session cloud existante.
+pub async fn mfa_timestamps_session(
+    audio_id: String,
+    segments: serde_json::Value,
+    granularity: Option<String>,
+) -> Result<serde_json::Value, String> {
+    if audio_id.trim().is_empty() {
+        return Err("audio_id is required.".to_string());
+    }
+    if !segments.is_array() {
+        return Err("segments must be a JSON array.".to_string());
+    }
+
+    let selected_granularity = match granularity.as_deref() {
+        Some("words+chars") => "words+chars",
+        _ => "words",
+    };
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    call_gradio_endpoint(
+        &client,
+        QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
+        "timestamps",
+        serde_json::json!([audio_id, segments, selected_granularity]),
+    )
+    .await
+}
+
+/// Récupère les timestamps MFA à partir d'un fichier audio préparé côté app.
+pub async fn mfa_timestamps_direct(
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    segments: serde_json::Value,
+    granularity: Option<String>,
+) -> Result<serde_json::Value, String> {
+    if !segments.is_array() {
+        return Err("segments must be a JSON array.".to_string());
+    }
+
+    let selected_granularity = match granularity.as_deref() {
+        Some("words+chars") => "words+chars",
+        _ => "words",
+    };
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    let (prepared_path, _temp_guard, _merged_guard) =
+        prepare_audio_for_mfa_direct(audio_path, audio_clips)?;
+    let uploaded_path = upload_audio_file(&client, &prepared_path, "audio.wav", "audio/wav").await?;
+    let file_payload = serde_json::json!({
+        "path": uploaded_path,
+        "orig_name": "audio.wav",
+        "mime_type": "audio/wav",
+        "meta": { "_type": "gradio.FileData" }
+    });
+
+    call_gradio_endpoint(
+        &client,
+        QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL,
+        "timestamps_direct",
+        serde_json::json!([file_payload, segments, selected_granularity]),
+    )
+    .await
 }
 
 /// Exécute la segmentation cloud via Quran Multi-Aligner (upload, call, stream SSE).

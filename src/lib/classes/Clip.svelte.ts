@@ -15,6 +15,7 @@ import type { Track } from './Track.svelte';
 import type { Category, StyleName } from './VideoStyle.svelte';
 import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
+import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 
 type ClipType =
 	| 'Silence'
@@ -170,6 +171,7 @@ export class ClipWithTranslation extends Clip {
 	text: string = $state('');
 	arabicInlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
 	associatedImagePath: string | null = $state(null);
+	needsLongReview: boolean = $state(false); // Vrai si le segment a été marqué comme trop long.
 	comeFromIA: boolean = $state(false);
 	confidence: number | null = $state(null); // Entre 0 et 1
 	needsReview: boolean = $state(false); // Vrai si c'est un segment à low-confidence et qu'il n'a pas encore été reviewé
@@ -281,6 +283,7 @@ export class SubtitleClip extends ClipWithTranslation {
 	endWordIndex: number;
 	indopakText: string;
 	private isHydratingIndopakText = false;
+	alignmentMetadata: SubtitleAlignmentMetadata | null = $state(null);
 	wbwTranslation: string[]; // Traduction mot à mot
 	isFullVerse: boolean; // Indique si ce clip contient l'intégralité du verset
 	isLastWordsOfVerse: boolean; // Indique si ce clip contient les derniers mots du verset
@@ -311,6 +314,22 @@ export class SubtitleClip extends ClipWithTranslation {
 		this.wbwTranslation = $state(wbwTranslation);
 		this.isFullVerse = $state(isFullVerse);
 		this.isLastWordsOfVerse = $state(isLastWordsOfVerse);
+	}
+
+	/**
+	 * Invalide les métadonnées d'alignement quand le clip devient manuel.
+	 */
+	override markAsManualEdit() {
+		super.markAsManualEdit();
+		if (!this.alignmentMetadata) return;
+
+		this.alignmentMetadata = null;
+		const currentContext = globalState.getSubtitlesEditorState.segmentationContext;
+		globalState.getSubtitlesEditorState.segmentationContext = {
+			...currentContext,
+			audioId: null,
+			alignedSegments: []
+		};
 	}
 
 	/**

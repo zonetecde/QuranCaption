@@ -135,9 +135,6 @@
 						return;
 					}
 					if (clip instanceof SilenceClip || clip instanceof ClipWithTranslation) {
-						if (clip instanceof ClipWithTranslation) {
-							clip.markAsManualEdit();
-						}
 						s.editSubtitle = clip;
 
 						// get fade duration from timeline settings

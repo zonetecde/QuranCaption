@@ -98,6 +98,29 @@ describe('parseImportedSegmentationJson', () => {
 		expect(parsed.response.segments?.[0].time_to).toBe(2.5);
 	});
 
+	it('keeps audio_id and normalized word timestamps from imported payloads', () => {
+		const parsed = parseImportedSegmentationJson({
+			audio_id: 'session-123',
+			segments: [
+				{
+					segment: 1,
+					time_from: 0,
+					time_to: 2,
+					words: [
+						['1:1:1', 0, 0.5],
+						{ location: '1:1:2', start: 0.5, end: 1.1, word: 'word' }
+					]
+				}
+			]
+		});
+
+		expect(parsed.response.audio_id).toBe('session-123');
+		expect(parsed.response.segments?.[0].words).toEqual([
+			{ location: '1:1:1', start: 0, end: 0.5 },
+			{ location: '1:1:2', start: 0.5, end: 1.1, word: 'word' }
+		]);
+	});
+
 	it("throws when payload has no 'segments' array", () => {
 		expect(() => parseImportedSegmentationJson({ foo: 'bar' })).toThrow(
 			"Invalid payload: missing 'segments' array."

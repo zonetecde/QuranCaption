@@ -312,6 +312,7 @@ export default class MigrationService {
 			cloudModel?: 'Base' | 'Large';
 			device?: 'GPU' | 'CPU';
 			hfToken?: string;
+			includeWbwTimestamps?: boolean;
 			fillBySilence?: boolean;
 			extendBeforeSilence?: boolean;
 			extendBeforeSilenceMs?: number;
@@ -345,6 +346,10 @@ export default class MigrationService {
 		}
 		if (typeof autoSegmentationSettings.hfToken !== 'string') {
 			autoSegmentationSettings.hfToken = '';
+			hasChanges = true;
+		}
+		if (typeof autoSegmentationSettings.includeWbwTimestamps !== 'boolean') {
+			autoSegmentationSettings.includeWbwTimestamps = false;
 			hasChanges = true;
 		}
 		if (typeof autoSegmentationSettings.minSilenceMs !== 'number') {

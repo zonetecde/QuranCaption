@@ -63,6 +63,10 @@
 		return clip.needsCoverageReview === true;
 	});
 
+	const isLongReview = $derived(() => {
+		return clip.needsLongReview === true;
+	});
+
 	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
 	let dragStartX: number | null = null;
@@ -231,9 +235,6 @@
 			globalState.getSubtitlesEditorState.editSubtitle = null;
 			return;
 		}
-		if (clip.type !== 'Silence') {
-			clip.markAsManualEdit();
-		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
 
@@ -252,12 +253,15 @@
 </script>
 
 <div
-	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
+		class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
 		(isSelected()
 			? ' bg-[var(--subtitle-selection-bg)]! border-[var(--subtitle-selection-border)]! '
 			: '') +
 		(isCoverageGap() && !isSelected() ? ' ai-coverage-gap ' : '') +
-		(!isCoverageGap() && isLowConfidence() && !isSelected() ? ' ai-low-confidence ' : '') +
+		(!isCoverageGap() && isLongReview() && !isSelected() ? ' ai-too-long ' : '') +
+		(!isCoverageGap() && !isLongReview() && isLowConfidence() && !isSelected()
+			? ' ai-low-confidence '
+			: '') +
 		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ||
 		globalState.currentProject!.projectEditorState.currentTab === 'Video editor'
 			? 'cursor-pointer'
@@ -438,5 +442,10 @@
 	.ai-coverage-gap {
 		background-color: rgba(219, 128, 92, 0.35) !important;
 		border-color: rgba(219, 92, 92, 0.7) !important;
+	}
+
+	.ai-too-long {
+		background-color: rgba(236, 72, 153, 0.28) !important;
+		border-color: rgba(244, 114, 182, 0.7) !important;
 	}
 </style>

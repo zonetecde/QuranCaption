@@ -517,7 +517,7 @@
 					console.error('Howler load error:', error);
 					if (error === 'No codec support for selected audio sources.') {
 						toast.error(
-							'Pleae convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)'
+							'Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)'
 						);
 						return;
 					}

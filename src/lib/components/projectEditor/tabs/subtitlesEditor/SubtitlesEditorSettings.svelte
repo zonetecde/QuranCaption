@@ -37,6 +37,10 @@
 	let longSegmentsMarkedCount = $derived(
 		(globalState.getSubtitleClips || []).filter((clip) => clip.needsLongReview === true).length
 	);
+	let hasSubtitleSegments = $derived((globalState.getSubtitleClips || []).length > 0);
+	let hasUsedAiSegmentation = $derived(
+		globalState.getSubtitlesEditorState.segmentationContext.source !== null
+	);
 
 	// Navigation vers le prochain segment à review
 	function goToNextSegmentToReview() {
@@ -504,65 +508,68 @@
 				</div>
 			{/if}
 
-			<div class="bg-accent rounded-lg p-3 space-y-3">
-				<div class="flex items-center justify-between gap-2">
-					<div class="flex items-center gap-1.5">
-						<span class="material-icons text-pink-400 text-sm">flag</span>
-						<span class="text-xs text-secondary">Long segments</span>
+			{#if hasSubtitleSegments}
+				<div class="bg-accent rounded-lg p-3 space-y-3">
+					<div class="flex items-center justify-between gap-2">
+						<div class="flex items-center gap-1.5">
+							<span class="material-icons text-pink-400 text-sm">flag</span>
+							<span class="text-xs text-secondary">Long segments</span>
+						</div>
+						<span class="text-xs font-bold text-pink-400">{longSegmentsMarkedCount} marked</span>
 					</div>
-					<span class="text-xs font-bold text-pink-400">{longSegmentsMarkedCount} marked</span>
-				</div>
 
-				<div class="space-y-2">
-					<label class="text-[11px] text-thirdly" for="long-segment-min-words">
-						Min words
-					</label>
-					<input
-						id="long-segment-min-words"
-						type="number"
-						min="1"
-						bind:value={globalState.getSubtitlesEditorState.longSegmentMinWords}
-						class="w-full rounded-md border border-color bg-secondary px-2 py-1.5 text-sm text-primary"
-					/>
-					<p class="text-[10px] text-thirdly">
-						{longSegmentsMatchingThreshold} segment(s) match the current threshold.
+					<div class="space-y-2">
+						<label class="text-[11px] text-thirdly" for="long-segment-min-words">
+							Min words
+						</label>
+						<input
+							id="long-segment-min-words"
+							type="number"
+							min="1"
+							bind:value={globalState.getSubtitlesEditorState.longSegmentMinWords}
+							class="w-full rounded-md border border-color bg-secondary px-2 py-1.5 text-sm text-primary"
+						/>
+						<p class="text-[10px] text-thirdly">
+							{longSegmentsMatchingThreshold} segment(s) match the current threshold.
+						</p>
+					</div>
+
+					<div class="grid grid-cols-3 gap-2">
+						<button
+							class="px-2 py-1.5 rounded-md bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-pink-500/30 transition cursor-pointer"
+							type="button"
+							onclick={handleMarkLongSegments}
+						>
+							<span class="material-icons text-sm">flag</span>
+							Mark
+						</button>
+						<button
+							class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+							type="button"
+							onclick={goToNextLongSegment}
+							disabled={longSegmentsMarkedCount <= 0}
+						>
+							<span class="material-icons text-sm">skip_next</span>
+							Next
+						</button>
+						<button
+							class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+							type="button"
+							onclick={handleClearLongSegments}
+							disabled={longSegmentsMarkedCount <= 0}
+						>
+							<span class="material-icons text-sm">cancel</span>
+							Clear
+						</button>
+					</div>
+				</div>
+			{/if}
+
+			{#if hasUsedAiSegmentation}
+				<div class="bg-accent rounded-lg p-4 space-y-4">
+					<p class="text-sm font-medium text-primary">
+						Subdivide long segments at word boundaries. Sliders at max mean criterion disabled.
 					</p>
-				</div>
-
-				<div class="grid grid-cols-3 gap-2">
-					<button
-						class="px-2 py-1.5 rounded-md bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-pink-500/30 transition cursor-pointer"
-						type="button"
-						onclick={handleMarkLongSegments}
-					>
-						<span class="material-icons text-sm">flag</span>
-						Mark
-					</button>
-					<button
-						class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-						type="button"
-						onclick={goToNextLongSegment}
-						disabled={longSegmentsMarkedCount <= 0}
-					>
-						<span class="material-icons text-sm">skip_next</span>
-						Next
-					</button>
-					<button
-						class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-						type="button"
-						onclick={handleClearLongSegments}
-						disabled={longSegmentsMarkedCount <= 0}
-					>
-						<span class="material-icons text-sm">cancel</span>
-						Clear
-					</button>
-				</div>
-			</div>
-
-			<div class="bg-accent rounded-lg p-4 space-y-4">
-				<p class="text-sm font-medium text-primary">
-					Subdivide long segments at word boundaries. Sliders at max mean criterion disabled.
-				</p>
 
 				<div class="space-y-4">
 					<div class="space-y-2">
@@ -707,15 +714,16 @@
 					</span>
 				</label>
 
-				<button
-					class="btn-accent w-full px-3 py-2 rounded-md text-sm flex items-center justify-center gap-2"
-					type="button"
-					onclick={handleSubdivideLongSegments}
-				>
-					<span class="material-icons text-base">call_split</span>
-					Split
-				</button>
-			</div>
+					<button
+						class="btn-accent w-full px-3 py-2 rounded-md text-sm flex items-center justify-center gap-2"
+						type="button"
+						onclick={handleSubdivideLongSegments}
+					>
+						<span class="material-icons text-base">call_split</span>
+						Split
+					</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

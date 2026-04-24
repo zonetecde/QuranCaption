@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
-	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
+	import {
+		canonicalizePredefinedSubtitleType,
+		hasClipReviewIssue,
+		isClipPendingVerification
+	} from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -20,14 +24,53 @@
 
 	// Compte le nombre de segments à revue
 	let segmentsNeedingReview = $derived(
-		(globalState.getSubtitleClips || []).filter((clip) => clip.needsReview === true).length
+		(globalState.getSubtitleTrack?.clips || []).filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				isClipPendingVerification(clip)
+		).length
 	);
 	// Compte le nombre de segments initialement à review
 	let initialLowConfidenceCount = $derived(
-		globalState.getSubtitlesEditorState?.initialLowConfidenceCount ?? 0
+		(globalState.getSubtitleTrack?.clips || []).filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				hasClipReviewIssue(clip)
+		).length
 	);
 	// Compte le nombre de segments revus
-	let reviewedCount = $derived(Math.max(0, initialLowConfidenceCount - segmentsNeedingReview));
+	let reviewedCount = $derived(
+		(globalState.getSubtitleTrack?.clips || []).filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				hasClipReviewIssue(clip) &&
+				clip.hasBeenVerified === true
+		).length
+	);
+	let lowConfidenceSegmentsNeedingReview = $derived(
+		(globalState.getSubtitleTrack?.clips || []).filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				isClipPendingVerification(clip) &&
+				clip.needsReview
+		).length
+	);
+	let coverageSegmentsNeedingReview = $derived(
+		(globalState.getSubtitleTrack?.clips || []).filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				isClipPendingVerification(clip) &&
+				clip.needsCoverageReview
+		).length
+	);
+	let longSegmentsNeedingReview = $derived(
+		(globalState.getSubtitleTrack?.clips || []).filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				isClipPendingVerification(clip) &&
+				clip.needsLongReview
+		).length
+	);
 	let longSegmentsMatchingThreshold = $derived(
 		getLongSubtitleClips(globalState.getSubtitlesEditorState.longSegmentMinWords).length
 	);
@@ -52,17 +95,30 @@
 
 	// Navigation vers le prochain segment à review
 	function goToNextSegmentToReview() {
-		const clips = globalState.getSubtitleClips || [];
+		const clips = (globalState.getSubtitleTrack?.clips || [])
+			.filter(
+				(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+					(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+					isClipPendingVerification(clip)
+			)
+			.sort((a, b) => a.startTime - b.startTime);
 		// Trouve le premier segment à review (trié par startTime)
-		const nextSegment = clips
-			.filter((clip) => clip.needsReview === true)
-			.sort((a, b) => a.startTime - b.startTime)[0];
+		if (clips.length === 0) return;
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const nextSegment =
+			clips.find((clip) => clip.startTime > cursorPosition) ??
+			clips.find((clip) => clip.startTime <= cursorPosition && clip.endTime >= cursorPosition) ??
+			clips[0];
 
 		if (nextSegment) {
 			// Déplace le curseur de la timeline au début du segment
-			globalState.getTimelineState.cursorPosition = nextSegment.startTime;
-			globalState.getTimelineState.movePreviewTo = nextSegment.startTime;
-			globalState.getVideoPreviewState.scrollTimelineToCursor();
+			moveCursorToSubtitle(nextSegment);
+
+			// On ignore la vérification automatique pour ce saut explicite vers le prochain segment
+			setTimeout(() => {
+				nextSegment.hasBeenVerified = false;
+			}, 0);
 		}
 	}
 
@@ -71,28 +127,12 @@
 	 *
 	 * @param {SubtitleClip} clip Sous-titre cible.
 	 */
-	function moveCursorToSubtitle(clip: SubtitleClip): void {
+	function moveCursorToSubtitle(clip: SubtitleClip | PredefinedSubtitleClip): void {
 		globalState.getTimelineState.cursorPosition = clip.startTime;
 		globalState.getTimelineState.movePreviewTo = clip.startTime;
 		globalState.getVideoPreviewState.scrollTimelineToCursor();
 	}
 
-	/**
-	 * Navigue vers le prochain sous-titre marqué comme trop long.
-	 */
-	function goToNextLongSegment(): void {
-		const clips = (globalState.getSubtitleClips || [])
-			.filter((clip) => clip.needsLongReview === true)
-			.sort((a, b) => a.startTime - b.startTime);
-		if (clips.length === 0) return;
-
-		const cursorPosition = globalState.getTimelineState.cursorPosition;
-		const nextClip =
-			clips.find((clip) => clip.startTime > cursorPosition) ??
-			clips.find((clip) => clip.endTime >= cursorPosition) ??
-			clips[0];
-		moveCursorToSubtitle(nextClip);
-	}
 	/**
 	 * Marque en rose tous les segments dépassant le seuil courant.
 	 */
@@ -528,8 +568,10 @@
 		{/if}
 
 		<div class="space-y-3">
-			{#if initialLowConfidenceCount > 0 && segmentsNeedingReview > 0}
-				<div class="bg-accent rounded-lg p-3 space-y-2">
+			{#if segmentsNeedingReview > 0}
+				<h3 class="text-sm font-medium text-secondary mb-3">Needs review</h3>
+
+				<div class="bg-accent rounded-lg p-3 space-y-3">
 					<div class="flex items-center justify-between">
 						<div class="flex items-center gap-1.5">
 							<span class="material-icons text-yellow-400 text-sm">warning</span>
@@ -548,26 +590,58 @@
 						></div>
 					</div>
 					<div class="flex items-center justify-between text-[10px] text-thirdly">
-						<span>{reviewedCount} reviewed</span>
-						<span>{initialLowConfidenceCount} needs review</span>
+						<span>{reviewedCount} verified</span>
+						<span>{initialLowConfidenceCount} total flagged</span>
 					</div>
-					<button
-						class="w-full mt-2 px-2 py-1.5 rounded-md bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-yellow-500/30 transition cursor-pointer"
-						type="button"
-						onclick={goToNextSegmentToReview}
-					>
-						<span class="material-icons text-sm">skip_next</span>
-						Next Segment
-					</button>
+					<div class="grid grid-cols-3 gap-2 text-[10px]">
+						<div
+							class="min-h-16 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-2 flex flex-col justify-between"
+						>
+							<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">Low confidence</p>
+							<p class="text-sm font-semibold leading-none text-yellow-300 self-start">
+								{lowConfidenceSegmentsNeedingReview}
+							</p>
+						</div>
+						<div
+							class="min-h-16 rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-2 flex flex-col justify-between"
+						>
+							<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
+								Coverage issues
+							</p>
+							<p class="text-sm font-semibold leading-none text-orange-300 self-start">
+								{coverageSegmentsNeedingReview}
+							</p>
+						</div>
+						<div
+							class="min-h-16 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-2 flex flex-col justify-between"
+						>
+							<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">Too long</p>
+							<p class="text-sm font-semibold leading-none text-rose-300 self-start">
+								{longSegmentsNeedingReview}
+							</p>
+						</div>
+					</div>
+					{#if segmentsNeedingReview > 0}
+						<button
+							class="w-full px-2 py-1.5 rounded-md bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-yellow-500/30 transition cursor-pointer"
+							type="button"
+							onclick={goToNextSegmentToReview}
+						>
+							<span class="material-icons text-sm">skip_next</span>
+							Next Segment
+						</button>
+					{/if}
 				</div>
 			{/if}
 
 			{#if hasSubtitleSegments}
+				<h3 class="text-sm font-medium text-secondary mb-3">Long subtitles</h3>
+
 				<div class="bg-accent rounded-lg p-3 space-y-3">
 					<div class="flex items-center justify-between gap-2">
 						<div class="flex items-center gap-1.5">
 							<span class="material-icons text-pink-400 text-sm">flag</span>
-							<span class="text-xs text-secondary">Long segments</span>
+							<span class="text-xs text-secondary">Mark long subtitles</span>
 						</div>
 						<span class="text-xs font-bold text-pink-400">{longSegmentsMarkedCount} marked</span>
 					</div>
@@ -591,7 +665,7 @@
 							class="px-2 py-1.5 rounded-md bg-pink-500/20 border border-pink-500/40 text-pink-300 font-medium flex items-center justify-center gap-1.5 hover:bg-pink-500/30 transition cursor-pointer text-xs {longSegmentsMarkedCount <=
 							0
 								? 'col-span-3'
-								: ''}"
+								: 'col-span-2'}"
 							type="button"
 							onclick={handleMarkLongSegments}
 						>
@@ -599,14 +673,6 @@
 							Mark
 						</button>
 						{#if longSegmentsMarkedCount > 0}
-							<button
-								class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer"
-								type="button"
-								onclick={goToNextLongSegment}
-							>
-								<span class="material-icons text-sm!">skip_next</span>
-								Next
-							</button>
 							<button
 								class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer"
 								type="button"
@@ -622,7 +688,7 @@
 
 			{#if hasUsedAiSegmentation}
 				<div class="bg-accent rounded-lg p-4 space-y-4">
-					<p class="text-sm font-medium text-primary">Split long segments</p>
+					<p class="text-sm font-medium text-primary">Split long subtitles</p>
 					<p class="text-xs text-secondary">
 						Choose limits, then disable any criterion with its toggle.
 					</p>

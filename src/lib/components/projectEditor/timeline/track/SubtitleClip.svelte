@@ -5,6 +5,10 @@
 		ProjectEditorTabs,
 		type Track
 	} from '$lib/classes';
+	import {
+		getClipPrimaryReviewIssueCategory,
+		markClipAsVerified
+	} from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
@@ -55,17 +59,35 @@
 		);
 	});
 
-	const isLowConfidence = $derived(() => {
-		return clip.comeFromIA && clip.confidence !== null && clip.confidence <= 0.75;
-	});
+	const primaryReviewIssueCategory = $derived(
+		clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+			? getClipPrimaryReviewIssueCategory(clip)
+			: null
+	);
 
-	const isCoverageGap = $derived(() => {
-		return clip.needsCoverageReview === true;
-	});
+	const fullReviewClass = $derived(
+		clip.hasBeenVerified === true
+			? ''
+			: primaryReviewIssueCategory === 'coverage'
+				? ' ai-coverage-gap '
+				: primaryReviewIssueCategory === 'long'
+					? ' ai-too-long '
+					: primaryReviewIssueCategory === 'low-confidence'
+						? ' ai-low-confidence '
+						: ''
+	);
 
-	const isLongReview = $derived(() => {
-		return clip.needsLongReview === true;
-	});
+	const verifiedReviewBandClass = $derived(
+		clip.hasBeenVerified === true
+			? primaryReviewIssueCategory === 'coverage'
+				? 'review-band review-band-coverage'
+				: primaryReviewIssueCategory === 'long'
+					? 'review-band review-band-long'
+					: primaryReviewIssueCategory === 'low-confidence'
+						? 'review-band review-band-low-confidence'
+						: ''
+			: ''
+	);
 
 	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
@@ -220,6 +242,9 @@
 			suppressNextClick = false;
 			return;
 		}
+
+		markClipAsVerified(clip);
+
 		const currentTab = globalState.currentProject!.projectEditorState.currentTab;
 		if (currentTab === ProjectEditorTabs.SubtitlesEditor) {
 			editSubtitle();
@@ -257,11 +282,7 @@
 		(isSelected()
 			? ' bg-[var(--subtitle-selection-bg)]! border-[var(--subtitle-selection-border)]! '
 			: '') +
-		(isCoverageGap() && !isSelected() ? ' ai-coverage-gap ' : '') +
-		(!isCoverageGap() && isLongReview() && !isSelected() ? ' ai-too-long ' : '') +
-		(!isCoverageGap() && !isLongReview() && isLowConfidence() && !isSelected()
-			? ' ai-low-confidence '
-			: '') +
+		fullReviewClass +
 		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ||
 		globalState.currentProject!.projectEditorState.currentTab === 'Video editor'
 			? 'cursor-pointer'
@@ -330,6 +351,10 @@
 			class="absolute inset-0 z-5 flex px-2 py-2"
 			style="background: repeating-linear-gradient(45deg, transparent 0px, transparent 8px, var(--timeline-clip-color) 8px, var(--timeline-clip-color) 16px);"
 		></div>
+	{/if}
+
+	{#if verifiedReviewBandClass}
+		<div class={verifiedReviewBandClass}></div>
 	{/if}
 
 	<div
@@ -445,7 +470,29 @@
 	}
 
 	.ai-too-long {
-		background-color: rgba(234, 167, 240, 0.32) !important;
-		border-color: rgba(68, 36, 41, 0.82) !important;
+		background-color: rgba(244, 63, 94, 0.32) !important;
+		border-color: rgba(251, 113, 133, 0.82) !important;
+	}
+
+	.review-band {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: 6px;
+		z-index: 12;
+		pointer-events: none;
+	}
+
+	.review-band-low-confidence {
+		background-color: rgba(230, 195, 60, 0.88);
+	}
+
+	.review-band-coverage {
+		background-color: rgba(219, 92, 92, 0.88);
+	}
+
+	.review-band-long {
+		background-color: rgba(244, 63, 94, 0.88);
 	}
 </style>

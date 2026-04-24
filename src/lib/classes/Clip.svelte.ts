@@ -167,6 +167,7 @@ export class AssetClip extends Clip {
 }
 
 export class ClipWithTranslation extends Clip {
+	hasBeenVerified: boolean = $state(false);
 	translations: { [key: string]: Translation } = $state({});
 	text: string = $state('');
 	arabicInlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
@@ -200,6 +201,8 @@ export class ClipWithTranslation extends Clip {
 		this.confidence = null;
 		this.needsReview = false; // Le segment n'a plus besoin de review de confiance
 		this.needsCoverageReview = false; // Le segment n'a plus besoin de review de couverture
+		this.needsLongReview = false;
+		this.hasBeenVerified = false;
 	}
 
 	/**
@@ -274,6 +277,57 @@ export class ClipWithTranslation extends Clip {
 	setAssociatedImagePath(path: string | null): void {
 		this.associatedImagePath = path;
 	}
+}
+
+export type ReviewIssueCategory = 'coverage' | 'long' | 'low-confidence';
+
+/**
+ * Retourne `true` si le clip porte au moins un indicateur de revue actif.
+ *
+ * @param {ClipWithTranslation | null | undefined} clip Clip a inspecter.
+ * @returns {boolean} `true` si le clip doit etre considere comme reviewable.
+ */
+export function hasClipReviewIssue(clip: ClipWithTranslation | null | undefined): boolean {
+	return !!clip && (clip.needsCoverageReview || clip.needsLongReview || clip.needsReview);
+}
+
+/**
+ * Retourne la categorie principale de review d'un clip.
+ *
+ * @param {ClipWithTranslation | null | undefined} clip Clip a inspecter.
+ * @returns {ReviewIssueCategory | null} Categorie principale ou `null`.
+ */
+export function getClipPrimaryReviewIssueCategory(
+	clip: ClipWithTranslation | null | undefined
+): ReviewIssueCategory | null {
+	if (!clip) return null;
+	if (clip.needsCoverageReview) return 'coverage';
+	if (clip.needsLongReview) return 'long';
+	if (clip.needsReview) return 'low-confidence';
+	return null;
+}
+
+/**
+ * Retourne `true` si le clip a encore besoin d'une verification explicite.
+ *
+ * @param {ClipWithTranslation | null | undefined} clip Clip a inspecter.
+ * @returns {boolean} `true` si le clip est signale et non encore verifie.
+ */
+export function isClipPendingVerification(
+	clip: ClipWithTranslation | null | undefined
+): boolean {
+	return !!clip && hasClipReviewIssue(clip) && clip.hasBeenVerified !== true;
+}
+
+/**
+ * Marque un clip comme verifie s'il porte encore au moins un signal de revue.
+ *
+ * @param {ClipWithTranslation | null | undefined} clip Clip a mettre a jour.
+ * @returns {void}
+ */
+export function markClipAsVerified(clip: ClipWithTranslation | null | undefined): void {
+	if (!clip || !hasClipReviewIssue(clip)) return;
+	clip.hasBeenVerified = true;
 }
 
 export class SubtitleClip extends ClipWithTranslation {
@@ -532,6 +586,15 @@ export class SubtitleClip extends ClipWithTranslation {
 		clonedClip.indopakText = this.indopakText;
 		clonedClip.arabicInlineStyleRuns = JSON.parse(JSON.stringify(this.arabicInlineStyleRuns ?? []));
 		clonedClip.associatedImagePath = this.associatedImagePath;
+		clonedClip.needsLongReview = this.needsLongReview;
+		clonedClip.needsReview = this.needsReview;
+		clonedClip.needsCoverageReview = this.needsCoverageReview;
+		clonedClip.hasBeenVerified = this.hasBeenVerified;
+		clonedClip.comeFromIA = this.comeFromIA;
+		clonedClip.confidence = this.confidence;
+		clonedClip.alignmentMetadata = this.alignmentMetadata
+			? JSON.parse(JSON.stringify(this.alignmentMetadata))
+			: null;
 		return clonedClip;
 	}
 }

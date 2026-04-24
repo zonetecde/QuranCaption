@@ -407,6 +407,13 @@ export class SubtitleTrack extends Track {
 		}
 
 		// Insérer le nouveau clip après le clip original
+		if (clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) {
+			clip.markAsManualEdit();
+		}
+		if (newClip instanceof SubtitleClip || newClip instanceof PredefinedSubtitleClip) {
+			newClip.markAsManualEdit();
+		}
+
 		this.clips.splice(clipIndex + 1, 0, newClip);
 
 		return true;

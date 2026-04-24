@@ -11,6 +11,7 @@
 		PredefinedSubtitleClip,
 		SilenceClip
 	} from '$lib/classes';
+	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 
@@ -54,6 +55,7 @@
 	let splitShortcutRegistered = false;
 	let setEndShortcutRegistered = false;
 	let setStartShortcutRegistered = false;
+	let lastVerifiedClipId: number | null = null;
 
 	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
 	function handleRemoveSelectedSubtitles(): void {
@@ -380,6 +382,23 @@
 		visibleRangeEndMs = Math.min(totalDurationMs, viewportEndMs + OVERSCAN_MS);
 	});
 
+	$effect(() => {
+		const cursorPosition = timelineState().cursorPosition;
+		const clipUnderCursor = globalState.getSubtitleTrack?.getCurrentClip(cursorPosition);
+
+		if (
+			!(
+				clipUnderCursor instanceof SubtitleClip || clipUnderCursor instanceof PredefinedSubtitleClip
+			)
+		) {
+			lastVerifiedClipId = null;
+			return;
+		}
+
+		lastVerifiedClipId = clipUnderCursor.id;
+		markClipAsVerified(clipUnderCursor);
+	});
+
 	/**
 	 * Scroll la timeline a la position du curseur
 	 */
@@ -513,10 +532,7 @@
 		if (event.altKey && !globalState.getVideoPreviewState.isPlaying) {
 			const frameDurationMs = 1000 / Math.max(globalState.getExportState.fps, 1);
 			const direction = event.deltaY > 0 ? 1 : -1;
-			const newPosition = Math.max(
-				1,
-				timelineState().cursorPosition + direction * frameDurationMs
-			);
+			const newPosition = Math.max(1, timelineState().cursorPosition + direction * frameDurationMs);
 
 			timelineState().cursorPosition = newPosition;
 			timelineState().movePreviewTo = newPosition;
@@ -532,7 +548,7 @@
 			? timelineDiv
 			: eventTarget.closest('.timeline-tracks')
 				? timelineTracksDiv
-				: timelineTracksDiv ?? timelineDiv;
+				: (timelineTracksDiv ?? timelineDiv);
 
 		if (!scrollTarget) return;
 

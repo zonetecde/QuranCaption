@@ -417,8 +417,7 @@ function normalizeMfaSegments(
 			ref_to: asNonEmptyString(segment.ref_to) ?? fallbackSegment?.ref_to ?? '',
 			matched_text: asNonEmptyString(segment.matched_text) ?? fallbackSegment?.matched_text ?? '',
 			confidence: asFiniteNumber(segment.confidence) ?? fallbackSegment?.confidence,
-			has_missing_words:
-				asBoolean(segment.has_missing_words) ?? fallbackSegment?.has_missing_words,
+			has_missing_words: asBoolean(segment.has_missing_words) ?? fallbackSegment?.has_missing_words,
 			potentially_undersegmented:
 				asBoolean(segment.potentially_undersegmented) ??
 				fallbackSegment?.potentially_undersegmented,
@@ -1678,8 +1677,27 @@ export function markLongSegmentsForReview(minWords: number): number {
 
 	for (const clip of globalState.getSubtitleClips) {
 		const isLong = getSubtitleClipWordCount(clip) >= threshold;
-		clip.needsLongReview = isLong;
-		if (isLong) markedCount += 1;
+		const hasOtherActiveReview = clip.needsReview || clip.needsCoverageReview;
+
+		if (!isLong) {
+			clip.needsLongReview = false;
+			continue;
+		}
+
+		if (clip.hasBeenVerified !== true && hasOtherActiveReview) {
+			continue;
+		}
+
+		// Si le clip a déjà été vérifié, et que c'était auparavant un segment low confidence ou missing words
+		if (clip.hasBeenVerified === true) {
+			// On convertit un segment déjà vérifié en segment long, sans garder l'ancien motif.
+			clip.needsReview = false;
+			clip.needsCoverageReview = false;
+			clip.hasBeenVerified = false;
+		}
+
+		clip.needsLongReview = true;
+		markedCount += 1;
 	}
 
 	return markedCount;
@@ -1701,7 +1719,9 @@ export function clearLongSegmentsReview(): void {
  */
 function refreshSegmentationContextFromTrack(preserveAudioId: boolean): void {
 	const currentContext = globalState.getSubtitlesEditorState.segmentationContext;
-	const existingById = new Map(currentContext.alignedSegments.map((segment) => [segment.clipId, segment]));
+	const existingById = new Map(
+		currentContext.alignedSegments.map((segment) => [segment.clipId, segment])
+	);
 	const alignedSegments: StoredAlignedSegment[] = [];
 
 	for (const rawClip of globalState.getSubtitleTrack.clips) {
@@ -1762,7 +1782,10 @@ async function hydrateSubtitleClipRange(
 	clip.endWordIndex = endWordIndex;
 	clip.text = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex);
 	clip.indopakText = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex, 'indopak');
-	clip.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startWordIndex, endWordIndex);
+	clip.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
+		startWordIndex,
+		endWordIndex
+	);
 	const subtitlesProperties = await globalState.getSubtitleTrack.getSubtitlesProperties(
 		verse,
 		startWordIndex,
@@ -1809,6 +1832,7 @@ async function splitSubtitleClipLocally(
 	const originalNeedsReview = clip.needsReview;
 	const originalNeedsCoverageReview = clip.needsCoverageReview;
 	const originalNeedsLongReview = clip.needsLongReview;
+	const originalHasBeenVerified = clip.hasBeenVerified;
 	const originalComeFromIA = clip.comeFromIA;
 	const originalConfidence = clip.confidence;
 
@@ -1821,6 +1845,7 @@ async function splitSubtitleClipLocally(
 	rightClip.needsReview = originalNeedsReview;
 	rightClip.needsCoverageReview = originalNeedsCoverageReview;
 	rightClip.needsLongReview = originalNeedsLongReview;
+	rightClip.hasBeenVerified = originalHasBeenVerified;
 	await hydrateSubtitleClipRange(rightClip, verse, splitWordIndex + 1, originalEndWordIndex);
 
 	const splitOffsetS = splitWord.end;
@@ -1861,7 +1886,9 @@ async function splitSubtitleClipLocally(
 		words: rightWords
 	};
 
-	const clipIndex = globalState.getSubtitleTrack.clips.findIndex((candidate) => candidate.id === clip.id);
+	const clipIndex = globalState.getSubtitleTrack.clips.findIndex(
+		(candidate) => candidate.id === clip.id
+	);
 	if (clipIndex === -1) return null;
 	globalState.getSubtitleTrack.clips.splice(clipIndex + 1, 0, rightClip);
 	return rightClip;
@@ -1873,7 +1900,7 @@ async function splitSubtitleClipLocally(
  * @param {string} location Clé de mot au format `surah:verse:word`.
  * @returns {number | null} Index 0-based, ou null si invalide.
  */
-function getWordIndexFromLocation(location: string): number | null {
+function _getWordIndexFromLocation(location: string): number | null {
 	const wordIndex = Number(location.split(':')[2]);
 	if (!Number.isFinite(wordIndex) || wordIndex <= 0) return null;
 	return wordIndex - 1;
@@ -2028,7 +2055,9 @@ export async function automaticSplitSubtitleAtWord(
 		return false;
 	}
 
-	const shouldRefreshLongMarks = globalState.getSubtitleClips.some((candidate) => candidate.needsLongReview);
+	const shouldRefreshLongMarks = globalState.getSubtitleClips.some(
+		(candidate) => candidate.needsLongReview
+	);
 	if (shouldRefreshLongMarks) {
 		markLongSegmentsForReview(globalState.getSubtitlesEditorState.longSegmentMinWords);
 	}
@@ -2060,7 +2089,9 @@ export async function subdivideLongSubtitleSegments(): Promise<number> {
 	let madeProgress = true;
 	while (madeProgress) {
 		madeProgress = false;
-		const clips = [...globalState.getSubtitleClips].sort((left, right) => left.startTime - right.startTime);
+		const clips = [...globalState.getSubtitleClips].sort(
+			(left, right) => left.startTime - right.startTime
+		);
 		for (const clip of clips) {
 			const splitWordIndex = await getAutomaticSplitWordIndex(
 				clip,

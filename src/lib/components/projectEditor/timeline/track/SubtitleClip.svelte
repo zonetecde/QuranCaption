@@ -253,7 +253,7 @@
 </script>
 
 <div
-		class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
+	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
 		(isSelected()
 			? ' bg-[var(--subtitle-selection-bg)]! border-[var(--subtitle-selection-border)]! '
 			: '') +
@@ -445,7 +445,7 @@
 	}
 
 	.ai-too-long {
-		background-color: rgba(236, 72, 153, 0.28) !important;
-		border-color: rgba(244, 114, 182, 0.7) !important;
+		background-color: rgba(234, 167, 240, 0.32) !important;
+		border-color: rgba(68, 36, 41, 0.82) !important;
 	}
 </style>

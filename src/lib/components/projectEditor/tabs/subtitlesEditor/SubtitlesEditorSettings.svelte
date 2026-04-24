@@ -4,9 +4,6 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
-		SUBDIVIDE_MAX_DURATION_DISABLED,
-		SUBDIVIDE_MAX_VERSES_DISABLED,
-		SUBDIVIDE_MAX_WORDS_DISABLED,
 		clearLongSegmentsReview,
 		getLongSubtitleClips,
 		markLongSegmentsForReview,
@@ -41,6 +38,17 @@
 	let hasUsedAiSegmentation = $derived(
 		globalState.getSubtitlesEditorState.segmentationContext.source !== null
 	);
+	const SUBDIVIDE_MIN_LIMIT = 1;
+	const SUBDIVIDE_MAX_LIMIT = 30;
+	const SUBDIVIDE_DISABLED_SENTINEL = SUBDIVIDE_MAX_LIMIT + 1;
+	let enableMaxWords = $state(
+		globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment < SUBDIVIDE_MAX_LIMIT
+	);
+	let enableMaxDuration = $state(
+		globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment < SUBDIVIDE_MAX_LIMIT
+	);
+	let lastEnabledMaxWords = $state(SUBDIVIDE_MAX_LIMIT);
+	let lastEnabledMaxDuration = $state(SUBDIVIDE_MAX_LIMIT);
 
 	// Navigation vers le prochain segment à review
 	function goToNextSegmentToReview() {
@@ -85,23 +93,13 @@
 			clips[0];
 		moveCursorToSubtitle(nextClip);
 	}
-
-	/**
-	 * Retourne le libellé affiché à côté d'un slider de subdivision.
-	 *
-	 * @param {number} value Valeur courante.
-	 * @param {number} disabledValue Valeur qui désactive le critère.
-	 * @returns {string} Valeur affichable, ou `Off`.
-	 */
-	function getSubdivideValueLabel(value: number, disabledValue: number): string {
-		return value >= disabledValue ? 'Off' : String(value);
-	}
-
 	/**
 	 * Marque en rose tous les segments dépassant le seuil courant.
 	 */
 	function handleMarkLongSegments(): void {
-		const markedCount = markLongSegmentsForReview(globalState.getSubtitlesEditorState.longSegmentMinWords);
+		const markedCount = markLongSegmentsForReview(
+			globalState.getSubtitlesEditorState.longSegmentMinWords
+		);
 		if (markedCount <= 0) {
 			toast('No long segment matches the current threshold.');
 			return;
@@ -256,6 +254,62 @@
 
 	onDestroy(() => {
 		document.removeEventListener('keydown', handleEditModeShortcut, true);
+	});
+
+	$effect(() => {
+		const state = globalState.getSubtitlesEditorState;
+		const currentValue = state.subdivideMaxWordsPerSegment;
+
+		if (!enableMaxWords) {
+			if (currentValue >= SUBDIVIDE_MIN_LIMIT && currentValue <= SUBDIVIDE_MAX_LIMIT) {
+				lastEnabledMaxWords = currentValue;
+			}
+			state.subdivideMaxWordsPerSegment = SUBDIVIDE_DISABLED_SENTINEL;
+			return;
+		}
+
+		const fallbackValue =
+			lastEnabledMaxWords >= SUBDIVIDE_MIN_LIMIT && lastEnabledMaxWords <= SUBDIVIDE_MAX_LIMIT
+				? lastEnabledMaxWords
+				: SUBDIVIDE_MAX_LIMIT;
+		const restoredValue =
+			currentValue < SUBDIVIDE_MIN_LIMIT || currentValue > SUBDIVIDE_MAX_LIMIT
+				? fallbackValue
+				: currentValue;
+		const clampedValue = Math.min(
+			SUBDIVIDE_MAX_LIMIT,
+			Math.max(SUBDIVIDE_MIN_LIMIT, restoredValue)
+		);
+		state.subdivideMaxWordsPerSegment = clampedValue;
+		lastEnabledMaxWords = clampedValue;
+	});
+
+	$effect(() => {
+		const state = globalState.getSubtitlesEditorState;
+		const currentValue = state.subdivideMaxDurationPerSegment;
+
+		if (!enableMaxDuration) {
+			if (currentValue >= SUBDIVIDE_MIN_LIMIT && currentValue <= SUBDIVIDE_MAX_LIMIT) {
+				lastEnabledMaxDuration = currentValue;
+			}
+			state.subdivideMaxDurationPerSegment = SUBDIVIDE_DISABLED_SENTINEL;
+			return;
+		}
+
+		const fallbackValue =
+			lastEnabledMaxDuration >= SUBDIVIDE_MIN_LIMIT && lastEnabledMaxDuration <= SUBDIVIDE_MAX_LIMIT
+				? lastEnabledMaxDuration
+				: SUBDIVIDE_MAX_LIMIT;
+		const restoredValue =
+			currentValue < SUBDIVIDE_MIN_LIMIT || currentValue > SUBDIVIDE_MAX_LIMIT
+				? fallbackValue
+				: currentValue;
+		const clampedValue = Math.min(
+			SUBDIVIDE_MAX_LIMIT,
+			Math.max(SUBDIVIDE_MIN_LIMIT, restoredValue)
+		);
+		state.subdivideMaxDurationPerSegment = clampedValue;
+		lastEnabledMaxDuration = clampedValue;
 	});
 </script>
 
@@ -519,9 +573,7 @@
 					</div>
 
 					<div class="space-y-2">
-						<label class="text-[11px] text-thirdly" for="long-segment-min-words">
-							Min words
-						</label>
+						<label class="text-[11px] text-thirdly" for="long-segment-min-words"> Min words </label>
 						<input
 							id="long-segment-min-words"
 							type="number"
@@ -536,183 +588,124 @@
 
 					<div class="grid grid-cols-3 gap-2">
 						<button
-							class="px-2 py-1.5 rounded-md bg-pink-500/20 border border-pink-500/40 text-pink-300 text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-pink-500/30 transition cursor-pointer"
+							class="px-2 py-1.5 rounded-md bg-pink-500/20 border border-pink-500/40 text-pink-300 font-medium flex items-center justify-center gap-1.5 hover:bg-pink-500/30 transition cursor-pointer text-xs {longSegmentsMarkedCount <=
+							0
+								? 'col-span-3'
+								: ''}"
 							type="button"
 							onclick={handleMarkLongSegments}
 						>
-							<span class="material-icons text-sm">flag</span>
+							<span class="material-icons text-sm!">flag</span>
 							Mark
 						</button>
-						<button
-							class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-							type="button"
-							onclick={goToNextLongSegment}
-							disabled={longSegmentsMarkedCount <= 0}
-						>
-							<span class="material-icons text-sm">skip_next</span>
-							Next
-						</button>
-						<button
-							class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-							type="button"
-							onclick={handleClearLongSegments}
-							disabled={longSegmentsMarkedCount <= 0}
-						>
-							<span class="material-icons text-sm">cancel</span>
-							Clear
-						</button>
+						{#if longSegmentsMarkedCount > 0}
+							<button
+								class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer"
+								type="button"
+								onclick={goToNextLongSegment}
+							>
+								<span class="material-icons text-sm!">skip_next</span>
+								Next
+							</button>
+							<button
+								class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer"
+								type="button"
+								onclick={handleClearLongSegments}
+							>
+								<span class="material-icons text-sm!">cancel</span>
+								Clear
+							</button>
+						{/if}
 					</div>
 				</div>
 			{/if}
 
 			{#if hasUsedAiSegmentation}
 				<div class="bg-accent rounded-lg p-4 space-y-4">
-					<p class="text-sm font-medium text-primary">
-						Subdivide long segments at word boundaries. Sliders at max mean criterion disabled.
+					<p class="text-sm font-medium text-primary">Split long segments</p>
+					<p class="text-xs text-secondary">
+						Choose limits, then disable any criterion with its toggle.
 					</p>
 
-				<div class="space-y-4">
 					<div class="space-y-2">
 						<div class="flex items-center justify-between gap-2">
-							<span class="text-sm text-primary">
-								Max verses per segment:
-								{getSubdivideValueLabel(
-									globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment,
-									SUBDIVIDE_MAX_VERSES_DISABLED
-								)}
-							</span>
-							<div class="flex items-center gap-1">
+							<span class="text-xs text-primary">Max words per segments</span>
+							<div class="flex items-center gap-2">
+								<label class="flex items-center gap-1.5 text-[11px] text-secondary">
+									<input type="checkbox" bind:checked={enableMaxWords} class="w-4 h-4" />
+									On
+								</label>
 								<input
 									type="number"
-									min="1"
-									max={SUBDIVIDE_MAX_VERSES_DISABLED}
-									bind:value={globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment}
-									class="w-14 rounded-md border border-color bg-secondary px-2 py-1 text-sm text-primary"
-								/>
-								<button
-									class="rounded-md border border-color px-2 py-1 text-secondary hover:bg-secondary transition cursor-pointer"
-									type="button"
-									onclick={() => {
-										globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment = 1;
-									}}
-								>
-									↺
-								</button>
-							</div>
-						</div>
-						<input
-							type="range"
-							min="1"
-							max={SUBDIVIDE_MAX_VERSES_DISABLED}
-							step="1"
-							bind:value={globalState.getSubtitlesEditorState.subdivideMaxVersesPerSegment}
-							class="w-full"
-						/>
-						<div class="flex items-center justify-between text-[10px] text-thirdly">
-							<span>1</span>
-							<span>{SUBDIVIDE_MAX_VERSES_DISABLED}</span>
-						</div>
-					</div>
-
-					<div class="space-y-2">
-						<div class="flex items-center justify-between gap-2">
-							<span class="text-sm text-primary">
-								Max words per segment:
-								{getSubdivideValueLabel(
-									globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment,
-									SUBDIVIDE_MAX_WORDS_DISABLED
-								)}
-							</span>
-							<div class="flex items-center gap-1">
-								<input
-									type="number"
-									min="5"
-									max={SUBDIVIDE_MAX_WORDS_DISABLED}
+									min={SUBDIVIDE_MIN_LIMIT}
+									max={SUBDIVIDE_MAX_LIMIT}
 									bind:value={globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment}
-									class="w-14 rounded-md border border-color bg-secondary px-2 py-1 text-sm text-primary"
+									class="w-16 rounded-md border border-color bg-secondary px-1.5 py-0.5 text-xs text-primary disabled:opacity-40"
+									disabled={!enableMaxWords}
 								/>
-								<button
-									class="rounded-md border border-color px-2 py-1 text-secondary hover:bg-secondary transition cursor-pointer"
-									type="button"
-									onclick={() => {
-										globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment = SUBDIVIDE_MAX_WORDS_DISABLED;
-									}}
-								>
-									↺
-								</button>
 							</div>
 						</div>
 						<input
 							type="range"
-							min="5"
-							max={SUBDIVIDE_MAX_WORDS_DISABLED}
+							min={SUBDIVIDE_MIN_LIMIT}
+							max={SUBDIVIDE_MAX_LIMIT}
 							step="1"
 							bind:value={globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment}
 							class="w-full"
+							disabled={!enableMaxWords}
 						/>
 						<div class="flex items-center justify-between text-[10px] text-thirdly">
-							<span>5</span>
-							<span>{SUBDIVIDE_MAX_WORDS_DISABLED}</span>
+							<span>{SUBDIVIDE_MIN_LIMIT}</span>
+							<span>{SUBDIVIDE_MAX_LIMIT}</span>
 						</div>
 					</div>
 
 					<div class="space-y-2">
 						<div class="flex items-center justify-between gap-2">
-							<span class="text-sm text-primary">
-								Max duration per segment (s):
-								{getSubdivideValueLabel(
-									globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment,
-									SUBDIVIDE_MAX_DURATION_DISABLED
-								)}
-							</span>
-							<div class="flex items-center gap-1">
+							<span class="text-xs text-primary">Max durations per segments</span>
+							<div class="flex items-center gap-2">
+								<label class="flex items-center gap-1.5 text-[11px] text-secondary">
+									<input type="checkbox" bind:checked={enableMaxDuration} class="w-4 h-4" />
+									On
+								</label>
 								<input
 									type="number"
-									min="5"
-									max={SUBDIVIDE_MAX_DURATION_DISABLED}
+									min={SUBDIVIDE_MIN_LIMIT}
+									max={SUBDIVIDE_MAX_LIMIT}
 									bind:value={globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment}
-									class="w-14 rounded-md border border-color bg-secondary px-2 py-1 text-sm text-primary"
+									class="w-16 rounded-md border border-color bg-secondary py-0.5 text-xs text-primary disabled:opacity-40"
+									disabled={!enableMaxDuration}
 								/>
-								<button
-									class="rounded-md border border-color px-2 py-1 text-secondary hover:bg-secondary transition cursor-pointer"
-									type="button"
-									onclick={() => {
-										globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment = SUBDIVIDE_MAX_DURATION_DISABLED;
-									}}
-								>
-									↺
-								</button>
 							</div>
 						</div>
 						<input
 							type="range"
-							min="5"
-							max={SUBDIVIDE_MAX_DURATION_DISABLED}
+							min={SUBDIVIDE_MIN_LIMIT}
+							max={SUBDIVIDE_MAX_LIMIT}
 							step="1"
 							bind:value={globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment}
 							class="w-full"
+							disabled={!enableMaxDuration}
 						/>
 						<div class="flex items-center justify-between text-[10px] text-thirdly">
-							<span>5</span>
-							<span>{SUBDIVIDE_MAX_DURATION_DISABLED}</span>
+							<span>{SUBDIVIDE_MIN_LIMIT}</span>
+							<span>{SUBDIVIDE_MAX_LIMIT}</span>
 						</div>
 					</div>
-				</div>
 
-				<label class="flex items-start gap-2 cursor-pointer">
-					<input
-						type="checkbox"
-						bind:checked={globalState.getSubtitlesEditorState.subdivideOnlySplitAtStopSigns}
-						class="mt-0.5 w-4 h-4"
-					/>
-					<span class="space-y-1">
-						<span class="block text-sm text-primary">Only split at stop signs</span>
-						<span class="block text-xs text-thirdly">
-							Segments without a waqf mark stay as-is, even if they exceed word/duration
-							limits. Verse splitting is unaffected.
+					<label class="flex items-start gap-2 cursor-pointer">
+						<input
+							type="checkbox"
+							bind:checked={globalState.getSubtitlesEditorState.subdivideOnlySplitAtStopSigns}
+							class="mt-0.5 w-4 h-4"
+						/>
+						<span class="space-y-1">
+							<span class="block text-sm text-primary">Only split at stop signs</span>
+							<span class="block text-xs text-thirdly">
+								Segments without a waqf mark stay as-is, even if they exceed word/duration limits.
+							</span>
 						</span>
-					</span>
-				</label>
+					</label>
 
 					<button
 						class="btn-accent w-full px-3 py-2 rounded-md text-sm flex items-center justify-center gap-2"

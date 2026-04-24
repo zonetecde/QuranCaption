@@ -2048,11 +2048,11 @@ export async function automaticSplitSubtitleAtWord(
 export async function subdivideLongSubtitleSegments(): Promise<number> {
 	const state = globalState.getSubtitlesEditorState;
 	const maxWords =
-		state.subdivideMaxWordsPerSegment >= SUBDIVIDE_MAX_WORDS_DISABLED
+		state.subdivideMaxWordsPerSegment > SUBDIVIDE_MAX_WORDS_DISABLED
 			? null
 			: state.subdivideMaxWordsPerSegment;
 	const maxDurationSeconds =
-		state.subdivideMaxDurationPerSegment >= SUBDIVIDE_MAX_DURATION_DISABLED
+		state.subdivideMaxDurationPerSegment > SUBDIVIDE_MAX_DURATION_DISABLED
 			? null
 			: state.subdivideMaxDurationPerSegment;
 

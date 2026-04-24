@@ -819,7 +819,7 @@ pub async fn segment_quran_audio(
     emit_cloud_status(
         &app_handle,
         "cloud_complete",
-        "Cloud segmentation completed.".to_string(),
+        "Cloud segmentation completed. Waiting for results...".to_string(),
         None,
     );
     if let Some(values) = payload.as_array() {

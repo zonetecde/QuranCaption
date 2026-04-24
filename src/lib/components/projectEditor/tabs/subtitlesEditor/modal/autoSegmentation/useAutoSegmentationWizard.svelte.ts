@@ -259,7 +259,8 @@ export function useAutoSegmentationWizard() {
 	async function listenSegmentationStatus(): Promise<UnlistenFn | null> {
 		return listen<{ message?: string; progress?: number }>('segmentation-status', (event) => {
 			if (typeof event.payload.message === 'string') currentStatus = event.payload.message;
-			if (typeof event.payload.progress === 'number') {
+			// Quand on finit l'upload (100%), on cache la progress bar
+			if (typeof event.payload.progress === 'number' && event.payload.progress < 100) {
 				currentStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
 			} else {
 				currentStatusProgress = null;
@@ -345,15 +346,12 @@ export function useAutoSegmentationWizard() {
 		currentStatusProgress = null;
 		resetEstimatedProgress();
 
-		if (
-			selection.runtime !== 'hf_json' &&
-			(selection.mode === 'api' || selection.localAsrMode === 'multi_aligner')
-		) {
+		if (selection.runtime !== 'hf_json' && selection.localAsrMode === 'multi_aligner' && selection.mode === 'local') {
 			const audioDurationS = getAutoSegmentationAudioDurationS();
 			const estimated = await estimateSegmentationDuration({
 				endpoint: 'process_audio_session',
 				audioDurationS,
-				modelName: selection.mode === 'api' ? selection.cloudModel : selection.multiModel,
+				modelName: selection.multiModel,
 				device: selection.device
 			});
 			if (estimated?.estimated_duration_s && estimated.estimated_duration_s > 0) {

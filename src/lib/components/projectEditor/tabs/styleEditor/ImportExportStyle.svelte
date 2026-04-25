@@ -295,6 +295,17 @@
 			>
 				Export file
 			</button>
+			<span class="text-thirdly">/</span>
+			<button
+				class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
+				type="button"
+				onclick={async () => {
+					await globalState.getVideoStyle.resetStyles();
+					isVisible = false;
+				}}
+			>
+				Reset Styles
+			</button>
 		</div>
 	</div>
 {/if}

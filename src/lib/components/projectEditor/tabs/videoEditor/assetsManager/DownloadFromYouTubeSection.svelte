@@ -1,46 +1,102 @@
 <script lang="ts">
-	import toast from 'svelte-5-french-toast';
 	import { invoke } from '@tauri-apps/api/core';
+	import { listen } from '@tauri-apps/api/event';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { SourceType } from '$lib/classes';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { onMount } from 'svelte';
 
 	let url: string = $state('');
 	let type: string = $state('audio'); // Default to audio
+	let isDownloading: boolean = $state(false);
+	let downloadProgress: number = $state(0);
+	let downloadStatus: string = $state('');
+	let downloadError: string = $state('');
+	let activeDownloadRequestId: string | null = $state(null);
+
+	interface YoutubeDownloadProgressEvent {
+		downloadRequestId: string;
+		progress: number;
+		status?: string;
+	}
+
+	/**
+	 * Cree un identifiant local pour relier le download courant aux evenements backend.
+	 * @returns Identifiant unique de telechargement.
+	 */
+	function createDownloadRequestId(): string {
+		return globalThis.crypto?.randomUUID?.() ?? `download-${Date.now()}-${Math.random()}`;
+	}
+
+	/**
+	 * Met à jour la progression si l'événement concerne le téléchargement courant.
+	 * @param event événement Tauri émis par le backend.
+	 */
+	function handleDownloadProgress(event: { payload: YoutubeDownloadProgressEvent }) {
+		if (!activeDownloadRequestId || event.payload.downloadRequestId !== activeDownloadRequestId) {
+			return;
+		}
+
+		downloadProgress = Math.max(0, Math.min(100, event.payload.progress));
+		downloadStatus = event.payload.status ?? 'downloading';
+	}
+
+	onMount(() => {
+		const unlistenPromise = listen<YoutubeDownloadProgressEvent>(
+			'youtube-download-progress',
+			handleDownloadProgress
+		);
+
+		return () => {
+			void unlistenPromise.then((unlisten) => unlisten());
+		};
+	});
 
 	async function downloadAssetFromUrl() {
+		if (isDownloading) {
+			return;
+		}
+
 		try {
 			if (!url.trim()) {
-				toast.error('Please enter a valid public media URL.');
+				downloadError = 'Please enter a valid public media URL.';
 				return;
 			}
+
+			downloadError = '';
+			downloadProgress = 0;
+			downloadStatus = 'starting';
+			isDownloading = true;
+			activeDownloadRequestId = createDownloadRequestId();
 
 			const downloadPath = await ProjectService.getAssetFolderForProject(
 				globalState.currentProject!.detail.id
 			);
 
-			const result = await toast.promise(
-				invoke<string>('download_from_youtube', {
-					url: url.trim(),
-					type: type,
-					downloadPath: downloadPath
-				}),
-				{
-					loading: 'Downloading media from link...',
-					success: 'Download successful!',
-					error: 'Download failed!'
-				}
-			);
+			const result = await invoke<string>('download_from_youtube', {
+				url: url.trim(),
+				type: type,
+				downloadPath: downloadPath,
+				downloadRequestId: activeDownloadRequestId
+			});
 
 			// Ajoute le fichier téléchargé à la liste des assets du projet
 			globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube);
 
 			// Telemetry
 			AnalyticsService.downloadFromYouTube(url, type);
+
+			downloadProgress = 100;
+			downloadStatus = 'finished';
 		} catch (error) {
-			toast.error('Error downloading media from link: ' + error);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			downloadError = `Error downloading media from link: ${errorMessage}`;
+			console.error(error);
+		} finally {
+			isDownloading = false;
+			activeDownloadRequestId = null;
 		}
 	}
 </script>
@@ -125,11 +181,46 @@
 			       shadow-lg hover:shadow-xl"
 			type="button"
 			onclick={downloadAssetFromUrl}
-			disabled={!url.trim()}
+			disabled={!url.trim() || isDownloading}
 		>
-			<span class="material-icons text-lg">download</span>
-			Download from Link
+			<span class="material-icons text-lg">{isDownloading ? 'sync' : 'download'}</span>
+			{isDownloading ? 'Downloading...' : 'Download from Link'}
 		</button>
+
+		{#if isDownloading || downloadError}
+			<div class="bg-accent border border-color rounded-lg p-4 space-y-3">
+				<div class="flex items-center justify-between gap-3">
+					<div class="flex items-center gap-2 min-w-0">
+						<span class="material-icons text-lg text-[var(--accent-primary)]">
+							{isDownloading ? 'cloud_download' : 'error'}
+						</span>
+						<p class="text-sm font-medium text-primary truncate">
+							{#if isDownloading}
+								{downloadStatus === 'finished' ? 'Finalizing download...' : 'Downloading media...'}
+							{:else}
+								Download failed
+							{/if}
+						</p>
+					</div>
+					<span class="text-xs text-thirdly whitespace-nowrap">
+						{Math.round(downloadProgress)}%
+					</span>
+				</div>
+
+				<div class="h-2 w-full overflow-hidden rounded-full bg-secondary">
+					<div
+						class="h-full rounded-full bg-gradient-to-r from-[var(--accent-primary)] to-cyan-400 transition-all duration-200"
+						style={`width: ${downloadProgress}%`}
+					></div>
+				</div>
+
+				<p class={`text-xs leading-relaxed ${downloadError ? 'text-red-300' : 'text-thirdly'}`}>
+					{#if downloadError}
+						{downloadError}
+					{/if}
+				</p>
+			</div>
+		{/if}
 
 		<!-- Info hint -->
 		<div class="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">

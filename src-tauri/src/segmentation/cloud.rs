@@ -18,6 +18,7 @@ use super::types::{
     SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL,
     QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL, QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
     QURAN_MULTI_ALIGNER_PROCESS_CALL_URL, QURAN_MULTI_ALIGNER_UPLOAD_URL,
+    QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL,
     QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
 };
 
@@ -822,10 +823,51 @@ pub async fn segment_quran_audio(
         "Cloud segmentation completed. Waiting for results...".to_string(),
         None,
     );
-    if let Some(values) = payload.as_array() {
+    let payload = if let Some(values) = payload.as_array() {
         if let Some(first) = values.first() {
-            return Ok(first.clone());
+            first.clone()
+        } else {
+            payload
         }
+    } else {
+        payload
+    };
+
+    let audio_id = payload
+        .get("audio_id")
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| value.to_string());
+    if let Some(audio_id) = audio_id {
+        emit_cloud_status(
+            &app_handle,
+            "cloud_split",
+            "Refining segmentation to one verse per segment...".to_string(),
+            Some(100.0),
+        );
+
+        let split_payload = call_gradio_endpoint(
+            &client,
+            QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL,
+            "split_segments",
+            serde_json::json!([
+                audio_id,
+                1,
+                serde_json::Value::Null,
+                serde_json::Value::Null,
+                serde_json::Value::Null
+            ]),
+        )
+        .await?;
+
+        emit_cloud_status(
+            &app_handle,
+            "cloud_split",
+            "One-verse recompute completed.".to_string(),
+            Some(100.0),
+        );
+        return Ok(split_payload);
     }
+
     Ok(payload)
 }

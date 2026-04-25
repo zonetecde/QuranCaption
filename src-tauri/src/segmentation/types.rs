@@ -16,6 +16,9 @@ pub const QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL: &str =
 /// Endpoint MFA direct sur un fichier audio uploade.
 pub const QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/timestamps_direct";
+/// Endpoint de split des segments par contraintes (versets/mots/duree).
+pub const QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL: &str =
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/split_segments";
 
 /// Flag de développement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;

@@ -13,6 +13,8 @@
 	import { discordService } from '$lib/services/DiscordService';
 	import { onDestroy } from 'svelte';
 	import Exporter from '$lib/classes/Exporter';
+	import toast from 'svelte-5-french-toast';
+	import { Project, Utilities } from '$lib/classes';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -60,6 +62,25 @@
 	async function exportProjectButtonClick(e: MouseEvent) {
 		if (e.button !== 0) return; // Only handle left click
 		await Exporter.exportProjectData(await ProjectService.load(projectDetail.id));
+	}
+
+	async function duplicateProjectButtonClick(e: MouseEvent) {
+		if (e.button !== 0) return; // Only handle left click
+		const loadingToast = toast.loading('Duplicating project...');
+		try {
+			const duplicatedProject = await ProjectService.duplicate(projectDetail.id);
+
+			// Add to UI
+			globalState.userProjectsDetails = [
+				duplicatedProject.detail,
+				...globalState.userProjectsDetails
+			];
+
+			toast.success('Project duplicated successfully!', { id: loadingToast });
+		} catch (error) {
+			console.error(error);
+			toast.error('Failed to duplicate project', { id: loadingToast });
+		}
 	}
 
 	onDestroy(() => {
@@ -337,6 +358,11 @@
 	<Item on:click={exportProjectButtonClick}
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">file_download</span>Export project
+		</div></Item
+	>
+	<Item on:click={duplicateProjectButtonClick}
+		><div class="btn-icon">
+			<span class="material-icons-outlined text-sm mr-1">content_copy</span>Duplicate project
 		</div></Item
 	>
 	<Item on:click={deleteProjectButtonClick}

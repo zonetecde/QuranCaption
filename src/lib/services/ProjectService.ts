@@ -234,6 +234,58 @@ export class ProjectService {
 	}
 
 	/**
+	 * Duplicate a project completely (JSON files and asset folder) with a new ID.
+	 * @param projectId The ID of the project to duplicate
+	 * @returns The exact duplicated project instance
+	 */
+	static async duplicate(projectId: number): Promise<Project> {
+		// Load the full project
+		const project = await this.load(projectId);
+
+		// Clone JSON
+		const duplicatedJson = JSON.parse(JSON.stringify(project.toJSON()));
+
+		// Set new identifiers and details
+		const newId = Utilities.randomId();
+		duplicatedJson.detail._id = undefined;
+		duplicatedJson.detail.id = newId;
+		duplicatedJson.detail.name = `${duplicatedJson.detail.name} (Copy)`.substring(
+			0,
+			ProjectDetail.NAME_MAX_LENGTH
+		);
+		duplicatedJson.detail.createdAt = new Date().toISOString();
+		duplicatedJson.detail.updatedAt = new Date().toISOString();
+
+		// Instantiate and save
+		const duplicatedProject = Project.fromJSON(duplicatedJson) as Project;
+		await this.save(duplicatedProject);
+
+		// Copy assets directory if one exists
+		try {
+			const oldAssetDir = await this.getAssetFolderForProject(projectId);
+			const newAssetDir = await this.getAssetFolderForProject(newId);
+			if (await exists(oldAssetDir)) {
+				await mkdir(newAssetDir, { recursive: true });
+				const entries = await readDir(oldAssetDir);
+				for (const entry of entries) {
+					if (entry.isFile) {
+						try {
+							const { copyFile } = await import('@tauri-apps/plugin-fs');
+							await copyFile(`${oldAssetDir}/${entry.name}`, `${newAssetDir}/${entry.name}`);
+						} catch (e) {
+							console.warn('Could not copy a specific project asset:', e);
+						}
+					}
+				}
+			}
+		} catch (e) {
+			console.warn('Could not fully copy project assets folder:', e);
+		}
+
+		return duplicatedProject;
+	}
+
+	/**
 	 * Importe un projet à partir d'un fichier JSON.
 	 * @param json Le contenu JSON du projet
 	 */

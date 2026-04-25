@@ -68,6 +68,10 @@
 		payload: { error: string; export_id: string };
 	};
 
+	const EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX = 0.45;
+	const EXPORT_TEXT_WEIGHT_COMPENSATION_RATIO = 0.0125;
+	const EXPORT_TEXT_SHADOW_OPACITY = 0.75;
+
 	function getExportFadeSettings(): ExportFadeSettings {
 		return globalState.getStyle('global', 'video-and-audio-fade')!.value as ExportFadeSettings;
 	}
@@ -1002,9 +1006,488 @@
 		getCurrentWebviewWindow().close();
 	}
 
+	async function canvasToPngBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+		const blob = await new Promise<Blob>((resolve, reject) => {
+			canvas.toBlob((value) => {
+				if (value) resolve(value);
+				else reject(new Error('Could not encode export frame as PNG.'));
+			}, 'image/png');
+		});
+
+		return new Uint8Array(await blob.arrayBuffer());
+	}
+
+	async function decodeBlobAsImage(blob: Blob): Promise<HTMLImageElement> {
+		const url = URL.createObjectURL(blob);
+		const image = new Image();
+
+		try {
+			await new Promise<void>((resolve, reject) => {
+				image.onload = () => resolve();
+				image.onerror = () => reject(new Error('Could not decode export frame PNG.'));
+				image.src = url;
+			});
+			return image;
+		} finally {
+			URL.revokeObjectURL(url);
+		}
+	}
+
+	function inlineComputedCaptureEffects(root: HTMLElement): () => void {
+		const changedElements: Array<{
+			element: HTMLElement;
+			textShadow: string;
+			boxShadow: string;
+		}> = [];
+
+		for (const element of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
+			const computedStyle = getComputedStyle(element);
+			const textShadow = computedStyle.textShadow;
+			const boxShadow = computedStyle.boxShadow;
+			const hasTextShadow = textShadow && textShadow !== 'none';
+			const hasBoxShadow = boxShadow && boxShadow !== 'none';
+
+			if (!hasTextShadow && !hasBoxShadow) continue;
+
+			changedElements.push({
+				element,
+				textShadow: element.style.textShadow,
+				boxShadow: element.style.boxShadow
+			});
+
+			if (hasTextShadow) element.style.textShadow = textShadow;
+			if (hasBoxShadow) element.style.boxShadow = boxShadow;
+		}
+
+		return () => {
+			for (const { element, textShadow, boxShadow } of changedElements) {
+				element.style.textShadow = textShadow;
+				element.style.boxShadow = boxShadow;
+			}
+		};
+	}
+
+	type ParsedTextShadow = {
+		color: string;
+		offsetX: number;
+		offsetY: number;
+		blur: number;
+	};
+
+	type TextDrawRun = {
+		text: string;
+		x: number;
+		y: number;
+		font: string;
+		color: string;
+		opacity: number;
+		direction: CanvasDirection;
+		align: CanvasTextAlign;
+		letterSpacing: string;
+		fontKerning: string;
+		fontStretch: string;
+		fontVariantCaps: string;
+		shadows: ParsedTextShadow[];
+	};
+
+	type TextTokenRect = {
+		start: number;
+		end: number;
+		rect: DOMRect;
+	};
+
+	type TextLineRect = {
+		start: number;
+		end: number;
+		rect: DOMRect;
+	};
+
+	function splitCssShadowList(value: string): string[] {
+		const shadows: string[] = [];
+		let depth = 0;
+		let current = '';
+
+		for (const char of value) {
+			if (char === '(') depth += 1;
+			if (char === ')') depth = Math.max(0, depth - 1);
+			if (char === ',' && depth === 0) {
+				shadows.push(current.trim());
+				current = '';
+				continue;
+			}
+			current += char;
+		}
+
+		if (current.trim()) shadows.push(current.trim());
+		return shadows;
+	}
+
+	function parseTextShadow(shadow: string, fallbackColor: string): ParsedTextShadow | null {
+		const colorMatch = shadow.match(/(?:rgba?|hsla?)\([^)]*\)|#[0-9a-fA-F]{3,8}|[a-zA-Z]+/);
+		const color = colorMatch?.[0] ?? fallbackColor;
+		const numericPart = colorMatch ? shadow.replace(colorMatch[0], ' ') : shadow;
+		const numbers = Array.from(numericPart.matchAll(/-?\d*\.?\d+px/g)).map((match) =>
+			Number.parseFloat(match[0])
+		);
+
+		if (numbers.length < 2) return null;
+
+		return {
+			color,
+			offsetX: numbers[0],
+			offsetY: numbers[1],
+			blur: numbers[2] ?? 0
+		};
+	}
+
+	function parseTextShadows(textShadow: string, fallbackColor: string): ParsedTextShadow[] {
+		if (!textShadow || textShadow === 'none') return [];
+		return splitCssShadowList(textShadow)
+			.map((shadow) => parseTextShadow(shadow, fallbackColor))
+			.filter((shadow): shadow is ParsedTextShadow => shadow !== null);
+	}
+
+	function colorWithOpacity(color: string, opacity: number): string {
+		const canvas = document.createElement('canvas');
+		const context = canvas.getContext('2d');
+		if (!context) return color;
+
+		context.fillStyle = color;
+		const normalized = context.fillStyle;
+		const hexMatch = normalized.match(/^#([0-9a-f]{6})$/i);
+		if (!hexMatch) return color;
+
+		const hex = hexMatch[1];
+		const red = Number.parseInt(hex.slice(0, 2), 16);
+		const green = Number.parseInt(hex.slice(2, 4), 16);
+		const blue = Number.parseInt(hex.slice(4, 6), 16);
+		return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+	}
+
+	function toCanvasDirection(value: string): CanvasDirection {
+		return value === 'rtl' ? 'rtl' : 'ltr';
+	}
+
+	function toCanvasTextAlign(direction: CanvasDirection): CanvasTextAlign {
+		return direction === 'rtl' ? 'right' : 'left';
+	}
+
+	function applyTextTransform(text: string, transform: string): string {
+		if (transform === 'uppercase') return text.toUpperCase();
+		if (transform === 'lowercase') return text.toLowerCase();
+		if (transform === 'capitalize') {
+			return text.replace(/\b\S/g, (char) => char.toUpperCase());
+		}
+		return text;
+	}
+
+	function getTextTokenRanges(text: string): Array<{ start: number; end: number }> {
+		const tokens: Array<{ start: number; end: number }> = [];
+		const tokenPattern = /\S+\s*/g;
+		let match: RegExpExecArray | null;
+
+		while ((match = tokenPattern.exec(text)) !== null) {
+			tokens.push({
+				start: match.index,
+				end: match.index + match[0].length
+			});
+		}
+
+		return tokens;
+	}
+
+	function getLineBucket(rect: DOMRect, rootScaleY: number): number {
+		return Math.round(rect.top * rootScaleY);
+	}
+
+	function getTextLineRects(textNode: Text, rootScaleY: number): TextLineRect[] {
+		const tokenRects: TextTokenRect[] = [];
+
+		for (const token of getTextTokenRanges(textNode.data)) {
+			const range = document.createRange();
+			range.setStart(textNode, token.start);
+			range.setEnd(textNode, token.end);
+			const rects = Array.from(range.getClientRects());
+			range.detach();
+
+			for (const rect of rects) {
+				if (!rect.width || !rect.height) continue;
+				tokenRects.push({ ...token, rect });
+			}
+		}
+
+		const lineGroups = new Map<number, TextTokenRect[]>();
+		for (const tokenRect of tokenRects) {
+			const bucket = getLineBucket(tokenRect.rect, rootScaleY);
+			const group = lineGroups.get(bucket);
+			if (group) group.push(tokenRect);
+			else lineGroups.set(bucket, [tokenRect]);
+		}
+
+		return Array.from(lineGroups.values()).map((group) => {
+			const start = Math.min(...group.map((token) => token.start));
+			const end = Math.max(...group.map((token) => token.end));
+			const left = Math.min(...group.map((token) => token.rect.left));
+			const right = Math.max(...group.map((token) => token.rect.right));
+			const top = Math.min(...group.map((token) => token.rect.top));
+			const bottom = Math.max(...group.map((token) => token.rect.bottom));
+
+			return {
+				start,
+				end,
+				rect: new DOMRect(left, top, right - left, bottom - top)
+			};
+		});
+	}
+
+	function getCumulativeOpacity(element: HTMLElement, root: HTMLElement): number {
+		let opacity = 1;
+		let current: HTMLElement | null = element;
+
+		while (current && current !== root.parentElement) {
+			const currentOpacity = Number(getComputedStyle(current).opacity);
+			if (Number.isFinite(currentOpacity)) opacity *= currentOpacity;
+			if (current === root) break;
+			current = current.parentElement;
+		}
+
+		return opacity;
+	}
+
+	function collectLiveTextDrawRuns(root: HTMLElement): TextDrawRun[] {
+		const rootRect = root.getBoundingClientRect();
+		const localScaleX = root.clientWidth / rootRect.width;
+		const localScaleY = root.clientHeight / rootRect.height;
+		const runs: TextDrawRun[] = [];
+		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+
+		while (walker.nextNode()) {
+			const textNode = walker.currentNode as Text;
+			const parent = textNode.parentElement;
+			if (!parent || !textNode.data.trim()) continue;
+
+			const computedStyle = getComputedStyle(parent);
+			if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') continue;
+
+			const opacity = getCumulativeOpacity(parent, root);
+			if (opacity <= 0) continue;
+
+			const direction = toCanvasDirection(computedStyle.direction);
+			const align = toCanvasTextAlign(direction);
+			const shadows = parseTextShadows(computedStyle.textShadow, computedStyle.color);
+
+			for (const line of getTextLineRects(textNode, localScaleY)) {
+				const text = textNode.data.slice(line.start, line.end).trim();
+				if (!text) continue;
+
+				const x =
+					direction === 'rtl'
+						? (line.rect.right - rootRect.left) * localScaleX
+						: (line.rect.left - rootRect.left) * localScaleX;
+
+				runs.push({
+					text: applyTextTransform(text, computedStyle.textTransform),
+					x,
+					y: (line.rect.top - rootRect.top) * localScaleY,
+					font: computedStyle.font,
+					color: computedStyle.color,
+					opacity,
+					direction,
+					align,
+					letterSpacing: computedStyle.letterSpacing,
+					fontKerning: computedStyle.fontKerning,
+					fontStretch: computedStyle.fontStretch,
+					fontVariantCaps: computedStyle.fontVariantCaps,
+					shadows
+				});
+			}
+		}
+
+		return runs;
+	}
+
+	function hideTextForOverlayCapture(root: HTMLElement): () => void {
+		const changedElements: Array<{
+			element: HTMLElement;
+			color: string;
+			textFillColor: string;
+			textShadow: string;
+			textDecorationColor: string;
+		}> = [];
+
+		for (const element of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
+			if (!element.textContent?.trim()) continue;
+
+			changedElements.push({
+				element,
+				color: element.style.color,
+				textFillColor: element.style.webkitTextFillColor,
+				textShadow: element.style.textShadow,
+				textDecorationColor: element.style.textDecorationColor
+			});
+
+			element.style.color = 'transparent';
+			element.style.webkitTextFillColor = 'transparent';
+			element.style.textShadow = 'none';
+			element.style.textDecorationColor = 'transparent';
+		}
+
+		return () => {
+			for (const { element, color, textFillColor, textShadow, textDecorationColor } of changedElements) {
+				element.style.color = color;
+				element.style.webkitTextFillColor = textFillColor;
+				element.style.textShadow = textShadow;
+				element.style.textDecorationColor = textDecorationColor;
+			}
+		};
+	}
+
+	function scaleCanvasFont(font: string, scale: number): string {
+		let replaced = false;
+		return font.replace(/(\d*\.?\d+)px/, (match, size: string) => {
+			if (replaced) return match;
+			replaced = true;
+			return `${Number.parseFloat(size) * scale}px`;
+		});
+	}
+
+	function getFontSizePx(font: string): number | null {
+		const match = font.match(/(\d*\.?\d+)px/);
+		if (!match) return null;
+		const size = Number.parseFloat(match[1]);
+		return Number.isFinite(size) ? size : null;
+	}
+
+	function scaleCssPixelValue(value: string, scale: number): string {
+		if (!value || value === 'normal') return value;
+		return value.replace(/(-?\d*\.?\d+)px/g, (_match, size: string) => {
+			return `${Number.parseFloat(size) * scale}px`;
+		});
+	}
+
+	function drawTextRun(
+		context: CanvasRenderingContext2D,
+		run: TextDrawRun,
+		scaleX: number,
+		scaleY: number
+	) {
+		const x = run.x * scaleX;
+		const y = run.y * scaleY;
+		const fontSizePx = getFontSizePx(run.font);
+		const compensationCssPx =
+			fontSizePx === null
+				? EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX
+				: Math.min(
+						EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX,
+						fontSizePx * EXPORT_TEXT_WEIGHT_COMPENSATION_RATIO
+					);
+		const compensationWidth = compensationCssPx * Math.max(scaleX, scaleY);
+
+		context.save();
+		context.globalAlpha = run.opacity;
+		context.font = scaleCanvasFont(run.font, scaleY);
+		context.fillStyle = run.color;
+		context.strokeStyle = run.color;
+		context.lineJoin = 'round';
+		context.miterLimit = 2;
+		context.textBaseline = 'top';
+		context.textAlign = run.align;
+		context.direction = run.direction;
+		const extendedContext = context as CanvasRenderingContext2D & {
+			letterSpacing?: string;
+			textRendering?: string;
+		} & Record<string, string | undefined>;
+		if ('letterSpacing' in extendedContext) {
+			extendedContext.letterSpacing = scaleCssPixelValue(run.letterSpacing, scaleX);
+		}
+		if ('fontKerning' in extendedContext) {
+			(extendedContext as Record<string, string | undefined>).fontKerning = run.fontKerning;
+		}
+		if ('fontStretch' in extendedContext) {
+			(extendedContext as Record<string, string | undefined>).fontStretch = run.fontStretch;
+		}
+		if ('fontVariantCaps' in extendedContext) {
+			(extendedContext as Record<string, string | undefined>).fontVariantCaps = run.fontVariantCaps;
+		}
+		if ('textRendering' in extendedContext) {
+			extendedContext.textRendering = 'geometricPrecision';
+		}
+
+		const clearShadow = () => {
+			context.shadowColor = 'transparent';
+			context.shadowBlur = 0;
+			context.shadowOffsetX = 0;
+			context.shadowOffsetY = 0;
+		};
+
+		const fillCompensatedText = () => {
+			clearShadow();
+
+			if (compensationWidth > 0) {
+				context.save();
+				context.lineWidth = compensationWidth;
+				context.strokeText(run.text, x, y);
+				context.restore();
+			}
+
+			context.fillText(run.text, x, y);
+		};
+
+		fillCompensatedText();
+
+		if (run.shadows.length > 0) {
+			context.globalCompositeOperation = 'destination-over';
+			for (const shadow of run.shadows) {
+				context.save();
+				context.shadowColor = colorWithOpacity(shadow.color, EXPORT_TEXT_SHADOW_OPACITY);
+				context.shadowBlur = shadow.blur * Math.max(scaleX, scaleY);
+				context.shadowOffsetX = shadow.offsetX * scaleX;
+				context.shadowOffsetY = shadow.offsetY * scaleY;
+				context.fillText(run.text, x, y);
+				context.restore();
+			}
+		}
+
+		context.restore();
+	}
+
+	async function blobToExactPngBytesWithLiveText(
+		blob: Blob,
+		textRuns: TextDrawRun[],
+		sourceWidth: number,
+		sourceHeight: number,
+		targetWidth: number,
+		targetHeight: number
+	): Promise<Uint8Array> {
+		const image = await decodeBlobAsImage(blob);
+		const canvas = document.createElement('canvas');
+		canvas.width = targetWidth;
+		canvas.height = targetHeight;
+
+		const context = canvas.getContext('2d');
+		if (!context) throw new Error('Could not create export frame canvas.');
+
+		context.imageSmoothingEnabled = true;
+		context.imageSmoothingQuality = 'high';
+		context.clearRect(0, 0, targetWidth, targetHeight);
+		context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+		const scaleX = targetWidth / sourceWidth;
+		const scaleY = targetHeight / sourceHeight;
+		for (const run of textRuns) {
+			drawTextRun(context, run, scaleX, scaleY);
+		}
+
+		return await canvasToPngBytes(canvas);
+	}
+
+	function shouldRedrawExportTextWithCanvas(): boolean {
+		return navigator.userAgent.toLowerCase().includes('mac');
+	}
+
 	async function takeScreenshot(fileName: string, subfolder: string | null = null) {
 		// L'element a transformer en image
-		let node = document.getElementById('overlay')!;
+		const node = document.getElementById('overlay')!;
 
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
 		// je veux pouvoir avoir la dimension trouvée dans les paramètres d'export
@@ -1017,29 +1500,63 @@
 		const scale = Math.min(scaleX, scaleY);
 
 		try {
-			const blob: Blob | null = await domToBlob(node, {
-				width: node.clientWidth * scale,
-				height: node.clientHeight * scale,
-				style: {
-					// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-					transform: 'scale(' + scale + ')',
-					transformOrigin: 'top left'
-				},
-				quality: 1
-			});
-
-			if (!blob) throw new Error('domToBlob returned null');
-
-			// Convertir le blob directement en Uint8Array (une seule copie en mémoire)
-			const buffer = await blob.arrayBuffer();
-			const bytes = new Uint8Array(buffer);
-
-			// Déterminer le chemin du fichier
 			const pathComponents = [ExportService.exportFolder, exportId];
 			if (subfolder) pathComponents.push(subfolder);
 			pathComponents.push(fileName + '.png');
 
 			const filePathWithName = await join(...pathComponents);
+
+			if (!shouldRedrawExportTextWithCanvas()) {
+				const blob: Blob | null = await domToBlob(node, {
+					width: node.clientWidth * scale,
+					height: node.clientHeight * scale,
+					style: {
+						// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+						transform: 'scale(' + scale + ')',
+						transformOrigin: 'top left'
+					},
+					quality: 1
+				});
+
+				if (!blob) throw new Error('domToBlob returned null');
+
+				const buffer = await blob.arrayBuffer();
+				const bytes = new Uint8Array(buffer);
+
+				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				console.log('Screenshot saved to:', filePathWithName);
+				return;
+			}
+
+			const roundedTargetWidth = Math.round(targetWidth);
+			const roundedTargetHeight = Math.round(targetHeight);
+			const textRuns = collectLiveTextDrawRuns(node);
+			const restoreCaptureEffects = inlineComputedCaptureEffects(node);
+			const restoreHiddenText = hideTextForOverlayCapture(node);
+			let blob: Blob | null = null;
+
+			try {
+				blob = await domToBlob(node, {
+					width: node.clientWidth,
+					height: node.clientHeight,
+					scale,
+					quality: 1
+				});
+			} finally {
+				restoreHiddenText();
+				restoreCaptureEffects();
+			}
+
+			if (!blob) throw new Error('domToBlob returned null');
+
+			const bytes = await blobToExactPngBytesWithLiveText(
+				blob,
+				textRuns,
+				node.clientWidth,
+				node.clientHeight,
+				roundedTargetWidth,
+				roundedTargetHeight
+			);
 
 			await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 			console.log('Screenshot saved to:', filePathWithName);

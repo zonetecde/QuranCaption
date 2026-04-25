@@ -509,13 +509,13 @@
 			{
 				"id": "text-outline",
 				"name": "Outline Width",
-				"description": "Set the width of the text outline (shadow-based for better Arabic support)",
+				"description": "Set the width of the text outline (shadow-based)",
 				"value": 0.25,
 				"valueType": "number",
 				"valueMin": 0,
 				"valueMax": 10,
 				"step": 0.01,
-				"css": "filter: drop-shadow({value}px 0 0 var(--text-outline-color)) drop-shadow(-{value}px 0 0 var(--text-outline-color)) drop-shadow(0 {value}px 0 var(--text-outline-color)) drop-shadow(0 -{value}px 0 var(--text-outline-color)) drop-shadow({value}px {value}px 0 var(--text-outline-color)) drop-shadow(-{value}px -{value}px 0 var(--text-outline-color)) drop-shadow({value}px -{value}px 0 var(--text-outline-color)) drop-shadow(-{value}px {value}px 0 var(--text-outline-color)) !important;",
+				"css": "text-shadow: {value}px 0 0 var(--text-outline-color), calc({value}px * 0.9239) calc({value}px * 0.3827) 0 var(--text-outline-color), calc({value}px * 0.7071) calc({value}px * 0.7071) 0 var(--text-outline-color), calc({value}px * 0.3827) calc({value}px * 0.9239) 0 var(--text-outline-color), 0 {value}px 0 var(--text-outline-color), calc({value}px * -0.3827) calc({value}px * 0.9239) 0 var(--text-outline-color), calc({value}px * -0.7071) calc({value}px * 0.7071) 0 var(--text-outline-color), calc({value}px * -0.9239) calc({value}px * 0.3827) 0 var(--text-outline-color), -{value}px 0 0 var(--text-outline-color), calc({value}px * -0.9239) calc({value}px * -0.3827) 0 var(--text-outline-color), calc({value}px * -0.7071) calc({value}px * -0.7071) 0 var(--text-outline-color), calc({value}px * -0.3827) calc({value}px * -0.9239) 0 var(--text-outline-color), 0 -{value}px 0 var(--text-outline-color), calc({value}px * 0.3827) calc({value}px * -0.9239) 0 var(--text-outline-color), calc({value}px * 0.7071) calc({value}px * -0.7071) 0 var(--text-outline-color), calc({value}px * 0.9239) calc({value}px * -0.3827) 0 var(--text-outline-color), calc({value}px * 0.6) 0 0 var(--text-outline-color), calc({value}px * 0.4243) calc({value}px * 0.4243) 0 var(--text-outline-color), 0 calc({value}px * 0.6) 0 var(--text-outline-color), calc({value}px * -0.4243) calc({value}px * 0.4243) 0 var(--text-outline-color), calc({value}px * -0.6) 0 0 var(--text-outline-color), calc({value}px * -0.4243) calc({value}px * -0.4243) 0 var(--text-outline-color), 0 calc({value}px * -0.6) 0 var(--text-outline-color), calc({value}px * 0.4243) calc({value}px * -0.4243) 0 var(--text-outline-color);",
 				"tailwind": false,
 				"icon": "line_weight"
 			},

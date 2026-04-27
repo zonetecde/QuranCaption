@@ -1317,6 +1317,12 @@ async function applySegmentationResponseToProject(
 				startRef,
 				endRef
 			});
+			const isLocalMultiAligner =
+				segmentationSource === 'local' && (modelName === 'Base' || modelName === 'Large');
+			const forceLowConfidenceFallback = isLocalMultiAligner && !includeWbwTimestamps;
+			const segmentWords = getSegmentWords(segment);
+			const useWbwBoundaries = includeWbwTimestamps && segmentWords.length > 0;
+			const segmentStartMsRaw = (segment.time_from ?? 0) * 1000;
 
 			const splitDefinitions: Array<{
 				startMs: number;
@@ -1329,6 +1335,7 @@ async function applySegmentationResponseToProject(
 				needsReview: boolean;
 			}> = [];
 			let splitNeedsReview = false;
+			let missingWbwBoundaries = false;
 
 			for (let verseNumber = startRef.verse; verseNumber <= endRef.verse; verseNumber += 1) {
 				const verse = await Quran.getVerse(startRef.surah, verseNumber);
@@ -1380,30 +1387,73 @@ async function applySegmentationResponseToProject(
 
 			const totalWords = splitDefinitions.reduce((sum, def) => sum + def.wordCount, 0);
 			if (splitDefinitions.length > 0 && totalWords > 0) {
-				const totalSpan = endMs - startMs + 1;
-				let currentStart = startMs;
+				if (useWbwBoundaries) {
+					for (const def of splitDefinitions) {
+						const verseWords = segmentWords
+							.map((word) => ({ word, ref: parseVerseRef(word.location) }))
+							.filter(
+								(entry): entry is { word: SegmentationWordTimestamp; ref: VerseRef } =>
+									entry.ref !== null &&
+									entry.ref.surah === def.surah &&
+									entry.ref.verse === def.verseNumber
+							)
+							.sort((left, right) => left.ref.word - right.ref.word);
+						const targetStartWord = def.startIndex + 1;
+						const targetEndWord = def.endIndex + 1;
+						const startWord =
+							verseWords.find((entry) => entry.ref.word === targetStartWord) ??
+							verseWords.find((entry) => entry.ref.word >= targetStartWord);
+						const endWord =
+							[...verseWords]
+								.reverse()
+								.find((entry) => entry.ref.word === targetEndWord) ??
+							[...verseWords]
+								.reverse()
+								.find((entry) => entry.ref.word <= targetEndWord);
 
-				for (let i = 0; i < splitDefinitions.length; i += 1) {
-					const def = splitDefinitions[i];
-					const remainingParts = splitDefinitions.length - i;
-					const remainingSpan = endMs - currentStart + 1;
-					const minRemaining = remainingParts - 1;
-					let length = remainingSpan;
+						if (!startWord || !endWord) {
+							missingWbwBoundaries = true;
+							splitNeedsReview = true;
+							break;
+						}
 
-					if (i < splitDefinitions.length - 1) {
-						const rawLength = Math.round((def.wordCount / totalWords) * totalSpan);
-						const maxLength = Math.max(1, remainingSpan - minRemaining);
-						length = Math.min(Math.max(1, rawLength), maxLength);
+						const computedStartMs = Math.round(segmentStartMsRaw + startWord.word.start * 1000);
+						const computedEndMs = Math.round(segmentStartMsRaw + endWord.word.end * 1000);
+						def.startMs = Math.max(startMs, computedStartMs);
+						def.endMs = Math.max(def.startMs, Math.min(endMs, computedEndMs));
 					}
+				}
 
-					def.startMs = currentStart;
-					def.endMs = currentStart + length - 1;
-					currentStart = def.endMs + 1;
+				if (!useWbwBoundaries || missingWbwBoundaries) {
+					const totalSpan = endMs - startMs + 1;
+					let currentStart = startMs;
+
+					for (let i = 0; i < splitDefinitions.length; i += 1) {
+						const def = splitDefinitions[i];
+						const remainingParts = splitDefinitions.length - i;
+						const remainingSpan = endMs - currentStart + 1;
+						const minRemaining = remainingParts - 1;
+						let length = remainingSpan;
+
+						if (i < splitDefinitions.length - 1) {
+							const rawLength = Math.round((def.wordCount / totalWords) * totalSpan);
+							const maxLength = Math.max(1, remainingSpan - minRemaining);
+							length = Math.min(Math.max(1, rawLength), maxLength);
+						}
+
+						def.startMs = currentStart;
+						def.endMs = currentStart + length - 1;
+						currentStart = def.endMs + 1;
+					}
 				}
 
 				for (const def of splitDefinitions) {
 					const verse = await Quran.getVerse(def.surah, def.verseNumber);
 					if (!verse) continue;
+					const clipConfidence = forceLowConfidenceFallback
+						? Math.min(confidence ?? 0.5, 0.5)
+						: confidence;
+					const clipIsLowConfidence = forceLowConfidenceFallback ? true : isLowConfidence;
 					await pushSubtitleClip({
 						segment,
 						startMs: def.startMs,
@@ -1413,8 +1463,8 @@ async function applySegmentationResponseToProject(
 						startIndex: def.startIndex,
 						endIndex: def.endIndex,
 						verse,
-						confidence,
-						isLowConfidence,
+						confidence: clipConfidence,
+						isLowConfidence: clipIsLowConfidence,
 						needsReview: splitNeedsReview || def.needsReview,
 						needsCoverageReview
 					});

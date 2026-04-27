@@ -531,6 +531,9 @@ fn probe_hw_encoders(ffmpeg_path: Option<&str>) -> Vec<String> {
     if txt.contains("h264_nvenc") {
         found.push("h264_nvenc".to_string());
     }
+    if txt.contains("h264_videotoolbox") {
+        found.push("h264_videotoolbox".to_string());
+    }
     if txt.contains("h264_qsv") {
         found.push("h264_qsv".to_string());
     }
@@ -586,8 +589,14 @@ fn choose_best_codec(
     usage: CodecUsage,
 ) -> (String, Vec<String>, HashMap<String, Option<String>>) {
     let high_resolution = is_high_resolution_export(width, height);
+    let ffmpeg_exe = resolve_ffmpeg_binary();
+    let hw = if prefer_hw {
+        probe_hw_encoders(ffmpeg_exe.as_deref())
+    } else {
+        Vec::new()
+    };
 
-    if high_resolution {
+    if high_resolution && !hw.iter().any(|encoder| encoder == "h264_videotoolbox") {
         println!(
             "[codec] Export haute résolution détecté ({}x{}), forçage libx264 haute qualité",
             width, height
@@ -613,13 +622,6 @@ fn choose_best_codec(
         );
     }
 
-    let ffmpeg_exe = resolve_ffmpeg_binary();
-    let hw = if prefer_hw {
-        probe_hw_encoders(ffmpeg_exe.as_deref())
-    } else {
-        Vec::new()
-    };
-
     if !hw.is_empty() {
         // Tester spécifiquement NVENC s'il est détecté
         if hw[0] == "h264_nvenc" {
@@ -633,6 +635,35 @@ fn choose_best_codec(
             } else {
                 println!("[codec] NVENC détecté mais non fonctionnel, fallback vers libx264");
             }
+        } else if hw[0] == "h264_videotoolbox" {
+            println!("[codec] Utilisation de VideoToolbox (accélération matérielle macOS)");
+            let codec = hw[0].clone();
+            let (bitrate, maxrate, bufsize) = if high_resolution {
+                match usage {
+                    CodecUsage::Intermediate => ("45M", "60M", "90M"),
+                    CodecUsage::Final => ("35M", "50M", "70M"),
+                }
+            } else {
+                match usage {
+                    CodecUsage::Intermediate => ("20M", "30M", "40M"),
+                    CodecUsage::Final => ("16M", "24M", "32M"),
+                }
+            };
+            let params = vec![
+                "-pix_fmt".to_string(),
+                "yuv420p".to_string(),
+                "-b:v".to_string(),
+                bitrate.to_string(),
+                "-maxrate".to_string(),
+                maxrate.to_string(),
+                "-bufsize".to_string(),
+                bufsize.to_string(),
+                "-allow_sw".to_string(),
+                "1".to_string(),
+            ];
+            let mut extra = HashMap::new();
+            extra.insert("preset".to_string(), None);
+            return (codec, params, extra);
         } else {
             // Pour les autres encodeurs hardware (QSV, AMF), utiliser directement
             println!("[codec] Utilisation de l'encodeur hardware: {}", hw[0]);

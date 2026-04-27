@@ -28,6 +28,7 @@
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
 	import { domToBlob } from 'modern-screenshot';
+	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
 	import { ClipWithTranslation, CustomClip, SilenceClip } from '$lib/classes/Clip.svelte';
 
 	// Contient l'ID de l'export
@@ -1004,7 +1005,7 @@
 
 	async function takeScreenshot(fileName: string, subfolder: string | null = null) {
 		// L'element a transformer en image
-		let node = document.getElementById('overlay')!;
+		const node = document.getElementById('overlay')!;
 
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
 		// je veux pouvoir avoir la dimension trouvée dans les paramètres d'export
@@ -1017,32 +1018,38 @@
 		const scale = Math.min(scaleX, scaleY);
 
 		try {
-			const blob: Blob | null = await domToBlob(node, {
-				width: node.clientWidth * scale,
-				height: node.clientHeight * scale,
-				style: {
-					// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-					transform: 'scale(' + scale + ')',
-					transformOrigin: 'top left'
-				},
-				quality: 1
-			});
-
-			if (!blob) throw new Error('domToBlob returned null');
-
-			// Convertir le blob directement en Uint8Array (une seule copie en mémoire)
-			const buffer = await blob.arrayBuffer();
-			const bytes = new Uint8Array(buffer);
-
-			// Déterminer le chemin du fichier
 			const pathComponents = [ExportService.exportFolder, exportId];
 			if (subfolder) pathComponents.push(subfolder);
 			pathComponents.push(fileName + '.png');
 
 			const filePathWithName = await join(...pathComponents);
 
-			await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-			console.log('Screenshot saved to:', filePathWithName);
+			const isMacOS = shouldRedrawExportTextWithCanvas();
+			if (!isMacOS) {
+				const blob: Blob | null = await domToBlob(node, {
+					width: node.clientWidth * scale,
+					height: node.clientHeight * scale,
+					style: {
+						// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+						transform: 'scale(' + scale + ')',
+						transformOrigin: 'top left'
+					},
+					quality: 1
+				});
+
+				if (!blob) throw new Error('domToBlob returned null');
+
+				const buffer = await blob.arrayBuffer();
+				const bytes = new Uint8Array(buffer);
+
+				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				console.log('Screenshot saved to:', filePathWithName);
+			} else {
+				const bytes = await captureMacOsOverlayPngBytes(node, scale, targetWidth, targetHeight);
+
+				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				console.log('Screenshot saved to:', filePathWithName);
+			}
 		} catch (error: unknown) {
 			console.error('Error while taking screenshot: ', error);
 			const message =

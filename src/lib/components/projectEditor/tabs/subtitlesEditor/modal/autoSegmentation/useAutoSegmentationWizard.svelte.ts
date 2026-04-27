@@ -346,6 +346,7 @@ export function useAutoSegmentationWizard() {
 		currentStatusProgress = null;
 		resetEstimatedProgress();
 
+		let estimatedDurationForRun: number | null = null;
 		if (selection.runtime !== 'hf_json' && selection.localAsrMode === 'multi_aligner' && selection.mode === 'local') {
 			const audioDurationS = getAutoSegmentationAudioDurationS();
 			const estimated = await estimateSegmentationDuration({
@@ -355,7 +356,7 @@ export function useAutoSegmentationWizard() {
 				device: selection.device
 			});
 			if (estimated?.estimated_duration_s && estimated.estimated_duration_s > 0) {
-				startEstimatedProgressTimer(estimated.estimated_duration_s);
+				estimatedDurationForRun = estimated.estimated_duration_s;
 			}
 		}
 		const unlisten = await listenSegmentationStatus();
@@ -386,7 +387,12 @@ export function useAutoSegmentationWizard() {
 						includeWbwTimestamps,
 						fillBySilence,
 						extendBeforeSilence,
-						extendBeforeSilenceMs
+						extendBeforeSilenceMs,
+						onRunConfirmed: () => {
+							if (estimatedDurationForRun && estimatedDurationForRun > 0) {
+								startEstimatedProgressTimer(estimatedDurationForRun);
+							}
+						}
 					},
 					selection.mode
 				);

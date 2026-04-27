@@ -212,6 +212,7 @@ export type AutoSegmentationOptions = {
 	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
 	extendBeforeSilence?: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
+	onRunConfirmed?: (() => void | Promise<void>) | null; // Called once after overwrite confirmation succeeds.
 };
 
 export type AutoSegmentationResult =
@@ -2202,6 +2203,7 @@ export async function runAutoSegmentation(
 	const fillBySilence: boolean = options.fillBySilence ?? true; //  Par défaut, on insère des SilenceClip
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
+	const onRunConfirmed = options.onRunConfirmed ?? null;
 
 	// Determine mode if not specified
 	const requestedMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
@@ -2228,6 +2230,10 @@ export async function runAutoSegmentation(
 		);
 
 		if (!confirmOverwrite) return { status: 'cancelled' };
+	}
+
+	if (onRunConfirmed) {
+		await onRunConfirmed();
 	}
 
 	try {

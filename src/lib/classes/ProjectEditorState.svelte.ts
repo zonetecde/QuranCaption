@@ -260,7 +260,7 @@ export class SubtitlesEditorState extends SerializableBase {
 		effectiveMode: null,
 		modelName: null,
 		device: null,
-		includeWbwTimestamps: false,
+		includeWbwTimestamps: true,
 		alignedSegments: []
 	});
 

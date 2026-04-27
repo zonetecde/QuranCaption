@@ -8,8 +8,10 @@ Status updates are emitted to stderr as: STATUS:{"step":"...","message":"..."}
 
 import argparse
 import io
+import importlib.util
 import json
 import os
+import subprocess
 import sys
 import traceback
 import urllib.error
@@ -69,6 +71,57 @@ def apply_hf_token_env(token: str) -> None:
     os.environ["HF_TOKEN"] = token
     os.environ["HF_HUB_TOKEN"] = token
     os.environ["HUGGING_FACE_HUB_TOKEN"] = token
+
+
+def ensure_quranic_phonemizer(status_writer=None) -> Optional[str]:
+    """Ensure quranic_phonemizer import is available in the current Python env."""
+    if importlib.util.find_spec("quranic_phonemizer") is not None:
+        return None
+    if importlib.util.find_spec("core.phonemizer") is not None:
+        return None
+
+    def emit(step: str, message: str) -> None:
+        if callable(status_writer):
+            try:
+                status_writer(step, message)
+            except Exception:
+                pass
+
+    candidates = [
+        "quranic-phonemizer",
+        "https://github.com/Hetchy/Quranic-Phonemizer/archive/1b6a8cc.zip",
+    ]
+
+    for candidate in candidates:
+        emit("deps", f"Installing missing dependency: {candidate}...")
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    candidate,
+                    "--quiet",
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        except Exception:
+            continue
+
+        if importlib.util.find_spec("quranic_phonemizer") is not None:
+            return None
+        if importlib.util.find_spec("core.phonemizer") is not None:
+            return None
+
+    return (
+        "Missing Python module 'quranic_phonemizer'. "
+        "Please reinstall local Multi-Aligner dependencies."
+    )
 
 
 def validate_hf_model_access(token: str) -> Optional[str]:
@@ -310,6 +363,13 @@ def main() -> int:
                 error_payload = {"error": data_error}
                 raise RuntimeError(data_error)
 
+            dep_error = ensure_quranic_phonemizer(
+                lambda step, message: emit_status(original_stderr, step, message)
+            )
+            if dep_error:
+                error_payload = {"error": dep_error}
+                raise RuntimeError(dep_error)
+
             emit_status(original_stderr, "loading", "Loading audio file...")
             sample_rate, audio = load_audio(args.audio_path)
 
@@ -329,10 +389,83 @@ def main() -> int:
                 error_payload = {"error": "Unexpected pipeline output format"}
             else:
                 json_output = result[1]
-                if not isinstance(json_output, dict):
-                    error_payload = {"error": "Pipeline returned no JSON output"}
-                else:
-                    result_payload = json_output
+                cached_segments = None
+                try:
+                    from src.core.segment_types import SegmentInfo, segments_to_json
+
+                    if isinstance(json_output, dict):
+                        result_payload = json_output
+                        segments_json = json_output.get("segments", [])
+                        if isinstance(segments_json, list) and all(isinstance(seg, dict) for seg in segments_json):
+                            cached_segments = [
+                                SegmentInfo.from_json_dict(seg, idx)
+                                for idx, seg in enumerate(segments_json)
+                            ]
+                    elif isinstance(json_output, list):
+                        if all(isinstance(seg, dict) for seg in json_output):
+                            result_payload = {"segments": json_output}
+                            cached_segments = [
+                                SegmentInfo.from_json_dict(seg, idx)
+                                for idx, seg in enumerate(json_output)
+                            ]
+                        elif all(isinstance(seg, SegmentInfo) for seg in json_output):
+                            cached_segments = json_output
+                            result_payload = segments_to_json(json_output)
+                    if result_payload is None:
+                        fallback_message = "Pipeline returned no JSON output"
+                        if len(result) > 0 and isinstance(result[0], str):
+                            html_message = result[0].strip()
+                            if html_message:
+                                fallback_message = html_message
+                        fallback_message = fallback_message.replace("<div>", "").replace("</div>", "").strip()
+                        error_payload = {"error": fallback_message or "Pipeline returned no JSON output"}
+                except Exception:
+                    fallback_message = "Pipeline returned no JSON output"
+                    if len(result) > 0 and isinstance(result[0], str):
+                        html_message = result[0].strip()
+                        if html_message:
+                            fallback_message = html_message
+                    fallback_message = fallback_message.replace("<div>", "").replace("</div>", "").strip()
+                    error_payload = {"error": fallback_message or "Pipeline returned no JSON output"}
+
+                try:
+                    if cached_segments and len(cached_segments) > 0:
+                        emit_status(
+                            original_stderr,
+                            "split",
+                            "Refining local segmentation to one verse per segment...",
+                        )
+                        from src.core.segment_types import segments_to_json
+                        from src.pipeline import split_segments_audio
+
+                        split_result = split_segments_audio(
+                            cached_segments,
+                            result[4],
+                            result[5],
+                            result[2],
+                            result[3],
+                            result[6],
+                            1,
+                            None,
+                            None,
+                            False,
+                            cached_log_row=result[8] if len(result) > 8 else None,
+                            cached_segment_dir=result[7] if len(result) > 7 else None,
+                        )
+                        if (
+                            isinstance(split_result, tuple)
+                            and len(split_result) > 1
+                            and isinstance(split_result[1], list)
+                        ):
+                            result_payload = segments_to_json(split_result[1])
+                            emit_status(
+                                original_stderr,
+                                "split",
+                                "One-verse local recompute completed.",
+                            )
+                except Exception:
+                    # Keep base local segmentation output if split recompute is unavailable.
+                    pass
     except json.JSONDecodeError as exc:
         error_payload = {
             "error": (

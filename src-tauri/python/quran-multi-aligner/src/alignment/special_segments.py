@@ -17,6 +17,7 @@ from typing import List, Tuple, Optional
 # =============================================================================
 
 from config import MAX_SPECIAL_EDIT_DISTANCE, MAX_TRANSITION_EDIT_DISTANCE
+from src.core.debug_collector import get_debug_collector
 
 # Special phoneme sequences
 SPECIAL_PHONEMES = {
@@ -81,12 +82,12 @@ TRANSITION_PHONEMES = {
 
     "Tasleem": [
         "ʔ", "a", "ss", "a", "l", "a", "m", "u",
-        "ʔ", "a", "l", "a", "j", "k", "u", "m",
-        "w", "a", "rˤ", "aˤ", "ħ", "m", "a", "t", "u", "lˤlˤ", "a", "h",
+        "ʕ", "a", "l", "a", "j", "k", "u", "m",
+        "w", "a", "rˤ", "aˤ", "ħ", "m", "a", "t", "u", "lˤlˤ", "aˤ:", "h",
     ],
 
     "Sadaqa": [
-        "sˤ", "a", "d", "a", "q", "a",
+        "sˤ", "aˤ", "d", "a", "q", "aˤ",
         "lˤlˤ", "aˤ:", "h", "u",
         "l", "ʕ", "a", "ðˤ", "i:", "m",
     ],
@@ -210,8 +211,13 @@ def detect_special_segments(
     takbir_offset = 0
     seg0_phonemes = phoneme_texts[0] if phoneme_texts[0] else []
     takbir_name, takbir_conf = detect_transition_segment(seg0_phonemes, allowed={"Takbir"})
+    _dc = get_debug_collector()
     if takbir_name:
         print(f"[SPECIAL] Takbir detected on segment 0 (conf={takbir_conf:.2f})")
+        if _dc is not None:
+            _dc.add_special_candidate(0, "Takbir", 1.0 - takbir_conf,
+                                      MAX_TRANSITION_EDIT_DISTANCE, True)
+            _dc.add_special_detected(0, "Takbir", takbir_conf)
         special_results.append((TRANSITION_TEXT["Takbir"], takbir_conf, "Takbir"))
         takbir_offset = 1
         # Re-point to the next segment for Isti'adha/Basmala detection
@@ -229,6 +235,11 @@ def detect_special_segments(
     # ==========================================================================
     combined_dist = phoneme_edit_distance(seg0_phonemes, COMBINED_PHONEMES)
 
+    if _dc is not None:
+        _dc.add_special_candidate(check_idx, "Combined Isti'adha+Basmala",
+                                  combined_dist, MAX_SPECIAL_EDIT_DISTANCE,
+                                  combined_dist <= MAX_SPECIAL_EDIT_DISTANCE)
+
     if combined_dist <= MAX_SPECIAL_EDIT_DISTANCE:
         print(f"[SPECIAL] Combined Isti'adha+Basmala detected (dist={combined_dist:.2f})")
 
@@ -239,6 +250,10 @@ def detect_special_segments(
             (combined_text, confidence, "Isti'adha+Basmala")
         )
 
+        if _dc is not None:
+            _dc.add_special_detected(check_idx, "Isti'adha+Basmala", confidence)
+            _dc.specials["first_quran_idx"] = takbir_offset + 1
+
         return vad_segments, segment_audios, special_results, takbir_offset + 1
 
     # ==========================================================================
@@ -246,11 +261,18 @@ def detect_special_segments(
     # ==========================================================================
     istiadha_dist = phoneme_edit_distance(seg0_phonemes, SPECIAL_PHONEMES["Isti'adha"])
 
+    if _dc is not None:
+        _dc.add_special_candidate(check_idx, "Isti'adha", istiadha_dist,
+                                  MAX_SPECIAL_EDIT_DISTANCE,
+                                  istiadha_dist <= MAX_SPECIAL_EDIT_DISTANCE)
+
     if istiadha_dist <= MAX_SPECIAL_EDIT_DISTANCE:
         print(f"[SPECIAL] Isti'adha detected on segment {check_idx} (dist={istiadha_dist:.2f})")
         special_results.append(
             (SPECIAL_TEXT["Isti'adha"], 1.0 - istiadha_dist, "Isti'adha")
         )
+        if _dc is not None:
+            _dc.add_special_detected(check_idx, "Isti'adha", 1.0 - istiadha_dist)
 
         # Try Basmala on the next segment
         next_idx = check_idx + 1
@@ -258,15 +280,25 @@ def detect_special_segments(
             seg1_phonemes = phoneme_texts[next_idx]
             basmala_dist = phoneme_edit_distance(seg1_phonemes, SPECIAL_PHONEMES["Basmala"])
 
+            if _dc is not None:
+                _dc.add_special_candidate(next_idx, "Basmala", basmala_dist,
+                                          MAX_SPECIAL_EDIT_DISTANCE,
+                                          basmala_dist <= MAX_SPECIAL_EDIT_DISTANCE)
+
             if basmala_dist <= MAX_SPECIAL_EDIT_DISTANCE:
                 print(f"[SPECIAL] Basmala detected on segment {next_idx} (dist={basmala_dist:.2f})")
                 special_results.append(
                     (SPECIAL_TEXT["Basmala"], 1.0 - basmala_dist, "Basmala")
                 )
+                if _dc is not None:
+                    _dc.add_special_detected(next_idx, "Basmala", 1.0 - basmala_dist)
+                    _dc.specials["first_quran_idx"] = takbir_offset + 2
                 return vad_segments, segment_audios, special_results, takbir_offset + 2
             else:
                 print(f"[SPECIAL] No Basmala on segment {next_idx} (dist={basmala_dist:.2f})")
 
+        if _dc is not None:
+            _dc.specials["first_quran_idx"] = takbir_offset + 1
         return vad_segments, segment_audios, special_results, takbir_offset + 1
 
     # ==========================================================================
@@ -274,16 +306,26 @@ def detect_special_segments(
     # ==========================================================================
     basmala_dist = phoneme_edit_distance(seg0_phonemes, SPECIAL_PHONEMES["Basmala"])
 
+    if _dc is not None:
+        _dc.add_special_candidate(check_idx, "Basmala", basmala_dist,
+                                  MAX_SPECIAL_EDIT_DISTANCE,
+                                  basmala_dist <= MAX_SPECIAL_EDIT_DISTANCE)
+
     if basmala_dist <= MAX_SPECIAL_EDIT_DISTANCE:
         print(f"[SPECIAL] Basmala detected on segment {check_idx} (dist={basmala_dist:.2f})")
         special_results.append(
             (SPECIAL_TEXT["Basmala"], 1.0 - basmala_dist, "Basmala")
         )
+        if _dc is not None:
+            _dc.add_special_detected(check_idx, "Basmala", 1.0 - basmala_dist)
+            _dc.specials["first_quran_idx"] = takbir_offset + 1
         return vad_segments, segment_audios, special_results, takbir_offset + 1
 
     # ==========================================================================
     # 4. No specials detected (beyond Takbir if any)
     # ==========================================================================
+    if _dc is not None:
+        _dc.specials["first_quran_idx"] = takbir_offset
     if takbir_offset > 0:
         print(f"[SPECIAL] Only Takbir detected, no Isti'adha/Basmala "
               f"(istiadha={istiadha_dist:.2f}, basmala={basmala_dist:.2f})")

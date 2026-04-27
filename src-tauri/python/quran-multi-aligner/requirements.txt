@@ -1,6 +1,7 @@
 gradio>=6.5.1
 spaces>=0.44.0
 torch==2.8.0
+torchaudio==2.8.0
 transformers==5.0.0
 accelerate==1.11.0
 librosa==0.10.2
@@ -10,4 +11,6 @@ pyarrow>=14.0.0
 soundfile>=0.12.0
 cython>=3.0.0
 recitations_segmenter==1.0.0
-git+https://github.com/Hetchy/Quranic-Phonemizer.git@1b6a8cc
+quranic-phonemizer
+yt-dlp
+bgutil-ytdlp-pot-provider

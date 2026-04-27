@@ -14,6 +14,7 @@ from typing import Dict, List, Tuple
 from config import ANCHOR_DEBUG, ANCHOR_RARITY_WEIGHTING, ANCHOR_RUN_TRIM_RATIO, ANCHOR_TOP_CANDIDATES
 from .ngram_index import PhonemeNgramIndex
 from .phoneme_matcher import ChapterReference
+from src.core.debug_collector import get_debug_collector
 
 
 def _find_best_contiguous_run(
@@ -150,6 +151,19 @@ def find_anchor_by_voting(
         if ANCHOR_DEBUG:
             print(f"  RESULT: No votes cast — returning (0, 0)")
             print(f"{'=' * 60}\n")
+        _dc = get_debug_collector()
+        if _dc is not None:
+            _dc.anchor = {
+                "segments_used": segments_used,
+                "combined_phoneme_count": len(combined),
+                "ngrams_extracted": 0,
+                "ngrams_matched": 0,
+                "ngrams_missed": 0,
+                "distinct_pairs": 0,
+                "surah_ranking": [],
+                "winner_surah": 0,
+                "winner_ayah": 0,
+            }
         return (0, 0)
 
     # =========================================================================
@@ -197,86 +211,27 @@ def find_anchor_by_voting(
         print(f"\n  RESULT: Surah {best_surah}, Ayah {best_run_start} (start of best run)")
         print(f"{'=' * 60}\n")
 
+    _dc = get_debug_collector()
+    if _dc is not None:
+        _dc.anchor = {
+            "segments_used": segments_used,
+            "combined_phoneme_count": len(combined),
+            "ngrams_extracted": len(asr_ngrams),
+            "ngrams_matched": matched_ngrams,
+            "ngrams_missed": missed_ngrams,
+            "distinct_pairs": len(votes),
+            "surah_ranking": [
+                {
+                    "surah": s, "total_weight": round(total, 3),
+                    "best_run": {"start_ayah": rs, "end_ayah": re_, "weight": round(rw, 3)},
+                }
+                for s, total, rs, re_, rw in sorted(candidate_results, key=lambda x: x[4], reverse=True)
+            ],
+            "winner_surah": best_surah,
+            "winner_ayah": best_run_start,
+        }
+
     return (best_surah, best_run_start)
-
-
-def reanchor_within_surah(
-    phoneme_texts: List[List[str]],
-    ngram_index: PhonemeNgramIndex,
-    surah: int,
-    n_segments: int,
-) -> int:
-    """
-    Re-anchor within a known surah after consecutive DP failures.
-
-    Same n-gram voting as find_anchor_by_voting but:
-    - Only counts votes for the given surah (skip all others)
-    - Returns ayah (start of best contiguous run), or 0 if no votes
-
-    Args:
-        phoneme_texts: Remaining unprocessed phoneme lists
-        ngram_index: Pre-built n-gram index
-        surah: Current surah (fixed)
-        n_segments: How many segments to use for voting
-
-    Returns:
-        ayah number to re-anchor to (0 = failed)
-    """
-    # Concatenate first N non-empty segments
-    combined: List[str] = []
-    segments_used = 0
-    for phonemes in phoneme_texts[:n_segments]:
-        if phonemes:
-            combined.extend(phonemes)
-            segments_used += 1
-
-    n = ngram_index.ngram_size
-
-    if ANCHOR_DEBUG:
-        print(f"\n{'=' * 60}")
-        print(f"RE-ANCHOR WITHIN SURAH {surah}")
-        print(f"{'=' * 60}")
-        print(f"  Segments used: {segments_used}/{n_segments}")
-        print(f"  Combined phonemes: {len(combined)}")
-
-    # Extract n-grams from ASR
-    asr_ngrams = [
-        tuple(combined[i : i + n])
-        for i in range(len(combined) - n + 1)
-    ]
-
-    # Vote — only accumulate weight for positions in the given surah
-    ayah_weights: Dict[int, float] = defaultdict(float)
-    matched_ngrams = 0
-
-    for ng in asr_ngrams:
-        if ng not in ngram_index.ngram_positions:
-            continue
-        matched_ngrams += 1
-        weight = (1.0 / ngram_index.ngram_counts[ng]) if ANCHOR_RARITY_WEIGHTING else 1.0
-        for s, a in ngram_index.ngram_positions[ng]:
-            if s == surah:
-                ayah_weights[a] += weight
-
-    if ANCHOR_DEBUG:
-        print(f"  N-grams matched: {matched_ngrams}/{len(asr_ngrams)}")
-        print(f"  Ayahs with votes: {len(ayah_weights)}")
-
-    if not ayah_weights:
-        if ANCHOR_DEBUG:
-            print(f"  RESULT: No votes — returning 0")
-            print(f"{'=' * 60}\n")
-        return 0
-
-    run_start, run_end, run_weight = _find_best_contiguous_run(dict(ayah_weights))
-
-    if ANCHOR_DEBUG:
-        print(f"  Best contiguous run (after trim): ayahs {run_start}-{run_end} "
-              f"(weight={run_weight:.3f}, trim_ratio={ANCHOR_RUN_TRIM_RATIO})")
-        print(f"  RESULT: Ayah {run_start}")
-        print(f"{'=' * 60}\n")
-
-    return run_start
 
 
 def verse_to_word_index(chapter_ref: ChapterReference, ayah: int) -> int:

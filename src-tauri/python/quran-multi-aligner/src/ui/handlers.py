@@ -1,7 +1,12 @@
 """Python event handler callbacks for the Gradio UI."""
+import re
+import uuid
+from pathlib import Path
+
 import gradio as gr
 
 from config import (
+    URL_DOWNLOAD_DIR,
     MIN_SILENCE_MIN, MIN_SILENCE_MAX, MIN_SILENCE_STEP,
     MIN_SPEECH_MIN, MIN_SPEECH_MAX, MIN_SPEECH_STEP,
     PAD_MIN, PAD_MAX, PAD_STEP,
@@ -14,6 +19,197 @@ from config import (
     ANIM_GRANULARITY_DEFAULT,
     MEGA_WORD_SPACING_DEFAULT, MEGA_TEXT_SIZE_DEFAULT, MEGA_LINE_SPACING_DEFAULT,
 )
+
+
+def _build_info_html(title, duration, thumbnail):
+    """Build HTML info card for a URL-sourced audio."""
+    dur_str = f"{int(duration) // 60}:{int(duration) % 60:02d}" if duration else "unknown"
+    thumb_html = (
+        f'<img src="{thumbnail}" style="max-width:100%;max-height:120px;border-radius:8px;margin-bottom:4px;">'
+        if thumbnail else ""
+    )
+    return (
+        f'<div style="padding:8px;border-radius:8px;background:var(--block-background-fill);'
+        f'border:1px solid var(--border-color-primary);">'
+        f'{thumb_html}'
+        f'<div style="font-weight:bold;font-size:14px;">{title}</div>'
+        f'<div style="font-size:12px;opacity:0.7;">Duration: {dur_str}</div>'
+        f'</div>'
+    )
+
+
+_WARN_DOMAINS = ("youtube.com", "youtu.be", "facebook.com", "fb.watch", "instagram.com")
+
+
+def fetch_url_info(url: str):
+    """Fetch metadata only (no download). Returns (info_html, warning) tuple. Raises Exception on error."""
+    import yt_dlp
+    from urllib.parse import urlparse
+    from src.core.usage_logger import log_error, mark_endpoint_entry, set_stage
+
+    if not url or not url.strip():
+        return None, None
+
+    url = url.strip()
+    mark_endpoint_entry()
+    set_stage("validate")
+
+    try:
+        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        log_error(error_code="url_probe_failed", endpoint="ui_url_info",
+                  stage="validate", exception=e,
+                  message=f"URL probe failed: {e}", context={"url": url})
+        raise
+
+    if info.get("_type") == "playlist":
+        log_error(error_code="playlist_rejected", endpoint="ui_url_info",
+                  stage="validate",
+                  message="Playlists are not supported",
+                  context={"url": url})
+        raise Exception("Playlists are not supported. Please paste a single video/audio URL.")
+
+    title = info.get("title", "Unknown")
+    duration = info.get("duration")
+    thumbnail = info.get("thumbnail", "")
+
+    # Warn for sites that may require auth from server IPs
+    warning = None
+    try:
+        host = urlparse(url).hostname or ""
+        if any(d in host for d in _WARN_DOMAINS):
+            warning = "This site may not work from our server — download could fail. Try it, or upload the file directly."
+    except Exception:
+        pass
+
+    return _build_info_html(title, duration, thumbnail), warning
+
+
+def _download_url_core(url: str):
+    """Download audio from URL. Returns (wav_path, info_dict).
+
+    info_dict keys: title, duration, thumbnail, source_url.
+    Raises Exception on error (empty URL, playlist, download failure).
+    """
+    import yt_dlp
+
+    if not url or not url.strip():
+        raise Exception("Please enter a URL")
+
+    url = url.strip()
+
+    URL_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = URL_DOWNLOAD_DIR / str(uuid.uuid4())
+
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "outtmpl": str(out_path),
+        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "128"}],
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+
+    mp3_path = str(out_path) + ".mp3"
+    if not Path(mp3_path).exists():
+        raise Exception("Download completed but audio file was not created.")
+
+    return mp3_path, {
+        "title": info.get("title", "Unknown"),
+        "duration": info.get("duration"),
+        "thumbnail": info.get("thumbnail", ""),
+        "source_url": url,
+    }
+
+
+def download_url_audio(url: str):
+    """Full download of audio from URL. Returns (wav_path, info_html). Raises Exception on error."""
+    from src.core.usage_logger import log_error, mark_endpoint_entry, set_stage
+    mark_endpoint_entry()
+    set_stage("download")
+    try:
+        wav_path, info = _download_url_core(url)
+    except Exception as e:
+        msg = str(e)
+        if "Please enter a URL" in msg:
+            code = "empty_url"
+        elif "was not created" in msg:
+            code = "download_file_missing"
+        else:
+            code = "download_failed"
+        log_error(error_code=code, endpoint="ui_url_download",
+                  stage="download", exception=e, message=msg,
+                  context={"url": url})
+        raise
+    return wav_path, _build_info_html(info["title"], info["duration"], info["thumbnail"])
+
+
+_AUDIO_ID_RE = re.compile(r"^[0-9a-f]{16}$")
+
+
+def is_audio_id(val: str) -> bool:
+    """True if val looks like a 16-char hex content hash (logs audio_id)."""
+    return bool(_AUDIO_ID_RE.match((val or "").strip()))
+
+
+def _fetch_audio_id_core(audio_id: str):
+    """Fetch OGG bytes for audio_id from the logs audio dataset. Returns (ogg_path, info_dict).
+
+    Uses streaming + Audio(decode=False) so we only decode the matched row.
+    Reads HF_TOKEN from env for private-dataset access.
+    """
+    from datasets import load_dataset, Audio
+    import soundfile as sf
+    from config import (
+        USAGE_LOG_AUDIO_REPO, USAGE_LOG_AUDIO_SUBSET, URL_DOWNLOAD_DIR,
+    )
+
+    ds = load_dataset(
+        USAGE_LOG_AUDIO_REPO, USAGE_LOG_AUDIO_SUBSET,
+        split="train", streaming=True,
+    ).cast_column("audio", Audio(decode=False))
+
+    row = next((r for r in ds if r["audio_id"] == audio_id), None)
+    if row is None:
+        raise Exception(f"audio_id {audio_id!r} not found in dataset")
+
+    raw = row["audio"]["bytes"]
+    URL_DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = URL_DOWNLOAD_DIR / f"{audio_id}.ogg"
+    out_path.write_bytes(raw)
+
+    try:
+        meta = sf.info(str(out_path))
+        duration = float(meta.frames) / float(meta.samplerate)
+    except Exception:
+        duration = None
+
+    return str(out_path), {
+        "title": f"audio_id {audio_id}",
+        "duration": duration,
+        "thumbnail": "",
+        "source_url": f"dataset://{USAGE_LOG_AUDIO_REPO}#{audio_id}",
+    }
+
+
+def fetch_audio_by_id(audio_id: str):
+    """Fetch audio from logs dataset by content-hash id. Returns (ogg_path, info_html)."""
+    from src.core.usage_logger import log_error, mark_endpoint_entry, set_stage
+    mark_endpoint_entry()
+    set_stage("download")
+    try:
+        path, info = _fetch_audio_id_core(audio_id)
+    except Exception as e:
+        msg = str(e)
+        code = "audio_id_not_found" if "not found" in msg else "audio_id_fetch_failed"
+        log_error(error_code=code, endpoint="ui_audio_id_fetch",
+                  stage="download", exception=e, message=msg,
+                  context={"audio_id": audio_id})
+        raise
+    return path, _build_info_html(info["title"], info["duration"], info["thumbnail"])
 
 
 def create_segmentation_settings(id_suffix=""):

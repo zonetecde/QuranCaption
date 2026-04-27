@@ -4,12 +4,13 @@ import os
 import time
 import torch
 import numpy as np
-from typing import List, Dict, Any
+from typing import List
 
 from config import (
-    PHONEME_ASR_MODELS, PHONEME_ASR_MODEL_DEFAULT, DTYPE, IS_HF_SPACE, TORCH_COMPILE,
+    PHONEME_ASR_MODELS, PHONEME_ASR_MODEL_DEFAULT, DTYPE, CPU_DTYPE,
+    IS_HF_SPACE, TORCH_COMPILE,
     BATCHING_STRATEGY, INFERENCE_BATCH_SIZE,
-    MAX_BATCH_SECONDS, MAX_PAD_WASTE, MIN_BATCH_SIZE,
+    MAX_BATCH_SECONDS, MAX_BATCH_SECONDS_CPU, MAX_PAD_WASTE, MIN_BATCH_SIZE,
 )
 from ..core.zero_gpu import ZERO_GPU_AVAILABLE, is_user_forced_cpu, model_device_lock
 
@@ -17,6 +18,11 @@ from ..core.zero_gpu import ZERO_GPU_AVAILABLE, is_user_forced_cpu, model_device
 _cache = {}  # model_name -> {"model": Model, "processor": Processor, "device": str}
 
 _TORCH_DTYPE = torch.float16 if DTYPE == "float16" else torch.float32
+_CPU_TORCH_DTYPE = (
+    torch.bfloat16 if CPU_DTYPE in ("bfloat16", "bf16")
+    else torch.float16 if CPU_DTYPE == "float16"
+    else torch.float32
+)
 
 
 def _get_hf_token():
@@ -34,14 +40,20 @@ def _get_hf_token():
 def _get_device_and_dtype():
     """Get the best available device and dtype.
 
+    CPU dtype is governed by CPU_DTYPE env var (default fp32). fp16 is only
+    safe on CPUs with AVX512_FP16 (e.g. zero-a10g AMD EPYC) — on cpu-basic
+    workers without AVX512_FP16 it falls back to scalar/copy-cast ops that
+    can be 10-100× slower than fp32. GPU path re-casts to _TORCH_DTYPE when
+    transitioning to CUDA.
+
     On HF Spaces with ZeroGPU, returns CPU to defer CUDA init
     until inside a @gpu_decorator function.
     """
     if IS_HF_SPACE or ZERO_GPU_AVAILABLE:
-        return torch.device("cpu"), _TORCH_DTYPE
+        return torch.device("cpu"), _CPU_TORCH_DTYPE
     if torch.cuda.is_available():
         return torch.device("cuda"), _TORCH_DTYPE
-    return torch.device("cpu"), _TORCH_DTYPE
+    return torch.device("cpu"), _CPU_TORCH_DTYPE
 
 
 def load_phoneme_asr(model_name=PHONEME_ASR_MODEL_DEFAULT):
@@ -192,11 +204,12 @@ def build_batches_naive(sorted_indices: List[int], batch_size: int) -> List[List
             for i in range(0, len(sorted_indices), batch_size)]
 
 
-def build_batches(sorted_indices: List[int], durations: List[float]) -> List[List[int]]:
+def build_batches(sorted_indices: List[int], durations: List[float],
+                  max_batch_seconds: float = MAX_BATCH_SECONDS) -> List[List[int]]:
     """Build dynamic batches from duration-sorted indices.
 
     Constraints:
-        - sum(durations) per batch <= MAX_BATCH_SECONDS
+        - sum(durations) per batch <= max_batch_seconds
         - pad waste fraction <= MAX_PAD_WASTE  (1 - sum/[n*max], measures wasted tensor compute)
         - batch won't be cut below MIN_BATCH_SIZE (avoids underutilization)
     """
@@ -217,7 +230,7 @@ def build_batches(sorted_indices: List[int], durations: List[float]) -> List[Lis
         new_size = len(current) + 1
         pad_waste = 1.0 - new_seconds / (new_size * max_dur) if max_dur > 0 else 0.0
 
-        seconds_exceeded = new_seconds > MAX_BATCH_SECONDS
+        seconds_exceeded = new_seconds > max_batch_seconds
         waste_exceeded = pad_waste > MAX_PAD_WASTE
 
         if (seconds_exceeded or waste_exceeded) and len(current) >= MIN_BATCH_SIZE:
@@ -248,6 +261,16 @@ def _transcribe_batch_pytorch(
     """PyTorch inference path (GPU or CPU fallback)."""
     results: List[List[str]] = [[] for _ in segment_audios]
     batch_profiling = []
+
+    # Read once for the QK^T-bytes estimate logged per batch. Both wav2vec2
+    # base and xls-r downsample audio by 320× (16 kHz → 50 fps), so seq_len in
+    # frames is `padded_audio_seconds * 50`. The QK^T tensor materialised by
+    # the CPU SDPA `math` backend (fp16 path on PyTorch 2.8) is sized
+    # `(batch, heads, seq, seq) * dtype_bytes` — when this exceeds the host's
+    # L3 the attention layers go DRAM-bound and per-layer cost spikes 10–20×.
+    num_heads = getattr(model.config, "num_attention_heads", 0)
+    dtype_bytes = torch.tensor([], dtype=dtype).element_size()
+    FRAMES_PER_SEC = 50
 
     for batch_num_idx, batch_idx in enumerate(batches):
         batch_audios = [segment_audios[i] for i in batch_idx]
@@ -296,18 +319,26 @@ def _transcribe_batch_pytorch(
 
         batch_time = time.time() - t0
 
+        max_dur = max(batch_durations)
+        seq_len = int(round(max_dur * FRAMES_PER_SEC))
+        qk_bytes_per_head = len(batch_audios) * seq_len * seq_len * dtype_bytes
+        qk_bytes_all_heads = qk_bytes_per_head * num_heads
+
+        total_seconds = sum(batch_durations)
         batch_profiling.append({
             "batch_num": batch_num,
             "size": len(batch_audios),
-            "time": batch_time,
-            "feat_time": feat_time,
-            "infer_time": infer_time,
-            "decode_time": decode_time,
-            "min_dur": min(batch_durations),
-            "max_dur": max(batch_durations),
-            "avg_dur": sum(batch_durations) / len(batch_durations),
-            "total_seconds": sum(batch_durations),
-            "pad_waste": 1.0 - sum(batch_durations) / (len(batch_durations) * max(batch_durations)) if max(batch_durations) > 0 else 0.0,
+            "time": round(batch_time, 3),
+            "feat_time": round(feat_time, 3),
+            "infer_time": round(infer_time, 3),
+            "decode_time": round(decode_time, 3),
+            "min_dur": round(min(batch_durations), 3),
+            "max_dur": round(max_dur, 3),
+            "total_seconds": round(total_seconds, 3),
+            "pad_waste": round(1.0 - total_seconds / (len(batch_durations) * max_dur), 4) if max_dur > 0 else 0.0,
+            "seq_len": seq_len,
+            "qk_mb_per_head": round(qk_bytes_per_head / (1024 * 1024), 2),
+            "qk_mb_all_heads": round(qk_bytes_all_heads / (1024 * 1024), 2),
         })
 
     return results, batch_profiling
@@ -353,7 +384,8 @@ def transcribe_batch(segment_audios: List[np.ndarray], sample_rate: int, model_n
 
     t_batch_build = time.time()
     if BATCHING_STRATEGY == "dynamic":
-        batches = build_batches(sorted_indices, durations)
+        cap = MAX_BATCH_SECONDS_CPU if device.type == "cpu" else MAX_BATCH_SECONDS
+        batches = build_batches(sorted_indices, durations, max_batch_seconds=cap)
     else:
         batches = build_batches_naive(sorted_indices, INFERENCE_BATCH_SIZE)
     batch_build_time = time.time() - t_batch_build

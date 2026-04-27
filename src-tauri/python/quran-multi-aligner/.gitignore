@@ -1,6 +1,6 @@
 # Python
 __pycache__/
-.pytest_cache
+.pytest_cache/
 *.py[cod]
 *$py.class
 *.so
@@ -31,7 +31,7 @@ ENV/
 # IDE
 .idea/
 .vscode/
-.claude
+.claude/
 CLAUDE.md
 *.swp
 *.swo
@@ -47,14 +47,12 @@ flagged/
 # Exported models
 models/
 
+# PO token server (cloned at runtime for YouTube yt-dlp support)
+.pot-server/
 
-docs/api.md
+captures/
+
+docs/paid-api-plan.md
 scripts/
 tests/
-
-# optional demo/UI assets not required for local segmentation runtime
-data/*.mp3
-data/DigitalKhattV2.otf
-data/surah-name-v2.ttf
-data/font_data.py
-data/ligatures.json
+align_config.py

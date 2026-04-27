@@ -20,7 +20,8 @@ PORT = 6902
 
 RESAMPLE_TYPE = "soxr_lq"
 SEGMENT_AUDIO_DIR = Path("/tmp/segments")   # WAV files written here per request
-AUDIO_PRELOAD_COUNT = 5                     # First N segments use preload="auto"
+URL_DOWNLOAD_DIR = Path("/tmp/url_downloads")  # Audio downloaded from URLs via yt-dlp
+DEFAULT_INPUT_MODE = "Upload"                  # "Link", "Upload", or "Record"
 DELETE_CACHE_FREQUENCY = 3600*5             # Gradio cache cleanup interval (seconds)
 DELETE_CACHE_AGE = 3600*5                   # Delete cached files older than this (seconds)
 
@@ -32,19 +33,101 @@ SESSION_DIR = Path("/tmp/aligner_sessions")  # Per-session cached data (audio, V
 SESSION_EXPIRY_SECONDS = 3600*5              # 5 hours — matches DELETE_CACHE_AGE
 
 # =============================================================================
+# CPU dispatch strategy — which path runs @gpu_with_fallback funcs when the
+# user selects device=CPU (or when GPU quota is exhausted).
+# =============================================================================
+
+# Routing:
+#   "subprocess" — spawn a local subprocess on the main Space (fast on zero-a10g,
+#                  ~10s for 112.mp3 Base; isolates CUDA state). Requires main
+#                  Space hardware to be ZeroGPU-capable.
+#   "workers"    — dispatch to remote CPU Spaces listed in WORKER_SPACES
+#                  (isolates load off main; ~40–80s per request on cpu-basic).
+#   "both"       — prefer local subprocess (concurrency 1), overflow to remote.
+#                  NOT IMPLEMENTED yet — reserved for future orchestration work.
+CPU_STRATEGY = os.environ.get("CPU_STRATEGY", "subprocess").lower()
+
+# Max seconds a subprocess CPU job can run before SIGKILL (used by "subprocess" and "both" strategies).
+CPU_SUBPROCESS_TIMEOUT = int(os.environ.get("CPU_SUBPROCESS_TIMEOUT", str(3600 * 2)))
+
+# Max concurrent CPU subprocesses on the main Space.
+CPU_SUBPROCESS_CONCURRENCY = int(os.environ.get("CPU_SUBPROCESS_CONCURRENCY", "2"))
+
+# CPU_WORKER_MODE — when CPU_STRATEGY="subprocess", chooses between:
+#   "spawn"      — legacy: fork a fresh subprocess per request (cpu_subprocess.py).
+#   "persistent" — new: route to a pool of long-lived workers (cpu_worker_pool.py).
+# Semaphore capacity stays = CPU_SUBPROCESS_CONCURRENCY either way.
+CPU_WORKER_MODE = os.environ.get("CPU_WORKER_MODE", "persistent").lower()
+
+# Whether the persistent pool preloads ASR Large at boot. If False, Large is
+# loaded on-demand inside the worker and cached there.
+CPU_POOL_PRELOAD_LARGE = os.environ.get("CPU_POOL_PRELOAD_LARGE", "1") == "1"
+
+# Model dtype for CPU inference.
+#   "bfloat16" — default. Routes attention through PyTorch's chunked CPU flash
+#                kernel (`_scaled_dot_product_flash_attention_for_cpu`), which
+#                does NOT materialise the full `(batch, heads, seq, seq)` QK^T
+#                tensor per layer. Avoids the L3-cache cliff that fp16 triggers
+#                at large batch shapes (observed 24× slowdown on 22 min audio).
+#                Measured ~32% faster than fp16 on the same input.
+#   "float16"  — fast on CPUs with AVX512_FP16 (zero-a10g host) but CATASTROPHIC
+#                on CPUs without it (cpu-basic workers: 10-100× slower) AND
+#                hits the cache cliff at large batches even on supported CPUs.
+#   "float32"  — safe fallback, ~2× slower than bf16 on modern hosts.
+CPU_DTYPE = os.environ.get("CPU_DTYPE", "bfloat16").lower()
+
+# =============================================================================
+# CPU worker pool settings (remote dispatch to duplicate CPU Spaces)
+# =============================================================================
+
+# Comma-separated HF Space slugs, e.g. "owner/space-a,owner/space-b".
+# Empty = no pool (dispatch falls back to local subprocess).
+CPU_WORKER_SPACES = os.environ.get("WORKER_SPACES", "").strip()
+
+# Audio encoding on the wire: "float32" | "int16" | "ogg". OGG is ~17x smaller
+# than float32 for speech and fastest end-to-end at every tested size.
+CPU_WORKER_TRANSPORT_DEFAULT = os.environ.get("CPU_TRANSPORT", "ogg").lower()
+
+# Per-job HTTP read timeout (seconds). Long because CPU pipelines are slow and
+# workers may cold-start from sleep.
+CPU_WORKER_HTTP_TIMEOUT = int(os.environ.get("CPU_WORKER_TIMEOUT", str(3600 * 2)))
+
+# Max wait for a free worker before failing with PoolExhaustedError. User-facing.
+CPU_WORKER_ACQUIRE_TIMEOUT = int(os.environ.get("CPU_WORKER_ACQUIRE_TIMEOUT", "900")) # 15 mins
+
+# Admission control: reject when busy_workers + queued_waiters exceeds this and
+# no worker is immediately free. Prevents runaway pile-up under bursty load.
+CPU_WORKER_MAX_QUEUE_DEPTH = int(os.environ.get("CPU_WORKER_MAX_QUEUE", "10"))
+
+# Background thread ping interval for unhealthy workers (seconds).
+CPU_WORKER_HEALTH_INTERVAL = int(os.environ.get("CPU_WORKER_HEALTH_INTERVAL", "600"))
+
+# Max retry attempts on dispatch failure (retries land on a different worker if available).
+CPU_WORKER_MAX_RETRIES = 1
+
+# Idle-read timeout on the SSE stream from a worker. If no bytes arrive within
+# this window, either the worker is stuck or the client has disconnected and
+# we give the watchdog a chance to abort. Must be > longest silent compute block.
+CPU_WORKER_SSE_IDLE_TIMEOUT = int(os.environ.get("CPU_WORKER_SSE_IDLE_TIMEOUT", "120"))
+
+# Client-disconnect poll interval (seconds) for the cancel watchdog thread.
+CPU_WORKER_CANCEL_POLL_INTERVAL = float(os.environ.get("CPU_WORKER_CANCEL_POLL_INTERVAL", "2.0"))
+
+# =============================================================================
 # Model and data paths
 # =============================================================================
 
 # VAD segmenter model
 SEGMENTER_MODEL = "obadx/recitation-segmenter-v2"
+# Chunks-per-forward for segment_recitations.
+SEGMENTER_BATCH_SIZE = 8
 
 # Phoneme ASR models (wav2vec2 CTC)
 PHONEME_ASR_MODELS = {
     "Base": "hetchyy/r15_95m",
     "Large": "hetchyy/r7",
 }
-PHONEME_ASR_MODEL_DEFAULT = "Base"  
-PHONEME_ASR_MODEL = PHONEME_ASR_MODELS[PHONEME_ASR_MODEL_DEFAULT]
+PHONEME_ASR_MODEL_DEFAULT = "Base"
 
 DATA_PATH = PROJECT_ROOT / "data"
 SURAH_INFO_PATH = DATA_PATH / "surah_info.json"
@@ -61,39 +144,43 @@ NGRAM_SIZE = 5
 NGRAM_INDEX_PATH = DATA_PATH / f"phoneme_ngram_index_{NGRAM_SIZE}.pkl"
 
 # =============================================================================
-# Inference settings
+# ZeroGPU Lease Timings
 # =============================================================================
 
-def get_vad_duration(minutes):
-    """GPU seconds needed for VAD based on audio minutes.
+ZEROGPU_MAX_DURATION = 120  # Hard cap enforced by HF ZeroGPU
+AUDIO_DURATION_WARNING_MINUTES = 300  # Warn user on upload if audio exceeds this (minutes)
 
-    VAD GPU time scales linearly at ~0.28s per audio minute.
-    Tuned from 50-run log analysis (Feb 2026): previous leases were tight
-    at 30-60 min (15s lease vs 17s actual) and 60-120 min (25s vs 26s).
-    """
-    if minutes > 180:
-        return 60
-    elif minutes > 120:
-        return 45      # was 40 — 137 min audio hit 38.3s (95% of old lease)
-    elif minutes > 60:
-        return 30      # was 25 — 89 min audio hit 25.8s (exceeded old lease)
-    elif minutes > 30:
-        return 20      # was 15 — 58 min audio hit 17s (exceeded old lease)
-    elif minutes > 15:
-        return 10
-    else:
-        return 5
+def get_vad_duration(minutes):
+    """GPU seconds needed for VAD based on audio minutes."""
+    VAD_LEASE_BUFFER = 5
+    return max(3, 0.28 * minutes + 1.66 + VAD_LEASE_BUFFER)
 
 def get_asr_duration(minutes, model_name="Base"):
-    """GPU seconds needed for ASR.
-
-    ASR GPU time is nearly constant regardless of audio length due to batch
-    processing — no range tiers needed.  Tuned from 50-run log analysis
-    (Feb 2026): Base uses 0.2-2.5s (warm), Large uses 0.8-5.6s (warm).
-    """
+    """GPU seconds needed for ASR, scales linearly with audio duration."""
     if model_name == "Large":
-        return 10      # max warm 5.6s, cold start 10.4s
-    return 3           # max warm 2.5s, cold start 5.6s
+        ASR_LEASE_BUFFER = 6.54
+        return max(3, 0.0579 * minutes + 1.72 + ASR_LEASE_BUFFER)
+    ASR_LEASE_BUFFER = 4.5
+    return max(3, 0.0198 * minutes + 0.32 + ASR_LEASE_BUFFER)
+
+# =============================================================================
+# Estimations
+# =============================================================================
+
+MFA_PROGRESS_SEGMENT_RATE = 0.05  # seconds per segment for progress bar animation
+
+ESTIMATE_GPU_BASE_SLOPE = 0.45
+ESTIMATE_GPU_BASE_INTERCEPT = 7.6
+ESTIMATE_GPU_LARGE_SLOPE = 0.53
+ESTIMATE_GPU_LARGE_INTERCEPT = 7.2
+ESTIMATE_CPU_BASE_SLOPE = 11.2
+ESTIMATE_CPU_BASE_INTERCEPT = 20.9
+ESTIMATE_CPU_LARGE_SLOPE = 25.2
+ESTIMATE_CPU_LARGE_INTERCEPT = 24.4
+
+# =============================================================================
+# Inference Settings
+# =============================================================================
 
 # Batching strategy
 BATCHING_STRATEGY = "dynamic"  # "naive" (fixed count) or "dynamic" (seconds + pad waste)
@@ -102,7 +189,8 @@ BATCHING_STRATEGY = "dynamic"  # "naive" (fixed count) or "dynamic" (seconds + p
 INFERENCE_BATCH_SIZE = 32      # Fixed segments per batch (used when BATCHING_STRATEGY="naive")
 
 # Dynamic batching constraints
-MAX_BATCH_SECONDS = 600      # Max total audio seconds per batch (sum of durations)
+MAX_BATCH_SECONDS = 600      # GPU: max total audio seconds per batch (sum of durations)
+MAX_BATCH_SECONDS_CPU = 300  # CPU: tighter cap. SDPA materialises the QK^T tensor per encoder layer
 MAX_PAD_WASTE = 0.2          # Max fraction of padded tensor that is wasted (0=no waste, 1=all waste)
 MIN_BATCH_SIZE = 8           # Minimum segments per batch (prevents underutilization)
 
@@ -129,7 +217,23 @@ ANCHOR_TOP_CANDIDATES = 20          # Evaluate top N surahs by total weight for 
 # Edit operation costs (Levenshtein hyperparameters)
 COST_SUBSTITUTION = 1.0             # Default phoneme substitution cost
 COST_INSERTION = 1.0                # Insert phoneme from reference (R)
-COST_DELETION = 0.8                 # Delete phoneme from ASR (P)
+COST_DELETION = 1.0                 # Delete phoneme from ASR (P)
+
+# Repetition detection (wraparound DP)
+WRAP_PENALTY = 3.5                  # Cost per wrap transition in DP
+WRAP_SPAN_WEIGHT = 0.1              # Per-word cost for wrap span width (penalizes wide jumps)
+MAX_WRAPS = 5                       # Max wraps for all segments
+# Scoring mode for wraparound candidate selection:
+#   "no_subtract" — WRAP_PENALTY stays in the raw cost before normalizing, so wraps
+#                    are penalized proportionally to segment length. WRAP_SCORE_COST ignored.
+#   "additive"    — WRAP_PENALTY is subtracted from cost before normalizing (so it doesn't
+#                    inflate the edit distance), then WRAP_SCORE_COST * k is added to the
+#                    final score as a flat per-wrap penalty.
+#   "subtract"    — WRAP_PENALTY subtracted from cost before normalizing, but nothing
+#                    replaces it. Wraps are essentially free after subtraction — useful
+#                    as a debug/baseline mode only.
+WRAP_SCORING_MODE = "no_subtract"
+WRAP_SCORE_COST = 0.005             # Per-wrap additive penalty in scoring (only used with "additive" mode)
 
 # Alignment thresholds (normalized edit distance: 0 = identical, 1 = completely different)
 LOOKBACK_WORDS = 30                 # Window words to look back from pointer for starting positions
@@ -139,10 +243,13 @@ MAX_SPECIAL_EDIT_DISTANCE = 0.35    # Max normalized edit distance for Basmala/I
 MAX_TRANSITION_EDIT_DISTANCE = 0.45 # Max normalized edit distance for transition segments (Amin/Takbir/Tahmeed)
 START_PRIOR_WEIGHT = 0.005          # Penalty per word away from expected position
 
-# Failed Segments
-RETRY_LOOKBACK_WORDS = 70           # Expanded lookback for retry tier 1+2
-RETRY_LOOKAHEAD_WORDS = 40          # Expanded lookahead for retry tier 1+2
-MAX_EDIT_DISTANCE_RELAXED = 0.5     # Relaxed threshold for retry tier 2
+# Failed Segments — single retry pass (expanded window + relaxed threshold).
+# Both MAX_EDIT_DISTANCE and MAX_EDIT_DISTANCE_RELAXED are logged per-row in
+# settings.align_config so threshold-tuning analyses can correlate each
+# segment's DP norm_dist against the active acceptance thresholds.
+RETRY_LOOKBACK_WORDS = 70           # Expanded lookback for the retry pass
+RETRY_LOOKAHEAD_WORDS = 40          # Expanded lookahead for the retry pass
+MAX_EDIT_DISTANCE_RELAXED = 0.45    # Relaxed threshold for the retry pass
 MAX_CONSECUTIVE_FAILURES = 2        # Re-anchor within surah after this many DP failures
 
 # Debug output
@@ -180,63 +287,85 @@ CONFIDENCE_HIGH = 0.8    # >= this: Green
 CONFIDENCE_MED = 0.6     # >= this: Yellow, below: Red
 REVIEW_SUMMARY_MAX_SEGMENTS = 15  # Max segment numbers to list before truncating
 
-# Undersegmentation detection thresholds
-# Flagged when (word_count >= MIN_WORDS OR ayah_span >= MIN_AYAH_SPAN) AND duration >= MIN_DURATION
-UNDERSEG_MIN_WORDS = 25         # Word count threshold
-UNDERSEG_MIN_AYAH_SPAN = 2      # Ayah span threshold (segment crosses ayah boundary)
-UNDERSEG_MIN_DURATION = 15      # Duration gate (seconds)
-
 # =============================================================================
 # MFA forced alignment (word-level timestamps via HF Space)
 # =============================================================================
 
 MFA_SPACE_URL = "https://hetchyy-quran-phoneme-mfa.hf.space"
-MFA_TIMEOUT = 180
+MFA_TIMEOUT = 240
+MFA_METHOD = "kalpy"            # "kalpy", "align_one", "python_api", "cli"
+MFA_BEAM = 15                   # Viterbi beam width
+MFA_RETRY_BEAM = 40             # Retry beam width (used when initial alignment fails)
+MFA_SHARED_CMVN = False         # Compute shared CMVN across batch (kalpy only)
+
+# =============================================================================
+# Split Segments (post-alignment subdivision using MFA word timestamps)
+# =============================================================================
+
+# Max verses per segment
+SPLIT_MAX_VERSES_MIN = 1
+SPLIT_MAX_VERSES_MAX = 5
+SPLIT_MAX_VERSES_DEFAULT = 1
+
+# Max words per segment
+SPLIT_MAX_WORDS_MIN  = 5
+SPLIT_MAX_WORDS_MAX  = 30
+SPLIT_MAX_WORDS_STEP = 1
+SPLIT_MAX_WORDS_DEFAULT = SPLIT_MAX_WORDS_MAX
+
+# Max duration per segment (seconds)
+SPLIT_MAX_DURATION_MIN  = 5
+SPLIT_MAX_DURATION_MAX  = 30
+SPLIT_MAX_DURATION_STEP = 1
+SPLIT_MAX_DURATION_DEFAULT = SPLIT_MAX_DURATION_MAX
+
+# MFA padding strategy for the silent split-timestamps call.
+# See mfa_aligner/README.md §Parameters and Settings: "forward" | "symmetric" | "none".
+MFA_SPLIT_PADDING = "symmetric"
+
+# Progress-bar rate (seconds per candidate segment) — mirrors MFA_PROGRESS_SEGMENT_RATE.
+SPLIT_PROGRESS_SEGMENT_RATE = 0.15
+
+# Manual split editor layout
+MANUAL_SPLIT_TEXT_MIN_HEIGHT_PX = 96
+MANUAL_SPLIT_TEXT_MAX_HEIGHT_PX = 480
 
 # =============================================================================
 # Usage logging (pushed to HF Hub via ParquetScheduler)
 # =============================================================================
 
-USAGE_LOG_DATASET_REPO = "hetchyy/quran-aligner-logs"
-USAGE_LOG_PUSH_INTERVAL_MINUTES = 240
+# Subset naming: HF config per dataset. Bump on breaking column changes
+# (column added / dropped / renamed). Patch-level changes stay in the same
+# subset and are filtered at read-time via the row-level `schema_version`.
+# Flush cadences default to 60 min on prod; dev Space overrides to 1 via env.
 
-# =============================================================================
-# Progress bar settings
-# =============================================================================
+# --- Logs dataset (per-request metadata) ---
+USAGE_LOG_LOGS_REPO       = os.environ.get("USAGE_LOG_LOGS_REPO", "hetchyy/quran-aligner-logs")
+USAGE_LOG_LOGS_SUBSET     = "v3.1"
+USAGE_LOG_SCHEMA_VERSION  = "3.1.6"   # row-level tag; also inherited by audio rows
+USAGE_LOG_FLUSH_MINUTES   = int(os.environ.get("USAGE_LOG_FLUSH_MINUTES", "60"))
 
-PROGRESS_PROCESS_AUDIO = {
-    "preparing":        (0.00, "Preparing audio..."),
-    "resampling":       (0.00, "Loading audio..."),
-    "vad_asr":          (0.05, "Segmenting and transcribing..."),
-    "asr":              (0.15, "Running ASR..."),
-    "special_segments": (0.50, "Detecting special segments..."),
-    "anchor":           (0.60, "Anchor detection..."),
-    "matching":         (0.80, "Text matching..."),
-    "building":         (0.90, "Building results..."),
-    "done":             (1.00, "Done!"),
-}
+# --- Audio dataset (source audio, deduped by content hash) ---
+USAGE_LOG_AUDIO_REPO          = os.environ.get("USAGE_LOG_AUDIO_REPO", "hetchyy/quran-aligner-audio")
+USAGE_LOG_AUDIO_SUBSET        = "v3.0"
+USAGE_LOG_AUDIO_FLUSH_MINUTES = int(os.environ.get("USAGE_LOG_AUDIO_FLUSH_MINUTES", str(USAGE_LOG_FLUSH_MINUTES)))
 
-PROGRESS_RESEGMENT = {
-    "resegment":        (0.00, "Resegmenting..."),
-    "asr":              (0.15, "Running ASR..."),
-    "special_segments": (0.50, "Detecting special segments..."),
-    "anchor":           (0.60, "Anchor detection..."),
-    "matching":         (0.80, "Text matching..."),
-    "building":         (0.90, "Building results..."),
-    "done":             (1.00, "Done!"),
-}
+# --- Errors dataset (per-error-event rows) ---
+USAGE_LOG_ERRORS_REPO           = os.environ.get("USAGE_LOG_ERRORS_REPO", "hetchyy/quran-aligner-errors")
+USAGE_LOG_ERRORS_SUBSET         = "v1.0"
+USAGE_LOG_ERRORS_SCHEMA_VERSION = "1.0.0"
+USAGE_LOG_ERRORS_FLUSH_MINUTES  = int(os.environ.get("USAGE_LOG_ERRORS_FLUSH_MINUTES", str(USAGE_LOG_FLUSH_MINUTES)))
 
-PROGRESS_RETRANSCRIBE = {
-    "retranscribe":     (0.00, "Retranscribing with {model} model..."),
-    "asr":              (0.15, "Running ASR..."),
-    "special_segments": (0.50, "Detecting special segments..."),
-    "anchor":           (0.60, "Anchor detection..."),
-    "matching":         (0.80, "Text matching..."),
-    "building":         (0.90, "Building results..."),
-    "done":             (1.00, "Done!"),
-}
+# --- Telemetry dataset (periodic host + CPU pool samples) ---
+USAGE_LOG_TELEMETRY_REPO = os.environ.get("USAGE_LOG_TELEMETRY_REPO", "hetchyy/quran-aligner-telemetry")
+USAGE_LOG_TELEMETRY_SUBSET = "v1.0"
+TELEMETRY_SCHEMA_VERSION   = "1.0.4"
+TELEMETRY_ENABLED          = os.environ.get("TELEMETRY_ENABLED", "1") == "1"
+TELEMETRY_SAMPLE_SECONDS   = int(os.environ.get("TELEMETRY_SAMPLE_SECONDS", "60"))
+TELEMETRY_FLUSH_MINUTES    = int(os.environ.get("TELEMETRY_FLUSH_MINUTES", "60"))
 
-MFA_PROGRESS_SEGMENT_RATE = 0.05  # seconds per segment for progress bar animation
+# Temporary kill-switch for the per-segment DP replay strings. Set to "1" to disable.
+USAGE_LOG_DISABLE_DP_DEBUG = os.environ.get("USAGE_LOG_DISABLE_DP_DEBUG", "0") == "1"
 
 # =============================================================================
 # UI settings
@@ -245,9 +374,6 @@ MFA_PROGRESS_SEGMENT_RATE = 0.05  # seconds per segment for progress bar animati
 # Main layout column scales
 LEFT_COLUMN_SCALE = 4
 RIGHT_COLUMN_SCALE = 6
-
-# Arabic font stack
-ARABIC_FONT_STACK = "'DigitalKhatt', 'Traditional Arabic'"
 
 QURAN_TEXT_SIZE_PX = 24  # Size for Quran text in segment cards
 ARABIC_WORD_SPACING = "0.2em"  # Word spacing for Arabic text
@@ -258,7 +384,7 @@ ARABIC_WORD_SPACING = "0.2em"  # Word spacing for Arabic text
 
 # Animation granularity
 ANIM_GRANULARITIES = ["Words", "Characters"]
-ANIM_GRANULARITY_DEFAULT = "Words"
+ANIM_GRANULARITY_DEFAULT = "Characters"
 
 ANIM_WORD_COLOR = "#49c3b3"                # Green highlight for active word
 ANIM_STYLE_ROW_SCALES = (2, 6, 1, 1)       # Granularity, Style, Verse Only, Color

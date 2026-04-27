@@ -47,6 +47,8 @@ def build_css() -> str:
         padding: 12px 16px;
         margin-bottom: 12px;
         border: 2px solid;
+        content-visibility: auto;
+        contain-intrinsic-size: 220px;
     }}
     .segment-header {{
         display: flex;
@@ -94,6 +96,9 @@ def build_css() -> str:
         display: flex;
         align-items: center;
         justify-content: center;
+        box-sizing: border-box;
+        margin: 0;
+        vertical-align: middle;
     }}
     .play-btn:hover {{ background: var(--block-background-fill-secondary, #eee); }}
 
@@ -143,10 +148,41 @@ def build_css() -> str:
         font-size: 12px;
         font-weight: bold;
         white-space: nowrap;
+        height: 32px;
+        min-height: 32px;
+        line-height: 1;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        vertical-align: middle;
     }}
     .animate-btn:hover:not(:disabled) {{ background: #357abd !important; }}
     .animate-btn.active {{ background: #dc3545 !important; }}
     .animate-btn:disabled {{ background: #888 !important; cursor: not-allowed; opacity: 0.5; }}
+
+    .manual-split-btn {{
+        background: #6f42c1 !important;
+        color: white !important;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+        height: 32px;
+        min-height: 32px;
+        line-height: 1;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        vertical-align: middle;
+    }}
+    .manual-split-btn:hover {{ background: #5c35a4 !important; }}
 
     /* Make the HTML wrapper inside ts-row match the Gradio Button wrapper */
     #ts-row > .gr-html {{
@@ -224,7 +260,9 @@ def build_css() -> str:
         line-height: 1.2;
         letter-spacing: normal;
     }}
-    .segment-card.hidden-for-mega {{ display: none; }}
+    .segment-card.hidden-for-mega,
+    .split-group.hidden-for-mega,
+    .missing-words-group.hidden-for-mega {{ display: none; }}
 
     .mega-top-bar {{
         display: flex; justify-content: center; gap: 8px;
@@ -372,6 +410,115 @@ def build_css() -> str:
         border-radius: 4px;
         background: var(--block-background-fill);
     }}
+    .segment-card.manual-split-mode .segment-audio {{
+        display: none;
+    }}
+    .segment-split-controls {{
+        display: none;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        margin: 8px 0;
+    }}
+    .segment-card.manual-split-mode .segment-split-controls {{
+        display: flex;
+    }}
+    .split-confirm-btn,
+    .split-cancel-btn {{
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        height: 32px;
+        min-height: 32px;
+        line-height: 1;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        vertical-align: middle;
+    }}
+    .split-confirm-btn {{
+        background: #6f42c1;
+        color: white;
+    }}
+    .split-confirm-btn:hover:not(:disabled) {{
+        background: #5c35a4;
+    }}
+    .split-confirm-btn:disabled {{
+        background: #8f74c9;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }}
+    .split-cancel-btn {{
+        background: var(--button-secondary-background-fill, var(--block-background-fill-secondary, #e9ecef));
+        color: var(--button-secondary-text-color, var(--body-text-color, #333));
+        border-color: var(--button-secondary-border-color, var(--border-color-primary, #ddd));
+    }}
+    .split-cancel-btn:hover {{
+        background: var(--button-secondary-background-fill-hover, var(--block-background-fill, #ddd));
+    }}
+    .split-hint {{
+        font-size: 12px;
+        color: #6f42c1;
+        font-weight: 600;
+        order: 0;
+        margin-right: auto;
+    }}
+    .split-confirm-btn {{ order: 1; }}
+    .split-cancel-btn {{ order: 2; }}
+    .segment-card.manual-split-mode .segment-text {{
+        background: rgba(111, 66, 193, 0.06);
+        contain: layout style paint;
+        min-height: var(--manual-split-text-min-height, auto);
+        max-height: var(--manual-split-text-max-height, none);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }}
+    .split-preview {{
+        display: block;
+    }}
+    .split-preview-flow {{
+        min-height: 1.6em;
+    }}
+    .split-preview-break {{
+        display: none;
+    }}
+    .split-preview-break.active {{
+        display: block;
+    }}
+    .split-preview-word {{
+        display: inline-block;
+        border-radius: 6px;
+        padding: 0 4px;
+        transition: background 0.12s ease, box-shadow 0.12s ease;
+    }}
+    .split-preview-word.can-cut {{
+        cursor: pointer;
+    }}
+    .split-preview-word.can-cut:hover {{
+        background: rgba(111, 66, 193, 0.12);
+    }}
+    .split-preview-word.boundary-end {{
+        background: rgba(111, 66, 193, 0.12);
+        box-shadow: inset -2px 0 0 #6f42c1;
+    }}
+    .split-preview-word.boundary-start {{
+        background: rgba(111, 66, 193, 0.16);
+        box-shadow: inset 2px 0 0 #6f42c1;
+    }}
+    .split-preview-marker {{
+        display: inline-block;
+        opacity: 0.95;
+        cursor: default;
+        user-select: none;
+    }}
     .segment-error {{
         font-size: 12px;
         margin-top: 4px;
@@ -398,38 +545,275 @@ def build_css() -> str:
     .segment-high-badge {{ background: #28a745; }}
     .segment-med-badge {{ background: #ffc107; color: #333 !important; }}
     .segment-low-badge {{ background: #dc3545; }}
-    .segment-underseg {{ background: #ffe5cc; border-color: #ff8c00; }}
-    .segment-underseg-badge {{ background: #ff8c00; }}
     .segment-special {{ background: #e8eaf6; border-color: #5c6bc0; border-style: dashed; }}
     .segment-special-badge {{ background: #5c6bc0; }}
+    .segment-repeated-badge {{ background: #ffc107; color: #333 !important; }}
+    .segment-multiverse {{ background: #cff4fc; border-color: #0dcaf0; }}
+
+    /* Repetition feedback widget */
+    .repeat-feedback-group {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }}
+    .repeat-fb-btn {{
+        background: none;
+        border: 1px solid rgba(0,0,0,0.2);
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 10px;
+        padding: 0 5px;
+        height: 20px;
+        min-height: 0;
+        min-width: 0;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.7;
+        transition: opacity 0.15s, transform 0.15s;
+        position: relative;
+        top: 2px;
+    }}
+    .repeat-fb-btn:hover {{
+        opacity: 1;
+        transform: scale(1.2);
+    }}
+    .repeat-fb-thanks {{
+        font-size: 10px;
+        color: #28a745;
+        font-weight: 600;
+        white-space: nowrap;
+    }}
+    .repeat-fb-form {{
+        display: flex;
+        gap: 4px;
+        align-items: center;
+    }}
+    .repeat-fb-textarea {{
+        font-size: 10px;
+        font-family: inherit;
+        padding: 0 5px;
+        border: 1px solid var(--border-color-primary, #ccc);
+        border-radius: 8px;
+        background: var(--input-background-fill, white);
+        color: var(--body-text-color, #333);
+        resize: none;
+        height: 20px;
+        min-height: 0;
+        box-sizing: border-box;
+        width: 156px;
+        overflow: hidden;
+    }}
+    .repeat-fb-submit {{
+        font-size: 10px;
+        padding: 0 6px;
+        border: none;
+        border-radius: 8px;
+        background: #28a745;
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+        white-space: nowrap;
+        height: 20px;
+        min-height: 0;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }}
+    .repeat-fb-submit:hover {{ background: #218838; }}
+
+    /* Divider between repeated text lines */
+    .repeat-divider {{
+        height: 0;
+        border: none;
+        border-top: 1px dashed var(--border-color-primary, rgba(128,128,128,0.5));
+        margin: 2px 0;
+    }}
+
+    /* Missing words group — wraps two consecutive segments sharing a gap */
+    .missing-words-group {{
+        border: 2px dashed #dc3545;
+        border-radius: 10px;
+        padding: 8px;
+        margin-bottom: 12px;
+    }}
+    .missing-words-group .segment-card:last-child {{ margin-bottom: 0; }}
+    .missing-words-group-tag {{
+        background: #dc3545;
+        color: white;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        width: fit-content;
+        margin: 0 auto 8px;
+    }}
+
+    /* Split group — wraps sibling sub-segments produced by the Split action */
+    .split-group {{
+        border: 2px dashed #6f42c1;
+        border-radius: 10px;
+        padding: 8px;
+        margin-bottom: 12px;
+    }}
+    .split-group .segment-card:last-child {{ margin-bottom: 0; }}
+    .split-group-header {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }}
+    .split-group-tag {{
+        background: #6f42c1;
+        color: white;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        width: fit-content;
+        margin: 0;
+    }}
+    .undo-split-btn {{
+        appearance: none;
+        border: 1px solid #6f42c1;
+        background: #6f42c1;
+        color: white;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        cursor: pointer;
+        box-sizing: border-box;
+    }}
+    .undo-split-btn:hover {{
+        background: #5f37ab;
+        border-color: #5f37ab;
+    }}
+    .undo-split-btn:disabled {{
+        opacity: 0.7;
+        cursor: wait;
+    }}
+
+    /* Multi-verse badge — segment covers 2+ distinct verses */
+    .segment-multiverse-badge {{
+        background: #0dcaf0;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+    }}
+    .segment-multiverse-text {{ color: #055160; }}
+    @media (prefers-color-scheme: dark) {{
+        .segment-multiverse-text {{ color: #0dcaf0; }}
+        .split-group {{ background: rgba(111, 66, 193, 0.05); }}
+    }}
+    .dark .segment-multiverse-text {{ color: #0dcaf0; }}
+    .dark .split-group {{ background: rgba(111, 66, 193, 0.05); }}
+
+    /* Hidden JS→Python bridge (must be in DOM but invisible) */
+    #ref-edit-bridge, #repeat-fb-bridge, #manual-split-bridge, #undo-split-bridge, #edit-patch {{
+        position: absolute !important;
+        left: -9999px !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none;
+    }}
+    #ref-edit-bridge *, #repeat-fb-bridge *, #manual-split-bridge *, #undo-split-bridge *, #edit-patch * {{ pointer-events: auto; }}
+
+    /* Clickable ref for inline editing */
+    .ref-editable {{
+        cursor: pointer;
+        border-bottom: 1px dashed currentColor;
+    }}
+    .ref-editable:hover {{
+        opacity: 0.7;
+    }}
+    .segment-card.manual-split-mode .ref-editable {{
+        cursor: default;
+        border-bottom-color: transparent;
+    }}
+    .segment-card.manual-split-mode .ref-editable:hover {{
+        opacity: 1;
+    }}
+    .ref-edit-input {{
+        font-size: inherit;
+        font-family: inherit;
+        background: var(--input-background-fill, white);
+        color: var(--body-text-color, #333);
+        border: 1px solid var(--border-color-primary, #ddd);
+        border-radius: 4px;
+        padding: 0 4px;
+        width: 16ch;
+    }}
 
     /* Review summary text colors */
     .segments-review-summary {{ margin-bottom: 8px; font-size: 14px; }}
     .segment-med-text {{ color: #856404; }}
     .segment-low-text {{ color: #721c24; }}
-    .segment-underseg-text {{ color: #b35900; }}
     @media (prefers-color-scheme: dark) {{
         .segment-med-text {{ color: #ffc107; }}
         .segment-low-text {{ color: #f8d7da; }}
-        .segment-underseg-text {{ color: #ff8c00; }}
     }}
     .dark .segment-med-text {{ color: #ffc107; }}
     .dark .segment-low-text {{ color: #f8d7da; }}
-    .dark .segment-underseg-text {{ color: #ff8c00; }}
 
     /* Confidence colors - dark mode */
     @media (prefers-color-scheme: dark) {{
         .segment-high {{ background: rgba(40, 167, 69, 0.2); border-color: #28a745; }}
         .segment-med {{ background: rgba(255, 193, 7, 0.2); border-color: #ffc107; }}
         .segment-low {{ background: rgba(220, 53, 69, 0.2); border-color: #dc3545; }}
-        .segment-underseg {{ background: rgba(255, 140, 0, 0.2); border-color: #ff8c00; }}
         .segment-special {{ background: rgba(92, 107, 192, 0.2); border-color: #5c6bc0; border-style: dashed; }}
+        .segment-multiverse {{ background: rgba(13, 202, 240, 0.18); border-color: #0dcaf0; }}
+        .missing-words-group {{ background: rgba(220, 53, 69, 0.05); }}
+        .split-hint {{ color: #bba3ef; }}
+        .segment-card.manual-split-mode .segment-text {{ background: rgba(111, 66, 193, 0.14); }}
+        .undo-split-btn {{ background: rgba(111, 66, 193, 0.22); border-color: #bba3ef; color: #e5d8ff; }}
+        .undo-split-btn:hover {{ background: rgba(111, 66, 193, 0.32); border-color: #d0bcff; }}
     }}
     /* Also support Gradio's dark class */
     .dark .segment-high {{ background: rgba(40, 167, 69, 0.2); border-color: #28a745; }}
     .dark .segment-med {{ background: rgba(255, 193, 7, 0.2); border-color: #ffc107; }}
     .dark .segment-low {{ background: rgba(220, 53, 69, 0.2); border-color: #dc3545; }}
-    .dark .segment-underseg {{ background: rgba(255, 140, 0, 0.2); border-color: #ff8c00; }}
     .dark .segment-special {{ background: rgba(92, 107, 192, 0.2); border-color: #5c6bc0; border-style: dashed; }}
+    .dark .segment-multiverse {{ background: rgba(13, 202, 240, 0.18); border-color: #0dcaf0; }}
+    .dark .missing-words-group {{ background: rgba(220, 53, 69, 0.05); }}
+    .dark .split-hint {{ color: #bba3ef; }}
+    .dark .segment-card.manual-split-mode .segment-text {{ background: rgba(111, 66, 193, 0.14); }}
+    .dark .undo-split-btn {{ background: rgba(111, 66, 193, 0.22); border-color: #bba3ef; color: #e5d8ff; }}
+    .dark .undo-split-btn:hover {{ background: rgba(111, 66, 193, 0.32); border-color: #d0bcff; }}
+
+    /* Input mode toggle */
+    #input-mode-row {{ gap: 0 !important; }}
+    #input-mode-row button {{
+        border-radius: 0 !important;
+        border: 1px solid var(--border-color-primary) !important;
+    }}
+    #input-mode-row button:first-child {{ border-radius: 8px 0 0 8px !important; }}
+    #input-mode-row button:last-child {{ border-radius: 0 8px 8px 0 !important; }}
+    #input-mode-row button:not(:first-child) {{ border-left: none !important; }}
+    #upload-panel, #record-panel, #link-panel,
+    #upload-panel > div, #record-panel > div, #link-panel > div {{ overflow: visible !important; }}
+    .mode-active {{
+        background: var(--button-primary-background-fill) !important;
+        color: var(--button-primary-text-color) !important;
+        border-color: var(--button-primary-background-fill) !important;
+    }}
+
+    /* Example / site pill buttons — joined group */
+    #example-row, #link-example-row {{ gap: 0 !important; }}
+    #example-row button, #link-example-row button {{
+        border-radius: 0 !important;
+        border: 1px solid var(--border-color-primary) !important;
+    }}
+    #example-row button:first-child, #link-example-row button:first-child {{ border-radius: 8px 0 0 8px !important; }}
+    #example-row button:last-child, #link-example-row button:last-child {{ border-radius: 0 8px 8px 0 !important; }}
+    #example-row button:not(:first-child), #link-example-row button:not(:first-child) {{ border-left: none !important; }}
 
     """

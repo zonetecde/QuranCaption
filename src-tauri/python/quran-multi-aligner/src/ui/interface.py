@@ -20,6 +20,7 @@ from config import (
     MEGA_TEXT_SIZE_MIN, MEGA_TEXT_SIZE_MAX, MEGA_TEXT_SIZE_STEP, MEGA_TEXT_SIZE_DEFAULT,
     MEGA_LINE_SPACING_MIN, MEGA_LINE_SPACING_MAX, MEGA_LINE_SPACING_STEP, MEGA_LINE_SPACING_DEFAULT,
     LEFT_COLUMN_SCALE, RIGHT_COLUMN_SCALE,
+    DEFAULT_INPUT_MODE,
 )
 from src.ui.styles import build_css
 from src.ui.js_config import build_js_head
@@ -37,21 +38,35 @@ def build_interface():
     css = build_css()
     js = build_js_head(_SURAH_LIGATURES)
 
-    with gr.Blocks(title="Quran Multi-Aligner", css=css, head=js, delete_cache=(DELETE_CACHE_FREQUENCY, DELETE_CACHE_AGE)) as app:
-        gr.Markdown("# \U0001f399\ufe0f Quran Multi-Aligner")
+    with gr.Blocks(title="Quranic Universal Aligner", css=css, head=js, delete_cache=(DELETE_CACHE_FREQUENCY, DELETE_CACHE_AGE)) as app:
+        gr.Markdown("# \U0001f399\ufe0f Quranic Universal Aligner")
         gr.Markdown("""
 - Transcribe and split any recitation by pauses within 1-2 minutes
 - Get precise pause-, verse-, word- and character-level timestamps, exportable as JSON
-- GPU-powered <a href="https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/blob/main/docs/client_api.md" target="_blank">API usage</a> with daily quotas, and unlimited CPU usage 
+- GPU-powered <a href="https://github.com/Wider-Community/quranic-universal-audio/blob/main/docs/client_api.md" target="_blank">API usage</a> with daily quotas, and unlimited CPU usage
 - Reliable confidence system to flag uncertain segments and missed words — no silent errors
 - Robust tolerance to noise, speaker variation and low audio quality, particularly with the large model
-- <a href="https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/discussions" target="_blank">Feedback/contributions are welcome</a>
+- <a href="https://github.com/Wider-Community/quranic-universal-audio/issues" target="_blank">Feedback/contributions are welcome</a>
 """)
 
         # API Documentation accordion
-        _api_doc = (Path(__file__).parent.parent.parent / "docs" / "client_api.md").read_text()
+        _app_root = Path(__file__).parent.parent.parent
+        _api_doc_candidates = [
+            _app_root / "docs" / "client_api.md",            # HF Space (if copied) or local aligner dir
+            _app_root.parent / "docs" / "client_api.md",     # parent repo on local dev
+        ]
+        _api_doc_path = next((p for p in _api_doc_candidates if p.exists()), None)
+        _api_doc = _api_doc_path.read_text() if _api_doc_path else (
+            "See [API documentation](https://github.com/Wider-Community/quranic-universal-audio"
+            "/blob/main/docs/client_api.md)."
+        )
         with gr.Accordion("\U0001f4e1 API Usage", open=False):
             gr.Markdown(_api_doc)
+
+        # Changelog accordion
+        _changelog = (Path(__file__).parent.parent.parent / "docs" / "CHANGELOG.md").read_text()
+        with gr.Accordion("📋 Changelog", open=False):
+            gr.Markdown(_changelog)
 
         if DEV_TAB_VISIBLE:
             with gr.Tabs():
@@ -76,7 +91,9 @@ def build_interface():
         c.cached_segment_dir = gr.State(value=None)
         c.cached_log_row = gr.State(value=None)
         c.is_preset = gr.State(value=False)
+        c.audio_source = gr.State(value="upload")
         c.resegment_panel_visible = gr.State(value=False)
+        c.split_panel_visible = gr.State(value=False)
 
         # Session API components (hidden, API-only)
         c.api_audio = gr.Audio(visible=False, type="numpy")
@@ -84,12 +101,55 @@ def build_interface():
         c.api_silence = gr.Number(visible=False, precision=0)
         c.api_speech = gr.Number(visible=False, precision=0)
         c.api_pad = gr.Number(visible=False, precision=0)
+        c.api_split_max_verses = gr.Number(visible=False, precision=0)
+        c.api_split_max_words = gr.Number(visible=False, precision=0)
+        c.api_split_max_duration = gr.Number(visible=False)
+        c.api_split_require_stop_sign = gr.Checkbox(visible=False, value=False)
         c.api_model = gr.Textbox(visible=False)
         c.api_device = gr.Textbox(visible=False)
         c.api_timestamps = gr.JSON(visible=False)
         c.api_mfa_segments = gr.JSON(visible=False)
         c.api_mfa_granularity = gr.Textbox(visible=False)
+        c.api_estimate_endpoint = gr.Textbox(visible=False)
+        c.api_estimate_audio_duration = gr.Number(visible=False)
+        c.api_url = gr.Textbox(visible=False)
+        c.api_debug_token = gr.Textbox(visible=False)
+        c.api_cpu_exec_token = gr.Textbox(visible=False)
+        c.api_cpu_exec_module = gr.Textbox(visible=False)
+        c.api_cpu_exec_func = gr.Textbox(visible=False)
+        c.api_cpu_exec_args = gr.Textbox(visible=False)
+        c.api_cpu_exec_kwargs = gr.Textbox(visible=False)
+        c.api_cpu_exec_meta = gr.Textbox(visible=False)
+        c.api_pool_status_token = gr.Textbox(visible=False)
+        c.api_bench_audio = gr.Audio(visible=False, type="filepath")
+        c.api_bench_batch_size = gr.Number(visible=False, precision=0, value=1)
+        c.api_bench_dtype = gr.Textbox(visible=False, value="bfloat16")
         c.api_result = gr.JSON(visible=False)
+
+        # Inline ref editing bridge (JS → Python)
+        # Must be visible=True + CSS hide (visible=False removes from DOM in Gradio 6)
+        with gr.Row(visible=True, elem_id="ref-edit-bridge"):
+            c.ref_edit_payload = gr.Textbox(elem_id="ref-edit-payload", show_label=False, container=False)
+            c.ref_edit_trigger = gr.Button("", elem_id="ref-edit-trigger", size="sm")
+
+        # Repetition feedback bridge (JS → Python)
+        with gr.Row(visible=True, elem_id="repeat-fb-bridge"):
+            c.repeat_fb_payload = gr.Textbox(elem_id="repeat-fb-payload", show_label=False, container=False)
+            c.repeat_fb_trigger = gr.Button("", elem_id="repeat-fb-trigger", size="sm")
+
+        # Manual split bridge (JS → Python)
+        with gr.Row(visible=True, elem_id="manual-split-bridge"):
+            c.manual_split_payload = gr.Textbox(elem_id="manual-split-payload", show_label=False, container=False)
+            c.manual_split_trigger = gr.Button("", elem_id="manual-split-trigger", size="sm")
+
+        # Undo split bridge (JS → Python)
+        with gr.Row(visible=True, elem_id="undo-split-bridge"):
+            c.undo_split_payload = gr.Textbox(elem_id="undo-split-payload", show_label=False, container=False)
+            c.undo_split_trigger = gr.Button("", elem_id="undo-split-trigger", size="sm")
+
+        # Edit patch channel (Python → JS, carries surgical patch instructions)
+        with gr.Row(visible=True, elem_id="edit-patch"):
+            c.edit_patch = gr.Textbox(elem_id="edit-patch-data", show_label=False, container=False)
 
         wire_events(app, c)
 
@@ -99,23 +159,54 @@ def build_interface():
 def _build_left_column(c):
     """Build the left input column."""
     with gr.Column(scale=LEFT_COLUMN_SCALE, elem_id="left-col"):
-        c.audio_input = gr.Audio(
-            label="Upload Recitation",
-            sources=["upload", "microphone"],
-            type="filepath"
-        )
+        _is_link = DEFAULT_INPUT_MODE == "Link"
+        _is_upload = DEFAULT_INPUT_MODE == "Upload"
+        _is_record = DEFAULT_INPUT_MODE == "Record"
 
-        # Example audio files
-        with gr.Row():
-            c.btn_ex_112 = gr.Button("112", size="sm", min_width=0)
-            c.btn_ex_84 = gr.Button("84", size="sm", min_width=0)
-            c.btn_ex_7 = gr.Button("7", size="sm", min_width=0)
-            c.btn_ex_juz30 = gr.Button("Juz' 30", size="sm", min_width=0)
+        # Input mode toggle
+        with gr.Row(elem_id="input-mode-row"):
+            c.mode_link = gr.Button("Link", size="sm", min_width=0,
+                                     elem_classes=["mode-active"] if _is_link else [])
+            c.mode_upload = gr.Button("Upload", size="sm", min_width=0,
+                                       elem_classes=["mode-active"] if _is_upload else [])
+            c.mode_record = gr.Button("Record", size="sm", min_width=0,
+                                       elem_classes=["mode-active"] if _is_record else [])
+
+        # Link panel
+        with gr.Column(visible=_is_link, elem_id="link-panel") as c.link_panel:
+            with gr.Row(elem_id="link-example-row"):
+                c.btn_site_tiktok = gr.Button("TikTok", size="sm", min_width=0)
+                c.btn_site_soundcloud = gr.Button("SoundCloud", size="sm", min_width=0)
+                c.btn_site_mp3quran = gr.Button("MP3Quran", size="sm", min_width=0)
+            c.url_input = gr.Textbox(
+                label="Paste a link",
+                info='[all supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)',
+                lines=1,
+            )
+            c.url_download_btn = gr.Button("Download", size="sm", variant="secondary", interactive=False)
+            c.url_audio_player = gr.Audio(label="Downloaded Audio", visible=False, sources=[])
+
+        # Upload panel
+        with gr.Column(visible=_is_upload, elem_id="upload-panel") as c.upload_panel:
+            with gr.Row(elem_id="example-row"):
+                c.btn_ex_112 = gr.Button("112", size="sm", min_width=0)
+                c.btn_ex_84 = gr.Button("84", size="sm", min_width=0)
+                c.btn_ex_7 = gr.Button("7", size="sm", min_width=0)
+                c.btn_ex_juz30 = gr.Button("Juz' 30", size="sm", min_width=0)
+            c.audio_upload = gr.Audio(label="Upload Recitation", sources=["upload"], type="filepath")
+
+        # Record panel
+        with gr.Column(visible=_is_record, elem_id="record-panel") as c.record_panel:
+            c.audio_record = gr.Audio(label="Record Recitation", sources=["microphone"], type="filepath")
+
+        # Hidden unified audio state (fed by upload, record, or URL download)
+        # gr.State avoids cascading .change events that gr.Audio would fire
+        c.audio_input = gr.State(value=None)
 
         _build_animation_settings(c)
 
         c.anim_cached_settings = gr.JSON(value=None, visible=False)
-        with gr.Accordion("Model Settings", open=True):
+        with gr.Accordion("Model Settings", open=True) as c.model_accordion:
             with gr.Row():
                 c.model_radio = gr.Radio(
                     choices=["Base", "Large"],
@@ -130,7 +221,7 @@ def _build_left_column(c):
                     info="Daily GPU usage limits. Unlimitted CPU usage but slower"
                 )
 
-        with gr.Accordion("Segmentation Settings", open=True):
+        with gr.Accordion("Segmentation Settings", open=True) as c.seg_accordion:
             c.min_silence_slider, c.min_speech_slider, c.pad_slider, \
                 c.preset_mujawwad, c.preset_murattal, c.preset_fast = create_segmentation_settings()
 
@@ -221,7 +312,8 @@ def _build_right_column(c):
 
 def _build_results_content(c):
     """Build the main results content (extract/resegment/output)."""
-    c.extract_btn = gr.Button("Extract Segments", variant="primary", size="lg")
+    c.extract_btn = gr.Button("Align Recitation", variant="secondary", size="lg", interactive=False)
+    c.pipeline_progress = gr.HTML(value="", visible=False)
     with gr.Row(elem_id="action-btns-row"):
         c.resegment_toggle_btn = gr.Button(
             "Resegment with New Settings", variant="primary", size="lg", visible=False
@@ -229,12 +321,14 @@ def _build_results_content(c):
         c.retranscribe_btn = gr.Button(
             "Retranscribe with Large Model", variant="primary", size="lg", visible=False
         )
+        c.split_toggle_btn = gr.Button(
+            "Split Segments", variant="primary", size="lg", visible=False
+        )
     with gr.Row(elem_id="ts-row"):
-        c.compute_ts_btn = gr.Button(
-            "Compute Timestamps", variant="secondary", size="lg", interactive=False, visible=False
+        c.animate_all_btn = gr.Button(
+            "Animate All", variant="secondary", size="lg", interactive=False, visible=False
         )
         c.compute_ts_progress = gr.HTML(value="", visible=False)
-        c.animate_all_html = gr.HTML(value="", visible=False)
 
     with gr.Column(visible=False) as c.resegment_panel:
         gr.Markdown(
@@ -246,12 +340,53 @@ def _build_results_content(c):
             c.rs_btn_muj, c.rs_btn_mur, c.rs_btn_fast = create_segmentation_settings(id_suffix="-rs")
         c.resegment_btn = gr.Button("Resegment", variant="primary", size="lg")
 
+    with gr.Column(visible=False) as c.split_panel:
+        from config import (
+            SPLIT_MAX_VERSES_MIN, SPLIT_MAX_VERSES_MAX, SPLIT_MAX_VERSES_DEFAULT,
+            SPLIT_MAX_WORDS_MIN, SPLIT_MAX_WORDS_MAX, SPLIT_MAX_WORDS_STEP,
+            SPLIT_MAX_WORDS_DEFAULT,
+            SPLIT_MAX_DURATION_MIN, SPLIT_MAX_DURATION_MAX, SPLIT_MAX_DURATION_STEP,
+            SPLIT_MAX_DURATION_DEFAULT,
+        )
+        gr.Markdown(
+            "Subdivide long segments at word boundaries."
+            "Sliders at max mean criterion disabled."
+        )
+        c.split_max_verses = gr.Slider(
+            minimum=SPLIT_MAX_VERSES_MIN, maximum=SPLIT_MAX_VERSES_MAX, step=1,
+            value=SPLIT_MAX_VERSES_DEFAULT,
+            label=f"Max verses per segment: {SPLIT_MAX_VERSES_DEFAULT}",
+            elem_id="split-max-verses",
+        )
+        c.split_max_words = gr.Slider(
+            minimum=SPLIT_MAX_WORDS_MIN, maximum=SPLIT_MAX_WORDS_MAX,
+            step=SPLIT_MAX_WORDS_STEP,
+            value=SPLIT_MAX_WORDS_DEFAULT,
+            label="Max words per segment: Off",
+            elem_id="split-max-words",
+        )
+        c.split_max_duration = gr.Slider(
+            minimum=SPLIT_MAX_DURATION_MIN, maximum=SPLIT_MAX_DURATION_MAX,
+            step=SPLIT_MAX_DURATION_STEP,
+            value=SPLIT_MAX_DURATION_DEFAULT,
+            label="Max duration per segment (s): Off",
+            elem_id="split-max-duration",
+        )
+        c.split_require_stop_sign = gr.Checkbox(
+            value=False,
+            label="Only split at stop signs",
+            info="Segments without a waqf mark stay as-is, even if they exceed "
+                 "word/duration limits. Verse splitting is unaffected.",
+            elem_id="split-require-stop-sign",
+        )
+        c.split_btn = gr.Button("Split", variant="primary", size="lg")
+
     c.output_html = gr.HTML(
-        value='<div style="text-align: center; color: #666; padding: 60px;">Upload audio and click "Extract Segments" to begin</div>',
+        value='<div style="text-align: center; color: #666; padding: 60px;">Upload audio and click "Align Recitation" to begin</div>',
         elem_classes=["output-html"]
     )
-    # Hidden JSON output for API consumers
-    c.output_json = gr.JSON(visible=False, label="JSON Output")
+    # Server-side state (gr.State avoids serializing the full JSON to the browser on every update)
+    c.output_json = gr.State(None)
 
 
 def _build_dev_tab(c):

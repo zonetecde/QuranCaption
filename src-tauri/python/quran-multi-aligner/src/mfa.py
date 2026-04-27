@@ -1,6 +1,8 @@
 import os
 import gradio as gr
-from config import MFA_SPACE_URL, MFA_TIMEOUT, MFA_PROGRESS_SEGMENT_RATE
+from config import (MFA_SPACE_URL, MFA_TIMEOUT, MFA_PROGRESS_SEGMENT_RATE,
+                    MFA_METHOD, MFA_BEAM, MFA_RETRY_BEAM, MFA_SHARED_CMVN,
+                    MFA_SPLIT_PADDING)
 
 # Lowercase special ref names for case-insensitive matching
 _SPECIAL_REFS = {"basmala", "isti'adha"}
@@ -9,11 +11,21 @@ _BASMALA_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّ
 _ISTIATHA_TEXT = "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم"
 
 
-def _mfa_upload_and_submit(refs, audio_paths):
+def _mfa_upload_and_submit(refs, audio_paths,
+                           method=MFA_METHOD, beam=MFA_BEAM, retry_beam=MFA_RETRY_BEAM,
+                           shared_cmvn=MFA_SHARED_CMVN, padding="forward"):
     """Upload audio files and submit alignment batch to the MFA Space.
 
     Returns (event_id, headers, base_url) so the caller can yield a progress
     update before blocking on the SSE result stream.
+
+    Args:
+        refs: List of reference strings.
+        audio_paths: List of audio file paths.
+        method: Alignment method ("kalpy", "align_one", "python_api", "cli").
+        beam: Viterbi beam width (default 10).
+        retry_beam: Retry beam width (default 40).
+        padding: Gap-padding strategy ("forward", "symmetric", "none").
     """
     import requests
 
@@ -21,10 +33,7 @@ def _mfa_upload_and_submit(refs, audio_paths):
     headers = {}
     if hf_token:
         headers["Authorization"] = f"Bearer {hf_token}"
-    print(f"[MFA_TS] HF_TOKEN={'set' if hf_token else 'NOT SET'}")
-
     base = MFA_SPACE_URL
-    print(f"[MFA_TS] MFA base URL: {base}")
 
     # Upload all audio files in a single batched request
     files_payload = []
@@ -41,6 +50,11 @@ def _mfa_upload_and_submit(refs, audio_paths):
             timeout=MFA_TIMEOUT,
         )
         resp.raise_for_status()
+        if "application/json" not in resp.headers.get("content-type", ""):
+            raise gr.Error(
+                "MFA Space is not running (may be paused or restarting). "
+                "Please try again in a minute."
+            )
         uploaded_paths = resp.json()
     finally:
         for fh in open_handles:
@@ -52,17 +66,21 @@ def _mfa_upload_and_submit(refs, audio_paths):
         for p in uploaded_paths
     ]
 
-    # Submit batch alignment
+    # Submit batch alignment (7 params: refs, files, method, beam, retry_beam, shared_cmvn, padding)
     submit_resp = requests.post(
         f"{base}/gradio_api/call/align_batch",
         headers={**headers, "Content-Type": "application/json"},
-        json={"data": [refs, file_data_list]},
+        json={"data": [refs, file_data_list, method, str(beam), str(retry_beam),
+                        str(shared_cmvn).lower(), padding]},
         timeout=MFA_TIMEOUT,
     )
     submit_resp.raise_for_status()
+    if "application/json" not in submit_resp.headers.get("content-type", ""):
+        raise gr.Error(
+            "MFA Space is not running (may be paused or restarting). "
+            "Please try again in a minute."
+        )
     event_id = submit_resp.json()["event_id"]
-    print(f"[MFA_TS] Submitted batch, event_id={event_id}")
-
     return event_id, headers, base
 
 
@@ -80,9 +98,24 @@ def _mfa_wait_result(event_id, headers, base):
     sse_resp.raise_for_status()
 
     result_data = None
+    current_event = None
     for line in sse_resp.iter_lines(decode_unicode=True):
-        if line and line.startswith("data: "):
-            result_data = line[6:]  # strip "data: " prefix
+        if line and line.startswith("event: "):
+            current_event = line[7:]
+        elif line and line.startswith("data: "):
+            data_str = line[6:]
+            if current_event == "complete":
+                result_data = data_str
+            elif current_event == "error":
+                # Gradio 6.x may send null as error data; provide actionable message
+                if data_str.strip() in ("null", ""):
+                    raise RuntimeError(
+                        "MFA align_batch failed: Space returned null error. "
+                        "This usually means a parameter count mismatch or "
+                        "Gradio input validation failure. Check that the "
+                        "client sends all required parameters."
+                    )
+                raise RuntimeError(f"MFA align_batch SSE error: {data_str}")
 
     if result_data is None:
         raise RuntimeError("No data received from MFA align_batch SSE stream")
@@ -92,8 +125,11 @@ def _mfa_wait_result(event_id, headers, base):
     if isinstance(parsed, list) and len(parsed) == 1:
         parsed = parsed[0]
 
-    if parsed.get("status") != "ok":
-        raise RuntimeError(f"MFA align_batch failed: {parsed.get('error', parsed)}")
+    if parsed is None:
+        raise RuntimeError("MFA align_batch returned null result")
+
+    if not isinstance(parsed, dict) or parsed.get("status") != "ok":
+        raise RuntimeError(f"MFA align_batch failed: {parsed}")
 
     return parsed["results"]
 
@@ -102,13 +138,19 @@ def _mfa_wait_result(event_id, headers, base):
 # MFA split helper (used by pipeline post-processing)
 # ---------------------------------------------------------------------------
 
-def mfa_split_timestamps(audio_int16, sample_rate, mfa_refs):
+def mfa_split_timestamps(audio_int16, sample_rate, mfa_refs,
+                         method=MFA_METHOD, beam=MFA_BEAM, retry_beam=MFA_RETRY_BEAM,
+                         shared_cmvn=MFA_SHARED_CMVN, padding=MFA_SPLIT_PADDING):
     """Call MFA to get word timestamps for splitting segments.
 
     Args:
         audio_int16: List of int16 audio arrays (one per segment to split).
         sample_rate: Audio sample rate.
         mfa_refs: List of MFA ref strings (one per segment).
+        method: Alignment method ("kalpy", "align_one", "python_api", "cli").
+        beam: Viterbi beam width (default 10).
+        retry_beam: Retry beam width (default 40).
+        padding: Gap-padding strategy ("forward", "symmetric", "none").
 
     Returns:
         List of results (one per segment), each a list of
@@ -132,7 +174,9 @@ def mfa_split_timestamps(audio_int16, sample_rate, mfa_refs):
         audio_paths.append(tmp.name)
 
     try:
-        event_id, headers, base = _mfa_upload_and_submit(mfa_refs, audio_paths)
+        event_id, headers, base = _mfa_upload_and_submit(
+            mfa_refs, audio_paths, method=method, beam=beam, retry_beam=retry_beam,
+            shared_cmvn=shared_cmvn, padding=padding)
         results = _mfa_wait_result(event_id, headers, base)
         print(f"[MFA_SPLIT] Got {len(results)} results from MFA API")
 
@@ -202,6 +246,35 @@ def _build_mfa_ref(seg):
     return mfa_ref
 
 
+def _ensure_segment_wavs(segments, segment_dir):
+    """Write individual segment WAVs from full.wav on demand (for MFA).
+
+    Segments are sliced from the full recording using soundfile's
+    frame-level random access — no need to load the entire file.
+    """
+    if not segment_dir:
+        return
+    full_path = os.path.join(segment_dir, "full.wav")
+    if not os.path.exists(full_path):
+        return
+    import soundfile as sf
+    info = sf.info(full_path)
+    sr = info.samplerate
+    written = 0
+    for seg in segments:
+        idx = seg.get("segment", 0) - 1
+        wav_path = os.path.join(segment_dir, f"seg_{idx}.wav")
+        if os.path.exists(wav_path):
+            continue
+        start_frame = int(seg.get("time_from", 0) * sr)
+        stop_frame = int(seg.get("time_to", 0) * sr)
+        audio_slice, _ = sf.read(full_path, start=start_frame, stop=stop_frame, dtype='int16')
+        sf.write(wav_path, audio_slice, sr, format='WAV', subtype='PCM_16')
+        written += 1
+    if written:
+        print(f"[MFA] Wrote {written} segment WAVs on demand from full.wav")
+
+
 def _build_mfa_refs(segments, segment_dir):
     """Build MFA refs and audio paths from segments.
 
@@ -219,14 +292,12 @@ def _build_mfa_refs(segments, segment_dir):
 
         audio_path = os.path.join(segment_dir, f"seg_{seg_idx}.wav") if segment_dir else None
         if not audio_path or not os.path.exists(audio_path):
-            print(f"[MFA_TS] Skipping seg {seg_idx}: audio not found at {audio_path}")
             continue
 
         seg_to_result_idx[seg_idx] = len(refs)
         refs.append(mfa_ref)
         audio_paths.append(audio_path)
 
-    print(f"[MFA_TS] {len(refs)} refs to align: {refs[:5]}{'...' if len(refs) > 5 else ''}")
     return refs, audio_paths, seg_to_result_idx
 
 
@@ -262,7 +333,6 @@ def _build_timestamp_lookups(results):
 
     for result_idx, result in enumerate(results):
         if result.get("status") != "ok":
-            print(f"[MFA_TS] Segment failed: ref={result.get('ref')} error={result.get('error')}")
             continue
         ref = result.get("ref", "")
         is_special = ref.strip().lower() in _SPECIAL_REFS
@@ -280,7 +350,6 @@ def _build_timestamp_lookups(results):
                         word_to_all_results[loc] = []
                     word_to_all_results[loc].append(result_idx)
 
-    print(f"[MFA_TS] {len(word_timestamps)} word timestamps collected, {len(letter_timestamps)} with letter-level data")
     return word_timestamps, letter_timestamps, word_to_all_results
 
 
@@ -327,9 +396,6 @@ def _build_crossword_groups(results, letter_ts_dict):
                         group_id = f"xword-{result_idx}-{word_i}"
                         crossword_groups[(key_a, idx_a)] = group_id
                         crossword_groups[(key_b, idx_b)] = group_id
-
-    if crossword_groups:
-        print(f"[MFA_TS] Found {len(crossword_groups)} cross-word overlapping letters")
 
     return crossword_groups
 
@@ -404,7 +470,6 @@ def _extend_word_timestamps(word_timestamps, segments, seg_to_result_idx,
             if seg_duration > last_end:
                 word_timestamps[last_loc] = (last_start, seg_duration)
 
-    print(f"[MFA_TS] Post-processed timestamps: extended word ends to fill gaps")
 
 
 def _build_enriched_json(segments, results, seg_to_result_idx,
@@ -509,13 +574,18 @@ def _build_enriched_json(segments, results, seg_to_result_idx,
 # Synchronous API function
 # ---------------------------------------------------------------------------
 
-def compute_mfa_timestamps_api(segments, segment_dir, granularity="words"):
+def compute_mfa_timestamps_api(segments, segment_dir, granularity="words",
+                               method=MFA_METHOD, beam=MFA_BEAM, retry_beam=MFA_RETRY_BEAM,
+                               shared_cmvn=MFA_SHARED_CMVN):
     """Run MFA forced alignment and return enriched segments (no UI/HTML).
 
     Args:
         segments: List of segment dicts (same format as alignment response).
         segment_dir: Path to directory containing per-segment WAV files.
         granularity: "words" or "words+chars".
+        method: Alignment method ("kalpy", "align_one", "python_api", "cli").
+        beam: Viterbi beam width (default 10).
+        retry_beam: Retry beam width (default 40).
 
     Returns:
         Dict with "segments" key containing enriched segment data.
@@ -523,13 +593,17 @@ def compute_mfa_timestamps_api(segments, segment_dir, granularity="words"):
     if not granularity or granularity not in ("words", "words+chars"):
         granularity = "words"
 
+    # Write individual segment WAVs on demand (sliced from full.wav)
+    _ensure_segment_wavs(segments, segment_dir)
+
     refs, audio_paths, seg_to_result_idx = _build_mfa_refs(segments, segment_dir)
     if not refs:
         return {"segments": segments}
 
-    event_id, headers, base = _mfa_upload_and_submit(refs, audio_paths)
+    event_id, headers, base = _mfa_upload_and_submit(
+        refs, audio_paths, method=method, beam=beam, retry_beam=retry_beam,
+        shared_cmvn=shared_cmvn)
     results = _mfa_wait_result(event_id, headers, base)
-    print(f"[MFA_TS] Got {len(results)} results from MFA API")
 
     word_ts, letter_ts, _ = _build_timestamp_lookups(results)
     _build_crossword_groups(results, letter_ts)
@@ -600,38 +674,89 @@ def _ts_progress_bar_html(total_segments, rate, animated=True):
 # UI generator (Gradio — yields progress, injects HTML timestamps)
 # ---------------------------------------------------------------------------
 
-def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_row=None):
-    """Compute word-level timestamps via MFA forced alignment and inject into HTML.
+def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_row=None,
+                           method=MFA_METHOD, beam=MFA_BEAM, retry_beam=MFA_RETRY_BEAM,
+                           shared_cmvn=MFA_SHARED_CMVN):
+    """Animate All handler: MFA-align only uncomputed segments, then signal the mega card.
 
-    Generator that yields (output_html, compute_ts_btn, animate_all_html, progress_bar, json_output)
-    tuples. First yield shows the animated progress bar; final yield contains results with enriched JSON
-    including word/letter timestamps.
+    Generator that yields (output_html, animate_all_btn, edit_patch, progress_bar, json_output)
+    tuples. Skips segments whose SegmentInfo.words is already populated (from prior per-card
+    or batch MFA). Progress counter reflects the uncomputed subset only.
     """
-    import re
+    import json as _json_mod
+    import time as _time_mod
     import traceback
 
-    print("[MFA_TS] compute_mfa_timestamps called")
-    print(f"[MFA_TS]   segment_dir={segment_dir}")
-    print(f"[MFA_TS]   json_output keys={list(json_output.keys()) if json_output else None}")
-    print(f"[MFA_TS]   html length={len(current_html) if current_html else 0}")
+    # Nonce keeps each patch unique so Gradio re-emits on back-to-back clicks.
+    def _make_start_patch():
+        return _json_mod.dumps({"status": "start_megacard", "nonce": _time_mod.time()})
+
+    # json_output is now List[SegmentInfo] from gr.State (not a JSON dict)
+    segments_state = json_output if isinstance(json_output, list) else []
+    if not segments_state:
+        yield current_html, gr.update(), gr.update(), gr.update(), gr.update()
+        return
+
+    # Re-render HTML from SegmentInfo to pick up any inline edits and any
+    # prior MFA timestamps already attached to .words.
+    if segment_dir:
+        from src.ui.segments import render_segments
+        full_audio_url = f"/gradio_api/file={segment_dir}/full.wav"
+        current_html = render_segments(segments_state, full_audio_url=full_audio_url, segment_dir=str(segment_dir))
 
     if not current_html or '<span class="word"' not in current_html:
-        print("[MFA_TS] Early return: no HTML or no word spans")
         yield current_html, gr.update(), gr.update(), gr.update(), gr.update()
         return
 
-    # Build refs and audio paths using shared helper
-    segments = json_output.get("segments", []) if json_output else []
-    print(f"[MFA_TS] {len(segments)} segments in JSON")
+    # Convert to dicts at the MFA boundary (MFA internals expect dict-based segments)
+    segment_dicts = [seg.to_json_dict() for seg in segments_state]
 
-    refs, audio_paths, seg_to_result_idx = _build_mfa_refs(segments, segment_dir)
+    # Write individual segment WAVs on demand (sliced from full.wav)
+    _ensure_segment_wavs(segment_dicts, segment_dir)
+
+    all_refs, all_audio_paths, all_seg_to_result_idx = _build_mfa_refs(segment_dicts, segment_dir)
+
+    # Partition animatable segments into "already computed" (synthesize a
+    # result from SegmentInfo.words) and "needs MFA" (batch-align). Both
+    # paths feed a unified results list so inject_timestamps_into_html can
+    # repaint every animatable segment in one pass after re-rendering.
+    refs, audio_paths = [], []
+    seg_to_result_idx = {}            # seg_idx -> position in combined_results
+    prebuilt_slots = {}               # combined_idx -> synthesized result dict
+    new_batch_slots = []              # combined_idx of each MFA batch entry, in submit order
+    for seg_idx, old_ri in all_seg_to_result_idx.items():
+        combined_idx = len(seg_to_result_idx)
+        seg_to_result_idx[seg_idx] = combined_idx
+        if 0 <= seg_idx < len(segments_state) and segments_state[seg_idx].words:
+            prebuilt_slots[combined_idx] = {
+                "status": "ok",
+                "ref": all_refs[old_ri],
+                "words": segments_state[seg_idx].words,
+            }
+        else:
+            refs.append(all_refs[old_ri])
+            audio_paths.append(all_audio_paths[old_ri])
+            new_batch_slots.append(combined_idx)
 
     if not refs:
-        print("[MFA_TS] Early return: no valid refs/audio pairs")
-        yield current_html, gr.update(), gr.update(), gr.update(), gr.update()
+        # Everything is already timestamped. We still re-injected via render_segments
+        # above (which strips prior data-start), so repaint from the synthesized
+        # results before handing off to the mega card. Button stays visible so it
+        # reappears when the user stops the mega card and ts-row is restored.
+        synth_only = [prebuilt_slots[i] for i in range(len(prebuilt_slots))]
+        html_done, _ = inject_timestamps_into_html(
+            current_html, segment_dicts, synth_only, seg_to_result_idx, segment_dir
+        )
+        yield (
+            html_done,
+            gr.update(visible=True, interactive=True, variant="primary"),
+            gr.update(value=_make_start_patch()),
+            gr.update(visible=False),
+            segments_state,
+        )
         return
 
-    # Yield 1: hide button, show static progress bar at 0/N
+    # Yield 1: hide the button so the progress bar occupies the ts-row slot.
     total_segments = len(refs)
     static_bar = _ts_progress_bar_html(total_segments, MFA_PROGRESS_SEGMENT_RATE, animated=False)
     yield (
@@ -644,9 +769,10 @@ def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_ro
 
     # Upload files and submit batch (blocking — bar stays at 0/N)
     try:
-        event_id, mfa_headers, mfa_base = _mfa_upload_and_submit(refs, audio_paths)
+        event_id, mfa_headers, mfa_base = _mfa_upload_and_submit(
+            refs, audio_paths, method=method, beam=beam, retry_beam=retry_beam,
+            shared_cmvn=shared_cmvn)
     except Exception as e:
-        print(f"[MFA_TS] ERROR uploading/submitting: {e}")
         traceback.print_exc()
         yield (
             gr.update(),
@@ -669,10 +795,8 @@ def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_ro
 
     # Wait for MFA result (blocking — animation runs client-side)
     try:
-        results = _mfa_wait_result(event_id, mfa_headers, mfa_base)
-        print(f"[MFA_TS] Got {len(results)} results from MFA API")
+        batch_results = _mfa_wait_result(event_id, mfa_headers, mfa_base)
     except Exception as e:
-        print(f"[MFA_TS] ERROR waiting for MFA result: {e}")
         traceback.print_exc()
         yield (
             gr.update(),
@@ -683,57 +807,41 @@ def compute_mfa_timestamps(current_html, json_output, segment_dir, cached_log_ro
         )
         raise
 
+    # Splice synthesized "prior" results and fresh MFA results into a single
+    # list aligned with seg_to_result_idx.
+    total_slots = len(seg_to_result_idx)
+    results = [None] * total_slots
+    for combined_idx, synth in prebuilt_slots.items():
+        results[combined_idx] = synth
+    for i, combined_idx in enumerate(new_batch_slots):
+        results[combined_idx] = batch_results[i] if i < len(batch_results) else {"status": "failed"}
+
     html, enriched_json = inject_timestamps_into_html(
-        current_html, segments, results, seg_to_result_idx, segment_dir
+        current_html, segment_dicts, results, seg_to_result_idx, segment_dir
     )
 
-    # Log word and char timestamps to usage logger
-    if cached_log_row is not None:
-        try:
-            import json as _json
-            from src.core.usage_logger import update_word_timestamps
-            _ts_log = []
-            _char_ts_log = []
-            for result in results:
-                if result.get("status") != "ok":
-                    continue
-                _ts_log.append({
-                    "ref": result.get("ref", ""),
-                    "words": [
-                        {"word": w.get("word", ""), "start": round(w["start"], 4), "end": round(w["end"], 4)}
-                        for w in result.get("words", []) if w.get("start") is not None and w.get("end") is not None
-                    ],
-                })
-                _char_ts_log.append({
-                    "ref": result.get("ref", ""),
-                    "words": [
-                        {
-                            "word": w.get("word", ""),
-                            "location": w.get("location", ""),
-                            "letters": [
-                                {"char": lt.get("char", ""), "start": round(lt["start"], 4), "end": round(lt["end"], 4)}
-                                for lt in w.get("letters", []) if lt.get("start") is not None and lt.get("end") is not None
-                            ],
-                        }
-                        for w in result.get("words", []) if w.get("letters")
-                    ],
-                })
-            update_word_timestamps(
-                cached_log_row,
-                _json.dumps(_ts_log),
-                _json.dumps(_char_ts_log) if any(entry["words"] for entry in _char_ts_log) else None,
-            )
-        except Exception as e:
-            print(f"[USAGE_LOG] Failed to log word timestamps: {e}")
+    # V3 note: word/char timestamps are no longer logged to the main dataset.
+    # The offline `extract_timestamps.py` + Inspector flows are the authoritative
+    # timestamp producers. A separate `quran-aligner-timestamps` dataset may be
+    # added in v3.1 if the Space MFA path shows enough traffic to warrant it.
 
-    # Final yield: updated HTML, hide progress bar, show Animate All, enriched JSON
-    animate_all_btn_html = '<button class="animate-all-btn">Animate All</button>'
+    # Copy MFA word/letter data back onto SegmentInfo objects
+    enriched_segs = enriched_json.get("segments", []) if enriched_json else []
+    for seg in segments_state:
+        idx = seg.segment_number - 1
+        if 0 <= idx < len(enriched_segs) and "words" in enriched_segs[idx]:
+            seg.words = enriched_segs[idx]["words"]
+
+    # Final yield: updated HTML, re-show the Gradio button (it was hidden during
+    # MFA so the progress bar took its slot), hide the progress bar, and signal
+    # JS to start the mega card. The mega card hides #ts-row via JS; on stop it's
+    # restored and the button reappears.
     yield (
         html,
+        gr.update(visible=True, interactive=True, variant="primary"),
+        gr.update(value=_make_start_patch()),
         gr.update(visible=False),
-        gr.update(value=animate_all_btn_html, visible=True),
-        gr.update(visible=False),
-        enriched_json,
+        segments_state,
     )
 
 
@@ -818,6 +926,29 @@ def inject_timestamps_into_html(current_html, segments, results, seg_to_result_i
     # Enable per-segment animate buttons
     html = re.sub(r'(<button class="animate-btn"[^>]*?)\s+disabled(?:="[^"]*")?', r'\1', html)
 
+    # Create char spans for timestamped words that don't have them yet
+    # (char spans are deferred from initial render to reduce HTML size)
+    from src.ui.segments import split_into_char_groups, ZWSP, DAGGER_ALEF
+
+    def _create_char_spans(m):
+        word_open = m.group(1)
+        inner = m.group(2)
+        if '<span class="char">' in inner:
+            return m.group(0)  # Already has char spans
+        chars = []
+        for g in split_into_char_groups(inner):
+            if g.startswith(DAGGER_ALEF):
+                chars.append(f'<span class="char">{ZWSP}{g}</span>')
+            else:
+                chars.append(f'<span class="char">{g}</span>')
+        return f'{word_open}{"".join(chars)}</span>'
+
+    html = re.sub(
+        r'(<span class="word"[^>]*data-start="[\d.]+"[^>]*>)(.*?)</span>',
+        _create_char_spans,
+        html,
+    )
+
     # Stamp char spans with MFA letter timestamps
     def _stamp_chars_with_mfa(word_m):
         word_open = word_m.group(1)
@@ -867,17 +998,13 @@ def inject_timestamps_into_html(current_html, segments, results, seg_to_result_i
                     return c
             return s[0] if s else ''
 
-        def chars_match(mfa_c, html_c, log_substitution=False):
+        def chars_match(mfa_c, html_c):
             if mfa_c == html_c or html_c in mfa_c or mfa_c in html_c:
                 return True
             if CHAR_EQUIVALENTS.get(mfa_c) == html_c:
-                if log_substitution:
-                    print(f"[MFA_TS] Char substitution: MFA '{mfa_c}' → HTML '{html_c}' (key={key})")
                 return True
             mb, hb = _first_base(mfa_c), _first_base(html_c)
             if mb and hb and (mb == hb or CHAR_EQUIVALENTS.get(mb) == hb):
-                if log_substitution:
-                    print(f"[MFA_TS] Base-char match: MFA '{mfa_c}' → HTML '{html_c}' (base='{mb}' key={key})")
                 return True
             return False
 
@@ -890,10 +1017,9 @@ def inject_timestamps_into_html(current_html, segments, results, seg_to_result_i
             html_char = html_chars[html_idx]
             if mfa_idx < len(mfa_letters):
                 mfa_char = mfa_chars[mfa_idx]
-                if chars_match(mfa_char, html_char, log_substitution=True):
+                if chars_match(mfa_char, html_char):
                     letter = mfa_letters[mfa_idx]
                     if letter["start"] is None or letter["end"] is None:
-                        print(f"[MFA_TS] Skipping letter with missing timestamp: char='{letter.get('char')}' key={key} mfa_idx={mfa_idx}")
                         if chars_match(mfa_char, html_char) or len(html_char) >= len(mfa_char):
                             mfa_idx += 1
                         continue
@@ -934,12 +1060,10 @@ def inject_timestamps_into_html(current_html, segments, results, seg_to_result_i
         html,
     )
 
-    print(f"[MFA_TS] Done — injected timestamps for {len(word_timestamps)} words")
-
-    # Build enriched JSON (UI always includes letters)
+    # Build enriched JSON (words only for download)
     enriched_json = _build_enriched_json(
         segments, results, seg_to_result_idx,
-        word_timestamps, letter_timestamps, "words+chars",
+        word_timestamps, letter_timestamps, "words",
     )
 
     return html, enriched_json

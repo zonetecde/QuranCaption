@@ -12,6 +12,38 @@ class VadSegment:
     segment_idx: int
 
 
+def compute_reading_sequence(ref_from: str, ref_to: str,
+                             wrap_word_ranges: list) -> list:
+    """Return reading-order [[ref_from, ref_to], ...] from wrap data.
+
+    Given the overall matched range and the wrap points, reconstructs the
+    full recitation sequence showing how the text was actually read
+    (including repeated sections).
+
+    Supports 3-element tuples (jump_to, jump_from, repeat_end) and
+    legacy 2-element tuples (jump_to, jump_from).
+
+    Example: ref "2:255:1" to "2:255:10", wrap [("2:255:3", "2:255:5", "2:255:8")]
+    → [["2:255:1", "2:255:5"], ["2:255:3", "2:255:8"]]
+    (read words 1-5 forward, then repeated 3-8)
+    """
+    if wrap_word_ranges and len(wrap_word_ranges[0]) >= 3:
+        # 3-element format: (jump_to, jump_from, repeat_end)
+        # Forward section: ref_from to first wrap's jump_from
+        sections = [[ref_from, wrap_word_ranges[0][1]]]
+        # Each wrap's actual repeated content
+        for wr in wrap_word_ranges:
+            sections.append([wr[0], wr[2]])
+        return sections
+
+    # Legacy 2-element format: (jump_to, jump_from)
+    sections = [[ref_from, wrap_word_ranges[0][1]]]
+    for i in range(len(wrap_word_ranges) - 1):
+        sections.append([wrap_word_ranges[i][0], wrap_word_ranges[i + 1][1]])
+    sections.append([wrap_word_ranges[-1][0], ref_to])
+    return sections
+
+
 @dataclass
 class SegmentInfo:
     """Processed segment with transcription and matching results."""
@@ -19,11 +51,113 @@ class SegmentInfo:
     end_time: float
     transcribed_text: str
     matched_text: str
-    matched_ref: str  # e.g. "2:255:1-2:255:5"
+    matched_ref: str  # e.g. "2:255:1-2:255:5" or "Basmala"
     match_score: float
     error: Optional[str] = None
     has_missing_words: bool = False
-    potentially_undersegmented: bool = False
+    has_repeated_words: bool = False
+    wrap_word_ranges: Optional[list] = None
+    repeated_ranges: Optional[list] = None   # [["2:255:1", "2:255:5"], ...]
+    repeated_text: Optional[list] = None     # ["text section 1", "text section 2"]
+    # 1-based segment index
+    segment_number: int = 0
+    # Pipeline-assigned ref before any user edits (set once on first edit, not serialized)
+    _original_ref: Optional[str] = None
+    # MFA word/letter timestamps (list of dicts with location, start, end, letters)
+    words: Optional[list] = None
+    # Index into the DebugCollector's alignment[] list (pre-split alignment order).
+    # Preserved across _split_fused_segments so dp_debug lookup survives splits.
+    _original_alignment_idx: Optional[int] = None
+    # Shared id stamped on sub-segments produced by the Split Segments action —
+    # groups sibling sub-segments from the same pre-split parent for rendering.
+    split_group_id: Optional[str] = None
+
+    def to_json_dict(self, include_words: bool = False) -> dict:
+        """Convert to the JSON dict format used by exports and API.
+
+        Word timestamps are only emitted when ``include_words=True`` — set by
+        the Animate All flow, which is the only action that computes word
+        timestamps for every animatable segment. Silent-MFA flows (per-segment
+        animate, /split_segments, special-segment splitting) keep ``.words``
+        populated in-memory as an optimization but do not surface it in the
+        exported JSON.
+
+        Letter-level timestamps are always stripped — the public API lists
+        ``words+chars`` as disabled, so ``letters`` must never appear in the
+        response regardless of how MFA was invoked.
+        """
+        from src.alignment.special_segments import ALL_SPECIAL_REFS
+        is_special = self.matched_ref in ALL_SPECIAL_REFS
+        if is_special:
+            ref_from, ref_to = "", ""
+        elif self.matched_ref and "-" in self.matched_ref:
+            parts = self.matched_ref.split("-", 1)
+            ref_from, ref_to = parts[0], parts[1]
+        else:
+            ref_from = ref_to = self.matched_ref or ""
+        d = {
+            "segment": self.segment_number,
+            "time_from": round(self.start_time, 3),
+            "time_to": round(self.end_time, 3),
+            "ref_from": ref_from,
+            "ref_to": ref_to,
+            "matched_text": self.matched_text or "",
+            "confidence": round(self.match_score, 3),
+            "has_missing_words": self.has_missing_words,
+            "has_repeated_words": self.has_repeated_words,
+            "special_type": self.matched_ref if is_special else None,
+            "error": self.error,
+        }
+        if self.wrap_word_ranges:
+            d["wrap_word_ranges"] = self.wrap_word_ranges
+        if self.repeated_ranges:
+            d["repeated_ranges"] = self.repeated_ranges
+        if self.repeated_text:
+            d["repeated_text"] = self.repeated_text
+        if include_words and self.words is not None:
+            d["words"] = [
+                {k: v for k, v in w.items() if k != "letters"}
+                for w in self.words
+            ]
+        if self.split_group_id:
+            d["split_group_id"] = self.split_group_id
+        return d
+
+    @classmethod
+    def from_json_dict(cls, d: dict, index: int = 0) -> 'SegmentInfo':
+        """Reconstruct from a JSON dict (for loading old sessions)."""
+        if d.get("special_type"):
+            ref = d["special_type"]
+        elif d.get("ref_to"):
+            ref = f"{d['ref_from']}-{d['ref_to']}"
+        else:
+            ref = d.get("ref_from", "")
+        return cls(
+            start_time=d.get("time_from", 0),
+            end_time=d.get("time_to", 0),
+            transcribed_text="",
+            matched_text=d.get("matched_text", ""),
+            matched_ref=ref,
+            match_score=d.get("confidence", 0),
+            error=d.get("error"),
+            has_missing_words=d.get("has_missing_words", False),
+            has_repeated_words=d.get("has_repeated_words", False),
+            wrap_word_ranges=d.get("wrap_word_ranges"),
+            repeated_ranges=d.get("repeated_ranges"),
+            repeated_text=d.get("repeated_text"),
+            segment_number=d.get("segment", index + 1),
+            words=d.get("words"),
+            split_group_id=d.get("split_group_id"),
+        )
+
+
+def segments_to_json(segments: list, include_words: bool = False) -> dict:
+    """Convert a list of SegmentInfo to the {"segments": [...]} JSON structure.
+
+    See SegmentInfo.to_json_dict for the ``include_words`` semantics —
+    only the Animate All flow sets it True.
+    """
+    return {"segments": [seg.to_json_dict(include_words=include_words) for seg in segments]}
 
 
 @dataclass
@@ -57,20 +191,21 @@ class ProfilingData:
     phoneme_num_segments: int = 0            # Number of segments aligned
     match_wall_time: float = 0.0             # Total matching wall-clock time
     # Retry / reanchor counters
-    tier1_attempts: int = 0
-    tier1_passed: int = 0
-    tier1_segments: list = None
-    tier2_attempts: int = 0
-    tier2_passed: int = 0
-    tier2_segments: list = None
+    retry_attempts: int = 0
+    retry_passed: int = 0
+    retry_segments: list = None
     consec_reanchors: int = 0
     segments_attempted: int = 0
     segments_passed: int = 0
     special_merges: int = 0
     transition_skips: int = 0
+    phoneme_wraps_detected: int = 0
     # Result building profiling
     result_build_time: float = 0.0           # Total result building time
     result_audio_encode_time: float = 0.0    # Audio-to-data-URL encoding
+    # GPU memory profiling
+    gpu_peak_vram_mb: float = 0.0            # torch.cuda.max_memory_allocated() in MB
+    gpu_reserved_vram_mb: float = 0.0        # torch.cuda.max_memory_reserved() in MB
     # Total pipeline time
     total_time: float = 0.0                  # End-to-end pipeline time
 
@@ -112,11 +247,14 @@ class ProfilingData:
         ]
         if self.asr_batch_profiling:
             for b in self.asr_batch_profiling:
+                qk_per = b.get('qk_mb_per_head')
+                qk_all = b.get('qk_mb_all_heads')
+                qk_str = f", QK^T {qk_per:.1f} MB/head, {qk_all:.0f} MB total" if qk_per is not None else ""
                 lines.append(
                     f"    Batch {b['batch_num']:>2}: {b['size']:>3} segs | "
                     f"{b['time']:.3f}s | "
                     f"{b['min_dur']:.2f}-{b['max_dur']:.2f}s "
-                    f"(A {b['avg_dur']:.2f}s, T {b['total_seconds']:.1f}s, W {b['pad_waste']:.0%})"
+                    f"(A {b['total_seconds']/b['size']:.2f}s, T {b['total_seconds']:.1f}s, W {b['pad_waste']:.0%}{qk_str})"
                 )
         lines += [
             f"  Global Anchor:",
@@ -131,17 +269,16 @@ class ProfilingData:
             f"    DP Max:          {1000*self.phoneme_dp_max_time:.3f}ms",
         ]
         pct = 100 * self.segments_passed / self.segments_attempted if self.segments_attempted else 0
-        t1_segs = self.tier1_segments or []
-        t2_segs = self.tier2_segments or []
+        retry_segs = self.retry_segments or []
         lines += [
             f"  Alignment Stats:",
             f"    Attempted:       {self.segments_attempted}",
             f"    Passed:          {self.segments_passed}  ({pct:.1f}%)",
-            f"    Tier 1 Retries:  {self.tier1_passed}/{self.tier1_attempts} passed   segments: {t1_segs}",
-            f"    Tier 2 Retries:  {self.tier2_passed}/{self.tier2_attempts} passed   segments: {t2_segs}",
+            f"    Retries:         {self.retry_passed}/{self.retry_attempts} passed   segments: {retry_segs}",
             f"    Reanchors (consec failures): {self.consec_reanchors}",
             f"    Special Merges:  {self.special_merges}",
             f"    Transition Skips: {self.transition_skips}",
+            f"    Wraps Detected:  {self.phoneme_wraps_detected}",
             "-" * 60,
         ]
         profiled_sum = (self.resample_time + self.vad_wall_time + self.asr_time
@@ -150,6 +287,12 @@ class ProfilingData:
         lines += [
             f"  PROFILED SUM:      {_fmt(profiled_sum)}",
             f"  TOTAL (wall):      {_fmt(self.total_time)}   (unaccounted: {_fmt(unaccounted)})",
-            "=" * 60,
         ]
+        if self.gpu_peak_vram_mb > 0:
+            lines += [
+                "-" * 60,
+                f"  GPU VRAM Peak:     {self.gpu_peak_vram_mb:.0f} MB",
+                f"  GPU VRAM Reserved: {self.gpu_reserved_vram_mb:.0f} MB",
+            ]
+        lines.append("=" * 60)
         return "\n".join(lines)

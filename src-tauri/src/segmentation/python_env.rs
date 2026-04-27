@@ -157,6 +157,20 @@ pub(crate) fn resolve_python_resource_path(
     app_handle: &tauri::AppHandle,
     relative_path: &str,
 ) -> Result<PathBuf, String> {
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| e.to_string())?
+        .parent()
+        .ok_or("Cannot get executable directory")?
+        .to_path_buf();
+
+    // In debug/dev runs, prefer repository sources over bundled target/debug resources.
+    if cfg!(debug_assertions) {
+        let dev_path = exe_dir.join("..").join("..").join(relative_path);
+        if dev_path.exists() {
+            return Ok(dev_path);
+        }
+    }
+
     let resource_path = app_handle
         .path()
         .resolve(relative_path, tauri::path::BaseDirectory::Resource)
@@ -165,12 +179,6 @@ pub(crate) fn resolve_python_resource_path(
     if resource_path.exists() {
         return Ok(resource_path);
     }
-
-    let exe_dir = std::env::current_exe()
-        .map_err(|e| e.to_string())?
-        .parent()
-        .ok_or("Cannot get executable directory")?
-        .to_path_buf();
 
     let dev_path = exe_dir.join("..").join("..").join(relative_path);
     if dev_path.exists() {

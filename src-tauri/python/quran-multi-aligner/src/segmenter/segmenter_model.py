@@ -2,7 +2,7 @@
 
 import torch
 
-from config import SEGMENTER_MODEL, DTYPE, IS_HF_SPACE, TORCH_COMPILE
+from config import SEGMENTER_MODEL, DTYPE, CPU_DTYPE, IS_HF_SPACE, TORCH_COMPILE
 from ..core.zero_gpu import ZERO_GPU_AVAILABLE, is_user_forced_cpu, model_device_lock
 
 
@@ -40,15 +40,26 @@ def _log_env_once():
 
 
 _TORCH_DTYPE = torch.float16 if DTYPE == "float16" else torch.float32
+_CPU_TORCH_DTYPE = (
+    torch.bfloat16 if CPU_DTYPE in ("bfloat16", "bf16")
+    else torch.float16 if CPU_DTYPE == "float16"
+    else torch.float32
+)
 
 
 def _get_device_and_dtype():
-    """Get the best available device and dtype."""
+    """Get the best available device and dtype.
+
+    CPU dtype is governed by CPU_DTYPE env var (default fp32). fp16 is only
+    safe on CPUs with AVX512_FP16 (zero-a10g AMD EPYC); on cpu-basic workers
+    without it fp16 can be 10-100× slower. GPU move path re-casts to
+    _TORCH_DTYPE when transitioning to CUDA.
+    """
     if IS_HF_SPACE or ZERO_GPU_AVAILABLE:
-        return torch.device("cpu"), _TORCH_DTYPE
+        return torch.device("cpu"), _CPU_TORCH_DTYPE
     if torch.cuda.is_available():
         return torch.device("cuda"), _TORCH_DTYPE
-    return torch.device("cpu"), _TORCH_DTYPE
+    return torch.device("cpu"), _CPU_TORCH_DTYPE
 
 
 def ensure_models_on_gpu(asr_model_name=None):

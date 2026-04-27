@@ -5,6 +5,7 @@ from typing import List, Tuple
 import numpy as np
 import torch
 
+from config import SEGMENTER_BATCH_SIZE
 from .segmenter_aoti import is_aoti_applied
 from .segmenter_model import load_segmenter, _log_env_once
 from ..core.zero_gpu import is_user_forced_cpu
@@ -61,10 +62,12 @@ def detect_speech_segments(
         if is_aoti_applied():
             print("[VAD] Using AOTInductor-compiled model")
 
-        # Run segmentation
+        # CPU sees no gain from batching (BLAS saturates cores; bs>1 adds cache
+        # pressure — bench 2026-04-24 showed bs=32 ≈ +20% wall on 48min audio).
+        bs = 1 if device.type == "cpu" else SEGMENTER_BATCH_SIZE
         outputs = segment_recitations(
             [audio_tensor], model, processor,
-            device=device, dtype=dtype, batch_size=1,
+            device=device, dtype=dtype, batch_size=bs,
         )
 
         if not outputs:

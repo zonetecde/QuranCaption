@@ -1,22 +1,17 @@
 """Segment rendering and text formatting helpers."""
 import json
 import time
-import wave
-import io
-import base64
 import unicodedata
-from pathlib import Path
-
-import numpy as np
 
 from config import (
     CONFIDENCE_HIGH, CONFIDENCE_MED,
-    UNDERSEG_MIN_WORDS, UNDERSEG_MIN_AYAH_SPAN, UNDERSEG_MIN_DURATION,
-    REVIEW_SUMMARY_MAX_SEGMENTS, AUDIO_PRELOAD_COUNT,
+    REVIEW_SUMMARY_MAX_SEGMENTS,
     SURAH_INFO_PATH,
 )
 from src.core.segment_types import SegmentInfo
 from src.alignment.special_segments import ALL_SPECIAL_REFS
+
+_ANIMATABLE_SPECIALS = {"Basmala", "Isti'adha"}
 
 
 def format_timestamp(seconds: float) -> str:
@@ -67,16 +62,6 @@ def get_segment_word_stats(matched_ref: str) -> tuple[int, int]:
         return 0, 1
 
 
-def check_undersegmented(matched_ref: str, duration: float) -> bool:
-    """Check if a segment is potentially undersegmented.
-
-    Criteria: (word_count >= threshold OR ayah_span >= threshold) AND duration >= threshold.
-    """
-    if duration < UNDERSEG_MIN_DURATION:
-        return False
-    word_count, ayah_span = get_segment_word_stats(matched_ref)
-    return word_count >= UNDERSEG_MIN_WORDS or ayah_span >= UNDERSEG_MIN_AYAH_SPAN
-
 
 # Arabic-Indic digits for verse markers
 ARABIC_DIGITS = {
@@ -126,6 +111,175 @@ def _load_verse_word_counts() -> dict[int, dict[int, int]]:
     return _verse_word_counts_cache
 
 
+def _parse_ref_endpoints(matched_ref: str):
+    """Parse ref like '2:255:1-2:255:5' into (surah, ayah, word_from, word_to).
+
+    Returns None for cross-verse refs or unparseable strings.
+    """
+    if not matched_ref or "-" not in matched_ref:
+        return None
+    try:
+        start_ref, end_ref = matched_ref.split("-", 1)
+        sp = start_ref.split(":")
+        ep = end_ref.split(":")
+        if len(sp) < 3 or len(ep) < 3:
+            return None
+        s_surah, s_ayah, s_word = int(sp[0]), int(sp[1]), int(sp[2])
+        e_surah, e_ayah, e_word = int(ep[0]), int(ep[1]), int(ep[2])
+        # Only handle same-verse refs
+        if s_surah != e_surah or s_ayah != e_ayah:
+            return None
+        return (s_surah, s_ayah, s_word, e_word)
+    except (ValueError, IndexError):
+        return None
+
+
+def _parse_ref_verse_ranges(matched_ref: str) -> list[tuple[int, int, int, int]]:
+    """Decompose a ref into per-verse (surah, ayah, word_from, word_to) ranges.
+
+    Handles same-verse refs like '2:255:1-2:255:5' and cross-verse refs
+    like '76:1:11-76:2:7'. Returns empty list for special/unparseable refs.
+    """
+    if not matched_ref or "-" not in matched_ref:
+        return []
+    try:
+        start_ref, end_ref = matched_ref.split("-", 1)
+        sp = start_ref.split(":")
+        ep = end_ref.split(":")
+        if len(sp) < 3 or len(ep) < 3:
+            return []
+        s_surah, s_ayah, s_word = int(sp[0]), int(sp[1]), int(sp[2])
+        e_surah, e_ayah, e_word = int(ep[0]), int(ep[1]), int(ep[2])
+    except (ValueError, IndexError):
+        return []
+
+    if s_surah != e_surah:
+        return []  # cross-surah not expected
+
+    surah = s_surah
+    if s_ayah == e_ayah:
+        return [(surah, s_ayah, s_word, e_word)]
+
+    # Cross-verse: decompose into per-verse ranges
+    verse_wc = _load_verse_word_counts()
+    ranges = []
+    for ayah in range(s_ayah, e_ayah + 1):
+        expected = verse_wc.get(surah, {}).get(ayah, 0)
+        if expected == 0:
+            continue
+        if ayah == s_ayah:
+            ranges.append((surah, ayah, s_word, expected))
+        elif ayah == e_ayah:
+            ranges.append((surah, ayah, 1, e_word))
+        else:
+            ranges.append((surah, ayah, 1, expected))
+    return ranges
+
+
+def recompute_missing_words(segments: list) -> None:
+    """Recompute has_missing_words flags for all segments based on word gaps.
+
+    Uses coverage-based analysis: decomposes all refs (including cross-verse)
+    into per-verse word ranges, then checks each verse for uncovered words.
+    """
+    verse_wc = _load_verse_word_counts()
+
+    # Reset all flags
+    for seg in segments:
+        seg.has_missing_words = False
+
+    # Build per-verse coverage: {(surah, ayah): [(word_from, word_to, seg_idx), ...]}
+    coverage: dict[tuple[int, int], list[tuple[int, int, int]]] = {}
+    for i, seg in enumerate(segments):
+        for surah, ayah, wf, wt in _parse_ref_verse_ranges(seg.matched_ref):
+            coverage.setdefault((surah, ayah), []).append((wf, wt, i))
+
+    # Check each verse for gaps
+    for (surah, ayah), entries in coverage.items():
+        expected = verse_wc.get(surah, {}).get(ayah, 0)
+        if expected == 0:
+            continue
+
+        entries.sort()  # sort by word_from
+
+        # Gap at start of verse
+        if entries[0][0] > 1:
+            segments[entries[0][2]].has_missing_words = True
+
+        # Gaps between consecutive coverage entries
+        for j in range(len(entries) - 1):
+            wf_j, wt_j, idx_j = entries[j]
+            wf_k, wt_k, idx_k = entries[j + 1]
+            if wf_k > wt_j + 1:
+                segments[idx_j].has_missing_words = True
+                segments[idx_k].has_missing_words = True
+
+        # Gap at end of verse
+        if entries[-1][1] < expected:
+            segments[entries[-1][2]].has_missing_words = True
+
+    # Check for whole-verse gaps between consecutive covered verses
+    by_surah: dict[int, list[int]] = {}
+    for (surah, ayah) in coverage:
+        by_surah.setdefault(surah, []).append(ayah)
+
+    for surah, ayahs in by_surah.items():
+        ayahs_sorted = sorted(set(ayahs))
+        for k in range(len(ayahs_sorted) - 1):
+            if ayahs_sorted[k + 1] > ayahs_sorted[k] + 1:
+                # Whole verse(s) missing between these two covered verses
+                prev_entries = coverage[(surah, ayahs_sorted[k])]
+                next_entries = coverage[(surah, ayahs_sorted[k + 1])]
+                last_in_prev = max(prev_entries, key=lambda e: e[1])[2]
+                first_in_next = min(next_entries, key=lambda e: e[0])[2]
+                segments[last_in_prev].has_missing_words = True
+                segments[first_in_next].has_missing_words = True
+
+
+def resolve_ref_text(matched_ref: str) -> str:
+    """Return the matched_text for a given ref (display text from QuranIndex or special text)."""
+    from src.alignment.special_segments import ALL_SPECIAL_REFS, TRANSITION_TEXT
+
+    BASMALA_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم"
+    ISTIATHA_TEXT = "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم"
+
+    if matched_ref in ALL_SPECIAL_REFS:
+        if matched_ref == "Basmala":
+            return BASMALA_TEXT
+        elif matched_ref == "Isti'adha":
+            return ISTIATHA_TEXT
+        return TRANSITION_TEXT.get(matched_ref, matched_ref)
+
+    from src.core.quran_index import get_quran_index
+    index = get_quran_index()
+    indices = index.ref_to_indices(matched_ref)
+    if not indices:
+        return ""
+    return " ".join(w.display_text for w in index.words[indices[0]:indices[1] + 1])
+
+
+def _split_display_words(text: str) -> list[str]:
+    """Split display text into words, dropping verse markers."""
+    if not text:
+        return []
+    return text.replace(" \u06dd ", " ").split()
+
+
+def is_partial_special_segment(seg: SegmentInfo) -> bool:
+    """True when a special card already represents only part of the full phrase."""
+    if seg.matched_ref not in _ANIMATABLE_SPECIALS:
+        return False
+    full_words = _split_display_words(resolve_ref_text(seg.matched_ref))
+    current_words = _split_display_words(seg.matched_text or "")
+    return bool(full_words and current_words and len(current_words) < len(full_words))
+
+
+def can_manual_split_segment(seg: SegmentInfo) -> bool:
+    """Whether the Split button should be shown for this segment."""
+    from src.alignment.segment_splitter import manual_split_supported
+    return manual_split_supported(seg)
+
+
 def split_into_char_groups(text):
     """Split text into groups of base character + following combining marks.
 
@@ -160,18 +314,58 @@ def split_into_char_groups(text):
 ZWSP = '\u2060'  # Word Joiner: zero-width non-breaking (avoids mid-word line breaks)
 DAGGER_ALEF = '\u0670'
 
-def _wrap_word_with_chars(word_text, pos=None):
-    """Wrap a word in <span class="word"> with nested <span class="char"> per letter group."""
-    # Insert ZWSP before dagger alef so it can be highlighted independently
-    spans = []
-    for g in split_into_char_groups(word_text):
-        if g.startswith(DAGGER_ALEF):
-            spans.append(f'<span class="char">{ZWSP}{g}</span>')
-        else:
-            spans.append(f'<span class="char">{g}</span>')
-    char_spans = "".join(spans)
+def _wrap_word(word_text, pos=None):
+    """Wrap a word in <span class="word">. Char spans are deferred to MFA timestamp injection."""
     pos_attr = f' data-pos="{pos}"' if pos else ''
-    return f'<span class="word"{pos_attr}>{char_spans}</span>'
+    return f'<span class="word"{pos_attr}>{word_text}</span>'
+
+
+_BASMALA_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم"
+_ISTIATHA_TEXT = "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم"
+
+
+def build_segment_text_html(seg) -> str:
+    """Return the inner HTML for a segment's .segment-text (word spans w/ data-pos)."""
+    def _wrap_plain(text):
+        return " ".join(_wrap_word(w) for w in text.split())
+
+    if seg.matched_ref:
+        text_html = get_text_with_markers(seg.matched_ref)
+        if text_html and seg.matched_text:
+            for _sp_name, _sp in [("Isti'adha", _ISTIATHA_TEXT),
+                                   ("Basmala", _BASMALA_TEXT)]:
+                if seg.matched_text.startswith(_sp):
+                    mfa_prefix = f"{_sp_name}+{seg.matched_ref}"
+                    words = _sp.replace(" ۝ ", " ").split()
+                    prefix_html = " ".join(
+                        _wrap_word(w, pos=f"{mfa_prefix}:0:0:{i+1}")
+                        for i, w in enumerate(words)
+                    )
+                    text_html = prefix_html + " " + text_html
+                    break
+        elif not text_html:
+            if seg.matched_text:
+                words = seg.matched_text.replace(" \u06dd ", " ").split()
+                text_html = " ".join(
+                    _wrap_word(w, pos=f"{seg.matched_ref}:0:0:{i+1}")
+                    for i, w in enumerate(words)
+                )
+            else:
+                text_html = seg.matched_text or ""
+    elif seg.matched_text:
+        text_html = _wrap_plain(seg.matched_text)
+    else:
+        text_html = ""
+
+    if getattr(seg, "repeated_ranges", None):
+        sections = []
+        for sec_from, sec_to in seg.repeated_ranges:
+            sec = get_text_with_markers(f"{sec_from}-{sec_to}")
+            if sec:
+                sections.append(sec)
+        if sections:
+            text_html = '<div class="repeat-divider"></div>'.join(sections)
+    return text_html
 
 
 def get_text_with_markers(matched_ref: str) -> str | None:
@@ -202,7 +396,7 @@ def get_text_with_markers(matched_ref: str) -> str | None:
 
     parts = []
     for w in index.words[start_idx:end_idx + 1]:
-        parts.append(_wrap_word_with_chars(w.display_text, pos=f"{w.surah}:{w.ayah}:{w.word}"))
+        parts.append(_wrap_word(w.display_text, pos=f"{w.surah}:{w.ayah}:{w.word}"))
         # Check if this is the last word of its verse
         num_words = verse_word_counts.get(w.surah, {}).get(w.ayah, 0)
         if num_words > 0 and w.word == num_words:
@@ -227,26 +421,37 @@ def simplify_ref(ref: str) -> str:
     return ref
 
 
-def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = None, sample_rate: int = 0, render_key: str = "", segment_dir: Path = None, audio_preload: str = "metadata", audio_inline: bool = False) -> str:
-    """Render a single segment as an HTML card with optional audio player.
+def render_segment_card(seg: SegmentInfo, idx: int, full_audio_url: str = "", render_key: str = "", segment_dir: str = "", in_missing_pair: bool = False) -> str:
+    """Render a single segment as an HTML card with optional audio player."""
+    def _with_cache_bust(url: str) -> str:
+        if not render_key:
+            return url
+        if "#" in url:
+            base, frag = url.split("#", 1)
+            sep = "&" if "?" in base else "?"
+            return f"{base}{sep}v={render_key}#{frag}"
+        sep = "&" if "?" in url else "?"
+        return f"{url}{sep}v={render_key}"
 
-    Args:
-        seg: Segment info
-        idx: Segment index
-        audio_int16: Full audio as int16 array for writing per-segment WAV files
-        sample_rate: Audio sample rate in Hz
-        render_key: Unique key to prevent browser caching between renders
-        segment_dir: Directory to write segment WAV files into
-    """
     is_special = seg.matched_ref in ALL_SPECIAL_REFS
     confidence_class = get_confidence_class(seg.match_score)
     confidence_badge_class = confidence_class  # preserve original for badge color
+
+    # Detect multi-verse span once — drives both the badge and card color.
+    is_multiverse = False
+    if not is_special and seg.matched_ref and "-" in seg.matched_ref:
+        _verse_ranges = _parse_ref_verse_ranges(seg.matched_ref)
+        is_multiverse = len(_verse_ranges) >= 2
+
     if is_special:
         confidence_class = "segment-special"
-    elif seg.has_missing_words:
+    elif seg.has_repeated_words:
+        confidence_class = "segment-med"
+    elif seg.has_missing_words and not in_missing_pair:
         confidence_class = "segment-low"
-    elif seg.potentially_undersegmented and confidence_class != "segment-low":
-        confidence_class = "segment-underseg"
+    elif is_multiverse:
+        # Multi-verse overrides the confidence color when no error flags apply.
+        confidence_class = "segment-multiverse"
 
     timestamp = f"{format_timestamp(seg.start_time)} - {format_timestamp(seg.end_time)}"
     duration = seg.end_time - seg.start_time
@@ -257,107 +462,92 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
     # Confidence percentage with label
     confidence_pct = f"Confidence: {seg.match_score:.0%}"
 
-    # Undersegmented badge
-    underseg_badge = ""
-    if seg.potentially_undersegmented:
-        underseg_badge = '<div class="segment-badge segment-underseg-badge">Potentially Undersegmented</div>'
-
-    # Missing words badge
+    # Missing words badge (only for single-segment cases; pairs use a group wrapper)
     missing_badge = ""
-    if seg.has_missing_words:
+    if seg.has_missing_words and not in_missing_pair:
         missing_badge = '<div class="segment-badge segment-low-badge">Missing Words</div>'
+
+    # Multi-verse badge — segment spans 2+ distinct verses. Skipped for specials.
+    multiverse_badge = ""
+    if is_multiverse:
+        multiverse_badge = f'<div class="segment-badge segment-multiverse-badge">{len(_verse_ranges)} verses</div>'
+
+    # Repeated words badge with feedback buttons
+    repeated_badge = ""
+    if seg.has_repeated_words:
+        repeated_badge = (
+            f'<div class="repeat-feedback-group" data-segment-idx="{idx}">'
+            '<button class="repeat-fb-btn repeat-fb-up" title="Correct">&#x2713;</button>'
+            '<button class="repeat-fb-btn repeat-fb-down" title="Incorrect">&#x2717;</button>'
+            '<div class="segment-badge segment-repeated-badge">Repeated Words</div>'
+            '</div>'
+        )
 
     # Error display
     error_html = ""
     if seg.error:
         error_html = f'<div class="segment-error">{seg.error}</div>'
 
-    # Audio player HTML — each segment gets its own WAV file served by Gradio.
+    can_manual_split = can_manual_split_segment(seg)
+    can_animate = bool(
+        seg.matched_ref and (
+            seg.matched_ref not in ALL_SPECIAL_REFS
+            or (seg.matched_ref in _ANIMATABLE_SPECIALS and not is_partial_special_segment(seg))
+        )
+    )
+
+    # Audio player HTML — per-segment WAV (preferred) or media fragment fallback
     audio_html = ""
-    if audio_int16 is not None and sample_rate > 0 and segment_dir is not None:
-        audio_src = encode_segment_audio(audio_int16, sample_rate, seg.start_time, seg.end_time, segment_dir, idx, inline=audio_inline)
-        # Add animate button only if segment has a Quran verse ref (word spans for animation).
-        # Basmala/Isti'adha get animate because they have indexed word spans for MFA.
-        # Transition segments (Amin, Takbir, Tahmeed) don't.
-        animate_btn = ""
-        _ANIMATABLE_SPECIALS = {"Basmala", "Isti'adha"}
-        if seg.matched_ref and (seg.matched_ref not in ALL_SPECIAL_REFS or seg.matched_ref in _ANIMATABLE_SPECIALS):
-            animate_btn = f'<button class="animate-btn" data-segment="{idx}" disabled>Animate</button>'
+    if segment_dir or full_audio_url:
+        if segment_dir:
+            audio_src = _with_cache_bust(f"/gradio_api/file={segment_dir}/seg_{idx}.wav")
+        else:
+            audio_src = _with_cache_bust(f"{full_audio_url}#t={seg.start_time:.3f},{seg.end_time:.3f}")
+        split_btn = f'<button class="manual-split-btn" data-segment="{idx}">Split</button>' if can_manual_split else ""
+        animate_btn = f'<button class="animate-btn" data-segment="{idx}">Animate</button>' if can_animate else ""
         audio_html = f'''
         <div class="segment-audio">
             <audio data-src="{audio_src}" preload="none"
                    style="display:none; width: 100%; height: 32px;">
             </audio>
             <button class="play-btn">&#9654;</button>
+            {split_btn}
             {animate_btn}
+        </div>
+        <div class="segment-split-controls">
+            <button class="split-confirm-btn" data-segment="{idx}" disabled>Confirm</button>
+            <button class="split-cancel-btn" data-segment="{idx}">Cancel</button>
+            <div class="split-hint">Hint: Click on target words to subdivide.</div>
         </div>
         '''
 
-    # Build matched text with verse markers at all verse boundaries
-    BASMALA_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم"
-    ISTIATHA_TEXT = "أَعُوذُ بِٱللَّهِ مِنَ الشَّيْطَانِ الرَّجِيم"
-    _SPECIAL_PREFIXES = [ISTIATHA_TEXT, BASMALA_TEXT]
-
-    # Helper to wrap words in spans
-    def wrap_words_in_spans(text):
-        return " ".join(_wrap_word_with_chars(w) for w in text.split())
-
-    if seg.matched_ref:
-        # Generate text with markers from the index
-        text_html = get_text_with_markers(seg.matched_ref)
-        if text_html and seg.matched_text:
-            # Check for any special prefix (fused or forward-merged)
-            for _sp_name, _sp in [("Isti'adha", ISTIATHA_TEXT),
-                                   ("Basmala", BASMALA_TEXT)]:
-                if seg.matched_text.startswith(_sp):
-                    mfa_prefix = f"{_sp_name}+{seg.matched_ref}"
-                    words = _sp.replace(" ۝ ", " ").split()
-                    prefix_html = " ".join(
-                        _wrap_word_with_chars(w, pos=f"{mfa_prefix}:0:0:{i+1}")
-                        for i, w in enumerate(words)
-                    )
-                    text_html = prefix_html + " " + text_html
-                    break
-        elif not text_html:
-            # Special ref (Basmala/Isti'adha): wrap words with indexed data-pos
-            # so MFA timestamps can be injected later
-            if seg.matched_ref and seg.matched_text:
-                words = seg.matched_text.replace(" \u06dd ", " ").split()
-                text_html = " ".join(
-                    _wrap_word_with_chars(w, pos=f"{seg.matched_ref}:0:0:{i+1}")
-                    for i, w in enumerate(words)
-                )
-            else:
-                text_html = seg.matched_text or ""
-    elif seg.matched_text:
-        # Special segments (Basmala/Isti'adha) have text but no ref
-        text_html = wrap_words_in_spans(seg.matched_text)
-    else:
-        text_html = ""
+    text_html = build_segment_text_html(seg)
 
     if is_special:
         confidence_badge = f'<div class="segment-badge segment-special-badge">{seg.matched_ref}</div>'
-    elif seg.has_missing_words:
-        confidence_badge = ""
     else:
         confidence_badge = f'<div class="segment-badge {confidence_badge_class}-badge">{confidence_pct}</div>'
 
     # Build inline header: Segment N | ref | duration | time range
     header_parts = [f"Segment {idx + 1}"]
     if ref_display:
-        header_parts.append(ref_display)
+        full_ref = seg.matched_ref or ""
+        header_parts.append(
+            f'<span class="ref-editable" data-segment-idx="{idx}" data-full-ref="{full_ref}">{ref_display}</span>'
+        )
     header_parts.append(f"{duration:.1f}s")
     header_parts.append(timestamp)
     header_text = " | ".join(header_parts)
 
     html = f'''
-    <div class="segment-card {confidence_class}" data-duration="{duration:.3f}" data-segment-idx="{idx}" data-matched-ref="{seg.matched_ref or ''}" data-start-time="{seg.start_time:.4f}" data-end-time="{seg.end_time:.4f}">
+    <div class="segment-card {confidence_class}" data-duration="{duration:.3f}" data-segment-idx="{idx}" data-matched-ref="{seg.matched_ref or ''}" data-confidence-class="{confidence_badge_class}" data-start-time="{seg.start_time:.4f}" data-end-time="{seg.end_time:.4f}">
         <div class="segment-header">
             <div class="segment-title">{header_text}</div>
             <div class="segment-badges">
-                {underseg_badge}
-                {confidence_badge}
+                {repeated_badge}
                 {missing_badge}
+                {multiverse_badge}
+                {confidence_badge}
             </div>
         </div>
 
@@ -373,31 +563,23 @@ def render_segment_card(seg: SegmentInfo, idx: int, audio_int16: np.ndarray = No
     return html
 
 
-def render_segments(segments: list, audio_int16: np.ndarray = None, sample_rate: int = 0, segment_dir: Path = None, skip_full_audio: bool = False) -> str:
+def render_segments(segments: list, full_audio_url: str = "", segment_dir: str = "",
+                    split_report: dict | None = None) -> str:
     """Render all segments as HTML with optional audio players.
 
     Args:
         segments: List of SegmentInfo objects
-        audio_int16: Full audio as int16 array for writing per-segment WAV files
-        sample_rate: Audio sample rate in Hz
-        segment_dir: Directory containing per-segment WAV files
+        full_audio_url: URL to full audio WAV (used by mega card / Animate All)
+        segment_dir: Path to segment directory containing per-segment WAV files
+        split_report: Optional report dict from the latest split action.
+            Only used for transient failure messaging; the split summary is
+            derived from the current segments state so it remains cumulative.
     """
     if not segments:
         return '<div class="no-segments">No segments detected</div>'
 
     # Generate unique key for this render to prevent audio caching
     render_key = str(int(time.time() * 1000))
-
-    # Write full audio file for unified megacard playback
-    full_audio_url = ""
-    if audio_int16 is not None and sample_rate > 0 and segment_dir and not skip_full_audio:
-        full_path = segment_dir / "full.wav"
-        with wave.open(str(full_path), 'wb') as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(sample_rate)
-            wf.writeframes(audio_int16.tobytes())
-        full_audio_url = f"/gradio_api/file={full_path}"
 
     # Categorize segments by confidence level (1-indexed for display), excluding specials
     med_segments = [i + 1 for i, s in enumerate(segments)
@@ -433,16 +615,21 @@ def render_segments(segments: list, audio_int16: np.ndarray = None, sample_rate:
 
     missing_segments = [i + 1 for i, s in enumerate(segments) if s.has_missing_words]
     if missing_segments:
-        # Group consecutive segment numbers into pairs (gaps always flag both neighbors)
+        # Group consecutive segment numbers into pairs (only if same verse)
         missing_pairs = []
         i = 0
         while i < len(missing_segments):
             if i + 1 < len(missing_segments) and missing_segments[i + 1] == missing_segments[i] + 1:
-                missing_pairs.append(f"{missing_segments[i]}/{missing_segments[i + 1]}")
-                i += 2
-            else:
-                missing_pairs.append(str(missing_segments[i]))
-                i += 1
+                idx_a = missing_segments[i] - 1  # 0-based
+                idx_b = missing_segments[i + 1] - 1
+                ref_a = _parse_ref_endpoints(segments[idx_a].matched_ref)
+                ref_b = _parse_ref_endpoints(segments[idx_b].matched_ref)
+                if ref_a and ref_b and (ref_a[0], ref_a[1]) == (ref_b[0], ref_b[1]):
+                    missing_pairs.append(f"{missing_segments[i]}/{missing_segments[i + 1]}")
+                    i += 2
+                    continue
+            missing_pairs.append(str(missing_segments[i]))
+            i += 1
 
         if len(missing_pairs) <= REVIEW_SUMMARY_MAX_SEGMENTS:
             pairs_display = ", ".join(missing_pairs)
@@ -457,73 +644,148 @@ def render_segments(segments: list, audio_int16: np.ndarray = None, sample_rate:
             f'</div>'
         )
 
-    underseg_segments = [i + 1 for i, s in enumerate(segments) if s.potentially_undersegmented]
-    if underseg_segments:
-        if len(underseg_segments) <= REVIEW_SUMMARY_MAX_SEGMENTS:
-            underseg_display = ", ".join(str(n) for n in underseg_segments)
+    repeated_segments = [i + 1 for i, s in enumerate(segments) if s.has_repeated_words]
+    if repeated_segments:
+        if len(repeated_segments) <= REVIEW_SUMMARY_MAX_SEGMENTS:
+            rep_display = ", ".join(str(n) for n in repeated_segments)
         else:
-            underseg_display = ", ".join(str(n) for n in underseg_segments[:REVIEW_SUMMARY_MAX_SEGMENTS])
-            remaining = len(underseg_segments) - REVIEW_SUMMARY_MAX_SEGMENTS
-            underseg_display += f" ... and {remaining} more"
+            rep_display = ", ".join(str(n) for n in repeated_segments[:REVIEW_SUMMARY_MAX_SEGMENTS])
+            remaining = len(repeated_segments) - REVIEW_SUMMARY_MAX_SEGMENTS
+            rep_display += f" ... and {remaining} more"
 
         header_parts.append(
             f'<div class="segments-review-summary">'
-            f'Potentially undersegmented: <span class="segment-underseg-text">{len(underseg_segments)} (segments {underseg_display})</span>'
+            f'Segments with repeated words: <span class="segment-med-text">{len(repeated_segments)} (segments {rep_display})</span>'
             f'</div>'
         )
+
+    # Current split summary — derived from persisted split_group_id state so it
+    # stays cumulative across mixed batch/manual split actions.
+    split_group_ranges = []
+    j = 0
+    while j < len(segments):
+        gid = segments[j].split_group_id
+        if not gid:
+            j += 1
+            continue
+        k = j
+        while k + 1 < len(segments) and segments[k + 1].split_group_id == gid:
+            k += 1
+        if k > j:
+            lo = j + 1  # 1-based for display
+            hi = k + 1
+            split_group_ranges.append(f"{lo}-{hi}" if hi > lo else f"{lo}")
+        j = k + 1
+
+    if split_group_ranges:
+        split_group_ranges.sort(key=lambda s: int(s.split('-')[0]))
+        if len(split_group_ranges) <= REVIEW_SUMMARY_MAX_SEGMENTS:
+            ranges_display = ", ".join(split_group_ranges)
+        else:
+            ranges_display = ", ".join(split_group_ranges[:REVIEW_SUMMARY_MAX_SEGMENTS])
+            remaining = len(split_group_ranges) - REVIEW_SUMMARY_MAX_SEGMENTS
+            ranges_display += f" ... and {remaining} more"
+        header_parts.append(
+            f'<div class="segments-review-summary">'
+            f'Split segments: <span class="segment-multiverse-text">{len(split_group_ranges)} groups ({ranges_display})</span>'
+            f'</div>'
+        )
+
+    if split_report:
+        failed_count = len(split_report.get("failed", []) or [])
+        if failed_count:
+            header_parts.append(
+                f'<div class="segments-review-summary">'
+                f'<span class="segment-low-text">{failed_count} segment(s) failed to split (MFA error)</span>'
+                f'</div>'
+            )
 
     html_parts = [
         f'<div class="segments-container" data-render-key="{render_key}" data-full-audio="{full_audio_url}">',
         "\n".join(header_parts),
     ]
 
+    # Classify missing-word segments into pairs vs singles
+    # Only pair consecutive segments if they share the same verse (same surah:ayah)
+    missing_indices = [i for i, s in enumerate(segments) if s.has_missing_words]
+    missing_in_pair = set()
+    visited = set()
+    for j in range(len(missing_indices)):
+        idx = missing_indices[j]
+        if idx in visited:
+            continue
+        if j + 1 < len(missing_indices) and missing_indices[j + 1] == idx + 1:
+            ref_a = _parse_ref_endpoints(segments[idx].matched_ref)
+            ref_b = _parse_ref_endpoints(segments[idx + 1].matched_ref)
+            if ref_a and ref_b and (ref_a[0], ref_a[1]) == (ref_b[0], ref_b[1]):
+                missing_in_pair.add(idx)
+                missing_in_pair.add(idx + 1)
+                visited.add(idx)
+                visited.add(idx + 1)
+                continue
+        visited.add(idx)
+
+    t_cards = time.time()
+
+    # Precompute split-group runs: consecutive segments sharing the same
+    # non-null split_group_id. {first_idx_of_run: last_idx_of_run, gid}
+    split_group_runs = {}  # first_idx -> (last_idx, group_id)
+    j = 0
+    while j < len(segments):
+        gid = segments[j].split_group_id
+        if gid:
+            k = j
+            while k + 1 < len(segments) and segments[k + 1].split_group_id == gid:
+                k += 1
+            if k > j:
+                split_group_runs[j] = (k, gid)
+            j = k + 1
+        else:
+            j += 1
+
+    skip_until = -1
     for idx, seg in enumerate(segments):
-        inline = idx < AUDIO_PRELOAD_COUNT
-        preload = "auto" if inline else "metadata"
-        html_parts.append(render_segment_card(seg, idx, audio_int16, sample_rate, render_key, segment_dir, audio_preload=preload, audio_inline=inline))
+        if idx <= skip_until:
+            continue
+
+        # 1) Split-group run (rendered first — encloses the whole group).
+        if idx in split_group_runs:
+            last_idx, _gid = split_group_runs[idx]
+            html_parts.append(f'<div class="split-group" data-split-group-id="{_gid}" data-split-group-start="{idx}">')
+            html_parts.append(
+                '<div class="split-group-header">'
+                '<div class="split-group-tag">Split</div>'
+                f'<button class="undo-split-btn" data-segment="{idx}" data-split-group-id="{_gid}">Undo split</button>'
+                '</div>'
+            )
+            for k in range(idx, last_idx + 1):
+                in_pair = k in missing_in_pair and (k + 1) in missing_in_pair
+                html_parts.append(render_segment_card(segments[k], k,
+                                                      full_audio_url, render_key, segment_dir,
+                                                      in_missing_pair=in_pair))
+            html_parts.append('</div>')
+            skip_until = last_idx
+            continue
+
+        # 2) Missing-words pair
+        if idx in missing_in_pair and (idx + 1) in missing_in_pair:
+            seg_b = segments[idx + 1]
+            html_parts.append('<div class="missing-words-group">')
+            html_parts.append('<div class="missing-words-group-tag">Missing Words</div>')
+            html_parts.append(render_segment_card(seg, idx, full_audio_url, render_key, segment_dir, in_missing_pair=True))
+            html_parts.append(render_segment_card(seg_b, idx + 1, full_audio_url, render_key, segment_dir, in_missing_pair=True))
+            html_parts.append('</div>')
+            skip_until = idx + 1
+            continue
+
+        # 3) Regular card
+        html_parts.append(render_segment_card(seg, idx, full_audio_url, render_key, segment_dir))
 
     html_parts.append('</div>')
+    print(f"[PROFILE] Segment cards: {time.time() - t_cards:.3f}s ({len(segments)} cards, HTML only)")
 
     return "\n".join(html_parts)
 
-
-def encode_segment_audio(
-    audio_int16: np.ndarray, sample_rate: int,
-    start_time: float, end_time: float,
-    segment_dir: Path, segment_idx: int,
-    inline: bool = False,
-) -> str:
-    """Write a segment's audio slice as a WAV file and return a src URL.
-
-    Args:
-        audio_int16: Full audio already converted to int16 (avoids per-segment conversion).
-        sample_rate: Sample rate in Hz.
-        start_time: Segment start in seconds.
-        end_time: Segment end in seconds.
-        segment_dir: Directory to write the WAV file into.
-        segment_idx: Segment index (used for filename).
-        inline: If True, return a base64 data URI instead of a file URL.
-
-    Returns a ``data:`` URI (inline) or ``/gradio_api/file=`` URL.
-    """
-    start_sample = int(start_time * sample_rate)
-    end_sample = int(end_time * sample_rate)
-    segment_audio = audio_int16[start_sample:end_sample]
-
-    # Always write WAV to disk (needed by MFA timestamp computation)
-    path = segment_dir / f"seg_{segment_idx}.wav"
-    with wave.open(str(path), 'wb') as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-        wf.writeframes(segment_audio.tobytes())
-
-    if inline:
-        with open(path, 'rb') as f:
-            b64 = base64.b64encode(f.read()).decode('ascii')
-        return f"data:audio/wav;base64,{b64}"
-
-    return f"/gradio_api/file={path}"
 
 
 def is_end_of_verse(matched_ref: str) -> bool:

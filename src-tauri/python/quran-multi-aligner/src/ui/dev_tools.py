@@ -49,15 +49,14 @@ def _load_token() -> str | None:
 # ── Dataset helpers ────────────────────────────────────────────────────
 
 def _has_valid_segments(segments_str) -> bool:
+    """V3: segments column is a flat list of segment dicts (one per matched segment)."""
     if not segments_str:
         return False
     try:
-        runs = json.loads(segments_str)
-        if isinstance(runs, list) and runs:
-            return any(isinstance(run, dict) and run.get("segments") for run in runs)
+        segs = json.loads(segments_str)
+        return isinstance(segs, list) and len(segs) > 0
     except (json.JSONDecodeError, TypeError):
-        pass
-    return False
+        return False
 
 
 def _fmt_duration(seconds) -> str:
@@ -110,14 +109,16 @@ def build_dev_tab_ui(c):
 
     c.dev_table = gr.Dataframe(
         headers=["#", "Time", "Surah", "Duration", "Segs", "Model", "Device",
-                 "Passed", "Failed", "Conf", "T1", "T2"],
+                 "Passed", "Failed", "Conf", "Retry", "Audio ID"],
         datatype=["number", "str", "str", "str", "number", "str", "str",
-                  "number", "number", "str", "number", "number"],
+                  "number", "number", "str", "number", "number", "str"],
         interactive=False,
         label="Usage Logs",
         wrap=True,
     )
 
+    with gr.Row():
+        c.dev_plots_btn = gr.Button("Show Plots", size="sm")
     with gr.Row():
         c.dev_gpu_plot = gr.Plot(label="GPU: Audio Duration vs Processing Time", visible=False)
         c.dev_cpu_plot = gr.Plot(label="CPU: Audio Duration vs Processing Time", visible=False)
@@ -139,39 +140,93 @@ def build_dev_tab_ui(c):
 
 # ── Row extraction ─────────────────────────────────────────────────────
 
+def _safe_load(s):
+    """Parse a JSON string from a row, tolerating None / malformed input."""
+    if not s:
+        return {}
+    if isinstance(s, (dict, list)):
+        return s
+    try:
+        return json.loads(s)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
 def _row_to_dict(row) -> dict:
-    """Extract the fields we care about from a dataset row."""
+    """Extract the fields we care about from a V3 dataset row.
+
+    V3 layout: flat columns + JSON-string columns (`timing`, `settings`,
+    `results_summary`, `reciter_stats`, `segments`, etc.). This helper
+    unpacks the JSON side into flat keys so the rest of the dev_tools UI
+    keeps working with the same shape it used to get from v2.
+    """
+    settings        = _safe_load(row.get("settings"))
+    timing          = _safe_load(row.get("timing"))
+    results_summary = _safe_load(row.get("results_summary"))
+    anchor_col      = _safe_load(row.get("anchor"))
+    vad_block       = timing.get("vad", {}) if isinstance(timing, dict) else {}
+    asr_block       = timing.get("asr", {}) if isinstance(timing, dict) else {}
+    dp_block        = timing.get("dp",  {}) if isinstance(timing, dict) else {}
+    num_segments    = results_summary.get("num_segments") or 0
+    segments_passed = results_summary.get("segments_passed") or 0
+
+    def _vad_gpu():
+        w = vad_block.get("wall_s"); q = vad_block.get("queue_s")
+        return (w - q) if (w is not None and q is not None) else None
+
+    def _asr_gpu():
+        w = asr_block.get("wall_s"); q = asr_block.get("queue_s")
+        return (w - q) if (w is not None and q is not None) else None
+
     return {
+        # ── flat identity / metadata ──
         "audio_id": row.get("audio_id", ""),
         "timestamp": row.get("timestamp", ""),
-        "surah": row.get("surah"),
+        "schema_version": row.get("schema_version", ""),
+        "endpoint": row.get("endpoint", ""),
         "audio_duration_s": row.get("audio_duration_s"),
-        "num_segments": row.get("num_segments"),
-        "asr_model": row.get("asr_model", ""),
-        "device": row.get("device", ""),
-        "segments_passed": row.get("segments_passed"),
-        "segments_failed": row.get("segments_failed"),
-        "mean_confidence": row.get("mean_confidence"),
-        "tier1_retries": row.get("tier1_retries", 0) or 0,
-        "tier1_passed": row.get("tier1_passed", 0) or 0,
-        "tier2_retries": row.get("tier2_retries", 0) or 0,
-        "tier2_passed": row.get("tier2_passed", 0) or 0,
-        "reanchors": row.get("reanchors", 0) or 0,
-        "special_merges": row.get("special_merges", 0) or 0,
-        "total_time": row.get("total_time"),
-        "vad_queue_time": row.get("vad_queue_time"),
-        "vad_gpu_time": row.get("vad_gpu_time"),
-        "asr_gpu_time": row.get("asr_gpu_time"),
-        "dp_total_time": row.get("dp_total_time"),
-        "min_silence_ms": row.get("min_silence_ms"),
-        "min_speech_ms": row.get("min_speech_ms"),
-        "pad_ms": row.get("pad_ms"),
-        "segments": row.get("segments"),
-        "word_timestamps": row.get("word_timestamps"),
-        "char_timestamps": row.get("char_timestamps"),
-        "resegmented": row.get("resegmented"),
-        "retranscribed": row.get("retranscribed"),
-        "error": row.get("error"),
+        # 3.0.1+: device / asr_model / asr_model_label live inside settings
+        "asr_model":       settings.get("asr_model", ""),
+        "asr_model_label": settings.get("asr_model_label", ""),
+        "device":          settings.get("device", ""),
+        # 3.1.0+: wall_total_s lives inside timing
+        "total_time": timing.get("wall_total_s") if isinstance(timing, dict) else None,
+
+        # ── unpacked (3.1.0+: surah/anchor_ayah from anchor col; segments_failed derived) ──
+        "surah": anchor_col.get("winner_surah") if isinstance(anchor_col, dict) else None,
+        "anchor_ayah": anchor_col.get("winner_ayah") if isinstance(anchor_col, dict) else None,
+        "num_segments": num_segments,
+        "missing_word_count": results_summary.get("missing_word_count"),
+        "segments_passed": segments_passed,
+        "segments_failed": max(0, num_segments - segments_passed),
+        "mean_confidence": results_summary.get("mean_confidence"),
+        "min_confidence":  results_summary.get("min_confidence"),
+        "retry_attempts": results_summary.get("retry_attempts") or 0,
+        "retry_passed":   results_summary.get("retry_passed") or 0,
+        "reanchors":        results_summary.get("reanchors") or 0,
+        "special_merges":   results_summary.get("special_merges") or 0,
+        "transition_skips": results_summary.get("transition_skips") or 0,
+        "wraps_detected":   results_summary.get("wraps_detected") or 0,
+
+        # ── timing unpacked (flattened equivalents of v2 per-stage fields) ──
+        "vad_gpu_time":   _vad_gpu(),
+        "asr_gpu_time":   _asr_gpu(),
+        "dp_total_time":  dp_block.get("total_s"),
+
+        # ── settings unpacked ──
+        "min_silence_ms": settings.get("min_silence_ms"),
+        "min_speech_ms":  settings.get("min_speech_ms"),
+        "pad_ms":         settings.get("pad_ms"),
+
+        # ── keep raw JSON columns addressable for downstream inspection ──
+        "segments":        row.get("segments"),
+        "events":          row.get("events"),
+        "anchor":          row.get("anchor"),
+        "asr_batches":     row.get("asr_batches"),
+        "reciter_stats":   row.get("reciter_stats"),
+        "gpu_memory":      row.get("gpu_memory"),
+        "timing":          row.get("timing"),
+        "results_summary": row.get("results_summary"),
     }
 
 
@@ -201,8 +256,8 @@ def _build_table_row(row_dict, index, surah_names):
         row_dict.get("segments_passed") or 0,
         row_dict.get("segments_failed") or 0,
         _fmt_pct(row_dict.get("mean_confidence")),
-        row_dict.get("tier1_retries", 0) or 0,
-        row_dict.get("tier2_retries", 0) or 0,
+        row_dict.get("retry_attempts", 0) or 0,
+        row_dict.get("audio_id", ""),
     ]
 
 
@@ -230,9 +285,9 @@ def load_logs_handler():
     surah_names = _load_surah_names()
 
     try:
-        ds = load_dataset("hetchyy/quran-aligner-logs", token=token,
+        from config import USAGE_LOG_LOGS_REPO
+        ds = load_dataset(USAGE_LOG_LOGS_REPO, token=token,
                           split="train", streaming=True)
-        ds = ds.remove_columns("audio")
     except Exception as e:
         gr.Warning(f"Failed to load dataset: {e}")
         return [], [], f"Error: {e}", gr.update()
@@ -241,6 +296,9 @@ def load_logs_handler():
     total = 0
     for row in ds:
         total += 1
+        # V3: only parse v3-shape rows. Older subsets/versions are skipped.
+        if not str(row.get("schema_version", "")).startswith("3."):
+            continue
         if _has_valid_segments(row.get("segments")):
             rows.append(_row_to_dict(row))
 
@@ -563,25 +621,26 @@ def _build_summary_html(row, surah_names) -> str:
     failed = row.get("segments_failed") or 0
     total_segs = passed + failed
     pass_rate = f"{passed}/{total_segs}" if total_segs else "N/A"
-    t1 = f"{row.get('tier1_passed', 0) or 0}/{row.get('tier1_retries', 0) or 0}"
-    t2 = f"{row.get('tier2_passed', 0) or 0}/{row.get('tier2_retries', 0) or 0}"
+    retry = f"{row.get('retry_passed', 0) or 0}/{row.get('retry_attempts', 0) or 0}"
 
+    # V3: no session flags; derive from endpoint instead. Errors now live in
+    # the separate JSONL log, not the main dataset — so there's no `error` col.
+    endpoint = row.get("endpoint") or ""
     flags = []
-    if row.get("resegmented"):
-        flags.append("Resegmented")
-    if row.get("retranscribed"):
-        flags.append("Retranscribed")
-    if row.get("error"):
-        flags.append(f"Error: {str(row['error'])[:60]}")
-    flags_html = f" &nbsp;|&nbsp; <span>Flags: {', '.join(flags)}</span>" if flags else ""
+    if endpoint == "resegment":
+        flags.append("Resegment")
+    elif endpoint == "retranscribe":
+        flags.append("Retranscribe")
+    elif endpoint == "realign":
+        flags.append("Realign")
+    flags_html = f" &nbsp;|&nbsp; <span>Endpoint: {', '.join(flags)}</span>" if flags else ""
 
     sections.append(f"""
     <div style="margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #d9534f;">
         <strong>Quality</strong><br>
         <span>Passed: {pass_rate}</span> &nbsp;|&nbsp;
         <span>Confidence: {_fmt_pct(row.get('mean_confidence'))}</span> &nbsp;|&nbsp;
-        <span>T1 retries: {t1}</span> &nbsp;|&nbsp;
-        <span>T2 retries: {t2}</span> &nbsp;|&nbsp;
+        <span>Retries: {retry}</span> &nbsp;|&nbsp;
         <span>Reanchors: {row.get('reanchors', 0) or 0}</span>
         {flags_html}
     </div>
@@ -604,18 +663,13 @@ def _build_segments_from_log(row, audio_id):
         return _empty
 
     try:
-        runs = json.loads(segments_str)
+        seg_list = json.loads(segments_str)
     except (json.JSONDecodeError, TypeError):
         return ('<div style="color: #999; padding: 20px;">Could not parse segments JSON.</div>', [], None)
 
-    if not runs or not isinstance(runs, list):
-        return ('<div style="color: #999; padding: 20px;">Empty segment runs.</div>', [], None)
-
-    # Use the last run (most recent alignment pass)
-    last_run = runs[-1]
-    seg_list = last_run.get("segments", [])
-    if not seg_list:
-        return ('<div style="color: #999; padding: 20px;">No segments in last run.</div>', [], None)
+    # V3: segments column is a flat list of segment dicts (one row = one run).
+    if not seg_list or not isinstance(seg_list, list):
+        return ('<div style="color: #999; padding: 20px;">No segments in this row.</div>', [], None)
 
     # Try to download audio for this specific row
     audio_int16 = None
@@ -630,7 +684,7 @@ def _build_segments_from_log(row, audio_id):
     # Build SegmentInfo objects and json_segments in parallel
     from src.core.segment_types import SegmentInfo
     from src.alignment.special_segments import ALL_SPECIAL_REFS, SPECIAL_TEXT
-    from src.ui.segments import render_segments, get_text_with_markers, check_undersegmented
+    from src.ui.segments import render_segments, get_text_with_markers
 
     segments = []
     json_segments = []
@@ -661,13 +715,8 @@ def _build_segments_from_log(row, audio_id):
         elif ref:
             matched_text = get_text_with_markers(ref) or ""
 
-        # Check for undersegmentation
-        underseg = False
-        if ref and ref not in ALL_SPECIAL_REFS:
-            underseg = check_undersegmented(ref, duration)
-
-        # Check for missing words
-        has_missing = seg_data.get("missing_words", False) or False
+        # V3 renamed: missing_words → has_missing_words (but accept both for safety)
+        has_missing = bool(seg_data.get("has_missing_words") or seg_data.get("missing_words"))
 
         seg_info = SegmentInfo(
             start_time=start,
@@ -678,7 +727,6 @@ def _build_segments_from_log(row, audio_id):
             match_score=confidence,
             error=error,
             has_missing_words=has_missing,
-            potentially_undersegmented=underseg,
         )
         segments.append(seg_info)
 
@@ -698,8 +746,15 @@ def _build_segments_from_log(row, audio_id):
     if not segments:
         return ('<div style="color: #999; padding: 20px;">No valid segments to display.</div>', [], None)
 
-    html = render_segments(segments, audio_int16=audio_int16, sample_rate=sample_rate,
-                           segment_dir=segment_dir, skip_full_audio=True)
+    # Write full.wav for playback (dev tools uses shorter recordings — sync write is fine)
+    full_audio_url = ""
+    if audio_int16 is not None and sample_rate > 0 and segment_dir:
+        import soundfile as sf
+        full_path = segment_dir / "full.wav"
+        sf.write(str(full_path), audio_int16, sample_rate, format='WAV', subtype='PCM_16')
+        full_audio_url = f"/gradio_api/file={full_path}"
+
+    html = render_segments(segments, full_audio_url=full_audio_url)
     return html, json_segments, segment_dir
 
 
@@ -713,8 +768,10 @@ def _download_audio_for_row(audio_id: str):
         raise ValueError("No HF token")
 
     from datasets import load_dataset
+    from config import USAGE_LOG_AUDIO_REPO
 
-    ds = load_dataset("hetchyy/quran-aligner-logs", token=token,
+    # V3: audio lives in its own dataset now, keyed by audio_id.
+    ds = load_dataset(USAGE_LOG_AUDIO_REPO, token=token,
                       split="train", streaming=True)
 
     for row in ds:

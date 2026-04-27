@@ -51,9 +51,3 @@ def preload_all_chapters() -> None:
         for surah in range(1, 115):
             get_chapter_reference(surah)
         print(f"[CACHE] All 114 chapters built at runtime")
-
-
-def clear_chapter_cache() -> None:
-    """Clear cache (for memory management)."""
-    _chapter_cache.clear()
-    print("[CACHE] Cleared chapter cache")

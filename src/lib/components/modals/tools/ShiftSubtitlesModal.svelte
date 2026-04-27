@@ -8,6 +8,17 @@
 	let shiftAmount = $state(0);
 	let direction: 'left' | 'right' = $state('right');
 	let unit: 'seconds' | 'milliseconds' = $state('seconds');
+	let fromTimeSec = $state(0);
+
+	const affectedCount = $derived(
+		globalState.getSubtitleTrack.clips.filter((clip) => clip.startTime >= fromTimeSec * 1000)
+			.length
+	);
+
+	function setFromPlayhead() {
+		const playheadMs = globalState.getTimelineState.cursorPosition;
+		fromTimeSec = Math.max(0, Math.round(playheadMs) / 1000);
+	}
 
 	function applyShift() {
 		if (shiftAmount === 0) {
@@ -24,9 +35,13 @@
 			offsetMs = -offsetMs;
 		}
 
-		const success = globalState.getSubtitleTrack.shiftAllClips(offsetMs);
+		const fromMs = Math.max(0, Math.round(fromTimeSec * 1000));
+		const success = globalState.getSubtitleTrack.shiftAllClips(offsetMs, fromMs);
 		if (success) {
-			toast.success(`Subtitles shifted by ${shiftAmount} ${unit} to the ${direction}.`);
+			const scope = fromMs > 0 ? ` (from ${fromTimeSec}s onward)` : '';
+			toast.success(
+				`Subtitles shifted by ${shiftAmount} ${unit} to the ${direction}${scope}.`
+			);
 			close();
 		}
 	}
@@ -111,14 +126,44 @@
 			</div>
 		</div>
 
+		<!-- From-time Input -->
+		<div class="space-y-2">
+			<label for="shift-from" class="text-sm font-medium text-primary block">
+				Apply from time (seconds)
+			</label>
+			<div class="flex gap-2">
+				<input
+					id="shift-from"
+					type="number"
+					bind:value={fromTimeSec}
+					min="0"
+					step="0.1"
+					class="flex-1 bg-accent border border-color rounded-lg px-3 py-2 text-primary focus:border-accent-primary focus:outline-none transition-colors"
+					placeholder="0.0"
+				/>
+				<button
+					type="button"
+					onclick={setFromPlayhead}
+					class="bg-accent border border-color rounded-lg px-3 py-2 text-primary hover:bg-secondary/60 transition-colors cursor-pointer flex items-center gap-2 text-sm"
+					title="Use current playhead position"
+				>
+					<span class="material-icons text-base">my_location</span>
+					Use playhead
+				</button>
+			</div>
+			<p class="text-xs text-thirdly leading-relaxed">
+				Subtitles starting before this time stay put. Leave at 0 to shift all subtitles.
+			</p>
+		</div>
+
 		<div
 			class="bg-accent/50 rounded-xl p-4 text-xs text-secondary flex gap-3 items-start border border-color/50"
 		>
 			<span class="material-icons text-sm text-accent-primary mt-0.5">info</span>
 			<p class="leading-relaxed">
-				This action will move <strong class="text-primary"
-					>{globalState.getSubtitleTrack.clips.length}</strong
-				> subtitles. Please ensure no subtitles will be pushed before 0:00.
+				This action will move <strong class="text-primary">{affectedCount}</strong> of {globalState
+					.getSubtitleTrack.clips.length} subtitles. Please ensure no subtitles will be pushed before
+				0:00.
 			</p>
 		</div>
 	</div>

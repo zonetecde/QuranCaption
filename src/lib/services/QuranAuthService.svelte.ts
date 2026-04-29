@@ -3,6 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import toast from 'svelte-5-french-toast';
+import Settings from '$lib/classes/Settings.svelte';
+import { globalState } from '$lib/runes/main.svelte';
 import type {
 	QuranAuthPublicState,
 	QuranAuthSession,
@@ -17,6 +19,19 @@ const SESSION_STORAGE_KEY = 'quran_auth_session';
 const PENDING_VERIFIER_STORAGE_KEY = 'quran_auth_pending_verifier';
 const REFRESH_SKEW_MS = 60_000;
 const QURAN_MUSHAF_ID = 4;
+
+export type ThemeId =
+	| 'default'
+	| 'emerald-forest'
+	| 'polar-ice'
+	| 'desert-gold'
+	| 'vintage-paper'
+	| 'oled-stealth'
+	| 'ethereal-glass'
+	| 'minimal-zen'
+	| 'inverted-minimal-zen';
+
+export type QuranThemePreference = 'auto' | 'light' | 'sepia' | 'dark';
 
 type RefreshRequestBody = {
 	refreshToken: string;
@@ -62,6 +77,36 @@ type QuranCollectionItemsResponse = {
 		hasPreviousPage: boolean;
 	};
 };
+
+type QuranUserPreferencesResponse = {
+	success: boolean;
+	data: {
+		theme?: {
+			type?: QuranThemePreference;
+		};
+	};
+};
+
+type QuranPreferenceUpdateResponse = {
+	success: boolean;
+	data: Record<string, never> | { message?: string };
+};
+
+type QuranPreferenceUpdateBody = {
+	group: 'theme';
+	key: 'type';
+	value: QuranThemePreference;
+};
+
+const DARK_THEMES: ThemeId[] = [
+	'default',
+	'emerald-forest',
+	'oled-stealth',
+	'ethereal-glass',
+	'inverted-minimal-zen'
+];
+const LIGHT_THEMES: ThemeId[] = ['polar-ice', 'minimal-zen'];
+const SEPIA_THEMES: ThemeId[] = ['desert-gold', 'vintage-paper'];
 
 class QuranAuthService {
 	status = $state<QuranAuthPublicState['status']>('disconnected');
@@ -157,6 +202,7 @@ class QuranAuthService {
 			await this.persistSession(response);
 			await this.clearPendingVerifier();
 			this.handledHandoffTokens.add(handoffToken);
+			await this.syncThemeFromPreferences();
 			toast.success('Connected to Quran.com.');
 		} catch (error) {
 			this.setError(error, 'Unable to complete Quran.com sign-in.');
@@ -349,7 +395,62 @@ class QuranAuthService {
 		});
 	}
 
-	/** Recharge la session persistée localement au démarrage de l'app. */
+	/** Recupere toutes les preferences Quran.com de l'utilisateur connecte. */
+	async getUserPreferences(): Promise<QuranUserPreferencesResponse['data']> {
+		const response =
+			await this.fetchUserApi<QuranUserPreferencesResponse>('/auth/v1/preferences');
+		return response.data;
+	}
+
+	/** Recupere uniquement la preference de theme Quran.com. */
+	async getThemePreference(): Promise<QuranThemePreference | null> {
+		const preferences = await this.getUserPreferences();
+		return preferences.theme?.type ?? null;
+	}
+
+	/** Met a jour la preference de theme Quran.com. */
+	async updateThemePreference(type: QuranThemePreference): Promise<void> {
+		const searchParams = new URLSearchParams({
+			mushafId: String(QURAN_MUSHAF_ID)
+		});
+		const body: QuranPreferenceUpdateBody = {
+			group: 'theme',
+			key: 'type',
+			value: type
+		};
+
+		await this.fetchUserApi<QuranPreferenceUpdateResponse>(
+			`/auth/v1/preferences?${searchParams.toString()}`,
+			{
+				method: 'POST',
+				body: JSON.stringify(body)
+			}
+		);
+	}
+
+	/** Applique localement le theme Quran.com si une session active est disponible. */
+	async syncThemeFromPreferences(showFeedback = false): Promise<void> {
+		if (!browser || this.status !== 'connected' || !globalState.settings) return;
+
+		try {
+			const remoteTheme = await this.getThemePreference();
+			if (!remoteTheme) return;
+
+			const currentTheme = globalState.settings.persistentUiState.theme as ThemeId;
+			const resolvedTheme = resolveLocalThemeFromQuranPreference(remoteTheme, currentTheme);
+			if (resolvedTheme === currentTheme) return;
+
+			globalState.settings.persistentUiState.theme = resolvedTheme;
+			await Settings.save();
+		} catch (error) {
+			console.error('Failed to sync theme from Quran.com:', error);
+			if (showFeedback) {
+				toast.error('Unable to sync theme from Quran.com.');
+			}
+		}
+	}
+
+	/** Recharge la session persistee localement au demarrage de l'app. */
 	async hydrateFromSecureStore(): Promise<void> {
 		const sessionJson = await this.getSecureValue(SESSION_STORAGE_KEY);
 		if (!sessionJson) {
@@ -643,6 +744,54 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * Convertit un thème QDC en famille de thème Quran.com.
+ * @param themeId Le thème QDC courant.
+ * @returns La famille de thème compatible Quran.com.
+ */
+export function mapLocalThemeToQuranPreference(themeId: ThemeId): QuranThemePreference {
+	if (LIGHT_THEMES.includes(themeId)) return 'light';
+	if (SEPIA_THEMES.includes(themeId)) return 'sepia';
+	return 'dark';
+}
+
+/**
+ * Résout le thème QDC à appliquer à partir de la préférence Quran.com.
+ * @param preference La préférence Quran.com distante.
+ * @param currentTheme Le thème QDC actuellement sélectionné.
+ * @returns Le thème QDC à appliquer localement.
+ */
+export function resolveLocalThemeFromQuranPreference(
+	preference: QuranThemePreference,
+	currentTheme: ThemeId
+): ThemeId {
+	if (preference === 'auto') {
+		preference = resolveAutoThemePreference();
+	}
+
+	if (preference === 'light') {
+		return LIGHT_THEMES.includes(currentTheme) ? currentTheme : 'polar-ice';
+	}
+
+	if (preference === 'sepia') {
+		return SEPIA_THEMES.includes(currentTheme) ? currentTheme : 'vintage-paper';
+	}
+
+	return DARK_THEMES.includes(currentTheme) ? currentTheme : 'default';
+}
+
+/**
+ * Déduit la préférence Quran.com la plus proche quand le site est en mode automatique.
+ * @returns `dark` si le système préfère un thème sombre, sinon `light`.
+ */
+function resolveAutoThemePreference(): Exclude<QuranThemePreference, 'auto' | 'sepia'> {
+	if (browser && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+		return 'dark';
+	}
+
+	return 'light';
 }
 
 export const quranAuthService = new QuranAuthService();

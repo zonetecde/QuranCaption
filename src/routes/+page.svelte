@@ -60,9 +60,10 @@
 		// Init le gestionnaire de shortcuts
 		ShortcutService.init();
 
-		// Charge les paramètres utilisateur (une seconde fois pour être sûr)
-		Settings.load();
-		void quranAuthService.init();
+		// Charge les paramètres utilisateur (une seconde fois pour etre sur)
+		await Settings.load();
+		await quranAuthService.init();
+		await quranAuthService.syncThemeFromPreferences(true);
 
 		// Initialiser Discord Rich Presence
 		discordService

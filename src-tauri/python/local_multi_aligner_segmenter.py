@@ -88,7 +88,6 @@ def ensure_quranic_phonemizer(status_writer=None) -> Optional[str]:
                 pass
 
     candidates = [
-        "quranic-phonemizer",
         "https://github.com/Hetchy/Quranic-Phonemizer/archive/1b6a8cc.zip",
     ]
 

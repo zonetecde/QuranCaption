@@ -23,7 +23,7 @@
 	});
 </script>
 
-<section class="space-y-4">
+<section class="flex h-full min-h-0 flex-col gap-4">
 	<div>
 		<h3 class="text-lg font-semibold text-primary">1. Select AI version</h3>
 		<p class="text-sm text-thirdly">Choose the segmentation family before runtime configuration.</p>
@@ -75,34 +75,39 @@
 		</button>
 	</div>
 
-	<section class="rounded-xl border border-color bg-primary p-4">
-		<div class="mb-3 flex items-center gap-2 text-primary">
-			<span class="material-icons">history</span>
-			<h4 class="text-sm font-semibold">Latest changelog</h4>
-		</div>
+	<section class="mt-auto rounded-xl border border-[var(--border-color)]/60 bg-accent/20 p-4">
+		<details>
+			<summary class="flex cursor-pointer items-center gap-2 text-primary">
+				<span class="material-icons">history</span>
+				<h4 class="text-sm font-semibold">Latest changelog</h4>
+			</summary>
 
-		{#if isLoadingChangelog}
-			<p class="text-sm text-thirdly">Loading latest Quran Multi-Aligner updates...</p>
-		{:else if changelogError}
-			<p class="text-sm text-thirdly">{changelogError}</p>
-		{:else if changelogSections.length === 0}
-			<p class="text-sm text-thirdly">No recent changelog entries were found.</p>
-		{:else}
-			<div class="space-y-3">
-				{#each changelogSections as section (section.title)}
-					<div class="rounded-lg border border-color bg-accent/60 p-3">
-						<p class="text-sm font-medium text-primary">{section.title}</p>
-						<ul class="mt-2 space-y-2 text-sm text-thirdly">
-							{#each section.items as item}
-								<li class="flex gap-2">
-									<span class="mt-[2px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary"></span>
-									<span>{item}</span>
-								</li>
-							{/each}
-						</ul>
+			<div class="mt-3">
+				{#if isLoadingChangelog}
+					<p class="text-sm text-thirdly">Loading latest Quran Multi-Aligner updates...</p>
+				{:else if changelogError}
+					<p class="text-sm text-thirdly">{changelogError}</p>
+				{:else if changelogSections.length === 0}
+					<p class="text-sm text-thirdly">No recent changelog entries were found.</p>
+				{:else}
+					<div class="space-y-3">
+						{#each changelogSections as section (section.title)}
+							<div class="rounded-lg border border-[var(--border-color)]/50 bg-accent/35 p-3">
+								<p class="text-sm font-medium text-primary">{section.title}</p>
+								<ul class="mt-2 space-y-2 text-sm text-thirdly">
+									{#each section.items as item}
+										<li class="flex gap-2">
+											<span class="mt-[2px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary/70"></span>
+											<span>{item}</span>
+										</li>
+									{/each}
+								</ul>
+							</div>
+						{/each}
 					</div>
-				{/each}
+				{/if}
 			</div>
-		{/if}
+		</details>
 	</section>
 </section>
+

@@ -507,6 +507,25 @@ export function parseImportedSegmentationJson(
 }
 
 /**
+ * Tente d'extraire une réponse de segmentation JSON depuis un message d'erreur.
+ *
+ * @param {unknown} error Erreur potentiellement levée par le backend local.
+ * @returns {SegmentationResponse | null} Réponse normalisée si trouvée, sinon null.
+ */
+function parseSegmentationResponseFromThrownError(error: unknown): SegmentationResponse | null {
+	const message = error instanceof Error ? error.message : String(error);
+	const jsonStartIndex = message.indexOf('{');
+	if (jsonStartIndex < 0) return null;
+
+	const jsonPayload = message.slice(jsonStartIndex).trim();
+	try {
+		return parseImportedSegmentationJson(jsonPayload).response;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Parse a verse reference in the format "surah:verse:word".
  *
  * @param {string | undefined} ref - Raw reference string.
@@ -2275,16 +2294,24 @@ export async function runAutoSegmentation(
 				payload = await invokeLocal();
 			} catch (localError) {
 				if (!allowCloudFallbackEffective) {
-					console.warn('[AutoSegmentation] Local mode failed (no cloud fallback):', localError);
-					throw localError;
+					const recoveredResponse = parseSegmentationResponseFromThrownError(localError);
+					if ((recoveredResponse?.segments?.length ?? 0) > 0) {
+						console.warn(
+							'[AutoSegmentation] Local mode returned partial payload via thrown error; continuing with recovered segments.'
+						);
+						payload = recoveredResponse;
+					} else {
+						console.warn('[AutoSegmentation] Local mode failed (no cloud fallback):', localError);
+						throw localError;
+					}
+				} else {
+					const localMessage = localError instanceof Error ? localError.message : String(localError);
+					console.warn('[AutoSegmentation] Local mode failed, falling back to cloud:', localMessage);
+					fallbackWarning = `Local mode failed and was switched to Cloud: ${localMessage}`;
+					fallbackToCloud = true;
+					effectiveMode = 'api';
+					payload = await invokeCloud();
 				}
-
-				const localMessage = localError instanceof Error ? localError.message : String(localError);
-				console.warn('[AutoSegmentation] Local mode failed, falling back to cloud:', localMessage);
-				fallbackWarning = `Local mode failed and was switched to Cloud: ${localMessage}`;
-				fallbackToCloud = true;
-				effectiveMode = 'api';
-				payload = await invokeCloud();
 			}
 		}
 

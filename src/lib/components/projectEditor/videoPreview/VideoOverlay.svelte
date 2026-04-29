@@ -180,6 +180,23 @@
 		return globalState.getVideoStyle.getStylesOfTarget(target).generateTailwind();
 	});
 
+	/**
+	 * Retourne le CSS de padding horizontal à appliquer au texte quand le background est activé.
+	 * @param target La cible de style (arabic ou édition de traduction).
+	 * @param clipId L'identifiant du clip pour les overrides éventuels.
+	 * @returns Une chaîne CSS vide si non applicable, sinon le padding gauche/droite.
+	 */
+	function getBackgroundHorizontalPaddingCss(target: string, clipId?: number): string {
+		const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+		const isBackgroundEnabled = Boolean(styles.getEffectiveValue('background-enable', clipId));
+		if (!isBackgroundEnabled) return '';
+
+		const padding = Number(styles.getEffectiveValue('background-horizontal-padding', clipId));
+		if (!Number.isFinite(padding) || padding <= 0) return '';
+
+		return `padding-left: ${padding}px; padding-right: ${padding}px;`;
+	}
+
 	// Liste des éditions de traduction configurées dans le projet (pour backgrounds)
 	let projectTranslationEditionNames = $derived(() => {
 		return globalState.getProjectTranslation.addedTranslationEditions.map((e) => e.name);
@@ -673,7 +690,7 @@
 						style="opacity: {subtitleOpacity('arabic')}; {getCss('arabic', subtitle.id, [
 							'background',
 							'border'
-						])}; white-space: pre-line;"
+						])}; {getBackgroundHorizontalPaddingCss('arabic', subtitle.id)} white-space: pre-line;"
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const arabicText = subtitle.getText()}
@@ -726,7 +743,7 @@
 							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(edition, subtitle!.id, [
 								'background',
 								'border'
-							])}; white-space: pre-line;`}
+							])}; ${getBackgroundHorizontalPaddingCss(edition, subtitle!.id)} white-space: pre-line;`}
 						>
 							{#if translation.type === 'verse'}
 								{@const verseTranslation = translation as VerseTranslation}

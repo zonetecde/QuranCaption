@@ -92,7 +92,7 @@ export type BackgroundStyleName =
 	| 'background-color'
 	| 'background-opacity'
 	| 'border-radius'
-	| 'padding';
+	| 'background-horizontal-padding';
 
 export type ShadowStyleName =
 	| 'shadow-enable'

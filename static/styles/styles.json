@@ -365,6 +365,18 @@
 				"icon": "rounded_corner"
 			},
 			{
+				"id": "background-horizontal-padding",
+				"name": "Horizontal Padding",
+				"description": "Add left and right padding when using a background",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 200,
+				"css": "padding-left: {value}px; padding-right: {value}px;",
+				"tailwind": false,
+				"icon": "padding"
+			},
+			{
 				"id": "background-css",
 				"name": "Custom CSS for Background",
 				"description": "Write any CSS for custom Background (gradient, pattern, ...). Use !important if needed. Exemple: background: linear-gradient(to right, #ff0000, #0000ff) !important;",

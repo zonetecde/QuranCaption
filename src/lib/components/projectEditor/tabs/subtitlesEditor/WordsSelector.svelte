@@ -600,6 +600,8 @@
 				if (!didSplit) {
 					throw new Error('Automatic split failed for this word.');
 				}
+				globalState.getSubtitlesEditorState.editSubtitle = null;
+				globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 			})(),
 			{
 				loading: 'Calculating the split point...',

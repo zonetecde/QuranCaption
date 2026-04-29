@@ -141,68 +141,6 @@ fn find_downloaded_file_by_suffix(
     Err("Downloaded file not found".to_string())
 }
 
-fn transcode_to_web_compatible_mp4(file_path: &Path, ffmpeg_path: &str) -> Result<(), String> {
-    let file_stem = file_path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("video");
-    let temp_path = file_path.with_file_name(format!("{}_webview.mp4", file_stem));
-
-    let file_path_str = file_path.to_string_lossy().to_string();
-    let temp_path_str = temp_path.to_string_lossy().to_string();
-
-    let mut cmd = Command::new(ffmpeg_path);
-    cmd.args([
-        "-y",
-        "-i",
-        &file_path_str,
-        "-map",
-        "0:v:0",
-        "-map",
-        "0:a?",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "20",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        &temp_path_str,
-    ]);
-    configure_command_no_window(&mut cmd);
-
-    match cmd.output() {
-        Ok(result) if result.status.success() => {
-            fs::remove_file(file_path)
-                .map_err(|e| format!("Failed to remove original downloaded video: {}", e))?;
-            fs::rename(&temp_path, file_path)
-                .map_err(|e| format!("Failed to replace downloaded video: {}", e))?;
-            Ok(())
-        }
-        Ok(result) => {
-            let _ = fs::remove_file(&temp_path);
-            Err(format!(
-                "ffmpeg compatibility transcode failed: {}",
-                String::from_utf8_lossy(&result.stderr)
-            ))
-        }
-        Err(e) => {
-            let _ = fs::remove_file(&temp_path);
-            Err(format!(
-                "Unable to execute ffmpeg for compatibility transcode: {}",
-                e
-            ))
-        }
-    }
-}
-
 /// Télécharge un média YouTube (audio MP3 ou vidéo MP4) via yt-dlp.
 /// Lance un telechargement YouTube et emet sa progression si un identifiant est fourni.
 ///

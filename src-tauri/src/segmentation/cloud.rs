@@ -238,30 +238,6 @@ pub async fn estimate_duration(
     Ok(payload)
 }
 
-/// Valide la combinaison modèle/device attendue par les endpoints cloud.
-fn validate_model_and_device(
-    model_name: Option<String>,
-    device: Option<String>,
-) -> Result<(String, String), String> {
-    let selected_model = model_name.unwrap_or_else(|| "Base".to_string());
-    if selected_model != "Base" && selected_model != "Large" {
-        return Err(format!(
-            "Invalid model_name '{}'. Expected 'Base' or 'Large'.",
-            selected_model
-        ));
-    }
-
-    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
-    if selected_device != "GPU" && selected_device != "CPU" {
-        return Err(format!(
-            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
-            selected_device
-        ));
-    }
-
-    Ok((selected_model, selected_device))
-}
-
 /// Upload un fichier audio vers Gradio et renvoie le chemin serveur retourné.
 async fn upload_audio_file(
     client: &reqwest::Client,

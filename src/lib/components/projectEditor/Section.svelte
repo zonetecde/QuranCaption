@@ -50,8 +50,12 @@
 <div class="flex flex-col gap-2" data-category={dataCategory}>
 	<div class={'flex ' + classes} onclick={() => (extended = !extended)}>
 		<h3 class="text-sm font-semibold text-primary flex items-center truncate">
-			{#if icon.includes('png') || icon.includes('svg')}
+			{#if icon && (icon.includes('png') || icon.includes('svg'))}
 				<img src={icon} alt={name} class="w-6 h-6 mr-2" /><span class="truncate">{name}</span>
+			{:else if !icon}
+				<span class="w-6 h-6 mr-2 rounded-sm bg-black border border-color shrink-0"></span><span
+					class="truncate">{name}</span
+				>
 			{:else}
 				<span class="material-icons mr-2 text-lg text-accent-primary">{icon}</span><span
 					class="truncate">{name}</span

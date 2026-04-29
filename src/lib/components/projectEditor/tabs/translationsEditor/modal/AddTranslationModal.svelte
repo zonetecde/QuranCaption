@@ -2,6 +2,11 @@
 	import { Edition } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import {
+		QdcTranslationService,
+		type QdcAvailableTranslationsMap,
+		type TranslationLanguageData
+	} from '$lib/services/QdcTranslationService';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { onMount } from 'svelte';
@@ -15,11 +20,11 @@
 	let isImportingTxt = $state(false);
 	let showTxtImportHelp = $state(false);
 	let txtImportError: string | null = $state(null);
+	let activeTranslationsTab = $state<'quran-api' | 'quran-com-api'>('quran-api');
+	let qdcTranslations = $state<QdcAvailableTranslationsMap>({});
+	let isLoadingQdcTranslations = $state(false);
+	let qdcTranslationsError: string | null = $state(null);
 
-	type TranslationLanguageData = {
-		flag: string;
-		translations: Edition[];
-	};
 	type AvailableTranslationsMap = Record<string, TranslationLanguageData>;
 
 	// Helper function to check if a translation is selected
@@ -58,33 +63,69 @@
 		isLoadingPreview = false;
 	}
 
-	// Computed filtered translations based on search
-	const filteredTranslations = $derived(() => {
-		const availableTranslations = globalState.availableTranslations as AvailableTranslationsMap;
-		if (!searchQuery) return globalState.availableTranslations;
+	/**
+	 * Charge les traductions Quran.com API pour le second onglet.
+	 */
+	async function loadQdcTranslations(): Promise<void> {
+		if (Object.keys(qdcTranslations).length > 0) return;
+
+		isLoadingQdcTranslations = true;
+		qdcTranslationsError = null;
+		try {
+			qdcTranslations = await QdcTranslationService.getAvailableTranslations(
+				globalState.availableTranslations as AvailableTranslationsMap
+			);
+			globalState.qdcAvailableTranslations = qdcTranslations;
+		} catch (error) {
+			qdcTranslationsError = 'Unable to load Quran.com API translations.';
+			console.error('Error loading QDC translations:', error);
+		} finally {
+			isLoadingQdcTranslations = false;
+		}
+	}
+
+	/**
+	 * Filtre un groupe de traductions selon la recherche courante.
+	 * @param translationsMap Les traductions a filtrer.
+	 * @returns Les traductions filtrées.
+	 */
+	function filterTranslationsMap(
+		translationsMap: AvailableTranslationsMap
+	): AvailableTranslationsMap {
+		if (!searchQuery) return translationsMap;
 
 		const filtered: AvailableTranslationsMap = {};
 		const query = searchQuery.toLowerCase();
 
-		for (const [language, data] of Object.entries(availableTranslations)) {
+		for (const [language, data] of Object.entries(translationsMap)) {
 			if (language.toLowerCase().includes(query)) {
 				filtered[language] = data;
-			} else {
-				const matchingTranslations = data.translations.filter((t) =>
-					t.author.toLowerCase().includes(query)
-				);
-
-				if (matchingTranslations.length > 0) {
-					filtered[language] = {
-						...data,
-						translations: matchingTranslations
-					};
-				}
+				continue;
 			}
+
+			const matchingTranslations = data.translations.filter((translation) =>
+				translation.author.toLowerCase().includes(query)
+			);
+			if (matchingTranslations.length === 0) continue;
+
+			filtered[language] = {
+				...data,
+				translations: matchingTranslations
+			};
 		}
 
 		return filtered;
-	});
+	}
+
+	const filteredQuranApiTranslations = $derived(() =>
+		filterTranslationsMap(globalState.availableTranslations as AvailableTranslationsMap)
+	);
+	const filteredQdcTranslations = $derived(() => filterTranslationsMap(qdcTranslations));
+	const activeFilteredTranslations = $derived(() =>
+		activeTranslationsTab === 'quran-api'
+			? filteredQuranApiTranslations()
+			: filteredQdcTranslations()
+	);
 	async function addTranslationButtonClick() {
 		if (selectedTranslations.length > 0) {
 			try {
@@ -237,8 +278,10 @@
 
 	let recentTranslations: Edition[] = $state([]);
 
-	onMount(() => {
-		// Récupère les éditions de traduction des 10 derniers projets ouverts (pour avoir des traductions récentes)
+	onMount(async () => {
+		await loadQdcTranslations();
+
+		// Récupérer les éditions de traduction des 10 derniers projets ouverts (pour avoir des traductions récentes)
 		const recentProjects = globalState.userProjectsDetails
 			.filter((p) => p.updatedAt)
 			.sort((a, b) => b.updatedAt!.getTime() - a.updatedAt!.getTime())
@@ -249,7 +292,6 @@
 			if (projectDetail.id === globalState.currentProject?.detail.id) continue; // Skip current project
 
 			for (const editionName of Object.keys(projectDetail.translations)) {
-				console.log('Found recent edition:', editionName);
 				if (!recentEditionsSet.has(editionName)) {
 					const edition = globalState.getEditionFromAuthor(editionName);
 					if (edition) {
@@ -291,43 +333,59 @@
 	</div>
 	<!-- Search bar -->
 	<div class="px-6 py-4 border-b border-color bg-primary">
-		<div class="relative">
-			<input
-				type="text"
-				placeholder="Search languages or authors..."
-				bind:value={searchQuery}
-				class="w-full pr-4 py-3 bg-secondary border border-color rounded-xl text-primary focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-20 transition-all duration-200"
-				style="padding-left: 40px; "
-			/>
+		<div class="flex items-center gap-3">
+			<div class="relative flex-1">
+				<input
+					type="text"
+					placeholder="Search languages or authors..."
+					bind:value={searchQuery}
+					class="w-full pr-4 py-3 bg-secondary border border-color rounded-xl text-primary focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-20 transition-all duration-200"
+					style="padding-left: 40px; "
+				/>
 
-			<span class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-thirdly"
-				>search</span
-			>
+				<span class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-thirdly"
+					>search</span
+				>
+			</div>
+
+			<div class="flex shrink-0 items-center rounded-xl border border-color bg-secondary p-1">
+				<button
+					class="px-3 py-1.5 rounded-lg text-sm transition-all duration-200 {activeTranslationsTab ===
+					'quran-api'
+						? 'bg-[rgba(88,166,255,0.14)] text-primary shadow-[inset_0_0_0_1px_rgba(88,166,255,0.35)]'
+						: 'text-thirdly hover:text-primary'}"
+					aria-pressed={activeTranslationsTab === 'quran-api'}
+					onclick={() => (activeTranslationsTab = 'quran-api')}
+				>
+					Quran API
+				</button>
+				<button
+					class="px-3 py-1.5 rounded-lg text-sm transition-all duration-200 {activeTranslationsTab ===
+					'quran-com-api'
+						? 'bg-[rgba(88,166,255,0.14)] text-primary shadow-[inset_0_0_0_1px_rgba(88,166,255,0.35)]'
+						: 'text-thirdly hover:text-primary'}"
+					aria-pressed={activeTranslationsTab === 'quran-com-api'}
+					onclick={() => (activeTranslationsTab = 'quran-com-api')}
+				>
+					Quran.com
+				</button>
+			</div>
 		</div>
 
-		<!-- Recent translations section -->
 		{#if recentTranslations.length > 0 && !searchQuery}
-			<div class="mt-4">
-				<div class="flex items-center gap-2 mb-2">
+			<div class="mt-3 flex items-start gap-3">
+				<div class="flex shrink-0 items-center gap-2 pt-1">
 					<span class="material-icons text-accent-primary text-sm">history</span>
 					<span class="text-sm font-medium text-primary">Recent Translations</span>
 				</div>
-				<div class="flex flex-wrap gap-2">
+				<div class="flex flex-1 flex-wrap justify-end gap-2">
 					{#each recentTranslations.slice(0, 8) as translation (translation.key)}
 						{@const isSelected = isTranslationSelected(translation)}
+						{@const isQdcTranslation = QdcTranslationService.isQdcEdition(translation)}
 						<button
 							class="px-3 py-1.5 text-xs bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 flex items-center gap-1.5
 							       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
-							onclick={() => {
-								const languageKey = Object.keys(globalState.availableTranslations).find((lang) =>
-									globalState.availableTranslations[lang].translations.some(
-										(t) => t.name === translation.name
-									)
-								);
-								if (languageKey) {
-									toggleTranslationSelection(translation);
-								}
-							}}
+							onclick={() => toggleTranslationSelection(translation)}
 						>
 							{#if isSelected}
 								<span class="material-icons text-accent-primary" style="font-size: 12px;"
@@ -339,6 +397,9 @@
 								>
 							{/if}
 							<span class="text-primary font-medium">{translation.author}</span>
+							<span class="text-[10px] uppercase tracking-wide text-thirdly">
+								({isQdcTranslation ? 'QDC' : 'QAPI'})
+							</span>
 						</button>
 					{/each}
 					{#if recentTranslations.length > 8}
@@ -365,71 +426,86 @@
 					</div>
 
 					<div class="space-y-4">
-						<!-- Import from TXT section -->
-						<div class="bg-accent border border-color rounded-lg overflow-hidden">
-							<!-- TXT Import header -->
-							<div
-								class="flex items-center gap-3 p-3 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
-							>
-								<span class="material-icons text-accent-primary">note_add</span>
-								<div>
-									<h4 class="font-semibold text-primary">Import from TXT</h4>
-									<p class="text-xs text-thirdly">Load custom translation from file</p>
+						{#if activeTranslationsTab === 'quran-api'}
+							<!-- Import from TXT section -->
+							<div class="bg-accent border border-color rounded-lg overflow-hidden">
+								<!-- TXT Import header -->
+								<div
+									class="flex items-center gap-3 p-3 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
+								>
+									<span class="material-icons text-accent-primary">note_add</span>
+									<div>
+										<h4 class="font-semibold text-primary">Import from TXT</h4>
+										<p class="text-xs text-thirdly">Load custom translation from file</p>
+									</div>
+								</div>
+
+								<!-- TXT Import button -->
+								<div class="p-3">
+									<button
+										class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
+										onclick={importTranslationFromTxt}
+										disabled={isImportingTxt}
+									>
+										<div class="flex items-center gap-2">
+											<span
+												class="material-icons text-thirdly group-hover:text-accent-primary transition-colors duration-200"
+											>
+												{isImportingTxt ? 'hourglass_top' : 'upload_file'}
+											</span>
+											<span
+												class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200 text-sm"
+											>
+												{isImportingTxt ? 'Importing txt...' : 'Browse and import TXT'}
+											</span>
+										</div>
+										<span
+											class="material-icons text-thirdly text-sm opacity-50 group-hover:opacity-100 transition-opacity"
+										>
+											chevron_right
+										</span>
+									</button>
+
+									{#if showTxtImportHelp}
+										<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
+											<p class="text-xs text-secondary font-medium mb-2">Format expected:</p>
+											<p class="text-xs text-thirdly">
+												TXT file with one line per verse translation, in surah verse order, <strong
+													class="text-primary">without basmala</strong
+												>.
+											</p>
+											<div
+												class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
+											>
+												<p>1 First verse translation</p>
+												<p>2 Second verse translation</p>
+												<p>3 Third verse translation</p>
+											</div>
+											{#if txtImportError}
+												<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
+											{/if}
+										</div>
+									{/if}
 								</div>
 							</div>
+						{/if}
 
-							<!-- TXT Import button -->
-							<div class="p-3">
-								<button
-									class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
-									onclick={importTranslationFromTxt}
-									disabled={isImportingTxt}
-								>
-									<div class="flex items-center gap-2">
-										<span
-											class="material-icons text-thirdly group-hover:text-accent-primary transition-colors duration-200"
-										>
-											{isImportingTxt ? 'hourglass_top' : 'upload_file'}
-										</span>
-										<span
-											class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200 text-sm"
-										>
-											{isImportingTxt ? 'Importing txt...' : 'Browse and import TXT'}
-										</span>
-									</div>
-									<span
-										class="material-icons text-thirdly text-sm opacity-50 group-hover:opacity-100 transition-opacity"
-									>
-										chevron_right
-									</span>
-								</button>
-
-								{#if showTxtImportHelp}
-									<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
-										<p class="text-xs text-secondary font-medium mb-2">Format expected:</p>
-										<p class="text-xs text-thirdly">
-											TXT file with one line per verse translation, in surah verse order, <strong
-												class="text-primary">without basmala</strong
-											>.
-										</p>
-										<div
-											class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
-										>
-											<p>1 First verse translation</p>
-											<p>2 Second verse translation</p>
-											<p>3 Third verse translation</p>
-										</div>
-										{#if txtImportError}
-											<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
-										{/if}
-									</div>
-								{/if}
+						{#if activeTranslationsTab === 'quran-com-api' && isLoadingQdcTranslations}
+							<div class="bg-accent border border-color rounded-lg p-6 text-center">
+								<div
+									class="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"
+								></div>
+								<p class="text-sm text-thirdly">Loading Quran.com API translations...</p>
 							</div>
-						</div>
+						{:else if activeTranslationsTab === 'quran-com-api' && qdcTranslationsError}
+							<div class="bg-accent border border-color rounded-lg p-4 text-sm text-red-400">
+								{qdcTranslationsError}
+							</div>
+						{/if}
 
-						{#each Object.keys(filteredTranslations()) as language (language)}
-							{@const translationFlag = filteredTranslations()[language].flag}
-							{@const translations = filteredTranslations()[language].translations}
+						{#each Object.keys(activeFilteredTranslations()) as language (language)}
+							{@const translationFlag = activeFilteredTranslations()[language].flag}
+							{@const translations = activeFilteredTranslations()[language].translations}
 
 							<!-- Language section -->
 							<div class="bg-accent border border-color rounded-lg overflow-hidden">
@@ -437,7 +513,11 @@
 								<div
 									class="flex items-center gap-3 p-3 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
 								>
-									<img src={translationFlag} alt={language} class="w-6 h-6 shadow-lg" />
+									{#if translationFlag}
+										<img src={translationFlag} alt={language} class="w-6 h-6 shadow-lg" />
+									{:else}
+										<div class="w-6 h-6 rounded-sm bg-black border border-color shrink-0"></div>
+									{/if}
 									<div>
 										<h4 class="font-semibold text-primary">{language}</h4>
 										<p class="text-xs text-thirdly">{translations.length} available</p>
@@ -616,7 +696,22 @@
 		{:else}
 			<!-- Original single column layout when no translation selected -->
 			<div class="h-full overflow-y-auto px-6 py-4 space-y-4">
-				{#if Object.keys(filteredTranslations()).length === 0}
+				{#if activeTranslationsTab === 'quran-com-api' && isLoadingQdcTranslations}
+					<div class="flex flex-col items-center justify-center h-full text-center">
+						<div
+							class="w-10 h-10 border-2 border-accent-primary border-t-transparent rounded-full animate-spin mb-4"
+						></div>
+						<p class="text-thirdly">Loading Quran.com API translations...</p>
+					</div>
+				{:else if activeTranslationsTab === 'quran-com-api' && qdcTranslationsError}
+					<div class="flex flex-col items-center justify-center h-full text-center">
+						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
+							<span class="material-icons text-red-400 text-2xl">error_outline</span>
+						</div>
+						<h3 class="text-lg font-semibold text-primary mb-2">Quran.com API unavailable</h3>
+						<p class="text-thirdly max-w-md">{qdcTranslationsError}</p>
+					</div>
+				{:else if Object.keys(activeFilteredTranslations()).length === 0}
 					<!-- Empty state -->
 					<div class="flex flex-col items-center justify-center h-full text-center">
 						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
@@ -638,7 +733,7 @@
 					</div>
 				{:else}
 					<!-- Import from TXT section at top (hidden when searching) -->
-					{#if !searchQuery}
+					{#if !searchQuery && activeTranslationsTab === 'quran-api'}
 						<div class="bg-accent border border-color rounded-xl overflow-hidden">
 							<!-- TXT Import header -->
 							<div
@@ -701,9 +796,9 @@
 						</div>
 					{/if}
 
-					{#each Object.keys(filteredTranslations()) as language (language)}
-						{@const translationFlag = filteredTranslations()[language].flag}
-						{@const translations = filteredTranslations()[language].translations}
+					{#each Object.keys(activeFilteredTranslations()) as language (language)}
+						{@const translationFlag = activeFilteredTranslations()[language].flag}
+						{@const translations = activeFilteredTranslations()[language].translations}
 
 						<!-- Language section -->
 						<div class="bg-accent border border-color rounded-xl overflow-hidden">
@@ -712,7 +807,11 @@
 								class="flex items-center gap-3 p-4 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
 							>
 								<div class="relative">
-									<img src={translationFlag} alt={language} class="w-8 h-8 shadow-lg" />
+									{#if translationFlag}
+										<img src={translationFlag} alt={language} class="w-8 h-8 shadow-lg" />
+									{:else}
+										<div class="w-8 h-8 rounded-sm bg-black border border-color shrink-0"></div>
+									{/if}
 								</div>
 								<div>
 									<h3 class="font-bold text-lg text-primary">{language}</h3>

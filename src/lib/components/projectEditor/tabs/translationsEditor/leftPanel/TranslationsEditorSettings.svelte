@@ -64,7 +64,7 @@
 		<!-- Liste des traductions -->
 		<div class="space-y-4">
 			{#each globalState.currentProject!.content.projectTranslation.addedTranslationEditions as edition (edition.name)}
-				{#if globalState.availableTranslations && globalState.availableTranslations[edition.language]}
+				{#if globalState.getTranslationMetadata(edition.language)}
 					<EditionViewer {edition} />
 				{/if}
 			{/each}

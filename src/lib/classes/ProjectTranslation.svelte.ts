@@ -4,6 +4,7 @@ import type { Edition } from './Edition';
 import { SerializableBase } from './misc/SerializableBase';
 import { PredefinedSubtitleTranslation, VerseTranslation } from './Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
+import { QdcTranslationService } from '$lib/services/QdcTranslationService';
 
 type TranslationEditionsResponse = Record<string, unknown>;
 type PunctuationVerseItem = [number, string];
@@ -85,16 +86,9 @@ export class ProjectTranslation extends SerializableBase {
 		}
 
 		try {
-			// Build URL for the entire surah
-			const url = this.buildSurahUrl(edition, surah);
-			const response = await fetch(url);
-
-			if (!response.ok) {
-				return;
-			}
-
-			const data = await response.json();
-			const verses = this.extractSurahFromResponse(data, surah, edition);
+			const verses = QdcTranslationService.isQdcEdition(edition)
+				? await QdcTranslationService.getSurahTranslationVerses(edition, surah)
+				: await this.loadLegacySurahTranslation(edition, surah);
 
 			// Cache all verses from the surah
 			for (const verseData of verses) {
@@ -108,6 +102,25 @@ export class ProjectTranslation extends SerializableBase {
 		} catch (error) {
 			console.error('Error loading surah translation:', error);
 		}
+	}
+
+	/**
+	 * Charge la traduction d'une sourate
+	 */
+	private async loadLegacySurahTranslation(
+		edition: Edition,
+		surah: number
+	): Promise<Array<{ verse: number; text: string }>> {
+		// Build URL for the entire surah
+		const url = this.buildSurahUrl(edition, surah);
+		const response = await fetch(url);
+
+		if (!response.ok) {
+			return [];
+		}
+
+		const data = await response.json();
+		return this.extractSurahFromResponse(data, surah, edition);
 	}
 
 	/**
@@ -205,28 +218,30 @@ export class ProjectTranslation extends SerializableBase {
 	async getAllProjectSubtitlesTranslations(edition: Edition) {
 		// Récupère toutes les traductions des sous-titres du projet pour une traduction donnée
 		const translations: { [key: string]: string } = {};
+		const translationMetadata = globalState.getTranslationMetadata(edition.language);
 
 		const versesInProject = new Set<string>();
 
 		for (const predefinedSubtitle of globalState.getPredefinedSubtitleClips) {
 			// Ajoute les versets des sous-titres pré-définis
 			const type = canonicalizePredefinedSubtitleType(predefinedSubtitle.predefinedSubtitleType);
+			if (!translationMetadata) continue;
 			if (type === 'Other') continue;
 
 			if (type === 'Basmala') {
-				translations['Basmala'] = globalState.availableTranslations[edition.language].basmala;
+				translations['Basmala'] = translationMetadata.basmala;
 			} else if (type === "Isti'adha") {
-				translations["Isti'adha"] = globalState.availableTranslations[edition.language].istiadhah;
+				translations["Isti'adha"] = translationMetadata.istiadhah;
 			} else if (type === 'Amin') {
-				translations['Amin'] = globalState.availableTranslations[edition.language].amin;
+				translations['Amin'] = translationMetadata.amin;
 			} else if (type === 'Takbir') {
-				translations['Takbir'] = globalState.availableTranslations[edition.language].takbir;
+				translations['Takbir'] = translationMetadata.takbir;
 			} else if (type === 'Tahmeed') {
-				translations['Tahmeed'] = globalState.availableTranslations[edition.language].tahmeed;
+				translations['Tahmeed'] = translationMetadata.tahmeed;
 			} else if (type === 'Tasleem') {
-				translations['Tasleem'] = globalState.availableTranslations[edition.language].tasleem;
+				translations['Tasleem'] = translationMetadata.tasleem;
 			} else if (type === 'Sadaqa') {
-				translations['Sadaqa'] = globalState.availableTranslations[edition.language].sadaqa;
+				translations['Sadaqa'] = translationMetadata.sadaqa;
 			}
 		}
 
@@ -295,7 +310,10 @@ export class ProjectTranslation extends SerializableBase {
 	}
 
 	getPredefinedSubtitleTranslation(edition: Edition, type: string): PredefinedSubtitleTranslation {
-		const lang = globalState.availableTranslations[edition.language];
+		const lang = globalState.getTranslationMetadata(edition.language);
+		if (!lang) {
+			return new PredefinedSubtitleTranslation('');
+		}
 		const canonicalType = canonicalizePredefinedSubtitleType(type);
 
 		switch (canonicalType) {

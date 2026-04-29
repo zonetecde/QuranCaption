@@ -11,6 +11,7 @@ import { currentMenu } from 'svelte-contextmenu/stores';
 import type Exportation from '$lib/classes/Exportation.svelte';
 import type Settings from '$lib/classes/Settings.svelte';
 import { Status } from '$lib/classes/Status';
+import type { TranslationLanguageData } from '$lib/services/QdcTranslationService';
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 
@@ -25,20 +26,10 @@ class GlobalState {
 	exportations: Exportation[] = $state([]);
 
 	// Contient tout les traductions disponibles
-	availableTranslations: Record<
-		string,
-		{
-			flag: string;
-			basmala: string;
-			istiadhah: string;
-			amin: string;
-			takbir: string;
-			tahmeed: string;
-			tasleem: string;
-			sadaqa: string;
-			translations: Edition[];
-		}
-	> = $state({});
+	availableTranslations: Record<string, TranslationLanguageData> = $state({});
+
+	// Contient les traductions QDC disponibles groupees par langue
+	qdcAvailableTranslations: Record<string, TranslationLanguageData> = $state({});
 
 	// Cache pour le téléchargement des traductions
 	caches = $state(new Map<string, string>());
@@ -153,12 +144,44 @@ class GlobalState {
 	}
 
 	getEditionFromAuthor(author: string): Edition | null {
-		for (const lang of Object.keys(this.availableTranslations)) {
-			const edition = this.availableTranslations[lang].translations.find(
-				(e) => e.author === author
-			);
-			if (edition) return edition;
+		for (const translationsMap of [this.availableTranslations, this.qdcAvailableTranslations]) {
+			for (const lang of Object.keys(translationsMap)) {
+				const edition = translationsMap[lang].translations.find((e) => e.author === author);
+				if (edition) return edition;
+			}
 		}
+		return null;
+	}
+
+	/**
+	 * Récupère les métadonnées de traduction pour une langue donnée.
+	 * @param language La langue pour laquelle récupérer les métadonnées de traduction.
+	 * @returns Les métadonnées de traduction pour la langue spécifiée.
+	 */
+	getTranslationMetadata(language: string): TranslationLanguageData | null {
+		const exactMatch =
+			this.availableTranslations[language] ?? this.qdcAvailableTranslations[language];
+		if (exactMatch) return exactMatch;
+
+		const normalizedLanguage = language.trim().toLowerCase();
+		for (const translationsMap of [this.availableTranslations, this.qdcAvailableTranslations]) {
+			for (const [key, value] of Object.entries(translationsMap)) {
+				if (key.trim().toLowerCase() === normalizedLanguage) {
+					return value;
+				}
+			}
+		}
+
+		// Utilise les métadonnées de traduction en anglais comme solution de repli
+		const englishFallback =
+			this.availableTranslations['English'] ?? this.qdcAvailableTranslations['English'];
+		if (englishFallback) return englishFallback;
+
+		for (const translationsMap of [this.availableTranslations, this.qdcAvailableTranslations]) {
+			const firstValue = Object.values(translationsMap)[0];
+			if (firstValue) return firstValue;
+		}
+
 		return null;
 	}
 

@@ -29,6 +29,7 @@
 		() => globalState.currentProject!.projectEditorState.translationsEditor
 	);
 	let isInlineStyleMode = $derived(() => translationsEditorState().isInlineStyleMode);
+	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
 
 	// Variables pour gérer le glisser-déposer
 	let isDragging = $state(false);
@@ -434,12 +435,10 @@
 		<!-- En-tête avec flag et info -->
 		<div class="flex items-center gap-3 pb-2 border-b border-color">
 			<div class="flex items-center gap-2">
-				{#if globalState.availableTranslations && globalState.availableTranslations[edition.language]}
-					<img
-						src={globalState.availableTranslations[edition.language].flag}
-						alt={edition.language}
-						class="w-5 h-5 rounded"
-					/>
+				{#if translationMetadata()?.flag}
+					<img src={translationMetadata()!.flag} alt={edition.language} class="w-5 h-5 rounded" />
+				{:else if translationMetadata()}
+					<div class="w-5 h-5 rounded-sm bg-black border border-color shrink-0"></div>
 				{/if}
 				<div>
 					<p class="text-primary text-sm font-medium">{edition.language}</p>

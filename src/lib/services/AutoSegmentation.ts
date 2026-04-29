@@ -2106,13 +2106,6 @@ export async function automaticSplitSubtitleAtWord(
 		return false;
 	}
 
-	const shouldRefreshLongMarks = globalState.getSubtitleClips.some(
-		(candidate) => candidate.needsLongReview
-	);
-	if (shouldRefreshLongMarks) {
-		markLongSegmentsForReview(globalState.getSubtitlesEditorState.longSegmentMinWords);
-	}
-
 	refreshSegmentationContextFromTrack(false);
 	globalState.currentProject?.detail.updateVideoDetailAttributes();
 	globalState.updateVideoPreviewUI();
@@ -2162,7 +2155,6 @@ export async function subdivideLongSubtitleSegments(): Promise<number> {
 	}
 
 	if (splitCount > 0) {
-		markLongSegmentsForReview(state.longSegmentMinWords);
 		refreshSegmentationContextFromTrack(false);
 		globalState.currentProject?.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();

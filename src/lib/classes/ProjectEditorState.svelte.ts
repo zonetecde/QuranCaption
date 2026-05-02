@@ -139,7 +139,9 @@ export class StylesEditorState extends SerializableBase {
 
 		const selectionUnit = this.getSelectionUnitForSubtitle(clip);
 		const selectionUnitIds = new Set(selectionUnit.map((subtitle) => subtitle.id));
-		const isWholeUnitAlreadySelected = selectionUnit.every((subtitle) => this.isSelected(subtitle.id));
+		const isWholeUnitAlreadySelected = selectionUnit.every((subtitle) =>
+			this.isSelected(subtitle.id)
+		);
 
 		if (isWholeUnitAlreadySelected) {
 			this.selectedSubtitles = this.selectedSubtitles.filter(
@@ -334,7 +336,7 @@ export class SubtitlesEditorState extends SerializableBase {
 	subdivideMaxVersesPerSegment: number = $state(1);
 	subdivideMaxWordsPerSegment: number = $state(30);
 	subdivideMaxDurationPerSegment: number = $state(30);
-	subdivideOnlySplitAtStopSigns: boolean = $state(false);
+	subdivideOnlySplitAtStopSigns: boolean = $state(true);
 }
 
 export class TranslationsEditorState extends SerializableBase {

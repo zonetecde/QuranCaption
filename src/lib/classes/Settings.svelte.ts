@@ -72,6 +72,7 @@ export default class Settings extends SerializableBase {
 		lastClosedDonationPromptModal: new Date(0).toISOString(),
 		donationPromptImpressions: 0,
 		videoExportFolder: '',
+		showTimelineWheelHints: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
 		theme: 'default' as
@@ -341,6 +342,11 @@ export default class Settings extends SerializableBase {
 
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
 			settings.exportSettings = {} as ExportSettings;
+			shouldSave = true;
+		}
+
+		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
+			settings.persistentUiState.showTimelineWheelHints = true;
 			shouldSave = true;
 		}
 

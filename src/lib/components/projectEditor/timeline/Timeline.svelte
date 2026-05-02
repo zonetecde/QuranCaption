@@ -14,6 +14,7 @@
 	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
+	import Settings from '$lib/classes/Settings.svelte';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
@@ -565,6 +566,12 @@
 		}
 	}
 
+	async function dismissTimelineWheelHints(): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.persistentUiState.showTimelineWheelHints = false;
+		await Settings.save();
+	}
+
 	onDestroy(() => {
 		unregisterSplitShortcut();
 		unregisterRemoveShortcut();
@@ -692,15 +699,25 @@
 	</div>
 </section>
 
-<div
-	class="fixed right-0 bottom-0 z-[1200] text-[10px] leading-[1.2] text-thirdly bg-secondary opacity-40 border border-color rounded-tl-md px-2 pb-2 pt-1 pointer-events-auto select-none backdrop-blur-[4px] hover:opacity-100 transition-opacity duration-150"
-	aria-hidden="true"
->
-	<div>Ctrl + Scroll = Zoom</div>
-	<div>Ctrl + Shift + Scroll = Horizontal Scroll</div>
-	<div>Scroll = Vertical Scroll</div>
-	<div>Alt + Scroll = Frame-by-frame Cursor</div>
-</div>
+{#if globalState.settings?.persistentUiState.showTimelineWheelHints ?? true}
+	<div
+		class="fixed right-0 bottom-0 z-[1200] text-[10px] leading-[1.2] text-thirdly bg-secondary opacity-40 border border-color rounded-tl-md px-2 pb-2 pt-1 pointer-events-auto select-none backdrop-blur-[4px] hover:opacity-100 transition-opacity duration-150"
+		aria-hidden="true"
+	>
+		<button
+			class="absolute right-1 top-0 text-[15px] bg-primary leading-none text-thirdly hover:text-primary pointer-events-auto"
+			type="button"
+			onclick={dismissTimelineWheelHints}
+			aria-label="Dismiss timeline wheel hints"
+		>
+			×
+		</button>
+		<div>Ctrl + Scroll = Zoom</div>
+		<div>Ctrl + Shift + Scroll = Horizontal Scroll</div>
+		<div>Scroll = Vertical Scroll</div>
+		<div>Alt + Scroll = Frame-by-frame Cursor</div>
+	</div>
+{/if}
 
 <style>
 	.timeline-container {

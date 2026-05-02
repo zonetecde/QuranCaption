@@ -100,7 +100,7 @@
 	 */
 	function getMergeButtonClass(mode: VisualMergeMode): string {
 		return (
-			'py-1.5 xl:text-sm text-xs xl:px-2 ' +
+			'py-1.5 2xl:text-sm text-xs 2xl:px-2 ' +
 			(activeVisualMergeMode() === mode ? 'btn-accent' : 'btn')
 		);
 	}
@@ -185,7 +185,7 @@
 	class="bg-secondary h-full border border-color mx-0.5 rounded-xl relative flex flex-col shadow"
 >
 	<!-- En-tête avec icône -->
-	<div class="flex gap-x-2 items-center px-3 mb-2 mt-4">
+	<div class="flex gap-x-2 items-center px-3 mb-2 mt-4 style-editor-header-row">
 		<span class="material-icons-outlined text-accent text-2xl">auto_fix_high</span>
 		<h2 class="text-xl font-semibold text-primary tracking-wide">Style Editor</h2>
 
@@ -201,9 +201,9 @@
 	</div>
 
 	<div
-		class="flex flex-col px-3 py-3 bg-[var(--bg-primary)]/60 border border-b-0 rounded-b-none border-[var(--border-color)]/50 rounded-xl gap-y-2"
+		class="flex flex-col px-3 py-3 bg-[var(--bg-primary)]/60 border border-b-0 rounded-b-none border-[var(--border-color)]/50 rounded-xl gap-y-2 style-editor-top-controls"
 	>
-		<p class="text-sm text-secondary">Choose a target</p>
+		<p class="text-sm text-secondary style-editor-target-label">Choose a target</p>
 		<div data-tour-id="style-subtabs" class="w-full grid grid-cols-3 gap-2">
 			{#each ['global', 'arabic', 'translation'] as selection (selection)}
 				<button
@@ -302,7 +302,7 @@
 						<span class="material-icons-outlined text-base mt-0.5">merge_type</span>
 						<div class="flex-1">
 							<p class="font-medium">Visual merge</p>
-							<p class="mt-0.5 text-xs leading-relaxed text-secondary">
+							<p class="mt-0.5 text-xs leading-relaxed text-secondary visual-merge-description">
 								Merge only the on-screen rendering.
 							</p>
 						</div>
@@ -334,7 +334,7 @@
 
 					{#if activeVisualMergeGroupId()}
 						<button
-							class="btn mt-2 w-full py-1.5 xl:text-sm text-xs"
+							class="btn mt-2 w-full py-1.5 2xl:text-sm text-xs"
 							onclick={unmergeSelectedVisualGroup}
 						>
 							Unmerge Group
@@ -372,7 +372,7 @@
 
 		{#if globalState.getStylesState.selectedSubtitles.length <= 1}
 			<div
-				class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-[var(--text-primary)]"
+				class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-[var(--text-primary)] style-selection-hint-box"
 			>
 				<span class="material-icons-outlined text-base mt-0.5">info</span>
 				<p class="text-xs leading-relaxed style-selection-hint-label">
@@ -590,6 +590,32 @@
 		.style-selection-hint-label {
 			font-size: 0.625rem;
 			line-height: 1.1;
+		}
+	}
+
+	@media (max-height: 780px), (max-width: 420px) {
+		.style-editor-target-label,
+		.visual-merge-description,
+		.style-selection-hint-box {
+			display: none;
+		}
+
+		.style-selection-count-label {
+			display: -webkit-box;
+			-webkit-line-clamp: 1;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+		}
+
+		.style-editor-header-row {
+			margin-top: 0.5rem;
+			margin-bottom: 0.25rem;
+		}
+
+		.style-editor-top-controls {
+			padding-top: 0.5rem;
+			padding-bottom: 0.5rem;
+			gap: 0.375rem;
 		}
 	}
 </style>

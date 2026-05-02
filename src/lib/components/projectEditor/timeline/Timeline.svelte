@@ -512,6 +512,23 @@
 	}
 
 	function handleMouseWheelWheeling(event: WheelEvent) {
+		if (event.ctrlKey && event.shiftKey) {
+			const eventTarget = event.target;
+			if (!(eventTarget instanceof Element)) return;
+
+			const scrollTarget = eventTarget.closest('.timeline-ruler')
+				? timelineDiv
+				: eventTarget.closest('.timeline-tracks')
+					? timelineTracksDiv
+					: (timelineTracksDiv ?? timelineDiv);
+
+			if (!scrollTarget) return;
+
+			event.preventDefault();
+			scrollTarget.scrollLeft += event.deltaX || event.deltaY;
+			return;
+		}
+
 		// Si la touche CTRL est enfoncée
 		if (event.ctrlKey) {
 			// Zoom avant ou arrière
@@ -530,6 +547,7 @@
 		}
 
 		if (event.altKey && !globalState.getVideoPreviewState.isPlaying) {
+			event.preventDefault();
 			const frameDurationMs = 1000 / Math.max(globalState.getExportState.fps, 1);
 			const direction = event.deltaY > 0 ? 1 : -1;
 			const newPosition = Math.max(1, timelineState().cursorPosition + direction * frameDurationMs);
@@ -541,19 +559,10 @@
 			return;
 		}
 
-		const eventTarget = event.target;
-		if (!(eventTarget instanceof Element)) return;
-
-		const scrollTarget = eventTarget.closest('.timeline-ruler')
-			? timelineDiv
-			: eventTarget.closest('.timeline-tracks')
-				? timelineTracksDiv
-				: (timelineTracksDiv ?? timelineDiv);
-
-		if (!scrollTarget) return;
-
 		event.preventDefault();
-		scrollTarget.scrollLeft += event.deltaX || event.deltaY;
+		if (timelineTracksDiv) {
+			timelineTracksDiv.scrollTop += event.deltaY;
+		}
 	}
 
 	onDestroy(() => {

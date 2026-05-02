@@ -692,6 +692,16 @@
 	</div>
 </section>
 
+<div
+	class="fixed right-0 bottom-0 z-[1200] text-[10px] leading-[1.2] text-thirdly bg-secondary opacity-40 border border-color rounded-tl-md px-2 pb-2 pt-1 pointer-events-auto select-none backdrop-blur-[4px] hover:opacity-100 transition-opacity duration-150"
+	aria-hidden="true"
+>
+	<div>Ctrl + Scroll = Zoom</div>
+	<div>Ctrl + Shift + Scroll = Horizontal Scroll</div>
+	<div>Scroll = Vertical Scroll</div>
+	<div>Alt + Scroll = Frame-by-frame Cursor</div>
+</div>
+
 <style>
 	.timeline-container {
 		display: flex;

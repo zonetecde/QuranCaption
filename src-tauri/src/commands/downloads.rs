@@ -229,6 +229,13 @@ pub async fn download_from_youtube(
         ]),
         _ => return Err("Invalid type: must be 'audio' or 'video'".to_string()),
     }
+
+    let lowered_url = url.to_ascii_lowercase();
+    let has_playlist = lowered_url.contains("list=");
+    let has_explicit_video = lowered_url.contains("v=") || lowered_url.contains("youtu.be/");
+    if has_playlist && has_explicit_video {
+        args.push("--no-playlist");
+    }
     args.push(&url);
 
     let mut cmd = Command::new(&yt_dlp_path);

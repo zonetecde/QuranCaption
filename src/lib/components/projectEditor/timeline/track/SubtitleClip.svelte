@@ -553,21 +553,41 @@
 
 	.visual-merged {
 		border-radius: 0 !important;
+		border-top-width: 2px !important;
+		border-bottom-width: 2px !important;
 		border-left-color: transparent !important;
 		border-right-color: transparent !important;
-		border-top-color: rgba(110, 231, 183, 0.75) !important;
-		border-bottom-color: rgba(110, 231, 183, 0.75) !important;
+		border-top-color: color-mix(
+			in srgb,
+			var(--timeline-subtitle-clip-border) 100%,
+			black
+		) !important;
+		border-bottom-color: color-mix(
+			in srgb,
+			var(--timeline-subtitle-clip-border) 100%,
+			black
+		) !important;
 		box-shadow: inset 0 -8px 0 rgba(16, 185, 129, 0.2);
 	}
 
 	.visual-merged-first {
-		border-left-color: rgba(110, 231, 183, 0.75) !important;
+		border-left-width: 2px !important;
+		border-left-color: color-mix(
+			in srgb,
+			var(--timeline-subtitle-clip-border) 75%,
+			black
+		) !important;
 		border-top-left-radius: 0.375rem !important;
 		border-bottom-left-radius: 0.375rem !important;
 	}
 
 	.visual-merged-last {
-		border-right-color: rgba(110, 231, 183, 0.75) !important;
+		border-right-width: 2px !important;
+		border-right-color: color-mix(
+			in srgb,
+			var(--timeline-subtitle-clip-border) 75%,
+			black
+		) !important;
 		border-top-right-radius: 0.375rem !important;
 		border-bottom-right-radius: 0.375rem !important;
 	}

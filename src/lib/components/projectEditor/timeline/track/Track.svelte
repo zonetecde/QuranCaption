@@ -258,8 +258,8 @@
 		height: 18px;
 		width: 22px;
 		border-radius: 9999px 9999px 0 0;
-		border: 1px solid rgba(16, 185, 129, 0.9);
-		background: rgba(16, 185, 129, 0.92);
+		border: 1px solid var(--timeline-subtitle-clip-border);
+		background: rgb(from var(--timeline-subtitle-clip-color) r g b / 100%);
 		color: #000000;
 		display: flex;
 		align-items: center;
@@ -271,6 +271,7 @@
 
 	.timeline-quick-merge-button:hover {
 		opacity: 1;
-		background: rgba(5, 150, 105, 0.95);
+		background: rgb(from var(--timeline-subtitle-clip-color) r g b / 80%);
+		filter: brightness(0.85);
 	}
 </style>

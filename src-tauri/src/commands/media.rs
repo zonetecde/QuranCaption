@@ -534,6 +534,99 @@ pub fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String
     }
 }
 
+/// Detects whether the primary media stream uses a near-constant bitrate.
+///
+/// For video containers, this checks audio stream `a:0` first (subtitle sync issue is audio-driven),
+/// then falls back to video stream `v:0` if no audio packets are available.
+#[tauri::command]
+pub fn is_constant_bitrate(file_path: String) -> Result<bool, String> {
+    let file_path = path_utils::normalize_existing_path(&file_path);
+    let file_path_str = file_path.to_string_lossy().to_string();
+    if !file_path.exists() {
+        return Err(format!("File not found: {}", file_path_str));
+    }
+
+    let ffprobe_path =
+        binaries::resolve_binary_detailed("ffprobe").map_err(map_ffprobe_resolve_error)?;
+
+    fn probe_stream_variation(
+        ffprobe_path: &str,
+        file_path_str: &str,
+        stream_selector: &str,
+    ) -> Result<Option<f64>, String> {
+        let mut cmd = Command::new(ffprobe_path);
+        cmd.args([
+            "-v",
+            "error",
+            "-select_streams",
+            stream_selector,
+            "-show_entries",
+            "packet=size,duration_time",
+            "-of",
+            "csv=p=0",
+            file_path_str,
+        ]);
+        configure_command_no_window(&mut cmd);
+
+        let output = cmd.output().map_err(|e| {
+            format_ffprobe_exec_failed(&format!("Unable to execute ffprobe: {}", e))
+        })?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format_ffprobe_exec_failed(&stderr));
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let mut bitrates: Vec<f64> = Vec::new();
+
+        for line in stdout.lines() {
+            let mut parts = line.split(',');
+            let size = parts.next().and_then(|v| v.trim().parse::<f64>().ok());
+            let duration = parts.next().and_then(|v| v.trim().parse::<f64>().ok());
+            let (Some(size_bytes), Some(duration_seconds)) = (size, duration) else {
+                continue;
+            };
+            if duration_seconds <= 0.0 {
+                continue;
+            }
+            let bitrate = (size_bytes * 8.0) / duration_seconds;
+            if bitrate.is_finite() && bitrate > 0.0 {
+                bitrates.push(bitrate);
+            }
+        }
+
+        if bitrates.len() < 20 {
+            return Ok(None);
+        }
+
+        let mean = bitrates.iter().sum::<f64>() / bitrates.len() as f64;
+        if mean <= 0.0 {
+            return Ok(None);
+        }
+        let variance = bitrates
+            .iter()
+            .map(|v| {
+                let d = v - mean;
+                d * d
+            })
+            .sum::<f64>()
+            / bitrates.len() as f64;
+        let stddev = variance.sqrt();
+        Ok(Some(stddev / mean))
+    }
+
+    let variation = probe_stream_variation(&ffprobe_path, &file_path_str, "a:0")?
+        .or(probe_stream_variation(&ffprobe_path, &file_path_str, "v:0")?);
+
+    // If we cannot reliably sample enough packets, avoid false warnings.
+    let Some(relative_stddev) = variation else {
+        return Ok(true);
+    };
+
+    // <= 5% relative stddev is considered "near CBR" for practical subtitle sync guidance.
+    Ok(relative_stddev <= 0.05)
+}
+
 /// Coupe une portion audio sans ré-encodage (copie de flux).
 #[tauri::command]
 pub fn cut_audio(

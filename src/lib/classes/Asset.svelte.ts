@@ -6,6 +6,7 @@ import { openPath } from '@tauri-apps/plugin-opener';
 import { exists } from '@tauri-apps/plugin-fs';
 import { globalState } from '$lib/runes/main.svelte.js';
 import { Duration } from './index.js';
+import toast from 'svelte-5-french-toast';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 import type { UnknownRecord } from '$lib/types/common.js';
@@ -143,6 +144,7 @@ export class Asset extends SerializableBase {
 
 			this.duration = new Duration(durationMs);
 			this.durationLoadState = 'success';
+			await this.warnIfNotConstantBitrate();
 
 			if (durationMs === -1) {
 				this.duration = new Duration(0);
@@ -161,6 +163,28 @@ export class Asset extends SerializableBase {
 				this.durationLoadError = 'Unable to retrieve media duration. Please check the logs.';
 				console.error('Unable to retrieve media duration', error);
 			}
+		}
+	}
+
+	/**
+	 * Checks bitrate mode and shows a guidance toast when media is not constant bitrate.
+	 * @returns A promise that resolves when the check completes.
+	 */
+	private async warnIfNotConstantBitrate(): Promise<void> {
+		if (this.type !== AssetType.Audio && this.type !== AssetType.Video) return;
+
+		try {
+			const isConstant = (await invoke('is_constant_bitrate', {
+				filePath: this.filePath
+			})) as boolean;
+			if (isConstant) return;
+
+			toast(
+				'Your media uses variable bitrate (VBR). This may cause audio-subtitle sync issues. Convert it to constant bitrate (CBR) in the Video Editor: hover over your asset and click "Convert to CBR".',
+				{ duration: 18000, position: 'bottom-left' }
+			);
+		} catch (error) {
+			console.warn('Unable to detect bitrate mode for asset:', error);
 		}
 	}
 

@@ -32,6 +32,9 @@ export class Project extends SerializableBase {
 				projectsDetail.updatedAt = this.detail.updatedAt;
 			}
 		} else {
+			if (updateUpdateAt) {
+				this.detail.updateTimestamp();
+			}
 			globalState.userProjectsDetails.unshift(this.detail);
 		}
 

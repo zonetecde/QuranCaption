@@ -110,7 +110,7 @@
 	async function selectStatus(s: Status) {
 		projectDetail.status = s;
 		showStatusMenu = false;
-		await ProjectService.saveDetail(projectDetail);
+		await ProjectService.saveDetail(projectDetail, false);
 	}
 
 	function toggleStatusMenu(e: MouseEvent) {

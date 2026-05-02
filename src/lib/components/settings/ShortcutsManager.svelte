@@ -239,6 +239,41 @@
 				</div>
 			</div>
 		{/each}
+
+		<div class="space-y-4">
+			<div class="flex items-center gap-2">
+				<span class="material-icons text-accent">timeline</span>
+				<h3 class="text-base font-semibold text-primary">Timeline</h3>
+			</div>
+			<p class="text-xs text-secondary">Mouse wheel shortcuts available in the timeline.</p>
+
+			<div class="mt-2 rounded-xl border border-border-color bg-primary/20">
+				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
+					<div class="flex-1 min-w-0">
+						<div class="text-sm font-medium text-primary truncate">Zoom</div>
+						<div class="text-xs text-secondary">Ctrl + Scroll</div>
+					</div>
+				</div>
+				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
+					<div class="flex-1 min-w-0">
+						<div class="text-sm font-medium text-primary truncate">Horizontal Scroll</div>
+						<div class="text-xs text-secondary">Ctrl + Shift + Scroll</div>
+					</div>
+				</div>
+				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
+					<div class="flex-1 min-w-0">
+						<div class="text-sm font-medium text-primary truncate">Vertical Scroll</div>
+						<div class="text-xs text-secondary">Scroll</div>
+					</div>
+				</div>
+				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
+					<div class="flex-1 min-w-0">
+						<div class="text-sm font-medium text-primary truncate">Frame-by-frame Cursor</div>
+						<div class="text-xs text-secondary">Alt + Scroll</div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 {/if}
 

@@ -89,26 +89,92 @@ export class StylesEditorState extends SerializableBase {
 		return this.selectedVideos.some((clip) => clip.id === id);
 	}
 
+	/**
+	 * Retourne l'unite de selection reelle d'un sous-titre.
+	 * Un clip merge visuellement selectionne toujours tout son groupe.
+	 *
+	 * @param {SubtitleClip | PredefinedSubtitleClip} clip Clip a expandre.
+	 * @returns {Array<SubtitleClip | PredefinedSubtitleClip>} Clips a selectionner ensemble.
+	 */
+	getSelectionUnitForSubtitle(
+		clip: SubtitleClip | PredefinedSubtitleClip
+	): Array<SubtitleClip | PredefinedSubtitleClip> {
+		if (clip instanceof SubtitleClip && globalState.currentProject) {
+			const mergeGroup = globalState.getSubtitleTrack.getVisualMergeGroupForClipId(clip.id);
+			if (mergeGroup) return mergeGroup.clips;
+		}
+
+		return [clip];
+	}
+
+	/**
+	 * Normalise une selection de sous-titres pour garantir qu'aucun groupe merge
+	 * n'est present partiellement, puis la retrie selon l'ordre de la timeline.
+	 *
+	 * @param {Array<SubtitleClip | PredefinedSubtitleClip>} selection Selection brute.
+	 * @returns {Array<SubtitleClip | PredefinedSubtitleClip>} Selection normalisee.
+	 */
+	normalizeSubtitleSelection(
+		selection: Array<SubtitleClip | PredefinedSubtitleClip>
+	): Array<SubtitleClip | PredefinedSubtitleClip> {
+		const expandedSelection = selection.flatMap((clip) => this.getSelectionUnitForSubtitle(clip));
+		const uniqueSelection = Array.from(
+			new Map(expandedSelection.map((clip) => [clip.id, clip])).values()
+		);
+
+		if (!globalState.currentProject) return uniqueSelection;
+
+		return uniqueSelection.sort((firstClip, secondClip) => {
+			return (
+				globalState.getSubtitleTrack.clips.findIndex((trackClip) => trackClip.id === firstClip.id) -
+				globalState.getSubtitleTrack.clips.findIndex((trackClip) => trackClip.id === secondClip.id)
+			);
+		});
+	}
+
 	toggleSelection(clip: SubtitleClip | PredefinedSubtitleClip) {
 		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
-		// Les sélections sous-titres/vidéos sont mutuellement exclusives.
+		// Les selections sous-titres/videos sont mutuellement exclusives.
 		this.selectedVideos = [];
 
-		if (this.isSelected(clip.id)) {
-			this.selectedSubtitles = this.selectedSubtitles.filter((subtitle) => subtitle.id !== clip.id);
+		const selectionUnit = this.getSelectionUnitForSubtitle(clip);
+		const selectionUnitIds = new Set(selectionUnit.map((subtitle) => subtitle.id));
+		const isWholeUnitAlreadySelected = selectionUnit.every((subtitle) => this.isSelected(subtitle.id));
+
+		if (isWholeUnitAlreadySelected) {
+			this.selectedSubtitles = this.selectedSubtitles.filter(
+				(subtitle) => !selectionUnitIds.has(subtitle.id)
+			);
 		} else {
-			this.selectedSubtitles.push(clip);
+			this.selectedSubtitles = this.normalizeSubtitleSelection([
+				...this.selectedSubtitles,
+				...selectionUnit
+			]);
 		}
 	}
 
 	selectOnly(clip: SubtitleClip | PredefinedSubtitleClip) {
 		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
-		// Les sélections sous-titres/vidéos sont mutuellement exclusives.
+		// Les selections sous-titres/videos sont mutuellement exclusives.
 		this.selectedVideos = [];
-		this.selectedSubtitles = [clip];
+		this.selectedSubtitles = this.normalizeSubtitleSelection([clip]);
 	}
 
 	removeSelection(id: number) {
+		const clipToRemove = globalState.currentProject
+			? globalState.getSubtitleTrack.clips.find((clip) => clip.id === id)
+			: null;
+
+		if (clipToRemove instanceof SubtitleClip || clipToRemove instanceof PredefinedSubtitleClip) {
+			const selectionUnitIds = new Set(
+				this.getSelectionUnitForSubtitle(clipToRemove).map((subtitle) => subtitle.id)
+			);
+			this.selectedSubtitles = this.selectedSubtitles.filter(
+				(subtitle) => !selectionUnitIds.has(subtitle.id)
+			);
+			return;
+		}
+
 		this.selectedSubtitles = this.selectedSubtitles.filter((subtitle) => subtitle.id !== id);
 	}
 

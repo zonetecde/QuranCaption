@@ -31,6 +31,8 @@ type ArabicRenderParts = {
 	suffixFontFamily: string | null;
 };
 
+export type VisualMergeMode = 'arabic' | 'translation' | 'both';
+
 export class Clip extends SerializableBase {
 	id: number;
 	startTime: number = $state(0);
@@ -338,6 +340,8 @@ export class SubtitleClip extends ClipWithTranslation {
 	indopakText: string;
 	private isHydratingIndopakText = false;
 	alignmentMetadata: SubtitleAlignmentMetadata | null = $state(null);
+	visualMergeGroupId: string | null = $state(null);
+	visualMergeMode: VisualMergeMode | null = $state(null);
 	wbwTranslation: string[]; // Traduction mot à mot
 	isFullVerse: boolean; // Indique si ce clip contient l'intégralité du verset
 	isLastWordsOfVerse: boolean; // Indique si ce clip contient les derniers mots du verset
@@ -384,6 +388,34 @@ export class SubtitleClip extends ClipWithTranslation {
 			audioId: null,
 			alignedSegments: []
 		};
+	}
+
+	/**
+	 * Associe ce clip a un groupe de merge visuel.
+	 * @param {string} groupId Identifiant du groupe.
+	 * @param {VisualMergeMode} mode Mode de merge applique.
+	 * @returns {void}
+	 */
+	setVisualMerge(groupId: string, mode: VisualMergeMode): void {
+		this.visualMergeGroupId = groupId;
+		this.visualMergeMode = mode;
+	}
+
+	/**
+	 * Retire le merge visuel de ce clip.
+	 * @returns {void}
+	 */
+	clearVisualMerge(): void {
+		this.visualMergeGroupId = null;
+		this.visualMergeMode = null;
+	}
+
+	/**
+	 * Indique si le clip appartient a un groupe de merge visuel.
+	 * @returns {boolean} `true` si le clip est merge visuellement.
+	 */
+	isVisuallyMerged(): boolean {
+		return !!this.visualMergeGroupId && !!this.visualMergeMode;
 	}
 
 	/**
@@ -595,6 +627,8 @@ export class SubtitleClip extends ClipWithTranslation {
 		clonedClip.alignmentMetadata = this.alignmentMetadata
 			? JSON.parse(JSON.stringify(this.alignmentMetadata))
 			: null;
+		clonedClip.visualMergeGroupId = this.visualMergeGroupId;
+		clonedClip.visualMergeMode = this.visualMergeMode;
 		return clonedClip;
 	}
 }

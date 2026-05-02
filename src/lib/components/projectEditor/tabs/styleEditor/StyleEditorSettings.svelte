@@ -6,6 +6,12 @@
 	import ImportExportStyle from './ImportExportStyle.svelte';
 	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
+	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
+	import {
+		canMergeArabicVisualModes,
+		getActiveVisualMergeGroupId,
+		getActiveVisualMergeMode
+	} from './visualMergeStyleUtils';
 
 	const getCategoriesToDisplay = $derived(() => {
 		const target = globalState.getStylesState.getCurrentSelection();
@@ -22,6 +28,30 @@
 
 	let stylesContainer: HTMLDivElement | undefined;
 	let importExportMenuVisible = $state(false);
+
+	const visualMergeSelection = $derived(() =>
+		globalState.getSubtitleTrack.getVisualMergeSelection(
+			globalState.getStylesState.selectedSubtitles
+		)
+	);
+
+	const activeVisualMergeMode = $derived(() => {
+		return getActiveVisualMergeMode(
+			globalState.getStylesState.selectedSubtitles,
+			globalState.getSubtitleTrack
+		);
+	});
+
+	const activeVisualMergeGroupId = $derived(() => {
+		return getActiveVisualMergeGroupId(
+			globalState.getStylesState.selectedSubtitles,
+			activeVisualMergeMode()
+		);
+	});
+
+	const canMergeArabicModes = $derived(() => {
+		return canMergeArabicVisualModes(visualMergeSelection(), globalState.getSubtitleTrack);
+	});
 
 	onMount(async () => {
 		// Assure la présence des nouveaux styles ajoutés par les updates.
@@ -49,6 +79,40 @@
 
 	function clearSearch() {
 		globalState.getStylesState.searchQuery = '';
+	}
+
+	/**
+	 * Applique un merge visuel sur la selection courante.
+	 * @param {VisualMergeMode} mode Mode de merge choisi.
+	 * @returns {void}
+	 */
+	function applyVisualMerge(mode: VisualMergeMode): void {
+		globalState.getSubtitleTrack.applyVisualMerge(
+			globalState.getStylesState.selectedSubtitles,
+			mode
+		);
+	}
+
+	/**
+	 * Retourne la classe du bouton de merge selon le mode actif.
+	 * @param {VisualMergeMode} mode Mode represente par le bouton.
+	 * @returns {string} Classes CSS a appliquer.
+	 */
+	function getMergeButtonClass(mode: VisualMergeMode): string {
+		return (
+			'py-1.5 xl:text-sm text-xs xl:px-2 ' +
+			(activeVisualMergeMode() === mode ? 'btn-accent' : 'btn')
+		);
+	}
+
+	/**
+	 * Retire le merge visuel du groupe actuellement selectionne.
+	 * @returns {void}
+	 */
+	function unmergeSelectedVisualGroup(): void {
+		const groupId = activeVisualMergeGroupId();
+		if (!groupId) return;
+		globalState.getSubtitleTrack.unmergeVisualGroup(groupId);
 	}
 
 	/**
@@ -231,6 +295,53 @@
 					<span class="text-sm">Clear</span>
 				</button>
 			</div>
+
+			{#if visualMergeSelection() && canMergeArabicModes()}
+				<div class="rounded-lg border border-emerald-400/30 bg-emerald-500/8 px-3 py-2">
+					<div class="flex items-start gap-2 text-sm text-[var(--text-primary)]">
+						<span class="material-icons-outlined text-base mt-0.5">merge_type</span>
+						<div class="flex-1">
+							<p class="font-medium">Visual merge</p>
+							<p class="mt-0.5 text-xs leading-relaxed text-secondary">
+								Merge only the on-screen rendering.
+							</p>
+						</div>
+					</div>
+
+					<div class="mt-2 grid grid-cols-3 gap-2">
+						<button
+							data-testid="Merge Arabic"
+							class={getMergeButtonClass('arabic')}
+							onclick={() => applyVisualMerge('arabic')}
+						>
+							Arabic
+						</button>
+						<button
+							data-testid="Merge Translation"
+							class={getMergeButtonClass('translation')}
+							onclick={() => applyVisualMerge('translation')}
+						>
+							Translation
+						</button>
+						<button
+							data-testid="Merge Both"
+							class={getMergeButtonClass('both')}
+							onclick={() => applyVisualMerge('both')}
+						>
+							Both
+						</button>
+					</div>
+
+					{#if activeVisualMergeGroupId()}
+						<button
+							class="btn mt-2 w-full py-1.5 xl:text-sm text-xs"
+							onclick={unmergeSelectedVisualGroup}
+						>
+							Unmerge Group
+						</button>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 
 		{#if globalState.getStylesState.selectedVideos.length > 0}
@@ -259,16 +370,18 @@
 			</div>
 		{/if}
 
-		<div
-			class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-[var(--text-primary)]"
-		>
-			<span class="material-icons-outlined text-base mt-0.5">info</span>
-			<p class="text-xs leading-relaxed style-selection-hint-label">
-				Click a subtitle or a video clip to select only it. Press <span class="font-semibold"
-					>Ctrl + Left Click</span
-				> to select multiple clips.
-			</p>
-		</div>
+		{#if globalState.getStylesState.selectedSubtitles.length <= 1}
+			<div
+				class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-[var(--text-primary)]"
+			>
+				<span class="material-icons-outlined text-base mt-0.5">info</span>
+				<p class="text-xs leading-relaxed style-selection-hint-label">
+					Click a subtitle or a video clip to select only it. Press <span class="font-semibold"
+						>Ctrl + Left Click</span
+					> to select multiple clips.
+				</p>
+			</div>
+		{/if}
 	</div>
 	<div
 		class="flex flex-col gap-y-2 px-1 bg-[var(--bg-primary)]/60 rounded-xl border border-[var(--border-color)]/50 overflow-y-auto pb-10 rounded-t-none border-t-2 flex-1 py-1"

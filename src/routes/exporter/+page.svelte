@@ -819,11 +819,11 @@
 				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
-				// Important: le +1 sinon le svg de la sourate est le mauvais
-				globalState.getTimelineState.movePreviewTo = timing + 1;
-				globalState.getTimelineState.cursorPosition = timing + 1;
+				const captureTiming = timings.exactCaptureTimings.has(timing) ? timing : timing + 1;
+				globalState.getTimelineState.movePreviewTo = captureTiming;
+				globalState.getTimelineState.cursorPosition = captureTiming;
 
-				await wait(timing + 1);
+				await wait(captureTiming);
 
 				await takeScreenshot(`${imageIndex}`);
 
@@ -873,7 +873,20 @@
 				startTime: clip.startTime,
 				endTime: clip.endTime,
 				kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
-				surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined
+				surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined,
+				visualMergeGroupId:
+					'visualMergeGroupId' in clip &&
+					(typeof clip.visualMergeGroupId === 'string' || clip.visualMergeGroupId === null)
+						? clip.visualMergeGroupId
+						: undefined,
+				visualMergeMode:
+					'visualMergeMode' in clip &&
+					(clip.visualMergeMode === 'arabic' ||
+						clip.visualMergeMode === 'translation' ||
+						clip.visualMergeMode === 'both' ||
+						clip.visualMergeMode === null)
+						? clip.visualMergeMode
+						: undefined
 			})
 		);
 

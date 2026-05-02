@@ -10,7 +10,8 @@ import {
 	SilenceClip,
 	SubtitleClip,
 	canonicalizePredefinedSubtitleType,
-	type PredefinedSubtitleType
+	type PredefinedSubtitleType,
+	type VisualMergeMode
 } from './Clip.svelte.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import { Duration, type Asset } from './index.js';
@@ -22,6 +23,22 @@ import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
+
+export type VisualMergeSelection = {
+	clips: SubtitleClip[];
+	startIndex: number;
+	endIndex: number;
+};
+
+export type VisualMergeGroup = {
+	groupId: string;
+	mode: VisualMergeMode;
+	clips: SubtitleClip[];
+	firstClip: SubtitleClip;
+	lastClip: SubtitleClip;
+	startTime: number;
+	endTime: number;
+};
 
 export class Track extends SerializableBase {
 	type: TrackType = $state(TrackType.Unknown);
@@ -216,6 +233,201 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
+	 * Supprime un clip de sous-titre et retire d'abord son merge visuel si necessaire.
+	 * @param {number} id L'identifiant du clip a supprimer.
+	 * @param {boolean} makeNextClipStartAtThisClipStartTime Indique si le clip suivant doit reprendre son start.
+	 * @returns {void}
+	 */
+	override removeClip(id: number, makeNextClipStartAtThisClipStartTime: boolean = false): void {
+		const clipToRemove = this.clips.find((clip) => clip.id === id);
+		if (clipToRemove instanceof SubtitleClip && clipToRemove.visualMergeGroupId) {
+			this.unmergeVisualGroup(clipToRemove.visualMergeGroupId, false);
+		}
+
+		super.removeClip(id, makeNextClipStartAtThisClipStartTime);
+	}
+
+	/**
+	 * Verifie si une selection peut etre mergee visuellement.
+	 * @param {Array<SubtitleClip | PredefinedSubtitleClip>} selection Selection courante.
+	 * @returns {VisualMergeSelection | null} Les clips tries si la selection est eligible, sinon `null`.
+	 */
+	getVisualMergeSelection(
+		selection: Array<SubtitleClip | PredefinedSubtitleClip>
+	): VisualMergeSelection | null {
+		if (selection.length <= 1) return null;
+		if (!selection.every((clip) => clip instanceof SubtitleClip)) return null;
+
+		const clipsWithIndexes = selection
+			.map((clip) => ({
+				clip,
+				index: this.clips.findIndex((trackClip) => trackClip.id === clip.id)
+			}))
+			.sort((a, b) => a.index - b.index);
+
+		if (clipsWithIndexes.some(({ index }) => index === -1)) return null;
+
+		for (let index = 1; index < clipsWithIndexes.length; index++) {
+			if (clipsWithIndexes[index].index !== clipsWithIndexes[index - 1].index + 1) {
+				return null;
+			}
+		}
+
+		return {
+			clips: clipsWithIndexes.map(({ clip }) => clip),
+			startIndex: clipsWithIndexes[0].index,
+			endIndex: clipsWithIndexes[clipsWithIndexes.length - 1].index
+		};
+	}
+
+	/**
+	 * Verifie si une selection consecutive suit une continuite logique de mots Quran.
+	 * Les chevauchements sont autorises, mais aucun trou n'est accepte.
+	 *
+	 * @param {SubtitleClip[]} clips Clips Quran consecutifs tries par timeline.
+	 * @returns {boolean} `true` si la chaine arabe est continue.
+	 */
+	canUseArabicVisualMerge(clips: SubtitleClip[]): boolean {
+		if (clips.length <= 1) return true;
+
+		for (let index = 1; index < clips.length; index++) {
+			const previousClip = clips[index - 1];
+			const currentClip = clips[index];
+
+			// Meme verset: aucun trou entre les indexes de mots.
+			if (previousClip.surah === currentClip.surah && previousClip.verse === currentClip.verse) {
+				if (currentClip.startWordIndex > previousClip.endWordIndex + 1) {
+					return false;
+				}
+				continue;
+			}
+
+			// Verset suivant de la meme sourate: le clip precedent doit finir le verset
+			// et le nouveau clip doit commencer au premier mot.
+			if (
+				previousClip.surah === currentClip.surah &&
+				currentClip.verse === previousClip.verse + 1
+			) {
+				if (!previousClip.isLastWordsOfVerse || currentClip.startWordIndex !== 0) {
+					return false;
+				}
+				continue;
+			}
+
+			// Tout autre saut casse la continuite arabe.
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Retourne le groupe de merge visuel actif pour un clip donne.
+	 * @param {number} clipId L'identifiant du clip courant.
+	 * @returns {VisualMergeGroup | null} Le groupe valide ou `null`.
+	 */
+	getVisualMergeGroupForClipId(clipId: number): VisualMergeGroup | null {
+		const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
+		const clip = clipIndex === -1 ? null : this.clips[clipIndex];
+
+		if (!(clip instanceof SubtitleClip) || !clip.visualMergeGroupId || !clip.visualMergeMode) {
+			return null;
+		}
+
+		const mergedClips = this.clips
+			.map((trackClip, index) => ({ clip: trackClip, index }))
+			.filter(
+				(entry): entry is { clip: SubtitleClip; index: number } =>
+					entry.clip instanceof SubtitleClip &&
+					entry.clip.visualMergeGroupId === clip.visualMergeGroupId &&
+					entry.clip.visualMergeMode === clip.visualMergeMode
+			);
+
+		if (mergedClips.length <= 1) return null;
+
+		for (let index = 1; index < mergedClips.length; index++) {
+			if (mergedClips[index].index !== mergedClips[index - 1].index + 1) {
+				return null;
+			}
+		}
+
+		return {
+			groupId: clip.visualMergeGroupId,
+			mode: clip.visualMergeMode,
+			clips: mergedClips.map((entry) => entry.clip),
+			firstClip: mergedClips[0].clip,
+			lastClip: mergedClips[mergedClips.length - 1].clip,
+			startTime: mergedClips[0].clip.startTime,
+			endTime: mergedClips[mergedClips.length - 1].clip.endTime
+		};
+	}
+
+	/**
+	 * Applique un merge visuel a une selection de sous-titres Quran consecutifs.
+	 * @param {Array<SubtitleClip | PredefinedSubtitleClip>} selection Selection a merger.
+	 * @param {VisualMergeMode} mode Mode de merge a appliquer.
+	 * @returns {boolean} `true` si le merge a ete applique.
+	 */
+	applyVisualMerge(
+		selection: Array<SubtitleClip | PredefinedSubtitleClip>,
+		mode: VisualMergeMode
+	): boolean {
+		const mergeSelection = this.getVisualMergeSelection(selection);
+		if (!mergeSelection) return false;
+		if (!this.canUseArabicVisualMerge(mergeSelection.clips)) {
+			return false;
+		}
+
+		const touchedGroupIds = new Set(
+			mergeSelection.clips
+				.map((clip) => clip.visualMergeGroupId)
+				.filter((groupId): groupId is string => !!groupId)
+		);
+
+		for (const groupId of touchedGroupIds) {
+			this.unmergeVisualGroup(groupId, false);
+		}
+
+		const groupId = `visual-merge-${Date.now()}-${mergeSelection.clips[0].id}`;
+		for (const clip of mergeSelection.clips) {
+			clip.setVisualMerge(groupId, mode);
+		}
+
+		if (globalState.currentProject) {
+			const selectedSubtitleIds = new Set(
+				globalState.getStylesState.selectedSubtitles.map((subtitle) => subtitle.id)
+			);
+			if (mergeSelection.clips.some((clip) => selectedSubtitleIds.has(clip.id))) {
+				globalState.getStylesState.selectedSubtitles =
+					globalState.getStylesState.normalizeSubtitleSelection(
+						globalState.getStylesState.selectedSubtitles
+					);
+			}
+		}
+
+		globalState.updateVideoPreviewUI();
+		return true;
+	}
+
+	/**
+	 * Retire le merge visuel de tout un groupe.
+	 * @param {string} groupId Identifiant du groupe a casser.
+	 * @param {boolean} updatePreview Indique s'il faut rafraichir la preview ensuite.
+	 * @returns {void}
+	 */
+	unmergeVisualGroup(groupId: string, updatePreview: boolean = true): void {
+		for (const clip of this.clips) {
+			if (clip instanceof SubtitleClip && clip.visualMergeGroupId === groupId) {
+				clip.clearVisualMerge();
+			}
+		}
+
+		if (updatePreview) {
+			globalState.updateVideoPreviewUI();
+		}
+	}
+
+	/**
 	 * Modifie un sous-titre existant pour le transformer en un sous-titre pré-défini (Silence, Istiadhah, Basmala).
 	 * @param subtitle Le sous-titre à modifier.
 	 * @param presetChoice Le type de sous-titre pré-défini à appliquer.
@@ -233,6 +445,10 @@ export class SubtitleTrack extends Track {
 			| 'Sadaqa'
 	) {
 		let newSubtitleClip: SilenceClip | PredefinedSubtitleClip | undefined = undefined;
+
+		if (subtitle instanceof SubtitleClip && subtitle.visualMergeGroupId) {
+			this.unmergeVisualGroup(subtitle.visualMergeGroupId, false);
+		}
 
 		if (presetChoice === 'Silence') {
 			newSubtitleClip = new SilenceClip(subtitle.startTime, subtitle.endTime);
@@ -278,6 +494,10 @@ export class SubtitleTrack extends Track {
 		lastWordIndex: number,
 		surah: number
 	) {
+		if (subtitle instanceof SubtitleClip && subtitle.visualMergeGroupId) {
+			this.unmergeVisualGroup(subtitle.visualMergeGroupId, false);
+		}
+
 		// Modifie le sous-titre existant
 		// Si c'est un sous-titre pré-défini, on le transforme en sous-titre normal (ex: de silence en Qur'an)
 		if (subtitle?.type !== 'Subtitle') {

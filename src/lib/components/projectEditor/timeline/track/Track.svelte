@@ -1,11 +1,18 @@
 <script lang="ts">
-	import { TrackType, type Track, type SubtitleClip as SubtitleClipType } from '$lib/classes';
+	import {
+		TrackType,
+		SubtitleClip as SubtitleClipModel,
+		type Track,
+		type SubtitleClip as SubtitleClipType
+	} from '$lib/classes';
+	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ClipComponent from './Clip.svelte';
 	import SubtitleClipComponent from './SubtitleClip.svelte';
 	import CustomClipComponent from './CustomClip.svelte';
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
 
 	let {
 		track = $bindable(),
@@ -37,6 +44,104 @@
 					(clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs)
 			)
 	);
+
+	type QuickMergeButtonCandidate = {
+		key: string;
+		leftPx: number;
+		subtitlesToMerge: SubtitleClipModel[];
+	};
+
+	let quickMergeContextMenu: ContextMenu | undefined = $state(undefined);
+	let quickMergeContextTarget: QuickMergeButtonCandidate | null = $state(null);
+
+	/**
+	 * Liste des boutons de fusion rapide pour les clips de sous-titres.
+	 * Calcul leur position et les clips à fusionner.
+	 */
+	let quickMergeButtons = $derived((): QuickMergeButtonCandidate[] => {
+		if (track.type !== TrackType.Subtitle) {
+			return [];
+		}
+
+		const subtitleTrack = track as SubtitleTrack;
+		const pixelPerSecond = track.getPixelPerSecond();
+		const buttons: QuickMergeButtonCandidate[] = [];
+
+		for (let clipIndex = 0; clipIndex < subtitleTrack.clips.length - 1; clipIndex++) {
+			const leftClip = subtitleTrack.clips[clipIndex];
+			const rightClip = subtitleTrack.clips[clipIndex + 1];
+
+			if (!(leftClip instanceof SubtitleClipModel) || !(rightClip instanceof SubtitleClipModel)) {
+				continue;
+			}
+
+			if (
+				leftClip.visualMergeGroupId &&
+				rightClip.visualMergeGroupId &&
+				leftClip.visualMergeGroupId === rightClip.visualMergeGroupId
+			) {
+				continue;
+			}
+
+			const leftGroup = subtitleTrack.getVisualMergeGroupForClipId(leftClip.id);
+			const rightGroup = subtitleTrack.getVisualMergeGroupForClipId(rightClip.id);
+			const rawSelection = [
+				...(leftGroup?.clips ?? [leftClip]),
+				...(rightGroup?.clips ?? [rightClip])
+			];
+			const uniqueSelection = Array.from(
+				new Map(rawSelection.map((subtitle) => [subtitle.id, subtitle])).values()
+			);
+			const mergeSelection = subtitleTrack.getVisualMergeSelection(uniqueSelection);
+
+			if (!mergeSelection) continue;
+			if (!subtitleTrack.canUseArabicVisualMerge(mergeSelection.clips)) continue;
+
+			buttons.push({
+				key: `${leftClip.id}-${rightClip.id}`,
+				leftPx: (leftClip.endTime / 1000) * pixelPerSecond - 11,
+				subtitlesToMerge: mergeSelection.clips
+			});
+		}
+
+		return buttons;
+	});
+
+	/**
+	 * Applique un merge rapide entre clips adjacents depuis la couche portal.
+	 * @param {SubtitleClipModel[]} subtitlesToMerge Clips a merger.
+	 * @param {MouseEvent} event Evenement du bouton.
+	 * @returns {void}
+	 */
+	function applyQuickMerge(subtitlesToMerge: SubtitleClipModel[], event: MouseEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+		(track as SubtitleTrack).applyVisualMerge(subtitlesToMerge, 'both');
+	}
+
+	/**
+	 * Ouvre le menu contextuel d'un bouton de quick merge.
+	 * @param {MouseEvent} event Evenement de clic droit.
+	 * @param {QuickMergeButtonCandidate} button Bouton cible.
+	 * @returns {void}
+	 */
+	function openQuickMergeContextMenu(event: MouseEvent, button: QuickMergeButtonCandidate): void {
+		event.preventDefault();
+		event.stopPropagation();
+		quickMergeContextTarget = button;
+		quickMergeContextMenu?.show(event);
+	}
+
+	/**
+	 * Applique un mode de merge depuis le menu contextuel du quick merge.
+	 * @param {VisualMergeMode} mode Mode de merge choisi.
+	 * @returns {void}
+	 */
+	function applyQuickMergeWithMode(mode: VisualMergeMode): void {
+		if (!quickMergeContextTarget) return;
+		(track as SubtitleTrack).applyVisualMerge(quickMergeContextTarget.subtitlesToMerge, mode);
+		quickMergeContextTarget = null;
+	}
 </script>
 
 <div
@@ -110,10 +215,62 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if track.type === TrackType.Subtitle}
+		<div class="absolute left-[180px] top-0 bottom-0 right-0 z-10 pointer-events-none">
+			{#each quickMergeButtons() as button (button.key)}
+				<button
+					class="timeline-quick-merge-button"
+					style="left: {button.leftPx}px;"
+					title="Quick merge those subtitles"
+					aria-label="Quick merge those subtitles"
+					onclick={(event) => applyQuickMerge(button.subtitlesToMerge, event)}
+					oncontextmenu={(event) => openQuickMergeContextMenu(event, button)}
+				>
+					<span class="material-icons-outlined text-[12px]! leading-none">merge_type</span>
+				</button>
+			{/each}
+		</div>
+	{/if}
 </div>
+
+<ContextMenu bind:this={quickMergeContextMenu}>
+	<Item on:click={() => applyQuickMergeWithMode('arabic')}
+		><div class="btn-icon">Merge Arabic</div></Item
+	>
+	<Item on:click={() => applyQuickMergeWithMode('translation')}
+		><div class="btn-icon">Merge Translation</div></Item
+	>
+	<Item on:click={() => applyQuickMergeWithMode('both')}
+		><div class="btn-icon">Merge Both</div></Item
+	>
+</ContextMenu>
 
 <style>
 	.flex-1:hover {
 		background: linear-gradient(90deg, rgba(88, 166, 255, 0.05) 0%, transparent 200px);
+	}
+
+	.timeline-quick-merge-button {
+		position: absolute;
+		bottom: 0px;
+		pointer-events: auto;
+		height: 18px;
+		width: 22px;
+		border-radius: 9999px 9999px 0 0;
+		border: 1px solid rgba(16, 185, 129, 0.9);
+		background: rgba(16, 185, 129, 0.92);
+		color: #000000;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		opacity: 1;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	}
+
+	.timeline-quick-merge-button:hover {
+		opacity: 1;
+		background: rgba(5, 150, 105, 0.95);
 	}
 </style>

@@ -3,10 +3,9 @@
 		CustomTextClip,
 		PredefinedSubtitleClip,
 		ProjectEditorTabs,
-		SubtitleClip,
-		Translation
+		SubtitleClip
 	} from '$lib/classes';
-	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation, CustomImageClip } from '$lib/classes/Clip.svelte';
 	import {
 		VerseTranslation,
 		type TranslationInlineStyleFlags
@@ -20,9 +19,17 @@
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
-	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { Utilities } from '$lib/classes/misc/Utilities';
 	import { convertFileSrc } from '@tauri-apps/api/core';
+	import {
+		createPlainOverlaySegment,
+		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
+		getReferenceClipForTarget as getReferenceClipForTargetUtil,
+		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
+		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
+		isVisualMergeTargetMerged,
+		type OverlayTextSegment
+	} from './visualMergeOverlayUtils';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
@@ -44,6 +51,12 @@
 		return untrack(() => {
 			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
 		});
+	});
+
+	let currentVisualMergeGroup = $derived(() => {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) return null;
+		return globalState.getSubtitleTrack.getVisualMergeGroupForClipId(subtitle.id);
 	});
 
 	// Sous-titre de référence pour afficher les backgrounds en continu
@@ -91,6 +104,15 @@
 		return subtitle.translations;
 	});
 
+	let visibleTranslationTargets = $derived(() => {
+		const mergedGroup = currentVisualMergeGroup();
+		if (mergedGroup && (mergedGroup.mode === 'translation' || mergedGroup.mode === 'both')) {
+			return Object.keys(mergedGroup.firstClip.translations);
+		}
+
+		return Object.keys(currentSubtitleTranslations() || {});
+	});
+
 	let showDecorativeBrackets = $derived(() => {
 		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
 	});
@@ -98,6 +120,44 @@
 	let decorativeBracketsGlyphPair = $derived(() => {
 		return String(globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM');
 	});
+
+	/**
+	 * Indique si une cible donnee doit etre rendue via le merge visuel actif.
+	 * @param {string} target Cible de style (`arabic` ou nom d'edition).
+	 * @returns {boolean} `true` si la cible doit utiliser le groupe merge.
+	 */
+	function isTargetMerged(target: string): boolean {
+		return isVisualMergeTargetMerged(currentVisualMergeGroup(), target);
+	}
+
+	/**
+	 * Retourne le clip de reference pour les styles de la cible.
+	 * @param {string} target Cible de style (`arabic` ou nom d'edition).
+	 * @returns {SubtitleClip | PredefinedSubtitleClip | null} Clip de reference.
+	 */
+	function getReferenceClipForTarget(target: string): SubtitleClip | PredefinedSubtitleClip | null {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip)) return null;
+		return getReferenceClipForTargetUtil(subtitle, currentVisualMergeGroup(), target);
+	}
+
+	/**
+	 * Retourne le clip de reference a utiliser pour les backgrounds d'une cible.
+	 * @param {string} target Cible de style (`arabic` ou nom d'edition).
+	 * @returns {number | undefined} Identifiant du clip de reference.
+	 */
+	function getBackgroundClipIdForTarget(target: string): number | undefined {
+		const background = backgroundSubtitle();
+		const subtitleBackground =
+			background instanceof SubtitleClip || background instanceof PredefinedSubtitleClip
+				? background
+				: null;
+		return getBackgroundClipIdForTargetUtil(
+			currentVisualMergeGroup(),
+			subtitleBackground,
+			target
+		);
+	}
 
 	/**
 	 * Génère le CSS pour les crochets décoratifs en fonction de la police sélectionnée.
@@ -141,18 +201,124 @@
 		subtitleImageFailedToLoad = false;
 	});
 
+	/**
+	 * Retourne les segments arabes rendus pour un clip.
+	 * @param {ClipWithTranslation} subtitle Clip a convertir.
+	 * @param {string} keyPrefix Prefixe de cle pour les segments.
+	 * @returns {OverlayTextSegment[]} Segments du clip.
+	 */
+	function getArabicOverlaySegments(
+		subtitle: ClipWithTranslation,
+		keyPrefix: string
+	): OverlayTextSegment[] {
+		if (subtitle instanceof PredefinedSubtitleClip) {
+			return [createPlainOverlaySegment(`${keyPrefix}-arabic`, subtitle.getText())];
+		}
+
+		const displayParts = subtitle.getArabicRenderParts('preview');
+		const baseSegments =
+			(subtitle.arabicInlineStyleRuns?.length ?? 0) > 0
+				? subtitle.getArabicInlineStyledSegments('preview').map((segment, index) => ({
+						key: `${keyPrefix}-arabic-${index}`,
+						text: segment.text,
+						flags: segment
+					}))
+				: [createPlainOverlaySegment(`${keyPrefix}-arabic`, displayParts.text)];
+
+		if (!displayParts.suffix) return baseSegments;
+
+		return [
+			...baseSegments,
+			createPlainOverlaySegment(
+				`${keyPrefix}-suffix`,
+				displayParts.suffix,
+				displayParts.suffixFontFamily ? `font-family: ${displayParts.suffixFontFamily};` : ''
+			)
+		];
+	}
+
+	/**
+	 * Retourne les segments de traduction rendus pour un clip et une edition.
+	 * @param {string} edition Edition de traduction.
+	 * @param {SubtitleClip} subtitle Clip Quran de reference.
+	 * @returns {OverlayTextSegment[]} Segments de traduction.
+	 */
+	function getTranslationOverlaySegments(edition: string, subtitle: SubtitleClip): OverlayTextSegment[] {
+		const translation = subtitle.translations[edition];
+		if (!translation) return [];
+
+		if (translation.type === 'verse') {
+			const verseTranslation = translation as VerseTranslation;
+			const textParts = verseTranslation.getFormattedTextParts(edition, subtitle);
+			const segments: OverlayTextSegment[] = [];
+
+			if (textParts.prefix) {
+				segments.push(createPlainOverlaySegment(`${edition}-${subtitle.id}-prefix`, textParts.prefix));
+			}
+
+			segments.push(
+				...verseTranslation.getInlineStyledSegments().map((segment, index) => ({
+					key: `${edition}-${subtitle.id}-${index}`,
+					text: segment.text,
+					flags: segment
+				}))
+			);
+
+			if (textParts.suffix) {
+				segments.push(createPlainOverlaySegment(`${edition}-${subtitle.id}-suffix`, textParts.suffix));
+			}
+
+			return segments;
+		}
+
+		return [createPlainOverlaySegment(`${edition}-${subtitle.id}`, translation.getText())];
+	}
+
+	/**
+	 * Retourne les segments arabes a afficher selon le merge visuel actif.
+	 * @returns {OverlayTextSegment[]} Segments arabes a rendre.
+	 */
+	function getVisibleArabicSegments(): OverlayTextSegment[] {
+		const subtitle = currentSubtitle();
+		return getVisibleArabicSegmentsUtil(
+			subtitle instanceof ClipWithTranslation ? subtitle : null,
+			currentVisualMergeGroup(),
+			getArabicOverlaySegments
+		);
+	}
+
+	/**
+	 * Retourne les segments de traduction a afficher selon le merge visuel actif.
+	 * @param {string} edition Edition de traduction.
+	 * @returns {OverlayTextSegment[]} Segments de traduction a rendre.
+	 */
+	function getVisibleTranslationSegments(edition: string): OverlayTextSegment[] {
+		const subtitle = currentSubtitle();
+		return getVisibleTranslationSegmentsUtil(
+			subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip ? subtitle : null,
+			currentVisualMergeGroup(),
+			edition,
+			getTranslationOverlaySegments
+		);
+	}
+
 	// Calcul de l'opacité des sous-titres (prend en compte les overrides par clip)
 	let subtitleOpacity = $derived((target: string) => {
-		const subtitle = currentSubtitle();
-		if (!subtitle) return 0;
+		const referenceClip = getReferenceClipForTarget(target);
+		if (!referenceClip) return 0;
 
-		const clipId = subtitle.id;
+		const clipId = referenceClip.id;
 		let maxOpacity = Number(
 			globalState.getVideoStyle.getStylesOfTarget(target).getEffectiveValue('opacity', clipId)
 		);
 
 		const currentTime = getTimelineSettings().cursorPosition;
-		const endTime = subtitle.endTime;
+		const activeRange = isTargetMerged(target)
+			? currentVisualMergeGroup()
+			: { startTime: referenceClip.startTime, endTime: referenceClip.endTime };
+		if (!activeRange) return 0;
+
+		const endTime = activeRange.endTime;
 		const timeLeft = endTime - currentTime;
 		const halfFade = fadeDuration() / 2;
 
@@ -160,7 +326,7 @@
 			return Math.max(0, (timeLeft / halfFade) * maxOpacity);
 		}
 
-		const startTime = subtitle.startTime;
+		const startTime = activeRange.startTime;
 		const timeSinceStart = currentTime - startTime;
 
 		if (timeSinceStart <= halfFade) {
@@ -228,6 +394,7 @@
 	});
 
 	let lastSubtitleId = 0;
+	let lastVisualMergeGroupId: string | null = null;
 
 	// Variable pour stocker l'AbortController de l'exécution précédente
 	let currentAbortController: AbortController | null = null;
@@ -293,17 +460,35 @@
 
 			const subtitle = currentSubtitle();
 			if (!subtitle) {
+				lastSubtitleId = 0;
+				lastVisualMergeGroupId = null;
 				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';
 				}
 				return;
 			}
 
-			// si le sous-titre actuel n'a pas changé (pendant la lecture vidéo)
-			if (subtitle.id === lastSubtitleId && globalState.getVideoPreviewState.isPlaying) return;
+			const currentVisualMergeGroupId =
+				subtitle instanceof SubtitleClip ? subtitle.visualMergeGroupId : null;
+			const isPlaying = globalState.getVideoPreviewState.isPlaying;
+
+			// Pendant la lecture: éviter les recalculs pour le même clip
+			// et pour les transitions internes d'un même groupe merge visuel.
+			if (isPlaying) {
+				if (subtitle.id === lastSubtitleId) return;
+				if (
+					currentVisualMergeGroupId &&
+					lastVisualMergeGroupId &&
+					currentVisualMergeGroupId === lastVisualMergeGroupId
+				) {
+					lastSubtitleId = subtitle.id;
+					return;
+				}
+			}
 
 			const runId = ++subtitleLayoutRunId;
 			lastSubtitleId = subtitle.id;
+			lastVisualMergeGroupId = currentVisualMergeGroupId;
 
 			consumeReactiveDependencies(
 				globalState.getStyle('arabic', 'max-height').value,
@@ -624,7 +809,7 @@
 			class={'arabic absolute subtitle select-none' +
 				getTailwind('arabic') +
 				helperStyles('arabic')}
-			style="{getCss('arabic', backgroundSubtitle() ? backgroundSubtitle()!.id : undefined)};"
+			style="{getCss('arabic', getBackgroundClipIdForTarget('arabic'))};"
 		></div>
 
 		<!-- Backgrounds des traductions -->
@@ -635,7 +820,7 @@
 						edition +
 						getTailwind(edition) +
 						helperStyles(edition)}
-					style="{getCss(edition, backgroundSubtitle() ? backgroundSubtitle()!.id : undefined)};"
+					style="{getCss(edition, getBackgroundClipIdForTarget(edition))};"
 				></div>
 			{/if}
 		{/each}
@@ -644,30 +829,14 @@
 	<div class="w-full h-full absolute inset-0 flex flex-col items-center justify-center">
 		{#if currentSubtitle()}
 			{@const subtitle = currentSubtitle()}
-			{#snippet arabicPreviewContent(
-				subtitle: ClipWithTranslation,
-				hasArabicInlineStyles: boolean,
-				arabicText: string,
-				arabicDisplayParts: { text: string; suffix: string; suffixFontFamily: string | null }
-			)}
-				{#if hasArabicInlineStyles}
-					<span class="translation-inline-flow">
-						{#each subtitle.getArabicInlineStyledSegments('preview') as segment, index (`arabic-${index}-${segment.text}`)}
-							<span style={getInlineStyleCss(segment)}>{segment.text}</span>
-						{/each}
-						{#if arabicDisplayParts.suffix}
-							<span
-								style={arabicDisplayParts.suffixFontFamily
-									? `font-family: ${arabicDisplayParts.suffixFontFamily};`
-									: ''}
-							>
-								{arabicDisplayParts.suffix}
-							</span>
-						{/if}
-					</span>
-				{:else}
-					<span>{@html arabicText}</span>
-				{/if}
+			{#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
+				<span class="translation-inline-flow">
+					{#each segments as segment (segment.key)}
+						<span style={`${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`}>
+							{segment.text}
+						</span>
+					{/each}
+				</span>
 			{/snippet}
 			<div
 				id="subtitles-container"
@@ -675,6 +844,8 @@
 				style="opacity: 1;"
 			>
 				{#if subtitle && subtitle.id}
+					{@const arabicReferenceClip = getReferenceClipForTarget('arabic')}
+					{@const arabicSegments = getVisibleArabicSegments()}
 					<p
 						ondblclick={() => {
 							globalState.getVideoStyle.highlightCategory('arabic', 'general');
@@ -687,46 +858,27 @@
 						class={'arabic absolute subtitle select-none z-10 ' +
 							getTailwind('arabic') +
 							helperStyles('arabic')}
-						style="opacity: {subtitleOpacity('arabic')}; {getCss('arabic', subtitle.id, [
+						style="opacity: {subtitleOpacity('arabic')}; {getCss('arabic', arabicReferenceClip?.id, [
 							'background',
 							'border'
-						])}; {getBackgroundHorizontalPaddingCss('arabic', subtitle.id)} white-space: pre-line;"
+						])}; {getBackgroundHorizontalPaddingCss('arabic', arabicReferenceClip?.id)} white-space: pre-line;"
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
-							{@const arabicText = subtitle.getText()}
-							{@const clipWithArabicStyles = subtitle as ClipWithTranslation}
-							{@const hasArabicInlineStyles =
-								(clipWithArabicStyles.arabicInlineStyleRuns?.length ?? 0) > 0}
-							{@const arabicDisplayParts = clipWithArabicStyles.getArabicRenderParts('preview')}
-
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
-							{#if showDecorativeBrackets() && (hasArabicInlineStyles ? arabicDisplayParts.text.trim() : arabicText.trim())}
+							{#if showDecorativeBrackets() && arabicSegments.some((segment) => segment.text.trim().length > 0)}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
-								{@render arabicPreviewContent(
-									clipWithArabicStyles,
-									hasArabicInlineStyles,
-									arabicText,
-									arabicDisplayParts
-								)}
+								{@render overlaySegmentsContent(arabicSegments)}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
 							{:else}
-								{@render arabicPreviewContent(
-									clipWithArabicStyles,
-									hasArabicInlineStyles,
-									arabicText,
-									arabicDisplayParts
-								)}
+								{@render overlaySegmentsContent(arabicSegments)}
 							{/if}
 						{/if}
 					</p>
 				{/if}
 
-				{#each Object.keys(currentSubtitleTranslations()!) as edition (edition)}
-					{@const translation = (currentSubtitleTranslations()! as Record<string, Translation>)[
-						edition
-					]}
-
+				{#each visibleTranslationTargets() as edition (edition)}
 					{#if globalState.getVideoStyle.doesTargetStyleExist(edition)}
+						{@const translationReferenceClip = getReferenceClipForTarget(edition)}
 						<p
 							ondblclick={() => {
 								globalState.getVideoStyle.highlightCategory(
@@ -740,31 +892,12 @@
 								horizontalStyleId: 'horizontal-position'
 							}}
 							class={`translation absolute subtitle select-none z-10 ${edition} ${getTailwind(edition)} ${helperStyles(edition)}`}
-							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(edition, subtitle!.id, [
+							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(edition, translationReferenceClip?.id, [
 								'background',
 								'border'
-							])}; ${getBackgroundHorizontalPaddingCss(edition, subtitle!.id)} white-space: pre-line;`}
+							])}; ${getBackgroundHorizontalPaddingCss(edition, translationReferenceClip?.id)} white-space: pre-line;`}
 						>
-							{#if translation.type === 'verse'}
-								{@const verseTranslation = translation as VerseTranslation}
-								{@const textParts = verseTranslation.getFormattedTextParts(
-									edition,
-									(subtitle as SubtitleClip)!
-								)}
-								<span class="translation-inline-flow">
-									{#if textParts.prefix}
-										<span>{textParts.prefix}</span>
-									{/if}
-									{#each verseTranslation.getInlineStyledSegments() as segment, index (`${edition}-${index}-${segment.text}`)}
-										<span style={getInlineStyleCss(segment)}>{segment.text}</span>
-									{/each}
-									{#if textParts.suffix}
-										<span>{textParts.suffix}</span>
-									{/if}
-								</span>
-							{:else}
-								{translation.getText()}
-							{/if}
+							{@render overlaySegmentsContent(getVisibleTranslationSegments(edition))}
 						</p>
 					{/if}
 				{/each}

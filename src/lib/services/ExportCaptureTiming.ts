@@ -3,6 +3,8 @@ export type ExportSubtitleCaptureClip = {
 	endTime: number;
 	kind: 'subtitle' | 'silence' | 'predefined';
 	surah?: number;
+	visualMergeGroupId?: string | null;
+	visualMergeMode?: 'arabic' | 'translation' | 'both' | null;
 };
 
 export type ExportTimedOverlayCaptureClip = {
@@ -148,6 +150,32 @@ export function hasBlankImg(
 	return imgWithNothingShown[surah] !== undefined;
 }
 
+/**
+ * Indique si la fin du clip courant correspond a une transition interne d'un merge visuel.
+ *
+ * Dans ce cas, la frame de fin ne doit jamais etre traitee comme un `blank` reutilisable,
+ * car une partie du contenu fusionne peut encore rester visible pendant la transition.
+ *
+ * @param {ExportSubtitleCaptureClip[]} clips Liste ordonnee des clips de capture.
+ * @param {number} clipIndex Index du clip courant.
+ * @returns {boolean} `true` si la fin du clip est une transition interne de merge visuel.
+ */
+function isInternalVisualMergeTransition(
+	clips: ExportSubtitleCaptureClip[],
+	clipIndex: number
+): boolean {
+	const currentClip = clips[clipIndex];
+	const nextClip = clips[clipIndex + 1];
+
+	if (currentClip?.kind !== 'subtitle' || nextClip?.kind !== 'subtitle') return false;
+	if (!currentClip.visualMergeGroupId || currentClip.visualMergeGroupId !== nextClip.visualMergeGroupId)
+		return false;
+	if (!currentClip.visualMergeMode || currentClip.visualMergeMode !== nextClip.visualMergeMode)
+		return false;
+
+	return nextClip.startTime <= currentClip.endTime + 1;
+}
+
 type CalculateCaptureTimingParams = {
 	rangeStart: number;
 	rangeEnd: number;
@@ -170,6 +198,9 @@ export function calculateCaptureTimingsForRange({
 	const blankImgs: { [surah: number]: number[] } = {};
 	// Map des timings duplicables: target -> source.
 	const duplicableTimings: Map<number, number> = new Map();
+	// Timings qui doivent etre captures sans avancer le curseur,
+	// sinon on tombe dans le trou entre deux clips merges.
+	const exactCaptureTimings: Set<number> = new Set();
 
 	function add(t: number | undefined | null) {
 		if (t == null) return;
@@ -178,12 +209,17 @@ export function calculateCaptureTimingsForRange({
 	}
 
 	// --- Sous-titres ---
-	for (const clip of subtitleClips) {
+	for (let clipIndex = 0; clipIndex < subtitleClips.length; clipIndex++) {
+		const clip = subtitleClips[clipIndex];
 		const { startTime, endTime } = clip;
 		if (endTime < rangeStart || startTime > rangeEnd) continue;
 
 		const duration = endTime - startTime;
 		if (duration <= 0) continue;
+		const endsInsideVisualMerge = isInternalVisualMergeTransition(subtitleClips, clipIndex);
+		if (endsInsideVisualMerge) {
+			exactCaptureTimings.add(Math.round(endTime));
+		}
 
 		if (clip.kind !== 'silence') {
 			const fadeInEnd = Math.min(startTime + fadeDuration, endTime);
@@ -232,7 +268,7 @@ export function calculateCaptureTimingsForRange({
 			return isTimedOverlayVisibleAt(timedOverlayClip, endTime);
 		});
 
-		if (!hasTimedOverlayAtEndTime) {
+		if (!hasTimedOverlayAtEndTime && !endsInsideVisualMerge) {
 			const surah = getCurrentSurah(clip.startTime);
 			if (imgWithNothingShown[surah] === undefined) {
 				imgWithNothingShown[surah] = Math.round(endTime);
@@ -273,5 +309,5 @@ export function calculateCaptureTimingsForRange({
 		.filter((t) => t >= rangeStart && t <= rangeEnd)
 		.sort((a, b) => a - b);
 
-	return { uniqueSorted, imgWithNothingShown, blankImgs, duplicableTimings };
+	return { uniqueSorted, imgWithNothingShown, blankImgs, duplicableTimings, exactCaptureTimings };
 }

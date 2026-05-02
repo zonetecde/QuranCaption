@@ -5,10 +5,7 @@
 		ProjectEditorTabs,
 		type Track
 	} from '$lib/classes';
-	import {
-		getClipPrimaryReviewIssueCategory,
-		markClipAsVerified
-	} from '$lib/classes/Clip.svelte';
+	import { getClipPrimaryReviewIssueCategory, markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
@@ -39,6 +36,38 @@
 	// Détecte s'il existe des overrides de style pour ce clip (utilise VideoStyle)
 	const hasOverrides = $derived(() => {
 		return globalState.getVideoStyle.hasAnyOverrideForClip(clip.id);
+	});
+
+	const visualMergeGroup = $derived(() => {
+		if (!(clip instanceof SubtitleClip)) return null;
+		return (track as SubtitleTrack).getVisualMergeGroupForClipId(clip.id);
+	});
+
+	const visualMergeLabel = $derived(() => {
+		if (!visualMergeGroup()) return '';
+		if (visualMergeGroup()!.mode === 'arabic') return 'Arabic merged group';
+		if (visualMergeGroup()!.mode === 'translation') return 'Translation merged group';
+		return 'Arabic and translation merged group';
+	});
+
+	const isFirstClipInVisualMergeGroup = $derived(() => {
+		const group = visualMergeGroup();
+		if (!group) return false;
+		return group.clips[0]?.id === clip.id;
+	});
+
+	const isLastClipInVisualMergeGroup = $derived(() => {
+		const group = visualMergeGroup();
+		if (!group) return false;
+		return group.clips[group.clips.length - 1]?.id === clip.id;
+	});
+
+	const hasVisualMergeOverrides = $derived(() => {
+		const group = visualMergeGroup();
+		if (!group) return false;
+		return group.clips.some((groupClip) =>
+			globalState.getVideoStyle.hasAnyOverrideForClip(groupClip.id)
+		);
 	});
 
 	/**
@@ -223,9 +252,14 @@
 				if (isMultiSelect) {
 					globalState.getStylesState.toggleSelection(clip);
 				} else {
-					const alreadyOnlySelected =
-						globalState.getStylesState.selectedSubtitles.length === 1 &&
-						globalState.getStylesState.isSelected(clip.id);
+					const selectionUnit = globalState.getStylesState.getSelectionUnitForSubtitle(clip);
+					const selectedIds = new Set(
+						globalState.getStylesState.selectedSubtitles.map((subtitle) => subtitle.id)
+					);
+					const allUnitSelected = selectionUnit.every((subtitle) => selectedIds.has(subtitle.id));
+					const noExtraSelected =
+						globalState.getStylesState.selectedSubtitles.length === selectionUnit.length;
+					const alreadyOnlySelected = allUnitSelected && noExtraSelected;
 					if (alreadyOnlySelected) {
 						globalState.getStylesState.clearSelection();
 					} else {
@@ -272,16 +306,33 @@
 		await ModalManager.bookmarkVerseModal(clip.surah, clip.verse);
 	}
 
+	/**
+	 * Retire le merge visuel du groupe du clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function unmergeVisualGroupFromContextMenu(): Promise<void> {
+		if (!(clip instanceof SubtitleClip) || !clip.visualMergeGroupId) return;
+
+		currentMenu.set(null);
+		await tick();
+		(track as SubtitleTrack).unmergeVisualGroup(clip.visualMergeGroupId);
+	}
+
 	onDestroy(() => {
 		currentMenu.set(null);
 	});
 </script>
 
 <div
-	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-hidden duration-200 ' +
+	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-visible duration-200 ' +
 		(isSelected()
-			? ' bg-[var(--subtitle-selection-bg)]! border-[var(--subtitle-selection-border)]! '
+			? visualMergeGroup()
+				? ' bg-[var(--subtitle-selection-bg)]! '
+				: ' bg-[var(--subtitle-selection-bg)]! border-[var(--subtitle-selection-border)]! '
 			: '') +
+		(visualMergeGroup() ? ' visual-merged ' : '') +
+		(visualMergeGroup() && isFirstClipInVisualMergeGroup() ? ' visual-merged-first ' : '') +
+		(visualMergeGroup() && isLastClipInVisualMergeGroup() ? ' visual-merged-last ' : '') +
 		fullReviewClass +
 		(globalState.currentProject!.projectEditorState.currentTab === 'Style' ||
 		globalState.currentProject!.projectEditorState.currentTab === 'Video editor'
@@ -296,12 +347,21 @@
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
-			{#if hasOverrides()}
+			{#if (visualMergeGroup() && isFirstClipInVisualMergeGroup() && hasVisualMergeOverrides()) || (!visualMergeGroup() && hasOverrides())}
 				<span
 					class="material-icons-outlined text-[10px] opacity-80"
 					title="Styles individuels appliqués"
 				>
 					auto_fix_high
+				</span>
+			{/if}
+
+			{#if visualMergeGroup() && isFirstClipInVisualMergeGroup()}
+				<span
+					class="material-icons-outlined text-[13px] opacity-90 text-emerald-100"
+					title={visualMergeLabel()}
+				>
+					link
 				</span>
 			{/if}
 
@@ -371,13 +431,13 @@
 	<div class="absolute -bottom-1 left-0 right-0 h-[20px] flex items-center">
 		<!-- Début du verset (si le précédent n'est pas le même verset) -->
 		{#if !previousIsSameVerse && clip.type !== 'Silence'}
-			<div class="w-3 h-full bg-black/40 clip-path-start"></div>
+			<div class="verse-indicator-start"></div>
 		{/if}
 		<!-- Ligne du milieu -->
-		<div class="flex-1 -mx-3 mb-1 h-[4px] bg-black/40"></div>
+		<div class="flex-1 -mx-0.5 mb-1 h-[4px] bg-black/40"></div>
 		<!-- Fin du verset (si le suivant n'est pas le même verset) -->
 		{#if !nextIsSameVerse && clip.type !== 'Silence'}
-			<div class="w-3 h-full bg-black/40 clip-path-end"></div>
+			<div class="verse-indicator-end"></div>
 		{/if}
 	</div>
 </div>
@@ -429,6 +489,13 @@
 			</div></Item
 		>
 	{/if}
+	{#if clip.type === 'Subtitle' && visualMergeGroup()}
+		<Item on:click={unmergeVisualGroupFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">link_off</span>Unmerge group
+			</div></Item
+		>
+	{/if}
 	<Item on:click={removeSubtitle}
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove subtitle
@@ -450,13 +517,23 @@
 </ContextMenu>
 
 <style>
-	/* Formes pour l'indicateur de verset */
-	.clip-path-start {
-		clip-path: polygon(0% 40%, 100% 50%, 0% 100%);
+	/* Formes pour l'indicateur de verset sans clip-path pour eviter les soucis de stacking */
+	.verse-indicator-start {
+		width: 0;
+		height: 0;
+		border-top: 6px solid transparent;
+		border-bottom: 6px solid transparent;
+		border-left: 12px solid rgba(0, 0, 0, 0.4);
+		margin-bottom: 3px;
 	}
 
-	.clip-path-end {
-		clip-path: polygon(0% 50%, 100% 40%, 100% 100%);
+	.verse-indicator-end {
+		width: 0;
+		height: 0;
+		border-top: 6px solid transparent;
+		border-bottom: 6px solid transparent;
+		border-right: 12px solid rgba(0, 0, 0, 0.4);
+		margin-bottom: 3px;
 	}
 
 	.ai-low-confidence {
@@ -472,6 +549,27 @@
 	.ai-too-long {
 		background-color: rgba(244, 63, 94, 0.32) !important;
 		border-color: rgba(251, 113, 133, 0.82) !important;
+	}
+
+	.visual-merged {
+		border-radius: 0 !important;
+		border-left-color: transparent !important;
+		border-right-color: transparent !important;
+		border-top-color: rgba(110, 231, 183, 0.75) !important;
+		border-bottom-color: rgba(110, 231, 183, 0.75) !important;
+		box-shadow: inset 0 -8px 0 rgba(16, 185, 129, 0.2);
+	}
+
+	.visual-merged-first {
+		border-left-color: rgba(110, 231, 183, 0.75) !important;
+		border-top-left-radius: 0.375rem !important;
+		border-bottom-left-radius: 0.375rem !important;
+	}
+
+	.visual-merged-last {
+		border-right-color: rgba(110, 231, 183, 0.75) !important;
+		border-top-right-radius: 0.375rem !important;
+		border-bottom-right-radius: 0.375rem !important;
 	}
 
 	.review-band {

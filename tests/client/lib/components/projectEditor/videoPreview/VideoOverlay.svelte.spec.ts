@@ -182,6 +182,16 @@ function createVerseSubtitle(
 	);
 }
 
+function applyVisualMerge(
+	clips: SubtitleClip[],
+	mode: 'arabic' | 'translation' | 'both',
+	groupId: string = `group-${mode}`
+): void {
+	for (const clip of clips) {
+		clip.setVisualMerge(groupId, mode);
+	}
+}
+
 function createPredefinedSubtitle(
 	startTime: number,
 	endTime: number,
@@ -217,14 +227,27 @@ function setupVideoOverlayFixture(
 	const audioTrack = new AssetTrack(TrackType.Audio);
 	const customTrack = new CustomTextTrack();
 
-	const videoStyle = createMockVideoStyle(['global', 'arabic', 'english']);
+	const translationTargets = Array.from(
+		new Set(
+			clips.flatMap((clip) =>
+				clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+					? Object.keys(clip.translations)
+					: []
+			)
+		)
+	);
+	const videoStyle = createMockVideoStyle(['global', 'arabic', ...translationTargets]);
 
 	globalState.currentProject = {
 		projectEditorState,
 		content: {
 			timeline: new Timeline([subtitleTrack, videoTrack, audioTrack, customTrack]),
 			projectTranslation: {
-				addedTranslationEditions: [{ name: 'english', language: 'English' }],
+				addedTranslationEditions: translationTargets.map((name) => ({
+					name,
+					language: name,
+					author: name
+				})),
 				getPredefinedSubtitleTranslation: vi.fn(),
 				getTranslations: vi.fn().mockResolvedValue({})
 			},
@@ -272,6 +295,14 @@ function getCurrentSubtitleText(container: HTMLElement): string {
 
 function getBackgroundArabicNode(container: HTMLElement): HTMLElement | null {
 	return container.querySelector('#subtitles-backgrounds .arabic.subtitle');
+}
+
+function getForegroundArabicNode(container: HTMLElement): HTMLElement | null {
+	return container.querySelector('#subtitles-container .arabic.subtitle');
+}
+
+function getForegroundTranslationNode(container: HTMLElement, edition: string): HTMLElement | null {
+	return container.querySelector(`#subtitles-container .translation.subtitle.${edition}`);
 }
 
 describe('Video overlay subtitle preview', () => {
@@ -355,6 +386,165 @@ describe('Video overlay subtitle preview', () => {
 		expect(subtitleContainer).not.toBeNull();
 		expect(subtitleContainer!.style.opacity).toBe('1');
 		expect(getCurrentSubtitleText(component.container)).toContain('Predefined translation');
+	});
+
+	test('renders predefined basmala preview with its special arabic glyph text', async () => {
+		const basmala = createPredefinedSubtitle(1000, 1999, 'Basmala', 'Predefined translation');
+		const fixture = setupVideoOverlayFixture([basmala], { cursorPosition: 1100 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'QPC2');
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const arabicNode = getForegroundArabicNode(component.container);
+		expect(arabicNode).not.toBeNull();
+		expect(normalizeText(arabicNode?.textContent)).toBe(normalizeText(basmala.getText()));
+	});
+
+	test('keeps merged arabic visible while translations continue to switch per clip', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha translation');
+		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta translation');
+		firstClip.startWordIndex = 0;
+		firstClip.endWordIndex = 1;
+		secondClip.startWordIndex = 2;
+		secondClip.endWordIndex = 3;
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const mergedText = getCurrentSubtitleText(component.container);
+		expect(mergedText).toContain('Alpha Arabic');
+		expect(mergedText).toContain('Beta Arabic');
+		expect(mergedText).toContain('Beta translation');
+		expect(mergedText).not.toContain('Alpha translation');
+	});
+
+	test('keeps merged translations visible while arabic continues to switch per clip', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha translation');
+		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta translation');
+		firstClip.startWordIndex = 0;
+		firstClip.endWordIndex = 1;
+		secondClip.startWordIndex = 2;
+		secondClip.endWordIndex = 3;
+		applyVisualMerge([firstClip, secondClip], 'translation');
+		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const mergedText = getCurrentSubtitleText(component.container);
+		expect(mergedText).toContain('Beta Arabic');
+		expect(mergedText).not.toContain('Alpha Arabic');
+		expect(mergedText).toContain('Alpha translation');
+		expect(mergedText).toContain('Beta translation');
+	});
+
+	test('keeps both arabic and translations merged across the active group', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha translation');
+		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta translation');
+		firstClip.startWordIndex = 0;
+		firstClip.endWordIndex = 1;
+		secondClip.startWordIndex = 2;
+		secondClip.endWordIndex = 3;
+		applyVisualMerge([firstClip, secondClip], 'both');
+		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const mergedText = getCurrentSubtitleText(component.container);
+		expect(mergedText).toContain('Alpha Arabic');
+		expect(mergedText).toContain('Beta Arabic');
+		expect(mergedText).toContain('Alpha translation');
+		expect(mergedText).toContain('Beta translation');
+	});
+
+	test('merges every translation edition independently', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha English');
+		firstClip.translations.french = new VerseTranslation('Alpha French', 'reviewed');
+		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta English');
+		secondClip.translations.french = new VerseTranslation('Beta French', 'reviewed');
+		firstClip.startWordIndex = 0;
+		firstClip.endWordIndex = 1;
+		secondClip.startWordIndex = 2;
+		secondClip.endWordIndex = 3;
+		applyVisualMerge([firstClip, secondClip], 'translation');
+		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(normalizeText(getForegroundTranslationNode(component.container, 'english')?.textContent)).toBe(
+			'Alpha English Beta English'
+		);
+		expect(normalizeText(getForegroundTranslationNode(component.container, 'french')?.textContent)).toBe(
+			'Alpha French Beta French'
+		);
+	});
+
+	test('removes overlapping words inside merged clips for arabic and translations', async () => {
+		const firstClip = new SubtitleClip(
+			0,
+			999,
+			1,
+			1,
+			0,
+			2,
+			'w1 w2 w3',
+			[],
+			false,
+			false,
+			{
+				english: new VerseTranslation('t1 t2 t3', 'reviewed')
+			}
+		);
+		const secondClip = new SubtitleClip(
+			1000,
+			1999,
+			1,
+			1,
+			1,
+			3,
+			'w2 w3 w4',
+			[],
+			false,
+			false,
+			{
+				english: new VerseTranslation('t2 t3 t4', 'reviewed')
+			}
+		);
+		applyVisualMerge([firstClip, secondClip], 'both');
+		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const mergedText = normalizeText(getCurrentSubtitleText(component.container));
+		expect(mergedText).toContain('w1 w2 w3 w4');
+		expect(mergedText).not.toContain('w1 w2 w3 w2 w3 w4');
+		expect(mergedText).toContain('t1 t2 t3 t4');
+		expect(mergedText).not.toContain('t1 t2 t3 t2 t3 t4');
+	});
+
+	test('uses the whole merged group for fade timing on merged targets', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha translation');
+		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta translation');
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const arabicNode = getForegroundArabicNode(component.container);
+		expect(arabicNode).not.toBeNull();
+		expect(arabicNode!.style.opacity).toBe('1');
+
+		await fixture.setCursor(1950);
+		await settleOverlay();
+		expect(Number(arabicNode!.style.opacity)).toBeLessThan(1);
+		expect(Number(arabicNode!.style.opacity)).toBeGreaterThan(0);
 	});
 
 	test('keeps subtitle backgrounds anchored to the nearest subtitle outside active playback windows', async () => {

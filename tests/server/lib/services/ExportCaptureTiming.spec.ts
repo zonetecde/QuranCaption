@@ -10,8 +10,14 @@ import {
 	type ExportTimedOverlayCaptureClip
 } from '$lib/services/ExportCaptureTiming';
 
-function subtitle(startTime: number, endTime: number, surah: number): ExportSubtitleCaptureClip {
-	return { startTime, endTime, surah, kind: 'subtitle' };
+function subtitle(
+	startTime: number,
+	endTime: number,
+	surah: number,
+	visualMergeGroupId: string | null = null,
+	visualMergeMode: ExportSubtitleCaptureClip['visualMergeMode'] = null
+): ExportSubtitleCaptureClip {
+	return { startTime, endTime, surah, kind: 'subtitle', visualMergeGroupId, visualMergeMode };
 }
 
 function silence(startTime: number, endTime: number): ExportSubtitleCaptureClip {
@@ -183,6 +189,71 @@ describe('calculateCaptureTimingsForRange', () => {
 		const result = calculateTimings([subtitle(0, 500, 1)], [customText(3, 100, 700, true)]);
 
 		expect(result.imgWithNothingShown).toEqual({ 1: 500 });
+	});
+
+	it('does not create or reuse a blank at an internal arabic merge transition', () => {
+		const result = calculateTimings([
+			subtitle(0, 500, 1, 'merge-1', 'arabic'),
+			subtitle(501, 1_000, 1, 'merge-1', 'arabic')
+		]);
+
+		expect(result.uniqueSorted).toContain(500);
+		expect(result.exactCaptureTimings).toEqual(new Set([500]));
+		expect(result.imgWithNothingShown).toEqual({ 1: 1_000 });
+		expect(result.blankImgs).toEqual({});
+		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, surah: null });
+	});
+
+	it('does not create or reuse a blank at an internal translation merge transition', () => {
+		const result = calculateTimings([
+			subtitle(0, 500, 1, 'merge-1', 'translation'),
+			subtitle(501, 1_000, 1, 'merge-1', 'translation')
+		]);
+
+		expect(result.uniqueSorted).toContain(500);
+		expect(result.exactCaptureTimings).toEqual(new Set([500]));
+		expect(result.imgWithNothingShown).toEqual({ 1: 1_000 });
+		expect(result.blankImgs).toEqual({});
+	});
+
+	it('does not create or reuse a blank at an internal full merge transition', () => {
+		const result = calculateTimings([
+			subtitle(0, 500, 1, 'merge-1', 'both'),
+			subtitle(501, 1_000, 1, 'merge-1', 'both')
+		]);
+
+		expect(result.uniqueSorted).toContain(500);
+		expect(result.exactCaptureTimings).toEqual(new Set([500]));
+		expect(result.imgWithNothingShown).toEqual({ 1: 1_000 });
+		expect(result.blankImgs).toEqual({});
+	});
+
+	it('keeps internal merged transitions as real captures across a three-clip group', () => {
+		const result = calculateTimings([
+			subtitle(0, 500, 1, 'merge-1', 'arabic'),
+			subtitle(501, 1_000, 1, 'merge-1', 'arabic'),
+			subtitle(1_001, 1_500, 1, 'merge-1', 'arabic')
+		]);
+
+		expect(result.uniqueSorted).toContain(500);
+		expect(result.uniqueSorted).toContain(1_000);
+		expect(result.exactCaptureTimings).toEqual(new Set([500, 1_000]));
+		expect(result.imgWithNothingShown).toEqual({ 1: 1_500 });
+		expect(result.blankImgs).toEqual({});
+		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, surah: null });
+		expect(hasTiming(result.blankImgs, 1_000)).toEqual({ hasIt: false, surah: null });
+	});
+
+	it('forces a real capture for the no-translation frame inside an arabic merge transition', () => {
+		const result = calculateTimings([
+			subtitle(0, 500, 1, 'merge-1', 'arabic'),
+			subtitle(501, 1_000, 1, 'merge-1', 'arabic')
+		]);
+
+		expect(result.uniqueSorted).toContain(500);
+		expect(result.exactCaptureTimings.has(500)).toBe(true);
+		expect(result.imgWithNothingShown[1]).toBe(1_000);
+		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, surah: null });
 	});
 
 	it('adds only boundary screenshots for always-show custom texts', () => {

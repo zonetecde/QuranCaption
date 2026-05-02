@@ -574,7 +574,7 @@
 		border-left-width: 2px !important;
 		border-left-color: color-mix(
 			in srgb,
-			var(--timeline-subtitle-clip-border) 75%,
+			var(--timeline-subtitle-clip-border) 100%,
 			black
 		) !important;
 		border-top-left-radius: 0.375rem !important;
@@ -585,7 +585,7 @@
 		border-right-width: 2px !important;
 		border-right-color: color-mix(
 			in srgb,
-			var(--timeline-subtitle-clip-border) 75%,
+			var(--timeline-subtitle-clip-border) 100%,
 			black
 		) !important;
 		border-top-right-radius: 0.375rem !important;

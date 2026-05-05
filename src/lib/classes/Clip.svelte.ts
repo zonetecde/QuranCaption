@@ -15,6 +15,7 @@ import type { Track } from './Track.svelte';
 import type { Category, StyleName } from './VideoStyle.svelte';
 import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
+import SoosiProvider from '$lib/services/SoosiProvider';
 import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 
 type ClipType =
@@ -315,9 +316,7 @@ export function getClipPrimaryReviewIssueCategory(
  * @param {ClipWithTranslation | null | undefined} clip Clip a inspecter.
  * @returns {boolean} `true` si le clip est signale et non encore verifie.
  */
-export function isClipPendingVerification(
-	clip: ClipWithTranslation | null | undefined
-): boolean {
+export function isClipPendingVerification(clip: ClipWithTranslation | null | undefined): boolean {
 	return !!clip && hasClipReviewIssue(clip) && clip.hasBeenVerified !== true;
 }
 
@@ -428,8 +427,10 @@ export class SubtitleClip extends ClipWithTranslation {
 
 	getTextWithVerseNumber(text: string = this.text): string {
 		if (this.isLastWordsOfVerse) {
-			// if indopak is enabled
-			if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Indopak')
+			const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
+			// Indopak and Soosi fonts may lack the ornamental verse-number glyph,
+			// so the number is rendered with Hafs in a nested span.
+			if (mushafStyle === 'Indopak' || mushafStyle === 'Soosi')
 				return `<span style="direction: rtl; unicode-bidi: isolate;">${text} <span style="font-family:Hafs;">${this.latinToArabicNumbers(this.verse)}</span></span>`;
 			else return text + ` ${this.latinToArabicNumbers(this.verse)}`;
 		}
@@ -471,6 +472,24 @@ export class SubtitleClip extends ClipWithTranslation {
 			if (mushafStyle === 'Indopak' && !this.indopakText) {
 				// L'éditeur peut demander un rendu preview avant que le texte IndoPak soit hydraté.
 				void this.hydrateIndopakTextFromLocalQuran();
+			}
+
+			if (mushafStyle === 'Soosi') {
+				const soosiText = SoosiProvider.getVerseSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex,
+					this.isLastWordsOfVerse
+				);
+				if (soosiText) {
+					return {
+						text: soosiText,
+						suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
+						suffixFontFamily: showVerseNumber ? 'Hafs' : null
+					};
+				}
+				// Verses still loading — fall through to Uthmani below; preview will refresh once cached.
 			}
 
 			return {
@@ -540,6 +559,22 @@ export class SubtitleClip extends ClipWithTranslation {
 		if (!shouldUseQpcGlyphs) {
 			if (mushafStyle === 'Indopak' && !this.indopakText) {
 				void this.hydrateIndopakTextFromLocalQuran();
+			}
+
+			if (mushafStyle === 'Soosi') {
+				const soosiText = SoosiProvider.getVerseSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex,
+					this.isLastWordsOfVerse
+				);
+				if (soosiText) {
+					if (globalState.getStyle('arabic', 'show-verse-number').value)
+						return this.getTextWithVerseNumber(soosiText);
+					return soosiText;
+				}
+				// Soosi data not yet loaded — fall through to Uthmani.
 			}
 
 			const baseText = mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text;

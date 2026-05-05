@@ -462,6 +462,12 @@ export class StylesData extends SerializableBase {
 						continue;
 					}
 
+					// Le mushaf Soosi force la police Soosi.
+					if (mushafStyle === 'Soosi' && subtitleClip instanceof SubtitleClip) {
+						css += `font-family: Soosi, sans-serif;\n`;
+						continue;
+					}
+
 					if (subtitleClip instanceof PredefinedSubtitleClip) {
 						const forcedFont = getForcedFontForPredefinedSubtitle(
 							subtitleClip.predefinedSubtitleType,
@@ -943,9 +949,23 @@ export class VideoStyle extends SerializableBase {
 			}
 
 			for (const defaultStyleRaw of defaultCategoryRaw.styles || []) {
-				const exists = targetCategory.styles.some((s) => s.id === defaultStyleRaw.id);
-				if (!exists) {
+				const existingStyle = targetCategory.styles.find((s) => s.id === defaultStyleRaw.id);
+				if (!existingStyle) {
 					targetCategory.styles.push(new Style(defaultStyleRaw));
+					hasChanges = true;
+					continue;
+				}
+
+				// Refresh select option lists from defaults so newly added options
+				// (e.g. a new mushaf variant) appear in older projects.
+				if (
+					defaultStyleRaw.valueType === 'select' &&
+					Array.isArray(defaultStyleRaw.options) &&
+					Array.isArray(existingStyle.options) &&
+					(existingStyle.options.length !== defaultStyleRaw.options.length ||
+						existingStyle.options.some((o, i) => o !== defaultStyleRaw.options![i]))
+				) {
+					existingStyle.options = [...defaultStyleRaw.options];
 					hasChanges = true;
 				}
 			}

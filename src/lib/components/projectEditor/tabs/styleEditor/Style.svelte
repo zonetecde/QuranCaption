@@ -263,6 +263,8 @@
 				toast(
 					'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable. Tajweed text color is currently forced to black, and you cannot change it.'
 				);
+			} else if (value === 'Soosi') {
+				arabicStyles.setStyle('font-family', 'Soosi');
 			} else {
 				arabicStyles.setStyle('font-family', 'Hafs');
 			}
@@ -276,6 +278,8 @@
 			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
 			if (value === 'IndoPak') {
 				arabicStyles.setStyle('mushaf-style', 'Indopak');
+			} else if (value === 'Soosi') {
+				arabicStyles.setStyle('mushaf-style', 'Soosi');
 			} else if (arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' && value !== 'QPC2') {
 				arabicStyles.setStyle('mushaf-style', 'Uthmani');
 			}
@@ -656,6 +660,7 @@
 								<option value="QPC1">Uthamic Mushaf QPC1</option>
 								<option value="Hafs">Hafs</option>
 								<option value="IndoPak">IndoPak</option>
+								<option value="Soosi">Soosi (Abu Amr)</option>
 								{#each fonts as font (`${font}`)}
 									<option value={font}>{font}</option>
 								{/each}

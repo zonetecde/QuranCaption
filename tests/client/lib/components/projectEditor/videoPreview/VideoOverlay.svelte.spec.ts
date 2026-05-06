@@ -441,6 +441,36 @@ describe('Video overlay subtitle preview', () => {
 		expect(mergedText).toContain('Beta translation');
 	});
 
+	test('keeps em dash translation spacing normalized across merged clips', async () => {
+		const firstClip = createVerseSubtitle(
+			0,
+			999,
+			'First Arabic',
+			'the Path of those You have blessed—'
+		);
+		const secondClip = createVerseSubtitle(
+			1000,
+			1999,
+			'Second Arabic',
+			'not those You are displeased with, or those who are astray.'
+		);
+		firstClip.startWordIndex = 0;
+		firstClip.endWordIndex = 5;
+		secondClip.startWordIndex = 6;
+		secondClip.endWordIndex = 15;
+		applyVisualMerge([firstClip, secondClip], 'translation');
+		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(
+			normalizeText(getForegroundTranslationNode(component.container, 'english')?.textContent)
+		).toBe(
+			'the Path of those You have blessed—not those You are displeased with, or those who are astray.'
+		);
+	});
+
 	test('keeps both arabic and translations merged across the active group', async () => {
 		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha translation');
 		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta translation');

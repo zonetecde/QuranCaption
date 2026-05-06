@@ -891,9 +891,15 @@ export class SubtitleTrack extends Track {
 	 *          chevauchement avec la zone non-décalée).
 	 */
 	shiftAllClips(offsetMs: number, fromMs: number = 0): boolean {
+		if (!Number.isFinite(offsetMs) || !Number.isFinite(fromMs)) {
+			toast.error('Cannot shift: invalid subtitle timing value.');
+			return false;
+		}
+
 		if (this.clips.length === 0) return true;
 
-		const targets = this.clips.filter((clip) => clip.startTime >= fromMs);
+		const cutoffMs = Math.max(0, fromMs);
+		const targets = this.clips.filter((clip) => clip.startTime >= cutoffMs);
 		if (targets.length === 0) {
 			toast('No subtitles starting at or after that time — nothing to shift.', { icon: 'ℹ️' });
 			return true;
@@ -909,13 +915,19 @@ export class SubtitleTrack extends Track {
 
 		// Vérification : décalage arrière qui chevaucherait la zone non-décalée.
 		if (offsetMs < 0 && targets.length < this.clips.length) {
-			const nonShifted = this.clips.filter((clip) => clip.startTime < fromMs);
-			const lastNonShiftedEnd = Math.max(...nonShifted.map((clip) => clip.endTime));
-			const firstShiftedStart = Math.min(...targets.map((clip) => clip.startTime + offsetMs));
+			let lastNonShiftedEnd = Number.NEGATIVE_INFINITY;
+			let firstShiftedStart = Number.POSITIVE_INFINITY;
+
+			for (const clip of this.clips) {
+				if (clip.startTime >= cutoffMs) {
+					firstShiftedStart = Math.min(firstShiftedStart, clip.startTime + offsetMs);
+				} else {
+					lastNonShiftedEnd = Math.max(lastNonShiftedEnd, clip.endTime);
+				}
+			}
+
 			if (firstShiftedStart <= lastNonShiftedEnd) {
-				toast.error(
-					'Cannot shift backward: would overlap with subtitles before the cutoff time.'
-				);
+				toast.error('Cannot shift backward: would overlap with subtitles before the cutoff time.');
 				return false;
 			}
 		}

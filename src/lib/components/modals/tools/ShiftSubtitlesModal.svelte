@@ -10,9 +10,11 @@
 	let unit: 'seconds' | 'milliseconds' = $state('seconds');
 	let fromTimeSec = $state(0);
 
+	const fromMs = $derived(
+		Number.isFinite(fromTimeSec) ? Math.max(0, Math.round(fromTimeSec * 1000)) : 0
+	);
 	const affectedCount = $derived(
-		globalState.getSubtitleTrack.clips.filter((clip) => clip.startTime >= fromTimeSec * 1000)
-			.length
+		globalState.getSubtitleTrack.clips.filter((clip) => clip.startTime >= fromMs).length
 	);
 
 	function setFromPlayhead() {
@@ -21,6 +23,11 @@
 	}
 
 	function applyShift() {
+		if (!Number.isFinite(shiftAmount)) {
+			toast.error('Please enter a valid shift amount.');
+			return;
+		}
+
 		if (shiftAmount === 0) {
 			close();
 			return;
@@ -35,13 +42,10 @@
 			offsetMs = -offsetMs;
 		}
 
-		const fromMs = Math.max(0, Math.round(fromTimeSec * 1000));
 		const success = globalState.getSubtitleTrack.shiftAllClips(offsetMs, fromMs);
 		if (success) {
-			const scope = fromMs > 0 ? ` (from ${fromTimeSec}s onward)` : '';
-			toast.success(
-				`Subtitles shifted by ${shiftAmount} ${unit} to the ${direction}${scope}.`
-			);
+			const scope = fromMs > 0 ? ` (from ${fromMs / 1000}s onward)` : '';
+			toast.success(`Subtitles shifted by ${shiftAmount} ${unit} to the ${direction}${scope}.`);
 			close();
 		}
 	}

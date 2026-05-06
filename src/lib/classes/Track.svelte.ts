@@ -880,38 +880,64 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
-	 * Décale tous les sous-titres de la piste d'un certain temps.
+	 * Décale les sous-titres de la piste d'un certain temps. Si `fromMs` est
+	 * fourni, seuls les clips dont `startTime >= fromMs` sont décalés ; les
+	 * autres restent à leur position. Si `fromMs` vaut 0 (par défaut), tous
+	 * les clips sont décalés (comportement historique).
 	 * @param offsetMs Le décalage en millisecondes (positif ou négatif).
-	 * @returns true si le décalage a été appliqué, false sinon (ex: décalage impossible car temps < 0).
+	 * @param fromMs Optionnel — point de coupure. Seuls les clips démarrant
+	 *               à `fromMs` ou après sont décalés.
+	 * @returns true si le décalage a été appliqué, false sinon (ex: temps négatif,
+	 *          chevauchement avec la zone non-décalée).
 	 */
-	shiftAllClips(offsetMs: number): boolean {
+	shiftAllClips(offsetMs: number, fromMs: number = 0): boolean {
+		if (!Number.isFinite(offsetMs) || !Number.isFinite(fromMs)) {
+			toast.error('Cannot shift: invalid subtitle timing value.');
+			return false;
+		}
+
 		if (this.clips.length === 0) return true;
 
-		// Vérification préliminaire : est-ce que le décalage rendrait un temps négatif ?
-		// On assume que les clips sont triés par ordre chronologique ou au moins que le premier a le startTime le plus bas
-		// Pour être sûr, on check tous les clips
-		for (const clip of this.clips) {
+		const cutoffMs = Math.max(0, fromMs);
+		const targets = this.clips.filter((clip) => clip.startTime >= cutoffMs);
+		if (targets.length === 0) {
+			toast('No subtitles starting at or after that time — nothing to shift.', { icon: 'ℹ️' });
+			return true;
+		}
+
+		// Vérification : est-ce que le décalage rendrait un temps négatif ?
+		for (const clip of targets) {
 			if (clip.startTime + offsetMs < 0) {
 				toast.error('Cannot shift: one or more subtitles would start before 0ms.');
 				return false;
 			}
 		}
 
-		// Applique le décalage
-		for (const clip of this.clips) {
-			// On met à jour directement les propriétés sans passer par les setters 'intelligents'
-			// qui checkent les chevauchements avec les voisins, car ON DÉCALE TOUT LE MONDE EN MÊME TEMPS.
-			// Cependant, on utilise quand même setStartTime/setEndTime pour la consistance si besoin,
-			// mais ici on fait confiance à la logique globale.
-			// Attention : clip.startTime et clip.endTime sont des $state, donc réactifs.
+		// Vérification : décalage arrière qui chevaucherait la zone non-décalée.
+		if (offsetMs < 0 && targets.length < this.clips.length) {
+			let lastNonShiftedEnd = Number.NEGATIVE_INFINITY;
+			let firstShiftedStart = Number.POSITIVE_INFINITY;
 
-			// On modifie d'abord endTime puis startTime ou l'inverse n'a pas d'importance
-			// tant qu'on ne trigger pas de logique de collision inter-clips.
-			// Les clips ne se chevaucheront pas plus qu'avant puisqu'ils bougent tous de la même valeur.
+			for (const clip of this.clips) {
+				if (clip.startTime >= cutoffMs) {
+					firstShiftedStart = Math.min(firstShiftedStart, clip.startTime + offsetMs);
+				} else {
+					lastNonShiftedEnd = Math.max(lastNonShiftedEnd, clip.endTime);
+				}
+			}
 
+			if (firstShiftedStart <= lastNonShiftedEnd) {
+				toast.error('Cannot shift backward: would overlap with subtitles before the cutoff time.');
+				return false;
+			}
+		}
+
+		// Applique le décalage. Les clips ciblés bougent tous ensemble, donc
+		// les chevauchements internes ne changent pas. clip.startTime/endTime
+		// sont des $state, donc réactifs.
+		for (const clip of targets) {
 			clip.startTime += offsetMs;
 			clip.endTime += offsetMs;
-			// duration reste la même
 		}
 
 		return true;

@@ -2130,11 +2130,11 @@ fn render_ffmpeg_filter_complex_single(
     filter_lines.push(format!("[{}]format=yuva444p[overlay]", curr_p));
 
     if export_without_background {
-        // Sortie alpha: conserver uniquement l'overlay.
+        // Sortie alpha: revenir en alpha straight pour eviter que le RGB du texte fonce au fade.
         filter_lines.push(if use_mov_alpha {
-            "[overlay]format=argb[vout]".to_string()
+            "[overlay]unpremultiply=inplace=1,format=argb[vout]".to_string()
         } else {
-            "[overlay]format=yuva420p[vout]".to_string()
+            "[overlay]unpremultiply=inplace=1,format=yuva420p[vout]".to_string()
         });
     } else {
         // Construction de la vidéo de fond [bg]

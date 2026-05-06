@@ -289,8 +289,8 @@
 								class="input w-full"
 								bind:value={globalState.getExportState.transparentExportFormat}
 							>
+								<option value="mov_prores_4444">MOV (QTRLE alpha) - Recommended</option>
 								<option value="webm_vp9_alpha">WEBM (VP9 alpha)</option>
-								<option value="mov_prores_4444">MOV (QTRLE alpha)</option>
 							</select>
 							<p class="text-xs text-thirdly mt-2">
 								<code>MOV (QTRLE alpha)</code> improves compatibility with editing tools.

@@ -842,7 +842,7 @@
 			{/if}
 
 			<!-- Contient l'affichage des sous-titres et de tout les autres style -->
-			<VideoOverlay />
+			<VideoOverlay strictLayoutWait={!showControls} />
 		</div>
 	</div>
 </section>

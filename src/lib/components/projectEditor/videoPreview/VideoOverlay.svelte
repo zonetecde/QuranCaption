@@ -13,7 +13,8 @@
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
+	import QPCFontProvider from '$lib/services/FontProvider';
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
@@ -30,6 +31,12 @@
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
+
+	let {
+		strictLayoutWait = false
+	}: {
+		strictLayoutWait?: boolean;
+	} = $props();
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
@@ -401,6 +408,8 @@
 	// Identifie le dernier run de layout afin d'éviter les remises d'opacité
 	// provoquées par un run annulé alors qu'un run plus récent est en cours.
 	let subtitleLayoutRunId = 0;
+	let exportLayoutStatus = $state<'pending' | 'ready'>('pending');
+	let exportLayoutPosition = $state('');
 
 	/**
 	 * Détecte le target (arabic, traduction, etc.) d'un élément sous-titre
@@ -429,6 +438,10 @@
 
 	function consumeReactiveDependencies(..._deps: unknown[]): void {}
 
+	/**
+	 * Attend le minimum historique utilise par la preview normale.
+	 * @param abortSignal Signal d'annulation du calcul courant.
+	 */
 	async function wait(abortSignal: AbortSignal) {
 		await new Promise((resolve, reject) => {
 			if (abortSignal.aborted) {
@@ -446,6 +459,61 @@
 	}
 
 	/**
+	 * Retourne une clé stable pour l'état de layout attendu par l'export.
+	 * @returns La position de timeline arrondie sous forme de chaîne.
+	 */
+	function getExportLayoutPositionKey(): string {
+		return String(Math.round(getTimelineSettings().cursorPosition ?? 0));
+	}
+
+	/**
+	 * Attend une frame navigateur annulable pour laisser le layout se recalculer.
+	 * @param abortSignal Signal d'annulation du calcul courant.
+	 */
+	async function waitForAnimationFrame(abortSignal: AbortSignal): Promise<void> {
+		if (abortSignal.aborted) throw new Error('Aborted');
+
+		await new Promise((resolve, reject) => {
+			if (abortSignal.aborted) {
+				reject(new Error('Aborted'));
+				return;
+			}
+			const onDone = () => {
+				if (abortSignal.aborted) {
+					reject(new Error('Aborted'));
+				} else {
+					resolve(undefined);
+				}
+			};
+
+			if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(onDone);
+			} else {
+				setTimeout(onDone, 16);
+			}
+		});
+	}
+
+	/**
+	 * Attend que Svelte ait flushé le DOM et que le navigateur ait peint le layout.
+	 * @param abortSignal Signal d'annulation du calcul courant.
+	 */
+	async function waitForLayoutFrame(abortSignal: AbortSignal): Promise<void> {
+		if (abortSignal.aborted) throw new Error('Aborted');
+		await tick();
+		await waitForAnimationFrame(abortSignal);
+		await waitForAnimationFrame(abortSignal);
+	}
+
+	/**
+	 * Attend le delai leger entre deux ajustements de layout.
+	 * @param abortSignal Signal d'annulation du calcul courant.
+	 */
+	async function waitForLayoutUpdate(abortSignal: AbortSignal): Promise<void> {
+		await wait(abortSignal);
+	}
+
+	/**
 	 * Gère le max-height (fit on N lines) et la taille de police réactive des sous-titres
 	 */
 	$effect(() => {
@@ -458,12 +526,34 @@
 				globalState.getTimelineState.movePreviewTo
 			);
 
+			const layoutPosition = getExportLayoutPositionKey();
+
 			const subtitle = currentSubtitle();
 			if (!subtitle) {
+				const runId = ++subtitleLayoutRunId;
+				if (currentAbortController) {
+					currentAbortController.abort();
+				}
+				currentAbortController = new AbortController();
+				const abortSignal = currentAbortController.signal;
+				exportLayoutStatus = 'pending';
+				exportLayoutPosition = layoutPosition;
 				lastSubtitleId = 0;
 				lastVisualMergeGroupId = null;
-				if (subtitlesContainer) {
-					subtitlesContainer.style.opacity = '1';
+
+				try {
+					await waitForLayoutUpdate(abortSignal);
+				} catch (error) {
+					if (error instanceof Error && error.message === 'Aborted') return;
+				}
+
+				const currentSubtitlesContainer = document.getElementById('subtitles-container');
+				if (currentSubtitlesContainer) {
+					currentSubtitlesContainer.style.opacity = '1';
+				}
+				if (runId === subtitleLayoutRunId) {
+					exportLayoutPosition = layoutPosition;
+					exportLayoutStatus = 'ready';
 				}
 				return;
 			}
@@ -475,25 +565,34 @@
 			// Pendant la lecture: éviter les recalculs pour le même clip
 			// et pour les transitions internes d'un même groupe merge visuel.
 			if (isPlaying) {
-				if (subtitle.id === lastSubtitleId) return;
+				if (subtitle.id === lastSubtitleId) {
+					exportLayoutPosition = layoutPosition;
+					exportLayoutStatus = 'ready';
+					return;
+				}
 				if (
 					currentVisualMergeGroupId &&
 					lastVisualMergeGroupId &&
 					currentVisualMergeGroupId === lastVisualMergeGroupId
 				) {
 					lastSubtitleId = subtitle.id;
+					exportLayoutPosition = layoutPosition;
+					exportLayoutStatus = 'ready';
 					return;
 				}
 			}
 
 			const runId = ++subtitleLayoutRunId;
+			exportLayoutStatus = 'pending';
+			exportLayoutPosition = layoutPosition;
 			lastSubtitleId = subtitle.id;
 			lastVisualMergeGroupId = currentVisualMergeGroupId;
 
 			consumeReactiveDependencies(
 				globalState.getStyle('arabic', 'max-height').value,
 				globalState.getStyle('arabic', 'font-size').value,
-				globalState.getStyle('global', 'spacing').value
+				globalState.getStyle('global', 'spacing').value,
+				globalState.getStyle('global', 'anti-collision').value
 			);
 
 			// Cache tout les sous-titres pendant le recalcul pour éviter les sauts visuels
@@ -520,8 +619,11 @@
 						globalState.getVideoStyle.getStylesOfTarget(target).setStyle('reactive-y-position', 0);
 					}
 
-					// Attendre un peu que le DOM se mette à jour après la remise à zéro
-					await wait(abortSignal);
+					await waitForLayoutUpdate(abortSignal);
+					if (strictLayoutWait) {
+						await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
+						await waitForLayoutUpdate(abortSignal);
+					}
 
 					// Utiliser for...of au lieu de forEach pour un meilleur contrôle async
 					for (const target of targets) {
@@ -538,7 +640,7 @@
 									.getStylesOfTarget(target)
 									.setStyle('reactive-font-size', fontSize);
 
-								await wait(abortSignal);
+								await waitForLayoutUpdate(abortSignal);
 
 								const subtitles = document.querySelectorAll('.' + CSS.escape(target) + '.subtitle');
 
@@ -564,7 +666,7 @@
 											.getStylesOfTarget(target)
 											.setStyle('reactive-font-size', fontSize);
 
-										await wait(abortSignal);
+										await waitForLayoutUpdate(abortSignal);
 									}
 								}
 							}
@@ -669,7 +771,7 @@
 											.setStyle('reactive-y-position', newValue);
 
 										// Attendre que le DOM se mette à jour
-										await wait(abortSignal);
+										await waitForLayoutUpdate(abortSignal);
 
 										// Vérifier les nouvelles positions après ajustement
 										const newCurrentRect = currentElement.getBoundingClientRect();
@@ -697,8 +799,24 @@
 
 			// Une fois tout ça fait, on remet l'opacité normale
 			// sélectionne l'élément d'id subtitles-container
-			if (subtitlesContainer && runId === subtitleLayoutRunId) {
-				subtitlesContainer.style.opacity = '1';
+			const currentSubtitlesContainer = document.getElementById('subtitles-container');
+			if (runId === subtitleLayoutRunId) {
+				const finalAbortSignal = currentAbortController?.signal;
+				if (strictLayoutWait) {
+					try {
+						await waitForLayoutFrame(finalAbortSignal!);
+					} catch (error) {
+						if (error instanceof Error && error.message === 'Aborted') return;
+					}
+				}
+				if (runId !== subtitleLayoutRunId) {
+					return;
+				}
+				if (currentSubtitlesContainer) {
+					currentSubtitlesContainer.style.opacity = '1';
+				}
+				exportLayoutPosition = layoutPosition;
+				exportLayoutStatus = 'ready';
 			}
 		})();
 	});
@@ -773,7 +891,13 @@
 	});
 </script>
 
-<div class="inset-0 absolute" style="" id="overlay">
+<div
+	class="inset-0 absolute"
+	style=""
+	id="overlay"
+	data-export-layout-status={exportLayoutStatus}
+	data-export-layout-position={exportLayoutPosition}
+>
 	{#if canShowAlignmentOverlay()}
 		<div class="alignment-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
 			<div class="alignment-grid"></div>

@@ -1146,6 +1146,45 @@
 	}
 
 	/**
+	 * Retourne la clé de layout attendue pour une capture d'export.
+	 * @param timing Position de timeline en millisecondes.
+	 * @returns La position arrondie sous forme de chaîne.
+	 */
+	function getExportLayoutPositionKey(timing: number): string {
+		return String(Math.round(timing));
+	}
+
+	/**
+	 * Indique si l'overlay a fini son layout pour le timing demandé.
+	 * @param overlay Racine DOM de l'overlay à capturer.
+	 * @param timing Position de timeline attendue.
+	 * @returns Vrai quand le layout déclaré correspond au timing.
+	 */
+	function isOverlayLayoutReady(overlay: HTMLElement, timing: number): boolean {
+		return (
+			overlay.dataset.exportLayoutStatus === 'ready' &&
+			overlay.dataset.exportLayoutPosition === getExportLayoutPositionKey(timing)
+		);
+	}
+
+	/**
+	 * Attend deux frames pour laisser le navigateur peindre les derniers styles.
+	 */
+	async function waitForCapturePaint(): Promise<void> {
+		const waitForFrame = () =>
+			new Promise<void>((resolve) => {
+				if (typeof requestAnimationFrame === 'function') {
+					requestAnimationFrame(() => resolve());
+				} else {
+					setTimeout(() => resolve(), 16);
+				}
+			});
+
+		await waitForFrame();
+		await waitForFrame();
+	}
+
+	/**
 	 * Attendre un peu plus longtemps si le timing est très espacé du précédent (sous-titre long)
 	 * @param timing
 	 * @param i
@@ -1155,27 +1194,25 @@
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
 
-		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
-		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+		const startTime = Date.now();
+		const timeout = 5000;
+		let overlay: HTMLElement | null = null;
 
-		if (!subtitlesContainer) {
-			await new Promise((resolve) => setTimeout(resolve, 200));
-		} else {
-			const startTime = Date.now();
-			const timeout = 2000; // 2000ms maximum timeout to avoid infinite hang
+		do {
+			overlay = document.getElementById('overlay') as HTMLElement | null;
+			if (overlay && isOverlayLayoutReady(overlay, timing)) break;
+			if (Date.now() - startTime > timeout) {
+				throw new Error(`Overlay layout was not ready for capture at ${timing}ms.`);
+			}
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		} while (true);
 
-			do {
-				if (Date.now() - startTime > timeout) {
-					console.warn(
-						`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`
-					);
-					break;
-				}
-				await new Promise((resolve) => setTimeout(resolve, 10));
-			} while (subtitlesContainer.style.opacity !== '1');
+		if (!overlay) {
+			throw new Error(`Overlay element was not available for capture at ${timing}ms.`);
 		}
 
-		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
+		await QPCFontProvider.waitForFontsInElement(overlay);
+		await waitForCapturePaint();
 	}
 </script>
 

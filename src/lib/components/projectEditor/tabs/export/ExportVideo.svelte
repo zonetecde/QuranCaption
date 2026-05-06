@@ -164,8 +164,14 @@
 					less fluid).
 				</p>
 				<p class="text-thirdly text-sm leading-snug">
-					<b>Batch size</b> for ffmpeg transitions. Lower values use less RAM but export slower. Default
-					is 12.
+					<b>Batch size</b>
+					<span
+						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
+						title="Suggested values by RAM: 4 GB → 4, 8 GB → 6, 16 GB → 8, 32 GB → 12."
+					>
+						help_outline
+					</span>
+					for ffmpeg transitions. Lower values use less RAM but export slower. Default is 12.
 				</p>
 				<input
 					type="number"

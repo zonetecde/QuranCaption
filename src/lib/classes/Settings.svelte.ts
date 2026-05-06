@@ -136,6 +136,11 @@ export default class Settings extends SerializableBase {
 			name: 'Pre-defined Subtitles',
 			icon: 'auto_awesome',
 			description: 'Shortcuts to insert pre-defined subtitle clips'
+		},
+		TIMELINE: {
+			name: 'Timeline',
+			icon: 'timeline',
+			description: 'Controls for timeline navigation and mouse wheel behavior'
 		}
 	};
 
@@ -282,6 +287,38 @@ export default class Settings extends SerializableBase {
 				description: 'Add a subtitle with sadaqa ("صَدَقَ ٱللَّهُ ٱلْعَظِيم")',
 				name: 'Add Sadaqa'
 			}
+		},
+		TIMELINE: {
+			ZOOM: {
+				keys: ['control'],
+				name: 'Zoom with Scroll',
+				description: 'Hold this shortcut while scrolling to zoom the timeline'
+			},
+			HORIZONTAL_SCROLL: {
+				keys: ['control+shift'],
+				name: 'Horizontal Scroll',
+				description: 'Hold this shortcut while scrolling to move horizontally'
+			},
+			VERTICAL_SCROLL: {
+				keys: ['scroll'],
+				name: 'Vertical Scroll',
+				description: 'Shortcut used for vertical timeline scrolling'
+			},
+			FRAME_BY_FRAME_SCROLL: {
+				keys: ['alt'],
+				name: 'Frame-by-frame with Scroll',
+				description: 'Hold this shortcut while scrolling to move frame by frame'
+			},
+			FRAME_BACKWARD: {
+				keys: [],
+				name: 'Previous Frame',
+				description: 'Move the cursor backward by one frame'
+			},
+			FRAME_FORWARD: {
+				keys: [],
+				name: 'Next Frame',
+				description: 'Move the cursor forward by one frame'
+			}
 		}
 	};
 
@@ -377,6 +414,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC334ToQC335();
 		MigrationService.FromQC339ToQC340();
 		MigrationService.FromQC343ToQC344();
+		MigrationService.FromQC347ToQC348();
 
 		if (
 			typeof settings.exportSettings.batchSize !== 'number' ||

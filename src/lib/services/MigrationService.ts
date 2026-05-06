@@ -628,6 +628,38 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Assure que les raccourcis timeline configurables existent dans les anciens settings.
+	 */
+	static FromQC347ToQC348(): void {
+		if (!globalState.settings) return;
+
+		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
+		const defaults = new Settings();
+		let hasChanges = false;
+
+		settingsAny.shortcutCategories = settingsAny.shortcutCategories || {};
+		settingsAny.shortcuts = settingsAny.shortcuts || {};
+		settingsAny.shortcuts.TIMELINE = settingsAny.shortcuts.TIMELINE || {};
+
+		if (!settingsAny.shortcutCategories.TIMELINE) {
+			settingsAny.shortcutCategories.TIMELINE = defaults.shortcutCategories.TIMELINE;
+			hasChanges = true;
+		}
+
+		for (const key of Object.keys(defaults.shortcuts.TIMELINE)) {
+			if (!settingsAny.shortcuts.TIMELINE[key]) {
+				settingsAny.shortcuts.TIMELINE[key] =
+					defaults.shortcuts.TIMELINE[key as keyof typeof defaults.shortcuts.TIMELINE];
+				hasChanges = true;
+			}
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Applies a first-pass classification to existing projects from their title only.
 	 * Priority order:
 	 * Taraweeh > Prayer > Studio > Rare recitation > Old recordings > Others

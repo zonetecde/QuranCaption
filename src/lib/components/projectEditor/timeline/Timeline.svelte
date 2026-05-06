@@ -56,6 +56,8 @@
 	let splitShortcutRegistered = false;
 	let setEndShortcutRegistered = false;
 	let setStartShortcutRegistered = false;
+	let frameBackwardShortcutRegistered = false;
+	let frameForwardShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
 
 	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
@@ -123,6 +125,38 @@
 				}
 			}
 		}
+	}
+
+	/**
+	 * Déplace le curseur de lecture d'une frame dans la direction demandée.
+	 * @param {number} direction Direction du déplacement (`-1` ou `1`).
+	 * @returns {void}
+	 */
+	function moveCursorByFrame(direction: number): void {
+		if (globalState.getVideoPreviewState.isPlaying) return;
+
+		const frameDurationMs = 1000 / Math.max(globalState.getExportState.fps, 1);
+		const newPosition = Math.max(1, timelineState().cursorPosition + direction * frameDurationMs);
+
+		timelineState().cursorPosition = newPosition;
+		timelineState().movePreviewTo = newPosition;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
+	}
+
+	/**
+	 * Déplace le curseur d'une frame vers l'arrière.
+	 * @returns {void}
+	 */
+	function handleMoveFrameBackward(): void {
+		moveCursorByFrame(-1);
+	}
+
+	/**
+	 * Déplace le curseur d'une frame vers l'avant.
+	 * @returns {void}
+	 */
+	function handleMoveFrameForward(): void {
+		moveCursorByFrame(1);
 	}
 
 	// Enregistre le raccourci Backspace pour virer les sous-titres sélectionnés lorsque l'on est dans l'onglet Style
@@ -293,6 +327,60 @@
 		setStartShortcutRegistered = false;
 	}
 
+	/**
+	 * Enregistre le raccourci clavier pour reculer d'une frame.
+	 * @returns {void}
+	 */
+	function registerFrameBackwardShortcut(): void {
+		if (!globalState.settings || frameBackwardShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.FRAME_BACKWARD,
+			onKeyDown: handleMoveFrameBackward
+		});
+
+		frameBackwardShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci clavier pour reculer d'une frame.
+	 * @returns {void}
+	 */
+	function unregisterFrameBackwardShortcut(): void {
+		if (!frameBackwardShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(globalState.settings.shortcuts.TIMELINE.FRAME_BACKWARD);
+
+		frameBackwardShortcutRegistered = false;
+	}
+
+	/**
+	 * Enregistre le raccourci clavier pour avancer d'une frame.
+	 * @returns {void}
+	 */
+	function registerFrameForwardShortcut(): void {
+		if (!globalState.settings || frameForwardShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.FRAME_FORWARD,
+			onKeyDown: handleMoveFrameForward
+		});
+
+		frameForwardShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci clavier pour avancer d'une frame.
+	 * @returns {void}
+	 */
+	function unregisterFrameForwardShortcut(): void {
+		if (!frameForwardShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(globalState.settings.shortcuts.TIMELINE.FRAME_FORWARD);
+
+		frameForwardShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -327,12 +415,16 @@
 		// Le raccourci M pour définir la fin du sous-titre fonctionne dans tous les tabs maintenant
 		registerSetEndShortcut();
 		registerSetStartShortcut();
+		registerFrameBackwardShortcut();
+		registerFrameForwardShortcut();
 
 		return () => {
 			unregisterSplitShortcut();
 			unregisterRemoveShortcut();
 			unregisterSetEndShortcut();
 			unregisterSetStartShortcut();
+			unregisterFrameBackwardShortcut();
+			unregisterFrameForwardShortcut();
 		};
 	});
 
@@ -512,8 +604,37 @@
 		timelineState().scrollX = source.scrollLeft;
 	}
 
+	/**
+	 * Vérifie si une option de raccourci timeline correspond à l'événement de molette.
+	 * @param {string} shortcut Option de raccourci enregistrée.
+	 * @param {WheelEvent} event Événement de molette courant.
+	 * @returns {boolean} `true` si l'option correspond aux touches maintenues.
+	 */
+	function matchesTimelineWheelShortcut(shortcut: string, event: WheelEvent): boolean {
+		if (shortcut === 'scroll') return !event.ctrlKey && !event.shiftKey && !event.altKey;
+		if (shortcut === 'control') return event.ctrlKey && !event.shiftKey && !event.altKey;
+		if (shortcut === 'shift') return !event.ctrlKey && event.shiftKey && !event.altKey;
+		if (shortcut === 'control+shift') return event.ctrlKey && event.shiftKey && !event.altKey;
+		if (shortcut === 'alt') return !event.ctrlKey && !event.shiftKey && event.altKey;
+		return false;
+	}
+
+	/**
+	 * Vérifie si une action timeline est déclenchée par l'événement de molette.
+	 * @param {keyof Settings['shortcuts']['TIMELINE']} action Action timeline à tester.
+	 * @param {WheelEvent} event Événement de molette courant.
+	 * @returns {boolean} `true` si au moins une option enregistrée correspond.
+	 */
+	function isTimelineWheelAction(
+		action: keyof Settings['shortcuts']['TIMELINE'],
+		event: WheelEvent
+	): boolean {
+		const shortcuts = globalState.settings?.shortcuts.TIMELINE[action].keys ?? [];
+		return shortcuts.some((shortcut) => matchesTimelineWheelShortcut(shortcut, event));
+	}
+
 	function handleMouseWheelWheeling(event: WheelEvent) {
-		if (event.ctrlKey && event.shiftKey) {
+		if (isTimelineWheelAction('HORIZONTAL_SCROLL', event)) {
 			const eventTarget = event.target;
 			if (!(eventTarget instanceof Element)) return;
 
@@ -530,8 +651,7 @@
 			return;
 		}
 
-		// Si la touche CTRL est enfoncée
-		if (event.ctrlKey) {
+		if (isTimelineWheelAction('ZOOM', event)) {
 			// Zoom avant ou arrière
 			if (event.deltaY > 0 && timelineState().zoom > 0.2) {
 				timelineState().zoom -= 0.75;
@@ -547,18 +667,18 @@
 			return;
 		}
 
-		if (event.altKey && !globalState.getVideoPreviewState.isPlaying) {
+		if (
+			isTimelineWheelAction('FRAME_BY_FRAME_SCROLL', event) &&
+			!globalState.getVideoPreviewState.isPlaying
+		) {
 			event.preventDefault();
-			const frameDurationMs = 1000 / Math.max(globalState.getExportState.fps, 1);
 			const direction = event.deltaY > 0 ? 1 : -1;
-			const newPosition = Math.max(1, timelineState().cursorPosition + direction * frameDurationMs);
-
-			timelineState().cursorPosition = newPosition;
-			timelineState().movePreviewTo = newPosition;
-			globalState.getVideoPreviewState.scrollTimelineToCursor();
+			moveCursorByFrame(direction);
 
 			return;
 		}
+
+		if (!isTimelineWheelAction('VERTICAL_SCROLL', event)) return;
 
 		event.preventDefault();
 		if (timelineTracksDiv) {
@@ -577,6 +697,8 @@
 		unregisterRemoveShortcut();
 		unregisterSetEndShortcut();
 		unregisterSetStartShortcut();
+		unregisterFrameBackwardShortcut();
+		unregisterFrameForwardShortcut();
 		tracksResizeObserver?.disconnect();
 		tracksResizeObserver = null;
 	});

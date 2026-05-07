@@ -6,7 +6,7 @@
 		applyHifzRepetitionToProject,
 		getHifzToolSummary,
 		type HifzRepeatTarget
-	} from '$lib/services/AutoSegmentation';
+	} from '$lib/services/HifzHelper';
 
 	let { close } = $props<{ close: () => void }>();
 

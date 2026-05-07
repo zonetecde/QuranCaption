@@ -31,7 +31,7 @@
 	let hifzTotalTime = $state(0);
 
 	const summary = $derived(getHifzToolSummary());
-	const canApply = $derived(summary.subtitleCount > 0 && summary.audioClipCount > 0 && !isRunning);
+	const canApply = $derived(summary.subtitleCount > 0 && !isRunning);
 
 	/**
 	 * Normalise le nombre de répétitions Hifz.
@@ -321,7 +321,7 @@
 				{#if summary.subtitleCount === 0}
 					Add subtitles before generating a Hifz track.
 				{:else if summary.audioClipCount === 0}
-					Add audio before generating a Hifz track.
+					No audio found. A silent Hifz track will be generated.
 				{:else}
 					Ready to generate.
 				{/if}

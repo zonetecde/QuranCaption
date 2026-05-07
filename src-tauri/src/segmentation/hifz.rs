@@ -150,6 +150,42 @@ fn resolve_source_audio_path(
     Ok((normalized, Vec::new()))
 }
 
+fn create_silent_source_audio(
+    ffmpeg_path: &str,
+    duration_s: f64,
+) -> Result<(PathBuf, TempFileGuard), String> {
+    let duration_s = duration_s.max(0.001);
+    let (path, guard) = create_temp_file_path("qurancaption-hifz-silence", "wav")?;
+
+    let mut cmd = Command::new(ffmpeg_path);
+    cmd.args([
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=channel_layout=stereo:sample_rate=44100",
+        "-t",
+        &format!("{:.6}", duration_s),
+        "-ac",
+        "2",
+        "-ar",
+        "44100",
+        "-c:a",
+        "pcm_s16le",
+        path.to_string_lossy().as_ref(),
+    ]);
+    configure_command_no_window(&mut cmd);
+    let status = cmd.status().map_err(|e| format!("ffmpeg error: {}", e))?;
+    if !status.success() {
+        return Err("Failed to generate silent audio source".to_string());
+    }
+
+    Ok((path, guard))
+}
+
 pub async fn generate_hifz_audio(
     app_handle: AppHandle,
     audio_path: Option<String>,
@@ -163,8 +199,26 @@ pub async fn generate_hifz_audio(
 
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-    let (source_audio_path, _guards) =
-        resolve_source_audio_path(&ffmpeg_path, audio_path, audio_clips)?;
+    let mut _guards: Vec<TempFileGuard> = Vec::new();
+    let source_audio_path = if audio_path.is_none()
+        && audio_clips.as_ref().map_or(true, |clips| clips.is_empty())
+    {
+        let max_end_ms = segments
+            .iter()
+            .map(|segment| segment.end_ms.max(0))
+            .max()
+            .unwrap_or(0);
+        // The filter graph trims against the source timeline; ensure the silent input is long enough.
+        let duration_s = (max_end_ms.max(1) as f64) / 1000.0 + 0.1;
+        let (path, guard) = create_silent_source_audio(&ffmpeg_path, duration_s)?;
+        _guards.push(guard);
+        path
+    } else {
+        let (path, mut resolved_guards) =
+            resolve_source_audio_path(&ffmpeg_path, audio_path, audio_clips)?;
+        _guards.append(&mut resolved_guards);
+        path
+    };
 
     let _ = app_handle.emit(
         "segmentation-status",

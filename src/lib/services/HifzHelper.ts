@@ -527,14 +527,11 @@ async function generateHifzAudioAsset(
 
 	const sourceAudioClips = getHifzGenerationAudioClips();
 	const audioInfo = sourceAudioClips[0] ?? null;
-	if (!audioInfo) {
-		throw new Error('No audio clip found in the project.');
-	}
 
 	const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
 	await mkdir(assetFolder, { recursive: true });
 
-	const sourceFileName = audioInfo.fileName.replace(/\.[^/.]+$/, '');
+	const sourceFileName = (audioInfo?.fileName ?? 'audio').replace(/\.[^/.]+$/, '');
 	const safeBaseName = sourceFileName.replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_') || 'audio';
 	const outputPath = await join(
 		assetFolder,
@@ -542,7 +539,7 @@ async function generateHifzAudioAsset(
 	);
 
 	const result = (await invoke('generate_hifz_audio', {
-		audioPath: audioInfo.filePath,
+		audioPath: audioInfo?.filePath ?? null,
 		audioClips: sourceAudioClips.map((clip) => ({
 			path: clip.filePath,
 			startMs: clip.startMs,

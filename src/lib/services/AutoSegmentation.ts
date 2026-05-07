@@ -110,6 +110,7 @@ export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel = 'Base' | 'Large';
 export type SegmentationDevice = 'GPU' | 'CPU';
+export type HifzRepeatTarget = 'verse' | 'subtitle';
 
 export type LocalEngineStatus = {
 	ready: boolean;
@@ -220,6 +221,7 @@ export type AutoSegmentationOptions = {
 	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
 	hifzSegmentationEnabled?: boolean;
 	hifzRepeatCount?: number;
+	hifzRepeatTarget?: HifzRepeatTarget;
 	onRunConfirmed?: (() => void | Promise<void>) | null; // Called once after overwrite confirmation succeeds.
 };
 
@@ -265,6 +267,7 @@ export type HifzAudioSegment = {
 
 type HifzSegmentationMetadata = {
 	repeatCount: number;
+	repeatTarget: HifzRepeatTarget;
 	sourceAudioClips: AutoSegmentationAudioClip[];
 	createdAt: string;
 };
@@ -302,6 +305,21 @@ type HifzPlacement = {
 	startMs: number;
 	endMs: number;
 	repetition: number;
+};
+
+type HifzPlanTemplateInput = {
+	kind: SegmentationClipTemplate['kind'];
+	originalStartMs: number;
+	originalEndMs: number;
+	surah?: number;
+	verseNumber?: number;
+};
+
+type HifzPlanGroup = {
+	templateIndices: number[];
+	startMs: number;
+	endMs: number;
+	repeatCount: number;
 };
 
 export type DurationEstimateResult = {
@@ -1190,53 +1208,108 @@ function buildStoredAlignedSegment(
 	};
 }
 
-export function buildHifzRepetitionPlan(
-	templates: Array<Pick<SegmentationClipTemplate, 'kind' | 'originalStartMs' | 'originalEndMs'>>,
-	repeatCount: number
-): { placements: HifzPlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number } {
+function areTemplatesInSameVerseBlock(
+	current: HifzPlanTemplateInput,
+	next: HifzPlanTemplateInput
+): boolean {
+	if (current.kind !== 'subtitle' || next.kind !== 'subtitle') return false;
+	if (!Number.isFinite(current.surah) || !Number.isFinite(current.verseNumber)) return false;
+	if (!Number.isFinite(next.surah) || !Number.isFinite(next.verseNumber)) return false;
+	return current.surah === next.surah && current.verseNumber === next.verseNumber;
+}
+
+function buildHifzPlanGroups(
+	templates: HifzPlanTemplateInput[],
+	repeatCount: number,
+	repeatTarget: HifzRepeatTarget
+): HifzPlanGroup[] {
 	const safeRepeatCount = Math.max(2, Math.round(repeatCount || 2));
-	const placements: HifzPlacement[] = [];
-	const audioSegments: HifzAudioSegment[] = [];
-	let cursorMs = 0;
+	const groups: HifzPlanGroup[] = [];
 
 	for (let index = 0; index < templates.length; index += 1) {
 		const template = templates[index];
 		const normalizedStartMs = Math.max(0, Math.round(template.originalStartMs));
 		const normalizedEndMs = Math.max(normalizedStartMs + 1, Math.round(template.originalEndMs));
-		const timelineDurationMs = Math.max(1, normalizedEndMs - normalizedStartMs);
-		const repetitions = template.kind === 'subtitle' ? safeRepeatCount : 1;
 
-		for (let repetition = 1; repetition <= repetitions; repetition += 1) {
-			const startMs = cursorMs;
-			const endMs = startMs + timelineDurationMs;
-			placements.push({
-				sourceIndex: index,
-				startMs,
-				endMs,
-				repetition
-			});
-			audioSegments.push({
-				startMs: normalizedStartMs,
-				endMs: normalizedEndMs,
-				repeatCount: 1
-			});
-			cursorMs = endMs + 1;
+		const lastGroup = groups[groups.length - 1];
+		const lastTemplate =
+			lastGroup && lastGroup.templateIndices.length > 0
+				? templates[lastGroup.templateIndices[lastGroup.templateIndices.length - 1]]
+				: null;
+
+		if (
+			repeatTarget === 'verse' &&
+			lastGroup &&
+			lastTemplate &&
+			areTemplatesInSameVerseBlock(lastTemplate, template)
+		) {
+			lastGroup.templateIndices.push(index);
+			lastGroup.endMs = Math.max(lastGroup.endMs, normalizedEndMs);
+			continue;
+		}
+
+		groups.push({
+			templateIndices: [index],
+			startMs: normalizedStartMs,
+			endMs: normalizedEndMs,
+			repeatCount: template.kind === 'subtitle' ? safeRepeatCount : 1
+		});
+	}
+
+	return groups;
+}
+
+export function buildHifzRepetitionPlan(
+	templates: HifzPlanTemplateInput[],
+	repeatCount: number,
+	repeatTarget: HifzRepeatTarget = 'verse'
+): { placements: HifzPlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number } {
+	const placements: HifzPlacement[] = [];
+	const audioSegments: HifzAudioSegment[] = [];
+	const groups = buildHifzPlanGroups(templates, repeatCount, repeatTarget);
+	let cursorMs = 0;
+
+	for (const group of groups) {
+		const groupDurationMs = Math.max(1, group.endMs - group.startMs);
+		audioSegments.push({
+			startMs: group.startMs,
+			endMs: group.endMs,
+			repeatCount: group.repeatCount
+		});
+
+		for (let repetition = 1; repetition <= group.repeatCount; repetition += 1) {
+			const repeatedBlockStartMs = cursorMs;
+			for (const sourceIndex of group.templateIndices) {
+				const template = templates[sourceIndex];
+				const normalizedStartMs = Math.max(0, Math.round(template.originalStartMs));
+				const normalizedEndMs = Math.max(normalizedStartMs + 1, Math.round(template.originalEndMs));
+				placements.push({
+					sourceIndex,
+					startMs: repeatedBlockStartMs + (normalizedStartMs - group.startMs),
+					endMs: repeatedBlockStartMs + (normalizedEndMs - group.startMs),
+					repetition
+				});
+			}
+			cursorMs = repeatedBlockStartMs + groupDurationMs + 1;
 		}
 	}
 
 	return {
 		placements,
 		audioSegments,
-		totalDurationMs: placements.length === 0 ? 0 : placements[placements.length - 1].endMs
+		totalDurationMs:
+			placements.length === 0 ? 0 : Math.max(...placements.map((placement) => placement.endMs))
 	};
 }
 
 function buildGeneratedHifzAudioMetadata(
 	sourceAudioClips: AutoSegmentationAudioClip[],
-	repeatCount: number
+	repeatCount: number,
+	repeatTarget: HifzRepeatTarget
 ): HifzSegmentationMetadata {
 	return {
 		repeatCount,
+		repeatTarget,
 		sourceAudioClips: sourceAudioClips.map((clip) => ({ ...clip })),
 		createdAt: new Date().toISOString()
 	};
@@ -1244,7 +1317,8 @@ function buildGeneratedHifzAudioMetadata(
 
 async function generateHifzAudioAsset(
 	audioSegments: HifzAudioSegment[],
-	repeatCount: number
+	repeatCount: number,
+	repeatTarget: HifzRepeatTarget
 ): Promise<{ asset: Asset; durationMs: number }> {
 	const project = globalState.currentProject;
 	if (!project) throw new Error('No active project found.');
@@ -1262,7 +1336,7 @@ async function generateHifzAudioAsset(
 	const safeBaseName = sourceFileName.replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_') || 'audio';
 	const outputPath = await join(
 		assetFolder,
-		`${safeBaseName}_hifz_x${repeatCount}_${Date.now()}.mp3`
+		`${safeBaseName}_hifz_${repeatTarget}_x${repeatCount}_${Date.now()}.mp3`
 	);
 
 	const result = (await invoke('generate_hifz_audio', {
@@ -1277,7 +1351,7 @@ async function generateHifzAudioAsset(
 	})) as { outputPath: string; durationMs: number };
 
 	const asset = new Asset(result.outputPath, undefined, SourceType.Local, {
-		hifzSegmentation: buildGeneratedHifzAudioMetadata(sourceAudioClips, repeatCount)
+		hifzSegmentation: buildGeneratedHifzAudioMetadata(sourceAudioClips, repeatCount, repeatTarget)
 	} satisfies { hifzSegmentation: HifzSegmentationMetadata });
 	asset.duration = new Duration(result.durationMs);
 	asset.durationLoadState = 'success';
@@ -1294,6 +1368,7 @@ type ApplySegmentationResponseParams = {
 	extendBeforeSilenceMs: number;
 	hifzSegmentationEnabled: boolean;
 	hifzRepeatCount: number;
+	hifzRepeatTarget: HifzRepeatTarget;
 	fallbackToCloud: boolean;
 	cloudGpuFallbackToCpu: boolean;
 	requestedMode: SegmentationMode;
@@ -1316,6 +1391,7 @@ async function applySegmentationResponseToProject(
 		extendBeforeSilenceMs,
 		hifzSegmentationEnabled,
 		hifzRepeatCount,
+		hifzRepeatTarget,
 		fallbackToCloud,
 		cloudGpuFallbackToCpu,
 		requestedMode,
@@ -1796,10 +1872,15 @@ async function applySegmentationResponseToProject(
 
 	let generatedHifzAudio: { asset: Asset; durationMs: number } | null = null;
 	if (hifzSegmentationEnabled && clipTemplates.length > 0) {
-		const repetitionPlan = buildHifzRepetitionPlan(clipTemplates, hifzRepeatCount);
+		const repetitionPlan = buildHifzRepetitionPlan(
+			clipTemplates,
+			hifzRepeatCount,
+			hifzRepeatTarget
+		);
 		generatedHifzAudio = await generateHifzAudioAsset(
 			repetitionPlan.audioSegments,
-			Math.max(2, Math.round(hifzRepeatCount || 2))
+			Math.max(2, Math.round(hifzRepeatCount || 2)),
+			hifzRepeatTarget
 		);
 		for (const placement of repetitionPlan.placements) {
 			const template = clipTemplates[placement.sourceIndex];
@@ -1826,26 +1907,24 @@ async function applySegmentationResponseToProject(
 
 	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
 
-	if (!hifzSegmentationEnabled) {
-		const subtitleClips = subtitleTrack.clips.filter(
-			(clip) => clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'
-		) as Array<SubtitleClip | PredefinedSubtitleClip>;
-		closeSmallSubtitleGaps(subtitleClips, SMALL_GAP_MS);
+	const subtitleClips = subtitleTrack.clips.filter(
+		(clip) => clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'
+	) as Array<SubtitleClip | PredefinedSubtitleClip>;
+	closeSmallSubtitleGaps(subtitleClips, SMALL_GAP_MS);
 
-		if (fillBySilence) {
-			subtitleTrack.clips = insertSilenceClips(subtitleClips, SMALL_GAP_MS);
-			if (extendBeforeSilence && extendBeforeSilenceMs > 0) {
-				extendSubtitlesBeforeSilence(
-					subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
-					extendBeforeSilenceMs
-				);
-			}
-		} else {
-			extendSubtitlesToFillGaps(subtitleClips);
-			subtitleTrack.clips = subtitleClips;
+	if (fillBySilence) {
+		subtitleTrack.clips = insertSilenceClips(subtitleClips, SMALL_GAP_MS);
+		if (extendBeforeSilence && extendBeforeSilenceMs > 0) {
+			extendSubtitlesBeforeSilence(
+				subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
+				extendBeforeSilenceMs
+			);
 		}
-		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+	} else {
+		extendSubtitlesToFillGaps(subtitleClips);
+		subtitleTrack.clips = subtitleClips;
 	}
+	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
 
 	for (const storedAlignedSegment of storedAlignedSegments) {
 		const clip = subtitleTrack.getClipById(storedAlignedSegment.clipId) as
@@ -2500,6 +2579,7 @@ export async function runAutoSegmentation(
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
 	const hifzSegmentationEnabled: boolean = options.hifzSegmentationEnabled ?? false;
 	const hifzRepeatCount: number = Math.max(2, Math.round(options.hifzRepeatCount ?? 3));
+	const hifzRepeatTarget: HifzRepeatTarget = options.hifzRepeatTarget ?? 'verse';
 	const onRunConfirmed = options.onRunConfirmed ?? null;
 
 	// Determine mode if not specified
@@ -2523,7 +2603,7 @@ export async function runAutoSegmentation(
 	if (subtitleTrack.clips.length > 0) {
 		const confirmOverwrite: boolean = await ModalManager.confirmModal(
 			hifzSegmentationEnabled
-				? `There are already subtitles in this project. This process will override them and replace the current audio track with a generated Hifz track (${hifzRepeatCount}x per verse). Continue?`
+				? `There are already subtitles in this project. This process will override them and replace the current audio track with a generated Hifz track (${hifzRepeatCount}x per ${hifzRepeatTarget}). Continue?`
 				: 'There are already subtitles in this project. This process will override them. Continue?',
 			true
 		);
@@ -2628,6 +2708,7 @@ export async function runAutoSegmentation(
 			extendBeforeSilenceMs,
 			hifzSegmentationEnabled,
 			hifzRepeatCount,
+			hifzRepeatTarget,
 			fallbackToCloud,
 			cloudGpuFallbackToCpu,
 			requestedMode,
@@ -2736,6 +2817,7 @@ export async function runAutoSegmentationFromImportedJson(
 		| 'extendBeforeSilenceMs'
 		| 'hifzSegmentationEnabled'
 		| 'hifzRepeatCount'
+		| 'hifzRepeatTarget'
 	> = {}
 ): Promise<AutoSegmentationResult | null> {
 	const fillBySilence: boolean = options.fillBySilence ?? true;
@@ -2743,6 +2825,7 @@ export async function runAutoSegmentationFromImportedJson(
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
 	const hifzSegmentationEnabled: boolean = options.hifzSegmentationEnabled ?? false;
 	const hifzRepeatCount: number = Math.max(2, Math.round(options.hifzRepeatCount ?? 3));
+	const hifzRepeatTarget: HifzRepeatTarget = options.hifzRepeatTarget ?? 'verse';
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
 	const audioClips = getAutoSegmentationAudioClips();
@@ -2754,7 +2837,7 @@ export async function runAutoSegmentationFromImportedJson(
 	if (subtitleTrack.clips.length > 0) {
 		const confirmOverwrite: boolean = await ModalManager.confirmModal(
 			hifzSegmentationEnabled
-				? `There are already subtitles in this project. This process will override them and replace the current audio track with a generated Hifz track (${hifzRepeatCount}x per verse). Continue?`
+				? `There are already subtitles in this project. This process will override them and replace the current audio track with a generated Hifz track (${hifzRepeatCount}x per ${hifzRepeatTarget}). Continue?`
 				: 'There are already subtitles in this project. This process will override them. Continue?',
 			true
 		);
@@ -2771,6 +2854,7 @@ export async function runAutoSegmentationFromImportedJson(
 			extendBeforeSilenceMs,
 			hifzSegmentationEnabled,
 			hifzRepeatCount,
+			hifzRepeatTarget,
 			fallbackToCloud: false,
 			cloudGpuFallbackToCpu: false,
 			requestedMode: 'api',

@@ -47,7 +47,7 @@
 			Hifz Segmentation:
 			<span class="text-primary font-semibold"
 				>{wizard.hifzSegmentationEnabled
-					? `Enabled (${wizard.hifzRepeatCount}x per verse, replaces current audio track)`
+					? `Enabled (${wizard.hifzRepeatCount}x per ${wizard.hifzRepeatTarget}, replaces current audio track)`
 					: 'Disabled'}</span
 			>
 		</div>

@@ -111,7 +111,7 @@
 			<div class="text-sm text-secondary">
 				Hifz output:
 				<span class="font-semibold text-primary"
-					>{wizard.hifzRepeatCount}x per verse with generated repeated audio</span
+					>{wizard.hifzRepeatCount}x per {wizard.hifzRepeatTarget} with generated repeated audio</span
 				>
 			</div>
 		{/if}

@@ -80,7 +80,9 @@
 				/> Enable Hifz Segmentation</label
 			>
 			<div class="flex items-center gap-2 text-sm text-secondary">
-				<label for="hifz-repeat-count" class="min-w-0 flex-1"> Repeat each Quran verse </label>
+				<label for="hifz-repeat-count" class="min-w-0 flex-1">
+					Repeat each {wizard.hifzRepeatTarget}
+				</label>
 				<input
 					id="hifz-repeat-count"
 					type="number"
@@ -95,9 +97,35 @@
 				/>
 				<span>times</span>
 			</div>
+			<div class="grid grid-cols-2 gap-2">
+				<button
+					type="button"
+					class="rounded-lg border px-3 py-2 text-xs"
+					class:border-accent-primary={wizard.hifzRepeatTarget === 'verse'}
+					class:bg-accent={wizard.hifzRepeatTarget === 'verse'}
+					class:border-color={wizard.hifzRepeatTarget !== 'verse'}
+					disabled={!wizard.hifzSegmentationEnabled}
+					onclick={() => wizard.setHifzRepeatTarget('verse')}
+				>
+					Repeat each verse
+				</button>
+				<button
+					type="button"
+					class="rounded-lg border px-3 py-2 text-xs"
+					class:border-accent-primary={wizard.hifzRepeatTarget === 'subtitle'}
+					class:bg-accent={wizard.hifzRepeatTarget === 'subtitle'}
+					class:border-color={wizard.hifzRepeatTarget !== 'subtitle'}
+					disabled={!wizard.hifzSegmentationEnabled}
+					onclick={() => wizard.setHifzRepeatTarget('subtitle')}
+				>
+					Repeat each subtitle
+				</button>
+			</div>
 			<p class="text-xs text-thirdly">
-				When enabled, the generated subtitles and audio both repeat every Quran verse by the
-				selected count. This replaces the current audio track with a generated Hifz file.
+				When enabled, the generated subtitles and audio repeat either full verse blocks or
+				individual subtitle segments by the selected count. All normal subtitle gap options still
+				apply after the repeats are created, and the current audio track is replaced with a
+				generated Hifz file.
 			</p>
 		</div>
 

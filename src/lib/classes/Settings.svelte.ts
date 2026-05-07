@@ -26,6 +26,7 @@ export type AutoSegmentationSettings = {
 	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
 	hifzSegmentationEnabled: boolean;
 	hifzRepeatCount: number;
+	hifzRepeatTarget: 'verse' | 'subtitle';
 };
 
 export type AITranslationSettings = {
@@ -105,7 +106,8 @@ export default class Settings extends SerializableBase {
 		extendBeforeSilence: false,
 		extendBeforeSilenceMs: 50,
 		hifzSegmentationEnabled: false,
-		hifzRepeatCount: 3
+		hifzRepeatCount: 3,
+		hifzRepeatTarget: 'verse'
 	});
 
 	aiTranslationSettings = $state<AITranslationSettings>({

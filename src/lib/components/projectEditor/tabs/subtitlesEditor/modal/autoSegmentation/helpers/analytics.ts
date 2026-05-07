@@ -41,6 +41,7 @@ export function trackSegmentationRun(params: {
 	extendBeforeSilenceMs: number;
 	hifzSegmentationEnabled: boolean;
 	hifzRepeatCount: number;
+	hifzRepeatTarget: 'verse' | 'subtitle';
 	hfTokenSet: boolean;
 }): void {
 	const completed = params.response?.status === 'completed' ? params.response : null;
@@ -81,6 +82,7 @@ export function trackSegmentationRun(params: {
 		extend_before_silence_ms: params.extendBeforeSilenceMs,
 		hifz_segmentation_enabled: params.hifzSegmentationEnabled,
 		hifz_repeat_count: params.hifzRepeatCount,
+		hifz_repeat_target: params.hifzRepeatTarget,
 		mode: params.requestedMode,
 		hf_token_set: params.hfTokenSet,
 		audio_filename: params.audioLabel,

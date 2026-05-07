@@ -12,6 +12,7 @@ import {
 	runAutoSegmentation,
 	runAutoSegmentationFromImportedJson,
 	type AutoSegmentationResult,
+	type HifzRepeatTarget,
 	type LegacyWhisperModelSize,
 	type LocalSegmentationStatus,
 	type MultiAlignerModel,
@@ -44,6 +45,7 @@ export function useAutoSegmentationWizard() {
 	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);
 	let hifzSegmentationEnabled = $state(persisted?.hifzSegmentationEnabled ?? false);
 	let hifzRepeatCount = $state(Math.max(2, persisted?.hifzRepeatCount ?? 3));
+	let hifzRepeatTarget = $state<HifzRepeatTarget>(persisted?.hifzRepeatTarget ?? 'verse');
 	let currentStep = $state(0);
 	let isRunning = $state(false);
 	let result = $state<AutoSegmentationResult | null>(null);
@@ -116,7 +118,7 @@ export function useAutoSegmentationWizard() {
 		result?.status === 'completed'
 			? 'Segmentation completed. You can close and review the subtitles.'
 			: hifzSegmentationEnabled
-				? `Hifz Segmentation will repeat each Quran verse ${hifzRepeatCount} times and replace the current audio track with a generated repetition track.`
+				? `Hifz Segmentation will repeat each ${hifzRepeatTarget} ${hifzRepeatCount} times, keep the normal subtitle gap options, and replace the current audio track with a generated repetition track.`
 				: selection.runtime === 'hf_json'
 					? 'Import and parse a JSON export from Hugging Face, then apply it to your timeline.'
 					: selection.mode === 'local'
@@ -379,7 +381,8 @@ export function useAutoSegmentationWizard() {
 					extendBeforeSilence,
 					extendBeforeSilenceMs,
 					hifzSegmentationEnabled,
-					hifzRepeatCount
+					hifzRepeatCount,
+					hifzRepeatTarget
 				});
 			} else {
 				response = await runAutoSegmentation(
@@ -400,6 +403,7 @@ export function useAutoSegmentationWizard() {
 						extendBeforeSilenceMs,
 						hifzSegmentationEnabled,
 						hifzRepeatCount,
+						hifzRepeatTarget,
 						onRunConfirmed: () => {
 							if (estimatedDurationForRun && estimatedDurationForRun > 0) {
 								startEstimatedProgressTimer(estimatedDurationForRun);
@@ -438,6 +442,7 @@ export function useAutoSegmentationWizard() {
 				extendBeforeSilenceMs,
 				hifzSegmentationEnabled,
 				hifzRepeatCount,
+				hifzRepeatTarget,
 				hfTokenSet: selection.hfToken.length > 0
 			});
 		}
@@ -525,6 +530,11 @@ export function useAutoSegmentationWizard() {
 		hifzRepeatCount = Math.max(2, Math.round(value || 2));
 		persistPatch({ hifzRepeatCount });
 	}
+	/** Sets whether Hifz repeats whole verses or individual subtitles. */
+	function setHifzRepeatTarget(value: HifzRepeatTarget): void {
+		hifzRepeatTarget = value;
+		persistPatch({ hifzRepeatTarget: value });
+	}
 	/** Goes to any wizard step within bounds. */
 	function goToStep(step: number): void {
 		currentStep = Math.max(0, Math.min(maxStep(), step));
@@ -581,6 +591,9 @@ export function useAutoSegmentationWizard() {
 		},
 		get hifzRepeatCount() {
 			return hifzRepeatCount;
+		},
+		get hifzRepeatTarget() {
+			return hifzRepeatTarget;
 		},
 		get currentStep() {
 			return currentStep;
@@ -682,6 +695,7 @@ export function useAutoSegmentationWizard() {
 		setExtendBeforeSilenceMs,
 		setHifzSegmentationEnabled,
 		setHifzRepeatCount,
+		setHifzRepeatTarget,
 		goToStep,
 		goNext,
 		goBack

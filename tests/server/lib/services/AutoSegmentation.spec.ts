@@ -135,34 +135,88 @@ describe('parseImportedSegmentationJson', () => {
 });
 
 describe('buildHifzRepetitionPlan', () => {
-	it('repeats Quran subtitle clips while keeping predefined clips single-pass', () => {
+	it('repeats each verse block rather than each subtitle clip', () => {
 		const plan = buildHifzRepetitionPlan(
 			[
 				{ kind: 'predefined', originalStartMs: 0, originalEndMs: 1200 },
-				{ kind: 'subtitle', originalStartMs: 1200, originalEndMs: 2000 },
-				{ kind: 'subtitle', originalStartMs: 2000, originalEndMs: 2600 }
+				{
+					kind: 'subtitle',
+					originalStartMs: 1200,
+					originalEndMs: 1600,
+					surah: 2,
+					verseNumber: 1
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1700,
+					originalEndMs: 2200,
+					surah: 2,
+					verseNumber: 1
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 2300,
+					originalEndMs: 2600,
+					surah: 2,
+					verseNumber: 2
+				}
 			],
-			3
+			3,
+			'verse'
 		);
 
 		expect(plan.placements).toEqual([
 			{ sourceIndex: 0, startMs: 0, endMs: 1200, repetition: 1 },
-			{ sourceIndex: 1, startMs: 1201, endMs: 2001, repetition: 1 },
-			{ sourceIndex: 1, startMs: 2002, endMs: 2802, repetition: 2 },
-			{ sourceIndex: 1, startMs: 2803, endMs: 3603, repetition: 3 },
-			{ sourceIndex: 2, startMs: 3604, endMs: 4204, repetition: 1 },
-			{ sourceIndex: 2, startMs: 4205, endMs: 4805, repetition: 2 },
-			{ sourceIndex: 2, startMs: 4806, endMs: 5406, repetition: 3 }
+			{ sourceIndex: 1, startMs: 1201, endMs: 1601, repetition: 1 },
+			{ sourceIndex: 2, startMs: 1701, endMs: 2201, repetition: 1 },
+			{ sourceIndex: 1, startMs: 2202, endMs: 2602, repetition: 2 },
+			{ sourceIndex: 2, startMs: 2702, endMs: 3202, repetition: 2 },
+			{ sourceIndex: 1, startMs: 3203, endMs: 3603, repetition: 3 },
+			{ sourceIndex: 2, startMs: 3703, endMs: 4203, repetition: 3 },
+			{ sourceIndex: 3, startMs: 4204, endMs: 4504, repetition: 1 },
+			{ sourceIndex: 3, startMs: 4505, endMs: 4805, repetition: 2 },
+			{ sourceIndex: 3, startMs: 4806, endMs: 5106, repetition: 3 }
 		]);
 		expect(plan.audioSegments).toEqual([
 			{ startMs: 0, endMs: 1200, repeatCount: 1 },
-			{ startMs: 1200, endMs: 2000, repeatCount: 1 },
-			{ startMs: 1200, endMs: 2000, repeatCount: 1 },
-			{ startMs: 1200, endMs: 2000, repeatCount: 1 },
-			{ startMs: 2000, endMs: 2600, repeatCount: 1 },
-			{ startMs: 2000, endMs: 2600, repeatCount: 1 },
-			{ startMs: 2000, endMs: 2600, repeatCount: 1 }
+			{ startMs: 1200, endMs: 2200, repeatCount: 3 },
+			{ startMs: 2300, endMs: 2600, repeatCount: 3 }
 		]);
-		expect(plan.totalDurationMs).toBe(5406);
+		expect(plan.totalDurationMs).toBe(5106);
+	});
+
+	it('can repeat each subtitle independently when requested', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 1200,
+					originalEndMs: 1600,
+					surah: 2,
+					verseNumber: 1
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1700,
+					originalEndMs: 2200,
+					surah: 2,
+					verseNumber: 1
+				}
+			],
+			2,
+			'subtitle'
+		);
+
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 400, repetition: 1 },
+			{ sourceIndex: 0, startMs: 401, endMs: 801, repetition: 2 },
+			{ sourceIndex: 1, startMs: 802, endMs: 1302, repetition: 1 },
+			{ sourceIndex: 1, startMs: 1303, endMs: 1803, repetition: 2 }
+		]);
+		expect(plan.audioSegments).toEqual([
+			{ startMs: 1200, endMs: 1600, repeatCount: 2 },
+			{ startMs: 1700, endMs: 2200, repeatCount: 2 }
+		]);
+		expect(plan.totalDurationMs).toBe(1803);
 	});
 });

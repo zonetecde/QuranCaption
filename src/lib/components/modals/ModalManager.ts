@@ -5,6 +5,7 @@ import Error from './Error.svelte';
 import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
+import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
@@ -155,6 +156,31 @@ export default class ModalManager {
 
 			// Mount the Svelte component
 			const modal = mount(ShiftSubtitlesModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale du tool de répétition Hifz.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async hifzRepetitionModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			// Crée un conteneur pour la modale du tool Hifz.
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(HifzRepetitionModal, {
 				target: container,
 				props: {
 					close: () => {

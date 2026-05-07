@@ -347,7 +347,11 @@ export function useAutoSegmentationWizard() {
 		resetEstimatedProgress();
 
 		let estimatedDurationForRun: number | null = null;
-		if (selection.runtime !== 'hf_json' && selection.localAsrMode === 'multi_aligner' && selection.mode === 'local') {
+		if (
+			selection.runtime !== 'hf_json' &&
+			selection.localAsrMode === 'multi_aligner' &&
+			selection.mode === 'local'
+		) {
 			const audioDurationS = getAutoSegmentationAudioDurationS();
 			const estimated = await estimateSegmentationDuration({
 				endpoint: 'process_audio_session',

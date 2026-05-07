@@ -53,6 +53,20 @@ pub struct SegmentationAudioClip {
     pub end_ms: i64,
 }
 
+/// Segment audio a dupliquer pour generer une piste Hifz.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HifzAudioSegment {
+    /// Debut du segment dans la timeline source, en millisecondes.
+    pub start_ms: i64,
+    /// Fin du segment dans la timeline source, en millisecondes.
+    pub end_ms: i64,
+    /// Nombre de repetitions a inserer pour ce segment.
+    pub repeat_count: u32,
+    /// Silence a inserer entre deux repetitions de ce segment, en millisecondes.
+    pub silence_between_repetitions_ms: Option<i64>,
+}
+
 /// Moteur de segmentation locale supporté.
 #[derive(Clone, Copy, Debug)]
 pub enum LocalSegmentationEngine {

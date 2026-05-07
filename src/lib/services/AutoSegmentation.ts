@@ -249,6 +249,34 @@ export type AutoSegmentationAudioClip = {
 	endMs: number;
 };
 
+type SegmentationClipTemplate =
+	| {
+			kind: 'subtitle';
+			segment: SegmentationSegment;
+			originalStartMs: number;
+			originalEndMs: number;
+			surah: number;
+			verseNumber: number;
+			startIndex: number;
+			endIndex: number;
+			verse: NonNullable<Awaited<ReturnType<typeof Quran.getVerse>>>;
+			confidence: number | null;
+			isLowConfidence: boolean;
+			needsReview: boolean;
+			needsCoverageReview: boolean;
+			segmentWords: SegmentationWordTimestamp[];
+	  }
+	| {
+			kind: 'predefined';
+			segment: SegmentationSegment;
+			originalStartMs: number;
+			originalEndMs: number;
+			predefinedType: PredefinedType;
+			confidence: number | null;
+			isLowConfidence: boolean;
+			segmentWords: SegmentationWordTimestamp[];
+	  };
+
 export type DurationEstimateResult = {
 	endpoint: string;
 	estimated_duration_s: number;
@@ -271,12 +299,6 @@ type PredefinedType =
 	| 'Tasleem'
 	| 'Sadaqa';
 
-/**
- * Return the audio file used as input for auto segmentation.
- * We use the first clip from the audio track.
- *
- * @returns {AutoSegmentationAudioInfo | null} Audio info if available, otherwise null.
- */
 export function getAutoSegmentationAudioClips(): AutoSegmentationAudioClip[] {
 	const project = globalState.currentProject;
 	const audioTrack = globalState.getAudioTrack;
@@ -323,12 +345,24 @@ export function getAutoSegmentationAudioInfo(): AutoSegmentationAudioInfo | null
 	};
 }
 
+/**
+ * Convertit une valeur inconnue en chaine non vide.
+ *
+ * @param {unknown} value Valeur a convertir.
+ * @returns {string | undefined} Chaine nettoyee, sinon undefined.
+ */
 function asNonEmptyString(value: unknown): string | undefined {
 	if (typeof value !== 'string') return undefined;
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : undefined;
 }
 
+/**
+ * Convertit une valeur inconnue en nombre fini.
+ *
+ * @param {unknown} value Valeur a convertir.
+ * @returns {number | undefined} Nombre fini, sinon undefined.
+ */
 function asFiniteNumber(value: unknown): number | undefined {
 	if (typeof value === 'number' && Number.isFinite(value)) return value;
 	if (typeof value === 'string') {
@@ -1154,8 +1188,9 @@ async function applySegmentationResponseToProject(
 	let coverageGapSegments: number = 0;
 	let reviewSegments: number = 0;
 	const storedAlignedSegments: StoredAlignedSegment[] = [];
+	const clipTemplates: SegmentationClipTemplate[] = [];
 
-	const pushSubtitleClip = async (clipParams: {
+	const pushSubtitleTemplate = async (clipParams: {
 		segment: SegmentationSegment;
 		startMs: number;
 		endMs: number;
@@ -1185,31 +1220,96 @@ async function applySegmentationResponseToProject(
 		} = clipParams;
 
 		if (!verse) return;
-
-		const arabicText: string = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
-		const indopakText: string = verse.getArabicTextBetweenTwoIndexes(
+		clipTemplates.push({
+			kind: 'subtitle',
+			segment,
+			originalStartMs: startMs,
+			originalEndMs: endMs,
+			surah,
+			verseNumber,
 			startIndex,
 			endIndex,
+			verse,
+			confidence,
+			isLowConfidence,
+			needsReview,
+			needsCoverageReview,
+			segmentWords: filterWordsForVerse(getSegmentWords(segment), surah, verseNumber)
+		});
+	};
+
+	const materializeTemplate = async (
+		template: SegmentationClipTemplate,
+		startMs: number,
+		endMs: number,
+		alignmentStartMs: number,
+		alignmentEndMs: number
+	): Promise<void> => {
+		const alignmentSegment: SegmentationSegment = {
+			...template.segment,
+			time_from: alignmentStartMs / 1000,
+			time_to: alignmentEndMs / 1000
+		};
+
+		if (template.kind === 'predefined') {
+			const clip = new PredefinedSubtitleClip(
+				startMs,
+				endMs,
+				template.predefinedType,
+				undefined,
+				true,
+				template.confidence
+			);
+			subtitleTrack.clips.push(clip);
+			const storedAlignedSegment = buildStoredAlignedSegment(
+				clip.id,
+				'Pre-defined Subtitle',
+				startMs,
+				endMs,
+				alignmentSegment,
+				template.segmentWords
+			);
+			if (storedAlignedSegment) {
+				storedAlignedSegments.push(storedAlignedSegment);
+			}
+			segmentsApplied += 1;
+			if (template.isLowConfidence) lowConfidenceSegments += 1;
+			if (clip.needsReview) reviewSegments += 1;
+			return;
+		}
+
+		const arabicText: string = template.verse.getArabicTextBetweenTwoIndexes(
+			template.startIndex,
+			template.endIndex
+		);
+		const indopakText: string = template.verse.getArabicTextBetweenTwoIndexes(
+			template.startIndex,
+			template.endIndex,
 			'indopak'
 		);
-		const wbwTranslation: string[] = verse.getWordByWordTranslationBetweenTwoIndexes(
-			startIndex,
-			endIndex
+		const wbwTranslation: string[] = template.verse.getWordByWordTranslationBetweenTwoIndexes(
+			template.startIndex,
+			template.endIndex
 		);
 
 		const subtitlesProperties: {
 			isFullVerse: boolean;
 			isLastWordsOfVerse: boolean;
 			translations: { [key: string]: Translation };
-		} = await subtitleTrack.getSubtitlesProperties(verse, startIndex, endIndex, surah);
+		} = await subtitleTrack.getSubtitlesProperties(
+			template.verse,
+			template.startIndex,
+			template.endIndex,
+			template.surah
+		);
 
 		const clip: SubtitleClip = new SubtitleClip(
 			startMs,
 			endMs,
-			surah,
-			verseNumber,
-			startIndex,
-			endIndex,
+			template.surah,
+			template.verseNumber,
+			template.startIndex,
+			template.endIndex,
 			arabicText,
 			wbwTranslation,
 			subtitlesProperties.isFullVerse,
@@ -1217,18 +1317,17 @@ async function applySegmentationResponseToProject(
 			subtitlesProperties.translations,
 			indopakText,
 			true,
-			confidence
+			template.confidence
 		);
-		const segmentWords = filterWordsForVerse(getSegmentWords(segment), surah, verseNumber);
 		clip.alignmentMetadata = buildSubtitleAlignmentMetadata(
 			segmentationSource,
-			segment,
-			segmentWords
+			alignmentSegment,
+			template.segmentWords
 		);
 
-		if (needsReview || needsCoverageReview) {
+		if (template.needsReview || template.needsCoverageReview) {
 			clip.needsReview = true;
-			if (needsCoverageReview) clip.needsCoverageReview = true;
+			if (template.needsCoverageReview) clip.needsCoverageReview = true;
 			markClipTranslationsForReview(clip);
 		}
 
@@ -1238,15 +1337,15 @@ async function applySegmentationResponseToProject(
 			'Subtitle',
 			startMs,
 			endMs,
-			segment,
-			segmentWords
+			alignmentSegment,
+			template.segmentWords
 		);
 		if (storedAlignedSegment) {
 			storedAlignedSegments.push(storedAlignedSegment);
 		}
 		segmentsApplied += 1;
-		if (isLowConfidence) lowConfidenceSegments += 1;
-		if (needsCoverageReview) coverageGapSegments += 1;
+		if (template.isLowConfidence) lowConfidenceSegments += 1;
+		if (template.needsCoverageReview) coverageGapSegments += 1;
 		if (clip.needsReview) reviewSegments += 1;
 	};
 
@@ -1297,29 +1396,16 @@ async function applySegmentationResponseToProject(
 			segment.special_type
 		);
 		if (predefinedType) {
-			const clip = new PredefinedSubtitleClip(
-				startMs,
-				endMs,
-				predefinedType,
-				undefined,
-				true,
-				confidence
-			);
-			subtitleTrack.clips.push(clip);
-			const storedAlignedSegment = buildStoredAlignedSegment(
-				clip.id,
-				'Pre-defined Subtitle',
-				startMs,
-				endMs,
+			clipTemplates.push({
+				kind: 'predefined',
 				segment,
-				getSegmentWords(segment)
-			);
-			if (storedAlignedSegment) {
-				storedAlignedSegments.push(storedAlignedSegment);
-			}
-			segmentsApplied += 1;
-			if (isLowConfidence) lowConfidenceSegments += 1;
-			if (clip.needsReview) reviewSegments += 1;
+				originalStartMs: startMs,
+				originalEndMs: endMs,
+				predefinedType,
+				confidence,
+				isLowConfidence,
+				segmentWords: getSegmentWords(segment)
+			});
 			continue;
 		}
 
@@ -1424,12 +1510,8 @@ async function applySegmentationResponseToProject(
 							verseWords.find((entry) => entry.ref.word === targetStartWord) ??
 							verseWords.find((entry) => entry.ref.word >= targetStartWord);
 						const endWord =
-							[...verseWords]
-								.reverse()
-								.find((entry) => entry.ref.word === targetEndWord) ??
-							[...verseWords]
-								.reverse()
-								.find((entry) => entry.ref.word <= targetEndWord);
+							[...verseWords].reverse().find((entry) => entry.ref.word === targetEndWord) ??
+							[...verseWords].reverse().find((entry) => entry.ref.word <= targetEndWord);
 
 						if (!startWord || !endWord) {
 							missingWbwBoundaries = true;
@@ -1474,7 +1556,7 @@ async function applySegmentationResponseToProject(
 						? Math.min(confidence ?? 0.5, 0.5)
 						: confidence;
 					const clipIsLowConfidence = forceLowConfidenceFallback ? true : isLowConfidence;
-					await pushSubtitleClip({
+					await pushSubtitleTemplate({
 						segment,
 						startMs: def.startMs,
 						endMs: def.endMs,
@@ -1526,7 +1608,7 @@ async function applySegmentationResponseToProject(
 			[startIndex, endIndex] = [endIndex, startIndex];
 		}
 
-		await pushSubtitleClip({
+		await pushSubtitleTemplate({
 			segment,
 			startMs,
 			endMs,
@@ -1542,7 +1624,7 @@ async function applySegmentationResponseToProject(
 		});
 	}
 
-	if (segmentsApplied === 0 && segmentErrors.length > 0) {
+	if (clipTemplates.length === 0 && segmentErrors.length > 0) {
 		const uniqueErrors = [...new Set(segmentErrors)];
 		return {
 			status: 'failed',
@@ -1550,7 +1632,18 @@ async function applySegmentationResponseToProject(
 		};
 	}
 
+	for (const template of clipTemplates) {
+		await materializeTemplate(
+			template,
+			template.originalStartMs,
+			template.originalEndMs,
+			template.originalStartMs,
+			template.originalEndMs
+		);
+	}
+
 	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+
 	const subtitleClips = subtitleTrack.clips.filter(
 		(clip) => clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'
 	) as Array<SubtitleClip | PredefinedSubtitleClip>;
@@ -1569,6 +1662,7 @@ async function applySegmentationResponseToProject(
 		subtitleTrack.clips = subtitleClips;
 	}
 	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+
 	for (const storedAlignedSegment of storedAlignedSegments) {
 		const clip = subtitleTrack.getClipById(storedAlignedSegment.clipId) as
 			| SubtitleClip
@@ -2305,8 +2399,12 @@ export async function runAutoSegmentation(
 						throw localError;
 					}
 				} else {
-					const localMessage = localError instanceof Error ? localError.message : String(localError);
-					console.warn('[AutoSegmentation] Local mode failed, falling back to cloud:', localMessage);
+					const localMessage =
+						localError instanceof Error ? localError.message : String(localError);
+					console.warn(
+						'[AutoSegmentation] Local mode failed, falling back to cloud:',
+						localMessage
+					);
 					fallbackWarning = `Local mode failed and was switched to Cloud: ${localMessage}`;
 					fallbackToCloud = true;
 					effectiveMode = 'api';

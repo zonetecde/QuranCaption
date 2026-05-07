@@ -106,10 +106,7 @@ describe('parseImportedSegmentationJson', () => {
 					segment: 1,
 					time_from: 0,
 					time_to: 2,
-					words: [
-						['1:1:1', 0, 0.5],
-						{ location: '1:1:2', start: 0.5, end: 1.1, word: 'word' }
-					]
+					words: [['1:1:1', 0, 0.5], { location: '1:1:2', start: 0.5, end: 1.1, word: 'word' }]
 				}
 			]
 		});

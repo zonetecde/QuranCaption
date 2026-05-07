@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { slide } from 'svelte/transition';
 	import toast from 'svelte-5-french-toast';
 	import ModalManager from '../ModalManager';
@@ -8,6 +9,13 @@
 		type HifzRepeatTarget
 	} from '$lib/services/HifzHelper';
 
+	type HifzGenerationProgressEvent = {
+		progress?: number;
+		currentTime?: number;
+		totalTime?: number;
+		message?: string;
+	};
+
 	let { close } = $props<{ close: () => void }>();
 
 	let repeatCount = $state(3);
@@ -15,6 +23,10 @@
 	let preserveVisualMerges = $state(true);
 	let isRunning = $state(false);
 	let errorMessage = $state<string | null>(null);
+	let hifzProgress = $state(0);
+	let hifzProgressMessage = $state('');
+	let hifzCurrentTime = $state(0);
+	let hifzTotalTime = $state(0);
 
 	const summary = $derived(getHifzToolSummary());
 	const canApply = $derived(summary.subtitleCount > 0 && summary.audioClipCount > 0 && !isRunning);
@@ -40,6 +52,51 @@
 	}
 
 	/**
+	 * Contraint une progression dans l'intervalle affichable.
+	 *
+	 * @param {number} value Progression brute envoyée par ffmpeg.
+	 * @returns {number} Progression bornée entre 0 et 100.
+	 */
+	function clampProgress(value: number): number {
+		return Math.max(0, Math.min(100, value));
+	}
+
+	/**
+	 * Formate une durée en secondes pour l'affichage de progression.
+	 *
+	 * @param {number} seconds Durée en secondes.
+	 * @returns {string} Durée formatée en minutes et secondes.
+	 */
+	function formatProgressTime(seconds: number): string {
+		const safeSeconds = Math.max(0, Math.round(Number.isFinite(seconds) ? seconds : 0));
+		const minutes = Math.floor(safeSeconds / 60);
+		const remainingSeconds = safeSeconds % 60;
+		return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+	}
+
+	/**
+	 * Ecoute la progression ffmpeg de génération Hifz.
+	 *
+	 * @returns {Promise<UnlistenFn>} Fonction de désabonnement de l'évènement Tauri.
+	 */
+	async function listenHifzProgress(): Promise<UnlistenFn> {
+		return listen<HifzGenerationProgressEvent>('hifz-generation-progress', (event) => {
+			if (typeof event.payload.progress === 'number') {
+				hifzProgress = clampProgress(event.payload.progress);
+			}
+			if (typeof event.payload.currentTime === 'number') {
+				hifzCurrentTime = Math.max(0, event.payload.currentTime);
+			}
+			if (typeof event.payload.totalTime === 'number') {
+				hifzTotalTime = Math.max(0, event.payload.totalTime);
+			}
+			if (typeof event.payload.message === 'string') {
+				hifzProgressMessage = event.payload.message;
+			}
+		});
+	}
+
+	/**
 	 * Applique la génération Hifz après confirmation utilisateur.
 	 *
 	 * @returns {Promise<void>} Résolution lorsque l'action est terminée.
@@ -57,12 +114,19 @@
 
 		isRunning = true;
 		errorMessage = null;
+		hifzProgress = 0;
+		hifzCurrentTime = 0;
+		hifzTotalTime = 0;
+		hifzProgressMessage = 'Preparing Hifz generation...';
+		const unlistenProgress = await listenHifzProgress();
 		const result = await applyHifzRepetitionToProject(
 			safeRepeatCount,
 			repeatTarget,
 			preserveVisualMerges
-		);
-		isRunning = false;
+		).finally(() => {
+			unlistenProgress();
+			isRunning = false;
+		});
 
 		if (result.status === 'failed') {
 			errorMessage = result.message;
@@ -166,24 +230,44 @@
 			</span>
 		</label>
 
-		<div
-			class="bg-accent/50 rounded-xl p-4 text-xs text-secondary flex gap-3 items-start border border-color/50"
-		>
-			<span class="material-icons text-sm text-accent-primary mt-0.5">info</span>
-			<div class="leading-relaxed space-y-1">
-				<div>
-					Source: <strong class="text-primary">{summary.subtitleCount}</strong> subtitles,
-					<strong class="text-primary">{summary.audioClipCount}</strong> audio clip(s)
-					{#if summary.sourceAudioFileName}
-						from <strong class="text-primary">{summary.sourceAudioFileName}</strong>
+		{#if !isRunning}
+			<div
+				class="bg-accent/50 rounded-xl p-4 text-xs text-secondary flex gap-3 items-start border border-color/50"
+			>
+				<span class="material-icons text-sm text-accent-primary mt-0.5">info</span>
+				<div class="leading-relaxed space-y-1">
+					<div>
+						Source: <strong class="text-primary">{summary.subtitleCount}</strong> subtitles,
+						<strong class="text-primary">{summary.audioClipCount}</strong> audio clip(s)
+						{#if summary.sourceAudioFileName}
+							from <strong class="text-primary">{summary.sourceAudioFileName}</strong>
+						{/if}
+					</div>
+					{#if summary.currentAudioUsesGeneratedSource}
+						<div>The original audio stored in the generated Hifz asset will be used.</div>
 					{/if}
+					<div>This operation replaces the current subtitle and audio tracks.</div>
 				</div>
-				{#if summary.currentAudioUsesGeneratedSource}
-					<div>The original audio stored in the generated Hifz asset will be used.</div>
-				{/if}
-				<div>This operation replaces the current subtitle and audio tracks.</div>
 			</div>
-		</div>
+		{/if}
+		{#if isRunning}
+			<div class="rounded-xl border border-color bg-accent/50 p-4 space-y-3">
+				<div class="flex items-center justify-between gap-3 text-xs">
+					<span class="text-secondary">{hifzProgressMessage || 'Generating Hifz audio...'}</span>
+					<span class="font-semibold text-primary">{Math.round(hifzProgress)}%</span>
+				</div>
+				<div class="h-2 overflow-hidden rounded-full bg-secondary">
+					<div
+						class="h-full rounded-full bg-accent-primary transition-all duration-300"
+						style={`width: ${hifzProgress}%;`}
+					></div>
+				</div>
+				<div class="flex justify-between text-xs text-thirdly">
+					<span>{formatProgressTime(hifzCurrentTime)}</span>
+					<span>{formatProgressTime(hifzTotalTime)}</span>
+				</div>
+			</div>
+		{/if}
 
 		{#if errorMessage}
 			<div

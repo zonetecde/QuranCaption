@@ -1,6 +1,7 @@
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
@@ -19,6 +20,49 @@ use super::types::{HifzAudioSegment, SegmentationAudioClip};
 pub struct GeneratedHifzAudio {
     pub output_path: String,
     pub duration_ms: i64,
+}
+
+fn emit_hifz_progress(
+    app_handle: &AppHandle,
+    progress: f64,
+    current_time_s: f64,
+    total_time_s: f64,
+    message: &str,
+) {
+    let _ = app_handle.emit(
+        "hifz-generation-progress",
+        serde_json::json!({
+            "progress": progress,
+            "currentTime": current_time_s,
+            "totalTime": total_time_s,
+            "message": message
+        }),
+    );
+}
+
+fn parse_progress_time_s(line: &str) -> Option<f64> {
+    if let Some(value) = line.strip_prefix("out_time_ms=") {
+        return value.trim().parse::<f64>().ok().map(|ms| ms / 1_000_000.0);
+    }
+    if let Some(value) = line.strip_prefix("out_time_us=") {
+        return value.trim().parse::<f64>().ok().map(|us| us / 1_000_000.0);
+    }
+    if let Some(value) = line.strip_prefix("out_time=") {
+        return parse_ffmpeg_time(value.trim());
+    }
+    None
+}
+
+fn parse_ffmpeg_time(value: &str) -> Option<f64> {
+    let parts: Vec<&str> = value.split(':').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+
+    let hours = parts[0].parse::<f64>().ok()?;
+    let minutes = parts[1].parse::<f64>().ok()?;
+    let seconds = parts[2].parse::<f64>().ok()?;
+    Some(hours * 3600.0 + minutes * 60.0 + seconds)
 }
 
 fn build_hifz_filter_graph(segments: &[HifzAudioSegment]) -> Result<(String, i64), String> {
@@ -114,6 +158,7 @@ pub async fn generate_hifz_audio(
     );
 
     let (filter_graph, output_duration_ms) = build_hifz_filter_graph(&segments)?;
+    let output_duration_s = (output_duration_ms.max(1) as f64) / 1000.0;
 
     let (filter_script_path, _filter_script_guard) =
         create_temp_file_path("qurancaption-hifz-filter", "txt")?;
@@ -131,6 +176,8 @@ pub async fn generate_hifz_audio(
         "-hide_banner",
         "-loglevel",
         "error",
+        "-progress",
+        "pipe:2",
         "-i",
         source_audio_path.to_string_lossy().as_ref(),
         "-filter_complex_script",
@@ -150,14 +197,58 @@ pub async fn generate_hifz_audio(
         &output_path,
     ]);
     configure_command_no_window(&mut cmd);
+    cmd.stderr(Stdio::piped());
 
-    let output = cmd
-        .output()
+    emit_hifz_progress(
+        &app_handle,
+        0.0,
+        0.0,
+        output_duration_s,
+        "Starting Hifz audio generation...",
+    );
+
+    let mut child = cmd
+        .spawn()
         .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg Hifz audio error: {}", stderr));
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Failed to capture ffmpeg progress".to_string())?;
+    let reader = BufReader::new(stderr);
+    let mut stderr_content = String::new();
+
+    for line in reader.lines() {
+        let line = line.map_err(|e| format!("Failed to read ffmpeg progress: {}", e))?;
+        stderr_content.push_str(&line);
+        stderr_content.push('\n');
+
+        if let Some(current_time_s) = parse_progress_time_s(&line) {
+            let current_time_s = current_time_s.min(output_duration_s);
+            let progress = (current_time_s / output_duration_s * 100.0).clamp(0.0, 100.0);
+            emit_hifz_progress(
+                &app_handle,
+                progress,
+                current_time_s,
+                output_duration_s,
+                "Generating Hifz repetition audio...",
+            );
+        }
     }
+
+    let status = child
+        .wait()
+        .map_err(|e| format!("Unable to wait for ffmpeg: {}", e))?;
+    if !status.success() {
+        return Err(format!("ffmpeg Hifz audio error: {}", stderr_content));
+    }
+
+    emit_hifz_progress(
+        &app_handle,
+        100.0,
+        output_duration_s,
+        output_duration_s,
+        "Hifz audio generated.",
+    );
 
     Ok(GeneratedHifzAudio {
         output_path,
@@ -167,7 +258,7 @@ pub async fn generate_hifz_audio(
 
 #[cfg(test)]
 mod tests {
-    use super::build_hifz_filter_graph;
+    use super::{build_hifz_filter_graph, parse_ffmpeg_time, parse_progress_time_s};
     use crate::segmentation::types::HifzAudioSegment;
 
     #[test]
@@ -189,5 +280,13 @@ mod tests {
         assert!(graph.contains("[h0];\n[0:a]atrim"));
         assert!(graph.contains("[h0][h1][h2]concat=n=3:v=0:a=1[outa]"));
         assert_eq!(duration_ms, 1300);
+    }
+
+    #[test]
+    fn parses_ffmpeg_progress_time_values() {
+        assert_eq!(parse_progress_time_s("out_time_ms=2500000"), Some(2.5));
+        assert_eq!(parse_progress_time_s("out_time_us=1500000"), Some(1.5));
+        assert_eq!(parse_progress_time_s("out_time=00:01:02.500000"), Some(62.5));
+        assert_eq!(parse_ffmpeg_time("invalid"), None);
     }
 }

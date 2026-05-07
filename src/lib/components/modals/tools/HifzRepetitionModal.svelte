@@ -321,7 +321,14 @@
 				class="accent-accent-primary"
 			/>
 			<span class="leading-relaxed">
-				<span class="block font-medium text-primary">Keep visual merges</span>
+				<span class="block font-medium text-primary">
+					Keep visual merges
+					<span
+						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
+						title="Preserves existing visual merge groups when they can be repeated safely. This keeps merged Arabic and translation layouts together instead of splitting them into separate subtitle blocks."
+						>help</span
+					>
+				</span>
 			</span>
 		</label>
 
@@ -337,6 +344,11 @@
 				<span class="leading-relaxed">
 					<span class="block font-medium text-primary">
 						Keep subtitles visible during pause intervals
+						<span
+							class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
+							title="Extends each repeated subtitle so it stays visible during the pause right after it. Disable this if you want real empty gaps between repetitions."
+							>help</span
+						>
 					</span>
 				</span>
 			</label>
@@ -355,6 +367,11 @@
 				<span class="leading-relaxed">
 					<span class="block font-medium text-primary">
 						Stretch complete subtitles across repeated cycles
+						<span
+							class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
+							title="When a verse or subtitle is complete and can be merged safely, creates one long subtitle across the repeated cycle instead of recreating a new subtitle for each repetition. This does not apply to partial verses or multi-subtitle verse blocks."
+							>help</span
+						>
 					</span>
 				</span>
 			</label>

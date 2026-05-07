@@ -634,7 +634,10 @@
 	}
 
 	function handleMouseWheelWheeling(event: WheelEvent) {
-		if (isTimelineWheelAction('HORIZONTAL_SCROLL', event)) {
+		if (
+			(event.deltaX !== 0 && Math.abs(event.deltaX) > Math.abs(event.deltaY)) ||
+			isTimelineWheelAction('HORIZONTAL_SCROLL', event)
+		) {
 			const eventTarget = event.target;
 			if (!(eventTarget instanceof Element)) return;
 

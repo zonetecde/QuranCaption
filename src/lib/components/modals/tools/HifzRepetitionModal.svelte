@@ -252,15 +252,13 @@
 			</p>
 		</div>
 
-		<label
-			class="flex items-start gap-3 rounded-xl border border-color bg-accent/40 p-4 text-sm text-secondary"
-		>
+		<label class="flex items-center gap-3 text-sm text-secondary">
 			<input
 				type="checkbox"
 				checked={preserveVisualMerges}
 				onchange={(event) =>
 					(preserveVisualMerges = (event.currentTarget as HTMLInputElement).checked)}
-				class="mt-1 accent-accent-primary"
+				class="accent-accent-primary"
 			/>
 			<span class="leading-relaxed">
 				<span class="block font-medium text-primary">Keep visual merges</span>
@@ -281,7 +279,9 @@
 						{/if}
 					</div>
 					{#if summary.currentAudioUsesGeneratedSource}
-						<div>A generated Hifz audio track is already present and will be used as the source.</div>
+						<div>
+							A generated Hifz audio track is already present and will be used as the source.
+						</div>
 					{/if}
 					<div>This operation replaces the current subtitle and audio tracks.</div>
 				</div>

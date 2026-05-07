@@ -150,6 +150,8 @@ fn resolve_source_audio_path(
     Ok((normalized, Vec::new()))
 }
 
+/// Génère un fichier audio WAV silencieux temporaire pour servir de source ffmpeg.
+/// Utilise une piste stereo 44.1kHz et une duree minimale pour permettre l'`atrim` des segments.
 fn create_silent_source_audio(
     ffmpeg_path: &str,
     duration_s: f64,

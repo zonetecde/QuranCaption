@@ -281,7 +281,7 @@
 						{/if}
 					</div>
 					{#if summary.currentAudioUsesGeneratedSource}
-						<div>The original audio stored in the generated Hifz asset will be used.</div>
+						<div>A generated Hifz audio track is already present and will be used as the source.</div>
 					{/if}
 					<div>This operation replaces the current subtitle and audio tracks.</div>
 				</div>

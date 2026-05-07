@@ -181,8 +181,10 @@ function getHifzSourceAudioClipsFromTrack(): AutoSegmentationAudioClip[] | null 
  * @returns {AutoSegmentationAudioClip[]} Clips source, en privilegiant l'audio original si la piste courante est deja generee.
  */
 function getHifzGenerationAudioClips(): AutoSegmentationAudioClip[] {
-	// Regenerer depuis une piste Hifz doit repartir de l'audio original, pas du MP3 repete.
-	return getHifzSourceAudioClipsFromTrack() ?? getAutoSegmentationAudioClips();
+	// Une génération Hifz doit toujours utiliser la timeline audio courante.
+	// Sinon, relancer le tool apres une première génération desynchronise l'audio (les sous-titres ont deja ete
+	// remappés sur la timeline repetée, donc l'audio original n'est plus sur la meme echelle de temps).
+	return getAutoSegmentationAudioClips();
 }
 
 /**
@@ -216,11 +218,7 @@ function getPreservedVisualMergeIndices(
 ): number[] {
 	// On ne preserve un merge qu'en partant de son premier clip pour eviter les demi-groupes.
 	const template = templates[startIndex];
-	if (
-		template?.kind !== 'subtitle' ||
-		!template.visualMergeGroupId ||
-		!template.visualMergeMode
-	) {
+	if (template?.kind !== 'subtitle' || !template.visualMergeGroupId || !template.visualMergeMode) {
 		return [];
 	}
 
@@ -606,9 +604,7 @@ function getHifzSourceSubtitleClips(): HifzSourceSubtitleClip[] {
  * @param {HifzSourceSubtitleClip[]} clips Clips source du projet.
  * @returns {HifzPlanTemplateInput[]} Entrees temporelles minimales pour le plan.
  */
-function buildHifzPlanTemplatesFromClips(
-	clips: HifzSourceSubtitleClip[]
-): HifzPlanTemplateInput[] {
+function buildHifzPlanTemplatesFromClips(clips: HifzSourceSubtitleClip[]): HifzPlanTemplateInput[] {
 	// Le plan ne garde que les champs necessaires au regroupement et au timing.
 	return clips.map((clip) =>
 		clip instanceof SubtitleClip

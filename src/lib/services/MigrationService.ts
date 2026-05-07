@@ -316,9 +316,6 @@ export default class MigrationService {
 			fillBySilence?: boolean;
 			extendBeforeSilence?: boolean;
 			extendBeforeSilenceMs?: number;
-			hifzSegmentationEnabled?: boolean;
-			hifzRepeatCount?: number;
-			hifzRepeatTarget?: 'verse' | 'subtitle';
 		};
 
 		let hasChanges = false;
@@ -377,33 +374,6 @@ export default class MigrationService {
 		}
 		if (typeof autoSegmentationSettings.extendBeforeSilenceMs !== 'number') {
 			autoSegmentationSettings.extendBeforeSilenceMs = 50;
-			hasChanges = true;
-		}
-		if (typeof autoSegmentationSettings.hifzSegmentationEnabled !== 'boolean') {
-			autoSegmentationSettings.hifzSegmentationEnabled = false;
-			hasChanges = true;
-		}
-		if (
-			typeof autoSegmentationSettings.hifzRepeatCount !== 'number' ||
-			!Number.isFinite(autoSegmentationSettings.hifzRepeatCount)
-		) {
-			autoSegmentationSettings.hifzRepeatCount = 3;
-			hasChanges = true;
-		} else {
-			const normalizedRepeatCount = Math.max(
-				2,
-				Math.round(autoSegmentationSettings.hifzRepeatCount)
-			);
-			if (normalizedRepeatCount !== autoSegmentationSettings.hifzRepeatCount) {
-				autoSegmentationSettings.hifzRepeatCount = normalizedRepeatCount;
-				hasChanges = true;
-			}
-		}
-		if (
-			autoSegmentationSettings.hifzRepeatTarget !== 'verse' &&
-			autoSegmentationSettings.hifzRepeatTarget !== 'subtitle'
-		) {
-			autoSegmentationSettings.hifzRepeatTarget = 'verse';
 			hasChanges = true;
 		}
 		if ('whisperModel' in autoSegmentationSettings) {

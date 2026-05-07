@@ -69,66 +69,6 @@
 	</div>
 
 	<div class="rounded-xl border border-color p-4 space-y-2">
-		<div class="space-y-2 border-b border-color pb-3 mb-3">
-			<label class="flex items-center gap-2 text-sm text-secondary"
-				><input
-					type="checkbox"
-					checked={wizard.hifzSegmentationEnabled}
-					onchange={(e) =>
-						wizard.setHifzSegmentationEnabled((e.currentTarget as HTMLInputElement).checked)}
-					class="accent-accent-primary"
-				/> Enable Hifz Segmentation</label
-			>
-			<div class="flex items-center gap-2 text-sm text-secondary">
-				<label for="hifz-repeat-count" class="min-w-0 flex-1">
-					Repeat each {wizard.hifzRepeatTarget}
-				</label>
-				<input
-					id="hifz-repeat-count"
-					type="number"
-					min="2"
-					max="50"
-					step="1"
-					value={wizard.hifzRepeatCount}
-					oninput={(e) =>
-						wizard.setHifzRepeatCount(Number((e.currentTarget as HTMLInputElement).value))}
-					disabled={!wizard.hifzSegmentationEnabled}
-					class="w-24 rounded border border-color bg-primary px-2 py-1 text-xs text-primary"
-				/>
-				<span>times</span>
-			</div>
-			<div class="grid grid-cols-2 gap-2">
-				<button
-					type="button"
-					class="rounded-lg border px-3 py-2 text-xs"
-					class:border-accent-primary={wizard.hifzRepeatTarget === 'verse'}
-					class:bg-accent={wizard.hifzRepeatTarget === 'verse'}
-					class:border-color={wizard.hifzRepeatTarget !== 'verse'}
-					disabled={!wizard.hifzSegmentationEnabled}
-					onclick={() => wizard.setHifzRepeatTarget('verse')}
-				>
-					Repeat each verse
-				</button>
-				<button
-					type="button"
-					class="rounded-lg border px-3 py-2 text-xs"
-					class:border-accent-primary={wizard.hifzRepeatTarget === 'subtitle'}
-					class:bg-accent={wizard.hifzRepeatTarget === 'subtitle'}
-					class:border-color={wizard.hifzRepeatTarget !== 'subtitle'}
-					disabled={!wizard.hifzSegmentationEnabled}
-					onclick={() => wizard.setHifzRepeatTarget('subtitle')}
-				>
-					Repeat each subtitle
-				</button>
-			</div>
-			<p class="text-xs text-thirdly">
-				When enabled, the generated subtitles and audio repeat either full verse blocks or
-				individual subtitle segments by the selected count. All normal subtitle gap options still
-				apply after the repeats are created, and the current audio track is replaced with a
-				generated Hifz file.
-			</p>
-		</div>
-
 		{#if wizard.selection.aiVersion === 'multi_v2'}
 			<div class="space-y-2 border-b border-color pb-3 mb-3">
 				<label class="flex items-center gap-2 text-sm text-secondary"

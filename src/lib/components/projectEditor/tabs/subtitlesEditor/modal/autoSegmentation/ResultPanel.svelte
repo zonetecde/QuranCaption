@@ -107,14 +107,6 @@
 		<div class="text-sm text-secondary">
 			Verse range: <span class="font-semibold text-primary">{wizard.verseRange()}</span>
 		</div>
-		{#if wizard.hifzSegmentationEnabled}
-			<div class="text-sm text-secondary">
-				Hifz output:
-				<span class="font-semibold text-primary"
-					>{wizard.hifzRepeatCount}x per {wizard.hifzRepeatTarget} with generated repeated audio</span
-				>
-			</div>
-		{/if}
 	</div>
 {:else if wizard.errorMessage}
 	<div class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3">

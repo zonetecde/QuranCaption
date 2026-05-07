@@ -87,6 +87,17 @@
 				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
+					runAction(() => ModalManager.hifzRepetitionModal());
+				}}
+			>
+				<span class="material-icons text-lg text-accent">repeat</span>
+				Hifz Repetition
+			</button>
+			<!-- svelte-ignore node_invalid_placement_ssr -->
+			<button
+				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				onclick={(event) => {
+					event.stopPropagation();
 					runAction(() => ModalManager.audioCutterModal());
 				}}
 			>

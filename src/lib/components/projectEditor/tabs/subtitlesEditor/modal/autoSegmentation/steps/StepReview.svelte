@@ -43,14 +43,6 @@
 		<div class="text-secondary">
 			Audio: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
-		<div class="text-secondary">
-			Hifz Segmentation:
-			<span class="text-primary font-semibold"
-				>{wizard.hifzSegmentationEnabled
-					? `Enabled (${wizard.hifzRepeatCount}x per ${wizard.hifzRepeatTarget}, replaces current audio track)`
-					: 'Disabled'}</span
-			>
-		</div>
 		{#if wizard.selection.aiVersion === 'multi_v2' && wizard.selection.mode === 'local' && !wizard.selection.hfToken.trim()}
 			<div
 				class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-300"

@@ -219,9 +219,6 @@ export type AutoSegmentationOptions = {
 	fillBySilence?: boolean; // Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent.
 	extendBeforeSilence?: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs?: number; // Extra ms added before silence when enabled.
-	hifzSegmentationEnabled?: boolean;
-	hifzRepeatCount?: number;
-	hifzRepeatTarget?: HifzRepeatTarget;
 	onRunConfirmed?: (() => void | Promise<void>) | null; // Called once after overwrite confirmation succeeds.
 };
 
@@ -271,6 +268,27 @@ type HifzSegmentationMetadata = {
 	sourceAudioClips: AutoSegmentationAudioClip[];
 	createdAt: string;
 };
+
+type HifzSourceSubtitleClip = SubtitleClip | PredefinedSubtitleClip;
+
+export type HifzToolSummary = {
+	subtitleCount: number;
+	audioClipCount: number;
+	sourceAudioFileName: string | null;
+	currentAudioUsesGeneratedSource: boolean;
+};
+
+export type HifzToolResult =
+	| {
+			status: 'completed';
+			subtitleCount: number;
+			durationMs: number;
+			audioFileName: string;
+	  }
+	| {
+			status: 'failed';
+			message: string;
+	  };
 
 type SegmentationClipTemplate =
 	| {
@@ -345,10 +363,10 @@ type PredefinedType =
 	| 'Sadaqa';
 
 /**
- * Return the audio file used as input for auto segmentation.
- * We use the first clip from the audio track.
+ * Normalise un clip audio stocke dans les metadonnees Hifz.
  *
- * @returns {AutoSegmentationAudioInfo | null} Audio info if available, otherwise null.
+ * @param {unknown} value Valeur brute lue depuis les metadonnees de l'asset audio.
+ * @returns {AutoSegmentationAudioClip | null} Clip audio valide, sinon null.
  */
 function normalizeStoredAudioClip(value: unknown): AutoSegmentationAudioClip | null {
 	if (!value || typeof value !== 'object') return null;
@@ -368,6 +386,11 @@ function normalizeStoredAudioClip(value: unknown): AutoSegmentationAudioClip | n
 	};
 }
 
+/**
+ * Recupere les clips audio source d'une piste audio Hifz deja generee.
+ *
+ * @returns {AutoSegmentationAudioClip[] | null} Clips source tries, sinon null.
+ */
 function getHifzSourceAudioClipsFromTrack(): AutoSegmentationAudioClip[] | null {
 	const project = globalState.currentProject;
 	const audioTrack = globalState.getAudioTrack;
@@ -392,9 +415,6 @@ export function getAutoSegmentationAudioClips(): AutoSegmentationAudioClip[] {
 	const audioTrack = globalState.getAudioTrack;
 
 	if (!project || !audioTrack) return [];
-
-	const hifzSourceClips = getHifzSourceAudioClipsFromTrack();
-	if (hifzSourceClips) return hifzSourceClips;
 
 	const clips: AutoSegmentationAudioClip[] = [];
 
@@ -436,12 +456,33 @@ export function getAutoSegmentationAudioInfo(): AutoSegmentationAudioInfo | null
 	};
 }
 
+/**
+ * Retourne les clips audio à utiliser pour générer une piste Hifz.
+ *
+ * @returns {AutoSegmentationAudioClip[]} Clips source, en privilégiant l'audio original si la piste courante est déjà générée.
+ */
+function getHifzGenerationAudioClips(): AutoSegmentationAudioClip[] {
+	return getHifzSourceAudioClipsFromTrack() ?? getAutoSegmentationAudioClips();
+}
+
+/**
+ * Convertit une valeur inconnue en chaine non vide.
+ *
+ * @param {unknown} value Valeur a convertir.
+ * @returns {string | undefined} Chaine nettoyee, sinon undefined.
+ */
 function asNonEmptyString(value: unknown): string | undefined {
 	if (typeof value !== 'string') return undefined;
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : undefined;
 }
 
+/**
+ * Convertit une valeur inconnue en nombre fini.
+ *
+ * @param {unknown} value Valeur a convertir.
+ * @returns {number | undefined} Nombre fini, sinon undefined.
+ */
 function asFiniteNumber(value: unknown): number | undefined {
 	if (typeof value === 'number' && Number.isFinite(value)) return value;
 	if (typeof value === 'string') {
@@ -1208,6 +1249,13 @@ function buildStoredAlignedSegment(
 	};
 }
 
+/**
+ * Indique si deux templates appartiennent au meme bloc de verset Hifz.
+ *
+ * @param {HifzPlanTemplateInput} current Template precedent.
+ * @param {HifzPlanTemplateInput} next Template suivant.
+ * @returns {boolean} True quand les deux templates sont dans le meme verset.
+ */
 function areTemplatesInSameVerseBlock(
 	current: HifzPlanTemplateInput,
 	next: HifzPlanTemplateInput
@@ -1218,6 +1266,14 @@ function areTemplatesInSameVerseBlock(
 	return current.surah === next.surah && current.verseNumber === next.verseNumber;
 }
 
+/**
+ * Regroupe les templates Hifz selon la granularite demandee.
+ *
+ * @param {HifzPlanTemplateInput[]} templates Templates sources du projet.
+ * @param {number} repeatCount Nombre de repetitions demande.
+ * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @returns {HifzPlanGroup[]} Groupes temporels a repeter.
+ */
 function buildHifzPlanGroups(
 	templates: HifzPlanTemplateInput[],
 	repeatCount: number,
@@ -1259,6 +1315,14 @@ function buildHifzPlanGroups(
 	return groups;
 }
 
+/**
+ * Construit le plan de repetitions Hifz pour les sous-titres et l'audio.
+ *
+ * @param {HifzPlanTemplateInput[]} templates Templates sources du projet.
+ * @param {number} repeatCount Nombre de repetitions par bloc.
+ * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @returns {{ placements: HifzPlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number }} Plan complet de generation.
+ */
 export function buildHifzRepetitionPlan(
 	templates: HifzPlanTemplateInput[],
 	repeatCount: number,
@@ -1290,7 +1354,8 @@ export function buildHifzRepetitionPlan(
 					repetition
 				});
 			}
-			cursorMs = repeatedBlockStartMs + groupDurationMs + 1;
+			// Le curseur reste continu: ffmpeg concatene les repetitions sans gap audio.
+			cursorMs = repeatedBlockStartMs + groupDurationMs;
 		}
 	}
 
@@ -1302,6 +1367,14 @@ export function buildHifzRepetitionPlan(
 	};
 }
 
+/**
+ * Cree les metadonnees permettant de retrouver l'audio source apres generation Hifz.
+ *
+ * @param {AutoSegmentationAudioClip[]} sourceAudioClips Clips audio source.
+ * @param {number} repeatCount Nombre de repetitions utilise.
+ * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @returns {HifzSegmentationMetadata} Metadonnees a stocker sur l'asset genere.
+ */
 function buildGeneratedHifzAudioMetadata(
 	sourceAudioClips: AutoSegmentationAudioClip[],
 	repeatCount: number,
@@ -1315,6 +1388,14 @@ function buildGeneratedHifzAudioMetadata(
 	};
 }
 
+/**
+ * Genere l'asset audio repete pour le tool Hifz.
+ *
+ * @param {HifzAudioSegment[]} audioSegments Segments audio a concatener.
+ * @param {number} repeatCount Nombre de repetitions utilise.
+ * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @returns {Promise<{ asset: Asset; durationMs: number }>} Asset genere et duree finale.
+ */
 async function generateHifzAudioAsset(
 	audioSegments: HifzAudioSegment[],
 	repeatCount: number,
@@ -1323,9 +1404,9 @@ async function generateHifzAudioAsset(
 	const project = globalState.currentProject;
 	if (!project) throw new Error('No active project found.');
 
-	const sourceAudioClips = getAutoSegmentationAudioClips();
-	const audioInfo = getAutoSegmentationAudioInfo();
-	if (!audioInfo || sourceAudioClips.length === 0) {
+	const sourceAudioClips = getHifzGenerationAudioClips();
+	const audioInfo = sourceAudioClips[0] ?? null;
+	if (!audioInfo) {
 		throw new Error('No audio clip found in the project.');
 	}
 
@@ -1361,14 +1442,212 @@ async function generateHifzAudioAsset(
 	return { asset, durationMs: result.durationMs };
 }
 
+/**
+ * Clone une table de traductions pour éviter de partager les mêmes objets entre répétitions.
+ *
+ * @param {{ [key: string]: Translation }} translations Traductions du clip source.
+ * @returns {{ [key: string]: Translation }} Copie indépendante des traductions.
+ */
+function cloneHifzTranslations(translations: { [key: string]: Translation }): {
+	[key: string]: Translation;
+} {
+	return Object.fromEntries(
+		Object.entries(translations).map(([key, translation]) => [
+			key,
+			typeof translation.clone === 'function'
+				? translation.clone()
+				: (JSON.parse(JSON.stringify(translation)) as Translation)
+		])
+	);
+}
+
+/**
+ * Retourne les clips de sous-titres utilisables comme source Hifz.
+ *
+ * @returns {HifzSourceSubtitleClip[]} Clips Quran et prédéfinis triés par temps.
+ */
+function getHifzSourceSubtitleClips(): HifzSourceSubtitleClip[] {
+	return globalState.getSubtitleTrack.clips
+		.filter(
+			(clip): clip is HifzSourceSubtitleClip =>
+				clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+		)
+		.sort((left, right) => left.startTime - right.startTime);
+}
+
+/**
+ * Transforme les clips de sous-titres existants en entrées du plan Hifz.
+ *
+ * @param {HifzSourceSubtitleClip[]} clips Clips source du projet.
+ * @returns {HifzPlanTemplateInput[]} Entrées temporelles minimales pour le plan.
+ */
+function buildHifzPlanTemplatesFromClips(
+	clips: HifzSourceSubtitleClip[]
+): HifzPlanTemplateInput[] {
+	return clips.map((clip) =>
+		clip instanceof SubtitleClip
+			? {
+					kind: 'subtitle',
+					originalStartMs: clip.startTime,
+					originalEndMs: clip.endTime,
+					surah: clip.surah,
+					verseNumber: clip.verse
+				}
+			: {
+					kind: 'predefined',
+					originalStartMs: clip.startTime,
+					originalEndMs: clip.endTime
+				}
+	);
+}
+
+/**
+ * Clone un clip prédéfini pour une nouvelle plage Hifz.
+ *
+ * @param {PredefinedSubtitleClip} clip Clip source.
+ * @param {number} startMs Nouveau début.
+ * @param {number} endMs Nouvelle fin.
+ * @returns {PredefinedSubtitleClip} Clip cloné.
+ */
+function clonePredefinedClipForHifz(
+	clip: PredefinedSubtitleClip,
+	startMs: number,
+	endMs: number
+): PredefinedSubtitleClip {
+	const clonedClip = new PredefinedSubtitleClip(
+		startMs,
+		endMs,
+		clip.predefinedSubtitleType,
+		clip.text,
+		clip.comeFromIA,
+		clip.confidence
+	);
+	clonedClip.translations = cloneHifzTranslations(clip.translations);
+	clonedClip.arabicInlineStyleRuns = JSON.parse(JSON.stringify(clip.arabicInlineStyleRuns ?? []));
+	clonedClip.associatedImagePath = clip.associatedImagePath;
+	clonedClip.needsLongReview = clip.needsLongReview;
+	clonedClip.needsReview = clip.needsReview;
+	clonedClip.needsCoverageReview = clip.needsCoverageReview;
+	clonedClip.hasBeenVerified = clip.hasBeenVerified;
+	clonedClip.comeFromIA = clip.comeFromIA;
+	clonedClip.confidence = clip.confidence;
+	return clonedClip;
+}
+
+/**
+ * Clone un clip source Hifz avec une nouvelle plage temporelle.
+ *
+ * @param {HifzSourceSubtitleClip} clip Clip source.
+ * @param {number} startMs Nouveau début.
+ * @param {number} endMs Nouvelle fin.
+ * @returns {HifzSourceSubtitleClip} Clip cloné et détaché du clip source.
+ */
+function cloneHifzSubtitleClip(
+	clip: HifzSourceSubtitleClip,
+	startMs: number,
+	endMs: number
+): HifzSourceSubtitleClip {
+	if (clip instanceof PredefinedSubtitleClip) {
+		return clonePredefinedClipForHifz(clip, startMs, endMs);
+	}
+
+	const clonedClip = clip.cloneWithTimes(startMs, endMs);
+	clonedClip.visualMergeGroupId = null;
+	clonedClip.visualMergeMode = null;
+	if (clonedClip.alignmentMetadata) {
+		clonedClip.alignmentMetadata = {
+			...clonedClip.alignmentMetadata,
+			timeFrom: startMs / 1000,
+			timeTo: endMs / 1000
+		};
+	}
+	return clonedClip;
+}
+
+/**
+ * Résume l'état courant du tool Hifz pour la modale.
+ *
+ * @returns {HifzToolSummary} Informations d'audio et de sous-titres disponibles.
+ */
+export function getHifzToolSummary(): HifzToolSummary {
+	const sourceAudioClips = getHifzGenerationAudioClips();
+	const generatedSourceClips = getHifzSourceAudioClipsFromTrack();
+	return {
+		subtitleCount: getHifzSourceSubtitleClips().length,
+		audioClipCount: sourceAudioClips.length,
+		sourceAudioFileName: sourceAudioClips[0]?.fileName ?? null,
+		currentAudioUsesGeneratedSource: generatedSourceClips !== null
+	};
+}
+
+/**
+ * Applique la répétition Hifz aux sous-titres et remplace la piste audio courante.
+ *
+ * @param {number} repeatCount Nombre de répétitions par bloc.
+ * @param {HifzRepeatTarget} repeatTarget Granularité de répétition.
+ * @returns {Promise<HifzToolResult>} Résultat de génération.
+ */
+export async function applyHifzRepetitionToProject(
+	repeatCount: number,
+	repeatTarget: HifzRepeatTarget
+): Promise<HifzToolResult> {
+	try {
+		const project = globalState.currentProject;
+		if (!project) return { status: 'failed', message: 'No active project found.' };
+
+		const sourceClips = getHifzSourceSubtitleClips();
+		if (sourceClips.length === 0) {
+			return { status: 'failed', message: 'No subtitle clips found in the project.' };
+		}
+
+		const safeRepeatCount = Math.max(2, Math.round(repeatCount || 2));
+		const templates = buildHifzPlanTemplatesFromClips(sourceClips);
+		const repetitionPlan = buildHifzRepetitionPlan(templates, safeRepeatCount, repeatTarget);
+		if (repetitionPlan.placements.length === 0) {
+			return { status: 'failed', message: 'No Hifz repetition plan could be generated.' };
+		}
+
+		// On genere l'audio avant de modifier la timeline pour garder le projet intact en cas d'erreur.
+		const generatedAudio = await generateHifzAudioAsset(
+			repetitionPlan.audioSegments,
+			safeRepeatCount,
+			repeatTarget
+		);
+		const repeatedClips = repetitionPlan.placements
+			.map((placement) => {
+				const sourceClip = sourceClips[placement.sourceIndex];
+				if (!sourceClip) return null;
+				return cloneHifzSubtitleClip(sourceClip, placement.startMs, placement.endMs);
+			})
+			.filter((clip): clip is HifzSourceSubtitleClip => !!clip)
+			.sort((left, right) => left.startTime - right.startTime);
+
+		globalState.getSubtitleTrack.clips = repeatedClips;
+		globalState.getAudioTrack.clips = [
+			new AssetClip(0, Math.max(0, generatedAudio.durationMs), generatedAudio.asset.id)
+		];
+		globalState.getStylesState.clearSelection();
+		globalState.getSubtitlesEditorState.editSubtitle = null;
+		globalState.getSubtitlesEditorState.segmentationContext = createEmptySegmentationContext();
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+
+		return {
+			status: 'completed',
+			subtitleCount: repeatedClips.length,
+			durationMs: generatedAudio.durationMs,
+			audioFileName: generatedAudio.asset.fileName
+		};
+	} catch (error) {
+		return { status: 'failed', message: error instanceof Error ? error.message : String(error) };
+	}
+}
+
 type ApplySegmentationResponseParams = {
 	response: SegmentationResponse;
 	fillBySilence: boolean;
 	extendBeforeSilence: boolean;
 	extendBeforeSilenceMs: number;
-	hifzSegmentationEnabled: boolean;
-	hifzRepeatCount: number;
-	hifzRepeatTarget: HifzRepeatTarget;
 	fallbackToCloud: boolean;
 	cloudGpuFallbackToCpu: boolean;
 	requestedMode: SegmentationMode;
@@ -1389,9 +1668,6 @@ async function applySegmentationResponseToProject(
 		fillBySilence,
 		extendBeforeSilence,
 		extendBeforeSilenceMs,
-		hifzSegmentationEnabled,
-		hifzRepeatCount,
-		hifzRepeatTarget,
 		fallbackToCloud,
 		cloudGpuFallbackToCpu,
 		requestedMode,
@@ -1870,39 +2146,14 @@ async function applySegmentationResponseToProject(
 		};
 	}
 
-	let generatedHifzAudio: { asset: Asset; durationMs: number } | null = null;
-	if (hifzSegmentationEnabled && clipTemplates.length > 0) {
-		const repetitionPlan = buildHifzRepetitionPlan(
-			clipTemplates,
-			hifzRepeatCount,
-			hifzRepeatTarget
+	for (const template of clipTemplates) {
+		await materializeTemplate(
+			template,
+			template.originalStartMs,
+			template.originalEndMs,
+			template.originalStartMs,
+			template.originalEndMs
 		);
-		generatedHifzAudio = await generateHifzAudioAsset(
-			repetitionPlan.audioSegments,
-			Math.max(2, Math.round(hifzRepeatCount || 2)),
-			hifzRepeatTarget
-		);
-		for (const placement of repetitionPlan.placements) {
-			const template = clipTemplates[placement.sourceIndex];
-			if (!template) continue;
-			await materializeTemplate(
-				template,
-				placement.startMs,
-				placement.endMs,
-				placement.startMs,
-				placement.endMs
-			);
-		}
-	} else {
-		for (const template of clipTemplates) {
-			await materializeTemplate(
-				template,
-				template.originalStartMs,
-				template.originalEndMs,
-				template.originalStartMs,
-				template.originalEndMs
-			);
-		}
 	}
 
 	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
@@ -1936,18 +2187,12 @@ async function applySegmentationResponseToProject(
 		storedAlignedSegment.endMs = clip.endTime;
 	}
 
-	if (generatedHifzAudio) {
-		globalState.getAudioTrack.clips = [
-			new AssetClip(0, Math.max(0, generatedHifzAudio.durationMs), generatedHifzAudio.asset.id)
-		];
-	}
-
 	const verseRange: VerseRange = VerseRange.getVerseRange(0, subtitleTrack.getDuration().ms);
 	globalState.currentProject?.detail.updateVideoDetailAttributes();
 	globalState.updateVideoPreviewUI();
 	globalState.getSubtitlesEditorState.initialLowConfidenceCount = reviewSegments;
 	globalState.getSubtitlesEditorState.segmentationContext = {
-		audioId: generatedHifzAudio ? null : (response.audio_id ?? null),
+		audioId: response.audio_id ?? null,
 		source: segmentationSource,
 		effectiveMode,
 		modelName: modelName ?? null,
@@ -2577,9 +2822,6 @@ export async function runAutoSegmentation(
 	const fillBySilence: boolean = options.fillBySilence ?? true; //  Par défaut, on insère des SilenceClip
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
-	const hifzSegmentationEnabled: boolean = options.hifzSegmentationEnabled ?? false;
-	const hifzRepeatCount: number = Math.max(2, Math.round(options.hifzRepeatCount ?? 3));
-	const hifzRepeatTarget: HifzRepeatTarget = options.hifzRepeatTarget ?? 'verse';
 	const onRunConfirmed = options.onRunConfirmed ?? null;
 
 	// Determine mode if not specified
@@ -2602,9 +2844,7 @@ export async function runAutoSegmentation(
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {
 		const confirmOverwrite: boolean = await ModalManager.confirmModal(
-			hifzSegmentationEnabled
-				? `There are already subtitles in this project. This process will override them and replace the current audio track with a generated Hifz track (${hifzRepeatCount}x per ${hifzRepeatTarget}). Continue?`
-				: 'There are already subtitles in this project. This process will override them. Continue?',
+			'There are already subtitles in this project. This process will override them. Continue?',
 			true
 		);
 
@@ -2706,9 +2946,6 @@ export async function runAutoSegmentation(
 			fillBySilence,
 			extendBeforeSilence,
 			extendBeforeSilenceMs,
-			hifzSegmentationEnabled,
-			hifzRepeatCount,
-			hifzRepeatTarget,
 			fallbackToCloud,
 			cloudGpuFallbackToCpu,
 			requestedMode,
@@ -2812,20 +3049,12 @@ export async function runAutoSegmentationFromImportedJson(
 	importedPayload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
-		| 'fillBySilence'
-		| 'extendBeforeSilence'
-		| 'extendBeforeSilenceMs'
-		| 'hifzSegmentationEnabled'
-		| 'hifzRepeatCount'
-		| 'hifzRepeatTarget'
+		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
 	> = {}
 ): Promise<AutoSegmentationResult | null> {
 	const fillBySilence: boolean = options.fillBySilence ?? true;
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
-	const hifzSegmentationEnabled: boolean = options.hifzSegmentationEnabled ?? false;
-	const hifzRepeatCount: number = Math.max(2, Math.round(options.hifzRepeatCount ?? 3));
-	const hifzRepeatTarget: HifzRepeatTarget = options.hifzRepeatTarget ?? 'verse';
 
 	const audioInfo: AutoSegmentationAudioInfo | null = getAutoSegmentationAudioInfo();
 	const audioClips = getAutoSegmentationAudioClips();
@@ -2836,9 +3065,7 @@ export async function runAutoSegmentationFromImportedJson(
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {
 		const confirmOverwrite: boolean = await ModalManager.confirmModal(
-			hifzSegmentationEnabled
-				? `There are already subtitles in this project. This process will override them and replace the current audio track with a generated Hifz track (${hifzRepeatCount}x per ${hifzRepeatTarget}). Continue?`
-				: 'There are already subtitles in this project. This process will override them. Continue?',
+			'There are already subtitles in this project. This process will override them. Continue?',
 			true
 		);
 		if (!confirmOverwrite) return { status: 'cancelled' };
@@ -2852,9 +3079,6 @@ export async function runAutoSegmentationFromImportedJson(
 			fillBySilence,
 			extendBeforeSilence,
 			extendBeforeSilenceMs,
-			hifzSegmentationEnabled,
-			hifzRepeatCount,
-			hifzRepeatTarget,
 			fallbackToCloud: false,
 			cloudGpuFallbackToCpu: false,
 			requestedMode: 'api',

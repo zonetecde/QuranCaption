@@ -18,6 +18,18 @@ class ShortcutService {
 	private static isInitialized = false;
 
 	/**
+	 * Indique si l'événement vient d'un champ editable.
+	 */
+	private static isTypingTarget(target: EventTarget | null): boolean {
+		return (
+			target instanceof HTMLInputElement ||
+			target instanceof HTMLTextAreaElement ||
+			target instanceof HTMLSelectElement ||
+			(target instanceof HTMLElement && target.isContentEditable)
+		);
+	}
+
+	/**
 	 * Initialise le service de raccourcis
 	 * Nettoie les anciens listeners et configure les nouveaux
 	 */
@@ -49,6 +61,7 @@ class ShortcutService {
 		}
 		this.isInitialized = false;
 	}
+
 	/**
 	 * Gère les événements keydown
 	 */
@@ -56,16 +69,10 @@ class ShortcutService {
 		const key = event.key.toLowerCase();
 		const shortcut = this.shortcuts.get(key);
 
-		if (shortcut) {
-			// Vérifie qu'on est pas dans un input
-			if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-				return;
-			}
+		if (!shortcut || this.isTypingTarget(event.target)) return;
 
-			event.preventDefault();
-
-			shortcut.onKeyDown(event);
-		}
+		event.preventDefault();
+		shortcut.onKeyDown(event);
 	}
 
 	/**
@@ -75,12 +82,12 @@ class ShortcutService {
 		const key = event.key.toLowerCase();
 		const shortcut = this.shortcuts.get(key);
 
-		if (shortcut?.onKeyUp) {
-			event.preventDefault();
+		if (!shortcut?.onKeyUp || this.isTypingTarget(event.target)) return;
 
-			shortcut.onKeyUp(event);
-		}
+		event.preventDefault();
+		shortcut.onKeyUp(event);
 	}
+
 	/**
 	 * Normalise les clés pour une comparaison cohérente
 	 */
@@ -88,6 +95,7 @@ class ShortcutService {
 		const keyArray = Array.isArray(keys) ? keys : [keys];
 		return keyArray.map((key) => key.toLowerCase());
 	}
+
 	/**
 	 * Enregistre un nouveau raccourci
 	 */
@@ -110,6 +118,7 @@ class ShortcutService {
 			this.shortcuts.set(key, shortcut);
 		});
 	}
+
 	/**
 	 * Supprime un raccourci
 	 */
@@ -127,6 +136,7 @@ class ShortcutService {
 
 		return hasDeleted;
 	}
+
 	/**
 	 * Vérifie si un raccourci existe
 	 */

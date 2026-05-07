@@ -1,5 +1,5 @@
-use std::io::{BufRead, BufReader};
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -298,12 +298,7 @@ pub async fn download_from_youtube(
     let _ = stderr_handle.join();
 
     if status.success() {
-        emit_youtube_download_progress(
-            &app_handle,
-            &download_request_id,
-            100.0,
-            "finished",
-        );
+        emit_youtube_download_progress(&app_handle, &download_request_id, 100.0, "finished");
 
         let output_str = stdout_buffer
             .lock()

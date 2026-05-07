@@ -69,6 +69,38 @@
 	</div>
 
 	<div class="rounded-xl border border-color p-4 space-y-2">
+		<div class="space-y-2 border-b border-color pb-3 mb-3">
+			<label class="flex items-center gap-2 text-sm text-secondary"
+				><input
+					type="checkbox"
+					checked={wizard.hifzSegmentationEnabled}
+					onchange={(e) =>
+						wizard.setHifzSegmentationEnabled((e.currentTarget as HTMLInputElement).checked)}
+					class="accent-accent-primary"
+				/> Enable Hifz Segmentation</label
+			>
+			<div class="flex items-center gap-2 text-sm text-secondary">
+				<label for="hifz-repeat-count" class="min-w-0 flex-1"> Repeat each Quran verse </label>
+				<input
+					id="hifz-repeat-count"
+					type="number"
+					min="2"
+					max="50"
+					step="1"
+					value={wizard.hifzRepeatCount}
+					oninput={(e) =>
+						wizard.setHifzRepeatCount(Number((e.currentTarget as HTMLInputElement).value))}
+					disabled={!wizard.hifzSegmentationEnabled}
+					class="w-24 rounded border border-color bg-primary px-2 py-1 text-xs text-primary"
+				/>
+				<span>times</span>
+			</div>
+			<p class="text-xs text-thirdly">
+				When enabled, the generated subtitles and audio both repeat every Quran verse by the
+				selected count. This replaces the current audio track with a generated Hifz file.
+			</p>
+		</div>
+
 		{#if wizard.selection.aiVersion === 'multi_v2'}
 			<div class="space-y-2 border-b border-color pb-3 mb-3">
 				<label class="flex items-center gap-2 text-sm text-secondary"

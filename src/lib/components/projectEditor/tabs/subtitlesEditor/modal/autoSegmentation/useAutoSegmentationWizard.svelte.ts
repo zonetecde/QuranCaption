@@ -42,6 +42,8 @@ export function useAutoSegmentationWizard() {
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
 	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);
 	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);
+	let hifzSegmentationEnabled = $state(persisted?.hifzSegmentationEnabled ?? false);
+	let hifzRepeatCount = $state(Math.max(2, persisted?.hifzRepeatCount ?? 3));
 	let currentStep = $state(0);
 	let isRunning = $state(false);
 	let result = $state<AutoSegmentationResult | null>(null);
@@ -113,11 +115,13 @@ export function useAutoSegmentationWizard() {
 	const helperText = $derived(() =>
 		result?.status === 'completed'
 			? 'Segmentation completed. You can close and review the subtitles.'
-			: selection.runtime === 'hf_json'
-				? 'Import and parse a JSON export from Hugging Face, then apply it to your timeline.'
-				: selection.mode === 'local'
-					? "Local mode uses your computer's resources."
-					: 'Cloud mode uses Quran Multi-Aligner v2.'
+			: hifzSegmentationEnabled
+				? `Hifz Segmentation will repeat each Quran verse ${hifzRepeatCount} times and replace the current audio track with a generated repetition track.`
+				: selection.runtime === 'hf_json'
+					? 'Import and parse a JSON export from Hugging Face, then apply it to your timeline.'
+					: selection.mode === 'local'
+						? "Local mode uses your computer's resources."
+						: 'Cloud mode uses Quran Multi-Aligner v2.'
 	);
 
 	/** Persists a partial settings update. */
@@ -347,7 +351,11 @@ export function useAutoSegmentationWizard() {
 		resetEstimatedProgress();
 
 		let estimatedDurationForRun: number | null = null;
-		if (selection.runtime !== 'hf_json' && selection.localAsrMode === 'multi_aligner' && selection.mode === 'local') {
+		if (
+			selection.runtime !== 'hf_json' &&
+			selection.localAsrMode === 'multi_aligner' &&
+			selection.mode === 'local'
+		) {
 			const audioDurationS = getAutoSegmentationAudioDurationS();
 			const estimated = await estimateSegmentationDuration({
 				endpoint: 'process_audio_session',
@@ -369,7 +377,9 @@ export function useAutoSegmentationWizard() {
 				response = await runAutoSegmentationFromImportedJson(parsed.response, {
 					fillBySilence,
 					extendBeforeSilence,
-					extendBeforeSilenceMs
+					extendBeforeSilenceMs,
+					hifzSegmentationEnabled,
+					hifzRepeatCount
 				});
 			} else {
 				response = await runAutoSegmentation(
@@ -388,6 +398,8 @@ export function useAutoSegmentationWizard() {
 						fillBySilence,
 						extendBeforeSilence,
 						extendBeforeSilenceMs,
+						hifzSegmentationEnabled,
+						hifzRepeatCount,
 						onRunConfirmed: () => {
 							if (estimatedDurationForRun && estimatedDurationForRun > 0) {
 								startEstimatedProgressTimer(estimatedDurationForRun);
@@ -424,6 +436,8 @@ export function useAutoSegmentationWizard() {
 				fillBySilence,
 				extendBeforeSilence,
 				extendBeforeSilenceMs,
+				hifzSegmentationEnabled,
+				hifzRepeatCount,
 				hfTokenSet: selection.hfToken.length > 0
 			});
 		}
@@ -501,6 +515,16 @@ export function useAutoSegmentationWizard() {
 		extendBeforeSilenceMs = value;
 		persistPatch({ extendBeforeSilenceMs: value });
 	}
+	/** Toggles Hifz segmentation and persists it. */
+	function setHifzSegmentationEnabled(value: boolean): void {
+		hifzSegmentationEnabled = value;
+		persistPatch({ hifzSegmentationEnabled: value });
+	}
+	/** Sets the Hifz repeat count and persists it. */
+	function setHifzRepeatCount(value: number): void {
+		hifzRepeatCount = Math.max(2, Math.round(value || 2));
+		persistPatch({ hifzRepeatCount });
+	}
 	/** Goes to any wizard step within bounds. */
 	function goToStep(step: number): void {
 		currentStep = Math.max(0, Math.min(maxStep(), step));
@@ -551,6 +575,12 @@ export function useAutoSegmentationWizard() {
 		},
 		get extendBeforeSilenceMs() {
 			return extendBeforeSilenceMs;
+		},
+		get hifzSegmentationEnabled() {
+			return hifzSegmentationEnabled;
+		},
+		get hifzRepeatCount() {
+			return hifzRepeatCount;
 		},
 		get currentStep() {
 			return currentStep;
@@ -650,6 +680,8 @@ export function useAutoSegmentationWizard() {
 		setFillBySilence,
 		setExtendBeforeSilence,
 		setExtendBeforeSilenceMs,
+		setHifzSegmentationEnabled,
+		setHifzRepeatCount,
 		goToStep,
 		goNext,
 		goBack

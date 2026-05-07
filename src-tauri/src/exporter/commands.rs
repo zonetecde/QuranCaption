@@ -1248,16 +1248,16 @@ fn video_has_audio(path: &str) -> bool {
 
     let mut cmd = Command::new(&exe);
     cmd.args(&[
-            "-v",
-            "error",
-            "-select_streams",
-            "a",
-            "-show_entries",
-            "stream=index",
-            "-of",
-            "csv=p=0",
-            path,
-        ]);
+        "-v",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=index",
+        "-of",
+        "csv=p=0",
+        path,
+    ]);
     configure_command_no_window(&mut cmd);
 
     let output = cmd.output();
@@ -1297,7 +1297,11 @@ fn make_internal_batch_path(
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     let ext = if export_without_background {
-        if use_mov_alpha { "mov" } else { "webm" }
+        if use_mov_alpha {
+            "mov"
+        } else {
+            "webm"
+        }
     } else {
         "mp4"
     };
@@ -1311,8 +1315,7 @@ fn transparent_export_uses_mov(
     export_without_background: bool,
     transparent_export_format: Option<&str>,
 ) -> bool {
-    export_without_background
-        && !matches!(transparent_export_format, Some("webm_vp9_alpha"))
+    export_without_background && !matches!(transparent_export_format, Some("webm_vp9_alpha"))
 }
 
 fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> i32 {
@@ -1685,25 +1688,24 @@ fn build_and_run_ffmpeg_filter_complex(
 
     // Prétraiter le fond une seule fois pour toute la plage exportée.
     // Les batches réutilisent ensuite ce fond via un trim local.
-    let preprocessed_background_videos =
-        if !export_without_background && !video_inputs.is_empty() {
-            preprocess_background_videos(
-                video_inputs,
-                w,
-                h,
-                fps,
-                prefer_hw,
-                start_time_ms,
-                Some(full_duration_ms),
-                blur,
-                performance_profile,
-                export_id,
-                full_duration_s,
-                &app_handle,
-            )
-        } else {
-            Vec::new()
-        };
+    let preprocessed_background_videos = if !export_without_background && !video_inputs.is_empty() {
+        preprocess_background_videos(
+            video_inputs,
+            w,
+            h,
+            fps,
+            prefer_hw,
+            start_time_ms,
+            Some(full_duration_ms),
+            blur,
+            performance_profile,
+            export_id,
+            full_duration_s,
+            &app_handle,
+        )
+    } else {
+        Vec::new()
+    };
 
     if n <= batch_limit {
         return render_ffmpeg_filter_complex_single(
@@ -1962,10 +1964,7 @@ fn render_ffmpeg_filter_complex_single(
     let (vcodec, vparams, vextra) = if export_without_background && use_mov_alpha {
         (
             "qtrle".to_string(),
-            vec![
-                "-pix_fmt".to_string(),
-                "argb".to_string(),
-            ],
+            vec!["-pix_fmt".to_string(), "argb".to_string()],
             HashMap::new(),
         )
     } else if export_without_background {
@@ -3046,7 +3045,7 @@ pub async fn concat_videos(
         Some("Merging Files"),
         &app,
     )
-        .map_err(|e| format!("Erreur exécution FFmpeg: {}", e))?;
+    .map_err(|e| format!("Erreur exécution FFmpeg: {}", e))?;
     // Vérifier que le fichier de sortie a été créé
     if !Path::new(&output_path_str).exists() {
         return Err("Le fichier de sortie n'a pas été créé".to_string());

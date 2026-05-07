@@ -24,6 +24,8 @@ export type AutoSegmentationSettings = {
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
+	hifzSegmentationEnabled: boolean;
+	hifzRepeatCount: number;
 };
 
 export type AITranslationSettings = {
@@ -101,7 +103,9 @@ export default class Settings extends SerializableBase {
 		includeWbwTimestamps: false,
 		fillBySilence: true,
 		extendBeforeSilence: false,
-		extendBeforeSilenceMs: 50
+		extendBeforeSilenceMs: 50,
+		hifzSegmentationEnabled: false,
+		hifzRepeatCount: 3
 	});
 
 	aiTranslationSettings = $state<AITranslationSettings>({

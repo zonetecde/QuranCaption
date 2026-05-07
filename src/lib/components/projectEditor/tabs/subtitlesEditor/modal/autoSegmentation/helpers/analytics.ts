@@ -39,6 +39,8 @@ export function trackSegmentationRun(params: {
 	fillBySilence: boolean;
 	extendBeforeSilence: boolean;
 	extendBeforeSilenceMs: number;
+	hifzSegmentationEnabled: boolean;
+	hifzRepeatCount: number;
 	hfTokenSet: boolean;
 }): void {
 	const completed = params.response?.status === 'completed' ? params.response : null;
@@ -77,6 +79,8 @@ export function trackSegmentationRun(params: {
 		fill_by_silence: params.fillBySilence,
 		extend_before_silence: params.extendBeforeSilence,
 		extend_before_silence_ms: params.extendBeforeSilenceMs,
+		hifz_segmentation_enabled: params.hifzSegmentationEnabled,
+		hifz_repeat_count: params.hifzRepeatCount,
 		mode: params.requestedMode,
 		hf_token_set: params.hfTokenSet,
 		audio_filename: params.audioLabel,

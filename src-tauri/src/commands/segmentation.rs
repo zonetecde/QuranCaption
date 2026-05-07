@@ -1,5 +1,5 @@
 use crate::segmentation;
-use crate::segmentation::types::SegmentationAudioClip;
+use crate::segmentation::types::{HifzAudioSegment, SegmentationAudioClip};
 
 /// Lance une segmentation Quran cloud via l'API Multi-Aligner.
 #[tauri::command]
@@ -125,4 +125,17 @@ pub async fn segment_quran_audio_local_multi(
         hf_token,
     )
     .await
+}
+
+/// Genere une nouvelle piste audio Hifz en repetant chaque segment fourni.
+#[tauri::command]
+pub async fn generate_hifz_audio(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    segments: Vec<HifzAudioSegment>,
+    output_path: String,
+) -> Result<segmentation::GeneratedHifzAudio, String> {
+    segmentation::generate_hifz_audio(app_handle, audio_path, audio_clips, segments, output_path)
+        .await
 }

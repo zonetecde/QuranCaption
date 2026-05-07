@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	buildHifzRepetitionPlan,
 	detectCoverageGapIndices,
 	parseImportedSegmentationJson
 } from '$lib/services/AutoSegmentation';
@@ -106,10 +107,7 @@ describe('parseImportedSegmentationJson', () => {
 					segment: 1,
 					time_from: 0,
 					time_to: 2,
-					words: [
-						['1:1:1', 0, 0.5],
-						{ location: '1:1:2', start: 0.5, end: 1.1, word: 'word' }
-					]
+					words: [['1:1:1', 0, 0.5], { location: '1:1:2', start: 0.5, end: 1.1, word: 'word' }]
 				}
 			]
 		});
@@ -133,5 +131,38 @@ describe('parseImportedSegmentationJson', () => {
 				segments: [{ segment: 1, time_from: 1.2 }]
 			})
 		).toThrow("Invalid segment at index 0: 'time_from' and 'time_to' are required.");
+	});
+});
+
+describe('buildHifzRepetitionPlan', () => {
+	it('repeats Quran subtitle clips while keeping predefined clips single-pass', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{ kind: 'predefined', originalStartMs: 0, originalEndMs: 1200 },
+				{ kind: 'subtitle', originalStartMs: 1200, originalEndMs: 2000 },
+				{ kind: 'subtitle', originalStartMs: 2000, originalEndMs: 2600 }
+			],
+			3
+		);
+
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 1200, repetition: 1 },
+			{ sourceIndex: 1, startMs: 1201, endMs: 2001, repetition: 1 },
+			{ sourceIndex: 1, startMs: 2002, endMs: 2802, repetition: 2 },
+			{ sourceIndex: 1, startMs: 2803, endMs: 3603, repetition: 3 },
+			{ sourceIndex: 2, startMs: 3604, endMs: 4204, repetition: 1 },
+			{ sourceIndex: 2, startMs: 4205, endMs: 4805, repetition: 2 },
+			{ sourceIndex: 2, startMs: 4806, endMs: 5406, repetition: 3 }
+		]);
+		expect(plan.audioSegments).toEqual([
+			{ startMs: 0, endMs: 1200, repeatCount: 1 },
+			{ startMs: 1200, endMs: 2000, repeatCount: 1 },
+			{ startMs: 1200, endMs: 2000, repeatCount: 1 },
+			{ startMs: 1200, endMs: 2000, repeatCount: 1 },
+			{ startMs: 2000, endMs: 2600, repeatCount: 1 },
+			{ startMs: 2000, endMs: 2600, repeatCount: 1 },
+			{ startMs: 2000, endMs: 2600, repeatCount: 1 }
+		]);
+		expect(plan.totalDurationMs).toBe(5406);
 	});
 });

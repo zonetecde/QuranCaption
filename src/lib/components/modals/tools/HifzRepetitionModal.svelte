@@ -23,6 +23,8 @@
 	let repeatTarget = $state<HifzRepeatTarget>('verse');
 	let preserveVisualMerges = $state(true);
 	let silenceBetweenRepetitionsMultiplier = $state(0);
+	let showSubtitlesDuringPause = $state(true);
+	let extendCompleteSubtitlesAcrossRepetitions = $state(true);
 	let isRunning = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let hifzProgress = $state(0);
@@ -61,6 +63,22 @@
 	 */
 	function setSilenceBetweenRepetitionsMultiplier(value: number): void {
 		silenceBetweenRepetitionsMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(value);
+		if (silenceBetweenRepetitionsMultiplier > 0 && !showSubtitlesDuringPause) {
+			extendCompleteSubtitlesAcrossRepetitions = false;
+		}
+	}
+
+	/**
+	 * Met à jour l'affichage des sous-titres pendant les pauses.
+	 *
+	 * @param {boolean} value Etat coche demande.
+	 * @returns {void}
+	 */
+	function setShowSubtitlesDuringPause(value: boolean): void {
+		showSubtitlesDuringPause = value;
+		if (!showSubtitlesDuringPause && silenceBetweenRepetitionsMultiplier > 0) {
+			extendCompleteSubtitlesAcrossRepetitions = false;
+		}
 	}
 
 	/**
@@ -120,11 +138,24 @@
 		const safeSilenceMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(
 			silenceBetweenRepetitionsMultiplier
 		);
+		const effectiveExtendCompleteSubtitlesAcrossRepetitions =
+			safeSilenceMultiplier > 0 && !showSubtitlesDuringPause
+				? false
+				: extendCompleteSubtitlesAcrossRepetitions;
 		const mergeSuffix = preserveVisualMerges ? ' and keep valid visual merges' : '';
 		const silenceSuffix =
 			safeSilenceMultiplier > 0 ? ` with ${safeSilenceMultiplier}x silence gaps` : '';
+		const pauseDisplaySuffix =
+			safeSilenceMultiplier > 0
+				? showSubtitlesDuringPause
+					? ' and subtitles shown during pause'
+					: ' and silence clips inserted between repetitions'
+				: '';
+		const extendSuffix = effectiveExtendCompleteSubtitlesAcrossRepetitions
+			? ' and complete subtitles extended across repetitions when possible'
+			: '';
 		const confirmed = await ModalManager.confirmModal(
-			`This will replace the current subtitle track and audio track with a Hifz repetition (${safeRepeatCount}x per ${repeatTarget}${mergeSuffix}${silenceSuffix}). Continue?`,
+			`This will replace the current subtitle track and audio track with a Hifz repetition (${safeRepeatCount}x per ${repeatTarget}${mergeSuffix}${silenceSuffix}${pauseDisplaySuffix}${extendSuffix}). Continue?`,
 			true
 		);
 		if (!confirmed) return;
@@ -140,7 +171,9 @@
 			safeRepeatCount,
 			repeatTarget,
 			preserveVisualMerges,
-			safeSilenceMultiplier
+			safeSilenceMultiplier,
+			showSubtitlesDuringPause,
+			effectiveExtendCompleteSubtitlesAcrossRepetitions
 		).finally(() => {
 			unlistenProgress();
 			isRunning = false;
@@ -184,8 +217,8 @@
 
 	<div class="px-6 py-5 space-y-5 overflow-y-auto min-h-0">
 		<p class="text-sm text-secondary leading-relaxed">
-			Generate a memorization timeline from the subtitles already in the project. The current audio
-			track will be replaced by a generated repeated audio file.
+			Turn your existing subtitles into a Hifz-ready repetition track. The current audio will be
+			replaced with a newly generated repeated version.
 		</p>
 
 		<div class="grid grid-cols-2 gap-3">
@@ -212,6 +245,33 @@
 				<span class="text-sm font-medium">Repeat each subtitle</span>
 			</button>
 		</div>
+
+		{#if isRunning}
+			<div class="rounded-xl border border-color bg-accent/50 p-4 space-y-3">
+				<div class="flex items-center justify-between gap-3 text-xs">
+					<span class="text-secondary">{hifzProgressMessage || 'Generating Hifz audio...'}</span>
+					<span class="font-semibold text-primary">{Math.round(hifzProgress)}%</span>
+				</div>
+				<div class="h-2 overflow-hidden rounded-full bg-secondary">
+					<div
+						class="h-full rounded-full bg-accent-primary transition-all duration-300"
+						style={`width: ${hifzProgress}%;`}
+					></div>
+				</div>
+				<div class="flex justify-between text-xs text-thirdly">
+					<span>{formatProgressTime(hifzCurrentTime)}</span>
+					<span>{formatProgressTime(hifzTotalTime)}</span>
+				</div>
+			</div>
+		{/if}
+
+		{#if errorMessage}
+			<div
+				class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3 text-sm text-danger-color"
+			>
+				{errorMessage}
+			</div>
+		{/if}
 
 		<div class="space-y-2">
 			<label for="hifz-repeat-count" class="text-sm font-medium text-primary block">
@@ -265,53 +325,39 @@
 			</span>
 		</label>
 
-		{#if !isRunning}
-			<div
-				class="bg-accent/50 rounded-xl p-4 text-xs text-secondary flex gap-3 items-start border border-color/50"
-			>
-				<span class="material-icons text-sm text-accent-primary mt-0.5">info</span>
-				<div class="leading-relaxed space-y-1">
-					<div>
-						Source: <strong class="text-primary">{summary.subtitleCount}</strong> subtitles,
-						<strong class="text-primary">{summary.audioClipCount}</strong> audio clip(s)
-						{#if summary.sourceAudioFileName}
-							from <strong class="text-primary">{summary.sourceAudioFileName}</strong>
-						{/if}
-					</div>
-					{#if summary.currentAudioUsesGeneratedSource}
-						<div>
-							A generated Hifz audio track is already present and will be used as the source.
-						</div>
-					{/if}
-					<div>This operation replaces the current subtitle and audio tracks.</div>
-				</div>
-			</div>
-		{/if}
-		{#if isRunning}
-			<div class="rounded-xl border border-color bg-accent/50 p-4 space-y-3">
-				<div class="flex items-center justify-between gap-3 text-xs">
-					<span class="text-secondary">{hifzProgressMessage || 'Generating Hifz audio...'}</span>
-					<span class="font-semibold text-primary">{Math.round(hifzProgress)}%</span>
-				</div>
-				<div class="h-2 overflow-hidden rounded-full bg-secondary">
-					<div
-						class="h-full rounded-full bg-accent-primary transition-all duration-300"
-						style={`width: ${hifzProgress}%;`}
-					></div>
-				</div>
-				<div class="flex justify-between text-xs text-thirdly">
-					<span>{formatProgressTime(hifzCurrentTime)}</span>
-					<span>{formatProgressTime(hifzTotalTime)}</span>
-				</div>
-			</div>
+		{#if silenceBetweenRepetitionsMultiplier > 0}
+			<label class="flex items-center gap-3 text-sm text-secondary">
+				<input
+					type="checkbox"
+					checked={showSubtitlesDuringPause}
+					onchange={(event) =>
+						setShowSubtitlesDuringPause((event.currentTarget as HTMLInputElement).checked)}
+					class="accent-accent-primary"
+				/>
+				<span class="leading-relaxed">
+					<span class="block font-medium text-primary">
+						Keep subtitles visible during pause intervals
+					</span>
+				</span>
+			</label>
 		{/if}
 
-		{#if errorMessage}
-			<div
-				class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3 text-sm text-danger-color"
-			>
-				{errorMessage}
-			</div>
+		{#if silenceBetweenRepetitionsMultiplier === 0 || showSubtitlesDuringPause}
+			<label class="flex items-center gap-3 text-sm text-secondary">
+				<input
+					type="checkbox"
+					checked={extendCompleteSubtitlesAcrossRepetitions}
+					onchange={(event) =>
+						(extendCompleteSubtitlesAcrossRepetitions = (event.currentTarget as HTMLInputElement)
+							.checked)}
+					class="accent-accent-primary"
+				/>
+				<span class="leading-relaxed">
+					<span class="block font-medium text-primary">
+						Stretch complete subtitles across repeated cycles
+					</span>
+				</span>
+			</label>
 		{/if}
 	</div>
 

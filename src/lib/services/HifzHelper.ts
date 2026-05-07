@@ -77,6 +77,7 @@ export type HifzPlanTemplateInput = {
 	kind: 'subtitle' | 'predefined';
 	originalStartMs: number;
 	originalEndMs: number;
+	isMergeableCompleteUnit?: boolean;
 	surah?: number;
 	verseNumber?: number;
 	startWordIndex?: number;
@@ -409,7 +410,9 @@ export function buildHifzRepetitionPlan(
 	repeatCount: number,
 	repeatTarget: HifzRepeatTarget = 'verse',
 	preserveVisualMerges: boolean = false,
-	silenceBetweenRepetitionsMultiplier: number = 0
+	silenceBetweenRepetitionsMultiplier: number = 0,
+	showSubtitlesDuringPause: boolean = true,
+	extendCompleteSubtitlesAcrossRepetitions: boolean = true
 ): {
 	placements: HifzPlacement[];
 	silencePlacements: HifzSilencePlacement[];
@@ -431,14 +434,44 @@ export function buildHifzRepetitionPlan(
 	for (const group of groups) {
 		const groupDurationMs = Math.max(1, group.endMs - group.startMs);
 		const silenceBetweenRepetitionsMs = Math.max(0, group.silenceBetweenRepetitionsMs ?? 0);
+		const repeatsWithSilenceDurationMs =
+			group.repeatCount * groupDurationMs +
+			(group.repeatCount > 1 ? group.repeatCount * silenceBetweenRepetitionsMs : 0);
 		audioSegments.push({
 			startMs: group.startMs,
 			endMs: group.endMs,
 			repeatCount: group.repeatCount,
 			...(silenceBetweenRepetitionsMs > 0 ? { silenceBetweenRepetitionsMs } : {})
 		});
+		const canExtendAcrossRepetitions =
+			extendCompleteSubtitlesAcrossRepetitions &&
+			group.repeatCount > 1 &&
+			group.templateIndices.length === 1 &&
+			templates[group.templateIndices[0]]?.isMergeableCompleteUnit === true;
+		if (canExtendAcrossRepetitions) {
+			const sourceIndex = group.templateIndices[0];
+			const template = templates[sourceIndex];
+			const normalizedStartMs = Math.max(0, Math.round(template.originalStartMs));
+			const repeatedBlockStartMs = cursorMs;
+			const repeatedBlockEndMs = repeatedBlockStartMs + repeatsWithSilenceDurationMs;
+			const visualMergeGroupId = group.visualMergeGroupId
+				? `hifz-${group.visualMergeGroupId}-1-${repeatedBlockStartMs}`
+				: undefined;
+			placements.push({
+				sourceIndex,
+				startMs: repeatedBlockStartMs + (normalizedStartMs - group.startMs),
+				endMs: repeatedBlockEndMs,
+				repetition: 1,
+				...(visualMergeGroupId && group.visualMergeMode
+					? { visualMergeGroupId, visualMergeMode: group.visualMergeMode }
+					: {})
+			});
+			cursorMs = repeatedBlockEndMs;
+			continue;
+		}
 
 		for (let repetition = 1; repetition <= group.repeatCount; repetition += 1) {
+			const repetitionPlacementStartIndex = placements.length;
 			const repeatedBlockStartMs = cursorMs;
 			const visualMergeGroupId = group.visualMergeGroupId
 				? `hifz-${group.visualMergeGroupId}-${repetition}-${repeatedBlockStartMs}`
@@ -460,10 +493,22 @@ export function buildHifzRepetitionPlan(
 			// Le curseur suit exactement l'audio: bloc repete, puis silence optionnel apres chaque repetition.
 			cursorMs = repeatedBlockStartMs + groupDurationMs;
 			if (group.repeatCount > 1 && silenceBetweenRepetitionsMs > 0) {
-				silencePlacements.push({
-					startMs: cursorMs,
-					endMs: cursorMs + silenceBetweenRepetitionsMs
-				});
+				if (showSubtitlesDuringPause) {
+					const repeatedBlockEndMs = cursorMs + silenceBetweenRepetitionsMs;
+					for (
+						let placementIndex = repetitionPlacementStartIndex;
+						placementIndex < placements.length;
+						placementIndex += 1
+					) {
+						const placement = placements[placementIndex];
+						placement.endMs = repeatedBlockEndMs;
+					}
+				} else {
+					silencePlacements.push({
+						startMs: cursorMs,
+						endMs: cursorMs + silenceBetweenRepetitionsMs
+					});
+				}
 				cursorMs += silenceBetweenRepetitionsMs;
 			}
 		}
@@ -612,6 +657,7 @@ function buildHifzPlanTemplatesFromClips(clips: HifzSourceSubtitleClip[]): HifzP
 					kind: 'subtitle',
 					originalStartMs: clip.startTime,
 					originalEndMs: clip.endTime,
+					isMergeableCompleteUnit: clip.isFullVerse === true,
 					surah: clip.surah,
 					verseNumber: clip.verse,
 					startWordIndex: clip.startWordIndex,
@@ -623,7 +669,8 @@ function buildHifzPlanTemplatesFromClips(clips: HifzSourceSubtitleClip[]): HifzP
 			: {
 					kind: 'predefined',
 					originalStartMs: clip.startTime,
-					originalEndMs: clip.endTime
+					originalEndMs: clip.endTime,
+					isMergeableCompleteUnit: false
 				}
 	);
 }
@@ -727,7 +774,9 @@ export async function applyHifzRepetitionToProject(
 	repeatCount: number,
 	repeatTarget: HifzRepeatTarget,
 	preserveVisualMerges: boolean = false,
-	silenceBetweenRepetitionsMultiplier: number = 0
+	silenceBetweenRepetitionsMultiplier: number = 0,
+	showSubtitlesDuringPause: boolean = true,
+	extendCompleteSubtitlesAcrossRepetitions: boolean = true
 ): Promise<HifzToolResult> {
 	try {
 		// Les mutations projet ne commencent qu'apres validation du contexte courant.
@@ -746,7 +795,9 @@ export async function applyHifzRepetitionToProject(
 			safeRepeatCount,
 			repeatTarget,
 			preserveVisualMerges,
-			silenceBetweenRepetitionsMultiplier
+			silenceBetweenRepetitionsMultiplier,
+			showSubtitlesDuringPause,
+			extendCompleteSubtitlesAcrossRepetitions
 		);
 		if (repetitionPlan.placements.length === 0) {
 			return { status: 'failed', message: 'No Hifz repetition plan could be generated.' };

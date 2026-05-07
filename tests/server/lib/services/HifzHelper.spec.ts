@@ -102,7 +102,8 @@ describe('buildHifzRepetitionPlan', () => {
 			3,
 			'subtitle',
 			false,
-			0.5
+			0.5,
+			false
 		);
 
 		expect(plan.audioSegments).toEqual([
@@ -305,6 +306,210 @@ describe('buildHifzRepetitionPlan', () => {
 			'translation',
 			'translation',
 			'translation'
+		]);
+	});
+
+	it('extends subtitle display over pause when requested', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 1200,
+					originalEndMs: 1600,
+					surah: 2,
+					verseNumber: 1
+				}
+			],
+			3,
+			'subtitle',
+			false,
+			0.5,
+			true
+		);
+
+		expect(plan.silencePlacements).toEqual([]);
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 600, repetition: 1 },
+			{ sourceIndex: 0, startMs: 600, endMs: 1200, repetition: 2 },
+			{ sourceIndex: 0, startMs: 1200, endMs: 1800, repetition: 3 }
+		]);
+		expect(plan.totalDurationMs).toBe(1800);
+	});
+
+	it('merges complete subtitle repetitions into one placement in subtitle mode', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 1000,
+					isMergeableCompleteUnit: true,
+					surah: 2,
+					verseNumber: 1
+				}
+			],
+			3,
+			'subtitle',
+			false,
+			0.5,
+			true,
+			true
+		);
+
+		expect(plan.placements).toEqual([{ sourceIndex: 0, startMs: 0, endMs: 4500, repetition: 1 }]);
+		expect(plan.silencePlacements).toEqual([]);
+		expect(plan.totalDurationMs).toBe(4500);
+	});
+
+	it('does not merge repetitions when subtitle is not complete', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 500,
+					isMergeableCompleteUnit: false,
+					surah: 2,
+					verseNumber: 1
+				}
+			],
+			3,
+			'subtitle',
+			false,
+			0.5,
+			true,
+			true
+		);
+
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 750, repetition: 1 },
+			{ sourceIndex: 0, startMs: 750, endMs: 1500, repetition: 2 },
+			{ sourceIndex: 0, startMs: 1500, endMs: 2250, repetition: 3 }
+		]);
+	});
+
+	it('merges repetitions in verse mode only when verse block is a single complete subtitle', () => {
+		const mergedPlan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 1200,
+					isMergeableCompleteUnit: true,
+					surah: 2,
+					verseNumber: 1
+				}
+			],
+			2,
+			'verse',
+			false,
+			0,
+			true,
+			true
+		);
+		expect(mergedPlan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 2400, repetition: 1 }
+		]);
+
+		const splitPlan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 500,
+					isMergeableCompleteUnit: false,
+					surah: 2,
+					verseNumber: 1
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 500,
+					originalEndMs: 1000,
+					isMergeableCompleteUnit: false,
+					surah: 2,
+					verseNumber: 1
+				}
+			],
+			2,
+			'verse',
+			false,
+			0,
+			true,
+			true
+		);
+		expect(splitPlan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 500, repetition: 1 },
+			{ sourceIndex: 1, startMs: 500, endMs: 1000, repetition: 1 },
+			{ sourceIndex: 0, startMs: 1000, endMs: 1500, repetition: 2 },
+			{ sourceIndex: 1, startMs: 1500, endMs: 2000, repetition: 2 }
+		]);
+	});
+
+	it('never merges predefined subtitles across repetitions', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'predefined',
+					originalStartMs: 0,
+					originalEndMs: 700,
+					isMergeableCompleteUnit: false
+				}
+			],
+			3,
+			'subtitle',
+			false,
+			0,
+			true,
+			true
+		);
+
+		expect(plan.placements).toEqual([{ sourceIndex: 0, startMs: 0, endMs: 700, repetition: 1 }]);
+	});
+
+	it('does not extend earlier merged subtitles when a later repeated group shows pauses', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 1000,
+					isMergeableCompleteUnit: true,
+					surah: 1,
+					verseNumber: 1
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1000,
+					originalEndMs: 1400,
+					isMergeableCompleteUnit: false,
+					surah: 1,
+					verseNumber: 7
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1400,
+					originalEndMs: 1800,
+					isMergeableCompleteUnit: false,
+					surah: 1,
+					verseNumber: 7
+				}
+			],
+			3,
+			'verse',
+			false,
+			0.5,
+			true,
+			true
+		);
+
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 4500, repetition: 1 },
+			{ sourceIndex: 1, startMs: 4500, endMs: 5700, repetition: 1 },
+			{ sourceIndex: 2, startMs: 4900, endMs: 5700, repetition: 1 },
+			{ sourceIndex: 1, startMs: 5700, endMs: 6900, repetition: 2 },
+			{ sourceIndex: 2, startMs: 6100, endMs: 6900, repetition: 2 },
+			{ sourceIndex: 1, startMs: 6900, endMs: 8100, repetition: 3 },
+			{ sourceIndex: 2, startMs: 7300, endMs: 8100, repetition: 3 }
 		]);
 	});
 });

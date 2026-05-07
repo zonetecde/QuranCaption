@@ -12,13 +12,12 @@
 
 	let repeatCount = $state(3);
 	let repeatTarget = $state<HifzRepeatTarget>('verse');
+	let preserveVisualMerges = $state(true);
 	let isRunning = $state(false);
 	let errorMessage = $state<string | null>(null);
 
 	const summary = $derived(getHifzToolSummary());
-	const canApply = $derived(
-		summary.subtitleCount > 0 && summary.audioClipCount > 0 && !isRunning
-	);
+	const canApply = $derived(summary.subtitleCount > 0 && summary.audioClipCount > 0 && !isRunning);
 
 	/**
 	 * Normalise le nombre de répétitions Hifz.
@@ -49,15 +48,20 @@
 		if (!canApply) return;
 
 		const safeRepeatCount = normalizeRepeatCount(repeatCount);
+		const mergeSuffix = preserveVisualMerges ? ' and keep valid visual merges' : '';
 		const confirmed = await ModalManager.confirmModal(
-			`This will replace the current subtitle track and audio track with a Hifz repetition (${safeRepeatCount}x per ${repeatTarget}). Continue?`,
+			`This will replace the current subtitle track and audio track with a Hifz repetition (${safeRepeatCount}x per ${repeatTarget}${mergeSuffix}). Continue?`,
 			true
 		);
 		if (!confirmed) return;
 
 		isRunning = true;
 		errorMessage = null;
-		const result = await applyHifzRepetitionToProject(safeRepeatCount, repeatTarget);
+		const result = await applyHifzRepetitionToProject(
+			safeRepeatCount,
+			repeatTarget,
+			preserveVisualMerges
+		);
 		isRunning = false;
 
 		if (result.status === 'failed') {
@@ -98,8 +102,8 @@
 
 	<div class="px-6 py-5 space-y-5">
 		<p class="text-sm text-secondary leading-relaxed">
-			Generate a memorization timeline from the subtitles already in the project. The current
-			audio track will be replaced by a generated repeated audio file.
+			Generate a memorization timeline from the subtitles already in the project. The current audio
+			track will be replaced by a generated repeated audio file.
 		</p>
 
 		<div class="grid grid-cols-2 gap-3">
@@ -143,6 +147,25 @@
 			/>
 		</div>
 
+		<label
+			class="flex items-start gap-3 rounded-xl border border-color bg-accent/40 p-4 text-sm text-secondary"
+		>
+			<input
+				type="checkbox"
+				checked={preserveVisualMerges}
+				onchange={(event) =>
+					(preserveVisualMerges = (event.currentTarget as HTMLInputElement).checked)}
+				class="mt-1 accent-accent-primary"
+			/>
+			<span class="leading-relaxed">
+				<span class="block font-medium text-primary">Keep visual merges</span>
+				<span class="text-xs text-thirdly">
+					Merged subtitles are repeated together when possible. In verse mode, cross-verse merges
+					are kept only when every merged verse is complete.
+				</span>
+			</span>
+		</label>
+
 		<div
 			class="bg-accent/50 rounded-xl p-4 text-xs text-secondary flex gap-3 items-start border border-color/50"
 		>
@@ -163,7 +186,9 @@
 		</div>
 
 		{#if errorMessage}
-			<div class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3 text-sm text-danger-color">
+			<div
+				class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3 text-sm text-danger-color"
+			>
 				{errorMessage}
 			</div>
 		{/if}

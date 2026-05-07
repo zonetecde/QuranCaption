@@ -219,4 +219,191 @@ describe('buildHifzRepetitionPlan', () => {
 		]);
 		expect(plan.totalDurationMs).toBe(1800);
 	});
+
+	it('keeps complete cross-verse visual merges when repeating each verse', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 1000,
+					surah: 2,
+					verseNumber: 1,
+					startWordIndex: 0,
+					isFullVerse: true,
+					isLastWordsOfVerse: true,
+					visualMergeGroupId: 'merge-a',
+					visualMergeMode: 'both'
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1000,
+					originalEndMs: 2000,
+					surah: 2,
+					verseNumber: 2,
+					startWordIndex: 0,
+					isFullVerse: true,
+					isLastWordsOfVerse: true,
+					visualMergeGroupId: 'merge-a',
+					visualMergeMode: 'both'
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 2000,
+					originalEndMs: 2500,
+					surah: 2,
+					verseNumber: 3,
+					startWordIndex: 0,
+					isFullVerse: true,
+					isLastWordsOfVerse: true
+				}
+			],
+			2,
+			'verse',
+			true
+		);
+
+		expect(plan.audioSegments).toEqual([
+			{ startMs: 0, endMs: 2000, repeatCount: 2 },
+			{ startMs: 2000, endMs: 2500, repeatCount: 2 }
+		]);
+		expect(plan.placements).toEqual([
+			{
+				sourceIndex: 0,
+				startMs: 0,
+				endMs: 1000,
+				repetition: 1,
+				visualMergeGroupId: 'hifz-merge-a-1-0',
+				visualMergeMode: 'both'
+			},
+			{
+				sourceIndex: 1,
+				startMs: 1000,
+				endMs: 2000,
+				repetition: 1,
+				visualMergeGroupId: 'hifz-merge-a-1-0',
+				visualMergeMode: 'both'
+			},
+			{
+				sourceIndex: 0,
+				startMs: 2000,
+				endMs: 3000,
+				repetition: 2,
+				visualMergeGroupId: 'hifz-merge-a-2-2000',
+				visualMergeMode: 'both'
+			},
+			{
+				sourceIndex: 1,
+				startMs: 3000,
+				endMs: 4000,
+				repetition: 2,
+				visualMergeGroupId: 'hifz-merge-a-2-2000',
+				visualMergeMode: 'both'
+			},
+			{ sourceIndex: 2, startMs: 4000, endMs: 4500, repetition: 1 },
+			{ sourceIndex: 2, startMs: 4500, endMs: 5000, repetition: 2 }
+		]);
+	});
+
+	it('ignores partial cross-verse visual merges when repeating each verse', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 1000,
+					surah: 2,
+					verseNumber: 1,
+					startWordIndex: 0,
+					isFullVerse: true,
+					isLastWordsOfVerse: true,
+					visualMergeGroupId: 'merge-a',
+					visualMergeMode: 'both'
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1000,
+					originalEndMs: 1500,
+					surah: 2,
+					verseNumber: 2,
+					startWordIndex: 0,
+					isFullVerse: false,
+					isLastWordsOfVerse: false,
+					visualMergeGroupId: 'merge-a',
+					visualMergeMode: 'both'
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1500,
+					originalEndMs: 2500,
+					surah: 2,
+					verseNumber: 3,
+					startWordIndex: 0,
+					isFullVerse: true,
+					isLastWordsOfVerse: true,
+					visualMergeGroupId: 'merge-a',
+					visualMergeMode: 'both'
+				}
+			],
+			2,
+			'verse',
+			true
+		);
+
+		expect(plan.audioSegments).toEqual([
+			{ startMs: 0, endMs: 1000, repeatCount: 2 },
+			{ startMs: 1000, endMs: 1500, repeatCount: 2 },
+			{ startMs: 1500, endMs: 2500, repeatCount: 2 }
+		]);
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 1000, repetition: 1 },
+			{ sourceIndex: 0, startMs: 1000, endMs: 2000, repetition: 2 },
+			{ sourceIndex: 1, startMs: 2000, endMs: 2500, repetition: 1 },
+			{ sourceIndex: 1, startMs: 2500, endMs: 3000, repetition: 2 },
+			{ sourceIndex: 2, startMs: 3000, endMs: 4000, repetition: 1 },
+			{ sourceIndex: 2, startMs: 4000, endMs: 5000, repetition: 2 }
+		]);
+	});
+
+	it('keeps visual merges when repeating each subtitle', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 500,
+					surah: 2,
+					verseNumber: 1,
+					visualMergeGroupId: 'merge-a',
+					visualMergeMode: 'translation'
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 500,
+					originalEndMs: 1000,
+					surah: 2,
+					verseNumber: 2,
+					visualMergeGroupId: 'merge-a',
+					visualMergeMode: 'translation'
+				}
+			],
+			2,
+			'subtitle',
+			true
+		);
+
+		expect(plan.audioSegments).toEqual([{ startMs: 0, endMs: 1000, repeatCount: 2 }]);
+		expect(plan.placements.map((placement) => placement.visualMergeGroupId)).toEqual([
+			'hifz-merge-a-1-0',
+			'hifz-merge-a-1-0',
+			'hifz-merge-a-2-1000',
+			'hifz-merge-a-2-1000'
+		]);
+		expect(plan.placements.map((placement) => placement.visualMergeMode)).toEqual([
+			'translation',
+			'translation',
+			'translation',
+			'translation'
+		]);
+	});
 });

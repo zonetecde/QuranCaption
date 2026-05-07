@@ -323,6 +323,8 @@ type HifzPlacement = {
 	startMs: number;
 	endMs: number;
 	repetition: number;
+	visualMergeGroupId?: string;
+	visualMergeMode?: 'arabic' | 'translation' | 'both';
 };
 
 type HifzPlanTemplateInput = {
@@ -331,6 +333,11 @@ type HifzPlanTemplateInput = {
 	originalEndMs: number;
 	surah?: number;
 	verseNumber?: number;
+	startWordIndex?: number;
+	isFullVerse?: boolean;
+	isLastWordsOfVerse?: boolean;
+	visualMergeGroupId?: string | null;
+	visualMergeMode?: 'arabic' | 'translation' | 'both' | null;
 };
 
 type HifzPlanGroup = {
@@ -338,6 +345,8 @@ type HifzPlanGroup = {
 	startMs: number;
 	endMs: number;
 	repeatCount: number;
+	visualMergeGroupId?: string;
+	visualMergeMode?: 'arabic' | 'translation' | 'both';
 };
 
 export type DurationEstimateResult = {
@@ -1267,17 +1276,89 @@ function areTemplatesInSameVerseBlock(
 }
 
 /**
+ * Retourne les indices consecutifs d'un merge visuel preserve.
+ *
+ * @param {HifzPlanTemplateInput[]} templates Templates sources du projet.
+ * @param {number} startIndex Index de depart potentiel du merge.
+ * @returns {number[]} Indices du merge, ou liste vide si aucun merge valide.
+ */
+function getPreservedVisualMergeIndices(
+	templates: HifzPlanTemplateInput[],
+	startIndex: number
+): number[] {
+	const template = templates[startIndex];
+	if (
+		template?.kind !== 'subtitle' ||
+		!template.visualMergeGroupId ||
+		!template.visualMergeMode
+	) {
+		return [];
+	}
+
+	const previousTemplate = templates[startIndex - 1];
+	if (
+		previousTemplate?.kind === 'subtitle' &&
+		previousTemplate.visualMergeGroupId === template.visualMergeGroupId &&
+		previousTemplate.visualMergeMode === template.visualMergeMode
+	) {
+		return [];
+	}
+
+	const indices: number[] = [];
+	for (let index = startIndex; index < templates.length; index += 1) {
+		const candidate = templates[index];
+		if (
+			candidate.kind !== 'subtitle' ||
+			candidate.visualMergeGroupId !== template.visualMergeGroupId ||
+			candidate.visualMergeMode !== template.visualMergeMode
+		) {
+			break;
+		}
+		indices.push(index);
+	}
+
+	return indices.length > 1 ? indices : [];
+}
+
+/**
+ * Indique si un merge visuel contient uniquement des versets complets.
+ *
+ * @param {HifzPlanTemplateInput[]} templates Templates du merge visuel.
+ * @returns {boolean} True si chaque verset du merge est complet.
+ */
+function isCompleteVerseVisualMerge(templates: HifzPlanTemplateInput[]): boolean {
+	if (templates.length <= 1 || templates.some((template) => template.kind !== 'subtitle')) {
+		return false;
+	}
+
+	const verseStates = new Map<string, { hasStart: boolean; hasEnd: boolean }>();
+	for (const template of templates) {
+		if (!Number.isFinite(template.surah) || !Number.isFinite(template.verseNumber)) return false;
+
+		const verseKey = `${template.surah}:${template.verseNumber}`;
+		const state = verseStates.get(verseKey) ?? { hasStart: false, hasEnd: false };
+		state.hasStart ||= template.isFullVerse === true || template.startWordIndex === 0;
+		state.hasEnd ||= template.isFullVerse === true || template.isLastWordsOfVerse === true;
+		verseStates.set(verseKey, state);
+	}
+
+	return [...verseStates.values()].every((state) => state.hasStart && state.hasEnd);
+}
+
+/**
  * Regroupe les templates Hifz selon la granularite demandee.
  *
  * @param {HifzPlanTemplateInput[]} templates Templates sources du projet.
  * @param {number} repeatCount Nombre de repetitions demande.
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
  * @returns {HifzPlanGroup[]} Groupes temporels a repeter.
  */
 function buildHifzPlanGroups(
 	templates: HifzPlanTemplateInput[],
 	repeatCount: number,
-	repeatTarget: HifzRepeatTarget
+	repeatTarget: HifzRepeatTarget,
+	preserveVisualMerges: boolean
 ): HifzPlanGroup[] {
 	const safeRepeatCount = Math.max(2, Math.round(repeatCount || 2));
 	const groups: HifzPlanGroup[] = [];
@@ -1286,6 +1367,36 @@ function buildHifzPlanGroups(
 		const template = templates[index];
 		const normalizedStartMs = Math.max(0, Math.round(template.originalStartMs));
 		const normalizedEndMs = Math.max(normalizedStartMs + 1, Math.round(template.originalEndMs));
+		const mergeIndices = preserveVisualMerges
+			? getPreservedVisualMergeIndices(templates, index)
+			: [];
+		const shouldPreserveMerge =
+			mergeIndices.length > 0 &&
+			(repeatTarget === 'subtitle' ||
+				isCompleteVerseVisualMerge(mergeIndices.map((mergeIndex) => templates[mergeIndex])));
+
+		if (shouldPreserveMerge) {
+			const mergeTemplates = mergeIndices.map((mergeIndex) => templates[mergeIndex]);
+			groups.push({
+				templateIndices: mergeIndices,
+				startMs: Math.min(
+					...mergeTemplates.map((entry) => Math.max(0, Math.round(entry.originalStartMs)))
+				),
+				endMs: Math.max(
+					...mergeTemplates.map((entry) =>
+						Math.max(
+							Math.max(0, Math.round(entry.originalStartMs)) + 1,
+							Math.round(entry.originalEndMs)
+						)
+					)
+				),
+				repeatCount: safeRepeatCount,
+				visualMergeGroupId: template.visualMergeGroupId ?? undefined,
+				visualMergeMode: template.visualMergeMode ?? undefined
+			});
+			index = mergeIndices[mergeIndices.length - 1];
+			continue;
+		}
 
 		const lastGroup = groups[groups.length - 1];
 		const lastTemplate =
@@ -1321,16 +1432,18 @@ function buildHifzPlanGroups(
  * @param {HifzPlanTemplateInput[]} templates Templates sources du projet.
  * @param {number} repeatCount Nombre de repetitions par bloc.
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
  * @returns {{ placements: HifzPlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number }} Plan complet de generation.
  */
 export function buildHifzRepetitionPlan(
 	templates: HifzPlanTemplateInput[],
 	repeatCount: number,
-	repeatTarget: HifzRepeatTarget = 'verse'
+	repeatTarget: HifzRepeatTarget = 'verse',
+	preserveVisualMerges: boolean = false
 ): { placements: HifzPlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number } {
 	const placements: HifzPlacement[] = [];
 	const audioSegments: HifzAudioSegment[] = [];
-	const groups = buildHifzPlanGroups(templates, repeatCount, repeatTarget);
+	const groups = buildHifzPlanGroups(templates, repeatCount, repeatTarget, preserveVisualMerges);
 	let cursorMs = 0;
 
 	for (const group of groups) {
@@ -1343,6 +1456,9 @@ export function buildHifzRepetitionPlan(
 
 		for (let repetition = 1; repetition <= group.repeatCount; repetition += 1) {
 			const repeatedBlockStartMs = cursorMs;
+			const visualMergeGroupId = group.visualMergeGroupId
+				? `hifz-${group.visualMergeGroupId}-${repetition}-${repeatedBlockStartMs}`
+				: undefined;
 			for (const sourceIndex of group.templateIndices) {
 				const template = templates[sourceIndex];
 				const normalizedStartMs = Math.max(0, Math.round(template.originalStartMs));
@@ -1351,7 +1467,10 @@ export function buildHifzRepetitionPlan(
 					sourceIndex,
 					startMs: repeatedBlockStartMs + (normalizedStartMs - group.startMs),
 					endMs: repeatedBlockStartMs + (normalizedEndMs - group.startMs),
-					repetition
+					repetition,
+					...(visualMergeGroupId && group.visualMergeMode
+						? { visualMergeGroupId, visualMergeMode: group.visualMergeMode }
+						: {})
 				});
 			}
 			// Le curseur reste continu: ffmpeg concatene les repetitions sans gap audio.
@@ -1491,7 +1610,12 @@ function buildHifzPlanTemplatesFromClips(
 					originalStartMs: clip.startTime,
 					originalEndMs: clip.endTime,
 					surah: clip.surah,
-					verseNumber: clip.verse
+					verseNumber: clip.verse,
+					startWordIndex: clip.startWordIndex,
+					isFullVerse: clip.isFullVerse,
+					isLastWordsOfVerse: clip.isLastWordsOfVerse,
+					visualMergeGroupId: clip.visualMergeGroupId,
+					visualMergeMode: clip.visualMergeMode
 				}
 			: {
 					kind: 'predefined',
@@ -1540,20 +1664,24 @@ function clonePredefinedClipForHifz(
  * @param {HifzSourceSubtitleClip} clip Clip source.
  * @param {number} startMs Nouveau début.
  * @param {number} endMs Nouvelle fin.
+ * @param {string | undefined} visualMergeGroupId Identifiant de merge à appliquer au clone.
+ * @param {'arabic' | 'translation' | 'both' | undefined} visualMergeMode Mode de merge à appliquer au clone.
  * @returns {HifzSourceSubtitleClip} Clip cloné et détaché du clip source.
  */
 function cloneHifzSubtitleClip(
 	clip: HifzSourceSubtitleClip,
 	startMs: number,
-	endMs: number
+	endMs: number,
+	visualMergeGroupId?: string,
+	visualMergeMode?: 'arabic' | 'translation' | 'both'
 ): HifzSourceSubtitleClip {
 	if (clip instanceof PredefinedSubtitleClip) {
 		return clonePredefinedClipForHifz(clip, startMs, endMs);
 	}
 
 	const clonedClip = clip.cloneWithTimes(startMs, endMs);
-	clonedClip.visualMergeGroupId = null;
-	clonedClip.visualMergeMode = null;
+	clonedClip.visualMergeGroupId = visualMergeGroupId ?? null;
+	clonedClip.visualMergeMode = visualMergeMode ?? null;
 	if (clonedClip.alignmentMetadata) {
 		clonedClip.alignmentMetadata = {
 			...clonedClip.alignmentMetadata,
@@ -1585,11 +1713,13 @@ export function getHifzToolSummary(): HifzToolSummary {
  *
  * @param {number} repeatCount Nombre de répétitions par bloc.
  * @param {HifzRepeatTarget} repeatTarget Granularité de répétition.
+ * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
  * @returns {Promise<HifzToolResult>} Résultat de génération.
  */
 export async function applyHifzRepetitionToProject(
 	repeatCount: number,
-	repeatTarget: HifzRepeatTarget
+	repeatTarget: HifzRepeatTarget,
+	preserveVisualMerges: boolean = false
 ): Promise<HifzToolResult> {
 	try {
 		const project = globalState.currentProject;
@@ -1602,7 +1732,12 @@ export async function applyHifzRepetitionToProject(
 
 		const safeRepeatCount = Math.max(2, Math.round(repeatCount || 2));
 		const templates = buildHifzPlanTemplatesFromClips(sourceClips);
-		const repetitionPlan = buildHifzRepetitionPlan(templates, safeRepeatCount, repeatTarget);
+		const repetitionPlan = buildHifzRepetitionPlan(
+			templates,
+			safeRepeatCount,
+			repeatTarget,
+			preserveVisualMerges
+		);
 		if (repetitionPlan.placements.length === 0) {
 			return { status: 'failed', message: 'No Hifz repetition plan could be generated.' };
 		}
@@ -1617,7 +1752,13 @@ export async function applyHifzRepetitionToProject(
 			.map((placement) => {
 				const sourceClip = sourceClips[placement.sourceIndex];
 				if (!sourceClip) return null;
-				return cloneHifzSubtitleClip(sourceClip, placement.startMs, placement.endMs);
+				return cloneHifzSubtitleClip(
+					sourceClip,
+					placement.startMs,
+					placement.endMs,
+					placement.visualMergeGroupId,
+					placement.visualMergeMode
+				);
 			})
 			.filter((clip): clip is HifzSourceSubtitleClip => !!clip)
 			.sort((left, right) => left.startTime - right.startTime);

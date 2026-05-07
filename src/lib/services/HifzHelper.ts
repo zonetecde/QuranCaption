@@ -7,6 +7,7 @@ import {
 	AssetClip,
 	Duration,
 	PredefinedSubtitleClip,
+	SilenceClip,
 	SourceType,
 	SubtitleClip,
 	type Translation
@@ -26,11 +27,13 @@ export type HifzAudioSegment = {
 	startMs: number;
 	endMs: number;
 	repeatCount: number;
+	silenceBetweenRepetitionsMs?: number;
 };
 
 type HifzSegmentationMetadata = {
 	repeatCount: number;
 	repeatTarget: HifzRepeatTarget;
+	silenceBetweenRepetitionsMultiplier: number;
 	sourceAudioClips: AutoSegmentationAudioClip[];
 	createdAt: string;
 };
@@ -65,6 +68,11 @@ type HifzPlacement = {
 	visualMergeMode?: VisualMergeMode;
 };
 
+type HifzSilencePlacement = {
+	startMs: number;
+	endMs: number;
+};
+
 export type HifzPlanTemplateInput = {
 	kind: 'subtitle' | 'predefined';
 	originalStartMs: number;
@@ -83,6 +91,7 @@ type HifzPlanGroup = {
 	startMs: number;
 	endMs: number;
 	repeatCount: number;
+	silenceBetweenRepetitionsMs?: number;
 	visualMergeGroupId?: string;
 	visualMergeMode?: VisualMergeMode;
 };
@@ -273,16 +282,21 @@ function isCompleteVerseVisualMerge(templates: HifzPlanTemplateInput[]): boolean
  * @param {number} repeatCount Nombre de repetitions demande.
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
  * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
+ * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
  * @returns {HifzPlanGroup[]} Groupes temporels a repeter.
  */
 function buildHifzPlanGroups(
 	templates: HifzPlanTemplateInput[],
 	repeatCount: number,
 	repeatTarget: HifzRepeatTarget,
-	preserveVisualMerges: boolean
+	preserveVisualMerges: boolean,
+	silenceBetweenRepetitionsMultiplier: number
 ): HifzPlanGroup[] {
 	// La normalisation empeche un plan invalide si la valeur vient d'un input libre.
 	const safeRepeatCount = Math.max(2, Math.round(repeatCount || 2));
+	const safeSilenceMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(
+		silenceBetweenRepetitionsMultiplier
+	);
 	const groups: HifzPlanGroup[] = [];
 
 	for (let index = 0; index < templates.length; index += 1) {
@@ -345,7 +359,41 @@ function buildHifzPlanGroups(
 		});
 	}
 
+	for (const group of groups) {
+		group.silenceBetweenRepetitionsMs = getSilenceBetweenRepetitionsMs(
+			group.endMs - group.startMs,
+			safeSilenceMultiplier
+		);
+	}
+
 	return groups;
+}
+
+/**
+ * Normalise le multiplicateur de silence entre repetitions.
+ *
+ * @param {number} multiplier Multiplicateur brut saisi dans la modale.
+ * @returns {number} Multiplicateur positif arrondi au quart.
+ */
+export function normalizeSilenceBetweenRepetitionsMultiplier(multiplier: number): number {
+	// Le pas de 0.25 garde l'UI et le plan audio parfaitement previsibles.
+	const safeMultiplier = Number.isFinite(multiplier) ? multiplier : 0;
+	return Math.max(0, Math.round(safeMultiplier * 4) / 4);
+}
+
+/**
+ * Calcule le silence a inserer entre deux repetitions d'un meme bloc.
+ *
+ * @param {number} previousSegmentDurationMs Duree du bloc repete juste avant.
+ * @param {number} multiplier Multiplicateur de silence.
+ * @returns {number} Silence a inserer en millisecondes.
+ */
+function getSilenceBetweenRepetitionsMs(
+	previousSegmentDurationMs: number,
+	multiplier: number
+): number {
+	// Le silence est base sur la duree du bloc precedent, comme demande dans la modale.
+	return Math.max(0, Math.round(Math.max(0, previousSegmentDurationMs) * multiplier));
 }
 
 /**
@@ -355,25 +403,41 @@ function buildHifzPlanGroups(
  * @param {number} repeatCount Nombre de repetitions par bloc.
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
  * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
- * @returns {{ placements: HifzPlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number }} Plan complet de generation.
+ * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
+ * @returns {{ placements: HifzPlacement[]; silencePlacements: HifzSilencePlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number }} Plan complet de generation.
  */
 export function buildHifzRepetitionPlan(
 	templates: HifzPlanTemplateInput[],
 	repeatCount: number,
 	repeatTarget: HifzRepeatTarget = 'verse',
-	preserveVisualMerges: boolean = false
-): { placements: HifzPlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number } {
+	preserveVisualMerges: boolean = false,
+	silenceBetweenRepetitionsMultiplier: number = 0
+): {
+	placements: HifzPlacement[];
+	silencePlacements: HifzSilencePlacement[];
+	audioSegments: HifzAudioSegment[];
+	totalDurationMs: number;
+} {
 	const placements: HifzPlacement[] = [];
+	const silencePlacements: HifzSilencePlacement[] = [];
 	const audioSegments: HifzAudioSegment[] = [];
-	const groups = buildHifzPlanGroups(templates, repeatCount, repeatTarget, preserveVisualMerges);
+	const groups = buildHifzPlanGroups(
+		templates,
+		repeatCount,
+		repeatTarget,
+		preserveVisualMerges,
+		silenceBetweenRepetitionsMultiplier
+	);
 	let cursorMs = 0;
 
 	for (const group of groups) {
 		const groupDurationMs = Math.max(1, group.endMs - group.startMs);
+		const silenceBetweenRepetitionsMs = Math.max(0, group.silenceBetweenRepetitionsMs ?? 0);
 		audioSegments.push({
 			startMs: group.startMs,
 			endMs: group.endMs,
-			repeatCount: group.repeatCount
+			repeatCount: group.repeatCount,
+			...(silenceBetweenRepetitionsMs > 0 ? { silenceBetweenRepetitionsMs } : {})
 		});
 
 		for (let repetition = 1; repetition <= group.repeatCount; repetition += 1) {
@@ -395,16 +459,23 @@ export function buildHifzRepetitionPlan(
 						: {})
 				});
 			}
-			// Le curseur reste continu: ffmpeg concatene les repetitions sans gap audio.
+			// Le curseur suit exactement l'audio: bloc repete, puis silence optionnel apres chaque repetition.
 			cursorMs = repeatedBlockStartMs + groupDurationMs;
+			if (group.repeatCount > 1 && silenceBetweenRepetitionsMs > 0) {
+				silencePlacements.push({
+					startMs: cursorMs,
+					endMs: cursorMs + silenceBetweenRepetitionsMs
+				});
+				cursorMs += silenceBetweenRepetitionsMs;
+			}
 		}
 	}
 
 	return {
 		placements,
+		silencePlacements,
 		audioSegments,
-		totalDurationMs:
-			placements.length === 0 ? 0 : Math.max(...placements.map((placement) => placement.endMs))
+		totalDurationMs: cursorMs
 	};
 }
 
@@ -414,17 +485,22 @@ export function buildHifzRepetitionPlan(
  * @param {AutoSegmentationAudioClip[]} sourceAudioClips Clips audio source.
  * @param {number} repeatCount Nombre de repetitions utilise.
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
  * @returns {HifzSegmentationMetadata} Metadonnees a stocker sur l'asset genere.
  */
 function buildGeneratedHifzAudioMetadata(
 	sourceAudioClips: AutoSegmentationAudioClip[],
 	repeatCount: number,
-	repeatTarget: HifzRepeatTarget
+	repeatTarget: HifzRepeatTarget,
+	silenceBetweenRepetitionsMultiplier: number
 ): HifzSegmentationMetadata {
 	// Les clips source sont copies pour figer la provenance de l'asset genere.
 	return {
 		repeatCount,
 		repeatTarget,
+		silenceBetweenRepetitionsMultiplier: normalizeSilenceBetweenRepetitionsMultiplier(
+			silenceBetweenRepetitionsMultiplier
+		),
 		sourceAudioClips: sourceAudioClips.map((clip) => ({ ...clip })),
 		createdAt: new Date().toISOString()
 	};
@@ -436,12 +512,14 @@ function buildGeneratedHifzAudioMetadata(
  * @param {HifzAudioSegment[]} audioSegments Segments audio a concatener.
  * @param {number} repeatCount Nombre de repetitions utilise.
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
+ * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
  * @returns {Promise<{ asset: Asset; durationMs: number }>} Asset genere et duree finale.
  */
 async function generateHifzAudioAsset(
 	audioSegments: HifzAudioSegment[],
 	repeatCount: number,
-	repeatTarget: HifzRepeatTarget
+	repeatTarget: HifzRepeatTarget,
+	silenceBetweenRepetitionsMultiplier: number
 ): Promise<{ asset: Asset; durationMs: number }> {
 	// L'asset est ajoute au projet seulement apres generation ffmpeg reussie.
 	const project = globalState.currentProject;
@@ -475,7 +553,12 @@ async function generateHifzAudioAsset(
 	})) as { outputPath: string; durationMs: number };
 
 	const asset = new Asset(result.outputPath, undefined, SourceType.Local, {
-		hifzSegmentation: buildGeneratedHifzAudioMetadata(sourceAudioClips, repeatCount, repeatTarget)
+		hifzSegmentation: buildGeneratedHifzAudioMetadata(
+			sourceAudioClips,
+			repeatCount,
+			repeatTarget,
+			silenceBetweenRepetitionsMultiplier
+		)
 	} satisfies { hifzSegmentation: HifzSegmentationMetadata });
 	asset.duration = new Duration(result.durationMs);
 	asset.durationLoadState = 'success';
@@ -644,12 +727,14 @@ export function getHifzToolSummary(): HifzToolSummary {
  * @param {number} repeatCount Nombre de repetitions par bloc.
  * @param {HifzRepeatTarget} repeatTarget Granularite de repetition.
  * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
+ * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
  * @returns {Promise<HifzToolResult>} Resultat de generation.
  */
 export async function applyHifzRepetitionToProject(
 	repeatCount: number,
 	repeatTarget: HifzRepeatTarget,
-	preserveVisualMerges: boolean = false
+	preserveVisualMerges: boolean = false,
+	silenceBetweenRepetitionsMultiplier: number = 0
 ): Promise<HifzToolResult> {
 	try {
 		// Les mutations projet ne commencent qu'apres validation du contexte courant.
@@ -667,7 +752,8 @@ export async function applyHifzRepetitionToProject(
 			templates,
 			safeRepeatCount,
 			repeatTarget,
-			preserveVisualMerges
+			preserveVisualMerges,
+			silenceBetweenRepetitionsMultiplier
 		);
 		if (repetitionPlan.placements.length === 0) {
 			return { status: 'failed', message: 'No Hifz repetition plan could be generated.' };
@@ -677,7 +763,8 @@ export async function applyHifzRepetitionToProject(
 		const generatedAudio = await generateHifzAudioAsset(
 			repetitionPlan.audioSegments,
 			safeRepeatCount,
-			repeatTarget
+			repeatTarget,
+			silenceBetweenRepetitionsMultiplier
 		);
 		const repeatedClips = repetitionPlan.placements
 			.map((placement) => {
@@ -693,8 +780,13 @@ export async function applyHifzRepetitionToProject(
 			})
 			.filter((clip): clip is HifzSourceSubtitleClip => !!clip)
 			.sort((left, right) => left.startTime - right.startTime);
+		const silenceClips = repetitionPlan.silencePlacements.map(
+			(placement) => new SilenceClip(placement.startMs, placement.endMs)
+		);
 
-		globalState.getSubtitleTrack.clips = repeatedClips;
+		globalState.getSubtitleTrack.clips = [...repeatedClips, ...silenceClips].sort(
+			(left, right) => left.startTime - right.startTime
+		);
 		globalState.getAudioTrack.clips = [
 			new AssetClip(0, Math.max(0, generatedAudio.durationMs), generatedAudio.asset.id)
 		];

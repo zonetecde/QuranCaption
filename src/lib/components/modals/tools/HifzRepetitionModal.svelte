@@ -6,6 +6,7 @@
 	import {
 		applyHifzRepetitionToProject,
 		getHifzToolSummary,
+		normalizeSilenceBetweenRepetitionsMultiplier,
 		type HifzRepeatTarget
 	} from '$lib/services/HifzHelper';
 
@@ -21,6 +22,7 @@
 	let repeatCount = $state(3);
 	let repeatTarget = $state<HifzRepeatTarget>('verse');
 	let preserveVisualMerges = $state(true);
+	let silenceBetweenRepetitionsMultiplier = $state(0);
 	let isRunning = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let hifzProgress = $state(0);
@@ -49,6 +51,16 @@
 	 */
 	function setRepeatCount(value: number): void {
 		repeatCount = normalizeRepeatCount(value);
+	}
+
+	/**
+	 * Met à jour le multiplicateur de silence entre répétitions.
+	 *
+	 * @param {number} value Valeur saisie par l'utilisateur.
+	 * @returns {void}
+	 */
+	function setSilenceBetweenRepetitionsMultiplier(value: number): void {
+		silenceBetweenRepetitionsMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(value);
 	}
 
 	/**
@@ -105,9 +117,14 @@
 		if (!canApply) return;
 
 		const safeRepeatCount = normalizeRepeatCount(repeatCount);
+		const safeSilenceMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(
+			silenceBetweenRepetitionsMultiplier
+		);
 		const mergeSuffix = preserveVisualMerges ? ' and keep valid visual merges' : '';
+		const silenceSuffix =
+			safeSilenceMultiplier > 0 ? ` with ${safeSilenceMultiplier}x silence gaps` : '';
 		const confirmed = await ModalManager.confirmModal(
-			`This will replace the current subtitle track and audio track with a Hifz repetition (${safeRepeatCount}x per ${repeatTarget}${mergeSuffix}). Continue?`,
+			`This will replace the current subtitle track and audio track with a Hifz repetition (${safeRepeatCount}x per ${repeatTarget}${mergeSuffix}${silenceSuffix}). Continue?`,
 			true
 		);
 		if (!confirmed) return;
@@ -122,7 +139,8 @@
 		const result = await applyHifzRepetitionToProject(
 			safeRepeatCount,
 			repeatTarget,
-			preserveVisualMerges
+			preserveVisualMerges,
+			safeSilenceMultiplier
 		).finally(() => {
 			unlistenProgress();
 			isRunning = false;
@@ -140,10 +158,10 @@
 </script>
 
 <div
-	class="bg-secondary border-color border rounded-2xl w-[540px] max-w-[90vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	class="bg-secondary border-color border rounded-2xl w-[540px] max-w-[90vw] max-h-[710px] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
 	transition:slide
 >
-	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">
+	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color shrink-0">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-3">
 				<div class="w-8 h-8 bg-accent-primary rounded-full flex items-center justify-center">
@@ -164,7 +182,7 @@
 		</div>
 	</div>
 
-	<div class="px-6 py-5 space-y-5">
+	<div class="px-6 py-5 space-y-5 overflow-y-auto min-h-0">
 		<p class="text-sm text-secondary leading-relaxed">
 			Generate a memorization timeline from the subtitles already in the project. The current audio
 			track will be replaced by a generated repeated audio file.
@@ -211,6 +229,29 @@
 			/>
 		</div>
 
+		<div class="space-y-2">
+			<label for="hifz-silence-multiplier" class="text-sm font-medium text-primary block">
+				Silence duration between repetitions
+			</label>
+			<input
+				id="hifz-silence-multiplier"
+				type="number"
+				min="0"
+				max="3"
+				step="0.25"
+				value={silenceBetweenRepetitionsMultiplier}
+				oninput={(event) =>
+					setSilenceBetweenRepetitionsMultiplier(
+						Number((event.currentTarget as HTMLInputElement).value)
+					)}
+				class="w-full bg-accent border border-color rounded-lg px-3 py-2 text-primary focus:border-accent-primary focus:outline-none transition-colors"
+			/>
+			<p class="text-xs text-thirdly leading-relaxed">
+				The silence is the duration of the repeated segment right before it multiplied by this
+				value. Use 0 for no silence.
+			</p>
+		</div>
+
 		<label
 			class="flex items-start gap-3 rounded-xl border border-color bg-accent/40 p-4 text-sm text-secondary"
 		>
@@ -223,10 +264,6 @@
 			/>
 			<span class="leading-relaxed">
 				<span class="block font-medium text-primary">Keep visual merges</span>
-				<span class="text-xs text-thirdly">
-					Merged subtitles are repeated together when possible. In verse mode, cross-verse merges
-					are kept only when every merged verse is complete.
-				</span>
 			</span>
 		</label>
 
@@ -278,7 +315,7 @@
 		{/if}
 	</div>
 
-	<div class="border-t border-color bg-primary px-6 py-4">
+	<div class="border-t border-color bg-primary px-6 py-4 shrink-0">
 		<div class="flex items-center justify-between">
 			<div class="text-xs text-thirdly">
 				{#if summary.subtitleCount === 0}

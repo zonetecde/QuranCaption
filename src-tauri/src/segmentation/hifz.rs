@@ -75,6 +75,8 @@ fn build_hifz_filter_graph(segments: &[HifzAudioSegment]) -> Result<(String, i64
         let start_ms = segment.start_ms.max(0);
         let end_ms = segment.end_ms.max(start_ms + 1);
         let repeat_count = segment.repeat_count.max(1);
+        let silence_between_repetitions_ms =
+            segment.silence_between_repetitions_ms.unwrap_or(0).max(0);
 
         for _ in 0..repeat_count {
             let label = format!("h{}", segment_index);
@@ -87,6 +89,18 @@ fn build_hifz_filter_graph(segments: &[HifzAudioSegment]) -> Result<(String, i64
             concat_inputs.push_str(&format!("[{}]", label));
             output_duration_ms += end_ms - start_ms;
             segment_index += 1;
+
+            if repeat_count > 1 && silence_between_repetitions_ms > 0 {
+                let silence_label = format!("h{}", segment_index);
+                filter_lines.push(format!(
+                    "anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration={:.6},asetpts=PTS-STARTPTS[{}]",
+                    silence_between_repetitions_ms as f64 / 1000.0,
+                    silence_label
+                ));
+                concat_inputs.push_str(&format!("[{}]", silence_label));
+                output_duration_ms += silence_between_repetitions_ms;
+                segment_index += 1;
+            }
         }
     }
 
@@ -268,11 +282,13 @@ mod tests {
                 start_ms: 100,
                 end_ms: 600,
                 repeat_count: 2,
+                silence_between_repetitions_ms: None,
             },
             HifzAudioSegment {
                 start_ms: 700,
                 end_ms: 1000,
                 repeat_count: 1,
+                silence_between_repetitions_ms: None,
             },
         ])
         .expect("graph should build");
@@ -280,6 +296,21 @@ mod tests {
         assert!(graph.contains("[h0];\n[0:a]atrim"));
         assert!(graph.contains("[h0][h1][h2]concat=n=3:v=0:a=1[outa]"));
         assert_eq!(duration_ms, 1300);
+    }
+
+    #[test]
+    fn hifz_filter_graph_inserts_silence_between_repetitions() {
+        let (graph, duration_ms) = build_hifz_filter_graph(&[HifzAudioSegment {
+            start_ms: 100,
+            end_ms: 600,
+            repeat_count: 3,
+            silence_between_repetitions_ms: Some(250),
+        }])
+        .expect("graph should build");
+
+        assert!(graph.contains("anullsrc=channel_layout=stereo:sample_rate=44100"));
+        assert!(graph.contains("concat=n=6:v=0:a=1[outa]"));
+        assert_eq!(duration_ms, 2250);
     }
 
     #[test]

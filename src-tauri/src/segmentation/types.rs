@@ -63,6 +63,8 @@ pub struct HifzAudioSegment {
     pub end_ms: i64,
     /// Nombre de repetitions a inserer pour ce segment.
     pub repeat_count: u32,
+    /// Silence a inserer entre deux repetitions de ce segment, en millisecondes.
+    pub silence_between_repetitions_ms: Option<i64>,
 }
 
 /// Moteur de segmentation locale supporté.

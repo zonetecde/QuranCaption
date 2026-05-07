@@ -88,6 +88,39 @@ describe('buildHifzRepetitionPlan', () => {
 		expect(plan.totalDurationMs).toBe(1800);
 	});
 
+	it('adds silence between repetitions from the previous segment duration multiplier', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 1200,
+					originalEndMs: 1600,
+					surah: 2,
+					verseNumber: 1
+				}
+			],
+			3,
+			'subtitle',
+			false,
+			0.5
+		);
+
+		expect(plan.audioSegments).toEqual([
+			{ startMs: 1200, endMs: 1600, repeatCount: 3, silenceBetweenRepetitionsMs: 200 }
+		]);
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 400, repetition: 1 },
+			{ sourceIndex: 0, startMs: 600, endMs: 1000, repetition: 2 },
+			{ sourceIndex: 0, startMs: 1200, endMs: 1600, repetition: 3 }
+		]);
+		expect(plan.silencePlacements).toEqual([
+			{ startMs: 400, endMs: 600 },
+			{ startMs: 1000, endMs: 1200 },
+			{ startMs: 1600, endMs: 1800 }
+		]);
+		expect(plan.totalDurationMs).toBe(1800);
+	});
+
 	it('keeps complete cross-verse visual merges when repeating each verse', () => {
 		const plan = buildHifzRepetitionPlan(
 			[

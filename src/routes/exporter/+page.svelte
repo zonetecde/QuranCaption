@@ -7,7 +7,15 @@
 	import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 	import { listen } from '@tauri-apps/api/event';
 	import { onMount } from 'svelte';
-	import { exists, BaseDirectory, mkdir, writeFile, remove, readFile } from '@tauri-apps/plugin-fs';
+	import {
+		exists,
+		BaseDirectory,
+		mkdir,
+		writeFile,
+		remove,
+		readFile,
+		readDir
+	} from '@tauri-apps/plugin-fs';
 	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
 	import {
@@ -17,6 +25,7 @@
 	} from '$lib/services/OverlayBlurSegmentation';
 	import {
 		calculateCaptureTimingsForRange,
+		getBlankImageFileName,
 		hasBlankImg,
 		hasTiming,
 		type ExportTimedOverlayCaptureClip,
@@ -569,14 +578,18 @@
 				hasTiming(segmentTimings.blankImgs, timing).hasIt &&
 				hasBlankImg(
 					segmentTimings.imgWithNothingShown,
-					hasTiming(segmentTimings.blankImgs, timing).surah!
+					hasTiming(segmentTimings.blankImgs, timing).key!
 				)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
 				const surahInfo = hasTiming(segmentTimings.blankImgs, timing);
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
-				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, segmentImageFolder);
+				await duplicateScreenshot(
+					getBlankImageFileName(surahInfo.key!),
+					imageIndex,
+					segmentImageFolder
+				);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
@@ -589,16 +602,19 @@
 				await takeScreenshot(`${imageIndex}`, segmentImageFolder);
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
-				for (const [surahStr, blankTiming] of Object.entries(segmentTimings.imgWithNothingShown)) {
+				for (const [blankVisualStateKey, blankTiming] of Object.entries(
+					segmentTimings.imgWithNothingShown
+				)) {
 					if (timing === blankTiming) {
 						// monte de 1 le timing pour avoir le svg correct
 						globalState.getTimelineState.movePreviewTo = timing - 1;
 						globalState.getTimelineState.cursorPosition = timing - 1;
 						await wait(timing - 1);
-						const surahNum = Number(surahStr);
-						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
-						await takeScreenshot(`blank_${surahNum}`);
-						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
+						console.log(
+							`Creating blank image for state ${blankVisualStateKey} at timing ${timing}`
+						);
+						await takeScreenshot(getBlankImageFileName(blankVisualStateKey));
+						console.log(`Blank image created for state ${blankVisualStateKey} at timing ${timing}`);
 						break; // Une seule sourate par timing
 					}
 				}
@@ -810,13 +826,13 @@
 				);
 			} else if (
 				hasTiming(timings.blankImgs, timing).hasIt &&
-				hasBlankImg(timings.imgWithNothingShown, hasTiming(timings.blankImgs, timing).surah ?? -1)
+				hasBlankImg(timings.imgWithNothingShown, hasTiming(timings.blankImgs, timing).key!)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
 				const surahInfo = hasTiming(timings.blankImgs, timing);
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
-				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex);
+				await duplicateScreenshot(getBlankImageFileName(surahInfo.key!), imageIndex);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				const captureTiming = timings.exactCaptureTimings.has(timing) ? timing : timing + 1;
@@ -828,12 +844,15 @@
 				await takeScreenshot(`${imageIndex}`);
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
-				for (const [surahStr, blankTiming] of Object.entries(timings.imgWithNothingShown)) {
+				for (const [blankVisualStateKey, blankTiming] of Object.entries(
+					timings.imgWithNothingShown
+				)) {
 					if (timing === blankTiming) {
-						const surahNum = Number(surahStr);
-						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
-						await takeScreenshot(`blank_${surahNum}`);
-						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
+						console.log(
+							`Creating blank image for state ${blankVisualStateKey} at timing ${timing}`
+						);
+						await takeScreenshot(getBlankImageFileName(blankVisualStateKey));
+						console.log(`Blank image created for state ${blankVisualStateKey} at timing ${timing}`);
 						break; // Une seule sourate par timing
 					}
 				}
@@ -1127,14 +1146,13 @@
 		try {
 			// Construire le chemin du dossier
 			const pathComponents = [ExportService.exportFolder, exportId];
+			const exportPath = await join(...pathComponents);
 
-			// Parcourir tous les fichiers pour trouver les images blank_
-			// On utilise une approche simple en testant les numeros de sourate de 1 a 114
-			for (let surahNum = 1; surahNum <= 114; surahNum++) {
-				const blankFileName = `blank_${surahNum}.png`;
+			for (const entry of await readDir(exportPath, { baseDir: BaseDirectory.AppData })) {
+				if (!entry.name.startsWith('blank_') || !entry.name.endsWith('.png')) continue;
+				const blankFileName = entry.name;
 				const blankFilePath = await join(...pathComponents, blankFileName);
 
-				// Vérifier si le fichier existe et le supprimer
 				if (await exists(blankFilePath, { baseDir: BaseDirectory.AppData })) {
 					await remove(blankFilePath, { baseDir: BaseDirectory.AppData });
 					console.log(`Deleted blank image: ${blankFileName}`);

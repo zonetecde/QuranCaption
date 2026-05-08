@@ -1,3 +1,22 @@
+/**
+ * Calcule les instants d'overlay à matérialiser pendant l'export vidéo.
+ *
+ * L'export ne capture pas chaque frame de la vidéo. Il capture seulement des timings clés
+ * (`uniqueSorted`), puis FFmpeg réutilise les PNG numérotés pour composer les fades.
+ *
+ * Règle importante pour les blanks:
+ * - une frame blank est une frame sans sous-titre affiché, mais elle peut encore contenir des
+ *   overlays visibles: custom text, nom de sourate, nom du récitant, etc.;
+ * - chaque blank nécessaire doit rester dans `uniqueSorted`, même si elle est duplicable, parce que
+ *   la boucle d'export doit créer physiquement le PNG numéroté attendu par FFmpeg;
+ * - `imgWithNothingShown` contient la première blank source capturée pour un état visuel donné;
+ * - `blankImgs` contient les timings numérotés qui doivent être créés par copie depuis cette source;
+ * - l'état visuel d'une blank est identifié par `surah + overlays temporisés visibles`.
+ *
+ * Conséquence: deux blanks peuvent être dupliquées uniquement si elles ont exactement le même état
+ * visuel. Une blank avec nom de sourate, nom du récitant ou custom text visible ne doit pas servir
+ * de source à une blank où ces éléments sont absents, et inversement.
+ */
 export type ExportSubtitleCaptureClip = {
 	startTime: number;
 	endTime: number;
@@ -17,6 +36,12 @@ export type ExportTimedOverlayCaptureClip = {
 };
 
 export type ExportCustomTextCaptureClip = ExportTimedOverlayCaptureClip;
+
+export type BlankTimingMatch = {
+	hasIt: boolean;
+	key: string | null;
+	surah: number | null;
+};
 
 /**
  * Indique si un overlay temporisé est visible à un instant donné.
@@ -46,14 +71,15 @@ function isTimedOverlayVisibleAt(
  */
 export function getTimedOverlayStateAt(
 	timing: number,
-	timedOverlayClips: ExportTimedOverlayCaptureClip[]
+	timedOverlayClips: ExportTimedOverlayCaptureClip[],
+	ignoreAlwaysShow: boolean = true
 ): string {
 	// Analyse l'état des overlays temporisés à un instant donné.
 	// Retourne une signature stable basée sur les overlays visibles.
 	const visibleTimedOverlays: string[] = [];
 
 	for (const clip of timedOverlayClips) {
-		if (!isTimedOverlayVisibleAt(clip, timing)) continue;
+		if (!isTimedOverlayVisibleAt(clip, timing, ignoreAlwaysShow)) continue;
 		// Cle unique basée sur l'ID du clip et sa fenêtre temporelle.
 		visibleTimedOverlays.push(`${clip.id}-${clip.startTime}-${clip.endTime}`);
 	}
@@ -67,6 +93,24 @@ export function getCustomClipStateAt(
 	customTextClips: ExportCustomTextCaptureClip[]
 ): string {
 	return getTimedOverlayStateAt(timing, customTextClips);
+}
+
+export function getBlankVisualStateKey(
+	surah: number,
+	timing: number,
+	timedOverlayClips: ExportTimedOverlayCaptureClip[]
+): string {
+	const timedOverlayState = getTimedOverlayStateAt(timing, timedOverlayClips, false);
+	return `surah:${surah}|overlays:${timedOverlayState}`;
+}
+
+export function getBlankImageFileName(blankVisualStateKey: string): string {
+	return `blank_${encodeURIComponent(blankVisualStateKey)}`;
+}
+
+function getSurahFromBlankVisualStateKey(blankVisualStateKey: string): number | null {
+	const match = /^surah:(-?\d+)\|/.exec(blankVisualStateKey);
+	return match ? Number(match[1]) : null;
 }
 
 export function resolveCurrentSurahFromClips(
@@ -130,24 +174,33 @@ export function resolveCurrentSurahFromClips(
 }
 
 export function hasTiming(
-	blankImgs: { [surah: number]: number[] },
+	blankImgs: { [blankVisualStateKey: string]: number[] },
 	t: number
-): {
-	hasIt: boolean;
-	surah: number | null;
-} {
-	for (const [surahNumb, timings] of Object.entries(blankImgs)) {
-		if (timings.includes(t)) return { hasIt: true, surah: Number(surahNumb) };
+): BlankTimingMatch {
+	for (const [blankVisualStateKey, timings] of Object.entries(blankImgs)) {
+		if (timings.includes(t)) {
+			return {
+				hasIt: true,
+				key: blankVisualStateKey,
+				surah: getSurahFromBlankVisualStateKey(blankVisualStateKey)
+			};
+		}
 	}
 
-	return { hasIt: false, surah: null };
+	return { hasIt: false, key: null, surah: null };
 }
 
 export function hasBlankImg(
-	imgWithNothingShown: { [surah: number]: number },
-	surah: number
+	imgWithNothingShown: { [blankVisualStateKey: string]: number },
+	blankVisualStateKey: string | number
 ): boolean {
-	return imgWithNothingShown[surah] !== undefined;
+	if (typeof blankVisualStateKey === 'number') {
+		return Object.keys(imgWithNothingShown).some(
+			(key) => getSurahFromBlankVisualStateKey(key) === blankVisualStateKey
+		);
+	}
+
+	return imgWithNothingShown[blankVisualStateKey] !== undefined;
 }
 
 /**
@@ -168,7 +221,10 @@ function isInternalVisualMergeTransition(
 	const nextClip = clips[clipIndex + 1];
 
 	if (currentClip?.kind !== 'subtitle' || nextClip?.kind !== 'subtitle') return false;
-	if (!currentClip.visualMergeGroupId || currentClip.visualMergeGroupId !== nextClip.visualMergeGroupId)
+	if (
+		!currentClip.visualMergeGroupId ||
+		currentClip.visualMergeGroupId !== nextClip.visualMergeGroupId
+	)
 		return false;
 	if (!currentClip.visualMergeMode || currentClip.visualMergeMode !== nextClip.visualMergeMode)
 		return false;
@@ -194,8 +250,8 @@ export function calculateCaptureTimingsForRange({
 	getCurrentSurah
 }: CalculateCaptureTimingParams) {
 	const timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
-	const imgWithNothingShown: { [surah: number]: number } = {}; // Timing ou rien n'est affiche (pour dupliquer)
-	const blankImgs: { [surah: number]: number[] } = {};
+	const imgWithNothingShown: { [blankVisualStateKey: string]: number } = {}; // Timing ou rien n'est affiche (pour dupliquer)
+	const blankImgs: { [blankVisualStateKey: string]: number[] } = {};
 	// Map des timings duplicables: target -> source.
 	const duplicableTimings: Map<number, number> = new Map();
 	// Timings qui doivent etre captures sans avancer le curseur,
@@ -206,6 +262,22 @@ export function calculateCaptureTimingsForRange({
 		if (t == null) return;
 		if (t < rangeStart || t > rangeEnd) return;
 		timingsToTakeScreenshots.push(Math.round(t));
+	}
+
+	function registerBlankTiming(timing: number, surah: number, visualStateTiming: number = timing) {
+		const roundedTiming = Math.round(timing);
+		const blankVisualStateKey = getBlankVisualStateKey(surah, visualStateTiming, timedOverlayClips);
+
+		if (imgWithNothingShown[blankVisualStateKey] === undefined) {
+			imgWithNothingShown[blankVisualStateKey] = roundedTiming;
+		} else if (imgWithNothingShown[blankVisualStateKey] !== roundedTiming) {
+			if (!blankImgs[blankVisualStateKey]) blankImgs[blankVisualStateKey] = [];
+			if (!blankImgs[blankVisualStateKey].includes(roundedTiming)) {
+				blankImgs[blankVisualStateKey].push(roundedTiming);
+			}
+		}
+
+		add(roundedTiming);
 	}
 
 	// --- Sous-titres ---
@@ -255,27 +327,12 @@ export function calculateCaptureTimingsForRange({
 		} else {
 			// Clip de silence: pas de bornes fade-in/fade-out à ajouter.
 			const surah = getCurrentSurah(clip.startTime);
-			if (imgWithNothingShown[surah] === undefined) {
-				add(endTime);
-			} else {
-				if (!blankImgs[surah]) blankImgs[surah] = [];
-				blankImgs[surah].push(Math.round(endTime));
-			}
+			registerBlankTiming(endTime, surah);
 		}
 
-		// Si aucun overlay temporel n'est visible à la fin du clip, on peut réutiliser un blank.
-		const hasTimedOverlayAtEndTime = timedOverlayClips.some((timedOverlayClip) => {
-			return isTimedOverlayVisibleAt(timedOverlayClip, endTime);
-		});
-
-		if (!hasTimedOverlayAtEndTime && !endsInsideVisualMerge) {
+		if (clip.kind !== 'silence' && !endsInsideVisualMerge) {
 			const surah = getCurrentSurah(clip.startTime);
-			if (imgWithNothingShown[surah] === undefined) {
-				imgWithNothingShown[surah] = Math.round(endTime);
-			} else {
-				if (!blankImgs[surah]) blankImgs[surah] = [];
-				blankImgs[surah].push(Math.round(endTime));
-			}
+			registerBlankTiming(endTime, surah, endTime + 1);
 		}
 	}
 

@@ -59,6 +59,10 @@ function timedOverlay(
 	};
 }
 
+function blankKey(surah: number, overlays: string = ''): string {
+	return `surah:${surah}|overlays:${overlays}`;
+}
+
 function calculateTimings(
 	subtitleClips: ExportSubtitleCaptureClip[],
 	timedOverlayClips: ExportTimedOverlayCaptureClip[] = [],
@@ -143,7 +147,7 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.uniqueSorted).toEqual([0, 200, 1_000, 1_800, 2_000, 5_000]);
 		expect(result.duplicableTimings).toEqual(new Map([[800, 200]]));
-		expect(result.imgWithNothingShown).toEqual({});
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1, '9-0-2000')]: 1_000 });
 		expect(result.blankImgs).toEqual({});
 	});
 
@@ -152,43 +156,50 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.uniqueSorted).toEqual([0, 100, 200, 300, 800, 1_000, 5_000]);
 		expect(result.duplicableTimings.size).toBe(0);
-		expect(result.imgWithNothingShown).toEqual({ 1: 1_000 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_000 });
 	});
 
 	it('creates one reusable blank image per surah and reuses it for later subtitles of the same surah', () => {
 		const result = calculateTimings([subtitle(0, 500, 1), subtitle(1_000, 1_500, 1)]);
 
-		expect(result.imgWithNothingShown).toEqual({ 1: 500 });
-		expect(result.blankImgs).toEqual({ 1: [1_500] });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 500 });
+		expect(result.blankImgs).toEqual({ [blankKey(1)]: [1_500] });
 	});
 
 	it('groups reusable blank images by surah', () => {
 		const result = calculateTimings([subtitle(0, 500, 1), subtitle(1_000, 1_500, 112)]);
 
-		expect(result.imgWithNothingShown).toEqual({ 1: 500, 112: 1_500 });
+		expect(result.imgWithNothingShown).toEqual({
+			[blankKey(1)]: 500,
+			[blankKey(112)]: 1_500
+		});
 		expect(result.blankImgs).toEqual({});
 	});
 
 	it('reuses an existing blank image during silence clips on the same surah', () => {
 		const result = calculateTimings([subtitle(0, 500, 1), silence(501, 900)]);
 
-		expect(result.imgWithNothingShown).toEqual({ 1: 500 });
-		expect(result.blankImgs[1]).toEqual([900, 900]);
-		expect(hasTiming(result.blankImgs, 900)).toEqual({ hasIt: true, surah: 1 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 500 });
+		expect(result.blankImgs[blankKey(1)]).toEqual([900]);
+		expect(hasTiming(result.blankImgs, 900)).toEqual({
+			hasIt: true,
+			key: blankKey(1),
+			surah: 1
+		});
 		expect(hasBlankImg(result.imgWithNothingShown, 1)).toBe(true);
 	});
 
-	it('does not register a blank image when a timed overlay is still visible at subtitle end', () => {
+	it('registers a separate blank image state when a timed overlay is still visible at subtitle end', () => {
 		const result = calculateTimings([subtitle(0, 500, 1)], [customText(3, 100, 700)]);
 
-		expect(result.imgWithNothingShown).toEqual({});
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1, '3-100-700')]: 500 });
 		expect(result.blankImgs).toEqual({});
 	});
 
 	it('does register a blank image when the overlapping overlay is always-show', () => {
 		const result = calculateTimings([subtitle(0, 500, 1)], [customText(3, 100, 700, true)]);
 
-		expect(result.imgWithNothingShown).toEqual({ 1: 500 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1, '3-100-700')]: 500 });
 	});
 
 	it('does not create or reuse a blank at an internal arabic merge transition', () => {
@@ -199,9 +210,9 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.uniqueSorted).toContain(500);
 		expect(result.exactCaptureTimings).toEqual(new Set([500]));
-		expect(result.imgWithNothingShown).toEqual({ 1: 1_000 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_000 });
 		expect(result.blankImgs).toEqual({});
-		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, surah: null });
+		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, key: null, surah: null });
 	});
 
 	it('does not create or reuse a blank at an internal translation merge transition', () => {
@@ -212,7 +223,7 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.uniqueSorted).toContain(500);
 		expect(result.exactCaptureTimings).toEqual(new Set([500]));
-		expect(result.imgWithNothingShown).toEqual({ 1: 1_000 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_000 });
 		expect(result.blankImgs).toEqual({});
 	});
 
@@ -224,7 +235,7 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.uniqueSorted).toContain(500);
 		expect(result.exactCaptureTimings).toEqual(new Set([500]));
-		expect(result.imgWithNothingShown).toEqual({ 1: 1_000 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_000 });
 		expect(result.blankImgs).toEqual({});
 	});
 
@@ -238,10 +249,10 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.uniqueSorted).toContain(500);
 		expect(result.uniqueSorted).toContain(1_000);
 		expect(result.exactCaptureTimings).toEqual(new Set([500, 1_000]));
-		expect(result.imgWithNothingShown).toEqual({ 1: 1_500 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_500 });
 		expect(result.blankImgs).toEqual({});
-		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, surah: null });
-		expect(hasTiming(result.blankImgs, 1_000)).toEqual({ hasIt: false, surah: null });
+		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, key: null, surah: null });
+		expect(hasTiming(result.blankImgs, 1_000)).toEqual({ hasIt: false, key: null, surah: null });
 	});
 
 	it('forces a real capture for the no-translation frame inside an arabic merge transition', () => {
@@ -252,8 +263,8 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.uniqueSorted).toContain(500);
 		expect(result.exactCaptureTimings.has(500)).toBe(true);
-		expect(result.imgWithNothingShown[1]).toBe(1_000);
-		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, surah: null });
+		expect(result.imgWithNothingShown[blankKey(1)]).toBe(1_000);
+		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, key: null, surah: null });
 	});
 
 	it('adds only boundary screenshots for always-show custom texts', () => {
@@ -272,7 +283,7 @@ describe('calculateCaptureTimingsForRange', () => {
 		const result = calculateTimings([subtitle(90.6, 120.4, 1)], [], 100, 121, 50);
 
 		expect(result.uniqueSorted).toEqual([100, 120, 121]);
-		expect(result.imgWithNothingShown).toEqual({ 1: 120 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 120 });
 	});
 
 	it('ignores invalid or zero-length clips', () => {
@@ -284,7 +295,7 @@ describe('calculateCaptureTimingsForRange', () => {
 			100
 		);
 
-		expect(result.imgWithNothingShown).toEqual({ 3: 400 });
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(3)]: 400 });
 		expect(result.uniqueSorted).toEqual([0, 300, 400, 1_000]);
 	});
 
@@ -307,10 +318,12 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.uniqueSorted).toEqual([0, 100, 200, 300, 800, 1_000, 5_000]);
 	});
 
-	it('does not create a blank image when a timed global overlay is visible at subtitle end', () => {
+	it('creates a separate blank image state when a timed global overlay is visible at subtitle end', () => {
 		const result = calculateTimings([subtitle(0, 500, 1)], [timedOverlay('surah-name', 100, 700)]);
 
-		expect(result.imgWithNothingShown).toEqual({});
+		expect(result.imgWithNothingShown).toEqual({
+			[blankKey(1, 'surah-name-100-700')]: 500
+		});
 		expect(result.blankImgs).toEqual({});
 	});
 
@@ -329,7 +342,21 @@ describe('calculateCaptureTimingsForRange', () => {
 			[timedOverlay('verse-number', 0, 1_000, false, (timing) => timing >= 0 && timing <= 500)]
 		);
 
-		expect(result.imgWithNothingShown).toEqual({ 1: 900 });
-		expect(result.blankImgs).toEqual({});
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 500 });
+		expect(result.blankImgs).toEqual({ [blankKey(1)]: [900] });
+	});
+
+	it('keeps duplicate blank timings in uniqueSorted so numeric PNG files are generated', () => {
+		const result = calculateTimings(
+			[subtitle(501, 10_161, 1), silence(10_162, 11_170), subtitle(11_171, 20_000, 1)],
+			[],
+			0,
+			21_000,
+			900
+		);
+
+		expect(result.uniqueSorted).toEqual(expect.arrayContaining([1_401, 10_161, 11_170, 12_071]));
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 10_161 });
+		expect(result.blankImgs[blankKey(1)]).toContain(11_170);
 	});
 });

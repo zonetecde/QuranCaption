@@ -13,6 +13,10 @@
 	} from '$lib/classes';
 	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
+	import {
+		moveManualWordByWordSelectedWordEndToCursor,
+		moveManualWordByWordSelectedWordStartToCursor
+	} from '$lib/services/AutoSegmentation';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
 
@@ -230,6 +234,11 @@
 	 * Si un sous-titre suivant existe, ajuste son temps de debut a cursorPosition + 1.
 	 */
 	function handleSetSubtitleEndTime(): void {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelectedWordEndToCursor();
+			return;
+		}
+
 		const subtitleTrack = globalState.getSubtitleTrack;
 		const cursorPosition = globalState.getTimelineState.cursorPosition;
 
@@ -270,6 +279,11 @@
 	 * Si un sous-titre precedent existe, ajuste son temps de fin a cursorPosition - 1.
 	 */
 	function handleSetSubtitleStartTime(): void {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelectedWordStartToCursor();
+			return;
+		}
+
 		const subtitleTrack = globalState.getSubtitleTrack;
 		const cursorPosition = globalState.getTimelineState.cursorPosition;
 

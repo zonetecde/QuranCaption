@@ -9,6 +9,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import ClipComponent from './Clip.svelte';
 	import SubtitleClipComponent from './SubtitleClip.svelte';
+	import WbwSubtitleClipEditor from './WbwSubtitleClipEditor.svelte';
 	import CustomClipComponent from './CustomClip.svelte';
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
@@ -201,13 +202,21 @@
 						{@const previousIsSameVerse =
 							(track as SubtitleTrack).getSubtitleBefore(clipIndex)?.verse ===
 							(clip as SubtitleClipType).verse}
+						{@const isManualWbwClip =
+							globalState.shared.wbwEdit.active &&
+							clip instanceof SubtitleClipModel &&
+							globalState.shared.wbwEdit.clipId === clip.id}
 
-						<SubtitleClipComponent
-							bind:clip={track.clips[clipIndex] as SubtitleClipType}
-							{track}
-							{nextIsSameVerse}
-							{previousIsSameVerse}
-						/>
+						{#if isManualWbwClip}
+							<WbwSubtitleClipEditor clip={track.clips[clipIndex] as SubtitleClipType} {track} />
+						{:else}
+							<SubtitleClipComponent
+								bind:clip={track.clips[clipIndex] as SubtitleClipType}
+								{track}
+								{nextIsSameVerse}
+								{previousIsSameVerse}
+							/>
+						{/if}
 					{:else}
 						<ClipComponent {clip} {track} />
 					{/if}

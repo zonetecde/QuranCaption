@@ -14,6 +14,7 @@ import { Status } from '$lib/classes/Status';
 import type { TranslationLanguageData } from '$lib/services/QdcTranslationService';
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
+import type { ManualWordByWordDraftWord } from '$lib/services/AutoSegmentation';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
@@ -59,7 +60,15 @@ class GlobalState {
 	});
 
 	shared = $state({
-		autoSegmentationWizard: null as unknown
+		autoSegmentationWizard: null as unknown,
+		wbwEdit: {
+			active: false,
+			clipId: null as number | null,
+			currentWordIndex: 0,
+			draftWords: [] as ManualWordByWordDraftWord[],
+			dragBoundaryIndex: null as number | null,
+			previousTimelineZoom: null as number | null
+		}
 	});
 
 	get getSubtitleTrack() {

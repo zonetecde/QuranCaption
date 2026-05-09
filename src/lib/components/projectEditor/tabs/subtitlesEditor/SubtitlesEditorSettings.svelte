@@ -3,6 +3,10 @@
 	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
+	import {
+		enterManualWordByWordEdit,
+		exitManualWordByWordEdit
+	} from '$lib/services/AutoSegmentation';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 	import SegmentsToReview from './SegmentsToReview.svelte';
 	import MarkLongSubtitles from './MarkLongSubtitles.svelte';
@@ -133,6 +137,44 @@
 	onDestroy(() => {
 		document.removeEventListener('keydown', handleEditModeShortcut, true);
 	});
+
+	/**
+	 * Ouvre le mode d'edition WBW manuel pour le sous-titre courant.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async function openManualWbwEditMode(): Promise<void> {
+		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		if (!(editSubtitle instanceof SubtitleClip)) return;
+
+		const success = await enterManualWordByWordEdit(editSubtitle);
+		if (!success) {
+			toast.error('Unable to enter word-by-word edit mode for this subtitle.');
+		}
+	}
+
+	/**
+	 * Retourne le raccourci d'édition configuré par l'utilisateur sous forme lisible.
+	 *
+	 * @returns {string} Raccourci formate pour l'UI.
+	 */
+	function getEditShortcutLabel(): string {
+		const keys = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys ?? [];
+		if (keys.length === 0) return 'edit key';
+		return keys.map((key) => key.toUpperCase()).join(' + ');
+	}
+
+	/**
+	 * Retourne le label lisible d'un raccourci configuré.
+	 *
+	 * @param {string[] | undefined} keys Liste des touches configurées.
+	 * @param {string} fallback Texte de repli si aucune touche n'est définie.
+	 * @returns {string} Raccourci formaté pour l'UI.
+	 */
+	function formatShortcutLabel(keys: string[] | undefined, fallback: string): string {
+		if (!keys || keys.length === 0) return fallback;
+		return keys.map((key) => key.toUpperCase()).join(' / ');
+	}
 </script>
 
 <div
@@ -146,12 +188,11 @@
 
 	{#if globalState.getSubtitlesEditorState.editSubtitle}
 		<!-- Subtitle editing mode -->
-		<div class="space-y-5">
+		<div class="space-y-2">
 			<div
-				class="rounded-xl border border-[var(--border-color)]/60 bg-gradient-to-br from-secondary to-secondary/60 backdrop-blur-sm p-4 shadow-inner"
+				class="rounded-xl border border-[var(--border-color)]/60 bg-gradient-to-br from-secondary to-secondary/60 backdrop-blur-sm p-2 shadow-inner"
 			>
 				<div class="flex items-start gap-3">
-					<span class="material-icons text-accent text-3xl">edit_note</span>
 					<div class="xl:space-y-1">
 						<h3 class="text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
 							Editing Subtitle
@@ -161,12 +202,73 @@
 							>
 						</h3>
 						<p class="text-xs leading-relaxed text-secondary">
-							Select the words in the selector then press Enter to adjust the range. You can also
-							quickly apply one of the presets below.
+							Select the words in the selector then press Enter to adjust the range, or apply one of
+							the presets below.
 						</p>
 					</div>
 				</div>
 			</div>
+
+			{#if globalState.getSubtitlesEditorState.editSubtitle instanceof SubtitleClip}
+				<div
+					class="rounded-lg border border-[var(--border-color)]/60 bg-secondary/40 p-2 space-y-3"
+				>
+					<p class="text-sm font-semibold text-primary">Word-by-word edit</p>
+
+					<div class="flex items-center justify-between gap-2 -mt-2">
+						<div>
+							<p class="text-[11px] text-secondary">
+								Manually stamp and adjust one Quran word at a time on the timeline. <br />
+							</p>
+						</div>
+
+						{#if globalState.shared.wbwEdit.active}
+							<button
+								class="flex items-center gap-2 px-3 py-2 rounded-md border border-yellow-400/40 text-yellow-200 text-xs hover:bg-yellow-400/10 transition cursor-pointer"
+								onclick={() => exitManualWordByWordEdit()}
+							>
+								<span class="material-icons text-base">close</span>
+								Exit
+							</button>
+						{:else}
+							<button
+								class="flex items-center gap-2 px-3 py-2 rounded-md border border-yellow-400/30 text-yellow-200 text-xs hover:bg-yellow-400/10 transition cursor-pointer"
+								onclick={openManualWbwEditMode}
+							>
+								<span class="material-icons text-base">timeline</span>
+								Edit WBW
+							</button>
+						{/if}
+					</div>
+
+					<p class="text-[9px] -mt-1 text-secondary">
+						Note: You can hold {getEditShortcutLabel()} to enter this mode directly.
+					</p>
+
+					{#if globalState.shared.wbwEdit.active}
+						<div class="rounded-md bg-yellow-400/8 border border-yellow-400/15 p-2">
+							<p class="text-[11px] text-yellow-100/90">
+								<strong>Enter:</strong> stamp end and next word
+							</p>
+							<p class="text-[11px] text-yellow-100/90">
+								<strong>ArrowUp/ArrowDown:</strong> select next or previous word
+							</p>
+							<p class="text-[11px] text-yellow-100/90">
+								<strong
+									>{formatShortcutLabel(
+										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START.keys,
+										'n'
+									)}/{formatShortcutLabel(
+										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END.keys,
+										'm'
+									)}:</strong
+								> move current word boundaries
+							</p>
+							<p class="text-[11px] text-yellow-100/90"><strong>Escape:</strong> exit wbw edit</p>
+						</div>
+					{/if}
+				</div>
+			{/if}
 			<!-- Presets -->
 			<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pr-1 pt-1">
 				<div class="grid grid-cols-2 gap-3">

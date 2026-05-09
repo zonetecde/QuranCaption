@@ -120,6 +120,23 @@
 
 	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
+	const wordBoundaryMarkers = $derived(() => {
+		if (!(clip instanceof SubtitleClip)) return [];
+		if ((clip.alignmentMetadata?.words.length ?? 0) <= 1) return [];
+
+		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
+		return (clip.alignmentMetadata?.words ?? [])
+			.slice(1)
+			.map((word, index) => {
+				const leftPercent = (word.start * 1000 * 100) / clipDurationMs;
+				return {
+					key: `${clip.id}-wbw-marker-${index}`,
+					leftPercent: Math.min(100, Math.max(0, leftPercent))
+				};
+			})
+			.filter((marker) => marker.leftPercent > 0 && marker.leftPercent < 100);
+	});
+
 	let dragStartX: number | null = null;
 	let didDrag = false;
 	let suppressNextClick = false;
@@ -346,6 +363,14 @@
 	onclick={handleClipClick}
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
+		{#if wordBoundaryMarkers().length > 0}
+			<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
+				{#each wordBoundaryMarkers() as marker (marker.key)}
+					<div class="wbw-word-marker" style={`left: ${marker.leftPercent}%;`}></div>
+				{/each}
+			</div>
+		{/if}
+
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
 			{#if (visualMergeGroup() && isFirstClipInVisualMergeGroup() && hasVisualMergeOverrides()) || (!visualMergeGroup() && hasOverrides())}
 				<span
@@ -612,5 +637,14 @@
 
 	.review-band-long {
 		background-color: rgba(244, 63, 94, 0.88);
+	}
+
+	.wbw-word-marker {
+		position: absolute;
+		top: 1px;
+		height: 14px;
+		width: 1px;
+		background: rgba(255, 255, 255, 0.38);
+		box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
 	}
 </style>

@@ -3,10 +3,7 @@
 	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
-	import {
-		enterManualWordByWordEdit,
-		exitManualWordByWordEdit
-	} from '$lib/services/AutoSegmentation';
+	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/helpers/wbw';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 	import SegmentsToReview from './SegmentsToReview.svelte';
 	import MarkLongSubtitles from './MarkLongSubtitles.svelte';

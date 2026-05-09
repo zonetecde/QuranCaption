@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { SubtitleClip, Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { getSubtitleClipDurationSeconds, updateManualWordByWordBoundary } from '$lib/services/AutoSegmentation';
+	import { getSubtitleClipDurationSeconds, updateManualWordByWordBoundary } from '$lib/helpers/wbw';
 	import { onDestroy } from 'svelte';
 
 	let { clip, track }: { clip: SubtitleClip; track: Track } = $props();
@@ -184,7 +184,7 @@
 		background: rgb(255 255 255 / 0.62);
 		box-shadow: 0 0 0 1px rgb(0 0 0 / 0.1);
 	}
-	
+
 	.wbw-edit-boundary:hover .wbw-edit-boundary-line {
 		background: rgb(255 255 255 / 0.92);
 	}

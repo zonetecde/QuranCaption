@@ -7,14 +7,18 @@
 	} from '$lib/classes/Clip.svelte';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { automaticSplitSubtitleAtWord } from '$lib/services/AutoSegmentation';
 	import {
-		automaticSplitSubtitleAtWord,
 		ensureManualWordByWordEditStateIsValid,
-		enterManualWordByWordEdit,
 		exitManualWordByWordEdit,
+		handleManualWordByWordEditShortcutKeyDown,
+		handleManualWordByWordEditShortcutKeyUp,
 		moveManualWordByWordSelection,
-		stampManualWordByWordCurrentWordAtCursor
-	} from '$lib/services/AutoSegmentation';
+		openManualWordByWordEditFromShortcut,
+		stampManualWordByWordCurrentWordAtCursor,
+		syncManualWordByWordSelectionFromVerseWord,
+		syncVerseSelectionWithManualWordByWordIndex
+	} from '$lib/helpers/wbw';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -30,6 +34,22 @@
 	let contextMenuWordIndex: number | null = $state(null);
 	let editShortcutLongPressTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let didTriggerManualWbwEdit = $state(false);
+
+	const wbwShortcutHandlers = {
+		getTimer: () => editShortcutLongPressTimer,
+		setTimer: (timer: ReturnType<typeof setTimeout> | null) => {
+			editShortcutLongPressTimer = timer;
+		},
+		getDidTrigger: () => didTriggerManualWbwEdit,
+		setDidTrigger: (value: boolean) => {
+			didTriggerManualWbwEdit = value;
+		},
+		onShortPress: () => {
+			editCurrentOrLastSubtitle();
+		},
+		onLongPress: () => openManualWordByWordEditFromShortcut(),
+		delayMs: 500
+	};
 
 	function goNextVerse() {
 		if (
@@ -91,78 +111,6 @@
 				subtitlesEditorState().selectedVerse
 			)
 	);
-
-	/**
-	 * Retourne le clip Quran cible pour ouvrir l'edition WBW.
-	 *
-	 * @returns {SubtitleClip | null} Clip Quran cible, sinon `null`.
-	 */
-	function resolveManualWordByWordTargetClip(): SubtitleClip | null {
-		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-		if (editSubtitle instanceof SubtitleClip) {
-			return editSubtitle;
-		}
-
-		const subtitleTrack = globalState.getSubtitleTrack;
-		if (subtitleTrack.clips.length <= 0) return null;
-
-		const cursorPosition = globalState.getTimelineState.cursorPosition;
-		const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
-		if (clipUnderCursor instanceof SubtitleClip) {
-			return clipUnderCursor;
-		}
-
-		return null;
-	}
-
-	/**
-	 * Lance l'ouverture du mode WBW manuel depuis le raccourci `E`.
-	 *
-	 * @returns {Promise<void>}
-	 */
-	async function openManualWordByWordEditFromShortcut(): Promise<void> {
-		const clip = resolveManualWordByWordTargetClip();
-		if (!clip) return;
-
-		const success = await enterManualWordByWordEdit(clip);
-		if (!success) {
-			toast.error('Unable to enter word-by-word edit mode for this subtitle.');
-		}
-	}
-
-	/**
-	 * Demarre le timer d'appui long du raccourci d'edition.
-	 *
-	 * @param {KeyboardEvent} event Evenement natif du raccourci.
-	 * @returns {void}
-	 */
-	function handleEditShortcutKeyDown(event: KeyboardEvent): void {
-		if (event.repeat || editShortcutLongPressTimer) return;
-
-		didTriggerManualWbwEdit = false;
-		editShortcutLongPressTimer = setTimeout(() => {
-			editShortcutLongPressTimer = null;
-			didTriggerManualWbwEdit = true;
-			void openManualWordByWordEditFromShortcut();
-		}, 500);
-	}
-
-	/**
-	 * Termine le raccourci d'edition et decide entre appui court et appui long.
-	 *
-	 * @returns {void}
-	 */
-	function handleEditShortcutKeyUp(): void {
-		if (editShortcutLongPressTimer) {
-			clearTimeout(editShortcutLongPressTimer);
-			editShortcutLongPressTimer = null;
-			if (!didTriggerManualWbwEdit) {
-				editCurrentOrLastSubtitle();
-			}
-		}
-
-		didTriggerManualWbwEdit = false;
-	}
 
 	onMount(() => {
 		// Set up les shortcuts pour sélectionner les mots
@@ -235,8 +183,8 @@
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
-			onKeyDown: handleEditShortcutKeyDown,
-			onKeyUp: handleEditShortcutKeyUp
+			onKeyDown: (event) => handleManualWordByWordEditShortcutKeyDown(event, wbwShortcutHandlers),
+			onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(wbwShortcutHandlers)
 		});
 
 		ShortcutService.registerShortcut({
@@ -427,7 +375,7 @@
 	async function selectNextWord() {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelection(1);
-			syncVerseSelectionWithManualWordByWordIndex();
+			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
 			return;
 		}
 
@@ -446,7 +394,7 @@
 	async function selectPreviousWord() {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelection(-1);
-			syncVerseSelectionWithManualWordByWordIndex();
+			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
 			return;
 		}
 
@@ -575,7 +523,7 @@
 	 * @param wordIndex L'index du mot cliqué.
 	 */
 	function handleWordClick(wordIndex: number): void {
-		if (syncManualWordByWordSelectionFromVerseWord(wordIndex)) {
+		if (syncManualWordByWordSelectionFromVerseWord(wordIndex, subtitlesEditorState)) {
 			return;
 		}
 
@@ -596,50 +544,6 @@
 			subtitlesEditorState().endWordIndex = wordIndex;
 		}
 	}
-
-	/**
-	 * Synchronise la selection WBW locale depuis un mot clique dans le selecteur de verset.
-	 *
-	 * @param {number} wordIndex Index 0-based du mot clique dans le verset.
-	 * @returns {boolean} `true` si le clic a ete consomme par le mode WBW.
-	 */
-	function syncManualWordByWordSelectionFromVerseWord(wordIndex: number): boolean {
-		if (!globalState.shared.wbwEdit.active) return false;
-
-		const editSubtitle = subtitlesEditorState().editSubtitle;
-		if (!(editSubtitle instanceof SubtitleClip)) return false;
-		if (
-			subtitlesEditorState().selectedSurah !== editSubtitle.surah ||
-			subtitlesEditorState().selectedVerse !== editSubtitle.verse
-		) {
-			return false;
-		}
-		if (wordIndex < editSubtitle.startWordIndex || wordIndex > editSubtitle.endWordIndex) {
-			return false;
-		}
-
-		subtitlesEditorState().startWordIndex = wordIndex;
-		subtitlesEditorState().endWordIndex = wordIndex;
-		globalState.shared.wbwEdit.currentWordIndex = wordIndex - editSubtitle.startWordIndex;
-		return true;
-	}
-
-	/**
-	 * Recale la selection du selecteur de verset sur le mot WBW courant.
-	 *
-	 * @returns {void}
-	 */
-	function syncVerseSelectionWithManualWordByWordIndex(): void {
-		if (!globalState.shared.wbwEdit.active) return;
-
-		const editSubtitle = subtitlesEditorState().editSubtitle;
-		if (!(editSubtitle instanceof SubtitleClip)) return;
-
-		const wordIndex = editSubtitle.startWordIndex + globalState.shared.wbwEdit.currentWordIndex;
-		subtitlesEditorState().startWordIndex = wordIndex;
-		subtitlesEditorState().endWordIndex = wordIndex;
-	}
-
 	function handleWordMouseDown(wordIndex: number, event: MouseEvent): void {
 		if (globalState.shared.wbwEdit.active) {
 			void wordIndex;
@@ -699,7 +603,8 @@
 		const editSubtitle = subtitlesEditorState().editSubtitle;
 		if (!(editSubtitle instanceof SubtitleClip)) return false;
 		if (!editSubtitle.alignmentMetadata) return false;
-		if (wordIndex < editSubtitle.startWordIndex || wordIndex >= editSubtitle.endWordIndex) return false;
+		if (wordIndex < editSubtitle.startWordIndex || wordIndex >= editSubtitle.endWordIndex)
+			return false;
 		return (
 			wordIndex >= subtitlesEditorState().startWordIndex &&
 			wordIndex <= subtitlesEditorState().endWordIndex
@@ -893,8 +798,8 @@
 	{#if contextMenuWordIndex !== null}
 		<Item on:click={handleAutomaticSplitFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split automatically
-				at this word
+				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split automatically at
+				this word
 			</div></Item
 		>
 	{/if}

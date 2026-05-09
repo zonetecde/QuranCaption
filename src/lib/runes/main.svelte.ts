@@ -14,7 +14,7 @@ import { Status } from '$lib/classes/Status';
 import type { TranslationLanguageData } from '$lib/services/QdcTranslationService';
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
-import type { ManualWordByWordDraftWord } from '$lib/services/AutoSegmentation';
+import type { ManualWordByWordDraftWord } from '$lib/helpers/wbw';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur

@@ -7,6 +7,7 @@
 	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
 	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import {
 		canMergeArabicVisualModes,
 		getActiveVisualMergeGroupId,
@@ -477,6 +478,31 @@
 							{/if}
 						{/if}
 					{/each}
+
+					{#if category.id === 'general' && globalState.getStylesState.currentSelection === 'global'}
+						<div
+							class="mx-2 mb-2 mt-3 rounded-lg border border-dashed border-[var(--accent-secondary)]/30 bg-[var(--bg-accent)]/5 px-3 py-2"
+						>
+							<div class="flex items-start justify-between gap-3">
+								<div class="min-w-0">
+									<p class="text-sm font-medium text-primary">Hifz Mode</p>
+									<p class="text-xs leading-relaxed text-secondary">
+										Create videos with repeated verses to help memorization.
+									</p>
+								</div>
+							</div>
+
+							<button
+								type="button"
+								class="btn-accent mt-2 w-full py-2 text-sm"
+								onclick={() => {
+									void ModalManager.hifzRepetitionModal();
+								}}
+							>
+								Enable Hifz mode
+							</button>
+						</div>
+					{/if}
 				</Section>
 			{/each}
 

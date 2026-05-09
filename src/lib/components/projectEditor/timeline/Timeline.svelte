@@ -159,6 +159,26 @@
 		moveCursorByFrame(1);
 	}
 
+	/**
+	 * Ajuste le zoom de la timeline avec la même logique que la molette.
+	 * @param {number} direction `1` pour zoom in, `-1` pour zoom out.
+	 * @returns {void}
+	 */
+	function adjustTimelineZoom(direction: number): void {
+		const currentZoom = timelineState().zoom;
+
+		if (direction < 0 && currentZoom > 0.2) {
+			timelineState().zoom = currentZoom - 0.75;
+		} else if (direction > 0 && currentZoom < 100) {
+			timelineState().zoom = currentZoom + 0.75;
+		}
+
+		if (timelineState().zoom === 10) {
+			// Valeur interdite qui fait beuguer le rendu
+			timelineState().zoom = 10.01;
+		}
+	}
+
 	// Enregistre le raccourci Backspace pour virer les sous-titres sélectionnés lorsque l'on est dans l'onglet Style
 	function registerRemoveShortcut(): void {
 		if (!globalState.settings || removeShortcutRegistered) return;
@@ -655,17 +675,7 @@
 		}
 
 		if (isTimelineWheelAction('ZOOM', event)) {
-			// Zoom avant ou arrière
-			if (event.deltaY > 0 && timelineState().zoom > 0.2) {
-				timelineState().zoom -= 0.75;
-			} else if (timelineState().zoom < 100) {
-				timelineState().zoom += 0.75;
-			}
-
-			if (timelineState().zoom === 10) {
-				// Valeur interdite qui fait beuguer le rendu
-				timelineState().zoom = 10.01;
-			}
+			adjustTimelineZoom(event.deltaY > 0 ? -1 : 1);
 
 			return;
 		}
@@ -723,7 +733,34 @@
 				tabindex="0"
 			>
 				<!-- Header spacer for alignment -->
-				<div class="ruler-header-spacer"></div>
+				<div class="ruler-header-spacer">
+					<div class="ruler-zoom-controls">
+						<button
+							class="ruler-zoom-button"
+							type="button"
+							title="Zoom out"
+							aria-label="Zoom out"
+							onclick={(event) => {
+								event.stopPropagation();
+								adjustTimelineZoom(-1);
+							}}
+						>
+							<span class="material-icons-outlined text-[18px]!">zoom_out</span>
+						</button>
+						<button
+							class="ruler-zoom-button"
+							type="button"
+							title="Zoom in"
+							aria-label="Zoom in"
+							onclick={(event) => {
+								event.stopPropagation();
+								adjustTimelineZoom(1);
+							}}
+						>
+							<span class="material-icons-outlined text-[18px]!">zoom_in</span>
+						</button>
+					</div>
+				</div>
 
 				<!-- Time markers -->
 				{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i (i)}
@@ -881,7 +918,38 @@
 		background: var(--timeline-ruler-bg);
 		border-right: 1px solid var(--timeline-track-border);
 		z-index: 5;
-		pointer-events: none;
+		pointer-events: auto;
+	}
+
+	.ruler-zoom-controls {
+		position: absolute;
+		left: 4px;
+		top: 50%;
+		transform: translateY(-50%);
+		display: flex;
+		gap: 2px;
+		z-index: 6;
+	}
+
+	.ruler-zoom-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-secondary);
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.ruler-zoom-button:hover {
+		color: var(--text-primary);
+		background: var(--bg-primary);
+		border-color: var(--accent);
+	}
+
+	.ruler-zoom-button:active {
+		transform: translateY(1px);
 	}
 
 	.time-marker {

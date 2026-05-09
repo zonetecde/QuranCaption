@@ -233,6 +233,17 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
+	 * Indique si la timeline contient au moins un sous-titre avec des timestamps mot a mot.
+	 * @returns {boolean} `true` si au moins un `SubtitleClip` porte des mots alignes.
+	 */
+	hasWordByWordTimestamps(): boolean {
+		return this.clips.some(
+			(clip) =>
+				clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) > 0
+		);
+	}
+
+	/**
 	 * Supprime un clip de sous-titre et retire d'abord son merge visuel si necessaire.
 	 * @param {number} id L'identifiant du clip a supprimer.
 	 * @param {boolean} makeNextClipStartAtThisClipStartTime Indique si le clip suivant doit reprendre son start.

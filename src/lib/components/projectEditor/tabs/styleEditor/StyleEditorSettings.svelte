@@ -16,12 +16,16 @@
 
 	const getCategoriesToDisplay = $derived(() => {
 		const target = globalState.getStylesState.getCurrentSelection();
-		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
+		let categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
 
 		// Quand des clips vidéo sont sélectionnés dans l'onglet Style,
 		// on n'affiche que la catégorie Overlay côté global.
 		if (target === 'global' && globalState.getStylesState.selectedVideos.length > 0) {
 			return categories.filter((category) => category.id === 'overlay');
+		}
+
+		if (target === 'arabic' && !globalState.getSubtitleTrack.hasWordByWordTimestamps()) {
+			categories = categories.filter((category) => category.id !== 'word-by-word-highlight');
 		}
 
 		return categories;

@@ -30,9 +30,26 @@
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
+	import {
+		getWordByWordHighlightState as computeWordByWordHighlightState,
+		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
+		getWordByWordWordCss as buildWordByWordWordCss,
+	} from './wordByWordHighlightUtils';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
+	});
+
+	let isExportCapturePreview = $derived(() => {
+		if (typeof window === 'undefined') return false;
+		return (
+			window.location.pathname.includes('/exporter') &&
+			new URLSearchParams(window.location.search).has('id')
+		);
+	});
+
+	let wbwPreviewFadeDuration = $derived(() => {
+		return isExportCapturePreview() ? 0 : fadeDuration();
 	});
 
 	let getTimelineSettings = $derived(() => {
@@ -137,7 +154,8 @@
 	 */
 	function getReferenceClipForTarget(target: string): SubtitleClip | PredefinedSubtitleClip | null {
 		const subtitle = currentSubtitle();
-		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip)) return null;
+		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
+			return null;
 		return getReferenceClipForTargetUtil(subtitle, currentVisualMergeGroup(), target);
 	}
 
@@ -152,11 +170,7 @@
 			background instanceof SubtitleClip || background instanceof PredefinedSubtitleClip
 				? background
 				: null;
-		return getBackgroundClipIdForTargetUtil(
-			currentVisualMergeGroup(),
-			subtitleBackground,
-			target
-		);
+		return getBackgroundClipIdForTargetUtil(currentVisualMergeGroup(), subtitleBackground, target);
 	}
 
 	/**
@@ -243,7 +257,10 @@
 	 * @param {SubtitleClip} subtitle Clip Quran de reference.
 	 * @returns {OverlayTextSegment[]} Segments de traduction.
 	 */
-	function getTranslationOverlaySegments(edition: string, subtitle: SubtitleClip): OverlayTextSegment[] {
+	function getTranslationOverlaySegments(
+		edition: string,
+		subtitle: SubtitleClip
+	): OverlayTextSegment[] {
 		const translation = subtitle.translations[edition];
 		if (!translation) return [];
 
@@ -253,7 +270,9 @@
 			const segments: OverlayTextSegment[] = [];
 
 			if (textParts.prefix) {
-				segments.push(createPlainOverlaySegment(`${edition}-${subtitle.id}-prefix`, textParts.prefix));
+				segments.push(
+					createPlainOverlaySegment(`${edition}-${subtitle.id}-prefix`, textParts.prefix)
+				);
 			}
 
 			segments.push(
@@ -265,7 +284,9 @@
 			);
 
 			if (textParts.suffix) {
-				segments.push(createPlainOverlaySegment(`${edition}-${subtitle.id}-suffix`, textParts.suffix));
+				segments.push(
+					createPlainOverlaySegment(`${edition}-${subtitle.id}-suffix`, textParts.suffix)
+				);
 			}
 
 			return segments;
@@ -295,12 +316,43 @@
 	function getVisibleTranslationSegments(edition: string): OverlayTextSegment[] {
 		const subtitle = currentSubtitle();
 		return getVisibleTranslationSegmentsUtil(
-			subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip ? subtitle : null,
+			subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip
+				? subtitle
+				: null,
 			currentVisualMergeGroup(),
 			edition,
 			getTranslationOverlaySegments
 		);
 	}
+
+	let currentArabicWordByWordState = $derived(() => {
+		const subtitle = currentSubtitle();
+		const clip = subtitle instanceof SubtitleClip ? subtitle : null;
+		const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		return computeWordByWordHighlightState({
+			subtitle: clip,
+			isArabicMerged: isTargetMerged('arabic'),
+			mushafStyle: String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
+			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
+			getStyleValue: (styleId) =>
+				clip ? arabicStyles.getEffectiveValue(styleId as never, clip.id) : false
+		});
+	});
+
+	let currentArabicPreviewWords = $derived(() => {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) return [];
+		if (!currentArabicWordByWordState().enabled) return [];
+		return subtitle.getArabicRenderParts('preview').text.split(/\s+/).filter(Boolean);
+	});
+
+	let currentArabicPreviewParts = $derived(() => {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) {
+			return { text: '', suffix: '', suffixFontFamily: null as string | null };
+		}
+		return subtitle.getArabicRenderParts('preview');
+	});
 
 	// Calcul de l'opacité des sous-titres (prend en compte les overrides par clip)
 	let subtitleOpacity = $derived((target: string) => {
@@ -837,6 +889,7 @@
 				{#if subtitle && subtitle.id}
 					{@const arabicReferenceClip = getReferenceClipForTarget('arabic')}
 					{@const arabicSegments = getVisibleArabicSegments()}
+					{@const wbwState = currentArabicWordByWordState()}
 					<p
 						ondblclick={() => {
 							globalState.getVideoStyle.highlightCategory('arabic', 'general');
@@ -849,18 +902,90 @@
 						class={'arabic absolute subtitle select-none z-10 ' +
 							getTailwind('arabic') +
 							helperStyles('arabic')}
-						style="opacity: {subtitleOpacity('arabic')}; {getCss('arabic', arabicReferenceClip?.id, [
-							'background',
-							'border'
-						])}; {getBackgroundHorizontalPaddingCss('arabic', arabicReferenceClip?.id)} white-space: pre-line;"
+						style="opacity: {subtitleOpacity('arabic')}; {getCss(
+							'arabic',
+							arabicReferenceClip?.id,
+							['background', 'border']
+						)}; {getBackgroundHorizontalPaddingCss(
+							'arabic',
+							arabicReferenceClip?.id
+						)} white-space: pre-line;"
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
-							{#if showDecorativeBrackets() && arabicSegments.some((segment) => segment.text.trim().length > 0)}
+							<!-- Si le rendu wbw est actif, on se base sur les mots pré-découpés
+							plutôt que sur les segments inline classiques pour pouvoir surligner
+							chaque mot individuellement. -->
+							{#if showDecorativeBrackets() && ((wbwState.enabled && currentArabicPreviewWords().length > 0) || arabicSegments.some((segment) => segment.text.trim().length > 0))}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
-								{@render overlaySegmentsContent(arabicSegments)}
+								{#if wbwState.enabled && subtitle instanceof SubtitleClip}
+									<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+										{#each currentArabicPreviewWords() as word, i (`${subtitle.id}-wbw-preview-${i}-${word}`)}
+											{@const highlightProgress = computeWordByWordHighlightProgress(
+												i,
+												wbwState,
+												wbwPreviewFadeDuration()
+											)}
+											<!-- Chaque mot porte son propre état visuel wbw.
+											Le helper applique directement la couleur/fond/underline
+											et le fade éventuel côté preview. -->
+											<span
+												style={buildWordByWordWordCss(
+													wbwState,
+													highlightProgress,
+													wbwPreviewFadeDuration()
+												)}
+											>
+												{word}{i < currentArabicPreviewWords().length - 1 ? ' ' : ''}
+											</span>
+										{/each}
+										{#if currentArabicPreviewParts().suffix}
+											<!-- Le suffixe (ex: numéro de verset) reste hors du système
+											de highlight mot à mot, mais dans le même flux RTL isolé. -->
+											<span
+												style={currentArabicPreviewParts().suffixFontFamily
+													? `font-family: ${currentArabicPreviewParts().suffixFontFamily};`
+													: ''}
+											>
+												{currentArabicPreviewParts().suffix}
+											</span>
+										{/if}
+									</span>
+								{:else}
+									{@render overlaySegmentsContent(arabicSegments)}
+								{/if}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
+							{:else if wbwState.enabled && subtitle instanceof SubtitleClip}
+								<!-- Variante wbw sans crochets décoratifs. -->
+								<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+									{#each currentArabicPreviewWords() as word, i (`${subtitle.id}-wbw-preview-${i}-${word}`)}
+										{@const highlightProgress = computeWordByWordHighlightProgress(
+											i,
+											wbwState,
+											wbwPreviewFadeDuration()
+										)}
+										<span
+											style={buildWordByWordWordCss(
+												wbwState,
+												highlightProgress,
+												wbwPreviewFadeDuration()
+											)}
+										>
+											{word}{i < currentArabicPreviewWords().length - 1 ? ' ' : ''}
+										</span>
+									{/each}
+									{#if currentArabicPreviewParts().suffix}
+										<span
+											style={currentArabicPreviewParts().suffixFontFamily
+												? `font-family: ${currentArabicPreviewParts().suffixFontFamily};`
+												: ''}
+										>
+											{currentArabicPreviewParts().suffix}
+										</span>
+									{/if}
+								</span>
 							{:else}
+								<!-- Fallback standard: rendu arabe historique sans wbw. -->
 								{@render overlaySegmentsContent(arabicSegments)}
 							{/if}
 						{/if}
@@ -883,10 +1008,11 @@
 								horizontalStyleId: 'horizontal-position'
 							}}
 							class={`translation absolute subtitle select-none z-10 ${edition} ${getTailwind(edition)} ${helperStyles(edition)}`}
-							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(edition, translationReferenceClip?.id, [
-								'background',
-								'border'
-							])}; ${getBackgroundHorizontalPaddingCss(edition, translationReferenceClip?.id)} white-space: pre-line;`}
+							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(
+								edition,
+								translationReferenceClip?.id,
+								['background', 'border']
+							)}; ${getBackgroundHorizontalPaddingCss(edition, translationReferenceClip?.id)} white-space: pre-line;`}
 						>
 							{@render overlaySegmentsContent(getVisibleTranslationSegments(edition))}
 						</p>
@@ -915,6 +1041,11 @@
 
 <style>
 	.translation-inline-flow {
+		display: inline;
+		white-space: inherit;
+	}
+
+	.arabic-wbw-flow {
 		display: inline;
 		white-space: inherit;
 	}

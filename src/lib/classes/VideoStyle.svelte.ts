@@ -37,6 +37,7 @@ export type StyleCategoryName =
 	| 'outline'
 	| 'border'
 	| 'effects'
+	| 'word-by-word-highlight'
 	| 'general'
 	| 'general'
 	| 'overlay'
@@ -108,6 +109,15 @@ export type BorderStyleName = 'border-enable' | 'border-width' | 'border-color' 
 export type EffectsStyleName = 'opacity' | 'blur' | 'brightness' | 'contrast';
 
 export type AnimationStyleName = 'scale' | 'rotation';
+
+export type WordByWordHighlightStyleName =
+	| 'enable-wbw-highlight'
+	| 'wbw-color'
+	| 'wbw-persist-color'
+	| 'enable-wbw-background'
+	| 'enable-wbw-underline'
+	| 'wbw-bg-color'
+	| 'wbw-underline-thickness';
 
 export type OverlayStyleName =
 	| 'overlay-enable'
@@ -182,6 +192,7 @@ export type StyleName =
 	| BorderStyleName
 	| EffectsStyleName
 	| AnimationStyleName
+	| WordByWordHighlightStyleName
 	| OverlayStyleName
 	| SurahNameStyleName
 	| ReciterNameStyleName
@@ -192,6 +203,15 @@ export type StyleName =
 
 type RawStyle = Partial<Style> & { id: string };
 type RawCategory = Partial<Category> & { id: string; styles?: RawStyle[] };
+
+/**
+ * Retire les categories reservees au rendu arabe quand on derive le schema d'une traduction.
+ * @param {RawCategory[]} categories Categories source.
+ * @returns {RawCategory[]} Categories compatibles avec une traduction.
+ */
+function getNonArabicSubtitleCategories(categories: RawCategory[]): RawCategory[] {
+	return categories.filter((category) => category.id !== 'word-by-word-highlight');
+}
 
 const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
 	'overlay-enable',
@@ -835,9 +855,14 @@ export class VideoStyle extends SerializableBase {
 	async addStylesForEdition(translationEdition: string) {
 		if (this.doesTargetStyleExist(translationEdition)) return;
 
-		const defaultStyles = await (await fetch('./styles/styles.json')).json();
+		const defaultStyles = getNonArabicSubtitleCategories(
+			await (await fetch('./styles/styles.json')).json()
+		);
 
-		const stylesData = new StylesData(translationEdition, defaultStyles);
+		const stylesData = new StylesData(
+			translationEdition,
+			defaultStyles.map((category) => new Category(category))
+		);
 
 		// Styles par défaut pour les traductions
 		stylesData.setStyle('font-family', 'Georgia'); // Définit la police par défaut
@@ -861,8 +886,12 @@ export class VideoStyle extends SerializableBase {
 		const subtitleDefaults = await (await fetch('./styles/styles.json')).json();
 		for (const stylesData of this.styles) {
 			if (stylesData.target === 'global') continue;
+			const targetDefaults =
+				stylesData.target === 'arabic'
+					? subtitleDefaults
+					: getNonArabicSubtitleCategories(subtitleDefaults);
 			hasChanges =
-				this.mergeMissingStylesForTarget(stylesData.target, subtitleDefaults) || hasChanges;
+				this.mergeMissingStylesForTarget(stylesData.target, targetDefaults) || hasChanges;
 		}
 
 		// Migration minimale: ajouter tous les styles manquants de customText.json

@@ -24,6 +24,7 @@ export type ExportSubtitleCaptureClip = {
 	surah?: number;
 	visualMergeGroupId?: string | null;
 	visualMergeMode?: 'arabic' | 'translation' | 'both' | null;
+	wbwHighlightTimings?: number[];
 };
 
 export type ExportTimedOverlayCaptureClip = {
@@ -296,11 +297,19 @@ export function calculateCaptureTimingsForRange({
 		if (clip.kind !== 'silence') {
 			const fadeInEnd = Math.min(startTime + fadeDuration, endTime);
 			const fadeOutStart = endTime - fadeDuration;
+			const wbwHighlightTimings = (clip.wbwHighlightTimings ?? []).filter(
+				(timing) => timing >= startTime && timing <= endTime
+			);
+			const hasWbwHighlightTimings = wbwHighlightTimings.length > 0;
+
+			for (const timing of wbwHighlightTimings) {
+				add(timing);
+			}
 
 			// Vérifier si on peut optimiser les captures pour ce sous-titre
 			// L'idée : si les custom clips visibles sont identiques entre fadeInEnd et fadeOutStart,
 			// on peut prendre une seule capture et la dupliquer, économisant du temps
-			if (fadeOutStart > startTime && fadeInEnd !== fadeOutStart) {
+			if (!hasWbwHighlightTimings && fadeOutStart > startTime && fadeInEnd !== fadeOutStart) {
 				// Compare l'état des overlays temporels aux deux bornes utiles du sous-titre.
 				const timedOverlayStateAtFadeInEnd = getTimedOverlayStateAt(fadeInEnd, timedOverlayClips);
 				const timedOverlayStateAtFadeOutStart = getTimedOverlayStateAt(

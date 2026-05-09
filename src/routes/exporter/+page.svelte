@@ -38,7 +38,14 @@
 	import toast from 'svelte-5-french-toast';
 	import { domToBlob } from 'modern-screenshot';
 	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
-	import { ClipWithTranslation, CustomClip, SilenceClip } from '$lib/classes/Clip.svelte';
+	import {
+		ClipWithTranslation,
+		CustomClip,
+		PredefinedSubtitleClip,
+		SilenceClip,
+		SubtitleClip
+	} from '$lib/classes/Clip.svelte';
+	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -933,25 +940,36 @@
 
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
 		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
-			(clip) => ({
-				startTime: clip.startTime,
-				endTime: clip.endTime,
-				kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
-				surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined,
-				visualMergeGroupId:
-					'visualMergeGroupId' in clip &&
-					(typeof clip.visualMergeGroupId === 'string' || clip.visualMergeGroupId === null)
-						? clip.visualMergeGroupId
-						: undefined,
-				visualMergeMode:
-					'visualMergeMode' in clip &&
-					(clip.visualMergeMode === 'arabic' ||
-						clip.visualMergeMode === 'translation' ||
-						clip.visualMergeMode === 'both' ||
-						clip.visualMergeMode === null)
-						? clip.visualMergeMode
-						: undefined
-			})
+			(clip) => {
+				const wbwHighlightTimings =
+					clip instanceof SubtitleClip ? getExportWordByWordHighlightTimings(clip) : undefined;
+
+				return {
+					startTime: clip.startTime,
+					endTime: clip.endTime,
+					kind:
+						clip instanceof SilenceClip
+							? 'silence'
+							: clip instanceof PredefinedSubtitleClip
+								? 'predefined'
+								: 'subtitle',
+					surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined,
+					visualMergeGroupId:
+						'visualMergeGroupId' in clip &&
+						(typeof clip.visualMergeGroupId === 'string' || clip.visualMergeGroupId === null)
+							? clip.visualMergeGroupId
+							: undefined,
+					visualMergeMode:
+						'visualMergeMode' in clip &&
+						(clip.visualMergeMode === 'arabic' ||
+							clip.visualMergeMode === 'translation' ||
+							clip.visualMergeMode === 'both' ||
+							clip.visualMergeMode === null)
+							? clip.visualMergeMode
+							: undefined,
+					wbwHighlightTimings
+				};
+			}
 		);
 
 		const timedOverlayClips: ExportTimedOverlayCaptureClip[] = (
@@ -995,6 +1013,31 @@
 			timedOverlayClips,
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
 		});
+	}
+
+	/**
+	 * Retourne les timings absolus de changement de mot à capturer pour l'export.
+	 * @param {SubtitleClip} clip Clip Quran à inspecter.
+	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 */
+	function getExportWordByWordHighlightTimings(clip: SubtitleClip): number[] | undefined {
+		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return undefined;
+		if (clip.visualMergeMode === 'arabic' || clip.visualMergeMode === 'both') return undefined;
+
+		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+
+		const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		const isEnabled = Boolean(arabicStyles.getEffectiveValue('enable-wbw-highlight', clip.id));
+		if (!isEnabled) return undefined;
+
+		const baseTimeS = clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000;
+		const timings: number[] = (clip.alignmentMetadata?.words ?? [])
+			.map((word: SegmentationWordTimestamp) => Math.round((baseTimeS + word.start) * 1000))
+			.filter((timing: number) => timing >= clip.startTime && timing <= clip.endTime);
+
+		return timings.length > 0
+			? Array.from(new Set<number>(timings)).sort((a, b) => a - b)
+			: undefined;
 	}
 
 	async function generateNormalVideo(

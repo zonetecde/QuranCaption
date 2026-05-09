@@ -226,6 +226,87 @@
 		]
 	},
 	{
+		"id": "word-by-word-highlight",
+		"name": "Word by word highlight",
+		"description": "Highlight Arabic words over time when word-by-word timestamps are available",
+		"icon": "lyrics",
+		"styles": [
+			{
+				"id": "enable-wbw-highlight",
+				"name": "Enable wbw highlight",
+				"description": "Enable or disable timed word-by-word highlighting",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "toggle_on"
+			},
+			{
+				"id": "wbw-color",
+				"name": "Wbw color",
+				"description": "Color applied to highlighted words",
+				"value": "#facc15",
+				"valueType": "color",
+				"css": "",
+				"tailwind": false,
+				"icon": "palette"
+			},
+			{
+				"id": "enable-wbw-underline",
+				"name": "Enable underline",
+				"description": "Underline highlighted words",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "format_underlined"
+			},
+			{
+				"id": "wbw-persist-color",
+				"name": "Persist highlighted words",
+				"description": "Keep previously highlighted words colored after they have been read",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "format_color_fill"
+			},
+			{
+				"id": "enable-wbw-background",
+				"name": "Enable wbw background",
+				"description": "Enable a background color behind highlighted words",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "highlight"
+			},
+			{
+				"id": "wbw-bg-color",
+				"name": "Background color",
+				"description": "Background color applied to highlighted words",
+				"value": "#2d2a14",
+				"valueType": "color",
+				"css": "",
+				"tailwind": false,
+				"icon": "highlight"
+			},
+			{
+				"id": "wbw-underline-thickness",
+				"name": "Underline thickness",
+				"description": "Thickness of the wbw underline in pixels",
+				"value": 5,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 12,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "line_weight"
+			}
+		]
+	},
+	{
 		"id": "positioning",
 		"name": "Position & Layout",
 		"description": "Control the position and spacing of subtitles on screen",

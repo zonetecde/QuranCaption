@@ -464,12 +464,13 @@
 		refreshSecondarySegmentProgressVisibility();
 
 		const generatedVideoFiles: string[] = [];
+		const segmentBlankImageIndexes = new Map<number, number[]>();
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
 			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 
 			await createSegmentImageFolder(segmentImageFolder);
-			await generateImagesForSegment(
+			const blankTimings = await generateImagesForSegment(
 				segmentIndex,
 				segment.start,
 				segment.end,
@@ -478,6 +479,7 @@
 				0,
 				100
 			);
+			segmentBlankImageIndexes.set(segmentIndex, blankTimings);
 		}
 
 		hasCompletedCapturingFrames = true;
@@ -502,7 +504,8 @@
 				segmentImageFolder,
 				segment.start,
 				segmentDuration,
-				segment.blur
+				segment.blur,
+				segmentBlankImageIndexes.get(segmentIndex) ?? []
 			);
 
 			generatedVideoFiles.push(segmentVideoPath);
@@ -531,6 +534,20 @@
 		console.log(`Created segment folder: ${segmentPath}`);
 	}
 
+	function isBlankCaptureTiming(
+		timing: number,
+		blankImgs: Record<string, number[]>,
+		imgWithNothingShown: Record<string, number>
+	): boolean {
+		if (hasTiming(blankImgs, timing).hasIt) return true;
+		if (Object.values(imgWithNothingShown).some((blankTiming) => blankTiming === timing)) {
+			return true;
+		}
+
+		const currentSubtitleClip = globalState.getSubtitleTrack.getCurrentClip(timing);
+		return currentSubtitleClip === null || currentSubtitleClip instanceof SilenceClip;
+	}
+
 	async function generateImagesForSegment(
 		segmentIndex: number,
 		segmentStart: number,
@@ -539,7 +556,7 @@
 		totalSegments: number,
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
-	) {
+	): Promise<number[]> {
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
@@ -553,10 +570,21 @@
 
 		let i = 0;
 		let base = -fadeDuration; // Pour compenser le fade-in du début
+		const blankImageIndexes = new Set<number>();
 
 		for (const timing of segmentTimings.uniqueSorted) {
 			// Calculer l'index de l'image dans ce segment (recommence a 0)
 			const imageIndex = Math.max(Math.round(timing - segmentStart + base), 0);
+			const blankTimingInfo = hasTiming(segmentTimings.blankImgs, timing);
+			const isBlankImage = isBlankCaptureTiming(
+				timing,
+				segmentTimings.blankImgs,
+				segmentTimings.imgWithNothingShown
+			);
+
+			if (isBlankImage) {
+				blankImageIndexes.add(imageIndex);
+			}
 
 			// Vérifie si ce timing doit être dupliqué depuis un autre
 			const sourceTimingForDuplication = Array.from(
@@ -575,14 +603,11 @@
 				// Prend que un seul screenshot et le duplique
 				await duplicateScreenshot(`${sourceIndex}`, imageIndex, segmentImageFolder);
 			} else if (
-				hasTiming(segmentTimings.blankImgs, timing).hasIt &&
-				hasBlankImg(
-					segmentTimings.imgWithNothingShown,
-					hasTiming(segmentTimings.blankImgs, timing).key!
-				)
+				blankTimingInfo.hasIt &&
+				hasBlankImg(segmentTimings.imgWithNothingShown, blankTimingInfo.key!)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
-				const surahInfo = hasTiming(segmentTimings.blankImgs, timing);
+				const surahInfo = blankTimingInfo;
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
 				await duplicateScreenshot(
@@ -646,6 +671,8 @@
 				totalTime: exportData!.videoEndTime - exportData!.videoStartTime
 			} as ExportProgress);
 		}
+
+		return Array.from(blankImageIndexes).sort((a, b) => a - b);
 	}
 
 	async function generateVideoForSegment(
@@ -653,7 +680,8 @@
 		segmentImageFolder: string,
 		segmentStart: number,
 		segmentDuration: number,
-		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
+		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number,
+		blankTimings: number[] = []
 	): Promise<string> {
 		currentVideoExportState = ExportState.AddingSubtitles;
 
@@ -713,6 +741,7 @@
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
 				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
+				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
@@ -805,9 +834,20 @@
 
 		let i = 0;
 		let base = -fadeDuration;
+		const blankImageIndexes = new Set<number>();
 
 		for (const timing of timings.uniqueSorted) {
 			const imageIndex = Math.max(Math.round(timing - exportStart + base), 0);
+			const blankTimingInfo = hasTiming(timings.blankImgs, timing);
+			const isBlankImage = isBlankCaptureTiming(
+				timing,
+				timings.blankImgs,
+				timings.imgWithNothingShown
+			);
+
+			if (isBlankImage) {
+				blankImageIndexes.add(imageIndex);
+			}
 
 			// Vérifier si ce timing peut être dupliqué depuis un autre
 			const sourceTimingForDuplication = Array.from(timings.duplicableTimings.entries()).find(
@@ -825,11 +865,11 @@
 					`Optimisation - Duplicating screenshot from timing ${sourceTimingForDuplication} (image ${sourceIndex}) to timing ${timing} (image ${imageIndex})`
 				);
 			} else if (
-				hasTiming(timings.blankImgs, timing).hasIt &&
-				hasBlankImg(timings.imgWithNothingShown, hasTiming(timings.blankImgs, timing).key!)
+				blankTimingInfo.hasIt &&
+				hasBlankImg(timings.imgWithNothingShown, blankTimingInfo.key!)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
-				const surahInfo = hasTiming(timings.blankImgs, timing);
+				const surahInfo = blankTimingInfo;
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
 				await duplicateScreenshot(getBlankImageFileName(surahInfo.key!), imageIndex);
@@ -880,7 +920,12 @@
 		await deleteBlankImages();
 
 		// Générer la vidéo normale
-		await generateNormalVideo(exportStart, totalDuration, blur);
+		await generateNormalVideo(
+			exportStart,
+			totalDuration,
+			blur,
+			Array.from(blankImageIndexes).sort((a, b) => a - b)
+		);
 
 		// Nettoyage
 		await finalCleanup();
@@ -952,7 +997,12 @@
 		});
 	}
 
-	async function generateNormalVideo(exportStart: number, duration: number, blur: number) {
+	async function generateNormalVideo(
+		exportStart: number,
+		duration: number,
+		blur: number,
+		blankTimings: number[] = []
+	) {
 		currentVideoExportState = ExportState.AddingSubtitles;
 
 		emitProgress({
@@ -1004,6 +1054,7 @@
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
 				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
+				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});

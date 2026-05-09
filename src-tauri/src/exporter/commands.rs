@@ -1329,6 +1329,62 @@ fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> 
         .min(fade_duration_ms.max(0))
 }
 
+fn choose_blank_batch_end_idx(
+    timestamps_ms: &[i32],
+    batch_start_idx: usize,
+    batch_limit: usize,
+    blank_timestamps: &HashSet<i32>,
+) -> usize {
+    let n = timestamps_ms.len();
+    if n == 0 || batch_start_idx + 1 >= n {
+        return n;
+    }
+
+    let default_end = (batch_start_idx + batch_limit.max(2)).min(n);
+    if default_end >= n || blank_timestamps.is_empty() {
+        return default_end;
+    }
+
+    let min_last_idx = batch_start_idx + 1;
+    let preferred_last_idx = default_end.saturating_sub(1).max(min_last_idx);
+    let is_blank_idx = |idx: usize| blank_timestamps.contains(&timestamps_ms[idx]);
+    let has_blank_to_text_before = |last_idx: usize| {
+        ((batch_start_idx + 1)..=last_idx).any(|idx| is_blank_idx(idx - 1) && !is_blank_idx(idx))
+    };
+    let is_text_to_blank = |idx: usize| idx > 0 && is_blank_idx(idx) && !is_blank_idx(idx - 1);
+    let is_blank_to_text_next = |idx: usize| idx + 1 >= n || !is_blank_idx(idx + 1);
+    let is_valid_blank_boundary =
+        |idx: usize| is_text_to_blank(idx) && has_blank_to_text_before(idx);
+    let is_clean_blank_boundary =
+        |idx: usize| is_valid_blank_boundary(idx) && is_blank_to_text_next(idx);
+
+    for last_idx in (min_last_idx..=preferred_last_idx).rev() {
+        if is_clean_blank_boundary(last_idx) {
+            return last_idx + 1;
+        }
+    }
+
+    for last_idx in (preferred_last_idx + 1)..n {
+        if is_clean_blank_boundary(last_idx) {
+            return last_idx + 1;
+        }
+    }
+
+    for last_idx in (min_last_idx..=preferred_last_idx).rev() {
+        if is_valid_blank_boundary(last_idx) {
+            return last_idx + 1;
+        }
+    }
+
+    for last_idx in (preferred_last_idx + 1)..n {
+        if is_valid_blank_boundary(last_idx) {
+            return last_idx + 1;
+        }
+    }
+
+    n
+}
+
 fn compute_render_output_duration_ms(
     local_timestamps_ms: &[i32],
     fade_duration_ms: i32,
@@ -1349,10 +1405,29 @@ fn compute_render_output_duration_ms(
     total.max(1)
 }
 
+fn cumulative_frames_for_time_ms(time_ms: i64, fps: i32) -> i64 {
+    let fps = fps.max(1) as f64;
+    ((time_ms.max(0) as f64 / 1000.0) * fps).round() as i64
+}
+
+fn frames_to_seconds(frames: i64, fps: i32) -> f64 {
+    frames.max(1) as f64 / fps.max(1) as f64
+}
+
+fn capture_timeline_ms(timestamp_ms: i32, image_index: usize, fade_duration_ms: i32) -> i64 {
+    let completed_fades = image_index.saturating_sub(1) as i64;
+    timestamp_ms as i64 - completed_fades * fade_duration_ms.max(0) as i64
+}
+
+fn boundary_blank_hold_ms(fps: i32) -> i32 {
+    (((1000.0 / fps.max(1) as f64).ceil() as i32) * 2).max(1)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn concat_internal_batch_videos(
     export_id: &str,
     batch_paths: &[String],
+    batch_durations_s: &[f64],
     output_path: &str,
     total_duration_s: f64,
     start_time_ms: i32,
@@ -1371,6 +1446,12 @@ fn concat_internal_batch_videos(
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "Aucune vidéo de batch à concaténer",
+        )));
+    }
+    if batch_paths.len() != batch_durations_s.len() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Le nombre de vidéos de batch ne correspond pas au nombre de durées",
         )));
     }
 
@@ -1404,29 +1485,17 @@ fn concat_internal_batch_videos(
         }
     }
 
-    let base_dir = output_path_buf
-        .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(std::env::temp_dir);
-    let list_file_path = base_dir.join(format!(
-        "internal_batch_concat_{}_{}.txt",
-        export_id,
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos()
-    ));
-
-    let mut list_content = String::new();
-    for batch_path in batch_paths {
-        let escaped = path_utils::escape_ffconcat_path(batch_path);
-        list_content.push_str(&format!("file '{}'\n", escaped));
-    }
-    fs::write(&list_file_path, list_content)?;
-
     let fade_s = (export_fade_duration_ms as f64 / 1000.0)
         .max(0.0)
         .min(total_duration_s.max(0.0));
+    let expected_video_s: f64 = batch_durations_s.iter().sum();
+    println!(
+        "[batching] concat interne: {} batch(s), duree calculee={:.6}s, duree finale={:.6}s",
+        batch_paths.len(),
+        expected_video_s,
+        total_duration_s
+    );
+
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let mut cmd = vec![
         ffmpeg_exe,
@@ -1439,96 +1508,66 @@ fn concat_internal_batch_videos(
         "pipe:2".to_string(),
         "-fflags".to_string(),
         "+genpts".to_string(),
-        "-f".to_string(),
-        "concat".to_string(),
-        "-safe".to_string(),
-        "0".to_string(),
-        "-i".to_string(),
-        list_file_path.to_string_lossy().to_string(),
     ];
+
+    for batch_path in batch_paths {
+        cmd.extend_from_slice(&["-i".to_string(), batch_path.clone()]);
+    }
 
     for audio_path in audio_paths {
         cmd.extend_from_slice(&["-i".to_string(), audio_path.clone()]);
     }
 
-    cmd.extend_from_slice(&[
-        "-avoid_negative_ts".to_string(),
-        "make_zero".to_string(),
-        "-map".to_string(),
-        "0:v".to_string(),
-    ]);
+    let mut filter_lines: Vec<String> = Vec::new();
+    let mut video_inputs = String::new();
+    for (idx, duration_s) in batch_durations_s.iter().enumerate() {
+        filter_lines.push(format!(
+            "[{}:v]trim=start=0:duration={:.6},setpts=PTS-STARTPTS[v{}]",
+            idx,
+            duration_s.max(0.001),
+            idx
+        ));
+        video_inputs.push_str(&format!("[v{}]", idx));
+    }
+    if batch_paths.len() == 1 {
+        filter_lines.push("[v0]setpts=PTS-STARTPTS[vcat]".to_string());
+    } else {
+        filter_lines.push(format!(
+            "{}concat=n={}:v=1:a=0[vcat]",
+            video_inputs,
+            batch_paths.len()
+        ));
+    }
 
+    let mut mapped_video_label = "vcat".to_string();
     if apply_video_fade && fade_s > 0.0 {
-        let mut video_filters: Vec<String> = Vec::new();
         if video_fade_in_enabled {
-            if export_without_background {
-                video_filters.push(format!("fade=t=in:st=0:d={:.6}:alpha=1", fade_s));
+            let fade_expr = if export_without_background {
+                format!("fade=t=in:st=0:d={:.6}:alpha=1", fade_s)
             } else {
-                video_filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
-            }
+                format!("fade=t=in:st=0:d={:.6}", fade_s)
+            };
+            filter_lines.push(format!("[{}]{}[vfadein]", mapped_video_label, fade_expr));
+            mapped_video_label = "vfadein".to_string();
         }
         if video_fade_out_enabled {
             let fade_out_start = (total_duration_s - fade_s).max(0.0);
-            if export_without_background {
-                video_filters.push(format!(
+            let fade_expr = if export_without_background {
+                format!(
                     "fade=t=out:st={:.6}:d={:.6}:alpha=1",
                     fade_out_start, fade_s
-                ));
+                )
             } else {
-                video_filters.push(format!(
-                    "fade=t=out:st={:.6}:d={:.6}",
-                    fade_out_start, fade_s
-                ));
-            }
+                format!("fade=t=out:st={:.6}:d={:.6}", fade_out_start, fade_s)
+            };
+            filter_lines.push(format!("[{}]{}[vfadeout]", mapped_video_label, fade_expr));
+            mapped_video_label = "vfadeout".to_string();
         }
-        if !video_filters.is_empty() {
-            cmd.extend_from_slice(&["-vf".to_string(), video_filters.join(",")]);
-        }
-        if export_without_background && use_mov_alpha {
-            cmd.extend_from_slice(&[
-                "-c:v".to_string(),
-                "qtrle".to_string(),
-                "-pix_fmt".to_string(),
-                "argb".to_string(),
-            ]);
-        } else if export_without_background {
-            cmd.extend_from_slice(&[
-                "-c:v".to_string(),
-                "libvpx-vp9".to_string(),
-                "-crf".to_string(),
-                "28".to_string(),
-                "-b:v".to_string(),
-                "0".to_string(),
-                "-row-mt".to_string(),
-                "1".to_string(),
-                "-cpu-used".to_string(),
-                "2".to_string(),
-                "-pix_fmt".to_string(),
-                "yuva420p".to_string(),
-            ]);
-        } else {
-            cmd.extend_from_slice(&[
-                "-c:v".to_string(),
-                "libx264".to_string(),
-                "-preset".to_string(),
-                "veryfast".to_string(),
-                "-crf".to_string(),
-                "18".to_string(),
-                "-pix_fmt".to_string(),
-                "yuv420p".to_string(),
-            ]);
-        }
-    } else {
-        cmd.extend_from_slice(&["-c:v".to_string(), "copy".to_string()]);
     }
 
-    if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
-        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
-    }
-
+    let mut mapped_audio_label: Option<String> = None;
     if have_audio {
-        let mut filter_lines: Vec<String> = Vec::new();
-        let audio_start_idx = 1;
+        let audio_start_idx = batch_paths.len();
         if audio_paths.len() == 1 {
             filter_lines.push(format!("[{}:a]aresample=48000[aa0]", audio_start_idx));
             filter_lines.push(format!(
@@ -1577,11 +1616,56 @@ fn concat_internal_batch_videos(
             }
         }
 
-        cmd.extend_from_slice(&["-filter_complex".to_string(), filter_lines.join(";")]);
+        mapped_audio_label = Some(current_audio_label);
+    }
+
+    cmd.extend_from_slice(&[
+        "-filter_complex".to_string(),
+        filter_lines.join(";"),
+        "-map".to_string(),
+        format!("[{}]", mapped_video_label),
+    ]);
+
+    if export_without_background && use_mov_alpha {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "qtrle".to_string(),
+            "-pix_fmt".to_string(),
+            "argb".to_string(),
+        ]);
+    } else if export_without_background {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libvpx-vp9".to_string(),
+            "-crf".to_string(),
+            "28".to_string(),
+            "-b:v".to_string(),
+            "0".to_string(),
+            "-row-mt".to_string(),
+            "1".to_string(),
+            "-cpu-used".to_string(),
+            "2".to_string(),
+            "-pix_fmt".to_string(),
+            "yuva420p".to_string(),
+        ]);
+    } else {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libx264".to_string(),
+            "-preset".to_string(),
+            "veryfast".to_string(),
+            "-crf".to_string(),
+            "18".to_string(),
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+        ]);
+    }
+
+    if let Some(audio_label) = mapped_audio_label {
         if export_without_background && use_mov_alpha {
             cmd.extend_from_slice(&[
                 "-map".to_string(),
-                format!("[{}]", current_audio_label),
+                format!("[{}]", audio_label),
                 "-c:a".to_string(),
                 "aac".to_string(),
                 "-b:a".to_string(),
@@ -1590,7 +1674,7 @@ fn concat_internal_batch_videos(
         } else if export_without_background {
             cmd.extend_from_slice(&[
                 "-map".to_string(),
-                format!("[{}]", current_audio_label),
+                format!("[{}]", audio_label),
                 "-c:a".to_string(),
                 "libopus".to_string(),
                 "-b:a".to_string(),
@@ -1599,7 +1683,7 @@ fn concat_internal_batch_videos(
         } else {
             cmd.extend_from_slice(&[
                 "-map".to_string(),
-                format!("[{}]", current_audio_label),
+                format!("[{}]", audio_label),
                 "-c:a".to_string(),
                 "aac".to_string(),
                 "-b:a".to_string(),
@@ -1608,6 +1692,10 @@ fn concat_internal_batch_videos(
         }
     } else {
         cmd.push("-an".to_string());
+    }
+
+    if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
     }
 
     cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", total_duration_s)]);
@@ -1623,7 +1711,7 @@ fn concat_internal_batch_videos(
 
     cmd.push(output_path_buf.to_string_lossy().to_string());
 
-    let run_result = run_ffmpeg_command(
+    run_ffmpeg_command(
         export_id,
         &cmd,
         Some(FfmpegProgressContext {
@@ -1633,9 +1721,7 @@ fn concat_internal_batch_videos(
         }),
         Some("Merging Files"),
         &app_handle,
-    );
-    fs::remove_file(&list_file_path).ok();
-    run_result
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1645,6 +1731,7 @@ fn build_and_run_ffmpeg_filter_complex(
     out_path: &str,
     image_paths: &[String],
     timestamps_ms: &[i32],
+    blank_timestamps: &HashSet<i32>,
     target_size: (i32, i32),
     fps: i32,
     fade_duration_ms: i32,
@@ -1722,7 +1809,7 @@ fn build_and_run_ffmpeg_filter_complex(
             0,
             prefer_hw,
             imgs_cwd,
-            duration_ms,
+            duration_ms.map(|duration_ms| duration_ms as f64 / 1000.0),
             video_fade_in_enabled,
             video_fade_out_enabled,
             audio_fade_in_enabled,
@@ -1741,6 +1828,10 @@ fn build_and_run_ffmpeg_filter_complex(
         "[batching] {} image(s), limite {}, rendu interne en batchs",
         n, batch_limit
     );
+    println!(
+        "[batching] {} timing(s) blank disponibles pour les frontieres",
+        blank_timestamps.len()
+    );
 
     let base_dir = if let Some(cwd) = imgs_cwd {
         PathBuf::from(cwd)
@@ -1753,22 +1844,38 @@ fn build_and_run_ffmpeg_filter_complex(
     fs::create_dir_all(&base_dir).ok();
 
     let mut batch_paths: Vec<String> = Vec::new();
+    let mut batch_durations_s: Vec<f64> = Vec::new();
     let mut batch_start_idx = 0usize;
     let mut batch_index = 0usize;
-    let mut batch_base_ms = 0i32;
+    let mut intended_batch_base_ms = 0i64;
+    let mut encoded_batch_base_frames = 0i64;
     let mut batch_start_completed_fade_ms = 0i32;
 
     while batch_start_idx < n {
         ensure_export_not_cancelled(export_id)?;
 
-        let batch_end_idx = (batch_start_idx + batch_limit).min(n);
+        let batch_end_idx = choose_blank_batch_end_idx(
+            timestamps_ms,
+            batch_start_idx,
+            batch_limit,
+            blank_timestamps,
+        );
         let is_last_batch = batch_end_idx >= n;
         let batch_start_adjusted_ts = timestamps_ms[batch_start_idx];
         let batch_slice = &timestamps_ms[batch_start_idx..batch_end_idx];
+        let batch_start_is_blank = blank_timestamps.contains(&timestamps_ms[batch_start_idx]);
+        let batch_end_is_blank = blank_timestamps.contains(&timestamps_ms[batch_end_idx - 1]);
+        let boundary_is_blank =
+            !is_last_batch && blank_timestamps.contains(&timestamps_ms[batch_end_idx - 1]);
         let boundary_fade_ms = if is_last_batch {
             0
         } else {
             transition_fade_duration_ms(batch_slice, fade_duration_ms)
+        };
+        let blank_hold_ms = if boundary_is_blank {
+            boundary_blank_hold_ms(fps)
+        } else {
+            0
         };
         let batch_timestamps: Vec<i32> = batch_slice
             .iter()
@@ -1784,13 +1891,36 @@ fn build_and_run_ffmpeg_filter_complex(
             .collect();
         let last_tail_ms = if is_last_batch {
             fade_duration_ms.max(1000)
+        } else if boundary_is_blank {
+            blank_hold_ms
         } else {
             1
         };
-        let mut batch_duration_ms =
+        let graph_duration_ms =
             compute_render_output_duration_ms(&batch_timestamps, fade_duration_ms, last_tail_ms)
                 .saturating_add(boundary_fade_ms);
-        batch_duration_ms = batch_duration_ms.min((full_duration_ms - batch_base_ms).max(1));
+        let batch_source_start_ms = capture_timeline_ms(
+            timestamps_ms[batch_start_idx],
+            batch_start_idx,
+            fade_duration_ms,
+        )
+        .max(0);
+        let intended_batch_end_ms = if is_last_batch {
+            full_duration_ms as i64
+        } else {
+            capture_timeline_ms(
+                timestamps_ms[batch_end_idx - 1],
+                batch_end_idx - 1,
+                fade_duration_ms,
+            )
+            .max(batch_source_start_ms + 1)
+            .min(full_duration_ms as i64)
+        };
+        let target_end_frames = cumulative_frames_for_time_ms(intended_batch_end_ms, fps)
+            .max(encoded_batch_base_frames + 1);
+        let batch_duration_frames = target_end_frames - encoded_batch_base_frames;
+        let batch_duration_s = frames_to_seconds(batch_duration_frames, fps);
+        let batch_base_s = encoded_batch_base_frames as f64 / fps.max(1) as f64;
         let batch_output_path = make_internal_batch_path(
             &base_dir,
             export_id,
@@ -1801,16 +1931,24 @@ fn build_and_run_ffmpeg_filter_complex(
         let batch_output = batch_output_path.to_string_lossy().to_string();
 
         println!(
-            "[batching] batch {}: images {}..{} adjusted_start={}ms real_start={}ms start_fade={}ms end_fade={}ms tail={}ms duration={}ms output={}",
+            "[batching] batch {}: images {}..{} adjusted_start={}ms source_start={}ms intended_start={}ms encoded_start={:.6}s start_blank={} end_blank={} start_fade={}ms end_fade={}ms boundary_blank={} blank_hold={}ms tail={}ms graph_duration={}ms intended_end={}ms encoded_duration={:.6}s output={}",
             batch_index,
             batch_start_idx,
             batch_end_idx - 1,
             batch_start_adjusted_ts,
-            batch_base_ms,
+            batch_source_start_ms,
+            intended_batch_base_ms,
+            batch_base_s,
+            batch_start_is_blank,
+            batch_end_is_blank,
             batch_start_completed_fade_ms,
             boundary_fade_ms,
+            boundary_is_blank,
+            blank_hold_ms,
             last_tail_ms,
-            batch_duration_ms,
+            graph_duration_ms,
+            intended_batch_end_ms,
+            batch_duration_s,
             batch_output
         );
 
@@ -1822,13 +1960,13 @@ fn build_and_run_ffmpeg_filter_complex(
             target_size,
             fps,
             fade_duration_ms,
-            start_time_ms + batch_base_ms,
+            start_time_ms + (batch_base_s * 1000.0).round() as i32,
             &[],
             &preprocessed_background_videos,
-            batch_base_ms,
+            (batch_base_s * 1000.0).round() as i32,
             prefer_hw,
             imgs_cwd,
-            Some(batch_duration_ms),
+            Some(batch_duration_s),
             false,
             false,
             false,
@@ -1837,19 +1975,25 @@ fn build_and_run_ffmpeg_filter_complex(
             export_without_background,
             transparent_export_format,
             performance_profile,
-            batch_base_ms as f64 / 1000.0,
+            batch_base_s,
             full_duration_s,
             app_handle.clone(),
         )?;
 
         batch_paths.push(batch_output);
+        batch_durations_s.push(batch_duration_s);
 
         if is_last_batch {
             break;
         }
 
-        batch_base_ms += batch_duration_ms;
-        batch_start_completed_fade_ms = boundary_fade_ms;
+        intended_batch_base_ms = intended_batch_end_ms;
+        encoded_batch_base_frames = target_end_frames;
+        batch_start_completed_fade_ms = if boundary_is_blank {
+            boundary_fade_ms.saturating_add(blank_hold_ms)
+        } else {
+            boundary_fade_ms
+        };
         batch_start_idx = batch_end_idx - 1;
         batch_index += 1;
     }
@@ -1857,6 +2001,7 @@ fn build_and_run_ffmpeg_filter_complex(
     concat_internal_batch_videos(
         export_id,
         &batch_paths,
+        &batch_durations_s,
         out_path,
         full_duration_s,
         start_time_ms,
@@ -1896,7 +2041,7 @@ fn render_ffmpeg_filter_complex_single(
     background_offset_ms: i32,
     prefer_hw: bool,
     imgs_cwd: Option<&str>,
-    duration_ms: Option<i32>,
+    duration_s_override: Option<f64>,
     video_fade_in_enabled: bool,
     video_fade_out_enabled: bool,
     audio_fade_in_enabled: bool,
@@ -1945,10 +2090,15 @@ fn render_ffmpeg_filter_complex_single(
     }
 
     let total_by_ts = (timestamps_ms[n - 1] + tail_ms) as f64 / 1000.0;
-    let duration_s = if let Some(dur_ms) = duration_ms {
-        dur_ms as f64 / 1000.0
+    let duration_s = if let Some(duration_s) = duration_s_override {
+        duration_s.max(0.001)
     } else {
         total_by_ts
+    };
+    let forced_video_frame_count = if duration_s_override.is_some() && audio_paths.is_empty() {
+        Some(((duration_s * fps.max(1) as f64).round() as i64).max(1))
+    } else {
+        None
     };
     let export_fade_s = (export_fade_duration_ms as f64 / 1000.0)
         .max(0.0)
@@ -2329,6 +2479,10 @@ fn render_ffmpeg_filter_complex_single(
         }
     }
 
+    if let Some(frame_count) = forced_video_frame_count {
+        cmd.extend_from_slice(&["-frames:v".to_string(), frame_count.to_string()]);
+    }
+
     // Assure la durée exacte
     cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", duration_s)]);
 
@@ -2394,6 +2548,7 @@ pub async fn export_video(
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
     batch_size: Option<i32>,
+    blank_timings: Option<Vec<i32>>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
@@ -2438,6 +2593,10 @@ pub async fn export_video(
     println!(
         "[perf] batch_size={}",
         normalize_filtergraph_batch_size(batch_size)
+    );
+    println!(
+        "[batching] blank timings fournis={}",
+        blank_timings.as_ref().map_or(0, Vec::len)
     );
 
     if let Some(ref audios) = audios {
@@ -2508,6 +2667,11 @@ pub async fn export_video(
                 .and_then(|s| s.parse::<i32>().ok())
                 .unwrap_or(0)
         })
+        .collect();
+    let blank_timestamps: HashSet<i32> = blank_timings
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|timing| ts.binary_search(timing).is_ok())
         .collect();
 
     let path_strs: Vec<String> = files
@@ -2599,6 +2763,7 @@ pub async fn export_video(
             &out_path_str_for_task,
             &path_strs,
             &ts,
+            &blank_timestamps,
             target_size,
             fps,
             fade_ms,

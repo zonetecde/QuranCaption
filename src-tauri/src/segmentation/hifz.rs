@@ -202,25 +202,24 @@ pub async fn generate_hifz_audio(
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
     let mut _guards: Vec<TempFileGuard> = Vec::new();
-    let source_audio_path = if audio_path.is_none()
-        && audio_clips.as_ref().map_or(true, |clips| clips.is_empty())
-    {
-        let max_end_ms = segments
-            .iter()
-            .map(|segment| segment.end_ms.max(0))
-            .max()
-            .unwrap_or(0);
-        // The filter graph trims against the source timeline; ensure the silent input is long enough.
-        let duration_s = (max_end_ms.max(1) as f64) / 1000.0 + 0.1;
-        let (path, guard) = create_silent_source_audio(&ffmpeg_path, duration_s)?;
-        _guards.push(guard);
-        path
-    } else {
-        let (path, mut resolved_guards) =
-            resolve_source_audio_path(&ffmpeg_path, audio_path, audio_clips)?;
-        _guards.append(&mut resolved_guards);
-        path
-    };
+    let source_audio_path =
+        if audio_path.is_none() && audio_clips.as_ref().map_or(true, |clips| clips.is_empty()) {
+            let max_end_ms = segments
+                .iter()
+                .map(|segment| segment.end_ms.max(0))
+                .max()
+                .unwrap_or(0);
+            // The filter graph trims against the source timeline; ensure the silent input is long enough.
+            let duration_s = (max_end_ms.max(1) as f64) / 1000.0 + 0.1;
+            let (path, guard) = create_silent_source_audio(&ffmpeg_path, duration_s)?;
+            _guards.push(guard);
+            path
+        } else {
+            let (path, mut resolved_guards) =
+                resolve_source_audio_path(&ffmpeg_path, audio_path, audio_clips)?;
+            _guards.append(&mut resolved_guards);
+            path
+        };
 
     let _ = app_handle.emit(
         "segmentation-status",
@@ -373,7 +372,10 @@ mod tests {
     fn parses_ffmpeg_progress_time_values() {
         assert_eq!(parse_progress_time_s("out_time_ms=2500000"), Some(2.5));
         assert_eq!(parse_progress_time_s("out_time_us=1500000"), Some(1.5));
-        assert_eq!(parse_progress_time_s("out_time=00:01:02.500000"), Some(62.5));
+        assert_eq!(
+            parse_progress_time_s("out_time=00:01:02.500000"),
+            Some(62.5)
+        );
         assert_eq!(parse_ffmpeg_time("invalid"), None);
     }
 }

@@ -1,8 +1,16 @@
+import type { SubtitleClip } from '$lib/classes/Clip.svelte';
+import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+
 /**
  * Calcule les instants d'overlay à matérialiser pendant l'export vidéo.
  *
  * L'export ne capture pas chaque frame de la vidéo. Il capture seulement des timings clés
  * (`uniqueSorted`), puis FFmpeg réutilise les PNG numérotés pour composer les fades.
+ *
+ * Pour le WBW, un clip de sous-titre peut contribuer à plusieurs captures si son groupe de merge
+ * visuel arabe contient plusieurs segments. Le texte reste affiché une seule fois, mais chaque
+ * mot conserve toutes ses occurrences temporelles pour que l'export capture le bon highlight au
+ * bon instant, y compris sur les mots partagés entre deux segments merged.
  *
  * Règle importante pour les blanks:
  * - une frame blank est une frame sans sous-titre affiché, mais elle peut encore contenir des
@@ -22,9 +30,34 @@ export type ExportSubtitleCaptureClip = {
 	endTime: number;
 	kind: 'subtitle' | 'silence' | 'predefined';
 	surah?: number;
+	id?: number;
 	visualMergeGroupId?: string | null;
 	visualMergeMode?: 'arabic' | 'translation' | 'both' | null;
+	/**
+	 * Timings WBW absolus à capturer pour ce clip.
+	 *
+	 * Quand le sous-titre appartient à un merge visuel arabe, cette liste peut agréger les
+	 * timestamps de plusieurs clips du groupe. Le texte reste rendu une seule fois, mais chaque
+	 * mot partagé conserve ses propres occurrences temporelles pour que l'export capture le bon
+	 * highlight au bon moment.
+	 */
 	wbwHighlightTimings?: number[];
+};
+
+export type ExportSubtitleWbwSourceClip = Pick<
+	SubtitleClip,
+	'id' | 'startTime' | 'endTime' | 'visualMergeGroupId' | 'visualMergeMode'
+> & {
+	alignmentMetadata?: {
+		timeFrom?: number;
+		words: SegmentationWordTimestamp[];
+	} | null;
+};
+
+export type ExportSubtitleWbwTimingOptions = {
+	clip: ExportSubtitleWbwSourceClip;
+	subtitleClips: ExportSubtitleWbwSourceClip[];
+	isWbwEnabledForClipId: (clipId: number) => boolean;
 };
 
 export type ExportTimedOverlayCaptureClip = {
@@ -62,6 +95,64 @@ function isTimedOverlayVisibleAt(
 	if (timing < clip.startTime || timing > clip.endTime) return false;
 	if (clip.isVisibleAt && !clip.isVisibleAt(timing)) return false;
 	return true;
+}
+
+function isArabicVisualMergeClip(clip: ExportSubtitleWbwSourceClip): boolean {
+	return clip.visualMergeMode === 'arabic' || clip.visualMergeMode === 'both';
+}
+
+function getSubtitleMergeGroupClips(
+	clip: ExportSubtitleWbwSourceClip,
+	subtitleClips: ExportSubtitleWbwSourceClip[]
+): ExportSubtitleWbwSourceClip[] {
+	if (!clip.visualMergeGroupId || !isArabicVisualMergeClip(clip)) {
+		return [clip];
+	}
+
+	const mergedClips = subtitleClips.filter(
+		(candidate) =>
+			candidate.visualMergeGroupId === clip.visualMergeGroupId &&
+			candidate.visualMergeMode === clip.visualMergeMode
+	);
+
+	return mergedClips.length > 0 ? mergedClips : [clip];
+}
+
+/**
+ * Retourne les timings WBW d'un sous-titre pour l'export.
+ *
+ * Si le clip appartient à un merge visuel arabe, on agrège les timestamps WBW de tous les clips
+ * du groupe au lieu de ne garder que le clip courant. Cela permet d'exporter une capture à chaque
+ * changement de mot pertinent, y compris pour les mots partagés entre deux sous-titres merged.
+ *
+ * Le clip de référence sert uniquement à vérifier si le WBW est activé pour le groupe.
+ *
+ * @param {ExportSubtitleWbwTimingOptions} options Options de résolution des timings WBW.
+ * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined` si inactif.
+ */
+export function getExportWordByWordHighlightTimings({
+	clip,
+	subtitleClips,
+	isWbwEnabledForClipId
+}: ExportSubtitleWbwTimingOptions): number[] | undefined {
+	if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return undefined;
+
+	const mergedClips = getSubtitleMergeGroupClips(clip, subtitleClips);
+	const referenceClip = mergedClips[0] ?? clip;
+	if (!isWbwEnabledForClipId(referenceClip.id)) return undefined;
+
+	const timings = mergedClips.flatMap((sourceClip) => {
+		if ((sourceClip.alignmentMetadata?.words.length ?? 0) === 0) return [];
+
+		const baseTimeS = sourceClip.alignmentMetadata?.timeFrom ?? sourceClip.startTime / 1000;
+		return (sourceClip.alignmentMetadata?.words ?? [])
+			.map((word: SegmentationWordTimestamp) => Math.round((baseTimeS + word.start) * 1000))
+			.filter((timing: number) => timing >= sourceClip.startTime && timing <= sourceClip.endTime);
+	});
+
+	return timings.length > 0
+		? Array.from(new Set<number>(timings)).sort((a, b) => a - b)
+		: undefined;
 }
 
 /**

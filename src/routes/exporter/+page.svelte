@@ -25,11 +25,13 @@
 	} from '$lib/services/OverlayBlurSegmentation';
 	import {
 		calculateCaptureTimingsForRange,
+		getExportWordByWordHighlightTimings as getExportWordByWordHighlightTimingsUtil,
 		getBlankImageFileName,
 		hasBlankImg,
 		hasTiming,
 		type ExportTimedOverlayCaptureClip,
-		type ExportSubtitleCaptureClip
+		type ExportSubtitleCaptureClip,
+		type ExportSubtitleWbwSourceClip
 	} from '$lib/services/ExportCaptureTiming';
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
@@ -45,7 +47,6 @@
 		SilenceClip,
 		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
-	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -942,9 +943,12 @@
 		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
 			(clip) => {
 				const wbwHighlightTimings =
-					clip instanceof SubtitleClip ? getExportWordByWordHighlightTimings(clip) : undefined;
+					clip instanceof SubtitleClip
+						? getExportWordByWordHighlightTimings(clip)
+						: undefined;
 
 				return {
+					id: clip.id,
 					startTime: clip.startTime,
 					endTime: clip.endTime,
 					kind:
@@ -1016,28 +1020,46 @@
 	}
 
 	/**
-	 * Retourne les timings absolus de changement de mot à capturer pour l'export.
+	 * Retourne les timings WBW à capturer pour l'export d'un clip.
+	 *
+	 * Pour un merge visuel arabe, la résolution finale est faite dans
+	 * `ExportCaptureTiming.getExportWordByWordHighlightTimings()`: le helper agrège les timings
+	 * de tout le groupe afin que les mots partagés puissent être recapturés sur chaque clip.
+	 *
 	 * @param {SubtitleClip} clip Clip Quran à inspecter.
 	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
 	 */
 	function getExportWordByWordHighlightTimings(clip: SubtitleClip): number[] | undefined {
-		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return undefined;
-		if (clip.visualMergeMode === 'arabic' || clip.visualMergeMode === 'both') return undefined;
+		const subtitleClips = globalState.getSubtitleTrack.clips.filter(
+			(candidate): candidate is SubtitleClip => candidate instanceof SubtitleClip
+		);
 
-		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+		const exportClip: ExportSubtitleWbwSourceClip = {
+			id: clip.id,
+			startTime: clip.startTime,
+			endTime: clip.endTime,
+			visualMergeGroupId: clip.visualMergeGroupId,
+			visualMergeMode: clip.visualMergeMode,
+			alignmentMetadata: clip.alignmentMetadata
+		};
 
-		const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
-		const isEnabled = Boolean(arabicStyles.getEffectiveValue('enable-wbw-highlight', clip.id));
-		if (!isEnabled) return undefined;
+		const exportSubtitleClips: ExportSubtitleWbwSourceClip[] = subtitleClips.map((candidate) => ({
+			id: candidate.id,
+			startTime: candidate.startTime,
+			endTime: candidate.endTime,
+			visualMergeGroupId: candidate.visualMergeGroupId,
+			visualMergeMode: candidate.visualMergeMode,
+			alignmentMetadata: candidate.alignmentMetadata
+		}));
 
-		const baseTimeS = clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000;
-		const timings: number[] = (clip.alignmentMetadata?.words ?? [])
-			.map((word: SegmentationWordTimestamp) => Math.round((baseTimeS + word.start) * 1000))
-			.filter((timing: number) => timing >= clip.startTime && timing <= clip.endTime);
-
-		return timings.length > 0
-			? Array.from(new Set<number>(timings)).sort((a, b) => a - b)
-			: undefined;
+		return getExportWordByWordHighlightTimingsUtil({
+			clip: exportClip,
+			subtitleClips: exportSubtitleClips,
+			isWbwEnabledForClipId: (clipId) =>
+				Boolean(globalState.getVideoStyle
+					.getStylesOfTarget('arabic')
+					.getEffectiveValue('enable-wbw-highlight', clipId))
+		});
 	}
 
 	async function generateNormalVideo(

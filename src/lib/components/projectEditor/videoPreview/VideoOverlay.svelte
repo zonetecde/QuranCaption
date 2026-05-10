@@ -25,7 +25,6 @@
 		createPlainOverlaySegment,
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
 		getReferenceClipForTarget as getReferenceClipForTargetUtil,
-		getMergedClipsWithoutWordOverlap,
 		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
 		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
 		isVisualMergeTargetMerged,
@@ -328,9 +327,15 @@
 	}
 
 	type ArabicWordByWordRenderData = {
-		timingWords: SegmentationWordTimestamp[];
+		words: Array<{
+			text: string;
+			timings: SegmentationWordTimestamp[];
+		}>;
 		groups: Array<{
-			words: string[];
+			words: Array<{
+				text: string;
+				timings: SegmentationWordTimestamp[];
+			}>;
 			startWordIndex: number;
 			suffix: string;
 			suffixFontFamily: string | null;
@@ -338,30 +343,67 @@
 		clipStartTimeS: number;
 	};
 
+	function countWordOverlap(previousWords: string[], currentWords: string[]): number {
+		const maxOverlap = Math.min(previousWords.length, currentWords.length);
+		for (let overlap = maxOverlap; overlap > 0; overlap--) {
+			const previousTail = previousWords.slice(previousWords.length - overlap);
+			const currentHead = currentWords.slice(0, overlap);
+			if (previousTail.every((word, index) => word === currentHead[index])) {
+				return overlap;
+			}
+		}
+		return 0;
+	}
+
+	function selectWordTimingForCurrentClip(
+		timings: SegmentationWordTimestamp[],
+		cursorTimeS: number,
+		currentClipId: number | null
+	): SegmentationWordTimestamp | null {
+		if (timings.length === 0) return null;
+
+		if (currentClipId !== null) {
+			const currentClipTiming = timings.find(
+				(timing) => (timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
+			);
+			if (currentClipTiming) return currentClipTiming;
+		}
+
+		const activeTiming = timings.find((word) => cursorTimeS >= word.start && cursorTimeS <= word.end);
+		if (activeTiming) return activeTiming;
+
+		const pastTimings = timings.filter((word) => word.start <= cursorTimeS);
+		if (pastTimings.length > 0) {
+			return pastTimings[pastTimings.length - 1];
+		}
+
+		return timings[0];
+	}
+
 	function buildArabicWordByWordRenderData(): ArabicWordByWordRenderData | null {
 		const subtitle = currentSubtitle();
 		if (!(subtitle instanceof SubtitleClip)) return null;
 
 		const mergedGroup = currentVisualMergeGroup();
 		const sourceClips =
-			mergedGroup && isTargetMerged('arabic')
-				? getMergedClipsWithoutWordOverlap(mergedGroup.clips)
-				: [subtitle];
+			mergedGroup && isTargetMerged('arabic') ? mergedGroup.clips : [subtitle];
 
 		const shouldUseMergedSource =
-			mergedGroup && isTargetMerged('arabic') && sourceClips.every((clip) => {
-				return (clip.alignmentMetadata?.words.length ?? 0) > 0;
-			});
+			mergedGroup &&
+			isTargetMerged('arabic') &&
+			sourceClips.every((clip) => (clip.alignmentMetadata?.words.length ?? 0) > 0);
 
 		if (mergedGroup && isTargetMerged('arabic') && !shouldUseMergedSource) return null;
 		if (!shouldUseMergedSource && (subtitle.alignmentMetadata?.words.length ?? 0) === 0) {
 			return null;
 		}
 
-		const timingWords: SegmentationWordTimestamp[] = [];
-		const clipStartTimeS = shouldUseMergedSource ? mergedGroup!.startTime / 1000 : subtitle.alignmentMetadata?.timeFrom ?? 0;
+		const clipStartTimeS =
+			shouldUseMergedSource ? mergedGroup!.startTime / 1000 : subtitle.alignmentMetadata?.timeFrom ?? 0;
+		const words: ArabicWordByWordRenderData['words'] = [];
 		const groups: ArabicWordByWordRenderData['groups'] = [];
 		let totalWordCount = 0;
+		let visibleWordTexts: string[] = [];
 
 		for (const sourceClip of sourceClips) {
 			const displayParts = sourceClip.getArabicRenderParts('preview');
@@ -380,28 +422,50 @@
 				continue;
 			}
 
+			const timingCandidates = visibleAlignmentWords.map(
+				(word) =>
+					({
+						...word,
+						start: word.start + clipOffsetS,
+						end: word.end + clipOffsetS,
+						clipId: sourceClip.id
+					}) as SegmentationWordTimestamp & { clipId: number }
+			);
+			const overlapCount = countWordOverlap(visibleWordTexts, visibleWords);
+			const clampedOverlapCount = Math.min(overlapCount, timingCandidates.length);
+
+			for (let i = 0; i < clampedOverlapCount; i++) {
+				const wordEntry = words[words.length - clampedOverlapCount + i];
+				if (!wordEntry) continue;
+				wordEntry.timings.push(timingCandidates[i]);
+			}
+
+			const groupWords: ArabicWordByWordRenderData['groups'][number]['words'] = [];
+			for (let i = clampedOverlapCount; i < visibleWords.length; i++) {
+				const wordEntry = {
+					text: visibleWords[i],
+					timings: [timingCandidates[i]]
+				};
+				words.push(wordEntry);
+				groupWords.push(wordEntry);
+			}
+
 			const group = {
-				words: visibleWords,
+				words: groupWords,
 				startWordIndex: totalWordCount,
 				suffix: displayParts.suffix,
 				suffixFontFamily: displayParts.suffixFontFamily
 			};
-			groups.push(group);
-			totalWordCount += visibleWords.length;
 
-			timingWords.push(
-				...visibleAlignmentWords.map((word) => ({
-					...word,
-					start: word.start + clipOffsetS,
-					end: word.end + clipOffsetS
-				}))
-			);
+			groups.push(group);
+			totalWordCount += groupWords.length;
+			visibleWordTexts = words.map((word) => word.text);
 		}
 
 		if (groups.length === 0) return null;
 
 		return {
-			timingWords,
+			words,
 			groups,
 			clipStartTimeS
 		};
@@ -413,12 +477,16 @@
 		const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
 		const renderData = buildArabicWordByWordRenderData();
 		const styleReferenceClip = getReferenceClipForTarget('arabic');
+		const currentClipId = clip?.id ?? null;
 		return computeWordByWordHighlightState({
 			subtitle: clip,
 			isArabicMerged: isTargetMerged('arabic'),
 			mushafStyle: String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
-			words: renderData?.timingWords,
+			words: renderData?.words.map((word) =>
+				selectWordTimingForCurrentClip(word.timings, getTimelineSettings().cursorPosition / 1000, currentClipId) ??
+				word.timings[0]
+			).filter((word): word is SegmentationWordTimestamp => word !== null),
 			clipStartTimeS: renderData?.clipStartTimeS,
 			getStyleValue: (styleId) =>
 				styleReferenceClip
@@ -1001,7 +1069,7 @@
 									<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
 										{#each currentArabicPreviewGroups() as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 											<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate;">
-												{#each group.words as word, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${word}`)}
+												{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
 													{@const wordIndex = group.startWordIndex + i}
 													{@const highlightProgress = computeWordByWordHighlightProgress(
 														wordIndex,
@@ -1019,7 +1087,7 @@
 															wbwPreviewFadeDuration()
 														)}
 													>
-														{word}{i < group.words.length - 1 ? ' ' : ''}
+														{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}
 													</span>
 												{/each}
 												{#if group.suffix}
@@ -1048,7 +1116,7 @@
 								<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
 									{#each currentArabicPreviewGroups() as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 										<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate;">
-											{#each group.words as word, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${word}`)}
+											{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
 												{@const wordIndex = group.startWordIndex + i}
 												{@const highlightProgress = computeWordByWordHighlightProgress(
 													wordIndex,
@@ -1063,7 +1131,7 @@
 														wbwPreviewFadeDuration()
 													)}
 												>
-													{word}{i < group.words.length - 1 ? ' ' : ''}
+													{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}
 												</span>
 											{/each}
 											{#if group.suffix}

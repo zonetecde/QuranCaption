@@ -298,6 +298,9 @@ export class SubtitlesEditorState extends SerializableBase {
 	// Playback speed
 	playbackSpeed: number = $state(1.0);
 
+	// Playback speed dédiée au mode WBW
+	wbwPlaybackSpeed: number = $state(0.75);
+
 	// Affiche la traduction des mots
 	showWordTranslation: boolean = $state(true);
 

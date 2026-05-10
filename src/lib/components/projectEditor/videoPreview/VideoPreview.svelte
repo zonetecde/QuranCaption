@@ -251,6 +251,9 @@
 
 	function getSpeed() {
 		let speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		if (globalState.shared.wbwEdit.active) {
+			speed = globalState.getSubtitlesEditorState.wbwPlaybackSpeed;
+		}
 		if (
 			globalState.currentProject?.projectEditorState.currentTab !==
 			ProjectEditorTabs.SubtitlesEditor

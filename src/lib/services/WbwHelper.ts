@@ -563,6 +563,7 @@ function syncManualWordByWordDraftToClip(
 	};
 
 	markWordByWordEditAsManual(clip);
+	clip.needsWbwTimestampReview = false;
 	clip.alignmentMetadata = buildSubtitleAlignmentMetadata(
 		clip.alignmentMetadata?.source ?? 'local',
 		segment,

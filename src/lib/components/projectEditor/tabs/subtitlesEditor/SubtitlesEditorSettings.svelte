@@ -7,6 +7,7 @@
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 	import SegmentsToReview from './SegmentsToReview.svelte';
 	import MarkLongSubtitles from './MarkLongSubtitles.svelte';
+	import MarkMissingWbwTimestamps from './MarkMissingWbwTimestamps.svelte';
 	import SplitLongSubtitles from './SplitLongSubtitles.svelte';
 
 	import { fade } from 'svelte/transition';
@@ -486,6 +487,7 @@
 		<div class="space-y-3">
 			<SegmentsToReview />
 			<MarkLongSubtitles />
+			<MarkMissingWbwTimestamps />
 			<SplitLongSubtitles />
 		</div>
 	{/if}

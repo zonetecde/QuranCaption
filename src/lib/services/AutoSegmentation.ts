@@ -1877,6 +1877,49 @@ export function clearLongSegmentsReview(): void {
 }
 
 /**
+ * Retourne les segments Quran qui n'ont pas encore de timestamps WBW.
+ *
+ * @returns {SubtitleClip[]} Liste triée des sous-titres sans timestamps WBW.
+ */
+export function getSubtitleClipsWithoutWbwTimestamps(): SubtitleClip[] {
+	return globalState.getSubtitleClips
+		.filter((clip) => (clip.alignmentMetadata?.words.length ?? 0) === 0)
+		.sort((left, right) => left.startTime - right.startTime);
+}
+
+/**
+ * Marque ou démarque les segments dépourvus de timestamps WBW.
+ *
+ * @returns {number} Nombre de segments marqués.
+ */
+export function markSubtitlesWithoutWbwTimestampsForReview(): number {
+	let markedCount = 0;
+
+	for (const clip of globalState.getSubtitleClips) {
+		const hasWbwTimestamps = (clip.alignmentMetadata?.words.length ?? 0) > 0;
+		if (hasWbwTimestamps) {
+			clip.needsWbwTimestampReview = false;
+			continue;
+		}
+
+		clip.needsWbwTimestampReview = true;
+		clip.hasBeenVerified = false;
+		markedCount += 1;
+	}
+
+	return markedCount;
+}
+
+/**
+ * Efface tous les marquages bleus de segments sans timestamps WBW.
+ */
+export function clearWbwTimestampReview(): void {
+	for (const clip of globalState.getSubtitleClips) {
+		clip.needsWbwTimestampReview = false;
+	}
+}
+
+/**
  * Reconstruit le contexte runtime à partir des clips actuellement présents sur la timeline.
  *
  * @param {boolean} preserveAudioId Si true, conserve l'audio_id courant.

@@ -3,8 +3,8 @@
 	import toast from 'svelte-5-french-toast';
 	import { subdivideLongSubtitleSegments } from '$lib/services/AutoSegmentation';
 
-	let hasUsedAiSegmentation = $derived(
-		globalState.getSubtitlesEditorState.segmentationContext.source !== null
+	let hasWbwTimestamps = $derived(
+		globalState.currentProject ? globalState.getSubtitleTrack.hasWordByWordTimestamps() : false
 	);
 
 	const SUBDIVIDE_MIN_LIMIT = 1;
@@ -23,9 +23,9 @@
 	 * Lance la subdivision automatique des segments longs selon les critères actifs.
 	 */
 	async function handleSubdivideLongSegments(): Promise<void> {
-		if (!globalState.getSubtitlesEditorState.segmentationContext.includeWbwTimestamps) {
+		if (!hasWbwTimestamps) {
 			toast.error(
-				'These subtitles were generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.'
+				'At least one subtitle in the timeline must have word-by-word timestamps before splitting long subtitles.'
 			);
 			return;
 		}
@@ -98,10 +98,12 @@
 	});
 </script>
 
-{#if hasUsedAiSegmentation}
+{#if hasWbwTimestamps}
 	<div class="bg-accent rounded-lg p-4 space-y-4">
 		<p class="text-sm font-medium text-primary">Split long subtitles</p>
-		<p class="text-xs text-secondary">Choose limits, then disable any criterion with its toggle.</p>
+		<p class="text-xs text-secondary">
+			This will only work with subtitles that have word-by-word timestamps.
+		</p>
 
 		<div class="space-y-2">
 			<div class="flex items-center justify-between gap-2">

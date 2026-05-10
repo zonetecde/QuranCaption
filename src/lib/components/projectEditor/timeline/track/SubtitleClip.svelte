@@ -99,22 +99,26 @@
 			? ''
 			: primaryReviewIssueCategory === 'coverage'
 				? ' ai-coverage-gap '
-				: primaryReviewIssueCategory === 'long'
-					? ' ai-too-long '
-					: primaryReviewIssueCategory === 'low-confidence'
-						? ' ai-low-confidence '
-						: ''
+				: primaryReviewIssueCategory === 'low-confidence'
+					? ' ai-low-confidence '
+					: primaryReviewIssueCategory === 'long'
+						? ' ai-too-long '
+						: primaryReviewIssueCategory === 'wbw-timestamps'
+							? ' ai-wbw-timestamps '
+							: ''
 	);
 
 	const verifiedReviewBandClass = $derived(
 		clip.hasBeenVerified === true
 			? primaryReviewIssueCategory === 'coverage'
 				? 'review-band review-band-coverage'
-				: primaryReviewIssueCategory === 'long'
-					? 'review-band review-band-long'
-					: primaryReviewIssueCategory === 'low-confidence'
-						? 'review-band review-band-low-confidence'
-						: ''
+				: primaryReviewIssueCategory === 'low-confidence'
+					? 'review-band review-band-low-confidence'
+					: primaryReviewIssueCategory === 'long'
+						? 'review-band review-band-long'
+						: primaryReviewIssueCategory === 'wbw-timestamps'
+							? 'review-band review-band-wbw-timestamps'
+							: ''
 			: ''
 	);
 
@@ -571,6 +575,11 @@
 		border-color: rgba(219, 92, 92, 0.7) !important;
 	}
 
+	.ai-wbw-timestamps {
+		background-color: rgba(125, 211, 252, 0.35) !important;
+		border-color: rgba(56, 189, 248, 0.7) !important;
+	}
+
 	.ai-too-long {
 		background-color: rgba(244, 63, 94, 0.32) !important;
 		border-color: rgba(251, 113, 133, 0.82) !important;
@@ -633,6 +642,10 @@
 
 	.review-band-coverage {
 		background-color: rgba(219, 92, 92, 0.88);
+	}
+
+	.review-band-wbw-timestamps {
+		background-color: rgba(56, 189, 248, 0.88);
 	}
 
 	.review-band-long {

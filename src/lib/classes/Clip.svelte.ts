@@ -175,6 +175,7 @@ export class ClipWithTranslation extends Clip {
 	arabicInlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
 	associatedImagePath: string | null = $state(null);
 	needsLongReview: boolean = $state(false); // Vrai si le segment a été marqué comme trop long.
+	needsWbwTimestampReview: boolean = $state(false); // Vrai si le segment n'a pas de timestamps WBW.
 	comeFromIA: boolean = $state(false);
 	confidence: number | null = $state(null); // Entre 0 et 1
 	needsReview: boolean = $state(false); // Vrai si c'est un segment à low-confidence et qu'il n'a pas encore été reviewé
@@ -281,7 +282,7 @@ export class ClipWithTranslation extends Clip {
 	}
 }
 
-export type ReviewIssueCategory = 'coverage' | 'long' | 'low-confidence';
+export type ReviewIssueCategory = 'coverage' | 'wbw-timestamps' | 'long' | 'low-confidence';
 
 /**
  * Retourne `true` si le clip porte au moins un indicateur de revue actif.
@@ -290,7 +291,8 @@ export type ReviewIssueCategory = 'coverage' | 'long' | 'low-confidence';
  * @returns {boolean} `true` si le clip doit etre considere comme reviewable.
  */
 export function hasClipReviewIssue(clip: ClipWithTranslation | null | undefined): boolean {
-	return !!clip && (clip.needsCoverageReview || clip.needsLongReview || clip.needsReview);
+	return !!clip &&
+		(clip.needsCoverageReview || clip.needsWbwTimestampReview || clip.needsLongReview || clip.needsReview);
 }
 
 /**
@@ -304,8 +306,9 @@ export function getClipPrimaryReviewIssueCategory(
 ): ReviewIssueCategory | null {
 	if (!clip) return null;
 	if (clip.needsCoverageReview) return 'coverage';
-	if (clip.needsLongReview) return 'long';
 	if (clip.needsReview) return 'low-confidence';
+	if (clip.needsLongReview) return 'long';
+	if (clip.needsWbwTimestampReview) return 'wbw-timestamps';
 	return null;
 }
 
@@ -619,6 +622,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		clonedClip.arabicInlineStyleRuns = JSON.parse(JSON.stringify(this.arabicInlineStyleRuns ?? []));
 		clonedClip.associatedImagePath = this.associatedImagePath;
 		clonedClip.needsLongReview = this.needsLongReview;
+		clonedClip.needsWbwTimestampReview = this.needsWbwTimestampReview;
 		clonedClip.needsReview = this.needsReview;
 		clonedClip.needsCoverageReview = this.needsCoverageReview;
 		clonedClip.hasBeenVerified = this.hasBeenVerified;

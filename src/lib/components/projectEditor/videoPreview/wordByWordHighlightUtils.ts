@@ -6,6 +6,7 @@ export type WordByWordHighlightState = {
 	enabled: boolean;
 	activeWordIndex: number;
 	persistColor: boolean;
+	revealWordsOnRecitation: boolean;
 	baseColor: string;
 	color: string;
 	backgroundEnabled: boolean;
@@ -28,6 +29,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		enabled: false,
 		activeWordIndex: -1,
 		persistColor: false,
+		revealWordsOnRecitation: false,
 		baseColor: '',
 		color: '',
 		backgroundEnabled: false,
@@ -101,6 +103,7 @@ export function getWordByWordHighlightState(params: {
 		enabled: activeWordIndex !== -1,
 		activeWordIndex,
 		persistColor: Boolean(getStyleValue('wbw-persist-color')),
+		revealWordsOnRecitation: Boolean(getStyleValue('wbw-reveal-on-recitation')),
 		baseColor: String(getStyleValue('text-color') ?? ''),
 		color: String(getStyleValue('wbw-color') ?? ''),
 		backgroundEnabled: Boolean(getStyleValue('enable-wbw-background')),
@@ -222,12 +225,14 @@ export function getWordByWordHighlightProgress(
  * @returns {string} CSS inline du mot.
  */
 export function getWordByWordWordCss(
+	wordIndex: number,
 	state: WordByWordHighlightState,
 	highlightProgress: number,
 	fadeDurationMs: number
 ): string {
 	const parts: string[] = [];
 	const clampedProgress = Utilities.clamp01(highlightProgress);
+	const opacity = getWordByWordWordOpacity(wordIndex, state, fadeDurationMs);
 
 	if (state.underlineEnabled) {
 		parts.push('text-decoration-line: underline;');
@@ -236,7 +241,12 @@ export function getWordByWordWordCss(
 		parts.push(`text-decoration-color: ${interpolateCssColor('', state.color, clampedProgress)};`);
 	}
 
-	if (clampedProgress === 0 || fadeDurationMs < 0) return parts.join(' ');
+	if (clampedProgress === 0 || fadeDurationMs < 0) {
+		if (state.revealWordsOnRecitation) {
+			parts.push(`opacity: ${opacity};`);
+		}
+		return parts.join(' ');
+	}
 
 	if (state.color) {
 		parts.push(`color: ${interpolateCssColor(state.baseColor, state.color, clampedProgress)};`);
@@ -246,5 +256,44 @@ export function getWordByWordWordCss(
 			`background-color: ${interpolateCssColor('', state.backgroundColor, clampedProgress)};`
 		);
 	}
+	if (state.revealWordsOnRecitation) {
+		parts.push(`opacity: ${opacity};`);
+	}
 	return parts.join(' ');
+}
+
+/**
+ * Retourne l'opacité à appliquer à un mot WBW selon son état de recitation.
+ * @param {WordByWordHighlightState} state Etat de highlight courant.
+ * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
+ * @returns {number} Opacité normalisée entre 0 et 1.
+ */
+function getWordByWordWordOpacity(
+	wordIndex: number,
+	state: WordByWordHighlightState,
+	fadeDurationMs: number
+): number {
+	if (!state.revealWordsOnRecitation || !state.enabled) return 1;
+
+	const word = state.words[wordIndex];
+	if (!word) return 0;
+	if (wordIndex < state.activeWordIndex) return 1;
+	if (wordIndex > state.activeWordIndex) return 0;
+	if (state.activeWordIndex >= state.words.length) return 1;
+
+	const fadeDurationS = Math.max(0, fadeDurationMs) / 1000;
+	const currentTimeS = state.cursorTimeS;
+	const wordStartTimeS = state.clipStartTimeS + word.start;
+	const wordEndTimeS = state.clipStartTimeS + word.end;
+
+	if (fadeDurationS === 0) {
+		return currentTimeS >= wordStartTimeS ? 1 : 0;
+	}
+
+	if (currentTimeS < wordStartTimeS) return 0;
+	if (currentTimeS <= wordStartTimeS + fadeDurationS) {
+		return Utilities.clamp01((currentTimeS - wordStartTimeS) / fadeDurationS);
+	}
+	if (currentTimeS <= wordEndTimeS) return 1;
+	return 1;
 }

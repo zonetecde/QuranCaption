@@ -114,6 +114,7 @@ export type WordByWordHighlightStyleName =
 	| 'enable-wbw-highlight'
 	| 'wbw-color'
 	| 'wbw-persist-color'
+	| 'wbw-reveal-on-recitation'
 	| 'enable-wbw-background'
 	| 'enable-wbw-underline'
 	| 'wbw-bg-color'

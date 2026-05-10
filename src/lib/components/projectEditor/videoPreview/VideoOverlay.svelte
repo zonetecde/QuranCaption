@@ -931,6 +931,7 @@
 											et le fade éventuel côté preview. -->
 											<span
 												style={buildWordByWordWordCss(
+													i,
 													wbwState,
 													highlightProgress,
 													wbwPreviewFadeDuration()
@@ -966,6 +967,7 @@
 										)}
 										<span
 											style={buildWordByWordWordCss(
+												i,
 												wbwState,
 												highlightProgress,
 												wbwPreviewFadeDuration()

@@ -272,6 +272,16 @@
 				"icon": "format_color_fill"
 			},
 			{
+				"id": "wbw-reveal-on-recitation",
+				"name": "Reveal words on recitation",
+				"description": "Keep future words hidden until they are recited, then fade them up to the Arabic opacity",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "visibility_off"
+			},
+			{
 				"id": "enable-wbw-background",
 				"name": "Enable wbw background",
 				"description": "Enable a background color behind highlighted words",

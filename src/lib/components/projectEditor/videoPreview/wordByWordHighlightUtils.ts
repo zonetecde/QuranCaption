@@ -50,11 +50,12 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
  */
 export function canRenderWordByWordHighlight(
 	subtitle: SubtitleClip | null,
-	isArabicMerged: boolean
+	isArabicMerged: boolean,
+	hasMergedWordSource: boolean = false
 ): boolean {
 	if (!subtitle) return false;
-	if (isArabicMerged) return false;
-	if ((subtitle.alignmentMetadata?.words.length ?? 0) === 0) return false;
+	if (isArabicMerged && !hasMergedWordSource) return false;
+	if (!hasMergedWordSource && (subtitle.alignmentMetadata?.words.length ?? 0) === 0) return false;
 
 	return true;
 }
@@ -75,17 +76,19 @@ export function getWordByWordHighlightState(params: {
 	mushafStyle: string;
 	cursorTimeS: number;
 	getStyleValue: ResolveStyleValue;
+	words?: SegmentationWordTimestamp[];
+	clipStartTimeS?: number;
 }): WordByWordHighlightState {
 	const { subtitle, isArabicMerged, cursorTimeS, getStyleValue } = params;
-	if (!canRenderWordByWordHighlight(subtitle, isArabicMerged)) {
+	const words = params.words ?? subtitle?.alignmentMetadata?.words ?? [];
+	const clipStartTimeS = params.clipStartTimeS ?? subtitle?.alignmentMetadata?.timeFrom ?? 0;
+	if (!canRenderWordByWordHighlight(subtitle, isArabicMerged, words.length > 0)) {
 		return getDisabledWordByWordHighlightState();
 	}
 
 	const isEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
 	if (!isEnabled) return getDisabledWordByWordHighlightState();
 
-	const clipStartTimeS = subtitle!.alignmentMetadata?.timeFrom ?? 0;
-	const words = subtitle!.alignmentMetadata?.words ?? [];
 	let activeWordIndex = words.findIndex((word) => {
 		const wordStartTimeS = clipStartTimeS + word.start;
 		const wordEndTimeS = clipStartTimeS + word.end;
@@ -100,7 +103,7 @@ export function getWordByWordHighlightState(params: {
 	}
 
 	return {
-		enabled: activeWordIndex !== -1,
+		enabled: words.length > 0,
 		activeWordIndex,
 		persistColor: Boolean(getStyleValue('wbw-persist-color')),
 		revealWordsOnRecitation: Boolean(getStyleValue('wbw-reveal-on-recitation')),

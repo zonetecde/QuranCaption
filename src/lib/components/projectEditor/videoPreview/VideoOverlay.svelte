@@ -25,6 +25,7 @@
 		createPlainOverlaySegment,
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
 		getReferenceClipForTarget as getReferenceClipForTargetUtil,
+		getMergedClipsWithoutWordOverlap,
 		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
 		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
 		isVisualMergeTargetMerged,
@@ -35,6 +36,7 @@
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
 		getWordByWordWordCss as buildWordByWordWordCss,
 	} from './wordByWordHighlightUtils';
+	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
@@ -325,33 +327,110 @@
 		);
 	}
 
+	type ArabicWordByWordRenderData = {
+		timingWords: SegmentationWordTimestamp[];
+		groups: Array<{
+			words: string[];
+			startWordIndex: number;
+			suffix: string;
+			suffixFontFamily: string | null;
+		}>;
+		clipStartTimeS: number;
+	};
+
+	function buildArabicWordByWordRenderData(): ArabicWordByWordRenderData | null {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) return null;
+
+		const mergedGroup = currentVisualMergeGroup();
+		const sourceClips =
+			mergedGroup && isTargetMerged('arabic')
+				? getMergedClipsWithoutWordOverlap(mergedGroup.clips)
+				: [subtitle];
+
+		const shouldUseMergedSource =
+			mergedGroup && isTargetMerged('arabic') && sourceClips.every((clip) => {
+				return (clip.alignmentMetadata?.words.length ?? 0) > 0;
+			});
+
+		if (mergedGroup && isTargetMerged('arabic') && !shouldUseMergedSource) return null;
+		if (!shouldUseMergedSource && (subtitle.alignmentMetadata?.words.length ?? 0) === 0) {
+			return null;
+		}
+
+		const timingWords: SegmentationWordTimestamp[] = [];
+		const clipStartTimeS = shouldUseMergedSource ? mergedGroup!.startTime / 1000 : subtitle.alignmentMetadata?.timeFrom ?? 0;
+		const groups: ArabicWordByWordRenderData['groups'] = [];
+		let totalWordCount = 0;
+
+		for (const sourceClip of sourceClips) {
+			const displayParts = sourceClip.getArabicRenderParts('preview');
+			const visibleWords = displayParts.text.split(/\s+/).filter(Boolean);
+			const alignmentWords = sourceClip.alignmentMetadata?.words ?? [];
+			const visibleWordCount = Math.min(visibleWords.length, alignmentWords.length);
+			const visibleAlignmentWords =
+				visibleWordCount > 0
+					? alignmentWords.slice(alignmentWords.length - visibleWordCount)
+					: alignmentWords.slice();
+			const clipOffsetS = shouldUseMergedSource
+				? (sourceClip.startTime - mergedGroup!.startTime) / 1000
+				: 0;
+
+			if (visibleWords.length === 0) {
+				continue;
+			}
+
+			const group = {
+				words: visibleWords,
+				startWordIndex: totalWordCount,
+				suffix: displayParts.suffix,
+				suffixFontFamily: displayParts.suffixFontFamily
+			};
+			groups.push(group);
+			totalWordCount += visibleWords.length;
+
+			timingWords.push(
+				...visibleAlignmentWords.map((word) => ({
+					...word,
+					start: word.start + clipOffsetS,
+					end: word.end + clipOffsetS
+				}))
+			);
+		}
+
+		if (groups.length === 0) return null;
+
+		return {
+			timingWords,
+			groups,
+			clipStartTimeS
+		};
+	}
+
 	let currentArabicWordByWordState = $derived(() => {
 		const subtitle = currentSubtitle();
 		const clip = subtitle instanceof SubtitleClip ? subtitle : null;
 		const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		const renderData = buildArabicWordByWordRenderData();
+		const styleReferenceClip = getReferenceClipForTarget('arabic');
 		return computeWordByWordHighlightState({
 			subtitle: clip,
 			isArabicMerged: isTargetMerged('arabic'),
 			mushafStyle: String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
+			words: renderData?.timingWords,
+			clipStartTimeS: renderData?.clipStartTimeS,
 			getStyleValue: (styleId) =>
-				clip ? arabicStyles.getEffectiveValue(styleId as never, clip.id) : false
+				styleReferenceClip
+					? arabicStyles.getEffectiveValue(styleId as never, styleReferenceClip.id)
+					: false
 		});
 	});
 
-	let currentArabicPreviewWords = $derived(() => {
-		const subtitle = currentSubtitle();
-		if (!(subtitle instanceof SubtitleClip)) return [];
-		if (!currentArabicWordByWordState().enabled) return [];
-		return subtitle.getArabicRenderParts('preview').text.split(/\s+/).filter(Boolean);
-	});
-
-	let currentArabicPreviewParts = $derived(() => {
-		const subtitle = currentSubtitle();
-		if (!(subtitle instanceof SubtitleClip)) {
-			return { text: '', suffix: '', suffixFontFamily: null as string | null };
-		}
-		return subtitle.getArabicRenderParts('preview');
+	let currentArabicPreviewGroups = $derived(() => {
+		const renderData = buildArabicWordByWordRenderData();
+		if (!renderData || !currentArabicWordByWordState().enabled) return [];
+		return renderData.groups;
 	});
 
 	// Calcul de l'opacité des sous-titres (prend en compte les overrides par clip)
@@ -916,41 +995,49 @@
 							<!-- Si le rendu wbw est actif, on se base sur les mots pré-découpés
 							plutôt que sur les segments inline classiques pour pouvoir surligner
 							chaque mot individuellement. -->
-							{#if showDecorativeBrackets() && ((wbwState.enabled && currentArabicPreviewWords().length > 0) || arabicSegments.some((segment) => segment.text.trim().length > 0))}
+							{#if showDecorativeBrackets() && ((wbwState.enabled && currentArabicPreviewGroups().length > 0) || arabicSegments.some((segment) => segment.text.trim().length > 0))}
 								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
 								{#if wbwState.enabled && subtitle instanceof SubtitleClip}
 									<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
-										{#each currentArabicPreviewWords() as word, i (`${subtitle.id}-wbw-preview-${i}-${word}`)}
-											{@const highlightProgress = computeWordByWordHighlightProgress(
-												i,
-												wbwState,
-												wbwPreviewFadeDuration()
-											)}
-											<!-- Chaque mot porte son propre état visuel wbw.
-											Le helper applique directement la couleur/fond/underline
-											et le fade éventuel côté preview. -->
-											<span
-												style={buildWordByWordWordCss(
-													i,
-													wbwState,
-													highlightProgress,
-													wbwPreviewFadeDuration()
-												)}
-											>
-												{word}{i < currentArabicPreviewWords().length - 1 ? ' ' : ''}
+										{#each currentArabicPreviewGroups() as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
+											<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate;">
+												{#each group.words as word, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${word}`)}
+													{@const wordIndex = group.startWordIndex + i}
+													{@const highlightProgress = computeWordByWordHighlightProgress(
+														wordIndex,
+														wbwState,
+														wbwPreviewFadeDuration()
+													)}
+													<!-- Chaque mot porte son propre état visuel wbw.
+													Le helper applique directement la couleur/fond/underline
+													et le fade éventuel côté preview. -->
+													<span
+														style={buildWordByWordWordCss(
+															wordIndex,
+															wbwState,
+															highlightProgress,
+															wbwPreviewFadeDuration()
+														)}
+													>
+														{word}{i < group.words.length - 1 ? ' ' : ''}
+													</span>
+												{/each}
+												{#if group.suffix}
+													<!-- Le suffixe (ex: numéro de verset) reste rattaché au groupe
+													qui le porte, au lieu d'être global au merge. -->
+													<span
+														style={group.suffixFontFamily
+															? `font-family: ${group.suffixFontFamily};`
+															: ''}
+													>
+														{group.suffix}
+													</span>
+												{/if}
 											</span>
+											{#if groupIndex < currentArabicPreviewGroups().length - 1}
+												{' '}
+											{/if}
 										{/each}
-										{#if currentArabicPreviewParts().suffix}
-											<!-- Le suffixe (ex: numéro de verset) reste hors du système
-											de highlight mot à mot, mais dans le même flux RTL isolé. -->
-											<span
-												style={currentArabicPreviewParts().suffixFontFamily
-													? `font-family: ${currentArabicPreviewParts().suffixFontFamily};`
-													: ''}
-											>
-												{currentArabicPreviewParts().suffix}
-											</span>
-										{/if}
 									</span>
 								{:else}
 									{@render overlaySegmentsContent(arabicSegments)}
@@ -959,32 +1046,40 @@
 							{:else if wbwState.enabled && subtitle instanceof SubtitleClip}
 								<!-- Variante wbw sans crochets décoratifs. -->
 								<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
-									{#each currentArabicPreviewWords() as word, i (`${subtitle.id}-wbw-preview-${i}-${word}`)}
-										{@const highlightProgress = computeWordByWordHighlightProgress(
-											i,
-											wbwState,
-											wbwPreviewFadeDuration()
-										)}
-										<span
-											style={buildWordByWordWordCss(
-												i,
-												wbwState,
-												highlightProgress,
-												wbwPreviewFadeDuration()
-											)}
-										>
-											{word}{i < currentArabicPreviewWords().length - 1 ? ' ' : ''}
+									{#each currentArabicPreviewGroups() as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
+										<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate;">
+											{#each group.words as word, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${word}`)}
+												{@const wordIndex = group.startWordIndex + i}
+												{@const highlightProgress = computeWordByWordHighlightProgress(
+													wordIndex,
+													wbwState,
+													wbwPreviewFadeDuration()
+												)}
+												<span
+													style={buildWordByWordWordCss(
+														wordIndex,
+														wbwState,
+														highlightProgress,
+														wbwPreviewFadeDuration()
+													)}
+												>
+													{word}{i < group.words.length - 1 ? ' ' : ''}
+												</span>
+											{/each}
+											{#if group.suffix}
+												<span
+													style={group.suffixFontFamily
+														? `font-family: ${group.suffixFontFamily};`
+														: ''}
+												>
+													{group.suffix}
+												</span>
+											{/if}
 										</span>
+										{#if groupIndex < currentArabicPreviewGroups().length - 1}
+											{' '}
+										{/if}
 									{/each}
-									{#if currentArabicPreviewParts().suffix}
-										<span
-											style={currentArabicPreviewParts().suffixFontFamily
-												? `font-family: ${currentArabicPreviewParts().suffixFontFamily};`
-												: ''}
-										>
-											{currentArabicPreviewParts().suffix}
-										</span>
-									{/if}
 								</span>
 							{:else}
 								<!-- Fallback standard: rendu arabe historique sans wbw. -->

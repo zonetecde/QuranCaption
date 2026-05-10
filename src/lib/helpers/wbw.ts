@@ -27,16 +27,11 @@ export type ManualWbwShortcutHandlers = {
 };
 
 /**
- * Retourne le clip Quran cible pour ouvrir l'édition WBW.
+ * Retourne le clip Quran sous le curseur pour ouvrir l'édition WBW.
  *
  * @returns {SubtitleClip | null} Clip Quran cible, sinon `null`.
  */
 export function resolveManualWordByWordTargetClip(): SubtitleClip | null {
-	const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-	if (editSubtitle instanceof SubtitleClip) {
-		return editSubtitle;
-	}
-
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length <= 0) return null;
 

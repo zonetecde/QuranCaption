@@ -16,7 +16,7 @@
 	import {
 		moveManualWordByWordSelectedWordEndToCursor,
 		moveManualWordByWordSelectedWordStartToCursor
-	} from '$lib/helpers/wbw';
+	} from '$lib/services/WbwHelper';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
 

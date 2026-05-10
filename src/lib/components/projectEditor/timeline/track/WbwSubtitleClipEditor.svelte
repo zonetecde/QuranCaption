@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { SubtitleClip, Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { getSubtitleClipDurationSeconds, updateManualWordByWordBoundary } from '$lib/helpers/wbw';
+	import {
+		getSubtitleClipDurationSeconds,
+		updateManualWordByWordBoundary
+	} from '$lib/services/WbwHelper';
 	import { onDestroy } from 'svelte';
 
 	let { clip, track }: { clip: SubtitleClip; track: Track } = $props();

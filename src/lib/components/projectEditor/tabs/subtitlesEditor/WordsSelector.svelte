@@ -18,7 +18,7 @@
 		stampManualWordByWordCurrentWordAtCursor,
 		syncManualWordByWordSelectionFromVerseWord,
 		syncVerseSelectionWithManualWordByWordIndex
-	} from '$lib/helpers/wbw';
+	} from '$lib/services/WbwHelper';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';

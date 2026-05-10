@@ -169,10 +169,15 @@ export function getActiveManualWordByWordClip(): SubtitleClip | null {
 /**
  * Quitte le mode d'édition WBW manuel et réinitialise son état runtime.
  *
+ * @param {boolean} closeSubtitleEdit Indique s'il faut aussi quitter l'édition du sous-titre.
  * @returns {void}
  */
-export function exitManualWordByWordEdit(): void {
+export function exitManualWordByWordEdit(closeSubtitleEdit = false): void {
 	restoreTimelineZoomAfterManualWordByWordEdit();
+	if (closeSubtitleEdit) {
+		globalState.getSubtitlesEditorState.editSubtitle = null;
+		globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
+	}
 	globalState.shared.wbwEdit.active = false;
 	globalState.shared.wbwEdit.clipId = null;
 	globalState.shared.wbwEdit.currentWordIndex = 0;
@@ -369,7 +374,7 @@ export function stampManualWordByWordCurrentWordAtCursor(): void {
 			normalizeManualWordByWordDraftWords(draftWords, clipDurationS)
 		);
 		refreshSegmentationContextFromTrack(false);
-		exitManualWordByWordEdit();
+		exitManualWordByWordEdit(true);
 		return;
 	}
 
@@ -389,7 +394,7 @@ export function stampManualWordByWordCurrentWordAtCursor(): void {
 		normalizeManualWordByWordDraftWords(draftWords, clipDurationS)
 	);
 	refreshSegmentationContextFromTrack(false);
-	exitManualWordByWordEdit();
+	exitManualWordByWordEdit(true);
 }
 
 /**

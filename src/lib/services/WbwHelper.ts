@@ -415,7 +415,14 @@ export async function buildManualWordByWordDraftWords(
 
 	const existingWords = clip.alignmentMetadata?.words ?? [];
 	if (existingWords.length !== expectedWords.length) {
-		return normalizeManualWordByWordDraftWords(expectedWords, getSubtitleClipDurationSeconds(clip));
+		const clipDurationS = getSubtitleClipDurationSeconds(clip);
+		return expectedWords.map((word, index) => ({
+			...word,
+			// Le premier mot couvre tout le segment au depart, les suivants restent parques a la fin
+			// pour un rendu visuel progressif lors de la creation manuelle.
+			start: index === 0 ? 0 : clipDurationS,
+			end: clipDurationS
+		}));
 	}
 
 	return normalizeManualWordByWordDraftWords(

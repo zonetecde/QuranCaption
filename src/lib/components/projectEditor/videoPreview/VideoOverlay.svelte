@@ -231,14 +231,30 @@
 		}
 
 		const displayParts = subtitle.getArabicRenderParts('preview');
-		const baseSegments =
-			(subtitle.arabicInlineStyleRuns?.length ?? 0) > 0
-				? subtitle.getArabicInlineStyledSegments('preview').map((segment, index) => ({
-						key: `${keyPrefix}-arabic-${index}`,
-						text: segment.text,
-						flags: segment
-					}))
-				: [createPlainOverlaySegment(`${keyPrefix}-arabic`, displayParts.text)];
+		const hasInlineStyles = (subtitle.arabicInlineStyleRuns?.length ?? 0) > 0;
+
+		if (!hasInlineStyles) {
+			// No inline styles: concat suffix into main text to avoid extra span boundaries
+			// that create line-break opportunities in screenshot renderers (modern-screenshot)
+			const fullText = displayParts.suffix && !displayParts.suffixFontFamily
+				? displayParts.text + displayParts.suffix
+				: displayParts.text;
+			const segments = [createPlainOverlaySegment(`${keyPrefix}-arabic`, fullText)];
+			if (displayParts.suffix && displayParts.suffixFontFamily) {
+				segments.push(createPlainOverlaySegment(
+					`${keyPrefix}-suffix`,
+					displayParts.suffix,
+					`font-family: ${displayParts.suffixFontFamily};`
+				));
+			}
+			return segments;
+		}
+
+		const baseSegments = subtitle.getArabicInlineStyledSegments('preview').map((segment, index) => ({
+			key: `${keyPrefix}-arabic-${index}`,
+			text: segment.text,
+			flags: segment
+		}));
 
 		if (!displayParts.suffix) return baseSegments;
 
@@ -1022,9 +1038,12 @@
 			{#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
 				<span class="translation-inline-flow">
 					{#each segments as segment (segment.key)}
-						<span style={`${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`}>
+						{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
+						{#if segmentStyle}
+							<span style={segmentStyle}>{segment.text}</span>
+						{:else}
 							{segment.text}
-						</span>
+						{/if}
 					{/each}
 				</span>
 			{/snippet}

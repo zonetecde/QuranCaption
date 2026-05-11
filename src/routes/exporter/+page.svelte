@@ -1156,7 +1156,7 @@
 		const node = document.getElementById('overlay')!;
 
 		// Pour les blanks, forcer les overlays (surahName, reciterName, customText) à leur opacité max
-		// afin d'éviter une capture en cours de fade-in.
+		// afin d'éviter une capture en cours de fade-in, et masquer les sous-titres (arabe/traduction).
 		const isBlankScreenshot = fileName.startsWith('blank_');
 		const forcedOverlayElements: { el: HTMLElement; prev: string }[] = [];
 		if (isBlankScreenshot) {
@@ -1164,6 +1164,11 @@
 				forcedOverlayElements.push({ el, prev: el.style.opacity });
 				el.style.opacity = el.dataset.overlayMaxOpacity!;
 			});
+			for (const id of ['subtitles-container', 'subtitles-backgrounds']) {
+				const el = node.querySelector<HTMLElement>(`#${id}`);
+				if (el) forcedOverlayElements.push({ el, prev: el.style.opacity });
+				if (el) el.style.opacity = '0';
+			}
 		}
 
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,

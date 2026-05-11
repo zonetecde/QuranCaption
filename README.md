@@ -7,6 +7,7 @@
 <p><strong>Create captioned Quran videos — AI-powered subtitles, 40+ languages, full visual control.</strong></p>
 
 <p>
+<a href="https://wakatime.com/badge/user/b8ecff52-7743-4a1e-8b28-93fcce7c9b7d/project/018df88a-8f8e-4ff4-b27c-d31e73490299"><img src="https://wakatime.com/badge/user/b8ecff52-7743-4a1e-8b28-93fcce7c9b7d/project/018df88a-8f8e-4ff4-b27c-d31e73490299.svg" alt="wakatime"></a><br><br>
   <a href="https://github.com/zonetecde/QuranCaption/releases/latest"><img src="https://img.shields.io/github/v/release/zonetecde/QuranCaption?style=for-the-badge&color=4ade80" alt="Latest release" /></a>
   <a href="https://github.com/zonetecde/QuranCaption/releases"><img src="https://img.shields.io/github/downloads/zonetecde/QuranCaption/total?style=for-the-badge&color=60a5fa" alt="Total downloads" /></a>
   <a href="https://github.com/zonetecde/QuranCaption/stargazers"><img src="https://img.shields.io/github/stars/zonetecde/QuranCaption?style=for-the-badge&color=facc15" alt="Stars" /></a>  <a href="https://github.com/zonetecde/QuranCaption/commits/main"><img src="https://img.shields.io/github/last-commit/zonetecde/QuranCaption?style=for-the-badge" alt="Last commit" /></a>

@@ -1155,6 +1155,17 @@
 		// L'element a transformer en image
 		const node = document.getElementById('overlay')!;
 
+		// Pour les blanks, forcer les overlays (surahName, reciterName, customText) à leur opacité max
+		// afin d'éviter une capture en cours de fade-in.
+		const isBlankScreenshot = fileName.startsWith('blank_');
+		const forcedOverlayElements: { el: HTMLElement; prev: string }[] = [];
+		if (isBlankScreenshot) {
+			node.querySelectorAll<HTMLElement>('[data-overlay-max-opacity]').forEach((el) => {
+				forcedOverlayElements.push({ el, prev: el.style.opacity });
+				el.style.opacity = el.dataset.overlayMaxOpacity!;
+			});
+		}
+
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
 		// je veux pouvoir avoir la dimension trouvée dans les paramètres d'export
 		const targetWidth = exportData!.videoDimensions.width;
@@ -1205,6 +1216,11 @@
 					? String((error as { message?: unknown }).message ?? '')
 					: String(error ?? 'Unknown error');
 			toast.error('Error while taking screenshot: ' + message);
+		} finally {
+			// Restaurer l'opacité originale des overlays forcés
+			for (const { el, prev } of forcedOverlayElements) {
+				el.style.opacity = prev;
+			}
 		}
 	}
 

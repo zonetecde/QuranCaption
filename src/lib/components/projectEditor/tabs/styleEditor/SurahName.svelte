@@ -171,6 +171,7 @@
 			horizontalStyleId: 'surah-name-horizontal-position'
 		}}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select- z-10"
+		data-overlay-max-opacity={surahNameSettings().opacity}
 		style={`transform: translateY(${surahNameSettings().verticalPosition}px) translateX(${surahNameSettings().horizontalPosition}px); opacity: ${timedSurahOpacity()}; `}
 	>
 		<p

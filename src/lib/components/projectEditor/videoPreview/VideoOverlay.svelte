@@ -33,7 +33,7 @@
 	import {
 		getWordByWordHighlightState as computeWordByWordHighlightState,
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
-		getWordByWordWordCss as buildWordByWordWordCss,
+		getWordByWordWordCss as buildWordByWordWordCss
 	} from './wordByWordHighlightUtils';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 
@@ -236,25 +236,30 @@
 		if (!hasInlineStyles) {
 			// No inline styles: concat suffix into main text to avoid extra span boundaries
 			// that create line-break opportunities in screenshot renderers (modern-screenshot)
-			const fullText = displayParts.suffix && !displayParts.suffixFontFamily
-				? displayParts.text + displayParts.suffix
-				: displayParts.text;
+			const fullText =
+				displayParts.suffix && !displayParts.suffixFontFamily
+					? displayParts.text + displayParts.suffix
+					: displayParts.text;
 			const segments = [createPlainOverlaySegment(`${keyPrefix}-arabic`, fullText)];
 			if (displayParts.suffix && displayParts.suffixFontFamily) {
-				segments.push(createPlainOverlaySegment(
-					`${keyPrefix}-suffix`,
-					displayParts.suffix,
-					`font-family: ${displayParts.suffixFontFamily};`
-				));
+				segments.push(
+					createPlainOverlaySegment(
+						`${keyPrefix}-suffix`,
+						displayParts.suffix,
+						`font-family: ${displayParts.suffixFontFamily};`
+					)
+				);
 			}
 			return segments;
 		}
 
-		const baseSegments = subtitle.getArabicInlineStyledSegments('preview').map((segment, index) => ({
-			key: `${keyPrefix}-arabic-${index}`,
-			text: segment.text,
-			flags: segment
-		}));
+		const baseSegments = subtitle
+			.getArabicInlineStyledSegments('preview')
+			.map((segment, index) => ({
+				key: `${keyPrefix}-arabic-${index}`,
+				text: segment.text,
+				flags: segment
+			}));
 
 		if (!displayParts.suffix) return baseSegments;
 
@@ -380,12 +385,15 @@
 
 		if (currentClipId !== null) {
 			const currentClipTiming = timings.find(
-				(timing) => (timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
+				(timing) =>
+					(timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
 			);
 			if (currentClipTiming) return currentClipTiming;
 		}
 
-		const activeTiming = timings.find((word) => cursorTimeS >= word.start && cursorTimeS <= word.end);
+		const activeTiming = timings.find(
+			(word) => cursorTimeS >= word.start && cursorTimeS <= word.end
+		);
 		if (activeTiming) return activeTiming;
 
 		const pastTimings = timings.filter((word) => word.start <= cursorTimeS);
@@ -401,8 +409,7 @@
 		if (!(subtitle instanceof SubtitleClip)) return null;
 
 		const mergedGroup = currentVisualMergeGroup();
-		const sourceClips =
-			mergedGroup && isTargetMerged('arabic') ? mergedGroup.clips : [subtitle];
+		const sourceClips = mergedGroup && isTargetMerged('arabic') ? mergedGroup.clips : [subtitle];
 
 		const shouldUseMergedSource =
 			mergedGroup &&
@@ -414,8 +421,9 @@
 			return null;
 		}
 
-		const clipStartTimeS =
-			shouldUseMergedSource ? mergedGroup!.startTime / 1000 : subtitle.alignmentMetadata?.timeFrom ?? 0;
+		const clipStartTimeS = shouldUseMergedSource
+			? mergedGroup!.startTime / 1000
+			: (subtitle.alignmentMetadata?.timeFrom ?? 0);
 		const words: ArabicWordByWordRenderData['words'] = [];
 		const groups: ArabicWordByWordRenderData['groups'] = [];
 		let totalWordCount = 0;
@@ -499,10 +507,16 @@
 			isArabicMerged: isTargetMerged('arabic'),
 			mushafStyle: String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
-			words: renderData?.words.map((word) =>
-				selectWordTimingForCurrentClip(word.timings, getTimelineSettings().cursorPosition / 1000, currentClipId) ??
-				word.timings[0]
-			).filter((word): word is SegmentationWordTimestamp => word !== null),
+			words: renderData?.words
+				.map(
+					(word) =>
+						selectWordTimingForCurrentClip(
+							word.timings,
+							getTimelineSettings().cursorPosition / 1000,
+							currentClipId
+						) ?? word.timings[0]
+				)
+				.filter((word): word is SegmentationWordTimestamp => word !== null),
 			clipStartTimeS: renderData?.clipStartTimeS,
 			getStyleValue: (styleId) =>
 				styleReferenceClip
@@ -1038,7 +1052,8 @@
 			{#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
 				<span class="translation-inline-flow">
 					{#each segments as segment (segment.key)}
-						{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
+						{@const segmentStyle =
+							`${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
 						{#if segmentStyle}
 							<span style={segmentStyle}>{segment.text}</span>
 						{:else}
@@ -1075,7 +1090,7 @@
 						)}; {getBackgroundHorizontalPaddingCss(
 							'arabic',
 							arabicReferenceClip?.id
-						)} white-space: pre-line;"
+						)} white-space: pre-line; display: block;"
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}

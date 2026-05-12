@@ -1090,7 +1090,7 @@
 						)}; {getBackgroundHorizontalPaddingCss(
 							'arabic',
 							arabicReferenceClip?.id
-						)} white-space: pre-line; display: block;"
+						)} white-space: pre-line; {isExportCapturePreview() ? 'display: block;' : ''}"
 					>
 						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
 							{@const bracketGlyphs = getDecorativeBracketGlyphs()}

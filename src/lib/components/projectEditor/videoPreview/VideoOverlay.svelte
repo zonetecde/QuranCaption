@@ -75,11 +75,6 @@
 		);
 	});
 
-	/** Durée de fondu pour les éléments WBW : 0 en export, durée normale sinon. */
-	let wbwPreviewFadeDuration = $derived(() => {
-		return isExportCapturePreview() ? 0 : fadeDuration();
-	});
-
 	/** Raccourci vers les paramètres de la timeline. */
 	let getTimelineSettings = $derived(() => {
 		return globalState.currentProject!.projectEditorState.timeline;

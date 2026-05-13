@@ -1,22 +1,16 @@
 <script lang="ts">
-	import {
-		CustomTextClip,
-		PredefinedSubtitleClip,
-		ProjectEditorTabs,
-		SubtitleClip
-	} from '$lib/classes';
+	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import { type TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
-	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { untrack } from 'svelte';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
-	import type { OverlayTextSegment } from './visualMergeOverlayUtils';
 	import {
 		createPlainOverlaySegment,
 		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
-		isVisualMergeTargetMerged
+		isVisualMergeTargetMerged,
+		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
 	import {
 		getWordByWordHighlightState as computeWordByWordHighlightState,

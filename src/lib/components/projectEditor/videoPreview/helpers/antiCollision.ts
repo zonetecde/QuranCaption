@@ -41,16 +41,6 @@ export function getTargetFromElement(
 }
 
 /**
- * Résultat d'une résolution de collision entre deux éléments.
- */
-interface CollisionPairResult {
-	/** Target de l'élément qui a été déplacé. */
-	adjustedTarget: string;
-	/** Nombre d'itérations effectuées. */
-	iterations: number;
-}
-
-/**
  * Résout les collisions entre sous-titres visibles.
  *
  * Parcourt toutes les paires d'éléments `.subtitle`, détecte les
@@ -114,8 +104,7 @@ export async function resolveSubtitleCollisions(
 			processedPairs.add(pairId);
 
 			// On décale l'élément le plus bas
-			const targetToAdjust =
-				currentRect.top > otherRect.top ? currentTarget : otherTarget;
+			const targetToAdjust = currentRect.top > otherRect.top ? currentTarget : otherTarget;
 
 			let stillColliding: boolean;
 			let iterationCount = 0;

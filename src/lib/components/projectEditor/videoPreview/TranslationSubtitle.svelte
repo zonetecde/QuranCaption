@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
-	import { type TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
-	import { VerseTranslation } from '$lib/classes/Translation.svelte';
+	import { type TranslationInlineStyleFlags, VerseTranslation } from '$lib/classes/Translation.svelte';
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
-	import type { OverlayTextSegment } from './visualMergeOverlayUtils';
 	import {
 		createPlainOverlaySegment,
 		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
-		isVisualMergeTargetMerged
+		isVisualMergeTargetMerged,
+		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
 	import { getBackgroundHorizontalPaddingCss } from './helpers/overlayCss';
 

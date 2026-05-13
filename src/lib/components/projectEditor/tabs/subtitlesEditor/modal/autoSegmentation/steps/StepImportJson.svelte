@@ -61,9 +61,10 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">3. Import Hugging Face JSON</h3>
+		<h3 class="text-lg font-semibold text-primary">Import Multi-Aligner JSON</h3>
 		<p class="text-sm text-thirdly">
-			Drop the downloaded JSON file or paste its content, then click Add subtitles.
+			Paste or drop a JSON export generated outside the app, then apply it directly to your
+			timeline.
 		</p>
 	</div>
 

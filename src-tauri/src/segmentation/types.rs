@@ -74,6 +74,8 @@ pub enum LocalSegmentationEngine {
     LegacyWhisper,
     /// Nouveau moteur multi-aligner.
     MultiAligner,
+    /// Alternative multi-aligner entièrement locale avec stack ouverte.
+    OpenMultiAligner,
 }
 
 impl LocalSegmentationEngine {
@@ -82,8 +84,9 @@ impl LocalSegmentationEngine {
         match raw {
             "legacy" | "legacy_whisper" => Ok(Self::LegacyWhisper),
             "multi" | "multi_aligner" => Ok(Self::MultiAligner),
+            "open_multi" | "open_multi_aligner" => Ok(Self::OpenMultiAligner),
             _ => Err(format!(
-                "Unknown local segmentation engine '{}'. Expected 'legacy' or 'multi'.",
+                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', or 'open_multi'.",
                 raw
             )),
         }
@@ -94,6 +97,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "legacy",
             Self::MultiAligner => "multi",
+            Self::OpenMultiAligner => "open_multi",
         }
     }
 
@@ -102,6 +106,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "Legacy Whisper",
             Self::MultiAligner => "Multi-Aligner",
+            Self::OpenMultiAligner => "Open Multi-Aligner",
         }
     }
 
@@ -110,6 +115,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/requirements.txt",
             Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
+            Self::OpenMultiAligner => "python/open_multi_requirements.txt",
         }
     }
 
@@ -118,6 +124,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/local_segmenter.py",
             Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
+            Self::OpenMultiAligner => "python/local_open_multi_aligner_segmenter.py",
         }
     }
 
@@ -136,6 +143,15 @@ impl LocalSegmentationEngine {
                 "accelerate",
                 "pyarrow",
                 "requests",
+            ],
+            Self::OpenMultiAligner => &[
+                "torch",
+                "transformers",
+                "librosa",
+                "numpy",
+                "soundfile",
+                "recitations_segmenter",
+                "accelerate",
             ],
         }
     }

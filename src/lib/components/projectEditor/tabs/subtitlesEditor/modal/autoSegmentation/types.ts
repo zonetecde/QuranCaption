@@ -7,7 +7,11 @@ import type {
 } from '$lib/services/AutoSegmentation';
 
 /** Defines the high-level AI family shown in the wizard. */
-export type AiVersion = 'legacy_v1' | 'multi_v2';
+export type AiVersion =
+	| 'legacy_v1'
+	| 'multi_v2'
+	| 'multi_v2_local'
+	| 'open_multi_v2';
 
 /** Represents a wizard navigation item. */
 export type WizardStep = {
@@ -18,7 +22,7 @@ export type WizardStep = {
 };
 
 /** Stable keys for wizard step routing. */
-export type WizardStepKey = 'version' | 'runtime' | 'models' | 'settings' | 'import' | 'review';
+export type WizardStepKey = 'version' | 'setup' | 'models' | 'settings' | 'review';
 
 /** UI runtime choices for V2 flow. */
 export type WizardRuntime = 'cloud' | 'local' | 'hf_json';
@@ -44,6 +48,8 @@ export type ModelOption<T extends string> = {
 export type MaterialIconName =
 	| 'auto_awesome'
 	| 'memory'
+	| 'computer'
+	| 'offline_bolt'
 	| 'cloud'
 	| 'storage'
 	| 'upload_file'

@@ -127,6 +127,33 @@ pub async fn segment_quran_audio_local_multi(
     .await
 }
 
+/// Lance la segmentation locale en mode Open Multi-Aligner.
+#[tauri::command]
+pub async fn segment_quran_audio_local_open_multi(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    model_name: Option<String>,
+    device: Option<String>,
+    include_wbw_timestamps: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    segmentation::segment_quran_audio_local_open_multi(
+        app_handle,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        model_name,
+        device,
+        include_wbw_timestamps,
+    )
+    .await
+}
+
 /// Genere une nouvelle piste audio Hifz en repetant chaque segment fourni.
 #[tauri::command]
 pub async fn generate_hifz_audio(

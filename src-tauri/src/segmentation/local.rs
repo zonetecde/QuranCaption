@@ -416,3 +416,71 @@ pub async fn segment_quran_audio_local_multi(
         hf_token,
     )
 }
+
+/// Exécute la segmentation locale via moteur Open Multi-Aligner sans token HF.
+pub async fn segment_quran_audio_local_open_multi(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    model_name: Option<String>,
+    device: Option<String>,
+    include_wbw_timestamps: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    let selected_model = model_name.unwrap_or_else(|| "Open-Tadabur-Small".to_string());
+    let is_supported_model = matches!(
+        selected_model.as_str(),
+        "Base"
+            | "Large"
+            | "Open-Tadabur-Small"
+            | "Open-DeepDML-Small-Mix"
+            | "Open-DeepDML-Medium-Mix"
+            | "Open-IJyad-Large-V3"
+            | "Open-Naazim-Large-V3-Turbo"
+            | "Open-Legacy-Tiny"
+            | "Open-Legacy-Base"
+            | "Open-Legacy-Medium"
+            | "Open-Legacy-Large"
+    );
+    if !is_supported_model {
+        return Err(format!(
+            "Invalid model_name '{}'. Expected one of: Base, Large, Open-Tadabur-Small, Open-DeepDML-Small-Mix, Open-DeepDML-Medium-Mix, Open-IJyad-Large-V3, Open-Naazim-Large-V3-Turbo, Open-Legacy-Tiny, Open-Legacy-Base, Open-Legacy-Medium, Open-Legacy-Large.",
+            selected_model
+        ));
+    }
+
+    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
+    if selected_device != "GPU" && selected_device != "CPU" {
+        return Err(format!(
+            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
+            selected_device
+        ));
+    }
+
+    let extra_args = vec![
+        "--model-name".to_string(),
+        selected_model,
+        "--device".to_string(),
+        selected_device,
+        "--include-wbw-timestamps".to_string(),
+        if include_wbw_timestamps.unwrap_or(false) {
+            "true".to_string()
+        } else {
+            "false".to_string()
+        },
+    ];
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::OpenMultiAligner,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        extra_args,
+        None,
+    )
+}

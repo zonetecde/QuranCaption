@@ -100,9 +100,20 @@ export type ImportedSegmentationParseResult = {
  * Segmentation processing mode
  */
 export type SegmentationMode = 'api' | 'local';
-export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner';
+export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner' | 'open_multi_aligner';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
-export type MultiAlignerModel = 'Base' | 'Large';
+export type MultiAlignerModel =
+	| 'Base'
+	| 'Large'
+	| 'Open-Tadabur-Small'
+	| 'Open-DeepDML-Small-Mix'
+	| 'Open-DeepDML-Medium-Mix'
+	| 'Open-IJyad-Large-V3'
+	| 'Open-Naazim-Large-V3-Turbo'
+	| 'Open-Legacy-Tiny'
+	| 'Open-Legacy-Base'
+	| 'Open-Legacy-Medium'
+	| 'Open-Legacy-Large';
 export type SegmentationDevice = 'GPU' | 'CPU';
 
 export type LocalEngineStatus = {
@@ -126,6 +137,7 @@ export type LocalSegmentationStatus = {
 	engines?: {
 		legacy: LocalEngineStatus;
 		multi: LocalEngineStatus;
+		openMulti: LocalEngineStatus;
 	};
 };
 
@@ -163,6 +175,13 @@ export async function checkLocalSegmentationStatus(
 					tokenRequired: true,
 					tokenProvided: false,
 					message: 'Status check failed'
+				},
+				openMulti: {
+					ready: false,
+					venvExists: false,
+					packagesInstalled: false,
+					usable: false,
+					message: 'Status check failed'
 				}
 			}
 		};
@@ -174,7 +193,7 @@ export async function checkLocalSegmentationStatus(
  * Returns a promise that resolves when installation is complete.
  */
 export async function installLocalSegmentationDeps(
-	engine: 'legacy' | 'multi',
+	engine: 'legacy' | 'multi' | 'open_multi',
 	hfToken?: string
 ): Promise<void> {
 	try {
@@ -2358,7 +2377,17 @@ export async function runAutoSegmentation(
 	const allowCloudFallbackEffective: boolean = allowCloudFallback && requestedMode !== 'local';
 	let effectiveMode: SegmentationMode = requestedMode;
 	let fallbackToCloud = false;
-	const cloudGpuFallbackToCpu = false;
+	let cloudGpuFallbackToCpu = false;
+
+	/**
+	 * Detects cloud GPU quota failures that should be retried once on CPU.
+	 * @param {string} message - Error text returned by the cloud pipeline.
+	 * @returns {boolean} True when the error looks like a GPU quota issue.
+	 */
+	function shouldRetryCloudOnCpu(message: string): boolean {
+		return device === 'GPU' && /GPU/i.test(message) && /(quota exhausted|retry with device=CPU|daily limit)/i.test(message);
+	}
+
 	console.log(
 		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device} allowCloudFallback=${allowCloudFallbackEffective}`
 	);
@@ -2414,6 +2443,15 @@ export async function runAutoSegmentation(
 				});
 			}
 
+			if (localAsrMode === 'open_multi_aligner') {
+				return await invoke('segment_quran_audio_local_open_multi', {
+					...basePayload,
+					modelName: multiAlignerModel,
+					device,
+					includeWbwTimestamps
+				});
+			}
+
 			return await invoke('segment_quran_audio_local_multi', {
 				...basePayload,
 				modelName: multiAlignerModel,
@@ -2425,7 +2463,21 @@ export async function runAutoSegmentation(
 		let fallbackWarning: string | undefined;
 		let payload: unknown;
 		if (effectiveMode === 'api') {
-			payload = await invokeCloud();
+			try {
+				payload = await invokeCloud();
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				if (shouldRetryCloudOnCpu(errorMessage)) {
+					console.warn(
+						'[AutoSegmentation] Cloud GPU run failed, retrying once on CPU:',
+						errorMessage
+					);
+					payload = await invokeCloudWithDevice('CPU');
+					cloudGpuFallbackToCpu = true;
+				} else {
+					throw error;
+				}
+			}
 		} else {
 			try {
 				payload = await invokeLocal();
@@ -2461,13 +2513,29 @@ export async function runAutoSegmentation(
 		}
 
 		const rawResponse: SegmentationResponse = payload as SegmentationResponse;
+		if (
+			effectiveMode === 'api' &&
+			!cloudGpuFallbackToCpu &&
+			rawResponse.error &&
+			shouldRetryCloudOnCpu(rawResponse.error)
+		) {
+			console.warn(
+				'[AutoSegmentation] Cloud GPU payload reported a quota error, retrying once on CPU:',
+				rawResponse.error
+			);
+			payload = await invokeCloudWithDevice('CPU');
+			cloudGpuFallbackToCpu = true;
+		}
+
+		const finalRawResponse: SegmentationResponse =
+			cloudGpuFallbackToCpu ? (payload as SegmentationResponse) : rawResponse;
 		const response = includeWbwTimestamps
-			? await enrichSegmentationResponseWithWordTimestamps(rawResponse)
-			: rawResponse;
+			? await enrichSegmentationResponseWithWordTimestamps(finalRawResponse)
+			: finalRawResponse;
 		const contextModelName =
 			effectiveMode === 'api'
 				? cloudModel
-				: localAsrMode === 'multi_aligner'
+				: localAsrMode === 'multi_aligner' || localAsrMode === 'open_multi_aligner'
 					? multiAlignerModel
 					: legacyWhisperModel;
 		return await applySegmentationResponseToProject({

@@ -11,12 +11,23 @@ import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner';
+	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'open_multi_aligner';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
 	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-	multiAlignerModel: 'Base' | 'Large';
+	multiAlignerModel:
+		| 'Base'
+		| 'Large'
+		| 'Open-Tadabur-Small'
+		| 'Open-DeepDML-Small-Mix'
+		| 'Open-DeepDML-Medium-Mix'
+		| 'Open-IJyad-Large-V3'
+		| 'Open-Naazim-Large-V3-Turbo'
+		| 'Open-Legacy-Tiny'
+		| 'Open-Legacy-Base'
+		| 'Open-Legacy-Medium'
+		| 'Open-Legacy-Large';
 	cloudModel: 'Base' | 'Large';
 	device: 'GPU' | 'CPU';
 	hfToken: string;

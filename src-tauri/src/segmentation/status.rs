@@ -152,18 +152,22 @@ pub async fn check_local_segmentation_ready(
                         MIN_LOCAL_PYTHON_MINOR,
                         error
                     ),
-                    "engines": {
-                        "legacy": {
-                            "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                            "message": "Python not installed"
-                        },
-                        "multi": {
-                            "ready": false, "venvExists": false, "packagesInstalled": false,
-                            "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
-                            "message": "Python not installed"
+                        "engines": {
+                            "legacy": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                "message": "Python not installed"
+                            },
+                            "multi": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false,
+                                "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
+                                "message": "Python not installed"
+                            },
+                            "openMulti": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                "message": "Python not installed"
+                            }
                         }
-                    }
-                });
+                    });
             }
 
             let legacy_venv = match get_engine_venv_path(&app_handle, LocalSegmentationEngine::LegacyWhisper) {
@@ -180,6 +184,10 @@ pub async fn check_local_segmentation_ready(
                             "multi": {
                                 "ready": false, "venvExists": false, "packagesInstalled": false,
                                 "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
+                                "message": "Failed to resolve local env path"
+                            },
+                            "openMulti": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                 "message": "Failed to resolve local env path"
                             }
                         }
@@ -202,17 +210,48 @@ pub async fn check_local_segmentation_ready(
                                 "ready": false, "venvExists": false, "packagesInstalled": false,
                                 "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
                                 "message": "Failed to resolve local env path"
+                            },
+                            "openMulti": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                "message": "Failed to resolve local env path"
                             }
                         }
                     });
                 }
             };
+            let open_multi_venv =
+                match get_engine_venv_path(&app_handle, LocalSegmentationEngine::OpenMultiAligner) {
+                    Ok(path) => path,
+                    Err(error) => {
+                        return serde_json::json!({
+                            "ready": false, "pythonInstalled": true, "packagesInstalled": false,
+                            "message": format!("Failed to resolve local env paths: {}", error),
+                            "engines": {
+                                "legacy": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                    "message": "Failed to resolve local env path"
+                                },
+                                "multi": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false,
+                                    "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
+                                    "message": "Failed to resolve local env path"
+                                },
+                                "openMulti": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                    "message": "Failed to resolve local env path"
+                                }
+                            }
+                        });
+                    }
+                };
 
             // Vérifications import/venv par moteur.
             let legacy_python = get_venv_python_exe(&legacy_venv);
             let multi_python = get_venv_python_exe(&multi_venv);
+            let open_multi_python = get_venv_python_exe(&open_multi_venv);
             let legacy_venv_exists = legacy_python.exists();
             let multi_venv_exists = multi_python.exists();
+            let open_multi_venv_exists = open_multi_python.exists();
 
             let (legacy_imports_ok, legacy_missing_modules) = run_python_import_check(
                 &legacy_python,
@@ -223,6 +262,10 @@ pub async fn check_local_segmentation_ready(
             let (multi_imports_ok, multi_missing_modules) = run_python_import_check(
                 &multi_python,
                 LocalSegmentationEngine::MultiAligner.required_import_modules(),
+            );
+            let (open_multi_imports_ok, open_multi_missing_modules) = run_python_import_check(
+                &open_multi_python,
+                LocalSegmentationEngine::OpenMultiAligner.required_import_modules(),
             );
             let multi_phonemizer_ok = run_python_any_import_check(
                 &multi_python,
@@ -242,17 +285,19 @@ pub async fn check_local_segmentation_ready(
 
             let legacy_packages = legacy_imports_ok && legacy_versions_ok;
             let multi_packages = multi_imports_ok && multi_phonemizer_ok && multi_data_error.is_none();
+            let open_multi_packages = open_multi_imports_ok;
             let legacy_ready = legacy_venv_exists && legacy_packages;
             let multi_ready = multi_venv_exists && multi_packages;
+            let open_multi_ready = open_multi_venv_exists && open_multi_packages;
             let multi_usable = multi_ready && token_provided;
-            let any_ready = legacy_ready || multi_usable;
+            let any_ready = legacy_ready || multi_usable || open_multi_ready;
 
             let overall_message = if any_ready {
                 "Local segmentation is ready".to_string()
             } else if legacy_ready && !multi_usable {
                 "Legacy local engine is ready. Multi-aligner requires a Hugging Face token with access to private models.".to_string()
-            } else if !legacy_venv_exists && !multi_venv_exists {
-                "Local engines are not installed yet. Install dependencies for Legacy Whisper and/or Multi-Aligner.".to_string()
+            } else if !legacy_venv_exists && !multi_venv_exists && !open_multi_venv_exists {
+                "Local engines are not installed yet. Install dependencies for Legacy Whisper, Multi-Aligner, and/or Open Multi-Aligner.".to_string()
             } else {
                 "Local engines need setup or a Hugging Face token with private model access for Multi-Aligner.".to_string()
             };
@@ -260,7 +305,7 @@ pub async fn check_local_segmentation_ready(
             serde_json::json!({
                 "ready": any_ready,
                 "pythonInstalled": true,
-                "packagesInstalled": legacy_ready || multi_ready,
+                "packagesInstalled": legacy_ready || multi_ready || open_multi_ready,
                 "message": overall_message,
                 "engines": {
                     "legacy": {
@@ -315,6 +360,24 @@ pub async fn check_local_segmentation_ready(
                         } else {
                             "Multi-Aligner packages are incomplete".to_string()
                         }
+                    },
+                    "openMulti": {
+                        "ready": open_multi_ready,
+                        "venvExists": open_multi_venv_exists,
+                        "packagesInstalled": open_multi_packages,
+                        "usable": open_multi_ready,
+                        "message": if open_multi_ready {
+                            "Open Multi-Aligner local engine is ready".to_string()
+                        } else if !open_multi_venv_exists {
+                            "Open Multi-Aligner dependencies are not installed".to_string()
+                        } else if !open_multi_missing_modules.is_empty() {
+                            format!(
+                                "Open Multi-Aligner packages are incomplete (missing imports: {})",
+                                open_multi_missing_modules.join(", ")
+                            )
+                        } else {
+                            "Open Multi-Aligner packages are incomplete".to_string()
+                        }
                     }
                 }
             })
@@ -339,6 +402,10 @@ pub async fn check_local_segmentation_ready(
                     "ready": false, "venvExists": false, "packagesInstalled": false,
                     "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
                     "message": "Check timed out"
+                },
+                "openMulti": {
+                    "ready": false, "venvExists": false, "packagesInstalled": false,
+                    "usable": false, "message": "Check timed out"
                 }
             }
         })),

@@ -474,7 +474,7 @@
 	// === GESTION AUDIO AVEC HOWLER ===
 	let audioHowl: Howl | null = null; // Instance Howler pour la lecture audio
 	let isPlaying = $state(false); // État de lecture global
-	let audioUpdateInterval: number | null = null; // Intervalle pour la mise à jour du curseur audio
+	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
 	let audioSpeed = $state(1); // Vitesse de lecture audio
 
 	export function togglePlayPause() {

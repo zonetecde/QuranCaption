@@ -19,7 +19,7 @@
 
 	// Variable réactive pour forcer les mises à jour
 	let currentTime = $state(Date.now());
-	let intervalId: number | undefined;
+	let intervalId: ReturnType<typeof setInterval> | undefined;
 
 	// Fonction pour formater la durée en format lisible
 	function formatDuration(ms: number): string {

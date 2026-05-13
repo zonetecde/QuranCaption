@@ -269,11 +269,14 @@
 		cursorTimeS: number,
 		currentClipId: number | null
 	): SegmentationWordTimestamp | null {
-		if (timings.length === 0) return null;
+		const validTimings = timings.filter(
+			(timing): timing is SegmentationWordTimestamp => timing !== undefined && timing !== null
+		);
+		if (validTimings.length === 0) return null;
 
 		// Priorité 1 : timing correspondant au clip courant
 		if (currentClipId !== null) {
-			const currentClipTiming = timings.find(
+			const currentClipTiming = validTimings.find(
 				(timing) =>
 					(timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
 			);
@@ -281,19 +284,19 @@
 		}
 
 		// Priorité 2 : timing actif
-		const activeTiming = timings.find(
+		const activeTiming = validTimings.find(
 			(word) => cursorTimeS >= word.start && cursorTimeS <= word.end
 		);
 		if (activeTiming) return activeTiming;
 
 		// Priorité 3 : dernier timing passé
-		const pastTimings = timings.filter((word) => word.start <= cursorTimeS);
+		const pastTimings = validTimings.filter((word) => word.start <= cursorTimeS);
 		if (pastTimings.length > 0) {
 			return pastTimings[pastTimings.length - 1];
 		}
 
 		// Priorité 4 : premier timing
-		return timings[0];
+		return validTimings[0];
 	}
 
 	/**

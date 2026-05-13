@@ -7,6 +7,7 @@ export type WordByWordHighlightState = {
 	activeWordIndex: number;
 	persistColor: boolean;
 	revealWordsOnRecitation: boolean;
+	alwaysShowVerseNumber: boolean;
 	baseColor: string;
 	color: string;
 	backgroundEnabled: boolean;
@@ -30,6 +31,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		activeWordIndex: -1,
 		persistColor: false,
 		revealWordsOnRecitation: false,
+		alwaysShowVerseNumber: false,
 		baseColor: '',
 		color: '',
 		backgroundEnabled: false,
@@ -107,6 +109,7 @@ export function getWordByWordHighlightState(params: {
 		activeWordIndex,
 		persistColor: Boolean(getStyleValue('wbw-persist-color')),
 		revealWordsOnRecitation: Boolean(getStyleValue('wbw-reveal-on-recitation')),
+		alwaysShowVerseNumber: Boolean(getStyleValue('wbw-always-show-verse-number')),
 		baseColor: String(getStyleValue('text-color') ?? ''),
 		color: String(getStyleValue('wbw-color') ?? ''),
 		backgroundEnabled: Boolean(getStyleValue('enable-wbw-background')),
@@ -271,7 +274,7 @@ export function getWordByWordWordCss(
  * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
  * @returns {number} Opacité normalisée entre 0 et 1.
  */
-function getWordByWordWordOpacity(
+export function getWordByWordWordOpacity(
 	wordIndex: number,
 	state: WordByWordHighlightState,
 	fadeDurationMs: number

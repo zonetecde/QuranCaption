@@ -33,7 +33,8 @@
 	import {
 		getWordByWordHighlightState as computeWordByWordHighlightState,
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
-		getWordByWordWordCss as buildWordByWordWordCss
+		getWordByWordWordCss as buildWordByWordWordCss,
+		getWordByWordWordOpacity
 	} from './wordByWordHighlightUtils';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 
@@ -1127,10 +1128,17 @@
 												{#if group.suffix}
 													<!-- Le suffixe (ex: numéro de verset) reste rattaché au groupe
 													qui le porte, au lieu d'être global au merge. -->
+													{@const suffixOpacity = wbwState.alwaysShowVerseNumber
+														? 1
+														: getWordByWordWordOpacity(
+															group.startWordIndex + group.words.length - 1,
+															wbwState,
+															wbwPreviewFadeDuration()
+														)}
 													<span
-														style={group.suffixFontFamily
-															? `font-family: ${group.suffixFontFamily};`
-															: ''}
+														style={(group.suffixFontFamily
+															? `font-family: ${group.suffixFontFamily}; `
+															: '') + `opacity: ${suffixOpacity};`}
 													>
 														{group.suffix}
 													</span>
@@ -1169,10 +1177,17 @@
 												</span>
 											{/each}
 											{#if group.suffix}
+												{@const suffixOpacity = wbwState.alwaysShowVerseNumber
+													? 1
+													: getWordByWordWordOpacity(
+														group.startWordIndex + group.words.length - 1,
+														wbwState,
+														wbwPreviewFadeDuration()
+													)}
 												<span
-													style={group.suffixFontFamily
-														? `font-family: ${group.suffixFontFamily};`
-														: ''}
+													style={(group.suffixFontFamily
+														? `font-family: ${group.suffixFontFamily}; `
+														: '') + `opacity: ${suffixOpacity};`}
 												>
 													{group.suffix}
 												</span>

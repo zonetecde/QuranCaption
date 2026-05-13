@@ -118,7 +118,8 @@ export type WordByWordHighlightStyleName =
 	| 'enable-wbw-background'
 	| 'enable-wbw-underline'
 	| 'wbw-bg-color'
-	| 'wbw-underline-thickness';
+	| 'wbw-underline-thickness'
+	| 'wbw-always-show-verse-number';
 
 export type OverlayStyleName =
 	| 'overlay-enable'

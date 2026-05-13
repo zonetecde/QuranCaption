@@ -51,7 +51,17 @@
 				"description": "Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.",
 				"value": "LM",
 				"valueType": "brackets-font",
-				"options": ["LM", "NO", "PQ", "RS", "TU", "VW", "XY", "Z:", "()"],
+				"options": [
+					"LM",
+					"NO",
+					"PQ",
+					"RS",
+					"TU",
+					"VW",
+					"XY",
+					"Z:",
+					"()"
+				],
 				"css": "",
 				"tailwind": false,
 				"icon": "font_download"
@@ -62,7 +72,11 @@
 				"description": "Choose the Arabic script source for Quran subtitles.",
 				"value": "Uthmani",
 				"valueType": "select",
-				"options": ["Uthmani", "Indopak", "Tajweed"],
+				"options": [
+					"Uthmani",
+					"Indopak",
+					"Tajweed"
+				],
 				"css": "",
 				"tailwind": false,
 				"icon": "menu_book"
@@ -83,7 +97,10 @@
 				"description": "Set the position of verse numbers",
 				"value": "before",
 				"valueType": "select",
-				"options": ["before", "after"],
+				"options": [
+					"before",
+					"after"
+				],
 				"css": "",
 				"tailwind": false,
 				"icon": "123"
@@ -135,7 +152,12 @@
 				"description": "Set the thickness of the font",
 				"value": "normal",
 				"valueType": "select",
-				"options": ["normal", "bold", "lighter", "bolder"],
+				"options": [
+					"normal",
+					"bold",
+					"lighter",
+					"bolder"
+				],
 				"css": "font-weight: {value};",
 				"tailwind": false,
 				"icon": "format_bold"
@@ -156,7 +178,12 @@
 				"description": "Transform the case of the text",
 				"value": "none",
 				"valueType": "select",
-				"options": ["none", "uppercase", "lowercase", "capitalize"],
+				"options": [
+					"none",
+					"uppercase",
+					"lowercase",
+					"capitalize"
+				],
 				"css": "text-transform: {value};",
 				"tailwind": false,
 				"icon": "text_format"
@@ -282,6 +309,16 @@
 				"icon": "visibility_off"
 			},
 			{
+				"id": "wbw-always-show-verse-number",
+				"name": "Always Show Verse Number",
+				"description": "Keep the verse number visible at all times during word-by-word highlighting. When disabled, the verse number fades in together with the last word of the verse.",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "123"
+			},
+			{
 				"id": "enable-wbw-background",
 				"name": "Enable wbw background",
 				"description": "Enable a background color behind highlighted words",
@@ -377,7 +414,12 @@
 				"description": "Set the alignment of the text",
 				"value": "center",
 				"valueType": "select",
-				"options": ["left", "center", "right", "justify"],
+				"options": [
+					"left",
+					"center",
+					"right",
+					"justify"
+				],
 				"css": {
 					"left": "text-align: left; justify-content: flex-start;",
 					"center": "text-align: center; justify-content: center;",
@@ -393,7 +435,11 @@
 				"description": "Align text vertically when paragraph height is large",
 				"value": "center",
 				"valueType": "select",
-				"options": ["top", "center", "bottom"],
+				"options": [
+					"top",
+					"center",
+					"bottom"
+				],
 				"css": {
 					"top": "display: flex; align-items: flex-start;",
 					"center": "display: flex; align-items: center;",
@@ -524,7 +570,14 @@
 				"description": "Choose the style of the border",
 				"value": "solid",
 				"valueType": "select",
-				"options": ["solid", "dashed", "dotted", "double", "groove", "ridge"],
+				"options": [
+					"solid",
+					"dashed",
+					"dotted",
+					"double",
+					"groove",
+					"ridge"
+				],
 				"css": "border-style: {value};",
 				"tailwind": false,
 				"icon": "more_horiz"

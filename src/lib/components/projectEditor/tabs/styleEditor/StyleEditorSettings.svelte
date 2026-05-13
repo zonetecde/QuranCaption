@@ -469,7 +469,10 @@
 									(category.id.includes('custom-text') &&
 										category.getStyle('always-show')?.value &&
 										(style.id === 'time-appearance' || style.id === 'time-disappearance')) ||
-									isGlobalTimedOverlayStyleDisabled(category.id, style.id)}
+									isGlobalTimedOverlayStyleDisabled(category.id, style.id) ||
+									(category.id === 'word-by-word-highlight' &&
+										!category.getStyle('wbw-reveal-on-recitation')?.value &&
+										style.id === 'wbw-always-show-verse-number')}
 								<!-- Si la recherche est vide ou si le nom du style correspond à la requête de recherche -->
 								<StyleComponent
 									{style}

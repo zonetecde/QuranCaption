@@ -845,8 +845,6 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
             "2",
             "-ar",
             "44100",
-            "-s",
-            "320x240",
             "-y",
             temp_path.to_string_lossy().as_ref(),
         ]);

@@ -112,18 +112,18 @@ export default class Exporter {
 			focus: false,
 			skipTaskbar: true,
 			preventOverflow: false,
-			// x: -10000,
-			// y: -10000,
+			x: -10000,
+			y: -10000,
 			backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
-			alwaysOnTop: true,
-			alwaysOnBottom: false,
+			alwaysOnTop: false,
+			alwaysOnBottom: true,
 			title: 'QC - ' + exportId,
 			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
 		});
 
 		w.once('tauri://created', async () => {
 			try {
-				// await w.setPosition(new LogicalPosition(-10000, -10000));
+				await w.setPosition(new LogicalPosition(-10000, -10000));
 			} catch (error) {
 				console.warn('Unable to move export window off-screen:', error);
 			}

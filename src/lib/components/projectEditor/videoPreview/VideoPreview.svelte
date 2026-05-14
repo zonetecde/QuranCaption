@@ -813,6 +813,14 @@
 	});
 </script>
 
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape' && globalState.getVideoPreviewState.isFullscreen) {
+			globalState.getVideoPreviewState.toggleFullScreen();
+		}
+	}}
+/>
+
 <section
 	class="overflow-hidden min-h-0"
 	id="video-preview-section"

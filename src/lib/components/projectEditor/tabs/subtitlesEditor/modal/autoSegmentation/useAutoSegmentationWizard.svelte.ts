@@ -140,7 +140,7 @@ export function useAutoSegmentationWizard() {
 				  !selectedLocalEngineStatus()?.usable
 				? 'Install the required local packages first.'
 				: selection.aiVersion === 'muaalem_local'
-					? 'Muaalem Local uses a fully local Quran-specific pipeline. It is easier to install than the private stack, but generally less effective than the official Quranic Universal Aligner.'
+					? 'Muaalem Local uses a fully local Quran-specific pipeline, but it is generally less effective than the official Quranic Universal Aligner.'
 					: selection.mode === 'local'
 						? "Local mode uses your computer's resources."
 						: 'Cloud mode uses the Quranic Universal Aligner.'
@@ -285,16 +285,13 @@ export function useAutoSegmentationWizard() {
 		isInstallingDeps = true;
 		installingEngine = engine;
 		installStatus = '';
-		const unlisten = await listen<{ message: string }>(
-			'install-status',
-			(event) => {
-				const payload = {
-					step: 'install',
-					message: event.payload.message
-				};
-				installStatus = `[segmentation][local][status][${engine}] STATUS:${JSON.stringify(payload)}`;
-			}
-		);
+		const unlisten = await listen<{ message: string }>('install-status', (event) => {
+			const payload = {
+				step: 'install',
+				message: event.payload.message
+			};
+			installStatus = `[segmentation][local][status][${engine}] STATUS:${JSON.stringify(payload)}`;
+		});
 		try {
 			await installLocalSegmentationDeps(
 				engine,
@@ -458,7 +455,11 @@ export function useAutoSegmentationWizard() {
 	/** Executes segmentation while preserving fallback and analytics behavior. */
 	async function startSegmentation(): Promise<void> {
 		if (!canStart()) return;
-		if (selection.mode === 'local' && selection.localAsrMode === 'multi_aligner' && !selection.hfToken.trim()) {
+		if (
+			selection.mode === 'local' &&
+			selection.localAsrMode === 'multi_aligner' &&
+			!selection.hfToken.trim()
+		) {
 			errorMessage =
 				'Private Local Quranic Universal Aligner requires a Hugging Face token with access to private models (hetchyy/r15_95m, hetchyy/r7).';
 			return;
@@ -509,17 +510,17 @@ export function useAutoSegmentationWizard() {
 					fillBySilence,
 					extendBeforeSilence,
 					extendBeforeSilenceMs,
-			onRunConfirmed: () => {
-				if (estimatedDurationForRun && estimatedDurationForRun > 0) {
-					pendingEstimatedDurationS = estimatedDurationForRun;
-					if (selection.mode === 'local' && selection.localAsrMode === 'multi_aligner') {
-						waitForLocalMultiAlignerStage = true;
-					} else {
-						startEstimatedProgressTimer(estimatedDurationForRun);
+					onRunConfirmed: () => {
+						if (estimatedDurationForRun && estimatedDurationForRun > 0) {
+							pendingEstimatedDurationS = estimatedDurationForRun;
+							if (selection.mode === 'local' && selection.localAsrMode === 'multi_aligner') {
+								waitForLocalMultiAlignerStage = true;
+							} else {
+								startEstimatedProgressTimer(estimatedDurationForRun);
+							}
+						}
 					}
-				}
-			}
-		},
+				},
 				selection.mode
 			);
 			applySegmentationResponse(response);
@@ -578,7 +579,11 @@ export function useAutoSegmentationWizard() {
 	/** Sets local multi-aligner model and persists the choice. */
 	function setMultiModel(value: MultiAlignerModel): void {
 		selection.multiModel = value;
-		if (selection.aiVersion === 'muaalem_local' && value !== 'Muaalem-v3.2' && includeWbwTimestamps) {
+		if (
+			selection.aiVersion === 'muaalem_local' &&
+			value !== 'Muaalem-v3.2' &&
+			includeWbwTimestamps
+		) {
 			includeWbwTimestamps = false;
 			persistPatch({ includeWbwTimestamps: false });
 		}

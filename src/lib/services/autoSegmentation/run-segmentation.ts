@@ -9,7 +9,11 @@ import type {
 	SegmentationMode,
 	SegmentationResponse
 } from './types';
-import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips, getPreferredSegmentationMode } from './audio';
+import {
+	getAutoSegmentationAudioInfo,
+	getAutoSegmentationAudioClips,
+	getPreferredSegmentationMode
+} from './audio';
 import { parseSegmentationResponseFromThrownError } from './parsing';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
@@ -22,7 +26,11 @@ import { applySegmentationResponseToProject } from './apply-segmentation';
  * @returns {boolean} True si un retry CPU est pertinent.
  */
 function shouldRetryCloudOnCpu(message: string, device: SegmentationDevice): boolean {
-	return device === 'GPU' && /GPU/i.test(message) && /(quota exhausted|retry with device=CPU|daily limit)/i.test(message);
+	return (
+		device === 'GPU' &&
+		/GPU/i.test(message) &&
+		/(quota exhausted|retry with device=CPU|daily limit)/i.test(message)
+	);
 }
 
 /**
@@ -70,10 +78,45 @@ function hasRelativeMuaalemWordTimings(
 }
 
 /**
- * Normalise les timestamps WBW Muaalem en temps relatifs au segment quand nécessaire.
+ * Reconstruit les fins de mots Muaalem à partir du start du mot suivant.
  *
- * @param {SegmentationResponse} response Réponse brute de segmentation.
- * @returns {SegmentationResponse} Réponse avec mots normalisés.
+ * @param {number} segmentDuration Durée totale du segment en secondes.
+ * @param {Array<{ start: number; end: number; location: string; word: string }>} words Liste des mots.
+ * @returns {Array<{ start: number; end: number; location: string; word: string }>} Liste avec fins reconstruites.
+ */
+function rebuildMuaalemWordEnds(
+	segmentDuration: number,
+	words: Array<{ start: number; end: number; location: string; word?: string }>
+): Array<{ start: number; end: number; location: string; word?: string }> {
+	const normalizedWords = words.map((word) => ({
+		...word,
+		start: Math.max(0, word.start)
+	}));
+
+	for (let index = 1; index < normalizedWords.length; index += 1) {
+		const previousWord = normalizedWords[index - 1];
+		const currentWord = normalizedWords[index];
+		if (currentWord.start < previousWord.start) {
+			currentWord.start = previousWord.end;
+		}
+	}
+
+	return normalizedWords.map((word, index) => {
+		const nextStart = normalizedWords[index + 1]?.start ?? segmentDuration;
+		const safeEnd = Math.max(word.start, Math.min(segmentDuration, nextStart));
+
+		return {
+			...word,
+			end: safeEnd
+		};
+	});
+}
+
+/**
+ * Normalise les timestamps WBW Muaalem en temps relatifs au segment quand n?cessaire.
+ *
+ * @param {SegmentationResponse} response R?ponse brute de segmentation.
+ * @returns {SegmentationResponse} R?ponse avec mots normalis?s.
  */
 function normalizeMuaalemWordTimings(response: SegmentationResponse): SegmentationResponse {
 	return {
@@ -81,17 +124,24 @@ function normalizeMuaalemWordTimings(response: SegmentationResponse): Segmentati
 		segments: (response.segments ?? []).map((segment) => {
 			const segmentStart = segment.time_from ?? 0;
 			const segmentEnd = segment.time_to ?? segmentStart;
+			const segmentDuration = Math.max(0, segmentEnd - segmentStart);
 			const words = segment.words ?? [];
 			if (hasRelativeMuaalemWordTimings(segmentStart, segmentEnd, words)) {
-				return segment;
+				return {
+					...segment,
+					words: rebuildMuaalemWordEnds(segmentDuration, words)
+				};
 			}
 			return {
 				...segment,
-				words: words.map((word) => ({
-					...word,
-					start: Math.max(0, word.start - segmentStart),
-					end: Math.max(0, word.end - segmentStart)
-				}))
+				words: rebuildMuaalemWordEnds(
+					segmentDuration,
+					words.map((word) => ({
+						...word,
+						start: Math.max(0, word.start - segmentStart),
+						end: Math.max(0, word.end - segmentStart)
+					}))
+				)
 			};
 		})
 	};
@@ -141,7 +191,8 @@ function resolveContextModelName(
 	legacyWhisperModel: string
 ): string {
 	if (effectiveMode === 'api') return cloudModel;
-	if (localAsrMode === 'multi_aligner' || localAsrMode === 'muaalem_local') return multiAlignerModel;
+	if (localAsrMode === 'multi_aligner' || localAsrMode === 'muaalem_local')
+		return multiAlignerModel;
 	return legacyWhisperModel;
 }
 
@@ -263,7 +314,10 @@ export async function runAutoSegmentation(
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				if (shouldRetryCloudOnCpu(errorMessage, device)) {
-					console.warn('[AutoSegmentation] Cloud GPU run failed, retrying once on CPU:', errorMessage);
+					console.warn(
+						'[AutoSegmentation] Cloud GPU run failed, retrying once on CPU:',
+						errorMessage
+					);
 					payload = await invokeCloudWithDevice('CPU');
 					cloudGpuFallbackToCpu = true;
 				} else {
@@ -294,7 +348,10 @@ export async function runAutoSegmentation(
 						throw localError;
 					}
 				} else {
-					console.warn('[AutoSegmentation] Local mode failed, falling back to cloud:', localMessage);
+					console.warn(
+						'[AutoSegmentation] Local mode failed, falling back to cloud:',
+						localMessage
+					);
 					fallbackWarning = `Local mode failed and was switched to Cloud: ${localMessage}`;
 					fallbackToCloud = true;
 					effectiveMode = 'api';
@@ -324,8 +381,9 @@ export async function runAutoSegmentation(
 			cloudGpuFallbackToCpu = true;
 		}
 
-		const finalRawResponseBase: SegmentationResponse =
-			cloudGpuFallbackToCpu ? (payload as SegmentationResponse) : rawResponse;
+		const finalRawResponseBase: SegmentationResponse = cloudGpuFallbackToCpu
+			? (payload as SegmentationResponse)
+			: rawResponse;
 		const finalRawResponse: SegmentationResponse =
 			localAsrMode === 'muaalem_local'
 				? normalizeMuaalemWordTimings(finalRawResponseBase)

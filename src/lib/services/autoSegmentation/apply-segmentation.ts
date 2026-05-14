@@ -247,6 +247,16 @@ async function materializeTemplate(
 }
 
 /**
+ * Indique si la réponse provient de la pipeline locale Muaalem v3.2.
+ *
+ * @param {ApplySegmentationResponseParams} params Paramètres d'application.
+ * @returns {boolean} True si le moteur est Muaalem v3.2.
+ */
+function isMuaalemLocalV32(params: ApplySegmentationResponseParams): boolean {
+	return params.segmentationSource === 'local' && params.modelName === 'Muaalem-v3.2';
+}
+
+/**
  * Traite un segment cross-verse en le découpant en plusieurs clips
  * (un par verset), en utilisant ou non les timestamps WBW.
  *
@@ -488,6 +498,7 @@ export async function applySegmentationResponseToProject(
 	const reviewSegments = { value: 0 };
 	const storedAlignedSegments: StoredAlignedSegment[] = [];
 	const clipTemplates: SegmentationClipTemplate[] = [];
+	const isMuaalemLocal = isMuaalemLocalV32(params);
 
 	const orderedSegments: SegmentationSegment[] = [...segments].sort(
 		(a, b) => (a.time_from ?? 0) - (b.time_from ?? 0)
@@ -509,11 +520,13 @@ export async function applySegmentationResponseToProject(
 	};
 
 	// Détection des gaps de couverture
-	const coverageGapIndices = await detectCoverageGapIndices(orderedSegments, {
-		getVerseWordCount,
-		getVerseCount: (surah) => Quran.getVerseCount(surah),
-		getSurahCount: () => Quran.getSurahs().length
-	});
+	const coverageGapIndices = isMuaalemLocal
+		? new Set<number>()
+		: await detectCoverageGapIndices(orderedSegments, {
+				getVerseWordCount,
+				getVerseCount: (surah) => Quran.getVerseCount(surah),
+				getSurahCount: () => Quran.getSurahs().length
+			});
 
 	const segmentErrors: string[] = [];
 
@@ -533,7 +546,7 @@ export async function applySegmentationResponseToProject(
 		const needsCoverageReview: boolean =
 			coverageGapIndices.has(segmentIndex) ||
 			segment.has_missing_words === true ||
-			segment.potentially_undersegmented === true;
+			(!isMuaalemLocal && segment.potentially_undersegmented === true);
 
 		// Types prédéfinis (Basmala, Isti'adha, etc.)
 		const predefinedType: PredefinedType | null = getPredefinedType(

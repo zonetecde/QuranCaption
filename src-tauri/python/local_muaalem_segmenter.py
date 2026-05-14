@@ -18,6 +18,7 @@ import json
 import os
 import shutil
 import sys
+import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -192,12 +193,15 @@ def canonical_text_to_phonetic(text: str) -> str:
     """Convert canonical Quran text to the comparable phonetic representation."""
     from quran_transcript import quran_phonetizer
 
-    phonemes = quran_phonetizer(text, get_moshaf_attributes(), remove_spaces=True).phonemes
+    normalized_text = unicodedata.normalize("NFC", text)
+    phonemes = quran_phonetizer(
+        normalized_text, get_moshaf_attributes(), remove_spaces=True
+    ).phonemes
     return normalize_phonetic_query(phonemes)
 
 
-def compute_match_confidence(query: str, matched_text: str) -> float:
-    """Compute a simple confidence score between the recognized query and the matched Quran text."""
+def compute_match_confidence(query: str, matched_text: str, results_count: int = 1) -> float:
+    """Compute a confidence score between the recognized query and the matched Quran text."""
     query_norm = normalize_phonetic_query(query)
     if not query_norm:
         return 0.0
@@ -208,7 +212,18 @@ def compute_match_confidence(query: str, matched_text: str) -> float:
         reference_norm = ""
 
     if not reference_norm:
-        return 0.5
+        query_len = len(query_norm)
+        if query_len >= 18:
+            base_confidence = 0.9
+        elif query_len >= 12:
+            base_confidence = 0.86
+        elif query_len >= 8:
+            base_confidence = 0.82
+        else:
+            base_confidence = 0.76
+
+        ambiguity_penalty = min(0.18, max(0, results_count - 1) * 0.03)
+        return round(max(0.55, base_confidence - ambiguity_penalty), 3)
 
     return round(SequenceMatcher(None, query_norm, reference_norm).ratio(), 3)
 
@@ -417,7 +432,7 @@ def resolve_match(query: str, previous_end_idx: Optional[int]) -> Optional[Resol
     chosen_result, start_idx, end_idx = chosen
     quran_index = get_quran_index()
     matched_text = quran_index.get_original_text(start_idx, end_idx)
-    confidence = compute_match_confidence(query, matched_text)
+    confidence = compute_match_confidence(query, matched_text, len(results))
     has_missing_words = previous_end_idx is not None and start_idx > previous_end_idx + 1
     potentially_undersegmented = confidence < 0.6 or len(results) > 5
 

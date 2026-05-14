@@ -430,9 +430,21 @@ pub async fn segment_quran_audio_local_muaalem(
     include_wbw_timestamps: Option<bool>,
 ) -> Result<serde_json::Value, String> {
     let selected_model = model_name.unwrap_or_else(|| "Muaalem-v3.2".to_string());
-    if selected_model != "Muaalem-v3.2" {
+    let valid_models = [
+        "Muaalem-v3.2",
+        "Open-Tadabur-Small",
+        "Open-DeepDML-Small-Mix",
+        "Open-DeepDML-Medium-Mix",
+        "Open-IJyad-Large-V3",
+        "Open-Naazim-Large-V3-Turbo",
+        "Open-Legacy-Tiny",
+        "Open-Legacy-Base",
+        "Open-Legacy-Medium",
+        "Open-Legacy-Large",
+    ];
+    if !valid_models.contains(&selected_model.as_str()) {
         return Err(format!(
-            "Invalid model_name '{}'. Expected 'Muaalem-v3.2'.",
+            "Invalid model_name '{}'.",
             selected_model
         ));
     }

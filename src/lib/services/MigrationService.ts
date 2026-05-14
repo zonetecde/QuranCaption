@@ -693,7 +693,19 @@ export default class MigrationService {
 		}
 
 		if (autoSegmentationSettings.localAsrMode === 'muaalem_local') {
-			if (autoSegmentationSettings.multiAlignerModel !== 'Muaalem-v3.2') {
+			const validModels = new Set([
+				'Muaalem-v3.2',
+				'Open-Tadabur-Small',
+				'Open-DeepDML-Small-Mix',
+				'Open-DeepDML-Medium-Mix',
+				'Open-IJyad-Large-V3',
+				'Open-Naazim-Large-V3-Turbo',
+				'Open-Legacy-Tiny',
+				'Open-Legacy-Base',
+				'Open-Legacy-Medium',
+				'Open-Legacy-Large'
+			]);
+			if (!validModels.has(autoSegmentationSettings.multiAlignerModel ?? '')) {
 				autoSegmentationSettings.multiAlignerModel = 'Muaalem-v3.2';
 				hasChanges = true;
 			}

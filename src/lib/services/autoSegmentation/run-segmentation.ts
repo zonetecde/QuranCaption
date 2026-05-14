@@ -46,7 +46,31 @@ function shouldRetryMuaalemOnCpu(
 }
 
 /**
- * Normalise les timestamps WBW Muaalem en temps relatifs au segment.
+ * Indique si une liste de mots Muaalem semble déjà exprimée relativement au segment.
+ *
+ * @param {number} segmentStart Début du segment en secondes sur l'audio global.
+ * @param {number} segmentEnd Fin du segment en secondes sur l'audio global.
+ * @param {Array<{ start: number; end: number }>} words Liste des mots du segment.
+ * @returns {boolean} True si les mots semblent déjà relatifs au segment.
+ */
+function hasRelativeMuaalemWordTimings(
+	segmentStart: number,
+	segmentEnd: number,
+	words: Array<{ start: number; end: number }>
+): boolean {
+	if (words.length === 0) return true;
+
+	const epsilon = 0.001;
+	const segmentDuration = Math.max(0, segmentEnd - segmentStart);
+	const minStart = Math.min(...words.map((word) => word.start));
+	const maxEnd = Math.max(...words.map((word) => word.end));
+
+	if (minStart <= epsilon && maxEnd <= segmentDuration + epsilon) return true;
+	return maxEnd <= segmentDuration + epsilon && minStart < segmentStart - epsilon;
+}
+
+/**
+ * Normalise les timestamps WBW Muaalem en temps relatifs au segment quand nécessaire.
  *
  * @param {SegmentationResponse} response Réponse brute de segmentation.
  * @returns {SegmentationResponse} Réponse avec mots normalisés.
@@ -56,9 +80,14 @@ function normalizeMuaalemWordTimings(response: SegmentationResponse): Segmentati
 		...response,
 		segments: (response.segments ?? []).map((segment) => {
 			const segmentStart = segment.time_from ?? 0;
+			const segmentEnd = segment.time_to ?? segmentStart;
+			const words = segment.words ?? [];
+			if (hasRelativeMuaalemWordTimings(segmentStart, segmentEnd, words)) {
+				return segment;
+			}
 			return {
 				...segment,
-				words: (segment.words ?? []).map((word) => ({
+				words: words.map((word) => ({
 					...word,
 					start: Math.max(0, word.start - segmentStart),
 					end: Math.max(0, word.end - segmentStart)

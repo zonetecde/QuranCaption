@@ -89,7 +89,16 @@ export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel =
 	| 'Base'
 	| 'Large'
-	| 'Muaalem-v3.2';
+	| 'Muaalem-v3.2'
+	| 'Open-Tadabur-Small'
+	| 'Open-DeepDML-Small-Mix'
+	| 'Open-DeepDML-Medium-Mix'
+	| 'Open-IJyad-Large-V3'
+	| 'Open-Naazim-Large-V3-Turbo'
+	| 'Open-Legacy-Tiny'
+	| 'Open-Legacy-Base'
+	| 'Open-Legacy-Medium'
+	| 'Open-Legacy-Large';
 export type SegmentationDevice = 'GPU' | 'CPU';
 
 export type LocalEngineStatus = {

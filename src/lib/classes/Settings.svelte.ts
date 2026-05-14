@@ -16,7 +16,19 @@ export type AutoSegmentationSettings = {
 	minSpeechMs: number;
 	padMs: number;
 	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-	multiAlignerModel: 'Base' | 'Large' | 'Muaalem-v3.2';
+		multiAlignerModel:
+			| 'Base'
+			| 'Large'
+			| 'Muaalem-v3.2'
+			| 'Open-Tadabur-Small'
+			| 'Open-DeepDML-Small-Mix'
+			| 'Open-DeepDML-Medium-Mix'
+			| 'Open-IJyad-Large-V3'
+			| 'Open-Naazim-Large-V3-Turbo'
+			| 'Open-Legacy-Tiny'
+			| 'Open-Legacy-Base'
+			| 'Open-Legacy-Medium'
+			| 'Open-Legacy-Large';
 	cloudModel: 'Base' | 'Large';
 	device: 'GPU' | 'CPU';
 	hfToken: string;

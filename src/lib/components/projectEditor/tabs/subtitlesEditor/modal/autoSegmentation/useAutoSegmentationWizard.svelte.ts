@@ -27,10 +27,15 @@ import {
 	getSelectedModelLabel
 } from './helpers/format';
 import { deriveSelectionState, persistSettingsPatch } from './helpers/persist';
+import { MUAALEM_ADVANCED_MODEL_OPTIONS, MUAALEM_MODEL_OPTIONS } from './constants';
 import type { AiVersion, SegmentationPreset, WizardRuntime, WizardSelectionState } from './types';
 
 /** Creates modal state and actions for the auto-segmentation wizard. */
 export function useAutoSegmentationWizard() {
+	const validMuaalemModels = new Set<string>([
+		...MUAALEM_MODEL_OPTIONS.map((option) => option.value),
+		...MUAALEM_ADVANCED_MODEL_OPTIONS.map((option) => option.value)
+	]);
 	const persisted = globalState.settings?.autoSegmentationSettings as
 		| AutoSegmentationSettings
 		| undefined;
@@ -80,7 +85,7 @@ export function useAutoSegmentationWizard() {
 		() =>
 			selection.aiVersion === 'multi_v2' ||
 			selection.aiVersion === 'multi_v2_local' ||
-			selection.aiVersion === 'muaalem_local'
+			(selection.aiVersion === 'muaalem_local' && selection.multiModel === 'Muaalem-v3.2')
 	);
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
@@ -185,7 +190,7 @@ export function useAutoSegmentationWizard() {
 				includeWbwTimestamps = true;
 				persistPatch({ includeWbwTimestamps: true });
 			}
-			if (selection.multiModel !== 'Muaalem-v3.2') {
+			if (!validMuaalemModels.has(selection.multiModel)) {
 				selection.multiModel = 'Muaalem-v3.2';
 				persistPatch({ multiAlignerModel: selection.multiModel });
 			}
@@ -573,6 +578,10 @@ export function useAutoSegmentationWizard() {
 	/** Sets local multi-aligner model and persists the choice. */
 	function setMultiModel(value: MultiAlignerModel): void {
 		selection.multiModel = value;
+		if (selection.aiVersion === 'muaalem_local' && value !== 'Muaalem-v3.2' && includeWbwTimestamps) {
+			includeWbwTimestamps = false;
+			persistPatch({ includeWbwTimestamps: false });
+		}
 		persistPatch({ multiAlignerModel: value });
 	}
 	/** Sets cloud model and persists the choice. */

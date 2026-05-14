@@ -1,6 +1,7 @@
 import Settings, { type AutoSegmentationSettings } from '$lib/classes/Settings.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import type { AiVersion, WizardSelectionState } from '../types';
+import { MUAALEM_ADVANCED_MODEL_OPTIONS, MUAALEM_MODEL_OPTIONS } from '../constants';
 
 /** Builds the wizard AI version from persisted settings. */
 export function deriveAiVersion(settings?: AutoSegmentationSettings): AiVersion {
@@ -17,6 +18,14 @@ export function deriveAiVersion(settings?: AutoSegmentationSettings): AiVersion 
 /** Creates a full wizard selection state from persisted settings. */
 export function deriveSelectionState(settings?: AutoSegmentationSettings): WizardSelectionState {
 	const aiVersion = deriveAiVersion(settings);
+	const validMuaalemModels = new Set<string>([
+		...MUAALEM_MODEL_OPTIONS.map((option) => option.value),
+		...MUAALEM_ADVANCED_MODEL_OPTIONS.map((option) => option.value)
+	]);
+	const muaalemModel =
+		settings?.multiAlignerModel && validMuaalemModels.has(settings.multiAlignerModel)
+			? settings.multiAlignerModel
+			: 'Muaalem-v3.2';
 	return {
 		aiVersion,
 		mode: aiVersion === 'multi_v2_local' || aiVersion === 'muaalem_local' ? 'local' : (settings?.mode ?? 'api'),
@@ -28,7 +37,7 @@ export function deriveSelectionState(settings?: AutoSegmentationSettings): Wizar
 					: 'cloud',
 		localAsrMode: aiVersion === 'muaalem_local' ? 'muaalem_local' : 'multi_aligner',
 		legacyModel: settings?.legacyWhisperModel ?? 'base',
-		multiModel: aiVersion === 'muaalem_local' ? 'Muaalem-v3.2' : (settings?.multiAlignerModel ?? 'Base'),
+		multiModel: aiVersion === 'muaalem_local' ? muaalemModel : (settings?.multiAlignerModel ?? 'Base'),
 		cloudModel: settings?.cloudModel ?? 'Base',
 		device: settings?.device ?? 'GPU',
 		hfToken: settings?.hfToken ?? ''

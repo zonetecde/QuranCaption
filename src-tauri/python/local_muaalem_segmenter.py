@@ -33,12 +33,17 @@ SCRIPT_DIR = Path(__file__).parent.absolute()
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from local_segmenter import download_data_files, load_audio
+from local_open_multi_aligner_segmenter import (
+    OPEN_MULTI_MODELS,
+    inject_local_word_timestamps,
+)
 from segment_core.quran_index import get_quran_index
 
 SEGMENTER_MODEL_ID = "obadx/recitation-segmenter-v2"
 STT_MODEL_ID = "obadx/muaalem-model-v3_2"
 ALIGNER_MODEL_ID = "nvidia/stt_ar_fastconformer_hybrid_large_pcd_v1.0"
 DEFAULT_ERROR_RATIO = 0.22
+MUAALEM_MODEL_CHOICES = ["Muaalem-v3.2", *OPEN_MULTI_MODELS.keys()]
 
 _SEGMENTER_CACHE: tuple[object, object] | None = None
 _STT_CACHE: tuple[object, object, object] | None = None
@@ -493,7 +498,24 @@ def process_audio_full(
     status_callback: Callable[[str, str], None],
 ) -> dict:
     """Run the full local Muaalem pipeline and return app-compatible JSON."""
-    del model_name
+    if model_name != "Muaalem-v3.2":
+        from segment_core.segment_processor import process_audio_full as process_open_audio_full
+
+        whisper_model = OPEN_MULTI_MODELS.get(model_name, OPEN_MULTI_MODELS["Open-Tadabur-Small"])
+        result = process_open_audio_full(
+            audio=audio,
+            sample_rate=sample_rate,
+            min_silence_ms=min_silence_ms,
+            min_speech_ms=min_speech_ms,
+            pad_ms=pad_ms,
+            whisper_model=whisper_model,
+            status_callback=status_callback,
+        )
+        if include_wbw_timestamps:
+            status_callback("wbw", "Generating local word-by-word timestamps...")
+            result = inject_local_word_timestamps(result)
+        return result
+
     device_context = resolve_device(device)
     intervals = detect_intervals(
         audio,
@@ -576,7 +598,7 @@ def main() -> int:
     parser.add_argument("--min-silence-ms", type=int, default=200)
     parser.add_argument("--min-speech-ms", type=int, default=1000)
     parser.add_argument("--pad-ms", type=int, default=100)
-    parser.add_argument("--model-name", type=str, default="Muaalem-v3.2", choices=["Muaalem-v3.2"])
+    parser.add_argument("--model-name", type=str, default="Muaalem-v3.2", choices=MUAALEM_MODEL_CHOICES)
     parser.add_argument("--device", type=str, default="GPU", choices=["GPU", "CPU"])
     parser.add_argument("--include-wbw-timestamps", type=str, default="true")
     parser.add_argument("--verbose", action="store_true")

@@ -8,9 +8,7 @@
 <section class="space-y-4">
 	<div>
 		<h3 class="text-lg font-semibold text-primary">4. Adjust segmentation</h3>
-		<p class="text-sm text-thirdly">
-			Use a preset first, then fine-tune if needed.
-		</p>
+		<p class="text-sm text-thirdly">Use a preset first, then fine-tune if needed.</p>
 	</div>
 
 	<div class="grid grid-cols-1 gap-2 xl:grid-cols-3">
@@ -81,12 +79,13 @@
 				/> Include word-by-word timestamps</label
 			>
 			<p class="text-xs text-thirdly">
-				{#if wizard.supportsWbwTimestamps()}
-					Stores per-word timings so you can split and edit subtitles more precisely later.
-				{:else}
-					Word-by-word timestamps are not available with these local models.
-				{/if}
+				Stores per-word timings so you can split and edit subtitles more precisely later.
 			</p>
+			{#if !wizard.supportsWbwTimestamps()}
+				<p class="text-xs text-yellow-400">
+					Word-by-word timestamps are only supported with the Muaalem v3.2 model.
+				</p>
+			{/if}
 		</div>
 
 		<label class="flex items-center gap-2 text-sm text-secondary"

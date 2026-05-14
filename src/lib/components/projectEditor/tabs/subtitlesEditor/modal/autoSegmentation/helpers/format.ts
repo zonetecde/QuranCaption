@@ -9,6 +9,7 @@ import type {
 import {
 	LEGACY_MODEL_OPTIONS,
 	MULTI_MODEL_OPTIONS,
+	MUAALEM_ADVANCED_MODEL_OPTIONS,
 	MUAALEM_MODEL_OPTIONS
 } from '../constants';
 import type { AiVersion } from '../types';
@@ -64,6 +65,7 @@ export function getSelectedModelLabel(
 	return (
 		MULTI_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
 		MUAALEM_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
+		MUAALEM_ADVANCED_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
 		multiModel
 	);
 }

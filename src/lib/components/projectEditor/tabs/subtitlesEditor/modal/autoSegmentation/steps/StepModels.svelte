@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { MULTI_MODEL_OPTIONS, MUAALEM_MODEL_OPTIONS } from '../constants';
+	import {
+		MULTI_MODEL_OPTIONS,
+		MUAALEM_ADVANCED_MODEL_OPTIONS,
+		MUAALEM_MODEL_OPTIONS
+	} from '../constants';
 	import { getSharedWizard } from '../sharedWizard';
 
 	const wizard = getSharedWizard();
@@ -64,6 +68,33 @@
 						{/each}
 					</div>
 				</div>
+
+				<details class="rounded-xl border border-color p-3">
+					<summary class="cursor-pointer text-sm font-medium text-primary">
+						Advanced options
+					</summary>
+					<div class="mt-3 space-y-2">
+						<div class="text-xs text-thirdly">
+							Experimental fallback models from the previous open local workflow. They do
+							not use the full Muaalem phonetic path and may be less reliable.
+						</div>
+						<div class="grid grid-cols-1 gap-2">
+							{#each MUAALEM_ADVANCED_MODEL_OPTIONS as option (option.value)}
+								<button
+									type="button"
+									class="rounded-lg border p-3 text-left"
+									class:border-accent-primary={wizard.selection.multiModel === option.value}
+									class:border-color={wizard.selection.multiModel !== option.value}
+									onclick={() => wizard.setMultiModel(option.value)}
+								>
+									<div class="text-sm font-medium text-primary">{option.label}</div>
+									<div class="text-xs text-thirdly">{option.description}</div>
+									<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
+								</button>
+							{/each}
+						</div>
+					</div>
+				</details>
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
@@ -107,7 +138,8 @@
 	{#if isMuaalemLocal()}
 		<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
 			This method is fully local, but it is generally less effective than the official Quranic
-			Universal Aligner.
+			Universal Aligner. Advanced fallback models are hidden by default because they are more
+			experimental than the recommended Muaalem v3.2 path.
 		</div>
 	{/if}
 </section>

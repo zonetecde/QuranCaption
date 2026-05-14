@@ -33,8 +33,11 @@ ffmpeg_failed_*.txt
 
 tmp/
 src-tauri/python/segment_core/__pycache__/
+src-tauri/python/segment_core/data/
 src-tauri/usage_logs/
 src-tauri/python/__pycache__/
+src-tauri/python/**/__pycache__/
+*.pyc
 
 # Tauri signing keys (NEVER commit private keys)
 .tauri/

@@ -74,62 +74,12 @@ export const MULTI_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 	}
 ];
 
-/** Recommended Quran-focused open models used by the 100% local alternative. */
-export const OPEN_MULTI_RECOMMENDED_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
+/** Speech recognition models exposed by the Muaalem local pipeline. */
+export const MUAALEM_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 	{
-		value: 'Open-Tadabur-Small',
-		label: 'Tadabur Small',
-		description: 'Most balanced open local option for Quran recitation in our ranking.',
-		source: 'FaisaI/tadabur-Whisper-Small'
-	},
-	{
-		value: 'Open-Naazim-Large-V3-Turbo',
-		label: 'Naazim Large V3 Turbo',
-		description: 'Strong large model, heavier and usually slower than small/medium options.',
-		source: 'naazimsnh02/whisper-large-v3-turbo-ar-quran'
-	},
-	{
-		value: 'Open-DeepDML-Medium-Mix',
-		label: 'DeepDML Medium Mix',
-		description: 'Good quality but can be slower and less consistent depending on reciter.',
-		source: 'deepdml/whisper-medium-ar-quran-mix-norm'
-	}
-];
-
-/** Other Quran-focused open models kept in the local open workflow. */
-export const OPEN_MULTI_QURAN_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
-	{
-		value: 'Open-DeepDML-Small-Mix',
-		label: 'DeepDML Small Mix',
-		description: 'Fast fallback, but usually less accurate than the options above.',
-		source: 'deepdml/whisper-small-ar-quran-mix'
-	},
-	{
-		value: 'Open-IJyad-Large-V3',
-		label: 'IJyad Large V3',
-		description: 'Large open model, robust but not always the best fit for every recitation.',
-		source: 'IJyad/whisper-large-v3-Tarteel'
-	},
-	{
-		value: 'Open-Legacy-Tiny',
-		label: 'Tiny',
-		description: 'Fastest, lower precision (~60 MB).',
-		source: 'tarteel-ai/whisper-tiny-ar-quran'
-	},
-	{
-		value: 'Open-Legacy-Base',
-		label: 'Base',
-		description: 'Best balance for most recitations (~150 MB).',
-		source: 'tarteel-ai/whisper-base-ar-quran'
-	}
-];
-
-/** General-purpose open models exposed in the local open workflow. */
-export const OPEN_MULTI_GENERAL_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
-	{
-		value: 'Open-Legacy-Medium',
-		label: 'Medium',
-		description: 'Higher precision, slower startup (~800 MB).',
-		source: 'openai/whisper-medium'
+		value: 'Muaalem-v3.2',
+		label: 'Muaalem v3.2',
+		description: 'Recommended phonetic speech recognition model for the local Muaalem pipeline.',
+		source: 'obadx/muaalem-model-v3_2'
 	}
 ];

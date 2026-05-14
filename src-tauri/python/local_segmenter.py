@@ -43,7 +43,7 @@ def download_data_files():
     surah_info_path = get_surah_info_path()
     
     # URLs for data files from HuggingFace
-    BASE_URL = "https://huggingface.co/spaces/hetchyy/quran-segmentation-transcription/resolve/main/data"
+    BASE_URL = "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data"
     
     files_to_download = []
     

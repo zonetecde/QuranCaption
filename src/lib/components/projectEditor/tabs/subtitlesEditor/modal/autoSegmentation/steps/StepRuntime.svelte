@@ -6,7 +6,7 @@
 	const wizard = getSharedWizard();
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
 	const isLocalV2 = $derived(() => wizard.selection.aiVersion === 'multi_v2_local');
-	const isOpenLocal = $derived(() => wizard.selection.aiVersion === 'open_multi_v2');
+	const isMuaalemLocal = $derived(() => wizard.selection.aiVersion === 'muaalem_local');
 	const isLegacy = $derived(() => wizard.selection.aiVersion === 'legacy_v1');
 </script>
 
@@ -18,8 +18,8 @@
 				No local installation is required.
 			{:else if isLocalV2()}
 				Install the required local packages and configure your Hugging Face token.
-			{:else if isOpenLocal()}
-				Install the required local packages for the fully local open workflow.
+			{:else if isMuaalemLocal()}
+				Install the required local packages for the Muaalem local workflow.
 			{:else}
 				Install the legacy local dependencies.
 			{/if}
@@ -86,13 +86,15 @@
 						onInstall={() => void wizard.installEngine('multi')}
 					/>
 				{:else}
-					<p class="text-xs text-thirdly">No token required. Fully local installation.</p>
+					<p class="text-xs text-thirdly">
+						No token required. Fully local installation with on-device model downloads.
+					</p>
 					<LocalEngineCard
-						title="Open Multi-Aligner local packages"
-						status={wizard.localStatus?.engines?.openMulti ?? null}
-						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'open_multi'}
-						isInstalled={!!wizard.localStatus?.engines?.openMulti?.ready}
-						onInstall={() => void wizard.installEngine('open_multi')}
+						title="Muaalem Local packages"
+						status={wizard.localStatus?.engines?.muaalem ?? null}
+						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'muaalem'}
+						isInstalled={!!wizard.localStatus?.engines?.muaalem?.ready}
+						onInstall={() => void wizard.installEngine('muaalem')}
 					/>
 				{/if}
 				{#if wizard.installStatus}
@@ -102,7 +104,7 @@
 				{/if}
 			</div>
 
-			{#if isOpenLocal()}
+			{#if isMuaalemLocal()}
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
 					This option is fully local, but it is usually less accurate than the official Quranic
 					Universal Aligner pipeline.

@@ -11,7 +11,7 @@ export type AiVersion =
 	| 'legacy_v1'
 	| 'multi_v2'
 	| 'multi_v2_local'
-	| 'open_multi_v2';
+	| 'muaalem_local';
 
 /** Represents a wizard navigation item. */
 export type WizardStep = {

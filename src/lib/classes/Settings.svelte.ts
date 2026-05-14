@@ -11,23 +11,12 @@ import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'open_multi_aligner';
+	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'muaalem_local';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
 	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-	multiAlignerModel:
-		| 'Base'
-		| 'Large'
-		| 'Open-Tadabur-Small'
-		| 'Open-DeepDML-Small-Mix'
-		| 'Open-DeepDML-Medium-Mix'
-		| 'Open-IJyad-Large-V3'
-		| 'Open-Naazim-Large-V3-Turbo'
-		| 'Open-Legacy-Tiny'
-		| 'Open-Legacy-Base'
-		| 'Open-Legacy-Medium'
-		| 'Open-Legacy-Large';
+	multiAlignerModel: 'Base' | 'Large' | 'Muaalem-v3.2';
 	cloudModel: 'Base' | 'Large';
 	device: 'GPU' | 'CPU';
 	hfToken: string;
@@ -426,6 +415,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC339ToQC340();
 		MigrationService.FromQC343ToQC344();
 		MigrationService.FromQC347ToQC348();
+		MigrationService.FromQC348ToQC349();
 
 		if (
 			typeof settings.exportSettings.batchSize !== 'number' ||

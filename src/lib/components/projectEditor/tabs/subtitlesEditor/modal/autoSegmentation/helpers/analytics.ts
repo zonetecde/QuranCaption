@@ -8,7 +8,7 @@ import type { AiVersion, WizardRuntime } from '../types';
 
 /** Tracks installation failures for local segmentation engines. */
 export function trackInstallFailure(
-	engine: 'legacy' | 'multi' | 'open_multi',
+	engine: 'legacy' | 'multi' | 'muaalem',
 	errorMessage: string,
 	status: LocalSegmentationStatus | null
 ): void {
@@ -20,7 +20,7 @@ export function trackInstallFailure(
 		python_installed: status?.pythonInstalled,
 		legacy_ready: status?.engines?.legacy?.ready,
 		multi_ready: status?.engines?.multi?.ready,
-		open_multi_ready: status?.engines?.openMulti?.ready
+		muaalem_ready: status?.engines?.muaalem?.ready
 	});
 }
 

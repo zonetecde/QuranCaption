@@ -1,14 +1,9 @@
 <script lang="ts">
-	import {
-		MULTI_MODEL_OPTIONS,
-		OPEN_MULTI_GENERAL_MODEL_OPTIONS,
-		OPEN_MULTI_RECOMMENDED_MODEL_OPTIONS,
-		OPEN_MULTI_QURAN_MODEL_OPTIONS
-	} from '../constants';
+	import { MULTI_MODEL_OPTIONS, MUAALEM_MODEL_OPTIONS } from '../constants';
 	import { getSharedWizard } from '../sharedWizard';
 
 	const wizard = getSharedWizard();
-	const isOpenLocal = $derived(() => wizard.selection.aiVersion === 'open_multi_v2');
+	const isMuaalemLocal = $derived(() => wizard.selection.aiVersion === 'muaalem_local');
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
 </script>
 
@@ -36,31 +31,18 @@
 					</button>
 				{/each}
 			</div>
-		{:else if isOpenLocal()}
+		{:else if isMuaalemLocal()}
 			<div class="space-y-4">
-				<div class="space-y-2">
-					<div class="text-xs uppercase text-thirdly">Recommended Quran models</div>
-					<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
-						{#each OPEN_MULTI_RECOMMENDED_MODEL_OPTIONS as option (option.value)}
-							<button
-								type="button"
-								class="rounded-lg border p-3 text-left"
-								class:border-accent-primary={wizard.selection.multiModel === option.value}
-								class:border-color={wizard.selection.multiModel !== option.value}
-								onclick={() => wizard.setMultiModel(option.value)}
-							>
-								<div class="text-sm font-medium text-primary">{option.label}</div>
-								<div class="text-xs text-thirdly">{option.description}</div>
-								<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-							</button>
-						{/each}
-					</div>
+				<div class="rounded-xl border border-color bg-accent/40 p-3 text-sm text-thirdly">
+					Muaalem Local combines Quran-specific segmentation, phonetic speech recognition,
+					monotonic Quran passage retrieval, and local forced alignment for real word-by-word
+					timings.
 				</div>
 
 				<div class="space-y-2">
-					<div class="text-xs uppercase text-thirdly">Other Quran models</div>
-					<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
-						{#each OPEN_MULTI_QURAN_MODEL_OPTIONS as option (option.value)}
+					<div class="text-xs uppercase text-thirdly">Speech recognition model</div>
+					<div class="grid grid-cols-1 gap-2">
+						{#each MUAALEM_MODEL_OPTIONS as option (option.value)}
 							<button
 								type="button"
 								class="rounded-lg border p-3 text-left"
@@ -68,26 +50,14 @@
 								class:border-color={wizard.selection.multiModel !== option.value}
 								onclick={() => wizard.setMultiModel(option.value)}
 							>
-								<div class="text-sm font-medium text-primary">{option.label}</div>
-								<div class="text-xs text-thirdly">{option.description}</div>
-								<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-							</button>
-						{/each}
-					</div>
-				</div>
-
-				<div class="space-y-2">
-					<div class="text-xs uppercase text-thirdly">General models</div>
-					<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
-						{#each OPEN_MULTI_GENERAL_MODEL_OPTIONS as option (option.value)}
-							<button
-								type="button"
-								class="rounded-lg border p-3 text-left"
-								class:border-accent-primary={wizard.selection.multiModel === option.value}
-								class:border-color={wizard.selection.multiModel !== option.value}
-								onclick={() => wizard.setMultiModel(option.value)}
-							>
-								<div class="text-sm font-medium text-primary">{option.label}</div>
+								<div class="flex items-center justify-between gap-3">
+									<div class="text-sm font-medium text-primary">{option.label}</div>
+									<span
+										class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
+									>
+										Recommended
+									</span>
+								</div>
 								<div class="text-xs text-thirdly">{option.description}</div>
 								<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
 							</button>
@@ -134,9 +104,9 @@
 		</div>
 	</div>
 
-	{#if isOpenLocal()}
+	{#if isMuaalemLocal()}
 		<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
-			Even with the larger model, this method is generally less effective than the official Quranic
+			This method is fully local, but it is generally less effective than the official Quranic
 			Universal Aligner.
 		</div>
 	{/if}

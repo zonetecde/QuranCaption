@@ -7,7 +7,7 @@ pub const QURAN_MULTI_ALIGNER_UPLOAD_URL: &str =
 /// Endpoint d'appel du pipeline complet.
 pub const QURAN_MULTI_ALIGNER_PROCESS_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/process_audio_session";
-/// Endpoint d'appel de l'estimation de durée.
+/// Endpoint d'appel de l'estimation de duree.
 pub const QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/estimate_duration";
 /// Endpoint MFA base sur une session cloud existante.
@@ -20,17 +20,17 @@ pub const QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL: &str =
 pub const QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/split_segments";
 
-/// Flag de développement pour forcer un payload mock au lieu d'appeler le cloud.
+/// Flag de developpement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;
 
-/// Payload mock utilisé quand `QURAN_SEGMENTATION_USE_MOCK` est activé.
+/// Payload mock utilise quand `QURAN_SEGMENTATION_USE_MOCK` est active.
 pub const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
 {
     "segments": [
         {
         "confidence": 0.5,
         "error": null,
-        "matched_text": "أعوذ بالله من الشيطان الرجيم",
+        "matched_text": "Ø£Ø¹ÙˆØ° Ø¨Ø§Ù„Ù„Ù‡ Ù…Ù† Ø§Ù„Ø´ÙŠØ·Ø§Ù† Ø§Ù„Ø±Ø¬ÙŠÙ…",
         "ref_from": "Isti'adha",
         "ref_to": "Isti'adha",
         "segment": 1,
@@ -47,7 +47,7 @@ pub const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
 pub struct SegmentationAudioClip {
     /// Chemin du fichier audio.
     pub path: String,
-    /// Début du clip en millisecondes.
+    /// Debut du clip en millisecondes.
     pub start_ms: i64,
     /// Fin du clip en millisecondes.
     pub end_ms: i64,
@@ -67,37 +67,39 @@ pub struct HifzAudioSegment {
     pub silence_between_repetitions_ms: Option<i64>,
 }
 
-/// Moteur de segmentation locale supporté.
+/// Moteur de segmentation locale supporte.
 #[derive(Clone, Copy, Debug)]
 pub enum LocalSegmentationEngine {
-    /// Moteur historique basé sur Whisper.
+    /// Moteur historique base sur Whisper.
     LegacyWhisper,
-    /// Nouveau moteur multi-aligner.
+    /// Nouveau moteur multi-aligner prive.
     MultiAligner,
-    /// Alternative multi-aligner entièrement locale avec stack ouverte.
-    OpenMultiAligner,
+    /// Pipeline locale Muaalem avec segmentation, retrieval et alignement ouverts.
+    MuaalemLocal,
 }
 
 impl LocalSegmentationEngine {
-    /// Construit le moteur depuis la valeur brute reçue du frontend.
+    /// Construit le moteur depuis la valeur brute recue du frontend.
     pub fn from_raw(raw: &str) -> Result<Self, String> {
         match raw {
             "legacy" | "legacy_whisper" => Ok(Self::LegacyWhisper),
             "multi" | "multi_aligner" => Ok(Self::MultiAligner),
-            "open_multi" | "open_multi_aligner" => Ok(Self::OpenMultiAligner),
+            "muaalem" | "muaalem_local" | "open_multi" | "open_multi_aligner" => {
+                Ok(Self::MuaalemLocal)
+            }
             _ => Err(format!(
-                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', or 'open_multi'.",
+                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', or 'muaalem'.",
                 raw
             )),
         }
     }
 
-    /// Retourne la clé technique courte du moteur.
+    /// Retourne la cle technique courte du moteur.
     pub fn as_key(&self) -> &'static str {
         match self {
             Self::LegacyWhisper => "legacy",
             Self::MultiAligner => "multi",
-            Self::OpenMultiAligner => "open_multi",
+            Self::MuaalemLocal => "muaalem",
         }
     }
 
@@ -106,7 +108,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "Legacy Whisper",
             Self::MultiAligner => "Multi-Aligner",
-            Self::OpenMultiAligner => "Open Multi-Aligner",
+            Self::MuaalemLocal => "Muaalem Local",
         }
     }
 
@@ -115,7 +117,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/requirements.txt",
             Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
-            Self::OpenMultiAligner => "python/open_multi_requirements.txt",
+            Self::MuaalemLocal => "python/muaalem_requirements.txt",
         }
     }
 
@@ -124,7 +126,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/local_segmenter.py",
             Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
-            Self::OpenMultiAligner => "python/local_open_multi_aligner_segmenter.py",
+            Self::MuaalemLocal => "python/local_muaalem_segmenter.py",
         }
     }
 
@@ -144,14 +146,18 @@ impl LocalSegmentationEngine {
                 "pyarrow",
                 "requests",
             ],
-            Self::OpenMultiAligner => &[
+            Self::MuaalemLocal => &[
                 "torch",
+                "torchaudio",
                 "transformers",
                 "librosa",
                 "numpy",
                 "soundfile",
                 "recitations_segmenter",
-                "accelerate",
+                "quran_transcript",
+                "fuzzysearch",
+                "Levenshtein",
+                "nemo",
             ],
         }
     }

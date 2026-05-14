@@ -26,7 +26,7 @@ pub async fn segment_quran_audio(
     .await
 }
 
-/// Estime la durée d'un endpoint Multi-Aligner cloud.
+/// Estime la durÃ©e d'un endpoint Multi-Aligner cloud.
 #[tauri::command]
 pub async fn estimate_segmentation_duration(
     endpoint: String,
@@ -37,7 +37,7 @@ pub async fn estimate_segmentation_duration(
     segmentation::estimate_duration(endpoint, audio_duration_s, model_name, device).await
 }
 
-/// Récupère les timestamps MFA en réutilisant une session cloud existante.
+/// RÃ©cupÃ¨re les timestamps MFA en rÃ©utilisant une session cloud existante.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_session(
     audio_id: String,
@@ -47,7 +47,7 @@ pub async fn get_segmentation_mfa_timestamps_session(
     segmentation::mfa_timestamps_session(audio_id, segments, granularity).await
 }
 
-/// Récupère les timestamps MFA directement depuis l'audio courant du projet.
+/// RÃ©cupÃ¨re les timestamps MFA directement depuis l'audio courant du projet.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_direct(
     audio_path: Option<String>,
@@ -58,7 +58,7 @@ pub async fn get_segmentation_mfa_timestamps_direct(
     segmentation::mfa_timestamps_direct(audio_path, audio_clips, segments, granularity).await
 }
 
-/// Vérifie la disponibilité des moteurs de segmentation locale.
+/// VÃ©rifie la disponibilitÃ© des moteurs de segmentation locale.
 #[tauri::command]
 pub async fn check_local_segmentation_ready(
     app_handle: tauri::AppHandle,
@@ -67,7 +67,7 @@ pub async fn check_local_segmentation_ready(
     segmentation::check_local_segmentation_ready(app_handle, hf_token).await
 }
 
-/// Installe les dépendances Python d'un moteur local (`legacy` ou `multi`).
+/// Installe les dÃ©pendances Python d'un moteur local (`legacy` ou `multi`).
 #[tauri::command]
 pub async fn install_local_segmentation_deps(
     app_handle: tauri::AppHandle,
@@ -127,9 +127,9 @@ pub async fn segment_quran_audio_local_multi(
     .await
 }
 
-/// Lance la segmentation locale en mode Open Multi-Aligner.
+/// Lance la segmentation locale en mode Muaalem Local.
 #[tauri::command]
-pub async fn segment_quran_audio_local_open_multi(
+pub async fn segment_quran_audio_local_muaalem(
     app_handle: tauri::AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
@@ -140,7 +140,7 @@ pub async fn segment_quran_audio_local_open_multi(
     device: Option<String>,
     include_wbw_timestamps: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    segmentation::segment_quran_audio_local_open_multi(
+    segmentation::segment_quran_audio_local_muaalem(
         app_handle,
         audio_path,
         audio_clips,

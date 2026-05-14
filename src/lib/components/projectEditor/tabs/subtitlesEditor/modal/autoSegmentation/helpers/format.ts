@@ -9,9 +9,7 @@ import type {
 import {
 	LEGACY_MODEL_OPTIONS,
 	MULTI_MODEL_OPTIONS,
-	OPEN_MULTI_GENERAL_MODEL_OPTIONS,
-	OPEN_MULTI_RECOMMENDED_MODEL_OPTIONS,
-	OPEN_MULTI_QURAN_MODEL_OPTIONS
+	MUAALEM_MODEL_OPTIONS
 } from '../constants';
 import type { AiVersion } from '../types';
 
@@ -65,9 +63,7 @@ export function getSelectedModelLabel(
 	}
 	return (
 		MULTI_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
-		OPEN_MULTI_RECOMMENDED_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
-		OPEN_MULTI_QURAN_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
-		OPEN_MULTI_GENERAL_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
+		MUAALEM_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
 		multiModel
 	);
 }

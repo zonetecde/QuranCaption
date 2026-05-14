@@ -671,6 +671,44 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Migre l'ancien moteur open local vers le nouveau moteur Muaalem local.
+	 */
+	static FromQC348ToQC349(): void {
+		if (!globalState.settings) return;
+
+		const autoSegmentationSettings = globalState.settings.autoSegmentationSettings as {
+			localAsrMode?: 'legacy_whisper' | 'multi_aligner' | 'open_multi_aligner' | 'muaalem_local';
+			multiAlignerModel?: string;
+			includeWbwTimestamps?: boolean;
+		};
+
+		let hasChanges = false;
+
+		if (
+			autoSegmentationSettings.localAsrMode === 'open_multi_aligner' ||
+			autoSegmentationSettings.localAsrMode === 'legacy_whisper'
+		) {
+			autoSegmentationSettings.localAsrMode = 'muaalem_local';
+			hasChanges = true;
+		}
+
+		if (autoSegmentationSettings.localAsrMode === 'muaalem_local') {
+			if (autoSegmentationSettings.multiAlignerModel !== 'Muaalem-v3.2') {
+				autoSegmentationSettings.multiAlignerModel = 'Muaalem-v3.2';
+				hasChanges = true;
+			}
+			if (autoSegmentationSettings.includeWbwTimestamps !== true) {
+				autoSegmentationSettings.includeWbwTimestamps = true;
+				hasChanges = true;
+			}
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
+	/**
 	 * Applies a first-pass classification to existing projects from their title only.
 	 * Priority order:
 	 * Taraweeh > Prayer > Studio > Rare recitation > Old recordings > Others

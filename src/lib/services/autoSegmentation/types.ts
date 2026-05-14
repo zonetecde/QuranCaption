@@ -84,20 +84,12 @@ export type ImportedSegmentationParseResult = {
  * Mode de traitement de la segmentation.
  */
 export type SegmentationMode = 'api' | 'local';
-export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner' | 'open_multi_aligner';
+export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner' | 'muaalem_local';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel =
 	| 'Base'
 	| 'Large'
-	| 'Open-Tadabur-Small'
-	| 'Open-DeepDML-Small-Mix'
-	| 'Open-DeepDML-Medium-Mix'
-	| 'Open-IJyad-Large-V3'
-	| 'Open-Naazim-Large-V3-Turbo'
-	| 'Open-Legacy-Tiny'
-	| 'Open-Legacy-Base'
-	| 'Open-Legacy-Medium'
-	| 'Open-Legacy-Large';
+	| 'Muaalem-v3.2';
 export type SegmentationDevice = 'GPU' | 'CPU';
 
 export type LocalEngineStatus = {
@@ -121,7 +113,7 @@ export type LocalSegmentationStatus = {
 	engines?: {
 		legacy: LocalEngineStatus;
 		multi: LocalEngineStatus;
-		openMulti: LocalEngineStatus;
+		muaalem: LocalEngineStatus;
 	};
 };
 

@@ -12,7 +12,7 @@
 				? 'Quranic Universal Aligner'
 				: wizard.selection.aiVersion === 'multi_v2_local'
 					? 'Private Local Quranic Universal Aligner'
-					: '100% Local Open'
+					: 'Muaalem Local'
 	);
 </script>
 

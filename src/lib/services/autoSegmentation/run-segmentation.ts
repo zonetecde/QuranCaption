@@ -26,6 +26,49 @@ function shouldRetryCloudOnCpu(message: string, device: SegmentationDevice): boo
 }
 
 /**
+ * Détecte les crashs locaux Muaalem qui justifient un retry silencieux sur CPU.
+ *
+ * @param {string} message Message d'erreur.
+ * @param {LocalAsrMode} localAsrMode Mode ASR local courant.
+ * @param {SegmentationDevice} device Appareil courant.
+ * @returns {boolean} True si un retry CPU est pertinent.
+ */
+function shouldRetryMuaalemOnCpu(
+	message: string,
+	localAsrMode: LocalAsrMode,
+	device: SegmentationDevice
+): boolean {
+	return (
+		localAsrMode === 'muaalem_local' &&
+		device === 'GPU' &&
+		/Python script failed with no output/i.test(message)
+	);
+}
+
+/**
+ * Normalise les timestamps WBW Muaalem en temps relatifs au segment.
+ *
+ * @param {SegmentationResponse} response Réponse brute de segmentation.
+ * @returns {SegmentationResponse} Réponse avec mots normalisés.
+ */
+function normalizeMuaalemWordTimings(response: SegmentationResponse): SegmentationResponse {
+	return {
+		...response,
+		segments: (response.segments ?? []).map((segment) => {
+			const segmentStart = segment.time_from ?? 0;
+			return {
+				...segment,
+				words: (segment.words ?? []).map((word) => ({
+					...word,
+					start: Math.max(0, word.start - segmentStart),
+					end: Math.max(0, word.end - segmentStart)
+				}))
+			};
+		})
+	};
+}
+
+/**
  * Construit la charge utile de base pour une invocation de segmentation.
  *
  * @param {AutoSegmentationAudioInfo} audioInfo Infos audio.
@@ -69,7 +112,7 @@ function resolveContextModelName(
 	legacyWhisperModel: string
 ): string {
 	if (effectiveMode === 'api') return cloudModel;
-	if (localAsrMode === 'multi_aligner' || localAsrMode === 'open_multi_aligner') return multiAlignerModel;
+	if (localAsrMode === 'multi_aligner' || localAsrMode === 'muaalem_local') return multiAlignerModel;
 	return legacyWhisperModel;
 }
 
@@ -154,7 +197,7 @@ export async function runAutoSegmentation(
 
 		const invokeCloud = async (): Promise<unknown> => await invokeCloudWithDevice(device);
 
-		const invokeLocal = async (): Promise<unknown> => {
+		const invokeLocalWithDevice = async (targetDevice: SegmentationDevice): Promise<unknown> => {
 			if (localAsrMode === 'legacy_whisper') {
 				return await invoke('segment_quran_audio_local', {
 					...basePayload,
@@ -162,11 +205,11 @@ export async function runAutoSegmentation(
 				});
 			}
 
-			if (localAsrMode === 'open_multi_aligner') {
-				return await invoke('segment_quran_audio_local_open_multi', {
+			if (localAsrMode === 'muaalem_local') {
+				return await invoke('segment_quran_audio_local_muaalem', {
 					...basePayload,
 					modelName: multiAlignerModel,
-					device,
+					device: targetDevice,
 					includeWbwTimestamps
 				});
 			}
@@ -174,10 +217,12 @@ export async function runAutoSegmentation(
 			return await invoke('segment_quran_audio_local_multi', {
 				...basePayload,
 				modelName: multiAlignerModel,
-				device,
+				device: targetDevice,
 				hfToken
 			});
 		};
+
+		const invokeLocal = async (): Promise<unknown> => await invokeLocalWithDevice(device);
 
 		let fallbackWarning: string | undefined;
 		let payload: unknown;
@@ -201,7 +246,14 @@ export async function runAutoSegmentation(
 			try {
 				payload = await invokeLocal();
 			} catch (localError) {
-				if (!allowCloudFallbackEffective) {
+				const localMessage = localError instanceof Error ? localError.message : String(localError);
+				if (shouldRetryMuaalemOnCpu(localMessage, localAsrMode, device)) {
+					console.warn(
+						'[AutoSegmentation] Muaalem local GPU run crashed, retrying once on CPU:',
+						localMessage
+					);
+					payload = await invokeLocalWithDevice('CPU');
+				} else if (!allowCloudFallbackEffective) {
 					const recoveredResponse = parseSegmentationResponseFromThrownError(localError);
 					if ((recoveredResponse?.segments?.length ?? 0) > 0) {
 						console.warn(
@@ -213,7 +265,6 @@ export async function runAutoSegmentation(
 						throw localError;
 					}
 				} else {
-					const localMessage = localError instanceof Error ? localError.message : String(localError);
 					console.warn('[AutoSegmentation] Local mode failed, falling back to cloud:', localMessage);
 					fallbackWarning = `Local mode failed and was switched to Cloud: ${localMessage}`;
 					fallbackToCloud = true;
@@ -244,8 +295,12 @@ export async function runAutoSegmentation(
 			cloudGpuFallbackToCpu = true;
 		}
 
-		const finalRawResponse: SegmentationResponse =
+		const finalRawResponseBase: SegmentationResponse =
 			cloudGpuFallbackToCpu ? (payload as SegmentationResponse) : rawResponse;
+		const finalRawResponse: SegmentationResponse =
+			localAsrMode === 'muaalem_local'
+				? normalizeMuaalemWordTimings(finalRawResponseBase)
+				: finalRawResponseBase;
 		const response = includeWbwTimestamps
 			? await enrichSegmentationResponseWithWordTimestamps(finalRawResponse)
 			: finalRawResponse;

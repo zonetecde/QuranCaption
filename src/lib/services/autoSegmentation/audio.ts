@@ -113,7 +113,7 @@ export async function checkLocalSegmentationStatus(
 					tokenProvided: false,
 					message: 'Status check failed'
 				},
-				openMulti: {
+				muaalem: {
 					ready: false,
 					venvExists: false,
 					packagesInstalled: false,
@@ -128,12 +128,12 @@ export async function checkLocalSegmentationStatus(
 /**
  * Installe les dépendances pour la segmentation locale.
  *
- * @param {'legacy' | 'multi' | 'open_multi'} engine Moteur cible.
+ * @param {'legacy' | 'multi' | 'muaalem'} engine Moteur cible.
  * @param {string} [hfToken] Token Hugging Face optionnel.
  * @returns {Promise<void>}
  */
 export async function installLocalSegmentationDeps(
-	engine: 'legacy' | 'multi' | 'open_multi',
+	engine: 'legacy' | 'multi' | 'muaalem',
 	hfToken?: string
 ): Promise<void> {
 	try {

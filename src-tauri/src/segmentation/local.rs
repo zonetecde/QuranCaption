@@ -17,7 +17,7 @@ use super::python_env::{
 };
 use super::types::{LocalSegmentationEngine, SegmentationAudioClip};
 
-/// Exécute le script Python local d'un moteur donné et retourne le JSON de segmentation.
+/// ExÃ©cute le script Python local d'un moteur donnÃ© et retourne le JSON de segmentation.
 fn run_local_segmentation_script(
     app_handle: tauri::AppHandle,
     engine: LocalSegmentationEngine,
@@ -42,7 +42,7 @@ fn run_local_segmentation_script(
             .unwrap_or(false)
     );
 
-    // Pré-traitement audio local identique au cloud: merge éventuel puis resample.
+    // PrÃ©-traitement audio local identique au cloud: merge Ã©ventuel puis resample.
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
     println!(
@@ -195,7 +195,7 @@ fn run_local_segmentation_script(
         ),
     }
 
-    // Exécution Python + thread de lecture stderr pour status/events de progression.
+    // ExÃ©cution Python + thread de lecture stderr pour status/events de progression.
     let mut cmd = Command::new(&python_exe);
     cmd.args(&args);
     if let Some(token) = hf_token {
@@ -329,7 +329,7 @@ fn run_local_segmentation_script(
     }
 }
 
-/// Exécute la segmentation locale via moteur legacy Whisper.
+/// ExÃ©cute la segmentation locale via moteur legacy Whisper.
 pub async fn segment_quran_audio_local(
     app_handle: tauri::AppHandle,
     audio_path: Option<String>,
@@ -358,7 +358,7 @@ pub async fn segment_quran_audio_local(
     )
 }
 
-/// Exécute la segmentation locale via moteur Multi-Aligner avec token HF obligatoire.
+/// ExÃ©cute la segmentation locale via moteur Multi-Aligner avec token HF obligatoire.
 pub async fn segment_quran_audio_local_multi(
     app_handle: tauri::AppHandle,
     audio_path: Option<String>,
@@ -417,8 +417,8 @@ pub async fn segment_quran_audio_local_multi(
     )
 }
 
-/// Exécute la segmentation locale via moteur Open Multi-Aligner sans token HF.
-pub async fn segment_quran_audio_local_open_multi(
+/// Exécute la segmentation locale via moteur Muaalem sans token HF.
+pub async fn segment_quran_audio_local_muaalem(
     app_handle: tauri::AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
@@ -429,24 +429,10 @@ pub async fn segment_quran_audio_local_open_multi(
     device: Option<String>,
     include_wbw_timestamps: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    let selected_model = model_name.unwrap_or_else(|| "Open-Tadabur-Small".to_string());
-    let is_supported_model = matches!(
-        selected_model.as_str(),
-        "Base"
-            | "Large"
-            | "Open-Tadabur-Small"
-            | "Open-DeepDML-Small-Mix"
-            | "Open-DeepDML-Medium-Mix"
-            | "Open-IJyad-Large-V3"
-            | "Open-Naazim-Large-V3-Turbo"
-            | "Open-Legacy-Tiny"
-            | "Open-Legacy-Base"
-            | "Open-Legacy-Medium"
-            | "Open-Legacy-Large"
-    );
-    if !is_supported_model {
+    let selected_model = model_name.unwrap_or_else(|| "Muaalem-v3.2".to_string());
+    if selected_model != "Muaalem-v3.2" {
         return Err(format!(
-            "Invalid model_name '{}'. Expected one of: Base, Large, Open-Tadabur-Small, Open-DeepDML-Small-Mix, Open-DeepDML-Medium-Mix, Open-IJyad-Large-V3, Open-Naazim-Large-V3-Turbo, Open-Legacy-Tiny, Open-Legacy-Base, Open-Legacy-Medium, Open-Legacy-Large.",
+            "Invalid model_name '{}'. Expected 'Muaalem-v3.2'.",
             selected_model
         ));
     }
@@ -474,7 +460,7 @@ pub async fn segment_quran_audio_local_open_multi(
 
     run_local_segmentation_script(
         app_handle,
-        LocalSegmentationEngine::OpenMultiAligner,
+        LocalSegmentationEngine::MuaalemLocal,
         audio_path,
         audio_clips,
         min_silence_ms,
@@ -484,3 +470,4 @@ pub async fn segment_quran_audio_local_open_multi(
         None,
     )
 }
+

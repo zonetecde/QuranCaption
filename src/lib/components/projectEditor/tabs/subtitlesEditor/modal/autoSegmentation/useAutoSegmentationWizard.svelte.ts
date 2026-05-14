@@ -48,7 +48,7 @@ export function useAutoSegmentationWizard() {
 	let localStatus = $state<LocalSegmentationStatus | null>(null);
 	let isCheckingStatus = $state(false);
 	let isInstallingDeps = $state(false);
-	let installingEngine = $state<'legacy' | 'multi' | 'open_multi' | null>(null);
+	let installingEngine = $state<'legacy' | 'multi' | 'muaalem' | null>(null);
 	let installStatus = $state('');
 	let currentStatus = $state('');
 	let currentStatusProgress = $state<number | null>(null);
@@ -73,12 +73,14 @@ export function useAutoSegmentationWizard() {
 	const currentStepKey = $derived(() => steps()[currentStep]?.key ?? 'review');
 	const selectedLocalEngineStatus = $derived(() => {
 		if (selection.localAsrMode === 'legacy_whisper') return localStatus?.engines?.legacy ?? null;
-		if (selection.localAsrMode === 'open_multi_aligner')
-			return localStatus?.engines?.openMulti ?? null;
+		if (selection.localAsrMode === 'muaalem_local') return localStatus?.engines?.muaalem ?? null;
 		return localStatus?.engines?.multi ?? null;
 	});
 	const supportsWbwTimestamps = $derived(
-		() => selection.aiVersion === 'multi_v2' || selection.aiVersion === 'multi_v2_local'
+		() =>
+			selection.aiVersion === 'multi_v2' ||
+			selection.aiVersion === 'multi_v2_local' ||
+			selection.aiVersion === 'muaalem_local'
 	);
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
@@ -132,8 +134,8 @@ export function useAutoSegmentationWizard() {
 				  selection.mode === 'local' &&
 				  !selectedLocalEngineStatus()?.usable
 				? 'Install the required local packages first.'
-				: selection.aiVersion === 'open_multi_v2'
-					? '100% local open alternative. Easier to install, but generally less effective than the official Quranic Universal Aligner.'
+				: selection.aiVersion === 'muaalem_local'
+					? 'Muaalem Local uses a fully local Quran-specific pipeline. It is easier to install than the private stack, but generally less effective than the official Quranic Universal Aligner.'
 					: selection.mode === 'local'
 						? "Local mode uses your computer's resources."
 						: 'Cloud mode uses the Quranic Universal Aligner.'
@@ -171,16 +173,20 @@ export function useAutoSegmentationWizard() {
 			selection.mode = 'local';
 			selection.runtime = 'local';
 			selection.localAsrMode = 'multi_aligner';
-		} else if (aiVersion === 'open_multi_v2') {
+			if (selection.multiModel !== 'Base' && selection.multiModel !== 'Large') {
+				selection.multiModel = 'Base';
+				persistPatch({ multiAlignerModel: selection.multiModel });
+			}
+		} else if (aiVersion === 'muaalem_local') {
 			selection.mode = 'local';
 			selection.runtime = 'local';
-			selection.localAsrMode = 'open_multi_aligner';
-			if (includeWbwTimestamps) {
-				includeWbwTimestamps = false;
-				persistPatch({ includeWbwTimestamps: false });
+			selection.localAsrMode = 'muaalem_local';
+			if (!includeWbwTimestamps) {
+				includeWbwTimestamps = true;
+				persistPatch({ includeWbwTimestamps: true });
 			}
-			if (selection.multiModel === 'Base' || selection.multiModel === 'Large') {
-				selection.multiModel = 'Open-Tadabur-Small';
+			if (selection.multiModel !== 'Muaalem-v3.2') {
+				selection.multiModel = 'Muaalem-v3.2';
 				persistPatch({ multiAlignerModel: selection.multiModel });
 			}
 		} else {
@@ -269,7 +275,7 @@ export function useAutoSegmentationWizard() {
 	}
 
 	/** Installs local dependencies for one engine with streamed status text. */
-	async function installEngine(engine: 'legacy' | 'multi' | 'open_multi'): Promise<void> {
+	async function installEngine(engine: 'legacy' | 'multi' | 'muaalem'): Promise<void> {
 		if (isInstallingDeps) return;
 		isInstallingDeps = true;
 		installingEngine = engine;
@@ -447,11 +453,7 @@ export function useAutoSegmentationWizard() {
 	/** Executes segmentation while preserving fallback and analytics behavior. */
 	async function startSegmentation(): Promise<void> {
 		if (!canStart()) return;
-		if (
-			selection.mode === 'local' &&
-			selection.localAsrMode === 'multi_aligner' &&
-			!selection.hfToken.trim()
-		) {
+		if (selection.mode === 'local' && selection.localAsrMode === 'multi_aligner' && !selection.hfToken.trim()) {
 			errorMessage =
 				'Private Local Quranic Universal Aligner requires a Hugging Face token with access to private models (hetchyy/r15_95m, hetchyy/r7).';
 			return;

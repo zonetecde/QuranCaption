@@ -64,18 +64,19 @@
 		<button
 			type="button"
 			class="rounded-xl border p-4 text-left transition-colors"
-			class:border-accent-primary={wizard.selection.aiVersion === 'open_multi_v2'}
-			class:bg-accent={wizard.selection.aiVersion === 'open_multi_v2'}
-			class:border-color={wizard.selection.aiVersion !== 'open_multi_v2'}
-			onclick={() => wizard.onVersionChange('open_multi_v2')}
+			class:border-accent-primary={wizard.selection.aiVersion === 'muaalem_local'}
+			class:bg-accent={wizard.selection.aiVersion === 'muaalem_local'}
+			class:border-color={wizard.selection.aiVersion !== 'muaalem_local'}
+			onclick={() => wizard.onVersionChange('muaalem_local')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">offline_bolt</span>100% Local Open
+				<span class="material-icons">offline_bolt</span>Muaalem Local
 			</div>
 			<p class="text-sm font-medium text-primary">Fully local, no token required</p>
 			<p class="mt-3 text-xs text-thirdly">
-				Runs entirely on your machine with open models. Easier to install, but usually less
-				effective than the official Quranic Universal Aligner.
+				Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific
+				segmentation and matching, but is usually less effective than the official Quranic
+				Universal Aligner.
 			</p>
 			<div
 				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"

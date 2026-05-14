@@ -9,7 +9,7 @@
 				? 'Quranic Universal Aligner'
 				: wizard.selection.aiVersion === 'multi_v2_local'
 					? 'Private Local Quranic Universal Aligner'
-					: '100% Local Open'
+					: 'Muaalem Local'
 	);
 </script>
 
@@ -58,12 +58,12 @@
 				This method requires a valid Hugging Face token before it can run.
 			</div>
 		{/if}
-		{#if wizard.selection.aiVersion === 'open_multi_v2'}
+		{#if wizard.selection.aiVersion === 'muaalem_local'}
 			<div
 				class="rounded-lg border border-yellow-500/10 bg-yellow-500/2 px-3 py-2 text-xs text-yellow-300/90 mt-4"
 			>
 				This method is fully local and simpler to install, but usually less effective than the
-				official Quran Multi Aligner pipeline.
+				official Quranic Universal Aligner pipeline.
 			</div>
 		{/if}
 		{#if wizard.selection.aiVersion === 'legacy_v1'}

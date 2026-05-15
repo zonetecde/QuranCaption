@@ -20,7 +20,7 @@ on:
         default: true
         type: boolean
       buildArtifacts:
-        description: 'Build unsigned workflow artifacts instead of a signed GitHub release?'
+        description: 'Build release artifacts without updater signing?'
         required: false
         default: false
         type: boolean
@@ -165,7 +165,7 @@ jobs:
           node -e "const fs = require('fs'); const path = 'src-tauri/tauri.conf.json'; const config = JSON.parse(fs.readFileSync(path, 'utf8')); config.bundle.createUpdaterArtifacts = false; fs.writeFileSync(path, JSON.stringify(config, null, '\t'));"
         shell: bash
 
-      - name: Build unsigned workflow artifacts
+      - name: Build release without updater signing
         if: inputs.buildArtifacts
         uses: tauri-apps/tauri-action@v0
         env:
@@ -173,25 +173,14 @@ jobs:
           PUBLIC_POSTHOG_KEY: ${{ secrets.PUBLIC_POSTHOG_KEY }}
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
         with:
+          tagName: ${{ inputs.tag }}
+          releaseName: 'Quran Caption ${{ inputs.tag }}'
+          releaseBody: 'See the changelog below for details.'
+          releaseDraft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
           args: ${{ matrix.args }}
           assetNamePattern: ${{ matrix.assetNamePattern }}
         timeout-minutes: 60
-
-      - name: Upload unsigned workflow artifacts
-        if: inputs.buildArtifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: QuranCaption-${{ matrix.target }}
-          path: |
-            src-tauri/target/release/bundle/**/*.AppImage
-            src-tauri/target/release/bundle/**/*.deb
-            src-tauri/target/release/bundle/**/*.dmg
-            src-tauri/target/release/bundle/**/*.exe
-            src-tauri/target/*/release/bundle/**/*.AppImage
-            src-tauri/target/*/release/bundle/**/*.deb
-            src-tauri/target/*/release/bundle/**/*.dmg
-            src-tauri/target/*/release/bundle/**/*.exe
-          if-no-files-found: error
 
       - name: Build and create release
         if: ${{ !inputs.buildArtifacts }}

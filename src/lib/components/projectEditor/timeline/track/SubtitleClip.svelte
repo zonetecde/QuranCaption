@@ -126,19 +126,23 @@
 
 	const wordBoundaryMarkers = $derived(() => {
 		if (!(clip instanceof SubtitleClip)) return [];
-		if ((clip.alignmentMetadata?.words.length ?? 0) <= 1) return [];
+		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return [];
 
 		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
 		return (clip.alignmentMetadata?.words ?? [])
-			.slice(1)
 			.map((word, index) => {
-				const leftPercent = (word.start * 1000 * 100) / clipDurationMs;
+				const startPercent = (word.start * 1000 * 100) / clipDurationMs;
+				const endPercent = (word.end * 1000 * 100) / clipDurationMs;
+				const leftPercent = Math.min(100, Math.max(0, startPercent));
+				const rightPercent = Math.min(100, Math.max(leftPercent, endPercent));
 				return {
 					key: `${clip.id}-wbw-marker-${index}`,
-					leftPercent: Math.min(100, Math.max(0, leftPercent))
+					leftPercent,
+					widthPercent: Math.max(0.8, rightPercent - leftPercent),
+					label: String(word.word ?? word.location ?? '').trim()
 				};
 			})
-			.filter((marker) => marker.leftPercent > 0 && marker.leftPercent < 100);
+			.filter((marker) => marker.leftPercent < 100 && marker.widthPercent > 0);
 	});
 
 	let dragStartX: number | null = null;
@@ -370,7 +374,13 @@
 		{#if wordBoundaryMarkers().length > 0}
 			<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
 				{#each wordBoundaryMarkers() as marker (marker.key)}
-					<div class="wbw-word-marker" style={`left: ${marker.leftPercent}%;`}></div>
+					<div
+						class="wbw-word-marker"
+						style={`left: ${marker.leftPercent}%; width: ${marker.widthPercent}%;`}
+						title={marker.label}
+					>
+						<span class="arabic">{marker.label}</span>
+					</div>
 				{/each}
 			</div>
 		{/if}
@@ -654,10 +664,26 @@
 
 	.wbw-word-marker {
 		position: absolute;
-		top: 1px;
-		height: 14px;
-		width: 1px;
-		background: rgba(255, 255, 255, 0.38);
-		box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+		top: 0px;
+		height: 16px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+		border-radius: 3px;
+		background: rgba(255, 255, 255, 0.12);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+			0 0 0 1px rgba(0, 0, 0, 0.08);
+		color: rgba(255, 255, 255, 0.92);
+		font-size: 9px;
+		line-height: 1;
+		white-space: nowrap;
+		text-overflow: clip;
+	}
+
+	.wbw-word-marker span {
+		overflow: hidden;
+		text-overflow: clip;
 	}
 </style>

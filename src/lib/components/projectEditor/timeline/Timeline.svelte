@@ -59,6 +59,7 @@
 
 	let removeShortcutRegistered = false;
 	let splitShortcutRegistered = false;
+	let quickSubtitleEditShortcutRegistered = false;
 	let setEndShortcutRegistered = false;
 	let setStartShortcutRegistered = false;
 	let frameBackwardShortcutRegistered = false;
@@ -228,6 +229,64 @@
 		ShortcutService.unregisterShortcut(splitShortcut);
 
 		splitShortcutRegistered = false;
+	}
+
+	/**
+	 * Ouvre l'editeur rapide de sous-titre depuis la timeline.
+	 * Priorise le sous-titre selectionne dans l'onglet Style, sinon celui sous le curseur,
+	 * sinon le dernier vrai sous-titre du projet.
+	 * @returns {void}
+	 */
+	function handleOpenQuickSubtitleEditor(): void {
+		if (!globalState.currentProject) return;
+
+		let clipToEdit: SubtitleClip | null = null;
+		const selectedSubtitles = globalState.getStylesState.selectedSubtitles;
+		if (selectedSubtitles.length === 1 && selectedSubtitles[0] instanceof SubtitleClip) {
+			clipToEdit = selectedSubtitles[0];
+		} else {
+			const cursorPosition = globalState.getTimelineState.cursorPosition;
+			const clipUnderCursor = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
+			if (clipUnderCursor instanceof SubtitleClip) {
+				clipToEdit = clipUnderCursor;
+			}
+		}
+
+		if (!clipToEdit) {
+			clipToEdit = globalState.getSubtitleClips.at(-1) ?? null;
+		}
+
+		if (!clipToEdit) return;
+		globalState.openQuickTimelineEditor(clipToEdit.id, 'subtitle');
+	}
+
+	/**
+	 * Enregistre le raccourci d'ouverture rapide de l'editeur limite de sous-titre.
+	 * @returns {void}
+	 */
+	function registerQuickSubtitleEditShortcut(): void {
+		if (!globalState.settings || quickSubtitleEditShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
+			onKeyDown: handleOpenQuickSubtitleEditor
+		});
+
+		quickSubtitleEditShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci d'ouverture rapide de l'editeur limite de sous-titre.
+	 * @returns {void}
+	 */
+	function unregisterQuickSubtitleEditShortcut(): void {
+		if (!quickSubtitleEditShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE
+		);
+
+		quickSubtitleEditShortcutRegistered = false;
 	}
 
 	/**
@@ -430,6 +489,16 @@
 			unregisterRemoveShortcut();
 		}
 
+		if (
+			currentTab === ProjectEditorTabs.VideoEditor ||
+			currentTab === ProjectEditorTabs.Style ||
+			currentTab === ProjectEditorTabs.Export
+		) {
+			registerQuickSubtitleEditShortcut();
+		} else {
+			unregisterQuickSubtitleEditShortcut();
+		}
+
 		// Le raccourci de synchronisation des clips bouclés
 		if (globalState.currentProject) {
 			const timeline = globalState.currentProject.content.timeline;
@@ -456,6 +525,7 @@
 		return () => {
 			unregisterSplitShortcut();
 			unregisterRemoveShortcut();
+			unregisterQuickSubtitleEditShortcut();
 			unregisterSetEndShortcut();
 			unregisterSetStartShortcut();
 			unregisterFrameBackwardShortcut();
@@ -723,6 +793,7 @@
 	onDestroy(() => {
 		unregisterSplitShortcut();
 		unregisterRemoveShortcut();
+		unregisterQuickSubtitleEditShortcut();
 		unregisterSetEndShortcut();
 		unregisterSetStartShortcut();
 		unregisterFrameBackwardShortcut();

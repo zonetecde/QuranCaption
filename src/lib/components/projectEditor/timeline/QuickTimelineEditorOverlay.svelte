@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import VersePicker from '../tabs/subtitlesEditor/VersePicker.svelte';
+	import WordsSelector from '../tabs/subtitlesEditor/WordsSelector.svelte';
 	import TranslationInlineStylePanel from '../tabs/translationsEditor/TranslationInlineStylePanel.svelte';
 	import ArabicText from '../tabs/translationsEditor/workspace/ArabicText.svelte';
 	import Translation from '../tabs/translationsEditor/workspace/translation/Translation.svelte';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 
 	const quickTimelineEditor = $derived(() => globalState.shared.quickTimelineEditor);
 	const translationsEditorState = $derived(
@@ -40,9 +42,19 @@
 	});
 
 	const isWbwMode = $derived(() => quickTimelineEditor().mode === 'wbw');
+	const isSubtitleMode = $derived(() => quickTimelineEditor().mode === 'subtitle');
 
 	$effect(() => {
 		if (quickTimelineEditor().active && !clip()) {
+			globalState.closeQuickTimelineEditor();
+		}
+	});
+
+	$effect(() => {
+		if (!quickTimelineEditor().active || !isSubtitleMode()) return;
+
+		const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		if (!(editedSubtitle instanceof SubtitleClip) || editedSubtitle.id !== clip()!.id) {
 			globalState.closeQuickTimelineEditor();
 		}
 	});
@@ -63,6 +75,27 @@
 	function stopTimelineWheelPropagation(event: WheelEvent): void {
 		event.stopPropagation();
 	}
+
+	/**
+	 * Ferme l'overlay rapide avec Echap.
+	 * @param {KeyboardEvent} event Evenement clavier courant.
+	 * @returns {void}
+	 */
+	function handleQuickTimelineEditorEscape(event: KeyboardEvent): void {
+		if (event.key !== 'Escape' || !quickTimelineEditor().active) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+		globalState.closeQuickTimelineEditor();
+	}
+
+	onMount(() => {
+		window.addEventListener('keydown', handleQuickTimelineEditorEscape, true);
+
+		return () => {
+			window.removeEventListener('keydown', handleQuickTimelineEditorEscape, true);
+		};
+	});
 
 	onDestroy(() => {
 		if (quickTimelineEditor().active) {
@@ -92,21 +125,36 @@
 					isWbwMode() ? 'grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]' : 'flex flex-col'
 				}`}
 			>
-				<div class="min-h-0 overflow-y-auto">
-					<section
-						class="rounded-xl border border-color bg-secondary p-2 pt-4 text-primary space-y-6"
-					>
-						<ArabicText subtitle={clip()!} />
+				{#if isSubtitleMode()}
+					<div class="min-h-0 overflow-y-auto">
+						<section
+							class="flex min-h-full flex-col gap-4 rounded-xl border border-color bg-secondary"
+						>
+							<VersePicker />
+							<div class="min-h-0 flex-1">
+								<WordsSelector />
+							</div>
+						</section>
+					</div>
+				{:else}
+					<div class="min-h-0 overflow-y-auto">
+						<section
+							class="rounded-xl border border-color bg-secondary p-2 pt-4 text-primary space-y-6"
+						>
+							<ArabicText subtitle={clip()!} />
 
-						{#if editionsToShow().length === 0}
-							<p class="text-sm text-thirdly">No translation edition is available for this clip.</p>
-						{:else}
-							{#each editionsToShow() as edition (edition.name)}
-								<Translation {edition} subtitle={clip()!} previousSubtitle={previousSubtitle()} />
-							{/each}
-						{/if}
-					</section>
-				</div>
+							{#if editionsToShow().length === 0}
+								<p class="text-sm text-thirdly">
+									No translation edition is available for this clip.
+								</p>
+							{:else}
+								{#each editionsToShow() as edition (edition.name)}
+									<Translation {edition} subtitle={clip()!} previousSubtitle={previousSubtitle()} />
+								{/each}
+							{/if}
+						</section>
+					</div>
+				{/if}
 
 				{#if isWbwMode()}
 					<div

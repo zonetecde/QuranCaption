@@ -16,7 +16,7 @@ import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Tr
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 
-export type QuickTimelineEditorMode = 'translation' | 'wbw';
+export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
@@ -67,7 +67,9 @@ class GlobalState {
 			active: false,
 			clipId: null as number | null,
 			mode: null as QuickTimelineEditorMode | null,
-			previousInlineStyleMode: null as boolean | null
+			previousInlineStyleMode: null as boolean | null,
+			previousEditSubtitleId: null as number | null,
+			previousPendingSplitEditNextId: null as number | null
 		},
 		wbwEdit: {
 			active: false,
@@ -170,14 +172,27 @@ class GlobalState {
 		if (!this.currentProject) return;
 
 		const translationsState = this.getTranslationsState;
+		const subtitlesEditorState = this.getSubtitlesEditorState;
 		if (!this.shared.quickTimelineEditor.active) {
 			this.shared.quickTimelineEditor.previousInlineStyleMode = translationsState.isInlineStyleMode;
+			this.shared.quickTimelineEditor.previousEditSubtitleId =
+				subtitlesEditorState.editSubtitle?.id ?? null;
+			this.shared.quickTimelineEditor.previousPendingSplitEditNextId =
+				subtitlesEditorState.pendingSplitEditNextId;
 		}
 
 		this.shared.quickTimelineEditor.active = true;
 		this.shared.quickTimelineEditor.clipId = clipId;
 		this.shared.quickTimelineEditor.mode = mode;
 		translationsState.isInlineStyleMode = mode === 'wbw';
+
+		if (mode === 'subtitle') {
+			subtitlesEditorState.editSubtitle = this.getSubtitleTrack.getClipById(clipId) as
+				| SubtitleClip
+				| PredefinedSubtitleClip
+				| null;
+			subtitlesEditorState.pendingSplitEditNextId = null;
+		}
 	}
 
 	/**
@@ -188,12 +203,22 @@ class GlobalState {
 		const previousInlineStyleMode = this.shared.quickTimelineEditor.previousInlineStyleMode;
 		if (this.currentProject && previousInlineStyleMode !== null) {
 			this.getTranslationsState.isInlineStyleMode = previousInlineStyleMode;
+			this.getSubtitlesEditorState.editSubtitle =
+				(this.shared.quickTimelineEditor.previousEditSubtitleId !== null
+					? (this.getSubtitleTrack.getClipById(
+							this.shared.quickTimelineEditor.previousEditSubtitleId
+						) ?? null)
+					: null) as SubtitleClip | PredefinedSubtitleClip | null;
+			this.getSubtitlesEditorState.pendingSplitEditNextId =
+				this.shared.quickTimelineEditor.previousPendingSplitEditNextId;
 		}
 
 		this.shared.quickTimelineEditor.active = false;
 		this.shared.quickTimelineEditor.clipId = null;
 		this.shared.quickTimelineEditor.mode = null;
 		this.shared.quickTimelineEditor.previousInlineStyleMode = null;
+		this.shared.quickTimelineEditor.previousEditSubtitleId = null;
+		this.shared.quickTimelineEditor.previousPendingSplitEditNextId = null;
 	}
 
 	getEditionFromAuthor(author: string): Edition | null {

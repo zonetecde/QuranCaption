@@ -382,7 +382,7 @@
 			</button>
 		</div>
 	{:else}
-		<div class="flex min-h-full p-4 flex-col bg-secondary gap-y-3">
+		<div class="flex min-h-full p-4 flex-col bg-secondary gap-y-3 h-full">
 			{#if translationsEditorState().isInlineStyleMode}
 				<div
 					class="sticky top-0 z-20 flex items-start justify-between gap-3 rounded-xl border border-[var(--accent-primary)]/45 bg-[color-mix(in_srgb,var(--accent-primary)_14%,var(--bg-secondary))] px-4 py-3 text-primary shadow-lg backdrop-blur"

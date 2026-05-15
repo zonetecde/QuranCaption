@@ -373,6 +373,14 @@
 		await openQuickTimelineEditorFromContextMenu('wbw');
 	}
 
+	/**
+	 * Ouvre l'editeur rapide de sous-titre sur le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function editSubtitleFromQuickEditorContextMenu(): Promise<void> {
+		await openQuickTimelineEditorFromContextMenu('subtitle');
+	}
+
 	async function bookmarkVerseFromContextMenu(): Promise<void> {
 		if (!canBookmarkWithQuran()) return;
 		if (!(clip instanceof SubtitleClip)) return;
@@ -540,22 +548,10 @@
 			</div></Item
 		>
 	{/if}
-	{#if globalState.currentProject!.projectEditorState.currentTab === 'Subtitles editor'}
+	{#if globalState.currentProject!.projectEditorState.currentTab === 'Subtitles editor' && clip.type !== 'Subtitle'}
 		<Item on:click={editSubtitle}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">edit</span>Edit subtitle
-			</div></Item
-		>
-	{/if}
-	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
-		<Item on:click={editTranslationFromContextMenu}
-			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">translate</span>Edit translation
-			</div></Item
-		>
-		<Item on:click={editWbwStyleFromContextMenu}
-			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">format_color_text</span>Wbw Style
 			</div></Item
 		>
 	{/if}
@@ -613,6 +609,24 @@
 				: 'Add this verse to a Quran.com collection'}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">bookmark_add</span>Bookmark
+			</div></Item
+		>
+	{/if}
+	{#if clip.type === 'Subtitle'}
+		<Divider />
+		<Item on:click={editSubtitleFromQuickEditorContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">subtitles</span>Edit subtitle
+			</div></Item
+		>
+		<Item on:click={editTranslationFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">translate</span>Edit translation
+			</div></Item
+		>
+		<Item on:click={editWbwStyleFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">format_color_text</span>Wbw Style
 			</div></Item
 		>
 	{/if}

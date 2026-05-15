@@ -339,6 +339,43 @@
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
 	}
 
+	/**
+	 * Ouvre l'editeur de traductions sur le clip courant en reinitialisant les filtres.
+	 * @returns {Promise<void>}
+	 */
+	async function editTranslationFromContextMenu(): Promise<void> {
+		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
+
+		// Ferme le menu avant de changer d'onglet
+		currentMenu.set(null);
+		await tick();
+
+		const translationsState = globalState.getTranslationsState;
+		// Repart d'un état "tout visible" pour garantir que le verset cible existe bien dans la liste.
+		translationsState.searchQuery = '';
+		translationsState.onlyShowOverlappingSubtitles = false;
+		for (const key in translationsState.filters) {
+			translationsState.filters[key] = true;
+		}
+
+		// Réaffiche toutes les éditions masquées seulement si aucune n'est actuellement affichée
+		const hasVisibleEditions =
+			globalState.currentProject!.content.projectTranslation.addedTranslationEditions.some(
+				(edition) => edition.showInTranslationsEditor
+			);
+		if (!hasVisibleEditions) {
+			for (const edition of globalState.currentProject!.content.projectTranslation
+				.addedTranslationEditions) {
+				edition.showInTranslationsEditor = true;
+			}
+		}
+
+		// Le workspace des traductions réutilise "lastRead" pour resume/scroll directement sur ce clip.
+		translationsState.lastReadClipId = clip.id;
+		translationsState.lastReadUpdatedAt = new Date().toISOString();
+		globalState.currentProject!.projectEditorState.currentTab = ProjectEditorTabs.Translations;
+	}
+
 	async function bookmarkVerseFromContextMenu(): Promise<void> {
 		if (!canBookmarkWithQuran()) return;
 		if (!(clip instanceof SubtitleClip)) return;
@@ -510,6 +547,13 @@
 		<Item on:click={editSubtitle}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">edit</span>Edit subtitle
+			</div></Item
+		>
+	{/if}
+	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
+		<Item on:click={editTranslationFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">translate</span>Edit translation
 			</div></Item
 		>
 	{/if}

@@ -159,6 +159,12 @@ jobs:
       - name: Install app dependencies
         run: npm install
 
+      - name: Disable updater artifacts
+        if: inputs.buildArtifacts
+        run: |
+          node -e "const fs = require('fs'); const path = 'src-tauri/tauri.conf.json'; const config = JSON.parse(fs.readFileSync(path, 'utf8')); config.bundle.createUpdaterArtifacts = false; fs.writeFileSync(path, JSON.stringify(config, null, '\t'));"
+        shell: bash
+
       - name: Build unsigned workflow artifacts
         if: inputs.buildArtifacts
         uses: tauri-apps/tauri-action@v0
@@ -169,10 +175,23 @@ jobs:
         with:
           args: ${{ matrix.args }}
           assetNamePattern: ${{ matrix.assetNamePattern }}
-          uploadWorkflowArtifacts: true
-          uploadUpdaterJson: false
-          uploadUpdaterSignatures: false
         timeout-minutes: 60
+
+      - name: Upload unsigned workflow artifacts
+        if: inputs.buildArtifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuranCaption-${{ matrix.target }}
+          path: |
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/release/bundle/**/*.dmg
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/*/release/bundle/**/*.AppImage
+            src-tauri/target/*/release/bundle/**/*.deb
+            src-tauri/target/*/release/bundle/**/*.dmg
+            src-tauri/target/*/release/bundle/**/*.exe
+          if-no-files-found: error
 
       - name: Build and create release
         if: ${{ !inputs.buildArtifacts }}

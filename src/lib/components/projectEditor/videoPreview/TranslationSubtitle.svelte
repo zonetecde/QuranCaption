@@ -187,6 +187,8 @@
 <p
 	ondblclick={() => {
 		globalState.getVideoStyle.highlightCategory('translation', edition as StyleCategoryName);
+		const subtitle = currentSubtitle();
+		if (subtitle) globalState.openQuickTimelineEditor(subtitle.id, 'translation');
 	}}
 	use:mouseDrag={{
 		target: edition,

@@ -616,6 +616,8 @@
 	<p
 		ondblclick={() => {
 			globalState.getVideoStyle.highlightCategory('arabic', 'general');
+			const subtitle = currentSubtitle();
+			if (subtitle) globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
 		}}
 		use:mouseDrag={{
 			target: 'arabic',

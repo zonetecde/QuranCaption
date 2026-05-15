@@ -16,6 +16,7 @@ import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
 import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+import { getRukuExportTargets, type RukuExportTarget } from '$lib/services/RukuExportService';
 
 export default class Exporter {
 	private static queueIntervalId: number | null = null;
@@ -144,6 +145,107 @@ export default class Exporter {
 				await w.destroy();
 			}
 		});
+	}
+
+	/**
+	 * Retourne l'extension video selon les reglages d'export courants.
+	 * @returns {'mp4' | 'mov' | 'webm'} Extension sans point.
+	 */
+	private static getVideoExtension(): 'mp4' | 'mov' | 'webm' {
+		if (!globalState.getExportState.exportWithoutBackground) return 'mp4';
+		return globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha' ? 'webm' : 'mov';
+	}
+
+	/**
+	 * Nettoie un nom de fichier sans extension pour Windows/macOS/Linux.
+	 * @param {string} fileNameBase Nom de fichier sans extension.
+	 * @returns {string} Nom nettoye.
+	 */
+	private static sanitizeFileNameBase(fileNameBase: string): string {
+		return fileNameBase.replace(/[/\\:*?"<>|]/g, '_').trim();
+	}
+
+	/**
+	 * Retourne le nom de fichier sans extension d'une video de ruku.
+	 * @param {RukuExportTarget} target Segment ruku a exporter.
+	 * @returns {string} Nom de fichier sans extension.
+	 */
+	private static getRukuFileNameBase(target: RukuExportTarget): string {
+		const surahName = Quran.surahs[target.surah - 1]?.name || `Surah ${target.surah}`;
+		const rukuNumber = target.rukuNumber.toString().padStart(2, '0');
+		const customFileName = globalState.getExportState.customFileName.trim();
+		const baseName = customFileName || globalState.currentProject!.detail.generateExportFileName();
+
+		return Exporter.sanitizeFileNameBase(
+			`${baseName} - Ruku ${rukuNumber} - ${surahName} ${target.startAyah}-${target.endAyah}`
+		);
+	}
+
+	/**
+	 * Retourne la fin effective de la plage d'export courante.
+	 * @returns {number} Fin d'export en millisecondes.
+	 */
+	private static getResolvedExportEndTime(): number {
+		const exportStart = globalState.getExportState.videoStartTime || 0;
+		const exportEnd = globalState.getExportState.videoEndTime || 0;
+		if (exportEnd > exportStart) return exportEnd;
+
+		return (
+			globalState.getAudioTrack.getDuration().ms ||
+			globalState.getSubtitleTrack.getDuration().ms ||
+			Number.POSITIVE_INFINITY
+		);
+	}
+
+	/**
+	 * Calcule les segments ruku complets depuis les versets captionnes.
+	 * @returns {RukuExportTarget[]} Segments de ruku exportables.
+	 */
+	private static getRukuVideoExportTargets(): RukuExportTarget[] {
+		return getRukuExportTargets(
+			globalState.getSubtitleClips.map((clip) => ({
+				surah: clip.surah,
+				verse: clip.verse,
+				startTime: clip.startTime,
+				endTime: clip.endTime
+			})),
+			globalState.getExportState.videoStartTime || 0,
+			Exporter.getResolvedExportEndTime()
+		);
+	}
+
+	/**
+	 * Enregistre un projet d'export video et le demarre ou le met en file.
+	 * @param {Project} project Copie du projet a exporter.
+	 * @param {'recording' | 'stable'} mode Etat initial de l'export.
+	 * @param {string | undefined} fileNameBase Nom de fichier sans extension, si deja calcule.
+	 * @returns {Promise<void>} Promise resolue quand l'export est ajoute.
+	 */
+	private static async queueVideoProjectExport(
+		project: Project,
+		mode: 'recording' | 'stable',
+		fileNameBase?: string
+	): Promise<void> {
+		await ExportService.saveProject(project);
+		await ExportService.addExport(project, mode, fileNameBase);
+
+		void AiTranslationTelemetryService.handleVideoExportRequested({
+			projectId: globalState.currentProject!.detail.id,
+			exportStartMs: project.projectEditorState.export.videoStartTime || 0,
+			exportEndMs: project.projectEditorState.export.videoEndTime || 0,
+			clips: globalState.getSubtitleClips.map((clip) => ({
+				subtitleId: clip.id,
+				startTime: clip.startTime,
+				endTime: clip.endTime
+			}))
+		});
+
+		globalState.uiState.showExportMonitor = true;
+		Exporter.ensureBackgroundWorkersStarted();
+
+		if (mode === 'stable') {
+			await Exporter.openExportWindow(project.detail.id.toString());
+		}
 	}
 
 	/**
@@ -338,14 +440,74 @@ export default class Exporter {
 	}
 
 	/**
-	 * Exporte le projet sous forme de vidéo.
+	 * Exporte une video separee pour chaque ruku complet de la plage courante.
+	 * @returns {Promise<void>} Promise resolue quand tous les exports sont ajoutes.
+	 */
+	static async exportRukuVideos(): Promise<void> {
+		const targets = Exporter.getRukuVideoExportTargets();
+		if (targets.length === 0) {
+			await ModalManager.errorModal(
+				'No complete ruku ranges found',
+				'Ruku export needs every ayah of a ruku to be captioned inside the selected export range.'
+			);
+			return;
+		}
+
+		const videoExtension = Exporter.getVideoExtension();
+		const exportFolder = await ExportService.getExportFolder();
+		const plannedExports: Array<{
+			target: RukuExportTarget;
+			fileNameBase: string;
+			filePath: string;
+		}> = [];
+
+		for (const target of targets) {
+			const fileNameBase = Exporter.getRukuFileNameBase(target);
+			plannedExports.push({
+				target,
+				fileNameBase,
+				filePath: await join(exportFolder, `${fileNameBase}.${videoExtension}`)
+			});
+		}
+
+		const existingFileCount = (
+			await Promise.all(plannedExports.map((planned) => exists(planned.filePath)))
+		).filter(Boolean).length;
+
+		if (existingFileCount > 0) {
+			const confirmOverwrite = await ModalManager.confirmModal(
+				`${existingFileCount} ruku video file${
+					existingFileCount > 1 ? 's' : ''
+				} already exist. They will be overwritten. Continue?`,
+				true
+			);
+			if (!confirmOverwrite) return;
+		}
+
+		for (const planned of plannedExports) {
+			const exportId = Utilities.randomId().toString();
+			const shouldQueue =
+				Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
+			const project = globalState.currentProject!.clone();
+			project.detail.id = Number(exportId);
+			project.projectEditorState.export.videoStartTime = planned.target.startTime;
+			project.projectEditorState.export.videoEndTime = planned.target.endTime;
+			project.projectEditorState.export.customFileName = planned.fileNameBase;
+
+			await Exporter.queueVideoProjectExport(
+				project,
+				shouldQueue ? 'recording' : 'stable',
+				planned.fileNameBase
+			);
+		}
+	}
+
+	/**
+	 * Exporte le projet sous forme de video.
+	 * @returns {Promise<void>} Promise resolue quand l'export est ajoute.
 	 */
 	static async exportVideo() {
-		const videoExtension = globalState.getExportState.exportWithoutBackground
-			? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
-				? 'webm'
-				: 'mov'
-			: 'mp4';
+		const videoExtension = Exporter.getVideoExtension();
 		const exportFileName =
 			globalState.currentProject!.detail.generateExportFileName() + '.' + videoExtension;
 		const exportFilePath = await join(await ExportService.getExportFolder(), exportFileName);
@@ -368,32 +530,6 @@ export default class Exporter {
 		const project = globalState.currentProject!.clone();
 		project.detail.id = Number(exportId); // L'ID du projet est l'ID d'export
 
-		// Créer le fichier du projet dans le dossier Export afin que l'Exporter le récupère
-		await ExportService.saveProject(project);
-
-		// Ajoute à la liste des exports en cours
-		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable');
-
-		void AiTranslationTelemetryService.handleVideoExportRequested({
-			projectId: globalState.currentProject!.detail.id,
-			exportStartMs: globalState.getExportState.videoStartTime || 0,
-			exportEndMs: globalState.getExportState.videoEndTime || 0,
-			clips: globalState.getSubtitleClips.map((clip) => ({
-				subtitleId: clip.id,
-				startTime: clip.startTime,
-				endTime: clip.endTime
-			}))
-		});
-
-		// Ouvre le popup de monitor d'export
-		globalState.uiState.showExportMonitor = true;
-
-		// Set-up l'écouteur d'évènement pour suivre
-		// le progrès des projets en cours d'exportation
-		Exporter.ensureBackgroundWorkersStarted();
-
-		if (!shouldQueue) {
-			await Exporter.openExportWindow(exportId);
-		}
+		await Exporter.queueVideoProjectExport(project, shouldQueue ? 'recording' : 'stable');
 	}
 }

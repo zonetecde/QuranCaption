@@ -236,6 +236,12 @@
 		<p class="text-thirdly text-xs mt-2 text-center">
 			Start the video export process with your selected time range
 		</p>
+		<button class="btn mt-4 px-6 py-3 font-medium" onclick={Exporter.exportRukuVideos}>
+			Export Ruku Videos
+		</button>
+		<p class="text-thirdly text-xs mt-2 text-center">
+			Queue one separate video for each complete ruku in the selected range
+		</p>
 	</div>
 
 	<div class="mt-5">

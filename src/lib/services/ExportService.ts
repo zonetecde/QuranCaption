@@ -60,8 +60,14 @@ export default class ExportService {
 	/**
 	 * Ajoute un projet à la liste des exports en cours.
 	 * @param project Le projet à ajouter
+	 * @param mode Le mode initial de l'export
+	 * @param fileNameBase Le nom de fichier sans extension, si deja calcule
 	 */
-	static async addExport(project: Project, mode: 'recording' | 'stable' = 'stable') {
+	static async addExport(
+		project: Project,
+		mode: 'recording' | 'stable' = 'stable',
+		fileNameBase?: string
+	) {
 		// Ajoute le projet à la liste des exports en cours
 
 		const videoExtension = project.projectEditorState.export.exportWithoutBackground
@@ -69,7 +75,8 @@ export default class ExportService {
 				? 'webm'
 				: 'mov'
 			: 'mp4';
-		const fileName = project.detail.generateExportFileName() + '.' + videoExtension;
+		const fileName =
+			(fileNameBase ?? project.detail.generateExportFileName()) + '.' + videoExtension;
 		let filePath = await join(await this.getExportFolder(), fileName);
 
 		filePath = await this.checkIfFilePathTooLong(filePath);
@@ -211,10 +218,8 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.currentTreatedTime = data.currentTime;
 		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
 		exportation.processingBackgroundProgress = data.processingBackgroundProgress ?? 0;
-		exportation.processingBackgroundCurrentSegment =
-			data.processingBackgroundCurrentSegment ?? 0;
-		exportation.processingBackgroundTotalSegments =
-			data.processingBackgroundTotalSegments ?? 0;
+		exportation.processingBackgroundCurrentSegment = data.processingBackgroundCurrentSegment ?? 0;
+		exportation.processingBackgroundTotalSegments = data.processingBackgroundTotalSegments ?? 0;
 		exportation.mergingFilesProgress = data.mergingFilesProgress ?? 0;
 		exportation.mergingFilesCurrentSegment = data.mergingFilesCurrentSegment ?? 0;
 		exportation.mergingFilesTotalSegments = data.mergingFilesTotalSegments ?? 0;
@@ -249,4 +254,3 @@ export interface ExportProgress {
 	mergingFilesTotalSegments?: number;
 	errorLog?: string;
 }
-

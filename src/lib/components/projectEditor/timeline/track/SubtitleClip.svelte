@@ -124,6 +124,23 @@
 
 	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
+	/**
+	 * Retourne le libellé à afficher pour un mot WBW sur la timeline.
+	 * @param {{ location: string; word?: string }} word Mot WBW source.
+	 * @returns {string} Texte lisible du mot.
+	 */
+	function getWordBoundaryLabel(word: { location: string; word?: string }): string {
+		const directLabel = String(word.word ?? '').trim();
+		if (directLabel) return directLabel;
+		if (!(clip instanceof SubtitleClip)) return String(word.location ?? '').trim();
+
+		const relativeWordIndex = Number(word.location.split(':')[2]) - clip.startWordIndex - 1;
+		const clipWords = clip.text.split(/\s+/).filter(Boolean);
+		const fallbackLabel = clipWords[relativeWordIndex];
+
+		return String(fallbackLabel ?? word.location ?? '').trim();
+	}
+
 	const wordBoundaryMarkers = $derived(() => {
 		if (!(clip instanceof SubtitleClip)) return [];
 		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return [];
@@ -139,7 +156,7 @@
 					key: `${clip.id}-wbw-marker-${index}`,
 					leftPercent,
 					widthPercent: Math.max(0.8, rightPercent - leftPercent),
-					label: String(word.word ?? word.location ?? '').trim()
+					label: getWordBoundaryLabel(word)
 				};
 			})
 			.filter((marker) => marker.leftPercent < 100 && marker.widthPercent > 0);

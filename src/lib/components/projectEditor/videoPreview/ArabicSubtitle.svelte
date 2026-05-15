@@ -4,6 +4,7 @@
 	import { type TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
+	import QPCFontProvider from '$lib/services/FontProvider';
 	import { untrack } from 'svelte';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
@@ -132,11 +133,45 @@
 	// =========================================================================
 
 	/**
-	 * Génère les segments d'overlay pour un clip arabe donné.
+	 * Retourne le CSS `font-family` propre au verset du clip lorsque le mushaf
+	 * QPC1, QPC2 ou Tajweed est actif. Chaque page du mushaf a sa propre police,
+	 * donc chaque clip doit forcer la sienne via un span lors d'un merge visuel.
 	 *
-	 * Gère trois cas :
-	 * 1. Clip prédéfini → un segment simple.
-	 * 2. Clip sans styles inline → un segment texte concaténé avec son suffixe.
+	 * @param subtitle - Clip Quran dont on veut la police de page.
+	 * @returns Chaîne CSS `font-family: ...;` ou chaîne vide.
+	 */
+	function getSubtitleQpcFontCss(subtitle: SubtitleClip): string {
+		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
+		const fontFamily = globalState.getStyle('arabic', 'font-family');
+
+		if (mushafStyle === 'Tajweed') {
+			const tajweedFont = QPCFontProvider.getTajweedFontNameForVerse(
+				subtitle.surah,
+				subtitle.verse
+			);
+			const qpc2Fallback = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '2');
+			return `font-family: ${tajweedFont}, ${qpc2Fallback};`;
+		}
+
+		if (fontFamily?.value === 'QPC1') {
+			const font = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '1');
+			return `font-family: ${font};`;
+		}
+
+		if (fontFamily?.value === 'QPC2') {
+			const font = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '2');
+			return `font-family: ${font};`;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Convertit un clip en segments de texte pour l'overlay vidéo.
+	 *
+	 * Stratégie :
+	 * 1. Clip prédéfini → texte brut.
+	 * 2. Clip sans styles inline → un seul segment texte (concaténé avec le suffixe si pas de police distincte).
 	 * 3. Clip avec styles inline → un segment par portion stylée.
 	 *
 	 * @param subtitle - Le clip à convertir en segments.
@@ -152,6 +187,7 @@
 		}
 
 		const displayParts = subtitle.getArabicRenderParts('preview');
+		const perClipFontCss = subtitle instanceof SubtitleClip ? getSubtitleQpcFontCss(subtitle) : '';
 		const hasInlineStyles = (subtitle.arabicInlineStyleRuns?.length ?? 0) > 0;
 
 		if (!hasInlineStyles) {
@@ -161,7 +197,9 @@
 				displayParts.suffix && !displayParts.suffixFontFamily
 					? displayParts.text + displayParts.suffix
 					: displayParts.text;
-			const segments = [createPlainOverlaySegment(`${keyPrefix}-arabic`, fullText)];
+			const segments = [
+				createPlainOverlaySegment(`${keyPrefix}-arabic`, fullText, perClipFontCss)
+			];
 
 			// Si le suffixe a sa propre police, on le met dans un segment séparé
 			if (displayParts.suffix && displayParts.suffixFontFamily) {
@@ -182,7 +220,8 @@
 			.map((segment, index) => ({
 				key: `${keyPrefix}-arabic-${index}`,
 				text: segment.text,
-				flags: segment
+				flags: segment,
+				extraCss: perClipFontCss
 			}));
 
 		if (!displayParts.suffix) return baseSegments;

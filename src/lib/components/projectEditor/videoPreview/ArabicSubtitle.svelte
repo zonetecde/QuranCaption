@@ -13,6 +13,7 @@
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
 	import {
+		type WordByWordHighlightState,
 		getWordByWordHighlightState as computeWordByWordHighlightState,
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
 		getWordByWordWordCss as buildWordByWordWordCss,
@@ -217,17 +218,26 @@
 		words: Array<{
 			text: string;
 			timings: SegmentationWordTimestamp[];
+			flags: TranslationInlineStyleFlags;
 		}>;
 		groups: Array<{
 			words: Array<{
 				text: string;
 				timings: SegmentationWordTimestamp[];
+				flags: TranslationInlineStyleFlags;
 			}>;
 			startWordIndex: number;
 			suffix: string;
 			suffixFontFamily: string | null;
 		}>;
 		clipStartTimeS: number;
+	};
+
+	const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
+		bold: false,
+		italic: false,
+		underline: false,
+		color: null
 	};
 
 	/**
@@ -300,6 +310,48 @@
 	}
 
 	/**
+	 * Retourne les flags inline appliqués à un mot arabe donné.
+	 * @param {SubtitleClip} clip Clip Quran source.
+	 * @param {number} wordIndex Index du mot dans le clip source.
+	 * @returns {TranslationInlineStyleFlags} Flags inline resolves.
+	 */
+	function getArabicInlineFlagsForWordIndex(
+		clip: SubtitleClip,
+		wordIndex: number
+	): TranslationInlineStyleFlags {
+		for (const run of clip.arabicInlineStyleRuns ?? []) {
+			if (run.startWordIndex <= wordIndex && wordIndex <= run.endWordIndex) {
+				return {
+					bold: run.bold,
+					italic: run.italic,
+					underline: run.underline,
+					color: run.color ?? null
+				};
+			}
+		}
+
+		return EMPTY_INLINE_STYLE_FLAGS;
+	}
+
+	/**
+	 * Fusionne deux jeux de flags inline en donnant priorite au second.
+	 * @param {TranslationInlineStyleFlags} base Flags deja presents.
+	 * @param {TranslationInlineStyleFlags} override Flags a appliquer en priorite.
+	 * @returns {TranslationInlineStyleFlags} Resultat fusionne.
+	 */
+	function mergeInlineStyleFlags(
+		base: TranslationInlineStyleFlags,
+		override: TranslationInlineStyleFlags
+	): TranslationInlineStyleFlags {
+		return {
+			bold: Boolean(base.bold || override.bold),
+			italic: Boolean(base.italic || override.italic),
+			underline: Boolean(base.underline || override.underline),
+			color: override.color ?? base.color ?? null
+		};
+	}
+
+	/**
 	 * Construit les données de rendu WBW pour le sous-titre arabe courant.
 	 *
 	 * Gère la fusion visuelle : si le texte arabe est fusionné, on agrège
@@ -347,6 +399,8 @@
 			const clipOffsetS = shouldUseMergedSource
 				? (sourceClip.startTime - mergedGroup!.startTime) / 1000
 				: 0;
+			const sourceWordCount = sourceClip.text.split(/\s+/).filter(Boolean).length;
+			const inlineWordOffset = Math.max(0, sourceWordCount - visibleWords.length);
 
 			if (visibleWords.length === 0) {
 				continue;
@@ -371,13 +425,18 @@
 				const wordEntry = words[words.length - clampedOverlapCount + i];
 				if (!wordEntry) continue;
 				wordEntry.timings.push(timingCandidates[i]);
+				wordEntry.flags = mergeInlineStyleFlags(
+					wordEntry.flags,
+					getArabicInlineFlagsForWordIndex(sourceClip, inlineWordOffset + i)
+				);
 			}
 
 			const groupWords: ArabicWordByWordRenderData['groups'][number]['words'] = [];
 			for (let i = clampedOverlapCount; i < visibleWords.length; i++) {
 				const wordEntry = {
 					text: visibleWords[i],
-					timings: [timingCandidates[i]]
+					timings: [timingCandidates[i]],
+					flags: getArabicInlineFlagsForWordIndex(sourceClip, inlineWordOffset + i)
 				};
 				words.push(wordEntry);
 				groupWords.push(wordEntry);
@@ -457,9 +516,33 @@
 		const parts: string[] = [];
 		if (flags.bold) parts.push('font-weight: 700;');
 		if (flags.italic) parts.push('font-style: italic;');
-		if (flags.underline) parts.push('text-decoration: underline;');
+		if (flags.underline) parts.push('text-decoration-line: underline;');
 		if (flags.color) parts.push(`color: ${flags.color};`);
 		return parts.join(' ');
+	}
+
+	/**
+	 * Fusionne le CSS WBW avec le CSS inline d'un mot, en laissant l'inline prioritaire.
+	 * @param {number} wordIndex Index du mot dans le flux WBW courant.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @param {number} highlightProgress Progression du highlight.
+	 * @param {TranslationInlineStyleFlags} flags Flags inline du mot.
+	 * @returns {string} CSS inline final.
+	 */
+	function getCombinedWordByWordCss(
+		wordIndex: number,
+		state: WordByWordHighlightState,
+		highlightProgress: number,
+		flags: TranslationInlineStyleFlags
+	): string {
+		const wbwCss = buildWordByWordWordCss(
+			wordIndex,
+			state,
+			highlightProgress,
+			wbwPreviewFadeDuration()
+		);
+		const inlineCss = getInlineStyleCss(flags);
+		return `${wbwCss} ${inlineCss}`.trim();
 	}
 
 	// =========================================================================
@@ -530,11 +613,11 @@
 										wbwPreviewFadeDuration()
 									)}
 									<span
-										style={buildWordByWordWordCss(
+										style={getCombinedWordByWordCss(
 											wordIndex,
 											state,
 											highlightProgress,
-											wbwPreviewFadeDuration()
+											wordEntry.flags
 										)}
 									>
 										{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}
@@ -581,11 +664,11 @@
 									wbwPreviewFadeDuration()
 								)}
 								<span
-									style={buildWordByWordWordCss(
+									style={getCombinedWordByWordCss(
 										wordIndex,
 										state,
 										highlightProgress,
-										wbwPreviewFadeDuration()
+										wordEntry.flags
 									)}
 								>
 									{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}

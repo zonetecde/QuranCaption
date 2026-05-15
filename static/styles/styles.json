@@ -270,13 +270,23 @@
 			},
 			{
 				"id": "wbw-color",
-				"name": "Wbw color",
+				"name": "Word-by-word color",
 				"description": "Color applied to highlighted words",
 				"value": "#facc15",
 				"valueType": "color",
 				"css": "",
 				"tailwind": false,
 				"icon": "palette"
+			},
+			{
+				"id": "wbw-persist-color",
+				"name": "Persist highlighted words",
+				"description": "Keep previously highlighted words colored after they have been read",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "format_color_fill"
 			},
 			{
 				"id": "enable-wbw-underline",
@@ -289,14 +299,17 @@
 				"icon": "format_underlined"
 			},
 			{
-				"id": "wbw-persist-color",
-				"name": "Persist highlighted words",
-				"description": "Keep previously highlighted words colored after they have been read",
-				"value": false,
-				"valueType": "boolean",
+				"id": "wbw-underline-thickness",
+				"name": "Underline thickness",
+				"description": "Thickness of the wbw underline in pixels",
+				"value": 5,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 12,
+				"step": 1,
 				"css": "",
 				"tailwind": false,
-				"icon": "format_color_fill"
+				"icon": "line_weight"
 			},
 			{
 				"id": "wbw-reveal-on-recitation",
@@ -337,20 +350,8 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "highlight"
-			},
-			{
-				"id": "wbw-underline-thickness",
-				"name": "Underline thickness",
-				"description": "Thickness of the wbw underline in pixels",
-				"value": 5,
-				"valueType": "number",
-				"valueMin": 1,
-				"valueMax": 12,
-				"step": 1,
-				"css": "",
-				"tailwind": false,
-				"icon": "line_weight"
 			}
+		
 		]
 	},
 	{

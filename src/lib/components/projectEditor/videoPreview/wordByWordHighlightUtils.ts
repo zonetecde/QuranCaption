@@ -4,6 +4,7 @@ import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 
 export type WordByWordHighlightState = {
 	enabled: boolean;
+	highlightEnabled: boolean;
 	activeWordIndex: number;
 	persistColor: boolean;
 	revealWordsOnRecitation: boolean;
@@ -22,12 +23,27 @@ export type WordByWordHighlightState = {
 type ResolveStyleValue = (styleId: string) => string | number | boolean;
 
 /**
+ * Indique si au moins un effet WBW nécessite d'activer le rendu mot a mot.
+ * @param {ResolveStyleValue} getStyleValue Lecteur de styles effectifs.
+ * @returns {boolean} `true` si un effet WBW est actif.
+ */
+export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): boolean {
+	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
+	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
+	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
+	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
+
+	return highlightEnabled || underlineEnabled || revealWordsOnRecitation || backgroundEnabled;
+}
+
+/**
  * Retourne l'état désactivé par défaut du highlight mot à mot.
  * @returns {WordByWordHighlightState} Etat inactif.
  */
 export function getDisabledWordByWordHighlightState(): WordByWordHighlightState {
 	return {
 		enabled: false,
+		highlightEnabled: false,
 		activeWordIndex: -1,
 		persistColor: false,
 		revealWordsOnRecitation: false,
@@ -88,7 +104,11 @@ export function getWordByWordHighlightState(params: {
 		return getDisabledWordByWordHighlightState();
 	}
 
-	const isEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
+	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
+	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
+	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
+	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
+	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
 	if (!isEnabled) return getDisabledWordByWordHighlightState();
 
 	let activeWordIndex = words.findIndex((word) => {
@@ -106,15 +126,16 @@ export function getWordByWordHighlightState(params: {
 
 	return {
 		enabled: words.length > 0,
+		highlightEnabled,
 		activeWordIndex,
 		persistColor: Boolean(getStyleValue('wbw-persist-color')),
-		revealWordsOnRecitation: Boolean(getStyleValue('wbw-reveal-on-recitation')),
+		revealWordsOnRecitation,
 		alwaysShowVerseNumber: Boolean(getStyleValue('wbw-always-show-verse-number')),
 		baseColor: String(getStyleValue('text-color') ?? ''),
 		color: String(getStyleValue('wbw-color') ?? ''),
-		backgroundEnabled: Boolean(getStyleValue('enable-wbw-background')),
+		backgroundEnabled,
 		backgroundColor: String(getStyleValue('wbw-bg-color') ?? ''),
-		underlineEnabled: Boolean(getStyleValue('enable-wbw-underline')),
+		underlineEnabled,
 		underlineThickness: Number(getStyleValue('wbw-underline-thickness') ?? 1),
 		clipStartTimeS,
 		cursorTimeS,
@@ -254,7 +275,7 @@ export function getWordByWordWordCss(
 		return parts.join(' ');
 	}
 
-	if (state.color) {
+	if (state.highlightEnabled && state.color) {
 		parts.push(`color: ${interpolateCssColor(state.baseColor, state.color, clampedProgress)};`);
 	}
 	if (state.backgroundEnabled && state.backgroundColor && state.backgroundColor !== '#00000000') {

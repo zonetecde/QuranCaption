@@ -163,6 +163,30 @@
 		return Boolean(globalState.getStyle('global', alwaysShowStyleId).value);
 	}
 
+	/**
+	 * Désactive certains styles WBW selon leurs toggles parents, sans bloquer toute la catégorie.
+	 * @param {string} categoryId Identifiant de la catégorie courante.
+	 * @param {string} styleId Identifiant du style courant.
+	 * @returns {boolean} true si le style doit etre désactivé.
+	 */
+	function isWordByWordStyleDisabled(categoryId: string, styleId: string): boolean {
+		if (categoryId !== 'word-by-word-highlight') return false;
+
+		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
+			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-highlight')?.value);
+		}
+
+		if (styleId === 'wbw-bg-color') {
+			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-background')?.value);
+		}
+
+		if (styleId === 'wbw-underline-thickness') {
+			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-underline')?.value);
+		}
+
+		return false;
+	}
+
 	$effect(() => {
 		const _ = globalState.getStylesState.scrollAndHighlight;
 
@@ -470,6 +494,7 @@
 										category.getStyle('always-show')?.value &&
 										(style.id === 'time-appearance' || style.id === 'time-disappearance')) ||
 									isGlobalTimedOverlayStyleDisabled(category.id, style.id) ||
+									isWordByWordStyleDisabled(category.id, style.id) ||
 									(category.id === 'word-by-word-highlight' &&
 										!category.getStyle('wbw-reveal-on-recitation')?.value &&
 										style.id === 'wbw-always-show-verse-number')}

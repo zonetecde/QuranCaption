@@ -47,6 +47,8 @@
 		SilenceClip,
 		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
+	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
+	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -943,9 +945,7 @@
 		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
 			(clip) => {
 				const wbwHighlightTimings =
-					clip instanceof SubtitleClip
-						? getExportWordByWordHighlightTimings(clip)
-						: undefined;
+					clip instanceof SubtitleClip ? getExportWordByWordHighlightTimings(clip) : undefined;
 
 				return {
 					id: clip.id,
@@ -1056,9 +1056,11 @@
 			clip: exportClip,
 			subtitleClips: exportSubtitleClips,
 			isWbwEnabledForClipId: (clipId) =>
-				Boolean(globalState.getVideoStyle
-					.getStylesOfTarget('arabic')
-					.getEffectiveValue('enable-wbw-highlight', clipId))
+				isWordByWordHighlightEnabled((styleId) =>
+					globalState.getVideoStyle
+						.getStylesOfTarget('arabic')
+						.getEffectiveValue(styleId as StyleName, clipId)
+				)
 		});
 	}
 

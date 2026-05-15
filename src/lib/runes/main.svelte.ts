@@ -16,7 +16,7 @@ import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Tr
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 
-export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle';
+export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
@@ -186,7 +186,7 @@ class GlobalState {
 		this.shared.quickTimelineEditor.mode = mode;
 		translationsState.isInlineStyleMode = mode === 'wbw';
 
-		if (mode === 'subtitle') {
+		if (mode === 'subtitle' || mode === 'wbwTimestamp') {
 			subtitlesEditorState.editSubtitle = this.getSubtitleTrack.getClipById(clipId) as
 				| SubtitleClip
 				| PredefinedSubtitleClip

@@ -374,6 +374,14 @@
 	}
 
 	/**
+	 * Ouvre l'editeur rapide de timestamps WBW sur le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function editWbwTimestampFromContextMenu(): Promise<void> {
+		await openQuickTimelineEditorFromContextMenu('wbwTimestamp');
+	}
+
+	/**
 	 * Ouvre l'editeur rapide de sous-titre sur le clip courant.
 	 * @returns {Promise<void>}
 	 */
@@ -622,6 +630,11 @@
 		<Item on:click={editTranslationFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">translate</span>Edit translation
+			</div></Item
+		>
+		<Item on:click={editWbwTimestampFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">timeline</span>Edit WBW timestamp
 			</div></Item
 		>
 		<Item on:click={editWbwStyleFromContextMenu}

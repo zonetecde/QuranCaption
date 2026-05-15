@@ -255,8 +255,9 @@
 			speed = globalState.getSubtitlesEditorState.wbwPlaybackSpeed;
 		}
 		if (
+			!globalState.shared.wbwEdit.active &&
 			globalState.currentProject?.projectEditorState.currentTab !==
-			ProjectEditorTabs.SubtitlesEditor
+				ProjectEditorTabs.SubtitlesEditor
 		) {
 			speed = 1; // Réinitialise la vitesse si on n'est pas dans l'éditeur de sous-titres
 		}

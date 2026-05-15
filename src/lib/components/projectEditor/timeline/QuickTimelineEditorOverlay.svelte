@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import VersePicker from '../tabs/subtitlesEditor/VersePicker.svelte';
 	import WordsSelector from '../tabs/subtitlesEditor/WordsSelector.svelte';
 	import TranslationInlineStylePanel from '../tabs/translationsEditor/TranslationInlineStylePanel.svelte';
 	import ArabicText from '../tabs/translationsEditor/workspace/ArabicText.svelte';
 	import Translation from '../tabs/translationsEditor/workspace/translation/Translation.svelte';
 	import { onDestroy, onMount } from 'svelte';
+	import toast from 'svelte-5-french-toast';
 
 	const quickTimelineEditor = $derived(() => globalState.shared.quickTimelineEditor);
 	const translationsEditorState = $derived(
@@ -43,6 +45,9 @@
 
 	const isWbwMode = $derived(() => quickTimelineEditor().mode === 'wbw');
 	const isSubtitleMode = $derived(() => quickTimelineEditor().mode === 'subtitle');
+	const isWbwTimestampMode = $derived(() => quickTimelineEditor().mode === 'wbwTimestamp');
+
+	let isOpeningQuickWbwTimestampMode = $state(false);
 
 	$effect(() => {
 		if (quickTimelineEditor().active && !clip()) {
@@ -59,11 +64,45 @@
 		}
 	});
 
+	$effect(() => {
+		if (!quickTimelineEditor().active || !isWbwTimestampMode() || !clip()) return;
+		if (globalState.shared.wbwEdit.active || isOpeningQuickWbwTimestampMode) return;
+
+		const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		// Évite de ré-entrer en mode WBW quand exitManualWordByWordEdit(true) a déjà
+		// terminé l'édition et réinitialisé editSubtitle à null.
+		if (!(editedSubtitle instanceof SubtitleClip)) return;
+
+		isOpeningQuickWbwTimestampMode = true;
+		void (async () => {
+			const success = await enterManualWordByWordEdit(clip()!);
+			isOpeningQuickWbwTimestampMode = false;
+
+			if (success) return;
+
+			toast.error('Unable to enter word-by-word edit mode for this subtitle.');
+			globalState.closeQuickTimelineEditor();
+		})();
+	});
+
+	$effect(() => {
+		if (!quickTimelineEditor().active || !isWbwTimestampMode()) return;
+
+		const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		if (!(editedSubtitle instanceof SubtitleClip) || editedSubtitle.id !== clip()!.id) {
+			globalState.closeQuickTimelineEditor();
+		}
+	});
+
 	/**
 	 * Ferme l'editeur rapide de la timeline.
 	 * @returns {void}
 	 */
 	function closeQuickTimelineEditorOverlay(): void {
+		if (isWbwTimestampMode() && globalState.shared.wbwEdit.active) {
+			exitManualWordByWordEdit();
+		}
+
 		globalState.closeQuickTimelineEditor();
 	}
 
@@ -86,7 +125,18 @@
 
 		event.preventDefault();
 		event.stopPropagation();
-		globalState.closeQuickTimelineEditor();
+		closeQuickTimelineEditorOverlay();
+	}
+
+	/**
+	 * Retourne le label lisible d'un raccourci configuré.
+	 * @param {string[] | undefined} keys Liste des touches configurées.
+	 * @param {string} fallback Texte de repli si aucune touche n'est définie.
+	 * @returns {string} Raccourci formaté pour l'UI.
+	 */
+	function formatShortcutLabel(keys: string[] | undefined, fallback: string): string {
+		if (!keys || keys.length === 0) return fallback;
+		return keys.map((key) => key.toUpperCase()).join(' / ');
 	}
 
 	onMount(() => {
@@ -99,7 +149,7 @@
 
 	onDestroy(() => {
 		if (quickTimelineEditor().active) {
-			globalState.closeQuickTimelineEditor();
+			closeQuickTimelineEditorOverlay();
 		}
 	});
 </script>
@@ -125,11 +175,23 @@
 					isWbwMode() ? 'grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]' : 'flex flex-col'
 				}`}
 			>
-				{#if isSubtitleMode()}
+				{#if isWbwTimestampMode()}
 					<div class="min-h-0 overflow-y-auto">
 						<section
-							class="flex min-h-full flex-col gap-4 rounded-xl border border-color bg-secondary"
+							class="flex flex-col gap-3 rounded-xl border border-yellow-400/30 bg-secondary p-3"
 						>
+							<p>
+								Play the audio using space, and press enter each time a word finishes being recited.
+								Go to the subtitles editor for more options.
+							</p>
+							<div class="min-h-0">
+								<WordsSelector />
+							</div>
+						</section>
+					</div>
+				{:else if isSubtitleMode()}
+					<div class="min-h-0 overflow-y-auto">
+						<section class="flex flex-col gap-4 rounded-xl border border-color bg-secondary">
 							<VersePicker />
 							<div class="min-h-0 flex-1">
 								<WordsSelector />

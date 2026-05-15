@@ -34,6 +34,7 @@
 	let contextMenuWordIndex: number | null = $state(null);
 	let editShortcutLongPressTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let didTriggerManualWbwEdit = $state(false);
+	let didRegisterEditLastSubtitleShortcut = false;
 
 	const wbwShortcutHandlers = {
 		getTimer: () => editShortcutLongPressTimer,
@@ -181,11 +182,17 @@
 			onKeyDown: removeLastSubtitle
 		});
 
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
-			onKeyDown: (event) => handleManualWordByWordEditShortcutKeyDown(event, wbwShortcutHandlers),
-			onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(wbwShortcutHandlers)
-		});
+		// N'enregistre pas le raccourci E quand WordsSelector est rendu dans l'overlay rapide de la timeline
+		// pour éviter d'écraser le gestionnaire du Timeline.svelte.
+		if (!globalState.shared.quickTimelineEditor.active) {
+			ShortcutService.registerShortcut({
+				key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
+				onKeyDown: (event) =>
+					handleManualWordByWordEditShortcutKeyDown(event, wbwShortcutHandlers),
+				onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(wbwShortcutHandlers)
+			});
+			didRegisterEditLastSubtitleShortcut = true;
+		}
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE,
@@ -274,9 +281,11 @@
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE
 		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE
-		);
+		if (didRegisterEditLastSubtitleShortcut) {
+			ShortcutService.unregisterShortcut(
+				globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE
+			);
+		}
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE
 		);

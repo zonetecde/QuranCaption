@@ -14,6 +14,8 @@
 	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import {
+		handleManualWordByWordEditShortcutKeyDown,
+		handleManualWordByWordEditShortcutKeyUp,
 		moveManualWordByWordSelectedWordEndToCursor,
 		moveManualWordByWordSelectedWordStartToCursor
 	} from '$lib/services/WbwHelper';
@@ -65,6 +67,8 @@
 	let frameBackwardShortcutRegistered = false;
 	let frameForwardShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
+	let quickEditLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+	let didTriggerQuickLongPressAction = false;
 
 	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
 	function handleRemoveSelectedSubtitles(): void {
@@ -232,33 +236,66 @@
 	}
 
 	/**
+	 * Retourne le meilleur sous-titre Quran a editer rapidement depuis la timeline.
+	 * Priorise le sous-titre selectionne dans l'onglet Style, sinon celui sous le curseur,
+	 * sinon le dernier vrai sous-titre du projet.
+	 * @returns {SubtitleClip | null}
+	 */
+	function resolveQuickEditableSubtitleClip(): SubtitleClip | null {
+		if (!globalState.currentProject) return null;
+
+		const selectedSubtitles = globalState.getStylesState.selectedSubtitles;
+		if (selectedSubtitles.length === 1 && selectedSubtitles[0] instanceof SubtitleClip) {
+			return selectedSubtitles[0];
+		}
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const clipUnderCursor = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
+		if (clipUnderCursor instanceof SubtitleClip) {
+			return clipUnderCursor;
+		}
+
+		return globalState.getSubtitleClips.at(-1) ?? null;
+	}
+
+	/**
 	 * Ouvre l'editeur rapide de sous-titre depuis la timeline.
 	 * Priorise le sous-titre selectionne dans l'onglet Style, sinon celui sous le curseur,
 	 * sinon le dernier vrai sous-titre du projet.
 	 * @returns {void}
 	 */
 	function handleOpenQuickSubtitleEditor(): void {
-		if (!globalState.currentProject) return;
-
-		let clipToEdit: SubtitleClip | null = null;
-		const selectedSubtitles = globalState.getStylesState.selectedSubtitles;
-		if (selectedSubtitles.length === 1 && selectedSubtitles[0] instanceof SubtitleClip) {
-			clipToEdit = selectedSubtitles[0];
-		} else {
-			const cursorPosition = globalState.getTimelineState.cursorPosition;
-			const clipUnderCursor = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
-			if (clipUnderCursor instanceof SubtitleClip) {
-				clipToEdit = clipUnderCursor;
-			}
-		}
-
-		if (!clipToEdit) {
-			clipToEdit = globalState.getSubtitleClips.at(-1) ?? null;
-		}
-
+		const clipToEdit = resolveQuickEditableSubtitleClip();
 		if (!clipToEdit) return;
 		globalState.openQuickTimelineEditor(clipToEdit.id, 'subtitle');
 	}
+
+	/**
+	 * Ouvre l'editeur rapide de timestamps WBW depuis la timeline.
+	 * @returns {void}
+	 */
+	function handleOpenQuickWbwTimestampEditor(): void {
+		const clipToEdit = resolveQuickEditableSubtitleClip();
+		if (!clipToEdit) return;
+
+		globalState.openQuickTimelineEditor(clipToEdit.id, 'wbwTimestamp');
+	}
+
+	const quickSubtitleEditShortcutHandlers = {
+		getTimer: () => quickEditLongPressTimer,
+		setTimer: (timer: ReturnType<typeof setTimeout> | null) => {
+			quickEditLongPressTimer = timer;
+		},
+		getDidTrigger: () => didTriggerQuickLongPressAction,
+		setDidTrigger: (value: boolean) => {
+			didTriggerQuickLongPressAction = value;
+		},
+		onShortPress: () => {
+			handleOpenQuickSubtitleEditor();
+		},
+		onLongPress: () => handleOpenQuickWbwTimestampEditor(),
+		delayMs: 500
+	};
 
 	/**
 	 * Enregistre le raccourci d'ouverture rapide de l'editeur limite de sous-titre.
@@ -269,7 +306,9 @@
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
-			onKeyDown: handleOpenQuickSubtitleEditor
+			onKeyDown: (event) =>
+				handleManualWordByWordEditShortcutKeyDown(event, quickSubtitleEditShortcutHandlers),
+			onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(quickSubtitleEditShortcutHandlers)
 		});
 
 		quickSubtitleEditShortcutRegistered = true;

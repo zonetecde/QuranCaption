@@ -16,6 +16,8 @@ import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Tr
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 
+export type QuickTimelineEditorMode = 'translation' | 'wbw';
+
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
 	userProjectsDetails: ProjectDetail[] = $state([]);
@@ -61,6 +63,12 @@ class GlobalState {
 
 	shared = $state({
 		autoSegmentationWizard: null as unknown,
+		quickTimelineEditor: {
+			active: false,
+			clipId: null as number | null,
+			mode: null as QuickTimelineEditorMode | null,
+			previousInlineStyleMode: null as boolean | null
+		},
 		wbwEdit: {
 			active: false,
 			clipId: null as number | null,
@@ -150,6 +158,42 @@ class GlobalState {
 	updateVideoPreviewUI() {
 		globalState.getTimelineState.cursorPosition =
 			globalState.getTimelineState.cursorPosition + 0.01;
+	}
+
+	/**
+	 * Ouvre l'éditeur rapide superposé à la timeline pour un clip donné.
+	 * @param {number} clipId ID du clip à éditer.
+	 * @param {QuickTimelineEditorMode} mode Mode de l'éditeur rapide.
+	 * @returns {void}
+	 */
+	openQuickTimelineEditor(clipId: number, mode: QuickTimelineEditorMode): void {
+		if (!this.currentProject) return;
+
+		const translationsState = this.getTranslationsState;
+		if (!this.shared.quickTimelineEditor.active) {
+			this.shared.quickTimelineEditor.previousInlineStyleMode = translationsState.isInlineStyleMode;
+		}
+
+		this.shared.quickTimelineEditor.active = true;
+		this.shared.quickTimelineEditor.clipId = clipId;
+		this.shared.quickTimelineEditor.mode = mode;
+		translationsState.isInlineStyleMode = mode === 'wbw';
+	}
+
+	/**
+	 * Ferme l'éditeur rapide de la timeline et restaure le mode inline précédent.
+	 * @returns {void}
+	 */
+	closeQuickTimelineEditor(): void {
+		const previousInlineStyleMode = this.shared.quickTimelineEditor.previousInlineStyleMode;
+		if (this.currentProject && previousInlineStyleMode !== null) {
+			this.getTranslationsState.isInlineStyleMode = previousInlineStyleMode;
+		}
+
+		this.shared.quickTimelineEditor.active = false;
+		this.shared.quickTimelineEditor.clipId = null;
+		this.shared.quickTimelineEditor.mode = null;
+		this.shared.quickTimelineEditor.previousInlineStyleMode = null;
 	}
 
 	getEditionFromAuthor(author: string): Edition | null {

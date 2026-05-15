@@ -19,6 +19,7 @@
 	} from '$lib/services/WbwHelper';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
+	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
@@ -872,6 +873,10 @@
 				{/if}
 			</div>
 		</div>
+
+		{#if globalState.shared.quickTimelineEditor.active}
+			<QuickTimelineEditorOverlay />
+		{/if}
 	</div>
 </section>
 

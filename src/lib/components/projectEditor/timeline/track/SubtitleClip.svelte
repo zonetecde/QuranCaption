@@ -7,7 +7,7 @@
 	} from '$lib/classes';
 	import { getClipPrimaryReviewIssueCategory, markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
-	import { globalState } from '$lib/runes/main.svelte';
+	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -340,81 +340,37 @@
 	}
 
 	/**
-	 * Ouvre l'editeur de traductions sur le clip courant en reinitialisant les filtres.
+	 * Ouvre l'éditeur rapide superposé à la timeline pour le clip courant.
+	 * @param {QuickTimelineEditorMode} mode Mode d'ouverture demandé.
 	 * @returns {Promise<void>}
 	 */
-	async function editTranslationFromContextMenu(): Promise<void> {
-		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
+	async function openQuickTimelineEditorFromContextMenu(
+		mode: QuickTimelineEditorMode
+	): Promise<void> {
+		if (!(clip instanceof SubtitleClip)) return;
 
-		// Ferme le menu avant de changer d'onglet
+		// Ferme le menu avant d'afficher l'overlay pour éviter de garder le context menu ouvert.
 		currentMenu.set(null);
 		await tick();
 
-		const translationsState = globalState.getTranslationsState;
-		// Repart d'un état "tout visible" pour garantir que le verset cible existe bien dans la liste.
-		translationsState.searchQuery = '';
-		translationsState.onlyShowOverlappingSubtitles = false;
-		for (const key in translationsState.filters) {
-			translationsState.filters[key] = true;
-		}
-
-		// Réaffiche toutes les éditions masquées seulement si aucune n'est actuellement affichée
-		const hasVisibleEditions =
-			globalState.currentProject!.content.projectTranslation.addedTranslationEditions.some(
-				(edition) => edition.showInTranslationsEditor
-			);
-		if (!hasVisibleEditions) {
-			for (const edition of globalState.currentProject!.content.projectTranslation
-				.addedTranslationEditions) {
-				edition.showInTranslationsEditor = true;
-			}
-		}
-
-		// Le workspace des traductions réutilise "lastRead" pour resume/scroll directement sur ce clip.
-		// L'action "Edit translation" doit toujours rouvrir l'editeur en mode texte classique.
-		translationsState.isInlineStyleMode = false;
-		translationsState.lastReadClipId = clip.id;
-		translationsState.lastReadUpdatedAt = new Date().toISOString();
-		globalState.currentProject!.projectEditorState.currentTab = ProjectEditorTabs.Translations;
+		// Le mode "translation" force la saisie classique, le mode "wbw" active le word styling.
+		globalState.openQuickTimelineEditor(clip.id, mode);
 	}
 
 	/**
-	 * Ouvre l'éditeur de traductions sur le clip courant en activant directement
-	 * le mode Word Style Editing.
+	 * Ouvre l'éditeur rapide de traduction sur le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function editTranslationFromContextMenu(): Promise<void> {
+		await openQuickTimelineEditorFromContextMenu('translation');
+	}
+
+	/**
+	 * Ouvre l'editeur rapide de styles WBW sur le clip courant.
 	 * @returns {Promise<void>}
 	 */
 	async function editWbwStyleFromContextMenu(): Promise<void> {
-		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
-
-		// Ferme le menu avant de changer d'onglet
-		currentMenu.set(null);
-		await tick();
-
-		const translationsState = globalState.getTranslationsState;
-		// Repart d'un etat "tout visible" pour garantir que le verset cible existe bien dans la liste.
-		translationsState.searchQuery = '';
-		translationsState.onlyShowOverlappingSubtitles = false;
-		for (const key in translationsState.filters) {
-			translationsState.filters[key] = true;
-		}
-
-		// Réaffiche toutes les éditions masquées seulement si aucune n'est actuellement affichée
-		const hasVisibleEditions =
-			globalState.currentProject!.content.projectTranslation.addedTranslationEditions.some(
-				(edition) => edition.showInTranslationsEditor
-			);
-		if (!hasVisibleEditions) {
-			for (const edition of globalState.currentProject!.content.projectTranslation
-				.addedTranslationEditions) {
-				edition.showInTranslationsEditor = true;
-			}
-		}
-
-		// Cette action ouvre directement l'éditeur avec le mode Word Style Editing actif.
-		translationsState.isInlineStyleMode = true;
-		translationsState.lastReadClipId = clip.id;
-		translationsState.lastReadUpdatedAt = new Date().toISOString();
-		globalState.currentProject!.projectEditorState.currentTab = ProjectEditorTabs.Translations;
+		await openQuickTimelineEditorFromContextMenu('wbw');
 	}
 
 	async function bookmarkVerseFromContextMenu(): Promise<void> {
@@ -465,7 +421,7 @@
 	}}
 	onclick={handleClipClick}
 >
-	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
+	{#if clip.type === 'Subtitle'}
 		{#if wordBoundaryMarkers().length > 0}
 			<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
 				{#each wordBoundaryMarkers() as marker (marker.key)}

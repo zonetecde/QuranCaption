@@ -190,13 +190,13 @@
 						</section>
 					</div>
 				{:else if isSubtitleMode()}
-					<div class="min-h-0 overflow-y-auto">
-						<section class="flex flex-col gap-4 rounded-xl border border-color bg-secondary">
-							<VersePicker />
-							<div class="min-h-0 flex-1">
-								<WordsSelector />
-							</div>
-						</section>
+					<div
+						class="min-h-0 flex-1 flex flex-col gap-4 rounded-xl border border-color bg-secondary overflow-hidden"
+					>
+						<VersePicker />
+						<div class="min-h-0 flex-1">
+							<WordsSelector />
+						</div>
 					</div>
 				{:else}
 					<div class="min-h-0 overflow-y-auto">

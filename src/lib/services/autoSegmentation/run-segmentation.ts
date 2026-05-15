@@ -90,26 +90,23 @@ function rebuildMuaalemWordEnds(
 ): Array<{ start: number; end: number; location: string; word?: string }> {
 	const normalizedWords = words.map((word) => ({
 		...word,
-		start: Math.max(0, word.start)
+		start: Math.max(0, word.start),
+		end: Math.max(0, word.end)
 	}));
 
-	for (let index = 1; index < normalizedWords.length; index += 1) {
-		const previousWord = normalizedWords[index - 1];
+	let previousEnd = 0;
+	for (let index = 0; index < normalizedWords.length; index += 1) {
 		const currentWord = normalizedWords[index];
-		if (currentWord.start < previousWord.start) {
-			currentWord.start = previousWord.end;
+		if (currentWord.start < previousEnd) {
+			currentWord.start = previousEnd;
 		}
+
+		const nextRawStart = normalizedWords[index + 1]?.start ?? segmentDuration;
+		currentWord.end = Math.max(currentWord.start, Math.min(segmentDuration, nextRawStart));
+		previousEnd = currentWord.end;
 	}
 
-	return normalizedWords.map((word, index) => {
-		const nextStart = normalizedWords[index + 1]?.start ?? segmentDuration;
-		const safeEnd = Math.max(word.start, Math.min(segmentDuration, nextStart));
-
-		return {
-			...word,
-			end: safeEnd
-		};
-	});
+	return normalizedWords;
 }
 
 /**

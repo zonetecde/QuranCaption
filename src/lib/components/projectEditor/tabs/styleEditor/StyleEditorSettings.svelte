@@ -16,7 +16,7 @@
 
 	const getCategoriesToDisplay = $derived(() => {
 		const target = globalState.getStylesState.getCurrentSelection();
-		let categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
+		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
 
 		// Quand des clips vidéo sont sélectionnés dans l'onglet Style,
 		// on n'affiche que la catégorie Overlay côté global.
@@ -24,12 +24,12 @@
 			return categories.filter((category) => category.id === 'overlay');
 		}
 
-		if (target === 'arabic' && !globalState.getSubtitleTrack.hasWordByWordTimestamps()) {
-			categories = categories.filter((category) => category.id !== 'word-by-word-highlight');
-		}
-
 		return categories;
 	});
+
+	const hasWordByWordTimestamps = $derived(() =>
+		globalState.getSubtitleTrack.hasWordByWordTimestamps()
+	);
 
 	let stylesContainer: HTMLDivElement | undefined;
 	let importExportMenuVisible = $state(false);
@@ -454,6 +454,32 @@
 								is
 								<span class="font-semibold">set</span>.
 							</p>
+						</div>
+					{/if}
+
+					{#if category.id === 'word-by-word-highlight' && !hasWordByWordTimestamps()}
+						<div
+							class="mx-2 mb-2 translate-y-1.5 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-amber-100"
+						>
+							<div class="flex items-start gap-2">
+								<span class="material-icons-outlined text-sm mt-0.5">info</span>
+								<div class="min-w-0">
+									<p class="text-xs leading-relaxed">
+										Word-by-word styles need WBW timestamps on at least one subtitle.
+									</p>
+									<p class="mt-1 text-xs leading-relaxed">
+										1. Add them with <span class="font-semibold">AI-Segmentation</span> and make
+										sure to enable
+										<span class="font-semibold">Include word-by-word timestamps</span>.
+									</p>
+									<p class="mt-1 text-xs leading-relaxed">
+										2. Or add them manually in the <span class="font-semibold"
+											>Subtitles Editor</span
+										>
+										by holding <span class="font-semibold">E</span> with the cursor over a subtitle.
+									</p>
+								</div>
+							</div>
 						</div>
 					{/if}
 

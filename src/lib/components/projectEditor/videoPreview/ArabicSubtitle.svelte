@@ -265,6 +265,7 @@
 			startWordIndex: number;
 			suffix: string;
 			suffixFontFamily: string | null;
+			extraCss: string;
 		}>;
 		clipStartTimeS: number;
 	};
@@ -482,7 +483,8 @@
 				words: groupWords,
 				startWordIndex: totalWordCount,
 				suffix: displayParts.suffix,
-				suffixFontFamily: displayParts.suffixFontFamily
+				suffixFontFamily: displayParts.suffixFontFamily,
+				extraCss: getSubtitleQpcFontCss(sourceClip)
 			};
 
 			groups.push(group);
@@ -642,7 +644,7 @@
 					<!-- Rendu WBW avec crochets décoratifs -->
 					<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
 						{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
-							<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate;">
+							<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate; {group.extraCss}">
 								{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
 									{@const wordIndex = group.startWordIndex + i}
 									{@const highlightProgress = computeWordByWordHighlightProgress(
@@ -709,7 +711,7 @@
 				<!-- Rendu WBW sans crochets décoratifs -->
 				<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
 					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
-						<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate;">
+						<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate; {group.extraCss}">
 							{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
 								{@const wordIndex = group.startWordIndex + i}
 								{@const highlightProgress = computeWordByWordHighlightProgress(

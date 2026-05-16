@@ -199,9 +199,9 @@
 						</div>
 					</div>
 				{:else}
-					<div class="min-h-0 overflow-y-auto">
+					<div class="min-h-0 overflow-y-auto flex flex-col">
 						<section
-							class="rounded-xl border border-color bg-secondary p-2 pt-4 text-primary space-y-6"
+							class="rounded-xl border border-color bg-secondary p-2 pt-4 text-primary space-y-6 flex-1"
 						>
 							<ArabicText subtitle={clip()!} />
 
@@ -220,9 +220,11 @@
 
 				{#if isWbwMode()}
 					<div
-						class="min-h-0 overflow-y-auto border-t border-color bg-secondary lg:border-t-0 lg:border-l"
+						class="min-h-0 overflow-y-auto border-t border-color bg-secondary lg:border-t-0 lg:border-l flex flex-col"
 					>
-						<TranslationInlineStylePanel />
+						<div class="flex-1">
+							<TranslationInlineStylePanel />
+						</div>
 					</div>
 				{/if}
 			</div>

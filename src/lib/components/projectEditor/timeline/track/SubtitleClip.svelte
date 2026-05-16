@@ -319,6 +319,11 @@
 			return;
 		}
 
+		if (globalState.getTimelineState.wasCursorDragged) {
+			globalState.getTimelineState.wasCursorDragged = false;
+			return;
+		}
+
 		markClipAsVerified(clip);
 
 		const currentTab = globalState.currentProject!.projectEditorState.currentTab;

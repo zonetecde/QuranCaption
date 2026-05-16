@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import Track from './track/Track.svelte';
@@ -45,7 +45,8 @@
 				movePreviewTo: 0,
 				zoom: 1,
 				scrollX: 0,
-				showCursor: true
+				showCursor: true,
+				wasCursorDragged: false
 			}
 	);
 
@@ -687,10 +688,13 @@
 
 		timelineState().cursorPosition = newPosition;
 		timelineState().movePreviewTo = newPosition;
+
+		globalState.getTimelineState.wasCursorDragged = false;
 	}
 
 	function handleTimelineDrag(event: MouseEvent) {
 		if (event.buttons !== 1) return; // Seulement si le bouton gauche est maintenu
+		globalState.getTimelineState.wasCursorDragged = true;
 
 		const target = event.currentTarget as HTMLElement;
 		if (!target) return;
@@ -716,10 +720,13 @@
 
 		timelineState().cursorPosition = newPosition;
 		timelineState().movePreviewTo = newPosition;
+
+		globalState.getTimelineState.wasCursorDragged = false;
 	}
 
 	function handleRulerDrag(event: MouseEvent) {
 		if (event.buttons !== 1) return; // Seulement si le bouton gauche est maintenu
+		globalState.getTimelineState.wasCursorDragged = true;
 
 		const target = event.currentTarget as HTMLElement;
 		if (!target) return;

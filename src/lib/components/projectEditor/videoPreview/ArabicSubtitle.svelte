@@ -672,10 +672,22 @@
 												state,
 												wbwPreviewFadeDuration()
 											)}
+									{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
+									{@const lastWordProgress = computeWordByWordHighlightProgress(
+										lastWordIndex,
+										state,
+										wbwPreviewFadeDuration()
+									)}
+									{@const lastWordWbwCss = buildWordByWordWordCss(
+										lastWordIndex,
+										state,
+										lastWordProgress,
+										wbwPreviewFadeDuration()
+									)}
 									<span
 										style={(group.suffixFontFamily
 											? `font-family: ${group.suffixFontFamily}; `
-											: '') + `opacity: ${suffixOpacity};`}
+											: '') + lastWordWbwCss + ` opacity: ${suffixOpacity};`}
 									>
 										{group.suffix}
 									</span>
@@ -723,10 +735,22 @@
 											state,
 											wbwPreviewFadeDuration()
 										)}
+								{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
+								{@const lastWordProgress = computeWordByWordHighlightProgress(
+									lastWordIndex,
+									state,
+									wbwPreviewFadeDuration()
+								)}
+								{@const lastWordWbwCss = buildWordByWordWordCss(
+									lastWordIndex,
+									state,
+									lastWordProgress,
+									wbwPreviewFadeDuration()
+								)}
 								<span
 									style={(group.suffixFontFamily
 										? `font-family: ${group.suffixFontFamily}; `
-										: '') + `opacity: ${suffixOpacity};`}
+										: '') + lastWordWbwCss + ` opacity: ${suffixOpacity};`}
 								>
 									{group.suffix}
 								</span>

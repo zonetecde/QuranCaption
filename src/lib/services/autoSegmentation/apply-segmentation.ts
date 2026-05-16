@@ -216,10 +216,22 @@ async function materializeTemplate(
 		true,
 		template.confidence
 	);
+	const clipDurationS = (endMs - startMs) / 1000;
+	const clampedWords =
+		template.segmentWords.length > 0
+			? template.segmentWords.map((word, index, arr) => ({
+					...word,
+					start: index === 0 ? 0 : Math.max(0, Math.min(clipDurationS, word.start)),
+					end:
+						index === arr.length - 1
+							? clipDurationS
+							: Math.max(0, Math.min(clipDurationS, word.end))
+				}))
+			: template.segmentWords;
 	clip.alignmentMetadata = buildSubtitleAlignmentMetadata(
 		segmentationSource,
 		alignmentSegment,
-		template.segmentWords
+		clampedWords
 	);
 
 	if (template.needsReview || template.needsCoverageReview) {

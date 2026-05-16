@@ -400,7 +400,12 @@ export function calculateCaptureTimingsForRange({
 			// Vérifier si on peut optimiser les captures pour ce sous-titre
 			// L'idée : si les custom clips visibles sont identiques entre fadeInEnd et fadeOutStart,
 			// on peut prendre une seule capture et la dupliquer, économisant du temps
-			if (!hasWbwHighlightTimings && fadeOutStart > startTime && fadeInEnd !== fadeOutStart) {
+			if (
+				!hasWbwHighlightTimings &&
+				Math.round(fadeOutStart) !== Math.round(endTime) &&
+				fadeOutStart > startTime &&
+				fadeInEnd !== fadeOutStart
+			) {
 				// Compare l'état des overlays temporels aux deux bornes utiles du sous-titre.
 				const timedOverlayStateAtFadeInEnd = getTimedOverlayStateAt(fadeInEnd, timedOverlayClips);
 				const timedOverlayStateAtFadeOutStart = getTimedOverlayStateAt(
@@ -430,7 +435,10 @@ export function calculateCaptureTimingsForRange({
 			registerBlankTiming(endTime, surah);
 		}
 
-		if (clip.kind !== 'silence' && !endsInsideVisualMerge) {
+		const nextClip = subtitleClips[clipIndex + 1];
+		const endsIntoNextVisibleClip =
+			nextClip && nextClip.kind !== 'silence' && nextClip.startTime <= endTime + 1;
+		if (clip.kind !== 'silence' && !endsInsideVisualMerge && !endsIntoNextVisibleClip) {
 			const surah = getCurrentSurah(clip.startTime);
 			registerBlankTiming(endTime, surah, endTime + 1);
 		}

@@ -159,6 +159,21 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_000 });
 	});
 
+	it('captures the next subtitle instead of duplicating the previous one when fade is disabled', () => {
+		const result = calculateTimings(
+			[subtitle(0, 1_000, 1), subtitle(1_000, 2_000, 1)],
+			[],
+			0,
+			3_000,
+			0
+		);
+
+		expect(result.uniqueSorted).toEqual([0, 1_000, 2_000, 3_000]);
+		expect(result.duplicableTimings.size).toBe(0);
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 2_000 });
+		expect(result.blankImgs).toEqual({});
+	});
+
 	it('creates one reusable blank image per surah and reuses it for later subtitles of the same surah', () => {
 		const result = calculateTimings([subtitle(0, 500, 1), subtitle(1_000, 1_500, 1)]);
 

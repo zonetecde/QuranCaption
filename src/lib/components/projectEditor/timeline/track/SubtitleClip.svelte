@@ -488,7 +488,7 @@
 		<div class="absolute inset-0 z-5 flex px-2 py-2">
 			<div class="w-full h-full flex flex-col justify-center items-center gap-1">
 				<p
-					class="arabic truncate leading-tight text-center min-h-5 max-w-full overflow-hidden"
+					class="arabic truncate leading-tight text-center min-h-5 max-w-full overflow-hidden mt-1"
 					class:text-[var(--text-primary)]={!isSelected()}
 					class:text-[var(--text-on-selection)]={isSelected()}
 					dir="rtl"
@@ -497,7 +497,7 @@
 				</p>
 
 				{#if Object.keys(clip.translations).length > 0}
-					<div class="w-full flex flex-col items-center gap-0.5 mt-1">
+					<div class="w-full flex flex-col items-center gap-0.5 -mt-1">
 						{#each Object.entries(clip.translations) as [lang, translation] (lang)}
 							<p
 								class="text-[11px] sm:text-[12px] truncate w-full font-medium mx-auto my-auto text-center italic"

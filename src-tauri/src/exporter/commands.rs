@@ -1391,56 +1391,14 @@ fn choose_blank_batch_end_idx(
     timestamps_ms: &[i32],
     batch_start_idx: usize,
     batch_limit: usize,
-    blank_timestamps: &HashSet<i32>,
+    _blank_timestamps: &HashSet<i32>,
 ) -> usize {
     let n = timestamps_ms.len();
     if n == 0 || batch_start_idx + 1 >= n {
         return n;
     }
 
-    let default_end = (batch_start_idx + batch_limit.max(2)).min(n);
-    if default_end >= n || blank_timestamps.is_empty() {
-        return default_end;
-    }
-
-    let min_last_idx = batch_start_idx + 1;
-    let preferred_last_idx = default_end.saturating_sub(1).max(min_last_idx);
-    let is_blank_idx = |idx: usize| blank_timestamps.contains(&timestamps_ms[idx]);
-    let has_blank_to_text_before = |last_idx: usize| {
-        ((batch_start_idx + 1)..=last_idx).any(|idx| is_blank_idx(idx - 1) && !is_blank_idx(idx))
-    };
-    let is_text_to_blank = |idx: usize| idx > 0 && is_blank_idx(idx) && !is_blank_idx(idx - 1);
-    let is_blank_to_text_next = |idx: usize| idx + 1 >= n || !is_blank_idx(idx + 1);
-    let is_valid_blank_boundary =
-        |idx: usize| is_text_to_blank(idx) && has_blank_to_text_before(idx);
-    let is_clean_blank_boundary =
-        |idx: usize| is_valid_blank_boundary(idx) && is_blank_to_text_next(idx);
-
-    for last_idx in (min_last_idx..=preferred_last_idx).rev() {
-        if is_clean_blank_boundary(last_idx) {
-            return last_idx + 1;
-        }
-    }
-
-    for last_idx in (preferred_last_idx + 1)..n {
-        if is_clean_blank_boundary(last_idx) {
-            return last_idx + 1;
-        }
-    }
-
-    for last_idx in (min_last_idx..=preferred_last_idx).rev() {
-        if is_valid_blank_boundary(last_idx) {
-            return last_idx + 1;
-        }
-    }
-
-    for last_idx in (preferred_last_idx + 1)..n {
-        if is_valid_blank_boundary(last_idx) {
-            return last_idx + 1;
-        }
-    }
-
-    n
+    (batch_start_idx + batch_limit.max(2)).min(n)
 }
 
 fn compute_render_output_duration_ms(
@@ -1749,6 +1707,7 @@ fn concat_internal_batch_videos(
     export_id: &str,
     batch_paths: &[String],
     batch_durations_s: &[f64],
+    batch_transition_fades_s: &[f64],
     output_path: &str,
     total_duration_s: f64,
     start_time_ms: i32,
@@ -1773,6 +1732,12 @@ fn concat_internal_batch_videos(
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "Le nombre de vidéos de batch ne correspond pas au nombre de durées",
+        )));
+    }
+    if batch_transition_fades_s.len() + 1 < batch_paths.len() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Le nombre de fades entre batchs est invalide",
         )));
     }
 
@@ -1817,31 +1782,13 @@ fn concat_internal_batch_videos(
         total_duration_s
     );
 
-    let can_copy_rendered_video = !apply_video_fade && !export_without_background;
+    let can_copy_rendered_video =
+        batch_paths.len() == 1 && !apply_video_fade && !export_without_background;
     if can_copy_rendered_video {
         if have_audio {
-            let temp_video_path = if batch_paths.len() > 1 {
-                let temp_path = build_temp_output_path(&output_path_buf);
-                let temp_output = temp_path.to_string_lossy().to_string();
-                concat_videos_with_stream_copy(
-                    export_id,
-                    batch_paths,
-                    &temp_output,
-                    expected_video_s,
-                    &app_handle,
-                )?;
-                Some(temp_path)
-            } else {
-                None
-            };
-            let video_path_for_mux = temp_video_path
-                .as_ref()
-                .map(|path| path.to_string_lossy().to_string())
-                .unwrap_or_else(|| batch_paths[0].clone());
-
             let mux_result = mux_video_copy_with_audio(
                 export_id,
-                &video_path_for_mux,
+                &batch_paths[0],
                 audio_paths,
                 output_path,
                 total_duration_s,
@@ -1854,21 +1801,10 @@ fn concat_internal_batch_videos(
                 performance_profile,
                 &app_handle,
             );
-
-            if let Some(temp_path) = temp_video_path {
-                fs::remove_file(temp_path).ok();
-            }
-
             return mux_result;
         }
 
-        concat_videos_with_stream_copy(
-            export_id,
-            batch_paths,
-            output_path,
-            total_duration_s,
-            &app_handle,
-        )?;
+        fs::copy(&batch_paths[0], output_path)?;
         return Ok(());
     }
 
@@ -1895,7 +1831,6 @@ fn concat_internal_batch_videos(
     }
 
     let mut filter_lines: Vec<String> = Vec::new();
-    let mut video_inputs = String::new();
     for (idx, duration_s) in batch_durations_s.iter().enumerate() {
         filter_lines.push(format!(
             "[{}:v]trim=start=0:duration={:.6},setpts=PTS-STARTPTS[v{}]",
@@ -1903,16 +1838,49 @@ fn concat_internal_batch_videos(
             duration_s.max(0.001),
             idx
         ));
-        video_inputs.push_str(&format!("[v{}]", idx));
     }
     if batch_paths.len() == 1 {
         filter_lines.push("[v0]setpts=PTS-STARTPTS[vcat]".to_string());
     } else {
-        filter_lines.push(format!(
-            "{}concat=n={}:v=1:a=0[vcat]",
-            video_inputs,
-            batch_paths.len()
-        ));
+        let mut current_video_label = "v0".to_string();
+        let mut current_video_duration = batch_durations_s[0].max(0.001);
+
+        for idx in 0..(batch_paths.len() - 1) {
+            let next_video_label = format!("v{}", idx + 1);
+            let transition_fade_s = batch_transition_fades_s
+                .get(idx)
+                .copied()
+                .unwrap_or(0.0)
+                .max(0.0)
+                .min(current_video_duration)
+                .min(batch_durations_s[idx + 1].max(0.001));
+
+            if transition_fade_s <= 1e-6 {
+                let out_label = format!("vcat{}", idx);
+                filter_lines.push(format!(
+                    "[{}][{}]concat=n=2:v=1:a=0[{}]",
+                    current_video_label, next_video_label, out_label
+                ));
+                current_video_label = out_label;
+                current_video_duration += batch_durations_s[idx + 1].max(0.001);
+            } else {
+                let padded_label = format!("vpad{}", idx);
+                filter_lines.push(format!(
+                    "[{}]tpad=stop_mode=clone:stop_duration={:.6}[{}]",
+                    current_video_label, transition_fade_s, padded_label
+                ));
+                let out_label = format!("vxf{}", idx);
+                let offset = current_video_duration.max(0.0);
+                filter_lines.push(format!(
+                    "[{}][{}]xfade=transition=fade:duration={:.6}:offset={:.6}[{}]",
+                    padded_label, next_video_label, transition_fade_s, offset, out_label
+                ));
+                current_video_label = out_label;
+                current_video_duration += batch_durations_s[idx + 1].max(0.001);
+            }
+        }
+
+        filter_lines.push(format!("[{}]setpts=PTS-STARTPTS[vcat]", current_video_label));
     }
 
     let mut mapped_video_label = "vcat".to_string();
@@ -2221,6 +2189,7 @@ fn build_and_run_ffmpeg_filter_complex(
 
     let mut batch_paths: Vec<String> = Vec::new();
     let mut batch_durations_s: Vec<f64> = Vec::new();
+    let mut batch_transition_fades_s: Vec<f64> = Vec::new();
     let mut batch_start_idx = 0usize;
     let mut batch_index = 0usize;
     let mut intended_batch_base_ms = 0i64;
@@ -2363,12 +2332,19 @@ fn build_and_run_ffmpeg_filter_complex(
             break;
         }
 
+        batch_transition_fades_s.push(boundary_fade_ms.max(0) as f64 / 1000.0);
+
         intended_batch_base_ms = intended_batch_end_ms;
         encoded_batch_base_frames = target_end_frames;
         batch_start_completed_fade_ms = if boundary_is_blank {
+            // Quand on coupe sur un blank, le batch suivant reprend apres un fade deja "consomme"
+            // et, eventuellement, un petit hold du blank pour eviter un flash.
             boundary_fade_ms.saturating_add(blank_hold_ms)
         } else {
-            boundary_fade_ms
+            // Sur une coupe normale, le fade de fin du batch precedent ne correspond pas a la
+            // premiere transition du batch suivant. Il ne faut donc rien soustraire ici, sinon
+            // on annule le fade entre la premiere image du batch et la suivante.
+            0
         };
         batch_start_idx = batch_end_idx - 1;
         batch_index += 1;
@@ -2378,6 +2354,7 @@ fn build_and_run_ffmpeg_filter_complex(
         export_id,
         &batch_paths,
         &batch_durations_s,
+        &batch_transition_fades_s,
         out_path,
         full_duration_s,
         start_time_ms,
@@ -3046,7 +3023,8 @@ pub async fn export_video(
         .collect();
     let blank_timestamps: HashSet<i32> = blank_timings
         .unwrap_or_default()
-        .into_iter()
+        .iter()
+        .copied()
         .filter(|timing| ts.binary_search(timing).is_ok())
         .collect();
 

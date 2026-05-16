@@ -113,11 +113,19 @@ export function getWordByWordHighlightState(params: {
 	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
 	if (!isEnabled) return getDisabledWordByWordHighlightState();
 
+	const wbwTimingEpsilonS = 0.0005;
 	let activeWordIndex = words.findIndex((word) => {
 		const wordStartTimeS = clipStartTimeS + word.start;
 		const wordEndTimeS = clipStartTimeS + word.end;
-		return cursorTimeS >= wordStartTimeS && cursorTimeS <= wordEndTimeS;
+		return (
+			cursorTimeS + wbwTimingEpsilonS >= wordStartTimeS &&
+			cursorTimeS <= wordEndTimeS + wbwTimingEpsilonS
+		);
 	});
+	if (activeWordIndex === -1 && words.length > 0) {
+		activeWordIndex =
+			words.findLastIndex((word) => cursorTimeS >= clipStartTimeS + word.end - wbwTimingEpsilonS) + 1;
+	}
 	if (
 		activeWordIndex === -1 &&
 		words.length > 0 &&

@@ -927,15 +927,12 @@
 			} as ExportProgress);
 		}
 
+		const normalizedBlankTimings = Array.from(blankImageIndexes).sort((a, b) => a - b);
+
 		await deleteBlankImages();
 
 		// Générer la vidéo normale
-		await generateNormalVideo(
-			exportStart,
-			totalDuration,
-			blur,
-			Array.from(blankImageIndexes).sort((a, b) => a - b)
-		);
+		await generateNormalVideo(exportStart, totalDuration, blur, normalizedBlankTimings);
 
 		// Nettoyage
 		await finalCleanup();

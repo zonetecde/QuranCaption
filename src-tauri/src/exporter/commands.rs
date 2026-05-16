@@ -1387,18 +1387,73 @@ fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> 
         .min(fade_duration_ms.max(0))
 }
 
-fn choose_blank_batch_end_idx(
-    timestamps_ms: &[i32],
+/// Retourne les frontieres ou deux captures consecutives ont exactement les memes pixels.
+fn find_identical_adjacent_image_indices(
+    image_paths: &[String],
+) -> Result<HashSet<usize>, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let mut identical_indices = HashSet::new();
+    if image_paths.len() < 2 {
+        return Ok(identical_indices);
+    }
+
+    let mut previous = load_comparable_image_pixels(&image_paths[0])?;
+    for (idx, image_path) in image_paths.iter().enumerate().skip(1) {
+        let current = load_comparable_image_pixels(image_path)?;
+        if previous == current {
+            identical_indices.insert(idx - 1);
+        }
+        previous = current;
+    }
+
+    Ok(identical_indices)
+}
+
+/// Charge une image sous une forme comparable sans dependre de l'encodage PNG.
+fn load_comparable_image_pixels(
+    image_path: &str,
+) -> Result<(u32, u32, Vec<u8>), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let img_data = fs::read(image_path)?;
+    let rgba = image::load_from_memory(&img_data)?.to_rgba8();
+    let (width, height) = rgba.dimensions();
+    Ok((width, height, rgba.into_raw()))
+}
+
+fn choose_identical_batch_end_idx(
+    image_paths: &[String],
     batch_start_idx: usize,
     batch_limit: usize,
-    _blank_timestamps: &HashSet<i32>,
+    identical_boundary_indices: &HashSet<usize>,
 ) -> usize {
-    let n = timestamps_ms.len();
+    let n = image_paths.len();
     if n == 0 || batch_start_idx + 1 >= n {
         return n;
     }
 
-    (batch_start_idx + batch_limit.max(2)).min(n)
+    let default_end = (batch_start_idx + batch_limit.max(2)).min(n);
+    if default_end >= n {
+        return n;
+    }
+
+    let min_last_idx = batch_start_idx + 1;
+    let max_last_idx = n.saturating_sub(2);
+    if min_last_idx > max_last_idx {
+        return n;
+    }
+
+    let preferred_last_idx = default_end.saturating_sub(1).min(max_last_idx);
+    for last_idx in (min_last_idx..=preferred_last_idx).rev() {
+        if identical_boundary_indices.contains(&last_idx) {
+            return last_idx + 1;
+        }
+    }
+
+    for last_idx in (preferred_last_idx + 1)..=max_last_idx {
+        if identical_boundary_indices.contains(&last_idx) {
+            return last_idx + 1;
+        }
+    }
+
+    n
 }
 
 fn compute_render_output_duration_ms(
@@ -1707,7 +1762,6 @@ fn concat_internal_batch_videos(
     export_id: &str,
     batch_paths: &[String],
     batch_durations_s: &[f64],
-    batch_transition_fades_s: &[f64],
     output_path: &str,
     total_duration_s: f64,
     start_time_ms: i32,
@@ -1732,12 +1786,6 @@ fn concat_internal_batch_videos(
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             "Le nombre de vidéos de batch ne correspond pas au nombre de durées",
-        )));
-    }
-    if batch_transition_fades_s.len() + 1 < batch_paths.len() {
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Le nombre de fades entre batchs est invalide",
         )));
     }
 
@@ -1782,13 +1830,31 @@ fn concat_internal_batch_videos(
         total_duration_s
     );
 
-    let can_copy_rendered_video =
-        batch_paths.len() == 1 && !apply_video_fade && !export_without_background;
+    let can_copy_rendered_video = !apply_video_fade && !export_without_background;
     if can_copy_rendered_video {
         if have_audio {
+            let temp_video_path = if batch_paths.len() > 1 {
+                let temp_path = build_temp_output_path(&output_path_buf);
+                let temp_output = temp_path.to_string_lossy().to_string();
+                concat_videos_with_stream_copy(
+                    export_id,
+                    batch_paths,
+                    &temp_output,
+                    expected_video_s,
+                    &app_handle,
+                )?;
+                Some(temp_path)
+            } else {
+                None
+            };
+            let video_path_for_mux = temp_video_path
+                .as_ref()
+                .map(|path| path.to_string_lossy().to_string())
+                .unwrap_or_else(|| batch_paths[0].clone());
+
             let mux_result = mux_video_copy_with_audio(
                 export_id,
-                &batch_paths[0],
+                &video_path_for_mux,
                 audio_paths,
                 output_path,
                 total_duration_s,
@@ -1801,10 +1867,21 @@ fn concat_internal_batch_videos(
                 performance_profile,
                 &app_handle,
             );
+
+            if let Some(temp_path) = temp_video_path {
+                fs::remove_file(temp_path).ok();
+            }
+
             return mux_result;
         }
 
-        fs::copy(&batch_paths[0], output_path)?;
+        concat_videos_with_stream_copy(
+            export_id,
+            batch_paths,
+            output_path,
+            total_duration_s,
+            &app_handle,
+        )?;
         return Ok(());
     }
 
@@ -1831,6 +1908,7 @@ fn concat_internal_batch_videos(
     }
 
     let mut filter_lines: Vec<String> = Vec::new();
+    let mut video_inputs = String::new();
     for (idx, duration_s) in batch_durations_s.iter().enumerate() {
         filter_lines.push(format!(
             "[{}:v]trim=start=0:duration={:.6},setpts=PTS-STARTPTS[v{}]",
@@ -1838,49 +1916,16 @@ fn concat_internal_batch_videos(
             duration_s.max(0.001),
             idx
         ));
+        video_inputs.push_str(&format!("[v{}]", idx));
     }
     if batch_paths.len() == 1 {
         filter_lines.push("[v0]setpts=PTS-STARTPTS[vcat]".to_string());
     } else {
-        let mut current_video_label = "v0".to_string();
-        let mut current_video_duration = batch_durations_s[0].max(0.001);
-
-        for idx in 0..(batch_paths.len() - 1) {
-            let next_video_label = format!("v{}", idx + 1);
-            let transition_fade_s = batch_transition_fades_s
-                .get(idx)
-                .copied()
-                .unwrap_or(0.0)
-                .max(0.0)
-                .min(current_video_duration)
-                .min(batch_durations_s[idx + 1].max(0.001));
-
-            if transition_fade_s <= 1e-6 {
-                let out_label = format!("vcat{}", idx);
-                filter_lines.push(format!(
-                    "[{}][{}]concat=n=2:v=1:a=0[{}]",
-                    current_video_label, next_video_label, out_label
-                ));
-                current_video_label = out_label;
-                current_video_duration += batch_durations_s[idx + 1].max(0.001);
-            } else {
-                let padded_label = format!("vpad{}", idx);
-                filter_lines.push(format!(
-                    "[{}]tpad=stop_mode=clone:stop_duration={:.6}[{}]",
-                    current_video_label, transition_fade_s, padded_label
-                ));
-                let out_label = format!("vxf{}", idx);
-                let offset = current_video_duration.max(0.0);
-                filter_lines.push(format!(
-                    "[{}][{}]xfade=transition=fade:duration={:.6}:offset={:.6}[{}]",
-                    padded_label, next_video_label, transition_fade_s, offset, out_label
-                ));
-                current_video_label = out_label;
-                current_video_duration += batch_durations_s[idx + 1].max(0.001);
-            }
-        }
-
-        filter_lines.push(format!("[{}]setpts=PTS-STARTPTS[vcat]", current_video_label));
+        filter_lines.push(format!(
+            "{}concat=n={}:v=1:a=0[vcat]",
+            video_inputs,
+            batch_paths.len()
+        ));
     }
 
     let mut mapped_video_label = "vcat".to_string();
@@ -2187,6 +2232,16 @@ fn build_and_run_ffmpeg_filter_complex(
         "[batching] {} timing(s) blank disponibles pour les frontieres",
         blank_timestamps.len()
     );
+    let identical_boundary_indices = find_identical_adjacent_image_indices(image_paths)?;
+    let mut identical_boundary_preview: Vec<usize> =
+        identical_boundary_indices.iter().copied().collect();
+    identical_boundary_preview.sort_unstable();
+    identical_boundary_preview.truncate(10);
+    println!(
+        "[batching] {} frontiere(s) avec captures consecutives identiques, apercu={:?}",
+        identical_boundary_indices.len(),
+        identical_boundary_preview
+    );
 
     let base_dir = if let Some(cwd) = imgs_cwd {
         PathBuf::from(cwd)
@@ -2200,7 +2255,6 @@ fn build_and_run_ffmpeg_filter_complex(
 
     let mut batch_paths: Vec<String> = Vec::new();
     let mut batch_durations_s: Vec<f64> = Vec::new();
-    let mut batch_transition_fades_s: Vec<f64> = Vec::new();
     let mut batch_start_idx = 0usize;
     let mut batch_index = 0usize;
     let mut intended_batch_base_ms = 0i64;
@@ -2210,11 +2264,11 @@ fn build_and_run_ffmpeg_filter_complex(
     while batch_start_idx < n {
         ensure_export_not_cancelled(export_id)?;
 
-        let batch_end_idx = choose_blank_batch_end_idx(
-            timestamps_ms,
+        let batch_end_idx = choose_identical_batch_end_idx(
+            image_paths,
             batch_start_idx,
             batch_limit,
-            blank_timestamps,
+            &identical_boundary_indices,
         );
         let is_last_batch = batch_end_idx >= n;
         let batch_start_adjusted_ts = timestamps_ms[batch_start_idx];
@@ -2343,19 +2397,12 @@ fn build_and_run_ffmpeg_filter_complex(
             break;
         }
 
-        batch_transition_fades_s.push(boundary_fade_ms.max(0) as f64 / 1000.0);
-
         intended_batch_base_ms = intended_batch_end_ms;
         encoded_batch_base_frames = target_end_frames;
         batch_start_completed_fade_ms = if boundary_is_blank {
-            // Quand on coupe sur un blank, le batch suivant reprend apres un fade deja "consomme"
-            // et, eventuellement, un petit hold du blank pour eviter un flash.
             boundary_fade_ms.saturating_add(blank_hold_ms)
         } else {
-            // Sur une coupe normale, le fade de fin du batch precedent ne correspond pas a la
-            // premiere transition du batch suivant. Il ne faut donc rien soustraire ici, sinon
-            // on annule le fade entre la premiere image du batch et la suivante.
-            0
+            boundary_fade_ms
         };
         batch_start_idx = batch_end_idx - 1;
         batch_index += 1;
@@ -2365,7 +2412,6 @@ fn build_and_run_ffmpeg_filter_complex(
         export_id,
         &batch_paths,
         &batch_durations_s,
-        &batch_transition_fades_s,
         out_path,
         full_duration_s,
         start_time_ms,

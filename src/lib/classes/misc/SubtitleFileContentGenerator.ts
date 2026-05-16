@@ -40,12 +40,10 @@ export default class SubtitleFileContentGenerator {
 	): string {
 		let content = 'WEBVTT\n\n';
 
-		for (let i = 0; i < subtitles.length; i++) {
-			const subtitle = subtitles[i];
+		for (const subtitle of subtitles) {
 			const startTime = this.formatVTTTime(subtitle.startTimeMs);
 			const endTime = this.formatVTTTime(subtitle.endTimeMs);
 
-			content += `${i + 1}\n`;
 			content += `${startTime} --> ${endTime}\n`;
 			content += `${subtitle.text}\n\n`;
 		}

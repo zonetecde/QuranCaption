@@ -99,11 +99,19 @@
 	 * @returns {void}
 	 */
 	function closeQuickTimelineEditorOverlay(): void {
-		if (isWbwTimestampMode() && globalState.shared.wbwEdit.active) {
+		const wasWbwTimestamp = isWbwTimestampMode();
+
+		if (wasWbwTimestamp && globalState.shared.wbwEdit.active) {
 			exitManualWordByWordEdit();
 		}
 
 		globalState.closeQuickTimelineEditor();
+
+		if (wasWbwTimestamp) {
+			setTimeout(() => {
+				globalState.getVideoPreviewState.scrollTimelineToCursor();
+			}, 0);
+		}
 	}
 
 	/**

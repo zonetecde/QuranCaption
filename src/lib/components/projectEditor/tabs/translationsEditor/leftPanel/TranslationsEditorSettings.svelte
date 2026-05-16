@@ -84,20 +84,20 @@
 		</div>
 
 		<!-- Section des filtres modernisée -->
-		<div class="border-t border-color pt-6 space-y-4">
-			<div class="flex items-center gap-2 mb-4">
+		<div class="border-t border-color pt-4 space-y-3">
+			<div class="flex items-center gap-2 mb-2">
 				<span class="material-icons text-accent-primary text-lg">filter_list</span>
-				<h3 class="text-lg font-semibold text-primary">Translation Filters</h3>
+				<h3 class="text-base font-semibold text-primary">Translation Filters</h3>
 			</div>
 
 			<!-- Search input -->
-			<div class="mb-4 px-1 flex">
+			<div class="px-1 flex">
 				<input
 					id="search-input"
 					type="text"
 					placeholder="SS:VV format or must contain... (Press Enter to search)"
 					autocomplete="off"
-					class="w-full px-4 py-2 border border-color rounded-r-none! border-r-0!"
+					class="w-full px-3 py-1.5 text-sm border border-color rounded-r-none! border-r-0!"
 					bind:value={localSearchQuery}
 					onkeypress={handleSearchKeypress}
 				/>
@@ -105,7 +105,7 @@
 					onclick={validateSearchQuery}
 					class="flex items-center border border-color border-r-0 px-1 hover:bg-accent"
 				>
-					<span class="material-icons">search</span>
+					<span class="material-icons text-base">search</span>
 				</button>
 				<button
 					onclick={() => {
@@ -114,30 +114,33 @@
 					}}
 					class="flex items-center border border-color rounded-r-lg px-1 hover:bg-accent"
 				>
-					<span class="material-icons">clear</span>
+					<span class="material-icons text-base">clear</span>
 				</button>
 			</div>
 
 			<!-- Grille des filtres -->
-			<div class="bg-accent border border-color rounded-lg p-4">
-				<div class="grid grid-cols-1 gap-3">
+			<div class="bg-accent border border-color rounded-lg p-1">
+				<div class="grid xl:grid-cols-2 gap-1.5">
 					{#each ['to review', 'ai error', 'ai trimmed', 'automatically trimmed', 'fetched', 'reviewed', 'completed by default'] as filter (filter)}
 						<label
-							class="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-secondary transition-all duration-200"
+							class="flex items-center gap-2 cursor-pointer rounded-md py-1.5 hover:bg-secondary transition-all duration-200"
 							for="filter-checkbox-{filter}"
 						>
 							<input
 								type="checkbox"
 								id="filter-checkbox-{filter}"
 								bind:checked={globalState.getTranslationsState.filters[filter]}
-								class="w-4 h-4 rounded transition-all duration-200 focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-accent)]"
+								class="h-3.5 w-3.5 rounded transition-all duration-200 focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-accent)]"
 							/>
-							<span class="text-sm text-secondary font-medium capitalize">
+							<span
+								class="min-w-0 flex-1 text-xs text-secondary font-medium leading-tight capitalize"
+							>
 								{filter.replace(/([a-z])([A-Z])/g, '$1 $2')}
 							</span>
 							<!-- Badge de statut -->
 							<span
-								class="ml-auto px-2 py-1 text-xs rounded-full {filter === 'to review'
+								class="ml-auto shrink-0 px-1 py-0.25 text-[10px] rounded-full {filter ===
+								'to review'
 									? 'bg-yellow-500/20 text-yellow-400'
 									: filter === 'ai error'
 										? 'bg-red-500/20 text-red-400'
@@ -151,35 +154,39 @@
 			</div>
 
 			<div
-				class="mx-1 rounded-lg border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/15 p-3"
+				class="mx-1 rounded-lg border border-[var(--accent-primary)]/50 bg-[var(--accent-primary)]/15 p-2"
 			>
 				<label
 					for="overlap-only-checkbox"
-					class="flex cursor-pointer items-center gap-3 rounded-md p-2 transition-all duration-200 hover:bg-[var(--accent-primary)]/10"
+					class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-all duration-200 hover:bg-[var(--accent-primary)]/10"
 				>
 					<input
 						id="overlap-only-checkbox"
 						type="checkbox"
 						bind:checked={globalState.getTranslationsState.onlyShowOverlappingSubtitles}
-						class="h-4 w-4 rounded border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
+						class="h-3.5 w-3.5 rounded border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
 					/>
-					<span class="text-sm font-semibold text-primary">Only show overlapping subtitles</span>
+					<span class="text-xs font-semibold text-primary leading-tight"
+						>Only show overlapping subtitles</span
+					>
 				</label>
 			</div>
 			<!-- Boutons d'action rapide -->
-			<div class="space-y-2 px-1">
+			<div class="grid xl:grid-cols-2 gap-2 px-1">
 				<button
-					class="btn w-full px-4 py-2.5 text-sm font-medium hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
+					class="btn w-full px-2 py-2 text-xs font-medium hover:bg-blue-500 hover:border-blue-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5 relative hover:z-10"
 					onclick={() => {
-						globalState.getTranslationsState.checkOnlyFilters(['fetched']);
+						globalState.getTranslationsState.checkOnlyFilters(
+							Object.keys(globalState.getTranslationsState.filters)
+						);
 					}}
 				>
-					<span class="material-icons text-base">download_done</span>
-					Show Fetched
+					<span class="material-icons text-base">select_all</span>
+					Show All Subtitles
 				</button>
 
 				<button
-					class="btn w-full px-4 py-2.5 text-sm font-medium hover:bg-accent-primary hover:border-accent-primary hover:text-black transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
+					class="btn w-full px-2 py-2 text-xs font-medium hover:bg-accent-primary hover:border-accent-primary hover:text-black transition-all duration-200 flex items-center justify-center gap-1.5 relative hover:z-10"
 					onclick={() => {
 						globalState.getTranslationsState.checkOnlyFilters([
 							'to review',
@@ -194,7 +201,17 @@
 				</button>
 
 				<button
-					class="btn w-full mb-3 px-4 py-2.5 text-sm font-medium hover:bg-orange-500 hover:border-orange-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
+					class="btn w-full px-2 py-2 text-xs font-medium hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5 relative hover:z-10"
+					onclick={() => {
+						globalState.getTranslationsState.checkOnlyFilters(['ai trimmed', 'ai error']);
+					}}
+				>
+					<span class="material-icons text-base">auto_fix_high</span>
+					Show AI Fetched
+				</button>
+
+				<button
+					class="btn w-full px-2 py-2 text-xs font-medium hover:bg-orange-500 hover:border-orange-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5 relative hover:z-10"
 					onclick={() => {
 						globalState.getTranslationsState.checkOnlyFilters(['to review', 'ai error']);
 					}}
@@ -202,35 +219,23 @@
 					<span class="material-icons text-base">priority_high</span>
 					Show Needs Review
 				</button>
-
-				<button
-					class="btn w-full mb-3 px-4 py-2.5 text-sm font-medium hover:bg-blue-500 hover:border-blue-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 relative hover:z-10"
-					onclick={() => {
-						globalState.getTranslationsState.checkOnlyFilters(
-							Object.keys(globalState.getTranslationsState.filters)
-						);
-					}}
-				>
-					<span class="material-icons text-base">select_all</span>
-					Show All
-				</button>
 			</div>
 		</div>
+	</div>
 
-		<div class="mb-6 rounded-lg border border-color bg-accent p-3">
-			<label for="wbw-translation-language" class="mb-2 block text-sm font-semibold text-primary">
-				WBW Helper Language
-			</label>
-			<select
-				id="wbw-translation-language"
-				class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
-				bind:value={globalState.settings!.persistentUiState.wbwTranslationLanguage}
-				onchange={() => void Settings.save()}
-			>
-				{#each WBW_TRANSLATION_LANGUAGES as language (language.code)}
-					<option value={language.code}>{language.label}</option>
-				{/each}
-			</select>
-		</div>
+	<div class="mb-6 rounded-lg border border-color bg-accent p-3">
+		<label for="wbw-translation-language" class="mb-2 block text-sm font-semibold text-primary">
+			WBW Helper Language
+		</label>
+		<select
+			id="wbw-translation-language"
+			class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
+			bind:value={globalState.settings!.persistentUiState.wbwTranslationLanguage}
+			onchange={() => void Settings.save()}
+		>
+			{#each WBW_TRANSLATION_LANGUAGES as language (language.code)}
+				<option value={language.code}>{language.label}</option>
+			{/each}
+		</select>
 	</div>
 </div>

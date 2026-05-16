@@ -113,18 +113,28 @@
 		"description": "Control the appearance and formatting of subtitle text",
 		"icon": "text_fields",
 		"styles": [
-			{
-				"id": "text-color",
-				"name": "Text Color",
-				"description": "Change the color of the text",
-				"value": "#ffffff",
-				"valueType": "color",
-				"css": "color: {value};",
-				"tailwind": false,
-				"icon": "palette"
-			},
-			{
-				"id": "font-size",
+		{
+			"id": "text-color",
+			"name": "Text Color",
+			"description": "Change the color of the text",
+			"value": "#ffffff",
+			"valueType": "color",
+			"css": "color: {value};",
+			"tailwind": false,
+			"icon": "palette"
+		},
+		{
+			"id": "verse-number-color",
+			"name": "Verse Number Color",
+			"description": "Change the color of the verse number",
+			"value": "#ffffff",
+			"valueType": "color",
+			"css": "--verse-number-color: {value};",
+			"tailwind": false,
+			"icon": "palette"
+		},
+		{
+			"id": "font-size",
 				"name": "Font Size",
 				"description": "Adjust the size of the text",
 				"value": 60,

@@ -66,6 +66,7 @@ export type GlobalAnimationStyleName =
 
 export type TextStyleName =
 	| 'text-color'
+	| 'verse-number-color'
 	| 'font-size'
 	| 'font-family'
 	| 'font-weight'

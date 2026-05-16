@@ -100,7 +100,7 @@
 			// Préfixe éventuel (ex: numéro de verset avant la traduction)
 			if (textParts.prefix) {
 				segments.push(
-					createPlainOverlaySegment(`${editionName}-${subtitle.id}-prefix`, textParts.prefix)
+					createPlainOverlaySegment(`${editionName}-${subtitle.id}-prefix`, textParts.prefix, 'color: var(--verse-number-color);')
 				);
 			}
 
@@ -116,7 +116,7 @@
 			// Suffixe éventuel
 			if (textParts.suffix) {
 				segments.push(
-					createPlainOverlaySegment(`${editionName}-${subtitle.id}-suffix`, textParts.suffix)
+					createPlainOverlaySegment(`${editionName}-${subtitle.id}-suffix`, textParts.suffix, 'color: var(--verse-number-color);')
 				);
 			}
 

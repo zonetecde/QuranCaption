@@ -10,6 +10,7 @@ export type WordByWordHighlightState = {
 	revealWordsOnRecitation: boolean;
 	alwaysShowVerseNumber: boolean;
 	baseColor: string;
+	verseNumberColor: string;
 	color: string;
 	backgroundEnabled: boolean;
 	backgroundColor: string;
@@ -49,6 +50,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		revealWordsOnRecitation: false,
 		alwaysShowVerseNumber: false,
 		baseColor: '',
+		verseNumberColor: '',
 		color: '',
 		backgroundEnabled: false,
 		backgroundColor: '',
@@ -132,6 +134,7 @@ export function getWordByWordHighlightState(params: {
 		revealWordsOnRecitation,
 		alwaysShowVerseNumber: Boolean(getStyleValue('wbw-always-show-verse-number')),
 		baseColor: String(getStyleValue('text-color') ?? ''),
+		verseNumberColor: String(getStyleValue('verse-number-color') ?? ''),
 		color: String(getStyleValue('wbw-color') ?? ''),
 		backgroundEnabled,
 		backgroundColor: String(getStyleValue('wbw-bg-color') ?? ''),
@@ -255,11 +258,13 @@ export function getWordByWordWordCss(
 	wordIndex: number,
 	state: WordByWordHighlightState,
 	highlightProgress: number,
-	fadeDurationMs: number
+	fadeDurationMs: number,
+	baseColorOverride?: string
 ): string {
 	const parts: string[] = [];
 	const clampedProgress = Utilities.clamp01(highlightProgress);
 	const opacity = getWordByWordWordOpacity(wordIndex, state, fadeDurationMs);
+	const effectiveBaseColor = baseColorOverride ?? state.baseColor;
 
 	if (state.underlineEnabled) {
 		parts.push('text-decoration-line: underline;');
@@ -276,7 +281,7 @@ export function getWordByWordWordCss(
 	}
 
 	if (state.highlightEnabled && state.color) {
-		parts.push(`color: ${interpolateCssColor(state.baseColor, state.color, clampedProgress)};`);
+		parts.push(`color: ${interpolateCssColor(effectiveBaseColor, state.color, clampedProgress)};`);
 	}
 	if (state.backgroundEnabled && state.backgroundColor && state.backgroundColor !== '#00000000') {
 		parts.push(

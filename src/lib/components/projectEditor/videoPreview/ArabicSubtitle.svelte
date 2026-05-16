@@ -191,23 +191,18 @@
 		const hasInlineStyles = (subtitle.arabicInlineStyleRuns?.length ?? 0) > 0;
 
 		if (!hasInlineStyles) {
-			// Sans styles inline : on concatène le suffixe au texte principal
-			// pour éviter des coupures de span parasites dans les renderers screenshot.
-			const fullText =
-				displayParts.suffix && !displayParts.suffixFontFamily
-					? displayParts.text + displayParts.suffix
-					: displayParts.text;
 			const segments = [
-				createPlainOverlaySegment(`${keyPrefix}-arabic`, fullText, perClipFontCss)
+				createPlainOverlaySegment(`${keyPrefix}-arabic`, displayParts.text, perClipFontCss)
 			];
 
-			// Si le suffixe a sa propre police, on le met dans un segment séparé
-			if (displayParts.suffix && displayParts.suffixFontFamily) {
+			if (displayParts.suffix) {
 				segments.push(
 					createPlainOverlaySegment(
 						`${keyPrefix}-suffix`,
 						displayParts.suffix,
-						`font-family: ${displayParts.suffixFontFamily};`
+						(displayParts.suffixFontFamily
+							? `font-family: ${displayParts.suffixFontFamily}; `
+							: '') + 'color: var(--verse-number-color);'
 					)
 				);
 			}
@@ -231,7 +226,9 @@
 			createPlainOverlaySegment(
 				`${keyPrefix}-suffix`,
 				displayParts.suffix,
-				displayParts.suffixFontFamily ? `font-family: ${displayParts.suffixFontFamily};` : ''
+				(displayParts.suffixFontFamily
+					? `font-family: ${displayParts.suffixFontFamily}; `
+					: '') + 'color: var(--verse-number-color);'
 			)
 		];
 	}
@@ -682,12 +679,16 @@
 										lastWordIndex,
 										state,
 										lastWordProgress,
-										wbwPreviewFadeDuration()
+										wbwPreviewFadeDuration(),
+										state.verseNumberColor
 									)}
 									<span
 										style={(group.suffixFontFamily
 											? `font-family: ${group.suffixFontFamily}; `
-											: '') + lastWordWbwCss + ` opacity: ${suffixOpacity};`}
+											: '') +
+											`color: var(--verse-number-color); ` +
+											lastWordWbwCss +
+											` opacity: ${suffixOpacity};`}
 									>
 										{group.suffix}
 									</span>
@@ -745,12 +746,16 @@
 									lastWordIndex,
 									state,
 									lastWordProgress,
-									wbwPreviewFadeDuration()
+									wbwPreviewFadeDuration(),
+									state.verseNumberColor
 								)}
 								<span
 									style={(group.suffixFontFamily
 										? `font-family: ${group.suffixFontFamily}; `
-										: '') + lastWordWbwCss + ` opacity: ${suffixOpacity};`}
+										: '') +
+										`color: var(--verse-number-color); ` +
+										lastWordWbwCss +
+										` opacity: ${suffixOpacity};`}
 								>
 									{group.suffix}
 								</span>

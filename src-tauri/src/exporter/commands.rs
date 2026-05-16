@@ -19,12 +19,6 @@ static ACTIVE_EXPORTS: LazyLock<Mutex<HashMap<String, Arc<Mutex<Option<std::proc
     LazyLock::new(|| Mutex::new(HashMap::new()));
 static CANCELLED_EXPORTS: LazyLock<Mutex<HashSet<String>>> =
     LazyLock::new(|| Mutex::new(HashSet::new()));
-static HW_ENCODER_CACHE: LazyLock<Mutex<HashMap<String, Vec<String>>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-static NVENC_AVAILABILITY_CACHE: LazyLock<Mutex<HashMap<String, bool>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-static FFPROBE_DURATION_CACHE: LazyLock<Mutex<HashMap<String, (u64, u128, f64)>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 const MAX_FILTERGRAPH_IMAGES_HIGH_RES: usize = 6;
 const MAX_FILTERGRAPH_IMAGES_STANDARD: usize = 12;
@@ -403,12 +397,6 @@ fn resolve_ffprobe_binary() -> String {
 fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
     let exe = ffmpeg_path.unwrap_or("ffmpeg");
 
-    if let Ok(cache) = NVENC_AVAILABILITY_CACHE.lock() {
-        if let Some(available) = cache.get(exe) {
-            return *available;
-        }
-    }
-
     println!("[nvenc_test] Test de disponibilité NVENC...");
 
     // Créer une entrée vidéo de test très courte (1 frame noir)
@@ -438,7 +426,7 @@ fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
 
     configure_command_no_window(&mut cmd);
 
-    let available = match cmd.output() {
+    match cmd.output() {
         Ok(output) => {
             let success = output.status.success();
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -471,13 +459,7 @@ fn test_nvenc_availability(ffmpeg_path: Option<&str>) -> bool {
             println!("[nvenc_test] ✗ Erreur lors du test NVENC: {}", e);
             false
         }
-    };
-
-    if let Ok(mut cache) = NVENC_AVAILABILITY_CACHE.lock() {
-        cache.insert(exe.to_string(), available);
     }
-
-    available
 }
 
 /// Fonction du module export.
@@ -534,12 +516,6 @@ fn test_nvenc_with_larger_resolution(ffmpeg_path: Option<&str>) -> bool {
 fn probe_hw_encoders(ffmpeg_path: Option<&str>) -> Vec<String> {
     let exe = ffmpeg_path.unwrap_or("ffmpeg");
 
-    if let Ok(cache) = HW_ENCODER_CACHE.lock() {
-        if let Some(encoders) = cache.get(exe) {
-            return encoders.clone();
-        }
-    }
-
     let mut cmd = Command::new(exe);
     cmd.args(&["-hide_banner", "-encoders"]);
     configure_command_no_window(&mut cmd);
@@ -563,10 +539,6 @@ fn probe_hw_encoders(ffmpeg_path: Option<&str>) -> Vec<String> {
     }
     if txt.contains("h264_amf") {
         found.push("h264_amf".to_string());
-    }
-
-    if let Ok(mut cache) = HW_ENCODER_CACHE.lock() {
-        cache.insert(exe.to_string(), found.clone());
     }
 
     found
@@ -633,8 +605,8 @@ fn choose_best_codec(
         let codec = "libx264".to_string();
         let mut extra = HashMap::new();
         let (preset, crf) = match usage {
-            CodecUsage::Intermediate => ("veryfast", "14"),
-            CodecUsage::Final => ("veryfast", "16"),
+            CodecUsage::Intermediate => ("slow", "14"),
+            CodecUsage::Final => ("slow", "16"),
         };
         extra.insert("preset".to_string(), Some(preset.to_string()));
 
@@ -772,8 +744,8 @@ fn ffmpeg_preprocess_video(
         "-y".to_string(),
         "-hide_banner".to_string(),
         "-loglevel".to_string(),
-        "warning".to_string(),
-        "-nostats".to_string(),
+        "info".to_string(),
+        "-stats".to_string(),
         "-progress".to_string(),
         "pipe:2".to_string(),
     ];
@@ -909,7 +881,7 @@ fn create_video_from_image(
         "-y",
         "-hide_banner",
         "-loglevel",
-        "warning",
+        "info",
         "-loop",
         "1",
         "-i",
@@ -1245,26 +1217,6 @@ fn preprocess_background_videos(
 
 /// Fonction du module export.
 fn ffprobe_duration_sec(path: &str) -> f64 {
-    let cache_signature = fs::metadata(path).ok().map(|metadata| {
-        let modified = metadata
-            .modified()
-            .ok()
-            .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
-            .map(|duration| duration.as_nanos())
-            .unwrap_or(0);
-        (metadata.len(), modified)
-    });
-
-    if let Some((len, modified)) = cache_signature {
-        if let Ok(cache) = FFPROBE_DURATION_CACHE.lock() {
-            if let Some((cached_len, cached_modified, duration)) = cache.get(path) {
-                if *cached_len == len && *cached_modified == modified {
-                    return *duration;
-                }
-            }
-        }
-    }
-
     let exe = resolve_ffprobe_binary();
 
     let mut cmd = Command::new(&exe);
@@ -1287,17 +1239,7 @@ fn ffprobe_duration_sec(path: &str) -> f64 {
     };
 
     let txt = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let duration = txt.parse::<f64>().unwrap_or(0.0);
-
-    if duration.is_finite() && duration > 0.0 {
-        if let Some((len, modified)) = cache_signature {
-            if let Ok(mut cache) = FFPROBE_DURATION_CACHE.lock() {
-                cache.insert(path.to_string(), (len, modified, duration));
-            }
-        }
-    }
-
-    duration
+    txt.parse::<f64>().unwrap_or(0.0)
 }
 
 /// Fonction du module export.
@@ -1481,269 +1423,6 @@ fn boundary_blank_hold_ms(fps: i32) -> i32 {
     (((1000.0 / fps.max(1) as f64).ceil() as i32) * 2).max(1)
 }
 
-/// Ecrit un fichier concat FFmpeg pour des videos deja generees.
-fn write_video_concat_file(
-    base_dir: &Path,
-    export_id: &str,
-    video_paths: &[String],
-) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    fs::create_dir_all(base_dir)?;
-
-    let concat_content = video_paths.join("|");
-    let concat_hash = format!("{:x}", md5::compute(concat_content.as_bytes()));
-    let concat_path = base_dir.join(format!(
-        "videos-{}-{}.ffconcat",
-        export_id,
-        &concat_hash[..8]
-    ));
-    let mut concat_file = fs::File::create(&concat_path)?;
-
-    writeln!(concat_file, "ffconcat version 1.0")?;
-    for video_path in video_paths {
-        let escaped = path_utils::escape_ffconcat_path(video_path);
-        writeln!(concat_file, "file '{}'", escaped)?;
-    }
-
-    Ok(concat_path)
-}
-
-/// Concatene des videos homogenes sans reencoder leurs flux.
-fn concat_videos_with_stream_copy(
-    export_id: &str,
-    video_paths: &[String],
-    output_path: &str,
-    total_duration_s: f64,
-    app_handle: &tauri::AppHandle,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    ensure_export_not_cancelled(export_id)?;
-
-    let output_path_buf = path_utils::normalize_output_path(output_path);
-    if let Some(parent) = output_path_buf.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    let base_dir = output_path_buf
-        .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(std::env::temp_dir);
-    let concat_path = write_video_concat_file(&base_dir, export_id, video_paths)?;
-    let concat_name = concat_path.to_string_lossy().to_string();
-    let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
-
-    let mut cmd = vec![
-        ffmpeg_exe,
-        "-y".to_string(),
-        "-hide_banner".to_string(),
-        "-loglevel".to_string(),
-        "warning".to_string(),
-        "-nostats".to_string(),
-        "-progress".to_string(),
-        "pipe:2".to_string(),
-        "-fflags".to_string(),
-        "+genpts".to_string(),
-        "-safe".to_string(),
-        "0".to_string(),
-        "-f".to_string(),
-        "concat".to_string(),
-        "-i".to_string(),
-        concat_name,
-        "-c".to_string(),
-        "copy".to_string(),
-    ];
-
-    let ext = output_path_buf
-        .extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-    if matches!(ext.as_str(), "mp4" | "mov" | "m4v") {
-        cmd.extend_from_slice(&["-movflags".to_string(), "+faststart".to_string()]);
-    }
-
-    cmd.push(output_path_buf.to_string_lossy().to_string());
-
-    println!(
-        "[batching] concat stream-copy: {} fichier(s) -> {}",
-        video_paths.len(),
-        output_path
-    );
-
-    run_ffmpeg_command(
-        export_id,
-        &cmd,
-        Some(FfmpegProgressContext {
-            base_time_s: 0.0,
-            total_time_s: total_duration_s.max(0.001),
-            local_duration_s: total_duration_s.max(0.001),
-        }),
-        Some("Merging Files"),
-        app_handle,
-    )
-}
-
-/// Ajoute le codec audio correspondant au type d'export.
-fn append_export_audio_codec_args(
-    cmd: &mut Vec<String>,
-    export_without_background: bool,
-    use_mov_alpha: bool,
-) {
-    if export_without_background && !use_mov_alpha {
-        cmd.extend_from_slice(&[
-            "-c:a".to_string(),
-            "libopus".to_string(),
-            "-b:a".to_string(),
-            "256k".to_string(),
-        ]);
-    } else {
-        cmd.extend_from_slice(&[
-            "-c:a".to_string(),
-            "aac".to_string(),
-            "-b:a".to_string(),
-            "320k".to_string(),
-        ]);
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-/// Assemble une video deja rendue avec l'audio final sans reencoder l'image.
-fn mux_video_copy_with_audio(
-    export_id: &str,
-    video_path: &str,
-    audio_paths: &[String],
-    output_path: &str,
-    total_duration_s: f64,
-    start_s: f64,
-    audio_fade_in_enabled: bool,
-    audio_fade_out_enabled: bool,
-    export_fade_duration_ms: i32,
-    export_without_background: bool,
-    use_mov_alpha: bool,
-    performance_profile: ExportPerformanceProfile,
-    app_handle: &tauri::AppHandle,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    ensure_export_not_cancelled(export_id)?;
-
-    let output_path_buf = path_utils::normalize_output_path(output_path);
-    if let Some(parent) = output_path_buf.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
-    let mut cmd = vec![
-        ffmpeg_exe,
-        "-y".to_string(),
-        "-hide_banner".to_string(),
-        "-loglevel".to_string(),
-        "warning".to_string(),
-        "-nostats".to_string(),
-        "-progress".to_string(),
-        "pipe:2".to_string(),
-        "-i".to_string(),
-        video_path.to_string(),
-    ];
-
-    for audio_path in audio_paths {
-        cmd.extend_from_slice(&["-i".to_string(), audio_path.clone()]);
-    }
-
-    let fade_s = (export_fade_duration_ms as f64 / 1000.0)
-        .max(0.0)
-        .min(total_duration_s.max(0.0));
-    let apply_audio_fade = audio_fade_in_enabled || audio_fade_out_enabled;
-    let mut mapped_audio_label: Option<String> = None;
-
-    if !audio_paths.is_empty() {
-        let mut filter_lines: Vec<String> = Vec::new();
-        if audio_paths.len() == 1 {
-            filter_lines.push("[1:a]aresample=48000[aa0]".to_string());
-            filter_lines.push(format!(
-                "[aa0]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
-                start_s, total_duration_s
-            ));
-        } else {
-            let mut audio_inputs = String::new();
-            for idx in 0..audio_paths.len() {
-                filter_lines.push(format!("[{}:a]aresample=48000[aa{}]", idx + 1, idx));
-                audio_inputs.push_str(&format!("[aa{}]", idx));
-            }
-            filter_lines.push(format!(
-                "{}concat=n={}:v=0:a=1[aacat]",
-                audio_inputs,
-                audio_paths.len()
-            ));
-            filter_lines.push(format!(
-                "[aacat]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
-                start_s, total_duration_s
-            ));
-        }
-
-        let mut current_audio_label = "aoutraw".to_string();
-        if apply_audio_fade && fade_s > 0.0 {
-            if audio_fade_in_enabled {
-                filter_lines.push(format!(
-                    "[{}]afade=t=in:st=0:d={:.6}[afadein]",
-                    current_audio_label, fade_s
-                ));
-                current_audio_label = "afadein".to_string();
-            }
-            if audio_fade_out_enabled {
-                let fade_out_start = (total_duration_s - fade_s).max(0.0);
-                filter_lines.push(format!(
-                    "[{}]afade=t=out:st={:.6}:d={:.6}[afadeout]",
-                    current_audio_label, fade_out_start, fade_s
-                ));
-                current_audio_label = "afadeout".to_string();
-            }
-        }
-
-        cmd.extend_from_slice(&["-filter_complex".to_string(), filter_lines.join(";")]);
-        mapped_audio_label = Some(current_audio_label);
-    }
-
-    cmd.extend_from_slice(&[
-        "-map".to_string(),
-        "0:v:0".to_string(),
-        "-c:v".to_string(),
-        "copy".to_string(),
-    ]);
-
-    if let Some(audio_label) = mapped_audio_label {
-        cmd.extend_from_slice(&["-map".to_string(), format!("[{}]", audio_label)]);
-        append_export_audio_codec_args(&mut cmd, export_without_background, use_mov_alpha);
-    } else {
-        cmd.push("-an".to_string());
-    }
-
-    if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
-        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
-    }
-
-    cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", total_duration_s)]);
-
-    let ext = output_path_buf
-        .extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-    if matches!(ext.as_str(), "mp4" | "mov" | "m4v") {
-        cmd.extend_from_slice(&["-movflags".to_string(), "+faststart".to_string()]);
-    }
-
-    cmd.push(output_path_buf.to_string_lossy().to_string());
-
-    run_ffmpeg_command(
-        export_id,
-        &cmd,
-        Some(FfmpegProgressContext {
-            base_time_s: 0.0,
-            total_time_s: total_duration_s.max(0.001),
-            local_duration_s: total_duration_s.max(0.001),
-        }),
-        Some("Merging Files"),
-        app_handle,
-    )
-}
-
 #[allow(clippy::too_many_arguments)]
 fn concat_internal_batch_videos(
     export_id: &str,
@@ -1817,69 +1496,14 @@ fn concat_internal_batch_videos(
         total_duration_s
     );
 
-    let can_copy_rendered_video = !apply_video_fade && !export_without_background;
-    if can_copy_rendered_video {
-        if have_audio {
-            let temp_video_path = if batch_paths.len() > 1 {
-                let temp_path = build_temp_output_path(&output_path_buf);
-                let temp_output = temp_path.to_string_lossy().to_string();
-                concat_videos_with_stream_copy(
-                    export_id,
-                    batch_paths,
-                    &temp_output,
-                    expected_video_s,
-                    &app_handle,
-                )?;
-                Some(temp_path)
-            } else {
-                None
-            };
-            let video_path_for_mux = temp_video_path
-                .as_ref()
-                .map(|path| path.to_string_lossy().to_string())
-                .unwrap_or_else(|| batch_paths[0].clone());
-
-            let mux_result = mux_video_copy_with_audio(
-                export_id,
-                &video_path_for_mux,
-                audio_paths,
-                output_path,
-                total_duration_s,
-                start_s,
-                audio_fade_in_enabled,
-                audio_fade_out_enabled,
-                export_fade_duration_ms,
-                export_without_background,
-                use_mov_alpha,
-                performance_profile,
-                &app_handle,
-            );
-
-            if let Some(temp_path) = temp_video_path {
-                fs::remove_file(temp_path).ok();
-            }
-
-            return mux_result;
-        }
-
-        concat_videos_with_stream_copy(
-            export_id,
-            batch_paths,
-            output_path,
-            total_duration_s,
-            &app_handle,
-        )?;
-        return Ok(());
-    }
-
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let mut cmd = vec![
         ffmpeg_exe,
         "-y".to_string(),
         "-hide_banner".to_string(),
         "-loglevel".to_string(),
-        "warning".to_string(),
-        "-nostats".to_string(),
+        "info".to_string(),
+        "-stats".to_string(),
         "-progress".to_string(),
         "pipe:2".to_string(),
         "-fflags".to_string(),
@@ -2558,8 +2182,8 @@ fn render_ffmpeg_filter_complex_single(
         "-y".to_string(),
         "-hide_banner".to_string(),
         "-loglevel".to_string(),
-        "warning".to_string(),
-        "-nostats".to_string(),
+        "info".to_string(),
+        "-stats".to_string(),
         "-progress".to_string(),
         "pipe:2".to_string(),
     ]);
@@ -2614,8 +2238,8 @@ fn render_ffmpeg_filter_complex_single(
         let s = starts_s[i];
         let e = s + durations_s[i];
         filter_lines.push(format!(
-            "[b{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,format=rgba,premultiply=inplace=1[s{}p]",
-            i, s, e, i
+            "[b{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,fps={},format=rgba,premultiply=inplace=1[s{}p]",
+            i, s, e, fps, i
         ));
     }
 
@@ -3385,41 +3009,14 @@ pub async fn concat_videos(
         }
     }
 
-    let audio_presence: Vec<bool> = normalized_video_paths
-        .iter()
-        .map(|p| video_has_audio(p))
-        .collect();
-    let all_have_audio = !audio_presence.is_empty() && audio_presence.iter().all(|&has| has);
-    let any_have_audio = audio_presence.iter().any(|&has| has);
-    if any_have_audio && !all_have_audio {
-        println!(
-            "[concat_videos][warn] Certains segments n'ont pas d'audio; l'audio final sera désactivé"
-        );
-    }
-
-    if !apply_any_fade
-        && !export_without_background.unwrap_or(false)
-        && (!any_have_audio || all_have_audio)
-    {
-        concat_videos_with_stream_copy(
-            &export_id,
-            &normalized_video_paths,
-            &output_path_str,
-            total_duration_s,
-            &app,
-        )
-        .map_err(|e| format!("Erreur concaténation stream-copy FFmpeg: {}", e))?;
-        return Ok(output_path_str);
-    }
-
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let mut cmd = vec![
         ffmpeg_exe,
         "-y".to_string(),
         "-hide_banner".to_string(),
         "-loglevel".to_string(),
-        "warning".to_string(),
-        "-nostats".to_string(),
+        "info".to_string(),
+        "-stats".to_string(),
         "-progress".to_string(),
         "pipe:2".to_string(),
     ];
@@ -3430,6 +3027,18 @@ pub async fn concat_videos(
 
     if let Some(thread_cap) = compute_ffmpeg_thread_cap(performance_profile) {
         cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
+
+    let audio_presence: Vec<bool> = normalized_video_paths
+        .iter()
+        .map(|p| video_has_audio(p))
+        .collect();
+    let all_have_audio = !audio_presence.is_empty() && audio_presence.iter().all(|&has| has);
+    let any_have_audio = audio_presence.iter().any(|&has| has);
+    if any_have_audio && !all_have_audio {
+        println!(
+            "[concat_videos][warn] Certains segments n'ont pas d'audio; l'audio final sera désactivé"
+        );
     }
 
     let mut filter_lines: Vec<String> = Vec::new();

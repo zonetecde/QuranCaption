@@ -16,7 +16,7 @@ import {
 import { SerializableBase } from './misc/SerializableBase.js';
 import { Duration, type Asset } from './index.js';
 import { globalState } from '$lib/runes/main.svelte.js';
-import type { Verse } from './Quran.js';
+import { Quran, type Verse } from './Quran.js';
 import toast from 'svelte-5-french-toast';
 import { Translation, VerseTranslation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
@@ -38,6 +38,15 @@ export type VisualMergeGroup = {
 	lastClip: SubtitleClip;
 	startTime: number;
 	endTime: number;
+};
+
+type SubtitleSplitOptions = {
+	forceExactCursor?: boolean;
+};
+
+type WordBoundarySplitCandidate = {
+	leftEndWordIndex: number;
+	splitTimeMs: number;
 };
 
 export class Track extends SerializableBase {
@@ -233,13 +242,296 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
+	 * Retourne l'index Quran 0-based porte par une location MFA.
+	 *
+	 * @param {string} location Cle au format `surah:verse:word`.
+	 * @returns {number | null} Index 0-based, ou `null` si invalide.
+	 */
+	private getWordIndexFromLocation(location: string): number | null {
+		const wordIndex = Number(location.split(':')[2]);
+		if (!Number.isFinite(wordIndex) || wordIndex <= 0) return null;
+		return wordIndex - 1;
+	}
+
+	/**
+	 * Applique les flags d'edition manuelle sans supprimer les timestamps WBW.
+	 *
+	 * @param {SubtitleClip | PredefinedSubtitleClip} clip Clip a marquer comme manuel.
+	 * @returns {void}
+	 */
+	private markSplitClipAsManualEdit(clip: SubtitleClip | PredefinedSubtitleClip): void {
+		clip.comeFromIA = false;
+		clip.confidence = null;
+		clip.needsReview = false;
+		clip.needsCoverageReview = false;
+		clip.needsLongReview = false;
+		clip.hasBeenVerified = false;
+	}
+
+	/**
+	 * Met a jour silencieusement la plage de mots d'un clip Quran apres un split.
+	 *
+	 * @param {SubtitleClip} clip Clip a mettre a jour.
+	 * @param {Verse} verse Verset source.
+	 * @param {number} startWordIndex Premier mot inclus.
+	 * @param {number} endWordIndex Dernier mot inclus.
+	 * @returns {Promise<void>}
+	 */
+	private async hydrateSubtitleClipRange(
+		clip: SubtitleClip,
+		verse: Verse,
+		startWordIndex: number,
+		endWordIndex: number
+	): Promise<void> {
+		clip.startWordIndex = startWordIndex;
+		clip.endWordIndex = endWordIndex;
+		clip.text = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex);
+		clip.indopakText = verse.getArabicTextBetweenTwoIndexes(
+			startWordIndex,
+			endWordIndex,
+			'indopak'
+		);
+		clip.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
+			startWordIndex,
+			endWordIndex
+		);
+		const subtitlesProperties = await this.getSubtitlesProperties(
+			verse,
+			startWordIndex,
+			endWordIndex,
+			clip.surah
+		);
+		clip.isFullVerse = subtitlesProperties.isFullVerse;
+		clip.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
+		clip.translations = subtitlesProperties.translations;
+		clip.clearArabicInlineStyles();
+	}
+
+	/**
+	 * Reconstruit les timestamps WBW d'une moitie de split.
+	 *
+	 * @param {NonNullable<SubtitleClip['alignmentMetadata']>} metadata Metadonnees source.
+	 * @param {Verse} verse Verset source.
+	 * @param {number} surah Sourate du clip.
+	 * @param {number} verseNumber Numero du verset.
+	 * @param {number} startWordIndex Premier mot inclus.
+	 * @param {number} endWordIndex Dernier mot inclus.
+	 * @param {number} offsetS Offset a soustraire aux timings pour la moitie droite.
+	 * @param {number} timeFromS Debut absolu du nouveau clip en secondes.
+	 * @param {number} timeToS Fin absolue du nouveau clip en secondes.
+	 * @returns {NonNullable<SubtitleClip['alignmentMetadata']>} Metadonnees alignees sur la nouvelle moitie.
+	 */
+	private buildSplitAlignmentMetadata(
+		metadata: NonNullable<SubtitleClip['alignmentMetadata']>,
+		verse: Verse,
+		surah: number,
+		verseNumber: number,
+		startWordIndex: number,
+		endWordIndex: number,
+		offsetS: number,
+		timeFromS: number,
+		timeToS: number
+	): NonNullable<SubtitleClip['alignmentMetadata']> {
+		const clipDurationS = Math.max(0, timeToS - timeFromS);
+		let previousEnd = 0;
+		const words = metadata.words
+			.filter((word) => {
+				const wordIndex = this.getWordIndexFromLocation(word.location);
+				return wordIndex !== null && wordIndex >= startWordIndex && wordIndex <= endWordIndex;
+			})
+			.map((word) => {
+				const start = Math.max(previousEnd, Math.min(clipDurationS, word.start - offsetS));
+				const end = Math.max(start, Math.min(clipDurationS, word.end - offsetS));
+				previousEnd = end;
+				return {
+					...word,
+					start,
+					end
+				};
+			});
+
+		if (words.length > 0) {
+			words[0] = { ...words[0], start: 0 };
+			words[words.length - 1] = { ...words[words.length - 1], end: clipDurationS };
+		}
+
+		return {
+			...metadata,
+			refFrom: `${surah}:${verseNumber}:${startWordIndex + 1}`,
+			refTo: `${surah}:${verseNumber}:${endWordIndex + 1}`,
+			matchedText: verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex),
+			timeFrom: timeFromS,
+			timeTo: timeToS,
+			words
+		};
+	}
+
+	/**
+	 * Cherche la limite de mot la plus proche du curseur.
+	 *
+	 * @param {SubtitleClip} clip Clip Quran a couper.
+	 * @param {number} splitTimeMs Position actuelle du curseur.
+	 * @returns {WordBoundarySplitCandidate | null} Limite retenue, ou `null` sans timestamps WBW.
+	 */
+	private getNearestWordBoundarySplitCandidate(
+		clip: SubtitleClip,
+		splitTimeMs: number
+	): WordBoundarySplitCandidate | null {
+		const metadata = clip.alignmentMetadata;
+		if (!metadata || metadata.words.length === 0) return null;
+
+		let bestCandidate: WordBoundarySplitCandidate | null = null;
+		let bestDistance = Number.POSITIVE_INFINITY;
+
+		for (const word of metadata.words) {
+			const wordIndex = this.getWordIndexFromLocation(word.location);
+			if (wordIndex === null) continue;
+
+			const candidates: WordBoundarySplitCandidate[] = [
+				{
+					leftEndWordIndex: wordIndex - 1,
+					splitTimeMs: Math.round((metadata.timeFrom + word.start) * 1000)
+				},
+				{
+					leftEndWordIndex: wordIndex,
+					splitTimeMs: Math.round((metadata.timeFrom + word.end) * 1000)
+				}
+			];
+
+			for (const candidate of candidates) {
+				if (
+					candidate.leftEndWordIndex < clip.startWordIndex ||
+					candidate.leftEndWordIndex >= clip.endWordIndex
+				) {
+					continue;
+				}
+
+				const distance = Math.abs(candidate.splitTimeMs - splitTimeMs);
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					bestCandidate = candidate;
+				}
+			}
+		}
+
+		return bestCandidate;
+	}
+
+	/**
+	 * Choisit la repartition des mots quand on force un split a la position exacte du curseur.
+	 *
+	 * @param {SubtitleClip} clip Clip Quran a couper.
+	 * @param {number} splitTimeMs Position actuelle du curseur.
+	 * @returns {number | null} Index du dernier mot a garder a gauche, ou `null` si aucun choix fiable n'est possible.
+	 */
+	private getExactCursorSplitWordIndex(clip: SubtitleClip, splitTimeMs: number): number | null {
+		const metadata = clip.alignmentMetadata;
+		if (!metadata || metadata.words.length === 0) return null;
+
+		const splitOffsetS = splitTimeMs / 1000 - metadata.timeFrom;
+		let leftEndWordIndex: number | null = null;
+
+		for (const word of metadata.words) {
+			const wordIndex = this.getWordIndexFromLocation(word.location);
+			if (wordIndex === null) continue;
+
+			if (splitOffsetS <= word.start) {
+				leftEndWordIndex = wordIndex - 1;
+				break;
+			}
+
+			if (splitOffsetS >= word.end) {
+				leftEndWordIndex = wordIndex;
+				continue;
+			}
+
+			const leftDuration = splitOffsetS - word.start;
+			const rightDuration = word.end - splitOffsetS;
+			leftEndWordIndex = leftDuration >= rightDuration ? wordIndex : wordIndex - 1;
+			break;
+		}
+
+		if (leftEndWordIndex === null) return null;
+		return Math.max(clip.startWordIndex, Math.min(clip.endWordIndex - 1, leftEndWordIndex));
+	}
+
+	/**
+	 * Coupe un sous-titre Quran en conservant la meilleure repartition possible des mots et timestamps WBW.
+	 *
+	 * @param {number} clipIndex Index du clip dans la piste.
+	 * @param {SubtitleClip} clip Clip Quran a couper.
+	 * @param {number} splitTimeMs Position de coupe finale sur la timeline.
+	 * @param {number} leftEndWordIndex Dernier mot a conserver dans la partie gauche.
+	 * @returns {Promise<boolean>} `true` si la coupe a ete appliquee.
+	 */
+	private async splitSubtitleClipWithWordBoundaries(
+		clipIndex: number,
+		clip: SubtitleClip,
+		splitTimeMs: number,
+		leftEndWordIndex: number
+	): Promise<boolean> {
+		const metadata = clip.alignmentMetadata;
+		if (!metadata) return false;
+		if (leftEndWordIndex < clip.startWordIndex || leftEndWordIndex >= clip.endWordIndex) {
+			return false;
+		}
+
+		const verse = await Quran.getVerse(clip.surah, clip.verse);
+		if (!verse) return false;
+
+		const originalEndTime = clip.endTime;
+		const originalStartTime = clip.startTime;
+		const originalStartWordIndex = clip.startWordIndex;
+		const originalEndWordIndex = clip.endWordIndex;
+		const rightStartWordIndex = leftEndWordIndex + 1;
+		const splitOffsetS = splitTimeMs / 1000 - metadata.timeFrom;
+		const rightClip = clip.cloneWithTimes(splitTimeMs, originalEndTime);
+
+		clip.setEndTimeSilently(splitTimeMs);
+		await this.hydrateSubtitleClipRange(clip, verse, originalStartWordIndex, leftEndWordIndex);
+		await this.hydrateSubtitleClipRange(
+			rightClip,
+			verse,
+			rightStartWordIndex,
+			originalEndWordIndex
+		);
+
+		clip.alignmentMetadata = this.buildSplitAlignmentMetadata(
+			metadata,
+			verse,
+			clip.surah,
+			clip.verse,
+			originalStartWordIndex,
+			leftEndWordIndex,
+			0,
+			originalStartTime / 1000,
+			splitTimeMs / 1000
+		);
+		rightClip.alignmentMetadata = this.buildSplitAlignmentMetadata(
+			metadata,
+			verse,
+			rightClip.surah,
+			rightClip.verse,
+			rightStartWordIndex,
+			originalEndWordIndex,
+			splitOffsetS,
+			splitTimeMs / 1000,
+			originalEndTime / 1000
+		);
+
+		this.markSplitClipAsManualEdit(clip);
+		this.markSplitClipAsManualEdit(rightClip);
+		this.clips.splice(clipIndex + 1, 0, rightClip);
+		return true;
+	}
+
+	/**
 	 * Indique si la timeline contient au moins un sous-titre avec des timestamps mot a mot.
 	 * @returns {boolean} `true` si au moins un `SubtitleClip` porte des mots alignes.
 	 */
 	hasWordByWordTimestamps(): boolean {
 		return this.clips.some(
-			(clip) =>
-				clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) > 0
+			(clip) => clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) > 0
 		);
 	}
 
@@ -579,7 +871,7 @@ export class SubtitleTrack extends Track {
 		}
 	}
 
-	splitSubtitle(clipId: number): boolean {
+	async splitSubtitle(clipId: number, options: SubtitleSplitOptions = {}): Promise<boolean> {
 		const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
 		if (clipIndex === -1) return false;
 
@@ -606,6 +898,47 @@ export class SubtitleTrack extends Track {
 		if (splitTime - clip.startTime < 100 || clip.endTime - splitTime < 100) {
 			toast.error('Resulting clips would be too short (min 100ms).');
 			return false;
+		}
+
+		if (clip instanceof SubtitleClip && clip.visualMergeGroupId) {
+			this.unmergeVisualGroup(clip.visualMergeGroupId, false);
+		}
+
+		if (clip instanceof SubtitleClip) {
+			const wordBoundaryCandidate = options.forceExactCursor
+				? null
+				: this.getNearestWordBoundarySplitCandidate(clip, splitTime);
+			const exactSplitWordIndex = this.getExactCursorSplitWordIndex(clip, splitTime);
+
+			if (wordBoundaryCandidate) {
+				if (
+					wordBoundaryCandidate.splitTimeMs - clip.startTime < 100 ||
+					clip.endTime - wordBoundaryCandidate.splitTimeMs < 100
+				) {
+					toast.error('Resulting clips would be too short (min 100ms).');
+					return false;
+				}
+
+				return await this.splitSubtitleClipWithWordBoundaries(
+					clipIndex,
+					clip,
+					wordBoundaryCandidate.splitTimeMs,
+					wordBoundaryCandidate.leftEndWordIndex
+				);
+			}
+
+			if (
+				exactSplitWordIndex !== null &&
+				exactSplitWordIndex >= clip.startWordIndex &&
+				exactSplitWordIndex < clip.endWordIndex
+			) {
+				return await this.splitSubtitleClipWithWordBoundaries(
+					clipIndex,
+					clip,
+					splitTime,
+					exactSplitWordIndex
+				);
+			}
 		}
 
 		const originalEndTime = clip.endTime;

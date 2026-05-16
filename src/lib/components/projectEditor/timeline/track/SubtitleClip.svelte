@@ -410,6 +410,26 @@
 		(track as SubtitleTrack).unmergeVisualGroup(clip.visualMergeGroupId);
 	}
 
+	/**
+	 * Coupe le clip courant depuis le menu contextuel.
+	 * Sans Ctrl, on prefere une coupe alignee sur les mots WBW.
+	 * Avec Ctrl, on force la position exacte du curseur.
+	 *
+	 * @param {MouseEvent} event Evenement de clic du menu.
+	 * @returns {Promise<void>}
+	 */
+	async function splitSubtitleFromContextMenu(event: MouseEvent): Promise<void> {
+		if (!(clip instanceof SubtitleClip)) return;
+
+		const didSplit = await (track as SubtitleTrack).splitSubtitle(clip.id, {
+			forceExactCursor: Boolean(event.ctrlKey || event.metaKey)
+		});
+		if (!didSplit) return;
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+	}
+
 	onDestroy(() => {
 		currentMenu.set(null);
 	});
@@ -570,8 +590,8 @@
 	>
 	{#if clip.type === 'Subtitle'}
 		<Item
-			on:click={() => {
-				(track as SubtitleTrack).splitSubtitle(clip.id);
+			on:click={(event) => {
+				void splitSubtitleFromContextMenu(event as MouseEvent);
 			}}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split subtitle

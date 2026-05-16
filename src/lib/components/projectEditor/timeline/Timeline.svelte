@@ -87,7 +87,7 @@
 		currentProject.detail.updateVideoDetailAttributes();
 	}
 
-	function handleSplitSubtitle(): void {
+	async function handleSplitSubtitle(forceExactCursor: boolean): Promise<void> {
 		const currentProject = globalState.currentProject;
 		if (!currentProject) return;
 
@@ -118,7 +118,9 @@
 				clipToSplit.type === 'Silence')
 		) {
 			const subtitleTrack = globalState.getSubtitleTrack;
-			const success = subtitleTrack.splitSubtitle(clipToSplit.id);
+			const success = await subtitleTrack.splitSubtitle(clipToSplit.id, {
+				forceExactCursor
+			});
 			if (success) {
 				currentProject.detail.updateVideoDetailAttributes();
 				globalState.getStylesState.clearSelection();
@@ -219,7 +221,7 @@
 
 		ShortcutService.registerShortcut({
 			key: splitShortcut,
-			onKeyDown: handleSplitSubtitle
+			onKeyDown: (event) => void handleSplitSubtitle(Boolean(event.ctrlKey || event.metaKey))
 		});
 
 		splitShortcutRegistered = true;

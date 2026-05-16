@@ -566,30 +566,116 @@ export class SubtitleClip extends ClipWithTranslation {
 		);
 	}
 
+	/**
+	 * Normalise les timings WBW pour qu'ils restent dans la durée du clip.
+	 * @param {SubtitleAlignmentMetadata['words']} words Timings WBW à normaliser.
+	 * @param {number} clipDurationS Durée actuelle du clip en secondes.
+	 * @param {boolean} pinLastWordToEnd Indique si le dernier mot doit finir à la fin du clip.
+	 * @returns {SubtitleAlignmentMetadata['words']} Timings WBW normalisés.
+	 */
+	private normalizeAlignmentWordsForClipDuration(
+		words: SubtitleAlignmentMetadata['words'],
+		clipDurationS: number,
+		pinLastWordToEnd: boolean
+	): SubtitleAlignmentMetadata['words'] {
+		let previousEnd = 0;
+
+		return words.map((word, index) => {
+			const isFirstWord = index === 0;
+			const isLastWord = index === words.length - 1;
+			const start = isFirstWord
+				? 0
+				: Math.max(previousEnd, Math.min(clipDurationS, word.start));
+			const targetEnd = pinLastWordToEnd && isLastWord ? clipDurationS : word.end;
+			const end = Math.max(start, Math.min(clipDurationS, targetEnd));
+			previousEnd = end;
+
+			return {
+				...word,
+				start,
+				end
+			};
+		});
+	}
+
+	/**
+	 * Recale les timings WBW après un changement de début du sous-titre.
+	 * @param {number} previousStartTime Ancien début du clip en millisecondes.
+	 * @returns {void}
+	 */
+	private retimeAlignmentMetadataAfterStartChange(previousStartTime: number): void {
+		if (!this.alignmentMetadata) return;
+
+		const clipDurationS = Math.max(0, (this.endTime - this.startTime) / 1000);
+		const offsetS = (previousStartTime - this.startTime) / 1000;
+		const shiftedWords = this.alignmentMetadata.words.map((word, index) => ({
+			...word,
+			start: index === 0 ? 0 : word.start + offsetS,
+			end: word.end + offsetS
+		}));
+
+		this.alignmentMetadata = {
+			...this.alignmentMetadata,
+			timeFrom: this.startTime / 1000,
+			timeTo: this.endTime / 1000,
+			words: this.normalizeAlignmentWordsForClipDuration(shiftedWords, clipDurationS, false)
+		};
+	}
+
+	/**
+	 * Recale les timings WBW après un changement de fin du sous-titre.
+	 * @returns {void}
+	 */
+	private retimeAlignmentMetadataAfterEndChange(): void {
+		if (!this.alignmentMetadata) return;
+
+		const clipDurationS = Math.max(0, (this.endTime - this.startTime) / 1000);
+		this.alignmentMetadata = {
+			...this.alignmentMetadata,
+			timeFrom: this.startTime / 1000,
+			timeTo: this.endTime / 1000,
+			words: this.normalizeAlignmentWordsForClipDuration(
+				this.alignmentMetadata.words,
+				clipDurationS,
+				true
+			)
+		};
+	}
+
 	override setEndTime(newEndTime: number) {
 		super.setEndTime(newEndTime);
 		// Si la modification a bien été prise en compte (pas d'erreur dans le super)
 		if (this.endTime === newEndTime) {
-			this.markAsManualEdit();
+			this.retimeAlignmentMetadataAfterEndChange();
+			super.markAsManualEdit();
 		}
 	}
 
 	override setStartTime(newStartTime: number) {
+		const previousStartTime = this.startTime;
 		super.setStartTime(newStartTime);
 		// Si la modification a bien été prise en compte (pas d'erreur dans le super)
 		if (this.startTime === newStartTime) {
-			this.markAsManualEdit();
+			this.retimeAlignmentMetadataAfterStartChange(previousStartTime);
+			super.markAsManualEdit();
 		}
 	}
 
 	// Utilise pour les ajustements automatiques qui ne doivent pas annuler l'origine IA.
 	setStartTimeSilently(newStartTime: number) {
+		const previousStartTime = this.startTime;
 		super.setStartTime(newStartTime);
+		if (this.startTime === newStartTime) {
+			this.retimeAlignmentMetadataAfterStartChange(previousStartTime);
+		}
 	}
 
 	// Utilise pour les ajustements automatiques qui ne doivent pas annuler l'origine IA.
 	setEndTimeSilently(newEndTime: number) {
 		super.setEndTime(newEndTime);
+		if (this.endTime === newEndTime) {
+			this.retimeAlignmentMetadataAfterEndChange();
+		}
 	}
 
 	/**

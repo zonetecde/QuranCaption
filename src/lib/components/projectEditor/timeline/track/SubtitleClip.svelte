@@ -190,7 +190,7 @@
 		document.removeEventListener('mousemove', onLeftDragging);
 		document.removeEventListener('mouseup', stopLeftDragging);
 		globalState.getTimelineState.showCursor = true;
-		if (clip.type !== 'Silence') {
+		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
 		if (didDrag) {
@@ -220,7 +220,7 @@
 		document.removeEventListener('mousemove', onRightDragging);
 		document.removeEventListener('mouseup', stopRightDragging);
 		globalState.getTimelineState.showCursor = true;
-		if (clip.type !== 'Silence') {
+		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
 		if (didDrag) {

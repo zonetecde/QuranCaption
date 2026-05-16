@@ -8,6 +8,10 @@ import MigrationService from '$lib/services/MigrationService';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
 import type { ProjectDetail } from './ProjectDetail.svelte';
 import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
+import {
+	WBW_TRANSLATION_LANGUAGES,
+	type WbwTranslationLanguageCode
+} from '$lib/services/WbwTranslationService';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -16,19 +20,19 @@ export type AutoSegmentationSettings = {
 	minSpeechMs: number;
 	padMs: number;
 	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-		multiAlignerModel:
-			| 'Base'
-			| 'Large'
-			| 'Muaalem-v3.2'
-			| 'Open-Tadabur-Small'
-			| 'Open-DeepDML-Small-Mix'
-			| 'Open-DeepDML-Medium-Mix'
-			| 'Open-IJyad-Large-V3'
-			| 'Open-Naazim-Large-V3-Turbo'
-			| 'Open-Legacy-Tiny'
-			| 'Open-Legacy-Base'
-			| 'Open-Legacy-Medium'
-			| 'Open-Legacy-Large';
+	multiAlignerModel:
+		| 'Base'
+		| 'Large'
+		| 'Muaalem-v3.2'
+		| 'Open-Tadabur-Small'
+		| 'Open-DeepDML-Small-Mix'
+		| 'Open-DeepDML-Medium-Mix'
+		| 'Open-IJyad-Large-V3'
+		| 'Open-Naazim-Large-V3-Turbo'
+		| 'Open-Legacy-Tiny'
+		| 'Open-Legacy-Base'
+		| 'Open-Legacy-Medium'
+		| 'Open-Legacy-Large';
 	cloudModel: 'Base' | 'Large';
 	device: 'GPU' | 'CPU';
 	hfToken: string;
@@ -84,6 +88,7 @@ export default class Settings extends SerializableBase {
 		lastClosedDonationPromptModal: new Date(0).toISOString(),
 		donationPromptImpressions: 0,
 		videoExportFolder: '',
+		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
 		showTimelineWheelHints: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
@@ -389,20 +394,29 @@ export default class Settings extends SerializableBase {
 		const settings = globalState.settings;
 		let shouldSave = false;
 
+		// Migrations ================
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
 			settings.exportSettings = {} as ExportSettings;
 			shouldSave = true;
 		}
-
 		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
 			settings.persistentUiState.showTimelineWheelHints = true;
 			shouldSave = true;
 		}
-
+		if (
+			!WBW_TRANSLATION_LANGUAGES.some(
+				(language) => language.code === settings.persistentUiState.wbwTranslationLanguage
+			)
+		) {
+			settings.persistentUiState.wbwTranslationLanguage = 'en';
+			shouldSave = true;
+		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
 			shouldSave = true;
 		}
+		// ==========================
+
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
 		const latestVersion = await VersionService.getAppVersion();

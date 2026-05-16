@@ -1,5 +1,7 @@
 <script lang="ts">
+	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
 	import EditionViewer from './EditionViewer.svelte';
 
 	let {
@@ -213,6 +215,22 @@
 					Show All
 				</button>
 			</div>
+		</div>
+
+		<div class="mb-6 rounded-lg border border-color bg-accent p-3">
+			<label for="wbw-translation-language" class="mb-2 block text-sm font-semibold text-primary">
+				WBW Helper Language
+			</label>
+			<select
+				id="wbw-translation-language"
+				class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
+				bind:value={globalState.settings!.persistentUiState.wbwTranslationLanguage}
+				onchange={() => void Settings.save()}
+			>
+				{#each WBW_TRANSLATION_LANGUAGES as language (language.code)}
+					<option value={language.code}>{language.label}</option>
+				{/each}
+			</select>
 		</div>
 	</div>
 </div>

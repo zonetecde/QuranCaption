@@ -1963,9 +1963,20 @@ fn concat_internal_batch_videos(
         mapped_audio_label = Some(current_audio_label);
     }
 
+    let filter_complex = filter_lines.join(";");
+    let tmp_dir = output_path_buf
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(std::env::temp_dir);
+    fs::create_dir_all(&tmp_dir).ok();
+
+    let fg_hash = format!("{:x}", md5::compute(filter_complex.as_bytes()));
+    let fg_path = tmp_dir.join(format!("merge-{}.ffgraph", &fg_hash[..8]));
+    fs::write(&fg_path, &filter_complex)?;
+
     cmd.extend_from_slice(&[
-        "-filter_complex".to_string(),
-        filter_lines.join(";"),
+        "-filter_complex_script".to_string(),
+        fg_path.to_string_lossy().to_string(),
         "-map".to_string(),
         format!("[{}]", mapped_video_label),
     ]);

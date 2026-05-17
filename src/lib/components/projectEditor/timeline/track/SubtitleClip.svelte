@@ -462,7 +462,7 @@
 	}}
 	onclick={handleClipClick}
 >
-	{#if clip.type === 'Subtitle'}
+	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
 		{#if wordBoundaryMarkers().length > 0}
 			<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
 				{#each wordBoundaryMarkers() as marker (marker.key)}

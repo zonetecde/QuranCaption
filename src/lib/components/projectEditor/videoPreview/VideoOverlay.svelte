@@ -514,26 +514,34 @@
 						if (abortSignal.aborted) return;
 
 						try {
+							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+							const originalVerticalTextAlignment = String(
+								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
+							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
 							const initialFontSize = globalState.getStyle(target, 'font-size').value as number;
-							const verticalAlign = String(
-								globalState.getStyle(target, 'vertical-text-alignment').value
-							);
-							const isCentered = verticalAlign === 'center';
 
-							await applyReactiveFontSize(
-								target,
-								maxHeightValue,
-								initialFontSize,
-								isCentered,
-								abortSignal,
-								(_target, value) => {
-									globalState.getVideoStyle
-										.getStylesOfTarget(_target)
-										.setStyle('reactive-font-size', value);
-								},
-								wait
-							);
+							styles.setStyle('vertical-text-alignment', 'center');
+
+							try {
+								await wait(abortSignal);
+								await applyReactiveFontSize(
+									target,
+									maxHeightValue,
+									initialFontSize,
+									true,
+									abortSignal,
+									(_target, value) => {
+										globalState.getVideoStyle
+											.getStylesOfTarget(_target)
+											.setStyle('reactive-font-size', value);
+									},
+									wait
+								);
+							} finally {
+								styles.setStyle('vertical-text-alignment', originalVerticalTextAlignment);
+								if (!abortSignal.aborted) await wait(abortSignal);
+							}
 						} catch (error) {
 							if (error instanceof Error && error.message === 'Aborted') {
 								return;

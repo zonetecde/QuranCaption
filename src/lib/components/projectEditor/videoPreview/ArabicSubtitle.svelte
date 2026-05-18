@@ -188,6 +188,9 @@
 
 		const displayParts = subtitle.getArabicRenderParts('preview');
 		const perClipFontCss = subtitle instanceof SubtitleClip ? getSubtitleQpcFontCss(subtitle) : '';
+		const suffixFontCss = displayParts.suffixFontFamily
+			? `font-family: ${displayParts.suffixFontFamily}; `
+			: perClipFontCss;
 		const hasInlineStyles = (subtitle.arabicInlineStyleRuns?.length ?? 0) > 0;
 
 		if (!hasInlineStyles) {
@@ -200,9 +203,7 @@
 					createPlainOverlaySegment(
 						`${keyPrefix}-suffix`,
 						displayParts.suffix,
-						(displayParts.suffixFontFamily
-							? `font-family: ${displayParts.suffixFontFamily}; `
-							: '') + 'color: var(--verse-number-color);'
+						suffixFontCss + 'color: var(--verse-number-color);'
 					)
 				);
 			}
@@ -226,9 +227,7 @@
 			createPlainOverlaySegment(
 				`${keyPrefix}-suffix`,
 				displayParts.suffix,
-				(displayParts.suffixFontFamily
-					? `font-family: ${displayParts.suffixFontFamily}; `
-					: '') + 'color: var(--verse-number-color);'
+				suffixFontCss + 'color: var(--verse-number-color);'
 			)
 		];
 	}

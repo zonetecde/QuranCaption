@@ -10,6 +10,7 @@ import { ProjectEditorTabs, TrackType } from '$lib/classes/enums';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
+import QPCFontProvider from '$lib/services/FontProvider';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -197,6 +198,75 @@ function createPredefinedSubtitle(
 	return clip;
 }
 
+/**
+ * Crée un clip Quran dont le dernier mot déclenche le suffixe du numéro de verset.
+ * @param {number} startTime Début du clip en millisecondes.
+ * @param {number} endTime Fin du clip en millisecondes.
+ * @param {number} surah Numéro de sourate.
+ * @param {number} verse Numéro de verset.
+ * @param {number} startWordIndex Index du premier mot inclus.
+ * @param {number} endWordIndex Index du dernier mot inclus.
+ * @returns {SubtitleClip} Clip prêt pour les tests de rendu QPC.
+ */
+function createLastWordsQpcSubtitle(
+	startTime: number,
+	endTime: number,
+	surah: number,
+	verse: number,
+	startWordIndex: number,
+	endWordIndex: number
+): SubtitleClip {
+	return new SubtitleClip(
+		startTime,
+		endTime,
+		surah,
+		verse,
+		startWordIndex,
+		endWordIndex,
+		`${surah}:${verse}`,
+		[],
+		false,
+		true,
+		{
+			english: new VerseTranslation(`${surah}:${verse}`, 'reviewed')
+		}
+	);
+}
+
+/**
+ * Injecte uniquement les glyphes QPC2 nécessaires aux scénarios de test.
+ * @returns {void}
+ */
+function seedQpc2PreviewFixture(): void {
+	QPCFontProvider.qpc2Glyphs = {
+		'1:1:1': 'ﱁ',
+		'1:1:2': 'ﱂ',
+		'1:1:3': 'ﱃ',
+		'1:1:4': 'ﱄ',
+		'1:1:5': 'ﱅ',
+		'1:2:1': 'ﱆ',
+		'1:2:2': 'ﱇ',
+		'1:2:3': 'ﱈ',
+		'1:2:4': 'ﱉ',
+		'1:2:5': 'ﱊ',
+		'71:10:4': 'ﳆ',
+		'71:10:5': 'ﳇ',
+		'71:10:6': 'ﳈ',
+		'71:10:7': 'ﳉ',
+		'71:11:1': 'ﱁ',
+		'71:11:2': 'ﱂ',
+		'71:11:3': 'ﱃ',
+		'71:11:4': 'ﱄ',
+		'71:11:5': 'ﱅ'
+	};
+	QPCFontProvider.verseMappingV2 = {
+		'1:1': 'QPC2_p001',
+		'1:2': 'QPC2_p001',
+		'71:10': 'QPC2_p570',
+		'71:11': 'QPC2_p571'
+	};
+}
+
 function setupVideoOverlayFixture(
 	clips: Array<SubtitleClip | PredefinedSubtitleClip>,
 	options: {
@@ -297,12 +367,38 @@ function getForegroundTranslationNode(container: HTMLElement, edition: string): 
 	return container.querySelector(`#subtitles-container .translation.subtitle.${edition}`);
 }
 
+/**
+ * Retourne les spans stylés du flux arabe principal.
+ * @param {HTMLElement} container Conteneur rendu par le test.
+ * @returns {HTMLElement[]} Spans directs du flux inline arabe.
+ */
+function getArabicInlineFlowSpans(container: HTMLElement): HTMLElement[] {
+	return Array.from(
+		container.querySelectorAll(
+			'#subtitles-container .arabic.subtitle .translation-inline-flow > span'
+		)
+	);
+}
+
+/**
+ * Retourne uniquement les spans du numéro de verset arabe.
+ * @param {HTMLElement} container Conteneur rendu par le test.
+ * @returns {HTMLElement[]} Spans colorés comme numéro de verset.
+ */
+function getArabicVerseNumberSpans(container: HTMLElement): HTMLElement[] {
+	return getArabicInlineFlowSpans(container).filter((span) =>
+		span.getAttribute('style')?.includes('verse-number-color')
+	);
+}
+
 describe('Video overlay subtitle preview', () => {
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
 		globalState.currentProject = null;
 		globalState.settings = undefined;
+		QPCFontProvider.qpc2Glyphs = undefined;
+		QPCFontProvider.verseMappingV2 = undefined;
 	});
 
 	test('keeps the subtitle container visible when playback advances within the new subtitle', async () => {
@@ -524,6 +620,111 @@ describe('Video overlay subtitle preview', () => {
 		expect(mergedText).not.toContain('w1 w2 w3 w2 w3 w4');
 		expect(mergedText).toContain('t1 t2 t3 t4');
 		expect(mergedText).not.toContain('t1 t2 t3 t2 t3 t4');
+	});
+
+	test('keeps QPC2 verse-number fonts per clip across a merged page boundary', async () => {
+		seedQpc2PreviewFixture();
+		const firstClip = createLastWordsQpcSubtitle(0, 999, 71, 10, 3, 5);
+		const secondClip = createLastWordsQpcSubtitle(1000, 1999, 71, 11, 0, 3);
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'QPC2');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('show-verse-number', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const spans = getArabicInlineFlowSpans(component.container);
+		const verseNumberSpans = getArabicVerseNumberSpans(component.container);
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toBe(
+			'ﳆ ﳇ ﳈ ﳉ ﱁ ﱂ ﱃ ﱄ ﱅ'
+		);
+		expect(spans.map((span) => span.getAttribute('style'))).toEqual([
+			expect.stringContaining('font-family: QPC2_p570'),
+			expect.stringContaining('font-family: QPC2_p570'),
+			expect.stringContaining('font-family: QPC2_p571'),
+			expect.stringContaining('font-family: QPC2_p571')
+		]);
+		expect(verseNumberSpans.map((span) => span.textContent)).toEqual([' ﳉ', ' ﱅ']);
+		expect(verseNumberSpans.map((span) => span.getAttribute('style'))).toEqual([
+			expect.stringContaining('font-family: QPC2_p570'),
+			expect.stringContaining('font-family: QPC2_p571')
+		]);
+	});
+
+	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {
+		seedQpc2PreviewFixture();
+		const firstClip = createLastWordsQpcSubtitle(0, 999, 1, 1, 0, 3);
+		const secondClip = createLastWordsQpcSubtitle(1000, 1999, 1, 2, 0, 3);
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'QPC2');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('show-verse-number', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const verseNumberSpans = getArabicVerseNumberSpans(component.container);
+		expect(verseNumberSpans).toHaveLength(2);
+		expect(verseNumberSpans.map((span) => span.textContent)).toEqual([' ﱅ', ' ﱊ']);
+		expect(
+			verseNumberSpans.every((span) => span.getAttribute('style')?.includes('QPC2_p001'))
+		).toBe(true);
+	});
+
+	test('keeps QPC2 verse-number fonts on merged clips with arabic inline styles', async () => {
+		seedQpc2PreviewFixture();
+		const firstClip = createLastWordsQpcSubtitle(0, 999, 71, 10, 3, 5);
+		const secondClip = createLastWordsQpcSubtitle(1000, 1999, 71, 11, 0, 3);
+		firstClip.toggleArabicInlineStyles(0, 0, {
+			bold: true,
+			italic: false,
+			underline: false,
+			color: null
+		});
+		secondClip.toggleArabicInlineStyles(0, 1, {
+			bold: false,
+			italic: false,
+			underline: true,
+			color: '#ff0000'
+		});
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'QPC2');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('show-verse-number', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const verseNumberSpans = getArabicVerseNumberSpans(component.container);
+		expect(verseNumberSpans).toHaveLength(2);
+		expect(verseNumberSpans.map((span) => span.getAttribute('style'))).toEqual([
+			expect.stringContaining('font-family: QPC2_p570'),
+			expect.stringContaining('font-family: QPC2_p571')
+		]);
+		expect(
+			verseNumberSpans.every((span) => !span.getAttribute('style')?.includes('font-weight'))
+		).toBe(true);
+	});
+
+	test('keeps Tajweed verse-number fonts per page on merged QPC2 glyphs', async () => {
+		seedQpc2PreviewFixture();
+		const firstClip = createLastWordsQpcSubtitle(0, 999, 71, 10, 3, 5);
+		const secondClip = createLastWordsQpcSubtitle(1000, 1999, 71, 11, 0, 3);
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Tajweed');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('show-verse-number', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(
+			getArabicVerseNumberSpans(component.container).map((span) => span.getAttribute('style'))
+		).toEqual([
+			expect.stringContaining('font-family: p570-v4, QPC2_p570'),
+			expect.stringContaining('font-family: p571-v4, QPC2_p571')
+		]);
 	});
 
 	test('uses the whole merged group for fade timing on merged targets', async () => {

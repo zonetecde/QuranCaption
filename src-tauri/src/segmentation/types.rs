@@ -76,6 +76,8 @@ pub enum LocalSegmentationEngine {
     MultiAligner,
     /// Pipeline locale Muaalem avec segmentation, retrieval et alignement ouverts.
     MuaalemLocal,
+    /// Pipeline locale Surah Splitter basee sur WhisperX et detection d'ayahs.
+    SurahSplitter,
 }
 
 impl LocalSegmentationEngine {
@@ -87,8 +89,9 @@ impl LocalSegmentationEngine {
             "muaalem" | "muaalem_local" | "open_multi" | "open_multi_aligner" => {
                 Ok(Self::MuaalemLocal)
             }
+            "surah_splitter" | "surah-splitter" => Ok(Self::SurahSplitter),
             _ => Err(format!(
-                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', or 'muaalem'.",
+                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'muaalem', or 'surah_splitter'.",
                 raw
             )),
         }
@@ -100,6 +103,7 @@ impl LocalSegmentationEngine {
             Self::LegacyWhisper => "legacy",
             Self::MultiAligner => "multi",
             Self::MuaalemLocal => "muaalem",
+            Self::SurahSplitter => "surah_splitter",
         }
     }
 
@@ -109,6 +113,7 @@ impl LocalSegmentationEngine {
             Self::LegacyWhisper => "Legacy Whisper",
             Self::MultiAligner => "Multi-Aligner",
             Self::MuaalemLocal => "Muaalem Local",
+            Self::SurahSplitter => "Surah Splitter",
         }
     }
 
@@ -118,6 +123,7 @@ impl LocalSegmentationEngine {
             Self::LegacyWhisper => "python/requirements.txt",
             Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
             Self::MuaalemLocal => "python/muaalem_requirements.txt",
+            Self::SurahSplitter => "python/surah_splitter_requirements.txt",
         }
     }
 
@@ -127,6 +133,7 @@ impl LocalSegmentationEngine {
             Self::LegacyWhisper => "python/local_segmenter.py",
             Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
             Self::MuaalemLocal => "python/local_muaalem_segmenter.py",
+            Self::SurahSplitter => "python/local_surah_splitter_segmenter.py",
         }
     }
 
@@ -158,6 +165,16 @@ impl LocalSegmentationEngine {
                 "fuzzysearch",
                 "Levenshtein",
                 "nemo",
+            ],
+            Self::SurahSplitter => &[
+                "torch",
+                "torchaudio",
+                "whisperx",
+                "huggingface_hub",
+                "numpy",
+                "loguru",
+                "rich",
+                "pydub",
             ],
         }
     }

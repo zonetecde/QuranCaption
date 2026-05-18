@@ -1,5 +1,11 @@
 import type { LegacyWhisperModelSize, MultiAlignerModel } from '$lib/services/AutoSegmentation';
-import type { AiVersion, ModelOption, SegmentationPreset, WizardRuntime, WizardStep } from './types';
+import type {
+	AiVersion,
+	ModelOption,
+	SegmentationPreset,
+	WizardRuntime,
+	WizardStep
+} from './types';
 
 /** Ordered steps for the landscape wizard navigation rail. */
 export const WIZARD_STEPS_V2: WizardStep[] = [
@@ -81,6 +87,16 @@ export const MUAALEM_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 		label: 'Muaalem v3.2',
 		description: 'Recommended phonetic speech recognition model for the local Muaalem pipeline.',
 		source: 'obadx/muaalem-model-v3_2'
+	}
+];
+
+/** WhisperX models exposed by the Surah Splitter local pipeline. */
+export const SURAH_SPLITTER_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
+	{
+		value: 'SurahSplitter-Base-Quran',
+		label: 'Base Quran',
+		description: 'Default Surah Splitter model with ayah auto-detection support.',
+		source: 'OdyAsh/faster-whisper-base-ar-quran'
 	}
 ];
 

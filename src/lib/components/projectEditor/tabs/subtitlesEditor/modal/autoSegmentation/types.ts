@@ -11,7 +11,8 @@ export type AiVersion =
 	| 'legacy_v1'
 	| 'multi_v2'
 	| 'multi_v2_local'
-	| 'muaalem_local';
+	| 'muaalem_local'
+	| 'surah_splitter';
 
 /** Represents a wizard navigation item. */
 export type WizardStep = {
@@ -77,6 +78,7 @@ export type WizardSelectionState = {
 	legacyModel: LegacyWhisperModelSize;
 	multiModel: MultiAlignerModel;
 	cloudModel: MultiAlignerModel;
+	surahSplitterSurah: number | null;
 	device: SegmentationDevice;
 	hfToken: string;
 };

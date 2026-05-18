@@ -15,7 +15,7 @@ import {
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'muaalem_local';
+	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'muaalem_local' | 'surah_splitter';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
@@ -32,8 +32,10 @@ export type AutoSegmentationSettings = {
 		| 'Open-Legacy-Tiny'
 		| 'Open-Legacy-Base'
 		| 'Open-Legacy-Medium'
-		| 'Open-Legacy-Large';
+		| 'Open-Legacy-Large'
+		| 'SurahSplitter-Base-Quran';
 	cloudModel: 'Base' | 'Large';
+	surahSplitterSurah: number | null;
 	device: 'GPU' | 'CPU';
 	hfToken: string;
 	includeWbwTimestamps: boolean;
@@ -113,6 +115,7 @@ export default class Settings extends SerializableBase {
 		legacyWhisperModel: 'base',
 		multiAlignerModel: 'Base',
 		cloudModel: 'Base',
+		surahSplitterSurah: null,
 		device: 'GPU',
 		hfToken: '',
 		includeWbwTimestamps: false,

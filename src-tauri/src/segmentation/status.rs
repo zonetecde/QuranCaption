@@ -165,6 +165,10 @@ pub async fn check_local_segmentation_ready(
                             "muaalem": {
                                 "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                 "message": "Python not installed"
+                            },
+                            "surahSplitter": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                "message": "Python not installed"
                             }
                         }
                     });
@@ -187,6 +191,10 @@ pub async fn check_local_segmentation_ready(
                                 "message": "Failed to resolve local env path"
                             },
                             "muaalem": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                "message": "Failed to resolve local env path"
+                            },
+                            "surahSplitter": {
                                 "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                 "message": "Failed to resolve local env path"
                             }
@@ -214,6 +222,10 @@ pub async fn check_local_segmentation_ready(
                             "muaalem": {
                                 "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                 "message": "Failed to resolve local env path"
+                            },
+                            "surahSplitter": {
+                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                "message": "Failed to resolve local env path"
                             }
                         }
                     });
@@ -239,6 +251,10 @@ pub async fn check_local_segmentation_ready(
                                 "muaalem": {
                                     "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                     "message": "Failed to resolve local env path"
+                                },
+                                "surahSplitter": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                    "message": "Failed to resolve local env path"
                                 }
                             }
                         });
@@ -246,12 +262,44 @@ pub async fn check_local_segmentation_ready(
                 };
 
             // VÃ©rifications import/venv par moteur.
+            let surah_splitter_venv =
+                match get_engine_venv_path(&app_handle, LocalSegmentationEngine::SurahSplitter) {
+                    Ok(path) => path,
+                    Err(error) => {
+                        return serde_json::json!({
+                            "ready": false, "pythonInstalled": true, "packagesInstalled": false,
+                            "message": format!("Failed to resolve local env paths: {}", error),
+                            "engines": {
+                                "legacy": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                    "message": "Failed to resolve local env path"
+                                },
+                                "multi": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false,
+                                    "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
+                                    "message": "Failed to resolve local env path"
+                                },
+                                "muaalem": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                    "message": "Failed to resolve local env path"
+                                },
+                                "surahSplitter": {
+                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                                    "message": "Failed to resolve local env path"
+                                }
+                            }
+                        });
+                    }
+                };
+
             let legacy_python = get_venv_python_exe(&legacy_venv);
             let multi_python = get_venv_python_exe(&multi_venv);
             let muaalem_python = get_venv_python_exe(&muaalem_venv);
+            let surah_splitter_python = get_venv_python_exe(&surah_splitter_venv);
             let legacy_venv_exists = legacy_python.exists();
             let multi_venv_exists = multi_python.exists();
             let muaalem_venv_exists = muaalem_python.exists();
+            let surah_splitter_venv_exists = surah_splitter_python.exists();
 
             let (legacy_imports_ok, legacy_missing_modules) = run_python_import_check(
                 &legacy_python,
@@ -267,6 +315,11 @@ pub async fn check_local_segmentation_ready(
                 &muaalem_python,
                 LocalSegmentationEngine::MuaalemLocal.required_import_modules(),
             );
+            let (surah_splitter_imports_ok, surah_splitter_missing_modules) =
+                run_python_import_check(
+                    &surah_splitter_python,
+                    LocalSegmentationEngine::SurahSplitter.required_import_modules(),
+                );
             let multi_phonemizer_ok = run_python_any_import_check(
                 &multi_python,
                 &["core.phonemizer", "quranic_phonemizer"],
@@ -286,18 +339,20 @@ pub async fn check_local_segmentation_ready(
             let legacy_packages = legacy_imports_ok && legacy_versions_ok;
             let multi_packages = multi_imports_ok && multi_phonemizer_ok && multi_data_error.is_none();
             let muaalem_packages = muaalem_imports_ok;
+            let surah_splitter_packages = surah_splitter_imports_ok;
             let legacy_ready = legacy_venv_exists && legacy_packages;
             let multi_ready = multi_venv_exists && multi_packages;
             let muaalem_ready = muaalem_venv_exists && muaalem_packages;
+            let surah_splitter_ready = surah_splitter_venv_exists && surah_splitter_packages;
             let multi_usable = multi_ready && token_provided;
-            let any_ready = legacy_ready || multi_usable || muaalem_ready;
+            let any_ready = legacy_ready || multi_usable || muaalem_ready || surah_splitter_ready;
 
             let overall_message = if any_ready {
                 "Local segmentation is ready".to_string()
             } else if legacy_ready && !multi_usable {
                 "Legacy local engine is ready. Multi-aligner requires a Hugging Face token with access to private models.".to_string()
-            } else if !legacy_venv_exists && !multi_venv_exists && !muaalem_venv_exists {
-                "Local engines are not installed yet. Install dependencies for Legacy Whisper, Multi-Aligner, and/or Muaalem Local.".to_string()
+            } else if !legacy_venv_exists && !multi_venv_exists && !muaalem_venv_exists && !surah_splitter_venv_exists {
+                "Local engines are not installed yet. Install dependencies for Legacy Whisper, Multi-Aligner, Muaalem Local, and/or Surah Splitter.".to_string()
             } else {
                 "Local engines need setup or a Hugging Face token with private model access for Multi-Aligner.".to_string()
             };
@@ -305,7 +360,7 @@ pub async fn check_local_segmentation_ready(
             serde_json::json!({
                 "ready": any_ready,
                 "pythonInstalled": true,
-                "packagesInstalled": legacy_ready || multi_ready || muaalem_ready,
+                "packagesInstalled": legacy_ready || multi_ready || muaalem_ready || surah_splitter_ready,
                 "message": overall_message,
                 "engines": {
                     "legacy": {
@@ -378,6 +433,24 @@ pub async fn check_local_segmentation_ready(
                         } else {
                             "Muaalem Local packages are incomplete".to_string()
                         }
+                    },
+                    "surahSplitter": {
+                        "ready": surah_splitter_ready,
+                        "venvExists": surah_splitter_venv_exists,
+                        "packagesInstalled": surah_splitter_packages,
+                        "usable": surah_splitter_ready,
+                        "message": if surah_splitter_ready {
+                            "Surah Splitter local engine is ready".to_string()
+                        } else if !surah_splitter_venv_exists {
+                            "Surah Splitter dependencies are not installed".to_string()
+                        } else if !surah_splitter_missing_modules.is_empty() {
+                            format!(
+                                "Surah Splitter packages are incomplete (missing imports: {})",
+                                surah_splitter_missing_modules.join(", ")
+                            )
+                        } else {
+                            "Surah Splitter packages are incomplete".to_string()
+                        }
                     }
                 }
             })
@@ -406,9 +479,12 @@ pub async fn check_local_segmentation_ready(
                 "muaalem": {
                     "ready": false, "venvExists": false, "packagesInstalled": false,
                     "usable": false, "message": "Check timed out"
+                },
+                "surahSplitter": {
+                    "ready": false, "venvExists": false, "packagesInstalled": false,
+                    "usable": false, "message": "Check timed out"
                 }
             }
         })),
     }
 }
-

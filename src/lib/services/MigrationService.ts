@@ -677,7 +677,12 @@ export default class MigrationService {
 		if (!globalState.settings) return;
 
 		const autoSegmentationSettings = globalState.settings.autoSegmentationSettings as {
-			localAsrMode?: 'legacy_whisper' | 'multi_aligner' | 'open_multi_aligner' | 'muaalem_local';
+			localAsrMode?:
+				| 'legacy_whisper'
+				| 'multi_aligner'
+				| 'open_multi_aligner'
+				| 'muaalem_local'
+				| 'surah_splitter';
 			multiAlignerModel?: string;
 			includeWbwTimestamps?: boolean;
 		};

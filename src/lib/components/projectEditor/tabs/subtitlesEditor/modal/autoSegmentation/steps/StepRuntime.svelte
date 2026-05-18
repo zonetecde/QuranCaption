@@ -7,6 +7,7 @@
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
 	const isLocalV2 = $derived(() => wizard.selection.aiVersion === 'multi_v2_local');
 	const isMuaalemLocal = $derived(() => wizard.selection.aiVersion === 'muaalem_local');
+	const isSurahSplitter = $derived(() => wizard.selection.aiVersion === 'surah_splitter');
 	const isLegacy = $derived(() => wizard.selection.aiVersion === 'legacy_v1');
 </script>
 
@@ -20,6 +21,8 @@
 				Install the required local packages and configure your Hugging Face token.
 			{:else if isMuaalemLocal()}
 				Install the required local packages for the Muaalem local workflow.
+			{:else if isSurahSplitter()}
+				Install the required local packages for the Surah Splitter workflow.
 			{:else}
 				Install the legacy local dependencies.
 			{/if}
@@ -85,7 +88,7 @@
 						isInstalled={!!wizard.localStatus?.engines?.multi?.ready}
 						onInstall={() => void wizard.installEngine('multi')}
 					/>
-				{:else}
+				{:else if isMuaalemLocal()}
 					<p class="text-xs text-thirdly">
 						No token required. Fully local installation with on-device model downloads.
 					</p>
@@ -96,9 +99,22 @@
 						isInstalled={!!wizard.localStatus?.engines?.muaalem?.ready}
 						onInstall={() => void wizard.installEngine('muaalem')}
 					/>
+				{:else}
+					<p class="text-xs text-thirdly">
+						No token required. Surah Splitter downloads its WhisperX model during the first run.
+					</p>
+					<LocalEngineCard
+						title="Surah Splitter Local packages"
+						status={wizard.localStatus?.engines?.surahSplitter ?? null}
+						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'surah_splitter'}
+						isInstalled={!!wizard.localStatus?.engines?.surahSplitter?.ready}
+						onInstall={() => void wizard.installEngine('surah_splitter')}
+					/>
 				{/if}
 				{#if wizard.installStatus}
-					<div class="rounded-lg border border-color bg-accent/30 px-3 py-2 text-[11px] font-mono text-thirdly whitespace-pre-wrap break-words">
+					<div
+						class="rounded-lg border border-color bg-accent/30 px-3 py-2 text-[11px] font-mono text-thirdly whitespace-pre-wrap break-words"
+					>
 						{wizard.installStatus}
 					</div>
 				{/if}
@@ -108,6 +124,12 @@
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
 					This option is fully local, but it is usually less accurate than the official Quranic
 					Universal Aligner pipeline.
+				</div>
+			{/if}
+			{#if isSurahSplitter()}
+				<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
+					This option can auto-detect the surah. Selecting the surah manually in the next step
+					improves matching precision.
 				</div>
 			{/if}
 		</div>

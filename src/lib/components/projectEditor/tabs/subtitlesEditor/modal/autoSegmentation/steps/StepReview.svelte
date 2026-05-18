@@ -9,7 +9,9 @@
 				? 'Quranic Universal Aligner'
 				: wizard.selection.aiVersion === 'multi_v2_local'
 					? 'Private Local Quranic Universal Aligner'
-					: 'Muaalem Local'
+					: wizard.selection.aiVersion === 'surah_splitter'
+						? 'Surah Splitter Local'
+						: 'Muaalem Local'
 	);
 </script>
 
@@ -35,6 +37,16 @@
 		<div class="text-secondary">
 			Audio source: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
+		{#if wizard.selection.aiVersion === 'surah_splitter'}
+			<div class="text-secondary">
+				Surah:
+				<span class="text-primary font-semibold"
+					>{wizard.selection.surahSplitterSurah === null
+						? 'Auto-detect'
+						: `Surah ${wizard.selection.surahSplitterSurah}`}</span
+				>
+			</div>
+		{/if}
 		<div class="text-secondary">
 			Word-by-word timestamps:
 			<span class="text-primary font-semibold"
@@ -64,6 +76,13 @@
 			>
 				This method is fully local and simpler to install, but usually less effective than the
 				official Quranic Universal Aligner pipeline.
+			</div>
+		{/if}
+		{#if wizard.selection.aiVersion === 'surah_splitter'}
+			<div
+				class="rounded-lg border border-yellow-500/10 bg-yellow-500/2 px-3 py-2 text-xs text-yellow-300/90 mt-4"
+			>
+				Auto-detection is available, but specifying the surah improves precision.
 			</div>
 		{/if}
 		{#if wizard.selection.aiVersion === 'legacy_v1'}

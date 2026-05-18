@@ -84,7 +84,7 @@ export type ImportedSegmentationParseResult = {
  * Mode de traitement de la segmentation.
  */
 export type SegmentationMode = 'api' | 'local';
-export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner' | 'muaalem_local';
+export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner' | 'muaalem_local' | 'surah_splitter';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel =
 	| 'Base'
@@ -98,7 +98,8 @@ export type MultiAlignerModel =
 	| 'Open-Legacy-Tiny'
 	| 'Open-Legacy-Base'
 	| 'Open-Legacy-Medium'
-	| 'Open-Legacy-Large';
+	| 'Open-Legacy-Large'
+	| 'SurahSplitter-Base-Quran';
 export type SegmentationDevice = 'GPU' | 'CPU';
 
 export type LocalEngineStatus = {
@@ -123,6 +124,7 @@ export type LocalSegmentationStatus = {
 		legacy: LocalEngineStatus;
 		multi: LocalEngineStatus;
 		muaalem: LocalEngineStatus;
+		surahSplitter: LocalEngineStatus;
 	};
 };
 
@@ -134,6 +136,7 @@ export type AutoSegmentationOptions = {
 	legacyWhisperModel?: LegacyWhisperModelSize;
 	multiAlignerModel?: MultiAlignerModel;
 	cloudModel?: MultiAlignerModel;
+	surahSplitterSurah?: number | null;
 	device?: SegmentationDevice;
 	hfToken?: string;
 	allowCloudFallback?: boolean;

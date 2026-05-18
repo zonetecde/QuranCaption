@@ -443,10 +443,7 @@ pub async fn segment_quran_audio_local_muaalem(
         "Open-Legacy-Large",
     ];
     if !valid_models.contains(&selected_model.as_str()) {
-        return Err(format!(
-            "Invalid model_name '{}'.",
-            selected_model
-        ));
+        return Err(format!("Invalid model_name '{}'.", selected_model));
     }
 
     let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
@@ -483,3 +480,65 @@ pub async fn segment_quran_audio_local_muaalem(
     )
 }
 
+/// Exécute la segmentation locale via Surah Splitter sans token HF.
+pub async fn segment_quran_audio_local_surah_splitter(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    model_name: Option<String>,
+    device: Option<String>,
+    surah: Option<u32>,
+    include_wbw_timestamps: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    let selected_model = model_name.unwrap_or_else(|| "SurahSplitter-Base-Quran".to_string());
+    if selected_model != "SurahSplitter-Base-Quran" {
+        return Err(format!("Invalid model_name '{}'.", selected_model));
+    }
+
+    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
+    if selected_device != "GPU" && selected_device != "CPU" {
+        return Err(format!(
+            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
+            selected_device
+        ));
+    }
+
+    if let Some(surah_number) = surah {
+        if !(1..=114).contains(&surah_number) {
+            return Err(format!(
+                "Invalid surah '{}'. Expected a value between 1 and 114.",
+                surah_number
+            ));
+        }
+    }
+
+    let extra_args = vec![
+        "--model-name".to_string(),
+        selected_model,
+        "--device".to_string(),
+        selected_device,
+        "--surah".to_string(),
+        surah.unwrap_or(0).to_string(),
+        "--include-wbw-timestamps".to_string(),
+        if include_wbw_timestamps.unwrap_or(false) {
+            "true".to_string()
+        } else {
+            "false".to_string()
+        },
+    ];
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::SurahSplitter,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        extra_args,
+        None,
+    )
+}

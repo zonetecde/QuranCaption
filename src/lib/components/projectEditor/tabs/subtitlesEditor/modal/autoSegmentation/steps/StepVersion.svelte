@@ -64,19 +64,21 @@
 		<button
 			type="button"
 			class="rounded-xl border p-4 text-left transition-colors"
-			class:border-accent-primary={wizard.selection.aiVersion === 'muaalem_local'}
-			class:bg-accent={wizard.selection.aiVersion === 'muaalem_local'}
-			class:border-color={wizard.selection.aiVersion !== 'muaalem_local'}
-			onclick={() => wizard.onVersionChange('muaalem_local')}
+			class:border-accent-primary={wizard.selection.aiVersion === 'surah_splitter'}
+			class:bg-accent={wizard.selection.aiVersion === 'surah_splitter'}
+			class:border-color={wizard.selection.aiVersion !== 'surah_splitter'}
+			onclick={() => wizard.onVersionChange('surah_splitter')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">offline_bolt</span>Muaalem Local
+				<span class="material-icons">offline_bolt</span>Surah Splitter Local
 			</div>
-			<p class="text-sm font-medium text-primary">Fully local, no token required</p>
+			<p class="text-sm font-medium text-primary">
+				Local ayah detection with optional surah hint - Recommend Local option
+			</p>
 			<p class="mt-3 text-xs text-thirdly">
-				Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific
-				segmentation and matching, but is usually less effective than the official Quranic
-				Universal Aligner.
+				Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports
+				word-by-word alignment, but selecting the surah manually improves precision. <br />Note:
+				this option only works if there's one surah in the audio file.
 			</p>
 			<div
 				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
@@ -88,6 +90,31 @@
 		<button
 			type="button"
 			class="rounded-xl border p-4 text-left transition-colors"
+			class:border-accent-primary={wizard.selection.aiVersion === 'muaalem_local'}
+			class:bg-accent={wizard.selection.aiVersion === 'muaalem_local'}
+			class:border-color={wizard.selection.aiVersion !== 'muaalem_local'}
+			onclick={() => wizard.onVersionChange('muaalem_local')}
+		>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">offline_bolt</span>Muaalem Local
+			</div>
+			<p class="text-sm font-medium text-primary">
+				Second option but less effective than Surah Splitter
+			</p>
+			<p class="mt-3 text-xs text-thirdly">
+				Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific
+				segmentation and matching.
+			</p>
+			<div
+				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
+			>
+				Offline
+			</div>
+		</button>
+
+		<button
+			type="button"
+			class="rounded-xl border p-4 text-left transition-colors col-span-2"
 			class:border-accent-primary={wizard.selection.aiVersion === 'multi_v2_local'}
 			class:bg-accent={wizard.selection.aiVersion === 'multi_v2_local'}
 			class:border-color={wizard.selection.aiVersion !== 'multi_v2_local'}

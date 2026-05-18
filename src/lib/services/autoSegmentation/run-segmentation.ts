@@ -188,7 +188,11 @@ function resolveContextModelName(
 	legacyWhisperModel: string
 ): string {
 	if (effectiveMode === 'api') return cloudModel;
-	if (localAsrMode === 'multi_aligner' || localAsrMode === 'muaalem_local')
+	if (
+		localAsrMode === 'multi_aligner' ||
+		localAsrMode === 'muaalem_local' ||
+		localAsrMode === 'surah_splitter'
+	)
 		return multiAlignerModel;
 	return legacyWhisperModel;
 }
@@ -220,6 +224,7 @@ export async function runAutoSegmentation(
 	const legacyWhisperModel = options.legacyWhisperModel ?? 'base';
 	const multiAlignerModel = options.multiAlignerModel ?? 'Base';
 	const cloudModel = options.cloudModel ?? 'Base';
+	const surahSplitterSurah = options.surahSplitterSurah ?? null;
 	const device: SegmentationDevice = options.device ?? 'GPU';
 	const hfToken: string = (options.hfToken ?? '').trim();
 	const allowCloudFallback: boolean = options.allowCloudFallback ?? true;
@@ -287,6 +292,16 @@ export async function runAutoSegmentation(
 					...basePayload,
 					modelName: multiAlignerModel,
 					device: targetDevice,
+					includeWbwTimestamps
+				});
+			}
+
+			if (localAsrMode === 'surah_splitter') {
+				return await invoke('segment_quran_audio_local_surah_splitter', {
+					...basePayload,
+					modelName: multiAlignerModel,
+					device: targetDevice,
+					surah: surahSplitterSurah,
 					includeWbwTimestamps
 				});
 			}

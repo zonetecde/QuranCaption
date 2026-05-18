@@ -10,7 +10,8 @@ import {
 	LEGACY_MODEL_OPTIONS,
 	MULTI_MODEL_OPTIONS,
 	MUAALEM_ADVANCED_MODEL_OPTIONS,
-	MUAALEM_MODEL_OPTIONS
+	MUAALEM_MODEL_OPTIONS,
+	SURAH_SPLITTER_MODEL_OPTIONS
 } from '../constants';
 import type { AiVersion } from '../types';
 
@@ -57,7 +58,9 @@ export function getSelectedModelLabel(
 	cloudModel: MultiAlignerModel
 ): string {
 	if (version === 'legacy_v1') {
-		return LEGACY_MODEL_OPTIONS.find((option) => option.value === legacyModel)?.label ?? legacyModel;
+		return (
+			LEGACY_MODEL_OPTIONS.find((option) => option.value === legacyModel)?.label ?? legacyModel
+		);
 	}
 	if (mode === 'api') {
 		return MULTI_MODEL_OPTIONS.find((option) => option.value === cloudModel)?.label ?? cloudModel;
@@ -66,6 +69,7 @@ export function getSelectedModelLabel(
 		MULTI_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
 		MUAALEM_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
 		MUAALEM_ADVANCED_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
+		SURAH_SPLITTER_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
 		multiModel
 	);
 }

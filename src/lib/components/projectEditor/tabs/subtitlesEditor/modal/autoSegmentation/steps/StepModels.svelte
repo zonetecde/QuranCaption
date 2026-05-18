@@ -2,13 +2,16 @@
 	import {
 		MULTI_MODEL_OPTIONS,
 		MUAALEM_ADVANCED_MODEL_OPTIONS,
-		MUAALEM_MODEL_OPTIONS
+		MUAALEM_MODEL_OPTIONS,
+		SURAH_SPLITTER_MODEL_OPTIONS
 	} from '../constants';
 	import { getSharedWizard } from '../sharedWizard';
 
 	const wizard = getSharedWizard();
 	const isMuaalemLocal = $derived(() => wizard.selection.aiVersion === 'muaalem_local');
+	const isSurahSplitter = $derived(() => wizard.selection.aiVersion === 'surah_splitter');
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
+	const surahNumbers = Array.from({ length: 114 }, (_, index) => index + 1);
 </script>
 
 <section class="space-y-4">
@@ -38,9 +41,8 @@
 		{:else if isMuaalemLocal()}
 			<div class="space-y-4">
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-sm text-thirdly">
-					Muaalem Local combines Quran-specific segmentation, phonetic speech recognition,
-					monotonic Quran passage retrieval, and local forced alignment for real word-by-word
-					timings.
+					Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic
+					Quran passage retrieval, and local forced alignment for real word-by-word timings.
 				</div>
 
 				<div class="space-y-2">
@@ -75,8 +77,8 @@
 					</summary>
 					<div class="mt-3 space-y-2">
 						<div class="text-xs text-thirdly">
-							Experimental fallback models from the previous open local workflow. They do
-							not use the full Muaalem phonetic path and may be less reliable.
+							Experimental fallback models from the previous open local workflow. They do not use
+							the full Muaalem phonetic path and may be less reliable.
 						</div>
 						<div class="grid grid-cols-1 gap-2">
 							{#each MUAALEM_ADVANCED_MODEL_OPTIONS as option (option.value)}
@@ -95,6 +97,76 @@
 						</div>
 					</div>
 				</details>
+			</div>
+		{:else if isSurahSplitter()}
+			<div class="space-y-4">
+				<div class="rounded-xl border border-color bg-accent/40 p-3 text-sm text-thirdly">
+					Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran
+					text, then returns ayah-level timestamps. Auto-detection is available, but specifying the
+					surah improves precision.
+				</div>
+
+				<div class="grid grid-cols-1 gap-2">
+					{#each SURAH_SPLITTER_MODEL_OPTIONS as option (option.value)}
+						<button
+							type="button"
+							class="rounded-lg border p-3 text-left"
+							class:border-accent-primary={wizard.selection.multiModel === option.value}
+							class:border-color={wizard.selection.multiModel !== option.value}
+							onclick={() => wizard.setMultiModel(option.value)}
+						>
+							<div class="flex items-center justify-between gap-3">
+								<div class="text-sm font-medium text-primary">{option.label}</div>
+								<span
+									class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
+								>
+									Recommended
+								</span>
+							</div>
+							<div class="text-xs text-thirdly">{option.description}</div>
+							<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
+						</button>
+					{/each}
+				</div>
+
+				<div class="space-y-2 rounded-xl border border-color p-3">
+					<div class="text-xs uppercase text-thirdly">Surah selection</div>
+					<label class="flex items-center gap-2 text-sm text-primary">
+						<input
+							type="radio"
+							name="surah-splitter-surah"
+							checked={wizard.selection.surahSplitterSurah === null}
+							onchange={() => wizard.setSurahSplitterSurah(null)}
+						/>
+						Auto-detect surah
+					</label>
+					<label class="flex items-center gap-2 text-sm text-primary">
+						<input
+							type="radio"
+							name="surah-splitter-surah"
+							checked={wizard.selection.surahSplitterSurah !== null}
+							onchange={() =>
+								wizard.setSurahSplitterSurah(wizard.selection.surahSplitterSurah ?? 1)}
+						/>
+						Specify surah
+					</label>
+					{#if wizard.selection.surahSplitterSurah !== null}
+						<select
+							class="w-full rounded-lg border border-color bg-bg-primary px-3 py-2 text-sm text-primary"
+							value={wizard.selection.surahSplitterSurah}
+							onchange={(event) => wizard.setSurahSplitterSurah(Number(event.currentTarget.value))}
+						>
+							{#each surahNumbers as surah}
+								<option value={surah}>Surah {surah}</option>
+							{/each}
+						</select>
+					{/if}
+					<p class="text-xs text-thirdly">
+						Specifying the surah improves precision because matching is restricted to that surah.<br
+						/>Note: if your audio contains multiple surahs, only the last one will be detected and
+						segmented. Use another model for multi-surah files.
+					</p>
+				</div>
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
@@ -140,6 +212,11 @@
 			This method is fully local, but it is generally less effective than the official Quranic
 			Universal Aligner. Advanced fallback models are hidden by default because they are more
 			experimental than the recommended Muaalem v3.2 path.
+		</div>
+	{/if}
+	{#if isSurahSplitter()}
+		<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
+			Surah Splitter downloads the selected model during segmentation if it is not cached yet.
 		</div>
 	{/if}
 </section>

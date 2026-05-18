@@ -1300,21 +1300,38 @@ export class SubtitleTrack extends Track {
 		}
 
 		// Vérification : décalage arrière qui chevaucherait la zone non-décalée.
+		// On autorise ce cas si le clip bloquant juste avant la coupure peut être
+		// raccourci, ou supprimé s'il s'agit d'un silence.
 		if (offsetMs < 0 && targets.length < this.clips.length) {
-			let lastNonShiftedEnd = Number.NEGATIVE_INFINITY;
+			let lastNonShiftedClip: Clip | null = null;
 			let firstShiftedStart = Number.POSITIVE_INFINITY;
 
 			for (const clip of this.clips) {
 				if (clip.startTime >= cutoffMs) {
 					firstShiftedStart = Math.min(firstShiftedStart, clip.startTime + offsetMs);
 				} else {
-					lastNonShiftedEnd = Math.max(lastNonShiftedEnd, clip.endTime);
+					if (!lastNonShiftedClip || clip.endTime > lastNonShiftedClip.endTime) {
+						lastNonShiftedClip = clip;
+					}
 				}
 			}
 
-			if (firstShiftedStart <= lastNonShiftedEnd) {
-				toast.error('Cannot shift backward: would overlap with subtitles before the cutoff time.');
-				return false;
+			if (lastNonShiftedClip && firstShiftedStart <= lastNonShiftedClip.endTime) {
+				if (lastNonShiftedClip instanceof SilenceClip) {
+					this.clips.splice(this.clips.indexOf(lastNonShiftedClip), 1);
+				} else {
+					const newBlockingEndTime = firstShiftedStart - 1;
+					const newBlockingDuration = newBlockingEndTime - lastNonShiftedClip.startTime;
+
+					if (newBlockingDuration < 100) {
+						toast.error(
+							'Cannot shift backward: the subtitle before the cutoff would become too short.'
+						);
+						return false;
+					}
+
+					lastNonShiftedClip.setEndTime(newBlockingEndTime);
+				}
 			}
 		}
 

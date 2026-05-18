@@ -3,6 +3,8 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 	import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
+	import Section from '$lib/components/projectEditor/Section.svelte';
+	import { DONATION_WALLETS } from '$lib/constants/donation';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { shouldShowDonationPrompt } from '$lib/services/SupportPromptService';
@@ -148,10 +150,35 @@
 		AnalyticsService.trackSupportPanelCtaClicked(SUPPORT_PANEL_CONTEXT, 'donate');
 
 		try {
+			await openUrl('https://www.paypal.me/rayanestaszewski');
+		} catch (error) {
+			console.error('Failed to open PayPal URL:', error);
+			toast.error('Unable to open PayPal.');
+		}
+	}
+
+	async function handleKoFiClick() {
+		try {
 			await openUrl('https://ko-fi.com/vzero');
 		} catch (error) {
-			console.error('Failed to open donation URL:', error);
-			toast.error('Unable to open donation page.');
+			console.error('Failed to open Ko-fi URL:', error);
+			toast.error('Unable to open Ko-fi.');
+		}
+	}
+
+	/**
+	 * Copie une adresse de portefeuille dans le presse-papiers.
+	 * @param {string} address Adresse à copier.
+	 * @param {string} label Libellé affiché dans le retour visuel.
+	 * @returns {Promise<void>} Promesse résolue après la tentative de copie.
+	 */
+	async function copyWalletAddress(address: string, label: string): Promise<void> {
+		try {
+			await navigator.clipboard.writeText(address);
+			toast.success(`${label} copied to clipboard`);
+		} catch (error) {
+			console.error(`Failed to copy ${label} address:`, error);
+			toast.error('Unable to copy wallet address.');
 		}
 	}
 
@@ -176,7 +203,7 @@
 
 {#if isPromptVisible}
 	<section
-		class="support-prompt fixed bottom-3 right-3 xl:bottom-5 xl:right-5 z-20 w-[360px] max-w-[calc(100vw-1.5rem)] rounded-2xl overflow-hidden"
+		class="support-prompt fixed bottom-3 right-3 xl:bottom-5 xl:right-5 z-20 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-auto rounded-2xl"
 	>
 		<div class="prompt-header px-4 py-3.5 flex items-start justify-between gap-3">
 			<div class="flex items-start gap-3 min-w-0">
@@ -213,16 +240,67 @@
 				<p class="text-[11px] text-thirdly mt-1.5">- {TESTIMONIALS[selectedQuoteIndex].author}</p>
 			</div>
 
-			<button
-				class="action-btn donate w-full text-sm px-3 py-2.5 h-10 flex items-center justify-center gap-1.5"
-				onclick={handleDonationClick}
-				aria-label="Support Quran Caption"
-			>
-				<span class="material-icons-outlined text-sm">favorite</span>
-				Support Quran Caption
-			</button>
+			<div class="donation-panel rounded-xl p-3.5 space-y-3">
+				<div class="flex items-start justify-between gap-3">
+					<div>
+						<p class="text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
+							Make a donation
+						</p>
+					</div>
+					<span class="text-[11px] text-thirdly">Fastest option</span>
+				</div>
 
-			<div class="secondary-links flex items-center justify-between gap-2">
+				<button
+					class="action-btn donate w-full text-sm px-3 py-2.5 h-10 flex items-center justify-center gap-1.5"
+					onclick={handleDonationClick}
+					aria-label="Donate with PayPal"
+				>
+					<span class="material-icons-outlined text-sm">favorite</span>
+					Donate with PayPal
+				</button>
+
+				<button
+					class="action-btn kofi w-full text-sm px-3 py-2.5 h-10 flex items-center justify-center gap-1.5"
+					onclick={handleKoFiClick}
+					aria-label="Donate with Ko-fi"
+				>
+					<span class="material-icons-outlined text-sm">coffee</span>
+					Donate with Ko-fi
+				</button>
+
+				<Section
+					name="Donate in Crypto"
+					icon="account_balance_wallet"
+					classes="items-center gap-2"
+					contentClasses="pt-2"
+					saveState={false}
+					defaultExtended={false}
+				>
+					<div class="space-y-2">
+						<p class="text-xs text-thirdly">Tap a wallet to copy the address.</p>
+					{#each DONATION_WALLETS as wallet (wallet.label)}
+							<button
+								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
+								onclick={() => copyWalletAddress(wallet.address, wallet.label)}
+								aria-label={`Copy ${wallet.label} wallet address`}
+							>
+								<div class="min-w-0">
+									<div class="flex items-center gap-2">
+										<span class="wallet-badge">{wallet.label}</span>
+										<p class="text-sm font-medium text-primary">{wallet.network}</p>
+									</div>
+									<p class="mt-1 font-mono text-[11px] text-thirdly break-all leading-snug">
+										{wallet.address}
+									</p>
+								</div>
+								<span class="material-icons-outlined text-sm text-thirdly">content_copy</span>
+							</button>
+						{/each}
+					</div>
+				</Section>
+			</div>
+
+			<div class="secondary-links flex flex-wrap items-center justify-between gap-2">
 				<button class="link-btn" onclick={openFeedbackModal} aria-label="Leave feedback">
 					Leave feedback
 				</button>
@@ -294,6 +372,42 @@
 		border: 1px solid color-mix(in srgb, var(--accent-primary) 14%, var(--border-color));
 	}
 
+	.donation-panel {
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--accent-primary) 8%, var(--bg-secondary)) 0%,
+			color-mix(in srgb, var(--bg-accent) 75%, transparent) 100%
+		);
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 14%, var(--border-color));
+	}
+
+	.wallet-card {
+		transition:
+			background-color 0.18s ease,
+			border-color 0.18s ease,
+			transform 0.18s ease,
+			box-shadow 0.18s ease;
+	}
+
+	.wallet-card:hover {
+		background: color-mix(in srgb, var(--accent-primary) 7%, var(--bg-secondary));
+		border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-color));
+	}
+
+	.wallet-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 2.6rem;
+		padding: 0.2rem 0.45rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+		color: var(--text-primary);
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+	}
+
 	.action-btn {
 		border-radius: var(--radius-m);
 		font-weight: 600;
@@ -320,6 +434,17 @@
 
 	.action-btn.donate:hover {
 		box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-primary) 40%, transparent);
+	}
+
+	.action-btn.kofi {
+		border-color: color-mix(in srgb, #ff5f5f 28%, var(--border-color));
+		color: color-mix(in srgb, #ff5f5f 80%, var(--text-secondary));
+	}
+
+	.action-btn.kofi:hover {
+		background: rgba(255, 95, 95, 0.08);
+		border-color: color-mix(in srgb, #ff5f5f 55%, var(--border-color));
+		box-shadow: 0 4px 16px rgba(255, 95, 95, 0.18);
 	}
 
 	.secondary-links {

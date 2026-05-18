@@ -731,6 +731,48 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
+	 * Coupe un groupe de merge visuel entre deux sous-titres adjacents.
+	 * @param {SubtitleClip} leftClip Clip à gauche de la coupure.
+	 * @param {SubtitleClip} rightClip Clip à droite de la coupure.
+	 * @returns {boolean} `true` si le groupe a été coupé.
+	 */
+	splitVisualMergeBetween(leftClip: SubtitleClip, rightClip: SubtitleClip): boolean {
+		if (
+			!leftClip.visualMergeGroupId ||
+			leftClip.visualMergeGroupId !== rightClip.visualMergeGroupId ||
+			leftClip.visualMergeMode !== rightClip.visualMergeMode ||
+			!leftClip.visualMergeMode
+		) {
+			return false;
+		}
+
+		const mergeGroup = this.getVisualMergeGroupForClipId(leftClip.id);
+		if (!mergeGroup || mergeGroup.groupId !== leftClip.visualMergeGroupId) return false;
+
+		const leftIndex = mergeGroup.clips.findIndex((clip) => clip.id === leftClip.id);
+		if (leftIndex === -1 || mergeGroup.clips[leftIndex + 1]?.id !== rightClip.id) return false;
+
+		const mode = leftClip.visualMergeMode;
+		const leftSide = mergeGroup.clips.slice(0, leftIndex + 1);
+		const rightSide = mergeGroup.clips.slice(leftIndex + 1);
+
+		for (const clip of mergeGroup.clips) {
+			clip.clearVisualMerge();
+		}
+
+		for (const side of [leftSide, rightSide]) {
+			if (side.length <= 1) continue;
+			const groupId = `visual-merge-${Date.now()}-${side[0].id}`;
+			for (const clip of side) {
+				clip.setVisualMerge(groupId, mode);
+			}
+		}
+
+		globalState.updateVideoPreviewUI();
+		return true;
+	}
+
+	/**
 	 * Modifie un sous-titre existant pour le transformer en un sous-titre pré-défini (Silence, Istiadhah, Basmala).
 	 * @param subtitle Le sous-titre à modifier.
 	 * @param presetChoice Le type de sous-titre pré-défini à appliquer.

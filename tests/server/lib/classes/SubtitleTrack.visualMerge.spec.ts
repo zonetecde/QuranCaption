@@ -104,6 +104,59 @@ describe('subtitle visual merge helpers', () => {
 		expect(second.visualMergeMode).toBeNull();
 	});
 
+	it('splits a four-clip visual merge into two groups at the selected boundary', () => {
+		const first = createSubtitle(0, 999, 1);
+		const second = createSubtitle(1000, 1999, 2);
+		const third = createSubtitle(2000, 2999, 3);
+		const fourth = createSubtitle(3000, 3999, 4);
+		const track = new SubtitleTrack();
+		track.clips = [first, second, third, fourth];
+
+		track.applyVisualMerge([first, second, third, fourth], 'both');
+
+		expect(track.splitVisualMergeBetween(second, third)).toBe(true);
+		expect(first.visualMergeMode).toBe('both');
+		expect(second.visualMergeMode).toBe('both');
+		expect(third.visualMergeMode).toBe('both');
+		expect(fourth.visualMergeMode).toBe('both');
+		expect(first.visualMergeGroupId).toBe(second.visualMergeGroupId);
+		expect(third.visualMergeGroupId).toBe(fourth.visualMergeGroupId);
+		expect(second.visualMergeGroupId).not.toBe(third.visualMergeGroupId);
+	});
+
+	it('keeps only the remaining side merged when splitting at a group edge', () => {
+		const first = createSubtitle(0, 999, 1);
+		const second = createSubtitle(1000, 1999, 2);
+		const third = createSubtitle(2000, 2999, 3);
+		const track = new SubtitleTrack();
+		track.clips = [first, second, third];
+
+		track.applyVisualMerge([first, second, third], 'arabic');
+
+		expect(track.splitVisualMergeBetween(first, second)).toBe(true);
+		expect(first.visualMergeGroupId).toBeNull();
+		expect(first.visualMergeMode).toBeNull();
+		expect(second.visualMergeMode).toBe('arabic');
+		expect(third.visualMergeMode).toBe('arabic');
+		expect(second.visualMergeGroupId).toBe(third.visualMergeGroupId);
+	});
+
+	it('does not split when the subtitles are not an adjacent boundary of the same group', () => {
+		const first = createSubtitle(0, 999, 1);
+		const second = createSubtitle(1000, 1999, 2);
+		const third = createSubtitle(2000, 2999, 3);
+		const track = new SubtitleTrack();
+		track.clips = [first, second, third];
+
+		track.applyVisualMerge([first, second, third], 'translation');
+		const groupId = first.visualMergeGroupId;
+
+		expect(track.splitVisualMergeBetween(first, third)).toBe(false);
+		expect(first.visualMergeGroupId).toBe(groupId);
+		expect(second.visualMergeGroupId).toBe(groupId);
+		expect(third.visualMergeGroupId).toBe(groupId);
+	});
+
 	it('rejects arabic continuity when a word gap exists inside the same verse', () => {
 		const first = createSubtitle(0, 999, 255);
 		const second = createSubtitle(1000, 1999, 255);

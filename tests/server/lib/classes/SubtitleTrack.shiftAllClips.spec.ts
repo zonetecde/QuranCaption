@@ -81,7 +81,7 @@ describe('SubtitleTrack.shiftAllClips', () => {
 		expect(track.clips[1].startTime).toBe(1000);
 	});
 
-	it('rejects backward shift that would overlap into the non-shifted region', () => {
+	it('trims the previous clip when a backward shift overlaps the non-shifted region', () => {
 		const track = new SubtitleTrack();
 		track.clips.push(
 			makeSubtitle(0, 1000),
@@ -93,8 +93,9 @@ describe('SubtitleTrack.shiftAllClips', () => {
 		// Shift -1000 → would put it at [1500, 2000]; overlaps clip[1] which ends at 2000.
 		const ok = track.shiftAllClips(-1000, 2500);
 
-		expect(ok).toBe(false);
-		expect(track.clips[2].startTime).toBe(2500);
+		expect(ok).toBe(true);
+		expect(track.clips[1].endTime).toBe(1499);
+		expect(track.clips[2].startTime).toBe(1500);
 	});
 
 	it('allows backward shift when there is enough gap before non-shifted clips', () => {

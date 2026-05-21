@@ -184,7 +184,7 @@
 				<input
 					type="number"
 					min="2"
-					max="128"
+					max="64"
 					step="1"
 					class="input w-full h-10"
 					bind:value={globalState.settings!.exportSettings.batchSize}

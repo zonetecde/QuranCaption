@@ -1387,7 +1387,7 @@ fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> 
         .min(fade_duration_ms.max(0))
 }
 
-/// Retourne les frontieres ou deux captures consecutives ont exactement les memes pixels.
+/// Retourne les frontieres ou deux captures consecutives sont des copies PNG exactes.
 fn find_identical_adjacent_image_indices(
     image_paths: &[String],
 ) -> Result<HashSet<usize>, Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -1396,26 +1396,18 @@ fn find_identical_adjacent_image_indices(
         return Ok(identical_indices);
     }
 
-    let mut previous = load_comparable_image_pixels(&image_paths[0])?;
+    let mut previous_size = fs::metadata(&image_paths[0])?.len();
     for (idx, image_path) in image_paths.iter().enumerate().skip(1) {
-        let current = load_comparable_image_pixels(image_path)?;
-        if previous == current {
+        let current_size = fs::metadata(image_path)?.len();
+        if previous_size == current_size
+            && fs::read(&image_paths[idx - 1])? == fs::read(image_path)?
+        {
             identical_indices.insert(idx - 1);
         }
-        previous = current;
+        previous_size = current_size;
     }
 
     Ok(identical_indices)
-}
-
-/// Charge une image sous une forme comparable sans dependre de l'encodage PNG.
-fn load_comparable_image_pixels(
-    image_path: &str,
-) -> Result<(u32, u32, Vec<u8>), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let img_data = fs::read(image_path)?;
-    let rgba = image::load_from_memory(&img_data)?.to_rgba8();
-    let (width, height) = rgba.dimensions();
-    Ok((width, height, rgba.into_raw()))
 }
 
 fn choose_identical_batch_end_idx(

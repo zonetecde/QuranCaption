@@ -1915,6 +1915,13 @@ fn concat_internal_batch_videos(
     }
 
     let ffmpeg_exe = resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let tmp_dir = output_path_buf
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(std::env::temp_dir);
+    fs::create_dir_all(&tmp_dir).ok();
+    let video_concat_path = write_video_concat_file(&tmp_dir, export_id, batch_paths)?;
+    let video_concat_name = video_concat_path.to_string_lossy().to_string();
     let mut cmd = vec![
         ffmpeg_exe,
         "-y".to_string(),
@@ -1926,36 +1933,23 @@ fn concat_internal_batch_videos(
         "pipe:2".to_string(),
         "-fflags".to_string(),
         "+genpts".to_string(),
+        "-safe".to_string(),
+        "0".to_string(),
+        "-f".to_string(),
+        "concat".to_string(),
+        "-i".to_string(),
+        video_concat_name,
     ];
-
-    for batch_path in batch_paths {
-        cmd.extend_from_slice(&["-i".to_string(), batch_path.clone()]);
-    }
 
     for audio_path in audio_paths {
         cmd.extend_from_slice(&["-i".to_string(), audio_path.clone()]);
     }
 
     let mut filter_lines: Vec<String> = Vec::new();
-    let mut video_inputs = String::new();
-    for (idx, duration_s) in batch_durations_s.iter().enumerate() {
-        filter_lines.push(format!(
-            "[{}:v]trim=start=0:duration={:.6},setpts=PTS-STARTPTS[v{}]",
-            idx,
-            duration_s.max(0.001),
-            idx
-        ));
-        video_inputs.push_str(&format!("[v{}]", idx));
-    }
-    if batch_paths.len() == 1 {
-        filter_lines.push("[v0]setpts=PTS-STARTPTS[vcat]".to_string());
-    } else {
-        filter_lines.push(format!(
-            "{}concat=n={}:v=1:a=0[vcat]",
-            video_inputs,
-            batch_paths.len()
-        ));
-    }
+    filter_lines.push(format!(
+        "[0:v]trim=start=0:duration={:.6},setpts=PTS-STARTPTS[vcat]",
+        expected_video_s.max(0.001)
+    ));
 
     let mut mapped_video_label = "vcat".to_string();
     if apply_video_fade && fade_s > 0.0 {
@@ -1985,7 +1979,7 @@ fn concat_internal_batch_videos(
 
     let mut mapped_audio_label: Option<String> = None;
     if have_audio {
-        let audio_start_idx = batch_paths.len();
+        let audio_start_idx = 1;
         if audio_paths.len() == 1 {
             filter_lines.push(format!("[{}:a]aresample=48000[aa0]", audio_start_idx));
             filter_lines.push(format!(
@@ -2038,12 +2032,6 @@ fn concat_internal_batch_videos(
     }
 
     let filter_complex = filter_lines.join(";");
-    let tmp_dir = output_path_buf
-        .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(std::env::temp_dir);
-    fs::create_dir_all(&tmp_dir).ok();
-
     let fg_hash = format!("{:x}", md5::compute(filter_complex.as_bytes()));
     let fg_path = tmp_dir.join(format!("merge-{}.ffgraph", &fg_hash[..8]));
     fs::write(&fg_path, &filter_complex)?;

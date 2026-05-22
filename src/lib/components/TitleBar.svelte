@@ -82,6 +82,7 @@
 					await globalState.currentProject?.save();
 					globalState.currentProject = null;
 				}
+				globalState.currentPage = 'home';
 				// Discord Rich Presence
 				discordService.setIdleState();
 			}}

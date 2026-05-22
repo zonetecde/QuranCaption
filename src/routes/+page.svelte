@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Home from '$lib/components/home/Home.svelte';
+	import AiVideoPage from '$lib/components/aiVideo/AiVideoPage.svelte';
 	import AiTranslationTelemetryPrompt from '$lib/components/misc/AiTranslationTelemetryPrompt.svelte';
 	import ExportService from '$lib/services/ExportService';
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
@@ -91,10 +92,12 @@
 
 	<!-- Zone de contenu avec scroll -->
 	<main class="flex-1 overflow-auto mt-10">
-		{#if globalState.currentProject === null}
-			<Home />
-		{:else}
+		{#if globalState.currentProject !== null}
 			<ProjectEditor />
+		{:else if globalState.currentPage === 'ai-video'}
+			<AiVideoPage />
+		{:else}
+			<Home />
 		{/if}
 		<AiTranslationTelemetryPrompt />
 		<DonationFloatingButton />

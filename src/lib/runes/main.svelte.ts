@@ -18,12 +18,17 @@ import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
+export type AppPage = 'home' | 'ai-video';
+
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
 	userProjectsDetails: ProjectDetail[] = $state([]);
 
 	// Projet actuellement sélectionné
 	currentProject: Project | null = $state(null);
+
+	// Current app page (when no project is open)
+	currentPage: AppPage = $state('home');
 
 	// Contient tout les exports (en cours ou accomplis)
 	exportations: Exportation[] = $state([]);

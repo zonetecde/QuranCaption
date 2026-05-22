@@ -141,11 +141,11 @@ fn find_downloaded_file_by_suffix(
     Err("Downloaded file not found".to_string())
 }
 
-/// Télécharge un média YouTube (audio MP3 ou vidéo MP4) via yt-dlp.
+/// Télécharge un média YouTube (audio MP3, vidéo MP4 ou vidéo MP4 sans audio) via yt-dlp.
 /// Lance un telechargement YouTube et emet sa progression si un identifiant est fourni.
 ///
 /// @param url URL publique a telecharger.
-/// @param _type Type de telechargement demande (`audio` ou `video`).
+/// @param _type Type de telechargement demande (`audio`, `video` ou `video_no_audio`).
 /// @param download_path Dossier de destination.
 /// @param download_request_id Identifiant optionnel pour relayer la progression au frontend.
 /// @param app_handle Gestionnaire Tauri utilise pour emettre les evenements.
@@ -218,6 +218,15 @@ pub async fn download_from_youtube(
             "-o",
             &output_pattern,
         ]),
+        "video_no_audio" => args.extend_from_slice(&[
+            "--format",
+            "bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]",
+            "--remux-video",
+            "mp4",
+            "--newline",
+            "-o",
+            &output_pattern,
+        ]),
         "video" => args.extend_from_slice(&[
             "--format",
             "bv*+ba/b",
@@ -227,7 +236,7 @@ pub async fn download_from_youtube(
             "-o",
             &output_pattern,
         ]),
-        _ => return Err("Invalid type: must be 'audio' or 'video'".to_string()),
+        _ => return Err("Invalid type: must be 'audio', 'video' or 'video_no_audio'".to_string()),
     }
 
     let lowered_url = url.to_ascii_lowercase();

@@ -172,6 +172,7 @@ export class Asset extends SerializableBase {
 	 */
 	private async warnIfNotConstantBitrate(): Promise<void> {
 		if (this.type !== AssetType.Audio && this.type !== AssetType.Video) return;
+		if (this.metadata.skipConstantBitrateWarning === true) return;
 
 		try {
 			const isConstant = (await invoke('is_constant_bitrate', {

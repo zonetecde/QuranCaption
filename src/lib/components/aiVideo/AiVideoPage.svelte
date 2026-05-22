@@ -4,6 +4,7 @@
 		Project,
 		ProjectContent,
 		ProjectDetail,
+		type AssetClip,
 		Edition,
 		Utilities,
 		SourceType
@@ -76,6 +77,21 @@
 
 	let isGeneratingPlan = $state(false);
 
+	const BACKGROUND_VIDEO_URLS = {
+		'Mock Provider / Cinematic Nature': {
+			landscape: 'https://www.youtube.com/watch?v=JUkNddtZ564',
+			portrait: 'https://www.youtube.com/shorts/uDOLjJ3DDQs?feature=share'
+		},
+		'Mock Provider / Abstract Light': {
+			landscape: 'https://www.youtube.com/watch?v=-qq9onL_3WQ',
+			portrait: 'https://www.youtube.com/shorts/7U8yeMKPCG0'
+		},
+		'Mock Provider / Rainy Sky': {
+			landscape: 'https://www.youtube.com/watch?v=8npvhQPUXSU',
+			portrait: 'https://www.youtube.com/shorts/YL1jtKaZSmc'
+		}
+	} as const;
+
 	// ── MP3Quran reciters (loaded once, shared for AI prompt + manual selection) ──
 	let allReciterOptions = $state<ReciterOption[]>([]);
 
@@ -132,6 +148,38 @@
 			reviewAyahStart = 1;
 			reviewAyahEnd = Quran.getVerseCount(reviewSurah) || 1;
 		}
+	}
+
+	/**
+	 * Retourne l'URL de la video de fond pour le modele et le format choisis.
+	 * @param {string} modelLabel Libelle du modele selectionne.
+	 * @param {'portrait' | 'landscape'} selectedResolution Orientation choisie.
+	 * @returns {string} URL YouTube correspondante.
+	 */
+	function getBackgroundVideoUrl(
+		modelLabel: string,
+		selectedResolution: 'portrait' | 'landscape'
+	): string {
+		const urls = BACKGROUND_VIDEO_URLS[modelLabel as keyof typeof BACKGROUND_VIDEO_URLS];
+		if (!urls) {
+			throw new Error(`Unsupported AI video model: ${modelLabel}`);
+		}
+
+		return urls[selectedResolution];
+	}
+
+	/**
+	 * Retourne les dimensions de projet associees a l'orientation choisie.
+	 * @param {'portrait' | 'landscape'} selectedResolution Orientation choisie.
+	 * @returns {{ width: number; height: number }} Dimensions video a appliquer.
+	 */
+	function getProjectDimensionsForResolution(selectedResolution: 'portrait' | 'landscape'): {
+		width: number;
+		height: number;
+	} {
+		return selectedResolution === 'portrait'
+			? { width: 1080, height: 1920 }
+			: { width: 1920, height: 1080 };
 	}
 
 	let reviewSurahName = $derived(() => {
@@ -222,6 +270,8 @@
 		const snapshotReciterName = reviewReciter;
 		const snapshotPrompt = prompt;
 		const snapshotTitle = reviewTitle;
+		const snapshotSelectedModel = selectedModel;
+		const snapshotResolution = resolution;
 
 		const setStatus = (msg: string) => {
 			generationStatus = msg;
@@ -256,6 +306,35 @@
 			discordService.setEditingState();
 
 			const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
+			const backgroundVideoUrl = getBackgroundVideoUrl(
+				snapshotSelectedModel,
+				snapshotResolution
+			);
+			content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
+				getProjectDimensionsForResolution(snapshotResolution);
+
+			setStatus('Downloading background video...');
+			const backgroundVideoPath = await invoke<string>('download_from_youtube', {
+				url: backgroundVideoUrl,
+				type: 'video_no_audio',
+				downloadPath: assetFolder
+			});
+
+			setStatus('Adding background video...');
+			content.addAsset(backgroundVideoPath, backgroundVideoUrl, SourceType.YouTube, {
+				skipConstantBitrateWarning: true
+			});
+
+			const normalizedBackgroundVideoPath = backgroundVideoPath
+				.replace(/\\/g, '/')
+				.replace(/\/+/g, '/');
+			const backgroundVideoAsset = content.assets.find(
+				(asset) => asset.filePath === normalizedBackgroundVideoPath
+			);
+
+			if (backgroundVideoAsset) {
+				await backgroundVideoAsset.addToTimeline(true, false);
+			}
 
 			// ── 1. Get audio file into the project ──
 			let audioFilePath: string;
@@ -347,6 +426,17 @@
 
 			if (addedAsset) {
 				await addedAsset.addToTimeline(false, true);
+			}
+
+			const backgroundVideoClip = globalState.getVideoTrack.clips.find(
+				(clip) => (clip as AssetClip).assetId === backgroundVideoAsset?.id
+			) as AssetClip | undefined;
+
+			if (backgroundVideoClip) {
+				backgroundVideoClip.loopUntilAudioEnd = true;
+				backgroundVideoClip.setEndTime(
+					globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
+				);
 			}
 
 			await project.save();

@@ -11,15 +11,21 @@
 
 	// TODO: Replace with real video generation providers/models when integrating real APIs
 	const MOCK_MODELS: MockModel[] = [
-		{ provider: 'Mock Provider', model: 'cinematic-nature', label: 'Mock Provider / Cinematic Nature' },
+		{
+			provider: 'Mock Provider',
+			model: 'cinematic-nature',
+			label: 'Mock Provider / Cinematic Nature'
+		},
 		{ provider: 'Mock Provider', model: 'abstract-light', label: 'Mock Provider / Abstract Light' },
 		{ provider: 'Mock Provider', model: 'rainy-sky', label: 'Mock Provider / Rainy Sky' }
 	];
 
 	type Resolution = 'portrait' | 'landscape';
+	type BackgroundSourceMode = 'ai' | 'youtube';
 	type AvailableTranslationsMap = Record<string, TranslationLanguageData>;
 
 	let {
+		sourceMode = $bindable<BackgroundSourceMode>('ai'),
 		selectedModel = $bindable(MOCK_MODELS[0].label),
 		resolution = $bindable<Resolution>('portrait'),
 		letAiChoose = $bindable(true),
@@ -100,53 +106,57 @@
 />
 
 <div class="space-y-5">
-	<!-- Provider / Model -->
-	<div class="space-y-2">
-		<label for="ai-model" class="flex items-center gap-2 text-sm font-semibold text-primary">
-			<span class="material-icons text-accent-primary text-base">smart_toy</span>
-			Provider / Model
-		</label>
-		<select
-			id="ai-model"
-			bind:value={selectedModel}
-			class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary shadow-inner"
-		>
-			{#each MOCK_MODELS as model (model.label)}
-				<option value={model.label}>{model.label}</option>
-			{/each}
-		</select>
-		<p class="text-xs text-thirdly">Mocked providers for now. Real APIs will be added later.</p>
-	</div>
-
-	<!-- Resolution -->
-	<div class="space-y-2">
-		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
-			<span class="material-icons text-accent-primary text-base">aspect_ratio</span>
-			Resolution
-		</span>
-		<div class="flex gap-3">
-			<button
-				type="button"
-				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {resolution === 'portrait'
-					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
-					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-				onclick={() => (resolution = 'portrait')}
+	{#if sourceMode === 'ai'}
+		<!-- Provider / Model -->
+		<div class="space-y-2">
+			<label for="ai-model" class="flex items-center gap-2 text-sm font-semibold text-primary">
+				<span class="material-icons text-accent-primary text-base">smart_toy</span>
+				Provider / Model
+			</label>
+			<select
+				id="ai-model"
+				bind:value={selectedModel}
+				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary shadow-inner"
 			>
-				<span class="material-icons text-base align-middle mr-1">stay_current_portrait</span>
-				Portrait (9:16)
-			</button>
-			<button
-				type="button"
-				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {resolution === 'landscape'
-					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
-					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-				onclick={() => (resolution = 'landscape')}
-			>
-				<span class="material-icons text-base align-middle mr-1">stay_current_landscape</span>
-				Landscape (16:9)
-			</button>
+				{#each MOCK_MODELS as model (model.label)}
+					<option value={model.label}>{model.label}</option>
+				{/each}
+			</select>
+			<p class="text-xs text-thirdly">Mocked providers for now. Real APIs will be added later.</p>
 		</div>
-	</div>
+
+		<!-- Resolution -->
+		<div class="space-y-2">
+			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
+				<span class="material-icons text-accent-primary text-base">aspect_ratio</span>
+				Resolution
+			</span>
+			<div class="flex gap-3">
+				<button
+					type="button"
+					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {resolution ===
+					'portrait'
+						? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
+						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
+					onclick={() => (resolution = 'portrait')}
+				>
+					<span class="material-icons text-base align-middle mr-1">stay_current_portrait</span>
+					Portrait (9:16)
+				</button>
+				<button
+					type="button"
+					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {resolution ===
+					'landscape'
+						? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
+						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
+					onclick={() => (resolution = 'landscape')}
+				>
+					<span class="material-icons text-base align-middle mr-1">stay_current_landscape</span>
+					Landscape (16:9)
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Translation selector -->
 	<div class="space-y-2" data-translation-picker>
@@ -162,7 +172,8 @@
 			>
 				<div class="flex items-center gap-2 min-w-0">
 					<span class="material-icons text-accent-primary text-sm">check_circle</span>
-					<span class="text-sm text-primary font-medium truncate">{selectedTranslation.author}</span>
+					<span class="text-sm text-primary font-medium truncate">{selectedTranslation.author}</span
+					>
 					<span class="text-xs text-thirdly shrink-0">({selectedTranslation.language})</span>
 				</div>
 				<button
@@ -181,15 +192,15 @@
 				onclick={() => (isTranslationDropdownOpen = !isTranslationDropdownOpen)}
 			>
 				<span>None — click to select a translation</span>
-				<span class="material-icons text-base">{isTranslationDropdownOpen ? 'expand_less' : 'expand_more'}</span>
+				<span class="material-icons text-base"
+					>{isTranslationDropdownOpen ? 'expand_less' : 'expand_more'}</span
+				>
 			</button>
 		{/if}
 
 		<!-- Dropdown panel -->
 		{#if isTranslationDropdownOpen}
-			<div
-				class="rounded-xl border border-color bg-primary shadow-xl overflow-hidden"
-			>
+			<div class="rounded-xl border border-color bg-primary shadow-xl overflow-hidden">
 				<!-- Search + tabs -->
 				<div class="p-3 border-b border-color space-y-2">
 					<input
@@ -201,7 +212,8 @@
 					<div class="flex items-center rounded-lg border border-color bg-bg-secondary p-0.5">
 						<button
 							type="button"
-							class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab === 'quran-api'
+							class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab ===
+							'quran-api'
 								? 'bg-accent-primary/15 text-primary shadow-sm'
 								: 'text-thirdly hover:text-primary'}"
 							onclick={() => (activeTab = 'quran-api')}
@@ -210,7 +222,8 @@
 						</button>
 						<button
 							type="button"
-							class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab === 'quran-com-api'
+							class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab ===
+							'quran-com-api'
 								? 'bg-accent-primary/15 text-primary shadow-sm'
 								: 'text-thirdly hover:text-primary'}"
 							onclick={() => (activeTab = 'quran-com-api')}
@@ -239,7 +252,7 @@
 						{#each Object.entries(filteredTranslationsMap) as [language, data] (language)}
 							<div class="border-b border-color last:border-b-0">
 								<!-- Language header -->
-								<div class="flex items-center gap-2 px-3 py-2 bg-bg-secondary/50 sticky top-0">
+								<div class="flex items-center gap-2 px-3 py-2 bg-secondary sticky top-0">
 									{#if data.flag}
 										<img src={data.flag} alt={language} class="w-4 h-4" />
 									{/if}
@@ -259,7 +272,9 @@
 											{/if}
 											<span class="text-primary font-medium truncate">{edition.author}</span>
 										</div>
-										<span class="material-icons text-thirdly text-sm shrink-0 opacity-30">add_circle_outline</span>
+										<span class="material-icons text-thirdly text-sm shrink-0 opacity-30"
+											>add_circle_outline</span
+										>
 									</button>
 								{/each}
 							</div>
@@ -282,9 +297,9 @@
 			class="h-4 w-4 rounded accent-[var(--accent-primary)]"
 		/>
 		<div>
-			<span class="text-sm font-medium text-primary">Let AI choose the verses and reciter</span>
+			<span class="text-sm font-medium text-primary">Let AI choose the verse range</span>
 			<p class="text-xs text-thirdly mt-0.5">
-				AI will select the best Quran verses and reciter based on your theme.
+				AI will select the best Quran verse range based on your theme.
 			</p>
 		</div>
 	</label>

@@ -18,6 +18,7 @@
 	};
 
 	let {
+		letAiChoose = $bindable(true),
 		reciter = $bindable(''),
 		selectedReciterOption = $bindable<ReciterOption | null>(null),
 		surah = $bindable(1),
@@ -30,7 +31,8 @@
 	let mp3Reciters: Mp3QuranReciter[] = $state([]);
 	let reciterOptions: ReciterOption[] = $state([]);
 	let isLoadingReciters = $state(true);
-	let reciterSearchQuery = $state('');
+	let reciterSearchQuery = $state('Let AI decide');
+	let isFocused = $state(false);
 
 	let maxAyah = $derived(Quran.getVerseCount(surah) || 1);
 
@@ -44,7 +46,7 @@
 
 	// Filter reciter options based on search
 	let filteredOptions = $derived.by(() => {
-		const q = reciterSearchQuery.trim().toLowerCase();
+		const q = reciterSearchQuery === 'Let AI decide' ? '' : reciterSearchQuery.trim().toLowerCase();
 		if (!q) return reciterOptions;
 		return reciterOptions.filter((o) => o.label.toLowerCase().includes(q));
 	});
@@ -74,6 +76,42 @@
 		selectedReciterOption = option;
 		reciter = option.reciterName;
 		reciterSearchQuery = option.label;
+		isFocused = false;
+	}
+
+	/**
+	 * Reinitialise le recitateur pour laisser l'IA le choisir.
+	 * @returns {void}
+	 */
+	function selectAiReciter() {
+		selectedReciterOption = null;
+		reciter = '';
+		reciterSearchQuery = 'Let AI decide';
+		isFocused = false;
+	}
+
+	/**
+	 * Prepare le champ pour une recherche utilisateur.
+	 * @returns {void}
+	 */
+	function handleReciterFocus() {
+		isFocused = true;
+		if (!selectedReciterOption && reciterSearchQuery === 'Let AI decide') {
+			reciterSearchQuery = '';
+		}
+	}
+
+	/**
+	 * Restaure l'etat d'affichage par defaut si aucun recitateur n'est choisi.
+	 * @returns {void}
+	 */
+	function handleReciterBlur() {
+		setTimeout(() => {
+			isFocused = false;
+			if (!selectedReciterOption && reciterSearchQuery.trim() === '') {
+				reciterSearchQuery = 'Let AI decide';
+			}
+		}, 0);
 	}
 
 	onMount(async () => {
@@ -186,11 +224,23 @@
 						bind:value={reciterSearchQuery}
 						placeholder="Search reciters..."
 						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary text-sm placeholder:text-thirdly"
+						onfocus={handleReciterFocus}
+						onblur={handleReciterBlur}
 					/>
-					{#if reciterSearchQuery && !selectedReciterOption?.label.includes(reciterSearchQuery)}
+					{#if isFocused}
 						<div
-							class="absolute left-0 right-0 top-full mt-1 max-h-60 overflow-auto rounded-xl border border-color bg-primary shadow-xl z-50"
+							class="absolute left-0 right-0 top-full mt-1 max-h-60 overflow-auto rounded-xl border border-color bg-primary shadow-xl z-100"
 						>
+							<button
+								type="button"
+								class="w-full text-left px-4 py-2.5 text-sm text-primary hover:bg-accent transition-colors cursor-pointer border-b border-color"
+								onmousedown={(e) => {
+									e.preventDefault();
+									selectAiReciter();
+								}}
+							>
+								Let AI decide
+							</button>
 							{#if filteredOptions.length === 0}
 								<p class="px-4 py-3 text-sm text-thirdly">No reciters found</p>
 							{:else}
@@ -198,7 +248,10 @@
 									<button
 										type="button"
 										class="w-full text-left px-4 py-2.5 text-sm text-primary hover:bg-accent transition-colors cursor-pointer"
-										onclick={() => selectReciter(option)}
+										onmousedown={(e) => {
+											e.preventDefault();
+											selectReciter(option);
+										}}
 									>
 										{option.label}
 									</button>
@@ -212,64 +265,60 @@
 						</div>
 					{/if}
 				</div>
-				{#if selectedReciterOption}
-					<p class="text-xs text-accent-primary flex items-center gap-1">
-						<span class="material-icons text-xs">check_circle</span>
-						{selectedReciterOption.label}
-					</p>
-				{/if}
 			{/if}
 		</div>
 	{/if}
 
-	<!-- Surah / Ayah range -->
-	<div class="space-y-2">
-		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
-			<span class="material-icons text-accent-primary text-base">menu_book</span>
-			Surah & Verse Range
-		</span>
+	{#if !useLocalAudio && !letAiChoose}
+		<!-- Surah / Ayah range -->
+		<div class="space-y-2">
+			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
+				<span class="material-icons text-accent-primary text-base">menu_book</span>
+				Surah & Verse Range
+			</span>
 
-		<div style="position: relative; z-index: 90;">
-			<AutocompleteInput
-				bind:value={surahSearchValue}
-				suggestions={surahSuggestions}
-				placeholder="Search surah..."
-				icon="search"
-				label=""
-				onSelect={handleSurahSelection}
-			/>
-		</div>
-
-		{#if !useLocalAudio && selectedReciterOption && !isSurahAvailable}
-			<p class="text-xs text-red-400 flex items-center gap-1">
-				<span class="material-icons text-xs">warning</span>
-				This surah is not available for the selected reciter/moshaf.
-			</p>
-		{/if}
-
-		<div class="flex gap-3 mt-2">
-			<div class="flex-1 space-y-1">
-				<label for="ayah-start" class="text-xs text-thirdly">From Ayah</label>
-				<input
-					id="ayah-start"
-					type="number"
-					bind:value={ayahStart}
-					min={1}
-					max={maxAyah}
-					class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
+			<div style="position: relative; z-index: 90;">
+				<AutocompleteInput
+					bind:value={surahSearchValue}
+					suggestions={surahSuggestions}
+					placeholder="Search surah..."
+					icon="search"
+					label=""
+					onSelect={handleSurahSelection}
 				/>
 			</div>
-			<div class="flex-1 space-y-1">
-				<label for="ayah-end" class="text-xs text-thirdly">To Ayah</label>
-				<input
-					id="ayah-end"
-					type="number"
-					bind:value={ayahEnd}
-					min={ayahStart}
-					max={maxAyah}
-					class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
-				/>
+
+			{#if selectedReciterOption && !isSurahAvailable}
+				<p class="text-xs text-red-400 flex items-center gap-1">
+					<span class="material-icons text-xs">warning</span>
+					This surah is not available for the selected reciter/moshaf.
+				</p>
+			{/if}
+
+			<div class="flex gap-3 mt-2">
+				<div class="flex-1 space-y-1">
+					<label for="ayah-start" class="text-xs text-thirdly">From Ayah</label>
+					<input
+						id="ayah-start"
+						type="number"
+						bind:value={ayahStart}
+						min={1}
+						max={maxAyah}
+						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
+					/>
+				</div>
+				<div class="flex-1 space-y-1">
+					<label for="ayah-end" class="text-xs text-thirdly">To Ayah</label>
+					<input
+						id="ayah-end"
+						type="number"
+						bind:value={ayahEnd}
+						min={ayahStart}
+						max={maxAyah}
+						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
+					/>
+				</div>
 			</div>
 		</div>
-	</div>
+	{/if}
 </div>

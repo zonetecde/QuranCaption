@@ -54,13 +54,16 @@
 		reciterId: number;
 		surahSet: Set<number>;
 	};
+	type BackgroundSourceMode = 'ai' | 'youtube';
 
 	// ── Step management ──
 	type Step = 'input' | 'review';
 	let currentStep = $state<Step>('input');
 
 	// ── Step 1: Input form state ──
+	let backgroundSourceMode = $state<BackgroundSourceMode>('ai');
 	let prompt = $state('');
+	let youtubeVideoUrl = $state('');
 	let selectedModel = $state('Mock Provider / Cinematic Nature');
 	let resolution = $state<'portrait' | 'landscape'>('portrait');
 	let letAiChoose = $state(true);
@@ -199,8 +202,15 @@
 
 	// ── Step 1 → Step 2: Generate AI plan then show review ──
 	async function handleGeneratePlan() {
-		if (prompt.trim() === '') {
+		const requiresThemePrompt = backgroundSourceMode === 'ai' || letAiChoose;
+
+		if (requiresThemePrompt && prompt.trim() === '') {
 			toast.error('Please enter a video theme or topic.');
+			return;
+		}
+
+		if (backgroundSourceMode === 'youtube' && youtubeVideoUrl.trim() === '') {
+			toast.error('Please enter a YouTube video URL.');
 			return;
 		}
 
@@ -221,14 +231,14 @@
 
 			// Populate review state
 			reviewTitle = plan.title;
-			reviewVideoPrompt = plan.videoPrompt;
+			reviewVideoPrompt = backgroundSourceMode === 'youtube' ? youtubeVideoUrl : plan.videoPrompt;
 			reviewReciter = plan.reciter;
 			reviewSurah = plan.surah;
 			reviewAyahStart = plan.ayahStart;
 			reviewAyahEnd = plan.ayahEnd;
 
 			// Resolve AI-chosen reciter to a real ReciterOption for downloading
-			if (letAiChoose && plan.reciterId) {
+			if (letAiChoose && plan.reciterId && !selectedReciterOption) {
 				const resolved = resolveReciterOption(plan.reciterId, plan.moshafId, plan.surah);
 				if (resolved) {
 					selectedReciterOption = resolved;
@@ -270,8 +280,10 @@
 		const snapshotReciterName = reviewReciter;
 		const snapshotPrompt = prompt;
 		const snapshotTitle = reviewTitle;
+		const snapshotReviewVideoPrompt = reviewVideoPrompt;
 		const snapshotSelectedModel = selectedModel;
 		const snapshotResolution = resolution;
+		const snapshotBackgroundSourceMode = backgroundSourceMode;
 
 		const setStatus = (msg: string) => {
 			generationStatus = msg;
@@ -306,12 +318,15 @@
 			discordService.setEditingState();
 
 			const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
-			const backgroundVideoUrl = getBackgroundVideoUrl(
-				snapshotSelectedModel,
-				snapshotResolution
-			);
-			content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
-				getProjectDimensionsForResolution(snapshotResolution);
+			const backgroundVideoUrl =
+				snapshotBackgroundSourceMode === 'youtube'
+					? snapshotReviewVideoPrompt.trim()
+					: getBackgroundVideoUrl(snapshotSelectedModel, snapshotResolution);
+
+			if (snapshotBackgroundSourceMode === 'ai') {
+				content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
+					getProjectDimensionsForResolution(snapshotResolution);
+			}
 
 			setStatus('Downloading background video...');
 			const backgroundVideoPath = await invoke<string>('download_from_youtube', {
@@ -331,6 +346,17 @@
 			const backgroundVideoAsset = content.assets.find(
 				(asset) => asset.filePath === normalizedBackgroundVideoPath
 			);
+
+			if (snapshotBackgroundSourceMode === 'youtube') {
+				const backgroundVideoDimensions = (await invoke('get_video_dimensions', {
+					filePath: backgroundVideoPath
+				})) as { width: number; height: number };
+
+				if (backgroundVideoDimensions.width > 0 && backgroundVideoDimensions.height > 0) {
+					content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
+						backgroundVideoDimensions;
+				}
+			}
 
 			if (backgroundVideoAsset) {
 				await backgroundVideoAsset.addToTimeline(true, false);
@@ -435,7 +461,8 @@
 			if (backgroundVideoClip) {
 				backgroundVideoClip.loopUntilAudioEnd = true;
 				backgroundVideoClip.setEndTime(
-					globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
+					globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
+						.ms
 				);
 			}
 
@@ -632,8 +659,11 @@
 	}> {
 		if (!letAiChoose) {
 			return {
-				title: prompt.trim().slice(0, 50) || 'AI Video Project',
-				videoPrompt: prompt,
+				title:
+					backgroundSourceMode === 'youtube'
+						? 'YouTube Video Project'
+						: prompt.trim().slice(0, 50) || 'AI Video Project',
+				videoPrompt: backgroundSourceMode === 'youtube' ? youtubeVideoUrl : prompt,
 				reciter,
 				reciterId: selectedReciterOption?.reciterId ?? 0,
 				moshafId: selectedReciterOption?.moshaf.id ?? 0,
@@ -661,11 +691,16 @@
 		}
 
 		const reciterList = buildReciterListForAi();
+		const shouldAskForVideoPrompt = backgroundSourceMode === 'ai';
+		const forcedReciterInstruction =
+			selectedReciterOption && !useLocalAudio
+				? `\nThe user already selected this reciter. You MUST use reciterId = ${selectedReciterOption.reciterId}, moshafId = ${selectedReciterOption.moshaf.id}, reciter = "${selectedReciterOption.reciterName}". You must also choose verses available in this moshaf.`
+				: '';
 
 		const systemPrompt = `You are a Quran video planning assistant. Given a theme or topic, you must:
 1. Select the most relevant Quran verses for this theme
 2. Choose a reciter from the available list below
-3. Write a detailed visual prompt that would be sent to an AI video generation model
+${shouldAskForVideoPrompt ? '3. Write a detailed visual prompt that would be sent to an AI video generation model' : ''}
 
 AVAILABLE RECITERS (you MUST pick from this list using exact IDs):
 ${reciterList}
@@ -673,7 +708,7 @@ ${reciterList}
 Respond ONLY with valid JSON in this exact format:
 {
   "title": "A short project title (max 50 characters) summarizing the theme and verses",
-  "videoPrompt": "A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Be very descriptive and visual.",
+  "videoPrompt": "${shouldAskForVideoPrompt ? 'A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Be very descriptive and visual.' : ''}",
   "reciterId": <reciter ID from the list above>,
   "moshafId": <moshaf ID from the list above>,
   "reciter": "Name of the selected reciter",
@@ -685,9 +720,9 @@ Respond ONLY with valid JSON in this exact format:
 Rules:
 - Choose verses that are MOST relevant to the given theme
 - Keep the verse range reasonable (3-15 verses)
-- The videoPrompt should describe a beautiful, contemplative visual scene matching the theme
+- ${shouldAskForVideoPrompt ? 'The videoPrompt should describe a beautiful, contemplative visual scene matching the theme' : 'Leave videoPrompt as an empty string'}
 - Pick a reciter whose style matches the mood (e.g. emotional themes → emotional reciter)
-- You MUST use reciterId and moshafId from the available reciters list`;
+- You MUST use reciterId and moshafId from the available reciters list${forcedReciterInstruction}`;
 
 		const response = await fetch(aiSettings.textAiApiEndpoint, {
 			method: 'POST',
@@ -741,10 +776,11 @@ Rules:
 
 		return {
 			title: plan.title || prompt.trim().slice(0, 50),
-			videoPrompt: plan.videoPrompt || prompt,
-			reciter: plan.reciter || 'Unknown',
-			reciterId: plan.reciterId || 0,
-			moshafId: plan.moshafId || 0,
+			videoPrompt:
+				backgroundSourceMode === 'youtube' ? youtubeVideoUrl : plan.videoPrompt || prompt,
+			reciter: selectedReciterOption?.reciterName || plan.reciter || 'Unknown',
+			reciterId: selectedReciterOption?.reciterId || plan.reciterId || 0,
+			moshafId: selectedReciterOption?.moshaf.id || plan.moshafId || 0,
 			surah: Math.max(1, Math.min(114, plan.surah || 1)),
 			ayahStart: Math.max(1, plan.ayahStart || 1),
 			ayahEnd: Math.max(1, plan.ayahEnd || 7)
@@ -820,26 +856,32 @@ Rules:
 		<!-- ═══════════════════════ STEP 1: Input ═══════════════════════ -->
 		{#if currentStep === 'input'}
 			<div class="space-y-6">
-				<AiVideoPromptField bind:value={prompt} />
+				<AiVideoPromptField
+					bind:value={prompt}
+					bind:youtubeUrl={youtubeVideoUrl}
+					bind:sourceMode={backgroundSourceMode}
+				/>
 
 				<AiVideoGenerationOptions
+					bind:sourceMode={backgroundSourceMode}
 					bind:selectedModel
 					bind:resolution
 					bind:letAiChoose
 					bind:selectedTranslation
 				/>
 
-				{#if !letAiChoose}
-					<AiVideoQuranSourceSettings
-						bind:reciter
-						bind:selectedReciterOption
-						bind:surah
-						bind:ayahStart
-						bind:ayahEnd
-						bind:useLocalAudio
-						bind:localAudioPath
-					/>
+				<AiVideoQuranSourceSettings
+					bind:letAiChoose
+					bind:reciter
+					bind:selectedReciterOption
+					bind:surah
+					bind:ayahStart
+					bind:ayahEnd
+					bind:useLocalAudio
+					bind:localAudioPath
+				/>
 
+				{#if !letAiChoose && !useLocalAudio}
 					<AiVideoVerseRangePreview {surah} {ayahStart} {ayahEnd} {selectedTranslation} />
 				{/if}
 
@@ -847,7 +889,9 @@ Rules:
 				<button
 					type="button"
 					class="w-full rounded-xl bg-accent-primary px-6 py-4 text-base font-semibold text-black shadow-lg hover:bg-blue-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
-					disabled={isGeneratingPlan || prompt.trim() === ''}
+					disabled={isGeneratingPlan ||
+						((backgroundSourceMode === 'ai' || letAiChoose) && prompt.trim() === '') ||
+						(backgroundSourceMode === 'youtube' && youtubeVideoUrl.trim() === '')}
 					onclick={handleGeneratePlan}
 				>
 					{#if isGeneratingPlan}
@@ -861,7 +905,7 @@ Rules:
 
 				{#if letAiChoose}
 					<p class="text-center text-xs text-thirdly">
-						AI will use your configured API to select verses, reciter, and generate a video prompt.
+						AI will use your configured API to select a verse range and, if needed, a reciter.
 					</p>
 				{/if}
 			</div>
@@ -873,18 +917,30 @@ Rules:
 				<div class="space-y-2">
 					<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 						<span class="material-icons text-accent-primary text-base">movie_creation</span>
-						Video Generation Prompt
+						{backgroundSourceMode === 'youtube' ? 'YouTube Video URL' : 'Video Generation Prompt'}
 					</span>
-					<textarea
-						bind:value={reviewVideoPrompt}
-						rows={4}
-						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly resize-none focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all text-sm leading-relaxed"
-						placeholder="Visual description for the AI video generator..."
-					></textarea>
-					<p class="text-xs text-thirdly">
-						This prompt will be sent to the video generation API. Edit it to adjust the visual
-						style.
-					</p>
+					{#if backgroundSourceMode === 'youtube'}
+						<input
+							type="text"
+							bind:value={reviewVideoPrompt}
+							class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all text-sm"
+							placeholder="https://www.youtube.com/watch?v=..."
+						/>
+						<p class="text-xs text-thirdly">
+							The downloaded video's own orientation will be used automatically.
+						</p>
+					{:else}
+						<textarea
+							bind:value={reviewVideoPrompt}
+							rows={4}
+							class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly resize-none focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all text-sm leading-relaxed"
+							placeholder="Visual description for the AI video generator..."
+						></textarea>
+						<p class="text-xs text-thirdly">
+							This prompt will be sent to the video generation API. Edit it to adjust the visual
+							style.
+						</p>
+					{/if}
 				</div>
 
 				<!-- Reciter -->
@@ -901,57 +957,59 @@ Rules:
 					/>
 				</div>
 
-				<!-- Verse Range -->
-				<div class="space-y-3">
-					<span class="flex items-center gap-2 text-sm font-semibold text-primary">
-						<span class="material-icons text-accent-primary text-base">menu_book</span>
-						Verse Range
-					</span>
+				{#if !useLocalAudio || letAiChoose}
+					<!-- Verse Range -->
+					<div class="space-y-3">
+						<span class="flex items-center gap-2 text-sm font-semibold text-primary">
+							<span class="material-icons text-accent-primary text-base">menu_book</span>
+							Verse Range
+						</span>
 
-					<div style="position: relative; z-index: 90;">
-						<AutocompleteInput
-							bind:value={reviewSurahSearchValue}
-							suggestions={surahSuggestions}
-							placeholder="Search surah..."
-							icon="search"
-							label=""
-							onSelect={handleReviewSurahSelection}
-						/>
-					</div>
-
-					<div class="flex gap-3">
-						<div class="flex-1 space-y-1">
-							<label for="review-ayah-start" class="text-xs text-thirdly">From Ayah</label>
-							<input
-								id="review-ayah-start"
-								type="number"
-								bind:value={reviewAyahStart}
-								min={1}
-								max={reviewMaxAyah}
-								class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
+						<div style="position: relative; z-index: 90;">
+							<AutocompleteInput
+								bind:value={reviewSurahSearchValue}
+								suggestions={surahSuggestions}
+								placeholder="Search surah..."
+								icon="search"
+								label=""
+								onSelect={handleReviewSurahSelection}
 							/>
 						</div>
-						<div class="flex-1 space-y-1">
-							<label for="review-ayah-end" class="text-xs text-thirdly">To Ayah</label>
-							<input
-								id="review-ayah-end"
-								type="number"
-								bind:value={reviewAyahEnd}
-								min={reviewAyahStart}
-								max={reviewMaxAyah}
-								class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
-							/>
+
+						<div class="flex gap-3">
+							<div class="flex-1 space-y-1">
+								<label for="review-ayah-start" class="text-xs text-thirdly">From Ayah</label>
+								<input
+									id="review-ayah-start"
+									type="number"
+									bind:value={reviewAyahStart}
+									min={1}
+									max={reviewMaxAyah}
+									class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
+								/>
+							</div>
+							<div class="flex-1 space-y-1">
+								<label for="review-ayah-end" class="text-xs text-thirdly">To Ayah</label>
+								<input
+									id="review-ayah-end"
+									type="number"
+									bind:value={reviewAyahEnd}
+									min={reviewAyahStart}
+									max={reviewMaxAyah}
+									class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
+								/>
+							</div>
 						</div>
 					</div>
-				</div>
 
-				<!-- Verse preview -->
-				<AiVideoVerseRangePreview
-					surah={reviewSurah}
-					ayahStart={reviewAyahStart}
-					ayahEnd={reviewAyahEnd}
-					{selectedTranslation}
-				/>
+					<!-- Verse preview -->
+					<AiVideoVerseRangePreview
+						surah={reviewSurah}
+						ayahStart={reviewAyahStart}
+						ayahEnd={reviewAyahEnd}
+						{selectedTranslation}
+					/>
+				{/if}
 
 				<!-- Summary card -->
 				<div class="rounded-xl border border-color bg-bg-secondary/50 p-5 space-y-3">
@@ -963,17 +1021,23 @@ Rules:
 					</h4>
 					<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
 						<div>
-							<span class="text-thirdly text-xs">Theme</span>
-							<p class="text-primary font-medium truncate">{prompt}</p>
+							<span class="text-thirdly text-xs">
+								{backgroundSourceMode === 'youtube' ? 'Background Video' : 'Theme'}
+							</span>
+							<p class="text-primary font-medium truncate">
+								{backgroundSourceMode === 'youtube' ? reviewVideoPrompt : prompt}
+							</p>
 						</div>
-						<div>
-							<span class="text-thirdly text-xs">Model</span>
-							<p class="text-primary font-medium">{selectedModel}</p>
-						</div>
-						<div>
-							<span class="text-thirdly text-xs">Surah</span>
-							<p class="text-primary font-medium">{reviewSurahName()}</p>
-						</div>
+						{#if backgroundSourceMode === 'ai'}
+							<div>
+								<span class="text-thirdly text-xs">Model</span>
+								<p class="text-primary font-medium">{selectedModel}</p>
+							</div>
+						{/if}
+						{#if !useLocalAudio || letAiChoose}<div>
+								<span class="text-thirdly text-xs">Surah</span>
+								<p class="text-primary font-medium">{reviewSurahName()}</p>
+							</div>{/if}
 						<div>
 							<span class="text-thirdly text-xs">Verses</span>
 							<p class="text-primary font-medium">{reviewAyahStart} – {reviewAyahEnd}</p>
@@ -982,12 +1046,14 @@ Rules:
 							<span class="text-thirdly text-xs">Reciter</span>
 							<p class="text-primary font-medium truncate">{reviewReciter}</p>
 						</div>
-						<div>
-							<span class="text-thirdly text-xs">Resolution</span>
-							<p class="text-primary font-medium">
-								{resolution === 'portrait' ? 'Portrait (9:16)' : 'Landscape (16:9)'}
-							</p>
-						</div>
+						{#if backgroundSourceMode === 'ai'}
+							<div>
+								<span class="text-thirdly text-xs">Resolution</span>
+								<p class="text-primary font-medium">
+									{resolution === 'portrait' ? 'Portrait (9:16)' : 'Landscape (16:9)'}
+								</p>
+							</div>
+						{/if}
 						{#if selectedTranslation}
 							<div class="col-span-2">
 								<span class="text-thirdly text-xs">Translation</span>
@@ -1027,7 +1093,9 @@ Rules:
 				</div>
 
 				<p class="text-center text-xs text-thirdly">
-					Video generation is currently mocked. A real AI-generated background will be added later.
+					{backgroundSourceMode === 'youtube'
+						? 'The YouTube video will be downloaded and used as the background during project creation.'
+						: 'Video generation is currently mocked. A real AI-generated background will be added later.'}
 				</p>
 			</div>
 		{/if}

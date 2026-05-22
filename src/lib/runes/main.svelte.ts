@@ -42,6 +42,7 @@ class GlobalState {
 	uiState = $state({
 		// Indique si on affiche le moniteur d'exportation
 		showExportMonitor: false,
+		isUsingAiVideoPromptMode: false,
 		showAiTranslationTelemetryPrompt: false,
 		aiTranslationTelemetryPendingCount: 0,
 		aiTranslationTelemetrySubmitting: false,
@@ -203,12 +204,13 @@ class GlobalState {
 		const previousInlineStyleMode = this.shared.quickTimelineEditor.previousInlineStyleMode;
 		if (this.currentProject && previousInlineStyleMode !== null) {
 			this.getTranslationsState.isInlineStyleMode = previousInlineStyleMode;
-			this.getSubtitlesEditorState.editSubtitle =
-				(this.shared.quickTimelineEditor.previousEditSubtitleId !== null
+			this.getSubtitlesEditorState.editSubtitle = (
+				this.shared.quickTimelineEditor.previousEditSubtitleId !== null
 					? (this.getSubtitleTrack.getClipById(
 							this.shared.quickTimelineEditor.previousEditSubtitleId
 						) ?? null)
-					: null) as SubtitleClip | PredefinedSubtitleClip | null;
+					: null
+			) as SubtitleClip | PredefinedSubtitleClip | null;
 			this.getSubtitlesEditorState.pendingSplitEditNextId =
 				this.shared.quickTimelineEditor.previousPendingSplitEditNextId;
 		}

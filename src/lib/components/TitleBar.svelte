@@ -78,6 +78,7 @@
 			disabled={globalState.uiState.isTourActive}
 			onclick={async () => {
 				// go home
+				globalState.uiState.isUsingAiVideoPromptMode = false;
 				if (globalState.currentProject) {
 					await globalState.currentProject?.save();
 					globalState.currentProject = null;

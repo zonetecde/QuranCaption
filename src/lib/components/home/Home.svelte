@@ -502,6 +502,12 @@
 				>
 					<span class="material-icons-outlined mr-2">add_circle_outline</span> New Project
 				</button>
+				<button
+					class="btn btn-icon h-12 px-4 xl:px-7"
+					onclick={() => (globalState.uiState.isUsingAiVideoPromptMode = true)}
+				>
+					<span class="material-icons-outlined mr-2">auto_awesome</span> AI Video
+				</button>
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
 					<span class="material-icons-outlined mr-2">file_upload</span> Import Project
 				</button>

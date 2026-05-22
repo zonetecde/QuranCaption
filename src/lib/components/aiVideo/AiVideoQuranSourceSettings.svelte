@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Quran } from '$lib/classes/Quran';
-	import { Mp3QuranService, type Mp3QuranMoshaf } from '$lib/services/Mp3QuranService';
+	import {
+		isFullHafsMoshaf,
+		isFullHafsReciterId,
+		Mp3QuranService,
+		type Mp3QuranMoshaf
+	} from '$lib/services/Mp3QuranService';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
@@ -96,6 +101,7 @@
 			const options: ReciterOption[] = [];
 			for (const rec of mp3Reciters) {
 				for (const moshaf of rec.moshaf) {
+					if (!isFullHafsReciterId(rec.id) || !isFullHafsMoshaf(moshaf)) continue;
 					options.push({
 						label: `${rec.name} — ${moshaf.name}`,
 						reciterName: rec.name,

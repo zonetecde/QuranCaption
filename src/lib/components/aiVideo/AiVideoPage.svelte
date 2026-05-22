@@ -12,7 +12,12 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { discordService } from '$lib/services/DiscordService';
-	import { Mp3QuranService, type Mp3QuranMoshaf } from '$lib/services/Mp3QuranService';
+	import {
+		isFullHafsMoshaf,
+		isFullHafsReciterId,
+		Mp3QuranService,
+		type Mp3QuranMoshaf
+	} from '$lib/services/Mp3QuranService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { runAutoSegmentation } from '$lib/services/AutoSegmentation';
 	import {
@@ -31,6 +36,7 @@
 	import AiVideoQuranSourceSettings from './AiVideoQuranSourceSettings.svelte';
 	import AiVideoVerseRangePreview from './AiVideoVerseRangePreview.svelte';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
+	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 
 	// ── Debug mode: set to true to skip real AI calls and use mocked responses ──
 	const AI_VIDEO_DEBUG = true;
@@ -40,7 +46,6 @@
 		videoPrompt:
 			'A serene and contemplative visual scene unfolds in a beautiful, tranquil landscape, where lush greenery meets gentle rolling hills under a soft sunset. The colors are warm and inviting, featuring shades of gold and orange mixing with soft pastels. A slow, sweeping camera movement glides through the scene, capturing a babbling brook that flows gracefully, symbolizing peace and the passage of time.',
 		reciterId: 54,
-		moshafId: 54,
 		reciter: 'Abdulrahman Alsudaes',
 		surah: 1,
 		ayahStart: 3,
@@ -104,6 +109,7 @@
 			const options: ReciterOption[] = [];
 			for (const rec of mp3Reciters) {
 				for (const moshaf of rec.moshaf) {
+					if (!isFullHafsReciterId(rec.id) || !isFullHafsMoshaf(moshaf)) continue;
 					options.push({
 						label: `${rec.name} — ${moshaf.name}`,
 						reciterName: rec.name,
@@ -136,6 +142,7 @@
 		Quran.getSurahsNames().map((s) => `${s.id}. ${s.transliteration}`)
 	);
 	let reviewSurahSearchValue = $state('');
+	let reviewReciterKey = $state('');
 
 	$effect(() => {
 		const max = Quran.getVerseCount(reviewSurah) || 1;
@@ -192,6 +199,37 @@
 	});
 
 	// ── Navigation ──
+	let reviewReciterOptions = $derived(
+		allReciterOptions.map((option) => ({
+			value: getReciterOptionKey(option),
+			label: option.label
+		}))
+	);
+
+	/**
+	 * Retourne la cle stable utilisee par le select recitateur de review.
+	 * @param {ReciterOption} option Option de recitateur MP3Quran.
+	 * @returns {string} Cle unique recitateur/moshaf.
+	 */
+	function getReciterOptionKey(option: ReciterOption): string {
+		return `${option.reciterId}:${option.moshaf.id}`;
+	}
+
+	/**
+	 * Applique le recitateur choisi a l'etape de review.
+	 * @returns {void}
+	 */
+	function handleReviewReciterChange() {
+		const option = allReciterOptions.find((item) => getReciterOptionKey(item) === reviewReciterKey);
+		selectedReciterOption = option ?? null;
+		reviewReciter = option?.reciterName ?? '';
+		reciter = option?.reciterName ?? '';
+	}
+
+	$effect(() => {
+		reviewReciterKey = selectedReciterOption ? getReciterOptionKey(selectedReciterOption) : '';
+	});
+
 	function goBack() {
 		if (currentStep === 'review') {
 			currentStep = 'input';
@@ -238,11 +276,12 @@
 			reviewAyahEnd = plan.ayahEnd;
 
 			// Resolve AI-chosen reciter to a real ReciterOption for downloading
-			if (letAiChoose && plan.reciterId && !selectedReciterOption) {
-				const resolved = resolveReciterOption(plan.reciterId, plan.moshafId, plan.surah);
+			if (letAiChoose && plan.reciterId) {
+				const resolved = resolveAiReciterOption(plan.reciterId);
 				if (resolved) {
 					selectedReciterOption = resolved;
 					reciter = resolved.reciterName;
+					reviewReciter = resolved.reciterName;
 				} else {
 					toast.error(
 						'AI selected a reciter that could not be resolved. Please pick one manually in the review.'
@@ -611,39 +650,31 @@
 	}
 
 	// ── Build condensed reciter list for AI prompt ──
+	/**
+	 * Indique si un moshaf MP3Quran est Hafs A'n Assem et contient les 114 sourates.
+	 * @param {Mp3QuranMoshaf} moshaf Moshaf MP3Quran a verifier.
+	 * @returns {boolean} True si le moshaf est eligible pour le choix IA.
+	 */
+	/**
+	 * Retourne le moshaf complet Hafs A'n Assem associe a un recitateur autorise par l'IA.
+	 * @param {number} reciterId Identifiant MP3Quran du recitateur.
+	 * @returns {ReciterOption | null} Option MP3Quran resolue.
+	 */
+	function resolveAiReciterOption(reciterId: number): ReciterOption | null {
+		if (!isFullHafsReciterId(reciterId)) return null;
+		return allReciterOptions.find((option) => option.reciterId === reciterId) ?? null;
+	}
+
 	function buildReciterListForAi(): string {
-		// Deduplicate by reciterId — pick the first moshaf for each reciter
 		const seen = new Set<number>();
 		const lines: string[] = [];
 		for (const opt of allReciterOptions) {
+			if (!resolveAiReciterOption(opt.reciterId)) continue;
 			if (seen.has(opt.reciterId)) continue;
 			seen.add(opt.reciterId);
-			lines.push(
-				`{ "reciterId": ${opt.reciterId}, "name": "${opt.reciterName}", "moshafId": ${opt.moshaf.id} }`
-			);
+			lines.push(`{ "reciterId": ${opt.reciterId}, "name": "${opt.reciterName}" }`);
 		}
 		return lines.join('\n');
-	}
-
-	// ── Resolve AI-returned reciter/moshaf IDs to a ReciterOption ──
-	function resolveReciterOption(
-		reciterId: number,
-		moshafId: number,
-		surahId: number
-	): ReciterOption | null {
-		// Try exact match first
-		let match = allReciterOptions.find(
-			(o) => o.reciterId === reciterId && o.moshaf.id === moshafId && o.surahSet.has(surahId)
-		);
-		if (match) return match;
-
-		// Fallback: same reciter, any moshaf that has the surah
-		match = allReciterOptions.find((o) => o.reciterId === reciterId && o.surahSet.has(surahId));
-		if (match) return match;
-
-		// Fallback: same reciter, any moshaf
-		match = allReciterOptions.find((o) => o.reciterId === reciterId);
-		return match ?? null;
 	}
 
 	// ── AI plan generation ──
@@ -652,7 +683,6 @@
 		videoPrompt: string;
 		reciter: string;
 		reciterId: number;
-		moshafId: number;
 		surah: number;
 		ayahStart: number;
 		ayahEnd: number;
@@ -666,7 +696,6 @@
 				videoPrompt: backgroundSourceMode === 'youtube' ? youtubeVideoUrl : prompt,
 				reciter,
 				reciterId: selectedReciterOption?.reciterId ?? 0,
-				moshafId: selectedReciterOption?.moshaf.id ?? 0,
 				surah,
 				ayahStart,
 				ayahEnd
@@ -692,9 +721,13 @@
 
 		const reciterList = buildReciterListForAi();
 		const shouldAskForVideoPrompt = backgroundSourceMode === 'ai';
-		const forcedReciterInstruction =
+		const forcedReciterOption =
 			selectedReciterOption && !useLocalAudio
-				? `\nThe user already selected this reciter. You MUST use reciterId = ${selectedReciterOption.reciterId}, moshafId = ${selectedReciterOption.moshaf.id}, reciter = "${selectedReciterOption.reciterName}". You must also choose verses available in this moshaf.`
+				? resolveAiReciterOption(selectedReciterOption.reciterId)
+				: null;
+		const forcedReciterInstruction =
+			forcedReciterOption
+				? `\nThe user already selected this reciter. You MUST use reciterId = ${forcedReciterOption.reciterId}, reciter = "${forcedReciterOption.reciterName}".`
 				: '';
 
 		const systemPrompt = `You are a Quran video planning assistant. Given a theme or topic, you must:
@@ -710,7 +743,6 @@ Respond ONLY with valid JSON in this exact format:
   "title": "A short project title (max 50 characters) summarizing the theme and verses",
   "videoPrompt": "${shouldAskForVideoPrompt ? 'A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Be very descriptive and visual.' : ''}",
   "reciterId": <reciter ID from the list above>,
-  "moshafId": <moshaf ID from the list above>,
   "reciter": "Name of the selected reciter",
   "surah": <surah number 1-114>,
   "ayahStart": <starting verse number>,
@@ -722,7 +754,7 @@ Rules:
 - Keep the verse range reasonable (3-15 verses)
 - ${shouldAskForVideoPrompt ? 'The videoPrompt should describe a beautiful, contemplative visual scene matching the theme' : 'Leave videoPrompt as an empty string'}
 - Pick a reciter whose style matches the mood (e.g. emotional themes → emotional reciter)
-- You MUST use reciterId and moshafId from the available reciters list${forcedReciterInstruction}`;
+- You MUST use reciterId from the available reciters list${forcedReciterInstruction}`;
 
 		const response = await fetch(aiSettings.textAiApiEndpoint, {
 			method: 'POST',
@@ -778,9 +810,8 @@ Rules:
 			title: plan.title || prompt.trim().slice(0, 50),
 			videoPrompt:
 				backgroundSourceMode === 'youtube' ? youtubeVideoUrl : plan.videoPrompt || prompt,
-			reciter: selectedReciterOption?.reciterName || plan.reciter || 'Unknown',
-			reciterId: selectedReciterOption?.reciterId || plan.reciterId || 0,
-			moshafId: selectedReciterOption?.moshaf.id || plan.moshafId || 0,
+			reciter: plan.reciter || 'Unknown',
+			reciterId: plan.reciterId || 0,
 			surah: Math.max(1, Math.min(114, plan.surah || 1)),
 			ayahStart: Math.max(1, plan.ayahStart || 1),
 			ayahEnd: Math.max(1, plan.ayahEnd || 7)
@@ -949,11 +980,14 @@ Rules:
 						<span class="material-icons text-accent-primary text-base">record_voice_over</span>
 						Reciter
 					</span>
-					<input
-						type="text"
-						bind:value={reviewReciter}
-						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary text-sm"
-						placeholder="Reciter name"
+					<SearchableSelect
+						id="review-reciter-select"
+						bind:value={reviewReciterKey}
+						options={reviewReciterOptions}
+						placeholder="Select a reciter"
+						searchPlaceholder="Search reciters..."
+						emptyMessage="No reciters found"
+						onChange={handleReviewReciterChange}
 					/>
 				</div>
 

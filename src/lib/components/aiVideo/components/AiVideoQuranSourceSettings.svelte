@@ -1,62 +1,41 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { Quran } from '$lib/classes/Quran';
-	import {
-		isFullHafsMoshaf,
-		isFullHafsReciterId,
-		Mp3QuranService,
-		type Mp3QuranMoshaf
-	} from '$lib/services/Mp3QuranService';
+	import { globalState } from '$lib/runes/main.svelte';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
+	import { getReciterOptionKey, isSurahAvailableForReciter } from '../reciterLoader';
 	import { open } from '@tauri-apps/plugin-dialog';
 
-	type ReciterOption = {
-		label: string;
-		reciterName: string;
-		moshaf: Mp3QuranMoshaf;
-		reciterId: number;
-		surahSet: Set<number>;
-	};
+	const aiv = globalState.aiVideo;
 
-	let {
-		letAiChoose = $bindable(true),
-		reciter = $bindable(''),
-		selectedReciterOption = $bindable<ReciterOption | null>(null),
-		surah = $bindable(1),
-		ayahStart = $bindable(1),
-		ayahEnd = $bindable(7),
-		useLocalAudio = $bindable(false),
-		localAudioPath = $bindable('')
-	} = $props();
+	let selectedReciterKey = $state(
+		aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : ''
+	);
+	let surahKey = $state(aiv.selectedVerseRange.surah.toString());
 
-	let reciterOptions: ReciterOption[] = $state([]);
-	let isLoadingReciters = $state(true);
-	let selectedReciterKey = $state('');
+	let maxAyah = $derived(Quran.getVerseCount(aiv.selectedVerseRange.surah) || 1);
+
+	// Clamp les valeurs lorsque la sourate change
+	$effect(() => {
+		const max = Quran.getVerseCount(aiv.selectedVerseRange.surah) || 1;
+		if (aiv.selectedVerseRange.startVerse > max) aiv.selectedVerseRange.startVerse = 1;
+		if (aiv.selectedVerseRange.endVerse > max) aiv.selectedVerseRange.endVerse = max;
+		if (aiv.selectedVerseRange.endVerse < aiv.selectedVerseRange.startVerse)
+			aiv.selectedVerseRange.endVerse = aiv.selectedVerseRange.startVerse;
+	});
+
+	let isSurahAvailable = $derived.by(() => {
+		if (!aiv.audio.reciter) return true;
+		return isSurahAvailableForReciter(aiv.audio.reciter, aiv.selectedVerseRange.surah);
+	});
+
 	let reciterSelectOptions = $derived([
 		{ value: '', label: 'Let AI decide' },
-		...reciterOptions.map((option) => ({
+		...aiv.reciterOptions.map((option) => ({
 			value: getReciterOptionKey(option),
 			label: option.label
 		}))
 	]);
 
-	let maxAyah = $derived(Quran.getVerseCount(surah) || 1);
-
-	// Clamp ayah values when surah changes
-	$effect(() => {
-		const max = Quran.getVerseCount(surah) || 1;
-		if (ayahStart > max) ayahStart = 1;
-		if (ayahEnd > max) ayahEnd = max;
-		if (ayahEnd < ayahStart) ayahEnd = ayahStart;
-	});
-
-	// Check if selected surah is available for the chosen reciter
-	let isSurahAvailable = $derived.by(() => {
-		if (!selectedReciterOption) return true;
-		return selectedReciterOption.surahSet.has(surah);
-	});
-
-	let surahKey = $state('1');
 	let surahOptions = $derived(
 		Quran.getSurahsNames().map((s) => ({
 			value: s.id.toString(),
@@ -64,76 +43,49 @@
 		}))
 	);
 
-	/**
-	 * Retourne la cle stable utilisee par le select recitateur.
-	 * @param {ReciterOption} option Option de recitateur MP3Quran.
-	 * @returns {string} Cle unique recitateur/moshaf.
-	 */
-	function getReciterOptionKey(option: ReciterOption): string {
-		return `${option.reciterId}:${option.moshaf.id}`;
-	}
+	$effect(() => {
+		selectedReciterKey = aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : '';
+	});
+
+	$effect(() => {
+		surahKey = aiv.selectedVerseRange.surah.toString();
+	});
 
 	/**
 	 * Applique le recitateur choisi dans le select.
 	 * @returns {void}
 	 */
 	function handleReciterChange() {
-		const option = reciterOptions.find((item) => getReciterOptionKey(item) === selectedReciterKey);
-		selectedReciterOption = option ?? null;
-		reciter = option?.reciterName ?? '';
+		const option = aiv.reciterOptions.find(
+			(o) => getReciterOptionKey(o) === selectedReciterKey
+		);
+		aiv.audio.reciter = option ?? null;
+		aiv.audio.reciterName = option?.reciterName ?? '';
 	}
-
-	$effect(() => {
-		selectedReciterKey = selectedReciterOption ? getReciterOptionKey(selectedReciterOption) : '';
-	});
-
-	$effect(() => {
-		surahKey = surah.toString();
-	});
 
 	/**
 	 * Applique la sourate choisie dans le select.
 	 * @returns {void}
 	 */
 	function handleSurahChange() {
-		surah = parseInt(surahKey);
-		ayahStart = 1;
-		ayahEnd = Quran.getVerseCount(surah) || 1;
+		aiv.selectedVerseRange.surah = parseInt(surahKey);
+		aiv.selectedVerseRange.startVerse = 1;
+		aiv.selectedVerseRange.endVerse = Quran.getVerseCount(aiv.selectedVerseRange.surah) || 1;
 	}
 
-	onMount(async () => {
-		try {
-			const mp3Reciters = await Mp3QuranService.getReciters();
-			const options: ReciterOption[] = [];
-			for (const rec of mp3Reciters) {
-				for (const moshaf of rec.moshaf) {
-					if (!isFullHafsReciterId(rec.id) || !isFullHafsMoshaf(moshaf)) continue;
-					options.push({
-						label: `${rec.name} — ${moshaf.name}`,
-						reciterName: rec.name,
-						moshaf,
-						reciterId: rec.id,
-						surahSet: new Set(moshaf.surah_list.split(',').map(Number))
-					});
-				}
-			}
-			reciterOptions = options.sort((a, b) => a.label.localeCompare(b.label));
-		} catch (error) {
-			console.error('Failed to load mp3quran reciters:', error);
-		} finally {
-			isLoadingReciters = false;
-		}
-	});
-
-	async function pickLocalAudio() {
+	/**
+	 * Ouvre un dialogue natif pour selectionner un fichier audio local.
+	 * @returns {Promise<void>}
+	 */
+	async function pickLocalAudio(): Promise<void> {
 		const file = await open({
 			multiple: false,
 			directory: false,
 			filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'] }]
 		});
 		if (file) {
-			localAudioPath = file;
-			useLocalAudio = true;
+			aiv.audio.localPath = file;
+			aiv.audio.useLocal = true;
 		}
 	}
 </script>
@@ -148,27 +100,27 @@
 	<div class="flex gap-3">
 		<button
 			type="button"
-			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {!useLocalAudio
+			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {!aiv.audio.useLocal
 				? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 				: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-			onclick={() => (useLocalAudio = false)}
+			onclick={() => (aiv.audio.useLocal = false)}
 		>
 			<span class="material-icons text-base align-middle mr-1">cloud</span>
 			MP3Quran Reciter
 		</button>
 		<button
 			type="button"
-			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {useLocalAudio
+			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.audio.useLocal
 				? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 				: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-			onclick={() => (useLocalAudio = true)}
+			onclick={() => (aiv.audio.useLocal = true)}
 		>
 			<span class="material-icons text-base align-middle mr-1">folder_open</span>
 			Local Audio File
 		</button>
 	</div>
 
-	{#if useLocalAudio}
+	{#if aiv.audio.useLocal}
 		<!-- Local audio file picker -->
 		<div class="space-y-2">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -179,7 +131,7 @@
 				<input
 					type="text"
 					readonly
-					value={localAudioPath}
+					value={aiv.audio.localPath}
 					placeholder="No file selected"
 					class="flex-1 rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary text-sm truncate"
 				/>
@@ -200,7 +152,7 @@
 				Reciter
 			</span>
 
-			{#if isLoadingReciters}
+			{#if aiv.isLoadingReciters}
 				<div class="flex items-center gap-2 text-sm text-thirdly py-3">
 					<span class="material-icons animate-spin text-base">autorenew</span>
 					Loading reciters from MP3Quran...
@@ -219,8 +171,8 @@
 		</div>
 	{/if}
 
-	{#if !useLocalAudio && !letAiChoose}
-		<!-- Surah / Ayah range -->
+	{#if !aiv.audio.useLocal && !aiv.ai.letAiChoose}
+		<!-- Surah / Verse Range -->
 		<div class="space-y-2">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">menu_book</span>
@@ -237,7 +189,7 @@
 				onChange={handleSurahChange}
 			/>
 
-			{#if selectedReciterOption && !isSurahAvailable}
+			{#if aiv.audio.reciter && !isSurahAvailable}
 				<p class="text-xs text-red-400 flex items-center gap-1">
 					<span class="material-icons text-xs">warning</span>
 					This surah is not available for the selected reciter/moshaf.
@@ -250,7 +202,7 @@
 					<input
 						id="ayah-start"
 						type="number"
-						bind:value={ayahStart}
+						bind:value={aiv.selectedVerseRange.startVerse}
 						min={1}
 						max={maxAyah}
 						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
@@ -261,8 +213,8 @@
 					<input
 						id="ayah-end"
 						type="number"
-						bind:value={ayahEnd}
-						min={ayahStart}
+						bind:value={aiv.selectedVerseRange.endVerse}
+						min={aiv.selectedVerseRange.startVerse}
 						max={maxAyah}
 						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-2.5 text-primary text-sm"
 					/>

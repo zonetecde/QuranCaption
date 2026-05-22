@@ -1,44 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { Edition } from '$lib/classes';
+	import { QdcTranslationService, type TranslationLanguageData } from '$lib/services/QdcTranslationService';
+	import { MOCK_MODELS } from '../constants';
+	import type { Edition } from '$lib/classes';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
-	import {
-		QdcTranslationService,
-		type TranslationLanguageData
-	} from '$lib/services/QdcTranslationService';
 
-	type MockModel = { provider: string; model: string; label: string };
-
-	// TODO: Replace with real video generation providers/models when integrating real APIs
-	const MOCK_MODELS: MockModel[] = [
-		{
-			provider: 'Mock Provider',
-			model: 'cinematic-nature',
-			label: 'Mock Provider / Cinematic Nature'
-		},
-		{ provider: 'Mock Provider', model: 'abstract-light', label: 'Mock Provider / Abstract Light' },
-		{ provider: 'Mock Provider', model: 'rainy-sky', label: 'Mock Provider / Rainy Sky' }
-	];
-
-	type Resolution = 'portrait' | 'landscape';
-	type BackgroundSourceMode = 'ai' | 'youtube';
 	type AvailableTranslationsMap = Record<string, TranslationLanguageData>;
 	type TranslationSelectOption = { value: string; label: string; disabled?: boolean };
 
-	let {
-		sourceMode = $bindable<BackgroundSourceMode>('ai'),
-		selectedModel = $bindable(MOCK_MODELS[0].label),
-		resolution = $bindable<Resolution>('portrait'),
-		letAiChoose = $bindable(true),
-		selectedTranslation = $bindable<Edition | null>(null)
-	} = $props();
+	const aiv = globalState.aiVideo;
 
 	let selectedTranslationKey = $state('');
 	let isLoadingQdc = $state(false);
 	let activeTab = $state<'quran-api' | 'quran-com-api'>('quran-api');
 
-	// Load QDC translations on mount if not already loaded
 	onMount(async () => {
 		if (Object.keys(globalState.qdcAvailableTranslations).length === 0) {
 			isLoadingQdc = true;
@@ -103,7 +79,7 @@
 				(item) => getTranslationKey(item) === selectedTranslationKey
 			);
 			if (edition) {
-				selectedTranslation = edition;
+				aiv.selectedTranslation = edition;
 				return;
 			}
 		}
@@ -125,17 +101,17 @@
 	 * @returns {void}
 	 */
 	function clearTranslation() {
-		selectedTranslation = null;
+		aiv.selectedTranslation = null;
 		selectedTranslationKey = '';
 	}
 
 	$effect(() => {
-		selectedTranslationKey = selectedTranslation ? getTranslationKey(selectedTranslation) : '';
+		selectedTranslationKey = aiv.selectedTranslation ? getTranslationKey(aiv.selectedTranslation) : '';
 	});
 </script>
 
 <div class="space-y-5">
-	{#if sourceMode === 'ai'}
+	{#if aiv.video.sourceMode === 'ai'}
 		<!-- Provider / Model -->
 		<div class="space-y-2">
 			<label for="ai-model" class="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -144,7 +120,7 @@
 			</label>
 			<select
 				id="ai-model"
-				bind:value={selectedModel}
+				bind:value={aiv.video.model}
 				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary shadow-inner"
 			>
 				{#each MOCK_MODELS as model (model.label)}
@@ -163,22 +139,22 @@
 			<div class="flex gap-3">
 				<button
 					type="button"
-					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {resolution ===
+					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.resolution ===
 					'portrait'
 						? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-					onclick={() => (resolution = 'portrait')}
+					onclick={() => (aiv.video.resolution = 'portrait')}
 				>
 					<span class="material-icons text-base align-middle mr-1">stay_current_portrait</span>
 					Portrait (9:16)
 				</button>
 				<button
 					type="button"
-					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {resolution ===
+					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.resolution ===
 					'landscape'
 						? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-					onclick={() => (resolution = 'landscape')}
+					onclick={() => (aiv.video.resolution = 'landscape')}
 				>
 					<span class="material-icons text-base align-middle mr-1">stay_current_landscape</span>
 					Landscape (16:9)
@@ -243,7 +219,7 @@
 	>
 		<input
 			type="checkbox"
-			bind:checked={letAiChoose}
+			bind:checked={aiv.ai.letAiChoose}
 			class="h-4 w-4 rounded accent-[var(--accent-primary)]"
 		/>
 		<div>

@@ -1,11 +1,7 @@
 <script lang="ts">
-	type BackgroundSourceMode = 'ai' | 'youtube';
+	import { globalState } from '$lib/runes/main.svelte';
 
-	let {
-		value = $bindable(''),
-		youtubeUrl = $bindable(''),
-		sourceMode = $bindable<BackgroundSourceMode>('ai')
-	} = $props();
+	const aiv = globalState.aiVideo;
 </script>
 
 <div class="space-y-4">
@@ -16,7 +12,7 @@
 		</label>
 		<textarea
 			id="ai-prompt"
-			bind:value
+			bind:value={aiv.video.prompt}
 			rows={3}
 			class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly resize-none focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
 			placeholder="e.g. The importance to obey our parents"
@@ -32,22 +28,22 @@
 		<div class="flex gap-3">
 			<button
 				type="button"
-				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {sourceMode ===
+				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.sourceMode ===
 				'ai'
 					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-				onclick={() => (sourceMode = 'ai')}
+				onclick={() => (aiv.video.sourceMode = 'ai')}
 			>
 				<span class="material-icons text-base align-middle mr-1">auto_awesome</span>
 				Generate video with AI
 			</button>
 			<button
 				type="button"
-				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {sourceMode ===
+				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.sourceMode ===
 				'youtube'
 					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-				onclick={() => (sourceMode = 'youtube')}
+				onclick={() => (aiv.video.sourceMode = 'youtube')}
 			>
 				<span class="material-icons text-base align-middle mr-1">smart_display</span>
 				Download from YouTube
@@ -55,7 +51,7 @@
 		</div>
 	</div>
 
-	{#if sourceMode === 'youtube'}
+	{#if aiv.video.sourceMode === 'youtube'}
 		<div class="space-y-2">
 			<label
 				for="youtube-video-url"
@@ -67,7 +63,7 @@
 			<input
 				id="youtube-video-url"
 				type="text"
-				bind:value={youtubeUrl}
+				bind:value={aiv.video.youtubeUrl}
 				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
 				placeholder="https://www.youtube.com/watch?v=..."
 			/>

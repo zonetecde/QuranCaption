@@ -104,7 +104,7 @@
 	</main>
 
 	<!-- AI Video generation overlay — shown on top of everything while pipeline runs -->
-	{#if globalState.aiVideoGenerationStatus}
+	{#if globalState.aiVideo.generationStatus}
 		<div
 			class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center"
 			style="z-index: 99999;"
@@ -116,7 +116,7 @@
 					</div>
 					<div>
 						<h2 class="text-lg font-bold text-primary">Setting up your project</h2>
-						<p class="text-sm text-secondary mt-0.5">{globalState.aiVideoGenerationStatus}</p>
+						<p class="text-sm text-secondary mt-0.5">{globalState.aiVideo.generationStatus}</p>
 					</div>
 				</div>
 				<div class="w-full bg-bg-secondary rounded-full h-2 overflow-hidden">

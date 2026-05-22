@@ -15,6 +15,7 @@ import type { TranslationLanguageData } from '$lib/services/QdcTranslationServic
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
+import type { AiVideoState } from '$lib/components/aiVideo/types';
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
@@ -30,8 +31,47 @@ class GlobalState {
 	// Current app page (when no project is open)
 	currentPage: AppPage = $state('home');
 
-	// AI Video generation overlay status (shown on top of project editor during setup)
-	aiVideoGenerationStatus: string = $state('');
+	// Etat complet de la feature AI Video
+	aiVideo: AiVideoState = $state({
+		step: 'input',
+		video: {
+			sourceMode: 'ai',
+			prompt: '',
+			youtubeUrl: '',
+			model: 'Mock Provider / Cinematic Nature',
+			resolution: 'portrait'
+		},
+		ai: {
+			letAiChoose: true,
+			isGeneratingPlan: false
+		},
+		audio: {
+			useLocal: false,
+			localPath: '',
+			reciterName: '',
+			reciter: null
+		},
+		selectedVerseRange: {
+			surah: 1,
+			startVerse: 1,
+			endVerse: 7
+		},
+		selectedTranslation: null,
+		review: {
+			title: '',
+			videoPrompt: '',
+			reciterName: '',
+			verseRange: {
+				surah: 1,
+				startVerse: 1,
+				endVerse: 7
+			}
+		},
+		isCreatingProject: false,
+		generationStatus: '',
+		reciterOptions: [],
+		isLoadingReciters: true
+	});
 
 	// Contient tout les exports (en cours ou accomplis)
 	exportations: Exportation[] = $state([]);

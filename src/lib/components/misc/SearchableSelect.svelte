@@ -34,7 +34,30 @@
 	let filteredOptions = $derived.by(() => {
 		const query = normalizeText(search);
 		if (!query) return options;
-		return options.filter((option) => normalizeText(option.label).includes(query));
+
+		const result: SearchableSelectOption[] = [];
+		const addedHeaders = new Set<string>();
+		let currentHeader: SearchableSelectOption | null = null;
+		let isHeaderMatch = false;
+
+		for (const option of options) {
+			const isMatch = normalizeText(option.label).includes(query);
+			if (option.disabled) {
+				currentHeader = option;
+				isHeaderMatch = isMatch;
+				continue;
+			}
+
+			if (isMatch || isHeaderMatch) {
+				if (currentHeader && !addedHeaders.has(currentHeader.value)) {
+					result.push(currentHeader);
+					addedHeaders.add(currentHeader.value);
+				}
+				result.push(option);
+			}
+		}
+
+		return result;
 	});
 
 	/**

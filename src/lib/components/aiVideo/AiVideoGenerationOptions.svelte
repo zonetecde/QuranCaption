@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { Edition } from '$lib/classes';
+	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import {
 		QdcTranslationService,
 		type TranslationLanguageData
@@ -23,6 +24,7 @@
 	type Resolution = 'portrait' | 'landscape';
 	type BackgroundSourceMode = 'ai' | 'youtube';
 	type AvailableTranslationsMap = Record<string, TranslationLanguageData>;
+	type TranslationSelectOption = { value: string; label: string; disabled?: boolean };
 
 	let {
 		sourceMode = $bindable<BackgroundSourceMode>('ai'),
@@ -32,8 +34,7 @@
 		selectedTranslation = $bindable<Edition | null>(null)
 	} = $props();
 
-	let translationSearchQuery = $state('');
-	let isTranslationDropdownOpen = $state(false);
+	let selectedTranslationKey = $state('');
 	let isLoadingQdc = $state(false);
 	let activeTab = $state<'quran-api' | 'quran-com-api'>('quran-api');
 
@@ -54,56 +55,84 @@
 		}
 	});
 
-	// Active translations map based on tab
 	let activeTranslationsMap = $derived.by((): AvailableTranslationsMap => {
 		return activeTab === 'quran-api'
 			? (globalState.availableTranslations as AvailableTranslationsMap)
 			: (globalState.qdcAvailableTranslations as AvailableTranslationsMap);
 	});
 
-	// Filtered translations by search query
-	let filteredTranslationsMap = $derived.by((): AvailableTranslationsMap => {
-		const map = activeTranslationsMap;
-		if (!translationSearchQuery) return map;
-
-		const query = translationSearchQuery.toLowerCase();
-		const filtered: AvailableTranslationsMap = {};
-
-		for (const [language, data] of Object.entries(map)) {
-			if (language.toLowerCase().includes(query)) {
-				filtered[language] = data;
-				continue;
-			}
-			const matchingTranslations = data.translations.filter(
-				(t) => t.author.toLowerCase().includes(query) || t.name.toLowerCase().includes(query)
-			);
-			if (matchingTranslations.length > 0) {
-				filtered[language] = { ...data, translations: matchingTranslations };
+	let translationSelectOptions = $derived.by(() => {
+		const options: TranslationSelectOption[] = [{ value: '', label: 'No translation' }];
+		for (const [language, data] of Object.entries(activeTranslationsMap)) {
+			options.push({
+				value: `language:${language}`,
+				label: `${language} (${data.translations.length})`,
+				disabled: true
+			});
+			for (const edition of data.translations) {
+				options.push({
+					value: getTranslationKey(edition),
+					label: edition.author
+				});
 			}
 		}
-
-		return filtered;
+		return options;
 	});
 
-	function selectTranslation(edition: Edition) {
-		selectedTranslation = edition;
-		isTranslationDropdownOpen = false;
-		translationSearchQuery = '';
+	/**
+	 * Retourne la cle stable utilisee par le select de traduction.
+	 * @param {Edition} edition Edition de traduction.
+	 * @returns {string} Cle unique de l'edition.
+	 */
+	function getTranslationKey(edition: Edition): string {
+		return edition.key || edition.name;
 	}
 
+	/**
+	 * Applique la traduction choisie dans le select.
+	 * @returns {void}
+	 */
+	function handleTranslationChange() {
+		if (!selectedTranslationKey) {
+			clearTranslation();
+			return;
+		}
+
+		for (const data of Object.values(activeTranslationsMap)) {
+			const edition = data.translations.find(
+				(item) => getTranslationKey(item) === selectedTranslationKey
+			);
+			if (edition) {
+				selectedTranslation = edition;
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Change le fournisseur de traductions et repart sans traduction selectionnee.
+	 * @param {'quran-api' | 'quran-com-api'} tab Fournisseur de traductions actif.
+	 * @returns {void}
+	 */
+	function setActiveTab(tab: 'quran-api' | 'quran-com-api') {
+		if (activeTab === tab) return;
+		activeTab = tab;
+		clearTranslation();
+	}
+
+	/**
+	 * Retire la traduction selectionnee.
+	 * @returns {void}
+	 */
 	function clearTranslation() {
 		selectedTranslation = null;
+		selectedTranslationKey = '';
 	}
-</script>
 
-<svelte:window
-	onclick={(e) => {
-		const target = e.target as HTMLElement;
-		if (!target.closest('[data-translation-picker]')) {
-			isTranslationDropdownOpen = false;
-		}
-	}}
-/>
+	$effect(() => {
+		selectedTranslationKey = selectedTranslation ? getTranslationKey(selectedTranslation) : '';
+	});
+</script>
 
 <div class="space-y-5">
 	{#if sourceMode === 'ai'}
@@ -159,129 +188,50 @@
 	{/if}
 
 	<!-- Translation selector -->
-	<div class="space-y-2" data-translation-picker>
+	<div class="space-y-2">
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">translate</span>
 			Translation
 		</span>
 
-		{#if selectedTranslation}
-			<!-- Selected translation chip -->
-			<div
-				class="flex items-center justify-between rounded-xl border border-accent-primary bg-accent-primary/10 px-4 py-3"
-			>
-				<div class="flex items-center gap-2 min-w-0">
-					<span class="material-icons text-accent-primary text-sm">check_circle</span>
-					<span class="text-sm text-primary font-medium truncate">{selectedTranslation.author}</span
-					>
-					<span class="text-xs text-thirdly shrink-0">({selectedTranslation.language})</span>
-				</div>
-				<button
-					type="button"
-					class="ml-2 text-secondary hover:text-primary transition-colors cursor-pointer shrink-0"
-					onclick={clearTranslation}
-				>
-					<span class="material-icons text-base">close</span>
-				</button>
-			</div>
-		{:else}
-			<!-- Search input to open dropdown -->
+		<div class="flex items-center rounded-lg border border-color bg-bg-secondary p-0.5">
 			<button
 				type="button"
-				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly text-left hover:border-accent-primary/50 transition-all cursor-pointer flex items-center justify-between"
-				onclick={() => (isTranslationDropdownOpen = !isTranslationDropdownOpen)}
+				class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab ===
+				'quran-api'
+					? 'bg-accent-primary/15 text-primary shadow-sm'
+					: 'text-thirdly hover:text-primary'}"
+				onclick={() => setActiveTab('quran-api')}
 			>
-				<span>None — click to select a translation</span>
-				<span class="material-icons text-base"
-					>{isTranslationDropdownOpen ? 'expand_less' : 'expand_more'}</span
-				>
+				Quran API
 			</button>
-		{/if}
+			<button
+				type="button"
+				class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab ===
+				'quran-com-api'
+					? 'bg-accent-primary/15 text-primary shadow-sm'
+					: 'text-thirdly hover:text-primary'}"
+				onclick={() => setActiveTab('quran-com-api')}
+			>
+				Quran.com
+			</button>
+		</div>
 
-		<!-- Dropdown panel -->
-		{#if isTranslationDropdownOpen}
-			<div class="rounded-xl border border-color bg-primary shadow-xl overflow-hidden">
-				<!-- Search + tabs -->
-				<div class="p-3 border-b border-color space-y-2">
-					<input
-						type="text"
-						bind:value={translationSearchQuery}
-						placeholder="Search languages or authors..."
-						class="w-full rounded-lg border border-color bg-bg-secondary px-3 py-2 text-sm text-primary placeholder:text-thirdly focus:outline-none focus:border-accent-primary"
-					/>
-					<div class="flex items-center rounded-lg border border-color bg-bg-secondary p-0.5">
-						<button
-							type="button"
-							class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab ===
-							'quran-api'
-								? 'bg-accent-primary/15 text-primary shadow-sm'
-								: 'text-thirdly hover:text-primary'}"
-							onclick={() => (activeTab = 'quran-api')}
-						>
-							Quran API
-						</button>
-						<button
-							type="button"
-							class="flex-1 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer {activeTab ===
-							'quran-com-api'
-								? 'bg-accent-primary/15 text-primary shadow-sm'
-								: 'text-thirdly hover:text-primary'}"
-							onclick={() => (activeTab = 'quran-com-api')}
-						>
-							Quran.com
-						</button>
-					</div>
-				</div>
-
-				<!-- Translations list -->
-				<div class="max-h-72 overflow-y-auto">
-					{#if activeTab === 'quran-com-api' && isLoadingQdc}
-						<div class="flex items-center justify-center py-6 gap-2 text-sm text-thirdly">
-							<span class="material-icons animate-spin text-base">autorenew</span>
-							Loading Quran.com translations...
-						</div>
-					{:else if Object.keys(filteredTranslationsMap).length === 0}
-						<div class="py-6 text-center text-sm text-thirdly">
-							{#if translationSearchQuery}
-								No translations match "{translationSearchQuery}"
-							{:else}
-								No translations available
-							{/if}
-						</div>
-					{:else}
-						{#each Object.entries(filteredTranslationsMap) as [language, data] (language)}
-							<div class="border-b border-color last:border-b-0">
-								<!-- Language header -->
-								<div class="flex items-center gap-2 px-3 py-2 bg-secondary sticky top-0">
-									{#if data.flag}
-										<img src={data.flag} alt={language} class="w-4 h-4" />
-									{/if}
-									<span class="text-xs font-semibold text-secondary">{language}</span>
-									<span class="text-xs text-thirdly">({data.translations.length})</span>
-								</div>
-								<!-- Editions -->
-								{#each data.translations as edition (edition.key || edition.name)}
-									<button
-										type="button"
-										class="w-full text-left px-4 py-2.5 text-sm hover:bg-accent transition-colors cursor-pointer flex items-center justify-between gap-2"
-										onclick={() => selectTranslation(edition)}
-									>
-										<div class="min-w-0 flex items-center gap-1.5">
-											{#if edition.comments === 'Ponctuation' || edition.comments === 'Saheeh International'}
-												<span class="material-icons text-yellow-200 text-xs shrink-0">star</span>
-											{/if}
-											<span class="text-primary font-medium truncate">{edition.author}</span>
-										</div>
-										<span class="material-icons text-thirdly text-sm shrink-0 opacity-30"
-											>add_circle_outline</span
-										>
-									</button>
-								{/each}
-							</div>
-						{/each}
-					{/if}
-				</div>
+		{#if activeTab === 'quran-com-api' && isLoadingQdc}
+			<div class="flex items-center gap-2 text-sm text-thirdly py-3">
+				<span class="material-icons animate-spin text-base">autorenew</span>
+				Loading Quran.com translations...
 			</div>
+		{:else}
+			<SearchableSelect
+				id="translation-select"
+				bind:value={selectedTranslationKey}
+				options={translationSelectOptions}
+				placeholder="No translation"
+				searchPlaceholder="Search languages or authors..."
+				emptyMessage="No translations found"
+				onChange={handleTranslationChange}
+			/>
 		{/if}
 
 		<p class="text-xs text-thirdly">Select a translation to include in the video subtitles.</p>

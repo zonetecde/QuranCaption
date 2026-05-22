@@ -102,4 +102,28 @@
 		<AiTranslationTelemetryPrompt />
 		<DonationFloatingButton />
 	</main>
+
+	<!-- AI Video generation overlay — shown on top of everything while pipeline runs -->
+	{#if globalState.aiVideoGenerationStatus}
+		<div
+			class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center"
+			style="z-index: 99999;"
+		>
+			<div class="bg-primary border border-color rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 space-y-5">
+				<div class="flex items-center gap-4">
+					<div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg shrink-0">
+						<span class="material-icons text-white text-xl animate-pulse">auto_awesome</span>
+					</div>
+					<div>
+						<h2 class="text-lg font-bold text-primary">Setting up your project</h2>
+						<p class="text-sm text-secondary mt-0.5">{globalState.aiVideoGenerationStatus}</p>
+					</div>
+				</div>
+				<div class="w-full bg-bg-secondary rounded-full h-2 overflow-hidden">
+					<div class="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-pulse" style="width: 100%"></div>
+				</div>
+				<p class="text-xs text-thirdly text-center">Please wait — this may take a minute.</p>
+			</div>
+		</div>
+	{/if}
 </div>

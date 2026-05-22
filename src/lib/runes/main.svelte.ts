@@ -30,6 +30,9 @@ class GlobalState {
 	// Current app page (when no project is open)
 	currentPage: AppPage = $state('home');
 
+	// AI Video generation overlay status (shown on top of project editor during setup)
+	aiVideoGenerationStatus: string = $state('');
+
 	// Contient tout les exports (en cours ou accomplis)
 	exportations: Exportation[] = $state([]);
 

@@ -6,11 +6,17 @@
 	import { discordService } from '$lib/services/DiscordService';
 	import {
 		Mp3QuranService,
-		type Mp3QuranMoshaf,
-		type Mp3QuranReciter
+		type Mp3QuranMoshaf
 	} from '$lib/services/Mp3QuranService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { runAutoSegmentation } from '$lib/services/AutoSegmentation';
+	import {
+		buildAdvancedTrimVerseCandidates,
+		buildAdvancedTrimBatches,
+		runAdvancedTrimBatchStreaming,
+		validateAdvancedTrimBatchResult,
+		applyAdvancedTrimValidationSuccess
+	} from '$lib/services/AdvancedAITrimming';
 	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
 	import { copyFile } from '@tauri-apps/plugin-fs';
@@ -20,6 +26,20 @@
 	import AiVideoQuranSourceSettings from './AiVideoQuranSourceSettings.svelte';
 	import AiVideoVerseRangePreview from './AiVideoVerseRangePreview.svelte';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
+
+	// ── Debug mode: set to true to skip real AI calls and use mocked responses ──
+	const AI_VIDEO_DEBUG = true;
+
+	const MOCK_AI_PLAN = {
+		videoPrompt:
+			'A serene and contemplative visual scene unfolds in a beautiful, tranquil landscape, where lush greenery meets gentle rolling hills under a soft sunset. The colors are warm and inviting, featuring shades of gold and orange mixing with soft pastels. A slow, sweeping camera movement glides through the scene, capturing a babbling brook that flows gracefully, symbolizing peace and the passage of time.',
+		reciterId: 54,
+		moshafId: 54,
+		reciter: 'Abdulrahman Alsudaes',
+		surah: 2,
+		ayahStart: 254,
+		ayahEnd: 255
+	};
 
 	type ReciterOption = {
 		label: string;
@@ -178,12 +198,31 @@
 	}
 
 	// ── Step 2 → Create project ──
+	// Captures step-1 values before navigating away (component may unmount)
 	async function handleCreateProject() {
 		isCreatingProject = true;
-		generationStatus = 'Creating project...';
+
+		// Snapshot values before the component unmounts
+		const snapshotTranslation = selectedTranslation;
+		const snapshotReciterOption = selectedReciterOption;
+		const snapshotUseLocal = useLocalAudio;
+		const snapshotLocalPath = localAudioPath;
+		const snapshotSurah = reviewSurah;
+		const snapshotAyahStart = reviewAyahStart;
+		const snapshotAyahEnd = reviewAyahEnd;
+		const snapshotReciterName = reviewReciter;
+		const snapshotPrompt = prompt;
+
+		const setStatus = (msg: string) => {
+			generationStatus = msg;
+			globalState.aiVideoGenerationStatus = msg;
+			console.log(`[AiVideo] ${msg}`);
+		};
+
+		setStatus('Creating project...');
 
 		try {
-			const projectName = `AI - ${prompt.trim().slice(0, 40)}`;
+			const projectName = `AI - ${snapshotPrompt.trim().slice(0, 40)}`;
 
 			if (Utilities.isPathNotSafe(projectName)) {
 				toast.error('Generated project name contains invalid characters.');
@@ -192,7 +231,7 @@
 
 			const projectDetail = new ProjectDetail(
 				projectName,
-				reviewReciter,
+				snapshotReciterName,
 				undefined,
 				undefined,
 				'Others'
@@ -201,8 +240,9 @@
 			const project = new Project(projectDetail, content);
 			await project.save();
 
-			// Set as current project so segmentation functions can access tracks
+			// Open the project (editor renders underneath the overlay)
 			globalState.currentProject = project;
+			globalState.currentPage = 'home';
 			discordService.setEditingState();
 
 			const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
@@ -210,18 +250,16 @@
 			// ── 1. Get audio file into the project ──
 			let audioFilePath: string;
 
-			if (useLocalAudio && localAudioPath) {
-				// Copy local audio file to project assets
-				generationStatus = 'Copying audio file...';
-				const ext = localAudioPath.split('.').pop() || 'mp3';
+			if (snapshotUseLocal && snapshotLocalPath) {
+				setStatus('Copying audio file...');
+				const ext = snapshotLocalPath.split('.').pop() || 'mp3';
 				const destFileName = `local-audio.${ext}`;
 				audioFilePath = await join(assetFolder, destFileName);
-				await copyFile(localAudioPath, audioFilePath);
-			} else if (selectedReciterOption) {
-				// Download full surah from MP3Quran
-				generationStatus = 'Downloading recitation...';
-				const formattedSurahId = reviewSurah.toString().padStart(3, '0');
-				const audioUrl = `${selectedReciterOption.moshaf.server}${formattedSurahId}.mp3`;
+				await copyFile(snapshotLocalPath, audioFilePath);
+			} else if (snapshotReciterOption) {
+				setStatus('Downloading recitation...');
+				const formattedSurahId = snapshotSurah.toString().padStart(3, '0');
+				const audioUrl = `${snapshotReciterOption.moshaf.server}${formattedSurahId}.mp3`;
 				const fullSurahPath = await join(assetFolder, `full-surah-${formattedSurahId}.mp3`);
 
 				await invoke('download_file', {
@@ -230,23 +268,23 @@
 				});
 
 				// ── 2. Trim to verse range using timing data ──
-				const surahVerseCount = Quran.getVerseCount(reviewSurah) || 1;
-				const needsTrim = reviewAyahStart > 1 || reviewAyahEnd < surahVerseCount;
+				const surahVerseCount = Quran.getVerseCount(snapshotSurah) || 1;
+				const needsTrim = snapshotAyahStart > 1 || snapshotAyahEnd < surahVerseCount;
 
 				if (needsTrim) {
-					generationStatus = 'Trimming audio to verse range...';
+					setStatus('Trimming audio to verse range...');
 					try {
 						const timings = await Mp3QuranService.getSurahTiming(
-							selectedReciterOption.moshaf.id,
-							reviewSurah
+							snapshotReciterOption.moshaf.id,
+							snapshotSurah
 						);
 
 						if (timings && timings.length > 0) {
-							const startTiming = timings.find((t) => t.ayah === reviewAyahStart);
-							const endTiming = timings.find((t) => t.ayah === reviewAyahEnd);
+							const startTiming = timings.find((t) => t.ayah === snapshotAyahStart);
+							const endTiming = timings.find((t) => t.ayah === snapshotAyahEnd);
 
 							if (startTiming && endTiming) {
-								const trimmedFileName = `${reviewReciter.replace(/[<>:"/\\|?*]/g, '').trim() || 'reciter'}-${reviewSurah}-${reviewAyahStart}-${reviewAyahEnd}.mp3`;
+								const trimmedFileName = `${snapshotReciterName.replace(/[<>:"/\\|?*]/g, '').trim() || 'reciter'}-${snapshotSurah}-${snapshotAyahStart}-${snapshotAyahEnd}.mp3`;
 								audioFilePath = await join(assetFolder, trimmedFileName);
 
 								await invoke('cut_audio', {
@@ -256,14 +294,13 @@
 									outputPath: audioFilePath
 								});
 							} else {
-								// Timings not found for specific verses, use full file
 								audioFilePath = fullSurahPath;
 							}
 						} else {
 							audioFilePath = fullSurahPath;
 						}
 					} catch (trimError) {
-						console.warn('Trimming failed, using full surah:', trimError);
+						console.warn('[AiVideo] Trimming failed, using full surah:', trimError);
 						audioFilePath = fullSurahPath;
 					}
 				} else {
@@ -275,21 +312,21 @@
 			}
 
 			// ── 3. Add audio to project and timeline ──
-			generationStatus = 'Adding audio to timeline...';
-			const sourceType = useLocalAudio ? SourceType.Local : SourceType.Mp3Quran;
+			setStatus('Adding audio to timeline...');
+			const sourceType = snapshotUseLocal ? SourceType.Local : SourceType.Mp3Quran;
 			const metadata: Record<string, unknown> = {};
 
-			if (!useLocalAudio && selectedReciterOption) {
+			if (!snapshotUseLocal && snapshotReciterOption) {
 				metadata.mp3Quran = {
-					reciterId: selectedReciterOption.reciterId,
-					moshafId: selectedReciterOption.moshaf.id,
-					surahId: reviewSurah
+					reciterId: snapshotReciterOption.reciterId,
+					moshafId: snapshotReciterOption.moshaf.id,
+					surahId: snapshotSurah
 				};
 				metadata.nativeTiming = {
 					provider: 'mp3quran',
-					reciterId: selectedReciterOption.reciterId,
-					moshafId: selectedReciterOption.moshaf.id,
-					surahId: reviewSurah
+					reciterId: snapshotReciterOption.reciterId,
+					moshafId: snapshotReciterOption.moshaf.id,
+					surahId: snapshotSurah
 				};
 			}
 
@@ -307,28 +344,125 @@
 			await project.save();
 
 			// ── 4. Run auto-segmentation (cloud) ──
-			generationStatus = 'Generating subtitles with AI...';
+			setStatus('Generating subtitles with AI...');
 
 			const segResult = await runAutoSegmentation({}, 'api');
+			console.log('[AiVideo] Segmentation result:', segResult);
 
-			if (segResult && segResult.status === 'completed') {
-				toast.success(
-					`Project created with ${segResult.segmentsApplied} subtitle segments!`
-				);
-			} else if (segResult && segResult.status === 'failed') {
+			if (segResult && segResult.status === 'failed') {
 				toast.error(`Subtitles failed: ${segResult.message}. Project created without subtitles.`);
-			} else {
-				toast.success('Project created! Subtitles may need manual setup.');
+				await project.save();
+				return;
 			}
 
 			await project.save();
-			globalState.currentPage = 'home';
+
+			// ── 5. Add translation to the project ──
+			if (snapshotTranslation) {
+				setStatus('Loading translation...');
+				console.log('[AiVideo] Adding translation:', snapshotTranslation.name, snapshotTranslation.author);
+				const pt = content.projectTranslation;
+				const downloadedTranslations = await pt.getAllProjectSubtitlesTranslations(snapshotTranslation);
+				console.log('[AiVideo] Downloaded translations count:', Object.keys(downloadedTranslations).length);
+				await pt.addTranslation(snapshotTranslation, downloadedTranslations);
+				await project.save();
+
+				// ── 6. Run Advanced AI Translation Trimmer v2 ──
+				const aiSettings = globalState.settings?.aiTranslationSettings;
+				console.log('[AiVideo] AI settings available:', !!aiSettings?.openAiApiKey, !!aiSettings?.textAiApiEndpoint);
+
+				if (aiSettings?.openAiApiKey && aiSettings?.textAiApiEndpoint) {
+					setStatus('Trimming translations with AI...');
+					try {
+						const candidates = buildAdvancedTrimVerseCandidates(snapshotTranslation, false);
+						console.log('[AiVideo] Trim candidates:', candidates.length);
+
+						if (candidates.length > 0) {
+							const trimModel = aiSettings.advancedTrimModel || 'gpt-5.4';
+							const trimReasoning = aiSettings.advancedTrimReasoningEffort || 'none';
+							const batches = buildAdvancedTrimBatches(
+								candidates,
+								trimModel,
+								trimReasoning,
+								0,
+								Infinity
+							);
+							console.log('[AiVideo] Trim batches:', batches.length);
+
+							let trimmedSegments = 0;
+							let erroredSegments = 0;
+
+							for (let i = 0; i < batches.length; i++) {
+								setStatus(`Trimming translations with AI... (batch ${i + 1}/${batches.length})`);
+								const batch = batches[i];
+
+								console.log(`[AiVideo] Trim batch ${i + 1} REQUEST payload:`, JSON.stringify(batch.request, null, 2));
+								console.log(`[AiVideo] Trim batch ${i + 1} calling runAdvancedTrimBatchStreaming with model=${trimModel} endpoint=${aiSettings.textAiApiEndpoint}`);
+
+								try {
+									const response = await runAdvancedTrimBatchStreaming({
+										apiKey: aiSettings.openAiApiKey,
+										endpoint: aiSettings.textAiApiEndpoint,
+										model: trimModel,
+										reasoningEffort: trimReasoning,
+										batchId: batch.batchId,
+										batch: batch.request
+									});
+									console.log(`[AiVideo] Trim batch ${i + 1} raw response:`, response.rawText);
+									console.log(`[AiVideo] Trim batch ${i + 1} parsed:`, response.parsed);
+
+									const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
+									console.log(`[AiVideo] Trim batch ${i + 1} validation:`, {
+										valid: validation.validVerses.length,
+										errors: validation.errors
+									});
+
+									const applyReport = applyAdvancedTrimValidationSuccess(
+										snapshotTranslation,
+										validation.validVerses
+									);
+									console.log(`[AiVideo] Trim batch ${i + 1} applied:`, applyReport);
+
+									trimmedSegments += applyReport.appliedSegments;
+									erroredSegments += applyReport.erroredSegments;
+								} catch (batchError) {
+									console.error(`[AiVideo] ❌ AI trim batch ${i + 1} FAILED:`, batchError);
+									toast.error(`AI trim batch ${i + 1} failed: ${batchError instanceof Error ? batchError.message : String(batchError)}`);
+									const msg = batchError instanceof Error ? batchError.message : String(batchError);
+									if (/\b(401|402|403|429|500|502|503|504)\b/.test(msg)) break;
+								}
+							}
+
+							if (trimmedSegments > 0) {
+								toast.success(`AI trimmed ${trimmedSegments} translation segments.`);
+							}
+							if (erroredSegments > 0) {
+								toast(`${erroredSegments} segments need manual review.`, { duration: 4000 });
+							}
+						} else {
+							console.log('[AiVideo] No candidates need AI trimming (all full-verse segments).');
+						}
+					} catch (trimError) {
+						console.warn('[AiVideo] AI translation trimming failed:', trimError);
+					}
+				} else {
+					console.log('[AiVideo] Skipping AI trim — no API key or endpoint configured.');
+				}
+
+				await project.save();
+			} else {
+				console.log('[AiVideo] No translation selected, skipping translation step.');
+			}
+
+			setStatus('Finalizing project...');
+			toast.success('Project ready!');
 		} catch (error) {
-			console.error('Project creation failed:', error);
+			console.error('[AiVideo] Project creation failed:', error);
 			toast.error(`Failed to create project: ${error}`);
 		} finally {
 			isCreatingProject = false;
 			generationStatus = '';
+			globalState.aiVideoGenerationStatus = '';
 		}
 	}
 
@@ -384,6 +518,12 @@
 				ayahStart,
 				ayahEnd
 			};
+		}
+
+		// Debug mode: return mock plan instantly
+		if (AI_VIDEO_DEBUG) {
+			console.log('[AiVideo] DEBUG MODE — returning mock AI plan');
+			return { ...MOCK_AI_PLAN };
 		}
 
 		if (allReciterOptions.length === 0) {
@@ -447,6 +587,7 @@ Rules:
 		}
 
 		const data = await response.json();
+		console.log('[AiVideo] AI plan raw response:', JSON.stringify(data, null, 2));
 
 		// Extract text from OpenAI responses API format
 		let text = '';
@@ -462,6 +603,8 @@ Rules:
 			}
 		}
 
+		console.log('[AiVideo] AI plan extracted text:', text);
+
 		if (!text) {
 			toast.error('AI returned an empty response.');
 			throw new Error('No text response from AI');
@@ -470,6 +613,7 @@ Rules:
 		// Parse JSON (handle markdown code blocks)
 		const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
 		const plan = JSON.parse(jsonMatch[1]!.trim());
+		console.log('[AiVideo] AI plan parsed:', plan);
 
 		return {
 			videoPrompt: plan.videoPrompt || prompt,
@@ -727,6 +871,7 @@ Rules:
 					<button
 						type="button"
 						class="flex-1 rounded-xl border border-color bg-bg-secondary px-6 py-4 text-sm font-medium text-primary hover:border-accent-primary/50 transition-all cursor-pointer flex items-center justify-center gap-2"
+						disabled={isCreatingProject}
 						onclick={() => (currentStep = 'input')}
 					>
 						<span class="material-icons text-base">arrow_back</span>

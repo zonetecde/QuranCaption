@@ -7,7 +7,6 @@
 		Mp3QuranService,
 		type Mp3QuranMoshaf
 	} from '$lib/services/Mp3QuranService';
-	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
 
@@ -57,20 +56,13 @@
 		return selectedReciterOption.surahSet.has(surah);
 	});
 
-	let surahSuggestions = $derived(
-		Quran.getSurahsNames().map((s) => `${s.id}. ${s.transliteration}`)
+	let surahKey = $state('1');
+	let surahOptions = $derived(
+		Quran.getSurahsNames().map((s) => ({
+			value: s.id.toString(),
+			label: `${s.id}. ${s.transliteration}`
+		}))
 	);
-
-	let surahSearchValue = $state('1. Al-Fatihah');
-
-	function handleSurahSelection(value: string) {
-		const match = value.match(/^(\d+)\./);
-		if (match) {
-			surah = parseInt(match[1]);
-			ayahStart = 1;
-			ayahEnd = Quran.getVerseCount(surah) || 1;
-		}
-	}
 
 	/**
 	 * Retourne la cle stable utilisee par le select recitateur.
@@ -94,6 +86,20 @@
 	$effect(() => {
 		selectedReciterKey = selectedReciterOption ? getReciterOptionKey(selectedReciterOption) : '';
 	});
+
+	$effect(() => {
+		surahKey = surah.toString();
+	});
+
+	/**
+	 * Applique la sourate choisie dans le select.
+	 * @returns {void}
+	 */
+	function handleSurahChange() {
+		surah = parseInt(surahKey);
+		ayahStart = 1;
+		ayahEnd = Quran.getVerseCount(surah) || 1;
+	}
 
 	onMount(async () => {
 		try {
@@ -221,16 +227,15 @@
 				Surah & Verse Range
 			</span>
 
-			<div style="position: relative; z-index: 90;">
-				<AutocompleteInput
-					bind:value={surahSearchValue}
-					suggestions={surahSuggestions}
-					placeholder="Search surah..."
-					icon="search"
-					label=""
-					onSelect={handleSurahSelection}
-				/>
-			</div>
+			<SearchableSelect
+				id="surah-select"
+				bind:value={surahKey}
+				options={surahOptions}
+				placeholder="Select surah"
+				searchPlaceholder="Search surah..."
+				emptyMessage="No surah found"
+				onChange={handleSurahChange}
+			/>
 
 			{#if selectedReciterOption && !isSurahAvailable}
 				<p class="text-xs text-red-400 flex items-center gap-1">

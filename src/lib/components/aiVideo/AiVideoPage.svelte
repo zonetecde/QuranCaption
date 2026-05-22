@@ -35,7 +35,6 @@
 	import AiVideoGenerationOptions from './AiVideoGenerationOptions.svelte';
 	import AiVideoQuranSourceSettings from './AiVideoQuranSourceSettings.svelte';
 	import AiVideoVerseRangePreview from './AiVideoVerseRangePreview.svelte';
-	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 
 	// ── Debug mode: set to true to skip real AI calls and use mocked responses ──
@@ -138,10 +137,13 @@
 
 	// Surah helpers for review step
 	let reviewMaxAyah = $derived(Quran.getVerseCount(reviewSurah) || 1);
-	let surahSuggestions = $derived(
-		Quran.getSurahsNames().map((s) => `${s.id}. ${s.transliteration}`)
+	let surahOptions = $derived(
+		Quran.getSurahsNames().map((s) => ({
+			value: s.id.toString(),
+			label: `${s.id}. ${s.transliteration}`
+		}))
 	);
-	let reviewSurahSearchValue = $state('');
+	let reviewSurahKey = $state('1');
 	let reviewReciterKey = $state('');
 
 	$effect(() => {
@@ -150,15 +152,6 @@
 		if (reviewAyahEnd > max) reviewAyahEnd = max;
 		if (reviewAyahEnd < reviewAyahStart) reviewAyahEnd = reviewAyahStart;
 	});
-
-	function handleReviewSurahSelection(value: string) {
-		const match = value.match(/^(\d+)\./);
-		if (match) {
-			reviewSurah = parseInt(match[1]);
-			reviewAyahStart = 1;
-			reviewAyahEnd = Quran.getVerseCount(reviewSurah) || 1;
-		}
-	}
 
 	/**
 	 * Retourne l'URL de la video de fond pour le modele et le format choisis.
@@ -230,6 +223,20 @@
 		reviewReciterKey = selectedReciterOption ? getReciterOptionKey(selectedReciterOption) : '';
 	});
 
+	$effect(() => {
+		reviewSurahKey = reviewSurah.toString();
+	});
+
+	/**
+	 * Applique la sourate choisie dans le select de review.
+	 * @returns {void}
+	 */
+	function handleReviewSurahChange() {
+		reviewSurah = parseInt(reviewSurahKey);
+		reviewAyahStart = 1;
+		reviewAyahEnd = Quran.getVerseCount(reviewSurah) || 1;
+	}
+
 	function goBack() {
 		if (currentStep === 'review') {
 			currentStep = 'input';
@@ -288,11 +295,6 @@
 					);
 				}
 			}
-
-			// Set the surah search value for the autocomplete
-			const surahNames = Quran.getSurahsNames();
-			const found = surahNames.find((s) => s.id === plan.surah);
-			reviewSurahSearchValue = found ? `${found.id}. ${found.transliteration}` : `${plan.surah}`;
 
 			currentStep = 'review';
 		} catch (error) {
@@ -999,16 +1001,15 @@ Rules:
 							Verse Range
 						</span>
 
-						<div style="position: relative; z-index: 90;">
-							<AutocompleteInput
-								bind:value={reviewSurahSearchValue}
-								suggestions={surahSuggestions}
-								placeholder="Search surah..."
-								icon="search"
-								label=""
-								onSelect={handleReviewSurahSelection}
-							/>
-						</div>
+						<SearchableSelect
+							id="review-surah-select"
+							bind:value={reviewSurahKey}
+							options={surahOptions}
+							placeholder="Select surah"
+							searchPlaceholder="Search surah..."
+							emptyMessage="No surah found"
+							onChange={handleReviewSurahChange}
+						/>
 
 						<div class="flex gap-3">
 							<div class="flex-1 space-y-1">

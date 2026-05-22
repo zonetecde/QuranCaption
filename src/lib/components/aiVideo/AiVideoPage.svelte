@@ -1,9 +1,19 @@
 <script lang="ts">
-	import { Project, ProjectContent, ProjectDetail, Edition, Utilities } from '$lib/classes';
+	import { onMount } from 'svelte';
+	import { Project, ProjectContent, ProjectDetail, Edition, Utilities, SourceType } from '$lib/classes';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { discordService } from '$lib/services/DiscordService';
-	import type { Mp3QuranMoshaf } from '$lib/services/Mp3QuranService';
+	import {
+		Mp3QuranService,
+		type Mp3QuranMoshaf,
+		type Mp3QuranReciter
+	} from '$lib/services/Mp3QuranService';
+	import { ProjectService } from '$lib/services/ProjectService';
+	import { runAutoSegmentation } from '$lib/services/AutoSegmentation';
+	import { invoke } from '@tauri-apps/api/core';
+	import { join } from '@tauri-apps/api/path';
+	import { copyFile } from '@tauri-apps/plugin-fs';
 	import toast from 'svelte-5-french-toast';
 	import AiVideoPromptField from './AiVideoPromptField.svelte';
 	import AiVideoGenerationOptions from './AiVideoGenerationOptions.svelte';
@@ -41,6 +51,30 @@
 
 	let isGeneratingPlan = $state(false);
 
+	// ── MP3Quran reciters (loaded once, shared for AI prompt + manual selection) ──
+	let allReciterOptions = $state<ReciterOption[]>([]);
+
+	onMount(async () => {
+		try {
+			const mp3Reciters = await Mp3QuranService.getReciters();
+			const options: ReciterOption[] = [];
+			for (const rec of mp3Reciters) {
+				for (const moshaf of rec.moshaf) {
+					options.push({
+						label: `${rec.name} — ${moshaf.name}`,
+						reciterName: rec.name,
+						moshaf,
+						reciterId: rec.id,
+						surahSet: new Set(moshaf.surah_list.split(',').map(Number))
+					});
+				}
+			}
+			allReciterOptions = options.sort((a, b) => a.label.localeCompare(b.label));
+		} catch (error) {
+			console.error('Failed to load mp3quran reciters:', error);
+		}
+	});
+
 	// ── Step 2: Review/recap state (editable) ──
 	let reviewVideoPrompt = $state('');
 	let reviewReciter = $state('');
@@ -49,6 +83,7 @@
 	let reviewAyahEnd = $state(7);
 
 	let isCreatingProject = $state(false);
+	let generationStatus = $state('');
 
 	// Surah helpers for review step
 	let reviewMaxAyah = $derived(Quran.getVerseCount(reviewSurah) || 1);
@@ -117,6 +152,17 @@
 			reviewAyahStart = plan.ayahStart;
 			reviewAyahEnd = plan.ayahEnd;
 
+			// Resolve AI-chosen reciter to a real ReciterOption for downloading
+			if (letAiChoose && plan.reciterId) {
+				const resolved = resolveReciterOption(plan.reciterId, plan.moshafId, plan.surah);
+				if (resolved) {
+					selectedReciterOption = resolved;
+					reciter = resolved.reciterName;
+				} else {
+					toast.error('AI selected a reciter that could not be resolved. Please pick one manually in the review.');
+				}
+			}
+
 			// Set the surah search value for the autocomplete
 			const surahNames = Quran.getSurahsNames();
 			const found = surahNames.find((s) => s.id === plan.surah);
@@ -134,11 +180,9 @@
 	// ── Step 2 → Create project ──
 	async function handleCreateProject() {
 		isCreatingProject = true;
+		generationStatus = 'Creating project...';
 
 		try {
-			// TODO: Replace with real prompt-to-video API call when integrating Luma/Runway/Veo/Replicate
-			// For now the video generation is mocked
-
 			const projectName = `AI - ${prompt.trim().slice(0, 40)}`;
 
 			if (Utilities.isPathNotSafe(projectName)) {
@@ -154,33 +198,178 @@
 				'Others'
 			);
 			const content = await ProjectContent.getDefaultProjectContent();
-
-			// TODO: Set project resolution based on portrait/landscape choice
-			// TODO: Attach generated background video to the project video track
-			// TODO: Attach Quran audio to the project audio track
-			// TODO: Run subtitle segmentation pipeline (Hetchy's Universal Quran Aligner) if available
-			// TODO: Connect style presets system here once implemented
-
 			const project = new Project(projectDetail, content);
 			await project.save();
 
+			// Set as current project so segmentation functions can access tracks
 			globalState.currentProject = project;
-			globalState.currentPage = 'home';
 			discordService.setEditingState();
 
-			toast.success('AI video project created!');
+			const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
+
+			// ── 1. Get audio file into the project ──
+			let audioFilePath: string;
+
+			if (useLocalAudio && localAudioPath) {
+				// Copy local audio file to project assets
+				generationStatus = 'Copying audio file...';
+				const ext = localAudioPath.split('.').pop() || 'mp3';
+				const destFileName = `local-audio.${ext}`;
+				audioFilePath = await join(assetFolder, destFileName);
+				await copyFile(localAudioPath, audioFilePath);
+			} else if (selectedReciterOption) {
+				// Download full surah from MP3Quran
+				generationStatus = 'Downloading recitation...';
+				const formattedSurahId = reviewSurah.toString().padStart(3, '0');
+				const audioUrl = `${selectedReciterOption.moshaf.server}${formattedSurahId}.mp3`;
+				const fullSurahPath = await join(assetFolder, `full-surah-${formattedSurahId}.mp3`);
+
+				await invoke('download_file', {
+					url: audioUrl,
+					path: fullSurahPath
+				});
+
+				// ── 2. Trim to verse range using timing data ──
+				const surahVerseCount = Quran.getVerseCount(reviewSurah) || 1;
+				const needsTrim = reviewAyahStart > 1 || reviewAyahEnd < surahVerseCount;
+
+				if (needsTrim) {
+					generationStatus = 'Trimming audio to verse range...';
+					try {
+						const timings = await Mp3QuranService.getSurahTiming(
+							selectedReciterOption.moshaf.id,
+							reviewSurah
+						);
+
+						if (timings && timings.length > 0) {
+							const startTiming = timings.find((t) => t.ayah === reviewAyahStart);
+							const endTiming = timings.find((t) => t.ayah === reviewAyahEnd);
+
+							if (startTiming && endTiming) {
+								const trimmedFileName = `${reviewReciter.replace(/[<>:"/\\|?*]/g, '').trim() || 'reciter'}-${reviewSurah}-${reviewAyahStart}-${reviewAyahEnd}.mp3`;
+								audioFilePath = await join(assetFolder, trimmedFileName);
+
+								await invoke('cut_audio', {
+									sourcePath: fullSurahPath,
+									startMs: startTiming.start_time,
+									endMs: endTiming.end_time,
+									outputPath: audioFilePath
+								});
+							} else {
+								// Timings not found for specific verses, use full file
+								audioFilePath = fullSurahPath;
+							}
+						} else {
+							audioFilePath = fullSurahPath;
+						}
+					} catch (trimError) {
+						console.warn('Trimming failed, using full surah:', trimError);
+						audioFilePath = fullSurahPath;
+					}
+				} else {
+					audioFilePath = fullSurahPath;
+				}
+			} else {
+				toast.error('No audio source selected.');
+				return;
+			}
+
+			// ── 3. Add audio to project and timeline ──
+			generationStatus = 'Adding audio to timeline...';
+			const sourceType = useLocalAudio ? SourceType.Local : SourceType.Mp3Quran;
+			const metadata: Record<string, unknown> = {};
+
+			if (!useLocalAudio && selectedReciterOption) {
+				metadata.mp3Quran = {
+					reciterId: selectedReciterOption.reciterId,
+					moshafId: selectedReciterOption.moshaf.id,
+					surahId: reviewSurah
+				};
+				metadata.nativeTiming = {
+					provider: 'mp3quran',
+					reciterId: selectedReciterOption.reciterId,
+					moshafId: selectedReciterOption.moshaf.id,
+					surahId: reviewSurah
+				};
+			}
+
+			content.addAsset(audioFilePath, undefined, sourceType, metadata);
+
+			const normalizedPath = audioFilePath.replace(/\\/g, '/').replace(/\/+/g, '/');
+			const addedAsset = content.assets.find(
+				(asset) => asset.filePath === normalizedPath
+			);
+
+			if (addedAsset) {
+				await addedAsset.addToTimeline(false, true);
+			}
+
+			await project.save();
+
+			// ── 4. Run auto-segmentation (cloud) ──
+			generationStatus = 'Generating subtitles with AI...';
+
+			const segResult = await runAutoSegmentation({}, 'api');
+
+			if (segResult && segResult.status === 'completed') {
+				toast.success(
+					`Project created with ${segResult.segmentsApplied} subtitle segments!`
+				);
+			} else if (segResult && segResult.status === 'failed') {
+				toast.error(`Subtitles failed: ${segResult.message}. Project created without subtitles.`);
+			} else {
+				toast.success('Project created! Subtitles may need manual setup.');
+			}
+
+			await project.save();
+			globalState.currentPage = 'home';
 		} catch (error) {
 			console.error('Project creation failed:', error);
-			toast.error('Failed to create project.');
+			toast.error(`Failed to create project: ${error}`);
 		} finally {
 			isCreatingProject = false;
+			generationStatus = '';
 		}
+	}
+
+	// ── Build condensed reciter list for AI prompt ──
+	function buildReciterListForAi(): string {
+		// Deduplicate by reciterId — pick the first moshaf for each reciter
+		const seen = new Set<number>();
+		const lines: string[] = [];
+		for (const opt of allReciterOptions) {
+			if (seen.has(opt.reciterId)) continue;
+			seen.add(opt.reciterId);
+			lines.push(`{ "reciterId": ${opt.reciterId}, "name": "${opt.reciterName}", "moshafId": ${opt.moshaf.id} }`);
+		}
+		return lines.join('\n');
+	}
+
+	// ── Resolve AI-returned reciter/moshaf IDs to a ReciterOption ──
+	function resolveReciterOption(reciterId: number, moshafId: number, surahId: number): ReciterOption | null {
+		// Try exact match first
+		let match = allReciterOptions.find(
+			(o) => o.reciterId === reciterId && o.moshaf.id === moshafId && o.surahSet.has(surahId)
+		);
+		if (match) return match;
+
+		// Fallback: same reciter, any moshaf that has the surah
+		match = allReciterOptions.find(
+			(o) => o.reciterId === reciterId && o.surahSet.has(surahId)
+		);
+		if (match) return match;
+
+		// Fallback: same reciter, any moshaf
+		match = allReciterOptions.find((o) => o.reciterId === reciterId);
+		return match ?? null;
 	}
 
 	// ── AI plan generation ──
 	async function generateAiPlan(): Promise<{
 		videoPrompt: string;
 		reciter: string;
+		reciterId: number;
+		moshafId: number;
 		surah: number;
 		ayahStart: number;
 		ayahEnd: number;
@@ -189,10 +378,17 @@
 			return {
 				videoPrompt: prompt,
 				reciter,
+				reciterId: selectedReciterOption?.reciterId ?? 0,
+				moshafId: selectedReciterOption?.moshaf.id ?? 0,
 				surah,
 				ayahStart,
 				ayahEnd
 			};
+		}
+
+		if (allReciterOptions.length === 0) {
+			toast.error('Reciters are still loading. Please wait a moment and try again.');
+			throw new Error('Reciters not loaded yet');
 		}
 
 		const aiSettings = globalState.settings?.aiTranslationSettings;
@@ -201,15 +397,22 @@
 			throw new Error('AI settings not configured');
 		}
 
+		const reciterList = buildReciterListForAi();
+
 		const systemPrompt = `You are a Quran video planning assistant. Given a theme or topic, you must:
 1. Select the most relevant Quran verses for this theme
-2. Suggest a well-known Quran reciter
+2. Choose a reciter from the available list below
 3. Write a detailed visual prompt that would be sent to an AI video generation model
+
+AVAILABLE RECITERS (you MUST pick from this list using exact IDs):
+${reciterList}
 
 Respond ONLY with valid JSON in this exact format:
 {
   "videoPrompt": "A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Be very descriptive and visual.",
-  "reciter": "Name of a well-known Quran reciter (in Latin/English script)",
+  "reciterId": <reciter ID from the list above>,
+  "moshafId": <moshaf ID from the list above>,
+  "reciter": "Name of the selected reciter",
   "surah": <surah number 1-114>,
   "ayahStart": <starting verse number>,
   "ayahEnd": <ending verse number>
@@ -219,7 +422,8 @@ Rules:
 - Choose verses that are MOST relevant to the given theme
 - Keep the verse range reasonable (3-15 verses)
 - The videoPrompt should describe a beautiful, contemplative visual scene matching the theme
-- Pick a reciter whose style matches the mood (e.g. emotional themes → emotional reciter)`;
+- Pick a reciter whose style matches the mood (e.g. emotional themes → emotional reciter)
+- You MUST use reciterId and moshafId from the available reciters list`;
 
 		const response = await fetch(aiSettings.textAiApiEndpoint, {
 			method: 'POST',
@@ -269,7 +473,9 @@ Rules:
 
 		return {
 			videoPrompt: plan.videoPrompt || prompt,
-			reciter: plan.reciter || 'Mishary Rashid Alafasy',
+			reciter: plan.reciter || 'Unknown',
+			reciterId: plan.reciterId || 0,
+			moshafId: plan.moshafId || 0,
 			surah: Math.max(1, Math.min(114, plan.surah || 1)),
 			ayahStart: Math.max(1, plan.ayahStart || 1),
 			ayahEnd: Math.max(1, plan.ayahEnd || 7)
@@ -534,7 +740,7 @@ Rules:
 					>
 						{#if isCreatingProject}
 							<span class="material-icons animate-spin text-lg">autorenew</span>
-							Creating project...
+							{generationStatus || 'Creating project...'}
 						{:else}
 							<span class="material-icons text-lg">movie_creation</span>
 							Create Project

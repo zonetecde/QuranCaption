@@ -70,6 +70,28 @@
 	}
 
 	/**
+	 * Decoupe un label pour surligner la partie qui correspond a la recherche.
+	 * @param {string} label Texte affiche dans l'option.
+	 * @returns {{ before: string; match: string; after: string }} Parties du label.
+	 */
+	function getHighlightedLabelParts(label: string): {
+		before: string;
+		match: string;
+		after: string;
+	} {
+		if (!search.trim()) return { before: label, match: '', after: '' };
+
+		const index = label.toLowerCase().indexOf(search.trim().toLowerCase());
+		if (index === -1) return { before: label, match: '', after: '' };
+
+		return {
+			before: label.slice(0, index),
+			match: label.slice(index, index + search.trim().length),
+			after: label.slice(index + search.trim().length)
+		};
+	}
+
+	/**
 	 * Ouvre la liste et prepare une recherche vide.
 	 * @returns {void}
 	 */
@@ -150,6 +172,7 @@
 				<p class="px-4 py-3 text-sm text-thirdly">{emptyMessage}</p>
 			{:else}
 				{#each filteredOptions as option (option.value)}
+					{@const labelParts = getHighlightedLabelParts(option.label)}
 					<button
 						type="button"
 						disabled={option.disabled}
@@ -162,7 +185,11 @@
 							selectOption(option);
 						}}
 					>
-						{option.label}
+						{labelParts.before}{#if labelParts.match}
+							<mark class="rounded bg-[var(--accent-primary)]/25 px-0.5 text-accent-primary"
+								>{labelParts.match}</mark
+							>
+						{/if}{labelParts.after}
 					</button>
 				{/each}
 			{/if}

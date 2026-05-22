@@ -26,6 +26,9 @@ export class Asset extends SerializableBase {
 	durationLoadState: DurationLoadState = $state('idle');
 	durationLoadError: string | null = $state(null);
 
+	/** Promesse résolue quand la durée est chargée (null si pas de chargement nécessaire). */
+	private durationPromise: Promise<void> | null = null;
+
 	constructor(
 		filePath: string = '',
 		sourceUrl?: string,
@@ -63,7 +66,17 @@ export class Asset extends SerializableBase {
 		this.duration = new Duration(0);
 
 		if (this.type === AssetType.Audio || this.type === AssetType.Video) {
-			this.initializeDuration();
+			this.durationPromise = this.initializeDuration();
+		}
+	}
+
+	/**
+	 * Attend que la durée du media soit chargée (nécessaire avant d'ajouter à la timeline).
+	 * @returns {Promise<void>}
+	 */
+	async ensureDurationLoaded(): Promise<void> {
+		if (this.durationPromise) {
+			await this.durationPromise;
 		}
 	}
 

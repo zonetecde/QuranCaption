@@ -156,6 +156,7 @@ export async function createAiVideoProject(): Promise<void> {
 		}
 
 		if (backgroundVideoAsset) {
+			await backgroundVideoAsset.ensureDurationLoaded();
 			await backgroundVideoAsset.addToTimeline(true, false, true);
 		}
 
@@ -191,6 +192,7 @@ export async function createAiVideoProject(): Promise<void> {
 		const addedAsset = content.assets.find((asset) => asset.filePath === normalizedPath);
 
 		if (addedAsset) {
+			await addedAsset.ensureDurationLoaded();
 			await addedAsset.addToTimeline(false, true);
 		}
 

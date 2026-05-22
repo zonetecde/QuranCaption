@@ -1387,65 +1387,17 @@ fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> 
         .min(fade_duration_ms.max(0))
 }
 
-/// Retourne les frontieres ou deux captures consecutives sont des copies PNG exactes.
-fn find_identical_adjacent_image_indices(
-    image_paths: &[String],
-) -> Result<HashSet<usize>, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let mut identical_indices = HashSet::new();
-    if image_paths.len() < 2 {
-        return Ok(identical_indices);
-    }
-
-    let mut previous_size = fs::metadata(&image_paths[0])?.len();
-    for (idx, image_path) in image_paths.iter().enumerate().skip(1) {
-        let current_size = fs::metadata(image_path)?.len();
-        if previous_size == current_size
-            && fs::read(&image_paths[idx - 1])? == fs::read(image_path)?
-        {
-            identical_indices.insert(idx - 1);
-        }
-        previous_size = current_size;
-    }
-
-    Ok(identical_indices)
-}
-
-fn choose_identical_batch_end_idx(
-    image_paths: &[String],
+/// Choisit une fin de batch avec une image commune au batch suivant.
+fn choose_shared_batch_end_idx(
+    image_count: usize,
     batch_start_idx: usize,
     batch_limit: usize,
-    identical_boundary_indices: &HashSet<usize>,
 ) -> usize {
-    let n = image_paths.len();
-    if n == 0 || batch_start_idx + 1 >= n {
-        return n;
+    if image_count == 0 || batch_start_idx + 1 >= image_count {
+        return image_count;
     }
 
-    let default_end = (batch_start_idx + batch_limit.max(2)).min(n);
-    if default_end >= n {
-        return n;
-    }
-
-    let min_last_idx = batch_start_idx + 1;
-    let max_last_idx = n.saturating_sub(2);
-    if min_last_idx > max_last_idx {
-        return n;
-    }
-
-    let preferred_last_idx = default_end.saturating_sub(1).min(max_last_idx);
-    for last_idx in (min_last_idx..=preferred_last_idx).rev() {
-        if identical_boundary_indices.contains(&last_idx) {
-            return last_idx + 1;
-        }
-    }
-
-    for last_idx in (preferred_last_idx + 1)..=max_last_idx {
-        if identical_boundary_indices.contains(&last_idx) {
-            return last_idx + 1;
-        }
-    }
-
-    n
+    (batch_start_idx + batch_limit.max(2)).min(image_count)
 }
 
 fn compute_render_output_duration_ms(
@@ -1480,10 +1432,6 @@ fn frames_to_seconds(frames: i64, fps: i32) -> f64 {
 fn capture_timeline_ms(timestamp_ms: i32, image_index: usize, fade_duration_ms: i32) -> i64 {
     let completed_fades = image_index.saturating_sub(1) as i64;
     timestamp_ms as i64 - completed_fades * fade_duration_ms.max(0) as i64
-}
-
-fn boundary_blank_hold_ms(fps: i32) -> i32 {
-    (((1000.0 / fps.max(1) as f64).ceil() as i32) * 2).max(1)
 }
 
 /// Ecrit un fichier concat FFmpeg pour des videos deja generees.
@@ -1573,7 +1521,7 @@ fn concat_videos_with_stream_copy(
         output_path
     );
 
-    run_ffmpeg_command(
+    let result = run_ffmpeg_command(
         export_id,
         &cmd,
         Some(FfmpegProgressContext {
@@ -1583,7 +1531,9 @@ fn concat_videos_with_stream_copy(
         }),
         Some("Merging Files"),
         app_handle,
-    )
+    );
+    fs::remove_file(concat_path).ok();
+    result
 }
 
 /// Ajoute le codec audio correspondant au type d'export.
@@ -2091,7 +2041,7 @@ fn concat_internal_batch_videos(
 
     cmd.push(output_path_buf.to_string_lossy().to_string());
 
-    run_ffmpeg_command(
+    let result = run_ffmpeg_command(
         export_id,
         &cmd,
         Some(FfmpegProgressContext {
@@ -2101,7 +2051,9 @@ fn concat_internal_batch_videos(
         }),
         Some("Merging Files"),
         &app_handle,
-    )
+    );
+    fs::remove_file(video_concat_path).ok();
+    result
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2209,18 +2161,8 @@ fn build_and_run_ffmpeg_filter_complex(
         n, batch_limit
     );
     println!(
-        "[batching] {} timing(s) blank disponibles pour les frontieres",
+        "[batching] {} timing(s) blank disponibles pour le rendu",
         blank_timestamps.len()
-    );
-    let identical_boundary_indices = find_identical_adjacent_image_indices(image_paths)?;
-    let mut identical_boundary_preview: Vec<usize> =
-        identical_boundary_indices.iter().copied().collect();
-    identical_boundary_preview.sort_unstable();
-    identical_boundary_preview.truncate(10);
-    println!(
-        "[batching] {} frontiere(s) avec captures consecutives identiques, apercu={:?}",
-        identical_boundary_indices.len(),
-        identical_boundary_preview
     );
 
     let base_dir = if let Some(cwd) = imgs_cwd {
@@ -2244,28 +2186,16 @@ fn build_and_run_ffmpeg_filter_complex(
     while batch_start_idx < n {
         ensure_export_not_cancelled(export_id)?;
 
-        let batch_end_idx = choose_identical_batch_end_idx(
-            image_paths,
-            batch_start_idx,
-            batch_limit,
-            &identical_boundary_indices,
-        );
+        let batch_end_idx = choose_shared_batch_end_idx(n, batch_start_idx, batch_limit);
         let is_last_batch = batch_end_idx >= n;
         let batch_start_adjusted_ts = timestamps_ms[batch_start_idx];
         let batch_slice = &timestamps_ms[batch_start_idx..batch_end_idx];
         let batch_start_is_blank = blank_timestamps.contains(&timestamps_ms[batch_start_idx]);
         let batch_end_is_blank = blank_timestamps.contains(&timestamps_ms[batch_end_idx - 1]);
-        let boundary_is_blank =
-            !is_last_batch && blank_timestamps.contains(&timestamps_ms[batch_end_idx - 1]);
         let boundary_fade_ms = if is_last_batch {
             0
         } else {
             transition_fade_duration_ms(batch_slice, fade_duration_ms)
-        };
-        let blank_hold_ms = if boundary_is_blank {
-            boundary_blank_hold_ms(fps)
-        } else {
-            0
         };
         let batch_timestamps: Vec<i32> = batch_slice
             .iter()
@@ -2281,8 +2211,6 @@ fn build_and_run_ffmpeg_filter_complex(
             .collect();
         let last_tail_ms = if is_last_batch {
             fade_duration_ms.max(1000)
-        } else if boundary_is_blank {
-            blank_hold_ms
         } else {
             1
         };
@@ -2321,7 +2249,7 @@ fn build_and_run_ffmpeg_filter_complex(
         let batch_output = batch_output_path.to_string_lossy().to_string();
 
         println!(
-            "[batching] batch {}: images {}..{} adjusted_start={}ms source_start={}ms intended_start={}ms encoded_start={:.6}s start_blank={} end_blank={} start_fade={}ms end_fade={}ms boundary_blank={} blank_hold={}ms tail={}ms graph_duration={}ms intended_end={}ms encoded_duration={:.6}s output={}",
+            "[batching] batch {}: images {}..{} adjusted_start={}ms source_start={}ms intended_start={}ms encoded_start={:.6}s start_blank={} end_blank={} start_fade={}ms end_fade={}ms tail={}ms graph_duration={}ms intended_end={}ms encoded_duration={:.6}s output={}",
             batch_index,
             batch_start_idx,
             batch_end_idx - 1,
@@ -2333,8 +2261,6 @@ fn build_and_run_ffmpeg_filter_complex(
             batch_end_is_blank,
             batch_start_completed_fade_ms,
             boundary_fade_ms,
-            boundary_is_blank,
-            blank_hold_ms,
             last_tail_ms,
             graph_duration_ms,
             intended_batch_end_ms,
@@ -2379,11 +2305,7 @@ fn build_and_run_ffmpeg_filter_complex(
 
         intended_batch_base_ms = intended_batch_end_ms;
         encoded_batch_base_frames = target_end_frames;
-        batch_start_completed_fade_ms = if boundary_is_blank {
-            boundary_fade_ms.saturating_add(blank_hold_ms)
-        } else {
-            boundary_fade_ms
-        };
+        batch_start_completed_fade_ms = boundary_fade_ms;
         batch_start_idx = batch_end_idx - 1;
         batch_index += 1;
     }

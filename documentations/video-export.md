@@ -171,7 +171,7 @@ parallèles. Un `batch_size` de `4` veut dire "essayer de rendre environ 4 captu
 Le batch size est volontairement non strict:
 
 - il est clampé entre 2 et 64;
-- si aucun point de coupe valide n'existe près de la limite, le batch peut être plus grand;
+- les batchs non finaux partagent une capture avec le batch suivant;
 - si toutes les captures tiennent dans la limite, il n'y a pas de batching.
 
 Pourquoi batcher: un gros filtergraph avec des centaines de captures crée beaucoup de splits, trims,
@@ -181,47 +181,47 @@ limitent la taille des filtergraphs.
 ## Quand un batch peut s'arrêter
 
 Le merge final des batchs ne doit pas créer de transition visuelle. Il assemble des vidéos déjà
-rendues. Donc un batch ne peut s'arrêter que si la coupure est visuellement safe.
+rendues. Les transitions doivent donc être terminées à l'intérieur des batchs eux-mêmes.
 
 Regle actuelle:
 
 ```text
-un batch non final peut finir à l'index i seulement si image[i] et image[i + 1]
-sont identiques pixel par pixel.
+un batch non final peut finir à l'index i et le batch suivant reprend à ce même index i.
 ```
 
-Cette détection est faite par `find_identical_adjacent_image_indices()`:
+Cette frontière est choisie par `choose_shared_batch_end_idx()`:
 
-- chaque PNG est décodé en RGBA;
-- on compare dimensions + pixels, pas les bytes du fichier;
-- cela évite les faux négatifs dus à des différences d'encodage PNG.
+- on coupe à la limite cible du batch size;
+- on garde la dernière image du batch précédent comme première image du batch suivant;
+- la capture partagée sert uniquement de référence visuelle pour reconstruire la transition suivante.
 
-Puis `choose_identical_batch_end_idx()` choisit la frontière:
-
-1. chercher une frontière identique avant ou à la limite cible du batch;
-2. sinon chercher la première frontière identique après la limite;
-3. sinon rendre jusqu'à la fin.
-
-Cela veut dire qu'on préfère dépasser le batch size plutôt que couper sur une transition visible.
-
-## Pourquoi la règle des deux frames identiques existe
-
-Si on coupe n'importe où, le dernier état visuel du batch précédent peut ne pas correspondre au
-premier état du batch suivant. Comme le merge final ne fait plus de fade entre batchs, ça crée une
-transition dure ou un highlight qui apparaît directement.
-
-La solution est de couper uniquement autour de deux captures consécutives identiques:
+Exemple:
 
 ```text
-... image[i] -> image[i + 1] ...
+batch 0: image[0] ... image[11]
+batch 1: image[11] ... image[22]
+batch 2: image[22] ... image[33]
 ```
 
-Si `image[i] == image[i + 1]`, le batch précédent peut finir sur `image[i]`, et le batch suivant
-reprend sur `image[i]` puis transitionne vers `image[i + 1]`. Comme les deux captures sont
-identiques, cette transition est invisible, mais elle préserve la logique de durée et de fade
-interne.
+Il n'y a plus de détection de deux captures consécutives identiques. La coupure peut être faite
+n'importe où tant que cette capture commune existe.
 
-Ce cas arrive souvent aux fins de verset ou dans les zones où le visuel reste stable.
+## Pourquoi utiliser une frame partagée
+
+Le batch suivant a besoin de l'image précédente pour construire son premier `xfade`. Sans image
+commune, il commencerait directement sur l'image suivante et la transition visible entre les deux
+captures serait perdue.
+
+La frame partagée résout ce problème sans ajouter de fondu au merge final:
+
+- le batch précédent rend jusqu'à la capture de frontière;
+- le batch suivant reprend depuis cette même capture;
+- le premier `xfade` du batch suivant va de la capture partagée vers la capture suivante;
+- la durée de la capture partagée n'est pas comptée deux fois dans la vidéo finale.
+
+Cela évite aussi de créer des PNG synthétiques seulement pour trouver une frontière de batch. Les
+fichiers source restent les captures réelles de la timeline, et Rust se contente de les regrouper en
+batchs avec chevauchement.
 
 ## Chevauchement entre batchs
 
@@ -238,8 +238,9 @@ Le batch suivant reprend donc sur la dernière capture du batch précédent. C'e
 - ça évite d'avoir besoin d'un `xfade` entre fichiers batchs pendant le merge.
 
 Le code conserve aussi `batch_start_completed_fade_ms`. Il sert à ajuster les timestamps locaux du
-batch suivant pour tenir compte du fade déjà consommé à la frontière. Sans cette compensation, les
-durées des batchs peuvent s'accumuler avec un décalage audio/vidéo.
+batch suivant pour tenir compte du fade déjà consommé à la frontière. Cette compensation est ce qui
+empêche la frame commune d'ajouter du temps en double. Sans elle, les durées des batchs peuvent
+s'accumuler avec un décalage audio/vidéo.
 
 ## Durées des batchs
 
@@ -323,7 +324,7 @@ Logs Rust utiles:
 [timeline] Premiers timestamps: [...]
 [perf] batch_size=<n>
 [batching] <n> image(s), limite <batch_limit>, rendu interne en batchs
-[batching] <n> frontière(s) avec captures consécutives identiques, aperçu=[...]
+[batching] <n> timing(s) blank disponibles pour le rendu
 [batching] batch <idx>: images <start>..<end> ... encoded_duration=<s>
 [batching] concat stream-copy: <n> fichier(s) -> <output>
 ```
@@ -333,8 +334,8 @@ Pour diagnostiquer une coupure visible entre deux batchs, regarder:
 - `images start..end` du batch précédent;
 - `images start..end` du batch suivant;
 - si le `end` du précédent est bien le `start` du suivant;
-- si la frontière est dans la liste des captures consécutives identiques;
-- si les PNG numérotés correspondants sont vraiment identiques visuellement.
+- si la transition attendue se trouve dans le batch qui commence sur cette image partagée;
+- si la durée forcée du batch laisse assez de place au dernier fade interne.
 
 ## Pièges connus
 
@@ -342,11 +343,8 @@ Pour diagnostiquer une coupure visible entre deux batchs, regarder:
   FFmpeg.
 - Ne pas supprimer le chevauchement `batch_start_idx = batch_end_idx - 1`.
 - Ne pas réintroduire de `xfade` entre batchs dans `concat_internal_batch_videos()`.
-- Ne pas supposer que `batch_size=4` donne toujours 4 captures par batch. La stabilité visuelle
-  prime.
+- Ne pas compter la frame partagée deux fois dans la durée finale.
 - Ne pas traiter une fin interne de merge visuel comme une blank réutilisable.
-- Ne pas comparer seulement les bytes PNG pour les frontières identiques; comparer les pixels
-  décodés.
 - Ne pas ajouter de frames au merge final pour "préparer" le batch suivant: ça décale l'audio.
 
 ## Checklist avant de modifier l'export
@@ -356,5 +354,6 @@ Pour diagnostiquer une coupure visible entre deux batchs, regarder:
 3. Si le bug apparaît seulement entre batchs, inspecter les logs `images start..end`.
 4. Si l'audio se décale progressivement, chercher une durée ajoutée ou retirée à chaque batch.
 5. Si la RAM explose au merge, vérifier qu'on est bien dans le chemin stream-copy.
-6. Si le batch size semble ignoré, vérifier s'il existe des frontières identiques assez proches.
+6. Si la première transition d'un batch manque, vérifier la frame partagée et
+   `batch_start_completed_fade_ms`.
 7. Relancer au minimum `cargo check` après modification Rust.

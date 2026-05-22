@@ -1,12 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Quran } from '$lib/classes/Quran';
-	import {
-		Mp3QuranService,
-		type Mp3QuranReciter,
-		type Mp3QuranMoshaf
-	} from '$lib/services/Mp3QuranService';
+	import { Mp3QuranService, type Mp3QuranMoshaf } from '$lib/services/Mp3QuranService';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
+	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
 
 	type ReciterOption = {
@@ -28,11 +25,16 @@
 		localAudioPath = $bindable('')
 	} = $props();
 
-	let mp3Reciters: Mp3QuranReciter[] = $state([]);
 	let reciterOptions: ReciterOption[] = $state([]);
 	let isLoadingReciters = $state(true);
-	let reciterSearchQuery = $state('Let AI decide');
-	let isFocused = $state(false);
+	let selectedReciterKey = $state('');
+	let reciterSelectOptions = $derived([
+		{ value: '', label: 'Let AI decide' },
+		...reciterOptions.map((option) => ({
+			value: getReciterOptionKey(option),
+			label: option.label
+		}))
+	]);
 
 	let maxAyah = $derived(Quran.getVerseCount(surah) || 1);
 
@@ -42,13 +44,6 @@
 		if (ayahStart > max) ayahStart = 1;
 		if (ayahEnd > max) ayahEnd = max;
 		if (ayahEnd < ayahStart) ayahEnd = ayahStart;
-	});
-
-	// Filter reciter options based on search
-	let filteredOptions = $derived.by(() => {
-		const q = reciterSearchQuery === 'Let AI decide' ? '' : reciterSearchQuery.trim().toLowerCase();
-		if (!q) return reciterOptions;
-		return reciterOptions.filter((o) => o.label.toLowerCase().includes(q));
 	});
 
 	// Check if selected surah is available for the chosen reciter
@@ -72,51 +67,32 @@
 		}
 	}
 
-	function selectReciter(option: ReciterOption) {
-		selectedReciterOption = option;
-		reciter = option.reciterName;
-		reciterSearchQuery = option.label;
-		isFocused = false;
+	/**
+	 * Retourne la cle stable utilisee par le select recitateur.
+	 * @param {ReciterOption} option Option de recitateur MP3Quran.
+	 * @returns {string} Cle unique recitateur/moshaf.
+	 */
+	function getReciterOptionKey(option: ReciterOption): string {
+		return `${option.reciterId}:${option.moshaf.id}`;
 	}
 
 	/**
-	 * Reinitialise le recitateur pour laisser l'IA le choisir.
+	 * Applique le recitateur choisi dans le select.
 	 * @returns {void}
 	 */
-	function selectAiReciter() {
-		selectedReciterOption = null;
-		reciter = '';
-		reciterSearchQuery = 'Let AI decide';
-		isFocused = false;
+	function handleReciterChange() {
+		const option = reciterOptions.find((item) => getReciterOptionKey(item) === selectedReciterKey);
+		selectedReciterOption = option ?? null;
+		reciter = option?.reciterName ?? '';
 	}
 
-	/**
-	 * Prepare le champ pour une recherche utilisateur.
-	 * @returns {void}
-	 */
-	function handleReciterFocus() {
-		isFocused = true;
-		if (!selectedReciterOption && reciterSearchQuery === 'Let AI decide') {
-			reciterSearchQuery = '';
-		}
-	}
-
-	/**
-	 * Restaure l'etat d'affichage par defaut si aucun recitateur n'est choisi.
-	 * @returns {void}
-	 */
-	function handleReciterBlur() {
-		setTimeout(() => {
-			isFocused = false;
-			if (!selectedReciterOption && reciterSearchQuery.trim() === '') {
-				reciterSearchQuery = 'Let AI decide';
-			}
-		}, 0);
-	}
+	$effect(() => {
+		selectedReciterKey = selectedReciterOption ? getReciterOptionKey(selectedReciterOption) : '';
+	});
 
 	onMount(async () => {
 		try {
-			mp3Reciters = await Mp3QuranService.getReciters();
+			const mp3Reciters = await Mp3QuranService.getReciters();
 			const options: ReciterOption[] = [];
 			for (const rec of mp3Reciters) {
 				for (const moshaf of rec.moshaf) {
@@ -218,53 +194,15 @@
 					Loading reciters from MP3Quran...
 				</div>
 			{:else}
-				<div class="relative">
-					<input
-						type="text"
-						bind:value={reciterSearchQuery}
-						placeholder="Search reciters..."
-						class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary text-sm placeholder:text-thirdly"
-						onfocus={handleReciterFocus}
-						onblur={handleReciterBlur}
-					/>
-					{#if isFocused}
-						<div
-							class="absolute left-0 right-0 top-full mt-1 max-h-60 overflow-auto rounded-xl border border-color bg-primary shadow-xl z-100"
-						>
-							<button
-								type="button"
-								class="w-full text-left px-4 py-2.5 text-sm text-primary hover:bg-accent transition-colors cursor-pointer border-b border-color"
-								onmousedown={(e) => {
-									e.preventDefault();
-									selectAiReciter();
-								}}
-							>
-								Let AI decide
-							</button>
-							{#if filteredOptions.length === 0}
-								<p class="px-4 py-3 text-sm text-thirdly">No reciters found</p>
-							{:else}
-								{#each filteredOptions.slice(0, 50) as option (option.label)}
-									<button
-										type="button"
-										class="w-full text-left px-4 py-2.5 text-sm text-primary hover:bg-accent transition-colors cursor-pointer"
-										onmousedown={(e) => {
-											e.preventDefault();
-											selectReciter(option);
-										}}
-									>
-										{option.label}
-									</button>
-								{/each}
-								{#if filteredOptions.length > 50}
-									<p class="px-4 py-2 text-xs text-thirdly">
-										...and {filteredOptions.length - 50} more. Type to narrow results.
-									</p>
-								{/if}
-							{/if}
-						</div>
-					{/if}
-				</div>
+				<SearchableSelect
+					id="reciter-select"
+					bind:value={selectedReciterKey}
+					options={reciterSelectOptions}
+					placeholder="Let AI decide"
+					searchPlaceholder="Search reciters..."
+					emptyMessage="No reciters found"
+					onChange={handleReciterChange}
+				/>
 			{/if}
 		</div>
 	{/if}

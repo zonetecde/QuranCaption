@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Project, ProjectContent, ProjectDetail, Edition, Utilities, SourceType } from '$lib/classes';
+	import {
+		Project,
+		ProjectContent,
+		ProjectDetail,
+		Edition,
+		Utilities,
+		SourceType
+	} from '$lib/classes';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { discordService } from '$lib/services/DiscordService';
-	import {
-		Mp3QuranService,
-		type Mp3QuranMoshaf
-	} from '$lib/services/Mp3QuranService';
+	import { Mp3QuranService, type Mp3QuranMoshaf } from '$lib/services/Mp3QuranService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { runAutoSegmentation } from '$lib/services/AutoSegmentation';
 	import {
@@ -31,14 +35,15 @@
 	const AI_VIDEO_DEBUG = true;
 
 	const MOCK_AI_PLAN = {
+		title: 'Al-Fatiha — The Opening',
 		videoPrompt:
 			'A serene and contemplative visual scene unfolds in a beautiful, tranquil landscape, where lush greenery meets gentle rolling hills under a soft sunset. The colors are warm and inviting, featuring shades of gold and orange mixing with soft pastels. A slow, sweeping camera movement glides through the scene, capturing a babbling brook that flows gracefully, symbolizing peace and the passage of time.',
 		reciterId: 54,
 		moshafId: 54,
 		reciter: 'Abdulrahman Alsudaes',
-		surah: 2,
-		ayahStart: 254,
-		ayahEnd: 255
+		surah: 1,
+		ayahStart: 3,
+		ayahEnd: 7
 	};
 
 	type ReciterOption = {
@@ -96,6 +101,7 @@
 	});
 
 	// ── Step 2: Review/recap state (editable) ──
+	let reviewTitle = $state('');
 	let reviewVideoPrompt = $state('');
 	let reviewReciter = $state('');
 	let reviewSurah = $state(1);
@@ -166,6 +172,7 @@
 			const plan = await generateAiPlan();
 
 			// Populate review state
+			reviewTitle = plan.title;
 			reviewVideoPrompt = plan.videoPrompt;
 			reviewReciter = plan.reciter;
 			reviewSurah = plan.surah;
@@ -179,7 +186,9 @@
 					selectedReciterOption = resolved;
 					reciter = resolved.reciterName;
 				} else {
-					toast.error('AI selected a reciter that could not be resolved. Please pick one manually in the review.');
+					toast.error(
+						'AI selected a reciter that could not be resolved. Please pick one manually in the review.'
+					);
 				}
 			}
 
@@ -212,6 +221,7 @@
 		const snapshotAyahEnd = reviewAyahEnd;
 		const snapshotReciterName = reviewReciter;
 		const snapshotPrompt = prompt;
+		const snapshotTitle = reviewTitle;
 
 		const setStatus = (msg: string) => {
 			generationStatus = msg;
@@ -222,7 +232,7 @@
 		setStatus('Creating project...');
 
 		try {
-			const projectName = `AI - ${snapshotPrompt.trim().slice(0, 40)}`;
+			const projectName = `AI - ${(snapshotTitle || snapshotPrompt).trim().slice(0, 50)}`;
 
 			if (Utilities.isPathNotSafe(projectName)) {
 				toast.error('Generated project name contains invalid characters.');
@@ -333,9 +343,7 @@
 			content.addAsset(audioFilePath, undefined, sourceType, metadata);
 
 			const normalizedPath = audioFilePath.replace(/\\/g, '/').replace(/\/+/g, '/');
-			const addedAsset = content.assets.find(
-				(asset) => asset.filePath === normalizedPath
-			);
+			const addedAsset = content.assets.find((asset) => asset.filePath === normalizedPath);
 
 			if (addedAsset) {
 				await addedAsset.addToTimeline(false, true);
@@ -360,16 +368,28 @@
 			// ── 5. Add translation to the project ──
 			if (snapshotTranslation) {
 				setStatus('Loading translation...');
-				console.log('[AiVideo] Adding translation:', snapshotTranslation.name, snapshotTranslation.author);
+				console.log(
+					'[AiVideo] Adding translation:',
+					snapshotTranslation.name,
+					snapshotTranslation.author
+				);
 				const pt = content.projectTranslation;
-				const downloadedTranslations = await pt.getAllProjectSubtitlesTranslations(snapshotTranslation);
-				console.log('[AiVideo] Downloaded translations count:', Object.keys(downloadedTranslations).length);
+				const downloadedTranslations =
+					await pt.getAllProjectSubtitlesTranslations(snapshotTranslation);
+				console.log(
+					'[AiVideo] Downloaded translations count:',
+					Object.keys(downloadedTranslations).length
+				);
 				await pt.addTranslation(snapshotTranslation, downloadedTranslations);
 				await project.save();
 
 				// ── 6. Run Advanced AI Translation Trimmer v2 ──
 				const aiSettings = globalState.settings?.aiTranslationSettings;
-				console.log('[AiVideo] AI settings available:', !!aiSettings?.openAiApiKey, !!aiSettings?.textAiApiEndpoint);
+				console.log(
+					'[AiVideo] AI settings available:',
+					!!aiSettings?.openAiApiKey,
+					!!aiSettings?.textAiApiEndpoint
+				);
 
 				if (aiSettings?.openAiApiKey && aiSettings?.textAiApiEndpoint) {
 					setStatus('Trimming translations with AI...');
@@ -396,8 +416,13 @@
 								setStatus(`Trimming translations with AI... (batch ${i + 1}/${batches.length})`);
 								const batch = batches[i];
 
-								console.log(`[AiVideo] Trim batch ${i + 1} REQUEST payload:`, JSON.stringify(batch.request, null, 2));
-								console.log(`[AiVideo] Trim batch ${i + 1} calling runAdvancedTrimBatchStreaming with model=${trimModel} endpoint=${aiSettings.textAiApiEndpoint}`);
+								console.log(
+									`[AiVideo] Trim batch ${i + 1} REQUEST payload:`,
+									JSON.stringify(batch.request, null, 2)
+								);
+								console.log(
+									`[AiVideo] Trim batch ${i + 1} calling runAdvancedTrimBatchStreaming with model=${trimModel} endpoint=${aiSettings.textAiApiEndpoint}`
+								);
 
 								try {
 									const response = await runAdvancedTrimBatchStreaming({
@@ -427,7 +452,9 @@
 									erroredSegments += applyReport.erroredSegments;
 								} catch (batchError) {
 									console.error(`[AiVideo] ❌ AI trim batch ${i + 1} FAILED:`, batchError);
-									toast.error(`AI trim batch ${i + 1} failed: ${batchError instanceof Error ? batchError.message : String(batchError)}`);
+									toast.error(
+										`AI trim batch ${i + 1} failed: ${batchError instanceof Error ? batchError.message : String(batchError)}`
+									);
 									const msg = batchError instanceof Error ? batchError.message : String(batchError);
 									if (/\b(401|402|403|429|500|502|503|504)\b/.test(msg)) break;
 								}
@@ -474,13 +501,19 @@
 		for (const opt of allReciterOptions) {
 			if (seen.has(opt.reciterId)) continue;
 			seen.add(opt.reciterId);
-			lines.push(`{ "reciterId": ${opt.reciterId}, "name": "${opt.reciterName}", "moshafId": ${opt.moshaf.id} }`);
+			lines.push(
+				`{ "reciterId": ${opt.reciterId}, "name": "${opt.reciterName}", "moshafId": ${opt.moshaf.id} }`
+			);
 		}
 		return lines.join('\n');
 	}
 
 	// ── Resolve AI-returned reciter/moshaf IDs to a ReciterOption ──
-	function resolveReciterOption(reciterId: number, moshafId: number, surahId: number): ReciterOption | null {
+	function resolveReciterOption(
+		reciterId: number,
+		moshafId: number,
+		surahId: number
+	): ReciterOption | null {
 		// Try exact match first
 		let match = allReciterOptions.find(
 			(o) => o.reciterId === reciterId && o.moshaf.id === moshafId && o.surahSet.has(surahId)
@@ -488,9 +521,7 @@
 		if (match) return match;
 
 		// Fallback: same reciter, any moshaf that has the surah
-		match = allReciterOptions.find(
-			(o) => o.reciterId === reciterId && o.surahSet.has(surahId)
-		);
+		match = allReciterOptions.find((o) => o.reciterId === reciterId && o.surahSet.has(surahId));
 		if (match) return match;
 
 		// Fallback: same reciter, any moshaf
@@ -500,6 +531,7 @@
 
 	// ── AI plan generation ──
 	async function generateAiPlan(): Promise<{
+		title: string;
 		videoPrompt: string;
 		reciter: string;
 		reciterId: number;
@@ -510,6 +542,7 @@
 	}> {
 		if (!letAiChoose) {
 			return {
+				title: prompt.trim().slice(0, 50) || 'AI Video Project',
 				videoPrompt: prompt,
 				reciter,
 				reciterId: selectedReciterOption?.reciterId ?? 0,
@@ -549,6 +582,7 @@ ${reciterList}
 
 Respond ONLY with valid JSON in this exact format:
 {
+  "title": "A short project title (max 50 characters) summarizing the theme and verses",
   "videoPrompt": "A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Be very descriptive and visual.",
   "reciterId": <reciter ID from the list above>,
   "moshafId": <moshaf ID from the list above>,
@@ -616,6 +650,7 @@ Rules:
 		console.log('[AiVideo] AI plan parsed:', plan);
 
 		return {
+			title: plan.title || prompt.trim().slice(0, 50),
 			videoPrompt: plan.videoPrompt || prompt,
 			reciter: plan.reciter || 'Unknown',
 			reciterId: plan.reciterId || 0,
@@ -660,26 +695,32 @@ Rules:
 			<div class="flex items-center gap-3 mt-6">
 				<div class="flex items-center gap-2">
 					<div
-						class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold {currentStep === 'input'
+						class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold {currentStep ===
+						'input'
 							? 'bg-accent-primary text-black'
 							: 'bg-accent-primary/20 text-accent-primary'}"
 					>
 						1
 					</div>
-					<span class="text-sm {currentStep === 'input' ? 'text-primary font-medium' : 'text-thirdly'}">
+					<span
+						class="text-sm {currentStep === 'input' ? 'text-primary font-medium' : 'text-thirdly'}"
+					>
 						Options
 					</span>
 				</div>
 				<div class="flex-1 h-px bg-[var(--border-color)]"></div>
 				<div class="flex items-center gap-2">
 					<div
-						class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold {currentStep === 'review'
+						class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold {currentStep ===
+						'review'
 							? 'bg-accent-primary text-black'
 							: 'bg-[var(--bg-secondary)] text-thirdly border border-color'}"
 					>
 						2
 					</div>
-					<span class="text-sm {currentStep === 'review' ? 'text-primary font-medium' : 'text-thirdly'}">
+					<span
+						class="text-sm {currentStep === 'review' ? 'text-primary font-medium' : 'text-thirdly'}"
+					>
 						Review & Create
 					</span>
 				</div>
@@ -709,12 +750,7 @@ Rules:
 						bind:localAudioPath
 					/>
 
-					<AiVideoVerseRangePreview
-						{surah}
-						{ayahStart}
-						{ayahEnd}
-						{selectedTranslation}
-					/>
+					<AiVideoVerseRangePreview {surah} {ayahStart} {ayahEnd} {selectedTranslation} />
 				{/if}
 
 				<!-- Next / Generate Plan button -->
@@ -740,7 +776,7 @@ Rules:
 				{/if}
 			</div>
 
-		<!-- ═══════════════════════ STEP 2: Review ═══════════════════════ -->
+			<!-- ═══════════════════════ STEP 2: Review ═══════════════════════ -->
 		{:else}
 			<div class="space-y-6">
 				<!-- Video Generation Prompt -->
@@ -756,7 +792,8 @@ Rules:
 						placeholder="Visual description for the AI video generator..."
 					></textarea>
 					<p class="text-xs text-thirdly">
-						This prompt will be sent to the video generation API. Edit it to adjust the visual style.
+						This prompt will be sent to the video generation API. Edit it to adjust the visual
+						style.
 					</p>
 				</div>
 
@@ -828,7 +865,9 @@ Rules:
 
 				<!-- Summary card -->
 				<div class="rounded-xl border border-color bg-bg-secondary/50 p-5 space-y-3">
-					<h4 class="flex items-center gap-2 text-xs font-semibold text-thirdly uppercase tracking-wide">
+					<h4
+						class="flex items-center gap-2 text-xs font-semibold text-thirdly uppercase tracking-wide"
+					>
 						<span class="material-icons text-accent-primary text-sm">summarize</span>
 						Summary
 					</h4>
@@ -855,12 +894,16 @@ Rules:
 						</div>
 						<div>
 							<span class="text-thirdly text-xs">Resolution</span>
-							<p class="text-primary font-medium">{resolution === 'portrait' ? 'Portrait (9:16)' : 'Landscape (16:9)'}</p>
+							<p class="text-primary font-medium">
+								{resolution === 'portrait' ? 'Portrait (9:16)' : 'Landscape (16:9)'}
+							</p>
 						</div>
 						{#if selectedTranslation}
 							<div class="col-span-2">
 								<span class="text-thirdly text-xs">Translation</span>
-								<p class="text-primary font-medium">{selectedTranslation.author} ({selectedTranslation.language})</p>
+								<p class="text-primary font-medium">
+									{selectedTranslation.author} ({selectedTranslation.language})
+								</p>
 							</div>
 						{/if}
 					</div>

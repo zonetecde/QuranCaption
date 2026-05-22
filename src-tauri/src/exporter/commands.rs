@@ -1477,38 +1477,9 @@ fn frames_to_seconds(frames: i64, fps: i32) -> f64 {
     frames.max(1) as f64 / fps.max(1) as f64
 }
 
-/// Calcule les fades deja completes sans compter les duplicatas +1ms de coupure batch.
-fn completed_fade_counts_for_timestamps(
-    timestamps_ms: &[i32],
-    identical_boundary_indices: &HashSet<usize>,
-) -> Vec<usize> {
-    let mut synthetic_duplicate_count = 0usize;
-    let mut completed_fades = Vec::with_capacity(timestamps_ms.len());
-
-    for idx in 0..timestamps_ms.len() {
-        if idx > 0 {
-            let is_synthetic_duplicate = identical_boundary_indices.contains(&(idx - 1))
-                && timestamps_ms[idx].saturating_sub(timestamps_ms[idx - 1]) <= 1;
-            if is_synthetic_duplicate {
-                synthetic_duplicate_count += 1;
-            }
-        }
-
-        completed_fades.push(
-            idx.saturating_sub(1)
-                .saturating_sub(synthetic_duplicate_count),
-        );
-    }
-
-    completed_fades
-}
-
-fn capture_timeline_ms_with_completed_fades(
-    timestamp_ms: i32,
-    completed_fades: usize,
-    fade_duration_ms: i32,
-) -> i64 {
-    timestamp_ms as i64 - completed_fades as i64 * fade_duration_ms.max(0) as i64
+fn capture_timeline_ms(timestamp_ms: i32, image_index: usize, fade_duration_ms: i32) -> i64 {
+    let completed_fades = image_index.saturating_sub(1) as i64;
+    timestamp_ms as i64 - completed_fades * fade_duration_ms.max(0) as i64
 }
 
 fn boundary_blank_hold_ms(fps: i32) -> i32 {
@@ -2251,8 +2222,6 @@ fn build_and_run_ffmpeg_filter_complex(
         identical_boundary_indices.len(),
         identical_boundary_preview
     );
-    let completed_fade_counts =
-        completed_fade_counts_for_timestamps(timestamps_ms, &identical_boundary_indices);
 
     let base_dir = if let Some(cwd) = imgs_cwd {
         PathBuf::from(cwd)
@@ -2320,18 +2289,18 @@ fn build_and_run_ffmpeg_filter_complex(
         let graph_duration_ms =
             compute_render_output_duration_ms(&batch_timestamps, fade_duration_ms, last_tail_ms)
                 .saturating_add(boundary_fade_ms);
-        let batch_source_start_ms = capture_timeline_ms_with_completed_fades(
+        let batch_source_start_ms = capture_timeline_ms(
             timestamps_ms[batch_start_idx],
-            completed_fade_counts[batch_start_idx],
+            batch_start_idx,
             fade_duration_ms,
         )
         .max(0);
         let intended_batch_end_ms = if is_last_batch {
             full_duration_ms as i64
         } else {
-            capture_timeline_ms_with_completed_fades(
+            capture_timeline_ms(
                 timestamps_ms[batch_end_idx - 1],
-                completed_fade_counts[batch_end_idx - 1],
+                batch_end_idx - 1,
                 fade_duration_ms,
             )
             .max(batch_source_start_ms + 1)
@@ -2410,7 +2379,11 @@ fn build_and_run_ffmpeg_filter_complex(
 
         intended_batch_base_ms = intended_batch_end_ms;
         encoded_batch_base_frames = target_end_frames;
-        batch_start_completed_fade_ms = boundary_fade_ms;
+        batch_start_completed_fade_ms = if boundary_is_blank {
+            boundary_fade_ms.saturating_add(blank_hold_ms)
+        } else {
+            boundary_fade_ms
+        };
         batch_start_idx = batch_end_idx - 1;
         batch_index += 1;
     }

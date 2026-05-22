@@ -87,7 +87,6 @@
 	type ExportErrorEvent = {
 		payload: { error: string; export_id: string };
 	};
-	type BlankCaptureCandidate = { imageIndex: number; captureIndex: number };
 
 	function getExportFadeSettings(): ExportFadeSettings {
 		return globalState.getStyle('global', 'video-and-audio-fade')!.value as ExportFadeSettings;
@@ -559,93 +558,6 @@
 		return currentSubtitleClip === null || currentSubtitleClip instanceof SilenceClip;
 	}
 
-	/**
-	 * Indique si une capture peut servir de blank pour une coupure de batch.
-	 *
-	 * @param {number} timing Timing frontend de la capture.
-	 * @param {Record<string, number[]>} blankImgs Timings blank duplicables.
-	 * @param {Record<string, number>} imgWithNothingShown Timings blank de référence.
-	 * @returns {boolean} `true` si le PNG généré doit être traité comme blank.
-	 */
-	function isBlankBatchCutTiming(
-		timing: number,
-		blankImgs: Record<string, number[]>,
-		imgWithNothingShown: Record<string, number>
-	): boolean {
-		if (isBlankCaptureTiming(timing, blankImgs, imgWithNothingShown)) return true;
-
-		const currentClip = globalState.getSubtitleTrack.getCurrentClip(timing);
-		if (!(currentClip instanceof SubtitleClip || currentClip instanceof PredefinedSubtitleClip)) {
-			return false;
-		}
-		if (Math.round(currentClip.endTime) !== Math.round(timing)) return false;
-
-		const currentClipIndex = globalState.getSubtitleTrack.clips.findIndex(
-			(clip) => clip.id === currentClip.id
-		);
-		const nextVisibleClip = globalState.getSubtitleTrack.clips
-			.slice(currentClipIndex + 1)
-			.find((clip) => !(clip instanceof SilenceClip));
-
-		return nextVisibleClip !== undefined && nextVisibleClip.startTime > currentClip.endTime;
-	}
-
-	/**
-	 * Normalise la taille cible des batchs comme le backend Rust.
-	 *
-	 * @param {number | undefined} batchSize Taille demandée dans les réglages d'export.
-	 * @returns {number} Taille bornée entre 2 et 64 captures.
-	 */
-	function normalizeCaptureBatchSize(batchSize: number | undefined): number {
-		if (typeof batchSize !== 'number' || Number.isNaN(batchSize)) return 12;
-		return Math.max(2, Math.min(64, Math.round(batchSize)));
-	}
-
-	/**
-	 * Duplique des PNG blank pour créer des frontières de batch invisibles.
-	 *
-	 * @param {BlankCaptureCandidate[]} blankCandidates Captures blank générées pendant l'export.
-	 * @param {Set<number>} usedImageIndexes Noms numériques déjà utilisés par des PNG.
-	 * @param {Set<number>} blankImageIndexes Noms numériques à transmettre au backend comme blanks.
-	 * @param {string | null} subfolder Sous-dossier d'images optionnel.
-	 * @returns {Promise<void>}
-	 */
-	async function duplicateBlankBatchCutImages(
-		blankCandidates: BlankCaptureCandidate[],
-		usedImageIndexes: Set<number>,
-		blankImageIndexes: Set<number>,
-		subfolder: string | null = null
-	): Promise<void> {
-		const batchSize = normalizeCaptureBatchSize(globalState.settings?.exportSettings.batchSize);
-		let lastCutCaptureIndex = 0;
-
-		for (let candidateIndex = 0; candidateIndex < blankCandidates.length; candidateIndex++) {
-			const candidate = blankCandidates[candidateIndex];
-			const capturesSinceLastCut = candidate.captureIndex - lastCutCaptureIndex;
-			if (capturesSinceLastCut < batchSize) continue;
-
-			const previousCandidate = blankCandidates[candidateIndex - 1];
-			if (previousCandidate?.captureIndex === candidate.captureIndex - 1) {
-				lastCutCaptureIndex = candidate.captureIndex;
-				continue;
-			}
-
-			const nextCandidate = blankCandidates[candidateIndex + 1];
-			if (nextCandidate?.captureIndex === candidate.captureIndex + 1) {
-				lastCutCaptureIndex = candidate.captureIndex;
-				continue;
-			}
-
-			const targetImageIndex = candidate.imageIndex + 1;
-			if (usedImageIndexes.has(targetImageIndex)) continue;
-
-			await duplicateScreenshot(candidate.imageIndex, targetImageIndex, subfolder);
-			usedImageIndexes.add(targetImageIndex);
-			blankImageIndexes.add(targetImageIndex);
-			lastCutCaptureIndex = candidate.captureIndex;
-		}
-	}
-
 	async function generateImagesForSegment(
 		segmentIndex: number,
 		segmentStart: number,
@@ -669,15 +581,12 @@
 		let i = 0;
 		let base = -fadeDuration; // Pour compenser le fade-in du début
 		const blankImageIndexes = new Set<number>();
-		const blankBatchCutCandidates: BlankCaptureCandidate[] = [];
-		const usedImageIndexes = new Set<number>();
 
 		for (const timing of segmentTimings.uniqueSorted) {
 			// Calculer l'index de l'image dans ce segment (recommence a 0)
 			const imageIndex = Math.max(Math.round(timing - segmentStart + base), 0);
-			usedImageIndexes.add(imageIndex);
 			const blankTimingInfo = hasTiming(segmentTimings.blankImgs, timing);
-			const isBlankImage = isBlankBatchCutTiming(
+			const isBlankImage = isBlankCaptureTiming(
 				timing,
 				segmentTimings.blankImgs,
 				segmentTimings.imgWithNothingShown
@@ -685,7 +594,6 @@
 
 			if (isBlankImage) {
 				blankImageIndexes.add(imageIndex);
-				blankBatchCutCandidates.push({ imageIndex, captureIndex: i + 1 });
 			}
 
 			// Vérifie si ce timing doit être dupliqué depuis un autre
@@ -773,13 +681,6 @@
 				totalTime: exportData!.videoEndTime - exportData!.videoStartTime
 			} as ExportProgress);
 		}
-
-		await duplicateBlankBatchCutImages(
-			blankBatchCutCandidates,
-			usedImageIndexes,
-			blankImageIndexes,
-			segmentImageFolder
-		);
 
 		return Array.from(blankImageIndexes).sort((a, b) => a - b);
 	}
@@ -944,14 +845,11 @@
 		let i = 0;
 		let base = -fadeDuration;
 		const blankImageIndexes = new Set<number>();
-		const blankBatchCutCandidates: BlankCaptureCandidate[] = [];
-		const usedImageIndexes = new Set<number>();
 
 		for (const timing of timings.uniqueSorted) {
 			const imageIndex = Math.max(Math.round(timing - exportStart + base), 0);
-			usedImageIndexes.add(imageIndex);
 			const blankTimingInfo = hasTiming(timings.blankImgs, timing);
-			const isBlankImage = isBlankBatchCutTiming(
+			const isBlankImage = isBlankCaptureTiming(
 				timing,
 				timings.blankImgs,
 				timings.imgWithNothingShown
@@ -959,7 +857,6 @@
 
 			if (isBlankImage) {
 				blankImageIndexes.add(imageIndex);
-				blankBatchCutCandidates.push({ imageIndex, captureIndex: i + 1 });
 			}
 
 			// Vérifier si ce timing peut être dupliqué depuis un autre
@@ -1029,12 +926,6 @@
 				totalTime: totalDuration
 			} as ExportProgress);
 		}
-
-		await duplicateBlankBatchCutImages(
-			blankBatchCutCandidates,
-			usedImageIndexes,
-			blankImageIndexes
-		);
 
 		const normalizedBlankTimings = Array.from(blankImageIndexes).sort((a, b) => a - b);
 

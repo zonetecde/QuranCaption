@@ -67,7 +67,14 @@ export class Asset extends SerializableBase {
 		}
 	}
 
-	async addToTimeline(asVideo: boolean, asAudio: boolean) {
+	/**
+	 * Ajoute l'asset à la timeline.
+	 * @param {boolean} asVideo Ajouter en tant que piste vidéo.
+	 * @param {boolean} asAudio Ajouter en tant que piste audio.
+	 * @param {boolean} skipDimensionPrompt Si true, ne demande pas la confirmation pour adapter les dimensions.
+	 * @returns {Promise<void>}
+	 */
+	async addToTimeline(asVideo: boolean, asAudio: boolean, skipDimensionPrompt = false) {
 		let wasAddedToVideo = false;
 		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this);
 		if (asAudio) globalState.getAudioTrack.addAsset(this);
@@ -94,6 +101,17 @@ export class Asset extends SerializableBase {
 				assetDimensions.width === currentProjectDimensions.width &&
 				assetDimensions.height === currentProjectDimensions.height
 			) {
+				return;
+			}
+
+			if (skipDimensionPrompt) {
+				// Applique automatiquement les dimensions sans demander confirmation
+				if (assetDimensions.width > 0 && assetDimensions.height > 0) {
+					globalState.getStyle('global', 'video-dimension').value = {
+						width: assetDimensions.width,
+						height: assetDimensions.height
+					};
+				}
 				return;
 			}
 

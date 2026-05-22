@@ -156,17 +156,11 @@ export async function createAiVideoProject(): Promise<void> {
 		}
 
 		if (backgroundVideoAsset) {
-			await backgroundVideoAsset.addToTimeline(true, false);
+			await backgroundVideoAsset.addToTimeline(true, false, true);
 		}
 
 		// ── 2. Audio ──
-		const audioFilePath = await prepareAudio(
-			project,
-			content,
-			assetFolder,
-			snapshot,
-			setStatus
-		);
+		const audioFilePath = await prepareAudio(project, content, assetFolder, snapshot, setStatus);
 		if (!audioFilePath) {
 			toast.error('No audio source selected.');
 			return;
@@ -207,8 +201,7 @@ export async function createAiVideoProject(): Promise<void> {
 		if (backgroundVideoClip) {
 			backgroundVideoClip.loopUntilAudioEnd = true;
 			backgroundVideoClip.setEndTime(
-				globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
-					.ms
+				globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
 			);
 		}
 
@@ -346,7 +339,10 @@ async function addTranslationAndTrim(
 
 	const pt = content.projectTranslation;
 	const downloadedTranslations = await pt.getAllProjectSubtitlesTranslations(translation);
-	console.log('[AiVideo] Downloaded translations count:', Object.keys(downloadedTranslations).length);
+	console.log(
+		'[AiVideo] Downloaded translations count:',
+		Object.keys(downloadedTranslations).length
+	);
 
 	await pt.addTranslation(translation, downloadedTranslations);
 	await project.save();
@@ -408,10 +404,7 @@ async function addTranslationAndTrim(
 					errors: validation.errors
 				});
 
-				const applyReport = applyAdvancedTrimValidationSuccess(
-					translation,
-					validation.validVerses
-				);
+				const applyReport = applyAdvancedTrimValidationSuccess(translation, validation.validVerses);
 				console.log(`[AiVideo] Trim batch ${i + 1} applied:`, applyReport);
 
 				trimmedSegments += applyReport.appliedSegments;

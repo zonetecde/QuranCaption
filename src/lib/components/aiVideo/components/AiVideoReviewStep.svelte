@@ -173,7 +173,7 @@
 	{/if}
 
 	<!-- Summary card -->
-	<div class="rounded-xl border border-color bg-bg-secondary/50 p-5 space-y-3">
+	<div class="rounded-xl border border-color bg-[var(--bg-accent)] p-5 space-y-3">
 		<h4 class="flex items-center gap-2 text-xs font-semibold text-thirdly uppercase tracking-wide">
 			<span class="material-icons text-accent-primary text-sm">summarize</span>
 			Summary

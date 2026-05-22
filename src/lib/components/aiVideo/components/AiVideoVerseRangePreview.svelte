@@ -76,9 +76,9 @@
 	}
 </script>
 
-<div class="rounded-xl border border-color bg-bg-secondary/50 overflow-hidden">
+<div class="rounded-xl border border-color bg-[var(--bg-accent)] overflow-hidden">
 	<!-- Header -->
-	<div class="flex items-center justify-between px-4 py-3 border-b border-color bg-bg-secondary/80">
+	<div class="flex items-center justify-between px-4 py-3 border-b border-color bg-[var(--bg-accent)]">
 		<div class="flex items-center gap-2">
 			<span class="material-icons text-accent-primary text-sm">menu_book</span>
 			<span class="text-xs font-semibold text-thirdly uppercase tracking-wide">Verse Preview</span>

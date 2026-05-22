@@ -90,7 +90,7 @@
 	}
 </script>
 
-<div class="space-y-5 rounded-xl border border-color bg-bg-secondary/50 p-5">
+<div class="space-y-5 rounded-xl border border-color bg-[var(--bg-accent)] p-5">
 	<h3 class="flex items-center gap-2 text-sm font-semibold text-primary">
 		<span class="material-icons text-accent-primary text-base">tune</span>
 		Quran Source Settings

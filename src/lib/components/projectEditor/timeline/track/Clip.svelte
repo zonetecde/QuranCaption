@@ -107,6 +107,11 @@
 	}
 
 	function handleClipClick(event: MouseEvent) {
+		if (globalState.getTimelineState.wasCursorDragged) {
+			globalState.getTimelineState.wasCursorDragged = false;
+			return;
+		}
+
 		if (
 			track.type !== TrackType.Video ||
 			globalState.currentProject!.projectEditorState.currentTab !== 'Style' ||

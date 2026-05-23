@@ -307,9 +307,9 @@
 			<div class="mt-4">
 				<div class="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
 					<div
-						class="h-full rounded-full transition-all duration-300 ease-out"
-						class:bg-white={updateState === 'downloading'}
-						class:bg-green-400={updateState === 'done' || updateState === 'installing'}
+						class={`h-full rounded-full transition-all duration-300 ease-out ${
+							updateState === 'downloading' ? 'bg-[var(--text-primary)]' : 'bg-green-400'
+						}`}
 						style="width: {downloadProgress}%"
 					></div>
 				</div>

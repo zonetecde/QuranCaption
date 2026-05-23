@@ -15,7 +15,7 @@
 			/>
 			<ClickableLink url="https://discord.gg/Hxfqq2QA2J" label="Discord" />
 
-			<ClickableLink url="https://ko-fi.com/vzero" label="Donate" />
+			<ClickableLink url="https://www.paypal.me/rayanestaszewski" label="Donate via PayPal" />
 		</div>
 		<p class="mb-1">© 2026 Quran Caption. Made by Rayane STASZEWSKI.</p>
 	</div>

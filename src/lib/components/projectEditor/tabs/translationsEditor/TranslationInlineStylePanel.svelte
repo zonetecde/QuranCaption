@@ -5,6 +5,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiBoldModal from './modal/AiBoldModal.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import Settings from '$lib/classes/Settings.svelte';
+	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
 
 	const translationsEditorState = $derived(
 		() => globalState.currentProject!.projectEditorState.translationsEditor

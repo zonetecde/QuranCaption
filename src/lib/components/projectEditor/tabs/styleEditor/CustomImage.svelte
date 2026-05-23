@@ -43,6 +43,7 @@
 	}}
 	class={'absolute customtext cursor-move select-none ' +
 		(customImage.getStyle('above-overlay')?.value ? 'z-5' : '-z-1')}
+	data-overlay-max-opacity={Number(customImage.getStyle('opacity')?.value ?? 1)}
 	style={`transform: translateY(${customImageSettings().verticalPosition}px) translateX(${customImageSettings().horizontalPosition}px) scale(${customImageSettings().scale}); opacity: ${customImageSettings().opacity()}; `}
 >
 	<img src={convertFileSrc(customImageSettings().filepath)} alt={customImageSettings().filepath} />

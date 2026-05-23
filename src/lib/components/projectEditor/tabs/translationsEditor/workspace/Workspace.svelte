@@ -203,8 +203,39 @@
 		}
 	}
 
+	/**
+	 * Scroll le workspace vers un sous-titre demandé par la recherche projet.
+	 * @param {number} clipId ID du sous-titre cible.
+	 * @returns {void}
+	 */
+	function scrollToRequestedClip(clipId: number): void {
+		const groupIndex = getGroupIndexForClipId(clipId);
+		if (groupIndex < 0) return;
+
+		const targetGroup = subtitlesInGroups()[groupIndex];
+		const firstClipId = targetGroup ? globalState.getSubtitleTrack.clips[targetGroup[0]].id : clipId;
+
+		visibleCount = Math.max(visibleCount, groupIndex + 1);
+		setTimeout(() => {
+			const target = lastRead.container?.querySelector(
+				`[data-translation-clip-id="${firstClipId}"]`
+			);
+			if (target instanceof HTMLElement) {
+				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}, 0);
+	}
+
 	$effect(() => {
 		lastRead.tryResume();
+	});
+
+	$effect(() => {
+		const targetClipId = globalState.shared.translationScrollTargetClipId;
+		if (targetClipId === null) return;
+
+		scrollToRequestedClip(targetClipId);
+		globalState.shared.translationScrollTargetClipId = null;
 	});
 
 	$effect(() => {
@@ -382,7 +413,32 @@
 			</button>
 		</div>
 	{:else}
-		<div class="flex p-4 flex-col bg-secondary gap-y-3 h-full">
+		<div class="flex min-h-full p-4 flex-col bg-secondary gap-y-3 h-full">
+			{#if translationsEditorState().isInlineStyleMode}
+				<div
+					class="sticky top-0 z-20 flex items-start justify-between gap-3 rounded-xl border border-[var(--accent-primary)]/45 bg-[color-mix(in_srgb,var(--accent-primary)_14%,var(--bg-secondary))] px-4 py-3 text-primary shadow-lg backdrop-blur"
+				>
+					<div class="flex min-w-0 gap-3">
+						<span class="material-icons-outlined text-accent-primary">brush</span>
+						<div class="min-w-0">
+							<p class="text-sm font-semibold">Word styling is active</p>
+							<p class="mt-1 text-xs leading-relaxed text-secondary">
+								Drag on words to apply styles. Text editing is paused while this mode is enabled
+								from the Word Styles sidebar.
+							</p>
+						</div>
+					</div>
+					<div class="flex shrink-0 gap-2">
+						<button
+							class="btn-accent px-3 py-1.5 text-xs font-semibold"
+							onclick={() => (translationsEditorState().isInlineStyleMode = false)}
+						>
+							Exit styling
+						</button>
+					</div>
+				</div>
+			{/if}
+
 			{#if Object.keys(allowedTranslations).length === 0}
 				<NoTranslationsToShow />
 			{:else}

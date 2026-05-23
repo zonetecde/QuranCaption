@@ -213,4 +213,64 @@ describe('arabic inline styles', () => {
 			}
 		]);
 	});
+
+	it('keeps WBW timestamps and preserves global word positions when the subtitle start changes', () => {
+		const clip = new SubtitleClip(1_000, 5_000, 102, 8, 0, 2, 'one two three', [], false, false);
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '102:8:1',
+			refTo: '102:8:3',
+			matchedText: clip.text,
+			timeFrom: 1,
+			timeTo: 5,
+			words: [
+				{ location: '102:8:1', start: 0, end: 0.5 },
+				{ location: '102:8:2', start: 0.5, end: 2 },
+				{ location: '102:8:3', start: 2, end: 4 }
+			]
+		};
+
+		clip.setStartTime(500);
+
+		expect(clip.alignmentMetadata).toMatchObject({
+			timeFrom: 0.5,
+			timeTo: 5,
+			words: [
+				{ location: '102:8:1', start: 0, end: 1 },
+				{ location: '102:8:2', start: 1, end: 2.5 },
+				{ location: '102:8:3', start: 2.5, end: 4.5 }
+			]
+		});
+	});
+
+	it('keeps WBW timestamps and pins the last word to the new subtitle end', () => {
+		const clip = new SubtitleClip(1_000, 5_000, 102, 8, 0, 2, 'one two three', [], false, false);
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '102:8:1',
+			refTo: '102:8:3',
+			matchedText: clip.text,
+			timeFrom: 1,
+			timeTo: 5,
+			words: [
+				{ location: '102:8:1', start: 0, end: 0.5 },
+				{ location: '102:8:2', start: 0.5, end: 2 },
+				{ location: '102:8:3', start: 2, end: 4 }
+			]
+		};
+
+		clip.setEndTime(6_000);
+
+		expect(clip.alignmentMetadata).toMatchObject({
+			timeFrom: 1,
+			timeTo: 6,
+			words: [
+				{ location: '102:8:1', start: 0, end: 0.5 },
+				{ location: '102:8:2', start: 0.5, end: 2 },
+				{ location: '102:8:3', start: 2, end: 5 }
+			]
+		});
+	});
 });

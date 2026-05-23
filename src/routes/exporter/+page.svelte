@@ -7,7 +7,15 @@
 	import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 	import { listen } from '@tauri-apps/api/event';
 	import { onMount } from 'svelte';
-	import { exists, BaseDirectory, mkdir, writeFile, remove, readFile } from '@tauri-apps/plugin-fs';
+	import {
+		exists,
+		BaseDirectory,
+		mkdir,
+		writeFile,
+		remove,
+		readFile,
+		readDir
+	} from '@tauri-apps/plugin-fs';
 	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
 	import {
@@ -17,10 +25,13 @@
 	} from '$lib/services/OverlayBlurSegmentation';
 	import {
 		calculateCaptureTimingsForRange,
+		getExportWordByWordHighlightTimings as getExportWordByWordHighlightTimingsUtil,
+		getBlankImageFileName,
 		hasBlankImg,
 		hasTiming,
 		type ExportTimedOverlayCaptureClip,
-		type ExportSubtitleCaptureClip
+		type ExportSubtitleCaptureClip,
+		type ExportSubtitleWbwSourceClip
 	} from '$lib/services/ExportCaptureTiming';
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
@@ -29,7 +40,15 @@
 	import toast from 'svelte-5-french-toast';
 	import { domToBlob } from 'modern-screenshot';
 	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
-	import { ClipWithTranslation, CustomClip, SilenceClip } from '$lib/classes/Clip.svelte';
+	import {
+		ClipWithTranslation,
+		CustomClip,
+		PredefinedSubtitleClip,
+		SilenceClip,
+		SubtitleClip
+	} from '$lib/classes/Clip.svelte';
+	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
+	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -455,12 +474,13 @@
 		refreshSecondarySegmentProgressVisibility();
 
 		const generatedVideoFiles: string[] = [];
+		const segmentBlankImageIndexes = new Map<number, number[]>();
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
 			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 
 			await createSegmentImageFolder(segmentImageFolder);
-			await generateImagesForSegment(
+			const blankTimings = await generateImagesForSegment(
 				segmentIndex,
 				segment.start,
 				segment.end,
@@ -469,6 +489,7 @@
 				0,
 				100
 			);
+			segmentBlankImageIndexes.set(segmentIndex, blankTimings);
 		}
 
 		hasCompletedCapturingFrames = true;
@@ -493,7 +514,8 @@
 				segmentImageFolder,
 				segment.start,
 				segmentDuration,
-				segment.blur
+				segment.blur,
+				segmentBlankImageIndexes.get(segmentIndex) ?? []
 			);
 
 			generatedVideoFiles.push(segmentVideoPath);
@@ -522,6 +544,20 @@
 		console.log(`Created segment folder: ${segmentPath}`);
 	}
 
+	function isBlankCaptureTiming(
+		timing: number,
+		blankImgs: Record<string, number[]>,
+		imgWithNothingShown: Record<string, number>
+	): boolean {
+		if (hasTiming(blankImgs, timing).hasIt) return true;
+		if (Object.values(imgWithNothingShown).some((blankTiming) => blankTiming === timing)) {
+			return true;
+		}
+
+		const currentSubtitleClip = globalState.getSubtitleTrack.getCurrentClip(timing);
+		return currentSubtitleClip === null || currentSubtitleClip instanceof SilenceClip;
+	}
+
 	async function generateImagesForSegment(
 		segmentIndex: number,
 		segmentStart: number,
@@ -530,7 +566,7 @@
 		totalSegments: number,
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
-	) {
+	): Promise<number[]> {
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
@@ -544,10 +580,21 @@
 
 		let i = 0;
 		let base = -fadeDuration; // Pour compenser le fade-in du début
+		const blankImageIndexes = new Set<number>();
 
 		for (const timing of segmentTimings.uniqueSorted) {
 			// Calculer l'index de l'image dans ce segment (recommence a 0)
 			const imageIndex = Math.max(Math.round(timing - segmentStart + base), 0);
+			const blankTimingInfo = hasTiming(segmentTimings.blankImgs, timing);
+			const isBlankImage = isBlankCaptureTiming(
+				timing,
+				segmentTimings.blankImgs,
+				segmentTimings.imgWithNothingShown
+			);
+
+			if (isBlankImage) {
+				blankImageIndexes.add(imageIndex);
+			}
 
 			// Vérifie si ce timing doit être dupliqué depuis un autre
 			const sourceTimingForDuplication = Array.from(
@@ -566,17 +613,18 @@
 				// Prend que un seul screenshot et le duplique
 				await duplicateScreenshot(`${sourceIndex}`, imageIndex, segmentImageFolder);
 			} else if (
-				hasTiming(segmentTimings.blankImgs, timing).hasIt &&
-				hasBlankImg(
-					segmentTimings.imgWithNothingShown,
-					hasTiming(segmentTimings.blankImgs, timing).surah!
-				)
+				blankTimingInfo.hasIt &&
+				hasBlankImg(segmentTimings.imgWithNothingShown, blankTimingInfo.key!)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
-				const surahInfo = hasTiming(segmentTimings.blankImgs, timing);
+				const surahInfo = blankTimingInfo;
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
-				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex, segmentImageFolder);
+				await duplicateScreenshot(
+					getBlankImageFileName(surahInfo.key!),
+					imageIndex,
+					segmentImageFolder
+				);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				// Important: le +1 sinon le svg de la sourate est le mauvais
@@ -589,16 +637,19 @@
 				await takeScreenshot(`${imageIndex}`, segmentImageFolder);
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
-				for (const [surahStr, blankTiming] of Object.entries(segmentTimings.imgWithNothingShown)) {
+				for (const [blankVisualStateKey, blankTiming] of Object.entries(
+					segmentTimings.imgWithNothingShown
+				)) {
 					if (timing === blankTiming) {
 						// monte de 1 le timing pour avoir le svg correct
 						globalState.getTimelineState.movePreviewTo = timing - 1;
 						globalState.getTimelineState.cursorPosition = timing - 1;
 						await wait(timing - 1);
-						const surahNum = Number(surahStr);
-						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
-						await takeScreenshot(`blank_${surahNum}`);
-						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
+						console.log(
+							`Creating blank image for state ${blankVisualStateKey} at timing ${timing}`
+						);
+						await takeScreenshot(getBlankImageFileName(blankVisualStateKey));
+						console.log(`Blank image created for state ${blankVisualStateKey} at timing ${timing}`);
 						break; // Une seule sourate par timing
 					}
 				}
@@ -630,6 +681,8 @@
 				totalTime: exportData!.videoEndTime - exportData!.videoStartTime
 			} as ExportProgress);
 		}
+
+		return Array.from(blankImageIndexes).sort((a, b) => a - b);
 	}
 
 	async function generateVideoForSegment(
@@ -637,7 +690,8 @@
 		segmentImageFolder: string,
 		segmentStart: number,
 		segmentDuration: number,
-		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number
+		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number,
+		blankTimings: number[] = []
 	): Promise<string> {
 		currentVideoExportState = ExportState.AddingSubtitles;
 
@@ -697,6 +751,7 @@
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
 				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
+				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
@@ -789,9 +844,20 @@
 
 		let i = 0;
 		let base = -fadeDuration;
+		const blankImageIndexes = new Set<number>();
 
 		for (const timing of timings.uniqueSorted) {
 			const imageIndex = Math.max(Math.round(timing - exportStart + base), 0);
+			const blankTimingInfo = hasTiming(timings.blankImgs, timing);
+			const isBlankImage = isBlankCaptureTiming(
+				timing,
+				timings.blankImgs,
+				timings.imgWithNothingShown
+			);
+
+			if (isBlankImage) {
+				blankImageIndexes.add(imageIndex);
+			}
 
 			// Vérifier si ce timing peut être dupliqué depuis un autre
 			const sourceTimingForDuplication = Array.from(timings.duplicableTimings.entries()).find(
@@ -809,14 +875,14 @@
 					`Optimisation - Duplicating screenshot from timing ${sourceTimingForDuplication} (image ${sourceIndex}) to timing ${timing} (image ${imageIndex})`
 				);
 			} else if (
-				hasTiming(timings.blankImgs, timing).hasIt &&
-				hasBlankImg(timings.imgWithNothingShown, hasTiming(timings.blankImgs, timing).surah ?? -1)
+				blankTimingInfo.hasIt &&
+				hasBlankImg(timings.imgWithNothingShown, blankTimingInfo.key!)
 			) {
 				// Récupérer le numéro de sourate pour ce timing
-				const surahInfo = hasTiming(timings.blankImgs, timing);
+				const surahInfo = blankTimingInfo;
 				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
 
-				await duplicateScreenshot(`blank_${surahInfo.surah}`, imageIndex);
+				await duplicateScreenshot(getBlankImageFileName(surahInfo.key!), imageIndex);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				const captureTiming = timings.exactCaptureTimings.has(timing) ? timing : timing + 1;
@@ -828,12 +894,15 @@
 				await takeScreenshot(`${imageIndex}`);
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
-				for (const [surahStr, blankTiming] of Object.entries(timings.imgWithNothingShown)) {
+				for (const [blankVisualStateKey, blankTiming] of Object.entries(
+					timings.imgWithNothingShown
+				)) {
 					if (timing === blankTiming) {
-						const surahNum = Number(surahStr);
-						console.log(`Creating blank image for surah ${surahNum} at timing ${timing}`);
-						await takeScreenshot(`blank_${surahNum}`);
-						console.log(`Blank image created for surah ${surahNum} at timing ${timing}`);
+						console.log(
+							`Creating blank image for state ${blankVisualStateKey} at timing ${timing}`
+						);
+						await takeScreenshot(getBlankImageFileName(blankVisualStateKey));
+						console.log(`Blank image created for state ${blankVisualStateKey} at timing ${timing}`);
 						break; // Une seule sourate par timing
 					}
 				}
@@ -858,10 +927,12 @@
 			} as ExportProgress);
 		}
 
+		const normalizedBlankTimings = Array.from(blankImageIndexes).sort((a, b) => a - b);
+
 		await deleteBlankImages();
 
 		// Générer la vidéo normale
-		await generateNormalVideo(exportStart, totalDuration, blur);
+		await generateNormalVideo(exportStart, totalDuration, blur, normalizedBlankTimings);
 
 		// Nettoyage
 		await finalCleanup();
@@ -869,25 +940,37 @@
 
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
 		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
-			(clip) => ({
-				startTime: clip.startTime,
-				endTime: clip.endTime,
-				kind: clip instanceof SilenceClip ? 'silence' : 'subtitle',
-				surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined,
-				visualMergeGroupId:
-					'visualMergeGroupId' in clip &&
-					(typeof clip.visualMergeGroupId === 'string' || clip.visualMergeGroupId === null)
-						? clip.visualMergeGroupId
-						: undefined,
-				visualMergeMode:
-					'visualMergeMode' in clip &&
-					(clip.visualMergeMode === 'arabic' ||
-						clip.visualMergeMode === 'translation' ||
-						clip.visualMergeMode === 'both' ||
-						clip.visualMergeMode === null)
-						? clip.visualMergeMode
-						: undefined
-			})
+			(clip) => {
+				const wbwHighlightTimings =
+					clip instanceof SubtitleClip ? getExportWordByWordHighlightTimings(clip) : undefined;
+
+				return {
+					id: clip.id,
+					startTime: clip.startTime,
+					endTime: clip.endTime,
+					kind:
+						clip instanceof SilenceClip
+							? 'silence'
+							: clip instanceof PredefinedSubtitleClip
+								? 'predefined'
+								: 'subtitle',
+					surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined,
+					visualMergeGroupId:
+						'visualMergeGroupId' in clip &&
+						(typeof clip.visualMergeGroupId === 'string' || clip.visualMergeGroupId === null)
+							? clip.visualMergeGroupId
+							: undefined,
+					visualMergeMode:
+						'visualMergeMode' in clip &&
+						(clip.visualMergeMode === 'arabic' ||
+							clip.visualMergeMode === 'translation' ||
+							clip.visualMergeMode === 'both' ||
+							clip.visualMergeMode === null)
+							? clip.visualMergeMode
+							: undefined,
+					wbwHighlightTimings
+				};
+			}
 		);
 
 		const timedOverlayClips: ExportTimedOverlayCaptureClip[] = (
@@ -933,7 +1016,57 @@
 		});
 	}
 
-	async function generateNormalVideo(exportStart: number, duration: number, blur: number) {
+	/**
+	 * Retourne les timings WBW à capturer pour l'export d'un clip.
+	 *
+	 * Pour un merge visuel arabe, la résolution finale est faite dans
+	 * `ExportCaptureTiming.getExportWordByWordHighlightTimings()`: le helper agrège les timings
+	 * de tout le groupe afin que les mots partagés puissent être recapturés sur chaque clip.
+	 *
+	 * @param {SubtitleClip} clip Clip Quran à inspecter.
+	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 */
+	function getExportWordByWordHighlightTimings(clip: SubtitleClip): number[] | undefined {
+		const subtitleClips = globalState.getSubtitleTrack.clips.filter(
+			(candidate): candidate is SubtitleClip => candidate instanceof SubtitleClip
+		);
+
+		const exportClip: ExportSubtitleWbwSourceClip = {
+			id: clip.id,
+			startTime: clip.startTime,
+			endTime: clip.endTime,
+			visualMergeGroupId: clip.visualMergeGroupId,
+			visualMergeMode: clip.visualMergeMode,
+			alignmentMetadata: clip.alignmentMetadata
+		};
+
+		const exportSubtitleClips: ExportSubtitleWbwSourceClip[] = subtitleClips.map((candidate) => ({
+			id: candidate.id,
+			startTime: candidate.startTime,
+			endTime: candidate.endTime,
+			visualMergeGroupId: candidate.visualMergeGroupId,
+			visualMergeMode: candidate.visualMergeMode,
+			alignmentMetadata: candidate.alignmentMetadata
+		}));
+
+		return getExportWordByWordHighlightTimingsUtil({
+			clip: exportClip,
+			subtitleClips: exportSubtitleClips,
+			isWbwEnabledForClipId: (clipId) =>
+				isWordByWordHighlightEnabled((styleId) =>
+					globalState.getVideoStyle
+						.getStylesOfTarget('arabic')
+						.getEffectiveValue(styleId as StyleName, clipId)
+				)
+		});
+	}
+
+	async function generateNormalVideo(
+		exportStart: number,
+		duration: number,
+		blur: number,
+		blankTimings: number[] = []
+	) {
 		currentVideoExportState = ExportState.AddingSubtitles;
 
 		emitProgress({
@@ -985,6 +1118,7 @@
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
 				batchSize: globalState.settings?.exportSettings.batchSize ?? 12,
+				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
@@ -1019,6 +1153,22 @@
 	async function takeScreenshot(fileName: string, subfolder: string | null = null) {
 		// L'element a transformer en image
 		const node = document.getElementById('overlay')!;
+
+		// Pour les blanks, forcer les overlays (surahName, reciterName, customText) à leur opacité max
+		// afin d'éviter une capture en cours de fade-in, et masquer les sous-titres (arabe/traduction).
+		const isBlankScreenshot = fileName.startsWith('blank_');
+		const forcedOverlayElements: { el: HTMLElement; prev: string }[] = [];
+		if (isBlankScreenshot) {
+			node.querySelectorAll<HTMLElement>('[data-overlay-max-opacity]').forEach((el) => {
+				forcedOverlayElements.push({ el, prev: el.style.opacity });
+				el.style.opacity = el.dataset.overlayMaxOpacity!;
+			});
+			for (const id of ['subtitles-container', 'subtitles-backgrounds']) {
+				const el = node.querySelector<HTMLElement>(`#${id}`);
+				if (el) forcedOverlayElements.push({ el, prev: el.style.opacity });
+				if (el) el.style.opacity = '0';
+			}
+		}
 
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
 		// je veux pouvoir avoir la dimension trouvée dans les paramètres d'export
@@ -1070,6 +1220,11 @@
 					? String((error as { message?: unknown }).message ?? '')
 					: String(error ?? 'Unknown error');
 			toast.error('Error while taking screenshot: ' + message);
+		} finally {
+			// Restaurer l'opacité originale des overlays forcés
+			for (const { el, prev } of forcedOverlayElements) {
+				el.style.opacity = prev;
+			}
 		}
 	}
 
@@ -1127,14 +1282,13 @@
 		try {
 			// Construire le chemin du dossier
 			const pathComponents = [ExportService.exportFolder, exportId];
+			const exportPath = await join(...pathComponents);
 
-			// Parcourir tous les fichiers pour trouver les images blank_
-			// On utilise une approche simple en testant les numeros de sourate de 1 a 114
-			for (let surahNum = 1; surahNum <= 114; surahNum++) {
-				const blankFileName = `blank_${surahNum}.png`;
+			for (const entry of await readDir(exportPath, { baseDir: BaseDirectory.AppData })) {
+				if (!entry.name.startsWith('blank_') || !entry.name.endsWith('.png')) continue;
+				const blankFileName = entry.name;
 				const blankFilePath = await join(...pathComponents, blankFileName);
 
-				// Vérifier si le fichier existe et le supprimer
 				if (await exists(blankFilePath, { baseDir: BaseDirectory.AppData })) {
 					await remove(blankFilePath, { baseDir: BaseDirectory.AppData });
 					console.log(`Deleted blank image: ${blankFileName}`);
@@ -1162,7 +1316,7 @@
 			await new Promise((resolve) => setTimeout(resolve, 200));
 		} else {
 			const startTime = Date.now();
-			const timeout = 2000; // 2000ms maximum timeout to avoid infinite hang
+			const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
 
 			do {
 				if (Date.now() - startTime > timeout) {

@@ -12,6 +12,9 @@
 
 	function setActiveTab(tabValue: ProjectEditorTabs) {
 		globalState.getStylesState.clearSelection();
+		if (globalState.shared.quickTimelineEditor.active) {
+			globalState.closeQuickTimelineEditor();
+		}
 		globalState.currentProject!.projectEditorState.currentTab = tabValue;
 	}
 </script>

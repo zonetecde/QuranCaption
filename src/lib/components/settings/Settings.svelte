@@ -9,6 +9,8 @@
 	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 	import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+	import Section from '$lib/components/projectEditor/Section.svelte';
+	import { DONATION_WALLETS } from '$lib/constants/donation';
 
 	import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
 	import { openUrl } from '@tauri-apps/plugin-opener';
@@ -45,6 +47,22 @@
 		'settings_support'
 	);
 	let isSupportModalOpen = $state(false);
+
+	/**
+	 * Copie une adresse de portefeuille dans le presse-papiers.
+	 * @param {string} address Adresse à copier.
+	 * @param {string} label Libellé affiché dans le toast.
+	 * @returns {Promise<void>} Promesse résolue après la tentative de copie.
+	 */
+	async function copyWalletAddress(address: string, label: string): Promise<void> {
+		try {
+			await navigator.clipboard.writeText(address);
+			toast.success(`${label} copied to clipboard`);
+		} catch (error) {
+			console.error(`Failed to copy ${label} address:`, error);
+			toast.error('Unable to copy wallet address.');
+		}
+	}
 
 	function openSupportModal(
 		tab: 'review' | 'feedback',
@@ -257,11 +275,43 @@
 					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
 						<button
 							class="support-action-btn support-donate w-full"
-							onclick={() => openSupportLink('https://ko-fi.com/vzero', 'donation page')}
+							onclick={() => openSupportLink('https://www.paypal.me/rayanestaszewski', 'PayPal')}
 						>
 							<span class="material-icons-outlined text-sm">favorite</span>
-							Donate on Ko-fi
+							Donate with PayPal
 						</button>
+
+						<button
+							class="support-action-btn support-kofi w-full"
+							onclick={() => openSupportLink('https://ko-fi.com/vzero', 'Ko-fi')}
+						>
+							<span class="material-icons-outlined text-sm">coffee</span>
+							Donate with Ko-fi
+						</button>
+					</div>
+
+					<h2 class="text-lg font-medium text-primary">Cryptocurrency Wallets</h2>
+
+					<div class="space-y-2">
+						<p class="text-xs text-thirdly">Tap a wallet to copy the address.</p>
+						{#each DONATION_WALLETS as wallet (wallet.label)}
+							<button
+								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
+								onclick={() => copyWalletAddress(wallet.address, wallet.label)}
+								aria-label={`Copy ${wallet.label} wallet address`}
+							>
+								<div class="min-w-0">
+									<div class="flex items-center gap-2">
+										<span class="wallet-badge">{wallet.label}</span>
+										<p class="text-sm font-medium text-primary">{wallet.network}</p>
+									</div>
+									<p class="mt-1 font-mono text-[11px] text-thirdly break-all leading-snug">
+										{wallet.address}
+									</p>
+								</div>
+								<span class="material-icons-outlined text-sm text-thirdly">content_copy</span>
+							</button>
+						{/each}
 					</div>
 
 					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
@@ -422,5 +472,44 @@
 		color: #ff4f9a;
 		border-color: color-mix(in srgb, #ff4f9a 55%, var(--border-color));
 		background: rgba(255, 79, 154, 0.08);
+	}
+
+	.support-action-btn.support-kofi {
+		color: color-mix(in srgb, #ff5f5f 75%, var(--text-secondary));
+		border-color: color-mix(in srgb, #ff5f5f 25%, var(--border-color));
+	}
+
+	.support-action-btn.support-kofi:hover {
+		color: #ff5f5f;
+		border-color: color-mix(in srgb, #ff5f5f 55%, var(--border-color));
+		background: rgba(255, 95, 95, 0.08);
+	}
+
+	.wallet-card {
+		transition:
+			background-color 0.18s ease,
+			border-color 0.18s ease,
+			transform 0.18s ease,
+			box-shadow 0.18s ease;
+	}
+
+	.wallet-card:hover {
+		transform: translateY(-1px);
+		background: color-mix(in srgb, var(--accent-primary) 7%, var(--bg-secondary));
+		border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-color));
+	}
+
+	.wallet-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 2.6rem;
+		padding: 0.2rem 0.45rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+		color: var(--text-primary);
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
 	}
 </style>

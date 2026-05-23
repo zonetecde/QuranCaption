@@ -251,9 +251,13 @@
 
 	function getSpeed() {
 		let speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		if (globalState.shared.wbwEdit.active) {
+			speed = globalState.getSubtitlesEditorState.wbwPlaybackSpeed;
+		}
 		if (
+			!globalState.shared.wbwEdit.active &&
 			globalState.currentProject?.projectEditorState.currentTab !==
-			ProjectEditorTabs.SubtitlesEditor
+				ProjectEditorTabs.SubtitlesEditor
 		) {
 			speed = 1; // Réinitialise la vitesse si on n'est pas dans l'éditeur de sous-titres
 		}
@@ -471,7 +475,7 @@
 	// === GESTION AUDIO AVEC HOWLER ===
 	let audioHowl: Howl | null = null; // Instance Howler pour la lecture audio
 	let isPlaying = $state(false); // État de lecture global
-	let audioUpdateInterval: number | null = null; // Intervalle pour la mise à jour du curseur audio
+	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
 	let audioSpeed = $state(1); // Vitesse de lecture audio
 
 	export function togglePlayPause() {
@@ -809,6 +813,14 @@
 		globalState.getVideoPreviewState.togglePlayPause = togglePlayPause;
 	});
 </script>
+
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape' && globalState.getVideoPreviewState.isFullscreen) {
+			globalState.getVideoPreviewState.toggleFullScreen();
+		}
+	}}
+/>
 
 <section
 	class="overflow-hidden min-h-0"

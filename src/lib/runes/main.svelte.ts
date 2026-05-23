@@ -14,6 +14,9 @@ import { Status } from '$lib/classes/Status';
 import type { TranslationLanguageData } from '$lib/services/QdcTranslationService';
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
+import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
+
+export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
@@ -59,7 +62,24 @@ class GlobalState {
 	});
 
 	shared = $state({
-		autoSegmentationWizard: null as unknown
+		autoSegmentationWizard: null as unknown,
+		quickTimelineEditor: {
+			active: false,
+			clipId: null as number | null,
+			mode: null as QuickTimelineEditorMode | null,
+			previousInlineStyleMode: null as boolean | null,
+			previousEditSubtitleId: null as number | null,
+			previousPendingSplitEditNextId: null as number | null
+		},
+		translationScrollTargetClipId: null as number | null,
+		wbwEdit: {
+			active: false,
+			clipId: null as number | null,
+			currentWordIndex: 0,
+			draftWords: [] as ManualWordByWordDraftWord[],
+			dragBoundaryIndex: null as number | null,
+			previousTimelineZoom: null as number | null
+		}
 	});
 
 	get getSubtitleTrack() {
@@ -141,6 +161,65 @@ class GlobalState {
 	updateVideoPreviewUI() {
 		globalState.getTimelineState.cursorPosition =
 			globalState.getTimelineState.cursorPosition + 0.01;
+	}
+
+	/**
+	 * Ouvre l'éditeur rapide superposé à la timeline pour un clip donné.
+	 * @param {number} clipId ID du clip à éditer.
+	 * @param {QuickTimelineEditorMode} mode Mode de l'éditeur rapide.
+	 * @returns {void}
+	 */
+	openQuickTimelineEditor(clipId: number, mode: QuickTimelineEditorMode): void {
+		if (!this.currentProject) return;
+
+		const translationsState = this.getTranslationsState;
+		const subtitlesEditorState = this.getSubtitlesEditorState;
+		if (!this.shared.quickTimelineEditor.active) {
+			this.shared.quickTimelineEditor.previousInlineStyleMode = translationsState.isInlineStyleMode;
+			this.shared.quickTimelineEditor.previousEditSubtitleId =
+				subtitlesEditorState.editSubtitle?.id ?? null;
+			this.shared.quickTimelineEditor.previousPendingSplitEditNextId =
+				subtitlesEditorState.pendingSplitEditNextId;
+		}
+
+		this.shared.quickTimelineEditor.active = true;
+		this.shared.quickTimelineEditor.clipId = clipId;
+		this.shared.quickTimelineEditor.mode = mode;
+		translationsState.isInlineStyleMode = mode === 'wbw';
+
+		if (mode === 'subtitle' || mode === 'wbwTimestamp') {
+			subtitlesEditorState.editSubtitle = this.getSubtitleTrack.getClipById(clipId) as
+				| SubtitleClip
+				| PredefinedSubtitleClip
+				| null;
+			subtitlesEditorState.pendingSplitEditNextId = null;
+		}
+	}
+
+	/**
+	 * Ferme l'éditeur rapide de la timeline et restaure le mode inline précédent.
+	 * @returns {void}
+	 */
+	closeQuickTimelineEditor(): void {
+		const previousInlineStyleMode = this.shared.quickTimelineEditor.previousInlineStyleMode;
+		if (this.currentProject && previousInlineStyleMode !== null) {
+			this.getTranslationsState.isInlineStyleMode = previousInlineStyleMode;
+			this.getSubtitlesEditorState.editSubtitle =
+				(this.shared.quickTimelineEditor.previousEditSubtitleId !== null
+					? (this.getSubtitleTrack.getClipById(
+							this.shared.quickTimelineEditor.previousEditSubtitleId
+						) ?? null)
+					: null) as SubtitleClip | PredefinedSubtitleClip | null;
+			this.getSubtitlesEditorState.pendingSplitEditNextId =
+				this.shared.quickTimelineEditor.previousPendingSplitEditNextId;
+		}
+
+		this.shared.quickTimelineEditor.active = false;
+		this.shared.quickTimelineEditor.clipId = null;
+		this.shared.quickTimelineEditor.mode = null;
+		this.shared.quickTimelineEditor.previousInlineStyleMode = null;
+		this.shared.quickTimelineEditor.previousEditSubtitleId = null;
+		this.shared.quickTimelineEditor.previousPendingSplitEditNextId = null;
 	}
 
 	getEditionFromAuthor(author: string): Edition | null {

@@ -7,6 +7,7 @@
 	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
 	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import {
 		canMergeArabicVisualModes,
 		getActiveVisualMergeGroupId,
@@ -25,6 +26,10 @@
 
 		return categories;
 	});
+
+	const hasWordByWordTimestamps = $derived(() =>
+		globalState.getSubtitleTrack.hasWordByWordTimestamps()
+	);
 
 	let stylesContainer: HTMLDivElement | undefined;
 	let importExportMenuVisible = $state(false);
@@ -156,6 +161,30 @@
 
 		if (!alwaysShowStyleId || !isTimingStyle) return false;
 		return Boolean(globalState.getStyle('global', alwaysShowStyleId).value);
+	}
+
+	/**
+	 * Désactive certains styles WBW selon leurs toggles parents, sans bloquer toute la catégorie.
+	 * @param {string} categoryId Identifiant de la catégorie courante.
+	 * @param {string} styleId Identifiant du style courant.
+	 * @returns {boolean} true si le style doit etre désactivé.
+	 */
+	function isWordByWordStyleDisabled(categoryId: string, styleId: string): boolean {
+		if (categoryId !== 'word-by-word-highlight') return false;
+
+		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
+			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-highlight')?.value);
+		}
+
+		if (styleId === 'wbw-bg-color') {
+			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-background')?.value);
+		}
+
+		if (styleId === 'wbw-underline-thickness') {
+			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-underline')?.value);
+		}
+
+		return false;
 	}
 
 	$effect(() => {
@@ -428,6 +457,32 @@
 						</div>
 					{/if}
 
+					{#if category.id === 'word-by-word-highlight' && !hasWordByWordTimestamps()}
+						<div
+							class="mx-2 mb-2 translate-y-1.5 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-amber-100"
+						>
+							<div class="flex items-start gap-2">
+								<span class="material-icons-outlined text-sm mt-0.5">info</span>
+								<div class="min-w-0">
+									<p class="text-xs leading-relaxed">
+										Word-by-word styles need WBW timestamps on at least one subtitle.
+									</p>
+									<p class="mt-1 text-xs leading-relaxed">
+										1. Add them with <span class="font-semibold">AI-Segmentation</span> and make
+										sure to enable
+										<span class="font-semibold">Include word-by-word timestamps</span>.
+									</p>
+									<p class="mt-1 text-xs leading-relaxed">
+										2. Or add them manually in the <span class="font-semibold"
+											>Subtitles Editor</span
+										>
+										by holding <span class="font-semibold">E</span> with the cursor over a subtitle.
+									</p>
+								</div>
+							</div>
+						</div>
+					{/if}
+
 					{#each category.styles as style (style.id)}
 						{#if globalState.getStylesState.searchQuery === '' || style.name
 								.toLowerCase()
@@ -464,7 +519,11 @@
 									(category.id.includes('custom-text') &&
 										category.getStyle('always-show')?.value &&
 										(style.id === 'time-appearance' || style.id === 'time-disappearance')) ||
-									isGlobalTimedOverlayStyleDisabled(category.id, style.id)}
+									isGlobalTimedOverlayStyleDisabled(category.id, style.id) ||
+									isWordByWordStyleDisabled(category.id, style.id) ||
+									(category.id === 'word-by-word-highlight' &&
+										!category.getStyle('wbw-reveal-on-recitation')?.value &&
+										style.id === 'wbw-always-show-verse-number')}
 								<!-- Si la recherche est vide ou si le nom du style correspond à la requête de recherche -->
 								<StyleComponent
 									{style}
@@ -477,6 +536,31 @@
 							{/if}
 						{/if}
 					{/each}
+
+					{#if category.id === 'general' && globalState.getStylesState.currentSelection === 'global'}
+						<div
+							class="mx-2 mb-2 mt-3 rounded-lg border border-dashed border-[var(--accent-secondary)]/30 bg-[var(--bg-accent)]/5 px-3 py-2"
+						>
+							<div class="flex items-start justify-between gap-3">
+								<div class="min-w-0">
+									<p class="text-sm font-medium text-primary">Hifz Mode</p>
+									<p class="text-xs leading-relaxed text-secondary">
+										Create videos with repeated verses to help memorization.
+									</p>
+								</div>
+							</div>
+
+							<button
+								type="button"
+								class="btn-accent mt-2 w-full py-2 text-sm"
+								onclick={() => {
+									void ModalManager.hifzRepetitionModal();
+								}}
+							>
+								Enable Hifz mode
+							</button>
+						</div>
+					{/if}
 				</Section>
 			{/each}
 

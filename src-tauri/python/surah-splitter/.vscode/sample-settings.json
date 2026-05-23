@@ -1,0 +1,62 @@
+{
+    // NOTE 1: We assume that you had first run this command before applying the settings in this json file:
+    //  `uv venv PATH/TO/.venv-surah-splitter --python 3.12`
+
+    // NOTE 2: When you read this file, you'll notice that we explicitly set UV's venv path instead of directly running the `uv venv` command...
+    //  This is done to allow us to replace the "PATH/TO" parts above/below
+    //  with any path outside of the project's root directory, and doing this will allow us 
+    //  to easily sync the project's root directory via services like OneDrive/etc. (if we want to)
+    // Pro tip: If you want, you can replace "PATH/TO" with "${env:MY_VENV_ROOT}", assuming you 
+    //  defined a "MY_VENV_ROOT" variable in your OS's environment variables
+
+
+    // NOTE 3: Regarding "venvPath":
+    // Even though VSCode shows "Unknown configuration setting",
+    //  this setting is valid, as it basically just sets the path to the virtual environment as a variable (i.e., as a custom config setting),
+    //  such that this variable is used in other sections of this file using `${config:VAR}` syntax.
+    // HOWEVER, we still have to manually enter this path in "python.terminal.activateEnvironment" key below, as it only accepts ${env:VAR} syntax.
+    // Source: https://github.com/microsoft/vscode-python/issues/20599#issuecomment-1410845129
+
+    
+    // ⚠️⚠️⚠️ UPDATE ACCORDINGLY ⚠️⚠️⚠️
+    "venvPath": "PATH/TO/.venv-surah-splitter",
+
+    "terminal.integrated.profiles.windows": {
+        "uv custom venv": {
+            "path": "PowerShell",
+            "args": [
+                "-ExecutionPolicy",
+                "ByPass",
+                "-NoExit",
+                "-Command",
+                // Details on `PYTHONDONTWRITEBYTECODE`:
+                //	https://stackoverflow.com/questions/154443/how-to-avoid-pyc-files
+                "$env:PYTHONDONTWRITEBYTECODE = 1;",
+
+                // COMPLETELY OPTIONAL (DON'T READ THIS SECTION IF YOU DON'T KNOW WHAT IT IS):
+                // Details on `VIRTUAL_ENV_DISABLE_PROMPT`:
+                //  If you have defined a custom prompt for your terminal (eg., in your "Microsoft.PowerShell_profile.ps1" file),
+                //  then you can disable the virtual environment prompt (created in "activate.ps1" script) by setting this variable to 1.
+                // "$env:VIRTUAL_ENV_DISABLE_PROMPT = 1;",
+
+                // Details on `${env:}:
+                //	https://www.perplexity.ai/search/how-to-install-venv-in-another-hn7QUU7sQvmLORiiMeWPzA?9=r
+                "$env:UV_PROJECT_ENVIRONMENT = '${config:venvPath}';",
+
+                // Activate the virtual environment:
+                "& ${config:venvPath}/Scripts/activate.ps1;"
+            ]
+        }
+    },
+
+    // NOTE: If you see "Select interpreter" button in the bottom right corner of VSCode,
+    //  then you can click it and select the path to the virtual environment's Python interpreter,
+    //  which is the value of the "python.defaultInterpreterPath" setting below.
+    // ⚠️⚠️⚠️ UPDATE ACCORDINGLY ⚠️⚠️⚠️
+    "python.defaultInterpreterPath": "PATH/TO/.venv-surah-splitter/Scripts/python.exe",
+    "terminal.integrated.defaultProfile.windows": "uv custom venv",
+    "python.terminal.activateEnvironment": true,
+    
+    // Source: https://stackoverflow.com/a/78454029/13626137
+    "python.analysis.indexing": false
+}

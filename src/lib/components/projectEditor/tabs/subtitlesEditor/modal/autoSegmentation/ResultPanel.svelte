@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getSharedWizard } from './sharedWizard';
 
+	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
 	const wizard = getSharedWizard();
 </script>
 
@@ -11,7 +12,7 @@
 				class="h-5 w-5 animate-spin rounded-full border-2 border-accent-primary border-t-transparent"
 			></div>
 			{wizard.currentStatus ||
-				(wizard.selection.runtime === 'hf_json'
+				(isImportMode
 					? 'Applying imported JSON segments...'
 					: wizard.selection.mode === 'api'
 						? 'Sending audio to cloud...'
@@ -66,7 +67,7 @@
 			>
 				{wizard.warningMessage}
 			</div>{/if}
-		{#if wizard.selection.runtime !== 'hf_json'}
+		{#if !isImportMode}
 			<div class="flex flex-wrap items-center gap-2 text-sm text-secondary">
 				<div>
 					Model: <span class="font-semibold text-primary">{wizard.selectedModel()}</span>

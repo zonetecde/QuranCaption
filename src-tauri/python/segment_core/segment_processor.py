@@ -810,7 +810,7 @@ def process_audio_full(
     emit_status("whisper", f"Transcribing segment 1/{len(segment_audios)}...")
     whisper_start = time.time()
     # Get model name from mapping or use default
-    whisper_model_name = WHISPER_MODELS.get(whisper_model, WHISPER_MODELS["base"])
+    whisper_model_name = WHISPER_MODELS.get(whisper_model, whisper_model)
     transcribed_texts, transcription_errors, whisper_profiling = transcribe_segments_batched(
         segment_audios,
         sample_rate,

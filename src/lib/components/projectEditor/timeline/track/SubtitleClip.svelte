@@ -7,7 +7,7 @@
 	} from '$lib/classes';
 	import { getClipPrimaryReviewIssueCategory, markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
-	import { globalState } from '$lib/runes/main.svelte';
+	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -99,26 +99,68 @@
 			? ''
 			: primaryReviewIssueCategory === 'coverage'
 				? ' ai-coverage-gap '
-				: primaryReviewIssueCategory === 'long'
-					? ' ai-too-long '
-					: primaryReviewIssueCategory === 'low-confidence'
-						? ' ai-low-confidence '
-						: ''
+				: primaryReviewIssueCategory === 'low-confidence'
+					? ' ai-low-confidence '
+					: primaryReviewIssueCategory === 'long'
+						? ' ai-too-long '
+						: primaryReviewIssueCategory === 'wbw-timestamps'
+							? ' ai-wbw-timestamps '
+							: ''
 	);
 
 	const verifiedReviewBandClass = $derived(
 		clip.hasBeenVerified === true
 			? primaryReviewIssueCategory === 'coverage'
 				? 'review-band review-band-coverage'
-				: primaryReviewIssueCategory === 'long'
-					? 'review-band review-band-long'
-					: primaryReviewIssueCategory === 'low-confidence'
-						? 'review-band review-band-low-confidence'
-						: ''
+				: primaryReviewIssueCategory === 'low-confidence'
+					? 'review-band review-band-low-confidence'
+					: primaryReviewIssueCategory === 'long'
+						? 'review-band review-band-long'
+						: primaryReviewIssueCategory === 'wbw-timestamps'
+							? 'review-band review-band-wbw-timestamps'
+							: ''
 			: ''
 	);
 
 	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
+
+	/**
+	 * Retourne le libellé à afficher pour un mot WBW sur la timeline.
+	 * @param {{ location: string; word?: string }} word Mot WBW source.
+	 * @returns {string} Texte lisible du mot.
+	 */
+	function getWordBoundaryLabel(word: { location: string; word?: string }): string {
+		const directLabel = String(word.word ?? '').trim();
+		if (directLabel) return directLabel;
+		if (!(clip instanceof SubtitleClip)) return String(word.location ?? '').trim();
+
+		const relativeWordIndex = Number(word.location.split(':')[2]) - clip.startWordIndex - 1;
+		const clipWords = clip.text.split(/\s+/).filter(Boolean);
+		const fallbackLabel = clipWords[relativeWordIndex];
+
+		return String(fallbackLabel ?? word.location ?? '').trim();
+	}
+
+	const wordBoundaryMarkers = $derived(() => {
+		if (!(clip instanceof SubtitleClip)) return [];
+		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return [];
+
+		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
+		return (clip.alignmentMetadata?.words ?? [])
+			.map((word, index) => {
+				const startPercent = (word.start * 1000 * 100) / clipDurationMs;
+				const endPercent = (word.end * 1000 * 100) / clipDurationMs;
+				const leftPercent = Math.min(100, Math.max(0, startPercent));
+				const rightPercent = Math.min(100, Math.max(leftPercent, endPercent));
+				return {
+					key: `${clip.id}-wbw-marker-${index}`,
+					leftPercent,
+					widthPercent: Math.max(0.8, rightPercent - leftPercent),
+					label: getWordBoundaryLabel(word)
+				};
+			})
+			.filter((marker) => marker.leftPercent < 100 && marker.widthPercent > 0);
+	});
 
 	let dragStartX: number | null = null;
 	let didDrag = false;
@@ -148,7 +190,7 @@
 		document.removeEventListener('mousemove', onLeftDragging);
 		document.removeEventListener('mouseup', stopLeftDragging);
 		globalState.getTimelineState.showCursor = true;
-		if (clip.type !== 'Silence') {
+		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
 		if (didDrag) {
@@ -178,7 +220,7 @@
 		document.removeEventListener('mousemove', onRightDragging);
 		document.removeEventListener('mouseup', stopRightDragging);
 		globalState.getTimelineState.showCursor = true;
-		if (clip.type !== 'Silence') {
+		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
 		if (didDrag) {
@@ -277,6 +319,11 @@
 			return;
 		}
 
+		if (globalState.getTimelineState.wasCursorDragged) {
+			globalState.getTimelineState.wasCursorDragged = false;
+			return;
+		}
+
 		markClipAsVerified(clip);
 
 		const currentTab = globalState.currentProject!.projectEditorState.currentTab;
@@ -295,6 +342,56 @@
 			return;
 		}
 		globalState.getSubtitlesEditorState.editSubtitle = clip;
+	}
+
+	/**
+	 * Ouvre l'éditeur rapide superposé à la timeline pour le clip courant.
+	 * @param {QuickTimelineEditorMode} mode Mode d'ouverture demandé.
+	 * @returns {Promise<void>}
+	 */
+	async function openQuickTimelineEditorFromContextMenu(
+		mode: QuickTimelineEditorMode
+	): Promise<void> {
+		if (!(clip instanceof SubtitleClip)) return;
+
+		// Ferme le menu avant d'afficher l'overlay pour éviter de garder le context menu ouvert.
+		currentMenu.set(null);
+		await tick();
+
+		// Le mode "translation" force la saisie classique, le mode "wbw" active le word styling.
+		globalState.openQuickTimelineEditor(clip.id, mode);
+	}
+
+	/**
+	 * Ouvre l'éditeur rapide de traduction sur le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function editTranslationFromContextMenu(): Promise<void> {
+		await openQuickTimelineEditorFromContextMenu('translation');
+	}
+
+	/**
+	 * Ouvre l'editeur rapide de styles WBW sur le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function editWbwStyleFromContextMenu(): Promise<void> {
+		await openQuickTimelineEditorFromContextMenu('wbw');
+	}
+
+	/**
+	 * Ouvre l'editeur rapide de timestamps WBW sur le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function editWbwTimestampFromContextMenu(): Promise<void> {
+		await openQuickTimelineEditorFromContextMenu('wbwTimestamp');
+	}
+
+	/**
+	 * Ouvre l'editeur rapide de sous-titre sur le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function editSubtitleFromQuickEditorContextMenu(): Promise<void> {
+		await openQuickTimelineEditorFromContextMenu('subtitle');
 	}
 
 	async function bookmarkVerseFromContextMenu(): Promise<void> {
@@ -316,6 +413,26 @@
 		currentMenu.set(null);
 		await tick();
 		(track as SubtitleTrack).unmergeVisualGroup(clip.visualMergeGroupId);
+	}
+
+	/**
+	 * Coupe le clip courant depuis le menu contextuel.
+	 * Sans Ctrl, on prefere une coupe alignee sur les mots WBW.
+	 * Avec Ctrl, on force la position exacte du curseur.
+	 *
+	 * @param {MouseEvent} event Evenement de clic du menu.
+	 * @returns {Promise<void>}
+	 */
+	async function splitSubtitleFromContextMenu(event: MouseEvent): Promise<void> {
+		if (!(clip instanceof SubtitleClip)) return;
+
+		const didSplit = await (track as SubtitleTrack).splitSubtitle(clip.id, {
+			forceExactCursor: Boolean(event.ctrlKey || event.metaKey)
+		});
+		if (!didSplit) return;
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
 	}
 
 	onDestroy(() => {
@@ -346,6 +463,20 @@
 	onclick={handleClipClick}
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
+		{#if wordBoundaryMarkers().length > 0}
+			<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
+				{#each wordBoundaryMarkers() as marker (marker.key)}
+					<div
+						class="wbw-word-marker"
+						style={`left: ${marker.leftPercent}%; width: ${marker.widthPercent}%;`}
+						title={marker.label}
+					>
+						<span class="arabic">{marker.label}</span>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
 			{#if (visualMergeGroup() && isFirstClipInVisualMergeGroup() && hasVisualMergeOverrides()) || (!visualMergeGroup() && hasOverrides())}
 				<span
@@ -382,7 +513,7 @@
 		<div class="absolute inset-0 z-5 flex px-2 py-2">
 			<div class="w-full h-full flex flex-col justify-center items-center gap-1">
 				<p
-					class="arabic truncate leading-tight text-center min-h-5 max-w-full overflow-hidden"
+					class="arabic truncate leading-tight text-center min-h-5 max-w-full overflow-hidden mt-1"
 					class:text-[var(--text-primary)]={!isSelected()}
 					class:text-[var(--text-on-selection)]={isSelected()}
 					dir="rtl"
@@ -391,7 +522,7 @@
 				</p>
 
 				{#if Object.keys(clip.translations).length > 0}
-					<div class="w-full flex flex-col items-center gap-0.5 mt-1">
+					<div class="w-full flex flex-col items-center gap-0.5 -mt-1">
 						{#each Object.entries(clip.translations) as [lang, translation] (lang)}
 							<p
 								class="text-[11px] sm:text-[12px] truncate w-full font-medium mx-auto my-auto text-center italic"
@@ -450,7 +581,7 @@
 			</div></Item
 		>
 	{/if}
-	{#if globalState.currentProject!.projectEditorState.currentTab === 'Subtitles editor'}
+	{#if globalState.currentProject!.projectEditorState.currentTab === 'Subtitles editor' && clip.type !== 'Subtitle'}
 		<Item on:click={editSubtitle}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">edit</span>Edit subtitle
@@ -464,8 +595,8 @@
 	>
 	{#if clip.type === 'Subtitle'}
 		<Item
-			on:click={() => {
-				(track as SubtitleTrack).splitSubtitle(clip.id);
+			on:click={(event) => {
+				void splitSubtitleFromContextMenu(event as MouseEvent);
 			}}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split subtitle
@@ -514,6 +645,29 @@
 			</div></Item
 		>
 	{/if}
+	{#if clip.type === 'Subtitle'}
+		<Divider />
+		<Item on:click={editSubtitleFromQuickEditorContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">subtitles</span>Edit subtitle
+			</div></Item
+		>
+		<Item on:click={editTranslationFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">translate</span>Edit translation
+			</div></Item
+		>
+		<Item on:click={editWbwTimestampFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">timeline</span>Edit WBW timestamp
+			</div></Item
+		>
+		<Item on:click={editWbwStyleFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">format_color_text</span>Wbw Style
+			</div></Item
+		>
+	{/if}
 </ContextMenu>
 
 <style>
@@ -544,6 +698,11 @@
 	.ai-coverage-gap {
 		background-color: rgba(219, 128, 92, 0.35) !important;
 		border-color: rgba(219, 92, 92, 0.7) !important;
+	}
+
+	.ai-wbw-timestamps {
+		background-color: rgba(125, 211, 252, 0.35) !important;
+		border-color: rgba(56, 189, 248, 0.7) !important;
 	}
 
 	.ai-too-long {
@@ -610,7 +769,36 @@
 		background-color: rgba(219, 92, 92, 0.88);
 	}
 
+	.review-band-wbw-timestamps {
+		background-color: rgba(56, 189, 248, 0.88);
+	}
+
 	.review-band-long {
 		background-color: rgba(244, 63, 94, 0.88);
+	}
+
+	.wbw-word-marker {
+		position: absolute;
+		top: 0px;
+		height: 16px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+		border-radius: 3px;
+		background: rgba(255, 255, 255, 0.12);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+			0 0 0 1px rgba(0, 0, 0, 0.08);
+		color: rgba(255, 255, 255, 0.92);
+		font-size: 9px;
+		line-height: 1;
+		white-space: nowrap;
+		text-overflow: clip;
+	}
+
+	.wbw-word-marker span {
+		overflow: hidden;
+		text-overflow: clip;
 	}
 </style>

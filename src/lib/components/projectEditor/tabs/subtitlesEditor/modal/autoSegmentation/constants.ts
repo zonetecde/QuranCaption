@@ -9,37 +9,24 @@ import type {
 
 /** Ordered steps for the landscape wizard navigation rail. */
 export const WIZARD_STEPS_V2: WizardStep[] = [
-	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
-	{ key: 'runtime', title: 'Runtime', subtitle: 'Cloud, local, or JSON import', icon: 'storage' },
-	{ key: 'models', title: 'Models', subtitle: 'Engine and device', icon: 'memory' },
-	{ key: 'settings', title: 'Segmentation', subtitle: 'Presets and timing', icon: 'tune' },
-	{ key: 'review', title: 'Run', subtitle: 'Review and launch', icon: 'play_arrow' }
+	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
+	{ key: 'setup', title: 'Setup', subtitle: 'Install and prepare', icon: 'storage' },
+	{ key: 'models', title: 'Model', subtitle: 'Quality and performance', icon: 'memory' },
+	{ key: 'settings', title: 'Settings', subtitle: 'Timing and behavior', icon: 'tune' },
+	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];
 
-/** V2 flow for JSON import skips the model step. */
-export const WIZARD_STEPS_V2_JSON: WizardStep[] = [
-	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
-	{ key: 'runtime', title: 'Runtime', subtitle: 'Cloud, local, or JSON import', icon: 'storage' },
-	{
-		key: 'import',
-		title: 'Import JSON',
-		subtitle: 'Paste or drop exported segments',
-		icon: 'note_add'
-	}
-];
-
-/** Legacy V1 flow omits runtime because V1 is always local. */
-export const WIZARD_STEPS_V1: WizardStep[] = [
-	{ key: 'version', title: 'AI Version', subtitle: 'Pick V1 or V2', icon: 'auto_awesome' },
-	{ key: 'models', title: 'Models', subtitle: 'Legacy model selection', icon: 'memory' },
-	{ key: 'settings', title: 'Segmentation', subtitle: 'Presets and timing', icon: 'tune' },
-	{ key: 'review', title: 'Run', subtitle: 'Review and launch', icon: 'play_arrow' }
+/** Ordered steps for the cloud multi-aligner path. */
+export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
+	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
+	{ key: 'models', title: 'Model', subtitle: 'Quality and performance', icon: 'memory' },
+	{ key: 'settings', title: 'Settings', subtitle: 'Timing and behavior', icon: 'tune' },
+	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];
 
 /** Returns the active step sequence for the selected AI version. */
-export function getWizardSteps(aiVersion: AiVersion, runtime: WizardRuntime): WizardStep[] {
-	if (aiVersion === 'legacy_v1') return WIZARD_STEPS_V1;
-	return runtime === 'hf_json' ? WIZARD_STEPS_V2_JSON : WIZARD_STEPS_V2;
+export function getWizardSteps(aiVersion: AiVersion, _runtime: WizardRuntime): WizardStep[] {
+	return aiVersion === 'multi_v2' ? WIZARD_STEPS_CLOUD_V2 : WIZARD_STEPS_V2;
 }
 
 /** Timing presets shown in the segmentation settings step. */
@@ -79,6 +66,94 @@ export const LEGACY_MODEL_OPTIONS: Array<ModelOption<LegacyWhisperModelSize>> = 
 
 /** Multi-aligner models used by both cloud and local V2 paths. */
 export const MULTI_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
-	{ value: 'Base', label: 'Base', description: 'Balanced speed and alignment quality.' },
-	{ value: 'Large', label: 'Large', description: 'More robust to noisy/non-studio recitations' }
+	{
+		value: 'Base',
+		label: 'Base',
+		description: 'Balanced speed and alignment quality.',
+		source: 'hetchyy/r15_95m'
+	},
+	{
+		value: 'Large',
+		label: 'Large',
+		description: 'More robust to noisy/non-studio recitations',
+		source: 'hetchyy/r7'
+	}
+];
+
+/** Speech recognition models exposed by the Muaalem local pipeline. */
+export const MUAALEM_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
+	{
+		value: 'Muaalem-v3.2',
+		label: 'Muaalem v3.2',
+		description: 'Recommended phonetic speech recognition model for the local Muaalem pipeline.',
+		source: 'obadx/muaalem-model-v3_2'
+	}
+];
+
+/** WhisperX models exposed by the Surah Splitter local pipeline. */
+export const SURAH_SPLITTER_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
+	{
+		value: 'SurahSplitter-Base-Quran',
+		label: 'Base Quran',
+		description: 'Default Surah Splitter model with ayah auto-detection support.',
+		source: 'OdyAsh/faster-whisper-base-ar-quran'
+	}
+];
+
+/** Experimental alternative speech recognition models available in advanced Muaalem settings. */
+export const MUAALEM_ADVANCED_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
+	{
+		value: 'Open-Tadabur-Small',
+		label: 'Tadabur Small',
+		description: 'Experimental fallback model based on the previous open local workflow.',
+		source: 'FaisaI/tadabur-Whisper-Small'
+	},
+	{
+		value: 'Open-Naazim-Large-V3-Turbo',
+		label: 'Naazim Large V3 Turbo',
+		description: 'Experimental large Quran model, heavier and slower than the default.',
+		source: 'naazimsnh02/whisper-large-v3-turbo-ar-quran'
+	},
+	{
+		value: 'Open-DeepDML-Medium-Mix',
+		label: 'DeepDML Medium Mix',
+		description: 'Experimental medium Quran model from the previous open local workflow.',
+		source: 'deepdml/whisper-medium-ar-quran-mix-norm'
+	},
+	{
+		value: 'Open-DeepDML-Small-Mix',
+		label: 'DeepDML Small Mix',
+		description: 'Experimental small Quran model, lighter but usually less accurate.',
+		source: 'deepdml/whisper-small-ar-quran-mix'
+	},
+	{
+		value: 'Open-IJyad-Large-V3',
+		label: 'IJyad Large V3',
+		description: 'Experimental large Tarteel-focused model from the previous open workflow.',
+		source: 'IJyad/whisper-large-v3-Tarteel'
+	},
+	{
+		value: 'Open-Legacy-Tiny',
+		label: 'Tiny',
+		description: 'Experimental legacy tiny model.',
+		source: 'tarteel-ai/whisper-tiny-ar-quran'
+	},
+	{
+		value: 'Open-Legacy-Base',
+		label: 'Base',
+		description: 'Experimental legacy base model.',
+		source: 'tarteel-ai/whisper-base-ar-quran'
+	},
+	{
+		value: 'Open-Legacy-Medium',
+		label: 'Medium',
+		description: 'Experimental general-purpose Whisper medium model.',
+		source: 'openai/whisper-medium'
+	},
+	{
+		value: 'Open-Legacy-Large',
+		label: 'Large',
+		description: 'Experimental legacy large model.',
+		source: 'IJyad/whisper-large-v3-Tarteel'
+	}
 ];

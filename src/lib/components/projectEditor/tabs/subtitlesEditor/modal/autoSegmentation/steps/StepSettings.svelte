@@ -7,10 +7,8 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">Segmentation settings</h3>
-		<p class="text-sm text-thirdly">
-			Use presets first, then fine-tune timing and silence behavior.
-		</p>
+		<h3 class="text-lg font-semibold text-primary">4. Adjust segmentation</h3>
+		<p class="text-sm text-thirdly">Use a preset first, then fine-tune if needed.</p>
 	</div>
 
 	<div class="grid grid-cols-1 gap-2 xl:grid-cols-3">
@@ -69,22 +67,26 @@
 	</div>
 
 	<div class="rounded-xl border border-color p-4 space-y-2">
-		{#if wizard.selection.aiVersion === 'multi_v2'}
-			<div class="space-y-2 border-b border-color pb-3 mb-3">
-				<label class="flex items-center gap-2 text-sm text-secondary"
-					><input
-						type="checkbox"
-						checked={wizard.includeWbwTimestamps}
-						onchange={(e) =>
-							wizard.setIncludeWbwTimestamps((e.currentTarget as HTMLInputElement).checked)}
-						class="accent-accent-primary"
-					/> Include word-by-word timestamps</label
-				>
-				<p class="text-xs text-thirdly">
-					Store word-by-word timings during segmentation so you can split subtitles instantly later.
+		<div class="mb-3 space-y-2 border-b border-color pb-3">
+			<label class="flex items-center gap-2 text-sm text-secondary"
+				><input
+					type="checkbox"
+					checked={wizard.supportsWbwTimestamps() ? wizard.includeWbwTimestamps : false}
+					onchange={(e) =>
+						wizard.setIncludeWbwTimestamps((e.currentTarget as HTMLInputElement).checked)}
+					disabled={!wizard.supportsWbwTimestamps()}
+					class="accent-accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+				/> Include word-by-word timestamps</label
+			>
+			<p class="text-xs text-thirdly">
+				Stores per-word timings so you can split and edit subtitles more precisely later.
+			</p>
+			{#if !wizard.supportsWbwTimestamps()}
+				<p class="text-xs text-yellow-400">
+					Word-by-word timestamps are only supported with the Muaalem v3.2 model.
 				</p>
-			</div>
-		{/if}
+			{/if}
+		</div>
 
 		<label class="flex items-center gap-2 text-sm text-secondary"
 			><input

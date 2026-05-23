@@ -5,13 +5,22 @@
 	const chipTone = $derived(() =>
 		wizard.hasAudio() ? 'text-green-300 bg-green-500/15' : 'text-red-300 bg-red-500/15'
 	);
+	const versionLabel = $derived(() =>
+		wizard.selection.aiVersion === 'legacy_v1'
+			? 'Legacy V1'
+			: wizard.selection.aiVersion === 'multi_v2'
+				? 'Quranic Universal Aligner'
+				: wizard.selection.aiVersion === 'multi_v2_local'
+					? 'Private Local Quranic Universal Aligner'
+					: 'Muaalem Local'
+	);
 </script>
 
 <aside class="w-[320px] min-w-[280px] border-r border-color bg-primary/80 p-5 space-y-4">
 	<div class="space-y-1">
 		<div class="text-xs uppercase tracking-wide text-thirdly">Auto segmentation</div>
 		<h2 class="text-xl font-semibold text-primary">Guided setup</h2>
-		<p class="text-xs text-thirdly">Configure version, runtime and segmentation in a clean flow.</p>
+		<p class="text-xs text-thirdly">Choose a clear workflow, prepare it, then launch.</p>
 	</div>
 
 	<div class="rounded-xl border border-color bg-accent/70 p-3 space-y-2">
@@ -21,7 +30,7 @@
 		</div>
 		<div class="text-xs text-secondary break-words">{wizard.audioLabel()}</div>
 		<div class="text-[11px] text-thirdly">
-			Version: {wizard.selection.aiVersion === 'legacy_v1' ? 'V1 Legacy' : 'V2 Multi-Aligner'} | {wizard.runtimeLabel()}
+			Method: {versionLabel()}
 		</div>
 	</div>
 

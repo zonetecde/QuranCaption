@@ -27,10 +27,22 @@ import {
 	getSelectedModelLabel
 } from './helpers/format';
 import { deriveSelectionState, persistSettingsPatch } from './helpers/persist';
+import {
+	MUAALEM_ADVANCED_MODEL_OPTIONS,
+	MUAALEM_MODEL_OPTIONS,
+	SURAH_SPLITTER_MODEL_OPTIONS
+} from './constants';
 import type { AiVersion, SegmentationPreset, WizardRuntime, WizardSelectionState } from './types';
 
 /** Creates modal state and actions for the auto-segmentation wizard. */
 export function useAutoSegmentationWizard() {
+	const validMuaalemModels = new Set<string>([
+		...MUAALEM_MODEL_OPTIONS.map((option) => option.value),
+		...MUAALEM_ADVANCED_MODEL_OPTIONS.map((option) => option.value)
+	]);
+	const validSurahSplitterModels = new Set<string>(
+		SURAH_SPLITTER_MODEL_OPTIONS.map((option) => option.value)
+	);
 	const persisted = globalState.settings?.autoSegmentationSettings as
 		| AutoSegmentationSettings
 		| undefined;
@@ -48,7 +60,7 @@ export function useAutoSegmentationWizard() {
 	let localStatus = $state<LocalSegmentationStatus | null>(null);
 	let isCheckingStatus = $state(false);
 	let isInstallingDeps = $state(false);
-	let installingEngine = $state<'legacy' | 'multi' | null>(null);
+	let installingEngine = $state<'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | null>(null);
 	let installStatus = $state('');
 	let currentStatus = $state('');
 	let currentStatusProgress = $state<number | null>(null);
@@ -64,10 +76,27 @@ export function useAutoSegmentationWizard() {
 	let importedJsonSegmentCount = $state(0);
 	let importedJsonParseError = $state<string | null>(null);
 	let estimationTimer: ReturnType<typeof setInterval> | null = null;
+	let estimatedProgressTimerStarted = false;
+	let pendingEstimatedDurationS: number | null = null;
+	let waitForLocalMultiAlignerStage = false;
 	let runStartedAtMs: number | null = null;
 	const steps = $derived(() => getWizardSteps(selection.aiVersion, selection.runtime));
 	const maxStep = $derived(() => Math.max(0, steps().length - 1));
 	const currentStepKey = $derived(() => steps()[currentStep]?.key ?? 'review');
+	const selectedLocalEngineStatus = $derived(() => {
+		if (selection.localAsrMode === 'legacy_whisper') return localStatus?.engines?.legacy ?? null;
+		if (selection.localAsrMode === 'muaalem_local') return localStatus?.engines?.muaalem ?? null;
+		if (selection.localAsrMode === 'surah_splitter')
+			return localStatus?.engines?.surahSplitter ?? null;
+		return localStatus?.engines?.multi ?? null;
+	});
+	const supportsWbwTimestamps = $derived(
+		() =>
+			selection.aiVersion === 'multi_v2' ||
+			selection.aiVersion === 'multi_v2_local' ||
+			(selection.aiVersion === 'muaalem_local' && selection.multiModel === 'Muaalem-v3.2') ||
+			selection.aiVersion === 'surah_splitter'
+	);
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
 	const hasAudio = $derived(() => !!audioInfo());
@@ -108,16 +137,25 @@ export function useAutoSegmentationWizard() {
 	});
 	const canGoNext = $derived(() => {
 		if (isRunning) return false;
+		if (currentStepKey() === 'setup' && selection.mode === 'local') {
+			return Boolean(selectedLocalEngineStatus()?.usable);
+		}
 		return true;
 	});
 	const helperText = $derived(() =>
 		result?.status === 'completed'
 			? 'Segmentation completed. You can close and review the subtitles.'
-			: selection.runtime === 'hf_json'
-				? 'Import and parse a JSON export from Hugging Face, then apply it to your timeline.'
-				: selection.mode === 'local'
-					? "Local mode uses your computer's resources."
-					: 'Cloud mode uses Quran Multi-Aligner v2.'
+			: currentStepKey() === 'setup' &&
+				  selection.mode === 'local' &&
+				  !selectedLocalEngineStatus()?.usable
+				? 'Install the required local packages first.'
+				: selection.aiVersion === 'muaalem_local'
+					? 'Muaalem Local uses a fully local Quran-specific pipeline, but it is generally less effective than the official Quranic Universal Aligner.'
+					: selection.aiVersion === 'surah_splitter'
+						? 'Surah Splitter can auto-detect the surah, but selecting it manually improves precision.'
+						: selection.mode === 'local'
+							? "Local mode uses your computer's resources."
+							: 'Cloud mode uses the Quranic Universal Aligner.'
 	);
 
 	/** Persists a partial settings update. */
@@ -140,9 +178,55 @@ export function useAutoSegmentationWizard() {
 	/** Changes AI family and applies runtime constraints. */
 	function onVersionChange(aiVersion: AiVersion): void {
 		selection.aiVersion = aiVersion;
-		selection.mode = aiVersion === 'legacy_v1' ? 'local' : 'api';
-		selection.runtime = aiVersion === 'legacy_v1' ? 'local' : 'cloud';
-		selection.localAsrMode = aiVersion === 'legacy_v1' ? 'legacy_whisper' : 'multi_aligner';
+		if (aiVersion === 'legacy_v1') {
+			selection.mode = 'local';
+			selection.runtime = 'local';
+			selection.localAsrMode = 'legacy_whisper';
+			if (includeWbwTimestamps) {
+				includeWbwTimestamps = false;
+				persistPatch({ includeWbwTimestamps: false });
+			}
+		} else if (aiVersion === 'multi_v2_local') {
+			selection.mode = 'local';
+			selection.runtime = 'local';
+			selection.localAsrMode = 'multi_aligner';
+			if (selection.multiModel !== 'Base' && selection.multiModel !== 'Large') {
+				selection.multiModel = 'Base';
+				persistPatch({ multiAlignerModel: selection.multiModel });
+			}
+		} else if (aiVersion === 'muaalem_local') {
+			selection.mode = 'local';
+			selection.runtime = 'local';
+			selection.localAsrMode = 'muaalem_local';
+			if (!includeWbwTimestamps) {
+				includeWbwTimestamps = true;
+				persistPatch({ includeWbwTimestamps: true });
+			}
+			if (!validMuaalemModels.has(selection.multiModel)) {
+				selection.multiModel = 'Muaalem-v3.2';
+				persistPatch({ multiAlignerModel: selection.multiModel });
+			}
+		} else if (aiVersion === 'surah_splitter') {
+			selection.mode = 'local';
+			selection.runtime = 'local';
+			selection.localAsrMode = 'surah_splitter';
+			if (!includeWbwTimestamps) {
+				includeWbwTimestamps = true;
+				persistPatch({ includeWbwTimestamps: true });
+			}
+			if (!validSurahSplitterModels.has(selection.multiModel)) {
+				selection.multiModel = 'SurahSplitter-Base-Quran';
+				persistPatch({ multiAlignerModel: selection.multiModel });
+			}
+		} else {
+			selection.mode = 'api';
+			selection.runtime = 'cloud';
+			selection.localAsrMode = 'multi_aligner';
+			if (selection.multiModel !== 'Base' && selection.multiModel !== 'Large') {
+				selection.multiModel = 'Base';
+				persistPatch({ multiAlignerModel: selection.multiModel });
+			}
+		}
 		currentStep = Math.max(0, Math.min(currentStep, maxStep()));
 		persistPatch({ mode: selection.mode, localAsrMode: selection.localAsrMode });
 		if (selection.mode === 'local') void refreshLocalStatus();
@@ -150,7 +234,7 @@ export function useAutoSegmentationWizard() {
 
 	/** Updates runtime while preserving legacy local-only behavior. */
 	function onModeChange(mode: SegmentationMode): void {
-		selection.mode = selection.aiVersion === 'legacy_v1' ? 'local' : mode;
+		selection.mode = selection.aiVersion === 'multi_v2' ? mode : 'local';
 		selection.runtime = selection.mode === 'local' ? 'local' : 'cloud';
 		if (selection.mode === 'local' && selection.aiVersion === 'multi_v2')
 			selection.localAsrMode = 'multi_aligner';
@@ -160,19 +244,11 @@ export function useAutoSegmentationWizard() {
 
 	/** Updates runtime for V2 while preserving persisted mode compatibility. */
 	function setRuntime(runtime: WizardRuntime): void {
-		if (selection.aiVersion === 'legacy_v1') {
+		if (selection.aiVersion !== 'multi_v2') {
 			onModeChange('local');
 			return;
 		}
-
-		if (runtime === 'hf_json') {
-			selection.runtime = 'hf_json';
-			selection.mode = 'api';
-			currentStep = Math.max(0, Math.min(currentStep, maxStep()));
-			return;
-		}
-
-		onModeChange(runtime === 'local' ? 'local' : 'api');
+		onModeChange(runtime === 'cloud' ? 'api' : 'local');
 	}
 
 	/** Sets raw JSON import text and resets parsed state. */
@@ -228,15 +304,20 @@ export function useAutoSegmentationWizard() {
 	}
 
 	/** Installs local dependencies for one engine with streamed status text. */
-	async function installEngine(engine: 'legacy' | 'multi'): Promise<void> {
+	async function installEngine(
+		engine: 'legacy' | 'multi' | 'muaalem' | 'surah_splitter'
+	): Promise<void> {
 		if (isInstallingDeps) return;
 		isInstallingDeps = true;
 		installingEngine = engine;
 		installStatus = '';
-		const unlisten = await listen<{ message: string }>(
-			'install-status',
-			(event) => (installStatus = event.payload.message)
-		);
+		const unlisten = await listen<{ message: string }>('install-status', (event) => {
+			const payload = {
+				step: 'install',
+				message: event.payload.message
+			};
+			installStatus = `[segmentation][local][status][${engine}] STATUS:${JSON.stringify(payload)}`;
+		});
 		try {
 			await installLocalSegmentationDeps(
 				engine,
@@ -258,7 +339,20 @@ export function useAutoSegmentationWizard() {
 	/** Returns a segmentation status listener for both local and cloud runs. */
 	async function listenSegmentationStatus(): Promise<UnlistenFn | null> {
 		return listen<{ message?: string; progress?: number }>('segmentation-status', (event) => {
-			if (typeof event.payload.message === 'string') currentStatus = event.payload.message;
+			if (typeof event.payload.message === 'string') {
+				currentStatus = event.payload.message;
+				if (
+					waitForLocalMultiAlignerStage &&
+					selection.mode === 'local' &&
+					selection.localAsrMode === 'multi_aligner' &&
+					/running local multi[- ]aligner pipeline/i.test(event.payload.message)
+				) {
+					waitForLocalMultiAlignerStage = false;
+					if (pendingEstimatedDurationS && !estimatedProgressTimerStarted) {
+						startEstimatedProgressTimer(pendingEstimatedDurationS);
+					}
+				}
+			}
 			// Quand on finit l'upload (100%), on cache la progress bar
 			if (typeof event.payload.progress === 'number' && event.payload.progress < 100) {
 				currentStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
@@ -281,11 +375,16 @@ export function useAutoSegmentationWizard() {
 		estimatedDurationS = null;
 		estimatedProgress = null;
 		estimatedRemainingS = null;
+		estimatedProgressTimerStarted = false;
+		pendingEstimatedDurationS = null;
+		waitForLocalMultiAlignerStage = false;
 	}
 
 	function startEstimatedProgressTimer(durationS: number): void {
+		if (estimatedProgressTimerStarted) return;
 		stopEstimationTimer();
 		if (!Number.isFinite(durationS) || durationS <= 0) return;
+		estimatedProgressTimerStarted = true;
 		runStartedAtMs = Date.now();
 		estimatedDurationS = durationS;
 		const tick = () => {
@@ -320,20 +419,75 @@ export function useAutoSegmentationWizard() {
 		}
 	}
 
+	/** Applies subtitles from the separate Hugging Face JSON import flow. */
+	async function startImportedJsonSegmentation(): Promise<void> {
+		if (!hasAudio() || importedJsonRaw.trim().length === 0) {
+			importedJsonParseError =
+				'Please provide a Hugging Face JSON payload before adding subtitles.';
+			return;
+		}
+
+		isRunning = true;
+		result = null;
+		errorMessage = null;
+		warningMessage = null;
+		fallbackMessage = null;
+		cloudCpuFallbackMessage = null;
+		currentStatus = '';
+		currentStatusProgress = null;
+		resetEstimatedProgress();
+
+		let response: AutoSegmentationResult | null = null;
+		try {
+			const parsed = parseImportedSegmentationJson(importedJsonRaw);
+			importedJsonSegmentCount = parsed.segmentCount;
+			importedJsonParseError = null;
+			response = await runAutoSegmentationFromImportedJson(parsed.response, {
+				fillBySilence,
+				extendBeforeSilence,
+				extendBeforeSilenceMs
+			});
+			applySegmentationResponse(response);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			importedJsonParseError = message;
+			response = { status: 'failed', message };
+			applySegmentationResponse(response);
+		} finally {
+			isRunning = false;
+			currentStatus = '';
+			currentStatusProgress = null;
+			resetEstimatedProgress();
+			trackSegmentationRun({
+				response,
+				requestedMode: 'api',
+				runtime: 'hf_json',
+				version: selection.aiVersion,
+				model: 'From imported JSON',
+				device: 'N/A',
+				audioLabel: audioLabel(),
+				minSilenceMs,
+				minSpeechMs,
+				padMs,
+				includeWordByWord: includeWbwTimestamps,
+				fillBySilence,
+				extendBeforeSilence,
+				extendBeforeSilenceMs,
+				hfTokenSet: selection.hfToken.length > 0
+			});
+		}
+	}
+
 	/** Executes segmentation while preserving fallback and analytics behavior. */
 	async function startSegmentation(): Promise<void> {
 		if (!canStart()) return;
-		if (selection.runtime === 'hf_json' && importedJsonRaw.trim().length === 0) {
-			errorMessage = 'Please provide a Hugging Face JSON payload before adding subtitles.';
-			return;
-		}
 		if (
 			selection.mode === 'local' &&
 			selection.localAsrMode === 'multi_aligner' &&
 			!selection.hfToken.trim()
 		) {
 			errorMessage =
-				'Local V2 requires a Hugging Face token with access to private models (hetchyy/r15_95m, hetchyy/r7).';
+				'Private Local Quranic Universal Aligner requires a Hugging Face token with access to private models (hetchyy/r15_95m, hetchyy/r7).';
 			return;
 		}
 		isRunning = true;
@@ -347,7 +501,11 @@ export function useAutoSegmentationWizard() {
 		resetEstimatedProgress();
 
 		let estimatedDurationForRun: number | null = null;
-		if (selection.runtime !== 'hf_json' && selection.localAsrMode === 'multi_aligner' && selection.mode === 'local') {
+		if (
+			selection.runtime !== 'hf_json' &&
+			selection.localAsrMode === 'multi_aligner' &&
+			selection.mode === 'local'
+		) {
 			const audioDurationS = getAutoSegmentationAudioDurationS();
 			const estimated = await estimateSegmentationDuration({
 				endpoint: 'process_audio_session',
@@ -362,45 +520,39 @@ export function useAutoSegmentationWizard() {
 		const unlisten = await listenSegmentationStatus();
 		let response: AutoSegmentationResult | null = null;
 		try {
-			if (selection.runtime === 'hf_json') {
-				const parsed = parseImportedSegmentationJson(importedJsonRaw);
-				importedJsonSegmentCount = parsed.segmentCount;
-				importedJsonParseError = null;
-				response = await runAutoSegmentationFromImportedJson(parsed.response, {
+			response = await runAutoSegmentation(
+				{
+					minSilenceMs,
+					minSpeechMs,
+					padMs,
+					localAsrMode: selection.localAsrMode,
+					legacyWhisperModel: selection.legacyModel,
+					multiAlignerModel: selection.multiModel,
+					cloudModel: selection.cloudModel,
+					surahSplitterSurah: selection.surahSplitterSurah,
+					device: selection.device,
+					hfToken: selection.hfToken,
+					allowCloudFallback: selection.mode !== 'local',
+					includeWbwTimestamps: includeWbwTimestamps && supportsWbwTimestamps(),
 					fillBySilence,
 					extendBeforeSilence,
-					extendBeforeSilenceMs
-				});
-			} else {
-				response = await runAutoSegmentation(
-					{
-						minSilenceMs,
-						minSpeechMs,
-						padMs,
-						localAsrMode: selection.localAsrMode,
-						legacyWhisperModel: selection.legacyModel,
-						multiAlignerModel: selection.multiModel,
-						cloudModel: selection.cloudModel,
-						device: selection.device,
-						hfToken: selection.hfToken,
-						allowCloudFallback: selection.mode !== 'local',
-						includeWbwTimestamps,
-						fillBySilence,
-						extendBeforeSilence,
-						extendBeforeSilenceMs,
-						onRunConfirmed: () => {
-							if (estimatedDurationForRun && estimatedDurationForRun > 0) {
+					extendBeforeSilenceMs,
+					onRunConfirmed: () => {
+						if (estimatedDurationForRun && estimatedDurationForRun > 0) {
+							pendingEstimatedDurationS = estimatedDurationForRun;
+							if (selection.mode === 'local' && selection.localAsrMode === 'multi_aligner') {
+								waitForLocalMultiAlignerStage = true;
+							} else {
 								startEstimatedProgressTimer(estimatedDurationForRun);
 							}
 						}
-					},
-					selection.mode
-				);
-			}
+					}
+				},
+				selection.mode
+			);
 			applySegmentationResponse(response);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			if (selection.runtime === 'hf_json') importedJsonParseError = message;
 			response = { status: 'failed', message };
 			applySegmentationResponse(response);
 		} finally {
@@ -411,7 +563,7 @@ export function useAutoSegmentationWizard() {
 			resetEstimatedProgress();
 			trackSegmentationRun({
 				response,
-				requestedMode: selection.runtime === 'hf_json' ? 'api' : selection.mode,
+				requestedMode: selection.mode,
 				runtime: selection.runtime,
 				version: selection.aiVersion,
 				model: selectedModel(),
@@ -454,10 +606,23 @@ export function useAutoSegmentationWizard() {
 	/** Sets local multi-aligner model and persists the choice. */
 	function setMultiModel(value: MultiAlignerModel): void {
 		selection.multiModel = value;
+		if (
+			selection.aiVersion === 'muaalem_local' &&
+			value !== 'Muaalem-v3.2' &&
+			includeWbwTimestamps
+		) {
+			includeWbwTimestamps = false;
+			persistPatch({ includeWbwTimestamps: false });
+		}
 		persistPatch({ multiAlignerModel: value });
 	}
+	/** Définit la sourate Surah Splitter et persiste le choix. */
+	function setSurahSplitterSurah(value: number | null): void {
+		selection.surahSplitterSurah = value;
+		persistPatch({ surahSplitterSurah: value });
+	}
 	/** Sets cloud model and persists the choice. */
-	function setCloudModel(value: MultiAlignerModel): void {
+	function setCloudModel(value: 'Base' | 'Large'): void {
 		selection.cloudModel = value;
 		persistPatch({ cloudModel: value });
 	}
@@ -483,8 +648,9 @@ export function useAutoSegmentationWizard() {
 	}
 	/** Active ou non la récupération des timestamps mot à mot. */
 	function setIncludeWbwTimestamps(value: boolean): void {
-		includeWbwTimestamps = value;
-		persistPatch({ includeWbwTimestamps: value });
+		const nextValue = supportsWbwTimestamps() ? value : false;
+		includeWbwTimestamps = nextValue;
+		persistPatch({ includeWbwTimestamps: nextValue });
 	}
 	/** Sets fill-by-silence and persists it. */
 	function setFillBySilence(value: boolean): void {
@@ -508,7 +674,7 @@ export function useAutoSegmentationWizard() {
 	/** Moves to the next wizard step. */
 	function goNext(): void {
 		if (!canGoNext()) {
-			errorMessage = 'Parse the Hugging Face JSON payload before continuing.';
+			errorMessage = 'Install the required local packages before continuing.';
 			return;
 		}
 		goToStep(currentStep + 1);
@@ -622,6 +788,7 @@ export function useAutoSegmentationWizard() {
 		selectedDevice,
 		effectiveDeviceLabel,
 		verseRange,
+		supportsWbwTimestamps,
 		canStart,
 		canGoNext,
 		helperText,
@@ -629,6 +796,7 @@ export function useAutoSegmentationWizard() {
 		onVersionChange,
 		onModeChange,
 		setRuntime,
+		startImportedJsonSegmentation,
 		promptHFToken,
 		clearHFToken,
 		setImportedJsonRaw,
@@ -642,6 +810,7 @@ export function useAutoSegmentationWizard() {
 		setLegacyModel,
 		setMultiModel,
 		setCloudModel,
+		setSurahSplitterSurah,
 		setDevice,
 		setMinSilence,
 		setMinSpeech,

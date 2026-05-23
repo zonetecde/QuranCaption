@@ -10,6 +10,11 @@
 	let changelogSections = $state<HuggingFaceChangelogSection[]>([]);
 	let isLoadingChangelog = $state(true);
 	let changelogError = $state<string | null>(null);
+	let {
+		activeView = $bindable('wizard')
+	}: {
+		activeView: 'wizard' | 'import';
+	} = $props();
 
 	onMount(async () => {
 		try {
@@ -23,33 +28,18 @@
 	});
 </script>
 
-<section class="flex h-full min-h-0 flex-col gap-4">
+<section class="flex flex-col gap-4 xl:flex-1">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">1. Select AI version</h3>
-		<p class="text-sm text-thirdly">Choose the segmentation family before runtime configuration.</p>
+		<h3 class="text-lg font-semibold text-primary">1. Choose a method</h3>
+		<p class="text-sm text-thirdly">
+			Pick the simplest method for your situation. You can still change advanced options later.
+		</p>
 	</div>
 
-	<div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+	<div class="grid grid-cols-1 gap-3 xl:flex-1 xl:grid-cols-2">
 		<button
 			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
-			class:border-accent-primary={wizard.selection.aiVersion === 'legacy_v1'}
-			class:bg-accent={wizard.selection.aiVersion === 'legacy_v1'}
-			class:border-color={wizard.selection.aiVersion !== 'legacy_v1'}
-			onclick={() => wizard.onVersionChange('legacy_v1')}
-		>
-			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">memory</span>Legacy V1
-			</div>
-			<p class="text-sm text-thirdly">Local-only Whisper workflow with 4 legacy model sizes.</p>
-			<p class="mt-3 text-xs text-thirdly">
-				Older pipeline with lower alignment quality and more practical limits.
-			</p>
-		</button>
-
-		<button
-			type="button"
-			class="rounded-xl border bg-gradient-to-br from-accent/80 to-bg-accent p-4 text-left shadow-sm transition-colors"
+			class="rounded-xl border bg-gradient-to-br from-accent/80 to-bg-accent p-4 text-left shadow-sm transition-colors xl:col-span-2"
 			class:border-accent-primary={wizard.selection.aiVersion === 'multi_v2'}
 			class:border-color={wizard.selection.aiVersion !== 'multi_v2'}
 			class:bg-accent={wizard.selection.aiVersion === 'multi_v2'}
@@ -57,7 +47,7 @@
 		>
 			<div class="mb-3 flex items-start justify-between gap-3">
 				<div class="flex items-center gap-2 text-primary">
-					<span class="material-icons">auto_awesome</span>Multi-Aligner V2
+					<span class="material-icons">auto_awesome</span>Quranic Universal Aligner
 				</div>
 				<span
 					class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
@@ -65,21 +55,101 @@
 					Recommended
 				</span>
 			</div>
-			<p class="text-sm font-medium text-primary">
-				Very clearly better than Legacy V1. This is the version we recommend.
-			</p>
+			<p class="text-sm font-medium text-primary">Best overall quality and easiest setup</p>
 			<p class="mt-2 text-sm text-thirdly">
-				Cloud or local flow with much stronger alignment quality, a cleaner workflow, and
-				near-unlimited usage in practice.
+				Uses the official Quranic Universal Aligner remotely. Recommended for most users.
 			</p>
 		</button>
+
+		<button
+			type="button"
+			class="rounded-xl border p-4 text-left transition-colors"
+			class:border-accent-primary={wizard.selection.aiVersion === 'surah_splitter'}
+			class:bg-accent={wizard.selection.aiVersion === 'surah_splitter'}
+			class:border-color={wizard.selection.aiVersion !== 'surah_splitter'}
+			onclick={() => wizard.onVersionChange('surah_splitter')}
+		>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">offline_bolt</span>Surah Splitter Local
+			</div>
+			<p class="text-sm font-medium text-primary">
+				Local ayah detection with optional surah hint - Recommend Local option
+			</p>
+			<p class="mt-3 text-xs text-thirdly">
+				Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports
+				word-by-word alignment, but selecting the surah manually improves precision. <br />Note:
+				this option only works if there's one surah in the audio file.
+			</p>
+			<div
+				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
+			>
+				Offline
+			</div>
+		</button>
+
+		<button
+			type="button"
+			class="rounded-xl border p-4 text-left transition-colors"
+			class:border-accent-primary={wizard.selection.aiVersion === 'muaalem_local'}
+			class:bg-accent={wizard.selection.aiVersion === 'muaalem_local'}
+			class:border-color={wizard.selection.aiVersion !== 'muaalem_local'}
+			onclick={() => wizard.onVersionChange('muaalem_local')}
+		>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">offline_bolt</span>Muaalem Local
+			</div>
+			<p class="text-sm font-medium text-primary">
+				Second option but less effective than Surah Splitter
+			</p>
+			<p class="mt-3 text-xs text-thirdly">
+				Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific
+				segmentation and matching.
+			</p>
+			<div
+				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
+			>
+				Offline
+			</div>
+		</button>
+
+		<button
+			type="button"
+			class="rounded-xl border p-4 text-left transition-colors xl:col-span-2"
+			class:border-accent-primary={wizard.selection.aiVersion === 'multi_v2_local'}
+			class:bg-accent={wizard.selection.aiVersion === 'multi_v2_local'}
+			class:border-color={wizard.selection.aiVersion !== 'multi_v2_local'}
+			onclick={() => wizard.onVersionChange('multi_v2_local')}
+		>
+			<div class="mb-1 flex items-center gap-2 text-primary">
+				<span class="material-icons">computer</span>Private Local Quranic Universal Aligner
+			</div>
+			<p class="text-sm font-medium text-primary">Best local accuracy</p>
+			<p class="mt-3 text-xs text-thirdly">
+				Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python
+				setup and a Hugging Face token.
+			</p>
+			<div
+				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
+			>
+				Advanced
+			</div>
+		</button>
+
+		<p
+			class="text-xs underline text-center text-secondary mt-3 cursor-pointer h-fit xl:col-span-2"
+			onclick={() => (activeView = 'import')}
+		>
+			Import Hugging Face JSON
+		</p>
 	</div>
 
-	<section class="mt-auto rounded-xl border border-[var(--border-color)]/60 bg-accent/20 p-4">
+	<section class="rounded-xl border border-[var(--border-color)]/60 bg-accent/20 p-4 xl:mt-auto">
 		<details>
 			<summary class="flex cursor-pointer items-center gap-2 text-primary">
 				<span class="material-icons">history</span>
-				<h4 class="text-sm font-semibold">Latest changelog</h4>
+				<h4 class="text-sm font-semibold">
+					Latest changelog <span class="text-thirdly">(Quranic Universal Aligner)</span>
+				</h4>
 			</summary>
 
 			<div class="mt-3">
@@ -97,7 +167,8 @@
 								<ul class="mt-2 space-y-2 text-sm text-thirdly">
 									{#each section.items as item}
 										<li class="flex gap-2">
-											<span class="mt-[2px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary/70"></span>
+											<span class="mt-[2px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent-primary/70"
+											></span>
 											<span>{item}</span>
 										</li>
 									{/each}
@@ -110,4 +181,3 @@
 		</details>
 	</section>
 </section>
-

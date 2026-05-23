@@ -1,0 +1,16 @@
+# Requirements for the Muaalem local Quran pipeline.
+# Models are downloaded on first run if not already cached.
+
+torch>=2.4.0
+transformers>=4.55.0,<5.0.0
+torchaudio>=2.4.0
+librosa>=0.11.0,<1.0.0
+numpy>=2.2.6,<3.0.0
+soundfile>=0.12.0,<0.13.0
+accelerate>=0.34.0,<2.0.0
+protobuf>=5.0.0,<7.0.0
+recitations-segmenter==1.0.0
+quran-transcript @ git+https://github.com/obadx/quran-transcript.git
+fuzzysearch>=0.8.0,<1.0.0
+python-Levenshtein>=0.27.0,<1.0.0
+nemo_toolkit[asr]>=1.23.0

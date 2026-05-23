@@ -1,44 +1,86 @@
 <script lang="ts">
+	/**
+	 * VideoOverlay — Orchestrateur de l'affichage superposé à la vidéo.
+	 *
+	 * Ce composant est le point d'entrée de tout le rendu visuel au-dessus
+	 * de la prévisualisation vidéo. Il orchestre plusieurs couches :
+	 *
+	 * 1. Grille d'alignement (onglet Style uniquement).
+	 * 2. Image associée au sous-titre courant.
+	 * 3. Overlay d'effet (flou, couleur, dégradé configurable).
+	 * 4. Fond des sous-titres (visible en continu).
+	 * 5. Sous-titre arabe (avec highlight mot-à-mot, crochets décoratifs).
+	 * 6. Traductions (une par édition configurée).
+	 * 7. Décorations fixes (nom de sourate, récitateur, numéro de verset).
+	 * 8. Clips custom (texte et images).
+	 *
+	 * La logique métier complexe est extraite dans :
+	 * - `ArabicSubtitle.svelte` : rendu du texte arabe.
+	 * - `TranslationSubtitle.svelte` : rendu d'une traduction.
+	 * - `helpers/antiCollision.ts` : résolution des collisions entre sous-titres.
+	 * - `helpers/reactiveFontSize.ts` : ajustement réactif de la taille de police.
+	 * - `helpers/overlayCss.ts` : CSS des effets d'overlay et padding de fond.
+	 * - `helpers/decorativeBrackets.ts` : glyphes décoratifs.
+	 */
+
 	import {
 		CustomTextClip,
 		PredefinedSubtitleClip,
 		ProjectEditorTabs,
 		SubtitleClip
 	} from '$lib/classes';
-	import { ClipWithTranslation, CustomImageClip } from '$lib/classes/Clip.svelte';
-	import {
-		VerseTranslation,
-		type TranslationInlineStyleFlags
-	} from '$lib/classes/Translation.svelte';
-	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
+	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { untrack } from 'svelte';
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
-	import { Utilities } from '$lib/classes/misc/Utilities';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import {
-		createPlainOverlaySegment,
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
 		getReferenceClipForTarget as getReferenceClipForTargetUtil,
-		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
-		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
-		isVisualMergeTargetMerged,
-		type OverlayTextSegment
+		isVisualMergeTargetMerged
 	} from './visualMergeOverlayUtils';
 
-	const fadeDuration = $derived(() => {
+	// Sous-composants
+	import ArabicSubtitle from './ArabicSubtitle.svelte';
+	import TranslationSubtitle from './TranslationSubtitle.svelte';
+
+	// Helpers extraits
+	import { getOverlayLayerCss } from './helpers/overlayCss';
+	import { applyReactiveFontSize } from './helpers/reactiveFontSize';
+	import { resolveSubtitleCollisions } from './helpers/antiCollision';
+
+	// =========================================================================
+	// Dérivations réactives globales
+	// =========================================================================
+
+	/** Durée de fondu configurée au niveau global (en ms). */
+	let fadeDuration = $derived(() => {
 		return globalState.getStyle('global', 'fade-duration').value as number;
 	});
 
+	/**
+	 * Indique si on est en mode capture d'export.
+	 * Dans ce mode, on applique des ajustements spécifiques pour les renderers
+	 * de screenshot (ex: pas de fade, display: block forcé).
+	 */
+	let isExportCapturePreview = $derived(() => {
+		if (typeof window === 'undefined') return false;
+		return (
+			window.location.pathname.includes('/exporter') &&
+			new URLSearchParams(window.location.search).has('id')
+		);
+	});
+
+	/** Raccourci vers les paramètres de la timeline. */
 	let getTimelineSettings = $derived(() => {
 		return globalState.currentProject!.projectEditorState.timeline;
 	});
 
+	/** Clip vidéo courant (basé sur la position du curseur). */
 	let currentVideoClip = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
 		return untrack(() =>
@@ -46,6 +88,7 @@
 		);
 	});
 
+	/** Sous-titre actuellement affiché. */
 	let currentSubtitle = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
 		return untrack(() => {
@@ -53,13 +96,20 @@
 		});
 	});
 
+	/** Groupe de fusion visuelle actif (si le sous-titre est fusionné). */
 	let currentVisualMergeGroup = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!(subtitle instanceof SubtitleClip)) return null;
 		return globalState.getSubtitleTrack.getVisualMergeGroupForClipId(subtitle.id);
 	});
 
-	// Sous-titre de référence pour afficher les backgrounds en continu
+	/**
+	 * Sous-titre de référence pour les fonds (backgrounds).
+	 *
+	 * Quand le curseur est entre deux sous-titres, on cherche le sous-titre
+	 * précédent ou suivant pour continuer d'afficher les backgrounds.
+	 * On ne considère que les SubtitleClip et PredefinedSubtitleClip.
+	 */
 	let backgroundSubtitle = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
 		return untrack(() => {
@@ -73,19 +123,19 @@
 			const time = getTimelineSettings().cursorPosition;
 			let indexAfter = clips.findIndex((c) => time < c.startTime);
 
-			// Cherche d'abord le sous-titre (normal ou prédéfini) précédent
 			if (indexAfter === -1) {
-				// Après le dernier clip: on cherche depuis la fin
+				// Après le dernier clip : cherche depuis la fin
 				for (let i = clips.length - 1; i >= 0; i--) {
 					const c = clips[i];
 					if (c instanceof SubtitleClip || c instanceof PredefinedSubtitleClip) return c;
 				}
 			} else {
+				// Cherche le sous-titre précédent
 				for (let i = indexAfter - 1; i >= 0; i--) {
 					const c = clips[i];
 					if (c instanceof SubtitleClip || c instanceof PredefinedSubtitleClip) return c;
 				}
-				// Pas de précédent: on prend le prochain
+				// Pas de précédent : prend le suivant
 				for (let i = indexAfter; i < clips.length; i++) {
 					const c = clips[i];
 					if (c instanceof SubtitleClip || c instanceof PredefinedSubtitleClip) return c;
@@ -96,6 +146,7 @@
 		});
 	});
 
+	/** Traductions disponibles pour le sous-titre courant. */
 	let currentSubtitleTranslations = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!subtitle) return [];
@@ -104,6 +155,11 @@
 		return subtitle.translations;
 	});
 
+	/**
+	 * Liste des targets de traduction visibles.
+	 * En mode fusion "translation" ou "both", on utilise les clés
+	 * du premier clip du groupe. Sinon, on utilise celles du sous-titre courant.
+	 */
 	let visibleTranslationTargets = $derived(() => {
 		const mergedGroup = currentVisualMergeGroup();
 		if (mergedGroup && (mergedGroup.mode === 'translation' || mergedGroup.mode === 'both')) {
@@ -113,71 +169,7 @@
 		return Object.keys(currentSubtitleTranslations() || {});
 	});
 
-	let showDecorativeBrackets = $derived(() => {
-		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
-	});
-
-	let decorativeBracketsGlyphPair = $derived(() => {
-		return String(globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM');
-	});
-
-	/**
-	 * Indique si une cible donnee doit etre rendue via le merge visuel actif.
-	 * @param {string} target Cible de style (`arabic` ou nom d'edition).
-	 * @returns {boolean} `true` si la cible doit utiliser le groupe merge.
-	 */
-	function isTargetMerged(target: string): boolean {
-		return isVisualMergeTargetMerged(currentVisualMergeGroup(), target);
-	}
-
-	/**
-	 * Retourne le clip de reference pour les styles de la cible.
-	 * @param {string} target Cible de style (`arabic` ou nom d'edition).
-	 * @returns {SubtitleClip | PredefinedSubtitleClip | null} Clip de reference.
-	 */
-	function getReferenceClipForTarget(target: string): SubtitleClip | PredefinedSubtitleClip | null {
-		const subtitle = currentSubtitle();
-		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip)) return null;
-		return getReferenceClipForTargetUtil(subtitle, currentVisualMergeGroup(), target);
-	}
-
-	/**
-	 * Retourne le clip de reference a utiliser pour les backgrounds d'une cible.
-	 * @param {string} target Cible de style (`arabic` ou nom d'edition).
-	 * @returns {number | undefined} Identifiant du clip de reference.
-	 */
-	function getBackgroundClipIdForTarget(target: string): number | undefined {
-		const background = backgroundSubtitle();
-		const subtitleBackground =
-			background instanceof SubtitleClip || background instanceof PredefinedSubtitleClip
-				? background
-				: null;
-		return getBackgroundClipIdForTargetUtil(
-			currentVisualMergeGroup(),
-			subtitleBackground,
-			target
-		);
-	}
-
-	/**
-	 * Génère le CSS pour les crochets décoratifs en fonction de la police sélectionnée.
-	 * Petites retouches de positionnement et d'échelle pour chaque police.
-	 */
-	function getDecorativeBracketCss(): string {
-		return "font-family: 'QPC2BSML', serif; display: inline-block;";
-	}
-
-	function getDecorativeBracketGlyphs(): { opening: string; closing: string } {
-		const raw = decorativeBracketsGlyphPair();
-		const compact = raw.replaceAll(' ', '').replaceAll('/', '').replaceAll('-', '');
-		const allowedPairs = ['LM', 'NO', 'PQ', 'RS', 'TU', 'VW', 'XY', 'Z:', '()'];
-		if (allowedPairs.includes(compact) && compact.length >= 2) {
-			return { opening: compact[0], closing: compact[1] };
-		}
-		return { opening: 'L', closing: 'M' };
-	}
-
-	// Contient les textes custom à afficher à ce moment précis
+	/** Clips custom (texte/image) à afficher au temps courant. */
 	let currentCustomClips = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
 		return untrack(() => {
@@ -185,8 +177,7 @@
 		});
 	});
 
-	let subtitleImageFailedToLoad = $state(false);
-
+	/** Chemin de l'image associée au sous-titre courant. */
 	let currentSubtitleImagePath = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!subtitle) return null;
@@ -196,513 +187,23 @@
 		return subtitle.getAssociatedImagePath();
 	});
 
+	/** Flag indiquant si l'image associée a échoué à charger. */
+	let subtitleImageFailedToLoad = $state(false);
+
+	// Réinitialise le flag d'erreur quand l'image change
 	$effect(() => {
 		currentSubtitleImagePath();
 		subtitleImageFailedToLoad = false;
 	});
 
-	/**
-	 * Retourne les segments arabes rendus pour un clip.
-	 * @param {ClipWithTranslation} subtitle Clip a convertir.
-	 * @param {string} keyPrefix Prefixe de cle pour les segments.
-	 * @returns {OverlayTextSegment[]} Segments du clip.
-	 */
-	function getArabicOverlaySegments(
-		subtitle: ClipWithTranslation,
-		keyPrefix: string
-	): OverlayTextSegment[] {
-		if (subtitle instanceof PredefinedSubtitleClip) {
-			return [createPlainOverlaySegment(`${keyPrefix}-arabic`, subtitle.getText())];
-		}
-
-		const displayParts = subtitle.getArabicRenderParts('preview');
-		const baseSegments =
-			(subtitle.arabicInlineStyleRuns?.length ?? 0) > 0
-				? subtitle.getArabicInlineStyledSegments('preview').map((segment, index) => ({
-						key: `${keyPrefix}-arabic-${index}`,
-						text: segment.text,
-						flags: segment
-					}))
-				: [createPlainOverlaySegment(`${keyPrefix}-arabic`, displayParts.text)];
-
-		if (!displayParts.suffix) return baseSegments;
-
-		return [
-			...baseSegments,
-			createPlainOverlaySegment(
-				`${keyPrefix}-suffix`,
-				displayParts.suffix,
-				displayParts.suffixFontFamily ? `font-family: ${displayParts.suffixFontFamily};` : ''
-			)
-		];
-	}
+	// =========================================================================
+	// Paramètres de l'overlay d'effet (flou, couleur, dégradé)
+	// =========================================================================
 
 	/**
-	 * Retourne les segments de traduction rendus pour un clip et une edition.
-	 * @param {string} edition Edition de traduction.
-	 * @param {SubtitleClip} subtitle Clip Quran de reference.
-	 * @returns {OverlayTextSegment[]} Segments de traduction.
+	 * Paramètres de l'overlay d'arrière-plan lus depuis les styles globaux.
+	 * Utilisé par la couche de flou et de couleur/dégradé derrière les sous-titres.
 	 */
-	function getTranslationOverlaySegments(edition: string, subtitle: SubtitleClip): OverlayTextSegment[] {
-		const translation = subtitle.translations[edition];
-		if (!translation) return [];
-
-		if (translation.type === 'verse') {
-			const verseTranslation = translation as VerseTranslation;
-			const textParts = verseTranslation.getFormattedTextParts(edition, subtitle);
-			const segments: OverlayTextSegment[] = [];
-
-			if (textParts.prefix) {
-				segments.push(createPlainOverlaySegment(`${edition}-${subtitle.id}-prefix`, textParts.prefix));
-			}
-
-			segments.push(
-				...verseTranslation.getInlineStyledSegments().map((segment, index) => ({
-					key: `${edition}-${subtitle.id}-${index}`,
-					text: segment.text,
-					flags: segment
-				}))
-			);
-
-			if (textParts.suffix) {
-				segments.push(createPlainOverlaySegment(`${edition}-${subtitle.id}-suffix`, textParts.suffix));
-			}
-
-			return segments;
-		}
-
-		return [createPlainOverlaySegment(`${edition}-${subtitle.id}`, translation.getText())];
-	}
-
-	/**
-	 * Retourne les segments arabes a afficher selon le merge visuel actif.
-	 * @returns {OverlayTextSegment[]} Segments arabes a rendre.
-	 */
-	function getVisibleArabicSegments(): OverlayTextSegment[] {
-		const subtitle = currentSubtitle();
-		return getVisibleArabicSegmentsUtil(
-			subtitle instanceof ClipWithTranslation ? subtitle : null,
-			currentVisualMergeGroup(),
-			getArabicOverlaySegments
-		);
-	}
-
-	/**
-	 * Retourne les segments de traduction a afficher selon le merge visuel actif.
-	 * @param {string} edition Edition de traduction.
-	 * @returns {OverlayTextSegment[]} Segments de traduction a rendre.
-	 */
-	function getVisibleTranslationSegments(edition: string): OverlayTextSegment[] {
-		const subtitle = currentSubtitle();
-		return getVisibleTranslationSegmentsUtil(
-			subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip ? subtitle : null,
-			currentVisualMergeGroup(),
-			edition,
-			getTranslationOverlaySegments
-		);
-	}
-
-	// Calcul de l'opacité des sous-titres (prend en compte les overrides par clip)
-	let subtitleOpacity = $derived((target: string) => {
-		const referenceClip = getReferenceClipForTarget(target);
-		if (!referenceClip) return 0;
-
-		const clipId = referenceClip.id;
-		let maxOpacity = Number(
-			globalState.getVideoStyle.getStylesOfTarget(target).getEffectiveValue('opacity', clipId)
-		);
-
-		const currentTime = getTimelineSettings().cursorPosition;
-		const activeRange = isTargetMerged(target)
-			? currentVisualMergeGroup()
-			: { startTime: referenceClip.startTime, endTime: referenceClip.endTime };
-		if (!activeRange) return 0;
-
-		const endTime = activeRange.endTime;
-		const timeLeft = endTime - currentTime;
-		const halfFade = fadeDuration() / 2;
-
-		if (timeLeft <= halfFade) {
-			return Math.max(0, (timeLeft / halfFade) * maxOpacity);
-		}
-
-		const startTime = activeRange.startTime;
-		const timeSinceStart = currentTime - startTime;
-
-		if (timeSinceStart <= halfFade) {
-			return Math.min(maxOpacity, (timeSinceStart / halfFade) * maxOpacity);
-		}
-
-		return maxOpacity;
-	});
-
-	let getCss = $derived((target: string, clipId?: number, excludedCategories: string[] = []) => {
-		return globalState.getVideoStyle
-			.getStylesOfTarget(target)
-			.generateCSS(clipId, excludedCategories);
-	});
-
-	let getTailwind = $derived((target: string) => {
-		return globalState.getVideoStyle.getStylesOfTarget(target).generateTailwind();
-	});
-
-	/**
-	 * Retourne le CSS de padding horizontal à appliquer au texte quand le background est activé.
-	 * @param target La cible de style (arabic ou édition de traduction).
-	 * @param clipId L'identifiant du clip pour les overrides éventuels.
-	 * @returns Une chaîne CSS vide si non applicable, sinon le padding gauche/droite.
-	 */
-	function getBackgroundHorizontalPaddingCss(target: string, clipId?: number): string {
-		const styles = globalState.getVideoStyle.getStylesOfTarget(target);
-		const isBackgroundEnabled = Boolean(styles.getEffectiveValue('background-enable', clipId));
-		if (!isBackgroundEnabled) return '';
-
-		const padding = Number(styles.getEffectiveValue('background-horizontal-padding', clipId));
-		if (!Number.isFinite(padding) || padding <= 0) return '';
-
-		return `padding-left: ${padding}px; padding-right: ${padding}px;`;
-	}
-
-	// Liste des éditions de traduction configurées dans le projet (pour backgrounds)
-	let projectTranslationEditionNames = $derived(() => {
-		return globalState.getProjectTranslation.addedTranslationEditions.map((e) => e.name);
-	});
-
-	let helperStyles = $derived((target: string) => {
-		// Vérifie que la sélection actuelle correspond à la cible
-		if (
-			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style &&
-			(globalState.getStylesState.currentSelection === target ||
-				(globalState.getStylesState.currentSelection === 'translation' &&
-					globalState.getStylesState.currentSelectionTranslation === target))
-		) {
-			let classes = ' ';
-
-			// Si on a certains styles qu'on modifie, on ajoute des styles pour afficher ce qu'ils font
-			if (
-				globalState.getSectionsState['width'] &&
-				globalState.getSectionsState['max-height'] &&
-				(globalState.getSectionsState['width'].extended ||
-					globalState.getSectionsState['max-height'].extended)
-			) {
-				classes += 'bg-[#11A2AF]/50 ';
-			}
-
-			return classes;
-		}
-		return '';
-	});
-
-	let lastSubtitleId = 0;
-	let lastVisualMergeGroupId: string | null = null;
-
-	// Variable pour stocker l'AbortController de l'exécution précédente
-	let currentAbortController: AbortController | null = null;
-	// Identifie le dernier run de layout afin d'éviter les remises d'opacité
-	// provoquées par un run annulé alors qu'un run plus récent est en cours.
-	let subtitleLayoutRunId = 0;
-
-	/**
-	 * Détecte le target (arabic, traduction, etc.) d'un élément sous-titre
-	 * @param element L'élément HTML du sous-titre
-	 * @returns Le nom du target ou null si non trouvé
-	 */
-	function getTargetFromElement(element: HTMLElement): string | null {
-		// Chercher dans les classes CSS de l'élément
-		const classList = Array.from(element.classList);
-
-		// Vérifier si c'est un sous-titre arabe
-		if (classList.includes('arabic')) {
-			return 'arabic';
-		}
-
-		// Vérifier si c'est une traduction
-		const translationKeys = Object.keys(currentSubtitleTranslations() || {});
-		for (const translationKey of translationKeys) {
-			if (classList.includes(translationKey)) {
-				return translationKey;
-			}
-		}
-
-		return null;
-	}
-
-	function consumeReactiveDependencies(..._deps: unknown[]): void {}
-
-	async function wait(abortSignal: AbortSignal) {
-		await new Promise((resolve, reject) => {
-			if (abortSignal.aborted) {
-				reject(new Error('Aborted'));
-				return;
-			}
-			setTimeout(() => {
-				if (abortSignal.aborted) {
-					reject(new Error('Aborted'));
-				} else {
-					resolve(undefined);
-				}
-			}, 1);
-		});
-	}
-
-	/**
-	 * Gère le max-height (fit on N lines) et la taille de police réactive des sous-titres
-	 */
-	$effect(() => {
-		(async () => {
-			const subtitlesContainer = document.getElementById('subtitles-container');
-
-			// Dépendances explicites: relancer à chaque changement de curseur/preview.
-			consumeReactiveDependencies(
-				globalState.getTimelineState.cursorPosition,
-				globalState.getTimelineState.movePreviewTo
-			);
-
-			const subtitle = currentSubtitle();
-			if (!subtitle) {
-				lastSubtitleId = 0;
-				lastVisualMergeGroupId = null;
-				if (subtitlesContainer) {
-					subtitlesContainer.style.opacity = '1';
-				}
-				return;
-			}
-
-			const currentVisualMergeGroupId =
-				subtitle instanceof SubtitleClip ? subtitle.visualMergeGroupId : null;
-			const isPlaying = globalState.getVideoPreviewState.isPlaying;
-
-			// Pendant la lecture: éviter les recalculs pour le même clip
-			// et pour les transitions internes d'un même groupe merge visuel.
-			if (isPlaying) {
-				if (subtitle.id === lastSubtitleId) return;
-				if (
-					currentVisualMergeGroupId &&
-					lastVisualMergeGroupId &&
-					currentVisualMergeGroupId === lastVisualMergeGroupId
-				) {
-					lastSubtitleId = subtitle.id;
-					return;
-				}
-			}
-
-			const runId = ++subtitleLayoutRunId;
-			lastSubtitleId = subtitle.id;
-			lastVisualMergeGroupId = currentVisualMergeGroupId;
-
-			consumeReactiveDependencies(
-				globalState.getStyle('arabic', 'max-height').value,
-				globalState.getStyle('arabic', 'font-size').value,
-				globalState.getStyle('global', 'spacing').value
-			);
-
-			// Cache tout les sous-titres pendant le recalcul pour éviter les sauts visuels
-			// sélectionne l'élément d'id subtitles-container
-			if (subtitlesContainer && runId === subtitleLayoutRunId) {
-				subtitlesContainer.style.opacity = '0';
-			}
-
-			await untrack(async () => {
-				// Annuler l'exécution précédente si elle existe
-				if (currentAbortController) {
-					currentAbortController.abort();
-				}
-
-				// Créer un nouveau AbortController pour cette exécution
-				currentAbortController = new AbortController();
-				const abortSignal = currentAbortController.signal;
-
-				try {
-					let targets = ['arabic', ...Object.keys(currentSubtitleTranslations()!)];
-
-					// Remettre à zéro toutes les positions réactives quand on change de sous-titre
-					for (const target of targets) {
-						globalState.getVideoStyle.getStylesOfTarget(target).setStyle('reactive-y-position', 0);
-					}
-
-					// Attendre un peu que le DOM se mette à jour après la remise à zéro
-					await wait(abortSignal);
-
-					// Utiliser for...of au lieu de forEach pour un meilleur contrôle async
-					for (const target of targets) {
-						// Vérifier si l'opération a été annulée
-						if (abortSignal.aborted) return;
-
-						try {
-							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
-							if (maxHeightValue !== 0) {
-								// Make the font-size responsive
-								let fontSize = globalState.getStyle(target, 'font-size').value as number;
-
-								globalState.getVideoStyle
-									.getStylesOfTarget(target)
-									.setStyle('reactive-font-size', fontSize);
-
-								await wait(abortSignal);
-
-								const subtitles = document.querySelectorAll('.' + CSS.escape(target) + '.subtitle');
-
-								// Utiliser for...of pour un meilleur contrôle async
-								for (const subtitle of subtitles) {
-									// Vérifier si l'opération a été annulée
-									if (abortSignal.aborted) return;
-
-									// Cette marge qu'on calcule permet de prévenir un bug qui fait que si le texte est en bas ou à droite, il dépasse un peu et donc que ça considère que c'est plus grand que le max-height
-									let isVerticalPosNotCentered =
-										String(globalState.getStyle(target, 'vertical-text-alignment').value) !==
-										'center';
-									let marge = isVerticalPosNotCentered ? 10 : 0; // Marge supplémentaire si le texte n'est pas centré verticalement
-
-									// Tant que la hauteur du texte est supérieure à la hauteur maximale, on réduit la taille de la police
-									while (subtitle.scrollHeight > maxHeightValue + marge && fontSize > 1) {
-										// Vérifier si l'opération a été annulée
-										if (abortSignal.aborted) return;
-
-										fontSize -= fontSize / 20; // Réduction progressive
-
-										globalState.getVideoStyle
-											.getStylesOfTarget(target)
-											.setStyle('reactive-font-size', fontSize);
-
-										await wait(abortSignal);
-									}
-								}
-							}
-						} catch (error) {
-							// Ignorer les erreurs d'annulation
-							if (error instanceof Error && error.message === 'Aborted') {
-								return;
-							}
-						}
-					}
-
-					// Une fois qu'on a traité tout les abaissements de taille de max-height, on gère les collisions
-					// Check si l'anti-collision est activé
-					if (globalState.getStyle('global', 'anti-collision').value) {
-						// Récupère tous les sous-titres visibles
-						const allSubtitles = document.querySelectorAll('.subtitle');
-						const subtitleElements = Array.from(allSubtitles) as HTMLElement[];
-
-						// Set pour suivre les paires de collisions déjà traitées
-						const processedPairs = new Set<string>();
-
-						// Vérifie les collisions pour chaque sous-titre
-						for (let i = 0; i < subtitleElements.length; i++) {
-							// Vérifie si l'opération a été annulée
-							if (abortSignal.aborted) return;
-
-							const currentElement = subtitleElements[i];
-
-							// Récupère son target
-							const currentTarget = getTargetFromElement(currentElement);
-
-							if (!currentTarget) continue;
-
-							const currentRect = currentElement.getBoundingClientRect();
-
-							// Chercher les collisions avec les autres sous-titres (seulement ceux après i pour éviter les doublons)
-							for (let j = i + 1; j < subtitleElements.length; j++) {
-								const otherElement = subtitleElements[j];
-								const otherRect = otherElement.getBoundingClientRect();
-
-								// Détecte son target
-								const otherTarget = getTargetFromElement(otherElement);
-
-								// Double check pour pas que ce soit le même élément
-								if (!otherTarget || currentTarget === otherTarget) continue;
-
-								// Créer un identifiant unique pour cette paire (ordre alphabétique pour éviter les doublons)
-								const pairId = [currentTarget, otherTarget].sort().join('-');
-
-								// Si cette paire a déjà été traitée, passer au suivant
-								if (processedPairs.has(pairId)) continue;
-
-								// Vérifier s'il y a une collision entre les deux
-								const isColliding = !(
-									currentRect.bottom < otherRect.top ||
-									currentRect.top > otherRect.bottom ||
-									currentRect.right < otherRect.left ||
-									currentRect.left > otherRect.right
-								);
-
-								if (isColliding) {
-									// Une collision est détectée entre currentElement et otherElement
-
-									// Marquer cette paire comme traitée
-									processedPairs.add(pairId);
-
-									// Déplacer le sous-titre le plus bas vers le bas
-									const targetToAdjust =
-										currentRect.top > otherRect.top ? currentTarget : otherTarget;
-
-									// Boucle jusqu'à ce qu'il n'y ait plus de collision ou qu'on atteigne la limite d'itérations
-									let stillColliding;
-									let iterationCount = 0;
-									const maxIterations = 10; // Sécurité pour éviter les boucles infinies
-
-									do {
-										iterationCount++;
-
-										// Vérifier si l'opération a été annulée
-										if (abortSignal.aborted) return;
-
-										// Recalculer les positions actuelles
-										const currentRectLoop = currentElement.getBoundingClientRect();
-										const otherRectLoop = otherElement.getBoundingClientRect();
-
-										let spacing = globalState.getStyle('global', 'spacing').value as number;
-
-										// Calculer l'ajustement nécessaire basé sur l'overlap actuel
-										const overlapHeight = Math.abs(currentRectLoop.bottom - otherRectLoop.top);
-										const adjustmentNeeded = overlapHeight + spacing;
-
-										// Vérifier la valeur actuelle avant modification
-										const currentValue = globalState.getStyle(targetToAdjust, 'reactive-y-position')
-											.value as number;
-
-										// Incrémenter la position réactive
-										const newValue = currentValue + adjustmentNeeded;
-
-										// Appliquer le nouvel ajustement
-										globalState.getVideoStyle
-											.getStylesOfTarget(targetToAdjust)
-											.setStyle('reactive-y-position', newValue);
-
-										// Attendre que le DOM se mette à jour
-										await wait(abortSignal);
-
-										// Vérifier les nouvelles positions après ajustement
-										const newCurrentRect = currentElement.getBoundingClientRect();
-										const newOtherRect = otherElement.getBoundingClientRect();
-
-										// Vérifier s'il y a encore collision
-										stillColliding = !(
-											newCurrentRect.bottom + spacing < newOtherRect.top ||
-											newCurrentRect.top - spacing > newOtherRect.bottom ||
-											newCurrentRect.right + spacing < newOtherRect.left ||
-											newCurrentRect.left - spacing > newOtherRect.right
-										);
-									} while (stillColliding && iterationCount < maxIterations);
-								}
-							}
-						}
-					}
-				} catch (error) {
-					// Ignorer les erreurs d'annulation
-					if (error instanceof Error && error.message === 'Aborted') {
-						return;
-					}
-				}
-			});
-
-			// Une fois tout ça fait, on remet l'opacité normale
-			// sélectionne l'élément d'id subtitles-container
-			if (subtitlesContainer && runId === subtitleLayoutRunId) {
-				subtitlesContainer.style.opacity = '1';
-			}
-		})();
-	});
-
 	let overlaySettings = $derived(() => {
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
@@ -722,64 +223,380 @@
 		};
 	});
 
-	function getOverlayLayerCss(): string {
-		const settings = overlaySettings();
-		const mode = String(settings.mode || 'uniform');
-		const opacity = Utilities.clamp01(Number(settings.opacity));
+	// =========================================================================
+	// Grille d'alignement
+	// =========================================================================
 
-		if (mode === 'uniform') {
-			return `background-color: ${settings.color}; opacity: ${opacity};`;
-		}
-
-		const intensity = Utilities.clamp01(Number(settings.fadeIntensity));
-		const fadeCoverage = Utilities.clamp01(Number(settings.fadeCoverage));
-		const [r, g, b] = Utilities.parseColorToRgb(String(settings.color || '#000000'));
-		const edgeOpacity = opacity * (1 - intensity);
-		const centerOpacity = opacity;
-
-		let gradient = '';
-		if (mode === 'fade-up') {
-			const fadeEndPct = Math.max(0, Math.min(100, fadeCoverage * 100));
-			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${fadeEndPct}%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 100%)`;
-		} else if (mode === 'fade-down') {
-			const fadeStartPct = Math.max(0, Math.min(100, 100 - fadeCoverage * 100));
-			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${centerOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${fadeStartPct}%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
-		} else if (mode === 'fade-center') {
-			const fadeEdgePct = Math.max(0, Math.min(50, fadeCoverage * 50));
-			const centerStartPct = fadeEdgePct;
-			const centerEndPct = 100 - fadeEdgePct;
-			gradient = `linear-gradient(to bottom, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 0%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${centerStartPct}%, rgba(${r}, ${g}, ${b}, ${centerOpacity}) ${centerEndPct}%, rgba(${r}, ${g}, ${b}, ${edgeOpacity}) 100%)`;
-		} else {
-			return `background-color: ${settings.color}; opacity: ${opacity};`;
-		}
-
-		return `background: ${gradient}; opacity: 1;`;
-	}
-
-	function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
-		const parts: string[] = [];
-		if (flags.bold) parts.push('font-weight: 700;');
-		if (flags.italic) parts.push('font-style: italic;');
-		if (flags.underline) parts.push('text-decoration: underline;');
-		if (flags.color) parts.push(`color: ${flags.color};`);
-		return parts.join(' ');
-	}
-
+	/**
+	 * Conditions d'affichage de la grille d'alignement :
+	 * - Toujours visible pendant un drag (showAlignmentGridWhileDragging).
+	 * - Visible dans l'onglet Style si l'option est activée.
+	 */
 	let canShowAlignmentOverlay = $derived(() => {
 		const isStyleTab =
 			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style;
 		if (globalState.getVideoPreviewState.showAlignmentGridWhileDragging) return true;
 		return isStyleTab && globalState.getVideoPreviewState.showAlignmentGrid;
 	});
+
+	// =========================================================================
+	// Utilitaires de style
+	// =========================================================================
+
+	/**
+	 * Indique si une cible est en mode fusion visuelle.
+	 * @param target - Cible de style (`arabic` ou nom d'édition).
+	 */
+	function isTargetMerged(target: string): boolean {
+		return isVisualMergeTargetMerged(currentVisualMergeGroup(), target);
+	}
+
+	/**
+	 * Retourne le clip de référence pour les styles d'une cible.
+	 * En mode fusion, c'est le premier clip du groupe. Sinon, le sous-titre courant.
+	 *
+	 * @param target - Cible de style (`arabic` ou nom d'édition).
+	 */
+	function getReferenceClipForTarget(target: string): SubtitleClip | PredefinedSubtitleClip | null {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
+			return null;
+		return getReferenceClipForTargetUtil(subtitle, currentVisualMergeGroup(), target);
+	}
+
+	/**
+	 * Retourne l'ID du clip de référence pour les backgrounds d'une cible.
+	 *
+	 * @param target - Cible de style (`arabic` ou nom d'édition).
+	 */
+	function getBackgroundClipIdForTarget(target: string): number | undefined {
+		const background = backgroundSubtitle();
+		const subtitleBackground =
+			background instanceof SubtitleClip || background instanceof PredefinedSubtitleClip
+				? background
+				: null;
+		return getBackgroundClipIdForTargetUtil(currentVisualMergeGroup(), subtitleBackground, target);
+	}
+
+	/**
+	 * Calcule l'opacité d'un sous-titre en fonction de sa position
+	 * dans le temps et de la durée de fondu configurée.
+	 *
+	 * Le fondu est symétrique : moitié de la durée en entrée, moitié en sortie.
+	 * Entre les deux, l'opacité est à son maximum (valeur du style `opacity`).
+	 *
+	 * @param target - Cible de style (`arabic` ou nom d'édition).
+	 * @returns Opacité entre 0 et la valeur max configurée.
+	 */
+	let subtitleOpacity = $derived((target: string) => {
+		const referenceClip = getReferenceClipForTarget(target);
+		if (!referenceClip) return 0;
+
+		const clipId = referenceClip.id;
+		let maxOpacity = Number(
+			globalState.getVideoStyle.getStylesOfTarget(target).getEffectiveValue('opacity', clipId)
+		);
+
+		const currentTime = getTimelineSettings().cursorPosition;
+		const activeRange = isTargetMerged(target)
+			? currentVisualMergeGroup()
+			: { startTime: referenceClip.startTime, endTime: referenceClip.endTime };
+		if (!activeRange) return 0;
+
+		const endTime = activeRange.endTime;
+		const timeLeft = endTime - currentTime;
+		const halfFade = fadeDuration() / 2;
+
+		// Fondu de sortie
+		if (timeLeft <= halfFade) {
+			return Math.max(0, (timeLeft / halfFade) * maxOpacity);
+		}
+
+		// Fondu d'entrée
+		const startTime = activeRange.startTime;
+		const timeSinceStart = currentTime - startTime;
+
+		if (timeSinceStart <= halfFade) {
+			return Math.min(maxOpacity, (timeSinceStart / halfFade) * maxOpacity);
+		}
+
+		return maxOpacity;
+	});
+
+	/**
+	 * Génère le CSS complet pour une cible de style, en excluant
+	 * certaines catégories si demandé.
+	 *
+	 * @param target - Cible de style.
+	 * @param clipId - ID du clip pour les overrides éventuels.
+	 * @param excludedCategories - Catégories CSS à exclure.
+	 */
+	let getCss = $derived((target: string, clipId?: number, excludedCategories: string[] = []) => {
+		return globalState.getVideoStyle
+			.getStylesOfTarget(target)
+			.generateCSS(clipId, excludedCategories);
+	});
+
+	/** Génère les classes Tailwind pour une cible de style. */
+	let getTailwind = $derived((target: string) => {
+		return globalState.getVideoStyle.getStylesOfTarget(target).generateTailwind();
+	});
+
+	/**
+	 * Classes CSS d'aide visuelle pour l'édition de style.
+	 *
+	 * Quand on édite une cible dans l'onglet Style, on ajoute une classe
+	 * de fond semi-transparent si les sections "width" ou "max-height"
+	 * sont en mode étendu (pour visualiser les contraintes).
+	 *
+	 * @param target - Cible de style.
+	 * @returns Classes CSS additionnelles.
+	 */
+	let helperStyles = $derived((target: string) => {
+		if (
+			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style &&
+			(globalState.getStylesState.currentSelection === target ||
+				(globalState.getStylesState.currentSelection === 'translation' &&
+					globalState.getStylesState.currentSelectionTranslation === target))
+		) {
+			let classes = ' ';
+
+			if (
+				globalState.getSectionsState['width'] &&
+				globalState.getSectionsState['max-height'] &&
+				(globalState.getSectionsState['width'].extended ||
+					globalState.getSectionsState['max-height'].extended)
+			) {
+				classes += 'bg-[#11A2AF]/50 ';
+			}
+
+			return classes;
+		}
+		return '';
+	});
+
+	// =========================================================================
+	// Liste des éditions de traduction (pour les backgrounds)
+	// =========================================================================
+
+	/** Noms de toutes les éditions de traduction configurées dans le projet. */
+	let projectTranslationEditionNames = $derived(() => {
+		return globalState.getProjectTranslation.addedTranslationEditions.map((e) => e.name);
+	});
+
+	// =========================================================================
+	// Effet principal : ajustement réactif de la taille de police
+	// et résolution des collisions entre sous-titres.
+	// =========================================================================
+
+	/**
+	 * Identifiants du dernier sous-titre traité.
+	 * Permet d'éviter les recalculs inutiles pendant la lecture
+	 * quand le sous-titre n'a pas changé.
+	 */
+	let lastSubtitleId = 0;
+	let lastVisualMergeGroupId: string | null = null;
+
+	/** Contrôleur d'annulation pour les opérations asynchrones de layout. */
+	let currentAbortController: AbortController | null = null;
+
+	/**
+	 * Fonction utilitaire qui consomme des dépendances réactives
+	 * sans rien faire. Utilisée pour forcer la réactivité dans `untrack`.
+	 */
+	function consumeReactiveDependencies(..._deps: unknown[]): void {}
+
+	/**
+	 * Promesse qui attend 1ms et s'annule si le signal est aborté.
+	 * Permet de céder au navigateur entre deux ajustements DOM.
+	 */
+	async function wait(abortSignal: AbortSignal) {
+		await new Promise((resolve, reject) => {
+			if (abortSignal.aborted) {
+				reject(new Error('Aborted'));
+				return;
+			}
+			setTimeout(() => {
+				if (abortSignal.aborted) {
+					reject(new Error('Aborted'));
+				} else {
+					resolve(undefined);
+				}
+			}, 1);
+		});
+	}
+
+	/**
+	 * Effect principal de layout des sous-titres.
+	 *
+	 * Déclenché à chaque changement de sous-titre, de position du curseur,
+	 * ou des styles `max-height`, `font-size`, `spacing`.
+	 *
+	 * Flux :
+	 * 1. Cache les sous-titres (opacity: 0) pour éviter les sauts visuels.
+	 * 2. Annule toute exécution précédente.
+	 * 3. Pour chaque target (arabic + traductions) :
+	 *    a. Réinitialise la position Y réactive.
+	 *    b. Applique l'ajustement réactif de taille de police (max-height).
+	 * 4. Si l'anti-collision est activée, résout les collisions.
+	 * 5. Ré-affiche les sous-titres (opacity: 1).
+	 */
+	$effect(() => {
+		(async () => {
+			const subtitlesContainer = document.getElementById('subtitles-container');
+
+			const subtitle = currentSubtitle();
+			if (!subtitle) {
+				lastSubtitleId = 0;
+				lastVisualMergeGroupId = null;
+				if (subtitlesContainer) {
+					subtitlesContainer.style.opacity = '1';
+				}
+				return;
+			}
+
+			const currentVisualMergeGroupId =
+				subtitle instanceof SubtitleClip ? subtitle.visualMergeGroupId : null;
+			const isPlaying = globalState.getVideoPreviewState.isPlaying;
+
+			// Pendant la lecture : évite les recalculs coûteux pour le même clip
+			// ou pour les transitions internes d'un groupe de fusion visuelle.
+			if (isPlaying) {
+				if (subtitle.id === lastSubtitleId) return;
+				if (
+					currentVisualMergeGroupId &&
+					lastVisualMergeGroupId &&
+					currentVisualMergeGroupId === lastVisualMergeGroupId
+				) {
+					lastSubtitleId = subtitle.id;
+					return;
+				}
+			}
+
+			lastSubtitleId = subtitle.id;
+			lastVisualMergeGroupId = currentVisualMergeGroupId;
+
+			// Dépendances réactives à tracker (forcent le déclenchement de l'effet)
+			consumeReactiveDependencies(
+				globalState.getTimelineState.movePreviewTo,
+				globalState.getStyle('arabic', 'max-height').value,
+				globalState.getStyle('arabic', 'font-size').value,
+				globalState.getStyle('global', 'spacing').value
+			);
+
+			// Cache les sous-titres pendant le recalcul
+			if (subtitlesContainer) {
+				subtitlesContainer.style.opacity = '0';
+			}
+
+			await untrack(async () => {
+				// Annule l'exécution précédente
+				if (currentAbortController) {
+					currentAbortController.abort();
+				}
+
+				currentAbortController = new AbortController();
+				const abortSignal = currentAbortController.signal;
+
+				try {
+					const targets = ['arabic', ...Object.keys(currentSubtitleTranslations()!)];
+
+					// Étape 1 : Réinitialise les positions Y réactives
+					for (const target of targets) {
+						globalState.getVideoStyle.getStylesOfTarget(target).setStyle('reactive-y-position', 0);
+					}
+
+					// Laisse le DOM se mettre à jour après la réinitialisation
+					await wait(abortSignal);
+
+					// Étape 2 : Ajustement réactif de la taille de police
+					for (const target of targets) {
+						if (abortSignal.aborted) return;
+
+						try {
+							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+							const originalVerticalTextAlignment = String(
+								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
+							);
+							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
+							const initialFontSize = globalState.getStyle(target, 'font-size').value as number;
+
+							styles.setStyle('vertical-text-alignment', 'center');
+
+							try {
+								await wait(abortSignal);
+								await applyReactiveFontSize(
+									target,
+									maxHeightValue,
+									initialFontSize,
+									true,
+									abortSignal,
+									(_target, value) => {
+										globalState.getVideoStyle
+											.getStylesOfTarget(_target)
+											.setStyle('reactive-font-size', value);
+									},
+									wait
+								);
+							} finally {
+								styles.setStyle('vertical-text-alignment', originalVerticalTextAlignment);
+								if (!abortSignal.aborted) await wait(abortSignal);
+							}
+						} catch (error) {
+							if (error instanceof Error && error.message === 'Aborted') {
+								return;
+							}
+						}
+					}
+
+					// Étape 3 : Résolution des collisions si activée
+					if (globalState.getStyle('global', 'anti-collision').value) {
+						const translationKeys = Object.keys(currentSubtitleTranslations() || {});
+						const spacing = globalState.getStyle('global', 'spacing').value as number;
+
+						await resolveSubtitleCollisions(
+							abortSignal,
+							spacing,
+							translationKeys,
+							(target) => {
+								return globalState.getStyle(target, 'reactive-y-position').value as number;
+							},
+							(target, value) => {
+								globalState.getVideoStyle
+									.getStylesOfTarget(target)
+									.setStyle('reactive-y-position', value);
+							},
+							wait
+						);
+					}
+				} catch (error) {
+					if (error instanceof Error && error.message === 'Aborted') {
+						return;
+					}
+				}
+			});
+
+			// Réaffiche les sous-titres
+			if (subtitlesContainer) {
+				subtitlesContainer.style.opacity = '1';
+			}
+		})();
+	});
 </script>
 
-<div class="inset-0 absolute" style="" id="overlay">
+<!-- ===================================================================== -->
+<!-- TEMPLATE                                                              -->
+<!-- ===================================================================== -->
+
+<div class="inset-0 absolute" id="overlay">
+	<!-- Couche 1 : Grille d'alignement (onglet Style uniquement) -->
 	{#if canShowAlignmentOverlay()}
 		<div class="alignment-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
 			<div class="alignment-grid"></div>
 		</div>
 	{/if}
 
+	<!-- Couche 2 : Image associée au sous-titre courant -->
 	{#if currentSubtitleImagePath() && !subtitleImageFailedToLoad}
 		<div
 			class="absolute inset-0 z-0 pointer-events-none select-none"
@@ -787,10 +604,11 @@
 		></div>
 	{/if}
 
+	<!-- Couche 3 : Overlay d'effet (flou + couleur/dégradé) -->
 	{#if overlaySettings().enable}
 		<div
 			class="absolute inset-0 z-0"
-			style="{getOverlayLayerCss()} {overlaySettings().customCSS};"
+			style="{getOverlayLayerCss(overlaySettings())} {overlaySettings().customCSS};"
 		></div>
 
 		<div
@@ -799,12 +617,12 @@
 		></div>
 	{/if}
 
-	<!-- Backgrounds des sous-titres: toujours visibles, basés sur le dernier/next sous-titre -->
+	<!-- Couche 4 : Fonds des sous-titres (toujours visibles) -->
 	<div
 		id="subtitles-backgrounds"
 		class="absolute inset-0 z-1 flex flex-col items-center justify-center"
 	>
-		<!-- Background arabe -->
+		<!-- Fond arabe -->
 		<div
 			class={'arabic absolute subtitle select-none' +
 				getTailwind('arabic') +
@@ -812,7 +630,7 @@
 			style="{getCss('arabic', getBackgroundClipIdForTarget('arabic'))};"
 		></div>
 
-		<!-- Backgrounds des traductions -->
+		<!-- Fonds des traductions -->
 		{#each projectTranslationEditionNames() as edition (edition)}
 			{#if globalState.getVideoStyle.doesTargetStyleExist(edition)}
 				<div
@@ -826,84 +644,43 @@
 		{/each}
 	</div>
 
+	<!-- Couche 5-8 : Sous-titres et décorations -->
 	<div class="w-full h-full absolute inset-0 flex flex-col items-center justify-center">
 		{#if currentSubtitle()}
-			{@const subtitle = currentSubtitle()}
-			{#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
-				<span class="translation-inline-flow">
-					{#each segments as segment (segment.key)}
-						<span style={`${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`}>
-							{segment.text}
-						</span>
-					{/each}
-				</span>
-			{/snippet}
 			<div
 				id="subtitles-container"
 				class="absolute inset-0 z-1 flex flex-col items-center justify-center"
 				style="opacity: 1;"
 			>
-				{#if subtitle && subtitle.id}
-					{@const arabicReferenceClip = getReferenceClipForTarget('arabic')}
-					{@const arabicSegments = getVisibleArabicSegments()}
-					<p
-						ondblclick={() => {
-							globalState.getVideoStyle.highlightCategory('arabic', 'general');
-						}}
-						use:mouseDrag={{
-							target: 'arabic',
-							verticalStyleId: 'vertical-position',
-							horizontalStyleId: 'horizontal-position'
-						}}
-						class={'arabic absolute subtitle select-none z-10 ' +
-							getTailwind('arabic') +
-							helperStyles('arabic')}
-						style="opacity: {subtitleOpacity('arabic')}; {getCss('arabic', arabicReferenceClip?.id, [
-							'background',
-							'border'
-						])}; {getBackgroundHorizontalPaddingCss('arabic', arabicReferenceClip?.id)} white-space: pre-line;"
-					>
-						{#if subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip}
-							{@const bracketGlyphs = getDecorativeBracketGlyphs()}
-							{#if showDecorativeBrackets() && arabicSegments.some((segment) => segment.text.trim().length > 0)}
-								<span style={getDecorativeBracketCss()}>{bracketGlyphs.opening}</span>
-								{@render overlaySegmentsContent(arabicSegments)}
-								<span style={getDecorativeBracketCss()}>{bracketGlyphs.closing}</span>
-							{:else}
-								{@render overlaySegmentsContent(arabicSegments)}
-							{/if}
-						{/if}
-					</p>
+				<!-- Couche 5 : Sous-titre arabe -->
+				{#if currentSubtitle() && currentSubtitle()!.id}
+					{@const arabicRefClip = getReferenceClipForTarget('arabic')}
+					<ArabicSubtitle
+						subtitleOpacity={subtitleOpacity('arabic')}
+						css={getCss('arabic', arabicRefClip?.id, ['background', 'border'])}
+						tailwind={getTailwind('arabic')}
+						helperStyles={helperStyles('arabic')}
+						isExportCapturePreview={isExportCapturePreview()}
+					/>
 				{/if}
 
+				<!-- Couche 6 : Traductions -->
 				{#each visibleTranslationTargets() as edition (edition)}
 					{#if globalState.getVideoStyle.doesTargetStyleExist(edition)}
-						{@const translationReferenceClip = getReferenceClipForTarget(edition)}
-						<p
-							ondblclick={() => {
-								globalState.getVideoStyle.highlightCategory(
-									'translation',
-									edition as StyleCategoryName
-								);
-							}}
-							use:mouseDrag={{
-								target: edition,
-								verticalStyleId: 'vertical-position',
-								horizontalStyleId: 'horizontal-position'
-							}}
-							class={`translation absolute subtitle select-none z-10 ${edition} ${getTailwind(edition)} ${helperStyles(edition)}`}
-							style={`opacity: ${subtitleOpacity(edition)}; ${getCss(edition, translationReferenceClip?.id, [
-								'background',
-								'border'
-							])}; ${getBackgroundHorizontalPaddingCss(edition, translationReferenceClip?.id)} white-space: pre-line;`}
-						>
-							{@render overlaySegmentsContent(getVisibleTranslationSegments(edition))}
-						</p>
+						{@const translationRefClip = getReferenceClipForTarget(edition)}
+						<TranslationSubtitle
+							{edition}
+							subtitleOpacity={subtitleOpacity(edition)}
+							css={getCss(edition, translationRefClip?.id, ['background', 'border'])}
+							tailwind={getTailwind(edition)}
+							helperStyles={helperStyles(edition)}
+						/>
 					{/if}
 				{/each}
 			</div>
 		{/if}
 
+		<!-- Couche 7 : Décorations fixes -->
 		<SurahName />
 		<ReciterName />
 
@@ -912,6 +689,7 @@
 			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
 		{/if}
 
+		<!-- Couche 8 : Clips custom (texte / images) -->
 		{#each currentCustomClips() as customText (customText.id)}
 			{#if customText.type === 'Custom Text'}
 				<CustomText customText={(customText as CustomTextClip).category!} />
@@ -922,16 +700,40 @@
 	</div>
 </div>
 
+<!-- ===================================================================== -->
+<!-- STYLES                                                               -->
+<!-- ===================================================================== -->
+
 <style>
+	/**
+	 * Conteneur inline pour les segments de traduction.
+	 * `white-space: inherit` assure que le parent (qui a `pre-line`)
+	 * contrôle les retours à la ligne.
+	 */
 	.translation-inline-flow {
 		display: inline;
 		white-space: inherit;
 	}
 
+	/**
+	 * Conteneur inline pour le flux WBW arabe.
+	 * Même principe que ci-dessus.
+	 */
+	.arabic-wbw-flow {
+		display: inline;
+		white-space: inherit;
+	}
+
+	/** Couche de grille d'alignement au-dessus des sous-titres. */
 	.alignment-overlay {
 		z-index: 2;
 	}
 
+	/**
+	 * Grille de repère pour le positionnement des éléments.
+	 * Affiche des lignes horizontales et verticales tous les 10%
+	 * de la largeur/hauteur de la vidéo.
+	 */
 	.alignment-grid {
 		position: absolute;
 		inset: 0;

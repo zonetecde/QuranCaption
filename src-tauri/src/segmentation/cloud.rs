@@ -17,9 +17,8 @@ use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{
     SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL,
     QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL, QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
-    QURAN_MULTI_ALIGNER_PROCESS_CALL_URL, QURAN_MULTI_ALIGNER_UPLOAD_URL,
-    QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL,
-    QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
+    QURAN_MULTI_ALIGNER_PROCESS_CALL_URL, QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL,
+    QURAN_MULTI_ALIGNER_UPLOAD_URL, QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
 };
 
 /// Émet un état de progression de segmentation vers le frontend.
@@ -245,8 +244,8 @@ async fn upload_audio_file(
     file_name: &str,
     mime_type: &str,
 ) -> Result<String, String> {
-    let audio_bytes = fs::read(file_path)
-        .map_err(|e| format!("Failed to read audio upload payload: {}", e))?;
+    let audio_bytes =
+        fs::read(file_path).map_err(|e| format!("Failed to read audio upload payload: {}", e))?;
     if audio_bytes.is_empty() {
         return Err("Audio upload payload is empty".to_string());
     }
@@ -303,7 +302,10 @@ async fn call_gradio_endpoint(
         .and_then(|v| v.as_str())
         .ok_or_else(|| "Endpoint call did not return an event_id".to_string())?;
 
-    let stream_url = format!("{}/call/{}/{}", QURAN_MULTI_ALIGNER_BASE_URL, stream_endpoint, event_id);
+    let stream_url = format!(
+        "{}/call/{}/{}",
+        QURAN_MULTI_ALIGNER_BASE_URL, stream_endpoint, event_id
+    );
     let stream_response = client
         .get(&stream_url)
         .send()
@@ -372,20 +374,21 @@ fn prepare_audio_for_mfa_direct(
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
 
     let mut merged_guard: Option<TempFileGuard> = None;
-    let source_audio_path = if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
-        let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
-        if needs_merge {
-            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
-            merged_guard = Some(guard);
-            merged_path
+    let source_audio_path =
+        if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
+            let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
+            if needs_merge {
+                let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+                merged_guard = Some(guard);
+                merged_path
+            } else {
+                path_utils::normalize_existing_path(&clips[0].path)
+            }
+        } else if let Some(path) = audio_path.as_ref() {
+            path_utils::normalize_existing_path(path)
         } else {
-            path_utils::normalize_existing_path(&clips[0].path)
-        }
-    } else if let Some(path) = audio_path.as_ref() {
-        path_utils::normalize_existing_path(path)
-    } else {
-        return Err("Audio file not found: missing audioPath/audioClips".to_string());
-    };
+            return Err("Audio file not found: missing audioPath/audioClips".to_string());
+        };
 
     if !source_audio_path.exists() {
         return Err(format!(
@@ -485,7 +488,8 @@ pub async fn mfa_timestamps_direct(
 
     let (prepared_path, _temp_guard, _merged_guard) =
         prepare_audio_for_mfa_direct(audio_path, audio_clips)?;
-    let uploaded_path = upload_audio_file(&client, &prepared_path, "audio.wav", "audio/wav").await?;
+    let uploaded_path =
+        upload_audio_file(&client, &prepared_path, "audio.wav", "audio/wav").await?;
     let file_payload = serde_json::json!({
         "path": uploaded_path,
         "orig_name": "audio.wav",

@@ -8,16 +8,34 @@ import MigrationService from '$lib/services/MigrationService';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
 import type { ProjectDetail } from './ProjectDetail.svelte';
 import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
+import {
+	WBW_TRANSLATION_LANGUAGES,
+	type WbwTranslationLanguageCode
+} from '$lib/services/WbwTranslationService';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner';
+	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'muaalem_local' | 'surah_splitter';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
 	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-	multiAlignerModel: 'Base' | 'Large';
+	multiAlignerModel:
+		| 'Base'
+		| 'Large'
+		| 'Muaalem-v3.2'
+		| 'Open-Tadabur-Small'
+		| 'Open-DeepDML-Small-Mix'
+		| 'Open-DeepDML-Medium-Mix'
+		| 'Open-IJyad-Large-V3'
+		| 'Open-Naazim-Large-V3-Turbo'
+		| 'Open-Legacy-Tiny'
+		| 'Open-Legacy-Base'
+		| 'Open-Legacy-Medium'
+		| 'Open-Legacy-Large'
+		| 'SurahSplitter-Base-Quran';
 	cloudModel: 'Base' | 'Large';
+	surahSplitterSurah: number | null;
 	device: 'GPU' | 'CPU';
 	hfToken: string;
 	includeWbwTimestamps: boolean;
@@ -72,6 +90,7 @@ export default class Settings extends SerializableBase {
 		lastClosedDonationPromptModal: new Date(0).toISOString(),
 		donationPromptImpressions: 0,
 		videoExportFolder: '',
+		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
 		showTimelineWheelHints: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
@@ -96,6 +115,7 @@ export default class Settings extends SerializableBase {
 		legacyWhisperModel: 'base',
 		multiAlignerModel: 'Base',
 		cloudModel: 'Base',
+		surahSplitterSurah: null,
 		device: 'GPU',
 		hfToken: '',
 		includeWbwTimestamps: false,
@@ -136,6 +156,11 @@ export default class Settings extends SerializableBase {
 			name: 'Pre-defined Subtitles',
 			icon: 'auto_awesome',
 			description: 'Shortcuts to insert pre-defined subtitle clips'
+		},
+		TIMELINE: {
+			name: 'Timeline',
+			icon: 'timeline',
+			description: 'Controls for timeline navigation and mouse wheel behavior'
 		}
 	};
 
@@ -282,6 +307,38 @@ export default class Settings extends SerializableBase {
 				description: 'Add a subtitle with sadaqa ("صَدَقَ ٱللَّهُ ٱلْعَظِيم")',
 				name: 'Add Sadaqa'
 			}
+		},
+		TIMELINE: {
+			ZOOM: {
+				keys: ['control'],
+				name: 'Zoom with Scroll',
+				description: 'Hold this shortcut while scrolling to zoom the timeline'
+			},
+			HORIZONTAL_SCROLL: {
+				keys: ['control+shift'],
+				name: 'Horizontal Scroll',
+				description: 'Hold this shortcut while scrolling to move horizontally'
+			},
+			VERTICAL_SCROLL: {
+				keys: ['scroll'],
+				name: 'Vertical Scroll',
+				description: 'Shortcut used for vertical timeline scrolling'
+			},
+			FRAME_BY_FRAME_SCROLL: {
+				keys: ['alt'],
+				name: 'Frame-by-frame with Scroll',
+				description: 'Hold this shortcut while scrolling to move frame by frame'
+			},
+			FRAME_BACKWARD: {
+				keys: [],
+				name: 'Previous Frame',
+				description: 'Move the cursor backward by one frame'
+			},
+			FRAME_FORWARD: {
+				keys: [],
+				name: 'Next Frame',
+				description: 'Move the cursor forward by one frame'
+			}
 		}
 	};
 
@@ -340,20 +397,29 @@ export default class Settings extends SerializableBase {
 		const settings = globalState.settings;
 		let shouldSave = false;
 
+		// Migrations ================
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
 			settings.exportSettings = {} as ExportSettings;
 			shouldSave = true;
 		}
-
 		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
 			settings.persistentUiState.showTimelineWheelHints = true;
 			shouldSave = true;
 		}
-
+		if (
+			!WBW_TRANSLATION_LANGUAGES.some(
+				(language) => language.code === settings.persistentUiState.wbwTranslationLanguage
+			)
+		) {
+			settings.persistentUiState.wbwTranslationLanguage = 'en';
+			shouldSave = true;
+		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
 			shouldSave = true;
 		}
+		// ==========================
+
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
 		const latestVersion = await VersionService.getAppVersion();
@@ -377,6 +443,8 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC334ToQC335();
 		MigrationService.FromQC339ToQC340();
 		MigrationService.FromQC343ToQC344();
+		MigrationService.FromQC347ToQC348();
+		MigrationService.FromQC348ToQC349();
 
 		if (
 			typeof settings.exportSettings.batchSize !== 'number' ||

@@ -9,6 +9,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import ClipComponent from './Clip.svelte';
 	import SubtitleClipComponent from './SubtitleClip.svelte';
+	import WbwSubtitleClipEditor from './WbwSubtitleClipEditor.svelte';
 	import CustomClipComponent from './CustomClip.svelte';
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
@@ -48,6 +49,9 @@
 	type QuickMergeButtonCandidate = {
 		key: string;
 		leftPx: number;
+		action: 'merge' | 'split';
+		leftClip: SubtitleClipModel;
+		rightClip: SubtitleClipModel;
 		subtitlesToMerge: SubtitleClipModel[];
 	};
 
@@ -80,6 +84,14 @@
 				rightClip.visualMergeGroupId &&
 				leftClip.visualMergeGroupId === rightClip.visualMergeGroupId
 			) {
+				buttons.push({
+					key: `${leftClip.id}-${rightClip.id}`,
+					leftPx: (leftClip.endTime / 1000) * pixelPerSecond - 11,
+					action: 'split',
+					leftClip,
+					rightClip,
+					subtitlesToMerge: []
+				});
 				continue;
 			}
 
@@ -100,6 +112,9 @@
 			buttons.push({
 				key: `${leftClip.id}-${rightClip.id}`,
 				leftPx: (leftClip.endTime / 1000) * pixelPerSecond - 11,
+				action: 'merge',
+				leftClip,
+				rightClip,
 				subtitlesToMerge: mergeSelection.clips
 			});
 		}
@@ -120,6 +135,23 @@
 	}
 
 	/**
+	 * Coupe le merge visuel entre deux clips adjacents depuis la couche portal.
+	 * @param {SubtitleClipModel} leftClip Clip a gauche de la coupure.
+	 * @param {SubtitleClipModel} rightClip Clip a droite de la coupure.
+	 * @param {MouseEvent} event Evenement du bouton.
+	 * @returns {void}
+	 */
+	function splitQuickMerge(
+		leftClip: SubtitleClipModel,
+		rightClip: SubtitleClipModel,
+		event: MouseEvent
+	): void {
+		event.preventDefault();
+		event.stopPropagation();
+		(track as SubtitleTrack).splitVisualMergeBetween(leftClip, rightClip);
+	}
+
+	/**
 	 * Ouvre le menu contextuel d'un bouton de quick merge.
 	 * @param {MouseEvent} event Evenement de clic droit.
 	 * @param {QuickMergeButtonCandidate} button Bouton cible.
@@ -128,6 +160,7 @@
 	function openQuickMergeContextMenu(event: MouseEvent, button: QuickMergeButtonCandidate): void {
 		event.preventDefault();
 		event.stopPropagation();
+		if (button.action === 'split') return;
 		quickMergeContextTarget = button;
 		quickMergeContextMenu?.show(event);
 	}
@@ -201,13 +234,21 @@
 						{@const previousIsSameVerse =
 							(track as SubtitleTrack).getSubtitleBefore(clipIndex)?.verse ===
 							(clip as SubtitleClipType).verse}
+						{@const isManualWbwClip =
+							globalState.shared.wbwEdit.active &&
+							clip instanceof SubtitleClipModel &&
+							globalState.shared.wbwEdit.clipId === clip.id}
 
-						<SubtitleClipComponent
-							bind:clip={track.clips[clipIndex] as SubtitleClipType}
-							{track}
-							{nextIsSameVerse}
-							{previousIsSameVerse}
-						/>
+						{#if isManualWbwClip}
+							<WbwSubtitleClipEditor clip={track.clips[clipIndex] as SubtitleClipType} {track} />
+						{:else}
+							<SubtitleClipComponent
+								bind:clip={track.clips[clipIndex] as SubtitleClipType}
+								{track}
+								{nextIsSameVerse}
+								{previousIsSameVerse}
+							/>
+						{/if}
 					{:else}
 						<ClipComponent {clip} {track} />
 					{/if}
@@ -221,13 +262,23 @@
 			{#each quickMergeButtons() as button (button.key)}
 				<button
 					class="timeline-quick-merge-button"
+					class:timeline-quick-split-button={button.action === 'split'}
 					style="left: {button.leftPx}px;"
-					title="Quick merge those subtitles"
-					aria-label="Quick merge those subtitles"
-					onclick={(event) => applyQuickMerge(button.subtitlesToMerge, event)}
+					title={button.action === 'split'
+						? 'Split visual merge here'
+						: 'Quick merge those subtitles'}
+					aria-label={button.action === 'split'
+						? 'Split visual merge here'
+						: 'Quick merge those subtitles'}
+					onclick={(event) =>
+						button.action === 'split'
+							? splitQuickMerge(button.leftClip, button.rightClip, event)
+							: applyQuickMerge(button.subtitlesToMerge, event)}
 					oncontextmenu={(event) => openQuickMergeContextMenu(event, button)}
 				>
-					<span class="material-icons-outlined text-[12px]! leading-none">merge_type</span>
+					<span class="material-icons-outlined text-[12px]! leading-none"
+						>{button.action === 'split' ? 'call_split' : 'merge_type'}</span
+					>
 				</button>
 			{/each}
 		</div>
@@ -273,5 +324,16 @@
 		opacity: 1;
 		background: rgb(from var(--timeline-subtitle-clip-color) r g b / 80%);
 		filter: brightness(0.85);
+	}
+
+	.timeline-quick-split-button {
+		background: #44296a;
+		border-color: #4a3e30;
+		color: #ffffff;
+	}
+
+	.timeline-quick-split-button:hover {
+		background: #ea580c;
+		filter: none;
 	}
 </style>

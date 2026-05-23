@@ -615,8 +615,9 @@ pub fn is_constant_bitrate(file_path: String) -> Result<bool, String> {
         Ok(Some(stddev / mean))
     }
 
-    let variation = probe_stream_variation(&ffprobe_path, &file_path_str, "a:0")?
-        .or(probe_stream_variation(&ffprobe_path, &file_path_str, "v:0")?);
+    let variation = probe_stream_variation(&ffprobe_path, &file_path_str, "a:0")?.or(
+        probe_stream_variation(&ffprobe_path, &file_path_str, "v:0")?,
+    );
 
     // If we cannot reliably sample enough packets, avoid false warnings.
     let Some(relative_stddev) = variation else {
@@ -844,8 +845,6 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
             "2",
             "-ar",
             "44100",
-            "-s",
-            "320x240",
             "-y",
             temp_path.to_string_lossy().as_ref(),
         ]);

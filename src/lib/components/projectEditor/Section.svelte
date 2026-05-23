@@ -11,7 +11,8 @@
 		contentClasses,
 		children,
 		dataCategory,
-		saveState = true
+		saveState = true,
+		defaultExtended = true
 	}: {
 		name: string;
 		icon: string;
@@ -20,9 +21,10 @@
 		children: Snippet;
 		dataCategory?: string;
 		saveState?: boolean;
+		defaultExtended?: boolean;
 	} = $props();
 
-	let extended = $state(true);
+	let extended = $state(defaultExtended);
 
 	onMount(() => {
 		if (!saveState) return;

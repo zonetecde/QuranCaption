@@ -3,9 +3,11 @@
 	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 	import SegmentsToReview from './SegmentsToReview.svelte';
 	import MarkLongSubtitles from './MarkLongSubtitles.svelte';
+	import MarkMissingWbwTimestamps from './MarkMissingWbwTimestamps.svelte';
 	import SplitLongSubtitles from './SplitLongSubtitles.svelte';
 
 	import { fade } from 'svelte/transition';
@@ -133,6 +135,44 @@
 	onDestroy(() => {
 		document.removeEventListener('keydown', handleEditModeShortcut, true);
 	});
+
+	/**
+	 * Ouvre le mode d'edition WBW manuel pour le sous-titre courant.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async function openManualWbwEditMode(): Promise<void> {
+		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+		if (!(editSubtitle instanceof SubtitleClip)) return;
+
+		const success = await enterManualWordByWordEdit(editSubtitle);
+		if (!success) {
+			toast.error('Unable to enter word-by-word edit mode for this subtitle.');
+		}
+	}
+
+	/**
+	 * Retourne le raccourci d'édition configuré par l'utilisateur sous forme lisible.
+	 *
+	 * @returns {string} Raccourci formate pour l'UI.
+	 */
+	function getEditShortcutLabel(): string {
+		const keys = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys ?? [];
+		if (keys.length === 0) return 'edit key';
+		return keys.map((key) => key.toUpperCase()).join(' + ');
+	}
+
+	/**
+	 * Retourne le label lisible d'un raccourci configuré.
+	 *
+	 * @param {string[] | undefined} keys Liste des touches configurées.
+	 * @param {string} fallback Texte de repli si aucune touche n'est définie.
+	 * @returns {string} Raccourci formaté pour l'UI.
+	 */
+	function formatShortcutLabel(keys: string[] | undefined, fallback: string): string {
+		if (!keys || keys.length === 0) return fallback;
+		return keys.map((key) => key.toUpperCase()).join(' / ');
+	}
 </script>
 
 <div
@@ -146,12 +186,11 @@
 
 	{#if globalState.getSubtitlesEditorState.editSubtitle}
 		<!-- Subtitle editing mode -->
-		<div class="space-y-5">
+		<div class="space-y-2">
 			<div
-				class="rounded-xl border border-[var(--border-color)]/60 bg-gradient-to-br from-secondary to-secondary/60 backdrop-blur-sm p-4 shadow-inner"
+				class="rounded-xl border border-[var(--border-color)]/60 bg-gradient-to-br from-secondary to-secondary/60 backdrop-blur-sm p-2 shadow-inner"
 			>
 				<div class="flex items-start gap-3">
-					<span class="material-icons text-accent text-3xl">edit_note</span>
 					<div class="xl:space-y-1">
 						<h3 class="text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
 							Editing Subtitle
@@ -161,61 +200,157 @@
 							>
 						</h3>
 						<p class="text-xs leading-relaxed text-secondary">
-							Select the words in the selector then press Enter to adjust the range. You can also
-							quickly apply one of the presets below.
+							Select the words in the selector then press Enter to adjust the range, or apply one of
+							the presets below.
 						</p>
 					</div>
 				</div>
 			</div>
-			<!-- Presets -->
-			<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pr-1 pt-1">
-				<div class="grid grid-cols-2 gap-3">
-					{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset (preset.label)}
-						<button
-							class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
-							preset.label
-								? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/30'
-								: 'border-[var(--border-color)]/50 bg-secondary/70 hover:shadow-lg hover:shadow-accent-primary/20'} focus:ring-2 focus:ring-accent-primary/60"
-							onclick={() => {
-								presetChoice = preset.label;
-							}}
-						>
-							<div
-								class="absolute inset-0 bg-gradient-to-br transition-opacity duration-300 {preset.gradient} {presetChoice ===
-								preset.label
-									? 'opacity-75'
-									: 'opacity-0 group-hover:opacity-90'}"
-							></div>
-							<div class="relative flex flex-col items-center justify-center py-4 gap-1">
-								<span
-									class="material-icons text-xl transition-all duration-300 {presetChoice ===
-									preset.label
-										? 'text-white scale-110'
-										: 'text-accent-primary group-hover:scale-110 group-hover:text-white'}"
-								>
-									{preset.icon}
-								</span>
-								<span
-									class="text-xs font-medium tracking-wide transition-all duration-300 {presetChoice ===
-									preset.label
-										? 'text-white'
-										: 'text-secondary group-hover:text-white'}"
-								>
-									{preset.label}
-								</span>
-								<span
-									class="text-[9px] opacity-45 uppercase tracking-wide transition-all duration-300 {presetChoice ===
-									preset.label
-										? 'text-white/90'
-										: 'text-secondary/70 group-hover:text-white/90'}"
-								>
-									{preset.shortcut}
-								</span>
+
+			{#if globalState.getSubtitlesEditorState.editSubtitle instanceof SubtitleClip}
+				<div
+					class="rounded-lg border border-[var(--border-color)]/60 bg-secondary/40 p-2 space-y-3"
+				>
+					<p class="text-sm font-semibold text-primary">Word-by-word edit</p>
+
+					<div class="flex items-center justify-between gap-2 -mt-2">
+						<div>
+							<p class="text-[11px] text-secondary">
+								Manually stamp and adjust one Quran word at a time on the timeline. <br />
+							</p>
+						</div>
+
+						{#if globalState.shared.wbwEdit.active}
+							<button
+								class="flex items-center gap-2 px-3 py-2 rounded-md border border-yellow-400/40 text-yellow-200 text-xs hover:bg-yellow-400/10 transition cursor-pointer"
+								onclick={() => exitManualWordByWordEdit()}
+							>
+								<span class="material-icons text-base">close</span>
+								Exit
+							</button>
+						{:else}
+							<button
+								class="flex items-center gap-2 px-3 py-2 rounded-md border border-yellow-400/30 text-yellow-200 text-xs hover:bg-yellow-400/10 transition cursor-pointer"
+								onclick={openManualWbwEditMode}
+							>
+								<span class="material-icons text-base">timeline</span>
+								Edit WBW
+							</button>
+						{/if}
+					</div>
+
+					<p class="text-[9px] -mt-1 text-secondary">
+						Note: You can hold {getEditShortcutLabel()} to enter this mode directly.
+					</p>
+
+					{#if globalState.shared.wbwEdit.active}
+						<div class="rounded-md bg-yellow-400/8 border border-yellow-400/15 p-1 -mx-1 space-y-2">
+							<p class="text-[11px] text-yellow-100/90">Tutorial: how to add WBW timestamps</p>
+							<div class="relative w-full overflow-hidden rounded-md" style="padding-top: 56.25%;">
+								<iframe
+									class="absolute inset-0 h-full w-full"
+									src="https://www.youtube.com/embed/HGhMKZjuKFo"
+									title="WBW timestamps tutorial"
+									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+									allowfullscreen
+								></iframe>
 							</div>
-						</button>
-					{/each}
+							<p class="text-[11px] text-yellow-100/90">
+								<strong>Enter:</strong> stamp end and next word
+							</p>
+							<p class="text-[11px] text-yellow-100/90">
+								<strong>ArrowUp/ArrowDown:</strong> select next or previous word
+							</p>
+							<p class="text-[11px] text-yellow-100/90">
+								<strong
+									>{formatShortcutLabel(
+										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START.keys,
+										'n'
+									)}/{formatShortcutLabel(
+										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END.keys,
+										'm'
+									)}:</strong
+								> move current word boundaries
+							</p>
+							<p class="text-[11px] text-yellow-100/90"><strong>Escape:</strong> exit wbw edit</p>
+						</div>
+					{/if}
 				</div>
-			</div>
+			{/if}
+
+			{#if globalState.shared.wbwEdit.active}
+				<!-- Playback Speed Section -->
+				<div class="space-y-3 my-5">
+					<h3 class="text-sm font-medium text-secondary mb-3">WBW Playback Speed</h3>
+					<div class="flex items-center justify-center gap-1 2xl:gap-2">
+						{#each [0.25, 0.5, 0.75, 1, 1.25] as speed (speed)}
+							<button
+								class="px-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer hover:scale-105 border {globalState
+									.getSubtitlesEditorState.wbwPlaybackSpeed === speed
+									? 'bg-accent-primary text-black border-transparent shadow-lg shadow-blue-500/25'
+									: 'bg-secondary text-secondary border-color hover:bg-accent hover:text-primary hover:border-[var(--accent-primary)]'}"
+								onclick={() => {
+									globalState.getSubtitlesEditorState.wbwPlaybackSpeed = speed;
+								}}
+							>
+								{speed}x
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			{#if !globalState.shared.wbwEdit.active}
+				<!-- Presets -->
+				<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pr-1 pt-1">
+					<div class="grid grid-cols-2 gap-3">
+						{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset (preset.label)}
+							<button
+								class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
+								preset.label
+									? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/30'
+									: 'border-[var(--border-color)]/50 bg-secondary/70 hover:shadow-lg hover:shadow-accent-primary/20'} focus:ring-2 focus:ring-accent-primary/60"
+								onclick={() => {
+									presetChoice = preset.label;
+								}}
+							>
+								<div
+									class="absolute inset-0 bg-gradient-to-br transition-opacity duration-300 {preset.gradient} {presetChoice ===
+									preset.label
+										? 'opacity-75'
+										: 'opacity-0 group-hover:opacity-90'}"
+								></div>
+								<div class="relative flex flex-col items-center justify-center py-4 gap-1">
+									<span
+										class="material-icons text-xl transition-all duration-300 {presetChoice ===
+										preset.label
+											? 'text-white scale-110'
+											: 'text-accent-primary group-hover:scale-110 group-hover:text-white'}"
+									>
+										{preset.icon}
+									</span>
+									<span
+										class="text-xs font-medium tracking-wide transition-all duration-300 {presetChoice ===
+										preset.label
+											? 'text-white'
+											: 'text-secondary group-hover:text-white'}"
+									>
+										{preset.label}
+									</span>
+									<span
+										class="text-[9px] opacity-45 uppercase tracking-wide transition-all duration-300 {presetChoice ===
+										preset.label
+											? 'text-white/90'
+											: 'text-secondary/70 group-hover:text-white/90'}"
+									>
+										{preset.shortcut}
+									</span>
+								</div>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			<!-- Actions -->
 			<div class="flex items-center justify-center gap-4 pt-2">
@@ -352,6 +487,7 @@
 		<div class="space-y-3">
 			<SegmentsToReview />
 			<MarkLongSubtitles />
+			<MarkMissingWbwTimestamps />
 			<SplitLongSubtitles />
 		</div>
 	{/if}

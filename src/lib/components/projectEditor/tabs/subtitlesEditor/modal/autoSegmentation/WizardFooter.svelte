@@ -4,12 +4,6 @@
 	let { onClose } = $props<{ onClose: () => void }>();
 	const wizard = getSharedWizard();
 	const isLastStep = $derived(() => wizard.currentStep >= wizard.maxStep);
-	const startLabel = $derived(() =>
-		wizard.selection.runtime === 'hf_json' ? 'Add subtitles' : 'Start segmentation'
-	);
-	const startIcon = $derived(() =>
-		wizard.selection.runtime === 'hf_json' ? 'note_add' : 'play_arrow'
-	);
 </script>
 
 <footer class="border-t border-color bg-primary px-6 py-4">
@@ -35,8 +29,8 @@
 						onclick={() => void wizard.startSegmentation()}
 						disabled={!wizard.canStart() || wizard.isRunning}
 					>
-						<span class="material-icons text-base leading-none">{startIcon()}</span>
-						{startLabel()}
+						<span class="material-icons text-base leading-none">play_arrow</span>
+						Generate subtitles
 					</button>
 				{:else}
 					<button

@@ -208,5 +208,9 @@ export function getTimelineCustomClipLabel(clip: TimelineCustomClipLike): string
 		return (clip as CustomTextClip).getText();
 	}
 
-	return (clip as CustomImageClip).getFilePath().split('\\').pop() || 'No Image';
+	if (clip.type === 'Custom Image') {
+		return (clip as CustomImageClip).getFilePath().split('\\').pop() || 'No Image';
+	}
+
+	return 'No Image';
 }

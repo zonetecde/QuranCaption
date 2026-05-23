@@ -164,8 +164,14 @@
 					less fluid).
 				</p>
 				<p class="text-thirdly text-sm leading-snug">
-					<b>Batch size</b> for ffmpeg transitions. Lower values use less RAM but export slower. Default
-					is 12.
+					<b>Batch size</b>
+					<span
+						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
+						title="Suggested values by RAM: 4 GB → 4, 8 GB → 6, 16 GB → 8, 32 GB → 12."
+					>
+						help_outline
+					</span>
+					for ffmpeg transitions. Lower values use less RAM but export slower. Default is 12.
 				</p>
 				<input
 					type="number"
@@ -283,8 +289,8 @@
 								class="input w-full"
 								bind:value={globalState.getExportState.transparentExportFormat}
 							>
+								<option value="mov_prores_4444">MOV (QTRLE alpha) - Recommended</option>
 								<option value="webm_vp9_alpha">WEBM (VP9 alpha)</option>
-								<option value="mov_prores_4444">MOV (QTRLE alpha)</option>
 							</select>
 							<p class="text-xs text-thirdly mt-2">
 								<code>MOV (QTRLE alpha)</code> improves compatibility with editing tools.

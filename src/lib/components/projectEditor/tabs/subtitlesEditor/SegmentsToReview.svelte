@@ -52,6 +52,14 @@
 				clip.needsLongReview
 		).length
 	);
+	let missingWbwTimestampsCount = $derived(
+		(globalState.getSubtitleTrack?.clips || []).filter(
+			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				isClipPendingVerification(clip) &&
+				clip.needsWbwTimestampReview
+		).length
+	);
 
 	/**
 	 * Déplace le curseur de la timeline sur un sous-titre donné.
@@ -139,9 +147,11 @@
 			<div
 				class="min-h-16 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-2 flex flex-col justify-between"
 			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">Too long</p>
+				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
+					Too long {missingWbwTimestampsCount > 0 ? ` / Missing WBW timestamps` : ''}
+				</p>
 				<p class="text-sm font-semibold leading-none text-rose-300 self-start">
-					{longSegmentsNeedingReview}
+					{longSegmentsNeedingReview + missingWbwTimestampsCount}
 				</p>
 			</div>
 		</div>

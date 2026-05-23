@@ -15,6 +15,20 @@
 		action: string;
 		index: number;
 	} | null>(null);
+	const timelineWheelActions = new Set([
+		'ZOOM',
+		'HORIZONTAL_SCROLL',
+		'VERTICAL_SCROLL',
+		'FRAME_BY_FRAME_SCROLL'
+	]);
+	const timelineWheelOptions = [
+		{ value: 'scroll', label: 'Scroll' },
+		{ value: 'control', label: 'Ctrl + Scroll' },
+		{ value: 'shift', label: 'Shift + Scroll' },
+		{ value: 'control+shift', label: 'Ctrl + Shift + Scroll' },
+		{ value: 'alt', label: 'Alt + Scroll' },
+		{ value: 'disabled', label: 'Disabled' }
+	];
 
 	// Gestion d’affichage du 2e slot par action (masqué par défaut)
 	let expandedSecond = $state<Record<string, boolean>>({});
@@ -39,6 +53,9 @@
 	}
 	function formatKey(k: string | undefined): string {
 		if (!k) return 'None';
+		if (k === 'control') return 'Ctrl';
+		if (k === 'control+shift') return 'Ctrl + Shift';
+		if (k === 'scroll') return 'Scroll';
 		if (k === ' ') return 'Space';
 		const specials: Record<string, string> = {
 			arrowleft: 'ArrowLeft',
@@ -52,6 +69,42 @@
 			backspace: 'Backspace'
 		};
 		return specials[k] ?? (k.length === 1 ? k.toUpperCase() : k[0].toUpperCase() + k.slice(1));
+	}
+
+	/**
+	 * Indique si l'action utilise un raccourci de molette dans la catégorie timeline.
+	 * @param {string} category Catégorie du raccourci.
+	 * @param {string} action Action du raccourci.
+	 * @returns {boolean} `true` si l'action se configure avec une option de scroll.
+	 */
+	function isTimelineWheelAction(category: string, action: string): boolean {
+		return category === 'TIMELINE' && timelineWheelActions.has(action);
+	}
+
+	/**
+	 * Remplace le raccourci de molette d'une action timeline.
+	 * @param {string} category Catégorie du raccourci.
+	 * @param {string} action Action du raccourci.
+	 * @param {string} value Nouvelle option de molette.
+	 * @returns {void}
+	 */
+	function setWheelShortcut(category: string, action: string, value: string): void {
+		const s = globalState.settings as Settings | undefined;
+		if (!s) return;
+
+		const next = s.clone();
+		next.shortcuts = {
+			...(s.shortcuts as ShortcutActionsMap),
+			[category]: {
+				...((s.shortcuts as ShortcutActionsMap)?.[category] ?? {}),
+				[action]: {
+					...((s.shortcuts as ShortcutActionsMap)?.[category]?.[action] ?? {}),
+					keys: [value]
+				}
+			}
+		} as typeof next.shortcuts;
+		globalState.settings = next;
+		void Settings.save();
 	}
 
 	function beginCapture(category: string, action: string, index: number, e?: Event) {
@@ -194,43 +247,60 @@
 							</div>
 
 							<div class="flex items-center gap-2">
-								<!-- Slot 1 toujours visible -->
-								{@render KeySlot({
-									category: cat.key,
-									action: action.key,
-									index: 0,
-									value: action.def.keys?.[0],
-									onCapture: beginCapture,
-									onClear: (c, a, i) => {
-										clearKey(c, a, i);
-										// si on supprime la première, garder l’état d’ouverture tel quel
-									}
-								})}
-
-								{#if isSecondVisible(cat.key, action.key)}
-									<!-- Slot 2 visible si déployé / capture en cours -->
+								{#if isTimelineWheelAction(cat.key, action.key)}
+									<select
+										class="rounded-md border border-border-color bg-white/5 px-2 py-1 text-xs text-primary focus:outline-none focus:ring-2 focus:ring-accent/50"
+										value={action.def.keys?.[0] ?? 'disabled'}
+										onchange={(event) =>
+											setWheelShortcut(
+												cat.key,
+												action.key,
+												(event.currentTarget as HTMLSelectElement).value
+											)}
+									>
+										{#each timelineWheelOptions as option (option.value)}
+											<option value={option.value}>{option.label}</option>
+										{/each}
+									</select>
+								{:else}
+									<!-- Slot 1 toujours visible -->
 									{@render KeySlot({
 										category: cat.key,
 										action: action.key,
-										index: 1,
-										value: action.def.keys?.[1],
+										index: 0,
+										value: action.def.keys?.[0],
 										onCapture: beginCapture,
-										onClear: (c, a, i) => clearKey(c, a, i)
+										onClear: (c, a, i) => {
+											clearKey(c, a, i);
+											// si on supprime la première, garder l’état d’ouverture tel quel
+										}
 									})}
-								{:else}
-									<!-- Bouton + pour ajouter/afficher la 2e touche -->
-									<button
-										class="px-2 py-1 rounded-md border border-border-color text-xs text-secondary hover:text-primary bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 flex items-center gap-1"
-										onclick={() => (expandedSecond[idFor(cat.key, action.key)] = true)}
-										title="Add a second key"
-									>
-										<span class="material-icons text-xs">add</span>
-									</button>
-									{#if action.def.keys?.[1]}
-										<span
-											class="text-[10px] text-thirdly bg-secondary/60 border border-border-color rounded-full px-2 py-0.5"
-											title="A second key is already defined">+1</span
+
+									{#if isSecondVisible(cat.key, action.key)}
+										<!-- Slot 2 visible si déployé / capture en cours -->
+										{@render KeySlot({
+											category: cat.key,
+											action: action.key,
+											index: 1,
+											value: action.def.keys?.[1],
+											onCapture: beginCapture,
+											onClear: (c, a, i) => clearKey(c, a, i)
+										})}
+									{:else}
+										<!-- Bouton + pour ajouter/afficher la 2e touche -->
+										<button
+											class="px-2 py-1 rounded-md border border-border-color text-xs text-secondary hover:text-primary bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 flex items-center gap-1"
+											onclick={() => (expandedSecond[idFor(cat.key, action.key)] = true)}
+											title="Add a second key"
 										>
+											<span class="material-icons text-xs">add</span>
+										</button>
+										{#if action.def.keys?.[1]}
+											<span
+												class="text-[10px] text-thirdly bg-secondary/60 border border-border-color rounded-full px-2 py-0.5"
+												title="A second key is already defined">+1</span
+											>
+										{/if}
 									{/if}
 								{/if}
 							</div>
@@ -239,41 +309,6 @@
 				</div>
 			</div>
 		{/each}
-
-		<div class="space-y-4">
-			<div class="flex items-center gap-2">
-				<span class="material-icons text-accent">timeline</span>
-				<h3 class="text-base font-semibold text-primary">Timeline</h3>
-			</div>
-			<p class="text-xs text-secondary">Mouse wheel shortcuts available in the timeline.</p>
-
-			<div class="mt-2 rounded-xl border border-border-color bg-primary/20">
-				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
-					<div class="flex-1 min-w-0">
-						<div class="text-sm font-medium text-primary truncate">Zoom</div>
-						<div class="text-xs text-secondary">Ctrl + Scroll</div>
-					</div>
-				</div>
-				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
-					<div class="flex-1 min-w-0">
-						<div class="text-sm font-medium text-primary truncate">Horizontal Scroll</div>
-						<div class="text-xs text-secondary">Ctrl + Shift + Scroll</div>
-					</div>
-				</div>
-				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
-					<div class="flex-1 min-w-0">
-						<div class="text-sm font-medium text-primary truncate">Vertical Scroll</div>
-						<div class="text-xs text-secondary">Scroll</div>
-					</div>
-				</div>
-				<div class="flex items-center gap-4 p-3 border-t first:border-t-0 border-border-color">
-					<div class="flex-1 min-w-0">
-						<div class="text-sm font-medium text-primary truncate">Frame-by-frame Cursor</div>
-						<div class="text-xs text-secondary">Alt + Scroll</div>
-					</div>
-				</div>
-			</div>
-		</div>
 	</div>
 {/if}
 

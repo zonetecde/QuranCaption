@@ -1,5 +1,5 @@
 use crate::segmentation;
-use crate::segmentation::types::SegmentationAudioClip;
+use crate::segmentation::types::{HifzAudioSegment, SegmentationAudioClip};
 
 /// Lance une segmentation Quran cloud via l'API Multi-Aligner.
 #[tauri::command]
@@ -26,7 +26,7 @@ pub async fn segment_quran_audio(
     .await
 }
 
-/// Estime la durée d'un endpoint Multi-Aligner cloud.
+/// Estime la durÃ©e d'un endpoint Multi-Aligner cloud.
 #[tauri::command]
 pub async fn estimate_segmentation_duration(
     endpoint: String,
@@ -37,7 +37,7 @@ pub async fn estimate_segmentation_duration(
     segmentation::estimate_duration(endpoint, audio_duration_s, model_name, device).await
 }
 
-/// Récupère les timestamps MFA en réutilisant une session cloud existante.
+/// RÃ©cupÃ¨re les timestamps MFA en rÃ©utilisant une session cloud existante.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_session(
     audio_id: String,
@@ -47,7 +47,7 @@ pub async fn get_segmentation_mfa_timestamps_session(
     segmentation::mfa_timestamps_session(audio_id, segments, granularity).await
 }
 
-/// Récupère les timestamps MFA directement depuis l'audio courant du projet.
+/// RÃ©cupÃ¨re les timestamps MFA directement depuis l'audio courant du projet.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_direct(
     audio_path: Option<String>,
@@ -58,7 +58,7 @@ pub async fn get_segmentation_mfa_timestamps_direct(
     segmentation::mfa_timestamps_direct(audio_path, audio_clips, segments, granularity).await
 }
 
-/// Vérifie la disponibilité des moteurs de segmentation locale.
+/// VÃ©rifie la disponibilitÃ© des moteurs de segmentation locale.
 #[tauri::command]
 pub async fn check_local_segmentation_ready(
     app_handle: tauri::AppHandle,
@@ -67,7 +67,7 @@ pub async fn check_local_segmentation_ready(
     segmentation::check_local_segmentation_ready(app_handle, hf_token).await
 }
 
-/// Installe les dépendances Python d'un moteur local (`legacy` ou `multi`).
+/// Installe les dÃ©pendances Python d'un moteur local (`legacy` ou `multi`).
 #[tauri::command]
 pub async fn install_local_segmentation_deps(
     app_handle: tauri::AppHandle,
@@ -125,4 +125,73 @@ pub async fn segment_quran_audio_local_multi(
         hf_token,
     )
     .await
+}
+
+/// Lance la segmentation locale en mode Muaalem Local.
+#[tauri::command]
+pub async fn segment_quran_audio_local_muaalem(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    model_name: Option<String>,
+    device: Option<String>,
+    include_wbw_timestamps: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    segmentation::segment_quran_audio_local_muaalem(
+        app_handle,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        model_name,
+        device,
+        include_wbw_timestamps,
+    )
+    .await
+}
+
+/// Lance la segmentation locale en mode Surah Splitter.
+#[tauri::command]
+pub async fn segment_quran_audio_local_surah_splitter(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+    model_name: Option<String>,
+    device: Option<String>,
+    surah: Option<u32>,
+    include_wbw_timestamps: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    segmentation::segment_quran_audio_local_surah_splitter(
+        app_handle,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        model_name,
+        device,
+        surah,
+        include_wbw_timestamps,
+    )
+    .await
+}
+
+/// Genere une nouvelle piste audio Hifz en repetant chaque segment fourni.
+#[tauri::command]
+pub async fn generate_hifz_audio(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    segments: Vec<HifzAudioSegment>,
+    output_path: String,
+) -> Result<segmentation::GeneratedHifzAudio, String> {
+    segmentation::generate_hifz_audio(app_handle, audio_path, audio_clips, segments, output_path)
+        .await
 }

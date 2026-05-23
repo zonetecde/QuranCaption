@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import Track from './track/Track.svelte';
@@ -13,8 +13,15 @@
 	} from '$lib/classes';
 	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
+	import {
+		handleManualWordByWordEditShortcutKeyDown,
+		handleManualWordByWordEditShortcutKeyUp,
+		moveManualWordByWordSelectedWordEndToCursor,
+		moveManualWordByWordSelectedWordStartToCursor
+	} from '$lib/services/WbwHelper';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
+	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
@@ -38,7 +45,8 @@
 				movePreviewTo: 0,
 				zoom: 1,
 				scrollX: 0,
-				showCursor: true
+				showCursor: true,
+				wasCursorDragged: false
 			}
 	);
 
@@ -54,9 +62,14 @@
 
 	let removeShortcutRegistered = false;
 	let splitShortcutRegistered = false;
+	let quickSubtitleEditShortcutRegistered = false;
 	let setEndShortcutRegistered = false;
 	let setStartShortcutRegistered = false;
+	let frameBackwardShortcutRegistered = false;
+	let frameForwardShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
+	let quickEditLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+	let didTriggerQuickLongPressAction = false;
 
 	// Supprime les sous-titres actuellement sélectionnés dans le Style tab via Backspace
 	function handleRemoveSelectedSubtitles(): void {
@@ -75,7 +88,7 @@
 		currentProject.detail.updateVideoDetailAttributes();
 	}
 
-	function handleSplitSubtitle(): void {
+	async function handleSplitSubtitle(forceExactCursor: boolean): Promise<void> {
 		const currentProject = globalState.currentProject;
 		if (!currentProject) return;
 
@@ -106,7 +119,9 @@
 				clipToSplit.type === 'Silence')
 		) {
 			const subtitleTrack = globalState.getSubtitleTrack;
-			const success = subtitleTrack.splitSubtitle(clipToSplit.id);
+			const success = await subtitleTrack.splitSubtitle(clipToSplit.id, {
+				forceExactCursor
+			});
 			if (success) {
 				currentProject.detail.updateVideoDetailAttributes();
 				globalState.getStylesState.clearSelection();
@@ -122,6 +137,58 @@
 					globalState.getSubtitlesEditorState.pendingSplitEditNextId = nextClip?.id ?? null;
 				}
 			}
+		}
+	}
+
+	/**
+	 * Déplace le curseur de lecture d'une frame dans la direction demandée.
+	 * @param {number} direction Direction du déplacement (`-1` ou `1`).
+	 * @returns {void}
+	 */
+	function moveCursorByFrame(direction: number): void {
+		if (globalState.getVideoPreviewState.isPlaying) return;
+
+		const frameDurationMs = 1000 / Math.max(globalState.getExportState.fps, 1);
+		const newPosition = Math.max(1, timelineState().cursorPosition + direction * frameDurationMs);
+
+		timelineState().cursorPosition = newPosition;
+		timelineState().movePreviewTo = newPosition;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
+	}
+
+	/**
+	 * Déplace le curseur d'une frame vers l'arrière.
+	 * @returns {void}
+	 */
+	function handleMoveFrameBackward(): void {
+		moveCursorByFrame(-1);
+	}
+
+	/**
+	 * Déplace le curseur d'une frame vers l'avant.
+	 * @returns {void}
+	 */
+	function handleMoveFrameForward(): void {
+		moveCursorByFrame(1);
+	}
+
+	/**
+	 * Ajuste le zoom de la timeline avec la même logique que la molette.
+	 * @param {number} direction `1` pour zoom in, `-1` pour zoom out.
+	 * @returns {void}
+	 */
+	function adjustTimelineZoom(direction: number): void {
+		const currentZoom = timelineState().zoom;
+
+		if (direction < 0 && currentZoom > 0.2) {
+			timelineState().zoom = currentZoom - 0.75;
+		} else if (direction > 0 && currentZoom < 100) {
+			timelineState().zoom = currentZoom + 0.75;
+		}
+
+		if (timelineState().zoom === 10) {
+			// Valeur interdite qui fait beuguer le rendu
+			timelineState().zoom = 10.01;
 		}
 	}
 
@@ -155,7 +222,7 @@
 
 		ShortcutService.registerShortcut({
 			key: splitShortcut,
-			onKeyDown: handleSplitSubtitle
+			onKeyDown: (event) => void handleSplitSubtitle(Boolean(event.ctrlKey || event.metaKey))
 		});
 
 		splitShortcutRegistered = true;
@@ -172,10 +239,108 @@
 	}
 
 	/**
+	 * Retourne le meilleur sous-titre Quran a editer rapidement depuis la timeline.
+	 * Priorise le sous-titre selectionne dans l'onglet Style, sinon celui sous le curseur,
+	 * sinon le dernier vrai sous-titre du projet.
+	 * @returns {SubtitleClip | null}
+	 */
+	function resolveQuickEditableSubtitleClip(): SubtitleClip | null {
+		if (!globalState.currentProject) return null;
+
+		const selectedSubtitles = globalState.getStylesState.selectedSubtitles;
+		if (selectedSubtitles.length === 1 && selectedSubtitles[0] instanceof SubtitleClip) {
+			return selectedSubtitles[0];
+		}
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const clipUnderCursor = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
+		if (clipUnderCursor instanceof SubtitleClip) {
+			return clipUnderCursor;
+		}
+
+		return globalState.getSubtitleClips.at(-1) ?? null;
+	}
+
+	/**
+	 * Ouvre l'editeur rapide de sous-titre depuis la timeline.
+	 * Priorise le sous-titre selectionne dans l'onglet Style, sinon celui sous le curseur,
+	 * sinon le dernier vrai sous-titre du projet.
+	 * @returns {void}
+	 */
+	function handleOpenQuickSubtitleEditor(): void {
+		const clipToEdit = resolveQuickEditableSubtitleClip();
+		if (!clipToEdit) return;
+		globalState.openQuickTimelineEditor(clipToEdit.id, 'subtitle');
+	}
+
+	/**
+	 * Ouvre l'editeur rapide de timestamps WBW depuis la timeline.
+	 * @returns {void}
+	 */
+	function handleOpenQuickWbwTimestampEditor(): void {
+		const clipToEdit = resolveQuickEditableSubtitleClip();
+		if (!clipToEdit) return;
+
+		globalState.openQuickTimelineEditor(clipToEdit.id, 'wbwTimestamp');
+	}
+
+	const quickSubtitleEditShortcutHandlers = {
+		getTimer: () => quickEditLongPressTimer,
+		setTimer: (timer: ReturnType<typeof setTimeout> | null) => {
+			quickEditLongPressTimer = timer;
+		},
+		getDidTrigger: () => didTriggerQuickLongPressAction,
+		setDidTrigger: (value: boolean) => {
+			didTriggerQuickLongPressAction = value;
+		},
+		onShortPress: () => {
+			handleOpenQuickSubtitleEditor();
+		},
+		onLongPress: () => handleOpenQuickWbwTimestampEditor(),
+		delayMs: 500
+	};
+
+	/**
+	 * Enregistre le raccourci d'ouverture rapide de l'editeur limite de sous-titre.
+	 * @returns {void}
+	 */
+	function registerQuickSubtitleEditShortcut(): void {
+		if (!globalState.settings || quickSubtitleEditShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
+			onKeyDown: (event) =>
+				handleManualWordByWordEditShortcutKeyDown(event, quickSubtitleEditShortcutHandlers),
+			onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(quickSubtitleEditShortcutHandlers)
+		});
+
+		quickSubtitleEditShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci d'ouverture rapide de l'editeur limite de sous-titre.
+	 * @returns {void}
+	 */
+	function unregisterQuickSubtitleEditShortcut(): void {
+		if (!quickSubtitleEditShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE
+		);
+
+		quickSubtitleEditShortcutRegistered = false;
+	}
+
+	/**
 	 * Definit la fin du sous-titre actuel (sous le curseur) a la position du curseur.
 	 * Si un sous-titre suivant existe, ajuste son temps de debut a cursorPosition + 1.
 	 */
 	function handleSetSubtitleEndTime(): void {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelectedWordEndToCursor();
+			return;
+		}
+
 		const subtitleTrack = globalState.getSubtitleTrack;
 		const cursorPosition = globalState.getTimelineState.cursorPosition;
 
@@ -216,6 +381,11 @@
 	 * Si un sous-titre precedent existe, ajuste son temps de fin a cursorPosition - 1.
 	 */
 	function handleSetSubtitleStartTime(): void {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelectedWordStartToCursor();
+			return;
+		}
+
 		const subtitleTrack = globalState.getSubtitleTrack;
 		const cursorPosition = globalState.getTimelineState.cursorPosition;
 
@@ -293,6 +463,60 @@
 		setStartShortcutRegistered = false;
 	}
 
+	/**
+	 * Enregistre le raccourci clavier pour reculer d'une frame.
+	 * @returns {void}
+	 */
+	function registerFrameBackwardShortcut(): void {
+		if (!globalState.settings || frameBackwardShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.FRAME_BACKWARD,
+			onKeyDown: handleMoveFrameBackward
+		});
+
+		frameBackwardShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci clavier pour reculer d'une frame.
+	 * @returns {void}
+	 */
+	function unregisterFrameBackwardShortcut(): void {
+		if (!frameBackwardShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(globalState.settings.shortcuts.TIMELINE.FRAME_BACKWARD);
+
+		frameBackwardShortcutRegistered = false;
+	}
+
+	/**
+	 * Enregistre le raccourci clavier pour avancer d'une frame.
+	 * @returns {void}
+	 */
+	function registerFrameForwardShortcut(): void {
+		if (!globalState.settings || frameForwardShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.FRAME_FORWARD,
+			onKeyDown: handleMoveFrameForward
+		});
+
+		frameForwardShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci clavier pour avancer d'une frame.
+	 * @returns {void}
+	 */
+	function unregisterFrameForwardShortcut(): void {
+		if (!frameForwardShortcutRegistered || !globalState.settings) return;
+
+		ShortcutService.unregisterShortcut(globalState.settings.shortcuts.TIMELINE.FRAME_FORWARD);
+
+		frameForwardShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -305,6 +529,16 @@
 			registerRemoveShortcut();
 		} else {
 			unregisterRemoveShortcut();
+		}
+
+		if (
+			currentTab === ProjectEditorTabs.VideoEditor ||
+			currentTab === ProjectEditorTabs.Style ||
+			currentTab === ProjectEditorTabs.Export
+		) {
+			registerQuickSubtitleEditShortcut();
+		} else {
+			unregisterQuickSubtitleEditShortcut();
 		}
 
 		// Le raccourci de synchronisation des clips bouclés
@@ -327,12 +561,17 @@
 		// Le raccourci M pour définir la fin du sous-titre fonctionne dans tous les tabs maintenant
 		registerSetEndShortcut();
 		registerSetStartShortcut();
+		registerFrameBackwardShortcut();
+		registerFrameForwardShortcut();
 
 		return () => {
 			unregisterSplitShortcut();
 			unregisterRemoveShortcut();
+			unregisterQuickSubtitleEditShortcut();
 			unregisterSetEndShortcut();
 			unregisterSetStartShortcut();
+			unregisterFrameBackwardShortcut();
+			unregisterFrameForwardShortcut();
 		};
 	});
 
@@ -449,10 +688,13 @@
 
 		timelineState().cursorPosition = newPosition;
 		timelineState().movePreviewTo = newPosition;
+
+		globalState.getTimelineState.wasCursorDragged = false;
 	}
 
 	function handleTimelineDrag(event: MouseEvent) {
 		if (event.buttons !== 1) return; // Seulement si le bouton gauche est maintenu
+		globalState.getTimelineState.wasCursorDragged = true;
 
 		const target = event.currentTarget as HTMLElement;
 		if (!target) return;
@@ -478,10 +720,13 @@
 
 		timelineState().cursorPosition = newPosition;
 		timelineState().movePreviewTo = newPosition;
+
+		globalState.getTimelineState.wasCursorDragged = false;
 	}
 
 	function handleRulerDrag(event: MouseEvent) {
 		if (event.buttons !== 1) return; // Seulement si le bouton gauche est maintenu
+		globalState.getTimelineState.wasCursorDragged = true;
 
 		const target = event.currentTarget as HTMLElement;
 		if (!target) return;
@@ -512,8 +757,40 @@
 		timelineState().scrollX = source.scrollLeft;
 	}
 
+	/**
+	 * Vérifie si une option de raccourci timeline correspond à l'événement de molette.
+	 * @param {string} shortcut Option de raccourci enregistrée.
+	 * @param {WheelEvent} event Événement de molette courant.
+	 * @returns {boolean} `true` si l'option correspond aux touches maintenues.
+	 */
+	function matchesTimelineWheelShortcut(shortcut: string, event: WheelEvent): boolean {
+		if (shortcut === 'scroll') return !event.ctrlKey && !event.shiftKey && !event.altKey;
+		if (shortcut === 'control') return event.ctrlKey && !event.shiftKey && !event.altKey;
+		if (shortcut === 'shift') return !event.ctrlKey && event.shiftKey && !event.altKey;
+		if (shortcut === 'control+shift') return event.ctrlKey && event.shiftKey && !event.altKey;
+		if (shortcut === 'alt') return !event.ctrlKey && !event.shiftKey && event.altKey;
+		return false;
+	}
+
+	/**
+	 * Vérifie si une action timeline est déclenchée par l'événement de molette.
+	 * @param {keyof Settings['shortcuts']['TIMELINE']} action Action timeline à tester.
+	 * @param {WheelEvent} event Événement de molette courant.
+	 * @returns {boolean} `true` si au moins une option enregistrée correspond.
+	 */
+	function isTimelineWheelAction(
+		action: keyof Settings['shortcuts']['TIMELINE'],
+		event: WheelEvent
+	): boolean {
+		const shortcuts = globalState.settings?.shortcuts.TIMELINE[action].keys ?? [];
+		return shortcuts.some((shortcut) => matchesTimelineWheelShortcut(shortcut, event));
+	}
+
 	function handleMouseWheelWheeling(event: WheelEvent) {
-		if (event.ctrlKey && event.shiftKey) {
+		if (
+			(event.deltaX !== 0 && Math.abs(event.deltaX) > Math.abs(event.deltaY)) ||
+			isTimelineWheelAction('HORIZONTAL_SCROLL', event)
+		) {
 			const eventTarget = event.target;
 			if (!(eventTarget instanceof Element)) return;
 
@@ -530,35 +807,24 @@
 			return;
 		}
 
-		// Si la touche CTRL est enfoncée
-		if (event.ctrlKey) {
-			// Zoom avant ou arrière
-			if (event.deltaY > 0 && timelineState().zoom > 0.2) {
-				timelineState().zoom -= 0.75;
-			} else if (timelineState().zoom < 100) {
-				timelineState().zoom += 0.75;
-			}
-
-			if (timelineState().zoom === 10) {
-				// Valeur interdite qui fait beuguer le rendu
-				timelineState().zoom = 10.01;
-			}
+		if (isTimelineWheelAction('ZOOM', event)) {
+			adjustTimelineZoom(event.deltaY > 0 ? -1 : 1);
 
 			return;
 		}
 
-		if (event.altKey && !globalState.getVideoPreviewState.isPlaying) {
+		if (
+			isTimelineWheelAction('FRAME_BY_FRAME_SCROLL', event) &&
+			!globalState.getVideoPreviewState.isPlaying
+		) {
 			event.preventDefault();
-			const frameDurationMs = 1000 / Math.max(globalState.getExportState.fps, 1);
 			const direction = event.deltaY > 0 ? 1 : -1;
-			const newPosition = Math.max(1, timelineState().cursorPosition + direction * frameDurationMs);
-
-			timelineState().cursorPosition = newPosition;
-			timelineState().movePreviewTo = newPosition;
-			globalState.getVideoPreviewState.scrollTimelineToCursor();
+			moveCursorByFrame(direction);
 
 			return;
 		}
+
+		if (!isTimelineWheelAction('VERTICAL_SCROLL', event)) return;
 
 		event.preventDefault();
 		if (timelineTracksDiv) {
@@ -575,8 +841,11 @@
 	onDestroy(() => {
 		unregisterSplitShortcut();
 		unregisterRemoveShortcut();
+		unregisterQuickSubtitleEditShortcut();
 		unregisterSetEndShortcut();
 		unregisterSetStartShortcut();
+		unregisterFrameBackwardShortcut();
+		unregisterFrameForwardShortcut();
 		tracksResizeObserver?.disconnect();
 		tracksResizeObserver = null;
 	});
@@ -598,7 +867,34 @@
 				tabindex="0"
 			>
 				<!-- Header spacer for alignment -->
-				<div class="ruler-header-spacer"></div>
+				<div class="ruler-header-spacer">
+					<div class="ruler-zoom-controls">
+						<button
+							class="ruler-zoom-button"
+							type="button"
+							title="Zoom out"
+							aria-label="Zoom out"
+							onclick={(event) => {
+								event.stopPropagation();
+								adjustTimelineZoom(-1);
+							}}
+						>
+							<span class="material-icons-outlined text-[18px]!">zoom_out</span>
+						</button>
+						<button
+							class="ruler-zoom-button"
+							type="button"
+							title="Zoom in"
+							aria-label="Zoom in"
+							onclick={(event) => {
+								event.stopPropagation();
+								adjustTimelineZoom(1);
+							}}
+						>
+							<span class="material-icons-outlined text-[18px]!">zoom_in</span>
+						</button>
+					</div>
+				</div>
 
 				<!-- Time markers -->
 				{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i (i)}
@@ -696,6 +992,10 @@
 				{/if}
 			</div>
 		</div>
+
+		{#if globalState.shared.quickTimelineEditor.active}
+			<QuickTimelineEditorOverlay />
+		{/if}
 	</div>
 </section>
 
@@ -756,7 +1056,38 @@
 		background: var(--timeline-ruler-bg);
 		border-right: 1px solid var(--timeline-track-border);
 		z-index: 5;
-		pointer-events: none;
+		pointer-events: auto;
+	}
+
+	.ruler-zoom-controls {
+		position: absolute;
+		left: 4px;
+		top: 50%;
+		transform: translateY(-50%);
+		display: flex;
+		gap: 2px;
+		z-index: 6;
+	}
+
+	.ruler-zoom-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-secondary);
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.ruler-zoom-button:hover {
+		color: var(--text-primary);
+		background: var(--bg-primary);
+		border-color: var(--accent);
+	}
+
+	.ruler-zoom-button:active {
+		transform: translateY(1px);
 	}
 
 	.time-marker {

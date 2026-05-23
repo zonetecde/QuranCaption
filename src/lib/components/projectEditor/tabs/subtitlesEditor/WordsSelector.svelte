@@ -8,6 +8,17 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { automaticSplitSubtitleAtWord } from '$lib/services/AutoSegmentation';
+	import {
+		ensureManualWordByWordEditStateIsValid,
+		exitManualWordByWordEdit,
+		handleManualWordByWordEditShortcutKeyDown,
+		handleManualWordByWordEditShortcutKeyUp,
+		moveManualWordByWordSelection,
+		openManualWordByWordEditFromShortcut,
+		stampManualWordByWordCurrentWordAtCursor,
+		syncManualWordByWordSelectionFromVerseWord,
+		syncVerseSelectionWithManualWordByWordIndex
+	} from '$lib/services/WbwHelper';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -21,6 +32,25 @@
 	let suppressNextWordClick = $state(false);
 	let wordContextMenu: ContextMenu | undefined = $state(undefined);
 	let contextMenuWordIndex: number | null = $state(null);
+	let editShortcutLongPressTimer: ReturnType<typeof setTimeout> | null = $state(null);
+	let didTriggerManualWbwEdit = $state(false);
+	let didRegisterEditLastSubtitleShortcut = false;
+
+	const wbwShortcutHandlers = {
+		getTimer: () => editShortcutLongPressTimer,
+		setTimer: (timer: ReturnType<typeof setTimeout> | null) => {
+			editShortcutLongPressTimer = timer;
+		},
+		getDidTrigger: () => didTriggerManualWbwEdit,
+		setDidTrigger: (value: boolean) => {
+			didTriggerManualWbwEdit = value;
+		},
+		onShortPress: () => {
+			editCurrentOrLastSubtitle();
+		},
+		onLongPress: () => openManualWordByWordEditFromShortcut(),
+		delayMs: 500
+	};
 
 	function goNextVerse() {
 		if (
@@ -82,6 +112,7 @@
 				subtitlesEditorState().selectedVerse
 			)
 	);
+
 	onMount(() => {
 		// Set up les shortcuts pour sélectionner les mots
 		ShortcutService.registerShortcut({
@@ -151,10 +182,17 @@
 			onKeyDown: removeLastSubtitle
 		});
 
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
-			onKeyDown: editCurrentOrLastSubtitle
-		});
+		// N'enregistre pas le raccourci E quand WordsSelector est rendu dans l'overlay rapide de la timeline
+		// pour éviter d'écraser le gestionnaire du Timeline.svelte.
+		if (!globalState.shared.quickTimelineEditor.active) {
+			ShortcutService.registerShortcut({
+				key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
+				onKeyDown: (event) =>
+					handleManualWordByWordEditShortcutKeyDown(event, wbwShortcutHandlers),
+				onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(wbwShortcutHandlers)
+			});
+			didRegisterEditLastSubtitleShortcut = true;
+		}
 
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE,
@@ -204,6 +242,11 @@
 		ShortcutService.registerShortcut({
 			key: { keys: ['Escape'], description: 'Exit subtitle editing' },
 			onKeyDown: () => {
+				if (globalState.shared.wbwEdit.active) {
+					exitManualWordByWordEdit();
+					return;
+				}
+
 				globalState.getSubtitlesEditorState.editSubtitle = null;
 				globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 			}
@@ -238,9 +281,11 @@
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE
 		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE
-		);
+		if (didRegisterEditLastSubtitleShortcut) {
+			ShortcutService.unregisterShortcut(
+				globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE
+			);
+		}
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE
 		);
@@ -273,6 +318,10 @@
 
 		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
 		currentMenu.set(null);
+		if (editShortcutLongPressTimer) {
+			clearTimeout(editShortcutLongPressTimer);
+			editShortcutLongPressTimer = null;
+		}
 	});
 
 	/**
@@ -333,6 +382,12 @@
 	 * Si on est à la fin du verset, passe au verset suivant.
 	 */
 	async function selectNextWord() {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelection(1);
+			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
+			return;
+		}
+
 		if (subtitlesEditorState().endWordIndex < (await selectedVerse())!.words.length - 1) {
 			subtitlesEditorState().endWordIndex += 1;
 		} else {
@@ -346,6 +401,12 @@
 	 * Si on est au début du verset, passe au verset précédent.
 	 */
 	async function selectPreviousWord() {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelection(-1);
+			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
+			return;
+		}
+
 		if (subtitlesEditorState().endWordIndex > subtitlesEditorState().startWordIndex) {
 			subtitlesEditorState().endWordIndex -= 1;
 		} else if (subtitlesEditorState().startWordIndex > 0) {
@@ -363,6 +424,11 @@
 	 * Ajoute une sous-titre avec les mots sélectionnés.
 	 */
 	async function addSubtitle() {
+		if (globalState.shared.wbwEdit.active) {
+			stampManualWordByWordCurrentWordAtCursor();
+			return;
+		}
+
 		if (isAddingSubtitle) return;
 		isAddingSubtitle = true;
 
@@ -466,6 +532,10 @@
 	 * @param wordIndex L'index du mot cliqué.
 	 */
 	function handleWordClick(wordIndex: number): void {
+		if (syncManualWordByWordSelectionFromVerseWord(wordIndex, subtitlesEditorState)) {
+			return;
+		}
+
 		if (suppressNextWordClick) {
 			suppressNextWordClick = false;
 			return;
@@ -483,8 +553,13 @@
 			subtitlesEditorState().endWordIndex = wordIndex;
 		}
 	}
-
 	function handleWordMouseDown(wordIndex: number, event: MouseEvent): void {
+		if (globalState.shared.wbwEdit.active) {
+			void wordIndex;
+			void event;
+			return;
+		}
+
 		if (event.button !== 0) return;
 		event.preventDefault();
 		isWordDragging = true;
@@ -493,6 +568,11 @@
 	}
 
 	function handleWordMouseEnter(wordIndex: number): void {
+		if (globalState.shared.wbwEdit.active) {
+			void wordIndex;
+			return;
+		}
+
 		if (!isWordDragging) return;
 
 		didWordDrag = true;
@@ -501,6 +581,8 @@
 	}
 
 	function stopWordDrag(): void {
+		if (globalState.shared.wbwEdit.active) return;
+
 		if (!isWordDragging) return;
 
 		if (didWordDrag) {
@@ -530,7 +612,8 @@
 		const editSubtitle = subtitlesEditorState().editSubtitle;
 		if (!(editSubtitle instanceof SubtitleClip)) return false;
 		if (!editSubtitle.alignmentMetadata) return false;
-		if (wordIndex < editSubtitle.startWordIndex || wordIndex >= editSubtitle.endWordIndex) return false;
+		if (wordIndex < editSubtitle.startWordIndex || wordIndex >= editSubtitle.endWordIndex)
+			return false;
 		return (
 			wordIndex >= subtitlesEditorState().startWordIndex &&
 			wordIndex <= subtitlesEditorState().endWordIndex
@@ -612,10 +695,15 @@
 	}
 
 	$effect(() => {
+		ensureManualWordByWordEditStateIsValid();
+	});
+
+	$effect(() => {
 		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
 		untrack(() => {
 			if (editSubtitle && editSubtitle instanceof SubtitleClip) {
 				// Met l'éditeur de sous-titres à la position du verset à éditer
+				if (globalState.shared.wbwEdit.active) return;
 				subtitlesEditorState().selectedSurah = editSubtitle.surah;
 				subtitlesEditorState().selectedVerse = editSubtitle.verse;
 				subtitlesEditorState().startWordIndex = editSubtitle.startWordIndex;
@@ -719,8 +807,8 @@
 	{#if contextMenuWordIndex !== null}
 		<Item on:click={handleAutomaticSplitFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split automatically
-				at this word
+				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split automatically at
+				this word
 			</div></Item
 		>
 	{/if}

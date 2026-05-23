@@ -307,8 +307,19 @@ export default class MigrationService {
 			padMs?: number;
 			whisperModel?: 'tiny' | 'base' | 'medium' | 'large';
 			legacyWhisperModel?: 'tiny' | 'base' | 'medium' | 'large';
-			localAsrMode?: 'legacy_whisper' | 'multi_aligner';
-			multiAlignerModel?: 'Base' | 'Large';
+			localAsrMode?: 'legacy_whisper' | 'multi_aligner' | 'open_multi_aligner';
+			multiAlignerModel?:
+				| 'Base'
+				| 'Large'
+				| 'Open-Tadabur-Small'
+				| 'Open-DeepDML-Small-Mix'
+				| 'Open-DeepDML-Medium-Mix'
+				| 'Open-IJyad-Large-V3'
+				| 'Open-Naazim-Large-V3-Turbo'
+				| 'Open-Legacy-Tiny'
+				| 'Open-Legacy-Base'
+				| 'Open-Legacy-Medium'
+				| 'Open-Legacy-Large';
 			cloudModel?: 'Base' | 'Large';
 			device?: 'GPU' | 'CPU';
 			hfToken?: string;
@@ -624,6 +635,93 @@ export default class MigrationService {
 			if (confirmed) {
 				this.organizeExistingProjectsIntoSubCategories();
 			}
+		}
+	}
+
+	/**
+	 * Assure que les raccourcis timeline configurables existent dans les anciens settings.
+	 */
+	static FromQC347ToQC348(): void {
+		if (!globalState.settings) return;
+
+		const settingsAny = globalState.settings as unknown as MutableSettingsForMigration;
+		const defaults = new Settings();
+		let hasChanges = false;
+
+		settingsAny.shortcutCategories = settingsAny.shortcutCategories || {};
+		settingsAny.shortcuts = settingsAny.shortcuts || {};
+		settingsAny.shortcuts.TIMELINE = settingsAny.shortcuts.TIMELINE || {};
+
+		if (!settingsAny.shortcutCategories.TIMELINE) {
+			settingsAny.shortcutCategories.TIMELINE = defaults.shortcutCategories.TIMELINE;
+			hasChanges = true;
+		}
+
+		for (const key of Object.keys(defaults.shortcuts.TIMELINE)) {
+			if (!settingsAny.shortcuts.TIMELINE[key]) {
+				settingsAny.shortcuts.TIMELINE[key] =
+					defaults.shortcuts.TIMELINE[key as keyof typeof defaults.shortcuts.TIMELINE];
+				hasChanges = true;
+			}
+		}
+
+		if (hasChanges) {
+			Settings.save();
+		}
+	}
+
+	/**
+	 * Migre l'ancien moteur open local vers le nouveau moteur Muaalem local.
+	 */
+	static FromQC348ToQC349(): void {
+		if (!globalState.settings) return;
+
+		const autoSegmentationSettings = globalState.settings.autoSegmentationSettings as {
+			localAsrMode?:
+				| 'legacy_whisper'
+				| 'multi_aligner'
+				| 'open_multi_aligner'
+				| 'muaalem_local'
+				| 'surah_splitter';
+			multiAlignerModel?: string;
+			includeWbwTimestamps?: boolean;
+		};
+
+		let hasChanges = false;
+
+		if (
+			autoSegmentationSettings.localAsrMode === 'open_multi_aligner' ||
+			autoSegmentationSettings.localAsrMode === 'legacy_whisper'
+		) {
+			autoSegmentationSettings.localAsrMode = 'muaalem_local';
+			hasChanges = true;
+		}
+
+		if (autoSegmentationSettings.localAsrMode === 'muaalem_local') {
+			const validModels = new Set([
+				'Muaalem-v3.2',
+				'Open-Tadabur-Small',
+				'Open-DeepDML-Small-Mix',
+				'Open-DeepDML-Medium-Mix',
+				'Open-IJyad-Large-V3',
+				'Open-Naazim-Large-V3-Turbo',
+				'Open-Legacy-Tiny',
+				'Open-Legacy-Base',
+				'Open-Legacy-Medium',
+				'Open-Legacy-Large'
+			]);
+			if (!validModels.has(autoSegmentationSettings.multiAlignerModel ?? '')) {
+				autoSegmentationSettings.multiAlignerModel = 'Muaalem-v3.2';
+				hasChanges = true;
+			}
+			if (autoSegmentationSettings.includeWbwTimestamps !== true) {
+				autoSegmentationSettings.includeWbwTimestamps = true;
+				hasChanges = true;
+			}
+		}
+
+		if (hasChanges) {
+			Settings.save();
 		}
 	}
 

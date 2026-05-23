@@ -7,7 +7,12 @@ def get_phonemizer():
     """Get or create Phonemizer instance."""
     global _pm
     if _pm is None:
-        from quranic_phonemizer import Phonemizer
+        try:
+            from quranic_phonemizer import Phonemizer
+        except ModuleNotFoundError as exc:
+            if exc.name != "quranic_phonemizer":
+                raise
+            from core.phonemizer import Phonemizer
         _pm = Phonemizer()
     return _pm
 

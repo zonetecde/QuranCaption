@@ -1,7 +1,7 @@
 use crate::commands;
 use crate::exporter;
 
-/// Enregistre la liste unique des commandes IPC exposées au frontend.
+/// Enregistre la liste unique des commandes IPC exposÃ©es au frontend.
 pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder.invoke_handler(tauri::generate_handler![
         commands::ai_translation::run_advanced_ai_trim_batch_streaming,
@@ -39,6 +39,9 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::segmentation::get_segmentation_mfa_timestamps_direct,
         commands::segmentation::segment_quran_audio_local,
         commands::segmentation::segment_quran_audio_local_multi,
+        commands::segmentation::segment_quran_audio_local_muaalem,
+        commands::segmentation::segment_quran_audio_local_surah_splitter,
+        commands::segmentation::generate_hifz_audio,
         commands::segmentation::check_local_segmentation_ready,
         commands::segmentation::install_local_segmentation_deps,
         commands::discord::init_discord_rpc,

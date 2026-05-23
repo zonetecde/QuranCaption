@@ -271,10 +271,16 @@ export function getVisibleTranslationSegments(
 
 	if (!(subtitle instanceof SubtitleClip)) return [];
 
-	return joinOverlaySegmentGroups(
-		getMergedClipsWithoutWordOverlap(mergedGroup!.clips).map((clip) =>
-			getTranslationOverlaySegments(edition, clip)
-		),
-		`merged-${edition}`
+	const groups = getMergedClipsWithoutWordOverlap(mergedGroup!.clips).map((clip) =>
+		getTranslationOverlaySegments(edition, clip)
 	);
+	return groups.flatMap((segments, index) => {
+		if (index === 0) return segments;
+		const previousLastSegment = groups[index - 1].at(-1);
+		// Si le sous-titre précédent se termine par un tiret, on n'ajoute pas d'espace (règle du pas d'espace après un `—` dans les trads)
+		const separator = previousLastSegment?.text.endsWith('—') ? '' : ' ';
+		return separator
+			? [createPlainOverlaySegment(`merged-${edition}-separator-${index}`, separator), ...segments]
+			: segments;
+	});
 }

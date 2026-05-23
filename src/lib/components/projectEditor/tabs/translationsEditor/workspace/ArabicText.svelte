@@ -6,6 +6,7 @@
 	} from '$lib/classes/Clip.svelte';
 	import type { TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 	import { onMount } from 'svelte';
 
 	let {
@@ -34,6 +35,8 @@
 
 	let arabicDisplayParts = $derived(() => subtitle.getArabicRenderParts());
 	let words = $derived(() => arabicDisplayParts().text.split(' ').filter(Boolean));
+	let wbwTranslationWords = $state<string[]>([]);
+	let wbwTranslationRequestId = 0;
 	let activeInlineFlags = $derived(() => ({
 		bold: translationsEditorState().inlineStyleBoldEnabled,
 		italic: translationsEditorState().inlineStyleItalicEnabled,
@@ -42,6 +45,40 @@
 			? translationsEditorState().inlineStyleColorValue
 			: null
 	}));
+	let wbwTranslationDirection = $derived(() =>
+		WbwTranslationService.getLanguageDirection(
+			globalState.settings?.persistentUiState.wbwTranslationLanguage ?? 'en'
+		)
+	);
+
+	$effect(() => {
+		const language = globalState.settings?.persistentUiState.wbwTranslationLanguage ?? 'en';
+		const currentSubtitle = subtitle;
+		const requestId = ++wbwTranslationRequestId;
+
+		if (!(currentSubtitle instanceof SubtitleClip)) {
+			wbwTranslationWords = [];
+			return;
+		}
+
+		void WbwTranslationService.getWordsForRange(
+			language,
+			currentSubtitle.surah,
+			currentSubtitle.verse,
+			currentSubtitle.startWordIndex,
+			currentSubtitle.endWordIndex
+		)
+			.then((translatedWords) => {
+				if (requestId === wbwTranslationRequestId) {
+					wbwTranslationWords = translatedWords;
+				}
+			})
+			.catch(() => {
+				if (requestId === wbwTranslationRequestId) {
+					wbwTranslationWords = [];
+				}
+			});
+	});
 
 	/**
 	 * Convertit l'état de style d'un mot en CSS inline pour l'affichage.
@@ -165,10 +202,10 @@
 
 				<span
 					class="word-translation-tooltip group-hover:block hidden text-sm absolute top-10 w-max px-1.5 border-2 rounded-lg text-center z-20"
-					dir="ltr"
+					dir={wbwTranslationDirection()}
 				>
 					{subtitle instanceof SubtitleClip
-						? subtitle.wbwTranslation[absoluteWordIndex - subtitle.startWordIndex] || ''
+						? wbwTranslationWords[absoluteWordIndex - subtitle.startWordIndex] || ''
 						: ''}
 				</span>
 			</button>
@@ -186,8 +223,13 @@
 	</div>
 
 	{#if subtitle instanceof SubtitleClip && !isInlineStyleMode()}
-		<p class="text-sm text-thirdly text-left mt-1 space-x-1">
-			{#each subtitle.wbwTranslation as word, i (`${subtitle.id}-wbw-${i}`)}
+		<p
+			class="text-sm text-thirdly mt-1 space-x-1 {wbwTranslationDirection() === 'rtl'
+				? 'text-right'
+				: 'text-left'}"
+			dir={wbwTranslationDirection()}
+		>
+			{#each wbwTranslationWords as word, i (`${subtitle.id}-wbw-${i}`)}
 				{@const wordIndex = subtitle.startWordIndex + i}
 				<span
 					class={overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex

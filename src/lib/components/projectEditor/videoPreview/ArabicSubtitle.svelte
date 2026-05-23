@@ -594,6 +594,34 @@
 
 	let bracketGlyphs = $derived(() => getBracketGlyphs());
 
+	/** CSS d'alignement vertical interne quand le parent export reste en display block. */
+	let exportInnerVerticalAlignmentCss = $derived(() => {
+		if (!isExportCapturePreview) return 'display: contents;';
+
+		const referenceClip = arabicReferenceClip();
+		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		const verticalAlignment = String(
+			styles.getEffectiveValue('vertical-text-alignment', referenceClip?.id)
+		);
+		const horizontalAlignment = String(
+			styles.getEffectiveValue('horizontal-text-alignment', referenceClip?.id)
+		);
+		const justifyContent =
+			verticalAlignment === 'bottom'
+				? 'flex-end'
+				: verticalAlignment === 'top'
+					? 'flex-start'
+					: 'center';
+		const textAlign =
+			horizontalAlignment === 'left' ||
+			horizontalAlignment === 'right' ||
+			horizontalAlignment === 'justify'
+				? horizontalAlignment
+				: 'center';
+
+		return `display: flex; flex-direction: column; justify-content: ${justifyContent}; width: 100%; height: 100%; text-align: ${textAlign};`;
+	});
+
 	/** Padding horizontal pour le fond du sous-titre arabe. */
 	let backgroundHorizontalPaddingCss = $derived(() => {
 		const referenceClip = arabicReferenceClip();
@@ -627,7 +655,8 @@
 			? 'display: block;'
 			: ''}"
 	>
-		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
+		<span style={exportInnerVerticalAlignmentCss()}>
+			{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
 			{@const subtitle = currentSubtitle()}
 			{@const segments = arabicSegments()}
 			{@const groups = currentArabicPreviewGroups()}
@@ -771,7 +800,8 @@
 				<!-- Fallback standard : rendu arabe sans WBW -->
 				{@render overlaySegmentsContent(segments)}
 			{/if}
-		{/if}
+			{/if}
+		</span>
 	</p>
 {/if}
 

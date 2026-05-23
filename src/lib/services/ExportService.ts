@@ -101,13 +101,19 @@ export default class ExportService {
 	}
 
 	private static async checkIfFilePathTooLong(filePath: string): Promise<string> {
-		// Si le chemin est trop long (> 250 caractères), on met `...` dans le nom du fichier (mais pas dans le chemin)
-		if (filePath.length > 250) {
-			const pathParts = filePath.split(/[/\\]/);
-			const fileName = pathParts.pop()!;
-			const dirPath = pathParts.join('/');
+		const maxPathLength = 220;
+		const tempSuffixMargin = 48;
+		const pathParts = filePath.split(/[/\\]/);
+		const fileName = pathParts.pop()!;
+		const dirPath = pathParts.join('/');
+		const maxFileNameLength = Math.max(
+			32,
+			maxPathLength - dirPath.length - 1 - tempSuffixMargin
+		);
 
-			const newFileName = '...' + fileName.slice(-240); // Garde les 240 derniers caractères du nom de fichier
+		// Laisse une marge pour les fichiers temporaires Rust qui ajoutent un suffixe `-tmp-...`.
+		if (filePath.length > maxPathLength || fileName.length > maxFileNameLength) {
+			const newFileName = '...' + fileName.slice(-(maxFileNameLength - 3));
 			filePath = await join(dirPath, newFileName);
 		}
 

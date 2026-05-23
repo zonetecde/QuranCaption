@@ -35,6 +35,7 @@
 	} from '$lib/services/ExportCaptureTiming';
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
+	import SoosiProvider from '$lib/services/SoosiProvider';
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -363,6 +364,9 @@
 			// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
 			globalState.currentProject = await ExportService.loadProject(Number(id));
 			removeHiddenTranslationsFromExportProject();
+			if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi') {
+				await SoosiProvider.prefetch();
+			}
 
 			// Créer le dossier d'export s'il n'existe pas
 			await mkdir(await join(ExportService.exportFolder, exportId), {

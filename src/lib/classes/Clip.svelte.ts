@@ -431,9 +431,9 @@ export class SubtitleClip extends ClipWithTranslation {
 	getTextWithVerseNumber(text: string = this.text): string {
 		if (this.isLastWordsOfVerse) {
 			const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
-			// Indopak and Soosi fonts may lack the ornamental verse-number glyph,
+			// Indopak may lack the ornamental verse-number glyph,
 			// so the number is rendered with Hafs in a nested span.
-			if (mushafStyle === 'Indopak' || mushafStyle === 'Soosi')
+			if (mushafStyle === 'Indopak')
 				return `<span style="direction: rtl; unicode-bidi: isolate;">${text} <span style="font-family:Hafs;">${this.latinToArabicNumbers(this.verse)}</span></span>`;
 			else return text + ` ${this.latinToArabicNumbers(this.verse)}`;
 		}
@@ -468,6 +468,22 @@ export class SubtitleClip extends ClipWithTranslation {
 
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+
+		if (mushafStyle === 'Soosi') {
+			const soosiText = SoosiProvider.getVerseSlice(
+				this.surah,
+				this.verse,
+				this.startWordIndex,
+				this.endWordIndex,
+				this.isLastWordsOfVerse
+			);
+			return {
+				text: soosiText ?? this.text,
+				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
+				suffixFontFamily: showVerseNumber ? 'Hafs' : null
+			};
+		}
+
 		const shouldUseQpcGlyphs =
 			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
 
@@ -475,24 +491,6 @@ export class SubtitleClip extends ClipWithTranslation {
 			if (mushafStyle === 'Indopak' && !this.indopakText) {
 				// L'éditeur peut demander un rendu preview avant que le texte IndoPak soit hydraté.
 				void this.hydrateIndopakTextFromLocalQuran();
-			}
-
-			if (mushafStyle === 'Soosi') {
-				const soosiText = SoosiProvider.getVerseSlice(
-					this.surah,
-					this.verse,
-					this.startWordIndex,
-					this.endWordIndex,
-					this.isLastWordsOfVerse
-				);
-				if (soosiText) {
-					return {
-						text: soosiText,
-						suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
-						suffixFontFamily: showVerseNumber ? 'Hafs' : null
-					};
-				}
-				// Verses still loading — fall through to Uthmani below; preview will refresh once cached.
 			}
 
 			return {
@@ -555,6 +553,20 @@ export class SubtitleClip extends ClipWithTranslation {
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
 
+		if (mushafStyle === 'Soosi') {
+			const soosiText =
+				SoosiProvider.getVerseSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex,
+					this.isLastWordsOfVerse
+				) ?? this.text;
+			if (globalState.getStyle('arabic', 'show-verse-number').value)
+				return `${soosiText} ${this.latinToArabicNumbers(this.verse)}`;
+			return soosiText;
+		}
+
 		// Les polices QPC1, QPC2 et Tajweed utilisent des glyphes. Tajweed utilise les glyphes de QPC2.
 		const shouldUseQpcGlyphs =
 			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
@@ -562,22 +574,6 @@ export class SubtitleClip extends ClipWithTranslation {
 		if (!shouldUseQpcGlyphs) {
 			if (mushafStyle === 'Indopak' && !this.indopakText) {
 				void this.hydrateIndopakTextFromLocalQuran();
-			}
-
-			if (mushafStyle === 'Soosi') {
-				const soosiText = SoosiProvider.getVerseSlice(
-					this.surah,
-					this.verse,
-					this.startWordIndex,
-					this.endWordIndex,
-					this.isLastWordsOfVerse
-				);
-				if (soosiText) {
-					if (globalState.getStyle('arabic', 'show-verse-number').value)
-						return this.getTextWithVerseNumber(soosiText);
-					return soosiText;
-				}
-				// Soosi data not yet loaded — fall through to Uthmani.
 			}
 
 			const baseText = mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text;

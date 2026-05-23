@@ -114,7 +114,7 @@
 
 		<button
 			type="button"
-			class="rounded-xl border p-4 text-left transition-colors col-span-2"
+			class="rounded-xl border p-4 text-left transition-colors xl:col-span-2"
 			class:border-accent-primary={wizard.selection.aiVersion === 'multi_v2_local'}
 			class:bg-accent={wizard.selection.aiVersion === 'multi_v2_local'}
 			class:border-color={wizard.selection.aiVersion !== 'multi_v2_local'}

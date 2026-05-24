@@ -11,11 +11,20 @@
 		V2: '1423H Mushaf by Uthman Taha'
 	};
 
+	const subtitleExportTargets = $derived([
+		'arabic',
+		...globalState.getProjectTranslation.addedTranslationEditions.map((e) => e.name)
+	]);
+
 	onMount(() => {
-		for (const target of [
-			'arabic',
-			...globalState.getProjectTranslation.addedTranslationEditions.map((e) => e.name)
-		]) {
+		for (const target of Object.keys(globalState.getExportState.includedTarget)) {
+			if (!subtitleExportTargets.includes(target)) {
+				delete globalState.getExportState.includedTarget[target];
+				delete globalState.getExportState.exportVerseNumbers[target];
+			}
+		}
+
+		for (const target of subtitleExportTargets) {
 			// Si le target n'existe toujours pas dans globalState.getExportState.exportVerseNumbers, l'ajoute
 			if (!globalState.getExportState.exportVerseNumbers[target]) {
 				globalState.getExportState.exportVerseNumbers[target] = target === 'arabic' ? true : false; // Par défaut seul l'arabe a ses numéros de verset
@@ -81,7 +90,8 @@
 		</p>
 
 		<div class="space-y-4">
-			{#each Object.entries(globalState.getExportState.includedTarget) as [target, included] (target)}
+			{#each subtitleExportTargets as target (target)}
+				{@const included = globalState.getExportState.includedTarget[target]}
 				<div class="bg-accent rounded-lg p-4 border border-color">
 					<!-- Main content checkbox -->
 					<div class="flex items-start gap-3 mb-3">

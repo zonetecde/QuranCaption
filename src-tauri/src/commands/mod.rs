@@ -12,9 +12,9 @@ pub mod downloads;
 pub mod files;
 /// Commandes multimédia et utilitaires ffmpeg/ffprobe.
 pub mod media;
-/// Commandes de segmentation cloud/local.
-pub mod segmentation;
 /// Commandes de capture d'écran.
 pub mod screenshot;
+/// Commandes de segmentation cloud/local.
+pub mod segmentation;
 /// Commandes d'analyse de forme d'onde.
 pub mod waveform;

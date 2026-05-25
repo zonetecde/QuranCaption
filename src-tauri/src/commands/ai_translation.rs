@@ -25,6 +25,7 @@ Rules:
 - Never introduce a helper word unless that same word already exists in the provided source translation.
 - Do not invent any word that does not exist in the source translation.
 - Return JSON only, matching the schema exactly.
+- Each segment object must use exactly the keys `i` and `text`;
 "#;
 
 const ADVANCED_BOLD_SYSTEM_PROMPT: &str = r#"You select which translated words should be rendered in bold inside Quran subtitle translations.
@@ -239,11 +240,18 @@ fn emit_bold_complete(
 
 fn normalize_usage(usage: &Value) -> Value {
     json!({
-        "inputTokens": usage.get("input_tokens").and_then(Value::as_u64),
-        "outputTokens": usage.get("output_tokens").and_then(Value::as_u64),
+        "inputTokens": usage
+            .get("input_tokens")
+            .or_else(|| usage.get("prompt_tokens"))
+            .and_then(Value::as_u64),
+        "outputTokens": usage
+            .get("output_tokens")
+            .or_else(|| usage.get("completion_tokens"))
+            .and_then(Value::as_u64),
         "totalTokens": usage.get("total_tokens").and_then(Value::as_u64),
         "reasoningTokens": usage
             .get("output_tokens_details")
+            .or_else(|| usage.get("completion_tokens_details"))
             .and_then(|details| details.get("reasoning_tokens"))
             .and_then(Value::as_u64)
     })
@@ -278,6 +286,13 @@ fn normalize_text_ai_endpoint(endpoint: &str) -> Result<String, String> {
         .map_err(|error| format!("Invalid text AI endpoint: {}", error))?;
 
     Ok(resolved.to_string())
+}
+
+/// Indique si l'endpoint utilise le format Chat Completions compatible OpenAI.
+fn is_chat_completions_endpoint(endpoint: &str) -> bool {
+    reqwest::Url::parse(endpoint)
+        .map(|url| url.path().ends_with("/chat/completions"))
+        .unwrap_or(false)
 }
 
 fn build_response_schema() -> Value {
@@ -325,6 +340,8 @@ fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, String>
 
     Ok(format!(
         "Trim this batch of verses and return JSON only.\n\
+         Output shape must be exactly {{\"verses\":[{{\"verseKey\":\"...\",\"segments\":[{{\"i\":0,\"text\":\"...\"}}]}}]}}.\n\
+         Segment text must be stored in the `text` field only.\n\
          Respect overlap/repetition in the recitation when needed.\n\
          Pay special attention to overlapping Arabic segments: when a word or phrase is repeated across two segments, keep the corresponding translated overlap in both outputs when natural.\n\
          Keep each segment natural in the target language while using only words from the source translation.\n\
@@ -333,6 +350,27 @@ fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, String>
          Batch JSON:\n{}",
         batch_json
     ))
+}
+
+/// Construit une requête Chat Completions pour les fournisseurs compatibles OpenAI.
+fn build_chat_completions_body(model: &str, system_prompt: &str, user_prompt: &str) -> Value {
+    json!({
+        "model": model,
+        "stream": true,
+        "messages": [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ],
+        "response_format": {
+            "type": "json_object"
+        }
+    })
 }
 
 fn build_bold_response_schema() -> Value {
@@ -362,6 +400,23 @@ fn build_bold_response_schema() -> Value {
         },
         "required": ["segments"]
     })
+}
+
+/// Extrait le texte diffusé par un chunk Chat Completions.
+fn extract_chat_completion_delta(payload: &Value) -> Option<&str> {
+    payload
+        .get("choices")?
+        .as_array()?
+        .iter()
+        .find_map(|choice| choice.get("delta")?.get("content")?.as_str())
+}
+
+/// Extrait l'usage éventuel d'un chunk Chat Completions.
+fn extract_chat_completion_usage(payload: &Value) -> Option<Value> {
+    payload
+        .get("usage")
+        .filter(|usage| !usage.is_null())
+        .cloned()
 }
 
 fn build_bold_user_prompt(
@@ -471,44 +526,49 @@ pub async fn run_advanced_ai_trim_batch_streaming(
     let model = request.model.clone();
     let reasoning_effort = request.reasoning_effort.clone();
     let batch_id = request.batch_id.clone();
-    let body = json!({
-        "model": model,
-        "stream": true,
-        "store": false,
-        "input": [
-            {
-                "role": "system",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": ADVANCED_TRIM_SYSTEM_PROMPT
-                    }
-                ]
+    let is_chat_completions = is_chat_completions_endpoint(&endpoint);
+    let body = if is_chat_completions {
+        build_chat_completions_body(&model, ADVANCED_TRIM_SYSTEM_PROMPT, &user_prompt)
+    } else {
+        json!({
+            "model": model,
+            "stream": true,
+            "store": false,
+            "input": [
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": ADVANCED_TRIM_SYSTEM_PROMPT
+                        }
+                    ]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": user_prompt
+                        }
+                    ]
+                }
+            ],
+            "reasoning": {
+                "effort": reasoning_effort
             },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": user_prompt
-                    }
-                ]
+            "text": {
+                "verbosity": "low",
+                "format": {
+                    "type": "json_schema",
+                    "name": "advanced_trim_batch",
+                    "description": "Trimmed translations for a batch of Quran subtitle segments.",
+                    "strict": true,
+                    "schema": schema
+                }
             }
-        ],
-        "reasoning": {
-            "effort": reasoning_effort
-        },
-        "text": {
-            "verbosity": "low",
-            "format": {
-                "type": "json_schema",
-                "name": "advanced_trim_batch",
-                "description": "Trimmed translations for a batch of Quran subtitle segments.",
-                "strict": true,
-                "schema": schema
-            }
-        }
-    });
+        })
+    };
 
     emit_status(
         &app_handle,
@@ -578,6 +638,31 @@ pub async fn run_advanced_ai_trim_batch_streaming(
             let Some(payload) = maybe_payload else {
                 continue;
             };
+
+            if is_chat_completions
+                && payload.get("object").and_then(Value::as_str) == Some("chat.completion.chunk")
+            {
+                if let Some(chat_usage) = extract_chat_completion_usage(&payload) {
+                    usage = Some(chat_usage);
+                }
+
+                if let Some(delta) = extract_chat_completion_delta(&payload) {
+                    if !delta.is_empty() {
+                        raw_text.push_str(delta);
+                        if !saw_streaming_chunk {
+                            saw_streaming_chunk = true;
+                            emit_status(
+                                &app_handle,
+                                &batch_id,
+                                "streaming",
+                                "Streaming AI response...",
+                            );
+                        }
+                        emit_chunk(&app_handle, &batch_id, delta, &raw_text);
+                    }
+                }
+                continue;
+            }
 
             match payload
                 .get("type")
@@ -650,7 +735,16 @@ pub async fn run_advanced_ai_trim_batch_streaming(
         let trailing_line = String::from_utf8_lossy(&buffered_bytes);
         let _ = accumulator.push_line(&trailing_line)?;
         if let Some(payload) = accumulator.flush_event()? {
-            if payload.get("type").and_then(Value::as_str) == Some("response.completed") {
+            if is_chat_completions
+                && payload.get("object").and_then(Value::as_str) == Some("chat.completion.chunk")
+            {
+                if let Some(chat_usage) = extract_chat_completion_usage(&payload) {
+                    usage = Some(chat_usage);
+                }
+                if let Some(delta) = extract_chat_completion_delta(&payload) {
+                    raw_text.push_str(delta);
+                }
+            } else if payload.get("type").and_then(Value::as_str) == Some("response.completed") {
                 usage = payload
                     .get("response")
                     .and_then(|response_value| response_value.get("usage"))
@@ -712,44 +806,49 @@ pub async fn run_advanced_ai_bold_batch_streaming(
     let model = request.model.clone();
     let reasoning_effort = request.reasoning_effort.clone();
     let batch_id = request.batch_id.clone();
-    let body = json!({
-        "model": model,
-        "stream": true,
-        "store": false,
-        "input": [
-            {
-                "role": "system",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": ADVANCED_BOLD_SYSTEM_PROMPT
-                    }
-                ]
+    let is_chat_completions = is_chat_completions_endpoint(&endpoint);
+    let body = if is_chat_completions {
+        build_chat_completions_body(&model, ADVANCED_BOLD_SYSTEM_PROMPT, &user_prompt)
+    } else {
+        json!({
+            "model": model,
+            "stream": true,
+            "store": false,
+            "input": [
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": ADVANCED_BOLD_SYSTEM_PROMPT
+                        }
+                    ]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": user_prompt
+                        }
+                    ]
+                }
+            ],
+            "reasoning": {
+                "effort": reasoning_effort
             },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": user_prompt
-                    }
-                ]
+            "text": {
+                "verbosity": "low",
+                "format": {
+                    "type": "json_schema",
+                    "name": "advanced_bold_batch",
+                    "description": "Bold word indexes for a batch of Quran subtitle translations.",
+                    "strict": true,
+                    "schema": schema
+                }
             }
-        ],
-        "reasoning": {
-            "effort": reasoning_effort
-        },
-        "text": {
-            "verbosity": "low",
-            "format": {
-                "type": "json_schema",
-                "name": "advanced_bold_batch",
-                "description": "Bold word indexes for a batch of Quran subtitle translations.",
-                "strict": true,
-                "schema": schema
-            }
-        }
-    });
+        })
+    };
 
     emit_bold_status(
         &app_handle,
@@ -819,6 +918,31 @@ pub async fn run_advanced_ai_bold_batch_streaming(
             let Some(payload) = maybe_payload else {
                 continue;
             };
+
+            if is_chat_completions
+                && payload.get("object").and_then(Value::as_str) == Some("chat.completion.chunk")
+            {
+                if let Some(chat_usage) = extract_chat_completion_usage(&payload) {
+                    usage = Some(chat_usage);
+                }
+
+                if let Some(delta) = extract_chat_completion_delta(&payload) {
+                    if !delta.is_empty() {
+                        raw_text.push_str(delta);
+                        if !saw_streaming_chunk {
+                            saw_streaming_chunk = true;
+                            emit_bold_status(
+                                &app_handle,
+                                &batch_id,
+                                "streaming",
+                                "Streaming AI response...",
+                            );
+                        }
+                        emit_bold_chunk(&app_handle, &batch_id, delta, &raw_text);
+                    }
+                }
+                continue;
+            }
 
             match payload
                 .get("type")
@@ -891,7 +1015,16 @@ pub async fn run_advanced_ai_bold_batch_streaming(
         let trailing_line = String::from_utf8_lossy(&buffered_bytes);
         let _ = accumulator.push_line(&trailing_line)?;
         if let Some(payload) = accumulator.flush_event()? {
-            if payload.get("type").and_then(Value::as_str) == Some("response.completed") {
+            if is_chat_completions
+                && payload.get("object").and_then(Value::as_str) == Some("chat.completion.chunk")
+            {
+                if let Some(chat_usage) = extract_chat_completion_usage(&payload) {
+                    usage = Some(chat_usage);
+                }
+                if let Some(delta) = extract_chat_completion_delta(&payload) {
+                    raw_text.push_str(delta);
+                }
+            } else if payload.get("type").and_then(Value::as_str) == Some("response.completed") {
                 usage = payload
                     .get("response")
                     .and_then(|response_value| response_value.get("usage"))

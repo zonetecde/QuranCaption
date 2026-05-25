@@ -508,7 +508,7 @@ export function validateAdvancedTrimBatchResult(
 		for (let index = 0; index < sortedSegments.length; index++) {
 			const segment = sortedSegments[index] as Record<string, unknown>;
 			const returnedIndex = Number(segment.i);
-			const returnedText = typeof segment.text === 'string' ? segment.text.trim() : '';
+			const returnedText = getAiSegmentText(segment);
 
 			if (!Number.isInteger(returnedIndex) || !aiSegmentIndexes.has(returnedIndex)) {
 				errors.push(
@@ -547,7 +547,7 @@ export function validateAdvancedTrimBatchResult(
 				verseKey: result.verseKey,
 				segments: sortedSegments.map((segment) => ({
 					i: Number((segment as Record<string, unknown>).i),
-					text: String((segment as Record<string, unknown>).text)
+					text: getAiSegmentText(segment as Record<string, unknown>)
 				}))
 			}
 		});
@@ -557,6 +557,17 @@ export function validateAdvancedTrimBatchResult(
 		validVerses,
 		errors
 	};
+}
+
+/**
+ * Lit le texte d'un segment IA, avec compatibilité pour certains fournisseurs.
+ *
+ * @param {Record<string, unknown>} segment Segment renvoyé par le fournisseur IA.
+ * @returns {string} Texte extrait du segment.
+ */
+function getAiSegmentText(segment: Record<string, unknown>): string {
+	const value = typeof segment.text === 'string' ? segment.text : segment.trimmed;
+	return typeof value === 'string' ? value.trim() : '';
 }
 
 export function applyAdvancedTrimValidationSuccess(

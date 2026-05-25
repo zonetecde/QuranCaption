@@ -39,7 +39,7 @@ class GlobalState {
 			sourceMode: 'ai',
 			prompt: '',
 			youtubeUrl: '',
-			model: 'Mock Provider / Cinematic Nature',
+			model: 'Pika Labs / High Quality',
 			resolution: 'portrait'
 		},
 		ai: {

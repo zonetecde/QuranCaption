@@ -223,15 +223,26 @@ export async function createAiVideoProject(): Promise<void> {
 						padMs: segmentationSettings.padMs,
 						localAsrMode: segmentationSettings.localAsrMode,
 						multiAlignerModel: segmentationSettings.multiAlignerModel,
+						cloudModel: segmentationSettings.cloudModel,
 						device: segmentationSettings.device,
 						hfToken: segmentationSettings.hfToken,
+						allowCloudFallback: false,
 						includeWbwTimestamps: segmentationSettings.includeWbwTimestamps,
 						fillBySilence: segmentationSettings.fillBySilence,
 						extendBeforeSilence: segmentationSettings.extendBeforeSilence,
 						extendBeforeSilenceMs: segmentationSettings.extendBeforeSilenceMs
 					}
 				: {
-						cloudModel: segmentationSettings?.cloudModel
+						minSilenceMs: segmentationSettings?.minSilenceMs,
+						minSpeechMs: segmentationSettings?.minSpeechMs,
+						padMs: segmentationSettings?.padMs,
+						localAsrMode: 'multi_aligner',
+						cloudModel: segmentationSettings?.cloudModel,
+						device: segmentationSettings?.device,
+						includeWbwTimestamps: segmentationSettings?.includeWbwTimestamps,
+						fillBySilence: segmentationSettings?.fillBySilence,
+						extendBeforeSilence: segmentationSettings?.extendBeforeSilence,
+						extendBeforeSilenceMs: segmentationSettings?.extendBeforeSilenceMs
 					},
 			useLocalUniversalAligner ? 'local' : 'api'
 		);

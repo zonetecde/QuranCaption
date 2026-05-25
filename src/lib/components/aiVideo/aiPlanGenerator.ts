@@ -5,6 +5,15 @@ import type { AiPlan } from './types';
 import toast from 'svelte-5-french-toast';
 
 /**
+ * Attend un delai donne pour simuler une latence reseau.
+ * @param {number} ms Duree d'attente en millisecondes.
+ * @returns {Promise<void>} Promise resolue apres le delai.
+ */
+function wait(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Genere un plan de projet video via l'IA (ou manuellement si letAiChoose est desactive).
  * Cote la page, construit le prompt system, appelle l'API et parse la reponse JSON.
  * @param {string} reciterList Liste des recitateurs formatee pour le prompt (obtenue via buildReciterListForAi).
@@ -32,6 +41,7 @@ export async function generateAiPlan(reciterList: string): Promise<AiPlan> {
 	// Mode debug : retourne le plan mock sans appel API
 	if (IS_DEBUG_MODE) {
 		console.log('[AiVideo] DEBUG MODE — returning mock AI plan');
+		await wait(4000);
 		return { ...MOCK_AI_PLAN };
 	}
 

@@ -49,6 +49,15 @@
 	let isGeneratingPreview = $state(false);
 	let isPublishing = $state(false);
 	let lastPreviewClipId = $state<number | null>(null);
+	let includedCustomClipIds = $state(new Set<number>());
+	let lastCapturedInclusion = $state<Set<number> | null>(null);
+
+	let setsEqual = (a: Set<number>, b: Set<number>) =>
+		a.size === b.size && [...a].every((id) => b.has(id));
+
+	let inclusionChanged = $derived(
+		() => lastCapturedInclusion !== null && !setsEqual(lastCapturedInclusion, includedCustomClipIds)
+	);
 
 	let presets = $derived(() => globalState.settings?.savedVideoStylePresets ?? []);
 	let filteredLocalPresets = $derived(() => {
@@ -65,7 +74,8 @@
 			publishAuthorName.trim().length > 0 &&
 			publishPreviewBlob !== null &&
 			!isGeneratingPreview &&
-			!isPublishing
+			!isPublishing &&
+			!inclusionChanged()
 	);
 
 	onMount(() => {
@@ -100,6 +110,8 @@
 		publishMode = true;
 		publishName = getDefaultPresetName();
 		publishError = null;
+		includedCustomClipIds = new Set();
+		lastCapturedInclusion = null;
 		if (!publishPreviewBlob) void generatePublishPreview();
 	}
 
@@ -108,6 +120,8 @@
 		publishMode = false;
 		publishError = null;
 		lastPreviewClipId = null;
+		includedCustomClipIds = new Set();
+		lastCapturedInclusion = null;
 	}
 
 	/**
@@ -171,7 +185,61 @@
 	 * @returns {Set<number>} Custom clip ids to export.
 	 */
 	function getAllCustomClipIds(): Set<number> {
-		return new Set(globalState.getCustomClipTrack.clips.map((clip) => clip.id));
+		return includedCustomClipIds;
+	}
+
+	/**
+	 * Returns a display label for a custom clip checkbox.
+	 *
+	 * @param {{ id: number; type: string; category?: { name: string; getStyle: (id: string) => { value: unknown } | undefined } }} clip Custom clip.
+	 * @returns {string} Human-readable label.
+	 */
+	function getClipLabel(clip: {
+		id: number;
+		type: string;
+		category?: { name: string; getStyle: (id: string) => { value: unknown } | undefined };
+	}): string {
+		if (clip.type === 'Custom Text') {
+			const text = clip.category?.getStyle('text')?.value as string | undefined;
+			return `Custom Text: ${text || clip.category?.name || 'Unnamed'}`;
+		}
+		const filepath = clip.category?.getStyle('filepath')?.value as string | undefined;
+		const filename = filepath?.split(/[/\\]/).pop() || clip.category?.name || 'Unnamed';
+		return `Custom Image: ${filename}`;
+	}
+
+	/**
+	 * Toggles a custom clip id in the inclusion set and clears the last capture tracking.
+	 *
+	 * @param {number} id Clip id.
+	 * @param {boolean} included Whether to include.
+	 * @returns {void}
+	 */
+	function toggleCustomClip(id: number, included: boolean): void {
+		const next = new Set(includedCustomClipIds);
+		if (included) {
+			next.add(id);
+		} else {
+			next.delete(id);
+		}
+		includedCustomClipIds = next;
+	}
+
+	/** All custom clips available for checkbox selection. */
+	function getCustomClipsForUI(): {
+		id: number;
+		type: string;
+		category?: { name: string; getStyle: (id: string) => { value: unknown } | undefined };
+	}[] {
+		return globalState.getCustomClipTrack.clips.map((clip) => ({
+			id: clip.id,
+			type: clip.type,
+			category: (
+				clip as {
+					category?: { name: string; getStyle: (id: string) => { value: unknown } | undefined };
+				}
+			).category
+		}));
 	}
 
 	/**
@@ -332,8 +400,11 @@
 			const overlays = document.querySelectorAll<HTMLElement>('#preview .customtext');
 			const saved = new Map<HTMLElement, string>();
 			overlays.forEach((el) => {
-				saved.set(el, el.style.opacity);
-				el.style.opacity = '0';
+				const clipId = Number(el.dataset.clipId);
+				if (!includedCustomClipIds.has(clipId)) {
+					saved.set(el, el.style.opacity);
+					el.style.opacity = '0';
+				}
 			});
 
 			await tick();
@@ -349,6 +420,7 @@
 
 				const blob = new Blob([bytes], { type: 'image/jpeg' });
 				setPublishPreviewBlob(blob);
+				lastCapturedInclusion = new Set(includedCustomClipIds);
 			} finally {
 				saved.forEach((opacity, element) => {
 					element.style.opacity = opacity;
@@ -715,6 +787,38 @@
 					</label>
 				</div>
 
+				{#if getCustomClipsForUI().length > 0}
+					<div class="space-y-2 rounded-lg border border-color bg-primary/50 px-3 py-3">
+						<span class="text-xs font-medium text-secondary">Style overlays to include</span>
+						<p class="text-xs text-thirdly">
+							Custom images are NOT bundled — users must replace them with their own image.
+						</p>
+						{#each getCustomClipsForUI() as clip (clip.id)}
+							{@const label = getClipLabel(clip)}
+							<label class="flex items-start gap-2 cursor-pointer select-none">
+								<input
+									type="checkbox"
+									class="mt-0.5 accent-[var(--accent-primary)]"
+									checked={includedCustomClipIds.has(clip.id)}
+									onclick={(e) => toggleCustomClip(clip.id, e.currentTarget.checked)}
+								/>
+								<span class="text-sm text-primary">{label}</span>
+							</label>
+						{/each}
+					</div>
+				{/if}
+
+				{#if inclusionChanged()}
+					<div
+						class="rounded-lg border border-yellow-400/35 bg-yellow-500/10 px-3 py-3 text-sm text-yellow-100"
+					>
+						<div class="flex items-start gap-2">
+							<span class="material-icons-outlined text-base">refresh</span>
+							<p class="min-w-0 flex-1 text-xs">Regenerate the preview before publishing.</p>
+						</div>
+					</div>
+				{/if}
+
 				{#if publishError}
 					<div
 						class="rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-3 text-sm text-red-100"
@@ -731,7 +835,7 @@
 						Cancel
 					</button>
 					<button
-						class="btn-accent px-4 py-2 text-sm font-medium"
+						class="btn-accent px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 						type="button"
 						onclick={publishPreset}
 						disabled={!canPublish()}

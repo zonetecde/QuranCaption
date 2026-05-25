@@ -5,7 +5,7 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 
-	let { customText }: { customText: Category } = $props();
+	let { customText, clipId }: { customText: Category; clipId: number } = $props();
 
 	let customTextSettings = $derived(() => {
 		return {
@@ -42,6 +42,7 @@
 		horizontalMin: horizontalStyle.valueMin
 	}}
 	class="absolute customtext cursor-move select-none z-10 text-center"
+	data-clip-id={clipId}
 	data-overlay-max-opacity={Number(customText.getStyle('opacity')?.value ?? 1)}
 	style={`width: ${customTextSettings().width}% ; transform: translateY(${customTextSettings().verticalPosition}px) translateX(${customTextSettings().horizontalPosition}px); opacity: ${customTextSettings().opacity()}; `}
 >

@@ -5,7 +5,7 @@
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 
-	let { customImage }: { customImage: Category } = $props();
+	let { customImage, clipId }: { customImage: Category; clipId: number } = $props();
 
 	let customImageSettings = $derived(() => {
 		return {
@@ -43,6 +43,7 @@
 	}}
 	class={'absolute customtext cursor-move select-none ' +
 		(customImage.getStyle('above-overlay')?.value ? 'z-5' : '-z-1')}
+	data-clip-id={clipId}
 	data-overlay-max-opacity={Number(customImage.getStyle('opacity')?.value ?? 1)}
 	style={`transform: translateY(${customImageSettings().verticalPosition}px) translateX(${customImageSettings().horizontalPosition}px) scale(${customImageSettings().scale}); opacity: ${customImageSettings().opacity()}; `}
 >

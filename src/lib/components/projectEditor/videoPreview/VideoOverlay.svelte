@@ -692,9 +692,12 @@
 		<!-- Couche 8 : Clips custom (texte / images) -->
 		{#each currentCustomClips() as customText (customText.id)}
 			{#if customText.type === 'Custom Text'}
-				<CustomText customText={(customText as CustomTextClip).category!} />
+				<CustomText customText={(customText as CustomTextClip).category!} clipId={customText.id} />
 			{:else if customText.type === 'Custom Image'}
-				<CustomImage customImage={(customText as CustomImageClip).category!} />
+				<CustomImage
+					customImage={(customText as CustomImageClip).category!}
+					clipId={customText.id}
+				/>
 			{/if}
 		{/each}
 	</div>

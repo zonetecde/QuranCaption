@@ -1101,20 +1101,35 @@
 											{preset.likeCount}
 										</span>
 									</div>
-									<button
-										class={(likedPresetIds.has(preset.id)
-											? 'text-red-400'
-											: 'text-thirdly hover:text-red-400') +
-											' flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-red-500/10 disabled:opacity-60'}
-										type="button"
-										title="Like preset"
-										disabled={likingPresetId !== null || likedPresetIds.has(preset.id)}
-										onclick={() => likePreset(preset)}
-									>
-										<span class="material-icons-outlined text-base">
-											{likingPresetId === preset.id ? 'hourglass_empty' : 'favorite'}
-										</span>
-									</button>
+									<div class="flex items-center gap-0.5">
+										<button
+											class={(likedPresetIds.has(preset.id)
+												? 'text-red-400'
+												: 'text-thirdly hover:text-red-400') +
+												' flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-red-500/10 disabled:opacity-60'}
+											type="button"
+											title="Like preset"
+											disabled={likingPresetId !== null || likedPresetIds.has(preset.id)}
+											onclick={() => likePreset(preset)}
+										>
+											<span class="material-icons-outlined text-base">
+												{likingPresetId === preset.id ? 'hourglass_empty' : 'favorite'}
+											</span>
+										</button>
+
+										<button
+											class="flex h-7 w-7 items-center justify-center rounded text-thirdly transition-colors hover:bg-primary hover:text-primary disabled:opacity-60"
+											type="button"
+											title="Download and apply"
+											disabled={downloadingPresetId !== null}
+											onclick={(e: MouseEvent) => {
+												e.stopPropagation();
+												downloadAndApplyCommunityPreset(preset);
+											}}
+										>
+											<span class="material-icons-outlined text-[27px]!">download</span>
+										</button>
+									</div>
 								</div>
 							</article>
 						{/each}

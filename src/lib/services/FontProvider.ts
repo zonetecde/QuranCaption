@@ -357,6 +357,7 @@ export class QPCFontProvider {
 		return (
 			fontFamily === 'Hafs' ||
 			fontFamily === 'IndoPak' ||
+			fontFamily === 'Soosi' ||
 			fontFamily === 'Reciters' ||
 			fontFamily === 'Surahs' ||
 			fontFamily === 'QPC1BSML' ||

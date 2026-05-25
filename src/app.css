@@ -19,6 +19,15 @@
 }
 
 @font-face {
+	font-family: 'Soosi';
+	src:
+		url('/soosi/soosi.woff2') format('woff2'),
+		url('/soosi/soosi.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
 	font-family: 'Reciters';
 	src: url('/reciters/reciters.ttf') format('truetype');
 	font-weight: normal;

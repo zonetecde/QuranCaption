@@ -594,6 +594,34 @@
 
 	let bracketGlyphs = $derived(() => getBracketGlyphs());
 
+	/** CSS d'alignement vertical interne quand le parent export reste en display block. */
+	let exportInnerVerticalAlignmentCss = $derived(() => {
+		if (!isExportCapturePreview) return 'display: contents;';
+
+		const referenceClip = arabicReferenceClip();
+		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		const verticalAlignment = String(
+			styles.getEffectiveValue('vertical-text-alignment', referenceClip?.id)
+		);
+		const horizontalAlignment = String(
+			styles.getEffectiveValue('horizontal-text-alignment', referenceClip?.id)
+		);
+		const justifyContent =
+			verticalAlignment === 'bottom'
+				? 'flex-end'
+				: verticalAlignment === 'top'
+					? 'flex-start'
+					: 'center';
+		const textAlign =
+			horizontalAlignment === 'left' ||
+			horizontalAlignment === 'right' ||
+			horizontalAlignment === 'justify'
+				? horizontalAlignment
+				: 'center';
+
+		return `display: flex; flex-direction: column; justify-content: ${justifyContent}; width: 100%; height: 100%; text-align: ${textAlign};`;
+	});
+
 	/** Padding horizontal pour le fond du sous-titre arabe. */
 	let backgroundHorizontalPaddingCss = $derived(() => {
 		const referenceClip = arabicReferenceClip();
@@ -623,27 +651,103 @@
 			horizontalStyleId: 'horizontal-position'
 		}}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
-		style="opacity: {subtitleOpacity}; {css}; {backgroundHorizontalPaddingCss} white-space: pre-line; {isExportCapturePreview
+		style="opacity: {subtitleOpacity}; {isExportCapturePreview
 			? 'display: block;'
-			: ''}"
+			: ''} {css}; {backgroundHorizontalPaddingCss} white-space: pre-line;"
 	>
-		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
-			{@const subtitle = currentSubtitle()}
-			{@const segments = arabicSegments()}
-			{@const groups = currentArabicPreviewGroups()}
-			{@const state = wbwState()}
-			{@const glyphs = bracketGlyphs()}
-			{@const showBrackets = showDecorativeBrackets()}
+		<span style={exportInnerVerticalAlignmentCss()}>
+			{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
+				{@const subtitle = currentSubtitle()}
+				{@const segments = arabicSegments()}
+				{@const groups = currentArabicPreviewGroups()}
+				{@const state = wbwState()}
+				{@const glyphs = bracketGlyphs()}
+				{@const showBrackets = showDecorativeBrackets()}
 
-			{#if showBrackets && ((state.enabled && groups.length > 0) || segments.some((segment) => segment.text.trim().length > 0))}
-				{@const bracketCss = getDecorativeBracketCss()}
-				<span style={bracketCss}>{glyphs.opening}</span>
+				{#if showBrackets && ((state.enabled && groups.length > 0) || segments.some((segment) => segment.text.trim().length > 0))}
+					{@const bracketCss = getDecorativeBracketCss()}
+					<span style={bracketCss}>{glyphs.opening}</span>
 
-				{#if state.enabled && subtitle instanceof SubtitleClip}
-					<!-- Rendu WBW avec crochets décoratifs -->
+					{#if state.enabled && subtitle instanceof SubtitleClip}
+						<!-- Rendu WBW avec crochets décoratifs -->
+						<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+							{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
+								<span
+									class="arabic-wbw-group"
+									dir="rtl"
+									style="unicode-bidi: isolate; {group.extraCss}"
+								>
+									{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
+										{@const wordIndex = group.startWordIndex + i}
+										{@const highlightProgress = computeWordByWordHighlightProgress(
+											wordIndex,
+											state,
+											wbwPreviewFadeDuration()
+										)}
+										<span
+											style={getCombinedWordByWordCss(
+												wordIndex,
+												state,
+												highlightProgress,
+												wordEntry.flags
+											)}
+										>
+											{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}
+										</span>
+									{/each}
+									{#if group.suffix}
+										{@const suffixOpacity = state.alwaysShowVerseNumber
+											? 1
+											: getWordByWordWordOpacity(
+													group.startWordIndex + group.words.length - 1,
+													state,
+													wbwPreviewFadeDuration()
+												)}
+										{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
+										{@const lastWordProgress = computeWordByWordHighlightProgress(
+											lastWordIndex,
+											state,
+											wbwPreviewFadeDuration()
+										)}
+										{@const lastWordWbwCss = buildWordByWordWordCss(
+											lastWordIndex,
+											state,
+											lastWordProgress,
+											wbwPreviewFadeDuration(),
+											state.verseNumberColor
+										)}
+										<span
+											style={(group.suffixFontFamily
+												? `font-family: ${group.suffixFontFamily}; `
+												: '') +
+												`color: var(--verse-number-color); ` +
+												lastWordWbwCss +
+												` opacity: ${suffixOpacity};`}
+										>
+											{group.suffix}
+										</span>
+									{/if}
+								</span>
+								{#if groupIndex < groups.length - 1}
+									{' '}
+								{/if}
+							{/each}
+						</span>
+					{:else}
+						<!-- Rendu standard avec crochets décoratifs -->
+						{@render overlaySegmentsContent(segments)}
+					{/if}
+
+					<span style={bracketCss}>{glyphs.closing}</span>
+				{:else if state.enabled && subtitle instanceof SubtitleClip}
+					<!-- Rendu WBW sans crochets décoratifs -->
 					<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
 						{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
-							<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate; {group.extraCss}">
+							<span
+								class="arabic-wbw-group"
+								dir="rtl"
+								style="unicode-bidi: isolate; {group.extraCss}"
+							>
 								{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
 									{@const wordIndex = group.startWordIndex + i}
 									{@const highlightProgress = computeWordByWordHighlightProgress(
@@ -701,77 +805,11 @@
 						{/each}
 					</span>
 				{:else}
-					<!-- Rendu standard avec crochets décoratifs -->
+					<!-- Fallback standard : rendu arabe sans WBW -->
 					{@render overlaySegmentsContent(segments)}
 				{/if}
-
-				<span style={bracketCss}>{glyphs.closing}</span>
-			{:else if state.enabled && subtitle instanceof SubtitleClip}
-				<!-- Rendu WBW sans crochets décoratifs -->
-				<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
-					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
-						<span class="arabic-wbw-group" dir="rtl" style="unicode-bidi: isolate; {group.extraCss}">
-							{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
-								{@const wordIndex = group.startWordIndex + i}
-								{@const highlightProgress = computeWordByWordHighlightProgress(
-									wordIndex,
-									state,
-									wbwPreviewFadeDuration()
-								)}
-								<span
-									style={getCombinedWordByWordCss(
-										wordIndex,
-										state,
-										highlightProgress,
-										wordEntry.flags
-									)}
-								>
-									{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}
-								</span>
-							{/each}
-							{#if group.suffix}
-								{@const suffixOpacity = state.alwaysShowVerseNumber
-									? 1
-									: getWordByWordWordOpacity(
-											group.startWordIndex + group.words.length - 1,
-											state,
-											wbwPreviewFadeDuration()
-										)}
-								{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
-								{@const lastWordProgress = computeWordByWordHighlightProgress(
-									lastWordIndex,
-									state,
-									wbwPreviewFadeDuration()
-								)}
-								{@const lastWordWbwCss = buildWordByWordWordCss(
-									lastWordIndex,
-									state,
-									lastWordProgress,
-									wbwPreviewFadeDuration(),
-									state.verseNumberColor
-								)}
-								<span
-									style={(group.suffixFontFamily
-										? `font-family: ${group.suffixFontFamily}; `
-										: '') +
-										`color: var(--verse-number-color); ` +
-										lastWordWbwCss +
-										` opacity: ${suffixOpacity};`}
-								>
-									{group.suffix}
-								</span>
-							{/if}
-						</span>
-						{#if groupIndex < groups.length - 1}
-							{' '}
-						{/if}
-					{/each}
-				</span>
-			{:else}
-				<!-- Fallback standard : rendu arabe sans WBW -->
-				{@render overlaySegmentsContent(segments)}
 			{/if}
-		{/if}
+		</span>
 	</p>
 {/if}
 

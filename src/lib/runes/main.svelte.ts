@@ -154,6 +154,7 @@ class GlobalState {
 			previousEditSubtitleId: null as number | null,
 			previousPendingSplitEditNextId: null as number | null
 		},
+		translationScrollTargetClipId: null as number | null,
 		wbwEdit: {
 			active: false,
 			clipId: null as number | null,

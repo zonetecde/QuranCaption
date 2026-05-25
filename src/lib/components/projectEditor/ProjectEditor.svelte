@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import Navigator from './Navigator.svelte';
+	import ProjectSearchOverlay from './ProjectSearchOverlay.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectEditorTabs } from '$lib/classes';
 	import { goToAdjacentSubtitleFromCursor } from '$lib/services/SubtitleNavigation';
@@ -11,6 +12,9 @@
 	import Export from './tabs/export/Export.svelte';
 
 	let saveInterval: ReturnType<typeof setInterval> | undefined;
+	let searchOverlayVisible = $state(false);
+	let searchOverlay: { focusInput: () => Promise<void>; containsFocus: () => boolean } | null =
+		$state(null);
 
 	function isTypingTarget(target: EventTarget | null): boolean {
 		return (
@@ -40,6 +44,48 @@
 		goToAdjacentSubtitleFromCursor(event.key === 'ArrowUp' ? 'next' : 'previous');
 	}
 
+	/**
+	 * Ouvre la recherche projet et focalise son champ.
+	 * @returns {Promise<void>} Promesse résolue après la mise au focus.
+	 */
+	async function openProjectSearch(): Promise<void> {
+		searchOverlayVisible = true;
+		await tick();
+		await searchOverlay?.focusInput();
+	}
+
+	/**
+	 * Ferme la recherche projet.
+	 * @returns {void}
+	 */
+	function closeProjectSearch(): void {
+		searchOverlayVisible = false;
+	}
+
+	/**
+	 * Gère le raccourci Ctrl/Cmd+F du projet.
+	 * @param {KeyboardEvent} event Événement clavier.
+	 * @returns {void}
+	 */
+	function handleProjectSearchShortcut(event: KeyboardEvent): void {
+		if (event.key === 'Escape' && searchOverlayVisible) {
+			event.preventDefault();
+			closeProjectSearch();
+			return;
+		}
+
+		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'f') return;
+
+		if (searchOverlayVisible && searchOverlay?.containsFocus()) {
+			return;
+		}
+
+		if (isTypingTarget(event.target)) return;
+
+		event.preventDefault();
+		void openProjectSearch();
+	}
+
 	onMount(() => {
 		// Sauvegarde automatique du projet toutes les 5 secondes
 		saveInterval = setInterval(() => {
@@ -55,6 +101,7 @@
 			globalState.closeAllMenus();
 		};
 		window.addEventListener('mousedown', handleGlobalClick, true);
+		window.addEventListener('keydown', handleProjectSearchShortcut, true);
 		window.addEventListener('keydown', handleSubtitleNavigationShortcut, true);
 
 		return () => {
@@ -62,6 +109,7 @@
 				clearInterval(saveInterval);
 			}
 			window.removeEventListener('mousedown', handleGlobalClick, true);
+			window.removeEventListener('keydown', handleProjectSearchShortcut, true);
 			window.removeEventListener('keydown', handleSubtitleNavigationShortcut, true);
 		};
 	});
@@ -80,5 +128,9 @@
 		<StyleEditor />
 	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Export}
 		<Export />
+	{/if}
+
+	{#if searchOverlayVisible}
+		<ProjectSearchOverlay bind:this={searchOverlay} onClose={closeProjectSearch} />
 	{/if}
 </div>

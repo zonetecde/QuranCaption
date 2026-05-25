@@ -13,6 +13,10 @@
 	// Variable locale pour le search query avant validation
 	let localSearchQuery = $state(globalState.getTranslationsState.searchQuery);
 
+	$effect(() => {
+		localSearchQuery = globalState.getTranslationsState.searchQuery;
+	});
+
 	// Fonction pour valider le search query
 	function validateSearchQuery() {
 		globalState.getTranslationsState.searchQuery = localSearchQuery;

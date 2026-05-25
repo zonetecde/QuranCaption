@@ -203,8 +203,39 @@
 		}
 	}
 
+	/**
+	 * Scroll le workspace vers un sous-titre demandé par la recherche projet.
+	 * @param {number} clipId ID du sous-titre cible.
+	 * @returns {void}
+	 */
+	function scrollToRequestedClip(clipId: number): void {
+		const groupIndex = getGroupIndexForClipId(clipId);
+		if (groupIndex < 0) return;
+
+		const targetGroup = subtitlesInGroups()[groupIndex];
+		const firstClipId = targetGroup ? globalState.getSubtitleTrack.clips[targetGroup[0]].id : clipId;
+
+		visibleCount = Math.max(visibleCount, groupIndex + 1);
+		setTimeout(() => {
+			const target = lastRead.container?.querySelector(
+				`[data-translation-clip-id="${firstClipId}"]`
+			);
+			if (target instanceof HTMLElement) {
+				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}, 0);
+	}
+
 	$effect(() => {
 		lastRead.tryResume();
+	});
+
+	$effect(() => {
+		const targetClipId = globalState.shared.translationScrollTargetClipId;
+		if (targetClipId === null) return;
+
+		scrollToRequestedClip(targetClipId);
+		globalState.shared.translationScrollTargetClipId = null;
 	});
 
 	$effect(() => {

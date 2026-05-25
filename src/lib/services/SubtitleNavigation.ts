@@ -10,6 +10,44 @@ function getSubtitlePreviewStart(clip: SubtitleClip | PredefinedSubtitleClip): n
 }
 
 /**
+ * Déplace le curseur et la preview vers un sous-titre donné.
+ * @param {SubtitleClip | PredefinedSubtitleClip} clip Sous-titre cible.
+ * @returns {void}
+ */
+export function goToSubtitleClip(clip: SubtitleClip | PredefinedSubtitleClip): void {
+	const previewStart = getSubtitlePreviewStart(clip);
+	globalState.getTimelineState.cursorPosition = previewStart;
+	globalState.getTimelineState.movePreviewTo = previewStart;
+	globalState.getVideoPreviewState.scrollTimelineToCursor();
+}
+
+/**
+ * Trouve le premier sous-titre Quran correspondant à une clé `sourate:verset`.
+ * @param {string} verseKey Clé de verset au format `sourate:verset`.
+ * @returns {SubtitleClip | null} Premier sous-titre correspondant, ou `null`.
+ */
+export function findFirstSubtitleByVerseKey(verseKey: string): SubtitleClip | null {
+	const [surahRaw, verseRaw] = verseKey.split(':').map((part) => part.trim());
+	const surah = Number(surahRaw);
+	const verse = Number(verseRaw);
+	if (!Number.isInteger(surah) || !Number.isInteger(verse)) return null;
+
+	return (
+		globalState.getSubtitleClips.find((clip) => clip.surah === surah && clip.verse === verse) ??
+		null
+	);
+}
+
+/**
+ * Retourne la clé lisible d'un sous-titre Quran.
+ * @param {SubtitleClip} clip Sous-titre Quran.
+ * @returns {string} Clé au format `sourate:verset`.
+ */
+export function getSubtitleVerseKeyLabel(clip: SubtitleClip): string {
+	return clip.getVerseKey();
+}
+
+/**
  * Déplace le curseur vers le sous-titre précédent/suivant
  */
 export function goToAdjacentSubtitleFromCursor(direction: SubtitleNavigationDirection): void {
@@ -40,8 +78,5 @@ export function goToAdjacentSubtitleFromCursor(direction: SubtitleNavigationDire
 	}
 
 	if (!targetClip) return;
-	const previewStart = getSubtitlePreviewStart(targetClip);
-	globalState.getTimelineState.cursorPosition = previewStart;
-	globalState.getTimelineState.movePreviewTo = previewStart;
-	globalState.getVideoPreviewState.scrollTimelineToCursor();
+	goToSubtitleClip(targetClip);
 }

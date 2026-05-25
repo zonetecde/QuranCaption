@@ -317,16 +317,19 @@ fn configure_command_no_window(cmd: &mut Command) {
 /// Construit un chemin temporaire dans le même dossier que la destination finale.
 /// Le fichier conserve la même extension pour laisser FFmpeg choisir le bon conteneur.
 fn build_temp_output_path(dst: &Path) -> PathBuf {
-    let stem = dst
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("preproc");
     let ext = dst.extension().and_then(|s| s.to_str()).unwrap_or("mp4");
+    let dst_hash = format!("{:x}", md5::compute(dst.to_string_lossy().as_bytes()));
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    let filename = format!("{}-tmp-{}-{}.{}", stem, std::process::id(), nonce, ext);
+    let filename = format!(
+        "qc-tmp-{}-{}-{}.{}",
+        &dst_hash[..8],
+        std::process::id(),
+        nonce,
+        ext
+    );
     dst.with_file_name(filename)
 }
 

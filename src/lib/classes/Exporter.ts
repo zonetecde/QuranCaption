@@ -10,6 +10,7 @@ import { BaseDirectory, join } from '@tauri-apps/api/path';
 import { exists, remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
+import SoosiProvider from '$lib/services/SoosiProvider';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
@@ -159,6 +160,13 @@ export default class Exporter {
 				.map(([target]) => target),
 			exportVerseNumbers: es.exportVerseNumbers
 		};
+
+		if (
+			settings.includedTargets.includes('arabic') &&
+			globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi'
+		) {
+			await SoosiProvider.prefetch();
+		}
 
 		const subtitles: {
 			startTimeMs: number;

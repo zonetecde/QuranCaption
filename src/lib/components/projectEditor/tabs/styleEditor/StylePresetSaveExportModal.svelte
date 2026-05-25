@@ -40,6 +40,15 @@
 		input?.select();
 	});
 
+	function getClipLabel(clip: CustomClip): string {
+		if (clip.type === 'Custom Text') {
+			return String(clip.category?.getStyle('text')?.value || 'Custom text');
+		}
+
+		const filePath = String(clip.category?.getStyle('filepath')?.value || '');
+		return filePath.split(/[\\/]/).pop() || 'Custom image';
+	}
+
 	function toggleClip(clipId: number) {
 		const next = new Set(includedClipIds);
 		if (next.has(clipId)) {
@@ -48,15 +57,6 @@
 			next.add(clipId);
 		}
 		includedClipIds = next;
-	}
-
-	function getClipLabel(clip: CustomClip): string {
-		if (clip.type === 'Custom Text') {
-			return String(clip.category?.getStyle('text')?.value || 'Custom text');
-		}
-
-		const filePath = String(clip.category?.getStyle('filepath')?.value || '');
-		return filePath.split(/[\\/]/).pop() || 'Custom image';
 	}
 
 	async function submit(action: ModalMode) {

@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import Section from '../../Section.svelte';
 	import StyleComponent from './Style.svelte';
-	import ImportExportStyle from './ImportExportStyle.svelte';
+	import PresetLibrary from './presets/components/PresetLibrary.svelte';
 	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
 	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
@@ -209,7 +209,7 @@
 	class="bg-secondary h-full border border-color mx-0.5 rounded-xl relative flex flex-col shadow"
 >
 	{#if presetLibraryOpen}
-		<ImportExportStyle onBack={closePresetLibrary} />
+		<PresetLibrary onBack={closePresetLibrary} />
 	{:else}
 		<!-- En-tête avec icône -->
 		<div class="flex gap-x-2 items-center px-3 mb-2 mt-4 style-editor-header-row">

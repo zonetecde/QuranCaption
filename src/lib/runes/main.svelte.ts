@@ -16,6 +16,7 @@ import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Tr
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 import type { AiVideoState } from '$lib/components/aiVideo/types';
+import type { PresetLibraryState } from '$lib/components/projectEditor/tabs/styleEditor/presets/types';
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
@@ -71,6 +72,40 @@ class GlobalState {
 		generationStatus: '',
 		reciterOptions: [],
 		isLoadingReciters: true
+	});
+
+	// Etat complet de la librairie de presets communautaires
+	presetLibrary: PresetLibraryState = $state({
+		libraryOpen: false,
+		publishMode: false,
+
+		communitySearchQuery: '',
+		selectedTag: '',
+		selectedOrientation: 'all',
+		selectedSort: 'most_liked',
+		communityPresets: [],
+		popularTags: [],
+		isLoadingCommunity: false,
+		communityError: null,
+		downloadingPresetId: null,
+		likingPresetId: null,
+		likedPresetIds: new Set<string>(),
+
+		publishName: '',
+		publishAuthorName: '',
+		publishDescription: '',
+		publishTags: '',
+		publishPreviewBlob: null,
+		publishPreviewUrl: '',
+		publishError: null,
+		isGeneratingPreview: false,
+		isPublishing: false,
+		lastPreviewClipId: null,
+		includedCustomClipIds: new Set<number>(),
+		lastCapturedInclusion: null,
+
+		localSearchQuery: '',
+		modalMode: null
 	});
 
 	// Contient tout les exports (en cours ou accomplis)
@@ -251,12 +286,13 @@ class GlobalState {
 		const previousInlineStyleMode = this.shared.quickTimelineEditor.previousInlineStyleMode;
 		if (this.currentProject && previousInlineStyleMode !== null) {
 			this.getTranslationsState.isInlineStyleMode = previousInlineStyleMode;
-			this.getSubtitlesEditorState.editSubtitle =
-				(this.shared.quickTimelineEditor.previousEditSubtitleId !== null
+			this.getSubtitlesEditorState.editSubtitle = (
+				this.shared.quickTimelineEditor.previousEditSubtitleId !== null
 					? (this.getSubtitleTrack.getClipById(
 							this.shared.quickTimelineEditor.previousEditSubtitleId
 						) ?? null)
-					: null) as SubtitleClip | PredefinedSubtitleClip | null;
+					: null
+			) as SubtitleClip | PredefinedSubtitleClip | null;
 			this.getSubtitlesEditorState.pendingSplitEditNextId =
 				this.shared.quickTimelineEditor.previousPendingSplitEditNextId;
 		}

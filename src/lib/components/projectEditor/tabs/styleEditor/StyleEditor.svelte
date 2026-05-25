@@ -7,7 +7,18 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectEditorTabs } from '$lib/classes';
 
-	let presetLibraryOpen = $state(false);
+	/** Ouverture de la librairie de presets (état géré dans globalState). */
+	let presetLibraryOpen = $derived(globalState.presetLibrary.libraryOpen);
+
+	/** Ouvre la librairie de presets. */
+	function openPresetLibrary() {
+		globalState.presetLibrary.libraryOpen = true;
+	}
+
+	/** Ferme la librairie de presets. */
+	function closePresetLibrary() {
+		globalState.presetLibrary.libraryOpen = false;
+	}
 
 	/**
 	 * Handle the keyboard shortcut for selecting all subtitles.
@@ -48,11 +59,7 @@
 		class={(presetLibraryOpen ? '2xl:w-[700px] w-[600px]' : '2xl:w-[350px] w-[300px]') +
 			' flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col transition-[width] duration-200'}
 	>
-		<StyleEditorSettings
-			{presetLibraryOpen}
-			openPresetLibrary={() => (presetLibraryOpen = true)}
-			closePresetLibrary={() => (presetLibraryOpen = false)}
-		/>
+		<StyleEditorSettings {presetLibraryOpen} {openPresetLibrary} {closePresetLibrary} />
 	</section>
 	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
 		<section class="w-full min-w-0 flex flex-col min-h-0">

@@ -29,7 +29,7 @@
 	let communitySearchQuery = $state('');
 	let selectedTag = $state('');
 	let selectedOrientation = $state<CommunityPresetOrientation | 'all'>('all');
-	let selectedSort = $state<CommunityPresetSort>('newest');
+	let selectedSort = $state<CommunityPresetSort>('most_liked');
 	let modalMode: ModalMode | null = $state(null);
 	let communityPresets = $state<CommunityStylePreset[]>([]);
 	let popularTags = $state<CommunityPresetTag[]>([]);
@@ -608,6 +608,46 @@
 	}
 
 	/**
+	 * Checks fonts used by a style preset and returns any that are missing
+	 * from the user's system.
+	 *
+	 * Fonts bundled with the app (QPC1, QPC2, Hafs, IndoPak, etc.) are skipped
+	 * since every user has them.
+	 *
+	 * @param {VideoStyleFileData} styleData The imported preset style data.
+	 * @returns {Promise<string[]>} Font names the user should install.
+	 */
+	async function checkMissingFonts(styleData: VideoStyleFileData): Promise<string[]> {
+		const fonts = new Set<string>();
+
+		const videoStyle = styleData.videoStyle as {
+			styles?: { categories?: { styles?: { id: string; value: string }[] }[] }[];
+		};
+		for (const styleGroup of videoStyle.styles ?? []) {
+			for (const category of styleGroup.categories ?? []) {
+				for (const style of category.styles ?? []) {
+					if (style.id === 'font-family' && typeof style.value === 'string') {
+						fonts.add(style.value);
+					}
+				}
+			}
+		}
+
+		const builtin = ['Hafs', 'IndoPak', 'Reciters', 'Surahs', 'QPC1BSML', 'QPC2BSML'];
+		const isBuiltin = (font: string) =>
+			builtin.includes(font) ||
+			font.startsWith('QPC1') ||
+			font.startsWith('QPC2') ||
+			/^p\d+-v4$/.test(font);
+
+		const toCheck = [...fonts].filter((f) => !isBuiltin(f));
+		if (toCheck.length === 0) return [];
+
+		const systemFonts = await invoke<string[]>('get_system_fonts');
+		return toCheck.filter((f) => !systemFonts.includes(f));
+	}
+
+	/**
 	 * Downloads, stores, and applies a community preset.
 	 *
 	 * @param {CommunityStylePreset} preset Community preset metadata.
@@ -632,6 +672,14 @@
 				item.id === preset.id ? { ...item, downloadCount: item.downloadCount + 1 } : item
 			);
 			toast.success('Community preset saved and applied.');
+
+			const missing = await checkMissingFonts(styleData);
+			if (missing.length > 0) {
+				await ModalManager.confirmModal(
+					`This preset uses fonts that are not installed on your system:\n\n${missing.map((f) => `• ${f}`).join('\n')}\n\nPlease download and install the missing ${missing.length === 1 ? 'font' : 'fonts'}, then restart QuranCaption for them to take effect.`,
+					false
+				);
+			}
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : String(error));
 		} finally {

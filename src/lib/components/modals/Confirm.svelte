@@ -30,7 +30,7 @@
 
 	<!-- Content -->
 	<div class="mb-5">
-		<p class="text-secondary leading-relaxed text-sm">{text}</p>
+		<p class="text-secondary whitespace-pre-line leading-relaxed text-sm">{text}</p>
 	</div>
 
 	<!-- Action buttons -->

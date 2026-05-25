@@ -27,11 +27,11 @@
 	{#if !publishMode}
 		<div class="flex items-center gap-2">
 			<button
-				class="btn flex h-9 items-center gap-2 px-3 text-sm font-medium"
+				class="btn-accent flex h-9 items-center gap-2 px-3 text-sm font-medium"
 				type="button"
 				onclick={openPublishForm}
 			>
-				<span class="material-icons-outlined text-base">cloud_upload</span>
+				<span class="material-icons-outlined text-base">public</span>
 				Publish
 			</button>
 			<button
@@ -40,7 +40,7 @@
 				onclick={() => (globalState.presetLibrary.modalMode = 'save')}
 			>
 				<span class="material-icons-outlined text-base">add</span>
-				Save
+				Save locally
 			</button>
 		</div>
 	{/if}

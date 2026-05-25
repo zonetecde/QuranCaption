@@ -211,7 +211,30 @@ export async function createAiVideoProject(): Promise<void> {
 
 		// ── 4. Auto-segmentation ──
 		setStatus('Generating subtitles with AI...');
-		const segResult = await runAutoSegmentation({}, 'api');
+		const segmentationSettings = globalState.settings?.autoSegmentationSettings;
+		const useLocalUniversalAligner =
+			segmentationSettings?.mode === 'local' &&
+			segmentationSettings.localAsrMode === 'multi_aligner';
+		const segResult = await runAutoSegmentation(
+			useLocalUniversalAligner
+				? {
+						minSilenceMs: segmentationSettings.minSilenceMs,
+						minSpeechMs: segmentationSettings.minSpeechMs,
+						padMs: segmentationSettings.padMs,
+						localAsrMode: segmentationSettings.localAsrMode,
+						multiAlignerModel: segmentationSettings.multiAlignerModel,
+						device: segmentationSettings.device,
+						hfToken: segmentationSettings.hfToken,
+						includeWbwTimestamps: segmentationSettings.includeWbwTimestamps,
+						fillBySilence: segmentationSettings.fillBySilence,
+						extendBeforeSilence: segmentationSettings.extendBeforeSilence,
+						extendBeforeSilenceMs: segmentationSettings.extendBeforeSilenceMs
+					}
+				: {
+						cloudModel: segmentationSettings?.cloudModel
+					},
+			useLocalUniversalAligner ? 'local' : 'api'
+		);
 		console.log('[AiVideo] Segmentation result:', segResult);
 
 		if (segResult && segResult.status === 'failed') {

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
+	import { invoke } from '@tauri-apps/api/core';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ExportFileService from '$lib/services/ExportFileService';
 	import ModalManager from '$lib/components/modals/ModalManager';
@@ -11,6 +12,7 @@
 		getStyleLibraryDeviceId,
 		likeCommunityPreset,
 		listCommunityPresets,
+		publishCommunityPreset,
 		type CommunityPresetOrientation,
 		type CommunityPresetSort,
 		type CommunityPresetTag,
@@ -36,6 +38,17 @@
 	let downloadingPresetId = $state<string | null>(null);
 	let likingPresetId = $state<string | null>(null);
 	let likedPresetIds = $state(new Set<string>());
+	let publishMode = $state(false);
+	let publishName = $state('');
+	let publishAuthorName = $state('');
+	let publishDescription = $state('');
+	let publishTags = $state('');
+	let publishPreviewBlob = $state<Blob | null>(null);
+	let publishPreviewUrl = $state('');
+	let publishError = $state<string | null>(null);
+	let isGeneratingPreview = $state(false);
+	let isPublishing = $state(false);
+	let lastPreviewClipId = $state<number | null>(null);
 
 	let presets = $derived(() => globalState.settings?.savedVideoStylePresets ?? []);
 	let filteredLocalPresets = $derived(() => {
@@ -46,10 +59,22 @@
 	let communityQueryKey = $derived(
 		() => `${communitySearchQuery}|${selectedTag}|${selectedOrientation}|${selectedSort}`
 	);
+	let canPublish = $derived(
+		() =>
+			publishName.trim().length > 0 &&
+			publishAuthorName.trim().length > 0 &&
+			publishPreviewBlob !== null &&
+			!isGeneratingPreview &&
+			!isPublishing
+	);
 
 	onMount(() => {
 		void loadPopularTags();
 		void loadCommunity();
+	});
+
+	onDestroy(() => {
+		if (publishPreviewUrl) URL.revokeObjectURL(publishPreviewUrl);
 	});
 
 	$effect(() => {
@@ -68,6 +93,21 @@
 	/** Closes the save/export modal. */
 	function closeStylePresetModal(): void {
 		modalMode = null;
+	}
+
+	/** Opens the community publish form. */
+	function openPublishForm(): void {
+		publishMode = true;
+		publishName = getDefaultPresetName();
+		publishError = null;
+		if (!publishPreviewBlob) void generatePublishPreview();
+	}
+
+	/** Closes the community publish form. */
+	function closePublishForm(): void {
+		publishMode = false;
+		publishError = null;
+		lastPreviewClipId = null;
 	}
 
 	/**
@@ -123,6 +163,15 @@
 	 */
 	function buildStyleData(includedClipIds: Set<number>): VideoStyleFileData {
 		return globalState.getVideoStyle.exportStylesData(includedClipIds);
+	}
+
+	/**
+	 * Returns every custom clip id so published styles keep the visible overlays.
+	 *
+	 * @returns {Set<number>} Custom clip ids to export.
+	 */
+	function getAllCustomClipIds(): Set<number> {
+		return new Set(globalState.getCustomClipTrack.clips.map((clip) => clip.id));
 	}
 
 	/**
@@ -189,6 +238,150 @@
 			.replace(/[<>:"/\\|?*]+/g, '-')
 			.replace(/\s+/g, '_');
 		return `exported_styles_${safeName || ExportFileService.getProjectNameForFile()}.json`;
+	}
+
+	/**
+	 * Waits for the preview UI to render after seeking.
+	 *
+	 * @param {number} ms Delay in milliseconds.
+	 * @returns {Promise<void>}
+	 */
+	function wait(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+
+	/**
+	 * Parses the publish tags input into normalized tag names.
+	 *
+	 * @returns {string[]} Tags ready for the community API.
+	 */
+	function getPublishTags(): string[] {
+		return [
+			...new Set(
+				publishTags
+					.split(',')
+					.map((tag) => tag.trim().toLowerCase())
+					.filter(Boolean)
+			)
+		].slice(0, 12);
+	}
+
+	/**
+	 * Picks a random timing at the middle of an existing subtitle clip.
+	 *
+	 * Avoids reusing the same clip as the previous preview when there
+	 * is more than one subtitle available.
+	 *
+	 * @returns {number | null} Preview timing in milliseconds, or null when no subtitle exists.
+	 */
+	function getRandomSubtitlePreviewTime(): number | null {
+		const clips = globalState.getSubtitleTrack.clips.filter(
+			(clip) =>
+				(clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle') &&
+				clip.endTime > clip.startTime
+		);
+		if (clips.length === 0) return null;
+
+		const candidates =
+			clips.length > 1 && lastPreviewClipId !== null
+				? clips.filter((clip) => clip.id !== lastPreviewClipId)
+				: clips;
+
+		const clip = candidates[Math.floor(Math.random() * candidates.length)];
+		lastPreviewClipId = clip.id;
+		const midTime = clip.startTime + (clip.endTime - clip.startTime) / 2;
+		return Math.round(midTime);
+	}
+
+	/**
+	 * Replaces the current publish preview image.
+	 *
+	 * @param {Blob} blob Generated preview image.
+	 * @returns {void}
+	 */
+	function setPublishPreviewBlob(blob: Blob): void {
+		if (publishPreviewUrl) URL.revokeObjectURL(publishPreviewUrl);
+		publishPreviewBlob = blob;
+		publishPreviewUrl = URL.createObjectURL(blob);
+	}
+
+	/**
+	 * Generates a community preset preview from the video preview section.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async function generatePublishPreview(): Promise<void> {
+		if (isGeneratingPreview) return;
+		isGeneratingPreview = true;
+		publishError = null;
+
+		try {
+			const timing = getRandomSubtitlePreviewTime();
+			if (timing === null) {
+				publishError = 'Add at least one subtitle before generating a preview image.';
+				toast.error(publishError);
+				return;
+			}
+
+			const wasFullscreen = globalState.getVideoPreviewState.isFullscreen;
+
+			globalState.getTimelineState.cursorPosition = timing;
+			globalState.getTimelineState.movePreviewTo = timing;
+			globalState.updateVideoPreviewUI();
+			await tick();
+			await wait(350);
+
+			if (!wasFullscreen) {
+				await globalState.getVideoPreviewState.toggleFullScreen();
+				await wait(500);
+			}
+
+			const bytes = new Uint8Array(await invoke<number[]>('capture_window_screenshot'));
+
+			if (!wasFullscreen) {
+				await globalState.getVideoPreviewState.toggleFullScreen();
+			}
+
+			const blob = new Blob([bytes], { type: 'image/jpeg' });
+			setPublishPreviewBlob(blob);
+		} catch (error) {
+			publishError = error instanceof Error ? error.message : String(error);
+			toast.error(publishError);
+		} finally {
+			isGeneratingPreview = false;
+		}
+	}
+
+	/**
+	 * Publishes the current style preset to the community library.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async function publishPreset(): Promise<void> {
+		if (!canPublish() || !publishPreviewBlob) return;
+
+		isPublishing = true;
+		publishError = null;
+		try {
+			const preset = await publishCommunityPreset({
+				name: publishName.trim(),
+				authorName: publishAuthorName.trim(),
+				description: publishDescription.trim(),
+				tags: getPublishTags(),
+				resolution: getCurrentResolution(),
+				style: buildStyleData(getAllCustomClipIds()),
+				preview: publishPreviewBlob
+			});
+			communityPresets = [preset, ...communityPresets.filter((item) => item.id !== preset.id)];
+			void loadPopularTags();
+			closePublishForm();
+			toast.success('Community preset published.');
+		} catch (error) {
+			publishError = error instanceof Error ? error.message : String(error);
+			toast.error(publishError);
+		} finally {
+			isPublishing = false;
+		}
 	}
 
 	/**
@@ -389,275 +582,419 @@
 		<button
 			class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-secondary transition-colors hover:bg-primary hover:text-primary"
 			type="button"
-			onclick={onBack}
-			aria-label="Back to style editor"
+			onclick={() => (publishMode ? closePublishForm() : onBack())}
+			aria-label={publishMode ? 'Back to style presets' : 'Back to style editor'}
 		>
 			<span class="material-icons-outlined text-lg">arrow_back</span>
 		</button>
 		<div class="min-w-0 flex-1">
-			<h2 class="truncate text-lg font-semibold text-primary">Style presets</h2>
-			<p class="text-xs text-secondary">Local library and community styles</p>
+			<h2 class="truncate text-lg font-semibold text-primary">
+				{publishMode ? 'Publish preset' : 'Style presets'}
+			</h2>
+			<p class="text-xs text-secondary">
+				{publishMode ? 'Share this style with the community' : 'Local library and community styles'}
+			</p>
 		</div>
-		<button
-			class="btn-accent flex h-9 items-center gap-2 px-3 text-sm font-medium"
-			type="button"
-			onclick={() => openStylePresetModal('save')}
-		>
-			<span class="material-icons-outlined text-base">add</span>
-			Save
-		</button>
+		{#if !publishMode}
+			<div class="flex items-center gap-2">
+				<button
+					class="btn flex h-9 items-center gap-2 px-3 text-sm font-medium"
+					type="button"
+					onclick={openPublishForm}
+				>
+					<span class="material-icons-outlined text-base">cloud_upload</span>
+					Publish
+				</button>
+				<button
+					class="btn-accent flex h-9 items-center gap-2 px-3 text-sm font-medium"
+					type="button"
+					onclick={() => openStylePresetModal('save')}
+				>
+					<span class="material-icons-outlined text-base">add</span>
+					Save
+				</button>
+			</div>
+		{/if}
 	</div>
 
-	<div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-		<section class="space-y-3">
-			<div class="flex items-center justify-between gap-3">
-				<div>
-					<h3 class="text-sm font-semibold text-primary">Saved presets</h3>
-					<p class="text-xs text-secondary">{presets().length} local preset{presets().length === 1 ? '' : 's'}</p>
-				</div>
-				<div class="flex items-center gap-3 text-[11px]">
-					<button
-						class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
-						type="button"
-						onclick={() => globalState.getVideoStyle.importStylesFromFile()}
-					>
-						Choose file
-					</button>
-					<button
-						class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
-						type="button"
-						onclick={() => openStylePresetModal('export')}
-					>
-						Export file
-					</button>
-					<button
-						class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
-						type="button"
-						onclick={() => globalState.getVideoStyle.resetStyles()}
-					>
-						Reset
-					</button>
-				</div>
-			</div>
-
-			<label class="relative block">
-				<span
-					class="material-icons-outlined pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
-				>
-					search
-				</span>
-				<input
-					bind:value={localSearchQuery}
-					class="h-9 w-full rounded-md border border-color bg-primary py-1 pl-8 pr-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
-					type="search"
-					placeholder="Search saved presets"
-				/>
-			</label>
-
-			<div class="max-h-44 overflow-y-auto rounded-lg border border-color bg-primary/40 p-1">
-				{#if filteredLocalPresets().length === 0}
-					<div class="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
-						<span class="material-icons-outlined text-xl text-thirdly">folder_open</span>
-						<p class="text-xs text-thirdly">
-							{presets().length === 0 ? 'No saved presets' : 'No saved presets found'}
-						</p>
-					</div>
-				{:else}
-					<div class="space-y-1">
-						{#each filteredLocalPresets() as preset (preset.id)}
-							<div
-								class="group flex min-h-10 w-full items-center gap-1 rounded-md px-1 py-1 transition-colors hover:bg-black/30"
-							>
-								<button
-									class="flex min-w-0 flex-1 items-center gap-2 rounded py-1 pr-1 text-left focus:outline-none"
-									type="button"
-									onclick={() => applyPreset(preset)}
-									title={preset.name}
-								>
-									<span
-										class="material-icons-outlined shrink-0 text-base! text-secondary group-hover:text-primary"
-									>
-										description
-									</span>
-									<span class="min-w-0 flex-1 truncate text-xs font-medium text-primary">
-										{preset.name}
-									</span>
-									<span
-										class="shrink-0 rounded border border-color bg-accent px-1.5 py-0.5 text-[10px] leading-4 text-secondary"
-									>
-										{getResolutionLabel(preset.resolution)}
-									</span>
-								</button>
-								<button
-									class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-thirdly opacity-70 transition-colors hover:bg-red-500/15 hover:text-red-400 group-hover:opacity-100"
-									type="button"
-									title="Delete preset"
-									onclick={() => deletePreset(preset)}
-								>
-									<span class="material-icons-outlined text-sm">delete</span>
-								</button>
+	{#if publishMode}
+		<div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+			<section class="space-y-4">
+				<div class="overflow-hidden rounded-lg border border-color bg-primary/50">
+					<div class="aspect-video bg-black/40">
+						{#if publishPreviewUrl}
+							<img
+								class="h-full w-full object-cover"
+								src={publishPreviewUrl}
+								alt="Community preset preview"
+							/>
+						{:else}
+							<div class="flex h-full flex-col items-center justify-center gap-2 text-center">
+								<span class="material-icons-outlined text-2xl text-thirdly">
+									add_photo_alternate
+								</span>
+								<p class="px-4 text-xs text-thirdly">
+									Generate a preview from a random subtitle in the video preview.
+								</p>
 							</div>
-						{/each}
+						{/if}
+					</div>
+					<div class="flex items-center justify-between gap-3 border-t border-color p-3">
+						<p class="min-w-0 text-xs text-secondary">
+							{publishPreviewBlob
+								? 'Preview ready. Regenerate to try another subtitle moment.'
+								: 'A subtitle is required to generate a preview.'}
+						</p>
+						<button
+							class="btn shrink-0 px-3 py-1.5 text-xs"
+							type="button"
+							onclick={generatePublishPreview}
+							disabled={isGeneratingPreview}
+						>
+							{isGeneratingPreview ? 'Generating...' : 'Regenerate'}
+						</button>
+					</div>
+				</div>
+
+				<div class="space-y-3">
+					<label class="block space-y-1.5">
+						<span class="text-xs font-medium text-secondary">Name</span>
+						<input
+							bind:value={publishName}
+							class="h-9 w-full rounded-md border border-color bg-primary px-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
+							type="text"
+							maxlength="120"
+							placeholder="Clean Quran style"
+						/>
+					</label>
+					<label class="block space-y-1.5">
+						<span class="text-xs font-medium text-secondary">Author</span>
+						<input
+							bind:value={publishAuthorName}
+							class="h-9 w-full rounded-md border border-color bg-primary px-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
+							type="text"
+							maxlength="120"
+							placeholder="Your name"
+						/>
+					</label>
+					<label class="block space-y-1.5">
+						<span class="text-xs font-medium text-secondary"
+							>Tags <span class="font-normal text-thirdly">(optional)</span></span
+						>
+						<input
+							bind:value={publishTags}
+							class="h-9 w-full rounded-md border border-color bg-primary px-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
+							type="text"
+							placeholder="clean, subtitle, bold"
+						/>
+					</label>
+					<label class="block space-y-1.5">
+						<span class="text-xs font-medium text-secondary"
+							>Description <span class="font-normal text-thirdly">(optional)</span></span
+						>
+						<textarea
+							bind:value={publishDescription}
+							class="min-h-20 w-full resize-none rounded-md border border-color bg-primary px-3 py-2 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
+							maxlength="600"
+							placeholder="Shortly describe where this style works best."
+						></textarea>
+					</label>
+				</div>
+
+				{#if publishError}
+					<div
+						class="rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-3 text-sm text-red-100"
+					>
+						<div class="flex items-start gap-2">
+							<span class="material-icons-outlined text-base">error</span>
+							<p class="min-w-0 flex-1 text-xs">{publishError}</p>
+						</div>
 					</div>
 				{/if}
-			</div>
-		</section>
 
-		<section class="space-y-3 border-t border-color pt-4">
-			<div>
-				<h3 class="text-sm font-semibold text-primary">Community presets</h3>
-				<p class="text-xs text-secondary">Download a shared style to save and apply it locally.</p>
-			</div>
+				<div class="flex items-center justify-end gap-2 border-t border-color pt-4">
+					<button class="btn px-3 py-2 text-sm" type="button" onclick={closePublishForm}>
+						Cancel
+					</button>
+					<button
+						class="btn-accent px-4 py-2 text-sm font-medium"
+						type="button"
+						onclick={publishPreset}
+						disabled={!canPublish()}
+					>
+						{isPublishing ? 'Publishing...' : 'Publish preset'}
+					</button>
+				</div>
+			</section>
+		</div>
+	{:else}
+		<div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+			<section class="space-y-3">
+				<div class="flex items-center justify-between gap-3">
+					<div>
+						<h3 class="text-sm font-semibold text-primary">Saved presets</h3>
+						<p class="text-xs text-secondary">
+							{presets().length} local preset{presets().length === 1 ? '' : 's'}
+						</p>
+					</div>
+					<div class="flex items-center gap-3 text-[11px]">
+						<button
+							class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
+							type="button"
+							onclick={() => globalState.getVideoStyle.importStylesFromFile()}
+						>
+							Choose file
+						</button>
+						<button
+							class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
+							type="button"
+							onclick={() => openStylePresetModal('export')}
+						>
+							Export file
+						</button>
+						<button
+							class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
+							type="button"
+							onclick={() => globalState.getVideoStyle.resetStyles()}
+						>
+							Reset
+						</button>
+					</div>
+				</div>
 
-			<div class="grid grid-cols-2 gap-2">
-				<label class="relative col-span-2 block">
+				<label class="relative block">
 					<span
 						class="material-icons-outlined pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
 					>
 						search
 					</span>
 					<input
-						bind:value={communitySearchQuery}
+						bind:value={localSearchQuery}
 						class="h-9 w-full rounded-md border border-color bg-primary py-1 pl-8 pr-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 						type="search"
-						placeholder="Search community presets"
+						placeholder="Search saved presets"
 					/>
 				</label>
-				<select bind:value={selectedSort} class="h-9 text-xs">
-					<option value="newest">Newest</option>
-					<option value="most_downloaded">Most downloaded</option>
-					<option value="most_liked">Most liked</option>
-				</select>
-				<select bind:value={selectedOrientation} class="h-9 text-xs">
-					<option value="all">All orientations</option>
-					<option value="landscape">Landscape</option>
-					<option value="portrait">Portrait</option>
-					<option value="square">Square</option>
-				</select>
-			</div>
 
-			{#if popularTags.length > 0}
-				<div class="flex gap-1.5 overflow-x-auto pb-1">
-					<button
-						class={(selectedTag === '' ? 'btn-accent' : 'btn') + ' shrink-0 px-2 py-1 text-xs'}
-						type="button"
-						onclick={() => (selectedTag = '')}
-					>
-						All tags
-					</button>
-					{#each popularTags as tag (tag.name)}
-						<button
-							class={(selectedTag === tag.name ? 'btn-accent' : 'btn') +
-								' shrink-0 px-2 py-1 text-xs'}
-							type="button"
-							onclick={() => (selectedTag = tag.name)}
-						>
-							{tag.name} ({tag.count})
-						</button>
-					{/each}
-				</div>
-			{/if}
-
-			{#if communityError}
-				<div class="rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-3 text-sm text-red-100">
-					<div class="flex items-start gap-2">
-						<span class="material-icons-outlined text-base">error</span>
-						<div class="min-w-0 flex-1">
-							<p class="font-medium">Unable to load community presets</p>
-							<p class="mt-0.5 text-xs text-red-100/80">{communityError}</p>
+				<div class="max-h-44 overflow-y-auto rounded-lg border border-color bg-primary/40 p-1">
+					{#if filteredLocalPresets().length === 0}
+						<div class="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
+							<span class="material-icons-outlined text-xl text-thirdly">folder_open</span>
+							<p class="text-xs text-thirdly">
+								{presets().length === 0 ? 'No saved presets' : 'No saved presets found'}
+							</p>
 						</div>
-						<button class="btn px-2 py-1 text-xs" type="button" onclick={() => loadCommunity()}>
-							Retry
-						</button>
-					</div>
-				</div>
-			{:else if isLoadingCommunity}
-				<div class="grid grid-cols-2 gap-3">
-					{#each Array(4) as _, index (index)}
-						<div class="h-44 animate-pulse rounded-lg border border-color bg-primary/50"></div>
-					{/each}
-				</div>
-			{:else if communityPresets.length === 0}
-				<div class="flex flex-col items-center justify-center gap-2 rounded-lg border border-color bg-primary/40 px-4 py-10 text-center">
-					<span class="material-icons-outlined text-2xl text-thirdly">travel_explore</span>
-					<p class="text-sm font-medium text-primary">No community presets found</p>
-					<p class="text-xs text-thirdly">Try another search, tag, or orientation.</p>
-				</div>
-			{:else}
-				<div class="grid grid-cols-2 gap-3">
-					{#each communityPresets as preset (preset.id)}
-						<article class="overflow-hidden rounded-lg border border-color bg-primary/50">
-							<button
-								class="block w-full text-left"
-								type="button"
-								onclick={() => downloadAndApplyCommunityPreset(preset)}
-								disabled={downloadingPresetId !== null}
-								title="Download, save, and apply"
-							>
-								<div class="aspect-video w-full overflow-hidden bg-black/30">
-									<img
-										class="h-full w-full object-cover"
-										src={preset.previewUrl}
-										alt={preset.name}
-										loading="lazy"
-									/>
-								</div>
-								<div class="space-y-2 p-2">
-									<div class="min-w-0">
-										<h4 class="truncate text-sm font-semibold text-primary">{preset.name}</h4>
-										<p class="truncate text-xs text-secondary">by {preset.authorName}</p>
-									</div>
-									<div class="flex flex-wrap gap-1">
-										<span class="rounded border border-color bg-accent px-1.5 py-0.5 text-[10px] text-secondary">
-											{preset.orientation}
+					{:else}
+						<div class="space-y-1">
+							{#each filteredLocalPresets() as preset (preset.id)}
+								<div
+									class="group flex min-h-10 w-full items-center gap-1 rounded-md px-1 py-1 transition-colors hover:bg-black/30"
+								>
+									<button
+										class="flex min-w-0 flex-1 items-center gap-2 rounded py-1 pr-1 text-left focus:outline-none"
+										type="button"
+										onclick={() => applyPreset(preset)}
+										title={preset.name}
+									>
+										<span
+											class="material-icons-outlined shrink-0 text-base! text-secondary group-hover:text-primary"
+										>
+											description
 										</span>
-										<span class="rounded border border-color bg-accent px-1.5 py-0.5 text-[10px] text-secondary">
+										<span class="min-w-0 flex-1 truncate text-xs font-medium text-primary">
+											{preset.name}
+										</span>
+										<span
+											class="shrink-0 rounded border border-color bg-accent px-1.5 py-0.5 text-[10px] leading-4 text-secondary"
+										>
 											{getResolutionLabel(preset.resolution)}
 										</span>
-									</div>
-									{#if preset.tags.length > 0}
-										<div class="flex gap-1 overflow-hidden">
-											{#each preset.tags.slice(0, 3) as tag (tag)}
-												<span class="truncate rounded bg-black/25 px-1.5 py-0.5 text-[10px] text-thirdly">
-													#{tag}
-												</span>
-											{/each}
-										</div>
-									{/if}
+									</button>
+									<button
+										class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-thirdly opacity-70 transition-colors hover:bg-red-500/15 hover:text-red-400 group-hover:opacity-100"
+										type="button"
+										title="Delete preset"
+										onclick={() => deletePreset(preset)}
+									>
+										<span class="material-icons-outlined text-sm">delete</span>
+									</button>
 								</div>
-							</button>
-							<div class="flex items-center justify-between border-t border-color px-2 py-1.5 text-xs text-secondary">
-								<div class="flex items-center gap-2">
-									<span class="inline-flex items-center gap-1">
-										<span class="material-icons-outlined text-sm">download</span>
-										{preset.downloadCount}
-									</span>
-									<span class="inline-flex items-center gap-1">
-										<span class="material-icons-outlined text-sm">favorite</span>
-										{preset.likeCount}
-									</span>
-								</div>
-								<button
-									class={(likedPresetIds.has(preset.id)
-										? 'text-red-400'
-										: 'text-thirdly hover:text-red-400') +
-										' flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-red-500/10 disabled:opacity-60'}
-									type="button"
-									title="Like preset"
-									disabled={likingPresetId !== null || likedPresetIds.has(preset.id)}
-									onclick={() => likePreset(preset)}
-								>
-									<span class="material-icons-outlined text-base">
-										{likingPresetId === preset.id ? 'hourglass_empty' : 'favorite'}
-									</span>
-								</button>
-							</div>
-						</article>
-					{/each}
+							{/each}
+						</div>
+					{/if}
 				</div>
-			{/if}
-		</section>
-	</div>
+			</section>
+
+			<section class="space-y-3 border-t border-color pt-4">
+				<div>
+					<h3 class="text-sm font-semibold text-primary">Community presets</h3>
+					<p class="text-xs text-secondary">
+						Download a shared style to save and apply it locally.
+					</p>
+				</div>
+
+				<div class="grid grid-cols-2 gap-2">
+					<label class="relative col-span-2 block">
+						<span
+							class="material-icons-outlined pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
+						>
+							search
+						</span>
+						<input
+							bind:value={communitySearchQuery}
+							class="h-9 w-full rounded-md border border-color bg-primary py-1 pl-8 pr-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
+							type="search"
+							placeholder="Search community presets"
+						/>
+					</label>
+					<select bind:value={selectedSort} class="h-9 text-xs">
+						<option value="newest">Newest</option>
+						<option value="most_downloaded">Most downloaded</option>
+						<option value="most_liked">Most liked</option>
+					</select>
+					<select bind:value={selectedOrientation} class="h-9 text-xs">
+						<option value="all">All orientations</option>
+						<option value="landscape">Landscape</option>
+						<option value="portrait">Portrait</option>
+						<option value="square">Square</option>
+					</select>
+				</div>
+
+				{#if popularTags.length > 0}
+					<div class="flex gap-1.5 overflow-x-auto pb-1">
+						<button
+							class={(selectedTag === '' ? 'btn-accent' : 'btn') + ' shrink-0 px-2 py-1 text-xs'}
+							type="button"
+							onclick={() => (selectedTag = '')}
+						>
+							All tags
+						</button>
+						{#each popularTags as tag (tag.name)}
+							<button
+								class={(selectedTag === tag.name ? 'btn-accent' : 'btn') +
+									' shrink-0 px-2 py-1 text-xs'}
+								type="button"
+								onclick={() => (selectedTag = tag.name)}
+							>
+								{tag.name} ({tag.count})
+							</button>
+						{/each}
+					</div>
+				{/if}
+
+				{#if communityError}
+					<div
+						class="rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-3 text-sm text-red-100"
+					>
+						<div class="flex items-start gap-2">
+							<span class="material-icons-outlined text-base">error</span>
+							<div class="min-w-0 flex-1">
+								<p class="font-medium">Unable to load community presets</p>
+								<p class="mt-0.5 text-xs text-red-100/80">{communityError}</p>
+							</div>
+							<button class="btn px-2 py-1 text-xs" type="button" onclick={() => loadCommunity()}>
+								Retry
+							</button>
+						</div>
+					</div>
+				{:else if isLoadingCommunity}
+					<div class="grid grid-cols-2 gap-3">
+						{#each Array(4) as _, index (index)}
+							<div class="h-44 animate-pulse rounded-lg border border-color bg-primary/50"></div>
+						{/each}
+					</div>
+				{:else if communityPresets.length === 0}
+					<div
+						class="flex flex-col items-center justify-center gap-2 rounded-lg border border-color bg-primary/40 px-4 py-10 text-center"
+					>
+						<span class="material-icons-outlined text-2xl text-thirdly">travel_explore</span>
+						<p class="text-sm font-medium text-primary">No community presets found</p>
+						<p class="text-xs text-thirdly">Try another search, tag, or orientation.</p>
+					</div>
+				{:else}
+					<div class="grid grid-cols-2 gap-3">
+						{#each communityPresets as preset (preset.id)}
+							<article class="overflow-hidden rounded-lg border border-color bg-primary/50">
+								<button
+									class="block w-full text-left"
+									type="button"
+									onclick={() => downloadAndApplyCommunityPreset(preset)}
+									disabled={downloadingPresetId !== null}
+									title="Download, save, and apply"
+								>
+									<div class="aspect-video w-full overflow-hidden bg-black/30">
+										<img
+											class="h-full w-full object-cover"
+											src={preset.previewUrl}
+											alt={preset.name}
+											loading="lazy"
+										/>
+									</div>
+									<div class="space-y-2 p-2">
+										<div class="min-w-0">
+											<h4 class="truncate text-sm font-semibold text-primary">{preset.name}</h4>
+											<p class="truncate text-xs text-secondary">by {preset.authorName}</p>
+										</div>
+										<div class="flex flex-wrap gap-1">
+											<span
+												class="rounded border border-color bg-accent px-1.5 py-0.5 text-[10px] text-secondary"
+											>
+												{preset.orientation}
+											</span>
+											<span
+												class="rounded border border-color bg-accent px-1.5 py-0.5 text-[10px] text-secondary"
+											>
+												{getResolutionLabel(preset.resolution)}
+											</span>
+										</div>
+										{#if preset.tags.length > 0}
+											<div class="flex gap-1 overflow-hidden">
+												{#each preset.tags.slice(0, 3) as tag (tag)}
+													<span
+														class="truncate rounded bg-black/25 px-1.5 py-0.5 text-[10px] text-thirdly"
+													>
+														#{tag}
+													</span>
+												{/each}
+											</div>
+										{/if}
+									</div>
+								</button>
+								<div
+									class="flex items-center justify-between border-t border-color px-2 py-1.5 text-xs text-secondary"
+								>
+									<div class="flex items-center gap-2">
+										<span class="inline-flex items-center gap-1">
+											<span class="material-icons-outlined text-sm">download</span>
+											{preset.downloadCount}
+										</span>
+										<span class="inline-flex items-center gap-1">
+											<span class="material-icons-outlined text-sm">favorite</span>
+											{preset.likeCount}
+										</span>
+									</div>
+									<button
+										class={(likedPresetIds.has(preset.id)
+											? 'text-red-400'
+											: 'text-thirdly hover:text-red-400') +
+											' flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-red-500/10 disabled:opacity-60'}
+										type="button"
+										title="Like preset"
+										disabled={likingPresetId !== null || likedPresetIds.has(preset.id)}
+										onclick={() => likePreset(preset)}
+									>
+										<span class="material-icons-outlined text-base">
+											{likingPresetId === preset.id ? 'hourglass_empty' : 'favorite'}
+										</span>
+									</button>
+								</div>
+							</article>
+						{/each}
+					</div>
+				{/if}
+			</section>
+		</div>
+	{/if}
 </div>
 
 {#if modalMode}

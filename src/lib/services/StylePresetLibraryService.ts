@@ -37,6 +37,16 @@ export type CommunityPresetListParams = {
 	offset?: number;
 };
 
+export type PublishCommunityPresetParams = {
+	name: string;
+	authorName: string;
+	description?: string;
+	tags?: string[];
+	resolution: { width: number; height: number };
+	style: VideoStyleFileData;
+	preview: Blob;
+};
+
 /**
  * Returns the configured style library API base URL.
  *
@@ -149,6 +159,36 @@ export async function getPopularTags(): Promise<CommunityPresetTag[]> {
 }
 
 /**
+ * Publishes the current style preset to the community library.
+ *
+ * @param {PublishCommunityPresetParams} params Preset metadata, style JSON, and preview image.
+ * @returns {Promise<CommunityStylePreset>} Created community preset metadata.
+ */
+export async function publishCommunityPreset(
+	params: PublishCommunityPresetParams
+): Promise<CommunityStylePreset> {
+	const form = new FormData();
+	form.append('name', params.name);
+	form.append('authorName', params.authorName);
+	form.append('description', params.description ?? '');
+	form.append('tags', JSON.stringify(params.tags ?? []));
+	form.append('resolution', JSON.stringify(params.resolution));
+	form.append(
+		'style',
+		new Blob([JSON.stringify(params.style)], { type: 'application/json' }),
+		'style.json'
+	);
+	form.append('preview', params.preview, 'preview.jpg');
+
+	const response = await fetch(buildApiUrl('/presets'), {
+		method: 'POST',
+		body: form
+	});
+	await assertOk(response);
+	return (await response.json()) as CommunityStylePreset;
+}
+
+/**
  * Returns a persistent anonymous device id for community interactions.
  *
  * @returns {Promise<string>} Stable anonymous device id.
@@ -159,7 +199,8 @@ export async function getStyleLibraryDeviceId(): Promise<string> {
 
 	if (!settings.persistentUiState.styleLibraryDeviceId) {
 		settings.persistentUiState.styleLibraryDeviceId =
-			globalThis.crypto?.randomUUID?.() ?? `qc-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+			globalThis.crypto?.randomUUID?.() ??
+			`qc-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 		await Settings.save();
 	}
 

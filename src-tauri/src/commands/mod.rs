@@ -14,5 +14,7 @@ pub mod files;
 pub mod media;
 /// Commandes de segmentation cloud/local.
 pub mod segmentation;
+/// Commandes de capture d'écran.
+pub mod screenshot;
 /// Commandes d'analyse de forme d'onde.
 pub mod waveform;

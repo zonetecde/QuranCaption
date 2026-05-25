@@ -14,6 +14,16 @@
 		getActiveVisualMergeMode
 	} from './visualMergeStyleUtils';
 
+	let {
+		presetLibraryOpen,
+		openPresetLibrary,
+		closePresetLibrary
+	}: {
+		presetLibraryOpen: boolean;
+		openPresetLibrary: () => void;
+		closePresetLibrary: () => void;
+	} = $props();
+
 	const getCategoriesToDisplay = $derived(() => {
 		const target = globalState.getStylesState.getCurrentSelection();
 		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
@@ -31,8 +41,7 @@
 		globalState.getSubtitleTrack.hasWordByWordTimestamps()
 	);
 
-	let stylesContainer: HTMLDivElement | undefined;
-	let importExportMenuVisible = $state(false);
+	let stylesContainer: HTMLDivElement | undefined = $state();
 
 	const visualMergeSelection = $derived(() =>
 		globalState.getSubtitleTrack.getVisualMergeSelection(
@@ -121,22 +130,10 @@
 	}
 
 	/**
-	 * Bascule l'affichage du menu de presets de style
+	 * Ouvre la librairie de presets de style.
 	 */
 	function toggleImportExportMenu() {
-		importExportMenuVisible = !importExportMenuVisible;
-	}
-
-	// Fermer le menu en cliquant à l'extérieur
-	function handleClickOutside(event: MouseEvent) {
-		const target = event.target as Element;
-		if (
-			!target.closest('.import-export-menu') &&
-			!target.closest('.import-export-button') &&
-			!target.closest('.style-preset-modal')
-		) {
-			importExportMenuVisible = false;
-		}
+		openPresetLibrary();
 	}
 
 	/**
@@ -208,11 +205,12 @@
 	});
 </script>
 
-<svelte:window on:click={handleClickOutside} />
-
 <div
 	class="bg-secondary h-full border border-color mx-0.5 rounded-xl relative flex flex-col shadow"
 >
+	{#if presetLibraryOpen}
+		<ImportExportStyle onBack={closePresetLibrary} />
+	{:else}
 	<!-- En-tête avec icône -->
 	<div class="flex gap-x-2 items-center px-3 mb-2 mt-4 style-editor-header-row">
 		<span class="material-icons-outlined text-accent text-2xl">auto_fix_high</span>
@@ -225,7 +223,6 @@
 			>
 				<span class="material-icons-outlined text-[20px]!">style</span>Presets
 			</button>
-			<ImportExportStyle bind:isVisible={importExportMenuVisible} />
 		</div>
 	</div>
 
@@ -666,6 +663,7 @@
 			</div>
 		{/if}
 	</div>
+	{/if}
 </div>
 
 <style>

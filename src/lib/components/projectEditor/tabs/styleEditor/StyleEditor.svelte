@@ -7,6 +7,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectEditorTabs } from '$lib/classes';
 
+	let presetLibraryOpen = $state(false);
+
 	/**
 	 * Handle the keyboard shortcut for selecting all subtitles.
 	 * @param event The keyboard event
@@ -43,9 +45,14 @@
 <div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
 	<!-- Assets -->
 	<section
-		class="2xl:w-[350px] w-[300px] flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
+		class={(presetLibraryOpen ? '2xl:w-[700px] w-[600px]' : '2xl:w-[350px] w-[300px]') +
+			' flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col transition-[width] duration-200'}
 	>
-		<StyleEditorSettings />
+		<StyleEditorSettings
+			{presetLibraryOpen}
+			openPresetLibrary={() => (presetLibraryOpen = true)}
+			closePresetLibrary={() => (presetLibraryOpen = false)}
+		/>
 	</section>
 	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
 		<section class="w-full min-w-0 flex flex-col min-h-0">

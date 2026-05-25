@@ -62,6 +62,7 @@ export type ExportSettings = {
 
 export type SavedVideoStylePreset = {
 	id: number;
+	communityPresetId?: string;
 	name: string;
 	createdAt: string;
 	updatedAt: string;
@@ -91,6 +92,7 @@ export default class Settings extends SerializableBase {
 		donationPromptImpressions: 0,
 		videoExportFolder: '',
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
+		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
@@ -412,6 +414,10 @@ export default class Settings extends SerializableBase {
 			)
 		) {
 			settings.persistentUiState.wbwTranslationLanguage = 'en';
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.styleLibraryDeviceId !== 'string') {
+			settings.persistentUiState.styleLibraryDeviceId = '';
 			shouldSave = true;
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {

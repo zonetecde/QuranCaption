@@ -1032,21 +1032,29 @@
 				{:else}
 					<div class="grid grid-cols-2 gap-3">
 						{#each communityPresets as preset (preset.id)}
-							<article class="overflow-hidden rounded-lg border border-color bg-primary/50">
+							<article class="group overflow-hidden rounded-lg border border-color bg-primary/50">
 								<button
 									class="block w-full text-left"
 									type="button"
 									onclick={() => downloadAndApplyCommunityPreset(preset)}
 									disabled={downloadingPresetId !== null}
-									title="Download, save, and apply"
 								>
-									<div class="aspect-video w-full overflow-hidden bg-black/30">
+									<div class="relative aspect-video w-full overflow-hidden bg-black/30">
 										<img
 											class="h-full w-full object-cover"
 											src={preset.previewUrl}
 											alt={preset.name}
 											loading="lazy"
 										/>
+										{#if preset.description}
+											<div
+												class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent px-2 pb-1.5 pt-6 opacity-0 transition-opacity group-hover:opacity-100"
+											>
+												<p class="line-clamp-2 text-[11px] leading-tight text-white/90">
+													{preset.description}
+												</p>
+											</div>
+										{/if}
 									</div>
 									<div class="space-y-2 p-2">
 										<div class="min-w-0">
@@ -1065,17 +1073,19 @@
 												{getResolutionLabel(preset.resolution)}
 											</span>
 										</div>
-										{#if preset.tags.length > 0}
-											<div class="flex gap-1 overflow-hidden">
-												{#each preset.tags.slice(0, 3) as tag (tag)}
-													<span
-														class="truncate rounded bg-black/25 px-1.5 py-0.5 text-[10px] text-thirdly"
-													>
-														#{tag}
-													</span>
-												{/each}
-											</div>
-										{/if}
+										<div class="min-h-[18px]">
+											{#if preset.tags.length > 0}
+												<div class="flex gap-1 overflow-hidden">
+													{#each preset.tags.slice(0, 3) as tag (tag)}
+														<span
+															class="truncate rounded bg-black/25 px-1.5 py-0.5 text-[10px] text-thirdly"
+														>
+															#{tag}
+														</span>
+													{/each}
+												</div>
+											{/if}
+										</div>
 									</div>
 								</button>
 								<div

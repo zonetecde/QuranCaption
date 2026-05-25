@@ -328,6 +328,14 @@
 			globalState.getTimelineState.cursorPosition = timing;
 			globalState.getTimelineState.movePreviewTo = timing;
 			globalState.updateVideoPreviewUI();
+
+			const overlays = document.querySelectorAll<HTMLElement>('#preview .customtext');
+			const saved = new Map<HTMLElement, string>();
+			overlays.forEach((el) => {
+				saved.set(el, el.style.opacity);
+				el.style.opacity = '0';
+			});
+
 			await tick();
 			await wait(350);
 
@@ -336,14 +344,20 @@
 				await wait(500);
 			}
 
-			const bytes = new Uint8Array(await invoke<number[]>('capture_window_screenshot'));
+			try {
+				const bytes = new Uint8Array(await invoke<number[]>('capture_window_screenshot'));
+
+				const blob = new Blob([bytes], { type: 'image/jpeg' });
+				setPublishPreviewBlob(blob);
+			} finally {
+				saved.forEach((opacity, element) => {
+					element.style.opacity = opacity;
+				});
+			}
 
 			if (!wasFullscreen) {
 				await globalState.getVideoPreviewState.toggleFullScreen();
 			}
-
-			const blob = new Blob([bytes], { type: 'image/jpeg' });
-			setPublishPreviewBlob(blob);
 		} catch (error) {
 			publishError = error instanceof Error ? error.message : String(error);
 			toast.error(publishError);

@@ -514,16 +514,19 @@
 			isArabicMerged: isArabicMerged(),
 			mushafStyle: String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
-			words: renderData?.words
-				.map(
-					(word) =>
-						selectWordTimingForCurrentClip(
-							word.timings,
-							getTimelineSettings().cursorPosition / 1000,
-							currentClipId
-						) ?? word.timings[0]
-				)
-				.filter((word): word is SegmentationWordTimestamp => word !== null),
+			// Si un groupe fusionné est actif, et que un subtitle dans ce groupe ne possède
+			// pas de timing wbw, alors on enlève le rendu WBW pour tous les mots
+			words:
+				renderData?.words
+					.map(
+						(word) =>
+							selectWordTimingForCurrentClip(
+								word.timings,
+								getTimelineSettings().cursorPosition / 1000,
+								currentClipId
+							) ?? word.timings[0]
+					)
+					.filter((word): word is SegmentationWordTimestamp => word !== null) ?? [],
 			clipStartTimeS: renderData?.clipStartTimeS,
 			getStyleValue: (styleId) =>
 				styleReferenceClip

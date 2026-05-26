@@ -1090,6 +1090,35 @@ describe('Word-by-word highlight', () => {
 		expect(arabicNode).not.toBeNull();
 		expect(normalizeText(arabicNode!.textContent)).toBe(normalizeText(basmala.getText()));
 	});
+
+	test('falls back to standard arabic when a merged group has partial WBW timestamps', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'Alpha Beta', 'Alpha translation');
+		const secondClip = createVerseSubtitle(1000, 1999, 'Gamma Delta', 'Beta translation');
+		firstClip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '1:1:1',
+			refTo: '1:1:2',
+			matchedText: firstClip.text,
+			timeFrom: 0,
+			timeTo: 1,
+			words: [
+				{ location: '1:1:1', start: 0, end: 0.5 },
+				{ location: '1:1:2', start: 0.5, end: 1 }
+			]
+		};
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('enable-wbw-highlight', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const arabicNode = getForegroundArabicNode(component.container);
+		expect(arabicNode).not.toBeNull();
+		expect(arabicNode!.querySelector('.arabic-wbw-flow')).toBeNull();
+		expect(normalizeText(arabicNode!.textContent)).toContain('Alpha Beta');
+	});
 });
 
 describe('Translation inline styles', () => {

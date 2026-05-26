@@ -95,6 +95,14 @@ export type AdvancedTrimApplyReport = {
 	errors: string[];
 };
 
+export type AdvancedTrimErrorMarkReport = {
+	checkedSegments: number;
+	markedSegments: number;
+	checkedVerses: number;
+	erroredVerses: number;
+	errors: string[];
+};
+
 export type AdvancedTrimCostEstimate = {
 	batches: AdvancedTrimBatch[];
 	totalVerses: number;
@@ -185,6 +193,187 @@ function mergeWordRanges(
 	}
 
 	return merged;
+}
+
+/**
+ * Vérifie les règles de cohérence des traductions trimmées pour un verset.
+ *
+ * @param {AdvancedTrimVerseCandidate} candidate Verset et segments à vérifier.
+ * @param {Array<VerseTranslation | null>} verseTranslations Traductions associées aux segments.
+ * @param {Set<number>} checkedIndexes Index des segments qui peuvent être marqués en erreur.
+ * @returns Les indexes invalides et les messages d'erreur détectés.
+ */
+function collectAdvancedTrimRuleErrors(
+	candidate: AdvancedTrimVerseCandidate,
+	verseTranslations: Array<VerseTranslation | null>,
+	checkedIndexes: Set<number>,
+	errorStatusLabel = 'Error'
+): {
+	erroredIndexes: Set<number>;
+	remapFailedIndexes: Set<number>;
+	errors: string[];
+} {
+	const erroredIndexes = new Set<number>();
+	const remapFailedIndexes = new Set<number>();
+	const verseErrors: string[] = [];
+	const sourceTokens = tokenizeForCoverage(candidate.sourceTranslation);
+	const sourceTokenSet = new Set(sourceTokens);
+
+	for (let index = 0; index < candidate.subtitles.length; index++) {
+		if (!checkedIndexes.has(index)) continue;
+
+		const verseTranslation = verseTranslations[index];
+		if (!verseTranslation) continue;
+
+		const segmentTokens = tokenizeForCoverage(verseTranslation.text);
+		const inventedTokens = Array.from(
+			new Set(segmentTokens.filter((token) => !sourceTokenSet.has(token)))
+		);
+		if (inventedTokens.length > 0) {
+			erroredIndexes.add(index);
+			verseErrors.push(
+				`Verse ${candidate.verseKey}, segment ${index + 1}: the translation contains token(s) not present in the original translation (${inventedTokens.join(', ')}). The segment was marked as "${errorStatusLabel}" for review.`
+			);
+		}
+
+		if (verseTranslation.isBruteForce) {
+			erroredIndexes.add(index);
+			remapFailedIndexes.add(index);
+			verseErrors.push(
+				`Verse ${candidate.verseKey}, segment ${index + 1}: failed to map the translation back to a contiguous source range in the original translation. The segment was marked as "${errorStatusLabel}" for review.`
+			);
+		}
+	}
+
+	for (let leftIndex = 0; leftIndex < candidate.subtitles.length; leftIndex++) {
+		if (erroredIndexes.has(leftIndex)) continue;
+		const leftSubtitle = candidate.subtitles[leftIndex];
+		const leftTranslation = verseTranslations[leftIndex];
+		if (!leftTranslation) continue;
+
+		for (let rightIndex = leftIndex + 1; rightIndex < candidate.subtitles.length; rightIndex++) {
+			if (erroredIndexes.has(rightIndex)) continue;
+			const rightSubtitle = candidate.subtitles[rightIndex];
+			const rightTranslation = verseTranslations[rightIndex];
+			if (!rightTranslation) continue;
+
+			const hasArabicOverlap = rangesOverlap(
+				leftSubtitle.startWordIndex,
+				leftSubtitle.endWordIndex,
+				rightSubtitle.startWordIndex,
+				rightSubtitle.endWordIndex
+			);
+			if (!hasArabicOverlap) continue;
+
+			const hasTranslationOverlap = rangesOverlap(
+				leftTranslation.startWordIndex,
+				leftTranslation.endWordIndex,
+				rightTranslation.startWordIndex,
+				rightTranslation.endWordIndex
+			);
+
+			if (!hasTranslationOverlap) {
+				erroredIndexes.add(leftIndex);
+				erroredIndexes.add(rightIndex);
+				verseErrors.push(
+					`Verse ${candidate.verseKey}, segments ${leftIndex + 1} and ${rightIndex + 1}: Arabic segments overlap but mapped translation ranges do not overlap.`
+				);
+			}
+		}
+	}
+
+	if (!candidate.hasFullVerseCoverage) {
+		const coveredRanges: Array<{ start: number; end: number; checkedIndex?: number }> = [];
+
+		for (let index = 0; index < candidate.subtitles.length; index++) {
+			const verseTranslation = verseTranslations[index];
+			const candidateSegment = candidate.segments[index];
+			if (!verseTranslation) continue;
+
+			if (!checkedIndexes.has(index)) {
+				if (!verseTranslation.isBruteForce) {
+					coveredRanges.push({
+						start: verseTranslation.startWordIndex,
+						end: verseTranslation.endWordIndex
+					});
+				}
+				continue;
+			}
+
+			if (erroredIndexes.has(index) || verseTranslation.isBruteForce) continue;
+			coveredRanges.push({
+				start: verseTranslation.startWordIndex,
+				end: verseTranslation.endWordIndex,
+				checkedIndex: candidateSegment.i
+			});
+		}
+
+		const mergedRanges = mergeWordRanges(
+			coveredRanges.map((range) => ({ start: range.start, end: range.end }))
+		);
+		const totalSourceWords = splitWords(candidate.sourceTranslation).length;
+		const uncoveredRanges: Array<{ start: number; end: number }> = [];
+		let cursor = 0;
+
+		for (const range of mergedRanges) {
+			if (range.start > cursor) {
+				uncoveredRanges.push({ start: cursor, end: range.start - 1 });
+			}
+			cursor = Math.max(cursor, range.end + 1);
+		}
+		if (cursor < totalSourceWords) {
+			uncoveredRanges.push({ start: cursor, end: totalSourceWords - 1 });
+		}
+
+		if (uncoveredRanges.length > 0) {
+			const mappedCheckedRanges = coveredRanges
+				.filter(
+					(range): range is { start: number; end: number; checkedIndex: number } =>
+						typeof range.checkedIndex === 'number'
+				)
+				.sort((left, right) => left.start - right.start);
+
+			for (const uncoveredRange of uncoveredRanges) {
+				const nearbyIndexes = new Set<number>();
+				let previousCheckedRange: { start: number; end: number; checkedIndex: number } | null =
+					null;
+				let nextCheckedRange: { start: number; end: number; checkedIndex: number } | null = null;
+
+				for (const range of mappedCheckedRanges) {
+					if (range.end < uncoveredRange.start) {
+						previousCheckedRange = range;
+						continue;
+					}
+					if (range.start > uncoveredRange.end) {
+						nextCheckedRange = range;
+						break;
+					}
+				}
+
+				if (previousCheckedRange) nearbyIndexes.add(previousCheckedRange.checkedIndex);
+				if (nextCheckedRange) nearbyIndexes.add(nextCheckedRange.checkedIndex);
+				if (nearbyIndexes.size === 0) {
+					for (const index of checkedIndexes) {
+						if (!erroredIndexes.has(index)) nearbyIndexes.add(index);
+					}
+				}
+
+				for (const index of nearbyIndexes) {
+					if (erroredIndexes.has(index)) continue;
+					erroredIndexes.add(index);
+					verseErrors.push(
+						`Verse ${candidate.verseKey}, segment ${index + 1}: the combined trimmed segments do not cover the full original translation. This segment was marked as "${errorStatusLabel}" because one or more original words are still missing from the verse coverage.`
+					);
+				}
+			}
+		}
+	}
+
+	return {
+		erroredIndexes,
+		remapFailedIndexes,
+		errors: verseErrors
+	};
 }
 
 function buildRequestPayload(verses: AdvancedTrimVerseCandidate[]): {
@@ -583,17 +772,12 @@ export function applyAdvancedTrimValidationSuccess(
 
 	for (const success of validVerses) {
 		const verseTranslations: Array<VerseTranslation | null> = [];
-		const erroredIndexes = new Set<number>();
-		const remapFailedIndexes = new Set<number>();
-		const verseErrors: string[] = [];
 		const aiSegmentIndexes = new Set(
 			success.candidate.segments.filter((segment) => segment.needsAi).map((segment) => segment.i)
 		);
 		const resultTextByIndex = new Map(
 			success.result.segments.map((segment) => [segment.i, segment.text] as const)
 		);
-		const sourceTokens = tokenizeForCoverage(success.candidate.sourceTranslation);
-		const sourceTokenSet = new Set(sourceTokens);
 
 		for (let index = 0; index < success.candidate.subtitles.length; index++) {
 			const subtitle = success.candidate.subtitles[index];
@@ -608,153 +792,15 @@ export function applyAdvancedTrimValidationSuccess(
 			verseTranslation.isBruteForce = false;
 			verseTranslation.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
 			appliedSegments++;
-
-			const segmentTokens = tokenizeForCoverage(nextText);
-			const inventedTokens = Array.from(
-				new Set(segmentTokens.filter((token) => !sourceTokenSet.has(token)))
-			);
-			if (inventedTokens.length > 0) {
-				erroredIndexes.add(index);
-				verseErrors.push(
-					`Verse ${success.candidate.verseKey}, segment ${index + 1}: the AI introduced token(s) not present in the original translation (${inventedTokens.join(', ')}). The segment was kept but marked as "AI Error" for review.`
-				);
-			}
-
-			if (verseTranslation.isBruteForce) {
-				erroredIndexes.add(index);
-				remapFailedIndexes.add(index);
-				verseErrors.push(
-					`Verse ${success.candidate.verseKey}, segment ${index + 1}: failed to map the AI text back to a contiguous source range in the original translation. The AI text was still written to the segment, but it was marked as "AI Error". Please verify it manually because it no longer matches a contiguous word range from the original translation.`
-				);
-			}
 		}
 
-		for (let leftIndex = 0; leftIndex < success.candidate.subtitles.length; leftIndex++) {
-			if (erroredIndexes.has(leftIndex)) continue;
-			const leftSubtitle = success.candidate.subtitles[leftIndex];
-			const leftTranslation = verseTranslations[leftIndex];
-			if (!leftTranslation) continue;
-
-			for (
-				let rightIndex = leftIndex + 1;
-				rightIndex < success.candidate.subtitles.length;
-				rightIndex++
-			) {
-				if (erroredIndexes.has(rightIndex)) continue;
-				const rightSubtitle = success.candidate.subtitles[rightIndex];
-				const rightTranslation = verseTranslations[rightIndex];
-				if (!rightTranslation) continue;
-
-				const hasArabicOverlap = rangesOverlap(
-					leftSubtitle.startWordIndex,
-					leftSubtitle.endWordIndex,
-					rightSubtitle.startWordIndex,
-					rightSubtitle.endWordIndex
-				);
-				if (!hasArabicOverlap) continue;
-
-				const hasTranslationOverlap = rangesOverlap(
-					leftTranslation.startWordIndex,
-					leftTranslation.endWordIndex,
-					rightTranslation.startWordIndex,
-					rightTranslation.endWordIndex
-				);
-
-				if (!hasTranslationOverlap) {
-					erroredIndexes.add(leftIndex);
-					erroredIndexes.add(rightIndex);
-					verseErrors.push(
-						`Verse ${success.candidate.verseKey}, segments ${leftIndex + 1} and ${rightIndex + 1}: Arabic segments overlap but mapped translation ranges do not overlap.`
-					);
-				}
-			}
-		}
-
-		if (!success.candidate.hasFullVerseCoverage) {
-			const coveredRanges: Array<{ start: number; end: number; aiIndex?: number }> = [];
-
-			for (let index = 0; index < success.candidate.subtitles.length; index++) {
-				const verseTranslation = verseTranslations[index];
-				const candidateSegment = success.candidate.segments[index];
-				if (!verseTranslation) continue;
-
-				if (!candidateSegment.needsAi) {
-					if (!verseTranslation.isBruteForce) {
-						coveredRanges.push({
-							start: verseTranslation.startWordIndex,
-							end: verseTranslation.endWordIndex
-						});
-					}
-					continue;
-				}
-
-				if (erroredIndexes.has(index) || verseTranslation.isBruteForce) continue;
-				coveredRanges.push({
-					start: verseTranslation.startWordIndex,
-					end: verseTranslation.endWordIndex,
-					aiIndex: index
-				});
-			}
-
-			const mergedRanges = mergeWordRanges(
-				coveredRanges.map((range) => ({ start: range.start, end: range.end }))
-			);
-			const totalSourceWords = splitWords(success.candidate.sourceTranslation).length;
-			const uncoveredRanges: Array<{ start: number; end: number }> = [];
-			let cursor = 0;
-
-			for (const range of mergedRanges) {
-				if (range.start > cursor) {
-					uncoveredRanges.push({ start: cursor, end: range.start - 1 });
-				}
-				cursor = Math.max(cursor, range.end + 1);
-			}
-			if (cursor < totalSourceWords) {
-				uncoveredRanges.push({ start: cursor, end: totalSourceWords - 1 });
-			}
-
-			if (uncoveredRanges.length > 0) {
-				const mappedAiRanges = coveredRanges
-					.filter(
-						(range): range is { start: number; end: number; aiIndex: number } =>
-							typeof range.aiIndex === 'number'
-					)
-					.sort((left, right) => left.start - right.start);
-
-				for (const uncoveredRange of uncoveredRanges) {
-					const nearbyIndexes = new Set<number>();
-					let previousAiRange: { start: number; end: number; aiIndex: number } | null = null;
-					let nextAiRange: { start: number; end: number; aiIndex: number } | null = null;
-
-					for (const range of mappedAiRanges) {
-						if (range.end < uncoveredRange.start) {
-							previousAiRange = range;
-							continue;
-						}
-						if (range.start > uncoveredRange.end) {
-							nextAiRange = range;
-							break;
-						}
-					}
-
-					if (previousAiRange) nearbyIndexes.add(previousAiRange.aiIndex);
-					if (nextAiRange) nearbyIndexes.add(nextAiRange.aiIndex);
-					if (nearbyIndexes.size === 0) {
-						for (const index of aiSegmentIndexes) {
-							if (!erroredIndexes.has(index)) nearbyIndexes.add(index);
-						}
-					}
-
-					for (const index of nearbyIndexes) {
-						if (erroredIndexes.has(index)) continue;
-						erroredIndexes.add(index);
-						verseErrors.push(
-							`Verse ${success.candidate.verseKey}, segment ${index + 1}: the combined AI-trimmed segments do not cover the full original translation. This segment was kept but marked as "AI Error" because one or more original words are still missing from the verse coverage.`
-						);
-					}
-				}
-			}
-		}
+		const ruleReport = collectAdvancedTrimRuleErrors(
+			success.candidate,
+			verseTranslations,
+			aiSegmentIndexes,
+			'AI Error'
+		);
+		const { erroredIndexes, remapFailedIndexes } = ruleReport;
 
 		for (let index = 0; index < success.candidate.subtitles.length; index++) {
 			const verseTranslation = verseTranslations[index];
@@ -776,7 +822,7 @@ export function applyAdvancedTrimValidationSuccess(
 			alignedVerses++;
 		}
 
-		errors.push(...verseErrors);
+		errors.push(...ruleReport.errors);
 	}
 
 	return {
@@ -784,6 +830,66 @@ export function applyAdvancedTrimValidationSuccess(
 		alignedSegments,
 		erroredSegments,
 		alignedVerses,
+		erroredVerses,
+		errors
+	};
+}
+
+/**
+ * Marque en erreur les traductions qui ne respectent pas les règles de trim avancé.
+ *
+ * @param {Edition} edition Edition de traduction à vérifier.
+ * @returns Rapport des segments vérifiés et marqués.
+ */
+export function markInvalidAdvancedTrimTranslations(edition: Edition): AdvancedTrimErrorMarkReport {
+	const candidates = buildAdvancedTrimVerseCandidates(edition, true);
+	let checkedSegments = 0;
+	let markedSegments = 0;
+	let erroredVerses = 0;
+	const errors: string[] = [];
+
+	for (const candidate of candidates) {
+		const verseTranslations: Array<VerseTranslation | null> = [];
+		const checkedIndexes = new Set<number>();
+
+		for (let index = 0; index < candidate.subtitles.length; index++) {
+			const subtitle = candidate.subtitles[index];
+			const verseTranslation = subtitle.translations[edition.name] as VerseTranslation | undefined;
+			verseTranslations[index] = verseTranslation ?? null;
+
+			if (!verseTranslation) continue;
+
+			verseTranslation.tryRecalculateTranslationIndexes(edition, candidate.verseKey);
+			checkedIndexes.add(index);
+			checkedSegments++;
+		}
+
+		const ruleReport = collectAdvancedTrimRuleErrors(
+			candidate,
+			verseTranslations,
+			checkedIndexes,
+			'Error'
+		);
+
+		for (const index of ruleReport.erroredIndexes) {
+			const verseTranslation = verseTranslations[index];
+			if (!verseTranslation || !checkedIndexes.has(index)) continue;
+
+			verseTranslation.isBruteForce = ruleReport.remapFailedIndexes.has(index);
+			verseTranslation.updateStatus('error', edition);
+			markedSegments++;
+		}
+
+		if (ruleReport.erroredIndexes.size > 0) {
+			erroredVerses++;
+		}
+		errors.push(...ruleReport.errors);
+	}
+
+	return {
+		checkedSegments,
+		markedSegments,
+		checkedVerses: candidates.length,
 		erroredVerses,
 		errors
 	};

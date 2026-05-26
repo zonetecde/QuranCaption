@@ -372,6 +372,7 @@ export class TranslationsEditorState extends SerializableBase {
 	filters: { [statut: string]: boolean } = $state({
 		'to review': true,
 		'ai error': true,
+		error: true,
 		'ai trimmed': true,
 		'automatically trimmed': true,
 		reviewed: true,
@@ -382,6 +383,9 @@ export class TranslationsEditorState extends SerializableBase {
 	onlyShowOverlappingSubtitles: boolean = $state(false);
 
 	checkOnlyFilters(list: string[]) {
+		for (const key of list) {
+			if (!(key in this.filters)) this.filters[key] = false;
+		}
 		for (const key in this.filters) {
 			if (list.includes(key)) {
 				this.filters[key] = true;

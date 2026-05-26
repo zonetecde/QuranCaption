@@ -10,6 +10,7 @@ export type TranslationStatus =
 	| 'to review'
 	| 'reviewed'
 	| 'ai error'
+	| 'error'
 	| 'fetched'
 	| 'undefined';
 

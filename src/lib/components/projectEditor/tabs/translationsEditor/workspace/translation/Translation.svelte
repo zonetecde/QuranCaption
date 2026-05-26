@@ -450,12 +450,19 @@
 				<div class="flex items-center gap-2">
 					<span class="text-xs text-secondary font-medium">Status:</span>
 					<div
-						class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 {isCompleted
-							? 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30 hover:bg-green-500/30'
-							: 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 hover:bg-orange-500/30'}"
+						class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 {status ===
+							'ai error' || status === 'error'
+							? 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/30'
+							: isCompleted
+								? 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30 hover:bg-green-500/30'
+								: 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 hover:bg-orange-500/30'}"
 					>
 						<div
-							class="w-1.5 h-1.5 rounded-full {isCompleted ? 'bg-green-500' : 'bg-orange-500'}"
+							class="w-1.5 h-1.5 rounded-full {status === 'ai error' || status === 'error'
+								? 'bg-red-500'
+								: isCompleted
+									? 'bg-green-500'
+									: 'bg-orange-500'}"
 						></div>
 						{#if status === 'completed by default'}
 							Completed by default
@@ -471,6 +478,8 @@
 							AI trimmed
 						{:else if status === 'ai error'}
 							AI error
+						{:else if status === 'error'}
+							Error
 						{:else if status === 'undefined'}
 							Undefined
 						{:else}

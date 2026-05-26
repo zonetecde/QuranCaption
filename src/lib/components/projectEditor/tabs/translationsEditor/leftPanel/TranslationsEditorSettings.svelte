@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { markInvalidAdvancedTrimTranslations } from '$lib/services/AdvancedAITrimming';
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
+	import toast from 'svelte-5-french-toast';
 	import EditionViewer from './EditionViewer.svelte';
 
 	let {
@@ -12,9 +14,16 @@
 
 	// Variable locale pour le search query avant validation
 	let localSearchQuery = $state(globalState.getTranslationsState.searchQuery);
+	let isMarkingTranslationErrors = $state(false);
 
 	$effect(() => {
 		localSearchQuery = globalState.getTranslationsState.searchQuery;
+	});
+
+	$effect(() => {
+		if (globalState.getTranslationsState.filters.error === undefined) {
+			globalState.getTranslationsState.filters.error = true;
+		}
 	});
 
 	// Fonction pour valider le search query
@@ -55,6 +64,46 @@
 			}
 		}).length;
 	});
+
+	/**
+	 * Marque les traductions dont les ranges ne respectent pas les règles de trim.
+	 *
+	 * @returns {Promise<void>} Promesse résolue après la vérification.
+	 */
+	async function markTranslationErrors(): Promise<void> {
+		if (isMarkingTranslationErrors) return;
+
+		isMarkingTranslationErrors = true;
+		try {
+			let checkedSegments = 0;
+			let markedSegments = 0;
+			let erroredVerses = 0;
+
+			for (const edition of globalState.currentProject!.content.projectTranslation
+				.addedTranslationEditions) {
+				const report = markInvalidAdvancedTrimTranslations(edition);
+				checkedSegments += report.checkedSegments;
+				markedSegments += report.markedSegments;
+				erroredVerses += report.erroredVerses;
+			}
+
+			globalState.getTranslationsState.checkOnlyFilters(['error']);
+			await globalState.currentProject?.save(false);
+
+			if (markedSegments > 0) {
+				toast.success(
+					`Marked ${markedSegments}/${checkedSegments} translation segment(s) as Error across ${erroredVerses} verse(s).`
+				);
+			} else {
+				toast.success(`Checked ${checkedSegments} translation segment(s). No errors found.`);
+			}
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			toast.error(`Failed to mark translation errors: ${message}`);
+		} finally {
+			isMarkingTranslationErrors = false;
+		}
+	}
 </script>
 
 <div
@@ -125,7 +174,7 @@
 			<!-- Grille des filtres -->
 			<div class="bg-accent border border-color rounded-lg p-1">
 				<div class="grid xl:grid-cols-2 gap-1.5">
-					{#each ['to review', 'ai error', 'ai trimmed', 'automatically trimmed', 'fetched', 'reviewed', 'completed by default'] as filter (filter)}
+					{#each ['to review', 'ai error', 'error', 'ai trimmed', 'automatically trimmed', 'fetched', 'reviewed', 'completed by default'] as filter (filter)}
 						<label
 							class="flex items-center gap-2 cursor-pointer rounded-md py-1.5 hover:bg-secondary transition-all duration-200"
 							for="filter-checkbox-{filter}"
@@ -146,7 +195,7 @@
 								class="ml-auto shrink-0 px-1 py-0.25 text-[10px] rounded-full {filter ===
 								'to review'
 									? 'bg-yellow-500/20 text-yellow-400'
-									: filter === 'ai error'
+									: filter === 'ai error' || filter === 'error'
 										? 'bg-red-500/20 text-red-400'
 										: 'bg-green-500/20 text-green-400'}"
 							>
@@ -176,7 +225,7 @@
 				</label>
 			</div>
 			<!-- Boutons d'action rapide -->
-			<div class="grid xl:grid-cols-2 gap-2 px-1">
+			<div class="grid xl:grid-cols-2 gap-2 px-1 pb-1">
 				<button
 					class="btn w-full px-2 py-2 text-xs font-medium hover:bg-blue-500 hover:border-blue-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5 relative hover:z-10"
 					onclick={() => {
@@ -195,6 +244,7 @@
 						globalState.getTranslationsState.checkOnlyFilters([
 							'to review',
 							'ai error',
+							'error',
 							'reviewed',
 							'automatically trimmed'
 						]);
@@ -207,7 +257,7 @@
 				<button
 					class="btn w-full px-2 py-2 text-xs font-medium hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5 relative hover:z-10"
 					onclick={() => {
-						globalState.getTranslationsState.checkOnlyFilters(['ai trimmed', 'ai error']);
+						globalState.getTranslationsState.checkOnlyFilters(['ai trimmed', 'ai error', 'error']);
 					}}
 				>
 					<span class="material-icons text-base">auto_fix_high</span>
@@ -217,7 +267,7 @@
 				<button
 					class="btn w-full px-2 py-2 text-xs font-medium hover:bg-orange-500 hover:border-orange-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5 relative hover:z-10"
 					onclick={() => {
-						globalState.getTranslationsState.checkOnlyFilters(['to review', 'ai error']);
+						globalState.getTranslationsState.checkOnlyFilters(['to review', 'ai error', 'error']);
 					}}
 				>
 					<span class="material-icons text-base">priority_high</span>
@@ -241,5 +291,25 @@
 				<option value={language.code}>{language.label}</option>
 			{/each}
 		</select>
+	</div>
+
+	<div class="mb-6 rounded-lg border border-color bg-accent p-3">
+		<div class="mb-2 flex items-center gap-2">
+			<span class="material-icons text-accent-primary text-lg">rule</span>
+			<h3 class="text-sm font-semibold text-primary">Translation Checks</h3>
+		</div>
+		<p class="mb-3 text-xs leading-relaxed text-secondary">
+			Check word coverage and Arabic overlap consistency, then mark invalid segments as Error.
+		</p>
+		<button
+			class="btn w-full px-3 py-2 text-xs font-medium hover:bg-red-500 hover:border-red-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5"
+			disabled={isMarkingTranslationErrors}
+			onclick={markTranslationErrors}
+		>
+			<span class="material-icons text-base">
+				{isMarkingTranslationErrors ? 'hourglass_empty' : 'report'}
+			</span>
+			{isMarkingTranslationErrors ? 'Checking translations...' : 'Mark Translation Errors'}
+		</button>
 	</div>
 </div>

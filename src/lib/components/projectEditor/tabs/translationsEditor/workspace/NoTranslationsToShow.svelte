@@ -61,7 +61,7 @@
 				<button
 					class="group flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-color/30 hover:bg-accent hover:border-blue-300/50 transition-all duration-200 text-left cursor-pointer"
 					onclick={() => {
-						globalState.getTranslationsState.checkOnlyFilters(['to review', 'ai error']);
+						globalState.getTranslationsState.checkOnlyFilters(['to review', 'ai error', 'error']);
 					}}
 				>
 					<span class="material-icons text-accent group-hover:text-accent-primary text-lg"

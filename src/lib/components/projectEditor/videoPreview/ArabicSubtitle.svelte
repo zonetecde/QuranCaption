@@ -609,12 +609,20 @@
 		const horizontalAlignment = String(
 			styles.getEffectiveValue('horizontal-text-alignment', referenceClip?.id)
 		);
-		const justifyContent =
+		const alignItems =
 			verticalAlignment === 'bottom'
 				? 'flex-end'
 				: verticalAlignment === 'top'
 					? 'flex-start'
 					: 'center';
+		const justifyContent =
+			horizontalAlignment === 'left'
+				? 'flex-start'
+				: horizontalAlignment === 'right'
+					? 'flex-end'
+					: horizontalAlignment === 'justify'
+						? 'space-between'
+						: 'center';
 		const textAlign =
 			horizontalAlignment === 'left' ||
 			horizontalAlignment === 'right' ||
@@ -622,7 +630,7 @@
 				? horizontalAlignment
 				: 'center';
 
-		return `display: flex; flex-direction: column; justify-content: ${justifyContent}; width: 100%; height: 100%; text-align: ${textAlign};`;
+		return `display: flex; flex-direction: row; align-items: ${alignItems}; justify-content: ${justifyContent}; width: 100%; height: 100%; text-align: ${textAlign};`;
 	});
 
 	/** Padding horizontal pour le fond du sous-titre arabe. */

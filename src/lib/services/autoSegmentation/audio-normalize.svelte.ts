@@ -20,7 +20,7 @@ import { WaveformService } from '$lib/services/WaveformService.svelte';
  */
 
 /** Écart minimal (ms) au-delà duquel on considère l'audio comme "étiré". */
-const RETIME_THRESHOLD_MS = 200;
+const RETIME_THRESHOLD_MS = 500;
 
 /** État réactif minimal pour l'UI (message "Preparing audio…"). */
 export const audioNormalizationStatus = $state<{ active: boolean }>({ active: false });

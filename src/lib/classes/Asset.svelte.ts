@@ -239,8 +239,8 @@ export class Asset extends SerializableBase {
 			const stretchMs = (await invoke('audio_timestamp_stretch_ms', {
 				filePath: this.filePath
 			})) as number;
-			// ~200ms d'écart cumulé suffisent à devenir perceptibles sur un long média.
-			this.metadata.audioRetimeNeeded = stretchMs > 200;
+			// ~500ms d'écart cumulé avant de considérer la dérive comme perceptible.
+			this.metadata.audioRetimeNeeded = stretchMs > 500;
 		} catch (error) {
 			console.warn('Unable to detect audio timestamp stretch for asset:', error);
 		}

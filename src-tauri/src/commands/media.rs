@@ -874,9 +874,9 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
     }
 }
 
-/// Estime l'écart (en millisecondes) entre la durée annoncée par le conteneur
-/// (basée sur les timestamps de présentation) et la durée réelle du contenu
-/// audio décodé. Un écart positif notable signale des timestamps "étirés" :
+/// Estime l'écart (en millisecondes) entre la durée du flux audio (basée sur
+/// les timestamps de présentation) et la durée réelle du contenu audio décodé.
+/// Un écart positif notable signale des timestamps "étirés" :
 /// le lecteur avance plus vite que le son réel, ce qui désynchronise les
 /// sous-titres générés par alignement (de plus en plus vers la fin du média).
 ///
@@ -894,35 +894,11 @@ pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
     let ffprobe_path =
         binaries::resolve_binary_detailed("ffprobe").map_err(map_ffprobe_resolve_error)?;
 
-    // 1. Durée du conteneur (format), dérivée des PTS.
-    let mut fmt_cmd = Command::new(&ffprobe_path);
-    fmt_cmd.args([
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "default=noprint_wrappers=1:nokey=1",
-        &file_path_str,
-    ]);
-    configure_command_no_window(&mut fmt_cmd);
-    let fmt_out = fmt_cmd
-        .output()
-        .map_err(|e| format_ffprobe_exec_failed(&format!("Unable to execute ffprobe: {}", e)))?;
-    if !fmt_out.status.success() {
-        return Err(format_ffprobe_exec_failed(&String::from_utf8_lossy(
-            &fmt_out.stderr,
-        )));
-    }
-    let container_duration_s: f64 = String::from_utf8_lossy(&fmt_out.stdout)
-        .trim()
-        .parse()
-        .unwrap_or(0.0);
-    if container_duration_s <= 0.0 {
-        return Ok(0);
-    }
-
-    // 2. Caractéristiques du flux audio + nombre de paquets (index, instantané).
+    // Caractéristiques du flux AUDIO : durée (PTS), codec, sample rate, nb paquets.
+    // On compare la durée du flux audio — et non celle du conteneur, qui suit la
+    // vidéo — à la durée réelle du contenu audio décodé. (Crucial pour les
+    // conteneurs vidéo : la vidéo n'est pas re-timée, donc `format=duration`
+    // resterait "étiré" même après correction de l'audio.)
     let mut stream_cmd = Command::new(&ffprobe_path);
     stream_cmd.args([
         "-v",
@@ -931,7 +907,7 @@ pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
         "a:0",
         "-count_packets",
         "-show_entries",
-        "stream=codec_name,profile,sample_rate,nb_read_packets",
+        "stream=codec_name,profile,sample_rate,nb_read_packets,duration",
         "-of",
         "default=noprint_wrappers=1",
         &file_path_str,
@@ -951,6 +927,7 @@ pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
     let mut profile = String::new();
     let mut sample_rate: f64 = 0.0;
     let mut packets: f64 = 0.0;
+    let mut audio_duration_s: f64 = 0.0;
     for line in stdout.lines() {
         if let Some(v) = line.strip_prefix("codec_name=") {
             codec_name = v.trim().to_string();
@@ -960,10 +937,12 @@ pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
             sample_rate = v.trim().parse().unwrap_or(0.0);
         } else if let Some(v) = line.strip_prefix("nb_read_packets=") {
             packets = v.trim().parse().unwrap_or(0.0);
+        } else if let Some(v) = line.strip_prefix("duration=") {
+            audio_duration_s = v.trim().parse().unwrap_or(0.0);
         }
     }
 
-    if sample_rate <= 0.0 || packets <= 0.0 {
+    if sample_rate <= 0.0 || packets <= 0.0 || audio_duration_s <= 0.0 {
         // Estimation impossible : on s'abstient plutôt que de risquer un faux positif.
         return Ok(0);
     }
@@ -980,11 +959,11 @@ pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
     };
 
     let content_duration_s = packets * samples_per_frame / sample_rate;
-    let stretch_s = container_duration_s - content_duration_s;
+    let stretch_s = audio_duration_s - content_duration_s;
 
     // Garde-fou : un écart > 25% de la durée trahit presque toujours une mauvaise
     // hypothèse de taille de trame (ex. variante de codec), pas un vrai étirement.
-    if stretch_s.abs() > container_duration_s * 0.25 {
+    if stretch_s.abs() > audio_duration_s * 0.25 {
         return Ok(0);
     }
 

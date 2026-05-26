@@ -62,6 +62,14 @@
 		searchOverlayVisible = false;
 	}
 
+	$effect(() => {
+		const openRequest = globalState.shared.projectSearch.openRequest;
+		if (openRequest === 0) return;
+
+		globalState.shared.projectSearch.openRequest = 0;
+		void openProjectSearch();
+	});
+
 	/**
 	 * Gère le raccourci Ctrl/Cmd+F du projet.
 	 * @param {KeyboardEvent} event Événement clavier.

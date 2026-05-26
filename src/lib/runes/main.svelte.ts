@@ -146,6 +146,9 @@ class GlobalState {
 
 	shared = $state({
 		autoSegmentationWizard: null as unknown,
+		projectSearch: {
+			openRequest: 0
+		},
 		quickTimelineEditor: {
 			active: false,
 			clipId: null as number | null,

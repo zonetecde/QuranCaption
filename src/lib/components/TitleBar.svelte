@@ -121,6 +121,17 @@
 
 		<!-- Si un projet est actif, alors on affiche les outils -->
 		{#if globalState.currentProject}
+			<button
+				class="w-10 cursor-pointer rounded-full hover:bg-accent"
+				type="button"
+				disabled={globalState.uiState.isTourActive}
+				onclick={() => {
+					globalState.shared.projectSearch.openRequest = Date.now();
+				}}
+				aria-label="Search project"
+			>
+				<span class="material-icons pt-2">search</span>
+			</button>
 			<TitleBarTools />
 		{/if}
 		<button

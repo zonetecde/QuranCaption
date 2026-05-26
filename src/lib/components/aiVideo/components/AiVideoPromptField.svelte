@@ -28,10 +28,11 @@
 		<div class="flex gap-3">
 			<button
 				type="button"
-				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.sourceMode ===
-				'ai'
+				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed! {aiv
+					.video.sourceMode === 'ai'
 					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
+				disabled
 				onclick={() => (aiv.video.sourceMode = 'ai')}
 			>
 				<span class="material-icons text-base align-middle mr-1">auto_awesome</span>
@@ -39,8 +40,8 @@
 			</button>
 			<button
 				type="button"
-				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.sourceMode ===
-				'youtube'
+				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv
+					.video.sourceMode === 'youtube'
 					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 				onclick={() => (aiv.video.sourceMode = 'youtube')}

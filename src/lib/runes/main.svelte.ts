@@ -36,7 +36,7 @@ class GlobalState {
 	aiVideo: AiVideoState = $state({
 		step: 'input',
 		video: {
-			sourceMode: 'ai',
+			sourceMode: 'youtube',
 			prompt: '',
 			youtubeUrl: '',
 			model: 'Pika Labs / High Quality',

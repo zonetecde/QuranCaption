@@ -167,11 +167,11 @@
 					<b>Batch size</b>
 					<span
 						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
-						title="Suggested values by RAM: 4 GB → 4, 8 GB → 6, 16 GB → 8, 32 GB → 12."
+						title="Auto adapts the batch size to keep system RAM under 90%. Fixed uses your manual value."
 					>
 						help_outline
 					</span>
-					for ffmpeg transitions. Lower values use less RAM but export slower. Default is 12.
+					for ffmpeg transitions. Auto adjusts RAM usage; fixed keeps the manual value.
 				</p>
 				<input
 					type="number"
@@ -181,15 +181,47 @@
 					class="input w-full h-10"
 					bind:value={globalState.getExportState.fps}
 				/>
-				<input
-					type="number"
-					min="2"
-					max="128"
-					step="1"
-					class="input w-full h-10"
-					bind:value={globalState.settings!.exportSettings.batchSize}
-					onchange={persistGlobalBatchSize}
-				/>
+				<div class="flex flex-col gap-2">
+					<div class="grid grid-cols-2 gap-1 rounded-lg border border-color bg-secondary p-1">
+						<button
+							type="button"
+							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
+								.settings!.exportSettings.batchSizeMode === 'auto'
+								? 'bg-accent-primary text-[var(--text-on-accent)]'
+								: 'text-secondary hover:bg-accent hover:text-primary'}"
+							onclick={() => {
+								globalState.settings!.exportSettings.batchSizeMode = 'auto';
+								persistGlobalBatchSize();
+							}}
+						>
+							Auto
+						</button>
+						<button
+							type="button"
+							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
+								.settings!.exportSettings.batchSizeMode === 'fixed'
+								? 'bg-accent-primary text-[var(--text-on-accent)]'
+								: 'text-secondary hover:bg-accent hover:text-primary'}"
+							onclick={() => {
+								globalState.settings!.exportSettings.batchSizeMode = 'fixed';
+								persistGlobalBatchSize();
+							}}
+						>
+							Fixed
+						</button>
+					</div>
+					{#if globalState.settings!.exportSettings.batchSizeMode === 'fixed'}
+						<input
+							type="number"
+							min="2"
+							max="128"
+							step="1"
+							class="input w-full h-10"
+							bind:value={globalState.settings!.exportSettings.batchSize}
+							onchange={persistGlobalBatchSize}
+						/>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</div>

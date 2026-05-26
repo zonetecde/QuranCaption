@@ -40,6 +40,7 @@ type MutableSettingsForMigration = {
 	};
 	aiTranslationSettings?: unknown;
 	exportSettings?: {
+		batchSizeMode?: 'auto' | 'fixed';
 		batchSize?: number;
 	};
 };

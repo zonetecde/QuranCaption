@@ -6,7 +6,9 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::sync::{Arc, LazyLock, Mutex};
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use sysinfo::System;
 use tauri::Emitter;
 use tauri::Manager;
 use tokio::task;
@@ -29,12 +31,54 @@ static FFPROBE_DURATION_CACHE: LazyLock<Mutex<HashMap<String, (u64, u128, f64)>>
 const MAX_FILTERGRAPH_IMAGES_HIGH_RES: usize = 6;
 const MAX_FILTERGRAPH_IMAGES_STANDARD: usize = 12;
 const DEFAULT_FILTERGRAPH_BATCH_SIZE: usize = 16;
+const FILTERGRAPH_BATCH_MIN: usize = 2;
+const FILTERGRAPH_BATCH_MAX: usize = 64;
+const AUTO_MEMORY_LIMIT_PERCENT: f64 = 90.0;
+const AUTO_MEMORY_GROW_BELOW_PERCENT: f64 = 72.0;
+const AUTO_MEMORY_SOFT_LIMIT_PERCENT: f64 = 86.0;
+const MEMORY_MONITOR_INTERVAL_MS: u64 = 500;
 
 #[derive(Clone, Copy)]
 struct FfmpegProgressContext {
     base_time_s: f64,
     total_time_s: f64,
     local_duration_s: f64,
+}
+
+#[derive(Clone)]
+struct MemoryMonitorConfig {
+    max_used_percent: f64,
+    state: Option<Arc<Mutex<MemoryMonitorState>>>,
+}
+
+#[derive(Clone, Copy)]
+struct MemoryMonitorState {
+    exceeded: bool,
+    peak_percent: f64,
+}
+
+#[derive(Debug)]
+struct MemoryLimitExceededError {
+    peak_percent: f64,
+    limit_percent: f64,
+}
+
+impl std::fmt::Display for MemoryLimitExceededError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "System RAM usage reached {:.1}% during ffmpeg export (limit {:.1}%).",
+            self.peak_percent, self.limit_percent
+        )
+    }
+}
+
+impl std::error::Error for MemoryLimitExceededError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FiltergraphBatchMode {
+    Auto,
+    Fixed,
 }
 
 fn is_export_cancelled(export_id: &str) -> bool {
@@ -112,11 +156,88 @@ fn emit_export_progress(
     let _ = app_handle.emit("export-progress", progress_data);
 }
 
+/// Retourne le pourcentage de RAM système utilisée.
+fn current_system_memory_used_percent(system: &mut System) -> Option<f64> {
+    system.refresh_memory();
+    let total = system.total_memory();
+    if total == 0 {
+        return None;
+    }
+
+    Some(system.used_memory() as f64 / total as f64 * 100.0)
+}
+
+/// Lance un watcher qui tue FFmpeg si la RAM dépasse la limite configurée.
+fn spawn_memory_monitor(
+    process_ref: Arc<Mutex<Option<std::process::Child>>>,
+    config: MemoryMonitorConfig,
+    state: Arc<Mutex<MemoryMonitorState>>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        let mut system = System::new();
+
+        loop {
+            thread::sleep(Duration::from_millis(MEMORY_MONITOR_INTERVAL_MS));
+
+            let process_finished = process_ref
+                .lock()
+                .map(|mut process_guard| {
+                    process_guard
+                        .as_mut()
+                        .map(|child| matches!(child.try_wait(), Ok(Some(_))))
+                        .unwrap_or(true)
+                })
+                .unwrap_or(true);
+            if process_finished {
+                break;
+            }
+
+            let Some(used_percent) = current_system_memory_used_percent(&mut system) else {
+                continue;
+            };
+
+            if let Ok(mut state_guard) = state.lock() {
+                state_guard.peak_percent = state_guard.peak_percent.max(used_percent);
+            }
+
+            if used_percent < config.max_used_percent {
+                if process_ref
+                    .lock()
+                    .map(|process_guard| process_guard.is_none())
+                    .unwrap_or(true)
+                {
+                    break;
+                }
+                continue;
+            }
+
+            if let Ok(mut state_guard) = state.lock() {
+                state_guard.exceeded = true;
+            }
+
+            if let Ok(mut process_guard) = process_ref.lock() {
+                if let Some(child) = process_guard.as_mut() {
+                    println!(
+                        "[memory][auto-batch] RAM {:.1}% >= {:.1}%, stopping ffmpeg for retry",
+                        used_percent, config.max_used_percent
+                    );
+                    let _ = child.kill();
+                } else {
+                    break;
+                }
+            }
+
+            break;
+        }
+    })
+}
+
 fn run_ffmpeg_command(
     export_id: &str,
     cmd: &[String],
     progress_context: Option<FfmpegProgressContext>,
     progress_state: Option<&str>,
+    memory_monitor: Option<MemoryMonitorConfig>,
     app_handle: &tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     ensure_export_not_cancelled(export_id)?;
@@ -143,6 +264,18 @@ fn run_ffmpeg_command(
             .map_err(|_| "Failed to lock active exports")?;
         active_exports.insert(export_id.to_string(), process_ref.clone());
     }
+    let memory_state = memory_monitor
+        .as_ref()
+        .and_then(|config| config.state.clone())
+        .unwrap_or_else(|| {
+            Arc::new(Mutex::new(MemoryMonitorState {
+                exceeded: false,
+                peak_percent: 0.0,
+            }))
+        });
+    let memory_monitor_handle = memory_monitor
+        .clone()
+        .map(|config| spawn_memory_monitor(process_ref.clone(), config, memory_state.clone()));
 
     let stderr = {
         let mut child_guard = process_ref
@@ -226,6 +359,23 @@ fn run_ffmpeg_command(
             .lock()
             .map_err(|_| "Failed to lock active exports")?;
         active_exports.remove(export_id);
+    }
+    if let Some(handle) = memory_monitor_handle {
+        let _ = handle.join();
+    }
+
+    let (memory_exceeded, memory_peak_percent) = memory_state
+        .lock()
+        .map(|state| (state.exceeded, state.peak_percent))
+        .unwrap_or((false, 0.0));
+    if memory_exceeded {
+        return Err(Box::new(MemoryLimitExceededError {
+            peak_percent: memory_peak_percent,
+            limit_percent: memory_monitor
+                .as_ref()
+                .map(|config| config.max_used_percent)
+                .unwrap_or(AUTO_MEMORY_LIMIT_PERCENT),
+        }));
     }
 
     if !status.success() {
@@ -844,6 +994,7 @@ fn ffmpeg_preprocess_video(
         &cmd,
         progress_context,
         Some("Processing Background"),
+        None,
         app_handle,
     ) {
         fs::remove_file(&tmp_path).ok();
@@ -1331,7 +1482,15 @@ fn video_has_audio(path: &str) -> bool {
 
 fn normalize_filtergraph_batch_size(batch_size: Option<i32>) -> usize {
     let requested = batch_size.unwrap_or(DEFAULT_FILTERGRAPH_BATCH_SIZE as i32);
-    requested.clamp(2, 64) as usize
+    requested.clamp(FILTERGRAPH_BATCH_MIN as i32, FILTERGRAPH_BATCH_MAX as i32) as usize
+}
+
+/// Normalise le mode de batch exporté depuis l'UI.
+fn normalize_filtergraph_batch_mode(batch_size_mode: Option<&str>) -> FiltergraphBatchMode {
+    match batch_size_mode {
+        Some("fixed") => FiltergraphBatchMode::Fixed,
+        _ => FiltergraphBatchMode::Auto,
+    }
 }
 
 fn filtergraph_batch_limit(target_size: (i32, i32), batch_size: Option<i32>) -> usize {
@@ -1343,6 +1502,36 @@ fn filtergraph_batch_limit(target_size: (i32, i32), batch_size: Option<i32>) -> 
         MAX_FILTERGRAPH_IMAGES_HIGH_RES
     } else {
         MAX_FILTERGRAPH_IMAGES_STANDARD
+    }
+}
+
+/// Ajuste la taille du prochain batch selon la RAM système actuelle.
+fn adjust_auto_batch_limit_for_memory(current_limit: usize) -> usize {
+    let mut system = System::new();
+    let Some(used_percent) = current_system_memory_used_percent(&mut system) else {
+        return current_limit;
+    };
+
+    if used_percent >= AUTO_MEMORY_SOFT_LIMIT_PERCENT {
+        let next = (current_limit / 2).max(FILTERGRAPH_BATCH_MIN);
+        println!(
+            "[memory][auto-batch] RAM avant batch {:.1}%, limite {} -> {}",
+            used_percent, current_limit, next
+        );
+        next
+    } else {
+        current_limit
+    }
+}
+
+/// Calcule la taille du prochain batch après un rendu réussi.
+fn next_auto_batch_limit_after_success(current_limit: usize, peak_percent: f64) -> usize {
+    if peak_percent > 0.0 && peak_percent < AUTO_MEMORY_GROW_BELOW_PERCENT {
+        (current_limit + 2).min(FILTERGRAPH_BATCH_MAX)
+    } else if peak_percent >= AUTO_MEMORY_SOFT_LIMIT_PERCENT {
+        (current_limit.saturating_sub(1)).max(FILTERGRAPH_BATCH_MIN)
+    } else {
+        current_limit
     }
 }
 
@@ -1533,6 +1722,7 @@ fn concat_videos_with_stream_copy(
             local_duration_s: total_duration_s.max(0.001),
         }),
         Some("Merging Files"),
+        None,
         app_handle,
     );
     fs::remove_file(concat_path).ok();
@@ -1698,6 +1888,7 @@ fn mux_video_copy_with_audio(
             local_duration_s: total_duration_s.max(0.001),
         }),
         Some("Merging Files"),
+        None,
         app_handle,
     )
 }
@@ -2053,6 +2244,7 @@ fn concat_internal_batch_videos(
             local_duration_s: total_duration_s.max(0.001),
         }),
         Some("Merging Files"),
+        None,
         &app_handle,
     );
     fs::remove_file(video_concat_path).ok();
@@ -2085,6 +2277,7 @@ fn build_and_run_ffmpeg_filter_complex(
     export_without_background: bool,
     transparent_export_format: Option<&str>,
     batch_size: Option<i32>,
+    batch_mode: FiltergraphBatchMode,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -2105,7 +2298,13 @@ fn build_and_run_ffmpeg_filter_complex(
     let tail_ms = fade_duration_ms.max(1000);
     let full_duration_ms = duration_ms.unwrap_or_else(|| timestamps_ms[n - 1] + tail_ms);
     let full_duration_s = (full_duration_ms as f64 / 1000.0).max(0.001);
-    let batch_limit = filtergraph_batch_limit(target_size, batch_size);
+    let fixed_batch_limit = filtergraph_batch_limit(target_size, batch_size);
+    let mut auto_batch_limit = filtergraph_batch_limit(target_size, None);
+    let batch_limit = if batch_mode == FiltergraphBatchMode::Fixed {
+        fixed_batch_limit
+    } else {
+        auto_batch_limit
+    };
     let (w, h) = target_size;
 
     // Prétraiter le fond une seule fois pour toute la plage exportée.
@@ -2129,7 +2328,7 @@ fn build_and_run_ffmpeg_filter_complex(
         Vec::new()
     };
 
-    if n <= batch_limit {
+    if batch_mode == FiltergraphBatchMode::Fixed && n <= batch_limit {
         return render_ffmpeg_filter_complex_single(
             export_id,
             out_path,
@@ -2155,13 +2354,14 @@ fn build_and_run_ffmpeg_filter_complex(
             performance_profile,
             0.0,
             full_duration_s,
+            None,
             app_handle,
         );
     }
 
     println!(
-        "[batching] {} image(s), limite {}, rendu interne en batchs",
-        n, batch_limit
+        "[batching] {} image(s), mode {:?}, limite initiale {}, rendu interne en batchs",
+        n, batch_mode, batch_limit
     );
     println!(
         "[batching] {} timing(s) blank disponibles pour le rendu",
@@ -2189,7 +2389,13 @@ fn build_and_run_ffmpeg_filter_complex(
     while batch_start_idx < n {
         ensure_export_not_cancelled(export_id)?;
 
-        let batch_end_idx = choose_shared_batch_end_idx(n, batch_start_idx, batch_limit);
+        let effective_batch_limit = if batch_mode == FiltergraphBatchMode::Auto {
+            auto_batch_limit = adjust_auto_batch_limit_for_memory(auto_batch_limit);
+            auto_batch_limit
+        } else {
+            batch_limit
+        };
+        let batch_end_idx = choose_shared_batch_end_idx(n, batch_start_idx, effective_batch_limit);
         let is_last_batch = batch_end_idx >= n;
         let batch_start_adjusted_ts = timestamps_ms[batch_start_idx];
         let batch_slice = &timestamps_ms[batch_start_idx..batch_end_idx];
@@ -2271,7 +2477,20 @@ fn build_and_run_ffmpeg_filter_complex(
             batch_output
         );
 
-        render_ffmpeg_filter_complex_single(
+        let memory_state = Arc::new(Mutex::new(MemoryMonitorState {
+            exceeded: false,
+            peak_percent: 0.0,
+        }));
+        let memory_monitor = if batch_mode == FiltergraphBatchMode::Auto {
+            Some(MemoryMonitorConfig {
+                max_used_percent: AUTO_MEMORY_LIMIT_PERCENT,
+                state: Some(memory_state.clone()),
+            })
+        } else {
+            None
+        };
+
+        let render_result = render_ffmpeg_filter_complex_single(
             export_id,
             &batch_output,
             &image_paths[batch_start_idx..batch_end_idx],
@@ -2296,8 +2515,59 @@ fn build_and_run_ffmpeg_filter_complex(
             performance_profile,
             batch_base_s,
             full_duration_s,
+            memory_monitor,
             app_handle.clone(),
-        )?;
+        );
+
+        if let Err(error) = render_result {
+            let memory_error = error
+                .downcast_ref::<MemoryLimitExceededError>()
+                .map(|error| error.to_string());
+            if batch_mode == FiltergraphBatchMode::Auto {
+                if let Some(message) = memory_error {
+                    fs::remove_file(&batch_output).ok();
+                    if effective_batch_limit <= FILTERGRAPH_BATCH_MIN {
+                        return Err(Box::new(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!(
+                                "{} Minimum auto batch size ({}) still exceeds the RAM limit.",
+                                message, FILTERGRAPH_BATCH_MIN
+                            ),
+                        )));
+                    }
+
+                    auto_batch_limit = (effective_batch_limit / 2).max(FILTERGRAPH_BATCH_MIN);
+                    println!(
+                        "[memory][auto-batch] retry batch {} with limit {} after RAM limit",
+                        batch_index, auto_batch_limit
+                    );
+                    continue;
+                }
+            }
+
+            return Err(error);
+        }
+
+        if batch_mode == FiltergraphBatchMode::Auto {
+            let peak_percent = memory_state
+                .lock()
+                .map(|state| state.peak_percent)
+                .unwrap_or(0.0);
+            let next_limit =
+                next_auto_batch_limit_after_success(effective_batch_limit, peak_percent);
+            if next_limit != effective_batch_limit {
+                println!(
+                    "[memory][auto-batch] batch {} peak {:.1}%, next limit {} -> {}",
+                    batch_index, peak_percent, effective_batch_limit, next_limit
+                );
+            } else {
+                println!(
+                    "[memory][auto-batch] batch {} peak {:.1}%, keeping limit {}",
+                    batch_index, peak_percent, effective_batch_limit
+                );
+            }
+            auto_batch_limit = next_limit;
+        }
 
         batch_paths.push(batch_output);
         batch_durations_s.push(batch_duration_s);
@@ -2367,6 +2637,7 @@ fn render_ffmpeg_filter_complex_single(
     performance_profile: ExportPerformanceProfile,
     progress_base_s: f64,
     progress_total_s: f64,
+    memory_monitor: Option<MemoryMonitorConfig>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // TEMP TEST: force FFmpeg failure on every export to test error handling UI.
@@ -2832,6 +3103,7 @@ fn render_ffmpeg_filter_complex_single(
             local_duration_s: duration_s,
         }),
         Some("Adding Subtitles"),
+        memory_monitor,
         &app_handle,
     )
 }
@@ -2863,6 +3135,7 @@ pub async fn export_video(
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
     batch_size: Option<i32>,
+    batch_size_mode: Option<String>,
     blank_timings: Option<Vec<i32>>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
@@ -2909,6 +3182,8 @@ pub async fn export_video(
         "[perf] batch_size={}",
         normalize_filtergraph_batch_size(batch_size)
     );
+    let batch_mode = normalize_filtergraph_batch_mode(batch_size_mode.as_deref());
+    println!("[perf] batch_size_mode={:?}", batch_mode);
     println!(
         "[batching] blank timings fournis={}",
         blank_timings.as_ref().map_or(0, Vec::len)
@@ -3098,6 +3373,7 @@ pub async fn export_video(
             export_without_background.unwrap_or(false),
             transparent_export_format.as_deref(),
             batch_size,
+            batch_mode,
             performance_profile,
             app_handle,
         )
@@ -3539,6 +3815,7 @@ pub async fn concat_videos(
         &cmd,
         Some(progress_context),
         Some("Merging Files"),
+        None,
         &app,
     )
     .map_err(|e| format!("Erreur exécution FFmpeg: {}", e))?;

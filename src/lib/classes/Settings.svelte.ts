@@ -57,6 +57,7 @@ export type AITranslationSettings = {
 };
 
 export type ExportSettings = {
+	batchSizeMode: 'auto' | 'fixed';
 	batchSize: number;
 };
 
@@ -76,6 +77,7 @@ const DEFAULT_HOME_EXPLORER_SELECTION: ExplorerSelection = { kind: 'all' };
 export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
+		batchSizeMode: 'auto',
 		batchSize: 12
 	};
 
@@ -457,6 +459,14 @@ export default class Settings extends SerializableBase {
 			Number.isNaN(settings.exportSettings.batchSize)
 		) {
 			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
+			shouldSave = true;
+		}
+
+		if (
+			settings.exportSettings.batchSizeMode !== 'auto' &&
+			settings.exportSettings.batchSizeMode !== 'fixed'
+		) {
+			settings.exportSettings.batchSizeMode = Settings.DEFAULT_EXPORT_SETTINGS.batchSizeMode;
 			shouldSave = true;
 		}
 

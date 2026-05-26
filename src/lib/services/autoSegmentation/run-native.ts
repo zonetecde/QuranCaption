@@ -13,6 +13,10 @@ import { QdcRecitationService } from '$lib/services/QdcRecitationService';
 import ModalManager from '$lib/components/modals/ModalManager';
 import type { AutoSegmentationResult } from './types';
 import { closeSmallSubtitleGaps, insertSilenceClips } from './timeline';
+import {
+	beginAudioNormalizationIfNeeded,
+	awaitAudioNormalization
+} from './audio-normalize.svelte';
 
 /**
  * Gère le flux de segmentation "Native" en utilisant les données de timing
@@ -123,6 +127,10 @@ export async function runNativeSegmentation(
 		if (!confirmOverwrite) return { status: 'cancelled' };
 	}
 
+	// Re-timing audio en parallèle de la récupération du timing (point d'attente
+	// avant la création des clips ci-dessous).
+	beginAudioNormalizationIfNeeded();
+
 	const surahId = nativeTimingMeta.surahId;
 	let toastId: string | undefined;
 
@@ -155,6 +163,9 @@ export async function runNativeSegmentation(
 
 		// 4. Chargement des données du Quran
 		await Quran.load();
+
+		// Garde : attendre la fin du re-timing audio avant de poser les clips.
+		await awaitAudioNormalization();
 
 		// 5. Construction des clips
 		subtitleTrack.clips = [];

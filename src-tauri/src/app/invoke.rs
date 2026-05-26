@@ -30,6 +30,8 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         exporter::commands::cancel_export,
         exporter::commands::concat_videos,
         commands::media::convert_audio_to_cbr,
+        commands::media::audio_timestamp_stretch_ms,
+        commands::media::normalize_audio_timestamps,
         commands::media::cut_audio,
         commands::media::cut_video,
         commands::media::concat_audio,

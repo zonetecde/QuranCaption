@@ -2,6 +2,7 @@ import { parseImportedSegmentationJson } from './parsing';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
+import { beginAudioNormalizationIfNeeded } from './audio-normalize.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import type { AutoSegmentationOptions, AutoSegmentationResult } from './types';
@@ -29,6 +30,9 @@ export async function runAutoSegmentationFromImportedJson(
 	if (!audioInfo || audioClips.length === 0) {
 		return { status: 'failed', message: 'No audio clip found in the project.' };
 	}
+
+	// Re-timing audio en parallèle (point d'attente : apply).
+	beginAudioNormalizationIfNeeded();
 
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {

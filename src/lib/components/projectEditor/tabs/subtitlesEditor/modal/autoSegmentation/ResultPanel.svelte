@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getSharedWizard } from './sharedWizard';
+	import { audioNormalizationStatus } from '$lib/services/autoSegmentation/audio-normalize.svelte';
 
 	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
 	const wizard = getSharedWizard();
@@ -18,6 +19,12 @@
 						? 'Sending audio to cloud...'
 						: 'Running local segmentation...')}
 		</div>
+		{#if audioNormalizationStatus.active}
+			<div class="mt-2 flex items-center gap-2 text-[11px] text-thirdly">
+				<span class="material-icons text-[14px] leading-none">graphic_eq</span>
+				Preparing audio… (one-time optimization, a few seconds)
+			</div>
+		{/if}
 		{#if wizard.currentStatusProgress !== null}
 			<div class="mt-3">
 				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">

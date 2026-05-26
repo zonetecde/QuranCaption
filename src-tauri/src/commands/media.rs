@@ -873,3 +873,221 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
         }
     }
 }
+
+/// Estime l'écart (en millisecondes) entre la durée annoncée par le conteneur
+/// (basée sur les timestamps de présentation) et la durée réelle du contenu
+/// audio décodé. Un écart positif notable signale des timestamps "étirés" :
+/// le lecteur avance plus vite que le son réel, ce qui désynchronise les
+/// sous-titres générés par alignement (de plus en plus vers la fin du média).
+///
+/// Détection bon marché : aucune décode complète, on s'appuie sur l'index des
+/// paquets (ffprobe `-count_packets`). Retourne 0 quand l'estimation n'est pas
+/// fiable, afin d'éviter les faux positifs.
+#[tauri::command]
+pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
+    let file_path = path_utils::normalize_existing_path(&file_path);
+    let file_path_str = file_path.to_string_lossy().to_string();
+    if !file_path.exists() {
+        return Err(format!("File not found: {}", file_path_str));
+    }
+
+    let ffprobe_path =
+        binaries::resolve_binary_detailed("ffprobe").map_err(map_ffprobe_resolve_error)?;
+
+    // 1. Durée du conteneur (format), dérivée des PTS.
+    let mut fmt_cmd = Command::new(&ffprobe_path);
+    fmt_cmd.args([
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        &file_path_str,
+    ]);
+    configure_command_no_window(&mut fmt_cmd);
+    let fmt_out = fmt_cmd
+        .output()
+        .map_err(|e| format_ffprobe_exec_failed(&format!("Unable to execute ffprobe: {}", e)))?;
+    if !fmt_out.status.success() {
+        return Err(format_ffprobe_exec_failed(&String::from_utf8_lossy(
+            &fmt_out.stderr,
+        )));
+    }
+    let container_duration_s: f64 = String::from_utf8_lossy(&fmt_out.stdout)
+        .trim()
+        .parse()
+        .unwrap_or(0.0);
+    if container_duration_s <= 0.0 {
+        return Ok(0);
+    }
+
+    // 2. Caractéristiques du flux audio + nombre de paquets (index, instantané).
+    let mut stream_cmd = Command::new(&ffprobe_path);
+    stream_cmd.args([
+        "-v",
+        "error",
+        "-select_streams",
+        "a:0",
+        "-count_packets",
+        "-show_entries",
+        "stream=codec_name,profile,sample_rate,nb_read_packets",
+        "-of",
+        "default=noprint_wrappers=1",
+        &file_path_str,
+    ]);
+    configure_command_no_window(&mut stream_cmd);
+    let stream_out = stream_cmd
+        .output()
+        .map_err(|e| format_ffprobe_exec_failed(&format!("Unable to execute ffprobe: {}", e)))?;
+    if !stream_out.status.success() {
+        return Err(format_ffprobe_exec_failed(&String::from_utf8_lossy(
+            &stream_out.stderr,
+        )));
+    }
+
+    let stdout = String::from_utf8_lossy(&stream_out.stdout);
+    let mut codec_name = String::new();
+    let mut profile = String::new();
+    let mut sample_rate: f64 = 0.0;
+    let mut packets: f64 = 0.0;
+    for line in stdout.lines() {
+        if let Some(v) = line.strip_prefix("codec_name=") {
+            codec_name = v.trim().to_string();
+        } else if let Some(v) = line.strip_prefix("profile=") {
+            profile = v.trim().to_string();
+        } else if let Some(v) = line.strip_prefix("sample_rate=") {
+            sample_rate = v.trim().parse().unwrap_or(0.0);
+        } else if let Some(v) = line.strip_prefix("nb_read_packets=") {
+            packets = v.trim().parse().unwrap_or(0.0);
+        }
+    }
+
+    if sample_rate <= 0.0 || packets <= 0.0 {
+        // Estimation impossible : on s'abstient plutôt que de risquer un faux positif.
+        return Ok(0);
+    }
+
+    // Échantillons par trame selon le codec (1024 par défaut, AAC-LC).
+    let is_he_aac = profile.contains("HE");
+    let samples_per_frame: f64 = match codec_name.as_str() {
+        "aac" if is_he_aac => 2048.0,
+        "aac" => 1024.0,
+        "mp3" => 1152.0,
+        "ac3" | "eac3" => 1536.0,
+        "opus" => 960.0,
+        _ => 1024.0,
+    };
+
+    let content_duration_s = packets * samples_per_frame / sample_rate;
+    let stretch_s = container_duration_s - content_duration_s;
+
+    // Garde-fou : un écart > 25% de la durée trahit presque toujours une mauvaise
+    // hypothèse de taille de trame (ex. variante de codec), pas un vrai étirement.
+    if stretch_s.abs() > container_duration_s * 0.25 {
+        return Ok(0);
+    }
+
+    Ok((stretch_s * 1000.0).round() as i64)
+}
+
+/// Régénère des timestamps audio contigus (PTS == temps réel du contenu) en
+/// remuxant le fichier sur place. Le flux vidéo éventuel est copié tel quel
+/// (aucune ré-encodage vidéo). Corrige la désynchronisation progressive des
+/// sous-titres issus de l'alignement sans dégrader la vidéo.
+///
+/// Volontairement distinct de `convert_audio_to_cbr` (qui ne touche pas aux
+/// timestamps) : ici on ré-encode uniquement l'audio avec le filtre
+/// `asetpts=N/SR/TB`, qui reconstruit les PTS à partir du nombre d'échantillons.
+#[tauri::command]
+pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
+    let file_path = path_utils::normalize_existing_path(&file_path);
+    let file_path_str = file_path.to_string_lossy().to_string();
+    if !file_path.exists() {
+        return Err(format!("File not found: {}", file_path_str));
+    }
+
+    let ffmpeg_path =
+        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let extension = file_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("mp4");
+    let file_stem = file_path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("temp");
+    let temp_path = if let Some(parent_dir) = file_path.parent() {
+        parent_dir.join(format!("{}_retime_temp.{}", file_stem, extension))
+    } else {
+        PathBuf::from(format!("{}_retime_temp.{}", file_stem, extension))
+    };
+
+    let is_audio_only = matches!(
+        extension.to_lowercase().as_str(),
+        "mp3" | "wav" | "flac" | "aac" | "ogg" | "m4a" | "opus" | "weba"
+    );
+
+    let mut cmd = Command::new(&ffmpeg_path);
+    if is_audio_only {
+        // Pas de `-c:a` : ffmpeg choisit l'encodeur par défaut du conteneur de
+        // sortie (mp3 -> mp3, m4a -> aac, etc.), ce qui évite tout codec invalide.
+        cmd.args([
+            "-i",
+            &file_path_str,
+            "-map",
+            "0:a:0",
+            "-af",
+            "asetpts=N/SR/TB",
+            "-b:a",
+            "192k",
+            "-y",
+            temp_path.to_string_lossy().as_ref(),
+        ]);
+    } else {
+        cmd.args([
+            "-i",
+            &file_path_str,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0",
+            "-c:v",
+            "copy",
+            "-af",
+            "asetpts=N/SR/TB",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-movflags",
+            "+faststart",
+            "-y",
+            temp_path.to_string_lossy().as_ref(),
+        ]);
+    }
+    configure_command_no_window(&mut cmd);
+
+    match cmd.output() {
+        Ok(result) => {
+            if result.status.success() {
+                if let Err(e) = std::fs::remove_file(&file_path) {
+                    let _ = std::fs::remove_file(&temp_path);
+                    return Err(format!("Failed to remove original file: {}", e));
+                }
+                if let Err(e) = std::fs::rename(&temp_path, &file_path) {
+                    return Err(format!("Failed to replace original file: {}", e));
+                }
+                Ok(())
+            } else {
+                let _ = std::fs::remove_file(&temp_path);
+                let stderr = String::from_utf8_lossy(&result.stderr);
+                Err(format!("ffmpeg error: {}", stderr))
+            }
+        }
+        Err(e) => {
+            let _ = std::fs::remove_file(&temp_path);
+            Err(format!("Unable to execute ffmpeg: {}", e))
+        }
+    }
+}

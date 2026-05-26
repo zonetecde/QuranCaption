@@ -15,6 +15,11 @@ export { applySegmentationResponseToProject } from './autoSegmentation/apply-seg
 export { runAutoSegmentation } from './autoSegmentation/run-segmentation';
 export { runAutoSegmentationFromImportedJson } from './autoSegmentation/run-imported';
 export { runNativeSegmentation } from './autoSegmentation/run-native';
+export {
+	beginAudioNormalizationIfNeeded,
+	awaitAudioNormalization,
+	audioNormalizationStatus
+} from './autoSegmentation/audio-normalize.svelte';
 
 export {
 	SMALL_GAP_MS,

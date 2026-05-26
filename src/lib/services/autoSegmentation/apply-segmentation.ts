@@ -32,6 +32,7 @@ import {
 	extendSubtitlesToFillGaps,
 	insertSilenceClips
 } from './timeline';
+import { awaitAudioNormalization } from './audio-normalize.svelte';
 
 /**
  * Marque les traductions d'un clip comme "to review".
@@ -499,6 +500,11 @@ export async function applySegmentationResponseToProject(
 		const message = response.error || 'No segments returned from the segmentation service.';
 		return { status: 'failed', message };
 	}
+
+	// Garde : s'assurer que le re-timing audio (lancé en parallèle) est terminé
+	// avant de matérialiser les clips, pour que les timestamps coïncident avec
+	// l'audio rejoué.
+	await awaitAudioNormalization();
 
 	const subtitleTrack = globalState.getSubtitleTrack;
 	subtitleTrack.clips = [];

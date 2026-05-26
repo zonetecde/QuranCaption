@@ -176,6 +176,7 @@ export class Asset extends SerializableBase {
 			this.duration = new Duration(durationMs);
 			this.durationLoadState = 'success';
 			await this.warnIfNotConstantBitrate();
+			await this.checkAudioTimestampStretch();
 
 			if (durationMs === -1) {
 				this.duration = new Duration(0);
@@ -217,6 +218,31 @@ export class Asset extends SerializableBase {
 			);
 		} catch (error) {
 			console.warn('Unable to detect bitrate mode for asset:', error);
+		}
+	}
+
+	/**
+	 * Détecte un éventuel "étirement" des timestamps audio (PTS plus longs que le
+	 * contenu réel décodé) et mémorise le résultat dans les métadonnées, afin que
+	 * l'auto-segmentation puisse re-timer l'audio plus tard — y compris dans une
+	 * session ultérieure. Silencieux : aucune action n'est prise ici, le re-timing
+	 * a lieu au moment d'une auto-segmentation.
+	 * @returns {Promise<void>}
+	 */
+	private async checkAudioTimestampStretch(): Promise<void> {
+		if (this.type !== AssetType.Audio && this.type !== AssetType.Video) return;
+		// Déjà corrigé, ou déjà détecté précédemment : rien à refaire.
+		if (this.metadata.audioRetimeDone === true) return;
+		if (typeof this.metadata.audioRetimeNeeded === 'boolean') return;
+
+		try {
+			const stretchMs = (await invoke('audio_timestamp_stretch_ms', {
+				filePath: this.filePath
+			})) as number;
+			// ~200ms d'écart cumulé suffisent à devenir perceptibles sur un long média.
+			this.metadata.audioRetimeNeeded = stretchMs > 200;
+		} catch (error) {
+			console.warn('Unable to detect audio timestamp stretch for asset:', error);
 		}
 	}
 

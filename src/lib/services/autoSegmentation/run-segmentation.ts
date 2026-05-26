@@ -17,6 +17,7 @@ import {
 import { parseSegmentationResponseFromThrownError } from './parsing';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
+import { beginAudioNormalizationIfNeeded } from './audio-normalize.svelte';
 
 /**
  * Détecte les erreurs de quota GPU cloud qui justifient un retry sur CPU.
@@ -248,6 +249,9 @@ export async function runAutoSegmentation(
 	if (!audioInfo || audioClips.length === 0) {
 		return { status: 'failed', message: 'No audio clip found in the project.' };
 	}
+
+	// Re-timing audio en parallèle de la segmentation (point d'attente : apply).
+	beginAudioNormalizationIfNeeded();
 
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {

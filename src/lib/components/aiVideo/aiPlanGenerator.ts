@@ -77,7 +77,7 @@ ${reciterList}
 Respond ONLY with valid JSON in this exact format:
 {
   "title": "A short project title (max 50 characters) summarizing the theme and verses",
-  "videoPrompt": "${shouldAskForVideoPrompt ? 'A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Be very descriptive and visual.' : ''}",
+  "videoPrompt": "${shouldAskForVideoPrompt ? 'A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Do not include humans or any living beings. Be very descriptive and visual.' : ''}",
   "reciterId": <reciter ID from the list above>,
   "reciter": "Name of the selected reciter",
   "surah": <surah number 1-114>,
@@ -88,7 +88,7 @@ Respond ONLY with valid JSON in this exact format:
 Rules:
 - Choose verses that are MOST relevant to the given theme
 - Keep the verse range reasonable (3-15 verses)
-- ${shouldAskForVideoPrompt ? 'The videoPrompt should describe a beautiful, contemplative visual scene matching the theme' : 'Leave videoPrompt as an empty string'}
+- ${shouldAskForVideoPrompt ? 'The videoPrompt should describe a beautiful, contemplative visual scene matching the theme, without humans or any living beings' : 'Leave videoPrompt as an empty string'}
 - Pick a reciter whose style matches the mood (e.g. emotional themes → emotional reciter)
 - You MUST use reciterId from the available reciters list${forcedReciterInstruction}`;
 

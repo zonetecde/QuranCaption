@@ -62,11 +62,11 @@
 	<p class="text-thirdly text-sm mb-4">{description}</p>
 {/if}
 
-<div class="flex flex-col gap-2">
-	<div class="flex items-center gap-2">
+<div class="flex flex-col gap-2 w-full">
+	<div class="flex items-center gap-2 w-full">
 		<input
 			type="text"
-			class="flex-1 bg-secondary border border-color rounded p-2 text-sm text-secondary"
+			class="flex-1 min-w-0 bg-secondary border border-color rounded p-2 text-sm text-secondary"
 			title={currentExportFolder}
 			bind:value={currentExportFolder}
 			oninput={(event) => setCustomExportFolder((event.currentTarget as HTMLInputElement).value)}

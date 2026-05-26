@@ -53,7 +53,7 @@
 	}
 
 	/**
-	 * Retourne l'indice d'étape principal (1..4) selon l'état courant.
+	 * Retourne l'indice d'étape principal (1..3) selon l'état courant.
 	 */
 	function getStepIndex(state: ExportState): number | null {
 		return getStepInfo(state)?.current ?? null;
@@ -140,18 +140,33 @@
 		return exportation.exportKind === ExportKind.Text;
 	}
 
+	/**
+	 * Retourne l'état affiché dans le monitor.
+	 * @param {ExportState} state État interne reçu.
+	 * @returns {ExportState} État simplifié pour l'affichage.
+	 */
+	function getMonitorState(state: ExportState): ExportState {
+		switch (state) {
+			case ExportState.Initializing:
+			case ExportState.ProcessingBackground:
+			case ExportState.AddingSubtitles:
+				return ExportState.CreatingVideo;
+			default:
+				return state;
+		}
+	}
+
 	function getStepInfo(state: ExportState): { current: number; total: number } | null {
 		switch (state) {
 			case ExportState.CapturingFrames:
-				return { current: 1, total: 4 };
+				return { current: 1, total: 3 };
 			case ExportState.Initializing:
 			case ExportState.ProcessingBackground:
-				return { current: 2, total: 4 };
 			case ExportState.AddingSubtitles:
 			case ExportState.CreatingVideo:
-				return { current: 3, total: 4 };
+				return { current: 2, total: 3 };
 			case ExportState.MergingFiles:
-				return { current: 4, total: 4 };
+				return { current: 3, total: 3 };
 			default:
 				return null;
 		}
@@ -171,15 +186,6 @@
 	 */
 	function clampProgress(progress: number): number {
 		return Math.max(0, Math.min(100, progress || 0));
-	}
-
-	/**
-	 * Formate un suffixe de type "(x/N)" pour les étapes répétées par segment.
-	 */
-	function getSegmentLabel(current: number, total: number): string {
-		if (total <= 1) return '';
-		const safeCurrent = Math.max(1, Math.min(total, current || 1));
-		return ` (${safeCurrent}/${total})`;
 	}
 
 	// Fonction pour obtenir la couleur selon l'état
@@ -374,15 +380,18 @@
 								{/if}
 								<div class="flex items-center justify-between gap-2 text-sm">
 									<div class="flex items-center gap-2 min-w-0">
-										<span class="material-icons text-xs {getStateColor(exportation.currentState)}">
-											{getStateIcon(exportation.currentState)}
+										<span
+											class="material-icons text-xs {getStateColor(
+												getMonitorState(exportation.currentState)
+											)}"
+										>
+											{getStateIcon(getMonitorState(exportation.currentState))}
 										</span>
-										<span class={getStateColor(exportation.currentState)}>
-											{exportation.currentState}
+										<span class={getStateColor(getMonitorState(exportation.currentState))}>
+											{getMonitorState(exportation.currentState)}
 										</span>
 									</div>
-									{#if exportation.currentState === ExportState.Exported &&
-										getStoredTotalExportMs(exportation) !== null}
+									{#if exportation.currentState === ExportState.Exported && getStoredTotalExportMs(exportation) !== null}
 										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
 											Total: <span class="monospaced"
 												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span
@@ -406,58 +415,17 @@
 										style="width: {clampProgress(exportation.percentageProgress)}%"
 									></div>
 								</div>
-								{#if exportation.hasSecondarySegmentProgress}
-									<div class="mt-2">
-										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-											<span>
-												Processing bg video{getSegmentLabel(
-													exportation.processingBackgroundCurrentSegment,
-													exportation.processingBackgroundTotalSegments
-												)}
-											</span>
-											<span
-												>{Math.round(
-													clampProgress(exportation.processingBackgroundProgress)
-												)}%</span
-											>
-										</div>
-										<div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
-											<div
-												class="h-1.5 transition-all duration-300 ease-out bg-gradient-to-r from-orange-400 to-amber-300"
-												style="width: {clampProgress(exportation.processingBackgroundProgress)}%"
-											></div>
-										</div>
-									</div>
-									<div class="mt-2">
-										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-											<span>
-												Merging files{getSegmentLabel(
-													exportation.mergingFilesCurrentSegment,
-													exportation.mergingFilesTotalSegments
-												)}
-											</span>
-											<span>{Math.round(clampProgress(exportation.mergingFilesProgress))}%</span>
-										</div>
-										<div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
-											<div
-												class="h-1.5 transition-all duration-300 ease-out bg-gradient-to-r from-cyan-400 to-sky-300"
-												style="width: {clampProgress(exportation.mergingFilesProgress)}%"
-											></div>
-										</div>
-									</div>
-								{:else}
-									<div class="flex items-center justify-between text-xs text-gray-500 mt-1">
-										<span>
-											{#if getStepInfo(exportation.currentState)}
-												Step {getStepInfo(exportation.currentState)?.current}/{getStepInfo(
-													exportation.currentState
-												)?.total}
-											{:else}
-												Progress
-											{/if}
-										</span>
-									</div>
-								{/if}
+								<div class="flex items-center justify-between text-xs text-gray-500 mt-1">
+									<span>
+										{#if getStepInfo(exportation.currentState)}
+											Step {getStepInfo(exportation.currentState)?.current}/{getStepInfo(
+												exportation.currentState
+											)?.total}
+										{:else}
+											Progress
+										{/if}
+									</span>
+								</div>
 								<div class="flex justify-between text-xs text-gray-400 mt-1">
 									{#if exportation.currentTreatedTime > 0}
 										<div>
@@ -562,7 +530,7 @@
 											Try the following:
 										</p>
 										<ol class="ml-4 list-decimal text-sm">
-											<li>Reduce the batch size.</li>
+											<li>Reduce the chunk size.</li>
 											<li>Lower the video resolution.</li>
 											<li>Remove any background video.</li>
 											<li>Close other applications to free up memory for the export.</li>

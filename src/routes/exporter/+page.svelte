@@ -110,13 +110,10 @@
 	}
 
 	/**
-	 * Active les barres secondaires seulement:
-	 * - en mode export segmenté (plusieurs segments),
-	 * - et après la fin du "capturing frames".
+	 * Désactive les barres secondaires: le monitor vidéo n'affiche plus que deux étapes.
 	 */
 	function refreshSecondarySegmentProgressVisibility() {
-		hasSecondarySegmentProgress =
-			isSegmentedVideoExport && activeVideoSegments.length > 1 && hasCompletedCapturingFrames;
+		hasSecondarySegmentProgress = false;
 	}
 
 	/**
@@ -239,16 +236,9 @@
 
 			refreshSecondarySegmentProgressVisibility();
 
-			// En mode segmenté, la barre principale reste dédiée à "Adding Subtitles".
-			// Les états BG/Merging alimentent les barres secondaires.
-			const mainProgressForMonitor =
-				hasSecondarySegmentProgress && !isSubtitlesState(currentVideoExportState)
-					? subtitleMainProgress
-					: clampedProgress;
-
 			emitProgress({
 				exportId: Number(exportId),
-				progress: mainProgressForMonitor,
+				progress: clampedProgress,
 				currentState: currentVideoExportState,
 				currentTime: globalCurrentTime
 			} as ExportProgress);
@@ -757,7 +747,7 @@
 				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
 				batchSize:
 					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 12)
+						? (globalState.settings?.exportSettings.batchSize ?? 50)
 						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
@@ -1128,7 +1118,7 @@
 				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
 				batchSize:
 					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 12)
+						? (globalState.settings?.exportSettings.batchSize ?? 50)
 						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,

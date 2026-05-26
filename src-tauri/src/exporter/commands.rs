@@ -28,11 +28,12 @@ static NVENC_AVAILABILITY_CACHE: LazyLock<Mutex<HashMap<String, bool>>> =
 static FFPROBE_DURATION_CACHE: LazyLock<Mutex<HashMap<String, (u64, u128, f64)>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-const MAX_FILTERGRAPH_IMAGES_HIGH_RES: usize = 6;
-const MAX_FILTERGRAPH_IMAGES_STANDARD: usize = 12;
-const DEFAULT_FILTERGRAPH_BATCH_SIZE: usize = 16;
-const FILTERGRAPH_BATCH_MIN: usize = 2;
-const FILTERGRAPH_BATCH_MAX: usize = 64;
+const DEFAULT_FILTERGRAPH_CHUNK_SIZE: i32 = 50;
+const FILTERGRAPH_CHUNK_SIZE_MIN: i32 = 1;
+const FILTERGRAPH_CHUNK_SIZE_MAX: i32 = 200;
+const AUTO_CHUNK_MIN_MS: i64 = 5 * 1000;
+const AUTO_CHUNK_MAX_MS: i64 = 10 * 60 * 1000;
+const AUTO_CHUNK_INITIAL_MS: i64 = 30 * 1000;
 const AUTO_MEMORY_LIMIT_PERCENT: f64 = 90.0;
 const AUTO_MEMORY_GROW_BELOW_PERCENT: f64 = 72.0;
 const AUTO_MEMORY_SOFT_LIMIT_PERCENT: f64 = 86.0;
@@ -76,7 +77,7 @@ impl std::fmt::Display for MemoryLimitExceededError {
 impl std::error::Error for MemoryLimitExceededError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum FiltergraphBatchMode {
+enum FiltergraphChunkMode {
     Auto,
     Fixed,
 }
@@ -218,7 +219,7 @@ fn spawn_memory_monitor(
             if let Ok(mut process_guard) = process_ref.lock() {
                 if let Some(child) = process_guard.as_mut() {
                     println!(
-                        "[memory][auto-batch] RAM {:.1}% >= {:.1}%, stopping ffmpeg for retry",
+                        "[memory][auto-chunk] RAM {:.1}% >= {:.1}%, stopping ffmpeg for retry",
                         used_percent, config.max_used_percent
                     );
                     let _ = child.kill();
@@ -1480,65 +1481,69 @@ fn video_has_audio(path: &str) -> bool {
     }
 }
 
-fn normalize_filtergraph_batch_size(batch_size: Option<i32>) -> usize {
-    let requested = batch_size.unwrap_or(DEFAULT_FILTERGRAPH_BATCH_SIZE as i32);
-    requested.clamp(FILTERGRAPH_BATCH_MIN as i32, FILTERGRAPH_BATCH_MAX as i32) as usize
+/// Normalise la valeur UI legacy `batchSize` vers l'échelle de chunk 1..200.
+fn normalize_filtergraph_chunk_size(chunk_size: Option<i32>) -> i32 {
+    let requested = chunk_size.unwrap_or(DEFAULT_FILTERGRAPH_CHUNK_SIZE);
+    requested.clamp(FILTERGRAPH_CHUNK_SIZE_MIN, FILTERGRAPH_CHUNK_SIZE_MAX)
 }
 
-/// Normalise le mode de batch exporté depuis l'UI.
-fn normalize_filtergraph_batch_mode(batch_size_mode: Option<&str>) -> FiltergraphBatchMode {
-    match batch_size_mode {
-        Some("fixed") => FiltergraphBatchMode::Fixed,
-        _ => FiltergraphBatchMode::Auto,
+/// Normalise le mode de chunk exporté depuis l'UI.
+fn normalize_filtergraph_chunk_mode(chunk_size_mode: Option<&str>) -> FiltergraphChunkMode {
+    match chunk_size_mode {
+        Some("fixed") => FiltergraphChunkMode::Fixed,
+        _ => FiltergraphChunkMode::Auto,
     }
 }
 
-fn filtergraph_batch_limit(target_size: (i32, i32), batch_size: Option<i32>) -> usize {
-    if let Some(batch_size) = batch_size {
-        return normalize_filtergraph_batch_size(Some(batch_size));
-    }
-
-    if is_high_resolution_export(target_size.0, target_size.1) {
-        MAX_FILTERGRAPH_IMAGES_HIGH_RES
-    } else {
-        MAX_FILTERGRAPH_IMAGES_STANDARD
-    }
+/// Convertit la taille de chunk 1..200 en durée cible 30s..10min.
+fn chunk_size_to_duration_ms(chunk_size: Option<i32>) -> i64 {
+    let normalized = normalize_filtergraph_chunk_size(chunk_size);
+    let range = (FILTERGRAPH_CHUNK_SIZE_MAX - FILTERGRAPH_CHUNK_SIZE_MIN) as f64;
+    let ratio = (normalized - FILTERGRAPH_CHUNK_SIZE_MIN) as f64 / range;
+    (AUTO_CHUNK_MIN_MS as f64 + ratio * (AUTO_CHUNK_MAX_MS - AUTO_CHUNK_MIN_MS) as f64).round()
+        as i64
 }
 
-/// Ajuste la taille du prochain batch selon la RAM système actuelle.
-fn adjust_auto_batch_limit_for_memory(current_limit: usize) -> usize {
+/// Ajuste la durée du prochain chunk selon la RAM système actuelle.
+fn adjust_auto_chunk_duration_for_memory(current_duration_ms: i64) -> i64 {
     let mut system = System::new();
     let Some(used_percent) = current_system_memory_used_percent(&mut system) else {
-        return current_limit;
+        return current_duration_ms;
     };
 
     if used_percent >= AUTO_MEMORY_SOFT_LIMIT_PERCENT {
-        let next = (current_limit / 2).max(FILTERGRAPH_BATCH_MIN);
+        let next = reduce_auto_chunk_duration(current_duration_ms);
         println!(
-            "[memory][auto-batch] RAM avant batch {:.1}%, limite {} -> {}",
-            used_percent, current_limit, next
+            "[memory][auto-chunk] RAM avant chunk {:.1}%, durée {}ms -> {}ms",
+            used_percent, current_duration_ms, next
         );
         next
     } else {
-        current_limit
+        current_duration_ms
     }
 }
 
-/// Calcule la taille du prochain batch après un rendu réussi.
-fn next_auto_batch_limit_after_success(current_limit: usize, peak_percent: f64) -> usize {
+/// Réduit une durée de chunk d'environ un tiers sans passer sous le minimum.
+fn reduce_auto_chunk_duration(current_duration_ms: i64) -> i64 {
+    (current_duration_ms.saturating_mul(2) / 3).max(AUTO_CHUNK_MIN_MS)
+}
+
+/// Calcule la durée du prochain chunk après un rendu réussi.
+fn next_auto_chunk_duration_after_success(current_duration_ms: i64, peak_percent: f64) -> i64 {
     if peak_percent > 0.0 && peak_percent < AUTO_MEMORY_GROW_BELOW_PERCENT {
-        (current_limit + 2).min(FILTERGRAPH_BATCH_MAX)
+        (current_duration_ms.saturating_mul(3) / 2).min(AUTO_CHUNK_MAX_MS)
     } else if peak_percent >= AUTO_MEMORY_SOFT_LIMIT_PERCENT {
-        (current_limit.saturating_sub(1)).max(FILTERGRAPH_BATCH_MIN)
+        reduce_auto_chunk_duration(current_duration_ms)
     } else {
-        current_limit
+        current_duration_ms
     }
 }
 
-fn make_internal_batch_path(
+/// Construit le chemin temporaire d'un chunk rendu par FFmpeg.
+fn make_internal_chunk_path(
     base_dir: &Path,
     export_id: &str,
-    batch_index: usize,
+    chunk_index: usize,
     export_without_background: bool,
     use_mov_alpha: bool,
 ) -> PathBuf {
@@ -1556,8 +1561,8 @@ fn make_internal_batch_path(
         "mp4"
     };
     base_dir.join(format!(
-        "internal_batch_{}_{}_{}.{}",
-        export_id, batch_index, nonce, ext
+        "internal_chunk_{}_{}_{}.{}",
+        export_id, chunk_index, nonce, ext
     ))
 }
 
@@ -1579,17 +1584,39 @@ fn transition_fade_duration_ms(timestamps_ms: &[i32], fade_duration_ms: i32) -> 
         .min(fade_duration_ms.max(0))
 }
 
-/// Choisit une fin de batch avec une image commune au batch suivant.
-fn choose_shared_batch_end_idx(
-    image_count: usize,
-    batch_start_idx: usize,
-    batch_limit: usize,
+/// Choisit une fin de chunk avec une image commune au chunk suivant.
+fn choose_shared_chunk_end_idx(
+    timestamps_ms: &[i32],
+    chunk_start_idx: usize,
+    fade_duration_ms: i32,
+    target_duration_ms: i64,
 ) -> usize {
-    if image_count == 0 || batch_start_idx + 1 >= image_count {
+    let image_count = timestamps_ms.len();
+    if image_count == 0 || chunk_start_idx + 1 >= image_count {
         return image_count;
     }
 
-    (batch_start_idx + batch_limit.max(2)).min(image_count)
+    let source_start_ms = capture_timeline_ms(
+        timestamps_ms[chunk_start_idx],
+        chunk_start_idx,
+        fade_duration_ms,
+    )
+    .max(0);
+    let target_end_ms = source_start_ms + target_duration_ms.max(AUTO_CHUNK_MIN_MS);
+    let mut end_idx = (chunk_start_idx + 2).min(image_count);
+
+    while end_idx < image_count {
+        let candidate_end_ms =
+            capture_timeline_ms(timestamps_ms[end_idx - 1], end_idx - 1, fade_duration_ms)
+                .max(source_start_ms + 1);
+        if candidate_end_ms >= target_end_ms {
+            return end_idx;
+        }
+
+        end_idx += 1;
+    }
+
+    image_count
 }
 
 fn compute_render_output_duration_ms(
@@ -1708,7 +1735,7 @@ fn concat_videos_with_stream_copy(
     cmd.push(output_path_buf.to_string_lossy().to_string());
 
     println!(
-        "[batching] concat stream-copy: {} fichier(s) -> {}",
+        "[chunking] concat stream-copy: {} fichier(s) -> {}",
         video_paths.len(),
         output_path
     );
@@ -1915,13 +1942,13 @@ fn concat_internal_batch_videos(
     if batch_paths.is_empty() {
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
-            "Aucune vidéo de batch à concaténer",
+            "Aucune vidéo de chunk à concaténer",
         )));
     }
     if batch_paths.len() != batch_durations_s.len() {
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
-            "Le nombre de vidéos de batch ne correspond pas au nombre de durées",
+            "Le nombre de vidéos de chunk ne correspond pas au nombre de durées",
         )));
     }
 
@@ -1950,7 +1977,7 @@ fn concat_internal_batch_videos(
         if !Path::new(batch_path).exists() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                format!("Batch video not found: {}", batch_path),
+                format!("Chunk video not found: {}", batch_path),
             )));
         }
     }
@@ -1960,7 +1987,7 @@ fn concat_internal_batch_videos(
         .min(total_duration_s.max(0.0));
     let expected_video_s: f64 = batch_durations_s.iter().sum();
     println!(
-        "[batching] concat interne: {} batch(s), duree calculee={:.6}s, duree finale={:.6}s",
+        "[chunking] concat interne: {} chunk(s), duree calculee={:.6}s, duree finale={:.6}s",
         batch_paths.len(),
         expected_video_s,
         total_duration_s
@@ -2276,8 +2303,8 @@ fn build_and_run_ffmpeg_filter_complex(
     export_fade_duration_ms: i32,
     export_without_background: bool,
     transparent_export_format: Option<&str>,
-    batch_size: Option<i32>,
-    batch_mode: FiltergraphBatchMode,
+    chunk_size: Option<i32>,
+    chunk_mode: FiltergraphChunkMode,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
@@ -2298,17 +2325,17 @@ fn build_and_run_ffmpeg_filter_complex(
     let tail_ms = fade_duration_ms.max(1000);
     let full_duration_ms = duration_ms.unwrap_or_else(|| timestamps_ms[n - 1] + tail_ms);
     let full_duration_s = (full_duration_ms as f64 / 1000.0).max(0.001);
-    let fixed_batch_limit = filtergraph_batch_limit(target_size, batch_size);
-    let mut auto_batch_limit = filtergraph_batch_limit(target_size, None);
-    let batch_limit = if batch_mode == FiltergraphBatchMode::Fixed {
-        fixed_batch_limit
+    let fixed_chunk_duration_ms = chunk_size_to_duration_ms(chunk_size);
+    let mut auto_chunk_duration_ms = AUTO_CHUNK_INITIAL_MS;
+    let chunk_duration_ms = if chunk_mode == FiltergraphChunkMode::Fixed {
+        fixed_chunk_duration_ms
     } else {
-        auto_batch_limit
+        auto_chunk_duration_ms
     };
     let (w, h) = target_size;
 
     // Prétraiter le fond une seule fois pour toute la plage exportée.
-    // Les batches réutilisent ensuite ce fond via un trim local.
+    // Les chunks réutilisent ensuite ce fond via un trim local.
     let preprocessed_background_videos = if !export_without_background && !video_inputs.is_empty() {
         preprocess_background_videos(
             video_inputs,
@@ -2328,7 +2355,9 @@ fn build_and_run_ffmpeg_filter_complex(
         Vec::new()
     };
 
-    if batch_mode == FiltergraphBatchMode::Fixed && n <= batch_limit {
+    if chunk_mode == FiltergraphChunkMode::Fixed
+        && (full_duration_ms as i64) <= fixed_chunk_duration_ms
+    {
         return render_ffmpeg_filter_complex_single(
             export_id,
             out_path,
@@ -2360,11 +2389,11 @@ fn build_and_run_ffmpeg_filter_complex(
     }
 
     println!(
-        "[batching] {} image(s), mode {:?}, limite initiale {}, rendu interne en batchs",
-        n, batch_mode, batch_limit
+        "[chunking] {} image(s), mode {:?}, durée initiale {}ms, rendu interne en chunks",
+        n, chunk_mode, chunk_duration_ms
     );
     println!(
-        "[batching] {} timing(s) blank disponibles pour le rendu",
+        "[chunking] {} timing(s) blank disponibles pour le rendu",
         blank_timestamps.len()
     );
 
@@ -2389,13 +2418,18 @@ fn build_and_run_ffmpeg_filter_complex(
     while batch_start_idx < n {
         ensure_export_not_cancelled(export_id)?;
 
-        let effective_batch_limit = if batch_mode == FiltergraphBatchMode::Auto {
-            auto_batch_limit = adjust_auto_batch_limit_for_memory(auto_batch_limit);
-            auto_batch_limit
+        let effective_chunk_duration_ms = if chunk_mode == FiltergraphChunkMode::Auto {
+            auto_chunk_duration_ms = adjust_auto_chunk_duration_for_memory(auto_chunk_duration_ms);
+            auto_chunk_duration_ms
         } else {
-            batch_limit
+            fixed_chunk_duration_ms
         };
-        let batch_end_idx = choose_shared_batch_end_idx(n, batch_start_idx, effective_batch_limit);
+        let batch_end_idx = choose_shared_chunk_end_idx(
+            timestamps_ms,
+            batch_start_idx,
+            fade_duration_ms,
+            effective_chunk_duration_ms,
+        );
         let is_last_batch = batch_end_idx >= n;
         let batch_start_adjusted_ts = timestamps_ms[batch_start_idx];
         let batch_slice = &timestamps_ms[batch_start_idx..batch_end_idx];
@@ -2448,7 +2482,7 @@ fn build_and_run_ffmpeg_filter_complex(
         let batch_duration_frames = target_end_frames - encoded_batch_base_frames;
         let batch_duration_s = frames_to_seconds(batch_duration_frames, fps);
         let batch_base_s = encoded_batch_base_frames as f64 / fps.max(1) as f64;
-        let batch_output_path = make_internal_batch_path(
+        let batch_output_path = make_internal_chunk_path(
             &base_dir,
             export_id,
             batch_index,
@@ -2458,7 +2492,7 @@ fn build_and_run_ffmpeg_filter_complex(
         let batch_output = batch_output_path.to_string_lossy().to_string();
 
         println!(
-            "[batching] batch {}: images {}..{} adjusted_start={}ms source_start={}ms intended_start={}ms encoded_start={:.6}s start_blank={} end_blank={} start_fade={}ms end_fade={}ms tail={}ms graph_duration={}ms intended_end={}ms encoded_duration={:.6}s output={}",
+            "[chunking] chunk {}: images {}..{} adjusted_start={}ms source_start={}ms intended_start={}ms encoded_start={:.6}s start_blank={} end_blank={} start_fade={}ms end_fade={}ms tail={}ms graph_duration={}ms intended_end={}ms encoded_duration={:.6}s output={}",
             batch_index,
             batch_start_idx,
             batch_end_idx - 1,
@@ -2481,7 +2515,7 @@ fn build_and_run_ffmpeg_filter_complex(
             exceeded: false,
             peak_percent: 0.0,
         }));
-        let memory_monitor = if batch_mode == FiltergraphBatchMode::Auto {
+        let memory_monitor = if chunk_mode == FiltergraphChunkMode::Auto {
             Some(MemoryMonitorConfig {
                 max_used_percent: AUTO_MEMORY_LIMIT_PERCENT,
                 state: Some(memory_state.clone()),
@@ -2523,23 +2557,25 @@ fn build_and_run_ffmpeg_filter_complex(
             let memory_error = error
                 .downcast_ref::<MemoryLimitExceededError>()
                 .map(|error| error.to_string());
-            if batch_mode == FiltergraphBatchMode::Auto {
+            if chunk_mode == FiltergraphChunkMode::Auto {
                 if let Some(message) = memory_error {
                     fs::remove_file(&batch_output).ok();
-                    if effective_batch_limit <= FILTERGRAPH_BATCH_MIN {
+                    if effective_chunk_duration_ms <= AUTO_CHUNK_MIN_MS {
                         return Err(Box::new(std::io::Error::new(
                             std::io::ErrorKind::Other,
                             format!(
-                                "{} Minimum auto batch size ({}) still exceeds the RAM limit.",
-                                message, FILTERGRAPH_BATCH_MIN
+                                "{} Minimum auto chunk duration ({:.1}s) still exceeds the RAM limit.",
+                                message,
+                                AUTO_CHUNK_MIN_MS as f64 / 1000.0
                             ),
                         )));
                     }
 
-                    auto_batch_limit = (effective_batch_limit / 2).max(FILTERGRAPH_BATCH_MIN);
+                    auto_chunk_duration_ms =
+                        reduce_auto_chunk_duration(effective_chunk_duration_ms);
                     println!(
-                        "[memory][auto-batch] retry batch {} with limit {} after RAM limit",
-                        batch_index, auto_batch_limit
+                        "[memory][auto-chunk] retry chunk {} with duration {}ms after RAM limit",
+                        batch_index, auto_chunk_duration_ms
                     );
                     continue;
                 }
@@ -2548,25 +2584,25 @@ fn build_and_run_ffmpeg_filter_complex(
             return Err(error);
         }
 
-        if batch_mode == FiltergraphBatchMode::Auto {
+        if chunk_mode == FiltergraphChunkMode::Auto {
             let peak_percent = memory_state
                 .lock()
                 .map(|state| state.peak_percent)
                 .unwrap_or(0.0);
-            let next_limit =
-                next_auto_batch_limit_after_success(effective_batch_limit, peak_percent);
-            if next_limit != effective_batch_limit {
+            let next_duration_ms =
+                next_auto_chunk_duration_after_success(effective_chunk_duration_ms, peak_percent);
+            if next_duration_ms != effective_chunk_duration_ms {
                 println!(
-                    "[memory][auto-batch] batch {} peak {:.1}%, next limit {} -> {}",
-                    batch_index, peak_percent, effective_batch_limit, next_limit
+                    "[memory][auto-chunk] chunk {} peak {:.1}%, next duration {}ms -> {}ms",
+                    batch_index, peak_percent, effective_chunk_duration_ms, next_duration_ms
                 );
             } else {
                 println!(
-                    "[memory][auto-batch] batch {} peak {:.1}%, keeping limit {}",
-                    batch_index, peak_percent, effective_batch_limit
+                    "[memory][auto-chunk] chunk {} peak {:.1}%, keeping duration {}ms",
+                    batch_index, peak_percent, effective_chunk_duration_ms
                 );
             }
-            auto_batch_limit = next_limit;
+            auto_chunk_duration_ms = next_duration_ms;
         }
 
         batch_paths.push(batch_output);
@@ -2603,7 +2639,7 @@ fn build_and_run_ffmpeg_filter_complex(
     )?;
 
     println!(
-        "[batching] Keeping {} internal batch file(s) for debugging",
+        "[chunking] Keeping {} internal chunk file(s) for debugging",
         batch_paths.len()
     );
 
@@ -2910,7 +2946,7 @@ fn render_ffmpeg_filter_complex_single(
 
             if avail_bg_after + 1e-6 < duration_s {
                 let remain = duration_s - avail_bg_after;
-                // Évite un flash noir à la fin des batchs quand la durée réelle du fond
+                // Évite un flash noir à la fin des chunks quand la durée réelle du fond
                 // est légèrement plus courte que la durée demandée: on prolonge la dernière
                 // frame du fond au lieu de concaténer du noir.
                 filter_lines.push(format!(
@@ -3179,13 +3215,17 @@ pub async fn export_video(
         compute_ffmpeg_thread_cap(performance_profile)
     );
     println!(
-        "[perf] batch_size={}",
-        normalize_filtergraph_batch_size(batch_size)
+        "[perf] chunk_size={}",
+        normalize_filtergraph_chunk_size(batch_size)
     );
-    let batch_mode = normalize_filtergraph_batch_mode(batch_size_mode.as_deref());
-    println!("[perf] batch_size_mode={:?}", batch_mode);
     println!(
-        "[batching] blank timings fournis={}",
+        "[perf] chunk_duration_ms={}",
+        chunk_size_to_duration_ms(batch_size)
+    );
+    let chunk_mode = normalize_filtergraph_chunk_mode(batch_size_mode.as_deref());
+    println!("[perf] chunk_size_mode={:?}", chunk_mode);
+    println!(
+        "[chunking] blank timings fournis={}",
         blank_timings.as_ref().map_or(0, Vec::len)
     );
 
@@ -3373,7 +3413,7 @@ pub async fn export_video(
             export_without_background.unwrap_or(false),
             transparent_export_format.as_deref(),
             batch_size,
-            batch_mode,
+            chunk_mode,
             performance_profile,
             app_handle,
         )

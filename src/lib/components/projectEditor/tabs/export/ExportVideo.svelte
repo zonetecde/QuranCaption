@@ -59,7 +59,11 @@
 		}
 	}
 
-	function persistGlobalBatchSize(): void {
+	/**
+	 * Sauvegarde le réglage global de chunk size.
+	 * @returns {void}
+	 */
+	function persistGlobalChunkSize(): void {
 		void Settings.save();
 	}
 </script>
@@ -164,14 +168,14 @@
 					less fluid).
 				</p>
 				<p class="text-thirdly text-sm leading-snug">
-					<b>Batch size</b>
+					<b>Chunk size</b>
 					<span
 						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
-						title="Auto adapts the batch size to keep system RAM under 90%. Fixed uses your manual value."
+						title="Auto adapts the chunk duration to keep system RAM under 90%. Fixed uses your manual value."
 					>
 						help_outline
 					</span>
-					for ffmpeg transitions. Auto adjusts RAM usage; fixed keeps the manual value.
+					for video processing. Auto adjusts RAM usage; fixed keeps the manual value.
 				</p>
 				<input
 					type="number"
@@ -191,7 +195,7 @@
 								: 'text-secondary hover:bg-accent hover:text-primary'}"
 							onclick={() => {
 								globalState.settings!.exportSettings.batchSizeMode = 'auto';
-								persistGlobalBatchSize();
+								persistGlobalChunkSize();
 							}}
 						>
 							Auto
@@ -204,7 +208,7 @@
 								: 'text-secondary hover:bg-accent hover:text-primary'}"
 							onclick={() => {
 								globalState.settings!.exportSettings.batchSizeMode = 'fixed';
-								persistGlobalBatchSize();
+								persistGlobalChunkSize();
 							}}
 						>
 							Fixed
@@ -213,12 +217,12 @@
 					{#if globalState.settings!.exportSettings.batchSizeMode === 'fixed'}
 						<input
 							type="number"
-							min="2"
-							max="128"
+							min="1"
+							max="200"
 							step="1"
 							class="input w-full h-10"
 							bind:value={globalState.settings!.exportSettings.batchSize}
-							onchange={persistGlobalBatchSize}
+							onchange={persistGlobalChunkSize}
 						/>
 					{/if}
 				</div>

@@ -970,14 +970,75 @@ pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
     Ok((stretch_s * 1000.0).round() as i64)
 }
 
+/// Sonde le flux audio `a:0` pour décider de la stratégie de re-timing.
+/// Retourne `(codec_name, profile, sample_rate, tb_num, tb_den, bit_rate)`.
+/// En cas d'échec de ffprobe, retourne des valeurs nulles, ce qui force le
+/// repli sûr (ré-encodage) côté appelant.
+fn probe_audio_for_retime(file_path_str: &str) -> (String, String, u32, u32, u32, u32) {
+    let empty = (String::new(), String::new(), 0u32, 0u32, 0u32, 0u32);
+    let ffprobe_path = match binaries::resolve_binary("ffprobe") {
+        Some(p) => p,
+        None => return empty,
+    };
+    let mut cmd = Command::new(&ffprobe_path);
+    cmd.args([
+        "-v",
+        "error",
+        "-select_streams",
+        "a:0",
+        "-show_entries",
+        "stream=codec_name,profile,sample_rate,time_base,bit_rate",
+        "-of",
+        "default=noprint_wrappers=1",
+        file_path_str,
+    ]);
+    configure_command_no_window(&mut cmd);
+    let out = match cmd.output() {
+        Ok(o) if o.status.success() => o,
+        _ => return empty,
+    };
+
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let mut codec = String::new();
+    let mut profile = String::new();
+    let mut sample_rate: u32 = 0;
+    let mut tb_num: u32 = 0;
+    let mut tb_den: u32 = 0;
+    let mut bit_rate: u32 = 0;
+    for line in stdout.lines() {
+        if let Some(v) = line.strip_prefix("codec_name=") {
+            codec = v.trim().to_string();
+        } else if let Some(v) = line.strip_prefix("profile=") {
+            profile = v.trim().to_string();
+        } else if let Some(v) = line.strip_prefix("sample_rate=") {
+            sample_rate = v.trim().parse().unwrap_or(0);
+        } else if let Some(v) = line.strip_prefix("time_base=") {
+            if let Some((n, d)) = v.trim().split_once('/') {
+                tb_num = n.parse().unwrap_or(0);
+                tb_den = d.parse().unwrap_or(0);
+            }
+        } else if let Some(v) = line.strip_prefix("bit_rate=") {
+            bit_rate = v.trim().parse().unwrap_or(0);
+        }
+    }
+    (codec, profile, sample_rate, tb_num, tb_den, bit_rate)
+}
+
 /// Régénère des timestamps audio contigus (PTS == temps réel du contenu) en
-/// remuxant le fichier sur place. Le flux vidéo éventuel est copié tel quel
-/// (aucune ré-encodage vidéo). Corrige la désynchronisation progressive des
-/// sous-titres issus de l'alignement sans dégrader la vidéo.
+/// remuxant le fichier sur place. Le flux vidéo éventuel est toujours copié tel
+/// quel (jamais de ré-encodage vidéo).
+///
+/// Deux stratégies :
+/// - **Sans perte (préférée)** : pour l'AAC (taille de trame fixe) avec une base
+///   de temps audio `1/sample_rate` — cas dominant (mp4/m4a) — on réécrit
+///   uniquement les timestamps des paquets via le bitstream filter `setts`, en
+///   COPIANT le flux (`-c copy`). Aucun ré-encodage : pas de perte, pas de
+///   gonflement du débit, quasi instantané.
+/// - **Repli (ré-encodage)** : sinon, on ré-encode l'audio avec `asetpts=N/SR/TB`
+///   en PRÉSERVANT le débit source (pas de gonflement).
 ///
 /// Volontairement distinct de `convert_audio_to_cbr` (qui ne touche pas aux
-/// timestamps) : ici on ré-encode uniquement l'audio avec le filtre
-/// `asetpts=N/SR/TB`, qui reconstruit les PTS à partir du nombre d'échantillons.
+/// timestamps). Remplacement sur place (temp -> rename), comme `convert_audio_to_cbr`.
 #[tauri::command]
 pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
     let file_path = path_utils::normalize_existing_path(&file_path);
@@ -1001,62 +1062,98 @@ pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
     } else {
         PathBuf::from(format!("{}_retime_temp.{}", file_stem, extension))
     };
+    let backup_path = if let Some(parent_dir) = file_path.parent() {
+        parent_dir.join(format!("{}_retime_backup.{}", file_stem, extension))
+    } else {
+        PathBuf::from(format!("{}_retime_backup.{}", file_stem, extension))
+    };
 
     let is_audio_only = matches!(
         extension.to_lowercase().as_str(),
         "mp3" | "wav" | "flac" | "aac" | "ogg" | "m4a" | "opus" | "weba"
     );
 
-    let mut cmd = Command::new(&ffmpeg_path);
-    if is_audio_only {
-        // Pas de `-c:a` : ffmpeg choisit l'encodeur par défaut du conteneur de
-        // sortie (mp3 -> mp3, m4a -> aac, etc.), ce qui évite tout codec invalide.
-        cmd.args([
-            "-i",
-            &file_path_str,
-            "-map",
-            "0:a:0",
-            "-af",
-            "asetpts=N/SR/TB",
-            "-b:a",
-            "192k",
-            "-y",
-            temp_path.to_string_lossy().as_ref(),
-        ]);
+    // Décision de stratégie d'après les caractéristiques du flux audio.
+    let (codec_name, profile, sample_rate, tb_num, tb_den, source_bitrate) =
+        probe_audio_for_retime(&file_path_str);
+
+    // Sans perte uniquement si la taille de trame est fixe ET connue, et si la
+    // base de temps audio est exactement 1/sample_rate (alors PTS_paquet = N*trame).
+    let samples_per_frame: u32 = if profile.contains("HE") { 2048 } else { 1024 };
+    // Sans perte réservé à l'AAC-LC (trame fixe de 1024) avec base de temps
+    // 1/sample_rate. On exclut explicitement HE-AAC (SBR) : sa taille de trame
+    // effective ne se déduit pas de façon fiable du nombre de paquets.
+    let can_lossless = codec_name == "aac"
+        && !profile.contains("HE")
+        && sample_rate > 0
+        && tb_num == 1
+        && tb_den == sample_rate;
+
+    let temp_str = temp_path.to_string_lossy().to_string();
+    let mut args: Vec<String> = vec!["-i".into(), file_path_str.clone()];
+
+    if can_lossless {
+        // Réécriture des timestamps sans ré-encodage : on copie le(s) flux et on
+        // applique `setts` sur l'audio (PTS/DTS = index_paquet * échantillons/trame).
+        let setts = format!("setts=pts=N*{spf}:dts=N*{spf}", spf = samples_per_frame);
+        if is_audio_only {
+            args.extend(["-map", "0:a:0", "-c", "copy", "-bsf:a"].map(String::from));
+            args.push(setts);
+        } else {
+            args.extend(["-map", "0:v:0", "-map", "0:a:0", "-c", "copy", "-bsf:a"].map(String::from));
+            args.push(setts);
+            args.extend(["-movflags", "+faststart"].map(String::from));
+        }
     } else {
-        cmd.args([
-            "-i",
-            &file_path_str,
-            "-map",
-            "0:v:0",
-            "-map",
-            "0:a:0",
-            "-c:v",
-            "copy",
-            "-af",
-            "asetpts=N/SR/TB",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-movflags",
-            "+faststart",
-            "-y",
-            temp_path.to_string_lossy().as_ref(),
-        ]);
+        // Repli : ré-encodage audio en PRÉSERVANT le débit source (pas de gonflement).
+        // Débit source inconnu -> 128k par défaut (raisonnable pour de la voix).
+        let bitrate = if source_bitrate > 0 {
+            source_bitrate.to_string()
+        } else {
+            "128k".to_string()
+        };
+        if is_audio_only {
+            // Pas de `-c:a` : ffmpeg choisit l'encodeur par défaut du conteneur de
+            // sortie (mp3 -> mp3, m4a -> aac, etc.), ce qui évite tout codec invalide.
+            args.extend(["-map", "0:a:0", "-af", "asetpts=N/SR/TB", "-b:a"].map(String::from));
+            args.push(bitrate);
+        } else {
+            args.extend(
+                [
+                    "-map", "0:v:0", "-map", "0:a:0", "-c:v", "copy", "-af", "asetpts=N/SR/TB",
+                    "-c:a", "aac", "-b:a",
+                ]
+                .map(String::from),
+            );
+            args.push(bitrate);
+            args.extend(["-movflags", "+faststart"].map(String::from));
+        }
     }
+    args.push("-y".into());
+    args.push(temp_str);
+
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(&args);
     configure_command_no_window(&mut cmd);
 
     match cmd.output() {
         Ok(result) => {
             if result.status.success() {
-                if let Err(e) = std::fs::remove_file(&file_path) {
+                // Échange sûr : déplacer l'original de côté (backup) AVANT de le
+                // remplacer, afin de ne jamais laisser le fichier source manquant
+                // (cette opération tourne automatiquement pendant la segmentation).
+                let _ = std::fs::remove_file(&backup_path); // nettoie un résidu éventuel
+                if let Err(e) = std::fs::rename(&file_path, &backup_path) {
                     let _ = std::fs::remove_file(&temp_path);
-                    return Err(format!("Failed to remove original file: {}", e));
+                    return Err(format!("Failed to back up original file: {}", e));
                 }
                 if let Err(e) = std::fs::rename(&temp_path, &file_path) {
+                    // Restaure l'original depuis le backup.
+                    let _ = std::fs::rename(&backup_path, &file_path);
+                    let _ = std::fs::remove_file(&temp_path);
                     return Err(format!("Failed to replace original file: {}", e));
                 }
+                let _ = std::fs::remove_file(&backup_path);
                 Ok(())
             } else {
                 let _ = std::fs::remove_file(&temp_path);

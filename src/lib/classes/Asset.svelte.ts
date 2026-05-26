@@ -314,6 +314,9 @@ export class Asset extends SerializableBase {
 		this.filePath = this.normalizeFilePath(element);
 		WaveformService.clearCache(oldPath);
 		this.exists = true; // Réinitialise l'existence à vrai
+		// Le fichier a changé : la détection d'étirement audio doit être refaite.
+		delete this.metadata.audioRetimeNeeded;
+		delete this.metadata.audioRetimeDone;
 		if (this.type === AssetType.Audio || this.type === AssetType.Video) {
 			this.duration = new Duration(0);
 			this.durationLoadState = 'idle';

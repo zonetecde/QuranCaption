@@ -597,6 +597,12 @@
 
 	let bracketGlyphs = $derived(() => getBracketGlyphs());
 
+	let isArabicSubtitleVisible = $derived(() => {
+		const referenceClip = arabicReferenceClip();
+		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		return Boolean(styles.getEffectiveValue('show-subtitles', referenceClip?.id));
+	});
+
 	/** CSS d'alignement vertical interne quand le parent export reste en display block. */
 	let exportInnerVerticalAlignmentCss = $derived(() => {
 		if (!isExportCapturePreview) return 'display: contents;';
@@ -662,9 +668,10 @@
 			horizontalStyleId: 'horizontal-position'
 		}}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
-		style="opacity: {subtitleOpacity}; {isExportCapturePreview
+		style="opacity: {subtitleOpacity}; {css}; {backgroundHorizontalPaddingCss} white-space: pre-line; {isExportCapturePreview &&
+		isArabicSubtitleVisible()
 			? 'display: block;'
-			: ''} {css}; {backgroundHorizontalPaddingCss} white-space: pre-line;"
+			: ''}"
 	>
 		<span style={exportInnerVerticalAlignmentCss()}>
 			{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}

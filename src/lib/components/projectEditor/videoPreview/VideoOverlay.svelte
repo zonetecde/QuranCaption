@@ -480,6 +480,7 @@
 			consumeReactiveDependencies(
 				globalState.getTimelineState.movePreviewTo,
 				globalState.getStyle('arabic', 'max-height').value,
+				globalState.getStyle('arabic', 'max-line').value,
 				globalState.getStyle('arabic', 'font-size').value,
 				globalState.getStyle('global', 'spacing').value
 			);
@@ -519,6 +520,8 @@
 								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
 							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
+							const maxLineValue =
+								target === 'arabic' ? Number(globalState.getStyle('arabic', 'max-line').value) : 5;
 							const initialFontSize = globalState.getStyle(target, 'font-size').value as number;
 
 							styles.setStyle('vertical-text-alignment', 'center');
@@ -528,6 +531,7 @@
 								await applyReactiveFontSize(
 									target,
 									maxHeightValue,
+									maxLineValue,
 									initialFontSize,
 									true,
 									abortSignal,

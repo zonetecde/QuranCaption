@@ -76,6 +76,7 @@ export type TextStyleName =
 	| 'word-spacing'
 	| 'line-height'
 	| 'max-height'
+	| 'max-line'
 	| 'reactive-font-size'
 	| 'reactive-y-position'
 	| 'text-glow-enable'
@@ -506,7 +507,11 @@ export class StylesData extends SerializableBase {
 
 				// Propriétés spécifiques à ignorer
 				if (style.id === 'font-family' && String(effectiveValue) === 'Hafs') continue; // Gérer par une classe Tailwind
-				if (style.id === 'max-height' && effectiveValue === 0) break; // Ignore les propriétés après qui dépendent de max-height
+				if (style.id === 'max-height' && effectiveValue === 0) {
+					const maxLineValue = Number(this.getEffectiveValue('max-line', clipId));
+					if (maxLineValue >= 1 && maxLineValue <= 4) continue;
+					break; // Ignore les propriétés après qui dépendent de max-height
+				}
 
 				if (style.tailwind) continue; // Ignore les styles Tailwind, qui sont appliqués différemment
 

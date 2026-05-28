@@ -500,6 +500,7 @@
 								- verse-number-format
 								- verse-number-position
 								- max-height
+								- max-line
 							Empêche donc l'affichage de ces deux styles si on a une sélection de sous-titre en cours.
 
 							Troisième cas :
@@ -508,7 +509,7 @@
 							Quatrième cas :
 							On empêche la modification du font-family style si on a pas "Uthmani" de sélectionné pour le style du mushaf, car Indopak et Tajweed ont des fonts spécifique
 								  -->
-								{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position' || style.id === 'text-direction')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'decorative-brackets-font-family' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'mushaf-style' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.currentSelection === 'arabic' && style.id === 'font-family' && globalState.getStyle('arabic', 'mushaf-style')?.value !== 'Uthmani') && !(style.id === 'decorative-brackets-font-family' && !globalState.getStyle('arabic', 'show-decorative-brackets').value) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'mushaf-style' || style.id === 'decorative-brackets-font-family' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'verse-number-position' || style.id === 'text-direction')) && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
+								{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position' || style.id === 'text-direction')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'decorative-brackets-font-family' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'mushaf-style' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'max-line' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.currentSelection === 'arabic' && style.id === 'font-family' && globalState.getStyle('arabic', 'mushaf-style')?.value !== 'Uthmani') && !(style.id === 'decorative-brackets-font-family' && !globalState.getStyle('arabic', 'show-decorative-brackets').value) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'mushaf-style' || style.id === 'decorative-brackets-font-family' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'max-line' || style.id === 'verse-number-position' || style.id === 'text-direction')) && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
 									<!-- On veut désactiver certains style, comme par exemple
 							 - Si on a le style "Always Show" pour les customs text d'enable, alors on disable les styles permettant
 							 de set les propriétés de temps de début d'affichage et de fin d'affichage -->

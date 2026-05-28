@@ -39,6 +39,10 @@ type TextLineRect = {
 	rect: DOMRect;
 };
 
+type LiveTextCanvasCaptureOptions = {
+	compensateTextWeight?: boolean;
+};
+
 /**
  * Indique si l'optimisation de rendu texte d'export doit etre activee.
  * @returns `true` si l'agent utilisateur courant est macOS.
@@ -53,16 +57,19 @@ export function shouldRedrawExportTextWithCanvas(): boolean {
  * @param scale Echelle de capture calculee depuis la cible d'export.
  * @param targetWidth Largeur de sortie en pixels.
  * @param targetHeight Hauteur de sortie en pixels.
+ * @param options Options de rendu canvas.
  * @returns Les octets PNG du frame final.
  */
 export async function captureMacOsOverlayPngBytes(
 	root: HTMLElement,
 	scale: number,
 	targetWidth: number,
-	targetHeight: number
+	targetHeight: number,
+	options: LiveTextCanvasCaptureOptions = {}
 ): Promise<Uint8Array> {
 	const roundedTargetWidth = Math.round(targetWidth);
 	const roundedTargetHeight = Math.round(targetHeight);
+	const compensateTextWeight = options.compensateTextWeight ?? true;
 	const textRuns = collectLiveTextDrawRuns(root);
 	const restoreCaptureEffects = inlineComputedCaptureEffects(root);
 	const restoreHiddenText = hideTextForOverlayCapture(root);
@@ -88,7 +95,8 @@ export async function captureMacOsOverlayPngBytes(
 		root.clientWidth,
 		root.clientHeight,
 		roundedTargetWidth,
-		roundedTargetHeight
+		roundedTargetHeight,
+		compensateTextWeight
 	);
 }
 
@@ -532,18 +540,21 @@ function scaleCssPixelValue(value: string, scale: number): string {
  * @param run Donnees de texte a dessiner.
  * @param scaleX Echelle horizontale finale.
  * @param scaleY Echelle verticale finale.
+ * @param compensateTextWeight Compense legerement l'epaisseur du texte.
  */
 function drawTextRun(
 	context: CanvasRenderingContext2D,
 	run: TextDrawRun,
 	scaleX: number,
-	scaleY: number
+	scaleY: number,
+	compensateTextWeight: boolean
 ) {
 	const x = run.x * scaleX;
 	const y = run.y * scaleY;
 	const fontSizePx = getFontSizePx(run.font);
-	const compensationCssPx =
-		fontSizePx === null
+	const compensationCssPx = !compensateTextWeight
+		? 0
+		: fontSizePx === null
 			? EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX
 			: Math.min(
 					EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX,
@@ -628,6 +639,7 @@ function drawTextRun(
  * @param sourceHeight Hauteur source de capture.
  * @param targetWidth Largeur cible.
  * @param targetHeight Hauteur cible.
+ * @param compensateTextWeight Compense legerement l'epaisseur du texte.
  * @returns Les octets PNG du frame reconstruit.
  */
 async function blobToExactPngBytesWithLiveText(
@@ -636,7 +648,8 @@ async function blobToExactPngBytesWithLiveText(
 	sourceWidth: number,
 	sourceHeight: number,
 	targetWidth: number,
-	targetHeight: number
+	targetHeight: number,
+	compensateTextWeight: boolean
 ): Promise<Uint8Array> {
 	const image = await decodeBlobAsImage(blob);
 	const canvas = document.createElement('canvas');
@@ -654,7 +667,7 @@ async function blobToExactPngBytesWithLiveText(
 	const scaleX = targetWidth / sourceWidth;
 	const scaleY = targetHeight / sourceHeight;
 	for (const run of textRuns) {
-		drawTextRun(context, run, scaleX, scaleY);
+		drawTextRun(context, run, scaleX, scaleY, compensateTextWeight);
 	}
 
 	return await canvasToPngBytes(canvas);

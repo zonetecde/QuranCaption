@@ -1,5 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
-import { applyReactiveFontSize } from '$lib/components/projectEditor/videoPreview/helpers/reactiveFontSize';
+import {
+	applyReactiveFontSize,
+	getRenderedLineCount
+} from '$lib/components/projectEditor/videoPreview/helpers/reactiveFontSize';
 
 /** Promesse qui résout immédiatement (simule wait sans délai). */
 async function fakeWait(_signal: AbortSignal): Promise<void> {}
@@ -24,6 +27,32 @@ function createSubtitleElement(target: string, scrollHeight: number): HTMLElemen
 	return el;
 }
 
+/**
+ * Simule les rectangles de lignes renvoyés par `Range.getClientRects()`.
+ */
+function mockRenderedLineRects(getLineCount: () => number): () => void {
+	const originalCreateRange = document.createRange;
+
+	document.createRange = vi.fn(() => {
+		return {
+			selectNodeContents: vi.fn(),
+			getClientRects: vi.fn(() => {
+				return Array.from({ length: getLineCount() }, (_, index) => ({
+					top: index * 20,
+					bottom: index * 20 + 10,
+					width: 100,
+					height: 10
+				})) as unknown as DOMRectList;
+			}),
+			detach: vi.fn()
+		} as unknown as Range;
+	});
+
+	return () => {
+		document.createRange = originalCreateRange;
+	};
+}
+
 describe('reactiveFontSize', () => {
 	describe('applyReactiveFontSize', () => {
 		test('ne fait rien de plus que définir la taille initiale si maxHeight est 0', async () => {
@@ -33,6 +62,7 @@ describe('reactiveFontSize', () => {
 			await applyReactiveFontSize(
 				'arabic',
 				0, // maxHeight = 0 → pas de contrainte
+				5, // maxLine = infini
 				42, // taille initiale
 				true, // centré verticalement
 				abortController.signal,
@@ -58,6 +88,7 @@ describe('reactiveFontSize', () => {
 				await applyReactiveFontSize(
 					'arabic',
 					100, // maxHeight = 100px
+					5, // maxLine = infini
 					50, // taille initiale
 					true,
 					abortController.signal,
@@ -87,6 +118,7 @@ describe('reactiveFontSize', () => {
 				await applyReactiveFontSize(
 					'arabic',
 					100,
+					5,
 					50,
 					true,
 					abortController.signal,
@@ -120,6 +152,7 @@ describe('reactiveFontSize', () => {
 				await applyReactiveFontSize(
 					'arabic',
 					100,
+					5,
 					42,
 					true,
 					abortController.signal,
@@ -135,6 +168,50 @@ describe('reactiveFontSize', () => {
 			}
 		});
 
+		test('compte les lignes rendues depuis les rectangles DOM', () => {
+			const restoreRange = mockRenderedLineRects(() => 3);
+			const el = createSubtitleElement('arabic', 50);
+
+			try {
+				expect(getRenderedLineCount(el)).toBe(3);
+			} finally {
+				restoreRange();
+			}
+		});
+
+		test('réduit la taille si le nombre de lignes dépasse maxLine', async () => {
+			const abortController = new AbortController();
+			let renderedLineCount = 3;
+			const restoreRange = mockRenderedLineRects(() => renderedLineCount);
+			const calls: Array<[string, number]> = [];
+			const setReactiveFontSize = vi.fn((target: string, value: number) => {
+				calls.push([target, value]);
+				if (calls.length > 1) renderedLineCount = 2;
+			});
+
+			const el = createSubtitleElement('arabic', 50);
+			document.body.appendChild(el);
+
+			try {
+				await applyReactiveFontSize(
+					'arabic',
+					0,
+					2,
+					42,
+					true,
+					abortController.signal,
+					setReactiveFontSize,
+					fakeWait
+				);
+
+				expect(calls.length).toBe(2);
+				expect(calls[1][1]).toBeLessThan(42);
+			} finally {
+				document.body.removeChild(el);
+				restoreRange();
+			}
+		});
+
 		test("s'arrête immédiatement si le signal est déjà aborté", async () => {
 			const abortController = new AbortController();
 			abortController.abort();
@@ -146,6 +223,7 @@ describe('reactiveFontSize', () => {
 			await applyReactiveFontSize(
 				'arabic',
 				100,
+				5,
 				42,
 				true,
 				abortController.signal,
@@ -174,6 +252,7 @@ describe('reactiveFontSize', () => {
 				await applyReactiveFontSize(
 					'arabic',
 					100,
+					5,
 					42,
 					false, // PAS centré → marge de 10
 					abortController.signal,
@@ -203,6 +282,7 @@ describe('reactiveFontSize', () => {
 				await applyReactiveFontSize(
 					'arabic',
 					100,
+					5,
 					42,
 					true,
 					abortController.signal,

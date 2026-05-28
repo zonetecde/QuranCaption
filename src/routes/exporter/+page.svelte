@@ -68,6 +68,20 @@
 	let hasCompletedCapturingFrames = false;
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
+
+	/**
+	 * Indique si la capture doit redessiner le texte depuis le layout DOM live.
+	 * @param {HTMLElement} node Racine de l'overlay à capturer.
+	 * @returns {boolean} true si le rendu canvas est nécessaire.
+	 */
+	function shouldUseLiveTextCanvasCapture(node: HTMLElement): boolean {
+		const maxLineValue = Number(globalState.getStyle('arabic', 'max-line').value);
+		return (
+			maxLineValue >= 1 &&
+			maxLineValue <= 4 &&
+			Boolean(node.querySelector('#subtitles-container .arabic.subtitle'))
+		);
+	}
 	let processingBackgroundCurrentSegment = 0;
 	let processingBackgroundTotalSegments = 0;
 	let mergingFilesProgress = 0;
@@ -1200,7 +1214,8 @@
 			const filePathWithName = await join(...pathComponents);
 
 			const isMacOS = shouldRedrawExportTextWithCanvas();
-			if (!isMacOS) {
+			const useLiveTextCanvasCapture = isMacOS || shouldUseLiveTextCanvasCapture(node);
+			if (!useLiveTextCanvasCapture) {
 				const blob: Blob | null = await domToBlob(node, {
 					width: node.clientWidth * scale,
 					height: node.clientHeight * scale,
@@ -1220,7 +1235,9 @@
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 				console.log('Screenshot saved to:', filePathWithName);
 			} else {
-				const bytes = await captureMacOsOverlayPngBytes(node, scale, targetWidth, targetHeight);
+				const bytes = await captureMacOsOverlayPngBytes(node, scale, targetWidth, targetHeight, {
+					compensateTextWeight: isMacOS
+				});
 
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 				console.log('Screenshot saved to:', filePathWithName);

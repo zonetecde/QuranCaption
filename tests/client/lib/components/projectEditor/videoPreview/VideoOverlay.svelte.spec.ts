@@ -80,6 +80,7 @@ function createDefaultStyleValue(
 ): string | number | boolean | null {
 	if (styleId === 'opacity') return 1;
 	if (styleId === 'max-height') return 0;
+	if (styleId === 'max-line') return 'Infinite';
 	if (styleId === 'font-size') return target === 'arabic' ? 42 : 28;
 	if (styleId === 'vertical-text-alignment') return 'center';
 	if (styleId === 'reactive-font-size') return target === 'arabic' ? 42 : 28;

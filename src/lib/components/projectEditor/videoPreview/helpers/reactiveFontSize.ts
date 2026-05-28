@@ -1,11 +1,11 @@
 /**
  * Ajustement réactif de la taille de police des sous-titres.
  *
- * Quand un sous-titre dépasse une hauteur maximale configurée (`max-height`),
- * la taille de police est réduite progressivement jusqu'à ce que le texte
- * tienne dans la hauteur souhaitée. Une marge supplémentaire est ajoutée
- * si le texte n'est pas centré verticalement (pour compenser les dépassements
- * liés au positionnement).
+ * Quand un sous-titre dépasse une hauteur maximale configurée (`max-height`)
+ * ou un nombre maximal de lignes (`max-line`), la taille de police est réduite
+ * progressivement jusqu'à ce que le texte tienne dans la contrainte souhaitée.
+ * Une marge supplémentaire est ajoutée si le texte n'est pas centré verticalement
+ * (pour compenser les dépassements liés au positionnement).
  *
  * La réduction est progressive : à chaque itération, la taille est réduite
  * d'environ 5% (division par 20).
@@ -20,6 +20,7 @@
  *
  * @param target - Le target de style (ex: `"arabic"`, nom d'édition).
  * @param maxHeightValue - Hauteur maximale autorisée en pixels (0 = pas de limite).
+ * @param maxLineValue - Nombre maximal de lignes rendues (1-4 = limite, autre = pas de limite).
  * @param initialFontSize - Taille de police initiale en pixels.
  * @param isVerticalPosCentered - Si le texte est centré verticalement.
  * @param abortSignal - Signal pour annuler l'opération.
@@ -29,14 +30,17 @@
 export async function applyReactiveFontSize(
 	target: string,
 	maxHeightValue: number,
+	maxLineValue: number,
 	initialFontSize: number,
 	isVerticalPosCentered: boolean,
 	abortSignal: AbortSignal,
 	setReactiveFontSize: (target: string, value: number) => void,
 	wait: (signal: AbortSignal) => Promise<void>
 ): Promise<void> {
-	// Si max-height vaut 0, aucune contrainte de hauteur
-	if (maxHeightValue === 0) {
+	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
+
+	// Si max-height vaut 0 et max-line est infini, aucune contrainte de fit
+	if (maxHeightValue === 0 && !hasMaxLineLimit) {
 		// On définit quand même la taille réactive pour rester cohérent
 		setReactiveFontSize(target, initialFontSize);
 		return;
@@ -58,7 +62,11 @@ export async function applyReactiveFontSize(
 		if (abortSignal.aborted) return;
 
 		// Réduit la police tant que la hauteur dépasse la limite
-		while (subtitle.scrollHeight > maxHeightValue + marge && fontSize > 1) {
+		while (
+			((maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
+				(hasMaxLineLimit && getRenderedLineCount(subtitle) > maxLineValue)) &&
+			fontSize > 1
+		) {
 			if (abortSignal.aborted) return;
 
 			// Réduction progressive d'environ 5%
@@ -68,4 +76,65 @@ export async function applyReactiveFontSize(
 			await wait(abortSignal);
 		}
 	}
+}
+
+/**
+ * Compte les lignes réellement rendues dans un élément.
+ *
+ * @param element - Élément dont le contenu texte doit être mesuré.
+ * @returns Nombre de lignes visibles après layout.
+ */
+export function getRenderedLineCount(element: Element): number {
+	const range = document.createRange();
+	range.selectNodeContents(element);
+
+	try {
+		if (typeof range.getClientRects === 'function') {
+			const rects = Array.from(range.getClientRects()).filter(
+				(rect) => rect.width > 0 && rect.height > 0
+			);
+
+			if (rects.length > 0) return countDistinctLinePositions(rects);
+		}
+	} finally {
+		range.detach();
+	}
+
+	return getFallbackLineCount(element);
+}
+
+/**
+ * Regroupe les rectangles DOM qui appartiennent à une même ligne visuelle.
+ *
+ * @param rects - Rectangles retournés par `Range.getClientRects()`.
+ * @returns Nombre de positions verticales distinctes.
+ */
+function countDistinctLinePositions(rects: DOMRect[]): number {
+	const lineCenters: number[] = [];
+
+	for (const rect of rects) {
+		const centerY = (rect.top + rect.bottom) / 2;
+		if (!lineCenters.some((lineCenter) => Math.abs(lineCenter - centerY) <= 1)) {
+			lineCenters.push(centerY);
+		}
+	}
+
+	return lineCenters.length;
+}
+
+/**
+ * Estime le nombre de lignes si l'API Range ne fournit pas de rectangles.
+ *
+ * @param element - Élément mesuré.
+ * @returns Nombre de lignes estimé depuis `scrollHeight` et `line-height`.
+ */
+function getFallbackLineCount(element: Element): number {
+	const style = window.getComputedStyle(element);
+	const lineHeight = Number.parseFloat(style.lineHeight);
+	const fontSize = Number.parseFloat(style.fontSize);
+	const effectiveLineHeight = Number.isFinite(lineHeight) ? lineHeight : fontSize * 1.2;
+
+	if (!Number.isFinite(effectiveLineHeight) || effectiveLineHeight <= 0) return 0;
+
+	return Math.ceil((element as HTMLElement).scrollHeight / effectiveLineHeight);
 }

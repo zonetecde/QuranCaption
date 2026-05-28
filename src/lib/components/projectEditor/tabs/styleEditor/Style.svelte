@@ -242,6 +242,7 @@
 		// Déclenche un refresh éventuel (ex: max-height fit)
 		if (
 			style.id === 'max-height' ||
+			style.id === 'max-line' ||
 			style.id === 'font-size' ||
 			style.id === 'word-spacing' ||
 			style.id === 'font-family'

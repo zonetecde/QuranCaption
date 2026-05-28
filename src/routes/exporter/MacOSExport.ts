@@ -40,7 +40,9 @@ type TextLineRect = {
 };
 
 type LiveTextCanvasCaptureOptions = {
+	backgroundBlob?: Blob | null;
 	compensateTextWeight?: boolean;
+	textRootSelector?: string;
 };
 
 /**
@@ -70,9 +72,21 @@ export async function captureMacOsOverlayPngBytes(
 	const roundedTargetWidth = Math.round(targetWidth);
 	const roundedTargetHeight = Math.round(targetHeight);
 	const compensateTextWeight = options.compensateTextWeight ?? true;
-	const textRuns = collectLiveTextDrawRuns(root);
+	const textRuns = collectLiveTextDrawRuns(root, options.textRootSelector);
+
+	if (options.backgroundBlob) {
+		return await blobToExactPngBytesWithLiveText(
+			options.backgroundBlob,
+			textRuns,
+			root.clientWidth,
+			root.clientHeight,
+			roundedTargetWidth,
+			roundedTargetHeight,
+			compensateTextWeight
+		);
+	}
+
 	const restoreCaptureEffects = inlineComputedCaptureEffects(root);
-	const restoreHiddenText = hideTextForOverlayCapture(root);
 	let blob: Blob | null = null;
 
 	try {
@@ -80,10 +94,12 @@ export async function captureMacOsOverlayPngBytes(
 			width: root.clientWidth,
 			height: root.clientHeight,
 			scale,
-			quality: 1
+			quality: 1,
+			onCloneNode: (clone) => {
+				if (clone instanceof HTMLElement) hideTextForOverlayCapture(clone);
+			}
 		});
 	} finally {
-		restoreHiddenText();
 		restoreCaptureEffects();
 	}
 
@@ -393,9 +409,10 @@ function getCumulativeOpacity(element: HTMLElement, root: HTMLElement): number {
 /**
  * Extrait les runs texte visibles a redessiner en canvas.
  * @param root Racine de capture.
+ * @param textRootSelector Selecteur optionnel limitant le texte a redessiner.
  * @returns Liste des runs texte.
  */
-function collectLiveTextDrawRuns(root: HTMLElement): TextDrawRun[] {
+function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): TextDrawRun[] {
 	const rootRect = root.getBoundingClientRect();
 	const localScaleX = root.clientWidth / rootRect.width;
 	const localScaleY = root.clientHeight / rootRect.height;
@@ -406,6 +423,7 @@ function collectLiveTextDrawRuns(root: HTMLElement): TextDrawRun[] {
 		const textNode = walker.currentNode as Text;
 		const parent = textNode.parentElement;
 		if (!parent || !textNode.data.trim()) continue;
+		if (textRootSelector && !parent.closest(textRootSelector)) continue;
 
 		const computedStyle = getComputedStyle(parent);
 		if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') continue;
@@ -448,50 +466,18 @@ function collectLiveTextDrawRuns(root: HTMLElement): TextDrawRun[] {
 }
 
 /**
- * Masque temporairement le texte DOM pour eviter un double rendu.
+ * Masque le texte du clone de capture pour eviter un double rendu.
  * @param root Racine de capture.
- * @returns Une fonction de restauration des styles.
  */
-function hideTextForOverlayCapture(root: HTMLElement): () => void {
-	const changedElements: Array<{
-		element: HTMLElement;
-		color: string;
-		textFillColor: string;
-		textShadow: string;
-		textDecorationColor: string;
-	}> = [];
-
+function hideTextForOverlayCapture(root: HTMLElement): void {
 	for (const element of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
 		if (!element.textContent?.trim()) continue;
-
-		changedElements.push({
-			element,
-			color: element.style.color,
-			textFillColor: element.style.webkitTextFillColor,
-			textShadow: element.style.textShadow,
-			textDecorationColor: element.style.textDecorationColor
-		});
 
 		element.style.color = 'transparent';
 		element.style.webkitTextFillColor = 'transparent';
 		element.style.textShadow = 'none';
 		element.style.textDecorationColor = 'transparent';
 	}
-
-	return () => {
-		for (const {
-			element,
-			color,
-			textFillColor,
-			textShadow,
-			textDecorationColor
-		} of changedElements) {
-			element.style.color = color;
-			element.style.webkitTextFillColor = textFillColor;
-			element.style.textShadow = textShadow;
-			element.style.textDecorationColor = textDecorationColor;
-		}
-	};
 }
 
 /**

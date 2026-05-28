@@ -71,6 +71,7 @@
 
 	/**
 	 * Indique si la capture doit redessiner le texte depuis le layout DOM live.
+	 * Ça permet d'éviter tout un tas d'incohérence entre le rendu réel et le rendu capturé par le canvas.
 	 * @param {HTMLElement} node Racine de l'overlay à capturer.
 	 * @returns {boolean} true si le rendu canvas est nécessaire.
 	 */
@@ -81,6 +82,24 @@
 			maxLineValue <= 4 &&
 			Boolean(node.querySelector('#subtitles-container .arabic.subtitle'))
 		);
+	}
+
+	/**
+	 * Retourne le nom du blank deja planifie pour la sourate courante.
+	 * @param {Record<string, number>} imgWithNothingShown Blanks sources par etat visuel.
+	 * @param {number} timing Timing courant.
+	 * @returns {string | null} Nom du fichier blank sans extension.
+	 */
+	function getReusableBlankFileName(
+		imgWithNothingShown: Record<string, number>,
+		timing: number
+	): string | null {
+		const currentSurah = globalState.getSubtitleTrack.getCurrentSurah(timing);
+		const key = Object.keys(imgWithNothingShown).find((blankVisualStateKey) =>
+			blankVisualStateKey.startsWith(`surah:${currentSurah}|`)
+		);
+
+		return key ? getBlankImageFileName(key) : null;
 	}
 	let processingBackgroundCurrentSegment = 0;
 	let processingBackgroundTotalSegments = 0;
@@ -652,7 +671,11 @@
 				// si la difference entre timing et celui juste avant est grand, attendre un peu plus
 				await wait(timing);
 
-				await takeScreenshot(`${imageIndex}`, segmentImageFolder);
+				await takeScreenshot(
+					`${imageIndex}`,
+					segmentImageFolder,
+					isBlankImage ? null : getReusableBlankFileName(segmentTimings.imgWithNothingShown, timing)
+				);
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
 				for (const [blankVisualStateKey, blankTiming] of Object.entries(
@@ -913,7 +936,11 @@
 
 				await wait(captureTiming);
 
-				await takeScreenshot(`${imageIndex}`);
+				await takeScreenshot(
+					`${imageIndex}`,
+					null,
+					isBlankImage ? null : getReusableBlankFileName(timings.imgWithNothingShown, timing)
+				);
 
 				// Verifier si ce timing correspond a une image blank de reference pour une sourate
 				for (const [blankVisualStateKey, blankTiming] of Object.entries(
@@ -1176,7 +1203,26 @@
 		getCurrentWebviewWindow().close();
 	}
 
-	async function takeScreenshot(fileName: string, subfolder: string | null = null) {
+	/**
+	 * Lit un PNG blank deja capture pour servir de fond sans sous-titres.
+	 * @param {string | null} fileName Nom du fichier sans extension.
+	 * @returns {Promise<Blob | null>} Blob PNG ou null si indisponible.
+	 */
+	async function readReusableBlankBlob(fileName: string | null): Promise<Blob | null> {
+		if (!fileName) return null;
+
+		const filePath = await join(ExportService.exportFolder, exportId, fileName + '.png');
+		if (!(await exists(filePath, { baseDir: BaseDirectory.AppData }))) return null;
+
+		const bytes = await readFile(filePath, { baseDir: BaseDirectory.AppData });
+		return new Blob([bytes], { type: 'image/png' });
+	}
+
+	async function takeScreenshot(
+		fileName: string,
+		subfolder: string | null = null,
+		reusableBlankFileName: string | null = null
+	) {
 		// L'element a transformer en image
 		const node = document.getElementById('overlay')!;
 
@@ -1214,7 +1260,9 @@
 			const filePathWithName = await join(...pathComponents);
 
 			const isMacOS = shouldRedrawExportTextWithCanvas();
-			const useLiveTextCanvasCapture = isMacOS || shouldUseLiveTextCanvasCapture(node);
+			// const useLiveTextCanvasCapture = isMacOS || shouldUseLiveTextCanvasCapture(node);
+			// On utilise TOUT LE TEMPS la live capture car c'est plus accurate, sinon on a les problèmes de mot qui descende
+			const useLiveTextCanvasCapture = true;
 			if (!useLiveTextCanvasCapture) {
 				const blob: Blob | null = await domToBlob(node, {
 					width: node.clientWidth * scale,
@@ -1235,8 +1283,11 @@
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 				console.log('Screenshot saved to:', filePathWithName);
 			} else {
+				const backgroundBlob = await readReusableBlankBlob(reusableBlankFileName);
 				const bytes = await captureMacOsOverlayPngBytes(node, scale, targetWidth, targetHeight, {
-					compensateTextWeight: isMacOS
+					backgroundBlob,
+					compensateTextWeight: isMacOS,
+					textRootSelector: backgroundBlob ? '#subtitles-container' : undefined
 				});
 
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });

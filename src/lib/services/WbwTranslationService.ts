@@ -1,4 +1,4 @@
-export type WbwTranslationLanguageCode = 'en' | 'fr' | 'de' | 'hi' | 'id' | 'ur';
+export type WbwTranslationLanguageCode = 'en' | 'fr' | 'de' | 'hi' | 'id' | 'ur' | 'bn';
 
 export type WbwTranslationLanguageOption = {
 	code: WbwTranslationLanguageCode;
@@ -14,7 +14,8 @@ export const WBW_TRANSLATION_LANGUAGES: WbwTranslationLanguageOption[] = [
 	{ code: 'de', label: 'Deutsch', direction: 'ltr' },
 	{ code: 'hi', label: 'Hindi', direction: 'ltr' },
 	{ code: 'id', label: 'Indonesian', direction: 'ltr' },
-	{ code: 'ur', label: 'Urdu', direction: 'rtl' }
+	{ code: 'ur', label: 'Urdu', direction: 'rtl' },
+	{ code: 'bn', label: 'Bangla', direction: 'ltr' }
 ];
 
 const wbwTranslationCache = new Map<WbwTranslationLanguageCode, Promise<WbwTranslationData>>();

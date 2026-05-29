@@ -349,6 +349,7 @@ export function calculateCaptureTimingsForRange({
 	// Timings qui doivent etre captures sans avancer le curseur,
 	// sinon on tombe dans le trou entre deux clips merges.
 	const exactCaptureTimings: Set<number> = new Set();
+	const exactCaptureTimingValues: Map<number, number> = new Map();
 
 	function add(t: number | undefined | null) {
 		if (t == null) return;
@@ -381,8 +382,11 @@ export function calculateCaptureTimingsForRange({
 		const duration = endTime - startTime;
 		if (duration <= 0) continue;
 		const endsInsideVisualMerge = isInternalVisualMergeTransition(subtitleClips, clipIndex);
-		if (endsInsideVisualMerge) {
-			exactCaptureTimings.add(Math.round(endTime));
+		const endsInsideFullVisualMerge = endsInsideVisualMerge && clip.visualMergeMode === 'both';
+		if (endsInsideVisualMerge && !endsInsideFullVisualMerge) {
+			const roundedEndTime = Math.round(endTime);
+			exactCaptureTimings.add(roundedEndTime);
+			exactCaptureTimingValues.set(roundedEndTime, endTime);
 		}
 
 		if (clip.kind !== 'silence') {
@@ -428,7 +432,7 @@ export function calculateCaptureTimingsForRange({
 				if (fadeOutStart > startTime) add(fadeOutStart);
 			}
 
-			add(endTime);
+			if (!endsInsideFullVisualMerge) add(endTime);
 		} else {
 			// Clip de silence: pas de bornes fade-in/fade-out à ajouter.
 			const surah = getCurrentSurah(clip.startTime);
@@ -483,5 +487,12 @@ export function calculateCaptureTimingsForRange({
 		.filter((t) => t >= rangeStart && t <= rangeEnd)
 		.sort((a, b) => a - b);
 
-	return { uniqueSorted, imgWithNothingShown, blankImgs, duplicableTimings, exactCaptureTimings };
+	return {
+		uniqueSorted,
+		imgWithNothingShown,
+		blankImgs,
+		duplicableTimings,
+		exactCaptureTimings,
+		exactCaptureTimingValues
+	};
 }

@@ -249,14 +249,25 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.blankImgs).toEqual({});
 	});
 
-	it('does not create or reuse a blank at an internal full merge transition', () => {
+	it('keeps the exact cursor time for decimal internal translation merge transitions', () => {
+		const result = calculateTimings([
+			subtitle(0, 500.4, 1, 'merge-1', 'translation'),
+			subtitle(501, 1_000, 1, 'merge-1', 'translation')
+		]);
+
+		expect(result.uniqueSorted).toContain(500);
+		expect(result.exactCaptureTimings).toEqual(new Set([500]));
+		expect(result.exactCaptureTimingValues.get(500)).toBe(500.4);
+	});
+
+	it('does not capture an internal full merge transition', () => {
 		const result = calculateTimings([
 			subtitle(0, 500, 1, 'merge-1', 'both'),
 			subtitle(501, 1_000, 1, 'merge-1', 'both')
 		]);
 
-		expect(result.uniqueSorted).toContain(500);
-		expect(result.exactCaptureTimings).toEqual(new Set([500]));
+		expect(result.uniqueSorted).not.toContain(500);
+		expect(result.exactCaptureTimings).toEqual(new Set());
 		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_000 });
 		expect(result.blankImgs).toEqual({});
 	});

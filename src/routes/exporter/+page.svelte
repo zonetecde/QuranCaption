@@ -954,7 +954,8 @@
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
 				const captureTiming =
-					isBlankImage || timings.exactCaptureTimings.has(timing) ? timing : timing + 1;
+					timings.exactCaptureTimingValues.get(timing) ??
+					(isBlankImage || timings.exactCaptureTimings.has(timing) ? timing : timing + 1);
 				globalState.getTimelineState.movePreviewTo = captureTiming;
 				globalState.getTimelineState.cursorPosition = captureTiming;
 

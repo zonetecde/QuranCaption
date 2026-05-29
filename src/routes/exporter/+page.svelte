@@ -86,6 +86,44 @@
 
 		return key ? getBlankImageFileName(key) : null;
 	}
+
+	/**
+	 * Indique si l'overlay contient un fond ou une bordure de sous-titre visible.
+	 * @param {HTMLElement} node Racine de l'overlay à capturer.
+	 * @returns {boolean} true si le blank réutilisable ne peut pas servir de fond.
+	 */
+	function hasVisibleSubtitleBackground(node: HTMLElement): boolean {
+		const backgrounds = node.querySelector<HTMLElement>('#subtitles-backgrounds');
+		if (!backgrounds) return false;
+
+		const backgroundStyle = getComputedStyle(backgrounds);
+		if (
+			backgroundStyle.display === 'none' ||
+			backgroundStyle.visibility === 'hidden' ||
+			Number(backgroundStyle.opacity) <= 0
+		) {
+			return false;
+		}
+
+		return Array.from(backgrounds.querySelectorAll<HTMLElement>('.subtitle')).some((element) => {
+			const style = getComputedStyle(element);
+			const hasBackground =
+				(style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)') ||
+				(style.backgroundImage && style.backgroundImage !== 'none');
+			const hasBorder =
+				Number.parseFloat(style.borderTopWidth) > 0 ||
+				Number.parseFloat(style.borderRightWidth) > 0 ||
+				Number.parseFloat(style.borderBottomWidth) > 0 ||
+				Number.parseFloat(style.borderLeftWidth) > 0;
+
+			return (
+				style.display !== 'none' &&
+				style.visibility !== 'hidden' &&
+				Number(style.opacity) > 0 &&
+				(hasBackground || hasBorder || style.boxShadow !== 'none')
+			);
+		});
+	}
 	let processingBackgroundCurrentSegment = 0;
 	let processingBackgroundTotalSegments = 0;
 	let mergingFilesProgress = 0;
@@ -1266,7 +1304,9 @@
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 				console.log('Screenshot saved to:', filePathWithName);
 			} else {
-				const backgroundBlob = await readReusableBlankBlob(reusableBlankFileName);
+				const backgroundBlob = hasVisibleSubtitleBackground(node)
+					? null
+					: await readReusableBlankBlob(reusableBlankFileName);
 				const bytes = await captureMacOsOverlayPngBytes(node, scale, targetWidth, targetHeight, {
 					backgroundBlob,
 					compensateTextWeight: isMacOS,

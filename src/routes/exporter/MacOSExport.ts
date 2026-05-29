@@ -2,7 +2,6 @@
 
 const EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX = 0.45;
 const EXPORT_TEXT_WEIGHT_COMPENSATION_RATIO = 0.0125;
-const EXPORT_TEXT_SHADOW_OPACITY = 0.75;
 
 type ParsedTextShadow = {
 	color: string;
@@ -15,16 +14,30 @@ type TextDrawRun = {
 	text: string;
 	x: number;
 	y: number;
+	width: number;
+	height: number;
 	font: string;
 	color: string;
 	opacity: number;
 	direction: CanvasDirection;
 	align: CanvasTextAlign;
 	letterSpacing: string;
+	wordSpacing: string;
+	filter: string;
 	fontKerning: string;
 	fontStretch: string;
 	fontVariantCaps: string;
+	textDecorationLine: string;
+	textDecorationColor: string;
+	textDecorationStyle: string;
+	textDecorationThickness: string;
+	textUnderlineOffset: string;
 	shadows: ParsedTextShadow[];
+};
+
+type TextFilterScratch = {
+	canvas: HTMLCanvasElement;
+	context: CanvasRenderingContext2D;
 };
 
 type TextTokenRect = {
@@ -218,18 +231,85 @@ function splitCssShadowList(value: string): string[] {
 }
 
 /**
+ * Remplace les variables CSS par leurs valeurs calculees.
+ * @param value Valeur CSS source.
+ * @param computedStyle Style calcule contenant les variables.
+ * @returns Valeur CSS avec variables resolues quand possible.
+ */
+function resolveCssVariables(value: string, computedStyle?: CSSStyleDeclaration): string {
+	if (!computedStyle) return value;
+
+	return value.replace(/var\((--[\w-]+)(?:,\s*([^)]+))?\)/g, (_match, name, fallback = '') => {
+		return computedStyle.getPropertyValue(name).trim() || String(fallback).trim();
+	});
+}
+
+/**
+ * Calcule les `calc()` simples utilises par les ombres texte.
+ * @param value Valeur CSS source.
+ * @returns Valeur CSS avec `calc(nombrepx * facteur)` converti en pixels.
+ */
+function resolveSimpleLengthCalcs(value: string): string {
+	const numberPattern = '-?(?:\\d+\\.?\\d*|\\.\\d+)';
+	const leftPx = new RegExp(
+		`calc\\(\\s*(${numberPattern})px\\s*([*/])\\s*(${numberPattern})\\s*\\)`,
+		'g'
+	);
+	const rightPx = new RegExp(
+		`calc\\(\\s*(${numberPattern})\\s*([*/])\\s*(${numberPattern})px\\s*\\)`,
+		'g'
+	);
+	const replaceCalc = (_match: string, left: string, operator: string, right: string) => {
+		const leftValue = Number.parseFloat(left);
+		const rightValue = Number.parseFloat(right);
+		if (!Number.isFinite(leftValue) || !Number.isFinite(rightValue)) return _match;
+		if (operator === '/' && rightValue === 0) return _match;
+		return `${operator === '*' ? leftValue * rightValue : leftValue / rightValue}px`;
+	};
+
+	return value.replace(leftPx, replaceCalc).replace(rightPx, replaceCalc);
+}
+
+/**
+ * Extrait les longueurs CSS en pixels d'une ombre texte.
+ * @param value Partie numerique d'une ombre CSS.
+ * @returns Longueurs en pixels dans leur ordre CSS.
+ */
+function parseShadowLengths(value: string): number[] {
+	const normalized = resolveSimpleLengthCalcs(value);
+	const lengths: number[] = [];
+	const lengthPattern = /(^|[\s(,])(-?(?:\d+\.?\d*|\.\d+)(?:px)?)(?=$|[\s),])/g;
+	let match: RegExpExecArray | null;
+
+	while ((match = lengthPattern.exec(normalized)) !== null) {
+		const token = match[2];
+		const parsed = Number.parseFloat(token);
+		if (!Number.isFinite(parsed)) continue;
+		if (token.endsWith('px') || parsed === 0) lengths.push(parsed);
+	}
+
+	return lengths;
+}
+
+/**
  * Parse une ombre texte CSS simple vers un format exploitable en canvas.
  * @param shadow Ombre CSS.
  * @param fallbackColor Couleur par defaut.
+ * @param computedStyle Style calcule associe au texte.
  * @returns L'ombre parsee ou `null` si invalide.
  */
-function parseTextShadow(shadow: string, fallbackColor: string): ParsedTextShadow | null {
-	const colorMatch = shadow.match(/(?:rgba?|hsla?)\([^)]*\)|#[0-9a-fA-F]{3,8}|[a-zA-Z]+/);
-	const color = colorMatch?.[0] ?? fallbackColor;
-	const numericPart = colorMatch ? shadow.replace(colorMatch[0], ' ') : shadow;
-	const numbers = Array.from(numericPart.matchAll(/-?\d*\.?\d+px/g)).map((match) =>
-		Number.parseFloat(match[0])
+function parseTextShadow(
+	shadow: string,
+	fallbackColor: string,
+	computedStyle?: CSSStyleDeclaration
+): ParsedTextShadow | null {
+	const resolvedShadow = resolveCssVariables(shadow, computedStyle);
+	const colorMatch = resolvedShadow.match(
+		/(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^)]*\)|#[0-9a-fA-F]{3,8}\b|\b(?!calc\b|var\b|px\b)[a-zA-Z]+\b/
 	);
+	const color = colorMatch?.[0] ?? fallbackColor;
+	const numericPart = colorMatch ? resolvedShadow.replace(colorMatch[0], ' ') : resolvedShadow;
+	const numbers = parseShadowLengths(numericPart);
 
 	if (numbers.length < 2) return null;
 
@@ -245,36 +325,18 @@ function parseTextShadow(shadow: string, fallbackColor: string): ParsedTextShado
  * Parse toutes les ombres texte d'un style CSS.
  * @param textShadow Valeur de `text-shadow`.
  * @param fallbackColor Couleur de repli.
+ * @param computedStyle Style calcule associe au texte.
  * @returns La liste des ombres parsees.
  */
-function parseTextShadows(textShadow: string, fallbackColor: string): ParsedTextShadow[] {
+function parseTextShadows(
+	textShadow: string,
+	fallbackColor: string,
+	computedStyle?: CSSStyleDeclaration
+): ParsedTextShadow[] {
 	if (!textShadow || textShadow === 'none') return [];
 	return splitCssShadowList(textShadow)
-		.map((shadow) => parseTextShadow(shadow, fallbackColor))
+		.map((shadow) => parseTextShadow(shadow, fallbackColor, computedStyle))
 		.filter((shadow): shadow is ParsedTextShadow => shadow !== null);
-}
-
-/**
- * Applique une opacite a une couleur CSS normalisee.
- * @param color Couleur source.
- * @param opacity Opacite cible entre 0 et 1.
- * @returns Une couleur rgba ou la couleur d'origine si conversion impossible.
- */
-function colorWithOpacity(color: string, opacity: number): string {
-	const canvas = document.createElement('canvas');
-	const context = canvas.getContext('2d');
-	if (!context) return color;
-
-	context.fillStyle = color;
-	const normalized = context.fillStyle;
-	const hexMatch = normalized.match(/^#([0-9a-f]{6})$/i);
-	if (!hexMatch) return color;
-
-	const hex = hexMatch[1];
-	const red = Number.parseInt(hex.slice(0, 2), 16);
-	const green = Number.parseInt(hex.slice(2, 4), 16);
-	const blue = Number.parseInt(hex.slice(4, 6), 16);
-	return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 }
 
 /**
@@ -407,6 +469,26 @@ function getCumulativeOpacity(element: HTMLElement, root: HTMLElement): number {
 }
 
 /**
+ * Recupere les filtres CSS actifs sur le texte et ses parents.
+ * @param element Element courant.
+ * @param root Racine de capture.
+ * @returns Filtres CSS cumules dans leur ordre d'application.
+ */
+function getCumulativeFilter(element: HTMLElement, root: HTMLElement): string {
+	const filters: string[] = [];
+	let current: HTMLElement | null = element;
+
+	while (current && current !== root.parentElement) {
+		const filter = getComputedStyle(current).filter;
+		if (filter && filter !== 'none') filters.push(filter);
+		if (current === root) break;
+		current = current.parentElement;
+	}
+
+	return filters.join(' ');
+}
+
+/**
  * Extrait les runs texte visibles a redessiner en canvas.
  * @param root Racine de capture.
  * @param textRootSelector Selecteur optionnel limitant le texte a redessiner.
@@ -433,7 +515,7 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 
 		const direction = toCanvasDirection(computedStyle.direction);
 		const align = toCanvasTextAlign(direction);
-		const shadows = parseTextShadows(computedStyle.textShadow, computedStyle.color);
+		const shadows = parseTextShadows(computedStyle.textShadow, computedStyle.color, computedStyle);
 
 		for (const line of getTextLineRects(textNode, localScaleY)) {
 			const text = textNode.data.slice(line.start, line.end).trim();
@@ -448,15 +530,24 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 				text: applyTextTransform(text, computedStyle.textTransform),
 				x,
 				y: (line.rect.top - rootRect.top) * localScaleY,
+				width: line.rect.width * localScaleX,
+				height: line.rect.height * localScaleY,
 				font: computedStyle.font,
 				color: computedStyle.color,
 				opacity,
 				direction,
 				align,
 				letterSpacing: computedStyle.letterSpacing,
+				wordSpacing: computedStyle.wordSpacing,
+				filter: getCumulativeFilter(parent, root),
 				fontKerning: computedStyle.fontKerning,
 				fontStretch: computedStyle.fontStretch,
 				fontVariantCaps: computedStyle.fontVariantCaps,
+				textDecorationLine: computedStyle.textDecorationLine,
+				textDecorationColor: computedStyle.textDecorationColor,
+				textDecorationStyle: computedStyle.textDecorationStyle,
+				textDecorationThickness: computedStyle.textDecorationThickness,
+				textUnderlineOffset: computedStyle.textUnderlineOffset,
 				shadows
 			});
 		}
@@ -521,19 +612,88 @@ function scaleCssPixelValue(value: string, scale: number): string {
 }
 
 /**
- * Dessine un run texte en reconstituant le poids et les ombres.
+ * Convertit une longueur CSS simple en pixels.
+ * @param value Valeur CSS source.
+ * @param fontSizePx Taille de police de reference.
+ * @param fallbackPx Valeur de repli en pixels.
+ * @returns Longueur convertie en pixels.
+ */
+function cssLengthToPx(value: string, fontSizePx: number | null, fallbackPx: number): number {
+	if (!value || value === 'auto' || value === 'from-font' || value === 'normal') return fallbackPx;
+
+	const parsed = Number.parseFloat(value);
+	if (!Number.isFinite(parsed)) return fallbackPx;
+	if (value.endsWith('em')) return parsed * (fontSizePx ?? fallbackPx);
+	return parsed;
+}
+
+/**
+ * Dessine le soulignement d'un run texte.
+ * @param context Contexte canvas 2D.
+ * @param run Donnees de texte a dessiner.
+ * @param scaleX Echelle horizontale finale.
+ * @param scaleY Echelle verticale finale.
+ * @param fontSizePx Taille de police en pixels CSS.
+ */
+function drawTextUnderline(
+	context: CanvasRenderingContext2D,
+	run: TextDrawRun,
+	scaleX: number,
+	scaleY: number,
+	fontSizePx: number | null
+) {
+	if (!run.textDecorationLine.includes('underline')) return;
+
+	const sourceFontSize = fontSizePx ?? run.height;
+	const thickness = cssLengthToPx(
+		run.textDecorationThickness,
+		fontSizePx,
+		Math.max(1, sourceFontSize * 0.05)
+	);
+	const offset = cssLengthToPx(run.textUnderlineOffset, fontSizePx, sourceFontSize * 0.08);
+	const startX = run.direction === 'rtl' ? (run.x - run.width) * scaleX : run.x * scaleX;
+	const endX = run.direction === 'rtl' ? run.x * scaleX : (run.x + run.width) * scaleX;
+	const y = (run.y + sourceFontSize + offset) * scaleY;
+	const lineWidth = thickness * Math.max(scaleX, scaleY);
+
+	context.save();
+	context.shadowColor = 'transparent';
+	context.shadowBlur = 0;
+	context.shadowOffsetX = 0;
+	context.shadowOffsetY = 0;
+	context.strokeStyle = run.textDecorationColor || run.color;
+	context.lineWidth = lineWidth;
+	context.lineCap = run.textDecorationStyle === 'dotted' ? 'round' : 'butt';
+
+	if (run.textDecorationStyle === 'dashed') {
+		context.setLineDash([lineWidth * 3, lineWidth * 2]);
+	} else if (run.textDecorationStyle === 'dotted') {
+		context.setLineDash([lineWidth, lineWidth * 2]);
+	}
+
+	context.beginPath();
+	context.moveTo(startX, y);
+	context.lineTo(endX, y);
+	context.stroke();
+	context.restore();
+}
+
+/**
+ * Dessine le contenu texte brut d'un run.
  * @param context Contexte canvas 2D.
  * @param run Donnees de texte a dessiner.
  * @param scaleX Echelle horizontale finale.
  * @param scaleY Echelle verticale finale.
  * @param compensateTextWeight Compense legerement l'epaisseur du texte.
+ * @param opacity Opacite appliquee au rendu brut.
  */
-function drawTextRun(
+function drawTextRunContent(
 	context: CanvasRenderingContext2D,
 	run: TextDrawRun,
 	scaleX: number,
 	scaleY: number,
-	compensateTextWeight: boolean
+	compensateTextWeight: boolean,
+	opacity: number
 ) {
 	const x = run.x * scaleX;
 	const y = run.y * scaleY;
@@ -549,7 +709,7 @@ function drawTextRun(
 	const compensationWidth = compensationCssPx * Math.max(scaleX, scaleY);
 
 	context.save();
-	context.globalAlpha = run.opacity;
+	context.globalAlpha = opacity;
 	context.font = scaleCanvasFont(run.font, scaleY);
 	context.fillStyle = run.color;
 	context.strokeStyle = run.color;
@@ -560,10 +720,14 @@ function drawTextRun(
 	context.direction = run.direction;
 	const extendedContext = context as CanvasRenderingContext2D & {
 		letterSpacing?: string;
+		wordSpacing?: string;
 		textRendering?: string;
 	} & Record<string, string | undefined>;
 	if ('letterSpacing' in extendedContext) {
 		extendedContext.letterSpacing = scaleCssPixelValue(run.letterSpacing, scaleX);
+	}
+	if ('wordSpacing' in extendedContext) {
+		extendedContext.wordSpacing = scaleCssPixelValue(run.wordSpacing, scaleX);
 	}
 	if ('fontKerning' in extendedContext) {
 		(extendedContext as Record<string, string | undefined>).fontKerning = run.fontKerning;
@@ -600,12 +764,13 @@ function drawTextRun(
 	};
 
 	fillCompensatedText();
+	drawTextUnderline(context, run, scaleX, scaleY, fontSizePx);
 
 	if (run.shadows.length > 0) {
 		context.globalCompositeOperation = 'destination-over';
 		for (const shadow of run.shadows) {
 			context.save();
-			context.shadowColor = colorWithOpacity(shadow.color, EXPORT_TEXT_SHADOW_OPACITY);
+			context.shadowColor = shadow.color;
 			context.shadowBlur = shadow.blur * Math.max(scaleX, scaleY);
 			context.shadowOffsetX = shadow.offsetX * scaleX;
 			context.shadowOffsetY = shadow.offsetY * scaleY;
@@ -614,6 +779,44 @@ function drawTextRun(
 		}
 	}
 
+	context.restore();
+}
+
+/**
+ * Dessine un run texte en reconstituant le poids, les ombres et les filtres.
+ * @param context Contexte canvas 2D.
+ * @param run Donnees de texte a dessiner.
+ * @param scaleX Echelle horizontale finale.
+ * @param scaleY Echelle verticale finale.
+ * @param compensateTextWeight Compense legerement l'epaisseur du texte.
+ * @param filterScratch Canvas temporaire pour appliquer le filtre au rendu complet.
+ */
+function drawTextRun(
+	context: CanvasRenderingContext2D,
+	run: TextDrawRun,
+	scaleX: number,
+	scaleY: number,
+	compensateTextWeight: boolean,
+	filterScratch: TextFilterScratch | null
+) {
+	const filter =
+		run.filter && run.filter !== 'none'
+			? scaleCssPixelValue(run.filter, Math.max(scaleX, scaleY))
+			: '';
+
+	if (!filter || !filterScratch) {
+		drawTextRunContent(context, run, scaleX, scaleY, compensateTextWeight, run.opacity);
+		return;
+	}
+
+	filterScratch.context.clearRect(0, 0, filterScratch.canvas.width, filterScratch.canvas.height);
+	drawTextRunContent(filterScratch.context, run, scaleX, scaleY, compensateTextWeight, 1);
+
+	context.save();
+	context.globalAlpha = run.opacity;
+	const extendedContext = context as CanvasRenderingContext2D & { filter?: string };
+	if ('filter' in extendedContext) extendedContext.filter = filter;
+	context.drawImage(filterScratch.canvas, 0, 0);
 	context.restore();
 }
 
@@ -652,8 +855,18 @@ async function blobToExactPngBytesWithLiveText(
 
 	const scaleX = targetWidth / sourceWidth;
 	const scaleY = targetHeight / sourceHeight;
+	let filterScratch: TextFilterScratch | null = null;
+	if (textRuns.some((run) => run.filter && run.filter !== 'none')) {
+		const scratchCanvas = document.createElement('canvas');
+		scratchCanvas.width = targetWidth;
+		scratchCanvas.height = targetHeight;
+		const scratchContext = scratchCanvas.getContext('2d');
+		if (!scratchContext) throw new Error('Could not create export text filter canvas.');
+		filterScratch = { canvas: scratchCanvas, context: scratchContext };
+	}
+
 	for (const run of textRuns) {
-		drawTextRun(context, run, scaleX, scaleY, compensateTextWeight);
+		drawTextRun(context, run, scaleX, scaleY, compensateTextWeight, filterScratch);
 	}
 
 	return await canvasToPngBytes(canvas);

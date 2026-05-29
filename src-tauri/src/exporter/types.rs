@@ -20,6 +20,8 @@ pub struct FfmpegProgressContext {
 pub struct MemoryMonitorConfig {
     /// Pourcentage maximum de RAM système avant de tuer FFmpeg.
     pub max_used_percent: f64,
+    /// Indique si FFmpeg doit être tué quand la limite RAM est atteinte.
+    pub kill_on_limit: bool,
     /// État partagé du moniteur (dépassement, pic).
     pub state: Option<Arc<Mutex<MemoryMonitorState>>>,
 }

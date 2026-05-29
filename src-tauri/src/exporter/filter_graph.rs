@@ -280,6 +280,7 @@ pub fn build_and_run_ffmpeg_filter_complex(
         let memory_monitor = if batch_mode == FiltergraphBatchMode::Auto {
             Some(MemoryMonitorConfig {
                 max_used_percent: constants::AUTO_MEMORY_LIMIT_PERCENT,
+                kill_on_limit: effective_batch_limit > constants::FILTERGRAPH_BATCH_MIN,
                 state: Some(memory_state.clone()),
             })
         } else {

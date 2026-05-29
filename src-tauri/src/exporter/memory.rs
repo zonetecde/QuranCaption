@@ -69,6 +69,11 @@ pub fn spawn_memory_monitor(
                 continue;
             }
 
+            if !config.kill_on_limit {
+                // Au batch minimum, on mesure le pic sans interrompre l'export.
+                continue;
+            }
+
             // Dépassement du seuil : kill FFmpeg
             if let Ok(mut state_guard) = state.lock() {
                 state_guard.exceeded = true;

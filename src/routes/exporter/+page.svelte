@@ -953,7 +953,8 @@
 				await duplicateScreenshot(getBlankImageFileName(surahInfo.key!), imageIndex);
 				console.log('Duplicating screenshot instead of taking new one at', timing);
 			} else {
-				const captureTiming = timings.exactCaptureTimings.has(timing) ? timing : timing + 1;
+				const captureTiming =
+					isBlankImage || timings.exactCaptureTimings.has(timing) ? timing : timing + 1;
 				globalState.getTimelineState.movePreviewTo = captureTiming;
 				globalState.getTimelineState.cursorPosition = captureTiming;
 

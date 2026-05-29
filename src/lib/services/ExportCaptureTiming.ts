@@ -438,7 +438,16 @@ export function calculateCaptureTimingsForRange({
 		const nextClip = subtitleClips[clipIndex + 1];
 		const endsIntoNextVisibleClip =
 			nextClip && nextClip.kind !== 'silence' && nextClip.startTime <= endTime + 1;
-		if (clip.kind !== 'silence' && !endsInsideVisualMerge && !endsIntoNextVisibleClip) {
+		const startsAtNextVisibleClipBoundary =
+			nextClip &&
+			nextClip.kind !== 'silence' &&
+			nextClip.startTime >= endTime &&
+			nextClip.startTime <= endTime + 1;
+		const shouldRegisterEndingBlank =
+			clip.kind !== 'silence' &&
+			!endsInsideVisualMerge &&
+			(!endsIntoNextVisibleClip || (fadeDuration > 0 && startsAtNextVisibleClipBoundary));
+		if (shouldRegisterEndingBlank) {
 			const surah = getCurrentSurah(clip.startTime);
 			registerBlankTiming(endTime, surah, endTime + 1);
 		}

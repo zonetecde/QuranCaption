@@ -174,6 +174,13 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.blankImgs).toEqual({});
 	});
 
+	it('registers a reusable blank at touching subtitle boundaries when fade is enabled', () => {
+		const result = calculateTimings([subtitle(0, 500, 1), subtitle(500, 1_000, 1)]);
+
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 500 });
+		expect(result.blankImgs[blankKey(1)]).toEqual([1_000]);
+	});
+
 	it('creates one reusable blank image per surah and reuses it for later subtitles of the same surah', () => {
 		const result = calculateTimings([subtitle(0, 500, 1), subtitle(1_000, 1_500, 1)]);
 

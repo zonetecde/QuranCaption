@@ -218,10 +218,20 @@
 
 			<div class="relative ml-auto">
 				<button
-					class="import-export-button btn-accent flex flex-row items-center px-2 py-1 gap-x-2 text-sm"
+					class="import-export-button style-presets-button btn-accent flex flex-row items-center px-2 py-1 gap-x-2 text-sm"
 					onclick={toggleImportExportMenu}
+					title="Save styles and explore community presets"
 				>
-					<span class="material-icons-outlined text-[20px]!">style</span>Presets
+					<div class="flex flex-col">
+						<span class="material-icons-outlined text-[22px]!">style</span>
+						<span class="material-icons-outlined text-[22px]!">public</span>
+					</div>
+					<span class="flex flex-col items-start leading-none">
+						<span class="font-bold">Presets</span>
+						<span class="text-[10px] font-medium opacity-85 text-left"
+							>Save styles &<br />Community presets</span
+						>
+					</span>
 				</button>
 			</div>
 		</div>
@@ -675,6 +685,16 @@
 		}
 	}
 
+	.style-presets-button {
+		box-shadow:
+			0 0 0 2px color-mix(in srgb, var(--accent-primary) 35%, transparent),
+			0 8px 18px rgb(0 0 0 / 24%);
+	}
+
+	.style-presets-button:hover {
+		transform: translateY(-1px);
+	}
+
 	@media (max-height: 780px), (max-width: 420px) {
 		.style-editor-target-label,
 		.visual-merge-description,
@@ -698,6 +718,10 @@
 			padding-top: 0.5rem;
 			padding-bottom: 0.5rem;
 			gap: 0.375rem;
+		}
+
+		.style-presets-button {
+			padding: 0.375rem 0.625rem;
 		}
 	}
 </style>

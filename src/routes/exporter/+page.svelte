@@ -70,21 +70,6 @@
 	let processingBackgroundProgress = 0;
 
 	/**
-	 * Indique si la capture doit redessiner le texte depuis le layout DOM live.
-	 * Ça permet d'éviter tout un tas d'incohérence entre le rendu réel et le rendu capturé par le canvas.
-	 * @param {HTMLElement} node Racine de l'overlay à capturer.
-	 * @returns {boolean} true si le rendu canvas est nécessaire.
-	 */
-	function shouldUseLiveTextCanvasCapture(node: HTMLElement): boolean {
-		const maxLineValue = Number(globalState.getStyle('arabic', 'max-line').value);
-		return (
-			maxLineValue >= 1 &&
-			maxLineValue <= 4 &&
-			Boolean(node.querySelector('#subtitles-container .arabic.subtitle'))
-		);
-	}
-
-	/**
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
 	 * @param {Record<string, number>} imgWithNothingShown Blanks sources par etat visuel.
 	 * @param {number} timing Timing courant.
@@ -1260,9 +1245,7 @@
 			const filePathWithName = await join(...pathComponents);
 
 			const isMacOS = shouldRedrawExportTextWithCanvas();
-			// const useLiveTextCanvasCapture = isMacOS || shouldUseLiveTextCanvasCapture(node);
-			// On utilise TOUT LE TEMPS la live capture car c'est plus accurate, sinon on a les problèmes de mot qui descende
-			const useLiveTextCanvasCapture = true;
+			const useLiveTextCanvasCapture = isMacOS;
 			if (!useLiveTextCanvasCapture) {
 				const blob: Blob | null = await domToBlob(node, {
 					width: node.clientWidth * scale,

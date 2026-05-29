@@ -304,6 +304,18 @@ porte. Il peut avoir sa propre police (`suffixFontFamily`) et son opacité
 est contrôlée par l'état WBW (révélé avec le dernier mot, ou toujours
 visible si `alwaysShowVerseNumber` est activé).
 
+### Capture export
+
+En mode export, le conteneur arabe reste en `display: block`. Ce layout est
+nécessaire pour éviter que `modern-screenshot` déplace le dernier mot ou le
+numéro de verset sur une nouvelle ligne pendant la conversion DOM vers PNG.
+
+Le texte arabe n'est pas enveloppé dans un conteneur flex interne : le flux
+inline reste identique au rendu historique. Quand une hauteur fixe est
+présente, l'alignement vertical est compensé directement sur le `<p>` par les
+helpers `getExportVerticalAlignmentOffset()` et `getExportCaptureLayoutCss()`
+dans `helpers/overlayCss.ts`.
+
 ---
 
 ## Couche 6 — Traductions

@@ -46,7 +46,11 @@ describe('SubtitlesEditorSettings', () => {
 		await expect.element(component.getByText('Long segments', { exact: true })).toBeVisible();
 		await component.getByRole('button', { name: /Mark/i }).click();
 
-		expect(globalState.getSubtitleClips.map((clip) => clip.needsLongReview)).toEqual([true, false, true]);
+		expect(globalState.getSubtitleClips.map((clip) => clip.needsLongReview)).toEqual([
+			true,
+			false,
+			true
+		]);
 		expect(toastMock.success).toHaveBeenCalled();
 
 		await component.getByRole('button', { name: /Next/i }).click();

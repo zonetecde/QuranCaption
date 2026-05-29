@@ -224,7 +224,9 @@ export async function detectCoverageGapIndices(
 			const expectedNextRef = await getExpectedNextRef(progressRef);
 			if (expectedNextRef && compareVerseRefs(startRef, expectedNextRef) > 0) {
 				const gapEndRef = await getPreviousRef(startRef);
-				const gapCovered = gapEndRef ? await isRangeFullyCovered(expectedNextRef, gapEndRef) : false;
+				const gapCovered = gapEndRef
+					? await isRangeFullyCovered(expectedNextRef, gapEndRef)
+					: false;
 				if (!gapCovered) {
 					coverageGapIndices.add(i - 1);
 					coverageGapIndices.add(i);

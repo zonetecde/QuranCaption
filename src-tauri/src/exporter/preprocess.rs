@@ -33,7 +33,8 @@ pub fn ffmpeg_preprocess_video(
     export_id: &str,
     app_handle: &tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let (codec, params, extra) = codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
+    let (codec, params, extra) =
+        codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
     let exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let dst_path = Path::new(dst);
     if let Some(parent) = dst_path.parent() {

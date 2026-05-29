@@ -397,8 +397,7 @@ class QuranAuthService {
 
 	/** Recupere toutes les preferences Quran.com de l'utilisateur connecte. */
 	async getUserPreferences(): Promise<QuranUserPreferencesResponse['data']> {
-		const response =
-			await this.fetchUserApi<QuranUserPreferencesResponse>('/auth/v1/preferences');
+		const response = await this.fetchUserApi<QuranUserPreferencesResponse>('/auth/v1/preferences');
 		return response.data;
 	}
 

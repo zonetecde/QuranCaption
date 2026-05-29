@@ -528,8 +528,7 @@ pub async fn concat_videos(
     }
 
     // Voie complète : ré-encodage avec filtre complexe
-    let ffmpeg_exe =
-        ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let mut cmd = vec![
         ffmpeg_exe,
         "-y".to_string(),

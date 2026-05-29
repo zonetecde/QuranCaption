@@ -52,7 +52,10 @@
 	 */
 	function jumpToSubtitle(clip: SubtitleClip): void {
 		goToSubtitleClip(clip);
-		sliderIndex = Math.max(0, subtitles().findIndex((candidate) => candidate.id === clip.id));
+		sliderIndex = Math.max(
+			0,
+			subtitles().findIndex((candidate) => candidate.id === clip.id)
+		);
 		resultMessage = getSubtitleVerseKeyLabel(clip);
 	}
 
@@ -96,7 +99,10 @@
 		showAllTranslationFilters();
 		globalState.getTranslationsState.searchQuery = '';
 		globalState.shared.translationScrollTargetClipId = clip.id;
-		sliderIndex = Math.max(0, subtitles().findIndex((candidate) => candidate.id === clip.id));
+		sliderIndex = Math.max(
+			0,
+			subtitles().findIndex((candidate) => candidate.id === clip.id)
+		);
 		resultMessage = getSubtitleVerseKeyLabel(clip);
 	}
 
@@ -182,7 +188,13 @@
 	data-project-search-overlay="true"
 	bind:this={overlayRoot}
 >
-	<form class="space-y-3" onsubmit={(event) => { event.preventDefault(); submitSearch(); }}>
+	<form
+		class="space-y-3"
+		onsubmit={(event) => {
+			event.preventDefault();
+			submitSearch();
+		}}
+	>
 		<div class="flex items-center gap-2">
 			<span class="material-icons text-accent-primary text-xl">search</span>
 			<div class="min-w-0 flex-1">

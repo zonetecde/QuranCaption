@@ -213,7 +213,9 @@
 		if (groupIndex < 0) return;
 
 		const targetGroup = subtitlesInGroups()[groupIndex];
-		const firstClipId = targetGroup ? globalState.getSubtitleTrack.clips[targetGroup[0]].id : clipId;
+		const firstClipId = targetGroup
+			? globalState.getSubtitleTrack.clips[targetGroup[0]].id
+			: clipId;
 
 		visibleCount = Math.max(visibleCount, groupIndex + 1);
 		setTimeout(() => {

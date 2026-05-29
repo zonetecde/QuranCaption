@@ -7,9 +7,7 @@
 
 	const aiv = globalState.aiVideo;
 
-	let selectedReciterKey = $state(
-		aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : ''
-	);
+	let selectedReciterKey = $state(aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : '');
 	let surahKey = $state(aiv.selectedVerseRange.surah.toString());
 
 	let maxAyah = $derived(Quran.getVerseCount(aiv.selectedVerseRange.surah) || 1);
@@ -56,9 +54,7 @@
 	 * @returns {void}
 	 */
 	function handleReciterChange() {
-		const option = aiv.reciterOptions.find(
-			(o) => getReciterOptionKey(o) === selectedReciterKey
-		);
+		const option = aiv.reciterOptions.find((o) => getReciterOptionKey(o) === selectedReciterKey);
 		aiv.audio.reciter = option ?? null;
 		aiv.audio.reciterName = option?.reciterName ?? '';
 	}
@@ -100,7 +96,8 @@
 	<div class="flex gap-3">
 		<button
 			type="button"
-			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {!aiv.audio.useLocal
+			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {!aiv
+				.audio.useLocal
 				? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 				: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 			onclick={() => (aiv.audio.useLocal = false)}
@@ -110,7 +107,8 @@
 		</button>
 		<button
 			type="button"
-			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.audio.useLocal
+			class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv
+				.audio.useLocal
 				? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 				: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 			onclick={() => (aiv.audio.useLocal = true)}

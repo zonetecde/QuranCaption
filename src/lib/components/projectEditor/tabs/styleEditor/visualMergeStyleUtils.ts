@@ -1,4 +1,8 @@
-import { PredefinedSubtitleClip, SubtitleClip, type VisualMergeMode } from '$lib/classes/Clip.svelte';
+import {
+	PredefinedSubtitleClip,
+	SubtitleClip,
+	type VisualMergeMode
+} from '$lib/classes/Clip.svelte';
 import type { SubtitleTrack, VisualMergeSelection } from '$lib/classes/Track.svelte';
 
 /**

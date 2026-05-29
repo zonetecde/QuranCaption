@@ -278,7 +278,7 @@
 				>
 					<div class="space-y-2">
 						<p class="text-xs text-thirdly">Tap a wallet to copy the address.</p>
-					{#each DONATION_WALLETS as wallet (wallet.label)}
+						{#each DONATION_WALLETS as wallet (wallet.label)}
 							<button
 								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
 								onclick={() => copyWalletAddress(wallet.address, wallet.label)}

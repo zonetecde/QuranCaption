@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
-	import { type TranslationInlineStyleFlags, VerseTranslation } from '$lib/classes/Translation.svelte';
+	import {
+		type TranslationInlineStyleFlags,
+		VerseTranslation
+	} from '$lib/classes/Translation.svelte';
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -100,7 +103,11 @@
 			// Préfixe éventuel (ex: numéro de verset avant la traduction)
 			if (textParts.prefix) {
 				segments.push(
-					createPlainOverlaySegment(`${editionName}-${subtitle.id}-prefix`, textParts.prefix, 'color: var(--verse-number-color);')
+					createPlainOverlaySegment(
+						`${editionName}-${subtitle.id}-prefix`,
+						textParts.prefix,
+						'color: var(--verse-number-color);'
+					)
 				);
 			}
 
@@ -116,7 +123,11 @@
 			// Suffixe éventuel
 			if (textParts.suffix) {
 				segments.push(
-					createPlainOverlaySegment(`${editionName}-${subtitle.id}-suffix`, textParts.suffix, 'color: var(--verse-number-color);')
+					createPlainOverlaySegment(
+						`${editionName}-${subtitle.id}-suffix`,
+						textParts.suffix,
+						'color: var(--verse-number-color);'
+					)
 				);
 			}
 

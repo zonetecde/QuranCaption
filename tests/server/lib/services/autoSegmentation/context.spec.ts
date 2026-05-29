@@ -107,7 +107,11 @@ describe('buildSubtitleAlignmentMetadata', () => {
 	});
 
 	it('returns null when refFrom is empty', () => {
-		const meta = buildSubtitleAlignmentMetadata('local', { segment: 1, time_from: 0, time_to: 1, ref_from: '', ref_to: '' }, words);
+		const meta = buildSubtitleAlignmentMetadata(
+			'local',
+			{ segment: 1, time_from: 0, time_to: 1, ref_from: '', ref_to: '' },
+			words
+		);
 		expect(meta).toBeNull();
 	});
 });

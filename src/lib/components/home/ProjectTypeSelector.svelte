@@ -48,7 +48,9 @@
 
 	function getOptionClass(option: ProjectType): string {
 		return `cursor-pointer select-none rounded-sm px-3 py-1.5 text-xs transition-colors hover:bg-white/5 ${
-			option === projectDetail.projectType ? 'bg-white/10 font-semibold text-[var(--text-primary)]' : ''
+			option === projectDetail.projectType
+				? 'bg-white/10 font-semibold text-[var(--text-primary)]'
+				: ''
 		}`;
 	}
 
@@ -96,7 +98,9 @@
 			onclick={toggle}
 		>
 			<span>{projectDetail.projectType}</span>
-			<span class="material-icons-outlined text-[12px] opacity-50 transition-opacity group-hover:opacity-80">
+			<span
+				class="material-icons-outlined text-[12px] opacity-50 transition-opacity group-hover:opacity-80"
+			>
 				arrow_drop_down
 			</span>
 		</button>

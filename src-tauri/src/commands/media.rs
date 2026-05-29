@@ -1100,7 +1100,9 @@ pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
             args.extend(["-map", "0:a:0", "-c", "copy", "-bsf:a"].map(String::from));
             args.push(setts);
         } else {
-            args.extend(["-map", "0:v:0", "-map", "0:a:0", "-c", "copy", "-bsf:a"].map(String::from));
+            args.extend(
+                ["-map", "0:v:0", "-map", "0:a:0", "-c", "copy", "-bsf:a"].map(String::from),
+            );
             args.push(setts);
             args.extend(["-movflags", "+faststart"].map(String::from));
         }
@@ -1120,8 +1122,17 @@ pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
         } else {
             args.extend(
                 [
-                    "-map", "0:v:0", "-map", "0:a:0", "-c:v", "copy", "-af", "asetpts=N/SR/TB",
-                    "-c:a", "aac", "-b:a",
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "0:a:0",
+                    "-c:v",
+                    "copy",
+                    "-af",
+                    "asetpts=N/SR/TB",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
                 ]
                 .map(String::from),
             );

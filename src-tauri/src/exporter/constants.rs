@@ -15,8 +15,9 @@ pub static LAST_EXPORT_TIME_S: Mutex<Option<f64>> = Mutex::new(None);
 
 /// Contient les processus FFmpeg actifs, indexés par `export_id`.
 /// Permet d'annuler un export en cours en tuant le processus associé.
-pub static ACTIVE_EXPORTS: LazyLock<Mutex<HashMap<String, Arc<Mutex<Option<std::process::Child>>>>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
+pub static ACTIVE_EXPORTS: LazyLock<
+    Mutex<HashMap<String, Arc<Mutex<Option<std::process::Child>>>>>,
+> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Ensemble des `export_id` dont l'annulation a été demandée.
 /// Les fonctions d'export vérifient cet ensemble régulièrement pour s'arrêter proprement.

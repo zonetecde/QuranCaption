@@ -292,8 +292,13 @@ export type ReviewIssueCategory = 'coverage' | 'wbw-timestamps' | 'long' | 'low-
  * @returns {boolean} `true` si le clip doit etre considere comme reviewable.
  */
 export function hasClipReviewIssue(clip: ClipWithTranslation | null | undefined): boolean {
-	return !!clip &&
-		(clip.needsCoverageReview || clip.needsWbwTimestampReview || clip.needsLongReview || clip.needsReview);
+	return (
+		!!clip &&
+		(clip.needsCoverageReview ||
+			clip.needsWbwTimestampReview ||
+			clip.needsLongReview ||
+			clip.needsReview)
+	);
 }
 
 /**
@@ -614,9 +619,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		return words.map((word, index) => {
 			const isFirstWord = index === 0;
 			const isLastWord = index === words.length - 1;
-			const start = isFirstWord
-				? 0
-				: Math.max(previousEnd, Math.min(clipDurationS, word.start));
+			const start = isFirstWord ? 0 : Math.max(previousEnd, Math.min(clipDurationS, word.start));
 			const targetEnd = pinLastWordToEnd && isLastWord ? clipDurationS : word.end;
 			const end = Math.max(start, Math.min(clipDurationS, targetEnd));
 			previousEnd = end;

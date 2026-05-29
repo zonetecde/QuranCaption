@@ -1,15 +1,67 @@
 ﻿// Re-exports depuis les modules spécialisés
 // Ce fichier sert de barrel pour préserver la rétrocompatibilité de l'API publique.
 
-export { getAutoSegmentationAudioClips, getAutoSegmentationAudioInfo, getAutoSegmentationAudioDurationS, checkLocalSegmentationStatus, installLocalSegmentationDeps, getPreferredSegmentationMode } from './autoSegmentation/audio';
-export { asNonEmptyString, asFiniteNumber, asBoolean, normalizeWordTimestamps, normalizeSegmentWords, normalizeMfaSegments, normalizeImportedSegment, parseImportedSegmentationJson, parseSegmentationResponseFromThrownError } from './autoSegmentation/parsing';
-export { parseVerseRef, compareVerseRefs, detectCoverageGapIndices } from './autoSegmentation/verse-ref';
+export {
+	getAutoSegmentationAudioClips,
+	getAutoSegmentationAudioInfo,
+	getAutoSegmentationAudioDurationS,
+	checkLocalSegmentationStatus,
+	installLocalSegmentationDeps,
+	getPreferredSegmentationMode
+} from './autoSegmentation/audio';
+export {
+	asNonEmptyString,
+	asFiniteNumber,
+	asBoolean,
+	normalizeWordTimestamps,
+	normalizeSegmentWords,
+	normalizeMfaSegments,
+	normalizeImportedSegment,
+	parseImportedSegmentationJson,
+	parseSegmentationResponseFromThrownError
+} from './autoSegmentation/parsing';
+export {
+	parseVerseRef,
+	compareVerseRefs,
+	detectCoverageGapIndices
+} from './autoSegmentation/verse-ref';
 export { getPredefinedType } from './autoSegmentation/predefined';
-export { setClipStartTime, setClipEndTime, closeSmallSubtitleGaps, insertSilenceClips, extendSubtitlesBeforeSilence, extendSubtitlesToFillGaps } from './autoSegmentation/timeline';
-export { createEmptySegmentationContext, getSegmentWords, filterWordsForVerse, buildSubtitleAlignmentMetadata, buildStoredAlignedSegment, refreshSegmentationContextFromTrack } from './autoSegmentation/context';
-export { getSubtitleClipWordCount, getLongSubtitleClips, markLongSegmentsForReview, clearLongSegmentsReview, getSubtitleClipsWithoutWbwTimestamps, markSubtitlesWithoutWbwTimestampsForReview, clearWbwTimestampReview } from './autoSegmentation/review';
-export { hydrateSubtitleClipRange, splitSubtitleClipLocally, automaticSplitSubtitleAtWord, subdivideLongSubtitleSegments } from './autoSegmentation/split';
-export { getSegmentationMfaTimestampsSession, getSegmentationMfaTimestampsDirect, enrichSegmentationResponseWithWordTimestamps } from './autoSegmentation/enrichment';
+export {
+	setClipStartTime,
+	setClipEndTime,
+	closeSmallSubtitleGaps,
+	insertSilenceClips,
+	extendSubtitlesBeforeSilence,
+	extendSubtitlesToFillGaps
+} from './autoSegmentation/timeline';
+export {
+	createEmptySegmentationContext,
+	getSegmentWords,
+	filterWordsForVerse,
+	buildSubtitleAlignmentMetadata,
+	buildStoredAlignedSegment,
+	refreshSegmentationContextFromTrack
+} from './autoSegmentation/context';
+export {
+	getSubtitleClipWordCount,
+	getLongSubtitleClips,
+	markLongSegmentsForReview,
+	clearLongSegmentsReview,
+	getSubtitleClipsWithoutWbwTimestamps,
+	markSubtitlesWithoutWbwTimestampsForReview,
+	clearWbwTimestampReview
+} from './autoSegmentation/review';
+export {
+	hydrateSubtitleClipRange,
+	splitSubtitleClipLocally,
+	automaticSplitSubtitleAtWord,
+	subdivideLongSubtitleSegments
+} from './autoSegmentation/split';
+export {
+	getSegmentationMfaTimestampsSession,
+	getSegmentationMfaTimestampsDirect,
+	enrichSegmentationResponseWithWordTimestamps
+} from './autoSegmentation/enrichment';
 export { estimateSegmentationDuration } from './autoSegmentation/estimate';
 export { applySegmentationResponseToProject } from './autoSegmentation/apply-segmentation';
 export { runAutoSegmentation } from './autoSegmentation/run-segmentation';

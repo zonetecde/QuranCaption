@@ -175,8 +175,7 @@ pub fn build_and_run_ffmpeg_filter_complex(
         ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
 
         let effective_batch_limit = if batch_mode == FiltergraphBatchMode::Auto {
-            auto_batch_limit =
-                batching::adjust_auto_batch_limit_for_memory(auto_batch_limit);
+            auto_batch_limit = batching::adjust_auto_batch_limit_for_memory(auto_batch_limit);
             auto_batch_limit
         } else {
             batch_limit
@@ -210,13 +209,12 @@ pub fn build_and_run_ffmpeg_filter_complex(
         } else {
             1
         };
-        let graph_duration_ms =
-            batching::compute_render_output_duration_ms(
-                &batch_timestamps,
-                fade_duration_ms,
-                last_tail_ms,
-            )
-            .saturating_add(boundary_fade_ms);
+        let graph_duration_ms = batching::compute_render_output_duration_ms(
+            &batch_timestamps,
+            fade_duration_ms,
+            last_tail_ms,
+        )
+        .saturating_add(boundary_fade_ms);
         let batch_source_start_ms = batching::capture_timeline_ms(
             timestamps_ms[batch_start_idx],
             batch_start_idx,
@@ -234,9 +232,8 @@ pub fn build_and_run_ffmpeg_filter_complex(
             .max(batch_source_start_ms + 1)
             .min(full_duration_ms as i64)
         };
-        let target_end_frames =
-            batching::cumulative_frames_for_time_ms(intended_batch_end_ms, fps)
-                .max(encoded_batch_base_frames + 1);
+        let target_end_frames = batching::cumulative_frames_for_time_ms(intended_batch_end_ms, fps)
+            .max(encoded_batch_base_frames + 1);
         let batch_duration_frames = target_end_frames - encoded_batch_base_frames;
         let batch_duration_s = batching::frames_to_seconds(batch_duration_frames, fps);
         let batch_base_s = encoded_batch_base_frames as f64 / fps.max(1) as f64;
@@ -461,10 +458,8 @@ pub fn render_ffmpeg_filter_complex_single(
     let (w, h) = target_size;
     let fade_s = (fade_duration_ms as f64 / 1000.0).max(0.0);
     let start_s = (start_time_ms as f64 / 1000.0).max(0.0);
-    let use_mov_alpha = batching::transparent_export_uses_mov(
-        export_without_background,
-        transparent_export_format,
-    );
+    let use_mov_alpha =
+        batching::transparent_export_uses_mov(export_without_background, transparent_export_format);
 
     let n = image_paths.len();
     if n == 0 {

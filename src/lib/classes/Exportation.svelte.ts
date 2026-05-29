@@ -133,4 +133,3 @@ export default class Exportation extends SerializableBase {
 		this.currentState = ExportState.Canceled;
 	}
 }
-

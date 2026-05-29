@@ -2,13 +2,18 @@
 
 ## Context
 
-The wraparound DP algorithm for repetition detection has been validated on 1,252 verses (605 rep + 647 non-rep) with 99.5% recall, 0% false positives, and 155x Cython speedup. The Cython implementation (`cy_align_wraparound`) already exists in `_dp_core.pyx`. This plan integrates it into the production pipeline, replaces the old standard DP, and adds UI badges for detected repetitions.
+The wraparound DP algorithm for repetition detection has been validated on 1,252 verses (605 rep +
+647 non-rep) with 99.5% recall, 0% false positives, and 155x Cython speedup. The Cython
+implementation (`cy_align_wraparound`) already exists in `_dp_core.pyx`. This plan integrates it
+into the production pipeline, replaces the old standard DP, and adds UI badges for detected
+repetitions.
 
 ## Files to Modify
 
 1. **`config.py`** — Add `WRAP_PENALTY`, `WRAP_SCORE_COST`, `DYNAMIC_K_THRESHOLDS`
 2. **`align_config.py`** — Same new params (batch mode values)
-3. **`src/alignment/phoneme_matcher.py`** — Replace `align_with_word_boundaries` with `align_wraparound`, delete old function, update `align_segment()`
+3. **`src/alignment/phoneme_matcher.py`** — Replace `align_with_word_boundaries` with
+   `align_wraparound`, delete old function, update `align_segment()`
 4. **`src/alignment/_dp_core.pyx`** — Delete `cy_align_with_word_boundaries`
 5. **`src/core/segment_types.py`** — Add `has_repeated_words` to `SegmentInfo`, add profiling fields
 6. **`src/alignment/alignment_pipeline.py`** — Propagate repetition info from `AlignmentResult`
@@ -60,7 +65,8 @@ n_wraps: int = 0               # Number of wraps (0 = no repetition)
 max_j_reached: int = 0         # Furthest R position reached (for word range with wraps)
 ```
 
-**New `align_wraparound()` pure Python function**: Port from `test_wraparound_dp.py` but use rolling rows (no traceback — traceback stays in the test harness). Cython dispatch at top.
+**New `align_wraparound()` pure Python function**: Port from `test_wraparound_dp.py` but use rolling
+rows (no traceback — traceback stays in the test harness). Cython dispatch at top.
 
 **New `compute_dynamic_k()` helper** using config thresholds:
 
@@ -93,13 +99,15 @@ best_j, j_start, best_cost, norm_dist, n_wraps, max_j_reached = align_wraparound
 )
 ```
 
-Build `AlignmentResult` with the new fields. Use `max_j_reached` for `end_word_idx` when `n_wraps > 0`.
+Build `AlignmentResult` with the new fields. Use `max_j_reached` for `end_word_idx` when
+`n_wraps > 0`.
 
 **Delete `align_with_word_boundaries()`** — fully replaced by `align_wraparound`.
 
-### Step 3: _dp_core.pyx — Delete old function
+### Step 3: \_dp_core.pyx — Delete old function
 
-Delete `cy_align_with_word_boundaries`. Only `cy_align_wraparound` remains. Update `init_substitution_matrix` if needed (should be fine — shared infrastructure).
+Delete `cy_align_with_word_boundaries`. Only `cy_align_wraparound` remains. Update
+`init_substitution_matrix` if needed (should be fine — shared infrastructure).
 
 ### Step 4: segment_types.py
 
@@ -116,6 +124,7 @@ phoneme_wraps_detected: int = 0    # Segments with n_wraps > 0
 ```
 
 **Profiling summary** — Update the print block:
+
 - `Phoneme Alignment (Cython):` or `Phoneme Alignment (Python):` — based on `_USE_CYTHON_DP`
 - Add `Wraps Detected: N` line in the alignment stats section
 
@@ -203,7 +212,11 @@ f"    Wraps Detected:  {self.phoneme_wraps_detected}",
 
 1. **Build Cython**: `python3 setup.py build_ext --inplace`
 2. **Run locally**: `python3 app.py --dev` — check startup logs say "Cython DP: enabled"
-3. **Upload a test audio**: Verify alignment works, profiling summary prints correctly with Cython label
-4. **Test with repetition audio**: Use a verse with known repetitions — verify "Repeated Words" badge appears with yellow color
+3. **Upload a test audio**: Verify alignment works, profiling summary prints correctly with Cython
+   label
+4. **Test with repetition audio**: Use a verse with known repetitions — verify "Repeated Words"
+   badge appears with yellow color
 5. **Test without repetition**: Normal verse should show no badge, same confidence as before
-6. **Run test harness**: `python3 docs/repetition_detection/test_wraparound_dp.py --scoring additive --wrap-score-cost 0.01 --dynamic-k` — verify 602/605 recall, 0 regressions
+6. **Run test harness**:
+   `python3 docs/repetition_detection/test_wraparound_dp.py --scoring additive --wrap-score-cost 0.01 --dynamic-k`
+   — verify 602/605 recall, 0 regressions

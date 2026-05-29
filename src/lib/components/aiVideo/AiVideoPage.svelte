@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { loadHafsReciters, buildReciterListForAi, resolveAiReciterOption, getReciterOptionKey } from './reciterLoader';
+	import {
+		loadHafsReciters,
+		buildReciterListForAi,
+		resolveAiReciterOption,
+		getReciterOptionKey
+	} from './reciterLoader';
 	import { generateAiPlan } from './aiPlanGenerator';
 	import { Quran } from '$lib/classes/Quran';
 	import toast from 'svelte-5-french-toast';
@@ -127,47 +132,48 @@
 
 		<!-- ═══════════════════════ STEP 1: Input ═══════════════════════ -->
 		<div class="bg-[var(--bg-secondary)] rounded-2xl border border-color p-6 shadow-lg space-y-6">
-		{#if aiv.step === 'input'}
-			<AiVideoPromptField />
-			<AiVideoGenerationOptions />
-			<AiVideoQuranSourceSettings />
+			{#if aiv.step === 'input'}
+				<AiVideoPromptField />
+				<AiVideoGenerationOptions />
+				<AiVideoQuranSourceSettings />
 
-			{#if !aiv.ai.letAiChoose && !aiv.audio.useLocal}
-				<AiVideoVerseRangePreview
-					surah={aiv.selectedVerseRange.surah}
-					ayahStart={aiv.selectedVerseRange.startVerse}
-					ayahEnd={aiv.selectedVerseRange.endVerse}
-					selectedTranslation={aiv.selectedTranslation}
-				/>
-			{/if}
-
-			<button
-				type="button"
-				class="w-full rounded-xl bg-accent-primary px-6 py-4 text-base font-semibold text-black shadow-lg hover:bg-blue-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
-				disabled={aiv.ai.isGeneratingPlan ||
-					((aiv.video.sourceMode === 'ai' || aiv.ai.letAiChoose) && aiv.video.prompt.trim() === '') ||
-					(aiv.video.sourceMode === 'youtube' && aiv.video.youtubeUrl.trim() === '')}
-				onclick={handleGeneratePlan}
-			>
-				{#if aiv.ai.isGeneratingPlan}
-					<span class="material-icons animate-spin text-lg">autorenew</span>
-					{aiv.ai.letAiChoose ? 'AI is planning your video...' : 'Preparing review...'}
-				{:else}
-					<span class="material-icons text-lg">arrow_forward</span>
-					{aiv.ai.letAiChoose ? 'Generate AI Plan' : 'Review & Continue'}
+				{#if !aiv.ai.letAiChoose && !aiv.audio.useLocal}
+					<AiVideoVerseRangePreview
+						surah={aiv.selectedVerseRange.surah}
+						ayahStart={aiv.selectedVerseRange.startVerse}
+						ayahEnd={aiv.selectedVerseRange.endVerse}
+						selectedTranslation={aiv.selectedTranslation}
+					/>
 				{/if}
-			</button>
 
-			{#if aiv.ai.letAiChoose}
-				<p class="text-center text-xs text-thirdly">
-					AI will use your configured API to select a verse range and, if needed, a reciter.
-				</p>
+				<button
+					type="button"
+					class="w-full rounded-xl bg-accent-primary px-6 py-4 text-base font-semibold text-black shadow-lg hover:bg-blue-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+					disabled={aiv.ai.isGeneratingPlan ||
+						((aiv.video.sourceMode === 'ai' || aiv.ai.letAiChoose) &&
+							aiv.video.prompt.trim() === '') ||
+						(aiv.video.sourceMode === 'youtube' && aiv.video.youtubeUrl.trim() === '')}
+					onclick={handleGeneratePlan}
+				>
+					{#if aiv.ai.isGeneratingPlan}
+						<span class="material-icons animate-spin text-lg">autorenew</span>
+						{aiv.ai.letAiChoose ? 'AI is planning your video...' : 'Preparing review...'}
+					{:else}
+						<span class="material-icons text-lg">arrow_forward</span>
+						{aiv.ai.letAiChoose ? 'Generate AI Plan' : 'Review & Continue'}
+					{/if}
+				</button>
+
+				{#if aiv.ai.letAiChoose}
+					<p class="text-center text-xs text-thirdly">
+						AI will use your configured API to select a verse range and, if needed, a reciter.
+					</p>
+				{/if}
+
+				<!-- ═══════════════════════ STEP 2: Review ═══════════════════════ -->
+			{:else}
+				<AiVideoReviewStep />
 			{/if}
-
-			<!-- ═══════════════════════ STEP 2: Review ═══════════════════════ -->
-		{:else}
-			<AiVideoReviewStep />
-		{/if}
 		</div>
 	</div>
 </div>

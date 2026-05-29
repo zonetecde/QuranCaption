@@ -1,11 +1,6 @@
 import toast from 'svelte-5-french-toast';
 import { Quran } from '$lib/classes/Quran';
-import {
-	PredefinedSubtitleClip,
-	SilenceClip,
-	SubtitleClip,
-	type Translation
-} from '$lib/classes';
+import { PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
 import type {
@@ -698,9 +693,7 @@ export async function applySegmentationResponseToProject(
 		);
 	}
 	// Récupération du compteur coverage gap
-	coverageGapSegmentsNum = storedAlignedSegments.length > 0
-		? 0
-		: coverageGapSegmentsNum; // reset - sera recalculé
+	coverageGapSegmentsNum = storedAlignedSegments.length > 0 ? 0 : coverageGapSegmentsNum; // reset - sera recalculé
 
 	// Post-processing de la timeline
 	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);

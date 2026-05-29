@@ -132,9 +132,7 @@ describe('normalizeSegmentWords', () => {
 
 	it('normalizes array-of-array entries (legacy format)', () => {
 		const input = [['1:1:1', 0, 0.5]];
-		expect(normalizeSegmentWords(input)).toEqual([
-			{ location: '1:1:1', start: 0, end: 0.5 }
-		]);
+		expect(normalizeSegmentWords(input)).toEqual([{ location: '1:1:1', start: 0, end: 0.5 }]);
 	});
 
 	it('normalizes object entries', () => {
@@ -146,23 +144,17 @@ describe('normalizeSegmentWords', () => {
 
 	it('normalizes object entries without word field', () => {
 		const input = [{ location: '1:1:3', start: 1.1, end: 1.5 }];
-		expect(normalizeSegmentWords(input)).toEqual([
-			{ location: '1:1:3', start: 1.1, end: 1.5 }
-		]);
+		expect(normalizeSegmentWords(input)).toEqual([{ location: '1:1:3', start: 1.1, end: 1.5 }]);
 	});
 
 	it('filters out invalid entries', () => {
 		const input = [['1:1:1', 0, 0.5], { start: 0.5 }, null, []];
-		expect(normalizeSegmentWords(input)).toEqual([
-			{ location: '1:1:1', start: 0, end: 0.5 }
-		]);
+		expect(normalizeSegmentWords(input)).toEqual([{ location: '1:1:1', start: 0, end: 0.5 }]);
 	});
 
 	it('falls back to "key" field when "location" is missing', () => {
 		const input = [{ key: '1:1:4', start: 1.5, end: 2.0 }];
-		expect(normalizeSegmentWords(input)).toEqual([
-			{ location: '1:1:4', start: 1.5, end: 2.0 }
-		]);
+		expect(normalizeSegmentWords(input)).toEqual([{ location: '1:1:4', start: 1.5, end: 2.0 }]);
 	});
 });
 
@@ -210,7 +202,14 @@ describe('normalizeMfaSegments', () => {
 describe('normalizeImportedSegment', () => {
 	it('normalizes a valid segment', () => {
 		const result = normalizeImportedSegment(
-			{ segment: 1, time_from: 0.5, time_to: 1.2, ref_from: '112:1:1', ref_to: '112:1:4', error: null },
+			{
+				segment: 1,
+				time_from: 0.5,
+				time_to: 1.2,
+				ref_from: '112:1:1',
+				ref_to: '112:1:4',
+				error: null
+			},
 			0
 		);
 		expect(result.segment).toBe(1);

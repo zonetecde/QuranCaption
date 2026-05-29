@@ -1,11 +1,6 @@
 import toast from 'svelte-5-french-toast';
 import { Quran } from '$lib/classes/Quran';
-import {
-	AssetClip,
-	PredefinedSubtitleClip,
-	SilenceClip,
-	SubtitleClip
-} from '$lib/classes';
+import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
 import { VerseRange } from '$lib/classes/VerseRange.svelte';
 import { Mp3QuranService } from '$lib/services/Mp3QuranService';
@@ -13,10 +8,7 @@ import { QdcRecitationService } from '$lib/services/QdcRecitationService';
 import ModalManager from '$lib/components/modals/ModalManager';
 import type { AutoSegmentationResult } from './types';
 import { closeSmallSubtitleGaps, insertSilenceClips } from './timeline';
-import {
-	beginAudioNormalizationIfNeeded,
-	awaitAudioNormalization
-} from './audio-normalize.svelte';
+import { beginAudioNormalizationIfNeeded, awaitAudioNormalization } from './audio-normalize.svelte';
 
 /**
  * Gère le flux de segmentation "Native" en utilisant les données de timing
@@ -223,9 +215,7 @@ export async function runNativeSegmentation(
 
 		// 6. Post-processing
 		subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
-		closeSmallSubtitleGaps(
-			subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip>
-		);
+		closeSmallSubtitleGaps(subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip>);
 		subtitleTrack.clips = insertSilenceClips(
 			subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>
 		);

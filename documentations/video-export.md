@@ -193,7 +193,8 @@ Cette frontière est choisie par `choose_shared_batch_end_idx()`:
 
 - on coupe à la limite cible du batch size;
 - on garde la dernière image du batch précédent comme première image du batch suivant;
-- la capture partagée sert uniquement de référence visuelle pour reconstruire la transition suivante.
+- la capture partagée sert uniquement de référence visuelle pour reconstruire la transition
+  suivante.
 
 Exemple:
 

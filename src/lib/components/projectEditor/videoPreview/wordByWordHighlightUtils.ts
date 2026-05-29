@@ -124,7 +124,8 @@ export function getWordByWordHighlightState(params: {
 	});
 	if (activeWordIndex === -1 && words.length > 0) {
 		activeWordIndex =
-			words.findLastIndex((word) => cursorTimeS >= clipStartTimeS + word.end - wbwTimingEpsilonS) + 1;
+			words.findLastIndex((word) => cursorTimeS >= clipStartTimeS + word.end - wbwTimingEpsilonS) +
+			1;
 	}
 	if (
 		activeWordIndex === -1 &&

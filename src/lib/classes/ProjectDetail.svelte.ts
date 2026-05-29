@@ -161,7 +161,10 @@ export class ProjectDetail extends SerializableBase {
 		return finalFileName;
 	}
 
-	static override fromJSON<T extends SerializableBase>(this: any, data: Record<string, unknown>): T {
+	static override fromJSON<T extends SerializableBase>(
+		this: any,
+		data: Record<string, unknown>
+	): T {
 		const detail = super.fromJSON.call(this, data) as T;
 		if (detail instanceof ProjectDetail) {
 			detail.reciter = detail.reciter || 'not set';

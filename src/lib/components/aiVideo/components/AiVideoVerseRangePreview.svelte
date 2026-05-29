@@ -50,9 +50,7 @@
 
 			for (let v = start; v <= end; v++) {
 				const verseObj = surahData.verses.find((vr) => vr.id === v);
-				const arabic = verseObj
-					? verseObj.words.map((w) => w.arabic).join(' ')
-					: '';
+				const arabic = verseObj ? verseObj.words.map((w) => w.arabic).join(' ') : '';
 
 				let translation: string | null = null;
 				if (selectedTranslation) {
@@ -78,7 +76,9 @@
 
 <div class="rounded-xl border border-color bg-[var(--bg-accent)] overflow-hidden">
 	<!-- Header -->
-	<div class="flex items-center justify-between px-4 py-3 border-b border-color bg-[var(--bg-accent)]">
+	<div
+		class="flex items-center justify-between px-4 py-3 border-b border-color bg-[var(--bg-accent)]"
+	>
 		<div class="flex items-center gap-2">
 			<span class="material-icons text-accent-primary text-sm">menu_book</span>
 			<span class="text-xs font-semibold text-thirdly uppercase tracking-wide">Verse Preview</span>
@@ -100,7 +100,9 @@
 			<p class="py-6 text-center text-sm text-thirdly">No verses to preview</p>
 		{:else}
 			{#each verses as v (v.verse)}
-				<div class="px-4 py-3 border-b border-color last:border-b-0 hover:bg-accent/30 transition-colors">
+				<div
+					class="px-4 py-3 border-b border-color last:border-b-0 hover:bg-accent/30 transition-colors"
+				>
 					<!-- Verse number badge -->
 					<div class="flex items-start gap-3">
 						<span
@@ -110,7 +112,10 @@
 						</span>
 						<div class="min-w-0 flex-1 space-y-1.5">
 							<!-- Arabic text -->
-							<p class="text-primary text-base leading-loose text-right font-['Amiri',serif]" dir="rtl">
+							<p
+								class="text-primary text-base leading-loose text-right font-['Amiri',serif]"
+								dir="rtl"
+							>
 								{v.arabic}
 							</p>
 							<!-- Translation -->

@@ -14,9 +14,7 @@
 		>
 			1
 		</div>
-		<span
-			class="text-sm {aiv.step === 'input' ? 'text-primary font-medium' : 'text-thirdly'}"
-		>
+		<span class="text-sm {aiv.step === 'input' ? 'text-primary font-medium' : 'text-thirdly'}">
 			Options
 		</span>
 	</div>
@@ -30,9 +28,7 @@
 		>
 			2
 		</div>
-		<span
-			class="text-sm {aiv.step === 'review' ? 'text-primary font-medium' : 'text-thirdly'}"
-		>
+		<span class="text-sm {aiv.step === 'review' ? 'text-primary font-medium' : 'text-thirdly'}">
 			Review & Create
 		</span>
 	</div>

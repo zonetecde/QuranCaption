@@ -187,8 +187,7 @@
 		if (!globalState.shared.quickTimelineEditor.active) {
 			ShortcutService.registerShortcut({
 				key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
-				onKeyDown: (event) =>
-					handleManualWordByWordEditShortcutKeyDown(event, wbwShortcutHandlers),
+				onKeyDown: (event) => handleManualWordByWordEditShortcutKeyDown(event, wbwShortcutHandlers),
 				onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(wbwShortcutHandlers)
 			});
 			didRegisterEditLastSubtitleShortcut = true;

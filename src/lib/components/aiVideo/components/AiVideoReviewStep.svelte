@@ -23,9 +23,7 @@
 	);
 
 	let reviewSurahKey = $state(aiv.review.verseRange.surah.toString());
-	let reviewReciterKey = $state(
-		aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : ''
-	);
+	let reviewReciterKey = $state(aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : '');
 
 	let reviewMaxAyah = $derived(Quran.getVerseCount(aiv.review.verseRange.surah) || 1);
 
@@ -63,9 +61,7 @@
 	 * @returns {void}
 	 */
 	function handleReviewReciterChange() {
-		const option = aiv.reciterOptions.find(
-			(o) => getReciterOptionKey(o) === reviewReciterKey
-		);
+		const option = aiv.reciterOptions.find((o) => getReciterOptionKey(o) === reviewReciterKey);
 		aiv.audio.reciter = option ?? null;
 		aiv.review.reciterName = option?.reciterName ?? '';
 		aiv.audio.reciterName = option?.reciterName ?? '';

@@ -25,9 +25,7 @@ describe('dragUtils', () => {
 			kind: 'reciter',
 			reciter: 'Yasser Al Dosari'
 		});
-		expect(
-			getExplorerSelectionFromNodeId('type:Yasser Al Dosari:salat')
-		).toEqual({
+		expect(getExplorerSelectionFromNodeId('type:Yasser Al Dosari:salat')).toEqual({
 			kind: 'type',
 			reciter: 'Yasser Al Dosari',
 			projectType: 'Prayer'

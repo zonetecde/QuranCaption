@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { QdcTranslationService, type TranslationLanguageData } from '$lib/services/QdcTranslationService';
+	import {
+		QdcTranslationService,
+		type TranslationLanguageData
+	} from '$lib/services/QdcTranslationService';
 	import { MOCK_MODELS } from '../constants';
 	import type { Edition } from '$lib/classes';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
@@ -106,7 +109,9 @@
 	}
 
 	$effect(() => {
-		selectedTranslationKey = aiv.selectedTranslation ? getTranslationKey(aiv.selectedTranslation) : '';
+		selectedTranslationKey = aiv.selectedTranslation
+			? getTranslationKey(aiv.selectedTranslation)
+			: '';
 	});
 </script>
 
@@ -139,8 +144,8 @@
 			<div class="flex gap-3">
 				<button
 					type="button"
-					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.resolution ===
-					'portrait'
+					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv
+						.video.resolution === 'portrait'
 						? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 					onclick={() => (aiv.video.resolution = 'portrait')}
@@ -150,8 +155,8 @@
 				</button>
 				<button
 					type="button"
-					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv.video.resolution ===
-					'landscape'
+					class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv
+						.video.resolution === 'landscape'
 						? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 					onclick={() => (aiv.video.resolution = 'landscape')}

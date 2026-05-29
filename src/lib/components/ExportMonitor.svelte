@@ -381,8 +381,7 @@
 											{exportation.currentState}
 										</span>
 									</div>
-									{#if exportation.currentState === ExportState.Exported &&
-										getStoredTotalExportMs(exportation) !== null}
+									{#if exportation.currentState === ExportState.Exported && getStoredTotalExportMs(exportation) !== null}
 										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
 											Total: <span class="monospaced"
 												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span

@@ -106,10 +106,7 @@ export default class ExportService {
 		const pathParts = filePath.split(/[/\\]/);
 		const fileName = pathParts.pop()!;
 		const dirPath = pathParts.join('/');
-		const maxFileNameLength = Math.max(
-			32,
-			maxPathLength - dirPath.length - 1 - tempSuffixMargin
-		);
+		const maxFileNameLength = Math.max(32, maxPathLength - dirPath.length - 1 - tempSuffixMargin);
 
 		// Laisse une marge pour les fichiers temporaires Rust qui ajoutent un suffixe `-tmp-...`.
 		if (filePath.length > maxPathLength || fileName.length > maxFileNameLength) {
@@ -217,10 +214,8 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.currentTreatedTime = data.currentTime;
 		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
 		exportation.processingBackgroundProgress = data.processingBackgroundProgress ?? 0;
-		exportation.processingBackgroundCurrentSegment =
-			data.processingBackgroundCurrentSegment ?? 0;
-		exportation.processingBackgroundTotalSegments =
-			data.processingBackgroundTotalSegments ?? 0;
+		exportation.processingBackgroundCurrentSegment = data.processingBackgroundCurrentSegment ?? 0;
+		exportation.processingBackgroundTotalSegments = data.processingBackgroundTotalSegments ?? 0;
 		exportation.mergingFilesProgress = data.mergingFilesProgress ?? 0;
 		exportation.mergingFilesCurrentSegment = data.mergingFilesCurrentSegment ?? 0;
 		exportation.mergingFilesTotalSegments = data.mergingFilesTotalSegments ?? 0;
@@ -255,4 +250,3 @@ export interface ExportProgress {
 	mergingFilesTotalSegments?: number;
 	errorLog?: string;
 }
-

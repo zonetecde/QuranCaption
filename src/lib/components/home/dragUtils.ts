@@ -9,7 +9,9 @@ export type DragPointer = {
 /**
  * Keeps drag-preview coordinates serializable and independent from the full event object.
  */
-export function getDragPointerPosition(event: Pick<PointerEvent, 'clientX' | 'clientY'>): DragPointer {
+export function getDragPointerPosition(
+	event: Pick<PointerEvent, 'clientX' | 'clientY'>
+): DragPointer {
 	return {
 		x: event.clientX,
 		y: event.clientY
@@ -27,7 +29,9 @@ export function getExplorerNodeIdFromElement(element: Element | null): string | 
 /**
  * Converts serialized node ids back to the selection model used by the homepage.
  */
-export function getExplorerSelectionFromNodeId(nodeId: string | null | undefined): ExplorerSelection | null {
+export function getExplorerSelectionFromNodeId(
+	nodeId: string | null | undefined
+): ExplorerSelection | null {
 	if (!nodeId || nodeId === 'all') {
 		return ALL_PROJECTS_SELECTION;
 	}

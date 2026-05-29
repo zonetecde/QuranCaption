@@ -10,7 +10,7 @@
 		tree,
 		selection,
 		activeDropNodeId = null,
-		onSelectionChange,
+		onSelectionChange
 	}: {
 		tree: ProjectExplorerTree;
 		selection: ExplorerSelection;
@@ -234,9 +234,7 @@
 											>
 												<span
 													class={`material-icons-outlined tree-chevron ${
-														isTypeExpanded(typeNode.reciter, typeNode.projectType)
-															? 'expanded'
-															: ''
+														isTypeExpanded(typeNode.reciter, typeNode.projectType) ? 'expanded' : ''
 													}`}
 												>
 													chevron_right

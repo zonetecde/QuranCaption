@@ -3725,7 +3725,7 @@ dependencies = [
 
 [[package]]
 name = "qurancaption"
-version = "3.5.13"
+version = "3.5.14"
 dependencies = [
  "bytes",
  "dirs",

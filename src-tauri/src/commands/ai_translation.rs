@@ -295,6 +295,13 @@ fn is_chat_completions_endpoint(endpoint: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Indique si l'endpoint cible OpenRouter pour ajouter ses en-têtes conseillés.
+fn is_openrouter_endpoint(endpoint: &str) -> bool {
+    reqwest::Url::parse(endpoint)
+        .map(|url| url.host_str() == Some("openrouter.ai"))
+        .unwrap_or(false)
+}
+
 fn build_response_schema() -> Value {
     json!({
         "type": "object",
@@ -590,10 +597,19 @@ pub async fn run_advanced_ai_trim_batch_streaming(
         "Sending batch to text AI provider...",
     );
 
-    let response = client
+    let request_builder = client
         .post(&endpoint)
         .header(AUTHORIZATION, format!("Bearer {}", api_key))
-        .header(CONTENT_TYPE, "application/json")
+        .header(CONTENT_TYPE, "application/json");
+    let request_builder = if is_openrouter_endpoint(&endpoint) {
+        request_builder
+            .header("HTTP-Referer", "https://qurancaption.app")
+            .header("X-OpenRouter-Title", "QuranCaption")
+    } else {
+        request_builder
+    };
+
+    let response = request_builder
         .json(&body)
         .send()
         .await
@@ -870,10 +886,19 @@ pub async fn run_advanced_ai_bold_batch_streaming(
         "Sending batch to text AI provider...",
     );
 
-    let response = client
+    let request_builder = client
         .post(&endpoint)
         .header(AUTHORIZATION, format!("Bearer {}", api_key))
-        .header(CONTENT_TYPE, "application/json")
+        .header(CONTENT_TYPE, "application/json");
+    let request_builder = if is_openrouter_endpoint(&endpoint) {
+        request_builder
+            .header("HTTP-Referer", "https://qurancaption.app")
+            .header("X-OpenRouter-Title", "QuranCaption")
+    } else {
+        request_builder
+    };
+
+    let response = request_builder
         .json(&body)
         .send()
         .await

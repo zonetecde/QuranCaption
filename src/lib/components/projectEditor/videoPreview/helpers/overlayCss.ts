@@ -84,49 +84,15 @@ export function getBackgroundHorizontalPaddingCss(
 }
 
 /**
- * Calcule le décalage vertical du texte quand l'export force `display: block`.
+ * Génère le CSS block compatible avec `modern-screenshot` et aligne
+ * verticalement le contenu dans son conteneur.
  *
- * @param {HTMLElement} element Élément de sous-titre mesuré.
  * @param {string} verticalAlignment Alignement vertical demandé.
- * @returns {number} Décalage vertical en pixels CSS.
- */
-export function getExportVerticalAlignmentOffset(
-	element: HTMLElement,
-	verticalAlignment: string
-): number {
-	if (verticalAlignment === 'top') return 0;
-
-	const elementHeight = element.clientHeight;
-	if (!Number.isFinite(elementHeight) || elementHeight <= 0) return 0;
-
-	const range = document.createRange();
-	range.selectNodeContents(element);
-
-	try {
-		const rects = Array.from(range.getClientRects()).filter(
-			(rect) => rect.width > 0 && rect.height > 0
-		);
-		if (rects.length === 0) return 0;
-
-		const top = Math.min(...rects.map((rect) => rect.top));
-		const bottom = Math.max(...rects.map((rect) => rect.bottom));
-		const elementRect = element.getBoundingClientRect();
-		const scaleY = elementRect.height > 0 ? elementRect.height / elementHeight : 1;
-		const contentHeight = (bottom - top) / (Number.isFinite(scaleY) && scaleY > 0 ? scaleY : 1);
-		const availableHeight = Math.max(0, elementHeight - contentHeight);
-
-		return verticalAlignment === 'bottom' ? availableHeight : availableHeight / 2;
-	} finally {
-		range.detach();
-	}
-}
-
-/**
- * Génère le CSS d'export qui garde le flux texte compatible avec `modern-screenshot`.
- *
- * @param {number} verticalOffsetPx Décalage vertical en pixels CSS.
  * @returns {string} CSS de layout export.
  */
-export function getExportCaptureLayoutCss(verticalOffsetPx: number): string {
-	return `display: block; transform: translate(var(--translate-x, 0px), calc(var(--translate-y, 0px) + ${verticalOffsetPx}px)) rotate(var(--rotation, 0deg)) scale(var(--scale, 1));`;
+export function getExportCaptureLayoutCss(verticalAlignment: string): string {
+	const alignContent =
+		verticalAlignment === 'bottom' ? 'end' : verticalAlignment === 'top' ? 'start' : 'center';
+
+	return `display: block; align-content: ${alignContent}; transform: translate(var(--translate-x, 0px), var(--translate-y, 0px)) rotate(var(--rotation, 0deg)) scale(var(--scale, 1));`;
 }

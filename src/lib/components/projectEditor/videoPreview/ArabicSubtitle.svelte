@@ -26,8 +26,7 @@
 	} from './helpers/decorativeBrackets';
 	import {
 		getBackgroundHorizontalPaddingCss,
-		getExportCaptureLayoutCss,
-		getExportVerticalAlignmentOffset
+		getExportCaptureLayoutCss
 	} from './helpers/overlayCss';
 
 	/**
@@ -607,36 +606,17 @@
 		return Boolean(styles.getEffectiveValue('show-subtitles', referenceClip?.id));
 	});
 
-	let arabicSubtitleElement: HTMLParagraphElement | null = $state(null);
-	let exportVerticalAlignmentOffset = $state(0);
+	/** CSS de capture qui garde le `display: block` attendu par modern-screenshot. */
+	let exportCaptureLayoutCss = $derived(() => {
+		if (!isArabicSubtitleVisible()) return '';
 
-	$effect(() => {
-		if (!isExportCapturePreview) {
-			exportVerticalAlignmentOffset = 0;
-			return;
-		}
-
-		const element = arabicSubtitleElement;
 		const referenceClip = arabicReferenceClip();
 		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
 		const verticalAlignment = String(
 			styles.getEffectiveValue('vertical-text-alignment', referenceClip?.id)
 		);
 
-		void currentSubtitle();
-		void css;
-
-		exportVerticalAlignmentOffset =
-			element && isArabicSubtitleVisible()
-				? getExportVerticalAlignmentOffset(element, verticalAlignment)
-				: 0;
-	});
-
-	/** CSS de capture qui garde le `display: block` attendu par modern-screenshot. */
-	let exportCaptureLayoutCss = $derived(() => {
-		if (!isExportCapturePreview || !isArabicSubtitleVisible()) return '';
-
-		return getExportCaptureLayoutCss(exportVerticalAlignmentOffset);
+		return getExportCaptureLayoutCss(verticalAlignment);
 	});
 
 	/** Padding horizontal pour le fond du sous-titre arabe. */
@@ -654,8 +634,7 @@
 </script>
 
 {#if currentSubtitle()}
-	<!-- Le display: block est INDISPENSABLE. Sans cela, le sous-titre ne s'affiche pas correctement dans la vidéo exportée, car modern-screenshot transforme le DOM en SVG 
-	et cette bibliothèque interne a des problèmes sans ce display: block (shifting du dernier mot/verse number sur une deuxième ligne) -->
+	<!-- Le display: block est appliqué partout pour garder la preview normale alignée avec la preview d'export. Sans cela, modern-screenshot peut décaler le dernier mot/numéro de verset. -->
 	<p
 		ondblclick={() => {
 			globalState.getVideoStyle.highlightCategory('arabic', 'general');
@@ -668,7 +647,6 @@
 			horizontalStyleId: 'horizontal-position'
 		}}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
-		bind:this={arabicSubtitleElement}
 		style="opacity: {subtitleOpacity}; {css}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>
 		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}

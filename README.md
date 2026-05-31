@@ -27,7 +27,7 @@
 
 <br/>
 
-[![Demo Video](https://img.youtube.com/vi/vCRUjzATRDk/maxresdefault.jpg)](https://youtu.be/vCRUjzATRDk)
+[![Demo Video](https://img.youtube.com/vi/Ree94CLsBcY/maxresdefault.jpg)](https://youtu.be/Ree94CLsBcY)
 <sub>▶ Click to watch the demo</sub>
 
 </div>

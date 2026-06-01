@@ -83,5 +83,11 @@
 		<p class="text-thirdly text-xs mt-2 text-center">
 			Generate a JSON file containing your entire project configuration
 		</p>
+		<button class="btn px-4 py-2 mt-4 text-xs font-medium" onclick={() => Exporter.exportSubtitlesJson()}>
+			Export Subtitles JSON
+		</button>
+		<p class="text-thirdly text-xs mt-2 text-center">
+			Generate a compact word-level JSON for edited Quran subtitle segments
+		</p>
 	</div>
 </div>

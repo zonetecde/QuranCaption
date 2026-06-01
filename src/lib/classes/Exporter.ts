@@ -17,7 +17,6 @@ import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
 import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
-
 export default class Exporter {
 	private static queueIntervalId: number | null = null;
 	private static isQueueTickRunning = false;
@@ -233,6 +232,140 @@ export default class Exporter {
 		const fileName = `qurancaption_project_${projectName}.json`;
 		await ExportFileService.saveTextFile(fileName, json, 'Project data');
 	}
+
+	/**
+	 * Exporte uniquement les sous-titres Quran édités, avec les informations word-level utiles.
+	 * @returns {Promise<void>}
+	 */
+	static async exportSubtitlesJson() {
+		const projectData = globalState.currentProject;
+		if (!projectData) {
+			console.error('No project data available for subtitle JSON export.');
+			return;
+		}
+
+		const segments = globalState.getSubtitleTrack.clips
+			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+			.map((clip, index) => {
+				const alignmentBaseTimeS = clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000;
+				const arabicWords = clip.text.trim().split(/\s+/).filter(Boolean);
+				const fallbackWords = Array.from(
+					{ length: Math.max(0, clip.endWordIndex - clip.startWordIndex + 1) },
+					(_, wordIndex) => ({
+						location: `${clip.surah}:${clip.verse}:${clip.startWordIndex + wordIndex + 1}`,
+						word: arabicWords[wordIndex] ?? null,
+						translation: clip.wbwTranslation[wordIndex] ?? null,
+						relativeStartMs: null,
+						relativeEndMs: null,
+						startTimeMs: null,
+						endTimeMs: null
+					})
+				);
+
+				return {
+					index,
+					id: clip.id,
+					startTimeMs: clip.startTime,
+					endTimeMs: clip.endTime,
+					durationMs: clip.duration,
+					surah: clip.surah,
+					verse: clip.verse,
+					verseKey: clip.getVerseKey(),
+					startWordIndex: clip.startWordIndex,
+					endWordIndex: clip.endWordIndex,
+					wordCount: Math.max(0, clip.endWordIndex - clip.startWordIndex + 1),
+					arabicText: clip.text,
+					displayText: clip.getText(),
+					indopakText: clip.indopakText,
+					isFullVerse: clip.isFullVerse,
+					isLastWordsOfVerse: clip.isLastWordsOfVerse,
+					confidence: clip.confidence,
+					review: {
+						hasBeenVerified: clip.hasBeenVerified,
+						needsReview: clip.needsReview,
+						needsCoverageReview: clip.needsCoverageReview,
+						needsLongReview: clip.needsLongReview,
+						needsWbwTimestampReview: clip.needsWbwTimestampReview
+					},
+					alignment: clip.alignmentMetadata
+						? {
+								source: clip.alignmentMetadata.source,
+								segment: clip.alignmentMetadata.segment,
+								refFrom: clip.alignmentMetadata.refFrom,
+								refTo: clip.alignmentMetadata.refTo,
+								matchedText: clip.alignmentMetadata.matchedText,
+								specialType: clip.alignmentMetadata.specialType ?? null,
+								timeFromMs: Math.round(clip.alignmentMetadata.timeFrom * 1000),
+								timeToMs: Math.round(clip.alignmentMetadata.timeTo * 1000)
+							}
+						: null,
+					words:
+						clip.alignmentMetadata?.words.map((word, wordIndex) => ({
+							location: word.location,
+							word: word.word ?? arabicWords[wordIndex] ?? null,
+							translation: clip.wbwTranslation[wordIndex] ?? null,
+							relativeStartMs: Math.round(word.start * 1000),
+							relativeEndMs: Math.round(word.end * 1000),
+							startTimeMs: Math.round((alignmentBaseTimeS + word.start) * 1000),
+							endTimeMs: Math.round((alignmentBaseTimeS + word.end) * 1000)
+						})) ?? fallbackWords,
+					translations: Object.fromEntries(
+						Object.entries(clip.translations).map(([editionName, translation]) => {
+							const translationData =
+								translation && typeof translation === 'object' ? translation : null;
+
+							return [
+								editionName,
+								{
+									text: translationData ? translationData.text : String(translation ?? ''),
+									status: translationData?.status ?? null,
+									type: translationData?.type ?? null,
+									startWordIndex:
+										translationData && 'startWordIndex' in translationData
+											? translationData.startWordIndex
+											: null,
+									endWordIndex:
+										translationData && 'endWordIndex' in translationData
+											? translationData.endWordIndex
+											: null,
+									isBruteForce:
+										translationData && 'isBruteForce' in translationData
+											? translationData.isBruteForce
+											: null,
+									inlineStyleRuns:
+										translationData && 'inlineStyleRuns' in translationData
+											? translationData.inlineStyleRuns
+											: []
+								}
+							];
+						})
+					)
+				};
+			});
+
+		const json = JSON.stringify(
+			{
+				project: {
+					id: projectData.detail.id,
+					name: projectData.detail.name,
+					reciter: projectData.detail.reciter
+				},
+				exportedAt: new Date().toISOString(),
+				segmentCount: segments.length,
+				segments
+			},
+			null,
+			2
+		);
+		const projectName = ExportFileService.getProjectNameForFile();
+		const fileName = `qurancaption_subtitles_data_${projectName}.json`;
+		try {
+			await ExportFileService.saveTextFile(fileName, json, 'Subtitle JSON');
+		} catch (error) {
+			console.error('Unable to export subtitle JSON:', error);
+		}
+	}
+
 	static async backupAllProjects() {
 		const projectsDetails = globalState.userProjectsDetails;
 		if (!projectsDetails || projectsDetails.length === 0) {

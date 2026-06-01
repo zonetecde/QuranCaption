@@ -69,7 +69,11 @@
 			// Remplit l'etat de review avec le plan genere
 			aiv.review.title = plan.title;
 			aiv.review.videoPrompt =
-				aiv.video.sourceMode === 'youtube' ? aiv.video.youtubeUrl : plan.videoPrompt;
+				aiv.video.sourceMode === 'youtube'
+					? aiv.video.youtubeUrl
+					: aiv.video.sourceMode === 'none'
+						? ''
+						: plan.videoPrompt;
 			aiv.review.reciterName = plan.reciter;
 			aiv.review.verseRange.surah = plan.surah;
 			aiv.review.verseRange.startVerse = plan.ayahStart;

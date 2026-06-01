@@ -2,7 +2,7 @@ import type { Mp3QuranMoshaf } from '$lib/services/Mp3QuranService';
 import type { Edition } from '$lib/classes';
 
 /** Mode de source video de fond. */
-export type BackgroundSourceMode = 'ai' | 'youtube';
+export type BackgroundSourceMode = 'ai' | 'youtube' | 'none';
 
 /** Orientation video. */
 export type Resolution = 'portrait' | 'landscape';

@@ -4,7 +4,7 @@ import type { AiPlan } from './types';
  * Active le mode debug pour la feature AI Video.
  * Quand true, l'appel API reel est remplace par MOCK_AI_PLAN.
  */
-export const IS_DEBUG_MODE = true;
+export const IS_DEBUG_MODE = false;
 
 /** Plan mock retourne quand IS_DEBUG_MODE est actif. */
 export const MOCK_AI_PLAN: AiPlan = {

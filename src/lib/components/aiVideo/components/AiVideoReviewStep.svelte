@@ -73,7 +73,11 @@
 	<div class="space-y-2">
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">movie_creation</span>
-			{aiv.video.sourceMode === 'youtube' ? 'YouTube Video URL' : 'Video Generation Prompt'}
+			{aiv.video.sourceMode === 'youtube'
+				? 'YouTube Video URL'
+				: aiv.video.sourceMode === 'none'
+					? 'Background'
+					: 'Video Generation Prompt'}
 		</span>
 		{#if aiv.video.sourceMode === 'youtube'}
 			<input
@@ -85,6 +89,10 @@
 			<p class="text-xs text-thirdly">
 				The downloaded video's own orientation will be used automatically.
 			</p>
+		{:else if aiv.video.sourceMode === 'none'}
+			<div class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly">
+				No background video will be used for this project.
+			</div>
 		{:else}
 			<textarea
 				bind:value={aiv.review.videoPrompt}
@@ -177,10 +185,18 @@
 		<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
 			<div>
 				<span class="text-thirdly text-xs">
-					{aiv.video.sourceMode === 'youtube' ? 'Background Video' : 'Theme'}
+					{aiv.video.sourceMode === 'youtube'
+						? 'Background Video'
+						: aiv.video.sourceMode === 'none'
+							? 'Background'
+							: 'Theme'}
 				</span>
 				<p class="text-primary font-medium truncate">
-					{aiv.video.sourceMode === 'youtube' ? aiv.review.videoPrompt : aiv.video.prompt}
+					{aiv.video.sourceMode === 'youtube'
+						? aiv.review.videoPrompt
+						: aiv.video.sourceMode === 'none'
+							? 'None'
+							: aiv.video.prompt}
 				</p>
 			</div>
 			{#if aiv.video.sourceMode === 'ai'}
@@ -238,7 +254,8 @@
 		<button
 			type="button"
 			class="flex-[2] rounded-xl bg-accent-primary px-6 py-4 text-base font-semibold text-black shadow-lg hover:bg-blue-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
-			disabled={aiv.isCreatingProject || aiv.review.videoPrompt.trim() === ''}
+			disabled={aiv.isCreatingProject ||
+				(aiv.video.sourceMode !== 'none' && aiv.review.videoPrompt.trim() === '')}
 			onclick={async () => {
 				aiv.isCreatingProject = true;
 				try {
@@ -263,6 +280,8 @@
 	<p class="text-center text-xs text-thirdly">
 		{aiv.video.sourceMode === 'youtube'
 			? 'The YouTube video will be downloaded and used as the background during project creation.'
-			: 'Video generation is currently mocked. A real AI-generated background will be added later.'}
+			: aiv.video.sourceMode === 'none'
+				? 'The project will be created without any background video.'
+				: 'Video generation is currently mocked. A real AI-generated background will be added later.'}
 	</p>
 </div>

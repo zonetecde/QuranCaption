@@ -49,6 +49,17 @@
 				<span class="material-icons text-base align-middle mr-1">smart_display</span>
 				Download from YouTube
 			</button>
+			<button
+				type="button"
+				class="shrink-0 rounded-xl border px-3 py-3 text-sm font-medium transition-all cursor-pointer {aiv
+					.video.sourceMode === 'none'
+					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
+					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
+				title="No background"
+				onclick={() => (aiv.video.sourceMode = 'none')}
+			>
+				<span class="material-icons text-base align-middle">block</span>
+			</button>
 		</div>
 	</div>
 
@@ -72,5 +83,9 @@
 				The downloaded video's own orientation will be used automatically.
 			</p>
 		</div>
+	{:else if aiv.video.sourceMode === 'none'}
+		<p class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-xs text-thirdly">
+			No background video will be added to the project.
+		</p>
 	{/if}
 </div>

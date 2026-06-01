@@ -117,7 +117,9 @@ export async function createAiVideoProject(): Promise<void> {
 		const backgroundVideoUrl =
 			snapshot.sourceMode === 'youtube'
 				? snapshot.reviewVideoPrompt.trim()
-				: getBackgroundVideoUrl(snapshot.selectedModel, snapshot.resolution);
+				: snapshot.sourceMode === 'ai'
+					? getBackgroundVideoUrl(snapshot.selectedModel, snapshot.resolution)
+					: '';
 
 		if (snapshot.sourceMode === 'ai') {
 			content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
@@ -125,39 +127,43 @@ export async function createAiVideoProject(): Promise<void> {
 		}
 
 		// ── 1. Background video ──
-		setStatus('Downloading background video...');
-		const backgroundVideoPath = await invoke<string>('download_from_youtube', {
-			url: backgroundVideoUrl,
-			type: 'video_no_audio',
-			downloadPath: assetFolder
-		});
+		let backgroundVideoAssetId: number | undefined;
+		if (snapshot.sourceMode !== 'none') {
+			setStatus('Downloading background video...');
+			const backgroundVideoPath = await invoke<string>('download_from_youtube', {
+				url: backgroundVideoUrl,
+				type: 'video_no_audio',
+				downloadPath: assetFolder
+			});
 
-		setStatus('Adding background video...');
-		content.addAsset(backgroundVideoPath, backgroundVideoUrl, SourceType.YouTube, {
-			skipConstantBitrateWarning: true
-		});
+			setStatus('Adding background video...');
+			content.addAsset(backgroundVideoPath, backgroundVideoUrl, SourceType.YouTube, {
+				skipConstantBitrateWarning: true
+			});
 
-		const normalizedBackgroundVideoPath = backgroundVideoPath
-			.replace(/\\/g, '/')
-			.replace(/\/+/g, '/');
-		const backgroundVideoAsset = content.assets.find(
-			(asset) => asset.filePath === normalizedBackgroundVideoPath
-		);
+			const normalizedBackgroundVideoPath = backgroundVideoPath
+				.replace(/\\/g, '/')
+				.replace(/\/+/g, '/');
+			const backgroundVideoAsset = content.assets.find(
+				(asset) => asset.filePath === normalizedBackgroundVideoPath
+			);
+			backgroundVideoAssetId = backgroundVideoAsset?.id;
 
-		if (snapshot.sourceMode === 'youtube') {
-			const backgroundVideoDimensions = (await invoke('get_video_dimensions', {
-				filePath: backgroundVideoPath
-			})) as { width: number; height: number };
+			if (snapshot.sourceMode === 'youtube') {
+				const backgroundVideoDimensions = (await invoke('get_video_dimensions', {
+					filePath: backgroundVideoPath
+				})) as { width: number; height: number };
 
-			if (backgroundVideoDimensions.width > 0 && backgroundVideoDimensions.height > 0) {
-				content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
-					backgroundVideoDimensions;
+				if (backgroundVideoDimensions.width > 0 && backgroundVideoDimensions.height > 0) {
+					content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
+						backgroundVideoDimensions;
+				}
 			}
-		}
 
-		if (backgroundVideoAsset) {
-			await backgroundVideoAsset.ensureDurationLoaded();
-			await backgroundVideoAsset.addToTimeline(true, false, true);
+			if (backgroundVideoAsset) {
+				await backgroundVideoAsset.ensureDurationLoaded();
+				await backgroundVideoAsset.addToTimeline(true, false, true);
+			}
 		}
 
 		// ── 2. Audio ──
@@ -197,7 +203,7 @@ export async function createAiVideoProject(): Promise<void> {
 		}
 
 		const backgroundVideoClip = globalState.getVideoTrack.clips.find(
-			(clip) => (clip as AssetClip).assetId === backgroundVideoAsset?.id
+			(clip) => (clip as AssetClip).assetId === backgroundVideoAssetId
 		) as AssetClip | undefined;
 
 		if (backgroundVideoClip) {

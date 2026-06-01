@@ -79,7 +79,8 @@
 
 	// Effect qui recharge l'audio quand l'asset audio change
 	$effect(() => {
-		currentAudio();
+		const audio = currentAudio();
+		audio?.mediaReloadToken;
 		untrack(() => {
 			setupAudio(); // Configure le nouveau fichier audio avec Howler
 		});
@@ -160,6 +161,34 @@
 		return Math.max(0, timeInClip / 1000); // Convertit en secondes pour l'élément video HTML
 	}
 
+	/**
+	 * Libere les lecteurs qui utilisent un fichier avant son remplacement sur disque.
+	 *
+	 * @param {Event} event Evenement global contenant le chemin du fichier.
+	 * @returns {void}
+	 */
+	function releaseAssetMedia(event: Event): void {
+		const filePath = (event as CustomEvent<{ filePath?: string }>).detail?.filePath;
+		if (!filePath) return;
+
+		const usesReleasedFile =
+			currentAudio()?.filePath === filePath ||
+			currentVideo()?.filePath === filePath ||
+			currentImage()?.filePath === filePath;
+		if (!usesReleasedFile) return;
+
+		pause();
+		if (audioHowl) {
+			audioHowl.unload();
+			audioHowl = null;
+		}
+		if (videoElement) {
+			videoElement.pause();
+			videoElement.removeAttribute('src');
+			videoElement.load();
+		}
+	}
+
 	onDestroy(() => {
 		if (audioHowl) {
 			audioHowl.unload(); // Libère les ressources audio
@@ -167,12 +196,14 @@
 		}
 
 		window.removeEventListener('resize', resizeVideoToFitScreen);
+		window.removeEventListener('qurancaption-release-asset-media', releaseAssetMedia);
 	});
 
 	// === CYCLE DE VIE DU COMPOSANT ===
 	onMount(() => {
 		resizeVideoToFitScreen(); // Redimensionne initial
 		window.addEventListener('resize', resizeVideoToFitScreen); // Écoute le redimensionnement de fenêtre
+		window.addEventListener('qurancaption-release-asset-media', releaseAssetMedia);
 
 		// Force la synchronisation initiale vidéo/audio avec la position du curseur
 		triggerVideoAndAudioToFitCursor();
@@ -505,7 +536,7 @@
 		if (audioAsset) {
 			audioHowl = new Howl({
 				mute: globalState.getVideoPreviewState.showVideosAndAudios,
-				src: [convertFileSrc(audioAsset.filePath)],
+				src: [`${convertFileSrc(audioAsset.filePath)}?v=${audioAsset.mediaReloadToken}`],
 				html5: !isLinux, // Use Web Audio API only on Linux for better compatibility
 				rate: audioSpeed, // Vitesse de lecture initiale
 				onplay: () => {
@@ -839,14 +870,14 @@
 				{#if currentVideo()}
 					<video
 						bind:this={videoElement}
-						src={convertFileSrc(currentVideo()!.filePath)}
+						src={`${convertFileSrc(currentVideo()!.filePath)}?v=${currentVideo()!.mediaReloadToken}`}
 						muted
 						loop={isVideoLooping()}
 						onended={goNextVideo}
 					></video>
 				{:else if currentImage()}
 					<img
-						src={convertFileSrc(currentImage()!.filePath)}
+						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
 						class="w-full h-full object-cover"
 						alt="Background"
 					/>

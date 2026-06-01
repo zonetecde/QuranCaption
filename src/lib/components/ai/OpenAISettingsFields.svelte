@@ -84,7 +84,7 @@
 			{#each TEXT_AI_PRESETS as preset}
 				<button
 					type="button"
-					class="flex min-h-20 flex-col items-start justify-between rounded-lg border border-color bg-secondary px-3 py-3 text-left transition-colors hover:border-[var(--accent-primary)]/50 hover:bg-tertiary"
+					class="flex min-h-14 flex-col items-start justify-between rounded-lg border border-color bg-secondary px-2 py-2 text-left transition-colors hover:border-[var(--accent-primary)]/50 hover:bg-tertiary"
 					onclick={() => applyTextAiPreset(preset)}
 				>
 					<span class="text-sm font-medium text-primary">{preset.label}</span>

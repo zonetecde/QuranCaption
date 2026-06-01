@@ -35,6 +35,7 @@ export class WaveformService {
 	 */
 	static clearCache(filePath: string) {
 		peaksCache.delete(filePath);
+		_refreshVersion++;
 	}
 
 	/**

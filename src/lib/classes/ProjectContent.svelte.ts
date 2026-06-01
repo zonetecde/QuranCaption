@@ -58,13 +58,14 @@ export class ProjectContent extends SerializableBase {
 		sourceUrl?: string,
 		sourceType: SourceType = SourceType.Local,
 		metadata: UnknownRecord = {}
-	): void {
+	): Asset | undefined {
 		const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
 		if (asset.type === AssetType.Unknown) {
 			toast.error('This file format is not supported.');
-			return;
+			return undefined;
 		}
 		this.assets.unshift(asset);
+		return asset;
 	}
 
 	removeAsset(asset: Asset): void {

@@ -2,13 +2,22 @@
 	import { AssetType, SourceType, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { join } from '@tauri-apps/api/path';
 	import toast from 'svelte-5-french-toast';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+
+	type CbrConversionProgressEvent = {
+		conversionRequestId: string;
+		progress: number;
+		currentTime: number;
+		totalTime: number;
+		status: string;
+	};
 
 	let {
 		asset = $bindable()
@@ -18,7 +27,11 @@
 
 	let isHovered = $state(false);
 	let isRedownloading = $state(false);
+	let isConvertingToCBR = $state(false);
+	let cbrProgress = $state(0);
+	let cbrProgressStatus = $state('');
 	let mediaKey = $state(0);
+	let isExpanded = $derived(isHovered || isConvertingToCBR);
 
 	onMount(async () => {
 		asset.checkExistence();
@@ -73,20 +86,58 @@
 		asset.addToTimeline(video, audio);
 	}
 
+	/**
+	 * Contraint une progression CBR dans l'intervalle affichable.
+	 *
+	 * @param {number} value Progression brute envoyee par ffmpeg.
+	 * @returns {number} Progression entre 0 et 100.
+	 */
+	function clampCbrProgress(value: number): number {
+		return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+	}
+
 	async function convertToCBR() {
-		// Convertir l'asset en CBR
-		toast.promise(
-			invoke('convert_audio_to_cbr', { filePath: asset.filePath }),
-			{
-				loading: 'Converting to CBR...',
-				success:
-					'Asset converted to CBR successfully! Please restart Quran Caption to see the changes.',
-				error: 'Error converting asset to CBR.'
-			},
-			{
-				duration: 4000
-			}
-		);
+		if (isConvertingToCBR) return;
+
+		const conversionRequestId = `cbr-${asset.id}-${Date.now()}`;
+		let unlisten: UnlistenFn | undefined;
+		isConvertingToCBR = true;
+		cbrProgress = 0;
+		cbrProgressStatus = 'Preparing...';
+
+		try {
+			unlisten = await listen<CbrConversionProgressEvent>('cbr-conversion-progress', (event) => {
+				if (event.payload.conversionRequestId !== conversionRequestId) return;
+				cbrProgress = clampCbrProgress(event.payload.progress);
+				cbrProgressStatus = event.payload.status;
+			});
+
+			window.dispatchEvent(
+				new CustomEvent('qurancaption-release-asset-media', {
+					detail: { filePath: asset.filePath }
+				})
+			);
+			mediaKey++;
+			await tick();
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			await invoke('convert_audio_to_cbr', {
+				filePath: asset.filePath,
+				conversionRequestId
+			});
+
+			asset.reloadMedia();
+			mediaKey++;
+			cbrProgress = 100;
+			cbrProgressStatus = 'Finished';
+			toast.success('Asset converted to CBR successfully. Media reloaded.');
+		} catch (error) {
+			console.error('Error converting asset to CBR:', error);
+			toast.error(`Error converting asset to CBR: ${error}`);
+		} finally {
+			unlisten?.();
+			isConvertingToCBR = false;
+		}
 	}
 
 	async function redownloadAsset() {
@@ -114,6 +165,7 @@
 
 				asset.updateFilePath(result);
 				mediaKey++; // Force re-render of audio/video element
+				await convertToCBR();
 				toast.success('Re-download successful!', { id: toastId });
 			} else if (
 				asset.sourceType === SourceType.Mp3Quran ||
@@ -188,40 +240,46 @@
 		{/if}
 	</div>
 	{#if asset.type === AssetType.Audio}
-		{#if isHovered}
+		{#if isExpanded}
 			<div transition:slide class="mt-4 p-3 bg-accent rounded-lg border border-color">
 				{#key mediaKey}
 					<audio class="w-full h-8 opacity-80" controls>
-						<source src={convertFileSrc(asset.filePath)} type="audio/mp3" />
+						<source
+							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
+							type="audio/mp3"
+						/>
 						Your browser does not support the audio element.
 					</audio>
 				{/key}
 			</div>
 		{/if}
 	{:else if asset.type === AssetType.Video}
-		{#if isHovered}
+		{#if isExpanded}
 			<div transition:slide class="mt-4 p-2 bg-accent rounded-lg border border-color">
 				{#key mediaKey}
 					<video class="w-full h-[180px] rounded-lg object-cover" controls>
 						<track kind="captions" />
-						<source src={convertFileSrc(asset.filePath)} type="video/mp4" />
+						<source
+							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
+							type="video/mp4"
+						/>
 						Your browser does not support the video tag.
 					</video>
 				{/key}
 			</div>
 		{/if}
 	{:else if asset.type === AssetType.Image}
-		{#if isHovered}
+		{#if isExpanded}
 			<div transition:slide class="mt-4 p-2 bg-accent rounded-lg border border-color">
 				<img
 					class="w-full h-[180px] object-contain rounded-lg"
-					src={convertFileSrc(asset.filePath)}
+					src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
 					alt={asset.fileName}
 				/>
 			</div>
 		{/if}
 	{/if}
-	{#if isHovered}
+	{#if isExpanded}
 		<div class="mt-4 space-y-3" transition:slide>
 			<!-- Action Buttons -->
 			<div class="flex flex-wrap gap-2">
@@ -241,9 +299,15 @@
 						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
 						       hover:scale-105 transition-all duration-200"
 						onclick={convertToCBR}
+						disabled={isConvertingToCBR}
 					>
-						<span class="material-icons text-lg">speed</span>
-						Convert to CBR
+						{#if isConvertingToCBR}
+							<span class="material-icons text-lg animate-spin">sync</span>
+							Converting...
+						{:else}
+							<span class="material-icons text-lg">speed</span>
+							Convert to CBR
+						{/if}
 					</button>
 
 					{#if asset.type !== AssetType.Image}
@@ -310,6 +374,24 @@
 					Remove
 				</button>
 			</div>
+			{#if isConvertingToCBR}
+				<div class="space-y-1">
+					<div class="flex items-center justify-between text-xs text-thirdly">
+						<span>{cbrProgressStatus || 'Converting'}</span>
+						<span>{Math.round(cbrProgress)}%</span>
+					</div>
+					<div class="h-2 overflow-hidden rounded-full bg-black/30">
+						<div
+							class="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-200"
+							style={`width: ${cbrProgress}%`}
+						></div>
+					</div>
+					<p class="text-[11px] text-thirdly">
+						You can switch tabs during this process. The asset will automatically reload once it
+						finishes.
+					</p>
+				</div>
+			{/if}
 
 			<!-- Timeline Actions -->
 			{#if asset.exists}

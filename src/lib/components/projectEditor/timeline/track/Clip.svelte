@@ -2,7 +2,7 @@
 	import { TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { onDestroy, untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import WaveSurfer from 'wavesurfer.js';
 	import ContextMenu, { Item, Divider } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -28,11 +28,12 @@
 	});
 
 	const clipAssetId = (clip as AssetClip).assetId;
-	const asset = globalState.currentProject?.content.getAssetById(clipAssetId);
-	if (!asset) {
+	const clipAsset = globalState.currentProject?.content.getAssetById(clipAssetId);
+	if (!clipAsset) {
 		throw new Error(`Missing asset ${clipAssetId} for clip ${clip.id}`);
 	}
-	let file = $state(convertFileSrc(asset.filePath));
+	const asset = clipAsset;
+	let file = $derived(`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`);
 
 	const isSelectedVideo = $derived(() => {
 		return (
@@ -48,6 +49,28 @@
 	});
 
 	let wavesurfer: WaveSurfer | undefined;
+
+	/**
+	 * Libere la waveform si son fichier doit etre remplace.
+	 *
+	 * @param {Event} event Evenement global contenant le chemin du fichier.
+	 * @returns {void}
+	 */
+	function releaseWaveformForAsset(event: Event): void {
+		const filePath = (event as CustomEvent<{ filePath?: string }>).detail?.filePath;
+		if (filePath !== asset.filePath || !wavesurfer) return;
+
+		wavesurfer.destroy();
+		wavesurfer = undefined;
+	}
+
+	onMount(() => {
+		window.addEventListener('qurancaption-release-asset-media', releaseWaveformForAsset);
+		return () => {
+			window.removeEventListener('qurancaption-release-asset-media', releaseWaveformForAsset);
+		};
+	});
+
 	$effect(() => {
 		if (
 			(asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) &&
@@ -56,6 +79,7 @@
 		) {
 			// On dépend de refreshVersion pour forcer le recalcul si besoin
 			const _v = WaveformService.refreshVersion;
+			const _mediaReloadToken = asset.mediaReloadToken;
 
 			untrack(async () => {
 				if (wavesurfer) {

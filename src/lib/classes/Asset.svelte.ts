@@ -25,6 +25,7 @@ export class Asset extends SerializableBase {
 	metadata: UnknownRecord = $state({});
 	durationLoadState: DurationLoadState = $state('idle');
 	durationLoadError: string | null = $state(null);
+	mediaReloadToken: number = $state(0);
 
 	/** Promesse résolue quand la durée est chargée (null si pas de chargement nécessaire). */
 	private durationPromise: Promise<void> | null = null;
@@ -313,15 +314,24 @@ export class Asset extends SerializableBase {
 		const oldPath = this.filePath;
 		this.filePath = this.normalizeFilePath(element);
 		WaveformService.clearCache(oldPath);
-		this.exists = true; // Réinitialise l'existence à vrai
-		// Le fichier a changé : la détection d'étirement audio doit être refaite.
+		this.exists = true;
+		this.reloadMedia();
+	}
+
+	/**
+	 * Force les lecteurs et caches à oublier le fichier média courant.
+	 * @returns {void}
+	 */
+	reloadMedia() {
+		WaveformService.clearCache(this.filePath);
+		this.mediaReloadToken++;
 		delete this.metadata.audioRetimeNeeded;
 		delete this.metadata.audioRetimeDone;
 		if (this.type === AssetType.Audio || this.type === AssetType.Video) {
 			this.duration = new Duration(0);
 			this.durationLoadState = 'idle';
 			this.durationLoadError = null;
-			this.initializeDuration(); // Réinitialise la durée
+			this.durationPromise = this.initializeDuration();
 		}
 	}
 

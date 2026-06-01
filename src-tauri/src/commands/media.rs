@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use font_kit::file_type::FileType;
@@ -10,6 +12,7 @@ use font_kit::handle::Handle;
 use font_kit::properties::Style;
 use font_kit::source::SystemSource;
 use serde::Serialize;
+use tauri::{AppHandle, Emitter};
 
 use crate::binaries;
 use crate::path_utils;
@@ -771,9 +774,89 @@ pub fn concat_audio(source_paths: Vec<String>, output_path: String) -> Result<()
     }
 }
 
-/// Convertit un média en débit constant (CBR) en remplaçant le fichier original.
+/// Emet la progression d'une conversion CBR vers le frontend.
+///
+/// @param app_handle Gestionnaire Tauri utilise pour publier l'evenement.
+/// @param conversion_request_id Identifiant de correlation de la conversion.
+/// @param progress Pourcentage de progression entre 0 et 100.
+/// @param current_time_s Temps traite par ffmpeg en secondes.
+/// @param total_time_s Duree totale estimee en secondes.
+/// @param status Etat textuel de la conversion.
+fn emit_cbr_conversion_progress(
+    app_handle: &AppHandle,
+    conversion_request_id: &str,
+    progress: f64,
+    current_time_s: f64,
+    total_time_s: f64,
+    status: &str,
+) {
+    let _ = app_handle.emit(
+        "cbr-conversion-progress",
+        serde_json::json!({
+            "conversionRequestId": conversion_request_id,
+            "progress": progress,
+            "currentTime": current_time_s,
+            "totalTime": total_time_s,
+            "status": status
+        }),
+    );
+}
+
+/// Extrait le temps courant depuis la sortie `-progress` de ffmpeg.
+///
+/// @param line Ligne brute emise par ffmpeg.
+/// @returns Le temps courant en secondes, ou `None` si la ligne ne contient pas de temps.
+fn parse_ffmpeg_progress_time_s(line: &str) -> Option<f64> {
+    if let Some(value) = line.strip_prefix("out_time_ms=") {
+        return value.trim().parse::<f64>().ok().map(|ms| ms / 1_000_000.0);
+    }
+    if let Some(value) = line.strip_prefix("out_time_us=") {
+        return value.trim().parse::<f64>().ok().map(|us| us / 1_000_000.0);
+    }
+    if let Some(value) = line.strip_prefix("out_time=") {
+        let parts: Vec<&str> = value.trim().split(':').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+
+        let hours = parts[0].parse::<f64>().ok()?;
+        let minutes = parts[1].parse::<f64>().ok()?;
+        let seconds = parts[2].parse::<f64>().ok()?;
+        return Some(hours * 3600.0 + minutes * 60.0 + seconds);
+    }
+    None
+}
+
+/// Lance une conversion CBR asynchrone sans bloquer le thread principal.
+///
+/// @param file_path Chemin du fichier a convertir.
+/// @param conversion_request_id Identifiant optionnel pour relayer la progression.
+/// @param app_handle Gestionnaire Tauri utilise pour emettre les evenements.
+/// @returns Resultat de la conversion.
 #[tauri::command]
-pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
+pub async fn convert_audio_to_cbr(
+    file_path: String,
+    conversion_request_id: Option<String>,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        convert_audio_to_cbr_blocking(file_path, conversion_request_id, app_handle)
+    })
+    .await
+    .map_err(|e| format!("Unable to join CBR conversion task: {}", e))?
+}
+
+/// Execute la conversion CBR bloquante hors du thread principal.
+///
+/// @param file_path Chemin du fichier a convertir.
+/// @param conversion_request_id Identifiant optionnel pour relayer la progression.
+/// @param app_handle Gestionnaire Tauri utilise pour emettre les evenements.
+/// @returns Resultat de la conversion.
+fn convert_audio_to_cbr_blocking(
+    file_path: String,
+    conversion_request_id: Option<String>,
+    app_handle: AppHandle,
+) -> Result<(), String> {
     let file_path = path_utils::normalize_existing_path(&file_path);
     let file_path_str = file_path.to_string_lossy().to_string();
     if !file_path.exists() {
@@ -795,6 +878,24 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
     } else {
         PathBuf::from(format!("{}_temp.{}", file_stem, extension))
     };
+    let conversion_request_id = conversion_request_id.unwrap_or_else(|| {
+        format!(
+            "cbr-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|duration| duration.as_millis())
+                .unwrap_or(0)
+        )
+    });
+    let total_duration_s = (get_duration(&file_path_str).unwrap_or(0).max(0) as f64) / 1000.0;
+    emit_cbr_conversion_progress(
+        &app_handle,
+        &conversion_request_id,
+        0.0,
+        0.0,
+        total_duration_s,
+        "converting",
+    );
 
     // Paramètres ffmpeg distincts pour flux audio pur vs conteneur vidéo.
     let mut cmd = Command::new(&ffmpeg_path);
@@ -804,6 +905,8 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
     );
     if is_audio_only {
         cmd.args([
+            "-nostdin",
+            "-hide_banner",
             "-i",
             &file_path_str,
             "-codec:a",
@@ -818,11 +921,15 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
             "2",
             "-f",
             "mp3",
+            "-progress",
+            "pipe:1",
             "-y",
             temp_path.to_string_lossy().as_ref(),
         ]);
     } else {
         cmd.args([
+            "-nostdin",
+            "-hide_banner",
             "-i",
             &file_path_str,
             "-b:v",
@@ -845,32 +952,80 @@ pub fn convert_audio_to_cbr(file_path: String) -> Result<(), String> {
             "2",
             "-ar",
             "44100",
+            "-progress",
+            "pipe:1",
             "-y",
             temp_path.to_string_lossy().as_ref(),
         ]);
     }
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
     configure_command_no_window(&mut cmd);
 
-    match cmd.output() {
-        Ok(result) => {
-            if result.status.success() {
-                if let Err(e) = std::fs::remove_file(&file_path) {
-                    return Err(format!("Failed to remove original file: {}", e));
-                }
-                if let Err(e) = std::fs::rename(&temp_path, &file_path) {
-                    return Err(format!("Failed to replace original file: {}", e));
-                }
-                Ok(())
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Failed to capture ffmpeg progress".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Failed to capture ffmpeg stderr".to_string())?;
+    let stderr_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        reader
+            .lines()
+            .map_while(Result::ok)
+            .collect::<Vec<String>>()
+            .join("\n")
+    });
+
+    let reader = BufReader::new(stdout);
+    for line in reader.lines().map_while(Result::ok) {
+        if let Some(current_time_s) = parse_ffmpeg_progress_time_s(&line) {
+            let progress = if total_duration_s > 0.0 {
+                (current_time_s / total_duration_s * 100.0).clamp(0.0, 99.5)
             } else {
-                let _ = std::fs::remove_file(&temp_path);
-                let stderr = String::from_utf8_lossy(&result.stderr);
-                Err(format!("ffmpeg error: {}", stderr))
-            }
+                0.0
+            };
+            emit_cbr_conversion_progress(
+                &app_handle,
+                &conversion_request_id,
+                progress,
+                current_time_s,
+                total_duration_s,
+                "converting",
+            );
         }
-        Err(e) => {
+    }
+
+    let status = child
+        .wait()
+        .map_err(|e| format!("Unable to wait for ffmpeg: {}", e))?;
+    let stderr = stderr_handle.join().unwrap_or_default();
+
+    if status.success() {
+        if let Err(e) = std::fs::remove_file(&file_path) {
             let _ = std::fs::remove_file(&temp_path);
-            Err(format!("Unable to execute ffmpeg: {}", e))
+            return Err(format!("Failed to remove original file: {}", e));
         }
+        if let Err(e) = std::fs::rename(&temp_path, &file_path) {
+            return Err(format!("Failed to replace original file: {}", e));
+        }
+        emit_cbr_conversion_progress(
+            &app_handle,
+            &conversion_request_id,
+            100.0,
+            total_duration_s,
+            total_duration_s,
+            "finished",
+        );
+        Ok(())
+    } else {
+        let _ = std::fs::remove_file(&temp_path);
+        Err(format!("ffmpeg error: {}", stderr))
     }
 }
 

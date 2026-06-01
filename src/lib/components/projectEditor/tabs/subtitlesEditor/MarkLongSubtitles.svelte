@@ -8,7 +8,10 @@
 	} from '$lib/services/AutoSegmentation';
 
 	let longSegmentsMatchingThreshold = $derived(
-		getLongSubtitleClips(globalState.getSubtitlesEditorState.longSegmentMinWords).length
+		getLongSubtitleClips(
+			globalState.getSubtitlesEditorState.longSegmentMinWords,
+			globalState.getSubtitlesEditorState.longSegmentMaxWords
+		).length
 	);
 	let longSegmentsMarkedCount = $derived(
 		(globalState.getSubtitleClips || []).filter((clip) => clip.needsLongReview === true).length
@@ -20,7 +23,8 @@
 	 */
 	function handleMarkLongSegments(): void {
 		const markedCount = markLongSegmentsForReview(
-			globalState.getSubtitlesEditorState.longSegmentMinWords
+			globalState.getSubtitlesEditorState.longSegmentMinWords,
+			globalState.getSubtitlesEditorState.longSegmentMaxWords
 		);
 		if (markedCount <= 0) {
 			toast('No long segment matches the current threshold.');
@@ -39,30 +43,42 @@
 </script>
 
 {#if hasSubtitleSegments}
-	<h3 class="text-sm font-medium text-secondary mb-3">Long subtitles</h3>
+	<h3 class="text-sm font-medium text-secondary mb-3">Mark subtitles based on length</h3>
 
 	<div class="bg-accent rounded-lg p-3 space-y-3">
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex items-center gap-1.5">
 				<span class="material-icons text-pink-400 text-sm">flag</span>
-				<span class="text-xs text-secondary">Mark long subtitles</span>
+				<span class="text-xs text-secondary">Mark subtitles based on length</span>
 			</div>
 			<span class="text-xs font-bold text-pink-400">{longSegmentsMarkedCount} marked</span>
 		</div>
 
-		<div class="space-y-2">
-			<label class="text-[11px] text-thirdly" for="long-segment-min-words"> Min words </label>
-			<input
-				id="long-segment-min-words"
-				type="number"
-				min="1"
-				bind:value={globalState.getSubtitlesEditorState.longSegmentMinWords}
-				class="w-full rounded-md border border-color bg-secondary px-2 py-1.5 text-sm text-primary"
-			/>
-			<p class="text-[10px] text-thirdly">
-				{longSegmentsMatchingThreshold} segment(s) match the current threshold.
-			</p>
+		<div class="grid grid-cols-2 gap-2">
+			<label class="space-y-2">
+				<span class="text-[11px] text-thirdly">Min words</span>
+				<input
+					id="long-segment-min-words"
+					type="number"
+					min="1"
+					bind:value={globalState.getSubtitlesEditorState.longSegmentMinWords}
+					class="w-full rounded-md border border-color bg-secondary px-2 py-1.5 text-sm text-primary"
+				/>
+			</label>
+			<label class="space-y-2">
+				<span class="text-[11px] text-thirdly">Max words</span>
+				<input
+					id="long-segment-max-words"
+					type="number"
+					min="1"
+					bind:value={globalState.getSubtitlesEditorState.longSegmentMaxWords}
+					class="w-full rounded-md border border-color bg-secondary px-2 py-1.5 text-sm text-primary"
+				/>
+			</label>
 		</div>
+		<p class="text-[10px] text-thirdly">
+			{longSegmentsMatchingThreshold} segment(s) match the current range.
+		</p>
 
 		<div class="grid grid-cols-3 gap-2">
 			<button

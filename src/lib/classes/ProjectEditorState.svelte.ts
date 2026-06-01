@@ -326,6 +326,7 @@ export class SubtitlesEditorState extends SerializableBase {
 
 	// Seuil utilisé pour marquer les segments trop longs.
 	longSegmentMinWords: number = $state(12);
+	longSegmentMaxWords: number = $state(999);
 
 	// Contexte courant permettant de rejouer des réajustements depuis la segmentation.
 	segmentationContext: StoredSegmentationContext = $state({

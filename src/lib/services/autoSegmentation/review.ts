@@ -17,9 +17,15 @@ export function getSubtitleClipWordCount(clip: SubtitleClip): number {
  * @param {number} minWords Seuil minimal de mots.
  * @returns {SubtitleClip[]} Liste triée des sous-titres trop longs.
  */
-export function getLongSubtitleClips(minWords: number): SubtitleClip[] {
+export function getLongSubtitleClips(minWords: number, maxWords: number): SubtitleClip[] {
+	const lowerBound = Math.max(1, Math.min(minWords, maxWords));
+	const upperBound = Math.max(lowerBound, Math.max(minWords, maxWords));
+
 	return globalState.getSubtitleClips
-		.filter((clip) => getSubtitleClipWordCount(clip) >= Math.max(1, minWords))
+		.filter((clip) => {
+			const wordCount = getSubtitleClipWordCount(clip);
+			return wordCount >= lowerBound && wordCount <= upperBound;
+		})
 		.sort((left, right) => left.startTime - right.startTime);
 }
 
@@ -29,12 +35,14 @@ export function getLongSubtitleClips(minWords: number): SubtitleClip[] {
  * @param {number} minWords Seuil minimal de mots.
  * @returns {number} Nombre de segments marqués.
  */
-export function markLongSegmentsForReview(minWords: number): number {
-	const threshold = Math.max(1, minWords);
+export function markLongSegmentsForReview(minWords: number, maxWords: number): number {
+	const lowerBound = Math.max(1, Math.min(minWords, maxWords));
+	const upperBound = Math.max(lowerBound, Math.max(minWords, maxWords));
 	let markedCount = 0;
 
 	for (const clip of globalState.getSubtitleClips) {
-		const isLong = getSubtitleClipWordCount(clip) >= threshold;
+		const wordCount = getSubtitleClipWordCount(clip);
+		const isLong = wordCount >= lowerBound && wordCount <= upperBound;
 		const hasOtherActiveReview = clip.needsReview || clip.needsCoverageReview;
 
 		if (!isLong) {

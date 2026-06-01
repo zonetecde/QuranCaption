@@ -87,6 +87,8 @@
 	let selectedQuality = $state('1080p');
 	let selectedFilePath = $state('');
 
+	const ayahContainerImages = Array.from({ length: 19 }, (_, i) => `banniere_${i + 1}.png`);
+
 	// Function to open file selector
 	async function selectFile() {
 		const result = await open({
@@ -389,6 +391,8 @@
 		} else if (style.valueType === 'fade') {
 			const fadeValue = getFadeValue();
 			return `${fadeValue.audioFadeInEnabled || fadeValue.audioFadeOutEnabled || fadeValue.videoFadeOutEnabled || fadeValue.videoFadeInEnabled ? 'Enabled - ' + fadeValue.fadeDurationMs + 'ms' : 'Disabled'}`;
+		} else if (style.valueType === 'ayah-image') {
+			return style.value ? String(style.value) : 'None';
 		} else return String(style.value);
 	}
 
@@ -785,6 +789,48 @@
 							</p>
 						</div>
 					{/if}
+				</div>
+			{:else if style.valueType === 'ayah-image'}
+				<div class="flex flex-col gap-3">
+					<button
+						type="button"
+						onclick={() => applyValue('')}
+						class={'w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200 ' +
+							(style.value === ''
+								? 'bg-accent/60 ring-1 ring-color'
+								: 'bg-gray-100 dark:bg-gray-800')}
+					>
+						<span class="material-icons mr-2 text-base">hide_image</span>
+						None
+					</button>
+
+					<div class="grid grid-cols-4 gap-2">
+						{#each ayahContainerImages as img (img)}
+							{@const selected = String(style.value) === img}
+							<button
+								type="button"
+								onclick={() => applyValue(img)}
+								class={'relative aspect-video rounded-md overflow-hidden border-2 transition-all duration-150 cursor-pointer ' +
+									(selected
+										? 'ring-2 ring-[var(--accent-primary)] border-accent scale-105'
+										: 'border-color hover:border-accent/50')}
+							>
+								<img
+									src={'/ayah-container/' + img}
+									alt={img}
+									class="w-full h-full object-cover"
+									loading="lazy"
+								/>
+								{#if selected}
+									<span
+										class="absolute top-1 right-1 material-icons text-[16px]! text-white drop-shadow-md"
+									>
+										check_circle
+									</span>
+								{/if}
+							</button>
+						{/each}
+					</div>
 				</div>
 			{:else if style.valueType === 'dimension'}
 				<div class="flex flex-col gap-4">

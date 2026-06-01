@@ -495,6 +495,85 @@
 		]
 	},
 	{
+		"id": "ayah-container",
+		"name": "Ayah Container",
+		"description": "Add a decorative background image behind the ayah",
+		"icon": "gradient",
+		"styles": [
+			{
+				"id": "ayah-container-image",
+				"name": "Container Image",
+				"description": "Select a decorative container image for the ayah",
+				"value": "",
+				"valueType": "ayah-image",
+				"options": [],
+				"css": "",
+				"tailwind": false,
+				"icon": "image"
+			},
+			{
+				"id": "ayah-container-vertical-position",
+				"name": "Vertical Position",
+				"description": "Change the vertical position of the container (pixels from center)",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -540,
+				"valueMax": 540,
+				"css": "",
+				"tailwind": false,
+				"icon": "vertical_align_center"
+			},
+			{
+				"id": "ayah-container-horizontal-position",
+				"name": "Horizontal Position",
+				"description": "Change the horizontal position of the container (pixels from center)",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -960,
+				"valueMax": 960,
+				"css": "",
+				"tailwind": false,
+				"icon": "horizontal_rule"
+			},
+			{
+				"id": "ayah-container-width",
+				"name": "Width",
+				"description": "Width of the container in percentage (stretches the image if ratio is not respected)",
+				"value": 80,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "fit_screen"
+			},
+			{
+				"id": "ayah-container-height",
+				"name": "Height",
+				"description": "Height of the container in percentage (stretches the image if ratio is not respected)",
+				"value": 50,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "height"
+			},
+			{
+				"id": "ayah-container-stretch",
+				"name": "Stretch",
+				"description": "Stretch the image to fill the container (otherwise it fits inside preserving ratio)",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "fit_screen"
+			}
+		]
+	},
+	{
 		"id": "verse-number",
 		"name": "Verse Number (Separated From Text)",
 		"description": "Control display of the Verse number",

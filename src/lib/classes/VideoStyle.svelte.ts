@@ -26,7 +26,8 @@ export type StyleValueType =
 	| 'fade'
 	| 'composite'
 	| 'reciter'
-	| 'file';
+	| 'file'
+	| 'ayah-image';
 
 // Types spécifiques pour les catégories de styles
 export type StyleCategoryName =
@@ -44,6 +45,7 @@ export type StyleCategoryName =
 	| 'surah-name'
 	| 'reciter-name'
 	| 'verse-number'
+	| 'ayah-container'
 	| 'creator-text';
 
 // Types spécifiques pour chaque catégorie de styles
@@ -185,6 +187,14 @@ export type VerseNumberStyleName =
 	| 'verse-number-format'
 	| 'verse-number-text-style';
 
+export type AyahContainerStyleName =
+	| 'ayah-container-image'
+	| 'ayah-container-vertical-position'
+	| 'ayah-container-horizontal-position'
+	| 'ayah-container-width'
+	| 'ayah-container-height'
+	| 'ayah-container-stretch';
+
 // Union type pour tous les noms de styles
 export type StyleName =
 	| GeneralStyleName
@@ -203,7 +213,8 @@ export type StyleName =
 	| CreatorTextStyleName
 	| CustomTextStyleName
 	| GlobalAnimationStyleName
-	| VerseNumberStyleName;
+	| VerseNumberStyleName
+	| AyahContainerStyleName;
 
 type RawStyle = Partial<Style> & { id: string };
 type RawCategory = Partial<Category> & { id: string; styles?: RawStyle[] };

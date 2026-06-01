@@ -35,6 +35,7 @@
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
+	import AyahContainer from '../tabs/styleEditor/AyahContainer.svelte';
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
@@ -620,6 +621,9 @@
 			style="backdrop-filter: blur({overlaySettings().blur}px);"
 		></div>
 	{/if}
+
+	<!-- Couche 3.5 : Ayah Container (au-dessus de l'overlay, en-dessous des sous-titres) -->
+	<AyahContainer />
 
 	<!-- Couche 4 : Fonds des sous-titres (toujours visibles) -->
 	<div

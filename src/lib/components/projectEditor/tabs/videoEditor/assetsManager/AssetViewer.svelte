@@ -163,6 +163,7 @@
 					downloadPath: downloadPath
 				});
 
+				asset.metadata.skipConstantBitrateWarning = true;
 				asset.updateFilePath(result);
 				mediaKey++; // Force re-render of audio/video element
 				await convertToCBR();

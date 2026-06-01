@@ -107,7 +107,9 @@
 			});
 
 			// Ajoute le fichier téléchargé à la liste des assets du projet
-			const asset = globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube);
+			const asset = globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube, {
+				skipConstantBitrateWarning: true
+			});
 
 			if (asset) {
 				downloadProgress = 0;

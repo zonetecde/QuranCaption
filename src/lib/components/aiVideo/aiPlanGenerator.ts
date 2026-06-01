@@ -98,13 +98,14 @@ Rules:
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${aiSettings.openAiApiKey}`
 		},
-		body: JSON.stringify({
-			model: aiSettings.advancedTrimModel || 'gpt-4o-mini',
-			input: [
-				{ role: 'system', content: systemPrompt },
-				{ role: 'user', content: `Theme: "${aiv.video.prompt}"` }
-			]
-		})
+		body: JSON.stringify(
+			buildAiPlanRequestBody(
+				aiSettings.textAiApiEndpoint,
+				aiSettings.advancedTrimModel || 'gpt-4o-mini',
+				systemPrompt,
+				`Theme: "${aiv.video.prompt}"`
+			)
+		)
 	});
 
 	if (!response.ok) {
@@ -142,12 +143,69 @@ Rules:
 }
 
 /**
- * Extrait le texte de la reponse OpenAI (format Responses API : output[].content[].text).
+ * Indique si l'endpoint utilise le format Chat Completions compatible OpenAI.
+ * @param {string} endpoint Endpoint configure.
+ * @returns {boolean} `true` si l'endpoint se termine par `/chat/completions`.
+ */
+function isChatCompletionsEndpoint(endpoint: string): boolean {
+	try {
+		return new URL(endpoint).pathname.endsWith('/chat/completions');
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Construit le payload de requete adapte au type d'endpoint configure.
+ * @param {string} endpoint Endpoint configure.
+ * @param {string} model Modele a appeler.
+ * @param {string} systemPrompt Prompt systeme.
+ * @param {string} userPrompt Prompt utilisateur.
+ * @returns {Record<string, unknown>} Corps JSON a envoyer.
+ */
+function buildAiPlanRequestBody(
+	endpoint: string,
+	model: string,
+	systemPrompt: string,
+	userPrompt: string
+): Record<string, unknown> {
+	if (isChatCompletionsEndpoint(endpoint)) {
+		return {
+			model,
+			response_format: { type: 'json_object' },
+			messages: [
+				{ role: 'system', content: systemPrompt },
+				{ role: 'user', content: userPrompt }
+			]
+		};
+	}
+
+	return {
+		model,
+		input: [
+			{ role: 'system', content: systemPrompt },
+			{ role: 'user', content: userPrompt }
+		]
+	};
+}
+
+/**
+ * Extrait le texte de la reponse IA, en gerant Responses API et Chat Completions.
  * @param {unknown} data Corps JSON de la reponse API.
  * @returns {string} Texte extrait, ou chaine vide.
  */
 function extractTextFromResponse(data: unknown): string {
 	const d = data as Record<string, unknown>;
+
+	if (Array.isArray(d.choices)) {
+		for (const choice of d.choices) {
+			const content = choice?.message?.content;
+			if (typeof content === 'string' && content.trim()) {
+				return content;
+			}
+		}
+	}
+
 	let text = '';
 	if (Array.isArray(d.output)) {
 		for (const item of d.output) {

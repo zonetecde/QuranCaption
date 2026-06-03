@@ -85,6 +85,8 @@ export async function applyReactiveFontSize(
  * @returns Nombre de lignes visibles après layout.
  */
 export function getRenderedLineCount(element: Element): number {
+	if (!element.textContent?.trim()) return 0;
+
 	const range = document.createRange();
 	range.selectNodeContents(element);
 

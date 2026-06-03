@@ -517,13 +517,16 @@
 
 						try {
 							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+							const referenceClip = getReferenceClipForTarget(target);
 							const originalVerticalTextAlignment = String(
 								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
 							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
 							const maxLineValue =
 								target === 'arabic' ? Number(globalState.getStyle('arabic', 'max-line').value) : 5;
-							const initialFontSize = globalState.getStyle(target, 'font-size').value as number;
+							const initialFontSize = Number(
+								styles.getEffectiveValue('font-size', referenceClip?.id)
+							);
 
 							styles.setStyle('vertical-text-alignment', 'center');
 

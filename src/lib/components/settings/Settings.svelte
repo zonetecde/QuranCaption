@@ -181,7 +181,7 @@
 		<!-- Sidebar -->
 		<div class="bg-primary border-r border-color p-3 overflow-auto">
 			<div class="flex flex-col gap-2">
-				{#each [{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' }, { name: 'AI Key', tab: SettingsTab.AI_KEY, icon: 'key' }, { name: 'Quran.com Integration', tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: 'Backup', tab: SettingsTab.BACKUP, icon: 'archive' }, { name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' }, { name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
+				{#each [{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' }, { name: 'Notifications', tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: 'AI Key', tab: SettingsTab.AI_KEY, icon: 'key' }, { name: 'Quran.com Integration', tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: 'Backup', tab: SettingsTab.BACKUP, icon: 'archive' }, { name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' }, { name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
 						class:selected={globalState.uiState.settingsTab === setting.tab}
@@ -261,6 +261,29 @@
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.AI_KEY}
 				<AiKeySettings />
+			{:else if globalState.uiState.settingsTab === SettingsTab.NOTIFICATIONS}
+				<div class="space-y-5">
+					<h3 class="text-lg font-medium text-primary">Notifications</h3>
+					<div class="rounded-xl border border-color bg-primary p-4">
+						<label class="flex items-center justify-between gap-4">
+							<div>
+								<p class="text-sm font-medium text-primary">Desktop notifications</p>
+								<p class="mt-1 text-xs text-thirdly">
+									Show OS notifications when video exports, AI segmentation, or AI trimming finish.
+								</p>
+							</div>
+							<input
+								type="checkbox"
+								class="h-5 w-5 accent-accent-primary"
+								bind:checked={globalState.settings!.persistentUiState.desktopNotificationsEnabled}
+								onchange={() => Settings.save()}
+							/>
+						</label>
+					</div>
+					<p class="text-xs text-thirdly">
+						The taskbar attention signal stays enabled even when desktop notifications are off.
+					</p>
+				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.QURAN_INTEGRATION}
 				<QuranIntegrationSettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.BACKUP}

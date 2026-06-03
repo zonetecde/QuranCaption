@@ -93,6 +93,7 @@
 		],
 		"resources": [
 			"binaries/**/*",
+			"resources/notifications/**/*",
 			"python/**/*"
 		],
 		"icon": [

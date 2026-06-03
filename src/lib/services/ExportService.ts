@@ -2,10 +2,11 @@ import { VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
-import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
+import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
+import { notifyLongTaskCompletion } from './UserAttentionService';
 
 /**
  * Parse une date ISO en timestamp millisecondes.
@@ -193,6 +194,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
 		const wasExported = exportation.currentState === ExportState.Exported;
+		const wasErrored = exportation.currentState === ExportState.Error;
 		if (exportation.currentState === ExportState.Canceled) {
 			// Si l'exportation a été annulée, on ignore les mises à jour
 			return;
@@ -224,12 +226,32 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 			if (startMs !== null) {
 				exportation.totalExportTimeMs = Math.max(0, Date.now() - startMs);
 			}
+
+			if (exportation.exportKind === ExportKind.Video) {
+				void notifyLongTaskCompletion({
+					title: 'Video export finished',
+					body: exportation.finalFileName,
+					level: 'success'
+				});
+			}
 		}
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
 			// Telemetry
 			AnalyticsService.trackExportError(JSON.stringify(exportation), data.errorLog);
+		}
+
+		if (
+			!wasErrored &&
+			data.currentState === ExportState.Error &&
+			exportation.exportKind === ExportKind.Video
+		) {
+			void notifyLongTaskCompletion({
+				title: 'Video export failed',
+				body: exportation.finalFileName,
+				level: 'error'
+			});
 		}
 	}
 

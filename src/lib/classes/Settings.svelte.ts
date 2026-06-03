@@ -96,6 +96,7 @@ export default class Settings extends SerializableBase {
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
 		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
+		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
 		theme: 'default' as
@@ -410,6 +411,10 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.showTimelineWheelHints = true;
 			shouldSave = true;
 		}
+		if (typeof settings.persistentUiState.desktopNotificationsEnabled !== 'boolean') {
+			settings.persistentUiState.desktopNotificationsEnabled = true;
+			shouldSave = true;
+		}
 		if (
 			!WBW_TRANSLATION_LANGUAGES.some(
 				(language) => language.code === settings.persistentUiState.wbwTranslationLanguage
@@ -484,6 +489,7 @@ export default class Settings extends SerializableBase {
 export enum SettingsTab {
 	SHORTCUTS = 'shortcuts',
 	THEME = 'theme',
+	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',
 	QURAN_INTEGRATION = 'quran-integration',
 	BACKUP = 'backup',

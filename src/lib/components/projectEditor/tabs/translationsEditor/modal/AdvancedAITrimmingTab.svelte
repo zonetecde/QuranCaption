@@ -20,6 +20,7 @@
 	} from '$lib/services/AdvancedAITrimming';
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
@@ -418,9 +419,19 @@
 
 		if (reportLines.length === 0) {
 			toast.success(`${latestSummary} ${getActualUsageSummary()}.`);
+			await notifyLongTaskCompletion({
+				title: 'AI trimming finished',
+				body: latestSummary,
+				level: 'success'
+			});
 		} else {
 			toast(`${latestSummary} Check the activity log for details.`, {
 				duration: 6000
+			});
+			await notifyLongTaskCompletion({
+				title: 'AI trimming finished with errors',
+				body: latestSummary,
+				level: 'error'
 			});
 		}
 	}

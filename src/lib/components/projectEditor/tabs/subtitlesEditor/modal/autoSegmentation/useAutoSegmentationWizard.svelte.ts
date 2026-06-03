@@ -18,7 +18,7 @@ import {
 	type SegmentationDevice,
 	type SegmentationMode
 } from '$lib/services/AutoSegmentation';
-import { getWizardSteps } from './constants';
+import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
 import { trackInstallFailure, trackSegmentationRun } from './helpers/analytics';
 import {
 	buildAudioLabel,
@@ -28,6 +28,7 @@ import {
 } from './helpers/format';
 import { deriveSelectionState, persistSettingsPatch } from './helpers/persist';
 import {
+	getWizardSteps,
 	MUAALEM_ADVANCED_MODEL_OPTIONS,
 	MUAALEM_MODEL_OPTIONS,
 	SURAH_SPLITTER_MODEL_OPTIONS
@@ -419,6 +420,33 @@ export function useAutoSegmentationWizard() {
 		}
 	}
 
+	/**
+	 * Signale la fin d'une segmentation IA standard à l'utilisateur.
+	 *
+	 * @param {AutoSegmentationResult | null} response Résultat final de la segmentation.
+	 * @returns {Promise<void>} Promise résolue après l'envoi du signal.
+	 */
+	async function notifySegmentationCompletion(
+		response: AutoSegmentationResult | null
+	): Promise<void> {
+		if (!response || response.status === 'cancelled') return;
+
+		if (response.status === 'failed') {
+			await notifyLongTaskCompletion({
+				title: 'AI segmentation failed',
+				body: response.message,
+				level: 'error'
+			});
+			return;
+		}
+
+		await notifyLongTaskCompletion({
+			title: 'AI segmentation finished',
+			body: `Applied ${response.segmentsApplied} subtitle(s).`,
+			level: 'success'
+		});
+	}
+
 	/** Applies subtitles from the separate Hugging Face JSON import flow. */
 	async function startImportedJsonSegmentation(): Promise<void> {
 		if (!hasAudio() || importedJsonRaw.trim().length === 0) {
@@ -551,10 +579,12 @@ export function useAutoSegmentationWizard() {
 				selection.mode
 			);
 			applySegmentationResponse(response);
+			await notifySegmentationCompletion(response);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			response = { status: 'failed', message };
 			applySegmentationResponse(response);
+			await notifySegmentationCompletion(response);
 		} finally {
 			unlisten?.();
 			isRunning = false;

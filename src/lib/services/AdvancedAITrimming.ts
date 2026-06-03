@@ -103,6 +103,10 @@ export type AdvancedTrimErrorMarkReport = {
 	errors: string[];
 };
 
+export type AdvancedTrimErrorMarkOptions = {
+	shouldCheckTranslation?: (translation: VerseTranslation, subtitle: SubtitleClip) => boolean;
+};
+
 export type AdvancedTrimCostEstimate = {
 	batches: AdvancedTrimBatch[];
 	totalVerses: number;
@@ -835,9 +839,13 @@ export function applyAdvancedTrimValidationSuccess(
  * Marque en erreur les traductions qui ne respectent pas les règles de trim avancé.
  *
  * @param {Edition} edition Edition de traduction à vérifier.
+ * @param {AdvancedTrimErrorMarkOptions} options Options de filtrage des segments à vérifier.
  * @returns Rapport des segments vérifiés et marqués.
  */
-export function markInvalidAdvancedTrimTranslations(edition: Edition): AdvancedTrimErrorMarkReport {
+export function markInvalidAdvancedTrimTranslations(
+	edition: Edition,
+	options: AdvancedTrimErrorMarkOptions = {}
+): AdvancedTrimErrorMarkReport {
 	const candidates = buildAdvancedTrimVerseCandidates(edition, true);
 	let checkedSegments = 0;
 	let markedSegments = 0;
@@ -854,6 +862,8 @@ export function markInvalidAdvancedTrimTranslations(edition: Edition): AdvancedT
 			verseTranslations[index] = verseTranslation ?? null;
 
 			if (!verseTranslation) continue;
+			if (options.shouldCheckTranslation && !options.shouldCheckTranslation(verseTranslation, subtitle))
+				continue;
 
 			verseTranslation.tryRecalculateTranslationIndexes(edition, candidate.verseKey);
 			checkedIndexes.add(index);

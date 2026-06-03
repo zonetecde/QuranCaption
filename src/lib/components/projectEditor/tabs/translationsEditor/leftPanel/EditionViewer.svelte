@@ -7,6 +7,7 @@
 	} from '$lib/classes/Translation.svelte';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { markInvalidAdvancedTrimTranslations } from '$lib/services/AdvancedAITrimming';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import toast from 'svelte-5-french-toast';
 	import AskIaModal from '../modal/AskIAModal.svelte';
@@ -149,6 +150,12 @@
 						}
 					}
 				}
+			}
+
+			if (doneSubtitlesIds.size > 0) {
+				markInvalidAdvancedTrimTranslations(edition, {
+					shouldCheckTranslation: (_translation, subtitle) => doneSubtitlesIds.has(subtitle.id)
+				});
 			}
 
 			globalState.currentProject!.detail.updatePercentageTranslated(edition);

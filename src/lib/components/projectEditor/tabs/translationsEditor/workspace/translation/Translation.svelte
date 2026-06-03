@@ -1,6 +1,9 @@
 ﻿<script lang="ts">
 	import { SubtitleClip, type Edition } from '$lib/classes';
 	import {
+		getTranslationTrimUnitCount,
+		getTranslationTrimUnits,
+		sliceTranslationTrimUnits,
 		tokenizeTranslationText,
 		type TranslationInlineStyleFlags,
 		type TranslationInlineTextSegment,
@@ -41,6 +44,10 @@
 	let inlineSelectionEnd = $state(-1);
 
 	let originalTranslation: string = $state('');
+	let originalTranslationUnits = $derived(() => getTranslationTrimUnits(originalTranslation));
+	let originalTranslationUnitCount = $derived(() =>
+		getTranslationTrimUnitCount(originalTranslation)
+	);
 	let translationInput: HTMLInputElement | null = $state(null);
 	let editableTranslationValue: string = $state('');
 
@@ -86,7 +93,7 @@
 			if (
 				!(
 					previousSubtitleTranslation.startWordIndex === 0 &&
-					previousSubtitleTranslation.endWordIndex === originalTranslation.split(' ').length - 1 &&
+					previousSubtitleTranslation.endWordIndex === originalTranslationUnitCount() - 1 &&
 					!previousSubtitleTranslation.isBruteForce
 				)
 			) {
@@ -104,7 +111,7 @@
 				if (!isTranslationLocked) {
 					translation().startWordIndex = previousSubtitleTranslationEndIndex + 1;
 					if (translation().startWordIndex > translation().endWordIndex) {
-						translation().endWordIndex = originalTranslation.split(' ').length - 1;
+						translation().endWordIndex = originalTranslationUnitCount() - 1;
 					}
 					updateTranslationText();
 
@@ -342,10 +349,11 @@
 
 	function updateTranslationText(): void {
 		translation().setTextAndClearInlineStyles(
-			originalTranslation
-				.split(' ')
-				.slice(translation().startWordIndex, translation().endWordIndex + 1)
-				.join(' ')
+			sliceTranslationTrimUnits(
+				originalTranslation,
+				translation().startWordIndex,
+				translation().endWordIndex
+			)
 		);
 	}
 
@@ -501,7 +509,7 @@
 				onmouseup={handleGlobalMouseUp}
 				transition:slide
 			>
-				{#each originalTranslation.split(' ') as word, i (`${i}-${word}`)}
+				{#each originalTranslationUnits() as unit, i (`${i}-${unit.text}`)}
 					{@const isSelected = translation().startWordIndex <= i && i <= translation().endWordIndex}
 					{@const isFirstSelected = isSelected && i === translation().startWordIndex}
 					{@const isLastSelected = isSelected && i === translation().endWordIndex}
@@ -533,7 +541,7 @@
 						onmouseenter={() => handleMouseEnter(i)}
 						ondragstart={(event) => event.preventDefault()}
 					>
-						{word}
+						{unit.text}
 					</button>
 				{/each}
 			</div>

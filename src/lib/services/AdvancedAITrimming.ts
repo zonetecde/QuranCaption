@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Edition, SubtitleClip } from '$lib/classes';
-import type { VerseTranslation } from '$lib/classes/Translation.svelte';
+import { getTranslationTrimUnits, type VerseTranslation } from '$lib/classes/Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 
 export type AdvancedTrimModel = string;
@@ -138,11 +138,7 @@ const MODEL_PRICING: Record<
 };
 
 function splitWords(text: string): string[] {
-	return text
-		.replace(/\u00A0/g, ' ')
-		.trim()
-		.split(/\s+/)
-		.filter(Boolean);
+	return getTranslationTrimUnits(text).map((unit) => unit.text);
 }
 
 function normalizeCoverageToken(token: string): string {

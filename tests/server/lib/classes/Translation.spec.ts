@@ -4,8 +4,10 @@ import { globalState } from '$lib/runes/main.svelte';
 import { Edition } from '$lib/classes/Edition';
 import {
 	buildTranslationInlineTextSegments,
+	getTranslationTrimUnits,
 	normalizeTranslationInlineStyleRuns,
 	replaceBoldWordIndexesInInlineStyleRuns,
+	sliceTranslationTrimUnits,
 	toggleTranslationInlineStyleRuns,
 	VerseTranslation
 } from '$lib/classes/Translation.svelte';
@@ -80,6 +82,43 @@ describe('VerseTranslation.tryRecalculateTranslationIndexes', () => {
 		translation.tryRecalculateTranslationIndexes(edition, '2:97');
 
 		expect(translation.isBruteForce).toBe(true);
+	});
+
+	it('recalculates indexes for contiguous Chinese text without spaces', () => {
+		mockSourceTranslation('一切赞颂，全归安拉，养育众世界的主，');
+
+		const translation = new VerseTranslation('全归安拉，', 'to review');
+
+		translation.tryRecalculateTranslationIndexes(edition, '1:2');
+
+		expect(translation.isBruteForce).toBe(false);
+		expect(translation.startWordIndex).toBe(2);
+		expect(translation.endWordIndex).toBe(5);
+	});
+});
+
+describe('translation trim units', () => {
+	it('splits Chinese text into selectable units without requiring spaces', () => {
+		const units = getTranslationTrimUnits('奉至仁至慈的安拉之名');
+
+		expect(units.map((unit) => unit.text)).toEqual([
+			'奉',
+			'至',
+			'仁',
+			'至',
+			'慈',
+			'的',
+			'安',
+			'拉',
+			'之',
+			'名'
+		]);
+	});
+
+	it('slices Chinese text without inserting spaces', () => {
+		const text = '一切赞颂，全归安拉，养育众世界的主，';
+
+		expect(sliceTranslationTrimUnits(text, 2, 5)).toBe('全归安拉，');
 	});
 });
 

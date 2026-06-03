@@ -11,6 +11,7 @@ const ADVANCED_TRIM_SYSTEM_PROMPT: &str = r#"You trim Quran subtitle translation
 
 Rules:
 - Use only words that already exist in the provided verse translation.
+- For Chinese or other text without spaces, treat existing characters or text units as the source words.
 - Across all output segments of a verse, every word from the source translation must appear at least once.
 - The global order may change when the recitation repeats, overlaps, or returns to an earlier clause.
 - Overlap between segments is allowed and often required when the Arabic overlaps on a repeated word or phrase.
@@ -352,6 +353,7 @@ fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, String>
          Respect overlap/repetition in the recitation when needed.\n\
          Pay special attention to overlapping Arabic segments: when a word or phrase is repeated across two segments, keep the corresponding translated overlap in both outputs when natural.\n\
          Keep each segment natural in the target language while using only words from the source translation.\n\
+         For Chinese or other text without spaces, trim by existing characters or text units without adding spaces.\n\
          If the source translation contains words wrapped in ˹ ˺, keep them in the final trimmed output wherever they belong. They are part of the translation, not removable side comments.\n\
          Each segment also includes a wordByWordEnglish helper array for Arabic understanding only.\n\n\
          Batch JSON:\n{}",

@@ -42,12 +42,139 @@ type TranslationTextToken = {
 	wordIndex: number | null;
 };
 
+export type TranslationTrimUnit = {
+	text: string;
+	startIndex: number;
+	endIndex: number;
+};
+
 const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
 	bold: false,
 	italic: false,
 	underline: false,
 	color: null
 };
+
+const CJK_TEXT_REGEX = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const WORD_TEXT_REGEX = /[\p{L}\p{N}]/u;
+
+type WordSegmenter = {
+	segment(text: string): Iterable<{
+		segment: string;
+		index: number;
+		isWordLike?: boolean;
+	}>;
+};
+
+/**
+ * Indique si le texte contient une écriture sans séparation fiable par espaces.
+ *
+ * @param {string} text Texte de traduction à analyser.
+ * @returns {boolean} `true` si une segmentation CJK doit être utilisée.
+ */
+function hasCjkText(text: string): boolean {
+	return CJK_TEXT_REGEX.test(text);
+}
+
+/**
+ * Retourne le segmenter natif quand il est disponible dans le runtime.
+ *
+ * @returns {WordSegmenter | null} Segmenter de mots, ou `null` si indisponible.
+ */
+function getWordSegmenter(): WordSegmenter | null {
+	const Segmenter = (
+		Intl as typeof Intl & {
+			Segmenter?: new (locale: string, options: { granularity: 'word' }) => WordSegmenter;
+		}
+	).Segmenter;
+
+	return Segmenter ? new Segmenter('zh', { granularity: 'word' }) : null;
+}
+
+/**
+ * Découpe une traduction en unités sélectionnables pour le trim.
+ *
+ * @param {string} text Texte de traduction complet.
+ * @returns {TranslationTrimUnit[]} Unités lexicales avec leurs positions dans le texte source.
+ */
+export function getTranslationTrimUnits(text: string): TranslationTrimUnit[] {
+	const normalizedText = text.replace(/\u00A0/g, ' ');
+
+	if (!hasCjkText(normalizedText)) {
+		return Array.from(normalizedText.matchAll(/\S+/g)).map((match) => ({
+			text: match[0],
+			startIndex: match.index ?? 0,
+			endIndex: (match.index ?? 0) + match[0].length
+		}));
+	}
+
+	const segmenter = getWordSegmenter();
+	if (segmenter) {
+		const units = Array.from(segmenter.segment(normalizedText))
+			.filter((segment) => segment.isWordLike || WORD_TEXT_REGEX.test(segment.segment))
+			.map((segment) => ({
+				text: segment.segment,
+				startIndex: segment.index,
+				endIndex: segment.index + segment.segment.length
+			}));
+		if (units.length > 0) return units;
+	}
+
+	const units: TranslationTrimUnit[] = [];
+	let index = 0;
+	for (const char of Array.from(normalizedText)) {
+		const endIndex = index + char.length;
+		if (WORD_TEXT_REGEX.test(char)) {
+			units.push({
+				text: char,
+				startIndex: index,
+				endIndex
+			});
+		}
+		index = endIndex;
+	}
+	return units;
+}
+
+/**
+ * Compte les unités de trim d'une traduction.
+ *
+ * @param {string} text Texte de traduction complet.
+ * @returns {number} Nombre d'unités sélectionnables.
+ */
+export function getTranslationTrimUnitCount(text: string): number {
+	return getTranslationTrimUnits(text).length;
+}
+
+/**
+ * Extrait une plage d'unités de trim sans insérer d'espaces artificiels.
+ *
+ * @param {string} text Texte de traduction complet.
+ * @param {number} startWordIndex Index inclusif de début.
+ * @param {number} endWordIndex Index inclusif de fin.
+ * @returns {string} Texte correspondant à la plage demandée.
+ */
+export function sliceTranslationTrimUnits(
+	text: string,
+	startWordIndex: number,
+	endWordIndex: number
+): string {
+	const units = getTranslationTrimUnits(text);
+	if (units.length === 0) return '';
+
+	const start = Math.max(0, Math.min(units.length - 1, startWordIndex));
+	const end = Math.max(start, Math.min(units.length - 1, endWordIndex));
+
+	if (!hasCjkText(text)) {
+		return units
+			.slice(start, end + 1)
+			.map((unit) => unit.text)
+			.join(' ');
+	}
+
+	const sliceEnd = units[end + 1]?.startIndex ?? text.length;
+	return text.slice(units[start].startIndex, sliceEnd).trim();
+}
 
 /**
  * Returns true when at least one inline style flag is active.
@@ -434,7 +561,7 @@ export class VerseTranslation extends Translation {
 		if (text === undefined) return; // déserialisation
 
 		this.startWordIndex = 0;
-		this.endWordIndex = text.split(' ').length - 1;
+		this.endWordIndex = Math.max(0, getTranslationTrimUnitCount(text) - 1);
 		this.isBruteForce = false;
 		this.inlineStyleRuns = [];
 		this.type = 'verse';
@@ -594,14 +721,8 @@ export class VerseTranslation extends Translation {
 				.replace(/[\u2013\u2014]/g, '-')
 				.replace(/^([^\p{L}\p{N}]+)|([^\p{L}\p{N}]+)$/gu, '');
 
-		// Découpe robuste en mots, sans produire [''] quand la chaîne est vide.
-		const splitWords = (s: string) =>
-			s
-				.replace(/\u00A0/g, ' ')
-				.replace(/\s+/g, ' ')
-				.trim()
-				.split(' ')
-				.filter((w) => w.length > 0);
+		// Découpe robuste en unités lexicales, y compris pour les langues CJK.
+		const splitWords = (s: string) => getTranslationTrimUnits(s).map((unit) => unit.text);
 
 		type IndexedToken = { value: string; sourceWordIndex: number };
 		type MatchCandidate = {

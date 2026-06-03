@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { SubtitleClip, TrackType, type Edition } from '$lib/classes';
-	import type { TranslationStatus, VerseTranslation } from '$lib/classes/Translation.svelte';
+	import {
+		sliceTranslationTrimUnits,
+		type TranslationStatus,
+		type VerseTranslation
+	} from '$lib/classes/Translation.svelte';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -121,7 +125,18 @@
 						doneSubtitlesIds.add(matchingSubtitle.id);
 
 						const tgt = matchingSubtitle.translations[edition.name] as VerseTranslation;
-						tgt.text = src.text;
+						const sourceText = src.isBruteForce
+							? src.text
+							: // Retrouve le texte de la traduction à partir des unités de découpage
+								sliceTranslationTrimUnits(
+									globalState.currentProject!.content.projectTranslation.getVerseTranslation(
+										edition,
+										clip.getVerseKey()
+									),
+									src.startWordIndex,
+									src.endWordIndex
+								);
+						tgt.text = sourceText || src.text;
 						tgt.startWordIndex = src.startWordIndex;
 						tgt.endWordIndex = src.endWordIndex;
 						tgt.isBruteForce = src.isBruteForce;

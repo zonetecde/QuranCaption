@@ -198,7 +198,10 @@
 			case 'all':
 				return [{ label: get(LL).home.allProjects() }];
 			case 'reciter':
-				return [{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION }, { label: selection.reciter }];
+				return [
+					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
+					{ label: selection.reciter }
+				];
 			case 'type':
 				return [
 					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
@@ -502,16 +505,15 @@
 					class="btn-accent btn-icon h-12 px-4 xl:px-7"
 					onclick={newProjectButtonClick}
 				>
-					<span class="material-icons-outlined mr-2">add_circle_outline</span> {$LL.home.newProject()}
+					<span class="material-icons-outlined mr-2">add_circle_outline</span>
+					{$LL.home.newProject()}
 				</button>
-				<button
-					class="btn btn-icon h-12 px-4 xl:px-7"
-					onclick={() => (globalState.currentPage = 'ai-video')}
-				>
+				<!-- <button class="btn btn-icon h-12 px-4 xl:px-7">
 					<span class="material-icons-outlined mr-2">auto_awesome</span> {$LL.home.aiVideo()}
-				</button>
+				</button> -->
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
-					<span class="material-icons-outlined mr-2">file_upload</span> {$LL.home.importProject()}
+					<span class="material-icons-outlined mr-2">file_upload</span>
+					{$LL.home.importProject()}
 				</button>
 			</section>
 		</div>
@@ -647,7 +649,10 @@
 
 				{#if globalState.uiState.searchQuery}
 					<p class="mt-3 text-sm text-[var(--text-secondary)]">
-						{$LL.home.showingResultsFor({ count: searchedProjects.length, query: globalState.uiState.searchQuery })}
+						{$LL.home.showingResultsFor({
+							count: searchedProjects.length,
+							query: globalState.uiState.searchQuery
+						})}
 					</p>
 				{/if}
 

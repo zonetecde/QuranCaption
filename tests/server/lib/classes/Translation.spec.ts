@@ -92,8 +92,8 @@ describe('VerseTranslation.tryRecalculateTranslationIndexes', () => {
 		translation.tryRecalculateTranslationIndexes(edition, '1:2');
 
 		expect(translation.isBruteForce).toBe(false);
-		expect(translation.startWordIndex).toBe(2);
-		expect(translation.endWordIndex).toBe(5);
+		expect(translation.startWordIndex).toBe(4);
+		expect(translation.endWordIndex).toBe(7);
 	});
 });
 
@@ -118,7 +118,19 @@ describe('translation trim units', () => {
 	it('slices Chinese text without inserting spaces', () => {
 		const text = '一切赞颂，全归安拉，养育众世界的主，';
 
-		expect(sliceTranslationTrimUnits(text, 2, 5)).toBe('全归安拉，');
+		expect(sliceTranslationTrimUnits(text, 4, 7)).toBe('全归安拉，');
+	});
+
+	it('keeps space-separated text behavior', () => {
+		const text = 'This is the Book';
+
+		expect(getTranslationTrimUnits(text).map((unit) => unit.text)).toEqual([
+			'This',
+			'is',
+			'the',
+			'Book'
+		]);
+		expect(sliceTranslationTrimUnits(text, 1, 2)).toBe('is the');
 	});
 });
 

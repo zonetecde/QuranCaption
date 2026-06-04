@@ -182,7 +182,7 @@
 	<!-- Body -->
 	<div class="grid grid-cols-[220px_1fr] gap-0 flex-1 min-h-0">
 		<!-- Sidebar -->
-		<div class="bg-primary border-r border-color p-3 overflow-auto">
+		<div class="bg-primary border-r border-color p-3 overflow-auto flex flex-col">
 			<div class="flex flex-col gap-2">
 				{#each [{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: $LL.settings.quranComIntegration(), tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
 					<button
@@ -195,7 +195,7 @@
 					</button>
 				{/each}
 			</div>
-			<div class="mt-4 pt-3 border-t border-color">
+			<div class="mt-auto pt-3 border-t border-color">
 				<LanguageSwitcher />
 			</div>
 		</div>

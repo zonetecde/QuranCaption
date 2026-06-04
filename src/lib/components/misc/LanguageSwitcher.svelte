@@ -12,20 +12,30 @@
 			Settings.save();
 		}
 	}
+
+	const languageOptions: { value: Locales; label: string }[] = [
+		{ value: 'en', label: 'English' },
+		{ value: 'fr', label: 'Français' }
+	];
 </script>
 
-<div class="flex items-center gap-2">
-	<span class="text-xs text-thirdly mr-1">{$LL.common.language()}</span>
-	<button
-		class="btn btn-sm {$locale === 'en' ? 'btn-accent' : ''}"
-		onclick={() => switchLanguage('en')}
-	>
-		EN
-	</button>
-	<button
-		class="btn btn-sm {$locale === 'fr' ? 'btn-accent' : ''}"
-		onclick={() => switchLanguage('fr')}
-	>
-		FR
-	</button>
+<div class="flex flex-col gap-1.5">
+	<label for="language-switcher" class="text-xs text-thirdly">{$LL.common.language()}</label>
+	<div class="relative">
+		<select
+			id="language-switcher"
+			class="w-full appearance-none rounded-lg border border-color bg-secondary px-3 py-2 pr-8 text-sm text-primary"
+			value={$locale}
+			onchange={(e) => switchLanguage((e.target as HTMLSelectElement).value as Locales)}
+		>
+			{#each languageOptions as option (option.value)}
+				<option value={option.value}>{option.label}</option>
+			{/each}
+		</select>
+		<span
+			class="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[18px]! text-thirdly"
+		>
+			expand_more
+		</span>
+	</div>
 </div>

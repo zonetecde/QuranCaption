@@ -423,6 +423,10 @@ export class ExportState extends SerializableBase {
 
 	// Indique la sélection d'exportation des chapitres YouTube
 	ytbChaptersChoice: 'Each Surah' | 'Each Verse' = $state('Each Surah');
+	ytbChaptersFormat: string = $state(
+		'<timestamp> Surah <surah-number>, Verse <verse-number>'
+	);
+	ytbChaptersTranslationEditionName: string = $state('');
 
 	// Indique la partie de la vidéo à exporter
 	videoStartTime: number = $state(0);

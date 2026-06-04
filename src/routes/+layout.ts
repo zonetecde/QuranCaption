@@ -5,6 +5,8 @@ import Settings from '$lib/classes/Settings.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import ExportService from '$lib/services/ExportService';
 import QPCFontProvider from '$lib/services/FontProvider';
+import { loadAllLocales } from '$lib/i18n/i18n-util.sync';
+import { i18nObject } from '$lib/i18n/i18n-util';
 
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 
@@ -15,6 +17,9 @@ export const ssr = false;
 export const load = async () => {
 	AnalyticsService.init();
 };
+
+// Load all i18n locales at startup
+loadAllLocales();
 
 // Load le Qur'an au démarrage de l'application
 Quran.load();
@@ -49,9 +54,11 @@ window.addEventListener('unhandledrejection', (event) => {
 function showErrorDialog(error: Error) {
 	console.error(error);
 
+	const L = i18nObject('en'); // fallback to English for error cases
+
 	ModalManager.errorModal(
-		'An unexpected error occurred',
-		'Sorry — an error occurred while processing your request. It has been reported automatically. Please consider posting details about what you were doing on the Quran Caption Discord server to help me investigate! :)',
+		L.common.unexpectedError(),
+		L.common.sorryErrorMessage(),
 		JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
 	);
 

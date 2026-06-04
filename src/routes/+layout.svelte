@@ -5,6 +5,8 @@
 	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 	import { browser } from '$app/environment';
 	import { afterNavigate } from '$app/navigation';
+	import { setLocale } from '$lib/i18n/i18n-svelte';
+	import type { Locales } from '$lib/i18n/i18n-types';
 	import posthog from 'posthog-js';
 
 	let { children } = $props();
@@ -15,6 +17,13 @@
 
 	onMount(() => {
 		initializeClassRegistry();
+		// Restore saved locale or default to 'en'
+		const savedLocale = globalState.settings?.persistentUiState?.language;
+		if (savedLocale === 'en' || savedLocale === 'fr') {
+			setLocale(savedLocale as Locales);
+		} else {
+			setLocale('en');
+		}
 	});
 
 	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');

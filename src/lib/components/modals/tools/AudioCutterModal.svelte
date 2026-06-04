@@ -5,6 +5,8 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { exists } from '@tauri-apps/plugin-fs';
 	import toast from 'svelte-5-french-toast';
+	import { get } from 'svelte/store';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	interface Props {
 		close: () => void;
@@ -62,7 +64,7 @@
 
 	async function handleProcess() {
 		if (!selectedAsset) {
-			toast.error('Please select an asset');
+			toast.error(get(LL).tools.pleaseSelectAsset());
 			return;
 		}
 
@@ -70,12 +72,12 @@
 		const endTimeTotal = endMin * 60000 + endSec * 1000 + endMs;
 
 		if (startTimeTotal >= endTimeTotal) {
-			toast.error('Start time must be less than end time');
+			toast.error(get(LL).tools.startTimeMustBeLess());
 			return;
 		}
 
 		if (endTimeTotal > selectedAsset.duration.ms) {
-			toast.error('End time exceeds asset duration');
+			toast.error(get(LL).tools.endTimeExceedsDuration());
 			return;
 		}
 
@@ -96,16 +98,13 @@
 			const newAsset = new Asset(output_path);
 			globalState.currentProject?.content.assets.push(newAsset);
 
-			toast.success(
-				'Asset trimmed successfully! The new trimmed audio/video has been added to your project assets.',
-				{
-					duration: 7500
-				}
-			);
+			toast.success(get(LL).tools.assetTrimmedSuccess(), {
+				duration: 7500
+			});
 			close();
 		} catch (error) {
 			console.error(error);
-			toast.error('Failed to trim asset: ' + error);
+			toast.error(get(LL).tools.failedToTrim({ error: String(error) }));
 		} finally {
 			isProcessing = false;
 		}
@@ -124,9 +123,9 @@
 				<span class="material-icons text-accent-primary text-3xl">content_cut</span>
 			</div>
 			<div>
-				<h2 class="text-2xl font-bold text-primary tracking-tight">Asset Trimmer</h2>
+				<h2 class="text-2xl font-bold text-primary tracking-tight">{$LL.tools.assetTrimmer()}</h2>
 				<p class="text-secondary text-sm">
-					Trim audio or video assets without affecting the original
+					{$LL.tools.trimmerDescription()}
 				</p>
 			</div>
 		</div>
@@ -147,14 +146,14 @@
 				for="asset-select"
 			>
 				<span class="material-icons text-xs">perm_media</span>
-				SELECT ASSET
+				{$LL.tools.selectAsset()}
 			</label>
 			<select
 				id="asset-select"
 				bind:value={selectedAssetId}
 				class="w-full bg-accent border border-color rounded-lg px-4 py-3 text-primary focus:ring-2 focus:ring-accent-primary/50 outline-none transition-all cursor-pointer"
 			>
-				<option value={0} disabled>Choose an audio or video file...</option>
+				<option value={0} disabled>{$LL.tools.chooseAudioOrVideo()}</option>
 				{#each trimAssets as asset (asset.id)}
 					<option value={asset.id}>{asset.fileName} ({asset.type.toUpperCase()})</option>
 				{/each}
@@ -167,7 +166,7 @@
 				<div class="space-y-4">
 					<span class="text-sm font-semibold text-secondary flex items-center gap-2">
 						<span class="material-icons text-xs text-green-500">play_circle</span>
-						START TIME
+						{$LL.tools.startTime()}
 					</span>
 					<div class="flex gap-2 items-center">
 						<div class="flex-1 space-y-1">
@@ -179,7 +178,7 @@
 								placeholder="Min"
 								aria-label="Start minutes"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">Min</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.min()}</span>
 						</div>
 						<span class="text-secondary font-bold mb-4">:</span>
 						<div class="flex-1 space-y-1">
@@ -192,7 +191,7 @@
 								placeholder="Sec"
 								aria-label="Start seconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">Sec</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.sec()}</span>
 						</div>
 						<span class="text-secondary font-bold mb-4">.</span>
 						<div class="flex-1 space-y-1">
@@ -205,7 +204,7 @@
 								placeholder="Ms"
 								aria-label="Start milliseconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">Ms</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.ms()}</span>
 						</div>
 					</div>
 				</div>
@@ -214,7 +213,7 @@
 				<div class="space-y-4">
 					<span class="text-sm font-semibold text-secondary flex items-center gap-2">
 						<span class="material-icons text-xs text-red-500">stop_circle</span>
-						END TIME
+						{$LL.tools.endTime()}
 					</span>
 					<div class="flex gap-2 items-center">
 						<div class="flex-1 space-y-1">
@@ -226,7 +225,7 @@
 								placeholder="Min"
 								aria-label="End minutes"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">Min</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.min()}</span>
 						</div>
 						<span class="text-secondary font-bold mb-4">:</span>
 						<div class="flex-1 space-y-1">
@@ -239,7 +238,7 @@
 								placeholder="Sec"
 								aria-label="End seconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">Sec</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.sec()}</span>
 						</div>
 						<span class="text-secondary font-bold mb-4">.</span>
 						<div class="flex-1 space-y-1">
@@ -252,7 +251,7 @@
 								placeholder="Ms"
 								aria-label="End milliseconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">Ms</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.ms()}</span>
 						</div>
 					</div>
 				</div>
@@ -261,7 +260,7 @@
 			<div class="bg-accent/50 rounded-lg p-3 border border-color/50 flex items-center gap-3">
 				<span class="material-icons text-thirdly text-sm">info</span>
 				<p class="text-[11px] text-secondary leading-tight">
-					Total duration to trim:
+					{$LL.tools.totalDurationToTrim()}
 					<span class="text-primary font-mono">
 						{Math.max(
 							0,
@@ -283,7 +282,7 @@
 			onclick={close}
 			disabled={isProcessing}
 		>
-			Cancel
+			{$LL.common.cancel()}
 		</button>
 		<button
 			class="btn-accent px-8 py-2.5 text-sm font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-primary/20"
@@ -292,10 +291,10 @@
 		>
 			{#if isProcessing}
 				<span class="material-icons animate-spin text-base">sync</span>
-				Processing...
+				{$LL.common.processing()}
 			{:else}
 				<span class="material-icons text-base">content_cut</span>
-				Trim Asset
+				{$LL.tools.trimAsset()}
 			{/if}
 		</button>
 	</div>

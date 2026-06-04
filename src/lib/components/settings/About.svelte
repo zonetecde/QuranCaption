@@ -7,6 +7,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import MigrationService from '$lib/services/MigrationService';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let version = $state('');
 	let isOrganizingProjects = $state(false);
@@ -16,23 +17,10 @@
 </script>
 
 <div class="space-y-4">
-	<h3 class="text-lg font-medium text-primary">About</h3>
-	<p>
-		Quran Caption is an open-source project for creating videos of Quran recitation. <br /><br />The
-		software is completely free. I ask Allah to increase my provision (rizq) and to bless everyone
-		who contributes to this project—whether through donations, feedback, or by using and sharing it.
-		May Allah reward you all.
-		<br /><br />
-		This software was developed by Rayane STASZEWSKI with support from the
-		<button
-			class="text-blue-400 underline"
-			onclick={() => openUrl('https://discord.gg/Hxfqq2QA2J')}
-		>
-			Quran Caption community
-		</button>. Collaborations and sponsorships are welcome to help improve and maintain the project.
-	</p>
+	<h3 class="text-lg font-medium text-primary">{$LL.settings.about()}</h3>
+	<p>{$LL.settings.aboutDescription()}</p>
 
-	<p>Version {version}</p>
+	<p>{$LL.settings.versionLabel({ version })}</p>
 
 	<div class="mt-2 flex flex-wrap gap-3">
 		<button
@@ -62,7 +50,7 @@
 			}}
 		>
 			<span class="material-icons text-base">school</span>
-			Restart Tutorial
+			{$LL.settings.restartTutorial()}
 		</button>
 
 		<button
@@ -80,7 +68,7 @@
 			}}
 		>
 			<span class="material-icons text-base">auto_awesome</span>
-			{isOrganizingProjects ? 'Organizing Projects...' : 'Organize Project Folders'}
+			{isOrganizingProjects ? $LL.settings.organizingProjects() : $LL.settings.organizeProjectFolders()}
 		</button>
 	</div>
 </div>

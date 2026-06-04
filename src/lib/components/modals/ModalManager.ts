@@ -1,4 +1,5 @@
 import { mount, unmount } from 'svelte';
+import { get } from 'svelte/store';
 import Confirm from './Confirm.svelte';
 import Input from './Input.svelte';
 import Error from './Error.svelte';
@@ -9,6 +10,7 @@ import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
+import LL from '$lib/i18n/i18n-svelte';
 
 export default class ModalManager {
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
@@ -95,7 +97,7 @@ export default class ModalManager {
 		text: string,
 		defaultText: string = '',
 		maxlength: number = 100,
-		placeholder: string = 'Enter text here',
+		placeholder: string = get(LL).common.enterTextHere(),
 		inputType: 'text' | 'reciters' = 'text'
 	): Promise<string> {
 		return new Promise<string>((resolve) => {

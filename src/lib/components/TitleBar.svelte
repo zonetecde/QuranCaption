@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { openUrl } from '@tauri-apps/plugin-opener';
@@ -96,12 +97,12 @@
 				type="button"
 			>
 				<span class="material-icons text-[20px]!">save</span>
-				<span>Autosave</span>
+				<span>{$LL.home.autosave()}</span>
 			</button>
 
 			<EditableText
 				bind:value={globalState.currentProject.detail.name}
-				text="Project Name"
+				text={$LL.home.projectName()}
 				disabled={globalState.uiState.isTourActive}
 				parentClasses="absolute left-1/2 -translate-x-1/2 pr-[18px]"
 			></EditableText>
@@ -128,7 +129,7 @@
 				onclick={() => {
 					globalState.shared.projectSearch.openRequest = Date.now();
 				}}
-				aria-label="Search project"
+				aria-label={$LL.home.searchProject()}
 			>
 				<span class="material-icons pt-2">search</span>
 			</button>
@@ -154,7 +155,7 @@
 					transition:slide
 				>
 					<div class="flex items-center justify-between mb-2">
-						<h3 class="text-base font-semibold text-primary">Need Assistance?</h3>
+						<h3 class="text-base font-semibold text-primary">{$LL.home.needAssistance()}</h3>
 						<!-- svelte-ignore node_invalid_placement_ssr -->
 						<button
 							class="material-icons text-secondary hover:text-primary"
@@ -168,13 +169,13 @@
 						</button>
 					</div>
 					<p class="text-thirdly text-left text-xs mb-3">
-						Watch the walkthrough below or open the full documentation for more details.
+						{$LL.home.assistanceDescription()}
 					</p>
 					<div class="rounded-md overflow-hidden border border-color mb-3">
 						<iframe
 							class="w-full aspect-video"
 							src="https://www.youtube.com/embed/vCRUjzATRDk"
-							title="Quran Caption Overview"
+							title={$LL.home.quranCaptionOverview()}
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 							allowfullscreen
 						></iframe>
@@ -188,7 +189,7 @@
 							showHelpPopover = false;
 						}}
 					>
-						Open Online Documentation
+						{$LL.home.openOnlineDocumentation()}
 					</button>
 				</div>
 			{/if}

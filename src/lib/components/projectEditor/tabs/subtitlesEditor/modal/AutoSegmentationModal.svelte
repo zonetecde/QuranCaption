@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import ResultPanel from './autoSegmentation/ResultPanel.svelte';
 	import { setSharedWizard } from './autoSegmentation/sharedWizard';
 	import { useAutoSegmentationWizard } from './autoSegmentation/useAutoSegmentationWizard.svelte';
@@ -84,15 +85,15 @@
 				<footer class="border-t border-color bg-primary px-6 py-4">
 					<div class="flex items-center justify-between gap-4">
 						<p class="text-xs text-thirdly">
-							Import a JSON export generated outside the app and apply it directly to the timeline.
+							{$LL.editor.importJsonDescription()}
 						</p>
 						<div class="flex items-center gap-2">
 							{#if wizard.result?.status === 'completed'}
-								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}>Back</button>
-								<button class="btn-accent px-4 py-2 text-sm" onclick={close}>Finish</button>
+								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}>{$LL.common.back()}</button>
+								<button class="btn-accent px-4 py-2 text-sm" onclick={close}>{$LL.common.finish()}</button>
 							{:else}
-								<button class="btn px-4 py-2 text-sm" onclick={close}>Close</button>
-								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}>Back</button>
+								<button class="btn px-4 py-2 text-sm" onclick={close}>{$LL.common.close()}</button>
+								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}>{$LL.common.back()}</button>
 								<button
 									type="button"
 									class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-50"
@@ -102,7 +103,7 @@
 										wizard.isRunning}
 								>
 									<span class="material-icons text-base leading-none">note_add</span>
-									Add subtitles
+									{$LL.editor.applySegments()}
 								</button>
 							{/if}
 						</div>

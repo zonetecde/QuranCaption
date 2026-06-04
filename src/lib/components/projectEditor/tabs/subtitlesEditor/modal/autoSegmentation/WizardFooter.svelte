@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getSharedWizard } from './sharedWizard';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let { onClose } = $props<{ onClose: () => void }>();
 	const wizard = getSharedWizard();
@@ -11,9 +12,9 @@
 		<p class="text-xs text-thirdly">{wizard.helperText()}</p>
 		<div class="flex items-center gap-2">
 			{#if wizard.result?.status === 'completed'}
-				<button class="btn-accent px-4 py-2 text-sm" onclick={onClose}>Finish</button>
+				<button class="btn-accent px-4 py-2 text-sm" onclick={onClose}>{$LL.common.finish()}</button>
 			{:else}
-				<button class="btn px-4 py-2 text-sm" onclick={onClose}>Close</button>
+				<button class="btn px-4 py-2 text-sm" onclick={onClose}>{$LL.common.close()}</button>
 				<button
 					type="button"
 					class="btn inline-flex items-center px-4 py-2 text-sm"
@@ -30,7 +31,7 @@
 						disabled={!wizard.canStart() || wizard.isRunning}
 					>
 						<span class="material-icons text-base leading-none">play_arrow</span>
-						Generate subtitles
+						{$LL.editor.startSegmentation()}
 					</button>
 				{:else}
 					<button
@@ -39,7 +40,7 @@
 						onclick={wizard.goNext}
 						disabled={!wizard.canGoNext() || wizard.isRunning}
 					>
-						Next
+						{$LL.common.next()}
 						<span class="material-icons text-base leading-none">arrow_forward</span>
 					</button>
 				{/if}

@@ -2,6 +2,7 @@
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { hasClipReviewIssue, isClipPendingVerification } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	// Compte le nombre de segments à revue
 	let segmentsNeedingReview = $derived(
@@ -103,16 +104,16 @@
 </script>
 
 {#if segmentsNeedingReview > 0}
-	<h3 class="text-sm font-medium text-secondary mb-3">Needs review</h3>
+	<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.segmentsToReview()}</h3>
 
 	<div class="bg-accent rounded-lg p-3 space-y-3">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-1.5">
 				<span class="material-icons text-yellow-400 text-sm">warning</span>
-				<span class="text-xs text-secondary">Segments to review</span>
+				<span class="text-xs text-secondary">{$LL.editor.segmentsToReview()}</span>
 			</div>
 			<span class="text-xs font-bold text-yellow-400">
-				{segmentsNeedingReview} remaining
+				{$LL.editor.segmentsRemaining({ count: segmentsNeedingReview })}
 			</span>
 		</div>
 		<div class="w-full bg-secondary rounded-full h-2 relative overflow-hidden">
@@ -124,14 +125,14 @@
 			></div>
 		</div>
 		<div class="flex items-center justify-between text-[10px] text-thirdly">
-			<span>{reviewedCount} verified</span>
-			<span>{initialLowConfidenceCount} total flagged</span>
+			<span>{$LL.editor.reviewedVerified({ count: reviewedCount })}</span>
+			<span>{$LL.editor.totalFlagged({ count: initialLowConfidenceCount })}</span>
 		</div>
 		<div class="grid grid-cols-3 gap-2 text-[10px]">
 			<div
 				class="min-h-16 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-2 flex flex-col justify-between"
 			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">Low confidence</p>
+				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">{$LL.editor.lowConfidence()}</p>
 				<p class="text-sm font-semibold leading-none text-yellow-300 self-start">
 					{lowConfidenceSegmentsNeedingReview}
 				</p>
@@ -139,7 +140,7 @@
 			<div
 				class="min-h-16 rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-2 flex flex-col justify-between"
 			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">Coverage issues</p>
+				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">{$LL.editor.coverageIssues()}</p>
 				<p class="text-sm font-semibold leading-none text-orange-300 self-start">
 					{coverageSegmentsNeedingReview}
 				</p>
@@ -148,7 +149,7 @@
 				class="min-h-16 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-2 flex flex-col justify-between"
 			>
 				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
-					Too long {missingWbwTimestampsCount > 0 ? ` / Missing WBW timestamps` : ''}
+					{$LL.editor.tooLong()}{missingWbwTimestampsCount > 0 ? ` / ${$LL.editor.missingWbwTimestampsShort()}` : ''}
 				</p>
 				<p class="text-sm font-semibold leading-none text-rose-300 self-start">
 					{longSegmentsNeedingReview + missingWbwTimestampsCount}
@@ -162,7 +163,7 @@
 				onclick={goToNextSegmentToReview}
 			>
 				<span class="material-icons text-sm">skip_next</span>
-				Next Segment
+				{$LL.editor.nextSegment()}
 			</button>
 		{/if}
 	</div>

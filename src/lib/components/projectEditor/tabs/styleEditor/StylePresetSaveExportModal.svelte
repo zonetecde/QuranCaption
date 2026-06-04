@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { CustomClip } from '$lib/classes/Clip.svelte';
@@ -31,8 +32,8 @@
 		)
 	);
 	let canSubmit = $derived(() => presetName.trim().length > 0 && !isBusy);
-	let primaryLabel = $derived(() => (mode === 'save' ? 'Save preset' : 'Export JSON'));
-	let secondaryLabel = $derived(() => (mode === 'save' ? 'Export JSON' : 'Save preset'));
+	let primaryLabel = $derived(() => (mode === 'save' ? 'save' : 'export'));
+	let secondaryLabel = $derived(() => (mode === 'save' ? 'export' : 'save'));
 
 	onMount(() => {
 		presetName = defaultName;
@@ -99,9 +100,9 @@
 				<span class="material-icons-outlined text-lg text-accent-primary">style</span>
 			</div>
 			<div class="min-w-0">
-				<h2 class="truncate text-base font-semibold text-primary">Style preset</h2>
+				<h2 class="truncate text-base font-semibold text-primary">{$LL.style.stylePresetModal()}</h2>
 				<p class="text-xs text-secondary">
-					{mode === 'save' ? 'Save current video styles' : 'Export current video styles'}
+					{mode === 'save' ? $LL.style.saveCurrentStyles() : $LL.style.exportCurrentStyles()}
 				</p>
 			</div>
 		</div>
@@ -109,7 +110,7 @@
 			class="flex h-8 w-8 items-center justify-center rounded-md text-secondary transition-colors hover:bg-secondary hover:text-primary"
 			type="button"
 			onclick={close}
-			aria-label="Close"
+			aria-label={$LL.common.close()}
 		>
 			<span class="material-icons-outlined text-lg">close</span>
 		</button>
@@ -117,27 +118,27 @@
 
 	<div class="space-y-4 px-5 py-4">
 		<label class="block space-y-2">
-			<span class="text-xs font-medium uppercase text-thirdly">Name</span>
+			<span class="text-xs font-medium uppercase text-thirdly">{$LL.common.name()}</span>
 			<input
 				bind:this={input}
 				bind:value={presetName}
 				class="w-full"
 				type="text"
 				maxlength="80"
-				placeholder="Preset name"
+				placeholder={$LL.style.presetName()}
 				autocomplete="off"
 			/>
 		</label>
 
 		<div class="space-y-2">
 			<div class="flex items-center justify-between gap-3">
-				<span class="text-xs font-medium uppercase text-thirdly">Custom clips</span>
+				<span class="text-xs font-medium uppercase text-thirdly">{$LL.style.customClipsLabel()}</span>
 				<span class="text-[11px] text-thirdly">{includedClipIds.size}/{customClips().length}</span>
 			</div>
 
 			<div class="max-h-48 overflow-y-auto rounded-lg border border-color bg-primary/40 p-2">
 				{#if customClips().length === 0}
-					<div class="px-2 py-5 text-center text-xs text-thirdly">No custom clips in project</div>
+					<div class="px-2 py-5 text-center text-xs text-thirdly">{$LL.style.noCustomClipsInProject()}</div>
 				{:else}
 					<div class="space-y-1">
 						{#each customClips() as customClip (customClip.id)}
@@ -163,7 +164,7 @@
 
 	<div class="flex items-center justify-between gap-3 border-t border-color bg-primary px-5 py-4">
 		<button class="btn px-4 py-2 text-sm" type="button" onclick={close} disabled={isBusy}>
-			Cancel
+			{$LL.common.cancel()}
 		</button>
 
 		<div class="flex items-center gap-2">
@@ -173,7 +174,7 @@
 				onclick={() => submit(mode === 'save' ? 'export' : 'save')}
 				disabled={!canSubmit()}
 			>
-				{secondaryLabel()}
+				{secondaryLabel() === 'save' ? $LL.style.savePresetAction() : $LL.style.exportJsonAction()}
 			</button>
 			<button
 				class="btn-accent px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
@@ -181,7 +182,7 @@
 				onclick={() => submit(mode)}
 				disabled={!canSubmit()}
 			>
-				{isBusy ? 'Working...' : primaryLabel()}
+				{isBusy ? $LL.common.processing() : (primaryLabel() === 'save' ? $LL.style.savePresetAction() : $LL.style.exportJsonAction())}
 			</button>
 		</div>
 	</div>

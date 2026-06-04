@@ -9,6 +9,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { discordService } from '$lib/services/DiscordService';
+	import { get } from 'svelte/store';
+	import LL from '$lib/i18n/i18n-svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 	import { onDestroy, onMount } from 'svelte';
@@ -43,7 +45,7 @@
 		try {
 			// Si des exports sont en cours alors on demande confirmation
 			const confirmed = await ModalManager.confirmModal(
-				'Warning: an export is currently in progress. Do you really want to close Quran Caption? Any ongoing exports will be canceled.',
+				get(LL).home.exportInProgressWarning(),
 				true
 			);
 
@@ -119,7 +121,7 @@
 						<span class="material-icons text-white text-xl animate-pulse">auto_awesome</span>
 					</div>
 					<div>
-						<h2 class="text-lg font-bold text-primary">Setting up your project</h2>
+						<h2 class="text-lg font-bold text-primary">{$LL.home.settingUpProject()}</h2>
 						<p class="text-sm text-secondary mt-0.5">{globalState.aiVideo.generationStatus}</p>
 					</div>
 				</div>
@@ -129,7 +131,7 @@
 						style="width: 100%"
 					></div>
 				</div>
-				<p class="text-xs text-thirdly text-center">Please wait — this may take a minute.</p>
+				<p class="text-xs text-thirdly text-center">{$LL.home.pleaseWaitMinute()}</p>
 			</div>
 		</div>
 	{/if}

@@ -4,6 +4,8 @@ import { AssetTrack, CustomTextTrack, SubtitleTrack } from './Track.svelte.js';
 import { AssetType, SourceType, TrackType } from './enums.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { ProjectTranslation, VideoStyle } from './index.js';
 import type { UnknownRecord } from '$lib/types/common';
 
@@ -61,7 +63,7 @@ export class ProjectContent extends SerializableBase {
 	): Asset | undefined {
 		const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
 		if (asset.type === AssetType.Unknown) {
-			toast.error('This file format is not supported.');
+			toast.error(get(LL).editor.fileFormatNotSupported());
 			return undefined;
 		}
 		this.assets.unshift(asset);
@@ -76,7 +78,7 @@ export class ProjectContent extends SerializableBase {
 			// Maintenant, supprime l'asset de la timeline
 			this.timeline.removeAssetFromTracks(asset);
 		} else {
-			toast.error('Asset not found in the project content.');
+			toast.error(get(LL).editor.assetNotFound());
 		}
 	}
 

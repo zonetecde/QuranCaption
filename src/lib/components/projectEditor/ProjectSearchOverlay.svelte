@@ -1,5 +1,9 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import { tick } from 'svelte';
+
+	const LL_ = get(LL);
 	import { ProjectEditorTabs } from '$lib/classes';
 	import type { SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -138,7 +142,7 @@
 
 		const targetClip = findFirstSubtitleByVerseKey(trimmedQuery);
 		if (!targetClip) {
-			resultMessage = 'No match';
+			resultMessage = LL_.editor.noSubtitleFallback();
 			return;
 		}
 
@@ -199,7 +203,7 @@
 			<span class="material-icons text-accent-primary text-xl">search</span>
 			<div class="min-w-0 flex-1">
 				<div class="text-sm font-semibold text-primary">
-					{isTranslationsTab() ? 'Search translations' : 'Search verse'}
+					{isTranslationsTab() ? $LL.editor.searchTranslationsLabel() : $LL.editor.searchVerseLabel()}
 				</div>
 				{#if resultMessage}
 					<div class="truncate text-xs text-thirdly">{resultMessage}</div>
@@ -209,7 +213,7 @@
 				type="button"
 				class="btn flex h-8 w-8 items-center justify-center p-0"
 				onclick={onClose}
-				aria-label="Close search"
+				aria-label={$LL.editor.closeSearch()}
 			>
 				<span class="material-icons text-base">close</span>
 			</button>
@@ -225,7 +229,7 @@
 						: 'text-secondary hover:bg-accent hover:text-primary'}"
 					onclick={() => (searchMode = 'verse')}
 				>
-					Verse
+					{$LL.editor.verseButton()}
 				</button>
 				<button
 					type="button"
@@ -235,7 +239,7 @@
 						: 'text-secondary hover:bg-accent hover:text-primary'}"
 					onclick={() => (searchMode = 'translation')}
 				>
-					Translation text
+					{$LL.editor.searchTranslations()}
 				</button>
 			</div>
 		{/if}
@@ -248,20 +252,20 @@
 				autocomplete="off"
 				class="min-w-0 flex-1 rounded-lg border border-color bg-primary px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent-primary)]"
 				placeholder={isTranslationsTab() && searchMode === 'translation'
-					? 'Translation text'
+					? $LL.editor.searchTranslations()
 					: versePlaceholder()}
 			/>
 			<button type="submit" class="btn-accent flex items-center gap-1.5 px-3 py-2 text-sm">
 				<span class="material-icons text-base">keyboard_return</span>
-				Go
+				{$LL.common.go()}
 			</button>
 		</div>
 
 		<div class="rounded-lg border border-color bg-primary px-3 py-2">
 			<div class="mb-1 flex items-center justify-between gap-3 text-xs">
-				<span class="text-thirdly">Timeline</span>
+				<span class="text-thirdly">{$LL.editor.timelineLabel()}</span>
 				<span class="truncate font-medium text-primary">
-					{currentSliderClip() ? getSubtitleVerseKeyLabel(currentSliderClip()!) : 'No subtitle'}
+					{currentSliderClip() ? getSubtitleVerseKeyLabel(currentSliderClip()!) : $LL.editor.noSubtitleFallback()}
 				</span>
 			</div>
 			<input

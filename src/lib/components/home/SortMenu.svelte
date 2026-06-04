@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import type { ProjectDetail } from '$lib/classes/ProjectDetail.svelte';
 
 	interface Props {
@@ -12,13 +14,13 @@
 	let { isVisible = $bindable(), currentProperty, ascending, onSort }: Props = $props();
 
 	// Options de tri disponibles
-	const sortOptions = [
-		{ key: 'updatedAt' as keyof ProjectDetail, label: 'Last Updated' },
-		{ key: 'createdAt' as keyof ProjectDetail, label: 'Created At' },
-		{ key: 'name' as keyof ProjectDetail, label: 'Name' },
-		{ key: 'reciter' as keyof ProjectDetail, label: 'Reciter' },
-		{ key: 'duration' as keyof ProjectDetail, label: 'Duration' }
-	];
+	const sortOptions = $derived([
+		{ key: 'updatedAt' as keyof ProjectDetail, label: get(LL).home.lastUpdated() },
+		{ key: 'createdAt' as keyof ProjectDetail, label: get(LL).home.createdAt() },
+		{ key: 'name' as keyof ProjectDetail, label: get(LL).common.name() },
+		{ key: 'reciter' as keyof ProjectDetail, label: get(LL).home.reciter() },
+		{ key: 'duration' as keyof ProjectDetail, label: get(LL).home.duration() }
+	]);
 
 	let currentSortProperty: keyof ProjectDetail = $state(currentProperty);
 	let isAscending = $state(ascending);
@@ -61,13 +63,13 @@
 	>
 		<!-- En-tête -->
 		<div class="mb-4">
-			<span class="text-sm font-medium text-[var(--text-primary)]">Sort by</span>
+			<span class="text-sm font-medium text-[var(--text-primary)]">{$LL.home.sortBy()}</span>
 		</div>
 
 		<!-- Sélection de l'attribut -->
 		<div class="mb-4">
 			<label for="sort-property" class="block text-xs text-[var(--text-secondary)] mb-2"
-				>Property</label
+				>{$LL.home.property()}</label
 			>
 			<select
 				id="sort-property"
@@ -83,7 +85,7 @@
 
 		<!-- Boutons d'ordre de tri -->
 		<div class="mb-4">
-			<span class="block text-xs text-[var(--text-secondary)] mb-2">Order</span>
+			<span class="block text-xs text-[var(--text-secondary)] mb-2">{$LL.home.order()}</span>
 			<div class="flex gap-2">
 				<button
 					class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded transition-colors {isAscending
@@ -92,7 +94,7 @@
 					onclick={() => setOrder(true)}
 				>
 					<span class="material-icons-outlined text-sm">arrow_upward</span>
-					Ascending
+					{$LL.home.ascending()}
 				</button>
 				<button
 					class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded transition-colors {!isAscending
@@ -101,7 +103,7 @@
 					onclick={() => setOrder(false)}
 				>
 					<span class="material-icons-outlined text-sm">arrow_downward</span>
-					Descending
+					{$LL.home.descending()}
 				</button>
 			</div>
 		</div>

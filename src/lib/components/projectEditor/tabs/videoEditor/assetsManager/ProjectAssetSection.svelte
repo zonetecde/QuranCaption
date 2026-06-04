@@ -6,6 +6,8 @@
 	import DropOverlay from './DropOverlay.svelte';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let unlisten: () => void;
 	let dropZone: HTMLDivElement;
@@ -67,14 +69,14 @@
 	}
 </script>
 
-<Section icon="folder_open" name="Project Assets">
+<Section icon="folder_open" name={get(LL).editor.projectAssetsLabel()}>
 	<div bind:this={dropZone}>
 		<button
 			class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm mt-2 cursor-pointer transition-colors duration-200"
 			type="button"
 			onclick={addAssetButtonClick}
 		>
-			<span class="material-icons mr-2 text-base">add_circle_outline</span>Add Asset
+			<span class="material-icons mr-2 text-base">add_circle_outline</span>{get(LL).editor.addAssetLabel()}
 		</button>
 
 		<div class="flex flex-col gap-2 mt-2">
@@ -83,6 +85,6 @@
 			{/each}
 		</div>
 
-		<div class="text-center text-xs text-gray-500 pt-2 mt-2">Drag and drop files here</div>
+		<div class="text-center text-xs text-gray-500 pt-2 mt-2">{get(LL).editor.dragAndDropFilesHere()}</div>
 	</div>
 </Section>

@@ -14,6 +14,7 @@
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		clip = $bindable(),
@@ -45,9 +46,9 @@
 
 	const visualMergeLabel = $derived(() => {
 		if (!visualMergeGroup()) return '';
-		if (visualMergeGroup()!.mode === 'arabic') return 'Arabic merged group';
-		if (visualMergeGroup()!.mode === 'translation') return 'Translation merged group';
-		return 'Arabic and translation merged group';
+		if (visualMergeGroup()!.mode === 'arabic') return $LL.editor.mergeGroupArabic();
+		if (visualMergeGroup()!.mode === 'translation') return $LL.editor.mergeGroupTranslation();
+		return $LL.editor.mergeGroupBoth();
 	});
 
 	const isFirstClipInVisualMergeGroup = $derived(() => {
@@ -479,10 +480,10 @@
 
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
 			{#if (visualMergeGroup() && isFirstClipInVisualMergeGroup() && hasVisualMergeOverrides()) || (!visualMergeGroup() && hasOverrides())}
-				<span
-					class="material-icons-outlined text-[10px] opacity-80"
-					title="Styles individuels appliqués"
-				>
+			<span
+				class="material-icons-outlined text-[10px] opacity-80"
+				title={$LL.editor.subtitleIndividualStyles()}
+			>
 					auto_fix_high
 				</span>
 			{/if}
@@ -501,8 +502,8 @@
 					class={'material-icons-outlined text-[17px]! cursor-pointer transition-opacity ' +
 						(clip.hasAssociatedImage() ? 'opacity-90' : 'opacity-20 hover:opacity-90')}
 					title={clip.hasAssociatedImage()
-						? 'Linked image on this clip'
-						: 'A linked image exists on another clip'}
+						? $LL.editor.linkedImageOnClip()
+						: $LL.editor.linkedImageOnOtherClip()}
 					onclick={selectLinkedImage}
 				>
 					image
@@ -577,20 +578,20 @@
 	{#if globalState.currentProject!.projectEditorState.currentTab === 'Style' && (clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle')}
 		<Item on:click={editStyle}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">auto_fix_high</span>Edit style
+				<span class="material-icons-outlined text-sm mr-1">auto_fix_high</span>{$LL.editor.editStyleContext()}
 			</div></Item
 		>
 	{/if}
 	{#if globalState.currentProject!.projectEditorState.currentTab === 'Subtitles editor' && clip.type !== 'Subtitle'}
 		<Item on:click={editSubtitle}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">edit</span>Edit subtitle
+				<span class="material-icons-outlined text-sm mr-1">edit</span>{$LL.editor.editSubtitleContext()}
 			</div></Item
 		>
 	{/if}
 	<Item on:click={addSilence}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">space_bar</span>Add silence (on the left)
+			<span class="material-icons-outlined text-sm mr-1">space_bar</span>{$LL.editor.addSilenceLeft()}
 		</div></Item
 	>
 	{#if clip.type === 'Subtitle'}
@@ -599,7 +600,7 @@
 				void splitSubtitleFromContextMenu(event as MouseEvent);
 			}}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split subtitle
+				<span class="material-icons-outlined text-sm mr-1">call_split</span>{$LL.editor.splitSubtitleContext()}
 			</div></Item
 		>
 	{/if}
@@ -607,29 +608,28 @@
 		<Item on:click={selectLinkedImageFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">image</span>{clip.hasAssociatedImage()
-					? 'Change linked image'
-					: 'Link image'}
+					? $LL.editor.changeLinkedImage()
+					: $LL.editor.linkImage()}
 			</div></Item
 		>
 	{/if}
 	{#if (clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle') && clip.hasAssociatedImage()}
 		<Item on:click={removeLinkedImage}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">image_not_supported</span>Remove linked
-				image
+				<span class="material-icons-outlined text-sm mr-1">image_not_supported</span>{$LL.editor.removeLinkedImage()}
 			</div></Item
 		>
 	{/if}
 	{#if clip.type === 'Subtitle' && visualMergeGroup()}
 		<Item on:click={unmergeVisualGroupFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">link_off</span>Unmerge group
+				<span class="material-icons-outlined text-sm mr-1">link_off</span>{$LL.editor.unmergeGroup()}
 			</div></Item
 		>
 	{/if}
 	<Item on:click={removeSubtitle}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove subtitle
+			<span class="material-icons-outlined text-sm mr-1">remove</span>{$LL.editor.removeSubtitleContext()}
 		</div></Item
 	>
 	{#if clip.type === 'Subtitle' && canBookmarkWithQuran()}
@@ -638,10 +638,10 @@
 			on:click={bookmarkVerseFromContextMenu}
 			disabled={!canBookmarkWithQuran()}
 			title={!canBookmarkWithQuran()
-				? 'Connect Quran.com first'
-				: 'Add this verse to a Quran.com collection'}
+				? $LL.editor.connectQuranComFirst()
+				: $LL.editor.addVerseToCollection()}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">bookmark_add</span>Bookmark
+				<span class="material-icons-outlined text-sm mr-1">bookmark_add</span>{$LL.editor.bookmarkContext()}
 			</div></Item
 		>
 	{/if}
@@ -649,22 +649,22 @@
 		<Divider />
 		<Item on:click={editSubtitleFromQuickEditorContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">subtitles</span>Edit subtitle
+				<span class="material-icons-outlined text-sm mr-1">subtitles</span>{$LL.editor.editSubtitleContext()}
 			</div></Item
 		>
 		<Item on:click={editTranslationFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">translate</span>Edit translation
+				<span class="material-icons-outlined text-sm mr-1">translate</span>{$LL.editor.editTranslationContext()}
 			</div></Item
 		>
 		<Item on:click={editWbwTimestampFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">timeline</span>Edit WBW timestamp
+				<span class="material-icons-outlined text-sm mr-1">timeline</span>{$LL.editor.editWbwTimestampContext()}
 			</div></Item
 		>
 		<Item on:click={editWbwStyleFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">format_color_text</span>Wbw Style
+				<span class="material-icons-outlined text-sm mr-1">format_color_text</span>{$LL.editor.editWbwStyleContext()}
 			</div></Item
 		>
 	{/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import 'material-icons/iconfont/material-icons.css';
+	import LL from '$lib/i18n/i18n-svelte';
 </script>
 
 <div
@@ -8,6 +9,6 @@
 	<h1 class="text-3xl font-extrabold tracking-tight">Quran Caption</h1>
 
 	<button class="btn ml-auto btn-icon px-6 py-3">
-		<span class="material-icons-outlined mr-2 text-base">settings</span> Settings
+		<span class="material-icons-outlined mr-2 text-base">settings</span> {$LL.settings.settings()}
 	</button>
 </div>

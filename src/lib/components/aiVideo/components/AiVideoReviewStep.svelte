@@ -5,6 +5,7 @@
 	import AiVideoVerseRangePreview from './AiVideoVerseRangePreview.svelte';
 	import { getReciterOptionKey } from '../reciterLoader';
 	import type { ReciterOption } from '../types';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const aiv = globalState.aiVideo;
 
@@ -74,34 +75,34 @@
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">movie_creation</span>
 			{aiv.video.sourceMode === 'youtube'
-				? 'YouTube Video URL'
+				? $LL.aiVideo.youtubeVideoUrlLabel()
 				: aiv.video.sourceMode === 'none'
-					? 'Background'
-					: 'Video Generation Prompt'}
+					? $LL.aiVideo.backgroundLabel()
+					: $LL.aiVideo.videoGenerationPrompt()}
 		</span>
 		{#if aiv.video.sourceMode === 'youtube'}
 			<input
 				type="text"
 				bind:value={aiv.review.videoPrompt}
 				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all text-sm"
-				placeholder="https://www.youtube.com/watch?v=..."
+				placeholder={$LL.aiVideo.youtubeUrlPlaceholder()}
 			/>
 			<p class="text-xs text-thirdly">
-				The downloaded video's own orientation will be used automatically.
+				{$LL.aiVideo.downloadedVideoOrientation()}
 			</p>
 		{:else if aiv.video.sourceMode === 'none'}
 			<div class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly">
-				No background video will be used for this project.
+				{$LL.aiVideo.noBackgroundDescription()}
 			</div>
 		{:else}
 			<textarea
 				bind:value={aiv.review.videoPrompt}
 				rows={4}
 				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly resize-none focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all text-sm leading-relaxed"
-				placeholder="Visual description for the AI video generator..."
+				placeholder={$LL.aiVideo.videoPromptPlaceholder()}
 			></textarea>
 			<p class="text-xs text-thirdly">
-				This prompt will be sent to the video generation API. Edit it to adjust the visual style.
+				{$LL.aiVideo.videoPromptDescription()}
 			</p>
 		{/if}
 	</div>
@@ -110,15 +111,15 @@
 	<div class="space-y-2">
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">record_voice_over</span>
-			Reciter
+			{$LL.aiVideo.selectReciterLabel()}
 		</span>
 		<SearchableSelect
 			id="review-reciter-select"
 			bind:value={reviewReciterKey}
 			options={reciterSelectOptions}
-			placeholder="Select a reciter"
-			searchPlaceholder="Search reciters..."
-			emptyMessage="No reciters found"
+			placeholder={$LL.aiVideo.selectReciterPlaceholder()}
+			searchPlaceholder={$LL.aiVideo.searchRecitersPlaceholder()}
+			emptyMessage={$LL.aiVideo.noRecitersFound()}
 			onChange={handleReviewReciterChange}
 		/>
 	</div>
@@ -128,22 +129,22 @@
 		<div class="space-y-3">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">menu_book</span>
-				Verse Range
+				{$LL.aiVideo.verseRangeLabel()}
 			</span>
 
 			<SearchableSelect
 				id="review-surah-select"
 				bind:value={reviewSurahKey}
 				options={surahOptions}
-				placeholder="Select surah"
-				searchPlaceholder="Search surah..."
-				emptyMessage="No surah found"
+				placeholder={$LL.aiVideo.selectSurahPlaceholder()}
+				searchPlaceholder={$LL.aiVideo.searchSurahPlaceholder()}
+				emptyMessage={$LL.aiVideo.noSurahFound()}
 				onChange={handleReviewSurahChange}
 			/>
 
 			<div class="flex gap-3">
 				<div class="flex-1 space-y-1">
-					<label for="review-ayah-start" class="text-xs text-thirdly">From Ayah</label>
+					<label for="review-ayah-start" class="text-xs text-thirdly">{$LL.aiVideo.fromAyah()}</label>
 					<input
 						id="review-ayah-start"
 						type="number"
@@ -154,7 +155,7 @@
 					/>
 				</div>
 				<div class="flex-1 space-y-1">
-					<label for="review-ayah-end" class="text-xs text-thirdly">To Ayah</label>
+					<label for="review-ayah-end" class="text-xs text-thirdly">{$LL.aiVideo.toAyah()}</label>
 					<input
 						id="review-ayah-end"
 						type="number"
@@ -180,58 +181,58 @@
 	<div class="rounded-xl border border-color bg-[var(--bg-accent)] p-5 space-y-3">
 		<h4 class="flex items-center gap-2 text-xs font-semibold text-thirdly uppercase tracking-wide">
 			<span class="material-icons text-accent-primary text-sm">summarize</span>
-			Summary
+			{$LL.aiVideo.summaryLabel()}
 		</h4>
 		<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
 			<div>
 				<span class="text-thirdly text-xs">
 					{aiv.video.sourceMode === 'youtube'
-						? 'Background Video'
+						? $LL.aiVideo.backgroundVideoLabel()
 						: aiv.video.sourceMode === 'none'
-							? 'Background'
-							: 'Theme'}
+							? $LL.aiVideo.backgroundLabel()
+							: $LL.aiVideo.themeLabel()}
 				</span>
 				<p class="text-primary font-medium truncate">
 					{aiv.video.sourceMode === 'youtube'
 						? aiv.review.videoPrompt
 						: aiv.video.sourceMode === 'none'
-							? 'None'
+							? $LL.aiVideo.noneFallback()
 							: aiv.video.prompt}
 				</p>
 			</div>
 			{#if aiv.video.sourceMode === 'ai'}
 				<div>
-					<span class="text-thirdly text-xs">Model</span>
+					<span class="text-thirdly text-xs">{$LL.aiVideo.modelLabel()}</span>
 					<p class="text-primary font-medium">{aiv.video.model}</p>
 				</div>
 			{/if}
 			{#if !aiv.audio.useLocal || aiv.ai.letAiChoose}
 				<div>
-					<span class="text-thirdly text-xs">Surah</span>
+					<span class="text-thirdly text-xs">{$LL.aiVideo.surahLabel()}</span>
 					<p class="text-primary font-medium">{reviewSurahName()}</p>
 				</div>
 			{/if}
 			<div>
-				<span class="text-thirdly text-xs">Verses</span>
+				<span class="text-thirdly text-xs">{$LL.aiVideo.versesLabel()}</span>
 				<p class="text-primary font-medium">
 					{aiv.review.verseRange.startVerse} – {aiv.review.verseRange.endVerse}
 				</p>
 			</div>
 			<div>
-				<span class="text-thirdly text-xs">Reciter</span>
+				<span class="text-thirdly text-xs">{$LL.aiVideo.selectReciterLabel()}</span>
 				<p class="text-primary font-medium truncate">{aiv.review.reciterName}</p>
 			</div>
 			{#if aiv.video.sourceMode === 'ai'}
 				<div>
-					<span class="text-thirdly text-xs">Resolution</span>
+					<span class="text-thirdly text-xs">{$LL.aiVideo.resolutionLabel()}</span>
 					<p class="text-primary font-medium">
-						{aiv.video.resolution === 'portrait' ? 'Portrait (9:16)' : 'Landscape (16:9)'}
+						{aiv.video.resolution === 'portrait' ? $LL.aiVideo.portrait916() : $LL.aiVideo.landscape169()}
 					</p>
 				</div>
 			{/if}
 			{#if aiv.selectedTranslation}
 				<div class="col-span-2">
-					<span class="text-thirdly text-xs">Translation</span>
+					<span class="text-thirdly text-xs">{$LL.aiVideo.translationLabel()}</span>
 					<p class="text-primary font-medium">
 						{aiv.selectedTranslation.author} ({aiv.selectedTranslation.language})
 					</p>
@@ -249,7 +250,7 @@
 			onclick={() => (aiv.step = 'input')}
 		>
 			<span class="material-icons text-base">arrow_back</span>
-			Back
+			{$LL.common.back()}
 		</button>
 		<button
 			type="button"
@@ -269,19 +270,19 @@
 		>
 			{#if aiv.isCreatingProject}
 				<span class="material-icons animate-spin text-lg">autorenew</span>
-				{aiv.generationStatus || 'Creating project...'}
+				{aiv.generationStatus || $LL.aiVideo.creatingProjectLabel()}
 			{:else}
 				<span class="material-icons text-lg">movie_creation</span>
-				Create Project
+				{$LL.aiVideo.createProject()}
 			{/if}
 		</button>
 	</div>
 
 	<p class="text-center text-xs text-thirdly">
 		{aiv.video.sourceMode === 'youtube'
-			? 'The YouTube video will be downloaded and used as the background during project creation.'
+			? $LL.aiVideo.youtubeReviewHint()
 			: aiv.video.sourceMode === 'none'
-				? 'The project will be created without any background video.'
-				: 'Video generation is currently mocked. A real AI-generated background will be added later.'}
+				? $LL.aiVideo.noBackgroundReviewHint()
+				: $LL.aiVideo.mockedVideoHint()}
 	</p>
 </div>

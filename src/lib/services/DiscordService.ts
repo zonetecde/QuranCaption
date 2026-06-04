@@ -1,5 +1,7 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { invoke } from '@tauri-apps/api/core';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 interface DiscordActivity {
 	details?: string;
@@ -62,12 +64,12 @@ class DiscordService {
 	// Méthodes prédéfinies pour différents états
 	async setIdleState(): Promise<void> {
 		await this.updateActivity({
-			details: 'Using Quran Caption',
-			state: 'At the Home Menu',
+			details: get(LL).settings.usingQuranCaption(),
+			state: get(LL).settings.atHomeMenu(),
 			large_image_key: 'logo',
 			large_image_text: 'Quran Caption',
 			small_image_key: 'idle',
-			small_image_text: 'Idle',
+			small_image_text: get(LL).settings.idle(),
 			start_timestamp: this.startTimestamp || undefined
 		});
 	}
@@ -77,13 +79,13 @@ class DiscordService {
 
 		const { name, reciter } = globalState.currentProject.detail;
 		await this.updateActivity({
-			details: 'Creating a Quran video',
+			details: get(LL).settings.creatingQuranVideo(),
 			state:
-				reciter && reciter !== 'not set' ? `Working on ${name} (${reciter})` : `Working on ${name}`,
+				reciter && reciter !== 'not set' ? get(LL).settings.workingOnProject({ name, reciter }) : `Working on ${name}`,
 			large_image_key: 'logo',
 			large_image_text: 'Quran Caption',
 			small_image_key: 'edit',
-			small_image_text: 'Captioning',
+			small_image_text: get(LL).settings.captioningStatus(),
 			start_timestamp: this.startTimestamp || undefined
 		});
 	}

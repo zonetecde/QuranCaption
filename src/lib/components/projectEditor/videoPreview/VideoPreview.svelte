@@ -5,6 +5,8 @@
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { Howl } from 'howler';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import VideoPreviewControlsBar from './VideoPreviewControlsBar.svelte';
 	import VideoOverlay from './VideoOverlay.svelte';
@@ -551,9 +553,7 @@
 				onloaderror: (id, error) => {
 					console.error('Howler load error:', error);
 					if (error === 'No codec support for selected audio sources.') {
-						toast.error(
-							'Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)'
-						);
+						toast.error(get(LL).editor.convertToMp4Error());
 						return;
 					}
 					// On Linux, Web Audio API might report decoding errors even if it works partially or for VBR.
@@ -562,10 +562,9 @@
 					}
 					if (Date.now() - lastTimeErrorShown > 5000) {
 						if (error === 4) {
-							toast.error('The audio file is missing or inaccessible.', { duration: 1000 });
+							toast.error(get(LL).editor.audioFileMissing(), { duration: 1000 });
 						} else {
-							toast.error(
-								'An unknown error occurred while loading audio: ' + JSON.stringify(error),
+							toast.error(get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }),
 								{ duration: 1000 }
 							);
 						}
@@ -584,7 +583,7 @@
 						return;
 					}
 
-					toast.error('The audio failed to play: ' + JSON.stringify(error));
+					toast.error(get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }));
 					// Fallback si la lecture échoue réellement
 					pause();
 				},
@@ -879,7 +878,7 @@
 					<img
 						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
 						class="w-full h-full object-cover"
-						alt="Background"
+						alt=""
 					/>
 				{/if}
 			{/if}

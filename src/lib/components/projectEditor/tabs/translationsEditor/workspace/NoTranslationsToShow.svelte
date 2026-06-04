@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 </script>
 
 <div
@@ -21,19 +22,18 @@
 
 		<!-- Main title -->
 		<h3 class="text-2xl font-bold text-primary mb-4 tracking-tight">
-			No Subtitles Match Your Filters
+			{$LL.editor.filterNoResultsTitle()}
 		</h3>
 
 		<!-- Description with better typography -->
 		<p class="text-secondary text-base leading-relaxed mb-8 px-4">
-			All your subtitles are either completed or don't match the current filter settings. Try
-			adjusting your filters in the Translation Settings panel, including overlap filtering.
+			{$LL.editor.filterNoResultsDescription()}
 		</p>
 		<!-- Quick actions with modern design -->
 		<div class="bg-accent/50 border border-color/50 rounded-xl p-6 backdrop-blur-sm">
 			<div class="flex items-center gap-2 mb-4">
 				<span class="material-icons text-accent text-sm">flash_on</span>
-				<p class="text-sm font-medium text-secondary">Quick actions</p>
+				<p class="text-sm font-medium text-secondary">{$LL.editor.quickActions()}</p>
 			</div>
 
 			<div class="flex flex-col gap-3">
@@ -54,7 +54,7 @@
 					<span
 						class="text-sm text-secondary group-hover:text-primary transition-colors cursor-pointer"
 					>
-						Reset all filters
+						{$LL.editor.resetAllFilters()}
 					</span>
 				</button>
 
@@ -68,7 +68,7 @@
 						>rate_review</span
 					>
 					<span class="text-sm text-secondary group-hover:text-primary transition-colors">
-						Show only subtitles that need review
+						{$LL.editor.showNeedingReview()}
 					</span>
 				</button>
 			</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const aiv = globalState.aiVideo;
 </script>
@@ -8,22 +9,22 @@
 	<div class="space-y-2">
 		<label for="ai-prompt" class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">auto_awesome</span>
-			Video Theme
+			{$LL.aiVideo.videoThemeLabel()}
 		</label>
 		<textarea
 			id="ai-prompt"
 			bind:value={aiv.video.prompt}
 			rows={3}
 			class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly resize-none focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-			placeholder="e.g. The importance to obey our parents"
+			placeholder={$LL.aiVideo.videoThemeInputPlaceholder()}
 		></textarea>
-		<p class="text-xs text-thirdly">Describe the theme or topic for your video.</p>
+		<p class="text-xs text-thirdly">{$LL.aiVideo.videoThemeDescription()}</p>
 	</div>
 
 	<div class="space-y-2">
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">movie</span>
-			Background Source
+			{$LL.aiVideo.backgroundSourceLabel()}
 		</span>
 		<div class="flex gap-3">
 			<button
@@ -36,7 +37,7 @@
 				onclick={() => (aiv.video.sourceMode = 'ai')}
 			>
 				<span class="material-icons text-base align-middle mr-1">auto_awesome</span>
-				Generate video with AI
+				{$LL.aiVideo.generateVideoWithAI()}
 			</button>
 			<button
 				type="button"
@@ -47,7 +48,7 @@
 				onclick={() => (aiv.video.sourceMode = 'youtube')}
 			>
 				<span class="material-icons text-base align-middle mr-1">smart_display</span>
-				Download from YouTube
+				{$LL.aiVideo.downloadFromYouTube()}
 			</button>
 			<button
 				type="button"
@@ -55,7 +56,7 @@
 					.video.sourceMode === 'none'
 					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
 					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-				title="No background"
+				title={$LL.aiVideo.noBackground()}
 				onclick={() => (aiv.video.sourceMode = 'none')}
 			>
 				<span class="material-icons text-base align-middle">block</span>
@@ -70,22 +71,22 @@
 				class="flex items-center gap-2 text-sm font-semibold text-primary"
 			>
 				<span class="material-icons text-accent-primary text-base">link</span>
-				YouTube Video URL
+				{$LL.aiVideo.youtubeVideoUrlLabel()}
 			</label>
 			<input
 				id="youtube-video-url"
 				type="text"
 				bind:value={aiv.video.youtubeUrl}
 				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-				placeholder="https://www.youtube.com/watch?v=..."
+				placeholder={$LL.aiVideo.youtubeUrlPlaceholder()}
 			/>
 			<p class="text-xs text-thirdly">
-				The downloaded video's own orientation will be used automatically.
+				{$LL.aiVideo.downloadedVideoOrientation()}
 			</p>
 		</div>
 	{:else if aiv.video.sourceMode === 'none'}
 		<p class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-xs text-thirdly">
-			No background video will be added to the project.
+			{$LL.aiVideo.noBackgroundDescription()}
 		</p>
 	{/if}
 </div>

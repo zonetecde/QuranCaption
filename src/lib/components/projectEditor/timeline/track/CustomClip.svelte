@@ -4,6 +4,7 @@
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { onDestroy } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import {
 		getSnappedTimelineCustomClipTime,
 		getTimelineCustomClipLabel,
@@ -191,7 +192,7 @@
 	{#if !(clip instanceof GlobalTimedOverlayTimelineClip)}
 		<Item on:click={removeClip}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">remove</span>Remove Custom Text
+				<span class="material-icons-outlined text-sm mr-1">remove</span>{$LL.editor.removeCustomText()}
 			</div></Item
 		>
 	{/if}
@@ -199,7 +200,7 @@
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">
 				{clip.getAlwaysShow() ? 'visibility' : 'visibility_off'}
-			</span>Toggle "Always Show" style
+			</span>{$LL.editor.toggleAlwaysShow()}
 		</div></Item
 	>
 </ContextMenu>

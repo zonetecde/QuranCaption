@@ -10,6 +10,8 @@ import {
 } from '$lib/services/StylePresetLibraryService';
 import { storeLocalPreset } from './localActions';
 import { buildCommunityPresetData, checkMissingFonts } from './presetUtils';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
 
 /**
@@ -66,9 +68,9 @@ export async function downloadAndApply(preset: CommunityStylePreset): Promise<vo
 	if (state.downloadingPresetId) return;
 
 	const confirmed = await ModalManager.confirmModal(
-		`Your current styles will be overwritten by "${preset.name}".`,
-		false
-	);
+			get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
+			false
+		);
 	if (!confirmed) return;
 
 	state.downloadingPresetId = preset.id;
@@ -83,13 +85,13 @@ export async function downloadAndApply(preset: CommunityStylePreset): Promise<vo
 		state.communityPresets = state.communityPresets.map((item) =>
 			item.id === preset.id ? { ...item, downloadCount: item.downloadCount + 1 } : item
 		);
-		toast.success('Community preset saved and applied.');
+		toast.success(get(LL).style.communityPresetSaved());
 
 		// Vérifie les polices externes manquantes
 		const missing = await checkMissingFonts(styleData);
 		if (missing.length > 0) {
 			await ModalManager.confirmModal(
-				`This preset uses fonts that are not installed on your system:\n\n${missing.map((f) => `• ${f}`).join('\n')}\n\nPlease download and install the missing ${missing.length === 1 ? 'font' : 'fonts'}, then restart QuranCaption for them to take effect.`,
+				get(LL).editor.fontsNotInstalled(),
 				false
 			);
 		}

@@ -7,6 +7,8 @@ import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
 import { notifyLongTaskCompletion } from './UserAttentionService';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 /**
  * Parse une date ISO en timestamp millisecondes.
@@ -229,7 +231,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 
 			if (exportation.exportKind === ExportKind.Video) {
 				void notifyLongTaskCompletion({
-					title: 'Video export finished',
+					title: get(LL).settings.videoExportFinished(),
 					body: exportation.finalFileName,
 					level: 'success'
 				});
@@ -248,7 +250,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 			exportation.exportKind === ExportKind.Video
 		) {
 			void notifyLongTaskCompletion({
-				title: 'Video export failed',
+				title: get(LL).settings.videoExportFailed(),
 				body: exportation.finalFileName,
 				level: 'error'
 			});

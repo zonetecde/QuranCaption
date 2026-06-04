@@ -10,25 +10,11 @@
 	import { shouldShowDonationPrompt } from '$lib/services/SupportPromptService';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	const SUPPORT_PANEL_CONTEXT = 'post_export' as const;
-	const TESTIMONIALS = [
-		{
-			quote:
-				'It’s a beautiful and very beneficial tool. It makes sharing Qur’an recitations so much easier and more impactful.',
-			author: 'Brother Yahya'
-		},
-		{
-			quote:
-				"I found this a while ago when it was in it's early stages and wasn't that impressed, but now I will definitely be using this as my main inshallah!",
-			author: 'Brother Ahmad'
-		},
-		{
-			quote:
-				'Amazing application. Easy to use! Full of resources and frequently updated. developer of app is highly responsive and always open to feedback and suggestions. definitely couldnt ask for more.',
-			author: 'Brother Sarmad'
-		}
-	] as const;
+	const TESTIMONIAL_COUNT = 3;
 
 	let isPromptVisible = $state(false);
 	let selectedQuoteIndex = $state(0);
@@ -104,7 +90,7 @@
 		if (!shouldShowDonationPrompt(lastClosedAt)) return;
 
 		const impressions = parseImpressions(settings.persistentUiState.donationPromptImpressions);
-		selectedQuoteIndex = impressions % TESTIMONIALS.length;
+		selectedQuoteIndex = impressions % TESTIMONIAL_COUNT;
 		settings.persistentUiState.donationPromptImpressions = impressions + 1;
 		isPromptVisible = true;
 
@@ -142,7 +128,7 @@
 			await Settings.save();
 		} catch (error) {
 			console.error('Failed to persist donation prompt dismissal:', error);
-			toast.error('Failed to save this preference.');
+			toast.error(get(LL).donation.failedToSavePreference());
 		}
 	}
 
@@ -153,7 +139,7 @@
 			await openUrl('https://www.paypal.me/rayanestaszewski');
 		} catch (error) {
 			console.error('Failed to open PayPal URL:', error);
-			toast.error('Unable to open PayPal.');
+			toast.error(get(LL).donation.unableToOpenPaypal());
 		}
 	}
 
@@ -162,7 +148,7 @@
 			await openUrl('https://ko-fi.com/vzero');
 		} catch (error) {
 			console.error('Failed to open Ko-fi URL:', error);
-			toast.error('Unable to open Ko-fi.');
+			toast.error(get(LL).donation.unableToOpenKofi());
 		}
 	}
 
@@ -175,10 +161,10 @@
 	async function copyWalletAddress(address: string, label: string): Promise<void> {
 		try {
 			await navigator.clipboard.writeText(address);
-			toast.success(`${label} copied to clipboard`);
+			toast.success(get(LL).donation.walletAddressCopied({ label }));
 		} catch (error) {
 			console.error(`Failed to copy ${label} address:`, error);
-			toast.error('Unable to copy wallet address.');
+			toast.error(get(LL).donation.unableToCopyWallet());
 		}
 	}
 
@@ -189,7 +175,7 @@
 			await openUrl('https://discord.gg/Hxfqq2QA2J');
 		} catch (error) {
 			console.error('Failed to open Discord URL:', error);
-			toast.error('Unable to open Discord invite.');
+			toast.error(get(LL).donation.unableToOpenDiscord());
 		}
 	}
 
@@ -214,10 +200,10 @@
 				</div>
 				<div class="min-w-0">
 					<p class="text-sm font-bold text-primary leading-tight">
-						Support the future of Quran Caption.
+						{$LL.donation.supportFuture()}
 					</p>
 					<p class="text-[11px] text-thirdly leading-snug mt-1">
-						Donations support development time, bug fixes, and community-requested features.
+						{$LL.donation.donationsSupport()}
 					</p>
 				</div>
 			</div>
@@ -225,8 +211,8 @@
 			<button
 				class="close-btn w-7 h-7 rounded-full flex items-center justify-center text-secondary hover:text-primary transition-all duration-200"
 				onclick={() => dismissPrompt('close')}
-				aria-label="Close donation prompt"
-				title="Close"
+				aria-label={$LL.common.closeDonationPrompt()}
+				title={$LL.common.close()}
 			>
 				<span class="material-icons-outlined text-sm">close</span>
 			</button>
@@ -235,41 +221,47 @@
 		<div class="px-4 pb-4 pt-3 flex flex-col gap-3">
 			<div class="testimonial rounded-lg px-3 py-2.5">
 				<p class="text-xs text-primary leading-relaxed italic">
-					"{TESTIMONIALS[selectedQuoteIndex].quote}"
+					{#if selectedQuoteIndex === 0}
+						"{$LL.donation.testimonialYahya()}"
+					{:else if selectedQuoteIndex === 1}
+						"{$LL.donation.testimonialAhmad()}"
+					{:else}
+						"{$LL.donation.testimonialSarmad()}"
+					{/if}
 				</p>
-				<p class="text-[11px] text-thirdly mt-1.5">- {TESTIMONIALS[selectedQuoteIndex].author}</p>
+				<p class="text-[11px] text-thirdly mt-1.5">- {selectedQuoteIndex === 0 ? 'Brother Yahya' : selectedQuoteIndex === 1 ? 'Brother Ahmad' : 'Brother Sarmad'}</p>
 			</div>
 
 			<div class="donation-panel rounded-xl p-3.5 space-y-3">
 				<div class="flex items-start justify-between gap-3">
 					<div>
 						<p class="text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
-							Make a donation
+							{$LL.donation.makeDonation()}
 						</p>
 					</div>
-					<span class="text-[11px] text-thirdly">Fastest option</span>
+					<span class="text-[11px] text-thirdly">{$LL.donation.fastestOption()}</span>
 				</div>
 
 				<button
 					class="action-btn donate w-full text-sm px-3 py-2.5 h-10 flex items-center justify-center gap-1.5"
 					onclick={handleDonationClick}
-					aria-label="Donate with PayPal"
+					aria-label={$LL.donation.donateWithPaypal()}
 				>
 					<span class="material-icons-outlined text-sm">favorite</span>
-					Donate with PayPal
+					{$LL.donation.donateWithPaypal()}
 				</button>
 
 				<button
 					class="action-btn kofi w-full text-sm px-3 py-2.5 h-10 flex items-center justify-center gap-1.5"
 					onclick={handleKoFiClick}
-					aria-label="Donate with Ko-fi"
+					aria-label={$LL.donation.donateWithKofi()}
 				>
 					<span class="material-icons-outlined text-sm">coffee</span>
-					Donate with Ko-fi
+					{$LL.donation.donateWithKofi()}
 				</button>
 
 				<Section
-					name="Donate in Crypto"
+					name={$LL.donation.donateInCrypto()}
 					icon="account_balance_wallet"
 					classes="items-center gap-2"
 					contentClasses="pt-2"
@@ -277,12 +269,12 @@
 					defaultExtended={false}
 				>
 					<div class="space-y-2">
-						<p class="text-xs text-thirdly">Tap a wallet to copy the address.</p>
+						<p class="text-xs text-thirdly">{$LL.donation.tapWalletToCopy()}</p>
 						{#each DONATION_WALLETS as wallet (wallet.label)}
 							<button
 								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
 								onclick={() => copyWalletAddress(wallet.address, wallet.label)}
-								aria-label={`Copy ${wallet.label} wallet address`}
+								aria-label={$LL.common.copyWalletAddress({ wallet: wallet.label })}
 							>
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">
@@ -301,18 +293,18 @@
 			</div>
 
 			<div class="secondary-links flex flex-wrap items-center justify-between gap-2">
-				<button class="link-btn" onclick={openFeedbackModal} aria-label="Leave feedback">
-					Leave feedback
+				<button class="link-btn" onclick={openFeedbackModal} aria-label={$LL.donation.leaveFeedback()}>
+					{$LL.donation.leaveFeedback()}
 				</button>
-				<button class="link-btn" onclick={handleDiscordClick} aria-label="Join Discord">
-					Join Discord
+				<button class="link-btn" onclick={handleDiscordClick} aria-label={$LL.donation.joinDiscord()}>
+					{$LL.donation.joinDiscord()}
 				</button>
 				<button
 					class="link-btn"
 					onclick={() => dismissPrompt('remind_later')}
-					aria-label="Remind me later"
+					aria-label={$LL.donation.remindMeLater()}
 				>
-					Remind me later
+					{$LL.donation.remindMeLater()}
 				</button>
 			</div>
 		</div>

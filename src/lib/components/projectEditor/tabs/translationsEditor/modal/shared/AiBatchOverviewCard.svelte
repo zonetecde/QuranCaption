@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AiMetricsGrid from './AiMetricsGrid.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	type MetricItem = {
 		label: string;
@@ -35,7 +36,7 @@
 	<AiMetricsGrid items={metrics} {columnsClass} />
 
 	<div class="mt-4 rounded-lg border border-[var(--accent-primary)]/30 bg-secondary p-4">
-		<div class="mb-1 text-sm font-medium text-primary">Estimated cost: {estimatedCostLabel}</div>
+		<div class="mb-1 text-sm font-medium text-primary">{$LL.editor.estimatedCost()} {estimatedCostLabel}</div>
 		<div class="text-xs text-thirdly">{tokenSummary}</div>
 		<div class="mt-2 text-xs text-thirdly">{reasoningNote}</div>
 	</div>

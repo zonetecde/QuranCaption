@@ -2,6 +2,7 @@
 	import { Duration, ProjectEditorTabs } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { goToAdjacentSubtitleFromCursor } from '$lib/services/SubtitleNavigation';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		togglePlayPause
@@ -74,7 +75,7 @@
 							!globalState.getVideoPreviewState.showAlignmentGrid)}
 					class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
 					class:active={isAlignmentGridVisible()}
-					title={isAlignmentGridVisible() ? 'Hide alignment grid' : 'Show alignment grid'}
+					title={isAlignmentGridVisible() ? $LL.editor.hideAlignmentGrid() : $LL.editor.showAlignmentGrid()}
 				>
 					<span class="material-icons text-xl pt-0.25">
 						{isAlignmentGridVisible() ? 'grid_off' : 'grid_on'}

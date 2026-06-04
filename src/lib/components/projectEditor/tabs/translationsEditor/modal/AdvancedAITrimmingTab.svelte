@@ -21,6 +21,7 @@
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
+	import LL from '$lib/i18n/i18n-svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
@@ -247,17 +248,17 @@
 
 		const apiKey = aiSettings().openAiApiKey.trim();
 		if (!apiKey) {
-			toast.error('Configure your AI API key in Settings > AI Key first.');
+			toast.error($LL.translations.configureAiKeyFirst());
 			return;
 		}
 
 		const endpoint = aiSettings().textAiApiEndpoint.trim();
 		if (!endpoint) {
-			toast.error('Configure your text AI endpoint in Settings > AI Key first.');
+			toast.error($LL.translations.configureTextAiFirst());
 			return;
 		}
 		if (advancedBatches.length === 0) {
-			toast.error('No eligible verse batch was found for the selected range.');
+			toast.error($LL.translations.noEligibleVerseBatch());
 			return;
 		}
 
@@ -418,18 +419,18 @@
 		});
 
 		if (reportLines.length === 0) {
-			toast.success(`${latestSummary} ${getActualUsageSummary()}.`);
+				toast.success(`${latestSummary} ${getActualUsageSummary()}.`);
 			await notifyLongTaskCompletion({
-				title: 'AI trimming finished',
+				title: $LL.editor.aiTrimmingFinished(),
 				body: latestSummary,
 				level: 'success'
 			});
 		} else {
-			toast(`${latestSummary} Check the activity log for details.`, {
+			toast(`${latestSummary} ${$LL.editor.checkActivityLog()}`, {
 				duration: 6000
 			});
 			await notifyLongTaskCompletion({
-				title: 'AI trimming finished with errors',
+				title: $LL.editor.aiTrimmingFinishedWithErrors(),
 				body: latestSummary,
 				level: 'error'
 			});
@@ -529,7 +530,7 @@
 							selectedItems={getSelectedVerseCount()}
 							bind:startTimeMs={selectedStartTimeMs}
 							bind:endTimeMs={selectedEndTimeMs}
-							title="Time Selection"
+							title={$LL.editor.timeSelection()}
 							icon="schedule"
 							totalLabel="eligible verses"
 							selectionLabel="Select time range to process:"
@@ -539,7 +540,7 @@
 					{/if}
 
 					<AiBatchOverviewCard
-						title="Batch Preview"
+						title={$LL.editor.batchPreview()}
 						icon="analytics"
 						metrics={[
 							{ label: 'Verses', value: advancedEstimate.totalVerses },
@@ -597,7 +598,7 @@
 						</div>
 
 						<AiRunStatusCard
-							title="Current run"
+							title={$LL.editor.currentRun()}
 							subtitle={currentBatchLabel || 'Idle'}
 							progressPercent={getProgressPercent()}
 							metrics={[
@@ -623,7 +624,7 @@
 								class="btn px-3 py-1.5 text-xs"
 								onclick={() => {
 									navigator.clipboard.writeText(streamedResponse);
-									toast.success('Live response copied.');
+									toast.success($LL.translations.liveResponseCopied());
 								}}
 								disabled={!streamedResponse}
 							>
@@ -636,20 +637,20 @@
 								class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
 							>
 								<span class="material-icons text-sm">stream</span>
-								<span>Current streamed response</span>
+								<span>{$LL.editor.currentStreamedResponse()}</span>
 							</div>
 							<textarea
 								readonly
 								bind:value={streamedResponse}
 								class="h-40 w-full resize-none rounded-lg border border-color bg-[var(--bg-primary)] p-3 font-mono text-xs leading-relaxed text-primary"
-								placeholder="Streaming response will appear here..."
+								placeholder={$LL.translations.streamingResponsePlaceholder()}
 							></textarea>
 						</div>
 
 						<div class="mt-4">
 							<AiActivityLogCard
 								{activityLog}
-								title="Recent activity"
+								title={$LL.editor.recentActivity()}
 								maxHeightClass="max-h-72"
 								containerClass=""
 							/>

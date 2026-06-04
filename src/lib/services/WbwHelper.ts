@@ -8,6 +8,8 @@ import {
 	type SegmentationWordTimestamp
 } from '$lib/services/AutoSegmentation';
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 export type ManualWordByWordDraftWord = SegmentationWordTimestamp & {
 	word: string;
@@ -55,7 +57,7 @@ export async function openManualWordByWordEditFromShortcut(): Promise<void> {
 
 	const success = await enterManualWordByWordEdit(clip);
 	if (!success) {
-		toast.error('Unable to enter word-by-word edit mode for this subtitle.');
+		toast.error(get(LL).editor.cannotEnterWordEditMode());
 	}
 }
 

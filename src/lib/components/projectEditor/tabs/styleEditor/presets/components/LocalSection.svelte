@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { getResolutionLabel } from '../actions/presetUtils';
 	import { applyPreset, deletePreset } from '../actions/localActions';
@@ -17,10 +18,8 @@
 <section class="space-y-3">
 	<div class="flex items-center justify-between gap-3">
 		<div>
-			<h3 class="text-sm font-semibold text-primary">Saved presets</h3>
-			<p class="text-xs text-secondary">
-				{presets().length} local preset{presets().length === 1 ? '' : 's'}
-			</p>
+			<h3 class="text-sm font-semibold text-primary">{$LL.style.localPresetsHeading()}</h3>
+			<p class="text-xs text-secondary">{presets().length} {$LL.style.localPresets()}</p>
 		</div>
 		<div class="flex items-center gap-3 text-[11px]">
 			<button
@@ -28,21 +27,21 @@
 				type="button"
 				onclick={() => globalState.getVideoStyle.importStylesFromFile()}
 			>
-				Choose file
+				{$LL.style.chooseFile()}
 			</button>
 			<button
 				class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
 				type="button"
 				onclick={() => (globalState.presetLibrary.modalMode = 'export')}
 			>
-				Export file
+				{$LL.style.exportFile()}
 			</button>
 			<button
 				class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
 				type="button"
 				onclick={() => globalState.getVideoStyle.resetStyles()}
 			>
-				Reset
+				{$LL.common.reset()}
 			</button>
 		</div>
 	</div>
@@ -57,7 +56,7 @@
 			bind:value={globalState.presetLibrary.localSearchQuery}
 			class="h-9 w-full rounded-md border border-color bg-primary py-1 pl-8 pr-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 			type="search"
-			placeholder="Search saved presets"
+			placeholder={$LL.style.searchSavedPresets()}
 		/>
 	</label>
 
@@ -66,7 +65,7 @@
 			<div class="flex flex-col items-center justify-center gap-2 px-3 py-8 text-center">
 				<span class="material-icons-outlined text-xl text-thirdly">folder_open</span>
 				<p class="text-xs text-thirdly">
-					{presets().length === 0 ? 'No saved presets' : 'No saved presets found'}
+					{presets().length === 0 ? $LL.style.noLocalPresets() : $LL.style.noLocalPresetsFound()}
 				</p>
 			</div>
 		{:else}
@@ -98,7 +97,7 @@
 						<button
 							class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-thirdly opacity-70 transition-colors hover:bg-red-500/15 hover:text-red-400 group-hover:opacity-100"
 							type="button"
-							title="Delete preset"
+							title={$LL.style.deletePresetTitle()}
 							onclick={() => deletePreset(preset)}
 						>
 							<span class="material-icons-outlined text-sm">delete</span>

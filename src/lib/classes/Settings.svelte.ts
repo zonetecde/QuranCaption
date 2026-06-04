@@ -99,6 +99,7 @@ export default class Settings extends SerializableBase {
 		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
+		language: 'en' as 'en' | 'fr',
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'
@@ -425,6 +426,10 @@ export default class Settings extends SerializableBase {
 		}
 		if (typeof settings.persistentUiState.styleLibraryDeviceId !== 'string') {
 			settings.persistentUiState.styleLibraryDeviceId = '';
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.language !== 'string') {
+			settings.persistentUiState.language = 'en';
 			shouldSave = true;
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {

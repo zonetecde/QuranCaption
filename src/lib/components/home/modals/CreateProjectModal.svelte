@@ -2,6 +2,8 @@
 	import { Project, ProjectContent, ProjectDetail, Utilities } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import RecitersManager from '$lib/classes/Reciter';
 	import { discordService } from '$lib/services/DiscordService';
@@ -21,7 +23,7 @@
 	async function createProjectButtonClick() {
 		// Vérifie que le nom du projet n'est pas vide
 		if (name.trim() === '') {
-			toast.error('Project name cannot be empty.');
+			toast.error(get(LL).home.projectNameCannotBeEmpty());
 			return;
 		}
 
@@ -29,7 +31,7 @@
 		// par windows pour les noms de fichiers
 		if (Utilities.isPathNotSafe(name) || Utilities.isPathNotSafe(reciter)) {
 			toast.error(
-				'Project name and Reciter cannot contain the following characters: < > : " / \\ | ? *'
+				get(LL).home.projectNameInvalidCharacters()
 			);
 			return;
 		}
@@ -68,8 +70,8 @@
 					<span class="material-icons text-black text-xl">add_circle</span>
 				</div>
 				<div>
-					<h2 class="text-2xl font-bold text-primary">Create New Project</h2>
-					<p class="text-sm text-thirdly">Start your Quran caption project</p>
+					<h2 class="text-2xl font-bold text-primary">{$LL.home.createNewProject()}</h2>
+					<p class="text-sm text-thirdly">{$LL.home.startYourProject()}</p>
 				</div>
 			</div>
 
@@ -90,7 +92,7 @@
 		<div class="space-y-2">
 			<label for="name" class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">edit</span>
-				Project Name
+				{$LL.home.projectName()}
 			</label>
 			<div class="relative">
 				<input
@@ -99,7 +101,7 @@
 					type="text"
 					maxlength={ProjectDetail.NAME_MAX_LENGTH}
 					class="w-full"
-					placeholder="Taraweeh 27th night"
+					placeholder={$LL.home.taraweehExample()}
 					autocomplete="off"
 					onkeydown={(event) => {
 						if (event.key === 'Enter') {
@@ -119,11 +121,11 @@
 			<AutocompleteInput
 				bind:value={reciter}
 				suggestions={RecitersManager.getRecitersWithCustomOnes()}
-				placeholder="Start typing to search reciters..."
+				placeholder={$LL.home.searchReciters()}
 				maxlength={ProjectDetail.RECITER_MAX_LENGTH}
 				icon="person"
 				labelIcon="record_voice_over"
-				label="Reciter"
+				label={$LL.home.reciter()}
 				onEnterPress={createProjectButtonClick}
 			/>
 		</div>
@@ -131,7 +133,7 @@
 		<div class="space-y-2">
 			<label for="project-type" class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">folder_special</span>
-				Type
+				{$LL.home.type()}
 			</label>
 			<div class="relative">
 				<select
@@ -157,7 +159,7 @@
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				<span class="material-icons text-accent-secondary">info</span>
-				<span>Fill in the details to create your project</span>
+				<span>{$LL.home.fillInDetails()}</span>
 			</div>
 
 			<div class="flex gap-3">
@@ -165,7 +167,7 @@
 					class="px-6 py-2.5 font-medium text-primary border border-color rounded-lg hover:bg-accent hover:border-accent-primary transition-all duration-200 cursor-pointer"
 					onclick={close}
 				>
-					Cancel
+					{$LL.common.cancel()}
 				</button>
 				<button
 					class="px-8 py-2.5 font-medium bg-accent-primary text-black rounded-lg hover:bg-blue-400 transition-all duration-200 flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -173,7 +175,7 @@
 					disabled={name.trim() === ''}
 				>
 					<span class="material-icons text-lg">add</span>
-					Create Project
+					{$LL.home.createProject()}
 				</button>
 			</div>
 		</div>

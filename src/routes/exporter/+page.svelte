@@ -39,6 +39,8 @@
 	import { getAllWindows } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import { domToBlob } from 'modern-screenshot';
 	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
 	import {
@@ -1324,7 +1326,7 @@
 				error && typeof error === 'object' && 'message' in error
 					? String((error as { message?: unknown }).message ?? '')
 					: String(error ?? 'Unknown error');
-			toast.error('Error while taking screenshot: ' + message);
+			toast.error(get(LL).editor.exportScreenshotError({ error: message }));
 		} finally {
 			// Restaurer l'opacité originale des overlays forcés
 			for (const { el, prev } of forcedOverlayElements) {

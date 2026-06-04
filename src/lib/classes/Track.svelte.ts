@@ -18,6 +18,8 @@ import { Duration, type Asset } from './index.js';
 import { globalState } from '$lib/runes/main.svelte.js';
 import { Quran, type Verse } from './Quran.js';
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { Translation, VerseTranslation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
@@ -204,8 +206,8 @@ export class AssetTrack extends Track {
 			// Prevent adding if an existing clip has the loop option enabled
 			if (this.clips.some((c) => c instanceof AssetClip && (c as AssetClip).loopUntilAudioEnd)) {
 				ModalManager.errorModal(
-					'Clip Addition Error',
-					'You cannot add more clips because a clip with "Loop until the end" is already present.'
+					get(LL).editor.clipAdditionError(),
+					get(LL).editor.cannotAddMoreClips()
 				);
 				return false;
 			}
@@ -214,8 +216,8 @@ export class AssetTrack extends Track {
 			// tant que background pour la vidéo), alors on informe l'utilisateur que ce n'est pas possible.
 			if (asset.type === AssetType.Image) {
 				ModalManager.errorModal(
-					'Background Image Error',
-					'You cannot add a background image to the timeline because there is already a video or image clip in the video track.'
+					get(LL).editor.backgroundImageError(),
+					get(LL).editor.cannotAddBackgroundImage()
 				);
 				return false;
 			}
@@ -932,13 +934,13 @@ export class SubtitleTrack extends Track {
 
 		// Check if the split time is within the clip
 		if (splitTime <= clip.startTime || splitTime >= clip.endTime) {
-			toast.error('The cursor must be strictly inside the subtitle to split it.');
+			toast.error(get(LL).editor.cursorMustBeInsideSubtitle());
 			return false;
 		}
 
 		// Minimum duration check (e.g. 100ms) for both parts
 		if (splitTime - clip.startTime < 100 || clip.endTime - splitTime < 100) {
-			toast.error('Resulting clips would be too short (min 100ms).');
+			toast.error(get(LL).editor.clipsTooShort());
 			return false;
 		}
 
@@ -957,7 +959,7 @@ export class SubtitleTrack extends Track {
 					wordBoundaryCandidate.splitTimeMs - clip.startTime < 100 ||
 					clip.endTime - wordBoundaryCandidate.splitTimeMs < 100
 				) {
-					toast.error('Resulting clips would be too short (min 100ms).');
+					toast.error(get(LL).editor.clipsTooShort());
 					return false;
 				}
 
@@ -1046,7 +1048,7 @@ export class SubtitleTrack extends Track {
 		const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
 
 		if (endTime < startTime) {
-			toast.error('End time must be greater than start time.');
+			toast.error(get(LL).editor.endTimeMustBeGreater());
 			return false;
 		}
 
@@ -1136,7 +1138,7 @@ export class SubtitleTrack extends Track {
 			const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
 
 			if (endTime < startTime) {
-				toast.error('End time must be greater than start time.');
+				toast.error(get(LL).editor.endTimeMustBeGreater());
 				return false;
 			}
 
@@ -1157,7 +1159,7 @@ export class SubtitleTrack extends Track {
 
 						// Vérifie si le clip actuel fera moins de 100ms
 						if (element.endTime - (endTime + 1) < 100) {
-							toast.error('Cannot add silence: resulting clip duration would be less than 100ms.');
+							toast.error(get(LL).editor.cannotAddSilenceTooShort());
 							return false;
 						}
 
@@ -1172,7 +1174,7 @@ export class SubtitleTrack extends Track {
 						const startTime = 0;
 						const endTime = 500; // Durée de 500ms par défaut
 						if (element.endTime - (endTime + 1) < 100) {
-							toast.error('Cannot add silence: resulting clip duration would be less than 100ms.');
+							toast.error(get(LL).editor.cannotAddSilenceTooShort());
 							return false;
 						}
 						this.clips.unshift(new SilenceClip(startTime, endTime));
@@ -1192,7 +1194,7 @@ export class SubtitleTrack extends Track {
 		const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
 
 		if (endTime < startTime) {
-			toast.error('End time must be greater than start time.');
+			toast.error(get(LL).editor.endTimeMustBeGreater());
 			return false;
 		}
 
@@ -1278,7 +1280,7 @@ export class SubtitleTrack extends Track {
 	 */
 	shiftAllClips(offsetMs: number, fromMs: number = 0): boolean {
 		if (!Number.isFinite(offsetMs) || !Number.isFinite(fromMs)) {
-			toast.error('Cannot shift: invalid subtitle timing value.');
+			toast.error(get(LL).editor.cannotShiftInvalidTiming());
 			return false;
 		}
 
@@ -1287,14 +1289,14 @@ export class SubtitleTrack extends Track {
 		const cutoffMs = Math.max(0, fromMs);
 		const targets = this.clips.filter((clip) => clip.startTime >= cutoffMs);
 		if (targets.length === 0) {
-			toast('No subtitles starting at or after that time — nothing to shift.', { icon: 'ℹ️' });
+			toast(get(LL).editor.noSubtitlesToShift(), { icon: 'ℹ️' });
 			return true;
 		}
 
 		// Vérification : est-ce que le décalage rendrait un temps négatif ?
 		for (const clip of targets) {
 			if (clip.startTime + offsetMs < 0) {
-				toast.error('Cannot shift: one or more subtitles would start before 0ms.');
+				toast.error(get(LL).editor.cannotShiftBeforeZero());
 				return false;
 			}
 		}
@@ -1324,9 +1326,7 @@ export class SubtitleTrack extends Track {
 					const newBlockingDuration = newBlockingEndTime - lastNonShiftedClip.startTime;
 
 					if (newBlockingDuration < 100) {
-						toast.error(
-							'Cannot shift backward: the subtitle before the cutoff would become too short.'
-						);
+						toast.error(get(LL).editor.cannotShiftBackward());
 						return false;
 					}
 

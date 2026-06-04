@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { ProjectEditorTabs } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let tabs = $state([
-		{ name: 'Video editor', icon: 'edit', value: ProjectEditorTabs.VideoEditor },
-		{ name: 'Subtitles editor', icon: 'subtitles', value: ProjectEditorTabs.SubtitlesEditor },
-		{ name: 'Translations', icon: 'translate', value: ProjectEditorTabs.Translations },
-		{ name: 'Style', icon: 'auto_fix_high', value: ProjectEditorTabs.Style },
-		{ name: 'Export', icon: 'upload_file', value: ProjectEditorTabs.Export }
+		{ name: get(LL).status.videoEditor(), icon: 'edit', value: ProjectEditorTabs.VideoEditor },
+		{ name: get(LL).status.subtitlesEditor(), icon: 'subtitles', value: ProjectEditorTabs.SubtitlesEditor },
+		{ name: get(LL).status.translations(), icon: 'translate', value: ProjectEditorTabs.Translations },
+		{ name: get(LL).status.style(), icon: 'auto_fix_high', value: ProjectEditorTabs.Style },
+		{ name: get(LL).status.export(), icon: 'upload_file', value: ProjectEditorTabs.Export }
 	]);
 
 	function setActiveTab(tabValue: ProjectEditorTabs) {

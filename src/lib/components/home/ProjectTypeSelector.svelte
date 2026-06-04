@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import type { ProjectDetail } from '$lib/classes';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { PROJECT_TYPE_OPTIONS, type ProjectType } from '$lib/types/projectType';
@@ -91,7 +92,7 @@
 	</div>
 {:else}
 	<div class="relative mt-1 flex items-center gap-x-1 text-xs text-[var(--text-secondary)]">
-		Folder:
+		{$LL.home.folderLabel()}
 		<button
 			class="group inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold text-[var(--text-primary)] hover:bg-white/5"
 			type="button"

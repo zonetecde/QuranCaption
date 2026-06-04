@@ -1,12 +1,14 @@
 ﻿<script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 
 	import type { ProjectDetail } from '$lib/classes/ProjectDetail.svelte';
 	import type { DurationWithMs } from '$lib/types/common';
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import { Status } from '$lib/classes/Status';
 	import Settings from '$lib/classes/Settings.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
@@ -177,29 +179,29 @@
 
 	function getSelectionDescription(selection: ExplorerSelection, count: number): string {
 		if (selection.kind === 'all') {
-			return `${count} project${count === 1 ? '' : 's'} across every reciter folder`;
+			return get(LL).home.projectsAcrossAll({ count });
 		}
 
 		if (selection.kind === 'reciter') {
-			return `${count} project${count === 1 ? '' : 's'} for this reciter`;
+			return get(LL).home.projectsForReciter({ count });
 		}
 
 		if (selection.kind === 'year') {
-			return `${count} project${count === 1 ? '' : 's'} for year ${selection.year}`;
+			return get(LL).home.projectsForYear({ count, year: String(selection.year) });
 		}
 
-		return `${count} project${count === 1 ? '' : 's'} in this subfolder`;
+		return get(LL).home.projectsInSubfolder({ count });
 	}
 
 	function getSelectionBreadcrumb(selection: ExplorerSelection): SelectionBreadcrumbItem[] {
 		switch (selection.kind) {
 			case 'all':
-				return [{ label: 'All Projects' }];
+				return [{ label: get(LL).home.allProjects() }];
 			case 'reciter':
-				return [{ label: 'All', target: ALL_PROJECTS_SELECTION }, { label: selection.reciter }];
+				return [{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION }, { label: selection.reciter }];
 			case 'type':
 				return [
-					{ label: 'All', target: ALL_PROJECTS_SELECTION },
+					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
 					{
 						label: selection.reciter,
 						target: { kind: 'reciter', reciter: selection.reciter }
@@ -208,7 +210,7 @@
 				];
 			case 'year':
 				return [
-					{ label: 'All', target: ALL_PROJECTS_SELECTION },
+					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
 					{
 						label: selection.reciter,
 						target: { kind: 'reciter', reciter: selection.reciter }
@@ -476,8 +478,8 @@
 				await ProjectService.importProject(json);
 			} catch (error) {
 				ModalManager.errorModal(
-					'Error importing project',
-					'Your project file is either invalid or corrupted.',
+					get(LL).home.errorImportingProject(),
+					get(LL).home.projectFileInvalid(),
 					JSON.stringify(error, Object.getOwnPropertyNames(error))
 				);
 			}
@@ -491,8 +493,8 @@
 	<div class="mb-8 mt-8 flex-grow px-4 xl:px-12 xl:mt-14">
 		<div placeholder="Upper section" class="flex gap-4 flex-row items-center">
 			<section>
-				<h2 class="text-4xl font-bold">Welcome Back!</h2>
-				<h4 class="text-secondary">Let's create something amazing today.</h4>
+				<h2 class="text-4xl font-bold">{$LL.home.welcomeBack()}</h2>
+				<h4 class="text-secondary">{$LL.home.letsCreate()}</h4>
 			</section>
 			<section class="ml-auto flex flex-wrap gap-3 xl:gap-x-4">
 				<button
@@ -500,16 +502,16 @@
 					class="btn-accent btn-icon h-12 px-4 xl:px-7"
 					onclick={newProjectButtonClick}
 				>
-					<span class="material-icons-outlined mr-2">add_circle_outline</span> New Project
+					<span class="material-icons-outlined mr-2">add_circle_outline</span> {$LL.home.newProject()}
 				</button>
 				<button
 					class="btn btn-icon h-12 px-4 xl:px-7"
 					onclick={() => (globalState.currentPage = 'ai-video')}
 				>
-					<span class="material-icons-outlined mr-2">auto_awesome</span> AI Video
+					<span class="material-icons-outlined mr-2">auto_awesome</span> {$LL.home.aiVideo()}
 				</button>
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
-					<span class="material-icons-outlined mr-2">file_upload</span> Import Project
+					<span class="material-icons-outlined mr-2">file_upload</span> {$LL.home.importProject()}
 				</button>
 			</section>
 		</div>
@@ -552,7 +554,7 @@
 						</h3>
 						{#if draggingProjectId !== null}
 							<p class="mt-1 text-sm text-[var(--accent-primary)]">
-								Drop the card onto a folder on the left to move it.
+								{$LL.home.dragHint()}
 							</p>
 						{:else}
 							<p class="mt-1 text-sm text-[var(--text-secondary)]">
@@ -571,7 +573,7 @@
 									type="button"
 									disabled={currentPage === 1}
 									onclick={() => (currentPage = Math.max(1, currentPage - 1))}
-									title="Previous page"
+									title={$LL.home.previousPage()}
 								>
 									<span class="material-icons-outlined text-base">chevron_left</span>
 								</button>
@@ -583,7 +585,7 @@
 									type="button"
 									disabled={currentPage === totalPages}
 									onclick={() => (currentPage = Math.min(totalPages, currentPage + 1))}
-									title="Next page"
+									title={$LL.home.nextPage()}
 								>
 									<span class="material-icons-outlined text-base">chevron_right</span>
 								</button>
@@ -592,7 +594,7 @@
 
 						<InputWithIcon
 							icon="search"
-							placeholder="Search projects..."
+							placeholder={$LL.home.searchProjects()}
 							classes="w-full md:w-64"
 							bind:value={globalState.uiState.searchQuery}
 						/>
@@ -645,8 +647,7 @@
 
 				{#if globalState.uiState.searchQuery}
 					<p class="mt-3 text-sm text-[var(--text-secondary)]">
-						Showing {searchedProjects.length} result{searchedProjects.length === 1 ? '' : 's'} for "{globalState
-							.uiState.searchQuery}".
+						{$LL.home.showingResultsFor({ count: searchedProjects.length, query: globalState.uiState.searchQuery })}
 					</p>
 				{/if}
 
@@ -662,20 +663,20 @@
 					{#if sortedSelectedProjects.length === 0}
 						{#if globalState.uiState.selectedStatuses.length === 0}
 							<p class="mt-4">
-								No projects match the current filter. Adjust your status filter to see projects.
+								{$LL.home.noProjectsMatchFilter()}
 							</p>
 						{:else if globalState.userProjectsDetails.length === 0}
 							<p class="mt-4">
-								You don't have any projects yet. Click "New Project" to create one.
+								{$LL.home.noProjectsYet()}
 							</p>
 						{:else}
 							<p class="mt-4">
-								No projects exist in the current folder. Try another reciter or status filter.
+								{$LL.home.noProjectsInFolder()}
 							</p>
 						{/if}
 					{:else if searchedProjects.length === 0}
 						<p class="mt-4">
-							No projects match "{globalState.uiState.searchQuery}". Try another search term.
+							{$LL.home.noProjectsMatchSearch({ query: globalState.uiState.searchQuery })}
 						</p>
 					{:else}
 						<div

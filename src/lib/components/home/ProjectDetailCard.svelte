@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { ProjectDetail } from '$lib/classes';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+	import { getStatusLabel } from '$lib/i18n/statusMapper';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -50,7 +53,7 @@
 		if (e.button !== 0) return; // Only handle left click
 		if (
 			await ModalManager.confirmModal(
-				`Are you sure you want to delete the project "${projectDetail.name}"?`
+				get(LL).home.deleteProjectConfirm({ name: projectDetail.name })
 			)
 		) {
 			await ProjectService.delete(projectDetail.id); // Supprime le projet
@@ -66,7 +69,7 @@
 
 	async function duplicateProjectButtonClick(e: MouseEvent) {
 		if (e.button !== 0) return; // Only handle left click
-		const loadingToast = toast.loading('Duplicating project...');
+		const loadingToast = toast.loading(get(LL).home.duplicatingProject());
 		try {
 			const duplicatedProject = await ProjectService.duplicate(projectDetail.id);
 
@@ -76,10 +79,10 @@
 				...globalState.userProjectsDetails
 			];
 
-			toast.success('Project duplicated successfully!', { id: loadingToast });
+			toast.success(get(LL).home.projectDuplicated(), { id: loadingToast });
 		} catch (error) {
 			console.error(error);
-			toast.error('Failed to duplicate project', { id: loadingToast });
+			toast.error(get(LL).home.failedToDuplicate(), { id: loadingToast });
 		}
 	}
 
@@ -195,7 +198,7 @@
 		<div class="relative mt-4 px-4 pb-4">
 			<div class="flex justify-between items-start mb-2">
 				<EditableText
-					text="Enter project name"
+					text={$LL.home.projectNamePlaceholder()}
 					bind:value={projectDetail.name}
 					maxLength={ProjectDetail.NAME_MAX_LENGTH}
 					placeholder={projectDetail.name}
@@ -216,7 +219,7 @@
 							class="w-3 h-3 rounded-full inline-block mr-2 duration-300"
 							style={`background-color: ${projectDetail.status.color}`}
 						></span>
-						{projectDetail.status.status}
+						{getStatusLabel(projectDetail.status, get(LL))}
 						<span
 							class="material-icons-outlined text-[10px] w-10 duration-300 absolute left-full top-1/2 -translate-y-1/2 scale-75 pointer-events-none opacity-0 group-hover:opacity-60 group-hover:scale-100 group-hover:-translate-x-2"
 							aria-hidden="true">arrow_drop_down</span
@@ -234,17 +237,17 @@
 									onclick={() => selectStatus(s)}
 								>
 									<span class="w-3 h-3 rounded-full" style={`background-color: ${s.color}`}
-									></span>{s.status}
-								</li>
+								></span>{getStatusLabel(s, get(LL))}
+							</li>
 							{/each}
 						</ul>
 					{/if}
 				</div>
 			</div>
 			<div class="flex items-center gap-x-1 text-xs text-[var(--text-secondary)] -mb-1.5">
-				Reciter:
+				{$LL.home.reciterLabel()}
 				<EditableText
-					text="Enter project reciter"
+					text={$LL.home.projectReciterPlaceholder()}
 					bind:value={projectDetail.reciter}
 					maxLength={ProjectDetail.RECITER_MAX_LENGTH}
 					placeholder={projectDetail.reciter}
@@ -260,10 +263,10 @@
 			{/if}
 
 			<p class="text-xs text-[var(--text-secondary)] mb-1">
-				Duration: {projectDetail.duration.getFormattedTime(false)}
+				{$LL.home.durationLabel()} {projectDetail.duration.getFormattedTime(false)}
 			</p>
 			<p class="text-xs text-[var(--text-secondary)] mb-3 verserange">
-				Verses: <span class="font-medium text-[var(--text-primary)]"
+				{$LL.home.versesLabel()} <span class="font-medium text-[var(--text-primary)]"
 					>{projectDetail.verseRange.toString()}</span
 				>
 			</p>
@@ -274,7 +277,7 @@
 					(showProjectDetails ? ' translate-y-2' : '')}
 				onclick={toggleProjectDetails}
 				type="button"
-				title={showProjectDetails ? 'Hide details' : 'Show details'}
+				title={showProjectDetails ? $LL.home.hideDetails() : $LL.home.showDetails()}
 			>
 				<span
 					class={'material-icons-outlined text-sm transition-transform duration-200 ' +
@@ -291,7 +294,7 @@
 				>
 					<div>
 						<div class="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
-							<span>Captioning</span>
+							<span>{$LL.home.captioning()}</span>
 							<span class="font-medium text-[var(--text-primary)]"
 								>{projectDetail.percentageCaptioned}%</span
 							>
@@ -306,7 +309,7 @@
 					<div class="space-y-2">
 						{#each Object.entries(projectDetail.translations) as [language, percentage] (language)}
 							<div class="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
-								<span>Translation ({language}) </span>
+								<span>{$LL.home.translationProgress({ language })} </span>
 								<span class="font-medium text-[var(--text-primary)]">{percentage}%</span>
 							</div>
 							<div class="bg-[var(--border-color)] rounded h-2 overflow-hidden">
@@ -323,8 +326,8 @@
 	</div>
 	<div class="mt-auto pt-3 border-t border-[var(--border-color)] px-4 pb-4">
 		<div class="flex justify-between items-center text-xs text-[var(--text-secondary)] mb-2">
-			<span>Created: {projectDetail.createdAt.toLocaleDateString()}</span>
-			<span>Updated: {projectDetail.updatedAt.toLocaleDateString()}</span>
+			<span>{$LL.home.createdLabel()} {projectDetail.createdAt.toLocaleDateString()}</span>
+			<span>{$LL.home.updatedLabel()} {projectDetail.updatedAt.toLocaleDateString()}</span>
 		</div>
 
 		<div class={`flex items-center gap-x-2 ${isListView ? 'justify-end' : ''}`}>
@@ -332,7 +335,7 @@
 				<button
 					class="h-8 w-8 pt-1 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-primary)]/40 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)]/70 hover:text-[var(--text-primary)] cursor-grab active:cursor-grabbing"
 					type="button"
-					title="Drag card"
+					title={$LL.home.dragCard()}
 					onpointerdown={handleDragHandlePointerDown}
 				>
 					<span class="material-icons-outlined text-[14px] leading-none">drag_indicator</span>
@@ -342,7 +345,7 @@
 				class={`btn-accent text-xs py-2 ${isListView ? 'flex-1 h-full' : 'flex-grow'}`}
 				onclick={openProjectButtonClick}
 			>
-				Open
+				{$LL.home.openProject()}
 			</button>
 			<button
 				class="btn btn-secondary btn-sm p-1.5 flex items-center"
@@ -357,17 +360,17 @@
 <ContextMenu bind:this={contextMenu}>
 	<Item on:click={exportProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">file_download</span>Export project
+			<span class="material-icons-outlined text-sm mr-1">file_download</span>{$LL.home.exportProject()}
 		</div></Item
 	>
 	<Item on:click={duplicateProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">content_copy</span>Duplicate project
+			<span class="material-icons-outlined text-sm mr-1">content_copy</span>{$LL.home.duplicateProject()}
 		</div></Item
 	>
 	<Item on:click={deleteProjectButtonClick}
 		><div class="btn-icon danger-color">
-			<span class="material-icons-outlined text-sm mr-1">delete</span>Delete project
+			<span class="material-icons-outlined text-sm mr-1">delete</span>{$LL.home.deleteProject()}
 		</div></Item
 	>
 </ContextMenu>

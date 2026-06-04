@@ -16,6 +16,10 @@
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let {
 		style,
@@ -263,9 +267,7 @@
 				arabicStyles.setStyle('font-family', 'IndoPak');
 			} else if (value === 'Tajweed') {
 				arabicStyles.setStyle('font-family', 'QPC2');
-				toast(
-					'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable. Tajweed text color is currently forced to black, and you cannot change it.'
-				);
+				toast(get(LL).editor.tajweedFontWarning());
 			} else if (value === 'Soosi') {
 				arabicStyles.setStyle('font-family', 'Soosi');
 			} else {
@@ -382,17 +384,17 @@
 
 	function getStyleValue() {
 		if (style.valueType === 'composite') {
-			return 'Click to expand';
+			return LL_.common.details();
 		} else if (style.valueType === 'reciter') {
-			return globalState.currentProject!.detail.reciter || 'No reciter selected';
+			return globalState.currentProject!.detail.reciter || LL_.common.none();
 		} else if (style.valueType === 'dimension') {
 			const dimension = asDimensionValue(style.value);
 			return dimension.width + 'x' + dimension.height;
 		} else if (style.valueType === 'fade') {
 			const fadeValue = getFadeValue();
-			return `${fadeValue.audioFadeInEnabled || fadeValue.audioFadeOutEnabled || fadeValue.videoFadeOutEnabled || fadeValue.videoFadeInEnabled ? 'Enabled - ' + fadeValue.fadeDurationMs + 'ms' : 'Disabled'}`;
+			return `${fadeValue.audioFadeInEnabled || fadeValue.audioFadeOutEnabled || fadeValue.videoFadeOutEnabled || fadeValue.videoFadeInEnabled ? LL_.common.enabled() + ' - ' + fadeValue.fadeDurationMs + LL_.common.ms() : LL_.common.disabled()}`;
 		} else if (style.valueType === 'ayah-image') {
-			return style.value ? String(style.value) : 'None';
+			return style.value ? String(style.value) : LL_.common.none();
 		} else return String(style.value);
 	}
 
@@ -577,14 +579,14 @@
 				{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed)}
 					<button
 						class="ml-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
-						title="Reset override for selection"
+						title={$LL.editor.resetOverrideSelection()}
 						onclick={(e) => {
 							e.stopPropagation();
 							clearOverride();
 						}}
 					>
 						<span class="material-icons-outlined text-[12px]">restart_alt</span>
-						Reset
+						{$LL.common.reset()}
 					</button>
 				{/if}
 			</div>
@@ -658,7 +660,7 @@
 					>
 						{#if style.id === 'font-family'}
 							{#await invoke('get_system_fonts')}
-								<option value="" disabled selected>Loading fonts...</option>
+								<option value="" disabled selected>{$LL.editor.loadingFonts()}</option>
 							{:then fontsRaw}
 								{@const fonts = fontsRaw as string[]}
 								<option value="QPC2">Uthamic Mushaf QPC2</option>
@@ -670,7 +672,7 @@
 									<option value={font}>{font}</option>
 								{/each}
 							{:catch error}
-								<option value="" disabled>Error loading fonts: {error.message}</option>
+								<option value="" disabled>{$LL.editor.errorLoadingFonts({ error: error.message })}</option>
 							{/await}
 						{:else}
 							{#each style.options || [] as option (`${option}`)}
@@ -728,17 +730,17 @@
 						}}
 						value={msToTimeValue(style.value as number)}
 					/>
-					<span>or</span>
+					<span>{$LL.export.orText()}</span>
 					<button
 						class="btn-accent text-sm py-1 min-w-[150px]"
-						title="Use the preview timeline cursor time and put it into the time field"
+						title={$LL.editor.usePreviewCursorTime()}
 						onclick={() => {
 							const currentPreviewTime = globalState.getTimelineState.cursorPosition;
 							applyValue(currentPreviewTime);
 							syncTimeRangeAfterPreviewCursor(currentPreviewTime);
 						}}
 					>
-						Use preview cursor time
+						{$LL.editor.usePreviewCursorTime()}
 					</button>
 				</div>
 			{:else if style.valueType === 'reciter'}
@@ -765,7 +767,7 @@
 					{:else}
 						<p class="text-sm mt-2 text-yellow-500">
 							<span class="material-icons align-middle text-[18px]!">block</span>
-							Arabic calligraphy is not available for this reciter.
+							{$LL.editor.arabicCalligraphyUnavailable()}
 						</p>
 					{/if}
 				</div>
@@ -959,7 +961,7 @@
 									}}
 								/>
 								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
-								<span class="text-sm">Video</span>
+								<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
 							</label>
 							<label class="flex items-center gap-2 cursor-pointer">
 								<input
@@ -973,7 +975,7 @@
 									}}
 								/>
 								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
-								<span class="text-sm">Audio</span>
+								<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
 							</label>
 						</div>
 					</div>
@@ -993,7 +995,7 @@
 									}}
 								/>
 								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
-								<span class="text-sm">Video</span>
+								<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
 							</label>
 							<label class="flex items-center gap-2 cursor-pointer">
 								<input
@@ -1007,7 +1009,7 @@
 									}}
 								/>
 								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
-								<span class="text-sm">Audio</span>
+								<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
 							</label>
 						</div>
 					</div>

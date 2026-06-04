@@ -2,6 +2,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectEditorTabs, TrackType } from '$lib/classes/enums';
 	import Settings from '$lib/classes/Settings.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const PAD = 10;
 	const TOOLTIP_W = 340;
@@ -22,144 +23,132 @@
 		hint?: string;
 	};
 
-	const TOUR_STEPS: TourStep[] = [
+	const TOUR_STEPS = $derived<TourStep[]>([
 		// ── HOME PAGE ──────────────────────────────────────────────────────────
 		{
 			targetId: 'new-project-button',
-			title: 'Create a new project',
-			description:
-				'This button lets you create a new Quran Caption project. For each recitation you want to subtitle, you create one project.',
+			title: $LL.tour.stepCreateProjectTitle(),
+			description: $LL.tour.stepCreateProjectDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Next'
+			buttonLabel: $LL.common.next()
 		},
 		{
 			targetId: 'tutorial-project-card',
-			title: 'Open the tutorial project',
-			description:
-				'A tutorial project with <strong>Surah Al-Fatihah</strong> by Yasser Al-Dosari has been created for you. <strong>Click on it</strong> to get started!',
+			title: $LL.tour.stepOpenTutorialTitle(),
+			description: $LL.tour.stepOpenTutorialDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () => globalState.currentProject !== null,
 			allowSpotlightClick: true,
-			hint: 'Click the tutorial project card to continue'
+			hint: $LL.tour.hintClickTutorialCard()
 		},
 		// ── VIDEO EDITOR ────────────────────────────────────────────────────────
 		{
 			targetId: 'assets-manager',
-			title: 'The Video Editor',
-			description:
-				'Here you import your Quran recitation. Three options: <strong>Add Asset</strong> (local file), <strong>Download Quran Recitation</strong> (Quran.com or MP3Quran), or <strong>Download from Social Media</strong> for YouTube and other public platforms. The tutorial project already has an audio asset ready for you.',
+			title: $LL.tour.stepVideoEditorTitle(),
+			description: $LL.tour.stepVideoEditorDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Next'
+			buttonLabel: $LL.common.next()
 		},
 		{
 			targetId: 'assets-manager',
-			title: 'Add to the timeline',
-			description:
-				'Hover over the asset card in the list on the left and click <strong>Add to Timeline</strong> to load it into the editing timeline.',
+			title: $LL.tour.stepAddToTimelineTitle(),
+			description: $LL.tour.stepAddToTimelineDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () =>
 				(globalState.currentProject?.content.timeline.getFirstTrack(TrackType.Audio)?.clips
 					?.length ?? 0) > 0,
 			allowSpotlightClick: true,
-			hint: 'Hover the asset and click "Add to Timeline" to continue'
+			hint: $LL.tour.hintHoverAndAdd()
 		},
 		// ── SUBTITLES EDITOR ────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-subtitles',
-			title: 'Go to Subtitles Editor',
-			description:
-				'Head to the <strong>Subtitles Editor</strong> to start adding Quranic text to your audio.',
+			title: $LL.tour.stepSubtitlesEditorTitle(),
+			description: $LL.tour.stepSubtitlesEditorDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () =>
 				globalState.currentProject?.projectEditorState.currentTab ===
 				ProjectEditorTabs.SubtitlesEditor,
 			allowSpotlightClick: true,
-			hint: 'Click the "Subtitles editor" tab to continue'
+			hint: $LL.tour.hintClickSubtitlesTab()
 		},
 		{
 			targetId: 'verse-picker-area',
-			title: 'Manual segmentation',
-			description:
-				'Subtitles are added in real time as the recitation plays. Press <strong>Space</strong> to play/pause, then use <strong>↑</strong> / <strong>↓</strong> to select the words currently being recited. When the reciter finishes a verse or part of one, press <strong>Enter</strong> to validate — the subtitle is added between the end of the previous one and the current playback position.',
+			title: $LL.tour.stepManualSegmentationTitle(),
+			description: $LL.tour.stepManualSegmentationDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Next'
+			buttonLabel: $LL.common.next()
 		},
 		{
 			targetId: 'subtitles-help-button',
-			title: 'Shortcuts & walkthrough',
-			description:
-				"Hover the <strong>?</strong> icon to see all available shortcuts (basmala, isti'adha, silence, and more). You'll also find a short <strong>interactive video</strong> that walks you through the manual subtitle workflow.",
+			title: $LL.tour.stepShortcutsTitle(),
+			description: $LL.tour.stepShortcutsDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Next'
+			buttonLabel: $LL.common.next()
 		},
 		{
 			targetId: 'auto-segment-button',
-			title: 'Auto-Segment with AI',
-			description:
-				'Prefer automation? Click <strong>Auto-Segment</strong> and the AI will detect verse boundaries automatically. Segments marked <strong>yellow or red</strong> in the timeline are low-confidence — you <strong>must review</strong> them.',
+			title: $LL.tour.stepAutoSegmentTitle(),
+			description: $LL.tour.stepAutoSegmentDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Next'
+			buttonLabel: $LL.common.next()
 		},
 		// ── TRANSLATIONS ────────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-translations',
-			title: 'Go to Translations',
-			description: 'Head to the <strong>Translations</strong> tab to manage your translations.',
+			title: $LL.tour.stepTranslationsTitle(),
+			description: $LL.tour.stepTranslationsDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () =>
 				globalState.currentProject?.projectEditorState.currentTab ===
 				ProjectEditorTabs.Translations,
 			allowSpotlightClick: true,
-			hint: 'Click the "Translations" tab to continue'
+			hint: $LL.tour.hintClickTranslationsTab()
 		},
 		{
 			targetId: 'translations-workspace',
-			title: 'Adapting translations',
-			description:
-				'Notice how verse 1:7 was recited in <strong>two parts</strong> — two subtitle segments. For each, only the <strong>matching portion of the translation</strong> is selected. Drag across the words to do this. A word-by-word English helper is available for non-Arabic speakers.',
+			title: $LL.tour.stepAdaptingTranslationsTitle(),
+			description: $LL.tour.stepAdaptingTranslationsDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Next'
+			buttonLabel: $LL.common.next()
 		},
 		// ── STYLE ───────────────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-style',
-			title: 'Go to Style',
-			description:
-				'Head to the <strong>Style</strong> tab to customize the visual appearance of your video.',
+			title: $LL.tour.stepStyleTitle(),
+			description: $LL.tour.stepStyleDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () =>
 				globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style,
 			allowSpotlightClick: true,
-			hint: 'Click the "Style" tab to continue'
+			hint: $LL.tour.hintClickStyleTab()
 		},
 		{
 			targetId: 'style-subtabs',
-			title: 'Three style categories',
-			description:
-				'<strong>Global</strong> — video overlay, reciter name, surah name...<br><strong>Arabic</strong> — Arabic text style, font, size, shadow...<br><strong>Translation</strong> — translation text style.',
+			title: $LL.tour.stepStyleCategoriesTitle(),
+			description: $LL.tour.stepStyleCategoriesDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Next'
+			buttonLabel: $LL.common.next()
 		},
 		// ── EXPORT ──────────────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-export',
-			title: 'Go to Export',
-			description: 'Finally, head to the <strong>Export</strong> tab to render your video.',
+			title: $LL.tour.stepExportTitle(),
+			description: $LL.tour.stepExportDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () =>
 				globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Export,
 			allowSpotlightClick: true,
-			hint: 'Click the "Export" tab to continue'
+			hint: $LL.tour.hintClickExportTab()
 		},
 		{
 			targetId: 'export-range',
-			title: 'Export your video',
-			description:
-				"Use the range inputs to export only a <strong>portion</strong> of the video if needed. No need for 4K — it's mostly text and will only slow down your machine!",
+			title: $LL.tour.stepExportVideoTitle(),
+			description: $LL.tour.stepExportVideoDesc(),
 			advanceMode: 'button',
-			buttonLabel: 'Finish'
+			buttonLabel: $LL.common.finish()
 		}
-	];
+	]);
 
 	let { close }: { close: () => void } = $props();
 
@@ -429,7 +418,7 @@
 			style="position: absolute; left: {tooltipLeft}px; top: {tooltipTop}px; width: {TOOLTIP_W}px; pointer-events: auto;"
 		>
 			<!-- Skip / close -->
-			<button class="tour-close-btn" onclick={completeTour} title="Skip tutorial">
+			<button class="tour-close-btn" onclick={completeTour} title={$LL.tour.skipTutorial()}>
 				<span class="material-icons" style="font-size: 14px;">close</span>
 			</button>
 
@@ -480,7 +469,7 @@
 				{#if currentStepIndex > 0}
 					<button class="tour-btn-secondary" onclick={goBack}>
 						<span class="material-icons" style="font-size: 14px;">arrow_back</span>
-						Back
+						{$LL.common.back()}
 					</button>
 				{:else}
 					<div></div>
@@ -488,9 +477,9 @@
 
 				{#if currentStep.advanceMode === 'button'}
 					<button class="tour-btn-primary" onclick={advance}>
-						{currentStep.buttonLabel ?? 'Next'}
+						{currentStep.buttonLabel ?? $LL.common.next()}
 						<span class="material-icons" style="font-size: 14px;">
-							{currentStep.buttonLabel === 'Finish' ? 'check' : 'arrow_forward'}
+							{currentStep.buttonLabel === $LL.common.finish() ? 'check' : 'arrow_forward'}
 						</span>
 					</button>
 				{:else if currentStep.hint}

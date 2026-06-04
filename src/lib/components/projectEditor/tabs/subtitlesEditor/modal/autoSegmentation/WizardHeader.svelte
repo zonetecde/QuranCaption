@@ -1,4 +1,6 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
+
 	let { onClose } = $props<{ onClose: () => void }>();
 </script>
 
@@ -9,9 +11,9 @@
 				<span class="material-icons text-black">auto_awesome</span>
 			</div>
 			<div>
-				<h2 class="text-xl font-semibold text-primary">Auto-Segmentation Wizard</h2>
+				<h2 class="text-xl font-semibold text-primary">{$LL.editor.aiSegmentationHeading()}</h2>
 				<p class="text-sm text-tertiary">
-					Guided setup to automatically add subtitles to your video
+					{$LL.editor.autoSegmentAudio()}
 				</p>
 			</div>
 		</div>

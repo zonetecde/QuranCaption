@@ -10,6 +10,8 @@
 	import { generateAiPlan } from './aiPlanGenerator';
 	import { Quran } from '$lib/classes/Quran';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import AiVideoPromptField from './components/AiVideoPromptField.svelte';
 	import AiVideoGenerationOptions from './components/AiVideoGenerationOptions.svelte';
 	import AiVideoQuranSourceSettings from './components/AiVideoQuranSourceSettings.svelte';
@@ -41,22 +43,22 @@
 		const requiresThemePrompt = aiv.video.sourceMode === 'ai' || aiv.ai.letAiChoose;
 
 		if (requiresThemePrompt && aiv.video.prompt.trim() === '') {
-			toast.error('Please enter a video theme or topic.');
+			toast.error(get(LL).aiVideo.pleaseEnterTheme());
 			return;
 		}
 
 		if (aiv.video.sourceMode === 'youtube' && aiv.video.youtubeUrl.trim() === '') {
-			toast.error('Please enter a YouTube video URL.');
+			toast.error(get(LL).aiVideo.pleaseEnterYoutubeUrl());
 			return;
 		}
 
 		if (!aiv.ai.letAiChoose && !aiv.audio.useLocal && aiv.audio.reciterName.trim() === '') {
-			toast.error('Please select a reciter or choose a local audio file.');
+			toast.error(get(LL).aiVideo.pleaseSelectReciter());
 			return;
 		}
 
 		if (!aiv.ai.letAiChoose && aiv.audio.useLocal && !aiv.audio.localPath) {
-			toast.error('Please select a local audio file.');
+			toast.error(get(LL).aiVideo.pleaseSelectLocalAudio());
 			return;
 		}
 
@@ -87,9 +89,7 @@
 					aiv.audio.reciterName = resolved.reciterName;
 					aiv.review.reciterName = resolved.reciterName;
 				} else {
-					toast.error(
-						'AI selected a reciter that could not be resolved. Please pick one manually in the review.'
-					);
+					toast.error(get(LL).aiVideo.aiSelectedReciterError());
 				}
 			}
 
@@ -112,7 +112,7 @@
 				onclick={goBack}
 			>
 				<span class="material-icons text-base">arrow_back</span>
-				{aiv.step === 'review' ? 'Back to options' : 'Back to Home'}
+				{aiv.step === 'review' ? $LL.aiVideo.backToOptions() : $LL.aiVideo.backToHome()}
 			</button>
 
 			<div class="flex items-center gap-4">
@@ -122,11 +122,11 @@
 					<span class="material-icons text-white text-xl">auto_awesome</span>
 				</div>
 				<div>
-					<h1 class="text-3xl font-bold text-primary">AI Video</h1>
+					<h1 class="text-3xl font-bold text-primary">{$LL.aiVideo.aiVideo()}</h1>
 					<p class="text-sm text-secondary">
 						{aiv.step === 'input'
-							? 'Describe your video theme and choose your options'
-							: 'Review and adjust before creating the project'}
+							? $LL.aiVideo.inputStepDescription()
+							: $LL.aiVideo.reviewStepDescription()}
 					</p>
 				</div>
 			</div>
@@ -161,16 +161,16 @@
 				>
 					{#if aiv.ai.isGeneratingPlan}
 						<span class="material-icons animate-spin text-lg">autorenew</span>
-						{aiv.ai.letAiChoose ? 'AI is planning your video...' : 'Preparing review...'}
+						{aiv.ai.letAiChoose ? $LL.aiVideo.aiIsPlanning() : $LL.aiVideo.preparingReview()}
 					{:else}
 						<span class="material-icons text-lg">arrow_forward</span>
-						{aiv.ai.letAiChoose ? 'Generate AI Plan' : 'Review & Continue'}
+						{aiv.ai.letAiChoose ? $LL.aiVideo.generateAiPlan() : $LL.aiVideo.reviewContinue()}
 					{/if}
 				</button>
 
 				{#if aiv.ai.letAiChoose}
 					<p class="text-center text-xs text-thirdly">
-						AI will use your configured API to select a verse range and, if needed, a reciter.
+						{$LL.aiVideo.aiWillChoose()}
 					</p>
 				{/if}
 

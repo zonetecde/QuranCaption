@@ -7,6 +7,8 @@
 	} from '$lib/types/settings-shortcuts';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	type ActionDef = ShortcutActionDefinition;
 
@@ -22,12 +24,12 @@
 		'FRAME_BY_FRAME_SCROLL'
 	]);
 	const timelineWheelOptions = [
-		{ value: 'scroll', label: 'Scroll' },
-		{ value: 'control', label: 'Ctrl + Scroll' },
-		{ value: 'shift', label: 'Shift + Scroll' },
-		{ value: 'control+shift', label: 'Ctrl + Shift + Scroll' },
-		{ value: 'alt', label: 'Alt + Scroll' },
-		{ value: 'disabled', label: 'Disabled' }
+		{ value: 'scroll', label: get(LL).settings.scroll() },
+		{ value: 'control', label: get(LL).settings.ctrlScroll() },
+		{ value: 'shift', label: get(LL).settings.shiftScroll() },
+		{ value: 'control+shift', label: get(LL).settings.ctrlShiftScroll() },
+		{ value: 'alt', label: get(LL).settings.altScroll() },
+		{ value: 'disabled', label: get(LL).common.disabled() }
 	];
 
 	// Gestion d’affichage du 2e slot par action (masqué par défaut)
@@ -52,11 +54,11 @@
 		return k.toLowerCase();
 	}
 	function formatKey(k: string | undefined): string {
-		if (!k) return 'None';
-		if (k === 'control') return 'Ctrl';
-		if (k === 'control+shift') return 'Ctrl + Shift';
-		if (k === 'scroll') return 'Scroll';
-		if (k === ' ') return 'Space';
+		if (!k) return get(LL).common.none();
+		if (k === 'control') return get(LL).settings.ctrl();
+		if (k === 'control+shift') return get(LL).settings.ctrlShift();
+		if (k === 'scroll') return get(LL).settings.scroll();
+		if (k === ' ') return get(LL).settings.space();
 		const specials: Record<string, string> = {
 			arrowleft: 'ArrowLeft',
 			arrowright: 'ArrowRight',
@@ -64,9 +66,9 @@
 			arrowdown: 'ArrowDown',
 			pageup: 'PageUp',
 			pagedown: 'PageDown',
-			escape: 'Esc',
-			enter: 'Enter',
-			backspace: 'Backspace'
+			escape: get(LL).settings.esc(),
+			enter: get(LL).settings.enter(),
+			backspace: get(LL).settings.backspace()
 		};
 		return specials[k] ?? (k.length === 1 ? k.toUpperCase() : k[0].toUpperCase() + k.slice(1));
 	}
@@ -223,7 +225,7 @@
 </script>
 
 {#if !globalState.settings}
-	<div class="p-4 text-secondary">Loading shortcuts…</div>
+	<div class="p-4 text-secondary">{$LL.editor.loadingShortcuts()}</div>
 {:else}
 	<div class="space-y-8">
 		{#each allCategories() as cat (cat.key)}
@@ -291,14 +293,14 @@
 										<button
 											class="px-2 py-1 rounded-md border border-border-color text-xs text-secondary hover:text-primary bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-accent/30 flex items-center gap-1"
 											onclick={() => (expandedSecond[idFor(cat.key, action.key)] = true)}
-											title="Add a second key"
+											title={$LL.editor.addASecondKey()}
 										>
 											<span class="material-icons text-xs">add</span>
 										</button>
 										{#if action.def.keys?.[1]}
 											<span
 												class="text-[10px] text-thirdly bg-secondary/60 border border-border-color rounded-full px-2 py-0.5"
-												title="A second key is already defined">+1</span
+												title="{$LL.settings.aSecondKeyAlreadyDefined()}">+1</span
 											>
 										{/if}
 									{/if}
@@ -332,13 +334,13 @@
 		<button
 			class="px-2 py-1 rounded-md border border-border-color text-xs text-primary bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-accent/50 min-w-[84px] flex items-center justify-center gap-1"
 			onclick={(e) => onCapture(category, action, index, e)}
-			title="Click to set key"
+			title="{$LL.settings.clickToSetKey()}"
 		>
 			{#if capturing && capturing.category === category && capturing.action === action && capturing.index === index}
 				<span
 					class="i loader mr-1 animate-spin h-3 w-3 border-2 border-accent border-t-transparent rounded-full"
 				></span>
-				<span>Press a key</span>
+				<span>{$LL.settings.pressAKey()}</span>
 			{:else}
 				<span class="material-icons text-xs opacity-70">keyboard</span>
 				<span>{formatKey(value)}</span>
@@ -347,7 +349,7 @@
 		<button
 			class="p-1 rounded-md text-secondary hover:text-primary hover:bg-white/10"
 			onclick={() => onClear(category, action, index)}
-			title="Clear"
+			title={$LL.common.clear()}
 		>
 			<span class="material-icons text-sm">backspace</span>
 		</button>

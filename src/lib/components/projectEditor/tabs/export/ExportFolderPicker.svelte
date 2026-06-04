@@ -4,9 +4,13 @@
 	import { open } from '@tauri-apps/plugin-dialog';
 	import ExportService from '$lib/services/ExportService';
 	import Settings from '$lib/classes/Settings.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let {
-		description = 'Choose where your exported files will be saved.'
+		description = LL_.export.exportFolderDescription()
 	}: { description?: string } = $props();
 
 	let currentExportFolder = $state('');
@@ -78,7 +82,7 @@
 			}}
 		/>
 		<button class="btn-accent px-3 py-2 text-sm cursor-pointer" onclick={changeExportFolder}>
-			Browse
+			>{$LL.export.browse()}
 		</button>
 	</div>
 	{#if globalState.settings?.persistentUiState.videoExportFolder}
@@ -86,7 +90,7 @@
 			class="text-accent-primary text-xs self-start cursor-pointer ml-auto opacity-50 hover:underline underline-offset-2"
 			onclick={resetExportFolder}
 		>
-			Reset to default location
+			{$LL.export.resetToDefault()}
 		</button>
 	{/if}
 </div>

@@ -4,6 +4,8 @@
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import toast from 'svelte-5-french-toast';
 	import { fade } from 'svelte/transition';
+	import { get } from 'svelte/store';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		close,
@@ -99,12 +101,12 @@
 			await invoke('send_http_get', { url: endpoint.toString() });
 
 			toast.success(
-				activeTab === 'review' ? 'Thanks for your review.' : 'Thanks for your feedback.'
+				activeTab === 'review' ? get(LL).common.thanksForReview() : get(LL).common.thanksForFeedback()
 			);
 			closeModal();
 		} catch (error) {
 			console.error('Failed to submit support message:', error);
-			toast.error('Unable to send message.');
+			toast.error(get(LL).common.unableToSendMessage());
 		} finally {
 			isSubmitting = false;
 		}
@@ -135,13 +137,13 @@
 					</div>
 					<div>
 						<h2 class="text-2xl font-bold text-primary">
-							{activeTab === 'review' ? 'Leave a Review' : 'Feature Request / Bug Report'}
+							{activeTab === 'review' ? $LL.common.leaveReview() : $LL.common.featureRequestBugReport()}
 						</h2>
 
 						<p class="text-sm text-thirdly">
 							{activeTab === 'review'
-								? 'Your rating helps us prioritize quality.'
-								: 'Share ideas or issues so we can improve Quran Caption.'}
+								? $LL.common.ratingHelps()
+								: $LL.common.shareIdeas()}
 						</p>
 					</div>
 				</div>
@@ -150,7 +152,7 @@
 				<button
 					class="w-10 h-10 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary group cursor-pointer"
 					onclick={closeModal}
-					aria-label="Close support modal"
+					aria-label={$LL.common.closeSupportModal()}
 				>
 					<span
 						class="material-icons text-lg group-hover:rotate-90 transition-transform duration-200"
@@ -172,7 +174,7 @@
 					onclick={() => (activeTab = 'review')}
 				>
 					<span class="material-icons text-base">star</span>
-					Review
+					{$LL.common.review()}
 				</button>
 				<button
 					class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-all duration-200 cursor-pointer text-sm font-medium {activeTab ===
@@ -182,14 +184,14 @@
 					onclick={() => (activeTab = 'feedback')}
 				>
 					<span class="material-icons text-base">construction</span>
-					Feature / Bug
+					{$LL.common.featureBug()}
 				</button>
 			</div>
 
 			{#if activeTab === 'review'}
 				<!-- Star rating -->
 				<div class="bg-accent rounded-lg p-5 border border-color">
-					<p class="text-sm font-semibold text-primary mb-3">Your rating</p>
+					<p class="text-sm font-semibold text-primary mb-3">{$LL.common.yourRating()}</p>
 					<div class="flex items-center gap-1.5">
 						{#each [1, 2, 3, 4, 5] as star (star)}
 							<button
@@ -198,7 +200,7 @@
 								onmouseenter={() => (hoveredRating = star)}
 								onmouseleave={() => (hoveredRating = 0)}
 								onkeydown={(event) => handleStarKeyDown(event, star)}
-								aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+								aria-label={$LL.common.rateStar({ star, plural: star > 1 ? 's' : '' })}
 							>
 								<span
 									class="material-icons text-2xl transition-colors {(hoveredRating ||
@@ -218,7 +220,7 @@
 			{:else}
 				<!-- Feedback type selector -->
 				<div class="bg-accent rounded-lg p-5 border border-color">
-					<p class="text-sm font-semibold text-primary mb-3">Feedback type</p>
+					<p class="text-sm font-semibold text-primary mb-3">{$LL.common.feedbackType()}</p>
 					<div class="flex gap-3">
 						<button
 							class="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 cursor-pointer text-sm {feedbackType ===
@@ -228,7 +230,7 @@
 							onclick={() => (feedbackType = 'feature')}
 						>
 							<span class="material-icons text-base">lightbulb</span>
-							Feature
+							{$LL.common.feature()}
 						</button>
 						<button
 							class="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 cursor-pointer text-sm {feedbackType ===
@@ -238,7 +240,7 @@
 							onclick={() => (feedbackType = 'bug')}
 						>
 							<span class="material-icons text-base">bug_report</span>
-							Bug
+							{$LL.common.bug()}
 						</button>
 					</div>
 				</div>
@@ -247,13 +249,13 @@
 			<!-- Email -->
 			<div>
 				<label for="support-email" class="block text-sm font-semibold text-primary mb-2"
-					>Email</label
+					>{$LL.common.email()}</label
 				>
 				<input
 					id="support-email"
 					type="email"
 					maxlength={120}
-					placeholder="you@example.com"
+					placeholder={$LL.common.emailPlaceholder()}
 					class="w-full text-sm rounded-lg border border-color bg-accent px-4 py-2.5 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary transition-all duration-200"
 					bind:value={email}
 				/>
@@ -262,15 +264,15 @@
 			<!-- Message -->
 			<div>
 				<label for="support-message" class="block text-sm font-semibold text-primary mb-2">
-					{activeTab === 'review' ? 'Comment' : 'Message'}
+					{activeTab === 'review' ? $LL.common.comment() : $LL.common.message()}
 				</label>
 				<textarea
 					id="support-message"
 					rows="4"
 					maxlength={500}
 					placeholder={activeTab === 'review'
-						? 'Share your thoughts about the app...'
-						: 'Describe your idea or the issue you encountered...'}
+						? $LL.common.shareThoughtsPlaceholder()
+						: $LL.common.describeIssuePlaceholder()}
 					class="w-full text-sm resize-y min-h-[110px] rounded-lg border border-color bg-accent px-4 py-2.5 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary transition-all duration-200"
 					bind:value={message}
 				></textarea>
@@ -288,14 +290,14 @@
 				/>
 			</svg>
 			<p class="text-xs text-secondary leading-relaxed">
-				Need help? Join the
+				{$LL.common.needHelpJoin()}
 				<button
 					class="text-[#5865F2] font-semibold hover:underline cursor-pointer"
 					onclick={() => openUrl('https://discord.gg/Hxfqq2QA2J')}
 				>
-					Quran Caption Discord server
+					{$LL.common.quranCaptionDiscord()}
 				</button>
-				for support and tutorials.
+				{$LL.common.forSupportAndTutorials()}
 			</p>
 		</div>
 
@@ -304,7 +306,7 @@
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2 text-sm text-thirdly">
 					<span class="material-icons text-accent-secondary text-base">info</span>
-					<span>Your message will be sent directly to the developer.</span>
+					<span>{$LL.common.messageSentToDev()}</span>
 				</div>
 
 				<div class="flex gap-3">
@@ -312,16 +314,16 @@
 						class="px-5 py-2.5 font-medium text-primary border border-color rounded-lg hover:bg-accent hover:border-accent-primary transition-all duration-200 cursor-pointer text-sm"
 						onclick={closeModal}
 					>
-						Cancel
+						{$LL.common.cancel()}
 					</button>
 					<button
 						class="px-6 py-2.5 font-medium bg-accent-primary text-black rounded-lg hover:bg-blue-400 transition-all duration-200 flex items-center gap-2 shadow-lg cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 						onclick={submit}
 						disabled={!canSubmit}
-						aria-label={activeTab === 'review' ? 'Send review' : 'Send feedback'}
+						aria-label={activeTab === 'review' ? $LL.common.sendReview() : $LL.common.sendFeedback()}
 					>
 						<span class="material-icons text-base">send</span>
-						{isSubmitting ? 'Sending...' : activeTab === 'review' ? 'Send Review' : 'Send Feedback'}
+						{isSubmitting ? $LL.common.sending() : activeTab === 'review' ? $LL.common.sendReview() : $LL.common.sendFeedback()}
 					</button>
 				</div>
 			</div>

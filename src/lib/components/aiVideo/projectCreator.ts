@@ -21,6 +21,8 @@ import {
 } from '$lib/services/AdvancedAITrimming';
 import { BACKGROUND_VIDEO_URLS } from './constants';
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import { join } from '@tauri-apps/api/path';
 import { copyFile } from '@tauri-apps/plugin-fs';
@@ -87,13 +89,13 @@ export async function createAiVideoProject(): Promise<void> {
 		console.log(`[AiVideo] ${msg}`);
 	};
 
-	setStatus('Creating project...');
+	setStatus(get(LL).aiVideo.creatingProjectStatus());
 
 	try {
 		const projectName = `AI - ${(snapshot.title || snapshot.prompt).trim().slice(0, 50)}`;
 
 		if (Utilities.isPathNotSafe(projectName)) {
-			toast.error('Generated project name contains invalid characters.');
+			toast.error(get(LL).aiVideo.generatedProjectNameInvalid());
 			return;
 		}
 
@@ -129,14 +131,14 @@ export async function createAiVideoProject(): Promise<void> {
 		// ── 1. Background video ──
 		let backgroundVideoAssetId: number | undefined;
 		if (snapshot.sourceMode !== 'none') {
-			setStatus('Downloading background video...');
+			setStatus(get(LL).aiVideo.downloadingBgVideo());
 			const backgroundVideoPath = await invoke<string>('download_from_youtube', {
 				url: backgroundVideoUrl,
 				type: 'video_no_audio',
 				downloadPath: assetFolder
 			});
 
-			setStatus('Adding background video...');
+			setStatus(get(LL).aiVideo.addingBgVideo());
 			content.addAsset(backgroundVideoPath, backgroundVideoUrl, SourceType.YouTube, {
 				skipConstantBitrateWarning: true
 			});
@@ -169,12 +171,12 @@ export async function createAiVideoProject(): Promise<void> {
 		// ── 2. Audio ──
 		const audioFilePath = await prepareAudio(project, content, assetFolder, snapshot, setStatus);
 		if (!audioFilePath) {
-			toast.error('No audio source selected.');
+			toast.error(get(LL).aiVideo.noAudioSourceSelected());
 			return;
 		}
 
 		// ── 3. Add audio to timeline ──
-		setStatus('Adding audio to timeline...');
+		setStatus(get(LL).aiVideo.addingAudioToTimeline());
 		const sourceType = snapshot.useLocal ? SourceType.Local : SourceType.Mp3Quran;
 		const metadata: Record<string, unknown> = {};
 
@@ -216,7 +218,7 @@ export async function createAiVideoProject(): Promise<void> {
 		await project.save();
 
 		// ── 4. Auto-segmentation ──
-		setStatus('Generating subtitles with AI...');
+		setStatus(get(LL).aiVideo.generatingSubtitles());
 		const segmentationSettings = globalState.settings?.autoSegmentationSettings;
 		const useLocalUniversalAligner =
 			segmentationSettings?.mode === 'local' &&
@@ -255,7 +257,7 @@ export async function createAiVideoProject(): Promise<void> {
 		console.log('[AiVideo] Segmentation result:', segResult);
 
 		if (segResult && segResult.status === 'failed') {
-			toast.error(`Subtitles failed: ${segResult.message}. Project created without subtitles.`);
+			toast.error(get(LL).aiVideo.subtitlesFailed({ message: segResult.message }));
 			await project.save();
 			return;
 		}
@@ -269,11 +271,11 @@ export async function createAiVideoProject(): Promise<void> {
 			console.log('[AiVideo] No translation selected, skipping translation step.');
 		}
 
-		setStatus('Finalizing project...');
-		toast.success('Project ready!');
+		setStatus(get(LL).aiVideo.finalizingProject());
+		toast.success(get(LL).aiVideo.projectReady());
 	} catch (error) {
 		console.error('[AiVideo] Project creation failed:', error);
-		toast.error(`Failed to create project: ${error}`);
+		toast.error(get(LL).aiVideo.failedToCreateProject({ error: String(error) }));
 		throw error;
 	}
 }
@@ -303,7 +305,7 @@ async function prepareAudio(
 	setStatus: (msg: string) => void
 ): Promise<string | null> {
 	if (snapshot.useLocal && snapshot.localPath) {
-		setStatus('Copying audio file...');
+		setStatus(get(LL).aiVideo.copyingAudio());
 		const ext = snapshot.localPath.split('.').pop() || 'mp3';
 		const destFileName = `local-audio.${ext}`;
 		const destPath = await join(assetFolder, destFileName);
@@ -312,7 +314,7 @@ async function prepareAudio(
 	}
 
 	if (snapshot.reciterOption) {
-		setStatus('Downloading recitation...');
+		setStatus(get(LL).aiVideo.downloadingRecitation());
 		const formattedSurahId = snapshot.surah.toString().padStart(3, '0');
 		const audioUrl = `${snapshot.reciterOption.moshaf.server}${formattedSurahId}.mp3`;
 		const fullSurahPath = await join(assetFolder, `full-surah-${formattedSurahId}.mp3`);
@@ -328,7 +330,7 @@ async function prepareAudio(
 		if (!needsTrim) return fullSurahPath;
 
 		// Trim l'audio a la plage de versets demandee
-		setStatus('Trimming audio to verse range...');
+		setStatus(get(LL).aiVideo.trimmingAudio());
 		try {
 			const timings = await Mp3QuranService.getSurahTiming(
 				snapshot.reciterOption.moshaf.id,
@@ -376,7 +378,7 @@ async function addTranslationAndTrim(
 	translation: import('$lib/classes').Edition,
 	setStatus: (msg: string) => void
 ): Promise<void> {
-	setStatus('Loading translation...');
+	setStatus(get(LL).aiVideo.loadingTranslation());
 	console.log('[AiVideo] Adding translation:', translation.name, translation.author);
 
 	const pt = content.projectTranslation;
@@ -401,7 +403,7 @@ async function addTranslationAndTrim(
 		return;
 	}
 
-	setStatus('Trimming translations with AI...');
+	setStatus(get(LL).aiVideo.trimmingWithAI());
 	try {
 		const candidates = buildAdvancedTrimVerseCandidates(translation, false);
 		console.log('[AiVideo] Trim candidates:', candidates.length);
@@ -453,19 +455,17 @@ async function addTranslationAndTrim(
 				erroredSegments += applyReport.erroredSegments;
 			} catch (batchError) {
 				console.error(`[AiVideo] ❌ AI trim batch ${i + 1} FAILED:`, batchError);
-				toast.error(
-					`AI trim batch ${i + 1} failed: ${batchError instanceof Error ? batchError.message : String(batchError)}`
-				);
 				const msg = batchError instanceof Error ? batchError.message : String(batchError);
+				toast.error(get(LL).aiVideo.aiTrimBatchFailed({ batch: i + 1, error: msg }));
 				if (/\b(401|402|403|429|500|502|503|504)\b/.test(msg)) break;
 			}
 		}
 
 		if (trimmedSegments > 0) {
-			toast.success(`AI trimmed ${trimmedSegments} translation segments.`);
+			toast.success(get(LL).translations.aiTrimmedSegments({ count: trimmedSegments }));
 		}
 		if (erroredSegments > 0) {
-			toast(`${erroredSegments} segments need manual review.`, { duration: 4000 });
+			toast(get(LL).aiVideo.segmentsNeedReview({ count: erroredSegments }), { duration: 4000 });
 		}
 	} catch (trimError) {
 		console.warn('[AiVideo] AI translation trimming failed:', trimError);

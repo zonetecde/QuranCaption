@@ -11,6 +11,8 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let { close } = $props();
 	let selectedTranslations: Edition[] = $state([]);
@@ -77,7 +79,7 @@
 			);
 			globalState.qdcAvailableTranslations = qdcTranslations;
 		} catch (error) {
-			qdcTranslationsError = 'Unable to load Quran.com API translations.';
+			qdcTranslationsError = get(LL).editor.qdcApiUnavailable();
 			console.error('Error loading QDC translations:', error);
 		} finally {
 			isLoadingQdcTranslations = false;
@@ -145,7 +147,7 @@
 				}
 				close();
 			} catch (error) {
-				toast.error('Failed to add translations to project');
+				toast.error(get(LL).translations.failedToAddTranslations());
 				console.error('Error adding translations:', error);
 			}
 		}
@@ -219,7 +221,7 @@
 
 			const availableLanguages = Object.keys(globalState.availableTranslations);
 			if (availableLanguages.length === 0) {
-				throw new Error('No available language metadata loaded.');
+				throw new Error(get(LL).editor.noTranslationsAvailable());
 			}
 			const language = availableLanguages.includes('English') ? 'English' : availableLanguages[0];
 			const direction =
@@ -257,17 +259,15 @@
 				edition.language
 			);
 
-			toast.success(
-				`TXT translation imported successfully (${neededVerseNumbers.length} verses from surah ${surah}).`
-			);
+			toast.success(get(LL).translations.txtImportSuccess({ count: neededVerseNumbers.length, surah }));
 			close();
 		} catch (error: unknown) {
 			txtImportError =
 				error && typeof error === 'object' && 'message' in error
 					? String((error as { message?: unknown }).message ?? '')
-					: 'Failed to import translation from txt.';
+					: get(LL).translations.failedToImportTxt();
 			if (!txtImportError) {
-				txtImportError = 'Failed to import translation from txt.';
+				txtImportError = get(LL).translations.failedToImportTxt();
 			}
 			toast.error(txtImportError);
 			console.error('Error importing txt translation:', error);
@@ -315,9 +315,9 @@
 					<span class="material-icons text-black text-lg">translate</span>
 				</div>
 				<div>
-					<h2 class="text-xl font-bold text-primary">Add Translation</h2>
+					<h2 class="text-xl font-bold text-primary">{$LL.translations.addTranslationHeading()}</h2>
 					<p class="text-sm text-thirdly">
-						Choose a language and translation to add to your project
+						{$LL.editor.chooseLanguageAndTranslation()}
 					</p>
 				</div>
 			</div>
@@ -337,7 +337,7 @@
 			<div class="relative flex-1">
 				<input
 					type="text"
-					placeholder="Search languages or authors..."
+					placeholder={$LL.editor.searchLanguagesOrAuthors()}
 					bind:value={searchQuery}
 					class="w-full pr-4 py-3 bg-secondary border border-color rounded-xl text-primary focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-20 transition-all duration-200"
 					style="padding-left: 40px; "
@@ -357,7 +357,7 @@
 					aria-pressed={activeTranslationsTab === 'quran-api'}
 					onclick={() => (activeTranslationsTab = 'quran-api')}
 				>
-					Quran API
+					{$LL.editor.quranApi()}
 				</button>
 				<button
 					class="px-3 py-1.5 rounded-lg text-sm transition-all duration-200 {activeTranslationsTab ===
@@ -367,7 +367,7 @@
 					aria-pressed={activeTranslationsTab === 'quran-com-api'}
 					onclick={() => (activeTranslationsTab = 'quran-com-api')}
 				>
-					Quran.com
+					{$LL.editor.quranCom()}
 				</button>
 			</div>
 		</div>
@@ -376,7 +376,7 @@
 			<div class="mt-3 flex items-start gap-3">
 				<div class="flex shrink-0 items-center gap-2 pt-1">
 					<span class="material-icons text-accent-primary text-sm">history</span>
-					<span class="text-sm font-medium text-primary">Recent Translations</span>
+					<span class="text-sm font-medium text-primary">{$LL.editor.recentTranslations()}</span>
 				</div>
 				<div class="flex flex-1 flex-wrap justify-end gap-2">
 					{#each recentTranslations.slice(0, 8) as translation (translation.key)}
@@ -404,7 +404,7 @@
 					{/each}
 					{#if recentTranslations.length > 8}
 						<span class="px-2 py-1.5 text-xs text-thirdly bg-accent rounded-lg border border-color">
-							+{recentTranslations.length - 8} more
+							{$LL.editor.moreCount({ count: recentTranslations.length - 8 })}
 						</span>
 					{/if}
 				</div>
@@ -419,9 +419,9 @@
 				<!-- Left column: Selection -->
 				<div class="w-1/2 border-r border-color overflow-y-auto px-6 py-4">
 					<div class="mb-4">
-						<h3 class="text-lg font-semibold text-primary mb-2">Available Translations</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.translations.availableTranslations()}</h3>
 						<p class="text-sm text-thirdly">
-							{selectedTranslations.length} translation{selectedTranslations.length > 1 ? 's' : ''} selected
+							{$LL.editor.translationsSelected({ count: selectedTranslations.length })}
 						</p>
 					</div>
 
@@ -435,8 +435,8 @@
 								>
 									<span class="material-icons text-accent-primary">note_add</span>
 									<div>
-										<h4 class="font-semibold text-primary">Import from TXT</h4>
-										<p class="text-xs text-thirdly">Load custom translation from file</p>
+										<h4 class="font-semibold text-primary">{$LL.editor.importFromTxt()}</h4>
+										<p class="text-xs text-thirdly">{$LL.editor.loadCustomTranslation()}</p>
 									</div>
 								</div>
 
@@ -456,7 +456,9 @@
 											<span
 												class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200 text-sm"
 											>
-												{isImportingTxt ? 'Importing txt...' : 'Browse and import TXT'}
+												{isImportingTxt
+													? $LL.editor.importingTxt()
+													: $LL.editor.browseAndImportTxt()}
 											</span>
 										</div>
 										<span
@@ -468,18 +470,16 @@
 
 									{#if showTxtImportHelp}
 										<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
-											<p class="text-xs text-secondary font-medium mb-2">Format expected:</p>
+											<p class="text-xs text-secondary font-medium mb-2">{$LL.editor.formatExpected()}</p>
 											<p class="text-xs text-thirdly">
-												TXT file with one line per verse translation, in surah verse order, <strong
-													class="text-primary">without basmala</strong
-												>.
+												{$LL.editor.txtFormatDescription()}
 											</p>
 											<div
 												class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
 											>
-												<p>1 First verse translation</p>
-												<p>2 Second verse translation</p>
-												<p>3 Third verse translation</p>
+												<p>{$LL.editor.txtSampleLine1()}</p>
+												<p>{$LL.editor.txtSampleLine2()}</p>
+												<p>{$LL.editor.txtSampleLine3()}</p>
 											</div>
 											{#if txtImportError}
 												<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
@@ -495,7 +495,7 @@
 								<div
 									class="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"
 								></div>
-								<p class="text-sm text-thirdly">Loading Quran.com API translations...</p>
+								<p class="text-sm text-thirdly">{$LL.editor.loadingQdcTranslations()}</p>
 							</div>
 						{:else if activeTranslationsTab === 'quran-com-api' && qdcTranslationsError}
 							<div class="bg-accent border border-color rounded-lg p-4 text-sm text-red-400">
@@ -520,7 +520,7 @@
 									{/if}
 									<div>
 										<h4 class="font-semibold text-primary">{language}</h4>
-										<p class="text-xs text-thirdly">{translations.length} available</p>
+										<p class="text-xs text-thirdly">{$LL.editor.availableCount({ count: translations.length })}</p>
 									</div>
 								</div>
 
@@ -563,9 +563,9 @@
 				<!-- Right column: Preview -->
 				<div class="w-1/2 overflow-y-auto px-6 py-4">
 					<div class="mb-4">
-						<h3 class="text-lg font-semibold text-primary mb-2">Translation Previews</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.translationPreviews()}</h3>
 						<p class="text-sm text-thirdly">
-							Preview of selected translations for your project verses
+							{$LL.editor.previewDescription()}
 						</p>
 					</div>
 
@@ -576,7 +576,7 @@
 								<div
 									class="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"
 								></div>
-								<p class="text-sm text-thirdly">Loading translation preview...</p>
+								<p class="text-sm text-thirdly">{$LL.editor.translationPreview()}</p>
 							</div>
 						</div>
 					{:else if selectedTranslations.length === 0}
@@ -588,7 +588,7 @@
 								>
 									<span class="material-icons text-thirdly">translate</span>
 								</div>
-								<p class="text-sm text-thirdly">Select translations to see preview</p>
+								<p class="text-sm text-thirdly">{$LL.editor.selectTranslationsForPreview()}</p>
 							</div>
 						</div>{:else if selectedTranslations.length === 1}
 						<!-- Single translation - Full preview -->
@@ -610,7 +610,7 @@
 									>
 										<span class="material-icons text-thirdly">translate</span>
 									</div>
-									<p class="text-sm text-thirdly">No verses found for this translation</p>
+									<p class="text-sm text-thirdly">{$LL.editor.noVersesForTranslation()}</p>
 								</div>
 							</div>
 						{:else}
@@ -630,7 +630,7 @@
 												{verseKey}
 											</span>
 											{#if surah && verse}
-												<span class="text-xs text-thirdly">Surah {surah}, Verse {verse}</span>
+												<span class="text-xs text-thirdly">{$LL.editor.surahAndVerse({ surah: Number(surah), verse: Number(verse) })}</span>
 											{/if}
 										</div>
 
@@ -651,13 +651,13 @@
 										<h4 class="font-medium text-primary">{translation.author}</h4>
 										{#if Object.keys(preview).length > 0}
 											<span class="text-xs text-thirdly bg-accent px-2 py-1 rounded">
-												{Object.keys(preview).length} verses
+												{$LL.editor.versesCount({ count: Object.keys(preview).length })}
 											</span>
 										{/if}
 									</div>
 
 									{#if Object.keys(preview).length === 0}
-										<p class="text-xs text-thirdly italic">Loading preview...</p>
+										<p class="text-xs text-thirdly italic">{$LL.editor.loadingPreview()}</p>
 									{:else}
 										<!-- Show max 3 verses per translation in condensed mode -->
 										<div class="space-y-2">
@@ -681,7 +681,7 @@
 											{#if Object.keys(preview).length > 3}
 												<div class="text-center">
 													<span class="text-xs text-thirdly bg-bg-secondary px-3 py-1 rounded-full">
-														+{Object.keys(preview).length - 3} more verses
+														{$LL.editor.moreVersesCount({ count: Object.keys(preview).length - 3 })}
 													</span>
 												</div>
 											{/if}
@@ -701,14 +701,14 @@
 						<div
 							class="w-10 h-10 border-2 border-accent-primary border-t-transparent rounded-full animate-spin mb-4"
 						></div>
-						<p class="text-thirdly">Loading Quran.com API translations...</p>
+						<p class="text-thirdly">{$LL.editor.loadingQdcTranslations()}</p>
 					</div>
 				{:else if activeTranslationsTab === 'quran-com-api' && qdcTranslationsError}
 					<div class="flex flex-col items-center justify-center h-full text-center">
 						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
 							<span class="material-icons text-red-400 text-2xl">error_outline</span>
 						</div>
-						<h3 class="text-lg font-semibold text-primary mb-2">Quran.com API unavailable</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.qdcApiUnavailable()}</h3>
 						<p class="text-thirdly max-w-md">{qdcTranslationsError}</p>
 					</div>
 				{:else if Object.keys(activeFilteredTranslations()).length === 0}
@@ -717,17 +717,17 @@
 						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
 							<span class="material-icons text-thirdly text-2xl">search_off</span>
 						</div>
-						<h3 class="text-lg font-semibold text-primary mb-2">No translations found</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.noTranslationsFoundModal()}</h3>
 						<p class="text-thirdly max-w-md">
 							{#if searchQuery}
-								No translations match your search "{searchQuery}". Try a different search term.
+								{$LL.editor.noTranslationsMatchSearch()}
 							{:else}
-								No translations are currently available.
+								{$LL.editor.noTranslationsAvailable()}
 							{/if}
 						</p>
 						{#if searchQuery}
 							<button class="btn mt-4 px-4 py-2" onclick={() => (searchQuery = '')}>
-								Clear search
+								{$LL.editor.clearSearch()}
 							</button>
 						{/if}
 					</div>
@@ -741,8 +741,8 @@
 							>
 								<span class="material-icons text-accent-primary">note_add</span>
 								<div>
-									<h3 class="font-bold text-lg text-primary">Import from TXT</h3>
-									<p class="text-sm text-thirdly">Load custom translation from file</p>
+									<h3 class="font-bold text-lg text-primary">{$LL.editor.importFromTxt()}</h3>
+									<p class="text-sm text-thirdly">{$LL.editor.loadCustomTranslation()}</p>
 								</div>
 							</div>
 
@@ -762,7 +762,9 @@
 										<span
 											class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200"
 										>
-											{isImportingTxt ? 'Importing txt...' : 'Browse and import TXT'}
+											{isImportingTxt
+												? $LL.editor.importingTxt()
+												: $LL.editor.browseAndImportTxt()}
 										</span>
 									</div>
 									<span
@@ -774,18 +776,16 @@
 
 								{#if showTxtImportHelp}
 									<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
-										<p class="text-xs text-secondary font-medium mb-2">Format expected:</p>
+										<p class="text-xs text-secondary font-medium mb-2">{$LL.editor.formatExpected()}</p>
 										<p class="text-xs text-thirdly">
-											TXT file with one line per verse translation, in surah verse order, <strong
-												class="text-primary">without basmala</strong
-											>.
+											{$LL.editor.txtFormatDescription()}
 										</p>
 										<div
 											class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
 										>
-											<p>1 First verse translation</p>
-											<p>2 Second verse translation</p>
-											<p>3 Third verse translation</p>
+											<p>{$LL.editor.txtSampleLine1()}</p>
+											<p>{$LL.editor.txtSampleLine2()}</p>
+											<p>{$LL.editor.txtSampleLine3()}</p>
 										</div>
 										{#if txtImportError}
 											<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
@@ -816,7 +816,7 @@
 								<div>
 									<h3 class="font-bold text-lg text-primary">{language}</h3>
 									<p class="text-sm text-thirdly">
-										{translations.length} translation{translations.length > 1 ? 's' : ''} available
+										{$LL.editor.availableCount({ count: translations.length })}
 									</p>
 								</div>
 							</div>
@@ -877,21 +877,20 @@
 				{#if selectedTranslations.length > 0}
 					<span class="material-icons text-accent-secondary">check_circle</span>
 					<span>
-						Selected: <strong class="text-accent-primary">{selectedTranslations.length}</strong>
-						translation{selectedTranslations.length > 1 ? 's' : ''}
+						{$LL.editor.selectedCount({ count: selectedTranslations.length })} <strong class="text-accent-primary">{selectedTranslations.length}</strong>
 						{#if selectedTranslations.length === 1}
 							(<strong class="text-accent-primary">{selectedTranslations[0].author}</strong>)
 						{/if}
 					</span>
 				{:else}
 					<span class="material-icons">info</span>
-					<span>Please select one or more translations to continue</span>
+					<span>{$LL.editor.pleaseSelectTranslations()}</span>
 				{/if}
 			</div>
 
 			<div class="flex gap-3">
 				<button class="btn px-6 py-2.5 font-medium" onclick={close} disabled={isImportingTxt}>
-					Cancel
+					{$LL.common.cancel()}
 				</button>
 				<button
 					class="btn-accent px-6 py-2.5 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -899,7 +898,7 @@
 					disabled={selectedTranslations.length === 0 || isImportingTxt}
 				>
 					<span class="material-icons text-lg">add</span>
-					Add Translation{selectedTranslations.length > 1 ? 's' : ''}
+					{$LL.translations.addTranslation()}
 				</button>
 			</div>
 		</div>

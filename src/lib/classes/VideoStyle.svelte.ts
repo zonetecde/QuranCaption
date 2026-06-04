@@ -8,6 +8,8 @@ import QPCFontProvider from '$lib/services/FontProvider';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import ModalManager from '$lib/components/modals/ModalManager';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import {
 	CustomImageClip,
 	PredefinedSubtitleClip,
@@ -1157,8 +1159,8 @@ export class VideoStyle extends SerializableBase {
 			await globalState.getVideoStyle.importStyles(json);
 		} catch (error) {
 			ModalManager.errorModal(
-				'Error importing styles',
-				'Your styles file is either invalid or corrupted.',
+				get(LL).settings.errorImportingStyles(),
+				get(LL).settings.stylesFileInvalid(),
 				JSON.stringify(error, Object.getOwnPropertyNames(error))
 			);
 		}
@@ -1226,7 +1228,7 @@ export class VideoStyle extends SerializableBase {
 
 				for (const importedStyle of availableImportedTranslations) {
 					const confirm = await ModalManager.confirmModal(
-						`Your project translation "${projectTranslation.name}" doesn't have styles yet. Would you like to apply the styles from "${importedStyle.target}" (from the imported file) to "${projectTranslation.name}"?`,
+						get(LL).translations.translationNoStyles({ name: projectTranslation.name }),
 						true
 					);
 
@@ -1303,7 +1305,7 @@ export class VideoStyle extends SerializableBase {
 
 	async resetStyles() {
 		const confirmation = await ModalManager.confirmModal(
-			'Are you sure you want to reset all styles to their default values?',
+			get(LL).translations.resetAllStylesConfirm(),
 			false
 		);
 		if (!confirmation) return;

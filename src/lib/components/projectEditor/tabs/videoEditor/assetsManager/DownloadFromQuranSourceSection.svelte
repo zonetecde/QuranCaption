@@ -3,6 +3,8 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
 	import { onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	import { SourceType } from '$lib/classes';
 	import { Quran } from '$lib/classes/Quran';
@@ -136,7 +138,7 @@
 			downloadOptions = buildDownloadOptions(mp3Reciters, qdcRecitations);
 		} catch (error) {
 			console.error('Error fetching reciters:', error);
-			toast.error('Failed to load reciters list.');
+			toast.error(get(LL).editor.failedToLoadReciters());
 		} finally {
 			isLoadingReciters = false;
 		}
@@ -175,9 +177,7 @@
 			const downloadPath = await ProjectService.getAssetFolderForProject(
 				globalState.currentProject!.detail.id
 			);
-			toastId = toast.loading(
-				`Downloading ${surahName.split('.')[1].trim()} by ${selectedOption.reciterName}...`
-			);
+		toastId = toast.loading(get(LL).editor.downloadingSurah({ surah: surahName.split('.')[1].trim(), reciter: selectedOption.reciterName }));
 
 			const fullPath = await join(downloadPath, fileName);
 
@@ -241,7 +241,7 @@
 			const projectContent = globalState.currentProject!.content;
 			projectContent.addAsset(fullPath, audioUrl, sourceType, metadata);
 
-			toast.success('Download successful!', { id: toastId });
+			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
 
 			if (selectedOption.supportsNativeTiming) {
 				// On retrouve l'asset fraîchement ajouté pour l'insérer dans la timeline si l'utilisateur accepte.
@@ -252,7 +252,7 @@
 
 				if (addedAsset) {
 					const confirmTimingLoad = await ModalManager.confirmModal(
-						'This audio includes official native timings. Add it to the timeline and load the subtitles now?',
+						get(LL).editor.nativeTimingsConfirm(),
 						true
 					);
 
@@ -274,7 +274,7 @@
 			);
 		} catch (error) {
 			console.error('Download error:', error);
-			toast.error(`Error downloading: ${error}`, { id: toastId, duration: 5000 });
+			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), { id: toastId, duration: 5000 });
 		} finally {
 			isDownloading = false;
 		}

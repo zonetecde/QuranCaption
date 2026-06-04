@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { slide } from 'svelte/transition';
 
 	let {
@@ -24,7 +25,7 @@
 		<div class="flex items-center justify-center w-10 h-10 bg-red-500/20 rounded-full">
 			<span class="material-icons text-lg text-red-400">delete</span>
 		</div>
-		<h2 class="text-lg font-semibold text-primary">Remove Asset</h2>
+		<h2 class="text-lg font-semibold text-primary">{$LL.editor.removeAsset()}</h2>
 	</div>
 
 	<!-- Divider -->
@@ -45,12 +46,12 @@
 					class="w-4 h-4 rounded border-gray-300 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] cursor-pointer"
 				/>
 				<span class="text-sm font-medium text-primary cursor-pointer select-none"
-					>Also delete file from computer</span
+					>{$LL.editor.alsoDeleteFile()}</span
 				>
 			</div>
 			{#if alsoDeleteFromDisk}
 				<p class="text-xs text-red-400 mt-2 ml-1">
-					<span class="font-bold">Warning:</span> This action cannot be undone.
+					{$LL.editor.actionCannotBeUndone()}
 				</p>
 			{/if}
 		{/if}
@@ -65,7 +66,7 @@
 				resolve({ confirmed: false, deleteFile: false });
 			}}
 		>
-			Cancel
+			{$LL.common.cancel()}
 		</button>
 		<button
 			class="px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105
@@ -76,7 +77,7 @@
 				resolve({ confirmed: true, deleteFile: allowDeleteFromDisk && alsoDeleteFromDisk });
 			}}
 		>
-			Remove
+			{$LL.common.remove()}
 		</button>
 	</div>
 </div>

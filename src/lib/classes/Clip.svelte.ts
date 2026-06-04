@@ -1,4 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
 import { Edition, Translation } from '.';
 import {
@@ -135,7 +137,7 @@ export class Clip extends SerializableBase {
 	setStartTime(newStartTime: number) {
 		// Prévention pour pas que le clip est une durée négative
 		if (this.endTime < newStartTime) {
-			toast.error('The length of the clip cannot be negative.');
+			toast.error(get(LL).editor.clipLengthNegative());
 			return;
 		}
 
@@ -150,7 +152,7 @@ export class Clip extends SerializableBase {
 	setEndTime(newEndTime: number) {
 		// Prévention pour pas que le clip est une durée négative
 		if (newEndTime < this.startTime) {
-			toast.error('The length of the clip cannot be negative.');
+			toast.error(get(LL).editor.clipLengthNegative());
 			return;
 		}
 

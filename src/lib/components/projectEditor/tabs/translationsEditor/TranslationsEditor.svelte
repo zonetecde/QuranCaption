@@ -5,6 +5,7 @@
 	import MobileRightDrawer from '$lib/components/misc/MobileRightDrawer.svelte';
 	import TranslationsEditorSettings from './leftPanel/TranslationsEditorSettings.svelte';
 	import Workspace from './workspace/Workspace.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let addTranslationModalVisibility = $state(false);
 </script>
@@ -34,7 +35,7 @@
 		<TranslationInlineStylePanel />
 	</section>
 
-	<MobileRightDrawer title="Word Styles" icon="tune" triggerTopClass="top-0">
+	<MobileRightDrawer title={$LL.editor.wordStyles()} icon="tune" triggerTopClass="top-0">
 		<TranslationInlineStylePanel />
 	</MobileRightDrawer>
 </div>

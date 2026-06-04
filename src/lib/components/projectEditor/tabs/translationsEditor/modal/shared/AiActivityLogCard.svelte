@@ -1,4 +1,6 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
+
 	type ActivityEntry = {
 		id: string;
 		step: string;
@@ -25,7 +27,7 @@
 		class={`${maxHeightClass} overflow-y-auto rounded-lg border border-color bg-accent px-3 py-2 text-[12px] leading-5 [font-family:Consolas,monospace]`}
 	>
 		{#if activityLog.length === 0}
-			<div class="text-thirdly">No activity yet.</div>
+			<div class="text-thirdly">{$LL.editor.noActivityYet()}</div>
 		{:else}
 			{#each activityLog as entry (entry.id)}
 				<div

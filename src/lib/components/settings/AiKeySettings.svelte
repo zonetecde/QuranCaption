@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Settings from '$lib/classes/Settings.svelte';
 	import OpenAISettingsFields from '$lib/components/ai/OpenAISettingsFields.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	function persistSettings(): void {
 		void Settings.save();
@@ -9,10 +10,9 @@
 
 <div class="space-y-5">
 	<div>
-		<h3 class="text-lg font-medium text-primary">AI Key</h3>
+		<h3 class="text-lg font-medium text-primary">{$LL.settings.aiKey()}</h3>
 		<p class="mt-1 text-sm text-thirdly">
-			Shared text AI credentials, endpoint, and model settings used by Advanced AI Trimming and AI
-			Bold.
+			{$LL.common.aiKeyDescription()}
 		</p>
 	</div>
 

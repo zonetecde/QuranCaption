@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import AutocompleteInput from '../misc/AutocompleteInput.svelte';
@@ -18,7 +19,7 @@
 		text,
 		defaultText = '',
 		maxlength = 100,
-		placeholder = 'Enter text here',
+		placeholder = undefined,
 		inputType = 'text',
 		resolve
 	}: {
@@ -72,7 +73,7 @@
 					type="text"
 					{maxlength}
 					class="w-full"
-					{placeholder}
+					placeholder={placeholder || $LL.common.enterTextHere()}
 					onkeydown={handleKeydown}
 					autocomplete="off"
 				/>
@@ -86,11 +87,11 @@
 				<AutocompleteInput
 					bind:value={inputValue}
 					suggestions={RecitersManager.reciters.map((r) => r.latin)}
-					placeholder="Start typing to search reciters..."
+					placeholder={$LL.home.searchReciters()}
 					maxlength={ProjectDetail.RECITER_MAX_LENGTH}
 					icon="person"
 					labelIcon="record_voice_over"
-					label="Reciter"
+					label={$LL.home.reciter()}
 					onEnterPress={handleConfirm}
 					focusOnMount={true}
 				/>
@@ -100,7 +101,7 @@
 		<!-- Input hint -->
 		<div class="mt-3 flex items-center gap-2 text-xs text-thirdly">
 			<span class="material-icons text-sm">info</span>
-			<span>Press Enter to confirm, Escape to cancel</span>
+			<span>{$LL.common.pressEnterToConfirm()}</span>
 		</div>
 	</div>
 
@@ -110,7 +111,7 @@
 			class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105"
 			onclick={handleCancel}
 		>
-			Cancel
+			{$LL.common.cancel()}
 		</button>
 		<button
 			class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105
@@ -119,7 +120,7 @@
 			onclick={handleConfirm}
 			disabled={!inputValue.trim()}
 		>
-			Confirm
+			{$LL.common.confirm()}
 		</button>
 	</div>
 </div>

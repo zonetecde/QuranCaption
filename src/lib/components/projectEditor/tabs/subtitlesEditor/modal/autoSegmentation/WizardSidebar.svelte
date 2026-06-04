@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getSharedWizard } from './sharedWizard';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const wizard = getSharedWizard();
 	const chipTone = $derived(() =>
@@ -18,19 +19,19 @@
 
 <aside class="w-[320px] min-w-[280px] border-r border-color bg-primary/80 p-5 space-y-4">
 	<div class="space-y-1">
-		<div class="text-xs uppercase tracking-wide text-thirdly">Auto segmentation</div>
-		<h2 class="text-xl font-semibold text-primary">Guided setup</h2>
-		<p class="text-xs text-thirdly">Choose a clear workflow, prepare it, then launch.</p>
+		<div class="text-xs uppercase tracking-wide text-thirdly">{$LL.editor.aiSegmentationHeading()}</div>
+		<h2 class="text-xl font-semibold text-primary">{$LL.editor.selectRuntime()}</h2>
+		<p class="text-xs text-thirdly">{$LL.editor.runtimeDescription()}</p>
 	</div>
 
 	<div class="rounded-xl border border-color bg-accent/70 p-3 space-y-2">
 		<div class={`inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] ${chipTone()}`}>
 			<span class="material-icons text-sm">{wizard.hasAudio() ? 'check_circle' : 'warning'}</span>
-			{wizard.hasAudio() ? 'Audio detected' : 'No audio clip'}
+			{wizard.hasAudio() ? $LL.editor.audioDetected() : $LL.editor.noAudioClip()}
 		</div>
 		<div class="text-xs text-secondary break-words">{wizard.audioLabel()}</div>
 		<div class="text-[11px] text-thirdly">
-			Method: {versionLabel()}
+			{$LL.editor.selectModel()}: {versionLabel()}
 		</div>
 	</div>
 

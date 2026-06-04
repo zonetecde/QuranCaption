@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const publicState = $derived(quranAuthService.publicState);
 	const displayName = $derived(
@@ -24,10 +25,9 @@
 
 <div class="space-y-5">
 	<div class="space-y-2">
-		<h3 class="text-lg font-medium text-primary">Quran.com Integration</h3>
+		<h3 class="text-lg font-medium text-primary">{$LL.settings.quranComIntegration()}</h3>
 		<p class="text-sm text-thirdly">
-			Connect your Quran.com account to unlock bookmarks, preferences, collections, and future sync
-			features in Quran Caption.
+			{$LL.common.quranComDescription()}
 		</p>
 	</div>
 
@@ -46,33 +46,33 @@
 					></span>
 					<p class="text-sm font-semibold text-primary">
 						{publicState.status === 'connected'
-							? 'Connected'
+							? $LL.settings.connected()
 							: publicState.status === 'connecting'
-								? 'Connecting'
+								? $LL.settings.connecting()
 								: publicState.status === 'error'
-									? 'Connection error'
-									: 'Not connected'}
+									? $LL.settings.connectionError()
+									: $LL.settings.notConnected()}
 					</p>
 				</div>
 
 				{#if publicState.status === 'connected' && displayName}
-					<p class="text-sm text-thirdly">Signed in as {displayName}</p>
+					<p class="text-sm text-thirdly">{$LL.settings.signedInAs({ name: displayName })}</p>
 				{:else if publicState.status === 'connecting'}
 					<p class="text-sm text-thirdly">
-						Finish the Quran.com login in your browser, then return to Quran Caption.
+						{$LL.settings.finishLoginBrowser()}
 					</p>
 				{:else if publicState.status === 'error' && publicState.errorMessage}
 					<p class="text-sm text-red-300">{publicState.errorMessage}</p>
 				{:else}
 					<p class="text-sm text-thirdly">
-						You are currently using Quran Caption without a Quran.com account.
+						{$LL.settings.notConnectedMessage()}
 					</p>
 				{/if}
 			</div>
 
 			<div class="flex gap-2">
 				{#if publicState.status === 'connected'}
-					<button class="integration-btn integration-danger" onclick={disconnect}>Disconnect</button
+					<button class="integration-btn integration-danger" onclick={disconnect}>{$LL.settings.disconnect()}</button
 					>
 				{:else}
 					<button
@@ -81,8 +81,8 @@
 						disabled={publicState.status === 'connecting'}
 					>
 						{publicState.status === 'connecting'
-							? 'Waiting for login...'
-							: 'Connect with Quran.com'}
+							? $LL.settings.waitingForLogin()
+							: $LL.settings.connectWithQuranCom()}
 					</button>
 				{/if}
 			</div>
@@ -90,11 +90,11 @@
 
 		{#if publicState.status === 'connected'}
 			<div class="rounded-xl border border-color bg-secondary p-4 space-y-2">
-				<p class="text-xs uppercase tracking-[0.18em] text-thirdly">Account</p>
+				<p class="text-xs uppercase tracking-[0.18em] text-thirdly">{$LL.settings.accountLabel()}</p>
 				<p class="text-sm text-primary break-all">{displayName || publicState.user?.sub}</p>
-				<p class="text-xs text-thirdly break-all">Subject: {publicState.user?.sub}</p>
+				<p class="text-xs text-thirdly break-all">{$LL.settings.subjectLabel({ id: publicState.user?.sub })}</p>
 				{#if expiresLabel}
-					<p class="text-xs text-thirdly">Access token expires: {expiresLabel}</p>
+					<p class="text-xs text-thirdly">{$LL.settings.accessTokenExpires({ date: expiresLabel })}</p>
 				{/if}
 			</div>
 		{/if}

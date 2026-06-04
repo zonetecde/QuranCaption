@@ -8,6 +8,7 @@
 	import { MOCK_MODELS } from '../constants';
 	import type { Edition } from '$lib/classes';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	type AvailableTranslationsMap = Record<string, TranslationLanguageData>;
 	type TranslationSelectOption = { value: string; label: string; disabled?: boolean };
@@ -121,7 +122,7 @@
 		<div class="space-y-2">
 			<label for="ai-model" class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">smart_toy</span>
-				Provider / Model
+				{$LL.aiVideo.providerModel()}
 			</label>
 			<select
 				id="ai-model"
@@ -132,14 +133,14 @@
 					<option value={model.label}>{model.label}</option>
 				{/each}
 			</select>
-			<p class="text-xs text-thirdly">Mocked providers for now. Real APIs will be added later.</p>
+			<p class="text-xs text-thirdly">{$LL.aiVideo.mockedProviders()}</p>
 		</div>
 
 		<!-- Resolution -->
 		<div class="space-y-2">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">aspect_ratio</span>
-				Resolution
+				{$LL.aiVideo.resolutionLabel()}
 			</span>
 			<div class="flex gap-3">
 				<button
@@ -151,7 +152,7 @@
 					onclick={() => (aiv.video.resolution = 'portrait')}
 				>
 					<span class="material-icons text-base align-middle mr-1">stay_current_portrait</span>
-					Portrait (9:16)
+					{$LL.aiVideo.portrait916()}
 				</button>
 				<button
 					type="button"
@@ -162,7 +163,7 @@
 					onclick={() => (aiv.video.resolution = 'landscape')}
 				>
 					<span class="material-icons text-base align-middle mr-1">stay_current_landscape</span>
-					Landscape (16:9)
+					{$LL.aiVideo.landscape169()}
 				</button>
 			</div>
 		</div>
@@ -172,7 +173,7 @@
 	<div class="space-y-2">
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">translate</span>
-			Translation
+			{$LL.aiVideo.translationLabel()}
 		</span>
 
 		<div class="flex items-center rounded-lg border border-color bg-bg-secondary p-0.5">
@@ -184,7 +185,7 @@
 					: 'text-thirdly hover:text-primary'}"
 				onclick={() => setActiveTab('quran-api')}
 			>
-				Quran API
+				{$LL.aiVideo.quranApi()}
 			</button>
 			<button
 				type="button"
@@ -194,28 +195,28 @@
 					: 'text-thirdly hover:text-primary'}"
 				onclick={() => setActiveTab('quran-com-api')}
 			>
-				Quran.com
+				{$LL.aiVideo.quranCom()}
 			</button>
 		</div>
 
 		{#if activeTab === 'quran-com-api' && isLoadingQdc}
 			<div class="flex items-center gap-2 text-sm text-thirdly py-3">
 				<span class="material-icons animate-spin text-base">autorenew</span>
-				Loading Quran.com translations...
+				{$LL.aiVideo.loadingQuranComTranslations()}
 			</div>
 		{:else}
 			<SearchableSelect
 				id="translation-select"
 				bind:value={selectedTranslationKey}
 				options={translationSelectOptions}
-				placeholder="No translation"
-				searchPlaceholder="Search languages or authors..."
-				emptyMessage="No translations found"
+				placeholder={$LL.aiVideo.noTranslation()}
+				searchPlaceholder={$LL.editor.searchLanguagesOrAuthors()}
+				emptyMessage={$LL.aiVideo.noTranslationsFound()}
 				onChange={handleTranslationChange}
 			/>
 		{/if}
 
-		<p class="text-xs text-thirdly">Select a translation to include in the video subtitles.</p>
+		<p class="text-xs text-thirdly">{$LL.aiVideo.selectTranslationHint()}</p>
 	</div>
 
 	<!-- Let AI choose checkbox -->
@@ -228,9 +229,9 @@
 			class="h-4 w-4 rounded accent-[var(--accent-primary)]"
 		/>
 		<div>
-			<span class="text-sm font-medium text-primary">Let AI choose the verse range</span>
+			<span class="text-sm font-medium text-primary">{$LL.aiVideo.letAiChooseVerseRange()}</span>
 			<p class="text-xs text-thirdly mt-0.5">
-				AI will select the best Quran verse range based on your theme.
+				{$LL.aiVideo.letAiChooseDescription()}
 			</p>
 		</div>
 	</label>

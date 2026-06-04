@@ -3,6 +3,8 @@ import { IS_DEBUG_MODE, MOCK_AI_PLAN } from './debug';
 import { resolveAiReciterOption } from './reciterLoader';
 import type { AiPlan } from './types';
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 /**
  * Attend un delai donne pour simuler une latence reseau.
@@ -47,13 +49,13 @@ export async function generateAiPlan(reciterList: string): Promise<AiPlan> {
 
 	// Verification des prerequis
 	if (aiv.reciterOptions.length === 0) {
-		toast.error('Reciters are still loading. Please wait a moment and try again.');
+		toast.error(get(LL).aiVideo.recitersStillLoading());
 		throw new Error('Reciters not loaded yet');
 	}
 
 	const aiSettings = globalState.settings?.aiTranslationSettings;
 	if (!aiSettings?.openAiApiKey || !aiSettings?.textAiApiEndpoint) {
-		toast.error('Please configure your AI API key and endpoint in Settings > AI Key first.');
+		toast.error(get(LL).aiVideo.configureAiKey());
 		throw new Error('AI settings not configured');
 	}
 
@@ -110,7 +112,7 @@ Rules:
 
 	if (!response.ok) {
 		const errorText = await response.text();
-		toast.error(`AI API error: ${response.status}`);
+		toast.error(get(LL).aiVideo.aiApiError({ status: String(response.status) }));
 		throw new Error(`AI API returned ${response.status}: ${errorText}`);
 	}
 
@@ -121,7 +123,7 @@ Rules:
 	console.log('[AiVideo] AI plan extracted text:', text);
 
 	if (!text) {
-		toast.error('AI returned an empty response.');
+		toast.error(get(LL).aiVideo.aiEmptyResponse());
 		throw new Error('No text response from AI');
 	}
 

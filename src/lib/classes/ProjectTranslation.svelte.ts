@@ -4,6 +4,8 @@ import type { Edition } from './Edition';
 import { SerializableBase } from './misc/SerializableBase';
 import { PredefinedSubtitleTranslation, VerseTranslation } from './Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { QdcTranslationService } from '$lib/services/QdcTranslationService';
 
 type TranslationEditionsResponse = Record<string, unknown>;
@@ -268,8 +270,7 @@ export class ProjectTranslation extends SerializableBase {
 		// Vérifie si l'édition est déjà ajoutée
 		if (this.addedTranslationEditions.some((e) => e.name === edition.name)) {
 			const response = await ModalManager.confirmModal(
-				`The translation ${edition.author} is already added. Do you want to reset it?` +
-					` This will replace all existing translations for this edition.`
+				get(LL).translations.translationAdded({ author: edition.author })
 			);
 			if (!response) return;
 		} else {
@@ -338,7 +339,7 @@ export class ProjectTranslation extends SerializableBase {
 
 	async resetTranslation(edition: Edition) {
 		const response = await ModalManager.confirmModal(
-			`Are you sure you want to reset the translation for ${edition.author}? This will replace all existing translations for this edition.`
+			get(LL).translations.translationResetConfirm({ author: edition.author })
 		);
 
 		if (!response) return;
@@ -357,7 +358,7 @@ export class ProjectTranslation extends SerializableBase {
 	async removeTranslation(edition: Edition, force: boolean = false) {
 		if (!force) {
 			const response = await ModalManager.confirmModal(
-				`Are you sure you want to remove the translation for ${edition.author}? This will remove all translations for this edition.`
+				get(LL).translations.translationRemoveConfirm({ author: edition.author })
 			);
 
 			if (!response) return;

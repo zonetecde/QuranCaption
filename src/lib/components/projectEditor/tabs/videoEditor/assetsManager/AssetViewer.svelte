@@ -6,6 +6,8 @@
 	import { slide } from 'svelte/transition';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { join } from '@tauri-apps/api/path';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -33,13 +35,20 @@
 	let mediaKey = $state(0);
 	let isExpanded = $derived(isHovered || isConvertingToCBR);
 
+	function assetTypeLabel(type: string): string {
+		const ll = get(LL);
+		if (type === 'video') return ll.editor.videoAssetLabel();
+		if (type === 'audio') return ll.editor.audioAssetLabel();
+		return ll.editor.imageAssetLabel();
+	}
+
 	onMount(async () => {
 		asset.checkExistence();
 	});
 
 	function trimAsset() {
 		if (asset.type === AssetType.Image) {
-			toast.error('Trim is only available for audio and video assets.');
+			toast.error(get(LL).editor.trimAssetError());
 			return;
 		}
 		ModalManager.audioCutterModal(asset.id);
@@ -59,7 +68,7 @@
 
 	function addInTheTimelineButtonClick(video: boolean, audio: boolean) {
 		if (asset.type !== AssetType.Image && asset.isDurationLoading()) {
-			toast('Please wait for the asset to be loaded before adding it to the timeline.', {
+			toast(get(LL).editor.waitForAssetLoad(), {
 				duration: 5000
 			});
 			return;
@@ -68,7 +77,7 @@
 		if (asset.type !== AssetType.Image && asset.hasDurationLoadError()) {
 			toast.error(
 				asset.getDurationLoadErrorMessage() ||
-					'Unable to analyze this media file. Please check FFmpeg/FFprobe setup.',
+					get(LL).editor.unableToAnalyzeMedia(),
 				{
 					duration: 7000
 				}
@@ -77,9 +86,9 @@
 		}
 
 		if (asset.duration.isNull() && asset.type !== AssetType.Image) {
-			toast.error('Unable to load this asset duration. Please re-import the file.', {
-				duration: 5000
-			});
+		toast.error(get(LL).editor.unableToLoadDuration(), {
+			duration: 5000
+		});
 			return;
 		}
 
@@ -103,7 +112,7 @@
 		let unlisten: UnlistenFn | undefined;
 		isConvertingToCBR = true;
 		cbrProgress = 0;
-		cbrProgressStatus = 'Preparing...';
+		cbrProgressStatus = get(LL).editor.preparingLabel();
 
 		try {
 			unlisten = await listen<CbrConversionProgressEvent>('cbr-conversion-progress', (event) => {
@@ -129,11 +138,11 @@
 			asset.reloadMedia();
 			mediaKey++;
 			cbrProgress = 100;
-			cbrProgressStatus = 'Finished';
-			toast.success('Asset converted to CBR successfully. Media reloaded.');
+			cbrProgressStatus = get(LL).editor.finishedLabel();
+			toast.success(get(LL).editor.assetConvertedSuccess());
 		} catch (error) {
 			console.error('Error converting asset to CBR:', error);
-			toast.error(`Error converting asset to CBR: ${error}`);
+			toast.error(get(LL).editor.errorConvertingAsset({ error: String(error) }));
 		} finally {
 			unlisten?.();
 			isConvertingToCBR = false;
@@ -155,7 +164,7 @@
 				// Re-download from an online source using yt-dlp
 				const type = asset.type === AssetType.Video ? 'video' : 'audio';
 
-				toastId = toast.loading('Re-downloading from source...');
+				toastId = toast.loading(get(LL).editor.redownloading());
 
 				const result: string = await invoke('download_from_youtube', {
 					url: asset.sourceUrl,
@@ -167,8 +176,8 @@
 				asset.updateFilePath(result);
 				mediaKey++; // Force re-render of audio/video element
 				await convertToCBR();
-				toast.success('Re-download successful!', { id: toastId });
-			} else if (
+			toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
+		} else if (
 				asset.sourceType === SourceType.Mp3Quran ||
 				asset.sourceType === SourceType.QuranFoundation
 			) {
@@ -177,8 +186,8 @@
 
 				toastId = toast.loading(
 					asset.sourceType === SourceType.QuranFoundation
-						? 'Re-downloading from Quran.com...'
-						: 'Re-downloading from MP3Quran...'
+						? get(LL).editor.redownloadingFromQuranCom()
+						: get(LL).editor.redownloadingFromMp3Quran()
 				);
 
 				await invoke('download_file', {
@@ -188,11 +197,11 @@
 
 				asset.updateFilePath(fullPath);
 				mediaKey++; // Force re-render of audio/video element
-				toast.success('Re-download successful!', { id: toastId });
-			}
-		} catch (error) {
+			toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
+		}
+	} catch (error) {
 			console.error('Re-download error:', error);
-			toast.error(`Error re-downloading: ${error}`, { id: toastId, duration: 5000 });
+			toast.error(get(LL).editor.errorRedownloading({ error: String(error) }), { id: toastId, duration: 5000 });
 		} finally {
 			isRedownloading = false;
 		}
@@ -228,13 +237,13 @@
 			<p
 				class="text-xs text-thirdly mt-1 group-hover:text-[var(--text-secondary-on-hover)] transition-colors duration-300"
 			>
-				{asset.type.charAt(0).toUpperCase() + asset.type.slice(1)} Asset
+				{assetTypeLabel(asset.type)}
 			</p>
 		</div>
 		<!-- warning icon -->
 		{#if !asset.exists}
 			<div class="flex-shrink-0 p-1 rounded-full bg-red-500/20 border border-red-500/30">
-				<span class="material-icons text-lg text-red-400" title="File not found on disk"
+				<span class="material-icons text-lg text-red-400" title={get(LL).editor.fileNotFoundOnDiskLabel()}
 					>warning</span
 				>
 			</div>
@@ -249,7 +258,7 @@
 							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
 							type="audio/mp3"
 						/>
-						Your browser does not support the audio element.
+						{get(LL).editor.browserNoAudioSupport()}
 					</audio>
 				{/key}
 			</div>
@@ -264,7 +273,7 @@
 							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
 							type="video/mp4"
 						/>
-						Your browser does not support the video tag.
+						{get(LL).editor.browserNoVideoSupport()}
 					</video>
 				{/key}
 			</div>
@@ -293,7 +302,7 @@
 						}}
 					>
 						<span class="material-icons text-lg">folder_open</span>
-						Open Directory
+						{get(LL).editor.openDirectoryLabel()}
 					</button>
 					<!-- turn into constant bitrate -->
 					<button
@@ -304,10 +313,10 @@
 					>
 						{#if isConvertingToCBR}
 							<span class="material-icons text-lg animate-spin">sync</span>
-							Converting...
+							{get(LL).editor.convertingLabel()}
 						{:else}
 							<span class="material-icons text-lg">speed</span>
-							Convert to CBR
+							{get(LL).editor.convertToCbrLabel()}
 						{/if}
 					</button>
 
@@ -318,7 +327,7 @@
 							onclick={trimAsset}
 						>
 							<span class="material-icons text-lg">content_cut</span>
-							Trim
+							{get(LL).editor.trimLabel()}
 						</button>
 					{/if}
 				{:else}
@@ -328,7 +337,7 @@
 						onclick={relocateAsset}
 					>
 						<span class="material-icons text-lg">folder_open</span>
-						Relocate
+							{get(LL).editor.relocateLabel()}
 					</button>
 					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
 						<button
@@ -340,10 +349,10 @@
 						>
 							{#if isRedownloading}
 								<span class="material-icons text-lg animate-spin">sync</span>
-								Downloading...
+								{get(LL).editor.downloadingLabel()}
 							{:else}
 								<span class="material-icons text-lg">cloud_download</span>
-								Re-download
+								{get(LL).editor.redownloadLabel()}
 							{/if}
 						</button>
 					{/if}
@@ -355,7 +364,7 @@
 					       hover:bg-red-500/10"
 					onclick={async () => {
 						const result = await ModalManager.deleteConfirmationModal(
-							'Are you sure you want to remove this asset from the project?',
+							get(LL).editor.removeAssetConfirm(),
 							asset.sourceType !== SourceType.Local
 						);
 						if (result.confirmed) {
@@ -364,7 +373,7 @@
 									await invoke('delete_file', { path: asset.filePath });
 								} catch (error) {
 									const errorMessage = error instanceof Error ? error.message : String(error);
-									toast.error('Failed to delete file from disk: ' + errorMessage);
+									toast.error(get(LL).editor.failedToDeleteFile({ error: errorMessage }));
 								}
 							}
 							globalState.currentProject?.content.removeAsset(asset);
@@ -372,13 +381,13 @@
 					}}
 				>
 					<span class="material-icons text-lg">delete</span>
-					Remove
+					{get(LL).common.remove()}
 				</button>
 			</div>
 			{#if isConvertingToCBR}
 				<div class="space-y-1">
 					<div class="flex items-center justify-between text-xs text-thirdly">
-						<span>{cbrProgressStatus || 'Converting'}</span>
+						<span>{cbrProgressStatus || get(LL).editor.convertingToCbrProgress()}</span>
 						<span>{Math.round(cbrProgress)}%</span>
 					</div>
 					<div class="h-2 overflow-hidden rounded-full bg-black/30">
@@ -388,8 +397,7 @@
 						></div>
 					</div>
 					<p class="text-[11px] text-thirdly">
-						You can switch tabs during this process. The asset will automatically reload once it
-						finishes.
+						{get(LL).editor.convertCbrProgressHint()}
 					</p>
 				</div>
 			{/if}
@@ -397,7 +405,7 @@
 			<!-- Timeline Actions -->
 			{#if asset.exists}
 				<div data-tour-id="asset-timeline-actions" class="space-y-2 pt-2 border-t border-color">
-					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">Add to Timeline</h4>
+					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">{get(LL).editor.addToTimelineLabel()}</h4>
 					{#if asset.type === AssetType.Video}
 						<div class="space-y-2">
 							<button
@@ -406,7 +414,7 @@
 								onclick={() => addInTheTimelineButtonClick(true, true)}
 							>
 								<span class="material-icons text-lg">video_library</span>
-								Video & Audio
+								{get(LL).editor.videoAndAudio()}
 							</button>
 							<div class="grid grid-cols-2 gap-2">
 								<button
@@ -415,7 +423,7 @@
 									onclick={() => addInTheTimelineButtonClick(true, false)}
 								>
 									<span class="material-icons text-sm">videocam</span>
-									Video Only
+									{get(LL).editor.videoOnly()}
 								</button>
 								<button
 									class="btn-accent flex items-center justify-center gap-2 text-xs font-medium
@@ -423,7 +431,7 @@
 									onclick={() => addInTheTimelineButtonClick(false, true)}
 								>
 									<span class="material-icons text-sm">music_note</span>
-									Audio Only
+									{get(LL).editor.audioOnly()}
 								</button>
 							</div>
 						</div>
@@ -434,7 +442,7 @@
 							onclick={() => addInTheTimelineButtonClick(false, true)}
 						>
 							<span class="material-icons text-lg">music_note</span>
-							Add to Timeline
+							{get(LL).editor.addToTimelineLabel()}
 						</button>
 					{:else if asset.type === AssetType.Image}
 						<button
@@ -443,7 +451,7 @@
 							onclick={() => addInTheTimelineButtonClick(true, false)}
 						>
 							<span class="material-icons text-lg">image</span>
-							Set as Background
+							{get(LL).editor.setAsBackground()}
 						</button>
 					{/if}
 				</div>

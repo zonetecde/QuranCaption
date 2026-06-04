@@ -13,8 +13,11 @@
 	import { DONATION_WALLETS } from '$lib/constants/donation';
 
 	import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
+	import LanguageSwitcher from '$lib/components/misc/LanguageSwitcher.svelte';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let {
 		resolve
@@ -57,10 +60,10 @@
 	async function copyWalletAddress(address: string, label: string): Promise<void> {
 		try {
 			await navigator.clipboard.writeText(address);
-			toast.success(`${label} copied to clipboard`);
+			toast.success(get(LL).settings.copiedToClipboard({ label }));
 		} catch (error) {
 			console.error(`Failed to copy ${label} address:`, error);
-			toast.error('Unable to copy wallet address.');
+			toast.error(get(LL).settings.unableToCopyWallet());
 		}
 	}
 
@@ -78,7 +81,7 @@
 			await openUrl(url);
 		} catch (error) {
 			console.error(`Failed to open ${fallbackLabel} URL:`, error);
-			toast.error(`Unable to open ${fallbackLabel}.`);
+			toast.error(get(LL).settings.unableToOpen({ label: fallbackLabel }));
 		}
 	}
 
@@ -162,8 +165,8 @@
 				<span class="material-icons text-black text-xl">settings</span>
 			</div>
 			<div>
-				<h2 class="text-xl font-semibold text-primary">Settings</h2>
-				<p class="text-sm text-thirdly">Customize your experience, shortcuts, and backups</p>
+				<h2 class="text-xl font-semibold text-primary">{$LL.settings.settings()}</h2>
+				<p class="text-sm text-thirdly">{$LL.settings.customizeExperience()}</p>
 			</div>
 		</div>
 
@@ -181,7 +184,7 @@
 		<!-- Sidebar -->
 		<div class="bg-primary border-r border-color p-3 overflow-auto">
 			<div class="flex flex-col gap-2">
-				{#each [{ name: 'Shortcuts', tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: 'Theme', tab: SettingsTab.THEME, icon: 'light_mode' }, { name: 'Notifications', tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: 'AI Key', tab: SettingsTab.AI_KEY, icon: 'key' }, { name: 'Quran.com Integration', tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: 'Backup', tab: SettingsTab.BACKUP, icon: 'archive' }, { name: 'Support', tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: 'Contact', tab: SettingsTab.CONTACT, icon: 'mail' }, { name: 'About', tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
+				{#each [{ name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: $LL.settings.quranComIntegration(), tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
 						class:selected={globalState.uiState.settingsTab === setting.tab}
@@ -192,6 +195,9 @@
 					</button>
 				{/each}
 			</div>
+			<div class="mt-4 pt-3 border-t border-color">
+				<LanguageSwitcher />
+			</div>
 		</div>
 
 		<!-- Content -->
@@ -201,14 +207,14 @@
 			{:else if globalState.uiState.settingsTab === SettingsTab.THEME}
 				<!-- Theme Selection -->
 				<div class="space-y-4">
-					<h3 class="text-lg font-medium text-primary">Theme</h3>
+					<h3 class="text-lg font-medium text-primary">{$LL.settings.theme()}</h3>
 					<div class="flex items-center justify-between">
-						<p class="text-sm text-thirdly">Select application theme and accent colors.</p>
+						<p class="text-sm text-thirdly">{$LL.settings.selectTheme()}</p>
 
 						{#if globalState.settings}
 							<div class="flex items-center gap-3">
 								<span class="text-xs text-thirdly uppercase font-mono tracking-wider"
-									>Intensity</span
+									>{$LL.settings.intensity()}</span
 								>
 								<div
 									class="flex items-center gap-2 bg-secondary border border-color rounded-lg p-1"
@@ -232,7 +238,7 @@
 
 					<div class="space-y-6">
 						<div class="space-y-3">
-							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Dark</p>
+							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">{$LL.settings.dark()}</p>
 							<div class="grid grid-cols-3 gap-4">
 								{#each darkThemes as theme (theme.id)}
 									<ThemeButton {theme} />
@@ -241,7 +247,7 @@
 						</div>
 
 						<div class="space-y-3">
-							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Light</p>
+							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">{$LL.settings.light()}</p>
 							<div class="grid grid-cols-3 gap-4">
 								{#each lightThemes as theme (theme.id)}
 									<ThemeButton {theme} />
@@ -250,7 +256,7 @@
 						</div>
 
 						<div class="space-y-3">
-							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">Sepia</p>
+							<p class="text-xs font-semibold uppercase tracking-wider text-thirdly">{$LL.settings.sepia()}</p>
 							<div class="grid grid-cols-3 gap-4">
 								{#each sepiaThemes as theme (theme.id)}
 									<ThemeButton {theme} />
@@ -263,13 +269,13 @@
 				<AiKeySettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.NOTIFICATIONS}
 				<div class="space-y-5">
-					<h3 class="text-lg font-medium text-primary">Notifications</h3>
+					<h3 class="text-lg font-medium text-primary">{$LL.settings.notifications()}</h3>
 					<div class="rounded-xl border border-color bg-primary p-4">
 						<label class="flex items-center justify-between gap-4">
 							<div>
-								<p class="text-sm font-medium text-primary">Desktop notifications</p>
+								<p class="text-sm font-medium text-primary">{$LL.settings.desktopNotifications()}</p>
 								<p class="mt-1 text-xs text-thirdly">
-									Show OS notifications when video exports, AI segmentation, or AI trimming finish.
+									{$LL.settings.showOsNotifications()}
 								</p>
 							</div>
 							<input
@@ -281,7 +287,7 @@
 						</label>
 					</div>
 					<p class="text-xs text-thirdly">
-						The taskbar attention signal stays enabled even when desktop notifications are off.
+						{$LL.settings.taskbarAttention()}
 					</p>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.QURAN_INTEGRATION}
@@ -290,9 +296,9 @@
 				<BackupSettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.SUPPORT}
 				<div class="space-y-5">
-					<h3 class="text-lg font-medium text-primary">Support</h3>
+					<h3 class="text-lg font-medium text-primary">{$LL.settings.support()}</h3>
 					<p class="text-sm text-thirdly">
-						If you enjoy Quran Caption, a donation helps maintain and improve the app.
+						{$LL.settings.supportMessage()}
 					</p>
 
 					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
@@ -301,7 +307,7 @@
 							onclick={() => openSupportLink('https://www.paypal.me/rayanestaszewski', 'PayPal')}
 						>
 							<span class="material-icons-outlined text-sm">favorite</span>
-							Donate with PayPal
+							{$LL.settings.donateWithPaypal()}
 						</button>
 
 						<button
@@ -309,14 +315,14 @@
 							onclick={() => openSupportLink('https://ko-fi.com/vzero', 'Ko-fi')}
 						>
 							<span class="material-icons-outlined text-sm">coffee</span>
-							Donate with Ko-fi
+							{$LL.settings.donateWithKofi()}
 						</button>
 					</div>
 
-					<h2 class="text-lg font-medium text-primary">Cryptocurrency Wallets</h2>
+					<h2 class="text-lg font-medium text-primary">{$LL.settings.cryptocurrencyWallets()}</h2>
 
 					<div class="space-y-2">
-						<p class="text-xs text-thirdly">Tap a wallet to copy the address.</p>
+						<p class="text-xs text-thirdly">{$LL.settings.tapWalletToCopy()}</p>
 						{#each DONATION_WALLETS as wallet (wallet.label)}
 							<button
 								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
@@ -339,10 +345,9 @@
 
 					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
 						<div>
-							<p class="text-sm font-medium text-primary">AI Translation Telemetry</p>
+							<p class="text-sm font-medium text-primary">{$LL.settings.aiTranslationTelemetry()}</p>
 							<p class="mt-1 text-xs text-thirdly">
-								Choose whether AI-assisted translations and your manual reviews can be sent on
-								export to help improve the app.
+								{$LL.settings.telemetryDescription()}
 							</p>
 						</div>
 						<div class="grid grid-cols-1 gap-2 md:grid-cols-3">
@@ -352,7 +357,7 @@
 									'unknown'}
 								onclick={() => updateAiTelemetryConsent('unknown')}
 							>
-								Ask on Export
+								{$LL.settings.askOnExport()}
 							</button>
 							<button
 								class="support-action-btn"
@@ -360,7 +365,7 @@
 									'granted'}
 								onclick={() => updateAiTelemetryConsent('granted')}
 							>
-								Allow Sending
+								{$LL.settings.allowSending()}
 							</button>
 							<button
 								class="support-action-btn"
@@ -368,16 +373,16 @@
 									'denied'}
 								onclick={() => updateAiTelemetryConsent('denied')}
 							>
-								Do Not Send
+								{$LL.settings.doNotSend()}
 							</button>
 						</div>
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.CONTACT}
 				<div class="space-y-5">
-					<h3 class="text-lg font-medium text-primary">Contact</h3>
+					<h3 class="text-lg font-medium text-primary">{$LL.settings.contact()}</h3>
 					<p class="text-sm text-thirdly">
-						Leave a review, request a feature, report a bug, or join the community.
+						{$LL.settings.contactMessage()}
 					</p>
 					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
 						<div class="grid grid-cols-2 gap-2">
@@ -386,14 +391,14 @@
 								onclick={() => openSupportModal('review')}
 							>
 								<span class="material-icons-outlined text-sm">star</span>
-								Leave a Review
+								{$LL.settings.leaveReview()}
 							</button>
 							<button
 								class="support-action-btn support-feedback"
 								onclick={() => openSupportModal('feedback')}
 							>
 								<span class="material-icons-outlined text-sm">construction</span>
-								Feature / Bug
+								{$LL.settings.featureBug()}
 							</button>
 						</div>
 						<button
@@ -401,7 +406,7 @@
 							onclick={() => openSupportLink('https://discord.gg/Hxfqq2QA2J', 'Discord')}
 						>
 							<span class="material-icons-outlined text-sm">question_answer</span>
-							Join Discord
+							{$LL.settings.joinDiscord()}
 						</button>
 					</div>
 				</div>

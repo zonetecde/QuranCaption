@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import ClickableLink from './ClickableLink.svelte';
 </script>
 
@@ -7,15 +8,15 @@
 		<div
 			class="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-6 mb-4"
 		>
-			<ClickableLink url="https://github.com/zonetecde/QuranCaption-2" label="GitHub Repo" />
+			<ClickableLink url="https://github.com/zonetecde/QuranCaption-2" label={$LL.home.githubRepo()} />
 
 			<ClickableLink
 				url="https://qurancaption-project.vercel.app/documentation"
-				label="Documentation"
+				label={$LL.home.documentation()}
 			/>
-			<ClickableLink url="https://discord.gg/Hxfqq2QA2J" label="Discord" />
+			<ClickableLink url="https://discord.gg/Hxfqq2QA2J" label={$LL.home.discord()} />
 
-			<ClickableLink url="https://www.paypal.me/rayanestaszewski" label="Donate via PayPal" />
+			<ClickableLink url="https://www.paypal.me/rayanestaszewski" label={$LL.home.donateViaPaypal()} />
 		</div>
 		<p class="mb-1">© 2026 Quran Caption. Made by Rayane STASZEWSKI.</p>
 	</div>

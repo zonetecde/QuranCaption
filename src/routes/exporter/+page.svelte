@@ -817,7 +817,7 @@
 				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
 				batchSize:
 					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 12)
+						? (globalState.settings?.exportSettings.batchSize ?? 64)
 						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
@@ -1194,7 +1194,7 @@
 				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
 				batchSize:
 					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 12)
+						? (globalState.settings?.exportSettings.batchSize ?? 64)
 						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,

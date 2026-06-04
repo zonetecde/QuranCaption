@@ -75,12 +75,14 @@ pub fn adjust_auto_batch_limit_for_memory(current_limit: usize) -> usize {
 
 /// Calcule la taille du prochain batch après un rendu réussi.
 ///
-/// - Si le pic de RAM est bas (< 72%), on augmente la limite de 2.
+/// - Si le pic de RAM est bas (< 72%), on double la limite pour atteindre vite le plafond utile.
 /// - Si le pic est haut (≥ 86%), on réduit de 1.
 /// - Sinon on garde la même limite.
 pub fn next_auto_batch_limit_after_success(current_limit: usize, peak_percent: f64) -> usize {
     if peak_percent > 0.0 && peak_percent < constants::AUTO_MEMORY_GROW_BELOW_PERCENT {
-        (current_limit + 2).min(constants::FILTERGRAPH_BATCH_MAX)
+        current_limit
+            .saturating_mul(2)
+            .min(constants::FILTERGRAPH_BATCH_MAX)
     } else if peak_percent >= constants::AUTO_MEMORY_SOFT_LIMIT_PERCENT {
         (current_limit.saturating_sub(1)).max(constants::FILTERGRAPH_BATCH_MIN)
     } else {

@@ -170,7 +170,7 @@ parallèles. Un `batch_size` de `4` veut dire "essayer de rendre environ 4 captu
 
 Le batch size est volontairement non strict:
 
-- il est clampé entre 2 et 64;
+- il est clampé entre 2 et 1024;
 - les batchs non finaux partagent une capture avec le batch suivant;
 - si toutes les captures tiennent dans la limite, il n'y a pas de batching.
 

@@ -78,7 +78,7 @@ export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
 		batchSizeMode: 'auto',
-		batchSize: 12
+		batchSize: 64
 	};
 
 	// État UI persistant
@@ -462,6 +462,14 @@ export default class Settings extends SerializableBase {
 		if (
 			typeof settings.exportSettings.batchSize !== 'number' ||
 			Number.isNaN(settings.exportSettings.batchSize)
+		) {
+			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
+			shouldSave = true;
+		}
+
+		if (
+			settings.exportSettings.batchSizeMode === 'auto' &&
+			settings.exportSettings.batchSize === 12
 		) {
 			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
 			shouldSave = true;

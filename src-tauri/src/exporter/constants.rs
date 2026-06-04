@@ -52,20 +52,20 @@ pub static FFPROBE_DURATION_CACHE: LazyLock<Mutex<HashMap<String, (u64, u128, f6
 // Constantes de batch et mémoire
 // ---------------------------------------------------------------------------
 
-/// Nombre maximal d'images par batch en haute résolution (≥2560 ou ≥1440).
-pub const MAX_FILTERGRAPH_IMAGES_HIGH_RES: usize = 6;
+/// Taille initiale du batch auto en haute resolution.
+pub const MAX_FILTERGRAPH_IMAGES_HIGH_RES: usize = 32;
 
-/// Nombre maximal d'images par batch en résolution standard.
-pub const MAX_FILTERGRAPH_IMAGES_STANDARD: usize = 12;
+/// Taille initiale du batch auto en resolution standard.
+pub const MAX_FILTERGRAPH_IMAGES_STANDARD: usize = 64;
 
 /// Taille de batch par défaut (quand aucun mode auto n'est actif).
-pub const DEFAULT_FILTERGRAPH_BATCH_SIZE: usize = 16;
+pub const DEFAULT_FILTERGRAPH_BATCH_SIZE: usize = 64;
 
 /// Taille minimale d'un batch (empêche de descendre trop bas en mode auto).
 pub const FILTERGRAPH_BATCH_MIN: usize = 2;
 
-/// Taille maximale d'un batch (borne supérieure en mode auto).
-pub const FILTERGRAPH_BATCH_MAX: usize = 64;
+/// Taille maximale d'un batch.
+pub const FILTERGRAPH_BATCH_MAX: usize = 1024;
 
 /// Seuil de RAM à partir duquel le moniteur tue FFmpeg.
 pub const AUTO_MEMORY_LIMIT_PERCENT: f64 = 90.0;

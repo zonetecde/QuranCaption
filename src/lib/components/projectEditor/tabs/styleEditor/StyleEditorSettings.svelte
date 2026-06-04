@@ -14,6 +14,8 @@
 		getActiveVisualMergeGroupId,
 		getActiveVisualMergeMode
 	} from './visualMergeStyleUtils';
+	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
+	import { get } from 'svelte/store';
 
 	let {
 		presetLibraryOpen,
@@ -437,9 +439,9 @@
 				</div>
 			{:else}
 				{#each getCategoriesToDisplay() as category (category.id)}
-					<Section
-						name={category.name}
-						icon={category.icon}
+				<Section
+					name={getStyleName(category.id, get(LL)) || category.name}
+					icon={category.icon}
 						contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
 						classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						dataCategory={globalState.getStylesState.currentSelection === 'translation'
@@ -482,11 +484,15 @@
 						{/if}
 
 						{#each category.styles as style (style.id)}
-							{#if globalState.getStylesState.searchQuery === '' || style.name
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+						{#if globalState.getStylesState.searchQuery === '' || style.name
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(category.id, get(LL))
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase())}
 								<!-- 
 							Cas spécial : on ne peut pas avoir de séparateur entre le numéro de verset et le verset
 							pour le texte Coranique, ni changer sa position. Empêche donc l'affichage de ces styles dans ce cas précis.
@@ -567,18 +573,20 @@
 					{#each globalState.getCustomClipTrack.clips as customTextClip (customTextClip.id)}
 						{@const category = (customTextClip as CustomTextClip).category!}
 						<Section
-							name={category.name}
+							name={getStyleName(category.id, get(LL)) || category.name}
 							icon={category.icon}
 							contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
 							classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						>
 							{#each category.styles as style (style.id)}
-								{#if globalState.getStylesState.searchQuery === '' || style.name
-										.toLowerCase()
-										.includes(globalState.getStylesState.searchQuery.toLowerCase())}
-									{@const toDisable =
-										category.getStyle('always-show')!.value &&
-										(style.id === 'time-appearance' || style.id === 'time-disappearance')}
+							{#if globalState.getStylesState.searchQuery === '' || style.name
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+								{@const toDisable =
+									category.getStyle('always-show')!.value &&
+									(style.id === 'time-appearance' || style.id === 'time-disappearance')}
 
 									<!-- prettier-ignore -->
 									<StyleComponent

@@ -18,6 +18,7 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
 
 	const LL_ = get(LL);
 
@@ -525,7 +526,7 @@
 	>
 		<div class="flex items-center gap-2">
 			<span class="material-icons-outlined text-[20px]! text-secondary">{style.icon}</span>
-			<span class="text-sm text-primary font-medium">{style.name}</span>
+			<span class="text-sm text-primary font-medium">{getStyleName(style.id, get(LL))}</span>
 		</div>
 		{#key selectedClipIds().length + String(inputValue)}
 			<div class="flex items-center gap-2 text-xs text-secondary">
@@ -597,7 +598,7 @@
 		<div class="my-2 px-2" transition:slide>
 			<p class="text-xs text-secondary mb-2 flex items-center gap-1">
 				<span class="material-icons-outlined text-[12px]">info</span>
-				{style.description}
+				{getStyleDescription(style.id, get(LL))}
 			</p>
 
 			<!-- Modificateur de valeur -->

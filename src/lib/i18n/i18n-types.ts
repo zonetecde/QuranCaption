@@ -3752,6 +3752,1106 @@ type RootTranslation = {
 		 * @param {unknown} count
 		 */
 		selectedCount: RequiredParams<'count'>
+		styleName: {
+			/**
+			 * G​e​n​e​r​a​l
+			 */
+			general: string
+			/**
+			 * S​h​o​w​ ​S​u​b​t​i​t​l​e​s
+			 */
+			'show-subtitles': string
+			/**
+			 * S​h​o​w​ ​V​e​r​s​e​ ​N​u​m​b​e​r
+			 */
+			'show-verse-number': string
+			/**
+			 * R​i​g​h​t​-​t​o​-​L​e​f​t
+			 */
+			'text-direction': string
+			/**
+			 * D​e​c​o​r​a​t​i​v​e​ ​B​r​a​c​k​e​t​s
+			 */
+			'show-decorative-brackets': string
+			/**
+			 * D​e​c​o​r​a​t​i​v​e​ ​B​r​a​c​k​e​t​s​ ​S​t​y​l​e
+			 */
+			'decorative-brackets-font-family': string
+			/**
+			 * M​u​s​h​a​f
+			 */
+			'mushaf-style': string
+			/**
+			 * V​e​r​s​e​ ​N​u​m​b​e​r​ ​F​o​r​m​a​t
+			 */
+			'verse-number-format': string
+			/**
+			 * V​e​r​s​e​ ​N​u​m​b​e​r​ ​P​o​s​i​t​i​o​n
+			 */
+			'verse-number-position': string
+			/**
+			 * T​e​x​t​ ​S​t​y​l​i​n​g
+			 */
+			text: string
+			/**
+			 * T​e​x​t​ ​C​o​l​o​r
+			 */
+			'text-color': string
+			/**
+			 * V​e​r​s​e​ ​N​u​m​b​e​r​ ​C​o​l​o​r
+			 */
+			'verse-number-color': string
+			/**
+			 * F​o​n​t​ ​S​i​z​e
+			 */
+			'font-size': string
+			/**
+			 * F​o​n​t​ ​F​a​m​i​l​y
+			 */
+			'font-family': string
+			/**
+			 * F​o​n​t​ ​W​e​i​g​h​t
+			 */
+			'font-weight': string
+			/**
+			 * E​n​a​b​l​e​ ​I​t​a​l​i​c
+			 */
+			'enable-italic': string
+			/**
+			 * T​e​x​t​ ​T​r​a​n​s​f​o​r​m
+			 */
+			'text-transform': string
+			/**
+			 * L​e​t​t​e​r​ ​S​p​a​c​i​n​g
+			 */
+			'letter-spacing': string
+			/**
+			 * W​o​r​d​ ​S​p​a​c​i​n​g
+			 */
+			'word-spacing': string
+			/**
+			 * L​i​n​e​ ​H​e​i​g​h​t
+			 */
+			'line-height': string
+			/**
+			 * M​a​x​ ​H​e​i​g​h​t​ ​(​M​a​k​e​ ​T​e​x​t​ ​F​i​t​)
+			 */
+			'max-height': string
+			/**
+			 * M​a​x​ ​L​i​n​e​ ​(​A​r​a​b​i​c​)
+			 */
+			'max-line': string
+			/**
+			 * R​e​a​c​t​i​v​e​ ​F​o​n​t​ ​S​i​z​e
+			 */
+			'reactive-font-size': string
+			/**
+			 * W​o​r​d​ ​b​y​ ​w​o​r​d​ ​h​i​g​h​l​i​g​h​t
+			 */
+			'word-by-word-highlight': string
+			/**
+			 * E​n​a​b​l​e​ ​w​b​w​ ​h​i​g​h​l​i​g​h​t
+			 */
+			'enable-wbw-highlight': string
+			/**
+			 * W​o​r​d​-​b​y​-​w​o​r​d​ ​c​o​l​o​r
+			 */
+			'wbw-color': string
+			/**
+			 * P​e​r​s​i​s​t​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 */
+			'wbw-persist-color': string
+			/**
+			 * E​n​a​b​l​e​ ​u​n​d​e​r​l​i​n​e
+			 */
+			'enable-wbw-underline': string
+			/**
+			 * U​n​d​e​r​l​i​n​e​ ​t​h​i​c​k​n​e​s​s
+			 */
+			'wbw-underline-thickness': string
+			/**
+			 * R​e​v​e​a​l​ ​w​o​r​d​s​ ​o​n​ ​r​e​c​i​t​a​t​i​o​n
+			 */
+			'wbw-reveal-on-recitation': string
+			/**
+			 * A​l​w​a​y​s​ ​S​h​o​w​ ​V​e​r​s​e​ ​N​u​m​b​e​r
+			 */
+			'wbw-always-show-verse-number': string
+			/**
+			 * E​n​a​b​l​e​ ​w​b​w​ ​b​a​c​k​g​r​o​u​n​d
+			 */
+			'enable-wbw-background': string
+			/**
+			 * B​a​c​k​g​r​o​u​n​d​ ​c​o​l​o​r
+			 */
+			'wbw-bg-color': string
+			/**
+			 * P​o​s​i​t​i​o​n​ ​&​ ​L​a​y​o​u​t
+			 */
+			positioning: string
+			/**
+			 * R​e​a​c​t​i​v​e​ ​Y​ ​P​o​s​i​t​i​o​n
+			 */
+			'reactive-y-position': string
+			/**
+			 * V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'vertical-position': string
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'horizontal-position': string
+			/**
+			 * W​i​d​t​h
+			 */
+			width: string
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​T​e​x​t​ ​A​l​i​g​n​m​e​n​t
+			 */
+			'horizontal-text-alignment': string
+			/**
+			 * V​e​r​t​i​c​a​l​ ​T​e​x​t​ ​A​l​i​g​n​m​e​n​t
+			 */
+			'vertical-text-alignment': string
+			/**
+			 * B​a​c​k​g​r​o​u​n​d​ ​&​ ​C​o​n​t​a​i​n​e​r
+			 */
+			background: string
+			/**
+			 * E​n​a​b​l​e​ ​B​a​c​k​g​r​o​u​n​d
+			 */
+			'background-enable': string
+			/**
+			 * B​a​c​k​g​r​o​u​n​d​ ​C​o​l​o​r
+			 */
+			'background-color': string
+			/**
+			 * B​a​c​k​g​r​o​u​n​d​ ​O​p​a​c​i​t​y
+			 */
+			'background-opacity': string
+			/**
+			 * B​o​r​d​e​r​ ​R​a​d​i​u​s
+			 */
+			'border-radius': string
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​P​a​d​d​i​n​g
+			 */
+			'background-horizontal-padding': string
+			/**
+			 * C​u​s​t​o​m​ ​C​S​S​ ​f​o​r​ ​B​a​c​k​g​r​o​u​n​d
+			 */
+			'background-css': string
+			/**
+			 * C​o​n​t​a​i​n​e​r​ ​B​o​r​d​e​r
+			 */
+			border: string
+			/**
+			 * E​n​a​b​l​e​ ​B​o​r​d​e​r
+			 */
+			'border-enable': string
+			/**
+			 * B​o​r​d​e​r​ ​W​i​d​t​h
+			 */
+			'border-width': string
+			/**
+			 * B​o​r​d​e​r​ ​C​o​l​o​r
+			 */
+			'border-color': string
+			/**
+			 * B​o​r​d​e​r​ ​S​t​y​l​e
+			 */
+			'border-style': string
+			/**
+			 * S​h​a​d​o​w​ ​E​f​f​e​c​t​s
+			 */
+			shadow: string
+			/**
+			 * E​n​a​b​l​e​ ​S​h​a​d​o​w​s
+			 */
+			'shadow-enable': string
+			/**
+			 * T​e​x​t​ ​S​h​a​d​o​w
+			 */
+			'text-shadow': string
+			/**
+			 * T​e​x​t​ ​S​h​a​d​o​w​ ​C​o​l​o​r
+			 */
+			'text-shadow-color': string
+			/**
+			 * C​o​n​t​a​i​n​e​r​ ​S​h​a​d​o​w
+			 */
+			'box-shadow': string
+			/**
+			 * C​o​n​t​a​i​n​e​r​ ​S​h​a​d​o​w​ ​C​o​l​o​r
+			 */
+			'box-shadow-color': string
+			/**
+			 * T​e​x​t​ ​O​u​t​l​i​n​e
+			 */
+			outline: string
+			/**
+			 * E​n​a​b​l​e​ ​O​u​t​l​i​n​e
+			 */
+			'outline-enable': string
+			/**
+			 * O​u​t​l​i​n​e​ ​W​i​d​t​h
+			 */
+			'text-outline': string
+			/**
+			 * O​u​t​l​i​n​e​ ​C​o​l​o​r
+			 */
+			'text-outline-color': string
+			/**
+			 * T​e​x​t​ ​G​l​o​w
+			 */
+			'text-glow': string
+			/**
+			 * E​n​a​b​l​e​ ​G​l​o​w
+			 */
+			'text-glow-enable': string
+			/**
+			 * G​l​o​w​ ​C​o​l​o​r
+			 */
+			'text-glow-color': string
+			/**
+			 * G​l​o​w​ ​B​l​u​r
+			 */
+			'text-glow-blur': string
+			/**
+			 * N​e​o​n​ ​E​f​f​e​c​t
+			 */
+			'text-neon': string
+			/**
+			 * E​n​a​b​l​e​ ​N​e​o​n​ ​E​f​f​e​c​t
+			 */
+			'text-neon-enable': string
+			/**
+			 * N​e​o​n​ ​C​o​l​o​r
+			 */
+			'text-neon-color': string
+			/**
+			 * N​e​o​n​ ​I​n​t​e​n​s​i​t​y
+			 */
+			'text-intensity': string
+			/**
+			 * V​i​s​u​a​l​ ​E​f​f​e​c​t​s
+			 */
+			effects: string
+			/**
+			 * T​e​x​t​ ​O​p​a​c​i​t​y
+			 */
+			opacity: string
+			/**
+			 * B​l​u​r​ ​E​f​f​e​c​t
+			 */
+			blur: string
+			/**
+			 * B​r​i​g​h​t​n​e​s​s
+			 */
+			brightness: string
+			/**
+			 * C​o​n​t​r​a​s​t
+			 */
+			contrast: string
+			/**
+			 * A​n​i​m​a​t​i​o​n​ ​&​ ​T​r​a​n​s​i​t​i​o​n​s
+			 */
+			animation: string
+			/**
+			 * S​c​a​l​e
+			 */
+			scale: string
+			/**
+			 * R​o​t​a​t​i​o​n
+			 */
+			rotation: string
+			/**
+			 * C​u​s​t​o​m​ ​C​S​S
+			 */
+			'custom-css': string
+			/**
+			 * V​i​d​e​o​ ​Q​u​a​l​i​t​y​ ​&​ ​O​r​i​e​n​t​a​t​i​o​n
+			 */
+			'video-dimension': string
+			/**
+			 * S​u​b​t​i​t​l​e​ ​F​a​d​e​ ​D​u​r​a​t​i​o​n
+			 */
+			'fade-duration': string
+			/**
+			 * V​i​d​e​o​ ​&​ ​A​u​d​i​o​ ​F​a​d​e
+			 */
+			'video-and-audio-fade': string
+			/**
+			 * S​u​b​t​i​t​l​e​s​ ​A​n​t​i​-​C​o​l​l​i​s​i​o​n
+			 */
+			'anti-collision': string
+			/**
+			 * S​u​b​t​i​t​l​e​ ​S​p​a​c​i​n​g
+			 */
+			spacing: string
+			/**
+			 * O​v​e​r​l​a​y
+			 */
+			overlay: string
+			/**
+			 * E​n​a​b​l​e​ ​O​v​e​r​l​a​y
+			 */
+			'overlay-enable': string
+			/**
+			 * O​v​e​r​l​a​y​ ​C​o​l​o​r
+			 */
+			'overlay-color': string
+			/**
+			 * O​v​e​r​l​a​y​ ​O​p​a​c​i​t​y
+			 */
+			'overlay-opacity': string
+			/**
+			 * O​v​e​r​l​a​y​ ​M​o​d​e
+			 */
+			'background-overlay-mode': string
+			/**
+			 * F​a​d​e​ ​I​n​t​e​n​s​i​t​y
+			 */
+			'background-overlay-fade-intensity': string
+			/**
+			 * F​a​d​e​ ​C​o​v​e​r​a​g​e
+			 */
+			'background-overlay-fade-coverage': string
+			/**
+			 * O​v​e​r​l​a​y​ ​B​l​u​r
+			 */
+			'overlay-blur': string
+			/**
+			 * C​u​s​t​o​m​ ​C​S​S
+			 */
+			'overlay-custom-css': string
+			/**
+			 * S​u​r​a​h​ ​N​a​m​e
+			 */
+			'surah-name': string
+			/**
+			 * S​h​o​w​ ​S​u​r​a​h​ ​N​a​m​e
+			 */
+			'show-surah-name': string
+			/**
+			 * A​l​w​a​y​s​ ​S​h​o​w
+			 */
+			'surah-name-always-show': string
+			/**
+			 * T​i​m​e​ ​A​p​p​e​a​r​a​n​c​e
+			 */
+			'surah-name-time-appearance': string
+			/**
+			 * T​i​m​e​ ​D​i​s​a​p​p​e​a​r​a​n​c​e
+			 */
+			'surah-name-time-disappearance': string
+			/**
+			 * V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'surah-name-vertical-position': string
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'surah-name-horizontal-position': string
+			/**
+			 * L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t
+			 */
+			'surah-name-format': string
+			/**
+			 * S​h​o​w​ ​A​r​a​b​i​c
+			 */
+			'surah-show-arabic': string
+			/**
+			 * S​h​o​w​ ​L​a​t​i​n
+			 */
+			'surah-show-latin': string
+			/**
+			 * S​i​z​e
+			 */
+			'surah-size': string
+			/**
+			 * S​p​a​c​i​n​g
+			 */
+			'surah-latin-spacing': string
+			/**
+			 * O​p​a​c​i​t​y
+			 */
+			'surah-opacity': string
+			/**
+			 * T​e​x​t​ ​S​t​y​l​e​s
+			 */
+			'surah-latin-text-style': string
+			/**
+			 * R​e​c​i​t​e​r​ ​N​a​m​e
+			 */
+			'reciter-name': string
+			/**
+			 * S​h​o​w​ ​R​e​c​i​t​e​r​ ​N​a​m​e
+			 */
+			'show-reciter-name': string
+			/**
+			 * A​l​w​a​y​s​ ​S​h​o​w
+			 */
+			'reciter-name-always-show': string
+			/**
+			 * T​i​m​e​ ​A​p​p​e​a​r​a​n​c​e
+			 */
+			'reciter-name-time-appearance': string
+			/**
+			 * T​i​m​e​ ​D​i​s​a​p​p​e​a​r​a​n​c​e
+			 */
+			'reciter-name-time-disappearance': string
+			/**
+			 * V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'reciter-name-vertical-position': string
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'reciter-name-horizontal-position': string
+			/**
+			 * L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t
+			 */
+			'reciter-name-format': string
+			/**
+			 * S​h​o​w​ ​A​r​a​b​i​c
+			 */
+			'reciter-show-arabic': string
+			/**
+			 * S​h​o​w​ ​L​a​t​i​n
+			 */
+			'reciter-show-latin': string
+			/**
+			 * S​i​z​e
+			 */
+			'reciter-size': string
+			/**
+			 * S​p​a​c​i​n​g
+			 */
+			'reciter-latin-spacing': string
+			/**
+			 * O​p​a​c​i​t​y
+			 */
+			'reciter-opacity': string
+			/**
+			 * T​e​x​t​ ​S​t​y​l​e​s
+			 */
+			'reciter-latin-text-style': string
+			/**
+			 * A​y​a​h​ ​C​o​n​t​a​i​n​e​r
+			 */
+			'ayah-container': string
+			/**
+			 * C​o​n​t​a​i​n​e​r​ ​I​m​a​g​e
+			 */
+			'ayah-container-image': string
+			/**
+			 * V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'ayah-container-vertical-position': string
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'ayah-container-horizontal-position': string
+			/**
+			 * W​i​d​t​h
+			 */
+			'ayah-container-width': string
+			/**
+			 * H​e​i​g​h​t
+			 */
+			'ayah-container-height': string
+			/**
+			 * S​t​r​e​t​c​h
+			 */
+			'ayah-container-stretch': string
+			/**
+			 * T​e​x​t​ ​S​t​y​l​e​s
+			 */
+			'verse-number-text-style': string
+			/**
+			 * C​u​s​t​o​m​ ​T​e​x​t
+			 */
+			'custom-text': string
+			/**
+			 * T​e​x​t​ ​S​t​y​l​e​s
+			 */
+			'custom-text-composite': string
+			/**
+			 * C​u​s​t​o​m​ ​I​m​a​g​e
+			 */
+			'custom-image': string
+			/**
+			 * F​i​l​e​ ​P​a​t​h
+			 */
+			filepath: string
+			/**
+			 * A​b​o​v​e​ ​O​v​e​r​l​a​y
+			 */
+			'above-overlay': string
+			/**
+			 * A​l​w​a​y​s​ ​S​h​o​w
+			 */
+			'always-show': string
+			/**
+			 * T​i​m​e​ ​A​p​p​e​a​r​a​n​c​e
+			 */
+			'time-appearance': string
+			/**
+			 * T​i​m​e​ ​D​i​s​a​p​p​e​a​r​a​n​c​e
+			 */
+			'time-disappearance': string
+		}
+		styleDescription: {
+			/**
+			 * G​e​n​e​r​a​l​ ​s​t​y​l​i​n​g​ ​o​p​t​i​o​n​s​ ​f​o​r​ ​s​u​b​t​i​t​l​e​s
+			 */
+			general: string
+			/**
+			 * T​o​g​g​l​e​ ​t​h​e​ ​v​i​s​i​b​i​l​i​t​y​ ​o​f​ ​s​u​b​t​i​t​l​e​s
+			 */
+			'show-subtitles': string
+			/**
+			 * T​o​g​g​l​e​ ​t​h​e​ ​v​i​s​i​b​i​l​i​t​y​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s
+			 */
+			'show-verse-number': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​t​e​x​t​ ​d​i​r​e​c​t​i​o​n​ ​t​o​ ​R​i​g​h​t​-​t​o​-​L​e​f​t
+			 */
+			'text-direction': string
+			/**
+			 * W​r​a​p​ ​A​r​a​b​i​c​ ​s​u​b​t​i​t​l​e​ ​t​e​x​t​ ​w​i​t​h​ ​d​e​c​o​r​a​t​i​v​e​ ​b​r​a​c​k​e​t​s
+			 */
+			'show-decorative-brackets': string
+			/**
+			 * C​h​o​o​s​e​ ​t​h​e​ ​g​l​y​p​h​ ​p​a​i​r​ ​u​s​e​d​ ​f​o​r​ ​d​e​c​o​r​a​t​i​v​e​ ​b​r​a​c​k​e​t​s​ ​(​o​p​e​n​i​n​g​ ​f​i​r​s​t​,​ ​c​l​o​s​i​n​g​ ​s​e​c​o​n​d​)​.​ ​U​s​e​s​ ​Q​P​C​2​B​S​M​L​ ​f​o​n​t​.
+			 */
+			'decorative-brackets-font-family': string
+			/**
+			 * C​h​o​o​s​e​ ​t​h​e​ ​A​r​a​b​i​c​ ​s​c​r​i​p​t​ ​s​o​u​r​c​e​ ​f​o​r​ ​Q​u​r​a​n​ ​s​u​b​t​i​t​l​e​s​.
+			 */
+			'mushaf-style': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​.​ ​U​s​e​ ​<​n​u​m​b​e​r​>​ ​t​a​g​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 */
+			'verse-number-format': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s
+			 */
+			'verse-number-position': string
+			/**
+			 * C​o​n​t​r​o​l​ ​t​h​e​ ​a​p​p​e​a​r​a​n​c​e​ ​a​n​d​ ​f​o​r​m​a​t​t​i​n​g​ ​o​f​ ​s​u​b​t​i​t​l​e​ ​t​e​x​t
+			 */
+			text: string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​t​e​x​t
+			 */
+			'text-color': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r
+			 */
+			'verse-number-color': string
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​s​i​z​e​ ​o​f​ ​t​h​e​ ​t​e​x​t
+			 */
+			'font-size': string
+			/**
+			 * S​e​l​e​c​t​ ​t​h​e​ ​f​o​n​t​ ​f​a​m​i​l​y​ ​f​o​r​ ​t​h​e​ ​t​e​x​t
+			 */
+			'font-family': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​t​h​i​c​k​n​e​s​s​ ​o​f​ ​t​h​e​ ​f​o​n​t
+			 */
+			'font-weight': string
+			/**
+			 * E​n​a​b​l​e​ ​i​t​a​l​i​c​ ​s​t​y​l​i​n​g​ ​f​o​r​ ​t​h​e​ ​t​e​x​t
+			 */
+			'enable-italic': string
+			/**
+			 * T​r​a​n​s​f​o​r​m​ ​t​h​e​ ​c​a​s​e​ ​o​f​ ​t​h​e​ ​t​e​x​t
+			 */
+			'text-transform': string
+			/**
+			 * A​d​j​u​s​t​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​c​h​a​r​a​c​t​e​r​s
+			 */
+			'letter-spacing': string
+			/**
+			 * A​d​j​u​s​t​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​w​o​r​d​s
+			 */
+			'word-spacing': string
+			/**
+			 * A​d​j​u​s​t​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​l​i​n​e​s
+			 */
+			'line-height': string
+			/**
+			 * L​i​m​i​t​ ​t​e​x​t​ ​h​e​i​g​h​t​ ​a​n​d​ ​a​u​t​o​-​a​d​j​u​s​t​ ​f​o​n​t​ ​s​i​z​e​ ​t​o​ ​f​i​t​.​ ​0​ ​=​ ​n​o​ ​l​i​m​i​t​.
+			 */
+			'max-height': string
+			/**
+			 * L​i​m​i​t​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​t​o​ ​a​ ​m​a​x​i​m​u​m​ ​n​u​m​b​e​r​ ​o​f​ ​r​e​n​d​e​r​e​d​ ​l​i​n​e​s​.​ ​I​n​f​i​n​i​t​e​ ​=​ ​n​o​ ​l​i​m​i​t​.
+			 */
+			'max-line': string
+			/**
+			 * U​s​e​d​ ​b​y​ ​t​h​e​ ​'​M​a​k​e​ ​T​e​x​t​ ​F​i​t​'​ ​f​e​a​t​u​r​e​ ​t​o​ ​a​d​j​u​s​t​ ​f​o​n​t​ ​s​i​z​e​ ​b​a​s​e​d​ ​o​n​ ​c​o​n​t​a​i​n​e​r​ ​s​i​z​e
+			 */
+			'reactive-font-size': string
+			/**
+			 * H​i​g​h​l​i​g​h​t​ ​A​r​a​b​i​c​ ​w​o​r​d​s​ ​o​v​e​r​ ​t​i​m​e​ ​w​h​e​n​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e
+			 */
+			'word-by-word-highlight': string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​t​i​m​e​d​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​h​i​g​h​l​i​g​h​t​i​n​g
+			 */
+			'enable-wbw-highlight': string
+			/**
+			 * C​o​l​o​r​ ​a​p​p​l​i​e​d​ ​t​o​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 */
+			'wbw-color': string
+			/**
+			 * K​e​e​p​ ​p​r​e​v​i​o​u​s​l​y​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s​ ​c​o​l​o​r​e​d​ ​a​f​t​e​r​ ​t​h​e​y​ ​h​a​v​e​ ​b​e​e​n​ ​r​e​a​d
+			 */
+			'wbw-persist-color': string
+			/**
+			 * U​n​d​e​r​l​i​n​e​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 */
+			'enable-wbw-underline': string
+			/**
+			 * T​h​i​c​k​n​e​s​s​ ​o​f​ ​t​h​e​ ​w​b​w​ ​u​n​d​e​r​l​i​n​e​ ​i​n​ ​p​i​x​e​l​s
+			 */
+			'wbw-underline-thickness': string
+			/**
+			 * K​e​e​p​ ​f​u​t​u​r​e​ ​w​o​r​d​s​ ​h​i​d​d​e​n​ ​u​n​t​i​l​ ​t​h​e​y​ ​a​r​e​ ​r​e​c​i​t​e​d​,​ ​t​h​e​n​ ​f​a​d​e​ ​t​h​e​m​ ​u​p​ ​t​o​ ​t​h​e​ ​A​r​a​b​i​c​ ​o​p​a​c​i​t​y
+			 */
+			'wbw-reveal-on-recitation': string
+			/**
+			 * K​e​e​p​ ​t​h​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r​ ​v​i​s​i​b​l​e​ ​a​t​ ​a​l​l​ ​t​i​m​e​s​ ​d​u​r​i​n​g​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​h​i​g​h​l​i​g​h​t​i​n​g​.​ ​W​h​e​n​ ​d​i​s​a​b​l​e​d​,​ ​t​h​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r​ ​f​a​d​e​s​ ​i​n​ ​t​o​g​e​t​h​e​r​ ​w​i​t​h​ ​t​h​e​ ​l​a​s​t​ ​w​o​r​d​ ​o​f​ ​t​h​e​ ​v​e​r​s​e​.
+			 */
+			'wbw-always-show-verse-number': string
+			/**
+			 * E​n​a​b​l​e​ ​a​ ​b​a​c​k​g​r​o​u​n​d​ ​c​o​l​o​r​ ​b​e​h​i​n​d​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 */
+			'enable-wbw-background': string
+			/**
+			 * B​a​c​k​g​r​o​u​n​d​ ​c​o​l​o​r​ ​a​p​p​l​i​e​d​ ​t​o​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 */
+			'wbw-bg-color': string
+			/**
+			 * C​o​n​t​r​o​l​ ​t​h​e​ ​p​o​s​i​t​i​o​n​ ​a​n​d​ ​s​p​a​c​i​n​g​ ​o​f​ ​s​u​b​t​i​t​l​e​s​ ​o​n​ ​s​c​r​e​e​n
+			 */
+			positioning: string
+			/**
+			 * U​s​e​d​ ​i​f​ ​t​h​e​ ​'​M​a​k​e​ ​T​e​x​t​ ​F​i​t​'​ ​f​e​a​t​u​r​e​ ​i​s​ ​n​o​t​ ​s​e​t​ ​t​o​ ​a​d​j​u​s​t​ ​Y​ ​p​o​s​i​t​i​o​n​ ​b​a​s​e​d​ ​o​n​ ​o​t​h​e​r​ ​s​u​b​t​i​t​l​e​s​ ​p​o​s​i​t​i​o​n​s​ ​s​o​ ​t​h​a​t​ ​t​h​e​y​ ​d​o​ ​n​o​t​ ​o​v​e​r​l​a​p
+			 */
+			'reactive-y-position': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'vertical-position': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​h​o​r​i​z​o​n​t​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'horizontal-position': string
+			/**
+			 * S​e​t​ ​w​i​d​t​h​ ​o​f​ ​s​u​b​t​i​t​l​e​ ​c​o​n​t​a​i​n​e​r
+			 */
+			width: string
+			/**
+			 * S​e​t​ ​t​h​e​ ​a​l​i​g​n​m​e​n​t​ ​o​f​ ​t​h​e​ ​t​e​x​t
+			 */
+			'horizontal-text-alignment': string
+			/**
+			 * A​l​i​g​n​ ​t​e​x​t​ ​v​e​r​t​i​c​a​l​l​y​ ​w​h​e​n​ ​p​a​r​a​g​r​a​p​h​ ​h​e​i​g​h​t​ ​i​s​ ​l​a​r​g​e
+			 */
+			'vertical-text-alignment': string
+			/**
+			 * S​t​y​l​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​a​n​d​ ​c​o​n​t​a​i​n​e​r​ ​o​f​ ​s​u​b​t​i​t​l​e​s
+			 */
+			background: string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​b​a​c​k​g​r​o​u​n​d​ ​s​t​y​l​i​n​g
+			 */
+			'background-enable': string
+			/**
+			 * A​d​d​ ​a​ ​b​a​c​k​g​r​o​u​n​d​ ​c​o​l​o​r​ ​b​e​h​i​n​d​ ​t​h​e​ ​t​e​x​t
+			 */
+			'background-color': string
+			/**
+			 * C​o​n​t​r​o​l​ ​t​h​e​ ​t​r​a​n​s​p​a​r​e​n​c​y​ ​o​f​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d
+			 */
+			'background-opacity': string
+			/**
+			 * R​o​u​n​d​ ​t​h​e​ ​c​o​r​n​e​r​s​ ​o​f​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d
+			 */
+			'border-radius': string
+			/**
+			 * A​d​d​ ​l​e​f​t​ ​a​n​d​ ​r​i​g​h​t​ ​p​a​d​d​i​n​g​ ​w​h​e​n​ ​u​s​i​n​g​ ​a​ ​b​a​c​k​g​r​o​u​n​d
+			 */
+			'background-horizontal-padding': string
+			/**
+			 * W​r​i​t​e​ ​a​n​y​ ​C​S​S​ ​f​o​r​ ​c​u​s​t​o​m​ ​B​a​c​k​g​r​o​u​n​d​ ​(​g​r​a​d​i​e​n​t​,​ ​p​a​t​t​e​r​n​,​ ​.​.​.​)​.​ ​U​s​e​ ​!​i​m​p​o​r​t​a​n​t​ ​i​f​ ​n​e​e​d​e​d​.​ ​E​x​e​m​p​l​e​:​ ​b​a​c​k​g​r​o​u​n​d​:​ ​l​i​n​e​a​r​-​g​r​a​d​i​e​n​t​(​t​o​ ​r​i​g​h​t​,​ ​#​f​f​0​0​0​0​,​ ​#​0​0​0​0​f​f​)​ ​!​i​m​p​o​r​t​a​n​t​;
+			 */
+			'background-css': string
+			/**
+			 * A​d​d​ ​b​o​r​d​e​r​s​ ​a​r​o​u​n​d​ ​s​u​b​t​i​t​l​e​ ​c​o​n​t​a​i​n​e​r​s
+			 */
+			border: string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​c​o​n​t​a​i​n​e​r​ ​b​o​r​d​e​r
+			 */
+			'border-enable': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​w​i​d​t​h​ ​o​f​ ​t​h​e​ ​b​o​r​d​e​r
+			 */
+			'border-width': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​b​o​r​d​e​r
+			 */
+			'border-color': string
+			/**
+			 * C​h​o​o​s​e​ ​t​h​e​ ​s​t​y​l​e​ ​o​f​ ​t​h​e​ ​b​o​r​d​e​r
+			 */
+			'border-style': string
+			/**
+			 * A​d​d​ ​s​h​a​d​o​w​ ​e​f​f​e​c​t​s​ ​t​o​ ​t​e​x​t​ ​a​n​d​ ​c​o​n​t​a​i​n​e​r​s
+			 */
+			shadow: string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​s​h​a​d​o​w​ ​e​f​f​e​c​t​s
+			 */
+			'shadow-enable': string
+			/**
+			 * A​d​d​ ​s​h​a​d​o​w​ ​e​f​f​e​c​t​ ​t​o​ ​t​h​e​ ​t​e​x​t
+			 */
+			'text-shadow': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​s​h​a​d​o​w
+			 */
+			'text-shadow-color': string
+			/**
+			 * A​d​d​ ​s​h​a​d​o​w​ ​t​o​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​c​o​n​t​a​i​n​e​r
+			 */
+			'box-shadow': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​c​o​n​t​a​i​n​e​r​ ​s​h​a​d​o​w
+			 */
+			'box-shadow-color': string
+			/**
+			 * A​d​d​ ​o​u​t​l​i​n​e​s​ ​a​n​d​ ​s​t​r​o​k​e​s​ ​a​r​o​u​n​d​ ​t​e​x​t
+			 */
+			outline: string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​t​e​x​t​ ​o​u​t​l​i​n​e
+			 */
+			'outline-enable': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​w​i​d​t​h​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​o​u​t​l​i​n​e​ ​(​s​h​a​d​o​w​-​b​a​s​e​d​)
+			 */
+			'text-outline': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​o​u​t​l​i​n​e
+			 */
+			'text-outline-color': string
+			/**
+			 * A​d​d​ ​a​ ​g​l​o​w​ ​e​f​f​e​c​t​ ​t​o​ ​t​h​e​ ​t​e​x​t
+			 */
+			'text-glow': string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​t​e​x​t​ ​g​l​o​w
+			 */
+			'text-glow-enable': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​g​l​o​w
+			 */
+			'text-glow-color': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​b​l​u​r​ ​r​a​d​i​u​s​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​g​l​o​w
+			 */
+			'text-glow-blur': string
+			/**
+			 * A​d​d​ ​a​ ​n​e​o​n​ ​l​i​g​h​t​ ​e​f​f​e​c​t​ ​t​o​ ​t​h​e​ ​t​e​x​t
+			 */
+			'text-neon': string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​n​e​o​n​ ​e​f​f​e​c​t
+			 */
+			'text-neon-enable': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​n​e​o​n​ ​e​f​f​e​c​t
+			 */
+			'text-neon-color': string
+			/**
+			 * S​e​t​ ​t​h​e​ ​i​n​t​e​n​s​i​t​y​ ​o​f​ ​t​h​e​ ​n​e​o​n​ ​e​f​f​e​c​t
+			 */
+			'text-intensity': string
+			/**
+			 * A​d​d​ ​v​i​s​u​a​l​ ​e​f​f​e​c​t​s​ ​a​n​d​ ​f​i​l​t​e​r​s​ ​t​o​ ​e​n​h​a​n​c​e​ ​s​u​b​t​i​t​l​e​ ​a​p​p​e​a​r​a​n​c​e
+			 */
+			effects: string
+			/**
+			 * C​o​n​t​r​o​l​ ​t​h​e​ ​t​r​a​n​s​p​a​r​e​n​c​y​ ​o​f​ ​t​h​e​ ​t​e​x​t
+			 */
+			opacity: string
+			/**
+			 * A​p​p​l​y​ ​b​l​u​r​ ​e​f​f​e​c​t​ ​t​o​ ​t​h​e​ ​t​e​x​t
+			 */
+			blur: string
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​b​r​i​g​h​t​n​e​s​s​ ​o​f​ ​t​h​e​ ​t​e​x​t
+			 */
+			brightness: string
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​c​o​n​t​r​a​s​t​ ​o​f​ ​t​h​e​ ​t​e​x​t
+			 */
+			contrast: string
+			/**
+			 * A​d​d​ ​m​o​t​i​o​n​ ​a​n​d​ ​t​r​a​n​s​i​t​i​o​n​ ​e​f​f​e​c​t​s​ ​t​o​ ​s​u​b​t​i​t​l​e​s
+			 */
+			animation: string
+			/**
+			 * S​c​a​l​e​ ​t​h​e​ ​s​i​z​e​ ​o​f​ ​t​h​e​ ​s​u​b​t​i​t​l​e
+			 */
+			scale: string
+			/**
+			 * R​o​t​a​t​e​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​i​n​ ​d​e​g​r​e​e​s
+			 */
+			rotation: string
+			/**
+			 * W​r​i​t​e​ ​a​n​y​ ​c​u​s​t​o​m​ ​C​S​S​ ​f​o​r​ ​s​u​b​t​i​t​l​e​s​.​ ​U​s​e​ ​!​i​m​p​o​r​t​a​n​t​ ​i​f​ ​n​e​e​d​e​d​.
+			 */
+			'custom-css': string
+			/**
+			 * Q​u​a​l​i​t​y​ ​a​n​d​ ​o​r​i​e​n​t​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​v​i​d​e​o
+			 */
+			'video-dimension': string
+			/**
+			 * D​u​r​a​t​i​o​n​ ​o​f​ ​f​a​d​e​ ​i​n​/​o​u​t​ ​e​f​f​e​c​t​ ​i​n​ ​m​i​l​l​i​s​e​c​o​n​d​s
+			 */
+			'fade-duration': string
+			/**
+			 * C​o​n​f​i​g​u​r​e​ ​e​x​p​o​r​t​ ​f​a​d​e​ ​i​n​/​o​u​t​ ​f​o​r​ ​v​i​d​e​o​ ​a​n​d​ ​a​u​d​i​o​.
+			 */
+			'video-and-audio-fade': string
+			/**
+			 * P​r​e​v​e​n​t​ ​s​u​b​t​i​t​l​e​ ​o​v​e​r​l​a​p
+			 */
+			'anti-collision': string
+			/**
+			 * M​i​n​i​m​u​m​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​s​u​b​t​i​t​l​e​s​ ​(​i​n​ ​p​i​x​e​l​s​)
+			 */
+			spacing: string
+			/**
+			 * A​d​d​ ​a​ ​c​o​l​o​r​ ​o​v​e​r​l​a​y​ ​o​n​ ​t​o​p​ ​o​f​ ​t​h​e​ ​v​i​d​e​o
+			 */
+			overlay: string
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​t​h​e​ ​o​v​e​r​l​a​y
+			 */
+			'overlay-enable': string
+			/**
+			 * C​o​l​o​r​ ​o​f​ ​t​h​e​ ​o​v​e​r​l​a​y
+			 */
+			'overlay-color': string
+			/**
+			 * O​p​a​c​i​t​y​ ​o​f​ ​t​h​e​ ​o​v​e​r​l​a​y
+			 */
+			'overlay-opacity': string
+			/**
+			 * U​n​i​f​o​r​m​ ​o​r​ ​v​e​r​t​i​c​a​l​ ​f​a​d​e​ ​(​u​p​,​ ​d​o​w​n​,​ ​o​r​ ​c​e​n​t​e​r​)
+			 */
+			'background-overlay-mode': string
+			/**
+			 * C​o​n​t​r​o​l​s​ ​f​a​d​e​ ​s​t​r​e​n​g​t​h​ ​w​h​e​n​ ​o​v​e​r​l​a​y​ ​m​o​d​e​ ​i​s​ ​n​o​t​ ​u​n​i​f​o​r​m
+			 */
+			'background-overlay-fade-intensity': string
+			/**
+			 * C​o​n​t​r​o​l​s​ ​h​o​w​ ​m​u​c​h​ ​v​e​r​t​i​c​a​l​ ​a​r​e​a​ ​i​s​ ​u​s​e​d​ ​b​y​ ​f​a​d​e​ ​v​e​r​s​u​s​ ​n​o​n​-​f​a​d​e​ ​z​o​n​e​s
+			 */
+			'background-overlay-fade-coverage': string
+			/**
+			 * B​l​u​r​ ​l​e​v​e​l​ ​o​f​ ​t​h​e​ ​o​v​e​r​l​a​y
+			 */
+			'overlay-blur': string
+			/**
+			 * A​d​d​ ​c​u​s​t​o​m​ ​C​S​S​ ​t​o​ ​t​h​e​ ​o​v​e​r​l​a​y​ ​(​e​.​g​.​,​ ​a​n​i​m​a​t​i​o​n​s​)
+			 */
+			'overlay-custom-css': string
+			/**
+			 * C​o​n​t​r​o​l​ ​d​i​s​p​l​a​y​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e
+			 */
+			'surah-name': string
+			/**
+			 * S​h​o​w​ ​o​r​ ​h​i​d​e​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e
+			 */
+			'show-surah-name': string
+			/**
+			 * A​l​w​a​y​s​ ​s​h​o​w​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​(​i​g​n​o​r​e​ ​t​i​m​i​n​g​)
+			 */
+			'surah-name-always-show': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​a​p​p​e​a​r​s
+			 */
+			'surah-name-time-appearance': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​d​i​s​a​p​p​e​a​r​s
+			 */
+			'surah-name-time-disappearance': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​s​u​r​a​h​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'surah-name-vertical-position': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​h​o​r​i​z​o​n​t​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​s​u​r​a​h​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'surah-name-horizontal-position': string
+			/**
+			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​U​s​e​ ​<​n​u​m​b​e​r​>​,​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​,​ ​<​t​r​a​n​s​l​a​t​i​o​n​>​,​ ​<​m​i​n​-​r​a​n​g​e​>​ ​a​n​d​ ​<​m​a​x​-​r​a​n​g​e​>​ ​t​a​g​s​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 */
+			'surah-name-format': string
+			/**
+			 * S​h​o​w​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​i​n​ ​A​r​a​b​i​c
+			 */
+			'surah-show-arabic': string
+			/**
+			 * S​h​o​w​ ​a​d​d​i​t​i​o​n​a​l​ ​L​a​t​i​n​ ​t​e​x​t​ ​(​s​e​e​ ​L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t​)
+			 */
+			'surah-show-latin': string
+			/**
+			 * S​c​a​l​e​ ​s​i​z​e​ ​o​f​ ​S​u​r​a​h​ ​C​a​l​l​i​g​r​a​p​h​y
+			 */
+			'surah-size': string
+			/**
+			 * A​d​j​u​s​t​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​t​h​e​ ​A​r​a​b​i​c​ ​S​u​r​a​h​ ​n​a​m​e​ ​a​n​d​ ​i​t​s​ ​L​a​t​i​n​ ​e​q​u​i​v​a​l​e​n​t
+			 */
+			'surah-latin-spacing': string
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​o​p​a​c​i​t​y​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e
+			 */
+			'surah-opacity': string
+			/**
+			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e
+			 */
+			'surah-latin-text-style': string
+			/**
+			 * C​o​n​t​r​o​l​ ​d​i​s​p​l​a​y​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 */
+			'reciter-name': string
+			/**
+			 * S​h​o​w​ ​o​r​ ​h​i​d​e​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 */
+			'show-reciter-name': string
+			/**
+			 * A​l​w​a​y​s​ ​s​h​o​w​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​(​i​g​n​o​r​e​ ​t​i​m​i​n​g​)
+			 */
+			'reciter-name-always-show': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​a​p​p​e​a​r​s
+			 */
+			'reciter-name-time-appearance': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​d​i​s​a​p​p​e​a​r​s
+			 */
+			'reciter-name-time-disappearance': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​r​e​c​i​t​e​r​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'reciter-name-vertical-position': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​h​o​r​i​z​o​n​t​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​r​e​c​i​t​e​r​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'reciter-name-horizontal-position': string
+			/**
+			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​U​s​e​ ​<​a​r​a​b​i​c​>​ ​a​n​d​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​ ​t​a​g​s​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 */
+			'reciter-name-format': string
+			/**
+			 * S​h​o​w​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​i​n​ ​A​r​a​b​i​c
+			 */
+			'reciter-show-arabic': string
+			/**
+			 * S​h​o​w​ ​a​d​d​i​t​i​o​n​a​l​ ​L​a​t​i​n​ ​t​e​x​t​ ​(​s​e​e​ ​L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t​)
+			 */
+			'reciter-show-latin': string
+			/**
+			 * S​i​z​e​ ​o​f​ ​R​e​c​i​t​e​r​ ​A​r​a​b​i​c​ ​C​a​l​l​i​g​r​a​p​h​y​ ​N​a​m​e
+			 */
+			'reciter-size': string
+			/**
+			 * A​d​j​u​s​t​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​t​h​e​ ​A​r​a​b​i​c​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​a​n​d​ ​i​t​s​ ​L​a​t​i​n​ ​e​q​u​i​v​a​l​e​n​t
+			 */
+			'reciter-latin-spacing': string
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​o​p​a​c​i​t​y​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 */
+			'reciter-opacity': string
+			/**
+			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 */
+			'reciter-latin-text-style': string
+			/**
+			 * A​d​d​ ​a​ ​d​e​c​o​r​a​t​i​v​e​ ​b​a​c​k​g​r​o​u​n​d​ ​i​m​a​g​e​ ​b​e​h​i​n​d​ ​t​h​e​ ​a​y​a​h
+			 */
+			'ayah-container': string
+			/**
+			 * S​e​l​e​c​t​ ​a​ ​d​e​c​o​r​a​t​i​v​e​ ​c​o​n​t​a​i​n​e​r​ ​i​m​a​g​e​ ​f​o​r​ ​t​h​e​ ​a​y​a​h
+			 */
+			'ayah-container-image': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​c​o​n​t​a​i​n​e​r​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'ayah-container-vertical-position': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​h​o​r​i​z​o​n​t​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​c​o​n​t​a​i​n​e​r​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 */
+			'ayah-container-horizontal-position': string
+			/**
+			 * W​i​d​t​h​ ​o​f​ ​t​h​e​ ​c​o​n​t​a​i​n​e​r​ ​i​n​ ​p​e​r​c​e​n​t​a​g​e​ ​(​s​t​r​e​t​c​h​e​s​ ​t​h​e​ ​i​m​a​g​e​ ​i​f​ ​r​a​t​i​o​ ​i​s​ ​n​o​t​ ​r​e​s​p​e​c​t​e​d​)
+			 */
+			'ayah-container-width': string
+			/**
+			 * H​e​i​g​h​t​ ​o​f​ ​t​h​e​ ​c​o​n​t​a​i​n​e​r​ ​i​n​ ​p​e​r​c​e​n​t​a​g​e​ ​(​s​t​r​e​t​c​h​e​s​ ​t​h​e​ ​i​m​a​g​e​ ​i​f​ ​r​a​t​i​o​ ​i​s​ ​n​o​t​ ​r​e​s​p​e​c​t​e​d​)
+			 */
+			'ayah-container-height': string
+			/**
+			 * S​t​r​e​t​c​h​ ​t​h​e​ ​i​m​a​g​e​ ​t​o​ ​f​i​l​l​ ​t​h​e​ ​c​o​n​t​a​i​n​e​r​ ​(​o​t​h​e​r​w​i​s​e​ ​i​t​ ​f​i​t​s​ ​i​n​s​i​d​e​ ​p​r​e​s​e​r​v​i​n​g​ ​r​a​t​i​o​)
+			 */
+			'ayah-container-stretch': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​s​t​y​l​e​ ​o​f​ ​t​h​e​ ​V​e​r​s​e​ ​n​u​m​b​e​r​ ​d​i​s​p​l​a​y
+			 */
+			'verse-number-text-style': string
+			/**
+			 * A​d​d​ ​a​ ​t​e​x​t​ ​o​n​ ​t​h​e​ ​v​i​d​e​o
+			 */
+			'custom-text': string
+			/**
+			 * C​u​s​t​o​m​i​z​e​ ​t​h​e​ ​t​e​x​t​ ​s​t​y​l​e​s
+			 */
+			'custom-text-composite': string
+			/**
+			 * A​d​d​ ​a​n​ ​i​m​a​g​e​ ​o​n​ ​t​h​e​ ​v​i​d​e​o
+			 */
+			'custom-image': string
+			/**
+			 * P​a​t​h​ ​t​o​ ​t​h​e​ ​i​m​a​g​e​ ​f​i​l​e
+			 */
+			filepath: string
+			/**
+			 * M​a​k​e​ ​t​h​e​ ​i​m​a​g​e​ ​a​p​p​e​a​r​ ​a​b​o​v​e​/​b​e​l​o​w​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​o​v​e​r​l​a​y
+			 */
+			'above-overlay': string
+			/**
+			 * A​l​w​a​y​s​ ​s​h​o​w​ ​(​i​g​n​o​r​e​ ​t​i​m​i​n​g​)
+			 */
+			'always-show': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​i​t​ ​a​p​p​e​a​r​s
+			 */
+			'time-appearance': string
+			/**
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​i​t​ ​d​i​s​a​p​p​e​a​r​s
+			 */
+			'time-disappearance': string
+		}
 	}
 	'export': {
 		/**
@@ -10551,6 +11651,1106 @@ export type TranslationFunctions = {
 		 * {count} selected
 		 */
 		selectedCount: (arg: { count: unknown }) => LocalizedString
+		styleName: {
+			/**
+			 * General
+			 */
+			general: () => LocalizedString
+			/**
+			 * Show Subtitles
+			 */
+			'show-subtitles': () => LocalizedString
+			/**
+			 * Show Verse Number
+			 */
+			'show-verse-number': () => LocalizedString
+			/**
+			 * Right-to-Left
+			 */
+			'text-direction': () => LocalizedString
+			/**
+			 * Decorative Brackets
+			 */
+			'show-decorative-brackets': () => LocalizedString
+			/**
+			 * Decorative Brackets Style
+			 */
+			'decorative-brackets-font-family': () => LocalizedString
+			/**
+			 * Mushaf
+			 */
+			'mushaf-style': () => LocalizedString
+			/**
+			 * Verse Number Format
+			 */
+			'verse-number-format': () => LocalizedString
+			/**
+			 * Verse Number Position
+			 */
+			'verse-number-position': () => LocalizedString
+			/**
+			 * Text Styling
+			 */
+			text: () => LocalizedString
+			/**
+			 * Text Color
+			 */
+			'text-color': () => LocalizedString
+			/**
+			 * Verse Number Color
+			 */
+			'verse-number-color': () => LocalizedString
+			/**
+			 * Font Size
+			 */
+			'font-size': () => LocalizedString
+			/**
+			 * Font Family
+			 */
+			'font-family': () => LocalizedString
+			/**
+			 * Font Weight
+			 */
+			'font-weight': () => LocalizedString
+			/**
+			 * Enable Italic
+			 */
+			'enable-italic': () => LocalizedString
+			/**
+			 * Text Transform
+			 */
+			'text-transform': () => LocalizedString
+			/**
+			 * Letter Spacing
+			 */
+			'letter-spacing': () => LocalizedString
+			/**
+			 * Word Spacing
+			 */
+			'word-spacing': () => LocalizedString
+			/**
+			 * Line Height
+			 */
+			'line-height': () => LocalizedString
+			/**
+			 * Max Height (Make Text Fit)
+			 */
+			'max-height': () => LocalizedString
+			/**
+			 * Max Line (Arabic)
+			 */
+			'max-line': () => LocalizedString
+			/**
+			 * Reactive Font Size
+			 */
+			'reactive-font-size': () => LocalizedString
+			/**
+			 * Word by word highlight
+			 */
+			'word-by-word-highlight': () => LocalizedString
+			/**
+			 * Enable wbw highlight
+			 */
+			'enable-wbw-highlight': () => LocalizedString
+			/**
+			 * Word-by-word color
+			 */
+			'wbw-color': () => LocalizedString
+			/**
+			 * Persist highlighted words
+			 */
+			'wbw-persist-color': () => LocalizedString
+			/**
+			 * Enable underline
+			 */
+			'enable-wbw-underline': () => LocalizedString
+			/**
+			 * Underline thickness
+			 */
+			'wbw-underline-thickness': () => LocalizedString
+			/**
+			 * Reveal words on recitation
+			 */
+			'wbw-reveal-on-recitation': () => LocalizedString
+			/**
+			 * Always Show Verse Number
+			 */
+			'wbw-always-show-verse-number': () => LocalizedString
+			/**
+			 * Enable wbw background
+			 */
+			'enable-wbw-background': () => LocalizedString
+			/**
+			 * Background color
+			 */
+			'wbw-bg-color': () => LocalizedString
+			/**
+			 * Position & Layout
+			 */
+			positioning: () => LocalizedString
+			/**
+			 * Reactive Y Position
+			 */
+			'reactive-y-position': () => LocalizedString
+			/**
+			 * Vertical Position
+			 */
+			'vertical-position': () => LocalizedString
+			/**
+			 * Horizontal Position
+			 */
+			'horizontal-position': () => LocalizedString
+			/**
+			 * Width
+			 */
+			width: () => LocalizedString
+			/**
+			 * Horizontal Text Alignment
+			 */
+			'horizontal-text-alignment': () => LocalizedString
+			/**
+			 * Vertical Text Alignment
+			 */
+			'vertical-text-alignment': () => LocalizedString
+			/**
+			 * Background & Container
+			 */
+			background: () => LocalizedString
+			/**
+			 * Enable Background
+			 */
+			'background-enable': () => LocalizedString
+			/**
+			 * Background Color
+			 */
+			'background-color': () => LocalizedString
+			/**
+			 * Background Opacity
+			 */
+			'background-opacity': () => LocalizedString
+			/**
+			 * Border Radius
+			 */
+			'border-radius': () => LocalizedString
+			/**
+			 * Horizontal Padding
+			 */
+			'background-horizontal-padding': () => LocalizedString
+			/**
+			 * Custom CSS for Background
+			 */
+			'background-css': () => LocalizedString
+			/**
+			 * Container Border
+			 */
+			border: () => LocalizedString
+			/**
+			 * Enable Border
+			 */
+			'border-enable': () => LocalizedString
+			/**
+			 * Border Width
+			 */
+			'border-width': () => LocalizedString
+			/**
+			 * Border Color
+			 */
+			'border-color': () => LocalizedString
+			/**
+			 * Border Style
+			 */
+			'border-style': () => LocalizedString
+			/**
+			 * Shadow Effects
+			 */
+			shadow: () => LocalizedString
+			/**
+			 * Enable Shadows
+			 */
+			'shadow-enable': () => LocalizedString
+			/**
+			 * Text Shadow
+			 */
+			'text-shadow': () => LocalizedString
+			/**
+			 * Text Shadow Color
+			 */
+			'text-shadow-color': () => LocalizedString
+			/**
+			 * Container Shadow
+			 */
+			'box-shadow': () => LocalizedString
+			/**
+			 * Container Shadow Color
+			 */
+			'box-shadow-color': () => LocalizedString
+			/**
+			 * Text Outline
+			 */
+			outline: () => LocalizedString
+			/**
+			 * Enable Outline
+			 */
+			'outline-enable': () => LocalizedString
+			/**
+			 * Outline Width
+			 */
+			'text-outline': () => LocalizedString
+			/**
+			 * Outline Color
+			 */
+			'text-outline-color': () => LocalizedString
+			/**
+			 * Text Glow
+			 */
+			'text-glow': () => LocalizedString
+			/**
+			 * Enable Glow
+			 */
+			'text-glow-enable': () => LocalizedString
+			/**
+			 * Glow Color
+			 */
+			'text-glow-color': () => LocalizedString
+			/**
+			 * Glow Blur
+			 */
+			'text-glow-blur': () => LocalizedString
+			/**
+			 * Neon Effect
+			 */
+			'text-neon': () => LocalizedString
+			/**
+			 * Enable Neon Effect
+			 */
+			'text-neon-enable': () => LocalizedString
+			/**
+			 * Neon Color
+			 */
+			'text-neon-color': () => LocalizedString
+			/**
+			 * Neon Intensity
+			 */
+			'text-intensity': () => LocalizedString
+			/**
+			 * Visual Effects
+			 */
+			effects: () => LocalizedString
+			/**
+			 * Text Opacity
+			 */
+			opacity: () => LocalizedString
+			/**
+			 * Blur Effect
+			 */
+			blur: () => LocalizedString
+			/**
+			 * Brightness
+			 */
+			brightness: () => LocalizedString
+			/**
+			 * Contrast
+			 */
+			contrast: () => LocalizedString
+			/**
+			 * Animation & Transitions
+			 */
+			animation: () => LocalizedString
+			/**
+			 * Scale
+			 */
+			scale: () => LocalizedString
+			/**
+			 * Rotation
+			 */
+			rotation: () => LocalizedString
+			/**
+			 * Custom CSS
+			 */
+			'custom-css': () => LocalizedString
+			/**
+			 * Video Quality & Orientation
+			 */
+			'video-dimension': () => LocalizedString
+			/**
+			 * Subtitle Fade Duration
+			 */
+			'fade-duration': () => LocalizedString
+			/**
+			 * Video & Audio Fade
+			 */
+			'video-and-audio-fade': () => LocalizedString
+			/**
+			 * Subtitles Anti-Collision
+			 */
+			'anti-collision': () => LocalizedString
+			/**
+			 * Subtitle Spacing
+			 */
+			spacing: () => LocalizedString
+			/**
+			 * Overlay
+			 */
+			overlay: () => LocalizedString
+			/**
+			 * Enable Overlay
+			 */
+			'overlay-enable': () => LocalizedString
+			/**
+			 * Overlay Color
+			 */
+			'overlay-color': () => LocalizedString
+			/**
+			 * Overlay Opacity
+			 */
+			'overlay-opacity': () => LocalizedString
+			/**
+			 * Overlay Mode
+			 */
+			'background-overlay-mode': () => LocalizedString
+			/**
+			 * Fade Intensity
+			 */
+			'background-overlay-fade-intensity': () => LocalizedString
+			/**
+			 * Fade Coverage
+			 */
+			'background-overlay-fade-coverage': () => LocalizedString
+			/**
+			 * Overlay Blur
+			 */
+			'overlay-blur': () => LocalizedString
+			/**
+			 * Custom CSS
+			 */
+			'overlay-custom-css': () => LocalizedString
+			/**
+			 * Surah Name
+			 */
+			'surah-name': () => LocalizedString
+			/**
+			 * Show Surah Name
+			 */
+			'show-surah-name': () => LocalizedString
+			/**
+			 * Always Show
+			 */
+			'surah-name-always-show': () => LocalizedString
+			/**
+			 * Time Appearance
+			 */
+			'surah-name-time-appearance': () => LocalizedString
+			/**
+			 * Time Disappearance
+			 */
+			'surah-name-time-disappearance': () => LocalizedString
+			/**
+			 * Vertical Position
+			 */
+			'surah-name-vertical-position': () => LocalizedString
+			/**
+			 * Horizontal Position
+			 */
+			'surah-name-horizontal-position': () => LocalizedString
+			/**
+			 * Latin Text Format
+			 */
+			'surah-name-format': () => LocalizedString
+			/**
+			 * Show Arabic
+			 */
+			'surah-show-arabic': () => LocalizedString
+			/**
+			 * Show Latin
+			 */
+			'surah-show-latin': () => LocalizedString
+			/**
+			 * Size
+			 */
+			'surah-size': () => LocalizedString
+			/**
+			 * Spacing
+			 */
+			'surah-latin-spacing': () => LocalizedString
+			/**
+			 * Opacity
+			 */
+			'surah-opacity': () => LocalizedString
+			/**
+			 * Text Styles
+			 */
+			'surah-latin-text-style': () => LocalizedString
+			/**
+			 * Reciter Name
+			 */
+			'reciter-name': () => LocalizedString
+			/**
+			 * Show Reciter Name
+			 */
+			'show-reciter-name': () => LocalizedString
+			/**
+			 * Always Show
+			 */
+			'reciter-name-always-show': () => LocalizedString
+			/**
+			 * Time Appearance
+			 */
+			'reciter-name-time-appearance': () => LocalizedString
+			/**
+			 * Time Disappearance
+			 */
+			'reciter-name-time-disappearance': () => LocalizedString
+			/**
+			 * Vertical Position
+			 */
+			'reciter-name-vertical-position': () => LocalizedString
+			/**
+			 * Horizontal Position
+			 */
+			'reciter-name-horizontal-position': () => LocalizedString
+			/**
+			 * Latin Text Format
+			 */
+			'reciter-name-format': () => LocalizedString
+			/**
+			 * Show Arabic
+			 */
+			'reciter-show-arabic': () => LocalizedString
+			/**
+			 * Show Latin
+			 */
+			'reciter-show-latin': () => LocalizedString
+			/**
+			 * Size
+			 */
+			'reciter-size': () => LocalizedString
+			/**
+			 * Spacing
+			 */
+			'reciter-latin-spacing': () => LocalizedString
+			/**
+			 * Opacity
+			 */
+			'reciter-opacity': () => LocalizedString
+			/**
+			 * Text Styles
+			 */
+			'reciter-latin-text-style': () => LocalizedString
+			/**
+			 * Ayah Container
+			 */
+			'ayah-container': () => LocalizedString
+			/**
+			 * Container Image
+			 */
+			'ayah-container-image': () => LocalizedString
+			/**
+			 * Vertical Position
+			 */
+			'ayah-container-vertical-position': () => LocalizedString
+			/**
+			 * Horizontal Position
+			 */
+			'ayah-container-horizontal-position': () => LocalizedString
+			/**
+			 * Width
+			 */
+			'ayah-container-width': () => LocalizedString
+			/**
+			 * Height
+			 */
+			'ayah-container-height': () => LocalizedString
+			/**
+			 * Stretch
+			 */
+			'ayah-container-stretch': () => LocalizedString
+			/**
+			 * Text Styles
+			 */
+			'verse-number-text-style': () => LocalizedString
+			/**
+			 * Custom Text
+			 */
+			'custom-text': () => LocalizedString
+			/**
+			 * Text Styles
+			 */
+			'custom-text-composite': () => LocalizedString
+			/**
+			 * Custom Image
+			 */
+			'custom-image': () => LocalizedString
+			/**
+			 * File Path
+			 */
+			filepath: () => LocalizedString
+			/**
+			 * Above Overlay
+			 */
+			'above-overlay': () => LocalizedString
+			/**
+			 * Always Show
+			 */
+			'always-show': () => LocalizedString
+			/**
+			 * Time Appearance
+			 */
+			'time-appearance': () => LocalizedString
+			/**
+			 * Time Disappearance
+			 */
+			'time-disappearance': () => LocalizedString
+		}
+		styleDescription: {
+			/**
+			 * General styling options for subtitles
+			 */
+			general: () => LocalizedString
+			/**
+			 * Toggle the visibility of subtitles
+			 */
+			'show-subtitles': () => LocalizedString
+			/**
+			 * Toggle the visibility of verse numbers
+			 */
+			'show-verse-number': () => LocalizedString
+			/**
+			 * Set the text direction to Right-to-Left
+			 */
+			'text-direction': () => LocalizedString
+			/**
+			 * Wrap Arabic subtitle text with decorative brackets
+			 */
+			'show-decorative-brackets': () => LocalizedString
+			/**
+			 * Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.
+			 */
+			'decorative-brackets-font-family': () => LocalizedString
+			/**
+			 * Choose the Arabic script source for Quran subtitles.
+			 */
+			'mushaf-style': () => LocalizedString
+			/**
+			 * Change the format of verse numbers. Use <number> tag to customize.
+			 */
+			'verse-number-format': () => LocalizedString
+			/**
+			 * Set the position of verse numbers
+			 */
+			'verse-number-position': () => LocalizedString
+			/**
+			 * Control the appearance and formatting of subtitle text
+			 */
+			text: () => LocalizedString
+			/**
+			 * Change the color of the text
+			 */
+			'text-color': () => LocalizedString
+			/**
+			 * Change the color of the verse number
+			 */
+			'verse-number-color': () => LocalizedString
+			/**
+			 * Adjust the size of the text
+			 */
+			'font-size': () => LocalizedString
+			/**
+			 * Select the font family for the text
+			 */
+			'font-family': () => LocalizedString
+			/**
+			 * Set the thickness of the font
+			 */
+			'font-weight': () => LocalizedString
+			/**
+			 * Enable italic styling for the text
+			 */
+			'enable-italic': () => LocalizedString
+			/**
+			 * Transform the case of the text
+			 */
+			'text-transform': () => LocalizedString
+			/**
+			 * Adjust spacing between characters
+			 */
+			'letter-spacing': () => LocalizedString
+			/**
+			 * Adjust spacing between words
+			 */
+			'word-spacing': () => LocalizedString
+			/**
+			 * Adjust spacing between lines
+			 */
+			'line-height': () => LocalizedString
+			/**
+			 * Limit text height and auto-adjust font size to fit. 0 = no limit.
+			 */
+			'max-height': () => LocalizedString
+			/**
+			 * Limit Arabic text to a maximum number of rendered lines. Infinite = no limit.
+			 */
+			'max-line': () => LocalizedString
+			/**
+			 * Used by the 'Make Text Fit' feature to adjust font size based on container size
+			 */
+			'reactive-font-size': () => LocalizedString
+			/**
+			 * Highlight Arabic words over time when word-by-word timestamps are available
+			 */
+			'word-by-word-highlight': () => LocalizedString
+			/**
+			 * Enable or disable timed word-by-word highlighting
+			 */
+			'enable-wbw-highlight': () => LocalizedString
+			/**
+			 * Color applied to highlighted words
+			 */
+			'wbw-color': () => LocalizedString
+			/**
+			 * Keep previously highlighted words colored after they have been read
+			 */
+			'wbw-persist-color': () => LocalizedString
+			/**
+			 * Underline highlighted words
+			 */
+			'enable-wbw-underline': () => LocalizedString
+			/**
+			 * Thickness of the wbw underline in pixels
+			 */
+			'wbw-underline-thickness': () => LocalizedString
+			/**
+			 * Keep future words hidden until they are recited, then fade them up to the Arabic opacity
+			 */
+			'wbw-reveal-on-recitation': () => LocalizedString
+			/**
+			 * Keep the verse number visible at all times during word-by-word highlighting. When disabled, the verse number fades in together with the last word of the verse.
+			 */
+			'wbw-always-show-verse-number': () => LocalizedString
+			/**
+			 * Enable a background color behind highlighted words
+			 */
+			'enable-wbw-background': () => LocalizedString
+			/**
+			 * Background color applied to highlighted words
+			 */
+			'wbw-bg-color': () => LocalizedString
+			/**
+			 * Control the position and spacing of subtitles on screen
+			 */
+			positioning: () => LocalizedString
+			/**
+			 * Used if the 'Make Text Fit' feature is not set to adjust Y position based on other subtitles positions so that they do not overlap
+			 */
+			'reactive-y-position': () => LocalizedString
+			/**
+			 * Change the vertical position of the text (pixels from center)
+			 */
+			'vertical-position': () => LocalizedString
+			/**
+			 * Change the horizontal position of the text (pixels from center)
+			 */
+			'horizontal-position': () => LocalizedString
+			/**
+			 * Set width of subtitle container
+			 */
+			width: () => LocalizedString
+			/**
+			 * Set the alignment of the text
+			 */
+			'horizontal-text-alignment': () => LocalizedString
+			/**
+			 * Align text vertically when paragraph height is large
+			 */
+			'vertical-text-alignment': () => LocalizedString
+			/**
+			 * Style the background and container of subtitles
+			 */
+			background: () => LocalizedString
+			/**
+			 * Enable or disable background styling
+			 */
+			'background-enable': () => LocalizedString
+			/**
+			 * Add a background color behind the text
+			 */
+			'background-color': () => LocalizedString
+			/**
+			 * Control the transparency of the background
+			 */
+			'background-opacity': () => LocalizedString
+			/**
+			 * Round the corners of the background
+			 */
+			'border-radius': () => LocalizedString
+			/**
+			 * Add left and right padding when using a background
+			 */
+			'background-horizontal-padding': () => LocalizedString
+			/**
+			 * Write any CSS for custom Background (gradient, pattern, ...). Use !important if needed. Exemple: background: linear-gradient(to right, #ff0000, #0000ff) !important;
+			 */
+			'background-css': () => LocalizedString
+			/**
+			 * Add borders around subtitle containers
+			 */
+			border: () => LocalizedString
+			/**
+			 * Enable or disable container border
+			 */
+			'border-enable': () => LocalizedString
+			/**
+			 * Set the width of the border
+			 */
+			'border-width': () => LocalizedString
+			/**
+			 * Set the color of the border
+			 */
+			'border-color': () => LocalizedString
+			/**
+			 * Choose the style of the border
+			 */
+			'border-style': () => LocalizedString
+			/**
+			 * Add shadow effects to text and containers
+			 */
+			shadow: () => LocalizedString
+			/**
+			 * Enable or disable shadow effects
+			 */
+			'shadow-enable': () => LocalizedString
+			/**
+			 * Add shadow effect to the text
+			 */
+			'text-shadow': () => LocalizedString
+			/**
+			 * Set the color of the text shadow
+			 */
+			'text-shadow-color': () => LocalizedString
+			/**
+			 * Add shadow to the subtitle container
+			 */
+			'box-shadow': () => LocalizedString
+			/**
+			 * Set the color of the container shadow
+			 */
+			'box-shadow-color': () => LocalizedString
+			/**
+			 * Add outlines and strokes around text
+			 */
+			outline: () => LocalizedString
+			/**
+			 * Enable or disable text outline
+			 */
+			'outline-enable': () => LocalizedString
+			/**
+			 * Set the width of the text outline (shadow-based)
+			 */
+			'text-outline': () => LocalizedString
+			/**
+			 * Set the color of the text outline
+			 */
+			'text-outline-color': () => LocalizedString
+			/**
+			 * Add a glow effect to the text
+			 */
+			'text-glow': () => LocalizedString
+			/**
+			 * Enable or disable text glow
+			 */
+			'text-glow-enable': () => LocalizedString
+			/**
+			 * Set the color of the text glow
+			 */
+			'text-glow-color': () => LocalizedString
+			/**
+			 * Set the blur radius of the text glow
+			 */
+			'text-glow-blur': () => LocalizedString
+			/**
+			 * Add a neon light effect to the text
+			 */
+			'text-neon': () => LocalizedString
+			/**
+			 * Enable or disable neon effect
+			 */
+			'text-neon-enable': () => LocalizedString
+			/**
+			 * Set the color of the neon effect
+			 */
+			'text-neon-color': () => LocalizedString
+			/**
+			 * Set the intensity of the neon effect
+			 */
+			'text-intensity': () => LocalizedString
+			/**
+			 * Add visual effects and filters to enhance subtitle appearance
+			 */
+			effects: () => LocalizedString
+			/**
+			 * Control the transparency of the text
+			 */
+			opacity: () => LocalizedString
+			/**
+			 * Apply blur effect to the text
+			 */
+			blur: () => LocalizedString
+			/**
+			 * Adjust the brightness of the text
+			 */
+			brightness: () => LocalizedString
+			/**
+			 * Adjust the contrast of the text
+			 */
+			contrast: () => LocalizedString
+			/**
+			 * Add motion and transition effects to subtitles
+			 */
+			animation: () => LocalizedString
+			/**
+			 * Scale the size of the subtitle
+			 */
+			scale: () => LocalizedString
+			/**
+			 * Rotate the subtitle in degrees
+			 */
+			rotation: () => LocalizedString
+			/**
+			 * Write any custom CSS for subtitles. Use !important if needed.
+			 */
+			'custom-css': () => LocalizedString
+			/**
+			 * Quality and orientation of the video
+			 */
+			'video-dimension': () => LocalizedString
+			/**
+			 * Duration of fade in/out effect in milliseconds
+			 */
+			'fade-duration': () => LocalizedString
+			/**
+			 * Configure export fade in/out for video and audio.
+			 */
+			'video-and-audio-fade': () => LocalizedString
+			/**
+			 * Prevent subtitle overlap
+			 */
+			'anti-collision': () => LocalizedString
+			/**
+			 * Minimum spacing between subtitles (in pixels)
+			 */
+			spacing: () => LocalizedString
+			/**
+			 * Add a color overlay on top of the video
+			 */
+			overlay: () => LocalizedString
+			/**
+			 * Enable or disable the overlay
+			 */
+			'overlay-enable': () => LocalizedString
+			/**
+			 * Color of the overlay
+			 */
+			'overlay-color': () => LocalizedString
+			/**
+			 * Opacity of the overlay
+			 */
+			'overlay-opacity': () => LocalizedString
+			/**
+			 * Uniform or vertical fade (up, down, or center)
+			 */
+			'background-overlay-mode': () => LocalizedString
+			/**
+			 * Controls fade strength when overlay mode is not uniform
+			 */
+			'background-overlay-fade-intensity': () => LocalizedString
+			/**
+			 * Controls how much vertical area is used by fade versus non-fade zones
+			 */
+			'background-overlay-fade-coverage': () => LocalizedString
+			/**
+			 * Blur level of the overlay
+			 */
+			'overlay-blur': () => LocalizedString
+			/**
+			 * Add custom CSS to the overlay (e.g., animations)
+			 */
+			'overlay-custom-css': () => LocalizedString
+			/**
+			 * Control display of the Surah name
+			 */
+			'surah-name': () => LocalizedString
+			/**
+			 * Show or hide the Surah name
+			 */
+			'show-surah-name': () => LocalizedString
+			/**
+			 * Always show the Surah name (ignore timing)
+			 */
+			'surah-name-always-show': () => LocalizedString
+			/**
+			 * Change the time where the Surah name appears
+			 */
+			'surah-name-time-appearance': () => LocalizedString
+			/**
+			 * Change the time where the Surah name disappears
+			 */
+			'surah-name-time-disappearance': () => LocalizedString
+			/**
+			 * Change the vertical position of the surah name (pixels from center)
+			 */
+			'surah-name-vertical-position': () => LocalizedString
+			/**
+			 * Change the horizontal position of the surah name (pixels from center)
+			 */
+			'surah-name-horizontal-position': () => LocalizedString
+			/**
+			 * Format of the Surah name display. Use <number>, <transliteration>, <translation>, <min-range> and <max-range> tags to customize.
+			 */
+			'surah-name-format': () => LocalizedString
+			/**
+			 * Show the Surah name in Arabic
+			 */
+			'surah-show-arabic': () => LocalizedString
+			/**
+			 * Show additional Latin text (see Latin Text Format)
+			 */
+			'surah-show-latin': () => LocalizedString
+			/**
+			 * Scale size of Surah Calligraphy
+			 */
+			'surah-size': () => LocalizedString
+			/**
+			 * Adjust spacing between the Arabic Surah name and its Latin equivalent
+			 */
+			'surah-latin-spacing': () => LocalizedString
+			/**
+			 * Adjust the opacity of the Surah name
+			 */
+			'surah-opacity': () => LocalizedString
+			/**
+			 * Style for the Latin transliteration of the Surah name
+			 */
+			'surah-latin-text-style': () => LocalizedString
+			/**
+			 * Control display of the Reciter name
+			 */
+			'reciter-name': () => LocalizedString
+			/**
+			 * Show or hide the Reciter name
+			 */
+			'show-reciter-name': () => LocalizedString
+			/**
+			 * Always show the Reciter name (ignore timing)
+			 */
+			'reciter-name-always-show': () => LocalizedString
+			/**
+			 * Change the time where the Reciter name appears
+			 */
+			'reciter-name-time-appearance': () => LocalizedString
+			/**
+			 * Change the time where the Reciter name disappears
+			 */
+			'reciter-name-time-disappearance': () => LocalizedString
+			/**
+			 * Change the vertical position of the reciter name (pixels from center)
+			 */
+			'reciter-name-vertical-position': () => LocalizedString
+			/**
+			 * Change the horizontal position of the reciter name (pixels from center)
+			 */
+			'reciter-name-horizontal-position': () => LocalizedString
+			/**
+			 * Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.
+			 */
+			'reciter-name-format': () => LocalizedString
+			/**
+			 * Show the Reciter name in Arabic
+			 */
+			'reciter-show-arabic': () => LocalizedString
+			/**
+			 * Show additional Latin text (see Latin Text Format)
+			 */
+			'reciter-show-latin': () => LocalizedString
+			/**
+			 * Size of Reciter Arabic Calligraphy Name
+			 */
+			'reciter-size': () => LocalizedString
+			/**
+			 * Adjust spacing between the Arabic Reciter name and its Latin equivalent
+			 */
+			'reciter-latin-spacing': () => LocalizedString
+			/**
+			 * Adjust the opacity of the Reciter name
+			 */
+			'reciter-opacity': () => LocalizedString
+			/**
+			 * Style for the Latin transliteration of the Reciter name
+			 */
+			'reciter-latin-text-style': () => LocalizedString
+			/**
+			 * Add a decorative background image behind the ayah
+			 */
+			'ayah-container': () => LocalizedString
+			/**
+			 * Select a decorative container image for the ayah
+			 */
+			'ayah-container-image': () => LocalizedString
+			/**
+			 * Change the vertical position of the container (pixels from center)
+			 */
+			'ayah-container-vertical-position': () => LocalizedString
+			/**
+			 * Change the horizontal position of the container (pixels from center)
+			 */
+			'ayah-container-horizontal-position': () => LocalizedString
+			/**
+			 * Width of the container in percentage (stretches the image if ratio is not respected)
+			 */
+			'ayah-container-width': () => LocalizedString
+			/**
+			 * Height of the container in percentage (stretches the image if ratio is not respected)
+			 */
+			'ayah-container-height': () => LocalizedString
+			/**
+			 * Stretch the image to fill the container (otherwise it fits inside preserving ratio)
+			 */
+			'ayah-container-stretch': () => LocalizedString
+			/**
+			 * Change the style of the Verse number display
+			 */
+			'verse-number-text-style': () => LocalizedString
+			/**
+			 * Add a text on the video
+			 */
+			'custom-text': () => LocalizedString
+			/**
+			 * Customize the text styles
+			 */
+			'custom-text-composite': () => LocalizedString
+			/**
+			 * Add an image on the video
+			 */
+			'custom-image': () => LocalizedString
+			/**
+			 * Path to the image file
+			 */
+			filepath: () => LocalizedString
+			/**
+			 * Make the image appear above/below the background overlay
+			 */
+			'above-overlay': () => LocalizedString
+			/**
+			 * Always show (ignore timing)
+			 */
+			'always-show': () => LocalizedString
+			/**
+			 * Change the time where it appears
+			 */
+			'time-appearance': () => LocalizedString
+			/**
+			 * Change the time where it disappears
+			 */
+			'time-disappearance': () => LocalizedString
+		}
 	}
 	'export': {
 		/**

@@ -87,7 +87,10 @@
 	let selectedQuality = $state('1080p');
 	let selectedFilePath = $state('');
 
-	const ayahContainerImages = Array.from({ length: 19 }, (_, i) => `banniere_${i + 1}.png`);
+	const ayahContainerImages = [
+		...Array.from({ length: 20 }, (_, i) => `banniere_${i + 20}.png`),
+		...Array.from({ length: 10 }, (_, i) => `banniere_${i + 10}.png`)
+	];
 
 	// Function to open file selector
 	async function selectFile() {
@@ -792,6 +795,11 @@
 				</div>
 			{:else if style.valueType === 'ayah-image'}
 				<div class="flex flex-col gap-3">
+					<p class="text-xs text-secondary flex items-center gap-1">
+						<span class="material-icons-outlined text-[12px]">info</span>
+						New banners made by @isaglace on Discord.
+					</p>
+
 					<button
 						type="button"
 						onclick={() => applyValue('')}

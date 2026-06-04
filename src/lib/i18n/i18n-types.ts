@@ -6,8 +6,11 @@ export type BaseTranslation = BaseTranslationType
 export type BaseLocale = 'en'
 
 export type Locales =
+	| 'de'
 	| 'en'
+	| 'es'
 	| 'fr'
+	| 'zh'
 
 export type Translation = RootTranslation
 
@@ -6703,85 +6706,307 @@ type RootTranslation = {
 		 */
 		apiResponseEmpty: string
 		shortcutCat: {
+			/**
+			 * V​i​d​e​o​ ​P​r​e​v​i​e​w
+			 */
 			VIDEO_PREVIEW: string
+			/**
+			 * S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r
+			 */
 			SUBTITLES_EDITOR: string
+			/**
+			 * P​r​e​-​d​e​f​i​n​e​d​ ​S​u​b​t​i​t​l​e​s
+			 */
 			PREDEFINED_SUBTITLES: string
+			/**
+			 * T​i​m​e​l​i​n​e
+			 */
 			TIMELINE: string
 		}
 		shortcutCatDesc: {
+			/**
+			 * C​o​n​t​r​o​l​s​ ​f​o​r​ ​v​i​d​e​o​ ​p​l​a​y​b​a​c​k​ ​a​n​d​ ​p​r​e​v​i​e​w
+			 */
 			VIDEO_PREVIEW: string
+			/**
+			 * C​o​n​t​r​o​l​s​ ​f​o​r​ ​e​d​i​t​i​n​g​ ​a​n​d​ ​m​a​n​a​g​i​n​g​ ​s​u​b​t​i​t​l​e​s
+			 */
 			SUBTITLES_EDITOR: string
+			/**
+			 * S​h​o​r​t​c​u​t​s​ ​t​o​ ​i​n​s​e​r​t​ ​p​r​e​-​d​e​f​i​n​e​d​ ​s​u​b​t​i​t​l​e​ ​c​l​i​p​s
+			 */
 			PREDEFINED_SUBTITLES: string
+			/**
+			 * C​o​n​t​r​o​l​s​ ​f​o​r​ ​t​i​m​e​l​i​n​e​ ​n​a​v​i​g​a​t​i​o​n​ ​a​n​d​ ​m​o​u​s​e​ ​w​h​e​e​l​ ​b​e​h​a​v​i​o​r
+			 */
 			TIMELINE: string
 		}
 		shortcutAction: {
+			/**
+			 * M​o​v​e​ ​F​o​r​w​a​r​d
+			 */
 			MOVE_FORWARD: string
+			/**
+			 * M​o​v​e​ ​B​a​c​k​w​a​r​d
+			 */
 			MOVE_BACKWARD: string
+			/**
+			 * P​l​a​y​/​P​a​u​s​e
+			 */
 			PLAY_PAUSE: string
+			/**
+			 * T​o​g​g​l​e​ ​S​p​e​e​d
+			 */
 			INCREASE_SPEED: string
+			/**
+			 * T​o​g​g​l​e​ ​F​u​l​l​s​c​r​e​e​n
+			 */
 			TOGGLE_FULLSCREEN: string
+			/**
+			 * G​o​ ​t​o​ ​S​t​a​r​t
+			 */
 			GO_TO_START: string
+			/**
+			 * S​e​l​e​c​t​ ​N​e​x​t​ ​W​o​r​d
+			 */
 			SELECT_NEXT_WORD: string
+			/**
+			 * S​e​l​e​c​t​ ​P​r​e​v​i​o​u​s​ ​W​o​r​d
+			 */
 			SELECT_PREVIOUS_WORD: string
+			/**
+			 * R​e​s​e​t​ ​S​t​a​r​t​ ​C​u​r​s​o​r
+			 */
 			RESET_START_CURSOR: string
+			/**
+			 * S​e​l​e​c​t​ ​A​l​l​ ​W​o​r​d​s
+			 */
 			SELECT_ALL_WORDS: string
+			/**
+			 * S​e​t​ ​E​n​d​ ​t​o​ ​N​e​x​t​ ​P​u​n​c​t​u​a​t​i​o​n
+			 */
 			SET_END_TO_LAST: string
+			/**
+			 * S​e​t​ ​E​n​d​ ​t​o​ ​P​r​e​v​i​o​u​s​ ​P​u​n​c​t​u​a​t​i​o​n
+			 */
 			SET_END_TO_PREVIOUS: string
+			/**
+			 * A​d​d​ ​S​u​b​t​i​t​l​e
+			 */
 			ADD_SUBTITLE: string
+			/**
+			 * R​e​m​o​v​e​ ​L​a​s​t​ ​S​u​b​t​i​t​l​e
+			 */
 			REMOVE_LAST_SUBTITLE: string
+			/**
+			 * E​d​i​t​ ​S​u​b​t​i​t​l​e​ ​a​t​ ​C​u​r​s​o​r
+			 */
 			EDIT_LAST_SUBTITLE: string
+			/**
+			 * A​d​d​ ​S​i​l​e​n​c​e
+			 */
 			ADD_SILENCE: string
+			/**
+			 * S​e​t​ ​S​u​b​t​i​t​l​e​ ​E​n​d​ ​T​i​m​e
+			 */
 			SET_LAST_SUBTITLE_END: string
+			/**
+			 * S​e​t​ ​S​u​b​t​i​t​l​e​ ​S​t​a​r​t​ ​T​i​m​e
+			 */
 			SET_LAST_SUBTITLE_START: string
+			/**
+			 * A​d​d​ ​C​u​s​t​o​m​ ​T​e​x​t​ ​C​l​i​p
+			 */
 			ADD_CUSTOM_TEXT_CLIP: string
+			/**
+			 * S​p​l​i​t​ ​S​u​b​t​i​t​l​e
+			 */
 			SPLIT_SUBTITLE: string
+			/**
+			 * A​d​d​ ​B​a​s​m​a​l​a
+			 */
 			ADD_BASMALA: string
+			/**
+			 * A​d​d​ ​I​s​t​i​'​a​d​h​a​h
+			 */
 			ADD_ISTIADHAH: string
+			/**
+			 * A​d​d​ ​A​m​i​n
+			 */
 			ADD_AMIN: string
+			/**
+			 * A​d​d​ ​T​a​k​b​i​r
+			 */
 			ADD_TAKBIR: string
+			/**
+			 * A​d​d​ ​T​a​h​m​e​e​d
+			 */
 			ADD_TAHMEED: string
+			/**
+			 * A​d​d​ ​T​a​s​l​e​e​m
+			 */
 			ADD_TASLEEM: string
+			/**
+			 * A​d​d​ ​S​a​d​a​q​a
+			 */
 			ADD_SADAQA: string
+			/**
+			 * Z​o​o​m​ ​w​i​t​h​ ​S​c​r​o​l​l
+			 */
 			ZOOM: string
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​S​c​r​o​l​l
+			 */
 			HORIZONTAL_SCROLL: string
+			/**
+			 * V​e​r​t​i​c​a​l​ ​S​c​r​o​l​l
+			 */
 			VERTICAL_SCROLL: string
+			/**
+			 * F​r​a​m​e​-​b​y​-​f​r​a​m​e​ ​w​i​t​h​ ​S​c​r​o​l​l
+			 */
 			FRAME_BY_FRAME_SCROLL: string
+			/**
+			 * P​r​e​v​i​o​u​s​ ​F​r​a​m​e
+			 */
 			FRAME_BACKWARD: string
+			/**
+			 * N​e​x​t​ ​F​r​a​m​e
+			 */
 			FRAME_FORWARD: string
 		}
 		shortcutActionDesc: {
+			/**
+			 * M​o​v​e​ ​p​r​e​v​i​e​w​ ​f​o​r​w​a​r​d​ ​b​y​ ​2​ ​s​e​c​o​n​d​s
+			 */
 			MOVE_FORWARD: string
+			/**
+			 * M​o​v​e​ ​p​r​e​v​i​e​w​ ​b​a​c​k​w​a​r​d​ ​b​y​ ​2​ ​s​e​c​o​n​d​s
+			 */
 			MOVE_BACKWARD: string
+			/**
+			 * P​l​a​y​ ​o​r​ ​p​a​u​s​e​ ​t​h​e​ ​v​i​d​e​o​ ​p​r​e​v​i​e​w
+			 */
 			PLAY_PAUSE: string
+			/**
+			 * T​o​g​g​l​e​ ​v​i​d​e​o​ ​s​p​e​e​d​ ​b​e​t​w​e​e​n​ ​1​x​ ​a​n​d​ ​2​x
+			 */
 			INCREASE_SPEED: string
+			/**
+			 * E​n​t​e​r​ ​o​r​ ​e​x​i​t​ ​f​u​l​l​s​c​r​e​e​n​ ​m​o​d​e
+			 */
 			TOGGLE_FULLSCREEN: string
+			/**
+			 * S​t​o​p​ ​p​l​a​y​b​a​c​k​ ​a​n​d​ ​j​u​m​p​ ​t​o​ ​t​h​e​ ​b​e​g​i​n​n​i​n​g​ ​o​f​ ​t​h​e​ ​v​i​d​e​o
+			 */
 			GO_TO_START: string
+			/**
+			 * M​o​v​e​ ​s​e​l​e​c​t​i​o​n​ ​t​o​ ​t​h​e​ ​n​e​x​t​ ​w​o​r​d
+			 */
 			SELECT_NEXT_WORD: string
+			/**
+			 * M​o​v​e​ ​s​e​l​e​c​t​i​o​n​ ​t​o​ ​t​h​e​ ​p​r​e​v​i​o​u​s​ ​w​o​r​d
+			 */
 			SELECT_PREVIOUS_WORD: string
+			/**
+			 * P​u​t​ ​t​h​e​ ​s​t​a​r​t​ ​c​u​r​s​o​r​ ​o​n​ ​t​h​e​ ​e​n​d​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n
+			 */
 			RESET_START_CURSOR: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​w​o​r​d​s​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​v​e​r​s​e
+			 */
 			SELECT_ALL_WORDS: string
+			/**
+			 * M​o​v​e​ ​e​n​d​ ​c​u​r​s​o​r​ ​t​o​ ​t​h​e​ ​n​e​x​t​ ​p​u​n​c​t​u​a​t​i​o​n​ ​m​a​r​k
+			 */
 			SET_END_TO_LAST: string
+			/**
+			 * M​o​v​e​ ​e​n​d​ ​c​u​r​s​o​r​ ​t​o​ ​t​h​e​ ​p​r​e​v​i​o​u​s​ ​p​u​n​c​t​u​a​t​i​o​n​ ​m​a​r​k
+			 */
 			SET_END_TO_PREVIOUS: string
+			/**
+			 * C​r​e​a​t​e​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​s​e​l​e​c​t​e​d​ ​w​o​r​d​s
+			 */
 			ADD_SUBTITLE: string
+			/**
+			 * D​e​l​e​t​e​ ​t​h​e​ ​m​o​s​t​ ​r​e​c​e​n​t​ ​s​u​b​t​i​t​l​e
+			 */
 			REMOVE_LAST_SUBTITLE: string
+			/**
+			 * E​d​i​t​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r​,​ ​o​r​ ​t​h​e​ ​l​a​s​t​ ​o​n​e​ ​i​f​ ​n​o​n​e
+			 */
 			EDIT_LAST_SUBTITLE: string
+			/**
+			 * I​n​s​e​r​t​ ​a​ ​s​i​l​e​n​t​ ​p​e​r​i​o​d​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+			 */
 			ADD_SILENCE: string
+			/**
+			 * S​e​t​ ​e​n​d​ ​t​i​m​e​ ​o​f​ ​s​u​b​t​i​t​l​e​ ​a​t​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n​ ​a​n​d​ ​a​d​j​u​s​t​ ​n​e​x​t​ ​s​u​b​t​i​t​l​e​ ​s​t​a​r​t
+			 */
 			SET_LAST_SUBTITLE_END: string
+			/**
+			 * S​e​t​ ​s​t​a​r​t​ ​t​i​m​e​ ​o​f​ ​s​u​b​t​i​t​l​e​ ​a​t​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n​ ​a​n​d​ ​a​d​j​u​s​t​ ​p​r​e​v​i​o​u​s​ ​s​u​b​t​i​t​l​e​ ​e​n​d
+			 */
 			SET_LAST_SUBTITLE_START: string
+			/**
+			 * A​d​d​ ​a​ ​c​u​s​t​o​m​ ​t​e​x​t​ ​c​l​i​p​ ​b​e​t​w​e​e​n​ ​t​h​e​ ​l​a​s​t​ ​s​u​b​t​i​t​l​e​ ​a​n​d​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​p​o​s​i​t​i​o​n
+			 */
 			ADD_CUSTOM_TEXT_CLIP: string
+			/**
+			 * S​p​l​i​t​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​a​t​ ​t​h​e​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n
+			 */
 			SPLIT_SUBTITLE: string
+			/**
+			 * A​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​t​h​e​ ​b​a​s​m​a​l​a
+			 */
 			ADD_BASMALA: string
+			/**
+			 * A​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​t​h​e​ ​i​s​t​i​'​a​d​h​a​h
+			 */
 			ADD_ISTIADHAH: string
+			/**
+			 * A​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​a​m​i​n
+			 */
 			ADD_AMIN: string
+			/**
+			 * A​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​t​a​k​b​i​r
+			 */
 			ADD_TAKBIR: string
+			/**
+			 * A​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​t​a​h​m​e​e​d
+			 */
 			ADD_TAHMEED: string
+			/**
+			 * A​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​t​a​s​l​e​e​m
+			 */
 			ADD_TASLEEM: string
+			/**
+			 * A​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​s​a​d​a​q​a
+			 */
 			ADD_SADAQA: string
+			/**
+			 * H​o​l​d​ ​t​h​i​s​ ​s​h​o​r​t​c​u​t​ ​w​h​i​l​e​ ​s​c​r​o​l​l​i​n​g​ ​t​o​ ​z​o​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+			 */
 			ZOOM: string
+			/**
+			 * H​o​l​d​ ​t​h​i​s​ ​s​h​o​r​t​c​u​t​ ​w​h​i​l​e​ ​s​c​r​o​l​l​i​n​g​ ​t​o​ ​m​o​v​e​ ​h​o​r​i​z​o​n​t​a​l​l​y
+			 */
 			HORIZONTAL_SCROLL: string
+			/**
+			 * S​h​o​r​t​c​u​t​ ​u​s​e​d​ ​f​o​r​ ​v​e​r​t​i​c​a​l​ ​t​i​m​e​l​i​n​e​ ​s​c​r​o​l​l​i​n​g
+			 */
 			VERTICAL_SCROLL: string
+			/**
+			 * H​o​l​d​ ​t​h​i​s​ ​s​h​o​r​t​c​u​t​ ​w​h​i​l​e​ ​s​c​r​o​l​l​i​n​g​ ​t​o​ ​m​o​v​e​ ​f​r​a​m​e​ ​b​y​ ​f​r​a​m​e
+			 */
 			FRAME_BY_FRAME_SCROLL: string
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​c​u​r​s​o​r​ ​b​a​c​k​w​a​r​d​ ​b​y​ ​o​n​e​ ​f​r​a​m​e
+			 */
 			FRAME_BACKWARD: string
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​c​u​r​s​o​r​ ​f​o​r​w​a​r​d​ ​b​y​ ​o​n​e​ ​f​r​a​m​e
+			 */
 			FRAME_FORWARD: string
 		}
 	}
@@ -14654,85 +14879,307 @@ export type TranslationFunctions = {
 		 */
 		apiResponseEmpty: () => LocalizedString
 		shortcutCat: {
+			/**
+			 * Video Preview
+			 */
 			VIDEO_PREVIEW: () => LocalizedString
+			/**
+			 * Subtitles Editor
+			 */
 			SUBTITLES_EDITOR: () => LocalizedString
+			/**
+			 * Pre-defined Subtitles
+			 */
 			PREDEFINED_SUBTITLES: () => LocalizedString
+			/**
+			 * Timeline
+			 */
 			TIMELINE: () => LocalizedString
 		}
 		shortcutCatDesc: {
+			/**
+			 * Controls for video playback and preview
+			 */
 			VIDEO_PREVIEW: () => LocalizedString
+			/**
+			 * Controls for editing and managing subtitles
+			 */
 			SUBTITLES_EDITOR: () => LocalizedString
+			/**
+			 * Shortcuts to insert pre-defined subtitle clips
+			 */
 			PREDEFINED_SUBTITLES: () => LocalizedString
+			/**
+			 * Controls for timeline navigation and mouse wheel behavior
+			 */
 			TIMELINE: () => LocalizedString
 		}
 		shortcutAction: {
+			/**
+			 * Move Forward
+			 */
 			MOVE_FORWARD: () => LocalizedString
+			/**
+			 * Move Backward
+			 */
 			MOVE_BACKWARD: () => LocalizedString
+			/**
+			 * Play/Pause
+			 */
 			PLAY_PAUSE: () => LocalizedString
+			/**
+			 * Toggle Speed
+			 */
 			INCREASE_SPEED: () => LocalizedString
+			/**
+			 * Toggle Fullscreen
+			 */
 			TOGGLE_FULLSCREEN: () => LocalizedString
+			/**
+			 * Go to Start
+			 */
 			GO_TO_START: () => LocalizedString
+			/**
+			 * Select Next Word
+			 */
 			SELECT_NEXT_WORD: () => LocalizedString
+			/**
+			 * Select Previous Word
+			 */
 			SELECT_PREVIOUS_WORD: () => LocalizedString
+			/**
+			 * Reset Start Cursor
+			 */
 			RESET_START_CURSOR: () => LocalizedString
+			/**
+			 * Select All Words
+			 */
 			SELECT_ALL_WORDS: () => LocalizedString
+			/**
+			 * Set End to Next Punctuation
+			 */
 			SET_END_TO_LAST: () => LocalizedString
+			/**
+			 * Set End to Previous Punctuation
+			 */
 			SET_END_TO_PREVIOUS: () => LocalizedString
+			/**
+			 * Add Subtitle
+			 */
 			ADD_SUBTITLE: () => LocalizedString
+			/**
+			 * Remove Last Subtitle
+			 */
 			REMOVE_LAST_SUBTITLE: () => LocalizedString
+			/**
+			 * Edit Subtitle at Cursor
+			 */
 			EDIT_LAST_SUBTITLE: () => LocalizedString
+			/**
+			 * Add Silence
+			 */
 			ADD_SILENCE: () => LocalizedString
+			/**
+			 * Set Subtitle End Time
+			 */
 			SET_LAST_SUBTITLE_END: () => LocalizedString
+			/**
+			 * Set Subtitle Start Time
+			 */
 			SET_LAST_SUBTITLE_START: () => LocalizedString
+			/**
+			 * Add Custom Text Clip
+			 */
 			ADD_CUSTOM_TEXT_CLIP: () => LocalizedString
+			/**
+			 * Split Subtitle
+			 */
 			SPLIT_SUBTITLE: () => LocalizedString
+			/**
+			 * Add Basmala
+			 */
 			ADD_BASMALA: () => LocalizedString
+			/**
+			 * Add Isti'adhah
+			 */
 			ADD_ISTIADHAH: () => LocalizedString
+			/**
+			 * Add Amin
+			 */
 			ADD_AMIN: () => LocalizedString
+			/**
+			 * Add Takbir
+			 */
 			ADD_TAKBIR: () => LocalizedString
+			/**
+			 * Add Tahmeed
+			 */
 			ADD_TAHMEED: () => LocalizedString
+			/**
+			 * Add Tasleem
+			 */
 			ADD_TASLEEM: () => LocalizedString
+			/**
+			 * Add Sadaqa
+			 */
 			ADD_SADAQA: () => LocalizedString
+			/**
+			 * Zoom with Scroll
+			 */
 			ZOOM: () => LocalizedString
+			/**
+			 * Horizontal Scroll
+			 */
 			HORIZONTAL_SCROLL: () => LocalizedString
+			/**
+			 * Vertical Scroll
+			 */
 			VERTICAL_SCROLL: () => LocalizedString
+			/**
+			 * Frame-by-frame with Scroll
+			 */
 			FRAME_BY_FRAME_SCROLL: () => LocalizedString
+			/**
+			 * Previous Frame
+			 */
 			FRAME_BACKWARD: () => LocalizedString
+			/**
+			 * Next Frame
+			 */
 			FRAME_FORWARD: () => LocalizedString
 		}
 		shortcutActionDesc: {
+			/**
+			 * Move preview forward by 2 seconds
+			 */
 			MOVE_FORWARD: () => LocalizedString
+			/**
+			 * Move preview backward by 2 seconds
+			 */
 			MOVE_BACKWARD: () => LocalizedString
+			/**
+			 * Play or pause the video preview
+			 */
 			PLAY_PAUSE: () => LocalizedString
+			/**
+			 * Toggle video speed between 1x and 2x
+			 */
 			INCREASE_SPEED: () => LocalizedString
+			/**
+			 * Enter or exit fullscreen mode
+			 */
 			TOGGLE_FULLSCREEN: () => LocalizedString
+			/**
+			 * Stop playback and jump to the beginning of the video
+			 */
 			GO_TO_START: () => LocalizedString
+			/**
+			 * Move selection to the next word
+			 */
 			SELECT_NEXT_WORD: () => LocalizedString
+			/**
+			 * Move selection to the previous word
+			 */
 			SELECT_PREVIOUS_WORD: () => LocalizedString
+			/**
+			 * Put the start cursor on the end cursor position
+			 */
 			RESET_START_CURSOR: () => LocalizedString
+			/**
+			 * Select all words in the current verse
+			 */
 			SELECT_ALL_WORDS: () => LocalizedString
+			/**
+			 * Move end cursor to the next punctuation mark
+			 */
 			SET_END_TO_LAST: () => LocalizedString
+			/**
+			 * Move end cursor to the previous punctuation mark
+			 */
 			SET_END_TO_PREVIOUS: () => LocalizedString
+			/**
+			 * Create a subtitle with selected words
+			 */
 			ADD_SUBTITLE: () => LocalizedString
+			/**
+			 * Delete the most recent subtitle
+			 */
 			REMOVE_LAST_SUBTITLE: () => LocalizedString
+			/**
+			 * Edit the subtitle under the cursor, or the last one if none
+			 */
 			EDIT_LAST_SUBTITLE: () => LocalizedString
+			/**
+			 * Insert a silent period in the timeline
+			 */
 			ADD_SILENCE: () => LocalizedString
+			/**
+			 * Set end time of subtitle at cursor position and adjust next subtitle start
+			 */
 			SET_LAST_SUBTITLE_END: () => LocalizedString
+			/**
+			 * Set start time of subtitle at cursor position and adjust previous subtitle end
+			 */
 			SET_LAST_SUBTITLE_START: () => LocalizedString
+			/**
+			 * Add a custom text clip between the last subtitle and the current position
+			 */
 			ADD_CUSTOM_TEXT_CLIP: () => LocalizedString
+			/**
+			 * Split the subtitle at the cursor position
+			 */
 			SPLIT_SUBTITLE: () => LocalizedString
+			/**
+			 * Add a subtitle with the basmala
+			 */
 			ADD_BASMALA: () => LocalizedString
+			/**
+			 * Add a subtitle with the isti'adhah
+			 */
 			ADD_ISTIADHAH: () => LocalizedString
+			/**
+			 * Add a subtitle with amin
+			 */
 			ADD_AMIN: () => LocalizedString
+			/**
+			 * Add a subtitle with takbir
+			 */
 			ADD_TAKBIR: () => LocalizedString
+			/**
+			 * Add a subtitle with tahmeed
+			 */
 			ADD_TAHMEED: () => LocalizedString
+			/**
+			 * Add a subtitle with tasleem
+			 */
 			ADD_TASLEEM: () => LocalizedString
+			/**
+			 * Add a subtitle with sadaqa
+			 */
 			ADD_SADAQA: () => LocalizedString
+			/**
+			 * Hold this shortcut while scrolling to zoom the timeline
+			 */
 			ZOOM: () => LocalizedString
+			/**
+			 * Hold this shortcut while scrolling to move horizontally
+			 */
 			HORIZONTAL_SCROLL: () => LocalizedString
+			/**
+			 * Shortcut used for vertical timeline scrolling
+			 */
 			VERTICAL_SCROLL: () => LocalizedString
+			/**
+			 * Hold this shortcut while scrolling to move frame by frame
+			 */
 			FRAME_BY_FRAME_SCROLL: () => LocalizedString
+			/**
+			 * Move the cursor backward by one frame
+			 */
 			FRAME_BACKWARD: () => LocalizedString
+			/**
+			 * Move the cursor forward by one frame
+			 */
 			FRAME_FORWARD: () => LocalizedString
 		}
 	}

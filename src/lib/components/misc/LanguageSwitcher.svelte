@@ -15,7 +15,10 @@
 
 	const languageOptions: { value: Locales; label: string }[] = [
 		{ value: 'en', label: 'English' },
-		{ value: 'fr', label: 'Français' }
+		{ value: 'fr', label: 'Fran\u00e7ais' },
+		{ value: 'de', label: 'Deutsch' },
+		{ value: 'es', label: 'Espa\u00f1ol' },
+		{ value: 'zh', label: '\u4e2d\u6587' }
 	];
 </script>
 

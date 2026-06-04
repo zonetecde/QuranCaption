@@ -136,18 +136,18 @@ La première image doit être `0.png`.
 
 La fonction principale de rendu d'un batch est `render_ffmpeg_filter_complex_single()`.
 
-Elle crée d'abord un fichier `images-xxxxxxxx.ffconcat` avec les PNG et leurs durées. FFmpeg lit
-ensuite ce concat comme une entrée vidéo unique.
+Elle donne chaque PNG à FFmpeg comme une entrée image indépendante, loopée uniquement sur la durée
+nécessaire au segment. Cela évite de convertir toute la timeline du batch en un flux vidéo complet,
+puis de le dupliquer avec `split`.
 
 Pour chaque image:
 
-1. FFmpeg crée un flux de base à partir du concat demuxer.
-2. Le flux est splitté en autant de segments qu'il y a d'images dans le batch.
-3. Chaque segment est trimé sur sa fenêtre temporelle.
-4. Les segments RGBA sont prémultipliés.
-5. Les segments sont chaînés avec `xfade=transition=fade`.
-6. Le résultat est overlay sur le fond vidéo ou sur un fond noir.
-7. Si l'export est transparent, l'overlay est rendu avec alpha.
+1. FFmpeg lit le PNG comme un flux court loopé à la durée du segment.
+2. Le flux est redimensionné, paddé, converti au FPS cible et trimé.
+3. Le segment RGBA est prémultiplié.
+4. Les segments sont chaînés avec `xfade=transition=fade`.
+5. Le résultat est overlay sur le fond vidéo ou sur un fond noir.
+6. Si l'export est transparent, l'overlay est rendu avec alpha.
 
 Le `xfade` est donc appliqué entre les captures à l'intérieur d'un batch. C'est la seule place où
 les transitions normales entre images doivent être créées.
@@ -174,7 +174,7 @@ Le batch size est volontairement non strict:
 - les batchs non finaux partagent une capture avec le batch suivant;
 - si toutes les captures tiennent dans la limite, il n'y a pas de batching.
 
-Pourquoi batcher: un gros filtergraph avec des centaines de captures crée beaucoup de splits, trims,
+Pourquoi batcher: un gros filtergraph avec des centaines de captures crée beaucoup d'entrées,
 xfades et labels FFmpeg. Ça peut consommer énormément de RAM, ralentir ou planter. Les batchs
 limitent la taille des filtergraphs.
 

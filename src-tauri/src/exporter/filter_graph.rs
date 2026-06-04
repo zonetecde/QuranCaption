@@ -1,8 +1,5 @@
-use crate::path_utils;
-
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -416,8 +413,8 @@ pub fn build_and_run_ffmpeg_filter_complex(
 /// Rend un batch d'images en utilisant le filtre complexe FFmpeg.
 ///
 /// Construit un graphe de filtres avec :
-/// - Concaténation des images via le demuxer `concat` + fichier `.ffconcat`
-/// - Split, trim et xfade pour les transitions entre images
+/// - Une entree PNG loopee par segment pour eviter le `split` d'un flux complet
+/// - xfade pour les transitions entre images
 /// - Overlay des sous-titres sur le fond vidéo (avec prémultiplication alpha)
 /// - Fades vidéo/audio optionnels
 ///
@@ -503,14 +500,6 @@ pub fn render_ffmpeg_filter_complex_single(
         .max(0.0)
         .min(duration_s.max(0.0));
 
-    // Positions de début de chaque segment dans la timeline
-    let mut starts_s = Vec::new();
-    let mut acc = 0.0;
-    for &d in &durations_s {
-        starts_s.push(acc);
-        acc += d;
-    }
-
     // Choix du codec vidéo selon le type d'export
     let (vcodec, vparams, vextra) = if export_without_background && use_mov_alpha {
         (
@@ -554,30 +543,6 @@ pub fn render_ffmpeg_filter_complex_single(
     }
     let have_audio = !audio_paths.is_empty() && start_s < total_audio_s - 1e-6;
 
-    // Fichier concat pour les images PNG
-    let base_dir = if let Some(cwd) = imgs_cwd {
-        PathBuf::from(cwd)
-    } else {
-        std::env::temp_dir()
-    };
-    fs::create_dir_all(&base_dir).ok();
-
-    let concat_content = image_paths.join("|");
-    let concat_hash = format!("{:x}", md5::compute(concat_content.as_bytes()));
-    let concat_path = base_dir.join(format!("images-{}.ffconcat", &concat_hash[..8]));
-
-    let mut concat_file = fs::File::create(&concat_path)?;
-    writeln!(concat_file, "ffconcat version 1.0")?;
-    for (i, p) in image_paths.iter().enumerate() {
-        let escaped = path_utils::escape_ffconcat_path(p);
-        writeln!(concat_file, "file '{}'", escaped)?;
-        writeln!(concat_file, "duration {:.6}", durations_s[i])?;
-    }
-    let escaped_last = path_utils::escape_ffconcat_path(&image_paths[n - 1]);
-    writeln!(concat_file, "file '{}'", escaped_last)?;
-
-    println!("[concat] Fichier ffconcat -> {:?}", concat_path);
-
     // Construction de la commande FFmpeg
     let mut cmd = Vec::new();
     let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
@@ -592,21 +557,25 @@ pub fn render_ffmpeg_filter_complex_single(
         "pipe:2".to_string(),
     ]);
 
-    // Entrée unique : demuxer concat pour les images
-    let concat_name = concat_path.to_string_lossy().to_string();
+    // Une entree par PNG evite de dupliquer un flux deja converti en frames brutes.
+    for (i, image_path) in image_paths.iter().enumerate() {
+        cmd.extend_from_slice(&[
+            "-loop".to_string(),
+            "1".to_string(),
+            "-framerate".to_string(),
+            fps.max(1).to_string(),
+            "-t".to_string(),
+            format!("{:.6}", durations_s[i]),
+            "-i".to_string(),
+            image_path.clone(),
+        ]);
+    }
+    println!("[ffmpeg] {} entree(s) PNG loopee(s) pour le batch", n);
 
-    cmd.extend_from_slice(&[
-        "-safe".to_string(),
-        "0".to_string(),
-        "-f".to_string(),
-        "concat".to_string(),
-        "-i".to_string(),
-        concat_name,
-    ]);
     if let Some(thread_cap) = codec::compute_ffmpeg_thread_cap(performance_profile) {
         cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
     }
-    let mut current_idx = 1;
+    let mut current_idx = n;
 
     // Entrées vidéo de fond
     let bg_start_idx = current_idx;
@@ -626,24 +595,11 @@ pub fn render_ffmpeg_filter_complex_single(
 
     let mut filter_lines = Vec::new();
 
-    // ---- Flux vidéo principal : split des images avec prémultiplication alpha ----
-    let mut split_outputs = String::new();
+    // ---- Flux video principal : une branche courte par image ----
     for i in 0..n {
-        split_outputs.push_str(&format!("[b{}]", i));
-    }
-
-    filter_lines.push(format!(
-        "[0:v]format=rgba,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black@0,fps={},setpts=PTS-STARTPTS,setsar=1,format=rgba,split={}{}",
-        w, h, w, h, fps, n, split_outputs
-    ));
-
-    // Trim + prémultiplication alpha pour chaque segment
-    for i in 0..n {
-        let s = starts_s[i];
-        let e = s + durations_s[i];
         filter_lines.push(format!(
-            "[b{}]trim=start={:.6}:end={:.6},setpts=PTS-STARTPTS,format=rgba,premultiply=inplace=1[s{}p]",
-            i, s, e, i
+            "[{}:v]format=rgba,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black@0,fps={},trim=start=0:end={:.6},setpts=PTS-STARTPTS,setsar=1,format=rgba,premultiply=inplace=1[s{}p]",
+            i, w, h, w, h, fps, durations_s[i], i
         ));
     }
 

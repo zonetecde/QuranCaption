@@ -17,16 +17,18 @@
 
 	onMount(() => {
 		initializeClassRegistry();
-		// Restore saved locale or default to 'en'
-		const savedLocale = globalState.settings?.persistentUiState?.language;
-		if (savedLocale === 'en' || savedLocale === 'fr') {
-			setLocale(savedLocale as Locales);
-		} else {
-			setLocale('en');
-		}
 	});
 
 	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');
+
+	// Restaure la locale sauvegardée dès que les settings sont chargés
+	$effect(() => {
+		if (!browser) return;
+		const savedLocale = globalState.settings?.persistentUiState?.language;
+		if (savedLocale === 'en' || savedLocale === 'fr') {
+			setLocale(savedLocale);
+		}
+	});
 
 	$effect(() => {
 		if (!browser) return;

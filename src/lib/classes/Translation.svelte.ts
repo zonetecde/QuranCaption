@@ -58,14 +58,6 @@ const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
 const CJK_TEXT_REGEX = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const WORD_TEXT_REGEX = /[\p{L}\p{N}]/u;
 
-type WordSegmenter = {
-	segment(text: string): Iterable<{
-		segment: string;
-		index: number;
-		isWordLike?: boolean;
-	}>;
-};
-
 /**
  * Indique si le texte contient une écriture sans séparation fiable par espaces.
  *
@@ -74,21 +66,6 @@ type WordSegmenter = {
  */
 function hasCjkText(text: string): boolean {
 	return CJK_TEXT_REGEX.test(text);
-}
-
-/**
- * Retourne le segmenter natif quand il est disponible dans le runtime.
- *
- * @returns {WordSegmenter | null} Segmenter de mots, ou `null` si indisponible.
- */
-function getWordSegmenter(): WordSegmenter | null {
-	const Segmenter = (
-		Intl as typeof Intl & {
-			Segmenter?: new (locale: string, options: { granularity: 'word' }) => WordSegmenter;
-		}
-	).Segmenter;
-
-	return Segmenter ? new Segmenter('zh', { granularity: 'word' }) : null;
 }
 
 /**
@@ -106,18 +83,6 @@ export function getTranslationTrimUnits(text: string): TranslationTrimUnit[] {
 			startIndex: match.index ?? 0,
 			endIndex: (match.index ?? 0) + match[0].length
 		}));
-	}
-
-	const segmenter = getWordSegmenter();
-	if (segmenter) {
-		const units = Array.from(segmenter.segment(normalizedText))
-			.filter((segment) => segment.isWordLike || WORD_TEXT_REGEX.test(segment.segment))
-			.map((segment) => ({
-				text: segment.segment,
-				startIndex: segment.index,
-				endIndex: segment.index + segment.segment.length
-			}));
-		if (units.length > 0) return units;
 	}
 
 	const units: TranslationTrimUnit[] = [];

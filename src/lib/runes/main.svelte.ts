@@ -132,7 +132,7 @@ class GlobalState {
 		selectedStatuses: Status.getAllStatuses(),
 		filteredProjects: [] as ProjectDetail[],
 		searchQuery: '',
-		settingsTab: 'shortcuts' as
+		settingsTab: 'support' as
 			| 'shortcuts'
 			| 'theme'
 			| 'notifications'

@@ -6702,6 +6702,88 @@ type RootTranslation = {
 		 * Q​u​r​a​n​ ​F​o​u​n​d​a​t​i​o​n​ ​A​P​I​ ​r​e​s​p​o​n​s​e​ ​w​a​s​ ​e​m​p​t​y​.
 		 */
 		apiResponseEmpty: string
+		shortcutCat: {
+			VIDEO_PREVIEW: string
+			SUBTITLES_EDITOR: string
+			PREDEFINED_SUBTITLES: string
+			TIMELINE: string
+		}
+		shortcutCatDesc: {
+			VIDEO_PREVIEW: string
+			SUBTITLES_EDITOR: string
+			PREDEFINED_SUBTITLES: string
+			TIMELINE: string
+		}
+		shortcutAction: {
+			MOVE_FORWARD: string
+			MOVE_BACKWARD: string
+			PLAY_PAUSE: string
+			INCREASE_SPEED: string
+			TOGGLE_FULLSCREEN: string
+			GO_TO_START: string
+			SELECT_NEXT_WORD: string
+			SELECT_PREVIOUS_WORD: string
+			RESET_START_CURSOR: string
+			SELECT_ALL_WORDS: string
+			SET_END_TO_LAST: string
+			SET_END_TO_PREVIOUS: string
+			ADD_SUBTITLE: string
+			REMOVE_LAST_SUBTITLE: string
+			EDIT_LAST_SUBTITLE: string
+			ADD_SILENCE: string
+			SET_LAST_SUBTITLE_END: string
+			SET_LAST_SUBTITLE_START: string
+			ADD_CUSTOM_TEXT_CLIP: string
+			SPLIT_SUBTITLE: string
+			ADD_BASMALA: string
+			ADD_ISTIADHAH: string
+			ADD_AMIN: string
+			ADD_TAKBIR: string
+			ADD_TAHMEED: string
+			ADD_TASLEEM: string
+			ADD_SADAQA: string
+			ZOOM: string
+			HORIZONTAL_SCROLL: string
+			VERTICAL_SCROLL: string
+			FRAME_BY_FRAME_SCROLL: string
+			FRAME_BACKWARD: string
+			FRAME_FORWARD: string
+		}
+		shortcutActionDesc: {
+			MOVE_FORWARD: string
+			MOVE_BACKWARD: string
+			PLAY_PAUSE: string
+			INCREASE_SPEED: string
+			TOGGLE_FULLSCREEN: string
+			GO_TO_START: string
+			SELECT_NEXT_WORD: string
+			SELECT_PREVIOUS_WORD: string
+			RESET_START_CURSOR: string
+			SELECT_ALL_WORDS: string
+			SET_END_TO_LAST: string
+			SET_END_TO_PREVIOUS: string
+			ADD_SUBTITLE: string
+			REMOVE_LAST_SUBTITLE: string
+			EDIT_LAST_SUBTITLE: string
+			ADD_SILENCE: string
+			SET_LAST_SUBTITLE_END: string
+			SET_LAST_SUBTITLE_START: string
+			ADD_CUSTOM_TEXT_CLIP: string
+			SPLIT_SUBTITLE: string
+			ADD_BASMALA: string
+			ADD_ISTIADHAH: string
+			ADD_AMIN: string
+			ADD_TAKBIR: string
+			ADD_TAHMEED: string
+			ADD_TASLEEM: string
+			ADD_SADAQA: string
+			ZOOM: string
+			HORIZONTAL_SCROLL: string
+			VERTICAL_SCROLL: string
+			FRAME_BY_FRAME_SCROLL: string
+			FRAME_BACKWARD: string
+			FRAME_FORWARD: string
+		}
 	}
 	tour: {
 		/**
@@ -14571,6 +14653,88 @@ export type TranslationFunctions = {
 		 * Quran Foundation API response was empty.
 		 */
 		apiResponseEmpty: () => LocalizedString
+		shortcutCat: {
+			VIDEO_PREVIEW: () => LocalizedString
+			SUBTITLES_EDITOR: () => LocalizedString
+			PREDEFINED_SUBTITLES: () => LocalizedString
+			TIMELINE: () => LocalizedString
+		}
+		shortcutCatDesc: {
+			VIDEO_PREVIEW: () => LocalizedString
+			SUBTITLES_EDITOR: () => LocalizedString
+			PREDEFINED_SUBTITLES: () => LocalizedString
+			TIMELINE: () => LocalizedString
+		}
+		shortcutAction: {
+			MOVE_FORWARD: () => LocalizedString
+			MOVE_BACKWARD: () => LocalizedString
+			PLAY_PAUSE: () => LocalizedString
+			INCREASE_SPEED: () => LocalizedString
+			TOGGLE_FULLSCREEN: () => LocalizedString
+			GO_TO_START: () => LocalizedString
+			SELECT_NEXT_WORD: () => LocalizedString
+			SELECT_PREVIOUS_WORD: () => LocalizedString
+			RESET_START_CURSOR: () => LocalizedString
+			SELECT_ALL_WORDS: () => LocalizedString
+			SET_END_TO_LAST: () => LocalizedString
+			SET_END_TO_PREVIOUS: () => LocalizedString
+			ADD_SUBTITLE: () => LocalizedString
+			REMOVE_LAST_SUBTITLE: () => LocalizedString
+			EDIT_LAST_SUBTITLE: () => LocalizedString
+			ADD_SILENCE: () => LocalizedString
+			SET_LAST_SUBTITLE_END: () => LocalizedString
+			SET_LAST_SUBTITLE_START: () => LocalizedString
+			ADD_CUSTOM_TEXT_CLIP: () => LocalizedString
+			SPLIT_SUBTITLE: () => LocalizedString
+			ADD_BASMALA: () => LocalizedString
+			ADD_ISTIADHAH: () => LocalizedString
+			ADD_AMIN: () => LocalizedString
+			ADD_TAKBIR: () => LocalizedString
+			ADD_TAHMEED: () => LocalizedString
+			ADD_TASLEEM: () => LocalizedString
+			ADD_SADAQA: () => LocalizedString
+			ZOOM: () => LocalizedString
+			HORIZONTAL_SCROLL: () => LocalizedString
+			VERTICAL_SCROLL: () => LocalizedString
+			FRAME_BY_FRAME_SCROLL: () => LocalizedString
+			FRAME_BACKWARD: () => LocalizedString
+			FRAME_FORWARD: () => LocalizedString
+		}
+		shortcutActionDesc: {
+			MOVE_FORWARD: () => LocalizedString
+			MOVE_BACKWARD: () => LocalizedString
+			PLAY_PAUSE: () => LocalizedString
+			INCREASE_SPEED: () => LocalizedString
+			TOGGLE_FULLSCREEN: () => LocalizedString
+			GO_TO_START: () => LocalizedString
+			SELECT_NEXT_WORD: () => LocalizedString
+			SELECT_PREVIOUS_WORD: () => LocalizedString
+			RESET_START_CURSOR: () => LocalizedString
+			SELECT_ALL_WORDS: () => LocalizedString
+			SET_END_TO_LAST: () => LocalizedString
+			SET_END_TO_PREVIOUS: () => LocalizedString
+			ADD_SUBTITLE: () => LocalizedString
+			REMOVE_LAST_SUBTITLE: () => LocalizedString
+			EDIT_LAST_SUBTITLE: () => LocalizedString
+			ADD_SILENCE: () => LocalizedString
+			SET_LAST_SUBTITLE_END: () => LocalizedString
+			SET_LAST_SUBTITLE_START: () => LocalizedString
+			ADD_CUSTOM_TEXT_CLIP: () => LocalizedString
+			SPLIT_SUBTITLE: () => LocalizedString
+			ADD_BASMALA: () => LocalizedString
+			ADD_ISTIADHAH: () => LocalizedString
+			ADD_AMIN: () => LocalizedString
+			ADD_TAKBIR: () => LocalizedString
+			ADD_TAHMEED: () => LocalizedString
+			ADD_TASLEEM: () => LocalizedString
+			ADD_SADAQA: () => LocalizedString
+			ZOOM: () => LocalizedString
+			HORIZONTAL_SCROLL: () => LocalizedString
+			VERTICAL_SCROLL: () => LocalizedString
+			FRAME_BY_FRAME_SCROLL: () => LocalizedString
+			FRAME_BACKWARD: () => LocalizedString
+			FRAME_FORWARD: () => LocalizedString
+		}
 	}
 	tour: {
 		/**

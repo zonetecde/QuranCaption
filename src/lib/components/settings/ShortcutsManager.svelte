@@ -17,6 +17,44 @@
 		action: string;
 		index: number;
 	} | null>(null);
+	/**
+	 * Traduit le nom d'une catégorie de raccourci.
+	 * @param {string} key Identifiant de la catégorie.
+	 * @returns {string} Nom traduit ou la clé brute.
+	 */
+	function tCatName(key: string): string {
+		const m = (get(LL).settings.shortcutCat as Record<string, () => string>)[key];
+		return m ? m() : key;
+	}
+	/**
+	 * Traduit le nom d'une action de raccourci.
+	 * @param {string} key Identifiant de l'action.
+	 * @param {string} fallback Texte de secours si la traduction est absente.
+	 * @returns {string} Nom traduit ou le fallback.
+	 */
+	function tActionName(key: string, fallback: string): string {
+		const m = (get(LL).settings.shortcutAction as Record<string, () => string>)[key];
+		return m ? m() : fallback;
+	}
+	/**
+	 * Traduit la description d'une action de raccourci.
+	 * @param {string} key Identifiant de l'action.
+	 * @returns {string} Description traduite ou chaîne vide.
+	 */
+	function tActionDesc(key: string): string {
+		const m = (get(LL).settings.shortcutActionDesc as Record<string, () => string>)[key];
+		return m ? m() : '';
+	}
+	/**
+	 * Traduit la description d'une catégorie de raccourci.
+	 * @param {string} key Identifiant de la catégorie.
+	 * @returns {string} Description traduite ou chaîne vide.
+	 */
+	function tCatDesc(key: string): string {
+		const m = (get(LL).settings.shortcutCatDesc as Record<string, () => string>)[key];
+		return m ? m() : '';
+	}
+
 	const timelineWheelActions = new Set([
 		'ZOOM',
 		'HORIZONTAL_SCROLL',
@@ -232,9 +270,9 @@
 			<div class="space-y-4">
 				<div class="flex items-center gap-2">
 					<span class="material-icons text-accent">{cat.meta.icon}</span>
-					<h3 class="text-base font-semibold text-primary">{cat.meta.name}</h3>
+					<h3 class="text-base font-semibold text-primary">{tCatName(cat.key)}</h3>
 				</div>
-				<p class="text-xs text-secondary">{cat.meta.description}</p>
+				<p class="text-xs text-secondary">{tCatDesc(cat.key)}</p>
 
 				<div class="mt-2 rounded-xl border border-border-color bg-primary/20">
 					{#each actionsFor(cat.key) as action (action.key)}
@@ -243,9 +281,9 @@
 						>
 							<div class="flex-1 min-w-0">
 								<div class="text-sm font-medium text-primary truncate">
-									{action.def.name ?? action.key}
+									{tActionName(action.key, action.def.name ?? action.key)}
 								</div>
-								<div class="text-xs text-secondary">{action.def.description}</div>
+								<div class="text-xs text-secondary">{tActionDesc(action.key)}</div>
 							</div>
 
 							<div class="flex items-center gap-2">

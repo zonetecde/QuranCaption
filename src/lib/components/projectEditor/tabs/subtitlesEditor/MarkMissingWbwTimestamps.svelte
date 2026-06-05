@@ -73,21 +73,28 @@
 		computeProgress = 0;
 		computeRemainingS = null;
 
-		// Estimation de durée pour animer la progression (endpoint MFA direct).
+		// Lance le calcul immédiatement; l'estimation ne sert qu'à animer la barre,
+		// donc elle tourne en parallèle sans retarder le travail MFA réel.
+		const computePromise = computeMissingWbwTimestamps();
+		startComputeProgressTimer(null);
 		const audioDurationS = getAutoSegmentationAudioDurationS();
-		const estimate =
-			audioDurationS > 0
-				? await estimateSegmentationDuration({
-						endpoint: 'timestamps_direct',
-						audioDurationS,
-						modelName: 'Base',
-						device: 'GPU'
-					})
-				: null;
-		startComputeProgressTimer(estimate?.estimated_duration_s ?? null);
+		if (audioDurationS > 0) {
+			estimateSegmentationDuration({
+				endpoint: 'timestamps_direct',
+				audioDurationS,
+				modelName: 'Base',
+				device: 'GPU'
+			})
+				.then((estimate) => {
+					if (isComputing && estimate?.estimated_duration_s) {
+						startComputeProgressTimer(estimate.estimated_duration_s);
+					}
+				})
+				.catch(() => {});
+		}
 
 		try {
-			const { enriched, total } = await computeMissingWbwTimestamps();
+			const { enriched, total } = await computePromise;
 			if (enriched > 0) {
 				toast.success(
 					`WBW timestamps computed for ${enriched}/${total} subtitle${total > 1 ? 's' : ''}.`

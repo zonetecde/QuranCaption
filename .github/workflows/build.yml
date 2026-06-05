@@ -128,8 +128,13 @@ jobs:
           Copy-Item -Path (Join-Path $rootDir.FullName "bin/ffprobe.exe") -Destination $binDir -Force
 
           $filters = & (Join-Path $binDir "ffmpeg.exe") -hide_banner -filters
-          if ($filters -notmatch "xfade_vulkan") {
-            throw "Downloaded FFmpeg build does not include xfade_vulkan"
+          $filtersText = $filters -join "`n"
+          $xfadeFilters = $filters | Select-String -Pattern "xfade" -CaseSensitive:$false
+          if ($xfadeFilters) {
+            $xfadeFilters | ForEach-Object { Write-Host $_.Line }
+          }
+          if ($filtersText -notmatch "xfade_vulkan") {
+            Write-Host "xfade_vulkan unavailable in Windows FFmpeg build; OpenCL/CPU fallback will be used"
           }
 
       # ─── Linux binary setup ───
@@ -161,13 +166,18 @@ jobs:
           rm -rf ffmpeg-extracted
           mkdir ffmpeg-extracted
           tar -xJf ffmpeg.tar.xz -C ffmpeg-extracted
-          rootdir=$(find ffmpeg-extracted -maxdepth 1 -mindepth 1 -type d | head -n 1)
-          cp "$rootdir/ffmpeg" src-tauri/binaries/ffmpeg
-          cp "$rootdir/ffprobe" src-tauri/binaries/ffprobe
+          ffmpeg_bin=$(find ffmpeg-extracted -type f -name ffmpeg | head -n 1)
+          ffprobe_bin=$(find ffmpeg-extracted -type f -name ffprobe | head -n 1)
+          if [ -z "$ffmpeg_bin" ] || [ -z "$ffprobe_bin" ]; then
+            echo "Unable to find ffmpeg/ffprobe in extracted archive"
+            find ffmpeg-extracted -maxdepth 3 -type f | sort
+            exit 1
+          fi
+          cp "$ffmpeg_bin" src-tauri/binaries/ffmpeg
+          cp "$ffprobe_bin" src-tauri/binaries/ffprobe
           chmod +x src-tauri/binaries/ffmpeg src-tauri/binaries/ffprobe
           if ! src-tauri/binaries/ffmpeg -hide_banner -filters | grep -qi xfade_vulkan; then
-            echo "Downloaded FFmpeg build does not include xfade_vulkan"
-            exit 1
+            echo "xfade_vulkan unavailable in Linux FFmpeg build; OpenCL/CPU fallback will be used"
           fi
 
       # ─── Build & Release with tauri-action ───

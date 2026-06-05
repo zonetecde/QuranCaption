@@ -1,5 +1,8 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { SubtitleClip } from '$lib/classes';
+import type { SegmentationSegment } from './types';
+import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
+import { buildSubtitleAlignmentMetadata, refreshSegmentationContextFromTrack } from './context';
 
 /**
  * Compte le nombre de mots Quran couverts par un sous-titre.
@@ -119,4 +122,65 @@ export function clearWbwTimestampReview(): void {
 	for (const clip of globalState.getSubtitleClips) {
 		clip.needsWbwTimestampReview = false;
 	}
+}
+
+/**
+ * Calcule les timestamps WBW manquants via l'API du Universal Aligner (`/timestamps_direct`).
+ *
+ * Indépendant de la segmentation : construit un segment par sous-titre dépourvu de timestamps
+ * (quelle que soit la façon dont le projet a été créé), demande l'alignement MFA à partir de
+ * l'audio courant, puis réinjecte les mots dans chaque clip. Réutilise les métadonnées
+ * d'alignement existantes quand elles sont présentes, sinon les dérive des références du clip.
+ *
+ * @returns {Promise<{ enriched: number; total: number }>} Nombre de clips enrichis et total ciblé.
+ */
+export async function computeMissingWbwTimestamps(): Promise<{ enriched: number; total: number }> {
+	const clips = getSubtitleClipsWithoutWbwTimestamps();
+	if (clips.length === 0) return { enriched: 0, total: 0 };
+
+	const segments: SegmentationSegment[] = clips.map((clip, index) => {
+		const meta = clip.alignmentMetadata;
+		return {
+			segment: meta?.segment ?? index,
+			ref_from: meta?.refFrom || `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`,
+			ref_to: meta?.refTo || `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`,
+			matched_text: meta?.matchedText ?? clip.text,
+			special_type: meta?.specialType,
+			time_from: meta?.timeFrom ?? clip.startTime / 1000,
+			time_to: meta?.timeTo ?? clip.endTime / 1000,
+			words: []
+		};
+	});
+
+	const response = await enrichSegmentationResponseWithWordTimestamps({ segments });
+	const enrichedSegments = response.segments ?? [];
+
+	let enriched = 0;
+	clips.forEach((clip, index) => {
+		const words = enrichedSegments[index]?.words ?? [];
+		if (words.length === 0) return;
+
+		// Recale les mots sur la durée du clip, comme lors de l'application d'une segmentation.
+		const clipDurationS = (clip.endTime - clip.startTime) / 1000;
+		const clampedWords = words.map((word, position, arr) => ({
+			...word,
+			start: position === 0 ? 0 : Math.max(0, Math.min(clipDurationS, word.start)),
+			end:
+				position === arr.length - 1 ? clipDurationS : Math.max(0, Math.min(clipDurationS, word.end))
+		}));
+
+		const metadata = buildSubtitleAlignmentMetadata(
+			clip.alignmentMetadata?.source ?? 'api',
+			segments[index],
+			clampedWords
+		);
+		if (metadata) {
+			clip.alignmentMetadata = metadata;
+			clip.needsWbwTimestampReview = false;
+			enriched += 1;
+		}
+	});
+
+	if (enriched > 0) refreshSegmentationContextFromTrack(true);
+	return { enriched, total: clips.length };
 }

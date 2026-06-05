@@ -897,6 +897,23 @@ fn append_visible_h264_args(
     append_seek_friendly_gop_args(cmd, &vcodec, fps);
 }
 
+/// Indique si l'audio simple peut etre copie sans reencodage dans la sortie.
+fn can_stream_copy_simple_audio(audio_path: &str, out_path: &str) -> bool {
+    let audio_ext = Path::new(audio_path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let output_ext = Path::new(out_path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    matches!(output_ext.as_str(), "mp4" | "m4v" | "mov")
+        && matches!(audio_ext.as_str(), "mp3" | "aac" | "m4a")
+}
+
 /// Execute FFmpeg avec le contexte de progression principal.
 fn run_final_export_command(
     export_id: &str,
@@ -1157,14 +1174,19 @@ fn run_fast_export(
         append_visible_h264_args(&mut cmd, prefer_hw, w, h, fps);
 
         if have_audio {
-            cmd.extend_from_slice(&[
-                "-map".to_string(),
-                format!("{}:a", audio_start_idx),
-                "-c:a".to_string(),
-                "aac".to_string(),
-                "-b:a".to_string(),
-                "320k".to_string(),
-            ]);
+            cmd.extend_from_slice(&["-map".to_string(), format!("{}:a", audio_start_idx)]);
+            if can_stream_copy_simple_audio(&audio_paths[0], out_path) {
+                println!("[fast_export] audio direct: copie sans reencodage");
+                cmd.extend_from_slice(&["-c:a".to_string(), "copy".to_string()]);
+            } else {
+                println!("[fast_export] audio direct: fallback reencodage aac");
+                cmd.extend_from_slice(&[
+                    "-c:a".to_string(),
+                    "aac".to_string(),
+                    "-b:a".to_string(),
+                    "320k".to_string(),
+                ]);
+            }
         } else {
             cmd.push("-an".to_string());
         }

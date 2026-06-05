@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { SegmentationResponse, SegmentationSegment } from './types';
+import type { RealignWindow, SegmentationResponse, SegmentationSegment } from './types';
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
 import { normalizeMfaSegments } from './parsing';
 
@@ -28,7 +28,8 @@ export async function getSegmentationMfaTimestampsSession(
  * @returns {Promise<SegmentationResponse>} Réponse MFA normalisée.
  */
 export async function getSegmentationMfaTimestampsDirect(
-	segments: SegmentationSegment[]
+	segments: SegmentationSegment[],
+	window?: RealignWindow
 ): Promise<SegmentationResponse> {
 	const audioInfo = getAutoSegmentationAudioInfo();
 	const audioClips = getAutoSegmentationAudioClips();
@@ -44,7 +45,9 @@ export async function getSegmentationMfaTimestampsDirect(
 			endMs: clip.endMs
 		})),
 		segments,
-		granularity: 'words'
+		granularity: 'words',
+		windowStartMs: window?.startMs,
+		windowEndMs: window?.endMs
 	})) as SegmentationResponse;
 }
 
@@ -55,7 +58,8 @@ export async function getSegmentationMfaTimestampsDirect(
  * @returns {Promise<SegmentationResponse>} Réponse avec mots MFA si disponibles.
  */
 export async function enrichSegmentationResponseWithWordTimestamps(
-	response: SegmentationResponse
+	response: SegmentationResponse,
+	window?: RealignWindow
 ): Promise<SegmentationResponse> {
 	const segments = response.segments ?? [];
 	if (segments.length === 0) return response;
@@ -74,11 +78,11 @@ export async function enrichSegmentationResponseWithWordTimestamps(
 					error
 				);
 				mfaSource = 'direct';
-				mfaResponse = await getSegmentationMfaTimestampsDirect(segments);
+				mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window);
 			}
 		} else {
 			mfaSource = 'direct';
-			mfaResponse = await getSegmentationMfaTimestampsDirect(segments);
+			mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window);
 		}
 
 		const mfaSegments = normalizeMfaSegments(mfaResponse.segments ?? [], segments);

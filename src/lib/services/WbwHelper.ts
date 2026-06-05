@@ -596,6 +596,8 @@ function markWordByWordEditAsManual(clip: SubtitleClip): void {
 	clip.needsCoverageReview = false;
 	clip.needsLongReview = false;
 	clip.hasBeenVerified = false;
+	// Marque les timings WBW comme édités à la main pour les protéger du re-MFA automatique.
+	clip.wbwTimestampsManuallyEdited = true;
 }
 
 /**

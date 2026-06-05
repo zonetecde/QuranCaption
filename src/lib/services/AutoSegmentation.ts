@@ -51,8 +51,14 @@ export {
 	markSubtitlesWithoutWbwTimestampsForReview,
 	clearWbwTimestampReview,
 	computeMissingWbwTimestamps,
-	computeWbwTimestampsForClips
+	computeWbwTimestampsForClips,
+	computeWbwTimestampsForClipsSliced
 } from './autoSegmentation/review';
+export {
+	scheduleWbwRealign,
+	getAutoRealignStatus,
+	computeRealignWindow
+} from './autoSegmentation/auto-realign.svelte';
 export {
 	hydrateSubtitleClipRange,
 	splitSubtitleClipLocally,
@@ -77,6 +83,8 @@ export {
 
 export {
 	SMALL_GAP_MS,
+	AUTO_REALIGN_DRAG_THRESHOLD_MS,
+	AUTO_REALIGN_DEBOUNCE_MS,
 	SUBDIVIDE_MAX_VERSES_DISABLED,
 	SUBDIVIDE_MAX_WORDS_DISABLED,
 	SUBDIVIDE_MAX_DURATION_DISABLED
@@ -84,6 +92,7 @@ export {
 
 export type {
 	SegmentationWordTimestamp,
+	RealignWindow,
 	SubtitleAlignmentMetadata,
 	StoredAlignedSegment,
 	StoredSegmentationContext,

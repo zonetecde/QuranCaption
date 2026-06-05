@@ -369,6 +369,8 @@ async fn call_gradio_endpoint(
 fn prepare_audio_for_mfa_direct(
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
+    window_start_ms: Option<i64>,
+    window_end_ms: Option<i64>,
 ) -> Result<(std::path::PathBuf, TempFileGuard, Option<TempFileGuard>), String> {
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
@@ -404,14 +406,28 @@ fn prepare_audio_for_mfa_direct(
     let temp_path = std::env::temp_dir().join(format!("qurancaption-mfa-{}.wav", stamp));
     let temp_guard = TempFileGuard(temp_path.clone());
 
+    // Fenêtre temporelle optionnelle: l'audio préparé est en coordonnées timeline, donc on
+    // n'extrait/téléverse que la tranche [start, end] demandée (re-MFA d'un segment édité).
+    let window = match (window_start_ms, window_end_ms) {
+        (Some(start), Some(end)) if end > start && start >= 0 => Some((start, end)),
+        _ => None,
+    };
+
     let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(["-y", "-hide_banner", "-loglevel", "error"]);
+    if let Some((start_ms, _)) = window {
+        // -ss avant -i = seek d'entrée rapide.
+        cmd.arg("-ss")
+            .arg(format!("{:.3}", start_ms as f64 / 1000.0));
+    }
+    cmd.arg("-i")
+        .arg(source_audio_path.to_string_lossy().as_ref());
+    if let Some((start_ms, end_ms)) = window {
+        // -t après -i = durée conservée depuis le point de seek.
+        cmd.arg("-t")
+            .arg(format!("{:.3}", (end_ms - start_ms) as f64 / 1000.0));
+    }
     cmd.args([
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-i",
-        source_audio_path.to_string_lossy().as_ref(),
         "-ac",
         "1",
         "-ar",
@@ -471,6 +487,8 @@ pub async fn mfa_timestamps_direct(
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     segments: serde_json::Value,
     granularity: Option<String>,
+    window_start_ms: Option<i64>,
+    window_end_ms: Option<i64>,
 ) -> Result<serde_json::Value, String> {
     if !segments.is_array() {
         return Err("segments must be a JSON array.".to_string());
@@ -487,7 +505,7 @@ pub async fn mfa_timestamps_direct(
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
     let (prepared_path, _temp_guard, _merged_guard) =
-        prepare_audio_for_mfa_direct(audio_path, audio_clips)?;
+        prepare_audio_for_mfa_direct(audio_path, audio_clips, window_start_ms, window_end_ms)?;
     let uploaded_path =
         upload_audio_file(&client, &prepared_path, "audio.wav", "audio/wav").await?;
     let file_payload = serde_json::json!({

@@ -1,6 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { SubtitleClip } from '$lib/classes';
-import type { SegmentationSegment } from './types';
+import type { RealignWindow, SegmentationSegment } from './types';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { buildSubtitleAlignmentMetadata, refreshSegmentationContextFromTrack } from './context';
 
@@ -143,6 +143,7 @@ export async function computeMissingWbwTimestamps(): Promise<{ enriched: number;
  *
  * Variante ciblée de {@link computeMissingWbwTimestamps} : permet de (re)calculer les
  * timestamps d'un seul clip (menu contextuel) ou d'un sous-ensemble, sans toucher aux autres.
+ * Téléverse l'audio complet (utilisé par les actions manuelles « Générer »/« Calculer »).
  *
  * @param {SubtitleClip[]} clips Sous-titres dont les timestamps doivent être calculés.
  * @returns {Promise<{ enriched: number; total: number }>} Nombre de clips enrichis et total ciblé.
@@ -150,8 +151,32 @@ export async function computeMissingWbwTimestamps(): Promise<{ enriched: number;
 export async function computeWbwTimestampsForClips(
 	clips: SubtitleClip[]
 ): Promise<{ enriched: number; total: number }> {
+	return computeWbwTimestampsForClipsSliced(clips, {});
+}
+
+/**
+ * Cœur du calcul WBW, avec tranche audio optionnelle et garde « dernier gagne ».
+ *
+ * Quand une fenêtre est fournie, seul l'audio `[startMs, endMs]` est téléversé et les temps des
+ * segments envoyés à MFA sont recalés sur l'origine de la fenêtre ; les temps ABSOLUS (timeline)
+ * restent écrits dans `alignmentMetadata`. Les mots renvoyés sont relatifs au segment, donc le
+ * recalage sur la durée du clip est inchangé.
+ *
+ * @param {SubtitleClip[]} clips Sous-titres à (re)calculer.
+ * @param {{ window?: RealignWindow; shouldCommit?: (clip: SubtitleClip) => boolean }} opts Options
+ *   de tranche et garde « dernier gagne » par clip.
+ * @returns {Promise<{ enriched: number; total: number }>} Nombre de clips enrichis et total ciblé.
+ */
+export async function computeWbwTimestampsForClipsSliced(
+	clips: SubtitleClip[],
+	opts: { window?: RealignWindow; shouldCommit?: (clip: SubtitleClip) => boolean }
+): Promise<{ enriched: number; total: number }> {
 	if (clips.length === 0) return { enriched: 0, total: 0 };
 
+	const window = opts.window && opts.window.endMs > opts.window.startMs ? opts.window : undefined;
+	const baseS = window ? window.startMs / 1000 : 0;
+
+	// Segments aux temps ABSOLUS (timeline) — réutilisés pour écrire les métadonnées.
 	const segments: SegmentationSegment[] = clips.map((clip, index) => {
 		const meta = clip.alignmentMetadata;
 		return {
@@ -166,13 +191,27 @@ export async function computeWbwTimestampsForClips(
 		};
 	});
 
-	const response = await enrichSegmentationResponseWithWordTimestamps({ segments });
+	// Pour un appel tranché, on recale les temps des segments sur l'origine de la fenêtre uploadée.
+	const requestSegments: SegmentationSegment[] = window
+		? segments.map((segment) => ({
+				...segment,
+				time_from: (segment.time_from ?? 0) - baseS,
+				time_to: (segment.time_to ?? 0) - baseS
+			}))
+		: segments;
+
+	const response = await enrichSegmentationResponseWithWordTimestamps(
+		{ segments: requestSegments },
+		window
+	);
 	const enrichedSegments = response.segments ?? [];
 
 	let enriched = 0;
 	clips.forEach((clip, index) => {
 		const words = enrichedSegments[index]?.words ?? [];
 		if (words.length === 0) return;
+		// « Dernier gagne » par clip : on n'écrase pas un clip réédité depuis le début de l'appel.
+		if (opts.shouldCommit && !opts.shouldCommit(clip)) return;
 
 		// Recale les mots sur la durée du clip, comme lors de l'application d'une segmentation.
 		const clipDurationS = (clip.endTime - clip.startTime) / 1000;

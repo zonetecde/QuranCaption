@@ -1,6 +1,10 @@
 import type { VerseRange } from '$lib/classes/VerseRange.svelte';
 
 export const SMALL_GAP_MS = 200;
+/** Seuil (ms) de déplacement de bord en dessous duquel un drag-resize ne déclenche pas de re-MFA. */
+export const AUTO_REALIGN_DRAG_THRESHOLD_MS = 200;
+/** Délai (ms) après relâchement de la souris avant de lancer le re-MFA automatique (debounce). */
+export const AUTO_REALIGN_DEBOUNCE_MS = 300;
 export const SUBDIVIDE_MAX_VERSES_DISABLED = 5;
 export const SUBDIVIDE_MAX_WORDS_DISABLED = 30;
 export const SUBDIVIDE_MAX_DURATION_DISABLED = 30;
@@ -11,6 +15,9 @@ export type SegmentationWordTimestamp = {
 	end: number;
 	word?: string;
 };
+
+/** Fenêtre audio (ms, coordonnées timeline) pour un re-MFA tranché sur les segments édités. */
+export type RealignWindow = { startMs: number; endMs: number };
 
 export type SubtitleAlignmentMetadata = {
 	source: 'api' | 'local' | 'import';

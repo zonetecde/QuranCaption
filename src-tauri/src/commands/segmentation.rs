@@ -54,8 +54,18 @@ pub async fn get_segmentation_mfa_timestamps_direct(
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     segments: serde_json::Value,
     granularity: Option<String>,
+    window_start_ms: Option<i64>,
+    window_end_ms: Option<i64>,
 ) -> Result<serde_json::Value, String> {
-    segmentation::mfa_timestamps_direct(audio_path, audio_clips, segments, granularity).await
+    segmentation::mfa_timestamps_direct(
+        audio_path,
+        audio_clips,
+        segments,
+        granularity,
+        window_start_ms,
+        window_end_ms,
+    )
+    .await
 }
 
 /// VÃ©rifie la disponibilitÃ© des moteurs de segmentation locale.

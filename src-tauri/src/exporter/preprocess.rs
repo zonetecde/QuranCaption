@@ -130,6 +130,7 @@ pub fn ffmpeg_preprocess_video(
         base_time_s: 0.0,
         total_time_s: preproc_duration_s,
         local_duration_s: preproc_duration_s,
+        suppress_error_event: false,
     });
 
     if let Err(e) = ffmpeg_runner::run_ffmpeg_command(

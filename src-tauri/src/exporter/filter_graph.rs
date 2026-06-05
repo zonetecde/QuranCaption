@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 use super::batching;
@@ -14,6 +15,165 @@ use super::types::{
     CodecUsage, ExportPerformanceProfile, FfmpegProgressContext, FiltergraphBatchMode,
     MemoryMonitorConfig, MemoryMonitorState, VideoInput,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum XfadeHardwareBackend {
+    Cpu,
+    Vulkan,
+    OpenCl,
+}
+
+/// Verifie que le filtre xfade GPU donne fonctionne sur une chaine RGBA.
+///
+/// # Parametres
+/// * `ffmpeg_exe` - Chemin de l'executable FFmpeg a tester.
+/// * `backend` - Backend materiel a tester.
+///
+/// # Retourne
+/// `true` si le backend peut enchainer plusieurs transitions, sinon `false`.
+fn probe_xfade_backend_available(ffmpeg_exe: &str, backend: XfadeHardwareBackend) -> bool {
+    let (cache, name, filter, init_device, device) = match backend {
+        XfadeHardwareBackend::Vulkan => (
+            &constants::XFADE_VULKAN_AVAILABILITY_CACHE,
+            "vulkan",
+            "xfade_vulkan",
+            "vulkan=qc_xfade_vk:0,linear_images=1",
+            "qc_xfade_vk",
+        ),
+        XfadeHardwareBackend::OpenCl => (
+            &constants::XFADE_OPENCL_AVAILABILITY_CACHE,
+            "opencl",
+            "xfade_opencl",
+            "opencl=qc_xfade_ocl:0.0",
+            "qc_xfade_ocl",
+        ),
+        XfadeHardwareBackend::Cpu => return false,
+    };
+
+    if let Ok(cache) = cache.lock() {
+        if let Some(available) = cache.get(ffmpeg_exe) {
+            println!("[{}][xfade] disponibilite cachee: {}", name, available);
+            return *available;
+        }
+    }
+
+    println!("[{}][xfade] detection avec {}", name, ffmpeg_exe);
+
+    let mut filters_cmd = Command::new(ffmpeg_exe);
+    filters_cmd.args(["-hide_banner", "-filters"]);
+    ffmpeg_utils::configure_command_no_window(&mut filters_cmd);
+    let has_filter = filters_cmd
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).contains(filter))
+        .unwrap_or(false);
+
+    if !has_filter {
+        println!("[{}][xfade] indisponible: filtre {} absent", name, filter);
+        if let Ok(mut cache) = cache.lock() {
+            cache.insert(ffmpeg_exe.to_string(), false);
+        }
+        return false;
+    }
+
+    let filter_complex = format!(
+        "[0:v]format=rgba,hwupload[v0];[1:v]format=rgba,hwupload[v1];[2:v]format=rgba,hwupload[v2];[v0][v1]{}=transition=fade:duration=0.04:offset=0.08[x1];[x1][v2]{}=transition=fade:duration=0.04:offset=0.20[x2];[x2]hwdownload,format=rgba[outv]",
+        filter, filter
+    );
+    let mut test_cmd = Command::new(ffmpeg_exe);
+    test_cmd.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-init_hw_device",
+        init_device,
+        "-filter_hw_device",
+        device,
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=black@0.0:s=64x64:r=30:d=0.2,format=rgba",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=white@1.0:s=64x64:r=30:d=0.2,format=rgba",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=red@1.0:s=64x64:r=30:d=0.2,format=rgba",
+        "-filter_complex",
+        &filter_complex,
+        "-map",
+        "[outv]",
+        "-frames:v",
+        "1",
+        "-f",
+        "null",
+        "-",
+    ]);
+    ffmpeg_utils::configure_command_no_window(&mut test_cmd);
+
+    let available = match test_cmd.output() {
+        Ok(output) if output.status.success() => {
+            println!("[{}][xfade] disponible: test chaine RGBA reussi", name);
+            true
+        }
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            println!(
+                "[{}][xfade] indisponible: test chaine RGBA echoue: {}",
+                name,
+                stderr.trim()
+            );
+            false
+        }
+        Err(error) => {
+            println!(
+                "[{}][xfade] indisponible: impossible de lancer le test: {}",
+                name, error
+            );
+            false
+        }
+    };
+
+    if let Ok(mut cache) = cache.lock() {
+        cache.insert(ffmpeg_exe.to_string(), available);
+    }
+
+    available
+}
+
+/// Choisit le meilleur backend GPU utilisable pour les transitions xfade.
+///
+/// # Parametres
+/// * `ffmpeg_exe` - Chemin de l'executable FFmpeg a tester.
+///
+/// # Retourne
+/// Backend GPU utilisable, ou CPU si aucun backend GPU ne passe le test.
+fn choose_xfade_backend(ffmpeg_exe: &str) -> XfadeHardwareBackend {
+    if probe_xfade_backend_available(ffmpeg_exe, XfadeHardwareBackend::Vulkan) {
+        return XfadeHardwareBackend::Vulkan;
+    }
+    if probe_xfade_backend_available(ffmpeg_exe, XfadeHardwareBackend::OpenCl) {
+        return XfadeHardwareBackend::OpenCl;
+    }
+
+    println!("[gpu][xfade] aucun backend GPU utilisable, fallback CPU");
+    XfadeHardwareBackend::Cpu
+}
+
+/// Indique si une erreur correspond a une annulation utilisateur.
+///
+/// # Parametres
+/// * `error` - Erreur retournee par une passe de rendu.
+///
+/// # Retourne
+/// `true` si l'erreur est une interruption volontaire.
+fn is_interrupted_error(error: &(dyn std::error::Error + Send + Sync + 'static)) -> bool {
+    error
+        .downcast_ref::<std::io::Error>()
+        .map(|io_error| io_error.kind() == std::io::ErrorKind::Interrupted)
+        .unwrap_or(false)
+}
 
 // ---------------------------------------------------------------------------
 // Construction et exécution du filtre complexe FFmpeg (avec batching)
@@ -86,6 +246,8 @@ pub fn build_and_run_ffmpeg_filter_complex(
         auto_batch_limit
     };
     let (w, h) = target_size;
+    let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let xfade_backend = choose_xfade_backend(&ffmpeg_exe);
 
     // Prétraiter le fond une seule fois pour toute la plage exportée.
     // Les batchs réutilisent ensuite ce fond via un trim local.
@@ -110,7 +272,7 @@ pub fn build_and_run_ffmpeg_filter_complex(
 
     // Cas simple : tout tient dans un seul batch en mode Fixed
     if batch_mode == FiltergraphBatchMode::Fixed && n <= batch_limit {
-        return render_ffmpeg_filter_complex_single(
+        let render_result = render_ffmpeg_filter_complex_single(
             export_id,
             out_path,
             image_paths,
@@ -136,8 +298,54 @@ pub fn build_and_run_ffmpeg_filter_complex(
             0.0,
             full_duration_s,
             None,
-            app_handle,
+            xfade_backend,
+            app_handle.clone(),
         );
+
+        if xfade_backend != XfadeHardwareBackend::Cpu {
+            if let Err(error) = render_result {
+                if is_interrupted_error(error.as_ref()) {
+                    return Err(error);
+                }
+                println!(
+                    "[gpu][xfade][warn] rendu {:?} echoue, retry CPU: {}",
+                    xfade_backend, error
+                );
+                fs::remove_file(out_path).ok();
+                return render_ffmpeg_filter_complex_single(
+                    export_id,
+                    out_path,
+                    image_paths,
+                    timestamps_ms,
+                    target_size,
+                    fps,
+                    fade_duration_ms,
+                    start_time_ms,
+                    audio_paths,
+                    &preprocessed_background_videos,
+                    0,
+                    prefer_hw,
+                    imgs_cwd,
+                    duration_ms.map(|d| d as f64 / 1000.0),
+                    video_fade_in_enabled,
+                    video_fade_out_enabled,
+                    audio_fade_in_enabled,
+                    audio_fade_out_enabled,
+                    export_fade_duration_ms,
+                    export_without_background,
+                    transparent_export_format,
+                    performance_profile,
+                    0.0,
+                    full_duration_s,
+                    None,
+                    XfadeHardwareBackend::Cpu,
+                    app_handle,
+                );
+            }
+            return Ok(());
+        }
+
+        return render_result;
     }
 
     println!(
@@ -306,9 +514,59 @@ pub fn build_and_run_ffmpeg_filter_complex(
             performance_profile,
             batch_base_s,
             full_duration_s,
-            memory_monitor,
+            memory_monitor.clone(),
+            xfade_backend,
             app_handle.clone(),
         );
+        let render_result = match render_result {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                let memory_error = error
+                    .downcast_ref::<super::types::MemoryLimitExceededError>()
+                    .is_some();
+                if xfade_backend != XfadeHardwareBackend::Cpu
+                    && !memory_error
+                    && !is_interrupted_error(error.as_ref())
+                {
+                    println!(
+                        "[gpu][xfade][warn] batch {} {:?} echoue, retry CPU: {}",
+                        batch_index, xfade_backend, error
+                    );
+                    fs::remove_file(&batch_output).ok();
+                    render_ffmpeg_filter_complex_single(
+                        export_id,
+                        &batch_output,
+                        &image_paths[batch_start_idx..batch_end_idx],
+                        &batch_timestamps,
+                        target_size,
+                        fps,
+                        fade_duration_ms,
+                        start_time_ms + (batch_base_s * 1000.0).round() as i32,
+                        &[],
+                        &preprocessed_background_videos,
+                        (batch_base_s * 1000.0).round() as i32,
+                        prefer_hw,
+                        imgs_cwd,
+                        Some(batch_duration_s),
+                        false,
+                        false,
+                        false,
+                        false,
+                        0,
+                        export_without_background,
+                        transparent_export_format,
+                        performance_profile,
+                        batch_base_s,
+                        full_duration_s,
+                        memory_monitor.clone(),
+                        XfadeHardwareBackend::Cpu,
+                        app_handle.clone(),
+                    )
+                } else {
+                    Err(error)
+                }
+            }
+        };
 
         // Gestion des erreurs : retry avec batch plus petit en mode Auto
         if let Err(error) = render_result {
@@ -447,6 +705,7 @@ pub fn render_ffmpeg_filter_complex_single(
     progress_base_s: f64,
     progress_total_s: f64,
     memory_monitor: Option<MemoryMonitorConfig>,
+    xfade_backend: XfadeHardwareBackend,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // Constante de test : force l'échec FFmpeg pour tester la gestion d'erreur UI.
@@ -546,6 +805,7 @@ pub fn render_ffmpeg_filter_complex_single(
     // Construction de la commande FFmpeg
     let mut cmd = Vec::new();
     let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let use_gpu_xfade = xfade_backend != XfadeHardwareBackend::Cpu && n > 1 && fade_s > 1e-6;
     cmd.extend_from_slice(&[
         ffmpeg_exe.clone(),
         "-y".to_string(),
@@ -556,6 +816,33 @@ pub fn render_ffmpeg_filter_complex_single(
         "-progress".to_string(),
         "pipe:2".to_string(),
     ]);
+    if use_gpu_xfade {
+        let (backend_name, init_device, device) = match xfade_backend {
+            XfadeHardwareBackend::Vulkan => (
+                "vulkan",
+                "vulkan=qc_xfade_vk:0,linear_images=1",
+                "qc_xfade_vk",
+            ),
+            XfadeHardwareBackend::OpenCl => ("opencl", "opencl=qc_xfade_ocl:0.0", "qc_xfade_ocl"),
+            XfadeHardwareBackend::Cpu => unreachable!(),
+        };
+        println!(
+            "[{}][xfade] active pour ce batch: {} transition(s), format RGBA",
+            backend_name,
+            n - 1,
+        );
+        cmd.extend_from_slice(&[
+            "-init_hw_device".to_string(),
+            init_device.to_string(),
+            "-filter_hw_device".to_string(),
+            device.to_string(),
+        ]);
+    } else if n > 1 {
+        println!(
+            "[gpu][xfade] fallback CPU pour ce batch: backend={:?}, fade_s={:.6}",
+            xfade_backend, fade_s
+        );
+    }
 
     // Une entree par PNG evite de dupliquer un flux deja converti en frames brutes.
     for (i, image_path) in image_paths.iter().enumerate() {
@@ -604,7 +891,14 @@ pub fn render_ffmpeg_filter_complex_single(
     }
 
     // ---- Chaîne xfade pour les transitions entre segments ----
-    let mut curr_p = "s0p".to_string();
+    let mut curr_p = if use_gpu_xfade {
+        for i in 0..n {
+            filter_lines.push(format!("[s{}p]format=rgba,hwupload[s{}g]", i, i));
+        }
+        "s0g".to_string()
+    } else {
+        "s0p".to_string()
+    };
     let mut curr_duration = durations_s[0];
 
     for i in 0..(n - 1) {
@@ -621,24 +915,51 @@ pub fn render_ffmpeg_filter_complex_single(
             curr_p = out_p;
             curr_duration += durations_s[i + 1];
         } else {
-            // Fade : transition xfade
-            let out_p = format!("xp{}", i);
+            let out_p = if use_gpu_xfade {
+                format!("xpg{}", i)
+            } else {
+                format!("xp{}", i)
+            };
             let offset = (curr_duration - fade_i).max(0.0);
-            filter_lines.push(format!(
-                "[{}][s{}p]xfade=transition=fade:duration={:.6}:offset={:.6}[{}]",
-                curr_p,
-                i + 1,
-                fade_i,
-                offset,
-                out_p
-            ));
+            if use_gpu_xfade {
+                let filter_name = match xfade_backend {
+                    XfadeHardwareBackend::Vulkan => "xfade_vulkan",
+                    XfadeHardwareBackend::OpenCl => "xfade_opencl",
+                    XfadeHardwareBackend::Cpu => unreachable!(),
+                };
+                filter_lines.push(format!(
+                    "[{}][s{}g]{}=transition=fade:duration={:.6}:offset={:.6}[{}]",
+                    curr_p,
+                    i + 1,
+                    filter_name,
+                    fade_i,
+                    offset,
+                    out_p
+                ));
+            } else {
+                filter_lines.push(format!(
+                    "[{}][s{}p]xfade=transition=fade:duration={:.6}:offset={:.6}[{}]",
+                    curr_p,
+                    i + 1,
+                    fade_i,
+                    offset,
+                    out_p
+                ));
+            }
             curr_p = out_p;
             curr_duration = curr_duration + durations_s[i + 1] - fade_i;
         }
     }
 
     // Format de sortie de l'overlay (prémultiplié)
-    filter_lines.push(format!("[{}]format=yuva444p[overlay]", curr_p));
+    if use_gpu_xfade {
+        filter_lines.push(format!(
+            "[{}]hwdownload,format=rgba,format=yuva444p[overlay]",
+            curr_p
+        ));
+    } else {
+        filter_lines.push(format!("[{}]format=yuva444p[overlay]", curr_p));
+    }
 
     // ---- Gestion du fond ----
     if export_without_background {
@@ -881,6 +1202,7 @@ pub fn render_ffmpeg_filter_complex_single(
             base_time_s: progress_base_s,
             total_time_s: progress_total_s,
             local_duration_s: duration_s,
+            suppress_error_event: use_gpu_xfade,
         }),
         Some("Adding Subtitles"),
         memory_monitor,

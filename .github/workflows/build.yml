@@ -79,12 +79,17 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: |
           brew update
-          brew install ffmpeg
+          brew install ffmpeg-full
           mkdir -p src-tauri/binaries
-          cp "$(brew --prefix)/bin/ffprobe" src-tauri/binaries/ffprobe
-          cp "$(brew --prefix)/bin/ffmpeg" src-tauri/binaries/ffmpeg
+          cp "$(brew --prefix ffmpeg-full)/bin/ffprobe" src-tauri/binaries/ffprobe
+          cp "$(brew --prefix ffmpeg-full)/bin/ffmpeg" src-tauri/binaries/ffmpeg
           chmod +x src-tauri/binaries/ffprobe
           chmod +x src-tauri/binaries/ffmpeg
+          if src-tauri/binaries/ffmpeg -hide_banner -filters | grep -qi xfade_vulkan; then
+            echo "xfade_vulkan available in macOS FFmpeg build"
+          else
+            echo "xfade_vulkan unavailable in macOS FFmpeg build; CPU fallback will be used"
+          fi
 
       # ─── Windows binary setup ───
       - name: Download yt-dlp (Windows)
@@ -102,19 +107,30 @@ jobs:
           $binDir = "src-tauri/binaries"
           New-Item -ItemType Directory -Path $binDir -Force | Out-Null
 
-          # Download latest static build zip from BtbN
-          $ffmpegZip = "ffmpeg.zip"
-          curl -L -o $ffmpegZip "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+          # Full build is required for Vulkan/OpenCL filters such as xfade_vulkan.
+          $ffmpegArchive = "ffmpeg.7z"
+          curl.exe -L -o $ffmpegArchive "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z"
 
-          # Extract using built-in PowerShell
           $extractDir = "ffmpeg-extracted"
           if (Test-Path $extractDir) { Remove-Item -Recurse -Force $extractDir }
-          Expand-Archive -Path $ffmpegZip -DestinationPath $extractDir -Force
+          New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+
+          $sevenZip = (Get-Command 7z -ErrorAction SilentlyContinue).Source
+          if (-not $sevenZip) {
+            curl.exe -L -o 7zr.exe "https://www.7-zip.org/a/7zr.exe"
+            $sevenZip = (Resolve-Path ".\7zr.exe").Path
+          }
+          & $sevenZip x $ffmpegArchive "-o$extractDir" -y
 
           # Find extracted root (contains bin/ffmpeg.exe & bin/ffprobe.exe)
           $rootDir = Get-ChildItem -Directory -Path $extractDir | Select-Object -First 1
           Copy-Item -Path (Join-Path $rootDir.FullName "bin/ffmpeg.exe") -Destination $binDir -Force
           Copy-Item -Path (Join-Path $rootDir.FullName "bin/ffprobe.exe") -Destination $binDir -Force
+
+          $filters = & (Join-Path $binDir "ffmpeg.exe") -hide_banner -filters
+          if ($filters -notmatch "xfade_vulkan") {
+            throw "Downloaded FFmpeg build does not include xfade_vulkan"
+          }
 
       # ─── Linux binary setup ───
       - name: Install Linux build dependencies
@@ -141,7 +157,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir -p src-tauri/binaries
-          curl -L -o ffmpeg.tar.xz "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+          curl -L -o ffmpeg.tar.xz "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
           rm -rf ffmpeg-extracted
           mkdir ffmpeg-extracted
           tar -xJf ffmpeg.tar.xz -C ffmpeg-extracted
@@ -149,6 +165,10 @@ jobs:
           cp "$rootdir/ffmpeg" src-tauri/binaries/ffmpeg
           cp "$rootdir/ffprobe" src-tauri/binaries/ffprobe
           chmod +x src-tauri/binaries/ffmpeg src-tauri/binaries/ffprobe
+          if ! src-tauri/binaries/ffmpeg -hide_banner -filters | grep -qi xfade_vulkan; then
+            echo "Downloaded FFmpeg build does not include xfade_vulkan"
+            exit 1
+          fi
 
       # ─── Build & Release with tauri-action ───
       - name: Install app dependencies

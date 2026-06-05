@@ -13,6 +13,8 @@ pub struct FfmpegProgressContext {
     pub total_time_s: f64,
     /// Durée locale de cette passe en secondes.
     pub local_duration_s: f64,
+    /// Si vrai, n'emet pas `export-error` pour cette passe FFmpeg.
+    pub suppress_error_event: bool,
 }
 
 /// Configuration du moniteur mémoire pour les batchs auto.

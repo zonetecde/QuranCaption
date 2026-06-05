@@ -14,6 +14,8 @@
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
+	import toast from 'svelte-5-french-toast';
+	import { computeWbwTimestampsForClips } from '$lib/services/AutoSegmentation';
 
 	let {
 		clip = $bindable(),
@@ -28,6 +30,11 @@
 	} = $props();
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
+
+	// Vrai si ce sous-titre Quran n'a pas encore de timestamps mot à mot.
+	let isMissingWbwTimestamps = $derived(
+		clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) === 0
+	);
 
 	let positionLeft = $derived(() => {
 		return (clip.startTime / 1000) * track.getPixelPerSecond();
@@ -387,6 +394,32 @@
 	}
 
 	/**
+	 * Calcule à la demande les timestamps WBW pour ce seul sous-titre via l'API du Universal Aligner.
+	 * @returns {Promise<void>}
+	 */
+	async function generateWbwTimestampsFromContextMenu(): Promise<void> {
+		if (!(clip instanceof SubtitleClip)) return;
+
+		currentMenu.set(null);
+		await tick();
+
+		const loadingToast = toast.loading('Computing WBW timestamps…');
+		try {
+			const { enriched } = await computeWbwTimestampsForClips([clip]);
+			if (enriched > 0) {
+				toast.success('WBW timestamps generated.', { id: loadingToast });
+				globalState.currentProject?.detail.updateVideoDetailAttributes();
+				globalState.updateVideoPreviewUI();
+			} else {
+				toast.error('Could not generate WBW timestamps.', { id: loadingToast });
+			}
+		} catch (error) {
+			console.error('[WBW] Failed to generate timestamps for clip:', error);
+			toast.error('Failed to generate WBW timestamps.', { id: loadingToast });
+		}
+	}
+
+	/**
 	 * Ouvre l'editeur rapide de sous-titre sur le clip courant.
 	 * @returns {Promise<void>}
 	 */
@@ -657,6 +690,14 @@
 				<span class="material-icons-outlined text-sm mr-1">translate</span>Edit translation
 			</div></Item
 		>
+		{#if isMissingWbwTimestamps}
+			<Item on:click={generateWbwTimestampsFromContextMenu}
+				><div class="btn-icon">
+					<span class="material-icons-outlined text-sm mr-1">auto_awesome</span>Generate WBW
+					timestamps
+				</div></Item
+			>
+		{/if}
 		<Item on:click={editWbwTimestampFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">timeline</span>Edit WBW timestamp

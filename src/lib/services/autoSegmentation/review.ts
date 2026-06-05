@@ -135,7 +135,21 @@ export function clearWbwTimestampReview(): void {
  * @returns {Promise<{ enriched: number; total: number }>} Nombre de clips enrichis et total ciblé.
  */
 export async function computeMissingWbwTimestamps(): Promise<{ enriched: number; total: number }> {
-	const clips = getSubtitleClipsWithoutWbwTimestamps();
+	return computeWbwTimestampsForClips(getSubtitleClipsWithoutWbwTimestamps());
+}
+
+/**
+ * Calcule les timestamps WBW pour une liste de sous-titres donnée via `/timestamps_direct`.
+ *
+ * Variante ciblée de {@link computeMissingWbwTimestamps} : permet de (re)calculer les
+ * timestamps d'un seul clip (menu contextuel) ou d'un sous-ensemble, sans toucher aux autres.
+ *
+ * @param {SubtitleClip[]} clips Sous-titres dont les timestamps doivent être calculés.
+ * @returns {Promise<{ enriched: number; total: number }>} Nombre de clips enrichis et total ciblé.
+ */
+export async function computeWbwTimestampsForClips(
+	clips: SubtitleClip[]
+): Promise<{ enriched: number; total: number }> {
 	if (clips.length === 0) return { enriched: 0, total: 0 };
 
 	const segments: SegmentationSegment[] = clips.map((clip, index) => {

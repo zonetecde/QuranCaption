@@ -50,7 +50,8 @@ export {
 	getSubtitleClipsWithoutWbwTimestamps,
 	markSubtitlesWithoutWbwTimestampsForReview,
 	clearWbwTimestampReview,
-	computeMissingWbwTimestamps
+	computeMissingWbwTimestamps,
+	computeWbwTimestampsForClips
 } from './autoSegmentation/review';
 export {
 	hydrateSubtitleClipRange,

@@ -45,6 +45,7 @@ export default class Exportation extends SerializableBase {
 	mergingFilesTotalSegments: number;
 	errorLog: string;
 	fps: number;
+	currentBatchSize: number | null;
 	date: string;
 	totalExportTimeMs: number | null;
 
@@ -89,6 +90,7 @@ export default class Exportation extends SerializableBase {
 		this.mergingFilesCurrentSegment = $state(0);
 		this.mergingFilesTotalSegments = $state(0);
 		this.errorLog = $state(errorLog);
+		this.currentBatchSize = $state(null);
 		this.date = $state(new Date().toISOString());
 		this.totalExportTimeMs = $state(null);
 	}

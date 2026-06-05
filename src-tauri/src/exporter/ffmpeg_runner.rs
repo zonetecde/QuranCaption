@@ -70,13 +70,15 @@ pub fn emit_export_progress(
     current_time_s: f64,
     total_time_s: f64,
     current_state: Option<&str>,
+    current_batch_size: Option<usize>,
 ) {
     let progress_data = serde_json::json!({
         "export_id": export_id,
         "progress": progress,
         "current_time": current_time_s,
         "total_time": total_time_s,
-        "current_state": current_state
+        "current_state": current_state,
+        "current_batch_size": current_batch_size
     });
 
     let _ = app_handle.emit("export-progress", progress_data);
@@ -255,6 +257,7 @@ pub fn run_ffmpeg_command(
                         current_time_s,
                         progress_context.total_time_s,
                         progress_state,
+                        progress_context.current_batch_size,
                     );
                 }
             }

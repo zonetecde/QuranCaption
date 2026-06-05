@@ -221,6 +221,14 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.mergingFilesProgress = data.mergingFilesProgress ?? 0;
 		exportation.mergingFilesCurrentSegment = data.mergingFilesCurrentSegment ?? 0;
 		exportation.mergingFilesTotalSegments = data.mergingFilesTotalSegments ?? 0;
+		if (typeof data.currentBatchSize === 'number') {
+			exportation.currentBatchSize = data.currentBatchSize;
+		} else if (
+			data.currentState !== ExportState.AddingSubtitles &&
+			data.currentState !== ExportState.CreatingVideo
+		) {
+			exportation.currentBatchSize = null;
+		}
 		if (!wasExported && data.currentState === ExportState.Exported) {
 			const startMs = parseIsoDateMs(exportation.date);
 			if (startMs !== null) {
@@ -270,5 +278,6 @@ export interface ExportProgress {
 	mergingFilesProgress?: number;
 	mergingFilesCurrentSegment?: number;
 	mergingFilesTotalSegments?: number;
+	currentBatchSize?: number;
 	errorLog?: string;
 }

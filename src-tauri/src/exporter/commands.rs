@@ -715,6 +715,7 @@ pub async fn concat_videos(
         total_time_s: total_duration_s.max(0.001),
         local_duration_s: total_duration_s.max(0.001),
         suppress_error_event: false,
+        current_batch_size: None,
     };
 
     ffmpeg_runner::run_ffmpeg_command(

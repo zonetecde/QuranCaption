@@ -1203,6 +1203,7 @@ pub fn render_ffmpeg_filter_complex_single(
             total_time_s: progress_total_s,
             local_duration_s: duration_s,
             suppress_error_event: use_gpu_xfade,
+            current_batch_size: Some(n),
         }),
         Some("Adding Subtitles"),
         memory_monitor,

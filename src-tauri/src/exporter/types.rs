@@ -15,6 +15,8 @@ pub struct FfmpegProgressContext {
     pub local_duration_s: f64,
     /// Si vrai, n'emet pas `export-error` pour cette passe FFmpeg.
     pub suppress_error_event: bool,
+    /// Taille du batch en cours, si cette passe rend un batch d'images.
+    pub current_batch_size: Option<usize>,
 }
 
 /// Configuration du moniteur mémoire pour les batchs auto.

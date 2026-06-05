@@ -138,6 +138,7 @@
 			total_time?: number;
 			export_id: string;
 			current_state?: string;
+			current_batch_size?: number;
 		};
 	};
 	type ExportCompleteEvent = { payload: { filename: string; exportId: string } };
@@ -199,6 +200,7 @@
 			total_time?: number;
 			export_id: string;
 			current_state?: string;
+			current_batch_size?: number;
 		};
 
 		// Vérifie que c'est bien pour cette exportation
@@ -306,7 +308,8 @@
 				exportId: Number(exportId),
 				progress: mainProgressForMonitor,
 				currentState: currentVideoExportState,
-				currentTime: globalCurrentTime
+				currentTime: globalCurrentTime,
+				currentBatchSize: data.current_batch_size
 			} as ExportProgress);
 		} else {
 			console.log(`Export Processing: ${data.current_time.toFixed(1)}s elapsed`);

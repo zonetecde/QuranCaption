@@ -131,6 +131,7 @@ pub fn ffmpeg_preprocess_video(
         total_time_s: preproc_duration_s,
         local_duration_s: preproc_duration_s,
         suppress_error_event: false,
+        current_batch_size: None,
     });
 
     if let Err(e) = ffmpeg_runner::run_ffmpeg_command(
@@ -318,6 +319,7 @@ pub fn preprocess_background_videos(
             current_time_s,
             clamped_total_s,
             Some("Processing Background"),
+            None,
         );
     };
 

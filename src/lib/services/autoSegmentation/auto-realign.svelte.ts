@@ -2,7 +2,7 @@ import { SubtitleClip } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
 import { getAutoSegmentationAudioClips } from './audio';
 import { computeWbwTimestampsForClipsSliced } from './review';
-import { AUTO_REALIGN_DEBOUNCE_MS, type RealignWindow } from './types';
+import { AUTO_REALIGN_DEBOUNCE_MS, AUTO_REALIGN_TIMEOUT_MS, type RealignWindow } from './types';
 
 /**
  * Re-alignement WBW automatique et « abstrait » déclenché par les éditions de sous-titres.
@@ -197,16 +197,29 @@ async function runRealign(key: string, clipIds: Set<number>): Promise<void> {
 
 	const window = computeRealignWindow(clips);
 
+	let watchdog: ReturnType<typeof setTimeout> | undefined;
 	try {
-		await computeWbwTimestampsForClipsSliced(clips, {
-			window,
-			// « Dernier gagne » par clip : on n'écrit pas un clip réédité depuis le début du passage.
-			shouldCommit: (clip) => clipGeneration.get(clip.id) === genAtStart.get(clip.id)
+		// Garde-fou : si l'appel MFA ne se résout jamais (serveur bloqué), on abandonne le passage
+		// pour garantir que le `finally` s'exécute et que le spinner finisse par s'effacer.
+		const timeout = new Promise<never>((_, reject) => {
+			watchdog = setTimeout(
+				() => reject(new Error('auto re-MFA timed out')),
+				AUTO_REALIGN_TIMEOUT_MS
+			);
 		});
+		await Promise.race([
+			computeWbwTimestampsForClipsSliced(clips, {
+				window,
+				// « Dernier gagne » par clip : on n'écrit pas un clip réédité depuis le début du passage.
+				shouldCommit: (clip) => clipGeneration.get(clip.id) === genAtStart.get(clip.id)
+			}),
+			timeout
+		]);
 	} catch (error) {
 		// Repli silencieux : pas de toast, le clip garde son état post-édition.
 		console.warn('[AutoRealign] re-MFA failed (silent fallback):', error);
 	} finally {
+		if (watchdog !== undefined) clearTimeout(watchdog);
 		clearStatusIfUnchanged(clipIds, genAtStart);
 	}
 }

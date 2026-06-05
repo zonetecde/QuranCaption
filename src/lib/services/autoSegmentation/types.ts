@@ -5,6 +5,12 @@ export const SMALL_GAP_MS = 200;
 export const AUTO_REALIGN_DRAG_THRESHOLD_MS = 200;
 /** Délai (ms) après relâchement de la souris avant de lancer le re-MFA automatique (debounce). */
 export const AUTO_REALIGN_DEBOUNCE_MS = 300;
+/**
+ * Garde-fou (ms) : durée maximale d'un passage de re-MFA automatique avant abandon. Garantit que le
+ * statut « computing » (spinner de la barre de mots) finit toujours par s'effacer, même si l'appel
+ * MFA ne se résout jamais (serveur bloqué, etc.).
+ */
+export const AUTO_REALIGN_TIMEOUT_MS = 5 * 60 * 1000;
 export const SUBDIVIDE_MAX_VERSES_DISABLED = 5;
 export const SUBDIVIDE_MAX_WORDS_DISABLED = 30;
 export const SUBDIVIDE_MAX_DURATION_DISABLED = 30;

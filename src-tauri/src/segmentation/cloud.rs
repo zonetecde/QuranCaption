@@ -501,6 +501,9 @@ pub async fn mfa_timestamps_direct(
 
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(20))
+        // Timeout global: évite qu'une requête MFA acceptée mais bloquée côté serveur
+        // ne pende indéfiniment (sinon le spinner de re-alignement reste figé côté UI).
+        .timeout(Duration::from_secs(5 * 60))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 

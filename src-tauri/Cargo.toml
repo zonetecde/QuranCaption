@@ -38,6 +38,7 @@ regex = "1.0"
 lazy_static = "1.4"
 md5 = "0.7"
 image = "0.24"
+rayon = "1.10"
 discord-rich-presence = "0.2"
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 bytes = "1"

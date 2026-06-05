@@ -1,9 +1,10 @@
 use crate::path_utils;
 
-use std::collections::HashSet;
-use std::fs;
+use rayon::prelude::*;
+use std::fs::{self, File};
+use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use tauri::Emitter;
 
@@ -13,8 +14,8 @@ use super::concat;
 use super::constants;
 use super::ffmpeg_runner;
 use super::ffmpeg_utils;
-use super::filter_graph;
-use super::types::{ExportPerformanceProfile, FfmpegProgressContext, VideoInput};
+use super::preprocess;
+use super::types::{CodecUsage, ExportPerformanceProfile, FfmpegProgressContext, VideoInput};
 
 // ---------------------------------------------------------------------------
 // Commande Tauri : export_video
@@ -23,7 +24,7 @@ use super::types::{ExportPerformanceProfile, FfmpegProgressContext, VideoInput};
 /// Commande principale d'export vidéo.
 ///
 /// Parcourt un dossier d'images PNG nommées par timestamp, construit la timeline,
-/// et lance le rendu FFmpeg avec batching automatique.
+/// et lance le rendu FFmpeg rapide sans batching.
 ///
 /// # Paramètres (envoyés depuis le frontend)
 /// * `export_id` - Identifiant unique pour suivre et annuler l'export.
@@ -36,7 +37,6 @@ use super::types::{ExportPerformanceProfile, FfmpegProgressContext, VideoInput};
 /// * `audios` - Liste des fichiers audio à superposer.
 /// * `videos` - Liste des vidéos de fond.
 /// * `blur` - Intensité du flou de fond.
-/// * `batch_size` / `batch_size_mode` - Configuration du batching.
 /// * `blank_timings` - Timestamps sans sous-titres (fond uniquement).
 #[tauri::command]
 pub async fn export_video(
@@ -57,8 +57,6 @@ pub async fn export_video(
     export_fade_duration_ms: Option<i32>,
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
-    batch_size: Option<i32>,
-    batch_size_mode: Option<String>,
     blank_timings: Option<Vec<i32>>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
@@ -102,13 +100,7 @@ pub async fn export_video(
         codec::compute_ffmpeg_thread_cap(performance_profile)
     );
     println!(
-        "[perf] batch_size={}",
-        batching::normalize_filtergraph_batch_size(batch_size)
-    );
-    let batch_mode = batching::normalize_filtergraph_batch_mode(batch_size_mode.as_deref());
-    println!("[perf] batch_size_mode={:?}", batch_mode);
-    println!(
-        "[batching] blank timings fournis={}",
+        "[timeline] blank timings fournis={}",
         blank_timings.as_ref().map_or(0, Vec::len)
     );
 
@@ -180,15 +172,13 @@ pub async fn export_video(
             p.file_stem()
                 .and_then(|s| s.to_str())
                 .and_then(|s| s.parse::<i32>().ok())
-                .unwrap_or(0)
+                .ok_or_else(|| format!("Nom de frame invalide: {}", p.display()))
         })
-        .collect();
-    let blank_timestamps: HashSet<i32> = blank_timings
-        .unwrap_or_default()
-        .iter()
-        .copied()
-        .filter(|timing| ts.binary_search(timing).is_ok())
-        .collect();
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if ts.windows(2).any(|pair| pair[0] >= pair[1]) {
+        return Err("Les timestamps des frames doivent etre strictement croissants.".to_string());
+    }
 
     let path_strs: Vec<String> = files
         .iter()
@@ -218,7 +208,7 @@ pub async fn export_video(
     // ---- Durée totale ----
     let fade_ms = fade_duration;
     let tail_ms = fade_ms.max(1000);
-    let total_duration_ms = ts[ts.len() - 1] + tail_ms;
+    let total_duration_ms = duration.unwrap_or_else(|| ts[ts.len() - 1] + tail_ms);
     let duration_s = total_duration_ms as f64 / 1000.0;
     println!(
         "[timeline] Durée totale: {} ms ({:.3} s)",
@@ -235,12 +225,6 @@ pub async fn export_video(
         println!("[fs] Création du dossier de sortie si besoin: {:?}", parent);
         fs::create_dir_all(parent).map_err(|e| format!("Erreur création dossier: {}", e))?;
     }
-
-    let imgs_folder_resolved = folder
-        .canonicalize()
-        .unwrap_or_else(|_| folder.clone())
-        .to_string_lossy()
-        .to_string();
 
     let out_path_str = out_path.to_string_lossy().to_string();
     let out_path_str_for_task = out_path_str.clone();
@@ -280,12 +264,11 @@ pub async fn export_video(
 
     // Lancement du rendu dans un thread bloquant (tokio::task::spawn_blocking)
     tokio::task::spawn_blocking(move || {
-        filter_graph::build_and_run_ffmpeg_filter_complex(
+        run_fast_export(
             &export_id_clone,
             &out_path_str_for_task,
             &path_strs,
             &ts,
-            &blank_timestamps,
             target_size,
             fps,
             fade_ms,
@@ -293,7 +276,6 @@ pub async fn export_video(
             &audios_vec,
             &videos_vec,
             true, // prefer_hw
-            Some(&imgs_folder_resolved),
             duration,
             blur,
             video_fade_in_enabled.unwrap_or(false),
@@ -303,8 +285,6 @@ pub async fn export_video(
             export_fade_duration_ms.unwrap_or(0),
             export_without_background.unwrap_or(false),
             transparent_export_format.as_deref(),
-            batch_size,
-            batch_mode,
             performance_profile,
             app_handle,
         )
@@ -335,6 +315,812 @@ pub async fn export_video(
     let _ = app.emit("export-complete", completion_data);
 
     Ok(out_path_str)
+}
+
+type ExportError = Box<dyn std::error::Error + Send + Sync + 'static>;
+type ExportResult<T> = Result<T, ExportError>;
+
+struct TempExportDir {
+    path: PathBuf,
+}
+
+impl Drop for TempExportDir {
+    /// Supprime le dossier temporaire de l'export rapide.
+    fn drop(&mut self) {
+        fs::remove_dir_all(&self.path).ok();
+    }
+}
+
+struct FastImage {
+    width: u32,
+    height: u32,
+    rgba: Vec<u8>,
+}
+
+struct FadeFrameTask {
+    output_path: PathBuf,
+    duration_ticks: u128,
+    numerator: u64,
+    denominator: u64,
+}
+
+struct FastOverlayPlan {
+    concat_path: PathBuf,
+    generated_fade_frames: usize,
+    source_frame_count: usize,
+    width: i32,
+    height: i32,
+}
+
+/// Cree une erreur simple pour la voie d'export rapide.
+fn export_error(message: impl Into<String>) -> ExportError {
+    Box::new(io::Error::new(io::ErrorKind::Other, message.into()))
+}
+
+/// Cree un dossier temporaire unique pour les fichiers intermediaires.
+fn create_temp_export_dir(export_id: &str) -> ExportResult<TempExportDir> {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let safe_export_id: String = export_id
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let path = std::env::temp_dir().join(format!(
+        "qurancaption-fast-export-{}-{}-{}",
+        safe_export_id,
+        std::process::id(),
+        nonce
+    ));
+    fs::create_dir_all(&path)?;
+    Ok(TempExportDir { path })
+}
+
+/// Decode une image PNG en RGBA droit.
+fn decode_png_rgba(path: &Path) -> ExportResult<FastImage> {
+    let img = image::open(path)
+        .map_err(|e| export_error(format!("Erreur decodage PNG {}: {}", path.display(), e)))?
+        .to_rgba8();
+    let (width, height) = img.dimensions();
+    Ok(FastImage {
+        width,
+        height,
+        rgba: img.into_raw(),
+    })
+}
+
+/// Ecrit une image RGBA dans un TGA RLE 32 bits.
+fn write_tga_rgba(path: &Path, image: &FastImage) -> ExportResult<()> {
+    if image.width > u16::MAX as u32 || image.height > u16::MAX as u32 {
+        return Err(export_error(format!(
+            "Image trop grande pour TGA: {}x{}",
+            image.width, image.height
+        )));
+    }
+
+    let expected_len = image.width as usize * image.height as usize * 4;
+    if image.rgba.len() != expected_len {
+        return Err(export_error("Buffer RGBA invalide"));
+    }
+
+    let file = File::create(path)?;
+    let mut writer = BufWriter::new(file);
+    let mut header = [0u8; 18];
+    header[2] = 10; // Image TGA true-color compressee RLE.
+    header[12..14].copy_from_slice(&(image.width as u16).to_le_bytes());
+    header[14..16].copy_from_slice(&(image.height as u16).to_le_bytes());
+    header[16] = 32;
+    header[17] = 0x28; // Origine en haut a gauche + alpha 8 bits.
+    writer.write_all(&header)?;
+
+    let stride = image.width as usize * 4;
+    for row in 0..image.height as usize {
+        let start = row * stride;
+        write_tga_rle_row(&mut writer, &image.rgba[start..start + stride])?;
+    }
+
+    writer.flush()?;
+    Ok(())
+}
+
+/// Ecrit une ligne RGBA en paquets RLE TGA.
+fn write_tga_rle_row<W: Write>(writer: &mut W, row: &[u8]) -> ExportResult<()> {
+    let pixels = row.len() / 4;
+    let mut x = 0usize;
+
+    while x < pixels {
+        let run_len = same_pixel_run(row, x, pixels).min(128);
+        if run_len >= 2 {
+            writer.write_all(&[0x80 | ((run_len - 1) as u8)])?;
+            write_bgra_pixel(writer, row, x)?;
+            x += run_len;
+            continue;
+        }
+
+        let raw_start = x;
+        x += 1;
+        while x < pixels && x - raw_start < 128 {
+            if same_pixel_run(row, x, pixels) >= 2 {
+                break;
+            }
+            x += 1;
+        }
+
+        writer.write_all(&[((x - raw_start - 1) as u8)])?;
+        for px in raw_start..x {
+            write_bgra_pixel(writer, row, px)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Retourne la longueur d'une sequence de pixels identiques.
+fn same_pixel_run(row: &[u8], pixel_index: usize, pixels: usize) -> usize {
+    let base = pixel_index * 4;
+    let pixel = &row[base..base + 4];
+    let mut len = 1usize;
+    while pixel_index + len < pixels && len < 128 {
+        let next = (pixel_index + len) * 4;
+        if &row[next..next + 4] != pixel {
+            break;
+        }
+        len += 1;
+    }
+    len
+}
+
+/// Ecrit un pixel RGBA dans l'ordre BGRA attendu par TGA.
+fn write_bgra_pixel<W: Write>(writer: &mut W, row: &[u8], pixel_index: usize) -> ExportResult<()> {
+    let base = pixel_index * 4;
+    writer.write_all(&[row[base + 2], row[base + 1], row[base], row[base + 3]])?;
+    Ok(())
+}
+
+/// Divise avec arrondi a l'entier le plus proche.
+fn div_round(value: u64, divisor: u64) -> u64 {
+    if divisor == 0 {
+        return 0;
+    }
+    (value + divisor / 2) / divisor
+}
+
+/// Melange deux images en alpha premultiplie puis revient en RGBA droit.
+fn blend_premultiplied(a: &FastImage, b: &FastImage, numerator: u64, denominator: u64) -> FastImage {
+    let mut rgba = vec![0u8; a.rgba.len()];
+    let inv = denominator.saturating_sub(numerator);
+
+    for ((apx, bpx), out) in a
+        .rgba
+        .chunks_exact(4)
+        .zip(b.rgba.chunks_exact(4))
+        .zip(rgba.chunks_exact_mut(4))
+    {
+        let aa = apx[3] as u64;
+        let ba = bpx[3] as u64;
+        let out_alpha = div_round(aa * inv + ba * numerator, denominator).min(255);
+
+        if out_alpha == 0 {
+            out.copy_from_slice(&[0, 0, 0, 0]);
+            continue;
+        }
+
+        for channel in 0..3 {
+            let a_premul = apx[channel] as u64 * aa;
+            let b_premul = bpx[channel] as u64 * ba;
+            let premul = div_round(a_premul * inv + b_premul * numerator, denominator);
+            out[channel] = div_round(premul, out_alpha).min(255) as u8;
+        }
+        out[3] = out_alpha as u8;
+    }
+
+    FastImage {
+        width: a.width,
+        height: a.height,
+        rgba,
+    }
+}
+
+/// Calcule une division entiere arrondie vers le haut.
+fn ceil_div(value: u128, divisor: u128) -> u128 {
+    if divisor == 0 {
+        return 0;
+    }
+    (value + divisor - 1) / divisor
+}
+
+/// Formate une duree exprimee en ticks de concat FFmpeg.
+fn format_seconds_ticks(ticks: u128, timebase: u128) -> String {
+    let mut whole = ticks / timebase;
+    let mut micros = ((ticks % timebase) * 1_000_000 + timebase / 2) / timebase;
+    if micros >= 1_000_000 {
+        whole += 1;
+        micros -= 1_000_000;
+    }
+    format!("{}.{:06}", whole, micros)
+}
+
+/// Echappe un chemin pour le demuxer concat de FFmpeg.
+fn escape_concat_path(path: &Path) -> String {
+    path.to_string_lossy()
+        .replace('\\', "/")
+        .replace('\'', "\\'")
+}
+
+/// Ecrit une entree de fichier dans le plan concat.
+fn write_concat_file<W: Write>(writer: &mut W, path: &Path, timebase: u128) -> ExportResult<()> {
+    writeln!(writer, "file '{}'", escape_concat_path(path))?;
+    writeln!(writer, "option framerate {}", timebase)?;
+    Ok(())
+}
+
+/// Ecrit une entree de fichier avec sa duree dans le plan concat.
+fn write_concat_entry<W: Write>(
+    writer: &mut W,
+    path: &Path,
+    duration_ticks: u128,
+    timebase: u128,
+) -> ExportResult<()> {
+    if duration_ticks == 0 {
+        return Ok(());
+    }
+    write_concat_file(writer, path, timebase)?;
+    writeln!(
+        writer,
+        "duration {}",
+        format_seconds_ticks(duration_ticks, timebase)
+    )?;
+    Ok(())
+}
+
+/// Construit le plan concat TGA qui respecte les timestamps et les fondus.
+fn build_overlay_concat_plan(
+    export_id: &str,
+    image_paths: &[String],
+    timestamps_ms: &[i32],
+    fps: i32,
+    fade_duration_ms: i32,
+    duration_ms: i32,
+    temp_dir: &Path,
+) -> ExportResult<FastOverlayPlan> {
+    if fps <= 0 {
+        return Err(export_error("FPS invalide"));
+    }
+    if image_paths.is_empty() || image_paths.len() != timestamps_ms.len() {
+        return Err(export_error("Timeline d'images invalide"));
+    }
+
+    let fps_ticks = fps as u128;
+    let timebase = fps_ticks * 1000;
+    let frame_ticks = 1000u128;
+    let requested_fade_ticks = fade_duration_ms.max(0) as u128 * fps_ticks;
+    let concat_path = temp_dir.join("frames.ffconcat");
+    let mut concat_file = BufWriter::new(File::create(&concat_path)?);
+    writeln!(concat_file, "ffconcat version 1.0")?;
+
+    let mut current = decode_png_rgba(Path::new(&image_paths[0]))?;
+    let source_width = current.width;
+    let source_height = current.height;
+    let mut generated_fade_frames = 0usize;
+    let mut previous_fade_ticks = 0u128;
+
+    for i in 0..image_paths.len().saturating_sub(1) {
+        ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
+        let next = decode_png_rgba(Path::new(&image_paths[i + 1]))?;
+        if next.width != source_width || next.height != source_height {
+            return Err(export_error(format!(
+                "Dimensions incoherentes entre les PNG: {}x{} puis {}x{}",
+                source_width, source_height, next.width, next.height
+            )));
+        }
+
+        let source_path = temp_dir.join(format!("source_{:06}.tga", i));
+        write_tga_rgba(&source_path, &current)?;
+
+        let segment_ms = timestamps_ms[i + 1].saturating_sub(timestamps_ms[i]).max(0) as u128;
+        let segment_ticks = segment_ms * fps_ticks;
+
+        if segment_ticks > 0 {
+            let timeline_fade_ticks = requested_fade_ticks.min(segment_ticks);
+            let contribution_ticks = segment_ticks.saturating_sub(previous_fade_ticks);
+            let visual_fade_ticks = timeline_fade_ticks.min(contribution_ticks);
+
+            if requested_fade_ticks == 0 || visual_fade_ticks == 0 || current.rgba == next.rgba {
+                write_concat_entry(&mut concat_file, &source_path, contribution_ticks, timebase)?;
+            } else {
+                // L'ancien xfade consomme le fade precedent au debut du segment courant.
+                let still_ticks = contribution_ticks.saturating_sub(visual_fade_ticks);
+                write_concat_entry(&mut concat_file, &source_path, still_ticks, timebase)?;
+
+                let fade_frame_count = ceil_div(visual_fade_ticks, frame_ticks) as usize;
+                let tasks: Vec<FadeFrameTask> = (0..fade_frame_count)
+                    .map(|frame_idx| {
+                        let start_ticks = frame_idx as u128 * frame_ticks;
+                        let duration_ticks = (visual_fade_ticks - start_ticks).min(frame_ticks);
+                        let numerator = (start_ticks + duration_ticks).min(visual_fade_ticks) as u64;
+                        FadeFrameTask {
+                            output_path: temp_dir.join(format!("fade_{:06}_{:04}.tga", i, frame_idx)),
+                            duration_ticks,
+                            numerator,
+                            denominator: visual_fade_ticks as u64,
+                        }
+                    })
+                    .collect();
+
+                tasks.par_iter().try_for_each(|task| -> ExportResult<()> {
+                    ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
+                    let blended =
+                        blend_premultiplied(&current, &next, task.numerator, task.denominator);
+                    write_tga_rgba(&task.output_path, &blended)
+                })?;
+
+                generated_fade_frames += tasks.len();
+                for task in &tasks {
+                    write_concat_entry(
+                        &mut concat_file,
+                        &task.output_path,
+                        task.duration_ticks,
+                        timebase,
+                    )?;
+                }
+            }
+            previous_fade_ticks = timeline_fade_ticks;
+        }
+
+        current = next;
+    }
+
+    let last_idx = image_paths.len() - 1;
+    let last_source_path = temp_dir.join(format!("source_{:06}.tga", last_idx));
+    write_tga_rgba(&last_source_path, &current)?;
+    let last_ts = *timestamps_ms.last().unwrap_or(&0);
+    let hold_ms = (duration_ms - last_ts).max(1) as u128;
+    let final_hold_ticks = (hold_ms * fps_ticks).saturating_sub(previous_fade_ticks);
+    write_concat_entry(
+        &mut concat_file,
+        &last_source_path,
+        final_hold_ticks,
+        timebase,
+    )?;
+
+    // Le demuxer concat a besoin de revoir le dernier fichier pour honorer sa duree.
+    write_concat_file(&mut concat_file, &last_source_path, timebase)?;
+    concat_file.flush()?;
+
+    Ok(FastOverlayPlan {
+        concat_path,
+        generated_fade_frames,
+        source_frame_count: image_paths.len(),
+        width: source_width as i32,
+        height: source_height as i32,
+    })
+}
+
+/// Ajoute des keyframes regulieres pour rendre le seek MP4 rapide.
+fn append_seek_friendly_gop_args(cmd: &mut Vec<String>, codec_name: &str, fps: i32) {
+    let gop = fps.max(1).to_string();
+    cmd.extend_from_slice(&["-g".to_string(), gop.clone()]);
+    if codec_name == "libx264" {
+        cmd.extend_from_slice(&[
+            "-keyint_min".to_string(),
+            gop,
+            "-sc_threshold".to_string(),
+            "0".to_string(),
+        ]);
+    } else if codec_name.contains("nvenc") {
+        cmd.extend_from_slice(&["-forced-idr".to_string(), "1".to_string()]);
+    }
+}
+
+/// Execute l'export rapide complet avec overlay RGBA, fond, audio et codec final.
+#[allow(clippy::too_many_arguments)]
+fn run_fast_export(
+    export_id: &str,
+    out_path: &str,
+    image_paths: &[String],
+    timestamps_ms: &[i32],
+    target_size: (i32, i32),
+    fps: i32,
+    fade_duration_ms: i32,
+    start_time_ms: i32,
+    audio_paths: &[String],
+    video_inputs: &[VideoInput],
+    prefer_hw: bool,
+    duration_ms: Option<i32>,
+    blur: Option<f64>,
+    video_fade_in_enabled: bool,
+    video_fade_out_enabled: bool,
+    audio_fade_in_enabled: bool,
+    audio_fade_out_enabled: bool,
+    export_fade_duration_ms: i32,
+    export_without_background: bool,
+    transparent_export_format: Option<&str>,
+    performance_profile: ExportPerformanceProfile,
+    app_handle: tauri::AppHandle,
+) -> ExportResult<()> {
+    if image_paths.is_empty() {
+        return Err(export_error("Aucune image fournie"));
+    }
+    if fps <= 0 {
+        return Err(export_error("FPS invalide"));
+    }
+
+    let (w, h) = target_size;
+    let tail_ms = fade_duration_ms.max(1000);
+    let full_duration_ms = duration_ms
+        .unwrap_or_else(|| timestamps_ms[timestamps_ms.len() - 1] + tail_ms)
+        .max(1);
+    let duration_s = full_duration_ms as f64 / 1000.0;
+    let start_s = (start_time_ms as f64 / 1000.0).max(0.0);
+    let export_fade_s = (export_fade_duration_ms.max(0) as f64 / 1000.0)
+        .min(duration_s.max(0.0));
+    let use_mov_alpha =
+        batching::transparent_export_uses_mov(export_without_background, transparent_export_format);
+    let temp_dir = create_temp_export_dir(export_id)?;
+
+    ffmpeg_runner::emit_export_progress(
+        &app_handle,
+        export_id,
+        0.0,
+        0.0,
+        duration_s.max(0.001),
+        Some("Preparing Frames"),
+        None,
+    );
+    println!("[fast_export] Generation du plan overlay TGA...");
+    println!(
+        "[fast_export] fade timeline effectif={}ms",
+        fade_duration_ms.max(0)
+    );
+    let overlay_plan = build_overlay_concat_plan(
+        export_id,
+        image_paths,
+        timestamps_ms,
+        fps,
+        fade_duration_ms,
+        full_duration_ms,
+        &temp_dir.path,
+    )?;
+    println!(
+        "[fast_export] Frames source={} fades={} taille_source={}x{}",
+        overlay_plan.source_frame_count,
+        overlay_plan.generated_fade_frames,
+        overlay_plan.width,
+        overlay_plan.height
+    );
+
+    let preprocessed_background_videos = if !export_without_background && !video_inputs.is_empty() {
+        preprocess::preprocess_background_videos(
+            video_inputs,
+            w,
+            h,
+            fps,
+            prefer_hw,
+            start_time_ms,
+            Some(full_duration_ms),
+            blur,
+            performance_profile,
+            export_id,
+            duration_s,
+            &app_handle,
+        )
+    } else {
+        Vec::new()
+    };
+    ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
+
+    let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let mut cmd = vec![
+        ffmpeg_exe,
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "warning".to_string(),
+        "-nostats".to_string(),
+        "-progress".to_string(),
+        "pipe:2".to_string(),
+        "-f".to_string(),
+        "concat".to_string(),
+        "-safe".to_string(),
+        "0".to_string(),
+        "-i".to_string(),
+        overlay_plan.concat_path.to_string_lossy().to_string(),
+    ];
+
+    let mut current_idx = 1usize;
+    let bg_start_idx = current_idx;
+    for path in &preprocessed_background_videos {
+        cmd.extend_from_slice(&["-i".to_string(), path.clone()]);
+        current_idx += 1;
+    }
+
+    let total_bg_s: f64 = preprocessed_background_videos
+        .iter()
+        .map(|p| ffmpeg_utils::ffprobe_duration_sec(p))
+        .sum();
+    let needs_black_background =
+        !export_without_background && (preprocessed_background_videos.is_empty() || total_bg_s <= 1e-6);
+    let black_background_idx = if needs_black_background {
+        let idx = current_idx;
+        cmd.extend_from_slice(&[
+            "-f".to_string(),
+            "lavfi".to_string(),
+            "-i".to_string(),
+            format!("color=c=black:s={}x{}:r={}:d={:.6}", w, h, fps, duration_s),
+        ]);
+        current_idx += 1;
+        Some(idx)
+    } else {
+        None
+    };
+
+    let total_audio_s: f64 = audio_paths
+        .iter()
+        .map(|p| ffmpeg_utils::ffprobe_duration_sec(p))
+        .sum();
+    let have_audio = !audio_paths.is_empty() && start_s < total_audio_s - 1e-6;
+    let audio_start_idx = current_idx;
+    if have_audio {
+        for path in audio_paths {
+            cmd.extend_from_slice(&["-i".to_string(), path.clone()]);
+        }
+    }
+
+    if let Some(thread_cap) = codec::compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
+
+    let mut filter_lines = Vec::new();
+    filter_lines.push(format!(
+        "[0:v]format=rgba,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black@0,fps={},trim=start=0:end={:.6},setpts=PTS-STARTPTS,setsar=1[overlay_raw]",
+        w, h, w, h, fps, duration_s
+    ));
+
+    let mut mapped_video_label;
+    if export_without_background {
+        mapped_video_label = "overlay_raw".to_string();
+        if video_fade_in_enabled && export_fade_s > 0.0 {
+            filter_lines.push(format!(
+                "[{}]fade=t=in:st=0:d={:.6}:alpha=1[vfadein]",
+                mapped_video_label, export_fade_s
+            ));
+            mapped_video_label = "vfadein".to_string();
+        }
+        if video_fade_out_enabled && export_fade_s > 0.0 {
+            let fade_out_start = (duration_s - export_fade_s).max(0.0);
+            filter_lines.push(format!(
+                "[{}]fade=t=out:st={:.6}:d={:.6}:alpha=1[vfadeout]",
+                mapped_video_label, fade_out_start, export_fade_s
+            ));
+            mapped_video_label = "vfadeout".to_string();
+        }
+        let alpha_format = if use_mov_alpha { "argb" } else { "yuva420p" };
+        filter_lines.push(format!(
+            "[{}]format={}[vout]",
+            mapped_video_label, alpha_format
+        ));
+        mapped_video_label = "vout".to_string();
+    } else {
+        filter_lines.push("[overlay_raw]premultiply=inplace=1,format=yuva444p[overlay]".to_string());
+
+        let bg_label = if let Some(idx) = black_background_idx {
+            format!("{}:v", idx)
+        } else if preprocessed_background_videos.len() > 1 {
+            let mut inputs = String::new();
+            for i in 0..preprocessed_background_videos.len() {
+                filter_lines.push(format!(
+                    "[{}:v]setpts=PTS-STARTPTS[bg{}]",
+                    bg_start_idx + i,
+                    i
+                ));
+                inputs.push_str(&format!("[bg{}]", i));
+            }
+            filter_lines.push(format!(
+                "{}concat=n={}:v=1:a=0[bgcat]",
+                inputs,
+                preprocessed_background_videos.len()
+            ));
+            "bgcat".to_string()
+        } else {
+            format!("{}:v", bg_start_idx)
+        };
+
+        if black_background_idx.is_some() {
+            filter_lines.push(format!("[{}]setsar=1[bg_normalized]", bg_label));
+        } else {
+            let bg_trim_end = duration_s.min(total_bg_s.max(0.001));
+            filter_lines.push(format!(
+                "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
+                bg_label, bg_trim_end, w, h, w, h
+            ));
+            if total_bg_s + 1e-6 < duration_s {
+                filter_lines.push(format!(
+                    "[bgtrim]tpad=stop_mode=clone:stop_duration={:.6}[bg_normalized]",
+                    duration_s - total_bg_s
+                ));
+            } else {
+                filter_lines.push("[bgtrim]setsar=1[bg_normalized]".to_string());
+            }
+        }
+
+        filter_lines.push(
+            "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0:alpha=premultiplied,format=yuv420p[vcomposed]"
+                .to_string(),
+        );
+        mapped_video_label = "vcomposed".to_string();
+        if video_fade_in_enabled && export_fade_s > 0.0 {
+            filter_lines.push(format!(
+                "[{}]fade=t=in:st=0:d={:.6}[vfadein]",
+                mapped_video_label, export_fade_s
+            ));
+            mapped_video_label = "vfadein".to_string();
+        }
+        if video_fade_out_enabled && export_fade_s > 0.0 {
+            let fade_out_start = (duration_s - export_fade_s).max(0.0);
+            filter_lines.push(format!(
+                "[{}]fade=t=out:st={:.6}:d={:.6}[vfadeout]",
+                mapped_video_label, fade_out_start, export_fade_s
+            ));
+            mapped_video_label = "vfadeout".to_string();
+        }
+    }
+
+    let mut mapped_audio_label: Option<String> = None;
+    if have_audio {
+        if audio_paths.len() == 1 {
+            filter_lines.push(format!(
+                "[{}:a]aresample=48000[aa0]",
+                audio_start_idx
+            ));
+            filter_lines.push(format!(
+                "[aa0]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
+                start_s, duration_s
+            ));
+        } else {
+            let mut inputs = String::new();
+            for i in 0..audio_paths.len() {
+                filter_lines.push(format!(
+                    "[{}:a]aresample=48000[aa{}]",
+                    audio_start_idx + i,
+                    i
+                ));
+                inputs.push_str(&format!("[aa{}]", i));
+            }
+            filter_lines.push(format!(
+                "{}concat=n={}:v=0:a=1[aacat]",
+                inputs,
+                audio_paths.len()
+            ));
+            filter_lines.push(format!(
+                "[aacat]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
+                start_s, duration_s
+            ));
+        }
+
+        let mut current_audio_label = "aoutraw".to_string();
+        if audio_fade_in_enabled && export_fade_s > 0.0 {
+            filter_lines.push(format!(
+                "[{}]afade=t=in:st=0:d={:.6}[afadein]",
+                current_audio_label, export_fade_s
+            ));
+            current_audio_label = "afadein".to_string();
+        }
+        if audio_fade_out_enabled && export_fade_s > 0.0 {
+            let fade_out_start = (duration_s - export_fade_s).max(0.0);
+            filter_lines.push(format!(
+                "[{}]afade=t=out:st={:.6}:d={:.6}[afadeout]",
+                current_audio_label, fade_out_start, export_fade_s
+            ));
+            current_audio_label = "afadeout".to_string();
+        }
+        mapped_audio_label = Some(current_audio_label);
+    }
+
+    let filter_complex = filter_lines.join(";");
+    let fg_path = temp_dir.path.join("fast-export.ffgraph");
+    fs::write(&fg_path, filter_complex)?;
+    println!("[fast_export] filter_complex_script -> {:?}", fg_path);
+
+    cmd.extend_from_slice(&[
+        "-filter_complex_script".to_string(),
+        fg_path.to_string_lossy().to_string(),
+        "-map".to_string(),
+        format!("[{}]", mapped_video_label),
+        "-r".to_string(),
+        fps.to_string(),
+    ]);
+
+    if export_without_background && use_mov_alpha {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "qtrle".to_string(),
+            "-pix_fmt".to_string(),
+            "argb".to_string(),
+        ]);
+    } else if export_without_background {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libvpx-vp9".to_string(),
+            "-crf".to_string(),
+            "28".to_string(),
+            "-b:v".to_string(),
+            "0".to_string(),
+            "-row-mt".to_string(),
+            "1".to_string(),
+            "-cpu-used".to_string(),
+            "2".to_string(),
+            "-pix_fmt".to_string(),
+            "yuva420p".to_string(),
+        ]);
+    } else {
+        let (vcodec, vparams, vextra) = codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Final);
+        cmd.extend_from_slice(&["-c:v".to_string(), vcodec.clone()]);
+        if let Some(Some(preset)) = vextra.get("preset") {
+            cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
+        }
+        cmd.extend(vparams);
+        append_seek_friendly_gop_args(&mut cmd, &vcodec, fps);
+    }
+
+    if let Some(audio_label) = mapped_audio_label {
+        cmd.extend_from_slice(&["-map".to_string(), format!("[{}]", audio_label)]);
+        if export_without_background && !use_mov_alpha {
+            cmd.extend_from_slice(&[
+                "-c:a".to_string(),
+                "libopus".to_string(),
+                "-b:a".to_string(),
+                "256k".to_string(),
+            ]);
+        } else {
+            cmd.extend_from_slice(&[
+                "-c:a".to_string(),
+                "aac".to_string(),
+                "-b:a".to_string(),
+                "320k".to_string(),
+            ]);
+        }
+    } else {
+        cmd.push("-an".to_string());
+    }
+
+    cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", duration_s)]);
+    let ext = Path::new(out_path)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if matches!(ext.as_str(), "mp4" | "mov" | "m4v") {
+        cmd.extend_from_slice(&["-movflags".to_string(), "+faststart".to_string()]);
+    }
+    cmd.push(out_path.to_string());
+
+    ffmpeg_runner::run_ffmpeg_command(
+        export_id,
+        &cmd,
+        Some(FfmpegProgressContext {
+            base_time_s: 0.0,
+            total_time_s: duration_s.max(0.001),
+            local_duration_s: duration_s.max(0.001),
+            suppress_error_event: false,
+            current_batch_size: None,
+        }),
+        Some("Adding Subtitles"),
+        None,
+        &app_handle,
+    )?;
+
+    if !Path::new(out_path).exists() {
+        return Err(export_error("Le fichier de sortie n'a pas ete cree"));
+    }
+
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 ﻿<script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
-	import Settings from '$lib/classes/Settings.svelte';
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
@@ -59,9 +58,6 @@
 		}
 	}
 
-	function persistGlobalBatchSize(): void {
-		void Settings.save();
-	}
 </script>
 
 <!-- Export Video Configuration -->
@@ -158,20 +154,10 @@
 	<div class="mb-6">
 		<h4 class="text-base font-medium text-secondary mb-3">Performance Settings</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+			<div class="flex flex-col gap-3">
 				<p class="text-thirdly text-sm leading-snug">
 					Set the <b>frames per second</b> for the exported video (lower values export faster but are
 					less fluid).
-				</p>
-				<p class="text-thirdly text-sm leading-snug">
-					<b>Batch size</b>
-					<span
-						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
-						title="Auto adapts the batch size to keep system RAM under 90%. Fixed uses your manual value."
-					>
-						help_outline
-					</span>
-					for ffmpeg transitions. Auto adjusts RAM usage; fixed keeps the manual value.
 				</p>
 				<input
 					type="number"
@@ -181,47 +167,6 @@
 					class="input w-full h-10"
 					bind:value={globalState.getExportState.fps}
 				/>
-				<div class="flex flex-col gap-2">
-					<div class="grid grid-cols-2 gap-1 rounded-lg border border-color bg-secondary p-1">
-						<button
-							type="button"
-							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
-								.settings!.exportSettings.batchSizeMode === 'auto'
-								? 'bg-accent-primary text-[var(--text-on-accent)]'
-								: 'text-secondary hover:bg-accent hover:text-primary'}"
-							onclick={() => {
-								globalState.settings!.exportSettings.batchSizeMode = 'auto';
-								persistGlobalBatchSize();
-							}}
-						>
-							Auto
-						</button>
-						<button
-							type="button"
-							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
-								.settings!.exportSettings.batchSizeMode === 'fixed'
-								? 'bg-accent-primary text-[var(--text-on-accent)]'
-								: 'text-secondary hover:bg-accent hover:text-primary'}"
-							onclick={() => {
-								globalState.settings!.exportSettings.batchSizeMode = 'fixed';
-								persistGlobalBatchSize();
-							}}
-						>
-							Fixed
-						</button>
-					</div>
-					{#if globalState.settings!.exportSettings.batchSizeMode === 'fixed'}
-						<input
-							type="number"
-							min="2"
-							max="1024"
-							step="1"
-							class="input w-full h-10"
-							bind:value={globalState.settings!.exportSettings.batchSize}
-							onchange={persistGlobalBatchSize}
-						/>
-					{/if}
-				</div>
 			</div>
 		</div>
 	</div>

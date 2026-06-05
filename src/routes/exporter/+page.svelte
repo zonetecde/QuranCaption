@@ -817,11 +817,6 @@
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
-				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
-				batchSize:
-					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 64)
-						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
@@ -1194,11 +1189,6 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
-				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
-				batchSize:
-					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 64)
-						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat

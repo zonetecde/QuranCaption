@@ -480,8 +480,8 @@
 													exportation.videoLength
 												)}</span
 											>
-											- {getCurrentBatchSizeLabel(exportation)
-												? `Current batch size: ${getCurrentBatchSizeLabel(exportation)}`
+											{getCurrentBatchSizeLabel(exportation)
+												? `- Current batch size: ${getCurrentBatchSizeLabel(exportation)}`
 												: ''}
 										</div>
 									{:else}

@@ -1013,9 +1013,10 @@ pub fn render_ffmpeg_filter_complex_single(
             if avail_bg_after + 1e-6 < duration_s {
                 let remain = duration_s - avail_bg_after;
                 filter_lines.push(format!(
-                    "[bgtrim]tpad=stop_mode=clone:stop_duration={:.6}[bg]",
-                    remain
+                    "color=c=black:s={}x{}:r={}:d={:.6},setsar=1[bgtail]",
+                    w, h, fps, remain
                 ));
+                filter_lines.push("[bgtrim][bgtail]concat=n=2:v=1:a=0[bg]".to_string());
                 bg_label = "bg".to_string();
             }
 

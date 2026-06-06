@@ -1321,10 +1321,12 @@ fn run_fast_export(
                 bg_label, bg_trim_end, w, h, w, h
             ));
             if total_bg_s + 1e-6 < duration_s {
+                let tail_duration_s = duration_s - total_bg_s;
                 filter_lines.push(format!(
-                    "[bgtrim]tpad=stop_mode=clone:stop_duration={:.6}[bg_normalized]",
-                    duration_s - total_bg_s
+                    "color=c=black:s={}x{}:r={}:d={:.6},setsar=1[bgtail]",
+                    w, h, fps, tail_duration_s
                 ));
+                filter_lines.push("[bgtrim][bgtail]concat=n=2:v=1:a=0[bg_normalized]".to_string());
             } else {
                 filter_lines.push("[bgtrim]setsar=1[bg_normalized]".to_string());
             }

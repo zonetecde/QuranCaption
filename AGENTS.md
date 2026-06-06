@@ -13,6 +13,7 @@ Rules:
 - Avoid adding dependencies unless absolutely required.
 - Preserve current behavior outside the requested feature.
 - Follow the existing code style and architecture of the repository.
+- Always localize new or changed user-facing text in all supported languages before finishing.
 - Stop at the requested scope. Do not add extra improvements.
 - When several solutions are possible, choose the most minimal one that is correct and maintainable.
 

@@ -1033,6 +1033,20 @@ fn run_fast_export(
     let export_fade_s = (export_fade_duration_ms.max(0) as f64 / 1000.0).min(duration_s.max(0.0));
     let use_mov_alpha =
         batching::transparent_export_uses_mov(export_without_background, transparent_export_format);
+
+    // Filtrer les fichiers audio inexistants (projet ouvert sur une autre machine, etc.)
+    let audio_paths: Vec<String> = audio_paths
+        .iter()
+        .filter(|p| {
+            let exists = Path::new(p).exists();
+            if !exists {
+                println!("[fast_export] fichier audio introuvable, ignoré: {}", p);
+            }
+            exists
+        })
+        .cloned()
+        .collect();
+
     let temp_dir = create_temp_export_dir(export_id)?;
 
     ffmpeg_runner::emit_export_progress(
@@ -1202,7 +1216,7 @@ fn run_fast_export(
 
     let audio_start_idx = current_idx;
     if have_audio {
-        for path in audio_paths {
+        for path in &audio_paths {
             if direct_visible_export {
                 cmd.extend_from_slice(&["-ss".to_string(), format!("{:.6}", start_s)]);
             }

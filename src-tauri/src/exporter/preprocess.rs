@@ -444,6 +444,12 @@ pub fn preprocess_background_videos(
     let mut cum_start: i64 = 0;
     for (idx, input) in video_inputs.iter().enumerate() {
         let vid_path = &input.path;
+        // Ignorer les fichiers vidéo qui n'existent pas (projet ouvert sur une autre machine, etc.)
+        if !Path::new(vid_path).exists() {
+            println!("[background] fichier introuvable, ignoré: {}", vid_path);
+            emit_bg_progress(idx + 1);
+            continue;
+        }
         let real_vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
         let mut vid_len = real_vid_len;
         let is_loop = input.loop_until_audio_end.unwrap_or(false);

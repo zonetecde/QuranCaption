@@ -14,14 +14,19 @@
 /// - `concat`     : concaténation et muxage des vidéos
 /// - `filter_graph` : construction du filtre complexe FFmpeg (avec batching)
 /// - `commands`   : commandes Tauri exposées au frontend
+#[allow(dead_code)]
 pub mod batching;
 pub mod codec;
 pub mod commands;
+#[allow(dead_code)]
 pub mod concat;
+#[allow(dead_code)]
 pub mod constants;
 pub mod ffmpeg_runner;
 pub mod ffmpeg_utils;
+#[allow(dead_code)]
 pub mod filter_graph;
 pub mod memory;
 pub mod preprocess;
+#[allow(dead_code)]
 pub mod types;

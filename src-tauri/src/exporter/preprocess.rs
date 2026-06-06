@@ -1,11 +1,15 @@
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::time::UNIX_EPOCH;
 
 use super::codec;
 use super::ffmpeg_runner;
 use super::ffmpeg_utils;
-use super::types::{CodecUsage, ExportPerformanceProfile, FfmpegProgressContext, VideoInput};
+use super::types::{
+    CodecUsage, ExportPerformanceProfile, FfmpegProgressContext, PreparedBackgroundVideo,
+    VideoInput,
+};
 
 // ---------------------------------------------------------------------------
 // Pré-traitement vidéo (scale + pad + blur + fps)
@@ -33,8 +37,13 @@ pub fn ffmpeg_preprocess_video(
     export_id: &str,
     app_handle: &tauri::AppHandle,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let (codec, params, extra) =
-        codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
+    let (codec, params, extra) = codec::choose_best_codec(
+        prefer_hw,
+        w,
+        h,
+        CodecUsage::Intermediate,
+        performance_profile,
+    );
     let exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let dst_path = Path::new(dst);
     if let Some(parent) = dst_path.parent() {
@@ -130,6 +139,8 @@ pub fn ffmpeg_preprocess_video(
         base_time_s: 0.0,
         total_time_s: preproc_duration_s,
         local_duration_s: preproc_duration_s,
+        suppress_error_event: false,
+        current_batch_size: None,
     });
 
     if let Err(e) = ffmpeg_runner::run_ffmpeg_command(
@@ -204,8 +215,13 @@ pub fn create_video_from_image(
 
     let video_filter = vf_parts.join(",");
 
-    let (codec, codec_params, codec_extra) =
-        codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Intermediate);
+    let (codec, codec_params, codec_extra) = codec::choose_best_codec(
+        prefer_hw,
+        w,
+        h,
+        CodecUsage::Intermediate,
+        performance_profile,
+    );
 
     let mut cmd = Command::new(&ffmpeg_exe);
     cmd.args(&[
@@ -298,13 +314,23 @@ pub fn preprocess_background_videos(
     export_id: &str,
     total_duration_s: f64,
     app_handle: &tauri::AppHandle,
-) -> Vec<String> {
+) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v7";
+    let preproc_cache_version = "fit-v8";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);
+
+    // Helper pour obtenir le timestamp de modification d'un fichier
+    fn file_mtime_sec(path: &str) -> u64 {
+        fs::metadata(path)
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
+    }
 
     // Closure d'émission de progression pour le pré-traitement du fond
     let emit_bg_progress = |processed_inputs: usize| {
@@ -317,6 +343,7 @@ pub fn preprocess_background_videos(
             current_time_s,
             clamped_total_s,
             Some("Processing Background"),
+            None,
         );
     };
 
@@ -331,7 +358,7 @@ pub fn preprocess_background_videos(
             30.0 // Durée par défaut si non spécifiée
         };
 
-        // Construction d'un nom de cache unique
+        // Construction d'un nom de cache unique (inclut mtime pour détecter un fichier remplacé)
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 {
                 format!("-blur{}", b)
@@ -341,9 +368,10 @@ pub fn preprocess_background_videos(
         } else {
             String::new()
         };
+        let mtime = file_mtime_sec(image_path);
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-dur{}{}",
-            preproc_cache_version, image_path, w, h, fps, duration_s, blur_suffix
+            "{}-{}-{}x{}-{}-dur{}-mtime{}{}",
+            preproc_cache_version, image_path, w, h, fps, duration_s, mtime, blur_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
@@ -370,7 +398,9 @@ pub fn preprocess_background_videos(
                 blur,
                 performance_profile,
             ) {
-                Ok(_) => {}
+                Ok(_) => {
+                    println!("[background] path=preprocessed-generated");
+                }
                 Err(e) => {
                     println!(
                         "[preproc][ERREUR] Impossible de créer la vidéo à partir de l'image: {:?}",
@@ -379,9 +409,15 @@ pub fn preprocess_background_videos(
                     return vec![];
                 }
             }
+        } else {
+            println!("[background] path=preprocessed-cache");
         }
 
-        out_paths.push(dst.to_string_lossy().to_string());
+        out_paths.push(PreparedBackgroundVideo {
+            path: dst.to_string_lossy().to_string(),
+            is_normalized: true,
+            duration_s: expected_duration_s,
+        });
         emit_bg_progress(total_inputs);
         return out_paths;
     }
@@ -399,10 +435,21 @@ pub fn preprocess_background_videos(
         i64::MAX
     };
 
+    // Détection du cas "direct single pass": une seule vidéo, pas de blur, pas de loop
+    let can_direct_single_pass = video_inputs.len() == 1
+        && !video_inputs[0].loop_until_audio_end.unwrap_or(false)
+        && !blur.map_or(false, |b| b > 0.0);
+
     // Parcourir les vidéos et extraire uniquement les segments pertinents
     let mut cum_start: i64 = 0;
     for (idx, input) in video_inputs.iter().enumerate() {
         let vid_path = &input.path;
+        // Ignorer les fichiers vidéo qui n'existent pas (projet ouvert sur une autre machine, etc.)
+        if !Path::new(vid_path).exists() {
+            println!("[background] fichier introuvable, ignoré: {}", vid_path);
+            emit_bg_progress(idx + 1);
+            continue;
+        }
         let real_vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
         let mut vid_len = real_vid_len;
         let is_loop = input.loop_until_audio_end.unwrap_or(false);
@@ -455,7 +502,7 @@ pub fn preprocess_background_videos(
             continue;
         }
 
-        // Nom de cache unique (inclut offsets, blur, flag loop)
+        // Construction du hash de cache (inclut mtime pour détecter un fichier remplacé)
         let blur_suffix = if let Some(b) = blur {
             if b > 0.0 {
                 format!("-blur{}", b)
@@ -466,9 +513,10 @@ pub fn preprocess_background_videos(
             String::new()
         };
         let loop_suffix = if is_loop { "-loop" } else { "" };
+        let mtime = file_mtime_sec(vid_path);
 
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}{}{}",
+            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}{}{}",
             preproc_cache_version,
             vid_path,
             w,
@@ -476,6 +524,7 @@ pub fn preprocess_background_videos(
             fps,
             start_within,
             take_ms,
+            mtime,
             blur_suffix,
             loop_suffix
         );
@@ -485,6 +534,29 @@ pub fn preprocess_background_videos(
         let expected_duration_s = (take_ms as f64 / 1000.0).max(0.001);
 
         let must_regenerate = !ffmpeg_utils::is_cached_video_valid(&dst, expected_duration_s);
+
+        // Voie directe simple : une seule vidéo sans blur ni loop, pas de cache
+        if must_regenerate && can_direct_single_pass && idx == 0 {
+            let src_duration_s = video_durations_ms[0] as f64 / 1000.0;
+            let available_s = (src_duration_s - (start_within as f64 / 1000.0)).max(0.0);
+            let needed_s = (take_ms as f64 / 1000.0).max(0.001);
+            // N'utiliser la voie directe que si la source couvre toute la durée nécessaire
+            if available_s + 0.1 >= needed_s {
+                println!(
+                    "[background] path=direct-single-pass src={} duration={:.3}s",
+                    vid_path, src_duration_s
+                );
+                out_paths.push(PreparedBackgroundVideo {
+                    path: vid_path.to_string(),
+                    is_normalized: false,
+                    duration_s: needed_s.min(available_s),
+                });
+                emit_bg_progress(total_inputs);
+                return out_paths;
+            }
+            // Sinon, tomber dans le preprocessing normal (ajout de fond noir etc.)
+        }
+
         if must_regenerate {
             if dst.exists() {
                 println!(
@@ -508,19 +580,37 @@ pub fn preprocess_background_videos(
                 export_id,
                 app_handle,
             ) {
-                Ok(_) => {}
+                Ok(_) => {
+                    println!("[background] path=preprocessed-generated");
+                }
                 Err(e) => {
                     println!("[preproc][ERREUR] {:?}", e);
                     // En cas d'échec, utiliser la vidéo originale comme fallback
-                    out_paths.push(vid_path.clone());
+                    let fallback_duration_s = (take_ms as f64 / 1000.0).max(0.001);
+                    println!("[background] path=fallback-original normalized=false");
+                    out_paths.push(PreparedBackgroundVideo {
+                        path: vid_path.clone(),
+                        is_normalized: false,
+                        duration_s: fallback_duration_s,
+                    });
                     cum_start = cum_end;
                     emit_bg_progress(idx + 1);
                     continue;
                 }
             }
+            out_paths.push(PreparedBackgroundVideo {
+                path: dst.to_string_lossy().to_string(),
+                is_normalized: true,
+                duration_s: expected_duration_s,
+            });
+        } else {
+            println!("[background] path=preprocessed-cache");
+            out_paths.push(PreparedBackgroundVideo {
+                path: dst.to_string_lossy().to_string(),
+                is_normalized: true,
+                duration_s: expected_duration_s,
+            });
         }
-
-        out_paths.push(dst.to_string_lossy().to_string());
         emit_bg_progress(idx + 1);
 
         // Si on a atteint la limite, on arrête

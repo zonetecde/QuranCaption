@@ -373,6 +373,43 @@ function applyTextTransform(text: string, transform: string): string {
 }
 
 /**
+ * Decoupe un intervalle texte en bornes de graphemes.
+ * @param {string} text Texte source complet.
+ * @param {number} start Debut de l'intervalle.
+ * @param {number} end Fin de l'intervalle.
+ * @returns {Array<{ start: number; end: number }>} Bornes de graphemes dans le texte source.
+ */
+function getGraphemeRanges(
+	text: string,
+	start: number,
+	end: number
+): Array<{ start: number; end: number }> {
+	const ranges: Array<{ start: number; end: number }> = [];
+	const slicedText = text.slice(start, end);
+	const segmenter =
+		'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+
+	if (segmenter) {
+		for (const { segment, index } of segmenter.segment(slicedText)) {
+			ranges.push({
+				start: start + index,
+				end: start + index + segment.length
+			});
+		}
+		return ranges;
+	}
+
+	let offset = start;
+	for (const grapheme of Array.from(slicedText)) {
+		const nextOffset = offset + grapheme.length;
+		ranges.push({ start: offset, end: nextOffset });
+		offset = nextOffset;
+	}
+
+	return ranges;
+}
+
+/**
  * Extrait les bornes de chaque token visible pour reconstruire les lignes.
  * @param text Texte brut.
  * @returns Tableau des bornes de tokens.
@@ -417,6 +454,23 @@ function getTextLineRects(textNode: Text, rootScaleY: number): TextLineRect[] {
 		range.setEnd(textNode, token.end);
 		const rects = Array.from(range.getClientRects());
 		range.detach();
+		const lineCount = new Set(rects.map((rect) => getLineBucket(rect, rootScaleY))).size;
+
+		if (lineCount > 1) {
+			for (const grapheme of getGraphemeRanges(textNode.data, token.start, token.end)) {
+				const graphemeRange = document.createRange();
+				graphemeRange.setStart(textNode, grapheme.start);
+				graphemeRange.setEnd(textNode, grapheme.end);
+				const graphemeRects = Array.from(graphemeRange.getClientRects());
+				graphemeRange.detach();
+
+				for (const rect of graphemeRects) {
+					if (!rect.width || !rect.height) continue;
+					tokenRects.push({ ...grapheme, rect });
+				}
+			}
+			continue;
+		}
 
 		for (const rect of rects) {
 			if (!rect.width || !rect.height) continue;

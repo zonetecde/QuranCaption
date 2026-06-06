@@ -1230,6 +1230,9 @@ const zh: Translation = {
 		movQtrleCompatibility: 'MOV (QTRLE alpha) 提高了与编辑工具的兼容性。',
 		exportPerformance: '导出性能',
 		chooseCpuUsage: '选择导出器在 ffmpeg 工作期间对 CPU 的使用程度。',
+		parallelCaptureWorkers: '并行捕获 workers',
+		parallelCaptureWorkersDescription:
+			'用于 PNG 帧捕获的隐藏 WebViews 数量。默认值为 4；1 会禁用并行捕获。',
 		fastest: '最快',
 		fastestDescription: '优先考虑导出速度，可能消耗更多 CPU。',
 		balanced: '均衡',

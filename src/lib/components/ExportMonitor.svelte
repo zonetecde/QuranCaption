@@ -169,6 +169,21 @@
 	}
 
 	/**
+	 * Retourne le libelle de taille du batch courant pendant le rendu video.
+	 */
+	function getCurrentBatchSizeLabel(exportation: Exportation): string {
+		if (
+			exportation.currentState !== ExportState.AddingSubtitles &&
+			exportation.currentState !== ExportState.CreatingVideo
+		) {
+			return '';
+		}
+
+		const batchSize = exportation.currentBatchSize;
+		return typeof batchSize === 'number' && batchSize > 0 ? `${batchSize}` : '';
+	}
+
+	/**
 	 * Contraint une progression dans l'intervalle [0, 100] pour protéger l'UI.
 	 */
 	function clampProgress(progress: number): number {
@@ -465,6 +480,9 @@
 													exportation.videoLength
 												)}</span
 											>
+											{getCurrentBatchSizeLabel(exportation)
+												? `- Current batch size: ${getCurrentBatchSizeLabel(exportation)}`
+												: ''}
 										</div>
 									{:else}
 										<div>

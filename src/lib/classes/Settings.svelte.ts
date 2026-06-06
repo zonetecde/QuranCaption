@@ -59,6 +59,7 @@ export type AITranslationSettings = {
 export type ExportSettings = {
 	batchSizeMode: 'auto' | 'fixed';
 	batchSize: number;
+	parallelCaptureWorkers: number;
 };
 
 export type SavedVideoStylePreset = {
@@ -78,7 +79,8 @@ export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
 		batchSizeMode: 'auto',
-		batchSize: 12
+		batchSize: 64,
+		parallelCaptureWorkers: 4
 	};
 
 	// État UI persistant
@@ -473,11 +475,37 @@ export default class Settings extends SerializableBase {
 		}
 
 		if (
+			settings.exportSettings.batchSizeMode === 'auto' &&
+			settings.exportSettings.batchSize === 12
+		) {
+			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
+			shouldSave = true;
+		}
+
+		if (
 			settings.exportSettings.batchSizeMode !== 'auto' &&
 			settings.exportSettings.batchSizeMode !== 'fixed'
 		) {
 			settings.exportSettings.batchSizeMode = Settings.DEFAULT_EXPORT_SETTINGS.batchSizeMode;
 			shouldSave = true;
+		}
+
+		if (
+			typeof settings.exportSettings.parallelCaptureWorkers !== 'number' ||
+			Number.isNaN(settings.exportSettings.parallelCaptureWorkers)
+		) {
+			settings.exportSettings.parallelCaptureWorkers =
+				Settings.DEFAULT_EXPORT_SETTINGS.parallelCaptureWorkers;
+			shouldSave = true;
+		} else {
+			const normalizedParallelCaptureWorkers = Math.max(
+				1,
+				Math.min(8, Math.round(settings.exportSettings.parallelCaptureWorkers))
+			);
+			if (settings.exportSettings.parallelCaptureWorkers !== normalizedParallelCaptureWorkers) {
+				settings.exportSettings.parallelCaptureWorkers = normalizedParallelCaptureWorkers;
+				shouldSave = true;
+			}
 		}
 
 		if ('chunkSize' in (settings.exportSettings as Record<string, unknown>)) {

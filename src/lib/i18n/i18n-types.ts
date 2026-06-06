@@ -4986,6 +4986,14 @@ type RootTranslation = {
 		 */
 		chooseCpuUsage: string
 		/**
+		 * P​a​r​a​l​l​e​l​ ​c​a​p​t​u​r​e​ ​w​o​r​k​e​r​s
+		 */
+		parallelCaptureWorkers: string
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​h​i​d​d​e​n​ ​W​e​b​V​i​e​w​s​ ​u​s​e​d​ ​f​o​r​ ​P​N​G​ ​f​r​a​m​e​ ​c​a​p​t​u​r​e​.​ ​D​e​f​a​u​l​t​ ​i​s​ ​4​;​ ​1​ ​d​i​s​a​b​l​e​s​ ​p​a​r​a​l​l​e​l​ ​c​a​p​t​u​r​e​.
+		 */
+		parallelCaptureWorkersDescription: string
+		/**
 		 * F​a​s​t​e​s​t
 		 */
 		fastest: string
@@ -13188,6 +13196,14 @@ export type TranslationFunctions = {
 		 * Choose how aggressively the exporter should use your CPU during ffmpeg work.
 		 */
 		chooseCpuUsage: () => LocalizedString
+		/**
+		 * Parallel capture workers
+		 */
+		parallelCaptureWorkers: () => LocalizedString
+		/**
+		 * Number of hidden WebViews used for PNG frame capture. Default is 4; 1 disables parallel capture.
+		 */
+		parallelCaptureWorkersDescription: () => LocalizedString
 		/**
 		 * Fastest
 		 */

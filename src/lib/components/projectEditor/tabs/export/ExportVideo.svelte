@@ -16,6 +16,19 @@
 
 	let showAdvancedSettings = $state(false);
 
+	/**
+	 * Normalise et sauvegarde le nombre de WebViews utilisees pour capturer les frames.
+	 * @returns {Promise<void>}
+	 */
+	async function saveParallelCaptureWorkers(): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.parallelCaptureWorkers = Math.max(
+			1,
+			Math.min(8, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 4))
+		);
+		await Settings.save();
+	}
+
 	// Initialize export state values if not set
 	$effect(() => {
 		if (!globalState.getExportState.videoStartTime) {
@@ -40,9 +53,6 @@
 		}
 	}
 
-	function persistGlobalBatchSize(): void {
-		void Settings.save();
-	}
 </script>
 
 <!-- Export Video Configuration -->
@@ -138,12 +148,9 @@
 	<div class="mb-6">
 		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.performanceSettings()}</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+			<div class="flex flex-col gap-3">
 				<p class="text-thirdly text-sm leading-snug">
 					{$LL.export.setFpsDescription()}
-				</p>
-				<p class="text-thirdly text-sm leading-snug">
-					{$LL.export.batchSizeDescription()}
 				</p>
 				<input
 					type="number"
@@ -153,47 +160,6 @@
 					class="input w-full h-10"
 					bind:value={globalState.getExportState.fps}
 				/>
-				<div class="flex flex-col gap-2">
-					<div class="grid grid-cols-2 gap-1 rounded-lg border border-color bg-secondary p-1">
-						<button
-							type="button"
-							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
-								.settings!.exportSettings.batchSizeMode === 'auto'
-								? 'bg-accent-primary text-[var(--text-on-accent)]'
-								: 'text-secondary hover:bg-accent hover:text-primary'}"
-							onclick={() => {
-								globalState.settings!.exportSettings.batchSizeMode = 'auto';
-								persistGlobalBatchSize();
-							}}
-						>
-							{$LL.common.auto()}
-						</button>
-						<button
-							type="button"
-							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
-								.settings!.exportSettings.batchSizeMode === 'fixed'
-								? 'bg-accent-primary text-[var(--text-on-accent)]'
-								: 'text-secondary hover:bg-accent hover:text-primary'}"
-							onclick={() => {
-								globalState.settings!.exportSettings.batchSizeMode = 'fixed';
-								persistGlobalBatchSize();
-							}}
-						>
-							{$LL.common.fixed()}
-						</button>
-					</div>
-					{#if globalState.settings!.exportSettings.batchSizeMode === 'fixed'}
-						<input
-							type="number"
-							min="2"
-							max="128"
-							step="1"
-							class="input w-full h-10"
-							bind:value={globalState.settings!.exportSettings.batchSize}
-							onchange={persistGlobalBatchSize}
-						/>
-					{/if}
-				</div>
 			</div>
 		</div>
 	</div>
@@ -305,6 +271,30 @@
 						{$LL.export.chooseCpuUsage()}
 					</p>
 				</div>
+
+				{#if globalState.settings}
+					<div class="mb-4 rounded-lg border border-color bg-secondary p-4">
+						<label
+							class="block text-sm font-medium text-primary mb-2"
+							for="parallel-capture-workers"
+						>
+							{$LL.export.parallelCaptureWorkers()}
+						</label>
+						<input
+							id="parallel-capture-workers"
+							type="number"
+							min="1"
+							max="8"
+							step="1"
+							class="input w-full h-10"
+							bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
+							onchange={saveParallelCaptureWorkers}
+						/>
+						<p class="text-xs text-thirdly mt-2">
+							{$LL.export.parallelCaptureWorkersDescription()}
+						</p>
+					</div>
+				{/if}
 
 				<div class="grid grid-cols-1 gap-3">
 					{#each performanceProfileIds as id (id)}

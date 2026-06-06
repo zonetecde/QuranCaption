@@ -36,6 +36,9 @@ const export_ = {
 	movQtrleCompatibility: 'MOV (QTRLE alpha) improves compatibility with editing tools.',
 	exportPerformance: 'Export Performance',
 	chooseCpuUsage: 'Choose how aggressively the exporter should use your CPU during ffmpeg work.',
+	parallelCaptureWorkers: 'Parallel capture workers',
+	parallelCaptureWorkersDescription:
+		'Number of hidden WebViews used for PNG frame capture. Default is 4; 1 disables parallel capture.',
 	fastest: 'Fastest',
 	fastestDescription: 'Prioritizes export speed and may use more CPU.',
 	balanced: 'Balanced',

@@ -251,6 +251,7 @@ pub fn choose_best_codec(
     width: i32,
     height: i32,
     usage: CodecUsage,
+    performance_profile: ExportPerformanceProfile,
 ) -> (String, Vec<String>, HashMap<String, Option<String>>) {
     let high_resolution = is_high_resolution_export(width, height);
     let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary();
@@ -260,11 +261,19 @@ pub fn choose_best_codec(
         Vec::new()
     };
 
-    // Haute résolution sans VideoToolbox → forcer libx264 haute qualité
-    if high_resolution && !hw.iter().any(|encoder| encoder == "h264_videotoolbox") {
+    // En haute résolution, le profil Fastest autorise les encodeurs matériels.
+    // Les profils Balanced et LowCpu forcent libx264 pour la qualité (sauf VideoToolbox).
+    let force_cpu_high_quality =
+        high_resolution && !matches!(performance_profile, ExportPerformanceProfile::Fastest);
+
+    if force_cpu_high_quality && !hw.iter().any(|encoder| encoder == "h264_videotoolbox") {
         println!(
             "[codec] Export haute résolution détecté ({}x{}), forçage libx264 haute qualité",
             width, height
+        );
+        println!(
+            "[codec] usage={:?} profile={:?} resolution={}x{} selected=libx264",
+            usage, performance_profile, width, height
         );
 
         let codec = "libx264".to_string();
@@ -292,8 +301,11 @@ pub fn choose_best_codec(
         // NVENC : test de disponibilité réelle
         if hw[0] == "h264_nvenc" {
             if test_nvenc_availability(ffmpeg_exe.as_deref()) {
-                println!("[codec] Utilisation de NVENC (accélération GPU NVIDIA)");
                 let codec = hw[0].clone();
+                println!(
+                    "[codec] usage={:?} profile={:?} resolution={}x{} selected={}",
+                    usage, performance_profile, width, height, codec
+                );
                 let params = vec!["-pix_fmt".to_string(), "yuv420p".to_string()];
                 let mut extra = HashMap::new();
                 extra.insert("preset".to_string(), Some("fast".to_string()));
@@ -304,8 +316,11 @@ pub fn choose_best_codec(
         }
         // VideoToolbox (macOS)
         else if hw[0] == "h264_videotoolbox" {
-            println!("[codec] Utilisation de VideoToolbox (accélération matérielle macOS)");
             let codec = hw[0].clone();
+            println!(
+                "[codec] usage={:?} profile={:?} resolution={}x{} selected={}",
+                usage, performance_profile, width, height, codec
+            );
             let (bitrate, maxrate, bufsize) = if high_resolution {
                 match usage {
                     CodecUsage::Intermediate => ("45M", "60M", "90M"),
@@ -335,8 +350,11 @@ pub fn choose_best_codec(
         }
         // Autres encodeurs hardware (QSV, AMF)
         else {
-            println!("[codec] Utilisation de l'encodeur hardware: {}", hw[0]);
             let codec = hw[0].clone();
+            println!(
+                "[codec] usage={:?} profile={:?} resolution={}x{} selected={}",
+                usage, performance_profile, width, height, codec
+            );
             let params = vec!["-pix_fmt".to_string(), "yuv420p".to_string()];
             let mut extra = HashMap::new();
             extra.insert("preset".to_string(), None);
@@ -345,8 +363,11 @@ pub fn choose_best_codec(
     }
 
     // Fallback : libx264 logiciel
-    println!("[codec] Utilisation de libx264 (encodage logiciel)");
     let codec = "libx264".to_string();
+    println!(
+        "[codec] usage={:?} profile={:?} resolution={}x{} selected={}",
+        usage, performance_profile, width, height, codec
+    );
     let mut extra = HashMap::new();
     let params = {
         extra.insert("preset".to_string(), Some("ultrafast".to_string()));
@@ -363,4 +384,113 @@ pub fn choose_best_codec(
     };
 
     (codec, params, extra)
+}
+
+// ---------------------------------------------------------------------------
+// Tests unitaires
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -----------------------------------------------------------------------
+    // is_high_resolution_export
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_high_resolution_by_width() {
+        // 2560x1080 n'est pas >= 1440 en hauteur mais >= 2560 en largeur
+        assert!(is_high_resolution_export(2560, 1080));
+        // 3840x2160 est clairement haute résolution
+        assert!(is_high_resolution_export(3840, 2160));
+    }
+
+    #[test]
+    fn test_high_resolution_by_height() {
+        // 1920x1440 est haute résolution via la hauteur
+        assert!(is_high_resolution_export(1920, 1440));
+        // 1920x1080 n'est pas haute résolution
+        assert!(!is_high_resolution_export(1920, 1080));
+    }
+
+    #[test]
+    fn test_standard_resolution() {
+        assert!(!is_high_resolution_export(1920, 1080));
+        assert!(!is_high_resolution_export(1280, 720));
+        assert!(!is_high_resolution_export(2559, 1439));
+    }
+
+    // -----------------------------------------------------------------------
+    // compute_ffmpeg_thread_cap
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_fastest_profile_has_no_thread_cap() {
+        assert_eq!(
+            compute_ffmpeg_thread_cap(ExportPerformanceProfile::Fastest),
+            None
+        );
+    }
+
+    #[test]
+    fn test_balanced_profile_has_thread_cap() {
+        // Au moins 2 threads pour Balanced
+        let cap = compute_ffmpeg_thread_cap(ExportPerformanceProfile::Balanced);
+        assert!(cap.is_some());
+        assert!(cap.unwrap() >= 2);
+    }
+
+    #[test]
+    fn test_lowcpu_profile_has_thread_cap() {
+        // Au moins 1 thread pour LowCpu
+        let cap = compute_ffmpeg_thread_cap(ExportPerformanceProfile::LowCpu);
+        assert!(cap.is_some());
+        assert!(cap.unwrap() >= 1);
+    }
+
+    #[test]
+    fn test_balanced_is_less_than_fastest_implicit() {
+        // Fastest = None (pas de limite), Balanced = Some (limité)
+        let fastest = compute_ffmpeg_thread_cap(ExportPerformanceProfile::Fastest);
+        let balanced = compute_ffmpeg_thread_cap(ExportPerformanceProfile::Balanced);
+        let lowcpu = compute_ffmpeg_thread_cap(ExportPerformanceProfile::LowCpu);
+
+        // Fastest doit être moins restrictif que les autres
+        assert!(fastest.is_none());
+        // Balanced et LowCpu ont une limite
+        assert!(balanced.is_some());
+        assert!(lowcpu.is_some());
+        // LowCpu doit être plus restrictif que Balanced (ou égal)
+        assert!(lowcpu.unwrap() <= balanced.unwrap());
+    }
+
+    // -----------------------------------------------------------------------
+    // PreparedBackgroundVideo (types.rs)
+    // -----------------------------------------------------------------------
+
+    use crate::exporter::types::PreparedBackgroundVideo;
+
+    #[test]
+    fn test_prepared_background_normalized() {
+        let bg = PreparedBackgroundVideo {
+            path: "/tmp/cached.mp4".to_string(),
+            is_normalized: true,
+            duration_s: 30.0,
+        };
+        assert!(bg.is_normalized);
+        assert_eq!(bg.duration_s, 30.0);
+        assert_eq!(bg.path, "/tmp/cached.mp4");
+    }
+
+    #[test]
+    fn test_prepared_background_not_normalized() {
+        let bg = PreparedBackgroundVideo {
+            path: "/videos/source.mp4".to_string(),
+            is_normalized: false,
+            duration_s: 25.5,
+        };
+        assert!(!bg.is_normalized);
+        assert_eq!(bg.duration_s, 25.5);
+    }
 }

@@ -257,8 +257,6 @@ pub async fn generate_hifz_audio(
         "libmp3lame",
         "-b:a",
         "192k",
-        "-cbr",
-        "1",
         "-ar",
         "44100",
         "-ac",

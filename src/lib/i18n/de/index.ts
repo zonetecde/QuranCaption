@@ -1265,6 +1265,9 @@ const de: Translation = {
 		exportPerformance: "Exportleistung",
 		chooseCpuUsage:
 			"Wählen Sie, wie stark der Exporteur Ihre CPU während der FFmpeg-Arbeit belasten soll.",
+		parallelCaptureWorkers: "Parallele Capture-Worker",
+		parallelCaptureWorkersDescription:
+			"Anzahl ausgeblendeter WebViews fuer die PNG-Frame-Erfassung. Standard ist 4; 1 deaktiviert die parallele Erfassung.",
 		fastest: "Am schnellsten",
 		fastestDescription: "Priorisiert Exportgeschwindigkeit und kann mehr CPU verbrauchen.",
 		balanced: "Ausgewogen",

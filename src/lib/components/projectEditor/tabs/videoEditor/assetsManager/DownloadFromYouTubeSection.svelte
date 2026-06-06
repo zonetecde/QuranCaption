@@ -24,12 +24,6 @@
 		status?: string;
 	}
 
-	interface CbrConversionProgressEvent {
-		conversionRequestId: string;
-		progress: number;
-		status?: string;
-	}
-
 	/**
 	 * Cree un identifiant local pour relier le download courant aux evenements backend.
 	 * @returns Identifiant unique de telechargement.
@@ -51,32 +45,14 @@
 		downloadStatus = event.payload.status ?? 'downloading';
 	}
 
-	/**
-	 * Met à jour la progression de conversion CBR liée au téléchargement courant.
-	 * @param event Evenement Tauri emis par le backend.
-	 */
-	function handleCbrProgress(event: { payload: CbrConversionProgressEvent }) {
-		if (!activeDownloadRequestId || event.payload.conversionRequestId !== activeDownloadRequestId) {
-			return;
-		}
-
-		downloadProgress = Math.max(0, Math.min(100, event.payload.progress));
-		downloadStatus = event.payload.status ?? 'converting';
-	}
-
 	onMount(() => {
 		const unlistenPromise = listen<YoutubeDownloadProgressEvent>(
 			'youtube-download-progress',
 			handleDownloadProgress
 		);
-		const unlistenCbrPromise = listen<CbrConversionProgressEvent>(
-			'cbr-conversion-progress',
-			handleCbrProgress
-		);
 
 		return () => {
 			void unlistenPromise.then((unlisten) => unlisten());
-			void unlistenCbrPromise.then((unlisten) => unlisten());
 		};
 	});
 
@@ -109,19 +85,7 @@
 			});
 
 			// Ajoute le fichier téléchargé à la liste des assets du projet
-			const asset = globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube, {
-				skipConstantBitrateWarning: true
-			});
-
-			if (asset) {
-				downloadProgress = 0;
-				downloadStatus = 'converting';
-				await invoke('convert_audio_to_cbr', {
-					filePath: asset.filePath,
-					conversionRequestId: activeDownloadRequestId
-				});
-				asset.reloadMedia();
-			}
+			globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube);
 
 			// Telemetry
 			AnalyticsService.downloadFromYouTube(url, type);

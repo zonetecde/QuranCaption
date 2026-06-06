@@ -119,7 +119,8 @@ const fr: Translation = {
 		newCollection: 'Nouvelle collection',
 		createFirstCollection: 'Créez votre première collection',
 		createNewCollection: 'Créer une nouvelle collection',
-		newCollectionDescription: 'La nouvelle collection sera créée sur Quran.com et sélectionnée automatiquement.',
+		newCollectionDescription:
+			'La nouvelle collection sera créée sur Quran.com et sélectionnée automatiquement.',
 		collectionName: 'Nom de la collection',
 		creating: 'Création...',
 		create: 'Créer',
@@ -131,7 +132,8 @@ const fr: Translation = {
 		unableToLoadCollections: 'Impossible de charger vos collections Quran.com.',
 		collectionCreated: 'Collection \u00ab\u00a0{name}\u00a0\u00bb créée.',
 		unableToCreateCollection: 'Impossible de créer cette collection.',
-		unableToUpdateVerse: 'Impossible de mettre à jour le verset {verseKey} dans les collections sélectionnées.',
+		unableToUpdateVerse:
+			'Impossible de mettre à jour le verset {verseKey} dans les collections sélectionnées.',
 		addedToCollection: 'ajouté à 1 collection',
 		addedToCollections: 'ajouté à {count} collections',
 		removedFromCollection: 'retiré de 1 collection',
@@ -140,8 +142,10 @@ const fr: Translation = {
 		someOperationsFailed: 'Certaines opérations ont échoué : {list}',
 		saving: 'Enregistrement...',
 		finishButton: 'Terminer',
-		aiKeyDescription: 'Configurez votre clé API IA et l\'endpoint pour activer des fonctionnalités IA comme la traduction, la segmentation et le rognage.',
-		quranComDescription: 'Connectez votre compte Quran.com pour synchroniser les marque-pages, collections et progression de lecture.'
+		aiKeyDescription:
+			"Configurez votre clé API IA et l'endpoint pour activer des fonctionnalités IA comme la traduction, la segmentation et le rognage.",
+		quranComDescription:
+			'Connectez votre compte Quran.com pour synchroniser les marque-pages, collections et progression de lecture.'
 	},
 	home: {
 		welcomeBack: 'Bon retour\u00a0!',
@@ -249,13 +253,15 @@ const fr: Translation = {
 		complete: 'Terminé',
 		downloading: 'Téléchargement...',
 		updateFailedTitle: 'Échec de la mise à jour',
-		updateFailedMessage: 'Quelque chose s\u2019est mal passé lors de la mise à jour. Veuillez réessayer ou télécharger la mise à jour manuellement.',
+		updateFailedMessage:
+			'Quelque chose s\u2019est mal passé lors de la mise à jour. Veuillez réessayer ou télécharger la mise à jour manuellement.',
 		updateInstalled: 'Mise à jour installée !',
 		updateInstalledMessage: 'L\u2019application va redémarrer automatiquement dans un instant...',
 		whatsNew: 'Quoi de neuf',
 		updateChangelog: 'Journal des modifications',
 		downloadManually: 'Télécharger manuellement',
-		pleaseDontClose: 'Veuillez ne pas fermer l\u2019application pendant la mise à jour pour éviter toute corruption.',
+		pleaseDontClose:
+			'Veuillez ne pas fermer l\u2019application pendant la mise à jour pour éviter toute corruption.',
 		later: 'Plus tard',
 		updateNow: 'Mettre à jour',
 		migrationCompleteTitle: 'Migration terminée !',
@@ -399,13 +405,15 @@ const fr: Translation = {
 		noSubtitlesMatchSplitRules: 'Aucun sous-titre ne correspond aux règles de division actuelles.',
 		markMissingWbw: 'Marquer les sous-titres sans horodatages WBW',
 		noMissingWbw: 'Aucun sous-titre ne manque d\u2019horodatages WBW.',
-		wbwFeatureInfo: 'Fonctionnalité optionnelle. Ajoutez des horodatages WBW pour activer l\u2019édition mot par mot et l\u2019alignement précis du texte.',
+		wbwFeatureInfo:
+			'Fonctionnalité optionnelle. Ajoutez des horodatages WBW pour activer l\u2019édition mot par mot et l\u2019alignement précis du texte.',
 		segmentsToReview: 'Segments à réviser',
 		completion: 'Complétion',
 		redownloading: 'Nouveau téléchargement depuis la source...',
 		downloadingSurah: 'Téléchargement de {surah} par {reciter}...',
 		downloadAudio: 'Télécharger l\u2019audio',
-		waitForAssetLoad: 'Veuillez attendre que l\u2019élément soit chargé avant de l\u2019ajouter à la timeline.',
+		waitForAssetLoad:
+			'Veuillez attendre que l\u2019élément soit chargé avant de l\u2019ajouter à la timeline.',
 		fileNotFoundOnDisk: 'Fichier introuvable sur le disque',
 		usePlayheadTitle: 'Utiliser la position actuelle de la tête de lecture',
 		saveStylesTooltip: 'Enregistrer les styles et explorer les presets communautaires',
@@ -415,7 +423,8 @@ const fr: Translation = {
 		selectTranslation: 'Sélectionner une traduction',
 		noTranslationsYet: 'Vous n\u2019avez pas encore de traduction.',
 		clearSearch: 'Effacer la recherche',
-		subtitlesSelected: '{count}\u00a0sous-titre{plural} sélectionné{plural}. Les styles ne s\u2019appliqueront qu\u2019à ces sous-titres.',
+		subtitlesSelected:
+			'{count}\u00a0sous-titre{plural} sélectionné{plural}. Les styles ne s\u2019appliqueront qu\u2019à ces sous-titres.',
 		clearSelection: 'Effacer la sélection',
 		visualMerge: 'Fusion visuelle',
 		visualMergeDescription: 'Fusionne uniquement le rendu à l\u2019écran.',
@@ -423,10 +432,14 @@ const fr: Translation = {
 		translation: 'Traduction',
 		both: 'Les deux',
 		unmergeGroup: 'Dissocier le groupe',
-		videoClipsSelected: '{count}\u00a0clip vidéo{plural} sélectionné{plural}. Les styles de superposition s\u2019appliqueront uniquement à ces clips.',
-		clickToSelect: 'Cliquez sur un sous-titre ou un clip vidéo pour le sélectionner uniquement. Shift+clic sélectionne des éléments supplémentaires.',
-		cannotEditGlobalWithSelection: 'Vous ne pouvez pas modifier les styles globaux lorsque des clips de sous-titres sont sélectionnés. Effacez la sélection pour modifier les styles globaux.',
-		backgroundVisibilityHint: 'L\u2019arrière-plan est visible uniquement lorsque le style Hauteur max. est défini.',
+		videoClipsSelected:
+			'{count}\u00a0clip vidéo{plural} sélectionné{plural}. Les styles de superposition s\u2019appliqueront uniquement à ces clips.',
+		clickToSelect:
+			'Cliquez sur un sous-titre ou un clip vidéo pour le sélectionner uniquement. Shift+clic sélectionne des éléments supplémentaires.',
+		cannotEditGlobalWithSelection:
+			'Vous ne pouvez pas modifier les styles globaux lorsque des clips de sous-titres sont sélectionnés. Effacez la sélection pour modifier les styles globaux.',
+		backgroundVisibilityHint:
+			'L\u2019arrière-plan est visible uniquement lorsque le style Hauteur max. est défini.',
 		addCustomText: 'Ajouter un texte personnalisé',
 		customText: 'Texte personnalisé',
 		customImage: 'Image personnalisée',
@@ -434,7 +447,8 @@ const fr: Translation = {
 		loadingFonts: 'Chargement des polices...',
 		errorLoadingFonts: 'Erreur de chargement des polices\u00a0: {error}',
 		usePreviewCursorTime: 'Utiliser le temps du curseur d\u2019aperçu',
-		arabicCalligraphyUnavailable: 'La calligraphie arabe n\u2019est pas disponible pour ce récitateur.',
+		arabicCalligraphyUnavailable:
+			'La calligraphie arabe n\u2019est pas disponible pour ce récitateur.',
 		videoFadeLabel: 'Vidéo',
 		audioFadeLabel: 'Audio',
 		presetNameLabel: 'Nom',
@@ -473,11 +487,14 @@ const fr: Translation = {
 		targetEdition: 'Édition cible',
 		aiBoldRange: 'Plage de gras IA',
 		customNote: 'Note personnalisée',
-		customNotePlaceholder: 'Exemple\u00a0: Mettre en gras les invocations et les attributs divins...',
+		customNotePlaceholder:
+			'Exemple\u00a0: Mettre en gras les invocations et les attributs divins...',
 		aiBoldAssistant: 'Assistant de gras IA',
 		noVisibleTranslation: 'Aucune édition de traduction visible n\u2019est disponible.',
-		noEligibleTranslatedSegments: 'Aucun segment traduit éligible trouvé pour la plage sélectionnée.',
-		aiBoldCompletedWithIssues: 'Gras IA terminé avec des problèmes. Consultez le journal d\u2019activité.',
+		noEligibleTranslatedSegments:
+			'Aucun segment traduit éligible trouvé pour la plage sélectionnée.',
+		aiBoldCompletedWithIssues:
+			'Gras IA terminé avec des problèmes. Consultez le journal d\u2019activité.',
 		aiBoldApplied: 'Gras IA appliqué avec succès.',
 		readyToUse: 'Prêt à l\u2019emploi',
 		legacyWhisper: 'Paquets locaux Legacy Whisper',
@@ -493,29 +510,43 @@ const fr: Translation = {
 		surahAndVerse: 'Sourate {surah}, Verset {verse}',
 		pleaseSelectTranslations: 'Veuillez sélectionner une ou plusieurs traductions pour continuer',
 		failedToAddTranslations: 'Échec de l\u2019ajout des traductions au projet',
-		txtImportSuccess: 'Traduction TXT importée avec succès ({count} versets de la sourate {surah}).',
+		txtImportSuccess:
+			'Traduction TXT importée avec succès ({count} versets de la sourate {surah}).',
 		failedToImportTxt: 'Échec de l\u2019importation de la traduction depuis le fichier txt.',
 		aiTrimmingFinished: 'Rognage IA terminé',
 		aiTrimmingFinishedWithErrors: 'Rognage IA terminé avec des erreurs',
 		checkActivityLog: 'Consultez le journal d\u2019activité pour plus de détails.',
 		aiSegmentationFailed: 'Échec de la segmentation IA',
 		aiSegmentationFinished: 'Segmentation IA terminée',
-		convertToMp4Error: 'Veuillez convertir votre fichier en mp4 pour l\u2019utiliser dans la piste audio (ce fichier est actuellement dans un format non pris en charge)',
-		unknownAudioError: 'Une erreur inconnue est survenue lors du chargement de l\u2019audio\u00a0: {error}',
-		unableToAnalyzeMedia: 'Impossible d\u2019analyser ce fichier média. Veuillez vérifier l\u2019installation de FFmpeg/FFprobe.',
-		variableBitrateWarning: 'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors de l\u2019export. Convertissez en débit binaire constant (CBR) pour de meilleurs résultats.',
-		tajweedRequiresInternet: 'Le tajweed nécessite une connexion Internet. Veuillez vérifier votre connexion et réessayer.',
+		convertToMp4Error:
+			'Veuillez convertir votre fichier en mp4 pour l\u2019utiliser dans la piste audio (ce fichier est actuellement dans un format non pris en charge)',
+		unknownAudioError:
+			'Une erreur inconnue est survenue lors du chargement de l\u2019audio\u00a0: {error}',
+		unableToAnalyzeMedia:
+			'Impossible d\u2019analyser ce fichier média. Veuillez vérifier l\u2019installation de FFmpeg/FFprobe.',
+		variableBitrateWarning:
+			'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors de l\u2019export. Convertissez en débit binaire constant (CBR) pour de meilleurs résultats.',
+		tajweedRequiresInternet:
+			'Le tajweed nécessite une connexion Internet. Veuillez vérifier votre connexion et réessayer.',
 		noSubtitlesToShift: 'Aucun sous-titre commençant à ce moment ou après \u2014 rien à décaler.',
-		cannotShiftBackward: 'Impossible de décaler vers l\u2019arrière\u00a0: le sous-titre avant la coupure deviendrait trop court.',
-		nativeTimingsConfirm: 'Cet audio inclut des minutages natifs officiels. L\u2019ajouter à la timeline et charger les sous-titres maintenant\u00a0?',
-		makeQuranSubtitleConfirm: 'Pour rendre ce sous-titre coranique, veuillez sélectionner les mots dans le sélecteur et appuyez sur Entrée pour l\u2019appliquer.',
-		atLeastOneWbwRequired: 'Au moins un sous-titre dans la timeline doit avoir des horodatages mot par mot avant de diviser les sous-titres longs.',
-		noWbwTimestampsError: 'Ce sous-titre a été généré sans horodatages mot par mot. Activez \u00ab\u00a0Inclure les horodatages mot par mot\u00a0\u00bb dans les paramètres de segmentation, puis relancez la segmentation.',
-		tajweedFontWarning: 'Le tajweed nécessite une connexion Internet pour charger sa police. Le repli vers QPC2 est automatique si indisponible. La couleur du texte tajweed est actuellement forcée en noir et vous ne pouvez pas la modifier.',
+		cannotShiftBackward:
+			'Impossible de décaler vers l\u2019arrière\u00a0: le sous-titre avant la coupure deviendrait trop court.',
+		nativeTimingsConfirm:
+			'Cet audio inclut des minutages natifs officiels. L\u2019ajouter à la timeline et charger les sous-titres maintenant\u00a0?',
+		makeQuranSubtitleConfirm:
+			'Pour rendre ce sous-titre coranique, veuillez sélectionner les mots dans le sélecteur et appuyez sur Entrée pour l\u2019appliquer.',
+		atLeastOneWbwRequired:
+			'Au moins un sous-titre dans la timeline doit avoir des horodatages mot par mot avant de diviser les sous-titres longs.',
+		noWbwTimestampsError:
+			'Ce sous-titre a été généré sans horodatages mot par mot. Activez \u00ab\u00a0Inclure les horodatages mot par mot\u00a0\u00bb dans les paramètres de segmentation, puis relancez la segmentation.',
+		tajweedFontWarning:
+			'Le tajweed nécessite une connexion Internet pour charger sa police. Le repli vers QPC2 est automatique si indisponible. La couleur du texte tajweed est actuellement forcée en noir et vous ne pouvez pas la modifier.',
 		overridesApplied: 'Remplacements appliqués',
-		markedTranslationErrors: '{marked}/{checked}\u00a0segment(s) de traduction marqué(s) comme Erreur sur {verses}\u00a0verset(s).',
+		markedTranslationErrors:
+			'{marked}/{checked}\u00a0segment(s) de traduction marqué(s) comme Erreur sur {verses}\u00a0verset(s).',
 		failedToMarkErrors: 'Échec du marquage des erreurs de traduction\u00a0: {error}',
-		missingWbwMarked: '{count}\u00a0sous-titre{plural} marqué{plural} pour absence d\u2019horodatages WBW.',
+		missingWbwMarked:
+			'{count}\u00a0sous-titre{plural} marqué{plural} pour absence d\u2019horodatages WBW.',
 		splitApplied: '{count}\u00a0division{plural} de sous-titre appliquée{plural} automatiquement.',
 		redownloadingFromQuranCom: 'Nouveau téléchargement depuis Quran.com...',
 		redownloadingFromMp3Quran: 'Nouveau téléchargement depuis MP3Quran...',
@@ -617,15 +648,19 @@ const fr: Translation = {
 		minSpeechLabel: 'Parole min.',
 		paddingLabel: 'Marge',
 		includeWbwTimestamps: 'Inclure les horodatages mot par mot',
-		wbwTimestampsDescription: 'Stocke les minutages par mot pour vous permettre de diviser et modifier les sous-titres plus précisément par la suite.',
-		wbwTimestampsOnlyMuaalem: 'Les horodatages mot par mot ne sont pris en charge qu\u2019avec le modèle Muaalem v3.2.',
+		wbwTimestampsDescription:
+			'Stocke les minutages par mot pour vous permettre de diviser et modifier les sous-titres plus précisément par la suite.',
+		wbwTimestampsOnlyMuaalem:
+			'Les horodatages mot par mot ne sont pris en charge qu\u2019avec le modèle Muaalem v3.2.',
 		fillGapsWithSilence: 'Remplir les espaces avec des silences',
 		extendSubtitleBeforeSilence: 'Prolonger le sous-titre avant le silence de',
-		extendBeforeSilenceHint: 'Cela prolonge le segment juste avant un bloc de silence de {ms}\u00a0ms.',
+		extendBeforeSilenceHint:
+			'Cela prolonge le segment juste avant un bloc de silence de {ms}\u00a0ms.',
 		adjustSegmentation: 'Ajuster la segmentation',
 		adjustSegmentationDesc: 'Utilisez d\u2019abord un preset, puis ajustez si nécessaire.',
 		chooseModelAndPerformance: 'Choisir le modèle et la performance',
-		chooseModelAndPerformanceDesc: 'Choisissez l\u2019équilibre entre vitesse et qualité pour cette méthode.',
+		chooseModelAndPerformanceDesc:
+			'Choisissez l\u2019équilibre entre vitesse et qualité pour cette méthode.',
 		modelLabel: 'Modèle',
 		deviceLabel: 'Appareil',
 		recommendedLabel: 'Recommandé',
@@ -633,8 +668,10 @@ const fr: Translation = {
 		surahSelectionLabel: 'Sélection de la sourate',
 		autoDetectSurah: 'Détection automatique de la sourate',
 		specifySurah: 'Spécifier la sourate',
-		surahSplitterPrecisionHint: 'Spécifier la sourate améliore la précision car la correspondance est restreinte à cette sourate.',
-		surahSplitterMultiSurahNote: 'Remarque\u00a0: si votre audio contient plusieurs sourates, seule la dernière sera détectée et segmentée. Utilisez un autre modèle pour les fichiers multi-sourates.',
+		surahSplitterPrecisionHint:
+			'Spécifier la sourate améliore la précision car la correspondance est restreinte à cette sourate.',
+		surahSplitterMultiSurahNote:
+			'Remarque\u00a0: si votre audio contient plusieurs sourates, seule la dernière sera détectée et segmentée. Utilisez un autre modèle pour les fichiers multi-sourates.',
 		reviewAndLaunch: 'Réviser et lancer',
 		reviewAndLaunchDesc: 'Vérifiez votre configuration avant de générer les sous-titres.',
 		methodLabel: 'Méthode',
@@ -648,11 +685,14 @@ const fr: Translation = {
 		automaticLabel: 'Automatique',
 		prepareMethod: 'Préparer cette méthode',
 		prepareMethodCloudDesc: 'Aucune installation locale requise.',
-		prepareMethodLocalV2Desc: 'Installez les paquets locaux requis et configurez votre token Hugging Face.',
+		prepareMethodLocalV2Desc:
+			'Installez les paquets locaux requis et configurez votre token Hugging Face.',
 		prepareMethodMuaalemDesc: 'Installez les paquets locaux requis pour le workflow Muaalem local.',
-		prepareMethodSurahSplitterDesc: 'Installez les paquets locaux requis pour le workflow Surah Splitter.',
+		prepareMethodSurahSplitterDesc:
+			'Installez les paquets locaux requis pour le workflow Surah Splitter.',
 		prepareMethodLegacyDesc: 'Installez les dépendances locales héritées.',
-		cloudMethodDescription: 'Cette méthode s\u2019exécute à distance et ne nécessite pas de paquets Python locaux.',
+		cloudMethodDescription:
+			'Cette méthode s\u2019exécute à distance et ne nécessite pas de paquets Python locaux.',
 		huggingFaceTokenLabel: 'Token Hugging Face',
 		hfTokenRequiredHint: 'Requis pour les modèles privés locaux Quranic Universal Aligner.',
 		updateToken: 'Mettre à jour le token',
@@ -660,33 +700,45 @@ const fr: Translation = {
 		clearToken: 'Effacer le token',
 		requiredLocalPackages: 'Paquets locaux requis',
 		checkingLocalEngines: 'Vérification des moteurs locaux en arrière-plan...',
-		noTokenRequiredHint: 'Aucun token requis. Installation entièrement locale avec téléchargement des modèles sur l\u2019appareil.',
-		noTokenRequiredSurahSplitterHint: 'Aucun token requis. Surah Splitter télécharge son modèle WhisperX lors de la première exécution.',
-		muaalemLocalHint: 'Cette option est entièrement locale, mais elle est généralement moins précise que le pipeline officiel Quranic Universal Aligner.',
-		surahSplitterLocalHint: 'Cette option peut détecter automatiquement la sourate. Sélectionner la sourate manuellement à l\u2019étape suivante améliore la précision de la correspondance.',
+		noTokenRequiredHint:
+			'Aucun token requis. Installation entièrement locale avec téléchargement des modèles sur l\u2019appareil.',
+		noTokenRequiredSurahSplitterHint:
+			'Aucun token requis. Surah Splitter télécharge son modèle WhisperX lors de la première exécution.',
+		muaalemLocalHint:
+			'Cette option est entièrement locale, mais elle est généralement moins précise que le pipeline officiel Quranic Universal Aligner.',
+		surahSplitterLocalHint:
+			'Cette option peut détecter automatiquement la sourate. Sélectionner la sourate manuellement à l\u2019étape suivante améliore la précision de la correspondance.',
 		chooseMethodLabel: 'Choisir une méthode',
-		chooseMethodDesc: 'Choisissez la méthode la plus simple pour votre situation. Vous pourrez modifier les options avancées plus tard.',
+		chooseMethodDesc:
+			'Choisissez la méthode la plus simple pour votre situation. Vous pourrez modifier les options avancées plus tard.',
 		quranicUniversalAlignerLabel: 'Quranic Universal Aligner',
 		bestOverallQuality: 'Meilleure qualité globale et installation la plus simple',
-		usesOfficialRemote: 'Utilise l\u2019aligneur universel coranique officiel à distance. Recommandé pour la plupart des utilisateurs.',
+		usesOfficialRemote:
+			'Utilise l\u2019aligneur universel coranique officiel à distance. Recommandé pour la plupart des utilisateurs.',
 		surahSplitterLocalLabel: 'Surah Splitter Local',
 		surahSplitterLocalDesc: 'Détection locale des ayah avec indication optionnelle de la sourate',
-		surahSplitterLocalDetail: 'Exécute Surah Splitter localement avec WhisperX. Il peut détecter automatiquement la sourate et prend en charge l\u2019alignement mot par mot, mais sélectionner la sourate manuellement améliore la précision.',
-		surahSplitterSingleSurahNote: 'Remarque\u00a0: cette option ne fonctionne que s\u2019il y a une seule sourate dans le fichier audio.',
+		surahSplitterLocalDetail:
+			'Exécute Surah Splitter localement avec WhisperX. Il peut détecter automatiquement la sourate et prend en charge l\u2019alignement mot par mot, mais sélectionner la sourate manuellement améliore la précision.',
+		surahSplitterSingleSurahNote:
+			'Remarque\u00a0: cette option ne fonctionne que s\u2019il y a une seule sourate dans le fichier audio.',
 		muaalemLocalLabel: 'Muaalem Local',
 		muaalemLocalDesc: 'Deuxième option mais moins efficace que Surah Splitter',
-		muaalemLocalDetail: 'S\u2019exécute entièrement sur votre machine avec le pipeline local Muaalem. Il utilise une segmentation spécifique au Coran et une correspondance spécialisée.',
+		muaalemLocalDetail:
+			'S\u2019exécute entièrement sur votre machine avec le pipeline local Muaalem. Il utilise une segmentation spécifique au Coran et une correspondance spécialisée.',
 		privateLocalQuranicAlignerLabel: 'Quranic Universal Aligner local privé',
 		bestLocalAccuracy: 'Meilleure précision locale',
-		privateLocalQuranicAlignerDetail: 'S\u2019exécute sur votre machine avec la pile privée locale Quranic Universal Aligner. Nécessite une installation Python et un token Hugging Face.',
+		privateLocalQuranicAlignerDetail:
+			'S\u2019exécute sur votre machine avec la pile privée locale Quranic Universal Aligner. Nécessite une installation Python et un token Hugging Face.',
 		offlineLabel: 'Hors ligne',
 		advancedLabel: 'Avancé',
 		importHuggingFaceJson: 'Importer un JSON Hugging Face',
 		importMultiAlignerJson: 'Importer un JSON Multi-Aligner',
-		importMultiAlignerJsonDesc: 'Collez ou déposez un export JSON généré en dehors de l\u2019application, puis appliquez-le directement à votre timeline.',
+		importMultiAlignerJsonDesc:
+			'Collez ou déposez un export JSON généré en dehors de l\u2019application, puis appliquez-le directement à votre timeline.',
 		quranMultiAlignerExport: 'Export Quran Multi-Aligner',
 		openHuggingFaceSpace: 'Ouvrir l\u2019espace Hugging Face',
-		dragAndDropJsonFile: 'Glissez-déposez votre fichier `.json` dans la fenêtre de l\u2019application',
+		dragAndDropJsonFile:
+			'Glissez-déposez votre fichier `.json` dans la fenêtre de l\u2019application',
 		browseJsonFile: 'Parcourir un fichier JSON',
 		loadedFileLabel: 'Fichier chargé',
 		rawJsonContentLabel: 'Contenu JSON brut',
@@ -694,9 +746,11 @@ const fr: Translation = {
 		latestChangelog: 'Dernier journal des modifications',
 		loadingChangelog: 'Chargement des dernières mises à jour de Quran Multi-Aligner...',
 		noChangelogEntries: 'Aucune entrée récente du journal des modifications trouvée.',
-		cannotLoadChangelog: 'Impossible de charger le dernier journal des modifications pour le moment.',
+		cannotLoadChangelog:
+			'Impossible de charger le dernier journal des modifications pour le moment.',
 		autoSegmentationWizard: 'Assistant de segmentation automatique',
-		guidedSetupDesc: 'Configuration guidée pour ajouter automatiquement des sous-titres à votre vidéo',
+		guidedSetupDesc:
+			'Configuration guidée pour ajouter automatiquement des sous-titres à votre vidéo',
 		videoAssetLabel: 'Élément vidéo',
 		audioAssetLabel: 'Élément audio',
 		imageAssetLabel: 'Élément image',
@@ -708,7 +762,8 @@ const fr: Translation = {
 		relocateLabel: 'Relocaliser',
 		redownloadLabel: 'Re-télécharger',
 		downloadingLabel: 'Téléchargement...',
-		convertCbrProgressHint: 'Vous pouvez changer d\u2019onglet pendant ce processus. L\u2019élément se rechargera automatiquement une fois terminé.',
+		convertCbrProgressHint:
+			'Vous pouvez changer d\u2019onglet pendant ce processus. L\u2019élément se rechargera automatiquement une fois terminé.',
 		addToTimelineLabel: 'Ajouter à la timeline',
 		videoAndAudio: 'Vidéo et audio',
 		videoOnly: 'Vidéo uniquement',
@@ -727,7 +782,8 @@ const fr: Translation = {
 		downloadFailed: 'Échec du téléchargement',
 		enterValidMediaUrl: 'Veuillez saisir une URL de média publique valide.',
 		downloadErrorPrefix: 'Erreur de téléchargement du média depuis le lien\u00a0:',
-		supportedLinksHint: 'Les liens publics pris en charge incluent YouTube, les téléversements complets de sourate ou de mushaf sur SoundCloud, les collections Internet Archive, les liens Google Drive publics et les courts extraits de récitation de Facebook, Instagram, TikTok ou X/Twitter.',
+		supportedLinksHint:
+			'Les liens publics pris en charge incluent YouTube, les téléversements complets de sourate ou de mushaf sur SoundCloud, les collections Internet Archive, les liens Google Drive publics et les courts extraits de récitation de Facebook, Instagram, TikTok ou X/Twitter.',
 		projectAssetsLabel: 'Éléments du projet',
 		addAssetLabel: 'Ajouter un élément',
 		dragAndDropFilesHere: 'Glissez-déposez des fichiers ici',
@@ -765,21 +821,33 @@ const fr: Translation = {
 		showAlignmentGrid: 'Afficher la grille d\u2019alignement',
 		hideAlignmentGrid: 'Masquer la grille d\u2019alignement',
 		pasteMediaUrlPlaceholder: 'Collez une URL de média publique',
-		clickToGenerateWaveform: 'Cliquez pour générer la forme d\u2019onde (désactivé par défaut pour les longs audios afin d\u2019économiser la mémoire)',
+		clickToGenerateWaveform:
+			'Cliquez pour générer la forme d\u2019onde (désactivé par défaut pour les longs audios afin d\u2019économiser la mémoire)',
 		noTranslationEditionForClip: 'Aucune édition de traduction n\u2019est disponible pour ce clip.',
-		wbwTimestampGuide: 'Lancez la lecture audio avec espace, et appuyez sur Entrée à chaque fois qu\u2019un mot finit d\u2019être récité. Allez dans l\u2019éditeur de sous-titres pour plus d\u2019options.',
-		experimentalFallbackHint: 'Modèles de secours expérimentaux de l\u2019ancien workflow local ouvert. Ils n\u2019utilisent pas le chemin phonétique complet de Muaalem et peuvent être moins fiables.',
-		muaalemLocalFeatureDesc: 'Muaalem Local combine la segmentation spécifique au Coran, la reconnaissance vocale phonétique, la recherche de passage coranique monotonique et l\u2019alignement forcé local pour des minutages précis mot par mot.',
-		surahSplitterFeatureDesc: 'Surah Splitter transcrit l\u2019audio avec WhisperX, fait correspondre les mots reconnus au texte coranique, puis retourne les horodatages au niveau des ayah. La détection automatique est disponible, mais spécifier la sourate améliore la précision.',
-		muaalemLocalEffectivenessHint: 'Cette méthode est entièrement locale, mais elle est généralement moins efficace que l\u2019aligneur universel coranique officiel. Les modèles de secours avancés sont masqués par défaut car ils sont plus expérimentaux que le chemin recommandé Muaalem v3.2.',
-		surahSplitterDownloadNote: 'Surah Splitter télécharge le modèle sélectionné pendant la segmentation s\u2019il n\u2019est pas encore en cache.',
-		tokenRequiredHint: 'Cette méthode nécessite un token Hugging Face valide avant de pouvoir s\u2019exécuter.',
-		muaalemReviewHint: 'Cette méthode est entièrement locale et plus simple à installer, mais généralement moins efficace que le pipeline officiel Quranic Universal Aligner.',
-		surahSplitterReviewHint: 'La détection automatique est disponible, mais spécifier la sourate améliore la précision.',
-		legacyV1ReviewHint: 'Legacy V1 est un ancien pipeline de secours avec une qualité d\u2019alignement inférieure.',
+		wbwTimestampGuide:
+			'Lancez la lecture audio avec espace, et appuyez sur Entrée à chaque fois qu\u2019un mot finit d\u2019être récité. Allez dans l\u2019éditeur de sous-titres pour plus d\u2019options.',
+		experimentalFallbackHint:
+			'Modèles de secours expérimentaux de l\u2019ancien workflow local ouvert. Ils n\u2019utilisent pas le chemin phonétique complet de Muaalem et peuvent être moins fiables.',
+		muaalemLocalFeatureDesc:
+			'Muaalem Local combine la segmentation spécifique au Coran, la reconnaissance vocale phonétique, la recherche de passage coranique monotonique et l\u2019alignement forcé local pour des minutages précis mot par mot.',
+		surahSplitterFeatureDesc:
+			'Surah Splitter transcrit l\u2019audio avec WhisperX, fait correspondre les mots reconnus au texte coranique, puis retourne les horodatages au niveau des ayah. La détection automatique est disponible, mais spécifier la sourate améliore la précision.',
+		muaalemLocalEffectivenessHint:
+			'Cette méthode est entièrement locale, mais elle est généralement moins efficace que l\u2019aligneur universel coranique officiel. Les modèles de secours avancés sont masqués par défaut car ils sont plus expérimentaux que le chemin recommandé Muaalem v3.2.',
+		surahSplitterDownloadNote:
+			'Surah Splitter télécharge le modèle sélectionné pendant la segmentation s\u2019il n\u2019est pas encore en cache.',
+		tokenRequiredHint:
+			'Cette méthode nécessite un token Hugging Face valide avant de pouvoir s\u2019exécuter.',
+		muaalemReviewHint:
+			'Cette méthode est entièrement locale et plus simple à installer, mais généralement moins efficace que le pipeline officiel Quranic Universal Aligner.',
+		surahSplitterReviewHint:
+			'La détection automatique est disponible, mais spécifier la sourate améliore la précision.',
+		legacyV1ReviewHint:
+			'Legacy V1 est un ancien pipeline de secours avec une qualité d\u2019alignement inférieure.',
 		noAudioDetectedWarning: 'Aucun clip audio détecté dans la timeline actuelle.',
 		speechRecognitionModel: 'Modèle de reconnaissance vocale',
-		experimentalFallbackHintShort: 'Modèles de secours expérimentaux de l\u2019ancien workflow local ouvert. Ils n\u2019utilisent pas le chemin phonétique complet de Muaalem et peuvent être moins fiables.',
+		experimentalFallbackHintShort:
+			'Modèles de secours expérimentaux de l\u2019ancien workflow local ouvert. Ils n\u2019utilisent pas le chemin phonétique complet de Muaalem et peuvent être moins fiables.',
 		overlayIndividualApplied: 'Superposition appliquée sur ce clip',
 		subtitleIndividualStyles: 'Styles individuels appliqués sur ce clip',
 		subtitles: 'Sous-titres',
@@ -790,13 +858,16 @@ const fr: Translation = {
 		mark: 'Marquer',
 		onLabel: 'Activé',
 		splitLongSubtitlesLabel: 'Diviser les sous-titres longs',
-		splitWbwRequired: 'Cela ne fonctionnera qu\u2019avec les sous-titres ayant des horodatages mot par mot.',
-		waqfDescription: 'Les segments sans marque de waqf restent tels quels, même s\u2019ils dépassent les limites de mots/durée.',
+		splitWbwRequired:
+			'Cela ne fonctionnera qu\u2019avec les sous-titres ayant des horodatages mot par mot.',
+		waqfDescription:
+			'Les segments sans marque de waqf restent tels quels, même s\u2019ils dépassent les limites de mots/durée.',
 		split: 'Diviser',
 		silenceLabel: 'SILENCE',
 		predefinedLabel: 'PRÉDÉFINI',
 		wbwTimestampsMissing: '{count}\u00a0sous-titre(s) manque(nt) d\u2019horodatages mot par mot.',
-		noWbwTimestampsMarked: '{count}\u00a0sous-titre{plural} marqué{plural} pour absence d\u2019horodatages WBW.',
+		noWbwTimestampsMarked:
+			'{count}\u00a0sous-titre{plural} marqué{plural} pour absence d\u2019horodatages WBW.',
 		cbrPreparing: 'Préparation...',
 		cbrFinished: 'Terminé',
 		cbrConvertingLabel: 'Conversion',
@@ -809,15 +880,19 @@ const fr: Translation = {
 		trimButton: 'Rogner',
 		relocateButton: 'Relocaliser',
 		redownloadButton: 'Re-télécharger',
-		cbrInfoHint: 'Vous pouvez changer d\u2019onglet pendant ce processus. L\u2019élément se rechargera automatiquement une fois terminé.',
+		cbrInfoHint:
+			'Vous pouvez changer d\u2019onglet pendant ce processus. L\u2019élément se rechargera automatiquement une fois terminé.',
 		editingSubtitle: 'Édition du sous-titre',
 		editingActive: 'Actif',
-		editingHelpText: 'Sélectionnez les mots dans le sélecteur puis appuyez sur Entrée pour ajuster la plage, ou appliquez l\u2019un des presets ci-dessous.',
+		editingHelpText:
+			'Sélectionnez les mots dans le sélecteur puis appuyez sur Entrée pour ajuster la plage, ou appliquez l\u2019un des presets ci-dessous.',
 		wordByWordEdit: 'Édition mot par mot',
-		wbwManualDescription: 'Horodatez et ajustez manuellement un mot coranique à la fois sur la timeline.',
+		wbwManualDescription:
+			'Horodatez et ajustez manuellement un mot coranique à la fois sur la timeline.',
 		exit: 'Quitter',
 		editWbw: 'Modifier WBW',
-		wbwShortcutNote: 'Remarque\u00a0: vous pouvez maintenir {shortcut} pour entrer directement dans ce mode.',
+		wbwShortcutNote:
+			'Remarque\u00a0: vous pouvez maintenir {shortcut} pour entrer directement dans ce mode.',
 		wbwTutorialTitle: 'Tutoriel\u00a0: comment ajouter des horodatages WBW',
 		wbwTutorialIframeTitle: 'Tutoriel des horodatages WBW',
 		wbwTutorialEnter: 'Entrée\u00a0: valider la fin et passer au mot suivant',
@@ -847,11 +922,16 @@ const fr: Translation = {
 		exitSubtitleEditing: 'Quitter l\u2019édition du sous-titre',
 		splitAutomaticallyAtWord: 'Diviser automatiquement à ce mot',
 		needVisualWalkthrough: 'Besoin d\u2019une visite guidée visuelle\u00a0?',
-		walkthroughDescription: 'Voici une courte vidéo qui montre comment fonctionne l\u2019éditeur de sous-titres\u00a0:',
-		spaceToPlayPause: 'Appuyez sur <span class="font-mono bg-accent px-1 rounded-sm">espace</span> pour lancer/mettre en pause la récitation.',
-		arrowsToSelectWords: 'Utilisez <span class="font-mono bg-accent px-1 rounded-sm">\u2191</span> et <span class="font-mono bg-accent px-1 rounded-sm">\u2193</span> pour sélectionner les mots.',
-		enterToAddSubtitleWalkthrough: 'Quand le récitateur termine un verset, ou une partie de verset, appuyez sur <span class="font-mono bg-accent px-1 rounded-sm">Entrée</span> pour ajouter un sous-titre au temps actuel avec les mots sélectionnés.',
-		wordStylesDescription: 'Emphase manuelle par mot sur le texte arabe et les traductions avec un assistant IA dédié pour le style gras automatique.',
+		walkthroughDescription:
+			'Voici une courte vidéo qui montre comment fonctionne l\u2019éditeur de sous-titres\u00a0:',
+		spaceToPlayPause:
+			'Appuyez sur <span class="font-mono bg-accent px-1 rounded-sm">espace</span> pour lancer/mettre en pause la récitation.',
+		arrowsToSelectWords:
+			'Utilisez <span class="font-mono bg-accent px-1 rounded-sm">\u2191</span> et <span class="font-mono bg-accent px-1 rounded-sm">\u2193</span> pour sélectionner les mots.',
+		enterToAddSubtitleWalkthrough:
+			'Quand le récitateur termine un verset, ou une partie de verset, appuyez sur <span class="font-mono bg-accent px-1 rounded-sm">Entrée</span> pour ajouter un sous-titre au temps actuel avec les mots sélectionnés.',
+		wordStylesDescription:
+			'Emphase manuelle par mot sur le texte arabe et les traductions avec un assistant IA dédié pour le style gras automatique.',
 		wordStyleEditing: 'Édition de style de mot',
 		stylesToToggle: 'Styles à basculer',
 		bold: 'Gras',
@@ -859,8 +939,10 @@ const fr: Translation = {
 		underline: 'Souligné',
 		color: 'Couleur',
 		howItWorks: 'Comment ça marche',
-		howItWorksDescription1: 'Activez le mode style, gardez un ou plusieurs bascules actifs, puis faites glisser sur les mots dans la traduction rognée ou le segment arabe.',
-		howItWorksDescription2: 'Gras, italique et souligné sont basculés sur la plage sélectionnée. La couleur est appliquée avec l\u2019échantillon actuel. Modifier le texte de la traduction supprime les styles de mots de la traduction.',
+		howItWorksDescription1:
+			'Activez le mode style, gardez un ou plusieurs bascules actifs, puis faites glisser sur les mots dans la traduction rognée ou le segment arabe.',
+		howItWorksDescription2:
+			'Gras, italique et souligné sont basculés sur la plage sélectionnée. La couleur est appliquée avec l\u2019échantillon actuel. Modifier le texte de la traduction supprime les styles de mots de la traduction.',
 		selectAtLeastOneStyle: 'Sélectionnez au moins un style avant de l\u2019appliquer.',
 		globalActions: 'Actions globales',
 		resetAllSegmentStyles: 'Réinitialiser tous les styles de segment',
@@ -1087,10 +1169,13 @@ const fr: Translation = {
 			'show-subtitles': 'Activer ou désactiver la visibilité des sous-titres',
 			'show-verse-number': 'Activer ou désactiver la visibilité des numéros de versets',
 			'text-direction': 'Définir la direction du texte de droite à gauche',
-			'show-decorative-brackets': 'Encadrer le texte arabe des sous-titres avec des parenthèses décoratives',
-			'decorative-brackets-font-family': 'Choisir la paire de glyphes utilisée pour les parenthèses décoratives (ouvrante en premier, fermante en second). Utilise la police QPC2BSML.',
+			'show-decorative-brackets':
+				'Encadrer le texte arabe des sous-titres avec des parenthèses décoratives',
+			'decorative-brackets-font-family':
+				'Choisir la paire de glyphes utilisée pour les parenthèses décoratives (ouvrante en premier, fermante en second). Utilise la police QPC2BSML.',
 			'mushaf-style': 'Choisir la source d\u2019écriture arabe pour les sous-titres coraniques.',
-			'verse-number-format': 'Modifier le format des numéros de versets. Utiliser la balise <number> pour personnaliser.',
+			'verse-number-format':
+				'Modifier le format des numéros de versets. Utiliser la balise <number> pour personnaliser.',
 			'verse-number-position': 'Définir la position des numéros de versets',
 			text: 'Contrôler l\u2019apparence et la mise en forme du texte des sous-titres',
 			'text-color': 'Modifier la couleur du texte',
@@ -1103,33 +1188,44 @@ const fr: Translation = {
 			'letter-spacing': 'Ajuster l\u2019espacement entre les caractères',
 			'word-spacing': 'Ajuster l\u2019espacement entre les mots',
 			'line-height': 'Ajuster l\u2019espacement entre les lignes',
-			'max-height': 'Limiter la hauteur du texte et ajuster automatiquement la taille de police. 0 = aucune limite.',
-			'max-line': 'Limiter le texte arabe à un nombre maximum de lignes affichées. Infini = aucune limite.',
-			'reactive-font-size': 'Utilisé par la fonctionnalité \u00ab\u00a0Ajuster le texte\u00a0\u00bb pour ajuster la taille de police en fonction du conteneur',
-			'word-by-word-highlight': 'Surligner les mots arabes au fil du temps lorsque les horodatages mot par mot sont disponibles',
+			'max-height':
+				'Limiter la hauteur du texte et ajuster automatiquement la taille de police. 0 = aucune limite.',
+			'max-line':
+				'Limiter le texte arabe à un nombre maximum de lignes affichées. Infini = aucune limite.',
+			'reactive-font-size':
+				'Utilisé par la fonctionnalité \u00ab\u00a0Ajuster le texte\u00a0\u00bb pour ajuster la taille de police en fonction du conteneur',
+			'word-by-word-highlight':
+				'Surligner les mots arabes au fil du temps lorsque les horodatages mot par mot sont disponibles',
 			'enable-wbw-highlight': 'Activer ou désactiver le surlignage chronométré mot par mot',
 			'wbw-color': 'Couleur appliquée aux mots surlignés',
 			'wbw-persist-color': 'Garder les mots précédemment surlignés colorés après leur lecture',
 			'enable-wbw-underline': 'Souligner les mots surlignés',
 			'wbw-underline-thickness': 'Épaisseur du soulignement wbw en pixels',
-			'wbw-reveal-on-recitation': 'Garder les mots futurs masqués jusqu\u2019à leur récitation, puis les faire apparaître',
-			'wbw-always-show-verse-number': 'Garder le numéro de verset visible en permanence pendant le surlignage mot par mot. Désactivé, le numéro apparaît avec le dernier mot du verset.',
-			'enable-wbw-background': 'Activer une couleur d\u2019arrière-plan derrière les mots surlignés',
+			'wbw-reveal-on-recitation':
+				'Garder les mots futurs masqués jusqu\u2019à leur récitation, puis les faire apparaître',
+			'wbw-always-show-verse-number':
+				'Garder le numéro de verset visible en permanence pendant le surlignage mot par mot. Désactivé, le numéro apparaît avec le dernier mot du verset.',
+			'enable-wbw-background':
+				'Activer une couleur d\u2019arrière-plan derrière les mots surlignés',
 			'wbw-bg-color': 'Couleur d\u2019arrière-plan appliquée aux mots surlignés',
 			positioning: 'Contrôler la position et l\u2019espacement des sous-titres à l\u2019écran',
-			'reactive-y-position': 'Utilisé si \u00ab\u00a0Ajuster le texte\u00a0\u00bb n\u2019est pas défini pour ajuster la position Y selon les autres sous-titres afin d\u2019éviter les chevauchements',
+			'reactive-y-position':
+				'Utilisé si \u00ab\u00a0Ajuster le texte\u00a0\u00bb n\u2019est pas défini pour ajuster la position Y selon les autres sous-titres afin d\u2019éviter les chevauchements',
 			'vertical-position': 'Modifier la position verticale du texte (pixels depuis le centre)',
 			'horizontal-position': 'Modifier la position horizontale du texte (pixels depuis le centre)',
 			width: 'Définir la largeur du conteneur de sous-titres',
 			'horizontal-text-alignment': 'Définir l\u2019alignement du texte',
-			'vertical-text-alignment': 'Aligner le texte verticalement lorsque la hauteur du paragraphe est grande',
+			'vertical-text-alignment':
+				'Aligner le texte verticalement lorsque la hauteur du paragraphe est grande',
 			background: 'Styliser l\u2019arrière-plan et le conteneur des sous-titres',
 			'background-enable': 'Activer ou désactiver le style d\u2019arrière-plan',
 			'background-color': 'Ajouter une couleur d\u2019arrière-plan derrière le texte',
 			'background-opacity': 'Contrôler la transparence de l\u2019arrière-plan',
 			'border-radius': 'Arrondir les coins de l\u2019arrière-plan',
-			'background-horizontal-padding': 'Ajouter un rembourrage gauche et droit lors de l\u2019utilisation d\u2019un arrière-plan',
-			'background-css': 'Écrire du CSS personnalisé pour l\u2019arrière-plan (dégradé, motif, ...). Utiliser !important si nécessaire.',
+			'background-horizontal-padding':
+				'Ajouter un rembourrage gauche et droit lors de l\u2019utilisation d\u2019un arrière-plan',
+			'background-css':
+				'Écrire du CSS personnalisé pour l\u2019arrière-plan (dégradé, motif, ...). Utiliser !important si nécessaire.',
 			border: 'Ajouter des bordures autour des conteneurs de sous-titres',
 			'border-enable': 'Activer ou désactiver la bordure du conteneur',
 			'border-width': 'Définir la largeur de la bordure',
@@ -1153,7 +1249,8 @@ const fr: Translation = {
 			'text-neon-enable': 'Activer ou désactiver l\u2019effet néon',
 			'text-neon-color': 'Définir la couleur de l\u2019effet néon',
 			'text-intensity': 'Définir l\u2019intensité de l\u2019effet néon',
-			effects: 'Ajouter des effets visuels et des filtres pour améliorer l\u2019apparence des sous-titres',
+			effects:
+				'Ajouter des effets visuels et des filtres pour améliorer l\u2019apparence des sous-titres',
 			opacity: 'Contrôler la transparence du texte',
 			blur: 'Appliquer un effet de flou au texte',
 			brightness: 'Ajuster la luminosité du texte',
@@ -1161,10 +1258,12 @@ const fr: Translation = {
 			animation: 'Ajouter des effets de mouvement et de transition aux sous-titres',
 			scale: 'Mettre à l\u2019échelle le sous-titre',
 			rotation: 'Faire pivoter le sous-titre en degrés',
-			'custom-css': 'Écrire du CSS personnalisé pour les sous-titres. Utiliser !important si nécessaire.',
+			'custom-css':
+				'Écrire du CSS personnalisé pour les sous-titres. Utiliser !important si nécessaire.',
 			'video-dimension': 'Qualité et orientation de la vidéo',
 			'fade-duration': 'Durée de l\u2019effet de fondu entrée/sortie en millisecondes',
-			'video-and-audio-fade': 'Configurer le fondu d\u2019entrée/sortie pour la vidéo et l\u2019audio à l\u2019export.',
+			'video-and-audio-fade':
+				'Configurer le fondu d\u2019entrée/sortie pour la vidéo et l\u2019audio à l\u2019export.',
 			'anti-collision': 'Empêcher le chevauchement des sous-titres',
 			spacing: 'Espacement minimum entre les sous-titres (en pixels)',
 			overlay: 'Ajouter une superposition de couleur sur la vidéo',
@@ -1172,7 +1271,8 @@ const fr: Translation = {
 			'overlay-color': 'Couleur de la superposition',
 			'overlay-opacity': 'Opacité de la superposition',
 			'background-overlay-mode': 'Uniforme ou fondu vertical (haut, bas ou centre)',
-			'background-overlay-fade-intensity': 'Contrôle l\u2019intensité du fondu lorsque le mode n\u2019est pas uniforme',
+			'background-overlay-fade-intensity':
+				'Contrôle l\u2019intensité du fondu lorsque le mode n\u2019est pas uniforme',
 			'background-overlay-fade-coverage': 'Contrôle la zone verticale utilisée par le fondu',
 			'overlay-blur': 'Niveau de flou de la superposition',
 			'overlay-custom-css': 'Ajouter du CSS personnalisé à la superposition (ex. animations)',
@@ -1181,42 +1281,58 @@ const fr: Translation = {
 			'surah-name-always-show': 'Toujours afficher le nom de la sourate (ignorer le minutage)',
 			'surah-name-time-appearance': 'Modifier l\u2019heure d\u2019apparition du nom de la sourate',
 			'surah-name-time-disappearance': 'Modifier l\u2019heure de disparition du nom de la sourate',
-			'surah-name-vertical-position': 'Modifier la position verticale du nom de la sourate (pixels depuis le centre)',
-			'surah-name-horizontal-position': 'Modifier la position horizontale du nom de la sourate (pixels depuis le centre)',
-			'surah-name-format': 'Format d\u2019affichage du nom de la sourate. Utiliser les balises <number>, <transliteration>, <translation>, <min-range> et <max-range> pour personnaliser.',
+			'surah-name-vertical-position':
+				'Modifier la position verticale du nom de la sourate (pixels depuis le centre)',
+			'surah-name-horizontal-position':
+				'Modifier la position horizontale du nom de la sourate (pixels depuis le centre)',
+			'surah-name-format':
+				'Format d\u2019affichage du nom de la sourate. Utiliser les balises <number>, <transliteration>, <translation>, <min-range> et <max-range> pour personnaliser.',
 			'surah-show-arabic': 'Afficher le nom de la sourate en arabe',
 			'surah-show-latin': 'Afficher du texte latin supplémentaire (voir Format du texte latin)',
 			'surah-size': 'Échelle de la calligraphie de la sourate',
-			'surah-latin-spacing': 'Ajuster l\u2019espacement entre le nom arabe de la sourate et son équivalent latin',
+			'surah-latin-spacing':
+				'Ajuster l\u2019espacement entre le nom arabe de la sourate et son équivalent latin',
 			'surah-opacity': 'Ajuster l\u2019opacité du nom de la sourate',
 			'surah-latin-text-style': 'Style pour la translittération latine du nom de la sourate',
 			'reciter-name': 'Contrôler l\u2019affichage du nom du récitateur',
 			'show-reciter-name': 'Afficher ou masquer le nom du récitateur',
 			'reciter-name-always-show': 'Toujours afficher le nom du récitateur (ignorer le minutage)',
-			'reciter-name-time-appearance': 'Modifier l\u2019heure d\u2019apparition du nom du récitateur',
-			'reciter-name-time-disappearance': 'Modifier l\u2019heure de disparition du nom du récitateur',
-			'reciter-name-vertical-position': 'Modifier la position verticale du nom du récitateur (pixels depuis le centre)',
-			'reciter-name-horizontal-position': 'Modifier la position horizontale du nom du récitateur (pixels depuis le centre)',
-			'reciter-name-format': 'Format d\u2019affichage du nom du récitateur. Utiliser les balises <arabic> et <transliteration> pour personnaliser.',
+			'reciter-name-time-appearance':
+				'Modifier l\u2019heure d\u2019apparition du nom du récitateur',
+			'reciter-name-time-disappearance':
+				'Modifier l\u2019heure de disparition du nom du récitateur',
+			'reciter-name-vertical-position':
+				'Modifier la position verticale du nom du récitateur (pixels depuis le centre)',
+			'reciter-name-horizontal-position':
+				'Modifier la position horizontale du nom du récitateur (pixels depuis le centre)',
+			'reciter-name-format':
+				'Format d\u2019affichage du nom du récitateur. Utiliser les balises <arabic> et <transliteration> pour personnaliser.',
 			'reciter-show-arabic': 'Afficher le nom du récitateur en arabe',
 			'reciter-show-latin': 'Afficher du texte latin supplémentaire (voir Format du texte latin)',
 			'reciter-size': 'Taille de la calligraphie arabe du nom du récitateur',
-			'reciter-latin-spacing': 'Ajuster l\u2019espacement entre le nom arabe du récitateur et son équivalent latin',
+			'reciter-latin-spacing':
+				'Ajuster l\u2019espacement entre le nom arabe du récitateur et son équivalent latin',
 			'reciter-opacity': 'Ajuster l\u2019opacité du nom du récitateur',
 			'reciter-latin-text-style': 'Style pour la translittération latine du nom du récitateur',
 			'ayah-container': 'Ajouter une image d\u2019arrière-plan décorative derrière le verset',
 			'ayah-container-image': 'Sélectionner une image de conteneur décorative pour le verset',
-			'ayah-container-vertical-position': 'Modifier la position verticale du conteneur (pixels depuis le centre)',
-			'ayah-container-horizontal-position': 'Modifier la position horizontale du conteneur (pixels depuis le centre)',
-			'ayah-container-width': 'Largeur du conteneur en pourcentage (étire l\u2019image si le ratio n\u2019est pas respecté)',
-			'ayah-container-height': 'Hauteur du conteneur en pourcentage (étire l\u2019image si le ratio n\u2019est pas respecté)',
-			'ayah-container-stretch': 'Étirer l\u2019image pour remplir le conteneur (sinon elle s\u2019ajuste en préservant le ratio)',
+			'ayah-container-vertical-position':
+				'Modifier la position verticale du conteneur (pixels depuis le centre)',
+			'ayah-container-horizontal-position':
+				'Modifier la position horizontale du conteneur (pixels depuis le centre)',
+			'ayah-container-width':
+				'Largeur du conteneur en pourcentage (étire l\u2019image si le ratio n\u2019est pas respecté)',
+			'ayah-container-height':
+				'Hauteur du conteneur en pourcentage (étire l\u2019image si le ratio n\u2019est pas respecté)',
+			'ayah-container-stretch':
+				'Étirer l\u2019image pour remplir le conteneur (sinon elle s\u2019ajuste en préservant le ratio)',
 			'verse-number-text-style': 'Modifier le style d\u2019affichage du numéro de verset',
 			'custom-text': 'Ajouter un texte sur la vidéo',
 			'custom-text-composite': 'Personnaliser les styles de texte',
 			'custom-image': 'Ajouter une image sur la vidéo',
 			filepath: 'Chemin vers le fichier image',
-			'above-overlay': 'Faire apparaître l\u2019image au-dessus/en dessous de la superposition d\u2019arrière-plan',
+			'above-overlay':
+				'Faire apparaître l\u2019image au-dessus/en dessous de la superposition d\u2019arrière-plan',
 			'always-show': 'Toujours afficher (ignorer le minutage)',
 			'time-appearance': 'Modifier l\u2019heure d\u2019apparition',
 			'time-disappearance': 'Modifier l\u2019heure de disparition'
@@ -1265,6 +1381,9 @@ const fr: Translation = {
 		exportPerformance: 'Performance d\u2019export',
 		chooseCpuUsage:
 			'Choisissez à quel point l\u2019exportateur doit solliciter votre CPU pendant le travail ffmpeg.',
+		parallelCaptureWorkers: 'Workers de capture parallèle',
+		parallelCaptureWorkersDescription:
+			'Nombre de WebViews masquées utilisées pour capturer les frames PNG. La valeur par défaut est 4 ; 1 désactive la capture parallèle.',
 		fastest: 'Le plus rapide',
 		fastestDescription: 'Privilégie la vitesse d\u2019export et peut consommer plus de CPU.',
 		balanced: 'Équilibré',
@@ -1302,8 +1421,10 @@ const fr: Translation = {
 		translationByAuthor: 'Traduction par {author}',
 		translationAuthor: 'Traduction {author}',
 		includeVerseNumbers: 'Inclure les numéros de versets',
-		includeVerseNumbersAtEnd: 'Ajouter les numéros de versets (ex.\u00a0: \u00ab\u00a0255.\u00a0\u00bb) à la fin de chaque verset',
-		includeVerseNumbersAtStart: 'Ajouter les numéros de versets (ex.\u00a0: \u00ab\u00a0255.\u00a0\u00bb) au début de chaque verset',
+		includeVerseNumbersAtEnd:
+			'Ajouter les numéros de versets (ex.\u00a0: \u00ab\u00a0255.\u00a0\u00bb) à la fin de chaque verset',
+		includeVerseNumbersAtStart:
+			'Ajouter les numéros de versets (ex.\u00a0: \u00ab\u00a0255.\u00a0\u00bb) au début de chaque verset',
 		arabicTextFormat: 'Format du texte arabe',
 		arabicTextFormatDescription: 'Le format de l\u2019écriture arabe dans vos sous-titres.',
 		simpleText: 'Texte simple',
@@ -1312,9 +1433,11 @@ const fr: Translation = {
 		exportFolder: 'Dossier d\u2019export',
 		exportFolderDescription: 'Choisissez où vos fichiers exportés seront enregistrés.',
 		exportSubtitlesButton: 'Exporter les sous-titres',
-		exportSubtitlesButtonDescription: 'Générer des fichiers de sous-titres avec votre configuration',
+		exportSubtitlesButtonDescription:
+			'Générer des fichiers de sous-titres avec votre configuration',
 		exportYoutubeChapters: 'Exporter les chapitres YouTube',
-		exportYoutubeChaptersDescription: 'Générez des horodatages de chapitres pour votre description vidéo YouTube.',
+		exportYoutubeChaptersDescription:
+			'Générez des horodatages de chapitres pour votre description vidéo YouTube.',
 		chapterGeneration: 'Génération des chapitres',
 		chapterGenerationDescription: 'Choisissez comment organiser vos chapitres vidéo\u00a0:',
 		eachSurah: 'Chaque sourate',
@@ -1325,28 +1448,37 @@ const fr: Translation = {
 		chapterPerVerseDescription: 'Crée un chapitre pour chaque verset dans votre timeline vidéo.',
 		howToUse: 'Comment utiliser',
 		youtubeIntegration: 'Intégration YouTube',
-		youtubeIntegrationDescription: 'Collez les horodatages de chapitres générés dans la description de votre vidéo YouTube pour ajouter des chapitres.',
+		youtubeIntegrationDescription:
+			'Collez les horodatages de chapitres générés dans la description de votre vidéo YouTube pour ajouter des chapitres.',
 		exportYoutubeChaptersButton: 'Exporter les chapitres YouTube',
-		exportYoutubeChaptersButtonDescription: 'Générer des horodatages de chapitres pour votre description vidéo YouTube',
+		exportYoutubeChaptersButtonDescription:
+			'Générer des horodatages de chapitres pour votre description vidéo YouTube',
 		exportProjectData: 'Exporter les données du projet',
-		exportProjectDataDescription: 'Exportez la configuration de votre projet sous forme de fichier JSON autonome.',
+		exportProjectDataDescription:
+			'Exportez la configuration de votre projet sous forme de fichier JSON autonome.',
 		whatsIncluded: 'Contenu inclus',
 		projectSettings: 'Paramètres du projet',
-		projectSettingsDescription: 'Toute la configuration de votre projet, dimensions et préférences d\u2019export.',
+		projectSettingsDescription:
+			'Toute la configuration de votre projet, dimensions et préférences d\u2019export.',
 		subtitleData: 'Données de sous-titres',
 		subtitleDataDescription: 'Tous les clips de sous-titres, traductions et références de versets.',
 		customElements: 'Éléments personnalisés',
-		customElementsDescription: 'Clips de texte personnalisés, remplacements de style et configurations d\u2019arrière-plan.',
+		customElementsDescription:
+			'Clips de texte personnalisés, remplacements de style et configurations d\u2019arrière-plan.',
 		limitations: 'Limitations',
 		mediaFilesNotIncluded: 'Fichiers média non inclus',
-		mediaFilesNotIncludedDescription: 'Les fichiers audio et vidéo importés depuis votre appareil ne sont pas inclus. Seuls les noms de fichiers et les URL sources sont conservés.',
+		mediaFilesNotIncludedDescription:
+			'Les fichiers audio et vidéo importés depuis votre appareil ne sont pas inclus. Seuls les noms de fichiers et les URL sources sont conservés.',
 		exportProjectDataButton: 'Exporter les données du projet',
-		exportProjectDataButtonDescription: 'Générer un fichier JSON contenant toute la configuration de votre projet',
+		exportProjectDataButtonDescription:
+			'Générer un fichier JSON contenant toute la configuration de votre projet',
 		exportSubtitlesJsonButton: 'Exporter le JSON des sous-titres',
-		exportSubtitlesJsonButtonDescription: 'Générer un JSON compact au niveau des mots pour les segments de sous-titres coraniques modifiés',
+		exportSubtitlesJsonButtonDescription:
+			'Générer un JSON compact au niveau des mots pour les segments de sous-titres coraniques modifiés',
 		formatHint: 'Format\u00a0: HH:MM:SS ou utiliser la position actuelle du curseur de la timeline',
 		useCursorTime: 'Utiliser le temps du curseur',
-		cursorTimeTitle: 'Utiliser le temps du curseur de la timeline d\u2019aperçu et le placer dans le champ de temps',
+		cursorTimeTitle:
+			'Utiliser le temps du curseur de la timeline d\u2019aperçu et le placer dans le champ de temps',
 		orText: 'ou',
 		browse: 'Parcourir',
 		resetToDefault: 'Réinitialiser à l\u2019emplacement par défaut',
@@ -1439,7 +1571,8 @@ const fr: Translation = {
 		translationWorkspace: 'Espace de traduction',
 		selectVerseToEdit: 'Sélectionnez un verset pour modifier sa traduction.',
 		noTranslationSelected: 'Aucune traduction sélectionnée',
-		selectTranslationLeft: 'Sélectionnez une traduction dans le panneau de gauche pour la modifier.',
+		selectTranslationLeft:
+			'Sélectionnez une traduction dans le panneau de gauche pour la modifier.',
 		aiSettingsHeading: 'Paramètres IA',
 		aiModelLabel: 'Modèle',
 		aiEndpointLabel: 'Endpoint',
@@ -1491,13 +1624,15 @@ const fr: Translation = {
 		publishPresetConfirm:
 			'Êtes-vous sûr de vouloir publier ce preset dans la communauté\u00a0? Il sera accessible publiquement.',
 		communityPresetsHeading: 'Presets communautaires',
-		communityPresetsDescription: 'Téléchargez un style partagé pour l\u2019enregistrer et l\u2019appliquer localement.',
+		communityPresetsDescription:
+			'Téléchargez un style partagé pour l\u2019enregistrer et l\u2019appliquer localement.',
 		localPresetsHeading: 'Presets enregistrés',
 		presetsLibraryHeading: 'Bibliothèque de presets',
 		noLocalPresets: 'Aucun preset enregistré pour le moment.',
 		noLocalPresetsFound: 'Aucun preset enregistré trouvé.',
 		noCommunityPresets: 'Aucun preset communautaire trouvé',
-		noCommunityPresetsMessage: 'Essayez une autre recherche, un autre tag ou une autre orientation.',
+		noCommunityPresetsMessage:
+			'Essayez une autre recherche, un autre tag ou une autre orientation.',
 		communitySectionError: 'Impossible de charger les presets communautaires',
 		loadingPresets: 'Chargement des presets...',
 		presetAuthor: 'Par {author}',
@@ -1550,10 +1685,12 @@ const fr: Translation = {
 		allTags: 'Tous les tags',
 		tagsOptional: 'Tags (optionnels)',
 		descriptionOptional: 'Description (optionnelle)',
-		customImagesNotBundled: 'Les images personnalisées ne sont PAS incluses \u2014 les utilisateurs doivent les remplacer par leur propre image.',
+		customImagesNotBundled:
+			'Les images personnalisées ne sont PAS incluses \u2014 les utilisateurs doivent les remplacer par leur propre image.',
 		regeneratePreviewWarning: 'Régénérez l\u2019aperçu avant de publier.',
 		communityPresetPreviewAlt: 'Aperçu du preset communautaire',
-		generatePreviewHint: 'Générez un aperçu à partir d\u2019un sous-titre aléatoire dans l\u2019aperçu vidéo.',
+		generatePreviewHint:
+			'Générez un aperçu à partir d\u2019un sous-titre aléatoire dans l\u2019aperçu vidéo.',
 		previewReady: 'Aperçu prêt. Régénérez pour essayer un autre moment du sous-titre.',
 		subtitleRequiredForPreview: 'Un sous-titre est requis pour générer un aperçu.',
 		regeneratePreview: 'Régénérer',
@@ -1565,9 +1702,12 @@ const fr: Translation = {
 		customClipsLabel: 'Clips personnalisés',
 		noCustomClipsInProject: 'Aucun clip personnalisé dans le projet',
 		deletePresetTitle: 'Supprimer le preset',
-		wbwMissingInfo: 'Les styles mot par mot nécessitent des horodatages WBW sur au moins un sous-titre.',
-		wbwStep1: '1. Ajoutez-les avec la segmentation IA et assurez-vous d\u2019activer Inclure les horodatages mot par mot.',
-		wbwStep2: '2. Ou ajoutez-les manuellement dans l\u2019éditeur de sous-titres en maintenant E avec le curseur sur un sous-titre.'
+		wbwMissingInfo:
+			'Les styles mot par mot nécessitent des horodatages WBW sur au moins un sous-titre.',
+		wbwStep1:
+			'1. Ajoutez-les avec la segmentation IA et assurez-vous d\u2019activer Inclure les horodatages mot par mot.',
+		wbwStep2:
+			'2. Ou ajoutez-les manuellement dans l\u2019éditeur de sous-titres en maintenant E avec le curseur sur un sous-titre.'
 	},
 	settings: {
 		settings: 'Paramètres',
@@ -1684,7 +1824,8 @@ const fr: Translation = {
 		checkingForUpdates: 'Recherche de mises à jour...',
 		organizingProjects: 'Organisation des projets...',
 		organizeProjectFolders: 'Organiser les dossiers de projets',
-		aboutDescription: 'Quran Caption est une application de bureau qui transforme les récitations coraniques en vidéos magnifiquement sous-titrées. Elle combine le traitement audio avec le texte coranique pour créer des vidéos sous-titrées de qualité professionnelle pour le partage, l\'apprentissage et la dawah.',
+		aboutDescription:
+			"Quran Caption est une application de bureau qui transforme les récitations coraniques en vidéos magnifiquement sous-titrées. Elle combine le traitement audio avec le texte coranique pour créer des vidéos sous-titrées de qualité professionnelle pour le partage, l'apprentissage et la dawah.",
 		versionLabel: 'Version {version}',
 		restartTutorial: 'Redémarrer le tutoriel',
 		connected: 'Connecté',
@@ -1692,37 +1833,40 @@ const fr: Translation = {
 		connectionError: 'Erreur de connexion',
 		notConnected: 'Non connecté',
 		signedInAs: 'Connecté en tant que {name}',
-		finishLoginBrowser: 'Terminez la connexion Quran.com dans votre navigateur pour terminer la connexion.',
+		finishLoginBrowser:
+			'Terminez la connexion Quran.com dans votre navigateur pour terminer la connexion.',
 		notConnectedMessage: 'Vous utilisez actuellement Quran Caption sans compte Quran.com.',
 		disconnect: 'Déconnecter',
 		waitingForLogin: 'En attente de connexion...',
 		connectWithQuranCom: 'Se connecter avec Quran.com',
 		accountLabel: 'Compte',
 		subjectLabel: 'Sujet\u00a0: {id}',
-		accessTokenExpires: 'Jeton d\'accès expire\u00a0: {date}',
+		accessTokenExpires: "Jeton d'accès expire\u00a0: {date}",
 		aSecondKeyAlreadyDefined: 'Une seconde touche est déjà définie',
 		clickToSetKey: 'Cliquer pour définir la touche',
 		pressAKey: 'Appuyez sur une touche',
 		videoExportFinished: 'Export vidéo terminé',
-		videoExportFailed: 'Échec de l\'export vidéo',
+		videoExportFailed: "Échec de l'export vidéo",
 		usingQuranCaption: 'Utilise Quran Caption',
-		atHomeMenu: 'Au menu d\'accueil',
+		atHomeMenu: "Au menu d'accueil",
 		idle: 'Inactif',
-		creatingQuranVideo: 'Création d\'une vidéo coranique',
+		creatingQuranVideo: "Création d'une vidéo coranique",
 		workingOnProject: 'Travail sur {name} ({reciter})',
 		workingOn: 'Travail sur {name}',
 		captioningStatus: 'Sous-titrage',
 		unableToStartSignIn: 'Impossible de démarrer la connexion Quran.com.',
-		authDataIncomplete: 'Les données d\'authentification sont incomplètes.',
+		authDataIncomplete: "Les données d'authentification sont incomplètes.",
 		missingVerifier: 'Vérificateur manquant pour la liaison OAuth.',
 		unableToCompleteSignIn: 'Impossible de terminer la connexion Quran.com.',
-		sessionExpired: 'Votre session Quran.com a expiré et n\'a pas pu être renouvelée.',
+		sessionExpired: "Votre session Quran.com a expiré et n'a pas pu être renouvelée.",
 		bridgeResponseEmpty: 'La réponse du pont était vide.',
-		connectAccountFirst: 'Connectez d\'abord votre compte Quran.com.',
-		accessTokenUnavailable: 'Le jeton d\'accès Quran.com est indisponible. Veuillez vous reconnecter.',
-		clientIdMissing: 'L\'identifiant client Quran Foundation est manquant dans la session actuelle. Veuillez vous reconnecter.',
+		connectAccountFirst: "Connectez d'abord votre compte Quran.com.",
+		accessTokenUnavailable:
+			"Le jeton d'accès Quran.com est indisponible. Veuillez vous reconnecter.",
+		clientIdMissing:
+			"L'identifiant client Quran Foundation est manquant dans la session actuelle. Veuillez vous reconnecter.",
 		collectionNameEmpty: 'Le nom de la collection ne peut pas être vide.',
-		apiResponseEmpty: 'La réponse de l\'API Quran Foundation était vide.',
+		apiResponseEmpty: "La réponse de l'API Quran Foundation était vide.",
 		shortcutCat: {
 			VIDEO_PREVIEW: 'Aperçu vidéo',
 			SUBTITLES_EDITOR: 'Éditeur de sous-titres',
@@ -1730,8 +1874,8 @@ const fr: Translation = {
 			TIMELINE: 'Timeline'
 		},
 		shortcutCatDesc: {
-			VIDEO_PREVIEW: 'Contrôles pour la lecture et l\'aperçu vidéo',
-			SUBTITLES_EDITOR: 'Contrôles pour l\'édition et la gestion des sous-titres',
+			VIDEO_PREVIEW: "Contrôles pour la lecture et l'aperçu vidéo",
+			SUBTITLES_EDITOR: "Contrôles pour l'édition et la gestion des sous-titres",
 			PREDEFINED_SUBTITLES: 'Raccourcis pour insérer des clips de sous-titres prédéfinis',
 			TIMELINE: 'Contrôles pour la navigation dans la timeline et le comportement de la molette'
 		},
@@ -1757,7 +1901,7 @@ const fr: Translation = {
 			ADD_CUSTOM_TEXT_CLIP: 'Ajouter un texte personnalisé',
 			SPLIT_SUBTITLE: 'Diviser le sous-titre',
 			ADD_BASMALA: 'Ajouter la basmala',
-			ADD_ISTIADHAH: 'Ajouter l\'isti\'adhah',
+			ADD_ISTIADHAH: "Ajouter l'isti'adhah",
 			ADD_AMIN: 'Ajouter amin',
 			ADD_TAKBIR: 'Ajouter takbir',
 			ADD_TAHMEED: 'Ajouter tahmeed',
@@ -1771,9 +1915,9 @@ const fr: Translation = {
 			FRAME_FORWARD: 'Image suivante'
 		},
 		shortcutActionDesc: {
-			MOVE_FORWARD: 'Avance l\'aperçu de 2 secondes',
-			MOVE_BACKWARD: 'Recule l\'aperçu de 2 secondes',
-			PLAY_PAUSE: 'Lancer ou mettre en pause l\'aperçu vidéo',
+			MOVE_FORWARD: "Avance l'aperçu de 2 secondes",
+			MOVE_BACKWARD: "Recule l'aperçu de 2 secondes",
+			PLAY_PAUSE: "Lancer ou mettre en pause l'aperçu vidéo",
 			INCREASE_SPEED: 'Basculer la vitesse vidéo entre 1x et 2x',
 			TOGGLE_FULLSCREEN: 'Entrer ou quitter le mode plein écran',
 			GO_TO_START: 'Arrêter la lecture et revenir au début de la vidéo',
@@ -1781,18 +1925,21 @@ const fr: Translation = {
 			SELECT_PREVIOUS_WORD: 'Déplacer la sélection vers le mot précédent',
 			RESET_START_CURSOR: 'Placer le curseur de début sur la position du curseur de fin',
 			SELECT_ALL_WORDS: 'Sélectionner tous les mots du verset actuel',
-			SET_END_TO_LAST: 'Déplacer le curseur de fin jusqu\'à la prochaine ponctuation',
-			SET_END_TO_PREVIOUS: 'Déplacer le curseur de fin jusqu\'à la ponctuation précédente',
+			SET_END_TO_LAST: "Déplacer le curseur de fin jusqu'à la prochaine ponctuation",
+			SET_END_TO_PREVIOUS: "Déplacer le curseur de fin jusqu'à la ponctuation précédente",
 			ADD_SUBTITLE: 'Créer un sous-titre avec les mots sélectionnés',
 			REMOVE_LAST_SUBTITLE: 'Supprimer le sous-titre le plus récent',
 			EDIT_LAST_SUBTITLE: 'Modifier le sous-titre sous le curseur, ou le dernier si aucun',
 			ADD_SILENCE: 'Insérer une période de silence dans la timeline',
-			SET_LAST_SUBTITLE_END: 'Définir l\'heure de fin du sous-titre à la position du curseur et ajuster le début du sous-titre suivant',
-			SET_LAST_SUBTITLE_START: 'Définir l\'heure de début du sous-titre à la position du curseur et ajuster la fin du sous-titre précédent',
-			ADD_CUSTOM_TEXT_CLIP: 'Ajouter un clip de texte personnalisé entre le dernier sous-titre et la position actuelle',
+			SET_LAST_SUBTITLE_END:
+				"Définir l'heure de fin du sous-titre à la position du curseur et ajuster le début du sous-titre suivant",
+			SET_LAST_SUBTITLE_START:
+				"Définir l'heure de début du sous-titre à la position du curseur et ajuster la fin du sous-titre précédent",
+			ADD_CUSTOM_TEXT_CLIP:
+				'Ajouter un clip de texte personnalisé entre le dernier sous-titre et la position actuelle',
 			SPLIT_SUBTITLE: 'Diviser le sous-titre à la position du curseur',
 			ADD_BASMALA: 'Ajouter un sous-titre avec la basmala',
-			ADD_ISTIADHAH: 'Ajouter un sous-titre avec l\'isti\'adhah',
+			ADD_ISTIADHAH: "Ajouter un sous-titre avec l'isti'adhah",
 			ADD_AMIN: 'Ajouter un sous-titre avec amin',
 			ADD_TAKBIR: 'Ajouter un sous-titre avec takbir',
 			ADD_TAHMEED: 'Ajouter un sous-titre avec tahmeed',
@@ -1802,8 +1949,8 @@ const fr: Translation = {
 			HORIZONTAL_SCROLL: 'Maintenir ce raccourci en défilant pour se déplacer horizontalement',
 			VERTICAL_SCROLL: 'Raccourci utilisé pour le défilement vertical de la timeline',
 			FRAME_BY_FRAME_SCROLL: 'Maintenir ce raccourci en défilant pour avancer image par image',
-			FRAME_BACKWARD: 'Reculer le curseur d\'une image',
-			FRAME_FORWARD: 'Avancer le curseur d\'une image'
+			FRAME_BACKWARD: "Reculer le curseur d'une image",
+			FRAME_FORWARD: "Avancer le curseur d'une image"
 		}
 	},
 	tour: {
@@ -2034,15 +2181,16 @@ const fr: Translation = {
 		model: 'Modèle',
 		steps: 'Étapes',
 		videoThemeLabel: 'Thème de la vidéo',
-		videoThemeInputPlaceholder: 'ex. L\'importance d\'obéir à nos parents',
+		videoThemeInputPlaceholder: "ex. L'importance d'obéir à nos parents",
 		videoThemeDescription: 'Décrivez le thème ou le sujet de votre vidéo.',
-		backgroundSourceLabel: 'Source de l\'arrière-plan',
-		generateVideoWithAI: 'Générer une vidéo avec l\'IA',
+		backgroundSourceLabel: "Source de l'arrière-plan",
+		generateVideoWithAI: "Générer une vidéo avec l'IA",
 		downloadFromYouTube: 'Télécharger depuis YouTube',
-		noBackground: 'Pas d\'arrière-plan',
+		noBackground: "Pas d'arrière-plan",
 		youtubeVideoUrlLabel: 'URL de la vidéo YouTube',
-		downloadedVideoOrientation: 'L\'orientation propre à la vidéo téléchargée sera utilisée automatiquement.',
-		noBackgroundDescription: 'Aucune vidéo d\'arrière-plan ne sera ajoutée au projet.',
+		downloadedVideoOrientation:
+			"L'orientation propre à la vidéo téléchargée sera utilisée automatiquement.",
+		noBackgroundDescription: "Aucune vidéo d'arrière-plan ne sera ajoutée au projet.",
 		videoGenerationPrompt: 'Prompt de génération vidéo',
 		selectReciterLabel: 'Récitateur',
 		selectReciterPlaceholder: 'Sélectionnez un récitateur',
@@ -2055,7 +2203,7 @@ const fr: Translation = {
 		fromAyah: 'Du verset',
 		toAyah: 'Au verset',
 		summaryLabel: 'Résumé',
-		backgroundVideoLabel: 'Vidéo d\'arrière-plan',
+		backgroundVideoLabel: "Vidéo d'arrière-plan",
 		backgroundLabel: 'Arrière-plan',
 		themeLabel: 'Thème',
 		noneFallback: 'Aucun',
@@ -2068,18 +2216,19 @@ const fr: Translation = {
 		translationLabel: 'Traduction',
 		createProject: 'Créer le projet',
 		creatingProjectLabel: 'Création du projet...',
-		letAiDecide: 'Laisser l\'IA décider',
+		letAiDecide: "Laisser l'IA décider",
 		noFileSelected: 'Aucun fichier sélectionné',
 		noTranslation: 'Aucune traduction',
-		letAiChooseVerseRange: 'Laisser l\'IA choisir la plage de versets',
+		letAiChooseVerseRange: "Laisser l'IA choisir la plage de versets",
 		versePreview: 'Aperçu des versets',
 		quickPresets: 'Préréglages rapides',
-		loadsEndpointModel: 'Charge l\'endpoint et le modèle uniquement',
+		loadsEndpointModel: "Charge l'endpoint et le modèle uniquement",
 		providerApiKeyPlaceholder: 'Clé API du fournisseur',
 		textAiEndpoint: 'Endpoint IA de texte',
 		modelLabelSpan: 'Modèle',
 		reasoningEffort: 'Effort de raisonnement',
-		aiSelectedReciterError: 'L\'IA a sélectionné un récitateur qui n\'a pas pu être résolu. Veuillez en choisir un manuellement dans la révision.',
+		aiSelectedReciterError:
+			"L'IA a sélectionné un récitateur qui n'a pas pu être résolu. Veuillez en choisir un manuellement dans la révision.",
 		subtitlesFailed: 'Échec des sous-titres\u00a0: {message}. Projet créé sans sous-titres.',
 		failedToCreateProject: 'Échec de création du projet\u00a0: {error}',
 		aiTrimBatchFailed: 'Échec du lot de rognage IA {batch}\u00a0: {error}',
@@ -2091,48 +2240,56 @@ const fr: Translation = {
 		browse: 'Parcourir',
 		loadingReciters: 'Chargement des récitateurs depuis MP3Quran...',
 		surahAndVerseRange: 'Sourate et plage de versets',
-		surahNotAvailable: 'Cette sourate n\'est pas disponible pour le récitateur/moshaf sélectionné.',
+		surahNotAvailable: "Cette sourate n'est pas disponible pour le récitateur/moshaf sélectionné.",
 		providerModel: 'Fournisseur / Modèle',
-		mockedProviders: 'Fournisseurs simulés pour le moment. Les vraies API seront ajoutées ultérieurement.',
+		mockedProviders:
+			'Fournisseurs simulés pour le moment. Les vraies API seront ajoutées ultérieurement.',
 		quranApi: 'API Quran',
 		quranCom: 'Quran.com',
 		loadingQuranComTranslations: 'Chargement des traductions Quran.com...',
 		noTranslationsFound: 'Aucune traduction trouvée',
 		selectTranslationHint: 'Sélectionnez une traduction à inclure dans les sous-titres vidéo.',
-		letAiChooseDescription: 'L\'IA sélectionnera la meilleure plage de versets coraniques en fonction de votre thème.',
+		letAiChooseDescription:
+			"L'IA sélectionnera la meilleure plage de versets coraniques en fonction de votre thème.",
 		loadingVerses: 'Chargement des versets...',
 		noVersesToPreview: 'Aucun verset à prévisualiser',
 		aiApiKeyLabel: 'Clé API IA',
 		apiKeyStoredHint: 'Stockée en clair dans `settings.json`. Valeur actuelle\u00a0: {value}',
 		textAiEndpointPlaceholder: 'https://api.openai.com/v1/responses',
-		textAiEndpointDescription: 'Endpoint utilisé pour le rognage avancé, l\'IA Bold et la planification vidéo IA.',
+		textAiEndpointDescription:
+			"Endpoint utilisé pour le rognage avancé, l'IA Bold et la planification vidéo IA.",
 		modelPlaceholder: 'gpt-5.4',
 		alsoAskReviewed: 'Demander aussi pour les versets déjà révisés',
-		alsoAskReviewedDescription: 'Inclure les versets entièrement révisés dans la sélection de candidats.',
+		alsoAskReviewedDescription:
+			'Inclure les versets entièrement révisés dans la sélection de candidats.',
 		backToOptions: 'Retour aux options',
-		backToHome: 'Retour à l\'accueil',
+		backToHome: "Retour à l'accueil",
 		inputStepDescription: 'Décrivez le thème de votre vidéo et choisissez vos options',
 		reviewStepDescription: 'Révisez et ajustez avant de créer le projet',
-		aiIsPlanning: 'L\'IA planifie votre vidéo...',
+		aiIsPlanning: "L'IA planifie votre vidéo...",
 		preparingReview: 'Préparation de la révision...',
 		generateAiPlan: 'Générer le plan IA',
 		reviewContinue: 'Réviser et continuer',
-		aiWillChoose: 'L\'IA utilisera votre API configurée pour sélectionner une plage de versets et, si nécessaire, un récitateur.',
+		aiWillChoose:
+			"L'IA utilisera votre API configurée pour sélectionner une plage de versets et, si nécessaire, un récitateur.",
 		videoPromptPlaceholder: 'Description visuelle pour le générateur vidéo IA...',
-		videoPromptDescription: 'Ce prompt sera envoyé à l\'API de génération vidéo. Modifiez-le pour ajuster le style visuel.',
-		youtubeReviewHint: 'La vidéo YouTube sera téléchargée et utilisée comme arrière-plan lors de la création du projet.',
-		noBackgroundReviewHint: 'Le projet sera créé sans aucune vidéo d\'arrière-plan.',
-		mockedVideoHint: 'La génération vidéo est actuellement simulée. Un véritable arrière-plan généré par IA sera ajouté ultérieurement.',
+		videoPromptDescription:
+			"Ce prompt sera envoyé à l'API de génération vidéo. Modifiez-le pour ajuster le style visuel.",
+		youtubeReviewHint:
+			'La vidéo YouTube sera téléchargée et utilisée comme arrière-plan lors de la création du projet.',
+		noBackgroundReviewHint: "Le projet sera créé sans aucune vidéo d'arrière-plan.",
+		mockedVideoHint:
+			'La génération vidéo est actuellement simulée. Un véritable arrière-plan généré par IA sera ajouté ultérieurement.',
 		creatingProjectStatus: 'Création du projet...',
-		downloadingBgVideo: 'Téléchargement de la vidéo d\'arrière-plan...',
-		addingBgVideo: 'Ajout de la vidéo d\'arrière-plan...',
-		addingAudioToTimeline: 'Ajout de l\'audio à la timeline...',
-		generatingSubtitles: 'Génération des sous-titres avec l\'IA...',
+		downloadingBgVideo: "Téléchargement de la vidéo d'arrière-plan...",
+		addingBgVideo: "Ajout de la vidéo d'arrière-plan...",
+		addingAudioToTimeline: "Ajout de l'audio à la timeline...",
+		generatingSubtitles: "Génération des sous-titres avec l'IA...",
 		copyingAudio: 'Copie du fichier audio...',
 		downloadingRecitation: 'Téléchargement de la récitation...',
-		trimmingAudio: 'Rognage de l\'audio sur la plage de versets...',
+		trimmingAudio: "Rognage de l'audio sur la plage de versets...",
 		loadingTranslation: 'Chargement de la traduction...',
-		trimmingWithAI: 'Rognage des traductions avec l\'IA...',
+		trimmingWithAI: "Rognage des traductions avec l'IA...",
 		finalizingProject: 'Finalisation du projet...'
 	},
 	donation: {

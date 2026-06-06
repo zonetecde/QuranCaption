@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	calculateCaptureTimingsForRange,
+	buildExportCaptureJobPlan,
 	getTimedOverlayStateAt,
 	hasBlankImg,
 	hasTiming,
@@ -116,6 +117,104 @@ describe('resolveCurrentSurahFromClips', () => {
 
 	it('returns -1 when there is no subtitle at all', () => {
 		expect(resolveCurrentSurahFromClips([silence(0, 500), predefined(600, 700)], 650)).toBe(-1);
+	});
+});
+
+describe('buildExportCaptureJobPlan', () => {
+	it('separates blank source captures from numbered blank copies', () => {
+		const key = blankKey(1);
+		const plan = buildExportCaptureJobPlan({
+			timings: {
+				uniqueSorted: [0, 800, 1_000],
+				imgWithNothingShown: { [key]: 800 },
+				blankImgs: { [key]: [1_000] },
+				duplicableTimings: new Map(),
+				exactCaptureTimings: new Set(),
+				exactCaptureTimingValues: new Map()
+			},
+			rangeStart: 0,
+			rangeEnd: 1_000,
+			fadeDuration: 100,
+			workerCount: 4,
+			isBlankCaptureTiming: (timing) => timing >= 800,
+			getReusableBlankFileName: () => null
+		});
+
+		expect(plan.blankSourceJobs).toEqual([
+			{
+				kind: 'blankSource',
+				timing: 800,
+				captureTiming: 800,
+				fileName: 'blank_surah%3A1%7Coverlays%3A',
+				blankVisualStateKey: key
+			}
+		]);
+		expect(plan.copyJobs).toEqual([
+			{
+				kind: 'copy',
+				timing: 1_000,
+				sourceFileName: 'blank_surah%3A1%7Coverlays%3A',
+				targetFileName: 1_100,
+				reason: 'blank'
+			}
+		]);
+		expect(plan.blankImageIndexes).toEqual([800, 1_100]);
+	});
+
+	it('runs duplicable timing copies after their capture source can exist', () => {
+		const plan = buildExportCaptureJobPlan({
+			timings: {
+				uniqueSorted: [0, 200, 800],
+				imgWithNothingShown: {},
+				blankImgs: {},
+				duplicableTimings: new Map([[800, 200]]),
+				exactCaptureTimings: new Set(),
+				exactCaptureTimingValues: new Map()
+			},
+			rangeStart: 0,
+			rangeEnd: 1_000,
+			fadeDuration: 100,
+			workerCount: 4,
+			isBlankCaptureTiming: () => false,
+			getReusableBlankFileName: () => null
+		});
+
+		expect(plan.captureJobs.map((job) => job.timing)).toEqual([0, 200]);
+		expect(plan.copyJobs).toEqual([
+			{
+				kind: 'copy',
+				timing: 800,
+				sourceFileName: '100',
+				targetFileName: 900,
+				reason: 'duplicable'
+			}
+		]);
+	});
+
+	it('splits capture jobs into stable temporal quarters', () => {
+		const plan = buildExportCaptureJobPlan({
+			timings: {
+				uniqueSorted: [0, 100, 200, 300, 400, 500, 600, 700],
+				imgWithNothingShown: {},
+				blankImgs: {},
+				duplicableTimings: new Map(),
+				exactCaptureTimings: new Set(),
+				exactCaptureTimingValues: new Map()
+			},
+			rangeStart: 0,
+			rangeEnd: 800,
+			fadeDuration: 0,
+			workerCount: 4,
+			isBlankCaptureTiming: () => false,
+			getReusableBlankFileName: () => null
+		});
+
+		expect(plan.workerBuckets.map((bucket) => bucket.map((job) => job.timing))).toEqual([
+			[0, 100],
+			[200, 300],
+			[400, 500],
+			[600, 700]
+		]);
 	});
 });
 

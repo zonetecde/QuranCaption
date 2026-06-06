@@ -373,15 +373,6 @@ function applyTextTransform(text: string, transform: string): string {
 }
 
 /**
- * Indique si un token peut se couper naturellement entre caracteres CJK.
- * @param {string} text Texte du token.
- * @returns {boolean} `true` si le token contient un caractere CJK.
- */
-function shouldSplitTokenIntoGraphemes(text: string): boolean {
-	return /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/u.test(text);
-}
-
-/**
  * Decoupe un intervalle texte en bornes de graphemes.
  * @param {string} text Texte source complet.
  * @param {number} start Debut de l'intervalle.
@@ -394,9 +385,22 @@ function getGraphemeRanges(
 	end: number
 ): Array<{ start: number; end: number }> {
 	const ranges: Array<{ start: number; end: number }> = [];
-	let offset = start;
+	const slicedText = text.slice(start, end);
+	const segmenter =
+		'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 
-	for (const grapheme of Array.from(text.slice(start, end))) {
+	if (segmenter) {
+		for (const { segment, index } of segmenter.segment(slicedText)) {
+			ranges.push({
+				start: start + index,
+				end: start + index + segment.length
+			});
+		}
+		return ranges;
+	}
+
+	let offset = start;
+	for (const grapheme of Array.from(slicedText)) {
 		const nextOffset = offset + grapheme.length;
 		ranges.push({ start: offset, end: nextOffset });
 		offset = nextOffset;
@@ -416,17 +420,8 @@ function getTextTokenRanges(text: string): Array<{ start: number; end: number }>
 	let match: RegExpExecArray | null;
 
 	while ((match = tokenPattern.exec(text)) !== null) {
-		const tokenText = match[0].trimEnd();
-		const tokenStart = match.index;
-		const tokenEnd = tokenStart + tokenText.length;
-
-		if (shouldSplitTokenIntoGraphemes(tokenText)) {
-			tokens.push(...getGraphemeRanges(text, tokenStart, tokenEnd));
-			continue;
-		}
-
 		tokens.push({
-			start: tokenStart,
+			start: match.index,
 			end: match.index + match[0].length
 		});
 	}
@@ -459,6 +454,23 @@ function getTextLineRects(textNode: Text, rootScaleY: number): TextLineRect[] {
 		range.setEnd(textNode, token.end);
 		const rects = Array.from(range.getClientRects());
 		range.detach();
+		const lineCount = new Set(rects.map((rect) => getLineBucket(rect, rootScaleY))).size;
+
+		if (lineCount > 1) {
+			for (const grapheme of getGraphemeRanges(textNode.data, token.start, token.end)) {
+				const graphemeRange = document.createRange();
+				graphemeRange.setStart(textNode, grapheme.start);
+				graphemeRange.setEnd(textNode, grapheme.end);
+				const graphemeRects = Array.from(graphemeRange.getClientRects());
+				graphemeRange.detach();
+
+				for (const rect of graphemeRects) {
+					if (!rect.width || !rect.height) continue;
+					tokenRects.push({ ...grapheme, rect });
+				}
+			}
+			continue;
+		}
 
 		for (const rect of rects) {
 			if (!rect.width || !rect.height) continue;

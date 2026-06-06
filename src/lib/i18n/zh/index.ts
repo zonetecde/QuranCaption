@@ -31,12 +31,12 @@ const zh: Translation = {
 		apply: '应用',
 		reset: '重置',
 		save: '保存',
-		'delete': '删除',
+		delete: '删除',
 		edit: '编辑',
 		rename: '重命名',
 		duplicate: '复制',
-		'export': '导出',
-		'import': '导入',
+		export: '导出',
+		import: '导入',
 		refresh: '刷新',
 		download: '下载',
 		upload: '上传',
@@ -56,7 +56,7 @@ const zh: Translation = {
 		auto: '自动',
 		fixed: '固定',
 		custom: '自定义',
-		'default': '默认',
+		default: '默认',
 		selected: '已选择',
 		all: '全部',
 		filter: '筛选',
@@ -264,14 +264,14 @@ const zh: Translation = {
 		migrationInProgress: '迁移进行中... 请不要关闭此窗口',
 		importV2toV3: '这将把您所有的 V2 项目导入为 V3 格式',
 		startMigration: '开始迁移',
-		'continue': '继续'
+		continue: '继续'
 	},
 	editor: {
 		videoEditor: '视频编辑器',
 		subtitlesEditor: '字幕编辑器',
 		translations: '翻译',
 		style: '样式',
-		'export': '导出',
+		export: '导出',
 		addToTimeline: '添加到时间轴',
 		removeAsset: '移除素材',
 		removeAssetConfirm: '您确定要从项目中移除此素材吗？',
@@ -478,17 +478,21 @@ const zh: Translation = {
 		convertToMp4Error: '请将您的文件转换为 mp4 以用于音频轨道（此文件当前格式不受支持）',
 		unknownAudioError: '加载音频时发生未知错误：{error}',
 		unableToAnalyzeMedia: '无法分析此媒体文件。请检查 FFmpeg/FFprobe 安装。',
-		variableBitrateWarning: '您的媒体使用可变比特率（VBR）。这可能在导出时导致时间不一致。请转换为恒定比特率（CBR）以获得更好的结果。',
+		variableBitrateWarning:
+			'您的媒体使用可变比特率（VBR）。这可能在导出时导致时间不一致。请转换为恒定比特率（CBR）以获得更好的结果。',
 		tajweedRequiresInternet: 'Tajweed 需要互联网连接。请检查您的连接并重试。',
 		noSubtitlesToShift: '没有从此时间或之后开始的字幕 \u2014 无需移动。',
 		cannotShiftBackward: '无法向后移动：截断点之前的字幕将变得太短。',
 		nativeTimingsConfirm: '此音频包含官方原生时间信息。是否将其添加到时间轴并立即加载字幕？',
 		makeQuranSubtitleConfirm: '要使此字幕成为古兰经样式，请在选择器中选择词汇并按回车应用。',
 		atLeastOneWbwRequired: '在分割长字幕之前，时间轴中至少有一个字幕必须具有逐词时间戳。',
-		noWbwTimestampsError: '此字幕生成时没有逐词时间戳。请在分段设置中启用\u300c包含逐词时间戳\u300d，然后重新运行分段。',
-		tajweedFontWarning: 'Tajweed 需要互联网连接来加载其字体。如果不可用，将自动回退到 QPC2。Tajweed 文本颜色当前被强制为黑色，您无法更改。',
+		noWbwTimestampsError:
+			'此字幕生成时没有逐词时间戳。请在分段设置中启用\u300c包含逐词时间戳\u300d，然后重新运行分段。',
+		tajweedFontWarning:
+			'Tajweed 需要互联网连接来加载其字体。如果不可用，将自动回退到 QPC2。Tajweed 文本颜色当前被强制为黑色，您无法更改。',
 		overridesApplied: '覆盖已应用',
-		markedTranslationErrors: '已将 {verses} 节经文中 {checked} 个翻译段落的 {marked} 个标记为错误。',
+		markedTranslationErrors:
+			'已将 {verses} 节经文中 {checked} 个翻译段落的 {marked} 个标记为错误。',
 		failedToMarkErrors: '标记翻译错误失败：{error}',
 		missingWbwMarked: '已标记 {count} 个字幕{plural}因缺少 WBW 时间戳。',
 		splitApplied: '已自动应用 {count} 个字幕分割{plural}。',
@@ -609,7 +613,8 @@ const zh: Translation = {
 		autoDetectSurah: '自动检测苏拉',
 		specifySurah: '指定苏拉',
 		surahSplitterPrecisionHint: '指定苏拉可提高精度，因为匹配仅限于该苏拉。',
-		surahSplitterMultiSurahNote: '注意：如果您的音频包含多个苏拉，则只会检测和分割最后一个。对于多苏拉文件，请使用其他模型。',
+		surahSplitterMultiSurahNote:
+			'注意：如果您的音频包含多个苏拉，则只会检测和分割最后一个。对于多苏拉文件，请使用其他模型。',
 		reviewAndLaunch: '审阅并启动',
 		reviewAndLaunchDesc: '在生成字幕之前检查您的配置。',
 		methodLabel: '方法',
@@ -636,7 +641,8 @@ const zh: Translation = {
 		requiredLocalPackages: '所需本地包',
 		checkingLocalEngines: '正在后台检查本地引擎...',
 		noTokenRequiredHint: '无需 Token。完全本地安装，模型在设备上下载。',
-		noTokenRequiredSurahSplitterHint: '无需 Token。Surah Splitter 在首次运行时下载其 WhisperX 模型。',
+		noTokenRequiredSurahSplitterHint:
+			'无需 Token。Surah Splitter 在首次运行时下载其 WhisperX 模型。',
 		muaalemLocalHint: '此选项完全本地运行，但通常不如官方 Quranic Universal Aligner 管道精确。',
 		surahSplitterLocalHint: '此选项可以自动检测苏拉。在下一步中手动选择苏拉可提高匹配精度。',
 		chooseMethodLabel: '选择方法',
@@ -646,14 +652,17 @@ const zh: Translation = {
 		usesOfficialRemote: '远程使用官方 Quranic Universal Aligner。推荐大多数用户使用。',
 		surahSplitterLocalLabel: 'Surah Splitter 本地',
 		surahSplitterLocalDesc: '本地经文检测，可选苏拉提示',
-		surahSplitterLocalDetail: '使用 WhisperX 在本地运行 Surah Splitter。它可以自动检测苏拉并支持逐词对齐，但手动选择苏拉可提高精度。',
+		surahSplitterLocalDetail:
+			'使用 WhisperX 在本地运行 Surah Splitter。它可以自动检测苏拉并支持逐词对齐，但手动选择苏拉可提高精度。',
 		surahSplitterSingleSurahNote: '注意：此选项仅在音频文件中只有一首苏拉时有效。',
 		muaalemLocalLabel: 'Muaalem 本地',
 		muaalemLocalDesc: '第二选项，但效果不如 Surah Splitter',
-		muaalemLocalDetail: '通过 Muaalem 本地管道完全在您的机器上运行。它使用古兰经专用分段和专业匹配。',
+		muaalemLocalDetail:
+			'通过 Muaalem 本地管道完全在您的机器上运行。它使用古兰经专用分段和专业匹配。',
 		privateLocalQuranicAlignerLabel: '私有本地 Quranic Universal Aligner',
 		bestLocalAccuracy: '最佳本地精度',
-		privateLocalQuranicAlignerDetail: '通过私有本地 Quranic Universal Aligner 栈在您的机器上运行。需要 Python 设置和 Hugging Face Token。',
+		privateLocalQuranicAlignerDetail:
+			'通过私有本地 Quranic Universal Aligner 栈在您的机器上运行。需要 Python 设置和 Hugging Face Token。',
 		offlineLabel: '离线',
 		advancedLabel: '高级',
 		importHuggingFaceJson: '导入 Hugging Face JSON',
@@ -702,7 +711,8 @@ const zh: Translation = {
 		downloadFailed: '下载失败',
 		enterValidMediaUrl: '请输入有效的公开媒体 URL。',
 		downloadErrorPrefix: '从链接下载媒体时出错：',
-		supportedLinksHint: '支持的公开链接包括 YouTube、SoundCloud 上的完整苏拉或 Mushaf 上传、Internet Archive 合集、公开的 Google Drive 链接以及来自 Facebook、Instagram、TikTok 或 X/Twitter 的短篇诵读摘录。',
+		supportedLinksHint:
+			'支持的公开链接包括 YouTube、SoundCloud 上的完整苏拉或 Mushaf 上传、Internet Archive 合集、公开的 Google Drive 链接以及来自 Facebook、Instagram、TikTok 或 X/Twitter 的短篇诵读摘录。',
 		downloadQuranRecitation: '下载古兰经诵读',
 		sourceLabel: '来源',
 		reciterLabel: '诵读者',
@@ -751,18 +761,24 @@ const zh: Translation = {
 		clickToGenerateWaveform: '点击生成波形（长音频默认禁用以节省内存）',
 		noTranslationEditionForClip: '此片段没有可用的翻译版本。',
 		wbwTimestampGuide: '按空格播放音频，每次一个词诵读完毕时按回车。前往字幕编辑器查看更多选项。',
-		experimentalFallbackHint: '来自旧版开放本地工作流的实验性回退模型。它们不使用完整的 Muaalem 语音路径，可能不太可靠。',
-		muaalemLocalFeatureDesc: 'Muaalem 本地结合了古兰经专用分段、语音识别、单调古兰经段落搜索和本地强制对齐，以实现精确的逐词时间信息。',
-		surahSplitterFeatureDesc: 'Surah Splitter 使用 WhisperX 转录音频，将识别出的词与古兰经文本匹配，然后返回经文级别的时间信息。自动检测可用，但指定苏拉可提高精度。',
-		muaalemLocalEffectivenessHint: '此方法完全本地运行，但通常不如官方 Quranic Universal Aligner 有效。高级回退模型默认隐藏，因为它们比推荐的 Muaalem v3.2 路径更具实验性。',
+		experimentalFallbackHint:
+			'来自旧版开放本地工作流的实验性回退模型。它们不使用完整的 Muaalem 语音路径，可能不太可靠。',
+		muaalemLocalFeatureDesc:
+			'Muaalem 本地结合了古兰经专用分段、语音识别、单调古兰经段落搜索和本地强制对齐，以实现精确的逐词时间信息。',
+		surahSplitterFeatureDesc:
+			'Surah Splitter 使用 WhisperX 转录音频，将识别出的词与古兰经文本匹配，然后返回经文级别的时间信息。自动检测可用，但指定苏拉可提高精度。',
+		muaalemLocalEffectivenessHint:
+			'此方法完全本地运行，但通常不如官方 Quranic Universal Aligner 有效。高级回退模型默认隐藏，因为它们比推荐的 Muaalem v3.2 路径更具实验性。',
 		surahSplitterDownloadNote: '如果尚未缓存，Surah Splitter 会在分段过程中下载所选模型。',
 		tokenRequiredHint: '此方法需要有效的 Hugging Face Token 才能运行。',
-		muaalemReviewHint: '此方法完全本地且安装更简单，但通常不如官方 Quranic Universal Aligner 管道有效。',
+		muaalemReviewHint:
+			'此方法完全本地且安装更简单，但通常不如官方 Quranic Universal Aligner 管道有效。',
 		surahSplitterReviewHint: '自动检测可用，但指定苏拉可提高精度。',
 		legacyV1ReviewHint: 'Legacy V1 是旧版回退管道，对齐质量较低。',
 		noAudioDetectedWarning: '在当前时间轴中未检测到音频片段。',
 		speechRecognitionModel: '语音识别模型',
-		experimentalFallbackHintShort: '来自旧版开放本地工作流的实验性回退模型。它们不使用完整的 Muaalem 语音路径，可能不太可靠。',
+		experimentalFallbackHintShort:
+			'来自旧版开放本地工作流的实验性回退模型。它们不使用完整的 Muaalem 语音路径，可能不太可靠。',
 		overlayIndividualApplied: '叠加已应用于此片段',
 		subtitleIndividualStyles: '个人样式已应用于此片段',
 		subtitles: '字幕',
@@ -831,10 +847,14 @@ const zh: Translation = {
 		splitAutomaticallyAtWord: '在此词汇处自动分割',
 		needVisualWalkthrough: '需要视觉导览？',
 		walkthroughDescription: '以下是一段简短视频，展示字幕编辑器的工作原理：',
-		spaceToPlayPause: '按<span class="font-mono bg-accent px-1 rounded-sm">空格</span>播放/暂停诵读。',
-		arrowsToSelectWords: '使用<span class="font-mono bg-accent px-1 rounded-sm">↑</span>和<span class="font-mono bg-accent px-1 rounded-sm">↓</span>选择词汇。',
-		enterToAddSubtitleWalkthrough: '当诵读家完成一节经文或经文的一部分时，按<span class="font-mono bg-accent px-1 rounded-sm">回车</span>在当前时间添加一个字幕，使用已选择的词汇。',
-		wordStylesDescription: '在阿拉伯语文本和翻译上逐词手动强调，配有专用 AI 助手进行自动粗体样式设置。',
+		spaceToPlayPause:
+			'按<span class="font-mono bg-accent px-1 rounded-sm">空格</span>播放/暂停诵读。',
+		arrowsToSelectWords:
+			'使用<span class="font-mono bg-accent px-1 rounded-sm">↑</span>和<span class="font-mono bg-accent px-1 rounded-sm">↓</span>选择词汇。',
+		enterToAddSubtitleWalkthrough:
+			'当诵读家完成一节经文或经文的一部分时，按<span class="font-mono bg-accent px-1 rounded-sm">回车</span>在当前时间添加一个字幕，使用已选择的词汇。',
+		wordStylesDescription:
+			'在阿拉伯语文本和翻译上逐词手动强调，配有专用 AI 助手进行自动粗体样式设置。',
 		wordStyleEditing: '词汇样式编辑',
 		stylesToToggle: '要切换的样式',
 		bold: '粗体',
@@ -842,8 +862,10 @@ const zh: Translation = {
 		underline: '下划线',
 		color: '颜色',
 		howItWorks: '工作原理',
-		howItWorksDescription1: '启用样式模式，保持一个或多个切换开关活跃，然后在裁剪的翻译或阿拉伯语段落中的词汇上拖动。',
-		howItWorksDescription2: '粗体、斜体和下划线在所选范围内切换。颜色使用当前色样应用。编辑翻译文本会移除翻译的词汇样式。',
+		howItWorksDescription1:
+			'启用样式模式，保持一个或多个切换开关活跃，然后在裁剪的翻译或阿拉伯语段落中的词汇上拖动。',
+		howItWorksDescription2:
+			'粗体、斜体和下划线在所选范围内切换。颜色使用当前色样应用。编辑翻译文本会移除翻译的词汇样式。',
 		selectAtLeastOneStyle: '请在应用前选择至少一种样式。',
 		globalActions: '全局操作',
 		resetAllSegmentStyles: '重置所有段落样式',
@@ -1071,7 +1093,8 @@ const zh: Translation = {
 			'show-verse-number': '启用或禁用经文编号可见性',
 			'text-direction': '将文本方向设置为从右到左',
 			'show-decorative-brackets': '用装饰性括号框住阿拉伯语字幕文本',
-			'decorative-brackets-font-family': '选择用于装饰性括号的符号对（先左后右）。使用 QPC2BSML 字体。',
+			'decorative-brackets-font-family':
+				'选择用于装饰性括号的符号对（先左后右）。使用 QPC2BSML 字体。',
 			'mushaf-style': '选择古兰经字幕的阿拉伯语书写来源。',
 			'verse-number-format': '更改经文编号格式。使用 <number> 标签自定义。',
 			'verse-number-position': '设置经文编号的位置',
@@ -1096,7 +1119,8 @@ const zh: Translation = {
 			'enable-wbw-underline': '为高亮词汇添加下划线',
 			'wbw-underline-thickness': '逐词下划线的粗细（像素）',
 			'wbw-reveal-on-recitation': '在诵读前隐藏未来词汇，然后逐个显示',
-			'wbw-always-show-verse-number': '在逐词高亮期间保持经文编号始终可见。禁用时，编号随经文的最后一个词汇出现。',
+			'wbw-always-show-verse-number':
+				'在逐词高亮期间保持经文编号始终可见。禁用时，编号随经文的最后一个词汇出现。',
 			'enable-wbw-background': '在高亮词汇后方启用背景颜色',
 			'wbw-bg-color': '应用于高亮词汇的背景颜色',
 			positioning: '控制字幕在屏幕上的位置和间距',
@@ -1166,7 +1190,8 @@ const zh: Translation = {
 			'surah-name-time-disappearance': '更改苏拉名称的消失时间',
 			'surah-name-vertical-position': '更改苏拉名称的垂直位置（距中心的像素值）',
 			'surah-name-horizontal-position': '更改苏拉名称的水平位置（距中心的像素值）',
-			'surah-name-format': '苏拉名称的显示格式。使用 <number>、<transliteration>、<translation>、<min-range> 和 <max-range> 标签自定义。',
+			'surah-name-format':
+				'苏拉名称的显示格式。使用 <number>、<transliteration>、<translation>、<min-range> 和 <max-range> 标签自定义。',
 			'surah-show-arabic': '以阿拉伯语显示苏拉名称',
 			'surah-show-latin': '显示额外的拉丁文本（参见拉丁文本格式）',
 			'surah-size': '苏拉书法的缩放',
@@ -1180,7 +1205,8 @@ const zh: Translation = {
 			'reciter-name-time-disappearance': '更改诵读家名称的消失时间',
 			'reciter-name-vertical-position': '更改诵读家名称的垂直位置（距中心的像素值）',
 			'reciter-name-horizontal-position': '更改诵读家名称的水平位置（距中心的像素值）',
-			'reciter-name-format': '诵读家名称的显示格式。使用 <arabic> 和 <transliteration> 标签自定义。',
+			'reciter-name-format':
+				'诵读家名称的显示格式。使用 <arabic> 和 <transliteration> 标签自定义。',
 			'reciter-show-arabic': '以阿拉伯语显示诵读家名称',
 			'reciter-show-latin': '显示额外的拉丁文本（参见拉丁文本格式）',
 			'reciter-size': '诵读家名称阿拉伯语书法的大小',
@@ -1205,7 +1231,7 @@ const zh: Translation = {
 			'time-disappearance': '更改消失时间'
 		}
 	},
-	'export': {
+	export: {
 		exportVideo: '导出视频',
 		configureExportSettings: '配置您的视频导出设置并选择要导出的部分。',
 		exportRange: '导出范围',
@@ -1217,10 +1243,12 @@ const zh: Translation = {
 		videoQualityOrientation: '视频质量和方向',
 		setResolutionOrientation: '设置导出视频的分辨率和方向。分辨率锁定为当前项目尺寸。',
 		videoAudioFade: '视频和音频淡入淡出',
-		enableDisableFade: '在导出时启用或禁用视频和音频淡入淡出效果。淡入和淡出可实现平滑的开始和结束。',
+		enableDisableFade:
+			'在导出时启用或禁用视频和音频淡入淡出效果。淡入和淡出可实现平滑的开始和结束。',
 		performanceSettings: '性能设置',
 		setFpsDescription: '设置导出视频的帧率。较高的值提供更流畅的播放但文件更大。',
-		batchSizeDescription: 'ffmpeg 过渡的批处理大小。较高的值对 GPU 压力更大但加速导出。较低的值消耗更少内存。',
+		batchSizeDescription:
+			'ffmpeg 过渡的批处理大小。较高的值对 GPU 压力更大但加速导出。较低的值消耗更少内存。',
 		videoFileName: '文件名和导出位置',
 		enterFileName: '输入视频文件的名称。此名称将用作导出视频的文件名。',
 		extensionAddedAutomatically: '扩展名（.mp4/.webm/.mov）将自动添加。',
@@ -1313,7 +1341,8 @@ const zh: Translation = {
 		customElementsDescription: '自定义文本片段、样式覆盖和背景配置。',
 		limitations: '限制',
 		mediaFilesNotIncluded: '不包含媒体文件',
-		mediaFilesNotIncludedDescription: '从您的设备导入的音频和视频文件不包含在内。仅保留文件名和源 URL。',
+		mediaFilesNotIncludedDescription:
+			'从您的设备导入的音频和视频文件不包含在内。仅保留文件名和源 URL。',
 		exportProjectDataButton: '导出项目数据',
 		exportProjectDataButtonDescription: '生成包含您所有项目配置的 JSON 文件',
 		exportSubtitlesJsonButton: '导出字幕 JSON',
@@ -1349,8 +1378,10 @@ const zh: Translation = {
 	},
 	translations: {
 		translationAdded: '翻译 {author} 已添加。是否要重置它？您对此作者的当前翻译将被清除。',
-		translationResetConfirm: '您确定要重置 {author} 的翻译吗？这将删除您的手动编辑并从原始源重新加载。',
-		translationRemoveConfirm: '您确定要删除 {author} 的翻译吗？此作者的所有手动编辑和 AI 翻译将丢失。',
+		translationResetConfirm:
+			'您确定要重置 {author} 的翻译吗？这将删除您的手动编辑并从原始源重新加载。',
+		translationRemoveConfirm:
+			'您确定要删除 {author} 的翻译吗？此作者的所有手动编辑和 AI 翻译将丢失。',
 		translationNoStyles: '您的项目翻译\u300c{name}\u300d还没有样式。是否从另一个翻译复制样式？',
 		noEligibleVerses: '未找到符合条件的经文。请确保您的项目至少包含一个与古兰经经文相关联的字幕。',
 		aiTranslationErrors: 'AI 翻译错误',
@@ -1438,7 +1469,8 @@ const zh: Translation = {
 		surahSettings: '苏拉 \u2014 在屏幕上显示诵读家和苏拉名称',
 		verseSettings: '经文 \u2014 字幕的字体、颜色、大小和动画',
 		threeStyleCategories: '三种样式类别',
-		threeStyleCategoriesDescription: '全局 \u2014 视频叠加层、诵读家名称和背景设置。苏拉 \u2014 诵读家和苏拉显示。经文 \u2014 字体、颜色、大小和字幕动画。',
+		threeStyleCategoriesDescription:
+			'全局 \u2014 视频叠加层、诵读家名称和背景设置。苏拉 \u2014 诵读家和苏拉显示。经文 \u2014 字体、颜色、大小和字幕动画。',
 		savePreset: '保存预设',
 		loadPreset: '加载预设',
 		exportPreset: '导出预设',
@@ -1571,7 +1603,8 @@ const zh: Translation = {
 		featureBug: '功能 / 错误',
 		joinDiscord: '加入 Discord',
 		projectBackup: '项目备份',
-		backupDescription: '将所有项目导出到单个备份文件中，或稍后导入完整备份。您的项目始终存储在您的机器本地。',
+		backupDescription:
+			'将所有项目导出到单个备份文件中，或稍后导入完整备份。您的项目始终存储在您的机器本地。',
 		openProjectsFolder: '打开项目文件夹',
 		exportAllProjects: '导出所有项目',
 		exportAllProjectsDescription: '创建一个包含应用中所有当前存储项目的 JSON 备份。',
@@ -1579,7 +1612,8 @@ const zh: Translation = {
 		exportingBackup: '导出备份...',
 		importBackup: '导入备份',
 		importBackupDescription: '从 JSON 备份文件加载所有项目。新项目将被添加而不会删除现有项目。',
-		importNonDestructive: '导入是非破坏性的 \u2014 备份中找到的任何新项目将被添加而不会删除现有项目。',
+		importNonDestructive:
+			'导入是非破坏性的 \u2014 备份中找到的任何新项目将被添加而不会删除现有项目。',
 		importingBackup: '导入备份...',
 		backupExported: '备份已成功导出。',
 		importedProjects: '从备份导入了 {count} 个项目。',
@@ -1629,7 +1663,8 @@ const zh: Translation = {
 		checkingForUpdates: '检查更新中...',
 		organizingProjects: '组织项目中...',
 		organizeProjectFolders: '组织项目文件夹',
-		aboutDescription: 'Quran Caption 是一款桌面应用，可将古兰经诵读转化为精美字幕视频。它结合音频处理与古兰经文本，创建专业品质的字幕视频，用于分享、学习和宣教。',
+		aboutDescription:
+			'Quran Caption 是一款桌面应用，可将古兰经诵读转化为精美字幕视频。它结合音频处理与古兰经文本，创建专业品质的字幕视频，用于分享、学习和宣教。',
 		versionLabel: '版本 {version}',
 		restartTutorial: '重新开始教程',
 		connected: '已连接',
@@ -1753,17 +1788,22 @@ const zh: Translation = {
 	},
 	tour: {
 		stepCreateProjectTitle: '创建新项目',
-		stepCreateProjectDesc: '此按钮允许您从头创建新的 Quran Caption 项目。您可以导入音频、视频或下载诵读。',
+		stepCreateProjectDesc:
+			'此按钮允许您从头创建新的 Quran Caption 项目。您可以导入音频、视频或下载诵读。',
 		stepOpenTutorialTitle: '打开教程项目',
-		stepOpenTutorialDesc: '已为您创建了一个带有 Yasser Al-Dosari 诵读的 Al-Fatihah 教程项目。点击其卡片以打开并跟随指南。',
+		stepOpenTutorialDesc:
+			'已为您创建了一个带有 Yasser Al-Dosari 诵读的 Al-Fatihah 教程项目。点击其卡片以打开并跟随指南。',
 		stepVideoEditorTitle: '视频编辑器',
-		stepVideoEditorDesc: '在这里您导入古兰经诵读。拖放音频/视频文件或从在线源下载。编辑器管理您所有的媒体。',
+		stepVideoEditorDesc:
+			'在这里您导入古兰经诵读。拖放音频/视频文件或从在线源下载。编辑器管理您所有的媒体。',
 		stepAddToTimelineTitle: '添加到时间轴',
-		stepAddToTimelineDesc: '将鼠标悬停在左侧列表中的素材卡片上，然后点击\u300c添加到时间轴\u300d。这将诵读放入主编辑区域。',
+		stepAddToTimelineDesc:
+			'将鼠标悬停在左侧列表中的素材卡片上，然后点击\u300c添加到时间轴\u300d。这将诵读放入主编辑区域。',
 		stepSubtitlesEditorTitle: '转到字幕编辑器',
 		stepSubtitlesEditorDesc: '前往字幕编辑器开始添加古兰经文本。在这里您将每节经文与音频对齐。',
 		stepManualSegmentationTitle: '手动分段',
-		stepManualSegmentationDesc: '字幕在诵读播放时实时添加。输入或选择一节经文，它将出现在当前播放位置。',
+		stepManualSegmentationDesc:
+			'字幕在诵读播放时实时添加。输入或选择一节经文，它将出现在当前播放位置。',
 		stepShortcutsTitle: '快捷键和导览',
 		stepShortcutsDesc: '将鼠标悬停在 ? 图标上查看所有可用快捷键。这些可显著加快分段过程。',
 		stepAutoSegmentTitle: '使用 AI 自动分段',
@@ -1771,11 +1811,13 @@ const zh: Translation = {
 		stepTranslationsTitle: '转到翻译',
 		stepTranslationsDesc: '前往翻译选项卡添加阿拉伯语文本下方的翻译字幕。',
 		stepAdaptingTranslationsTitle: '调整翻译',
-		stepAdaptingTranslationsDesc: '注意经文 1:7 是如何分两部分诵读的。您可以分割翻译以匹配诵读家的诵读方式。',
+		stepAdaptingTranslationsDesc:
+			'注意经文 1:7 是如何分两部分诵读的。您可以分割翻译以匹配诵读家的诵读方式。',
 		stepStyleTitle: '转到样式',
 		stepStyleDesc: '前往样式选项卡自定义字幕和视频叠加层的视觉外观。',
 		stepStyleCategoriesTitle: '三种样式类别',
-		stepStyleCategoriesDesc: '全局 \u2014 视频叠加层、诵读家名称。苏拉 \u2014 诵读家和苏拉名称。经文 \u2014 字体、颜色、大小、动画。',
+		stepStyleCategoriesDesc:
+			'全局 \u2014 视频叠加层、诵读家名称。苏拉 \u2014 诵读家和苏拉名称。经文 \u2014 字体、颜色、大小、动画。',
 		stepExportTitle: '转到导出',
 		stepExportDesc: '最后，前往导出选项卡生成您的字幕视频。',
 		stepExportVideoTitle: '导出您的视频',
@@ -2069,7 +2111,8 @@ const zh: Translation = {
 		unableToCopyWallet: '无法复制钱包地址。',
 		failedToSavePreference: '保存此偏好设置失败。',
 		testimonialYahya: '这是一个美丽且非常有益的工具。愿真主保佑您并赐予您最好的。',
-		testimonialAhmad: '我一段时间前发现了这个，对这个项目感到惊叹。继续保持出色的工作，愿真主保佑您。',
+		testimonialAhmad:
+			'我一段时间前发现了这个，对这个项目感到惊叹。继续保持出色的工作，愿真主保佑您。',
 		testimonialSarmad: '令人惊叹的应用。易于使用！对穆斯林社区非常有用。我感谢您的辛勤工作。'
 	},
 	exporterMonitor: {

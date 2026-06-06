@@ -177,7 +177,12 @@
 			const downloadPath = await ProjectService.getAssetFolderForProject(
 				globalState.currentProject!.detail.id
 			);
-		toastId = toast.loading(get(LL).editor.downloadingSurah({ surah: surahName.split('.')[1].trim(), reciter: selectedOption.reciterName }));
+			toastId = toast.loading(
+				get(LL).editor.downloadingSurah({
+					surah: surahName.split('.')[1].trim(),
+					reciter: selectedOption.reciterName
+				})
+			);
 
 			const fullPath = await join(downloadPath, fileName);
 
@@ -274,7 +279,10 @@
 			);
 		} catch (error) {
 			console.error('Download error:', error);
-			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), { id: toastId, duration: 5000 });
+			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), {
+				id: toastId,
+				duration: 5000
+			});
 		} finally {
 			isDownloading = false;
 		}
@@ -289,7 +297,9 @@
 		</div>
 
 		<div class="space-y-2">
-			<label for="reciter-select" class="text-sm font-medium text-secondary">{get(LL).editor.reciterLabel()}</label>
+			<label for="reciter-select" class="text-sm font-medium text-secondary"
+				>{get(LL).editor.reciterLabel()}</label
+			>
 
 			<select
 				id="reciter-select"
@@ -320,7 +330,9 @@
 		</div>
 
 		<div class="space-y-2">
-			<label for="surah-select" class="text-sm font-medium text-secondary">{get(LL).editor.surah()}</label>
+			<label for="surah-select" class="text-sm font-medium text-secondary"
+				>{get(LL).editor.surah()}</label
+			>
 			<select
 				id="surah-select"
 				class="w-full bg-secondary border border-color rounded-lg py-3 px-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"

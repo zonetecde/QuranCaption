@@ -789,7 +789,8 @@ const fr: Translation = {
 		reciterLabel: 'Récitateur',
 		loadingReciters: 'Chargement des récitateurs...',
 		selectReciter: 'Sélectionner un récitateur',
-		nativeTimingHint: '★ signifie que le minutage officiel des versets peut être chargé automatiquement après le téléchargement.',
+		nativeTimingHint:
+			'★ signifie que le minutage officiel des versets peut être chargé automatiquement après le téléchargement.',
 		selectSurah: 'Sélectionner une sourate',
 		surah: 'Sourate',
 		projectAssetsLabel: 'Éléments du projet',

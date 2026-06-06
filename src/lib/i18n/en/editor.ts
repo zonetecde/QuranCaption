@@ -105,7 +105,8 @@ const editor = {
 	noSubtitlesMatchSplitRules: 'No subtitles match the current split rules.',
 	markMissingWbw: 'Mark subtitles without WBW timestamps',
 	noMissingWbw: 'No subtitle is missing WBW timestamps.',
-	wbwFeatureInfo: 'Optional feature. Add WBW timestamps to enable word-by-word editing and precise text alignment.',
+	wbwFeatureInfo:
+		'Optional feature. Add WBW timestamps to enable word-by-word editing and precise text alignment.',
 	segmentsToReview: 'Segments to review',
 	completion: 'Completion',
 	redownloading: 'Re-downloading from source...',
@@ -121,7 +122,8 @@ const editor = {
 	selectTranslation: 'Select translation',
 	noTranslationsYet: 'You have no translations yet.',
 	clearSearch: 'Clear search',
-	subtitlesSelected: '{count} subtitle{plural} selected. Styles will only apply to these subtitles.',
+	subtitlesSelected:
+		'{count} subtitle{plural} selected. Styles will only apply to these subtitles.',
 	clearSelection: 'Clear selection',
 	visualMerge: 'Visual merge',
 	visualMergeDescription: 'Merge only the on-screen rendering.',
@@ -129,9 +131,12 @@ const editor = {
 	translation: 'Translation',
 	both: 'Both',
 	unmergeGroup: 'Unmerge Group',
-	videoClipsSelected: '{count} video clip{plural} selected. Overlay styles will apply only to these clips.',
-	clickToSelect: 'Click a subtitle or a video clip to select only it. Shift+click selects additional items.',
-	cannotEditGlobalWithSelection: 'You cannot edit global styles when subtitle clips are selected. Clear the selection to edit global styles.',
+	videoClipsSelected:
+		'{count} video clip{plural} selected. Overlay styles will apply only to these clips.',
+	clickToSelect:
+		'Click a subtitle or a video clip to select only it. Shift+click selects additional items.',
+	cannotEditGlobalWithSelection:
+		'You cannot edit global styles when subtitle clips are selected. Clear the selection to edit global styles.',
 	backgroundVisibilityHint: 'Background is visible only when Max Height style is set.',
 	addCustomText: 'Add custom text',
 	customText: 'Custom Text',
@@ -182,7 +187,8 @@ const editor = {
 	customNotePlaceholder: 'Example: Bold invocations and divine attributes...',
 	aiBoldAssistant: 'AI Bold Assistant',
 	noVisibleTranslation: 'No visible translation edition is available.',
-	noEligibleTranslatedSegments: 'No eligible translated segments were found for the selected range.',
+	noEligibleTranslatedSegments:
+		'No eligible translated segments were found for the selected range.',
 	aiBoldCompletedWithIssues: 'AI Bold completed with issues. See the activity log.',
 	aiBoldApplied: 'AI Bold applied successfully.',
 	readyToUse: 'Ready to use',
@@ -206,21 +212,31 @@ const editor = {
 	checkActivityLog: 'Check the activity log for details.',
 	aiSegmentationFailed: 'AI segmentation failed',
 	aiSegmentationFinished: 'AI segmentation finished',
-	convertToMp4Error: 'Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)',
+	convertToMp4Error:
+		'Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)',
 	unknownAudioError: 'An unknown error occurred while loading audio: {error}',
 	unableToAnalyzeMedia: 'Unable to analyze this media file. Please check FFmpeg/FFprobe setup.',
-	variableBitrateWarning: 'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during export. Convert to constant bitrate (CBR) for better results.',
-	tajweedRequiresInternet: 'Tajweed requires an internet connection. Please check your connection and try again.',
+	variableBitrateWarning:
+		'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during export. Convert to constant bitrate (CBR) for better results.',
+	tajweedRequiresInternet:
+		'Tajweed requires an internet connection. Please check your connection and try again.',
 	noSubtitlesToShift: 'No subtitles starting at or after that time \u2014 nothing to shift.',
-	cannotShiftBackward: 'Cannot shift backward: the subtitle before the cutoff would become too short.',
-	nativeTimingsConfirm: 'This audio includes official native timings. Add it to the timeline and load the subtitles now?',
-	makeQuranSubtitleConfirm: "To make this subtitle Qur\u2019an, please select the words in the selector and press Enter to apply it.",
-	atLeastOneWbwRequired: 'At least one subtitle in the timeline must have word-by-word timestamps before splitting long subtitles.',
-	noWbwTimestampsError: 'This subtitle was generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.',
+	cannotShiftBackward:
+		'Cannot shift backward: the subtitle before the cutoff would become too short.',
+	nativeTimingsConfirm:
+		'This audio includes official native timings. Add it to the timeline and load the subtitles now?',
+	makeQuranSubtitleConfirm:
+		'To make this subtitle Qur\u2019an, please select the words in the selector and press Enter to apply it.',
+	atLeastOneWbwRequired:
+		'At least one subtitle in the timeline must have word-by-word timestamps before splitting long subtitles.',
+	noWbwTimestampsError:
+		'This subtitle was generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.',
 	vbrWarningTap: 'Tap to convert to CBR',
-	tajweedFontWarning: 'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable. Tajweed text color is currently forced to black, and you cannot change it.',
+	tajweedFontWarning:
+		'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable. Tajweed text color is currently forced to black, and you cannot change it.',
 	overridesApplied: 'Overrides applied',
-	markedTranslationErrors: 'Marked {marked}/{checked} translation segment(s) as Error across {verses} verse(s).',
+	markedTranslationErrors:
+		'Marked {marked}/{checked} translation segment(s) as Error across {verses} verse(s).',
 	failedToMarkErrors: 'Failed to mark translation errors: {error}',
 	missingWbwMarked: '{count} subtitle{plural} marked for missing WBW timestamps.',
 	splitApplied: '{count} subtitle split{plural} applied automatically.',
@@ -334,8 +350,10 @@ const editor = {
 	minSpeechLabel: 'Min Speech',
 	paddingLabel: 'Padding',
 	includeWbwTimestamps: 'Include word-by-word timestamps',
-	wbwTimestampsDescription: 'Stores per-word timings so you can split and edit subtitles more precisely later.',
-	wbwTimestampsOnlyMuaalem: 'Word-by-word timestamps are only supported with the Muaalem v3.2 model.',
+	wbwTimestampsDescription:
+		'Stores per-word timings so you can split and edit subtitles more precisely later.',
+	wbwTimestampsOnlyMuaalem:
+		'Word-by-word timestamps are only supported with the Muaalem v3.2 model.',
 	fillGapsWithSilence: 'Fill gaps with silence clips',
 	extendSubtitleBeforeSilence: 'Extend subtitle before silence by',
 	extendBeforeSilenceHint: 'This extends the segment right before a silence block by {ms} ms.',
@@ -350,8 +368,10 @@ const editor = {
 	surahSelectionLabel: 'Surah selection',
 	autoDetectSurah: 'Auto-detect surah',
 	specifySurah: 'Specify surah',
-	surahSplitterPrecisionHint: 'Specifying the surah improves precision because matching is restricted to that surah.',
-	surahSplitterMultiSurahNote: 'Note: if your audio contains multiple surahs, only the last one will be detected and segmented. Use another model for multi-surah files.',
+	surahSplitterPrecisionHint:
+		'Specifying the surah improves precision because matching is restricted to that surah.',
+	surahSplitterMultiSurahNote:
+		'Note: if your audio contains multiple surahs, only the last one will be detected and segmented. Use another model for multi-surah files.',
 	reviewAndLaunch: 'Review and launch',
 	reviewAndLaunchDesc: 'Check your configuration before generating subtitles.',
 	methodLabel: 'Method',
@@ -365,9 +385,11 @@ const editor = {
 	automaticLabel: 'Automatic',
 	prepareMethod: 'Prepare this method',
 	prepareMethodCloudDesc: 'No local installation is required.',
-	prepareMethodLocalV2Desc: 'Install the required local packages and configure your Hugging Face token.',
+	prepareMethodLocalV2Desc:
+		'Install the required local packages and configure your Hugging Face token.',
 	prepareMethodMuaalemDesc: 'Install the required local packages for the Muaalem local workflow.',
-	prepareMethodSurahSplitterDesc: 'Install the required local packages for the Surah Splitter workflow.',
+	prepareMethodSurahSplitterDesc:
+		'Install the required local packages for the Surah Splitter workflow.',
 	prepareMethodLegacyDesc: 'Install the legacy local dependencies.',
 	cloudMethodDescription: 'This method runs remotely and does not need local Python packages.',
 	huggingFaceTokenLabel: 'Hugging Face token',
@@ -377,30 +399,41 @@ const editor = {
 	clearToken: 'Clear token',
 	requiredLocalPackages: 'Required local packages',
 	checkingLocalEngines: 'Checking local engines in background...',
-	noTokenRequiredHint: 'No token required. Fully local installation with on-device model downloads.',
-	noTokenRequiredSurahSplitterHint: 'No token required. Surah Splitter downloads its WhisperX model during the first run.',
-	muaalemLocalHint: 'This option is fully local, but it is usually less accurate than the official Quranic Universal Aligner pipeline.',
-	surahSplitterLocalHint: 'This option can auto-detect the surah. Selecting the surah manually in the next step improves matching precision.',
+	noTokenRequiredHint:
+		'No token required. Fully local installation with on-device model downloads.',
+	noTokenRequiredSurahSplitterHint:
+		'No token required. Surah Splitter downloads its WhisperX model during the first run.',
+	muaalemLocalHint:
+		'This option is fully local, but it is usually less accurate than the official Quranic Universal Aligner pipeline.',
+	surahSplitterLocalHint:
+		'This option can auto-detect the surah. Selecting the surah manually in the next step improves matching precision.',
 	chooseMethodLabel: 'Choose a method',
-	chooseMethodDesc: 'Pick the simplest method for your situation. You can still change advanced options later.',
+	chooseMethodDesc:
+		'Pick the simplest method for your situation. You can still change advanced options later.',
 	quranicUniversalAlignerLabel: 'Quranic Universal Aligner',
 	bestOverallQuality: 'Best overall quality and easiest setup',
-	usesOfficialRemote: 'Uses the official Quranic Universal Aligner remotely. Recommended for most users.',
+	usesOfficialRemote:
+		'Uses the official Quranic Universal Aligner remotely. Recommended for most users.',
 	surahSplitterLocalLabel: 'Surah Splitter Local',
 	surahSplitterLocalDesc: 'Local ayah detection with optional surah hint',
-	surahSplitterLocalDetail: 'Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports word-by-word alignment, but selecting the surah manually improves precision.',
-	surahSplitterSingleSurahNote: 'Note: this option only works if there\'s one surah in the audio file.',
+	surahSplitterLocalDetail:
+		'Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports word-by-word alignment, but selecting the surah manually improves precision.',
+	surahSplitterSingleSurahNote:
+		"Note: this option only works if there's one surah in the audio file.",
 	muaalemLocalLabel: 'Muaalem Local',
 	muaalemLocalDesc: 'Second option but less effective than Surah Splitter',
-	muaalemLocalDetail: 'Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific segmentation and matching.',
+	muaalemLocalDetail:
+		'Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific segmentation and matching.',
 	privateLocalQuranicAlignerLabel: 'Private Local Quranic Universal Aligner',
 	bestLocalAccuracy: 'Best local accuracy',
-	privateLocalQuranicAlignerDetail: 'Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python setup and a Hugging Face token.',
+	privateLocalQuranicAlignerDetail:
+		'Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python setup and a Hugging Face token.',
 	offlineLabel: 'Offline',
 	advancedLabel: 'Advanced',
 	importHuggingFaceJson: 'Import Hugging Face JSON',
 	importMultiAlignerJson: 'Import Multi-Aligner JSON',
-	importMultiAlignerJsonDesc: 'Paste or drop a JSON export generated outside the app, then apply it directly to your timeline.',
+	importMultiAlignerJsonDesc:
+		'Paste or drop a JSON export generated outside the app, then apply it directly to your timeline.',
 	quranMultiAlignerExport: 'Quran Multi-Aligner export',
 	openHuggingFaceSpace: 'Open Hugging Face Space',
 	dragAndDropJsonFile: 'Drag and drop your `.json` file in the app window',
@@ -425,7 +458,8 @@ const editor = {
 	relocateLabel: 'Relocate',
 	redownloadLabel: 'Re-download',
 	downloadingLabel: 'Downloading...',
-	convertCbrProgressHint: 'You can switch tabs during this process. The asset will automatically reload once it finishes.',
+	convertCbrProgressHint:
+		'You can switch tabs during this process. The asset will automatically reload once it finishes.',
 	addToTimelineLabel: 'Add to Timeline',
 	videoAndAudio: 'Video & Audio',
 	videoOnly: 'Video Only',
@@ -444,7 +478,8 @@ const editor = {
 	downloadFailed: 'Download failed',
 	enterValidMediaUrl: 'Please enter a valid public media URL.',
 	downloadErrorPrefix: 'Error downloading media from link:',
-	supportedLinksHint: 'Supported public links include YouTube, full surah or mushaf uploads on SoundCloud, Internet Archive collections, public Google Drive links, and short recitation clips from Facebook, Instagram, TikTok, or X/Twitter.',
+	supportedLinksHint:
+		'Supported public links include YouTube, full surah or mushaf uploads on SoundCloud, Internet Archive collections, public Google Drive links, and short recitation clips from Facebook, Instagram, TikTok, or X/Twitter.',
 	downloadQuranRecitation: 'Download Quran Recitation',
 	sourceLabel: 'Source',
 	reciterLabel: 'Reciter',
@@ -490,21 +525,31 @@ const editor = {
 	showAlignmentGrid: 'Show alignment grid',
 	hideAlignmentGrid: 'Hide alignment grid',
 	pasteMediaUrlPlaceholder: 'Paste a public media URL',
-	clickToGenerateWaveform: 'Click to generate waveform (disabled by default for long audio to save memory)',
+	clickToGenerateWaveform:
+		'Click to generate waveform (disabled by default for long audio to save memory)',
 	noTranslationEditionForClip: 'No translation edition is available for this clip.',
-	wbwTimestampGuide: 'Play the audio using space, and press enter each time a word finishes being recited. Go to the subtitles editor for more options.',
-	experimentalFallbackHint: 'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
-	muaalemLocalFeatureDesc: 'Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic Quran passage retrieval, and local forced alignment for real word-by-word timings.',
-	surahSplitterFeatureDesc: 'Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran text, then returns ayah-level timestamps. Auto-detection is available, but specifying the surah improves precision.',
-	muaalemLocalEffectivenessHint: 'This method is fully local, but it is generally less effective than the official Quranic Universal Aligner. Advanced fallback models are hidden by default because they are more experimental than the recommended Muaalem v3.2 path.',
-	surahSplitterDownloadNote: 'Surah Splitter downloads the selected model during segmentation if it is not cached yet.',
+	wbwTimestampGuide:
+		'Play the audio using space, and press enter each time a word finishes being recited. Go to the subtitles editor for more options.',
+	experimentalFallbackHint:
+		'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
+	muaalemLocalFeatureDesc:
+		'Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic Quran passage retrieval, and local forced alignment for real word-by-word timings.',
+	surahSplitterFeatureDesc:
+		'Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran text, then returns ayah-level timestamps. Auto-detection is available, but specifying the surah improves precision.',
+	muaalemLocalEffectivenessHint:
+		'This method is fully local, but it is generally less effective than the official Quranic Universal Aligner. Advanced fallback models are hidden by default because they are more experimental than the recommended Muaalem v3.2 path.',
+	surahSplitterDownloadNote:
+		'Surah Splitter downloads the selected model during segmentation if it is not cached yet.',
 	tokenRequiredHint: 'This method requires a valid Hugging Face token before it can run.',
-	muaalemReviewHint: 'This method is fully local and simpler to install, but usually less effective than the official Quranic Universal Aligner pipeline.',
-	surahSplitterReviewHint: 'Auto-detection is available, but specifying the surah improves precision.',
+	muaalemReviewHint:
+		'This method is fully local and simpler to install, but usually less effective than the official Quranic Universal Aligner pipeline.',
+	surahSplitterReviewHint:
+		'Auto-detection is available, but specifying the surah improves precision.',
 	legacyV1ReviewHint: 'Legacy V1 is an older fallback pipeline with lower alignment quality.',
 	noAudioDetectedWarning: 'No audio clip was detected in the current timeline.',
 	speechRecognitionModel: 'Speech recognition model',
-	experimentalFallbackHintShort: 'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
+	experimentalFallbackHintShort:
+		'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
 	overlayIndividualApplied: 'Overlay applied on this clip',
 	subtitleIndividualStyles: 'Individual styles applied on this clip',
 
@@ -517,7 +562,8 @@ const editor = {
 	onLabel: 'On',
 	splitLongSubtitlesLabel: 'Split long subtitles',
 	splitWbwRequired: 'This will only work with subtitles that have word-by-word timestamps.',
-	waqfDescription: 'Segments without a waqf mark stay as-is, even if they exceed word/duration limits.',
+	waqfDescription:
+		'Segments without a waqf mark stay as-is, even if they exceed word/duration limits.',
 	split: 'Split',
 	silenceLabel: 'SILENCE',
 	predefinedLabel: 'PRE-DEFINED',
@@ -535,10 +581,12 @@ const editor = {
 	trimButton: 'Trim',
 	relocateButton: 'Relocate',
 	redownloadButton: 'Re-download',
-	cbrInfoHint: 'You can switch tabs during this process. The asset will automatically reload once it finishes.',
+	cbrInfoHint:
+		'You can switch tabs during this process. The asset will automatically reload once it finishes.',
 	editingSubtitle: 'Editing Subtitle',
 	editingActive: 'Active',
-	editingHelpText: 'Select the words in the selector then press Enter to adjust the range, or apply one of the presets below.',
+	editingHelpText:
+		'Select the words in the selector then press Enter to adjust the range, or apply one of the presets below.',
 	wordByWordEdit: 'Word-by-word edit',
 	wbwManualDescription: 'Manually stamp and adjust one Quran word at a time on the timeline.',
 	exit: 'Exit',
@@ -574,10 +622,14 @@ const editor = {
 	splitAutomaticallyAtWord: 'Split automatically at this word',
 	needVisualWalkthrough: 'Need a visual walkthrough?',
 	walkthroughDescription: 'Here is a short video that demonstrates how the subtitles editor works:',
-	spaceToPlayPause: 'Press <span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the recitation.',
-	arrowsToSelectWords: 'Use <span class="font-mono bg-accent px-1 rounded-sm">\u2191</span> and <span class="font-mono bg-accent px-1 rounded-sm">\u2193</span> to select words.',
-	enterToAddSubtitleWalkthrough: 'When the reciter finishes a verse, or a part of a verse, press <span class="font-mono bg-accent px-1 rounded-sm">enter</span> to add a subtitle at the current time with the selected words.',
-	wordStylesDescription: 'Manual per-word emphasis on arabic text and translations with a dedicated AI assistant modal for automatic bold styling.',
+	spaceToPlayPause:
+		'Press <span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the recitation.',
+	arrowsToSelectWords:
+		'Use <span class="font-mono bg-accent px-1 rounded-sm">\u2191</span> and <span class="font-mono bg-accent px-1 rounded-sm">\u2193</span> to select words.',
+	enterToAddSubtitleWalkthrough:
+		'When the reciter finishes a verse, or a part of a verse, press <span class="font-mono bg-accent px-1 rounded-sm">enter</span> to add a subtitle at the current time with the selected words.',
+	wordStylesDescription:
+		'Manual per-word emphasis on arabic text and translations with a dedicated AI assistant modal for automatic bold styling.',
 	wordStyleEditing: 'Word Style Editing',
 	stylesToToggle: 'Styles To Toggle',
 	bold: 'Bold',
@@ -585,8 +637,10 @@ const editor = {
 	underline: 'Underline',
 	color: 'Color',
 	howItWorks: 'How it works',
-	howItWorksDescription1: 'Enable style mode, keep one or more toggles active, then drag across words in the trimmed translation or the Arabic segment.',
-	howItWorksDescription2: 'Bold, italic and underline are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.',
+	howItWorksDescription1:
+		'Enable style mode, keep one or more toggles active, then drag across words in the trimmed translation or the Arabic segment.',
+	howItWorksDescription2:
+		'Bold, italic and underline are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.',
 	selectAtLeastOneStyle: 'Select at least one style before applying it.',
 	globalActions: 'Global Actions',
 	resetAllSegmentStyles: 'Reset all segment styles',
@@ -815,7 +869,8 @@ const editor = {
 		'show-verse-number': 'Toggle the visibility of verse numbers',
 		'text-direction': 'Set the text direction to Right-to-Left',
 		'show-decorative-brackets': 'Wrap Arabic subtitle text with decorative brackets',
-		'decorative-brackets-font-family': 'Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.',
+		'decorative-brackets-font-family':
+			'Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.',
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',
 		'verse-number-format': 'Change the format of verse numbers. Use <number> tag to customize.',
 		'verse-number-position': 'Set the position of verse numbers',
@@ -832,19 +887,24 @@ const editor = {
 		'line-height': 'Adjust spacing between lines',
 		'max-height': 'Limit text height and auto-adjust font size to fit. 0 = no limit.',
 		'max-line': 'Limit Arabic text to a maximum number of rendered lines. Infinite = no limit.',
-		'reactive-font-size': "Used by the 'Make Text Fit' feature to adjust font size based on container size",
-		'word-by-word-highlight': 'Highlight Arabic words over time when word-by-word timestamps are available',
+		'reactive-font-size':
+			"Used by the 'Make Text Fit' feature to adjust font size based on container size",
+		'word-by-word-highlight':
+			'Highlight Arabic words over time when word-by-word timestamps are available',
 		'enable-wbw-highlight': 'Enable or disable timed word-by-word highlighting',
 		'wbw-color': 'Color applied to highlighted words',
 		'wbw-persist-color': 'Keep previously highlighted words colored after they have been read',
 		'enable-wbw-underline': 'Underline highlighted words',
 		'wbw-underline-thickness': 'Thickness of the wbw underline in pixels',
-		'wbw-reveal-on-recitation': 'Keep future words hidden until they are recited, then fade them up to the Arabic opacity',
-		'wbw-always-show-verse-number': 'Keep the verse number visible at all times during word-by-word highlighting. When disabled, the verse number fades in together with the last word of the verse.',
+		'wbw-reveal-on-recitation':
+			'Keep future words hidden until they are recited, then fade them up to the Arabic opacity',
+		'wbw-always-show-verse-number':
+			'Keep the verse number visible at all times during word-by-word highlighting. When disabled, the verse number fades in together with the last word of the verse.',
 		'enable-wbw-background': 'Enable a background color behind highlighted words',
 		'wbw-bg-color': 'Background color applied to highlighted words',
 		positioning: 'Control the position and spacing of subtitles on screen',
-		'reactive-y-position': "Used if the 'Make Text Fit' feature is not set to adjust Y position based on other subtitles positions so that they do not overlap",
+		'reactive-y-position':
+			"Used if the 'Make Text Fit' feature is not set to adjust Y position based on other subtitles positions so that they do not overlap",
 		'vertical-position': 'Change the vertical position of the text (pixels from center)',
 		'horizontal-position': 'Change the horizontal position of the text (pixels from center)',
 		width: 'Set width of subtitle container',
@@ -856,7 +916,8 @@ const editor = {
 		'background-opacity': 'Control the transparency of the background',
 		'border-radius': 'Round the corners of the background',
 		'background-horizontal-padding': 'Add left and right padding when using a background',
-		'background-css': 'Write any CSS for custom Background (gradient, pattern, ...). Use !important if needed. Exemple: background: linear-gradient(to right, #ff0000, #0000ff) !important;',
+		'background-css':
+			'Write any CSS for custom Background (gradient, pattern, ...). Use !important if needed. Exemple: background: linear-gradient(to right, #ff0000, #0000ff) !important;',
 		border: 'Add borders around subtitle containers',
 		'border-enable': 'Enable or disable container border',
 		'border-width': 'Set the width of the border',
@@ -900,7 +961,8 @@ const editor = {
 		'overlay-opacity': 'Opacity of the overlay',
 		'background-overlay-mode': 'Uniform or vertical fade (up, down, or center)',
 		'background-overlay-fade-intensity': 'Controls fade strength when overlay mode is not uniform',
-		'background-overlay-fade-coverage': 'Controls how much vertical area is used by fade versus non-fade zones',
+		'background-overlay-fade-coverage':
+			'Controls how much vertical area is used by fade versus non-fade zones',
 		'overlay-blur': 'Blur level of the overlay',
 		'overlay-custom-css': 'Add custom CSS to the overlay (e.g., animations)',
 		'surah-name': 'Control display of the Surah name',
@@ -908,9 +970,12 @@ const editor = {
 		'surah-name-always-show': 'Always show the Surah name (ignore timing)',
 		'surah-name-time-appearance': 'Change the time where the Surah name appears',
 		'surah-name-time-disappearance': 'Change the time where the Surah name disappears',
-		'surah-name-vertical-position': 'Change the vertical position of the surah name (pixels from center)',
-		'surah-name-horizontal-position': 'Change the horizontal position of the surah name (pixels from center)',
-		'surah-name-format': 'Format of the Surah name display. Use <number>, <transliteration>, <translation>, <min-range> and <max-range> tags to customize.',
+		'surah-name-vertical-position':
+			'Change the vertical position of the surah name (pixels from center)',
+		'surah-name-horizontal-position':
+			'Change the horizontal position of the surah name (pixels from center)',
+		'surah-name-format':
+			'Format of the Surah name display. Use <number>, <transliteration>, <translation>, <min-range> and <max-range> tags to customize.',
 		'surah-show-arabic': 'Show the Surah name in Arabic',
 		'surah-show-latin': 'Show additional Latin text (see Latin Text Format)',
 		'surah-size': 'Scale size of Surah Calligraphy',
@@ -922,22 +987,31 @@ const editor = {
 		'reciter-name-always-show': 'Always show the Reciter name (ignore timing)',
 		'reciter-name-time-appearance': 'Change the time where the Reciter name appears',
 		'reciter-name-time-disappearance': 'Change the time where the Reciter name disappears',
-		'reciter-name-vertical-position': 'Change the vertical position of the reciter name (pixels from center)',
-		'reciter-name-horizontal-position': 'Change the horizontal position of the reciter name (pixels from center)',
-		'reciter-name-format': 'Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.',
+		'reciter-name-vertical-position':
+			'Change the vertical position of the reciter name (pixels from center)',
+		'reciter-name-horizontal-position':
+			'Change the horizontal position of the reciter name (pixels from center)',
+		'reciter-name-format':
+			'Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.',
 		'reciter-show-arabic': 'Show the Reciter name in Arabic',
 		'reciter-show-latin': 'Show additional Latin text (see Latin Text Format)',
 		'reciter-size': 'Size of Reciter Arabic Calligraphy Name',
-		'reciter-latin-spacing': 'Adjust spacing between the Arabic Reciter name and its Latin equivalent',
+		'reciter-latin-spacing':
+			'Adjust spacing between the Arabic Reciter name and its Latin equivalent',
 		'reciter-opacity': 'Adjust the opacity of the Reciter name',
 		'reciter-latin-text-style': 'Style for the Latin transliteration of the Reciter name',
 		'ayah-container': 'Add a decorative background image behind the ayah',
 		'ayah-container-image': 'Select a decorative container image for the ayah',
-		'ayah-container-vertical-position': 'Change the vertical position of the container (pixels from center)',
-		'ayah-container-horizontal-position': 'Change the horizontal position of the container (pixels from center)',
-		'ayah-container-width': 'Width of the container in percentage (stretches the image if ratio is not respected)',
-		'ayah-container-height': 'Height of the container in percentage (stretches the image if ratio is not respected)',
-		'ayah-container-stretch': 'Stretch the image to fill the container (otherwise it fits inside preserving ratio)',
+		'ayah-container-vertical-position':
+			'Change the vertical position of the container (pixels from center)',
+		'ayah-container-horizontal-position':
+			'Change the horizontal position of the container (pixels from center)',
+		'ayah-container-width':
+			'Width of the container in percentage (stretches the image if ratio is not respected)',
+		'ayah-container-height':
+			'Height of the container in percentage (stretches the image if ratio is not respected)',
+		'ayah-container-stretch':
+			'Stretch the image to fill the container (otherwise it fits inside preserving ratio)',
 		'verse-number-text-style': 'Change the style of the Verse number display',
 		'custom-text': 'Add a text on the video',
 		'custom-text-composite': 'Customize the text styles',

@@ -2879,6 +2879,38 @@ type RootTranslation = {
 		 */
 		supportedLinksHint: string
 		/**
+		 * D​o​w​n​l​o​a​d​ ​Q​u​r​a​n​ ​R​e​c​i​t​a​t​i​o​n
+		 */
+		downloadQuranRecitation: string
+		/**
+		 * S​o​u​r​c​e
+		 */
+		sourceLabel: string
+		/**
+		 * R​e​c​i​t​e​r
+		 */
+		reciterLabel: string
+		/**
+		 * L​o​a​d​i​n​g​ ​r​e​c​i​t​e​r​s​.​.​.
+		 */
+		loadingReciters: string
+		/**
+		 * S​e​l​e​c​t​ ​a​ ​r​e​c​i​t​e​r
+		 */
+		selectReciter: string
+		/**
+		 * ★​ ​m​e​a​n​s​ ​o​f​f​i​c​i​a​l​ ​v​e​r​s​e​ ​t​i​m​i​n​g​ ​c​a​n​ ​b​e​ ​l​o​a​d​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​a​f​t​e​r​ ​d​o​w​n​l​o​a​d​.
+		 */
+		nativeTimingHint: string
+		/**
+		 * S​e​l​e​c​t​ ​a​ ​S​u​r​a​h
+		 */
+		selectSurah: string
+		/**
+		 * S​u​r​a​h
+		 */
+		surah: string
+		/**
 		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s
 		 */
 		projectAssetsLabel: string
@@ -11106,6 +11138,38 @@ export type TranslationFunctions = {
 		 * Supported public links include YouTube, full surah or mushaf uploads on SoundCloud, Internet Archive collections, public Google Drive links, and short recitation clips from Facebook, Instagram, TikTok, or X/Twitter.
 		 */
 		supportedLinksHint: () => LocalizedString
+		/**
+		 * Download Quran Recitation
+		 */
+		downloadQuranRecitation: () => LocalizedString
+		/**
+		 * Source
+		 */
+		sourceLabel: () => LocalizedString
+		/**
+		 * Reciter
+		 */
+		reciterLabel: () => LocalizedString
+		/**
+		 * Loading reciters...
+		 */
+		loadingReciters: () => LocalizedString
+		/**
+		 * Select a reciter
+		 */
+		selectReciter: () => LocalizedString
+		/**
+		 * ★ means official verse timing can be loaded automatically after download.
+		 */
+		nativeTimingHint: () => LocalizedString
+		/**
+		 * Select a Surah
+		 */
+		selectSurah: () => LocalizedString
+		/**
+		 * Surah
+		 */
+		surah: () => LocalizedString
 		/**
 		 * Project Assets
 		 */

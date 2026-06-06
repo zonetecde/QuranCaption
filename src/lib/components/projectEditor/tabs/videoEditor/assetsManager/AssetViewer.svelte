@@ -163,10 +163,8 @@
 					downloadPath: downloadPath
 				});
 
-				asset.metadata.skipConstantBitrateWarning = true;
 				asset.updateFilePath(result);
 				mediaKey++; // Force re-render of audio/video element
-				await convertToCBR();
 				toast.success('Re-download successful!', { id: toastId });
 			} else if (
 				asset.sourceType === SourceType.Mp3Quran ||

@@ -94,8 +94,8 @@
 					.concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [_action, shortcut], index (`${shortcut.name}-${index}`)}
 					<div class="flex items-center justify-between py-1 border-b border-color last:border-0">
 						<div class="flex flex-col">
-							<span class="text-sm font-medium text-secondary">{shortcut.name}</span>
-							<span class="text-xs italic font-medium text-secondary">{shortcut.description}</span>
+							<span class="text-sm font-medium text-secondary">{(get(LL).settings.shortcutAction as Record<string, () => string>)[_action]?.() ?? shortcut.name}</span>
+							<span class="text-xs italic font-medium text-secondary">{(get(LL).settings.shortcutActionDesc as Record<string, () => string>)[_action]?.() ?? shortcut.description}</span>
 						</div>
 						<span class="font-mono bg-accent px-1 rounded-sm">{shortcut.keys.join(', ')}</span>
 					</div>

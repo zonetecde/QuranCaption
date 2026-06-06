@@ -345,6 +345,8 @@ struct PixelRect {
     y1: usize,
 }
 
+const DIRTY_TILE_SIZE: usize = 16;
+
 struct FadeFrameTask {
     output_path: PathBuf,
     duration_ticks: u128,
@@ -509,10 +511,13 @@ fn div_round(value: u64, divisor: u64) -> u64 {
     (value + divisor / 2) / divisor
 }
 
-/// Trouve la plus petite zone de pixels differents entre deux images.
-fn changed_pixel_rect(a: &FastImage, b: &FastImage) -> Option<PixelRect> {
+/// Trouve les zones de pixels differents entre deux images.
+fn changed_pixel_regions(a: &FastImage, b: &FastImage) -> Vec<PixelRect> {
     let width = a.width as usize;
     let height = a.height as usize;
+    let tile_cols = (width + DIRTY_TILE_SIZE - 1) / DIRTY_TILE_SIZE;
+    let tile_rows = (height + DIRTY_TILE_SIZE - 1) / DIRTY_TILE_SIZE;
+    let mut dirty_tiles = vec![false; tile_cols * tile_rows];
     let mut x0 = width;
     let mut y0 = height;
     let mut x1 = 0usize;
@@ -527,15 +532,52 @@ fn changed_pixel_rect(a: &FastImage, b: &FastImage) -> Option<PixelRect> {
                 y0 = y0.min(y);
                 x1 = x1.max(x + 1);
                 y1 = y1.max(y + 1);
+                dirty_tiles[(y / DIRTY_TILE_SIZE) * tile_cols + x / DIRTY_TILE_SIZE] = true;
             }
         }
     }
 
     if x1 == 0 {
-        None
-    } else {
-        Some(PixelRect { x0, y0, x1, y1 })
+        return Vec::new();
     }
+
+    let bounds = PixelRect { x0, y0, x1, y1 };
+    let mut regions = Vec::new();
+    for tile_y in 0..tile_rows {
+        let mut tile_x = 0usize;
+        while tile_x < tile_cols {
+            while tile_x < tile_cols && !dirty_tiles[tile_y * tile_cols + tile_x] {
+                tile_x += 1;
+            }
+            if tile_x == tile_cols {
+                break;
+            }
+
+            let start_x = tile_x;
+            while tile_x < tile_cols && dirty_tiles[tile_y * tile_cols + tile_x] {
+                tile_x += 1;
+            }
+
+            regions.push(PixelRect {
+                x0: start_x * DIRTY_TILE_SIZE,
+                y0: tile_y * DIRTY_TILE_SIZE,
+                x1: (tile_x * DIRTY_TILE_SIZE).min(width),
+                y1: ((tile_y + 1) * DIRTY_TILE_SIZE).min(height),
+            });
+        }
+    }
+
+    let tile_area: usize = regions.iter().map(rect_area).sum();
+    if tile_area < rect_area(&bounds) {
+        regions
+    } else {
+        vec![bounds]
+    }
+}
+
+/// Calcule l'aire d'une region de pixels.
+fn rect_area(rect: &PixelRect) -> usize {
+    (rect.x1 - rect.x0) * (rect.y1 - rect.y0)
 }
 
 /// Compose une image RGBA droite sur un fond noir opaque.
@@ -557,11 +599,11 @@ fn compose_rgba_over_black(image: &FastImage) -> FastImage {
     }
 }
 
-/// Melange uniquement la zone modifiee en alpha premultiplie.
-fn blend_premultiplied_rect(
+/// Melange uniquement les zones modifiees en alpha premultiplie.
+fn blend_premultiplied_regions(
     a: &FastImage,
     b: &FastImage,
-    rect: PixelRect,
+    regions: &[PixelRect],
     numerator: u64,
     denominator: u64,
 ) -> FastImage {
@@ -569,28 +611,30 @@ fn blend_premultiplied_rect(
     let inv = denominator.saturating_sub(numerator);
     let width = a.width as usize;
 
-    for y in rect.y0..rect.y1 {
-        for x in rect.x0..rect.x1 {
-            let offset = (y * width + x) * 4;
-            let apx = &a.rgba[offset..offset + 4];
-            let bpx = &b.rgba[offset..offset + 4];
-            let out = &mut rgba[offset..offset + 4];
-            let aa = apx[3] as u64;
-            let ba = bpx[3] as u64;
-            let out_alpha = div_round(aa * inv + ba * numerator, denominator).min(255);
+    for rect in regions {
+        for y in rect.y0..rect.y1 {
+            for x in rect.x0..rect.x1 {
+                let offset = (y * width + x) * 4;
+                let apx = &a.rgba[offset..offset + 4];
+                let bpx = &b.rgba[offset..offset + 4];
+                let out = &mut rgba[offset..offset + 4];
+                let aa = apx[3] as u64;
+                let ba = bpx[3] as u64;
+                let out_alpha = div_round(aa * inv + ba * numerator, denominator).min(255);
 
-            if out_alpha == 0 {
-                out.copy_from_slice(&[0, 0, 0, 0]);
-                continue;
-            }
+                if out_alpha == 0 {
+                    out.copy_from_slice(&[0, 0, 0, 0]);
+                    continue;
+                }
 
-            for channel in 0..3 {
-                let a_premul = apx[channel] as u64 * aa;
-                let b_premul = bpx[channel] as u64 * ba;
-                let premul = div_round(a_premul * inv + b_premul * numerator, denominator);
-                out[channel] = div_round(premul, out_alpha).min(255) as u8;
+                for channel in 0..3 {
+                    let a_premul = apx[channel] as u64 * aa;
+                    let b_premul = bpx[channel] as u64 * ba;
+                    let premul = div_round(a_premul * inv + b_premul * numerator, denominator);
+                    out[channel] = div_round(premul, out_alpha).min(255) as u8;
+                }
+                out[3] = out_alpha as u8;
             }
-            out[3] = out_alpha as u8;
         }
     }
 
@@ -601,11 +645,11 @@ fn blend_premultiplied_rect(
     }
 }
 
-/// Melange uniquement la zone modifiee de deux images deja opaques.
-fn blend_opaque_rect(
+/// Melange uniquement les zones modifiees de deux images deja opaques.
+fn blend_opaque_regions(
     a: &FastImage,
     b: &FastImage,
-    rect: PixelRect,
+    regions: &[PixelRect],
     numerator: u64,
     denominator: u64,
 ) -> FastImage {
@@ -613,18 +657,20 @@ fn blend_opaque_rect(
     let inv = denominator.saturating_sub(numerator);
     let width = a.width as usize;
 
-    for y in rect.y0..rect.y1 {
-        for x in rect.x0..rect.x1 {
-            let offset = (y * width + x) * 4;
-            for channel in 0..3 {
-                rgba[offset + channel] = div_round(
-                    a.rgba[offset + channel] as u64 * inv
-                        + b.rgba[offset + channel] as u64 * numerator,
-                    denominator,
-                )
-                .min(255) as u8;
+    for rect in regions {
+        for y in rect.y0..rect.y1 {
+            for x in rect.x0..rect.x1 {
+                let offset = (y * width + x) * 4;
+                for channel in 0..3 {
+                    rgba[offset + channel] = div_round(
+                        a.rgba[offset + channel] as u64 * inv
+                            + b.rgba[offset + channel] as u64 * numerator,
+                        denominator,
+                    )
+                    .min(255) as u8;
+                }
+                rgba[offset + 3] = 255;
             }
-            rgba[offset + 3] = 255;
         }
     }
 
@@ -737,7 +783,7 @@ fn build_overlay_concat_plan(
         let source_path = temp_dir.join(format!("source_{:06}.tga", i));
         let source_image = current_visible.as_ref().unwrap_or(&current);
         write_tga_rgba(&source_path, source_image)?;
-        let changed_rect = changed_pixel_rect(&current, &next);
+        let changed_regions = changed_pixel_regions(&current, &next);
 
         let segment_ms = timestamps_ms[i + 1].saturating_sub(timestamps_ms[i]).max(0) as u128;
         let segment_ticks = segment_ms * fps_ticks;
@@ -747,7 +793,7 @@ fn build_overlay_concat_plan(
             let contribution_ticks = segment_ticks.saturating_sub(previous_fade_ticks);
             let visual_fade_ticks = timeline_fade_ticks.min(contribution_ticks);
 
-            if requested_fade_ticks == 0 || visual_fade_ticks == 0 || changed_rect.is_none() {
+            if requested_fade_ticks == 0 || visual_fade_ticks == 0 || changed_regions.is_empty() {
                 write_concat_entry(&mut concat_file, &source_path, contribution_ticks, timebase)?;
                 total_duration_ticks += contribution_ticks;
             } else {
@@ -755,7 +801,6 @@ fn build_overlay_concat_plan(
                 let still_ticks = contribution_ticks.saturating_sub(visual_fade_ticks);
                 write_concat_entry(&mut concat_file, &source_path, still_ticks, timebase)?;
                 total_duration_ticks += still_ticks;
-                let rect = changed_rect.expect("zone modifiee presente");
 
                 let fade_frame_count = ceil_div(visual_fade_ticks, frame_ticks) as usize;
                 let tasks: Vec<FadeFrameTask> = (0..fade_frame_count)
@@ -777,18 +822,18 @@ fn build_overlay_concat_plan(
                 tasks.par_iter().try_for_each(|task| -> ExportResult<()> {
                     ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
                     let blended = if compose_black {
-                        blend_opaque_rect(
+                        blend_opaque_regions(
                             current_visible.as_ref().expect("image visible courante"),
                             next_visible.as_ref().expect("image visible suivante"),
-                            rect,
+                            &changed_regions,
                             task.numerator,
                             task.denominator,
                         )
                     } else {
-                        blend_premultiplied_rect(
+                        blend_premultiplied_regions(
                             &current,
                             &next,
-                            rect,
+                            &changed_regions,
                             task.numerator,
                             task.denominator,
                         )

@@ -373,6 +373,39 @@ function applyTextTransform(text: string, transform: string): string {
 }
 
 /**
+ * Indique si un token peut se couper naturellement entre caracteres CJK.
+ * @param {string} text Texte du token.
+ * @returns {boolean} `true` si le token contient un caractere CJK.
+ */
+function shouldSplitTokenIntoGraphemes(text: string): boolean {
+	return /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/u.test(text);
+}
+
+/**
+ * Decoupe un intervalle texte en bornes de graphemes.
+ * @param {string} text Texte source complet.
+ * @param {number} start Debut de l'intervalle.
+ * @param {number} end Fin de l'intervalle.
+ * @returns {Array<{ start: number; end: number }>} Bornes de graphemes dans le texte source.
+ */
+function getGraphemeRanges(
+	text: string,
+	start: number,
+	end: number
+): Array<{ start: number; end: number }> {
+	const ranges: Array<{ start: number; end: number }> = [];
+	let offset = start;
+
+	for (const grapheme of Array.from(text.slice(start, end))) {
+		const nextOffset = offset + grapheme.length;
+		ranges.push({ start: offset, end: nextOffset });
+		offset = nextOffset;
+	}
+
+	return ranges;
+}
+
+/**
  * Extrait les bornes de chaque token visible pour reconstruire les lignes.
  * @param text Texte brut.
  * @returns Tableau des bornes de tokens.
@@ -383,8 +416,17 @@ function getTextTokenRanges(text: string): Array<{ start: number; end: number }>
 	let match: RegExpExecArray | null;
 
 	while ((match = tokenPattern.exec(text)) !== null) {
+		const tokenText = match[0].trimEnd();
+		const tokenStart = match.index;
+		const tokenEnd = tokenStart + tokenText.length;
+
+		if (shouldSplitTokenIntoGraphemes(tokenText)) {
+			tokens.push(...getGraphemeRanges(text, tokenStart, tokenEnd));
+			continue;
+		}
+
 		tokens.push({
-			start: match.index,
+			start: tokenStart,
 			end: match.index + match[0].length
 		});
 	}

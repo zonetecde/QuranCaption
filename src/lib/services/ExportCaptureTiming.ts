@@ -333,6 +333,61 @@ type CalculateCaptureTimingParams = {
 	getCurrentSurah: (time: number) => number;
 };
 
+export type ExportCaptureTimingResult = {
+	uniqueSorted: number[];
+	imgWithNothingShown: { [blankVisualStateKey: string]: number };
+	blankImgs: { [blankVisualStateKey: string]: number[] };
+	duplicableTimings: Map<number, number>;
+	exactCaptureTimings: Set<number>;
+	exactCaptureTimingValues: Map<number, number>;
+};
+
+export type ExportFrameCaptureJob = {
+	kind: 'capture';
+	timing: number;
+	captureTiming: number;
+	imageIndex: number;
+	fileName: string;
+	isBlankImage: boolean;
+	reusableBlankFileName: string | null;
+};
+
+export type ExportFrameCopyJob = {
+	kind: 'copy';
+	timing: number;
+	sourceFileName: string;
+	targetFileName: number;
+	reason: 'duplicable' | 'blank';
+};
+
+export type ExportBlankSourceJob = {
+	kind: 'blankSource';
+	timing: number;
+	captureTiming: number;
+	fileName: string;
+	blankVisualStateKey: string;
+};
+
+export type ExportCaptureJobPlan = {
+	blankSourceJobs: ExportBlankSourceJob[];
+	captureJobs: ExportFrameCaptureJob[];
+	copyJobs: ExportFrameCopyJob[];
+	workerBuckets: ExportFrameCaptureJob[][];
+	blankImageIndexes: number[];
+	totalJobs: number;
+};
+
+type BuildExportCaptureJobPlanParams = {
+	timings: ExportCaptureTimingResult;
+	rangeStart: number;
+	rangeEnd: number;
+	fadeDuration: number;
+	workerCount: number;
+	isBlankCaptureTiming: (timing: number) => boolean;
+	getReusableBlankFileName: (timing: number) => string | null;
+	getBlankSourceCaptureTiming?: (timing: number) => number;
+};
+
 export function calculateCaptureTimingsForRange({
 	rangeStart,
 	rangeEnd,
@@ -340,7 +395,7 @@ export function calculateCaptureTimingsForRange({
 	subtitleClips,
 	timedOverlayClips,
 	getCurrentSurah
-}: CalculateCaptureTimingParams) {
+}: CalculateCaptureTimingParams): ExportCaptureTimingResult {
 	const timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
 	const imgWithNothingShown: { [blankVisualStateKey: string]: number } = {}; // Timing ou rien n'est affiche (pour dupliquer)
 	const blankImgs: { [blankVisualStateKey: string]: number[] } = {};
@@ -494,5 +549,114 @@ export function calculateCaptureTimingsForRange({
 		duplicableTimings,
 		exactCaptureTimings,
 		exactCaptureTimingValues
+	};
+}
+
+/**
+ * Transforme les timings d'export en jobs de capture, copie et blanks partagés.
+ *
+ * Le calcul conserve les formules historiques d'index PNG. Les copies sont séparées des vraies
+ * captures pour pouvoir attendre que toutes les sources produites par les workers existent.
+ *
+ * @param {BuildExportCaptureJobPlanParams} params Données de timing et callbacks de contexte.
+ * @returns {ExportCaptureJobPlan} Plan de travail prêt à exécuter.
+ */
+export function buildExportCaptureJobPlan({
+	timings,
+	rangeStart,
+	rangeEnd,
+	fadeDuration,
+	workerCount,
+	isBlankCaptureTiming,
+	getReusableBlankFileName,
+	getBlankSourceCaptureTiming = (timing) => timing
+}: BuildExportCaptureJobPlanParams): ExportCaptureJobPlan {
+	const captureJobs: ExportFrameCaptureJob[] = [];
+	const copyJobs: ExportFrameCopyJob[] = [];
+	const blankImageIndexes = new Set<number>();
+	const normalizedWorkerCount = Math.max(1, Math.floor(workerCount));
+	const workerBuckets: ExportFrameCaptureJob[][] = Array.from(
+		{ length: normalizedWorkerCount },
+		() => []
+	);
+
+	let base = -fadeDuration;
+	for (const timing of timings.uniqueSorted) {
+		const imageIndex = Math.max(Math.round(timing - rangeStart + base), 0);
+		const blankTimingInfo = hasTiming(timings.blankImgs, timing);
+		const isBlankImage = isBlankCaptureTiming(timing);
+
+		if (isBlankImage) {
+			blankImageIndexes.add(imageIndex);
+		}
+
+		const sourceTimingForDuplication = timings.duplicableTimings.get(timing);
+		if (sourceTimingForDuplication !== undefined) {
+			const sourceIndex = Math.max(
+				Math.round(sourceTimingForDuplication - rangeStart - fadeDuration),
+				0
+			);
+			copyJobs.push({
+				kind: 'copy',
+				timing,
+				sourceFileName: `${sourceIndex}`,
+				targetFileName: imageIndex,
+				reason: 'duplicable'
+			});
+		} else if (
+			blankTimingInfo.hasIt &&
+			blankTimingInfo.key &&
+			hasBlankImg(timings.imgWithNothingShown, blankTimingInfo.key)
+		) {
+			copyJobs.push({
+				kind: 'copy',
+				timing,
+				sourceFileName: getBlankImageFileName(blankTimingInfo.key),
+				targetFileName: imageIndex,
+				reason: 'blank'
+			});
+		} else {
+			const captureTiming =
+				timings.exactCaptureTimingValues.get(timing) ??
+				(isBlankImage || timings.exactCaptureTimings.has(timing) ? timing : timing + 1);
+			const job: ExportFrameCaptureJob = {
+				kind: 'capture',
+				timing,
+				captureTiming,
+				imageIndex,
+				fileName: `${imageIndex}`,
+				isBlankImage,
+				reusableBlankFileName: isBlankImage ? null : getReusableBlankFileName(timing)
+			};
+			captureJobs.push(job);
+
+			const rangeDuration = Math.max(1, rangeEnd - rangeStart);
+			const bucketIndex = Math.min(
+				normalizedWorkerCount - 1,
+				Math.max(0, Math.floor(((timing - rangeStart) / rangeDuration) * normalizedWorkerCount))
+			);
+			workerBuckets[bucketIndex].push(job);
+		}
+
+		base += fadeDuration;
+	}
+
+	const blankSourceJobs = Object.entries(timings.imgWithNothingShown).map(
+		([blankVisualStateKey, timing]) => ({
+			kind: 'blankSource' as const,
+			timing,
+			captureTiming: getBlankSourceCaptureTiming(timing),
+			fileName: getBlankImageFileName(blankVisualStateKey),
+			blankVisualStateKey
+		})
+	);
+
+	return {
+		blankSourceJobs,
+		captureJobs,
+		copyJobs,
+		workerBuckets,
+		blankImageIndexes: Array.from(blankImageIndexes).sort((a, b) => a - b),
+		totalJobs: blankSourceJobs.length + captureJobs.length + copyJobs.length
 	};
 }

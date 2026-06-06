@@ -125,7 +125,10 @@ export default class Exportation extends SerializableBase {
 		// Ferme la fenêtre d'exportation si elle est ouverte
 		(await getAllWindows()).forEach((win) => {
 			console.log(win.label, this.exportId.toString());
-			if (win.label === this.exportId.toString()) {
+			if (
+				win.label === this.exportId.toString() ||
+				win.label.startsWith(`${this.exportId.toString()}-capture-`)
+			) {
 				win.close();
 				// La fenêtre d'exportation va supprimer le dossier temporaire des images à sa fermeture
 			}

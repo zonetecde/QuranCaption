@@ -1,5 +1,6 @@
 ﻿<script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
+	import Settings from '$lib/classes/Settings.svelte';
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
@@ -33,6 +34,19 @@
 	];
 
 	let showAdvancedSettings = $state(false);
+
+	/**
+	 * Normalise et sauvegarde le nombre de WebViews utilisees pour capturer les frames.
+	 * @returns {Promise<void>}
+	 */
+	async function saveParallelCaptureWorkers(): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.parallelCaptureWorkers = Math.max(
+			1,
+			Math.min(8, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 4))
+		);
+		await Settings.save();
+	}
 
 	// Initialize export state values if not set
 	$effect(() => {
@@ -282,6 +296,31 @@
 						Choose how aggressively the exporter should use your CPU during ffmpeg work.
 					</p>
 				</div>
+
+				{#if globalState.settings}
+					<div class="mb-4 rounded-lg border border-color bg-secondary p-4">
+						<label
+							class="block text-sm font-medium text-primary mb-2"
+							for="parallel-capture-workers"
+						>
+							Parallel capture workers
+						</label>
+						<input
+							id="parallel-capture-workers"
+							type="number"
+							min="1"
+							max="8"
+							step="1"
+							class="input w-full h-10"
+							bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
+							onchange={saveParallelCaptureWorkers}
+						/>
+						<p class="text-xs text-thirdly mt-2">
+							Number of hidden WebViews used for PNG frame capture. Default is 4; 1 disables
+							parallel capture.
+						</p>
+					</div>
+				{/if}
 
 				<div class="grid grid-cols-1 gap-3">
 					{#each performanceProfiles as profile (profile.id)}

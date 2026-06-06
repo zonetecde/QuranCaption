@@ -56,6 +56,9 @@
 	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
+	// Affichage ou non des fenêtres
+	const DEBUG_EXPORT_MODE = false;
+
 	// Contient l'ID de l'export
 	let exportId = '';
 
@@ -845,11 +848,11 @@
 				focus: false,
 				skipTaskbar: true,
 				preventOverflow: false,
-				x: -10000,
-				y: -10000,
+				x: DEBUG_EXPORT_MODE ? workerId * 100 : -10000,
+				y: DEBUG_EXPORT_MODE ? workerId * 100 : -10000,
 				backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
 				alwaysOnTop: false,
-				alwaysOnBottom: true,
+				alwaysOnBottom: DEBUG_EXPORT_MODE ? false : true,
 				title: 'QC Capture - ' + label,
 				url:
 					'/exporter?' +
@@ -862,7 +865,7 @@
 
 			w.once('tauri://created', async () => {
 				try {
-					await w.setPosition(new LogicalPosition(-10000, -10000));
+					if (!DEBUG_EXPORT_MODE) await w.setPosition(new LogicalPosition(-10000, -10000));
 				} catch (error) {
 					console.warn('Unable to move capture worker off-screen:', error);
 				}

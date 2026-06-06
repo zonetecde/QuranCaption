@@ -98,3 +98,14 @@ pub struct VideoInput {
     /// Si vrai, la vidéo boucle jusqu'à la fin de l'audio.
     pub loop_until_audio_end: Option<bool>,
 }
+
+/// Vidéo de fond prétraitée, prête pour l'overlay final.
+#[derive(Debug, Clone)]
+pub struct PreparedBackgroundVideo {
+    /// Chemin vers le fichier vidéo (cache ou source directe).
+    pub path: String,
+    /// Vrai si la vidéo a déjà la bonne résolution, le bon FPS et le bon SAR.
+    pub is_normalized: bool,
+    /// Durée connue en secondes (évite un ffprobe redondant).
+    pub duration_s: f64,
+}

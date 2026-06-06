@@ -914,9 +914,15 @@ fn append_visible_h264_args(
     width: i32,
     height: i32,
     fps: i32,
+    performance_profile: ExportPerformanceProfile,
 ) {
-    let (vcodec, vparams, vextra) =
-        codec::choose_best_codec(prefer_hw, width, height, CodecUsage::Final);
+    let (vcodec, vparams, vextra) = codec::choose_best_codec(
+        prefer_hw,
+        width,
+        height,
+        CodecUsage::Final,
+        performance_profile,
+    );
     cmd.extend_from_slice(&["-c:v".to_string(), vcodec.clone()]);
 
     if vcodec == "h264_nvenc" {
@@ -1107,14 +1113,20 @@ fn run_fast_export(
 
     let mut current_idx = 1usize;
     let bg_start_idx = current_idx;
-    for path in &preprocessed_background_videos {
-        cmd.extend_from_slice(&["-i".to_string(), path.clone()]);
+    for bg in &preprocessed_background_videos {
+        // Pour la voie directe (non normalisé), ajouter un seek input
+        if !bg.is_normalized {
+            let seek_s = (start_time_ms as f64 / 1000.0).max(0.0);
+            cmd.extend_from_slice(&["-ss".to_string(), format!("{:.6}", seek_s)]);
+            println!("[background] input fast seek: {}s for {}", seek_s, bg.path);
+        }
+        cmd.extend_from_slice(&["-i".to_string(), bg.path.clone()]);
         current_idx += 1;
     }
 
     let total_bg_s: f64 = preprocessed_background_videos
         .iter()
-        .map(|p| ffmpeg_utils::ffprobe_duration_sec(p))
+        .map(|bg| bg.duration_s)
         .sum();
     let total_audio_s: f64 = audio_paths
         .iter()
@@ -1216,7 +1228,7 @@ fn run_fast_export(
             "-r".to_string(),
             fps.to_string(),
         ]);
-        append_visible_h264_args(&mut cmd, prefer_hw, w, h, fps);
+        append_visible_h264_args(&mut cmd, prefer_hw, w, h, fps, performance_profile);
 
         if have_audio {
             cmd.extend_from_slice(&["-map".to_string(), format!("{}:a", audio_start_idx)]);
@@ -1293,13 +1305,28 @@ fn run_fast_export(
         let bg_label = if let Some(idx) = black_background_idx {
             format!("{}:v", idx)
         } else if preprocessed_background_videos.len() > 1 {
+            // Plusieurs backgrounds : tous sont normalisés par le pré-traitement
             let mut inputs = String::new();
             for i in 0..preprocessed_background_videos.len() {
-                filter_lines.push(format!(
-                    "[{}:v]setpts=PTS-STARTPTS[bg{}]",
-                    bg_start_idx + i,
-                    i
-                ));
+                let bg = &preprocessed_background_videos[i];
+                if bg.is_normalized {
+                    filter_lines.push(format!(
+                        "[{}:v]setpts=PTS-STARTPTS[bg{}]",
+                        bg_start_idx + i,
+                        i
+                    ));
+                    println!(
+                        "[background] normalized=true redundant_scale_skipped=true idx={}",
+                        i
+                    );
+                } else {
+                    // Fallback: normaliser dans le graphe final
+                    filter_lines.push(format!(
+                        "[{}:v]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,fps={},setsar=1[bg{}]",
+                        bg_start_idx + i, w, h, w, h, fps, i
+                    ));
+                    println!("[background] normalized=false idx={}", i);
+                }
                 inputs.push_str(&format!("[bg{}]", i));
             }
             filter_lines.push(format!(
@@ -1316,10 +1343,32 @@ fn run_fast_export(
             filter_lines.push(format!("[{}]setsar=1[bg_normalized]", bg_label));
         } else {
             let bg_trim_end = duration_s.min(total_bg_s.max(0.001));
-            filter_lines.push(format!(
-                "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
-                bg_label, bg_trim_end, w, h, w, h
-            ));
+            let single_bg = preprocessed_background_videos.get(0);
+
+            if let Some(bg) = single_bg {
+                if bg.is_normalized {
+                    // Background déjà à la bonne résolution, FPS et SAR
+                    println!("[background] normalized=true redundant_scale_skipped=true");
+                    filter_lines.push(format!(
+                        "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS[bgtrim]",
+                        bg_label, bg_trim_end
+                    ));
+                } else {
+                    // Background non normalisé (direct single pass ou fallback)
+                    println!("[background] normalized=false (full filter chain)");
+                    filter_lines.push(format!(
+                        "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,fps={},setsar=1,trim=end={:.6}[bgtrim]",
+                        bg_label, w, h, w, h, fps, bg_trim_end
+                    ));
+                }
+            } else {
+                // Pas de background unique (ne devrait pas arriver)
+                filter_lines.push(format!(
+                    "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
+                    bg_label, bg_trim_end, w, h, w, h
+                ));
+            }
+
             if total_bg_s + 1e-6 < duration_s {
                 let tail_duration_s = duration_s - total_bg_s;
                 filter_lines.push(format!(
@@ -1440,7 +1489,7 @@ fn run_fast_export(
         ]);
     } else {
         let (vcodec, vparams, vextra) =
-            codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Final);
+            codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Final, performance_profile);
         cmd.extend_from_slice(&["-c:v".to_string(), vcodec.clone()]);
         if let Some(Some(preset)) = vextra.get("preset") {
             cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);

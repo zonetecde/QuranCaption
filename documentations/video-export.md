@@ -11,6 +11,8 @@ utilise par defaut dans `src-tauri/src/exporter/commands.rs`.
   materialises en captures.
 - `src-tauri/src/exporter/commands.rs`: scan des PNG, generation du plan TGA, graphe FFmpeg final,
   mux audio/video.
+- `src-tauri/src/exporter/codec.rs`: detection et selection des codecs (NVENC, QSV, AMF, VideoToolbox).
+- `src-tauri/src/exporter/preprocess.rs`: pretraitement des videos de fond, cache.
 - `src-tauri/src/exporter/filter_graph.rs`: ancien graphe de fallback, conserve pour les cas qui ne
   passent pas par le chemin rapide.
 
@@ -22,7 +24,7 @@ importants de l'overlay, puis Rust reconstruit la video finale.
 Pipeline actuel:
 
 ```text
-captures PNG timestampées -> plan overlay TGA -> FFmpeg -> fichier final
+captures PNG timestampees -> plan overlay TGA -> FFmpeg -> fichier final
 ```
 
 Les PNG sont nommes avec leur timestamp en millisecondes dans la timeline compensee, par exemple:
@@ -125,8 +127,137 @@ L'overlay garde son alpha. Le graphe applique:
 premultiply -> overlay alpha=premultiplied
 ```
 
+### Pretraitement
+
+Le pretraitement (`preprocess.rs`) produit une video normalisee:
+- resolution finale exacte (scale + pad contain);
+- bon aspect ratio (pad black bars);
+- bon FPS;
+- `setsar=1`;
+- blur optionnel (`gblur`);
+- encodage dans un fichier MP4 intermediaire.
+
+Le resultat est mis en cache dans `%TEMP%/qurancaption-preproc`.
+
+### Voie directe single-pass
+
+Quand une seule video de fond est fournie sans blur ni boucle, et que le cache n'existe pas encore,
+le pretraitement est saute. La video source est lue directement dans la commande FFmpeg finale avec:
+
+- `-ss` (seek rapide avant l'entree);
+- `scale`, `pad`, `fps`, `setsar` appliques dans le graphe de filtres.
+
+Cela evite un double encodage et la creation d'un fichier intermediaire.
+
+Log correspondant:
+
+```text
+[background] path=direct-single-pass src=<chemin> duration=<s>
+```
+
+### Fond normalise (cache)
+
+Quand le cache est disponible, la video prenormalisee est utilisee directement.
+Le graphe final ne reapplique **pas** `scale` ni `pad` puisque la video est deja aux bonnes
+dimensions. Seuls `trim` et `setpts` sont appliques.
+
+Logs correspondants:
+
+```text
+[background] path=preprocessed-cache
+[background] path=preprocessed-generated
+[background] normalized=true
+[background] redundant_scale_skipped=true
+```
+
+### Fallback
+
+En cas d'echec du pretraitement, la video originale est utilisee comme fallback.
+Dans ce cas, elle n'est pas normalisee et le graphe final applique la chaine complete
+(`scale`, `pad`, `fps`, `setsar`).
+
+Log correspondant:
+
+```text
+[background] path=fallback-original normalized=false
+[background] normalized=false (full filter chain)
+```
+
+### Fond noir (background trop court)
+
 Si la video de fond est plus courte que la duree exportee, elle n'est pas prolongee en clonant sa
 derniere frame. Le reste de la video est rempli avec un fond noir, puis concatene au fond existant.
+
+### Plusieurs backgrounds
+
+Lorsque plusieurs videos de fond sont fournies, elles sont toutes pretraitees individuellement
+(normalisees). Le graphe final les concatene sans appliquer `scale`/`pad` supplementaire.
+
+Log:
+
+```text
+[background] normalized=true redundant_scale_skipped=true idx=0
+```
+
+### Video bouclee
+
+Les videos bouclees (`loop_until_audio_end=true`) passent **toujours** par le pretraitement
+complet (pas de voie directe). Le cache est utilise quand il est valide.
+
+## Selection des codecs
+
+La selection des codecs (`codec.rs`) prend en compte:
+- le profil de performance (`Fastest`, `Balanced`, `LowCpu`);
+- la resolution (standard ou haute resolution);
+- le contexte d'utilisation (`Intermediate` pour le pretraitement, `Final` pour l'export).
+
+### Comportement en haute resolution
+
+| Profil   | Resolution >= 2560x1440                      |
+|----------|----------------------------------------------|
+| Fastest  | Encodeurs materiels autorises (NVENC, QSV, AMF, VideoToolbox) |
+| Balanced | libx264 force (sauf VideoToolbox sur macOS)  |
+| LowCpu   | libx264 force (sauf VideoToolbox sur macOS)  |
+
+En profil `Fastest`, NVENC, QSV et AMF peuvent etre utilises meme en 1440p ou 4K.
+Le test reel de disponibilite NVENC reste utilise avant toute selection.
+
+### Parametres par encodeur
+
+- **NVENC**: `-preset p1 -tune ll -rc constqp -qp 18` (passe finale), `-preset fast` (intermediaire)
+- **VideoToolbox**: bitrate variable selon la resolution, `-allow_sw 1`
+- **QSV/AMF**: parametres par defaut
+- **libx264**: `-crf 16 -preset veryfast` (finale), `-crf 14 -preset veryfast` (intermediaire, haute resolution)
+
+### Log de selection
+
+```text
+[codec] usage=Final profile=Fastest resolution=2560x1440 selected=h264_nvenc
+[codec] usage=Intermediate profile=Fastest resolution=2560x1440 selected=h264_nvenc
+```
+
+### Fallback
+
+Quand aucun encodeur materiel n'est disponible, `libx264` est utilise avec:
+- `-preset ultrafast -crf 22 -tune zerolatency -bf 0`
+
+## Cache de pretraitement
+
+Le cache est stocke dans `%TEMP%/qurancaption-preproc`.
+
+La cle de cache inclut:
+- le chemin source;
+- la date de modification du fichier source (pour detecter un fichier remplace au meme chemin);
+- la taille de sortie;
+- le FPS;
+- le blur;
+- le start offset;
+- la duree;
+- le mode loop;
+- la version du pipeline de pretraitement (`fit-v8`).
+
+Le contenu complet du fichier source n'est **pas** hashe a chaque export.
+La cle est construite avec `md5` d'une chaine representative.
 
 ## Export transparent
 
@@ -193,6 +324,13 @@ Logs Rust:
 [fast_export] chemin direct eligible: ...
 [fast_export] chemin direct ignore: ...
 [fast_export] audio direct: copie sans reencodage
+[background] path=direct-single-pass
+[background] path=preprocessed-cache
+[background] path=preprocessed-generated
+[background] normalized=true
+[background] redundant_scale_skipped=true
+[codec] usage=Final profile=Fastest resolution=2560x1440 selected=h264_nvenc
+[codec] usage=Intermediate profile=Fastest resolution=2560x1440 selected=h264_nvenc
 ```
 
 ## Pieges connus
@@ -206,6 +344,8 @@ Logs Rust:
 - Ne pas reencoder l'audio simple quand un stream-copy suffit.
 - Ne pas supposer que les tuiles reduisent le cout d'encodage FFmpeg: elles optimisent surtout la
   generation des frames de fondu.
+- La voie directe single-pass est uniquement disponible pour une seule video sans blur ni boucle.
+- Ne pas appliquer `scale`+`pad` aux backgrounds deja normalises (cache ou pretraites).
 
 ## Checklist avant modification
 
@@ -215,3 +355,5 @@ Logs Rust:
 4. Si l'export est lent avec audio simple, verifier que le stream-copy est pris.
 5. Si une video de fond courte fige, verifier que la queue noire est bien generee.
 6. Relancer au minimum `cargo check --manifest-path src-tauri/Cargo.toml` apres modification Rust.
+7. Verifier le log `[codec]` pour confirmer la selection de l'encodeur en haute resolution.
+8. Verifier le log `[background] normalized=true` pour confirmer que `scale`/`pad` sont sautes.

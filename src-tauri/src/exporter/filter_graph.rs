@@ -251,24 +251,28 @@ pub fn build_and_run_ffmpeg_filter_complex(
 
     // Prétraiter le fond une seule fois pour toute la plage exportée.
     // Les batchs réutilisent ensuite ce fond via un trim local.
-    let preprocessed_background_videos = if !export_without_background && !video_inputs.is_empty() {
-        preprocess::preprocess_background_videos(
-            video_inputs,
-            w,
-            h,
-            fps,
-            prefer_hw,
-            start_time_ms,
-            Some(full_duration_ms),
-            blur,
-            performance_profile,
-            export_id,
-            full_duration_s,
-            &app_handle,
-        )
-    } else {
-        Vec::new()
-    };
+    let preprocessed_background_videos: Vec<String> =
+        if !export_without_background && !video_inputs.is_empty() {
+            preprocess::preprocess_background_videos(
+                video_inputs,
+                w,
+                h,
+                fps,
+                prefer_hw,
+                start_time_ms,
+                Some(full_duration_ms),
+                blur,
+                performance_profile,
+                export_id,
+                full_duration_s,
+                &app_handle,
+            )
+            .into_iter()
+            .map(|bg| bg.path)
+            .collect()
+        } else {
+            Vec::new()
+        };
 
     // Cas simple : tout tient dans un seul batch en mode Fixed
     if batch_mode == FiltergraphBatchMode::Fixed && n <= batch_limit {
@@ -784,7 +788,7 @@ pub fn render_ffmpeg_filter_complex_single(
             HashMap::new(),
         )
     } else {
-        codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Final)
+        codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Final, performance_profile)
     };
 
     // Durée totale du fond disponible

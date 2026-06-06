@@ -63,7 +63,9 @@
 				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
 			>
 				<div class="space-y-2 mb-3">
-					<div class="text-secondary text-sm font-semibold">{$LL.editor.needVisualWalkthrough()}</div>
+					<div class="text-secondary text-sm font-semibold">
+						{$LL.editor.needVisualWalkthrough()}
+					</div>
 					<p class="text-xs text-thirdly">
 						{$LL.editor.walkthroughDescription()}
 					</p>
@@ -83,7 +85,8 @@
 				{@html $LL.editor.spaceToPlayPause()}
 				<br />
 				{@html $LL.editor.arrowsToSelectWords()}
-				<br /> {@html $LL.editor.enterToAddSubtitleWalkthrough()}
+				<br />
+				{@html $LL.editor.enterToAddSubtitleWalkthrough()}
 
 				<!-- separator line -->
 				<div class="border-t border-color my-3"></div>
@@ -94,8 +97,15 @@
 					.concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [_action, shortcut], index (`${shortcut.name}-${index}`)}
 					<div class="flex items-center justify-between py-1 border-b border-color last:border-0">
 						<div class="flex flex-col">
-							<span class="text-sm font-medium text-secondary">{(get(LL).settings.shortcutAction as Record<string, () => string>)[_action]?.() ?? shortcut.name}</span>
-							<span class="text-xs italic font-medium text-secondary">{(get(LL).settings.shortcutActionDesc as Record<string, () => string>)[_action]?.() ?? shortcut.description}</span>
+							<span class="text-sm font-medium text-secondary"
+								>{(get(LL).settings.shortcutAction as Record<string, () => string>)[_action]?.() ??
+									shortcut.name}</span
+							>
+							<span class="text-xs italic font-medium text-secondary"
+								>{(get(LL).settings.shortcutActionDesc as Record<string, () => string>)[
+									_action
+								]?.() ?? shortcut.description}</span
+							>
 						</div>
 						<span class="font-mono bg-accent px-1 rounded-sm">{shortcut.keys.join(', ')}</span>
 					</div>

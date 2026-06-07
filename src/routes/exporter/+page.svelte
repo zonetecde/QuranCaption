@@ -1673,35 +1673,69 @@
 	}
 
 	/**
-	 * Attendre un peu plus longtemps si le timing est très espacé du précédent (sous-titre long)
-	 * @param timing
-	 * @param i
-	 * @param uniqueSorted
+	 * Attend la prochaine frame navigateur.
+	 * @returns {Promise<void>} Promise resolue apres un repaint.
+	 */
+	async function waitForAnimationFrame(): Promise<void> {
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+	}
+
+	/**
+	 * Indique si le conteneur de sous-titres est pret pour un timing d'export.
+	 * @param {HTMLElement} subtitlesContainer Conteneur de sous-titres.
+	 * @param {string} timingKey Timing attendu.
+	 * @returns {boolean} true si le layout async est termine pour ce timing.
+	 */
+	function isSubtitleLayoutReady(subtitlesContainer: HTMLElement, timingKey: string): boolean {
+		return (
+			subtitlesContainer.dataset.exportLayoutTiming === timingKey &&
+			subtitlesContainer.dataset.exportLayoutState === 'ready' &&
+			subtitlesContainer.style.opacity === '1'
+		);
+	}
+
+	/**
+	 * Attend que le layout de sous-titres soit stable avant une capture.
+	 * @param {number} timing Timing capture courant.
+	 * @returns {Promise<void>} Promise resolue quand la capture peut commencer.
 	 */
 	async function wait(timing: number) {
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
 
-		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
-		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+		await waitForAnimationFrame();
 
-		if (!subtitlesContainer) {
-			await new Promise((resolve) => setTimeout(resolve, 200));
-		} else {
-			const startTime = Date.now();
-			const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
+		const timingKey = String(Math.round(timing));
+		const expectsSubtitle = Boolean(globalState.getSubtitleTrack.getCurrentSubtitleToDisplay());
+		const startTime = Date.now();
+		const timeout = 10_000;
 
-			do {
-				if (Date.now() - startTime > timeout) {
-					console.warn(
-						`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`
-					);
-					break;
-				}
-				await new Promise((resolve) => setTimeout(resolve, 10));
-			} while (subtitlesContainer.style.opacity !== '1');
+		while (Date.now() - startTime <= timeout) {
+			const subtitlesContainer = document.getElementById(
+				'subtitles-container'
+			) as HTMLElement | null;
+
+			if (!expectsSubtitle) {
+				if (!subtitlesContainer) break;
+			} else if (subtitlesContainer && isSubtitleLayoutReady(subtitlesContainer, timingKey)) {
+				break;
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, 20));
 		}
 
+		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+		if (
+			expectsSubtitle &&
+			(!subtitlesContainer || !isSubtitleLayoutReady(subtitlesContainer, timingKey))
+		) {
+			throw new Error(`Timeout waiting for subtitle layout at ${timing}ms.`);
+		}
+		if (!expectsSubtitle && subtitlesContainer) {
+			throw new Error(`Timeout waiting for subtitles to clear at ${timing}ms.`);
+		}
+
+		await waitForAnimationFrame();
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
 	}
 </script>

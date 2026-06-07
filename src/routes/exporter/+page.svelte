@@ -1689,8 +1689,7 @@
 	function isSubtitleLayoutReady(subtitlesContainer: HTMLElement, timingKey: string): boolean {
 		return (
 			subtitlesContainer.dataset.exportLayoutTiming === timingKey &&
-			subtitlesContainer.dataset.exportLayoutState === 'ready' &&
-			subtitlesContainer.style.opacity === '1'
+			subtitlesContainer.dataset.exportLayoutState === 'ready'
 		);
 	}
 

@@ -28,6 +28,7 @@
 		calculateCaptureTimingsForRange,
 		getExportWordByWordHighlightTimings as getExportWordByWordHighlightTimingsUtil,
 		getBlankImageFileName,
+		getBlankVisualStateKey,
 		hasTiming,
 		buildExportCaptureJobPlan,
 		type ExportTimedOverlayCaptureClip,
@@ -92,18 +93,18 @@
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
 	 * @param {Record<string, number>} imgWithNothingShown Blanks sources par etat visuel.
 	 * @param {number} timing Timing courant.
+	 * @param {ExportTimedOverlayCaptureClip[]} timedOverlayClips Overlays qui changent l'etat visuel.
 	 * @returns {string | null} Nom du fichier blank sans extension.
 	 */
 	function getReusableBlankFileName(
 		imgWithNothingShown: Record<string, number>,
-		timing: number
+		timing: number,
+		timedOverlayClips: ExportTimedOverlayCaptureClip[]
 	): string | null {
 		const currentSurah = globalState.getSubtitleTrack.getCurrentSurah(timing);
-		const key = Object.keys(imgWithNothingShown).find((blankVisualStateKey) =>
-			blankVisualStateKey.startsWith(`surah:${currentSurah}|`)
-		);
+		const key = getBlankVisualStateKey(currentSurah, timing, timedOverlayClips);
 
-		return key ? getBlankImageFileName(key) : null;
+		return imgWithNothingShown[key] !== undefined ? getBlankImageFileName(key) : null;
 	}
 
 	/**
@@ -766,6 +767,7 @@
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
+		const timedOverlayClips = getTimedOverlayCaptureClips();
 
 		return buildExportCaptureJobPlan({
 			timings,
@@ -776,7 +778,7 @@
 			isBlankCaptureTiming: (timing) =>
 				isBlankCaptureTiming(timing, timings.blankImgs, timings.imgWithNothingShown),
 			getReusableBlankFileName: (timing) =>
-				getReusableBlankFileName(timings.imgWithNothingShown, timing),
+				getReusableBlankFileName(timings.imgWithNothingShown, timing, timedOverlayClips),
 			getBlankSourceCaptureTiming: (timing) => (isSegment ? timing - 1 : timing)
 		});
 	}
@@ -1283,6 +1285,47 @@
 		await finalCleanup();
 	}
 
+	/**
+	 * Retourne les overlays temporises qui peuvent changer l'etat visuel d'une capture.
+	 * @returns {ExportTimedOverlayCaptureClip[]} Clips d'overlays pris en compte pendant l'export.
+	 */
+	function getTimedOverlayCaptureClips(): ExportTimedOverlayCaptureClip[] {
+		const timedOverlayClips: ExportTimedOverlayCaptureClip[] = (
+			(globalState.getCustomClipTrack?.clips || []) as CustomClip[]
+		).map((clip) => {
+			return {
+				id: clip.id,
+				startTime: clip.startTime,
+				endTime: clip.endTime,
+				alwaysShow: Boolean(clip.category?.getStyle('always-show')?.value),
+				captureBoundariesWhenAlwaysShow: true
+			};
+		});
+
+		if (globalState.getStyle('global', 'show-surah-name')!.value === true) {
+			timedOverlayClips.push({
+				id: 'surah-name',
+				startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value)
+			});
+		}
+
+		if (
+			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
+			globalState.currentProject?.detail.reciter !== 'not set'
+		) {
+			timedOverlayClips.push({
+				id: 'reciter-name',
+				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
+			});
+		}
+
+		return timedOverlayClips;
+	}
+
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
 		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
 			(clip) => {
@@ -1318,45 +1361,12 @@
 			}
 		);
 
-		const timedOverlayClips: ExportTimedOverlayCaptureClip[] = (
-			(globalState.getCustomClipTrack?.clips || []) as CustomClip[]
-		).map((clip) => {
-			return {
-				id: clip.id,
-				startTime: clip.startTime,
-				endTime: clip.endTime,
-				alwaysShow: Boolean(clip.category?.getStyle('always-show')?.value),
-				captureBoundariesWhenAlwaysShow: true
-			};
-		});
-
-		if (globalState.getStyle('global', 'show-surah-name')!.value === true) {
-			timedOverlayClips.push({
-				id: 'surah-name',
-				startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value)
-			});
-		}
-
-		if (
-			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
-			globalState.currentProject?.detail.reciter !== 'not set'
-		) {
-			timedOverlayClips.push({
-				id: 'reciter-name',
-				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
-			});
-		}
-
 		return calculateCaptureTimingsForRange({
 			rangeStart,
 			rangeEnd,
 			fadeDuration: Math.round(globalState.getStyle('global', 'fade-duration')!.value as number),
 			subtitleClips,
-			timedOverlayClips,
+			timedOverlayClips: getTimedOverlayCaptureClips(),
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
 		});
 	}
@@ -1551,6 +1561,7 @@
 			const filePathWithName = await join(...pathComponents);
 
 			const isMacOS = shouldRedrawExportTextWithCanvas();
+
 			const useLiveTextCanvasCapture = isMacOS;
 			if (!useLiveTextCanvasCapture) {
 				const blob: Blob | null = await domToBlob(node, {

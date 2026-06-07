@@ -416,9 +416,10 @@
 	 * @returns {void}
 	 */
 	function markExportLayoutState(element: HTMLElement | null, state: 'pending' | 'ready'): void {
-		if (!element) return;
-		element.dataset.exportLayoutTiming = getExportLayoutTimingKey();
-		element.dataset.exportLayoutState = state;
+		const target = element ?? document.getElementById('subtitles-container');
+		if (!(target instanceof HTMLElement)) return;
+		target.dataset.exportLayoutTiming = getExportLayoutTimingKey();
+		target.dataset.exportLayoutState = state;
 	}
 
 	/**
@@ -607,9 +608,10 @@
 			});
 
 			// Réaffiche les sous-titres
-			if (subtitlesContainer) {
-				subtitlesContainer.style.opacity = '1';
-				markExportLayoutState(subtitlesContainer, 'ready');
+			const currentSubtitlesContainer = document.getElementById('subtitles-container');
+			if (currentSubtitlesContainer instanceof HTMLElement) {
+				currentSubtitlesContainer.style.opacity = '1';
+				markExportLayoutState(currentSubtitlesContainer, 'ready');
 			}
 		})();
 	});

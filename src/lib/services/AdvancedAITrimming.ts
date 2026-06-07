@@ -792,8 +792,11 @@ export function applyAdvancedTrimValidationSuccess(
 
 			verseTranslation.setTextAndClearInlineStyles(nextText);
 			verseTranslation.isBruteForce = false;
-			verseTranslation.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
 			appliedSegments++;
+		}
+
+		for (const verseTranslation of verseTranslations) {
+			verseTranslation?.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
 		}
 
 		const ruleReport = collectAdvancedTrimRuleErrors(

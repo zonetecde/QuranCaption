@@ -487,7 +487,11 @@ pub fn preprocess_background_videos(
             start_within %= real_vid_len;
         }
 
-        let elapsed_from_start = (cum_start + start_within) - (start_time_ms as i64);
+        let elapsed_from_start = if is_loop {
+            (cum_start - (start_time_ms as i64)).max(0)
+        } else {
+            (cum_start + start_within) - (start_time_ms as i64)
+        };
         let remaining_needed = (limit_ms - elapsed_from_start).max(0);
         let available_in_this_clip = if is_loop {
             remaining_needed
@@ -565,13 +569,18 @@ pub fn preprocess_background_videos(
                 );
                 fs::remove_file(&dst).ok();
             }
+            let should_prefer_hw = prefer_hw && !(cfg!(target_os = "macos") && is_loop);
+            if prefer_hw && !should_prefer_hw {
+                println!("[preproc] boucle macOS: encodage logiciel du fond");
+            }
+
             match ffmpeg_preprocess_video(
                 vid_path,
                 &dst.to_string_lossy(),
                 w,
                 h,
                 fps,
-                prefer_hw,
+                should_prefer_hw,
                 Some(start_within as i32),
                 Some(take_ms as i32),
                 blur,
@@ -585,6 +594,12 @@ pub fn preprocess_background_videos(
                 }
                 Err(e) => {
                     println!("[preproc][ERREUR] {:?}", e);
+                    if is_loop {
+                        println!("[background] fallback noir: preprocessing loop impossible");
+                        cum_start = cum_end;
+                        emit_bg_progress(idx + 1);
+                        continue;
+                    }
                     // En cas d'échec, utiliser la vidéo originale comme fallback
                     let fallback_duration_s = (take_ms as f64 / 1000.0).max(0.001);
                     println!("[background] path=fallback-original normalized=false");

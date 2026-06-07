@@ -1677,7 +1677,14 @@
 	 * @returns {Promise<void>} Promise resolue apres un repaint.
 	 */
 	async function waitForAnimationFrame(): Promise<void> {
-		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		await new Promise<void>((resolve) => {
+			// En WebView d'export macOS, requestAnimationFrame peut etre suspendu.
+			const fallback = window.setTimeout(resolve, 50);
+			requestAnimationFrame(() => {
+				window.clearTimeout(fallback);
+				resolve();
+			});
+		});
 	}
 
 	/**
@@ -1687,6 +1694,7 @@
 	 * @returns {boolean} true si le layout async est termine pour ce timing.
 	 */
 	function isSubtitleLayoutReady(subtitlesContainer: HTMLElement, timingKey: string): boolean {
+		// Ne pas vérifier l'opacité ici: macOS peut ne jamais exposer exactement "1".
 		return (
 			subtitlesContainer.dataset.exportLayoutTiming === timingKey &&
 			subtitlesContainer.dataset.exportLayoutState === 'ready'

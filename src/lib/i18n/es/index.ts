@@ -1382,7 +1382,7 @@ const es: Translation = {
 			'Iniciar el proceso de exportación de video con el rango temporal seleccionado',
 		advancedSettings: 'Configuración avanzada',
 		controlExportPerformance:
-			'Controle el rendimiento de exportación sin exponer opciones ffmpeg brutas.',
+			'Elija el equilibrio entre velocidad, calidad y uso de CPU para la exportación de video.',
 		background: 'Fondo',
 		exportWithoutBackground: 'Exportar sin fondo',
 		rendersOnlyOverlay: 'Renderiza solo la superposición con transparencia (alfa).',
@@ -1391,16 +1391,20 @@ const es: Translation = {
 		webmVp9: 'WEBM (VP9 alfa)',
 		movQtrleCompatibility: 'MOV (QTRLE alfa) mejora la compatibilidad con herramientas de edición.',
 		exportPerformance: 'Rendimiento de exportación',
-		chooseCpuUsage: 'Elija cuánto debe exigir el exportador a su CPU durante el trabajo de ffmpeg.',
+		chooseCpuUsage:
+			'Elija el perfil adecuado para su objetivo: pruebas rápidas, exportaciones finales más limpias o menor uso de CPU.',
 		parallelCaptureWorkers: 'Workers de captura paralela',
 		parallelCaptureWorkersDescription:
 			'Número de WebViews ocultas usadas para capturar frames PNG. El valor predeterminado es 4; 1 desactiva la captura paralela.',
 		fastest: 'Más rápido',
-		fastestDescription: 'Prioriza la velocidad de exportación y puede consumir más CPU.',
+		fastestDescription:
+			'Exportación más rápida. Puede usar codificación por hardware, con riesgo de artefactos en fondos 4K detallados.',
 		balanced: 'Equilibrado',
-		balancedDescription: 'Conserva el comportamiento predeterminado actual.',
+		balancedDescription:
+			'Recomendado para exportaciones finales. Conserva mejor la calidad en alta resolución, pero tarda más.',
 		lowCpu: 'CPU bajo',
-		lowCpuDescription: 'Reduce el uso de CPU a costa de exportaciones más lentas.',
+		lowCpuDescription:
+			'Limita el uso de CPU para mantener el equipo más responsive. Normalmente es la opción más lenta.',
 		exportInProgressButton: 'Exportación en curso...',
 		fileNotFound: 'Archivo no encontrado',
 		exportedFileNotFound:

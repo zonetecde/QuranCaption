@@ -1377,7 +1377,7 @@ const de: Translation = {
 		startExportDescription: 'Starten Sie den Videoexport-Vorgang mit dem ausgewählten Zeitbereich',
 		advancedSettings: 'Erweiterte Einstellungen',
 		controlExportPerformance:
-			'Steuern Sie die Exportleistung, ohne rohe FFmpeg-Optionen offenzulegen.',
+			'Wählen Sie den Kompromiss zwischen Geschwindigkeit, Qualität und CPU-Auslastung für den Videoexport.',
 		background: 'Hintergrund',
 		exportWithoutBackground: 'Ohne Hintergrund exportieren',
 		rendersOnlyOverlay: 'Rendert nur die Überlagerung mit Transparenz (Alpha).',
@@ -1388,16 +1388,19 @@ const de: Translation = {
 			'MOV (QTRLE alpha) verbessert die Kompatibilität mit Bearbeitungswerkzeugen.',
 		exportPerformance: 'Exportleistung',
 		chooseCpuUsage:
-			'Wählen Sie, wie stark der Exporteur Ihre CPU während der FFmpeg-Arbeit belasten soll.',
+			'Wählen Sie das passende Profil: schnelle Tests, sauberere finale Exporte oder geringere CPU-Auslastung.',
 		parallelCaptureWorkers: 'Parallele Capture-Worker',
 		parallelCaptureWorkersDescription:
 			'Anzahl ausgeblendeter WebViews fuer die PNG-Frame-Erfassung. Standard ist 4; 1 deaktiviert die parallele Erfassung.',
 		fastest: 'Am schnellsten',
-		fastestDescription: 'Priorisiert Exportgeschwindigkeit und kann mehr CPU verbrauchen.',
+		fastestDescription:
+			'Schnellster Export. Kann Hardware-Encoding nutzen, wodurch bei detailreichen 4K-Hintergründen Artefakte entstehen können.',
 		balanced: 'Ausgewogen',
-		balancedDescription: 'Behält das aktuelle Standardverhalten bei.',
+		balancedDescription:
+			'Für finale Exporte empfohlen. Erhält die Qualität bei hoher Auflösung besser, dauert aber länger.',
 		lowCpu: 'Niedrige CPU',
-		lowCpuDescription: 'Reduziert die CPU-Auslastung auf Kosten langsamerer Exporte.',
+		lowCpuDescription:
+			'Begrenzt die CPU-Auslastung, damit der Computer reaktionsfähiger bleibt. Meist die langsamste Option.',
 		exportInProgressButton: 'Export läuft...',
 		fileNotFound: 'Datei nicht gefunden',
 		exportedFileNotFound:

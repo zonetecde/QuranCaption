@@ -1384,7 +1384,7 @@ const fr: Translation = {
 			'Lancer le processus d\u2019export vidéo avec la plage temporelle sélectionnée',
 		advancedSettings: 'Paramètres avancés',
 		controlExportPerformance:
-			'Contrôlez les performances d\u2019export sans exposer les options ffmpeg brutes.',
+			'Choisissez le compromis entre vitesse, qualité et utilisation CPU pour l\u2019export vidéo.',
 		background: 'Arrière-plan',
 		exportWithoutBackground: 'Exporter sans arrière-plan',
 		rendersOnlyOverlay: 'Rend uniquement la superposition avec transparence (alpha).',
@@ -1395,16 +1395,19 @@ const fr: Translation = {
 			'MOV (QTRLE alpha) améliore la compatibilité avec les outils de montage.',
 		exportPerformance: 'Performance d\u2019export',
 		chooseCpuUsage:
-			'Choisissez à quel point l\u2019exportateur doit solliciter votre CPU pendant le travail ffmpeg.',
+			'Choisissez le profil adapté à votre objectif\u00a0: tests rapides, export final plus propre ou CPU moins sollicité.',
 		parallelCaptureWorkers: 'Workers de capture parallèle',
 		parallelCaptureWorkersDescription:
 			'Nombre de WebViews masquées utilisées pour capturer les frames PNG. La valeur par défaut est 4 ; 1 désactive la capture parallèle.',
 		fastest: 'Le plus rapide',
-		fastestDescription: 'Privilégie la vitesse d\u2019export et peut consommer plus de CPU.',
+		fastestDescription:
+			'Export le plus rapide. Peut utiliser l\u2019encodage matériel, avec un risque d\u2019artefacts sur les fonds 4K détaillés.',
 		balanced: 'Équilibré',
-		balancedDescription: 'Conserve le comportement par défaut actuel.',
+		balancedDescription:
+			'Recommandé pour les exports finaux. Préserve mieux la qualité en haute résolution, mais prend plus de temps.',
 		lowCpu: 'CPU faible',
-		lowCpuDescription: 'Réduit l\u2019utilisation du CPU au prix d\u2019exports plus lents.',
+		lowCpuDescription:
+			'Limite l\u2019utilisation du CPU pour garder l\u2019ordinateur plus réactif. Généralement l\u2019option la plus lente.',
 		exportInProgressButton: 'Export en cours...',
 		fileNotFound: 'Fichier introuvable',
 		exportedFileNotFound:

@@ -26,7 +26,7 @@ const export_ = {
 	exportButton: 'Export Video',
 	startExportDescription: 'Start the video export process with your selected time range',
 	advancedSettings: 'Advanced Settings',
-	controlExportPerformance: 'Control export performance without exposing raw ffmpeg flags.',
+	controlExportPerformance: 'Choose the speed, quality, and CPU usage tradeoff for video export.',
 	background: 'Background',
 	exportWithoutBackground: 'Export without background',
 	rendersOnlyOverlay: 'Renders only the overlay with transparency (alpha).',
@@ -35,16 +35,19 @@ const export_ = {
 	webmVp9: 'WEBM (VP9 alpha)',
 	movQtrleCompatibility: 'MOV (QTRLE alpha) improves compatibility with editing tools.',
 	exportPerformance: 'Export Performance',
-	chooseCpuUsage: 'Choose how aggressively the exporter should use your CPU during ffmpeg work.',
+	chooseCpuUsage: 'Pick the profile that matches your goal: faster tests, cleaner final exports, or lower CPU usage.',
 	parallelCaptureWorkers: 'Parallel capture workers',
 	parallelCaptureWorkersDescription:
 		'Number of hidden WebViews used for PNG frame capture. Default is 4; 1 disables parallel capture.',
 	fastest: 'Fastest',
-	fastestDescription: 'Prioritizes export speed and may use more CPU.',
+	fastestDescription:
+		'Fastest export. May use hardware encoding, which can show artifacts on detailed 4K backgrounds.',
 	balanced: 'Balanced',
-	balancedDescription: 'Keeps the current default behavior.',
+	balancedDescription:
+		'Recommended for final exports. Preserves better quality in high resolution, but takes longer.',
 	lowCpu: 'Low CPU',
-	lowCpuDescription: 'Reduces CPU usage at the cost of slower exports.',
+	lowCpuDescription:
+		'Limits CPU usage to keep your computer more responsive. Usually the slowest option.',
 	exportInProgressButton: 'Exporting...',
 	fileNotFound: 'File not found',
 	exportedFileNotFound:

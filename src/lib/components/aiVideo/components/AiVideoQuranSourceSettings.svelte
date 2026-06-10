@@ -4,6 +4,7 @@
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import { getReciterOptionKey, isSurahAvailableForReciter } from '../reciterLoader';
 	import { open } from '@tauri-apps/plugin-dialog';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const aiv = globalState.aiVideo;
 
@@ -89,7 +90,7 @@
 <div class="space-y-5 rounded-xl border border-color bg-[var(--bg-accent)] p-5">
 	<h3 class="flex items-center gap-2 text-sm font-semibold text-primary">
 		<span class="material-icons text-accent-primary text-base">tune</span>
-		Quran Source Settings
+		{$LL.aiVideo.quranSourceSettings()}
 	</h3>
 
 	<!-- Source toggle -->
@@ -103,7 +104,7 @@
 			onclick={() => (aiv.audio.useLocal = false)}
 		>
 			<span class="material-icons text-base align-middle mr-1">cloud</span>
-			MP3Quran Reciter
+			{$LL.aiVideo.mp3QuranReciter()}
 		</button>
 		<button
 			type="button"
@@ -114,7 +115,7 @@
 			onclick={() => (aiv.audio.useLocal = true)}
 		>
 			<span class="material-icons text-base align-middle mr-1">folder_open</span>
-			Local Audio File
+			{$LL.aiVideo.localAudioFile()}
 		</button>
 	</div>
 
@@ -123,14 +124,14 @@
 		<div class="space-y-2">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">audio_file</span>
-				Audio File
+				{$LL.aiVideo.audioFile()}
 			</span>
 			<div class="flex gap-2">
 				<input
 					type="text"
 					readonly
 					value={aiv.audio.localPath}
-					placeholder="No file selected"
+					placeholder={$LL.aiVideo.noFileSelected()}
 					class="flex-1 rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary text-sm truncate"
 				/>
 				<button
@@ -138,7 +139,7 @@
 					class="rounded-xl border border-color bg-bg-secondary px-4 py-3 text-sm font-medium text-primary hover:border-accent-primary/50 transition-all cursor-pointer"
 					onclick={pickLocalAudio}
 				>
-					Browse
+					{$LL.aiVideo.browse()}
 				</button>
 			</div>
 		</div>
@@ -147,22 +148,22 @@
 		<div class="space-y-2">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">record_voice_over</span>
-				Reciter
+				{$LL.aiVideo.selectReciterLabel()}
 			</span>
 
 			{#if aiv.isLoadingReciters}
 				<div class="flex items-center gap-2 text-sm text-thirdly py-3">
 					<span class="material-icons animate-spin text-base">autorenew</span>
-					Loading reciters from MP3Quran...
+					{$LL.aiVideo.loadingReciters()}
 				</div>
 			{:else}
 				<SearchableSelect
 					id="reciter-select"
 					bind:value={selectedReciterKey}
 					options={reciterSelectOptions}
-					placeholder="Let AI decide"
-					searchPlaceholder="Search reciters..."
-					emptyMessage="No reciters found"
+					placeholder={$LL.aiVideo.letAiDecide()}
+					searchPlaceholder={$LL.aiVideo.searchRecitersPlaceholder()}
+					emptyMessage={$LL.aiVideo.noRecitersFound()}
 					onChange={handleReciterChange}
 				/>
 			{/if}
@@ -174,29 +175,29 @@
 		<div class="space-y-2">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">menu_book</span>
-				Surah & Verse Range
+				{$LL.aiVideo.surahAndVerseRange()}
 			</span>
 
 			<SearchableSelect
 				id="surah-select"
 				bind:value={surahKey}
 				options={surahOptions}
-				placeholder="Select surah"
-				searchPlaceholder="Search surah..."
-				emptyMessage="No surah found"
+				placeholder={$LL.aiVideo.selectSurahPlaceholder()}
+				searchPlaceholder={$LL.aiVideo.searchSurahPlaceholder()}
+				emptyMessage={$LL.aiVideo.noSurahFound()}
 				onChange={handleSurahChange}
 			/>
 
 			{#if aiv.audio.reciter && !isSurahAvailable}
 				<p class="text-xs text-red-400 flex items-center gap-1">
 					<span class="material-icons text-xs">warning</span>
-					This surah is not available for the selected reciter/moshaf.
+					{$LL.aiVideo.surahNotAvailable()}
 				</p>
 			{/if}
 
 			<div class="flex gap-3 mt-2">
 				<div class="flex-1 space-y-1">
-					<label for="ayah-start" class="text-xs text-thirdly">From Ayah</label>
+					<label for="ayah-start" class="text-xs text-thirdly">{$LL.aiVideo.fromAyah()}</label>
 					<input
 						id="ayah-start"
 						type="number"
@@ -207,7 +208,7 @@
 					/>
 				</div>
 				<div class="flex-1 space-y-1">
-					<label for="ayah-end" class="text-xs text-thirdly">To Ayah</label>
+					<label for="ayah-end" class="text-xs text-thirdly">{$LL.aiVideo.toAyah()}</label>
 					<input
 						id="ayah-end"
 						type="number"

@@ -3,6 +3,7 @@
 	import { ClipWithTranslation, SilenceClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { untrack } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	// div contenant tout les sous-titres
 	let subtitlesListElement: HTMLDivElement | null = $state(null);
@@ -90,13 +91,13 @@
 	<div
 		class="flex h-9 shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
 	>
-		<h3 class="m-0 text-sm font-semibold text-[var(--text-primary)] hidden xl:block">Subtitles</h3>
+		<h3 class="m-0 text-sm font-semibold text-[var(--text-primary)] hidden xl:block">{$LL.editor.subtitles()}</h3>
 
 		<div
 			class="flex justify-center items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
 		>
 			<span class="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--text-secondary)]"
-				>Min words</span
+				>{$LL.editor.minWordsLabel()}</span
 			>
 			<input
 				type="number"
@@ -180,7 +181,7 @@
 									: 'border border-[var(--accent-secondary)] bg-[var(--accent-secondary)] text-black'
 							}`}
 						>
-							{subtitleClip.type === 'Silence' ? 'SILENCE' : 'PRE-DEFINED'}
+							{subtitleClip.type === 'Silence' ? $LL.editor.silenceLabel() : $LL.editor.predefinedLabel()}
 						</div>
 					{/if}
 				</div>
@@ -188,7 +189,7 @@
 				{#if subtitleClip.type === 'Silence'}
 					<div class="flex h-0 items-center justify-center gap-2 py-4">
 						<div class="text-2xl opacity-70">🔇</div>
-						<span class="text-sm italic text-[var(--text-thirdly)]">Silent segment</span>
+						<span class="text-sm italic text-[var(--text-thirdly)]">{$LL.editor.silentSegment()}</span>
 					</div>
 				{:else}
 					<div

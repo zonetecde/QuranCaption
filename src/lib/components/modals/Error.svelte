@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
+	import LL from '$lib/i18n/i18n-svelte';
 	import toast from 'svelte-5-french-toast';
 	import { slide } from 'svelte/transition';
 
@@ -43,7 +45,7 @@
 					<summary
 						class="px-4 py-3 text-sm font-medium text-primary cursor-pointer hover:bg-primary/10 transition-colors duration-200 h-full"
 					>
-						Show technical details
+						{$LL.common.showTechnicalDetails()}
 					</summary>
 					<div class="px-4 py-3 border-t border-color bg-primary/5">
 						<pre
@@ -56,11 +58,11 @@
 					onclick={(e) => {
 						e.stopPropagation();
 						navigator.clipboard.writeText(logs ?? '');
-						toast.success('Logs copied to clipboard');
+						toast.success(get(LL).common.logsCopiedToClipboard());
 					}}
 				>
 					<span class="material-icons text-[19px]">content_copy</span>
-					Copy
+					{$LL.common.copy()}
 				</button>
 			</div>
 		{/if}
@@ -75,7 +77,7 @@
 				resolve();
 			}}
 		>
-			OK
+			{$LL.common.ok()}
 		</button>
 	</div>
 </div>

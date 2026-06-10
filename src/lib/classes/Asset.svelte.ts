@@ -5,6 +5,8 @@ import { Utilities } from './misc/Utilities.js';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { exists } from '@tauri-apps/plugin-fs';
 import { globalState } from '$lib/runes/main.svelte.js';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { Duration } from './index.js';
 import toast from 'svelte-5-french-toast';
 import ModalManager from '$lib/components/modals/ModalManager.js';
@@ -131,11 +133,10 @@ export class Asset extends SerializableBase {
 
 			// Demande confirmation à l'utilisateur
 			const confirm = await ModalManager.confirmModal(
-				'Would you like to set the project dimensions to match this video? (' +
-					assetDimensions.width +
-					'x' +
-					assetDimensions.height +
-					')',
+				get(LL).editor.setDimensionsMatchVideo({
+					width: String(assetDimensions.width),
+					height: String(assetDimensions.height)
+				}),
 				true
 			);
 
@@ -214,7 +215,7 @@ export class Asset extends SerializableBase {
 			if (isConstant) return;
 
 			toast(
-				'Your media uses variable bitrate (VBR). This may cause audio-subtitle sync issues. Convert it to constant bitrate (CBR) in the Video Editor: hover over your asset and click "Convert to CBR".',
+				get(LL).editor.variableBitrateWarning(),
 				{ duration: 18000, position: 'bottom-left' }
 			);
 		} catch (error) {
@@ -458,7 +459,7 @@ export class Asset extends SerializableBase {
 	}
 
 	private async showMissingFfmpegModal(message: string): Promise<void> {
-		await ModalManager.errorModal('FFmpeg is required', message);
+		await ModalManager.errorModal(get(LL).editor.ffmpegRequired(), message);
 	}
 
 	private getFfmpegInstallInstructions(): string {

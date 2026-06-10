@@ -28,6 +28,8 @@ import type { ProjectType } from '$lib/types/projectType';
 import { join, localDataDir } from '@tauri-apps/api/path';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 type ShortcutAction = { keys: string[]; name: string; description: string };
 type ShortcutBucket = Record<string, ShortcutAction>;
@@ -631,7 +633,7 @@ export default class MigrationService {
 			// Deuxième migration : on a désormais une arborescence de projets
 			// Du coup on demande si on veut pas avoir un premier tri intelligent sur ces projets
 			const confirmed = await ModalManager.confirmModal(
-				'This update introduce a new project folder structure. Would you like the software to try to organize your projects into the correct sub-categories for you?'
+				get(LL).settings.migrationUpdateMessage()
 			);
 			if (confirmed) {
 				this.organizeExistingProjectsIntoSubCategories();
@@ -742,7 +744,7 @@ export default class MigrationService {
 			await ProjectService.saveDetail(project, false); // On ne met pas à jour le updatedAt pour pas remonter tous les projets dans "Recently Updated"
 		}
 
-		toast.success('The projects have been organized into sub-categories.');
+		toast.success(get(LL).settings.projectsOrganized());
 	}
 
 	/**

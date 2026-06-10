@@ -1,0 +1,6 @@
+{
+	"adapter": "svelte",
+	"baseLocale": "en",
+	"esmImports": true,
+	"outputPath": "./src/lib/i18n/"
+}

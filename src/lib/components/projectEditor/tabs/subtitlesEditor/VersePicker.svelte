@@ -2,6 +2,10 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
 
@@ -59,15 +63,17 @@
 				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
 			>
 				<div class="space-y-2 mb-3">
-					<div class="text-secondary text-sm font-semibold">Need a visual walkthrough?</div>
+					<div class="text-secondary text-sm font-semibold">
+						{$LL.editor.needVisualWalkthrough()}
+					</div>
 					<p class="text-xs text-thirdly">
-						Here is a short video that demonstrates how the subtitles editor works:
+						{$LL.editor.walkthroughDescription()}
 					</p>
 					<div class="relative w-full overflow-hidden rounded-md border border-color">
 						<iframe
 							class="w-full aspect-video"
 							src="https://www.youtube.com/embed/vCRUjzATRDk?start=35"
-							title="Subtitles editor walkthrough"
+							title={$LL.editor.subtitlesEditorWalkthrough()}
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 							allowfullscreen
 						></iframe>
@@ -76,15 +82,11 @@
 
 				<div class="border-t border-color my-3"></div>
 
-				Press<span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the
-				recitation.
+				{@html $LL.editor.spaceToPlayPause()}
 				<br />
-				<!-- arrowup/arrowdown -->
-				Use <span class="font-mono bg-accent px-1 rounded-sm">↑</span> and
-				<span class="font-mono bg-accent px-1 rounded-sm">↓</span> to select words.
-				<br /> When the reciter finishes a verse, or a part of a verse, press
-				<span class="font-mono bg-accent px-1 rounded-sm">enter</span> to add a subtitle at the
-				current time with the selected words.
+				{@html $LL.editor.arrowsToSelectWords()}
+				<br />
+				{@html $LL.editor.enterToAddSubtitleWalkthrough()}
 
 				<!-- separator line -->
 				<div class="border-t border-color my-3"></div>
@@ -95,8 +97,15 @@
 					.concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [_action, shortcut], index (`${shortcut.name}-${index}`)}
 					<div class="flex items-center justify-between py-1 border-b border-color last:border-0">
 						<div class="flex flex-col">
-							<span class="text-sm font-medium text-secondary">{shortcut.name}</span>
-							<span class="text-xs italic font-medium text-secondary">{shortcut.description}</span>
+							<span class="text-sm font-medium text-secondary"
+								>{(get(LL).settings.shortcutAction as Record<string, () => string>)[_action]?.() ??
+									shortcut.name}</span
+							>
+							<span class="text-xs italic font-medium text-secondary"
+								>{(get(LL).settings.shortcutActionDesc as Record<string, () => string>)[
+									_action
+								]?.() ?? shortcut.description}</span
+							>
 						</div>
 						<span class="font-mono bg-accent px-1 rounded-sm">{shortcut.keys.join(', ')}</span>
 					</div>
@@ -107,14 +116,14 @@
 
 	<!-- Surah Selector with Autocomplete -->
 	<div class="flex items-center gap-2 ml-auto">
-		<span class="text-sm font-medium text-secondary">Surah:</span>
+		<span class="text-sm font-medium text-secondary">{$LL.editor.surahLabel()}</span>
 		<div class="min-w-[200px]">
 			<AutocompleteInput
 				showEverything
 				clearOnFocus
 				bind:value={surahSearchValue}
 				suggestions={surahSuggestions()}
-				placeholder="Search surah"
+				placeholder={$LL.editor.searchSurah()}
 				icon=""
 				onSelect={(val) => handleSurahSelection(val)}
 			/>
@@ -128,7 +137,7 @@
 
 	<!-- Verse Selector -->
 	<div class="flex items-center gap-2">
-		<span class="text-sm font-medium text-secondary">Verse:</span>
+		<span class="text-sm font-medium text-secondary">{$LL.editor.verseLabel()}</span>
 		<input
 			type="number"
 			min="1"

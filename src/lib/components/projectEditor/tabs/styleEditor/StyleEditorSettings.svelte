@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import { onMount } from 'svelte';
 	import Section from '../../Section.svelte';
 	import StyleComponent from './Style.svelte';
@@ -13,6 +14,8 @@
 		getActiveVisualMergeGroupId,
 		getActiveVisualMergeMode
 	} from './visualMergeStyleUtils';
+	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
+	import { get } from 'svelte/store';
 
 	let {
 		presetLibraryOpen,
@@ -214,22 +217,22 @@
 		<!-- En-tête avec icône -->
 		<div class="flex gap-x-2 items-center px-3 mb-2 mt-4 style-editor-header-row">
 			<span class="material-icons-outlined text-accent text-2xl">auto_fix_high</span>
-			<h2 class="text-xl font-semibold text-primary tracking-wide">Style Editor</h2>
+			<h2 class="text-xl font-semibold text-primary tracking-wide">{$LL.style.styleEditor()}</h2>
 
 			<div class="relative ml-auto">
 				<button
 					class="import-export-button style-presets-button btn-accent flex flex-row items-center px-2 py-1 gap-x-2 text-sm"
 					onclick={toggleImportExportMenu}
-					title="Save styles and explore community presets"
+					title={$LL.editor.saveStylesTooltip()}
 				>
 					<div class="flex flex-col">
 						<span class="material-icons-outlined text-[22px]!">style</span>
 						<span class="material-icons-outlined text-[22px]!">public</span>
 					</div>
 					<span class="flex flex-col items-start leading-none">
-						<span class="font-bold">Presets</span>
+						<span class="font-bold">{$LL.editor.presetsLabel()}</span>
 						<span class="text-[10px] font-medium opacity-85 text-left"
-							>Save styles &<br />Community presets</span
+							>{$LL.editor.saveStylesCommunityPresets()}</span
 						>
 					</span>
 				</button>
@@ -239,7 +242,7 @@
 		<div
 			class="flex flex-col px-3 py-3 bg-[var(--bg-primary)]/60 border border-b-0 rounded-b-none border-[var(--border-color)]/50 rounded-xl gap-y-2 style-editor-top-controls"
 		>
-			<p class="text-sm text-secondary style-editor-target-label">Choose a target</p>
+			<p class="text-sm text-secondary style-editor-target-label">{$LL.editor.chooseTarget()}</p>
 			<div data-tour-id="style-subtabs" class="w-full grid grid-cols-3 gap-2">
 				{#each ['global', 'arabic', 'translation'] as selection (selection)}
 					<button
@@ -254,9 +257,15 @@
 								? 'btn-accent ring-1 ring-white/20'
 								: 'btn hover:ring-1 hover:ring-white/10')}
 						aria-pressed={globalState.getStylesState.currentSelection === selection}
-						title={selection.charAt(0).toUpperCase() + selection.slice(1)}
+						title={selection === 'arabic' ? $LL.editor.arabic() : selection === 'translation' ? $LL.editor.translation() : $LL.editor.global()}
 					>
-						<span class="text-sm">{selection.charAt(0).toUpperCase() + selection.slice(1)}</span>
+						{#if selection === 'arabic'}
+							{$LL.editor.arabic()}
+						{:else if selection === 'translation'}
+							{$LL.editor.translation()}
+						{:else}
+							{$LL.editor.global()}
+						{/if}
 					</button>
 				{/each}
 			</div>
@@ -269,7 +278,7 @@
 							class="flex-1"
 							bind:value={globalState.getStylesState.currentSelectionTranslation}
 							transition:slide
-							title="Select translation"
+							title={$LL.editor.selectTranslation()}
 						>
 							{#each globalState.getProjectTranslation.addedTranslationEditions as translation (translation.name)}
 								<option value={translation.name}>{translation.author}</option>
@@ -277,7 +286,7 @@
 						</select>
 					</div>
 				{:else}
-					<p class="text-secondary text-sm mt-1 text-center">You have no translations yet.</p>
+					<p class="text-secondary text-sm mt-1 text-center">{$LL.editor.noTranslationsYet()}</p>
 				{/if}
 			{/if}
 
@@ -290,13 +299,13 @@
 					>
 					<input
 						type="text"
-						placeholder="Search styles..."
+						placeholder={$LL.style.searchStyles()}
 						class="w-full pl-10! pr-8 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] focus:ring-1 focus:ring-white/20"
 						bind:value={globalState.getStylesState.searchQuery}
 					/>
 					{#if globalState.getStylesState.searchQuery}
 						<button
-							title="Clear search"
+							title={$LL.editor.clearSearch()}
 							onclick={clearSearch}
 							class="absolute right-2 top-1/2 -translate-y-1/2 text-secondary hover:text-primary"
 						>
@@ -314,10 +323,7 @@
 					<div class="flex items-center gap-2 text-secondary text-sm">
 						<span class="material-icons-outlined text-base">select_all</span>
 						<span class="style-selection-count-label">
-							{globalState.getStylesState.selectedSubtitles.length} subtitle{globalState
-								.getStylesState.selectedSubtitles.length > 1
-								? 's'
-								: ''} selected. Styles will only apply to these subtitles.
+							{$LL.editor.subtitlesSelected({ count: globalState.getStylesState.selectedSubtitles.length, plural: globalState.getStylesState.selectedSubtitles.length > 1 ? 's' : '' })}
 						</span>
 					</div>
 					<button
@@ -325,10 +331,10 @@
 						onclick={() => {
 							globalState.getStylesState.clearSelection();
 						}}
-						title="Clear selection"
+						title={$LL.editor.clearSelection()}
 					>
 						<span class="material-icons-outlined text-sm">backspace</span>
-						<span class="text-sm">Clear</span>
+						<span class="text-sm">{$LL.common.clear()}</span>
 					</button>
 				</div>
 
@@ -337,9 +343,9 @@
 						<div class="flex items-start gap-2 text-sm text-[var(--text-primary)]">
 							<span class="material-icons-outlined text-base mt-0.5">merge_type</span>
 							<div class="flex-1">
-								<p class="font-medium">Visual merge</p>
+								<p class="font-medium">{$LL.editor.visualMerge()}</p>
 								<p class="mt-0.5 text-xs leading-relaxed text-secondary visual-merge-description">
-									Merge only the on-screen rendering.
+									{$LL.editor.visualMergeDescription()}
 								</p>
 							</div>
 						</div>
@@ -350,21 +356,21 @@
 								class={getMergeButtonClass('arabic')}
 								onclick={() => applyVisualMerge('arabic')}
 							>
-								Arabic
+								{$LL.editor.arabic()}
 							</button>
 							<button
 								data-testid="Merge Translation"
 								class={getMergeButtonClass('translation')}
 								onclick={() => applyVisualMerge('translation')}
 							>
-								Translation
+								{$LL.editor.translation()}
 							</button>
 							<button
 								data-testid="Merge Both"
 								class={getMergeButtonClass('both')}
 								onclick={() => applyVisualMerge('both')}
 							>
-								Both
+								{$LL.editor.both()}
 							</button>
 						</div>
 
@@ -373,7 +379,7 @@
 								class="btn mt-2 w-full py-1.5 2xl:text-sm text-xs"
 								onclick={unmergeSelectedVisualGroup}
 							>
-								Unmerge Group
+								{$LL.editor.unmergeGroup()}
 							</button>
 						{/if}
 					</div>
@@ -387,10 +393,7 @@
 					<div class="flex items-center gap-2 text-secondary text-sm">
 						<span class="material-icons-outlined text-base">movie</span>
 						<span class="style-selection-count-label">
-							{globalState.getStylesState.selectedVideos.length} video clip{globalState
-								.getStylesState.selectedVideos.length > 1
-								? 's'
-								: ''} selected. Overlay styles will apply only to these clips.
+							{$LL.editor.videoClipsSelected({ count: globalState.getStylesState.selectedVideos.length, plural: globalState.getStylesState.selectedVideos.length > 1 ? 's' : '' })}
 						</span>
 					</div>
 					<button
@@ -398,10 +401,10 @@
 						onclick={() => {
 							globalState.getStylesState.clearSelection();
 						}}
-						title="Clear selection"
+						title={$LL.editor.clearSelection()}
 					>
 						<span class="material-icons-outlined text-sm">backspace</span>
-						<span class="text-sm">Clear</span>
+						<span class="text-sm">{$LL.common.clear()}</span>
 					</button>
 				</div>
 			{/if}
@@ -412,9 +415,7 @@
 				>
 					<span class="material-icons-outlined text-base mt-0.5">info</span>
 					<p class="text-xs leading-relaxed style-selection-hint-label">
-						Click a subtitle or a video clip to select only it. Press <span class="font-semibold"
-							>Ctrl + Left Click</span
-						> to select multiple clips.
+						{$LL.editor.clickToSelect()}
 					</p>
 				</div>
 			{/if}
@@ -433,15 +434,14 @@
 				>
 					<span class="material-icons-outlined text-base mt-0.5">info</span>
 					<p class="text-sm">
-						You cannot edit global styles when subtitle clips are selected, because global styles
-						apply to the entire video. Please clear your selection first.
+						{$LL.editor.cannotEditGlobalWithSelection()}
 					</p>
 				</div>
 			{:else}
 				{#each getCategoriesToDisplay() as category (category.id)}
-					<Section
-						name={category.name}
-						icon={category.icon}
+				<Section
+					name={getStyleName(category.id, get(LL)) || category.name}
+					icon={category.icon}
 						contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
 						classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						dataCategory={globalState.getStylesState.currentSelection === 'translation'
@@ -454,12 +454,10 @@
 							>
 								<span
 									class="material-icons-outlined text-sm mt-0.5"
-									title="Background is visible only when 'Max Height' style is set.">info</span
+									title={$LL.editor.backgroundVisibilityHint()}>info</span
 								>
 								<p class="text-xs leading-relaxed">
-									Background is visible only when <span class="font-semibold">Max Height</span>
-									style is
-									<span class="font-semibold">set</span>.
+									{$LL.editor.backgroundVisibilityHint()}
 								</p>
 							</div>
 						{/if}
@@ -472,18 +470,13 @@
 									<span class="material-icons-outlined text-sm mt-0.5">info</span>
 									<div class="min-w-0">
 										<p class="text-xs leading-relaxed">
-											Word-by-word styles need WBW timestamps on at least one subtitle.
+											{$LL.style.wbwMissingInfo()}
 										</p>
 										<p class="mt-1 text-xs leading-relaxed">
-											1. Add them with <span class="font-semibold">AI-Segmentation</span> and make
-											sure to enable
-											<span class="font-semibold">Include word-by-word timestamps</span>.
+											{$LL.style.wbwStep1()}
 										</p>
 										<p class="mt-1 text-xs leading-relaxed">
-											2. Or add them manually in the <span class="font-semibold"
-												>Subtitles Editor</span
-											>
-											by holding <span class="font-semibold">E</span> with the cursor over a subtitle.
+											{$LL.style.wbwStep2()}
 										</p>
 									</div>
 								</div>
@@ -491,11 +484,15 @@
 						{/if}
 
 						{#each category.styles as style (style.id)}
-							{#if globalState.getStylesState.searchQuery === '' || style.name
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+						{#if globalState.getStylesState.searchQuery === '' || style.name
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(category.id, get(LL))
+								.toLowerCase()
+								.includes(globalState.getStylesState.searchQuery.toLowerCase())}
 								<!-- 
 							Cas spécial : on ne peut pas avoir de séparateur entre le numéro de verset et le verset
 							pour le texte Coranique, ni changer sa position. Empêche donc l'affichage de ces styles dans ce cas précis.
@@ -550,7 +547,7 @@
 								<div class="flex items-start justify-between gap-3">
 									<div class="min-w-0">
 										<div class="flex flex-row justify-between items-center">
-											<p class="text-sm font-medium text-primary">Hifz Mode</p>
+											<p class="text-sm font-medium text-primary">{$LL.style.hifzMode()}</p>
 											<button
 												type="button"
 												class="btn py-1 px-2 text-sm"
@@ -558,11 +555,11 @@
 													void ModalManager.hifzRepetitionModal();
 												}}
 											>
-												Enable Hifz mode
+												{$LL.style.enableHifzMode()}
 											</button>
 										</div>
 										<p class="text-xs leading-relaxed text-secondary mt-1 italic">
-											Create videos with repeated verses to help memorization.
+											{$LL.style.createMemorizationVideos()}
 										</p>
 									</div>
 								</div>
@@ -576,18 +573,20 @@
 					{#each globalState.getCustomClipTrack.clips as customTextClip (customTextClip.id)}
 						{@const category = (customTextClip as CustomTextClip).category!}
 						<Section
-							name={category.name}
+							name={getStyleName(category.id, get(LL)) || category.name}
 							icon={category.icon}
 							contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
 							classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						>
 							{#each category.styles as style (style.id)}
-								{#if globalState.getStylesState.searchQuery === '' || style.name
-										.toLowerCase()
-										.includes(globalState.getStylesState.searchQuery.toLowerCase())}
-									{@const toDisable =
-										category.getStyle('always-show')!.value &&
-										(style.id === 'time-appearance' || style.id === 'time-disappearance')}
+							{#if globalState.getStylesState.searchQuery === '' || style.name
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+								{@const toDisable =
+									category.getStyle('always-show')!.value &&
+									(style.id === 'time-appearance' || style.id === 'time-disappearance')}
 
 									<!-- prettier-ignore -->
 									<StyleComponent
@@ -654,10 +653,10 @@
 						onclick={async () => {
 							await globalState.getVideoStyle.addCustomClip('text');
 						}}
-						title="Add custom text"
+						title={$LL.editor.addCustomText()}
 					>
 						<span class="material-icons-outlined text-sm">add</span>
-						Custom Text
+						{$LL.editor.customText()}
 					</button>
 					<!-- Bouton pour ajouter un texte custom -->
 					<button
@@ -665,10 +664,10 @@
 						onclick={async () => {
 							await globalState.getVideoStyle.addCustomClip('image');
 						}}
-						title="Add custom text"
+						title={$LL.editor.addCustomText()}
 					>
 						<span class="material-icons-outlined text-sm">add</span>
-						Custom Image
+						{$LL.editor.customImage()}
 					</button>
 				</div>
 			{/if}

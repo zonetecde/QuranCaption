@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let {
 		label,
@@ -56,21 +60,21 @@
 			{placeholder}
 		/>
 		<div class=" flex flex-row items-center gap-x-2">
-			<span class="text-thirdly text-sm">or</span>
+			<span class="text-thirdly text-sm">{$LL.export.orText()}</span>
 			<button
 				class="btn-accent text-sm py-1 px-3 min-w-[150px] whitespace-nowrap"
-				title="Use the preview timeline cursor time and put it into the time field"
+				title={$LL.export.cursorTimeTitle()}
 				onclick={() => {
 					const currentPreviewTime = globalState.getTimelineState.cursorPosition;
 					applyValue(currentPreviewTime);
 				}}
 			>
-				Use cursor time
+				{$LL.export.useCursorTime()}
 			</button>
 		</div>
 	</div>
 
 	<p class="text-thirdly text-xs mt-1">
-		Format: HH:MM:SS or use the current timeline cursor position
+		{$LL.export.formatHint()}
 	</p>
 </div>

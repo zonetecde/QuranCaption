@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { slide } from 'svelte/transition';
 
 	let {
@@ -22,7 +23,7 @@
 		<div class="flex items-center justify-center w-10 h-10 bg-accent rounded-full">
 			<span class="material-icons text-lg text-accent">help_outline</span>
 		</div>
-		<h2 class="text-lg font-semibold text-primary">{!yesNo ? 'Confirmation' : 'Question'}</h2>
+		<h2 class="text-lg font-semibold text-primary">{!yesNo ? $LL.common.confirmation() : $LL.common.question()}</h2>
 	</div>
 
 	<!-- Divider -->
@@ -42,7 +43,7 @@
 				resolve(false);
 			}}
 		>
-			{yesNo ? 'No' : 'Cancel'}
+			{yesNo ? $LL.common.no() : $LL.common.cancel()}
 		</button>
 		<button
 			class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105
@@ -52,7 +53,7 @@
 				resolve(true);
 			}}
 		>
-			{yesNo ? 'Yes' : 'Confirm'}
+			{yesNo ? $LL.common.yes() : $LL.common.confirm()}
 		</button>
 	</div>
 </div>

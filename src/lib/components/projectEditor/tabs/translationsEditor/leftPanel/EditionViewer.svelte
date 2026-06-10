@@ -11,6 +11,10 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import toast from 'svelte-5-french-toast';
 	import AskIaModal from '../modal/AskIAModal.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let { edition } = $props();
 	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
@@ -163,9 +167,9 @@
 		})();
 
 		toast.promise(fetchPromise, {
-			loading: 'Fetching translations... ' + (skipQC1Projects ? '(only QC2)' : ''),
-			success: (count) => `Successfully fetched ${count} translations`,
-			error: 'Failed to fetch translations'
+			loading: LL_.editor.fetchingTranslations() + (skipQC1Projects ? '(only QC2)' : ''),
+			success: (count) => LL_.editor.successfullyFetched(),
+			error: LL_.editor.failedToFetchTranslations()
 		});
 	}
 </script>
@@ -200,7 +204,7 @@
 							edition.showInTranslationsEditor = !edition.showInTranslationsEditor;
 						}}
 					>
-						Show in editor
+						{$LL.editor.showInEditor()}
 					</span>
 				</div>
 			</label>
@@ -214,7 +218,7 @@
 					globalState.currentProject!.content.projectTranslation.removeTranslation(edition)}
 			>
 				<span class="material-icons text-base mr-1">delete</span>
-				Remove
+				{$LL.common.remove()}
 			</button>
 
 			<button
@@ -223,7 +227,7 @@
 					globalState.currentProject!.content.projectTranslation.resetTranslation(edition)}
 			>
 				<span class="material-icons text-base mr-1">refresh</span>
-				Reset
+				{$LL.common.reset()}
 			</button>
 
 			<!-- IA -->
@@ -232,10 +236,10 @@
 				onclick={(e) => {
 					fetchFromOtherProjects(e);
 				}}
-				title="Fetch translations from other projects"
+				title={$LL.editor.fetchTranslations()}
 			>
 				<span class="material-icons text-base mr-2"> cloud_sync </span>
-				Fetch
+				{$LL.editor.fetchButton()}
 			</button>
 			<button
 				class="btn btn-icon w-full px-4 py-2 text-sm flex-1 flex flex-row justify-center mt-1.5"
@@ -245,13 +249,13 @@
 				}}
 			>
 				<span class="material-icons text-base mr-2">auto_awesome</span>
-				Ask AI
+				{$LL.editor.askAi()}
 			</button>
 		</div>
 
 		{#if globalState.currentProject!.detail.translations[edition.author]}
 			<div class="flex justify-between text-xs text-[var(--text-secondary)] mb-1 mt-3">
-				<span>Percentage reviewed:</span>
+				<span>{$LL.editor.percentageReviewed()}</span>
 				<span class="font-medium text-[var(--text-primary)]"
 					>{globalState.currentProject!.detail.translations[edition.author]}%</span
 				>

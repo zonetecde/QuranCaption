@@ -3,6 +3,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { markInvalidAdvancedTrimTranslations } from '$lib/services/AdvancedAITrimming';
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import EditionViewer from './EditionViewer.svelte';
 
@@ -91,15 +93,13 @@
 			await globalState.currentProject?.save(false);
 
 			if (markedSegments > 0) {
-				toast.success(
-					`Marked ${markedSegments}/${checkedSegments} translation segment(s) as Error across ${erroredVerses} verse(s).`
-				);
+				toast.success(get(LL).editor.markedTranslationErrors({ marked: markedSegments, checked: checkedSegments, verses: erroredVerses }));
 			} else {
-				toast.success(`Checked ${checkedSegments} translation segment(s). No errors found.`);
+				toast.success(get(LL).translations.checkedSegmentsNoErrors({ count: checkedSegments }));
 			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			toast.error(`Failed to mark translation errors: ${message}`);
+			toast.error(get(LL).editor.failedToMarkErrors({ error: message }));
 		} finally {
 			isMarkingTranslationErrors = false;
 		}
@@ -113,7 +113,7 @@
 		<!-- En-tête avec icône -->
 		<div class="flex gap-x-2 items-center justify-center mb-6">
 			<span class="material-icons text-accent text-xl">translate</span>
-			<h2 class="text-xl font-bold text-primary">Translations Editor</h2>
+			<h2 class="text-xl font-bold text-primary">{$LL.editor.translations()}</h2>
 		</div>
 
 		<!-- Liste des traductions -->
@@ -132,7 +132,7 @@
 				onclick={() => setAddTranslationModalVisibility(true)}
 			>
 				<span class="material-icons text-base">add</span>
-				Add New Translation
+				{$LL.editor.addNewTranslation()}
 			</button>
 		</div>
 
@@ -140,7 +140,7 @@
 		<div class="border-t border-color pt-4 space-y-3">
 			<div class="flex items-center gap-2 mb-2">
 				<span class="material-icons text-accent-primary text-lg">filter_list</span>
-				<h3 class="text-base font-semibold text-primary">Translation Filters</h3>
+				<h3 class="text-base font-semibold text-primary">{$LL.editor.translationFilters()}</h3>
 			</div>
 
 			<!-- Search input -->
@@ -148,7 +148,7 @@
 				<input
 					id="search-input"
 					type="text"
-					placeholder="SS:VV format or must contain... (Press Enter to search)"
+					placeholder={$LL.editor.verseSearchPlaceholder()}
 					autocomplete="off"
 					class="w-full px-3 py-1.5 text-sm border border-color rounded-r-none! border-r-0!"
 					bind:value={localSearchQuery}
@@ -220,7 +220,7 @@
 						class="h-3.5 w-3.5 rounded border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
 					/>
 					<span class="text-xs font-semibold text-primary leading-tight"
-						>Only show overlapping subtitles</span
+						>{$LL.editor.onlyShowOverlappingSubtitles()}</span
 					>
 				</label>
 			</div>
@@ -235,7 +235,7 @@
 					}}
 				>
 					<span class="material-icons text-base">select_all</span>
-					Show All Subtitles
+					{$LL.editor.showAllSubtitles()}
 				</button>
 
 				<button
@@ -251,7 +251,7 @@
 					}}
 				>
 					<span class="material-icons text-base">checklist</span>
-					Show Partial Verses
+					{$LL.editor.showPartialVerses()}
 				</button>
 
 				<button
@@ -261,7 +261,7 @@
 					}}
 				>
 					<span class="material-icons text-base">auto_fix_high</span>
-					Show AI Fetched
+					{$LL.editor.showAiFetched()}
 				</button>
 
 				<button
@@ -271,7 +271,7 @@
 					}}
 				>
 					<span class="material-icons text-base">priority_high</span>
-					Show Needs Review
+					{$LL.editor.showNeedsReview()}
 				</button>
 			</div>
 		</div>
@@ -279,7 +279,7 @@
 
 	<div class="mb-6 rounded-lg border border-color bg-accent p-3">
 		<label for="wbw-translation-language" class="mb-2 block text-sm font-semibold text-primary">
-			WBW Helper Language
+			{$LL.editor.wbwHelperLanguage()}
 		</label>
 		<select
 			id="wbw-translation-language"
@@ -296,10 +296,10 @@
 	<div class="mb-6 rounded-lg border border-color bg-accent p-3">
 		<div class="mb-2 flex items-center gap-2">
 			<span class="material-icons text-accent-primary text-lg">rule</span>
-			<h3 class="text-sm font-semibold text-primary">Translation Checks</h3>
+			<h3 class="text-sm font-semibold text-primary">{$LL.editor.translationChecks()}</h3>
 		</div>
 		<p class="mb-3 text-xs leading-relaxed text-secondary">
-			Check word coverage and Arabic overlap consistency, then mark invalid segments as Error.
+			{$LL.editor.checkWordCoverage()}
 		</p>
 		<button
 			class="btn w-full px-3 py-2 text-xs font-medium hover:bg-red-500 hover:border-red-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5"
@@ -309,7 +309,9 @@
 			<span class="material-icons text-base">
 				{isMarkingTranslationErrors ? 'hourglass_empty' : 'report'}
 			</span>
-			{isMarkingTranslationErrors ? 'Checking translations...' : 'Mark Translation Errors'}
+			{isMarkingTranslationErrors
+				? $LL.editor.checkingTranslations()
+				: $LL.editor.markTranslationErrors()}
 		</button>
 	</div>
 </div>

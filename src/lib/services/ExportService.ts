@@ -7,6 +7,8 @@ import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
 import { notifyLongTaskCompletion } from './UserAttentionService';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 /**
  * Parse une date ISO en timestamp millisecondes.
@@ -221,6 +223,14 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.mergingFilesProgress = data.mergingFilesProgress ?? 0;
 		exportation.mergingFilesCurrentSegment = data.mergingFilesCurrentSegment ?? 0;
 		exportation.mergingFilesTotalSegments = data.mergingFilesTotalSegments ?? 0;
+		if (typeof data.currentBatchSize === 'number') {
+			exportation.currentBatchSize = data.currentBatchSize;
+		} else if (
+			data.currentState !== ExportState.AddingSubtitles &&
+			data.currentState !== ExportState.CreatingVideo
+		) {
+			exportation.currentBatchSize = null;
+		}
 		if (!wasExported && data.currentState === ExportState.Exported) {
 			const startMs = parseIsoDateMs(exportation.date);
 			if (startMs !== null) {
@@ -229,7 +239,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 
 			if (exportation.exportKind === ExportKind.Video) {
 				void notifyLongTaskCompletion({
-					title: 'Video export finished',
+					title: get(LL).settings.videoExportFinished(),
 					body: exportation.finalFileName,
 					level: 'success'
 				});
@@ -248,7 +258,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 			exportation.exportKind === ExportKind.Video
 		) {
 			void notifyLongTaskCompletion({
-				title: 'Video export failed',
+				title: get(LL).settings.videoExportFailed(),
 				body: exportation.finalFileName,
 				level: 'error'
 			});
@@ -270,5 +280,6 @@ export interface ExportProgress {
 	mergingFilesProgress?: number;
 	mergingFilesCurrentSegment?: number;
 	mergingFilesTotalSegments?: number;
+	currentBatchSize?: number;
 	errorLog?: string;
 }

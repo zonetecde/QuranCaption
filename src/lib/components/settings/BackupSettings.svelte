@@ -7,6 +7,8 @@
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let isExporting = $state(false);
 	let isImporting = $state(false);
@@ -18,12 +20,12 @@
 		isExporting = true;
 		try {
 			await Exporter.backupAllProjects();
-			toast.success('Backup exported successfully.');
+			toast.success(get(LL).settings.backupExported());
 		} catch (error) {
 			console.error('Failed to export projects backup:', error);
 			await ModalManager.errorModal(
-				'Backup export failed',
-				'Unable to export all projects.',
+				get(LL).settings.backupExportFailed(),
+				get(LL).settings.unableToExportProjects(),
 				JSON.stringify(error, Object.getOwnPropertyNames(error))
 			);
 		} finally {
@@ -53,17 +55,17 @@
 			importSummary = `${result.imported} imported, ${result.skipped} skipped duplicates, ${result.invalid} invalid.`;
 
 			if (result.imported > 0) {
-				toast.success(`Imported ${result.imported} projects from backup.`);
+				toast.success(get(LL).settings.importedProjects({ count: result.imported }));
 			} else if (result.skipped > 0 && result.invalid === 0) {
-				toast.success('Backup loaded. All projects were already present.');
+				toast.success(get(LL).settings.backupLoadedAllPresent());
 			} else {
-				toast.success('Backup import finished.');
+				toast.success(get(LL).settings.backupImportFinished());
 			}
 		} catch (error) {
 			console.error('Failed to import projects backup:', error);
 			await ModalManager.errorModal(
-				'Backup import failed',
-				'The selected backup file is invalid or corrupted.',
+				get(LL).settings.backupImportFailed(),
+				get(LL).settings.backupFileInvalid(),
 				JSON.stringify(error, Object.getOwnPropertyNames(error))
 			);
 		} finally {
@@ -78,8 +80,8 @@
 		} catch (error) {
 			console.error('Failed to open projects directory:', error);
 			await ModalManager.errorModal(
-				'Unable to open projects folder',
-				'Quran Caption could not open the projects directory on this system.',
+				get(LL).settings.unableToOpenProjectsFolder(),
+				get(LL).settings.couldNotOpenProjectsDir(),
 				JSON.stringify(error, Object.getOwnPropertyNames(error))
 			);
 		}
@@ -88,14 +90,13 @@
 
 <div class="space-y-6">
 	<div class="space-y-2">
-		<h3 class="text-lg font-medium text-primary">Project Backup</h3>
+		<h3 class="text-lg font-medium text-primary">{$LL.settings.projectBackup()}</h3>
 		<p class="text-sm text-thirdly">
-			Export all projects into one backup file, or import a full backup later. Existing projects
-			with the same IDs are kept and skipped automatically during import.
+			{$LL.settings.backupDescription()}
 		</p>
 		<div class="pt-1">
 			<button class="btn px-4 py-2 text-sm" onclick={() => void openProjectsDirectory()}>
-				Open projects folder
+				{$LL.settings.openProjectsFolder()}
 			</button>
 		</div>
 	</div>
@@ -104,9 +105,9 @@
 		<section class="rounded-xl border border-color bg-primary p-5">
 			<div class="mb-4 flex items-start gap-3">
 				<div class="space-y-1">
-					<h4 class="text-base font-semibold text-primary">Export all projects</h4>
+					<h4 class="text-base font-semibold text-primary">{$LL.settings.exportAllProjects()}</h4>
 					<p class="text-sm text-thirdly">
-						Create one JSON backup containing every project currently stored in the app.
+						{$LL.settings.exportAllProjectsDescription()}
 					</p>
 				</div>
 
@@ -118,8 +119,7 @@
 			</div>
 
 			<div class="rounded-lg border border-color bg-accent/60 p-4 text-sm text-thirdly">
-				Use this before reinstalling the app, changing machine, or keeping a full offline copy of
-				your project library.
+				{$LL.settings.useBeforeReinstalling()}
 			</div>
 
 			<div class="mt-5 flex items-center gap-3">
@@ -128,7 +128,7 @@
 					onclick={() => void exportAllProjectsBackup()}
 					disabled={isExporting || isImporting}
 				>
-					{isExporting ? 'Exporting backup...' : 'Export all projects'}
+					{isExporting ? $LL.settings.exportingBackup() : $LL.settings.exportAllProjects()}
 				</button>
 			</div>
 		</section>
@@ -136,10 +136,9 @@
 		<section class="rounded-xl border border-color bg-primary p-5">
 			<div class="mb-4 flex items-start gap-3">
 				<div class="space-y-1">
-					<h4 class="text-base font-semibold text-primary">Import a backup</h4>
+					<h4 class="text-base font-semibold text-primary">{$LL.settings.importBackup()}</h4>
 					<p class="text-sm text-thirdly">
-						Load every project from a backup JSON file and ignore projects already present with the
-						same IDs.
+						{$LL.settings.importBackupDescription()}
 					</p>
 				</div>
 
@@ -151,8 +150,7 @@
 			</div>
 
 			<div class="rounded-lg border border-color bg-accent/60 p-4 text-sm text-thirdly">
-				Import is non-destructive: existing projects are not overwritten. Duplicate IDs are skipped
-				automatically.
+				{$LL.settings.importNonDestructive()}
 			</div>
 
 			<div class="mt-5 flex items-center gap-3">
@@ -161,7 +159,7 @@
 					onclick={() => void importAllProjectsBackup()}
 					disabled={isImporting || isExporting}
 				>
-					{isImporting ? 'Importing backup...' : 'Import backup'}
+					{isImporting ? $LL.settings.importingBackup() : $LL.settings.importBackup()}
 				</button>
 			</div>
 

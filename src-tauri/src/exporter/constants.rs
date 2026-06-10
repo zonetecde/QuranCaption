@@ -38,6 +38,16 @@ pub static HW_ENCODER_CACHE: LazyLock<Mutex<HashMap<String, Vec<String>>>> =
 pub static NVENC_AVAILABILITY_CACHE: LazyLock<Mutex<HashMap<String, bool>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+/// Cache de disponibilite de `xfade_vulkan` (test reel avec alpha RGBA).
+/// Evite de relancer le test a chaque export.
+pub static XFADE_VULKAN_AVAILABILITY_CACHE: LazyLock<Mutex<HashMap<String, bool>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// Cache de disponibilite de `xfade_opencl` (test reel avec chaine RGBA).
+/// Evite de relancer le test a chaque export.
+pub static XFADE_OPENCL_AVAILABILITY_CACHE: LazyLock<Mutex<HashMap<String, bool>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
 // ---------------------------------------------------------------------------
 // Cache de durée ffprobe
 // ---------------------------------------------------------------------------

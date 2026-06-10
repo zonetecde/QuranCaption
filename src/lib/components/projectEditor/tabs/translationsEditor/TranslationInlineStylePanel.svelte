@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { fade } from 'svelte/transition';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
@@ -34,7 +35,7 @@
 
 	async function resetAllInlineStyles(): Promise<void> {
 		const confirm = await ModalManager.confirmModal(
-			'Are you sure you want to reset all inline styles?'
+			$LL.translations.resetInlineStylesConfirm()
 		);
 
 		if (!confirm) return;
@@ -63,11 +64,9 @@
 <div class="px-4 py-4 border-b border-color bg-primary/70">
 	<div class="flex items-start gap-3">
 		<div class="min-w-0">
-			<h3 class="text-sm font-semibold text-primary">Word Styles</h3>
+			<h3 class="text-sm font-semibold text-primary">{$LL.editor.wordStyles()}</h3>
 			<p class="text-xs text-thirdly mt-1 leading-relaxed">
-				Manual per-word emphasis on <span class="font-semibold">arabic text</span> and
-				<span class="font-semibold">translations</span> with a dedicated AI assistant modal for automatic
-				bold styling.
+				{$LL.editor.wordStylesDescription()}
 			</p>
 		</div>
 	</div>
@@ -85,9 +84,11 @@
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="text-sm font-semibold">Word Style Editing</p>
+				<p class="text-sm font-semibold">{$LL.editor.wordStyleEditing()}</p>
 				<p class="text-xs mt-1 opacity-80">
-					{translationsEditorState().isInlineStyleMode ? 'Enabled' : 'Disabled'}
+					{translationsEditorState().isInlineStyleMode
+						? $LL.common.enabled()
+						: $LL.common.disabled()}
 				</p>
 			</div>
 			<span class="material-icons text-lg">
@@ -99,7 +100,7 @@
 	{#if translationsEditorState().isInlineStyleMode}
 		<div class="space-y-2">
 			<p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-thirdly">
-				Styles To Toggle
+				{$LL.editor.stylesToToggle()}
 			</p>
 
 			<button
@@ -112,10 +113,10 @@
 			>
 				<span class="flex items-center gap-2">
 					<span class="material-icons text-base">format_bold</span>
-					Bold
+					{$LL.editor.bold()}
 				</span>
 				<span class="text-xs"
-					>{translationsEditorState().inlineStyleBoldEnabled ? 'On' : 'Off'}</span
+					>{translationsEditorState().inlineStyleBoldEnabled ? $LL.common.on() : $LL.common.off()}</span
 				>
 			</button>
 
@@ -129,10 +130,10 @@
 			>
 				<span class="flex items-center gap-2">
 					<span class="material-icons text-base">format_italic</span>
-					Italic
+					{$LL.editor.italic()}
 				</span>
 				<span class="text-xs"
-					>{translationsEditorState().inlineStyleItalicEnabled ? 'On' : 'Off'}</span
+					>{translationsEditorState().inlineStyleItalicEnabled ? $LL.common.on() : $LL.common.off()}</span
 				>
 			</button>
 
@@ -146,10 +147,10 @@
 			>
 				<span class="flex items-center gap-2">
 					<span class="material-icons text-base">format_underlined</span>
-					Underline
+					{$LL.editor.underline()}
 				</span>
 				<span class="text-xs"
-					>{translationsEditorState().inlineStyleUnderlineEnabled ? 'On' : 'Off'}</span
+					>{translationsEditorState().inlineStyleUnderlineEnabled ? $LL.common.on() : $LL.common.off()}</span
 				>
 			</button>
 
@@ -170,7 +171,7 @@
 								class="inline-block h-4 w-4 rounded-full border border-white/20 shadow-sm"
 								style={`background-color: ${translationsEditorState().inlineStyleColorValue};`}
 							></span>
-							Color
+							{$LL.editor.color()}
 						</span>
 
 						<div class="flex items-center gap-x-2">
@@ -183,11 +184,13 @@
 									).value;
 								}}
 								class="h-9 w-11 cursor-pointer rounded border border-color bg-secondary p-1"
-								aria-label="Word style color"
+								aria-label={$LL.editor.wordStyleColor()}
 							/>
 
 							<span class="text-xs text-secondary">
-								{translationsEditorState().inlineStyleColorEnabled ? 'On' : 'Off'}
+								{translationsEditorState().inlineStyleColorEnabled
+									? $LL.common.on()
+									: $LL.common.off()}
 							</span>
 						</div>
 					</button>
@@ -198,29 +201,27 @@
 		<div
 			class="rounded-xl border border-color bg-accent px-3 py-3 text-xs text-secondary leading-relaxed space-y-2"
 		>
-			<p class="font-semibold text-primary">How it works</p>
+			<p class="font-semibold text-primary">{$LL.editor.howItWorks()}</p>
 			<p>
-				Enable style mode, keep one or more toggles active, then drag across words in the trimmed
-				translation or the Arabic segment.
+				{$LL.editor.howItWorksDescription1()}
 			</p>
 			<p>
-				Bold, italic and underline are toggled on the selected range. Color is applied with the
-				current swatch. Editing the translation text later clears translation word styles.
+				{$LL.editor.howItWorksDescription2()}
 			</p>
 			{#if !hasActiveInlineStyle()}
-				<p class="text-[var(--accent-primary)]">Select at least one style before applying it.</p>
+				<p class="text-[var(--accent-primary)]">{$LL.editor.selectAtLeastOneStyle()}</p>
 			{/if}
 		</div>
 
 		<div class="rounded-xl border border-color bg-accent p-3 space-y-2">
 			<p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-thirdly">
-				Global Actions
+				{$LL.editor.globalActions()}
 			</p>
 			<button
 				class="w-full rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-45"
 				onclick={resetAllInlineStyles}
 			>
-				Reset all segment styles
+				{$LL.editor.resetAllSegmentStyles()}
 			</button>
 		</div>
 
@@ -228,7 +229,7 @@
 			<div class="px-4 py-4 border-b border-color bg-primary/40">
 				<div class="flex items-start justify-between gap-3">
 					<div>
-						<div class="text-sm font-semibold text-primary">AI Assisted Word Emphasis</div>
+						<div class="text-sm font-semibold text-primary">{$LL.editor.aiAssistedWordEmphasis()}</div>
 					</div>
 				</div>
 			</div>
@@ -238,7 +239,7 @@
 					class="w-full rounded-lg bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110"
 					onclick={() => (showAiBoldModal = true)}
 				>
-					Open AI Bold Assistant
+					{$LL.editor.openAiBoldAssistant()}
 				</button>
 			</div>
 		</div>

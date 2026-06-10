@@ -5,6 +5,8 @@
 	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 	import { browser } from '$app/environment';
 	import { afterNavigate } from '$app/navigation';
+	import { setLocale } from '$lib/i18n/i18n-svelte';
+	import { isLocale } from '$lib/i18n/i18n-util';
 	import posthog from 'posthog-js';
 
 	let { children } = $props();
@@ -18,6 +20,15 @@
 	});
 
 	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');
+
+	// Restaure la locale sauvegardée dès que les settings sont chargés
+	$effect(() => {
+		if (!browser) return;
+		const savedLocale = globalState.settings?.persistentUiState?.language;
+		if (savedLocale && isLocale(savedLocale)) {
+			setLocale(savedLocale);
+		}
+	});
 
 	$effect(() => {
 		if (!browser) return;

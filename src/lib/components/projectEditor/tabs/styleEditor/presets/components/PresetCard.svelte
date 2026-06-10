@@ -3,6 +3,10 @@
 	import { downloadAndApply, likePreset } from '../actions/communityActions';
 	import { getResolutionLabel } from '../actions/presetUtils';
 	import type { CommunityStylePreset } from '$lib/services/StylePresetLibraryService';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let { preset }: { preset: CommunityStylePreset } = $props();
 
@@ -47,7 +51,7 @@
 		<div class="space-y-2 p-2">
 			<div class="min-w-0">
 				<h4 class="truncate text-sm font-semibold text-primary">{preset.name}</h4>
-				<p class="truncate text-xs text-secondary">by {preset.authorName}</p>
+				<p class="truncate text-xs text-secondary">{$LL.style.presetAuthor({ author: preset.authorName })}</p>
 			</div>
 			<div class="flex flex-wrap gap-1">
 				<span
@@ -94,7 +98,7 @@
 					: 'text-thirdly hover:text-red-400') +
 					' flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-red-500/10 disabled:opacity-60'}
 				type="button"
-				title="Like preset"
+				title={$LL.editor.likePreset()}
 				disabled={likingPresetId !== null || likedPresetIds.has(preset.id)}
 				onclick={handleLike}
 			>
@@ -106,7 +110,7 @@
 			<button
 				class="flex h-7 w-7 items-center justify-center rounded text-thirdly transition-colors hover:bg-primary hover:text-primary disabled:opacity-60"
 				type="button"
-				title="Download and apply"
+				title={$LL.editor.downloadAndApply()}
 				disabled={downloadingPresetId !== null}
 				onclick={handleDownload}
 			>

@@ -3,6 +3,8 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
 	import { onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	import { SourceType } from '$lib/classes';
 	import { Quran } from '$lib/classes/Quran';
@@ -136,7 +138,7 @@
 			downloadOptions = buildDownloadOptions(mp3Reciters, qdcRecitations);
 		} catch (error) {
 			console.error('Error fetching reciters:', error);
-			toast.error('Failed to load reciters list.');
+			toast.error(get(LL).editor.failedToLoadReciters());
 		} finally {
 			isLoadingReciters = false;
 		}
@@ -176,7 +178,10 @@
 				globalState.currentProject!.detail.id
 			);
 			toastId = toast.loading(
-				`Downloading ${surahName.split('.')[1].trim()} by ${selectedOption.reciterName}...`
+				get(LL).editor.downloadingSurah({
+					surah: surahName.split('.')[1].trim(),
+					reciter: selectedOption.reciterName
+				})
 			);
 
 			const fullPath = await join(downloadPath, fileName);
@@ -241,7 +246,7 @@
 			const projectContent = globalState.currentProject!.content;
 			projectContent.addAsset(fullPath, audioUrl, sourceType, metadata);
 
-			toast.success('Download successful!', { id: toastId });
+			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
 
 			if (selectedOption.supportsNativeTiming) {
 				// On retrouve l'asset fraîchement ajouté pour l'insérer dans la timeline si l'utilisateur accepte.
@@ -252,7 +257,7 @@
 
 				if (addedAsset) {
 					const confirmTimingLoad = await ModalManager.confirmModal(
-						'This audio includes official native timings. Add it to the timeline and load the subtitles now?',
+						get(LL).editor.nativeTimingsConfirm(),
 						true
 					);
 
@@ -274,22 +279,27 @@
 			);
 		} catch (error) {
 			console.error('Download error:', error);
-			toast.error(`Error downloading: ${error}`, { id: toastId, duration: 5000 });
+			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), {
+				id: toastId,
+				duration: 5000
+			});
 		} finally {
 			isDownloading = false;
 		}
 	}
 </script>
 
-<Section icon="mosque" name="Download Quran Recitation">
+<Section icon="mosque" name={get(LL).editor.downloadQuranRecitation()}>
 	<div class="space-y-2">
 		<div class="space-y-2">
-			<p class="text-sm font-medium text-secondary">Source</p>
+			<p class="text-sm font-medium text-secondary">{get(LL).editor.sourceLabel()}</p>
 			<QuranSourceTabs bind:selectedSource />
 		</div>
 
 		<div class="space-y-2">
-			<label for="reciter-select" class="text-sm font-medium text-secondary">Reciter</label>
+			<label for="reciter-select" class="text-sm font-medium text-secondary"
+				>{get(LL).editor.reciterLabel()}</label
+			>
 
 			<select
 				id="reciter-select"
@@ -299,9 +309,9 @@
 				onchange={() => (selectedSurahId = -1)}
 			>
 				{#if isLoadingReciters}
-					<option value={-1}>Loading reciters...</option>
+					<option value={-1}>{get(LL).editor.loadingReciters()}</option>
 				{:else}
-					<option value={-1}>Select a reciter</option>
+					<option value={-1}>{get(LL).editor.selectReciter()}</option>
 					{#each filteredDownloadOptions as option, index (`${option.source}-${option.mp3MoshafId ?? option.qdcRecitationId}`)}
 						<option value={index}
 							>{option.supportsNativeTiming ? `★ ${option.label}` : option.label}</option
@@ -314,20 +324,22 @@
 				class="flex items-start gap-2 px-3 py-2 bg-green-500/5 border border-green-500/10 rounded-lg"
 			>
 				<p class="text-[11px] text-secondary/80 leading-relaxed">
-					<strong>★</strong> means official verse timing can be loaded automatically after download.
+					{get(LL).editor.nativeTimingHint()}
 				</p>
 			</div>
 		</div>
 
 		<div class="space-y-2">
-			<label for="surah-select" class="text-sm font-medium text-secondary">Surah</label>
+			<label for="surah-select" class="text-sm font-medium text-secondary"
+				>{get(LL).editor.surah()}</label
+			>
 			<select
 				id="surah-select"
 				class="w-full bg-secondary border border-color rounded-lg py-3 px-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
 				bind:value={selectedSurahId}
 				disabled={selectedOptionIndex === -1}
 			>
-				<option value={-1}>Select a Surah</option>
+				<option value={-1}>{get(LL).editor.selectSurah()}</option>
 				{#each availableSurahs as surah (surah.id)}
 					<option value={surah.id} disabled={!surah.supported}>
 						{surah.name}
@@ -344,10 +356,10 @@
 		>
 			{#if isDownloading}
 				<span class="material-icons animate-spin text-lg">sync</span>
-				<span>Downloading...</span>
+				<span>{get(LL).editor.downloadingLabel()}</span>
 			{:else}
 				<span class="material-icons text-lg">download</span>
-				<span>Download audio</span>
+				<span>{get(LL).editor.downloadAudio()}</span>
 			{/if}
 		</button>
 	</div>

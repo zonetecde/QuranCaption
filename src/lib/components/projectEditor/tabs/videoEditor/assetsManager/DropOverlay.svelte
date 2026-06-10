@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { fade } from 'svelte/transition';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	$effect(() => {
 		if (
@@ -25,8 +27,8 @@
 		<div class="drop-zone">
 			<div class="drop-zone-content">
 				<span class="material-icons upload-icon">cloud_upload</span>
-				<div class="text-white text-2xl font-semibold mb-2">Drop your files here</div>
-				<div class="text-gray-300 text-sm">Support for audio, video and image files</div>
+				<div class="text-white text-2xl font-semibold mb-2">{get(LL).editor.dropFilesHere()}</div>
+				<div class="text-gray-300 text-sm">{get(LL).editor.supportMediaTypes()}</div>
 
 				<!-- Corner decorations -->
 				<div class="corner corner-tl"></div>

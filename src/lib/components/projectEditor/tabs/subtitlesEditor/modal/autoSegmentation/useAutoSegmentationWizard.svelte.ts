@@ -19,6 +19,8 @@ import {
 	type SegmentationMode
 } from '$lib/services/AutoSegmentation';
 import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { trackInstallFailure, trackSegmentationRun } from './helpers/analytics';
 import {
 	buildAudioLabel,
@@ -433,7 +435,7 @@ export function useAutoSegmentationWizard() {
 
 		if (response.status === 'failed') {
 			await notifyLongTaskCompletion({
-				title: 'AI segmentation failed',
+				title: get(LL).editor.aiSegmentationFailed(),
 				body: response.message,
 				level: 'error'
 			});
@@ -441,7 +443,7 @@ export function useAutoSegmentationWizard() {
 		}
 
 		await notifyLongTaskCompletion({
-			title: 'AI segmentation finished',
+			title: get(LL).editor.aiSegmentationFinished(),
 			body: `Applied ${response.segmentsApplied} subtitle(s).`,
 			level: 'success'
 		});

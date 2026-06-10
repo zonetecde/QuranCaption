@@ -3,6 +3,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import ModalManager from './modals/ModalManager';
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let showToolsPopover = $state(false);
 
@@ -32,12 +34,12 @@
 
 		const subtitleCount = globalState.getSubtitleTrack.clips.length;
 		if (subtitleCount === 0) {
-			await ModalManager.errorModal('No subtitles', 'There are no subtitles to remove.');
+			await ModalManager.errorModal(get(LL).editor.noSubtitlesToRemove(), get(LL).editor.noSubtitlesError());
 			return;
 		}
 
 		const confirmed = await ModalManager.confirmModal(
-			`This will permanently remove all ${subtitleCount} subtitles from the current project. Continue?`,
+			get(LL).editor.removeAllSubtitlesConfirm({ count: subtitleCount }),
 			true
 		);
 
@@ -80,7 +82,7 @@
 				}}
 			>
 				<span class="material-icons text-lg text-accent">move_down</span>
-				Shift All Subtitles
+				{$LL.editor.shiftAllSubtitles()}
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
@@ -91,7 +93,7 @@
 				}}
 			>
 				<span class="material-icons text-lg text-accent">repeat</span>
-				Hifz Repetition
+				{$LL.editor.hifzRepetition()}
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
@@ -102,7 +104,7 @@
 				}}
 			>
 				<span class="material-icons text-lg text-accent">content_cut</span>
-				Asset Trimmer
+				{$LL.editor.assetTrimmer()}
 			</button>
 
 			<!-- svelte-ignore node_invalid_placement_ssr -->
@@ -114,7 +116,7 @@
 				}}
 			>
 				<span class="material-icons text-lg text-accent">graphic_eq</span>
-				Regenerate Waveforms
+				{$LL.editor.regenerateWaveforms()}
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
@@ -127,7 +129,7 @@
 				}}
 			>
 				<span class="material-icons text-lg text-red-400">delete_sweep</span>
-				Remove All Subtitles
+				{$LL.editor.removeAllSubtitles()}
 			</button>
 		</div>
 	{/if}

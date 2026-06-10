@@ -6,6 +6,8 @@
 		quranAuthService
 	} from '$lib/services/QuranAuthService.svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	export type ThemeId =
 		| 'default'
@@ -44,7 +46,7 @@
 				await quranAuthService.updateThemePreference(mapLocalThemeToQuranPreference(theme.id));
 			} catch (error) {
 				console.error('Failed to update Quran.com theme preference:', error);
-				toast.error('Unable to sync theme to Quran.com.');
+				toast.error(get(LL).settings.unableToSyncTheme());
 			}
 		}
 	}

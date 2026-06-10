@@ -3,6 +3,10 @@
 	import { closePublishForm, publishPreset } from '../actions/publishActions';
 	import { getClipLabel, getCustomClipsForUI, setsEqual } from '../actions/presetUtils';
 	import PublishPreview from './PublishPreview.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let publishName = $derived(globalState.presetLibrary.publishName);
 	let publishAuthorName = $derived(globalState.presetLibrary.publishAuthorName);
@@ -48,54 +52,54 @@
 
 		<div class="space-y-3">
 			<label class="block space-y-1.5">
-				<span class="text-xs font-medium text-secondary">Name</span>
+				<span class="text-xs font-medium text-secondary">{$LL.editor.presetNameLabel()}</span>
 				<input
 					bind:value={globalState.presetLibrary.publishName}
 					class="h-9 w-full rounded-md border border-color bg-primary px-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 					type="text"
 					maxlength="120"
-					placeholder="Clean Quran style"
+					placeholder={$LL.editor.presetNamePlaceholder()}
 				/>
 			</label>
 			<label class="block space-y-1.5">
-				<span class="text-xs font-medium text-secondary">Author</span>
+				<span class="text-xs font-medium text-secondary">{$LL.editor.authorLabel()}</span>
 				<input
 					bind:value={globalState.presetLibrary.publishAuthorName}
 					class="h-9 w-full rounded-md border border-color bg-primary px-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 					type="text"
 					maxlength="120"
-					placeholder="Your name"
+					placeholder={$LL.editor.authorPlaceholder()}
 				/>
 			</label>
 			<label class="block space-y-1.5">
 				<span class="text-xs font-medium text-secondary"
-					>Tags <span class="font-normal text-thirdly">(optional)</span></span
+					>{$LL.style.tagsOptional()}</span
 				>
 				<input
 					bind:value={globalState.presetLibrary.publishTags}
 					class="h-9 w-full rounded-md border border-color bg-primary px-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 					type="text"
-					placeholder="clean, subtitle, bold"
+					placeholder={$LL.editor.tagsPlaceholder()}
 				/>
 			</label>
 			<label class="block space-y-1.5">
 				<span class="text-xs font-medium text-secondary"
-					>Description <span class="font-normal text-thirdly">(optional)</span></span
+					>{$LL.style.descriptionOptional()}</span
 				>
 				<textarea
 					bind:value={globalState.presetLibrary.publishDescription}
 					class="min-h-20 w-full resize-none rounded-md border border-color bg-primary px-3 py-2 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 					maxlength="600"
-					placeholder="Shortly describe where this style works best."
+					placeholder={$LL.editor.descriptionPlaceholder()}
 				></textarea>
 			</label>
 		</div>
 
 		{#if getCustomClipsForUI().length > 0}
 			<div class="space-y-2 rounded-lg border border-color bg-primary/50 px-3 py-3">
-				<span class="text-xs font-medium text-secondary">Style overlays to include</span>
+				<span class="text-xs font-medium text-secondary">{$LL.editor.styleOverlaysToInclude()}</span>
 				<p class="text-xs text-thirdly">
-					Custom images are NOT bundled — users must replace them with their own image.
+					{$LL.style.customImagesNotBundled()}
 				</p>
 				{#each getCustomClipsForUI() as clip (clip.id)}
 					{@const label = getClipLabel(clip)}
@@ -118,7 +122,7 @@
 			>
 				<div class="flex items-start gap-2">
 					<span class="material-icons-outlined text-base">refresh</span>
-					<p class="min-w-0 flex-1 text-xs">Regenerate the preview before publishing.</p>
+					<p class="min-w-0 flex-1 text-xs">{$LL.style.regeneratePreviewWarning()}</p>
 				</div>
 			</div>
 		{/if}
@@ -134,7 +138,7 @@
 
 		<div class="flex items-center justify-end gap-2 border-t border-color pt-4">
 			<button class="btn px-3 py-2 text-sm" type="button" onclick={closePublishForm}>
-				Cancel
+				{$LL.common.cancel()}
 			</button>
 			<button
 				class="btn-accent px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -142,7 +146,7 @@
 				onclick={publishPreset}
 				disabled={!canPublish()}
 			>
-				{isPublishing ? 'Publishing...' : 'Publish preset'}
+				{isPublishing ? $LL.style.communityPresetSaved() : $LL.style.publishPreset()}
 			</button>
 		</div>
 	</section>

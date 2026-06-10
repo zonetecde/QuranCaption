@@ -3,6 +3,7 @@
 	import { ProjectTranslation } from '$lib/classes';
 	import type { Edition } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		surah,
@@ -81,7 +82,7 @@
 	>
 		<div class="flex items-center gap-2">
 			<span class="material-icons text-accent-primary text-sm">menu_book</span>
-			<span class="text-xs font-semibold text-thirdly uppercase tracking-wide">Verse Preview</span>
+			<span class="text-xs font-semibold text-thirdly uppercase tracking-wide">{$LL.aiVideo.versePreview()}</span>
 		</div>
 		<span class="text-xs text-thirdly">
 			{surahName()} — {ayahStart}:{ayahEnd}
@@ -94,10 +95,10 @@
 		{#if isLoading}
 			<div class="flex items-center justify-center py-8 gap-2 text-sm text-thirdly">
 				<span class="material-icons animate-spin text-base">autorenew</span>
-				Loading verses...
+				{$LL.aiVideo.loadingVerses()}
 			</div>
 		{:else if verses.length === 0}
-			<p class="py-6 text-center text-sm text-thirdly">No verses to preview</p>
+			<p class="py-6 text-center text-sm text-thirdly">{$LL.aiVideo.noVersesToPreview()}</p>
 		{:else}
 			{#each verses as v (v.verse)}
 				<div

@@ -4,11 +4,15 @@
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
-	const arabicFormatDescriptions: Record<'Plain' | 'V1' | 'V2', string> = {
-		Plain: 'Simple text',
-		V1: '1405H Mushaf by Uthman Taha',
-		V2: '1423H Mushaf by Uthman Taha'
+	const LL_ = get(LL);
+
+	const arabicFormatDescriptions: Record<'Plain' | 'V1' | 'V2', () => string> = {
+		Plain: () => LL_.export.simpleText(),
+		V1: () => LL_.export.uthmani1405(),
+		V2: () => LL_.export.uthmani1423()
 	};
 
 	const subtitleExportTargets = $derived([
@@ -40,16 +44,16 @@
 <div class="p-6 bg-secondary rounded-lg border border-color" transition:slide>
 	<!-- Section Title -->
 	<div class="mb-6">
-		<h3 class="text-lg font-semibold text-primary mb-2">Export Subtitles</h3>
+		<h3 class="text-lg font-semibold text-primary mb-2">{$LL.export.exportSubtitlesHeading()}</h3>
 		<p class="text-thirdly text-sm">
-			Configure your subtitle export settings and choose which content to include.
+			{$LL.export.exportSubtitlesDescription()}
 		</p>
 	</div>
 
 	<!-- Subtitle Format Selection -->
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Subtitle Format</h4>
-		<p class="text-thirdly text-sm mb-3">Choose the subtitle file format for your export:</p>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.subtitleFormat()}</h4>
+		<p class="text-thirdly text-sm mb-3">{$LL.export.subtitleFormatDescription()}</p>
 		<div class="flex gap-4">
 			<label class="flex items-center gap-2 cursor-pointer group">
 				<input
@@ -61,7 +65,7 @@
 				/>
 				<span class="text-secondary group-hover:text-primary transition-colors">
 					SRT
-					<span class="text-thirdly text-xs block">SubRip Text format - widely compatible</span>
+					<span class="text-thirdly text-xs block">{$LL.export.srtFormat()}</span>
 				</span>
 			</label>
 			<label class="flex items-center gap-2 cursor-pointer group">
@@ -75,7 +79,7 @@
 				<span class="text-secondary group-hover:text-primary transition-colors">
 					VTT
 					<span class="text-thirdly text-xs block"
-						>WebVTT format - web standard with styling support</span
+						>{$LL.export.vttFormat()}</span
 					>
 				</span>
 			</label>
@@ -84,9 +88,9 @@
 
 	<!-- Content Selection -->
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Content Selection</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.contentSelection()}</h4>
 		<p class="text-thirdly text-sm mb-4">
-			Select which text versions to include in your subtitle export:
+			{$LL.export.contentSelectionDescription()}
 		</p>
 
 		<div class="space-y-4">
@@ -105,13 +109,13 @@
 							<label for="include-{target}" class="cursor-pointer">
 								<span class="text-secondary font-medium capitalize">
 									{target === 'arabic'
-										? 'Arabic Text'
-										: `${globalState.getProjectTranslation.getEditionFromName(target).author} Translation`}
+										? $LL.export.arabicText()
+										: $LL.export.translationAuthor({ author: globalState.getProjectTranslation.getEditionFromName(target).author })}
 								</span>
 								<p class="text-thirdly text-xs mt-1">
 									{target === 'arabic'
-										? 'Original Quranic text in Arabic script'
-										: `Translation by ${globalState.getProjectTranslation.getEditionFromName(target).author}`}
+										? $LL.export.arabicTextDescription()
+										: $LL.export.translationByAuthor({ author: globalState.getProjectTranslation.getEditionFromName(target).author })}
 								</p>
 							</label>
 						</div>
@@ -137,13 +141,12 @@
 							/>
 							<div class="flex-1">
 								<label for="verse-numbers-{target}" class="cursor-pointer">
-									<span class="text-secondary text-sm">Include verse numbers</span>
+									<span class="text-secondary text-sm">{$LL.export.includeVerseNumbers()}</span>
 									<p class="text-thirdly text-xs mt-1">
 										{#if target === 'arabic'}
-											Add verse numbers (e.g., <span class="arabic">٥٢</span>) at the end of each
-											verse
+											{$LL.export.includeVerseNumbersAtEnd()}
 										{:else}
-											Add verse numbers (e.g., "255.") at the beginning of each verse
+											{$LL.export.includeVerseNumbersAtStart()}
 										{/if}
 									</p>
 								</label>
@@ -155,9 +158,9 @@
 					{#if target === 'arabic'}
 						<div class="mt-4 {!included ? 'opacity-50 pointer-events-none' : ''}">
 							<div class="space-y-2">
-								<span class="text-secondary text-sm font-medium">Arabic Text Format</span>
+								<span class="text-secondary text-sm font-medium">{$LL.export.arabicTextFormat()}</span>
 								<p class="text-thirdly text-xs mb-3">
-									Choose the formatting style for Arabic text display:
+									{$LL.export.arabicTextFormatDescription()}
 								</p>
 								<div class="flex gap-2">
 									{#each ['Plain', 'V1', 'V2'] as format (format)}
@@ -204,7 +207,7 @@
 														? 'text-black/80'
 														: 'text-thirdly'}"
 												>
-													{arabicFormatDescriptions[format as 'Plain' | 'V1' | 'V2']}
+													{arabicFormatDescriptions[format as 'Plain' | 'V1' | 'V2']()}
 												</div>
 											</div>
 										</label>
@@ -220,7 +223,7 @@
 
 	<!-- Export Folder -->
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Export Folder</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFolder()}</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
 			<ExportFolderPicker />
 		</div>
@@ -229,10 +232,10 @@
 	<!-- Export Button -->
 	<div class="flex flex-col items-center">
 		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportSubtitles}>
-			Export Subtitles
+			{$LL.export.exportSubtitlesButton()}
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">
-			Generate subtitle files with your selected configuration
+			{$LL.export.exportSubtitlesButtonDescription()}
 		</p>
 	</div>
 </div>

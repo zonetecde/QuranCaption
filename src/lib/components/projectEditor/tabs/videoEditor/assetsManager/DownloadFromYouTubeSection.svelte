@@ -7,6 +7,8 @@
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let url: string = $state('');
 	let type: string = $state('audio'); // Default to audio
@@ -18,12 +20,6 @@
 
 	interface YoutubeDownloadProgressEvent {
 		downloadRequestId: string;
-		progress: number;
-		status?: string;
-	}
-
-	interface CbrConversionProgressEvent {
-		conversionRequestId: string;
 		progress: number;
 		status?: string;
 	}
@@ -49,32 +45,14 @@
 		downloadStatus = event.payload.status ?? 'downloading';
 	}
 
-	/**
-	 * Met à jour la progression de conversion CBR liée au téléchargement courant.
-	 * @param event Evenement Tauri emis par le backend.
-	 */
-	function handleCbrProgress(event: { payload: CbrConversionProgressEvent }) {
-		if (!activeDownloadRequestId || event.payload.conversionRequestId !== activeDownloadRequestId) {
-			return;
-		}
-
-		downloadProgress = Math.max(0, Math.min(100, event.payload.progress));
-		downloadStatus = event.payload.status ?? 'converting';
-	}
-
 	onMount(() => {
 		const unlistenPromise = listen<YoutubeDownloadProgressEvent>(
 			'youtube-download-progress',
 			handleDownloadProgress
 		);
-		const unlistenCbrPromise = listen<CbrConversionProgressEvent>(
-			'cbr-conversion-progress',
-			handleCbrProgress
-		);
 
 		return () => {
 			void unlistenPromise.then((unlisten) => unlisten());
-			void unlistenCbrPromise.then((unlisten) => unlisten());
 		};
 	});
 
@@ -85,7 +63,7 @@
 
 		try {
 			if (!url.trim()) {
-				downloadError = 'Please enter a valid public media URL.';
+				downloadError = get(LL).editor.enterValidMediaUrl();
 				return;
 			}
 
@@ -107,19 +85,7 @@
 			});
 
 			// Ajoute le fichier téléchargé à la liste des assets du projet
-			const asset = globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube, {
-				skipConstantBitrateWarning: true
-			});
-
-			if (asset) {
-				downloadProgress = 0;
-				downloadStatus = 'converting';
-				await invoke('convert_audio_to_cbr', {
-					filePath: asset.filePath,
-					conversionRequestId: activeDownloadRequestId
-				});
-				asset.reloadMedia();
-			}
+			globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube);
 
 			// Telemetry
 			AnalyticsService.downloadFromYouTube(url, type);
@@ -128,7 +94,7 @@
 			downloadStatus = 'finished';
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
-			downloadError = `Error downloading media from link: ${errorMessage}`;
+			downloadError = `${get(LL).editor.downloadErrorPrefix()} ${errorMessage}`;
 			console.error(error);
 		} finally {
 			isDownloading = false;
@@ -137,7 +103,7 @@
 	}
 </script>
 
-<Section icon="cloud_download" name="Download from Social Media">
+<Section icon="cloud_download" name={get(LL).editor.downloadFromSocialMedia()}>
 	<!-- URL Input with enhanced styling -->
 	<div class="mt-4 space-y-4">
 		<div class="relative">
@@ -147,7 +113,7 @@
 				       placeholder-[var(--text-placeholder)] focus:outline-none focus:ring-2
 				       focus:ring-[var(--accent-primary)] focus:border-transparent transition-all duration-200
 				       hover:border-[var(--accent-primary)]"
-				placeholder="Paste a public media URL"
+				placeholder={get(LL).editor.pasteMediaUrlPlaceholder()}
 				bind:value={url}
 			/>
 			<div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -157,7 +123,7 @@
 
 		<!-- Media Type Selection -->
 		<div class="bg-accent border border-color rounded-lg p-4 space-y-3">
-			<h4 class="text-sm font-medium text-secondary">Choose media type to download</h4>
+			<h4 class="text-sm font-medium text-secondary">{get(LL).editor.chooseMediaType()}</h4>
 
 			<div class="flex items-start flex-col gap-6">
 				<label class="flex items-center gap-2 cursor-pointer group">
@@ -179,7 +145,7 @@
 						<span
 							class="text-sm font-medium text-primary group-hover:text-white transition-colors duration-200"
 						>
-							Audio Only
+							{get(LL).editor.audioOnly()}
 						</span>
 					</div>
 				</label>
@@ -202,7 +168,7 @@
 						<span
 							class="text-sm font-medium text-primary group-hover:text-white transition-colors duration-200"
 						>
-							Video & Audio
+							{get(LL).editor.videoAndAudio()}
 						</span>
 					</div>
 				</label>
@@ -220,7 +186,7 @@
 			disabled={!url.trim() || isDownloading}
 		>
 			<span class="material-icons text-lg">{isDownloading ? 'sync' : 'download'}</span>
-			{isDownloading ? 'Downloading...' : 'Download from Link'}
+			{isDownloading ? get(LL).editor.downloadingMedia() : get(LL).editor.downloadFromLink()}
 		</button>
 
 		{#if isDownloading || downloadError}
@@ -233,12 +199,12 @@
 						<p class="text-sm font-medium text-primary truncate">
 							{#if isDownloading}
 								{downloadStatus === 'converting'
-									? 'Converting to CBR...'
+									? get(LL).editor.convertingToCbrProgress()
 									: downloadStatus === 'finished'
-										? 'Finalizing download...'
-										: 'Downloading media...'}
+										? get(LL).editor.finalizingDownload()
+										: get(LL).editor.downloadingMedia()}
 							{:else}
-								Download failed
+								{get(LL).editor.downloadFailed()}
 							{/if}
 						</p>
 					</div>
@@ -266,9 +232,7 @@
 		<div class="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
 			<span class="material-icons text-sm text-blue-400 mt-0.5">info</span>
 			<p class="text-xs text-blue-300 leading-relaxed">
-				Supported public links include YouTube, full surah or mushaf uploads on SoundCloud, Internet
-				Archive collections, public Google Drive links, and short recitation clips from Facebook,
-				Instagram, TikTok, or X/Twitter.
+				{get(LL).editor.supportedLinksHint()}
 			</p>
 		</div>
 	</div>

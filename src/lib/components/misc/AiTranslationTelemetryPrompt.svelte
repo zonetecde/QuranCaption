@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	async function allowTelemetry() {
 		await AiTranslationTelemetryService.setTelemetryConsent('granted');
@@ -26,11 +27,10 @@
 				</div>
 				<div>
 					<p class="text-sm font-bold text-primary leading-tight">
-						Send translation telemetry to improve Quran Caption?
+						{$LL.settings.aiTranslationTelemetry()}
 					</p>
 					<p class="text-[12px] text-thirdly leading-snug mt-1">
-						Would you like to send AI-assisted translations and manual reviews to help improve the
-						software?
+						{$LL.settings.telemetryDescription()}
 					</p>
 				</div>
 			</div>
@@ -49,7 +49,7 @@
 					onclick={denyTelemetry}
 					disabled={globalState.uiState.aiTranslationTelemetrySubmitting}
 				>
-					No
+					{$LL.common.no()}
 				</button>
 				<button
 					class="action-btn action-yes"
@@ -59,7 +59,7 @@
 					{#if globalState.uiState.aiTranslationTelemetrySubmitting}
 						Sending...
 					{:else}
-						Yes
+						{$LL.common.yes()}
 					{/if}
 				</button>
 			</div>

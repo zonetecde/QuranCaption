@@ -1,4 +1,6 @@
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { Quran } from '$lib/classes/Quran';
 import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
@@ -105,7 +107,7 @@ export async function runNativeSegmentation(
 	}
 
 	if (!targetClip || !nativeTimingMeta) {
-		toast.error('No native-timing audio found on timeline.');
+		toast.error(get(LL).editor.noNativeTimingAudio());
 		return { status: 'failed', message: 'No native-timing audio found' };
 	}
 
@@ -113,7 +115,7 @@ export async function runNativeSegmentation(
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {
 		const confirmOverwrite = await ModalManager.confirmModal(
-			'There are already subtitles in this project. This process will replace them with native timing. Continue?',
+			get(LL).editor.subtitlesAlreadyExistNative(),
 			true
 		);
 		if (!confirmOverwrite) return { status: 'cancelled' };
@@ -129,8 +131,8 @@ export async function runNativeSegmentation(
 	try {
 		toastId = toast.loading(
 			nativeTimingMeta.provider === 'qdc'
-				? 'Fetching timing data from Quran.com...'
-				: 'Fetching timing data from MP3Quran...'
+				? get(LL).editor.fetchingTimingQuranCom()
+				: get(LL).editor.fetchingTimingMp3Quran()
 		);
 
 		// 3. Récupération des données de timing
@@ -149,7 +151,7 @@ export async function runNativeSegmentation(
 					);
 
 		if (!timingData || timingData.length === 0) {
-			toast.error('No timing data found for this reciter/surah.', { id: toastId });
+			toast.error(get(LL).editor.noTimingDataFound(), { id: toastId });
 			return { status: 'failed', message: 'No timing data returned from API.' };
 		}
 
@@ -247,7 +249,7 @@ export async function runNativeSegmentation(
 		globalState.updateVideoPreviewUI();
 		globalState.getSubtitlesEditorState.initialLowConfidenceCount = 0;
 
-		toast.success(`Applied ${segmentsApplied} subtitles from Mp3Quran!`, { id: toastId });
+		toast.success(get(LL).editor.appliedSubtitlesFromMp3Quran({ count: segmentsApplied }), { id: toastId });
 
 		return {
 			status: 'completed',
@@ -258,7 +260,7 @@ export async function runNativeSegmentation(
 		};
 	} catch (error) {
 		console.error('Native segmentation error:', error);
-		toast.error(`Error: ${error}`, { id: toastId });
+		toast.error(get(LL).editor.errorTiming({ error: String(error) }), { id: toastId });
 		return { status: 'failed', message: String(error) };
 	}
 }

@@ -1,16 +1,18 @@
 ﻿<script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import MarkdownIt from 'markdown-it';
 	import anchor from 'markdown-it-anchor';
 	import { slide } from 'svelte/transition';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { VersionService, type UpdateInfo } from '$lib/services/VersionService.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let { update, resolve }: { update: UpdateInfo; resolve: () => void } = $props();
-	let html = '<p>Loading...</p>';
-	let sanitized = $state('<p>Loading...</p>');
-	let changelogSrcdoc = $state('<!doctype html><html><body>Loading...</body></html>');
+	let html = `<p>${get(LL).home.loadingUpdate()}</p>`;
+	let sanitized = $state(`<p>${get(LL).home.loadingUpdate()}</p>`);
+	let changelogSrcdoc = $state(`<!doctype html><html><body>${get(LL).home.loadingUpdate()}</body></html>`);
 	type DomPurifyLike = { sanitize: (dirty: string) => string };
 	let DOMPurify: DomPurifyLike | undefined;
 
@@ -258,30 +260,30 @@
 				<div>
 					<h2 class="text-2xl font-bold text-primary">
 						{#if updateState === 'done'}
-							Update Complete!
+							{$LL.home.updateInstalled()}
 						{:else if updateState === 'installing'}
-							Installing...
+							{$LL.home.installing()}
 						{:else if updateState === 'downloading'}
-							Downloading Update...
+							{$LL.home.downloadingUpdate()}
 						{:else if updateState === 'error'}
-							Update Failed
+							{$LL.home.updateFailed()}
 						{:else}
-							Update Available!
+							{$LL.home.updateAvailableTitle()}
 						{/if}
 					</h2>
 					<p class="text-sm text-secondary">
 						{#if updateState === 'done'}
-							Restarting app...
+							{$LL.home.restartingApp()}
 						{:else if updateState === 'downloading'}
 							{VersionService.formatBytes(downloadedBytes)} / {totalBytes > 0
 								? VersionService.formatBytes(totalBytes)
 								: '...'}
 						{:else if updateState === 'installing'}
-							Applying update...
+							{$LL.home.applyingUpdate()}
 						{:else if updateState === 'error'}
-							{updateError || 'An error occurred'}
+							{updateError || $LL.home.anErrorOccurred()}
 						{:else}
-							Version {update!.latestVersion || 'Unknown'} is ready
+							{$LL.home.versionXReady({ version: update!.latestVersion || 'Unknown' })}
 						{/if}
 					</p>
 				</div>
@@ -316,11 +318,11 @@
 				<div class="flex justify-between mt-1.5">
 					<span class="text-xs text-secondary">
 						{#if updateState === 'done'}
-							Complete
+							{$LL.home.complete()}
 						{:else if updateState === 'installing'}
-							Installing...
+							{$LL.home.installing()}
 						{:else}
-							Downloading...
+							{$LL.home.downloading()}
 						{/if}
 					</span>
 					<span class="text-xs text-secondary font-medium">
@@ -340,10 +342,10 @@
 					<span class="material-icons text-red-400 text-3xl">warning</span>
 				</div>
 				<div>
-					<h3 class="text-lg font-semibold text-primary mb-2">Update Failed</h3>
+					<h3 class="text-lg font-semibold text-primary mb-2">{$LL.home.updateFailedTitle()}</h3>
 					<p class="text-sm text-secondary max-w-sm">
 						{updateError ||
-							'Something went wrong while updating. Please try again or download the update manually.'}
+							$LL.home.updateFailedMessage()}
 					</p>
 				</div>
 			</div>
@@ -356,8 +358,8 @@
 					<span class="material-icons text-green-400 text-3xl">rocket_launch</span>
 				</div>
 				<div>
-					<h3 class="text-lg font-semibold text-primary mb-2">Update Installed!</h3>
-					<p class="text-sm text-secondary">The app will restart automatically in a moment...</p>
+					<h3 class="text-lg font-semibold text-primary mb-2">{$LL.home.updateInstalled()}</h3>
+					<p class="text-sm text-secondary">{$LL.home.updateInstalledMessage()}</p>
 				</div>
 			</div>
 		{:else}
@@ -365,7 +367,7 @@
 			<div class="mb-4">
 				<div class="flex items-center gap-2 mb-2">
 					<span class="material-icons text-accent-primary text-base">new_releases</span>
-					<h3 class="text-lg font-semibold text-primary">What's New</h3>
+					<h3 class="text-lg font-semibold text-primary">{$LL.home.whatsNew()}</h3>
 				</div>
 				<div
 					class="w-full h-px bg-gradient-to-r from-transparent via-border-color to-transparent"
@@ -378,7 +380,7 @@
 					class="changelog-prose prose prose-sm max-w-none h-full bg-accent px-4 rounded-lg overflow-auto border border-color"
 				>
 					<iframe
-						title="Update changelog"
+						title={$LL.home.updateChangelog()}
 						class="h-full w-full rounded-lg"
 						srcdoc={changelogSrcdoc}
 						sandbox="allow-popups allow-popups-to-escape-sandbox"
@@ -397,14 +399,14 @@
 						dismissModal();
 					}}
 				>
-					Close
+					{$LL.common.close()}
 				</button>
 				<button
 					class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2"
 					onclick={openManualDownloadPage}
 				>
 					<span class="material-icons text-sm">open_in_new</span>
-					Download Manually
+					{$LL.home.downloadManually()}
 				</button>
 				<button
 					class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
@@ -414,33 +416,33 @@
 					}}
 				>
 					<span class="material-icons text-sm">refresh</span>
-					Retry
+					{$LL.common.retry()}
 				</button>
 			{:else if isUpdating}
 				<div class="flex items-center gap-2 text-sm text-secondary">
 					<span class="material-icons text-base animate-spin">hourglass_empty</span>
-					Please don't close the app...
+				{$LL.home.pleaseDontClose()}
 				</div>
 			{:else}
 				<button
 					class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105"
 					onclick={dismissModal}
 				>
-					Later
+					{$LL.home.later()}
 				</button>
 				<button
 					class="btn px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2"
 					onclick={openManualDownloadPage}
 				>
 					<span class="material-icons text-sm">open_in_new</span>
-					Download Manually
+					{$LL.home.downloadManually()}
 				</button>
 				<button
 					class="btn-accent px-6 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
 					onclick={startUpdate}
 				>
 					<span class="material-icons text-sm">download</span>
-					Update Now
+					{$LL.home.updateNow()}
 				</button>
 			{/if}
 		</div>

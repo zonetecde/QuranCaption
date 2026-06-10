@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import {
 		ALL_PROJECTS_SELECTION,
 		isSelectionActive,
@@ -129,7 +130,7 @@
 
 <aside class="project-explorer">
 	<div class="explorer-header">
-		<p class="explorer-label">Project Explorer</p>
+		<p class="explorer-label">{$LL.home.projectExplorer()}</p>
 		<p class="explorer-hint">{tree.totalCount} project{tree.totalCount === 1 ? '' : 's'}</p>
 	</div>
 
@@ -141,7 +142,7 @@
 			onclick={() => onSelectionChange(ALL_PROJECTS_SELECTION)}
 		>
 			<span class="material-icons-outlined tree-icon">folder</span>
-			<span class="tree-name">All</span>
+			<span class="tree-name">{$LL.home.all()}</span>
 			<span class="tree-count">{tree.totalCount}</span>
 		</button>
 
@@ -154,8 +155,8 @@
 						type="button"
 						class="tree-toggle"
 						data-explorer-toggle={reciterNode.reciter}
-						title={isExpanded(reciterNode.reciter) ? 'Collapse' : 'Expand'}
-						onclick={(event) => handleToggleClick(event, reciterNode.reciter)}
+					title={isExpanded(reciterNode.reciter) ? $LL.home.collapse() : $LL.home.expand()}
+					onclick={(event) => handleToggleClick(event, reciterNode.reciter)}
 					>
 						<span
 							class={`material-icons-outlined tree-chevron ${isExpanded(reciterNode.reciter) ? 'expanded' : ''}`}
@@ -224,9 +225,9 @@
 											<button
 												type="button"
 												class="tree-mini-toggle"
-												title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
-													? 'Collapse'
-													: 'Expand'}
+											title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
+												? $LL.home.collapse()
+												: $LL.home.expand()}
 												onclick={(event) => {
 													event.stopPropagation();
 													toggleType(typeNode.reciter, typeNode.projectType);

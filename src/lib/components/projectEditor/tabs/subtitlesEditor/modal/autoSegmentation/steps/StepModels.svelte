@@ -6,6 +6,7 @@
 		SURAH_SPLITTER_MODEL_OPTIONS
 	} from '../constants';
 	import { getSharedWizard } from '../sharedWizard';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const wizard = getSharedWizard();
 	const isMuaalemLocal = $derived(() => wizard.selection.aiVersion === 'muaalem_local');
@@ -16,12 +17,12 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">3. Choose model and performance</h3>
-		<p class="text-sm text-thirdly">Pick the balance between speed and quality for this method.</p>
+		<h3 class="text-lg font-semibold text-primary">{$LL.editor.chooseModelAndPerformance()}</h3>
+		<p class="text-sm text-thirdly">{$LL.editor.chooseModelAndPerformanceDesc()}</p>
 	</div>
 
 	<div class="space-y-2">
-		<div class="text-xs uppercase text-thirdly">Model</div>
+		<div class="text-xs uppercase text-thirdly">{$LL.editor.modelLabel()}</div>
 		{#if isCloud()}
 			<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
 				{#each MULTI_MODEL_OPTIONS as option (option.value)}
@@ -41,12 +42,11 @@
 		{:else if isMuaalemLocal()}
 			<div class="space-y-4">
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-sm text-thirdly">
-					Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic
-					Quran passage retrieval, and local forced alignment for real word-by-word timings.
+					{$LL.editor.muaalemLocalFeatureDesc()}
 				</div>
 
 				<div class="space-y-2">
-					<div class="text-xs uppercase text-thirdly">Speech recognition model</div>
+					<div class="text-xs uppercase text-thirdly">{$LL.editor.speechRecognitionModel()}</div>
 					<div class="grid grid-cols-1 gap-2">
 						{#each MUAALEM_MODEL_OPTIONS as option (option.value)}
 							<button
@@ -61,7 +61,7 @@
 									<span
 										class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
 									>
-										Recommended
+										{$LL.editor.recommendedLabel()}
 									</span>
 								</div>
 								<div class="text-xs text-thirdly">{option.description}</div>
@@ -73,12 +73,11 @@
 
 				<details class="rounded-xl border border-color p-3">
 					<summary class="cursor-pointer text-sm font-medium text-primary">
-						Advanced options
+						{$LL.editor.advancedOptions()}
 					</summary>
 					<div class="mt-3 space-y-2">
 						<div class="text-xs text-thirdly">
-							Experimental fallback models from the previous open local workflow. They do not use
-							the full Muaalem phonetic path and may be less reliable.
+							{$LL.editor.experimentalFallbackHintShort()}
 						</div>
 						<div class="grid grid-cols-1 gap-2">
 							{#each MUAALEM_ADVANCED_MODEL_OPTIONS as option (option.value)}
@@ -101,9 +100,7 @@
 		{:else if isSurahSplitter()}
 			<div class="space-y-4">
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-sm text-thirdly">
-					Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran
-					text, then returns ayah-level timestamps. Auto-detection is available, but specifying the
-					surah improves precision.
+					{$LL.editor.surahSplitterFeatureDesc()}
 				</div>
 
 				<div class="grid grid-cols-1 gap-2">
@@ -118,19 +115,19 @@
 							<div class="flex items-center justify-between gap-3">
 								<div class="text-sm font-medium text-primary">{option.label}</div>
 								<span
-									class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
-								>
-									Recommended
-								</span>
-							</div>
-							<div class="text-xs text-thirdly">{option.description}</div>
-							<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-						</button>
-					{/each}
-				</div>
+										class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
+									>
+										{$LL.editor.recommendedLabel()}
+									</span>
+								</div>
+								<div class="text-xs text-thirdly">{option.description}</div>
+								<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
+							</button>
+						{/each}
+					</div>
 
-				<div class="space-y-2 rounded-xl border border-color p-3">
-					<div class="text-xs uppercase text-thirdly">Surah selection</div>
+					<div class="space-y-2 rounded-xl border border-color p-3">
+						<div class="text-xs uppercase text-thirdly">{$LL.editor.surahSelectionLabel()}</div>
 					<label class="flex items-center gap-2 text-sm text-primary">
 						<input
 							type="radio"
@@ -138,7 +135,7 @@
 							checked={wizard.selection.surahSplitterSurah === null}
 							onchange={() => wizard.setSurahSplitterSurah(null)}
 						/>
-						Auto-detect surah
+						{$LL.editor.autoDetectSurah()}
 					</label>
 					<label class="flex items-center gap-2 text-sm text-primary">
 						<input
@@ -148,7 +145,7 @@
 							onchange={() =>
 								wizard.setSurahSplitterSurah(wizard.selection.surahSplitterSurah ?? 1)}
 						/>
-						Specify surah
+						{$LL.editor.specifySurah()}
 					</label>
 					{#if wizard.selection.surahSplitterSurah !== null}
 						<select
@@ -162,9 +159,8 @@
 						</select>
 					{/if}
 					<p class="text-xs text-thirdly">
-						Specifying the surah improves precision because matching is restricted to that surah.<br
-						/>Note: if your audio contains multiple surahs, only the last one will be detected and
-						segmented. Use another model for multi-surah files.
+						{$LL.editor.surahSplitterPrecisionHint()}<br
+						/>{$LL.editor.surahSplitterMultiSurahNote()}
 					</p>
 				</div>
 			</div>
@@ -188,7 +184,7 @@
 	</div>
 
 	<div class="space-y-2 rounded-xl border border-color p-3">
-		<div class="text-xs uppercase text-thirdly">Device</div>
+		<div class="text-xs uppercase text-thirdly">{$LL.editor.deviceLabel()}</div>
 		<div class="grid grid-cols-2 gap-2">
 			<button
 				type="button"
@@ -209,14 +205,12 @@
 
 	{#if isMuaalemLocal()}
 		<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
-			This method is fully local, but it is generally less effective than the official Quranic
-			Universal Aligner. Advanced fallback models are hidden by default because they are more
-			experimental than the recommended Muaalem v3.2 path.
+			{$LL.editor.muaalemLocalEffectivenessHint()}
 		</div>
 	{/if}
 	{#if isSurahSplitter()}
 		<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
-			Surah Splitter downloads the selected model during segmentation if it is not cached yet.
+			{$LL.editor.surahSplitterDownloadNote()}
 		</div>
 	{/if}
 </section>

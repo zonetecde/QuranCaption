@@ -10,6 +10,8 @@ import { ProjectEditorTabs } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { globalState } from '$lib/runes/main.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import type { StoredSegmentationContext } from '$lib/services/AutoSegmentation';
 
 /**
@@ -277,8 +279,8 @@ export class VideoPreviewState extends SerializableBase {
 			);
 		} catch (err: unknown) {
 			ModalManager.errorModal(
-				'Error',
-				'There was an error toggling fullscreen!',
+				get(LL).common.error(),
+				get(LL).common.unexpectedError(),
 				JSON.stringify(err)
 			);
 		}

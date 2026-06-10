@@ -13,6 +13,10 @@
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let {
 		edition,
@@ -456,7 +460,7 @@
 
 			<div class="ml-auto">
 				<div class="flex items-center gap-2">
-					<span class="text-xs text-secondary font-medium">Status:</span>
+					<span class="text-xs text-secondary font-medium">{$LL.editor.statusLabel()}</span>
 					<div
 						class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 {status ===
 							'ai error' || status === 'error'
@@ -473,23 +477,23 @@
 									: 'bg-orange-500'}"
 						></div>
 						{#if status === 'completed by default'}
-							Completed by default
+							{$LL.editor.completedByDefault()}
 						{:else if status === 'automatically trimmed'}
-							Automatically trimmed
+							{$LL.editor.automaticallyTrimmed()}
 						{:else if status === 'fetched'}
-							Fetched
+							{$LL.editor.fetched()}
 						{:else if status === 'to review'}
-							To review
+							{$LL.editor.toReview()}
 						{:else if status === 'reviewed'}
-							Reviewed
+							{$LL.editor.reviewed()}
 						{:else if status === 'ai trimmed'}
-							AI trimmed
+							{$LL.editor.aiTrimmed()}
 						{:else if status === 'ai error'}
-							AI error
+							{$LL.editor.aiError()}
 						{:else if status === 'error'}
-							Error
+							{$LL.editor.errorStatus()}
 						{:else if status === 'undefined'}
-							Undefined
+							{$LL.editor.undefinedStatus()}
 						{:else}
 							{status}
 						{/if}
@@ -554,7 +558,7 @@
 				<label
 					class="absolute top-1 right-1.75 text-primary opacity-40 hover:opacity-100 duration-200 cursor-pointer"
 				>
-					<span class="text-xs">Manually edit</span>
+					<span class="text-xs">{$LL.editor.manuallyEdit()}</span>
 					<!-- prettier-ignore -->
 					<input
 						type="checkbox"
@@ -578,7 +582,9 @@
 			{/if}
 
 			<p class="text-xs text-thirdly mb-1">
-				{isInlineStyleMode() ? 'Styled subtitle translation:' : 'Subtitle translation:'}
+				{isInlineStyleMode()
+					? $LL.editor.styledSubtitleTranslation()
+					: $LL.editor.subtitleTranslation()}
 			</p>
 
 			{#if translation().type === 'verse' && isInlineStyleMode()}
@@ -637,7 +643,7 @@
 						void flushManualReviewTelemetry();
 					}}
 					class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
-					placeholder="Enter your translation here... (use \\n for line break)"
+					placeholder={$LL.translations.enterTranslationHere()}
 				/>
 			{/if}
 		</div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { generatePublishPreview } from '../actions/publishActions';
 
@@ -13,13 +14,13 @@
 			<img
 				class="h-full w-full object-cover"
 				src={publishPreviewUrl}
-				alt="Community preset preview"
+				alt={$LL.style.communityPresetPreviewAlt()}
 			/>
 		{:else}
 			<div class="flex h-full flex-col items-center justify-center gap-2 text-center">
 				<span class="material-icons-outlined text-2xl text-thirdly"> add_photo_alternate </span>
 				<p class="px-4 text-xs text-thirdly">
-					Generate a preview from a random subtitle in the video preview.
+					{$LL.style.generatePreviewHint()}
 				</p>
 			</div>
 		{/if}
@@ -27,8 +28,8 @@
 	<div class="flex items-center justify-between gap-3 border-t border-color p-3">
 		<p class="min-w-0 text-xs text-secondary">
 			{publishPreviewBlob
-				? 'Preview ready. Regenerate to try another subtitle moment.'
-				: 'A subtitle is required to generate a preview.'}
+				? $LL.style.previewReady()
+				: $LL.style.subtitleRequiredForPreview()}
 		</p>
 		<button
 			class="btn shrink-0 px-3 py-1.5 text-xs"
@@ -36,7 +37,7 @@
 			onclick={generatePublishPreview}
 			disabled={isGeneratingPreview}
 		>
-			{isGeneratingPreview ? 'Generating...' : 'Regenerate'}
+			{isGeneratingPreview ? $LL.common.generating() : $LL.style.regeneratePreview()}
 		</button>
 	</div>
 </div>

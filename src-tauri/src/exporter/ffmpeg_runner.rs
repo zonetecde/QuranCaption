@@ -70,13 +70,15 @@ pub fn emit_export_progress(
     current_time_s: f64,
     total_time_s: f64,
     current_state: Option<&str>,
+    current_batch_size: Option<usize>,
 ) {
     let progress_data = serde_json::json!({
         "export_id": export_id,
         "progress": progress,
         "current_time": current_time_s,
         "total_time": total_time_s,
-        "current_state": current_state
+        "current_state": current_state,
+        "current_batch_size": current_batch_size
     });
 
     let _ = app_handle.emit("export-progress", progress_data);
@@ -110,6 +112,32 @@ fn exit_status_details(status: &ExitStatus) -> String {
     {
         format!("Exit Code: {:?}", status.code())
     }
+}
+
+/// Indique si une ligne vient du flux machine `-progress` de FFmpeg.
+///
+/// # Parametres
+/// * `line` - Ligne stderr emise par FFmpeg.
+///
+/// # Retourne
+/// `true` si la ligne est une metrique de progression brute.
+fn is_ffmpeg_progress_line(line: &str) -> bool {
+    const PROGRESS_KEYS: &[&str] = &[
+        "frame=",
+        "fps=",
+        "stream_",
+        "bitrate=",
+        "total_size=",
+        "out_time_us=",
+        "out_time_ms=",
+        "out_time=",
+        "dup_frames=",
+        "drop_frames=",
+        "speed=",
+        "progress=",
+    ];
+
+    PROGRESS_KEYS.iter().any(|key| line.starts_with(key))
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +224,9 @@ pub fn run_ffmpeg_command(
     // Lecture de stderr ligne par ligne + parsing progression
     for line in reader.lines() {
         if let Ok(line) = line {
-            println!("[ffmpeg] {}", line);
+            if !is_ffmpeg_progress_line(&line) {
+                println!("[ffmpeg] {}", line);
+            }
 
             stderr_content.push_str(&line);
             stderr_content.push('\n');
@@ -227,6 +257,7 @@ pub fn run_ffmpeg_command(
                         current_time_s,
                         progress_context.total_time_s,
                         progress_state,
+                        progress_context.current_batch_size,
                     );
                 }
             }
@@ -284,6 +315,9 @@ pub fn run_ffmpeg_command(
 
     // Journalisation en cas d'échec
     if !status.success() {
+        let suppress_error_event = progress_context
+            .map(|context| context.suppress_error_event)
+            .unwrap_or(false);
         let now = std::time::SystemTime::now();
         let timestamp = now
             .duration_since(std::time::UNIX_EPOCH)
@@ -346,7 +380,9 @@ pub fn run_ffmpeg_command(
             "error": error_msg
         });
 
-        let _ = app_handle.emit("export-error", error_data);
+        if !suppress_error_event {
+            let _ = app_handle.emit("export-error", error_data);
+        }
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Other,
             error_msg,

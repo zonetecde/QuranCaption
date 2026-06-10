@@ -5,6 +5,8 @@
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import WaveSurfer from 'wavesurfer.js';
 	import ContextMenu, { Item, Divider } from 'svelte-contextmenu';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 	import ModalManager from '$lib/components/modals/ModalManager';
@@ -169,8 +171,8 @@
 			if (track.clips.length > 1) {
 				assetClip.loopUntilAudioEnd = false;
 				ModalManager.errorModal(
-					'Looping Error',
-					'You can only enable "Loop until the end" if this is the only clip in the track.'
+					get(LL).editor.loopingError(),
+					get(LL).editor.canOnlyEnableLoopIfOnlyClip()
 				);
 				return;
 			}
@@ -209,10 +211,11 @@
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
 			<span
 				class="material-icons-outlined text-[10px] opacity-80"
-				title="Overlay individuel appliqué"
-			>
-				auto_fix_high
-			</span>
+					title={get(LL).editor.overlayIndividualApplied()}
+
+				>
+					auto_fix_high
+				</span>
 		</div>
 	{/if}
 
@@ -220,7 +223,7 @@
 		<div class="h-full w-full" id={'clip-' + clip.id}></div>
 	{:else if asset.duration.ms >= 45 * 60 * 1000 && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
 		<div class="h-full w-full" onclick={() => (clip.showWaveform = true)}>
-			Click to generate waveform (disabled by default for long audio to save memory)
+			{get(LL).editor.clickToGenerateWaveform()}
 		</div>
 	{:else}
 		<div class="absolute inset-0 z-5 flex overflow-hidden px-2 py-2">
@@ -249,14 +252,14 @@
 				<span class="material-icons-outlined text-sm mr-1">
 					{(clip as AssetClip).loopUntilAudioEnd ? 'check_box' : 'check_box_outline_blank'}
 				</span>
-				Loop until the end
+				{get(LL).editor.loopUntilTheEnd()}
 			</div>
 		</Item>
 		<Divider />
 	{/if}
 	<Item on:click={removeClip}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">remove</span>Remove clip
+			<span class="material-icons-outlined text-sm mr-1">remove</span>{get(LL).editor.removeClip()}
 		</div></Item
 	>
 </ContextMenu>

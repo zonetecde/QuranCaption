@@ -2,6 +2,10 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import toast from 'svelte-5-french-toast';
 	import { subdivideLongSubtitleSegments } from '$lib/services/AutoSegmentation';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+
+	const LL_ = get(LL);
 
 	let hasWbwTimestamps = $derived(
 		globalState.currentProject ? globalState.getSubtitleTrack.hasWordByWordTimestamps() : false
@@ -24,21 +28,17 @@
 	 */
 	async function handleSubdivideLongSegments(): Promise<void> {
 		if (!hasWbwTimestamps) {
-			toast.error(
-				'At least one subtitle in the timeline must have word-by-word timestamps before splitting long subtitles.'
-			);
+			toast.error(LL_.editor.atLeastOneWbwRequired());
 			return;
 		}
 
 		const splitCount = await subdivideLongSubtitleSegments();
 		if (splitCount <= 0) {
-			toast('No subtitles match the current split rules.');
+			toast(LL_.editor.noSubtitlesMatchSplitRules());
 			return;
 		}
 
-		toast.success(
-			`${splitCount} subtitle split${splitCount > 1 ? 's were' : ' was'} applied automatically.`
-		);
+		toast.success(LL_.editor.splitApplied({ count: splitCount, plural: splitCount > 1 ? 's were' : ' was' }));
 	}
 
 	$effect(() => {
@@ -100,18 +100,18 @@
 
 {#if hasWbwTimestamps}
 	<div class="bg-accent rounded-lg p-4 space-y-4">
-		<p class="text-sm font-medium text-primary">Split long subtitles</p>
+		<p class="text-sm font-medium text-primary">{$LL.editor.splitLongSubtitlesLabel()}</p>
 		<p class="text-xs text-secondary">
-			This will only work with subtitles that have word-by-word timestamps.
+			{$LL.editor.splitWbwRequired()}
 		</p>
 
 		<div class="space-y-2">
 			<div class="flex items-center justify-between gap-2">
-				<span class="text-xs text-primary">Max words per segments</span>
+				<span class="text-xs text-primary">{$LL.editor.maxWordsPerSegment()}</span>
 				<div class="flex items-center gap-2">
 					<label class="flex items-center gap-1.5 text-[11px] text-secondary">
 						<input type="checkbox" bind:checked={enableMaxWords} class="w-4 h-4" />
-						On
+						{$LL.common.on()}
 					</label>
 					{#if enableMaxWords}
 						<input
@@ -142,11 +142,11 @@
 
 		<div class="space-y-2">
 			<div class="flex items-center justify-between gap-2">
-				<span class="text-xs text-primary">Max durations per segments</span>
+				<span class="text-xs text-primary">{$LL.editor.maxDurationPerSegment()}</span>
 				<div class="flex items-center gap-2">
 					<label class="flex items-center gap-1.5 text-[11px] text-secondary">
 						<input type="checkbox" bind:checked={enableMaxDuration} class="w-4 h-4" />
-						On
+						{$LL.common.on()}
 					</label>
 					{#if enableMaxDuration}
 						<input
@@ -182,9 +182,9 @@
 				class="mt-0.5 w-4 h-4"
 			/>
 			<span class="space-y-1">
-				<span class="block text-sm text-primary">Only split at stop signs</span>
+				<span class="block text-sm text-primary">{$LL.editor.onlySplitAtStopSigns()}</span>
 				<span class="block text-xs text-thirdly">
-					Segments without a waqf mark stay as-is, even if they exceed word/duration limits.
+					{$LL.editor.waqfDescription()}
 				</span>
 			</span>
 		</label>
@@ -195,7 +195,7 @@
 			onclick={handleSubdivideLongSegments}
 		>
 			<span class="material-icons text-base">call_split</span>
-			Split
+			{$LL.editor.split()}
 		</button>
 	</div>
 {/if}

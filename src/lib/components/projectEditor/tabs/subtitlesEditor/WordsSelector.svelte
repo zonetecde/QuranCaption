@@ -23,6 +23,8 @@
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
@@ -239,7 +241,7 @@
 		});
 
 		ShortcutService.registerShortcut({
-			key: { keys: ['Escape'], description: 'Exit subtitle editing' },
+			key: { keys: ['Escape'], description: get(LL).editor.exitSubtitleEditing() },
 			onKeyDown: () => {
 				if (globalState.shared.wbwEdit.active) {
 					exitManualWordByWordEdit();
@@ -313,7 +315,7 @@
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP
 		);
-		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: 'Exit subtitle editing' });
+		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: get(LL).editor.exitSubtitleEditing() });
 
 		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
 		currentMenu.set(null);
@@ -450,7 +452,7 @@
 
 				// Si on était en train de diviser un sous-titre, on passe au suivant
 				const didAdvance = advanceSplitEditIfNeeded(currentEdited?.id ?? null);
-				toast.success('Subtitle updated successfully!');
+				toast.success(get(LL).editor.subtitleUpdated());
 				if (!didAdvance) {
 					globalState.getSubtitlesEditorState.editSubtitle = null; // Reset l'édition après modification
 					await selectNextWord();
@@ -670,9 +672,7 @@
 			!segmentationContext.includeWbwTimestamps &&
 			(editSubtitle.alignmentMetadata?.words.length ?? 0) === 0
 		) {
-			toast.error(
-				'This subtitle was generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.'
-			);
+			toast.error(get(LL).editor.noWbwTimestampsError());
 			return;
 		}
 
@@ -686,9 +686,9 @@
 				globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 			})(),
 			{
-				loading: 'Calculating the split point...',
-				success: 'Subtitle split applied.',
-				error: 'Unable to split this subtitle automatically.'
+				loading: get(LL).editor.calculatingSplitPoint(),
+				success: get(LL).editor.subtitleSplitApplied(),
+				error: get(LL).editor.unableToSplitSubtitle()
 			}
 		);
 	}
@@ -795,7 +795,7 @@
 			<div class="w-full flex items-center justify-center p-8">
 				<div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-center gap-3">
 					<span class="material-icons text-red-400">error</span>
-					<p class="text-red-400 text-sm">Error loading verse: {error.message}</p>
+					<p class="text-red-400 text-sm">{get(LL).editor.errorLoadingVerse({ error: error.message })}</p>
 				</div>
 			</div>
 		{/await}
@@ -806,8 +806,7 @@
 	{#if contextMenuWordIndex !== null}
 		<Item on:click={handleAutomaticSplitFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">call_split</span>Split automatically at
-				this word
+				<span class="material-icons-outlined text-sm mr-1">call_split</span>{$LL.editor.splitAutomaticallyAtWord()}
 			</div></Item
 		>
 	{/if}

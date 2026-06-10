@@ -14,6 +14,7 @@
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		track = $bindable(),
@@ -265,11 +266,11 @@
 					class:timeline-quick-split-button={button.action === 'split'}
 					style="left: {button.leftPx}px;"
 					title={button.action === 'split'
-						? 'Split visual merge here'
-						: 'Quick merge those subtitles'}
+						? $LL.editor.splitVisualMergeHere()
+						: $LL.editor.quickMergeTooltip()}
 					aria-label={button.action === 'split'
-						? 'Split visual merge here'
-						: 'Quick merge those subtitles'}
+						? $LL.editor.splitVisualMergeHere()
+						: $LL.editor.quickMergeTooltip()}
 					onclick={(event) =>
 						button.action === 'split'
 							? splitQuickMerge(button.leftClip, button.rightClip, event)
@@ -287,13 +288,13 @@
 
 <ContextMenu bind:this={quickMergeContextMenu}>
 	<Item on:click={() => applyQuickMergeWithMode('arabic')}
-		><div class="btn-icon">Merge Arabic</div></Item
+		><div class="btn-icon">{$LL.editor.mergeArabic()}</div></Item
 	>
 	<Item on:click={() => applyQuickMergeWithMode('translation')}
-		><div class="btn-icon">Merge Translation</div></Item
+		><div class="btn-icon">{$LL.editor.mergeTranslation()}</div></Item
 	>
 	<Item on:click={() => applyQuickMergeWithMode('both')}
-		><div class="btn-icon">Merge Both</div></Item
+		><div class="btn-icon">{$LL.editor.mergeBoth()}</div></Item
 	>
 </ContextMenu>
 

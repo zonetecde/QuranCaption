@@ -20,6 +20,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	type ActivityTone = 'info' | 'success' | 'error';
 	type ActivityEntry = {
@@ -251,24 +253,24 @@
 
 		const edition = selectedAiBoldEdition();
 		if (!edition) {
-			toast.error('No visible translation edition is available.');
+			toast.error(get(LL).editor.noVisibleTranslation());
 			return;
 		}
 
 		const apiKey = globalState.settings!.aiTranslationSettings.openAiApiKey.trim();
 		if (!apiKey) {
-			toast.error('Configure your AI API key in Settings > AI Key first.');
+			toast.error(get(LL).translations.configureAiKeyFirst());
 			return;
 		}
 
 		const endpoint = globalState.settings!.aiTranslationSettings.textAiApiEndpoint.trim();
 		if (!endpoint) {
-			toast.error('Configure your text AI endpoint in Settings > AI Key first.');
+			toast.error(get(LL).translations.configureTextAiFirst());
 			return;
 		}
 
 		if (aiBoldBatches().length === 0) {
-			toast.error('No eligible translated segments were found for the selected range.');
+			toast.error(get(LL).editor.noEligibleTranslatedSegments());
 			return;
 		}
 
@@ -390,9 +392,9 @@
 		});
 
 		if (reportLines.length > 0) {
-			toast.error('AI Bold completed with issues. See the activity log.');
+			toast.error(get(LL).editor.aiBoldCompletedWithIssues());
 		} else {
-			toast.success('AI Bold applied successfully.');
+			toast.success(get(LL).editor.aiBoldApplied());
 		}
 	}
 
@@ -447,7 +449,7 @@
 
 <TranslationsEditorModalShell
 	{close}
-	title="AI Bold Assistant"
+	title={$LL.editor.aiBoldAssistant()}
 	icon="format_bold"
 	shellClass="h-[92vh] xl:h-[84vh] w-[clamp(1180px,94vw,1500px)] max-w-[94vw] xl:max-w-[82vw]"
 	bodyClass="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
@@ -479,7 +481,7 @@
 			</div>
 		{:else}
 			<label class="block space-y-2">
-				<span class="text-sm font-medium text-secondary">Target edition</span>
+				<span class="text-sm font-medium text-secondary">{$LL.editor.targetEdition()}</span>
 				<select
 					value={translationsEditorState().aiBoldEditionName}
 					onchange={(event) =>
@@ -499,7 +501,7 @@
 			{totalDurationMs}
 			totalItems={aiBoldCandidates().length}
 			selectedItems={selectedAiBoldSegments()}
-			title="AI Bold Range"
+			title={$LL.editor.aiBoldRange()}
 			icon="schedule"
 			totalLabel="eligible segments"
 			selectionLabel="Select time range to process:"
@@ -509,13 +511,13 @@
 		/>
 
 		<label class="block space-y-2">
-			<span class="text-sm font-medium text-secondary">Custom note</span>
+			<span class="text-sm font-medium text-secondary">{$LL.editor.customNote()}</span>
 			<textarea
 				value={globalState.settings!.aiTranslationSettings.aiBoldCustomNote}
 				oninput={(event) => updateAiBoldCustomNote((event.target as HTMLTextAreaElement).value)}
 				onblur={() => void Settings.save()}
 				rows="4"
-				placeholder="Example: Bold invocations and divine attributes, but keep the emphasis restrained."
+				placeholder={$LL.editor.customNotePlaceholder()}
 				class="w-full resize-y rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 			></textarea>
 			<span class="text-xs text-thirdly">
@@ -545,7 +547,7 @@
 		</label>
 
 		<AiBatchOverviewCard
-			title="Batch Preview"
+			title={$LL.editor.batchPreview()}
 			icon="analytics"
 			metrics={[
 				{ label: 'Segments', value: aiBoldEstimate().totalSegments },

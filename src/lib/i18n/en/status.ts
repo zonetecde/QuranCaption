@@ -1,0 +1,30 @@
+const status = {
+	notSet: 'Not Set',
+	toCaption: 'To Caption',
+	toTranslate: 'To Translate',
+	toReview: 'To Review',
+	toExport: 'To Export',
+	exported: 'Exported',
+	taraweeh: 'Taraweeh',
+	prayer: 'Prayer',
+	studio: 'Studio',
+	oldRecordings: 'Old recordings',
+	rareRecitation: 'Rare recitation',
+	others: 'Others',
+	video: 'Video',
+	audio: 'Audio',
+	subtitle: 'Subtitle',
+	customClip: 'CustomClip',
+	unknown: 'Unknown',
+	local: 'local',
+	youtube: 'youtube',
+	mp3quran: 'mp3quran',
+	quranfoundation: 'quranfoundation',
+	videoEditor: 'Video editor',
+	subtitlesEditor: 'Subtitles editor',
+	translations: 'Translations',
+	style: 'Style',
+	export: 'Export'
+};
+
+export default status;

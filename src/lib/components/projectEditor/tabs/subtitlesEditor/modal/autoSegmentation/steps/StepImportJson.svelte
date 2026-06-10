@@ -5,6 +5,7 @@
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onDestroy, onMount } from 'svelte';
 	import { getSharedWizard } from '../sharedWizard';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const wizard = getSharedWizard();
 	let isDragOver = $state(false);
@@ -61,23 +62,22 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">Import Multi-Aligner JSON</h3>
+		<h3 class="text-lg font-semibold text-primary">{$LL.editor.importMultiAlignerJson()}</h3>
 		<p class="text-sm text-thirdly">
-			Paste or drop a JSON export generated outside the app, then apply it directly to your
-			timeline.
+			{$LL.editor.importMultiAlignerJsonDesc()}
 		</p>
 	</div>
 
 	<div class="space-y-3 rounded-xl border border-color bg-accent/50 p-4">
 		<div class="flex flex-wrap items-center justify-between gap-2">
-			<div class="text-sm font-semibold text-primary">Quran Multi-Aligner export</div>
+			<div class="text-sm font-semibold text-primary">{$LL.editor.quranMultiAlignerExport()}</div>
 			<button
 				type="button"
 				class="btn inline-flex items-center gap-1 px-3 py-1.5 text-xs"
 				onclick={() => void openHuggingFaceSpace()}
 			>
 				<span class="material-icons text-sm">open_in_new</span>
-				Open Hugging Face Space
+				{$LL.editor.openHuggingFaceSpace()}
 			</button>
 		</div>
 
@@ -87,27 +87,27 @@
 			class:bg-accent={isDragOver}
 			class:border-color={!isDragOver}
 		>
-			<p class="text-secondary">Drag and drop your `.json` file in the app window</p>
+			<p class="text-secondary">{$LL.editor.dragAndDropJsonFile()}</p>
 			<button
 				type="button"
 				class="btn mt-3 px-3 py-1.5 text-xs"
 				onclick={() => void browseJsonFile()}
 			>
-				Browse JSON file
+				{$LL.editor.browseJsonFile()}
 			</button>
 			{#if wizard.importedJsonFileName}
-				<p class="mt-2 text-xs text-thirdly">Loaded file: {wizard.importedJsonFileName}</p>
+				<p class="mt-2 text-xs text-thirdly">{$LL.editor.loadedFileLabel()}: {wizard.importedJsonFileName}</p>
 			{/if}
 		</div>
 
 		<div class="space-y-2">
 			<label for="hf-json-raw" class="text-xs uppercase tracking-wide text-thirdly"
-				>Raw JSON content</label
+				>{$LL.editor.rawJsonContentLabel()}</label
 			>
 			<textarea
 				id="hf-json-raw"
 				class="h-48 w-full rounded-lg border border-color bg-primary p-3 text-xs text-secondary"
-				placeholder="Paste JSON export content here"
+				placeholder={$LL.editor.pasteJsonContentPlaceholder()}
 				value={wizard.importedJsonRaw}
 				oninput={(event) =>
 					wizard.setImportedJsonRaw((event.currentTarget as HTMLTextAreaElement).value)}
@@ -121,7 +121,7 @@
 					checked={wizard.fillBySilence}
 					onchange={(e) => wizard.setFillBySilence((e.currentTarget as HTMLInputElement).checked)}
 					class="accent-accent-primary"
-				/> Fill gaps with silence clips</label
+				/> {$LL.editor.fillGapsWithSilence()}</label
 			>
 			{#if wizard.fillBySilence}
 				<div class="flex items-center gap-2 text-sm text-secondary">
@@ -132,7 +132,7 @@
 							onchange={(e) =>
 								wizard.setExtendBeforeSilence((e.currentTarget as HTMLInputElement).checked)}
 							class="accent-accent-primary"
-						/> Extend subtitle before silence by</label
+						/> {$LL.editor.extendSubtitleBeforeSilence()}</label
 					>
 					<input
 						id="import-extend-before-silence-ms"

@@ -6,6 +6,8 @@ import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
 import { Utilities } from './misc/Utilities';
 import ExportService from '$lib/services/ExportService';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { BaseDirectory, join } from '@tauri-apps/api/path';
 import { exists, remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -573,7 +575,7 @@ export default class Exporter {
 		const exportFilePath = await join(await ExportService.getExportFolder(), exportFileName);
 		if (await exists(exportFilePath)) {
 			const confirmOverwrite = await ModalManager.confirmModal(
-				'An exported video with the same name already exists. It will be overwritten. Continue?',
+				get(LL).export.overwriteExistingVideo(),
 				true
 			);
 			if (!confirmOverwrite) {

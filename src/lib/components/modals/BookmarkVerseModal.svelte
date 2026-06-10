@@ -3,6 +3,8 @@
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import toast from 'svelte-5-french-toast';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		surah,
@@ -55,7 +57,7 @@
 			errorMessage =
 				error instanceof Error && error.message.trim().length > 0
 					? error.message
-					: 'Unable to load your Quran.com collections.';
+					: get(LL).common.unableToLoadCollections();
 		} finally {
 			isLoading = false;
 		}
@@ -104,12 +106,12 @@
 
 			newCollectionName = '';
 			isCreateFormOpen = false;
-			toast.success(`Collection "${createdCollection.name}" created.`);
+			toast.success(get(LL).common.collectionCreated({ name: createdCollection.name }));
 		} catch (error) {
 			createErrorMessage =
 				error instanceof Error && error.message.trim().length > 0
 					? error.message
-					: 'Unable to create this collection.';
+					: get(LL).common.unableToCreateCollection();
 		} finally {
 			isCreatingCollection = false;
 		}
@@ -166,27 +168,27 @@
 		isSubmitting = false;
 
 		if (addedCount === 0 && removedCount === 0) {
-			errorMessage = `Unable to update verse ${verseKey} in the selected collections.`;
+			errorMessage = get(LL).common.unableToUpdateVerse({ verseKey });
 			return;
 		}
 
 		const successParts: string[] = [];
 		if (addedCount > 0) {
 			successParts.push(
-				addedCount === 1 ? 'added to 1 collection' : `added to ${addedCount} collections`
+				addedCount === 1 ? get(LL).common.addedToCollection() : get(LL).common.addedToCollections({ count: addedCount })
 			);
 		}
 		if (removedCount > 0) {
 			successParts.push(
 				removedCount === 1
-					? 'removed from 1 collection'
-					: `removed from ${removedCount} collections`
+					? get(LL).common.removedFromCollection()
+					: get(LL).common.removedFromCollections({ count: removedCount })
 			);
 		}
-		toast.success(`Verse ${verseKey} was ${successParts.join(' and ')}.`);
+		toast.success(get(LL).common.verseWasUpdated({ verseKey, changes: successParts.join(' and ') }));
 
 		if (failedOperations.length > 0) {
-			toast.error(`Some operations failed: ${failedOperations.join(', ')}`);
+			toast.error(get(LL).common.someOperationsFailed({ list: failedOperations.join(', ') }));
 		}
 
 		resolve();
@@ -208,9 +210,9 @@
 						<span class="material-icons-outlined text-[22px]">bookmark_add</span>
 					</div>
 					<div>
-						<h2 class="text-xl font-semibold text-primary">Bookmark Verse</h2>
+						<h2 class="text-xl font-semibold text-primary">{$LL.common.bookmarkVerse()}</h2>
 						<p class="text-sm text-thirdly">
-							Add verse {verseKey} to one or more Quran.com collections.
+							{$LL.common.addVerseToCollections({ key: verseKey })}
 						</p>
 					</div>
 				</div>
@@ -219,7 +221,7 @@
 			<button
 				class="rounded-full p-2 text-thirdly transition-colors hover:bg-secondary hover:text-primary"
 				onclick={resolve}
-				title="Close"
+				title={$LL.common.close()}
 			>
 				<span class="material-icons-outlined">close</span>
 			</button>
@@ -231,18 +233,18 @@
 					<div
 						class="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-color border-t-accent-primary"
 					></div>
-					<p class="text-sm text-thirdly">Loading your Quran.com collections...</p>
+					<p class="text-sm text-thirdly">{$LL.common.loadingCollections()}</p>
 				</div>
 			{:else if errorMessage}
 				<div class="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-4">
 					<div class="mb-2 flex items-center gap-2 text-red-300">
 						<span class="material-icons-outlined text-base">error</span>
-						<span class="font-medium">Collection error</span>
+						<span class="font-medium">{$LL.common.collectionError()}</span>
 					</div>
 					<p class="text-sm text-red-200">{errorMessage}</p>
 					<div class="mt-4">
 						<button class="integration-btn integration-primary" onclick={loadCollections}>
-							Retry
+							{$LL.common.retry()}
 						</button>
 					</div>
 				</div>
@@ -250,7 +252,7 @@
 				<div class="space-y-4">
 					<div class="flex items-center justify-between gap-3">
 						<p class="text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
-							Available collections
+							{$LL.common.availableCollections()}
 						</p>
 						<button
 							type="button"
@@ -261,7 +263,7 @@
 							<span class="material-icons-outlined text-[18px]">
 								{isCreateFormOpen ? 'expand_less' : 'add'}
 							</span>
-							{isCreateFormOpen ? 'Hide form' : 'New collection'}
+							{isCreateFormOpen ? $LL.common.hideForm() : $LL.common.newCollection()}
 						</button>
 					</div>
 
@@ -270,11 +272,11 @@
 							<div class="space-y-1">
 								<p class="text-sm font-medium text-primary">
 									{collections.length === 0
-										? 'Create your first collection'
-										: 'Create a new collection'}
+										? $LL.common.createFirstCollection()
+										: $LL.common.createNewCollection()}
 								</p>
 								<p class="text-xs text-thirdly">
-									The new collection will be created on Quran.com and selected automatically.
+									{$LL.common.newCollectionDescription()}
 								</p>
 							</div>
 
@@ -282,7 +284,7 @@
 								<input
 									class="min-w-0 flex-1 rounded-xl border border-color bg-primary px-4 py-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 									type="text"
-									placeholder="Collection name"
+									placeholder={$LL.common.collectionName()}
 									bind:value={newCollectionName}
 									onkeydown={(event) => {
 										if (event.key === 'Enter') {
@@ -297,7 +299,7 @@
 									onclick={createCollection}
 									disabled={!canCreateCollection || isSubmitting}
 								>
-									{isCreatingCollection ? 'Creating...' : 'Create'}
+									{isCreatingCollection ? $LL.common.creating() : $LL.common.create()}
 								</button>
 							</div>
 
@@ -314,9 +316,9 @@
 							>
 								<span class="material-icons-outlined text-[22px]">collections_bookmark</span>
 							</div>
-							<p class="text-sm font-medium text-primary">No collections found yet</p>
+							<p class="text-sm font-medium text-primary">{$LL.common.noCollectionsFound()}</p>
 							<p class="mt-1 text-sm text-thirdly">
-								Create one above, then bookmark verse {verseKey} into it.
+								{$LL.common.createOneAbove({ key: verseKey })}
 							</p>
 						</div>
 					{:else}
@@ -335,7 +337,7 @@
 										<div class="min-w-0">
 											<p class="truncate text-sm font-medium text-primary">{collection.name}</p>
 											<p class="text-xs text-thirdly">
-												Updated {new Date(collection.updatedAt).toLocaleString()}
+												{$LL.common.updatedDate({ date: new Date(collection.updatedAt).toLocaleString() })}
 											</p>
 										</div>
 										<div
@@ -358,18 +360,17 @@
 
 		<div class="flex items-center justify-between gap-3 border-t border-color px-6 py-4">
 			<p class="text-xs text-thirdly">
-				{selectedCollectionIds.length}
-				{selectedCollectionIds.length === 1 ? ' collection selected' : ' collections selected'}
+				{$LL.common.collectionsSelected({ count: selectedCollectionIds.length, plural: selectedCollectionIds.length === 1 ? '' : 's' })}
 			</p>
 
 			<div class="flex items-center gap-3">
-				<button class="integration-btn" onclick={resolve}>Cancel</button>
+				<button class="integration-btn" onclick={resolve}>{$LL.common.cancel()}</button>
 				<button
 					class="integration-btn integration-primary"
 					onclick={addBookmark}
 					disabled={!hasPendingChanges || isSubmitting || isLoading}
 				>
-					{isSubmitting ? 'Saving...' : 'Save changes'}
+					{isSubmitting ? $LL.common.saving() : $LL.common.saveChanges()}
 				</button>
 			</div>
 		</div>

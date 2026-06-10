@@ -148,8 +148,10 @@ function splitWords(text: string): string[] {
 function normalizeCoverageToken(token: string): string {
 	return token
 		.replace(/\u00A0/g, ' ')
-		.normalize('NFKC')
+		.normalize('NFKD')
+		.replace(/\p{M}/gu, '')
 		.toLowerCase()
+		.replace(/[\u2018\u2019\u02BC\uFF07]/g, "'")
 		.replace(/[\u2013\u2014]/g, '-')
 		.replace(/^([^\p{L}\p{N}]+)|([^\p{L}\p{N}]+)$/gu, '')
 		.trim();
@@ -790,8 +792,11 @@ export function applyAdvancedTrimValidationSuccess(
 
 			verseTranslation.setTextAndClearInlineStyles(nextText);
 			verseTranslation.isBruteForce = false;
-			verseTranslation.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
 			appliedSegments++;
+		}
+
+		for (const verseTranslation of verseTranslations) {
+			verseTranslation?.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
 		}
 
 		const ruleReport = collectAdvancedTrimRuleErrors(

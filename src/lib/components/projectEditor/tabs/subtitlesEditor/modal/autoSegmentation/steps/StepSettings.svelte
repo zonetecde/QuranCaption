@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { SEGMENTATION_PRESETS } from '../constants';
 	import { getSharedWizard } from '../sharedWizard';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const wizard = getSharedWizard();
 </script>
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">4. Adjust segmentation</h3>
-		<p class="text-sm text-thirdly">Use a preset first, then fine-tune if needed.</p>
+		<h3 class="text-lg font-semibold text-primary">{$LL.editor.adjustSegmentation()}</h3>
+		<p class="text-sm text-thirdly">{$LL.editor.adjustSegmentationDesc()}</p>
 	</div>
 
 	<div class="grid grid-cols-1 gap-2 xl:grid-cols-3">
@@ -26,7 +27,7 @@
 
 	<div class="space-y-3 rounded-xl border border-color p-4">
 		<label for="min-silence-range" class="block text-sm text-secondary"
-			>Min Silence: <span class="font-mono text-primary">{wizard.minSilenceMs}ms</span></label
+			>{$LL.editor.minSilenceLabel()}: <span class="font-mono text-primary">{wizard.minSilenceMs}ms</span></label
 		>
 		<input
 			id="min-silence-range"
@@ -39,7 +40,7 @@
 			class="w-full accent-accent-primary"
 		/>
 		<label for="min-speech-range" class="block text-sm text-secondary"
-			>Min Speech: <span class="font-mono text-primary">{wizard.minSpeechMs}ms</span></label
+			>{$LL.editor.minSpeechLabel()}: <span class="font-mono text-primary">{wizard.minSpeechMs}ms</span></label
 		>
 		<input
 			id="min-speech-range"
@@ -52,7 +53,7 @@
 			class="w-full accent-accent-primary"
 		/>
 		<label for="pad-range" class="block text-sm text-secondary"
-			>Padding: <span class="font-mono text-primary">{wizard.padMs}ms</span></label
+			>{$LL.editor.paddingLabel()}: <span class="font-mono text-primary">{wizard.padMs}ms</span></label
 		>
 		<input
 			id="pad-range"
@@ -76,14 +77,14 @@
 						wizard.setIncludeWbwTimestamps((e.currentTarget as HTMLInputElement).checked)}
 					disabled={!wizard.supportsWbwTimestamps()}
 					class="accent-accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-				/> Include word-by-word timestamps</label
+				/> {$LL.editor.includeWbwTimestamps()}</label
 			>
 			<p class="text-xs text-thirdly">
-				Stores per-word timings so you can split and edit subtitles more precisely later.
+				{$LL.editor.wbwTimestampsDescription()}
 			</p>
 			{#if !wizard.supportsWbwTimestamps()}
 				<p class="text-xs text-yellow-400">
-					Word-by-word timestamps are only supported with the Muaalem v3.2 model.
+					{$LL.editor.wbwTimestampsOnlyMuaalem()}
 				</p>
 			{/if}
 		</div>
@@ -94,7 +95,7 @@
 				checked={wizard.fillBySilence}
 				onchange={(e) => wizard.setFillBySilence((e.currentTarget as HTMLInputElement).checked)}
 				class="accent-accent-primary"
-			/> Fill gaps with silence clips</label
+			/> {$LL.editor.fillGapsWithSilence()}</label
 		>
 		{#if wizard.fillBySilence}
 			<div class="flex items-center gap-2 text-sm text-secondary">
@@ -105,7 +106,7 @@
 						onchange={(e) =>
 							wizard.setExtendBeforeSilence((e.currentTarget as HTMLInputElement).checked)}
 						class="accent-accent-primary"
-					/> Extend subtitle before silence by</label
+					/> {$LL.editor.extendSubtitleBeforeSilence()}</label
 				>
 				<input
 					id="extend-before-silence-ms"
@@ -122,7 +123,7 @@
 				<span>ms</span>
 			</div>
 			<p class="text-xs text-thirdly">
-				This extends the segment right before a silence block by {wizard.extendBeforeSilenceMs} ms.
+				{$LL.editor.extendBeforeSilenceHint({ ms: wizard.extendBeforeSilenceMs })}
 			</p>
 		{/if}
 	</div>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import {
 		clearWbwTimestampReview,
 		computeMissingWbwTimestamps,
@@ -51,12 +53,15 @@
 	function handleMarkMissingWbwTimestamps(): void {
 		const markedCount = markSubtitlesWithoutWbwTimestampsForReview();
 		if (markedCount <= 0) {
-			toast('No subtitle is missing WBW timestamps.');
+			toast(get(LL).editor.noMissingWbw());
 			return;
 		}
 
 		toast.success(
-			`${markedCount} subtitle${markedCount > 1 ? 's were' : ' was'} marked for missing WBW timestamps.`
+			get(LL).editor.missingWbwMarked({
+				count: markedCount,
+				plural: markedCount > 1 ? 's were' : ' was'
+			})
 		);
 	}
 
@@ -69,23 +74,25 @@
 </script>
 
 {#if missingWbwSegmentsCount > 0}
-	<h3 class="text-sm font-medium text-secondary mb-3">Missing WBW timestamps</h3>
+	<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.markMissingWbw()}</h3>
 
 	<div class="rounded-lg border border-sky-400/25 bg-sky-500/10 p-3 space-y-3">
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex items-center gap-1.5">
 				<span class="material-icons text-sky-300 text-sm">flag</span>
-				<span class="text-xs text-secondary">Mark subtitles without WBW timestamps</span>
+				<span class="text-xs text-secondary">{$LL.editor.markMissingWbw()}</span>
 			</div>
-			<span class="text-xs font-bold text-sky-300">{missingWbwSegmentsMarkedCount} marked</span>
+			<span class="text-xs font-bold text-sky-300"
+				>{get(LL).editor.markedCount({ count: missingWbwSegmentsMarkedCount })}</span
+			>
 		</div>
 
 		<div class="space-y-2">
 			<p class="text-[11px] text-thirdly">
-				{missingWbwSegmentsCount} subtitle(s) are missing word-by-word timestamps.
+				{$LL.editor.wbwTimestampsMissing({ count: missingWbwSegmentsCount })}
 				<span
 					class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
-					title="Optional feature. Add WBW timestamps to enable word highlighting, fast verse division, and other advanced features. Compute them on demand below (works for any project), or fetch them during AI Segmentation."
+					title={$LL.editor.wbwFeatureInfo()}
 				>
 					help_outline
 				</span>
@@ -121,7 +128,7 @@
 				disabled={isComputing}
 			>
 				<span class="material-icons text-sm!">flag</span>
-				Mark
+				{$LL.editor.mark()}
 			</button>
 			{#if missingWbwSegmentsMarkedCount > 0}
 				<button
@@ -131,7 +138,7 @@
 					disabled={isComputing}
 				>
 					<span class="material-icons text-sm!">cancel</span>
-					Clear
+					{$LL.common.clear()}
 				</button>
 			{/if}
 		</div>

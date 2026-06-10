@@ -10,6 +10,7 @@
 	import Translation from './translation/Translation.svelte';
 	import ArabicText from './ArabicText.svelte';
 	import { createWorkspaceLastRead } from './utils/lastRead.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	function addTranslationButtonClick() {
 		// Affiche le pop-up pour ajouter une nouvelle traduction
@@ -400,9 +401,9 @@
 					<span class="material-icons text-accent text-2xl">translate</span>
 				</div>
 				<div class="text-center">
-					<h3 class="text-primary text-lg font-semibold mb-2">No Translations Yet</h3>
+					<h3 class="text-primary text-lg font-semibold mb-2">{$LL.editor.noTranslationsYetHeading()}</h3>
 					<p class="text-thirdly text-sm max-w-md">
-						Start by adding translation editions to begin working on your translations.
+						{$LL.editor.startByAdding()}
 					</p>
 				</div>
 			</div>
@@ -411,7 +412,7 @@
 				onclick={addTranslationButtonClick}
 			>
 				<span class="material-icons text-base">add</span>
-				Add Translation
+				{$LL.translations.addTranslation()}
 			</button>
 		</div>
 	{:else}
@@ -423,10 +424,9 @@
 					<div class="flex min-w-0 gap-3">
 						<span class="material-icons-outlined text-accent-primary">brush</span>
 						<div class="min-w-0">
-							<p class="text-sm font-semibold">Word styling is active</p>
+							<p class="text-sm font-semibold">{$LL.editor.wordStylingActive()}</p>
 							<p class="mt-1 text-xs leading-relaxed text-secondary">
-								Drag on words to apply styles. Text editing is paused while this mode is enabled
-								from the Word Styles sidebar.
+								{$LL.editor.wordStylesDescription()}
 							</p>
 						</div>
 					</div>
@@ -435,7 +435,7 @@
 							class="btn-accent px-3 py-1.5 text-xs font-semibold"
 							onclick={() => (translationsEditorState().isInlineStyleMode = false)}
 						>
-							Exit styling
+							{$LL.editor.exitStyling()}
 						</button>
 					</div>
 				</div>
@@ -474,7 +474,7 @@
 										<div
 											class="absolute left-6 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
 										>
-											Last read
+											{$LL.editor.lastRead()}
 										</div>
 									{/if}
 									<ArabicText
@@ -502,7 +502,7 @@
 						<div class="w-full min-h-0.5 bg-[var(--accent-primary)]/40 my-2"></div>
 					{/each}
 					{#if visibleCount < subtitlesInGroups().length}
-						<div class="text-center py-4 text-thirdly text-sm">Scrolling to load more...</div>
+						<div class="text-center py-4 text-thirdly text-sm">{$LL.editor.scrollingToLoad()}</div>
 					{/if}
 				{/key}
 			{/if}

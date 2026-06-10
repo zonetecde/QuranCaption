@@ -8,6 +8,8 @@
 	import ArabicText from '../tabs/translationsEditor/workspace/ArabicText.svelte';
 	import Translation from '../tabs/translationsEditor/workspace/translation/Translation.svelte';
 	import { onDestroy, onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
 	const quickTimelineEditor = $derived(() => globalState.shared.quickTimelineEditor);
@@ -80,7 +82,7 @@
 
 			if (success) return;
 
-			toast.error('Unable to enter word-by-word edit mode for this subtitle.');
+			toast.error(get(LL).editor.cannotEnterWordEditMode());
 			globalState.closeQuickTimelineEditor();
 		})();
 	});
@@ -172,8 +174,8 @@
 				type="button"
 				class="absolute top-0 left-0 h-6 w-6 shrink-0 items-center justify-center rounded-br-lg border border-color bg-accent text-secondary transition hover:text-primary"
 				onclick={closeQuickTimelineEditorOverlay}
-				aria-label="Close quick timeline editor"
-				title="Close"
+				aria-label={$LL.editor.closeButton()}
+				title={$LL.editor.closeButton()}
 			>
 				<span class="material-icons-outlined text-[13px]!">close</span>
 			</button>
@@ -189,8 +191,7 @@
 							class="flex flex-col gap-3 rounded-xl border border-yellow-400/30 bg-secondary p-3"
 						>
 							<p>
-								Play the audio using space, and press enter each time a word finishes being recited.
-								Go to the subtitles editor for more options.
+								{$LL.editor.wbwTimestampGuide()}
 							</p>
 							<div class="min-h-0">
 								<WordsSelector />
@@ -215,7 +216,7 @@
 
 							{#if editionsToShow().length === 0}
 								<p class="text-sm text-thirdly">
-									No translation edition is available for this clip.
+									{$LL.editor.noTranslationEditionForClip()}
 								</p>
 							{:else}
 								{#each editionsToShow() as edition (edition.name)}

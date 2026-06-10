@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import ModalManager from '$lib/components/modals/ModalManager';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { globalState } from '$lib/runes/main.svelte';
 import type {
 	AutoSegmentationOptions,
@@ -256,7 +258,7 @@ export async function runAutoSegmentation(
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {
 		const confirmOverwrite: boolean = await ModalManager.confirmModal(
-			'There are already subtitles in this project. This process will override them. Continue?',
+			get(LL).editor.subtitlesAlreadyExist(),
 			true
 		);
 		if (!confirmOverwrite) return { status: 'cancelled' };

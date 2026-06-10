@@ -913,8 +913,6 @@ fn convert_audio_to_cbr_blocking(
             "libmp3lame",
             "-b:a",
             "192k",
-            "-cbr",
-            "1",
             "-ar",
             "44100",
             "-ac",

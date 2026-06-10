@@ -1,11 +1,13 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import ModalManager from '../modals/ModalManager';
 
 	let {
-		text = 'Input',
+		text = get(LL).editor.inputText(),
 		value = $bindable(),
 		maxLength = 50,
-		placeholder = 'Enter text here',
+		placeholder = get(LL).common.enterTextHere(),
 		action = () => {},
 		parentClasses = '',
 		textClasses = '',

@@ -13,6 +13,8 @@
 	import { fade } from 'svelte/transition';
 	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
@@ -80,7 +82,7 @@
 		if (presetChoice === "Qur'an") {
 			// Alors on explique à l'utilisateur qu'il doit sélectionner les mots
 			await ModalManager.confirmModal(
-				"To make this subtitle Qur'an, please select the words in the selector and press Enter to apply it."
+				$LL.editor.makeQuranSubtitleConfirm()
 			);
 		} else {
 			// Sinon on applique le changement de sous-titre
@@ -147,7 +149,7 @@
 
 		const success = await enterManualWordByWordEdit(editSubtitle);
 		if (!success) {
-			toast.error('Unable to enter word-by-word edit mode for this subtitle.');
+			toast.error(get(LL).editor.cannotEnterWordEditMode());
 		}
 	}
 
@@ -158,7 +160,7 @@
 	 */
 	function getEditShortcutLabel(): string {
 		const keys = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys ?? [];
-		if (keys.length === 0) return 'edit key';
+		if (keys.length === 0) return get(LL).editor.editKey();
 		return keys.map((key) => key.toUpperCase()).join(' + ');
 	}
 
@@ -181,7 +183,7 @@
 	<!-- Header with icon -->
 	<div class="flex gap-x-2 items-center justify-center">
 		<span class="material-icons text-accent text-xl">subtitles</span>
-		<h2 class="text-xl font-bold text-primary">Subtitles Editor</h2>
+		<h2 class="text-xl font-bold text-primary">{$LL.editor.subtitlesEditor()}</h2>
 	</div>
 
 	{#if globalState.getSubtitlesEditorState.editSubtitle}
@@ -193,15 +195,14 @@
 				<div class="flex items-start gap-3">
 					<div class="xl:space-y-1">
 						<h3 class="text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
-							Editing Subtitle
+							{$LL.editor.editingSubtitle()}
 							<span
 								class="px-2 py-0.5 text-[10px] uppercase rounded-full bg-accent-primary/15 text-accent-primary border border-accent-primary/30"
-								>Active</span
+								>{$LL.editor.editingActive()}</span
 							>
 						</h3>
 						<p class="text-xs leading-relaxed text-secondary">
-							Select the words in the selector then press Enter to adjust the range, or apply one of
-							the presets below.
+							{$LL.editor.editingHelpText()}
 						</p>
 					</div>
 				</div>
@@ -211,12 +212,12 @@
 				<div
 					class="rounded-lg border border-[var(--border-color)]/60 bg-secondary/40 p-2 space-y-3"
 				>
-					<p class="text-sm font-semibold text-primary">Word-by-word edit</p>
+					<p class="text-sm font-semibold text-primary">{$LL.editor.wordByWordEdit()}</p>
 
 					<div class="flex items-center justify-between gap-2 -mt-2">
 						<div>
 							<p class="text-[11px] text-secondary">
-								Manually stamp and adjust one Quran word at a time on the timeline. <br />
+								{$LL.editor.wbwManualDescription()}
 							</p>
 						</div>
 
@@ -226,7 +227,7 @@
 								onclick={() => exitManualWordByWordEdit()}
 							>
 								<span class="material-icons text-base">close</span>
-								Exit
+								{$LL.editor.exit()}
 							</button>
 						{:else}
 							<button
@@ -234,32 +235,32 @@
 								onclick={openManualWbwEditMode}
 							>
 								<span class="material-icons text-base">timeline</span>
-								Edit WBW
+								{$LL.editor.editWbw()}
 							</button>
 						{/if}
 					</div>
 
 					<p class="text-[9px] -mt-1 text-secondary">
-						Note: You can hold {getEditShortcutLabel()} to enter this mode directly.
+						{$LL.editor.wbwShortcutNote({ shortcut: getEditShortcutLabel() })}
 					</p>
 
 					{#if globalState.shared.wbwEdit.active}
 						<div class="rounded-md bg-yellow-400/8 border border-yellow-400/15 p-1 -mx-1 space-y-2">
-							<p class="text-[11px] text-yellow-100/90">Tutorial: how to add WBW timestamps</p>
+							<p class="text-[11px] text-yellow-100/90">{$LL.editor.wbwTutorialTitle()}</p>
 							<div class="relative w-full overflow-hidden rounded-md" style="padding-top: 56.25%;">
 								<iframe
 									class="absolute inset-0 h-full w-full"
 									src="https://www.youtube.com/embed/HGhMKZjuKFo"
-									title="WBW timestamps tutorial"
+									title={$LL.editor.wbwTutorialIframeTitle()}
 									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 									allowfullscreen
 								></iframe>
 							</div>
 							<p class="text-[11px] text-yellow-100/90">
-								<strong>Enter:</strong> stamp end and next word
+								<strong>{$LL.editor.wbwTutorialEnter()}</strong>
 							</p>
 							<p class="text-[11px] text-yellow-100/90">
-								<strong>ArrowUp/ArrowDown:</strong> select next or previous word
+								<strong>{$LL.editor.wbwTutorialArrows()}</strong>
 							</p>
 							<p class="text-[11px] text-yellow-100/90">
 								<strong
@@ -270,9 +271,10 @@
 										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END.keys,
 										'm'
 									)}:</strong
-								> move current word boundaries
+								>
+								{$LL.editor.wbwTutorialBoundaries()}
 							</p>
-							<p class="text-[11px] text-yellow-100/90"><strong>Escape:</strong> exit wbw edit</p>
+							<p class="text-[11px] text-yellow-100/90"><strong>{$LL.editor.wbwTutorialEscape()}</strong></p>
 						</div>
 					{/if}
 				</div>
@@ -281,7 +283,7 @@
 			{#if globalState.shared.wbwEdit.active}
 				<!-- Playback Speed Section -->
 				<div class="space-y-3 my-5">
-					<h3 class="text-sm font-medium text-secondary mb-3">WBW Playback Speed</h3>
+					<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.wbwPlaybackSpeed()}</h3>
 					<div class="flex items-center justify-center gap-1 2xl:gap-2">
 						{#each [0.25, 0.5, 0.75, 1, 1.25] as speed (speed)}
 							<button
@@ -304,7 +306,7 @@
 				<!-- Presets -->
 				<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pr-1 pt-1">
 					<div class="grid grid-cols-2 gap-3">
-						{#each [{ label: "Qur'an", shortcut: 'select words + enter', icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: 'none', icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: 'none', icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: 'none', icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: 'none', icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: 'none', icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset (preset.label)}
+						{#each [{ label: "Qur'an", shortcut: $LL.editor.selectWordsEnter(), icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: $LL.common.none(), icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: $LL.common.none(), icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: $LL.common.none(), icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: $LL.common.none(), icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: $LL.common.none(), icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset (preset.label)}
 							<button
 								class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
 								preset.label
@@ -359,7 +361,7 @@
 					onclick={applySubtitleChanges}
 				>
 					<span class="material-icons text-base">done</span>
-					Apply
+					{$LL.common.apply()}
 				</button>
 				<button
 					class="flex items-center gap-2 px-3 py-2 rounded-md border border-color text-secondary text-xs hover:bg-secondary/60 transition cursor-pointer"
@@ -369,14 +371,14 @@
 					}}
 				>
 					<span class="material-icons text-base">close</span>
-					Cancel
+					{$LL.common.cancel()}
 				</button>
 			</div>
 		</div>
 	{:else}
 		<!-- Playback Speed Section -->
 		<div class="space-y-3">
-			<h3 class="text-sm font-medium text-secondary mb-3">Playback Speed</h3>
+			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.playbackSpeed()}</h3>
 			<div class="flex items-center justify-center gap-1 2xl:gap-2">
 				{#each [0.75, 1, 1.5, 1.75, 2] as speed (speed)}
 					<button
@@ -396,12 +398,12 @@
 
 		<!-- Options Section -->
 		<div class="space-y-4">
-			<h3 class="text-sm font-medium text-secondary mb-3">Display Options</h3>
+			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.displayOptions()}</h3>
 
 			<div class="bg-accent rounded-lg p-4 space-y-4">
 				<div class="flex items-center justify-between">
 					<label class="text-sm font-medium text-primary cursor-pointer" for="showWordTranslation">
-						Show Word Translation
+						{$LL.editor.showWordTranslation()}
 					</label>
 					<input
 						id="showWordTranslation"
@@ -416,7 +418,7 @@
 						class="text-sm font-medium text-primary cursor-pointer"
 						for="showWordTransliteration"
 					>
-						Show Word Transliteration
+						{$LL.editor.showWordTransliteration()}
 					</label>
 					<input
 						id="showWordTransliteration"
@@ -430,10 +432,10 @@
 
 		<!-- Progress Section -->
 		<div class="space-y-3">
-			<h3 class="text-sm font-medium text-secondary mb-3">Caption Progress</h3>
+			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.captionProgress()}</h3>
 			<div class="bg-accent rounded-lg p-4">
 				<div class="flex items-center justify-between mb-2">
-					<span class="text-sm text-secondary">Completion</span>
+					<span class="text-sm text-secondary">{$LL.editor.completion()}</span>
 					<span class="text-sm font-bold text-accent">
 						{globalState.currentProject!.detail.percentageCaptioned}%
 					</span>
@@ -451,24 +453,24 @@
 		</div>
 
 		<div class="space-y-4">
-			<h3 class="text-sm font-medium text-secondary mb-3">AI-Assisted Segmentation</h3>
+			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.aiAssistedSegmentation()}</h3>
 			<div class="bg-accent rounded-lg p-4 space-y-3">
 				<button
 					data-tour-id="auto-segment-button"
 					class="btn-accent w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2"
 					type="button"
-					title="Auto segment audio into Quran verses"
+					title={$LL.editor.autoSegmentButton()}
 					onclick={() => (autoSegmentationModalVisible = true)}
 				>
 					<span class="material-icons text-base">auto_awesome</span>
-					Auto-Segment
+					{$LL.editor.autoSegment()}
 				</button>
 			</div>
 		</div>
 
 		{#if (globalState.getAudioTrack?.clips || []).some((c) => c instanceof AssetClip && (globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.nativeTiming || globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran))}
 			<div class="space-y-4">
-				<h3 class="text-sm font-medium text-secondary mb-3">Native Timing</h3>
+				<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.nativeTiming()}</h3>
 				<div class="bg-accent rounded-lg p-4 space-y-3">
 					<button
 						class="w-full px-3 py-2 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[var(--accent-primary)]/20 transition cursor-pointer"
@@ -478,7 +480,7 @@
 							await runNativeSegmentation();
 						}}
 					>
-						Load subtitles from native timing
+						{$LL.editor.loadSubtitlesNativeTiming()}
 					</button>
 				</div>
 			</div>

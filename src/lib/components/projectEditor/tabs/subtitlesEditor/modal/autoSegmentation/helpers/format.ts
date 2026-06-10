@@ -1,4 +1,6 @@
 import { Quran } from '$lib/classes/Quran';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import type {
 	AutoSegmentationResult,
 	LegacyWhisperModelSize,
@@ -44,7 +46,7 @@ export function buildAudioLabel(
 	fileName: string | undefined,
 	clipCount: number | undefined
 ): string {
-	if (!fileName) return 'No audio clip found in the timeline.';
+	if (!fileName) return get(LL).editor.noAudioClipInTimeline();
 	if (!clipCount || clipCount <= 1) return fileName;
 	return `${fileName} (+${clipCount - 1} more clips)`;
 }

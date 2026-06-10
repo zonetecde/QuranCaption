@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { Status } from '$lib/classes/Status';
 	import { slide } from 'svelte/transition';
+	import { getStatusLabel } from '$lib/i18n/statusMapper';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	interface Props {
 		isVisible: boolean;
@@ -68,20 +71,20 @@
 	>
 		<!-- En-tête avec boutons Check All / Uncheck All -->
 		<div class="px-3 py-2 border-b border-[var(--border-color)] flex justify-between">
-			<span class="text-sm font-medium text-[var(--text-primary)]">Filter by Status</span>
+			<span class="text-sm font-medium text-[var(--text-primary)]">{$LL.home.filterByStatus()}</span>
 			<div class="flex gap-2 pb-1">
 				<button
 					class="btn px-2 text-xs text-[var(--accent-primary)] hover:text-[var(--accent-secondary)] transition-colors"
 					onclick={checkAll}
 				>
-					Check All
+					{$LL.home.checkAll()}
 				</button>
 				<span class="text-[var(--text-secondary)]">|</span>
 				<button
 					class="btn px-2 text-xs text-[var(--accent-primary)] hover:text-[var(--accent-secondary)] transition-colors"
 					onclick={uncheckAll}
 				>
-					Uncheck All
+					{$LL.home.uncheckAll()}
 				</button>
 			</div>
 		</div>
@@ -100,7 +103,7 @@
 					/>
 					<div class="flex items-center gap-2">
 						<span class="w-3 h-3 rounded-full" style={`background-color: ${status.color}`}></span>
-						<span class="text-sm text-[var(--text-primary)]">{status.status}</span>
+						<span class="text-sm text-[var(--text-primary)]">{getStatusLabel(status, get(LL))}</span>
 					</div>
 				</label>
 			{/each}
@@ -110,7 +113,7 @@
 		<div
 			class="px-3 py-2 border-t border-[var(--border-color)] text-xs text-[var(--text-secondary)]"
 		>
-			{selectedStatuses.length} of {allStatuses.length} statuses selected
+			{$LL.home.statusesSelected({ count: selectedStatuses.length, total: allStatuses.length })}
 		</div>
 	</div>
 {/if}

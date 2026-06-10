@@ -8,32 +8,26 @@
 	import Style from '../styleEditor/Style.svelte';
 	import { VerseRange } from '$lib/classes';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
 
-	const performanceProfiles: {
-		id: PerformanceProfile;
-		label: string;
-		description: string;
-	}[] = [
-		{
-			id: 'fastest',
-			label: 'Fastest',
-			description: 'Prioritizes export speed and may use more CPU.'
-		},
-		{
-			id: 'balanced',
-			label: 'Balanced',
-			description: 'Keeps the current default behavior.'
-		},
-		{
-			id: 'low_cpu',
-			label: 'Low CPU',
-			description: 'Reduces CPU usage at the cost of slower exports.'
-		}
-	];
+	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
 
 	let showAdvancedSettings = $state(false);
+
+	/**
+	 * Normalise et sauvegarde le nombre de WebViews utilisees pour capturer les frames.
+	 * @returns {Promise<void>}
+	 */
+	async function saveParallelCaptureWorkers(): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.parallelCaptureWorkers = Math.max(
+			1,
+			Math.min(8, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 4))
+		);
+		await Settings.save();
+	}
 
 	// Initialize export state values if not set
 	$effect(() => {
@@ -59,39 +53,36 @@
 		}
 	}
 
-	function persistGlobalBatchSize(): void {
-		void Settings.save();
-	}
 </script>
 
 <!-- Export Video Configuration -->
 <div class="p-6 bg-secondary rounded-lg border border-color" transition:slide>
 	<!-- Section Title -->
 	<div class="mb-6">
-		<h3 class="text-lg font-semibold text-primary mb-2">Export Video</h3>
+		<h3 class="text-lg font-semibold text-primary mb-2">{$LL.export.exportVideo()}</h3>
 		<p class="text-thirdly text-sm">
-			Configure your video export settings and select the portion to export.
+			{$LL.export.configureExportSettings()}
 		</p>
 	</div>
 
 	<!-- Time Range Selection -->
 	<div data-tour-id="export-range" class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Export Range</h4>
-		<p class="text-thirdly text-sm mb-4">Select the time range of your video to export:</p>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportRange()}</h4>
+		<p class="text-thirdly text-sm mb-4">{$LL.export.selectTimeRange()}</p>
 
 		<div class="bg-accent rounded-lg p-4 border border-color">
 			<div class="grid grid-cols-1 grid-rows-2 gap-4">
 				<!-- Start Time -->
-				<TimeInput label="Start Time" bind:value={globalState.getExportState.videoStartTime} />
+				<TimeInput label={$LL.export.startTime()} bind:value={globalState.getExportState.videoStartTime} />
 
 				<!-- End Time -->
-				<TimeInput label="End Time" bind:value={globalState.getExportState.videoEndTime} />
+				<TimeInput label={$LL.export.endTime()} bind:value={globalState.getExportState.videoEndTime} />
 			</div>
 
 			<!-- Duration Preview -->
 			<div class="mt-4 p-3 bg-secondary rounded-lg border border-color">
 				<div class="flex items-center justify-between text-sm">
-					<span class="text-secondary">Export Duration:</span>
+					<span class="text-secondary">{$LL.export.exportDuration()}</span>
 					<span class="text-accent-primary font-medium">
 						{formatDuration(
 							Math.max(
@@ -107,7 +98,7 @@
 			<!-- Verse Range Preview -->
 			<div class="mt-4 p-3 bg-secondary rounded-lg border border-color">
 				<div class="flex items-center justify-between text-sm">
-					<span class="text-secondary min-w-[150px]">Export Verse Range:</span>
+					<span class="text-secondary min-w-[150px]">{$LL.export.exportVerseRange()}</span>
 					<span class="text-accent-primary font-medium">
 						{VerseRange.getExportVerseRange().toString()}
 					</span>
@@ -117,11 +108,10 @@
 	</div>
 
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Video Quality & Orientation</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.videoQualityOrientation()}</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
 			<p class="text-thirdly text-sm mb-4">
-				Set the resolution and orientation for the exported video. Higher resolutions offer better
-				quality but may increase export time.
+				{$LL.export.setResolutionOrientation()}
 			</p>
 
 			<Style
@@ -139,10 +129,10 @@
 	</div>
 
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Video & Audio Fade</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.videoAudioFade()}</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
 			<p class="text-thirdly text-sm mb-4">
-				Enable or disable video and audio fade effects during export and change their duration.
+				{$LL.export.enableDisableFade()}
 			</p>
 
 			<Style
@@ -156,22 +146,11 @@
 		</div>
 	</div>
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Performance Settings</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.performanceSettings()}</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+			<div class="flex flex-col gap-3">
 				<p class="text-thirdly text-sm leading-snug">
-					Set the <b>frames per second</b> for the exported video (lower values export faster but are
-					less fluid).
-				</p>
-				<p class="text-thirdly text-sm leading-snug">
-					<b>Batch size</b>
-					<span
-						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
-						title="Auto adapts the batch size to keep system RAM under 90%. Fixed uses your manual value."
-					>
-						help_outline
-					</span>
-					for ffmpeg transitions. Auto adjusts RAM usage; fixed keeps the manual value.
+					{$LL.export.setFpsDescription()}
 				</p>
 				<input
 					type="number"
@@ -181,59 +160,18 @@
 					class="input w-full h-10"
 					bind:value={globalState.getExportState.fps}
 				/>
-				<div class="flex flex-col gap-2">
-					<div class="grid grid-cols-2 gap-1 rounded-lg border border-color bg-secondary p-1">
-						<button
-							type="button"
-							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
-								.settings!.exportSettings.batchSizeMode === 'auto'
-								? 'bg-accent-primary text-[var(--text-on-accent)]'
-								: 'text-secondary hover:bg-accent hover:text-primary'}"
-							onclick={() => {
-								globalState.settings!.exportSettings.batchSizeMode = 'auto';
-								persistGlobalBatchSize();
-							}}
-						>
-							Auto
-						</button>
-						<button
-							type="button"
-							class="rounded-md px-1 py-1.5 text-sm font-semibold transition-colors {globalState
-								.settings!.exportSettings.batchSizeMode === 'fixed'
-								? 'bg-accent-primary text-[var(--text-on-accent)]'
-								: 'text-secondary hover:bg-accent hover:text-primary'}"
-							onclick={() => {
-								globalState.settings!.exportSettings.batchSizeMode = 'fixed';
-								persistGlobalBatchSize();
-							}}
-						>
-							Fixed
-						</button>
-					</div>
-					{#if globalState.settings!.exportSettings.batchSizeMode === 'fixed'}
-						<input
-							type="number"
-							min="2"
-							max="1024"
-							step="1"
-							class="input w-full h-10"
-							bind:value={globalState.settings!.exportSettings.batchSize}
-							onchange={persistGlobalBatchSize}
-						/>
-					{/if}
-				</div>
 			</div>
 		</div>
 	</div>
 
 	<!-- Video Filename & Export Location -->
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Video File Name & Export Location</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.videoFileName()}</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
 			<div class="flex flex-col gap-6">
 				<div>
 					<p class="text-thirdly text-sm mb-4">
-						Enter a name for your video file. If left empty, a default name will be generated.
+						{$LL.export.enterFileName()}
 					</p>
 
 					<div class="flex flex-col gap-2">
@@ -244,17 +182,13 @@
 							bind:value={globalState.getExportState.customFileName}
 						/>
 						<p class="text-thirdly text-xs italic">
-							Extension ({globalState.getExportState.exportWithoutBackground
-								? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
-									? '.webm'
-									: '.mov'
-								: '.mp4'}) will be added automatically.
+							{$LL.export.extensionAddedAutomatically()}
 						</p>
 					</div>
 				</div>
 
 				<div class="border-t border-color pt-4">
-					<ExportFolderPicker description="Choose where your exported videos will be saved." />
+					<ExportFolderPicker description={$LL.export.chooseExportLocation()} />
 				</div>
 			</div>
 		</div>
@@ -263,10 +197,10 @@
 	<!-- Export Button -->
 	<div class="flex flex-col items-center">
 		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportVideo}>
-			Export Video
+			{$LL.export.exportButton()}
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">
-			Start the video export process with your selected time range
+			{$LL.export.startExportDescription()}
 		</p>
 	</div>
 
@@ -280,9 +214,9 @@
 			aria-expanded={showAdvancedSettings}
 		>
 			<div>
-				<p class="text-sm font-medium text-primary">Advanced Settings</p>
+				<p class="text-sm font-medium text-primary">{$LL.export.advancedSettings()}</p>
 				<p class="text-xs text-thirdly">
-					Control export performance without exposing raw ffmpeg flags.
+					{$LL.export.controlExportPerformance()}
 				</p>
 			</div>
 			<span
@@ -296,7 +230,7 @@
 		{#if showAdvancedSettings}
 			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
 				<div class="mb-4">
-					<h4 class="text-base font-medium text-secondary mb-1">Background</h4>
+					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
 					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
 						<input
 							type="checkbox"
@@ -304,9 +238,9 @@
 							bind:checked={globalState.getExportState.exportWithoutBackground}
 						/>
 						<span class="text-sm text-primary">
-							Export without background
+							{$LL.export.exportWithoutBackground()}
 							<span class="block text-xs text-thirdly mt-1">
-								Renders only the overlay with transparency (alpha).
+								{$LL.export.rendersOnlyOverlay()}
 							</span>
 						</span>
 					</label>
@@ -314,50 +248,75 @@
 					{#if globalState.getExportState.exportWithoutBackground}
 						<div class="mt-3">
 							<label class="block text-sm text-primary mb-2" for="transparent-export-format">
-								Transparent export format
+								{$LL.export.transparentExportFormat()}
 							</label>
 							<select
 								id="transparent-export-format"
 								class="input w-full"
 								bind:value={globalState.getExportState.transparentExportFormat}
 							>
-								<option value="mov_prores_4444">MOV (QTRLE alpha) - Recommended</option>
-								<option value="webm_vp9_alpha">WEBM (VP9 alpha)</option>
+								<option value="mov_prores_4444">{$LL.export.movQtrleRecommended()}</option>
+								<option value="webm_vp9_alpha">{$LL.export.webmVp9()}</option>
 							</select>
 							<p class="text-xs text-thirdly mt-2">
-								<code>MOV (QTRLE alpha)</code> improves compatibility with editing tools.
+								{$LL.export.movQtrleCompatibility()}
 							</p>
 						</div>
 					{/if}
 				</div>
 
 				<div class="mb-4">
-					<h4 class="text-base font-medium text-secondary mb-1">Export Performance</h4>
+					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.exportPerformance()}</h4>
 					<p class="text-thirdly text-sm">
-						Choose how aggressively the exporter should use your CPU during ffmpeg work.
+						{$LL.export.chooseCpuUsage()}
 					</p>
 				</div>
 
+				{#if globalState.settings}
+					<div class="mb-4 rounded-lg border border-color bg-secondary p-4">
+						<label
+							class="block text-sm font-medium text-primary mb-2"
+							for="parallel-capture-workers"
+						>
+							{$LL.export.parallelCaptureWorkers()}
+						</label>
+						<input
+							id="parallel-capture-workers"
+							type="number"
+							min="1"
+							max="8"
+							step="1"
+							class="input w-full h-10"
+							bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
+							onchange={saveParallelCaptureWorkers}
+						/>
+						<p class="text-xs text-thirdly mt-2">
+							{$LL.export.parallelCaptureWorkersDescription()}
+						</p>
+					</div>
+				{/if}
+
 				<div class="grid grid-cols-1 gap-3">
-					{#each performanceProfiles as profile (profile.id)}
+					{#each performanceProfileIds as id (id)}
+						{@const label = id === 'fastest' ? $LL.export.fastest() : id === 'balanced' ? $LL.export.balanced() : $LL.export.lowCpu()}
+						{@const desc = id === 'fastest' ? $LL.export.fastestDescription() : id === 'balanced' ? $LL.export.balancedDescription() : $LL.export.lowCpuDescription()}
 						<button
 							type="button"
 							class="rounded-xl border p-4 text-left transition-colors"
-							class:border-accent-primary={globalState.getExportState.performanceProfile ===
-								profile.id}
-							class:bg-secondary={globalState.getExportState.performanceProfile === profile.id}
-							class:border-color={globalState.getExportState.performanceProfile !== profile.id}
+							class:border-accent-primary={globalState.getExportState.performanceProfile === id}
+							class:bg-secondary={globalState.getExportState.performanceProfile === id}
+							class:border-color={globalState.getExportState.performanceProfile !== id}
 							onclick={() => {
-								globalState.getExportState.performanceProfile = profile.id;
+								globalState.getExportState.performanceProfile = id;
 							}}
 						>
 							<div class="flex items-center justify-between gap-3">
-								<p class="text-sm font-medium text-primary">{profile.label}</p>
-								{#if globalState.getExportState.performanceProfile === profile.id}
+								<p class="text-sm font-medium text-primary">{label}</p>
+								{#if globalState.getExportState.performanceProfile === id}
 									<span class="material-icons text-accent-primary text-lg">check_circle</span>
 								{/if}
 							</div>
-							<p class="mt-1 text-xs text-thirdly">{profile.description}</p>
+							<p class="mt-1 text-xs text-thirdly">{desc}</p>
 						</button>
 					{/each}
 				</div>

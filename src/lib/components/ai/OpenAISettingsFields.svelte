@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { maskApiKey } from '$lib/services/AdvancedAITrimming';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	type TextAiPreset = {
 		id: string;
@@ -76,8 +77,8 @@
 <div class="grid gap-4 md:grid-cols-2">
 	<div class="space-y-2 md:col-span-2">
 		<div class="flex items-center justify-between gap-3">
-			<span class="text-sm font-medium text-secondary">Quick presets</span>
-			<span class="text-xs text-thirdly">Loads endpoint + model only</span>
+			<span class="text-sm font-medium text-secondary">{$LL.aiVideo.quickPresets()}</span>
+			<span class="text-xs text-thirdly">{$LL.aiVideo.loadsEndpointModel()}</span>
 		</div>
 
 		<div class="grid gap-2 grid-cols-3">
@@ -95,42 +96,40 @@
 	</div>
 
 	<label class="space-y-2 md:col-span-2">
-		<span class="text-sm font-medium text-secondary">AI API key</span>
+		<span class="text-sm font-medium text-secondary">{$LL.aiVideo.aiApiKeyLabel()}</span>
 		<input
 			type="password"
 			bind:value={globalState.settings!.aiTranslationSettings.openAiApiKey}
 			onblur={onSettingsChanged}
-			placeholder="Provider API key"
+			placeholder={$LL.aiVideo.providerApiKeyPlaceholder()}
 			class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 		/>
 		<span class="text-xs text-thirdly">
-			Stored in plain text in `settings.json`. Current value: {maskApiKey(
-				globalState.settings!.aiTranslationSettings.openAiApiKey
-			)}
+			{$LL.aiVideo.apiKeyStoredHint({ value: maskApiKey(globalState.settings!.aiTranslationSettings.openAiApiKey) })}
 		</span>
 	</label>
 
 	<label class="space-y-2 md:col-span-2">
-		<span class="text-sm font-medium text-secondary">Text AI endpoint</span>
+		<span class="text-sm font-medium text-secondary">{$LL.aiVideo.textAiEndpoint()}</span>
 		<input
 			type="url"
 			bind:value={globalState.settings!.aiTranslationSettings.textAiApiEndpoint}
 			onblur={onSettingsChanged}
-			placeholder="https://api.openai.com/v1/responses"
+			placeholder={$LL.aiVideo.textAiEndpointPlaceholder()}
 			class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 		/>
 		<span class="text-xs text-thirdly">
-			Endpoint used for advanced trimming, AI bold, and AI video planning.
+			{$LL.aiVideo.textAiEndpointDescription()}
 		</span>
 	</label>
 
 	<label class="space-y-2">
-		<span class="text-sm font-medium text-secondary">Model</span>
+		<span class="text-sm font-medium text-secondary">{$LL.aiVideo.modelLabelSpan()}</span>
 		<input
 			list="text-ai-model-suggestions"
 			bind:value={globalState.settings!.aiTranslationSettings.advancedTrimModel}
 			onblur={onBatchSettingsChanged}
-			placeholder="gpt-5.4"
+			placeholder={$LL.aiVideo.modelPlaceholder()}
 			class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 		/>
 		<datalist id="text-ai-model-suggestions">
@@ -146,7 +145,7 @@
 	</label>
 
 	<label class="space-y-2">
-		<span class="text-sm font-medium text-secondary">Reasoning effort</span>
+		<span class="text-sm font-medium text-secondary">{$LL.aiVideo.reasoningEffort()}</span>
 		<select
 			bind:value={globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort}
 			onchange={onBatchSettingsChanged}
@@ -171,8 +170,8 @@
 			class="h-4 w-4 rounded"
 		/>
 		<div>
-			<div class="text-sm font-medium text-primary">Also ask for already reviewed verses</div>
-			<div class="text-xs text-thirdly">Include fully reviewed verses in candidate selection.</div>
+			<div class="text-sm font-medium text-primary">{$LL.aiVideo.alsoAskReviewed()}</div>
+			<div class="text-xs text-thirdly">{$LL.aiVideo.alsoAskReviewedDescription()}</div>
 		</div>
 	</label>
 {/if}

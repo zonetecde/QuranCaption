@@ -2,6 +2,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
 	import toast from 'svelte-5-french-toast';
+	import { get } from 'svelte/store';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let { close } = $props();
 
@@ -24,7 +26,7 @@
 
 	function applyShift() {
 		if (!Number.isFinite(shiftAmount)) {
-			toast.error('Please enter a valid shift amount.');
+			toast.error(get(LL).tools.enterValidShiftAmount());
 			return;
 		}
 
@@ -45,7 +47,7 @@
 		const success = globalState.getSubtitleTrack.shiftAllClips(offsetMs, fromMs);
 		if (success) {
 			const scope = fromMs > 0 ? ` (from ${fromMs / 1000}s onward)` : '';
-			toast.success(`Subtitles shifted by ${shiftAmount} ${unit} to the ${direction}${scope}.`);
+			toast.success(get(LL).tools.subtitlesShifted({ amount: shiftAmount, unit, direction, scope }));
 			close();
 		}
 	}
@@ -63,8 +65,8 @@
 					<span class="material-icons text-black text-lg">move_down</span>
 				</div>
 				<div>
-					<h2 class="text-xl font-bold text-primary">Shift All Subtitles</h2>
-					<p class="text-sm text-thirdly">Move all subtitles forward or backward in time</p>
+					<h2 class="text-xl font-bold text-primary">{$LL.tools.shiftAllSubtitles()}</h2>
+					<p class="text-sm text-thirdly">{$LL.tools.shiftDescription()}</p>
 				</div>
 			</div>
 
@@ -80,7 +82,7 @@
 	<!-- Body -->
 	<div class="px-6 py-5 space-y-6">
 		<p class="text-sm text-secondary leading-relaxed">
-			Move all subtitles forward or backward in time. This is useful for fixing global sync issues.
+			{$LL.tools.shiftBody()}
 		</p>
 
 		<!-- Direction Selection -->
@@ -93,7 +95,7 @@
 				onclick={() => (direction = 'left')}
 			>
 				<span class="material-icons">keyboard_double_arrow_left</span>
-				<span class="text-sm font-medium">Backward (Left)</span>
+				<span class="text-sm font-medium">{$LL.tools.backward()}</span>
 			</button>
 			<button
 				class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-200 cursor-pointer {direction ===
@@ -103,13 +105,13 @@
 				onclick={() => (direction = 'right')}
 			>
 				<span class="material-icons">keyboard_double_arrow_right</span>
-				<span class="text-sm font-medium">Forward (Right)</span>
+				<span class="text-sm font-medium">{$LL.tools.forward()}</span>
 			</button>
 		</div>
 
 		<!-- Amount Input -->
 		<div class="space-y-2">
-			<label for="shift-amount" class="text-sm font-medium text-primary block">Shift Amount</label>
+			<label for="shift-amount" class="text-sm font-medium text-primary block">{$LL.tools.shiftAmount()}</label>
 			<div class="flex gap-2">
 				<input
 					id="shift-amount"
@@ -124,8 +126,8 @@
 					bind:value={unit}
 					class="bg-accent border border-color rounded-lg px-3 py-2 text-primary focus:border-accent-primary focus:outline-none transition-colors cursor-pointer"
 				>
-					<option value="seconds">Seconds</option>
-					<option value="milliseconds">Milliseconds</option>
+					<option value="seconds">{$LL.common.seconds()}</option>
+					<option value="milliseconds">{$LL.common.milliseconds()}</option>
 				</select>
 			</div>
 		</div>
@@ -133,7 +135,7 @@
 		<!-- From-time Input -->
 		<div class="space-y-2">
 			<label for="shift-from" class="text-sm font-medium text-primary block">
-				Apply from time (seconds)
+				{$LL.tools.applyFromTime()}
 			</label>
 			<div class="flex gap-2">
 				<input
@@ -152,11 +154,11 @@
 					title="Use current playhead position"
 				>
 					<span class="material-icons text-base">my_location</span>
-					Use playhead
+					{$LL.tools.usePlayhead()}
 				</button>
 			</div>
 			<p class="text-xs text-thirdly leading-relaxed">
-				Subtitles starting before this time stay put. Leave at 0 to shift all subtitles.
+				{$LL.tools.subtitlesBeforeTimeStay()}
 			</p>
 		</div>
 
@@ -175,12 +177,12 @@
 	<!-- Footer -->
 	<div class="border-t border-color bg-primary px-6 py-4">
 		<div class="flex items-center justify-between">
-			<div class="text-xs text-thirdly">Ready to apply changes.</div>
+			<div class="text-xs text-thirdly">{$LL.tools.readyToApply()}</div>
 			<div class="flex gap-3">
-				<button class="btn px-5 py-2 text-sm" onclick={close}>Cancel</button>
+				<button class="btn px-5 py-2 text-sm" onclick={close}>{$LL.common.cancel()}</button>
 				<button class="btn-accent px-5 py-2 text-sm flex items-center gap-2" onclick={applyShift}>
 					<span class="material-icons text-base">done</span>
-					Apply Shift
+					{$LL.tools.applyShift()}
 				</button>
 			</div>
 		</div>

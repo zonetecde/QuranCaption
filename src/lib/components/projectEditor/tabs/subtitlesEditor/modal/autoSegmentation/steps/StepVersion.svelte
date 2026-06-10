@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getSharedWizard } from '../sharedWizard';
+	import LL from '$lib/i18n/i18n-svelte';
 	import {
 		fetchQuranMultiAlignerChangelog,
 		type HuggingFaceChangelogSection
@@ -29,12 +30,12 @@
 </script>
 
 <section class="flex flex-col gap-4 xl:flex-1">
-	<div>
-		<h3 class="text-lg font-semibold text-primary">1. Choose a method</h3>
-		<p class="text-sm text-thirdly">
-			Pick the simplest method for your situation. You can still change advanced options later.
-		</p>
-	</div>
+		<div>
+			<h3 class="text-lg font-semibold text-primary">{$LL.editor.chooseMethodLabel()}</h3>
+			<p class="text-sm text-thirdly">
+				{$LL.editor.chooseMethodDesc()}
+			</p>
+		</div>
 
 	<div class="grid grid-cols-1 gap-3 xl:flex-1 xl:grid-cols-2">
 		<button
@@ -47,17 +48,17 @@
 		>
 			<div class="mb-3 flex items-start justify-between gap-3">
 				<div class="flex items-center gap-2 text-primary">
-					<span class="material-icons">auto_awesome</span>Quranic Universal Aligner
+					<span class="material-icons">auto_awesome</span>{$LL.editor.quranicUniversalAlignerLabel()}
 				</div>
 				<span
 					class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
 				>
-					Recommended
+					{$LL.editor.recommendedLabel()}
 				</span>
 			</div>
-			<p class="text-sm font-medium text-primary">Best overall quality and easiest setup</p>
+			<p class="text-sm font-medium text-primary">{$LL.editor.bestOverallQuality()}</p>
 			<p class="mt-2 text-sm text-thirdly">
-				Uses the official Quranic Universal Aligner remotely. Recommended for most users.
+				{$LL.editor.usesOfficialRemote()}
 			</p>
 		</button>
 
@@ -70,20 +71,18 @@
 			onclick={() => wizard.onVersionChange('surah_splitter')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">offline_bolt</span>Surah Splitter Local
+				<span class="material-icons">offline_bolt</span>{$LL.editor.surahSplitterLocalLabel()}
 			</div>
 			<p class="text-sm font-medium text-primary">
-				Local ayah detection with optional surah hint - Recommend Local option
+				{$LL.editor.surahSplitterLocalDesc()}
 			</p>
 			<p class="mt-3 text-xs text-thirdly">
-				Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports
-				word-by-word alignment, but selecting the surah manually improves precision. <br />Note:
-				this option only works if there's one surah in the audio file.
+				{$LL.editor.surahSplitterLocalDetail()} <br />{$LL.editor.surahSplitterSingleSurahNote()}
 			</p>
 			<div
 				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
 			>
-				Offline
+				{$LL.editor.offlineLabel()}
 			</div>
 		</button>
 
@@ -96,19 +95,18 @@
 			onclick={() => wizard.onVersionChange('muaalem_local')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">offline_bolt</span>Muaalem Local
+				<span class="material-icons">offline_bolt</span>{$LL.editor.muaalemLocalLabel()}
 			</div>
 			<p class="text-sm font-medium text-primary">
-				Second option but less effective than Surah Splitter
+				{$LL.editor.muaalemLocalDesc()}
 			</p>
 			<p class="mt-3 text-xs text-thirdly">
-				Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific
-				segmentation and matching.
+				{$LL.editor.muaalemLocalDetail()}
 			</p>
 			<div
 				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
 			>
-				Offline
+				{$LL.editor.offlineLabel()}
 			</div>
 		</button>
 
@@ -121,17 +119,16 @@
 			onclick={() => wizard.onVersionChange('multi_v2_local')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">computer</span>Private Local Quranic Universal Aligner
+				<span class="material-icons">computer</span>{$LL.editor.privateLocalQuranicAlignerLabel()}
 			</div>
-			<p class="text-sm font-medium text-primary">Best local accuracy</p>
+			<p class="text-sm font-medium text-primary">{$LL.editor.bestLocalAccuracy()}</p>
 			<p class="mt-3 text-xs text-thirdly">
-				Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python
-				setup and a Hugging Face token.
+				{$LL.editor.privateLocalQuranicAlignerDetail()}
 			</p>
 			<div
 				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
 			>
-				Advanced
+				{$LL.editor.advancedLabel()}
 			</div>
 		</button>
 
@@ -139,7 +136,7 @@
 			class="text-xs underline text-center text-secondary mt-3 cursor-pointer h-fit xl:col-span-2"
 			onclick={() => (activeView = 'import')}
 		>
-			Import Hugging Face JSON
+			{$LL.editor.importHuggingFaceJson()}
 		</p>
 	</div>
 
@@ -148,17 +145,17 @@
 			<summary class="flex cursor-pointer items-center gap-2 text-primary">
 				<span class="material-icons">history</span>
 				<h4 class="text-sm font-semibold">
-					Latest changelog <span class="text-thirdly">(Quranic Universal Aligner)</span>
+					{$LL.editor.latestChangelog()} <span class="text-thirdly">(Quranic Universal Aligner)</span>
 				</h4>
 			</summary>
 
 			<div class="mt-3">
 				{#if isLoadingChangelog}
-					<p class="text-sm text-thirdly">Loading latest Quran Multi-Aligner updates...</p>
+					<p class="text-sm text-thirdly">{$LL.editor.loadingChangelog()}</p>
 				{:else if changelogError}
 					<p class="text-sm text-thirdly">{changelogError}</p>
 				{:else if changelogSections.length === 0}
-					<p class="text-sm text-thirdly">No recent changelog entries were found.</p>
+					<p class="text-sm text-thirdly">{$LL.editor.noChangelogEntries()}</p>
 				{:else}
 					<div class="space-y-3">
 						{#each changelogSections as section (section.title)}

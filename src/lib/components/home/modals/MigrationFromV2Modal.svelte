@@ -4,6 +4,8 @@
 	import toast from 'svelte-5-french-toast';
 	import MigrationService from '$lib/services/MigrationService';
 	import { readDir } from '@tauri-apps/plugin-fs';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let { close } = $props();
 
@@ -32,7 +34,7 @@
 		try {
 			const qc2Dir = await MigrationService.getQCV2Dir();
 			if (!qc2Dir) {
-				toast.error('Could not find Quran Caption V2 data directory');
+				toast.error(get(LL).migration.couldNotFindV2Data());
 				isImporting = false;
 				return;
 			}
@@ -54,7 +56,7 @@
 					console.error(`Failed to import ${file.name}:`, error);
 					failedImports++;
 					failedProjects.push(currentProjectName);
-					toast.error(`Failed to import: ${currentProjectName}`);
+					toast.error(get(LL).migration.failedToImport({ name: currentProjectName }));
 				}
 
 				importProgress = ((i + 1) / projectFiles.length) * 100;
@@ -66,7 +68,7 @@
 			importComplete = true;
 		} catch (error) {
 			console.error('Migration failed:', error);
-			toast.error('Migration process failed. Please try again.');
+			toast.error(get(LL).migration.migrationFailed());
 			isImporting = false;
 		}
 	}
@@ -108,20 +110,20 @@
 				<div>
 					<h2 class="text-2xl font-bold text-primary">
 						{#if importComplete}
-							Migration Complete!
+							{$LL.migration.migrationComplete()}
 						{:else if isImporting}
-							Migrating Projects...
+							{$LL.migration.migratingProjects()}
 						{:else}
-							Quran Caption V3 Migration
+							{$LL.migration.v3Migration()}
 						{/if}
 					</h2>
 					<p class="text-sm text-thirdly">
 						{#if importComplete}
-							Your projects have been imported
+							{$LL.migration.projectsImported()}
 						{:else if isImporting}
-							Please wait while we import your projects
+							{$LL.migration.pleaseWaitImporting()}
 						{:else}
-							Import your V2 projects to V3
+							{$LL.migration.importV2ToV3()}
 						{/if}
 					</p>
 				</div>
@@ -155,9 +157,9 @@
 						</div>
 						<div>
 							<h3 class="text-xl font-bold text-primary">
-								{numberOfV2Projects} Projects Found
+								{numberOfV2Projects} {$LL.migration.projectsFound()}
 							</h3>
-							<p class="text-thirdly">Ready to be imported from Quran Caption V2</p>
+							<p class="text-thirdly">{$LL.migration.readyToImport()}</p>
 						</div>
 					</div>
 				</div>
@@ -166,39 +168,39 @@
 				<div class="bg-secondary rounded-lg p-6 border border-color">
 					<h4 class="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
 						<span class="material-icons text-accent-primary">info</span>
-						What will be imported
+						{$LL.migration.whatWillBeImported()}
 					</h4>
 					<div class="space-y-3">
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">Project assets and timeline</span>
+								<span class="text-secondary text-sm font-medium">{$LL.migration.projectAssets()}</span>
 								<p class="text-thirdly text-xs mt-1">
-									All your audio/video files and subtitle timing
+									{$LL.migration.projectAssetsDesc()}
 								</p>
 							</div>
 						</div>
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">Translations</span>
-								<p class="text-thirdly text-xs mt-1">Your selected translation editions</p>
+								<span class="text-secondary text-sm font-medium">{$LL.migration.translations()}</span>
+								<p class="text-thirdly text-xs mt-1">{$LL.migration.translationsDesc()}</p>
 							</div>
 						</div>
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">Style limitations</span>
+								<span class="text-secondary text-sm font-medium">{$LL.migration.styleLimitations()}</span>
 								<p class="text-thirdly text-xs mt-1">
-									Video styles will be reset to default settings
+									{$LL.migration.styleLimitationsDesc()}
 								</p>
 							</div>
 						</div>
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">Custom texts</span>
-								<p class="text-thirdly text-xs mt-1">Will be replaced with silence clips</p>
+								<span class="text-secondary text-sm font-medium">{$LL.migration.customTexts()}</span>
+								<p class="text-thirdly text-xs mt-1">{$LL.migration.customTextsDesc()}</p>
 							</div>
 						</div>
 					</div>
@@ -210,11 +212,10 @@
 				>
 					<div class="flex items-center gap-2 mb-2">
 						<span class="material-icons text-accent-primary text-lg">wifi</span>
-						<span class="text-secondary font-medium text-sm">Internet Connection Required</span>
+						<span class="text-secondary font-medium text-sm">{$LL.migration.internetRequired()}</span>
 					</div>
 					<p class="text-thirdly text-xs">
-						An active internet connection is needed to download translation data during the import
-						process.
+						{$LL.migration.internetRequiredDesc()}
 					</p>
 				</div>
 			</div>
@@ -224,7 +225,7 @@
 				<!-- Progress bar -->
 				<div class="bg-accent rounded-lg p-6 border border-color">
 					<div class="flex items-center justify-between mb-4">
-						<h3 class="text-lg font-semibold text-primary">Import Progress</h3>
+						<h3 class="text-lg font-semibold text-primary">{$LL.migration.importProgress()}</h3>
 						<span class="text-secondary text-sm">{Math.round(importProgress)}%</span>
 					</div>
 
@@ -237,7 +238,7 @@
 
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-thirdly">
-							Processing: <span class="text-secondary font-medium">{currentProjectName}</span>
+							{$LL.migration.processing()} <span class="text-secondary font-medium">{currentProjectName}</span>
 						</span>
 						<span class="text-secondary">
 							{successfulImports + failedImports} / {numberOfV2Projects}
@@ -256,7 +257,7 @@
 							</div>
 							<div>
 								<div class="text-green-400 font-semibold">{successfulImports}</div>
-								<div class="text-thirdly text-xs">Successful</div>
+								<div class="text-thirdly text-xs">{$LL.home.successful()}</div>
 							</div>
 						</div>
 					</div>
@@ -269,7 +270,7 @@
 							</div>
 							<div>
 								<div class="text-red-400 font-semibold">{failedImports}</div>
-								<div class="text-thirdly text-xs">Failed</div>
+								<div class="text-thirdly text-xs">{$LL.home.failed()}</div>
 							</div>
 						</div>
 					</div>
@@ -284,35 +285,35 @@
 					>
 						<span class="material-icons text-black text-2xl">check_circle</span>
 					</div>
-					<h3 class="text-2xl font-bold text-primary mb-2">Migration Complete!</h3>
+					<h3 class="text-2xl font-bold text-primary mb-2">{$LL.home.migrationCompleteTitle()}</h3>
 					<div
 						class="bg-accent-primary bg-opacity-10 rounded-lg p-4 border border-accent-primary border-opacity-30 mb-4"
 					>
 						<p class="text-accent-primary font-semibold text-lg">
-							🎉 {successfulImports} projects imported successfully!
+							🎉 {$LL.home.projectsImportedSuccess({ count: successfulImports })}
 						</p>
 						{#if failedImports > 0}
 							<p class="text-red-400 text-sm mt-2">
-								{failedImports} projects failed to import
+								{$LL.home.projectsFailedToImport({ count: failedImports })}
 							</p>
 						{/if}
 					</div>
 					<p class="text-thirdly">
-						Your projects have been successfully imported to Quran Caption V3
+						{$LL.home.projectsImportedV3()}
 					</p>
 				</div>
 
 				<!-- Results summary -->
 				<div class="bg-accent rounded-lg p-6 border border-color">
-					<h4 class="text-lg font-semibold text-primary mb-4">Import Results</h4>
+					<h4 class="text-lg font-semibold text-primary mb-4">{$LL.home.importResults()}</h4>
 					<div class="grid grid-cols-2 gap-4">
 						<div class="text-center p-4 bg-secondary rounded-lg">
 							<div class="text-2xl font-bold text-green-400">{successfulImports}</div>
-							<div class="text-thirdly text-sm">Successfully Imported</div>
+							<div class="text-thirdly text-sm">{$LL.home.successfullyImported()}</div>
 						</div>
 						<div class="text-center p-4 bg-secondary rounded-lg">
 							<div class="text-2xl font-bold text-red-400">{failedImports}</div>
-							<div class="text-thirdly text-sm">Failed to Import</div>
+							<div class="text-thirdly text-sm">{$LL.home.failedToImport_Label()}</div>
 						</div>
 					</div>
 				</div>
@@ -323,7 +324,7 @@
 					>
 						<h5 class="text-red-400 font-medium mb-2 flex items-center gap-2">
 							<span class="material-icons text-sm">warning</span>
-							Failed Projects
+							{$LL.home.failedProjects()}
 						</h5>
 						<div class="space-y-1">
 							{#each failedProjects as projectName (projectName)}
@@ -342,11 +343,11 @@
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				<span class="material-icons text-accent-secondary">info</span>
 				{#if importComplete}
-					<span>You can now start using your imported projects</span>
+					<span>{$LL.home.startUsingProjects()}</span>
 				{:else if isImporting}
-					<span>Migration in progress... Please don't close this window</span>
+					<span>{$LL.home.migrationInProgress()}</span>
 				{:else}
-					<span>This will import all your V2 projects to V3 format</span>
+					<span>{$LL.home.importV2toV3()}</span>
 				{/if}
 			</div>
 
@@ -356,7 +357,7 @@
 						class="px-6 py-2.5 font-medium text-primary border border-color rounded-lg hover:bg-accent hover:border-accent-primary transition-all duration-200 cursor-pointer"
 						onclick={close}
 					>
-						{importComplete ? 'Close' : 'Cancel'}
+						{importComplete ? $LL.common.close() : $LL.common.cancel()}
 					</button>
 				{/if}
 
@@ -366,7 +367,7 @@
 						onclick={startMigration}
 					>
 						<span class="material-icons text-lg">download</span>
-						Start Migration
+						{$LL.home.startMigration()}
 					</button>
 				{:else if importComplete}
 					<button
@@ -374,7 +375,7 @@
 						onclick={close}
 					>
 						<span class="material-icons text-lg">done</span>
-						Continue
+						{$LL.home.continue()}
 					</button>
 				{/if}
 			</div>

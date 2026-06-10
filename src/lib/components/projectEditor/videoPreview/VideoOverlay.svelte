@@ -402,6 +402,27 @@
 	let currentAbortController: AbortController | null = null;
 
 	/**
+	 * Retourne le timing courant sous une forme stable pour la capture export.
+	 * @returns {string} Timing courant arrondi en millisecondes.
+	 */
+	function getExportLayoutTimingKey(): string {
+		return String(Math.round(getTimelineSettings().cursorPosition));
+	}
+
+	/**
+	 * Marque l'etat du layout de sous-titres consomme par l'export.
+	 * @param {HTMLElement | null} element Conteneur des sous-titres.
+	 * @param {'pending' | 'ready'} state Etat courant du layout.
+	 * @returns {void}
+	 */
+	function markExportLayoutState(element: HTMLElement | null, state: 'pending' | 'ready'): void {
+		const target = element ?? document.getElementById('subtitles-container');
+		if (!(target instanceof HTMLElement)) return;
+		target.dataset.exportLayoutTiming = getExportLayoutTimingKey();
+		target.dataset.exportLayoutState = state;
+	}
+
+	/**
 	 * Fonction utilitaire qui consomme des dépendances réactives
 	 * sans rien faire. Utilisée pour forcer la réactivité dans `untrack`.
 	 */
@@ -452,6 +473,7 @@
 				lastVisualMergeGroupId = null;
 				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';
+					markExportLayoutState(subtitlesContainer, 'ready');
 				}
 				return;
 			}
@@ -488,6 +510,7 @@
 
 			// Cache les sous-titres pendant le recalcul
 			if (subtitlesContainer) {
+				markExportLayoutState(subtitlesContainer, 'pending');
 				subtitlesContainer.style.opacity = '0';
 			}
 
@@ -585,8 +608,10 @@
 			});
 
 			// Réaffiche les sous-titres
-			if (subtitlesContainer) {
-				subtitlesContainer.style.opacity = '1';
+			const currentSubtitlesContainer = document.getElementById('subtitles-container');
+			if (currentSubtitlesContainer instanceof HTMLElement) {
+				currentSubtitlesContainer.style.opacity = '1';
+				markExportLayoutState(currentSubtitlesContainer, 'ready');
 			}
 		})();
 	});

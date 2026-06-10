@@ -35,6 +35,8 @@ type TextDrawRun = {
 	shadows: ParsedTextShadow[];
 };
 
+type StableTextRunPosition = Pick<TextDrawRun, 'x' | 'y' | 'width' | 'height'>;
+
 type TextFilterScratch = {
 	canvas: HTMLCanvasElement;
 	context: CanvasRenderingContext2D;
@@ -57,6 +59,8 @@ type LiveTextCanvasCaptureOptions = {
 	compensateTextWeight?: boolean;
 	textRootSelector?: string;
 };
+
+const stableTimedOverlayTextPositions = new Map<string, StableTextRunPosition>();
 
 /**
  * Indique si l'optimisation de rendu texte d'export doit etre activee.
@@ -373,6 +377,43 @@ function applyTextTransform(text: string, transform: string): string {
 }
 
 /**
+ * Decoupe un intervalle texte en bornes de graphemes.
+ * @param {string} text Texte source complet.
+ * @param {number} start Debut de l'intervalle.
+ * @param {number} end Fin de l'intervalle.
+ * @returns {Array<{ start: number; end: number }>} Bornes de graphemes dans le texte source.
+ */
+function getGraphemeRanges(
+	text: string,
+	start: number,
+	end: number
+): Array<{ start: number; end: number }> {
+	const ranges: Array<{ start: number; end: number }> = [];
+	const slicedText = text.slice(start, end);
+	const segmenter =
+		'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+
+	if (segmenter) {
+		for (const { segment, index } of segmenter.segment(slicedText)) {
+			ranges.push({
+				start: start + index,
+				end: start + index + segment.length
+			});
+		}
+		return ranges;
+	}
+
+	let offset = start;
+	for (const grapheme of Array.from(slicedText)) {
+		const nextOffset = offset + grapheme.length;
+		ranges.push({ start: offset, end: nextOffset });
+		offset = nextOffset;
+	}
+
+	return ranges;
+}
+
+/**
  * Extrait les bornes de chaque token visible pour reconstruire les lignes.
  * @param text Texte brut.
  * @returns Tableau des bornes de tokens.
@@ -417,6 +458,23 @@ function getTextLineRects(textNode: Text, rootScaleY: number): TextLineRect[] {
 		range.setEnd(textNode, token.end);
 		const rects = Array.from(range.getClientRects());
 		range.detach();
+		const lineCount = new Set(rects.map((rect) => getLineBucket(rect, rootScaleY))).size;
+
+		if (lineCount > 1) {
+			for (const grapheme of getGraphemeRanges(textNode.data, token.start, token.end)) {
+				const graphemeRange = document.createRange();
+				graphemeRange.setStart(textNode, grapheme.start);
+				graphemeRange.setEnd(textNode, grapheme.end);
+				const graphemeRects = Array.from(graphemeRange.getClientRects());
+				graphemeRange.detach();
+
+				for (const rect of graphemeRects) {
+					if (!rect.width || !rect.height) continue;
+					tokenRects.push({ ...grapheme, rect });
+				}
+			}
+			continue;
+		}
 
 		for (const rect of rects) {
 			if (!rect.width || !rect.height) continue;
@@ -489,6 +547,49 @@ function getCumulativeFilter(element: HTMLElement, root: HTMLElement): string {
 }
 
 /**
+ * Construit une cle de position stable pour le texte d'un overlay temporise.
+ * @param parent Element parent du noeud texte.
+ * @param text Texte visible.
+ * @param computedStyle Style calcule du texte.
+ * @returns Cle stable ou null pour les textes non concernes.
+ */
+function getStableTimedOverlayTextPositionKey(
+	parent: HTMLElement,
+	text: string,
+	computedStyle: CSSStyleDeclaration
+): string | null {
+	const overlay = parent.closest<HTMLElement>('[data-overlay-max-opacity]');
+	if (!overlay) return null;
+
+	return [
+		overlay.style.transform,
+		text,
+		computedStyle.font,
+		computedStyle.direction,
+		computedStyle.textAlign
+	].join('|');
+}
+
+/**
+ * Stabilise la position d'un texte d'overlay temporise entre deux captures.
+ * @param key Cle stable de l'overlay.
+ * @param position Position mesuree pour la capture courante.
+ * @returns Position stabilisee.
+ */
+function stabilizeTimedOverlayTextPosition(
+	key: string | null,
+	position: StableTextRunPosition
+): StableTextRunPosition {
+	if (!key) return position;
+
+	const stablePosition = stableTimedOverlayTextPositions.get(key);
+	if (stablePosition) return stablePosition;
+
+	stableTimedOverlayTextPositions.set(key, position);
+	return position;
+}
+
+/**
  * Extrait les runs texte visibles a redessiner en canvas.
  * @param root Racine de capture.
  * @param textRootSelector Selecteur optionnel limitant le texte a redessiner.
@@ -525,13 +626,22 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 				direction === 'rtl'
 					? (line.rect.right - rootRect.left) * localScaleX
 					: (line.rect.left - rootRect.left) * localScaleX;
+			const stablePosition = stabilizeTimedOverlayTextPosition(
+				getStableTimedOverlayTextPositionKey(parent, text, computedStyle),
+				{
+					x,
+					y: (line.rect.top - rootRect.top) * localScaleY,
+					width: line.rect.width * localScaleX,
+					height: line.rect.height * localScaleY
+				}
+			);
 
 			runs.push({
 				text: applyTextTransform(text, computedStyle.textTransform),
-				x,
-				y: (line.rect.top - rootRect.top) * localScaleY,
-				width: line.rect.width * localScaleX,
-				height: line.rect.height * localScaleY,
+				x: stablePosition.x,
+				y: stablePosition.y,
+				width: stablePosition.width,
+				height: stablePosition.height,
 				font: computedStyle.font,
 				color: computedStyle.color,
 				opacity,

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AiMetricsGrid from './AiMetricsGrid.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	type MetricItem = {
 		label: string;
@@ -42,7 +43,7 @@
 		</div>
 		<div class="text-right">
 			<div class="text-lg font-semibold text-primary">{progressPercent}%</div>
-			<div class="text-[11px] uppercase tracking-[0.18em] text-thirdly">Progress</div>
+			<div class="text-[11px] uppercase tracking-[0.18em] text-thirdly">{$LL.editor.progress()}</div>
 		</div>
 	</div>
 

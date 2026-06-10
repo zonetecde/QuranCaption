@@ -45,6 +45,7 @@ export default class Exportation extends SerializableBase {
 	mergingFilesTotalSegments: number;
 	errorLog: string;
 	fps: number;
+	currentBatchSize: number | null;
 	date: string;
 	totalExportTimeMs: number | null;
 
@@ -89,6 +90,7 @@ export default class Exportation extends SerializableBase {
 		this.mergingFilesCurrentSegment = $state(0);
 		this.mergingFilesTotalSegments = $state(0);
 		this.errorLog = $state(errorLog);
+		this.currentBatchSize = $state(null);
 		this.date = $state(new Date().toISOString());
 		this.totalExportTimeMs = $state(null);
 	}
@@ -123,7 +125,10 @@ export default class Exportation extends SerializableBase {
 		// Ferme la fenêtre d'exportation si elle est ouverte
 		(await getAllWindows()).forEach((win) => {
 			console.log(win.label, this.exportId.toString());
-			if (win.label === this.exportId.toString()) {
+			if (
+				win.label === this.exportId.toString() ||
+				win.label.startsWith(`${this.exportId.toString()}-capture-`)
+			) {
 				win.close();
 				// La fenêtre d'exportation va supprimer le dossier temporaire des images à sa fermeture
 			}

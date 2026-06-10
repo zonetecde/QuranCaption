@@ -3,6 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import toast from 'svelte-5-french-toast';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import Settings from '$lib/classes/Settings.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import type {
@@ -160,7 +162,7 @@ class QuranAuthService {
 			await openUrl(authorizationUrl.toString());
 		} catch (error) {
 			await this.clearPendingVerifier();
-			this.setError(error, 'Unable to start Quran.com sign-in.');
+			this.setError(error, get(LL).settings.unableToStartSignIn());
 			throw error;
 		}
 	}
@@ -174,7 +176,7 @@ class QuranAuthService {
 		if (!handoffToken) {
 			this.setError(
 				new Error('Missing handoff token in deep link.'),
-				'Authentication data is incomplete.'
+				get(LL).settings.authDataIncomplete()
 			);
 			return;
 		}
@@ -190,7 +192,7 @@ class QuranAuthService {
 		try {
 			const verifier = await this.getSecureValue(PENDING_VERIFIER_STORAGE_KEY);
 			if (!verifier) {
-				throw new Error('Missing saved verifier for the OAuth handoff.');
+				throw new Error(get(LL).settings.missingVerifier());
 			}
 
 			const response = await this.postBridge<QuranAuthSession>('/api/quran/oauth/redeem', {
@@ -203,9 +205,9 @@ class QuranAuthService {
 			await this.clearPendingVerifier();
 			this.handledHandoffTokens.add(handoffToken);
 			await this.syncThemeFromPreferences();
-			toast.success('Connected to Quran.com.');
+			toast.success(get(LL).settings.connectedToQuranCom());
 		} catch (error) {
-			this.setError(error, 'Unable to complete Quran.com sign-in.');
+			this.setError(error, get(LL).settings.unableToCompleteSignIn());
 			throw error;
 		} finally {
 			if (this.activeHandoffToken === handoffToken) {
@@ -238,7 +240,7 @@ class QuranAuthService {
 			return refreshed;
 		} catch (error) {
 			await this.disconnect();
-			this.setError(error, 'Your Quran.com session expired and could not be refreshed.');
+			this.setError(error, get(LL).settings.sessionExpired());
 			return null;
 		}
 	}
@@ -306,7 +308,7 @@ class QuranAuthService {
 	async createCollection(name: string): Promise<QuranCollection> {
 		const trimmedName = name.trim();
 		if (!trimmedName) {
-			throw new Error('Collection name cannot be empty.');
+			throw new Error(get(LL).settings.collectionNameEmpty());
 		}
 
 		const response = await this.fetchUserApi<QuranCollectionResponse>('/auth/v1/collections', {
@@ -444,7 +446,7 @@ class QuranAuthService {
 		} catch (error) {
 			console.error('Failed to sync theme from Quran.com:', error);
 			if (showFeedback) {
-				toast.error('Unable to sync theme from Quran.com.');
+				toast.error(get(LL).settings.unableToSyncTheme());
 			}
 		}
 	}
@@ -581,7 +583,7 @@ class QuranAuthService {
 		}
 
 		if (!payload) {
-			throw new Error('Bridge response was empty.');
+			throw new Error(get(LL).settings.bridgeResponseEmpty());
 		}
 
 		return payload as TResponse;
@@ -623,7 +625,7 @@ class QuranAuthService {
 		}
 
 		if (!payload) {
-			throw new Error('Quran Foundation API response was empty.');
+			throw new Error(get(LL).settings.apiResponseEmpty());
 		}
 
 		return payload as TResponse;
@@ -633,7 +635,7 @@ class QuranAuthService {
 	private async getUserApiCredentials(): Promise<{ accessToken: string; clientId: string }> {
 		let session = this.session ?? (await this.refreshIfNeeded());
 		if (!session) {
-			throw new Error('Connect your Quran.com account first.');
+			throw new Error(get(LL).settings.connectAccountFirst());
 		}
 
 		if (!session.accessToken?.trim()) {
@@ -643,17 +645,17 @@ class QuranAuthService {
 
 		const accessToken = session?.accessToken?.trim();
 		if (!accessToken) {
-			throw new Error('Quran.com access token is unavailable. Please reconnect.');
+			throw new Error(get(LL).settings.accessTokenUnavailable());
 		}
 
 		if (!session) {
-			throw new Error('Connect your Quran.com account first.');
+			throw new Error(get(LL).settings.connectAccountFirst());
 		}
 
 		const clientId = this.getSessionClientId(session, accessToken);
 		if (!clientId) {
 			throw new Error(
-				'Quran Foundation client id is missing from the current session. Please reconnect.'
+				get(LL).settings.clientIdMissing()
 			);
 		}
 

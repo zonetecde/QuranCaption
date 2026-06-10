@@ -4,7 +4,8 @@
 	import VideoPreview from '$lib/components/projectEditor/videoPreview/VideoPreview.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { invoke } from '@tauri-apps/api/core';
-	import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+	import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
+	import { LogicalPosition } from '@tauri-apps/api/dpi';
 	import { listen } from '@tauri-apps/api/event';
 	import { onMount } from 'svelte';
 	import {
@@ -27,18 +28,25 @@
 		calculateCaptureTimingsForRange,
 		getExportWordByWordHighlightTimings as getExportWordByWordHighlightTimingsUtil,
 		getBlankImageFileName,
-		hasBlankImg,
+		getBlankVisualStateKey,
 		hasTiming,
+		buildExportCaptureJobPlan,
 		type ExportTimedOverlayCaptureClip,
 		type ExportSubtitleCaptureClip,
-		type ExportSubtitleWbwSourceClip
+		type ExportSubtitleWbwSourceClip,
+		type ExportCaptureTimingResult,
+		type ExportFrameCaptureJob,
+		type ExportFrameCopyJob,
+		type ExportBlankSourceJob
 	} from '$lib/services/ExportCaptureTiming';
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
-	import { getAllWindows } from '@tauri-apps/api/window';
+	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 	import { domToBlob } from 'modern-screenshot';
 	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
 	import {
@@ -51,6 +59,9 @@
 	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
+	// Affichage ou non des fenêtres
+	const DEBUG_EXPORT_MODE = false;
+
 	// Contient l'ID de l'export
 	let exportId = '';
 
@@ -59,6 +70,15 @@
 
 	// Récupère les données d'export de la vidéo
 	let exportData: Exportation | undefined;
+
+	const DEFAULT_PARALLEL_CAPTURE_WORKERS = 4;
+	const CAPTURE_WORKER_MODE = 'capture-worker';
+	const WORKER_READY_EVENT = 'export-capture-worker-ready';
+	const WORKER_START_EVENT = 'export-capture-worker-start';
+	const WORKER_PROGRESS_EVENT = 'export-capture-worker-progress';
+	const WORKER_COMPLETE_EVENT = 'export-capture-worker-complete';
+	const WORKER_ERROR_EVENT = 'export-capture-worker-error';
+	const WORKER_READY_TIMEOUT_MS = 45_000;
 
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
@@ -73,18 +93,18 @@
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
 	 * @param {Record<string, number>} imgWithNothingShown Blanks sources par etat visuel.
 	 * @param {number} timing Timing courant.
+	 * @param {ExportTimedOverlayCaptureClip[]} timedOverlayClips Overlays qui changent l'etat visuel.
 	 * @returns {string | null} Nom du fichier blank sans extension.
 	 */
 	function getReusableBlankFileName(
 		imgWithNothingShown: Record<string, number>,
-		timing: number
+		timing: number,
+		timedOverlayClips: ExportTimedOverlayCaptureClip[]
 	): string | null {
 		const currentSurah = globalState.getSubtitleTrack.getCurrentSurah(timing);
-		const key = Object.keys(imgWithNothingShown).find((blankVisualStateKey) =>
-			blankVisualStateKey.startsWith(`surah:${currentSurah}|`)
-		);
+		const key = getBlankVisualStateKey(currentSurah, timing, timedOverlayClips);
 
-		return key ? getBlankImageFileName(key) : null;
+		return imgWithNothingShown[key] !== undefined ? getBlankImageFileName(key) : null;
 	}
 
 	/**
@@ -138,11 +158,29 @@
 			total_time?: number;
 			export_id: string;
 			current_state?: string;
+			current_batch_size?: number;
 		};
 	};
 	type ExportCompleteEvent = { payload: { filename: string; exportId: string } };
 	type ExportErrorEvent = {
 		payload: { error: string; export_id: string };
+	};
+	type CaptureWorkerStartPayload = {
+		exportId: string;
+		workerId: number;
+		jobs: ExportFrameCaptureJob[];
+		subfolder: string | null;
+	};
+	type CaptureWorkerLifecyclePayload = {
+		exportId: string;
+		workerId: number;
+	};
+	type CaptureWorkerProgressPayload = CaptureWorkerLifecyclePayload & {
+		completed: number;
+		total: number;
+	};
+	type CaptureWorkerErrorPayload = CaptureWorkerLifecyclePayload & {
+		error: string;
 	};
 
 	function getExportFadeSettings(): ExportFadeSettings {
@@ -199,6 +237,7 @@
 			total_time?: number;
 			export_id: string;
 			current_state?: string;
+			current_batch_size?: number;
 		};
 
 		// Vérifie que c'est bien pour cette exportation
@@ -306,7 +345,8 @@
 				exportId: Number(exportId),
 				progress: mainProgressForMonitor,
 				currentState: currentVideoExportState,
-				currentTime: globalCurrentTime
+				currentTime: globalCurrentTime,
+				currentBatchSize: data.current_batch_size
 			} as ExportProgress);
 		} else {
 			console.log(`Export Processing: ${data.current_time.toFixed(1)}s elapsed`);
@@ -406,68 +446,146 @@
 		);
 	}
 
-	onMount(async () => {
-		// Ecoute les evenements de progression d'export donnes par Rust
-		listen('export-progress', exportProgress);
-		listen('export-complete', exportComplete);
-		listen('export-error', exportError);
+	/**
+	 * Retourne le label stable d'une fenetre worker de capture.
+	 * @param {number} workerId Index du worker.
+	 * @returns {string} Label de fenetre Tauri.
+	 */
+	function getCaptureWorkerLabel(workerId: number): string {
+		return `${exportId}-capture-${workerId}`;
+	}
 
-		// Récupère l'id de l'export, qui est en paramètre d'URL
-		const id = new URLSearchParams(window.location.search).get('id');
-		if (id) {
-			exportId = id;
+	/**
+	 * Envoie un evenement a la fenetre coordinator de l'export.
+	 * @param {string} eventName Nom de l'evenement Tauri.
+	 * @param {unknown} payload Donnees a transmettre.
+	 * @returns {Promise<void>}
+	 */
+	async function emitToCoordinator(eventName: string, payload: unknown): Promise<void> {
+		const coordinator = (await getAllWindows()).find((w) => w.label === exportId);
+		await coordinator?.emit(eventName, payload);
+	}
 
-			// Recupere le projet correspondant a cet ID (dans le dossier export, parametre inExportFolder: true)
-			globalState.currentProject = await ExportService.loadProject(Number(id));
-			removeHiddenTranslationsFromExportProject();
-			if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi') {
-				await SoosiProvider.prefetch();
-			}
-
-			// Créer le dossier d'export s'il n'existe pas
-			await mkdir(await join(ExportService.exportFolder, exportId), {
-				baseDir: BaseDirectory.AppData,
-				recursive: true
-			});
-
-			// Supprime le fichier projet JSON
-			ExportService.deleteProjectFile(Number(id));
-
-			// Récupère les données d'export
-			exportData = ExportService.findExportById(Number(id))!;
-
-			// Prépare les paramètres pour exporter la vidéo
-			globalState.getVideoPreviewState.isFullscreen = true; // Met la vidéo en plein écran
-			globalState.getVideoPreviewState.isPlaying = false; // Met la vidéo en pause
-			globalState.getVideoPreviewState.showVideosAndAudios = true; // Met la vidéo en sourdine
-			// Met le curseur au début du startTime voulu pour l'export
-			globalState.getTimelineState.cursorPosition = globalState.getExportState.videoStartTime;
-			globalState.getTimelineState.movePreviewTo = globalState.getExportState.videoStartTime;
-			// Hide waveform: consomme des ressources inutilement
-			if (globalState.settings) globalState.settings.persistentUiState.showWaveforms = false;
-			// Divise par 2 le fade duration pour l'export (car l'export le rallonge par deux, ne pas demander pourquoi)
-			globalState.getStyle('global', 'fade-duration')!.value =
-				(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
-
-			// Enlève tout les styles de position de la vidéo
-			let videoElement: HTMLElement;
-			// Attend que l'élément soit prêt
-			do {
-				await new Promise((resolve) => setTimeout(resolve, 100));
-				videoElement = document.getElementById('video-preview-section') as HTMLElement;
-				videoElement.style.objectFit = 'cover';
-				videoElement.style.top = '0';
-				videoElement.style.left = '0';
-				videoElement.style.width = '100%';
-				videoElement.style.height = '100%';
-			} while (!videoElement);
-
-			// Attend 2 secondes que tout soit prêt
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-
-			// Démarrer l'export
-			await startExport();
+	/**
+	 * Charge le projet d'export et applique les optimisations communes aux renderers.
+	 * @param {string} id Identifiant d'export.
+	 * @returns {Promise<void>}
+	 */
+	async function loadExportProject(id: string): Promise<void> {
+		globalState.currentProject = await ExportService.loadProject(Number(id));
+		removeHiddenTranslationsFromExportProject();
+		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi') {
+			await SoosiProvider.prefetch();
 		}
+
+		exportData = ExportService.findExportById(Number(id))!;
+	}
+
+	/**
+	 * Prepare la preview video pour rendre l'overlay en plein ecran export.
+	 * @returns {Promise<void>}
+	 */
+	async function prepareVideoPreviewForExport(): Promise<void> {
+		globalState.getVideoPreviewState.isFullscreen = true;
+		globalState.getVideoPreviewState.isPlaying = false;
+		globalState.getVideoPreviewState.showVideosAndAudios = true;
+		globalState.getTimelineState.cursorPosition = globalState.getExportState.videoStartTime;
+		globalState.getTimelineState.movePreviewTo = globalState.getExportState.videoStartTime;
+		if (globalState.settings) globalState.settings.persistentUiState.showWaveforms = false;
+		globalState.getStyle('global', 'fade-duration')!.value =
+			(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
+
+		let videoElement: HTMLElement | null = null;
+		do {
+			await new Promise((resolve) => setTimeout(resolve, 100));
+			videoElement = document.getElementById('video-preview-section') as HTMLElement | null;
+			if (!videoElement) continue;
+			videoElement.style.objectFit = 'cover';
+			videoElement.style.top = '0';
+			videoElement.style.left = '0';
+			videoElement.style.width = '100%';
+			videoElement.style.height = '100%';
+		} while (!videoElement);
+
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+	}
+
+	/**
+	 * Execute le mode worker: attendre les jobs du coordinator, capturer, puis fermer.
+	 * @param {number} workerId Index du worker courant.
+	 * @returns {Promise<void>}
+	 */
+	async function runCaptureWorker(workerId: number): Promise<void> {
+		const unlisten = await listen<CaptureWorkerStartPayload>(WORKER_START_EVENT, async (event) => {
+			const data = event.payload;
+			if (data.exportId !== exportId || data.workerId !== workerId) return;
+			unlisten();
+
+			try {
+				let completed = 0;
+				for (const job of data.jobs) {
+					await captureFrameJob(job, data.subfolder);
+					completed += 1;
+					await emitToCoordinator(WORKER_PROGRESS_EVENT, {
+						exportId,
+						workerId,
+						completed,
+						total: data.jobs.length
+					} satisfies CaptureWorkerProgressPayload);
+				}
+
+				await emitToCoordinator(WORKER_COMPLETE_EVENT, {
+					exportId,
+					workerId
+				} satisfies CaptureWorkerLifecyclePayload);
+			} catch (error) {
+				await emitToCoordinator(WORKER_ERROR_EVENT, {
+					exportId,
+					workerId,
+					error: error instanceof Error ? error.message : String(error)
+				} satisfies CaptureWorkerErrorPayload);
+			} finally {
+				await getCurrentWebviewWindow().close();
+			}
+		});
+
+		await emitToCoordinator(WORKER_READY_EVENT, {
+			exportId,
+			workerId
+		} satisfies CaptureWorkerLifecyclePayload);
+	}
+
+	onMount(async () => {
+		const params = new URLSearchParams(window.location.search);
+		const id = params.get('id');
+		if (!id) return;
+
+		exportId = id;
+		const isWorker = params.get('mode') === CAPTURE_WORKER_MODE;
+		const workerId = Number(params.get('worker') ?? '0');
+
+		if (!isWorker) {
+			// Ecoute les evenements de progression d'export donnes par Rust
+			listen('export-progress', exportProgress);
+			listen('export-complete', exportComplete);
+			listen('export-error', exportError);
+		}
+
+		await loadExportProject(id);
+
+		await mkdir(await join(ExportService.exportFolder, exportId), {
+			baseDir: BaseDirectory.AppData,
+			recursive: true
+		});
+
+		await prepareVideoPreviewForExport();
+
+		if (isWorker) {
+			await runCaptureWorker(workerId);
+			return;
+		}
+
+		await startExport();
 	});
 
 	async function startExport() {
@@ -554,6 +672,7 @@
 
 		hasCompletedCapturingFrames = true;
 		refreshSecondarySegmentProgressVisibility();
+		await ExportService.deleteProjectFile(Number(exportId));
 
 		emitProgress({
 			exportId: Number(exportId),
@@ -618,6 +737,340 @@
 		return currentSubtitleClip === null || currentSubtitleClip instanceof SilenceClip;
 	}
 
+	/**
+	 * Retourne le nombre de WebViews workers configure pour la capture PNG.
+	 * @returns {number} Nombre de workers borne entre 1 et 8.
+	 */
+	function getParallelCaptureWorkerCount(): number {
+		const configured = globalState.settings?.exportSettings?.parallelCaptureWorkers;
+		if (typeof configured !== 'number' || Number.isNaN(configured)) {
+			return DEFAULT_PARALLEL_CAPTURE_WORKERS;
+		}
+
+		return Math.max(1, Math.min(8, Math.round(configured)));
+	}
+
+	/**
+	 * Construit le plan de jobs d'images a partir des timings existants.
+	 * @param {ExportCaptureTimingResult} timings Resultat du calcul de timings.
+	 * @param {number} rangeStart Debut de la plage exportee.
+	 * @param {number} rangeEnd Fin de la plage exportee.
+	 * @param {boolean} isSegment Indique si le plan cible un sous-dossier de segment.
+	 * @returns {ReturnType<typeof buildExportCaptureJobPlan>} Plan de jobs pret a executer.
+	 */
+	function buildImageCapturePlan(
+		timings: ExportCaptureTimingResult,
+		rangeStart: number,
+		rangeEnd: number,
+		isSegment: boolean
+	): ReturnType<typeof buildExportCaptureJobPlan> {
+		const fadeDuration = Math.round(
+			globalState.getStyle('global', 'fade-duration')!.value as number
+		);
+		const timedOverlayClips = getTimedOverlayCaptureClips();
+
+		return buildExportCaptureJobPlan({
+			timings,
+			rangeStart,
+			rangeEnd,
+			fadeDuration,
+			workerCount: getParallelCaptureWorkerCount(),
+			isBlankCaptureTiming: (timing) =>
+				isBlankCaptureTiming(timing, timings.blankImgs, timings.imgWithNothingShown),
+			getReusableBlankFileName: (timing) =>
+				getReusableBlankFileName(timings.imgWithNothingShown, timing, timedOverlayClips),
+			getBlankSourceCaptureTiming: (timing) => (isSegment ? timing - 1 : timing)
+		});
+	}
+
+	/**
+	 * Capture une image blank source partagee entre les workers.
+	 * @param {ExportBlankSourceJob} job Job blank source.
+	 * @returns {Promise<void>}
+	 */
+	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<void> {
+		globalState.getTimelineState.movePreviewTo = job.captureTiming;
+		globalState.getTimelineState.cursorPosition = job.captureTiming;
+		await wait(job.captureTiming);
+		await takeScreenshot(job.fileName);
+	}
+
+	/**
+	 * Capture une frame numerotee avec la preview du renderer courant.
+	 * @param {ExportFrameCaptureJob} job Job de capture.
+	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
+	 * @returns {Promise<void>}
+	 */
+	async function captureFrameJob(
+		job: ExportFrameCaptureJob,
+		subfolder: string | null
+	): Promise<void> {
+		globalState.getTimelineState.movePreviewTo = job.captureTiming;
+		globalState.getTimelineState.cursorPosition = job.captureTiming;
+		await wait(job.captureTiming);
+		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName);
+	}
+
+	/**
+	 * Execute les captures dans la fenetre courante, sans workers.
+	 * @param {ExportFrameCaptureJob[]} jobs Jobs a capturer.
+	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
+	 * @param {(completed: number, timing?: number) => void} onProgress Callback de progression.
+	 * @returns {Promise<void>}
+	 */
+	async function runSerialCaptureJobs(
+		jobs: ExportFrameCaptureJob[],
+		subfolder: string | null,
+		onProgress: (completed: number, timing?: number) => void
+	): Promise<void> {
+		for (let index = 0; index < jobs.length; index++) {
+			const job = jobs[index];
+			await captureFrameJob(job, subfolder);
+			onProgress(index + 1, job.timing);
+
+			if ((index + 1) % 20 === 0) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+		}
+	}
+
+	/**
+	 * Ouvre les fenetres workers offscreen pour la capture parallele.
+	 * @param {ExportFrameCaptureJob[][]} buckets Jobs assignes a chaque worker.
+	 * @returns {Promise<WebviewWindow[]>} Fenetres workers creees.
+	 */
+	async function openCaptureWorkerWindows(
+		buckets: ExportFrameCaptureJob[][]
+	): Promise<WebviewWindow[]> {
+		const windows: WebviewWindow[] = [];
+		for (let workerId = 0; workerId < buckets.length; workerId++) {
+			const label = getCaptureWorkerLabel(workerId);
+			const w = new WebviewWindow(label, {
+				center: false,
+				decorations: false,
+				visible: true,
+				focus: false,
+				skipTaskbar: true,
+				preventOverflow: false,
+				x: DEBUG_EXPORT_MODE ? workerId * 100 : -10000,
+				y: DEBUG_EXPORT_MODE ? workerId * 100 : -10000,
+				backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
+				alwaysOnTop: false,
+				alwaysOnBottom: DEBUG_EXPORT_MODE ? false : true,
+				title: 'QC Capture - ' + label,
+				url:
+					'/exporter?' +
+					new URLSearchParams({
+						id: exportId,
+						mode: CAPTURE_WORKER_MODE,
+						worker: workerId.toString()
+					})
+			});
+
+			w.once('tauri://created', async () => {
+				try {
+					if (!DEBUG_EXPORT_MODE) await w.setPosition(new LogicalPosition(-10000, -10000));
+				} catch (error) {
+					console.warn('Unable to move capture worker off-screen:', error);
+				}
+			});
+
+			windows.push(w);
+		}
+
+		return windows;
+	}
+
+	/**
+	 * Ferme toutes les fenetres workers de l'export courant.
+	 * @returns {Promise<void>}
+	 */
+	async function closeCaptureWorkerWindows(): Promise<void> {
+		const windows = await getAllWindows();
+		await Promise.all(
+			windows
+				.filter((w) => w.label.startsWith(`${exportId}-capture-`))
+				.map(async (w) => {
+					try {
+						await w.close();
+					} catch (error) {
+						console.warn('Unable to close capture worker:', error);
+					}
+				})
+		);
+	}
+
+	/**
+	 * Execute les captures avec plusieurs WebViews Tauri independantes.
+	 * @param {ExportFrameCaptureJob[][]} buckets Jobs decoupes par worker.
+	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
+	 * @param {(completed: number) => void} onProgress Callback de progression agregée.
+	 * @returns {Promise<void>}
+	 */
+	async function runParallelCaptureJobs(
+		buckets: ExportFrameCaptureJob[][],
+		subfolder: string | null,
+		onProgress: (completed: number) => void
+	): Promise<void> {
+		const workerProgress = Array.from({ length: buckets.length }, () => 0);
+		const readyWorkers = new Set<number>();
+		const completeWorkers = new Set<number>();
+		const unlisteners: Array<() => void> = [];
+		let readyTimeout: ReturnType<typeof setTimeout> | undefined;
+		let resolveReady: () => void = () => {};
+		let rejectReady: (error: Error) => void = () => {};
+		let resolveComplete: () => void = () => {};
+		let rejectComplete: (error: Error) => void = () => {};
+
+		const readyPromise = new Promise<void>((resolve, reject) => {
+			resolveReady = resolve;
+			rejectReady = reject;
+			readyTimeout = setTimeout(() => {
+				reject(new Error('Timeout waiting for capture workers'));
+			}, WORKER_READY_TIMEOUT_MS);
+		});
+
+		const completePromise = new Promise<void>((resolve, reject) => {
+			resolveComplete = resolve;
+			rejectComplete = reject;
+		});
+
+		unlisteners.push(
+			await listen<CaptureWorkerLifecyclePayload>(WORKER_READY_EVENT, (event) => {
+				const data = event.payload;
+				if (data.exportId !== exportId) return;
+				readyWorkers.add(data.workerId);
+				if (readyWorkers.size === buckets.length) {
+					if (readyTimeout) clearTimeout(readyTimeout);
+					resolveReady();
+				}
+			})
+		);
+
+		unlisteners.push(
+			await listen<CaptureWorkerProgressPayload>(WORKER_PROGRESS_EVENT, (event) => {
+				const data = event.payload;
+				if (data.exportId !== exportId) return;
+				workerProgress[data.workerId] = data.completed;
+				onProgress(workerProgress.reduce((sum, value) => sum + value, 0));
+			})
+		);
+
+		unlisteners.push(
+			await listen<CaptureWorkerLifecyclePayload>(WORKER_COMPLETE_EVENT, (event) => {
+				const data = event.payload;
+				if (data.exportId !== exportId) return;
+				completeWorkers.add(data.workerId);
+				workerProgress[data.workerId] = buckets[data.workerId]?.length ?? 0;
+				onProgress(workerProgress.reduce((sum, value) => sum + value, 0));
+				if (completeWorkers.size === buckets.length) resolveComplete();
+			})
+		);
+
+		unlisteners.push(
+			await listen<CaptureWorkerErrorPayload>(WORKER_ERROR_EVENT, (event) => {
+				const data = event.payload;
+				if (data.exportId !== exportId) return;
+				const error = new Error(`Capture worker ${data.workerId} failed: ${data.error}`);
+				if (readyWorkers.size < buckets.length) {
+					rejectReady(error);
+				} else {
+					rejectComplete(error);
+				}
+			})
+		);
+
+		await closeCaptureWorkerWindows();
+		const workerWindows = await openCaptureWorkerWindows(buckets);
+		try {
+			await readyPromise;
+			await Promise.all(
+				workerWindows.map((w, workerId) =>
+					w.emit(WORKER_START_EVENT, {
+						exportId,
+						workerId,
+						jobs: buckets[workerId],
+						subfolder
+					} satisfies CaptureWorkerStartPayload)
+				)
+			);
+			await completePromise;
+		} finally {
+			if (readyTimeout) clearTimeout(readyTimeout);
+			for (const unlisten of unlisteners) unlisten();
+			await closeCaptureWorkerWindows();
+		}
+	}
+
+	/**
+	 * Execute les copies planifiees apres disponibilite de toutes les sources.
+	 * @param {ExportFrameCopyJob[]} jobs Jobs de copie.
+	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
+	 * @param {(completed: number, timing?: number) => void} onProgress Callback de progression.
+	 * @returns {Promise<void>}
+	 */
+	async function runCopyJobs(
+		jobs: ExportFrameCopyJob[],
+		subfolder: string | null,
+		onProgress: (completed: number, timing?: number) => void
+	): Promise<void> {
+		for (let index = 0; index < jobs.length; index++) {
+			const job = jobs[index];
+			await duplicateScreenshot(job.sourceFileName, job.targetFileName, subfolder);
+			onProgress(index + 1, job.timing);
+		}
+	}
+
+	/**
+	 * Execute un plan complet: blanks sources, captures paralleles puis copies.
+	 * @param {ReturnType<typeof buildExportCaptureJobPlan>} plan Plan de jobs.
+	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
+	 * @param {(completed: number, total: number, timing?: number) => void} onProgress Callback global.
+	 * @returns {Promise<void>}
+	 */
+	async function executeImageCapturePlan(
+		plan: ReturnType<typeof buildExportCaptureJobPlan>,
+		subfolder: string | null,
+		onProgress: (completed: number, total: number, timing?: number) => void
+	): Promise<void> {
+		const totalJobs = Math.max(1, plan.totalJobs);
+		let completed = 0;
+
+		for (const job of plan.blankSourceJobs) {
+			await captureBlankSourceJob(job);
+			completed += 1;
+			onProgress(completed, totalJobs, job.timing);
+		}
+
+		const completedBeforeCaptures = completed;
+		if (plan.captureJobs.length > 0) {
+			if (plan.workerBuckets.length <= 1) {
+				await closeCaptureWorkerWindows();
+				await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
+					onProgress(completedBeforeCaptures + captureCompleted, totalJobs, timing);
+				});
+			} else {
+				try {
+					await runParallelCaptureJobs(plan.workerBuckets, subfolder, (captureCompleted) => {
+						onProgress(completedBeforeCaptures + captureCompleted, totalJobs);
+					});
+				} catch (error) {
+					console.error('Parallel capture failed, retrying serial capture:', error);
+					await closeCaptureWorkerWindows();
+					await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
+						onProgress(completedBeforeCaptures + captureCompleted, totalJobs, timing);
+					});
+				}
+			}
+			completed = completedBeforeCaptures + plan.captureJobs.length;
+		}
+
+		const completedBeforeCopies = completed;
+		await runCopyJobs(plan.copyJobs, subfolder, (copyCompleted, timing) => {
+			onProgress(completedBeforeCopies + copyCompleted, totalJobs, timing);
+		});
+	}
+
 	async function generateImagesForSegment(
 		segmentIndex: number,
 		segmentStart: number,
@@ -627,10 +1080,6 @@
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
 	): Promise<number[]> {
-		const fadeDuration = Math.round(
-			globalState.getStyle('global', 'fade-duration')!.value as number
-		);
-
 		// Calculer les timings pour ce segment spécifique
 		const segmentTimings = calculateTimingsForRange(segmentStart, segmentEnd);
 
@@ -638,101 +1087,11 @@
 			`Segment ${segmentIndex}: ${segmentTimings.uniqueSorted.length} screenshots to take`
 		);
 
-		let i = 0;
-		let base = -fadeDuration; // Pour compenser le fade-in du début
-		const blankImageIndexes = new Set<number>();
+		const plan = buildImageCapturePlan(segmentTimings, segmentStart, segmentEnd, true);
+		const totalDuration = exportData!.videoEndTime - exportData!.videoStartTime;
 
-		for (const timing of segmentTimings.uniqueSorted) {
-			// Calculer l'index de l'image dans ce segment (recommence a 0)
-			const imageIndex = Math.max(Math.round(timing - segmentStart + base), 0);
-			const blankTimingInfo = hasTiming(segmentTimings.blankImgs, timing);
-			const isBlankImage = isBlankCaptureTiming(
-				timing,
-				segmentTimings.blankImgs,
-				segmentTimings.imgWithNothingShown
-			);
-
-			if (isBlankImage) {
-				blankImageIndexes.add(imageIndex);
-			}
-
-			// Vérifie si ce timing doit être dupliqué depuis un autre
-			const sourceTimingForDuplication = Array.from(
-				segmentTimings.duplicableTimings.entries()
-			).find(
-				([target]) => target === timing // target = timing qui doit être dupliqué
-			)?.[1];
-
-			// Si c'est dupliquable
-			if (sourceTimingForDuplication !== undefined) {
-				// Ce timing peut être dupliqué depuis sourceTimingForDuplication
-				const sourceIndex = Math.max(
-					Math.round(sourceTimingForDuplication - segmentStart - fadeDuration),
-					0
-				);
-				// Prend que un seul screenshot et le duplique
-				await duplicateScreenshot(`${sourceIndex}`, imageIndex, segmentImageFolder);
-			} else if (
-				blankTimingInfo.hasIt &&
-				hasBlankImg(segmentTimings.imgWithNothingShown, blankTimingInfo.key!)
-			) {
-				// Récupérer le numéro de sourate pour ce timing
-				const surahInfo = blankTimingInfo;
-				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
-
-				await duplicateScreenshot(
-					getBlankImageFileName(surahInfo.key!),
-					imageIndex,
-					segmentImageFolder
-				);
-				console.log('Duplicating screenshot instead of taking new one at', timing);
-			} else {
-				// Important: le +1 sinon le svg de la sourate est le mauvais
-				globalState.getTimelineState.movePreviewTo = timing;
-				globalState.getTimelineState.cursorPosition = timing;
-
-				// si la difference entre timing et celui juste avant est grand, attendre un peu plus
-				await wait(timing);
-
-				await takeScreenshot(
-					`${imageIndex}`,
-					segmentImageFolder,
-					isBlankImage ? null : getReusableBlankFileName(segmentTimings.imgWithNothingShown, timing)
-				);
-
-				// Verifier si ce timing correspond a une image blank de reference pour une sourate
-				for (const [blankVisualStateKey, blankTiming] of Object.entries(
-					segmentTimings.imgWithNothingShown
-				)) {
-					if (timing === blankTiming) {
-						// monte de 1 le timing pour avoir le svg correct
-						globalState.getTimelineState.movePreviewTo = timing - 1;
-						globalState.getTimelineState.cursorPosition = timing - 1;
-						await wait(timing - 1);
-						console.log(
-							`Creating blank image for state ${blankVisualStateKey} at timing ${timing}`
-						);
-						await takeScreenshot(getBlankImageFileName(blankVisualStateKey));
-						console.log(`Blank image created for state ${blankVisualStateKey} at timing ${timing}`);
-						break; // Une seule sourate par timing
-					}
-				}
-
-				console.log(
-					`Segment ${segmentIndex}: Screenshot taken at timing ${timing} -> image ${imageIndex}`
-				);
-			}
-
-			base += fadeDuration;
-			i++;
-
-			// Toutes les 20 captures, laisser respirer le GC pour éviter l'OOM
-			if (i % 20 === 0) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
-			}
-
-			// Progress pour ce segment dans la phase spécifiée
-			const segmentImageProgress = (i / segmentTimings.uniqueSorted.length) * 100;
+		await executeImageCapturePlan(plan, segmentImageFolder, (completed, total) => {
+			const segmentImageProgress = (completed / total) * 100;
 			const segmentPhaseProgress = (segmentIndex * 100 + segmentImageProgress) / totalSegments;
 			const globalProgress =
 				phaseStartProgress + (segmentPhaseProgress * (phaseEndProgress - phaseStartProgress)) / 100;
@@ -741,12 +1100,12 @@
 				exportId: Number(exportId),
 				progress: globalProgress,
 				currentState: ExportState.CapturingFrames,
-				currentTime: timing - exportData!.videoStartTime,
-				totalTime: exportData!.videoEndTime - exportData!.videoStartTime
+				currentTime: (globalProgress / 100) * totalDuration,
+				totalTime: totalDuration
 			} as ExportProgress);
-		}
+		});
 
-		return Array.from(blankImageIndexes).sort((a, b) => a - b);
+		return plan.blankImageIndexes;
 	}
 
 	async function generateVideoForSegment(
@@ -814,11 +1173,6 @@
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
-				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
-				batchSize:
-					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 64)
-						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
@@ -895,10 +1249,6 @@
 		totalDuration: number,
 		blur: number
 	) {
-		const fadeDuration = Math.round(
-			globalState.getStyle('global', 'fade-duration')!.value as number
-		);
-
 		// Calculer tous les timings nécessaires
 		const timings = calculateTimingsForRange(exportStart, exportEnd);
 
@@ -910,99 +1260,22 @@
 			timings.imgWithNothingShown
 		);
 
-		let i = 0;
-		let base = -fadeDuration;
-		const blankImageIndexes = new Set<number>();
+		const plan = buildImageCapturePlan(timings, exportStart, exportEnd, false);
 
-		for (const timing of timings.uniqueSorted) {
-			const imageIndex = Math.max(Math.round(timing - exportStart + base), 0);
-			const blankTimingInfo = hasTiming(timings.blankImgs, timing);
-			const isBlankImage = isBlankCaptureTiming(
-				timing,
-				timings.blankImgs,
-				timings.imgWithNothingShown
-			);
-
-			if (isBlankImage) {
-				blankImageIndexes.add(imageIndex);
-			}
-
-			// Vérifier si ce timing peut être dupliqué depuis un autre
-			const sourceTimingForDuplication = Array.from(timings.duplicableTimings.entries()).find(
-				([target]) => target === timing
-			)?.[1];
-
-			if (sourceTimingForDuplication !== undefined) {
-				// Ce timing peut être dupliqué depuis sourceTimingForDuplication
-				const sourceIndex = Math.max(
-					Math.round(sourceTimingForDuplication - exportStart - fadeDuration),
-					0
-				);
-				await duplicateScreenshot(`${sourceIndex}`, imageIndex);
-				console.log(
-					`Optimisation - Duplicating screenshot from timing ${sourceTimingForDuplication} (image ${sourceIndex}) to timing ${timing} (image ${imageIndex})`
-				);
-			} else if (
-				blankTimingInfo.hasIt &&
-				hasBlankImg(timings.imgWithNothingShown, blankTimingInfo.key!)
-			) {
-				// Récupérer le numéro de sourate pour ce timing
-				const surahInfo = blankTimingInfo;
-				console.log(`Duplicating blank image for surah ${surahInfo.surah} at timing ${timing}`);
-
-				await duplicateScreenshot(getBlankImageFileName(surahInfo.key!), imageIndex);
-				console.log('Duplicating screenshot instead of taking new one at', timing);
-			} else {
-				const captureTiming =
-					timings.exactCaptureTimingValues.get(timing) ??
-					(isBlankImage || timings.exactCaptureTimings.has(timing) ? timing : timing + 1);
-				globalState.getTimelineState.movePreviewTo = captureTiming;
-				globalState.getTimelineState.cursorPosition = captureTiming;
-
-				await wait(captureTiming);
-
-				await takeScreenshot(
-					`${imageIndex}`,
-					null,
-					isBlankImage ? null : getReusableBlankFileName(timings.imgWithNothingShown, timing)
-				);
-
-				// Verifier si ce timing correspond a une image blank de reference pour une sourate
-				for (const [blankVisualStateKey, blankTiming] of Object.entries(
-					timings.imgWithNothingShown
-				)) {
-					if (timing === blankTiming) {
-						console.log(
-							`Creating blank image for state ${blankVisualStateKey} at timing ${timing}`
-						);
-						await takeScreenshot(getBlankImageFileName(blankVisualStateKey));
-						console.log(`Blank image created for state ${blankVisualStateKey} at timing ${timing}`);
-						break; // Une seule sourate par timing
-					}
-				}
-
-				console.log(`Normal export: Screenshot taken at timing ${timing} -> image ${imageIndex}`);
-			}
-
-			base += fadeDuration;
-			i++;
-
-			// Toutes les 20 captures, laisser respirer le GC pour éviter l'OOM
-			if (i % 20 === 0) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
-			}
-
+		await executeImageCapturePlan(plan, null, (completed, total) => {
+			const progress = (completed / total) * 100;
 			emitProgress({
 				exportId: Number(exportId),
-				progress: (i / timings.uniqueSorted.length) * 100,
+				progress,
 				currentState: ExportState.CapturingFrames,
-				currentTime: timing - exportStart,
+				currentTime: (progress / 100) * totalDuration,
 				totalTime: totalDuration
 			} as ExportProgress);
-		}
+		});
 
-		const normalizedBlankTimings = Array.from(blankImageIndexes).sort((a, b) => a - b);
+		const normalizedBlankTimings = plan.blankImageIndexes;
 
+		await ExportService.deleteProjectFile(Number(exportId));
 		await deleteBlankImages();
 
 		// Générer la vidéo normale
@@ -1010,6 +1283,47 @@
 
 		// Nettoyage
 		await finalCleanup();
+	}
+
+	/**
+	 * Retourne les overlays temporises qui peuvent changer l'etat visuel d'une capture.
+	 * @returns {ExportTimedOverlayCaptureClip[]} Clips d'overlays pris en compte pendant l'export.
+	 */
+	function getTimedOverlayCaptureClips(): ExportTimedOverlayCaptureClip[] {
+		const timedOverlayClips: ExportTimedOverlayCaptureClip[] = (
+			(globalState.getCustomClipTrack?.clips || []) as CustomClip[]
+		).map((clip) => {
+			return {
+				id: clip.id,
+				startTime: clip.startTime,
+				endTime: clip.endTime,
+				alwaysShow: Boolean(clip.category?.getStyle('always-show')?.value),
+				captureBoundariesWhenAlwaysShow: true
+			};
+		});
+
+		if (globalState.getStyle('global', 'show-surah-name')!.value === true) {
+			timedOverlayClips.push({
+				id: 'surah-name',
+				startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value)
+			});
+		}
+
+		if (
+			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
+			globalState.currentProject?.detail.reciter !== 'not set'
+		) {
+			timedOverlayClips.push({
+				id: 'reciter-name',
+				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
+			});
+		}
+
+		return timedOverlayClips;
 	}
 
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
@@ -1047,45 +1361,12 @@
 			}
 		);
 
-		const timedOverlayClips: ExportTimedOverlayCaptureClip[] = (
-			(globalState.getCustomClipTrack?.clips || []) as CustomClip[]
-		).map((clip) => {
-			return {
-				id: clip.id,
-				startTime: clip.startTime,
-				endTime: clip.endTime,
-				alwaysShow: Boolean(clip.category?.getStyle('always-show')?.value),
-				captureBoundariesWhenAlwaysShow: true
-			};
-		});
-
-		if (globalState.getStyle('global', 'show-surah-name')!.value === true) {
-			timedOverlayClips.push({
-				id: 'surah-name',
-				startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value)
-			});
-		}
-
-		if (
-			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
-			globalState.currentProject?.detail.reciter !== 'not set'
-		) {
-			timedOverlayClips.push({
-				id: 'reciter-name',
-				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
-			});
-		}
-
 		return calculateCaptureTimingsForRange({
 			rangeStart,
 			rangeEnd,
 			fadeDuration: Math.round(globalState.getStyle('global', 'fade-duration')!.value as number),
 			subtitleClips,
-			timedOverlayClips,
+			timedOverlayClips: getTimedOverlayCaptureClips(),
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
 		});
 	}
@@ -1191,11 +1472,6 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
-				batchSizeMode: globalState.settings?.exportSettings.batchSizeMode ?? 'auto',
-				batchSize:
-					globalState.settings?.exportSettings.batchSizeMode === 'fixed'
-						? (globalState.settings?.exportSettings.batchSize ?? 64)
-						: null,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
@@ -1285,6 +1561,7 @@
 			const filePathWithName = await join(...pathComponents);
 
 			const isMacOS = shouldRedrawExportTextWithCanvas();
+
 			const useLiveTextCanvasCapture = isMacOS;
 			if (!useLiveTextCanvasCapture) {
 				const blob: Blob | null = await domToBlob(node, {
@@ -1324,7 +1601,8 @@
 				error && typeof error === 'object' && 'message' in error
 					? String((error as { message?: unknown }).message ?? '')
 					: String(error ?? 'Unknown error');
-			toast.error('Error while taking screenshot: ' + message);
+			toast.error(get(LL).editor.exportScreenshotError({ error: message }));
+			throw error;
 		} finally {
 			// Restaurer l'opacité originale des overlays forcés
 			for (const { el, prev } of forcedOverlayElements) {
@@ -1367,14 +1645,15 @@
 				destination: await join(await appDataDir(), targetFilePathWithName)
 			});
 			console.log('Duplicate screenshot saved to:', targetFilePathWithName);
-		} catch {
+		} catch (error) {
 			// Fallback: lire et écrire si la commande Rust n'existe pas
 			if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
 				console.error('Source screenshot does not exist:', sourceFilePathWithName);
-				return;
+				throw new Error(`Source screenshot does not exist: ${sourceFilePathWithName}`);
 			}
 			const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
 			await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });
+			console.warn('copy_file failed, fallback copy used:', error);
 			console.log('Duplicate screenshot saved to (fallback):', targetFilePathWithName);
 		}
 	}
@@ -1405,35 +1684,76 @@
 	}
 
 	/**
-	 * Attendre un peu plus longtemps si le timing est très espacé du précédent (sous-titre long)
-	 * @param timing
-	 * @param i
-	 * @param uniqueSorted
+	 * Attend la prochaine frame navigateur.
+	 * @returns {Promise<void>} Promise resolue apres un repaint.
+	 */
+	async function waitForAnimationFrame(): Promise<void> {
+		await new Promise<void>((resolve) => {
+			// En WebView d'export macOS, requestAnimationFrame peut etre suspendu.
+			const fallback = window.setTimeout(resolve, 50);
+			requestAnimationFrame(() => {
+				window.clearTimeout(fallback);
+				resolve();
+			});
+		});
+	}
+
+	/**
+	 * Indique si le conteneur de sous-titres est pret pour un timing d'export.
+	 * @param {HTMLElement} subtitlesContainer Conteneur de sous-titres.
+	 * @param {string} timingKey Timing attendu.
+	 * @returns {boolean} true si le layout async est termine pour ce timing.
+	 */
+	function isSubtitleLayoutReady(subtitlesContainer: HTMLElement, timingKey: string): boolean {
+		// Ne pas vérifier l'opacité ici: macOS peut ne jamais exposer exactement "1".
+		return (
+			subtitlesContainer.dataset.exportLayoutTiming === timingKey &&
+			subtitlesContainer.dataset.exportLayoutState === 'ready'
+		);
+	}
+
+	/**
+	 * Attend que le layout de sous-titres soit stable avant une capture.
+	 * @param {number} timing Timing capture courant.
+	 * @returns {Promise<void>} Promise resolue quand la capture peut commencer.
 	 */
 	async function wait(timing: number) {
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
 
-		// Attend que l'élément `subtitles-container` est une opacité de 1 (visible) (car il est caché pendant que max-height s'applique)
-		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+		await waitForAnimationFrame();
 
-		if (!subtitlesContainer) {
-			await new Promise((resolve) => setTimeout(resolve, 200));
-		} else {
-			const startTime = Date.now();
-			const timeout = 1000; // 1000ms maximum timeout to avoid infinite hang
+		const timingKey = String(Math.round(timing));
+		const expectsSubtitle = Boolean(globalState.getSubtitleTrack.getCurrentSubtitleToDisplay());
+		const startTime = Date.now();
+		const timeout = 10_000;
 
-			do {
-				if (Date.now() - startTime > timeout) {
-					console.warn(
-						`Timeout waiting for subtitles-container at ${timing}ms, proceeding anyway.`
-					);
-					break;
-				}
-				await new Promise((resolve) => setTimeout(resolve, 10));
-			} while (subtitlesContainer.style.opacity !== '1');
+		while (Date.now() - startTime <= timeout) {
+			const subtitlesContainer = document.getElementById(
+				'subtitles-container'
+			) as HTMLElement | null;
+
+			if (!expectsSubtitle) {
+				if (!subtitlesContainer) break;
+			} else if (subtitlesContainer && isSubtitleLayoutReady(subtitlesContainer, timingKey)) {
+				break;
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, 20));
 		}
 
+		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+		if (
+			expectsSubtitle &&
+			(!subtitlesContainer || !isSubtitleLayoutReady(subtitlesContainer, timingKey))
+		) {
+			throw new Error(`Timeout waiting for subtitle layout at ${timing}ms.`);
+		}
+		if (!expectsSubtitle && subtitlesContainer) {
+			throw new Error(`Timeout waiting for subtitles to clear at ${timing}ms.`);
+		}
+
+		await waitForAnimationFrame();
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
 	}
 </script>

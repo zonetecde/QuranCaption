@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import type {
 		CommunityPresetOrientation,
@@ -35,7 +36,7 @@
 			bind:value={globalState.presetLibrary.communitySearchQuery}
 			class="h-9 w-full rounded-md border border-color bg-primary py-1 pl-8 pr-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 			type="search"
-			placeholder="Search community presets"
+			placeholder={$LL.style.searchCommunityPresets()}
 		/>
 	</label>
 	<select
@@ -43,19 +44,19 @@
 		onchange={(e) => setSort(e.currentTarget.value as CommunityPresetSort)}
 		class="h-9 text-xs"
 	>
-		<option value="newest">Newest</option>
-		<option value="most_downloaded">Most downloaded</option>
-		<option value="most_liked">Most liked</option>
+		<option value="newest">{$LL.style.sortNewest()}</option>
+		<option value="most_downloaded">{$LL.style.sortMostDownloaded()}</option>
+		<option value="most_liked">{$LL.style.sortMostLiked()}</option>
 	</select>
 	<select
 		value={selectedOrientation}
 		onchange={(e) => setOrientation(e.currentTarget.value as CommunityPresetOrientation | 'all')}
 		class="h-9 text-xs"
 	>
-		<option value="all">All orientations</option>
-		<option value="landscape">Landscape</option>
-		<option value="portrait">Portrait</option>
-		<option value="square">Square</option>
+		<option value="all">{$LL.style.allOrientations()}</option>
+		<option value="landscape">{$LL.style.orientationLandscape()}</option>
+		<option value="portrait">{$LL.style.orientationPortrait()}</option>
+		<option value="square">{$LL.style.orientationSquare()}</option>
 	</select>
 </div>
 
@@ -66,7 +67,7 @@
 			type="button"
 			onclick={() => setTag('')}
 		>
-			All tags
+			{$LL.style.allTags()}
 		</button>
 		{#each popularTags as tag (tag.name)}
 			<button

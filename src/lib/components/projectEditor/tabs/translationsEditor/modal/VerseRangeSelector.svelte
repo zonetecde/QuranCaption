@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Duration } from '$lib/classes';
 	import { VerseRange } from '$lib/classes/VerseRange.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		totalDurationMs,
@@ -8,11 +9,11 @@
 		selectedItems = 0,
 		startTimeMs = $bindable(),
 		endTimeMs = $bindable(),
-		title = 'Time Selection',
+		title = $bindable($LL.editor.timeSelection()),
 		icon = 'schedule',
-		totalLabel = 'eligible verses',
-		selectionLabel = 'Select time range to include:',
-		selectionHint = '(based on the video timeline)',
+		totalLabel = $bindable($LL.editor.eligibleVerses()),
+		selectionLabel = $bindable($LL.editor.selectTimeRangeHint()),
+		selectionHint = $bindable($LL.editor.selectTimeRangeHint()),
 		onRangeChange = () => {}
 	}: {
 		totalDurationMs: number;
@@ -67,7 +68,7 @@
 		<span
 			class="rounded-md border border-color bg-secondary px-2 py-1 text-xs font-semibold text-primary"
 		>
-			{selectedItems} selected
+			{$LL.editor.selectedItems({ count: selectedItems })}
 		</span>
 	</div>
 	<div class="rounded-lg border border-color bg-accent p-4">
@@ -118,15 +119,15 @@
 
 			<div class="grid gap-4 md:grid-cols-2">
 				<div class="rounded-lg border border-color bg-secondary p-3 text-xs">
-					<div class="mb-1 font-medium text-accent-primary">Start time</div>
+					<div class="mb-1 font-medium text-accent-primary">{$LL.editor.startTime()}</div>
 					<div class="font-mono text-primary">{formatTime(startTimeMs)}</div>
 				</div>
 				<div class="rounded-lg border border-color bg-secondary p-3 text-xs">
-					<div class="mb-1 font-medium text-accent-primary">End time</div>
+					<div class="mb-1 font-medium text-accent-primary">{$LL.editor.endTime()}</div>
 					<div class="font-mono text-primary">{formatTime(endTimeMs)}</div>
 				</div>
 				<div class="rounded-lg border border-color bg-secondary p-3 text-xs md:col-span-2">
-					<div class="mb-1 font-medium text-accent-primary">Verse range on video</div>
+					<div class="mb-1 font-medium text-accent-primary">{$LL.editor.verseRangeOnVideo()}</div>
 					<div class="text-secondary">
 						{selectedVerseRange.toString()}
 					</div>

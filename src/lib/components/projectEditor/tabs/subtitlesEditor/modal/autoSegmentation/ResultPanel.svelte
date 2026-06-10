@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getSharedWizard } from './sharedWizard';
 	import { audioNormalizationStatus } from '$lib/services/autoSegmentation/audio-normalize.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
 	const wizard = getSharedWizard();
@@ -14,21 +15,21 @@
 			></div>
 			{wizard.currentStatus ||
 				(isImportMode
-					? 'Applying imported JSON segments...'
+					? $LL.editor.processingAudio()
 					: wizard.selection.mode === 'api'
-						? 'Sending audio to cloud...'
-						: 'Running local segmentation...')}
+						? $LL.editor.processingAudio()
+						: $LL.editor.segmentationInProgress())}
 		</div>
 		{#if audioNormalizationStatus.active}
 			<div class="mt-2 flex items-center gap-2 text-[11px] text-thirdly">
 				<span class="material-icons text-[14px] leading-none">graphic_eq</span>
-				Preparing audio… (one-time optimization, a few seconds)
+				{$LL.editor.estimatingDuration()}
 			</div>
 		{/if}
 		{#if wizard.currentStatusProgress !== null}
 			<div class="mt-3">
 				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">
-					<span>Upload progress</span>
+					<span>{$LL.editor.uploadProgress()}</span>
 					<span>{Math.round(wizard.currentStatusProgress)}%</span>
 				</div>
 				<div class="h-2 overflow-hidden rounded-full bg-thirdly/25">
@@ -41,7 +42,7 @@
 		{:else if wizard.estimatedProgress !== null}
 			<div class="mt-3">
 				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">
-					<span>Estimated progress</span>
+					<span>{$LL.editor.estimatedProgress()}</span>
 					<span>{Math.round(wizard.estimatedProgress)}%</span>
 				</div>
 				<div class="h-2 overflow-hidden rounded-full bg-thirdly/25">
@@ -52,7 +53,7 @@
 				</div>
 				{#if wizard.estimatedRemainingS !== null}
 					<div class="mt-1 text-[11px] text-thirdly">
-						Estimated time left: ~{wizard.estimatedRemainingS}s
+						{$LL.editor.estimatedTime({ time: `~${wizard.estimatedRemainingS}s` })}
 					</div>
 				{/if}
 			</div>
@@ -62,7 +63,7 @@
 	<div class="rounded-xl border border-color bg-accent px-4 py-3 space-y-2">
 		<div class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary leading-none">check_circle</span>
-			Segmentation complete
+			{$LL.editor.aiSegmentationFinished()}
 		</div>
 		{#if wizard.fallbackMessage}<div
 				class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-300"
@@ -77,7 +78,7 @@
 		{#if !isImportMode}
 			<div class="flex flex-wrap items-center gap-2 text-sm text-secondary">
 				<div>
-					Model: <span class="font-semibold text-primary">{wizard.selectedModel()}</span>
+					{$LL.editor.selectModel()}: <span class="font-semibold text-primary">{wizard.selectedModel()}</span>
 					({wizard.effectiveDeviceLabel()})
 				</div>
 				{#if wizard.cloudCpuFallbackMessage}
@@ -85,14 +86,14 @@
 						class="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] text-blue-300"
 					>
 						<span class="material-icons text-[14px] leading-none">sync</span>
-						Retried on CPU
+						{$LL.editor.retrySegmentation()}
 					</span>
 				{/if}
 			</div>
 		{:else}
 			<div class="text-sm text-secondary">
-				Import source: <span class="font-semibold text-primary"
-					>{wizard.importedJsonFileName || 'Pasted JSON content'}</span
+				{$LL.editor.importJsonDescription()}: <span class="font-semibold text-primary"
+					>{wizard.importedJsonFileName || $LL.editor.fileSelected()}</span
 				>
 			</div>
 		{/if}
@@ -100,25 +101,12 @@
 				{wizard.cloudCpuFallbackMessage}
 			</div>{/if}
 		<div class="text-sm text-secondary">
-			Segments: <span class="font-semibold text-primary">{wizard.result.segmentsApplied}</span>
-		</div>
-		<div class="text-sm text-secondary">
-			Low-confidence segments: <span class="font-semibold text-primary"
-				>{wizard.result.lowConfidenceSegments}</span
-			>
-		</div>
-		<div class="text-sm text-secondary">
-			Possible missing-words segments: <span class="font-semibold text-primary"
-				>{wizard.result.coverageGapSegments}</span
-			>
-		</div>
-		<div class="text-sm text-secondary">
-			Verse range: <span class="font-semibold text-primary">{wizard.verseRange()}</span>
+			{$LL.editor.detectedSegments({ count: wizard.result.segmentsApplied })}
 		</div>
 	</div>
 {:else if wizard.errorMessage}
 	<div class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3">
-		<div class="text-sm font-semibold text-danger-color">Segmentation failed</div>
+		<div class="text-sm font-semibold text-danger-color">{$LL.editor.aiSegmentationFailed()}</div>
 		<div class="max-h-36 overflow-y-auto text-sm text-secondary">{wizard.errorMessage}</div>
 	</div>
 {/if}

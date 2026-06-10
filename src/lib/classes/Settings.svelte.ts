@@ -59,6 +59,7 @@ export type AITranslationSettings = {
 export type ExportSettings = {
 	batchSizeMode: 'auto' | 'fixed';
 	batchSize: number;
+	parallelCaptureWorkers: number;
 };
 
 export type SavedVideoStylePreset = {
@@ -78,7 +79,8 @@ export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
 		batchSizeMode: 'auto',
-		batchSize: 64
+		batchSize: 64,
+		parallelCaptureWorkers: 4
 	};
 
 	// État UI persistant
@@ -99,6 +101,7 @@ export default class Settings extends SerializableBase {
 		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
+		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh',
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'
@@ -427,6 +430,10 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.styleLibraryDeviceId = '';
 			shouldSave = true;
 		}
+		if (typeof settings.persistentUiState.language !== 'string') {
+			settings.persistentUiState.language = 'en';
+			shouldSave = true;
+		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
 			shouldSave = true;
@@ -481,6 +488,24 @@ export default class Settings extends SerializableBase {
 		) {
 			settings.exportSettings.batchSizeMode = Settings.DEFAULT_EXPORT_SETTINGS.batchSizeMode;
 			shouldSave = true;
+		}
+
+		if (
+			typeof settings.exportSettings.parallelCaptureWorkers !== 'number' ||
+			Number.isNaN(settings.exportSettings.parallelCaptureWorkers)
+		) {
+			settings.exportSettings.parallelCaptureWorkers =
+				Settings.DEFAULT_EXPORT_SETTINGS.parallelCaptureWorkers;
+			shouldSave = true;
+		} else {
+			const normalizedParallelCaptureWorkers = Math.max(
+				1,
+				Math.min(8, Math.round(settings.exportSettings.parallelCaptureWorkers))
+			);
+			if (settings.exportSettings.parallelCaptureWorkers !== normalizedParallelCaptureWorkers) {
+				settings.exportSettings.parallelCaptureWorkers = normalizedParallelCaptureWorkers;
+				shouldSave = true;
+			}
 		}
 
 		if ('chunkSize' in (settings.exportSettings as Record<string, unknown>)) {

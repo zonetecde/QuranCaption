@@ -3,6 +3,8 @@
 	import { slide } from 'svelte/transition';
 	import toast from 'svelte-5-french-toast';
 	import ModalManager from '../ModalManager';
+	import { get } from 'svelte/store';
+	import LL from '$lib/i18n/i18n-svelte';
 	import {
 		applyHifzRepetitionToProject,
 		getHifzToolSummary,
@@ -142,20 +144,8 @@
 			safeSilenceMultiplier > 0 && !showSubtitlesDuringPause
 				? false
 				: extendCompleteSubtitlesAcrossRepetitions;
-		const mergeSuffix = preserveVisualMerges ? ' and keep valid visual merges' : '';
-		const silenceSuffix =
-			safeSilenceMultiplier > 0 ? ` with ${safeSilenceMultiplier}x silence gaps` : '';
-		const pauseDisplaySuffix =
-			safeSilenceMultiplier > 0
-				? showSubtitlesDuringPause
-					? ' and subtitles shown during pause'
-					: ' and silence clips inserted between repetitions'
-				: '';
-		const extendSuffix = effectiveExtendCompleteSubtitlesAcrossRepetitions
-			? ' and complete subtitles extended across repetitions when possible'
-			: '';
 		const confirmed = await ModalManager.confirmModal(
-			`This will replace the current subtitle track and audio track with a Hifz repetition (${safeRepeatCount}x per ${repeatTarget}${mergeSuffix}${silenceSuffix}${pauseDisplaySuffix}${extendSuffix}). Continue?`,
+			get(LL).tools.hifzConfirmationMessage(),
 			true
 		);
 		if (!confirmed) return;
@@ -165,7 +155,7 @@
 		hifzProgress = 0;
 		hifzCurrentTime = 0;
 		hifzTotalTime = 0;
-		hifzProgressMessage = 'Preparing Hifz generation...';
+		hifzProgressMessage = get(LL).tools.generatingHifzAudio();
 		const unlistenProgress = await listenHifzProgress();
 		const result = await applyHifzRepetitionToProject(
 			safeRepeatCount,
@@ -185,7 +175,7 @@
 			return;
 		}
 
-		toast.success(`Hifz track generated with ${result.subtitleCount} subtitles.`);
+		toast.success(get(LL).tools.hifzTrackGenerated({ count: result.subtitleCount }));
 		close();
 	}
 </script>
@@ -201,8 +191,8 @@
 					<span class="material-icons text-black text-lg">repeat</span>
 				</div>
 				<div>
-					<h2 class="text-xl font-bold text-primary">Hifz Repetition</h2>
-					<p class="text-sm text-thirdly">Repeat existing subtitles and generate matching audio</p>
+					<h2 class="text-xl font-bold text-primary">{$LL.tools.hifzRepetition()}</h2>
+					<p class="text-sm text-thirdly">{$LL.tools.hifzDescription()}</p>
 				</div>
 			</div>
 
@@ -217,8 +207,7 @@
 
 	<div class="px-6 py-5 space-y-5 overflow-y-auto min-h-0">
 		<p class="text-sm text-secondary leading-relaxed">
-			Turn your existing subtitles into a Hifz-ready repetition track. The current audio will be
-			replaced with a newly generated repeated version.
+			{$LL.tools.hifzBody()}
 		</p>
 
 		<div class="grid grid-cols-2 gap-3">
@@ -231,7 +220,7 @@
 				onclick={() => (repeatTarget = 'verse')}
 			>
 				<span class="material-icons">menu_book</span>
-				<span class="text-sm font-medium">Repeat each verse</span>
+				<span class="text-sm font-medium">{$LL.tools.repeatEachVerse()}</span>
 			</button>
 			<button
 				type="button"
@@ -242,14 +231,14 @@
 				onclick={() => (repeatTarget = 'subtitle')}
 			>
 				<span class="material-icons">subtitles</span>
-				<span class="text-sm font-medium">Repeat each subtitle</span>
+				<span class="text-sm font-medium">{$LL.tools.repeatEachSubtitle()}</span>
 			</button>
 		</div>
 
 		{#if isRunning}
 			<div class="rounded-xl border border-color bg-accent/50 p-4 space-y-3">
 				<div class="flex items-center justify-between gap-3 text-xs">
-					<span class="text-secondary">{hifzProgressMessage || 'Generating Hifz audio...'}</span>
+					<span class="text-secondary">{hifzProgressMessage || $LL.tools.generatingHifzAudio()}</span>
 					<span class="font-semibold text-primary">{Math.round(hifzProgress)}%</span>
 				</div>
 				<div class="h-2 overflow-hidden rounded-full bg-secondary">
@@ -275,7 +264,7 @@
 
 		<div class="space-y-2">
 			<label for="hifz-repeat-count" class="text-sm font-medium text-primary block">
-				Repeat count
+				{$LL.tools.repeatCount()}
 			</label>
 			<input
 				id="hifz-repeat-count"
@@ -291,7 +280,7 @@
 
 		<div class="space-y-2">
 			<label for="hifz-silence-multiplier" class="text-sm font-medium text-primary block">
-				Silence duration between repetitions
+				{$LL.tools.silenceDuration()}
 			</label>
 			<input
 				id="hifz-silence-multiplier"
@@ -307,8 +296,7 @@
 				class="w-full bg-accent border border-color rounded-lg px-3 py-2 text-primary focus:border-accent-primary focus:outline-none transition-colors"
 			/>
 			<p class="text-xs text-thirdly leading-relaxed">
-				The silence is the duration of the repeated segment right before it multiplied by this
-				value. Use 0 for no silence.
+				{$LL.tools.silenceDescription()}
 			</p>
 		</div>
 
@@ -322,7 +310,7 @@
 			/>
 			<span class="leading-relaxed">
 				<span class="block font-medium text-primary">
-					Keep visual merges
+					{$LL.tools.keepVisualMerges()}
 					<span
 						class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
 						title="Preserves existing visual merge groups when they can be repeated safely. This keeps merged Arabic and translation layouts together instead of splitting them into separate subtitle blocks."
@@ -343,7 +331,7 @@
 				/>
 				<span class="leading-relaxed">
 					<span class="block font-medium text-primary">
-						Keep subtitles visible during pause intervals
+						{$LL.tools.keepSubtitlesVisible()}
 						<span
 							class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
 							title="Extends each repeated subtitle so it stays visible during the pause right after it. Disable this if you want real empty gaps between repetitions."
@@ -366,7 +354,7 @@
 				/>
 				<span class="leading-relaxed">
 					<span class="block font-medium text-primary">
-						Stretch complete subtitles across repeated cycles
+						{$LL.tools.stretchCompleteSubtitles()}
 						<span
 							class="material-icons align-middle text-[16px]! text-thirdly cursor-help"
 							title="When a verse or subtitle is complete and can be merged safely, creates one long subtitle across the repeated cycle instead of recreating a new subtitle for each repetition. This does not apply to partial verses or multi-subtitle verse blocks."
@@ -382,22 +370,22 @@
 		<div class="flex items-center justify-between">
 			<div class="text-xs text-thirdly">
 				{#if summary.subtitleCount === 0}
-					Add subtitles before generating a Hifz track.
+					{$LL.tools.addSubtitlesBeforeHifz()}
 				{:else if summary.audioClipCount === 0}
-					No audio found. A silent Hifz track will be generated.
+					{$LL.tools.noAudioFoundSilentHifz()}
 				{:else}
-					Ready to generate.
+					{$LL.tools.readyToGenerate()}
 				{/if}
 			</div>
 			<div class="flex gap-3">
-				<button class="btn px-5 py-2 text-sm" onclick={close} disabled={isRunning}>Cancel</button>
+				<button class="btn px-5 py-2 text-sm" onclick={close} disabled={isRunning}>{$LL.common.cancel()}</button>
 				<button
 					class="btn-accent px-5 py-2 text-sm flex items-center gap-2"
 					onclick={applyHifzRepetition}
 					disabled={!canApply}
 				>
 					<span class="material-icons text-base">{isRunning ? 'hourglass_empty' : 'done'}</span>
-					{isRunning ? 'Generating...' : 'Generate Hifz'}
+					{isRunning ? $LL.tools.generating() : $LL.tools.generateHifz()}
 				</button>
 			</div>
 		</div>

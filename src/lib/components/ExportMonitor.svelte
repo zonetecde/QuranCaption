@@ -7,6 +7,8 @@
 	import { slide } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
 	import toast from 'svelte-5-french-toast';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	type ExportTimingSnapshot = {
 		exportStartMs: number;
@@ -167,6 +169,21 @@
 	}
 
 	/**
+	 * Retourne le libelle de taille du batch courant pendant le rendu video.
+	 */
+	function getCurrentBatchSizeLabel(exportation: Exportation): string {
+		if (
+			exportation.currentState !== ExportState.AddingSubtitles &&
+			exportation.currentState !== ExportState.CreatingVideo
+		) {
+			return '';
+		}
+
+		const batchSize = exportation.currentBatchSize;
+		return typeof batchSize === 'number' && batchSize > 0 ? `${batchSize}` : '';
+	}
+
+	/**
 	 * Contraint une progression dans l'intervalle [0, 100] pour protéger l'UI.
 	 */
 	function clampProgress(progress: number): number {
@@ -251,8 +268,8 @@
 			await invoke('open_explorer_with_file_selected', { filePath });
 		} else {
 			ModalManager.errorModal(
-				'File not found',
-				'The exported file could not be found on your system. It has either been deleted or moved.'
+				get(LL).exporterMonitor.fileNotFound(),
+				get(LL).exporterMonitor.exportedFileNotFound()
 			);
 		}
 	}
@@ -277,9 +294,9 @@
 				.replaceAll('\\t', '\t');
 
 			await navigator.clipboard.writeText(normalizedError);
-			toast.success('Error copied to clipboard');
-		} catch {
-			toast.error('Failed to copy error');
+		toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
+	} catch {
+		toast.error(get(LL).exporterMonitor.failedToCopyError());
 		}
 	}
 
@@ -310,7 +327,7 @@
 		<div class="flex items-center justify-between p-4 border-b border-gray-700">
 			<div class="flex items-center gap-2">
 				<span class="material-icons text-blue-400">download</span>
-				<h3 id="export-monitor-title" class="text-lg font-semibold text-white">Exports Monitor</h3>
+				<h3 id="export-monitor-title" class="text-lg font-semibold text-white">{$LL.exporterMonitor.exportsMonitor()}</h3>
 				<div class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
 					{globalState.exportations.length}
 				</div>
@@ -318,7 +335,7 @@
 			<button
 				class="text-gray-400 hover:text-white transition-colors cursor-pointer"
 				onclick={() => (globalState.uiState.showExportMonitor = false)}
-				aria-label="Close export monitor"
+				aria-label={$LL.exporterMonitor.closeExportMonitor()}
 			>
 				<span class="material-icons">close</span>
 			</button>
@@ -339,7 +356,7 @@
 
 								if (exportation.isOnGoing()) {
 									const resp = await ModalManager.confirmModal(
-										'Are you sure you want to cancel this export? This action cannot be undone.'
+										get(LL).exporterMonitor.cancelExportConfirm()
 									);
 
 									if (resp) {
@@ -352,7 +369,7 @@
 									);
 								}
 							}}
-							title={exportation.isOnGoing() ? 'Cancel Export' : 'Remove from list'}
+							title={exportation.isOnGoing() ? $LL.exporterMonitor.cancelExport() : $LL.common.remove()}
 						>
 							<span class="material-icons">
 								{#if exportation.isOnGoing()}
@@ -383,7 +400,7 @@
 									</div>
 									{#if exportation.currentState === ExportState.Exported && getStoredTotalExportMs(exportation) !== null}
 										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
-											Total: <span class="monospaced"
+											{get(LL).export.totalLabel()} <span class="monospaced"
 												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span
 											>
 										</span>
@@ -396,7 +413,7 @@
 						{#if exportation.isOnGoing()}
 							<div class="mb-2">
 								<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-									<span>Progress</span>
+									<span>{get(LL).export.progressLabel()}</span>
 									<span>{Math.round(clampProgress(exportation.percentageProgress))}%</span>
 								</div>
 								<div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -409,7 +426,7 @@
 									<div class="mt-2">
 										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
 											<span>
-												Processing bg video{getSegmentLabel(
+												{get(LL).export.processingBgVideo()}{getSegmentLabel(
 													exportation.processingBackgroundCurrentSegment,
 													exportation.processingBackgroundTotalSegments
 												)}
@@ -430,7 +447,7 @@
 									<div class="mt-2">
 										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
 											<span>
-												Merging files{getSegmentLabel(
+												{get(LL).export.mergingFiles()}{getSegmentLabel(
 													exportation.mergingFilesCurrentSegment,
 													exportation.mergingFilesTotalSegments
 												)}
@@ -448,11 +465,9 @@
 									<div class="flex items-center justify-between text-xs text-gray-500 mt-1">
 										<span>
 											{#if getStepInfo(exportation.currentState)}
-												Step {getStepInfo(exportation.currentState)?.current}/{getStepInfo(
-													exportation.currentState
-												)?.total}
+												{get(LL).export.stepOf({ current: getStepInfo(exportation.currentState)?.current ?? 1, total: getStepInfo(exportation.currentState)?.total ?? 1 })}
 											{:else}
-												Progress
+												{get(LL).export.progressLabel()}
 											{/if}
 										</span>
 									</div>
@@ -460,32 +475,35 @@
 								<div class="flex justify-between text-xs text-gray-400 mt-1">
 									{#if exportation.currentTreatedTime > 0}
 										<div>
-											Processed time: <span class="monospaced"
+											{get(LL).export.processedTime()} <span class="monospaced"
 												>{formatCurrentTime(exportation.currentTreatedTime)} / {formatDuration(
 													exportation.videoLength
 												)}</span
 											>
+											{getCurrentBatchSizeLabel(exportation)
+												? `- Current batch size: ${getCurrentBatchSizeLabel(exportation)}`
+												: ''}
 										</div>
 									{:else}
 										<div>
-											Processed time: <span class="monospaced"
+											{get(LL).export.processedTime()} <span class="monospaced"
 												>0:00 / {formatDuration(exportation.videoLength)}</span
 											>
 										</div>
 									{/if}
 									<div class="ml-auto">
-										Export Time:<span class="monospaced"
+										{get(LL).export.exportTime()}<span class="monospaced"
 											>{' '}
 											{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}
 										</span>{#if getEstimatedRemainingMs(exportation, currentTime) !== null}
 											<span class="monospaced">
 												{' '}({formatCurrentTime(
 													getEstimatedRemainingMs(exportation, currentTime) || 0
-												)} est.)
+												)} {get(LL).export.estimated()})
 											</span>
 										{:else}
 											<span class="monospaced">
-												{' (0:00 est.)'}
+												{' '}{get(LL).export.emptyEstimated()}
 											</span>
 										{/if}
 									</div>
@@ -497,14 +515,14 @@
 						{#if isTextExport(exportation)}
 							<div class="grid grid-cols-2 grid-rows-1 gap-2 text-xs">
 								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">Type</div>
+									<div class="text-gray-400 mb-1 text-center">{get(LL).export.typeColumn()}</div>
 									<div class="text-white font-mono text-center">
-										{exportation.exportLabel || 'Text export'}
+										{exportation.exportLabel || get(LL).export.textExport()}
 									</div>
 								</div>
 
 								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">Format</div>
+									<div class="text-gray-400 mb-1 text-center">{get(LL).export.formatColumn()}</div>
 									<div class="text-white font-mono text-center">
 										{getFileExtension(exportation.finalFileName)}
 									</div>
@@ -513,21 +531,21 @@
 						{:else}
 							<div class="grid grid-cols-4 grid-rows-1 gap-2 text-xs">
 								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">Dimensions</div>
+									<div class="text-gray-400 mb-1 text-center">{get(LL).export.dimensionsColumn()}</div>
 									<div class="text-white font-mono text-center">
 										{exportation.videoDimensions.width}×{exportation.videoDimensions.height}
 									</div>
 								</div>
 
 								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">Duration</div>
+									<div class="text-gray-400 mb-1 text-center">{get(LL).export.durationColumn()}</div>
 									<div class="text-white font-mono text-center">
 										{formatDuration(exportation.videoLength)}
 									</div>
 								</div>
 
 								<div class="bg-gray-800/50 rounded-lg p-1 col-span-2">
-									<div class="text-gray-400 mb-1 text-center">Verses</div>
+									<div class="text-gray-400 mb-1 text-center">{get(LL).export.versesColumn()}</div>
 									<div class="text-white truncate text-center" title={exportation.verseRange}>
 										{exportation.verseRange}
 									</div>
@@ -541,15 +559,15 @@
 								<div class="flex items-center justify-between text-red-400 text-sm mb-1">
 									<div class="flex items-center gap-2">
 										<span class="material-icons text-sm">error</span>
-										<span class="font-medium">Export Error</span>
+										<span class="font-medium">{get(LL).export.exportErrorTitle()}</span>
 									</div>
 									<button
 										class="text-xs px-2 py-0.5 rounded border border-red-600 hover:bg-red-800/30 transition-colors cursor-pointer flex items-center gap-1"
 										onclick={() => copyErrorLog(exportation.errorLog)}
-										title="Copy export error details"
+										title={get(LL).export.copyExportError()}
 									>
 										<span class="material-icons text-[14px]">content_copy</span>
-										Copy error
+										{get(LL).export.copyErrorButton()}
 									</button>
 								</div>
 								<div
@@ -578,7 +596,7 @@
 							<div class="mt-2 p-1 bg-green-900/10 border border-green-600/30 rounded-lg">
 								<div class="flex items-center gap-2 text-green-200 text-sm mb-1">
 									<span class="material-icons text-sm">check_circle</span>
-									<span class="font-medium">Export completed successfully</span>
+									<span class="font-medium">{get(LL).export.exportCompleted()}</span>
 								</div>
 								<div
 									class="text-green-100/80 text-xs flex gap-x-2"
@@ -599,7 +617,7 @@
 		{:else}
 			<div class="p-3 text-center flex items-center flex-col py-10 gap-y-2">
 				<span class="material-icons text-[30px]!">info</span>
-				<p>You have no ongoing exports.</p>
+				<p>{get(LL).export.noOngoingExports()}</p>
 			</div>
 		{/if}
 
@@ -607,7 +625,7 @@
 		<div class="p-3 border-t border-gray-700 bg-gray-800/50">
 			<div class="flex items-center justify-between">
 				<div class="text-xs text-gray-400">
-					{globalState.exportations.filter((e) => e.isOnGoing()).length} in progress
+					{get(LL).export.inProgressCount({ count: globalState.exportations.filter((e) => e.isOnGoing()).length })}
 				</div>
 				{#if globalState.exportations.some((e) => !e.isOnGoing())}
 					<button
@@ -617,7 +635,7 @@
 							globalState.exportations = globalState.exportations.filter((e) => e.isOnGoing());
 						}}
 					>
-						Clear completed
+						{get(LL).export.clearCompleted()}
 					</button>
 				{/if}
 			</div>

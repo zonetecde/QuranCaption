@@ -2,6 +2,7 @@
 	import LocalEngineCard from '../LocalEngineCard.svelte';
 	import { maskToken } from '../helpers/format';
 	import { getSharedWizard } from '../sharedWizard';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	const wizard = getSharedWizard();
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
@@ -13,18 +14,18 @@
 
 <section class="space-y-4">
 	<div>
-		<h3 class="text-lg font-semibold text-primary">2. Prepare this method</h3>
+		<h3 class="text-lg font-semibold text-primary">{$LL.editor.prepareMethod()}</h3>
 		<p class="text-sm text-thirdly">
 			{#if isCloud()}
-				No local installation is required.
+				{$LL.editor.prepareMethodCloudDesc()}
 			{:else if isLocalV2()}
-				Install the required local packages and configure your Hugging Face token.
+				{$LL.editor.prepareMethodLocalV2Desc()}
 			{:else if isMuaalemLocal()}
-				Install the required local packages for the Muaalem local workflow.
+				{$LL.editor.prepareMethodMuaalemDesc()}
 			{:else if isSurahSplitter()}
-				Install the required local packages for the Surah Splitter workflow.
+				{$LL.editor.prepareMethodSurahSplitterDesc()}
 			{:else}
-				Install the legacy local dependencies.
+				{$LL.editor.prepareMethodLegacyDesc()}
 			{/if}
 		</p>
 	</div>
@@ -33,19 +34,19 @@
 		<div class="rounded-xl border border-color bg-accent/40 p-4">
 			<div class="mb-2 flex items-center gap-2 text-primary">
 				<span class="material-icons">check_circle</span>
-				<span class="text-sm font-semibold">Ready to use</span>
+				<span class="text-sm font-semibold">{$LL.editor.readyToUse()}</span>
 			</div>
 			<p class="text-sm text-thirdly">
-				This method runs remotely and does not need local Python packages.
+				{$LL.editor.cloudMethodDescription()}
 			</p>
 		</div>
 	{:else}
 		<div class="space-y-4">
 			{#if isLocalV2()}
 				<div class="rounded-xl border border-color bg-accent/70 p-3">
-					<div class="mb-2 text-xs uppercase text-thirdly">Hugging Face token</div>
+					<div class="mb-2 text-xs uppercase text-thirdly">{$LL.editor.huggingFaceTokenLabel()}</div>
 					<p class="mb-2 text-xs text-thirdly">
-						Required for the private local Quranic Universal Aligner models.
+						{$LL.editor.hfTokenRequiredHint()}
 					</p>
 					<div class="mb-2 text-sm font-mono text-primary">
 						{maskToken(wizard.selection.hfToken)}
@@ -55,26 +56,26 @@
 							class="btn-accent px-3 py-1.5 text-xs"
 							onclick={() => void wizard.promptHFToken()}
 						>
-							{wizard.selection.hfToken ? 'Update token' : 'Set token'}
+							{wizard.selection.hfToken ? $LL.editor.updateToken() : $LL.editor.setToken()}
 						</button>
 						<button
 							class="btn px-3 py-1.5 text-xs"
 							onclick={() => void wizard.clearHFToken()}
 							disabled={!wizard.selection.hfToken}
 						>
-							Clear token
+							{$LL.editor.clearToken()}
 						</button>
 					</div>
 				</div>
 			{/if}
 
 			<div class="space-y-2 rounded-xl border border-color p-3">
-				<div class="text-xs uppercase text-thirdly">Required local packages</div>
+				<div class="text-xs uppercase text-thirdly">{$LL.editor.requiredLocalPackages()}</div>
 				{#if wizard.isCheckingStatus}
-					<div class="text-sm text-secondary">Checking local engines in background...</div>
+					<div class="text-sm text-secondary">{$LL.editor.checkingLocalEngines()}</div>
 				{:else if isLegacy()}
 					<LocalEngineCard
-						title="Legacy Whisper local packages"
+						title={$LL.editor.legacyWhisper()}
 						status={wizard.localStatus?.engines?.legacy ?? null}
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'legacy'}
 						isInstalled={!!wizard.localStatus?.engines?.legacy?.ready}
@@ -82,7 +83,7 @@
 					/>
 				{:else if isLocalV2()}
 					<LocalEngineCard
-						title="Private Local Quranic Universal Aligner packages"
+						title={$LL.editor.privateQuranicAligner()}
 						status={wizard.localStatus?.engines?.multi ?? null}
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'multi'}
 						isInstalled={!!wizard.localStatus?.engines?.multi?.ready}
@@ -90,10 +91,10 @@
 					/>
 				{:else if isMuaalemLocal()}
 					<p class="text-xs text-thirdly">
-						No token required. Fully local installation with on-device model downloads.
+						{$LL.editor.noTokenRequiredHint()}
 					</p>
 					<LocalEngineCard
-						title="Muaalem Local packages"
+						title={$LL.editor.muaalemLocal()}
 						status={wizard.localStatus?.engines?.muaalem ?? null}
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'muaalem'}
 						isInstalled={!!wizard.localStatus?.engines?.muaalem?.ready}
@@ -101,10 +102,10 @@
 					/>
 				{:else}
 					<p class="text-xs text-thirdly">
-						No token required. Surah Splitter downloads its WhisperX model during the first run.
+						{$LL.editor.noTokenRequiredSurahSplitterHint()}
 					</p>
 					<LocalEngineCard
-						title="Surah Splitter Local packages"
+						title={$LL.editor.surahSplitterLocal()}
 						status={wizard.localStatus?.engines?.surahSplitter ?? null}
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'surah_splitter'}
 						isInstalled={!!wizard.localStatus?.engines?.surahSplitter?.ready}
@@ -122,14 +123,12 @@
 
 			{#if isMuaalemLocal()}
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
-					This option is fully local, but it is usually less accurate than the official Quranic
-					Universal Aligner pipeline.
+					{$LL.editor.muaalemLocalHint()}
 				</div>
 			{/if}
 			{#if isSurahSplitter()}
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
-					This option can auto-detect the surah. Selecting the surah manually in the next step
-					improves matching precision.
+					{$LL.editor.surahSplitterLocalHint()}
 				</div>
 			{/if}
 		</div>

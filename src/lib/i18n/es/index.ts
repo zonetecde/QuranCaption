@@ -1046,6 +1046,8 @@ const es: Translation = {
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': 'Formato del número de versículo',
 			'verse-number-position': 'Posición del número de versículo',
+			'verse-number-vertical-position': 'Posición vertical',
+			'verse-number-horizontal-position': 'Posición horizontal',
 			text: 'Estilo del texto',
 			'text-color': 'Color del texto',
 			'verse-number-color': 'Color del número de versículo',
@@ -1188,6 +1190,10 @@ const es: Translation = {
 			'verse-number-format':
 				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
 			'verse-number-position': 'Establecer la posición de los números de versículos',
+			'verse-number-vertical-position':
+				'Cambiar la posición vertical del número de versículo (píxeles desde el centro)',
+			'verse-number-horizontal-position':
+				'Cambiar la posición horizontal del número de versículo (píxeles desde el centro)',
 			text: 'Controlar la apariencia y el formato del texto de los subtítulos',
 			'text-color': 'Cambiar el color del texto',
 			'verse-number-color': 'Cambiar el color del número de versículo',

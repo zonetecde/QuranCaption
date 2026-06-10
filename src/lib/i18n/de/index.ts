@@ -1042,6 +1042,8 @@ const de: Translation = {
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': 'Format der Versnummer',
 			'verse-number-position': 'Position der Versnummer',
+			'verse-number-vertical-position': 'Vertikale Position',
+			'verse-number-horizontal-position': 'Horizontale Position',
 			text: 'Textstil',
 			'text-color': 'Textfarbe',
 			'verse-number-color': 'Farbe der Versnummer',
@@ -1183,6 +1185,10 @@ const de: Translation = {
 			'verse-number-format':
 				'Format der Versnummern ändern. Verwenden Sie das <number>-Tag zur Anpassung.',
 			'verse-number-position': 'Position der Versnummern festlegen',
+			'verse-number-vertical-position':
+				'Vertikale Position der Versnummer ändern (Pixel vom Zentrum)',
+			'verse-number-horizontal-position':
+				'Horizontale Position der Versnummer ändern (Pixel vom Zentrum)',
 			text: 'Aussehen und Formatierung des Untertiteltextes steuern',
 			'text-color': 'Textfarbe ändern',
 			'verse-number-color': 'Farbe der Versnummer ändern',

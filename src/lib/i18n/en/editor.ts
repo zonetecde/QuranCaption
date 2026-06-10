@@ -734,6 +734,8 @@ const editor = {
 		'mushaf-style': 'Mushaf',
 		'verse-number-format': 'Verse Number Format',
 		'verse-number-position': 'Verse Number Position',
+		'verse-number-vertical-position': 'Vertical Position',
+		'verse-number-horizontal-position': 'Horizontal Position',
 		text: 'Text Styling',
 		'text-color': 'Text Color',
 		'verse-number-color': 'Verse Number Color',
@@ -874,6 +876,10 @@ const editor = {
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',
 		'verse-number-format': 'Change the format of verse numbers. Use <number> tag to customize.',
 		'verse-number-position': 'Set the position of verse numbers',
+		'verse-number-vertical-position':
+			'Change the vertical position of the verse number (pixels from center)',
+		'verse-number-horizontal-position':
+			'Change the horizontal position of the verse number (pixels from center)',
 		text: 'Control the appearance and formatting of subtitle text',
 		'text-color': 'Change the color of the text',
 		'verse-number-color': 'Change the color of the verse number',

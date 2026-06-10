@@ -1042,6 +1042,7 @@ const de: Translation = {
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': 'Format der Versnummer',
 			'verse-number-position': 'Position der Versnummer',
+			'verse-number-numeral-system': 'Ziffern der Versnummer',
 			'verse-number-vertical-position': 'Vertikale Position',
 			'verse-number-horizontal-position': 'Horizontale Position',
 			text: 'Textstil',
@@ -1185,6 +1186,8 @@ const de: Translation = {
 			'verse-number-format':
 				'Format der Versnummern ändern. Verwenden Sie das <number>-Tag zur Anpassung.',
 			'verse-number-position': 'Position der Versnummern festlegen',
+			'verse-number-numeral-system':
+				'Wählen Sie, wie die Ziffern der Versnummern in Übersetzungen geschrieben werden.',
 			'verse-number-vertical-position':
 				'Vertikale Position der Versnummer ändern (Pixel vom Zentrum)',
 			'verse-number-horizontal-position':

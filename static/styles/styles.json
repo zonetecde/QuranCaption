@@ -100,6 +100,24 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "123"
+			},
+			{
+				"id": "verse-number-numeral-system",
+				"name": "Verse Number Numerals",
+				"description": "Choose how verse number digits are written in translations.",
+				"value": "Western Arabic",
+				"valueType": "select",
+				"options": [
+					"Western Arabic",
+					"Arabic-Indic",
+					"Persian",
+					"Urdu",
+					"Bengali",
+					"Hindi"
+				],
+				"css": "",
+				"tailwind": false,
+				"icon": "pin"
 			}
 		]
 	},

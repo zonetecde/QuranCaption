@@ -55,8 +55,30 @@ const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
 	color: null
 };
 
+const VERSE_NUMBER_NUMERAL_SYSTEMS: Record<string, string> = {
+	'Western Arabic': '0123456789',
+	'Arabic-Indic': '٠١٢٣٤٥٦٧٨٩',
+	Persian: '۰۱۲۳۴۵۶۷۸۹',
+	Urdu: '۰۱۲۳۴۵۶۷۸۹',
+	Bengali: '০১২৩৪৫৬৭৮৯',
+	Hindi: '०१२३४५६७८९'
+};
+
 const CJK_TEXT_REGEX = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const WORD_TEXT_REGEX = /[\p{L}\p{N}]/u;
+
+/**
+ * Convertit les chiffres occidentaux d'un nombre vers le système demandé.
+ * @param {number} value Nombre à formater.
+ * @param {string} system Système de chiffres cible.
+ * @returns {string} Nombre avec les chiffres convertis.
+ */
+function formatVerseNumberNumerals(value: number, system: string): string {
+	const digits = VERSE_NUMBER_NUMERAL_SYSTEMS[system] ?? VERSE_NUMBER_NUMERAL_SYSTEMS['Western Arabic'];
+	return value
+		.toString()
+		.replace(/\d/g, (digit) => digits[Number(digit)] ?? digit);
+}
 
 /**
  * Indique si le texte contient une écriture sans séparation fiable par espaces.
@@ -627,9 +649,13 @@ export class VerseTranslation extends Translation {
 				(subtitle.isLastWordsOfVerse && position === 'after')) &&
 			globalState.getStyle(edition, 'show-verse-number').value
 		) {
+			const numeralSystem = String(
+				globalState.getStyle(edition, 'verse-number-numeral-system')?.value ?? 'Western Arabic'
+			);
+			const verseNumber = formatVerseNumberNumerals(subtitle.verse, numeralSystem);
 			const format = String(globalState.getStyle(edition, 'verse-number-format').value).replace(
 				'<number>',
-				subtitle.verse.toString()
+				verseNumber
 			);
 
 			if (position === 'before' && subtitle.startWordIndex === 0) {

@@ -734,6 +734,7 @@ const editor = {
 		'mushaf-style': 'Mushaf',
 		'verse-number-format': 'Verse Number Format',
 		'verse-number-position': 'Verse Number Position',
+		'verse-number-numeral-system': 'Verse Number Numerals',
 		'verse-number-vertical-position': 'Vertical Position',
 		'verse-number-horizontal-position': 'Horizontal Position',
 		text: 'Text Styling',
@@ -876,6 +877,7 @@ const editor = {
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',
 		'verse-number-format': 'Change the format of verse numbers. Use <number> tag to customize.',
 		'verse-number-position': 'Set the position of verse numbers',
+		'verse-number-numeral-system': 'Choose how verse number digits are written in translations.',
 		'verse-number-vertical-position':
 			'Change the vertical position of the verse number (pixels from center)',
 		'verse-number-horizontal-position':

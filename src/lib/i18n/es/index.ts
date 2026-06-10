@@ -1046,6 +1046,7 @@ const es: Translation = {
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': 'Formato del número de versículo',
 			'verse-number-position': 'Posición del número de versículo',
+			'verse-number-numeral-system': 'Numerales del número de versículo',
 			'verse-number-vertical-position': 'Posición vertical',
 			'verse-number-horizontal-position': 'Posición horizontal',
 			text: 'Estilo del texto',
@@ -1190,6 +1191,8 @@ const es: Translation = {
 			'verse-number-format':
 				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
 			'verse-number-position': 'Establecer la posición de los números de versículos',
+			'verse-number-numeral-system':
+				'Elegir cómo se escriben los dígitos de los números de versículos en las traducciones.',
 			'verse-number-vertical-position':
 				'Cambiar la posición vertical del número de versículo (píxeles desde el centro)',
 			'verse-number-horizontal-position':

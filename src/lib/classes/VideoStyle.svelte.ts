@@ -59,6 +59,7 @@ export type GeneralStyleName =
 	| 'mushaf-style'
 	| 'verse-number-format'
 	| 'verse-number-position'
+	| 'verse-number-numeral-system'
 	| 'text-direction';
 
 export type GlobalAnimationStyleName =

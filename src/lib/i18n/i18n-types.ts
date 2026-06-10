@@ -3825,6 +3825,10 @@ type RootTranslation = {
 			 */
 			'verse-number-position': string
 			/**
+			 * V​e​r​s​e​ ​N​u​m​b​e​r​ ​N​u​m​e​r​a​l​s
+			 */
+			'verse-number-numeral-system': string
+			/**
 			 * V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
 			 */
 			'verse-number-vertical-position': string
@@ -4382,6 +4386,10 @@ type RootTranslation = {
 			 * S​e​t​ ​t​h​e​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s
 			 */
 			'verse-number-position': string
+			/**
+			 * C​h​o​o​s​e​ ​h​o​w​ ​v​e​r​s​e​ ​n​u​m​b​e​r​ ​d​i​g​i​t​s​ ​a​r​e​ ​w​r​i​t​t​e​n​ ​i​n​ ​t​r​a​n​s​l​a​t​i​o​n​s​.
+			 */
+			'verse-number-numeral-system': string
 			/**
 			 * C​h​a​n​g​e​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
 			 */
@@ -4994,7 +5002,7 @@ type RootTranslation = {
 		 */
 		advancedSettings: string
 		/**
-		 * C​o​n​t​r​o​l​ ​e​x​p​o​r​t​ ​p​e​r​f​o​r​m​a​n​c​e​ ​w​i​t​h​o​u​t​ ​e​x​p​o​s​i​n​g​ ​r​a​w​ ​f​f​m​p​e​g​ ​f​l​a​g​s​.
+		 * C​h​o​o​s​e​ ​t​h​e​ ​s​p​e​e​d​,​ ​q​u​a​l​i​t​y​,​ ​a​n​d​ ​C​P​U​ ​u​s​a​g​e​ ​t​r​a​d​e​o​f​f​ ​f​o​r​ ​v​i​d​e​o​ ​e​x​p​o​r​t​.
 		 */
 		controlExportPerformance: string
 		/**
@@ -5030,7 +5038,7 @@ type RootTranslation = {
 		 */
 		exportPerformance: string
 		/**
-		 * C​h​o​o​s​e​ ​h​o​w​ ​a​g​g​r​e​s​s​i​v​e​l​y​ ​t​h​e​ ​e​x​p​o​r​t​e​r​ ​s​h​o​u​l​d​ ​u​s​e​ ​y​o​u​r​ ​C​P​U​ ​d​u​r​i​n​g​ ​f​f​m​p​e​g​ ​w​o​r​k​.
+		 * P​i​c​k​ ​t​h​e​ ​p​r​o​f​i​l​e​ ​t​h​a​t​ ​m​a​t​c​h​e​s​ ​y​o​u​r​ ​g​o​a​l​:​ ​f​a​s​t​e​r​ ​t​e​s​t​s​,​ ​c​l​e​a​n​e​r​ ​f​i​n​a​l​ ​e​x​p​o​r​t​s​,​ ​o​r​ ​l​o​w​e​r​ ​C​P​U​ ​u​s​a​g​e​.
 		 */
 		chooseCpuUsage: string
 		/**
@@ -5046,7 +5054,7 @@ type RootTranslation = {
 		 */
 		fastest: string
 		/**
-		 * P​r​i​o​r​i​t​i​z​e​s​ ​e​x​p​o​r​t​ ​s​p​e​e​d​ ​a​n​d​ ​m​a​y​ ​u​s​e​ ​m​o​r​e​ ​C​P​U​.
+		 * F​a​s​t​e​s​t​ ​e​x​p​o​r​t​.​ ​M​a​y​ ​u​s​e​ ​h​a​r​d​w​a​r​e​ ​e​n​c​o​d​i​n​g​,​ ​w​h​i​c​h​ ​c​a​n​ ​s​h​o​w​ ​a​r​t​i​f​a​c​t​s​ ​o​n​ ​d​e​t​a​i​l​e​d​ ​4​K​ ​b​a​c​k​g​r​o​u​n​d​s​.
 		 */
 		fastestDescription: string
 		/**
@@ -5054,7 +5062,7 @@ type RootTranslation = {
 		 */
 		balanced: string
 		/**
-		 * K​e​e​p​s​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​d​e​f​a​u​l​t​ ​b​e​h​a​v​i​o​r​.
+		 * R​e​c​o​m​m​e​n​d​e​d​ ​f​o​r​ ​f​i​n​a​l​ ​e​x​p​o​r​t​s​.​ ​P​r​e​s​e​r​v​e​s​ ​b​e​t​t​e​r​ ​q​u​a​l​i​t​y​ ​i​n​ ​h​i​g​h​ ​r​e​s​o​l​u​t​i​o​n​,​ ​b​u​t​ ​t​a​k​e​s​ ​l​o​n​g​e​r​.
 		 */
 		balancedDescription: string
 		/**
@@ -5062,7 +5070,7 @@ type RootTranslation = {
 		 */
 		lowCpu: string
 		/**
-		 * R​e​d​u​c​e​s​ ​C​P​U​ ​u​s​a​g​e​ ​a​t​ ​t​h​e​ ​c​o​s​t​ ​o​f​ ​s​l​o​w​e​r​ ​e​x​p​o​r​t​s​.
+		 * L​i​m​i​t​s​ ​C​P​U​ ​u​s​a​g​e​ ​t​o​ ​k​e​e​p​ ​y​o​u​r​ ​c​o​m​p​u​t​e​r​ ​m​o​r​e​ ​r​e​s​p​o​n​s​i​v​e​.​ ​U​s​u​a​l​l​y​ ​t​h​e​ ​s​l​o​w​e​s​t​ ​o​p​t​i​o​n​.
 		 */
 		lowCpuDescription: string
 		/**
@@ -12084,6 +12092,10 @@ export type TranslationFunctions = {
 			 */
 			'verse-number-position': () => LocalizedString
 			/**
+			 * Verse Number Numerals
+			 */
+			'verse-number-numeral-system': () => LocalizedString
+			/**
 			 * Vertical Position
 			 */
 			'verse-number-vertical-position': () => LocalizedString
@@ -12641,6 +12653,10 @@ export type TranslationFunctions = {
 			 * Set the position of verse numbers
 			 */
 			'verse-number-position': () => LocalizedString
+			/**
+			 * Choose how verse number digits are written in translations.
+			 */
+			'verse-number-numeral-system': () => LocalizedString
 			/**
 			 * Change the vertical position of the verse number (pixels from center)
 			 */
@@ -13253,7 +13269,7 @@ export type TranslationFunctions = {
 		 */
 		advancedSettings: () => LocalizedString
 		/**
-		 * Control export performance without exposing raw ffmpeg flags.
+		 * Choose the speed, quality, and CPU usage tradeoff for video export.
 		 */
 		controlExportPerformance: () => LocalizedString
 		/**
@@ -13289,7 +13305,7 @@ export type TranslationFunctions = {
 		 */
 		exportPerformance: () => LocalizedString
 		/**
-		 * Choose how aggressively the exporter should use your CPU during ffmpeg work.
+		 * Pick the profile that matches your goal: faster tests, cleaner final exports, or lower CPU usage.
 		 */
 		chooseCpuUsage: () => LocalizedString
 		/**
@@ -13305,7 +13321,7 @@ export type TranslationFunctions = {
 		 */
 		fastest: () => LocalizedString
 		/**
-		 * Prioritizes export speed and may use more CPU.
+		 * Fastest export. May use hardware encoding, which can show artifacts on detailed 4K backgrounds.
 		 */
 		fastestDescription: () => LocalizedString
 		/**
@@ -13313,7 +13329,7 @@ export type TranslationFunctions = {
 		 */
 		balanced: () => LocalizedString
 		/**
-		 * Keeps the current default behavior.
+		 * Recommended for final exports. Preserves better quality in high resolution, but takes longer.
 		 */
 		balancedDescription: () => LocalizedString
 		/**
@@ -13321,7 +13337,7 @@ export type TranslationFunctions = {
 		 */
 		lowCpu: () => LocalizedString
 		/**
-		 * Reduces CPU usage at the cost of slower exports.
+		 * Limits CPU usage to keep your computer more responsive. Usually the slowest option.
 		 */
 		lowCpuDescription: () => LocalizedString
 		/**

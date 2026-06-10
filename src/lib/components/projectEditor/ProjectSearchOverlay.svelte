@@ -203,7 +203,9 @@
 			<span class="material-icons text-accent-primary text-xl">search</span>
 			<div class="min-w-0 flex-1">
 				<div class="text-sm font-semibold text-primary">
-					{isTranslationsTab() ? $LL.editor.searchTranslationsLabel() : $LL.editor.searchVerseLabel()}
+					{isTranslationsTab()
+						? $LL.editor.searchTranslationsLabel()
+						: $LL.editor.searchVerseLabel()}
 				</div>
 				{#if resultMessage}
 					<div class="truncate text-xs text-thirdly">{resultMessage}</div>
@@ -251,7 +253,9 @@
 					bind:value={query}
 					type="text"
 					autocomplete="off"
-					class="w-full rounded-lg border border-color bg-primary py-2 pl-3 text-sm text-primary outline-none focus:border-[var(--accent-primary)] {query ? 'pr-9' : 'pr-3'}"
+					class="w-full rounded-lg border border-color bg-primary py-2 pl-3 text-sm text-primary outline-none focus:border-[var(--accent-primary)] {query
+						? 'pr-9'
+						: 'pr-3'}"
 					placeholder={isTranslationsTab() && searchMode === 'translation'
 						? $LL.editor.searchTranslations()
 						: versePlaceholder()}
@@ -284,7 +288,9 @@
 			<div class="mb-1 flex items-center justify-between gap-3 text-xs">
 				<span class="text-thirdly">{$LL.editor.timelineLabel()}</span>
 				<span class="truncate font-medium text-primary">
-					{currentSliderClip() ? getSubtitleVerseKeyLabel(currentSliderClip()!) : $LL.editor.noSubtitleFallback()}
+					{currentSliderClip()
+						? getSubtitleVerseKeyLabel(currentSliderClip()!)
+						: $LL.editor.noSubtitleFallback()}
 				</span>
 			</div>
 			<input

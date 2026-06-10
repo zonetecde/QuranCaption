@@ -55,7 +55,7 @@
 	}
 
 	/**
-	 * Retourne l'indice d'étape principal (1..4) selon l'état courant.
+	 * Retourne l'indice d'étape principal (1..3) selon l'état courant.
 	 */
 	function getStepIndex(state: ExportState): number | null {
 		return getStepInfo(state)?.current ?? null;
@@ -145,15 +145,14 @@
 	function getStepInfo(state: ExportState): { current: number; total: number } | null {
 		switch (state) {
 			case ExportState.CapturingFrames:
-				return { current: 1, total: 4 };
+				return { current: 1, total: 3 };
 			case ExportState.Initializing:
 			case ExportState.ProcessingBackground:
-				return { current: 2, total: 4 };
+				return { current: 2, total: 3 };
 			case ExportState.AddingSubtitles:
 			case ExportState.CreatingVideo:
-				return { current: 3, total: 4 };
 			case ExportState.MergingFiles:
-				return { current: 4, total: 4 };
+				return { current: 3, total: 3 };
 			default:
 				return null;
 		}

@@ -5,6 +5,7 @@
 	import { get } from 'svelte/store';
 	import {
 		clearWbwTimestampReview,
+		computeMissingWbwTimestamps,
 		getSubtitleClipsWithoutWbwTimestamps,
 		markSubtitlesWithoutWbwTimestampsForReview
 	} from '$lib/services/AutoSegmentation';
@@ -14,7 +15,37 @@
 		(globalState.getSubtitleClips || []).filter((clip) => clip.needsWbwTimestampReview === true)
 			.length
 	);
-	let hasSubtitleSegments = $derived((globalState.getSubtitleClips || []).length > 0);
+
+	let isComputing = $state(false);
+
+	/**
+	 * Calcule à la demande les timestamps WBW manquants via l'API du Universal Aligner.
+	 */
+	async function handleComputeWbwTimestamps(): Promise<void> {
+		if (isComputing) return;
+		const targetCount = missingWbwSegmentsCount;
+		if (targetCount <= 0) {
+			toast('No subtitle is missing WBW timestamps.');
+			return;
+		}
+
+		isComputing = true;
+		try {
+			const { enriched, total } = await computeMissingWbwTimestamps();
+			if (enriched > 0) {
+				toast.success(
+					`WBW timestamps computed for ${enriched}/${total} subtitle${total > 1 ? 's' : ''}.`
+				);
+			} else {
+				toast.error('No WBW timestamps could be computed. Please try again.');
+			}
+		} catch (error) {
+			console.error('[WBW] Failed to compute timestamps:', error);
+			toast.error('Failed to compute WBW timestamps.');
+		} finally {
+			isComputing = false;
+		}
+	}
 
 	/**
 	 * Marque en bleu clair tous les segments qui n'ont pas de timestamps WBW.
@@ -27,7 +58,10 @@
 		}
 
 		toast.success(
-			get(LL).editor.missingWbwMarked({ count: markedCount, plural: markedCount > 1 ? 's were' : ' was' })
+			get(LL).editor.missingWbwMarked({
+				count: markedCount,
+				plural: markedCount > 1 ? 's were' : ' was'
+			})
 		);
 	}
 
@@ -39,7 +73,7 @@
 	}
 </script>
 
-{#if hasSubtitleSegments}
+{#if missingWbwSegmentsCount > 0}
 	<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.markMissingWbw()}</h3>
 
 	<div class="rounded-lg border border-sky-400/25 bg-sky-500/10 p-3 space-y-3">
@@ -48,7 +82,9 @@
 				<span class="material-icons text-sky-300 text-sm">flag</span>
 				<span class="text-xs text-secondary">{$LL.editor.markMissingWbw()}</span>
 			</div>
-			<span class="text-xs font-bold text-sky-300">{get(LL).editor.markedCount({ count: missingWbwSegmentsMarkedCount })}</span>
+			<span class="text-xs font-bold text-sky-300"
+				>{get(LL).editor.markedCount({ count: missingWbwSegmentsMarkedCount })}</span
+			>
 		</div>
 
 		<div class="space-y-2">
@@ -63,23 +99,43 @@
 			</p>
 		</div>
 
+		<div class="space-y-2">
+			<button
+				class="w-full px-2 py-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+				type="button"
+				onclick={handleComputeWbwTimestamps}
+				disabled={isComputing}
+			>
+				{#if isComputing}
+					<span
+						class="h-3.5 w-3.5 rounded-full border-2 border-emerald-200 border-t-transparent animate-spin"
+					></span>
+				{:else}
+					<span class="material-icons text-sm!">auto_awesome</span>
+					Compute timestamps
+				{/if}
+			</button>
+		</div>
+
 		<div class="grid grid-cols-3 gap-2">
 			<button
-				class="px-2 py-1.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-200 font-medium flex items-center justify-center gap-1.5 hover:bg-sky-500/30 transition cursor-pointer text-xs {missingWbwSegmentsMarkedCount <=
+				class="px-2 py-1.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-200 font-medium flex items-center justify-center gap-1.5 hover:bg-sky-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed {missingWbwSegmentsMarkedCount <=
 				0
 					? 'col-span-3'
 					: 'col-span-2'}"
 				type="button"
 				onclick={handleMarkMissingWbwTimestamps}
+				disabled={isComputing}
 			>
 				<span class="material-icons text-sm!">flag</span>
 				{$LL.editor.mark()}
 			</button>
 			{#if missingWbwSegmentsMarkedCount > 0}
 				<button
-					class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer"
+					class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
 					type="button"
 					onclick={handleClearMissingWbwTimestamps}
+					disabled={isComputing}
 				>
 					<span class="material-icons text-sm!">cancel</span>
 					{$LL.common.clear()}

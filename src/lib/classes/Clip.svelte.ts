@@ -349,6 +349,8 @@ export class SubtitleClip extends ClipWithTranslation {
 	indopakText: string;
 	private isHydratingIndopakText = false;
 	alignmentMetadata: SubtitleAlignmentMetadata | null = $state(null);
+	// Vrai si l'utilisateur a édité manuellement les timings WBW (protège du re-MFA automatique).
+	wbwTimestampsManuallyEdited: boolean = $state(false);
 	visualMergeGroupId: string | null = $state(null);
 	visualMergeMode: VisualMergeMode | null = $state(null);
 	wbwTranslation: string[]; // Traduction mot à mot
@@ -388,6 +390,8 @@ export class SubtitleClip extends ClipWithTranslation {
 	 */
 	override markAsManualEdit() {
 		super.markAsManualEdit();
+		// Un changement de contenu (texte/plage de mots) invalide une éventuelle édition manuelle WBW.
+		this.wbwTimestampsManuallyEdited = false;
 		if (!this.alignmentMetadata) return;
 
 		this.alignmentMetadata = null;
@@ -753,6 +757,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		clonedClip.alignmentMetadata = this.alignmentMetadata
 			? JSON.parse(JSON.stringify(this.alignmentMetadata))
 			: null;
+		clonedClip.wbwTimestampsManuallyEdited = this.wbwTimestampsManuallyEdited;
 		clonedClip.visualMergeGroupId = this.visualMergeGroupId;
 		clonedClip.visualMergeMode = this.visualMergeMode;
 		return clonedClip;

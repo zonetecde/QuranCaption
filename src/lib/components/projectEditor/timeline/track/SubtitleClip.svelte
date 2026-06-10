@@ -14,6 +14,13 @@
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
+	import toast from 'svelte-5-french-toast';
+	import {
+		computeWbwTimestampsForClips,
+		scheduleWbwRealign,
+		getAutoRealignStatus,
+		AUTO_REALIGN_DRAG_THRESHOLD_MS
+	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
@@ -29,6 +36,11 @@
 	} = $props();
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
+
+	// Vrai si ce sous-titre Quran n'a pas encore de timestamps mot à mot.
+	let isMissingWbwTimestamps = $derived(
+		clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) === 0
+	);
 
 	let positionLeft = $derived(() => {
 		return (clip.startTime / 1000) * track.getPixelPerSecond();
@@ -167,11 +179,22 @@
 	let didDrag = false;
 	let suppressNextClick = false;
 
+	// Animation de la barre de mots : vidée pendant le redimensionnement, spinner pendant le re-MFA.
+	let isResizing = $state(false);
+	let dragBoundaryStartMs: number | null = null;
+	const realignStatus = $derived(
+		clip instanceof SubtitleClip ? getAutoRealignStatus(clip.id) : 'idle'
+	);
+
 	function startLeftDragging(e: MouseEvent) {
 		if (e.button === 0) {
 			// vient de cliquer sur le bord gauche du clip
 			dragStartX = e.clientX;
 			didDrag = false;
+			if (clip instanceof SubtitleClip) {
+				isResizing = true;
+				dragBoundaryStartMs = clip.startTime;
+			}
 			globalState.getTimelineState.showCursor = false;
 			document.addEventListener('mousemove', onLeftDragging);
 			document.addEventListener('mouseup', stopLeftDragging);
@@ -194,6 +217,18 @@
 		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
+		if (clip instanceof SubtitleClip) {
+			isResizing = false;
+			const movedMs =
+				dragBoundaryStartMs === null ? 0 : Math.abs(clip.startTime - dragBoundaryStartMs);
+			dragBoundaryStartMs = null;
+			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
+				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les deux.
+				const previous = (track as SubtitleTrack).getClipBefore(clip.id);
+				const group = previous instanceof SubtitleClip ? [previous, clip] : [clip];
+				scheduleWbwRealign(group, { reason: 'drag' });
+			}
+		}
 		if (didDrag) {
 			suppressNextClick = true;
 		}
@@ -203,6 +238,10 @@
 		// vient de cliquer sur le bord droit du clip
 		dragStartX = e.clientX;
 		didDrag = false;
+		if (clip instanceof SubtitleClip) {
+			isResizing = true;
+			dragBoundaryStartMs = clip.endTime;
+		}
 		document.addEventListener('mousemove', onRightDragging);
 		document.addEventListener('mouseup', stopRightDragging);
 		globalState.getTimelineState.showCursor = false;
@@ -223,6 +262,18 @@
 		globalState.getTimelineState.showCursor = true;
 		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
+		}
+		if (clip instanceof SubtitleClip) {
+			isResizing = false;
+			const movedMs =
+				dragBoundaryStartMs === null ? 0 : Math.abs(clip.endTime - dragBoundaryStartMs);
+			dragBoundaryStartMs = null;
+			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
+				// Un drag à droite recale aussi le début du clip suivant → réaligner les deux.
+				const next = (track as SubtitleTrack).getClipAfter(clip.id);
+				const group = next instanceof SubtitleClip ? [clip, next] : [clip];
+				scheduleWbwRealign(group, { reason: 'drag' });
+			}
 		}
 		if (didDrag) {
 			suppressNextClick = true;
@@ -388,6 +439,32 @@
 	}
 
 	/**
+	 * Calcule à la demande les timestamps WBW pour ce seul sous-titre via l'API du Universal Aligner.
+	 * @returns {Promise<void>}
+	 */
+	async function generateWbwTimestampsFromContextMenu(): Promise<void> {
+		if (!(clip instanceof SubtitleClip)) return;
+
+		currentMenu.set(null);
+		await tick();
+
+		const loadingToast = toast.loading('Computing WBW timestamps…');
+		try {
+			const { enriched } = await computeWbwTimestampsForClips([clip]);
+			if (enriched > 0) {
+				toast.success('WBW timestamps generated.', { id: loadingToast });
+				globalState.currentProject?.detail.updateVideoDetailAttributes();
+				globalState.updateVideoPreviewUI();
+			} else {
+				toast.error('Could not generate WBW timestamps.', { id: loadingToast });
+			}
+		} catch (error) {
+			console.error('[WBW] Failed to generate timestamps for clip:', error);
+			toast.error('Failed to generate WBW timestamps.', { id: loadingToast });
+		}
+	}
+
+	/**
 	 * Ouvre l'editeur rapide de sous-titre sur le clip courant.
 	 * @returns {Promise<void>}
 	 */
@@ -464,26 +541,36 @@
 	onclick={handleClipClick}
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
-		{#if wordBoundaryMarkers().length > 0}
-			<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
-				{#each wordBoundaryMarkers() as marker (marker.key)}
-					<div
-						class="wbw-word-marker"
-						style={`left: ${marker.leftPercent}%; width: ${marker.widthPercent}%;`}
-						title={marker.label}
-					>
-						<span class="arabic">{marker.label}</span>
+		{#if !isResizing}
+			{#if realignStatus === 'computing'}
+				<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
+					<div class="wbw-bar-spinner">
+						<div
+							class="h-3 w-3 rounded-full border-2 border-white/70 border-t-transparent animate-spin"
+						></div>
 					</div>
-				{/each}
-			</div>
+				</div>
+			{:else if wordBoundaryMarkers().length > 0}
+				<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden wbw-markers-fade">
+					{#each wordBoundaryMarkers() as marker (marker.key)}
+						<div
+							class="wbw-word-marker"
+							style={`left: ${marker.leftPercent}%; width: ${marker.widthPercent}%;`}
+							title={marker.label}
+						>
+							<span class="arabic">{marker.label}</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
 		{/if}
 
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
 			{#if (visualMergeGroup() && isFirstClipInVisualMergeGroup() && hasVisualMergeOverrides()) || (!visualMergeGroup() && hasOverrides())}
-			<span
-				class="material-icons-outlined text-[10px] opacity-80"
-				title={$LL.editor.subtitleIndividualStyles()}
-			>
+				<span
+					class="material-icons-outlined text-[10px] opacity-80"
+					title={$LL.editor.subtitleIndividualStyles()}
+				>
 					auto_fix_high
 				</span>
 			{/if}
@@ -578,20 +665,23 @@
 	{#if globalState.currentProject!.projectEditorState.currentTab === 'Style' && (clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle')}
 		<Item on:click={editStyle}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">auto_fix_high</span>{$LL.editor.editStyleContext()}
+				<span class="material-icons-outlined text-sm mr-1">auto_fix_high</span
+				>{$LL.editor.editStyleContext()}
 			</div></Item
 		>
 	{/if}
 	{#if globalState.currentProject!.projectEditorState.currentTab === 'Subtitles editor' && clip.type !== 'Subtitle'}
 		<Item on:click={editSubtitle}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">edit</span>{$LL.editor.editSubtitleContext()}
+				<span class="material-icons-outlined text-sm mr-1">edit</span
+				>{$LL.editor.editSubtitleContext()}
 			</div></Item
 		>
 	{/if}
 	<Item on:click={addSilence}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">space_bar</span>{$LL.editor.addSilenceLeft()}
+			<span class="material-icons-outlined text-sm mr-1">space_bar</span
+			>{$LL.editor.addSilenceLeft()}
 		</div></Item
 	>
 	{#if clip.type === 'Subtitle'}
@@ -600,7 +690,8 @@
 				void splitSubtitleFromContextMenu(event as MouseEvent);
 			}}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">call_split</span>{$LL.editor.splitSubtitleContext()}
+				<span class="material-icons-outlined text-sm mr-1">call_split</span
+				>{$LL.editor.splitSubtitleContext()}
 			</div></Item
 		>
 	{/if}
@@ -616,20 +707,23 @@
 	{#if (clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle') && clip.hasAssociatedImage()}
 		<Item on:click={removeLinkedImage}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">image_not_supported</span>{$LL.editor.removeLinkedImage()}
+				<span class="material-icons-outlined text-sm mr-1">image_not_supported</span
+				>{$LL.editor.removeLinkedImage()}
 			</div></Item
 		>
 	{/if}
 	{#if clip.type === 'Subtitle' && visualMergeGroup()}
 		<Item on:click={unmergeVisualGroupFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">link_off</span>{$LL.editor.unmergeGroup()}
+				<span class="material-icons-outlined text-sm mr-1">link_off</span
+				>{$LL.editor.unmergeGroup()}
 			</div></Item
 		>
 	{/if}
 	<Item on:click={removeSubtitle}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">remove</span>{$LL.editor.removeSubtitleContext()}
+			<span class="material-icons-outlined text-sm mr-1">remove</span
+			>{$LL.editor.removeSubtitleContext()}
 		</div></Item
 	>
 	{#if clip.type === 'Subtitle' && canBookmarkWithQuran()}
@@ -641,7 +735,8 @@
 				? $LL.editor.connectQuranComFirst()
 				: $LL.editor.addVerseToCollection()}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">bookmark_add</span>{$LL.editor.bookmarkContext()}
+				<span class="material-icons-outlined text-sm mr-1">bookmark_add</span
+				>{$LL.editor.bookmarkContext()}
 			</div></Item
 		>
 	{/if}
@@ -649,22 +744,34 @@
 		<Divider />
 		<Item on:click={editSubtitleFromQuickEditorContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">subtitles</span>{$LL.editor.editSubtitleContext()}
+				<span class="material-icons-outlined text-sm mr-1">subtitles</span
+				>{$LL.editor.editSubtitleContext()}
 			</div></Item
 		>
 		<Item on:click={editTranslationFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">translate</span>{$LL.editor.editTranslationContext()}
+				<span class="material-icons-outlined text-sm mr-1">translate</span
+				>{$LL.editor.editTranslationContext()}
 			</div></Item
 		>
+		{#if isMissingWbwTimestamps}
+			<Item on:click={generateWbwTimestampsFromContextMenu}
+				><div class="btn-icon">
+					<span class="material-icons-outlined text-sm mr-1">auto_awesome</span>Generate WBW
+					timestamps
+				</div></Item
+			>
+		{/if}
 		<Item on:click={editWbwTimestampFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">timeline</span>{$LL.editor.editWbwTimestampContext()}
+				<span class="material-icons-outlined text-sm mr-1">timeline</span
+				>{$LL.editor.editWbwTimestampContext()}
 			</div></Item
 		>
 		<Item on:click={editWbwStyleFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">format_color_text</span>{$LL.editor.editWbwStyleContext()}
+				<span class="material-icons-outlined text-sm mr-1">format_color_text</span
+				>{$LL.editor.editWbwStyleContext()}
 			</div></Item
 		>
 	{/if}
@@ -775,6 +882,29 @@
 
 	.review-band-long {
 		background-color: rgba(244, 63, 94, 0.88);
+	}
+
+	.wbw-bar-spinner {
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 16px;
+		display: flex;
+		align-items: center;
+		padding-left: 4px;
+	}
+
+	.wbw-markers-fade {
+		animation: wbwFadeIn 200ms ease-out;
+	}
+
+	@keyframes wbwFadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.wbw-word-marker {

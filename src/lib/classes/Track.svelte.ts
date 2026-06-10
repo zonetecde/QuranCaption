@@ -25,6 +25,7 @@ import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
+import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 
 export type VisualMergeSelection = {
 	clips: SubtitleClip[];
@@ -912,6 +913,8 @@ export class SubtitleTrack extends Track {
 
 		if (subtitle instanceof SubtitleClip) {
 			subtitle.markAsManualEdit();
+			// La plage de mots a changé : on régénère les timestamps WBW en arrière-plan.
+			scheduleWbwRealign([subtitle], { reason: 'text' });
 		}
 	}
 

@@ -245,16 +245,35 @@
 		{/if}
 
 		<div class="flex gap-2">
-			<input
-				bind:this={searchInput}
-				bind:value={query}
-				type="text"
-				autocomplete="off"
-				class="min-w-0 flex-1 rounded-lg border border-color bg-primary px-3 py-2 text-sm text-primary outline-none focus:border-[var(--accent-primary)]"
-				placeholder={isTranslationsTab() && searchMode === 'translation'
-					? $LL.editor.searchTranslations()
-					: versePlaceholder()}
-			/>
+			<div class="relative min-w-0 flex-1">
+				<input
+					bind:this={searchInput}
+					bind:value={query}
+					type="text"
+					autocomplete="off"
+					class="w-full rounded-lg border border-color bg-primary py-2 pl-3 text-sm text-primary outline-none focus:border-[var(--accent-primary)] {query ? 'pr-9' : 'pr-3'}"
+					placeholder={isTranslationsTab() && searchMode === 'translation'
+						? $LL.editor.searchTranslations()
+						: versePlaceholder()}
+				/>
+				{#if query}
+					<button
+						type="button"
+						class="absolute right-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-thirdly)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+						onclick={() => {
+							query = '';
+							resultMessage = '';
+							if (isTranslationsTab()) {
+								globalState.getTranslationsState.searchQuery = '';
+							}
+							searchInput?.focus();
+						}}
+						aria-label="Effacer la recherche"
+					>
+						<span class="material-icons text-sm">close</span>
+					</button>
+				{/if}
+			</div>
 			<button type="submit" class="btn-accent flex items-center gap-1.5 px-3 py-2 text-sm">
 				<span class="material-icons text-base">keyboard_return</span>
 				{$LL.common.go()}

@@ -14,6 +14,11 @@ Rules:
 - Preserve current behavior outside the requested feature.
 - Follow the existing code style and architecture of the repository.
 - Always localize new or changed user-facing text in all supported languages before finishing.
+- Use `$lib/i18n/i18n-svelte` (`LL`) and `get(LL)` to resolve displayed strings — never hardcode
+  user-facing text.
+- When implementing a feature that mutates project state (style changes, clip edits, translations,
+  etc.), always wrap it with `ProjectHistoryManager` (`.track()`, `.begin()`/`.commit()`, or
+  `.trackAsync()`) so it supports undo/redo.
 - Stop at the requested scope. Do not add extra improvements.
 - When several solutions are possible, choose the most minimal one that is correct and maintainable.
 

@@ -1,2 +1,9 @@
 #!/usr/bin/env sh
+
+# Formate tous les fichiers stagés avec Prettier avant le commit
+FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$FILES" ] || npx prettier --write --ignore-unknown $FILES
+[ -z "$FILES" ] || git add $FILES
+
 npm run verify
+

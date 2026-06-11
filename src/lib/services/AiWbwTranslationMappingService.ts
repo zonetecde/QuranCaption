@@ -17,85 +17,31 @@ import type {
 	AdvancedTrimReasoningEffort,
 	AdvancedTrimUsage
 } from './AdvancedAITrimming';
+import type {
+	AiWbwTranslationApplyReport,
+	AiWbwTranslationBatch,
+	AiWbwTranslationBatchResponse,
+	AiWbwTranslationBatchResultSegment,
+	AiWbwTranslationBatchSegmentPayload,
+	AiWbwTranslationCandidate,
+	AiWbwTranslationCostEstimate,
+	AiWbwTranslationValidationReport,
+	AiWbwTranslationValidationSuccess
+} from './AiWbwTranslationMappingTypes';
 
-export type AiWbwTranslationArabicWordPayload = {
-	index: number;
-	arabic: string;
-	helper: string;
-};
-
-export type AiWbwTranslationCandidate = {
-	segmentIndex: number;
-	verseKey: string;
-	startTime: number;
-	endTime: number;
-	segmentArabic: string;
-	arabicWords: AiWbwTranslationArabicWordPayload[];
-	translationText: string;
-	translationIndexed: string;
-	translationUnits: string[];
-	wordCount: number;
-	arabicWordCount: number;
-	subtitle: SubtitleClip;
-};
-
-export type AiWbwTranslationBatchSegmentPayload = {
-	segmentIndex: number;
-	verseKey: string;
-	segmentArabic: string;
-	arabicWords: AiWbwTranslationArabicWordPayload[];
-	translationIndexed: string;
-};
-
-export type AiWbwTranslationBatch = {
-	batchId: string;
-	wordCount: number;
-	segments: AiWbwTranslationCandidate[];
-	request: {
-		segments: AiWbwTranslationBatchSegmentPayload[];
-	};
-	estimatedInputTokens: number;
-	estimatedOutputTokens: number;
-	estimatedCostUsd: number;
-};
-
-export type AiWbwTranslationBatchResponse = {
-	batchId: string;
-	rawText: string;
-	parsed: unknown;
-	usage?: AdvancedTrimUsage;
-};
-
-export type AiWbwTranslationBatchResultSegment = {
-	segmentIndex: number;
-	ranges: TranslationWbwRange[];
-};
-
-export type AiWbwTranslationValidationSuccess = {
-	candidate: AiWbwTranslationCandidate;
-	ranges: TranslationWbwRange[];
-};
-
-export type AiWbwTranslationValidationReport = {
-	validSegments: AiWbwTranslationValidationSuccess[];
-	errors: string[];
-};
-
-export type AiWbwTranslationApplyReport = {
-	appliedSegments: number;
-	erroredSegments: number;
-	errors: string[];
-};
-
-export type AiWbwTranslationCostEstimate = {
-	batches: AiWbwTranslationBatch[];
-	totalSegments: number;
-	totalWords: number;
-	totalEstimatedInputTokens: number;
-	totalEstimatedOutputTokens: number;
-	totalEstimatedCostUsd: number;
-	reasoningNote: string;
-};
+// Re-export pour compatibilité ascendante
+export type {
+	AiWbwTranslationArabicWordPayload,
+	AiWbwTranslationApplyReport,
+	AiWbwTranslationBatch,
+	AiWbwTranslationBatchResponse,
+	AiWbwTranslationBatchResultSegment,
+	AiWbwTranslationBatchSegmentPayload,
+	AiWbwTranslationCandidate,
+	AiWbwTranslationCostEstimate,
+	AiWbwTranslationValidationReport,
+	AiWbwTranslationValidationSuccess
+} from './AiWbwTranslationMappingTypes';
 
 const MAX_BATCH_WORDS = 500;
 const APPROX_SYSTEM_PROMPT_CHARS = 5600;
@@ -175,22 +121,18 @@ function isPunctuationOnlyUnit(unit: string): boolean {
 }
 
 /**
- * Étend un range IA vers les ponctuations isolées adjacentes.
+ * Étend un range IA vers les ponctuations isolées qui suivent.
  *
  * @param {TranslationWbwRange} range Range validée.
  * @param {string[]} translationUnits Unités de traduction indexées.
- * @returns {TranslationWbwRange} Range avec ponctuation voisine incluse.
+ * @returns {TranslationWbwRange} Range avec ponctuation suivante incluse.
  */
-function includeAdjacentPunctuation(
+function includeFollowingPunctuation(
 	range: TranslationWbwRange,
 	translationUnits: string[]
 ): TranslationWbwRange {
-	let startUnitIndex = range.startUnitIndex;
 	let endUnitIndex = range.endUnitIndex;
 
-	while (startUnitIndex > 0 && isPunctuationOnlyUnit(translationUnits[startUnitIndex - 1])) {
-		startUnitIndex--;
-	}
 	while (
 		endUnitIndex < translationUnits.length - 1 &&
 		isPunctuationOnlyUnit(translationUnits[endUnitIndex + 1])
@@ -200,7 +142,6 @@ function includeAdjacentPunctuation(
 
 	return {
 		...range,
-		startUnitIndex,
 		endUnitIndex
 	};
 }
@@ -532,7 +473,7 @@ function normalizeAiRanges(
 
 		rangesByArabicIndex.set(
 			arabicWordIndex,
-			includeAdjacentPunctuation(
+			includeFollowingPunctuation(
 				{
 					arabicWordIndex,
 					startUnitIndex,

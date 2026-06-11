@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import Settings from '$lib/classes/Settings.svelte';
+	import type {
+		ActivityTone,
+		AiWbwTranslationCandidate,
+		WbwTranslationActivityEntry,
+		WbwTranslationChunkEventPayload,
+		WbwTranslationCompleteEventPayload,
+		WbwTranslationStatusEventPayload
+	} from '$lib/services/AiWbwTranslationMappingTypes';
 	import type { AdvancedTrimUsage } from '$lib/services/AdvancedAITrimming';
 	import AiActivityLogCard from './shared/AiActivityLogCard.svelte';
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
@@ -13,8 +21,7 @@
 		buildAiWbwTranslationCandidates,
 		estimateAiWbwTranslationCost,
 		runAiWbwTranslationBatchStreaming,
-		validateAiWbwTranslationBatchResult,
-		type AiWbwTranslationCandidate
+		validateAiWbwTranslationBatchResult
 	} from '$lib/services/AiWbwTranslationMappingService';
 	import { formatUsd } from '$lib/services/AdvancedAITrimming';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -24,29 +31,10 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
-	type ActivityTone = 'info' | 'success' | 'error';
-	type ActivityEntry = {
-		id: string;
-		batchId: string;
-		step: string;
-		message: string;
-		tone: ActivityTone;
-	};
-	type StatusEventPayload = {
-		batchId: string;
-		step: string;
-		message: string;
-	};
-	type ChunkEventPayload = {
-		batchId: string;
-		delta: string;
-		accumulatedText: string;
-	};
-	type CompleteEventPayload = {
-		batchId: string;
-		rawText: string;
-		usage?: AdvancedTrimUsage;
-	};
+	type ActivityEntry = WbwTranslationActivityEntry;
+	type StatusEventPayload = WbwTranslationStatusEventPayload;
+	type ChunkEventPayload = WbwTranslationChunkEventPayload;
+	type CompleteEventPayload = WbwTranslationCompleteEventPayload;
 
 	let { close }: { close: () => void } = $props();
 

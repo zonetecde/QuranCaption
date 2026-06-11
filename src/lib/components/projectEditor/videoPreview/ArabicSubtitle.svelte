@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
-	import { type TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
+	import {
+		EMPTY_INLINE_STYLE_FLAGS,
+		getInlineStyleCss,
+		getInlineStyleFlagsForWordIndex,
+		type TranslationInlineStyleFlags
+	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import QPCFontProvider from '$lib/services/FontProvider';
@@ -272,13 +277,6 @@
 		clipStartTimeS: number;
 	};
 
-	const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
-		bold: false,
-		italic: false,
-		underline: false,
-		color: null
-	};
-
 	/**
 	 * Compte le nombre de mots qui se chevauchent entre la fin
 	 * d'un groupe et le début du groupe suivant.
@@ -346,30 +344,6 @@
 
 		// Priorité 4 : premier timing
 		return validTimings[0];
-	}
-
-	/**
-	 * Retourne les flags inline appliqués à un mot arabe donné.
-	 * @param {SubtitleClip} clip Clip Quran source.
-	 * @param {number} wordIndex Index du mot dans le clip source.
-	 * @returns {TranslationInlineStyleFlags} Flags inline resolves.
-	 */
-	function getArabicInlineFlagsForWordIndex(
-		clip: SubtitleClip,
-		wordIndex: number
-	): TranslationInlineStyleFlags {
-		for (const run of clip.arabicInlineStyleRuns ?? []) {
-			if (run.startWordIndex <= wordIndex && wordIndex <= run.endWordIndex) {
-				return {
-					bold: run.bold,
-					italic: run.italic,
-					underline: run.underline,
-					color: run.color ?? null
-				};
-			}
-		}
-
-		return EMPTY_INLINE_STYLE_FLAGS;
 	}
 
 	/**
@@ -466,7 +440,7 @@
 				wordEntry.timings.push(timingCandidates[i]);
 				wordEntry.flags = mergeInlineStyleFlags(
 					wordEntry.flags,
-					getArabicInlineFlagsForWordIndex(sourceClip, inlineWordOffset + i)
+					getInlineStyleFlagsForWordIndex(sourceClip.arabicInlineStyleRuns, inlineWordOffset + i)
 				);
 			}
 
@@ -475,7 +449,10 @@
 				const wordEntry = {
 					text: visibleWords[i],
 					timings: [timingCandidates[i]],
-					flags: getArabicInlineFlagsForWordIndex(sourceClip, inlineWordOffset + i)
+					flags: getInlineStyleFlagsForWordIndex(
+						sourceClip.arabicInlineStyleRuns,
+						inlineWordOffset + i
+					)
 				};
 				words.push(wordEntry);
 				groupWords.push(wordEntry);
@@ -548,21 +525,6 @@
 	// =========================================================================
 	// Style inline (gras, italique, souligné, couleur) pour les segments
 	// =========================================================================
-
-	/**
-	 * Convertit les flags de style inline en CSS appliqué au segment.
-	 *
-	 * @param flags - Flags de style inline (bold, italic, underline, color).
-	 * @returns Chaîne CSS correspondante.
-	 */
-	function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
-		const parts: string[] = [];
-		if (flags.bold) parts.push('font-weight: 700;');
-		if (flags.italic) parts.push('font-style: italic;');
-		if (flags.underline) parts.push('text-decoration-line: underline;');
-		if (flags.color) parts.push(`color: ${flags.color};`);
-		return parts.join(' ');
-	}
 
 	/**
 	 * Fusionne le CSS WBW avec le CSS inline d'un mot, en laissant l'inline prioritaire.

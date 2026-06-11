@@ -54,12 +54,53 @@ export type TranslationTrimUnit = {
 	endIndex: number;
 };
 
-const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
+export const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
 	bold: false,
 	italic: false,
 	underline: false,
 	color: null
 };
+
+/**
+ * Convertit les flags de style inline en CSS appliqué au segment.
+ *
+ * @param {TranslationInlineStyleFlags} flags Flags de style inline (bold, italic, underline, color).
+ * @returns {string} Chaîne CSS correspondante.
+ */
+export function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
+	const parts: string[] = [];
+	if (flags.bold) parts.push('font-weight: 700;');
+	if (flags.italic) parts.push('font-style: italic;');
+	if (flags.underline) parts.push('text-decoration: underline;');
+	if (flags.color) parts.push(`color: ${flags.color};`);
+	return parts.join(' ');
+}
+
+/**
+ * Retourne les flags inline appliqués à un index de mot donné dans une liste
+ * de runs de style. Retourne les flags vides si aucun run ne couvre l'index.
+ *
+ * @param {TranslationInlineStyleRun[]} runs Liste des runs de style.
+ * @param {number} wordIndex Index du mot à tester.
+ * @returns {TranslationInlineStyleFlags} Flags applicables.
+ */
+export function getInlineStyleFlagsForWordIndex(
+	runs: TranslationInlineStyleRun[],
+	wordIndex: number
+): TranslationInlineStyleFlags {
+	for (const run of runs ?? []) {
+		if (run.startWordIndex <= wordIndex && wordIndex <= run.endWordIndex) {
+			return {
+				bold: run.bold,
+				italic: run.italic,
+				underline: run.underline,
+				color: run.color ?? null
+			};
+		}
+	}
+
+	return { ...EMPTY_INLINE_STYLE_FLAGS };
+}
 
 const VERSE_NUMBER_NUMERAL_SYSTEMS: Record<string, string> = {
 	'Western Arabic': '0123456789',

@@ -1,6 +1,8 @@
 ﻿<script lang="ts">
 	import { SubtitleClip, type Edition } from '$lib/classes';
 	import {
+		getInlineStyleCss,
+		getInlineStyleFlagsForWordIndex,
 		getTranslationTrimUnitCount,
 		getTranslationTrimUnits,
 		sliceTranslationTrimUnits,
@@ -227,41 +229,6 @@
 	}
 
 	/**
-	 * Convertit des flags de style en style inline CSS pour le rendu des mots.
-	 */
-	function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
-		const parts: string[] = [];
-		if (flags.bold) parts.push('font-weight: 700;');
-		if (flags.italic) parts.push('font-style: italic;');
-		if (flags.underline) parts.push('text-decoration: underline;');
-		if (flags.color) parts.push(`color: ${flags.color};`);
-		return parts.join(' ');
-	}
-
-	/**
-	 * Retourne les styles appliqués à un index de mot, ou un style vide si aucun run ne couvre ce mot.
-	 */
-	function getFlagsForWordIndex(wordIndex: number): TranslationInlineStyleFlags {
-		for (const run of translation().inlineStyleRuns ?? []) {
-			if (run.startWordIndex <= wordIndex && wordIndex <= run.endWordIndex) {
-				return {
-					bold: run.bold,
-					italic: run.italic,
-					underline: run.underline,
-					color: run.color ?? null
-				};
-			}
-		}
-
-		return {
-			bold: false,
-			italic: false,
-			underline: false,
-			color: null
-		};
-	}
-
-	/**
 	 * Tokenize la traduction trimmee et annote chaque mot avec ses styles inline.
 	 */
 	function getTrimmedTranslationWords(): TranslationWordItem[] {
@@ -273,7 +240,7 @@
 			.map((token) => ({
 				text: token.text,
 				wordIndex: token.wordIndex,
-				flags: getFlagsForWordIndex(token.wordIndex)
+				flags: getInlineStyleFlagsForWordIndex(translation().inlineStyleRuns ?? [], token.wordIndex)
 			}));
 	}
 

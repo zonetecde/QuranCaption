@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import {
+		getInlineStyleCss,
+		getInlineStyleFlagsForWordIndex,
 		type TranslationInlineStyleFlags,
 		tokenizeTranslationText,
 		VerseTranslation
@@ -183,36 +185,6 @@
 	 * en tenant compte de la fusion visuelle.
 	 */
 	/**
-	 * Retourne les flags inline appliqués à une unité de traduction.
-	 *
-	 * @param {VerseTranslation} translation Traduction source.
-	 * @param {number} unitIndex Index de l'unité trim.
-	 * @returns {TranslationInlineStyleFlags} Flags inline.
-	 */
-	function getInlineFlagsForUnitIndex(
-		translation: VerseTranslation,
-		unitIndex: number
-	): TranslationInlineStyleFlags {
-		for (const run of translation.inlineStyleRuns ?? []) {
-			if (run.startWordIndex <= unitIndex && unitIndex <= run.endWordIndex) {
-				return {
-					bold: run.bold,
-					italic: run.italic,
-					underline: run.underline,
-					color: run.color ?? null
-				};
-			}
-		}
-
-		return {
-			bold: false,
-			italic: false,
-			underline: false,
-			color: null
-		};
-	}
-
-	/**
 	 * Construit les segments WBW d'une traduction pour un clip.
 	 *
 	 * @param {string} editionName Nom de l'édition.
@@ -293,7 +265,7 @@
 				text: token.text,
 				flags:
 					token.isWord && token.wordIndex !== null
-						? getInlineFlagsForUnitIndex(translation, token.wordIndex)
+						? getInlineStyleFlagsForWordIndex(translation.inlineStyleRuns ?? [], token.wordIndex)
 						: {
 								bold: false,
 								italic: false,
@@ -400,21 +372,6 @@
 	// =========================================================================
 	// Style inline (gras, italique, souligné, couleur)
 	// =========================================================================
-
-	/**
-	 * Convertit les flags de style inline en CSS appliqué au segment.
-	 *
-	 * @param flags - Flags de style inline (bold, italic, underline, color).
-	 * @returns Chaîne CSS correspondante.
-	 */
-	function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
-		const parts: string[] = [];
-		if (flags.bold) parts.push('font-weight: 700;');
-		if (flags.italic) parts.push('font-style: italic;');
-		if (flags.underline) parts.push('text-decoration: underline;');
-		if (flags.color) parts.push(`color: ${flags.color};`);
-		return parts.join(' ');
-	}
 
 	/**
 	 * Fusionne le CSS WBW avec le CSS inline d'une unité de traduction.

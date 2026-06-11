@@ -5,6 +5,9 @@
 		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
 	import {
+		EMPTY_INLINE_STYLE_FLAGS,
+		getInlineStyleCss,
+		getInlineStyleFlagsForWordIndex,
 		VerseTranslation,
 		type TranslationInlineStyleFlags
 	} from '$lib/classes/Translation.svelte';
@@ -27,13 +30,6 @@
 	let isTranslationWbwMappingMode = $derived(
 		() => translationsEditorState().isTranslationWbwMappingMode
 	);
-	const EMPTY_INLINE_FLAGS: TranslationInlineStyleFlags = {
-		bold: false,
-		italic: false,
-		underline: false,
-		color: null
-	};
-
 	let isInlineDragging = $state(false);
 	let inlineDragStartIndex = $state(-1);
 	let inlineSelectionStart = $state(-1);
@@ -85,36 +81,6 @@
 				}
 			});
 	});
-
-	/**
-	 * Convertit l'état de style d'un mot en CSS inline pour l'affichage.
-	 */
-	function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
-		const parts: string[] = [];
-		if (flags.bold) parts.push('font-weight: 700;');
-		if (flags.italic) parts.push('font-style: italic;');
-		if (flags.underline) parts.push('text-decoration: underline;');
-		if (flags.color) parts.push(`color: ${flags.color};`);
-		return parts.join(' ');
-	}
-
-	/**
-	 * Retourne les styles actuellement posés sur un mot arabe.
-	 */
-	function getWordFlags(wordIndex: number): TranslationInlineStyleFlags {
-		for (const run of subtitle.arabicInlineStyleRuns) {
-			if (run.startWordIndex <= wordIndex && wordIndex <= run.endWordIndex) {
-				return {
-					bold: run.bold,
-					italic: run.italic,
-					underline: run.underline,
-					color: run.color ?? null
-				};
-			}
-		}
-
-		return EMPTY_INLINE_FLAGS;
-	}
 
 	/**
 	 * Termine le drag en appliquant les styles actifs sur la plage sélectionnée.
@@ -216,7 +182,7 @@
 				isTranslationWbwMappingMode() &&
 				translationsEditorState().translationWbwActiveArabicWordIndex === i}
 			{@const isWbwMappingMapped = isTranslationWbwMappingMode() && isArabicWordMapped(i)}
-			{@const flags = getWordFlags(i)}
+			{@const flags = getInlineStyleFlagsForWordIndex(subtitle.arabicInlineStyleRuns, i)}
 			<button
 				type="button"
 				class="word group relative flex flex-col items-center gap-y-2 rounded-md p-0 ring-1 ring-transparent transition-colors {isOverlapWord

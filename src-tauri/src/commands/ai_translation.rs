@@ -43,6 +43,23 @@ Rules:
 - Return JSON only, matching the schema exactly.
 "#;
 
+const ADVANCED_WBW_TRANSLATION_SYSTEM_PROMPT: &str = r#"You map each Arabic word in a Quran subtitle segment to a range of existing indexed translation units.
+
+Rules:
+- Use 0-based indexes only.
+- Each output segment must contain exactly one range for every Arabic word in the input segment.
+- Always output indexes for every Arabic word, even when the alignment is ambiguous or imperfect.
+- When alignment is ambiguous, choose the most logical range using the Arabic word, its helper, and nearby previous/next words.
+- Multiple Arabic words may map to the same translation unit or the same translation range.
+- A translation unit may be used by multiple Arabic words.
+- Ranges may overlap.
+- Ranges do not need to be continuous or monotonic across Arabic word order.
+- You must never rewrite, reorder, remove, or add translation words.
+- The provided translation uses indexed units in the form `0:word 1:word 2:word`.
+- For Chinese or other text without spaces, the indexed units may be characters. Treat them exactly like selectable units.
+- Return JSON only, matching the schema exactly.
+"#;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimCommandRequest {
@@ -66,6 +83,18 @@ pub struct AdvancedBoldCommandRequest {
     batch: AdvancedBoldBatchPayload,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedWbwTranslationCommandRequest {
+    api_key: String,
+    endpoint: String,
+    model: String,
+    reasoning_effort: String,
+    batch_id: String,
+    custom_prompt_note: String,
+    batch: AdvancedWbwTranslationBatchPayload,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimBatchPayload {
@@ -76,6 +105,12 @@ pub struct AdvancedTrimBatchPayload {
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedBoldBatchPayload {
     segments: Vec<AdvancedBoldSegmentPayload>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedWbwTranslationBatchPayload {
+    segments: Vec<AdvancedWbwTranslationSegmentPayload>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -100,6 +135,24 @@ pub struct AdvancedBoldSegmentPayload {
     segment_index: i64,
     verse_key: String,
     segment_arabic: String,
+    translation_indexed: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedWbwTranslationArabicWordPayload {
+    index: i64,
+    arabic: String,
+    helper: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedWbwTranslationSegmentPayload {
+    segment_index: i64,
+    verse_key: String,
+    segment_arabic: String,
+    arabic_words: Vec<AdvancedWbwTranslationArabicWordPayload>,
     translation_indexed: String,
 }
 
@@ -231,6 +284,57 @@ fn emit_bold_complete(
 ) {
     let _ = app_handle.emit(
         "advanced-ai-bold-complete",
+        json!({
+            "batchId": batch_id,
+            "rawText": raw_text,
+            "usage": usage.map(normalize_usage)
+        }),
+    );
+}
+
+/// Émet une étape de statut pour l'assistant WBW traduction.
+fn emit_wbw_translation_status(
+    app_handle: &tauri::AppHandle,
+    batch_id: &str,
+    step: &str,
+    message: &str,
+) {
+    let _ = app_handle.emit(
+        "advanced-ai-wbw-translation-status",
+        json!({
+            "batchId": batch_id,
+            "step": step,
+            "message": message
+        }),
+    );
+}
+
+/// Émet un fragment de réponse streamée pour l'assistant WBW traduction.
+fn emit_wbw_translation_chunk(
+    app_handle: &tauri::AppHandle,
+    batch_id: &str,
+    delta: &str,
+    accumulated_text: &str,
+) {
+    let _ = app_handle.emit(
+        "advanced-ai-wbw-translation-chunk",
+        json!({
+            "batchId": batch_id,
+            "delta": delta,
+            "accumulatedText": accumulated_text
+        }),
+    );
+}
+
+/// Émet la réponse finale d'un batch WBW traduction.
+fn emit_wbw_translation_complete(
+    app_handle: &tauri::AppHandle,
+    batch_id: &str,
+    raw_text: &str,
+    usage: Option<&Value>,
+) {
+    let _ = app_handle.emit(
+        "advanced-ai-wbw-translation-complete",
         json!({
             "batchId": batch_id,
             "rawText": raw_text,
@@ -411,6 +515,49 @@ fn build_bold_response_schema() -> Value {
     })
 }
 
+/// Construit le schéma JSON attendu pour les ranges WBW traduction.
+fn build_wbw_translation_response_schema() -> Value {
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "segments": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "segmentIndex": {
+                            "type": "integer"
+                        },
+                        "ranges": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "arabicWordIndex": {
+                                        "type": "integer"
+                                    },
+                                    "startUnitIndex": {
+                                        "type": "integer"
+                                    },
+                                    "endUnitIndex": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": ["arabicWordIndex", "startUnitIndex", "endUnitIndex"]
+                            }
+                        }
+                    },
+                    "required": ["segmentIndex", "ranges"]
+                }
+            }
+        },
+        "required": ["segments"]
+    })
+}
+
 /// Extrait le texte diffusé par un chunk Chat Completions.
 fn extract_chat_completion_delta(payload: &Value) -> Option<&str> {
     payload
@@ -447,6 +594,41 @@ fn build_bold_user_prompt(
          Use the indexed translation as the source of truth for selectable words.\n\
          Do not rewrite the translation.\n\
          Return only `segmentIndex` and `boldWordIndexes`.\n\n\
+         {}\n\n\
+         Batch JSON:\n{}",
+        note_block, batch_json
+    ))
+}
+
+/// Construit le prompt utilisateur pour un batch WBW traduction.
+fn build_wbw_translation_user_prompt(
+    batch: &AdvancedWbwTranslationBatchPayload,
+    custom_prompt_note: &str,
+) -> Result<String, String> {
+    let batch_json = serde_json::to_string_pretty(batch)
+        .map_err(|error| format!("Failed to serialize batch: {}", error))?;
+
+    let trimmed_note = custom_prompt_note.trim();
+    let note_block = if trimmed_note.is_empty() {
+        "User note: none provided.".to_string()
+    } else {
+        format!("User note:\n{}", trimmed_note)
+    };
+
+    Ok(format!(
+        "Map each Arabic word to translation unit indexes and return JSON only.\n\
+         Return exactly this shape: {{\"segments\":[{{\"segmentIndex\":0,\"ranges\":[{{\"arabicWordIndex\":0,\"startUnitIndex\":0,\"endUnitIndex\":0}}]}}]}}.\n\
+         Each segment must include exactly one range per arabicWords item.\n\
+         Do not rewrite the translation. Use only indexes from translationIndexed.\n\
+         Overlap and repeated ranges are allowed. If the mapping is difficult, still choose the most logical indexes.\n\n\
+         Example 1 input:\n\
+         {{\"arabicWords\":[{{\"index\":0,\"arabic\":\"وَوَجَدَكَ\",\"helper\":\"And He found you\"}},{{\"index\":1,\"arabic\":\"ضَالًّا\",\"helper\":\"lost\"}},{{\"index\":2,\"arabic\":\"فَهَدَى\",\"helper\":\"so He guided\"}}],\"translationUnits\":[\"Ne\",\"t’a-t-Il\",\"pas\",\"trouvé\",\"orphelin\",\"?\",\"Alors\",\"Il\",\"t’a\",\"accueilli\",\"!\"]}}\n\
+         Example 1 output ranges:\n\
+         [{{\"arabicWordIndex\":0,\"startUnitIndex\":0,\"endUnitIndex\":2}},{{\"arabicWordIndex\":1,\"startUnitIndex\":3,\"endUnitIndex\":5}},{{\"arabicWordIndex\":2,\"startUnitIndex\":6,\"endUnitIndex\":10}}]\n\n\
+         Example 2 input:\n\
+         {{\"arabicWords\":[{{\"index\":0,\"arabic\":\"وَلَلْآخِرَةُ\",\"helper\":\"And surely the Hereafter\"}},{{\"index\":1,\"arabic\":\"خَيْرٌ\",\"helper\":\"(is) better\"}},{{\"index\":2,\"arabic\":\"لَكَ\",\"helper\":\"for you\"}},{{\"index\":3,\"arabic\":\"مِنَ\",\"helper\":\"than\"}},{{\"index\":4,\"arabic\":\"الْأُولَى\",\"helper\":\"the first\"}}],\"translationUnits\":[\"La\",\"vie\",\"dernière\",\"t’est,\",\"certes,\",\"meilleure\",\"que\",\"la\",\"vie\",\"présente.\"]}}\n\
+         Example 2 output ranges:\n\
+         [{{\"arabicWordIndex\":0,\"startUnitIndex\":0,\"endUnitIndex\":2}},{{\"arabicWordIndex\":1,\"startUnitIndex\":3,\"endUnitIndex\":5}},{{\"arabicWordIndex\":2,\"startUnitIndex\":3,\"endUnitIndex\":5}},{{\"arabicWordIndex\":3,\"startUnitIndex\":6,\"endUnitIndex\":6}},{{\"arabicWordIndex\":4,\"startUnitIndex\":7,\"endUnitIndex\":9}}]\n\n\
          {}\n\n\
          Batch JSON:\n{}",
         note_block, batch_json
@@ -1081,6 +1263,297 @@ pub async fn run_advanced_ai_bold_batch_streaming(
         "Text AI batch completed.",
     );
     emit_bold_complete(&app_handle, &batch_id, &raw_text, usage.as_ref());
+
+    Ok(json!({
+        "batchId": batch_id,
+        "rawText": raw_text,
+        "parsed": parsed,
+        "usage": usage.as_ref().map(normalize_usage)
+    }))
+}
+
+#[tauri::command]
+/// Lance un batch streaming de mapping WBW traduction via le provider IA texte.
+pub async fn run_advanced_ai_wbw_translation_batch_streaming(
+    app_handle: tauri::AppHandle,
+    request: AdvancedWbwTranslationCommandRequest,
+) -> Result<Value, String> {
+    validate_model(&request.model)?;
+    validate_reasoning_effort(&request.reasoning_effort)?;
+
+    let api_key = request.api_key.trim();
+    if api_key.is_empty() {
+        return Err("AI API key is required.".to_string());
+    }
+    let endpoint = normalize_text_ai_endpoint(&request.endpoint)?;
+
+    if request.batch.segments.is_empty() {
+        return Err("Batch is empty.".to_string());
+    }
+
+    let user_prompt =
+        build_wbw_translation_user_prompt(&request.batch, &request.custom_prompt_note)?;
+    let schema = build_wbw_translation_response_schema();
+    let model = request.model.clone();
+    let reasoning_effort = request.reasoning_effort.clone();
+    let batch_id = request.batch_id.clone();
+    let is_chat_completions = is_chat_completions_endpoint(&endpoint);
+    let body = if is_chat_completions {
+        build_chat_completions_body(&model, ADVANCED_WBW_TRANSLATION_SYSTEM_PROMPT, &user_prompt)
+    } else {
+        json!({
+            "model": model,
+            "stream": true,
+            "store": false,
+            "input": [
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": ADVANCED_WBW_TRANSLATION_SYSTEM_PROMPT
+                        }
+                    ]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": user_prompt
+                        }
+                    ]
+                }
+            ],
+            "reasoning": {
+                "effort": reasoning_effort
+            },
+            "text": {
+                "verbosity": "low",
+                "format": {
+                    "type": "json_schema",
+                    "name": "advanced_wbw_translation_batch",
+                    "description": "Word-by-word translation mapping ranges for Quran subtitle translations.",
+                    "strict": true,
+                    "schema": schema
+                }
+            }
+        })
+    };
+
+    emit_wbw_translation_status(
+        &app_handle,
+        &batch_id,
+        "queued",
+        "Queued for text AI provider.",
+    );
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(10 * 60))
+        .build()
+        .map_err(|error| format!("Failed to build text AI HTTP client: {}", error))?;
+
+    emit_wbw_translation_status(
+        &app_handle,
+        &batch_id,
+        "sending",
+        "Sending batch to text AI provider...",
+    );
+
+    let request_builder = client
+        .post(&endpoint)
+        .header(AUTHORIZATION, format!("Bearer {}", api_key))
+        .header(CONTENT_TYPE, "application/json");
+    let request_builder = if is_openrouter_endpoint(&endpoint) {
+        request_builder
+            .header("HTTP-Referer", "https://qurancaption.app")
+            .header("X-OpenRouter-Title", "QuranCaption")
+    } else {
+        request_builder
+    };
+
+    let response = request_builder
+        .json(&body)
+        .send()
+        .await
+        .map_err(|error| format!("Text AI request failed: {}", error))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let error_body = response.text().await.unwrap_or_default();
+        let message = format!("Text AI API error ({}): {}", status.as_u16(), error_body);
+        emit_wbw_translation_status(&app_handle, &batch_id, "failed", &message);
+        return Err(message);
+    }
+
+    let mut accumulator = SseAccumulator::default();
+    let mut buffered_bytes: Vec<u8> = Vec::new();
+    let mut raw_text = String::new();
+    let mut usage: Option<Value> = None;
+    let mut stream = response.bytes_stream();
+    let mut saw_streaming_chunk = false;
+
+    while let Some(chunk_result) = stream.next().await {
+        let chunk =
+            chunk_result.map_err(|error| format!("Failed to read text AI stream: {}", error))?;
+        if chunk.is_empty() {
+            continue;
+        }
+
+        buffered_bytes.extend_from_slice(&chunk);
+
+        while let Some(newline_pos) = buffered_bytes.iter().position(|byte| *byte == b'\n') {
+            let line_bytes = buffered_bytes.drain(..=newline_pos).collect::<Vec<u8>>();
+            let mut line_slice = line_bytes.as_slice();
+            if line_slice.ends_with(b"\n") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+            if line_slice.ends_with(b"\r") {
+                line_slice = &line_slice[..line_slice.len() - 1];
+            }
+
+            let line = String::from_utf8_lossy(line_slice);
+            let maybe_payload = accumulator.push_line(&line)?;
+            let Some(payload) = maybe_payload else {
+                continue;
+            };
+
+            if is_chat_completions
+                && payload.get("object").and_then(Value::as_str) == Some("chat.completion.chunk")
+            {
+                if let Some(chat_usage) = extract_chat_completion_usage(&payload) {
+                    usage = Some(chat_usage);
+                }
+
+                if let Some(delta) = extract_chat_completion_delta(&payload) {
+                    if !delta.is_empty() {
+                        raw_text.push_str(delta);
+                        if !saw_streaming_chunk {
+                            saw_streaming_chunk = true;
+                            emit_wbw_translation_status(
+                                &app_handle,
+                                &batch_id,
+                                "streaming",
+                                "Streaming AI response...",
+                            );
+                        }
+                        emit_wbw_translation_chunk(&app_handle, &batch_id, delta, &raw_text);
+                    }
+                }
+                continue;
+            }
+
+            match payload
+                .get("type")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+            {
+                "response.created" => {
+                    emit_wbw_translation_status(
+                        &app_handle,
+                        &batch_id,
+                        "streaming",
+                        "Text AI provider accepted the batch.",
+                    );
+                }
+                "response.in_progress" => {
+                    emit_wbw_translation_status(
+                        &app_handle,
+                        &batch_id,
+                        "streaming",
+                        "Text AI provider is generating WBW translation ranges.",
+                    );
+                }
+                "response.output_text.delta" => {
+                    let delta = payload
+                        .get("delta")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default();
+                    if !delta.is_empty() {
+                        raw_text.push_str(delta);
+                        if !saw_streaming_chunk {
+                            saw_streaming_chunk = true;
+                            emit_wbw_translation_status(
+                                &app_handle,
+                                &batch_id,
+                                "streaming",
+                                "Streaming AI response...",
+                            );
+                        }
+                        emit_wbw_translation_chunk(&app_handle, &batch_id, delta, &raw_text);
+                    }
+                }
+                "response.refusal.delta" => {
+                    let delta = payload
+                        .get("delta")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default();
+                    if !delta.is_empty() {
+                        raw_text.push_str(delta);
+                        emit_wbw_translation_chunk(&app_handle, &batch_id, delta, &raw_text);
+                    }
+                }
+                "response.completed" => {
+                    usage = payload
+                        .get("response")
+                        .and_then(|response_value| response_value.get("usage"))
+                        .cloned();
+
+                    if raw_text.trim().is_empty() {
+                        if let Some(completed_text) = extract_completed_output_text(&payload) {
+                            raw_text = completed_text;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if !buffered_bytes.is_empty() {
+        let trailing_line = String::from_utf8_lossy(&buffered_bytes);
+        let _ = accumulator.push_line(&trailing_line)?;
+        if let Some(payload) = accumulator.flush_event()? {
+            if is_chat_completions
+                && payload.get("object").and_then(Value::as_str) == Some("chat.completion.chunk")
+            {
+                if let Some(chat_usage) = extract_chat_completion_usage(&payload) {
+                    usage = Some(chat_usage);
+                }
+                if let Some(delta) = extract_chat_completion_delta(&payload) {
+                    raw_text.push_str(delta);
+                }
+            } else if payload.get("type").and_then(Value::as_str) == Some("response.completed") {
+                usage = payload
+                    .get("response")
+                    .and_then(|response_value| response_value.get("usage"))
+                    .cloned();
+                if raw_text.trim().is_empty() {
+                    if let Some(completed_text) = extract_completed_output_text(&payload) {
+                        raw_text = completed_text;
+                    }
+                }
+            }
+        }
+    }
+
+    if raw_text.trim().is_empty() {
+        let message = "Text AI provider returned an empty response.".to_string();
+        emit_wbw_translation_status(&app_handle, &batch_id, "failed", &message);
+        return Err(message);
+    }
+
+    let parsed: Value = serde_json::from_str(raw_text.trim())
+        .map_err(|error| format!("Failed to parse text AI JSON output: {}", error))?;
+
+    emit_wbw_translation_status(
+        &app_handle,
+        &batch_id,
+        "completed",
+        "Text AI batch completed.",
+    );
+    emit_wbw_translation_complete(&app_handle, &batch_id, &raw_text, usage.as_ref());
 
     Ok(json!({
         "batchId": batch_id,

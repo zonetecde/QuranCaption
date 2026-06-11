@@ -1791,6 +1791,10 @@ type RootTranslation = {
 		 */
 		aiBoldRange: string;
 		/**
+		 * A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​R​a​n​g​e
+		 */
+		aiWbwTranslationRange: string;
+		/**
 		 * C​u​s​t​o​m​ ​n​o​t​e
 		 */
 		customNote: string;
@@ -1802,6 +1806,38 @@ type RootTranslation = {
 		 * A​I​ ​B​o​l​d​ ​A​s​s​i​s​t​a​n​t
 		 */
 		aiBoldAssistant: string;
+		/**
+		 * A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​A​s​s​i​s​t​a​n​t
+		 */
+		aiWbwTranslationAssistant: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​n​ ​e​d​i​t​i​o​n​,​ ​a​ ​t​i​m​e​ ​r​a​n​g​e​,​ ​a​n​d​ ​l​e​t​ ​y​o​u​r​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​m​a​p​ ​t​r​a​n​s​l​a​t​i​o​n​ ​r​a​n​g​e​s​ ​t​o​ ​e​a​c​h​ ​A​r​a​b​i​c​ ​w​o​r​d​.
+		 */
+		aiWbwTranslationSubtitle: string;
+		/**
+		 * A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​r​e​p​l​a​c​e​s​ ​e​x​i​s​t​i​n​g​ ​W​B​W​ ​t​r​a​n​s​l​a​t​i​o​n​ ​m​a​p​p​i​n​g​s​ ​f​o​r​ ​t​h​e​ ​p​r​o​c​e​s​s​e​d​ ​s​e​g​m​e​n​t​s​ ​o​n​l​y​.
+		 */
+		aiWbwTranslationConfigDescription: string;
+		/**
+		 * E​x​a​m​p​l​e​:​ ​P​r​e​f​e​r​ ​l​i​t​e​r​a​l​ ​r​a​n​g​e​s​ ​w​h​e​n​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​o​r​d​e​r​ ​d​i​f​f​e​r​s​ ​f​r​o​m​ ​A​r​a​b​i​c​.​.​.
+		 */
+		aiWbwTranslationCustomNotePlaceholder: string;
+		/**
+		 * T​h​i​s​ ​n​o​t​e​ ​i​s​ ​s​a​v​e​d​ ​g​l​o​b​a​l​l​y​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​a​n​d​ ​a​p​p​e​n​d​e​d​ ​t​o​ ​t​h​e​ ​f​i​x​e​d​ ​A​I​ ​i​n​s​t​r​u​c​t​i​o​n​.​ ​T​h​e​ ​A​I​ ​s​t​i​l​l​ ​r​e​t​u​r​n​s​ ​i​n​d​e​x​e​s​ ​o​n​l​y​.
+		 */
+		aiWbwTranslationCustomNoteHint: string;
+		/**
+		 * T​h​e​ ​A​I​ ​r​e​c​e​i​v​e​s​ ​A​r​a​b​i​c​ ​w​o​r​d​s​,​ ​W​B​W​ ​h​e​l​p​e​r​s​,​ ​a​n​d​ ​i​n​d​e​x​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​ ​u​n​i​t​s​,​ ​t​h​e​n​ ​r​e​t​u​r​n​s​ ​J​S​O​N​ ​r​a​n​g​e​s​ ​o​n​l​y​.
+		 */
+		aiWbwTranslationRunDescription: string;
+		/**
+		 * A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​c​o​m​p​l​e​t​e​d​ ​w​i​t​h​ ​i​s​s​u​e​s​.​ ​S​e​e​ ​t​h​e​ ​a​c​t​i​v​i​t​y​ ​l​o​g​.
+		 */
+		aiWbwTranslationCompletedWithIssues: string;
+		/**
+		 * A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​m​a​p​p​i​n​g​s​ ​a​p​p​l​i​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y​.
+		 */
+		aiWbwTranslationApplied: string;
 		/**
 		 * N​o​ ​v​i​s​i​b​l​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.
 		 */
@@ -3493,6 +3529,10 @@ type RootTranslation = {
 		 */
 		openAiBoldAssistant: string;
 		/**
+		 * O​p​e​n​ ​A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​A​s​s​i​s​t​a​n​t
+		 */
+		openAiWbwTranslationAssistant: string;
+		/**
 		 * N​o​ ​a​c​t​i​v​i​t​y​ ​y​e​t​.
 		 */
 		noActivityYet: string;
@@ -3500,6 +3540,10 @@ type RootTranslation = {
 		 * E​s​t​i​m​a​t​e​d​ ​c​o​s​t​:
 		 */
 		estimatedCost: string;
+		/**
+		 * E​s​t​i​m​a​t​e​d​ ​C​o​s​t
+		 */
+		estimatedCostShort: string;
 		/**
 		 * P​r​o​g​r​e​s​s
 		 */
@@ -3509,9 +3553,17 @@ type RootTranslation = {
 		 */
 		eligibleVerses: string;
 		/**
+		 * e​l​i​g​i​b​l​e​ ​s​e​g​m​e​n​t​s
+		 */
+		eligibleSegments: string;
+		/**
 		 * S​e​l​e​c​t​ ​t​h​e​ ​v​e​r​s​e​ ​r​a​n​g​e​ ​t​o​ ​i​n​c​l​u​d​e​ ​i​n​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n
 		 */
 		selectTimeRangeHint: string;
+		/**
+		 * S​e​l​e​c​t​ ​t​i​m​e​ ​r​a​n​g​e​ ​t​o​ ​p​r​o​c​e​s​s​:
+		 */
+		selectTimeRangeToProcess: string;
 		/**
 		 * {​c​o​u​n​t​}​ ​i​t​e​m​s​ ​s​e​l​e​c​t​e​d
 		 * @param {unknown} count
@@ -3525,6 +3577,154 @@ type RootTranslation = {
 		 * W​o​r​d​ ​S​t​y​l​e​s
 		 */
 		wordStyles: string;
+		/**
+		 * C​o​n​f​i​g​u​r​a​t​i​o​n
+		 */
+		configuration: string;
+		/**
+		 * S​e​g​m​e​n​t​s
+		 */
+		segments: string;
+		/**
+		 * W​o​r​d​s
+		 */
+		words: string;
+		/**
+		 * B​a​t​c​h​e​s
+		 */
+		batches: string;
+		/**
+		 * {​i​n​p​u​t​}​ ​i​n​p​u​t​ ​t​o​k​e​n​s​ ​e​s​t​i​m​a​t​e​d​,​ ​{​o​u​t​p​u​t​}​ ​o​u​t​p​u​t​ ​t​o​k​e​n​s​ ​e​s​t​i​m​a​t​e​d​.
+		 * @param {unknown} input
+		 * @param {unknown} output
+		 */
+		estimatedTokenSummary: RequiredParams<'input' | 'output'>;
+		/**
+		 * T​a​r​g​e​t​i​n​g​ ​{​a​u​t​h​o​r​}​ ​(​{​l​a​n​g​u​a​g​e​}​)​.
+		 * @param {unknown} author
+		 * @param {unknown} language
+		 */
+		targetingEdition: RequiredParams<'author' | 'language'>;
+		/**
+		 * A​I​ ​P​r​o​v​i​d​e​r
+		 */
+		aiProvider: string;
+		/**
+		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​P​I​ ​k​e​y​,​ ​t​e​x​t​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​,​ ​a​n​d​ ​r​e​a​s​o​n​i​n​g​ ​e​f​f​o​r​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​A​I​ ​K​e​y​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​i​s​ ​a​s​s​i​s​t​a​n​t​.
+		 */
+		aiProviderConfigHint: string;
+		/**
+		 * C​u​r​r​e​n​t​ ​m​o​d​e​l
+		 */
+		currentModel: string;
+		/**
+		 * E​n​d​p​o​i​n​t
+		 */
+		endpoint: string;
+		/**
+		 * N​o​t​ ​s​e​t
+		 */
+		notSet: string;
+		/**
+		 * R​u​n
+		 */
+		run: string;
+		/**
+		 * R​u​n​n​i​n​g​ ​A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​.​.​.
+		 */
+		runningAiWbwTranslation: string;
+		/**
+		 * L​o​a​d​i​n​g​ ​s​e​g​m​e​n​t​s​.​.​.
+		 */
+		loadingSegments: string;
+		/**
+		 * R​u​n​ ​A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n
+		 */
+		runAiWbwTranslation: string;
+		/**
+		 * A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​i​n​ ​p​r​o​g​r​e​s​s
+		 */
+		aiWbwTranslationInProgress: string;
+		/**
+		 * L​a​t​e​s​t​ ​A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​r​u​n
+		 */
+		latestAiWbwTranslationRun: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​b​a​t​c​h​e​s​.​.​.
+		 */
+		preparingBatches: string;
+		/**
+		 * N​o​ ​s​u​m​m​a​r​y​ ​y​e​t​.
+		 */
+		noSummaryYet: string;
+		/**
+		 * S​u​c​c​e​s​s​f​u​l​ ​s​e​g​m​e​n​t​s
+		 */
+		successfulSegments: string;
+		/**
+		 * F​a​i​l​e​d​ ​s​e​g​m​e​n​t​s
+		 */
+		failedSegments: string;
+		/**
+		 * S​u​c​c​e​s​s​f​u​l​ ​b​a​t​c​h​e​s
+		 */
+		successfulBatches: string;
+		/**
+		 * U​s​a​g​e
+		 */
+		usage: string;
+		/**
+		 * U​s​a​g​e​ ​u​n​a​v​a​i​l​a​b​l​e
+		 */
+		usageUnavailable: string;
+		/**
+		 * {​i​n​p​u​t​}​ ​i​n​p​u​t​ ​/​ ​{​o​u​t​p​u​t​}​ ​o​u​t​p​u​t​ ​/​ ​{​t​o​t​a​l​}​ ​t​o​t​a​l​ ​t​o​k​e​n​s
+		 * @param {unknown} input
+		 * @param {unknown} output
+		 * @param {unknown} total
+		 */
+		tokenUsageSummary: RequiredParams<'input' | 'output' | 'total'>;
+		/**
+		 * L​a​t​e​s​t​ ​s​t​r​e​a​m​e​d​ ​J​S​O​N
+		 */
+		latestStreamedJson: string;
+		/**
+		 * S​t​a​r​t​i​n​g​ ​A​I​ ​W​B​W​ ​T​r​a​n​s​l​a​t​i​o​n​ ​f​o​r​ ​{​s​e​g​m​e​n​t​s​}​ ​s​e​g​m​e​n​t​(​s​)​ ​a​c​r​o​s​s​ ​{​b​a​t​c​h​e​s​}​ ​b​a​t​c​h​(​e​s​)​.
+		 * @param {unknown} batches
+		 * @param {unknown} segments
+		 */
+		aiWbwTranslationStarting: RequiredParams<'batches' | 'segments'>;
+		/**
+		 * B​a​t​c​h​ ​{​c​u​r​r​e​n​t​}​ ​/​ ​{​t​o​t​a​l​}
+		 * @param {unknown} current
+		 * @param {unknown} total
+		 */
+		batchProgress: RequiredParams<'current' | 'total'>;
+		/**
+		 * {​l​a​b​e​l​}​:​ ​{​s​e​g​m​e​n​t​s​}​ ​s​e​g​m​e​n​t​(​s​)​,​ ​{​w​o​r​d​s​}​ ​w​o​r​d​s​.
+		 * @param {unknown} label
+		 * @param {unknown} segments
+		 * @param {unknown} words
+		 */
+		aiWbwTranslationBatchQueued: RequiredParams<'label' | 'segments' | 'words'>;
+		/**
+		 * V​a​l​i​d​a​t​i​n​g​ ​{​l​a​b​e​l​}​.​.​.
+		 * @param {unknown} label
+		 */
+		validatingBatch: RequiredParams<'label'>;
+		/**
+		 * A​p​p​l​i​e​d​ ​A​I​ ​W​B​W​ ​t​r​a​n​s​l​a​t​i​o​n​ ​m​a​p​p​i​n​g​s​ ​t​o​ ​{​a​p​p​l​i​e​d​}​/​{​t​o​t​a​l​}​ ​s​e​g​m​e​n​t​(​s​)​.
+		 * @param {unknown} applied
+		 * @param {unknown} total
+		 */
+		aiWbwTranslationAppliedSegments: RequiredParams<'applied' | 'total'>;
+		/**
+		 * {​s​u​c​c​e​s​s​f​u​l​}​/​{​t​o​t​a​l​}​ ​s​e​g​m​e​n​t​(​s​)​ ​u​p​d​a​t​e​d​.​ ​{​f​a​i​l​e​d​}​ ​s​e​g​m​e​n​t​(​s​)​ ​h​a​d​ ​i​s​s​u​e​s​.
+		 * @param {unknown} failed
+		 * @param {unknown} successful
+		 * @param {unknown} total
+		 */
+		aiWbwTranslationRunSummary: RequiredParams<'failed' | 'successful' | 'total'>;
 		/**
 		 * C​o​m​p​l​e​t​e​d​ ​b​y​ ​d​e​f​a​u​l​t
 		 */
@@ -10119,6 +10319,10 @@ export type TranslationFunctions = {
 		 */
 		aiBoldRange: () => LocalizedString;
 		/**
+		 * AI WBW Translation Range
+		 */
+		aiWbwTranslationRange: () => LocalizedString;
+		/**
 		 * Custom note
 		 */
 		customNote: () => LocalizedString;
@@ -10130,6 +10334,38 @@ export type TranslationFunctions = {
 		 * AI Bold Assistant
 		 */
 		aiBoldAssistant: () => LocalizedString;
+		/**
+		 * AI WBW Translation Assistant
+		 */
+		aiWbwTranslationAssistant: () => LocalizedString;
+		/**
+		 * Choose an edition, a time range, and let your text AI provider map translation ranges to each Arabic word.
+		 */
+		aiWbwTranslationSubtitle: () => LocalizedString;
+		/**
+		 * AI WBW Translation replaces existing WBW translation mappings for the processed segments only.
+		 */
+		aiWbwTranslationConfigDescription: () => LocalizedString;
+		/**
+		 * Example: Prefer literal ranges when the translation order differs from Arabic...
+		 */
+		aiWbwTranslationCustomNotePlaceholder: () => LocalizedString;
+		/**
+		 * This note is saved globally in Settings and appended to the fixed AI instruction. The AI still returns indexes only.
+		 */
+		aiWbwTranslationCustomNoteHint: () => LocalizedString;
+		/**
+		 * The AI receives Arabic words, WBW helpers, and indexed translation units, then returns JSON ranges only.
+		 */
+		aiWbwTranslationRunDescription: () => LocalizedString;
+		/**
+		 * AI WBW Translation completed with issues. See the activity log.
+		 */
+		aiWbwTranslationCompletedWithIssues: () => LocalizedString;
+		/**
+		 * AI WBW Translation mappings applied successfully.
+		 */
+		aiWbwTranslationApplied: () => LocalizedString;
 		/**
 		 * No visible translation edition is available.
 		 */
@@ -11795,6 +12031,10 @@ export type TranslationFunctions = {
 		 */
 		openAiBoldAssistant: () => LocalizedString;
 		/**
+		 * Open AI WBW Translation Assistant
+		 */
+		openAiWbwTranslationAssistant: () => LocalizedString;
+		/**
 		 * No activity yet.
 		 */
 		noActivityYet: () => LocalizedString;
@@ -11802,6 +12042,10 @@ export type TranslationFunctions = {
 		 * Estimated cost:
 		 */
 		estimatedCost: () => LocalizedString;
+		/**
+		 * Estimated Cost
+		 */
+		estimatedCostShort: () => LocalizedString;
 		/**
 		 * Progress
 		 */
@@ -11811,9 +12055,17 @@ export type TranslationFunctions = {
 		 */
 		eligibleVerses: () => LocalizedString;
 		/**
+		 * eligible segments
+		 */
+		eligibleSegments: () => LocalizedString;
+		/**
 		 * Select the verse range to include in the translation
 		 */
 		selectTimeRangeHint: () => LocalizedString;
+		/**
+		 * Select time range to process:
+		 */
+		selectTimeRangeToProcess: () => LocalizedString;
 		/**
 		 * {count} items selected
 		 */
@@ -11826,6 +12078,146 @@ export type TranslationFunctions = {
 		 * Word Styles
 		 */
 		wordStyles: () => LocalizedString;
+		/**
+		 * Configuration
+		 */
+		configuration: () => LocalizedString;
+		/**
+		 * Segments
+		 */
+		segments: () => LocalizedString;
+		/**
+		 * Words
+		 */
+		words: () => LocalizedString;
+		/**
+		 * Batches
+		 */
+		batches: () => LocalizedString;
+		/**
+		 * {input} input tokens estimated, {output} output tokens estimated.
+		 */
+		estimatedTokenSummary: (arg: { input: unknown; output: unknown }) => LocalizedString;
+		/**
+		 * Targeting {author} ({language}).
+		 */
+		targetingEdition: (arg: { author: unknown; language: unknown }) => LocalizedString;
+		/**
+		 * AI Provider
+		 */
+		aiProvider: () => LocalizedString;
+		/**
+		 * Configure your API key, text endpoint, model, and reasoning effort in Settings > AI Key before running this assistant.
+		 */
+		aiProviderConfigHint: () => LocalizedString;
+		/**
+		 * Current model
+		 */
+		currentModel: () => LocalizedString;
+		/**
+		 * Endpoint
+		 */
+		endpoint: () => LocalizedString;
+		/**
+		 * Not set
+		 */
+		notSet: () => LocalizedString;
+		/**
+		 * Run
+		 */
+		run: () => LocalizedString;
+		/**
+		 * Running AI WBW Translation...
+		 */
+		runningAiWbwTranslation: () => LocalizedString;
+		/**
+		 * Loading segments...
+		 */
+		loadingSegments: () => LocalizedString;
+		/**
+		 * Run AI WBW Translation
+		 */
+		runAiWbwTranslation: () => LocalizedString;
+		/**
+		 * AI WBW Translation in progress
+		 */
+		aiWbwTranslationInProgress: () => LocalizedString;
+		/**
+		 * Latest AI WBW Translation run
+		 */
+		latestAiWbwTranslationRun: () => LocalizedString;
+		/**
+		 * Preparing batches...
+		 */
+		preparingBatches: () => LocalizedString;
+		/**
+		 * No summary yet.
+		 */
+		noSummaryYet: () => LocalizedString;
+		/**
+		 * Successful segments
+		 */
+		successfulSegments: () => LocalizedString;
+		/**
+		 * Failed segments
+		 */
+		failedSegments: () => LocalizedString;
+		/**
+		 * Successful batches
+		 */
+		successfulBatches: () => LocalizedString;
+		/**
+		 * Usage
+		 */
+		usage: () => LocalizedString;
+		/**
+		 * Usage unavailable
+		 */
+		usageUnavailable: () => LocalizedString;
+		/**
+		 * {input} input / {output} output / {total} total tokens
+		 */
+		tokenUsageSummary: (arg: {
+			input: unknown;
+			output: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * Latest streamed JSON
+		 */
+		latestStreamedJson: () => LocalizedString;
+		/**
+		 * Starting AI WBW Translation for {segments} segment(s) across {batches} batch(es).
+		 */
+		aiWbwTranslationStarting: (arg: { batches: unknown; segments: unknown }) => LocalizedString;
+		/**
+		 * Batch {current} / {total}
+		 */
+		batchProgress: (arg: { current: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * {label}: {segments} segment(s), {words} words.
+		 */
+		aiWbwTranslationBatchQueued: (arg: {
+			label: unknown;
+			segments: unknown;
+			words: unknown;
+		}) => LocalizedString;
+		/**
+		 * Validating {label}...
+		 */
+		validatingBatch: (arg: { label: unknown }) => LocalizedString;
+		/**
+		 * Applied AI WBW translation mappings to {applied}/{total} segment(s).
+		 */
+		aiWbwTranslationAppliedSegments: (arg: { applied: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * {successful}/{total} segment(s) updated. {failed} segment(s) had issues.
+		 */
+		aiWbwTranslationRunSummary: (arg: {
+			failed: unknown;
+			successful: unknown;
+			total: unknown;
+		}) => LocalizedString;
 		/**
 		 * Completed by default
 		 */

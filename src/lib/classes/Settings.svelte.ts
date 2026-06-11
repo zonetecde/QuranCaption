@@ -52,6 +52,7 @@ export type AITranslationSettings = {
 	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
 	advancedAlsoAskReviewed: boolean;
 	aiBoldCustomNote: string;
+	aiWbwTranslationCustomNote: string;
 	activeModalTab: 'legacy' | 'advanced';
 	telemetryConsent: 'unknown' | 'granted' | 'denied';
 };
@@ -140,6 +141,7 @@ export default class Settings extends SerializableBase {
 		advancedTrimReasoningEffort: 'none',
 		advancedAlsoAskReviewed: false,
 		aiBoldCustomNote: '',
+		aiWbwTranslationCustomNote: '',
 		activeModalTab: 'legacy',
 		telemetryConsent: 'unknown'
 	});
@@ -436,6 +438,10 @@ export default class Settings extends SerializableBase {
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
+			shouldSave = true;
+		}
+		if (typeof settings.aiTranslationSettings.aiWbwTranslationCustomNote !== 'string') {
+			settings.aiTranslationSettings.aiWbwTranslationCustomNote = '';
 			shouldSave = true;
 		}
 		// ==========================

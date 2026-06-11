@@ -5,6 +5,7 @@
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiBoldModal from './modal/AiBoldModal.svelte';
+	import AiWbwTranslationModal from './modal/AiWbwTranslationModal.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
@@ -22,6 +23,7 @@
 	);
 
 	let showAiBoldModal = $state(false);
+	let showAiWbwTranslationModal = $state(false);
 
 	function toggleStyle(
 		property:
@@ -144,6 +146,23 @@
 			class="rounded-xl border border-color bg-accent px-3 py-3 text-xs text-secondary leading-relaxed"
 		>
 			{$LL.editor.translationWbwMappingDescription()}
+		</div>
+
+		<div class="rounded-xl border border-color bg-accent overflow-hidden">
+			<div class="px-4 py-4 border-b border-color bg-primary/40">
+				<div class="text-sm font-semibold text-primary">
+					{$LL.editor.aiWbwTranslationAssistant()}
+				</div>
+			</div>
+
+			<div class="space-y-4 p-4">
+				<button
+					class="w-full rounded-lg bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110"
+					onclick={() => (showAiWbwTranslationModal = true)}
+				>
+					{$LL.editor.openAiWbwTranslationAssistant()}
+				</button>
+			</div>
 		</div>
 	{/if}
 
@@ -307,5 +326,11 @@
 {#if showAiBoldModal}
 	<div class="modal-wrapper" transition:fade>
 		<AiBoldModal close={() => (showAiBoldModal = false)} />
+	</div>
+{/if}
+
+{#if showAiWbwTranslationModal}
+	<div class="modal-wrapper" transition:fade>
+		<AiWbwTranslationModal close={() => (showAiWbwTranslationModal = false)} />
 	</div>
 {/if}

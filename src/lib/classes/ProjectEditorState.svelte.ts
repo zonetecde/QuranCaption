@@ -368,6 +368,9 @@ export class TranslationsEditorState extends SerializableBase {
 	aiBoldEndTimeMs: number = $state(0);
 	aiBoldIncludeAlreadyBolded: boolean = $state(true);
 	aiBoldEditionName: string = $state('');
+	aiWbwTranslationStartTimeMs: number = $state(0);
+	aiWbwTranslationEndTimeMs: number = $state(0);
+	aiWbwTranslationEditionName: string = $state('');
 
 	// Dernier sous-titre lu dans l'éditeur de traductions pour reprendre là où on s'est arrêté
 	lastReadClipId: number | null = $state(null);

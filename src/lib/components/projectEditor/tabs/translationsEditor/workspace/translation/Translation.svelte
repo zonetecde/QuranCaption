@@ -12,6 +12,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -37,6 +38,9 @@
 		() => globalState.currentProject!.projectEditorState.translationsEditor
 	);
 	let isInlineStyleMode = $derived(() => translationsEditorState().isInlineStyleMode);
+	let isTranslationWbwMappingMode = $derived(
+		() => translationsEditorState().isTranslationWbwMappingMode
+	);
 	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
 
 	// Variables pour gérer le glisser-déposer
@@ -47,6 +51,11 @@
 	let inlineDragStartIndex = $state(-1);
 	let inlineSelectionStart = $state(-1);
 	let inlineSelectionEnd = $state(-1);
+	let isWbwMappingDragging = $state(false);
+	let wbwMappingActiveArabicWordIndex = $state(-1);
+	let wbwMappingDragStartIndex = $state(-1);
+	let wbwMappingSelectionStart = $state(-1);
+	let wbwMappingSelectionEnd = $state(-1);
 
 	let originalTranslation: string = $state('');
 	let originalTranslationUnits = $derived(() => getTranslationTrimUnits(originalTranslation));
@@ -62,6 +71,7 @@
 	let lastClickedWordIndex = $state(-1);
 	let isTrimHistoryTransaction = false;
 	let isTextHistoryTransaction = false;
+	let wasWbwMappingMode = false;
 
 	onMount(() => {
 		if (translation().type === 'verse') {
@@ -159,6 +169,41 @@
 		flags: TranslationInlineStyleFlags;
 	};
 
+	let arabicWordCount = $derived(
+		() => subtitle.getArabicRenderParts().text.split(' ').filter(Boolean).length
+	);
+	let arabicWords = $derived(() => subtitle.getArabicRenderParts().text.split(' ').filter(Boolean));
+	let wbwTranslationWords = $state<string[]>([]);
+	let wbwTranslationRequestId = 0;
+	let wbwTranslationDirection = $derived(() =>
+		WbwTranslationService.getLanguageDirection(
+			globalState.settings?.persistentUiState.wbwTranslationLanguage ?? 'en'
+		)
+	);
+
+	$effect(() => {
+		const language = globalState.settings?.persistentUiState.wbwTranslationLanguage ?? 'en';
+		const requestId = ++wbwTranslationRequestId;
+
+		void WbwTranslationService.getWordsForRange(
+			language,
+			subtitle.surah,
+			subtitle.verse,
+			subtitle.startWordIndex,
+			subtitle.endWordIndex
+		)
+			.then((translatedWords) => {
+				if (requestId === wbwTranslationRequestId) {
+					wbwTranslationWords = translatedWords;
+				}
+			})
+			.catch(() => {
+				if (requestId === wbwTranslationRequestId) {
+					wbwTranslationWords = [];
+				}
+			});
+	});
+
 	/**
 	 * Retourne les toggles de style actuellement actifs dans le panneau de droite.
 	 */
@@ -250,6 +295,203 @@
 	}
 
 	/**
+	 * Réinitialise la sélection temporaire du mapping WBW.
+	 *
+	 * @returns {void}
+	 */
+	function resetWbwMappingSelection(): void {
+		isWbwMappingDragging = false;
+		wbwMappingActiveArabicWordIndex = -1;
+		wbwMappingDragStartIndex = -1;
+		wbwMappingSelectionStart = -1;
+		wbwMappingSelectionEnd = -1;
+	}
+
+	/**
+	 * Retourne les ranges WBW valides pour le sous-titre courant.
+	 *
+	 * @returns {import('$lib/classes/Translation.svelte').TranslationWbwRange[]} Ranges normalisées.
+	 */
+	function getNormalizedWbwRanges() {
+		return translation().getNormalizedWbwRanges(arabicWordCount());
+	}
+
+	/**
+	 * Retourne la traduction mot à mot affichée pour un mot arabe.
+	 *
+	 * @param {number} arabicWordIndex Index local du mot arabe.
+	 * @returns {string} Traduction WBW ou libellé de secours.
+	 */
+	function getWbwHelperWordLabel(arabicWordIndex: number): string {
+		return (
+			wbwTranslationWords[arabicWordIndex] ||
+			LL_.editor.translationWbwActiveWord({ index: arabicWordIndex + 1 })
+		);
+	}
+
+	/**
+	 * Retourne le mapping WBW d'un mot arabe.
+	 *
+	 * @param {number} arabicWordIndex Index local du mot arabe.
+	 * @returns {import('$lib/classes/Translation.svelte').TranslationWbwRange | null} Range trouvée.
+	 */
+	function getWbwRangeForArabicWord(arabicWordIndex: number) {
+		return (
+			getNormalizedWbwRanges().find((range) => range.arabicWordIndex === arabicWordIndex) ?? null
+		);
+	}
+
+	/**
+	 * Indique si une unité de traduction est liée à un mot arabe donné.
+	 *
+	 * @param {number} arabicWordIndex Index local du mot arabe.
+	 * @param {number} unitIndex Index de l'unité trim.
+	 * @returns {boolean} `true` si l'unité est mappée.
+	 */
+	function isWbwUnitMappedToArabicWord(arabicWordIndex: number, unitIndex: number): boolean {
+		const range = getWbwRangeForArabicWord(arabicWordIndex);
+		return Boolean(range && range.startUnitIndex <= unitIndex && unitIndex <= range.endUnitIndex);
+	}
+
+	/**
+	 * Indique si l'unité doit apparaître sélectionnée sur une ligne WBW.
+	 *
+	 * @param {number} arabicWordIndex Index local du mot arabe.
+	 * @param {number} unitIndex Index de l'unité trim.
+	 * @returns {boolean} `true` si l'unité est sélectionnée ou déjà mappée.
+	 */
+	function isWbwUnitSelectedForArabicWord(arabicWordIndex: number, unitIndex: number): boolean {
+		const isCurrentRow = wbwMappingActiveArabicWordIndex === arabicWordIndex;
+		const isCurrentDragSelection =
+			isCurrentRow &&
+			wbwMappingSelectionStart !== -1 &&
+			wbwMappingSelectionEnd !== -1 &&
+			wbwMappingSelectionStart <= unitIndex &&
+			unitIndex <= wbwMappingSelectionEnd;
+
+		return isCurrentDragSelection || isWbwUnitMappedToArabicWord(arabicWordIndex, unitIndex);
+	}
+
+	/**
+	 * Retourne le prochain mot arabe non mappé à partir d'un index donné.
+	 *
+	 * @param {number} fromIndex Index de départ.
+	 * @returns {number} Index du prochain mot, ou un index borné si tout est mappé.
+	 */
+	function getNextUnmappedArabicWordIndex(fromIndex: number): number {
+		const mappedIndexes = new Set(getNormalizedWbwRanges().map((range) => range.arabicWordIndex));
+		for (let index = fromIndex; index < arabicWordCount(); index++) {
+			if (!mappedIndexes.has(index)) return index;
+		}
+		for (let index = 0; index < Math.min(fromIndex, arabicWordCount()); index++) {
+			if (!mappedIndexes.has(index)) return index;
+		}
+		return Math.max(0, Math.min(arabicWordCount() - 1, fromIndex - 1));
+	}
+
+	/**
+	 * Applique la plage WBW sélectionnée au mot arabe actif.
+	 *
+	 * @returns {void}
+	 */
+	function applyWbwMappingSelection(): void {
+		if (
+			translation().type !== 'verse' ||
+			!isTranslationWbwMappingMode() ||
+			wbwMappingSelectionStart === -1 ||
+			wbwMappingSelectionEnd === -1 ||
+			arabicWordCount() <= 0
+		) {
+			resetWbwMappingSelection();
+			return;
+		}
+
+		const arabicWordIndex = Math.max(
+			0,
+			Math.min(arabicWordCount() - 1, wbwMappingActiveArabicWordIndex)
+		);
+		const start = Math.min(wbwMappingSelectionStart, wbwMappingSelectionEnd);
+		const end = Math.max(wbwMappingSelectionStart, wbwMappingSelectionEnd);
+
+		ProjectHistoryManager.track('set translation wbw mapping', () => {
+			translation().setWbwRange(arabicWordIndex, start, end);
+		});
+		resetWbwMappingSelection();
+	}
+
+	/**
+	 * Démarre une sélection de plage pour le mapping WBW.
+	 *
+	 * @param {number} arabicWordIndex Index local du mot arabe à mapper.
+	 * @param {number} unitIndex Index de l'unité cliquée.
+	 * @param {MouseEvent} event Événement souris source.
+	 * @returns {void}
+	 */
+	function handleWbwMappingMouseDown(
+		arabicWordIndex: number,
+		unitIndex: number,
+		event: MouseEvent
+	): void {
+		if (translation().type !== 'verse' || !isTranslationWbwMappingMode()) return;
+		event.preventDefault();
+		wbwMappingActiveArabicWordIndex = arabicWordIndex;
+		translationsEditorState().translationWbwActiveArabicWordIndex = arabicWordIndex;
+		isWbwMappingDragging = true;
+		wbwMappingDragStartIndex = unitIndex;
+		wbwMappingSelectionStart = unitIndex;
+		wbwMappingSelectionEnd = unitIndex;
+	}
+
+	/**
+	 * Étend la sélection de plage WBW pendant le drag.
+	 *
+	 * @param {number} arabicWordIndex Index local du mot arabe de la ligne.
+	 * @param {number} unitIndex Index survolé.
+	 * @returns {void}
+	 */
+	function handleWbwMappingMouseEnter(arabicWordIndex: number, unitIndex: number): void {
+		if (!isWbwMappingDragging || translation().type !== 'verse' || !isTranslationWbwMappingMode())
+			return;
+		if (wbwMappingActiveArabicWordIndex !== arabicWordIndex) return;
+
+		wbwMappingSelectionStart = Math.min(wbwMappingDragStartIndex, unitIndex);
+		wbwMappingSelectionEnd = Math.max(wbwMappingDragStartIndex, unitIndex);
+	}
+
+	/**
+	 * Termine une sélection WBW et écrit le mapping.
+	 *
+	 * @returns {void}
+	 */
+	function handleWbwMappingMouseUp(): void {
+		if (!isWbwMappingDragging) return;
+		applyWbwMappingSelection();
+	}
+
+	/**
+	 * Supprime le mapping du mot arabe actif.
+	 *
+	 * @returns {void}
+	 */
+	function clearCurrentWbwMapping(arabicWordIndex: number): void {
+		ProjectHistoryManager.track('clear translation wbw mapping', () => {
+			translation().clearWbwRange(arabicWordIndex);
+		});
+	}
+
+	/**
+	 * Supprime tous les mappings WBW de cette traduction.
+	 *
+	 * @returns {void}
+	 */
+	function clearAllWbwMappings(): void {
+		ProjectHistoryManager.track('clear all translation wbw mappings', () => {
+			translation().clearWbwRanges();
+		});
+		translationsEditorState().translationWbwActiveArabicWordIndex = 0;
+	}
+
+	/**
 	 * Applique (toggle) les styles actifs à la sélection courante puis nettoie la sélection.
 	 */
 	function applyInlineStylesFromSelection(): void {
@@ -330,13 +572,18 @@
 	}
 
 	function beginWordSelectionEditing(): void {
-		if (translation().type !== 'verse' || !translation().isBruteForce || isInlineStyleMode())
+		if (
+			translation().type !== 'verse' ||
+			!translation().isBruteForce ||
+			isInlineStyleMode() ||
+			isTranslationWbwMappingMode()
+		)
 			return;
 		translation().isBruteForce = false;
 	}
 
 	function wordClicked(i: number): void {
-		if (translation().type === 'verse' && !isInlineStyleMode()) {
+		if (translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()) {
 			beginWordSelectionEditing();
 			if (i < translation().startWordIndex) {
 				// Si le mot est avant le début de la traduction, on le sélectionne
@@ -372,7 +619,7 @@
 	}
 
 	function handleMouseDown(i: number, event: MouseEvent): void {
-		if (translation().type === 'verse' && !isInlineStyleMode()) {
+		if (translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()) {
 			beginWordSelectionEditing();
 			event.preventDefault();
 			ProjectHistoryManager.begin('trim translation');
@@ -384,7 +631,12 @@
 	}
 
 	function handleMouseEnter(i: number): void {
-		if (isDragging && translation().type === 'verse' && !isInlineStyleMode()) {
+		if (
+			isDragging &&
+			translation().type === 'verse' &&
+			!isInlineStyleMode() &&
+			!isTranslationWbwMappingMode()
+		) {
 			beginWordSelectionEditing();
 			const startIndex = Math.min(dragStartIndex, i);
 			const endIndex = Math.max(dragStartIndex, i);
@@ -412,6 +664,9 @@
 		}
 		if (isInlineDragging) {
 			handleInlineMouseUp();
+		}
+		if (isWbwMappingDragging) {
+			handleWbwMappingMouseUp();
 		}
 	}
 
@@ -466,6 +721,25 @@
 			editableTranslationValue = escapedValue;
 		}
 	});
+
+	$effect(() => {
+		if (!isTranslationWbwMappingMode()) {
+			wasWbwMappingMode = false;
+			return;
+		}
+		if (arabicWordCount() <= 0) return;
+		if (!wasWbwMappingMode) {
+			translationsEditorState().translationWbwActiveArabicWordIndex =
+				getNextUnmappedArabicWordIndex(0);
+			wasWbwMappingMode = true;
+			return;
+		}
+		const activeIndex = translationsEditorState().translationWbwActiveArabicWordIndex;
+		if (activeIndex < 0 || activeIndex >= arabicWordCount()) {
+			translationsEditorState().translationWbwActiveArabicWordIndex =
+				getNextUnmappedArabicWordIndex(0);
+		}
+	});
 </script>
 
 <div
@@ -473,6 +747,7 @@
 	onmouseleave={() => {
 		handleMouseUp();
 		handleInlineMouseUp();
+		handleWbwMappingMouseUp();
 	}}
 >
 	{#if translation()}
@@ -537,7 +812,7 @@
 			</div>
 		</div>
 
-		{#if translation().type === 'verse' && !isInlineStyleMode()}
+		{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 			<!-- Affiche la traduction complète du verset mot à mot -->
 			<div
 				class="flex flex-row select-none flex-wrap items-center gap-y-1 duration-300 {translation()
@@ -588,7 +863,7 @@
 
 		<!-- Indicateur de sélection - toujours visible -->
 		<div class="p-2 bg-secondary border border-color rounded-md relative">
-			{#if translation().type === 'verse' && !isInlineStyleMode()}
+			{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 				<!-- toggle: brute force -->
 				<label
 					class="absolute top-1 right-1.75 text-primary opacity-40 hover:opacity-100 duration-200 cursor-pointer"
@@ -619,12 +894,73 @@
 			{/if}
 
 			<p class="text-xs text-thirdly mb-1">
-				{isInlineStyleMode()
-					? $LL.editor.styledSubtitleTranslation()
-					: $LL.editor.subtitleTranslation()}
+				{isTranslationWbwMappingMode()
+					? $LL.editor.translationWbwMapping()
+					: isInlineStyleMode()
+						? $LL.editor.styledSubtitleTranslation()
+						: $LL.editor.subtitleTranslation()}
 			</p>
 
-			{#if translation().type === 'verse' && isInlineStyleMode()}
+			{#if translation().type === 'verse' && isTranslationWbwMappingMode()}
+				<div class="space-y-2">
+					<div class="flex justify-end">
+						<button
+							type="button"
+							class="rounded-md border border-red-500/35 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10"
+							onclick={clearAllWbwMappings}
+						>
+							{$LL.editor.clearAllWbwMappings()}
+						</button>
+					</div>
+					{#each arabicWords() as arabicWord, arabicWordIndex (`${subtitle.id}-wbw-map-${arabicWordIndex}-${arabicWord}`)}
+						<div class="rounded-lg border border-color bg-primary/30 px-3 py-2">
+							<div class="mb-2 flex items-center justify-between gap-3 text-xs text-secondary">
+								<div class="flex min-w-0 items-center gap-2">
+									<span class="font-semibold text-primary arabic text-base" dir="rtl">
+										{arabicWord}
+									</span>
+									<span class="shrink-0" dir={wbwTranslationDirection()}>
+										{getWbwHelperWordLabel(arabicWordIndex)}
+									</span>
+								</div>
+								<button
+									type="button"
+									class="shrink-0 rounded-md border border-color px-2 py-1 hover:bg-accent"
+									onclick={() => clearCurrentWbwMapping(arabicWordIndex)}
+								>
+									{$LL.editor.clearCurrentWbwMapping()}
+								</button>
+							</div>
+							<div
+								class="translation-style-flow select-none"
+								onmouseup={handleGlobalMouseUp}
+								role="presentation"
+							>
+								{#each getTrimmedTranslationWords() as word (`${arabicWordIndex}-${word.wordIndex}-${word.text}`)}
+									{@const isSelected = isWbwUnitSelectedForArabicWord(
+										arabicWordIndex,
+										word.wordIndex
+									)}
+									<button
+										class={`translation-word-style text-sm transition-all duration-150 ${
+											isSelected
+												? 'translation-word-style-selected text-primary shadow-sm'
+												: 'text-primary'
+										}`}
+										style={getInlineStyleCss(word.flags)}
+										onmousedown={(event) =>
+											handleWbwMappingMouseDown(arabicWordIndex, word.wordIndex, event)}
+										onmouseenter={() => handleWbwMappingMouseEnter(arabicWordIndex, word.wordIndex)}
+										ondragstart={(event) => event.preventDefault()}
+									>
+										{word.text}
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if translation().type === 'verse' && isInlineStyleMode()}
 				<div
 					class="translation-style-flow select-none"
 					onmouseup={handleGlobalMouseUp}
@@ -760,6 +1096,11 @@
 
 	.translation-word-style-selected {
 		background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
+	}
+
+	.translation-wbw-mapped {
+		background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+		box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--accent-primary) 50%, transparent);
 	}
 
 	/* Style pour la traduction du sous-titre précédent */

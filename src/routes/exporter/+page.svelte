@@ -56,6 +56,7 @@
 		SilenceClip,
 		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
+	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
@@ -1404,7 +1405,7 @@
 			alignmentMetadata: candidate.alignmentMetadata
 		}));
 
-		return getExportWordByWordHighlightTimingsUtil({
+		const arabicTimings = getExportWordByWordHighlightTimingsUtil({
 			clip: exportClip,
 			subtitleClips: exportSubtitleClips,
 			isWbwEnabledForClipId: (clipId) =>
@@ -1414,6 +1415,69 @@
 						.getEffectiveValue(styleId as StyleName, clipId)
 				)
 		});
+
+		const translationTimings = getExportTranslationWordByWordHighlightTimings(clip, subtitleClips);
+		const timings = [...(arabicTimings ?? []), ...(translationTimings ?? [])];
+		return timings.length > 0 ? Array.from(new Set(timings)).sort((a, b) => a - b) : undefined;
+	}
+
+	/**
+	 * Retourne les timings WBW issus des mappings de traduction visibles.
+	 *
+	 * @param {SubtitleClip} clip Clip Quran à inspecter.
+	 * @param {SubtitleClip[]} subtitleClips Clips Quran du projet.
+	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 */
+	function getExportTranslationWordByWordHighlightTimings(
+		clip: SubtitleClip,
+		subtitleClips: SubtitleClip[]
+	): number[] | undefined {
+		const sourceClips =
+			clip.visualMergeGroupId &&
+			(clip.visualMergeMode === 'translation' || clip.visualMergeMode === 'both')
+				? subtitleClips.filter(
+						(candidate) =>
+							candidate.visualMergeGroupId === clip.visualMergeGroupId &&
+							candidate.visualMergeMode === clip.visualMergeMode
+					)
+				: [clip];
+		const mergedClips = sourceClips.length > 0 ? sourceClips : [clip];
+
+		const timings = mergedClips.flatMap((sourceClip) => {
+			if ((sourceClip.alignmentMetadata?.words.length ?? 0) === 0) return [];
+			const arabicWordCount = sourceClip
+				.getArabicRenderParts()
+				.text.split(' ')
+				.filter(Boolean).length;
+			const baseTimeS = sourceClip.alignmentMetadata?.timeFrom ?? sourceClip.startTime / 1000;
+
+			return globalState.getProjectTranslation.addedTranslationEditions.flatMap((edition) => {
+				if (!globalState.getVideoStyle.doesTargetStyleExist(edition.name)) return [];
+
+				const styles = globalState.getVideoStyle.getStylesOfTarget(edition.name);
+				const isVisible = Boolean(styles.getEffectiveValue('show-subtitles', sourceClip.id));
+				const isWbwEnabled = isWordByWordHighlightEnabled((styleId) =>
+					styles.getEffectiveValue(styleId as StyleName, sourceClip.id)
+				);
+				if (!isVisible || !isWbwEnabled) return [];
+
+				const translation = sourceClip.translations[edition.name];
+				if (!(translation instanceof VerseTranslation)) return [];
+
+				const ranges = translation.getNormalizedWbwRanges(arabicWordCount);
+				if (ranges.length === 0) return [];
+
+				return ranges
+					.map((range) => sourceClip.alignmentMetadata?.words[range.arabicWordIndex])
+					.filter((word): word is NonNullable<typeof word> => word !== undefined)
+					.map((word) => Math.round((baseTimeS + word.start) * 1000))
+					.filter((timing) => timing >= sourceClip.startTime && timing <= sourceClip.endTime);
+			});
+		});
+
+		return timings.length > 0
+			? Array.from(new Set<number>(timings)).sort((a, b) => a - b)
+			: undefined;
 	}
 
 	async function generateNormalVideo(

@@ -33,10 +33,30 @@
 		translationsEditorState()[property] = !translationsEditorState()[property];
 	}
 
+	/**
+	 * Active ou désactive un mode d'édition de traduction exclusif.
+	 *
+	 * @param {'inline' | 'wbw'} mode Mode demandé par l'utilisateur.
+	 * @returns {void}
+	 */
+	function toggleExclusiveMode(mode: 'inline' | 'wbw'): void {
+		if (mode === 'inline') {
+			translationsEditorState().isInlineStyleMode = !translationsEditorState().isInlineStyleMode;
+			if (translationsEditorState().isInlineStyleMode) {
+				translationsEditorState().isTranslationWbwMappingMode = false;
+			}
+			return;
+		}
+
+		translationsEditorState().isTranslationWbwMappingMode =
+			!translationsEditorState().isTranslationWbwMappingMode;
+		if (translationsEditorState().isTranslationWbwMappingMode) {
+			translationsEditorState().isInlineStyleMode = false;
+		}
+	}
+
 	async function resetAllInlineStyles(): Promise<void> {
-		const confirm = await ModalManager.confirmModal(
-			$LL.translations.resetInlineStylesConfirm()
-		);
+		const confirm = await ModalManager.confirmModal($LL.translations.resetInlineStylesConfirm());
 
 		if (!confirm) return;
 
@@ -79,8 +99,7 @@
 				? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,var(--bg-secondary))] text-primary'
 				: 'border-color bg-accent text-secondary hover:border-[var(--accent-primary)]/45 hover:text-primary'
 		}`}
-		onclick={() =>
-			(translationsEditorState().isInlineStyleMode = !translationsEditorState().isInlineStyleMode)}
+		onclick={() => toggleExclusiveMode('inline')}
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div>
@@ -96,6 +115,37 @@
 			</span>
 		</div>
 	</button>
+
+	<button
+		class={`w-full rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
+			translationsEditorState().isTranslationWbwMappingMode
+				? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,var(--bg-secondary))] text-primary'
+				: 'border-color bg-accent text-secondary hover:border-[var(--accent-primary)]/45 hover:text-primary'
+		}`}
+		onclick={() => toggleExclusiveMode('wbw')}
+	>
+		<div class="flex items-center justify-between gap-3">
+			<div>
+				<p class="text-sm font-semibold">{$LL.editor.translationWbwMapping()}</p>
+				<p class="text-xs mt-1 opacity-80">
+					{translationsEditorState().isTranslationWbwMappingMode
+						? $LL.common.enabled()
+						: $LL.common.disabled()}
+				</p>
+			</div>
+			<span class="material-icons text-lg">
+				{translationsEditorState().isTranslationWbwMappingMode ? 'link' : 'add_link'}
+			</span>
+		</div>
+	</button>
+
+	{#if translationsEditorState().isTranslationWbwMappingMode}
+		<div
+			class="rounded-xl border border-color bg-accent px-3 py-3 text-xs text-secondary leading-relaxed"
+		>
+			{$LL.editor.translationWbwMappingDescription()}
+		</div>
+	{/if}
 
 	{#if translationsEditorState().isInlineStyleMode}
 		<div class="space-y-2">
@@ -116,7 +166,9 @@
 					{$LL.editor.bold()}
 				</span>
 				<span class="text-xs"
-					>{translationsEditorState().inlineStyleBoldEnabled ? $LL.common.on() : $LL.common.off()}</span
+					>{translationsEditorState().inlineStyleBoldEnabled
+						? $LL.common.on()
+						: $LL.common.off()}</span
 				>
 			</button>
 
@@ -133,7 +185,9 @@
 					{$LL.editor.italic()}
 				</span>
 				<span class="text-xs"
-					>{translationsEditorState().inlineStyleItalicEnabled ? $LL.common.on() : $LL.common.off()}</span
+					>{translationsEditorState().inlineStyleItalicEnabled
+						? $LL.common.on()
+						: $LL.common.off()}</span
 				>
 			</button>
 
@@ -150,7 +204,9 @@
 					{$LL.editor.underline()}
 				</span>
 				<span class="text-xs"
-					>{translationsEditorState().inlineStyleUnderlineEnabled ? $LL.common.on() : $LL.common.off()}</span
+					>{translationsEditorState().inlineStyleUnderlineEnabled
+						? $LL.common.on()
+						: $LL.common.off()}</span
 				>
 			</button>
 
@@ -229,7 +285,9 @@
 			<div class="px-4 py-4 border-b border-color bg-primary/40">
 				<div class="flex items-start justify-between gap-3">
 					<div>
-						<div class="text-sm font-semibold text-primary">{$LL.editor.aiAssistedWordEmphasis()}</div>
+						<div class="text-sm font-semibold text-primary">
+							{$LL.editor.aiAssistedWordEmphasis()}
+						</div>
 					</div>
 				</div>
 			</div>

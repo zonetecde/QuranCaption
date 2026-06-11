@@ -631,6 +631,12 @@ const editor = {
 	wordStylesDescription:
 		'Manual per-word emphasis on arabic text and translations with a dedicated AI assistant modal for automatic bold styling.',
 	wordStyleEditing: 'Word Style Editing',
+	translationWbwMapping: 'Set WBW translation',
+	translationWbwMappingDescription:
+		'Select an Arabic word, then drag across the trimmed translation range that matches it.',
+	translationWbwActiveWord: 'Arabic word {index}',
+	clearCurrentWbwMapping: 'Clear current',
+	clearAllWbwMappings: 'Clear all',
 	stylesToToggle: 'Styles To Toggle',
 	bold: 'Bold',
 	italic: 'Italic',

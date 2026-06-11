@@ -224,12 +224,12 @@ type RawStyle = Partial<Style> & { id: string };
 type RawCategory = Partial<Category> & { id: string; styles?: RawStyle[] };
 
 /**
- * Retire les catégories réservées au rendu arabe quand on dérive le schéma d'une traduction.
+ * Retourne les catégories compatibles avec les traductions.
  * @param {RawCategory[]} categories Categories source.
  * @returns {RawCategory[]} Categories compatibles avec une traduction.
  */
 function getNonArabicSubtitleCategories(categories: RawCategory[]): RawCategory[] {
-	return categories.filter((category) => category.id !== 'word-by-word-highlight');
+	return categories;
 }
 
 const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([

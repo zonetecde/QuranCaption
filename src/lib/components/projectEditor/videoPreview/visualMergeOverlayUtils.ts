@@ -207,6 +207,12 @@ export function getMergedClipsWithoutWordOverlap(clips: SubtitleClip[]): Subtitl
 					removedWords,
 					keptWordCount
 				);
+				translation.wbwRanges = (translation.wbwRanges ?? [])
+					.map((range) => ({
+						...range,
+						arabicWordIndex: range.arabicWordIndex - removedWords
+					}))
+					.filter((range) => range.arabicWordIndex >= 0 && range.arabicWordIndex < keptWordCount);
 			}
 		}
 

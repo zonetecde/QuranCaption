@@ -4,7 +4,10 @@
 		PredefinedSubtitleClip,
 		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
-	import type { TranslationInlineStyleFlags } from '$lib/classes/Translation.svelte';
+	import {
+		VerseTranslation,
+		type TranslationInlineStyleFlags
+	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 	import { onMount } from 'svelte';
@@ -21,6 +24,9 @@
 		() => globalState.currentProject!.projectEditorState.translationsEditor
 	);
 	let isInlineStyleMode = $derived(() => translationsEditorState().isInlineStyleMode);
+	let isTranslationWbwMappingMode = $derived(
+		() => translationsEditorState().isTranslationWbwMappingMode
+	);
 	const EMPTY_INLINE_FLAGS: TranslationInlineStyleFlags = {
 		bold: false,
 		italic: false,
@@ -159,6 +165,25 @@
 		inlineSelectionEnd = Math.max(inlineDragStartIndex, wordIndex);
 	}
 
+	/**
+	 * Indique si un mot arabe possède déjà un mapping WBW sur une traduction du sous-titre.
+	 *
+	 * @param {number} wordIndex Index local du mot arabe.
+	 * @returns {boolean} `true` si au moins une traduction le mappe.
+	 */
+	function isArabicWordMapped(wordIndex: number): boolean {
+		if (!(subtitle instanceof ClipWithTranslation)) return false;
+
+		const wordCount = words().length;
+		return Object.values(subtitle.translations ?? {}).some(
+			(translation) =>
+				translation instanceof VerseTranslation &&
+				translation
+					.getNormalizedWbwRanges(wordCount)
+					.some((range) => range.arabicWordIndex === wordIndex)
+		);
+	}
+
 	onMount(() => {
 		// Le mouseup peut arriver hors du composant pendant le drag.
 		window.addEventListener('mouseup', finishInlineDrag);
@@ -187,16 +212,29 @@
 				inlineSelectionStart !== -1 &&
 				inlineSelectionStart <= i &&
 				i <= inlineSelectionEnd}
+			{@const isWbwMappingActive =
+				isTranslationWbwMappingMode() &&
+				translationsEditorState().translationWbwActiveArabicWordIndex === i}
+			{@const isWbwMappingMapped = isTranslationWbwMappingMode() && isArabicWordMapped(i)}
 			{@const flags = getWordFlags(i)}
 			<button
 				type="button"
 				class="word group relative flex flex-col items-center gap-y-2 rounded-md p-0 ring-1 ring-transparent transition-colors {isOverlapWord
 					? 'overlap-arabic-word'
-					: ''} {isInlineSelected ? 'arabic-inline-selected' : ''} {isInlineStyleMode()
+					: ''} {isInlineSelected ? 'arabic-inline-selected' : ''} {isWbwMappingActive
+					? 'arabic-wbw-active'
+					: isWbwMappingMapped
+						? 'arabic-wbw-mapped'
+						: ''} {isInlineStyleMode() || isTranslationWbwMappingMode()
 					? 'cursor-pointer'
 					: 'cursor-default'}"
 				onmousedown={(event) => handleInlineMouseDown(i, event)}
 				onmouseenter={() => handleInlineMouseEnter(i)}
+				onclick={() => {
+					if (isTranslationWbwMappingMode()) {
+						translationsEditorState().translationWbwActiveArabicWordIndex = i;
+					}
+				}}
 			>
 				<span style={getInlineStyleCss(flags)}>{word}</span>
 
@@ -222,7 +260,7 @@
 		{/if}
 	</div>
 
-	{#if subtitle instanceof SubtitleClip && !isInlineStyleMode()}
+	{#if subtitle instanceof SubtitleClip && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 		<p
 			class="text-sm text-thirdly mt-1 space-x-1 {wbwTranslationDirection() === 'rtl'
 				? 'text-right'
@@ -263,5 +301,14 @@
 	.arabic-inline-selected {
 		background: color-mix(in srgb, var(--accent-primary) 18%, transparent);
 		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 38%, transparent);
+	}
+
+	.arabic-wbw-active {
+		background: color-mix(in srgb, var(--accent-primary) 24%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 60%, transparent);
+	}
+
+	.arabic-wbw-mapped {
+		background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
 	}
 </style>

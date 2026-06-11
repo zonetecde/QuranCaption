@@ -710,6 +710,7 @@
 							css={getCss(edition, translationRefClip?.id, ['background', 'border'])}
 							tailwind={getTailwind(edition)}
 							helperStyles={helperStyles(edition)}
+							isExportCapturePreview={isExportCapturePreview()}
 						/>
 					{/if}
 				{/each}

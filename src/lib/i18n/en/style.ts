@@ -89,7 +89,8 @@ const style = {
 	allTags: 'All tags',
 	tagsOptional: 'Tags (optional)',
 	descriptionOptional: 'Description (optional)',
-	customImagesNotBundled: 'Custom images are NOT bundled — users must replace them with their own image.',
+	customImagesNotBundled:
+		'Custom images are NOT bundled — users must replace them with their own image.',
 	regeneratePreviewWarning: 'Regenerate the preview before publishing.',
 	communityPresetPreviewAlt: 'Community preset preview',
 	generatePreviewHint: 'Generate a preview from a random subtitle in the video preview.',
@@ -105,8 +106,12 @@ const style = {
 	noCustomClipsInProject: 'No custom clips in project',
 	deletePresetTitle: 'Delete preset',
 	wbwMissingInfo: 'Word-by-word styles need WBW timestamps on at least one subtitle.',
-	wbwStep1: '1. Add them with AI-Segmentation and make sure to enable Include word-by-word timestamps.',
-	wbwStep2: '2. Or add them manually in the Subtitles Editor by holding E with the cursor over a subtitle.'
+	translationWbwMissingMappingInfo:
+		'Translation word-by-word styles need at least one WBW translation mapping in the translations editor.',
+	wbwStep1:
+		'1. Add them with AI-Segmentation and make sure to enable Include word-by-word timestamps.',
+	wbwStep2:
+		'2. Or add them manually in the Subtitles Editor by holding E with the cursor over a subtitle.'
 };
 
 export default style;

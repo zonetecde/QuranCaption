@@ -36,6 +36,12 @@ export type TranslationInlineTextSegment = {
 	color?: string | null;
 };
 
+export type TranslationWbwRange = {
+	arabicWordIndex: number;
+	startUnitIndex: number;
+	endUnitIndex: number;
+};
+
 type TranslationTextToken = {
 	text: string;
 	isWord: boolean;
@@ -517,6 +523,44 @@ export function replaceBoldWordIndexesInInlineStyleRuns(
 	);
 }
 
+/**
+ * Normalise les ranges WBW de traduction en supprimant les entrées invalides.
+ *
+ * @param {TranslationWbwRange[]} ranges Ranges stockées sur la traduction.
+ * @param {number} arabicWordCount Nombre de mots arabes du sous-titre.
+ * @param {number} unitCount Nombre d'unités sélectionnables dans la traduction.
+ * @returns {TranslationWbwRange[]} Ranges bornées et valides.
+ */
+export function normalizeTranslationWbwRanges(
+	ranges: TranslationWbwRange[],
+	arabicWordCount: number,
+	unitCount: number
+): TranslationWbwRange[] {
+	if (arabicWordCount <= 0 || unitCount <= 0) return [];
+
+	return (ranges ?? [])
+		.map((range) => ({
+			arabicWordIndex: Number(range.arabicWordIndex),
+			startUnitIndex: Number(range.startUnitIndex),
+			endUnitIndex: Number(range.endUnitIndex)
+		}))
+		.filter(
+			(range) =>
+				Number.isInteger(range.arabicWordIndex) &&
+				Number.isInteger(range.startUnitIndex) &&
+				Number.isInteger(range.endUnitIndex) &&
+				range.arabicWordIndex >= 0 &&
+				range.arabicWordIndex < arabicWordCount &&
+				range.startUnitIndex <= range.endUnitIndex
+		)
+		.map((range) => ({
+			arabicWordIndex: range.arabicWordIndex,
+			startUnitIndex: Math.max(0, Math.min(unitCount - 1, range.startUnitIndex)),
+			endUnitIndex: Math.max(0, Math.min(unitCount - 1, range.endUnitIndex))
+		}))
+		.filter((range) => range.startUnitIndex <= range.endUnitIndex);
+}
+
 export class Translation extends SerializableBase {
 	// Le texte de la traduction
 	text: string = $state('');
@@ -575,6 +619,9 @@ export class VerseTranslation extends Translation {
 	// Non-overlapping style runs indexed on trimmed translation words.
 	inlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
 
+	// Ranges associant les mots arabes aux unités de traduction trim.
+	wbwRanges: TranslationWbwRange[] = $state([]);
+
 	constructor(text: string, status: TranslationStatus) {
 		super(text, status);
 
@@ -584,6 +631,7 @@ export class VerseTranslation extends Translation {
 		this.endWordIndex = Math.max(0, getTranslationTrimUnitCount(text) - 1);
 		this.isBruteForce = false;
 		this.inlineStyleRuns = [];
+		this.wbwRanges = [];
 		this.type = 'verse';
 	}
 
@@ -595,6 +643,60 @@ export class VerseTranslation extends Translation {
 	}
 
 	/**
+	 * Supprime tous les mappings WBW de traduction.
+	 *
+	 * @returns {void}
+	 */
+	clearWbwRanges(): void {
+		this.wbwRanges = [];
+	}
+
+	/**
+	 * Supprime le mapping WBW associé à un mot arabe.
+	 *
+	 * @param {number} arabicWordIndex Index du mot arabe local au sous-titre.
+	 * @returns {void}
+	 */
+	clearWbwRange(arabicWordIndex: number): void {
+		this.wbwRanges = (this.wbwRanges ?? []).filter(
+			(range) => range.arabicWordIndex !== arabicWordIndex
+		);
+	}
+
+	/**
+	 * Définit la plage de traduction liée à un mot arabe.
+	 *
+	 * @param {number} arabicWordIndex Index du mot arabe local au sous-titre.
+	 * @param {number} startUnitIndex Index inclusif de début dans la traduction trim.
+	 * @param {number} endUnitIndex Index inclusif de fin dans la traduction trim.
+	 * @returns {void}
+	 */
+	setWbwRange(arabicWordIndex: number, startUnitIndex: number, endUnitIndex: number): void {
+		this.wbwRanges = [
+			...(this.wbwRanges ?? []).filter((range) => range.arabicWordIndex !== arabicWordIndex),
+			{
+				arabicWordIndex,
+				startUnitIndex: Math.min(startUnitIndex, endUnitIndex),
+				endUnitIndex: Math.max(startUnitIndex, endUnitIndex)
+			}
+		];
+	}
+
+	/**
+	 * Retourne les mappings WBW valides pour le texte courant.
+	 *
+	 * @param {number} arabicWordCount Nombre de mots arabes du sous-titre.
+	 * @returns {TranslationWbwRange[]} Ranges WBW normalisées.
+	 */
+	getNormalizedWbwRanges(arabicWordCount: number): TranslationWbwRange[] {
+		return normalizeTranslationWbwRanges(
+			this.wbwRanges ?? [],
+			arabicWordCount,
+			getTranslationWordCount(this.text)
+		);
+	}
+
+	/**
 	 * Reconciles stored style runs with current text word count.
 	 * Useful after import/deserialization or any out-of-band text changes.
 	 */
@@ -603,6 +705,7 @@ export class VerseTranslation extends Translation {
 			this.inlineStyleRuns ?? [],
 			getTranslationWordCount(this.text)
 		);
+		this.wbwRanges = this.getNormalizedWbwRanges(Number.MAX_SAFE_INTEGER);
 	}
 
 	/**
@@ -616,6 +719,7 @@ export class VerseTranslation extends Translation {
 
 		this.text = text;
 		this.clearInlineStyles();
+		this.clearWbwRanges();
 	}
 
 	/**

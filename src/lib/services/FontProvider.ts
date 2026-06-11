@@ -116,11 +116,13 @@ export class QPCFontProvider {
 	static getFontNameForVerse(surah: number, verse: number, qpcVersion: '1' | '2'): string {
 		// Get the font name for the verse
 		const verseKey = `${surah}:${verse}`;
+		const verseMapping = qpcVersion === '1' ? this.verseMappingV1 : this.verseMappingV2;
+		if (!verseMapping) {
+			void QPCFontProvider.loadQPC2Data();
+			return qpcVersion === '1' ? 'QPC1_p0001' : 'QPC2_p0001';
+		}
 
-		const fontName =
-			qpcVersion === '1'
-				? this.verseMappingV1![verseKey] || 'QPC1_p0001'
-				: this.verseMappingV2![verseKey] || 'QPC2_p0001';
+		const fontName = verseMapping[verseKey] || (qpcVersion === '1' ? 'QPC1_p0001' : 'QPC2_p0001');
 
 		// Charge dynamiquement la police si elle n'est pas déjà chargée
 		QPCFontProvider.loadFontIfNotLoaded(fontName, qpcVersion);
@@ -130,7 +132,11 @@ export class QPCFontProvider {
 
 	static getTajweedFontNameForVerse(surah: number, verse: number): string {
 		const verseKey = `${surah}:${verse}`;
-		const mappedFontName = this.verseMappingV2![verseKey] || 'QPC2_p001';
+		if (!this.verseMappingV2) {
+			void QPCFontProvider.loadQPC2Data();
+			return 'p001-v4';
+		}
+		const mappedFontName = this.verseMappingV2[verseKey] || 'QPC2_p001';
 		const pageNumber = this.extractPageNumberFromMappedFontName(mappedFontName);
 		const fontName = `p${pageNumber}-v4`;
 
@@ -146,11 +152,16 @@ export class QPCFontProvider {
 		isLastWords: boolean,
 		qpcVersion: '1' | '2' = '2'
 	): string {
+		const glyphs = qpcVersion === '1' ? QPCFontProvider.qpc1Glyphs : QPCFontProvider.qpc2Glyphs;
+		if (!glyphs) {
+			void QPCFontProvider.loadQPC2Data();
+			return '';
+		}
+
 		let str = '';
 		for (let i = startWord + 1; i <= endWord + 1; i++) {
 			const key = `${surah}:${verse}:${i}`;
-			const glyph =
-				qpcVersion === '1' ? QPCFontProvider.qpc1Glyphs![key] : QPCFontProvider.qpc2Glyphs![key];
+			const glyph = glyphs[key];
 			if (glyph) {
 				str += glyph + ' ';
 			}
@@ -159,8 +170,7 @@ export class QPCFontProvider {
 		// Si on veut inclure le numéro de verset
 		if (isLastWords && globalState.getStyle('arabic', 'show-verse-number')!.value) {
 			const key = `${surah}:${verse}:${endWord + 2}`;
-			const glyph =
-				qpcVersion === '1' ? QPCFontProvider.qpc1Glyphs![key] : QPCFontProvider.qpc2Glyphs![key];
+			const glyph = glyphs[key];
 			if (glyph) {
 				str += glyph; // Ajoute le symbole du numéro de verset
 			}

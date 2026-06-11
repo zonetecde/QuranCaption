@@ -943,6 +943,12 @@ const fr: Translation = {
 			'Emphase manuelle par mot sur le texte arabe et les traductions avec un assistant IA dédié pour le style gras automatique.',
 		wordStyleEditing: 'Édition de style de mot',
 		stylesToToggle: 'Styles à basculer',
+		translationWbwMapping: 'Mapper la traduction WBW',
+		translationWbwMappingDescription:
+			'Sélectionnez un mot arabe, puis glissez sur la plage de traduction rognée qui lui correspond.',
+		translationWbwActiveWord: 'Mot arabe {index}',
+		clearCurrentWbwMapping: 'Effacer actuel',
+		clearAllWbwMappings: 'Tout effacer',
 		bold: 'Gras',
 		italic: 'Italique',
 		underline: 'Souligné',
@@ -1723,6 +1729,8 @@ const fr: Translation = {
 		customClipsLabel: 'Clips personnalisés',
 		noCustomClipsInProject: 'Aucun clip personnalisé dans le projet',
 		deletePresetTitle: 'Supprimer le preset',
+		translationWbwMissingMappingInfo:
+			'Les styles mot par mot des traductions nécessitent au moins un mapping WBW dans l’éditeur de traductions.',
 		wbwMissingInfo:
 			'Les styles mot par mot nécessitent des horodatages WBW sur au moins un sous-titre.',
 		wbwStep1:

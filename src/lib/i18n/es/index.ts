@@ -944,6 +944,12 @@ const es: Translation = {
 			'Énfasis manual por palabra en el texto árabe y las traducciones con un asistente de IA dedicado para el estilo negrita automático.',
 		wordStyleEditing: 'Edición de estilo de palabra',
 		stylesToToggle: 'Estilos a alternar',
+		translationWbwMapping: 'Mapear traducción WBW',
+		translationWbwMappingDescription:
+			'Seleccione una palabra árabe y arrastre sobre el rango de traducción recortado que le corresponde.',
+		translationWbwActiveWord: 'Palabra árabe {index}',
+		clearCurrentWbwMapping: 'Borrar actual',
+		clearAllWbwMappings: 'Borrar todo',
 		bold: 'Negrita',
 		italic: 'Cursiva',
 		underline: 'Subrayado',
@@ -1721,6 +1727,8 @@ const es: Translation = {
 		customClipsLabel: 'Clips personalizados',
 		noCustomClipsInProject: 'No hay clips personalizados en el proyecto',
 		deletePresetTitle: 'Eliminar preset',
+		translationWbwMissingMappingInfo:
+			'Los estilos palabra por palabra de traducción necesitan al menos un mapeo WBW en el editor de traducciones.',
 		wbwMissingInfo:
 			'Los estilos palabra por palabra requieren marcas de tiempo WBW en al menos un subtítulo.',
 		wbwStep1:

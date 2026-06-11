@@ -354,6 +354,8 @@ export class TranslationsEditorState extends SerializableBase {
 
 	// Indique si le mode de style en ligne est activé et quels styles sont activés
 	isInlineStyleMode: boolean = $state(false);
+	isTranslationWbwMappingMode: boolean = $state(false);
+	translationWbwActiveArabicWordIndex: number = $state(0);
 	inlineStyleBoldEnabled: boolean = $state(false);
 	inlineStyleItalicEnabled: boolean = $state(false);
 	inlineStyleUnderlineEnabled: boolean = $state(false);
@@ -423,9 +425,7 @@ export class ExportState extends SerializableBase {
 
 	// Indique la sélection d'exportation des chapitres YouTube
 	ytbChaptersChoice: 'Each Surah' | 'Each Verse' = $state('Each Surah');
-	ytbChaptersFormat: string = $state(
-		'<timestamp> Surah <surah-number>, Verse <verse-number>'
-	);
+	ytbChaptersFormat: string = $state('<timestamp> Surah <surah-number>, Verse <verse-number>');
 	ytbChaptersTranslationEditionName: string = $state('');
 
 	// Indique la partie de la vidéo à exporter

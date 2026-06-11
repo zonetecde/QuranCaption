@@ -940,6 +940,12 @@ const de: Translation = {
 			'Manuelle Wort-Hervorhebung für arabischen Text und Übersetzungen mit einem speziellen KI-Assistenten für automatischen Fettdruck.',
 		wordStyleEditing: 'Wortstil-Bearbeitung',
 		stylesToToggle: 'Umzuschaltende Stile',
+		translationWbwMapping: 'WBW-Übersetzung zuordnen',
+		translationWbwMappingDescription:
+			'Wählen Sie ein arabisches Wort aus und ziehen Sie über den passenden zugeschnittenen Übersetzungsbereich.',
+		translationWbwActiveWord: 'Arabisches Wort {index}',
+		clearCurrentWbwMapping: 'Aktuelles löschen',
+		clearAllWbwMappings: 'Alle löschen',
 		bold: 'Fett',
 		italic: 'Kursiv',
 		underline: 'Unterstrichen',
@@ -1715,6 +1721,8 @@ const de: Translation = {
 		customClipsLabel: 'Benutzerdefinierte Clips',
 		noCustomClipsInProject: 'Keine benutzerdefinierten Clips im Projekt',
 		deletePresetTitle: 'Voreinstellung löschen',
+		translationWbwMissingMappingInfo:
+			'Wort-für-Wort-Stile für Übersetzungen benötigen mindestens eine WBW-Zuordnung im Übersetzungseditor.',
 		wbwMissingInfo:
 			'Wort-für-Wort-Stile erfordern WBW-Zeitstempel auf mindestens einem Untertitel.',
 		wbwStep1:

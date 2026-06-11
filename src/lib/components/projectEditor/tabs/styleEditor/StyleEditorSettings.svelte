@@ -7,7 +7,8 @@
 	import PresetLibrary from './presets/components/PresetLibrary.svelte';
 	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
-	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation, type VisualMergeMode } from '$lib/classes/Clip.svelte';
+	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import {
 		canMergeArabicVisualModes,
@@ -44,6 +45,8 @@
 	const hasWordByWordTimestamps = $derived(() =>
 		globalState.getSubtitleTrack.hasWordByWordTimestamps()
 	);
+
+	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
 
@@ -174,20 +177,51 @@
 	 */
 	function isWordByWordStyleDisabled(categoryId: string, styleId: string): boolean {
 		if (categoryId !== 'word-by-word-highlight') return false;
+		const target = currentStyleTarget();
 
 		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
-			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-highlight')?.value);
+			return !Boolean(globalState.getStyle(target, 'enable-wbw-highlight')?.value);
 		}
 
 		if (styleId === 'wbw-bg-color') {
-			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-background')?.value);
+			return !Boolean(globalState.getStyle(target, 'enable-wbw-background')?.value);
 		}
 
 		if (styleId === 'wbw-underline-thickness') {
-			return !Boolean(globalState.getStyle('arabic', 'enable-wbw-underline')?.value);
+			return !Boolean(globalState.getStyle(target, 'enable-wbw-underline')?.value);
 		}
 
 		return false;
+	}
+
+	/**
+	 * Indique si la traduction sélectionnée possède au moins un mapping WBW.
+	 *
+	 * @returns {boolean} `true` si une range WBW existe pour cette édition.
+	 */
+	function hasTranslationWbwMappings(): boolean {
+		const target = currentStyleTarget();
+		if (target === 'global' || target === 'arabic') return false;
+
+		return globalState.getSubtitleTrack.clips.some((clip) => {
+			if (!(clip instanceof ClipWithTranslation)) return false;
+			const translation = clip.translations?.[target];
+			return translation instanceof VerseTranslation && (translation.wbwRanges?.length ?? 0) > 0;
+		});
+	}
+
+	/**
+	 * Indique si un hint WBW doit être affiché pour la cible courante.
+	 *
+	 * @returns {'arabic' | 'translation' | null} Type de hint à afficher.
+	 */
+	function getWordByWordHintTarget(): 'arabic' | 'translation' | null {
+		const target = currentStyleTarget();
+		if (target === 'arabic' && !hasWordByWordTimestamps()) return 'arabic';
+		if (target !== 'global' && target !== 'arabic' && !hasTranslationWbwMappings()) {
+			return 'translation';
+		}
+		return null;
 	}
 
 	$effect(() => {
@@ -475,22 +509,28 @@
 							</div>
 						{/if}
 
-						{#if category.id === 'word-by-word-highlight' && !hasWordByWordTimestamps()}
+						{#if category.id === 'word-by-word-highlight' && getWordByWordHintTarget()}
 							<div
 								class="mx-2 mb-2 translate-y-1.5 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-amber-100"
 							>
 								<div class="flex items-start gap-2">
 									<span class="material-icons-outlined text-sm mt-0.5">info</span>
 									<div class="min-w-0">
-										<p class="text-xs leading-relaxed">
-											{$LL.style.wbwMissingInfo()}
-										</p>
-										<p class="mt-1 text-xs leading-relaxed">
-											{$LL.style.wbwStep1()}
-										</p>
-										<p class="mt-1 text-xs leading-relaxed">
-											{$LL.style.wbwStep2()}
-										</p>
+										{#if getWordByWordHintTarget() === 'translation'}
+											<p class="text-xs leading-relaxed">
+												{$LL.style.translationWbwMissingMappingInfo()}
+											</p>
+										{:else}
+											<p class="text-xs leading-relaxed">
+												{$LL.style.wbwMissingInfo()}
+											</p>
+											<p class="mt-1 text-xs leading-relaxed">
+												{$LL.style.wbwStep1()}
+											</p>
+											<p class="mt-1 text-xs leading-relaxed">
+												{$LL.style.wbwStep2()}
+											</p>
+										{/if}
 									</div>
 								</div>
 							</div>
@@ -529,7 +569,7 @@
 							Quatrième cas :
 							On empêche la modification du font-family style si on a pas "Uthmani" de sélectionné pour le style du mushaf, car Indopak et Tajweed ont des fonts spécifique
 								  -->
-								{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'decorative-brackets-font-family' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'mushaf-style' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'max-line' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.currentSelection === 'arabic' && style.id === 'font-family' && globalState.getStyle('arabic', 'mushaf-style')?.value !== 'Uthmani') && !(style.id === 'decorative-brackets-font-family' && !globalState.getStyle('arabic', 'show-decorative-brackets').value) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'mushaf-style' || style.id === 'decorative-brackets-font-family' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'max-line' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
+								{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'decorative-brackets-font-family' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'mushaf-style' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'max-line' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.currentSelection === 'arabic' && style.id === 'font-family' && globalState.getStyle('arabic', 'mushaf-style')?.value !== 'Uthmani') && !(style.id === 'decorative-brackets-font-family' && !globalState.getStyle('arabic', 'show-decorative-brackets').value) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'mushaf-style' || style.id === 'decorative-brackets-font-family' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'max-line' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(category.id === 'word-by-word-highlight' && style.id === 'wbw-always-show-verse-number' && globalState.getStylesState.currentSelection !== 'arabic') && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
 									<!-- On veut désactiver certains style, comme par exemple
 							 - Si on a le style "Always Show" pour les customs text d'enable, alors on disable les styles permettant
 							 de set les propriétés de temps de début d'affichage et de fin d'affichage -->

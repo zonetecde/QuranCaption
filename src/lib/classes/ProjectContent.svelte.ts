@@ -8,6 +8,7 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { ProjectTranslation, VideoStyle } from './index.js';
 import type { UnknownRecord } from '$lib/types/common';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export class ProjectContent extends SerializableBase {
 	timeline: Timeline;
@@ -61,25 +62,29 @@ export class ProjectContent extends SerializableBase {
 		sourceType: SourceType = SourceType.Local,
 		metadata: UnknownRecord = {}
 	): Asset | undefined {
-		const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
-		if (asset.type === AssetType.Unknown) {
-			toast.error(get(LL).editor.fileFormatNotSupported());
-			return undefined;
-		}
-		this.assets.unshift(asset);
-		return asset;
+		return ProjectHistoryManager.track('add asset', () => {
+			const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
+			if (asset.type === AssetType.Unknown) {
+				toast.error(get(LL).editor.fileFormatNotSupported());
+				return undefined;
+			}
+			this.assets.unshift(asset);
+			return asset;
+		});
 	}
 
 	removeAsset(asset: Asset): void {
-		const index = this.assets.indexOf(asset);
-		if (index !== -1) {
-			this.assets.splice(index, 1);
+		ProjectHistoryManager.track('remove asset', () => {
+			const index = this.assets.indexOf(asset);
+			if (index !== -1) {
+				this.assets.splice(index, 1);
 
-			// Maintenant, supprime l'asset de la timeline
-			this.timeline.removeAssetFromTracks(asset);
-		} else {
-			toast.error(get(LL).editor.assetNotFound());
-		}
+				// Maintenant, supprime l'asset de la timeline
+				this.timeline.removeAssetFromTracks(asset);
+			} else {
+				toast.error(get(LL).editor.assetNotFound());
+			}
+		});
 	}
 
 	getAssetById(id: number) {

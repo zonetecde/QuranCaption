@@ -10,6 +10,7 @@
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
 		clip = $bindable(),
@@ -53,9 +54,9 @@
 	let wavesurfer: WaveSurfer | undefined;
 
 	/**
-	 * Libere la waveform si son fichier doit etre remplace.
+	 * Libère la waveform si son fichier doit être remplacé.
 	 *
-	 * @param {Event} event Evenement global contenant le chemin du fichier.
+	 * @param {Event} event Événement global contenant le chemin du fichier.
 	 * @returns {void}
 	 */
 	function releaseWaveformForAsset(event: Event): void {
@@ -162,32 +163,37 @@
 		}
 	}
 	function loopUntilTheEndClicked(): void {
-		const assetClip = clip as AssetClip;
-		const willEnable = !assetClip.loopUntilAudioEnd;
-		assetClip.loopUntilAudioEnd = willEnable;
+		ProjectHistoryManager.begin('toggle looped video');
+		try {
+			const assetClip = clip as AssetClip;
+			const willEnable = !assetClip.loopUntilAudioEnd;
+			assetClip.loopUntilAudioEnd = willEnable;
 
-		if (assetClip.loopUntilAudioEnd) {
-			// If there are other clips in the track, the loop cannot be activated.
-			if (track.clips.length > 1) {
-				assetClip.loopUntilAudioEnd = false;
-				ModalManager.errorModal(
-					get(LL).editor.loopingError(),
-					get(LL).editor.canOnlyEnableLoopIfOnlyClip()
-				);
-				return;
-			}
+			if (assetClip.loopUntilAudioEnd) {
+				// If there are other clips in the track, the loop cannot be activated.
+				if (track.clips.length > 1) {
+					assetClip.loopUntilAudioEnd = false;
+					ModalManager.errorModal(
+						get(LL).editor.loopingError(),
+						get(LL).editor.canOnlyEnableLoopIfOnlyClip()
+					);
+					return;
+				}
 
-			if (globalState.currentProject) {
-				assetClip.setEndTime(
-					globalState.currentProject.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
-						.ms
-				);
+				if (globalState.currentProject) {
+					assetClip.setEndTime(
+						globalState.currentProject.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
+							.ms
+					);
+				}
+			} else {
+				const asset = globalState.currentProject?.content.getAssetById(assetClip.assetId);
+				if (asset) {
+					assetClip.setEndTime(assetClip.startTime + asset.duration.ms);
+				}
 			}
-		} else {
-			const asset = globalState.currentProject?.content.getAssetById(assetClip.assetId);
-			if (asset) {
-				assetClip.setEndTime(assetClip.startTime + asset.duration.ms);
-			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 </script>
@@ -211,11 +217,10 @@
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
 			<span
 				class="material-icons-outlined text-[10px] opacity-80"
-					title={get(LL).editor.overlayIndividualApplied()}
-
-				>
-					auto_fix_high
-				</span>
+				title={get(LL).editor.overlayIndividualApplied()}
+			>
+				auto_fix_high
+			</span>
 		</div>
 	{/if}
 

@@ -10,6 +10,7 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import {
 	CustomImageClip,
 	PredefinedSubtitleClip,
@@ -223,7 +224,7 @@ type RawStyle = Partial<Style> & { id: string };
 type RawCategory = Partial<Category> & { id: string; styles?: RawStyle[] };
 
 /**
- * Retire les categories reservees au rendu arabe quand on derive le schema d'une traduction.
+ * Retire les catégories réservées au rendu arabe quand on dérive le schéma d'une traduction.
  * @param {RawCategory[]} categories Categories source.
  * @returns {RawCategory[]} Categories compatibles avec une traduction.
  */
@@ -636,10 +637,15 @@ export class StylesData extends SerializableBase {
 	 * @param value La nouvelle valeur à appliquer
 	 */
 	setStyle(styleId: StyleName, value: string | number | boolean): void {
-		// Trouve le style
-		const style = this.findStyle(styleId);
-		if (style) {
-			style.value = value;
+		ProjectHistoryManager.begin('set style');
+		try {
+			// Trouve le style
+			const style = this.findStyle(styleId);
+			if (style) {
+				style.value = value;
+			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 
@@ -660,26 +666,31 @@ export class StylesData extends SerializableBase {
 	 * Définit un style pour un ou plusieurs clips sélectionnés (override partiel)
 	 */
 	setStyleForClips(clipIds: number[], styleId: StyleName, value: string | number | boolean) {
-		// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
-		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
-			return;
-		}
-
-		for (const clipId of clipIds) {
-			// Créez un nouvel objet d'override pour le clip s'il n'existe pas
-			if (!this.overrides[clipId]) {
-				this.overrides[clipId] = {} as Partial<Record<StyleName, string | number | boolean>>;
+		ProjectHistoryManager.begin('set clip style override');
+		try {
+			// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
+			if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
+				return;
 			}
 
-			// Regarde si pour la valeur qu'on veut appliquer à ce style pour ces clip
-			// si c'est la valeur par déjà du style
-			if (this.findStyle(styleId)?.value === value) {
-				// Enlève l'override pour ce style, car c'est la valeur déjà de son parent
-				delete this.overrides[clipId][styleId];
-			} else {
-				// Applique l'override avec la valeur
-				this.overrides[clipId][styleId] = value;
+			for (const clipId of clipIds) {
+				// Créez un nouvel objet d'override pour le clip s'il n'existe pas
+				if (!this.overrides[clipId]) {
+					this.overrides[clipId] = {} as Partial<Record<StyleName, string | number | boolean>>;
+				}
+
+				// Regarde si pour la valeur qu'on veut appliquer à ce style pour ces clip
+				// si c'est la valeur par déjà du style
+				if (this.findStyle(styleId)?.value === value) {
+					// Enlève l'override pour ce style, car c'est la valeur déjà de son parent
+					delete this.overrides[clipId][styleId];
+				} else {
+					// Applique l'override avec la valeur
+					this.overrides[clipId][styleId] = value;
+				}
 			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 
@@ -689,24 +700,29 @@ export class StylesData extends SerializableBase {
 	 * @param styleId L'ID du style à supprimer
 	 */
 	clearStyleForClips(clipIds: number[], styleId: StyleName): void {
-		// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
-		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
-			return;
-		}
-
-		for (const clipId of clipIds) {
-			const byClip = this.overrides[clipId];
-			if (!byClip) continue;
-
-			// Supprime l'override pour ce style sur ce clip
-			if (byClip[styleId] !== undefined) {
-				delete byClip[styleId];
+		ProjectHistoryManager.begin('clear clip style override');
+		try {
+			// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
+			if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
+				return;
 			}
 
-			// Nettoyage de l'objet clip s'il est vide
-			if (Object.keys(byClip).length === 0) {
-				delete this.overrides[clipId];
+			for (const clipId of clipIds) {
+				const byClip = this.overrides[clipId];
+				if (!byClip) continue;
+
+				// Supprime l'override pour ce style sur ce clip
+				if (byClip[styleId] !== undefined) {
+					delete byClip[styleId];
+				}
+
+				// Nettoyage de l'objet clip s'il est vide
+				if (Object.keys(byClip).length === 0) {
+					delete this.overrides[clipId];
+				}
 			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 
@@ -769,7 +785,7 @@ export class StylesData extends SerializableBase {
 	 */
 	async loadCompositeStyles() {
 		for (const category of this.categories) {
-			category.loadCompositeStyle();
+			await category.loadCompositeStyle();
 		}
 	}
 
@@ -835,7 +851,7 @@ export class VideoStyle extends SerializableBase {
 		videoStyle.getStylesOfTarget('arabic').setStyle('vertical-position', -110);
 
 		// Load les styles composites
-		videoStyle.getStylesOfTarget('global').loadCompositeStyles();
+		await videoStyle.getStylesOfTarget('global').loadCompositeStyles();
 
 		// S'il manque des styles à une traduction, on les ajoute
 		if (globalState.currentProject)
@@ -867,12 +883,17 @@ export class VideoStyle extends SerializableBase {
 		styleId: StyleName,
 		value: string | number | boolean
 	): void {
-		// Trouve donc le clip correspondant pour update sa valeur
-		const clip = globalState.getCustomClipTrack.clips.find(
-			(c) => (c as CustomTextClip).category?.id === customTextId
-		) as CustomTextClip | undefined;
-		if (clip) {
-			clip.setStyle(styleId, value);
+		ProjectHistoryManager.begin('set custom text style');
+		try {
+			// Trouve donc le clip correspondant pour update sa valeur
+			const clip = globalState.getCustomClipTrack.clips.find(
+				(c) => (c as CustomTextClip).category?.id === customTextId
+			) as CustomTextClip | undefined;
+			if (clip) {
+				clip.setStyle(styleId, value);
+			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 
@@ -1036,7 +1057,7 @@ export class VideoStyle extends SerializableBase {
 		const composite = category.getStyle('custom-text-composite')!;
 		composite.id += '-' + randomId;
 
-		category.loadCompositeStyle();
+		await category.loadCompositeStyle();
 
 		return category;
 	}
@@ -1061,29 +1082,39 @@ export class VideoStyle extends SerializableBase {
 		startTime?: number,
 		endTime?: number
 	): Promise<void> {
-		// Ajoute la track Custom Text si non existante
-		if (!globalState.currentProject!.content.timeline.doesTrackExist(TrackType.CustomClip)) {
-			globalState.currentProject!.content.timeline.addTrack(new CustomTextTrack());
+		ProjectHistoryManager.begin('add custom clip');
+		try {
+			// Ajoute la track Custom Text si non existante
+			if (!globalState.currentProject!.content.timeline.doesTrackExist(TrackType.CustomClip)) {
+				globalState.currentProject!.content.timeline.addTrack(new CustomTextTrack());
+			}
+
+			// Si on a la hauteur de section du hauter par défaut (68), alors ajouter la track
+			// `custom text` rendra invisible la track `audio`. Augmente donc la hauteur de la
+			// timeline afin qu'elle soit visible
+			if (globalState.currentProject!.projectEditorState.upperSectionHeight === 68) {
+				globalState.currentProject!.projectEditorState.upperSectionHeight = 60;
+			}
+
+			// Ajoute le custom text au projet
+			const customTextCategory =
+				clipType === 'text'
+					? await this.getDefaultCustomTextCategory()
+					: await this.getDefaultCustomImageCategory();
+
+			globalState.getCustomClipTrack.addCustomClip(
+				customTextCategory,
+				clipType,
+				startTime,
+				endTime
+			);
+
+			setTimeout(() => {
+				globalState.updateVideoPreviewUI();
+			}, 10); // 10ms nécessaire
+		} finally {
+			ProjectHistoryManager.commit();
 		}
-
-		// Si on a la hauteur de section du hauter par défaut (68), alors ajouter la track
-		// `custom text` rendra invisible la track `audio`. Augmente donc la hauteur de la
-		// timeline afin qu'elle soit visible
-		if (globalState.currentProject!.projectEditorState.upperSectionHeight === 68) {
-			globalState.currentProject!.projectEditorState.upperSectionHeight = 60;
-		}
-
-		// Ajoute le custom text au projet
-		const customTextCategory =
-			clipType === 'text'
-				? await this.getDefaultCustomTextCategory()
-				: await this.getDefaultCustomImageCategory();
-
-		globalState.getCustomClipTrack.addCustomClip(customTextCategory, clipType, startTime, endTime);
-
-		setTimeout(() => {
-			globalState.updateVideoPreviewUI();
-		}, 10); // 10ms nécessaire
 	}
 
 	/**
@@ -1168,114 +1199,121 @@ export class VideoStyle extends SerializableBase {
 	}
 
 	async importStyles(json: VideoStyleFileData) {
-		// Crée une nouvelle instance VideoStyle à partir des données JSON
-		const importedVideoStyle = VideoStyle.fromJSON(
-			json.videoStyle as unknown as Record<string, unknown>
-		) as VideoStyle;
-		const currentProjectTranslations = globalState.getProjectTranslation.addedTranslationEditions;
+		ProjectHistoryManager.begin('import styles');
+		try {
+			// Crée une nouvelle instance VideoStyle à partir des données JSON
+			const importedVideoStyle = VideoStyle.fromJSON(
+				json.videoStyle as unknown as Record<string, unknown>
+			) as VideoStyle;
+			const currentProjectTranslations = globalState.getProjectTranslation.addedTranslationEditions;
 
-		// Gérer l'import des styles 'arabic' et 'global' (toujours override)
-		for (const importedStyle of importedVideoStyle.styles) {
-			if (importedStyle.target === 'arabic' || importedStyle.target === 'global') {
-				// Override automatiquement les styles arabic et global
-				const existingStyle = this.getStylesOfTarget(importedStyle.target);
-				if (existingStyle) {
-					// Remplace complètement les styles existants
-					const index = this.styles.findIndex((s) => s.target === importedStyle.target);
-					if (index !== -1) {
-						this.styles[index] = importedStyle;
+			// Gérer l'import des styles 'arabic' et 'global' (toujours override)
+			for (const importedStyle of importedVideoStyle.styles) {
+				if (importedStyle.target === 'arabic' || importedStyle.target === 'global') {
+					// Override automatiquement les styles arabic et global
+					const existingStyle = this.getStylesOfTarget(importedStyle.target);
+					if (existingStyle) {
+						// Remplace complètement les styles existants
+						const index = this.styles.findIndex((s) => s.target === importedStyle.target);
+						if (index !== -1) {
+							this.styles[index] = importedStyle;
+						}
+					} else {
+						this.styles.push(importedStyle);
 					}
-				} else {
-					this.styles.push(importedStyle);
 				}
 			}
-		}
 
-		// Gérer l'import des traductions
-		for (const importedStyle of importedVideoStyle.styles) {
-			if (importedStyle.target === 'arabic' || importedStyle.target === 'global') continue;
+			// Gérer l'import des traductions
+			for (const importedStyle of importedVideoStyle.styles) {
+				if (importedStyle.target === 'arabic' || importedStyle.target === 'global') continue;
 
-			// Chercher si cette traduction existe déjà dans le projet
-			const existingProjectTranslation = currentProjectTranslations.find(
-				(t) => t.name === importedStyle.target
-			);
-
-			if (existingProjectTranslation) {
-				// 1. Même traduction trouvée -> override automatiquement
-				const existingStyleIndex = this.styles.findIndex((s) => s.target === importedStyle.target);
-				if (existingStyleIndex !== -1) {
-					this.styles[existingStyleIndex] = importedStyle;
-				} else {
-					this.styles.push(importedStyle);
-				}
-			}
-		}
-
-		// 3. Gérer les traductions du projet qui n'existent PAS dans le fichier importé
-		for (const projectTranslation of currentProjectTranslations) {
-			const existsInImported = importedVideoStyle.styles.some(
-				(importedStyle) =>
-					importedStyle.target === projectTranslation.name &&
-					importedStyle.target !== 'arabic' &&
-					importedStyle.target !== 'global'
-			);
-
-			if (!existsInImported) {
-				// Cette traduction du projet n'existe pas dans le fichier importé
-				// Proposer d'appliquer les styles disponibles dans le fichier importé
-				const availableImportedTranslations = importedVideoStyle.styles.filter(
-					(s) => s.target !== 'arabic' && s.target !== 'global'
+				// Chercher si cette traduction existe déjà dans le projet
+				const existingProjectTranslation = currentProjectTranslations.find(
+					(t) => t.name === importedStyle.target
 				);
 
-				for (const importedStyle of availableImportedTranslations) {
-					const confirm = await ModalManager.confirmModal(
-						get(LL).translations.translationNoStyles({ name: projectTranslation.name }),
-						true
+				if (existingProjectTranslation) {
+					// 1. Même traduction trouvée -> override automatiquement
+					const existingStyleIndex = this.styles.findIndex(
+						(s) => s.target === importedStyle.target
 					);
-
-					if (confirm) {
-						// Créer une copie du style importé avec le nouveau target
-						const newStyle = JSON.parse(JSON.stringify(importedStyle));
-						newStyle.target = projectTranslation.name;
-
-						// Ajouter ou remplacer le style pour cette traduction
-						const existingStyleIndex = this.styles.findIndex(
-							(s) => s.target === projectTranslation.name
-						);
-						const parsedStyle = StylesData.fromJSON(
-							newStyle as unknown as Record<string, unknown>
-						) as StylesData;
-						if (existingStyleIndex !== -1) {
-							this.styles[existingStyleIndex] = parsedStyle;
-						} else {
-							this.styles.push(parsedStyle);
-						}
-
-						break; // Arrêter dès qu'un style est appliqué
+					if (existingStyleIndex !== -1) {
+						this.styles[existingStyleIndex] = importedStyle;
+					} else {
+						this.styles.push(importedStyle);
 					}
 				}
 			}
+
+			// 3. Gérer les traductions du projet qui n'existent PAS dans le fichier importé
+			for (const projectTranslation of currentProjectTranslations) {
+				const existsInImported = importedVideoStyle.styles.some(
+					(importedStyle) =>
+						importedStyle.target === projectTranslation.name &&
+						importedStyle.target !== 'arabic' &&
+						importedStyle.target !== 'global'
+				);
+
+				if (!existsInImported) {
+					// Cette traduction du projet n'existe pas dans le fichier importé
+					// Proposer d'appliquer les styles disponibles dans le fichier importé
+					const availableImportedTranslations = importedVideoStyle.styles.filter(
+						(s) => s.target !== 'arabic' && s.target !== 'global'
+					);
+
+					for (const importedStyle of availableImportedTranslations) {
+						const confirm = await ModalManager.confirmModal(
+							get(LL).translations.translationNoStyles({ name: projectTranslation.name }),
+							true
+						);
+
+						if (confirm) {
+							// Créer une copie du style importé avec le nouveau target
+							const newStyle = JSON.parse(JSON.stringify(importedStyle));
+							newStyle.target = projectTranslation.name;
+
+							// Ajouter ou remplacer le style pour cette traduction
+							const existingStyleIndex = this.styles.findIndex(
+								(s) => s.target === projectTranslation.name
+							);
+							const parsedStyle = StylesData.fromJSON(
+								newStyle as unknown as Record<string, unknown>
+							) as StylesData;
+							if (existingStyleIndex !== -1) {
+								this.styles[existingStyleIndex] = parsedStyle;
+							} else {
+								this.styles.push(parsedStyle);
+							}
+
+							break; // Arrêter dès qu'un style est appliqué
+						}
+					}
+				}
+			}
+
+			// Ajoute les customs text clips en créant des instances correctes
+			for (const clipData of json.customClips || json.customTextClips || []) {
+				clipData.id = Utilities.randomId(); // Assure qu'il a un ID unique
+
+				// Crée une nouvelle instance CustomTextClip à partir des données JSON
+				const clip: CustomTextClip | CustomImageClip =
+					clipData.type === 'Custom Text'
+						? (CustomTextClip.fromJSON(
+								clipData as unknown as Record<string, unknown>
+							) as CustomTextClip)
+						: (CustomImageClip.fromJSON(
+								clipData as unknown as Record<string, unknown>
+							) as CustomImageClip);
+				globalState.getCustomClipTrack.clips.push(clip);
+			}
+
+			// Garantit que les styles ajoutes dans les nouvelles versions existent aussi apres import
+			// d'un ancien fichier de styles.
+			await this.ensureStylesSchemaUpToDate();
+		} finally {
+			ProjectHistoryManager.commit();
 		}
-
-		// Ajoute les customs text clips en créant des instances correctes
-		for (const clipData of json.customClips || json.customTextClips || []) {
-			clipData.id = Utilities.randomId(); // Assure qu'il a un ID unique
-
-			// Crée une nouvelle instance CustomTextClip à partir des données JSON
-			const clip: CustomTextClip | CustomImageClip =
-				clipData.type === 'Custom Text'
-					? (CustomTextClip.fromJSON(
-							clipData as unknown as Record<string, unknown>
-						) as CustomTextClip)
-					: (CustomImageClip.fromJSON(
-							clipData as unknown as Record<string, unknown>
-						) as CustomImageClip);
-			globalState.getCustomClipTrack.clips.push(clip);
-		}
-
-		// Garantit que les styles ajoutes dans les nouvelles versions existent aussi apres import
-		// d'un ancien fichier de styles.
-		await this.ensureStylesSchemaUpToDate();
 	}
 
 	/**
@@ -1305,14 +1343,19 @@ export class VideoStyle extends SerializableBase {
 	}
 
 	async resetStyles() {
-		const confirmation = await ModalManager.confirmModal(
-			get(LL).translations.resetAllStylesConfirm(),
-			false
-		);
-		if (!confirmation) return;
+		ProjectHistoryManager.begin('reset styles');
+		try {
+			const confirmation = await ModalManager.confirmModal(
+				get(LL).translations.resetAllStylesConfirm(),
+				false
+			);
+			if (!confirmation) return;
 
-		// Réinitialise les styles
-		globalState.currentProject!.content.videoStyle = await VideoStyle.getDefaultVideoStyle();
+			// Réinitialise les styles
+			globalState.currentProject!.content.videoStyle = await VideoStyle.getDefaultVideoStyle();
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 }
 

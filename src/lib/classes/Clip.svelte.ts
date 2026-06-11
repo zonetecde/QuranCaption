@@ -19,6 +19,7 @@ import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 import SoosiProvider from '$lib/services/SoosiProvider';
 import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 type ClipType =
 	| 'Silence'
@@ -135,14 +136,19 @@ export class Clip extends SerializableBase {
 	 * @param newStartTime La nouvelle heure de début.
 	 */
 	setStartTime(newStartTime: number) {
-		// Prévention pour pas que le clip est une durée négative
-		if (this.endTime < newStartTime) {
-			toast.error(get(LL).editor.clipLengthNegative());
-			return;
-		}
+		ProjectHistoryManager.begin('set clip start');
+		try {
+			// Prévention pour pas que le clip est une durée négative
+			if (this.endTime < newStartTime) {
+				toast.error(get(LL).editor.clipLengthNegative());
+				return;
+			}
 
-		this.startTime = newStartTime;
-		this.duration = this.endTime - this.startTime;
+			this.startTime = newStartTime;
+			this.duration = this.endTime - this.startTime;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	/**
@@ -150,14 +156,19 @@ export class Clip extends SerializableBase {
 	 * @param newEndTime La nouvelle heure de fin.
 	 */
 	setEndTime(newEndTime: number) {
-		// Prévention pour pas que le clip est une durée négative
-		if (newEndTime < this.startTime) {
-			toast.error(get(LL).editor.clipLengthNegative());
-			return;
-		}
+		ProjectHistoryManager.begin('set clip end');
+		try {
+			// Prévention pour pas que le clip est une durée négative
+			if (newEndTime < this.startTime) {
+				toast.error(get(LL).editor.clipLengthNegative());
+				return;
+			}
 
-		this.endTime = newEndTime;
-		this.duration = this.endTime - this.startTime;
+			this.endTime = newEndTime;
+			this.duration = this.endTime - this.startTime;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 }
 
@@ -281,7 +292,9 @@ export class ClipWithTranslation extends Clip {
 	}
 
 	setAssociatedImagePath(path: string | null): void {
-		this.associatedImagePath = path;
+		ProjectHistoryManager.track('set linked image', () => {
+			this.associatedImagePath = path;
+		});
 	}
 }
 
@@ -939,13 +952,18 @@ export class CustomClip extends Clip {
 	}
 
 	setStyle(styleId: StyleName, value: string | number | boolean) {
-		if (styleId === 'time-appearance') {
-			if (typeof value === 'number') this.setStartTime(value);
-		} else if (styleId === 'time-disappearance') {
-			if (typeof value === 'number') this.setEndTime(value);
-		}
+		ProjectHistoryManager.begin('set custom clip style');
+		try {
+			if (styleId === 'time-appearance') {
+				if (typeof value === 'number') this.setStartTime(value);
+			} else if (styleId === 'time-disappearance') {
+				if (typeof value === 'number') this.setEndTime(value);
+			}
 
-		this.category!.styles.find((style) => style.id === styleId)!.value = value;
+			this.category!.styles.find((style) => style.id === styleId)!.value = value;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	getAlwaysShow(): boolean {

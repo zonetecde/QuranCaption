@@ -22,6 +22,7 @@
 		AUTO_REALIGN_DRAG_THRESHOLD_MS
 	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
 		clip = $bindable(),
@@ -188,6 +189,7 @@
 
 	function startLeftDragging(e: MouseEvent) {
 		if (e.button === 0) {
+			ProjectHistoryManager.begin('resize subtitle');
 			// vient de cliquer sur le bord gauche du clip
 			dragStartX = e.clientX;
 			didDrag = false;
@@ -232,10 +234,12 @@
 		if (didDrag) {
 			suppressNextClick = true;
 		}
+		ProjectHistoryManager.commit();
 	}
 
 	function startRightDragging(e: MouseEvent) {
 		// vient de cliquer sur le bord droit du clip
+		ProjectHistoryManager.begin('resize subtitle');
 		dragStartX = e.clientX;
 		didDrag = false;
 		if (clip instanceof SubtitleClip) {
@@ -278,6 +282,7 @@
 		if (didDrag) {
 			suppressNextClick = true;
 		}
+		ProjectHistoryManager.commit();
 	}
 
 	function addSilence(): void {
@@ -340,28 +345,29 @@
 
 	function clipClicked(event?: MouseEvent) {
 		// Sélectionne le clip si on est dans la page de style
-		if (globalState.currentProject!.projectEditorState.currentTab === 'Style') {
-			if (clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) {
-				const isMultiSelect = Boolean(event?.ctrlKey || event?.metaKey);
-				if (isMultiSelect) {
-					globalState.getStylesState.toggleSelection(clip);
+		if (globalState.currentProject!.projectEditorState.currentTab !== 'Style') return;
+		if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return;
+
+		ProjectHistoryManager.track('select subtitle style clip', () => {
+			const isMultiSelect = Boolean(event?.ctrlKey || event?.metaKey);
+			if (isMultiSelect) {
+				globalState.getStylesState.toggleSelection(clip);
+			} else {
+				const selectionUnit = globalState.getStylesState.getSelectionUnitForSubtitle(clip);
+				const selectedIds = new Set(
+					globalState.getStylesState.selectedSubtitles.map((subtitle) => subtitle.id)
+				);
+				const allUnitSelected = selectionUnit.every((subtitle) => selectedIds.has(subtitle.id));
+				const noExtraSelected =
+					globalState.getStylesState.selectedSubtitles.length === selectionUnit.length;
+				const alreadyOnlySelected = allUnitSelected && noExtraSelected;
+				if (alreadyOnlySelected) {
+					globalState.getStylesState.clearSelection();
 				} else {
-					const selectionUnit = globalState.getStylesState.getSelectionUnitForSubtitle(clip);
-					const selectedIds = new Set(
-						globalState.getStylesState.selectedSubtitles.map((subtitle) => subtitle.id)
-					);
-					const allUnitSelected = selectionUnit.every((subtitle) => selectedIds.has(subtitle.id));
-					const noExtraSelected =
-						globalState.getStylesState.selectedSubtitles.length === selectionUnit.length;
-					const alreadyOnlySelected = allUnitSelected && noExtraSelected;
-					if (alreadyOnlySelected) {
-						globalState.getStylesState.clearSelection();
-					} else {
-						globalState.getStylesState.selectOnly(clip);
-					}
+					globalState.getStylesState.selectOnly(clip);
 				}
 			}
-		}
+		});
 	}
 
 	// Sur clic gauche, ouvre l'édition si l'on est dans Subtitles Editor sinon gère la sélection Style
@@ -387,13 +393,15 @@
 	}
 
 	function editSubtitle(): void {
-		// Modifie le sous-titre
-		if (globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id) {
-			// Si on est déjà en train de modifier ce sous-titre, on le quitte
-			globalState.getSubtitlesEditorState.editSubtitle = null;
-			return;
-		}
-		globalState.getSubtitlesEditorState.editSubtitle = clip;
+		ProjectHistoryManager.track('edit subtitle clip', () => {
+			// Modifie le sous-titre
+			if (globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id) {
+				// Si on est déjà en train de modifier ce sous-titre, on le quitte
+				globalState.getSubtitlesEditorState.editSubtitle = null;
+				return;
+			}
+			globalState.getSubtitlesEditorState.editSubtitle = clip;
+		});
 	}
 
 	/**

@@ -10,6 +10,7 @@
 	import TranslationsEditor from './tabs/translationsEditor/TranslationsEditor.svelte';
 	import StyleEditor from './tabs/styleEditor/StyleEditor.svelte';
 	import Export from './tabs/export/Export.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let saveInterval: ReturnType<typeof setInterval> | undefined;
 	let searchOverlayVisible = $state(false);
@@ -94,7 +95,32 @@
 		void openProjectSearch();
 	}
 
+	/**
+	 * Gère les raccourcis undo/redo du projet courant.
+	 * @param {KeyboardEvent} event Événement clavier.
+	 * @returns {void}
+	 */
+	function handleProjectHistoryShortcut(event: KeyboardEvent): void {
+		if (!(event.ctrlKey || event.metaKey)) return;
+		if (isTypingTarget(event.target)) return;
+
+		const key = event.key.toLowerCase();
+		const isUndo = key === 'z' && !event.shiftKey;
+		const isRedo = (key === 'z' && event.shiftKey) || key === 'y';
+		if (!isUndo && !isRedo) return;
+
+		event.preventDefault();
+		if (isUndo) {
+			ProjectHistoryManager.undo();
+			return;
+		}
+
+		ProjectHistoryManager.redo();
+	}
+
 	onMount(() => {
+		ProjectHistoryManager.resetForCurrentProject();
+
 		// Sauvegarde automatique du projet toutes les 5 secondes
 		saveInterval = setInterval(() => {
 			globalState.currentProject?.save();
@@ -111,14 +137,17 @@
 		window.addEventListener('mousedown', handleGlobalClick, true);
 		window.addEventListener('keydown', handleProjectSearchShortcut, true);
 		window.addEventListener('keydown', handleSubtitleNavigationShortcut, true);
+		window.addEventListener('keydown', handleProjectHistoryShortcut, true);
 
 		return () => {
+			ProjectHistoryManager.clear();
 			if (saveInterval !== undefined) {
 				clearInterval(saveInterval);
 			}
 			window.removeEventListener('mousedown', handleGlobalClick, true);
 			window.removeEventListener('keydown', handleProjectSearchShortcut, true);
 			window.removeEventListener('keydown', handleSubtitleNavigationShortcut, true);
+			window.removeEventListener('keydown', handleProjectHistoryShortcut, true);
 		};
 	});
 </script>

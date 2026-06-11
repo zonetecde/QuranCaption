@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type { Edition, SubtitleClip } from '$lib/classes';
 import { getTranslationTrimUnits, type VerseTranslation } from '$lib/classes/Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export type AdvancedTrimModel = string;
 export type AdvancedTrimReasoningEffort = 'none' | 'low' | 'medium' | 'high';
@@ -761,7 +762,30 @@ function getAiSegmentText(segment: Record<string, unknown>): string {
 	return typeof value === 'string' ? value.trim() : '';
 }
 
+/**
+ * Applique les trims IA valides dans une entree d'historique undo/redo.
+ *
+ * @param {Edition} edition Edition de traduction a modifier.
+ * @param {AdvancedTrimValidationSuccess[]} validVerses Versets valides renvoyes par la validation.
+ * @returns {AdvancedTrimApplyReport} Rapport d'application des trims.
+ */
 export function applyAdvancedTrimValidationSuccess(
+	edition: Edition,
+	validVerses: AdvancedTrimValidationSuccess[]
+): AdvancedTrimApplyReport {
+	return ProjectHistoryManager.track('apply advanced translation trim', () =>
+		applyAdvancedTrimValidationSuccessInternal(edition, validVerses)
+	);
+}
+
+/**
+ * Applique les trims IA valides sans creer directement d'entree d'historique.
+ *
+ * @param {Edition} edition Edition de traduction a modifier.
+ * @param {AdvancedTrimValidationSuccess[]} validVerses Versets valides renvoyes par la validation.
+ * @returns {AdvancedTrimApplyReport} Rapport d'application des trims.
+ */
+function applyAdvancedTrimValidationSuccessInternal(
 	edition: Edition,
 	validVerses: AdvancedTrimValidationSuccess[]
 ): AdvancedTrimApplyReport {
@@ -851,6 +875,22 @@ export function markInvalidAdvancedTrimTranslations(
 	edition: Edition,
 	options: AdvancedTrimErrorMarkOptions = {}
 ): AdvancedTrimErrorMarkReport {
+	return ProjectHistoryManager.track('mark invalid translation trims', () =>
+		markInvalidAdvancedTrimTranslationsInternal(edition, options)
+	);
+}
+
+/**
+ * Marque les trims invalides sans creer directement d'entree d'historique.
+ *
+ * @param {Edition} edition Edition de traduction a verifier.
+ * @param {AdvancedTrimErrorMarkOptions} options Options de filtrage des segments a verifier.
+ * @returns {AdvancedTrimErrorMarkReport} Rapport des segments verifies et marques.
+ */
+function markInvalidAdvancedTrimTranslationsInternal(
+	edition: Edition,
+	options: AdvancedTrimErrorMarkOptions = {}
+): AdvancedTrimErrorMarkReport {
 	const candidates = buildAdvancedTrimVerseCandidates(edition, true);
 	let checkedSegments = 0;
 	let markedSegments = 0;
@@ -867,7 +907,10 @@ export function markInvalidAdvancedTrimTranslations(
 			verseTranslations[index] = verseTranslation ?? null;
 
 			if (!verseTranslation) continue;
-			if (options.shouldCheckTranslation && !options.shouldCheckTranslation(verseTranslation, subtitle))
+			if (
+				options.shouldCheckTranslation &&
+				!options.shouldCheckTranslation(verseTranslation, subtitle)
+			)
 				continue;
 
 			verseTranslation.tryRecalculateTranslationIndexes(edition, candidate.verseKey);

@@ -11,6 +11,7 @@
 		GlobalTimedOverlayTimelineClip,
 		type TimelineCustomClipLike
 	} from './timelineCustomClip';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
 		clip = $bindable(),
@@ -48,6 +49,7 @@
 	// --- Redimensionnement gauche ---
 	function startLeftDragging(e: MouseEvent) {
 		if (e.button !== 0 || clip.getAlwaysShow()) return; // pas de drag si always-show
+		ProjectHistoryManager.begin('resize custom clip');
 		dragStartX = e.clientX;
 		globalState.getTimelineState.showCursor = false;
 		document.addEventListener('mousemove', onLeftDragging);
@@ -74,11 +76,13 @@
 		document.removeEventListener('mousemove', onLeftDragging);
 		document.removeEventListener('mouseup', stopLeftDragging);
 		globalState.getTimelineState.showCursor = true;
+		ProjectHistoryManager.commit();
 	}
 
 	// --- Redimensionnement droite ---
 	function startRightDragging(e: MouseEvent) {
 		if (e.button !== 0 || clip.getAlwaysShow()) return;
+		ProjectHistoryManager.begin('resize custom clip');
 		dragStartX = e.clientX;
 		globalState.getTimelineState.showCursor = false;
 		document.addEventListener('mousemove', onRightDragging);
@@ -103,6 +107,7 @@
 		document.removeEventListener('mousemove', onRightDragging);
 		document.removeEventListener('mouseup', stopRightDragging);
 		globalState.getTimelineState.showCursor = true;
+		ProjectHistoryManager.commit();
 	}
 
 	// --- Déplacement complet du clip ---
@@ -110,6 +115,7 @@
 		// Empêche le drag si on clique sur les poignées (géré séparément) ou si always-show
 		if (e.button !== 0 || clip.getAlwaysShow()) return;
 		// Ignore si on a commencé sur une poignée (largeur 1px) - déjà capturé par leurs handlers.
+		ProjectHistoryManager.begin('move custom clip');
 		clipDragStartX = e.clientX;
 		originalStartTime = clip.startTime;
 		originalDuration = clip.duration; // conserver la durée
@@ -142,6 +148,7 @@
 		document.removeEventListener('mousemove', onClipDragging);
 		document.removeEventListener('mouseup', stopClipDragging);
 		globalState.getTimelineState.showCursor = true;
+		ProjectHistoryManager.commit();
 	}
 
 	function toggleAlwaysShow(_e: MouseEvent): void {
@@ -192,7 +199,8 @@
 	{#if !(clip instanceof GlobalTimedOverlayTimelineClip)}
 		<Item on:click={removeClip}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">remove</span>{$LL.editor.removeCustomText()}
+				<span class="material-icons-outlined text-sm mr-1">remove</span
+				>{$LL.editor.removeCustomText()}
 			</div></Item
 		>
 	{/if}

@@ -22,6 +22,7 @@
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
 	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
@@ -553,7 +554,9 @@
 				);
 
 				if (loopedClip && loopedClip.endTime !== longestMs) {
-					loopedClip.setEndTime(longestMs);
+					ProjectHistoryManager.ignore(() => {
+						loopedClip.setEndTime(longestMs);
+					});
 				}
 			}
 		}

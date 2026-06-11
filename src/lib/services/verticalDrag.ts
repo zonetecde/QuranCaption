@@ -1,5 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
 import type { StyleName } from '$lib/classes/VideoStyle.svelte';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export interface VerticalDragOptions {
 	// Mode simple : fonction manuelle
@@ -33,6 +34,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	function mousedown(e: MouseEvent) {
 		if (e.button !== 0) return;
 		e.preventDefault();
+		ProjectHistoryManager.begin('drag style position');
 		startY = e.clientY;
 		startX = e.clientX;
 		isStuckToZero = false;
@@ -210,6 +212,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		document.removeEventListener('mouseup', mouseup);
 		const cls = opts.classWhileDragging || 'dragging-vertical';
 		node.classList.remove(cls);
+		ProjectHistoryManager.commit();
 	}
 
 	node.addEventListener('mousedown', mousedown);
@@ -224,6 +227,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 			node.removeEventListener('mousedown', mousedown);
 			document.removeEventListener('mousemove', mousemove);
 			document.removeEventListener('mouseup', mouseup);
+			ProjectHistoryManager.cancel();
 		}
 	};
 }

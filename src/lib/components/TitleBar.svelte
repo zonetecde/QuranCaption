@@ -11,6 +11,10 @@
 	import { slide, fade } from 'svelte/transition';
 	import Settings from './settings/Settings.svelte';
 	import TitleBarTools from './TitleBarTools.svelte';
+	import {
+		ProjectHistoryManager,
+		projectHistoryAvailability
+	} from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let showHelpPopover = $state(false);
 
@@ -92,13 +96,24 @@
 			<h1 class="text-lg font-semibold text-primary pt-0.75">Quran Caption</h1>
 		</button>
 		{#if globalState.currentProject}
-			<button
-				class="bg-green-700 hover:bg-green-800 duration-100 text-white text-sm px-2 py-1 rounded-md flex items-center space-x-2 cursor-pointer"
-				type="button"
-			>
-				<span class="material-icons text-[20px]!">save</span>
-				<span>{$LL.home.autosave()}</span>
-			</button>
+			<div class="flex items-center gap-1">
+				<button
+					class="w-8 h-8 rounded-full duration-100 flex items-center justify-center text-primary hover:bg-accent disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+					type="button"
+					disabled={globalState.uiState.isTourActive || !$projectHistoryAvailability.canUndo}
+					onclick={() => ProjectHistoryManager.undo()}
+				>
+					<span class="material-icons text-[20px]!">undo</span>
+				</button>
+				<button
+					class="w-8 h-8 rounded-full duration-100 flex items-center justify-center text-primary hover:bg-accent disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+					type="button"
+					disabled={globalState.uiState.isTourActive || !$projectHistoryAvailability.canRedo}
+					onclick={() => ProjectHistoryManager.redo()}
+				>
+					<span class="material-icons text-[20px]!">redo</span>
+				</button>
+			</div>
 
 			<EditableText
 				bind:value={globalState.currentProject.detail.name}

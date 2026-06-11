@@ -10,6 +10,7 @@ import {
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export type ManualWordByWordDraftWord = SegmentationWordTimestamp & {
 	word: string;
@@ -540,8 +541,10 @@ function applyManualWordByWordDraftUpdate(
 	clip: SubtitleClip,
 	draftWords: ManualWordByWordDraftWord[]
 ): void {
-	globalState.shared.wbwEdit.draftWords = draftWords;
-	syncManualWordByWordDraftToClip(clip, draftWords);
+	ProjectHistoryManager.track('edit wbw timestamps', () => {
+		globalState.shared.wbwEdit.draftWords = draftWords;
+		syncManualWordByWordDraftToClip(clip, draftWords);
+	});
 }
 
 /**

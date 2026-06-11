@@ -11,6 +11,7 @@
 	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -59,6 +60,8 @@
 	let previousSubtitleTranslationEndIndex: number = $state(-1);
 	let manualReviewTimeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
 	let lastClickedWordIndex = $state(-1);
+	let isTrimHistoryTransaction = false;
+	let isTextHistoryTransaction = false;
 
 	onMount(() => {
 		if (translation().type === 'verse') {
@@ -73,6 +76,11 @@
 		if (manualReviewTimeoutId) {
 			clearTimeout(manualReviewTimeoutId);
 			manualReviewTimeoutId = undefined;
+		}
+		if (isTrimHistoryTransaction || isTextHistoryTransaction) {
+			ProjectHistoryManager.cancel();
+			isTrimHistoryTransaction = false;
+			isTextHistoryTransaction = false;
 		}
 		void flushManualReviewTelemetry();
 	});
@@ -186,7 +194,7 @@
 	}
 
 	/**
-	 * Retourne les styles appliques a un index de mot, ou un style vide si aucun run ne couvre ce mot.
+	 * Retourne les styles appliqués à un index de mot, ou un style vide si aucun run ne couvre ce mot.
 	 */
 	function getFlagsForWordIndex(wordIndex: number): TranslationInlineStyleFlags {
 		for (const run of translation().inlineStyleRuns ?? []) {
@@ -262,7 +270,9 @@
 			return;
 		}
 
-		translation().toggleInlineStyles(inlineSelectionStart, inlineSelectionEnd, flags);
+		ProjectHistoryManager.track('style translation words', () => {
+			translation().toggleInlineStyles(inlineSelectionStart, inlineSelectionEnd, flags);
+		});
 		resetInlineSelection();
 	}
 
@@ -365,6 +375,8 @@
 		if (translation().type === 'verse' && !isInlineStyleMode()) {
 			beginWordSelectionEditing();
 			event.preventDefault();
+			ProjectHistoryManager.begin('trim translation');
+			isTrimHistoryTransaction = true;
 			isDragging = true;
 			dragStartIndex = i;
 			wordClicked(i);
@@ -387,6 +399,8 @@
 		isDragging = false;
 		dragStartIndex = -1;
 		if (shouldFlush) {
+			ProjectHistoryManager.commit();
+			isTrimHistoryTransaction = false;
 			void flushManualReviewTelemetry();
 		}
 	}
@@ -422,6 +436,27 @@
 		const translationValue = normalizeInputToTranslation(rawValue);
 		subtitle.translations[edition.name]?.setTextAndClearInlineStyles(translationValue);
 		scheduleManualReviewTelemetry();
+	}
+
+	/**
+	 * Demarre une transaction pour grouper l'edition texte de traduction.
+	 * @returns {void}
+	 */
+	function handleTranslationInputFocus(): void {
+		ProjectHistoryManager.begin('edit translation text');
+		isTextHistoryTransaction = true;
+	}
+
+	/**
+	 * Termine la transaction d'edition texte et envoie la telemetrie.
+	 * @returns {void}
+	 */
+	function handleTranslationInputBlur(): void {
+		if (isTextHistoryTransaction) {
+			ProjectHistoryManager.commit();
+			isTextHistoryTransaction = false;
+		}
+		void flushManualReviewTelemetry();
 	}
 
 	$effect(() => {
@@ -564,17 +599,19 @@
 						type="checkbox"
 						bind:checked={(subtitle.translations[edition.name] as VerseTranslation).isBruteForce}
 						onchange={(e) => {
-							if ((e.target as HTMLInputElement).checked) {
-								translation().updateStatus('reviewed', edition);
-								setTimeout(() => {
-									if (translationInput) {
-										translationInput.focus();
-									}
-								}, 0);
-							} else {
-								updateTranslationText();
-								scheduleManualReviewTelemetry();
-							}
+							ProjectHistoryManager.track('toggle manual translation edit', () => {
+								if ((e.target as HTMLInputElement).checked) {
+									translation().updateStatus('reviewed', edition);
+									setTimeout(() => {
+										if (translationInput) {
+											translationInput.focus();
+										}
+									}, 0);
+								} else {
+									updateTranslationText();
+									scheduleManualReviewTelemetry();
+								}
+							});
 						}}
 						class="w-2 h-2 scale-75 rounded"
 					/>
@@ -618,14 +655,16 @@
 				<p
 					class="text-sm font-medium whitespace-pre-line"
 					ondblclick={() => {
-						(subtitle.translations[edition.name] as VerseTranslation).isBruteForce = true;
-						translation().updateStatus('reviewed', edition);
-						// Met le focus sur l'input de traduction
-						setTimeout(() => {
-							if (translationInput) {
-								translationInput.focus();
-							}
-						}, 0);
+						ProjectHistoryManager.track('edit translation manually', () => {
+							(subtitle.translations[edition.name] as VerseTranslation).isBruteForce = true;
+							translation().updateStatus('reviewed', edition);
+							// Met le focus sur l'input de traduction
+							setTimeout(() => {
+								if (translationInput) {
+									translationInput.focus();
+								}
+							}, 0);
+						});
 					}}
 				>
 					{#each getStyledSegments() as segment, index (`${index}-${segment.text}`)}
@@ -638,10 +677,9 @@
 					bind:this={translationInput}
 					type="text"
 					value={editableTranslationValue}
+					onfocus={handleTranslationInputFocus}
 					oninput={handleTranslationInput}
-					onblur={() => {
-						void flushManualReviewTelemetry();
-					}}
+					onblur={handleTranslationInputBlur}
 					class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
 					placeholder={$LL.translations.enterTranslationHere()}
 				/>

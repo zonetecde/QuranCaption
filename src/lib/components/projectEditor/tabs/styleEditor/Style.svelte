@@ -19,6 +19,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	const LL_ = get(LL);
 
@@ -236,65 +237,78 @@
 	}
 
 	function applyValue(v: unknown) {
-		const value = coerce(v);
-		if (selectedClipIds().length > 0) {
-			if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-				globalState.getVideoStyle
-					.getStylesOfTarget(target!)
-					.setStyleForClips(selectedClipIds(), style.id as StyleName, value);
+		ProjectHistoryManager.begin('set style value');
+		try {
+			const value = coerce(v);
+			if (selectedClipIds().length > 0) {
+				if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+					globalState.getVideoStyle
+						.getStylesOfTarget(target!)
+						.setStyleForClips(selectedClipIds(), style.id as StyleName, value);
+				} else {
+					applyValueSimple(value);
+				}
 			} else {
 				applyValueSimple(value);
 			}
-		} else {
-			applyValueSimple(value);
-		}
 
-		// Déclenche un refresh éventuel (ex: max-height fit)
-		if (
-			style.id === 'max-height' ||
-			style.id === 'max-line' ||
-			style.id === 'font-size' ||
-			style.id === 'word-spacing' ||
-			style.id === 'font-family'
-		) {
-			globalState.updateVideoPreviewUI();
+			// Déclenche un refresh éventuel (ex: max-height fit)
+			if (
+				style.id === 'max-height' ||
+				style.id === 'max-line' ||
+				style.id === 'font-size' ||
+				style.id === 'word-spacing' ||
+				style.id === 'font-family'
+			) {
+				globalState.updateVideoPreviewUI();
+			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 
 	function applySelectValue(value: string) {
-		// Style global arabe (non-overridable): choix du mushaf
-		if (target === 'arabic' && style.id === 'mushaf-style') {
-			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
-			arabicStyles.setStyle('mushaf-style', value);
+		ProjectHistoryManager.begin('set select style');
+		try {
+			// Style global arabe (non-overridable): choix du mushaf
+			if (target === 'arabic' && style.id === 'mushaf-style') {
+				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+				arabicStyles.setStyle('mushaf-style', value);
 
-			if (value === 'Indopak') {
-				arabicStyles.setStyle('font-family', 'IndoPak');
-			} else if (value === 'Tajweed') {
-				arabicStyles.setStyle('font-family', 'QPC2');
-				toast(get(LL).editor.tajweedFontWarning());
-			} else if (value === 'Soosi') {
-				arabicStyles.setStyle('font-family', 'Soosi');
-			} else {
-				arabicStyles.setStyle('font-family', 'Hafs');
+				if (value === 'Indopak') {
+					arabicStyles.setStyle('font-family', 'IndoPak');
+				} else if (value === 'Tajweed') {
+					arabicStyles.setStyle('font-family', 'QPC2');
+					toast(get(LL).editor.tajweedFontWarning());
+				} else if (value === 'Soosi') {
+					arabicStyles.setStyle('font-family', 'Soosi');
+				} else {
+					arabicStyles.setStyle('font-family', 'Hafs');
+				}
+
+				globalState.updateVideoPreviewUI();
+				return;
 			}
 
-			globalState.updateVideoPreviewUI();
-			return;
-		}
-
-		// Si l'utilisateur choisit explicitement la police IndoPak, synchroniser le style mushaf.
-		if (target === 'arabic' && style.id === 'font-family' && selectedClipIds().length === 0) {
-			const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
-			if (value === 'IndoPak') {
-				arabicStyles.setStyle('mushaf-style', 'Indopak');
-			} else if (value === 'Soosi') {
-				arabicStyles.setStyle('mushaf-style', 'Soosi');
-			} else if (arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' && value !== 'QPC2') {
-				arabicStyles.setStyle('mushaf-style', 'Uthmani');
+			// Si l'utilisateur choisit explicitement la police IndoPak, synchroniser le style mushaf.
+			if (target === 'arabic' && style.id === 'font-family' && selectedClipIds().length === 0) {
+				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+				if (value === 'IndoPak') {
+					arabicStyles.setStyle('mushaf-style', 'Indopak');
+				} else if (value === 'Soosi') {
+					arabicStyles.setStyle('mushaf-style', 'Soosi');
+				} else if (
+					arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' &&
+					value !== 'QPC2'
+				) {
+					arabicStyles.setStyle('mushaf-style', 'Uthmani');
+				}
 			}
-		}
 
-		applyValue(value);
+			applyValue(value);
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	/**
@@ -614,6 +628,9 @@
 						max={style.valueMax}
 						step={style.step || 1}
 						value={inputValue}
+						onpointerdown={() => ProjectHistoryManager.begin('adjust style slider')}
+						onpointerup={() => ProjectHistoryManager.commit()}
+						onblur={() => ProjectHistoryManager.commit()}
 						oninput={(e) => {
 							inputValue = (e.target as HTMLInputElement).value;
 							applyValue((e.target as HTMLInputElement).value);
@@ -676,7 +693,9 @@
 									<option value={font}>{font}</option>
 								{/each}
 							{:catch error}
-								<option value="" disabled>{$LL.editor.errorLoadingFonts({ error: error.message })}</option>
+								<option value="" disabled
+									>{$LL.editor.errorLoadingFonts({ error: error.message })}</option
+								>
 							{/await}
 						{:else}
 							{#each style.options || [] as option (`${option}`)}

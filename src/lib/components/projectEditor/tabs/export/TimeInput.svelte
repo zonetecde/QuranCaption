@@ -2,6 +2,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	const LL_ = get(LL);
 
@@ -27,14 +28,16 @@
 
 	// Apply new time value
 	function applyValue(newValue: number) {
-		// Make sure que start time < end time
-		if (label === 'Start Time' && newValue >= globalState.getExportState.videoEndTime) {
-			value = newValue;
-			globalState.getExportState.videoEndTime = newValue + 1000; // Ensure
-		} else if (label === 'End Time' && newValue <= globalState.getExportState.videoStartTime) {
-			value = newValue;
-			globalState.getExportState.videoStartTime = Math.max(0, newValue - 1000); // Ensure at least 1 second duration
-		} else value = newValue;
+		ProjectHistoryManager.track('set export time range', () => {
+			// Make sure que start time < end time
+			if (label === 'Start Time' && newValue >= globalState.getExportState.videoEndTime) {
+				value = newValue;
+				globalState.getExportState.videoEndTime = newValue + 1000; // Ensure
+			} else if (label === 'End Time' && newValue <= globalState.getExportState.videoStartTime) {
+				value = newValue;
+				globalState.getExportState.videoStartTime = Math.max(0, newValue - 1000); // Ensure at least 1 second duration
+			} else value = newValue;
+		});
 	}
 </script>
 

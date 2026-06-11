@@ -4,6 +4,7 @@ import { SubtitleClip } from '$lib/classes';
 import { SUBDIVIDE_MAX_WORDS_DISABLED, SUBDIVIDE_MAX_DURATION_DISABLED } from './types';
 import { refreshSegmentationContextFromTrack } from './context';
 import { getSubtitleClipWordCount } from './review';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 /**
  * Applique silencieusement une nouvelle plage de mots à un clip Quran existant.
@@ -233,76 +234,81 @@ export async function automaticSplitSubtitleAtWord(
 	clip: SubtitleClip,
 	splitWordIndex: number
 ): Promise<boolean> {
-	const metadata = clip.alignmentMetadata;
-	if (!metadata) {
-		console.warn('[AutoSegmentation] Automatic split aborted: missing alignment metadata.', {
-			clipId: clip.id,
-			surah: clip.surah,
-			verse: clip.verse,
-			splitWordIndex
-		});
-		return false;
-	}
-
-	if (metadata.words.length === 0) {
-		console.warn(
-			'[AutoSegmentation] Automatic split aborted: no MFA word timestamps are available for this clip.',
-			{
+	ProjectHistoryManager.begin('automatic split subtitle');
+	try {
+		const metadata = clip.alignmentMetadata;
+		if (!metadata) {
+			console.warn('[AutoSegmentation] Automatic split aborted: missing alignment metadata.', {
 				clipId: clip.id,
 				surah: clip.surah,
 				verse: clip.verse,
-				splitWordIndex,
-				segment: metadata.segment
-			}
-		);
-		return false;
-	}
+				splitWordIndex
+			});
+			return false;
+		}
 
-	const splitLocation = `${clip.surah}:${clip.verse}:${splitWordIndex + 1}`;
-	const splitWord = metadata.words.find((word) => word.location === splitLocation);
-	if (!splitWord) {
-		console.warn(
-			'[AutoSegmentation] Automatic split aborted: selected word timestamp was not found in alignment metadata.',
-			{
+		if (metadata.words.length === 0) {
+			console.warn(
+				'[AutoSegmentation] Automatic split aborted: no MFA word timestamps are available for this clip.',
+				{
+					clipId: clip.id,
+					surah: clip.surah,
+					verse: clip.verse,
+					splitWordIndex,
+					segment: metadata.segment
+				}
+			);
+			return false;
+		}
+
+		const splitLocation = `${clip.surah}:${clip.verse}:${splitWordIndex + 1}`;
+		const splitWord = metadata.words.find((word) => word.location === splitLocation);
+		if (!splitWord) {
+			console.warn(
+				'[AutoSegmentation] Automatic split aborted: selected word timestamp was not found in alignment metadata.',
+				{
+					clipId: clip.id,
+					splitWordIndex,
+					splitLocation,
+					availableLocations: metadata.words.map((word) => word.location)
+				}
+			);
+			return false;
+		}
+
+		const splitTimeMs = Math.round((metadata.timeFrom + splitWord.end) * 1000);
+		if (splitTimeMs - clip.startTime < 100 || clip.endTime - splitTimeMs < 100) {
+			console.warn(
+				'[AutoSegmentation] Automatic split aborted: computed split point would create a segment shorter than 100ms.',
+				{
+					clipId: clip.id,
+					splitWordIndex,
+					splitTimeMs,
+					clipStartTime: clip.startTime,
+					clipEndTime: clip.endTime
+				}
+			);
+			return false;
+		}
+
+		const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
+		if (!rightClip) {
+			console.warn('[AutoSegmentation] Local split failed.', {
 				clipId: clip.id,
 				splitWordIndex,
-				splitLocation,
-				availableLocations: metadata.words.map((word) => word.location)
-			}
-		);
-		return false;
-	}
+				splitLocation
+			});
+			return false;
+		}
 
-	const splitTimeMs = Math.round((metadata.timeFrom + splitWord.end) * 1000);
-	if (splitTimeMs - clip.startTime < 100 || clip.endTime - splitTimeMs < 100) {
-		console.warn(
-			'[AutoSegmentation] Automatic split aborted: computed split point would create a segment shorter than 100ms.',
-			{
-				clipId: clip.id,
-				splitWordIndex,
-				splitTimeMs,
-				clipStartTime: clip.startTime,
-				clipEndTime: clip.endTime
-			}
-		);
-		return false;
+		refreshSegmentationContextFromTrack(false);
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+		globalState.getSubtitlesEditorState.editSubtitle = rightClip;
+		return true;
+	} finally {
+		ProjectHistoryManager.commit();
 	}
-
-	const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
-	if (!rightClip) {
-		console.warn('[AutoSegmentation] Local split failed.', {
-			clipId: clip.id,
-			splitWordIndex,
-			splitLocation
-		});
-		return false;
-	}
-
-	refreshSegmentationContextFromTrack(false);
-	globalState.currentProject?.detail.updateVideoDetailAttributes();
-	globalState.updateVideoPreviewUI();
-	globalState.getSubtitlesEditorState.editSubtitle = rightClip;
-	return true;
 }
 
 /**
@@ -311,46 +317,51 @@ export async function automaticSplitSubtitleAtWord(
  * @returns {Promise<number>} Nombre de coupes appliquées.
  */
 export async function subdivideLongSubtitleSegments(): Promise<number> {
-	const state = globalState.getSubtitlesEditorState;
-	const maxWords =
-		state.subdivideMaxWordsPerSegment > SUBDIVIDE_MAX_WORDS_DISABLED
-			? null
-			: state.subdivideMaxWordsPerSegment;
-	const maxDurationSeconds =
-		state.subdivideMaxDurationPerSegment > SUBDIVIDE_MAX_DURATION_DISABLED
-			? null
-			: state.subdivideMaxDurationPerSegment;
+	ProjectHistoryManager.begin('subdivide subtitles');
+	try {
+		const state = globalState.getSubtitlesEditorState;
+		const maxWords =
+			state.subdivideMaxWordsPerSegment > SUBDIVIDE_MAX_WORDS_DISABLED
+				? null
+				: state.subdivideMaxWordsPerSegment;
+		const maxDurationSeconds =
+			state.subdivideMaxDurationPerSegment > SUBDIVIDE_MAX_DURATION_DISABLED
+				? null
+				: state.subdivideMaxDurationPerSegment;
 
-	let splitCount = 0;
-	let madeProgress = true;
-	while (madeProgress) {
-		madeProgress = false;
-		const clips = [...globalState.getSubtitleClips].sort(
-			(left, right) => left.startTime - right.startTime
-		);
-		for (const clip of clips) {
-			const splitWordIndex = await getAutomaticSplitWordIndex(
-				clip,
-				maxWords,
-				maxDurationSeconds,
-				state.subdivideOnlySplitAtStopSigns
+		let splitCount = 0;
+		let madeProgress = true;
+		while (madeProgress) {
+			madeProgress = false;
+			const clips = [...globalState.getSubtitleClips].sort(
+				(left, right) => left.startTime - right.startTime
 			);
-			if (splitWordIndex === null) continue;
+			for (const clip of clips) {
+				const splitWordIndex = await getAutomaticSplitWordIndex(
+					clip,
+					maxWords,
+					maxDurationSeconds,
+					state.subdivideOnlySplitAtStopSigns
+				);
+				if (splitWordIndex === null) continue;
 
-			const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
-			if (!rightClip) continue;
+				const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
+				if (!rightClip) continue;
 
-			splitCount += 1;
-			madeProgress = true;
-			break;
+				splitCount += 1;
+				madeProgress = true;
+				break;
+			}
 		}
-	}
 
-	if (splitCount > 0) {
-		refreshSegmentationContextFromTrack(false);
-		globalState.currentProject?.detail.updateVideoDetailAttributes();
-		globalState.updateVideoPreviewUI();
-	}
+		if (splitCount > 0) {
+			refreshSegmentationContextFromTrack(false);
+			globalState.currentProject?.detail.updateVideoDetailAttributes();
+			globalState.updateVideoPreviewUI();
+		}
 
-	return splitCount;
+		return splitCount;
+	} finally {
+		ProjectHistoryManager.commit();
+	}
 }

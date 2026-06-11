@@ -26,6 +26,7 @@ import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export type VisualMergeSelection = {
 	clips: SubtitleClip[];
@@ -69,36 +70,46 @@ export class Track extends SerializableBase {
 	 * * Si faux, les clips suivants seront décalés pour combler l'espace laissé par le clip supprimé.
 	 * */
 	removeClip(id: number, makeNextClipStartAtThisClipStartTime: boolean = false) {
-		const index = this.clips.findIndex((clip) => clip.id === id);
-		if (index !== -1) {
-			const clipToRemoveStartTime = this.clips[index].startTime;
-			this.clips.splice(index, 1);
+		ProjectHistoryManager.begin('remove clip');
+		try {
+			const index = this.clips.findIndex((clip) => clip.id === id);
+			if (index !== -1) {
+				const clipToRemoveStartTime = this.clips[index].startTime;
+				this.clips.splice(index, 1);
 
-			if (!makeNextClipStartAtThisClipStartTime) {
-				// Met à jour les timestamps des clips suivants
-				for (let i = index; i < this.clips.length; i++) {
-					const clip = this.clips[i];
-					clip.startTime = i === 0 ? 0 : this.clips[i - 1].endTime + 1;
-					clip.endTime = clip.startTime + clip.duration;
-				}
-			} else {
-				// Trouve le clip suivant et met à jour son startTime
-				const nextClip = this.clips[index];
-				if (nextClip) {
-					nextClip.setStartTime(clipToRemoveStartTime);
+				if (!makeNextClipStartAtThisClipStartTime) {
+					// Met à jour les timestamps des clips suivants
+					for (let i = index; i < this.clips.length; i++) {
+						const clip = this.clips[i];
+						clip.startTime = i === 0 ? 0 : this.clips[i - 1].endTime + 1;
+						clip.endTime = clip.startTime + clip.duration;
+					}
+				} else {
+					// Trouve le clip suivant et met à jour son startTime
+					const nextClip = this.clips[index];
+					if (nextClip) {
+						nextClip.setStartTime(clipToRemoveStartTime);
+					}
 				}
 			}
-		}
 
-		globalState.updateVideoPreviewUI();
+			globalState.updateVideoPreviewUI();
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	removeLastClip() {
-		if (this.clips.length === 0) {
-			return;
-		}
+		ProjectHistoryManager.begin('remove last clip');
+		try {
+			if (this.clips.length === 0) {
+				return;
+			}
 
-		this.clips.pop();
+			this.clips.pop();
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	getClipById(clipId: number) {
@@ -200,42 +211,48 @@ export class AssetTrack extends Track {
 	}
 
 	addAsset(asset: Asset): boolean {
-		// Récupère le dernier clip de la piste, s'il existe
-		const lastClip = this.clips.length > 0 ? this.clips[this.clips.length - 1] : null;
+		ProjectHistoryManager.begin('add asset clip');
+		try {
+			// Récupère le dernier clip de la piste, s'il existe
+			const lastClip = this.clips.length > 0 ? this.clips[this.clips.length - 1] : null;
 
-		if (lastClip) {
-			// Prevent adding if an existing clip has the loop option enabled
-			if (this.clips.some((c) => c instanceof AssetClip && (c as AssetClip).loopUntilAudioEnd)) {
-				ModalManager.errorModal(
-					get(LL).editor.clipAdditionError(),
-					get(LL).editor.cannotAddMoreClips()
+			if (lastClip) {
+				// Prevent adding if an existing clip has the loop option enabled
+				if (this.clips.some((c) => c instanceof AssetClip && (c as AssetClip).loopUntilAudioEnd)) {
+					ModalManager.errorModal(
+						get(LL).editor.clipAdditionError(),
+						get(LL).editor.cannotAddMoreClips()
+					);
+					return false;
+				}
+
+				// S'il y a un dernier clip alors qu'on essaie de mettre une image dans la timeline (= mettre une image en
+				// tant que background pour la vidéo), alors on informe l'utilisateur que ce n'est pas possible.
+				if (asset.type === AssetType.Image) {
+					ModalManager.errorModal(
+						get(LL).editor.backgroundImageError(),
+						get(LL).editor.cannotAddBackgroundImage()
+					);
+					return false;
+				}
+
+				this.clips.push(
+					new AssetClip(lastClip.endTime + 1, lastClip.endTime + asset.duration.ms + 1, asset.id)
 				);
-				return false;
-			}
+			} else this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
 
-			// S'il y a un dernier clip alors qu'on essaie de mettre une image dans la timeline (= mettre une image en
-			// tant que background pour la vidéo), alors on informe l'utilisateur que ce n'est pas possible.
-			if (asset.type === AssetType.Image) {
-				ModalManager.errorModal(
-					get(LL).editor.backgroundImageError(),
-					get(LL).editor.cannotAddBackgroundImage()
-				);
-				return false;
-			}
+			// Trigger la réactivité dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)
+			setTimeout(() => {
+				if (!globalState.currentProject) return;
 
-			this.clips.push(
-				new AssetClip(lastClip.endTime + 1, lastClip.endTime + asset.duration.ms + 1, asset.id)
-			);
-		} else this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
+				globalState.getTimelineState.movePreviewTo =
+					globalState.getTimelineState.cursorPosition + 1;
+			}, 0);
 
-		// Trigger la réactivé dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)
-		setTimeout(() => {
-			if (!globalState.currentProject) return;
-
-			globalState.getTimelineState.movePreviewTo = globalState.getTimelineState.cursorPosition + 1;
-		}, 0);
-
-		return true;
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 }
 
@@ -247,7 +264,7 @@ export class SubtitleTrack extends Track {
 	/**
 	 * Retourne l'index Quran 0-based porte par une location MFA.
 	 *
-	 * @param {string} location Cle au format `surah:verse:word`.
+	 * @param {string} location Clé au format `surah:verse:word`.
 	 * @returns {number | null} Index 0-based, ou `null` si invalide.
 	 */
 	private getWordIndexFromLocation(location: string): number | null {
@@ -545,12 +562,17 @@ export class SubtitleTrack extends Track {
 	 * @returns {void}
 	 */
 	override removeClip(id: number, makeNextClipStartAtThisClipStartTime: boolean = false): void {
-		const clipToRemove = this.clips.find((clip) => clip.id === id);
-		if (clipToRemove instanceof SubtitleClip && clipToRemove.visualMergeGroupId) {
-			this.unmergeVisualGroup(clipToRemove.visualMergeGroupId, false);
-		}
+		ProjectHistoryManager.begin('remove subtitle clip');
+		try {
+			const clipToRemove = this.clips.find((clip) => clip.id === id);
+			if (clipToRemove instanceof SubtitleClip && clipToRemove.visualMergeGroupId) {
+				this.unmergeVisualGroup(clipToRemove.visualMergeGroupId, false);
+			}
 
-		super.removeClip(id, makeNextClipStartAtThisClipStartTime);
+			super.removeClip(id, makeNextClipStartAtThisClipStartTime);
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	/**
@@ -678,41 +700,46 @@ export class SubtitleTrack extends Track {
 		selection: Array<SubtitleClip | PredefinedSubtitleClip>,
 		mode: VisualMergeMode
 	): boolean {
-		const mergeSelection = this.getVisualMergeSelection(selection);
-		if (!mergeSelection) return false;
-		if (!this.canUseArabicVisualMerge(mergeSelection.clips)) {
-			return false;
-		}
-
-		const touchedGroupIds = new Set(
-			mergeSelection.clips
-				.map((clip) => clip.visualMergeGroupId)
-				.filter((groupId): groupId is string => !!groupId)
-		);
-
-		for (const groupId of touchedGroupIds) {
-			this.unmergeVisualGroup(groupId, false);
-		}
-
-		const groupId = `visual-merge-${Date.now()}-${mergeSelection.clips[0].id}`;
-		for (const clip of mergeSelection.clips) {
-			clip.setVisualMerge(groupId, mode);
-		}
-
-		if (globalState.currentProject) {
-			const selectedSubtitleIds = new Set(
-				globalState.getStylesState.selectedSubtitles.map((subtitle) => subtitle.id)
-			);
-			if (mergeSelection.clips.some((clip) => selectedSubtitleIds.has(clip.id))) {
-				globalState.getStylesState.selectedSubtitles =
-					globalState.getStylesState.normalizeSubtitleSelection(
-						globalState.getStylesState.selectedSubtitles
-					);
+		ProjectHistoryManager.begin('apply visual merge');
+		try {
+			const mergeSelection = this.getVisualMergeSelection(selection);
+			if (!mergeSelection) return false;
+			if (!this.canUseArabicVisualMerge(mergeSelection.clips)) {
+				return false;
 			}
-		}
 
-		globalState.updateVideoPreviewUI();
-		return true;
+			const touchedGroupIds = new Set(
+				mergeSelection.clips
+					.map((clip) => clip.visualMergeGroupId)
+					.filter((groupId): groupId is string => !!groupId)
+			);
+
+			for (const groupId of touchedGroupIds) {
+				this.unmergeVisualGroup(groupId, false);
+			}
+
+			const groupId = `visual-merge-${Date.now()}-${mergeSelection.clips[0].id}`;
+			for (const clip of mergeSelection.clips) {
+				clip.setVisualMerge(groupId, mode);
+			}
+
+			if (globalState.currentProject) {
+				const selectedSubtitleIds = new Set(
+					globalState.getStylesState.selectedSubtitles.map((subtitle) => subtitle.id)
+				);
+				if (mergeSelection.clips.some((clip) => selectedSubtitleIds.has(clip.id))) {
+					globalState.getStylesState.selectedSubtitles =
+						globalState.getStylesState.normalizeSubtitleSelection(
+							globalState.getStylesState.selectedSubtitles
+						);
+				}
+			}
+
+			globalState.updateVideoPreviewUI();
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	/**
@@ -722,14 +749,19 @@ export class SubtitleTrack extends Track {
 	 * @returns {void}
 	 */
 	unmergeVisualGroup(groupId: string, updatePreview: boolean = true): void {
-		for (const clip of this.clips) {
-			if (clip instanceof SubtitleClip && clip.visualMergeGroupId === groupId) {
-				clip.clearVisualMerge();
+		ProjectHistoryManager.begin('unmerge visual group');
+		try {
+			for (const clip of this.clips) {
+				if (clip instanceof SubtitleClip && clip.visualMergeGroupId === groupId) {
+					clip.clearVisualMerge();
+				}
 			}
-		}
 
-		if (updatePreview) {
-			globalState.updateVideoPreviewUI();
+			if (updatePreview) {
+				globalState.updateVideoPreviewUI();
+			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 
@@ -842,192 +874,202 @@ export class SubtitleTrack extends Track {
 		lastWordIndex: number,
 		surah: number
 	) {
-		if (subtitle instanceof SubtitleClip && subtitle.visualMergeGroupId) {
-			this.unmergeVisualGroup(subtitle.visualMergeGroupId, false);
-		}
-
-		// Modifie le sous-titre existant
-		// Si c'est un sous-titre pré-défini, on le transforme en sous-titre normal (ex: de silence en Qur'an)
-		if (subtitle?.type !== 'Subtitle') {
-			// Transforme le sous-titre en sous-titre normal
-
-			const subtitlesProperties = await this.getSubtitlesProperties(
-				verse,
-				firstWordIndex,
-				lastWordIndex,
-				surah
-			);
-
-			const newSubtitleClip = new SubtitleClip(
-				subtitle!.startTime,
-				subtitle!.endTime,
-				surah,
-				verse.id,
-				firstWordIndex,
-				lastWordIndex,
-				verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex),
-				verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
-				subtitlesProperties.isFullVerse, // isFullVerse
-				subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-				subtitlesProperties.translations, // translations
-				verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
-			);
-			if (subtitle instanceof ClipWithTranslation) {
-				newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
+		ProjectHistoryManager.begin('edit subtitle');
+		try {
+			if (subtitle instanceof SubtitleClip && subtitle.visualMergeGroupId) {
+				this.unmergeVisualGroup(subtitle.visualMergeGroupId, false);
 			}
 
-			// Remplace l'ancien clip par le nouveau dans le tableau clips
-			const clipIndex = this.clips.findIndex((clip) => clip.id === subtitle!.id);
-			if (clipIndex !== -1) {
-				this.clips[clipIndex] = newSubtitleClip;
+			// Modifie le sous-titre existant
+			// Si c'est un sous-titre pré-défini, on le transforme en sous-titre normal (ex: de silence en Qur'an)
+			if (subtitle?.type !== 'Subtitle') {
+				// Transforme le sous-titre en sous-titre normal
+
+				const subtitlesProperties = await this.getSubtitlesProperties(
+					verse,
+					firstWordIndex,
+					lastWordIndex,
+					surah
+				);
+
+				const newSubtitleClip = new SubtitleClip(
+					subtitle!.startTime,
+					subtitle!.endTime,
+					surah,
+					verse.id,
+					firstWordIndex,
+					lastWordIndex,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					subtitlesProperties.isFullVerse, // isFullVerse
+					subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
+					subtitlesProperties.translations, // translations
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
+				);
+				if (subtitle instanceof ClipWithTranslation) {
+					newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
+				}
+
+				// Remplace l'ancien clip par le nouveau dans le tableau clips
+				const clipIndex = this.clips.findIndex((clip) => clip.id === subtitle!.id);
+				if (clipIndex !== -1) {
+					this.clips[clipIndex] = newSubtitleClip;
+				}
+
+				subtitle = newSubtitleClip;
+			} else if (subtitle instanceof SubtitleClip) {
+				// Si c'est déjà un sous-titre normal, on le modifie
+				subtitle.verse = verse.id;
+				subtitle.surah = surah;
+				subtitle.startWordIndex = firstWordIndex;
+				subtitle.endWordIndex = lastWordIndex;
+				subtitle.text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+				subtitle.indopakText = verse.getArabicTextBetweenTwoIndexes(
+					firstWordIndex,
+					lastWordIndex,
+					'indopak'
+				);
+				subtitle.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
+					firstWordIndex,
+					lastWordIndex
+				);
+				const subtitlesProperties = await this.getSubtitlesProperties(
+					verse,
+					firstWordIndex,
+					lastWordIndex,
+					surah
+				);
+				subtitle.isFullVerse = subtitlesProperties.isFullVerse;
+				subtitle.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
+				subtitle.translations = subtitlesProperties.translations;
+				subtitle.clearArabicInlineStyles();
 			}
 
-			subtitle = newSubtitleClip;
-		} else if (subtitle instanceof SubtitleClip) {
-			// Si c'est déjà un sous-titre normal, on le modifie
-			subtitle.verse = verse.id;
-			subtitle.surah = surah;
-			subtitle.startWordIndex = firstWordIndex;
-			subtitle.endWordIndex = lastWordIndex;
-			subtitle.text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
-			subtitle.indopakText = verse.getArabicTextBetweenTwoIndexes(
-				firstWordIndex,
-				lastWordIndex,
-				'indopak'
-			);
-			subtitle.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
-				firstWordIndex,
-				lastWordIndex
-			);
-			const subtitlesProperties = await this.getSubtitlesProperties(
-				verse,
-				firstWordIndex,
-				lastWordIndex,
-				surah
-			);
-			subtitle.isFullVerse = subtitlesProperties.isFullVerse;
-			subtitle.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
-			subtitle.translations = subtitlesProperties.translations;
-			subtitle.clearArabicInlineStyles();
-		}
-
-		if (subtitle instanceof SubtitleClip) {
-			subtitle.markAsManualEdit();
-			// La plage de mots a changé : on régénère les timestamps WBW en arrière-plan.
-			scheduleWbwRealign([subtitle], { reason: 'text' });
+			if (subtitle instanceof SubtitleClip) {
+				subtitle.markAsManualEdit();
+				// La plage de mots a changé : on régénère les timestamps WBW en arrière-plan.
+				scheduleWbwRealign([subtitle], { reason: 'text' });
+			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
 	}
 
 	async splitSubtitle(clipId: number, options: SubtitleSplitOptions = {}): Promise<boolean> {
-		const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
-		if (clipIndex === -1) return false;
+		ProjectHistoryManager.begin('split subtitle');
+		try {
+			const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
+			if (clipIndex === -1) return false;
 
-		const clip = this.clips[clipIndex] as SubtitleClip | PredefinedSubtitleClip | SilenceClip;
-		const splitTime = globalState.getTimelineState.cursorPosition;
-
-		if (
-			!(
-				clip instanceof SubtitleClip ||
-				clip instanceof PredefinedSubtitleClip ||
-				clip instanceof SilenceClip
-			)
-		) {
-			return false;
-		}
-
-		// Check if the split time is within the clip
-		if (splitTime <= clip.startTime || splitTime >= clip.endTime) {
-			toast.error(get(LL).editor.cursorMustBeInsideSubtitle());
-			return false;
-		}
-
-		// Minimum duration check (e.g. 100ms) for both parts
-		if (splitTime - clip.startTime < 100 || clip.endTime - splitTime < 100) {
-			toast.error(get(LL).editor.clipsTooShort());
-			return false;
-		}
-
-		if (clip instanceof SubtitleClip && clip.visualMergeGroupId) {
-			this.unmergeVisualGroup(clip.visualMergeGroupId, false);
-		}
-
-		if (clip instanceof SubtitleClip) {
-			const wordBoundaryCandidate = options.forceExactCursor
-				? null
-				: this.getNearestWordBoundarySplitCandidate(clip, splitTime);
-			const exactSplitWordIndex = this.getExactCursorSplitWordIndex(clip, splitTime);
-
-			if (wordBoundaryCandidate) {
-				if (
-					wordBoundaryCandidate.splitTimeMs - clip.startTime < 100 ||
-					clip.endTime - wordBoundaryCandidate.splitTimeMs < 100
-				) {
-					toast.error(get(LL).editor.clipsTooShort());
-					return false;
-				}
-
-				return await this.splitSubtitleClipWithWordBoundaries(
-					clipIndex,
-					clip,
-					wordBoundaryCandidate.splitTimeMs,
-					wordBoundaryCandidate.leftEndWordIndex
-				);
-			}
+			const clip = this.clips[clipIndex] as SubtitleClip | PredefinedSubtitleClip | SilenceClip;
+			const splitTime = globalState.getTimelineState.cursorPosition;
 
 			if (
-				exactSplitWordIndex !== null &&
-				exactSplitWordIndex >= clip.startWordIndex &&
-				exactSplitWordIndex < clip.endWordIndex
+				!(
+					clip instanceof SubtitleClip ||
+					clip instanceof PredefinedSubtitleClip ||
+					clip instanceof SilenceClip
+				)
 			) {
-				return await this.splitSubtitleClipWithWordBoundaries(
-					clipIndex,
-					clip,
+				return false;
+			}
+
+			// Check if the split time is within the clip
+			if (splitTime <= clip.startTime || splitTime >= clip.endTime) {
+				toast.error(get(LL).editor.cursorMustBeInsideSubtitle());
+				return false;
+			}
+
+			// Minimum duration check (e.g. 100ms) for both parts
+			if (splitTime - clip.startTime < 100 || clip.endTime - splitTime < 100) {
+				toast.error(get(LL).editor.clipsTooShort());
+				return false;
+			}
+
+			if (clip instanceof SubtitleClip && clip.visualMergeGroupId) {
+				this.unmergeVisualGroup(clip.visualMergeGroupId, false);
+			}
+
+			if (clip instanceof SubtitleClip) {
+				const wordBoundaryCandidate = options.forceExactCursor
+					? null
+					: this.getNearestWordBoundarySplitCandidate(clip, splitTime);
+				const exactSplitWordIndex = this.getExactCursorSplitWordIndex(clip, splitTime);
+
+				if (wordBoundaryCandidate) {
+					if (
+						wordBoundaryCandidate.splitTimeMs - clip.startTime < 100 ||
+						clip.endTime - wordBoundaryCandidate.splitTimeMs < 100
+					) {
+						toast.error(get(LL).editor.clipsTooShort());
+						return false;
+					}
+
+					return await this.splitSubtitleClipWithWordBoundaries(
+						clipIndex,
+						clip,
+						wordBoundaryCandidate.splitTimeMs,
+						wordBoundaryCandidate.leftEndWordIndex
+					);
+				}
+
+				if (
+					exactSplitWordIndex !== null &&
+					exactSplitWordIndex >= clip.startWordIndex &&
+					exactSplitWordIndex < clip.endWordIndex
+				) {
+					return await this.splitSubtitleClipWithWordBoundaries(
+						clipIndex,
+						clip,
+						splitTime,
+						exactSplitWordIndex
+					);
+				}
+			}
+
+			const originalEndTime = clip.endTime;
+
+			// Update le temps de fin du premier clip
+			clip.setEndTime(splitTime);
+
+			let newClip: SubtitleClip | PredefinedSubtitleClip | SilenceClip;
+			if (clip instanceof SubtitleClip) {
+				// Créer le deuxième clip avec les mêmes propriétés
+				newClip = clip.cloneWithTimes(splitTime, originalEndTime);
+			} else if (clip instanceof PredefinedSubtitleClip) {
+				const newPredefinedClip = new PredefinedSubtitleClip(
 					splitTime,
-					exactSplitWordIndex
+					originalEndTime,
+					clip.predefinedSubtitleType,
+					clip.text,
+					clip.comeFromIA,
+					clip.confidence
 				);
+				const clonedTranslations: Record<string, Translation> = {};
+				for (const [key, t] of Object.entries(clip.translations || {})) {
+					clonedTranslations[key] = t.clone();
+				}
+				newPredefinedClip.translations = clonedTranslations;
+				newPredefinedClip.associatedImagePath = clip.associatedImagePath;
+				newClip = newPredefinedClip;
+			} else {
+				newClip = new SilenceClip(splitTime, originalEndTime);
 			}
-		}
 
-		const originalEndTime = clip.endTime;
-
-		// Update le temps de fin du premier clip
-		clip.setEndTime(splitTime);
-
-		let newClip: SubtitleClip | PredefinedSubtitleClip | SilenceClip;
-		if (clip instanceof SubtitleClip) {
-			// Créer le deuxième clip avec les mêmes propriétés
-			newClip = clip.cloneWithTimes(splitTime, originalEndTime);
-		} else if (clip instanceof PredefinedSubtitleClip) {
-			const newPredefinedClip = new PredefinedSubtitleClip(
-				splitTime,
-				originalEndTime,
-				clip.predefinedSubtitleType,
-				clip.text,
-				clip.comeFromIA,
-				clip.confidence
-			);
-			const clonedTranslations: Record<string, Translation> = {};
-			for (const [key, t] of Object.entries(clip.translations || {})) {
-				clonedTranslations[key] = t.clone();
+			// Insérer le nouveau clip après le clip original
+			if (clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) {
+				clip.markAsManualEdit();
 			}
-			newPredefinedClip.translations = clonedTranslations;
-			newPredefinedClip.associatedImagePath = clip.associatedImagePath;
-			newClip = newPredefinedClip;
-		} else {
-			newClip = new SilenceClip(splitTime, originalEndTime);
-		}
+			if (newClip instanceof SubtitleClip || newClip instanceof PredefinedSubtitleClip) {
+				newClip.markAsManualEdit();
+			}
 
-		// Insérer le nouveau clip après le clip original
-		if (clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) {
-			clip.markAsManualEdit();
-		}
-		if (newClip instanceof SubtitleClip || newClip instanceof PredefinedSubtitleClip) {
-			newClip.markAsManualEdit();
-		}
+			this.clips.splice(clipIndex + 1, 0, newClip);
 
-		this.clips.splice(clipIndex + 1, 0, newClip);
-
-		return true;
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	async addSubtitle(
@@ -1036,50 +1078,55 @@ export class SubtitleTrack extends Track {
 		lastWordIndex: number,
 		surah: number
 	): Promise<boolean> {
-		const arabicText = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
-		const indopakText = verse.getArabicTextBetweenTwoIndexes(
-			firstWordIndex,
-			lastWordIndex,
-			'indopak'
-		);
-		const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
-			firstWordIndex,
-			lastWordIndex
-		);
-
-		const startTime = this.getDuration().ms + 1;
-		const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
-
-		if (endTime < startTime) {
-			toast.error(get(LL).editor.endTimeMustBeGreater());
-			return false;
-		}
-
-		const subtitlesProperties = await this.getSubtitlesProperties(
-			verse,
-			firstWordIndex,
-			lastWordIndex,
-			surah
-		);
-
-		this.clips.push(
-			new SubtitleClip(
-				startTime,
-				endTime,
-				surah,
-				verse.id,
+		ProjectHistoryManager.begin('add subtitle');
+		try {
+			const arabicText = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+			const indopakText = verse.getArabicTextBetweenTwoIndexes(
 				firstWordIndex,
 				lastWordIndex,
-				arabicText,
-				wbwTranslation,
-				subtitlesProperties.isFullVerse, // isFullVerse
-				subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-				subtitlesProperties.translations, // translations
-				indopakText
-			)
-		);
+				'indopak'
+			);
+			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
+				firstWordIndex,
+				lastWordIndex
+			);
 
-		return true;
+			const startTime = this.getDuration().ms + 1;
+			const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
+
+			if (endTime < startTime) {
+				toast.error(get(LL).editor.endTimeMustBeGreater());
+				return false;
+			}
+
+			const subtitlesProperties = await this.getSubtitlesProperties(
+				verse,
+				firstWordIndex,
+				lastWordIndex,
+				surah
+			);
+
+			this.clips.push(
+				new SubtitleClip(
+					startTime,
+					endTime,
+					surah,
+					verse.id,
+					firstWordIndex,
+					lastWordIndex,
+					arabicText,
+					wbwTranslation,
+					subtitlesProperties.isFullVerse, // isFullVerse
+					subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
+					subtitlesProperties.translations, // translations
+					indopakText
+				)
+			);
+
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	/**
@@ -1136,7 +1183,71 @@ export class SubtitleTrack extends Track {
 	 * @returns true si le silence a été ajouté, false sinon.
 	 */
 	addSilence(beforeClipOfId: number = -1): boolean {
-		if (beforeClipOfId === -1) {
+		ProjectHistoryManager.begin('add silence');
+		try {
+			if (beforeClipOfId === -1) {
+				const startTime = this.getDuration().ms + 1;
+				const endTime =
+					globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
+
+				if (endTime < startTime) {
+					toast.error(get(LL).editor.endTimeMustBeGreater());
+					return false;
+				}
+
+				this.clips.push(new SilenceClip(startTime, endTime));
+
+				return true;
+			} else {
+				// Trouve le clip avant lequel ajouter le silence
+				for (let i = 0; i < this.clips.length; i++) {
+					const element = this.clips[i];
+
+					if (element.id === beforeClipOfId) {
+						const previousClip = i > 0 ? this.clips[i - 1] : null;
+
+						if (previousClip) {
+							const startTime = previousClip.endTime + 1;
+							const endTime = startTime + 500; // Durée de 500ms par défaut
+
+							// Vérifie si le clip actuel fera moins de 100ms
+							if (element.endTime - (endTime + 1) < 100) {
+								toast.error(get(LL).editor.cannotAddSilenceTooShort());
+								return false;
+							}
+
+							// Insert le clip silence avant le clip spécifié
+							this.clips.splice(i, 0, new SilenceClip(startTime, endTime));
+
+							// Change le startTime du clip spécifié pour éviter les chevauchements
+							element.setStartTime(endTime + 1);
+							return true;
+						} else {
+							// Ajoute le silence au début de la piste
+							const startTime = 0;
+							const endTime = 500; // Durée de 500ms par défaut
+							if (element.endTime - (endTime + 1) < 100) {
+								toast.error(get(LL).editor.cannotAddSilenceTooShort());
+								return false;
+							}
+							this.clips.unshift(new SilenceClip(startTime, endTime));
+							// Change le startTime du clip spécifié pour éviter les chevauchements
+							element.setStartTime(endTime + 1);
+							return true;
+						}
+					}
+				}
+			}
+
+			return false;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
+
+	addPredefinedSubtitle(type: PredefinedSubtitleType): boolean {
+		ProjectHistoryManager.begin('add predefined subtitle');
+		try {
 			const startTime = this.getDuration().ms + 1;
 			const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
 
@@ -1145,65 +1256,12 @@ export class SubtitleTrack extends Track {
 				return false;
 			}
 
-			this.clips.push(new SilenceClip(startTime, endTime));
+			this.clips.push(new PredefinedSubtitleClip(startTime, endTime, type));
 
 			return true;
-		} else {
-			// Trouve le clip avant lequel ajouter le silence
-			for (let i = 0; i < this.clips.length; i++) {
-				const element = this.clips[i];
-
-				if (element.id === beforeClipOfId) {
-					const previousClip = i > 0 ? this.clips[i - 1] : null;
-
-					if (previousClip) {
-						const startTime = previousClip.endTime + 1;
-						const endTime = startTime + 500; // Durée de 500ms par défaut
-
-						// Vérifie si le clip actuel fera moins de 100ms
-						if (element.endTime - (endTime + 1) < 100) {
-							toast.error(get(LL).editor.cannotAddSilenceTooShort());
-							return false;
-						}
-
-						// Insert le clip silence avant le clip spécifié
-						this.clips.splice(i, 0, new SilenceClip(startTime, endTime));
-
-						// Change le startTime du clip spécifié pour éviter les chevauchements
-						element.setStartTime(endTime + 1);
-						return true;
-					} else {
-						// Ajoute le silence au début de la piste
-						const startTime = 0;
-						const endTime = 500; // Durée de 500ms par défaut
-						if (element.endTime - (endTime + 1) < 100) {
-							toast.error(get(LL).editor.cannotAddSilenceTooShort());
-							return false;
-						}
-						this.clips.unshift(new SilenceClip(startTime, endTime));
-						// Change le startTime du clip spécifié pour éviter les chevauchements
-						element.setStartTime(endTime + 1);
-						return true;
-					}
-				}
-			}
+		} finally {
+			ProjectHistoryManager.commit();
 		}
-
-		return false;
-	}
-
-	addPredefinedSubtitle(type: PredefinedSubtitleType): boolean {
-		const startTime = this.getDuration().ms + 1;
-		const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
-
-		if (endTime < startTime) {
-			toast.error(get(LL).editor.endTimeMustBeGreater());
-			return false;
-		}
-
-		this.clips.push(new PredefinedSubtitleClip(startTime, endTime, type));
-
-		return true;
 	}
 
 	/**
@@ -1282,71 +1340,76 @@ export class SubtitleTrack extends Track {
 	 *          chevauchement avec la zone non-décalée).
 	 */
 	shiftAllClips(offsetMs: number, fromMs: number = 0): boolean {
-		if (!Number.isFinite(offsetMs) || !Number.isFinite(fromMs)) {
-			toast.error(get(LL).editor.cannotShiftInvalidTiming());
-			return false;
-		}
-
-		if (this.clips.length === 0) return true;
-
-		const cutoffMs = Math.max(0, fromMs);
-		const targets = this.clips.filter((clip) => clip.startTime >= cutoffMs);
-		if (targets.length === 0) {
-			toast(get(LL).editor.noSubtitlesToShift(), { icon: 'ℹ️' });
-			return true;
-		}
-
-		// Vérification : est-ce que le décalage rendrait un temps négatif ?
-		for (const clip of targets) {
-			if (clip.startTime + offsetMs < 0) {
-				toast.error(get(LL).editor.cannotShiftBeforeZero());
+		ProjectHistoryManager.begin('shift subtitles');
+		try {
+			if (!Number.isFinite(offsetMs) || !Number.isFinite(fromMs)) {
+				toast.error(get(LL).editor.cannotShiftInvalidTiming());
 				return false;
 			}
-		}
 
-		// Vérification : décalage arrière qui chevaucherait la zone non-décalée.
-		// On autorise ce cas si le clip bloquant juste avant la coupure peut être
-		// raccourci, ou supprimé s'il s'agit d'un silence.
-		if (offsetMs < 0 && targets.length < this.clips.length) {
-			let lastNonShiftedClip: Clip | null = null;
-			let firstShiftedStart = Number.POSITIVE_INFINITY;
+			if (this.clips.length === 0) return true;
 
-			for (const clip of this.clips) {
-				if (clip.startTime >= cutoffMs) {
-					firstShiftedStart = Math.min(firstShiftedStart, clip.startTime + offsetMs);
-				} else {
-					if (!lastNonShiftedClip || clip.endTime > lastNonShiftedClip.endTime) {
-						lastNonShiftedClip = clip;
+			const cutoffMs = Math.max(0, fromMs);
+			const targets = this.clips.filter((clip) => clip.startTime >= cutoffMs);
+			if (targets.length === 0) {
+				toast(get(LL).editor.noSubtitlesToShift(), { icon: 'ℹ️' });
+				return true;
+			}
+
+			// Vérification : est-ce que le décalage rendrait un temps négatif ?
+			for (const clip of targets) {
+				if (clip.startTime + offsetMs < 0) {
+					toast.error(get(LL).editor.cannotShiftBeforeZero());
+					return false;
+				}
+			}
+
+			// Vérification : décalage arrière qui chevaucherait la zone non-décalée.
+			// On autorise ce cas si le clip bloquant juste avant la coupure peut être
+			// raccourci, ou supprimé s'il s'agit d'un silence.
+			if (offsetMs < 0 && targets.length < this.clips.length) {
+				let lastNonShiftedClip: Clip | null = null;
+				let firstShiftedStart = Number.POSITIVE_INFINITY;
+
+				for (const clip of this.clips) {
+					if (clip.startTime >= cutoffMs) {
+						firstShiftedStart = Math.min(firstShiftedStart, clip.startTime + offsetMs);
+					} else {
+						if (!lastNonShiftedClip || clip.endTime > lastNonShiftedClip.endTime) {
+							lastNonShiftedClip = clip;
+						}
+					}
+				}
+
+				if (lastNonShiftedClip && firstShiftedStart <= lastNonShiftedClip.endTime) {
+					if (lastNonShiftedClip instanceof SilenceClip) {
+						this.clips.splice(this.clips.indexOf(lastNonShiftedClip), 1);
+					} else {
+						const newBlockingEndTime = firstShiftedStart - 1;
+						const newBlockingDuration = newBlockingEndTime - lastNonShiftedClip.startTime;
+
+						if (newBlockingDuration < 100) {
+							toast.error(get(LL).editor.cannotShiftBackward());
+							return false;
+						}
+
+						lastNonShiftedClip.setEndTime(newBlockingEndTime);
 					}
 				}
 			}
 
-			if (lastNonShiftedClip && firstShiftedStart <= lastNonShiftedClip.endTime) {
-				if (lastNonShiftedClip instanceof SilenceClip) {
-					this.clips.splice(this.clips.indexOf(lastNonShiftedClip), 1);
-				} else {
-					const newBlockingEndTime = firstShiftedStart - 1;
-					const newBlockingDuration = newBlockingEndTime - lastNonShiftedClip.startTime;
-
-					if (newBlockingDuration < 100) {
-						toast.error(get(LL).editor.cannotShiftBackward());
-						return false;
-					}
-
-					lastNonShiftedClip.setEndTime(newBlockingEndTime);
-				}
+			// Applique le décalage. Les clips ciblés bougent tous ensemble, donc
+			// les chevauchements internes ne changent pas. clip.startTime/endTime
+			// sont des $state, donc réactifs.
+			for (const clip of targets) {
+				clip.startTime += offsetMs;
+				clip.endTime += offsetMs;
 			}
-		}
 
-		// Applique le décalage. Les clips ciblés bougent tous ensemble, donc
-		// les chevauchements internes ne changent pas. clip.startTime/endTime
-		// sont des $state, donc réactifs.
-		for (const clip of targets) {
-			clip.startTime += offsetMs;
-			clip.endTime += offsetMs;
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
 		}
-
-		return true;
 	}
 }
 
@@ -1361,53 +1424,58 @@ export class CustomTextTrack extends Track {
 		startTime?: number,
 		endTime?: number
 	) {
-		// Si des durées sont spécifiées, alors on désactive l'option "always show"
-		if (startTime !== undefined && endTime !== undefined) {
-			customClipCategory.getStyle('always-show')!.value = false;
-			customClipCategory.getStyle('time-appearance')!.value = startTime;
-			customClipCategory.getStyle('time-disappearance')!.value = endTime;
-		}
-
-		let clip: CustomImageClip | CustomTextClip;
-		if (clipType === 'image') {
-			// Ajoute un clip image
-
-			// Ouvre la modale de sélection d'image
-			let imagePath = '';
-
-			const result = await open({
-				multiple: false,
-				directory: false,
-				filters: [
-					{
-						name: 'Image Files',
-						extensions: ['png', 'jpg', 'jpeg', 'gif']
-					}
-				]
-			});
-
-			if (result) {
-				imagePath = result as string;
-				customClipCategory.getStyle('filepath')!.value = imagePath;
-			} else {
-				return; // Annule l'ajout du clip si aucun fichier n'est sélectionné
+		ProjectHistoryManager.begin('add custom clip');
+		try {
+			// Si des durées sont spécifiées, alors on désactive l'option "always show"
+			if (startTime !== undefined && endTime !== undefined) {
+				customClipCategory.getStyle('always-show')!.value = false;
+				customClipCategory.getStyle('time-appearance')!.value = startTime;
+				customClipCategory.getStyle('time-disappearance')!.value = endTime;
 			}
 
-			clip = new CustomImageClip(customClipCategory);
-		} else {
-			clip = new CustomTextClip(customClipCategory);
+			let clip: CustomImageClip | CustomTextClip;
+			if (clipType === 'image') {
+				// Ajoute un clip image
+
+				// Ouvre la modale de sélection d'image
+				let imagePath = '';
+
+				const result = await open({
+					multiple: false,
+					directory: false,
+					filters: [
+						{
+							name: 'Image Files',
+							extensions: ['png', 'jpg', 'jpeg', 'gif']
+						}
+					]
+				});
+
+				if (result) {
+					imagePath = result as string;
+					customClipCategory.getStyle('filepath')!.value = imagePath;
+				} else {
+					return; // Annule l'ajout du clip si aucun fichier n'est sélectionné
+				}
+
+				clip = new CustomImageClip(customClipCategory);
+			} else {
+				clip = new CustomTextClip(customClipCategory);
+			}
+
+			// Set les temps si spécifiés
+			if (startTime !== undefined && endTime !== undefined) {
+				clip.startTime = startTime;
+				clip.endTime = endTime;
+			}
+
+			this.clips.push(clip);
+
+			// Trigger la réactivité dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)
+			globalState.updateVideoPreviewUI();
+		} finally {
+			ProjectHistoryManager.commit();
 		}
-
-		// Set les temps si spécifiés
-		if (startTime !== undefined && endTime !== undefined) {
-			clip.startTime = startTime;
-			clip.endTime = endTime;
-		}
-
-		this.clips.push(clip);
-
-		// Trigger la réactivé dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)
-		globalState.updateVideoPreviewUI();
 	}
 
 	getCurrentClips(): CustomClip[] {

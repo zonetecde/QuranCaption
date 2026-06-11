@@ -20,6 +20,7 @@
 		syncVerseSelectionWithManualWordByWordIndex
 	} from '$lib/services/WbwHelper';
 	import ShortcutService from '$lib/services/ShortcutService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
@@ -315,7 +316,10 @@
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP
 		);
-		ShortcutService.unregisterShortcut({ keys: ['Escape'], description: get(LL).editor.exitSubtitleEditing() });
+		ShortcutService.unregisterShortcut({
+			keys: ['Escape'],
+			description: get(LL).editor.exitSubtitleEditing()
+		});
 
 		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
 		currentMenu.set(null);
@@ -354,28 +358,30 @@
 	}
 
 	function editCurrentOrLastSubtitle(): void {
-		const subtitleTrack = globalState.getSubtitleTrack;
-		if (subtitleTrack.clips.length <= 0) return;
+		ProjectHistoryManager.track('edit subtitle shortcut', () => {
+			const subtitleTrack = globalState.getSubtitleTrack;
+			if (subtitleTrack.clips.length <= 0) return;
 
-		const cursorPosition = globalState.getTimelineState.cursorPosition;
-		const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
+			const cursorPosition = globalState.getTimelineState.cursorPosition;
+			const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
 
-		let clip: SubtitleClip | PredefinedSubtitleClip | null = null;
-		if (clipUnderCursor) {
-			clip = clipUnderCursor as SubtitleClip | PredefinedSubtitleClip;
-		} else {
-			clip = subtitleTrack.getLastClip() as SubtitleClip | PredefinedSubtitleClip | null;
-		}
+			let clip: SubtitleClip | PredefinedSubtitleClip | null = null;
+			if (clipUnderCursor) {
+				clip = clipUnderCursor as SubtitleClip | PredefinedSubtitleClip;
+			} else {
+				clip = subtitleTrack.getLastClip() as SubtitleClip | PredefinedSubtitleClip | null;
+			}
 
-		if (!clip) return;
+			if (!clip) return;
 
-		// Modifie le sous-titre
-		if (globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id) {
-			// Si on est déjà en train de modifier ce sous-titre, on le quitte
-			globalState.getSubtitlesEditorState.editSubtitle = null;
-			return;
-		}
-		globalState.getSubtitlesEditorState.editSubtitle = clip;
+			// Modifie le sous-titre
+			if (globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id) {
+				// Si on est déjà en train de modifier ce sous-titre, on le quitte
+				globalState.getSubtitlesEditorState.editSubtitle = null;
+				return;
+			}
+			globalState.getSubtitlesEditorState.editSubtitle = clip;
+		});
 	}
 
 	/**
@@ -795,7 +801,9 @@
 			<div class="w-full flex items-center justify-center p-8">
 				<div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-center gap-3">
 					<span class="material-icons text-red-400">error</span>
-					<p class="text-red-400 text-sm">{get(LL).editor.errorLoadingVerse({ error: error.message })}</p>
+					<p class="text-red-400 text-sm">
+						{get(LL).editor.errorLoadingVerse({ error: error.message })}
+					</p>
 				</div>
 			</div>
 		{/await}
@@ -806,7 +814,8 @@
 	{#if contextMenuWordIndex !== null}
 		<Item on:click={handleAutomaticSplitFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">call_split</span>{$LL.editor.splitAutomaticallyAtWord()}
+				<span class="material-icons-outlined text-sm mr-1">call_split</span
+				>{$LL.editor.splitAutomaticallyAtWord()}
 			</div></Item
 		>
 	{/if}

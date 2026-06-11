@@ -16,6 +16,7 @@
 	} from './visualMergeStyleUtils';
 	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
 	import { get } from 'svelte/store';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
 		presetLibraryOpen,
@@ -72,7 +73,9 @@
 
 	onMount(async () => {
 		// Assure la présence des nouveaux styles ajoutés par les updates.
-		await globalState.getVideoStyle.ensureStylesSchemaUpToDate();
+		await ProjectHistoryManager.ignoreAsync(() =>
+			globalState.getVideoStyle.ensureStylesSchemaUpToDate()
+		);
 
 		stylesContainer!.scrollTop =
 			globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition;
@@ -99,7 +102,7 @@
 	}
 
 	/**
-	 * Applique un merge visuel sur la selection courante.
+	 * Applique un merge visuel sur la sélection courante.
 	 * @param {VisualMergeMode} mode Mode de merge choisi.
 	 * @returns {void}
 	 */
@@ -112,8 +115,8 @@
 
 	/**
 	 * Retourne la classe du bouton de merge selon le mode actif.
-	 * @param {VisualMergeMode} mode Mode represente par le bouton.
-	 * @returns {string} Classes CSS a appliquer.
+	 * @param {VisualMergeMode} mode Mode représenté par le bouton.
+	 * @returns {string} Classes CSS à appliquer.
 	 */
 	function getMergeButtonClass(mode: VisualMergeMode): string {
 		return (
@@ -123,7 +126,7 @@
 	}
 
 	/**
-	 * Retire le merge visuel du groupe actuellement selectionne.
+	 * Retire le merge visuel du groupe actuellement sélectionné.
 	 * @returns {void}
 	 */
 	function unmergeSelectedVisualGroup(): void {
@@ -167,7 +170,7 @@
 	 * Désactive certains styles WBW selon leurs toggles parents, sans bloquer toute la catégorie.
 	 * @param {string} categoryId Identifiant de la catégorie courante.
 	 * @param {string} styleId Identifiant du style courant.
-	 * @returns {boolean} true si le style doit etre désactivé.
+	 * @returns {boolean} true si le style doit être désactivé.
 	 */
 	function isWordByWordStyleDisabled(categoryId: string, styleId: string): boolean {
 		if (categoryId !== 'word-by-word-highlight') return false;
@@ -257,7 +260,11 @@
 								? 'btn-accent ring-1 ring-white/20'
 								: 'btn hover:ring-1 hover:ring-white/10')}
 						aria-pressed={globalState.getStylesState.currentSelection === selection}
-						title={selection === 'arabic' ? $LL.editor.arabic() : selection === 'translation' ? $LL.editor.translation() : $LL.editor.global()}
+						title={selection === 'arabic'
+							? $LL.editor.arabic()
+							: selection === 'translation'
+								? $LL.editor.translation()
+								: $LL.editor.global()}
 					>
 						{#if selection === 'arabic'}
 							{$LL.editor.arabic()}
@@ -323,7 +330,10 @@
 					<div class="flex items-center gap-2 text-secondary text-sm">
 						<span class="material-icons-outlined text-base">select_all</span>
 						<span class="style-selection-count-label">
-							{$LL.editor.subtitlesSelected({ count: globalState.getStylesState.selectedSubtitles.length, plural: globalState.getStylesState.selectedSubtitles.length > 1 ? 's' : '' })}
+							{$LL.editor.subtitlesSelected({
+								count: globalState.getStylesState.selectedSubtitles.length,
+								plural: globalState.getStylesState.selectedSubtitles.length > 1 ? 's' : ''
+							})}
 						</span>
 					</div>
 					<button
@@ -393,7 +403,10 @@
 					<div class="flex items-center gap-2 text-secondary text-sm">
 						<span class="material-icons-outlined text-base">movie</span>
 						<span class="style-selection-count-label">
-							{$LL.editor.videoClipsSelected({ count: globalState.getStylesState.selectedVideos.length, plural: globalState.getStylesState.selectedVideos.length > 1 ? 's' : '' })}
+							{$LL.editor.videoClipsSelected({
+								count: globalState.getStylesState.selectedVideos.length,
+								plural: globalState.getStylesState.selectedVideos.length > 1 ? 's' : ''
+							})}
 						</span>
 					</div>
 					<button
@@ -439,9 +452,9 @@
 				</div>
 			{:else}
 				{#each getCategoriesToDisplay() as category (category.id)}
-				<Section
-					name={getStyleName(category.id, get(LL)) || category.name}
-					icon={category.icon}
+					<Section
+						name={getStyleName(category.id, get(LL)) || category.name}
+						icon={category.icon}
 						contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
 						classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						dataCategory={globalState.getStylesState.currentSelection === 'translation'
@@ -484,15 +497,15 @@
 						{/if}
 
 						{#each category.styles as style (style.id)}
-						{#if globalState.getStylesState.searchQuery === '' || style.name
-								.toLowerCase()
-								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
-								.toLowerCase()
-								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
-								.toLowerCase()
-								.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(category.id, get(LL))
-								.toLowerCase()
-								.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+							{#if globalState.getStylesState.searchQuery === '' || style.name
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(category.id, get(LL))
+									.toLowerCase()
+									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
 								<!-- 
 							Cas spécial : on ne peut pas avoir de séparateur entre le numéro de verset et le verset
 							pour le texte Coranique, ni changer sa position. Empêche donc l'affichage de ces styles dans ce cas précis.
@@ -579,14 +592,14 @@
 							classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						>
 							{#each category.styles as style (style.id)}
-							{#if globalState.getStylesState.searchQuery === '' || style.name
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
-								{@const toDisable =
-									category.getStyle('always-show')!.value &&
-									(style.id === 'time-appearance' || style.id === 'time-disappearance')}
+								{#if globalState.getStylesState.searchQuery === '' || style.name
+										.toLowerCase()
+										.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
+										.toLowerCase()
+										.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+									{@const toDisable =
+										category.getStyle('always-show')!.value &&
+										(style.id === 'time-appearance' || style.id === 'time-disappearance')}
 
 									<!-- prettier-ignore -->
 									<StyleComponent

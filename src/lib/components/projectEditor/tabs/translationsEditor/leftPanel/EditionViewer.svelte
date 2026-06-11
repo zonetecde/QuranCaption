@@ -9,6 +9,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { markInvalidAdvancedTrimTranslations } from '$lib/services/AdvancedAITrimming';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import toast from 'svelte-5-french-toast';
 	import AskIaModal from '../modal/AskIAModal.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -50,7 +51,7 @@
 			skipQC1Projects = true;
 		}
 
-		const fetchPromise = (async () => {
+		const fetchPromise = ProjectHistoryManager.trackAsync('fetch translations', async () => {
 			const doneSubtitlesIds: Set<number> = new Set();
 
 			// Index rapide des sous-titres encore incomplets dans le projet courant.
@@ -149,7 +150,7 @@
 						tgt.status = 'fetched';
 
 						if (src.isBruteForce) {
-							// Tente de retrouver des indexes propres apres import.
+							// Tente de retrouver des indexes propres après import.
 							tgt.tryRecalculateTranslationIndexes(edition, clip.getVerseKey());
 						}
 					}
@@ -164,7 +165,7 @@
 
 			globalState.currentProject!.detail.updatePercentageTranslated(edition);
 			return doneSubtitlesIds.size;
-		})();
+		});
 
 		toast.promise(fetchPromise, {
 			loading: LL_.editor.fetchingTranslations() + (skipQC1Projects ? '(only QC2)' : ''),

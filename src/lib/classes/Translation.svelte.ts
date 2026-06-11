@@ -74,10 +74,9 @@ const WORD_TEXT_REGEX = /[\p{L}\p{N}]/u;
  * @returns {string} Nombre avec les chiffres convertis.
  */
 function formatVerseNumberNumerals(value: number, system: string): string {
-	const digits = VERSE_NUMBER_NUMERAL_SYSTEMS[system] ?? VERSE_NUMBER_NUMERAL_SYSTEMS['Western Arabic'];
-	return value
-		.toString()
-		.replace(/\d/g, (digit) => digits[Number(digit)] ?? digit);
+	const digits =
+		VERSE_NUMBER_NUMERAL_SYSTEMS[system] ?? VERSE_NUMBER_NUMERAL_SYSTEMS['Western Arabic'];
+	return value.toString().replace(/\d/g, (digit) => digits[Number(digit)] ?? digit);
 }
 
 /**
@@ -86,7 +85,7 @@ function formatVerseNumberNumerals(value: number, system: string): string {
  * @param {string} text Texte de traduction à analyser.
  * @returns {boolean} `true` si une segmentation CJK doit être utilisée.
  */
-function hasCjkText(text: string): boolean {
+export function hasCjkText(text: string): boolean {
 	return CJK_TEXT_REGEX.test(text);
 }
 
@@ -198,10 +197,44 @@ function cloneInlineStyleFlags(flags: TranslationInlineStyleFlags): TranslationI
 }
 
 /**
- * Splits translation text into whitespace and word tokens while preserving order,
- * and assigns incremental word indexes to word tokens only.
+ * Splits translation text into spacing and selectable tokens while preserving order,
+ * and assigns incremental word indexes to selectable tokens only.
  */
 export function tokenizeTranslationText(text: string): TranslationTextToken[] {
+	if (hasCjkText(text)) {
+		const units = getTranslationTrimUnits(text);
+		const tokens: TranslationTextToken[] = [];
+		let cursor = 0;
+		let wordIndex = 0;
+
+		for (const unit of units) {
+			if (unit.startIndex > cursor) {
+				tokens.push({
+					text: text.slice(cursor, unit.startIndex),
+					isWord: false,
+					wordIndex: null
+				});
+			}
+
+			tokens.push({
+				text: unit.text,
+				isWord: true,
+				wordIndex: wordIndex++
+			});
+			cursor = unit.endIndex;
+		}
+
+		if (cursor < text.length) {
+			tokens.push({
+				text: text.slice(cursor),
+				isWord: false,
+				wordIndex: null
+			});
+		}
+
+		return tokens;
+	}
+
 	const matches = text.match(/(\s+|[^\s]+)/g) ?? [];
 	let wordIndex = 0;
 

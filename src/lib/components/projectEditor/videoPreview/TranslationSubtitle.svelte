@@ -52,15 +52,6 @@
 		return globalState.getSubtitleTrack.getVisualMergeGroupForClipId(subtitle.id);
 	});
 
-	/** Langue de l'édition de traduction courante. */
-	let editionLanguage = $derived(() => {
-		return (
-			globalState.getProjectTranslation.addedTranslationEditions.find(
-				(translation) => translation.name === edition
-			)?.language ?? null
-		);
-	});
-
 	// =========================================================================
 	// Fonctions de rendu
 	// =========================================================================
@@ -159,7 +150,6 @@
 				: null,
 			currentVisualMergeGroup(),
 			edition,
-			editionLanguage(),
 			getTranslationOverlaySegments
 		);
 	}

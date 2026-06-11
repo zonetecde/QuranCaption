@@ -4,6 +4,7 @@ import {
 	SubtitleClip
 } from '$lib/classes/Clip.svelte';
 import {
+	hasCjkText,
 	VerseTranslation,
 	type TranslationInlineStyleFlags,
 	type TranslationInlineStyleRun
@@ -91,21 +92,6 @@ export function createPlainOverlaySegment(
 		},
 		extraCss
 	};
-}
-
-/**
- * Indique si une langue de traduction correspond au chinois.
- * @param {string | null | undefined} language Langue de l'édition.
- * @returns {boolean} `true` si la langue est chinoise.
- */
-export function isChineseTranslationLanguage(language: string | null | undefined): boolean {
-	const normalizedLanguage = language?.trim().toLowerCase() ?? '';
-	return (
-		normalizedLanguage.startsWith('chinese') ||
-		normalizedLanguage === 'zh' ||
-		normalizedLanguage.startsWith('zh-') ||
-		normalizedLanguage === 'zho'
-	);
 }
 
 /**
@@ -264,7 +250,6 @@ export function getVisibleArabicSegments(
  * @param {SubtitleClip | PredefinedSubtitleClip | null} subtitle Sous-titre courant.
  * @param {VisualMergeGroup | null} mergedGroup Groupe fusion actif.
  * @param {string} edition Édition de traduction.
- * @param {string | null | undefined} editionLanguage Langue de l'édition.
  * @param {(edition: string, subtitle: SubtitleClip) => OverlayTextSegment[]} getTranslationOverlaySegments Générateur des segments de traduction.
  * @returns {OverlayTextSegment[]} Segments à afficher.
  */
@@ -272,7 +257,6 @@ export function getVisibleTranslationSegments(
 	subtitle: SubtitleClip | PredefinedSubtitleClip | null,
 	mergedGroup: VisualMergeGroup | null,
 	edition: string,
-	editionLanguage: string | null | undefined,
 	getTranslationOverlaySegments: (edition: string, subtitle: SubtitleClip) => OverlayTextSegment[]
 ): OverlayTextSegment[] {
 	if (!isVisualMergeTargetMerged(mergedGroup, edition)) {
@@ -291,14 +275,14 @@ export function getVisibleTranslationSegments(
 	const groups = getMergedClipsWithoutWordOverlap(mergedGroup!.clips).map((clip) =>
 		getTranslationOverlaySegments(edition, clip)
 	);
+	const hasCjkSegments = groups.some((segments) =>
+		segments.some((segment) => hasCjkText(segment.text))
+	);
 	return groups.flatMap((segments, index) => {
 		if (index === 0) return segments;
 		const previousLastSegment = groups[index - 1].at(-1);
 		// Si le sous-titre précédent se termine par un tiret, on n'ajoute pas d'espace (règle du pas d'espace après un `—` dans les trads)
-		const separator =
-			isChineseTranslationLanguage(editionLanguage) || previousLastSegment?.text.endsWith('—')
-				? ''
-				: ' ';
+		const separator = hasCjkSegments || previousLastSegment?.text.endsWith('—') ? '' : ' ';
 		return separator
 			? [createPlainOverlaySegment(`merged-${edition}-separator-${index}`, separator), ...segments]
 			: segments;

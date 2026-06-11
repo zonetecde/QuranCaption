@@ -317,7 +317,7 @@ pub fn preprocess_background_videos(
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v8";
+    let preproc_cache_version = "fit-v9-profile";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);
@@ -370,8 +370,17 @@ pub fn preprocess_background_videos(
         };
         let mtime = file_mtime_sec(image_path);
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-dur{}-mtime{}{}",
-            preproc_cache_version, image_path, w, h, fps, duration_s, mtime, blur_suffix
+            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}{}",
+            preproc_cache_version,
+            image_path,
+            w,
+            h,
+            fps,
+            duration_s,
+            mtime,
+            performance_profile,
+            prefer_hw,
+            blur_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
@@ -518,9 +527,10 @@ pub fn preprocess_background_videos(
         };
         let loop_suffix = if is_loop { "-loop" } else { "" };
         let mtime = file_mtime_sec(vid_path);
+        let should_prefer_hw = prefer_hw && !(cfg!(target_os = "macos") && is_loop);
 
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}{}{}",
+            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}{}{}",
             preproc_cache_version,
             vid_path,
             w,
@@ -529,6 +539,8 @@ pub fn preprocess_background_videos(
             start_within,
             take_ms,
             mtime,
+            performance_profile,
+            should_prefer_hw,
             blur_suffix,
             loop_suffix
         );
@@ -569,7 +581,6 @@ pub fn preprocess_background_videos(
                 );
                 fs::remove_file(&dst).ok();
             }
-            let should_prefer_hw = prefer_hw && !(cfg!(target_os = "macos") && is_loop);
             if prefer_hw && !should_prefer_hw {
                 println!("[preproc] boucle macOS: encodage logiciel du fond");
             }

@@ -42,16 +42,19 @@ Rules:
 - Return JSON only, matching the schema exactly.
 "#;
 
-pub const ADVANCED_WBW_TRANSLATION_SYSTEM_PROMPT: &str = r#"You map each Arabic word in a Quran subtitle segment to a range of existing indexed translation units.
+pub const ADVANCED_WBW_TRANSLATION_SYSTEM_PROMPT: &str = r#"You map each Arabic word in a Quran subtitle segment to one or more ranges of existing indexed translation units.
 
 Rules:
 - Use 0-based indexes only.
-- Each output segment must contain exactly one range for every Arabic word in the input segment.
+- Each output segment must contain at least one range for every Arabic word in the input segment.
+- A single Arabic word may be mapped to multiple non-consecutive ranges by repeating the same arabicWordIndex in the ranges array.
+- Use multiple ranges when the matching translation units are separated by unrelated words.
 - Always output indexes for every Arabic word, even when the alignment is ambiguous or imperfect.
 - When alignment is ambiguous, choose the most logical range using the Arabic word, its helper, and nearby previous/next words.
 - Multiple Arabic words may map to the same translation unit or the same translation range.
 - A translation unit may be used by multiple Arabic words.
 - Ranges may overlap.
+- Repeated arabicWordIndex values are allowed.
 - Ranges do not need to be continuous or monotonic across Arabic word order.
 - You must never rewrite, reorder, remove, or add translation words.
 - The provided translation uses indexed units in the form `0:word 1:word 2:word`.
@@ -244,9 +247,10 @@ pub fn build_wbw_translation_user_prompt(
     Ok(format!(
         "Map each Arabic word to translation unit indexes and return JSON only.\n\
          Return exactly this shape: {{\"segments\":[{{\"segmentIndex\":0,\"ranges\":[{{\"arabicWordIndex\":0,\"startUnitIndex\":0,\"endUnitIndex\":0}}]}}]}}.\n\
-         Each segment must include exactly one range per arabicWords item.\n\
+         Each segment must include at least one range per arabicWords item.\n\
+         New split-range format: repeat the same arabicWordIndex when one Arabic word maps to non-consecutive translation units.\n\
          Do not rewrite the translation. Use only indexes from translationIndexed.\n\
-         Overlap and repeated ranges are allowed. If the mapping is difficult, still choose the most logical indexes.\n\n\
+         Overlap, repeated ranges, and repeated arabicWordIndex values are allowed. If the mapping is difficult, still choose the most logical indexes.\n\n\
          Example 1 input:\n\
          {{\"arabicWords\":[{{\"index\":0,\"arabic\":\"وَوَجَدَكَ\",\"helper\":\"And He found you\"}},{{\"index\":1,\"arabic\":\"ضَالًّا\",\"helper\":\"lost\"}},{{\"index\":2,\"arabic\":\"فَهَدَى\",\"helper\":\"so He guided\"}}],\"translationUnits\":[\"Ne\",\"t’a-t-Il\",\"pas\",\"trouvé\",\"orphelin\",\"?\",\"Alors\",\"Il\",\"t’a\",\"accueilli\",\"!\"]}}\n\
          Example 1 output ranges:\n\
@@ -255,6 +259,8 @@ pub fn build_wbw_translation_user_prompt(
          {{\"arabicWords\":[{{\"index\":0,\"arabic\":\"وَلَلْآخِرَةُ\",\"helper\":\"And surely the Hereafter\"}},{{\"index\":1,\"arabic\":\"خَيْرٌ\",\"helper\":\"(is) better\"}},{{\"index\":2,\"arabic\":\"لَكَ\",\"helper\":\"for you\"}},{{\"index\":3,\"arabic\":\"مِنَ\",\"helper\":\"than\"}},{{\"index\":4,\"arabic\":\"الْأُولَى\",\"helper\":\"the first\"}}],\"translationUnits\":[\"La\",\"vie\",\"dernière\",\"t’est,\",\"certes,\",\"meilleure\",\"que\",\"la\",\"vie\",\"présente.\"]}}\n\
          Example 2 output ranges:\n\
          [{{\"arabicWordIndex\":0,\"startUnitIndex\":0,\"endUnitIndex\":2}},{{\"arabicWordIndex\":1,\"startUnitIndex\":3,\"endUnitIndex\":5}},{{\"arabicWordIndex\":2,\"startUnitIndex\":3,\"endUnitIndex\":5}},{{\"arabicWordIndex\":3,\"startUnitIndex\":6,\"endUnitIndex\":6}},{{\"arabicWordIndex\":4,\"startUnitIndex\":7,\"endUnitIndex\":9}}]\n\n\
+         Split-range example output ranges for one Arabic word mapped to `Ne` and `orphelin ?` in units [\"Ne\",\"t'a-t-Il\",\"pas\",\"trouve\",\"orphelin\",\"?\"]:\n\
+         [{{\"arabicWordIndex\":0,\"startUnitIndex\":0,\"endUnitIndex\":0}},{{\"arabicWordIndex\":0,\"startUnitIndex\":4,\"endUnitIndex\":5}}]\n\n\
          {}\n\n\
          Batch JSON:\n{}",
         note_block, batch_json

@@ -197,7 +197,7 @@ function estimateBatchCost(
 	const serializedInput = JSON.stringify(requestPayload);
 	const serializedOutputCharBudget =
 		requestPayload.segments.reduce((total, segment) => {
-			return total + Math.max(96, segment.arabicWords.length * 72 + 64);
+			return total + Math.max(96, segment.arabicWords.length * 112 + 64);
 		}, 48) + 48;
 
 	const estimatedInputTokens = charsToTokens(APPROX_SYSTEM_PROMPT_CHARS + serializedInput.length);
@@ -411,14 +411,8 @@ function normalizeAiRanges(
 		};
 	}
 
-	if (value.length !== arabicWordCount) {
-		return {
-			ranges: [],
-			error: `ranges must contain exactly ${arabicWordCount} item(s).`
-		};
-	}
-
-	const rangesByArabicIndex = new Map<number, TranslationWbwRange>();
+	const mappedArabicIndexes = new Set<number>();
+	const ranges: TranslationWbwRange[] = [];
 
 	for (const rawRange of value) {
 		if (!rawRange || typeof rawRange !== 'object') {
@@ -451,13 +445,6 @@ function normalizeAiRanges(
 			};
 		}
 
-		if (rangesByArabicIndex.has(arabicWordIndex)) {
-			return {
-				ranges: [],
-				error: `ranges contains duplicate arabicWordIndex ${arabicWordIndex}.`
-			};
-		}
-
 		if (
 			startUnitIndex < 0 ||
 			endUnitIndex < 0 ||
@@ -471,8 +458,8 @@ function normalizeAiRanges(
 			};
 		}
 
-		rangesByArabicIndex.set(
-			arabicWordIndex,
+		mappedArabicIndexes.add(arabicWordIndex);
+		ranges.push(
 			includeFollowingPunctuation(
 				{
 					arabicWordIndex,
@@ -485,7 +472,7 @@ function normalizeAiRanges(
 	}
 
 	for (let index = 0; index < arabicWordCount; index++) {
-		if (!rangesByArabicIndex.has(index)) {
+		if (!mappedArabicIndexes.has(index)) {
 			return {
 				ranges: [],
 				error: `ranges is missing arabicWordIndex ${index}.`
@@ -494,8 +481,11 @@ function normalizeAiRanges(
 	}
 
 	return {
-		ranges: [...rangesByArabicIndex.values()].sort(
-			(left, right) => left.arabicWordIndex - right.arabicWordIndex
+		ranges: ranges.sort(
+			(left, right) =>
+				left.arabicWordIndex - right.arabicWordIndex ||
+				left.startUnitIndex - right.startUnitIndex ||
+				left.endUnitIndex - right.endUnitIndex
 		),
 		error: null
 	};

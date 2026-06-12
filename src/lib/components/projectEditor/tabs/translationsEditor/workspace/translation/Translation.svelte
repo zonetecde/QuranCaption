@@ -19,6 +19,7 @@
 	import { slide } from 'svelte/transition';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import TranslationWordSelector from './TranslationWordSelector.svelte';
 
 	const LL_ = get(LL);
 
@@ -48,11 +49,6 @@
 	// Variables pour gérer le glisser-déposer
 	let isDragging = $state(false);
 	let dragStartIndex = $state(-1);
-
-	let isInlineDragging = $state(false);
-	let inlineDragStartIndex = $state(-1);
-	let inlineSelectionStart = $state(-1);
-	let inlineSelectionEnd = $state(-1);
 
 	let originalTranslation: string = $state('');
 	let originalTranslationUnits = $derived(() => getTranslationTrimUnits(originalTranslation));
@@ -164,6 +160,7 @@
 		text: string;
 		wordIndex: number;
 		flags: TranslationInlineStyleFlags;
+		style: string;
 	};
 
 	let arabicWordCount = $derived(
@@ -235,7 +232,13 @@
 			.map((token) => ({
 				text: token.text,
 				wordIndex: token.wordIndex,
-				flags: getInlineStyleFlagsForWordIndex(translation().inlineStyleRuns ?? [], token.wordIndex)
+				flags: getInlineStyleFlagsForWordIndex(
+					translation().inlineStyleRuns ?? [],
+					token.wordIndex
+				),
+				style: getInlineStyleCss(
+					getInlineStyleFlagsForWordIndex(translation().inlineStyleRuns ?? [], token.wordIndex)
+				)
 			}));
 	}
 
@@ -244,16 +247,6 @@
 	 */
 	function getStyledSegments(): TranslationInlineTextSegment[] {
 		return translation().getInlineStyledSegments();
-	}
-
-	/**
-	 * Réinitialise l'état de sélection de mots utilisé pendant le drag.
-	 */
-	function resetInlineSelection(): void {
-		isInlineDragging = false;
-		inlineDragStartIndex = -1;
-		inlineSelectionStart = -1;
-		inlineSelectionEnd = -1;
 	}
 
 	/**
@@ -330,23 +323,27 @@
 	}
 
 	/**
-	 * Bascule une unité de traduction dans le mapping WBW.
+	 * Applique une plage sélectionnée au mapping WBW d'un mot arabe.
 	 *
-	 * @param {number} arabicWordIndex Index local du mot arabe à mapper.
-	 * @param {number} unitIndex Index de l'unité cliquée.
-	 * @param {MouseEvent} event Événement souris source.
+	 * @param {number} arabicWordIndex Index local du mot arabe.
+	 * @param {number} startUnitIndex Début inclusif de la plage sélectionnée.
+	 * @param {number} endUnitIndex Fin inclusive de la plage sélectionnée.
 	 * @returns {void}
 	 */
-	function toggleWbwMappingUnit(
+	function applyWbwMappingSelection(
 		arabicWordIndex: number,
-		unitIndex: number,
-		event: MouseEvent
+		startUnitIndex: number,
+		endUnitIndex: number
 	): void {
 		if (translation().type !== 'verse' || !isTranslationWbwMappingMode()) return;
-		event.preventDefault();
+
+		const start = Math.min(startUnitIndex, endUnitIndex);
+		const end = Math.max(startUnitIndex, endUnitIndex);
+		const shouldSelect = !isWbwUnitMappedToArabicWord(arabicWordIndex, start);
+
 		translationsEditorState().translationWbwActiveArabicWordIndex = arabicWordIndex;
-		ProjectHistoryManager.track('toggle translation wbw mapping unit', () => {
-			translation().toggleWbwUnit(arabicWordIndex, unitIndex);
+		ProjectHistoryManager.track('set translation wbw mapping', () => {
+			translation().setWbwUnitRangeSelection(arabicWordIndex, start, end, shouldSelect);
 		});
 	}
 
@@ -376,58 +373,15 @@
 	/**
 	 * Applique (toggle) les styles actifs à la sélection courante puis nettoie la sélection.
 	 */
-	function applyInlineStylesFromSelection(): void {
-		if (
-			translation().type !== 'verse' ||
-			!isInlineStyleMode() ||
-			inlineSelectionStart === -1 ||
-			inlineSelectionEnd === -1
-		) {
-			resetInlineSelection();
-			return;
-		}
-
+	function applyInlineStylesFromSelection(startWordIndex: number, endWordIndex: number): void {
+		if (translation().type !== 'verse' || !isInlineStyleMode()) return;
 		const flags = getCurrentInlineStyleFlags();
 		// Rien a appliquer si aucun toggle n'est actif dans le panneau.
-		if (!hasActiveInlineStyleFlags()) {
-			resetInlineSelection();
-			return;
-		}
+		if (!hasActiveInlineStyleFlags()) return;
 
 		ProjectHistoryManager.track('style translation words', () => {
-			translation().toggleInlineStyles(inlineSelectionStart, inlineSelectionEnd, flags);
+			translation().toggleInlineStyles(startWordIndex, endWordIndex, flags);
 		});
-		resetInlineSelection();
-	}
-
-	/**
-	 * Demarre une selection inline a partir d'un mot.
-	 */
-	function handleInlineMouseDown(wordIndex: number, event: MouseEvent): void {
-		if (translation().type !== 'verse' || !isInlineStyleMode()) return;
-		event.preventDefault();
-		isInlineDragging = true;
-		inlineDragStartIndex = wordIndex;
-		inlineSelectionStart = wordIndex;
-		inlineSelectionEnd = wordIndex;
-	}
-
-	/**
-	 * Etend la selection inline pendant le drag.
-	 */
-	function handleInlineMouseEnter(wordIndex: number): void {
-		if (!isInlineDragging || translation().type !== 'verse' || !isInlineStyleMode()) return;
-
-		inlineSelectionStart = Math.min(inlineDragStartIndex, wordIndex);
-		inlineSelectionEnd = Math.max(inlineDragStartIndex, wordIndex);
-	}
-
-	/**
-	 * Termine une selection inline et declenche l'application des styles.
-	 */
-	function handleInlineMouseUp(): void {
-		if (!isInlineDragging) return;
-		applyInlineStylesFromSelection();
 	}
 
 	async function flushManualReviewTelemetry(): Promise<void> {
@@ -544,9 +498,6 @@
 		if (isDragging) {
 			handleMouseUp();
 		}
-		if (isInlineDragging) {
-			handleInlineMouseUp();
-		}
 	}
 
 	/**
@@ -625,7 +576,6 @@
 	class="flex flex-col gap-3 mt-4 p-4 bg-accent border border-color rounded-lg transition-all duration-200 group"
 	onmouseleave={() => {
 		handleMouseUp();
-		handleInlineMouseUp();
 	}}
 >
 	{#if translation()}
@@ -809,57 +759,20 @@
 									{$LL.editor.clearCurrentWbwMapping()}
 								</button>
 							</div>
-							<div class="translation-style-flow select-none" role="presentation">
-								{#each getTrimmedTranslationWords() as word (`${arabicWordIndex}-${word.wordIndex}-${word.text}`)}
-									{@const isSelected = isWbwUnitSelectedForArabicWord(
-										arabicWordIndex,
-										word.wordIndex
-									)}
-									<button
-										class={`translation-word-style text-sm transition-all duration-150 ${
-											isSelected
-												? 'translation-word-style-selected text-primary shadow-sm'
-												: 'text-primary'
-										}`}
-										style={getInlineStyleCss(word.flags)}
-										onmousedown={(event) =>
-											toggleWbwMappingUnit(arabicWordIndex, word.wordIndex, event)}
-										ondragstart={(event) => event.preventDefault()}
-									>
-										{word.text}
-									</button>
-								{/each}
-							</div>
+							<TranslationWordSelector
+								words={getTrimmedTranslationWords()}
+								isWordSelected={(wordIndex) =>
+									isWbwUnitSelectedForArabicWord(arabicWordIndex, wordIndex)}
+								onSelection={(start, end) => applyWbwMappingSelection(arabicWordIndex, start, end)}
+							/>
 						</div>
 					{/each}
 				</div>
 			{:else if translation().type === 'verse' && isInlineStyleMode()}
-				<div
-					class="translation-style-flow select-none"
-					onmouseup={handleGlobalMouseUp}
-					role="presentation"
-				>
-					{#each getTrimmedTranslationWords() as word (`${word.wordIndex}-${word.text}`)}
-						{@const isSelected =
-							inlineSelectionStart !== -1 &&
-							inlineSelectionEnd !== -1 &&
-							inlineSelectionStart <= word.wordIndex &&
-							word.wordIndex <= inlineSelectionEnd}
-						<button
-							class={`translation-word-style text-sm transition-all duration-150 ${
-								isSelected
-									? 'translation-word-style-selected text-primary shadow-sm'
-									: 'text-primary'
-							}`}
-							style={getInlineStyleCss(word.flags)}
-							onmousedown={(event) => handleInlineMouseDown(word.wordIndex, event)}
-							onmouseenter={() => handleInlineMouseEnter(word.wordIndex)}
-							ondragstart={(event) => event.preventDefault()}
-						>
-							{word.text}
-						</button>
-					{/each}
-				</div>
+				<TranslationWordSelector
+					words={getTrimmedTranslationWords()}
+					onSelection={applyInlineStylesFromSelection}
+				/>
 			{:else if translation().type === 'verse' && !translation().isBruteForce}
 				<p
 					class="text-sm font-medium whitespace-pre-line"
@@ -942,37 +855,6 @@
 		background-color: var(--bg-accent);
 		border-color: var(--border-color);
 		color: var(--text-primary);
-	}
-
-	.translation-word-style {
-		display: inline;
-		padding: 0 0.06em;
-		margin: 0 0.16em 0 0;
-		border: none;
-		border-radius: 0.3em;
-		background: transparent;
-		line-height: inherit;
-		min-height: 0;
-		box-shadow: none;
-	}
-
-	.translation-style-flow {
-		font-size: 0.95rem;
-		line-height: 1.7;
-		color: var(--text-primary);
-		cursor: text;
-	}
-
-	.translation-word-style:hover {
-		background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
-	}
-
-	.translation-word-style-selected {
-		background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
-	}
-
-	.translation-word-style-selected:hover {
-		background: color-mix(in srgb, var(--accent-primary) 66%, transparent);
 	}
 
 	.translation-wbw-mapped {

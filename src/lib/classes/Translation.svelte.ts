@@ -724,6 +724,80 @@ export class VerseTranslation extends Translation {
 	}
 
 	/**
+	 * Ajoute une plage de traduction au mapping d'un mot arabe.
+	 *
+	 * @param {number} arabicWordIndex Index du mot arabe local au sous-titre.
+	 * @param {number} startUnitIndex Index inclusif de début dans la traduction trim.
+	 * @param {number} endUnitIndex Index inclusif de fin dans la traduction trim.
+	 * @returns {void}
+	 */
+	addWbwRange(arabicWordIndex: number, startUnitIndex: number, endUnitIndex: number): void {
+		this.setWbwUnitRangeSelection(arabicWordIndex, startUnitIndex, endUnitIndex, true);
+	}
+
+	/**
+	 * Définit l'état sélectionné d'une plage d'unités pour un mot arabe.
+	 *
+	 * @param {number} arabicWordIndex Index du mot arabe local au sous-titre.
+	 * @param {number} startUnitIndex Index inclusif de début dans la traduction trim.
+	 * @param {number} endUnitIndex Index inclusif de fin dans la traduction trim.
+	 * @param {boolean} isSelected État cible des unités.
+	 * @returns {void}
+	 */
+	setWbwUnitRangeSelection(
+		arabicWordIndex: number,
+		startUnitIndex: number,
+		endUnitIndex: number,
+		isSelected: boolean
+	): void {
+		const normalizedRanges = this.getNormalizedWbwRanges(Number.MAX_SAFE_INTEGER);
+		const start = Math.min(startUnitIndex, endUnitIndex);
+		const end = Math.max(startUnitIndex, endUnitIndex);
+		const selectedUnits = new Set<number>();
+		const nextRanges = normalizedRanges.filter((range) => {
+			if (range.arabicWordIndex !== arabicWordIndex) return true;
+			for (let index = range.startUnitIndex; index <= range.endUnitIndex; index++) {
+				selectedUnits.add(index);
+			}
+			return false;
+		});
+
+		for (let index = start; index <= end; index++) {
+			if (isSelected) {
+				selectedUnits.add(index);
+			} else {
+				selectedUnits.delete(index);
+			}
+		}
+
+		const sortedUnits = [...selectedUnits].sort((left, right) => left - right);
+		let rangeStart = sortedUnits[0] ?? -1;
+		let previous = rangeStart;
+		for (let index = 1; index <= sortedUnits.length; index++) {
+			const current = sortedUnits[index];
+			if (current === previous + 1) {
+				previous = current;
+				continue;
+			}
+			if (rangeStart >= 0) {
+				nextRanges.push({
+					arabicWordIndex,
+					startUnitIndex: rangeStart,
+					endUnitIndex: previous
+				});
+			}
+			rangeStart = current ?? -1;
+			previous = current ?? -1;
+		}
+
+		this.wbwRanges = normalizeTranslationWbwRanges(
+			nextRanges,
+			Number.MAX_SAFE_INTEGER,
+			getTranslationWordCount(this.text)
+		);
+	}
+
+	/**
 	 * Active ou désactive une unité de traduction pour un mot arabe.
 	 *
 	 * @param {number} arabicWordIndex Index du mot arabe local au sous-titre.

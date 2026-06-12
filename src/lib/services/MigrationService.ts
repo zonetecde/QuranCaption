@@ -20,7 +20,7 @@ import {
 import { Quran } from '$lib/classes/Quran';
 import Settings from '$lib/classes/Settings.svelte';
 import type { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
-import { VerseTranslation } from '$lib/classes/Translation.svelte';
+import { ensureVerseTranslation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectService } from '$lib/services/ProjectService';
@@ -632,9 +632,7 @@ export default class MigrationService {
 
 			// Deuxième migration : on a désormais une arborescence de projets
 			// Du coup on demande si on veut pas avoir un premier tri intelligent sur ces projets
-			const confirmed = await ModalManager.confirmModal(
-				get(LL).settings.migrationUpdateMessage()
-			);
+			const confirmed = await ModalManager.confirmModal(get(LL).settings.migrationUpdateMessage());
 			if (confirmed) {
 				this.organizeExistingProjectsIntoSubCategories();
 			}
@@ -725,6 +723,33 @@ export default class MigrationService {
 
 		if (hasChanges) {
 			Settings.save();
+		}
+	}
+
+	/**
+	 * Répare les anciennes traductions de sous-titres désérialisées sans prototype VerseTranslation.
+	 */
+	static FromQC349ToQC350(): void {
+		if (!globalState.currentProject) return;
+
+		let hasChanges = false;
+
+		for (const track of globalState.currentProject.content.timeline.tracks) {
+			for (const clip of track.clips) {
+				if (!(clip instanceof SubtitleClip)) continue;
+
+				for (const [editionName, translation] of Object.entries(clip.translations ?? {})) {
+					const verseTranslation = ensureVerseTranslation(translation);
+					if (verseTranslation && verseTranslation !== translation) {
+						clip.translations[editionName] = verseTranslation;
+						hasChanges = true;
+					}
+				}
+			}
+		}
+
+		if (hasChanges) {
+			globalState.currentProject.save(false);
 		}
 	}
 

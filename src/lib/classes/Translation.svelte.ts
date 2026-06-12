@@ -1074,6 +1074,44 @@ export class VerseTranslation extends Translation {
 	}
 }
 
+/**
+ * Convertit une ancienne traduction de verset sans prototype complet en VerseTranslation.
+ *
+ * @param {Translation | VerseTranslation | undefined} translation Traduction à normaliser.
+ * @returns {VerseTranslation | undefined} Traduction de verset utilisable.
+ */
+export function ensureVerseTranslation(
+	translation: Translation | VerseTranslation | undefined
+): VerseTranslation | undefined {
+	if (!translation) return undefined;
+	if (translation instanceof VerseTranslation) return translation;
+
+	const restored = new VerseTranslation(translation.text ?? '', translation.status ?? 'undefined');
+	const source = translation as Translation & Partial<VerseTranslation>;
+	const startWordIndex =
+		typeof source.startWordIndex === 'number' && Number.isInteger(source.startWordIndex)
+			? source.startWordIndex
+			: 0;
+	const endWordIndex =
+		typeof source.endWordIndex === 'number' && Number.isInteger(source.endWordIndex)
+			? source.endWordIndex
+			: Math.max(0, getTranslationTrimUnitCount(restored.text) - 1);
+	restored.startWordIndex = startWordIndex;
+	restored.endWordIndex = endWordIndex;
+	restored.isBruteForce = Boolean(source.isBruteForce);
+	restored.inlineStyleRuns = normalizeTranslationInlineStyleRuns(
+		source.inlineStyleRuns ?? [],
+		getTranslationWordCount(restored.text)
+	);
+	restored.wbwRanges = normalizeTranslationWbwRanges(
+		source.wbwRanges ?? [],
+		Number.MAX_SAFE_INTEGER,
+		getTranslationWordCount(restored.text)
+	);
+	restored.type = 'verse';
+	return restored;
+}
+
 export class PredefinedSubtitleTranslation extends Translation {
 	constructor(text: string) {
 		super(text, 'completed by default');

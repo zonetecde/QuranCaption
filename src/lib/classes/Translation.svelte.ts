@@ -724,6 +724,60 @@ export class VerseTranslation extends Translation {
 	}
 
 	/**
+	 * Active ou désactive une unité de traduction pour un mot arabe.
+	 *
+	 * @param {number} arabicWordIndex Index du mot arabe local au sous-titre.
+	 * @param {number} unitIndex Index de l'unité trim à basculer.
+	 * @returns {void}
+	 */
+	toggleWbwUnit(arabicWordIndex: number, unitIndex: number): void {
+		const normalizedRanges = this.getNormalizedWbwRanges(Number.MAX_SAFE_INTEGER);
+		const nextRanges: TranslationWbwRange[] = [];
+		let removedUnit = false;
+
+		for (const range of normalizedRanges) {
+			const isTargetRange =
+				range.arabicWordIndex === arabicWordIndex &&
+				range.startUnitIndex <= unitIndex &&
+				unitIndex <= range.endUnitIndex;
+			if (!isTargetRange) {
+				nextRanges.push(range);
+				continue;
+			}
+
+			removedUnit = true;
+			if (range.startUnitIndex < unitIndex) {
+				nextRanges.push({
+					arabicWordIndex,
+					startUnitIndex: range.startUnitIndex,
+					endUnitIndex: unitIndex - 1
+				});
+			}
+			if (unitIndex < range.endUnitIndex) {
+				nextRanges.push({
+					arabicWordIndex,
+					startUnitIndex: unitIndex + 1,
+					endUnitIndex: range.endUnitIndex
+				});
+			}
+		}
+
+		if (!removedUnit) {
+			nextRanges.push({
+				arabicWordIndex,
+				startUnitIndex: unitIndex,
+				endUnitIndex: unitIndex
+			});
+		}
+
+		this.wbwRanges = normalizeTranslationWbwRanges(
+			nextRanges,
+			Number.MAX_SAFE_INTEGER,
+			getTranslationWordCount(this.text)
+		);
+	}
+
+	/**
 	 * Retourne les mappings WBW valides pour le texte courant.
 	 *
 	 * @param {number} arabicWordCount Nombre de mots arabes du sous-titre.

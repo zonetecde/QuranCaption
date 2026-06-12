@@ -53,11 +53,6 @@
 	let inlineDragStartIndex = $state(-1);
 	let inlineSelectionStart = $state(-1);
 	let inlineSelectionEnd = $state(-1);
-	let isWbwMappingDragging = $state(false);
-	let wbwMappingActiveArabicWordIndex = $state(-1);
-	let wbwMappingDragStartIndex = $state(-1);
-	let wbwMappingSelectionStart = $state(-1);
-	let wbwMappingSelectionEnd = $state(-1);
 
 	let originalTranslation: string = $state('');
 	let originalTranslationUnits = $derived(() => getTranslationTrimUnits(originalTranslation));
@@ -262,19 +257,6 @@
 	}
 
 	/**
-	 * Réinitialise la sélection temporaire du mapping WBW.
-	 *
-	 * @returns {void}
-	 */
-	function resetWbwMappingSelection(): void {
-		isWbwMappingDragging = false;
-		wbwMappingActiveArabicWordIndex = -1;
-		wbwMappingDragStartIndex = -1;
-		wbwMappingSelectionStart = -1;
-		wbwMappingSelectionEnd = -1;
-	}
-
-	/**
 	 * Retourne les ranges WBW valides pour le sous-titre courant.
 	 *
 	 * @returns {import('$lib/classes/Translation.svelte').TranslationWbwRange[]} Ranges normalisées.
@@ -297,15 +279,13 @@
 	}
 
 	/**
-	 * Retourne le mapping WBW d'un mot arabe.
+	 * Retourne les mappings WBW d'un mot arabe.
 	 *
 	 * @param {number} arabicWordIndex Index local du mot arabe.
-	 * @returns {import('$lib/classes/Translation.svelte').TranslationWbwRange | null} Range trouvée.
+	 * @returns {import('$lib/classes/Translation.svelte').TranslationWbwRange[]} Ranges trouvées.
 	 */
-	function getWbwRangeForArabicWord(arabicWordIndex: number) {
-		return (
-			getNormalizedWbwRanges().find((range) => range.arabicWordIndex === arabicWordIndex) ?? null
-		);
+	function getWbwRangesForArabicWord(arabicWordIndex: number) {
+		return getNormalizedWbwRanges().filter((range) => range.arabicWordIndex === arabicWordIndex);
 	}
 
 	/**
@@ -316,8 +296,9 @@
 	 * @returns {boolean} `true` si l'unité est mappée.
 	 */
 	function isWbwUnitMappedToArabicWord(arabicWordIndex: number, unitIndex: number): boolean {
-		const range = getWbwRangeForArabicWord(arabicWordIndex);
-		return Boolean(range && range.startUnitIndex <= unitIndex && unitIndex <= range.endUnitIndex);
+		return getWbwRangesForArabicWord(arabicWordIndex).some(
+			(range) => range.startUnitIndex <= unitIndex && unitIndex <= range.endUnitIndex
+		);
 	}
 
 	/**
@@ -328,15 +309,7 @@
 	 * @returns {boolean} `true` si l'unité est sélectionnée ou déjà mappée.
 	 */
 	function isWbwUnitSelectedForArabicWord(arabicWordIndex: number, unitIndex: number): boolean {
-		const isCurrentRow = wbwMappingActiveArabicWordIndex === arabicWordIndex;
-		const isCurrentDragSelection =
-			isCurrentRow &&
-			wbwMappingSelectionStart !== -1 &&
-			wbwMappingSelectionEnd !== -1 &&
-			wbwMappingSelectionStart <= unitIndex &&
-			unitIndex <= wbwMappingSelectionEnd;
-
-		return isCurrentDragSelection || isWbwUnitMappedToArabicWord(arabicWordIndex, unitIndex);
+		return isWbwUnitMappedToArabicWord(arabicWordIndex, unitIndex);
 	}
 
 	/**
@@ -357,82 +330,24 @@
 	}
 
 	/**
-	 * Applique la plage WBW sélectionnée au mot arabe actif.
-	 *
-	 * @returns {void}
-	 */
-	function applyWbwMappingSelection(): void {
-		if (
-			translation().type !== 'verse' ||
-			!isTranslationWbwMappingMode() ||
-			wbwMappingSelectionStart === -1 ||
-			wbwMappingSelectionEnd === -1 ||
-			arabicWordCount() <= 0
-		) {
-			resetWbwMappingSelection();
-			return;
-		}
-
-		const arabicWordIndex = Math.max(
-			0,
-			Math.min(arabicWordCount() - 1, wbwMappingActiveArabicWordIndex)
-		);
-		const start = Math.min(wbwMappingSelectionStart, wbwMappingSelectionEnd);
-		const end = Math.max(wbwMappingSelectionStart, wbwMappingSelectionEnd);
-
-		ProjectHistoryManager.track('set translation wbw mapping', () => {
-			translation().setWbwRange(arabicWordIndex, start, end);
-		});
-		resetWbwMappingSelection();
-	}
-
-	/**
-	 * Démarre une sélection de plage pour le mapping WBW.
+	 * Bascule une unité de traduction dans le mapping WBW.
 	 *
 	 * @param {number} arabicWordIndex Index local du mot arabe à mapper.
 	 * @param {number} unitIndex Index de l'unité cliquée.
 	 * @param {MouseEvent} event Événement souris source.
 	 * @returns {void}
 	 */
-	function handleWbwMappingMouseDown(
+	function toggleWbwMappingUnit(
 		arabicWordIndex: number,
 		unitIndex: number,
 		event: MouseEvent
 	): void {
 		if (translation().type !== 'verse' || !isTranslationWbwMappingMode()) return;
 		event.preventDefault();
-		wbwMappingActiveArabicWordIndex = arabicWordIndex;
 		translationsEditorState().translationWbwActiveArabicWordIndex = arabicWordIndex;
-		isWbwMappingDragging = true;
-		wbwMappingDragStartIndex = unitIndex;
-		wbwMappingSelectionStart = unitIndex;
-		wbwMappingSelectionEnd = unitIndex;
-	}
-
-	/**
-	 * Étend la sélection de plage WBW pendant le drag.
-	 *
-	 * @param {number} arabicWordIndex Index local du mot arabe de la ligne.
-	 * @param {number} unitIndex Index survolé.
-	 * @returns {void}
-	 */
-	function handleWbwMappingMouseEnter(arabicWordIndex: number, unitIndex: number): void {
-		if (!isWbwMappingDragging || translation().type !== 'verse' || !isTranslationWbwMappingMode())
-			return;
-		if (wbwMappingActiveArabicWordIndex !== arabicWordIndex) return;
-
-		wbwMappingSelectionStart = Math.min(wbwMappingDragStartIndex, unitIndex);
-		wbwMappingSelectionEnd = Math.max(wbwMappingDragStartIndex, unitIndex);
-	}
-
-	/**
-	 * Termine une sélection WBW et écrit le mapping.
-	 *
-	 * @returns {void}
-	 */
-	function handleWbwMappingMouseUp(): void {
-		if (!isWbwMappingDragging) return;
-		applyWbwMappingSelection();
+		ProjectHistoryManager.track('toggle translation wbw mapping unit', () => {
+			translation().toggleWbwUnit(arabicWordIndex, unitIndex);
+		});
 	}
 
 	/**
@@ -632,9 +547,6 @@
 		if (isInlineDragging) {
 			handleInlineMouseUp();
 		}
-		if (isWbwMappingDragging) {
-			handleWbwMappingMouseUp();
-		}
 	}
 
 	/**
@@ -714,7 +626,6 @@
 	onmouseleave={() => {
 		handleMouseUp();
 		handleInlineMouseUp();
-		handleWbwMappingMouseUp();
 	}}
 >
 	{#if translation()}
@@ -898,11 +809,7 @@
 									{$LL.editor.clearCurrentWbwMapping()}
 								</button>
 							</div>
-							<div
-								class="translation-style-flow select-none"
-								onmouseup={handleGlobalMouseUp}
-								role="presentation"
-							>
+							<div class="translation-style-flow select-none" role="presentation">
 								{#each getTrimmedTranslationWords() as word (`${arabicWordIndex}-${word.wordIndex}-${word.text}`)}
 									{@const isSelected = isWbwUnitSelectedForArabicWord(
 										arabicWordIndex,
@@ -916,8 +823,7 @@
 										}`}
 										style={getInlineStyleCss(word.flags)}
 										onmousedown={(event) =>
-											handleWbwMappingMouseDown(arabicWordIndex, word.wordIndex, event)}
-										onmouseenter={() => handleWbwMappingMouseEnter(arabicWordIndex, word.wordIndex)}
+											toggleWbwMappingUnit(arabicWordIndex, word.wordIndex, event)}
 										ondragstart={(event) => event.preventDefault()}
 									>
 										{word.text}
@@ -1063,6 +969,10 @@
 
 	.translation-word-style-selected {
 		background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
+	}
+
+	.translation-word-style-selected:hover {
+		background: color-mix(in srgb, var(--accent-primary) 66%, transparent);
 	}
 
 	.translation-wbw-mapped {

@@ -529,7 +529,7 @@ const editor = {
 	bookmarkContext: 'Bookmark',
 	editTranslationContext: 'Edit translation',
 	editWbwTimestampContext: 'Edit WBW timestamp',
-	editWbwStyleContext: 'Wbw Style',
+	editWbwStyleContext: 'Wbw Style/Translation',
 	connectQuranComFirst: 'Connect Quran.com first',
 	addVerseToCollection: 'Add this verse to a Quran.com collection',
 	mergeGroupArabic: 'Arabic merged group',

@@ -759,7 +759,7 @@ const zh: Translation = {
 		bookmarkContext: '书签',
 		editTranslationContext: '编辑翻译',
 		editWbwTimestampContext: '编辑 WBW 时间戳',
-		editWbwStyleContext: 'WBW 样式',
+		editWbwStyleContext: 'WBW 样式/翻译',
 		connectQuranComFirst: '请先连接 Quran.com',
 		addVerseToCollection: '将此经文添加到 Quran.com 收藏集',
 		mergeGroupArabic: '阿拉伯语合并组',

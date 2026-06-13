@@ -834,7 +834,7 @@ const fr: Translation = {
 		bookmarkContext: 'Marque-page',
 		editTranslationContext: 'Modifier la traduction',
 		editWbwTimestampContext: 'Modifier l\u2019horodatage WBW',
-		editWbwStyleContext: 'Style WBW',
+		editWbwStyleContext: 'Style/Traduction WBW',
 		connectQuranComFirst: 'Connectez-vous d\u2019abord à Quran.com',
 		addVerseToCollection: 'Ajouter ce verset à une collection Quran.com',
 		mergeGroupArabic: 'Groupe fusionné arabe',

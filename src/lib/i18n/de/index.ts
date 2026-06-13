@@ -833,7 +833,7 @@ const de: Translation = {
 		bookmarkContext: 'Lesezeichen',
 		editTranslationContext: 'Übersetzung bearbeiten',
 		editWbwTimestampContext: 'WBW-Zeitstempel bearbeiten',
-		editWbwStyleContext: 'WBW-Stil',
+		editWbwStyleContext: 'WBW-Stil/Übersetzung',
 		connectQuranComFirst: 'Verbinden Sie sich zuerst mit Quran.com',
 		addVerseToCollection: 'Diesen Vers zu einer Quran.com-Sammlung hinzufügen',
 		mergeGroupArabic: 'Zusammengeführte Arabisch-Gruppe',

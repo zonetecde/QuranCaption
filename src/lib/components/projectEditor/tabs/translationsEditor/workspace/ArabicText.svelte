@@ -12,6 +12,7 @@
 		type TranslationInlineStyleFlags
 	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 	import { onMount } from 'svelte';
 
@@ -98,11 +99,13 @@
 				Boolean(activeInlineFlags().color))
 		) {
 			// Comme pour les traductions, un drag applique/toggle les styles actifs sur toute la plage.
-			subtitle.toggleArabicInlineStyles(
-				inlineSelectionStart,
-				inlineSelectionEnd,
-				activeInlineFlags()
-			);
+			ProjectHistoryManager.track('style arabic words', () => {
+				subtitle.toggleArabicInlineStyles(
+					inlineSelectionStart,
+					inlineSelectionEnd,
+					activeInlineFlags()
+				);
+			});
 		}
 
 		isInlineDragging = false;

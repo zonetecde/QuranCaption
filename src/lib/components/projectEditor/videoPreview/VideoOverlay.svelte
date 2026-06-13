@@ -31,6 +31,7 @@
 	} from '$lib/classes';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
+	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { tick, untrack } from 'svelte';
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
@@ -43,6 +44,7 @@
 	import {
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
 		getReferenceClipForTarget as getReferenceClipForTargetUtil,
+		getMergedClipsWithoutWordOverlap,
 		isVisualMergeTargetMerged
 	} from './visualMergeOverlayUtils';
 
@@ -59,6 +61,8 @@
 		fontSize: number | null;
 		yOffset: number;
 	};
+
+	const MAX_RUNTIME_LAYOUT_CACHE_ENTRIES = 300;
 
 	// =========================================================================
 	// Dérivations réactives globales
@@ -416,6 +420,62 @@
 	});
 
 	let runtimeSubtitleLayout: Record<string, RuntimeSubtitleLayout> = $state({});
+	const runtimeLayoutCache = new Map<string, Record<string, RuntimeSubtitleLayout>>();
+
+	/**
+	 * Clone un snapshot de layout runtime pour éviter les mutations partagées.
+	 *
+	 * @param {Record<string, RuntimeSubtitleLayout>} layout Snapshot source.
+	 * @returns {Record<string, RuntimeSubtitleLayout>} Snapshot cloné.
+	 */
+	function cloneRuntimeSubtitleLayout(
+		layout: Record<string, RuntimeSubtitleLayout>
+	): Record<string, RuntimeSubtitleLayout> {
+		return Object.fromEntries(
+			Object.entries(layout).map(([target, targetLayout]) => [target, { ...targetLayout }])
+		);
+	}
+
+	/**
+	 * Retourne un layout runtime déjà calculé pour une clé stable.
+	 *
+	 * @param {string} layoutKey Clé des contraintes de layout.
+	 * @returns {Record<string, RuntimeSubtitleLayout> | null} Snapshot de layout ou null.
+	 */
+	function getCachedRuntimeLayout(layoutKey: string): Record<string, RuntimeSubtitleLayout> | null {
+		const cachedLayout = runtimeLayoutCache.get(layoutKey);
+		return cachedLayout ? cloneRuntimeSubtitleLayout(cachedLayout) : null;
+	}
+
+	/**
+	 * Applique un snapshot de layout sans modifier les styles persistés.
+	 *
+	 * @param {Record<string, RuntimeSubtitleLayout>} layout Snapshot runtime à appliquer.
+	 * @returns {void}
+	 */
+	function applyRuntimeLayout(layout: Record<string, RuntimeSubtitleLayout>): void {
+		runtimeSubtitleLayout = cloneRuntimeSubtitleLayout(layout);
+	}
+
+	/**
+	 * Mémorise le layout runtime calculé pour réutilisation pendant l'édition.
+	 *
+	 * @param {string} layoutKey Clé des contraintes de layout.
+	 * @param {string[]} targets Cibles incluses dans le snapshot.
+	 * @returns {void}
+	 */
+	function cacheRuntimeLayout(layoutKey: string, targets: string[]): void {
+		const snapshot: Record<string, RuntimeSubtitleLayout> = {};
+		for (const target of targets) {
+			snapshot[target] = { ...getRuntimeSubtitleLayout(target) };
+		}
+
+		runtimeLayoutCache.set(layoutKey, snapshot);
+		if (runtimeLayoutCache.size <= MAX_RUNTIME_LAYOUT_CACHE_ENTRIES) return;
+
+		const oldestKey = runtimeLayoutCache.keys().next().value;
+		if (oldestKey) runtimeLayoutCache.delete(oldestKey);
+	}
 
 	/**
 	 * Retourne l'état runtime de layout d'une cible sans toucher aux styles persistés.
@@ -501,6 +561,132 @@
 	}
 
 	/**
+	 * Sérialise une valeur de cache dans un ordre stable.
+	 *
+	 * @param {unknown} value Valeur à sérialiser.
+	 * @returns {string} Signature stable de la valeur.
+	 */
+	function getLayoutCacheValueSignature(value: unknown): string {
+		if (value === null || value === undefined) return '';
+		if (typeof value !== 'object') return String(value);
+		if (Array.isArray(value)) return `[${value.map(getLayoutCacheValueSignature).join(',')}]`;
+
+		return `{${Object.entries(value as Record<string, unknown>)
+			.sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+			.map(([key, nestedValue]) => `${key}:${getLayoutCacheValueSignature(nestedValue)}`)
+			.join(',')}}`;
+	}
+
+	/**
+	 * Construit la signature des styles effectifs d'une cible.
+	 *
+	 * @param {string} target Cible de style.
+	 * @param {number | undefined} clipId Clip utilisé pour les overrides.
+	 * @returns {string} Signature des styles effectifs.
+	 */
+	function getTargetStylesCacheSignature(target: string, clipId?: number): string {
+		const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+		return styles.categories
+			.flatMap((category) =>
+				category.styles.map((style) => {
+					const value = styles.getEffectiveValue(style.id as StyleName, clipId);
+					return `${category.id}.${style.id}=${getLayoutCacheValueSignature(value)}`;
+				})
+			)
+			.join(';');
+	}
+
+	/**
+	 * Retourne les clips dont le contenu peut participer au layout d'une cible.
+	 *
+	 * @param {string} target Cible de style.
+	 * @returns {(SubtitleClip | PredefinedSubtitleClip)[]} Clips visibles pour la cible.
+	 */
+	function getLayoutContentClips(target: string): (SubtitleClip | PredefinedSubtitleClip)[] {
+		const subtitle = currentSubtitle();
+		const mergedGroup = currentVisualMergeGroup();
+
+		if (mergedGroup && isVisualMergeTargetMerged(mergedGroup, target)) {
+			return getMergedClipsWithoutWordOverlap(mergedGroup.clips);
+		}
+
+		if (subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip) {
+			return [subtitle];
+		}
+
+		return [];
+	}
+
+	/**
+	 * Construit la signature du texte arabe réellement rendu.
+	 *
+	 * @returns {string} Signature du contenu arabe visible.
+	 */
+	function getArabicContentCacheSignature(): string {
+		return getLayoutContentClips('arabic')
+			.map((clip) => {
+				const parts = clip.getArabicRenderParts('preview');
+				return getLayoutCacheValueSignature({
+					id: clip.id,
+					text: parts.text,
+					suffix: parts.suffix,
+					suffixFontFamily: parts.suffixFontFamily,
+					inlineStyleRuns: clip.arabicInlineStyleRuns ?? []
+				});
+			})
+			.join('|');
+	}
+
+	/**
+	 * Construit la signature du texte de traduction réellement rendu.
+	 *
+	 * @param {string} target Edition de traduction.
+	 * @returns {string} Signature du contenu de traduction visible.
+	 */
+	function getTranslationContentCacheSignature(target: string): string {
+		return getLayoutContentClips(target)
+			.map((clip) => {
+				const translation = clip.translations[target];
+				if (!translation) return `${clip.id}:`;
+
+				return getLayoutCacheValueSignature({
+					id: clip.id,
+					text:
+						clip instanceof SubtitleClip
+							? translation.getText(target, clip)
+							: translation.getText(),
+					inlineStyleRuns:
+						translation instanceof VerseTranslation ? (translation.inlineStyleRuns ?? []) : [],
+					wbwRanges: translation instanceof VerseTranslation ? (translation.wbwRanges ?? []) : []
+				});
+			})
+			.join('|');
+	}
+
+	/**
+	 * Construit la signature du contenu rendu pour une cible.
+	 *
+	 * @param {string} target Cible de style.
+	 * @returns {string} Signature du contenu visible.
+	 */
+	function getTargetContentCacheSignature(target: string): string {
+		if (target === 'arabic') return getArabicContentCacheSignature();
+		return getTranslationContentCacheSignature(target);
+	}
+
+	/**
+	 * Retourne la taille actuelle du conteneur de sous-titres.
+	 *
+	 * @returns {string} Signature largeur/hauteur du conteneur.
+	 */
+	function getSubtitleContainerSizeSignature(): string {
+		if (typeof document === 'undefined') return '';
+		const container = document.getElementById('subtitles-container');
+		if (!(container instanceof HTMLElement)) return '';
+		return `${container.clientWidth}x${container.clientHeight}`;
+	}
+
+	/**
 	 * Construit une clé stable pour éviter les recalculs de layout identiques.
 	 *
 	 * @param {string[]} targets Cibles de style mesurées.
@@ -512,14 +698,11 @@
 			subtitle instanceof SubtitleClip ? (subtitle.visualMergeGroupId ?? '') : '';
 		const targetConstraints = targets.map((target) => {
 			const referenceClip = getReferenceClipForTarget(target);
-			const styles = globalState.getVideoStyle.getStylesOfTarget(target);
 			return [
 				target,
 				referenceClip?.id ?? '',
-				styles.getEffectiveValue('font-size', referenceClip?.id),
-				globalState.getStyle(target, 'max-height').value,
-				globalState.getStyle(target, 'max-line').value,
-				styles.getEffectiveValue('vertical-text-alignment', referenceClip?.id),
+				getTargetContentCacheSignature(target),
+				getTargetStylesCacheSignature(target, referenceClip?.id),
 				hasForcedLineBreak(target)
 			].join(':');
 		});
@@ -527,9 +710,9 @@
 		return [
 			subtitle?.id ?? '',
 			visualMergeGroupId,
+			getSubtitleContainerSizeSignature(),
 			globalState.getTimelineState.previewRefreshToken,
-			globalState.getStyle('global', 'anti-collision').value,
-			globalState.getStyle('global', 'spacing').value,
+			getTargetStylesCacheSignature('global', currentVideoClip()?.id),
 			...targetConstraints
 		].join('|');
 	}
@@ -675,11 +858,28 @@
 				globalState.getStyle('global', 'spacing').value
 			);
 
+			const cachedLayout = getCachedRuntimeLayout(layoutKey);
+			if (cachedLayout) {
+				if (currentAbortController) {
+					currentAbortController.abort();
+				}
+				applyRuntimeLayout(cachedLayout);
+				await tick();
+				const currentSubtitlesContainer = document.getElementById('subtitles-container');
+				if (currentSubtitlesContainer instanceof HTMLElement) {
+					currentSubtitlesContainer.style.opacity = '1';
+					markExportLayoutState(currentSubtitlesContainer, 'ready');
+				}
+				return;
+			}
+
 			// Cache les sous-titres pendant le recalcul
 			if (subtitlesContainer) {
 				markExportLayoutState(subtitlesContainer, 'pending');
 				subtitlesContainer.style.opacity = '0';
 			}
+
+			let layoutCompleted = false;
 
 			await untrack(async () => {
 				// Annule l'exécution précédente
@@ -751,12 +951,18 @@
 							wait
 						);
 					}
+
+					layoutCompleted = !abortSignal.aborted;
 				} catch (error) {
 					if (error instanceof Error && error.message === 'Aborted') {
 						return;
 					}
 				}
 			});
+
+			if (layoutCompleted) {
+				cacheRuntimeLayout(layoutKey, targets);
+			}
 
 			// Réaffiche les sous-titres
 			const currentSubtitlesContainer = document.getElementById('subtitles-container');

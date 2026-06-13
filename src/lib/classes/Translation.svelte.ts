@@ -20,12 +20,13 @@ export type TranslationInlineStyleRun = {
 	bold: boolean;
 	italic: boolean;
 	underline: boolean;
+	lineBreak?: boolean;
 	color?: string | null;
 };
 
 export type TranslationInlineStyleFlags = Pick<
 	TranslationInlineStyleRun,
-	'bold' | 'italic' | 'underline' | 'color'
+	'bold' | 'italic' | 'underline' | 'lineBreak' | 'color'
 >;
 
 export type TranslationInlineTextSegment = {
@@ -33,6 +34,7 @@ export type TranslationInlineTextSegment = {
 	bold: boolean;
 	italic: boolean;
 	underline: boolean;
+	lineBreak?: boolean;
 	color?: string | null;
 };
 
@@ -58,6 +60,7 @@ export const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
 	bold: false,
 	italic: false,
 	underline: false,
+	lineBreak: false,
 	color: null
 };
 
@@ -94,6 +97,7 @@ export function getInlineStyleFlagsForWordIndex(
 				bold: run.bold,
 				italic: run.italic,
 				underline: run.underline,
+				lineBreak: Boolean(run.lineBreak),
 				color: run.color ?? null
 			};
 		}
@@ -213,7 +217,7 @@ export function sliceTranslationTrimUnits(
  * Returns true when at least one inline style flag is active.
  */
 function hasInlineStyle(flags: TranslationInlineStyleFlags): boolean {
-	return flags.bold || flags.italic || flags.underline || Boolean(flags.color);
+	return flags.bold || flags.italic || flags.underline || flags.lineBreak || Boolean(flags.color);
 }
 
 /**
@@ -227,6 +231,7 @@ function sameInlineStyleFlags(
 		left.bold === right.bold &&
 		left.italic === right.italic &&
 		left.underline === right.underline &&
+		Boolean(left.lineBreak) === Boolean(right.lineBreak) &&
 		left.color === right.color
 	);
 }
@@ -239,7 +244,32 @@ function cloneInlineStyleFlags(flags: TranslationInlineStyleFlags): TranslationI
 		bold: Boolean(flags.bold),
 		italic: Boolean(flags.italic),
 		underline: Boolean(flags.underline),
+		...(flags.lineBreak ? { lineBreak: true } : {}),
 		color: typeof flags.color === 'string' && flags.color.trim().length > 0 ? flags.color : null
+	};
+}
+
+/**
+ * Construit un run inline sans stocker les flags optionnels inactifs.
+ *
+ * @param {number} startWordIndex Index de début du run.
+ * @param {number} endWordIndex Index de fin du run.
+ * @param {TranslationInlineStyleFlags} flags Flags à écrire.
+ * @returns {TranslationInlineStyleRun} Run normalisé.
+ */
+function createInlineStyleRun(
+	startWordIndex: number,
+	endWordIndex: number,
+	flags: TranslationInlineStyleFlags
+): TranslationInlineStyleRun {
+	return {
+		startWordIndex,
+		endWordIndex,
+		bold: flags.bold,
+		italic: flags.italic,
+		underline: flags.underline,
+		...(flags.lineBreak ? { lineBreak: true } : {}),
+		color: flags.color ?? null
 	};
 }
 
@@ -348,11 +378,7 @@ export function normalizeTranslationInlineStyleRuns(
 
 		if (!isStyled) {
 			if (currentStart !== -1) {
-				normalized.push({
-					startWordIndex: currentStart,
-					endWordIndex: index - 1,
-					...currentFlags
-				});
+				normalized.push(createInlineStyleRun(currentStart, index - 1, currentFlags));
 				currentStart = -1;
 				currentFlags = cloneInlineStyleFlags(EMPTY_INLINE_STYLE_FLAGS);
 			}
@@ -366,22 +392,14 @@ export function normalizeTranslationInlineStyleRuns(
 		}
 
 		if (!sameInlineStyleFlags(currentFlags, flags)) {
-			normalized.push({
-				startWordIndex: currentStart,
-				endWordIndex: index - 1,
-				...currentFlags
-			});
+			normalized.push(createInlineStyleRun(currentStart, index - 1, currentFlags));
 			currentStart = index;
 			currentFlags = cloneInlineStyleFlags(flags);
 		}
 	}
 
 	if (currentStart !== -1) {
-		normalized.push({
-			startWordIndex: currentStart,
-			endWordIndex: states.length - 1,
-			...currentFlags
-		});
+		normalized.push(createInlineStyleRun(currentStart, states.length - 1, currentFlags));
 	}
 
 	return normalized;
@@ -413,6 +431,7 @@ export function toggleTranslationInlineStyleRuns(
 				bold: run.bold,
 				italic: run.italic,
 				underline: run.underline,
+				lineBreak: Boolean(run.lineBreak),
 				color: run.color ?? null
 			};
 		}
@@ -431,17 +450,14 @@ export function toggleTranslationInlineStyleRuns(
 		if (toggledFlags.bold) states[index].bold = !states[index].bold;
 		if (toggledFlags.italic) states[index].italic = !states[index].italic;
 		if (toggledFlags.underline) states[index].underline = !states[index].underline;
+		if (toggledFlags.lineBreak) states[index].lineBreak = !states[index].lineBreak;
 		if (toggledFlags.color) {
 			states[index].color = states[index].color === toggledFlags.color ? null : toggledFlags.color;
 		}
 	}
 
 	return normalizeTranslationInlineStyleRuns(
-		states.map((flags, index) => ({
-			startWordIndex: index,
-			endWordIndex: index,
-			...flags
-		})),
+		states.map((flags, index) => createInlineStyleRun(index, index, flags)),
 		totalWordCount
 	);
 }
@@ -469,6 +485,7 @@ export function buildTranslationInlineTextSegments(
 				bold: run.bold,
 				italic: run.italic,
 				underline: run.underline,
+				lineBreak: Boolean(run.lineBreak),
 				color: run.color ?? null
 			};
 		}
@@ -494,7 +511,8 @@ export function buildTranslationInlineTextSegments(
 		const token = tokens[tokenIndex];
 
 		if (token.isWord && token.wordIndex !== null) {
-			pushText(token.text, flagsByWordIndex[token.wordIndex]);
+			const flags = flagsByWordIndex[token.wordIndex];
+			pushText(token.text, flags);
 			continue;
 		}
 
@@ -515,6 +533,7 @@ export function buildTranslationInlineTextSegments(
 				? previousFlags
 				: EMPTY_INLINE_STYLE_FLAGS;
 
+		if (previousFlags.lineBreak) continue;
 		pushText(token.text, whitespaceFlags);
 	}
 
@@ -543,6 +562,7 @@ export function replaceBoldWordIndexesInInlineStyleRuns(
 				bold: false,
 				italic: run.italic,
 				underline: run.underline,
+				lineBreak: Boolean(run.lineBreak),
 				color: run.color ?? null
 			};
 		}
@@ -555,11 +575,7 @@ export function replaceBoldWordIndexesInInlineStyleRuns(
 	}
 
 	return normalizeTranslationInlineStyleRuns(
-		states.map((flags, index) => ({
-			startWordIndex: index,
-			endWordIndex: index,
-			...flags
-		})),
+		states.map((flags, index) => createInlineStyleRun(index, index, flags)),
 		totalWordCount
 	);
 }

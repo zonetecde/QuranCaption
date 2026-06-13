@@ -359,6 +359,7 @@ export class TranslationsEditorState extends SerializableBase {
 	inlineStyleBoldEnabled: boolean = $state(false);
 	inlineStyleItalicEnabled: boolean = $state(false);
 	inlineStyleUnderlineEnabled: boolean = $state(false);
+	inlineStyleLineBreakEnabled: boolean = $state(false);
 	inlineStyleColorEnabled: boolean = $state(false);
 	inlineStyleColorValue: string = $state('#f59e0b');
 

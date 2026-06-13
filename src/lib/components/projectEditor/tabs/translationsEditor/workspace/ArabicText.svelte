@@ -44,6 +44,7 @@
 		bold: translationsEditorState().inlineStyleBoldEnabled,
 		italic: translationsEditorState().inlineStyleItalicEnabled,
 		underline: translationsEditorState().inlineStyleUnderlineEnabled,
+		lineBreak: translationsEditorState().inlineStyleLineBreakEnabled,
 		color: translationsEditorState().inlineStyleColorEnabled
 			? translationsEditorState().inlineStyleColorValue
 			: null
@@ -96,6 +97,7 @@
 			(activeInlineFlags().bold ||
 				activeInlineFlags().italic ||
 				activeInlineFlags().underline ||
+				Boolean(activeInlineFlags().lineBreak) ||
 				Boolean(activeInlineFlags().color))
 		) {
 			// Comme pour les traductions, un drag applique/toggle les styles actifs sur toute la plage.

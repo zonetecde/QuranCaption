@@ -30,6 +30,7 @@
 		SubtitleClip
 	} from '$lib/classes';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
+	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { tick, untrack } from 'svelte';
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
@@ -169,6 +170,33 @@
 
 		return Object.keys(currentSubtitleTranslations() || {});
 	});
+
+	/**
+	 * Indique si la traduction visible contient un retour ligne manuel.
+	 *
+	 * @param {string} target Nom de l'édition de traduction.
+	 * @returns {boolean} `true` si au moins un run force un retour ligne.
+	 */
+	function hasForcedTranslationLineBreak(target: string): boolean {
+		if (target === 'arabic') return false;
+
+		const subtitle = currentSubtitle();
+		const mergedGroup = currentVisualMergeGroup();
+		const clips =
+			mergedGroup && isVisualMergeTargetMerged(mergedGroup, target)
+				? mergedGroup.clips
+				: subtitle instanceof SubtitleClip
+					? [subtitle]
+					: [];
+
+		return clips.some((clip) => {
+			const translation = clip.translations[target];
+			return (
+				translation instanceof VerseTranslation &&
+				(translation.inlineStyleRuns ?? []).some((run) => Boolean(run.lineBreak))
+			);
+		});
+	}
 
 	/** Clips custom (texte/image) à afficher au temps courant. */
 	let currentCustomClips = $derived(() => {
@@ -506,6 +534,7 @@
 				globalState.getTimelineState.movePreviewTo,
 				globalState.getStyle('arabic', 'max-height').value,
 				...targets.map((target) => globalState.getStyle(target, 'max-line').value),
+				...targets.map((target) => hasForcedTranslationLineBreak(target)),
 				globalState.getStyle('arabic', 'font-size').value,
 				globalState.getStyle('global', 'spacing').value
 			);
@@ -545,7 +574,9 @@
 								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
 							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
-							const maxLineValue = Number(globalState.getStyle(target, 'max-line').value);
+							const maxLineValue = hasForcedTranslationLineBreak(target)
+								? Infinity
+								: Number(globalState.getStyle(target, 'max-line').value);
 							const initialFontSize = Number(
 								styles.getEffectiveValue('font-size', referenceClip?.id)
 							);

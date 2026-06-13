@@ -344,6 +344,52 @@ describe('translation inline style runs', () => {
 		]);
 	});
 
+	it('marks a word as a line break endpoint', () => {
+		const runs = toggleTranslationInlineStyleRuns([], 3, 1, 1, {
+			bold: false,
+			italic: false,
+			underline: false,
+			lineBreak: true
+		});
+
+		expect(runs).toEqual([
+			{
+				startWordIndex: 1,
+				endWordIndex: 1,
+				bold: false,
+				italic: false,
+				underline: false,
+				lineBreak: true,
+				color: null
+			}
+		]);
+
+		expect(buildTranslationInlineTextSegments('one two three', runs)).toEqual([
+			{
+				text: 'one ',
+				bold: false,
+				italic: false,
+				underline: false,
+				color: null
+			},
+			{
+				text: 'two',
+				bold: false,
+				italic: false,
+				underline: false,
+				lineBreak: true,
+				color: null
+			},
+			{
+				text: 'three',
+				bold: false,
+				italic: false,
+				underline: false,
+				color: null
+			}
+		]);
+	});
+
 	it('replaces bold while preserving italic and underline flags', () => {
 		const runs = replaceBoldWordIndexesInInlineStyleRuns(
 			[

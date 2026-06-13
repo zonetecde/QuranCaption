@@ -206,6 +206,7 @@
 			bold: translationsEditorState().inlineStyleBoldEnabled,
 			italic: translationsEditorState().inlineStyleItalicEnabled,
 			underline: translationsEditorState().inlineStyleUnderlineEnabled,
+			lineBreak: translationsEditorState().inlineStyleLineBreakEnabled,
 			color: translationsEditorState().inlineStyleColorEnabled
 				? translationsEditorState().inlineStyleColorValue
 				: null
@@ -213,11 +214,17 @@
 	}
 
 	/**
-	 * Indique si au moins un style (bold/italic/underline) est actif.
+	 * Indique si au moins un style (bold/italic/underline/new line) est actif.
 	 */
 	function hasActiveInlineStyleFlags(): boolean {
 		const flags = getCurrentInlineStyleFlags();
-		return flags.bold || flags.italic || flags.underline || Boolean(flags.color);
+		return (
+			flags.bold ||
+			flags.italic ||
+			flags.underline ||
+			Boolean(flags.lineBreak) ||
+			Boolean(flags.color)
+		);
 	}
 
 	/**
@@ -236,6 +243,10 @@
 					translation().inlineStyleRuns ?? [],
 					token.wordIndex
 				),
+				lineBreak: getInlineStyleFlagsForWordIndex(
+					translation().inlineStyleRuns ?? [],
+					token.wordIndex
+				).lineBreak,
 				style: getInlineStyleCss(
 					getInlineStyleFlagsForWordIndex(translation().inlineStyleRuns ?? [], token.wordIndex)
 				)
@@ -790,7 +801,14 @@
 					}}
 				>
 					{#each getStyledSegments() as segment, index (`${index}-${segment.text}`)}
-						<span style={getInlineStyleCss(segment)}>{segment.text}</span>
+						<span style={getInlineStyleCss(segment)}>
+							{segment.text}
+							{#if segment.lineBreak}
+								<span class="material-icons translation-inline-line-break" aria-hidden="true">
+									keyboard_return
+								</span>
+							{/if}
+						</span>
 					{/each}
 				</p>
 			{:else}
@@ -877,5 +895,12 @@
 		right: 0;
 		height: 2px;
 		background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.6), transparent);
+	}
+
+	.translation-inline-line-break {
+		margin-left: 0.12em;
+		font-size: 0.95em;
+		vertical-align: -0.16em;
+		color: var(--accent-primary);
 	}
 </style>

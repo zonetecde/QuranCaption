@@ -3050,7 +3050,7 @@ type RootTranslation = {
 		 */
 		editWbwTimestampContext: string;
 		/**
-		 * W​b​w​ ​S​t​y​l​e
+		 * W​b​w​ ​S​t​y​l​e​/​T​r​a​n​s​l​a​t​i​o​n
 		 */
 		editWbwStyleContext: string;
 		/**
@@ -3493,6 +3493,10 @@ type RootTranslation = {
 		 */
 		underline: string;
 		/**
+		 * N​e​w​ ​l​i​n​e
+		 */
+		newLine: string;
+		/**
 		 * C​o​l​o​r
 		 */
 		color: string;
@@ -3505,7 +3509,7 @@ type RootTranslation = {
 		 */
 		howItWorksDescription1: string;
 		/**
-		 * B​o​l​d​,​ ​i​t​a​l​i​c​ ​a​n​d​ ​u​n​d​e​r​l​i​n​e​ ​a​r​e​ ​t​o​g​g​l​e​d​ ​o​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​.​ ​C​o​l​o​r​ ​i​s​ ​a​p​p​l​i​e​d​ ​w​i​t​h​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​s​w​a​t​c​h​.​ ​E​d​i​t​i​n​g​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​e​x​t​ ​l​a​t​e​r​ ​c​l​e​a​r​s​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​s​t​y​l​e​s​.
+		 * B​o​l​d​,​ ​i​t​a​l​i​c​,​ ​u​n​d​e​r​l​i​n​e​ ​a​n​d​ ​n​e​w​ ​l​i​n​e​ ​a​r​e​ ​t​o​g​g​l​e​d​ ​o​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​.​ ​C​o​l​o​r​ ​i​s​ ​a​p​p​l​i​e​d​ ​w​i​t​h​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​s​w​a​t​c​h​.​ ​E​d​i​t​i​n​g​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​e​x​t​ ​l​a​t​e​r​ ​c​l​e​a​r​s​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​s​t​y​l​e​s​.
 		 */
 		howItWorksDescription2: string;
 		/**
@@ -4105,7 +4109,7 @@ type RootTranslation = {
 			 */
 			'max-height': string;
 			/**
-			 * M​a​x​ ​L​i​n​e​ ​(​A​r​a​b​i​c​)
+			 * M​a​x​ ​L​i​n​e
 			 */
 			'max-line': string;
 			/**
@@ -4137,15 +4141,15 @@ type RootTranslation = {
 			 */
 			'wbw-underline-thickness': string;
 			/**
-			 * Enable wbw glow
+			 * E​n​a​b​l​e​ ​w​b​w​ ​g​l​o​w
 			 */
 			'enable-wbw-glow': string;
 			/**
-			 * Glow color
+			 * G​l​o​w​ ​c​o​l​o​r
 			 */
 			'wbw-glow-color': string;
 			/**
-			 * Glow blur
+			 * G​l​o​w​ ​b​l​u​r
 			 */
 			'wbw-glow-blur': string;
 			/**
@@ -4679,7 +4683,7 @@ type RootTranslation = {
 			 */
 			'max-height': string;
 			/**
-			 * L​i​m​i​t​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​t​o​ ​a​ ​m​a​x​i​m​u​m​ ​n​u​m​b​e​r​ ​o​f​ ​r​e​n​d​e​r​e​d​ ​l​i​n​e​s​.​ ​I​n​f​i​n​i​t​e​ ​=​ ​n​o​ ​l​i​m​i​t​.
+			 * L​i​m​i​t​ ​t​e​x​t​ ​t​o​ ​a​ ​m​a​x​i​m​u​m​ ​n​u​m​b​e​r​ ​o​f​ ​r​e​n​d​e​r​e​d​ ​l​i​n​e​s​.​ ​I​n​f​i​n​i​t​e​ ​=​ ​n​o​ ​l​i​m​i​t​.
 			 */
 			'max-line': string;
 			/**
@@ -4711,15 +4715,15 @@ type RootTranslation = {
 			 */
 			'wbw-underline-thickness': string;
 			/**
-			 * Add a glow around highlighted words
+			 * A​d​d​ ​a​ ​g​l​o​w​ ​a​r​o​u​n​d​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
 			'enable-wbw-glow': string;
 			/**
-			 * Glow color applied to highlighted words
+			 * G​l​o​w​ ​c​o​l​o​r​ ​a​p​p​l​i​e​d​ ​t​o​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
 			'wbw-glow-color': string;
 			/**
-			 * Set the blur radius of the wbw glow
+			 * S​e​t​ ​t​h​e​ ​b​l​u​r​ ​r​a​d​i​u​s​ ​o​f​ ​t​h​e​ ​w​b​w​ ​g​l​o​w
 			 */
 			'wbw-glow-blur': string;
 			/**
@@ -11587,7 +11591,7 @@ export type TranslationFunctions = {
 		 */
 		editWbwTimestampContext: () => LocalizedString;
 		/**
-		 * Wbw Style
+		 * Wbw Style/Translation
 		 */
 		editWbwStyleContext: () => LocalizedString;
 		/**
@@ -12019,6 +12023,10 @@ export type TranslationFunctions = {
 		 */
 		underline: () => LocalizedString;
 		/**
+		 * New line
+		 */
+		newLine: () => LocalizedString;
+		/**
 		 * Color
 		 */
 		color: () => LocalizedString;
@@ -12031,7 +12039,7 @@ export type TranslationFunctions = {
 		 */
 		howItWorksDescription1: () => LocalizedString;
 		/**
-		 * Bold, italic and underline are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.
+		 * Bold, italic, underline and new line are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.
 		 */
 		howItWorksDescription2: () => LocalizedString;
 		/**

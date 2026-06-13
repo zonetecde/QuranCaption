@@ -260,6 +260,19 @@
 
 		for (let index = 0; index < tokens.length; index++) {
 			const token = tokens[index];
+			const previousWordToken = tokens
+				.slice(0, index)
+				.reverse()
+				.find((item) => item.isWord);
+			const previousFlags =
+				previousWordToken?.wordIndex !== null && previousWordToken?.wordIndex !== undefined
+					? getInlineStyleFlagsForWordIndex(
+							translation.inlineStyleRuns ?? [],
+							previousWordToken.wordIndex
+						)
+					: null;
+			if (!token.isWord && previousFlags?.lineBreak) continue;
+
 			const segment: TranslationWbwOverlaySegment = {
 				key: `${editionName}-${subtitle.id}-wbw-${index}`,
 				text: token.text,
@@ -491,6 +504,9 @@
 				<span style={segmentStyle}>{segment.text}</span>
 			{:else}
 				{segment.text}
+			{/if}
+			{#if segment.flags.lineBreak}
+				<br />
 			{/if}
 		{/each}
 	</span>

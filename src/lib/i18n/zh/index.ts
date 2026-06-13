@@ -877,12 +877,13 @@ const zh: Translation = {
 		bold: '粗体',
 		italic: '斜体',
 		underline: '下划线',
+		newLine: '换行',
 		color: '颜色',
 		howItWorks: '工作原理',
 		howItWorksDescription1:
 			'启用样式模式，保持一个或多个切换开关活跃，然后在裁剪的翻译或阿拉伯语段落中的词汇上拖动。',
 		howItWorksDescription2:
-			'粗体、斜体和下划线在所选范围内切换。颜色使用当前色样应用。编辑翻译文本会移除翻译的词汇样式。',
+			'粗体、斜体、下划线和换行在所选范围内切换。颜色使用当前色样应用。编辑翻译文本会移除翻译的词汇样式。',
 		selectAtLeastOneStyle: '请在应用前选择至少一种样式。',
 		globalActions: '全局操作',
 		resetAllSegmentStyles: '重置所有段落样式',

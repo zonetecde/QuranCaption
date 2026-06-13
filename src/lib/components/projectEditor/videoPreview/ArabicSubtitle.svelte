@@ -360,6 +360,7 @@
 			bold: Boolean(base.bold || override.bold),
 			italic: Boolean(base.italic || override.italic),
 			underline: Boolean(base.underline || override.underline),
+			lineBreak: Boolean(base.lineBreak || override.lineBreak),
 			color: override.color ?? base.color ?? null
 		};
 	}

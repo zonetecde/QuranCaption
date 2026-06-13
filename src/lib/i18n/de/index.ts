@@ -964,12 +964,13 @@ const de: Translation = {
 		bold: 'Fett',
 		italic: 'Kursiv',
 		underline: 'Unterstrichen',
+		newLine: 'Neue Zeile',
 		color: 'Farbe',
 		howItWorks: 'So funktioniert es',
 		howItWorksDescription1:
 			'Aktivieren Sie den Stilmodus, halten Sie eine oder mehrere Umschaltungen aktiv und ziehen Sie dann über die Wörter in der zugeschnittenen Übersetzung oder dem arabischen Segment.',
 		howItWorksDescription2:
-			'Fett, kursiv und unterstrichen werden auf den ausgewählten Bereich umgeschaltet. Farbe wird mit dem aktuellen Farbfeld angewendet. Das Bearbeiten des Übersetzungstextes entfernt die Wortstile der Übersetzung.',
+			'Fett, kursiv, unterstrichen und neue Zeile werden auf den ausgewählten Bereich umgeschaltet. Farbe wird mit dem aktuellen Farbfeld angewendet. Das Bearbeiten des Übersetzungstextes entfernt die Wortstile der Übersetzung.',
 		selectAtLeastOneStyle: 'Wählen Sie mindestens einen Stil aus, bevor Sie ihn anwenden.',
 		globalActions: 'Globale Aktionen',
 		resetAllSegmentStyles: 'Alle Segmentstile zurücksetzen',

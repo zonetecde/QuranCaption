@@ -968,12 +968,13 @@ const es: Translation = {
 		bold: 'Negrita',
 		italic: 'Cursiva',
 		underline: 'Subrayado',
+		newLine: 'Nueva línea',
 		color: 'Color',
 		howItWorks: 'Cómo funciona',
 		howItWorksDescription1:
 			'Active el modo estilo, mantenga uno o más alternadores activos, luego arrastre sobre las palabras en la traducción recortada o el segmento árabe.',
 		howItWorksDescription2:
-			'Negrita, cursiva y subrayado se alternan en el rango seleccionado. El color se aplica con la muestra actual. Modificar el texto de la traducción elimina los estilos de palabra de la traducción.',
+			'Negrita, cursiva, subrayado y nueva línea se alternan en el rango seleccionado. El color se aplica con la muestra actual. Modificar el texto de la traducción elimina los estilos de palabra de la traducción.',
 		selectAtLeastOneStyle: 'Seleccione al menos un estilo antes de aplicarlo.',
 		globalActions: 'Acciones globales',
 		resetAllSegmentStyles: 'Restablecer todos los estilos de segmento',

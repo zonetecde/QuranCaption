@@ -967,12 +967,13 @@ const fr: Translation = {
 		bold: 'Gras',
 		italic: 'Italique',
 		underline: 'Souligné',
+		newLine: 'Nouvelle ligne',
 		color: 'Couleur',
 		howItWorks: 'Comment ça marche',
 		howItWorksDescription1:
 			'Activez le mode style, gardez un ou plusieurs bascules actifs, puis faites glisser sur les mots dans la traduction rognée ou le segment arabe.',
 		howItWorksDescription2:
-			'Gras, italique et souligné sont basculés sur la plage sélectionnée. La couleur est appliquée avec l\u2019échantillon actuel. Modifier le texte de la traduction supprime les styles de mots de la traduction.',
+			'Gras, italique, souligné et nouvelle ligne sont basculés sur la plage sélectionnée. La couleur est appliquée avec l\u2019échantillon actuel. Modifier le texte de la traduction supprime les styles de mots de la traduction.',
 		selectAtLeastOneStyle: 'Sélectionnez au moins un style avant de l\u2019appliquer.',
 		globalActions: 'Actions globales',
 		resetAllSegmentStyles: 'Réinitialiser tous les styles de segment',

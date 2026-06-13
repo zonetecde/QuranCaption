@@ -13,9 +13,12 @@ Rules:
 - Avoid adding dependencies unless absolutely required.
 - Preserve current behavior outside the requested feature.
 - Follow the existing code style and architecture of the repository.
+- Always read and write files as UTF-8.
 - Always localize new or changed user-facing text in all supported languages before finishing.
 - Use `$lib/i18n/i18n-svelte` (`LL`) and `get(LL)` to resolve displayed strings — never hardcode
   user-facing text.
+- After running the i18n generation command, assume generated i18n files are correct and do not
+  inspect or double-check them unless there is a concrete error to fix.
 - When implementing a feature that mutates project state (style changes, clip edits, translations,
   etc.), always wrap it with `ProjectHistoryManager` (`.track()`, `.begin()`/`.commit()`, or
   `.trackAsync()`) so it supports undo/redo.

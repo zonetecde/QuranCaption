@@ -4,6 +4,7 @@
 	type TranslationWordSelectorItem = {
 		text: string;
 		wordIndex: number;
+		lineBreak?: boolean;
 		style?: string;
 	};
 
@@ -114,6 +115,11 @@
 			ondragstart={(event) => event.preventDefault()}
 		>
 			{word.text}
+			{#if word.lineBreak}
+				<span class="material-icons translation-word-line-break" aria-hidden="true">
+					keyboard_return
+				</span>
+			{/if}
 		</button>
 	{/each}
 </div>
@@ -129,6 +135,14 @@
 		line-height: inherit;
 		min-height: 0;
 		box-shadow: none;
+	}
+
+	.translation-word-line-break {
+		margin-left: 0.1em;
+		font-size: 0.95em;
+		line-height: 0;
+		vertical-align: -0.16em;
+		color: var(--accent-primary);
 	}
 
 	.translation-style-flow {

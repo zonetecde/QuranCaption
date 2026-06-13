@@ -19,6 +19,7 @@
 			translationsEditorState().inlineStyleBoldEnabled ||
 			translationsEditorState().inlineStyleItalicEnabled ||
 			translationsEditorState().inlineStyleUnderlineEnabled ||
+			translationsEditorState().inlineStyleLineBreakEnabled ||
 			translationsEditorState().inlineStyleColorEnabled
 	);
 
@@ -30,6 +31,7 @@
 			| 'inlineStyleBoldEnabled'
 			| 'inlineStyleItalicEnabled'
 			| 'inlineStyleUnderlineEnabled'
+			| 'inlineStyleLineBreakEnabled'
 			| 'inlineStyleColorEnabled'
 	): void {
 		translationsEditorState()[property] = !translationsEditorState()[property];
@@ -224,6 +226,25 @@
 				</span>
 				<span class="text-xs"
 					>{translationsEditorState().inlineStyleUnderlineEnabled
+						? $LL.common.on()
+						: $LL.common.off()}</span
+				>
+			</button>
+
+			<button
+				class={`w-full rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-200 flex items-center justify-between ${
+					translationsEditorState().inlineStyleLineBreakEnabled
+						? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,var(--bg-secondary))] text-primary'
+						: 'border-color bg-accent text-secondary hover:text-primary'
+				}`}
+				onclick={() => toggleStyle('inlineStyleLineBreakEnabled')}
+			>
+				<span class="flex items-center gap-2">
+					<span class="material-icons text-base">keyboard_return</span>
+					{$LL.editor.newLine()}
+				</span>
+				<span class="text-xs"
+					>{translationsEditorState().inlineStyleLineBreakEnabled
 						? $LL.common.on()
 						: $LL.common.off()}</span
 				>

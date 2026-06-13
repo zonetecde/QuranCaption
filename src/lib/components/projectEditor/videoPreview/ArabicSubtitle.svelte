@@ -648,8 +648,13 @@
 											wordEntry.flags
 										)}
 									>
-										{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}
+										{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
+											? ' '
+											: ''}
 									</span>
+									{#if wordEntry.flags.lineBreak}
+										<br />
+									{/if}
 								{/each}
 								{#if group.suffix}
 									{@const suffixOpacity = state.alwaysShowVerseNumber
@@ -719,8 +724,13 @@
 										wordEntry.flags
 									)}
 								>
-									{wordEntry.text}{i < group.words.length - 1 ? ' ' : ''}
+									{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
+										? ' '
+										: ''}
 								</span>
+								{#if wordEntry.flags.lineBreak}
+									<br />
+								{/if}
 							{/each}
 							{#if group.suffix}
 								{@const suffixOpacity = state.alwaysShowVerseNumber
@@ -776,6 +786,9 @@
 				<span style={segmentStyle}>{segment.text}</span>
 			{:else}
 				{segment.text}
+			{/if}
+			{#if segment.flags.lineBreak}
+				<br />
 			{/if}
 		{/each}
 	</span>

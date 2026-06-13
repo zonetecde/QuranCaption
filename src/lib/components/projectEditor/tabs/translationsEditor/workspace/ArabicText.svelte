@@ -207,7 +207,14 @@
 					}
 				}}
 			>
-				<span style={getInlineStyleCss(flags)}>{word}</span>
+				<span style={getInlineStyleCss(flags)}>
+					{word}
+					{#if flags.lineBreak}
+						<span class="material-icons arabic-inline-line-break" aria-hidden="true">
+							keyboard_return
+						</span>
+					{/if}
+				</span>
 
 				<span
 					class="word-translation-tooltip group-hover:block hidden text-sm absolute top-10 w-max px-1.5 border-2 rounded-lg text-center z-20"
@@ -281,5 +288,12 @@
 
 	.arabic-wbw-mapped {
 		background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+	}
+
+	.arabic-inline-line-break {
+		margin-inline-start: 0.1em;
+		font-size: 0.55em;
+		vertical-align: 0.05em;
+		color: var(--accent-primary);
 	}
 </style>

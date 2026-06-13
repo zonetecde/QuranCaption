@@ -172,14 +172,12 @@
 	});
 
 	/**
-	 * Indique si la traduction visible contient un retour ligne manuel.
+	 * Indique si le sous-titre visible contient un retour ligne manuel.
 	 *
-	 * @param {string} target Nom de l'édition de traduction.
+	 * @param {string} target Cible de style.
 	 * @returns {boolean} `true` si au moins un run force un retour ligne.
 	 */
-	function hasForcedTranslationLineBreak(target: string): boolean {
-		if (target === 'arabic') return false;
-
+	function hasForcedLineBreak(target: string): boolean {
 		const subtitle = currentSubtitle();
 		const mergedGroup = currentVisualMergeGroup();
 		const clips =
@@ -190,6 +188,10 @@
 					: [];
 
 		return clips.some((clip) => {
+			if (target === 'arabic') {
+				return (clip.arabicInlineStyleRuns ?? []).some((run) => Boolean(run.lineBreak));
+			}
+
 			const translation = clip.translations[target];
 			return (
 				translation instanceof VerseTranslation &&
@@ -534,7 +536,7 @@
 				globalState.getTimelineState.movePreviewTo,
 				globalState.getStyle('arabic', 'max-height').value,
 				...targets.map((target) => globalState.getStyle(target, 'max-line').value),
-				...targets.map((target) => hasForcedTranslationLineBreak(target)),
+				...targets.map((target) => hasForcedLineBreak(target)),
 				globalState.getStyle('arabic', 'font-size').value,
 				globalState.getStyle('global', 'spacing').value
 			);
@@ -574,7 +576,7 @@
 								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
 							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
-							const maxLineValue = hasForcedTranslationLineBreak(target)
+							const maxLineValue = hasForcedLineBreak(target)
 								? Infinity
 								: Number(globalState.getStyle(target, 'max-line').value);
 							const initialFontSize = Number(

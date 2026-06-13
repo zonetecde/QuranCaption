@@ -236,6 +236,9 @@ export class TimelineState extends SerializableBase {
 	// State permettant de trigger le changement du temps de la vidéo et de l'audio dans la preview
 	movePreviewTo: number = $state(0);
 
+	// Token non temporel pour forcer un rafraîchissement de la preview sans bouger le curseur
+	previewRefreshToken: number = $state(0);
+
 	// Position du scroll
 	scrollX: number = $state(0);
 

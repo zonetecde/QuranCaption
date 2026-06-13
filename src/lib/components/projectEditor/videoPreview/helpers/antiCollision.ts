@@ -62,41 +62,52 @@ export async function resolveSubtitleCollisions(
 	setReactiveY: (target: string, value: number) => void,
 	wait: (signal: AbortSignal) => Promise<void>
 ): Promise<void> {
-	const allSubtitles = document.querySelectorAll('#subtitles-container .subtitle');
+	let allSubtitles = document.querySelectorAll('#subtitles-container .subtitle');
+	if (allSubtitles.length === 0) {
+		allSubtitles = document.querySelectorAll('.subtitle');
+	}
 	const subtitleElements = Array.from(allSubtitles) as HTMLElement[];
+	const subtitleRects = subtitleElements
+		.map((element) => {
+			const target = getTargetFromElement(element, translationKeys);
+			if (!target) return null;
+			return {
+				target,
+				rect: element.getBoundingClientRect()
+			};
+		})
+		.filter(
+			(entry): entry is { target: string; rect: DOMRect } =>
+				entry !== null && entry.rect.width > 0 && entry.rect.height > 0
+		);
+
+	const offsets = new Map<string, number>();
+	for (const entry of subtitleRects) {
+		if (!offsets.has(entry.target)) offsets.set(entry.target, getReactiveY(entry.target));
+	}
 
 	// Set pour éviter de traiter deux fois la même paire (targetA, targetB)
 	const processedPairs = new Set<string>();
 
-	for (let i = 0; i < subtitleElements.length; i++) {
+	for (let i = 0; i < subtitleRects.length; i++) {
 		if (abortSignal.aborted) return;
 
-		const currentElement = subtitleElements[i];
-		const currentTarget = getTargetFromElement(currentElement, translationKeys);
-
-		if (!currentTarget) continue;
-
-		const currentRect = currentElement.getBoundingClientRect();
+		const currentEntry = subtitleRects[i];
 
 		// On ne compare qu'avec les éléments suivants (j > i) pour éviter les doublons
-		for (let j = i + 1; j < subtitleElements.length; j++) {
-			const otherElement = subtitleElements[j];
-			const otherTarget = getTargetFromElement(otherElement, translationKeys);
+		for (let j = i + 1; j < subtitleRects.length; j++) {
+			const otherEntry = subtitleRects[j];
 
 			// Vérification : targets différents, pas déjà traités
-			if (!otherTarget || currentTarget === otherTarget) continue;
+			if (currentEntry.target === otherEntry.target) continue;
 
-			const pairId = [currentTarget, otherTarget].sort().join('-');
+			const pairId = [currentEntry.target, otherEntry.target].sort().join('-');
 			if (processedPairs.has(pairId)) continue;
 
 			// Détection de collision via les rectangles englobants
-			const otherRect = otherElement.getBoundingClientRect();
-			const isColliding = !(
-				currentRect.bottom < otherRect.top ||
-				currentRect.top > otherRect.bottom ||
-				currentRect.right < otherRect.left ||
-				currentRect.left > otherRect.right
-			);
+			const currentRect = getAdjustedRect(currentEntry.rect, offsets.get(currentEntry.target) ?? 0);
+			const otherRect = getAdjustedRect(otherEntry.rect, offsets.get(otherEntry.target) ?? 0);
+			const isColliding = areRectsColliding(currentRect, otherRect, spacing);
 
 			if (!isColliding) continue;
 
@@ -104,44 +115,64 @@ export async function resolveSubtitleCollisions(
 			processedPairs.add(pairId);
 
 			// On décale l'élément le plus bas
-			const targetToAdjust = currentRect.top > otherRect.top ? currentTarget : otherTarget;
+			const targetToAdjust =
+				currentRect.top > otherRect.top ? currentEntry.target : otherEntry.target;
+			const upperRect = targetToAdjust === currentEntry.target ? otherRect : currentRect;
+			const lowerRect = targetToAdjust === currentEntry.target ? currentRect : otherRect;
+			const adjustmentNeeded = Math.max(0, upperRect.bottom + spacing - lowerRect.top);
 
-			let stillColliding: boolean;
-			let iterationCount = 0;
-			const maxIterations = 10; // Sécurité anti-boucle infinie
-
-			do {
-				iterationCount++;
-
-				if (abortSignal.aborted) return;
-
-				// Recalcule les positions après chaque ajustement
-				const currentRectLoop = currentElement.getBoundingClientRect();
-				const otherRectLoop = otherElement.getBoundingClientRect();
-
-				// Calcule le chevauchement vertical
-				const overlapHeight = Math.abs(currentRectLoop.bottom - otherRectLoop.top);
-				const adjustmentNeeded = overlapHeight + spacing;
-
-				const currentValue = getReactiveY(targetToAdjust);
-				const newValue = currentValue + adjustmentNeeded;
-
-				setReactiveY(targetToAdjust, newValue);
-
-				// Laisse le DOM se mettre à jour
-				await wait(abortSignal);
-
-				// Vérifie si la collision persiste
-				const newCurrentRect = currentElement.getBoundingClientRect();
-				const newOtherRect = otherElement.getBoundingClientRect();
-
-				stillColliding = !(
-					newCurrentRect.bottom + spacing < newOtherRect.top ||
-					newCurrentRect.top - spacing > newOtherRect.bottom ||
-					newCurrentRect.right + spacing < newOtherRect.left ||
-					newCurrentRect.left - spacing > newOtherRect.right
-				);
-			} while (stillColliding && iterationCount < maxIterations);
+			if (adjustmentNeeded > 0) {
+				offsets.set(targetToAdjust, (offsets.get(targetToAdjust) ?? 0) + adjustmentNeeded);
+			}
 		}
 	}
+
+	let hasUpdates = false;
+	for (const [target, value] of offsets) {
+		if (value === getReactiveY(target)) continue;
+		setReactiveY(target, value);
+		hasUpdates = true;
+	}
+
+	if (hasUpdates) await wait(abortSignal);
+}
+
+/**
+ * Décale virtuellement un rectangle sans relire le layout DOM.
+ *
+ * @param rect - Rectangle mesuré initialement.
+ * @param offsetY - Décalage vertical appliqué en mémoire.
+ * @returns Rectangle minimal utilisé pour les calculs de collision.
+ */
+function getAdjustedRect(
+	rect: DOMRect,
+	offsetY: number
+): Pick<DOMRect, 'top' | 'right' | 'bottom' | 'left'> {
+	return {
+		top: rect.top + offsetY,
+		right: rect.right,
+		bottom: rect.bottom + offsetY,
+		left: rect.left
+	};
+}
+
+/**
+ * Détecte une collision entre deux rectangles avec une marge minimale.
+ *
+ * @param firstRect - Premier rectangle.
+ * @param secondRect - Second rectangle.
+ * @param spacing - Espacement minimal souhaité.
+ * @returns `true` si les rectangles se chevauchent ou sont trop proches.
+ */
+function areRectsColliding(
+	firstRect: Pick<DOMRect, 'top' | 'right' | 'bottom' | 'left'>,
+	secondRect: Pick<DOMRect, 'top' | 'right' | 'bottom' | 'left'>,
+	spacing: number
+): boolean {
+	return !(
+		firstRect.bottom + spacing < secondRect.top ||
+		firstRect.top - spacing > secondRect.bottom ||
+		firstRect.right + spacing < secondRect.left ||
+		firstRect.left - spacing > secondRect.right
+	);
 }

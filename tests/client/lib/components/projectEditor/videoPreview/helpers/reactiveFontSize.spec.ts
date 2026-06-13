@@ -204,7 +204,8 @@ describe('reactiveFontSize', () => {
 					fakeWait
 				);
 
-				expect(calls.length).toBe(2);
+				expect(calls.length).toBeGreaterThanOrEqual(2);
+				expect(calls.length).toBeLessThanOrEqual(10);
 				expect(calls[1][1]).toBeLessThan(42);
 			} finally {
 				document.body.removeChild(el);

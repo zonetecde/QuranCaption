@@ -44,6 +44,8 @@
 		subtitleOpacity: number;
 		/** CSS complet généré pour la cible arabe (hors background/border). */
 		css: string;
+		/** CSS runtime calculé par la preview (font-size et offset non persistés). */
+		runtimeLayoutCss: string;
 		/** Classes Tailwind générées pour la cible arabe. */
 		tailwind: string;
 		/** Classes CSS d'aide visuelle (ex: surbrillance de la zone éditée). */
@@ -55,6 +57,7 @@
 	let {
 		subtitleOpacity,
 		css,
+		runtimeLayoutCss,
 		tailwind,
 		helperStyles,
 		isExportCapturePreview
@@ -610,7 +613,7 @@
 			horizontalStyleId: 'horizontal-position'
 		}}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
-		style="opacity: {subtitleOpacity}; {css}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
+		style="opacity: {subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>
 		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
 			{@const subtitle = currentSubtitle()}

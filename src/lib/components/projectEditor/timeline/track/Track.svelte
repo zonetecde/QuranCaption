@@ -26,16 +26,7 @@
 		visibleRangeEndMs: number;
 	} = $props();
 
-	let visibleClips = $derived(() =>
-		track.clips
-			.map((clip, clipIndex) => ({ clip, clipIndex }))
-			.filter(
-				({ clip }) =>
-					(track.type === TrackType.CustomClip &&
-						(clip as TimelineCustomClipLike).getAlwaysShow?.() === true) ||
-					(clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs)
-			)
-	);
+	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
 
 	let visibleCustomClips = $derived(() =>
 		getTimelineCustomClips()
@@ -71,8 +62,17 @@
 		const subtitleTrack = track as SubtitleTrack;
 		const pixelPerSecond = track.getPixelPerSecond();
 		const buttons: QuickMergeButtonCandidate[] = [];
+		const candidateIndexes = new Set<number>();
 
-		for (let clipIndex = 0; clipIndex < subtitleTrack.clips.length - 1; clipIndex++) {
+		for (const { clipIndex } of subtitleTrack.getClipsInRange(
+			visibleRangeStartMs,
+			visibleRangeEndMs
+		)) {
+			if (clipIndex > 0) candidateIndexes.add(clipIndex - 1);
+			if (clipIndex < subtitleTrack.clips.length - 1) candidateIndexes.add(clipIndex);
+		}
+
+		for (const clipIndex of [...candidateIndexes].sort((a, b) => a - b)) {
 			const leftClip = subtitleTrack.clips[clipIndex];
 			const rightClip = subtitleTrack.clips[clipIndex + 1];
 

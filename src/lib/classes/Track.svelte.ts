@@ -53,6 +53,118 @@ type WordBoundarySplitCandidate = {
 	splitTimeMs: number;
 };
 
+const trackClipIndexCache = new WeakMap<Track, Map<number, number>>();
+
+/**
+ * Indique si les clips sont triés par temps de début croissant.
+ *
+ * @param {Clip[]} clips Clips de la piste.
+ * @returns {boolean} `true` si la piste peut utiliser une recherche binaire.
+ */
+function areClipsSortedByStartTime(clips: Clip[]): boolean {
+	for (let index = 1; index < clips.length; index++) {
+		if (clips[index].startTime < clips[index - 1].startTime) return false;
+	}
+	return true;
+}
+
+/**
+ * Retourne l'index d'un clip par ID avec un cache faible non sérialisé.
+ *
+ * @param {Track} track Piste contenant les clips.
+ * @param {number} clipId ID du clip cherché.
+ * @returns {number} Index du clip, ou `-1`.
+ */
+function getClipIndexById(track: Track, clipId: number): number {
+	let cache = trackClipIndexCache.get(track);
+	if (!cache) {
+		cache = new Map();
+		trackClipIndexCache.set(track, cache);
+	}
+
+	const cachedIndex = cache.get(clipId);
+	if (cachedIndex !== undefined && track.clips[cachedIndex]?.id === clipId) {
+		return cachedIndex;
+	}
+
+	const index = track.clips.findIndex((clip) => clip.id === clipId);
+	if (index !== -1) cache.set(clipId, index);
+	else cache.delete(clipId);
+	return index;
+}
+
+/**
+ * Retourne l'index du clip actif à un temps donné.
+ *
+ * @param {Clip[]} clips Clips de la piste.
+ * @param {number} timeMs Temps courant en millisecondes.
+ * @returns {number} Index du clip actif, ou `-1`.
+ */
+function findClipIndexAtTime(clips: Clip[], timeMs: number): number {
+	if (!areClipsSortedByStartTime(clips)) {
+		return clips.findIndex((clip) => timeMs >= clip.startTime && timeMs <= clip.endTime);
+	}
+
+	let low = 0;
+	let high = clips.length - 1;
+	let candidate = -1;
+
+	while (low <= high) {
+		const mid = Math.floor((low + high) / 2);
+		const clip = clips[mid];
+
+		if (clip.startTime <= timeMs) {
+			candidate = mid;
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
+	}
+
+	if (candidate === -1) return -1;
+	return timeMs <= clips[candidate].endTime ? candidate : -1;
+}
+
+/**
+ * Retourne le premier index qui peut chevaucher une plage visible.
+ *
+ * @param {Clip[]} clips Clips triés par startTime.
+ * @param {number} rangeStartMs Début de plage en millisecondes.
+ * @returns {number} Index de départ.
+ */
+function findFirstVisibleClipIndex(clips: Clip[], rangeStartMs: number): number {
+	let low = 0;
+	let high = clips.length - 1;
+	let result = clips.length;
+
+	while (low <= high) {
+		const mid = Math.floor((low + high) / 2);
+		if (clips[mid].endTime >= rangeStartMs) {
+			result = mid;
+			high = mid - 1;
+		} else {
+			low = mid + 1;
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Indique si un clip appartient au même groupe de merge visuel qu'une référence.
+ *
+ * @param {Clip} clip Clip à vérifier.
+ * @param {SubtitleClip} referenceClip Clip de référence du groupe.
+ * @returns {boolean} `true` si le clip est dans le même groupe.
+ */
+function isSameVisualMergeClip(clip: Clip, referenceClip: SubtitleClip): boolean {
+	return (
+		clip instanceof SubtitleClip &&
+		clip.visualMergeGroupId === referenceClip.visualMergeGroupId &&
+		clip.visualMergeMode === referenceClip.visualMergeMode
+	);
+}
+
 export class Track extends SerializableBase {
 	type: TrackType = $state(TrackType.Unknown);
 	clips: Clip[] = $state([]);
@@ -112,8 +224,9 @@ export class Track extends SerializableBase {
 		}
 	}
 
-	getClipById(clipId: number) {
-		return this.clips.find((clip) => clip.id === clipId)!;
+	getClipById(clipId: number): Clip {
+		const index = getClipIndexById(this, clipId);
+		return this.clips[index]!;
 	}
 
 	getName(): string {
@@ -171,37 +284,52 @@ export class Track extends SerializableBase {
 	getCurrentClip(cursorPos?: number): Clip | null {
 		const currentTime =
 			cursorPos ?? globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? 0;
-
-		for (let index = 0; index < this.clips.length; index++) {
-			const element = this.clips[index];
-			if (currentTime >= element.startTime && currentTime <= element.endTime) {
-				return element;
-			}
-		}
-
-		return null;
+		const index = findClipIndexAtTime(this.clips, currentTime);
+		return index === -1 ? null : this.clips[index];
 	}
 
 	getClipBefore(id: number) {
-		for (let i = 0; i < this.clips.length; i++) {
-			const element = this.clips[i];
-			if (element.id === id) {
-				return i > 0 ? this.clips[i - 1] : null;
-			}
-		}
+		const index = getClipIndexById(this, id);
+		return index > 0 ? this.clips[index - 1] : null;
 	}
 
 	getClipAfter(id: number) {
-		for (let i = 0; i < this.clips.length; i++) {
-			const element = this.clips[i];
-			if (element.id === id) {
-				return i < this.clips.length - 1 ? this.clips[i + 1] : null;
-			}
-		}
+		const index = getClipIndexById(this, id);
+		return index !== -1 && index < this.clips.length - 1 ? this.clips[index + 1] : null;
 	}
 
 	getLastClip() {
 		return this.clips[this.clips.length - 1] || null;
+	}
+
+	/**
+	 * Retourne les clips qui chevauchent une plage de timeline.
+	 *
+	 * @param {number} startMs Début de plage visible en millisecondes.
+	 * @param {number} endMs Fin de plage visible en millisecondes.
+	 * @returns {Array<{ clip: Clip; clipIndex: number }>} Clips visibles avec leur index.
+	 */
+	getClipsInRange(startMs: number, endMs: number): Array<{ clip: Clip; clipIndex: number }> {
+		if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+			return this.clips.map((clip, clipIndex) => ({ clip, clipIndex }));
+		}
+
+		if (!areClipsSortedByStartTime(this.clips)) {
+			return this.clips
+				.map((clip, clipIndex) => ({ clip, clipIndex }))
+				.filter(({ clip }) => clip.endTime >= startMs && clip.startTime <= endMs);
+		}
+
+		const visibleClips: Array<{ clip: Clip; clipIndex: number }> = [];
+		const startIndex = findFirstVisibleClipIndex(this.clips, startMs);
+
+		for (let clipIndex = startIndex; clipIndex < this.clips.length; clipIndex++) {
+			const clip = this.clips[clipIndex];
+			if (clip.startTime > endMs) break;
+			if (clip.endTime >= startMs) visibleClips.push({ clip, clipIndex });
+		}
+
+		return visibleClips;
 	}
 }
 
@@ -655,38 +783,49 @@ export class SubtitleTrack extends Track {
 	 * @returns {VisualMergeGroup | null} Le groupe valide ou `null`.
 	 */
 	getVisualMergeGroupForClipId(clipId: number): VisualMergeGroup | null {
-		const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
+		const clipIndex = getClipIndexById(this, clipId);
 		const clip = clipIndex === -1 ? null : this.clips[clipIndex];
 
 		if (!(clip instanceof SubtitleClip) || !clip.visualMergeGroupId || !clip.visualMergeMode) {
 			return null;
 		}
 
-		const mergedClips = this.clips
-			.map((trackClip, index) => ({ clip: trackClip, index }))
-			.filter(
-				(entry): entry is { clip: SubtitleClip; index: number } =>
-					entry.clip instanceof SubtitleClip &&
-					entry.clip.visualMergeGroupId === clip.visualMergeGroupId &&
-					entry.clip.visualMergeMode === clip.visualMergeMode
-			);
+		let startIndex = clipIndex;
+		let endIndex = clipIndex;
 
-		if (mergedClips.length <= 1) return null;
-
-		for (let index = 1; index < mergedClips.length; index++) {
-			if (mergedClips[index].index !== mergedClips[index - 1].index + 1) {
-				return null;
-			}
+		while (startIndex > 0 && isSameVisualMergeClip(this.clips[startIndex - 1], clip)) {
+			startIndex--;
 		}
+
+		while (
+			endIndex < this.clips.length - 1 &&
+			isSameVisualMergeClip(this.clips[endIndex + 1], clip)
+		) {
+			endIndex++;
+		}
+
+		if (endIndex - startIndex < 1) return null;
+
+		const mergedClips = this.clips.slice(startIndex, endIndex + 1) as SubtitleClip[];
+
+		if (
+			mergedClips.some(
+				(mergedClip) =>
+					!(mergedClip instanceof SubtitleClip) ||
+					mergedClip.visualMergeGroupId !== clip.visualMergeGroupId ||
+					mergedClip.visualMergeMode !== clip.visualMergeMode
+			)
+		)
+			return null;
 
 		return {
 			groupId: clip.visualMergeGroupId,
 			mode: clip.visualMergeMode,
-			clips: mergedClips.map((entry) => entry.clip),
-			firstClip: mergedClips[0].clip,
-			lastClip: mergedClips[mergedClips.length - 1].clip,
-			startTime: mergedClips[0].clip.startTime,
-			endTime: mergedClips[mergedClips.length - 1].clip.endTime
+			clips: mergedClips,
+			firstClip: mergedClips[0],
+			lastClip: mergedClips[mergedClips.length - 1],
+			startTime: mergedClips[0].startTime,
+			endTime: mergedClips[mergedClips.length - 1].endTime
 		};
 	}
 
@@ -1314,17 +1453,15 @@ export class SubtitleTrack extends Track {
 		anyType: boolean = false
 	): SubtitleClip | PredefinedSubtitleClip | null | Clip {
 		const cursorPos = globalState.getTimelineState.cursorPosition;
-		for (let i = 0; i < this.clips.length; i++) {
-			const clip = this.clips[i];
+		const clip = this.getCurrentClip(cursorPos);
 
-			if (
-				cursorPos >= clip.startTime &&
-				cursorPos <= clip.endTime &&
-				(anyType || clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)
-			) {
-				return clip;
-			}
+		if (
+			clip &&
+			(anyType || clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)
+		) {
+			return clip;
 		}
+
 		return null;
 	}
 

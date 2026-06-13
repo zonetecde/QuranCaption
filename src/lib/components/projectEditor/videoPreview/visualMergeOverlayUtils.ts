@@ -111,6 +111,49 @@ export function joinOverlaySegmentGroups(
 }
 
 /**
+ * Indique si deux segments peuvent être fusionnés sans perdre de style inline.
+ * @param {OverlayTextSegment} first Premier segment.
+ * @param {OverlayTextSegment} second Second segment.
+ * @returns {boolean} `true` si leurs styles sont identiques.
+ */
+function canMergeAdjacentSegments(first: OverlayTextSegment, second: OverlayTextSegment): boolean {
+	return (
+		first.extraCss === second.extraCss &&
+		first.flags.bold === second.flags.bold &&
+		first.flags.italic === second.flags.italic &&
+		first.flags.underline === second.flags.underline &&
+		first.flags.color === second.flags.color &&
+		first.flags.lineBreak === second.flags.lineBreak
+	);
+}
+
+/**
+ * Ajoute des segments en évitant un noeud DOM séparé quand le séparateur est vide.
+ * @param {OverlayTextSegment[]} output Segments déjà construits.
+ * @param {OverlayTextSegment[]} segments Segments à ajouter.
+ * @returns {void}
+ */
+function appendSegmentsWithoutSeparator(
+	output: OverlayTextSegment[],
+	segments: OverlayTextSegment[]
+): void {
+	const previous = output.at(-1);
+	const first = segments[0];
+
+	if (previous && first && canMergeAdjacentSegments(previous, first)) {
+		output[output.length - 1] = {
+			...previous,
+			key: `${previous.key}-${first.key}`,
+			text: previous.text + first.text
+		};
+		output.push(...segments.slice(1));
+		return;
+	}
+
+	output.push(...segments);
+}
+
+/**
  * Tronque des exécutions inline après suppression d'un préfixe de mots.
  * @param {TranslationInlineStyleRun[] | null | undefined} runs Exécutions à ajuster.
  * @param {number} removedWords Nombre de mots retirés en tête.
@@ -284,13 +327,24 @@ export function getVisibleTranslationSegments(
 	const hasCjkSegments = groups.some((segments) =>
 		segments.some((segment) => hasCjkText(segment.text))
 	);
-	return groups.flatMap((segments, index) => {
-		if (index === 0) return segments;
+	const output: OverlayTextSegment[] = [];
+	for (let index = 0; index < groups.length; index++) {
+		const segments = groups[index];
+		if (index === 0) {
+			output.push(...segments);
+			continue;
+		}
+
 		const previousLastSegment = groups[index - 1].at(-1);
 		// Si le sous-titre précédent se termine par un tiret, on n'ajoute pas d'espace (règle du pas d'espace après un `—` dans les trads)
 		const separator = hasCjkSegments || previousLastSegment?.text.endsWith('—') ? '' : ' ';
-		return separator
-			? [createPlainOverlaySegment(`merged-${edition}-separator-${index}`, separator), ...segments]
-			: segments;
-	});
+		if (separator) {
+			output.push(createPlainOverlaySegment(`merged-${edition}-separator-${index}`, separator));
+			output.push(...segments);
+		} else {
+			appendSegmentsWithoutSeparator(output, segments);
+		}
+	}
+
+	return output;
 }

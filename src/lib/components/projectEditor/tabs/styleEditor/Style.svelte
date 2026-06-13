@@ -2,7 +2,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 	import type { CustomClip } from '$lib/classes/Clip.svelte';
@@ -22,6 +22,7 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	const LL_ = get(LL);
+	let systemFontsPromise: Promise<string[]> | null = null;
 
 	let {
 		style,
@@ -36,6 +37,15 @@
 	} = $props();
 
 	type StyleValue = Style['value'];
+
+	/**
+	 * Charge la liste des polices système une seule fois pour tous les contrôles.
+	 * @returns {Promise<string[]>} Liste des polices système.
+	 */
+	function getSystemFonts(): Promise<string[]> {
+		systemFontsPromise ??= invoke<string[]>('get_system_fonts');
+		return systemFontsPromise;
+	}
 
 	function asDimensionValue(value: unknown): DimensionValue {
 		if (
@@ -92,6 +102,7 @@
 	let selectedOrientation = $state('landscape');
 	let selectedQuality = $state('1080p');
 	let selectedFilePath = $state('');
+	let isColorHistoryTransactionOpen = false;
 
 	const ayahContainerImages = [
 		...Array.from({ length: 20 }, (_, i) => `banniere_${i + 20}.png`),
@@ -267,6 +278,36 @@
 		}
 	}
 
+	/**
+	 * Démarre une transaction unique pour les changements continus du color picker.
+	 * @returns {void}
+	 */
+	function beginColorHistoryTransaction(): void {
+		if (isColorHistoryTransactionOpen) return;
+		ProjectHistoryManager.begin('set color style');
+		isColorHistoryTransactionOpen = true;
+	}
+
+	/**
+	 * Valide la transaction color picker une seule fois à la fin de l'interaction.
+	 * @returns {void}
+	 */
+	function commitColorHistoryTransaction(): void {
+		if (!isColorHistoryTransactionOpen) return;
+		ProjectHistoryManager.commit();
+		isColorHistoryTransactionOpen = false;
+	}
+
+	/**
+	 * Applique une couleur en live sans créer une entrée undo à chaque drag.
+	 * @param {string} value Couleur sélectionnée.
+	 * @returns {void}
+	 */
+	function applyColorPickerValue(value: string): void {
+		beginColorHistoryTransaction();
+		applyValue(value);
+	}
+
 	function applySelectValue(value: string) {
 		ProjectHistoryManager.begin('set select style');
 		try {
@@ -383,6 +424,10 @@
 			extended = false; // Si le style est désactivé, on le ferme
 			return;
 		}
+	});
+
+	onDestroy(() => {
+		commitColorHistoryTransaction();
 	});
 
 	/**
@@ -659,7 +704,9 @@
 						type="color"
 						value={String(inputValue)}
 						class="w-full h-8 rounded"
-						oninput={(e) => applyValue((e.target as HTMLInputElement).value)}
+						oninput={(e) => applyColorPickerValue((e.target as HTMLInputElement).value)}
+						onblur={commitColorHistoryTransaction}
+						onchange={commitColorHistoryTransaction}
 					/>
 					<div class="relative">
 						<input
@@ -680,7 +727,7 @@
 						}}
 					>
 						{#if style.id === 'font-family'}
-							{#await invoke('get_system_fonts')}
+							{#await getSystemFonts()}
 								<option value="" disabled selected>{$LL.editor.loadingFonts()}</option>
 							{:then fontsRaw}
 								{@const fonts = fontsRaw as string[]}

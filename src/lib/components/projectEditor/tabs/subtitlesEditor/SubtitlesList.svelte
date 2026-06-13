@@ -5,9 +5,14 @@
 	import { untrack } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 
+	const SUBTITLE_LIST_PAGE_SIZE = 80;
+	const SUBTITLE_AUTO_SCROLL_THROTTLE_MS = 250;
+
 	// div contenant tout les sous-titres
 	let subtitlesListElement: HTMLDivElement | null = $state(null);
 	let lastSubtitleId = 0;
+	let lastAutoScrollAt = 0;
+	let visibleClipCount = $state(SUBTITLE_LIST_PAGE_SIZE);
 	let currentSubtitleId: number | null = $state(null);
 
 	let allClips = $derived(() => {
@@ -29,6 +34,41 @@
 			return false; // Hide other clip types when filtering
 		});
 	});
+
+	let visibleFilteredClips = $derived(() => {
+		return filteredClips().slice(0, visibleClipCount);
+	});
+
+	/**
+	 * Augmente progressivement le nombre de sous-titres rendus.
+	 * @returns {void}
+	 */
+	function loadMoreVisibleClips(): void {
+		const nextCount = Math.min(filteredClips().length, visibleClipCount + SUBTITLE_LIST_PAGE_SIZE);
+		if (nextCount > visibleClipCount) visibleClipCount = nextCount;
+	}
+
+	/**
+	 * Charge assez d'éléments pour rendre un sous-titre donné.
+	 * @param {number} subtitleId ID du sous-titre à rendre.
+	 * @returns {void}
+	 */
+	function ensureSubtitleRendered(subtitleId: number): void {
+		const index = filteredClips().findIndex((clip) => clip.id === subtitleId);
+		if (index === -1 || index < visibleClipCount) return;
+		visibleClipCount = Math.min(filteredClips().length, index + SUBTITLE_LIST_PAGE_SIZE);
+	}
+
+	/**
+	 * Charge la page suivante quand le scroll approche du bas.
+	 * @param {Event} event Événement de scroll de la liste.
+	 * @returns {void}
+	 */
+	function handleSubtitlesListScroll(event: Event): void {
+		const list = event.currentTarget as HTMLDivElement;
+		if (list.scrollTop + list.clientHeight < list.scrollHeight - 600) return;
+		loadMoreVisibleClips();
+	}
 
 	// timeline settings
 	let getTimelineSettings = $derived(() => {
@@ -66,24 +106,31 @@
 		if (subtitleId === lastSubtitleId) {
 			return;
 		}
+		ensureSubtitleRendered(subtitleId);
+
+		const now = Date.now();
+		if (now - lastAutoScrollAt < SUBTITLE_AUTO_SCROLL_THROTTLE_MS) return;
+		lastAutoScrollAt = now;
 		lastSubtitleId = subtitleId;
 
 		const listElement = subtitlesListElement;
 		if (!listElement) return;
 
-		const target = listElement.querySelector(
-			`[data-subtitle-id="${subtitleId}"]`
-		) as HTMLElement | null;
-		if (!target) return;
+		setTimeout(() => {
+			const target = listElement.querySelector(
+				`[data-subtitle-id="${subtitleId}"]`
+			) as HTMLElement | null;
+			if (!target) return;
 
-		// si le scroll est petit, alors smooth, sinon instant
-		const targetTop = target.offsetTop;
-		const listScrollTop = listElement.scrollTop;
-		const listHeight = listElement.clientHeight;
-		const targetCenter = targetTop - listScrollTop - listHeight / 2;
-		const scrollDistance = Math.abs(targetCenter);
-		const behavior = scrollDistance < 500 ? 'smooth' : 'instant';
-		target.scrollIntoView({ block: 'center', behavior });
+			// si le scroll est petit, alors smooth, sinon instant
+			const targetTop = target.offsetTop;
+			const listScrollTop = listElement.scrollTop;
+			const listHeight = listElement.clientHeight;
+			const targetCenter = targetTop - listScrollTop - listHeight / 2;
+			const scrollDistance = Math.abs(targetCenter);
+			const behavior = scrollDistance < 500 ? 'smooth' : 'instant';
+			target.scrollIntoView({ block: 'center', behavior });
+		}, 0);
 	});
 </script>
 
@@ -91,7 +138,9 @@
 	<div
 		class="flex h-9 shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
 	>
-		<h3 class="m-0 text-sm font-semibold text-[var(--text-primary)] hidden xl:block">{$LL.editor.subtitles()}</h3>
+		<h3 class="m-0 text-sm font-semibold text-[var(--text-primary)] hidden xl:block">
+			{$LL.editor.subtitles()}
+		</h3>
 
 		<div
 			class="flex justify-center items-center gap-2 opacity-50 hover:opacity-100 transition-opacity"
@@ -117,8 +166,9 @@
 	<div
 		class="subtitles-list flex flex-1 flex-col gap-2 overflow-y-auto p-2"
 		bind:this={subtitlesListElement}
+		onscroll={handleSubtitlesListScroll}
 	>
-		{#each filteredClips() as _clip (_clip.id)}
+		{#each visibleFilteredClips() as _clip (_clip.id)}
 			{@const clip = _clip as Clip}
 			{@const subtitleClip = clip as SubtitleClip}
 			{@const isSilence = subtitleClip.type === 'Silence'}
@@ -181,7 +231,9 @@
 									: 'border border-[var(--accent-secondary)] bg-[var(--accent-secondary)] text-black'
 							}`}
 						>
-							{subtitleClip.type === 'Silence' ? $LL.editor.silenceLabel() : $LL.editor.predefinedLabel()}
+							{subtitleClip.type === 'Silence'
+								? $LL.editor.silenceLabel()
+								: $LL.editor.predefinedLabel()}
 						</div>
 					{/if}
 				</div>
@@ -189,7 +241,9 @@
 				{#if subtitleClip.type === 'Silence'}
 					<div class="flex h-0 items-center justify-center gap-2 py-4">
 						<div class="text-2xl opacity-70">🔇</div>
-						<span class="text-sm italic text-[var(--text-thirdly)]">{$LL.editor.silentSegment()}</span>
+						<span class="text-sm italic text-[var(--text-thirdly)]"
+							>{$LL.editor.silentSegment()}</span
+						>
 					</div>
 				{:else}
 					<div

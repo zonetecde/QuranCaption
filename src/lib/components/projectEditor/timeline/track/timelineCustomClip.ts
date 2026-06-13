@@ -95,6 +95,22 @@ export class GlobalTimedOverlayTimelineClip {
 
 export type TimelineCustomClipLike = CustomClip | GlobalTimedOverlayTimelineClip;
 
+const GLOBAL_SURAH_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
+	id: 'global-surah-name',
+	label: 'Surah Name',
+	alwaysShowStyleId: 'surah-name-always-show',
+	startStyleId: 'surah-name-time-appearance',
+	endStyleId: 'surah-name-time-disappearance'
+});
+
+const GLOBAL_RECITER_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
+	id: 'global-reciter-name',
+	label: 'Reciter Name',
+	alwaysShowStyleId: 'reciter-name-always-show',
+	startStyleId: 'reciter-name-time-appearance',
+	endStyleId: 'reciter-name-time-disappearance'
+});
+
 /**
  * Retourne la liste de clips à afficher dans la lane "custom clips":
  * - clips custom reels
@@ -112,15 +128,7 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		globalState.getStyle('global', 'show-surah-name')?.value === true &&
 		globalState.getStyle('global', 'surah-name-always-show')?.value !== true
 	) {
-		clips.push(
-			new GlobalTimedOverlayTimelineClip({
-				id: 'global-surah-name',
-				label: 'Surah Name',
-				alwaysShowStyleId: 'surah-name-always-show',
-				startStyleId: 'surah-name-time-appearance',
-				endStyleId: 'surah-name-time-disappearance'
-			})
-		);
+		clips.push(GLOBAL_SURAH_NAME_TIMELINE_CLIP);
 	}
 
 	// Reciter Name: même règle, avec garde-fou si reciter non défini.
@@ -129,15 +137,7 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		globalState.currentProject?.detail.reciter !== 'not set' &&
 		globalState.getStyle('global', 'reciter-name-always-show')?.value !== true
 	) {
-		clips.push(
-			new GlobalTimedOverlayTimelineClip({
-				id: 'global-reciter-name',
-				label: 'Reciter Name',
-				alwaysShowStyleId: 'reciter-name-always-show',
-				startStyleId: 'reciter-name-time-appearance',
-				endStyleId: 'reciter-name-time-disappearance'
-			})
-		);
+		clips.push(GLOBAL_RECITER_NAME_TIMELINE_CLIP);
 	}
 
 	return clips;

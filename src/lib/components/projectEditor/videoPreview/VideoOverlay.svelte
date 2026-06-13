@@ -55,6 +55,11 @@
 	import { applyReactiveFontSize } from './helpers/reactiveFontSize';
 	import { resolveSubtitleCollisions } from './helpers/antiCollision';
 
+	type RuntimeSubtitleLayout = {
+		fontSize: number | null;
+		yOffset: number;
+	};
+
 	// =========================================================================
 	// Dérivations réactives globales
 	// =========================================================================
@@ -85,6 +90,7 @@
 	/** Clip vidéo courant (basé sur la position du curseur). */
 	let currentVideoClip = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
+		const _refresh = getTimelineSettings().previewRefreshToken;
 		return untrack(() =>
 			globalState.getVideoTrack.getCurrentClip(getTimelineSettings().cursorPosition)
 		);
@@ -93,6 +99,7 @@
 	/** Sous-titre actuellement affiché. */
 	let currentSubtitle = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
+		const _refresh = getTimelineSettings().previewRefreshToken;
 		return untrack(() => {
 			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
 		});
@@ -114,6 +121,7 @@
 	 */
 	let backgroundSubtitle = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
+		const _refresh = getTimelineSettings().previewRefreshToken;
 		return untrack(() => {
 			const track = globalState.getSubtitleTrack;
 			const cur = track.getCurrentSubtitleToDisplay();
@@ -203,6 +211,7 @@
 	/** Clips custom (texte/image) à afficher au temps courant. */
 	let currentCustomClips = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
+		const _refresh = getTimelineSettings().previewRefreshToken;
 		return untrack(() => {
 			return globalState.getCustomClipTrack.getCurrentClips();
 		});
@@ -406,6 +415,125 @@
 		return '';
 	});
 
+	let runtimeSubtitleLayout: Record<string, RuntimeSubtitleLayout> = $state({});
+
+	/**
+	 * Retourne l'état runtime de layout d'une cible sans toucher aux styles persistés.
+	 *
+	 * @param {string} target Cible de style.
+	 * @returns {RuntimeSubtitleLayout} Etat runtime courant.
+	 */
+	function getRuntimeSubtitleLayout(target: string): RuntimeSubtitleLayout {
+		return runtimeSubtitleLayout[target] ?? { fontSize: null, yOffset: 0 };
+	}
+
+	/**
+	 * Met à jour une partie du layout runtime d'une cible.
+	 *
+	 * @param {string} target Cible de style.
+	 * @param {Partial<RuntimeSubtitleLayout>} patch Valeurs à remplacer.
+	 * @returns {void}
+	 */
+	function setRuntimeSubtitleLayout(target: string, patch: Partial<RuntimeSubtitleLayout>): void {
+		runtimeSubtitleLayout = {
+			...runtimeSubtitleLayout,
+			[target]: {
+				...getRuntimeSubtitleLayout(target),
+				...patch
+			}
+		};
+	}
+
+	/**
+	 * Applique la taille de police runtime calculée pour une cible.
+	 *
+	 * @param {string} target Cible de style.
+	 * @param {number} value Taille de police en pixels.
+	 * @returns {void}
+	 */
+	function setRuntimeFontSize(target: string, value: number): void {
+		setRuntimeSubtitleLayout(target, { fontSize: Number.isFinite(value) ? value : null });
+	}
+
+	/**
+	 * Applique le décalage vertical runtime calculé pour une cible.
+	 *
+	 * @param {string} target Cible de style.
+	 * @param {number} value Décalage vertical en pixels.
+	 * @returns {void}
+	 */
+	function setRuntimeYOffset(target: string, value: number): void {
+		setRuntimeSubtitleLayout(target, { yOffset: Number.isFinite(value) ? value : 0 });
+	}
+
+	/**
+	 * Réinitialise les décalages verticaux runtime des cibles visibles.
+	 *
+	 * @param {string[]} targets Cibles de style à réinitialiser.
+	 * @returns {void}
+	 */
+	function resetRuntimeYOffsets(targets: string[]): void {
+		for (const target of targets) {
+			setRuntimeYOffset(target, 0);
+		}
+	}
+
+	/**
+	 * Génère le CSS inline runtime appliqué uniquement au rendu preview.
+	 *
+	 * @param {string} target Cible de style.
+	 * @returns {string} CSS inline runtime.
+	 */
+	function getRuntimeLayoutCss(target: string): string {
+		const layout = getRuntimeSubtitleLayout(target);
+		const fontSizeCss =
+			layout.fontSize !== null ? `font-size: ${layout.fontSize}px !important;` : '';
+		return `--reactive-y-position: ${layout.yOffset}px; ${fontSizeCss}`;
+	}
+
+	/**
+	 * Retourne les cibles qui participent au layout de sous-titres.
+	 *
+	 * @returns {string[]} Cibles visibles dans le preview.
+	 */
+	function getLayoutTargets(): string[] {
+		return ['arabic', ...visibleTranslationTargets()];
+	}
+
+	/**
+	 * Construit une clé stable pour éviter les recalculs de layout identiques.
+	 *
+	 * @param {string[]} targets Cibles de style mesurées.
+	 * @returns {string} Clé représentant les contraintes de layout courantes.
+	 */
+	function getLayoutCacheKey(targets: string[]): string {
+		const subtitle = currentSubtitle();
+		const visualMergeGroupId =
+			subtitle instanceof SubtitleClip ? (subtitle.visualMergeGroupId ?? '') : '';
+		const targetConstraints = targets.map((target) => {
+			const referenceClip = getReferenceClipForTarget(target);
+			const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+			return [
+				target,
+				referenceClip?.id ?? '',
+				styles.getEffectiveValue('font-size', referenceClip?.id),
+				globalState.getStyle(target, 'max-height').value,
+				globalState.getStyle(target, 'max-line').value,
+				styles.getEffectiveValue('vertical-text-alignment', referenceClip?.id),
+				hasForcedLineBreak(target)
+			].join(':');
+		});
+
+		return [
+			subtitle?.id ?? '',
+			visualMergeGroupId,
+			globalState.getTimelineState.previewRefreshToken,
+			globalState.getStyle('global', 'anti-collision').value,
+			globalState.getStyle('global', 'spacing').value,
+			...targetConstraints
+		].join('|');
+	}
+
 	// =========================================================================
 	// Liste des éditions de traduction (pour les backgrounds)
 	// =========================================================================
@@ -427,6 +555,7 @@
 	 */
 	let lastSubtitleId = 0;
 	let lastVisualMergeGroupId: string | null = null;
+	let lastLayoutKey = '';
 
 	/** Contrôleur d'annulation pour les opérations asynchrones de layout. */
 	let currentAbortController: AbortController | null = null;
@@ -501,6 +630,7 @@
 			if (!subtitle) {
 				lastSubtitleId = 0;
 				lastVisualMergeGroupId = null;
+				lastLayoutKey = '';
 				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';
 					markExportLayoutState(subtitlesContainer, 'ready');
@@ -529,15 +659,19 @@
 			lastSubtitleId = subtitle.id;
 			lastVisualMergeGroupId = currentVisualMergeGroupId;
 
-			const targets = ['arabic', ...Object.keys(currentSubtitleTranslations() || {})];
+			const targets = getLayoutTargets();
+			const layoutKey = getLayoutCacheKey(targets);
+			if (layoutKey === lastLayoutKey) return;
+			lastLayoutKey = layoutKey;
 
 			// Dépendances réactives à tracker (forcent le déclenchement de l'effet)
 			consumeReactiveDependencies(
 				globalState.getTimelineState.movePreviewTo,
-				globalState.getStyle('arabic', 'max-height').value,
+				globalState.getTimelineState.previewRefreshToken,
+				...targets.map((target) => globalState.getStyle(target, 'max-height').value),
 				...targets.map((target) => globalState.getStyle(target, 'max-line').value),
 				...targets.map((target) => hasForcedLineBreak(target)),
-				globalState.getStyle('arabic', 'font-size').value,
+				...targets.map((target) => globalState.getStyle(target, 'font-size').value),
 				globalState.getStyle('global', 'spacing').value
 			);
 
@@ -558,9 +692,7 @@
 
 				try {
 					// Étape 1 : Réinitialise les positions Y réactives
-					for (const target of targets) {
-						globalState.getVideoStyle.getStylesOfTarget(target).setStyle('reactive-y-position', 0);
-					}
+					resetRuntimeYOffsets(targets);
 
 					// Laisse le DOM se mettre à jour après la réinitialisation
 					await wait(abortSignal);
@@ -573,7 +705,7 @@
 							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
 							const referenceClip = getReferenceClipForTarget(target);
 							const originalVerticalTextAlignment = String(
-								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
+								styles.getEffectiveValue('vertical-text-alignment', referenceClip?.id) ?? 'center'
 							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
 							const maxLineValue = hasForcedLineBreak(target)
@@ -583,28 +715,16 @@
 								styles.getEffectiveValue('font-size', referenceClip?.id)
 							);
 
-							styles.setStyle('vertical-text-alignment', 'center');
-
-							try {
-								await wait(abortSignal);
-								await applyReactiveFontSize(
-									target,
-									maxHeightValue,
-									maxLineValue,
-									initialFontSize,
-									true,
-									abortSignal,
-									(_target, value) => {
-										globalState.getVideoStyle
-											.getStylesOfTarget(_target)
-											.setStyle('reactive-font-size', value);
-									},
-									wait
-								);
-							} finally {
-								styles.setStyle('vertical-text-alignment', originalVerticalTextAlignment);
-								if (!abortSignal.aborted) await wait(abortSignal);
-							}
+							await applyReactiveFontSize(
+								target,
+								maxHeightValue,
+								maxLineValue,
+								initialFontSize,
+								originalVerticalTextAlignment === 'center',
+								abortSignal,
+								setRuntimeFontSize,
+								wait
+							);
 						} catch (error) {
 							if (error instanceof Error && error.message === 'Aborted') {
 								return;
@@ -625,13 +745,9 @@
 							spacing,
 							translationKeys,
 							(target) => {
-								return globalState.getStyle(target, 'reactive-y-position').value as number;
+								return getRuntimeSubtitleLayout(target).yOffset;
 							},
-							(target, value) => {
-								globalState.getVideoStyle
-									.getStylesOfTarget(target)
-									.setStyle('reactive-y-position', value);
-							},
+							setRuntimeYOffset,
 							wait
 						);
 					}
@@ -698,7 +814,9 @@
 			class={'arabic absolute subtitle select-none' +
 				getTailwind('arabic') +
 				helperStyles('arabic')}
-			style="{getCss('arabic', getBackgroundClipIdForTarget('arabic'))};"
+			style="{getCss('arabic', getBackgroundClipIdForTarget('arabic'))}; {getRuntimeLayoutCss(
+				'arabic'
+			)}"
 		></div>
 
 		<!-- Fonds des traductions -->
@@ -709,7 +827,9 @@
 						edition +
 						getTailwind(edition) +
 						helperStyles(edition)}
-					style="{getCss(edition, getBackgroundClipIdForTarget(edition))};"
+					style="{getCss(edition, getBackgroundClipIdForTarget(edition))}; {getRuntimeLayoutCss(
+						edition
+					)}"
 				></div>
 			{/if}
 		{/each}
@@ -729,6 +849,7 @@
 					<ArabicSubtitle
 						subtitleOpacity={subtitleOpacity('arabic')}
 						css={getCss('arabic', arabicRefClip?.id, ['background', 'border'])}
+						runtimeLayoutCss={getRuntimeLayoutCss('arabic')}
 						tailwind={getTailwind('arabic')}
 						helperStyles={helperStyles('arabic')}
 						isExportCapturePreview={isExportCapturePreview()}
@@ -743,6 +864,7 @@
 							{edition}
 							subtitleOpacity={subtitleOpacity(edition)}
 							css={getCss(edition, translationRefClip?.id, ['background', 'border'])}
+							runtimeLayoutCss={getRuntimeLayoutCss(edition)}
 							tailwind={getTailwind(edition)}
 							helperStyles={helperStyles(edition)}
 							isExportCapturePreview={isExportCapturePreview()}

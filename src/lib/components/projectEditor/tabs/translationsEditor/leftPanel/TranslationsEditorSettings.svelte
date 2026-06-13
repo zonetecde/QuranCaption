@@ -5,8 +5,11 @@
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { onDestroy } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import EditionViewer from './EditionViewer.svelte';
+
+	const SEARCH_DEBOUNCE_MS = 250;
 
 	let {
 		setAddTranslationModalVisibility
@@ -16,6 +19,7 @@
 
 	// Variable locale pour le search query avant validation
 	let localSearchQuery = $state(globalState.getTranslationsState.searchQuery);
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let isMarkingTranslationErrors = $state(false);
 
 	$effect(() => {
@@ -30,7 +34,20 @@
 
 	// Fonction pour valider le search query
 	function validateSearchQuery() {
+		if (searchDebounceTimer !== undefined) {
+			clearTimeout(searchDebounceTimer);
+			searchDebounceTimer = undefined;
+		}
 		globalState.getTranslationsState.searchQuery = localSearchQuery;
+	}
+
+	/**
+	 * Diffère l'application de la recherche pour éviter de recalculer les filtres à chaque frappe.
+	 * @returns {void}
+	 */
+	function scheduleSearchQueryValidation(): void {
+		if (searchDebounceTimer !== undefined) clearTimeout(searchDebounceTimer);
+		searchDebounceTimer = setTimeout(validateSearchQuery, SEARCH_DEBOUNCE_MS);
 	}
 
 	// Gestionnaire pour la touche Entrée
@@ -93,7 +110,13 @@
 			await globalState.currentProject?.save(false);
 
 			if (markedSegments > 0) {
-				toast.success(get(LL).editor.markedTranslationErrors({ marked: markedSegments, checked: checkedSegments, verses: erroredVerses }));
+				toast.success(
+					get(LL).editor.markedTranslationErrors({
+						marked: markedSegments,
+						checked: checkedSegments,
+						verses: erroredVerses
+					})
+				);
 			} else {
 				toast.success(get(LL).translations.checkedSegmentsNoErrors({ count: checkedSegments }));
 			}
@@ -104,6 +127,10 @@
 			isMarkingTranslationErrors = false;
 		}
 	}
+
+	onDestroy(() => {
+		if (searchDebounceTimer !== undefined) clearTimeout(searchDebounceTimer);
+	});
 </script>
 
 <div
@@ -152,6 +179,7 @@
 					autocomplete="off"
 					class="w-full px-3 py-1.5 text-sm border border-color rounded-r-none! border-r-0!"
 					bind:value={localSearchQuery}
+					oninput={scheduleSearchQueryValidation}
 					onkeypress={handleSearchKeypress}
 				/>
 				<button

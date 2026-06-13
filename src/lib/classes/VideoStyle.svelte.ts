@@ -246,6 +246,10 @@ const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
 	'overlay-blur'
 ]);
 
+const RUNTIME_LAYOUT_STYLE_IDS = new Set<StyleName>(['reactive-font-size', 'reactive-y-position']);
+
+const styleLookupCache = new WeakMap<StylesData, Map<StyleName, Style>>();
+
 function isGlobalOverlayStyleId(styleId: StyleName): styleId is OverlayStyleName {
 	return GLOBAL_OVERLAY_STYLE_IDS.has(styleId as OverlayStyleName);
 }
@@ -448,6 +452,8 @@ export class StylesData extends SerializableBase {
 			let skipCategory = false;
 
 			for (const style of category.styles) {
+				if (RUNTIME_LAYOUT_STYLE_IDS.has(style.id as StyleName)) continue;
+
 				const effectiveValue = this.getEffectiveValue(style.id as StyleName, clipId);
 
 				// Pour les catégories de styles qui peuvent être désactivées (border, outline, ...),
@@ -646,6 +652,7 @@ export class StylesData extends SerializableBase {
 			const style = this.findStyle(styleId);
 			if (style) {
 				style.value = value;
+				styleLookupCache.delete(this);
 			}
 		} finally {
 			ProjectHistoryManager.commit();
@@ -658,9 +665,21 @@ export class StylesData extends SerializableBase {
 	 * @returns Le style correspondant ou undefined s'il n'est pas trouvé
 	 */
 	findStyle(styleId: StyleName): Style | undefined {
+		let cache = styleLookupCache.get(this);
+		if (!cache) {
+			cache = new Map();
+			styleLookupCache.set(this, cache);
+		}
+
+		const cachedStyle = cache.get(styleId);
+		if (cachedStyle) return cachedStyle;
+
 		for (const category of this.categories) {
 			const style = category.styles.find((s) => s.id === styleId);
-			if (style) return style;
+			if (style) {
+				cache.set(styleId, style);
+				return style;
+			}
 		}
 		return undefined;
 	}

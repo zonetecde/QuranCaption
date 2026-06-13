@@ -12,7 +12,15 @@
 	import Export from './tabs/export/Export.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
+	const AUTOSAVE_CHECK_INTERVAL_MS = 15000;
+	const AUTOSAVE_RETRY_DELAY_MS = 3000;
+
 	let saveInterval: ReturnType<typeof setInterval> | undefined;
+	let saveRetryTimeout: ReturnType<typeof setTimeout> | undefined;
+	let saveIdleHandle: number | undefined;
+	let lastSavedSnapshot = '';
+	let isAutosaveScheduled = false;
+	let isAutosaving = false;
 	let searchOverlayVisible = $state(false);
 	let searchOverlay: { focusInput: () => Promise<void>; containsFocus: () => boolean } | null =
 		$state(null);
@@ -118,13 +126,93 @@
 		ProjectHistoryManager.redo();
 	}
 
+	/**
+	 * Sérialise le projet courant pour détecter une mutation réelle.
+	 * @returns {string} Snapshot JSON compact du projet.
+	 */
+	function getProjectAutosaveSnapshot(): string {
+		return JSON.stringify(globalState.currentProject?.toJSON() ?? null);
+	}
+
+	/**
+	 * Marque le projet comme potentiellement modifié et planifie une sauvegarde idle.
+	 * @returns {void}
+	 */
+	function markDirty(): void {
+		scheduleSave();
+	}
+
+	/**
+	 * Planifie la prochaine tentative d'autosave hors du hot path UI.
+	 * @returns {void}
+	 */
+	function scheduleSave(): void {
+		if (isAutosaveScheduled) return;
+		isAutosaveScheduled = true;
+
+		if ('requestIdleCallback' in window) {
+			saveIdleHandle = window.requestIdleCallback(() => void flush(), {
+				timeout: AUTOSAVE_RETRY_DELAY_MS
+			});
+			return;
+		}
+
+		saveRetryTimeout = setTimeout(() => void flush(), 0);
+	}
+
+	/**
+	 * Annule une tentative d'autosave déjà planifiée.
+	 * @returns {void}
+	 */
+	function clearScheduledSave(): void {
+		if (saveIdleHandle !== undefined && 'cancelIdleCallback' in window) {
+			window.cancelIdleCallback(saveIdleHandle);
+			saveIdleHandle = undefined;
+		}
+
+		if (saveRetryTimeout !== undefined) {
+			clearTimeout(saveRetryTimeout);
+			saveRetryTimeout = undefined;
+		}
+
+		isAutosaveScheduled = false;
+	}
+
+	/**
+	 * Exécute l'autosave si le projet a changé depuis la dernière sauvegarde.
+	 * @returns {Promise<void>} Promesse résolue après la tentative de sauvegarde.
+	 */
+	async function flush(): Promise<void> {
+		saveIdleHandle = undefined;
+		saveRetryTimeout = undefined;
+		isAutosaveScheduled = false;
+
+		const project = globalState.currentProject;
+		if (!project || isAutosaving) return;
+
+		if (globalState.getVideoPreviewState.isPlaying) {
+			saveRetryTimeout = setTimeout(markDirty, AUTOSAVE_RETRY_DELAY_MS);
+			return;
+		}
+
+		const snapshot = getProjectAutosaveSnapshot();
+		if (snapshot === lastSavedSnapshot) return;
+
+		isAutosaving = true;
+		try {
+			await project.save();
+			lastSavedSnapshot = getProjectAutosaveSnapshot();
+		} finally {
+			isAutosaving = false;
+		}
+	}
+
 	onMount(() => {
 		ProjectHistoryManager.resetForCurrentProject();
+		lastSavedSnapshot = getProjectAutosaveSnapshot();
 
-		// Sauvegarde automatique du projet toutes les 5 secondes
-		saveInterval = setInterval(() => {
-			globalState.currentProject?.save();
-		}, 5000);
+		// Sauvegarde automatique espacée et différée hors lecture.
+		saveInterval = setInterval(markDirty, AUTOSAVE_CHECK_INTERVAL_MS);
 
 		// Fermer les menus contextuels lors d'un clic en dehors
 		const handleGlobalClick = (e: MouseEvent) => {
@@ -144,6 +232,7 @@
 			if (saveInterval !== undefined) {
 				clearInterval(saveInterval);
 			}
+			clearScheduledSave();
 			window.removeEventListener('mousedown', handleGlobalClick, true);
 			window.removeEventListener('keydown', handleProjectSearchShortcut, true);
 			window.removeEventListener('keydown', handleSubtitleNavigationShortcut, true);

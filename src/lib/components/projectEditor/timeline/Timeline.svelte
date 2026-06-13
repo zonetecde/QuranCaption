@@ -44,6 +44,7 @@
 			globalState.currentProject?.projectEditorState.timeline ?? {
 				cursorPosition: 0,
 				movePreviewTo: 0,
+				previewRefreshToken: 0,
 				zoom: 1,
 				scrollX: 0,
 				showCursor: true,
@@ -60,6 +61,12 @@
 	let tracksViewportWidth = $state(0);
 	let visibleRangeStartMs = $state(0);
 	let visibleRangeEndMs = $state(0);
+	let visibleSeconds = $derived(() => {
+		const startSecond = Math.max(0, Math.floor(visibleRangeStartMs / 1000));
+		const endSecond = Math.min(totalDuration().toSeconds(), Math.ceil(visibleRangeEndMs / 1000));
+		const count = Math.max(0, endSecond - startSecond + 1);
+		return Array.from({ length: count }, (_, index) => startSecond + index);
+	});
 
 	let removeShortcutRegistered = false;
 	let splitShortcutRegistered = false;
@@ -900,7 +907,7 @@
 				</div>
 
 				<!-- Time markers -->
-				{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i (i)}
+				{#each visibleSeconds() as i (i)}
 					{#if shouldShowTimestamp(i, timelineState().zoom)}
 						<div
 							class="time-marker"
@@ -939,7 +946,7 @@
 			>
 				<!-- Background grid -->
 				<div class="timeline-grid">
-					{#each Array.from({ length: totalDuration().toSeconds() }, (_, i) => i) as i (i)}
+					{#each visibleSeconds() as i (i)}
 						<div
 							class="grid-line"
 							class:major={shouldShowTimestamp(i, timelineState().zoom)}

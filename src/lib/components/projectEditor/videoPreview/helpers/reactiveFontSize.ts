@@ -46,36 +46,69 @@ export async function applyReactiveFontSize(
 		return;
 	}
 
-	let fontSize = initialFontSize;
-
 	// Applique la taille initiale comme point de départ
-	setReactiveFontSize(target, fontSize);
+	setReactiveFontSize(target, initialFontSize);
 	await wait(abortSignal);
 
 	// Marge supplémentaire si le texte n'est pas centré verticalement
 	// (évite un bug où le texte en bas/droite dépasse légèrement)
 	const marge = isVerticalPosCentered ? 0 : 10;
+	const subtitles = Array.from(document.querySelectorAll('.' + CSS.escape(target) + '.subtitle'));
 
-	const subtitles = document.querySelectorAll('.' + CSS.escape(target) + '.subtitle');
+	if (
+		subtitles.length === 0 ||
+		!hasReactiveFontSizeViolation(subtitles, target, maxHeightValue, maxLineValue, marge)
+	) {
+		return;
+	}
 
-	for (const subtitle of subtitles) {
+	let minPassingSize = 1;
+	let maxFailingSize = initialFontSize;
+
+	for (let iteration = 0; iteration < 8; iteration++) {
 		if (abortSignal.aborted) return;
 
-		// Réduit la police tant que la hauteur dépasse la limite
-		while (
-			((maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
-				(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)) &&
-			fontSize > 1
-		) {
-			if (abortSignal.aborted) return;
+		const nextFontSize = (minPassingSize + maxFailingSize) / 2;
 
-			// Réduction progressive d'environ 5%
-			fontSize -= fontSize / 20;
+		setReactiveFontSize(target, nextFontSize);
+		await wait(abortSignal);
 
-			setReactiveFontSize(target, fontSize);
-			await wait(abortSignal);
+		if (hasReactiveFontSizeViolation(subtitles, target, maxHeightValue, maxLineValue, marge)) {
+			maxFailingSize = nextFontSize;
+		} else {
+			minPassingSize = nextFontSize;
 		}
 	}
+
+	setReactiveFontSize(target, Math.max(1, minPassingSize));
+	await wait(abortSignal);
+}
+
+/**
+ * Indique si au moins un sous-titre visible dépasse les contraintes de layout.
+ *
+ * @param subtitles - Éléments de sous-titre mesurés.
+ * @param target - Target de style mesurée.
+ * @param maxHeightValue - Hauteur maximale autorisée en pixels.
+ * @param maxLineValue - Nombre maximal de lignes autorisées.
+ * @param marge - Marge de tolérance verticale.
+ * @returns `true` si une contrainte est dépassée.
+ */
+function hasReactiveFontSizeViolation(
+	subtitles: Element[],
+	target: string,
+	maxHeightValue: number,
+	maxLineValue: number,
+	marge: number
+): boolean {
+	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
+
+	return subtitles.some((subtitle) => {
+		return (
+			(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
+			(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)
+		);
+	});
 }
 
 /**
@@ -85,8 +118,6 @@ export async function applyReactiveFontSize(
  * @returns Nombre de lignes visibles après layout.
  */
 export function getRenderedLineCount(element: Element): number {
-	if (!element.textContent?.trim()) return 0;
-
 	const range = document.createRange();
 	range.selectNodeContents(element);
 
@@ -101,6 +132,8 @@ export function getRenderedLineCount(element: Element): number {
 	} finally {
 		range.detach();
 	}
+
+	if (!element.textContent?.trim()) return 0;
 
 	return getFallbackLineCount(element);
 }

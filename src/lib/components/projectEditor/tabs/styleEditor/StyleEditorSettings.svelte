@@ -47,8 +47,12 @@
 	);
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
+	const styleSearchQuery = $derived(() =>
+		globalState.getStylesState.searchQuery.toLowerCase().trim()
+	);
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
+	let styleSearchLabelCache = new Map<string, string>();
 
 	const visualMergeSelection = $derived(() =>
 		globalState.getSubtitleTrack.getVisualMergeSelection(
@@ -102,6 +106,41 @@
 
 	function clearSearch() {
 		globalState.getStylesState.searchQuery = '';
+	}
+
+	/**
+	 * Retourne le libellé localisé normalisé d'un style ou d'une catégorie.
+	 * @param {string} id Identifiant de style ou catégorie.
+	 * @returns {string} Libellé normalisé pour la recherche.
+	 */
+	function getCachedSearchLabel(id: string): string {
+		const cached = styleSearchLabelCache.get(id);
+		if (cached !== undefined) return cached;
+
+		const label = getStyleName(id, get(LL)).toLowerCase();
+		styleSearchLabelCache.set(id, label);
+		return label;
+	}
+
+	/**
+	 * Vérifie si un style ou sa catégorie correspond à la recherche courante.
+	 * @param {{ id: string; name: string }} style Style évalué.
+	 * @param {{ id: string; name: string }} category Catégorie optionnelle du style.
+	 * @returns {boolean} `true` si le style doit être affiché.
+	 */
+	function matchesStyleSearch(
+		style: { id: string; name: string },
+		category?: { id: string; name: string }
+	): boolean {
+		const query = styleSearchQuery();
+		if (query === '') return true;
+
+		return (
+			style.name.toLowerCase().includes(query) ||
+			getCachedSearchLabel(style.id).includes(query) ||
+			(category?.name.toLowerCase().includes(query) ?? false) ||
+			(category ? getCachedSearchLabel(category.id).includes(query) : false)
+		);
 	}
 
 	/**
@@ -541,15 +580,7 @@
 						{/if}
 
 						{#each category.styles as style (style.id)}
-							{#if globalState.getStylesState.searchQuery === '' || style.name
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || category.name
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(category.id, get(LL))
-									.toLowerCase()
-									.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+							{#if matchesStyleSearch(style, category)}
 								<!-- 
 							Cas spécial : on ne peut pas avoir de séparateur entre le numéro de verset et le verset
 							pour le texte Coranique, ni changer sa position. Empêche donc l'affichage de ces styles dans ce cas précis.
@@ -599,7 +630,7 @@
 							{/if}
 						{/each}
 
-						{#if category.id === 'general' && globalState.getStylesState.currentSelection === 'global' && globalState.getStylesState.searchQuery === ''}
+						{#if category.id === 'general' && globalState.getStylesState.currentSelection === 'global' && styleSearchQuery() === ''}
 							<div class="mx-2 border-t border-color py-2">
 								<div class="flex items-start justify-between gap-3">
 									<div class="min-w-0">
@@ -636,11 +667,7 @@
 							classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						>
 							{#each category.styles as style (style.id)}
-								{#if globalState.getStylesState.searchQuery === '' || style.name
-										.toLowerCase()
-										.includes(globalState.getStylesState.searchQuery.toLowerCase()) || getStyleName(style.id, get(LL))
-										.toLowerCase()
-										.includes(globalState.getStylesState.searchQuery.toLowerCase())}
+								{#if matchesStyleSearch(style)}
 									{@const toDisable =
 										category.getStyle('always-show')!.value &&
 										(style.id === 'time-appearance' || style.id === 'time-disappearance')}

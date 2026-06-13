@@ -35,6 +35,28 @@
 	// Pagination progressive
 	const PAGE_SIZE = 10;
 	let visibleCount = $state(PAGE_SIZE); // nombre actuel de sous-titres autorisés affichés
+	let previousSubtitleCache = new Map<number, SubtitleClip | null>();
+
+	$effect(() => {
+		const _ = globalState.getSubtitleTrack.clips.length;
+		previousSubtitleCache = new Map();
+	});
+
+	/**
+	 * Retourne le sous-titre Quran précédent avec cache local au workspace.
+	 * @param {number} currentIndex Index du clip courant.
+	 * @returns {SubtitleClip | null} Clip précédent, ou `null`.
+	 */
+	function getCachedPreviousSubtitle(currentIndex: number): SubtitleClip | null {
+		if (previousSubtitleCache.has(currentIndex)) {
+			return previousSubtitleCache.get(currentIndex) ?? null;
+		}
+
+		const previousClip = globalState.getSubtitleTrack.getSubtitleBefore(currentIndex);
+		const previousSubtitle = previousClip instanceof SubtitleClip ? previousClip : null;
+		previousSubtitleCache.set(currentIndex, previousSubtitle);
+		return previousSubtitle;
+	}
 
 	/**
 	 * Vérifie si le clip actuel a un chevauchement avec le clip précédent en arabe.
@@ -44,7 +66,7 @@
 		const currentClip = globalState.getSubtitleTrack.clips[currentIndex];
 		if (!(currentClip instanceof SubtitleClip)) return false;
 
-		const previousClip = globalState.getSubtitleTrack.getSubtitleBefore(currentIndex);
+		const previousClip = getCachedPreviousSubtitle(currentIndex);
 		if (!(previousClip instanceof SubtitleClip)) return false;
 
 		if (currentClip.surah !== previousClip.surah || currentClip.verse !== previousClip.verse) {
@@ -70,7 +92,7 @@
 		const currentClip = globalState.getSubtitleTrack.clips[currentIndex];
 		if (!(currentClip instanceof SubtitleClip)) return null;
 
-		const previousClip = globalState.getSubtitleTrack.getSubtitleBefore(currentIndex);
+		const previousClip = getCachedPreviousSubtitle(currentIndex);
 		if (!(previousClip instanceof SubtitleClip)) return null;
 
 		if (currentClip.surah !== previousClip.surah || currentClip.verse !== previousClip.verse) {
@@ -279,6 +301,7 @@
 		const onlyShowOverlappingSubtitles =
 			globalState.getTranslationsState.onlyShowOverlappingSubtitles;
 		const visibleEditions = editionsToShowInEditor().map((edition) => edition.name);
+		const visibleEditionSet = new Set(visibleEditions);
 
 		untrack(() => {
 			allowedTranslations = {};
@@ -324,7 +347,7 @@
 						}
 
 						// Si on autorise son affichage dans l'éditeur
-						if (visibleEditions.includes(key)) {
+						if (visibleEditionSet.has(key)) {
 							// On ajoute l'édition à la liste des traductions autorisées
 							authorizedEditions.push(key);
 						}
@@ -354,7 +377,7 @@
 						authorizedEditions
 					);
 
-					const previousSubtitle = globalState.getSubtitleTrack.getSubtitleBefore(index);
+					const previousSubtitle = getCachedPreviousSubtitle(index);
 					if (previousSubtitle) {
 						allowedTranslations[previousSubtitle.id] = mergeEditions(
 							allowedTranslations[previousSubtitle.id],
@@ -401,7 +424,9 @@
 					<span class="material-icons text-accent text-2xl">translate</span>
 				</div>
 				<div class="text-center">
-					<h3 class="text-primary text-lg font-semibold mb-2">{$LL.editor.noTranslationsYetHeading()}</h3>
+					<h3 class="text-primary text-lg font-semibold mb-2">
+						{$LL.editor.noTranslationsYetHeading()}
+					</h3>
 					<p class="text-thirdly text-sm max-w-md">
 						{$LL.editor.startByAdding()}
 					</p>

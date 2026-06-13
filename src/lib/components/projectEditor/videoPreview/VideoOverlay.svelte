@@ -60,6 +60,7 @@
 	type RuntimeSubtitleLayout = {
 		fontSize: number | null;
 		yOffset: number;
+		forceCenterAlignment?: boolean;
 	};
 
 	const MAX_RUNTIME_LAYOUT_CACHE_ENTRIES = 300;
@@ -484,7 +485,9 @@
 	 * @returns {RuntimeSubtitleLayout} Etat runtime courant.
 	 */
 	function getRuntimeSubtitleLayout(target: string): RuntimeSubtitleLayout {
-		return runtimeSubtitleLayout[target] ?? { fontSize: null, yOffset: 0 };
+		return (
+			runtimeSubtitleLayout[target] ?? { fontSize: null, yOffset: 0, forceCenterAlignment: false }
+		);
 	}
 
 	/**
@@ -527,6 +530,17 @@
 	}
 
 	/**
+	 * Force temporairement l'alignement vertical au centre pendant la mesure.
+	 *
+	 * @param {string} target Cible de style.
+	 * @param {boolean} value Si l'alignement doit être forcé au centre.
+	 * @returns {void}
+	 */
+	function setRuntimeForceCenterAlignment(target: string, value: boolean): void {
+		setRuntimeSubtitleLayout(target, { forceCenterAlignment: value });
+	}
+
+	/**
 	 * Réinitialise les décalages verticaux runtime des cibles visibles.
 	 *
 	 * @param {string[]} targets Cibles de style à réinitialiser.
@@ -548,7 +562,10 @@
 		const layout = getRuntimeSubtitleLayout(target);
 		const fontSizeCss =
 			layout.fontSize !== null ? `font-size: ${layout.fontSize}px !important;` : '';
-		return `--reactive-y-position: ${layout.yOffset}px; ${fontSizeCss}`;
+		const centerAlignmentCss = layout.forceCenterAlignment
+			? 'display: flex !important; align-items: center !important;'
+			: '';
+		return `--reactive-y-position: ${layout.yOffset}px; ${fontSizeCss} ${centerAlignmentCss}`;
 	}
 
 	/**
@@ -941,9 +958,6 @@
 						try {
 							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
 							const referenceClip = getReferenceClipForTarget(target);
-							const originalVerticalTextAlignment = String(
-								styles.getEffectiveValue('vertical-text-alignment', referenceClip?.id) ?? 'center'
-							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
 							const maxLineValue = hasForcedLineBreak(target)
 								? Infinity
@@ -951,13 +965,21 @@
 							const initialFontSize = Number(
 								styles.getEffectiveValue('font-size', referenceClip?.id)
 							);
+							const shouldForceCenterAlignment =
+								maxHeightValue > 0 || (maxLineValue >= 1 && maxLineValue <= 4);
+
+							if (shouldForceCenterAlignment) {
+								setRuntimeForceCenterAlignment(target, true);
+								await tick();
+								await wait(abortSignal);
+							}
 
 							await applyReactiveFontSize(
 								target,
 								maxHeightValue,
 								maxLineValue,
 								initialFontSize,
-								originalVerticalTextAlignment === 'center',
+								shouldForceCenterAlignment,
 								abortSignal,
 								setRuntimeFontSize,
 								wait
@@ -966,6 +988,8 @@
 							if (error instanceof Error && error.message === 'Aborted') {
 								return;
 							}
+						} finally {
+							setRuntimeForceCenterAlignment(target, false);
 						}
 					}
 

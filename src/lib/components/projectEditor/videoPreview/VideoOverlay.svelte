@@ -31,7 +31,7 @@
 	} from '$lib/classes';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
@@ -499,11 +499,13 @@
 			lastSubtitleId = subtitle.id;
 			lastVisualMergeGroupId = currentVisualMergeGroupId;
 
+			const targets = ['arabic', ...Object.keys(currentSubtitleTranslations() || {})];
+
 			// Dépendances réactives à tracker (forcent le déclenchement de l'effet)
 			consumeReactiveDependencies(
 				globalState.getTimelineState.movePreviewTo,
 				globalState.getStyle('arabic', 'max-height').value,
-				globalState.getStyle('arabic', 'max-line').value,
+				...targets.map((target) => globalState.getStyle(target, 'max-line').value),
 				globalState.getStyle('arabic', 'font-size').value,
 				globalState.getStyle('global', 'spacing').value
 			);
@@ -524,8 +526,6 @@
 				const abortSignal = currentAbortController.signal;
 
 				try {
-					const targets = ['arabic', ...Object.keys(currentSubtitleTranslations()!)];
-
 					// Étape 1 : Réinitialise les positions Y réactives
 					for (const target of targets) {
 						globalState.getVideoStyle.getStylesOfTarget(target).setStyle('reactive-y-position', 0);
@@ -545,8 +545,7 @@
 								styles.findStyle('vertical-text-alignment')?.value ?? 'center'
 							);
 							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
-							const maxLineValue =
-								target === 'arabic' ? Number(globalState.getStyle('arabic', 'max-line').value) : 5;
+							const maxLineValue = Number(globalState.getStyle(target, 'max-line').value);
 							const initialFontSize = Number(
 								styles.getEffectiveValue('font-size', referenceClip?.id)
 							);

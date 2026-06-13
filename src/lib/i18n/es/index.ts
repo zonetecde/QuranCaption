@@ -1123,7 +1123,7 @@ const es: Translation = {
 			'word-spacing': 'Espaciado de palabras',
 			'line-height': 'Altura de línea',
 			'max-height': 'Altura máx. (ajustar texto)',
-			'max-line': 'Líneas máx. (árabe)',
+			'max-line': 'Líneas máx.',
 			'reactive-font-size': 'Tamaño de fuente reactivo',
 			'word-by-word-highlight': 'Resaltado palabra por palabra',
 			'enable-wbw-highlight': 'Activar resaltado wbw',
@@ -1275,8 +1275,7 @@ const es: Translation = {
 			'line-height': 'Ajustar el espaciado entre líneas',
 			'max-height':
 				'Limitar la altura del texto y ajustar automáticamente el tamaño de fuente. 0 = sin límite.',
-			'max-line':
-				'Limitar el texto árabe a un número máximo de líneas mostradas. Infinito = sin límite.',
+			'max-line': 'Limitar el texto a un número máximo de líneas mostradas. Infinito = sin límite.',
 			'reactive-font-size':
 				'Usado por la función \u00ab\u00a0Ajustar texto\u00a0\u00bb para ajustar el tamaño de fuente según el contenedor',
 			'word-by-word-highlight':

@@ -810,7 +810,7 @@ const editor = {
 		'word-spacing': 'Word Spacing',
 		'line-height': 'Line Height',
 		'max-height': 'Max Height (Make Text Fit)',
-		'max-line': 'Max Line (Arabic)',
+		'max-line': 'Max Line',
 		'reactive-font-size': 'Reactive Font Size',
 		'word-by-word-highlight': 'Word by word highlight',
 		'enable-wbw-highlight': 'Enable wbw highlight',
@@ -958,7 +958,7 @@ const editor = {
 		'word-spacing': 'Adjust spacing between words',
 		'line-height': 'Adjust spacing between lines',
 		'max-height': 'Limit text height and auto-adjust font size to fit. 0 = no limit.',
-		'max-line': 'Limit Arabic text to a maximum number of rendered lines. Infinite = no limit.',
+		'max-line': 'Limit text to a maximum number of rendered lines. Infinite = no limit.',
 		'reactive-font-size':
 			"Used by the 'Make Text Fit' feature to adjust font size based on container size",
 		'word-by-word-highlight':

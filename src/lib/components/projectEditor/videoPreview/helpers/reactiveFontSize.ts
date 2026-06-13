@@ -64,7 +64,7 @@ export async function applyReactiveFontSize(
 		// Réduit la police tant que la hauteur dépasse la limite
 		while (
 			((maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
-				(hasMaxLineLimit && getRenderedLineCount(subtitle) > maxLineValue)) &&
+				(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)) &&
 			fontSize > 1
 		) {
 			if (abortSignal.aborted) return;
@@ -122,6 +122,20 @@ function countDistinctLinePositions(rects: DOMRect[]): number {
 	}
 
 	return lineCenters.length;
+}
+
+/**
+ * Retourne le compteur de lignes adapté au type de sous-titre.
+ *
+ * @param element - Élément dont le contenu texte doit être mesuré.
+ * @param target - Target de style mesurée.
+ * @returns Nombre de lignes à utiliser pour l'ajustement de taille.
+ */
+function getReactiveFontSizeLineCount(element: Element, target: string): number {
+	if (target === 'arabic') return getRenderedLineCount(element);
+	if (!element.textContent?.trim()) return 0;
+
+	return getFallbackLineCount(element);
 }
 
 /**

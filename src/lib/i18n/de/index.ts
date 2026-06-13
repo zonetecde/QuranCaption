@@ -1118,7 +1118,7 @@ const de: Translation = {
 			'word-spacing': 'Wortabstand',
 			'line-height': 'Zeilenhöhe',
 			'max-height': 'Max. Höhe (Text anpassen)',
-			'max-line': 'Max. Zeilen (Arabisch)',
+			'max-line': 'Max. Zeilen',
 			'reactive-font-size': 'Reaktive Schriftgröße',
 			'word-by-word-highlight': 'Wort-für-Wort-Hervorhebung',
 			'enable-wbw-highlight': 'WBW-Hervorhebung aktivieren',
@@ -1270,7 +1270,7 @@ const de: Translation = {
 			'max-height':
 				'Texthöhe begrenzen und Schriftgröße automatisch anpassen. 0 = keine Begrenzung.',
 			'max-line':
-				'Arabischen Text auf eine maximale Anzahl angezeigter Zeilen begrenzen. Unendlich = keine Begrenzung.',
+				'Text auf eine maximale Anzahl angezeigter Zeilen begrenzen. Unendlich = keine Begrenzung.',
 			'reactive-font-size':
 				'Wird von der Funktion « Text anpassen » verwendet, um die Schriftgröße an den Container anzupassen',
 			'word-by-word-highlight':

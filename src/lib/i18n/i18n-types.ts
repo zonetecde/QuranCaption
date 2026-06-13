@@ -12616,7 +12616,7 @@ export type TranslationFunctions = {
 			 */
 			'max-height': () => LocalizedString;
 			/**
-			 * Max Line (Arabic)
+			 * Max Line
 			 */
 			'max-line': () => LocalizedString;
 			/**
@@ -13190,7 +13190,7 @@ export type TranslationFunctions = {
 			 */
 			'max-height': () => LocalizedString;
 			/**
-			 * Limit Arabic text to a maximum number of rendered lines. Infinite = no limit.
+			 * Limit text to a maximum number of rendered lines. Infinite = no limit.
 			 */
 			'max-line': () => LocalizedString;
 			/**

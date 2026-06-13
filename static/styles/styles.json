@@ -263,8 +263,8 @@
 			},
 			{
 				"id": "max-line",
-				"name": "Max Line (Arabic)",
-				"description": "Limit Arabic text to a maximum number of rendered lines. Infinite = no limit.",
+				"name": "Max Line",
+				"description": "Limit text to a maximum number of rendered lines. Infinite = no limit.",
 				"value": "Infinite",
 				"valueType": "select",
 				"options": [

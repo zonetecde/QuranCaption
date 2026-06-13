@@ -3,6 +3,9 @@ import { Edition } from '$lib/classes';
 const QURAN_CAPTION_WEBSITE_BASE_URL = 'https://qurancaption.com';
 const QDC_TRANSLATION_EDITION_PREFIX = 'qdc-translation-';
 const ENGLISH_LANGUAGE_KEY = 'English';
+const QDC_METADATA_LANGUAGE_ALIASES: Record<string, string> = {
+	Chinese: 'Chinese (simplified)'
+};
 
 export type TranslationLanguageData = {
 	flag: string;
@@ -195,10 +198,11 @@ export class QdcTranslationService {
 		metadataByLanguage: TranslationMetadataMap,
 		language: string
 	): TranslationLanguageData {
-		const exactMatch = metadataByLanguage[language];
+		const metadataLanguage = this.getMetadataLanguage(language);
+		const exactMatch = metadataByLanguage[metadataLanguage];
 		if (exactMatch) return exactMatch;
 
-		const lowerLanguage = language.toLowerCase();
+		const lowerLanguage = metadataLanguage.toLowerCase();
 		for (const [key, value] of Object.entries(metadataByLanguage)) {
 			if (key.toLowerCase() === lowerLanguage) {
 				return value;
@@ -226,10 +230,20 @@ export class QdcTranslationService {
 		metadataByLanguage: TranslationMetadataMap,
 		language: string
 	): boolean {
-		if (metadataByLanguage[language]) return true;
+		const metadataLanguage = this.getMetadataLanguage(language);
+		if (metadataByLanguage[metadataLanguage]) return true;
 
-		const lowerLanguage = language.toLowerCase();
+		const lowerLanguage = metadataLanguage.toLowerCase();
 		return Object.keys(metadataByLanguage).some((key) => key.toLowerCase() === lowerLanguage);
+	}
+
+	/**
+	 * Retourne la clé de métadonnées locale pour une langue QDC.
+	 * @param language La langue affichée.
+	 * @returns La clé à chercher dans `editions.json`.
+	 */
+	private static getMetadataLanguage(language: string): string {
+		return QDC_METADATA_LANGUAGE_ALIASES[language] ?? language;
 	}
 
 	/**

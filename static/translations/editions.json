@@ -807,7 +807,7 @@
 			}
 		]
 	},
-	"Ch. (simp.)": {
+	"Chinese (simplified)": {
 		"flag": "https://flagsapi.com/CN/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
@@ -852,8 +852,8 @@
 			}
 		]
 	},
-	"Ch. (trad.)": {
-		"flag": "https://flagsapi.com/TW/flat/64.png",
+	"Chinese (traditional)": {
+		"flag": "https://flagsapi.com/CN/flat/64.png",
 		"basmala": "In the name of Allah, the Most Gracious, the Most Merciful",
 		"istiadhah": "I seek refuge with Allah from Satan the cursed",
 		"amin": "Amen",

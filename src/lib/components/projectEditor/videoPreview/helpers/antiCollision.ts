@@ -7,9 +7,13 @@
  * entre les éléments.
  *
  * Limitations :
- * - Maximum 10 itérations de décalage par paire pour éviter les boucles infinies.
+ * - Validation DOM bornée après application pour garantir le spacing réel.
  * - Chaque paire (target1, target2) n'est traitée qu'une seule fois.
  */
+
+const MAX_COLLISION_VALIDATION_PASSES = 3;
+
+type SubtitleRectEntry = { target: string; rect: DOMRect };
 
 /**
  * Détecte le target de style (arabic, nom d'édition de traduction...)
@@ -62,12 +66,38 @@ export async function resolveSubtitleCollisions(
 	setReactiveY: (target: string, value: number) => void,
 	wait: (signal: AbortSignal) => Promise<void>
 ): Promise<void> {
+	if (abortSignal.aborted) return;
+
+	const subtitleRects = getSubtitleRectEntries(translationKeys);
+	const offsets = getCollisionOffsets(subtitleRects, spacing, getReactiveY);
+
+	const hasUpdates = applyCollisionOffsets(offsets, getReactiveY, setReactiveY);
+	if (!hasUpdates) return;
+
+	await wait(abortSignal);
+	await validateCollisionSpacing(
+		abortSignal,
+		spacing,
+		translationKeys,
+		getReactiveY,
+		setReactiveY,
+		wait
+	);
+}
+
+/**
+ * Mesure les rectangles des sous-titres visibles.
+ *
+ * @param translationKeys - Clés des éditions de traduction pour la détection de target.
+ * @returns Rectangles exploitables pour l'anti-collision.
+ */
+function getSubtitleRectEntries(translationKeys: string[]): SubtitleRectEntry[] {
 	let allSubtitles = document.querySelectorAll('#subtitles-container .subtitle');
 	if (allSubtitles.length === 0) {
 		allSubtitles = document.querySelectorAll('.subtitle');
 	}
-	const subtitleElements = Array.from(allSubtitles) as HTMLElement[];
-	const subtitleRects = subtitleElements
+
+	return (Array.from(allSubtitles) as HTMLElement[])
 		.map((element) => {
 			const target = getTargetFromElement(element, translationKeys);
 			if (!target) return null;
@@ -77,21 +107,33 @@ export async function resolveSubtitleCollisions(
 			};
 		})
 		.filter(
-			(entry): entry is { target: string; rect: DOMRect } =>
+			(entry): entry is SubtitleRectEntry =>
 				entry !== null && entry.rect.width > 0 && entry.rect.height > 0
 		);
+}
 
+/**
+ * Calcule les offsets nécessaires pour respecter le spacing demandé.
+ *
+ * @param subtitleRects - Rectangles de sous-titres mesurés.
+ * @param spacing - Espacement minimal entre sous-titres.
+ * @param getInitialOffset - Offset initial à appliquer virtuellement par target.
+ * @returns Offsets calculés par target.
+ */
+function getCollisionOffsets(
+	subtitleRects: SubtitleRectEntry[],
+	spacing: number,
+	getInitialOffset: (target: string) => number
+): Map<string, number> {
 	const offsets = new Map<string, number>();
 	for (const entry of subtitleRects) {
-		if (!offsets.has(entry.target)) offsets.set(entry.target, getReactiveY(entry.target));
+		if (!offsets.has(entry.target)) offsets.set(entry.target, getInitialOffset(entry.target));
 	}
 
 	// Set pour éviter de traiter deux fois la même paire (targetA, targetB)
 	const processedPairs = new Set<string>();
 
 	for (let i = 0; i < subtitleRects.length; i++) {
-		if (abortSignal.aborted) return;
-
 		const currentEntry = subtitleRects[i];
 
 		// On ne compare qu'avec les éléments suivants (j > i) pour éviter les doublons
@@ -127,6 +169,22 @@ export async function resolveSubtitleCollisions(
 		}
 	}
 
+	return offsets;
+}
+
+/**
+ * Applique les offsets calculés aux targets qui changent réellement.
+ *
+ * @param offsets - Offsets calculés par target.
+ * @param getReactiveY - Récupère la position Y réactive actuelle d'un target.
+ * @param setReactiveY - Définit la nouvelle position Y réactive d'un target.
+ * @returns `true` si au moins un target a été mis à jour.
+ */
+function applyCollisionOffsets(
+	offsets: Map<string, number>,
+	getReactiveY: (target: string) => number,
+	setReactiveY: (target: string, value: number) => void
+): boolean {
 	let hasUpdates = false;
 	for (const [target, value] of offsets) {
 		if (value === getReactiveY(target)) continue;
@@ -134,7 +192,44 @@ export async function resolveSubtitleCollisions(
 		hasUpdates = true;
 	}
 
-	if (hasUpdates) await wait(abortSignal);
+	return hasUpdates;
+}
+
+/**
+ * Vérifie le spacing réel après application CSS et corrige le delta restant.
+ *
+ * @param abortSignal - Signal pour annuler l'opération en cours.
+ * @param spacing - Espacement minimal entre sous-titres.
+ * @param translationKeys - Clés des éditions de traduction pour la détection de target.
+ * @param getReactiveY - Récupère la position Y réactive actuelle d'un target.
+ * @param setReactiveY - Définit la nouvelle position Y réactive d'un target.
+ * @param wait - Fonction d'attente asynchrone.
+ * @returns Promise résolue à la fin de la validation.
+ */
+async function validateCollisionSpacing(
+	abortSignal: AbortSignal,
+	spacing: number,
+	translationKeys: string[],
+	getReactiveY: (target: string) => number,
+	setReactiveY: (target: string, value: number) => void,
+	wait: (signal: AbortSignal) => Promise<void>
+): Promise<void> {
+	for (let pass = 0; pass < MAX_COLLISION_VALIDATION_PASSES; pass++) {
+		if (abortSignal.aborted) return;
+
+		const subtitleRects = getSubtitleRectEntries(translationKeys);
+		const additionalOffsets = getCollisionOffsets(subtitleRects, spacing, () => 0);
+		let hasUpdates = false;
+
+		for (const [target, offset] of additionalOffsets) {
+			if (offset <= 0) continue;
+			setReactiveY(target, getReactiveY(target) + offset);
+			hasUpdates = true;
+		}
+
+		if (!hasUpdates) return;
+		await wait(abortSignal);
+	}
 }
 
 /**

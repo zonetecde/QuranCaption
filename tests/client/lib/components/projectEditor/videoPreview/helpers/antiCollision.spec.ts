@@ -200,6 +200,67 @@ describe('antiCollision', () => {
 			}
 		});
 
+		test("corrige le delta restant si le spacing réel est encore trop faible après l'application CSS", async () => {
+			const abortController = new AbortController();
+			const reactiveYValues: Record<string, number> = { arabic: 0, english: 0 };
+
+			const getReactiveY = vi.fn((target: string) => reactiveYValues[target] ?? 0);
+			const setReactiveY = vi.fn((target: string, value: number) => {
+				reactiveYValues[target] = value;
+			});
+
+			const arabicEl = createElementWithClasses('div', ['arabic', 'subtitle'], {
+				top: 0,
+				bottom: 50,
+				left: 0,
+				right: 100
+			});
+
+			const translationEl = createElementWithClasses(
+				'div',
+				['translation', 'english', 'subtitle'],
+				{
+					left: 0,
+					right: 100
+				}
+			);
+
+			vi.mocked(translationEl.getBoundingClientRect).mockImplementation(() => {
+				const appliedOffset =
+					reactiveYValues.english > 0 ? reactiveYValues.english - 5 : reactiveYValues.english;
+				return {
+					x: 0,
+					y: 40 + appliedOffset,
+					width: 100,
+					height: 50,
+					top: 40 + appliedOffset,
+					bottom: 90 + appliedOffset,
+					left: 0,
+					right: 100,
+					toJSON: () => ({})
+				} as DOMRect;
+			});
+
+			document.body.appendChild(arabicEl);
+			document.body.appendChild(translationEl);
+
+			try {
+				await resolveSubtitleCollisions(
+					abortController.signal,
+					10,
+					['english'],
+					getReactiveY,
+					setReactiveY,
+					fakeWait
+				);
+
+				expect(reactiveYValues.english).toBe(25);
+			} finally {
+				document.body.removeChild(arabicEl);
+				document.body.removeChild(translationEl);
+			}
+		});
+
 		test("s'arrête immédiatement si le signal est déjà aborté", async () => {
 			const abortController = new AbortController();
 			abortController.abort(); // Déjà aborté

@@ -580,6 +580,9 @@
 					}
 
 					// Étape 3 : Résolution des collisions si activée
+					await tick();
+					await wait(abortSignal);
+
 					if (globalState.getStyle('global', 'anti-collision').value) {
 						const translationKeys = Object.keys(currentSubtitleTranslations() || {});
 						const spacing = globalState.getStyle('global', 'spacing').value as number;

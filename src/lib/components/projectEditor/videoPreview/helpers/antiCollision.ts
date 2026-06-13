@@ -62,7 +62,7 @@ export async function resolveSubtitleCollisions(
 	setReactiveY: (target: string, value: number) => void,
 	wait: (signal: AbortSignal) => Promise<void>
 ): Promise<void> {
-	const allSubtitles = document.querySelectorAll('.subtitle');
+	const allSubtitles = document.querySelectorAll('#subtitles-container .subtitle');
 	const subtitleElements = Array.from(allSubtitles) as HTMLElement[];
 
 	// Set pour éviter de traiter deux fois la même paire (targetA, targetB)

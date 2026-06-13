@@ -5,6 +5,7 @@ const settings = {
 	theme: 'Theme',
 	notifications: 'Notifications',
 	aiKey: 'AI Key',
+	stockMedia: 'Stock Media',
 	quranComIntegration: 'Quran.com Integration',
 	backup: 'Backup',
 	support: 'Support',
@@ -110,7 +111,8 @@ const settings = {
 	checkingForUpdates: 'Checking for updates...',
 	organizingProjects: 'Organizing Projects...',
 	organizeProjectFolders: 'Organize Project Folders',
-	aboutDescription: 'Quran Caption is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.',
+	aboutDescription:
+		'Quran Caption is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.',
 	versionLabel: 'Version {version}',
 	restartTutorial: 'Restart Tutorial',
 	connected: 'Connected',
@@ -146,7 +148,8 @@ const settings = {
 	bridgeResponseEmpty: 'Bridge response was empty.',
 	connectAccountFirst: 'Connect your Quran.com account first.',
 	accessTokenUnavailable: 'Quran.com access token is unavailable. Please reconnect.',
-	clientIdMissing: 'Quran Foundation client id is missing from the current session. Please reconnect.',
+	clientIdMissing:
+		'Quran Foundation client id is missing from the current session. Please reconnect.',
 	collectionNameEmpty: 'Collection name cannot be empty.',
 	apiResponseEmpty: 'Quran Foundation API response was empty.',
 	shortcutCat: {
@@ -213,9 +216,12 @@ const settings = {
 		REMOVE_LAST_SUBTITLE: 'Delete the most recent subtitle',
 		EDIT_LAST_SUBTITLE: 'Edit the subtitle under the cursor, or the last one if none',
 		ADD_SILENCE: 'Insert a silent period in the timeline',
-		SET_LAST_SUBTITLE_END: 'Set end time of subtitle at cursor position and adjust next subtitle start',
-		SET_LAST_SUBTITLE_START: 'Set start time of subtitle at cursor position and adjust previous subtitle end',
-		ADD_CUSTOM_TEXT_CLIP: 'Add a custom text clip between the last subtitle and the current position',
+		SET_LAST_SUBTITLE_END:
+			'Set end time of subtitle at cursor position and adjust next subtitle start',
+		SET_LAST_SUBTITLE_START:
+			'Set start time of subtitle at cursor position and adjust previous subtitle end',
+		ADD_CUSTOM_TEXT_CLIP:
+			'Add a custom text clip between the last subtitle and the current position',
 		SPLIT_SUBTITLE: 'Split the subtitle at the cursor position',
 		ADD_BASMALA: 'Add a subtitle with the basmala',
 		ADD_ISTIADHAH: "Add a subtitle with the isti'adhah",
@@ -230,7 +236,15 @@ const settings = {
 		FRAME_BY_FRAME_SCROLL: 'Hold this shortcut while scrolling to move frame by frame',
 		FRAME_BACKWARD: 'Move the cursor backward by one frame',
 		FRAME_FORWARD: 'Move the cursor forward by one frame'
-	}
+	},
+	stockMediaDescription:
+		'Configure your Pexels and Pixabay API keys to search and import free stock media.',
+	pexelsApiKey: 'Pexels API Key',
+	pixabayApiKey: 'Pixabay API Key',
+	pexelsApiKeyHint:
+		'Get your free API key at pexels.com/api. Stored in plain text in settings.json.',
+	pixabayApiKeyHint:
+		'Get your free API key at pixabay.com/api/docs. Stored in plain text in settings.json.'
 };
 
 export default settings;

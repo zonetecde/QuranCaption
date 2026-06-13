@@ -1,4 +1,4 @@
-﻿import { SerializableBase } from './misc/SerializableBase';
+import { SerializableBase } from './misc/SerializableBase';
 import { writeTextFile, readTextFile, exists } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
@@ -42,6 +42,11 @@ export type AutoSegmentationSettings = {
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
 	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
+};
+
+export type StockMediaSettings = {
+	pexelsApiKey: string;
+	pixabayApiKey: string;
 };
 
 export type AITranslationSettings = {
@@ -144,6 +149,11 @@ export default class Settings extends SerializableBase {
 		aiWbwTranslationCustomNote: '',
 		activeModalTab: 'legacy',
 		telemetryConsent: 'unknown'
+	});
+
+	stockMediaSettings = $state<StockMediaSettings>({
+		pexelsApiKey: '',
+		pixabayApiKey: ''
 	});
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
@@ -444,6 +454,13 @@ export default class Settings extends SerializableBase {
 			settings.aiTranslationSettings.aiWbwTranslationCustomNote = '';
 			shouldSave = true;
 		}
+		if (!settings.stockMediaSettings || typeof settings.stockMediaSettings !== 'object') {
+			settings.stockMediaSettings = {
+				pexelsApiKey: '',
+				pixabayApiKey: ''
+			};
+			shouldSave = true;
+		}
 		// ==========================
 
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
@@ -530,6 +547,7 @@ export enum SettingsTab {
 	THEME = 'theme',
 	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',
+	STOCK_MEDIA = 'stock-media',
 	QURAN_INTEGRATION = 'quran-integration',
 	BACKUP = 'backup',
 	SUPPORT = 'support',

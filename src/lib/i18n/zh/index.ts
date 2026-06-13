@@ -491,7 +491,7 @@ const zh: Translation = {
 		unknownAudioError: '加载音频时发生未知错误：{error}',
 		unableToAnalyzeMedia: '无法分析此媒体文件。请检查 FFmpeg/FFprobe 安装。',
 		variableBitrateWarning:
-			'您的媒体使用可变比特率（VBR）。这可能在导出时导致时间不一致。请转换为恒定比特率（CBR）以获得更好的结果。',
+			'您的媒体使用可变比特率（VBR）。这可能在视频编辑时导致时间不一致。请转换为恒定比特率（CBR）以获得更好的结果。',
 		tajweedRequiresInternet: 'Tajweed 需要互联网连接。请检查您的连接并重试。',
 		noSubtitlesToShift: '没有从此时间或之后开始的字幕 \u2014 无需移动。',
 		cannotShiftBackward: '无法向后移动：截断点之前的字幕将变得太短。',
@@ -1003,6 +1003,25 @@ const zh: Translation = {
 		fetchButton: '获取',
 		askAi: '询问 AI',
 		selectedCount: '{count} 个已选择',
+		stockMedia: 'Stock Media',
+		searchStockMedia: 'Search stock media...',
+		stockMediaSource: 'Source',
+		stockMediaType: 'Media type',
+		allMedia: 'All media',
+		images: 'Images',
+		videos: 'Videos',
+		noStockMediaResults: 'No results found',
+		noStockMediaResultsMessage: 'Try different keywords or change the source.',
+		downloadMediaAsset: 'Download and import',
+		downloadingMediaAsset: 'Downloading...',
+		stockMediaDownloadError: 'Failed to download media: {error}',
+		stockMediaDisclaimer:
+			'You are responsible for crediting the author and providing a link to the original content on {source} as required by their terms of service.',
+		configureApiKeys: 'Configure API keys in Settings > Stock Media',
+		pexelsSource: 'Pexels',
+		pixabaySource: 'Pixabay',
+		stockMediaError: 'Search error',
+		backToAssets: 'Back to assets',
 		styleName: {
 			general: '通用',
 			'show-subtitles': '显示字幕',
@@ -1634,6 +1653,7 @@ const zh: Translation = {
 		theme: '主题',
 		notifications: '通知',
 		aiKey: 'AI 密钥',
+		stockMedia: 'Stock Media',
 		quranComIntegration: 'Quran.com 集成',
 		backup: '备份',
 		support: '支持',
@@ -1852,7 +1872,15 @@ const zh: Translation = {
 			FRAME_BY_FRAME_SCROLL: '在滚动时按住此快捷键以逐帧前进',
 			FRAME_BACKWARD: '将光标后退一帧',
 			FRAME_FORWARD: '将光标前进一帧'
-		}
+		},
+		stockMediaDescription:
+			'Configure your Pexels and Pixabay API keys to search and import free stock media.',
+		pexelsApiKey: 'Pexels API Key',
+		pixabayApiKey: 'Pixabay API Key',
+		pexelsApiKeyHint:
+			'Get your free API key at pexels.com/api. Stored in plain text in settings.json.',
+		pixabayApiKeyHint:
+			'Get your free API key at pixabay.com/api/docs. Stored in plain text in settings.json.'
 	},
 	tour: {
 		stepCreateProjectTitle: '创建新项目',

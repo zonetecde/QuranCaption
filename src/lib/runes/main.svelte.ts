@@ -17,6 +17,7 @@ import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 import type { AiVideoState } from '$lib/components/aiVideo/types';
 import type { PresetLibraryState } from '$lib/components/projectEditor/tabs/styleEditor/presets/types';
+import type { StockMediaLibraryState } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/stockMediaTypes';
 import { getChineseMetadataLanguage } from '$lib/services/ChineseTranslationHelper';
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
@@ -109,6 +110,20 @@ class GlobalState {
 		modalMode: null
 	});
 
+	// Etat complet de la librairie de medias stock (Pexels / Pixabay)
+	stockMediaLibrary: StockMediaLibraryState = $state({
+		libraryOpen: false,
+		searchQuery: '',
+		source: 'pixabay',
+		mediaType: 'video',
+		results: [],
+		isLoading: false,
+		error: null,
+		page: 1,
+		hasMore: false,
+		downloadingId: null
+	});
+
 	// Contient tout les exports (en cours ou accomplis)
 	exportations: Exportation[] = $state([]);
 
@@ -138,6 +153,7 @@ class GlobalState {
 			| 'theme'
 			| 'notifications'
 			| 'ai-key'
+			| 'stock-media'
 			| 'quran-integration'
 			| 'backup'
 			| 'support'

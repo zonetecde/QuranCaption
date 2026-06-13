@@ -1,4 +1,4 @@
-﻿import type { Translation } from '../i18n-types';
+import type { Translation } from '../i18n-types';
 
 const de: Translation = {
 	common: {
@@ -537,7 +537,7 @@ const de: Translation = {
 		unableToAnalyzeMedia:
 			'Diese Mediendatei kann nicht analysiert werden. Bitte überprüfen Sie Ihre FFmpeg/FFprobe-Installation.',
 		variableBitrateWarning:
-			'Ihr Medium verwendet variable Bitrate (VBR). Dies kann zu Zeitinkonsistenzen beim Export führen. Konvertieren Sie in konstante Bitrate (CBR) für bessere Ergebnisse.',
+			'Ihr Medium verwendet variable Bitrate (VBR). Dies kann zu Zeitinkonsistenzen bei der Videobearbeitung führen. Konvertieren Sie in konstante Bitrate (CBR) für bessere Ergebnisse.',
 		tajweedRequiresInternet:
 			'Tajweed erfordert eine Internetverbindung. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
 		noSubtitlesToShift:
@@ -1094,6 +1094,26 @@ const de: Translation = {
 		fetchButton: 'Abrufen',
 		askAi: 'KI fragen',
 		selectedCount: '{count} ausgewählt',
+		stockMedia: 'Stock-Medien',
+		searchStockMedia: 'Medien durchsuchen...',
+		stockMediaSource: 'Quelle',
+		stockMediaType: 'Medientyp',
+		allMedia: 'Alle Medien',
+		images: 'Bilder',
+		videos: 'Videos',
+		noStockMediaResults: 'Keine Ergebnisse gefunden',
+		noStockMediaResultsMessage:
+			'Versuchen Sie andere Schlüsselwörter oder wechseln Sie die Quelle.',
+		downloadMediaAsset: 'Herunterladen und importieren',
+		downloadingMediaAsset: 'Herunterladen...',
+		stockMediaDownloadError: 'Fehler beim Herunterladen: {error}',
+		stockMediaDisclaimer:
+			'Sie sind dafür verantwortlich, den Autor zu nennen und einen Link zum Originalinhalt auf {source} bereitzustellen, wie in den Nutzungsbedingungen gefordert.',
+		configureApiKeys: 'Konfigurieren Sie Ihre API-Schlüssel unter Einstellungen > Stock-Medien',
+		pexelsSource: 'Pexels',
+		pixabaySource: 'Pixabay',
+		stockMediaError: 'Suchfehler',
+		backToAssets: 'Zurück zu Assets',
 		styleName: {
 			general: 'Allgemein',
 			'show-subtitles': 'Untertitel anzeigen',
@@ -1798,7 +1818,8 @@ const de: Translation = {
 		shortcuts: 'Tastenkürzel',
 		theme: 'Design',
 		notifications: 'Benachrichtigungen',
-		aiKey: 'KI-Schlüssel',
+		aiKey: 'KI-Schlussel',
+		stockMedia: 'Stock-Medien',
 		quranComIntegration: 'Quran.com-Integration',
 		backup: 'Backup',
 		support: 'Support',
@@ -2036,7 +2057,15 @@ const de: Translation = {
 				'Diese Tastenkombination beim Scrollen gedrückt halten, um bildweise vorzurücken',
 			FRAME_BACKWARD: 'Cursor um ein Bild zurücksetzen',
 			FRAME_FORWARD: 'Cursor um ein Bild vorrücken'
-		}
+		},
+		stockMediaDescription:
+			'Konfigurieren Sie Ihre Pexels- und Pixabay-API-Schlüssel, um kostenlose Stock-Medien zu suchen und zu importieren.',
+		pexelsApiKey: 'Pexels API-Schlüssel',
+		pixabayApiKey: 'Pixabay API-Schlüssel',
+		pexelsApiKeyHint:
+			'Holen Sie sich Ihren kostenlosen API-Schlüssel auf pexels.com/api. Wird im Klartext in settings.json gespeichert.',
+		pixabayApiKeyHint:
+			'Holen Sie sich Ihren kostenlosen API-Schlüssel auf pixabay.com/api/docs. Wird im Klartext in settings.json gespeichert.'
 	},
 	tour: {
 		stepCreateProjectTitle: 'Neues Projekt erstellen',

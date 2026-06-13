@@ -232,7 +232,7 @@ const editor = {
 	unknownAudioError: 'An unknown error occurred while loading audio: {error}',
 	unableToAnalyzeMedia: 'Unable to analyze this media file. Please check FFmpeg/FFprobe setup.',
 	variableBitrateWarning:
-		'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during export. Convert to constant bitrate (CBR) for better results.',
+		'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. Convert to constant bitrate (CBR) for better results.',
 	tajweedRequiresInternet:
 		'Tajweed requires an internet connection. Please check your connection and try again.',
 	noSubtitlesToShift: 'No subtitles starting at or after that time \u2014 nothing to shift.',
@@ -786,6 +786,26 @@ const editor = {
 	fetchButton: 'Fetch',
 	askAi: 'Ask AI',
 	selectedCount: '{count} selected',
+
+	stockMedia: 'Stock Media',
+	searchStockMedia: 'Search stock media...',
+	stockMediaSource: 'Source',
+	stockMediaType: 'Media type',
+	allMedia: 'All media',
+	images: 'Images',
+	videos: 'Videos',
+	noStockMediaResults: 'No results found',
+	noStockMediaResultsMessage: 'Try different keywords or change the source.',
+	downloadMediaAsset: 'Download and import',
+	downloadingMediaAsset: 'Downloading...',
+	stockMediaDownloadError: 'Failed to download media: {error}',
+	stockMediaDisclaimer:
+		'You are responsible for crediting the author and providing a link to the original content on {source} as required by their terms of service.',
+	configureApiKeys: 'Configure API keys in Settings > Stock Media',
+	pexelsSource: 'Pexels',
+	pixabaySource: 'Pixabay',
+	stockMediaError: 'Search error',
+	backToAssets: 'Back to assets',
 	styleName: {
 		general: 'General',
 		'show-subtitles': 'Show Subtitles',

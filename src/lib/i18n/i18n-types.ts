@@ -1956,7 +1956,7 @@ type RootTranslation = {
 		 */
 		unableToAnalyzeMedia: string;
 		/**
-		 * Y​o​u​r​ ​m​e​d​i​a​ ​u​s​e​s​ ​v​a​r​i​a​b​l​e​ ​b​i​t​r​a​t​e​ ​(​V​B​R​)​.​ ​T​h​i​s​ ​m​a​y​ ​c​a​u​s​e​ ​t​i​m​i​n​g​ ​i​n​c​o​n​s​i​s​t​e​n​c​i​e​s​ ​d​u​r​i​n​g​ ​e​x​p​o​r​t​.​ ​C​o​n​v​e​r​t​ ​t​o​ ​c​o​n​s​t​a​n​t​ ​b​i​t​r​a​t​e​ ​(​C​B​R​)​ ​f​o​r​ ​b​e​t​t​e​r​ ​r​e​s​u​l​t​s​.
+		 * Y​o​u​r​ ​m​e​d​i​a​ ​u​s​e​s​ ​v​a​r​i​a​b​l​e​ ​b​i​t​r​a​t​e​ ​(​V​B​R​)​.​ ​T​h​i​s​ ​m​a​y​ ​c​a​u​s​e​ ​t​i​m​i​n​g​ ​i​n​c​o​n​s​i​s​t​e​n​c​i​e​s​ ​d​u​r​i​n​g​ ​v​i​d​e​o​ ​e​d​i​t​i​n​g​.​ ​C​o​n​v​e​r​t​ ​t​o​ ​c​o​n​s​t​a​n​t​ ​b​i​t​r​a​t​e​ ​(​C​B​R​)​ ​f​o​r​ ​b​e​t​t​e​r​ ​r​e​s​u​l​t​s​.
 		 */
 		variableBitrateWarning: string;
 		/**
@@ -4011,6 +4011,80 @@ type RootTranslation = {
 		 * @param {unknown} count
 		 */
 		selectedCount: RequiredParams<'count'>;
+		/**
+		 * S​t​o​c​k​ ​M​e​d​i​a
+		 */
+		stockMedia: string;
+		/**
+		 * S​e​a​r​c​h​ ​s​t​o​c​k​ ​m​e​d​i​a​.​.​.
+		 */
+		searchStockMedia: string;
+		/**
+		 * S​o​u​r​c​e
+		 */
+		stockMediaSource: string;
+		/**
+		 * M​e​d​i​a​ ​t​y​p​e
+		 */
+		stockMediaType: string;
+		/**
+		 * A​l​l​ ​m​e​d​i​a
+		 */
+		allMedia: string;
+		/**
+		 * I​m​a​g​e​s
+		 */
+		images: string;
+		/**
+		 * V​i​d​e​o​s
+		 */
+		videos: string;
+		/**
+		 * N​o​ ​r​e​s​u​l​t​s​ ​f​o​u​n​d
+		 */
+		noStockMediaResults: string;
+		/**
+		 * T​r​y​ ​d​i​f​f​e​r​e​n​t​ ​k​e​y​w​o​r​d​s​ ​o​r​ ​c​h​a​n​g​e​ ​t​h​e​ ​s​o​u​r​c​e​.
+		 */
+		noStockMediaResultsMessage: string;
+		/**
+		 * D​o​w​n​l​o​a​d​ ​a​n​d​ ​i​m​p​o​r​t
+		 */
+		downloadMediaAsset: string;
+		/**
+		 * D​o​w​n​l​o​a​d​i​n​g​.​.​.
+		 */
+		downloadingMediaAsset: string;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​m​e​d​i​a​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		stockMediaDownloadError: RequiredParams<'error'>;
+		/**
+		 * Y​o​u​ ​a​r​e​ ​r​e​s​p​o​n​s​i​b​l​e​ ​f​o​r​ ​c​r​e​d​i​t​i​n​g​ ​t​h​e​ ​a​u​t​h​o​r​ ​a​n​d​ ​p​r​o​v​i​d​i​n​g​ ​a​ ​l​i​n​k​ ​t​o​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​c​o​n​t​e​n​t​ ​o​n​ ​{​s​o​u​r​c​e​}​ ​a​s​ ​r​e​q​u​i​r​e​d​ ​b​y​ ​t​h​e​i​r​ ​t​e​r​m​s​ ​o​f​ ​s​e​r​v​i​c​e​.
+		 * @param {unknown} source
+		 */
+		stockMediaDisclaimer: RequiredParams<'source'>;
+		/**
+		 * C​o​n​f​i​g​u​r​e​ ​A​P​I​ ​k​e​y​s​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​S​t​o​c​k​ ​M​e​d​i​a
+		 */
+		configureApiKeys: string;
+		/**
+		 * P​e​x​e​l​s
+		 */
+		pexelsSource: string;
+		/**
+		 * P​i​x​a​b​a​y
+		 */
+		pixabaySource: string;
+		/**
+		 * S​e​a​r​c​h​ ​e​r​r​o​r
+		 */
+		stockMediaError: string;
+		/**
+		 * B​a​c​k​ ​t​o​ ​a​s​s​e​t​s
+		 */
+		backToAssets: string;
 		styleName: {
 			/**
 			 * G​e​n​e​r​a​l
@@ -6475,6 +6549,10 @@ type RootTranslation = {
 		 */
 		aiKey: string;
 		/**
+		 * S​t​o​c​k​ ​M​e​d​i​a
+		 */
+		stockMedia: string;
+		/**
 		 * Q​u​r​a​n​.​c​o​m​ ​I​n​t​e​g​r​a​t​i​o​n
 		 */
 		quranComIntegration: string;
@@ -7325,6 +7403,26 @@ type RootTranslation = {
 			 */
 			FRAME_FORWARD: string;
 		};
+		/**
+		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​P​e​x​e​l​s​ ​a​n​d​ ​P​i​x​a​b​a​y​ ​A​P​I​ ​k​e​y​s​ ​t​o​ ​s​e​a​r​c​h​ ​a​n​d​ ​i​m​p​o​r​t​ ​f​r​e​e​ ​s​t​o​c​k​ ​m​e​d​i​a​.
+		 */
+		stockMediaDescription: string;
+		/**
+		 * P​e​x​e​l​s​ ​A​P​I​ ​K​e​y
+		 */
+		pexelsApiKey: string;
+		/**
+		 * P​i​x​a​b​a​y​ ​A​P​I​ ​K​e​y
+		 */
+		pixabayApiKey: string;
+		/**
+		 * G​e​t​ ​y​o​u​r​ ​f​r​e​e​ ​A​P​I​ ​k​e​y​ ​a​t​ ​p​e​x​e​l​s​.​c​o​m​/​a​p​i​.​ ​S​t​o​r​e​d​ ​i​n​ ​p​l​a​i​n​ ​t​e​x​t​ ​i​n​ ​s​e​t​t​i​n​g​s​.​j​s​o​n​.
+		 */
+		pexelsApiKeyHint: string;
+		/**
+		 * G​e​t​ ​y​o​u​r​ ​f​r​e​e​ ​A​P​I​ ​k​e​y​ ​a​t​ ​p​i​x​a​b​a​y​.​c​o​m​/​a​p​i​/​d​o​c​s​.​ ​S​t​o​r​e​d​ ​i​n​ ​p​l​a​i​n​ ​t​e​x​t​ ​i​n​ ​s​e​t​t​i​n​g​s​.​j​s​o​n​.
+		 */
+		pixabayApiKeyHint: string;
 	};
 	tour: {
 		/**
@@ -10507,7 +10605,7 @@ export type TranslationFunctions = {
 		 */
 		unableToAnalyzeMedia: () => LocalizedString;
 		/**
-		 * Your media uses variable bitrate (VBR). This may cause timing inconsistencies during export. Convert to constant bitrate (CBR) for better results.
+		 * Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. Convert to constant bitrate (CBR) for better results.
 		 */
 		variableBitrateWarning: () => LocalizedString;
 		/**
@@ -12526,6 +12624,78 @@ export type TranslationFunctions = {
 		 * {count} selected
 		 */
 		selectedCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Stock Media
+		 */
+		stockMedia: () => LocalizedString;
+		/**
+		 * Search stock media...
+		 */
+		searchStockMedia: () => LocalizedString;
+		/**
+		 * Source
+		 */
+		stockMediaSource: () => LocalizedString;
+		/**
+		 * Media type
+		 */
+		stockMediaType: () => LocalizedString;
+		/**
+		 * All media
+		 */
+		allMedia: () => LocalizedString;
+		/**
+		 * Images
+		 */
+		images: () => LocalizedString;
+		/**
+		 * Videos
+		 */
+		videos: () => LocalizedString;
+		/**
+		 * No results found
+		 */
+		noStockMediaResults: () => LocalizedString;
+		/**
+		 * Try different keywords or change the source.
+		 */
+		noStockMediaResultsMessage: () => LocalizedString;
+		/**
+		 * Download and import
+		 */
+		downloadMediaAsset: () => LocalizedString;
+		/**
+		 * Downloading...
+		 */
+		downloadingMediaAsset: () => LocalizedString;
+		/**
+		 * Failed to download media: {error}
+		 */
+		stockMediaDownloadError: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * You are responsible for crediting the author and providing a link to the original content on {source} as required by their terms of service.
+		 */
+		stockMediaDisclaimer: (arg: { source: unknown }) => LocalizedString;
+		/**
+		 * Configure API keys in Settings > Stock Media
+		 */
+		configureApiKeys: () => LocalizedString;
+		/**
+		 * Pexels
+		 */
+		pexelsSource: () => LocalizedString;
+		/**
+		 * Pixabay
+		 */
+		pixabaySource: () => LocalizedString;
+		/**
+		 * Search error
+		 */
+		stockMediaError: () => LocalizedString;
+		/**
+		 * Back to assets
+		 */
+		backToAssets: () => LocalizedString;
 		styleName: {
 			/**
 			 * General
@@ -14971,6 +15141,10 @@ export type TranslationFunctions = {
 		 */
 		aiKey: () => LocalizedString;
 		/**
+		 * Stock Media
+		 */
+		stockMedia: () => LocalizedString;
+		/**
 		 * Quran.com Integration
 		 */
 		quranComIntegration: () => LocalizedString;
@@ -15810,6 +15984,26 @@ export type TranslationFunctions = {
 			 */
 			FRAME_FORWARD: () => LocalizedString;
 		};
+		/**
+		 * Configure your Pexels and Pixabay API keys to search and import free stock media.
+		 */
+		stockMediaDescription: () => LocalizedString;
+		/**
+		 * Pexels API Key
+		 */
+		pexelsApiKey: () => LocalizedString;
+		/**
+		 * Pixabay API Key
+		 */
+		pixabayApiKey: () => LocalizedString;
+		/**
+		 * Get your free API key at pexels.com/api. Stored in plain text in settings.json.
+		 */
+		pexelsApiKeyHint: () => LocalizedString;
+		/**
+		 * Get your free API key at pixabay.com/api/docs. Stored in plain text in settings.json.
+		 */
+		pixabayApiKeyHint: () => LocalizedString;
 	};
 	tour: {
 		/**

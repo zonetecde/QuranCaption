@@ -76,7 +76,9 @@
 			type="button"
 			onclick={addAssetButtonClick}
 		>
-			<span class="material-icons mr-2 text-base">add_circle_outline</span>{get(LL).editor.addAssetLabel()}
+			<span class="material-icons mr-2 text-base">add_circle_outline</span>{get(
+				LL
+			).editor.addAssetLabel()}
 		</button>
 
 		<div class="flex flex-col gap-2 mt-2">
@@ -84,7 +86,5 @@
 				<AssetViewer {asset} />
 			{/each}
 		</div>
-
-		<div class="text-center text-xs text-gray-500 pt-2 mt-2">{get(LL).editor.dragAndDropFilesHere()}</div>
 	</div>
 </Section>

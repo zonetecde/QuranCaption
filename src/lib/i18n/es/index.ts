@@ -538,7 +538,7 @@ const es: Translation = {
 		unableToAnalyzeMedia:
 			'No se pudo analizar este archivo multimedia. Verifique la instalación de FFmpeg/FFprobe.',
 		variableBitrateWarning:
-			'Su medio usa una tasa de bits variable (VBR). Esto puede causar inconsistencias de temporización durante la exportación. Convierta a tasa de bits constante (CBR) para mejores resultados.',
+			'Su medio usa tasa de bits variable (VBR). Esto puede causar inconsistencias de temporización durante la edición de video. Convierta a tasa de bits constante (CBR) para mejores resultados.',
 		tajweedRequiresInternet:
 			'El tajweed requiere conexión a Internet. Verifique su conexión e intente de nuevo.',
 		noSubtitlesToShift:
@@ -1098,6 +1098,25 @@ const es: Translation = {
 		fetchButton: 'Obtener',
 		askAi: 'Preguntar a la IA',
 		selectedCount: '{count}\u00a0seleccionado(s)',
+		stockMedia: 'Banco de medios',
+		searchStockMedia: 'Buscar medios...',
+		stockMediaSource: 'Fuente',
+		stockMediaType: 'Tipo de medio',
+		allMedia: 'Todos los medios',
+		images: 'ImÃ¡genes',
+		videos: 'Videos',
+		noStockMediaResults: 'Sin resultados',
+		noStockMediaResultsMessage: 'Pruebe con otras palabras clave o cambie la fuente.',
+		downloadMediaAsset: 'Descargar e importar',
+		downloadingMediaAsset: 'Descargando...',
+		stockMediaDownloadError: 'Error al descargar: {error}',
+		stockMediaDisclaimer:
+			'Usted es responsable de acreditar al autor y proporcionar un enlace al contenido original en {source}, como exigen sus condiciones de uso.',
+		configureApiKeys: 'Configure sus claves API en Ajustes > Banco de medios',
+		pexelsSource: 'Pexels',
+		pixabaySource: 'Pixabay',
+		stockMediaError: 'Error de bÃºsqueda',
+		backToAssets: 'Volver a recursos',
 
 		styleName: {
 			general: 'General',
@@ -1805,6 +1824,7 @@ const es: Translation = {
 		theme: 'Tema',
 		notifications: 'Notificaciones',
 		aiKey: 'Clave IA',
+		stockMedia: 'Banco de medios',
 		quranComIntegration: 'Integración Quran.com',
 		backup: 'Copia de seguridad',
 		support: 'Ayuda',
@@ -2041,7 +2061,15 @@ const es: Translation = {
 				'Mantener este atajo mientras se desplaza para avanzar fotograma a fotograma',
 			FRAME_BACKWARD: 'Retroceder el cursor un fotograma',
 			FRAME_FORWARD: 'Avanzar el cursor un fotograma'
-		}
+		},
+		stockMediaDescription:
+			'Configure sus claves API de Pexels y Pixabay para buscar e importar medios de stock gratuitos.',
+		pexelsApiKey: 'Clave API de Pexels',
+		pixabayApiKey: 'Clave API de Pixabay',
+		pexelsApiKeyHint:
+			'Obtenga su clave API gratuita en pexels.com/api. Almacenada en texto plano en settings.json.',
+		pixabayApiKeyHint:
+			'Obtenga su clave API gratuita en pixabay.com/api/docs. Almacenada en texto plano en settings.json.'
 	},
 	tour: {
 		stepCreateProjectTitle: 'Crear un nuevo proyecto',

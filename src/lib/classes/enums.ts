@@ -17,7 +17,9 @@ export enum SourceType {
 	Local = 'local',
 	YouTube = 'youtube',
 	Mp3Quran = 'mp3quran',
-	QuranFoundation = 'quranfoundation'
+	QuranFoundation = 'quranfoundation',
+	Pexels = 'pexels',
+	Pixabay = 'pixabay'
 }
 
 export enum ProjectEditorTabs {

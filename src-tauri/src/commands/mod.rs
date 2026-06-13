@@ -16,5 +16,7 @@ pub mod media;
 pub mod screenshot;
 /// Commandes de segmentation cloud/local.
 pub mod segmentation;
+/// Commandes de recherche de medias stock (Pexels / Pixabay).
+pub mod stock_media;
 /// Commandes d'analyse de forme d'onde.
 pub mod waveform;

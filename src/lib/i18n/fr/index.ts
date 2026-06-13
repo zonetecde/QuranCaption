@@ -540,7 +540,7 @@ const fr: Translation = {
 		unableToAnalyzeMedia:
 			'Impossible d\u2019analyser ce fichier média. Veuillez vérifier l\u2019installation de FFmpeg/FFprobe.',
 		variableBitrateWarning:
-			'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors de l\u2019export. Convertissez en débit binaire constant (CBR) pour de meilleurs résultats.',
+			'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors du montage vidéo. Convertissez en débit binaire constant (CBR) pour de meilleurs résultats.',
 		tajweedRequiresInternet:
 			'Le tajweed nécessite une connexion Internet. Veuillez vérifier votre connexion et réessayer.',
 		noSubtitlesToShift: 'Aucun sous-titre commençant à ce moment ou après \u2014 rien à décaler.',
@@ -1097,6 +1097,25 @@ const fr: Translation = {
 		fetchButton: 'Récupérer',
 		askAi: 'Demander à l\u2019IA',
 		selectedCount: '{count}\u00a0sélectionné(s)',
+		stockMedia: 'Banque de médias',
+		searchStockMedia: 'Rechercher des médias...',
+		stockMediaSource: 'Source',
+		stockMediaType: 'Type de média',
+		allMedia: 'Tous les médias',
+		images: 'Images',
+		videos: 'Vidéos',
+		noStockMediaResults: 'Aucun résultat trouvé',
+		noStockMediaResultsMessage: 'Essayez avec d’autres mots-clés ou changez de source.',
+		downloadMediaAsset: 'Télécharger et importer',
+		downloadingMediaAsset: 'Téléchargement...',
+		stockMediaDownloadError: 'Échec du téléchargement : {error}',
+		stockMediaDisclaimer:
+			'Vous êtes responsable de créditer l’auteur et de fournir un lien vers le contenu original sur {source}, comme l’exigent leurs conditions d’utilisation.',
+		configureApiKeys: 'Configurez vos clés API dans Paramètres > Banque de médias',
+		pexelsSource: 'Pexels',
+		pixabaySource: 'Pixabay',
+		stockMediaError: 'Erreur de recherche',
+		backToAssets: 'Retour aux assets',
 		styleName: {
 			general: 'Général',
 			'show-subtitles': 'Afficher les sous-titres',
@@ -1678,7 +1697,26 @@ const fr: Translation = {
 		arabicTextTab: 'Texte arabe',
 		translationTab: 'Traduction',
 		verseKeyLabel: 'Clé du verset',
-		searchVerse: 'Rechercher un verset...'
+		searchVerse: 'Rechercher un verset...',
+		stockMedia: 'Banque de médias',
+		searchStockMedia: 'Rechercher des médias...',
+		stockMediaSource: 'Source',
+		stockMediaType: 'Type de média',
+		allMedia: 'Tous les médias',
+		images: 'Images',
+		videos: 'Vidéos',
+		noStockMediaResults: 'Aucun résultat trouvé',
+		noStockMediaResultsMessage: 'Essayez avec d\u2019autres mots-clés ou changez de source.',
+		downloadMediaAsset: 'Télécharger et importer',
+		downloadingMediaAsset: 'Téléchargement...',
+		stockMediaDownloadError: 'Échec du téléchargement : {error}',
+		stockMediaDisclaimer:
+			'Vous êtes responsable de créditer l\u2019auteur et de fournir un lien vers le contenu original sur {source}, comme l\u2019exigent leurs conditions d\u2019utilisation.',
+		configureApiKeys: 'Configurez vos clés API dans Paramètres > Banque de médias',
+		pexelsSource: 'Pexels',
+		pixabaySource: 'Pixabay',
+		stockMediaError: 'Erreur de recherche',
+		backToAssets: 'Retour aux assets'
 	},
 	style: {
 		styleEditor: 'Éditeur de style',
@@ -1808,6 +1846,7 @@ const fr: Translation = {
 		theme: 'Thème',
 		notifications: 'Notifications',
 		aiKey: 'Clé IA',
+		stockMedia: 'Banque de médias',
 		quranComIntegration: 'Intégration Quran.com',
 		backup: 'Sauvegarde',
 		support: 'Assistance',
@@ -2043,7 +2082,15 @@ const fr: Translation = {
 			FRAME_BY_FRAME_SCROLL: 'Maintenir ce raccourci en défilant pour avancer image par image',
 			FRAME_BACKWARD: "Reculer le curseur d'une image",
 			FRAME_FORWARD: "Avancer le curseur d'une image"
-		}
+		},
+		stockMediaDescription:
+			'Configurez vos clés API Pexels et Pixabay pour rechercher et importer des médias libres de droits.',
+		pexelsApiKey: 'Clé API Pexels',
+		pixabayApiKey: 'Clé API Pixabay',
+		pexelsApiKeyHint:
+			'Obtenez votre clé API gratuite sur pexels.com/api. Stockée en clair dans settings.json.',
+		pixabayApiKeyHint:
+			'Obtenez votre clé API gratuite sur pixabay.com/api/docs. Stockée en clair dans settings.json.'
 	},
 	tour: {
 		stepCreateProjectTitle: 'Créer un nouveau projet',

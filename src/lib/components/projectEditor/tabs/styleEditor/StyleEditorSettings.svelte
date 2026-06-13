@@ -191,6 +191,10 @@
 			return !Boolean(globalState.getStyle(target, 'enable-wbw-underline')?.value);
 		}
 
+		if (styleId === 'wbw-glow-color' || styleId === 'wbw-glow-blur') {
+			return !Boolean(globalState.getStyle(target, 'enable-wbw-glow')?.value);
+		}
+
 		return false;
 	}
 

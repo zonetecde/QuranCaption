@@ -818,6 +818,9 @@ const editor = {
 		'wbw-persist-color': 'Persist highlighted words',
 		'enable-wbw-underline': 'Enable underline',
 		'wbw-underline-thickness': 'Underline thickness',
+		'enable-wbw-glow': 'Enable wbw glow',
+		'wbw-glow-color': 'Glow color',
+		'wbw-glow-blur': 'Glow blur',
 		'wbw-reveal-on-recitation': 'Reveal words on recitation',
 		'wbw-always-show-verse-number': 'Always Show Verse Number',
 		'enable-wbw-background': 'Enable wbw background',
@@ -965,6 +968,9 @@ const editor = {
 		'wbw-persist-color': 'Keep previously highlighted words colored after they have been read',
 		'enable-wbw-underline': 'Underline highlighted words',
 		'wbw-underline-thickness': 'Thickness of the wbw underline in pixels',
+		'enable-wbw-glow': 'Add a glow around highlighted words',
+		'wbw-glow-color': 'Glow color applied to highlighted words',
+		'wbw-glow-blur': 'Set the blur radius of the wbw glow',
 		'wbw-reveal-on-recitation':
 			'Keep future words hidden until they are recited, then fade them up to the Arabic opacity',
 		'wbw-always-show-verse-number':

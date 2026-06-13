@@ -1126,6 +1126,9 @@ const de: Translation = {
 			'wbw-persist-color': 'Hervorgehobene Wörter beibehalten',
 			'enable-wbw-underline': 'Unterstreichung aktivieren',
 			'wbw-underline-thickness': 'Dicke der Unterstreichung',
+			'enable-wbw-glow': 'WBW-Leuchten aktivieren',
+			'wbw-glow-color': 'Leuchtfarbe',
+			'wbw-glow-blur': 'Leuchtunschärfe',
 			'wbw-reveal-on-recitation': 'Wörter bei Rezitation enthüllen',
 			'wbw-always-show-verse-number': 'Versnummer immer anzeigen',
 			'enable-wbw-background': 'WBW-Hintergrund aktivieren',
@@ -1277,6 +1280,9 @@ const de: Translation = {
 			'wbw-persist-color': 'Zuvor hervorgehobene Wörter nach ihrer Rezitation farbig halten',
 			'enable-wbw-underline': 'Hervorgehobene Wörter unterstreichen',
 			'wbw-underline-thickness': 'Dicke der WBW-Unterstreichung in Pixeln',
+			'enable-wbw-glow': 'Leuchten um hervorgehobene Wörter hinzufügen',
+			'wbw-glow-color': 'Auf hervorgehobene Wörter angewendete Leuchtfarbe',
+			'wbw-glow-blur': 'Unschärferadius des WBW-Leuchtens festlegen',
 			'wbw-reveal-on-recitation':
 				'Zukünftige Wörter bis zu ihrer Rezitation verborgen halten und dann erscheinen lassen',
 			'wbw-always-show-verse-number':

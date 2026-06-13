@@ -16,6 +16,9 @@ export type WordByWordHighlightState = {
 	backgroundColor: string;
 	underlineEnabled: boolean;
 	underlineThickness: number;
+	glowEnabled: boolean;
+	glowColor: string;
+	glowBlur: number;
 	clipStartTimeS: number;
 	cursorTimeS: number;
 	words: SegmentationWordTimestamp[];
@@ -31,10 +34,17 @@ type ResolveStyleValue = (styleId: string) => string | number | boolean;
 export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): boolean {
 	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
 	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
+	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 
-	return highlightEnabled || underlineEnabled || revealWordsOnRecitation || backgroundEnabled;
+	return (
+		highlightEnabled ||
+		underlineEnabled ||
+		glowEnabled ||
+		revealWordsOnRecitation ||
+		backgroundEnabled
+	);
 }
 
 /**
@@ -56,6 +66,9 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		backgroundColor: '',
 		underlineEnabled: false,
 		underlineThickness: 1,
+		glowEnabled: false,
+		glowColor: '',
+		glowBlur: 10,
 		clipStartTimeS: 0,
 		cursorTimeS: 0,
 		words: []
@@ -108,6 +121,7 @@ export function getWordByWordHighlightState(params: {
 
 	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
 	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
+	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
@@ -149,6 +163,9 @@ export function getWordByWordHighlightState(params: {
 		backgroundColor: String(getStyleValue('wbw-bg-color') ?? ''),
 		underlineEnabled,
 		underlineThickness: Number(getStyleValue('wbw-underline-thickness') ?? 1),
+		glowEnabled,
+		glowColor: String(getStyleValue('wbw-glow-color') ?? ''),
+		glowBlur: Number(getStyleValue('wbw-glow-blur') ?? 10),
 		clipStartTimeS,
 		cursorTimeS,
 		words
@@ -295,6 +312,13 @@ export function getWordByWordWordCss(
 	if (state.backgroundEnabled && state.backgroundColor && state.backgroundColor !== '#00000000') {
 		parts.push(
 			`background-color: ${interpolateCssColor('', state.backgroundColor, clampedProgress)};`
+		);
+	}
+	if (state.glowEnabled && state.glowColor && state.glowColor !== '#00000000') {
+		const glowColor = interpolateCssColor('', state.glowColor, clampedProgress);
+		const glowBlur = Math.max(0, state.glowBlur);
+		parts.push(
+			`text-shadow: 0 0 ${glowBlur * 0.5}px ${glowColor}, 0 0 ${glowBlur}px ${glowColor}, 0 0 ${glowBlur * 1.5}px ${glowColor}, 0 0 ${glowBlur * 2}px ${glowColor};`
 		);
 	}
 	if (state.revealWordsOnRecitation) {

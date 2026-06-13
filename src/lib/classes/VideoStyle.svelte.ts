@@ -125,7 +125,10 @@ export type WordByWordHighlightStyleName =
 	| 'wbw-reveal-on-recitation'
 	| 'enable-wbw-background'
 	| 'enable-wbw-underline'
+	| 'enable-wbw-glow'
 	| 'wbw-bg-color'
+	| 'wbw-glow-color'
+	| 'wbw-glow-blur'
 	| 'wbw-underline-thickness'
 	| 'wbw-always-show-verse-number';
 

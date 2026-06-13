@@ -4137,6 +4137,18 @@ type RootTranslation = {
 			 */
 			'wbw-underline-thickness': string;
 			/**
+			 * Enable wbw glow
+			 */
+			'enable-wbw-glow': string;
+			/**
+			 * Glow color
+			 */
+			'wbw-glow-color': string;
+			/**
+			 * Glow blur
+			 */
+			'wbw-glow-blur': string;
+			/**
 			 * R​e​v​e​a​l​ ​w​o​r​d​s​ ​o​n​ ​r​e​c​i​t​a​t​i​o​n
 			 */
 			'wbw-reveal-on-recitation': string;
@@ -4698,6 +4710,18 @@ type RootTranslation = {
 			 * T​h​i​c​k​n​e​s​s​ ​o​f​ ​t​h​e​ ​w​b​w​ ​u​n​d​e​r​l​i​n​e​ ​i​n​ ​p​i​x​e​l​s
 			 */
 			'wbw-underline-thickness': string;
+			/**
+			 * Add a glow around highlighted words
+			 */
+			'enable-wbw-glow': string;
+			/**
+			 * Glow color applied to highlighted words
+			 */
+			'wbw-glow-color': string;
+			/**
+			 * Set the blur radius of the wbw glow
+			 */
+			'wbw-glow-blur': string;
 			/**
 			 * K​e​e​p​ ​f​u​t​u​r​e​ ​w​o​r​d​s​ ​h​i​d​d​e​n​ ​u​n​t​i​l​ ​t​h​e​y​ ​a​r​e​ ​r​e​c​i​t​e​d​,​ ​t​h​e​n​ ​f​a​d​e​ ​t​h​e​m​ ​u​p​ ​t​o​ ​t​h​e​ ​A​r​a​b​i​c​ ​o​p​a​c​i​t​y
 			 */
@@ -12624,6 +12648,18 @@ export type TranslationFunctions = {
 			 */
 			'wbw-underline-thickness': () => LocalizedString;
 			/**
+			 * Enable wbw glow
+			 */
+			'enable-wbw-glow': () => LocalizedString;
+			/**
+			 * Glow color
+			 */
+			'wbw-glow-color': () => LocalizedString;
+			/**
+			 * Glow blur
+			 */
+			'wbw-glow-blur': () => LocalizedString;
+			/**
 			 * Reveal words on recitation
 			 */
 			'wbw-reveal-on-recitation': () => LocalizedString;
@@ -13185,6 +13221,18 @@ export type TranslationFunctions = {
 			 * Thickness of the wbw underline in pixels
 			 */
 			'wbw-underline-thickness': () => LocalizedString;
+			/**
+			 * Add a glow around highlighted words
+			 */
+			'enable-wbw-glow': () => LocalizedString;
+			/**
+			 * Glow color applied to highlighted words
+			 */
+			'wbw-glow-color': () => LocalizedString;
+			/**
+			 * Set the blur radius of the wbw glow
+			 */
+			'wbw-glow-blur': () => LocalizedString;
 			/**
 			 * Keep future words hidden until they are recited, then fade them up to the Arabic opacity
 			 */

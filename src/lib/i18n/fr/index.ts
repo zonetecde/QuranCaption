@@ -1129,6 +1129,9 @@ const fr: Translation = {
 			'wbw-persist-color': 'Persistance des mots surlignés',
 			'enable-wbw-underline': 'Activer le soulignement',
 			'wbw-underline-thickness': 'Épaisseur du soulignement',
+			'enable-wbw-glow': 'Activer la lueur wbw',
+			'wbw-glow-color': 'Couleur de la lueur',
+			'wbw-glow-blur': 'Flou de la lueur',
 			'wbw-reveal-on-recitation': 'Révéler les mots à la récitation',
 			'wbw-always-show-verse-number': 'Toujours afficher le numéro de verset',
 			'enable-wbw-background': 'Activer l\u2019arrière-plan wbw',
@@ -1281,6 +1284,9 @@ const fr: Translation = {
 			'wbw-persist-color': 'Garder les mots précédemment surlignés colorés après leur lecture',
 			'enable-wbw-underline': 'Souligner les mots surlignés',
 			'wbw-underline-thickness': 'Épaisseur du soulignement wbw en pixels',
+			'enable-wbw-glow': 'Ajouter une lueur autour des mots surlignés',
+			'wbw-glow-color': 'Couleur de lueur appliquée aux mots surlignés',
+			'wbw-glow-blur': 'Définir le rayon de flou de la lueur wbw',
 			'wbw-reveal-on-recitation':
 				'Garder les mots futurs masqués jusqu\u2019à leur récitation, puis les faire apparaître',
 			'wbw-always-show-verse-number':

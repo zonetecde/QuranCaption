@@ -638,6 +638,37 @@
 	}
 
 	/**
+	 * Retourne le texte d'une traduction pour la signature de cache.
+	 *
+	 * @param {unknown} translation Traduction attachée au clip.
+	 * @param {string} target Edition de traduction.
+	 * @param {SubtitleClip | PredefinedSubtitleClip} clip Clip mesuré.
+	 * @returns {string} Texte à inclure dans la clé de cache.
+	 */
+	function getTranslationCacheText(
+		translation: unknown,
+		target: string,
+		clip: SubtitleClip | PredefinedSubtitleClip
+	): string {
+		if (
+			translation &&
+			typeof translation === 'object' &&
+			'getText' in translation &&
+			typeof translation.getText === 'function'
+		) {
+			return clip instanceof SubtitleClip
+				? String(translation.getText(target, clip))
+				: String(translation.getText());
+		}
+
+		if (translation && typeof translation === 'object' && 'text' in translation) {
+			return String(translation.text ?? '');
+		}
+
+		return '';
+	}
+
+	/**
 	 * Construit la signature du texte de traduction réellement rendu.
 	 *
 	 * @param {string} target Edition de traduction.
@@ -648,16 +679,22 @@
 			.map((clip) => {
 				const translation = clip.translations[target];
 				if (!translation) return `${clip.id}:`;
+				const translationCacheData = translation as {
+					inlineStyleRuns?: unknown;
+					wbwRanges?: unknown;
+				};
 
 				return getLayoutCacheValueSignature({
 					id: clip.id,
-					text:
-						clip instanceof SubtitleClip
-							? translation.getText(target, clip)
-							: translation.getText(),
+					text: getTranslationCacheText(translation, target, clip),
 					inlineStyleRuns:
-						translation instanceof VerseTranslation ? (translation.inlineStyleRuns ?? []) : [],
-					wbwRanges: translation instanceof VerseTranslation ? (translation.wbwRanges ?? []) : []
+						translation instanceof VerseTranslation
+							? (translation.inlineStyleRuns ?? [])
+							: (translationCacheData.inlineStyleRuns ?? []),
+					wbwRanges:
+						translation instanceof VerseTranslation
+							? (translation.wbwRanges ?? [])
+							: (translationCacheData.wbwRanges ?? [])
 				});
 			})
 			.join('|');

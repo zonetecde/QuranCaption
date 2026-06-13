@@ -17,6 +17,7 @@ import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 import type { AiVideoState } from '$lib/components/aiVideo/types';
 import type { PresetLibraryState } from '$lib/components/projectEditor/tabs/styleEditor/presets/types';
+import { getChineseMetadataLanguage } from '$lib/services/ChineseTranslationHelper';
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
@@ -325,11 +326,13 @@ class GlobalState {
 	 * @returns Les métadonnées de traduction pour la langue spécifiée.
 	 */
 	getTranslationMetadata(language: string): TranslationLanguageData | null {
+		const metadataLanguage = getChineseMetadataLanguage(language);
 		const exactMatch =
-			this.availableTranslations[language] ?? this.qdcAvailableTranslations[language];
+			this.availableTranslations[metadataLanguage] ??
+			this.qdcAvailableTranslations[metadataLanguage];
 		if (exactMatch) return exactMatch;
 
-		const normalizedLanguage = language.trim().toLowerCase();
+		const normalizedLanguage = metadataLanguage.trim().toLowerCase();
 		for (const translationsMap of [this.availableTranslations, this.qdcAvailableTranslations]) {
 			for (const [key, value] of Object.entries(translationsMap)) {
 				if (key.trim().toLowerCase() === normalizedLanguage) {

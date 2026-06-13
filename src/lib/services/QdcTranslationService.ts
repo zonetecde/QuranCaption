@@ -1,11 +1,9 @@
 import { Edition } from '$lib/classes';
+import { getChineseMetadataLanguage } from '$lib/services/ChineseTranslationHelper';
 
 const QURAN_CAPTION_WEBSITE_BASE_URL = 'https://qurancaption.com';
 const QDC_TRANSLATION_EDITION_PREFIX = 'qdc-translation-';
 const ENGLISH_LANGUAGE_KEY = 'English';
-const QDC_METADATA_LANGUAGE_ALIASES: Record<string, string> = {
-	Chinese: 'Chinese (simplified)'
-};
 
 export type TranslationLanguageData = {
 	flag: string;
@@ -243,7 +241,7 @@ export class QdcTranslationService {
 	 * @returns La clé à chercher dans `editions.json`.
 	 */
 	private static getMetadataLanguage(language: string): string {
-		return QDC_METADATA_LANGUAGE_ALIASES[language] ?? language;
+		return getChineseMetadataLanguage(language);
 	}
 
 	/**

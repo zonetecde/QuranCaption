@@ -6,6 +6,7 @@
 	import CompositeText from './CompositeText.svelte';
 	import { VerseRange } from '$lib/classes';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { getChineseSurahTranslationLanguage } from '$lib/services/ChineseTranslationHelper';
 
 	const currentSurah = $derived(() => {
 		return globalState.getSubtitleTrack.getCurrentSurah();
@@ -124,66 +125,11 @@
 	}
 
 	const defaultTranslationLanguage: SupportedTranslationLanguage = 'English';
-	const simplifiedChineseEditionIds = new Set([
-		'zho_majian',
-		'zho_mazhonggang',
-		'zho-majian',
-		'zho-mazhonggang',
-		'zho_muhammadmakin',
-		'zho-muhammadmakin',
-		'qdc-56',
-		'qdc-109'
-	]);
-	const traditionalChineseEditionIds = new Set([
-		'zho_anonymousgroupo',
-		'zho-anonymousgroupo',
-		'zho_majian1',
-		'zho-majian1'
-	]);
 
 	const isSupportedTranslationLanguage = (
 		language: string
 	): language is SupportedTranslationLanguage =>
 		supportedTranslationLanguages.includes(language as SupportedTranslationLanguage);
-
-	/**
-	 * Retourne les identifiants connus d'une édition.
-	 *
-	 * @param {{ key?: string; name?: string }} edition Edition de traduction du projet.
-	 * @returns {string[]} Identifiants normalisés.
-	 */
-	function getEditionIds(edition: { key?: string; name?: string }): string[] {
-		return [edition.key, edition.name].map((value) =>
-			String(value ?? '')
-				.trim()
-				.toLowerCase()
-		);
-	}
-
-	/**
-	 * Choisit la variante chinoise des noms de sourates selon les éditions connues.
-	 *
-	 * @param {{ key?: string; name?: string }[]} editions Editions de traduction du projet.
-	 * @returns {SupportedTranslationLanguage | null} Variante chinoise à utiliser, ou `null`.
-	 */
-	function getChineseSurahTranslationLanguage(
-		editions: {
-			key?: string;
-			name?: string;
-		}[]
-	): SupportedTranslationLanguage | null {
-		for (const edition of editions) {
-			const ids = getEditionIds(edition);
-			if (ids.some((id) => simplifiedChineseEditionIds.has(id))) {
-				return 'ChineseSimplified';
-			}
-			if (ids.some((id) => traditionalChineseEditionIds.has(id))) {
-				return 'ChineseTraditional';
-			}
-		}
-
-		return null;
-	}
 
 	const preferredTranslationLanguage = $derived(() => {
 		const editions = globalState.getProjectTranslation.addedTranslationEditions;

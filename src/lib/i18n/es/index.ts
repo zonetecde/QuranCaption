@@ -1,6 +1,6 @@
 import type { Translation } from '../i18n-types';
 
-const es: Translation = {
+const es = {
 	common: {
 		cancel: 'Cancelar',
 		confirm: 'Confirmar',
@@ -2444,6 +2444,6 @@ const es: Translation = {
 		errorCopiedToClipboard: 'Error copiado al portapapeles',
 		failedToCopyError: 'Error al copiar el error'
 	}
-};
+} as Translation;
 
 export default es;

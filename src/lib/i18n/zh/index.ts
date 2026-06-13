@@ -1,6 +1,6 @@
 import type { Translation } from '../i18n-types';
 
-const zh: Translation = {
+const zh = {
 	common: {
 		cancel: '取消',
 		confirm: '确认',
@@ -2221,6 +2221,6 @@ const zh: Translation = {
 		errorCopiedToClipboard: '错误已复制到剪贴板',
 		failedToCopyError: '复制错误失败'
 	}
-};
+} as Translation;
 
 export default zh;

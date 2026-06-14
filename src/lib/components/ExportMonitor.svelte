@@ -628,58 +628,52 @@
 							</div>
 						{/if}
 
-						{#if !isTextExport(exportation) && (exportation.isOnGoing() || exportation.exportLogs.length > 0)}
-							<div class="mt-2">
+						{#if !isTextExport(exportation) && exportation.isOnGoing()}
+							<div
+								class="mt-1 flex justify-end absolute right-2 bottom-2 gap-1 opacity-20 hover:opacity-100 transition-opacity"
+							>
 								<button
 									type="button"
-									class="w-full flex items-center justify-between gap-2 rounded-md border border-gray-700 bg-gray-800/40 px-2 py-1 text-xs text-gray-200 hover:bg-gray-800 transition-colors cursor-pointer"
+									class="relative flex size-7 items-center justify-center rounded-md border border-gray-700 bg-gray-800/40 text-gray-400 transition-colors hover:bg-gray-800 hover:text-cyan-300 cursor-pointer"
 									onclick={() => toggleExportLogs(exportation.exportId)}
+									title={get(LL).export.exportLogs()}
+									aria-label={get(LL).export.exportLogs()}
 								>
-									<span class="flex items-center gap-2 min-w-0">
-										<span class="material-icons text-[14px] text-cyan-300">terminal</span>
-										<span>{get(LL).export.exportLogs()}</span>
-										<span class="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-300">
-											{exportation.exportLogs.length}
-										</span>
-									</span>
-									<span class="material-icons text-[16px]">
-										{expandedLogsByExportId[exportation.exportId] ? 'expand_less' : 'expand_more'}
-									</span>
+									<span class="material-icons text-[16px]">terminal</span>
 								</button>
-
-								{#if expandedLogsByExportId[exportation.exportId]}
-									<div
-										class="mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-700 bg-black/50 p-2 font-mono text-[11px] leading-4 text-gray-300"
-									>
-										<div class="mb-2 flex justify-end">
-											<button
-												type="button"
-												class="flex items-center gap-1 rounded border border-gray-700 px-2 py-0.5 text-[11px] text-gray-300 transition-colors hover:bg-gray-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-												onclick={() => copyExportLogs(exportation.exportLogs)}
-												disabled={exportation.exportLogs.length === 0}
-												title={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
-												aria-label={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
-											>
-												<span class="material-icons text-[13px]">content_copy</span>
-												{get(LL).common.copy()}
-											</button>
-										</div>
-										{#if exportation.exportLogs.length === 0}
-											<div class="text-gray-500">{get(LL).export.noExportLogs()}</div>
-										{:else}
-											{#each exportation.exportLogs as log, index (index)}
-												<div class="grid grid-cols-[72px_44px_110px_1fr] gap-2">
-													<span class="text-gray-500">{formatExportLogTime(log.timestamp)}</span>
-													<span class={getExportLogLevelColor(log.level)}>{log.level}</span>
-													<span class="truncate text-cyan-300" title={log.source}>{log.source}</span
-													>
-													<span class="whitespace-pre-wrap break-words">{log.message}</span>
-												</div>
-											{/each}
-										{/if}
-									</div>
-								{/if}
 							</div>
+
+							{#if expandedLogsByExportId[exportation.exportId]}
+								<div
+									class="mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-700 bg-black/50 p-2 font-mono text-[11px] leading-4 text-gray-300"
+								>
+									<div class="mb-2 flex justify-end">
+										<button
+											type="button"
+											class="flex items-center gap-1 rounded border border-gray-700 px-2 py-0.5 text-[11px] text-gray-300 transition-colors hover:bg-gray-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+											onclick={() => copyExportLogs(exportation.exportLogs)}
+											disabled={exportation.exportLogs.length === 0}
+											title={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
+											aria-label={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
+										>
+											<span class="material-icons text-[13px]">content_copy</span>
+											{get(LL).common.copy()}
+										</button>
+									</div>
+									{#if exportation.exportLogs.length === 0}
+										<div class="text-gray-500">{get(LL).export.noExportLogs()}</div>
+									{:else}
+										{#each exportation.exportLogs as log, index (index)}
+											<div class="grid grid-cols-[72px_44px_110px_1fr] gap-2">
+												<span class="text-gray-500">{formatExportLogTime(log.timestamp)}</span>
+												<span class={getExportLogLevelColor(log.level)}>{log.level}</span>
+												<span class="truncate text-cyan-300" title={log.source}>{log.source}</span>
+												<span class="whitespace-pre-wrap break-words">{log.message}</span>
+											</div>
+										{/each}
+									{/if}
+								</div>
+							{/if}
 						{/if}
 
 						<!-- Error Message (if error) -->

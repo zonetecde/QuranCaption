@@ -333,7 +333,6 @@ type RootTranslation = {
 		 * I​n​d​o​n​e​s​i​a
 		 */
 		indonesian: string;
-
 		/**
 		 * C​l​o​s​e​ ​d​o​n​a​t​i​o​n​ ​p​r​o​m​p​t
 		 */
@@ -3244,7 +3243,6 @@ type RootTranslation = {
 		 * F​a​i​l​e​d​ ​t​o​ ​c​o​m​p​u​t​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
 		 */
 		failedToComputeWbwTimestamps: string;
-
 		/**
 		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​{​p​l​u​r​a​l​}​ ​m​a​r​k​e​d​ ​f​o​r​ ​m​i​s​s​i​n​g​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
 		 * @param {unknown} count
@@ -6686,27 +6684,6 @@ type RootTranslation = {
 		 */
 		tapWalletToCopy: string;
 		/**
-		 * A​I​ ​T​r​a​n​s​l​a​t​i​o​n​ ​T​e​l​e​m​e​t​r​y
-		 */
-		aiTranslationTelemetry: string;
-		/**
-		 * C​h​o​o​s​e​ ​w​h​e​t​h​e​r​ ​A​I​-​a​s​s​i​s​t​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​a​n​d​ ​y​o​u​r​ ​m​a​n​u​a​l​ ​r​e​v​i​e​w​s​ ​c​a​n​ ​b​e​ ​s​e​n​t​ ​o​n​ ​e​x​p​o​r​t​ ​t​o​ ​h​e​l​p​ ​i​m​p​r​o​v​e​ ​t​h​e​ ​a​p​p​.
-		 */
-		telemetryDescription: string;
-		/**
-		 * A​s​k​ ​o​n​ ​E​x​p​o​r​t
-		 */
-		askOnExport: string;
-		/**
-		 * A​l​l​o​w​ ​S​e​n​d​i​n​g
-		 */
-		allowSending: string;
-		/**
-		 * D​o​ ​N​o​t​ ​S​e​n​d
-		 */
-		doNotSend: string;
-
-		/**
 		 * L​e​a​v​e​ ​a​ ​r​e​v​i​e​w​,​ ​r​e​q​u​e​s​t​ ​a​ ​f​e​a​t​u​r​e​,​ ​r​e​p​o​r​t​ ​a​ ​b​u​g​,​ ​o​r​ ​j​o​i​n​ ​t​h​e​ ​c​o​m​m​u​n​i​t​y​.
 		 */
 		contactMessage: string;
@@ -9062,7 +9039,6 @@ export type TranslationFunctions = {
 		 * Indonesia
 		 */
 		indonesian: () => LocalizedString;
-
 		/**
 		 * Close donation prompt
 		 */
@@ -11907,7 +11883,6 @@ export type TranslationFunctions = {
 		 * Failed to compute WBW timestamps.
 		 */
 		failedToComputeWbwTimestamps: () => LocalizedString;
-
 		/**
 		 * {count} subtitle{plural} marked for missing WBW timestamps.
 		 */
@@ -15304,27 +15279,6 @@ export type TranslationFunctions = {
 		 * Tap a wallet to copy the address.
 		 */
 		tapWalletToCopy: () => LocalizedString;
-		/**
-		 * AI Translation Telemetry
-		 */
-		aiTranslationTelemetry: () => LocalizedString;
-		/**
-		 * Choose whether AI-assisted translations and your manual reviews can be sent on export to help improve the app.
-		 */
-		telemetryDescription: () => LocalizedString;
-		/**
-		 * Ask on Export
-		 */
-		askOnExport: () => LocalizedString;
-		/**
-		 * Allow Sending
-		 */
-		allowSending: () => LocalizedString;
-		/**
-		 * Do Not Send
-		 */
-		doNotSend: () => LocalizedString;
-
 		/**
 		 * Leave a review, request a feature, report a bug, or join the community.
 		 */

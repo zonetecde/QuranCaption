@@ -228,12 +228,6 @@ const id: Translation = {
 		donateWithPaypal: 'Donasi via PayPal',
 		donateWithKofi: 'Donasi via Ko-fi',
 		cryptocurrencyWallets: 'Wallet cryptocurrency',
-		aiTranslationTelemetry: 'Telemetri AI Translation',
-		telemetryDescription:
-			'Pilih apakah terjemahan berbantuan AI dan tinjauan manual kamu boleh dikirim saat ekspor untuk membantu meningkatkan aplikasi.',
-		askOnExport: 'Tanya saat ekspor',
-		allowSending: 'Izinkan pengiriman',
-		doNotSend: 'Jangan kirim',
 		tapWalletToCopy: 'Klik wallet untuk menyalin alamatnya.',
 		contactMessage: 'Beri review, request fitur, laporkan bug, atau gabung ke komunitas.',
 		leaveReview: 'Beri Ulasan',

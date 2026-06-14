@@ -317,19 +317,44 @@ export class Track extends SerializableBase {
 		if (!areClipsSortedByStartTime(this.clips)) {
 			return this.clips
 				.map((clip, clipIndex) => ({ clip, clipIndex }))
-				.filter(({ clip }) => clip.endTime >= startMs && clip.startTime <= endMs);
+				.filter(
+					({ clip }) =>
+						this.isBackgroundImageClip(clip) || (clip.endTime >= startMs && clip.startTime <= endMs)
+				);
 		}
 
-		const visibleClips: Array<{ clip: Clip; clipIndex: number }> = [];
+		const visibleClips: Array<{ clip: Clip; clipIndex: number }> = this.isBackgroundImageClip(
+			this.clips[0]
+		)
+			? [{ clip: this.clips[0], clipIndex: 0 }]
+			: [];
 		const startIndex = findFirstVisibleClipIndex(this.clips, startMs);
 
 		for (let clipIndex = startIndex; clipIndex < this.clips.length; clipIndex++) {
 			const clip = this.clips[clipIndex];
 			if (clip.startTime > endMs) break;
-			if (clip.endTime >= startMs) visibleClips.push({ clip, clipIndex });
+			if (clip.endTime >= startMs && !this.isBackgroundImageClip(clip)) {
+				visibleClips.push({ clip, clipIndex });
+			}
 		}
 
 		return visibleClips;
+	}
+
+	/**
+	 * Indique si un clip vidéo à durée nulle représente l'image de fond de toute la timeline.
+	 *
+	 * @param {Clip | undefined} clip Clip à tester.
+	 * @returns {boolean} true si le clip doit rester visible même hors plage virtualisée.
+	 */
+	private isBackgroundImageClip(clip: Clip | undefined): boolean {
+		return (
+			clip !== undefined &&
+			this.type === TrackType.Video &&
+			this.clips.length === 1 &&
+			clip instanceof AssetClip &&
+			clip.endTime === 0
+		);
 	}
 }
 

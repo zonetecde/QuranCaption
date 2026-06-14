@@ -1883,12 +1883,6 @@ const fr = {
 		donateWithKofi: 'Faire un don avec Ko-fi',
 		cryptocurrencyWallets: 'Portefeuilles de cryptomonnaie',
 		tapWalletToCopy: 'Appuyez sur un portefeuille pour copier l\u2019adresse.',
-		aiTranslationTelemetry: 'Télémétrie des traductions IA',
-		telemetryDescription:
-			'Choisissez si les traductions assistées par IA et vos révisions manuelles peuvent être envoyées lors de l\u2019export pour aider à améliorer l\u2019application.',
-		askOnExport: 'Demander à l\u2019export',
-		allowSending: 'Autoriser l\u2019envoi',
-		doNotSend: 'Ne pas envoyer',
 		contactMessage:
 			'Laissez un avis, demandez une fonctionnalité, signalez un bug ou rejoignez la communauté.',
 		leaveReview: 'Laisser un avis',

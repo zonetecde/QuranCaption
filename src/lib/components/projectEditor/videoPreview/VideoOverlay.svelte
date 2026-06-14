@@ -898,7 +898,14 @@
 
 			const targets = getLayoutTargets();
 			const layoutKey = getLayoutCacheKey(targets);
-			if (layoutKey === lastLayoutKey) return;
+			if (layoutKey === lastLayoutKey) {
+				// Le layout est réutilisé, mais l'export attend un timing à jour pour chaque frame.
+				if (subtitlesContainer) {
+					subtitlesContainer.style.opacity = '1';
+					markExportLayoutState(subtitlesContainer, 'ready');
+				}
+				return;
+			}
 			lastLayoutKey = layoutKey;
 
 			// Dépendances réactives à tracker (forcent le déclenchement de l'effet)

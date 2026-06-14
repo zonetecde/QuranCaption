@@ -1861,12 +1861,6 @@ const es = {
 		donateWithKofi: 'Donar con Ko-fi',
 		cryptocurrencyWallets: 'Billeteras de criptomoneda',
 		tapWalletToCopy: 'Toque una billetera para copiar la dirección.',
-		aiTranslationTelemetry: 'Telemetría de traducciones IA',
-		telemetryDescription:
-			'Elija si las traducciones asistidas por IA y sus revisiones manuales pueden enviarse durante la exportación para ayudar a mejorar la aplicación.',
-		askOnExport: 'Preguntar al exportar',
-		allowSending: 'Permitir envío',
-		doNotSend: 'No enviar',
 		contactMessage:
 			'Deje una reseña, solicite una función, reporte un error o únase a la comunidad.',
 		leaveReview: 'Dejar una reseña',

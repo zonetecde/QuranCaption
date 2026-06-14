@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Home from '$lib/components/home/Home.svelte';
 	import AiVideoPage from '$lib/components/aiVideo/AiVideoPage.svelte';
-	import AiTranslationTelemetryPrompt from '$lib/components/misc/AiTranslationTelemetryPrompt.svelte';
+
 	import ExportService from '$lib/services/ExportService';
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
 	import ProjectEditor from '$lib/components/projectEditor/ProjectEditor.svelte';
@@ -101,7 +101,6 @@
 		{:else}
 			<Home />
 		{/if}
-		<AiTranslationTelemetryPrompt />
 		<DonationFloatingButton />
 	</main>
 

@@ -35,12 +35,6 @@ const settings = {
 	donateWithKofi: 'Donate with Ko-fi',
 	cryptocurrencyWallets: 'Cryptocurrency Wallets',
 	tapWalletToCopy: 'Tap a wallet to copy the address.',
-	aiTranslationTelemetry: 'AI Translation Telemetry',
-	telemetryDescription:
-		'Choose whether AI-assisted translations and your manual reviews can be sent on export to help improve the app.',
-	askOnExport: 'Ask on Export',
-	allowSending: 'Allow Sending',
-	doNotSend: 'Do Not Send',
 	contactMessage: 'Leave a review, request a feature, report a bug, or join the community.',
 	leaveReview: 'Leave a Review',
 	featureBug: 'Feature / Bug',

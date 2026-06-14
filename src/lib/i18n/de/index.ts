@@ -1856,12 +1856,6 @@ const de = {
 		donateWithKofi: 'Spenden mit Ko-fi',
 		cryptocurrencyWallets: 'Kryptowährungs-Wallets',
 		tapWalletToCopy: 'Tippen Sie auf ein Wallet, um die Adresse zu kopieren.',
-		aiTranslationTelemetry: 'KI-Übersetzungs-Telemetrie',
-		telemetryDescription:
-			'Wählen Sie, ob KI-gestützte Übersetzungen und Ihre manuellen Überprüfungen beim Export gesendet werden dürfen, um die App zu verbessern.',
-		askOnExport: 'Beim Export fragen',
-		allowSending: 'Senden erlauben',
-		doNotSend: 'Nicht senden',
 		contactMessage:
 			'Hinterlassen Sie eine Bewertung, wünschen Sie eine Funktion, melden Sie einen Fehler oder treten Sie der Community bei.',
 		leaveReview: 'Bewertung hinterlassen',

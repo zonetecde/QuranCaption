@@ -78,7 +78,8 @@
 		{#if !isImportMode}
 			<div class="flex flex-wrap items-center gap-2 text-sm text-secondary">
 				<div>
-					{$LL.editor.selectModel()}: <span class="font-semibold text-primary">{wizard.selectedModel()}</span>
+					{$LL.editor.selectModel()}:
+					<span class="font-semibold text-primary">{wizard.selectedModel()}</span>
 					({wizard.effectiveDeviceLabel()})
 				</div>
 				{#if wizard.cloudCpuFallbackMessage}
@@ -92,7 +93,8 @@
 			</div>
 		{:else}
 			<div class="text-sm text-secondary">
-				{$LL.editor.importJsonDescription()}: <span class="font-semibold text-primary"
+				{$LL.editor.importJsonDescription()}:
+				<span class="font-semibold text-primary"
 					>{wizard.importedJsonFileName || $LL.editor.fileSelected()}</span
 				>
 			</div>
@@ -102,6 +104,20 @@
 			</div>{/if}
 		<div class="text-sm text-secondary">
 			{$LL.editor.detectedSegments({ count: wizard.result.segmentsApplied })}
+		</div>
+		<div class="flex flex-wrap gap-2 text-xs text-secondary">
+			<div
+				class="inline-flex items-center gap-1 rounded-full border border-color bg-primary/40 px-2 py-1"
+			>
+				<span class="font-semibold text-primary">{wizard.result.lowConfidenceSegments}</span>
+				{$LL.editor.lowConfidence()}
+			</div>
+			<div
+				class="inline-flex items-center gap-1 rounded-full border border-color bg-primary/40 px-2 py-1"
+			>
+				<span class="font-semibold text-primary">{wizard.result.coverageGapSegments}</span>
+				{$LL.editor.coverageIssues()}
+			</div>
 		</div>
 	</div>
 {:else if wizard.errorMessage}

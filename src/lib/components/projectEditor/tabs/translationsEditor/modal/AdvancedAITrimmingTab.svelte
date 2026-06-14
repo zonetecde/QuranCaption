@@ -18,7 +18,7 @@
 		type AdvancedTrimVerseCandidate,
 		validateAdvancedTrimBatchResult
 	} from '$lib/services/AdvancedAITrimming';
-	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -305,14 +305,6 @@
 
 				const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
 				const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
-				if (globalState.currentProject) {
-					await AiTranslationTelemetryService.recordAdvancedRun({
-						projectId: globalState.currentProject.detail.id,
-						edition,
-						batch,
-						parsedResponse: response.parsed
-					});
-				}
 				const validationFailedVerses = batch.verses.length - validation.validVerses.length;
 
 				if (validationFailedVerses === 0 && applyReport.erroredVerses === 0) {
@@ -419,7 +411,7 @@
 		});
 
 		if (reportLines.length === 0) {
-				toast.success(`${latestSummary} ${getActualUsageSummary()}.`);
+			toast.success(`${latestSummary} ${getActualUsageSummary()}.`);
 			await notifyLongTaskCompletion({
 				title: $LL.editor.aiTrimmingFinished(),
 				body: latestSummary,

@@ -7,7 +7,7 @@
 	import AdvancedAITrimmingTab from './AdvancedAITrimmingTab.svelte';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
-	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -170,14 +170,6 @@
 				let lockedSegmentsCount = 0;
 				let updatedUnlockedSegmentsCount = 0;
 				let skippedLockedSegmentsCount = 0;
-				const legacyTelemetryEntries: Array<{
-					verseKey: string;
-					subtitleId: number;
-					segment: string;
-					translationWords: TranslationWord[];
-					aiRange: [number, number] | null;
-					status: 'ai trimmed' | 'ai error';
-				}> = [];
 
 				// Utilise le tableau filtré pour le mapping
 				const filteredArray = getSelectedPromptVerses();
@@ -270,14 +262,8 @@
 						) {
 							if (mappingData.segmentLocks[segmentIndex]) continue;
 							const subtitle = mappingData.subtitles[segmentIndex];
-							legacyTelemetryEntries.push({
-								verseKey: mappingData.verseKey,
-								subtitleId: subtitle.id,
-								segment: subtitle.text,
-								translationWords: mappingData.translationWords,
-								aiRange: null,
-								status: 'ai error'
-							});
+							const verseTranslation = subtitle.translations[edition.name] as VerseTranslation;
+							verseTranslation.updateStatus('ai error', edition);
 						}
 					};
 
@@ -314,14 +300,6 @@
 								edition.name
 							] as VerseTranslation;
 							verseTranslation.updateStatus('ai error', edition);
-							legacyTelemetryEntries.push({
-								verseKey,
-								subtitleId: subtitlesForVerse[segmentIndex].id,
-								segment: subtitlesForVerse[segmentIndex].text,
-								translationWords,
-								aiRange: null,
-								status: 'ai error'
-							});
 						}
 						continue;
 					}
@@ -433,15 +411,6 @@
 						} else {
 							verseTranslation.updateStatus('ai trimmed', edition);
 						}
-
-						legacyTelemetryEntries.push({
-							verseKey,
-							subtitleId: subtitlesForVerse[segmentIndex].id,
-							segment: subtitlesForVerse[segmentIndex].text,
-							translationWords,
-							aiRange: appliedRange,
-							status
-						});
 					}
 
 					// Même en cas d'erreur partielle, on compte le verset comme réussi si au moins
@@ -469,14 +438,6 @@
 					);
 				} else {
 					toast.success(summaryMessage);
-				}
-
-				if (globalState.currentProject && legacyTelemetryEntries.length > 0) {
-					await AiTranslationTelemetryService.recordLegacyRun({
-						projectId: globalState.currentProject.detail.id,
-						edition,
-						entries: legacyTelemetryEntries
-					});
 				}
 
 				if (successfulVerses > 0) {

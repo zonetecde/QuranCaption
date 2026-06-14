@@ -333,6 +333,7 @@ type RootTranslation = {
 		 * I​n​d​o​n​e​s​i​a
 		 */
 		indonesian: string;
+
 		/**
 		 * C​l​o​s​e​ ​d​o​n​a​t​i​o​n​ ​p​r​o​m​p​t
 		 */
@@ -3243,6 +3244,7 @@ type RootTranslation = {
 		 * F​a​i​l​e​d​ ​t​o​ ​c​o​m​p​u​t​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
 		 */
 		failedToComputeWbwTimestamps: string;
+
 		/**
 		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​{​p​l​u​r​a​l​}​ ​m​a​r​k​e​d​ ​f​o​r​ ​m​i​s​s​i​n​g​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
 		 * @param {unknown} count
@@ -6703,6 +6705,7 @@ type RootTranslation = {
 		 * D​o​ ​N​o​t​ ​S​e​n​d
 		 */
 		doNotSend: string;
+
 		/**
 		 * L​e​a​v​e​ ​a​ ​r​e​v​i​e​w​,​ ​r​e​q​u​e​s​t​ ​a​ ​f​e​a​t​u​r​e​,​ ​r​e​p​o​r​t​ ​a​ ​b​u​g​,​ ​o​r​ ​j​o​i​n​ ​t​h​e​ ​c​o​m​m​u​n​i​t​y​.
 		 */
@@ -9059,6 +9062,7 @@ export type TranslationFunctions = {
 		 * Indonesia
 		 */
 		indonesian: () => LocalizedString;
+
 		/**
 		 * Close donation prompt
 		 */
@@ -11903,6 +11907,7 @@ export type TranslationFunctions = {
 		 * Failed to compute WBW timestamps.
 		 */
 		failedToComputeWbwTimestamps: () => LocalizedString;
+
 		/**
 		 * {count} subtitle{plural} marked for missing WBW timestamps.
 		 */
@@ -15319,6 +15324,7 @@ export type TranslationFunctions = {
 		 * Do Not Send
 		 */
 		doNotSend: () => LocalizedString;
+
 		/**
 		 * Leave a review, request a feature, report a bug, or join the community.
 		 */

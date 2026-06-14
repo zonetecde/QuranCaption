@@ -544,6 +544,11 @@ const id: Translation = {
 		minWords: 'Min kata',
 		maxWords: 'Maks kata',
 		noLongSegments: 'Tidak ada segmen panjang yang cocok dengan ambang saat ini.',
+		splitLongSubtitlesLabel: 'Bagi subtitle panjang',
+		splitWbwRequired: 'Ini hanya bekerja untuk subtitle yang memiliki timestamp kata demi kata.',
+		waqfDescription:
+			'Segmen tanpa tanda waqaf akan tetap apa adanya, meskipun melebihi batas kata/durasi.',
+		split: 'Bagi',
 		maxWordsPerSegment: 'Maks kata per segmen',
 		maxDurationPerSegment: 'Maks durasi per segmen',
 		onlySplitAtStopSigns: 'Hanya bagi di tanda berhenti',

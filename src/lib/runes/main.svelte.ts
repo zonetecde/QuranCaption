@@ -84,7 +84,7 @@ class GlobalState {
 		communitySearchQuery: '',
 		selectedTag: '',
 		selectedOrientation: 'all',
-		selectedSort: 'most_liked',
+		selectedSort: 'most_downloaded',
 		communityPresets: [],
 		popularTags: [],
 		isLoadingCommunity: false,

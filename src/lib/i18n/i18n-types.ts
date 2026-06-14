@@ -5308,6 +5308,18 @@ type RootTranslation = {
 		 */
 		extensionAddedAutomatically: string;
 		/**
+		 * F​i​l​e​ ​N​a​m​e
+		 */
+		exportFileName: string;
+		/**
+		 * E​n​t​e​r​ ​a​ ​f​i​l​e​ ​n​a​m​e​ ​f​o​r​ ​t​h​i​s​ ​e​x​p​o​r​t​.​ ​L​e​a​v​e​ ​e​m​p​t​y​ ​t​o​ ​u​s​e​ ​t​h​e​ ​d​e​f​a​u​l​t​ ​n​a​m​e​.
+		 */
+		enterExportFileName: string;
+		/**
+		 * T​h​e​ ​f​i​l​e​ ​e​x​t​e​n​s​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+		 */
+		fileExtensionAddedAutomatically: string;
+		/**
 		 * C​h​o​o​s​e​ ​w​h​e​r​e​ ​y​o​u​r​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​s​ ​w​i​l​l​ ​b​e​ ​s​a​v​e​d​.
 		 */
 		chooseExportLocation: string;
@@ -13906,6 +13918,18 @@ export type TranslationFunctions = {
 		 * Extension (.mp4/.webm/.mov) will be added automatically.
 		 */
 		extensionAddedAutomatically: () => LocalizedString;
+		/**
+		 * File Name
+		 */
+		exportFileName: () => LocalizedString;
+		/**
+		 * Enter a file name for this export. Leave empty to use the default name.
+		 */
+		enterExportFileName: () => LocalizedString;
+		/**
+		 * The file extension will be added automatically.
+		 */
+		fileExtensionAddedAutomatically: () => LocalizedString;
 		/**
 		 * Choose where your exported videos will be saved.
 		 */

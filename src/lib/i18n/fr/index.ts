@@ -1614,6 +1614,10 @@ const fr = {
 		inProgressCount: '{count} en cours',
 		clearCompleted: 'Effacer les terminés',
 		totalLabel: 'Total\u00a0:',
+		exportFileName: 'Nom du fichier',
+		enterExportFileName:
+			'Saisissez un nom de fichier pour cet export. Laissez vide pour utiliser le nom par défaut.',
+		fileExtensionAddedAutomatically: 'L\u2019extension du fichier sera ajoutée automatiquement.',
 		textExport: 'Export texte'
 	},
 	translations: {

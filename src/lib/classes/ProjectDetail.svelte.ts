@@ -142,8 +142,9 @@ export class ProjectDetail extends SerializableBase {
 	 */
 	generateExportFileName(): string {
 		// Si un nom de fichier personnalisé est défini, l'utiliser
-		if (globalState.getExportState.customFileName) {
-			const sanitized = globalState.getExportState.customFileName.replace(/[/\\:*?"<>|]/g, '_');
+		const customFileName = globalState.getExportState.customFileName.trim();
+		if (customFileName) {
+			const sanitized = customFileName.replace(/[/\\:*?"<>|]/g, '_');
 			return sanitized;
 		}
 

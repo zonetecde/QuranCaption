@@ -1463,6 +1463,9 @@ const zh = {
 		inProgressCount: '{count} 个进行中',
 		clearCompleted: '清除已完成',
 		totalLabel: '总计：',
+		exportFileName: '文件名',
+		enterExportFileName: '输入此导出的文件名。留空则使用默认名称。',
+		fileExtensionAddedAutomatically: '文件扩展名将自动添加。',
 		textExport: '文本导出'
 	},
 	translations: {

@@ -1605,6 +1605,10 @@ const de = {
 		inProgressCount: '{count} in Bearbeitung',
 		clearCompleted: 'Abgeschlossene löschen',
 		totalLabel: 'Gesamt:',
+		exportFileName: 'Dateiname',
+		enterExportFileName:
+			'Geben Sie einen Dateinamen für diesen Export ein. Leer lassen, um den Standardnamen zu verwenden.',
+		fileExtensionAddedAutomatically: 'Die Dateierweiterung wird automatisch hinzugefügt.',
 		textExport: 'Textexport'
 	},
 	translations: {

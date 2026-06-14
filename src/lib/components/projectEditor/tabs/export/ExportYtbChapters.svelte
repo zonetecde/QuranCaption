@@ -158,6 +158,28 @@
 		</div>
 	</div>
 
+	<!-- Export Filename -->
+	<div class="mb-6">
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFileName()}</h4>
+		<div class="bg-accent rounded-lg p-4 border border-color">
+			<p class="text-thirdly text-sm mb-4">
+				{$LL.export.enterExportFileName()}
+			</p>
+
+			<div class="flex flex-col gap-2">
+				<input
+					type="text"
+					class="input w-full"
+					placeholder={globalState.currentProject?.detail.generateExportFileName()}
+					bind:value={globalState.getExportState.customFileName}
+				/>
+				<p class="text-thirdly text-xs italic">
+					{$LL.export.fileExtensionAddedAutomatically()}
+				</p>
+			</div>
+		</div>
+	</div>
+
 	<!-- Export Folder -->
 	<div class="mb-6">
 		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFolder()}</h4>

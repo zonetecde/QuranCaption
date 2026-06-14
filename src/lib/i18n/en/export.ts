@@ -22,6 +22,9 @@ const export_ = {
 	enterFileName:
 		'Enter a name for your video file. The name will be used as the file name for the exported video.',
 	extensionAddedAutomatically: 'Extension (.mp4/.webm/.mov) will be added automatically.',
+	exportFileName: 'File Name',
+	enterExportFileName: 'Enter a file name for this export. Leave empty to use the default name.',
+	fileExtensionAddedAutomatically: 'The file extension will be added automatically.',
 	chooseExportLocation: 'Choose where your exported videos will be saved.',
 	exportButton: 'Export Video',
 	startExportDescription: 'Start the video export process with your selected time range',

@@ -2428,7 +2428,10 @@ const de = {
 		testimonialAhmad:
 			'Ich habe dies vor einiger Zeit entdeckt und war von dem Projekt begeistert. Machen Sie weiter mit der großartigen Arbeit, möge Allah Sie segnen.',
 		testimonialSarmad:
-			'Unglaubliche App. Einfach zu bedienen! Es ist sehr nützlich für die Ummah. Ich schätze Ihre harte Arbeit.'
+			'Unglaubliche App. Einfach zu bedienen! Es ist sehr nützlich für die Ummah. Ich schätze Ihre harte Arbeit.',
+		donationProgress: '{raised} von {goal} in diesem Monat gesammelt',
+		donateToHelp: 'Spenden Sie, um das Monatsziel zu erreichen',
+		monthlyGoal: 'Monatsziel'
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Export-Monitor',

@@ -2430,7 +2430,10 @@ const es = {
 		testimonialAhmad:
 			'Descubrí esto hace un tiempo, y quedé maravillado por el proyecto. Sigan con su excelente trabajo, que Alá los bendiga.',
 		testimonialSarmad:
-			'Aplicación increíble. ¡Fácil de usar! Es muy útil para la Ummah. Aprecio su arduo trabajo.'
+			'Aplicación increíble. ¡Fácil de usar! Es muy útil para la Ummah. Aprecio su arduo trabajo.',
+		donationProgress: '{raised} de {goal} recaudados este mes',
+		donateToHelp: 'Dona para ayudar a alcanzar el objetivo mensual',
+		monthlyGoal: 'Objetivo mensual'
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Monitor de exportaciones',

@@ -8681,6 +8681,20 @@ type RootTranslation = {
 		 * A​m​a​z​i​n​g​ ​a​p​p​l​i​c​a​t​i​o​n​.​ ​E​a​s​y​ ​t​o​ ​u​s​e​!​ ​T​h​i​s​ ​i​s​ ​v​e​r​y​ ​h​e​l​p​f​u​l​ ​f​o​r​ ​t​h​e​ ​u​m​m​a​h​.​ ​I​ ​a​p​p​r​e​c​i​a​t​e​ ​y​o​u​ ​a​n​d​ ​a​l​l​ ​y​o​u​r​ ​h​a​r​d​ ​w​o​r​k​.
 		 */
 		testimonialSarmad: string;
+		/**
+		 * {​r​a​i​s​e​d​}​ ​o​f​ ​{​g​o​a​l​}​ ​r​a​i​s​e​d​ ​t​h​i​s​ ​m​o​n​t​h
+		 * @param {unknown} goal
+		 * @param {unknown} raised
+		 */
+		donationProgress: RequiredParams<'goal' | 'raised'>;
+		/**
+		 * D​o​n​a​t​e​ ​t​o​ ​h​e​l​p​ ​r​e​a​c​h​ ​t​h​e​ ​m​o​n​t​h​l​y​ ​g​o​a​l
+		 */
+		donateToHelp: string;
+		/**
+		 * M​o​n​t​h​l​y​ ​g​o​a​l
+		 */
+		monthlyGoal: string;
 	};
 	exporterMonitor: {
 		/**
@@ -17251,6 +17265,18 @@ export type TranslationFunctions = {
 		 * Amazing application. Easy to use! This is very helpful for the ummah. I appreciate you and all your hard work.
 		 */
 		testimonialSarmad: () => LocalizedString;
+		/**
+		 * {raised} of {goal} raised this month
+		 */
+		donationProgress: (arg: { goal: unknown; raised: unknown }) => LocalizedString;
+		/**
+		 * Donate to help reach the monthly goal
+		 */
+		donateToHelp: () => LocalizedString;
+		/**
+		 * Monthly goal
+		 */
+		monthlyGoal: () => LocalizedString;
 	};
 	exporterMonitor: {
 		/**

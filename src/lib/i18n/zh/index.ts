@@ -2210,7 +2210,10 @@ const zh = {
 		testimonialYahya: '这是一个美丽且非常有益的工具。愿真主保佑您并赐予您最好的。',
 		testimonialAhmad:
 			'我一段时间前发现了这个，对这个项目感到惊叹。继续保持出色的工作，愿真主保佑您。',
-		testimonialSarmad: '令人惊叹的应用。易于使用！对穆斯林社区非常有用。我感谢您的辛勤工作。'
+		testimonialSarmad: '令人惊叹的应用。易于使用！对穆斯林社区非常有用。我感谢您的辛勤工作。',
+		donationProgress: '本月已筹集 {raised} / {goal}',
+		donateToHelp: '捐款帮助达成月度目标',
+		monthlyGoal: '月度目标'
 	},
 	exporterMonitor: {
 		exportsMonitor: '导出监视器',

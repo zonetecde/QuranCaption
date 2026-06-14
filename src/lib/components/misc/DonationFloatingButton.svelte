@@ -229,7 +229,13 @@
 						"{$LL.donation.testimonialSarmad()}"
 					{/if}
 				</p>
-				<p class="text-[11px] text-thirdly mt-1.5">- {selectedQuoteIndex === 0 ? 'Brother Yahya' : selectedQuoteIndex === 1 ? 'Brother Ahmad' : 'Brother Sarmad'}</p>
+				<p class="text-[11px] text-thirdly mt-1.5">
+					- {selectedQuoteIndex === 0
+						? 'Brother Yahya'
+						: selectedQuoteIndex === 1
+							? 'Brother Ahmad'
+							: 'Brother Sarmad'}
+				</p>
 			</div>
 
 			<div class="donation-panel rounded-xl p-3.5 space-y-3">
@@ -293,10 +299,18 @@
 			</div>
 
 			<div class="secondary-links flex flex-wrap items-center justify-between gap-2">
-				<button class="link-btn" onclick={openFeedbackModal} aria-label={$LL.donation.leaveFeedback()}>
+				<button
+					class="link-btn"
+					onclick={openFeedbackModal}
+					aria-label={$LL.donation.leaveFeedback()}
+				>
 					{$LL.donation.leaveFeedback()}
 				</button>
-				<button class="link-btn" onclick={handleDiscordClick} aria-label={$LL.donation.joinDiscord()}>
+				<button
+					class="link-btn"
+					onclick={handleDiscordClick}
+					aria-label={$LL.donation.joinDiscord()}
+				>
 					{$LL.donation.joinDiscord()}
 				</button>
 				<button

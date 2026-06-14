@@ -2455,7 +2455,10 @@ const fr = {
 		testimonialAhmad:
 			'J\u2019ai découvert cela il y a quelque temps, et j\u2019ai été émerveillé par le projet. Continuez votre excellent travail, qu\u2019Allah vous bénisse.',
 		testimonialSarmad:
-			'Application incroyable. Facile à utiliser\u00a0! C\u2019est très utile pour la Oumma. J\u2019apprécie votre travail acharné.'
+			'Application incroyable. Facile à utiliser\u00a0! C\u2019est très utile pour la Oumma. J\u2019apprécie votre travail acharné.',
+		donationProgress: '{raised} sur {goal} collectés ce mois',
+		donateToHelp: 'Faites un don pour aider à atteindre l\u2019objectif mensuel',
+		monthlyGoal: 'Objectif mensuel'
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Moniteur d\u2019exports',

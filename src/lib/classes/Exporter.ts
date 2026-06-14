@@ -18,11 +18,10 @@ import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
-import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
+
 import type { Edition } from './Edition';
 
-export const DEFAULT_YTB_CHAPTERS_FORMAT =
-	'<timestamp> Surah <surah-number>, Verse <verse-number>';
+export const DEFAULT_YTB_CHAPTERS_FORMAT = '<timestamp> Surah <surah-number>, Verse <verse-number>';
 
 export type YouTubeChapterFormatValues = {
 	timestamp: string;
@@ -433,8 +432,7 @@ export default class Exporter {
 			globalState.getExportState.ytbChaptersFormat?.trim() || DEFAULT_YTB_CHAPTERS_FORMAT;
 		const translationEdition =
 			globalState.getProjectTranslation.addedTranslationEditions.find(
-				(edition) =>
-					edition.name === globalState.getExportState.ytbChaptersTranslationEditionName
+				(edition) => edition.name === globalState.getExportState.ytbChaptersTranslationEditionName
 			) ?? null;
 
 		const clipWithinExportRange = (clip: SubtitleClip) => {
@@ -531,7 +529,10 @@ export default class Exporter {
 			console.error('Unable to load full verse text for YouTube chapters:', error);
 		}
 		const verseTranslation = translationEdition
-			? globalState.getProjectTranslation.getVerseTranslation(translationEdition, clip.getVerseKey())
+			? globalState.getProjectTranslation.getVerseTranslation(
+					translationEdition,
+					clip.getVerseKey()
+				)
 			: '';
 
 		return {
@@ -597,17 +598,6 @@ export default class Exporter {
 
 		// Ajoute à la liste des exports en cours
 		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable');
-
-		void AiTranslationTelemetryService.handleVideoExportRequested({
-			projectId: globalState.currentProject!.detail.id,
-			exportStartMs: globalState.getExportState.videoStartTime || 0,
-			exportEndMs: globalState.getExportState.videoEndTime || 0,
-			clips: globalState.getSubtitleClips.map((clip) => ({
-				subtitleId: clip.id,
-				startTime: clip.startTime,
-				endTime: clip.endTime
-			}))
-		});
 
 		// Ouvre le popup de monitor d'export
 		globalState.uiState.showExportMonitor = true;

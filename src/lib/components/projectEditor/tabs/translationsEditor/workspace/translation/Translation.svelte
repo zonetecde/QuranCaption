@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { SubtitleClip, type Edition } from '$lib/classes';
 	import {
 		getInlineStyleCss,
@@ -12,7 +12,6 @@
 		VerseTranslation
 	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 	import { onDestroy, onMount } from 'svelte';
@@ -85,7 +84,6 @@
 			isTrimHistoryTransaction = false;
 			isTextHistoryTransaction = false;
 		}
-		void flushManualReviewTelemetry();
 	});
 
 	$effect(() => {
@@ -395,29 +393,6 @@
 		});
 	}
 
-	async function flushManualReviewTelemetry(): Promise<void> {
-		if (!globalState.currentProject || translation().type !== 'verse') return;
-
-		await AiTranslationTelemetryService.recordManualReview({
-			projectId: globalState.currentProject.detail.id,
-			editionKey: edition.key,
-			editionName: edition.name,
-			subtitleId: subtitle.id,
-			verseKey: subtitle.getVerseKey(),
-			segment: subtitle.text,
-			status: translation().status,
-			manualReview: translation().text
-		});
-	}
-
-	function scheduleManualReviewTelemetry(): void {
-		if (manualReviewTimeoutId) clearTimeout(manualReviewTimeoutId);
-		manualReviewTimeoutId = setTimeout(() => {
-			manualReviewTimeoutId = undefined;
-			void flushManualReviewTelemetry();
-		}, 400);
-	}
-
 	function beginWordSelectionEditing(): void {
 		if (
 			translation().type !== 'verse' ||
@@ -500,7 +475,6 @@
 		if (shouldFlush) {
 			ProjectHistoryManager.commit();
 			isTrimHistoryTransaction = false;
-			void flushManualReviewTelemetry();
 		}
 	}
 
@@ -531,7 +505,6 @@
 
 		const translationValue = normalizeInputToTranslation(rawValue);
 		subtitle.translations[edition.name]?.setTextAndClearInlineStyles(translationValue);
-		scheduleManualReviewTelemetry();
 	}
 
 	/**
@@ -552,7 +525,6 @@
 			ProjectHistoryManager.commit();
 			isTextHistoryTransaction = false;
 		}
-		void flushManualReviewTelemetry();
 	}
 
 	$effect(() => {
@@ -723,7 +695,6 @@
 									}, 0);
 								} else {
 									updateTranslationText();
-									scheduleManualReviewTelemetry();
 								}
 							});
 						}}

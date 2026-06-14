@@ -59,7 +59,6 @@ export type AITranslationSettings = {
 	aiBoldCustomNote: string;
 	aiWbwTranslationCustomNote: string;
 	activeModalTab: 'legacy' | 'advanced';
-	telemetryConsent: 'unknown' | 'granted' | 'denied';
 };
 
 export type ExportSettings = {
@@ -147,8 +146,7 @@ export default class Settings extends SerializableBase {
 		advancedAlsoAskReviewed: false,
 		aiBoldCustomNote: '',
 		aiWbwTranslationCustomNote: '',
-		activeModalTab: 'legacy',
-		telemetryConsent: 'unknown'
+		activeModalTab: 'legacy'
 	});
 
 	stockMediaSettings = $state<StockMediaSettings>({

@@ -9,7 +9,6 @@
 	import StockMediaSettings from './StockMediaSettings.svelte';
 	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 	import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
-	import AiTranslationTelemetryService from '$lib/services/AiTranslationTelemetryService';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { DONATION_WALLETS } from '$lib/constants/donation';
 
@@ -84,10 +83,6 @@
 			console.error(`Failed to open ${fallbackLabel} URL:`, error);
 			toast.error(get(LL).settings.unableToOpen({ label: fallbackLabel }));
 		}
-	}
-
-	async function updateAiTelemetryConsent(consent: 'unknown' | 'granted' | 'denied') {
-		await AiTranslationTelemetryService.setTelemetryConsent(consent);
 	}
 
 	const sepiaThemes: ThemeConfig[] = [
@@ -352,43 +347,6 @@
 								<span class="material-icons-outlined text-sm text-thirdly">content_copy</span>
 							</button>
 						{/each}
-					</div>
-
-					<div class="bg-primary border border-color rounded-xl p-4 space-y-3">
-						<div>
-							<p class="text-sm font-medium text-primary">
-								{$LL.settings.aiTranslationTelemetry()}
-							</p>
-							<p class="mt-1 text-xs text-thirdly">
-								{$LL.settings.telemetryDescription()}
-							</p>
-						</div>
-						<div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-							<button
-								class="support-action-btn"
-								class:selected={globalState.settings?.aiTranslationSettings.telemetryConsent ===
-									'unknown'}
-								onclick={() => updateAiTelemetryConsent('unknown')}
-							>
-								{$LL.settings.askOnExport()}
-							</button>
-							<button
-								class="support-action-btn"
-								class:selected={globalState.settings?.aiTranslationSettings.telemetryConsent ===
-									'granted'}
-								onclick={() => updateAiTelemetryConsent('granted')}
-							>
-								{$LL.settings.allowSending()}
-							</button>
-							<button
-								class="support-action-btn"
-								class:selected={globalState.settings?.aiTranslationSettings.telemetryConsent ===
-									'denied'}
-								onclick={() => updateAiTelemetryConsent('denied')}
-							>
-								{$LL.settings.doNotSend()}
-							</button>
-						</div>
 					</div>
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.CONTACT}

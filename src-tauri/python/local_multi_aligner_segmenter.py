@@ -30,12 +30,12 @@ MULTI_ALIGNER_ROOT = SCRIPT_DIR / "quran-multi-aligner"
 sys.path.insert(0, str(MULTI_ALIGNER_ROOT))
 LFS_POINTER_PREFIX = b"version https://git-lfs.github.com/spec/v1"
 DATA_FILE_URLS = {
-    "phoneme_cache.pkl": "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/phoneme_cache.pkl?download=true",
-    "phoneme_ngram_index_5.pkl": "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/phoneme_ngram_index_5.pkl?download=true",
-    "qpc_hafs.json": "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/qpc_hafs.json?download=true",
-    "surah_info.json": "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/surah_info.json?download=true",
-    "digital_khatt_v2_script.json": "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/digital_khatt_v2_script.json?download=true",
-    "phoneme_sub_costs.json": "https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/resolve/main/data/phoneme_sub_costs.json?download=true",
+    "phoneme_cache.pkl": "https://media.githubusercontent.com/media/zonetecde/QuranCaption/main/src-tauri/python/quran-multi-aligner/data/phoneme_cache.pkl",
+    "phoneme_ngram_index_5.pkl": "https://media.githubusercontent.com/media/zonetecde/QuranCaption/main/src-tauri/python/quran-multi-aligner/data/phoneme_ngram_index_5.pkl",
+    "qpc_hafs.json": "https://media.githubusercontent.com/media/zonetecde/QuranCaption/main/src-tauri/python/quran-multi-aligner/data/qpc_hafs.json",
+    "surah_info.json": "https://raw.githubusercontent.com/zonetecde/QuranCaption/main/src-tauri/python/quran-multi-aligner/data/surah_info.json",
+    "digital_khatt_v2_script.json": "https://media.githubusercontent.com/media/zonetecde/QuranCaption/main/src-tauri/python/quran-multi-aligner/data/digital_khatt_v2_script.json",
+    "phoneme_sub_costs.json": "https://raw.githubusercontent.com/zonetecde/QuranCaption/main/src-tauri/python/quran-multi-aligner/data/phoneme_sub_costs.json",
 }
 
 

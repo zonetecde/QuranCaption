@@ -14,6 +14,7 @@
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
 		createPlainOverlaySegment,
+		getMergedClipsWithoutWordOverlap,
 		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
@@ -382,12 +383,15 @@
 		if (!(subtitle instanceof SubtitleClip)) return null;
 
 		const mergedGroup = currentVisualMergeGroup();
-		const sourceClips = mergedGroup && isArabicMerged() ? mergedGroup.clips : [subtitle];
+		const sourceClips =
+			mergedGroup && isArabicMerged()
+				? getMergedClipsWithoutWordOverlap(mergedGroup.clips)
+				: [subtitle];
 
 		const shouldUseMergedSource =
 			mergedGroup &&
 			isArabicMerged() &&
-			sourceClips.every((clip) => (clip.alignmentMetadata?.words.length ?? 0) > 0);
+			mergedGroup.clips.every((clip) => (clip.alignmentMetadata?.words.length ?? 0) > 0);
 
 		// Vérifie si le rendu WBW est possible
 		if (mergedGroup && isArabicMerged() && !shouldUseMergedSource) return null;

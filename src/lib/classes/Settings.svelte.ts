@@ -107,7 +107,7 @@ export default class Settings extends SerializableBase {
 		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
-		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh',
+		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'

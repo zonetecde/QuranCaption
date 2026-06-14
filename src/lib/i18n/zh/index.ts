@@ -80,6 +80,7 @@ const zh = {
 		language: '语言',
 		english: 'English',
 		french: 'Fran\u00e7ais',
+		indonesian: '印度尼西亚语',
 		closeDonationPrompt: '关闭捐助提示',
 		copyWalletAddress: '复制{wallet}钱包地址',
 		leaveReview: '留下评价',

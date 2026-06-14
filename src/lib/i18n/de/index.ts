@@ -81,6 +81,7 @@ const de = {
 		language: 'Sprache',
 		english: 'English',
 		french: 'Français',
+		indonesian: 'Indonesisch',
 		closeDonationPrompt: 'Spendenaufforderung schließen',
 		copyWalletAddress: 'Wallet-Adresse {wallet} kopieren',
 		leaveReview: 'Bewertung hinterlassen',

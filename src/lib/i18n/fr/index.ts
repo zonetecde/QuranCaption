@@ -80,6 +80,7 @@ const fr = {
 		language: 'Langue',
 		english: 'English',
 		french: 'Fran\u00e7ais',
+		indonesian: 'Indonésien',
 		closeDonationPrompt: 'Fermer l\u2019invite de don',
 		copyWalletAddress: 'Copier l\u2019adresse du portefeuille {wallet}',
 		leaveReview: 'Laisser un avis',

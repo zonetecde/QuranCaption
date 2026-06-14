@@ -77,6 +77,7 @@ const common = {
 	language: 'Language',
 	english: 'English',
 	french: 'Fran\u00e7ais',
+	indonesian: 'Indonesia',
 	closeDonationPrompt: 'Close donation prompt',
 	copyWalletAddress: 'Copy {wallet} wallet address',
 	leaveReview: 'Leave a Review',
@@ -116,7 +117,8 @@ const common = {
 	newCollection: 'New collection',
 	createFirstCollection: 'Create your first collection',
 	createNewCollection: 'Create a new collection',
-	newCollectionDescription: 'The new collection will be created on Quran.com and selected automatically.',
+	newCollectionDescription:
+		'The new collection will be created on Quran.com and selected automatically.',
 	collectionName: 'Collection name',
 	creating: 'Creating...',
 	create: 'Create',
@@ -137,8 +139,10 @@ const common = {
 	someOperationsFailed: 'Some operations failed: {list}',
 	saving: 'Saving...',
 	finishButton: 'Finish',
-	aiKeyDescription: 'Configure your AI API key and endpoint to enable AI-powered features like translation, segmentation, and trimming.',
-	quranComDescription: 'Connect your Quran.com account to sync bookmarks, collections, and reading progress.'
+	aiKeyDescription:
+		'Configure your AI API key and endpoint to enable AI-powered features like translation, segmentation, and trimming.',
+	quranComDescription:
+		'Connect your Quran.com account to sync bookmarks, collections, and reading progress.'
 };
 
 export default common;

@@ -586,7 +586,17 @@
 			return;
 		}
 
-		await startExport();
+		try {
+			await startExport();
+		} catch (error) {
+			console.error('Export failed:', error);
+			emitProgress({
+				exportId: Number(exportId),
+				progress: 100,
+				currentState: ExportState.Error,
+				errorLog: JSON.stringify(error, Object.getOwnPropertyNames(error))
+			} as ExportProgress);
+		}
 	});
 
 	async function startExport() {
@@ -792,6 +802,7 @@
 	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<void> {
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
+		globalState.updateVideoPreviewUI();
 		await wait(job.captureTiming);
 		await takeScreenshot(job.fileName);
 	}
@@ -808,6 +819,7 @@
 	): Promise<void> {
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
+		globalState.updateVideoPreviewUI();
 		await wait(job.captureTiming);
 		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName);
 	}
@@ -1036,11 +1048,23 @@
 	): Promise<void> {
 		const totalJobs = Math.max(1, plan.totalJobs);
 		let completed = 0;
+		let lastReportedCompleted = 0;
+
+		/**
+		 * Publie une progression monotone pour éviter un recul visuel après un fallback.
+		 * @param {number} nextCompleted Nombre de jobs terminés.
+		 * @param {number | undefined} timing Timing associé au job courant.
+		 * @returns {void}
+		 */
+		const reportProgress = (nextCompleted: number, timing?: number) => {
+			lastReportedCompleted = Math.max(lastReportedCompleted, nextCompleted);
+			onProgress(lastReportedCompleted, totalJobs, timing);
+		};
 
 		for (const job of plan.blankSourceJobs) {
 			await captureBlankSourceJob(job);
 			completed += 1;
-			onProgress(completed, totalJobs, job.timing);
+			reportProgress(completed, job.timing);
 		}
 
 		const completedBeforeCaptures = completed;
@@ -1048,18 +1072,18 @@
 			if (plan.workerBuckets.length <= 1) {
 				await closeCaptureWorkerWindows();
 				await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
-					onProgress(completedBeforeCaptures + captureCompleted, totalJobs, timing);
+					reportProgress(completedBeforeCaptures + captureCompleted, timing);
 				});
 			} else {
 				try {
 					await runParallelCaptureJobs(plan.workerBuckets, subfolder, (captureCompleted) => {
-						onProgress(completedBeforeCaptures + captureCompleted, totalJobs);
+						reportProgress(completedBeforeCaptures + captureCompleted);
 					});
 				} catch (error) {
 					console.error('Parallel capture failed, retrying serial capture:', error);
 					await closeCaptureWorkerWindows();
 					await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
-						onProgress(completedBeforeCaptures + captureCompleted, totalJobs, timing);
+						reportProgress(completedBeforeCaptures + captureCompleted, timing);
 					});
 				}
 			}
@@ -1068,7 +1092,7 @@
 
 		const completedBeforeCopies = completed;
 		await runCopyJobs(plan.copyJobs, subfolder, (copyCompleted, timing) => {
-			onProgress(completedBeforeCopies + copyCompleted, totalJobs, timing);
+			reportProgress(completedBeforeCopies + copyCompleted, timing);
 		});
 	}
 
@@ -1798,7 +1822,7 @@
 			) as HTMLElement | null;
 
 			if (!expectsSubtitle) {
-				if (!subtitlesContainer) break;
+				if (!subtitlesContainer || isSubtitleLayoutReady(subtitlesContainer, timingKey)) break;
 			} else if (subtitlesContainer && isSubtitleLayoutReady(subtitlesContainer, timingKey)) {
 				break;
 			}
@@ -1813,7 +1837,11 @@
 		) {
 			throw new Error(`Timeout waiting for subtitle layout at ${timing}ms.`);
 		}
-		if (!expectsSubtitle && subtitlesContainer) {
+		if (
+			!expectsSubtitle &&
+			subtitlesContainer &&
+			!isSubtitleLayoutReady(subtitlesContainer, timingKey)
+		) {
 			throw new Error(`Timeout waiting for subtitles to clear at ${timing}ms.`);
 		}
 

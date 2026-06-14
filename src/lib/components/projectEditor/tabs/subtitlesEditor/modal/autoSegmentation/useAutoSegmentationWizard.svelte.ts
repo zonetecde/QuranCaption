@@ -155,7 +155,7 @@ export function useAutoSegmentationWizard() {
 				: selection.aiVersion === 'muaalem_local'
 					? 'Muaalem Local uses a fully local Quran-specific pipeline, but it is generally less effective than the official Quranic Universal Aligner.'
 					: selection.aiVersion === 'surah_splitter'
-						? get(LL).editor.surahSplitterLocalHint()
+						? 'Surah Splitter can auto-detect the surah, but selecting it manually improves precision.'
 						: selection.mode === 'local'
 							? "Local mode uses your computer's resources."
 							: 'Cloud mode uses the Quranic Universal Aligner.'

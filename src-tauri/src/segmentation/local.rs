@@ -12,7 +12,6 @@ use crate::utils::process::configure_command_no_window;
 use crate::utils::temp_file::TempFileGuard;
 
 use super::audio_merge::merge_audio_clips_for_segmentation;
-use super::data_files::ensure_surah_splitter_model;
 use super::python_env::{
     apply_hf_token_env, resolve_engine_python_exe, resolve_python_resource_path,
 };
@@ -516,10 +515,6 @@ pub async fn segment_quran_audio_local_surah_splitter(
         }
     }
 
-    let python_exe =
-        resolve_engine_python_exe(&app_handle, LocalSegmentationEngine::SurahSplitter)?;
-    let data_dir = ensure_surah_splitter_model(&app_handle, &python_exe).await?;
-
     let extra_args = vec![
         "--model-name".to_string(),
         selected_model,
@@ -533,8 +528,6 @@ pub async fn segment_quran_audio_local_surah_splitter(
         } else {
             "false".to_string()
         },
-        "--data-dir".to_string(),
-        data_dir.to_string_lossy().to_string(),
     ];
 
     run_local_segmentation_script(

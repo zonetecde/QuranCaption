@@ -76,7 +76,7 @@ pub enum LocalSegmentationEngine {
     MultiAligner,
     /// Pipeline locale Muaalem avec segmentation, retrieval et alignement ouverts.
     MuaalemLocal,
-    /// Pipeline locale Surah Splitter basée sur ONNX FastConformer et détection d'ayahs.
+    /// Pipeline locale Surah Splitter basee sur WhisperX et detection d'ayahs.
     SurahSplitter,
 }
 
@@ -167,12 +167,14 @@ impl LocalSegmentationEngine {
                 "nemo",
             ],
             Self::SurahSplitter => &[
-                "onnxruntime",
+                "torch",
+                "torchaudio",
+                "whisperx",
+                "huggingface_hub",
                 "numpy",
+                "loguru",
+                "rich",
                 "pydub",
-                "audioop",
-                "Levenshtein",
-                "numba",
             ],
         }
     }

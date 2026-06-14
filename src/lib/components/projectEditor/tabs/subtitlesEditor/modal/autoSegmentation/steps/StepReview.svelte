@@ -27,21 +27,27 @@
 			{$LL.editor.methodLabel()}: <span class="text-primary font-semibold">{versionLabel()}</span>
 		</div>
 		<div class="text-secondary">
-			{$LL.editor.modelLabel()}:
-			<span class="text-primary font-semibold">{wizard.selectedModel()}</span>
+			{$LL.editor.modelLabel()}: <span class="text-primary font-semibold">{wizard.selectedModel()}</span>
 		</div>
 		<div class="text-secondary">
 			{$LL.editor.deviceLabel()}:
 			<span class="text-primary font-semibold"
-				>{wizard.selection.aiVersion === 'legacy_v1'
-					? $LL.editor.automaticLabel()
-					: wizard.selectedDevice()}</span
+				>{wizard.selection.aiVersion === 'legacy_v1' ? $LL.editor.automaticLabel() : wizard.selectedDevice()}</span
 			>
 		</div>
 		<div class="text-secondary">
-			{$LL.editor.audioSourceLabel()}:
-			<span class="text-primary font-semibold">{wizard.audioLabel()}</span>
+			{$LL.editor.audioSourceLabel()}: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
+		{#if wizard.selection.aiVersion === 'surah_splitter'}
+			<div class="text-secondary">
+				{$LL.editor.surahLabel()}:
+				<span class="text-primary font-semibold"
+					>{wizard.selection.surahSplitterSurah === null
+						? $LL.editor.autoDetectLabel()
+						: `Surah ${wizard.selection.surahSplitterSurah}`}</span
+				>
+			</div>
+		{/if}
 		<div class="text-secondary">
 			{$LL.editor.wbwTimestampsLabel()}:
 			<span class="text-primary font-semibold"

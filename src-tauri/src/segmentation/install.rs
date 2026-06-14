@@ -147,9 +147,7 @@ pub async fn install_local_segmentation_deps(
         "Failed to upgrade pip",
     )?;
 
-    if matches!(selected_engine, LocalSegmentationEngine::SurahSplitter) {
-        emit_status("Installing ONNX Surah Splitter packages...");
-    } else if cfg!(target_os = "windows") {
+    if cfg!(target_os = "windows") {
         emit_status("Installing PyTorch (CPU fallback available)...");
         let mut cuda_installed = false;
         let mut nvidia_cmd = Command::new("nvidia-smi");

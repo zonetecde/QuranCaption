@@ -2646,7 +2646,7 @@ type RootTranslation = {
 		 */
 		noTokenRequiredHint: string;
 		/**
-		 * N​o​ ​t​o​k​e​n​ ​r​e​q​u​i​r​e​d​.​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​d​o​w​n​l​o​a​d​s​ ​i​t​s​ ​O​N​N​X​ ​Q​u​r​a​n​ ​m​o​d​e​l​ ​d​u​r​i​n​g​ ​t​h​e​ ​f​i​r​s​t​ ​r​u​n​.
+		 * N​o​ ​t​o​k​e​n​ ​r​e​q​u​i​r​e​d​.​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​d​o​w​n​l​o​a​d​s​ ​i​t​s​ ​W​h​i​s​p​e​r​X​ ​m​o​d​e​l​ ​d​u​r​i​n​g​ ​t​h​e​ ​f​i​r​s​t​ ​r​u​n​.
 		 */
 		noTokenRequiredSurahSplitterHint: string;
 		/**
@@ -2654,7 +2654,7 @@ type RootTranslation = {
 		 */
 		muaalemLocalHint: string;
 		/**
-		 * T​h​i​s​ ​o​p​t​i​o​n​ ​r​u​n​s​ ​l​o​c​a​l​l​y​ ​w​i​t​h​ ​a​n​ ​O​N​N​X​ ​Q​u​r​a​n​ ​F​a​s​t​C​o​n​f​o​r​m​e​r​ ​m​o​d​e​l​ ​a​n​d​ ​a​u​t​o​-​d​e​t​e​c​t​s​ ​t​h​e​ ​Q​u​r​a​n​ ​s​p​a​n​.
+		 * T​h​i​s​ ​o​p​t​i​o​n​ ​c​a​n​ ​a​u​t​o​-​d​e​t​e​c​t​ ​t​h​e​ ​s​u​r​a​h​.​ ​S​e​l​e​c​t​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​n​e​x​t​ ​s​t​e​p​ ​i​m​p​r​o​v​e​s​ ​m​a​t​c​h​i​n​g​ ​p​r​e​c​i​s​i​o​n​.
 		 */
 		surahSplitterLocalHint: string;
 		/**
@@ -2682,11 +2682,11 @@ type RootTranslation = {
 		 */
 		surahSplitterLocalLabel: string;
 		/**
-		 * L​o​c​a​l​ ​Q​u​r​a​n​ ​F​a​s​t​C​o​n​f​o​r​m​e​r​ ​a​y​a​h​ ​d​e​t​e​c​t​i​o​n
+		 * L​o​c​a​l​ ​a​y​a​h​ ​d​e​t​e​c​t​i​o​n​ ​w​i​t​h​ ​o​p​t​i​o​n​a​l​ ​s​u​r​a​h​ ​h​i​n​t
 		 */
 		surahSplitterLocalDesc: string;
 		/**
-		 * R​u​n​s​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​l​o​c​a​l​l​y​ ​w​i​t​h​ ​a​ ​q​u​a​n​t​i​z​e​d​ ​O​N​N​X​ ​Q​u​r​a​n​ ​F​a​s​t​C​o​n​f​o​r​m​e​r​ ​m​o​d​e​l​.​ ​I​t​ ​a​u​t​o​-​d​e​t​e​c​t​s​ ​t​h​e​ ​Q​u​r​a​n​ ​s​p​a​n​ ​a​n​d​ ​r​e​t​u​r​n​s​ ​w​o​r​d​ ​t​i​m​i​n​g​s​.
+		 * R​u​n​s​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​l​o​c​a​l​l​y​ ​w​i​t​h​ ​W​h​i​s​p​e​r​X​.​ ​I​t​ ​c​a​n​ ​a​u​t​o​-​d​e​t​e​c​t​ ​t​h​e​ ​s​u​r​a​h​ ​a​n​d​ ​i​t​ ​s​u​p​p​o​r​t​s​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​a​l​i​g​n​m​e​n​t​,​ ​b​u​t​ ​s​e​l​e​c​t​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​m​a​n​u​a​l​l​y​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
 		 */
 		surahSplitterLocalDetail: string;
 		/**
@@ -3114,7 +3114,7 @@ type RootTranslation = {
 		 */
 		muaalemLocalFeatureDesc: string;
 		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​t​r​a​n​s​c​r​i​b​e​s​ ​t​h​e​ ​a​u​d​i​o​ ​w​i​t​h​ ​a​ ​l​o​c​a​l​ ​O​N​N​X​ ​Q​u​r​a​n​ ​F​a​s​t​C​o​n​f​o​r​m​e​r​ ​m​o​d​e​l​,​ ​m​a​t​c​h​e​s​ ​r​e​c​o​g​n​i​z​e​d​ ​w​o​r​d​s​ ​t​o​ ​t​h​e​ ​Q​u​r​a​n​ ​t​e​x​t​,​ ​t​h​e​n​ ​r​e​t​u​r​n​s​ ​a​y​a​h​ ​a​n​d​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.
+		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​t​r​a​n​s​c​r​i​b​e​s​ ​t​h​e​ ​a​u​d​i​o​ ​w​i​t​h​ ​W​h​i​s​p​e​r​X​,​ ​m​a​t​c​h​e​s​ ​r​e​c​o​g​n​i​z​e​d​ ​w​o​r​d​s​ ​t​o​ ​t​h​e​ ​Q​u​r​a​n​ ​t​e​x​t​,​ ​t​h​e​n​ ​r​e​t​u​r​n​s​ ​a​y​a​h​-​l​e​v​e​l​ ​t​i​m​e​s​t​a​m​p​s​.​ ​A​u​t​o​-​d​e​t​e​c​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​,​ ​b​u​t​ ​s​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
 		 */
 		surahSplitterFeatureDesc: string;
 		/**
@@ -3134,7 +3134,7 @@ type RootTranslation = {
 		 */
 		muaalemReviewHint: string;
 		/**
-		 * T​h​e​ ​Q​u​r​a​n​ ​s​p​a​n​ ​i​s​ ​a​u​t​o​-​d​e​t​e​c​t​e​d​.​ ​A​u​d​i​o​ ​c​o​n​t​a​i​n​i​n​g​ ​m​u​l​t​i​p​l​e​ ​s​u​r​a​h​s​ ​m​a​y​ ​n​e​e​d​ ​r​e​v​i​e​w​.
+		 * A​u​t​o​-​d​e​t​e​c​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​,​ ​b​u​t​ ​s​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
 		 */
 		surahSplitterReviewHint: string;
 		/**
@@ -11299,7 +11299,7 @@ export type TranslationFunctions = {
 		 */
 		noTokenRequiredHint: () => LocalizedString;
 		/**
-		 * No token required. Surah Splitter downloads its ONNX Quran model during the first run.
+		 * No token required. Surah Splitter downloads its WhisperX model during the first run.
 		 */
 		noTokenRequiredSurahSplitterHint: () => LocalizedString;
 		/**
@@ -11307,7 +11307,7 @@ export type TranslationFunctions = {
 		 */
 		muaalemLocalHint: () => LocalizedString;
 		/**
-		 * This option runs locally with an ONNX Quran FastConformer model and auto-detects the Quran span.
+		 * This option can auto-detect the surah. Selecting the surah manually in the next step improves matching precision.
 		 */
 		surahSplitterLocalHint: () => LocalizedString;
 		/**
@@ -11335,11 +11335,11 @@ export type TranslationFunctions = {
 		 */
 		surahSplitterLocalLabel: () => LocalizedString;
 		/**
-		 * Local Quran FastConformer ayah detection
+		 * Local ayah detection with optional surah hint
 		 */
 		surahSplitterLocalDesc: () => LocalizedString;
 		/**
-		 * Runs Surah Splitter locally with a quantized ONNX Quran FastConformer model. It auto-detects the Quran span and returns word timings.
+		 * Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports word-by-word alignment, but selecting the surah manually improves precision.
 		 */
 		surahSplitterLocalDetail: () => LocalizedString;
 		/**
@@ -11767,7 +11767,7 @@ export type TranslationFunctions = {
 		 */
 		muaalemLocalFeatureDesc: () => LocalizedString;
 		/**
-		 * Surah Splitter transcribes the audio with a local ONNX Quran FastConformer model, matches recognized words to the Quran text, then returns ayah and word timestamps.
+		 * Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran text, then returns ayah-level timestamps. Auto-detection is available, but specifying the surah improves precision.
 		 */
 		surahSplitterFeatureDesc: () => LocalizedString;
 		/**
@@ -11787,7 +11787,7 @@ export type TranslationFunctions = {
 		 */
 		muaalemReviewHint: () => LocalizedString;
 		/**
-		 * The Quran span is auto-detected. Audio containing multiple surahs may need review.
+		 * Auto-detection is available, but specifying the surah improves precision.
 		 */
 		surahSplitterReviewHint: () => LocalizedString;
 		/**

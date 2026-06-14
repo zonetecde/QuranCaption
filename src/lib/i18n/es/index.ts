@@ -721,11 +721,11 @@ const es = {
 		noTokenRequiredHint:
 			'No se requiere token. Instalación completamente local con descarga de modelos en el dispositivo.',
 		noTokenRequiredSurahSplitterHint:
-			'No se requiere token. Surah Splitter descarga su modelo WhisperX en la primera ejecución.',
+			'No se requiere token. Surah Splitter descarga su modelo ONNX coránico en la primera ejecución.',
 		muaalemLocalHint:
 			'Esta opción es completamente local, pero generalmente es menos precisa que el pipeline oficial Quranic Universal Aligner.',
 		surahSplitterLocalHint:
-			'Esta opción puede detectar automáticamente la sura. Seleccionar la sura manualmente en el paso siguiente mejora la precisión de la correspondencia.',
+			'Esta opción se ejecuta localmente con un modelo Quran FastConformer ONNX y detecta automáticamente el pasaje coránico.',
 		chooseMethodLabel: 'Elegir un método',
 		chooseMethodDesc:
 			'Elija el método más simple para su situación. Podrá modificar las opciones avanzadas más tarde.',
@@ -734,9 +734,9 @@ const es = {
 		usesOfficialRemote:
 			'Usa el alineador universal coránico oficial de forma remota. Recomendado para la mayoría de los usuarios.',
 		surahSplitterLocalLabel: 'Surah Splitter Local',
-		surahSplitterLocalDesc: 'Detección local de aleyas con indicación opcional de la sura',
+		surahSplitterLocalDesc: 'Detección local de aleyas con Quran FastConformer',
 		surahSplitterLocalDetail:
-			'Ejecuta Surah Splitter localmente con WhisperX. Puede detectar automáticamente la sura y admite alineación palabra por palabra, pero seleccionar la sura manualmente mejora la precisión.',
+			'Ejecuta Surah Splitter localmente con un modelo Quran FastConformer ONNX cuantizado. Detecta automáticamente el pasaje coránico y devuelve tiempos de palabras.',
 		surahSplitterSingleSurahNote:
 			'Nota\u00a0: esta opción solo funciona si hay una sola sura en el archivo de audio.',
 		muaalemLocalLabel: 'Muaalem Local',
@@ -855,7 +855,7 @@ const es = {
 		muaalemLocalFeatureDesc:
 			'Muaalem Local combina la segmentación específica para el Corán, el reconocimiento de voz fonético, la búsqueda de pasajes coránicos monotónicos y la alineación forzada local para temporizaciones precisas palabra por palabra.',
 		surahSplitterFeatureDesc:
-			'Surah Splitter transcribe el audio con WhisperX, hace coincidir las palabras reconocidas con el texto coránico y luego devuelve las marcas de tiempo a nivel de aleya. La detección automática está disponible, pero especificar la sura mejora la precisión.',
+			'Surah Splitter transcribe el audio con un modelo Quran FastConformer ONNX local, hace coincidir las palabras reconocidas con el texto coránico y devuelve marcas de tiempo de aleyas y palabras.',
 		muaalemLocalEffectivenessHint:
 			'Este método es completamente local, pero generalmente es menos eficaz que el alineador universal coránico oficial. Los modelos de respaldo avanzados están ocultos por defecto porque son más experimentales que la ruta recomendada Muaalem v3.2.',
 		surahSplitterDownloadNote:
@@ -865,7 +865,7 @@ const es = {
 		muaalemReviewHint:
 			'Este método es completamente local y más fácil de instalar, pero generalmente menos eficaz que el pipeline oficial Quranic Universal Aligner.',
 		surahSplitterReviewHint:
-			'La detección automática está disponible, pero especificar la sura mejora la precisión.',
+			'El pasaje coránico se detecta automáticamente. El audio con varias suras puede requerir revisión.',
 		legacyV1ReviewHint:
 			'Legacy V1 es un antiguo pipeline de respaldo con una calidad de alineación inferior.',
 		noAudioDetectedWarning: 'No se detectó ningún clip de audio en la línea de tiempo actual.',

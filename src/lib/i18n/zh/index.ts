@@ -654,18 +654,19 @@ const zh = {
 		checkingLocalEngines: '正在后台检查本地引擎...',
 		noTokenRequiredHint: '无需 Token。完全本地安装，模型在设备上下载。',
 		noTokenRequiredSurahSplitterHint:
-			'无需 Token。Surah Splitter 在首次运行时下载其 WhisperX 模型。',
+			'无需 Token。Surah Splitter 在首次运行时下载其 ONNX 古兰经模型。',
 		muaalemLocalHint: '此选项完全本地运行，但通常不如官方 Quranic Universal Aligner 管道精确。',
-		surahSplitterLocalHint: '此选项可以自动检测苏拉。在下一步中手动选择苏拉可提高匹配精度。',
+		surahSplitterLocalHint:
+			'此选项使用 ONNX Quran FastConformer 模型在本地运行，并自动检测古兰经片段。',
 		chooseMethodLabel: '选择方法',
 		chooseMethodDesc: '选择适合您情况的最简单方法。您之后仍然可以更改高级选项。',
 		quranicUniversalAlignerLabel: 'Quranic Universal Aligner',
 		bestOverallQuality: '最佳整体质量和最简单的设置',
 		usesOfficialRemote: '远程使用官方 Quranic Universal Aligner。推荐大多数用户使用。',
 		surahSplitterLocalLabel: 'Surah Splitter 本地',
-		surahSplitterLocalDesc: '本地经文检测，可选苏拉提示',
+		surahSplitterLocalDesc: '使用 Quran FastConformer 的本地经文检测',
 		surahSplitterLocalDetail:
-			'使用 WhisperX 在本地运行 Surah Splitter。它可以自动检测苏拉并支持逐词对齐，但手动选择苏拉可提高精度。',
+			'使用量化 ONNX Quran FastConformer 模型在本地运行 Surah Splitter。它会自动检测古兰经片段并返回逐词时间信息。',
 		surahSplitterSingleSurahNote: '注意：此选项仅在音频文件中只有一首苏拉时有效。',
 		muaalemLocalLabel: 'Muaalem 本地',
 		muaalemLocalDesc: '第二选项，但效果不如 Surah Splitter',
@@ -778,14 +779,14 @@ const zh = {
 		muaalemLocalFeatureDesc:
 			'Muaalem 本地结合了古兰经专用分段、语音识别、单调古兰经段落搜索和本地强制对齐，以实现精确的逐词时间信息。',
 		surahSplitterFeatureDesc:
-			'Surah Splitter 使用 WhisperX 转录音频，将识别出的词与古兰经文本匹配，然后返回经文级别的时间信息。自动检测可用，但指定苏拉可提高精度。',
+			'Surah Splitter 使用本地 ONNX Quran FastConformer 模型转录音频，将识别出的词与古兰经文本匹配，然后返回经文和逐词时间信息。',
 		muaalemLocalEffectivenessHint:
 			'此方法完全本地运行，但通常不如官方 Quranic Universal Aligner 有效。高级回退模型默认隐藏，因为它们比推荐的 Muaalem v3.2 路径更具实验性。',
 		surahSplitterDownloadNote: '如果尚未缓存，Surah Splitter 会在分段过程中下载所选模型。',
 		tokenRequiredHint: '此方法需要有效的 Hugging Face Token 才能运行。',
 		muaalemReviewHint:
 			'此方法完全本地且安装更简单，但通常不如官方 Quranic Universal Aligner 管道有效。',
-		surahSplitterReviewHint: '自动检测可用，但指定苏拉可提高精度。',
+		surahSplitterReviewHint: '古兰经片段会自动检测。包含多个苏拉的音频可能需要检查。',
 		legacyV1ReviewHint: 'Legacy V1 是旧版回退管道，对齐质量较低。',
 		noAudioDetectedWarning: '在当前时间轴中未检测到音频片段。',
 		speechRecognitionModel: '语音识别模型',

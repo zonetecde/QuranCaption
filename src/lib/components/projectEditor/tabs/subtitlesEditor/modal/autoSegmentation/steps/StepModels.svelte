@@ -12,7 +12,6 @@
 	const isMuaalemLocal = $derived(() => wizard.selection.aiVersion === 'muaalem_local');
 	const isSurahSplitter = $derived(() => wizard.selection.aiVersion === 'surah_splitter');
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
-	const surahNumbers = Array.from({ length: 114 }, (_, index) => index + 1);
 </script>
 
 <section class="space-y-4">
@@ -115,53 +114,15 @@
 							<div class="flex items-center justify-between gap-3">
 								<div class="text-sm font-medium text-primary">{option.label}</div>
 								<span
-										class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
-									>
-										{$LL.editor.recommendedLabel()}
-									</span>
-								</div>
-								<div class="text-xs text-thirdly">{option.description}</div>
-								<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-							</button>
-						{/each}
-					</div>
-
-					<div class="space-y-2 rounded-xl border border-color p-3">
-						<div class="text-xs uppercase text-thirdly">{$LL.editor.surahSelectionLabel()}</div>
-					<label class="flex items-center gap-2 text-sm text-primary">
-						<input
-							type="radio"
-							name="surah-splitter-surah"
-							checked={wizard.selection.surahSplitterSurah === null}
-							onchange={() => wizard.setSurahSplitterSurah(null)}
-						/>
-						{$LL.editor.autoDetectSurah()}
-					</label>
-					<label class="flex items-center gap-2 text-sm text-primary">
-						<input
-							type="radio"
-							name="surah-splitter-surah"
-							checked={wizard.selection.surahSplitterSurah !== null}
-							onchange={() =>
-								wizard.setSurahSplitterSurah(wizard.selection.surahSplitterSurah ?? 1)}
-						/>
-						{$LL.editor.specifySurah()}
-					</label>
-					{#if wizard.selection.surahSplitterSurah !== null}
-						<select
-							class="w-full rounded-lg border border-color bg-bg-primary px-3 py-2 text-sm text-primary"
-							value={wizard.selection.surahSplitterSurah}
-							onchange={(event) => wizard.setSurahSplitterSurah(Number(event.currentTarget.value))}
-						>
-							{#each surahNumbers as surah}
-								<option value={surah}>Surah {surah}</option>
-							{/each}
-						</select>
-					{/if}
-					<p class="text-xs text-thirdly">
-						{$LL.editor.surahSplitterPrecisionHint()}<br
-						/>{$LL.editor.surahSplitterMultiSurahNote()}
-					</p>
+									class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
+								>
+									{$LL.editor.recommendedLabel()}
+								</span>
+							</div>
+							<div class="text-xs text-thirdly">{option.description}</div>
+							<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
+						</button>
+					{/each}
 				</div>
 			</div>
 		{:else}

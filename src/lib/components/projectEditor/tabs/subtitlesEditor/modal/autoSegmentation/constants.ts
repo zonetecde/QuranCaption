@@ -90,13 +90,13 @@ export const MUAALEM_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 	}
 ];
 
-/** WhisperX models exposed by the Surah Splitter local pipeline. */
+/** ONNX FastConformer models exposed by the Surah Splitter local pipeline. */
 export const SURAH_SPLITTER_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 	{
 		value: 'SurahSplitter-Base-Quran',
-		label: 'Base Quran',
-		description: 'Default Surah Splitter model with ayah auto-detection support.',
-		source: 'OdyAsh/faster-whisper-base-ar-quran'
+		label: 'Base ONNX',
+		description: 'Public quantized Quran FastConformer model with ayah auto-detection.',
+		source: 'yazinsai/offline-tarteel'
 	}
 ];
 

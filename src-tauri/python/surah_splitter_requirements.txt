@@ -1,10 +1,7 @@
-# Requirements for the Surah Splitter local Quran pipeline.
-# Models are downloaded on first run if not already cached.
-
-cyclopts>=3.17.0
-loguru>=0.7.3
+# Requirements for the local ONNX Surah Splitter Quran pipeline.
+onnxruntime>=1.18.0
+numpy>=1.26.0,<3.0.0
 pydub>=0.25.1
-rich>=14.0.0
-whisperx>=3.4.2
-huggingface_hub>=0.30.0
-numpy>=2.0.0,<3.0.0
+audioop-lts>=0.2.2; python_version >= "3.13"
+python-Levenshtein>=0.25.0
+numba>=0.59.0

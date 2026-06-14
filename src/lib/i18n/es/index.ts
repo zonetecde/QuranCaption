@@ -892,6 +892,11 @@ const es = {
 		predefinedLabel: 'PREDEFINIDO',
 		wbwTimestampsMissing:
 			'{count}\u00a0subtítulo(s) carece(n) de marcas de tiempo palabra por palabra.',
+		computeTimestamps: 'Calcular marcas de tiempo',
+		wbwTimestampsComputed:
+			'Marcas de tiempo WBW calculadas para {enriched}/{total}\u00a0subtítulo{plural}.',
+		noWbwTimestampsComputed: 'No se pudieron calcular marcas de tiempo WBW. Inténtelo de nuevo.',
+		failedToComputeWbwTimestamps: 'No se pudieron calcular las marcas de tiempo WBW.',
 		noWbwTimestampsMarked:
 			'{count}\u00a0subtítulo{plural} marcado{plural} por falta de marcas de tiempo WBW.',
 		cbrPreparing: 'Preparando...',

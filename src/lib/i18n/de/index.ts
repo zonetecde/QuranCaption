@@ -889,6 +889,11 @@ const de = {
 		silenceLabel: 'STILLE',
 		predefinedLabel: 'VORDEFINIERT',
 		wbwTimestampsMissing: '{count} Untertitel fehlen Wort-für-Wort-Zeitstempel.',
+		computeTimestamps: 'Zeitstempel berechnen',
+		wbwTimestampsComputed: 'WBW-Zeitstempel für {enriched}/{total} Untertitel{plural} berechnet.',
+		noWbwTimestampsComputed:
+			'Es konnten keine WBW-Zeitstempel berechnet werden. Bitte versuchen Sie es erneut.',
+		failedToComputeWbwTimestamps: 'WBW-Zeitstempel konnten nicht berechnet werden.',
 		noWbwTimestampsMarked: '{count} Untertitel{plural} als fehlende WBW-Zeitstempel markiert.',
 		cbrPreparing: 'Vorbereitung...',
 		cbrFinished: 'Abgeschlossen',

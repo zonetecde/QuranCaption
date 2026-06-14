@@ -891,6 +891,11 @@ const fr = {
 		silenceLabel: 'SILENCE',
 		predefinedLabel: 'PRÉDÉFINI',
 		wbwTimestampsMissing: '{count}\u00a0sous-titre(s) manque(nt) d\u2019horodatages mot par mot.',
+		computeTimestamps: 'Calculer les horodatages',
+		wbwTimestampsComputed:
+			'Horodatages WBW calculés pour {enriched}/{total}\u00a0sous-titre{plural}.',
+		noWbwTimestampsComputed: 'Aucun horodatage WBW n\u2019a pu être calculé. Veuillez réessayer.',
+		failedToComputeWbwTimestamps: 'Échec du calcul des horodatages WBW.',
 		noWbwTimestampsMarked:
 			'{count}\u00a0sous-titre{plural} marqué{plural} pour absence d\u2019horodatages WBW.',
 		cbrPreparing: 'Préparation...',

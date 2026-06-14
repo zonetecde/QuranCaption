@@ -3225,6 +3225,25 @@ type RootTranslation = {
 		 */
 		wbwTimestampsMissing: RequiredParams<'count'>;
 		/**
+		 * C​o​m​p​u​t​e​ ​t​i​m​e​s​t​a​m​p​s
+		 */
+		computeTimestamps: string;
+		/**
+		 * W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​c​o​m​p​u​t​e​d​ ​f​o​r​ ​{​e​n​r​i​c​h​e​d​}​/​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​{​p​l​u​r​a​l​}​.
+		 * @param {unknown} enriched
+		 * @param {unknown} plural
+		 * @param {unknown} total
+		 */
+		wbwTimestampsComputed: RequiredParams<'enriched' | 'plural' | 'total'>;
+		/**
+		 * N​o​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​c​o​u​l​d​ ​b​e​ ​c​o​m​p​u​t​e​d​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
+		 */
+		noWbwTimestampsComputed: string;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​c​o​m​p​u​t​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
+		 */
+		failedToComputeWbwTimestamps: string;
+		/**
 		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​{​p​l​u​r​a​l​}​ ​m​a​r​k​e​d​ ​f​o​r​ ​m​i​s​s​i​n​g​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
 		 * @param {unknown} count
 		 * @param {unknown} plural
@@ -11864,6 +11883,26 @@ export type TranslationFunctions = {
 		 * {count} subtitle(s) are missing word-by-word timestamps.
 		 */
 		wbwTimestampsMissing: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Compute timestamps
+		 */
+		computeTimestamps: () => LocalizedString;
+		/**
+		 * WBW timestamps computed for {enriched}/{total} subtitle{plural}.
+		 */
+		wbwTimestampsComputed: (arg: {
+			enriched: unknown;
+			plural: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * No WBW timestamps could be computed. Please try again.
+		 */
+		noWbwTimestampsComputed: () => LocalizedString;
+		/**
+		 * Failed to compute WBW timestamps.
+		 */
+		failedToComputeWbwTimestamps: () => LocalizedString;
 		/**
 		 * {count} subtitle{plural} marked for missing WBW timestamps.
 		 */

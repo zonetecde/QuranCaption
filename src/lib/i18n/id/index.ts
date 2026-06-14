@@ -605,6 +605,11 @@ const id: Translation = {
 		markedCount: '{count} ditandai',
 		segmentsMatchRange: '{count} segmen cocok dengan rentang saat ini.',
 		wbwTimestampsMissing: '{count} subtitle kehilangan timestamp kata demi kata.',
+		computeTimestamps: 'Hitung timestamp',
+		wbwTimestampsComputed:
+			'Timestamp WBW berhasil dihitung untuk {enriched}/{total} subtitle{plural}.',
+		noWbwTimestampsComputed: 'Tidak ada timestamp WBW yang bisa dihitung. Silakan coba lagi.',
+		failedToComputeWbwTimestamps: 'Gagal menghitung timestamp WBW.',
 		needVisualWalkthrough: 'Butuh panduan visual?',
 		walkthroughDescription: 'Berikut video singkat yang menunjukkan cara kerja editor subtitle:',
 		spaceToPlayPause:

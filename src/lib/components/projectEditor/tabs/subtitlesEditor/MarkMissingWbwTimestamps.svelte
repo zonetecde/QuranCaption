@@ -25,7 +25,7 @@
 		if (isComputing) return;
 		const targetCount = missingWbwSegmentsCount;
 		if (targetCount <= 0) {
-			toast('No subtitle is missing WBW timestamps.');
+			toast(get(LL).editor.noMissingWbw());
 			return;
 		}
 
@@ -34,14 +34,18 @@
 			const { enriched, total } = await computeMissingWbwTimestamps();
 			if (enriched > 0) {
 				toast.success(
-					`WBW timestamps computed for ${enriched}/${total} subtitle${total > 1 ? 's' : ''}.`
+					get(LL).editor.wbwTimestampsComputed({
+						enriched,
+						total,
+						plural: total > 1 ? 's' : ''
+					})
 				);
 			} else {
-				toast.error('No WBW timestamps could be computed. Please try again.');
+				toast.error(get(LL).editor.noWbwTimestampsComputed());
 			}
 		} catch (error) {
 			console.error('[WBW] Failed to compute timestamps:', error);
-			toast.error('Failed to compute WBW timestamps.');
+			toast.error(get(LL).editor.failedToComputeWbwTimestamps());
 		} finally {
 			isComputing = false;
 		}
@@ -112,7 +116,7 @@
 					></span>
 				{:else}
 					<span class="material-icons text-sm!">auto_awesome</span>
-					Compute timestamps
+					{$LL.editor.computeTimestamps()}
 				{/if}
 			</button>
 		</div>

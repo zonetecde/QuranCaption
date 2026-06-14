@@ -1605,6 +1605,8 @@ const es = {
 		copyExportError: 'Copiar detalles del error de exportación',
 		copyErrorButton: 'Copiar error',
 		exportCompleted: 'Exportación completada con éxito',
+		exportLogs: 'Registros de exportación',
+		noExportLogs: 'Aún no hay registros de exportación.',
 		noOngoingExports: 'No tiene ninguna exportación en curso.',
 		inProgressCount: '{count} en curso',
 		clearCompleted: 'Limpiar completados',

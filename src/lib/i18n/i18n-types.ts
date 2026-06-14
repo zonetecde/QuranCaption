@@ -5776,6 +5776,14 @@ type RootTranslation = {
 		 */
 		exportCompleted: string;
 		/**
+		 * E​x​p​o​r​t​ ​l​o​g​s
+		 */
+		exportLogs: string;
+		/**
+		 * N​o​ ​e​x​p​o​r​t​ ​l​o​g​s​ ​y​e​t​.
+		 */
+		noExportLogs: string;
+		/**
 		 * Y​o​u​ ​h​a​v​e​ ​n​o​ ​o​n​g​o​i​n​g​ ​e​x​p​o​r​t​s​.
 		 */
 		noOngoingExports: string;
@@ -14362,6 +14370,14 @@ export type TranslationFunctions = {
 		 * Export completed successfully
 		 */
 		exportCompleted: () => LocalizedString;
+		/**
+		 * Export logs
+		 */
+		exportLogs: () => LocalizedString;
+		/**
+		 * No export logs yet.
+		 */
+		noExportLogs: () => LocalizedString;
 		/**
 		 * You have no ongoing exports.
 		 */

@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
+	import Exportation, {
+		ExportKind,
+		ExportState,
+		type ExportLogEntry
+	} from '$lib/classes/Exportation.svelte';
 	import { exists } from '@tauri-apps/plugin-fs';
 	import { invoke } from '@tauri-apps/api/core';
 	import ModalManager from './modals/ModalManager';
@@ -22,6 +26,7 @@
 	// Variable réactive pour forcer les mises à jour
 	let currentTime = $state(Date.now());
 	let intervalId: ReturnType<typeof setInterval> | undefined;
+	let expandedLogsByExportId = $state<Record<number, boolean>>({});
 
 	// Fonction pour formater la durée en format lisible
 	function formatDuration(ms: number): string {
@@ -293,13 +298,69 @@
 				.replaceAll('\\t', '\t');
 
 			await navigator.clipboard.writeText(normalizedError);
-		toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
-	} catch {
-		toast.error(get(LL).exporterMonitor.failedToCopyError());
+			toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
+		} catch {
+			toast.error(get(LL).exporterMonitor.failedToCopyError());
 		}
 	}
 
 	// Lifecycle hooks pour gérer l'intervalle
+	/**
+	 * Ouvre ou ferme le panneau de logs d'un export.
+	 * @param {number} exportId Identifiant de l'export affiche.
+	 * @returns {void}
+	 */
+	function toggleExportLogs(exportId: number): void {
+		expandedLogsByExportId = {
+			...expandedLogsByExportId,
+			[exportId]: !expandedLogsByExportId[exportId]
+		};
+	}
+
+	/**
+	 * Formate l'heure d'une ligne de log en HH:MM:SS.
+	 * @param {string} timestamp Date ISO de la ligne.
+	 * @returns {string} Heure lisible ou valeur brute si invalide.
+	 */
+	function formatExportLogTime(timestamp: string): string {
+		const date = new Date(timestamp);
+		if (Number.isNaN(date.getTime())) return timestamp;
+		return date.toLocaleTimeString(undefined, {
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit'
+		});
+	}
+
+	/**
+	 * Retourne la couleur du niveau de log.
+	 * @param {ExportLogEntry['level']} level Niveau de log.
+	 * @returns {string} Classes CSS Tailwind.
+	 */
+	function getExportLogLevelColor(level: ExportLogEntry['level']): string {
+		if (level === 'error') return 'text-red-300';
+		if (level === 'warn') return 'text-yellow-300';
+		return 'text-blue-300';
+	}
+
+	/**
+	 * Copie toutes les lignes de log d'un export.
+	 * @param {ExportLogEntry[]} logs Lignes de log a copier.
+	 * @returns {Promise<void>}
+	 */
+	async function copyExportLogs(logs: ExportLogEntry[]): Promise<void> {
+		try {
+			const text = logs
+				.map((log) => `[${log.timestamp}] [${log.level}] [${log.source}] ${log.message}`)
+				.join('\n');
+
+			await navigator.clipboard.writeText(text);
+			toast.success(get(LL).common.logsCopiedToClipboard());
+		} catch {
+			toast.error(get(LL).common.error());
+		}
+	}
+
 	onMount(() => {
 		// Mettre à jour le temps actuel toutes les secondes
 		intervalId = setInterval(() => {
@@ -326,7 +387,9 @@
 		<div class="flex items-center justify-between p-4 border-b border-gray-700">
 			<div class="flex items-center gap-2">
 				<span class="material-icons text-blue-400">download</span>
-				<h3 id="export-monitor-title" class="text-lg font-semibold text-white">{$LL.exporterMonitor.exportsMonitor()}</h3>
+				<h3 id="export-monitor-title" class="text-lg font-semibold text-white">
+					{$LL.exporterMonitor.exportsMonitor()}
+				</h3>
 				<div class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
 					{globalState.exportations.length}
 				</div>
@@ -368,7 +431,9 @@
 									);
 								}
 							}}
-							title={exportation.isOnGoing() ? $LL.exporterMonitor.cancelExport() : $LL.common.remove()}
+							title={exportation.isOnGoing()
+								? $LL.exporterMonitor.cancelExport()
+								: $LL.common.remove()}
 						>
 							<span class="material-icons">
 								{#if exportation.isOnGoing()}
@@ -399,7 +464,8 @@
 									</div>
 									{#if exportation.currentState === ExportState.Exported && getStoredTotalExportMs(exportation) !== null}
 										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
-											{get(LL).export.totalLabel()} <span class="monospaced"
+											{get(LL).export.totalLabel()}
+											<span class="monospaced"
 												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span
 											>
 										</span>
@@ -464,7 +530,10 @@
 									<div class="flex items-center justify-between text-xs text-gray-500 mt-1">
 										<span>
 											{#if getStepInfo(exportation.currentState)}
-												{get(LL).export.stepOf({ current: getStepInfo(exportation.currentState)?.current ?? 1, total: getStepInfo(exportation.currentState)?.total ?? 1 })}
+												{get(LL).export.stepOf({
+													current: getStepInfo(exportation.currentState)?.current ?? 1,
+													total: getStepInfo(exportation.currentState)?.total ?? 1
+												})}
 											{:else}
 												{get(LL).export.progressLabel()}
 											{/if}
@@ -474,7 +543,8 @@
 								<div class="flex justify-between text-xs text-gray-400 mt-1">
 									{#if exportation.currentTreatedTime > 0}
 										<div>
-											{get(LL).export.processedTime()} <span class="monospaced"
+											{get(LL).export.processedTime()}
+											<span class="monospaced"
 												>{formatCurrentTime(exportation.currentTreatedTime)} / {formatDuration(
 													exportation.videoLength
 												)}</span
@@ -485,7 +555,8 @@
 										</div>
 									{:else}
 										<div>
-											{get(LL).export.processedTime()} <span class="monospaced"
+											{get(LL).export.processedTime()}
+											<span class="monospaced"
 												>0:00 / {formatDuration(exportation.videoLength)}</span
 											>
 										</div>
@@ -498,7 +569,8 @@
 											<span class="monospaced">
 												{' '}({formatCurrentTime(
 													getEstimatedRemainingMs(exportation, currentTime) || 0
-												)} {get(LL).export.estimated()})
+												)}
+												{get(LL).export.estimated()})
 											</span>
 										{:else}
 											<span class="monospaced">
@@ -530,14 +602,18 @@
 						{:else}
 							<div class="grid grid-cols-4 grid-rows-1 gap-2 text-xs">
 								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">{get(LL).export.dimensionsColumn()}</div>
+									<div class="text-gray-400 mb-1 text-center">
+										{get(LL).export.dimensionsColumn()}
+									</div>
 									<div class="text-white font-mono text-center">
 										{exportation.videoDimensions.width}×{exportation.videoDimensions.height}
 									</div>
 								</div>
 
 								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">{get(LL).export.durationColumn()}</div>
+									<div class="text-gray-400 mb-1 text-center">
+										{get(LL).export.durationColumn()}
+									</div>
 									<div class="text-white font-mono text-center">
 										{formatDuration(exportation.videoLength)}
 									</div>
@@ -549,6 +625,60 @@
 										{exportation.verseRange}
 									</div>
 								</div>
+							</div>
+						{/if}
+
+						{#if !isTextExport(exportation) && (exportation.isOnGoing() || exportation.exportLogs.length > 0)}
+							<div class="mt-2">
+								<button
+									type="button"
+									class="w-full flex items-center justify-between gap-2 rounded-md border border-gray-700 bg-gray-800/40 px-2 py-1 text-xs text-gray-200 hover:bg-gray-800 transition-colors cursor-pointer"
+									onclick={() => toggleExportLogs(exportation.exportId)}
+								>
+									<span class="flex items-center gap-2 min-w-0">
+										<span class="material-icons text-[14px] text-cyan-300">terminal</span>
+										<span>{get(LL).export.exportLogs()}</span>
+										<span class="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-300">
+											{exportation.exportLogs.length}
+										</span>
+									</span>
+									<span class="material-icons text-[16px]">
+										{expandedLogsByExportId[exportation.exportId] ? 'expand_less' : 'expand_more'}
+									</span>
+								</button>
+
+								{#if expandedLogsByExportId[exportation.exportId]}
+									<div
+										class="mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-700 bg-black/50 p-2 font-mono text-[11px] leading-4 text-gray-300"
+									>
+										<div class="mb-2 flex justify-end">
+											<button
+												type="button"
+												class="flex items-center gap-1 rounded border border-gray-700 px-2 py-0.5 text-[11px] text-gray-300 transition-colors hover:bg-gray-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+												onclick={() => copyExportLogs(exportation.exportLogs)}
+												disabled={exportation.exportLogs.length === 0}
+												title={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
+												aria-label={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
+											>
+												<span class="material-icons text-[13px]">content_copy</span>
+												{get(LL).common.copy()}
+											</button>
+										</div>
+										{#if exportation.exportLogs.length === 0}
+											<div class="text-gray-500">{get(LL).export.noExportLogs()}</div>
+										{:else}
+											{#each exportation.exportLogs as log, index (index)}
+												<div class="grid grid-cols-[72px_44px_110px_1fr] gap-2">
+													<span class="text-gray-500">{formatExportLogTime(log.timestamp)}</span>
+													<span class={getExportLogLevelColor(log.level)}>{log.level}</span>
+													<span class="truncate text-cyan-300" title={log.source}>{log.source}</span
+													>
+													<span class="whitespace-pre-wrap break-words">{log.message}</span>
+												</div>
+											{/each}
+										{/if}
+									</div>
+								{/if}
 							</div>
 						{/if}
 
@@ -624,7 +754,9 @@
 		<div class="p-3 border-t border-gray-700 bg-gray-800/50">
 			<div class="flex items-center justify-between">
 				<div class="text-xs text-gray-400">
-					{get(LL).export.inProgressCount({ count: globalState.exportations.filter((e) => e.isOnGoing()).length })}
+					{get(LL).export.inProgressCount({
+						count: globalState.exportations.filter((e) => e.isOnGoing()).length
+					})}
 				</div>
 				{#if globalState.exportations.some((e) => !e.isOnGoing())}
 					<button

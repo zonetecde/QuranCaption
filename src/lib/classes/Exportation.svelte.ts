@@ -22,6 +22,15 @@ export enum ExportKind {
 	Text = 'Text'
 }
 
+export type ExportLogLevel = 'info' | 'warn' | 'error';
+
+export type ExportLogEntry = {
+	timestamp: string;
+	source: string;
+	level: ExportLogLevel;
+	message: string;
+};
+
 export default class Exportation extends SerializableBase {
 	exportId: number;
 	finalFileName: string;
@@ -46,6 +55,7 @@ export default class Exportation extends SerializableBase {
 	errorLog: string;
 	fps: number;
 	currentBatchSize: number | null;
+	exportLogs: ExportLogEntry[] = $state([]);
 	date: string;
 	totalExportTimeMs: number | null;
 
@@ -93,6 +103,25 @@ export default class Exportation extends SerializableBase {
 		this.currentBatchSize = $state(null);
 		this.date = $state(new Date().toISOString());
 		this.totalExportTimeMs = $state(null);
+	}
+
+	/**
+	 * Serialise l'export sans les logs runtime.
+	 * @returns {Record<string, unknown>} Donnees serialisees.
+	 */
+	toJSON(): Record<string, unknown> {
+		const data = super.toJSON();
+		delete data.exportLogs;
+		return data;
+	}
+
+	/**
+	 * Ajoute une ligne de log runtime sans la rendre serialisable.
+	 * @param {ExportLogEntry} log Ligne de log a afficher dans le monitor.
+	 * @returns {void}
+	 */
+	addExportLog(log: ExportLogEntry): void {
+		this.exportLogs = [...(this.exportLogs ?? []), log];
 	}
 
 	isOnGoing() {

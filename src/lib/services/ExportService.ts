@@ -2,7 +2,11 @@ import { VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
-import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
+import Exportation, {
+	ExportKind,
+	ExportState,
+	type ExportLogEntry
+} from '$lib/classes/Exportation.svelte';
 import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
@@ -183,11 +187,33 @@ export default class ExportService {
 	static setupListener() {
 		// Écoute les événements de progression d'export donné par Rust
 		listen('export-progress-main', exportProgress);
+		listen('export-log-main', exportLog);
 	}
 
 	static currentlyExportingProjects() {
 		return globalState.exportations.filter((exp) => exp.isOnGoing());
 	}
+}
+
+/**
+ * Ajoute une ligne de log d'export uniquement en memoire.
+ * @param {TauriEvent<ExportLogPayload>} event Evenement de log recu depuis une fenetre d'export.
+ * @returns {void}
+ */
+function exportLog(event: TauriEvent<ExportLogPayload>): void {
+	const data = event.payload;
+	const exportation = globalState.exportations.find(
+		(exp) => exp.exportId === Number(data.exportId)
+	);
+
+	if (!exportation) return;
+
+	exportation.addExportLog({
+		timestamp: data.timestamp,
+		source: data.source,
+		level: data.level,
+		message: data.message
+	});
 }
 
 function exportProgress(event: TauriEvent<ExportProgress>): void {
@@ -282,4 +308,8 @@ export interface ExportProgress {
 	mergingFilesTotalSegments?: number;
 	currentBatchSize?: number;
 	errorLog?: string;
+}
+
+export interface ExportLogPayload extends ExportLogEntry {
+	exportId: number | string;
 }

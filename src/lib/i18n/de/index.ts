@@ -1599,6 +1599,8 @@ const de = {
 		copyExportError: 'Details des Exportfehlers kopieren',
 		copyErrorButton: 'Fehler kopieren',
 		exportCompleted: 'Export erfolgreich abgeschlossen',
+		exportLogs: 'Exportprotokolle',
+		noExportLogs: 'Noch keine Exportprotokolle.',
 		noOngoingExports: 'Sie haben keine laufenden Exporte.',
 		inProgressCount: '{count} in Bearbeitung',
 		clearCompleted: 'Abgeschlossene löschen',

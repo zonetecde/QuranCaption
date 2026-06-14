@@ -1456,6 +1456,8 @@ const zh = {
 		copyExportError: '复制导出错误详情',
 		copyErrorButton: '复制错误',
 		exportCompleted: '导出成功完成',
+		exportLogs: '导出日志',
+		noExportLogs: '暂无导出日志。',
 		noOngoingExports: '您没有正在进行的导出。',
 		inProgressCount: '{count} 个进行中',
 		clearCompleted: '清除已完成',

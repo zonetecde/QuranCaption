@@ -35,7 +35,8 @@ const export_ = {
 	webmVp9: 'WEBM (VP9 alpha)',
 	movQtrleCompatibility: 'MOV (QTRLE alpha) improves compatibility with editing tools.',
 	exportPerformance: 'Export Performance',
-	chooseCpuUsage: 'Pick the profile that matches your goal: faster tests, cleaner final exports, or lower CPU usage.',
+	chooseCpuUsage:
+		'Pick the profile that matches your goal: faster tests, cleaner final exports, or lower CPU usage.',
 	parallelCaptureWorkers: 'Parallel capture workers',
 	parallelCaptureWorkersDescription:
 		'Number of hidden WebViews used for PNG frame capture. Default is 4; 1 disables parallel capture.',
@@ -80,7 +81,8 @@ const export_ = {
 	translationAuthor: '{author} Translation',
 	includeVerseNumbers: 'Include verse numbers',
 	includeVerseNumbersAtEnd: 'Add verse numbers (e.g., \u201c255.\u201d) at the end of each verse',
-	includeVerseNumbersAtStart: 'Add verse numbers (e.g., \u201c255.\u201d) at the beginning of each verse',
+	includeVerseNumbersAtStart:
+		'Add verse numbers (e.g., \u201c255.\u201d) at the beginning of each verse',
 	arabicTextFormat: 'Arabic Text Format',
 	arabicTextFormatDescription: 'The format for the Arabic script in your subtitles.',
 	simpleText: 'Simple text',
@@ -91,7 +93,8 @@ const export_ = {
 	exportSubtitlesButton: 'Export Subtitles',
 	exportSubtitlesButtonDescription: 'Generate subtitle files with your selected configuration',
 	exportYoutubeChapters: 'Export YouTube Chapters',
-	exportYoutubeChaptersDescription: 'Generate chapter timestamps for your YouTube video description.',
+	exportYoutubeChaptersDescription:
+		'Generate chapter timestamps for your YouTube video description.',
 	chapterGeneration: 'Chapter Generation',
 	chapterGenerationDescription: 'Choose how to organize your video chapters:',
 	eachSurah: 'Each Surah',
@@ -102,9 +105,11 @@ const export_ = {
 	chapterPerVerseDescription: 'Creates one chapter for each verse in your video timeline.',
 	howToUse: 'How to Use',
 	youtubeIntegration: 'YouTube Integration',
-	youtubeIntegrationDescription: 'Paste the generated chapter timestamps into your YouTube video description to add chapters.',
+	youtubeIntegrationDescription:
+		'Paste the generated chapter timestamps into your YouTube video description to add chapters.',
 	exportYoutubeChaptersButton: 'Export YouTube Chapters',
-	exportYoutubeChaptersButtonDescription: 'Generate chapter timestamps for your YouTube video description',
+	exportYoutubeChaptersButtonDescription:
+		'Generate chapter timestamps for your YouTube video description',
 	exportProjectData: 'Export Project Data',
 	exportProjectDataDescription: 'Export your project configuration as a standalone JSON file.',
 	whatsIncluded: "What's Included",
@@ -116,11 +121,14 @@ const export_ = {
 	customElementsDescription: 'Custom text clips, styling overrides, and background configurations.',
 	limitations: 'Limitations',
 	mediaFilesNotIncluded: 'Media Files Not Included',
-	mediaFilesNotIncludedDescription: 'Audio and video files you imported from your device are not included. Only file names and source URLs are stored.',
+	mediaFilesNotIncludedDescription:
+		'Audio and video files you imported from your device are not included. Only file names and source URLs are stored.',
 	exportProjectDataButton: 'Export Project Data',
-	exportProjectDataButtonDescription: 'Generate a JSON file containing your entire project configuration',
+	exportProjectDataButtonDescription:
+		'Generate a JSON file containing your entire project configuration',
 	exportSubtitlesJsonButton: 'Export Subtitles JSON',
-	exportSubtitlesJsonButtonDescription: 'Generate a compact word-level JSON for edited Quran subtitle segments',
+	exportSubtitlesJsonButtonDescription:
+		'Generate a compact word-level JSON for edited Quran subtitle segments',
 	formatHint: 'Format: HH:MM:SS or use the current timeline cursor position',
 	useCursorTime: 'Use cursor time',
 	cursorTimeTitle: 'Use the preview timeline cursor time and put it into the time field',
@@ -144,6 +152,8 @@ const export_ = {
 	copyExportError: 'Copy export error details',
 	copyErrorButton: 'Copy error',
 	exportCompleted: 'Export completed successfully',
+	exportLogs: 'Export logs',
+	noExportLogs: 'No export logs yet.',
 	noOngoingExports: 'You have no ongoing exports.',
 	inProgressCount: '{count} in progress',
 	clearCompleted: 'Clear completed',

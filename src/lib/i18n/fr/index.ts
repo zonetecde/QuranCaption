@@ -1608,6 +1608,8 @@ const fr = {
 		copyExportError: 'Copier les détails de l\u2019erreur d\u2019export',
 		copyErrorButton: 'Copier l\u2019erreur',
 		exportCompleted: 'Export terminé avec succès',
+		exportLogs: 'Logs d\u2019export',
+		noExportLogs: 'Aucun log d\u2019export pour le moment.',
 		noOngoingExports: 'Vous n\u2019avez aucun export en cours.',
 		inProgressCount: '{count} en cours',
 		clearCompleted: 'Effacer les terminés',

@@ -1605,10 +1605,16 @@ const de = {
 		copyExportError: 'Details des Exportfehlers kopieren',
 		copyErrorButton: 'Fehler kopieren',
 		exportCompleted: 'Export erfolgreich abgeschlossen',
+		exportLogs: 'Exportprotokolle',
+		noExportLogs: 'Noch keine Exportprotokolle.',
 		noOngoingExports: 'Sie haben keine laufenden Exporte.',
 		inProgressCount: '{count} in Bearbeitung',
 		clearCompleted: 'Abgeschlossene löschen',
 		totalLabel: 'Gesamt:',
+		exportFileName: 'Dateiname',
+		enterExportFileName:
+			'Geben Sie einen Dateinamen für diesen Export ein. Leer lassen, um den Standardnamen zu verwenden.',
+		fileExtensionAddedAutomatically: 'Die Dateierweiterung wird automatisch hinzugefügt.',
 		textExport: 'Textexport'
 	},
 	translations: {
@@ -2428,7 +2434,10 @@ const de = {
 		testimonialAhmad:
 			'Ich habe dies vor einiger Zeit entdeckt und war von dem Projekt begeistert. Machen Sie weiter mit der großartigen Arbeit, möge Allah Sie segnen.',
 		testimonialSarmad:
-			'Unglaubliche App. Einfach zu bedienen! Es ist sehr nützlich für die Ummah. Ich schätze Ihre harte Arbeit.'
+			'Unglaubliche App. Einfach zu bedienen! Es ist sehr nützlich für die Ummah. Ich schätze Ihre harte Arbeit.',
+		donationProgress: '{raised} von {goal} in diesem Monat gesammelt',
+		donateToHelp: 'Spenden Sie, um das Monatsziel zu erreichen',
+		monthlyGoal: 'Monatsziel'
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Export-Monitor',

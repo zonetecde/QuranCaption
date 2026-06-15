@@ -1611,10 +1611,16 @@ const es = {
 		copyExportError: 'Copiar detalles del error de exportación',
 		copyErrorButton: 'Copiar error',
 		exportCompleted: 'Exportación completada con éxito',
+		exportLogs: 'Registros de exportación',
+		noExportLogs: 'Aún no hay registros de exportación.',
 		noOngoingExports: 'No tiene ninguna exportación en curso.',
 		inProgressCount: '{count} en curso',
 		clearCompleted: 'Limpiar completados',
 		totalLabel: 'Total :',
+		exportFileName: 'Nombre del archivo',
+		enterExportFileName:
+			'Ingrese un nombre de archivo para esta exportación. Déjelo vacío para usar el nombre predeterminado.',
+		fileExtensionAddedAutomatically: 'La extensión del archivo se agregará automáticamente.',
 		textExport: 'Exportación de texto'
 	},
 
@@ -2430,7 +2436,10 @@ const es = {
 		testimonialAhmad:
 			'Descubrí esto hace un tiempo, y quedé maravillado por el proyecto. Sigan con su excelente trabajo, que Alá los bendiga.',
 		testimonialSarmad:
-			'Aplicación increíble. ¡Fácil de usar! Es muy útil para la Ummah. Aprecio su arduo trabajo.'
+			'Aplicación increíble. ¡Fácil de usar! Es muy útil para la Ummah. Aprecio su arduo trabajo.',
+		donationProgress: '{raised} de {goal} recaudados este mes',
+		donateToHelp: 'Dona para ayudar a alcanzar el objetivo mensual',
+		monthlyGoal: 'Objetivo mensual'
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Monitor de exportaciones',

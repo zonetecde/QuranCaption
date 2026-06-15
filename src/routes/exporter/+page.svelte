@@ -43,7 +43,7 @@
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
 	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
-	import Exportation, { ExportState } from '$lib/classes/Exportation.svelte';
+	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
@@ -79,6 +79,7 @@
 	const WORKER_PROGRESS_EVENT = 'export-capture-worker-progress';
 	const WORKER_COMPLETE_EVENT = 'export-capture-worker-complete';
 	const WORKER_ERROR_EVENT = 'export-capture-worker-error';
+	const EXPORT_LOG_EVENT = 'export-log-main';
 	const WORKER_READY_TIMEOUT_MS = 45_000;
 
 	let activeVideoSegments: TimeRange[] = [];
@@ -182,6 +183,13 @@
 	};
 	type CaptureWorkerErrorPayload = CaptureWorkerLifecyclePayload & {
 		error: string;
+	};
+	type ExportLogPayload = {
+		exportId: number;
+		timestamp: string;
+		source: string;
+		level: ExportLogLevel;
+		message: string;
 	};
 
 	function getExportFadeSettings(): ExportFadeSettings {
@@ -401,6 +409,43 @@
 	}
 
 	/**
+	 * Envoie une ligne de log d'export au monitor principal.
+	 * @param {ExportLogLevel} level Niveau de log.
+	 * @param {string} message Message court.
+	 * @param {Record<string, unknown>} context Contexte serialisable.
+	 * @returns {Promise<void>}
+	 */
+	async function emitExportLog(
+		level: ExportLogLevel,
+		message: string,
+		context: Record<string, unknown> = {}
+	): Promise<void> {
+		if (!exportId) return;
+
+		const contextSuffix = Object.keys(context).length > 0 ? ` ${JSON.stringify(context)}` : '';
+		const fullMessage = `${message}${contextSuffix}`;
+		const source = getCurrentWebviewWindow().label;
+
+		if (level === 'error') {
+			console.error(`[export:${exportId}:${source}] ${fullMessage}`);
+		} else if (level === 'warn') {
+			console.warn(`[export:${exportId}:${source}] ${fullMessage}`);
+		} else {
+			console.log(`[export:${exportId}:${source}] ${fullMessage}`);
+		}
+
+		const payload: ExportLogPayload = {
+			exportId: Number(exportId),
+			timestamp: new Date().toISOString(),
+			source,
+			level,
+			message: fullMessage
+		};
+
+		await (await getAllWindows()).find((w) => w.label === 'main')?.emit(EXPORT_LOG_EVENT, payload);
+	}
+
+	/**
 	 * Supprime les traductions cachées du projet d'exportation.
 	 * C'est nécessaire car sinon on va attendre trop longtemps avant de capturer une frame.
 	 */
@@ -523,6 +568,11 @@
 			unlisten();
 
 			try {
+				await emitExportLog('info', 'Capture worker started', {
+					workerId,
+					jobs: data.jobs.length,
+					subfolder: data.subfolder
+				});
 				let completed = 0;
 				for (const job of data.jobs) {
 					await captureFrameJob(job, data.subfolder);
@@ -539,7 +589,15 @@
 					exportId,
 					workerId
 				} satisfies CaptureWorkerLifecyclePayload);
+				await emitExportLog('info', 'Capture worker completed', {
+					workerId,
+					jobs: data.jobs.length
+				});
 			} catch (error) {
+				await emitExportLog('error', 'Capture worker failed', {
+					workerId,
+					error: error instanceof Error ? error.message : String(error)
+				});
 				await emitToCoordinator(WORKER_ERROR_EVENT, {
 					exportId,
 					workerId,
@@ -554,6 +612,7 @@
 			exportId,
 			workerId
 		} satisfies CaptureWorkerLifecyclePayload);
+		await emitExportLog('info', 'Capture worker ready', { workerId });
 	}
 
 	onMount(async () => {
@@ -564,6 +623,10 @@
 		exportId = id;
 		const isWorker = params.get('mode') === CAPTURE_WORKER_MODE;
 		const workerId = Number(params.get('worker') ?? '0');
+		await emitExportLog('info', 'Export window initialized', {
+			mode: isWorker ? 'worker' : 'coordinator',
+			workerId: isWorker ? workerId : undefined
+		});
 
 		if (!isWorker) {
 			// Ecoute les evenements de progression d'export donnes par Rust
@@ -573,20 +636,41 @@
 		}
 
 		await loadExportProject(id);
+		await emitExportLog('info', 'Export project loaded', {
+			file: exportData?.finalFileName,
+			start: exportData?.videoStartTime,
+			end: exportData?.videoEndTime
+		});
 
 		await mkdir(await join(ExportService.exportFolder, exportId), {
 			baseDir: BaseDirectory.AppData,
 			recursive: true
 		});
+		await emitExportLog('info', 'Export image folder ready');
 
 		await prepareVideoPreviewForExport();
+		await emitExportLog('info', 'Video preview ready');
 
 		if (isWorker) {
 			await runCaptureWorker(workerId);
 			return;
 		}
 
-		await startExport();
+		try {
+			await emitExportLog('info', 'Export started');
+			await startExport();
+		} catch (error) {
+			console.error('Export failed:', error);
+			await emitExportLog('error', 'Export failed', {
+				error: error instanceof Error ? error.message : String(error)
+			});
+			emitProgress({
+				exportId: Number(exportId),
+				progress: 100,
+				currentState: ExportState.Error,
+				errorLog: JSON.stringify(error, Object.getOwnPropertyNames(error))
+			} as ExportProgress);
+		}
 	});
 
 	async function startExport() {
@@ -598,8 +682,16 @@
 		const totalDuration = exportEnd - exportStart;
 
 		console.log(`Export duration: ${totalDuration}ms (${totalDuration / 1000 / 60} minutes)`);
+		await emitExportLog('info', 'Export duration computed', {
+			start: exportStart,
+			end: exportEnd,
+			duration: totalDuration
+		});
 
 		const blurSegments = getBlurSegmentsForRange(exportStart, exportEnd);
+		await emitExportLog('info', 'Blur segments computed', {
+			segments: blurSegments.length
+		});
 		if (blurSegments.length > 1) {
 			await handleSegmentedExport(blurSegments, totalDuration);
 			return;
@@ -790,10 +882,26 @@
 	 * @returns {Promise<void>}
 	 */
 	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<void> {
+		await emitExportLog('info', 'Blank source capture waiting', {
+			timing: job.timing,
+			captureTiming: job.captureTiming,
+			file: job.fileName
+		});
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
+		globalState.updateVideoPreviewUI();
 		await wait(job.captureTiming);
+		await emitExportLog('info', 'Blank source layout ready', {
+			timing: job.timing,
+			captureTiming: job.captureTiming,
+			file: job.fileName
+		});
 		await takeScreenshot(job.fileName);
+		await emitExportLog('info', 'Blank source captured', {
+			timing: job.timing,
+			captureTiming: job.captureTiming,
+			file: job.fileName
+		});
 	}
 
 	/**
@@ -806,10 +914,28 @@
 		job: ExportFrameCaptureJob,
 		subfolder: string | null
 	): Promise<void> {
+		await emitExportLog('info', 'Frame capture waiting', {
+			timing: job.timing,
+			captureTiming: job.captureTiming,
+			file: job.fileName,
+			subfolder,
+			reusableBlank: job.reusableBlankFileName
+		});
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
+		globalState.updateVideoPreviewUI();
 		await wait(job.captureTiming);
+		await emitExportLog('info', 'Frame layout ready', {
+			timing: job.timing,
+			captureTiming: job.captureTiming,
+			file: job.fileName
+		});
 		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName);
+		await emitExportLog('info', 'Frame captured', {
+			timing: job.timing,
+			captureTiming: job.captureTiming,
+			file: job.fileName
+		});
 	}
 
 	/**
@@ -824,6 +950,10 @@
 		subfolder: string | null,
 		onProgress: (completed: number, timing?: number) => void
 	): Promise<void> {
+		await emitExportLog('info', 'Serial capture started', {
+			jobs: jobs.length,
+			subfolder
+		});
 		for (let index = 0; index < jobs.length; index++) {
 			const job = jobs[index];
 			await captureFrameJob(job, subfolder);
@@ -833,6 +963,10 @@
 				await new Promise((resolve) => setTimeout(resolve, 50));
 			}
 		}
+		await emitExportLog('info', 'Serial capture completed', {
+			jobs: jobs.length,
+			subfolder
+		});
 	}
 
 	/**
@@ -846,6 +980,11 @@
 		const windows: WebviewWindow[] = [];
 		for (let workerId = 0; workerId < buckets.length; workerId++) {
 			const label = getCaptureWorkerLabel(workerId);
+			await emitExportLog('info', 'Opening capture worker', {
+				workerId,
+				label,
+				jobs: buckets[workerId].length
+			});
 			const w = new WebviewWindow(label, {
 				center: false,
 				decorations: false,
@@ -871,8 +1010,13 @@
 			w.once('tauri://created', async () => {
 				try {
 					if (!DEBUG_EXPORT_MODE) await w.setPosition(new LogicalPosition(-10000, -10000));
+					await emitExportLog('info', 'Capture worker window created', { workerId, label });
 				} catch (error) {
 					console.warn('Unable to move capture worker off-screen:', error);
+					await emitExportLog('warn', 'Unable to move capture worker off-screen', {
+						workerId,
+						error: error instanceof Error ? error.message : String(error)
+					});
 				}
 			});
 
@@ -913,6 +1057,11 @@
 		subfolder: string | null,
 		onProgress: (completed: number) => void
 	): Promise<void> {
+		await emitExportLog('info', 'Parallel capture started', {
+			workers: buckets.length,
+			jobs: buckets.reduce((sum, bucket) => sum + bucket.length, 0),
+			subfolder
+		});
 		const workerProgress = Array.from({ length: buckets.length }, () => 0);
 		const readyWorkers = new Set<number>();
 		const completeWorkers = new Set<number>();
@@ -927,6 +1076,10 @@
 			resolveReady = resolve;
 			rejectReady = reject;
 			readyTimeout = setTimeout(() => {
+				void emitExportLog('error', 'Timeout waiting for capture workers', {
+					ready: readyWorkers.size,
+					total: buckets.length
+				});
 				reject(new Error('Timeout waiting for capture workers'));
 			}, WORKER_READY_TIMEOUT_MS);
 		});
@@ -941,6 +1094,11 @@
 				const data = event.payload;
 				if (data.exportId !== exportId) return;
 				readyWorkers.add(data.workerId);
+				void emitExportLog('info', 'Capture worker reported ready', {
+					workerId: data.workerId,
+					ready: readyWorkers.size,
+					total: buckets.length
+				});
 				if (readyWorkers.size === buckets.length) {
 					if (readyTimeout) clearTimeout(readyTimeout);
 					resolveReady();
@@ -964,6 +1122,11 @@
 				completeWorkers.add(data.workerId);
 				workerProgress[data.workerId] = buckets[data.workerId]?.length ?? 0;
 				onProgress(workerProgress.reduce((sum, value) => sum + value, 0));
+				void emitExportLog('info', 'Capture worker reported complete', {
+					workerId: data.workerId,
+					completedWorkers: completeWorkers.size,
+					totalWorkers: buckets.length
+				});
 				if (completeWorkers.size === buckets.length) resolveComplete();
 			})
 		);
@@ -973,6 +1136,10 @@
 				const data = event.payload;
 				if (data.exportId !== exportId) return;
 				const error = new Error(`Capture worker ${data.workerId} failed: ${data.error}`);
+				void emitExportLog('error', 'Capture worker reported error', {
+					workerId: data.workerId,
+					error: data.error
+				});
 				if (readyWorkers.size < buckets.length) {
 					rejectReady(error);
 				} else {
@@ -985,6 +1152,7 @@
 		const workerWindows = await openCaptureWorkerWindows(buckets);
 		try {
 			await readyPromise;
+			await emitExportLog('info', 'All capture workers ready', { workers: buckets.length });
 			await Promise.all(
 				workerWindows.map((w, workerId) =>
 					w.emit(WORKER_START_EVENT, {
@@ -995,7 +1163,9 @@
 					} satisfies CaptureWorkerStartPayload)
 				)
 			);
+			await emitExportLog('info', 'Capture jobs sent to workers', { workers: buckets.length });
 			await completePromise;
+			await emitExportLog('info', 'Parallel capture completed', { workers: buckets.length });
 		} finally {
 			if (readyTimeout) clearTimeout(readyTimeout);
 			for (const unlisten of unlisteners) unlisten();
@@ -1015,11 +1185,13 @@
 		subfolder: string | null,
 		onProgress: (completed: number, timing?: number) => void
 	): Promise<void> {
+		await emitExportLog('info', 'Copy jobs started', { jobs: jobs.length, subfolder });
 		for (let index = 0; index < jobs.length; index++) {
 			const job = jobs[index];
 			await duplicateScreenshot(job.sourceFileName, job.targetFileName, subfolder);
 			onProgress(index + 1, job.timing);
 		}
+		await emitExportLog('info', 'Copy jobs completed', { jobs: jobs.length, subfolder });
 	}
 
 	/**
@@ -1036,11 +1208,31 @@
 	): Promise<void> {
 		const totalJobs = Math.max(1, plan.totalJobs);
 		let completed = 0;
+		let lastReportedCompleted = 0;
+		await emitExportLog('info', 'Image capture plan started', {
+			totalJobs,
+			blankSources: plan.blankSourceJobs.length,
+			captures: plan.captureJobs.length,
+			copies: plan.copyJobs.length,
+			workers: plan.workerBuckets.length,
+			subfolder
+		});
+
+		/**
+		 * Publie une progression monotone pour éviter un recul visuel après un fallback.
+		 * @param {number} nextCompleted Nombre de jobs terminés.
+		 * @param {number | undefined} timing Timing associé au job courant.
+		 * @returns {void}
+		 */
+		const reportProgress = (nextCompleted: number, timing?: number) => {
+			lastReportedCompleted = Math.max(lastReportedCompleted, nextCompleted);
+			onProgress(lastReportedCompleted, totalJobs, timing);
+		};
 
 		for (const job of plan.blankSourceJobs) {
 			await captureBlankSourceJob(job);
 			completed += 1;
-			onProgress(completed, totalJobs, job.timing);
+			reportProgress(completed, job.timing);
 		}
 
 		const completedBeforeCaptures = completed;
@@ -1048,18 +1240,21 @@
 			if (plan.workerBuckets.length <= 1) {
 				await closeCaptureWorkerWindows();
 				await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
-					onProgress(completedBeforeCaptures + captureCompleted, totalJobs, timing);
+					reportProgress(completedBeforeCaptures + captureCompleted, timing);
 				});
 			} else {
 				try {
 					await runParallelCaptureJobs(plan.workerBuckets, subfolder, (captureCompleted) => {
-						onProgress(completedBeforeCaptures + captureCompleted, totalJobs);
+						reportProgress(completedBeforeCaptures + captureCompleted);
 					});
 				} catch (error) {
 					console.error('Parallel capture failed, retrying serial capture:', error);
+					await emitExportLog('warn', 'Parallel capture failed, retrying serial capture', {
+						error: error instanceof Error ? error.message : String(error)
+					});
 					await closeCaptureWorkerWindows();
 					await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
-						onProgress(completedBeforeCaptures + captureCompleted, totalJobs, timing);
+						reportProgress(completedBeforeCaptures + captureCompleted, timing);
 					});
 				}
 			}
@@ -1068,8 +1263,9 @@
 
 		const completedBeforeCopies = completed;
 		await runCopyJobs(plan.copyJobs, subfolder, (copyCompleted, timing) => {
-			onProgress(completedBeforeCopies + copyCompleted, totalJobs, timing);
+			reportProgress(completedBeforeCopies + copyCompleted, timing);
 		});
+		await emitExportLog('info', 'Image capture plan completed', { totalJobs, subfolder });
 	}
 
 	async function generateImagesForSegment(
@@ -1627,6 +1823,14 @@
 			const isMacOS = shouldRedrawExportTextWithCanvas();
 
 			const useLiveTextCanvasCapture = isMacOS;
+			await emitExportLog('info', 'Screenshot started', {
+				file: fileName,
+				subfolder,
+				isMacOS,
+				width: targetWidth,
+				height: targetHeight,
+				scale
+			});
 			if (!useLiveTextCanvasCapture) {
 				const blob: Blob | null = await domToBlob(node, {
 					width: node.clientWidth * scale,
@@ -1646,10 +1850,19 @@
 
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 				console.log('Screenshot saved to:', filePathWithName);
+				await emitExportLog('info', 'Screenshot saved', {
+					file: fileName,
+					path: filePathWithName
+				});
 			} else {
 				const backgroundBlob = hasVisibleSubtitleBackground(node)
 					? null
 					: await readReusableBlankBlob(reusableBlankFileName);
+				await emitExportLog('info', 'macOS canvas capture started', {
+					file: fileName,
+					reusableBlank: reusableBlankFileName,
+					backgroundReused: Boolean(backgroundBlob)
+				});
 				const bytes = await captureMacOsOverlayPngBytes(node, scale, targetWidth, targetHeight, {
 					backgroundBlob,
 					compensateTextWeight: isMacOS,
@@ -1658,6 +1871,10 @@
 
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
 				console.log('Screenshot saved to:', filePathWithName);
+				await emitExportLog('info', 'Screenshot saved', {
+					file: fileName,
+					path: filePathWithName
+				});
 			}
 		} catch (error: unknown) {
 			console.error('Error while taking screenshot: ', error);
@@ -1665,6 +1882,10 @@
 				error && typeof error === 'object' && 'message' in error
 					? String((error as { message?: unknown }).message ?? '')
 					: String(error ?? 'Unknown error');
+			await emitExportLog('error', 'Screenshot failed', {
+				file: fileName,
+				error: message
+			});
 			toast.error(get(LL).editor.exportScreenshotError({ error: message }));
 			throw error;
 		} finally {
@@ -1791,6 +2012,11 @@
 		const expectsSubtitle = Boolean(globalState.getSubtitleTrack.getCurrentSubtitleToDisplay());
 		const startTime = Date.now();
 		const timeout = 10_000;
+		await emitExportLog('info', 'Layout wait started', {
+			timing,
+			timingKey,
+			expectsSubtitle
+		});
 
 		while (Date.now() - startTime <= timeout) {
 			const subtitlesContainer = document.getElementById(
@@ -1798,7 +2024,7 @@
 			) as HTMLElement | null;
 
 			if (!expectsSubtitle) {
-				if (!subtitlesContainer) break;
+				if (!subtitlesContainer || isSubtitleLayoutReady(subtitlesContainer, timingKey)) break;
 			} else if (subtitlesContainer && isSubtitleLayoutReady(subtitlesContainer, timingKey)) {
 				break;
 			}
@@ -1811,14 +2037,44 @@
 			expectsSubtitle &&
 			(!subtitlesContainer || !isSubtitleLayoutReady(subtitlesContainer, timingKey))
 		) {
+			await emitExportLog('error', 'Layout wait timed out', {
+				timing,
+				timingKey,
+				expectsSubtitle,
+				hasContainer: Boolean(subtitlesContainer),
+				layoutTiming: subtitlesContainer?.dataset.exportLayoutTiming,
+				layoutState: subtitlesContainer?.dataset.exportLayoutState
+			});
 			throw new Error(`Timeout waiting for subtitle layout at ${timing}ms.`);
 		}
-		if (!expectsSubtitle && subtitlesContainer) {
+		if (
+			!expectsSubtitle &&
+			subtitlesContainer &&
+			!isSubtitleLayoutReady(subtitlesContainer, timingKey)
+		) {
+			await emitExportLog('error', 'Layout clear wait timed out', {
+				timing,
+				timingKey,
+				expectsSubtitle,
+				hasContainer: true,
+				layoutTiming: subtitlesContainer.dataset.exportLayoutTiming,
+				layoutState: subtitlesContainer.dataset.exportLayoutState
+			});
 			throw new Error(`Timeout waiting for subtitles to clear at ${timing}ms.`);
 		}
+		await emitExportLog('info', 'Layout wait ready', {
+			timing,
+			timingKey,
+			expectsSubtitle,
+			elapsedMs: Date.now() - startTime,
+			hasContainer: Boolean(subtitlesContainer),
+			layoutTiming: subtitlesContainer?.dataset.exportLayoutTiming,
+			layoutState: subtitlesContainer?.dataset.exportLayoutState
+		});
 
 		await waitForAnimationFrame();
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
+		await emitExportLog('info', 'Fonts ready for capture', { timing });
 	}
 </script>
 

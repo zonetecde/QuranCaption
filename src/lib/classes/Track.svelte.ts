@@ -150,21 +150,6 @@ function findFirstVisibleClipIndex(clips: Clip[], rangeStartMs: number): number 
 	return result;
 }
 
-/**
- * Indique si un clip appartient au même groupe de merge visuel qu'une référence.
- *
- * @param {Clip} clip Clip à vérifier.
- * @param {SubtitleClip} referenceClip Clip de référence du groupe.
- * @returns {boolean} `true` si le clip est dans le même groupe.
- */
-function isSameVisualMergeClip(clip: Clip, referenceClip: SubtitleClip): boolean {
-	return (
-		clip instanceof SubtitleClip &&
-		clip.visualMergeGroupId === referenceClip.visualMergeGroupId &&
-		clip.visualMergeMode === referenceClip.visualMergeMode
-	);
-}
-
 export class Track extends SerializableBase {
 	type: TrackType = $state(TrackType.Unknown);
 	clips: Clip[] = $state([]);
@@ -815,42 +800,29 @@ export class SubtitleTrack extends Track {
 			return null;
 		}
 
-		let startIndex = clipIndex;
-		let endIndex = clipIndex;
+		const mergedClips = this.clips
+			.map((trackClip, index) => ({ clip: trackClip, index }))
+			.filter(
+				(entry): entry is { clip: SubtitleClip; index: number } =>
+					entry.clip instanceof SubtitleClip &&
+					entry.clip.visualMergeGroupId === clip.visualMergeGroupId &&
+					entry.clip.visualMergeMode === clip.visualMergeMode
+			);
 
-		while (startIndex > 0 && isSameVisualMergeClip(this.clips[startIndex - 1], clip)) {
-			startIndex--;
+		if (mergedClips.length <= 1) return null;
+
+		for (let index = 1; index < mergedClips.length; index++) {
+			if (mergedClips[index].index !== mergedClips[index - 1].index + 1) return null;
 		}
-
-		while (
-			endIndex < this.clips.length - 1 &&
-			isSameVisualMergeClip(this.clips[endIndex + 1], clip)
-		) {
-			endIndex++;
-		}
-
-		if (endIndex - startIndex < 1) return null;
-
-		const mergedClips = this.clips.slice(startIndex, endIndex + 1) as SubtitleClip[];
-
-		if (
-			mergedClips.some(
-				(mergedClip) =>
-					!(mergedClip instanceof SubtitleClip) ||
-					mergedClip.visualMergeGroupId !== clip.visualMergeGroupId ||
-					mergedClip.visualMergeMode !== clip.visualMergeMode
-			)
-		)
-			return null;
 
 		return {
 			groupId: clip.visualMergeGroupId,
 			mode: clip.visualMergeMode,
-			clips: mergedClips,
-			firstClip: mergedClips[0],
-			lastClip: mergedClips[mergedClips.length - 1],
-			startTime: mergedClips[0].startTime,
-			endTime: mergedClips[mergedClips.length - 1].endTime
+			clips: mergedClips.map((entry) => entry.clip),
+			firstClip: mergedClips[0].clip,
+			lastClip: mergedClips[mergedClips.length - 1].clip,
+			startTime: mergedClips[0].clip.startTime,
+			endTime: mergedClips[mergedClips.length - 1].clip.endTime
 		};
 	}
 

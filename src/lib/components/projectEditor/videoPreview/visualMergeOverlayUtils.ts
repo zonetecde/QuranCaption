@@ -209,6 +209,7 @@ export function trimTextWords(
  */
 export function getMergedClipsWithoutWordOverlap(clips: SubtitleClip[]): SubtitleClip[] {
 	const lastEndWordByVerse = new Map<string, number>();
+	const lastEndTranslationByVerseEdition = new Map<string, number>();
 	const normalizedClips: SubtitleClip[] = [];
 
 	for (const clip of clips) {
@@ -219,43 +220,84 @@ export function getMergedClipsWithoutWordOverlap(clips: SubtitleClip[]): Subtitl
 		if (nextStartWord > clip.endWordIndex) continue;
 		lastEndWordByVerse.set(verseKey, Math.max(previousEndWord, clip.endWordIndex));
 
-		if (nextStartWord === clip.startWordIndex) {
-			normalizedClips.push(clip);
-			continue;
+		const nextTranslationStartByEdition = new Map<string, number>();
+		let shouldCloneClip = nextStartWord !== clip.startWordIndex;
+
+		for (const [edition, translation] of Object.entries(clip.translations)) {
+			if (!(translation instanceof VerseTranslation)) continue;
+
+			const translationKey = `${verseKey}:${edition}`;
+			const previousTranslationEnd = lastEndTranslationByVerseEdition.get(translationKey) ?? -1;
+			const nextTranslationStart = Math.max(translation.startWordIndex, previousTranslationEnd + 1);
+			nextTranslationStartByEdition.set(edition, nextTranslationStart);
+			if (nextTranslationStart !== translation.startWordIndex) shouldCloneClip = true;
 		}
 
-		const clonedClip = clip.cloneWithTimes(clip.startTime, clip.endTime);
+		const clonedClip = shouldCloneClip ? clip.cloneWithTimes(clip.startTime, clip.endTime) : clip;
 		const removedWords = nextStartWord - clip.startWordIndex;
 		const keptWordCount = clip.endWordIndex - nextStartWord + 1;
 
-		clonedClip.startWordIndex = nextStartWord;
-		clonedClip.text = trimTextWords(clonedClip.text, removedWords, keptWordCount);
-		if (clonedClip.indopakText) {
-			clonedClip.indopakText = trimTextWords(clonedClip.indopakText, removedWords, keptWordCount);
+		if (removedWords > 0) {
+			clonedClip.startWordIndex = nextStartWord;
+			clonedClip.text = trimTextWords(clonedClip.text, removedWords, keptWordCount);
+			if (clonedClip.indopakText) {
+				clonedClip.indopakText = trimTextWords(clonedClip.indopakText, removedWords, keptWordCount);
+			}
+			clonedClip.arabicInlineStyleRuns = trimInlineRunsAfterWordRemoval(
+				clonedClip.arabicInlineStyleRuns ?? [],
+				removedWords,
+				keptWordCount
+			);
 		}
-		clonedClip.arabicInlineStyleRuns = trimInlineRunsAfterWordRemoval(
-			clonedClip.arabicInlineStyleRuns ?? [],
-			removedWords,
-			keptWordCount
-		);
 
-		for (const translation of Object.values(clonedClip.translations)) {
+		for (const [edition, translation] of Object.entries(clonedClip.translations)) {
 			if (!translation || typeof translation !== 'object') continue;
 			if (!('text' in translation)) continue;
 
-			translation.text = trimTextWords(translation.text, removedWords, keptWordCount);
 			if (translation instanceof VerseTranslation) {
-				translation.inlineStyleRuns = trimInlineRunsAfterWordRemoval(
-					translation.inlineStyleRuns ?? [],
-					removedWords,
-					keptWordCount
+				const translationKey = `${verseKey}:${edition}`;
+				const nextTranslationStart =
+					nextTranslationStartByEdition.get(edition) ?? translation.startWordIndex;
+				const translationEnd = translation.endWordIndex;
+				const removedTranslationWords = nextTranslationStart - translation.startWordIndex;
+				const keptTranslationWordCount = translationEnd - nextTranslationStart + 1;
+
+				lastEndTranslationByVerseEdition.set(
+					translationKey,
+					Math.max(lastEndTranslationByVerseEdition.get(translationKey) ?? -1, translationEnd)
 				);
-				translation.wbwRanges = (translation.wbwRanges ?? [])
-					.map((range) => ({
-						...range,
-						arabicWordIndex: range.arabicWordIndex - removedWords
-					}))
-					.filter((range) => range.arabicWordIndex >= 0 && range.arabicWordIndex < keptWordCount);
+
+				if (keptTranslationWordCount <= 0) {
+					translation.text = '';
+					translation.inlineStyleRuns = [];
+					translation.wbwRanges = [];
+					continue;
+				}
+
+				if (removedTranslationWords > 0) {
+					translation.startWordIndex = nextTranslationStart;
+					translation.text = trimTextWords(
+						translation.text,
+						removedTranslationWords,
+						keptTranslationWordCount
+					);
+					translation.inlineStyleRuns = trimInlineRunsAfterWordRemoval(
+						translation.inlineStyleRuns ?? [],
+						removedTranslationWords,
+						keptTranslationWordCount
+					);
+				}
+
+				if (removedWords > 0) {
+					translation.wbwRanges = (translation.wbwRanges ?? [])
+						.map((range) => ({
+							...range,
+							arabicWordIndex: range.arabicWordIndex - removedWords
+						}))
+						.filter((range) => range.arabicWordIndex >= 0 && range.arabicWordIndex < keptWordCount);
+				}
+			} else if (removedWords > 0) {
+				translation.text = trimTextWords(translation.text, removedWords, keptWordCount);
 			}
 		}
 

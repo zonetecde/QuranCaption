@@ -1461,10 +1461,15 @@ const zh = {
 		copyExportError: '复制导出错误详情',
 		copyErrorButton: '复制错误',
 		exportCompleted: '导出成功完成',
+		exportLogs: '导出日志',
+		noExportLogs: '暂无导出日志。',
 		noOngoingExports: '您没有正在进行的导出。',
 		inProgressCount: '{count} 个进行中',
 		clearCompleted: '清除已完成',
 		totalLabel: '总计：',
+		exportFileName: '文件名',
+		enterExportFileName: '输入此导出的文件名。留空则使用默认名称。',
+		fileExtensionAddedAutomatically: '文件扩展名将自动添加。',
 		textExport: '文本导出'
 	},
 	translations: {
@@ -2209,7 +2214,10 @@ const zh = {
 		testimonialYahya: '这是一个美丽且非常有益的工具。愿真主保佑您并赐予您最好的。',
 		testimonialAhmad:
 			'我一段时间前发现了这个，对这个项目感到惊叹。继续保持出色的工作，愿真主保佑您。',
-		testimonialSarmad: '令人惊叹的应用。易于使用！对穆斯林社区非常有用。我感谢您的辛勤工作。'
+		testimonialSarmad: '令人惊叹的应用。易于使用！对穆斯林社区非常有用。我感谢您的辛勤工作。',
+		donationProgress: '本月已筹集 {raised} / {goal}',
+		donateToHelp: '捐款帮助达成月度目标',
+		monthlyGoal: '月度目标'
 	},
 	exporterMonitor: {
 		exportsMonitor: '导出监视器',

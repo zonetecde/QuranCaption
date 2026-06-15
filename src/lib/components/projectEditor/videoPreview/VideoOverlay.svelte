@@ -869,7 +869,8 @@
 				lastVisualMergeGroupId = null;
 				lastLayoutKey = '';
 				if (subtitlesContainer) {
-					subtitlesContainer.style.opacity = '1';
+					// En export, l'attente peut observer ce noeud avant que Svelte le retire.
+					subtitlesContainer.style.opacity = '0';
 					markExportLayoutState(subtitlesContainer, 'ready');
 				}
 				return;

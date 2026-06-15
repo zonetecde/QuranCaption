@@ -98,6 +98,7 @@ export default class Settings extends SerializableBase {
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		lastClosedDonationPromptModal: new Date(0).toISOString(),
+		lastClosedDonationBanner: new Date(0).toISOString(),
 		donationPromptImpressions: 0,
 		videoExportFolder: '',
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,

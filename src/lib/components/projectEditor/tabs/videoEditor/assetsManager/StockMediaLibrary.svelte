@@ -252,7 +252,7 @@
 		</div>
 
 		<!-- Avertissement droits d'auteur -->
-		<div
+		<!-- <div
 			class="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-amber-100 text-xs"
 		>
 			<div class="flex items-start gap-2">
@@ -263,7 +263,7 @@
 					})}
 				</p>
 			</div>
-		</div>
+		</div> -->
 
 		<!-- Message si pas de clé API -->
 		{#if !getApiKey()}

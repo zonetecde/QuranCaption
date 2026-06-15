@@ -78,9 +78,7 @@
 				/>
 				<span class="text-secondary group-hover:text-primary transition-colors">
 					VTT
-					<span class="text-thirdly text-xs block"
-						>{$LL.export.vttFormat()}</span
-					>
+					<span class="text-thirdly text-xs block">{$LL.export.vttFormat()}</span>
 				</span>
 			</label>
 		</div>
@@ -110,12 +108,16 @@
 								<span class="text-secondary font-medium capitalize">
 									{target === 'arabic'
 										? $LL.export.arabicText()
-										: $LL.export.translationAuthor({ author: globalState.getProjectTranslation.getEditionFromName(target).author })}
+										: $LL.export.translationAuthor({
+												author: globalState.getProjectTranslation.getEditionFromName(target).author
+											})}
 								</span>
 								<p class="text-thirdly text-xs mt-1">
 									{target === 'arabic'
 										? $LL.export.arabicTextDescription()
-										: $LL.export.translationByAuthor({ author: globalState.getProjectTranslation.getEditionFromName(target).author })}
+										: $LL.export.translationByAuthor({
+												author: globalState.getProjectTranslation.getEditionFromName(target).author
+											})}
 								</p>
 							</label>
 						</div>
@@ -158,7 +160,9 @@
 					{#if target === 'arabic'}
 						<div class="mt-4 {!included ? 'opacity-50 pointer-events-none' : ''}">
 							<div class="space-y-2">
-								<span class="text-secondary text-sm font-medium">{$LL.export.arabicTextFormat()}</span>
+								<span class="text-secondary text-sm font-medium"
+									>{$LL.export.arabicTextFormat()}</span
+								>
 								<p class="text-thirdly text-xs mb-3">
 									{$LL.export.arabicTextFormatDescription()}
 								</p>
@@ -218,6 +222,28 @@
 					{/if}
 				</div>
 			{/each}
+		</div>
+	</div>
+
+	<!-- Export Filename -->
+	<div class="mb-6">
+		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFileName()}</h4>
+		<div class="bg-accent rounded-lg p-4 border border-color">
+			<p class="text-thirdly text-sm mb-4">
+				{$LL.export.enterExportFileName()}
+			</p>
+
+			<div class="flex flex-col gap-2">
+				<input
+					type="text"
+					class="input w-full"
+					placeholder={globalState.currentProject?.detail.generateExportFileName()}
+					bind:value={globalState.getExportState.customFileName}
+				/>
+				<p class="text-thirdly text-xs italic">
+					{$LL.export.fileExtensionAddedAutomatically()}
+				</p>
+			</div>
 		</div>
 	</div>
 

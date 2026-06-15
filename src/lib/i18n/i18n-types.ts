@@ -5331,6 +5331,18 @@ type RootTranslation = {
 		 */
 		extensionAddedAutomatically: string;
 		/**
+		 * F​i​l​e​ ​N​a​m​e
+		 */
+		exportFileName: string;
+		/**
+		 * E​n​t​e​r​ ​a​ ​f​i​l​e​ ​n​a​m​e​ ​f​o​r​ ​t​h​i​s​ ​e​x​p​o​r​t​.​ ​L​e​a​v​e​ ​e​m​p​t​y​ ​t​o​ ​u​s​e​ ​t​h​e​ ​d​e​f​a​u​l​t​ ​n​a​m​e​.
+		 */
+		enterExportFileName: string;
+		/**
+		 * T​h​e​ ​f​i​l​e​ ​e​x​t​e​n​s​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+		 */
+		fileExtensionAddedAutomatically: string;
+		/**
 		 * C​h​o​o​s​e​ ​w​h​e​r​e​ ​y​o​u​r​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​s​ ​w​i​l​l​ ​b​e​ ​s​a​v​e​d​.
 		 */
 		chooseExportLocation: string;
@@ -5798,6 +5810,14 @@ type RootTranslation = {
 		 * E​x​p​o​r​t​ ​c​o​m​p​l​e​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
 		 */
 		exportCompleted: string;
+		/**
+		 * E​x​p​o​r​t​ ​l​o​g​s
+		 */
+		exportLogs: string;
+		/**
+		 * N​o​ ​e​x​p​o​r​t​ ​l​o​g​s​ ​y​e​t​.
+		 */
+		noExportLogs: string;
 		/**
 		 * Y​o​u​ ​h​a​v​e​ ​n​o​ ​o​n​g​o​i​n​g​ ​e​x​p​o​r​t​s​.
 		 */
@@ -8684,6 +8704,20 @@ type RootTranslation = {
 		 * A​m​a​z​i​n​g​ ​a​p​p​l​i​c​a​t​i​o​n​.​ ​E​a​s​y​ ​t​o​ ​u​s​e​!​ ​T​h​i​s​ ​i​s​ ​v​e​r​y​ ​h​e​l​p​f​u​l​ ​f​o​r​ ​t​h​e​ ​u​m​m​a​h​.​ ​I​ ​a​p​p​r​e​c​i​a​t​e​ ​y​o​u​ ​a​n​d​ ​a​l​l​ ​y​o​u​r​ ​h​a​r​d​ ​w​o​r​k​.
 		 */
 		testimonialSarmad: string;
+		/**
+		 * {​r​a​i​s​e​d​}​ ​o​f​ ​{​g​o​a​l​}​ ​r​a​i​s​e​d​ ​t​h​i​s​ ​m​o​n​t​h
+		 * @param {unknown} goal
+		 * @param {unknown} raised
+		 */
+		donationProgress: RequiredParams<'goal' | 'raised'>;
+		/**
+		 * D​o​n​a​t​e​ ​t​o​ ​h​e​l​p​ ​r​e​a​c​h​ ​t​h​e​ ​m​o​n​t​h​l​y​ ​g​o​a​l
+		 */
+		donateToHelp: string;
+		/**
+		 * M​o​n​t​h​l​y​ ​g​o​a​l
+		 */
+		monthlyGoal: string;
 	};
 	exporterMonitor: {
 		/**
@@ -13946,6 +13980,18 @@ export type TranslationFunctions = {
 		 */
 		extensionAddedAutomatically: () => LocalizedString;
 		/**
+		 * File Name
+		 */
+		exportFileName: () => LocalizedString;
+		/**
+		 * Enter a file name for this export. Leave empty to use the default name.
+		 */
+		enterExportFileName: () => LocalizedString;
+		/**
+		 * The file extension will be added automatically.
+		 */
+		fileExtensionAddedAutomatically: () => LocalizedString;
+		/**
 		 * Choose where your exported videos will be saved.
 		 */
 		chooseExportLocation: () => LocalizedString;
@@ -14409,6 +14455,14 @@ export type TranslationFunctions = {
 		 * Export completed successfully
 		 */
 		exportCompleted: () => LocalizedString;
+		/**
+		 * Export logs
+		 */
+		exportLogs: () => LocalizedString;
+		/**
+		 * No export logs yet.
+		 */
+		noExportLogs: () => LocalizedString;
 		/**
 		 * You have no ongoing exports.
 		 */
@@ -17258,6 +17312,18 @@ export type TranslationFunctions = {
 		 * Amazing application. Easy to use! This is very helpful for the ummah. I appreciate you and all your hard work.
 		 */
 		testimonialSarmad: () => LocalizedString;
+		/**
+		 * {raised} of {goal} raised this month
+		 */
+		donationProgress: (arg: { goal: unknown; raised: unknown }) => LocalizedString;
+		/**
+		 * Donate to help reach the monthly goal
+		 */
+		donateToHelp: () => LocalizedString;
+		/**
+		 * Monthly goal
+		 */
+		monthlyGoal: () => LocalizedString;
 	};
 	exporterMonitor: {
 		/**

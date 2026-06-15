@@ -1614,10 +1614,16 @@ const fr = {
 		copyExportError: 'Copier les détails de l\u2019erreur d\u2019export',
 		copyErrorButton: 'Copier l\u2019erreur',
 		exportCompleted: 'Export terminé avec succès',
+		exportLogs: 'Logs d\u2019export',
+		noExportLogs: 'Aucun log d\u2019export pour le moment.',
 		noOngoingExports: 'Vous n\u2019avez aucun export en cours.',
 		inProgressCount: '{count} en cours',
 		clearCompleted: 'Effacer les terminés',
 		totalLabel: 'Total\u00a0:',
+		exportFileName: 'Nom du fichier',
+		enterExportFileName:
+			'Saisissez un nom de fichier pour cet export. Laissez vide pour utiliser le nom par défaut.',
+		fileExtensionAddedAutomatically: 'L\u2019extension du fichier sera ajoutée automatiquement.',
 		textExport: 'Export texte'
 	},
 	translations: {
@@ -2455,7 +2461,10 @@ const fr = {
 		testimonialAhmad:
 			'J\u2019ai découvert cela il y a quelque temps, et j\u2019ai été émerveillé par le projet. Continuez votre excellent travail, qu\u2019Allah vous bénisse.',
 		testimonialSarmad:
-			'Application incroyable. Facile à utiliser\u00a0! C\u2019est très utile pour la Oumma. J\u2019apprécie votre travail acharné.'
+			'Application incroyable. Facile à utiliser\u00a0! C\u2019est très utile pour la Oumma. J\u2019apprécie votre travail acharné.',
+		donationProgress: '{raised} sur {goal} collectés ce mois',
+		donateToHelp: 'Faites un don pour aider à atteindre l\u2019objectif mensuel',
+		monthlyGoal: 'Objectif mensuel'
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Moniteur d\u2019exports',

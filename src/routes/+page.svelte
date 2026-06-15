@@ -4,6 +4,7 @@
 
 	import ExportService from '$lib/services/ExportService';
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
+	import DonationProgressBar from '$lib/components/misc/DonationProgressBar.svelte';
 	import ProjectEditor from '$lib/components/projectEditor/ProjectEditor.svelte';
 	import TitleBar from '$lib/components/TitleBar.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -102,6 +103,7 @@
 			<Home />
 		{/if}
 		<DonationFloatingButton />
+		<DonationProgressBar />
 	</main>
 
 	<!-- AI Video generation overlay — shown on top of everything while pipeline runs -->

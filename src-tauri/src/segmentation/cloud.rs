@@ -17,8 +17,10 @@ use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{
     SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL,
     QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL, QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
-    QURAN_MULTI_ALIGNER_PROCESS_CALL_URL, QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL,
-    QURAN_MULTI_ALIGNER_UPLOAD_URL, QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
+    QURAN_MULTI_ALIGNER_PRELOAD_RECITATIONS_CALL_URL,
+    QURAN_MULTI_ALIGNER_PRELOAD_SEGMENTS_CALL_URL, QURAN_MULTI_ALIGNER_PROCESS_CALL_URL,
+    QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL, QURAN_MULTI_ALIGNER_UPLOAD_URL,
+    QURAN_SEGMENTATION_MOCK_PAYLOAD, QURAN_SEGMENTATION_USE_MOCK,
 };
 
 /// Émet un état de progression de segmentation vers le frontend.
@@ -477,6 +479,62 @@ pub async fn mfa_timestamps_session(
         QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
         "timestamps",
         serde_json::json!([audio_id, segments, selected_granularity]),
+    )
+    .await
+}
+
+/// Récupère le catalogue Preload (recitations + chapitres disponibles) côté cloud.
+///
+/// Endpoint public/ungated : aucune authentification requise. Retourne le dict
+/// `{ "recitations": [...] }` tel que renvoyé par l'app aligner.
+pub async fn preload_recitations() -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    call_gradio_endpoint(
+        &client,
+        QURAN_MULTI_ALIGNER_PRELOAD_RECITATIONS_CALL_URL,
+        "preload_recitations",
+        serde_json::json!([]),
+    )
+    .await
+}
+
+/// Récupère les segments pré-alignés (+ timestamps mot à mot) d'une récitation/chapitre.
+///
+/// Endpoint public/ungated. Retourne le dict `{ "audio_url": ..., "segments": [...] }`
+/// (identique au téléchargement Preload segment-mode), ou `{ "error", "segments": [] }`.
+pub async fn preload_segments(
+    recitation: String,
+    chapter: i64,
+    verse_from: i64,
+    verse_to: i64,
+    include_timestamps: bool,
+) -> Result<serde_json::Value, String> {
+    if recitation.trim().is_empty() {
+        return Err("recitation is required.".to_string());
+    }
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    call_gradio_endpoint(
+        &client,
+        QURAN_MULTI_ALIGNER_PRELOAD_SEGMENTS_CALL_URL,
+        "preload_segments",
+        serde_json::json!([
+            recitation,
+            chapter,
+            verse_from,
+            verse_to,
+            include_timestamps
+        ]),
     )
     .await
 }

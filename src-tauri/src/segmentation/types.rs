@@ -19,6 +19,12 @@ pub const QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL: &str =
 /// Endpoint de split des segments par contraintes (versets/mots/duree).
 pub const QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/split_segments";
+/// Endpoint preload : catalogue des recitations + chapitres disponibles.
+pub const QURAN_MULTI_ALIGNER_PRELOAD_RECITATIONS_CALL_URL: &str =
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/preload_recitations";
+/// Endpoint preload : segments pre-alignes (+ timestamps mot a mot) d'une recitation/chapitre.
+pub const QURAN_MULTI_ALIGNER_PRELOAD_SEGMENTS_CALL_URL: &str =
+    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/preload_segments";
 
 /// Flag de developpement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;

@@ -18,6 +18,7 @@ export enum SourceType {
 	YouTube = 'youtube',
 	Mp3Quran = 'mp3quran',
 	QuranFoundation = 'quranfoundation',
+	QuranicUniversalAudio = 'quranic-universal-audio',
 	Pexels = 'pexels',
 	Pixabay = 'pixabay'
 }

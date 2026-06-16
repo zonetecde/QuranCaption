@@ -74,6 +74,7 @@ export { estimateSegmentationDuration } from './autoSegmentation/estimate';
 export { applySegmentationResponseToProject } from './autoSegmentation/apply-segmentation';
 export { runAutoSegmentation } from './autoSegmentation/run-segmentation';
 export { runAutoSegmentationFromImportedJson } from './autoSegmentation/run-imported';
+export { applyPreloadSegmentsToProject } from './autoSegmentation/run-preload';
 export { runNativeSegmentation } from './autoSegmentation/run-native';
 export {
 	beginAudioNormalizationIfNeeded,

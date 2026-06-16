@@ -68,6 +68,31 @@ pub async fn get_segmentation_mfa_timestamps_direct(
     .await
 }
 
+/// Liste les récitations Preload disponibles (catalogue + chapitres) côté cloud.
+#[tauri::command]
+pub async fn preload_recitations() -> Result<serde_json::Value, String> {
+    segmentation::preload_recitations().await
+}
+
+/// Récupère les segments pré-alignés (+ timestamps mot à mot) d'une récitation/chapitre Preload.
+#[tauri::command]
+pub async fn preload_segments(
+    recitation: String,
+    chapter: i64,
+    verse_from: i64,
+    verse_to: i64,
+    include_timestamps: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    segmentation::preload_segments(
+        recitation,
+        chapter,
+        verse_from,
+        verse_to,
+        include_timestamps.unwrap_or(true),
+    )
+    .await
+}
+
 /// VÃ©rifie la disponibilitÃ© des moteurs de segmentation locale.
 #[tauri::command]
 pub async fn check_local_segmentation_ready(

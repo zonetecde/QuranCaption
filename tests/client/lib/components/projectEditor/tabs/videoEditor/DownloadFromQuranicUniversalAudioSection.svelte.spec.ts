@@ -4,6 +4,8 @@ import { tick } from 'svelte';
 
 import DownloadFromQuranicUniversalAudioSection from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/DownloadFromQuranicUniversalAudioSection.svelte';
 import { Quran, Surah } from '$lib/classes/Quran';
+import { loadLocale } from '$lib/i18n/i18n-util.sync';
+import { setLocale } from '$lib/i18n/i18n-svelte';
 
 // Hoisted mock state (vi.mock factories run before module-level vars are initialized).
 const { invoke, openUrl } = vi.hoisted(() => {
@@ -19,9 +21,24 @@ const { invoke, openUrl } = vi.hoisted(() => {
 			chapters: [1, 2]
 		}
 	];
+	// Audio-only catalog — distinct (non-published) reciter, mutually exclusive
+	// with the published RECITATIONS above.
+	const AUDIO_RECITATIONS = [
+		{
+			slug: 'unpublished_reciter_yt',
+			label: 'Unpublished Reciter · Hafs · Murattal',
+			reciter: { reciter_id: 'unpublished', name_en: 'Unpublished Reciter', name_ar: '' },
+			riwayah: 'Hafs',
+			style: 'Murattal',
+			channel: 'YouTube',
+			source: 'youtube',
+			chapters: [1, 2]
+		}
+	];
 	return {
 		invoke: vi.fn(async (cmd: string) => {
 			if (cmd === 'preload_recitations') return { recitations: RECITATIONS };
+			if (cmd === 'preload_audio_recitations') return { recitations: AUDIO_RECITATIONS };
 			return {};
 		}),
 		openUrl: vi.fn()
@@ -45,6 +62,9 @@ vi.mock('@tauri-apps/api/core', async (importOriginal) => {
 
 describe('DownloadFromQuranicUniversalAudioSection', () => {
 	beforeEach(() => {
+		// Initialise l'i18n en anglais pour que get(LL).editor.* résolve le texte.
+		loadLocale('en');
+		setLocale('en');
 		// Pré-charge le Quran pour que Quran.load() soit un no-op déterministe.
 		Quran.surahs = [
 			new Surah(1, 'الفاتحة', 'Al-Fatihah', 'The Opener', 7, 'سورة الفاتحة', 'Mecca'),
@@ -114,5 +134,37 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 		expect(ayahFrom.disabled).toBe(false);
 		expect(ayahFrom.value).toBe('1');
 		expect(ayahTo.value).toBe('286'); // Al-Baqarah has 286 verses.
+	});
+
+	test('switching to Audio only loads the audio catalog and hides the Ayah range', async () => {
+		const component = render(DownloadFromQuranicUniversalAudioSection);
+
+		const recitationSelect = component.container.querySelector(
+			'#qua-recitation-select'
+		) as HTMLSelectElement;
+
+		// Default mode = audio + segments: published catalog + Ayah inputs present.
+		await vi.waitFor(() => {
+			expect(recitationSelect.querySelectorAll('option').length).toBeGreaterThan(1);
+		});
+		expect(component.container.querySelector('#qua-ayah-from')).not.toBeNull();
+		expect(recitationSelect.textContent).toContain('Abdul Basit · Hafs · Mujawwad');
+
+		// Switch to Audio only.
+		await component.getByRole('button', { name: 'Audio only' }).click();
+
+		// Audio-only catalog (mutually exclusive) replaces the published one.
+		await vi.waitFor(() => {
+			expect(recitationSelect.textContent).toContain('Unpublished Reciter · Hafs · Murattal');
+		});
+		expect(recitationSelect.textContent).not.toContain('Abdul Basit');
+		expect(invoke).toHaveBeenCalledWith('preload_audio_recitations');
+
+		// Ayah range + segments callout are hidden; audio-only callout shows.
+		expect(component.container.querySelector('#qua-ayah-from')).toBeNull();
+		expect(component.container.querySelector('#qua-ayah-to')).toBeNull();
+		await expect
+			.element(component.getByText('Download audio for 1000+ reciters', { exact: false }))
+			.toBeVisible();
 	});
 });

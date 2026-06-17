@@ -808,6 +808,13 @@ const es = {
 			'★ significa que la temporización oficial de los versículos se puede cargar automáticamente después de la descarga.',
 		selectSurah: 'Seleccionar una sura',
 		surah: 'Sura',
+		quaModeAudioSegments: 'Audio + segmentos',
+		quaModeAudioOnly: 'Solo audio',
+		quaCalloutSegments:
+			'Segmentos precalculados y revisados a mano, con marcas de tiempo palabra por palabra.',
+		quaCalloutAudioOnly:
+			'Descarga audio de más de 1000 recitadores desde servidores de toda la web.',
+		quaContribute: 'Ayuda a aportar más recitadores',
 		projectAssetsLabel: 'Elementos del proyecto',
 		addAssetLabel: 'Agregar elemento',
 		dragAndDropFilesHere: 'Arrastre y suelte archivos aquí',

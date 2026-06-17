@@ -2946,6 +2946,26 @@ type RootTranslation = {
 		 */
 		surah: string;
 		/**
+		 * A​u​d​i​o​ ​+​ ​s​e​g​m​e​n​t​s
+		 */
+		quaModeAudioSegments: string;
+		/**
+		 * A​u​d​i​o​ ​o​n​l​y
+		 */
+		quaModeAudioOnly: string;
+		/**
+		 * H​u​m​a​n​ ​r​e​v​i​e​w​e​d​ ​p​r​e​-​c​o​m​p​u​t​e​d​ ​s​e​g​m​e​n​t​s​ ​w​i​t​h​ ​w​b​w​ ​t​i​m​e​s​t​a​m​p​s​.
+		 */
+		quaCalloutSegments: string;
+		/**
+		 * D​o​w​n​l​o​a​d​ ​a​u​d​i​o​ ​f​o​r​ ​1​0​0​0​+​ ​r​e​c​i​t​e​r​s​ ​s​o​u​r​c​e​d​ ​f​r​o​m​ ​s​e​r​v​e​r​s​ ​a​c​r​o​s​s​ ​t​h​e​ ​w​e​b​.
+		 */
+		quaCalloutAudioOnly: string;
+		/**
+		 * H​e​l​p​ ​c​o​n​t​r​i​b​u​t​e​ ​m​o​r​e​ ​r​e​c​i​t​e​r​s
+		 */
+		quaContribute: string;
+		/**
 		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s
 		 */
 		projectAssetsLabel: string;
@@ -11598,6 +11618,26 @@ export type TranslationFunctions = {
 		 * Surah
 		 */
 		surah: () => LocalizedString;
+		/**
+		 * Audio + segments
+		 */
+		quaModeAudioSegments: () => LocalizedString;
+		/**
+		 * Audio only
+		 */
+		quaModeAudioOnly: () => LocalizedString;
+		/**
+		 * Human reviewed pre-computed segments with wbw timestamps.
+		 */
+		quaCalloutSegments: () => LocalizedString;
+		/**
+		 * Download audio for 1000+ reciters sourced from servers across the web.
+		 */
+		quaCalloutAudioOnly: () => LocalizedString;
+		/**
+		 * Help contribute more reciters
+		 */
+		quaContribute: () => LocalizedString;
 		/**
 		 * Project Assets
 		 */

@@ -17,6 +17,8 @@ use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{
     SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL,
     QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL, QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
+    QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_CALL_URL,
+    QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_RECITATIONS_CALL_URL,
     QURAN_MULTI_ALIGNER_PRELOAD_RECITATIONS_CALL_URL,
     QURAN_MULTI_ALIGNER_PRELOAD_SEGMENTS_CALL_URL, QURAN_MULTI_ALIGNER_PROCESS_CALL_URL,
     QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL, QURAN_MULTI_ALIGNER_UPLOAD_URL,
@@ -535,6 +537,51 @@ pub async fn preload_segments(
             verse_to,
             include_timestamps
         ]),
+    )
+    .await
+}
+
+/// Récupère le catalogue Preload audio-only (récitations non publiées, audio seul).
+///
+/// Endpoint public/ungated. Retourne `{ "recitations": [...] }` — le catalogue
+/// audio complet moins les récitations publiées (mutuellement exclusif avec
+/// `preload_recitations`).
+pub async fn preload_audio_recitations() -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    call_gradio_endpoint(
+        &client,
+        QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_RECITATIONS_CALL_URL,
+        "preload_audio_recitations",
+        serde_json::json!([]),
+    )
+    .await
+}
+
+/// Récupère l'URL audio directe d'un chapitre (audio-only, sans segments).
+///
+/// Endpoint public/ungated. Retourne `{ "audio_url": ... }`, ou
+/// `{ "error", "audio_url": "" }`.
+pub async fn preload_audio(recitation: String, chapter: i64) -> Result<serde_json::Value, String> {
+    if recitation.trim().is_empty() {
+        return Err("recitation is required.".to_string());
+    }
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(20))
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    call_gradio_endpoint(
+        &client,
+        QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_CALL_URL,
+        "preload_audio",
+        serde_json::json!([recitation, chapter]),
     )
     .await
 }

@@ -48,6 +48,14 @@ export type QuaSegmentsResponse = {
 	error?: string;
 };
 
+/** Réponse de `preload_audio` : juste l'URL audio directe du chapitre. */
+export type QuaAudioResponse = {
+	recitation?: string;
+	chapter?: number;
+	audio_url?: string;
+	error?: string;
+};
+
 export class QuranicUniversalAudioService {
 	/**
 	 * Liste toutes les récitations publiées avec leurs chapitres disponibles.
@@ -87,6 +95,41 @@ export class QuranicUniversalAudioService {
 			// Le callout promet des timestamps mot à mot : on les demande toujours.
 			includeTimestamps: true
 		})) as QuaSegmentsResponse;
+		if (response?.error) {
+			throw new Error(response.error);
+		}
+		return response;
+	}
+
+	/**
+	 * Liste les récitations audio-only : le catalogue audio complet (récitateurs
+	 * non publiés, depuis de nombreux serveurs) — mutuellement exclusif avec
+	 * {@link getRecitations}. Ces récitations n'offrent que l'audio (pas de
+	 * segments révisés).
+	 * @returns {Promise<QuaRecitation[]>} Récitations triées par label.
+	 * @throws {Error} Si le catalogue ne peut pas être chargé.
+	 */
+	static async getAudioRecitations(): Promise<QuaRecitation[]> {
+		const response = (await invoke('preload_audio_recitations')) as QuaRecitationsResponse;
+		if (response?.error) {
+			throw new Error(response.error);
+		}
+		const recitations = response?.recitations ?? [];
+		return [...recitations].sort((a, b) => a.label.localeCompare(b.label));
+	}
+
+	/**
+	 * Récupère l'URL audio directe d'un chapitre (audio-only, sans segments).
+	 * @param {string} recitation Slug de la récitation (delivery).
+	 * @param {number} chapter Numéro de sourate.
+	 * @returns {Promise<QuaAudioResponse>} Enveloppe avec `audio_url`.
+	 * @throws {Error} Si l'API renvoie une erreur.
+	 */
+	static async getAudioUrl(recitation: string, chapter: number): Promise<QuaAudioResponse> {
+		const response = (await invoke('preload_audio', {
+			recitation,
+			chapter
+		})) as QuaAudioResponse;
 		if (response?.error) {
 			throw new Error(response.error);
 		}

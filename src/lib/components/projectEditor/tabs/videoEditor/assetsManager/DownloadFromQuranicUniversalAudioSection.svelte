@@ -20,6 +20,10 @@
 
 	const CONTRIBUTE_URL = 'https://huggingface.co/spaces/hetchyy/quranic-universal-audio';
 
+	/** Mode de la source : audio pré-aligné (segments) ou audio seul (catalogue étendu). */
+	type QuaMode = 'audio_segments' | 'audio_only';
+
+	let mode = $state<QuaMode>('audio_segments');
 	let recitations: QuaRecitation[] = $state([]);
 	let surahsList: Surah[] = $state([]);
 	let selectedSlug = $state('');
@@ -57,17 +61,41 @@
 	const maxAyah = $derived(selectedSurahId > 0 ? Quran.getVerseCount(selectedSurahId) : 1);
 
 	onMount(async () => {
+		await Quran.load();
+		surahsList = Quran.getSurahs();
+		await loadRecitations();
+	});
+
+	/**
+	 * Charge le catalogue correspondant au mode courant : récitations publiées
+	 * (audio + segments) ou catalogue audio-only (récitateurs non publiés).
+	 */
+	async function loadRecitations(): Promise<void> {
+		isLoadingRecitations = true;
 		try {
-			await Quran.load();
-			surahsList = Quran.getSurahs();
-			recitations = await QuranicUniversalAudioService.getRecitations();
+			recitations =
+				mode === 'audio_only'
+					? await QuranicUniversalAudioService.getAudioRecitations()
+					: await QuranicUniversalAudioService.getRecitations();
 		} catch (error) {
 			console.error('Error fetching Quranic Universal Audio recitations:', error);
 			toast.error(get(LL).editor.failedToLoadReciters());
+			recitations = [];
 		} finally {
 			isLoadingRecitations = false;
 		}
-	});
+	}
+
+	/** Bascule de mode : réinitialise la sélection puis recharge le catalogue. */
+	function setMode(next: QuaMode): void {
+		if (mode === next || isDownloading) return;
+		mode = next;
+		selectedSlug = '';
+		selectedSurahId = -1;
+		ayahFrom = 1;
+		ayahTo = 1;
+		void loadRecitations();
+	}
 
 	/** Réinitialise la sélection de sourate/versets quand la récitation change. */
 	function onRecitationChange(): void {
@@ -97,63 +125,45 @@
 		}
 	}
 
-	/**
-	 * Télécharge l'audio du chapitre, l'ajoute comme asset + à la timeline, puis applique
-	 * les segments pré-alignés (avec timestamps mot à mot) via le chemin auto-segmentation.
-	 */
-	async function downloadAndApply(): Promise<void> {
-		if (!selectedSlug || selectedSurahId === -1 || isDownloading) return;
-		clampAyahRange();
-
-		isDownloading = true;
-		const recitation = selectedRecitation;
+	/** Noms d'affichage (récitateur + sourate) de la sélection courante. */
+	function currentNames(): { reciterName: string; surahName: string } {
 		const surah = availableSurahs.find((item) => item.id === selectedSurahId);
 		const surahName = surah?.name.split('. ')[1]?.split(' (')[0] ?? `Surah ${selectedSurahId}`;
-		const reciterName = recitation?.reciter?.name_en ?? recitation?.label ?? 'Reciter';
+		const reciterName =
+			selectedRecitation?.reciter?.name_en ?? selectedRecitation?.label ?? 'Reciter';
+		return { reciterName, surahName };
+	}
 
-		let toastId: string | undefined;
+	/**
+	 * Télécharge le mp3 du chapitre complet, l'ajoute comme asset puis le pose sur
+	 * la piste audio. Gère les toasts de progression ; relance l'erreur au caller.
+	 */
+	async function importChapterAudio(
+		audioUrl: string,
+		reciterName: string,
+		surahName: string,
+		assetMeta: Record<string, unknown>
+	): Promise<void> {
+		const toastId = toast.loading(
+			get(LL).editor.downloadingSurah({ surah: surahName, reciter: reciterName })
+		);
 		try {
-			// 1. Récupère les segments + l'URL audio directe du chapitre.
-			const payload = await QuranicUniversalAudioService.getSegments(
-				selectedSlug,
-				selectedSurahId,
-				ayahFrom,
-				ayahTo
-			);
-			const audioUrl = payload.audio_url ?? '';
-			if (!audioUrl) {
-				throw new Error('No audio is available for this recitation/chapter.');
-			}
-			if (!payload.segments || payload.segments.length === 0) {
-				throw new Error('No pre-aligned segments are available for this selection.');
-			}
-
-			toastId = toast.loading(
-				get(LL).editor.downloadingSurah({ surah: surahName, reciter: reciterName })
-			);
-
-			// 2. Télécharge le mp3 du chapitre complet dans le dossier d'assets du projet.
 			const downloadPath = await ProjectService.getAssetFolderForProject(
 				globalState.currentProject!.detail.id
 			);
 			const rawBaseName = `${reciterName} - ${surahName}`;
 			let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 			if (!sanitizedBaseName) sanitizedBaseName = `surah-${selectedSurahId}`;
-			const fileName = `${sanitizedBaseName}.mp3`;
-			const fullPath = await join(downloadPath, fileName);
+			const fullPath = await join(downloadPath, `${sanitizedBaseName}.mp3`);
 
 			await invoke('download_file', { url: audioUrl, path: fullPath });
 
-			// 3. Ajoute l'asset et le pose sur la piste audio (mp3 du chapitre complet).
-			const projectContent = globalState.currentProject!.content;
-			const asset = projectContent.addAsset(fullPath, audioUrl, SourceType.QuranicUniversalAudio, {
-				quranicUniversalAudio: {
-					recitation: selectedSlug,
-					surah: selectedSurahId,
-					verseFrom: ayahFrom,
-					verseTo: ayahTo
-				}
-			});
+			const asset = globalState.currentProject!.content.addAsset(
+				fullPath,
+				audioUrl,
+				SourceType.QuranicUniversalAudio,
+				assetMeta
+			);
 			if (!asset) {
 				throw new Error('Unable to add the downloaded audio as a project asset.');
 			}
@@ -161,20 +171,79 @@
 			await asset.addToTimeline(false, true);
 
 			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
-			toastId = undefined;
+		} catch (error) {
+			toast.dismiss(toastId);
+			throw error;
+		}
+	}
 
-			// 4. Applique les segments pré-alignés (sans ré-enrichissement MFA).
-			await applyPreloadSegmentsToProject(payload, {
-				fillBySilence,
-				extendBeforeSilence,
-				extendBeforeSilenceMs
-			});
+	/** Audio + segments : télécharge le chapitre et applique les segments pré-alignés. */
+	async function downloadAndApply(): Promise<void> {
+		clampAyahRange();
+		const { reciterName, surahName } = currentNames();
+
+		const payload = await QuranicUniversalAudioService.getSegments(
+			selectedSlug,
+			selectedSurahId,
+			ayahFrom,
+			ayahTo
+		);
+		const audioUrl = payload.audio_url ?? '';
+		if (!audioUrl) {
+			throw new Error('No audio is available for this recitation/chapter.');
+		}
+		if (!payload.segments || payload.segments.length === 0) {
+			throw new Error('No pre-aligned segments are available for this selection.');
+		}
+
+		await importChapterAudio(audioUrl, reciterName, surahName, {
+			quranicUniversalAudio: {
+				recitation: selectedSlug,
+				surah: selectedSurahId,
+				verseFrom: ayahFrom,
+				verseTo: ayahTo
+			}
+		});
+
+		// Segments pré-alignés (sans ré-enrichissement MFA).
+		await applyPreloadSegmentsToProject(payload, {
+			fillBySilence,
+			extendBeforeSilence,
+			extendBeforeSilenceMs
+		});
+	}
+
+	/** Audio seul : télécharge le chapitre complet, sans aucun segment. */
+	async function downloadAudioOnly(): Promise<void> {
+		const { reciterName, surahName } = currentNames();
+
+		const payload = await QuranicUniversalAudioService.getAudioUrl(selectedSlug, selectedSurahId);
+		const audioUrl = payload.audio_url ?? '';
+		if (!audioUrl) {
+			throw new Error('No audio is available for this recitation/chapter.');
+		}
+
+		await importChapterAudio(audioUrl, reciterName, surahName, {
+			quranicUniversalAudio: {
+				recitation: selectedSlug,
+				surah: selectedSurahId
+			}
+		});
+	}
+
+	/** Point d'entrée du bouton de téléchargement (route selon le mode courant). */
+	async function onDownload(): Promise<void> {
+		if (!selectedSlug || selectedSurahId === -1 || isDownloading) return;
+		isDownloading = true;
+		try {
+			if (mode === 'audio_only') {
+				await downloadAudioOnly();
+			} else {
+				await downloadAndApply();
+			}
 		} catch (error) {
 			console.error('Quranic Universal Audio error:', error);
-			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), {
-				id: toastId,
-				duration: 5000
-			});
+			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), { duration: 5000 });
 		} finally {
 			isDownloading = false;
 		}
@@ -183,22 +252,66 @@
 
 <Section icon="verified" name="Quranic Universal Audio">
 	<div class="space-y-3">
-		<!-- Callout : données révisées à la main + lien de contribution. -->
-		<div
-			class="flex items-start gap-2 rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2"
-		>
-			<span class="material-icons text-base text-green-500">verified</span>
-			<p class="text-[11px] leading-relaxed text-secondary/90">
-				Human reviewed pre-computed segments with wbw timestamps.
-				<button
-					type="button"
-					class="font-semibold text-[var(--accent-primary)] underline hover:opacity-80"
-					onclick={() => void openUrl(CONTRIBUTE_URL)}
-				>
-					Help contribute more reciters
-				</button>
-			</p>
+		<!-- Bascule de mode : audio + segments (défaut) vs audio seul. -->
+		<div class="grid grid-cols-2 gap-1 rounded-lg border border-color bg-secondary p-1">
+			<button
+				type="button"
+				class="rounded-md px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 {mode ===
+				'audio_segments'
+					? 'bg-[var(--accent-primary)] text-white shadow'
+					: 'text-secondary hover:text-primary'}"
+				onclick={() => setMode('audio_segments')}
+				disabled={isDownloading}
+			>
+				{get(LL).editor.quaModeAudioSegments()}
+			</button>
+			<button
+				type="button"
+				class="rounded-md px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 {mode ===
+				'audio_only'
+					? 'bg-[var(--accent-primary)] text-white shadow'
+					: 'text-secondary hover:text-primary'}"
+				onclick={() => setMode('audio_only')}
+				disabled={isDownloading}
+			>
+				{get(LL).editor.quaModeAudioOnly()}
+			</button>
 		</div>
+
+		<!-- Callout : message dépendant du mode + lien de contribution. -->
+		{#if mode === 'audio_only'}
+			<div
+				class="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2"
+			>
+				<span class="material-icons text-base text-blue-500">public</span>
+				<p class="text-[11px] leading-relaxed text-secondary/90">
+					{get(LL).editor.quaCalloutAudioOnly()}
+					<button
+						type="button"
+						class="font-semibold text-[var(--accent-primary)] underline hover:opacity-80"
+						onclick={() => void openUrl(CONTRIBUTE_URL)}
+					>
+						{get(LL).editor.quaContribute()}
+					</button>
+				</p>
+			</div>
+		{:else}
+			<div
+				class="flex items-start gap-2 rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2"
+			>
+				<span class="material-icons text-base text-green-500">verified</span>
+				<p class="text-[11px] leading-relaxed text-secondary/90">
+					{get(LL).editor.quaCalloutSegments()}
+					<button
+						type="button"
+						class="font-semibold text-[var(--accent-primary)] underline hover:opacity-80"
+						onclick={() => void openUrl(CONTRIBUTE_URL)}
+					>
+						{get(LL).editor.quaContribute()}
+					</button>
+				</p>
+			</div>
+		{/if}
 
 		<div class="space-y-2">
 			<label for="qua-recitation-select" class="text-sm font-medium text-secondary">
@@ -240,91 +353,93 @@
 			</select>
 		</div>
 
-		<div class="grid grid-cols-2 gap-2">
-			<div class="space-y-2">
-				<label for="qua-ayah-from" class="text-sm font-medium text-secondary">Ayah from</label>
-				<input
-					id="qua-ayah-from"
-					type="number"
-					min="1"
-					max={maxAyah}
-					step="1"
-					class="w-full rounded-lg border border-color bg-secondary px-3 py-3 text-sm text-primary focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-					bind:value={ayahFrom}
-					disabled={selectedSurahId === -1}
-					onchange={clampAyahRange}
-				/>
-			</div>
-			<div class="space-y-2">
-				<label for="qua-ayah-to" class="text-sm font-medium text-secondary">Ayah to</label>
-				<input
-					id="qua-ayah-to"
-					type="number"
-					min="1"
-					max={maxAyah}
-					step="1"
-					class="w-full rounded-lg border border-color bg-secondary px-3 py-3 text-sm text-primary focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-					bind:value={ayahTo}
-					disabled={selectedSurahId === -1}
-					onchange={clampAyahRange}
-				/>
-			</div>
-		</div>
-
-		<!-- Options sous-titres (compactes — panneau latéral étroit). -->
-		<div class="space-y-2 rounded-lg border border-color px-3 py-2.5 text-xs">
-			<label class="flex items-start gap-2 text-secondary">
-				<input
-					type="checkbox"
-					checked
-					disabled
-					class="mt-0.5 accent-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
-				/>
-				<span class="leading-snug">
-					<span class="font-medium text-primary">Include wbw timestamps</span>
-					<span class="block text-[11px] text-thirdly">
-						Always on here — per-word timings for finer splitting/editing.
-					</span>
-				</span>
-			</label>
-
-			<label class="flex items-center gap-2 text-secondary">
-				<input
-					type="checkbox"
-					bind:checked={fillBySilence}
-					class="accent-[var(--accent-primary)]"
-				/>
-				<span class="text-primary">Fill gaps with silence clips</span>
-			</label>
-
-			{#if fillBySilence}
-				<div class="flex items-center gap-2 pl-6 text-secondary">
-					<label class="flex items-center gap-2">
-						<input
-							type="checkbox"
-							bind:checked={extendBeforeSilence}
-							class="accent-[var(--accent-primary)]"
-						/>
-						<span class="text-primary">Extend before silence</span>
-					</label>
+		{#if mode === 'audio_segments'}
+			<div class="grid grid-cols-2 gap-2">
+				<div class="space-y-2">
+					<label for="qua-ayah-from" class="text-sm font-medium text-secondary">Ayah from</label>
 					<input
+						id="qua-ayah-from"
 						type="number"
-						min="0"
-						max="2000"
-						step="10"
-						bind:value={extendBeforeSilenceMs}
-						disabled={!extendBeforeSilence}
-						class="w-16 rounded border border-color bg-primary px-2 py-1 text-xs text-primary disabled:cursor-not-allowed disabled:opacity-50"
+						min="1"
+						max={maxAyah}
+						step="1"
+						class="w-full rounded-lg border border-color bg-secondary px-3 py-3 text-sm text-primary focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+						bind:value={ayahFrom}
+						disabled={selectedSurahId === -1}
+						onchange={clampAyahRange}
 					/>
-					<span class="text-thirdly">ms</span>
 				</div>
-			{/if}
-		</div>
+				<div class="space-y-2">
+					<label for="qua-ayah-to" class="text-sm font-medium text-secondary">Ayah to</label>
+					<input
+						id="qua-ayah-to"
+						type="number"
+						min="1"
+						max={maxAyah}
+						step="1"
+						class="w-full rounded-lg border border-color bg-secondary px-3 py-3 text-sm text-primary focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+						bind:value={ayahTo}
+						disabled={selectedSurahId === -1}
+						onchange={clampAyahRange}
+					/>
+				</div>
+			</div>
+
+			<!-- Options sous-titres (compactes — panneau latéral étroit). -->
+			<div class="space-y-2 rounded-lg border border-color px-3 py-2.5 text-xs">
+				<label class="flex items-start gap-2 text-secondary">
+					<input
+						type="checkbox"
+						checked
+						disabled
+						class="mt-0.5 accent-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+					/>
+					<span class="leading-snug">
+						<span class="font-medium text-primary">Include wbw timestamps</span>
+						<span class="block text-[11px] text-thirdly">
+							Always on here — per-word timings for finer splitting/editing.
+						</span>
+					</span>
+				</label>
+
+				<label class="flex items-center gap-2 text-secondary">
+					<input
+						type="checkbox"
+						bind:checked={fillBySilence}
+						class="accent-[var(--accent-primary)]"
+					/>
+					<span class="text-primary">Fill gaps with silence clips</span>
+				</label>
+
+				{#if fillBySilence}
+					<div class="flex items-center gap-2 pl-6 text-secondary">
+						<label class="flex items-center gap-2">
+							<input
+								type="checkbox"
+								bind:checked={extendBeforeSilence}
+								class="accent-[var(--accent-primary)]"
+							/>
+							<span class="text-primary">Extend before silence</span>
+						</label>
+						<input
+							type="number"
+							min="0"
+							max="2000"
+							step="10"
+							bind:value={extendBeforeSilenceMs}
+							disabled={!extendBeforeSilence}
+							class="w-16 rounded border border-color bg-primary px-2 py-1 text-xs text-primary disabled:cursor-not-allowed disabled:opacity-50"
+						/>
+						<span class="text-thirdly">ms</span>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<button
 			class="btn-accent relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
 			type="button"
-			onclick={downloadAndApply}
+			onclick={onDownload}
 			disabled={!selectedSlug || selectedSurahId === -1 || isDownloading}
 		>
 			{#if isDownloading}

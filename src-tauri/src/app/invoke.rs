@@ -47,6 +47,8 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::segmentation::generate_hifz_audio,
         commands::segmentation::preload_recitations,
         commands::segmentation::preload_segments,
+        commands::segmentation::preload_audio_recitations,
+        commands::segmentation::preload_audio,
         commands::segmentation::check_local_segmentation_ready,
         commands::segmentation::install_local_segmentation_deps,
         commands::discord::init_discord_rpc,

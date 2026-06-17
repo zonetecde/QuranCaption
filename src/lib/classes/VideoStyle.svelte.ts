@@ -152,6 +152,7 @@ export type SurahNameStyleName =
 	| 'surah-name-vertical-position'
 	| 'surah-name-horizontal-position'
 	| 'surah-show-latin'
+	| 'surah-calligraphy-style'
 	| 'surah-size'
 	| 'surah-opacity'
 	| 'surah-latin-spacing'

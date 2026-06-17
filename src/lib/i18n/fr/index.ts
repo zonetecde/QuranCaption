@@ -1226,6 +1226,7 @@ const fr = {
 			'surah-name-format': 'Format du texte latin',
 			'surah-show-arabic': 'Afficher en arabe',
 			'surah-show-latin': 'Afficher en latin',
+			'surah-calligraphy-style': 'Style de calligraphie',
 			'surah-size': 'Taille',
 			'surah-latin-spacing': 'Espacement',
 			'surah-opacity': 'Opacité',
@@ -1395,6 +1396,7 @@ const fr = {
 				'Format d\u2019affichage du nom de la sourate. Utiliser les balises <number>, <transliteration>, <translation>, <min-range> et <max-range> pour personnaliser.',
 			'surah-show-arabic': 'Afficher le nom de la sourate en arabe',
 			'surah-show-latin': 'Afficher du texte latin supplémentaire (voir Format du texte latin)',
+			'surah-calligraphy-style': 'Choisir la police de calligraphie du nom de la sourate',
 			'surah-size': 'Échelle de la calligraphie de la sourate',
 			'surah-latin-spacing':
 				'Ajuster l\u2019espacement entre le nom arabe de la sourate et son équivalent latin',

@@ -1228,6 +1228,7 @@ const es = {
 			'surah-name-format': 'Formato del texto latino',
 			'surah-show-arabic': 'Mostrar en árabe',
 			'surah-show-latin': 'Mostrar en latín',
+			'surah-calligraphy-style': 'Estilo de caligrafía',
 			'surah-size': 'Tamaño',
 			'surah-latin-spacing': 'Espaciado',
 			'surah-opacity': 'Opacidad',
@@ -1394,6 +1395,7 @@ const es = {
 				'Formato de visualización del nombre de la sura. Usar las etiquetas <number>, <transliteration>, <translation>, <min-range> y <max-range> para personalizar.',
 			'surah-show-arabic': 'Mostrar el nombre de la sura en árabe',
 			'surah-show-latin': 'Mostrar texto latino adicional (ver Formato del texto latino)',
+			'surah-calligraphy-style': 'Elegir la fuente de caligrafía del nombre de la sura',
 			'surah-size': 'Escala de la caligrafía de la sura',
 			'surah-latin-spacing':
 				'Ajustar el espaciado entre el nombre árabe de la sura y su equivalente latino',

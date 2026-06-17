@@ -278,6 +278,17 @@
 				"icon": "translate"
 			},
 			{
+				"id": "surah-calligraphy-style",
+				"name": "Calligraphy Style",
+				"description": "Choose the Surah name calligraphy font",
+				"value": "Calligraphy 1",
+				"valueType": "select",
+				"options": ["Calligraphy 1", "Calligraphy 2"],
+				"css": "",
+				"tailwind": false,
+				"icon": "draw"
+			},
+			{
 				"id": "surah-size",
 				"name": "Size",
 				"description": "Scale size of Surah Calligraphy",

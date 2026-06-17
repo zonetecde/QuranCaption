@@ -1224,6 +1224,7 @@ const de = {
 			'surah-name-format': 'Lateinisches Textformat',
 			'surah-show-arabic': 'Auf Arabisch anzeigen',
 			'surah-show-latin': 'Auf Lateinisch anzeigen',
+			'surah-calligraphy-style': 'Kalligraphiestil',
 			'surah-size': 'Größe',
 			'surah-latin-spacing': 'Abstand',
 			'surah-opacity': 'Deckkraft',
@@ -1391,6 +1392,7 @@ const de = {
 				'Anzeigeformat des Surennamens. Verwenden Sie die Tags <number>, <transliteration>, <translation>, <min-range> und <max-range> zur Anpassung.',
 			'surah-show-arabic': 'Surennamen auf Arabisch anzeigen',
 			'surah-show-latin': 'Zusätzlichen lateinischen Text anzeigen (siehe Lateinisches Textformat)',
+			'surah-calligraphy-style': 'Kalligraphie-Schrift für den Surennamen auswählen',
 			'surah-size': 'Skalierung der Suren-Kalligraphie',
 			'surah-latin-spacing':
 				'Abstand zwischen arabischem Surennamen und seinem lateinischen Äquivalent anpassen',

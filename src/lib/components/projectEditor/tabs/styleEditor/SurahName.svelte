@@ -25,6 +25,10 @@
 			size: globalState.getStyle('global', 'surah-size')!.value,
 			showArabic: globalState.getStyle('global', 'surah-show-arabic')!.value,
 			showLatin: globalState.getStyle('global', 'surah-show-latin')!.value,
+			calligraphyFontFamily:
+				globalState.getStyle('global', 'surah-calligraphy-style')!.value === 'Calligraphy 2'
+					? 'Surahs2'
+					: 'Surahs',
 			surahLatinSpacing: globalState.getStyle('global', 'surah-latin-spacing')!.value as number,
 			surahNameFormat: globalState.getStyle('global', 'surah-name-format')!.value as string,
 			verticalPosition: globalState.getStyle('global', 'surah-name-vertical-position')!
@@ -190,7 +194,7 @@
 	>
 		<p
 			class="surahs-font"
-			style={`opacity: ${surahNameSettings().showArabic ? 1 : 0} !important; font-size: ${surahNameSettings().size}rem !important; ${globalState.getStyle('global', 'surah-latin-text-style')!.generateCSSForComposite()}; font-family: 'Surahs' !important;`}
+			style={`opacity: ${surahNameSettings().showArabic ? 1 : 0} !important; font-size: ${surahNameSettings().size}rem !important; ${globalState.getStyle('global', 'surah-latin-text-style')!.generateCSSForComposite()}; font-family: '${surahNameSettings().calligraphyFontFamily}' !important;`}
 		>
 			{currentSurah().toString().padStart(3, '0')}
 		</p>

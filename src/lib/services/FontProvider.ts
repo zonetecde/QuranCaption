@@ -370,6 +370,7 @@ export class QPCFontProvider {
 			fontFamily === 'Soosi' ||
 			fontFamily === 'Reciters' ||
 			fontFamily === 'Surahs' ||
+			fontFamily === 'Surahs2' ||
 			fontFamily === 'QPC1BSML' ||
 			fontFamily === 'QPC2BSML' ||
 			fontFamily.startsWith('QPC1') ||

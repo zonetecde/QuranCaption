@@ -4523,6 +4523,10 @@ type RootTranslation = {
 			 */
 			'surah-show-latin': string;
 			/**
+			 * C​a​l​l​i​g​r​a​p​h​y​ ​S​t​y​l​e
+			 */
+			'surah-calligraphy-style': string;
+			/**
 			 * S​i​z​e
 			 */
 			'surah-size': string;
@@ -5096,6 +5100,10 @@ type RootTranslation = {
 			 * S​h​o​w​ ​a​d​d​i​t​i​o​n​a​l​ ​L​a​t​i​n​ ​t​e​x​t​ ​(​s​e​e​ ​L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t​)
 			 */
 			'surah-show-latin': string;
+			/**
+			 * C​h​o​o​s​e​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​c​a​l​l​i​g​r​a​p​h​y​ ​f​o​n​t
+			 */
+			'surah-calligraphy-style': string;
 			/**
 			 * S​c​a​l​e​ ​s​i​z​e​ ​o​f​ ​S​u​r​a​h​ ​C​a​l​l​i​g​r​a​p​h​y
 			 */
@@ -13148,6 +13156,10 @@ export type TranslationFunctions = {
 			 */
 			'surah-show-latin': () => LocalizedString;
 			/**
+			 * Calligraphy Style
+			 */
+			'surah-calligraphy-style': () => LocalizedString;
+			/**
 			 * Size
 			 */
 			'surah-size': () => LocalizedString;
@@ -13721,6 +13733,10 @@ export type TranslationFunctions = {
 			 * Show additional Latin text (see Latin Text Format)
 			 */
 			'surah-show-latin': () => LocalizedString;
+			/**
+			 * Choose the Surah name calligraphy font
+			 */
+			'surah-calligraphy-style': () => LocalizedString;
 			/**
 			 * Scale size of Surah Calligraphy
 			 */

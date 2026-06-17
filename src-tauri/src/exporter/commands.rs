@@ -354,6 +354,21 @@ struct FadeFrameTask {
     denominator: u64,
 }
 
+/// Format des images temporaires du plan overlay.
+#[derive(Clone, Copy, Debug)]
+enum OverlayFrameFormat {
+    Tga,
+    Png,
+}
+
+/// Retourne l'extension de fichier du format temporaire choisi.
+fn overlay_frame_extension(frame_format: OverlayFrameFormat) -> &'static str {
+    match frame_format {
+        OverlayFrameFormat::Tga => "tga",
+        OverlayFrameFormat::Png => "png",
+    }
+}
+
 struct FastOverlayPlan {
     concat_path: PathBuf,
     generated_fade_frames: usize,
@@ -413,6 +428,19 @@ fn decode_png_rgba(path: &Path) -> ExportResult<FastImage> {
 /// Indique si l'image est entierement opaque.
 fn image_is_fully_opaque(image: &FastImage) -> bool {
     image.rgba.chunks_exact(4).all(|pixel| pixel[3] == 255)
+}
+
+/// Ecrit une image RGBA dans un PNG temporaire.
+fn write_png_rgba(path: &Path, image: &FastImage) -> ExportResult<()> {
+    image::save_buffer_with_format(
+        path,
+        &image.rgba,
+        image.width,
+        image.height,
+        image::ColorType::Rgba8,
+        image::ImageFormat::Png,
+    )
+    .map_err(|e| export_error(format!("Erreur encodage PNG {}: {}", path.display(), e)))
 }
 
 /// Ecrit une image RGBA dans un TGA RLE 32 bits.
@@ -501,6 +529,43 @@ fn write_bgra_pixel<W: Write>(writer: &mut W, row: &[u8], pixel_index: usize) ->
     let base = pixel_index * 4;
     writer.write_all(&[row[base + 2], row[base + 1], row[base], row[base + 3]])?;
     Ok(())
+}
+
+/// Ecrit une image RGBA dans le format temporaire choisi.
+fn write_overlay_frame(
+    path: &Path,
+    image: &FastImage,
+    frame_format: OverlayFrameFormat,
+) -> ExportResult<()> {
+    match frame_format {
+        OverlayFrameFormat::Tga => write_tga_rgba(path, image),
+        OverlayFrameFormat::Png => write_png_rgba(path, image),
+    }
+}
+
+/// Indique si une erreur correspond a un manque d'espace disque.
+fn is_no_space_left_error(error: &(dyn std::error::Error + 'static)) -> bool {
+    let mut current = Some(error);
+    while let Some(err) = current {
+        if let Some(io_error) = err.downcast_ref::<io::Error>() {
+            if matches!(io_error.raw_os_error(), Some(28 | 39 | 112)) {
+                return true;
+            }
+        }
+
+        let message = err.to_string().to_lowercase();
+        if message.contains("no space left on device")
+            || message.contains("os error 28")
+            || message.contains("not enough space on the disk")
+            || message.contains("there is not enough space")
+        {
+            return true;
+        }
+
+        current = err.source();
+    }
+
+    false
 }
 
 /// Divise avec arrondi a l'entier le plus proche.
@@ -733,7 +798,7 @@ fn write_concat_entry<W: Write>(
     Ok(())
 }
 
-/// Construit le plan concat TGA qui respecte les timestamps et les fondus.
+/// Construit le plan concat d'images qui respecte les timestamps et les fondus.
 fn build_overlay_concat_plan(
     export_id: &str,
     image_paths: &[String],
@@ -743,6 +808,7 @@ fn build_overlay_concat_plan(
     duration_ms: i32,
     temp_dir: &Path,
     compose_black: bool,
+    frame_format: OverlayFrameFormat,
 ) -> ExportResult<FastOverlayPlan> {
     if fps <= 0 {
         return Err(export_error("FPS invalide"));
@@ -780,9 +846,15 @@ fn build_overlay_concat_plan(
             )));
         }
 
-        let source_path = temp_dir.join(format!("source_{:06}.tga", i));
-        let source_image = current_visible.as_ref().unwrap_or(&current);
-        write_tga_rgba(&source_path, source_image)?;
+        let source_path = match (frame_format, current_visible.as_ref()) {
+            (OverlayFrameFormat::Png, None) => PathBuf::from(&image_paths[i]),
+            (_, source_image) => {
+                let ext = overlay_frame_extension(frame_format);
+                let path = temp_dir.join(format!("source_{:06}.{}", i, ext));
+                write_overlay_frame(&path, source_image.unwrap_or(&current), frame_format)?;
+                path
+            }
+        };
         let changed_regions = changed_pixel_regions(&current, &next);
 
         let segment_ms = timestamps_ms[i + 1].saturating_sub(timestamps_ms[i]).max(0) as u128;
@@ -803,6 +875,7 @@ fn build_overlay_concat_plan(
                 total_duration_ticks += still_ticks;
 
                 let fade_frame_count = ceil_div(visual_fade_ticks, frame_ticks) as usize;
+                let ext = overlay_frame_extension(frame_format);
                 let tasks: Vec<FadeFrameTask> = (0..fade_frame_count)
                     .map(|frame_idx| {
                         let start_ticks = frame_idx as u128 * frame_ticks;
@@ -811,7 +884,7 @@ fn build_overlay_concat_plan(
                             (start_ticks + duration_ticks).min(visual_fade_ticks) as u64;
                         FadeFrameTask {
                             output_path: temp_dir
-                                .join(format!("fade_{:06}_{:04}.tga", i, frame_idx)),
+                                .join(format!("fade_{:06}_{:04}.{}", i, frame_idx, ext)),
                             duration_ticks,
                             numerator,
                             denominator: visual_fade_ticks as u64,
@@ -838,7 +911,7 @@ fn build_overlay_concat_plan(
                             task.denominator,
                         )
                     };
-                    write_tga_rgba(&task.output_path, &blended)
+                    write_overlay_frame(&task.output_path, &blended, frame_format)
                 })?;
 
                 generated_fade_frames += tasks.len();
@@ -860,9 +933,15 @@ fn build_overlay_concat_plan(
     }
 
     let last_idx = image_paths.len() - 1;
-    let last_source_path = temp_dir.join(format!("source_{:06}.tga", last_idx));
-    let last_source_image = current_visible.as_ref().unwrap_or(&current);
-    write_tga_rgba(&last_source_path, last_source_image)?;
+    let last_source_path = match (frame_format, current_visible.as_ref()) {
+        (OverlayFrameFormat::Png, None) => PathBuf::from(&image_paths[last_idx]),
+        (_, last_source_image) => {
+            let ext = overlay_frame_extension(frame_format);
+            let path = temp_dir.join(format!("source_{:06}.{}", last_idx, ext));
+            write_overlay_frame(&path, last_source_image.unwrap_or(&current), frame_format)?;
+            path
+        }
+    };
     let last_ts = *timestamps_ms.last().unwrap_or(&0);
     let hold_ms = (duration_ms - last_ts).max(1) as u128;
     let final_hold_ticks = (hold_ms * fps_ticks).saturating_sub(previous_fade_ticks);
@@ -1047,7 +1126,7 @@ fn run_fast_export(
         .cloned()
         .collect();
 
-    let temp_dir = create_temp_export_dir(export_id)?;
+    let mut temp_dir = create_temp_export_dir(export_id)?;
 
     ffmpeg_runner::emit_export_progress(
         &app_handle,
@@ -1067,7 +1146,7 @@ fn run_fast_export(
         && video_inputs.is_empty()
         && !video_fade_in_enabled
         && !video_fade_out_enabled;
-    let overlay_plan = build_overlay_concat_plan(
+    let overlay_plan = match build_overlay_concat_plan(
         export_id,
         image_paths,
         timestamps_ms,
@@ -1076,7 +1155,30 @@ fn run_fast_export(
         full_duration_ms,
         &temp_dir.path,
         compose_black,
-    )?;
+        OverlayFrameFormat::Tga,
+    ) {
+        Ok(plan) => plan,
+        Err(error) if is_no_space_left_error(error.as_ref()) => {
+            println!(
+                "[fast_export][warn] plan overlay TGA impossible par manque d'espace, retry PNG: {}",
+                error
+            );
+            fs::remove_dir_all(&temp_dir.path).ok();
+            temp_dir = create_temp_export_dir(export_id)?;
+            build_overlay_concat_plan(
+                export_id,
+                image_paths,
+                timestamps_ms,
+                fps,
+                fade_duration_ms,
+                full_duration_ms,
+                &temp_dir.path,
+                compose_black,
+                OverlayFrameFormat::Png,
+            )?
+        }
+        Err(error) => return Err(error),
+    };
     println!(
         "[fast_export] Frames source={} fades={} taille_source={}x{} opaque={} compose_noir={}",
         overlay_plan.source_frame_count,

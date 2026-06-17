@@ -150,6 +150,7 @@ export type AutoSegmentationOptions = {
 	multiAlignerModel?: MultiAlignerModel;
 	cloudModel?: MultiAlignerModel;
 	surahSplitterSurah?: number | null;
+	muaalemMultipleSurahs?: boolean;
 	device?: SegmentationDevice;
 	hfToken?: string;
 	allowCloudFallback?: boolean;

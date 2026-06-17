@@ -48,54 +48,70 @@
 				<div class="space-y-2">
 					<div class="text-xs uppercase text-thirdly">{$LL.editor.speechRecognitionModel()}</div>
 					<div class="grid grid-cols-1 gap-2">
-						{#each MUAALEM_MODEL_OPTIONS as option (option.value)}
-							<button
-								type="button"
-								class="rounded-lg border p-3 text-left"
-								class:border-accent-primary={wizard.selection.multiModel === option.value}
-								class:border-color={wizard.selection.multiModel !== option.value}
-								onclick={() => wizard.setMultiModel(option.value)}
-							>
-								<div class="flex items-center justify-between gap-3">
-									<div class="text-sm font-medium text-primary">{option.label}</div>
-									<span
-										class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
-									>
-										{$LL.editor.recommendedLabel()}
-									</span>
+						<button
+							type="button"
+							class="rounded-lg border p-3 text-left"
+							class:border-accent-primary={wizard.selection.multiModel === 'Muaalem-v3.2'}
+							class:border-color={wizard.selection.multiModel !== 'Muaalem-v3.2'}
+							onclick={() => wizard.setMultiModel('Muaalem-v3.2')}
+						>
+							<div class="flex items-center justify-between gap-3">
+								<div class="text-sm font-medium text-primary">
+									{$LL.editor.offlineTarteelModelLabel()}
 								</div>
-								<div class="text-xs text-thirdly">{option.description}</div>
-								<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-							</button>
-						{/each}
+								<span
+									class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
+								>
+									{$LL.editor.recommendedLabel()}
+								</span>
+							</div>
+							<div class="text-xs text-thirdly">{$LL.editor.offlineTarteelModelDesc()}</div>
+							<div class="mt-1 text-[11px] font-mono text-thirdly/80">
+								{MUAALEM_MODEL_OPTIONS[0]?.source}
+							</div>
+						</button>
 					</div>
 				</div>
 
-				<details class="rounded-xl border border-color p-3">
-					<summary class="cursor-pointer text-sm font-medium text-primary">
-						{$LL.editor.advancedOptions()}
-					</summary>
-					<div class="mt-3 space-y-2">
-						<div class="text-xs text-thirdly">
-							{$LL.editor.experimentalFallbackHintShort()}
+				<div class="space-y-2 rounded-xl border border-color p-3">
+					<label class="flex items-center gap-2 text-sm text-primary">
+						<input
+							type="checkbox"
+							checked={wizard.selection.muaalemMultipleSurahs}
+							onchange={(event) => wizard.setMuaalemMultipleSurahs(event.currentTarget.checked)}
+						/>
+						{$LL.editor.muaalemMultipleSurahsLabel()}
+					</label>
+					<p class="text-xs text-thirdly">{$LL.editor.muaalemMultipleSurahsHint()}</p>
+				</div>
+
+				{#if MUAALEM_ADVANCED_MODEL_OPTIONS.length > 0}
+					<details class="rounded-xl border border-color p-3">
+						<summary class="cursor-pointer text-sm font-medium text-primary">
+							{$LL.editor.advancedOptions()}
+						</summary>
+						<div class="mt-3 space-y-2">
+							<div class="text-xs text-thirdly">
+								{$LL.editor.experimentalFallbackHintShort()}
+							</div>
+							<div class="grid grid-cols-1 gap-2">
+								{#each MUAALEM_ADVANCED_MODEL_OPTIONS as option (option.value)}
+									<button
+										type="button"
+										class="rounded-lg border p-3 text-left"
+										class:border-accent-primary={wizard.selection.multiModel === option.value}
+										class:border-color={wizard.selection.multiModel !== option.value}
+										onclick={() => wizard.setMultiModel(option.value)}
+									>
+										<div class="text-sm font-medium text-primary">{option.label}</div>
+										<div class="text-xs text-thirdly">{option.description}</div>
+										<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
+									</button>
+								{/each}
+							</div>
 						</div>
-						<div class="grid grid-cols-1 gap-2">
-							{#each MUAALEM_ADVANCED_MODEL_OPTIONS as option (option.value)}
-								<button
-									type="button"
-									class="rounded-lg border p-3 text-left"
-									class:border-accent-primary={wizard.selection.multiModel === option.value}
-									class:border-color={wizard.selection.multiModel !== option.value}
-									onclick={() => wizard.setMultiModel(option.value)}
-								>
-									<div class="text-sm font-medium text-primary">{option.label}</div>
-									<div class="text-xs text-thirdly">{option.description}</div>
-									<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-								</button>
-							{/each}
-						</div>
-					</div>
-				</details>
+					</details>
+				{/if}
 			</div>
 		{:else if isSurahSplitter()}
 			<div class="space-y-4">
@@ -115,19 +131,19 @@
 							<div class="flex items-center justify-between gap-3">
 								<div class="text-sm font-medium text-primary">{option.label}</div>
 								<span
-										class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
-									>
-										{$LL.editor.recommendedLabel()}
-									</span>
-								</div>
-								<div class="text-xs text-thirdly">{option.description}</div>
-								<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-							</button>
-						{/each}
-					</div>
+									class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
+								>
+									{$LL.editor.recommendedLabel()}
+								</span>
+							</div>
+							<div class="text-xs text-thirdly">{option.description}</div>
+							<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
+						</button>
+					{/each}
+				</div>
 
-					<div class="space-y-2 rounded-xl border border-color p-3">
-						<div class="text-xs uppercase text-thirdly">{$LL.editor.surahSelectionLabel()}</div>
+				<div class="space-y-2 rounded-xl border border-color p-3">
+					<div class="text-xs uppercase text-thirdly">{$LL.editor.surahSelectionLabel()}</div>
 					<label class="flex items-center gap-2 text-sm text-primary">
 						<input
 							type="radio"
@@ -183,25 +199,27 @@
 		{/if}
 	</div>
 
-	<div class="space-y-2 rounded-xl border border-color p-3">
-		<div class="text-xs uppercase text-thirdly">{$LL.editor.deviceLabel()}</div>
-		<div class="grid grid-cols-2 gap-2">
-			<button
-				type="button"
-				class="rounded-lg border p-2 text-sm"
-				class:border-accent-primary={wizard.selection.device === 'GPU'}
-				class:border-color={wizard.selection.device !== 'GPU'}
-				onclick={() => wizard.setDevice('GPU')}>GPU</button
-			>
-			<button
-				type="button"
-				class="rounded-lg border p-2 text-sm"
-				class:border-accent-primary={wizard.selection.device === 'CPU'}
-				class:border-color={wizard.selection.device !== 'CPU'}
-				onclick={() => wizard.setDevice('CPU')}>CPU</button
-			>
+	{#if !isMuaalemLocal()}
+		<div class="space-y-2 rounded-xl border border-color p-3">
+			<div class="text-xs uppercase text-thirdly">{$LL.editor.deviceLabel()}</div>
+			<div class="grid grid-cols-2 gap-2">
+				<button
+					type="button"
+					class="rounded-lg border p-2 text-sm"
+					class:border-accent-primary={wizard.selection.device === 'GPU'}
+					class:border-color={wizard.selection.device !== 'GPU'}
+					onclick={() => wizard.setDevice('GPU')}>GPU</button
+				>
+				<button
+					type="button"
+					class="rounded-lg border p-2 text-sm"
+					class:border-accent-primary={wizard.selection.device === 'CPU'}
+					class:border-color={wizard.selection.device !== 'CPU'}
+					onclick={() => wizard.setDevice('CPU')}>CPU</button
+				>
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	{#if isMuaalemLocal()}
 		<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">

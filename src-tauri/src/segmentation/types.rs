@@ -74,7 +74,7 @@ pub enum LocalSegmentationEngine {
     LegacyWhisper,
     /// Nouveau moteur multi-aligner prive.
     MultiAligner,
-    /// Pipeline locale Muaalem avec segmentation, retrieval et alignement ouverts.
+    /// Pipeline locale Offline Tarteel ONNX.
     MuaalemLocal,
     /// Pipeline locale Surah Splitter basee sur WhisperX et detection d'ayahs.
     SurahSplitter,
@@ -112,7 +112,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "Legacy Whisper",
             Self::MultiAligner => "Multi-Aligner",
-            Self::MuaalemLocal => "Muaalem Local",
+            Self::MuaalemLocal => "Offline Tarteel Local",
             Self::SurahSplitter => "Surah Splitter",
         }
     }
@@ -154,17 +154,12 @@ impl LocalSegmentationEngine {
                 "requests",
             ],
             Self::MuaalemLocal => &[
-                "torch",
-                "torchaudio",
-                "transformers",
-                "librosa",
                 "numpy",
-                "soundfile",
-                "recitations_segmenter",
-                "quran_transcript",
-                "fuzzysearch",
+                "onnxruntime",
+                "pydub",
                 "Levenshtein",
-                "nemo",
+                "numba",
+                "tqdm",
             ],
             Self::SurahSplitter => &[
                 "torch",

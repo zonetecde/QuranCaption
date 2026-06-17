@@ -37,6 +37,8 @@ src-tauri/python/segment_core/data/
 src-tauri/usage_logs/
 src-tauri/python/__pycache__/
 src-tauri/python/**/__pycache__/
+src-tauri/python/quran_recite_to_text/data/model.onnx
+src-tauri/python/quran_recite_to_text/outputs/
 *.pyc
 
 # Tauri signing keys (NEVER commit private keys)

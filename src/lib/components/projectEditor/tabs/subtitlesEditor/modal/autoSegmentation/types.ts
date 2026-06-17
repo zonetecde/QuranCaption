@@ -79,6 +79,7 @@ export type WizardSelectionState = {
 	multiModel: MultiAlignerModel;
 	cloudModel: MultiAlignerModel;
 	surahSplitterSurah: number | null;
+	muaalemMultipleSurahs: boolean;
 	device: SegmentationDevice;
 	hfToken: string;
 };

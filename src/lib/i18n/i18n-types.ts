@@ -1867,7 +1867,7 @@ type RootTranslation = {
 		 */
 		privateQuranicAligner: string;
 		/**
-		 * M​u​a​a​l​e​m​ ​L​o​c​a​l​ ​p​a​c​k​a​g​e​s
+		 * O​f​f​l​i​n​e​ ​T​a​r​t​e​e​l​ ​L​o​c​a​l​ ​p​a​c​k​a​g​e​s
 		 */
 		muaalemLocal: string;
 		/**
@@ -2473,7 +2473,7 @@ type RootTranslation = {
 		 */
 		wbwTimestampsDescription: string;
 		/**
-		 * W​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​M​u​a​a​l​e​m​ ​v​3​.​2​ ​m​o​d​e​l​.
+		 * W​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​w​i​t​h​ ​c​o​m​p​a​t​i​b​l​e​ ​a​l​i​g​n​m​e​n​t​ ​m​o​d​e​l​s​.
 		 */
 		wbwTimestampsOnlyMuaalem: string;
 		/**
@@ -2598,7 +2598,7 @@ type RootTranslation = {
 		 */
 		prepareMethodLocalV2Desc: string;
 		/**
-		 * I​n​s​t​a​l​l​ ​t​h​e​ ​r​e​q​u​i​r​e​d​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s​ ​f​o​r​ ​t​h​e​ ​M​u​a​a​l​e​m​ ​l​o​c​a​l​ ​w​o​r​k​f​l​o​w​.
+		 * I​n​s​t​a​l​l​ ​t​h​e​ ​r​e​q​u​i​r​e​d​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s​ ​f​o​r​ ​t​h​e​ ​O​f​f​l​i​n​e​ ​T​a​r​t​e​e​l​ ​O​N​N​X​ ​w​o​r​k​f​l​o​w​.
 		 */
 		prepareMethodMuaalemDesc: string;
 		/**
@@ -2650,7 +2650,7 @@ type RootTranslation = {
 		 */
 		noTokenRequiredSurahSplitterHint: string;
 		/**
-		 * T​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​,​ ​b​u​t​ ​i​t​ ​i​s​ ​u​s​u​a​l​l​y​ ​l​e​s​s​ ​a​c​c​u​r​a​t​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​p​i​p​e​l​i​n​e​.
+		 * T​h​i​s​ ​o​p​t​i​o​n​ ​r​u​n​s​ ​l​o​c​a​l​l​y​ ​w​i​t​h​ ​t​h​e​ ​O​f​f​l​i​n​e​ ​T​a​r​t​e​e​l​ ​O​N​N​X​ ​m​o​d​e​l​ ​a​n​d​ ​d​o​w​n​l​o​a​d​s​ ​t​h​e​ ​m​o​d​e​l​ ​o​n​ ​f​i​r​s​t​ ​r​u​n​.
 		 */
 		muaalemLocalHint: string;
 		/**
@@ -2694,15 +2694,15 @@ type RootTranslation = {
 		 */
 		surahSplitterSingleSurahNote: string;
 		/**
-		 * M​u​a​a​l​e​m​ ​L​o​c​a​l
+		 * O​f​f​l​i​n​e​ ​T​a​r​t​e​e​l​ ​L​o​c​a​l
 		 */
 		muaalemLocalLabel: string;
 		/**
-		 * S​e​c​o​n​d​ ​o​p​t​i​o​n​ ​b​u​t​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r
+		 * F​a​s​t​ ​l​o​c​a​l​ ​Q​u​r​a​n​ ​a​l​i​g​n​m​e​n​t​ ​w​i​t​h​ ​r​e​p​e​t​i​t​i​o​n​ ​h​a​n​d​l​i​n​g
 		 */
 		muaalemLocalDesc: string;
 		/**
-		 * R​u​n​s​ ​e​n​t​i​r​e​l​y​ ​o​n​ ​y​o​u​r​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​t​h​e​ ​M​u​a​a​l​e​m​ ​l​o​c​a​l​ ​p​i​p​e​l​i​n​e​.​ ​I​t​ ​u​s​e​s​ ​Q​u​r​a​n​-​s​p​e​c​i​f​i​c​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​a​n​d​ ​m​a​t​c​h​i​n​g​.
+		 * R​u​n​s​ ​o​n​ ​y​o​u​r​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​a​ ​q​u​a​n​t​i​z​e​d​ ​O​N​N​X​ ​F​a​s​t​C​o​n​f​o​r​m​e​r​ ​m​o​d​e​l​ ​a​n​d​ ​e​x​p​o​r​t​s​ ​w​o​r​d​-​l​e​v​e​l​ ​t​i​m​i​n​g​s​ ​f​o​r​ ​Q​u​r​a​n​C​a​p​t​i​o​n​.
 		 */
 		muaalemLocalDetail: string;
 		/**
@@ -3110,7 +3110,23 @@ type RootTranslation = {
 		 */
 		experimentalFallbackHint: string;
 		/**
-		 * M​u​a​a​l​e​m​ ​L​o​c​a​l​ ​c​o​m​b​i​n​e​s​ ​Q​u​r​a​n​-​s​p​e​c​i​f​i​c​ ​s​e​g​m​e​n​t​a​t​i​o​n​,​ ​p​h​o​n​e​t​i​c​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n​,​ ​m​o​n​o​t​o​n​i​c​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​ ​r​e​t​r​i​e​v​a​l​,​ ​a​n​d​ ​l​o​c​a​l​ ​f​o​r​c​e​d​ ​a​l​i​g​n​m​e​n​t​ ​f​o​r​ ​r​e​a​l​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​i​n​g​s​.
+		 * O​f​f​l​i​n​e​ ​T​a​r​t​e​e​l​ ​q​8
+		 */
+		offlineTarteelModelLabel: string;
+		/**
+		 * Q​u​a​n​t​i​z​e​d​ ​O​N​N​X​ ​F​a​s​t​C​o​n​f​o​r​m​e​r​ ​m​o​d​e​l​ ​f​o​r​ ​l​o​c​a​l​ ​Q​u​r​a​n​ ​a​l​i​g​n​m​e​n​t​.
+		 */
+		offlineTarteelModelDesc: string;
+		/**
+		 * A​u​d​i​o​ ​c​o​n​t​a​i​n​s​ ​m​u​l​t​i​p​l​e​ ​s​u​r​a​h​s
+		 */
+		muaalemMultipleSurahsLabel: string;
+		/**
+		 * E​n​a​b​l​e​ ​t​h​i​s​ ​w​h​e​n​ ​o​n​e​ ​a​u​d​i​o​ ​f​i​l​e​ ​m​o​v​e​s​ ​a​c​r​o​s​s​ ​s​u​r​a​h​s​.​ ​L​e​a​v​e​ ​i​t​ ​o​f​f​ ​f​o​r​ ​a​ ​s​i​n​g​l​e​ ​s​u​r​a​h​.
+		 */
+		muaalemMultipleSurahsHint: string;
+		/**
+		 * O​f​f​l​i​n​e​ ​T​a​r​t​e​e​l​ ​L​o​c​a​l​ ​t​r​a​n​s​c​r​i​b​e​s​ ​w​i​t​h​ ​a​ ​q​u​a​n​t​i​z​e​d​ ​O​N​N​X​ ​F​a​s​t​C​o​n​f​o​r​m​e​r​ ​m​o​d​e​l​,​ ​a​l​i​g​n​s​ ​w​o​r​d​s​ ​t​o​ ​t​h​e​ ​Q​u​r​a​n​ ​t​e​x​t​,​ ​h​a​n​d​l​e​s​ ​r​e​p​e​t​i​t​i​o​n​s​,​ ​a​n​d​ ​r​e​t​u​r​n​s​ ​w​o​r​d​-​l​e​v​e​l​ ​t​i​m​i​n​g​s​.
 		 */
 		muaalemLocalFeatureDesc: string;
 		/**
@@ -3118,7 +3134,7 @@ type RootTranslation = {
 		 */
 		surahSplitterFeatureDesc: string;
 		/**
-		 * T​h​i​s​ ​m​e​t​h​o​d​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​,​ ​b​u​t​ ​i​t​ ​i​s​ ​g​e​n​e​r​a​l​l​y​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​.​ ​A​d​v​a​n​c​e​d​ ​f​a​l​l​b​a​c​k​ ​m​o​d​e​l​s​ ​a​r​e​ ​h​i​d​d​e​n​ ​b​y​ ​d​e​f​a​u​l​t​ ​b​e​c​a​u​s​e​ ​t​h​e​y​ ​a​r​e​ ​m​o​r​e​ ​e​x​p​e​r​i​m​e​n​t​a​l​ ​t​h​a​n​ ​t​h​e​ ​r​e​c​o​m​m​e​n​d​e​d​ ​M​u​a​a​l​e​m​ ​v​3​.​2​ ​p​a​t​h​.
+		 * F​o​r​ ​m​u​l​t​i​-​s​u​r​a​h​ ​a​u​d​i​o​,​ ​e​n​a​b​l​e​ ​t​h​e​ ​m​u​l​t​i​p​l​e​-​s​u​r​a​h​ ​o​p​t​i​o​n​ ​s​o​ ​t​h​e​ ​m​a​t​c​h​e​r​ ​c​a​n​ ​r​e​-​a​n​c​h​o​r​ ​d​u​r​i​n​g​ ​t​h​e​ ​r​u​n​.
 		 */
 		muaalemLocalEffectivenessHint: string;
 		/**
@@ -3130,7 +3146,7 @@ type RootTranslation = {
 		 */
 		tokenRequiredHint: string;
 		/**
-		 * T​h​i​s​ ​m​e​t​h​o​d​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​ ​a​n​d​ ​s​i​m​p​l​e​r​ ​t​o​ ​i​n​s​t​a​l​l​,​ ​b​u​t​ ​u​s​u​a​l​l​y​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​p​i​p​e​l​i​n​e​.
+		 * T​h​e​ ​O​N​N​X​ ​m​o​d​e​l​ ​i​s​ ​d​o​w​n​l​o​a​d​e​d​ ​o​n​ ​f​i​r​s​t​ ​r​u​n​ ​i​f​ ​i​t​ ​i​s​ ​n​o​t​ ​a​l​r​e​a​d​y​ ​c​a​c​h​e​d​.
 		 */
 		muaalemReviewHint: string;
 		/**
@@ -10535,7 +10551,7 @@ export type TranslationFunctions = {
 		 */
 		privateQuranicAligner: () => LocalizedString;
 		/**
-		 * Muaalem Local packages
+		 * Offline Tarteel Local packages
 		 */
 		muaalemLocal: () => LocalizedString;
 		/**
@@ -11127,7 +11143,7 @@ export type TranslationFunctions = {
 		 */
 		wbwTimestampsDescription: () => LocalizedString;
 		/**
-		 * Word-by-word timestamps are only supported with the Muaalem v3.2 model.
+		 * Word-by-word timestamps are only supported with compatible alignment models.
 		 */
 		wbwTimestampsOnlyMuaalem: () => LocalizedString;
 		/**
@@ -11251,7 +11267,7 @@ export type TranslationFunctions = {
 		 */
 		prepareMethodLocalV2Desc: () => LocalizedString;
 		/**
-		 * Install the required local packages for the Muaalem local workflow.
+		 * Install the required local packages for the Offline Tarteel ONNX workflow.
 		 */
 		prepareMethodMuaalemDesc: () => LocalizedString;
 		/**
@@ -11303,7 +11319,7 @@ export type TranslationFunctions = {
 		 */
 		noTokenRequiredSurahSplitterHint: () => LocalizedString;
 		/**
-		 * This option is fully local, but it is usually less accurate than the official Quranic Universal Aligner pipeline.
+		 * This option runs locally with the Offline Tarteel ONNX model and downloads the model on first run.
 		 */
 		muaalemLocalHint: () => LocalizedString;
 		/**
@@ -11347,15 +11363,15 @@ export type TranslationFunctions = {
 		 */
 		surahSplitterSingleSurahNote: () => LocalizedString;
 		/**
-		 * Muaalem Local
+		 * Offline Tarteel Local
 		 */
 		muaalemLocalLabel: () => LocalizedString;
 		/**
-		 * Second option but less effective than Surah Splitter
+		 * Fast local Quran alignment with repetition handling
 		 */
 		muaalemLocalDesc: () => LocalizedString;
 		/**
-		 * Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific segmentation and matching.
+		 * Runs on your machine with a quantized ONNX FastConformer model and exports word-level timings for QuranCaption.
 		 */
 		muaalemLocalDetail: () => LocalizedString;
 		/**
@@ -11763,7 +11779,23 @@ export type TranslationFunctions = {
 		 */
 		experimentalFallbackHint: () => LocalizedString;
 		/**
-		 * Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic Quran passage retrieval, and local forced alignment for real word-by-word timings.
+		 * Offline Tarteel q8
+		 */
+		offlineTarteelModelLabel: () => LocalizedString;
+		/**
+		 * Quantized ONNX FastConformer model for local Quran alignment.
+		 */
+		offlineTarteelModelDesc: () => LocalizedString;
+		/**
+		 * Audio contains multiple surahs
+		 */
+		muaalemMultipleSurahsLabel: () => LocalizedString;
+		/**
+		 * Enable this when one audio file moves across surahs. Leave it off for a single surah.
+		 */
+		muaalemMultipleSurahsHint: () => LocalizedString;
+		/**
+		 * Offline Tarteel Local transcribes with a quantized ONNX FastConformer model, aligns words to the Quran text, handles repetitions, and returns word-level timings.
 		 */
 		muaalemLocalFeatureDesc: () => LocalizedString;
 		/**
@@ -11771,7 +11803,7 @@ export type TranslationFunctions = {
 		 */
 		surahSplitterFeatureDesc: () => LocalizedString;
 		/**
-		 * This method is fully local, but it is generally less effective than the official Quranic Universal Aligner. Advanced fallback models are hidden by default because they are more experimental than the recommended Muaalem v3.2 path.
+		 * For multi-surah audio, enable the multiple-surah option so the matcher can re-anchor during the run.
 		 */
 		muaalemLocalEffectivenessHint: () => LocalizedString;
 		/**
@@ -11783,7 +11815,7 @@ export type TranslationFunctions = {
 		 */
 		tokenRequiredHint: () => LocalizedString;
 		/**
-		 * This method is fully local and simpler to install, but usually less effective than the official Quranic Universal Aligner pipeline.
+		 * The ONNX model is downloaded on first run if it is not already cached.
 		 */
 		muaalemReviewHint: () => LocalizedString;
 		/**

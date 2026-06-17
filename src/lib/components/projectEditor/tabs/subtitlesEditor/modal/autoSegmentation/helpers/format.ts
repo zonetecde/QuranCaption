@@ -83,5 +83,6 @@ export function getDeviceLabel(
 	device: SegmentationDevice
 ): string {
 	if (version === 'legacy_v1' && mode === 'local') return 'AUTO';
+	if (version === 'muaalem_local' && mode === 'local') return 'CPU';
 	return device;
 }

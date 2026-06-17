@@ -13,13 +13,17 @@
 				? 'Quranic Universal Aligner'
 				: wizard.selection.aiVersion === 'multi_v2_local'
 					? 'Private Local Quranic Universal Aligner'
-					: 'Muaalem Local'
+					: wizard.selection.aiVersion === 'surah_splitter'
+						? $LL.editor.surahSplitterLocalLabel()
+						: $LL.editor.muaalemLocalLabel()
 	);
 </script>
 
 <aside class="w-[320px] min-w-[280px] border-r border-color bg-primary/80 p-5 space-y-4">
 	<div class="space-y-1">
-		<div class="text-xs uppercase tracking-wide text-thirdly">{$LL.editor.aiSegmentationHeading()}</div>
+		<div class="text-xs uppercase tracking-wide text-thirdly">
+			{$LL.editor.aiSegmentationHeading()}
+		</div>
 		<h2 class="text-xl font-semibold text-primary">{$LL.editor.selectRuntime()}</h2>
 		<p class="text-xs text-thirdly">{$LL.editor.runtimeDescription()}</p>
 	</div>

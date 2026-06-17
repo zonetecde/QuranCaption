@@ -153,7 +153,7 @@ export function useAutoSegmentationWizard() {
 				  !selectedLocalEngineStatus()?.usable
 				? 'Install the required local packages first.'
 				: selection.aiVersion === 'muaalem_local'
-					? 'Muaalem Local uses a fully local Quran-specific pipeline, but it is generally less effective than the official Quranic Universal Aligner.'
+					? get(LL).editor.muaalemLocalHint()
 					: selection.aiVersion === 'surah_splitter'
 						? 'Surah Splitter can auto-detect the surah, but selecting it manually improves precision.'
 						: selection.mode === 'local'
@@ -201,6 +201,7 @@ export function useAutoSegmentationWizard() {
 			selection.mode = 'local';
 			selection.runtime = 'local';
 			selection.localAsrMode = 'muaalem_local';
+			selection.device = 'CPU';
 			if (!includeWbwTimestamps) {
 				includeWbwTimestamps = true;
 				persistPatch({ includeWbwTimestamps: true });
@@ -231,7 +232,11 @@ export function useAutoSegmentationWizard() {
 			}
 		}
 		currentStep = Math.max(0, Math.min(currentStep, maxStep()));
-		persistPatch({ mode: selection.mode, localAsrMode: selection.localAsrMode });
+		persistPatch({
+			mode: selection.mode,
+			localAsrMode: selection.localAsrMode,
+			device: selection.device
+		});
 		if (selection.mode === 'local') void refreshLocalStatus();
 	}
 
@@ -560,6 +565,7 @@ export function useAutoSegmentationWizard() {
 					multiAlignerModel: selection.multiModel,
 					cloudModel: selection.cloudModel,
 					surahSplitterSurah: selection.surahSplitterSurah,
+					muaalemMultipleSurahs: selection.muaalemMultipleSurahs,
 					device: selection.device,
 					hfToken: selection.hfToken,
 					allowCloudFallback: selection.mode !== 'local',
@@ -652,6 +658,11 @@ export function useAutoSegmentationWizard() {
 	function setSurahSplitterSurah(value: number | null): void {
 		selection.surahSplitterSurah = value;
 		persistPatch({ surahSplitterSurah: value });
+	}
+	/** Définit le mode multi-sourates Offline Tarteel et persiste le choix. */
+	function setMuaalemMultipleSurahs(value: boolean): void {
+		selection.muaalemMultipleSurahs = value;
+		persistPatch({ muaalemMultipleSurahs: value });
 	}
 	/** Sets cloud model and persists the choice. */
 	function setCloudModel(value: 'Base' | 'Large'): void {
@@ -843,6 +854,7 @@ export function useAutoSegmentationWizard() {
 		setMultiModel,
 		setCloudModel,
 		setSurahSplitterSurah,
+		setMuaalemMultipleSurahs,
 		setDevice,
 		setMinSilence,
 		setMinSpeech,

@@ -632,9 +632,7 @@ export default class MigrationService {
 
 			// Deuxième migration : on a désormais une arborescence de projets
 			// Du coup on demande si on veut pas avoir un premier tri intelligent sur ces projets
-			const confirmed = await ModalManager.confirmModal(
-				get(LL).settings.migrationUpdateMessage()
-			);
+			const confirmed = await ModalManager.confirmModal(get(LL).settings.migrationUpdateMessage());
 			if (confirmed) {
 				this.organizeExistingProjectsIntoSubCategories();
 			}
@@ -674,7 +672,7 @@ export default class MigrationService {
 	}
 
 	/**
-	 * Migre l'ancien moteur open local vers le nouveau moteur Muaalem local.
+	 * Migre l'ancien moteur open local vers le moteur Offline Tarteel local.
 	 */
 	static FromQC348ToQC349(): void {
 		if (!globalState.settings) return;
@@ -701,18 +699,7 @@ export default class MigrationService {
 		}
 
 		if (autoSegmentationSettings.localAsrMode === 'muaalem_local') {
-			const validModels = new Set([
-				'Muaalem-v3.2',
-				'Open-Tadabur-Small',
-				'Open-DeepDML-Small-Mix',
-				'Open-DeepDML-Medium-Mix',
-				'Open-IJyad-Large-V3',
-				'Open-Naazim-Large-V3-Turbo',
-				'Open-Legacy-Tiny',
-				'Open-Legacy-Base',
-				'Open-Legacy-Medium',
-				'Open-Legacy-Large'
-			]);
+			const validModels = new Set(['Muaalem-v3.2']);
 			if (!validModels.has(autoSegmentationSettings.multiAlignerModel ?? '')) {
 				autoSegmentationSettings.multiAlignerModel = 'Muaalem-v3.2';
 				hasChanges = true;

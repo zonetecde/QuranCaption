@@ -352,7 +352,7 @@ pub async fn check_local_segmentation_ready(
             } else if legacy_ready && !multi_usable {
                 "Legacy local engine is ready. Multi-aligner requires a Hugging Face token with access to private models.".to_string()
             } else if !legacy_venv_exists && !multi_venv_exists && !muaalem_venv_exists && !surah_splitter_venv_exists {
-                "Local engines are not installed yet. Install dependencies for Legacy Whisper, Multi-Aligner, Muaalem Local, and/or Surah Splitter.".to_string()
+                "Local engines are not installed yet. Install dependencies for Legacy Whisper, Multi-Aligner, Offline Tarteel Local, and/or Surah Splitter.".to_string()
             } else {
                 "Local engines need setup or a Hugging Face token with private model access for Multi-Aligner.".to_string()
             };
@@ -422,16 +422,16 @@ pub async fn check_local_segmentation_ready(
                         "packagesInstalled": muaalem_packages,
                         "usable": muaalem_ready,
                         "message": if muaalem_ready {
-                            "Muaalem Local local engine is ready".to_string()
+                            "Offline Tarteel Local engine is ready".to_string()
                         } else if !muaalem_venv_exists {
-                            "Muaalem Local dependencies are not installed".to_string()
+                            "Offline Tarteel Local dependencies are not installed".to_string()
                         } else if !muaalem_missing_modules.is_empty() {
                             format!(
-                                "Muaalem Local packages are incomplete (missing imports: {})",
+                                "Offline Tarteel Local packages are incomplete (missing imports: {})",
                                 muaalem_missing_modules.join(", ")
                             )
                         } else {
-                            "Muaalem Local packages are incomplete".to_string()
+                            "Offline Tarteel Local packages are incomplete".to_string()
                         }
                     },
                     "surahSplitter": {

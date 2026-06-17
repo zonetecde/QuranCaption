@@ -228,6 +228,7 @@ export async function runAutoSegmentation(
 	const multiAlignerModel = options.multiAlignerModel ?? 'Base';
 	const cloudModel = options.cloudModel ?? 'Base';
 	const surahSplitterSurah = options.surahSplitterSurah ?? null;
+	const muaalemMultipleSurahs = options.muaalemMultipleSurahs ?? false;
 	const device: SegmentationDevice = options.device ?? 'GPU';
 	const hfToken: string = (options.hfToken ?? '').trim();
 	const allowCloudFallback: boolean = options.allowCloudFallback ?? true;
@@ -298,7 +299,8 @@ export async function runAutoSegmentation(
 					...basePayload,
 					modelName: multiAlignerModel,
 					device: targetDevice,
-					includeWbwTimestamps
+					includeWbwTimestamps,
+					multipleSurahs: muaalemMultipleSurahs
 				});
 			}
 

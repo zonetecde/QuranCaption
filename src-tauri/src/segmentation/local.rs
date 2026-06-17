@@ -198,6 +198,15 @@ fn run_local_segmentation_script(
     // ExÃ©cution Python + thread de lecture stderr pour status/events de progression.
     let mut cmd = Command::new(&python_exe);
     cmd.args(&args);
+    if let Some(ffmpeg_dir) = std::path::Path::new(&ffmpeg_path).parent() {
+        let mut path_entries = vec![ffmpeg_dir.to_path_buf()];
+        if let Some(current_path) = std::env::var_os("PATH") {
+            path_entries.extend(std::env::split_paths(&current_path));
+        }
+        if let Ok(joined_path) = std::env::join_paths(path_entries) {
+            cmd.env("PATH", joined_path);
+        }
+    }
     if let Some(token) = hf_token {
         if !token.trim().is_empty() {
             apply_hf_token_env(&mut cmd, token.trim());
@@ -417,7 +426,7 @@ pub async fn segment_quran_audio_local_multi(
     )
 }
 
-/// Exécute la segmentation locale via moteur Muaalem sans token HF.
+/// Exécute la segmentation locale via moteur Offline Tarteel ONNX sans token HF.
 pub async fn segment_quran_audio_local_muaalem(
     app_handle: tauri::AppHandle,
     audio_path: Option<String>,
@@ -428,26 +437,15 @@ pub async fn segment_quran_audio_local_muaalem(
     model_name: Option<String>,
     device: Option<String>,
     include_wbw_timestamps: Option<bool>,
+    multiple_surahs: Option<bool>,
 ) -> Result<serde_json::Value, String> {
     let selected_model = model_name.unwrap_or_else(|| "Muaalem-v3.2".to_string());
-    let valid_models = [
-        "Muaalem-v3.2",
-        "Open-Tadabur-Small",
-        "Open-DeepDML-Small-Mix",
-        "Open-DeepDML-Medium-Mix",
-        "Open-IJyad-Large-V3",
-        "Open-Naazim-Large-V3-Turbo",
-        "Open-Legacy-Tiny",
-        "Open-Legacy-Base",
-        "Open-Legacy-Medium",
-        "Open-Legacy-Large",
-    ];
-    if !valid_models.contains(&selected_model.as_str()) {
+    if selected_model != "Muaalem-v3.2" {
         return Err(format!("Invalid model_name '{}'.", selected_model));
     }
 
-    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
-    if selected_device != "GPU" && selected_device != "CPU" {
+    let selected_device = device.unwrap_or_else(|| "CPU".to_string()).to_uppercase();
+    if selected_device != "CPU" && selected_device != "GPU" {
         return Err(format!(
             "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
             selected_device
@@ -466,6 +464,10 @@ pub async fn segment_quran_audio_local_muaalem(
             "false".to_string()
         },
     ];
+    let mut extra_args = extra_args;
+    if multiple_surahs.unwrap_or(false) {
+        extra_args.push("--multiple".to_string());
+    }
 
     run_local_segmentation_script(
         app_handle,

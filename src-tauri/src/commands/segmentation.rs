@@ -137,7 +137,7 @@ pub async fn segment_quran_audio_local_multi(
     .await
 }
 
-/// Lance la segmentation locale en mode Muaalem Local.
+/// Lance la segmentation locale en mode Offline Tarteel.
 #[tauri::command]
 pub async fn segment_quran_audio_local_muaalem(
     app_handle: tauri::AppHandle,
@@ -149,6 +149,7 @@ pub async fn segment_quran_audio_local_muaalem(
     model_name: Option<String>,
     device: Option<String>,
     include_wbw_timestamps: Option<bool>,
+    multiple_surahs: Option<bool>,
 ) -> Result<serde_json::Value, String> {
     segmentation::segment_quran_audio_local_muaalem(
         app_handle,
@@ -160,6 +161,7 @@ pub async fn segment_quran_audio_local_muaalem(
         model_name,
         device,
         include_wbw_timestamps,
+        multiple_surahs,
     )
     .await
 }

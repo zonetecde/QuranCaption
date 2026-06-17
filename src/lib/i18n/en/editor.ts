@@ -209,7 +209,7 @@ const editor = {
 	readyToUse: 'Ready to use',
 	legacyWhisper: 'Legacy Whisper local packages',
 	privateQuranicAligner: 'Private Local Quranic Universal Aligner packages',
-	muaalemLocal: 'Muaalem Local packages',
+	muaalemLocal: 'Offline Tarteel Local packages',
 	surahSplitterLocal: 'Surah Splitter Local packages',
 	audioDetected: 'Audio detected',
 	noAudioClip: 'No audio clip',
@@ -368,7 +368,7 @@ const editor = {
 	wbwTimestampsDescription:
 		'Stores per-word timings so you can split and edit subtitles more precisely later.',
 	wbwTimestampsOnlyMuaalem:
-		'Word-by-word timestamps are only supported with the Muaalem v3.2 model.',
+		'Word-by-word timestamps are only supported with compatible alignment models.',
 	fillGapsWithSilence: 'Fill gaps with silence clips',
 	extendSubtitleBeforeSilence: 'Extend subtitle before silence by',
 	extendBeforeSilenceHint: 'This extends the segment right before a silence block by {ms} ms.',
@@ -402,7 +402,8 @@ const editor = {
 	prepareMethodCloudDesc: 'No local installation is required.',
 	prepareMethodLocalV2Desc:
 		'Install the required local packages and configure your Hugging Face token.',
-	prepareMethodMuaalemDesc: 'Install the required local packages for the Muaalem local workflow.',
+	prepareMethodMuaalemDesc:
+		'Install the required local packages for the Offline Tarteel ONNX workflow.',
 	prepareMethodSurahSplitterDesc:
 		'Install the required local packages for the Surah Splitter workflow.',
 	prepareMethodLegacyDesc: 'Install the legacy local dependencies.',
@@ -419,7 +420,7 @@ const editor = {
 	noTokenRequiredSurahSplitterHint:
 		'No token required. Surah Splitter downloads its WhisperX model during the first run.',
 	muaalemLocalHint:
-		'This option is fully local, but it is usually less accurate than the official Quranic Universal Aligner pipeline.',
+		'This option runs locally with the Offline Tarteel ONNX model and downloads the model on first run.',
 	surahSplitterLocalHint:
 		'This option can auto-detect the surah. Selecting the surah manually in the next step improves matching precision.',
 	chooseMethodLabel: 'Choose a method',
@@ -435,10 +436,10 @@ const editor = {
 		'Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports word-by-word alignment, but selecting the surah manually improves precision.',
 	surahSplitterSingleSurahNote:
 		"Note: this option only works if there's one surah in the audio file.",
-	muaalemLocalLabel: 'Muaalem Local',
-	muaalemLocalDesc: 'Second option but less effective than Surah Splitter',
+	muaalemLocalLabel: 'Offline Tarteel Local',
+	muaalemLocalDesc: 'Fast local Quran alignment with repetition handling',
 	muaalemLocalDetail:
-		'Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific segmentation and matching.',
+		'Runs on your machine with a quantized ONNX FastConformer model and exports word-level timings for QuranCaption.',
 	privateLocalQuranicAlignerLabel: 'Private Local Quranic Universal Aligner',
 	bestLocalAccuracy: 'Best local accuracy',
 	privateLocalQuranicAlignerDetail:
@@ -547,17 +548,21 @@ const editor = {
 		'Play the audio using space, and press enter each time a word finishes being recited. Go to the subtitles editor for more options.',
 	experimentalFallbackHint:
 		'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
+	offlineTarteelModelLabel: 'Offline Tarteel q8',
+	offlineTarteelModelDesc: 'Quantized ONNX FastConformer model for local Quran alignment.',
+	muaalemMultipleSurahsLabel: 'Audio contains multiple surahs',
+	muaalemMultipleSurahsHint:
+		'Enable this when one audio file moves across surahs. Leave it off for a single surah.',
 	muaalemLocalFeatureDesc:
-		'Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic Quran passage retrieval, and local forced alignment for real word-by-word timings.',
+		'Offline Tarteel Local transcribes with a quantized ONNX FastConformer model, aligns words to the Quran text, handles repetitions, and returns word-level timings.',
 	surahSplitterFeatureDesc:
 		'Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran text, then returns ayah-level timestamps. Auto-detection is available, but specifying the surah improves precision.',
 	muaalemLocalEffectivenessHint:
-		'This method is fully local, but it is generally less effective than the official Quranic Universal Aligner. Advanced fallback models are hidden by default because they are more experimental than the recommended Muaalem v3.2 path.',
+		'For multi-surah audio, enable the multiple-surah option so the matcher can re-anchor during the run.',
 	surahSplitterDownloadNote:
 		'Surah Splitter downloads the selected model during segmentation if it is not cached yet.',
 	tokenRequiredHint: 'This method requires a valid Hugging Face token before it can run.',
-	muaalemReviewHint:
-		'This method is fully local and simpler to install, but usually less effective than the official Quranic Universal Aligner pipeline.',
+	muaalemReviewHint: 'The ONNX model is downloaded on first run if it is not already cached.',
 	surahSplitterReviewHint:
 		'Auto-detection is available, but specifying the surah improves precision.',
 	legacyV1ReviewHint: 'Legacy V1 is an older fallback pipeline with lower alignment quality.',

@@ -69,7 +69,8 @@ export function deriveSelectionState(settings?: AutoSegmentationSettings): Wizar
 					: (settings?.multiAlignerModel ?? 'Base'),
 		cloudModel: settings?.cloudModel ?? 'Base',
 		surahSplitterSurah: settings?.surahSplitterSurah ?? null,
-		device: settings?.device ?? 'GPU',
+		muaalemMultipleSurahs: settings?.muaalemMultipleSurahs ?? false,
+		device: aiVersion === 'muaalem_local' ? 'CPU' : (settings?.device ?? 'GPU'),
 		hfToken: settings?.hfToken ?? ''
 	};
 }

@@ -36,6 +36,7 @@ export type AutoSegmentationSettings = {
 		| 'SurahSplitter-Base-Quran';
 	cloudModel: 'Base' | 'Large';
 	surahSplitterSurah: number | null;
+	muaalemMultipleSurahs: boolean;
 	device: 'GPU' | 'CPU';
 	hfToken: string;
 	includeWbwTimestamps: boolean;
@@ -130,6 +131,7 @@ export default class Settings extends SerializableBase {
 		multiAlignerModel: 'Base',
 		cloudModel: 'Base',
 		surahSplitterSurah: null,
+		muaalemMultipleSurahs: false,
 		device: 'GPU',
 		hfToken: '',
 		includeWbwTimestamps: false,

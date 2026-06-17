@@ -84,9 +84,9 @@ export const MULTI_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 export const MUAALEM_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 	{
 		value: 'Muaalem-v3.2',
-		label: 'Muaalem v3.2',
-		description: 'Recommended phonetic speech recognition model for the local Muaalem pipeline.',
-		source: 'obadx/muaalem-model-v3_2'
+		label: 'Offline Tarteel q8',
+		description: 'Quantized ONNX FastConformer model for local Quran alignment.',
+		source: 'yazinsai/offline-tarteel'
 	}
 ];
 
@@ -101,59 +101,4 @@ export const SURAH_SPLITTER_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>>
 ];
 
 /** Experimental alternative speech recognition models available in advanced Muaalem settings. */
-export const MUAALEM_ADVANCED_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
-	{
-		value: 'Open-Tadabur-Small',
-		label: 'Tadabur Small',
-		description: 'Experimental fallback model based on the previous open local workflow.',
-		source: 'FaisaI/tadabur-Whisper-Small'
-	},
-	{
-		value: 'Open-Naazim-Large-V3-Turbo',
-		label: 'Naazim Large V3 Turbo',
-		description: 'Experimental large Quran model, heavier and slower than the default.',
-		source: 'naazimsnh02/whisper-large-v3-turbo-ar-quran'
-	},
-	{
-		value: 'Open-DeepDML-Medium-Mix',
-		label: 'DeepDML Medium Mix',
-		description: 'Experimental medium Quran model from the previous open local workflow.',
-		source: 'deepdml/whisper-medium-ar-quran-mix-norm'
-	},
-	{
-		value: 'Open-DeepDML-Small-Mix',
-		label: 'DeepDML Small Mix',
-		description: 'Experimental small Quran model, lighter but usually less accurate.',
-		source: 'deepdml/whisper-small-ar-quran-mix'
-	},
-	{
-		value: 'Open-IJyad-Large-V3',
-		label: 'IJyad Large V3',
-		description: 'Experimental large Tarteel-focused model from the previous open workflow.',
-		source: 'IJyad/whisper-large-v3-Tarteel'
-	},
-	{
-		value: 'Open-Legacy-Tiny',
-		label: 'Tiny',
-		description: 'Experimental legacy tiny model.',
-		source: 'tarteel-ai/whisper-tiny-ar-quran'
-	},
-	{
-		value: 'Open-Legacy-Base',
-		label: 'Base',
-		description: 'Experimental legacy base model.',
-		source: 'tarteel-ai/whisper-base-ar-quran'
-	},
-	{
-		value: 'Open-Legacy-Medium',
-		label: 'Medium',
-		description: 'Experimental general-purpose Whisper medium model.',
-		source: 'openai/whisper-medium'
-	},
-	{
-		value: 'Open-Legacy-Large',
-		label: 'Large',
-		description: 'Experimental legacy large model.',
-		source: 'IJyad/whisper-large-v3-Tarteel'
-	}
-];
+export const MUAALEM_ADVANCED_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [];

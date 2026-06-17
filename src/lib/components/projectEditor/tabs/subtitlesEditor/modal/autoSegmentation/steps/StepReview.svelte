@@ -12,7 +12,7 @@
 					? 'Private Local Quranic Universal Aligner'
 					: wizard.selection.aiVersion === 'surah_splitter'
 						? 'Surah Splitter Local'
-						: 'Muaalem Local'
+						: $LL.editor.muaalemLocalLabel()
 	);
 </script>
 
@@ -27,16 +27,20 @@
 			{$LL.editor.methodLabel()}: <span class="text-primary font-semibold">{versionLabel()}</span>
 		</div>
 		<div class="text-secondary">
-			{$LL.editor.modelLabel()}: <span class="text-primary font-semibold">{wizard.selectedModel()}</span>
+			{$LL.editor.modelLabel()}:
+			<span class="text-primary font-semibold">{wizard.selectedModel()}</span>
 		</div>
 		<div class="text-secondary">
 			{$LL.editor.deviceLabel()}:
 			<span class="text-primary font-semibold"
-				>{wizard.selection.aiVersion === 'legacy_v1' ? $LL.editor.automaticLabel() : wizard.selectedDevice()}</span
+				>{wizard.selection.aiVersion === 'legacy_v1'
+					? $LL.editor.automaticLabel()
+					: wizard.selectedDevice()}</span
 			>
 		</div>
 		<div class="text-secondary">
-			{$LL.editor.audioSourceLabel()}: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
+			{$LL.editor.audioSourceLabel()}:
+			<span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
 		{#if wizard.selection.aiVersion === 'surah_splitter'}
 			<div class="text-secondary">
@@ -45,6 +49,16 @@
 					>{wizard.selection.surahSplitterSurah === null
 						? $LL.editor.autoDetectLabel()
 						: `Surah ${wizard.selection.surahSplitterSurah}`}</span
+				>
+			</div>
+		{/if}
+		{#if wizard.selection.aiVersion === 'muaalem_local'}
+			<div class="text-secondary">
+				{$LL.editor.muaalemMultipleSurahsLabel()}:
+				<span class="text-primary font-semibold"
+					>{wizard.selection.muaalemMultipleSurahs
+						? $LL.editor.enabledLabel()
+						: $LL.editor.disabledLabel()}</span
 				>
 			</div>
 		{/if}

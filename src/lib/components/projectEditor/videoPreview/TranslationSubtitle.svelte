@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import {
+		EMPTY_INLINE_STYLE_FLAGS,
 		getInlineStyleCss,
 		getInlineStyleFlagsForWordIndex,
 		type TranslationInlineStyleFlags,
@@ -22,7 +23,8 @@
 	import {
 		getWordByWordHighlightProgress,
 		getWordByWordHighlightState,
-		getWordByWordWordCss
+		getWordByWordWordCss,
+		interpolateCssColor
 	} from './wordByWordHighlightUtils';
 
 	/**
@@ -397,6 +399,7 @@
 	 */
 	function getTranslationSegmentCss(segment: TranslationWbwOverlaySegment): string {
 		let wbwCss = '';
+		let inlineRevealProgress = 1;
 		const wbwWordIndexes = segment.wbwWordIndexes ?? [];
 		if (wbwWordIndexes.length > 0 && wbwState().enabled) {
 			const best = wbwWordIndexes
@@ -411,9 +414,51 @@
 				best.progress,
 				wbwPreviewFadeDuration()
 			);
+			inlineRevealProgress = getInlineStyleRevealProgress(wbwWordIndexes, best.progress);
 		}
 
-		return `${wbwCss} ${getForcedRevealCss(segment)} ${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim();
+		return `${wbwCss} ${getForcedRevealCss(segment)} ${getRevealedInlineStyleCss(segment, inlineRevealProgress)} ${segment.extraCss ?? ''}`.trim();
+	}
+
+	/**
+	 * Retourne la progression de révélation du style inline d'un segment.
+	 *
+	 * @param {number[]} wbwWordIndexes Index WBW liés au segment.
+	 * @param {number} activeProgress Progression du meilleur mot actif.
+	 * @returns {number} Progression normalisée entre 0 et 1.
+	 */
+	function getInlineStyleRevealProgress(wbwWordIndexes: number[], activeProgress: number): number {
+		const state = wbwState();
+		if (!state.revealSpecificWordStyle) return 1;
+		if (state.activeWordIndex >= state.words.length) return 1;
+		if (wbwWordIndexes.some((wordIndex) => wordIndex < state.activeWordIndex)) return 1;
+		if (wbwWordIndexes.some((wordIndex) => wordIndex === state.activeWordIndex)) {
+			return activeProgress;
+		}
+		return 0;
+	}
+
+	/**
+	 * Retourne le CSS inline visible, avec fondu pour la couleur custom.
+	 *
+	 * @param {TranslationWbwOverlaySegment} segment Segment à afficher.
+	 * @param {number} revealProgress Progression de révélation du style.
+	 * @returns {string} CSS inline visible à cet instant.
+	 */
+	function getRevealedInlineStyleCss(
+		segment: TranslationWbwOverlaySegment,
+		revealProgress: number
+	): string {
+		if (revealProgress <= 0) return getInlineStyleCss(EMPTY_INLINE_STYLE_FLAGS);
+		if (!wbwState().revealSpecificWordStyle || revealProgress >= 1 || !segment.flags.color) {
+			return getInlineStyleCss(segment.flags);
+		}
+
+		return `${getInlineStyleCss({ ...segment.flags, color: null })} color: ${interpolateCssColor(
+			wbwState().baseColor,
+			segment.flags.color,
+			revealProgress
+		)};`.trim();
 	}
 
 	/**

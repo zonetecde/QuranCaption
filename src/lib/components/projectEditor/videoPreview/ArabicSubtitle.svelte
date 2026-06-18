@@ -24,7 +24,8 @@
 		getWordByWordHighlightState as computeWordByWordHighlightState,
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
 		getWordByWordWordCss as buildWordByWordWordCss,
-		getWordByWordWordOpacity
+		getWordByWordWordOpacity,
+		interpolateCssColor
 	} from './wordByWordHighlightUtils';
 	import {
 		getDecorativeBracketCss,
@@ -554,8 +555,55 @@
 			highlightProgress,
 			wbwPreviewFadeDuration()
 		);
-		const inlineCss = getInlineStyleCss(flags);
+		const inlineCss = getRevealedInlineStyleCss(wordIndex, state, highlightProgress, flags);
 		return `${wbwCss} ${inlineCss}`.trim();
+	}
+
+	/**
+	 * Retourne la progression de révélation du style inline d'un mot.
+	 *
+	 * @param {number} wordIndex Index du mot dans le flux WBW courant.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @param {number} highlightProgress Progression WBW du mot courant.
+	 * @returns {number} Progression normalisée entre 0 et 1.
+	 */
+	function getInlineStyleRevealProgress(
+		wordIndex: number,
+		state: WordByWordHighlightState,
+		highlightProgress: number
+	): number {
+		if (!state.revealSpecificWordStyle) return 1;
+		if (state.activeWordIndex >= state.words.length || wordIndex < state.activeWordIndex) return 1;
+		if (wordIndex > state.activeWordIndex) return 0;
+		return highlightProgress;
+	}
+
+	/**
+	 * Retourne le CSS inline visible, avec fondu pour la couleur custom.
+	 *
+	 * @param {number} wordIndex Index du mot dans le flux WBW courant.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @param {number} highlightProgress Progression WBW du mot courant.
+	 * @param {TranslationInlineStyleFlags} flags Flags inline persistés.
+	 * @returns {string} CSS inline visible à cet instant.
+	 */
+	function getRevealedInlineStyleCss(
+		wordIndex: number,
+		state: WordByWordHighlightState,
+		highlightProgress: number,
+		flags: TranslationInlineStyleFlags
+	): string {
+		const revealProgress = getInlineStyleRevealProgress(wordIndex, state, highlightProgress);
+		if (revealProgress <= 0) return getInlineStyleCss(EMPTY_INLINE_STYLE_FLAGS);
+		if (!state.revealSpecificWordStyle || revealProgress >= 1 || !flags.color) {
+			return getInlineStyleCss(flags);
+		}
+
+		return `${getInlineStyleCss({ ...flags, color: null })} color: ${interpolateCssColor(
+			state.baseColor,
+			flags.color,
+			revealProgress
+		)};`.trim();
 	}
 
 	// =========================================================================

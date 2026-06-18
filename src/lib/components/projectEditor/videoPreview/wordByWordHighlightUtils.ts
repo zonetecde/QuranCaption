@@ -7,6 +7,7 @@ export type WordByWordHighlightState = {
 	highlightEnabled: boolean;
 	activeWordIndex: number;
 	persistColor: boolean;
+	revealSpecificWordStyle: boolean;
 	revealWordsOnRecitation: boolean;
 	alwaysShowVerseNumber: boolean;
 	baseColor: string;
@@ -35,6 +36,7 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
 	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
 	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
+	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 
@@ -42,6 +44,7 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 		highlightEnabled ||
 		underlineEnabled ||
 		glowEnabled ||
+		revealSpecificWordStyle ||
 		revealWordsOnRecitation ||
 		backgroundEnabled
 	);
@@ -57,6 +60,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		highlightEnabled: false,
 		activeWordIndex: -1,
 		persistColor: false,
+		revealSpecificWordStyle: false,
 		revealWordsOnRecitation: false,
 		alwaysShowVerseNumber: false,
 		baseColor: '',
@@ -122,6 +126,7 @@ export function getWordByWordHighlightState(params: {
 	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
 	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
 	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
+	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
@@ -154,6 +159,7 @@ export function getWordByWordHighlightState(params: {
 		highlightEnabled,
 		activeWordIndex,
 		persistColor: Boolean(getStyleValue('wbw-persist-color')),
+		revealSpecificWordStyle,
 		revealWordsOnRecitation,
 		alwaysShowVerseNumber: Boolean(getStyleValue('wbw-always-show-verse-number')),
 		baseColor: String(getStyleValue('text-color') ?? ''),
@@ -217,7 +223,7 @@ function parseColorToRgba(color: string): { r: number; g: number; b: number; a: 
  * @param {number} progress Progression normalisée entre 0 et 1.
  * @returns {string} Couleur CSS interpolée.
  */
-function interpolateCssColor(fromColor: string, toColor: string, progress: number): string {
+export function interpolateCssColor(fromColor: string, toColor: string, progress: number): string {
 	const from = parseColorToRgba(fromColor);
 	const to = parseColorToRgba(toColor);
 	if (!to) return fromColor;

@@ -1151,6 +1151,7 @@ const es = {
 			'enable-wbw-highlight': 'Activar resaltado wbw',
 			'wbw-color': 'Color palabra por palabra',
 			'wbw-persist-color': 'Persistencia de palabras resaltadas',
+			'wbw-reveal-specific-word-style': 'Revelar estilo de palabra al recitar',
 			'enable-wbw-underline': 'Activar subrayado',
 			'wbw-underline-thickness': 'Grosor del subrayado',
 			'enable-wbw-glow': 'Activar brillo wbw',
@@ -1307,6 +1308,8 @@ const es = {
 			'wbw-color': 'Color aplicado a las palabras resaltadas',
 			'wbw-persist-color':
 				'Mantener las palabras previamente resaltadas coloreadas después de su lectura',
+			'wbw-reveal-specific-word-style':
+				'Ocultar estilos personalizados de palabras hasta que se recite la palabra vinculada',
 			'enable-wbw-underline': 'Subrayar las palabras resaltadas',
 			'wbw-underline-thickness': 'Grosor del subrayado wbw en píxeles',
 			'enable-wbw-glow': 'Agregar un brillo alrededor de las palabras resaltadas',

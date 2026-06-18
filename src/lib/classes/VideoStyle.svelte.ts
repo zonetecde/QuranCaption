@@ -122,6 +122,7 @@ export type WordByWordHighlightStyleName =
 	| 'enable-wbw-highlight'
 	| 'wbw-color'
 	| 'wbw-persist-color'
+	| 'wbw-reveal-specific-word-style'
 	| 'wbw-reveal-on-recitation'
 	| 'enable-wbw-background'
 	| 'enable-wbw-underline'

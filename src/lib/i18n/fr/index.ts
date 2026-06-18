@@ -1149,6 +1149,7 @@ const fr = {
 			'enable-wbw-highlight': 'Activer le surlignage wbw',
 			'wbw-color': 'Couleur mot par mot',
 			'wbw-persist-color': 'Persistance des mots surlignés',
+			'wbw-reveal-specific-word-style': 'Révéler le style du mot à la récitation',
 			'enable-wbw-underline': 'Activer le soulignement',
 			'wbw-underline-thickness': 'Épaisseur du soulignement',
 			'enable-wbw-glow': 'Activer la lueur wbw',
@@ -1305,6 +1306,8 @@ const fr = {
 			'enable-wbw-highlight': 'Activer ou désactiver le surlignage chronométré mot par mot',
 			'wbw-color': 'Couleur appliquée aux mots surlignés',
 			'wbw-persist-color': 'Garder les mots précédemment surlignés colorés après leur lecture',
+			'wbw-reveal-specific-word-style':
+				'Masquer les styles personnalisés des mots jusqu’à leur récitation',
 			'enable-wbw-underline': 'Souligner les mots surlignés',
 			'wbw-underline-thickness': 'Épaisseur du soulignement wbw en pixels',
 			'enable-wbw-glow': 'Ajouter une lueur autour des mots surlignés',

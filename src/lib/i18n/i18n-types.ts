@@ -4215,6 +4215,10 @@ type RootTranslation = {
 			 */
 			'wbw-persist-color': string;
 			/**
+			 * R​e​v​e​a​l​ ​s​p​e​c​i​f​i​c​ ​w​o​r​d​ ​s​t​y​l​e​ ​o​n​ ​r​e​c​i​t​a​t​i​o​n
+			 */
+			'wbw-reveal-specific-word-style': string;
+			/**
 			 * E​n​a​b​l​e​ ​u​n​d​e​r​l​i​n​e
 			 */
 			'enable-wbw-underline': string;
@@ -4792,6 +4796,10 @@ type RootTranslation = {
 			 * K​e​e​p​ ​p​r​e​v​i​o​u​s​l​y​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s​ ​c​o​l​o​r​e​d​ ​a​f​t​e​r​ ​t​h​e​y​ ​h​a​v​e​ ​b​e​e​n​ ​r​e​a​d
 			 */
 			'wbw-persist-color': string;
+			/**
+			 * H​i​d​e​ ​c​u​s​t​o​m​ ​w​o​r​d​ ​s​t​y​l​e​s​ ​u​n​t​i​l​ ​t​h​e​i​r​ ​l​i​n​k​e​d​ ​w​o​r​d​ ​i​s​ ​r​e​c​i​t​e​d
+			 */
+			'wbw-reveal-specific-word-style': string;
 			/**
 			 * U​n​d​e​r​l​i​n​e​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
@@ -12872,6 +12880,10 @@ export type TranslationFunctions = {
 			 */
 			'wbw-persist-color': () => LocalizedString;
 			/**
+			 * Reveal specific word style on recitation
+			 */
+			'wbw-reveal-specific-word-style': () => LocalizedString;
+			/**
 			 * Enable underline
 			 */
 			'enable-wbw-underline': () => LocalizedString;
@@ -13449,6 +13461,10 @@ export type TranslationFunctions = {
 			 * Keep previously highlighted words colored after they have been read
 			 */
 			'wbw-persist-color': () => LocalizedString;
+			/**
+			 * Hide custom word styles until their linked word is recited
+			 */
+			'wbw-reveal-specific-word-style': () => LocalizedString;
 			/**
 			 * Underline highlighted words
 			 */

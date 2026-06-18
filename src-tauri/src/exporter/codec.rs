@@ -416,7 +416,9 @@ pub fn choose_h265_codec(
     for codec in ["hevc_videotoolbox", "hevc_nvenc", "hevc_qsv", "hevc_amf"] {
         if hw.iter().any(|encoder| encoder == codec) {
             if codec == "hevc_nvenc" && !test_nvenc_availability(ffmpeg_exe.as_deref()) {
-                println!("[codec] HEVC NVENC détecté mais non fonctionnel, fallback H.265 logiciel");
+                println!(
+                    "[codec] HEVC NVENC détecté mais non fonctionnel, fallback H.265 logiciel"
+                );
                 continue;
             }
 

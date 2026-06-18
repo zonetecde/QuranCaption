@@ -56,7 +56,7 @@
 			const track = globalState.currentProject.content.timeline.tracks.find(
 				(t) => t.type === TrackType.Video
 			);
-			return track?.getCurrentClip() ?? null;
+			return track?.getCurrentVisualClip() ?? null;
 		} catch (_e) {
 			return null;
 		}
@@ -69,6 +69,7 @@
 
 	// === ÉTATS LOCAUX ===
 	let videoElement = $state<HTMLVideoElement | null>(null); // Référence à l'élément <video> HTML
+	type VideoClipTransitionMode = 'none' | 'fade-through-black' | 'crossfade';
 
 	// === EFFETS RÉACTIFS ===
 
@@ -147,14 +148,18 @@
 	 * @returns Temps en secondes dans la vidéo
 	 */
 	function getCurrentVideoTimeToPlay(): number {
-		const currentClip = globalState.getVideoTrack.getCurrentClip();
+		const track = globalState.getVideoTrack;
+		const refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition;
+		const currentClip = track.getCurrentVisualClip(refTime);
 		const asset = currentVideo();
 
 		if (!currentClip || !asset) return 0;
 
-		// Le temps dans la vidéo = position du curseur - début du clip
-		const refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition;
-		let timeInClip = refTime - currentClip.startTime;
+		// Le temps dans la vidéo suit le début visuel pour rester aligné avec le crossfade exporté.
+		const clipIndex = track.clips.findIndex((trackClip) => trackClip.id === currentClip.id);
+		const visualStartTime =
+			clipIndex === -1 ? currentClip.startTime : track.getVisualClipStartTime(clipIndex);
+		let timeInClip = refTime - visualStartTime;
 
 		if (isVideoLooping() && !asset.duration.isNull()) {
 			timeInClip = timeInClip % asset.duration.ms;
@@ -510,6 +515,80 @@
 	let isPlaying = $state(false); // État de lecture global
 	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
 	let audioSpeed = $state(1); // Vitesse de lecture audio
+	let transitionAnimationFrame: number | null = null;
+	let transitionRenderCursorPosition = $state(0);
+
+	let videoClipTransitionMode = $derived(() => {
+		return String(
+			globalState.getStyle('global', 'video-clip-transition')?.value ?? 'none'
+		) as VideoClipTransitionMode;
+	});
+
+	let videoClipTransitionDurationMs = $derived(() => {
+		return Math.max(
+			0,
+			Number(globalState.getStyle('global', 'video-clip-transition-duration')?.value ?? 0)
+		);
+	});
+
+	let videoClipTransitionState = $derived(() => {
+		const mode = videoClipTransitionMode();
+		const durationMs = videoClipTransitionDurationMs();
+		const cursorPosition =
+			isPlaying && mode !== 'none' && durationMs > 0
+				? transitionRenderCursorPosition
+				: getTimelineSettings().cursorPosition;
+		const clip = globalState.getVideoTrack.getCurrentVisualClip(cursorPosition);
+		const emptyState = {
+			currentOpacity: 1,
+			showCrossfadeNotice: false
+		};
+
+		if (!(clip instanceof AssetClip) || mode === 'none' || durationMs <= 0) return emptyState;
+
+		const videoClips = globalState.getVideoTrack.clips.filter(
+			(trackClip): trackClip is AssetClip => trackClip instanceof AssetClip
+		);
+		const currentIndex = videoClips.findIndex((trackClip) => trackClip.id === clip.id);
+		const visualStartTime =
+			currentIndex === -1
+				? clip.startTime
+				: globalState.getVideoTrack.getVisualClipStartTime(currentIndex);
+		const visualEndTime = visualStartTime + clip.duration;
+		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
+		const effectiveDurationMs = Math.min(durationMs, clipDurationMs);
+		const timeFromStartMs = Math.max(0, cursorPosition - visualStartTime);
+		const timeToEndMs = Math.max(0, visualEndTime - cursorPosition);
+		const startProgress = Math.min(1, timeFromStartMs / effectiveDurationMs);
+		const endProgress = Math.min(1, timeToEndMs / effectiveDurationMs);
+
+		if (mode === 'fade-through-black') {
+			return {
+				...emptyState,
+				currentOpacity: Math.min(startProgress, endProgress)
+			};
+		}
+
+		if (timeFromStartMs < effectiveDurationMs && currentIndex > 0) {
+			return {
+				...emptyState,
+				showCrossfadeNotice: true
+			};
+		}
+
+		return emptyState;
+	});
+
+	$effect(() => {
+		const shouldRun =
+			isPlaying && videoClipTransitionMode() !== 'none' && videoClipTransitionDurationMs() > 0;
+
+		if (shouldRun) {
+			startTransitionAnimationClock();
+		} else {
+			stopTransitionAnimationClock();
+		}
+	});
 
 	export function togglePlayPause() {
 		if (isPlaying) {
@@ -517,6 +596,82 @@
 		} else {
 			play(true);
 		}
+	}
+
+	/**
+	 * Retourne la position de lecture actuelle pour animer les transitions de preview.
+	 *
+	 * @returns {number} Position courante en millisecondes.
+	 */
+	function getPreviewRenderCursorPosition(): number {
+		const audioClip = globalState.getAudioTrack?.getCurrentClip();
+		if (audioHowl && audioClip) {
+			return audioClip.startTime + audioHowl.seek() * 1000;
+		}
+
+		const videoClip = currentVideoClip();
+		if (videoElement && videoClip) {
+			const clipIndex = globalState.getVideoTrack.clips.findIndex(
+				(trackClip) => trackClip.id === videoClip.id
+			);
+			const visualStartTime =
+				clipIndex === -1
+					? videoClip.startTime
+					: globalState.getVideoTrack.getVisualClipStartTime(clipIndex);
+			return visualStartTime + videoElement.currentTime * 1000;
+		}
+
+		return getTimelineSettings().cursorPosition;
+	}
+
+	/**
+	 * Anime les opacités de transition avec requestAnimationFrame.
+	 *
+	 * @returns {void}
+	 */
+	function startTransitionAnimationClock(): void {
+		if (transitionAnimationFrame !== null) return;
+
+		transitionRenderCursorPosition = getPreviewRenderCursorPosition();
+		const tick = () => {
+			transitionRenderCursorPosition = getPreviewRenderCursorPosition();
+			if (
+				isPlaying &&
+				videoClipTransitionMode() !== 'none' &&
+				videoClipTransitionDurationMs() > 0
+			) {
+				transitionAnimationFrame = requestAnimationFrame(tick);
+			} else {
+				transitionAnimationFrame = null;
+			}
+		};
+
+		transitionAnimationFrame = requestAnimationFrame(tick);
+	}
+
+	/**
+	 * Arrête l'horloge de transition de preview.
+	 *
+	 * @returns {void}
+	 */
+	function stopTransitionAnimationClock(): void {
+		if (transitionAnimationFrame === null) return;
+
+		cancelAnimationFrame(transitionAnimationFrame);
+		transitionAnimationFrame = null;
+	}
+
+	/**
+	 * Retourne le message affiché quand le crossfade est ignoré en preview.
+	 *
+	 * @returns {string} Message localisé de preview crossfade.
+	 */
+	function getCrossfadePreviewNotice(): string {
+		return (
+			get(LL).editor as unknown as {
+				crossfadePreviewNotice: () => string;
+			}
+		).crossfadePreviewNotice();
 	}
 
 	/**
@@ -564,9 +719,9 @@
 						if (error === 4) {
 							toast.error(get(LL).editor.audioFileMissing(), { duration: 1000 });
 						} else {
-							toast.error(get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }),
-								{ duration: 1000 }
-							);
+							toast.error(get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }), {
+								duration: 1000
+							});
 						}
 						lastTimeErrorShown = Date.now();
 					}
@@ -683,6 +838,7 @@
 	function pause() {
 		isPlaying = false;
 		globalState.getVideoPreviewState.isPlaying = false;
+		stopTransitionAnimationClock();
 
 		// Pause audio et vidéo
 		if (audioHowl) {
@@ -867,13 +1023,18 @@
 		<div class="relative origin-top-left bg-black" id="preview">
 			{#if !globalState.getVideoPreviewState.showVideosAndAudios}
 				{#if currentVideo()}
+					{@const transitionState = videoClipTransitionState()}
 					<video
 						bind:this={videoElement}
 						src={`${convertFileSrc(currentVideo()!.filePath)}?v=${currentVideo()!.mediaReloadToken}`}
 						muted
 						loop={isVideoLooping()}
 						onended={goNextVideo}
+						style={`opacity: ${transitionState.currentOpacity};`}
 					></video>
+					{#if transitionState.showCrossfadeNotice}
+						<div class="crossfade-preview-notice">{getCrossfadePreviewNotice()}</div>
+					{/if}
 				{:else if currentImage()}
 					<img
 						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
@@ -908,5 +1069,20 @@
 		width: 100% !important;
 		min-height: 0 !important;
 		display: block;
+	}
+	.crossfade-preview-notice {
+		position: absolute;
+		left: 50%;
+		bottom: 18px;
+		z-index: 20;
+		max-width: min(90%, 720px);
+		transform: translateX(-50%);
+		border-radius: 4px;
+		background: rgba(0, 0, 0, 0.82);
+		color: #ffffff;
+		padding: 7px 12px;
+		text-align: center;
+		font-size: 20px;
+		line-height: 1.35;
 	}
 </style>

@@ -3166,6 +3166,10 @@ type RootTranslation = {
 		 */
 		overlayIndividualApplied: string;
 		/**
+		 * C​r​o​s​s​f​a​d​e​ ​i​s​ ​n​o​t​ ​s​h​o​w​n​ ​i​n​ ​t​h​e​ ​v​i​d​e​o​ ​p​r​e​v​i​e​w​,​ ​b​u​t​ ​i​t​ ​w​i​l​l​ ​b​e​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​.
+		 */
+		crossfadePreviewNotice: string;
+		/**
 		 * I​n​d​i​v​i​d​u​a​l​ ​s​t​y​l​e​s​ ​a​p​p​l​i​e​d​ ​o​n​ ​t​h​i​s​ ​c​l​i​p
 		 */
 		subtitleIndividualStyles: string;
@@ -4451,6 +4455,14 @@ type RootTranslation = {
 			 */
 			'video-and-audio-fade': string;
 			/**
+			 * V​i​d​e​o​ ​C​l​i​p​ ​T​r​a​n​s​i​t​i​o​n
+			 */
+			'video-clip-transition': string;
+			/**
+			 * V​i​d​e​o​ ​C​l​i​p​ ​T​r​a​n​s​i​t​i​o​n​ ​D​u​r​a​t​i​o​n
+			 */
+			'video-clip-transition-duration': string;
+			/**
 			 * S​u​b​t​i​t​l​e​s​ ​A​n​t​i​-​C​o​l​l​i​s​i​o​n
 			 */
 			'anti-collision': string;
@@ -5032,6 +5044,14 @@ type RootTranslation = {
 			 * C​o​n​f​i​g​u​r​e​ ​e​x​p​o​r​t​ ​f​a​d​e​ ​i​n​/​o​u​t​ ​f​o​r​ ​v​i​d​e​o​ ​a​n​d​ ​a​u​d​i​o​.
 			 */
 			'video-and-audio-fade': string;
+			/**
+			 * T​r​a​n​s​i​t​i​o​n​ ​b​e​t​w​e​e​n​ ​t​i​m​e​l​i​n​e​ ​v​i​d​e​o​ ​c​l​i​p​s​.
+			 */
+			'video-clip-transition': string;
+			/**
+			 * D​u​r​a​t​i​o​n​ ​o​f​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​r​a​n​s​i​t​i​o​n​s​ ​i​n​ ​m​i​l​l​i​s​e​c​o​n​d​s​.
+			 */
+			'video-clip-transition-duration': string;
 			/**
 			 * P​r​e​v​e​n​t​ ​s​u​b​t​i​t​l​e​ ​o​v​e​r​l​a​p
 			 */
@@ -11859,6 +11879,10 @@ export type TranslationFunctions = {
 		 */
 		overlayIndividualApplied: () => LocalizedString;
 		/**
+		 * Crossfade is not shown in the video preview, but it will be present in the exported video.
+		 */
+		crossfadePreviewNotice: () => LocalizedString;
+		/**
 		 * Individual styles applied on this clip
 		 */
 		subtitleIndividualStyles: () => LocalizedString;
@@ -13116,6 +13140,14 @@ export type TranslationFunctions = {
 			 */
 			'video-and-audio-fade': () => LocalizedString;
 			/**
+			 * Video Clip Transition
+			 */
+			'video-clip-transition': () => LocalizedString;
+			/**
+			 * Video Clip Transition Duration
+			 */
+			'video-clip-transition-duration': () => LocalizedString;
+			/**
 			 * Subtitles Anti-Collision
 			 */
 			'anti-collision': () => LocalizedString;
@@ -13697,6 +13729,14 @@ export type TranslationFunctions = {
 			 * Configure export fade in/out for video and audio.
 			 */
 			'video-and-audio-fade': () => LocalizedString;
+			/**
+			 * Transition between timeline video clips.
+			 */
+			'video-clip-transition': () => LocalizedString;
+			/**
+			 * Duration of video clip transitions in milliseconds.
+			 */
+			'video-clip-transition-duration': () => LocalizedString;
 			/**
 			 * Prevent subtitle overlap
 			 */

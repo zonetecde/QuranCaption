@@ -874,6 +874,8 @@ const de = {
 		experimentalFallbackHintShort:
 			'Experimentelle Fallback-Modelle des alten lokalen offenen Workflows. Sie verwenden nicht den vollständigen phonetischen Pfad von Muaalem und können weniger zuverlässig sein.',
 		overlayIndividualApplied: 'Überlagerung auf diesen Clip angewendet',
+		crossfadePreviewNotice:
+			'Der Crossfade wird in der Videovorschau nicht angezeigt, ist aber im exportierten Video vorhanden.',
 		subtitleIndividualStyles: 'Individuelle Stile auf diesen Clip angewendet',
 		subtitles: 'Untertitel',
 		minWordsLabel: 'Min. Wörter',
@@ -1206,6 +1208,8 @@ const de = {
 			'video-dimension': 'Videoqualität und -ausrichtung',
 			'fade-duration': 'Ein-/Ausblendedauer der Untertitel',
 			'video-and-audio-fade': 'Video- und Audio-Ein-/Ausblendung',
+			'video-clip-transition': 'Übergang zwischen Videoclips',
+			'video-clip-transition-duration': 'Dauer des Übergangs zwischen Videoclips',
 			'anti-collision': 'Untertitel-Kollisionsvermeidung',
 			spacing: 'Untertitel-Abstand',
 			overlay: 'Überlagerung',
@@ -1370,6 +1374,8 @@ const de = {
 			'video-dimension': 'Videoqualität und -ausrichtung',
 			'fade-duration': 'Dauer des Ein-/Ausblendeffekts in Millisekunden',
 			'video-and-audio-fade': 'Ein-/Ausblendung für Video und Audio beim Export konfigurieren.',
+			'video-clip-transition': 'Übergang zwischen den Videoclips in der Timeline.',
+			'video-clip-transition-duration': 'Dauer der Übergänge zwischen Videoclips in Millisekunden.',
 			'anti-collision': 'Überlappung von Untertiteln verhindern',
 			spacing: 'Mindestabstand zwischen Untertiteln (in Pixel)',
 			overlay: 'Farbüberlagerung zum Video hinzufügen',

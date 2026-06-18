@@ -67,6 +67,8 @@ export type GlobalAnimationStyleName =
 	| 'video-dimension'
 	| 'fade-duration'
 	| 'video-and-audio-fade'
+	| 'video-clip-transition'
+	| 'video-clip-transition-duration'
 	| 'anti-collision'
 	| 'spacing';
 

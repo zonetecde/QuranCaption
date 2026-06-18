@@ -16,7 +16,8 @@ use super::ffmpeg_runner;
 use super::ffmpeg_utils;
 use super::preprocess;
 use super::types::{
-    CodecUsage, ExportPerformanceProfile, ExportVideoCodec, FfmpegProgressContext, VideoInput,
+    CodecUsage, ExportPerformanceProfile, ExportVideoCodec, FfmpegProgressContext,
+    VideoClipTransitionMode, VideoInput,
 };
 
 // ---------------------------------------------------------------------------
@@ -60,6 +61,8 @@ pub async fn export_video(
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
     video_codec: Option<ExportVideoCodec>,
+    video_clip_transition_mode: Option<VideoClipTransitionMode>,
+    video_clip_transition_duration_ms: Option<i32>,
     blank_timings: Option<Vec<i32>>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
@@ -289,6 +292,8 @@ pub async fn export_video(
             export_without_background.unwrap_or(false),
             transparent_export_format.as_deref(),
             video_codec.unwrap_or(ExportVideoCodec::H264),
+            video_clip_transition_mode.unwrap_or(VideoClipTransitionMode::None),
+            video_clip_transition_duration_ms.unwrap_or(0),
             performance_profile,
             app_handle,
         )
@@ -1122,6 +1127,8 @@ fn run_fast_export(
     export_without_background: bool,
     transparent_export_format: Option<&str>,
     video_codec: ExportVideoCodec,
+    video_clip_transition_mode: VideoClipTransitionMode,
+    video_clip_transition_duration_ms: i32,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> ExportResult<()> {
@@ -1140,6 +1147,10 @@ fn run_fast_export(
     let duration_s = full_duration_ms as f64 / 1000.0;
     let start_s = (start_time_ms as f64 / 1000.0).max(0.0);
     let export_fade_s = (export_fade_duration_ms.max(0) as f64 / 1000.0).min(duration_s.max(0.0));
+    let video_clip_transition_s =
+        (video_clip_transition_duration_ms.max(0) as f64 / 1000.0).min(duration_s.max(0.0));
+    let has_video_clip_transition = video_clip_transition_mode != VideoClipTransitionMode::None
+        && video_clip_transition_s > 1e-6;
     let use_mov_alpha =
         batching::transparent_export_uses_mov(export_without_background, transparent_export_format);
 
@@ -1286,6 +1297,7 @@ fn run_fast_export(
         && overlay_plan.height == h
         && !video_fade_in_enabled
         && !video_fade_out_enabled
+        && !has_video_clip_transition
         && (!have_audio
             || (audio_paths.len() == 1 && !audio_fade_in_enabled && !audio_fade_out_enabled));
     if direct_visible_export {
@@ -1316,6 +1328,9 @@ fn run_fast_export(
         }
         if video_fade_in_enabled || video_fade_out_enabled {
             reasons.push("fade_video_global=true".to_string());
+        }
+        if has_video_clip_transition {
+            reasons.push("transition_clips_video=true".to_string());
         }
         if have_audio && (audio_paths.len() != 1 || audio_fade_in_enabled || audio_fade_out_enabled)
         {
@@ -1460,9 +1475,11 @@ fn run_fast_export(
             format!("{}:v", idx)
         } else if preprocessed_background_videos.len() > 1 {
             // Plusieurs backgrounds : tous sont normalisés par le pré-traitement
-            let mut inputs = String::new();
+            let mut labels = Vec::new();
+            let mut durations = Vec::new();
             for i in 0..preprocessed_background_videos.len() {
                 let bg = &preprocessed_background_videos[i];
+                let label = format!("bg{}", i);
                 if bg.is_normalized {
                     filter_lines.push(format!(
                         "[{}:v]setpts=PTS-STARTPTS[bg{}]",
@@ -1481,14 +1498,16 @@ fn run_fast_export(
                     ));
                     println!("[background] normalized=false idx={}", i);
                 }
-                inputs.push_str(&format!("[bg{}]", i));
+                labels.push(label);
+                durations.push(bg.duration_s);
             }
-            filter_lines.push(format!(
-                "{}concat=n={}:v=1:a=0[bgcat]",
-                inputs,
-                preprocessed_background_videos.len()
-            ));
-            "bgcat".to_string()
+            build_background_transition_chain(
+                &mut filter_lines,
+                &labels,
+                &durations,
+                video_clip_transition_mode,
+                video_clip_transition_s,
+            )
         } else {
             format!("{}:v", bg_start_idx)
         };
@@ -1694,6 +1713,125 @@ fn run_fast_export(
     }
 
     Ok(())
+}
+
+/// Construit la chaîne FFmpeg des vidéos de fond avec transition optionnelle.
+///
+/// # Arguments
+/// * `filter_lines` - Lignes du filtre complexe à compléter.
+/// * `labels` - Labels vidéo normalisés à assembler.
+/// * `durations_s` - Durée de chaque label en secondes.
+/// * `mode` - Mode de transition demandé.
+/// * `transition_s` - Durée de transition en secondes.
+///
+/// # Retourne
+/// Le label vidéo final à utiliser comme fond.
+fn build_background_transition_chain(
+    filter_lines: &mut Vec<String>,
+    labels: &[String],
+    durations_s: &[f64],
+    mode: VideoClipTransitionMode,
+    transition_s: f64,
+) -> String {
+    if labels.len() <= 1 || mode == VideoClipTransitionMode::None || transition_s <= 1e-6 {
+        let mut inputs = String::new();
+        for label in labels {
+            inputs.push_str(&format!("[{}]", label));
+        }
+        let out = "bgcat".to_string();
+        filter_lines.push(format!(
+            "{}concat=n={}:v=1:a=0[{}]",
+            inputs,
+            labels.len(),
+            out
+        ));
+        return out;
+    }
+
+    match mode {
+        VideoClipTransitionMode::FadeThroughBlack => {
+            let mut inputs = String::new();
+            for (index, label) in labels.iter().enumerate() {
+                let duration_s = durations_s.get(index).copied().unwrap_or(0.0).max(0.001);
+                let fade_s = transition_s.min(duration_s / 2.0);
+                let mut filters = Vec::new();
+                if index > 0 {
+                    filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
+                }
+                if index + 1 < labels.len() {
+                    filters.push(format!(
+                        "fade=t=out:st={:.6}:d={:.6}",
+                        (duration_s - fade_s).max(0.0),
+                        fade_s
+                    ));
+                }
+
+                let out = format!("bgb{}", index);
+                if filters.is_empty() {
+                    filter_lines.push(format!("[{}]setpts=PTS-STARTPTS[{}]", label, out));
+                } else {
+                    filter_lines.push(format!("[{}]{}[{}]", label, filters.join(","), out));
+                }
+                inputs.push_str(&format!("[{}]", out));
+            }
+
+            filter_lines.push(format!(
+                "{}concat=n={}:v=1:a=0[bgcat]",
+                inputs,
+                labels.len()
+            ));
+            "bgcat".to_string()
+        }
+        VideoClipTransitionMode::Crossfade => {
+            let normalized_labels: Vec<String> = labels
+                .iter()
+                .enumerate()
+                .map(|(index, label)| {
+                    let out = format!("bgxf{}", index);
+                    filter_lines.push(format!(
+                        "[{}]setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709,format=yuv444p,setsar=1[{}]",
+                        label, out
+                    ));
+                    out
+                })
+                .collect();
+            let mut current = normalized_labels[0].clone();
+            let mut current_duration = durations_s.first().copied().unwrap_or(0.001).max(0.001);
+
+            for index in 0..(normalized_labels.len() - 1) {
+                let next_duration = durations_s
+                    .get(index + 1)
+                    .copied()
+                    .unwrap_or(0.001)
+                    .max(0.001);
+                let fade_s = transition_s.min(current_duration).min(next_duration);
+                let out = format!("bgx{}", index);
+                if fade_s <= 1e-6 {
+                    filter_lines.push(format!(
+                        "[{}][{}]concat=n=2:v=1:a=0[{}]",
+                        current,
+                        normalized_labels[index + 1],
+                        out
+                    ));
+                    current_duration += next_duration;
+                } else {
+                    filter_lines.push(format!(
+                        "[{}][{}]xfade=transition=fade:duration={:.6}:offset={:.6},setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709,format=yuv444p,setsar=1[{}]",
+                        current,
+                        normalized_labels[index + 1],
+                        fade_s,
+                        (current_duration - fade_s).max(0.0),
+                        out
+                    ));
+                    current_duration = current_duration + next_duration - fade_s;
+                }
+                current = out;
+            }
+
+            current
+        }
+        VideoClipTransitionMode::None => unreachable!(),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -2019,7 +2157,8 @@ pub async fn concat_videos(
         ]);
     } else {
         if video_codec == ExportVideoCodec::H265 {
-            let (vcodec, vparams, vextra) = codec::choose_h265_codec(true, 0, 0, performance_profile);
+            let (vcodec, vparams, vextra) =
+                codec::choose_h265_codec(true, 0, 0, performance_profile);
             cmd.extend_from_slice(&["-c:v".to_string(), vcodec]);
             if let Some(Some(preset)) = vextra.get("preset") {
                 cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);

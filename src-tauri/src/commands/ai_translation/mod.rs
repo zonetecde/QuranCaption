@@ -6,7 +6,10 @@ use serde_json::{json, Value};
 
 use crate::commands::ai_translation::prompts::is_openrouter_endpoint;
 
-use self::sse::{extract_chat_completion_delta, extract_chat_completion_usage, extract_completed_output_text, SseAccumulator};
+use self::sse::{
+    extract_chat_completion_delta, extract_chat_completion_usage, extract_completed_output_text,
+    SseAccumulator,
+};
 
 pub(crate) mod bold;
 pub(crate) mod prompts;
@@ -217,12 +220,7 @@ pub(crate) async fn stream_ai_response(
                     );
                 }
                 "response.in_progress" => {
-                    (callbacks.emit_status)(
-                        app_handle,
-                        batch_id,
-                        "streaming",
-                        generating_message,
-                    );
+                    (callbacks.emit_status)(app_handle, batch_id, "streaming", generating_message);
                 }
                 "response.output_text.delta" => {
                     let delta = payload

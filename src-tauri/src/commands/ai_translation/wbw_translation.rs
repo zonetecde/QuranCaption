@@ -4,8 +4,8 @@ use tauri::Emitter;
 use super::prompts;
 use super::types::AdvancedWbwTranslationCommandRequest;
 use super::{
-    normalize_usage, stream_ai_response, validate_model, validate_reasoning_effort, AiStreamCallbacks,
-    AiStreamRequest,
+    normalize_usage, stream_ai_response, validate_model, validate_reasoning_effort,
+    AiStreamCallbacks, AiStreamRequest,
 };
 
 // ---------------------------------------------------------------------------

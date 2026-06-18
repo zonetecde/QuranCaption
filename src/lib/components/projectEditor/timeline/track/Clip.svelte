@@ -14,10 +14,12 @@
 
 	let {
 		clip = $bindable(),
-		track = $bindable()
+		track = $bindable(),
+		clipIndex
 	}: {
 		clip: Clip;
 		track: Track;
+		clipIndex: number;
 	} = $props();
 
 	onDestroy(() => {
@@ -27,7 +29,7 @@
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
 	let positionLeft = $derived(() => {
-		return (clip.startTime / 1000) * track.getPixelPerSecond();
+		return (track.getVisualClipStartTime(clipIndex) / 1000) * track.getPixelPerSecond();
 	});
 
 	const clipAssetId = (clip as AssetClip).assetId;

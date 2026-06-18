@@ -875,6 +875,8 @@ const fr = {
 		experimentalFallbackHintShort:
 			'Modèles de secours expérimentaux de l\u2019ancien workflow local ouvert. Ils n\u2019utilisent pas le chemin phonétique complet de Muaalem et peuvent être moins fiables.',
 		overlayIndividualApplied: 'Superposition appliquée sur ce clip',
+		crossfadePreviewNotice:
+			'Le crossfade ne s\u2019affiche pas dans la prévisualisation vidéo, mais il sera présent dans la vidéo exportée.',
 		subtitleIndividualStyles: 'Styles individuels appliqués sur ce clip',
 		subtitles: 'Sous-titres',
 		minWordsLabel: 'Mots min.',
@@ -1208,6 +1210,8 @@ const fr = {
 			'video-dimension': 'Qualité et orientation de la vidéo',
 			'fade-duration': 'Durée du fondu des sous-titres',
 			'video-and-audio-fade': 'Fondu vidéo et audio',
+			'video-clip-transition': 'Transition entre clips vidéo',
+			'video-clip-transition-duration': 'Durée de transition entre clips vidéo',
 			'anti-collision': 'Anti-collision des sous-titres',
 			spacing: 'Espacement des sous-titres',
 			overlay: 'Superposition',
@@ -1376,6 +1380,8 @@ const fr = {
 			'fade-duration': 'Durée de l\u2019effet de fondu entrée/sortie en millisecondes',
 			'video-and-audio-fade':
 				'Configurer le fondu d\u2019entrée/sortie pour la vidéo et l\u2019audio à l\u2019export.',
+			'video-clip-transition': 'Transition entre les clips vidéo de la timeline.',
+			'video-clip-transition-duration': 'Durée des transitions entre clips vidéo en millisecondes.',
 			'anti-collision': 'Empêcher le chevauchement des sous-titres',
 			spacing: 'Espacement minimum entre les sous-titres (en pixels)',
 			overlay: 'Ajouter une superposition de couleur sur la vidéo',

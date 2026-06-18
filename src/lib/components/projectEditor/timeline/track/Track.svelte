@@ -303,7 +303,7 @@
 							/>
 						{/if}
 					{:else}
-						<ClipComponent {clip} {track} />
+						<ClipComponent {clip} {track} {clipIndex} />
 					{/if}
 				{/each}
 			</div>

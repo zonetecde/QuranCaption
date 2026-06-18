@@ -273,6 +273,104 @@ export class Track extends SerializableBase {
 		return index === -1 ? null : this.clips[index];
 	}
 
+	/**
+	 * Retourne le clip actif sur la timeline visuelle avec chevauchement crossfade.
+	 *
+	 * @param {number} cursorPos Position du curseur en millisecondes.
+	 * @returns {Clip | null} Clip actif, ou `null`.
+	 */
+	getCurrentVisualClip(cursorPos?: number): Clip | null {
+		const currentTime =
+			cursorPos ?? globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? 0;
+		if (!this.shouldUseVideoCrossfadeVisualTiming()) return this.getCurrentClip(currentTime);
+
+		for (let index = this.clips.length - 1; index >= 0; index--) {
+			const clip = this.clips[index];
+			if (
+				currentTime >= this.getVisualClipStartTime(index) &&
+				currentTime <= this.getVisualClipEndTime(index)
+			) {
+				return clip;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Retourne le début visuel d'un clip, en tenant compte du crossfade vidéo.
+	 *
+	 * @param {number} clipIndex Index du clip dans la piste.
+	 * @returns {number} Début visuel en millisecondes.
+	 */
+	getVisualClipStartTime(clipIndex: number): number {
+		const clip = this.clips[clipIndex];
+		if (!clip) return 0;
+		return clip.startTime - this.getVideoCrossfadeOffsetBeforeClip(clipIndex);
+	}
+
+	/**
+	 * Retourne la fin visuelle d'un clip, en tenant compte du crossfade vidéo.
+	 *
+	 * @param {number} clipIndex Index du clip dans la piste.
+	 * @returns {number} Fin visuelle en millisecondes.
+	 */
+	getVisualClipEndTime(clipIndex: number): number {
+		const clip = this.clips[clipIndex];
+		if (!clip) return 0;
+		return this.getVisualClipStartTime(clipIndex) + clip.duration;
+	}
+
+	/**
+	 * Retourne le décalage cumulé avant un clip vidéo crossfade.
+	 *
+	 * @param {number} clipIndex Index du clip dans la piste.
+	 * @returns {number} Décalage cumulé en millisecondes.
+	 */
+	getVideoCrossfadeOffsetBeforeClip(clipIndex: number): number {
+		if (!this.shouldUseVideoCrossfadeVisualTiming() || clipIndex <= 0) return 0;
+
+		const requestedFadeMs = this.getVideoCrossfadeDurationMs();
+		let offsetMs = 0;
+		let currentDurationMs = Math.max(1, this.clips[0]?.duration ?? 1);
+
+		for (let index = 0; index < clipIndex; index++) {
+			const nextDurationMs = Math.max(1, this.clips[index + 1]?.duration ?? 1);
+			const fadeMs = Math.min(requestedFadeMs, currentDurationMs, nextDurationMs);
+			offsetMs += fadeMs;
+			currentDurationMs = currentDurationMs + nextDurationMs - fadeMs;
+		}
+
+		return offsetMs;
+	}
+
+	/**
+	 * Indique si la piste vidéo doit afficher le timing visuel du crossfade.
+	 *
+	 * @returns {boolean} `true` si le crossfade vidéo est actif.
+	 */
+	shouldUseVideoCrossfadeVisualTiming(): boolean {
+		return (
+			this.type === TrackType.Video &&
+			this.clips.length > 1 &&
+			String(globalState.getStyle('global', 'video-clip-transition')?.value ?? 'none') ===
+				'crossfade' &&
+			this.getVideoCrossfadeDurationMs() > 0
+		);
+	}
+
+	/**
+	 * Retourne la durée configurée du crossfade vidéo.
+	 *
+	 * @returns {number} Durée du crossfade en millisecondes.
+	 */
+	private getVideoCrossfadeDurationMs(): number {
+		return Math.max(
+			0,
+			Number(globalState.getStyle('global', 'video-clip-transition-duration')?.value ?? 0)
+		);
+	}
+
 	getClipBefore(id: number) {
 		const index = getClipIndexById(this, id);
 		return index > 0 ? this.clips[index - 1] : null;
@@ -305,6 +403,17 @@ export class Track extends SerializableBase {
 				.filter(
 					({ clip }) =>
 						this.isBackgroundImageClip(clip) || (clip.endTime >= startMs && clip.startTime <= endMs)
+				);
+		}
+
+		if (this.shouldUseVideoCrossfadeVisualTiming()) {
+			return this.clips
+				.map((clip, clipIndex) => ({ clip, clipIndex }))
+				.filter(
+					({ clip, clipIndex }) =>
+						this.isBackgroundImageClip(clip) ||
+						(this.getVisualClipEndTime(clipIndex) >= startMs &&
+							this.getVisualClipStartTime(clipIndex) <= endMs)
 				);
 		}
 

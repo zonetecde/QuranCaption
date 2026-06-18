@@ -875,6 +875,8 @@ const es = {
 		experimentalFallbackHintShort:
 			'Modelos de respaldo experimentales del antiguo flujo de trabajo local abierto. No utilizan la ruta fonética completa de Muaalem y pueden ser menos fiables.',
 		overlayIndividualApplied: 'Superposición aplicada en este clip',
+		crossfadePreviewNotice:
+			'El crossfade no se muestra en la vista previa de video, pero estará presente en el video exportado.',
 		subtitleIndividualStyles: 'Estilos individuales aplicados en este clip',
 		subtitles: 'Subtítulos',
 		minWordsLabel: 'Palabras mín.',
@@ -1210,6 +1212,8 @@ const es = {
 			'video-dimension': 'Calidad y orientación del video',
 			'fade-duration': 'Duración del fundido de subtítulos',
 			'video-and-audio-fade': 'Fundido de video y audio',
+			'video-clip-transition': 'Transición entre clips de video',
+			'video-clip-transition-duration': 'Duración de transición entre clips de video',
 			'anti-collision': 'Anti-colisión de subtítulos',
 			spacing: 'Espaciado de subtítulos',
 			overlay: 'Superposición',
@@ -1375,6 +1379,9 @@ const es = {
 			'fade-duration': 'Duración del efecto de fundido entrada/salida en milisegundos',
 			'video-and-audio-fade':
 				'Configurar el fundido de entrada/salida para video y audio en la exportación.',
+			'video-clip-transition': 'Transición entre los clips de video de la línea de tiempo.',
+			'video-clip-transition-duration':
+				'Duración de las transiciones entre clips de video en milisegundos.',
 			'anti-collision': 'Evitar la superposición de subtítulos',
 			spacing: 'Espaciado mínimo entre subtítulos (en píxeles)',
 			overlay: 'Agregar una superposición de color sobre el video',

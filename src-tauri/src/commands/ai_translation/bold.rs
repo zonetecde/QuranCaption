@@ -4,8 +4,8 @@ use tauri::Emitter;
 use super::prompts;
 use super::types::AdvancedBoldCommandRequest;
 use super::{
-    normalize_usage, stream_ai_response, validate_model, validate_reasoning_effort, AiStreamCallbacks,
-    AiStreamRequest,
+    normalize_usage, stream_ai_response, validate_model, validate_reasoning_effort,
+    AiStreamCallbacks, AiStreamRequest,
 };
 
 // ---------------------------------------------------------------------------
@@ -81,7 +81,11 @@ pub async fn run_advanced_ai_bold_batch_streaming(
     let schema = prompts::build_bold_response_schema();
     let is_chat_completions = prompts::is_chat_completions_endpoint(&endpoint);
     let body = if is_chat_completions {
-        prompts::build_chat_completions_body(&request.model, prompts::ADVANCED_BOLD_SYSTEM_PROMPT, &user_prompt)
+        prompts::build_chat_completions_body(
+            &request.model,
+            prompts::ADVANCED_BOLD_SYSTEM_PROMPT,
+            &user_prompt,
+        )
     } else {
         prompts::build_responses_api_body(
             &request.model,

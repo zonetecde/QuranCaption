@@ -568,6 +568,8 @@ const editor = {
 	experimentalFallbackHintShort:
 		'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
 	overlayIndividualApplied: 'Overlay applied on this clip',
+	crossfadePreviewNotice:
+		'Crossfade is not shown in the video preview, but it will be present in the exported video.',
 	subtitleIndividualStyles: 'Individual styles applied on this clip',
 
 	subtitles: 'Subtitles',
@@ -898,6 +900,8 @@ const editor = {
 		'video-dimension': 'Video Quality & Orientation',
 		'fade-duration': 'Subtitle Fade Duration',
 		'video-and-audio-fade': 'Video & Audio Fade',
+		'video-clip-transition': 'Video Clip Transition',
+		'video-clip-transition-duration': 'Video Clip Transition Duration',
 		'anti-collision': 'Subtitles Anti-Collision',
 		spacing: 'Subtitle Spacing',
 		overlay: 'Overlay',
@@ -1054,6 +1058,8 @@ const editor = {
 		'video-dimension': 'Quality and orientation of the video',
 		'fade-duration': 'Duration of fade in/out effect in milliseconds',
 		'video-and-audio-fade': 'Configure export fade in/out for video and audio.',
+		'video-clip-transition': 'Transition between timeline video clips.',
+		'video-clip-transition-duration': 'Duration of video clip transitions in milliseconds.',
 		'anti-collision': 'Prevent subtitle overlap',
 		spacing: 'Minimum spacing between subtitles (in pixels)',
 		overlay: 'Add a color overlay on top of the video',

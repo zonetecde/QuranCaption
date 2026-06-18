@@ -10,6 +10,7 @@
 	import { SourceType } from '$lib/classes';
 	import { Quran, type Surah } from '$lib/classes/Quran';
 	import Section from '$lib/components/projectEditor/Section.svelte';
+	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { applyPreloadSegmentsToProject } from '$lib/services/AutoSegmentation';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -27,7 +28,8 @@
 	let recitations: QuaRecitation[] = $state([]);
 	let surahsList: Surah[] = $state([]);
 	let selectedSlug = $state('');
-	let selectedSurahId = $state(-1);
+	// La clé string pilote le SearchableSelect ; l'id numérique en est dérivé.
+	let selectedSurahKey = $state('');
 	let ayahFrom = $state(1);
 	let ayahTo = $state(1);
 	let isLoadingRecitations = $state(true);
@@ -46,6 +48,14 @@
 	);
 	const availableChapters = $derived<number[]>(selectedRecitation?.chapters ?? []);
 
+	// Options du select de récitation (recherche par label dans le catalogue).
+	const recitationOptions = $derived(
+		recitations.map((recitation) => ({ value: recitation.slug, label: recitation.label }))
+	);
+
+	// Sourate sélectionnée : id numérique dérivé de la clé string du select.
+	const selectedSurahId = $derived(selectedSurahKey ? Number.parseInt(selectedSurahKey, 10) : -1);
+
 	// Sourates proposées = uniquement celles couvertes par la récitation choisie.
 	const availableSurahs = $derived(
 		surahsList
@@ -55,6 +65,11 @@
 				name: `${surah.id}. ${surah.name} (${surah.translation})`,
 				totalAyah: surah.totalAyah
 			}))
+	);
+
+	// Options du select de sourate (recherche par nom).
+	const surahSelectOptions = $derived(
+		availableSurahs.map((surah) => ({ value: String(surah.id), label: surah.name }))
 	);
 
 	// Nombre de versets de la sourate sélectionnée (borne max des compteurs AYA).
@@ -91,7 +106,7 @@
 		if (mode === next || isDownloading) return;
 		mode = next;
 		selectedSlug = '';
-		selectedSurahId = -1;
+		selectedSurahKey = '';
 		ayahFrom = 1;
 		ayahTo = 1;
 		void loadRecitations();
@@ -99,7 +114,7 @@
 
 	/** Réinitialise la sélection de sourate/versets quand la récitation change. */
 	function onRecitationChange(): void {
-		selectedSurahId = -1;
+		selectedSurahKey = '';
 		ayahFrom = 1;
 		ayahTo = 1;
 	}
@@ -317,40 +332,36 @@
 			<label for="qua-recitation-select" class="text-sm font-medium text-secondary">
 				Recitation
 			</label>
-			<select
+			<SearchableSelect
 				id="qua-recitation-select"
-				class="w-full rounded-lg border border-color bg-secondary px-4 py-3 text-sm text-primary focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
 				bind:value={selectedSlug}
+				options={recitationOptions}
+				placeholder={isLoadingRecitations
+					? get(LL).editor.loadingReciters()
+					: get(LL).editor.selectReciter()}
+				searchPlaceholder={get(LL).aiVideo.searchRecitersPlaceholder()}
+				emptyMessage={get(LL).aiVideo.noRecitersFound()}
+				maxHeightClass="max-h-72"
 				disabled={isLoadingRecitations}
-				onchange={onRecitationChange}
-			>
-				{#if isLoadingRecitations}
-					<option value="">{get(LL).editor.loadingReciters()}</option>
-				{:else}
-					<option value="">{get(LL).editor.selectReciter()}</option>
-					{#each recitations as recitation (recitation.slug)}
-						<option value={recitation.slug}>{recitation.label}</option>
-					{/each}
-				{/if}
-			</select>
+				onChange={onRecitationChange}
+			/>
 		</div>
 
 		<div class="space-y-2">
 			<label for="qua-surah-select" class="text-sm font-medium text-secondary">
 				{get(LL).editor.surah()}
 			</label>
-			<select
+			<SearchableSelect
 				id="qua-surah-select"
-				class="w-full rounded-lg border border-color bg-secondary px-4 py-3 text-sm text-primary focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50"
-				bind:value={selectedSurahId}
+				bind:value={selectedSurahKey}
+				options={surahSelectOptions}
+				placeholder={get(LL).editor.selectSurah()}
+				searchPlaceholder={get(LL).aiVideo.searchSurahPlaceholder()}
+				emptyMessage={get(LL).aiVideo.noSurahFound()}
+				maxHeightClass="max-h-72"
 				disabled={!selectedRecitation}
-				onchange={onSurahChange}
-			>
-				<option value={-1}>{get(LL).editor.selectSurah()}</option>
-				{#each availableSurahs as surah (surah.id)}
-					<option value={surah.id}>{surah.name}</option>
-				{/each}
-			</select>
+				onChange={onSurahChange}
+			/>
 		</div>
 
 		{#if mode === 'audio_segments'}

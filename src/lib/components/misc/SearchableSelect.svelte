@@ -13,6 +13,8 @@
 		searchPlaceholder?: string;
 		emptyMessage?: string;
 		disabled?: boolean;
+		/** Classe Tailwind de hauteur max du panneau déroulant (défaut `max-h-60`). */
+		maxHeightClass?: string;
 		onChange?: (value: string) => void;
 	};
 
@@ -24,6 +26,7 @@
 		searchPlaceholder = 'Search...',
 		emptyMessage = 'No options found',
 		disabled = false,
+		maxHeightClass = 'max-h-60',
 		onChange
 	}: Props = $props();
 
@@ -166,7 +169,7 @@
 
 	{#if isOpen}
 		<div
-			class="absolute left-0 right-0 top-full mt-1 max-h-60 overflow-auto rounded-xl border border-color bg-primary shadow-xl z-100"
+			class="absolute left-0 right-0 top-full mt-1 {maxHeightClass} overflow-auto rounded-xl border border-color bg-primary shadow-xl z-100"
 		>
 			{#if filteredOptions.length === 0}
 				<p class="px-4 py-3 text-sm text-thirdly">{emptyMessage}</p>

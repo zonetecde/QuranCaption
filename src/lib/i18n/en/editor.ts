@@ -334,6 +334,8 @@ const editor = {
 	muteTrack: 'Mute track',
 	unmuteTrack: 'Unmute track',
 	soloTrack: 'Solo track',
+	moveTrackUp: 'Move track up',
+	moveTrackDown: 'Move track down',
 	trackSettings: 'Track Settings',
 	addTrack: 'Add Track',
 	removeTrack: 'Remove Track',

@@ -632,6 +632,8 @@ const fr = {
 		muteTrack: 'Couper le son de la piste',
 		unmuteTrack: 'Réactiver le son de la piste',
 		soloTrack: 'Piste solo',
+		moveTrackUp: 'Déplacer la piste vers le haut',
+		moveTrackDown: 'Déplacer la piste vers le bas',
 		trackSettings: 'Paramètres de piste',
 		addTrack: 'Ajouter une piste',
 		removeTrack: 'Supprimer la piste',

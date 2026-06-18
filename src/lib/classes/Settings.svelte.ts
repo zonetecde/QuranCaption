@@ -12,6 +12,7 @@ import {
 	WBW_TRANSLATION_LANGUAGES,
 	type WbwTranslationLanguageCode
 } from '$lib/services/WbwTranslationService';
+import { TrackType } from './enums';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -104,6 +105,12 @@ export default class Settings extends SerializableBase {
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
 		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
+		timelineTrackOrder: [
+			TrackType.CustomClip,
+			TrackType.Subtitle,
+			TrackType.Video,
+			TrackType.Audio
+		] as TrackType[],
 		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
@@ -423,6 +430,15 @@ export default class Settings extends SerializableBase {
 		}
 		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
 			settings.persistentUiState.showTimelineWheelHints = true;
+			shouldSave = true;
+		}
+		if (!Array.isArray(settings.persistentUiState.timelineTrackOrder)) {
+			settings.persistentUiState.timelineTrackOrder = [
+				TrackType.CustomClip,
+				TrackType.Subtitle,
+				TrackType.Video,
+				TrackType.Audio
+			];
 			shouldSave = true;
 		}
 		if (typeof settings.persistentUiState.desktopNotificationsEnabled !== 'boolean') {

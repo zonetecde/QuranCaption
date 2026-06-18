@@ -577,6 +577,8 @@ const zh = {
 		muteTrack: '静音轨道',
 		unmuteTrack: '取消静音轨道',
 		soloTrack: '独奏轨道',
+		moveTrackUp: '上移轨道',
+		moveTrackDown: '下移轨道',
 		trackSettings: '轨道设置',
 		addTrack: '添加轨道',
 		removeTrack: '移除轨道',

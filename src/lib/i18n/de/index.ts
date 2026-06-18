@@ -631,6 +631,8 @@ const de = {
 		muteTrack: 'Spur stummschalten',
 		unmuteTrack: 'Stummschaltung aufheben',
 		soloTrack: 'Solo-Spur',
+		moveTrackUp: 'Spur nach oben verschieben',
+		moveTrackDown: 'Spur nach unten verschieben',
 		trackSettings: 'Spureinstellungen',
 		addTrack: 'Spur hinzufügen',
 		removeTrack: 'Spur entfernen',

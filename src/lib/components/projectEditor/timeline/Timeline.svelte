@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import Track from './track/Track.svelte';
+	import TrackComponent from './track/Track.svelte';
 	import {
 		Duration,
 		TrackType,
@@ -9,7 +9,8 @@
 		AssetClip,
 		SubtitleClip,
 		PredefinedSubtitleClip,
-		SilenceClip
+		SilenceClip,
+		type Track
 	} from '$lib/classes';
 	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
@@ -66,6 +67,22 @@
 		const endSecond = Math.min(totalDuration().toSeconds(), Math.ceil(visibleRangeEndMs / 1000));
 		const count = Math.max(0, endSecond - startSecond + 1);
 		return Array.from({ length: count }, (_, index) => startSecond + index);
+	});
+	let orderedTrackItems = $derived(() => {
+		const order = globalState.settings?.persistentUiState.timelineTrackOrder ?? [];
+		return globalState
+			.currentProject!.content.timeline.tracks.map((track, index) => ({ track, index }))
+			.filter(
+				({ track }) => !(track.type === TrackType.CustomClip && getTimelineCustomClips().length === 0)
+			)
+			.sort((a, b) => {
+				const aIndex = order.indexOf(a.track.type);
+				const bIndex = order.indexOf(b.track.type);
+				return (
+					(aIndex === -1 ? order.length : aIndex) -
+					(bIndex === -1 ? order.length : bIndex)
+				);
+			});
 	});
 
 	let removeShortcutRegistered = false;
@@ -848,6 +865,35 @@
 		await Settings.save();
 	}
 
+	/**
+	 * Déplace une piste dans l'ordre d'affichage global de la timeline.
+	 * @param {Track} track Piste à déplacer.
+	 * @param {number} direction Direction du déplacement (`-1` vers le haut, `1` vers le bas).
+	 * @returns {Promise<void>}
+	 */
+	async function moveTimelineTrack(track: Track, direction: number): Promise<void> {
+		const settings = globalState.settings;
+		if (!settings) return;
+
+		const visibleTracks = orderedTrackItems();
+		const displayIndex = visibleTracks.findIndex((item) => item.track === track);
+		const swapTarget = visibleTracks[displayIndex + direction]?.track;
+		if (!swapTarget) return;
+
+		const allTypes = globalState.currentProject!.content.timeline.tracks.map((item) => item.type);
+		const savedOrder = settings.persistentUiState.timelineTrackOrder.filter((type) =>
+			allTypes.includes(type)
+		);
+		const order = [...savedOrder, ...allTypes.filter((type) => !savedOrder.includes(type))];
+		const trackIndex = order.indexOf(track.type);
+		const targetIndex = order.indexOf(swapTarget.type);
+		if (trackIndex === -1 || targetIndex === -1) return;
+
+		[order[trackIndex], order[targetIndex]] = [order[targetIndex], order[trackIndex]];
+		settings.persistentUiState.timelineTrackOrder = order;
+		await Settings.save();
+	}
+
 	onDestroy(() => {
 		unregisterSplitShortcut();
 		unregisterRemoveShortcut();
@@ -957,15 +1003,16 @@
 
 				<!-- Track lanes -->
 				<div class="track-lanes">
-					{#each globalState.currentProject!.content.timeline.tracks as track, i (i)}
-						<!-- N'affiche pas la track des customs texts s'il y en a pas dans le projet -->
-						{#if !(track.type === TrackType.CustomClip && getTimelineCustomClips().length === 0)}
-							<Track
-								bind:track={globalState.currentProject!.content.timeline.tracks[i]}
-								{visibleRangeStartMs}
-								{visibleRangeEndMs}
-							/>
-						{/if}
+					{#each orderedTrackItems() as { track, index }, displayIndex (track.type)}
+						<TrackComponent
+							bind:track={globalState.currentProject!.content.timeline.tracks[index]}
+							{visibleRangeStartMs}
+							{visibleRangeEndMs}
+							canMoveUp={displayIndex > 0}
+							canMoveDown={displayIndex < orderedTrackItems().length - 1}
+							onMoveUp={() => void moveTimelineTrack(track, -1)}
+							onMoveDown={() => void moveTimelineTrack(track, 1)}
+						/>
 					{/each}
 				</div>
 

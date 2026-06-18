@@ -633,6 +633,8 @@ const es = {
 		muteTrack: 'Silenciar pista',
 		unmuteTrack: 'Activar sonido de pista',
 		soloTrack: 'Pista solo',
+		moveTrackUp: 'Mover pista hacia arriba',
+		moveTrackDown: 'Mover pista hacia abajo',
 		trackSettings: 'Configuración de pista',
 		addTrack: 'Agregar pista',
 		removeTrack: 'Eliminar pista',

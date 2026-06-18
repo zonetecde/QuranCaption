@@ -11,6 +11,7 @@
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
+	import { untrack } from 'svelte';
 	import {
 		createPlainOverlaySegment,
 		getMergedClipsWithoutWordOverlap,
@@ -21,6 +22,7 @@
 	import { getBackgroundHorizontalPaddingCss } from './helpers/overlayCss';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
+		type WordByWordHighlightState,
 		getWordByWordHighlightProgress,
 		getWordByWordHighlightState,
 		getWordByWordWordCss,
@@ -71,13 +73,20 @@
 		maxRevealedUnitIndexByWordIndex: number[];
 	};
 
+	let cachedWbwRenderDataKey = '';
+	let cachedWbwRenderData: TranslationWbwRenderData | null = null;
+
 	// =========================================================================
 	// Dérivations depuis globalState
 	// =========================================================================
 
 	/** Sous-titre courant. */
 	let currentSubtitle = $derived(() => {
-		return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
+		const _ = getTimelineSettings().cursorPosition;
+		const _refresh = getTimelineSettings().previewRefreshToken;
+		return untrack(() => {
+			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
+		});
 	});
 
 	/** Groupe de fusion visuelle actif. */
@@ -235,9 +244,22 @@
 		const uniqueArabicWordIndexes = Array.from(
 			new Set(sortedRanges.map((range) => range.arabicWordIndex))
 		);
+		let rangeCursor = 0;
+		let maxRevealedUnitIndex = -1;
 		for (const arabicWordIndex of uniqueArabicWordIndexes) {
 			const timing = subtitle.alignmentMetadata?.words[arabicWordIndex] ?? null;
 			if (!timing) continue;
+
+			while (
+				rangeCursor < sortedRanges.length &&
+				sortedRanges[rangeCursor].arabicWordIndex <= arabicWordIndex
+			) {
+				maxRevealedUnitIndex = Math.max(
+					maxRevealedUnitIndex,
+					sortedRanges[rangeCursor].endUnitIndex
+				);
+				rangeCursor++;
+			}
 
 			const wbwWordIndex = wordOffset + words.length;
 			wbwIndexByArabicWord.set(arabicWordIndex, wbwWordIndex);
@@ -246,11 +268,7 @@
 				start: timing.start + timingOffsetS,
 				end: timing.end + timingOffsetS
 			});
-			maxRevealedUnitIndexByWordIndex.push(
-				sortedRanges
-					.filter((range) => range.arabicWordIndex <= arabicWordIndex)
-					.reduce((max, range) => Math.max(max, range.endUnitIndex), -1)
-			);
+			maxRevealedUnitIndexByWordIndex.push(maxRevealedUnitIndex);
 		}
 
 		if (textParts.prefix) {
@@ -263,42 +281,35 @@
 			);
 		}
 
+		let previousWordFlags: TranslationInlineStyleFlags | null = null;
 		for (let index = 0; index < tokens.length; index++) {
 			const token = tokens[index];
-			const previousWordToken = tokens
-				.slice(0, index)
-				.reverse()
-				.find((item) => item.isWord);
-			const previousFlags =
-				previousWordToken?.wordIndex !== null && previousWordToken?.wordIndex !== undefined
-					? getInlineStyleFlagsForWordIndex(
-							translation.inlineStyleRuns ?? [],
-							previousWordToken.wordIndex
-						)
-					: null;
-			if (!token.isWord && previousFlags?.lineBreak) continue;
+			if (!token.isWord && previousWordFlags?.lineBreak) continue;
+			const flags =
+				token.isWord && token.wordIndex !== null
+					? getInlineStyleFlagsForWordIndex(translation.inlineStyleRuns ?? [], token.wordIndex)
+					: {
+							bold: false,
+							italic: false,
+							underline: false,
+							color: null
+						};
 
 			const segment: TranslationWbwOverlaySegment = {
 				key: `${editionName}-${subtitle.id}-wbw-${index}`,
 				text: token.text,
-				flags:
-					token.isWord && token.wordIndex !== null
-						? getInlineStyleFlagsForWordIndex(translation.inlineStyleRuns ?? [], token.wordIndex)
-						: {
-								bold: false,
-								italic: false,
-								underline: false,
-								color: null
-							}
+				flags
 			};
 
 			if (token.isWord && token.wordIndex !== null) {
+				previousWordFlags = flags;
 				const arabicWordIndexes = rangesByUnit.get(token.wordIndex) ?? [];
 				segment.unitIndex = token.wordIndex;
 				for (const arabicWordIndex of arabicWordIndexes) {
 					const wbwWordIndex = wbwIndexByArabicWord.get(arabicWordIndex);
 					if (wbwWordIndex === undefined) continue;
-					segment.wbwWordIndexes = [...(segment.wbwWordIndexes ?? []), wbwWordIndex];
+					if (!segment.wbwWordIndexes) segment.wbwWordIndexes = [];
+					segment.wbwWordIndexes.push(wbwWordIndex);
 					segment.wbwWordIndex = segment.wbwWordIndexes[0];
 				}
 			}
@@ -333,12 +344,20 @@
 		const subtitle = currentSubtitle();
 		if (!(subtitle instanceof SubtitleClip)) return null;
 
+		const cacheKey = getVisibleTranslationWbwRenderDataCacheKey(subtitle);
+		if (cacheKey === cachedWbwRenderDataKey) return cachedWbwRenderData;
+
+		cachedWbwRenderDataKey = cacheKey;
 		if (!isEditionMerged()) {
-			return getTranslationWbwRenderDataForClip(edition, subtitle);
+			cachedWbwRenderData = getTranslationWbwRenderDataForClip(edition, subtitle);
+			return cachedWbwRenderData;
 		}
 
 		const group = currentVisualMergeGroup();
-		if (!group) return null;
+		if (!group) {
+			cachedWbwRenderData = null;
+			return cachedWbwRenderData;
+		}
 
 		const segments: TranslationWbwOverlaySegment[] = [];
 		const words: SegmentationWordTimestamp[] = [];
@@ -370,9 +389,49 @@
 			clipStartTimeS = Math.min(clipStartTimeS, data.clipStartTimeS);
 		}
 
-		return words.length > 0
-			? { segments, words, clipStartTimeS, maxRevealedUnitIndexByWordIndex }
-			: null;
+		cachedWbwRenderData =
+			words.length > 0
+				? { segments, words, clipStartTimeS, maxRevealedUnitIndexByWordIndex }
+				: null;
+		return cachedWbwRenderData;
+	}
+
+	/**
+	 * Construit une clé stable pour réutiliser les segments WBW de traduction entre deux frames.
+	 *
+	 * @param {SubtitleClip} subtitle Sous-titre courant.
+	 * @returns {string} Clé représentant le contenu WBW visible.
+	 */
+	function getVisibleTranslationWbwRenderDataCacheKey(subtitle: SubtitleClip): string {
+		const group = currentVisualMergeGroup();
+		const clips =
+			group && isEditionMerged() ? getMergedClipsWithoutWordOverlap(group.clips) : [subtitle];
+
+		return clips
+			.map((clip) => {
+				const translation = clip.translations[edition];
+				const words = clip.alignmentMetadata?.words ?? [];
+				if (!(translation instanceof VerseTranslation)) {
+					return `${clip.id}:plain:${words.length}`;
+				}
+
+				return [
+					clip.id,
+					clip.startTime,
+					clip.endTime,
+					clip.startWordIndex,
+					clip.endWordIndex,
+					translation.text,
+					translation.startWordIndex,
+					translation.endWordIndex,
+					JSON.stringify(translation.inlineStyleRuns ?? []),
+					JSON.stringify(translation.wbwRanges ?? []),
+					words.length,
+					words[0]?.start ?? '',
+					words.at(-1)?.end ?? ''
+				].join(':');
+			})
+			.join('|');
 	}
 
 	function getVisibleTranslationSegments(): OverlayTextSegment[] {
@@ -395,29 +454,53 @@
 	 * Fusionne le CSS WBW avec le CSS inline d'une unité de traduction.
 	 *
 	 * @param {TranslationWbwOverlaySegment} segment Segment à afficher.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @param {TranslationWbwRenderData | null} data Données WBW visibles.
 	 * @returns {string} CSS inline final.
 	 */
-	function getTranslationSegmentCss(segment: TranslationWbwOverlaySegment): string {
+	function getTranslationSegmentCss(
+		segment: TranslationWbwOverlaySegment,
+		state: WordByWordHighlightState,
+		data: TranslationWbwRenderData | null
+	): string {
 		let wbwCss = '';
 		let inlineRevealProgress = 1;
 		const wbwWordIndexes = segment.wbwWordIndexes ?? [];
-		if (wbwWordIndexes.length > 0 && wbwState().enabled) {
-			const best = wbwWordIndexes
-				.map((index) => ({
-					index,
-					progress: getWordByWordHighlightProgress(index, wbwState(), wbwPreviewFadeDuration())
-				}))
-				.sort((a, b) => b.progress - a.progress)[0];
-			wbwCss = getWordByWordWordCss(
-				best.index,
-				wbwState(),
-				best.progress,
-				wbwPreviewFadeDuration()
-			);
-			inlineRevealProgress = getInlineStyleRevealProgress(wbwWordIndexes, best.progress);
+		if (wbwWordIndexes.length > 0 && state.enabled) {
+			let bestIndex = wbwWordIndexes[0];
+			let bestProgress = 0;
+			for (const index of wbwWordIndexes) {
+				if (!shouldComputeWordByWordProgress(index, state)) continue;
+
+				const progress = getWordByWordHighlightProgress(index, state, wbwPreviewFadeDuration());
+				if (progress > bestProgress || bestProgress === 0) {
+					bestIndex = index;
+					bestProgress = progress;
+				}
+			}
+
+			if (bestProgress > 0 || state.underlineEnabled || state.revealWordsOnRecitation) {
+				wbwCss = getWordByWordWordCss(bestIndex, state, bestProgress, wbwPreviewFadeDuration());
+			}
+			inlineRevealProgress = getInlineStyleRevealProgress(wbwWordIndexes, bestProgress, state);
 		}
 
-		return `${wbwCss} ${getForcedRevealCss(segment)} ${getRevealedInlineStyleCss(segment, inlineRevealProgress)} ${segment.extraCss ?? ''}`.trim();
+		return `${wbwCss} ${getForcedRevealCss(segment, state, data)} ${getRevealedInlineStyleCss(segment, inlineRevealProgress, state)} ${segment.extraCss ?? ''}`.trim();
+	}
+
+	/**
+	 * Indique si un mot peut avoir une progression WBW non nulle à cette frame.
+	 *
+	 * @param {number} wordIndex Index WBW à tester.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @returns {boolean} `true` si la progression doit être calculée.
+	 */
+	function shouldComputeWordByWordProgress(
+		wordIndex: number,
+		state: WordByWordHighlightState
+	): boolean {
+		if (state.persistColor && wordIndex <= state.activeWordIndex) return true;
+		return wordIndex === state.activeWordIndex || wordIndex === state.activeWordIndex - 1;
 	}
 
 	/**
@@ -425,10 +508,14 @@
 	 *
 	 * @param {number[]} wbwWordIndexes Index WBW liés au segment.
 	 * @param {number} activeProgress Progression du meilleur mot actif.
+	 * @param {WordByWordHighlightState} state État WBW courant.
 	 * @returns {number} Progression normalisée entre 0 et 1.
 	 */
-	function getInlineStyleRevealProgress(wbwWordIndexes: number[], activeProgress: number): number {
-		const state = wbwState();
+	function getInlineStyleRevealProgress(
+		wbwWordIndexes: number[],
+		activeProgress: number,
+		state: WordByWordHighlightState
+	): number {
 		if (!state.revealSpecificWordStyle) return 1;
 		if (state.activeWordIndex >= state.words.length) return 1;
 		if (wbwWordIndexes.some((wordIndex) => wordIndex < state.activeWordIndex)) return 1;
@@ -443,19 +530,21 @@
 	 *
 	 * @param {TranslationWbwOverlaySegment} segment Segment à afficher.
 	 * @param {number} revealProgress Progression de révélation du style.
+	 * @param {WordByWordHighlightState} state État WBW courant.
 	 * @returns {string} CSS inline visible à cet instant.
 	 */
 	function getRevealedInlineStyleCss(
 		segment: TranslationWbwOverlaySegment,
-		revealProgress: number
+		revealProgress: number,
+		state: WordByWordHighlightState
 	): string {
 		if (revealProgress <= 0) return getInlineStyleCss(EMPTY_INLINE_STYLE_FLAGS);
-		if (!wbwState().revealSpecificWordStyle || revealProgress >= 1 || !segment.flags.color) {
+		if (!state.revealSpecificWordStyle || revealProgress >= 1 || !segment.flags.color) {
 			return getInlineStyleCss(segment.flags);
 		}
 
 		return `${getInlineStyleCss({ ...segment.flags, color: null })} color: ${interpolateCssColor(
-			wbwState().baseColor,
+			state.baseColor,
 			segment.flags.color,
 			revealProgress
 		)};`.trim();
@@ -465,11 +554,15 @@
 	 * Force l'affichage des unités déjà révélées quand l'ordre de traduction diffère de l'arabe.
 	 *
 	 * @param {TranslationWbwOverlaySegment} segment Segment à afficher.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @param {TranslationWbwRenderData | null} data Données WBW visibles.
 	 * @returns {string} CSS de visibilité forcée, ou chaîne vide.
 	 */
-	function getForcedRevealCss(segment: TranslationWbwOverlaySegment): string {
-		const data = wbwRenderData();
-		const state = wbwState();
+	function getForcedRevealCss(
+		segment: TranslationWbwOverlaySegment,
+		state: WordByWordHighlightState,
+		data: TranslationWbwRenderData | null
+	): string {
 		if (
 			!data ||
 			!state.enabled ||
@@ -546,16 +639,20 @@
 	style={`opacity: ${subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
 >
 	<span class="translation-inline-flow">
-		{#each wbwState().enabled && wbwRenderData() ? wbwRenderData()!.segments : visibleSegments() as segment (segment.key)}
-			{@const segmentStyle = getTranslationSegmentCss(segment)}
-			{#if segmentStyle}
-				<span style={segmentStyle}>{segment.text}</span>
-			{:else}
-				{segment.text}
-			{/if}
-			{#if segment.flags.lineBreak}
-				<br />
-			{/if}
-		{/each}
+		{#if true}
+			{@const state = wbwState()}
+			{@const data = wbwRenderData()}
+			{#each state.enabled && data ? data.segments : visibleSegments() as segment (segment.key)}
+				{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
+				{#if segmentStyle}
+					<span style={segmentStyle}>{segment.text}</span>
+				{:else}
+					{segment.text}
+				{/if}
+				{#if segment.flags.lineBreak}
+					<br />
+				{/if}
+			{/each}
+		{/if}
 	</span>
 </p>

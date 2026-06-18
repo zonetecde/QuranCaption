@@ -1,10 +1,20 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
+	import { convertFileSrc } from '@tauri-apps/api/core';
 
 	const imagePath = $derived(() => {
 		const val = globalState.getStyle('global', 'ayah-container-image')?.value;
 		return val ? String(val) : null;
+	});
+
+	const imageSrc = $derived(() => {
+		const path = imagePath();
+		return path
+			? path.includes('/') || path.includes('\\')
+				? convertFileSrc(path)
+				: '/ayah-container/' + path
+			: null;
 	});
 
 	const verticalPosition = $derived(() => {
@@ -31,7 +41,7 @@
 	const horizontalStyle = globalState.getStyle('global', 'ayah-container-horizontal-position')!;
 </script>
 
-{#if imagePath()}
+{#if imageSrc()}
 	<div
 		use:mouseDrag={{
 			getInitialVertical: () => Number(verticalStyle.value),
@@ -47,7 +57,7 @@
 		style="top: 50%; left: 50%; transform: translate(-50%, -50%) translateY({verticalPosition()}px) translateX({horizontalPosition()}px); width: {containerWidth()}%; height: {containerHeight()}%;"
 	>
 		<img
-			src={'/ayah-container/' + imagePath()}
+			src={imageSrc()}
 			alt="Ayah container"
 			class="w-full h-full"
 			style="object-fit: {stretch() ? 'fill' : 'contain'};"

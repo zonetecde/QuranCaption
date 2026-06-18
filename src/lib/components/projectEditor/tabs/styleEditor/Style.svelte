@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { invoke } from '@tauri-apps/api/core';
+	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
@@ -124,7 +124,7 @@
 
 		if (result) {
 			selectedFilePath = result as string;
-			applyValueSimple(selectedFilePath);
+			applyValue(selectedFilePath);
 		}
 	}
 
@@ -869,18 +869,33 @@
 						New banners made by @isaglace on Discord.
 					</p>
 
-					<button
-						type="button"
-						onclick={() => applyValue('')}
-						class={'w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200 ' +
-							(style.value === ''
-								? 'bg-accent/60 ring-1 ring-color'
-								: 'bg-gray-100 dark:bg-gray-800')}
-					>
-						<span class="material-icons mr-2 text-base">hide_image</span>
-						None
-					</button>
+					<div class="grid grid-cols-2 gap-2">
+						<button
+							type="button"
+							onclick={selectFile}
+							class="btn-accent w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
+							{disabled}
+						>
+							<span class="material-icons mr-2 text-base">folder_open</span>
+							{#if style.value && !ayahContainerImages.includes(String(style.value))}
+								{String(style.value).split('\\').pop()}
+							{:else}
+								{$LL.common.import()}
+							{/if}
+						</button>
 
+						<button
+							type="button"
+							onclick={() => applyValue('')}
+							class={'w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200 ' +
+								(style.value === ''
+									? 'bg-accent/60 ring-1 ring-color'
+									: 'bg-gray-100 dark:bg-gray-800')}
+						>
+							<span class="material-icons mr-2 text-base">hide_image</span>
+							{$LL.common.none()}
+						</button>
+					</div>
 					<div class="grid grid-cols-4 gap-2">
 						{#each ayahContainerImages as img (img)}
 							{@const selected = String(style.value) === img}

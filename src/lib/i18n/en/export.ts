@@ -40,6 +40,11 @@ const export_ = {
 	exportPerformance: 'Export Performance',
 	chooseCpuUsage:
 		'Pick the profile that matches your goal: faster tests, cleaner final exports, or lower CPU usage.',
+	videoCodec: 'Video codec',
+	h264Compatibility: 'H.264 - best compatibility',
+	h265SmallerFiles: 'H.265 / HEVC - smaller files',
+	videoCodecDescription:
+		'H.265 can reduce file size, but H.264 remains the most compatible option. Transparent exports use their own codec.',
 	parallelCaptureWorkers: 'Parallel capture workers',
 	parallelCaptureWorkersDescription:
 		'Number of hidden WebViews used for PNG frame capture. Default is 4; 1 disables parallel capture.',

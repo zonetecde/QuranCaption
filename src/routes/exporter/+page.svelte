@@ -1370,6 +1370,7 @@
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
+				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
@@ -1406,6 +1407,7 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
+				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
@@ -1732,6 +1734,7 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
+				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat

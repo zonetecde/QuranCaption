@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-npm run typesafe-i18n
+npx typesafe-i18n --no-watch
 git add src/lib/i18n/i18n-types.ts src/lib/i18n/i18n-util.ts src/lib/i18n/i18n-util.async.ts src/lib/i18n/i18n-util.sync.ts src/lib/i18n/i18n-svelte.ts
 
 # Formate tous les fichiers stagés avec Prettier avant le commit

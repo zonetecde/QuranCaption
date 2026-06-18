@@ -50,7 +50,7 @@ pub fn append_thread_cap(cmd: &mut Command, profile: ExportPerformanceProfile) {
 
 /// Interroge `ffmpeg -encoders` et retourne la liste des encodeurs hardware supportés.
 ///
-/// Les encodeurs reconnus : h264_nvenc, h264_videotoolbox, h264_qsv, h264_amf.
+/// Les encodeurs reconnus : h264/hevc NVENC, VideoToolbox, QSV et AMF.
 /// Le résultat est mis en cache par exécutable FFmpeg.
 pub fn probe_hw_encoders(ffmpeg_path: Option<&str>) -> Vec<String> {
     let exe = ffmpeg_path.unwrap_or("ffmpeg");
@@ -85,6 +85,18 @@ pub fn probe_hw_encoders(ffmpeg_path: Option<&str>) -> Vec<String> {
     }
     if txt.contains("h264_amf") {
         found.push("h264_amf".to_string());
+    }
+    if txt.contains("hevc_nvenc") {
+        found.push("hevc_nvenc".to_string());
+    }
+    if txt.contains("hevc_videotoolbox") {
+        found.push("hevc_videotoolbox".to_string());
+    }
+    if txt.contains("hevc_qsv") {
+        found.push("hevc_qsv".to_string());
+    }
+    if txt.contains("hevc_amf") {
+        found.push("hevc_amf".to_string());
     }
 
     // Mise en cache
@@ -384,6 +396,85 @@ pub fn choose_best_codec(
     };
 
     (codec, params, extra)
+}
+
+/// Sélectionne le codec H.265 final en privilégiant l'encodeur matériel si disponible.
+pub fn choose_h265_codec(
+    prefer_hw: bool,
+    width: i32,
+    height: i32,
+    performance_profile: ExportPerformanceProfile,
+) -> (String, Vec<String>, HashMap<String, Option<String>>) {
+    let high_resolution = is_high_resolution_export(width, height);
+    let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary();
+    let hw = if prefer_hw {
+        probe_hw_encoders(ffmpeg_exe.as_deref())
+    } else {
+        Vec::new()
+    };
+
+    for codec in ["hevc_videotoolbox", "hevc_nvenc", "hevc_qsv", "hevc_amf"] {
+        if hw.iter().any(|encoder| encoder == codec) {
+            if codec == "hevc_nvenc" && !test_nvenc_availability(ffmpeg_exe.as_deref()) {
+                println!("[codec] HEVC NVENC détecté mais non fonctionnel, fallback H.265 logiciel");
+                continue;
+            }
+
+            let mut extra = HashMap::new();
+            extra.insert(
+                "preset".to_string(),
+                if codec == "hevc_nvenc" {
+                    Some("fast".to_string())
+                } else {
+                    None
+                },
+            );
+            let params = if codec == "hevc_videotoolbox" {
+                let bitrate = if high_resolution { "25M" } else { "12M" };
+                vec![
+                    "-pix_fmt".to_string(),
+                    "yuv420p".to_string(),
+                    "-b:v".to_string(),
+                    bitrate.to_string(),
+                    "-allow_sw".to_string(),
+                    "1".to_string(),
+                    "-tag:v".to_string(),
+                    "hvc1".to_string(),
+                ]
+            } else {
+                vec![
+                    "-pix_fmt".to_string(),
+                    "yuv420p".to_string(),
+                    "-tag:v".to_string(),
+                    "hvc1".to_string(),
+                ]
+            };
+            println!(
+                "[codec] h265 profile={:?} selected={}",
+                performance_profile, codec
+            );
+            return (codec.to_string(), params, extra);
+        }
+    }
+
+    let mut extra = HashMap::new();
+    extra.insert("preset".to_string(), Some("medium".to_string()));
+    println!(
+        "[codec] h265 profile={:?} selected=libx265",
+        performance_profile
+    );
+    (
+        "libx265".to_string(),
+        vec![
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+            "-crf".to_string(),
+            "24".to_string(),
+            "-tag:v".to_string(),
+            "hvc1".to_string(),
+        ],
+        extra,
+    )
 }
 
 // ---------------------------------------------------------------------------

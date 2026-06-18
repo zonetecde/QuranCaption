@@ -11,8 +11,10 @@
 	import LL from '$lib/i18n/i18n-svelte';
 
 	type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
+	type VideoCodec = 'h264' | 'h265';
 
 	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
+	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
 
 	let showAdvancedSettings = $state(false);
 
@@ -52,7 +54,6 @@
 			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 		}
 	}
-
 </script>
 
 <!-- Export Video Configuration -->
@@ -73,10 +74,16 @@
 		<div class="bg-accent rounded-lg p-4 border border-color">
 			<div class="grid grid-cols-1 grid-rows-2 gap-4">
 				<!-- Start Time -->
-				<TimeInput label={$LL.export.startTime()} bind:value={globalState.getExportState.videoStartTime} />
+				<TimeInput
+					label={$LL.export.startTime()}
+					bind:value={globalState.getExportState.videoStartTime}
+				/>
 
 				<!-- End Time -->
-				<TimeInput label={$LL.export.endTime()} bind:value={globalState.getExportState.videoEndTime} />
+				<TimeInput
+					label={$LL.export.endTime()}
+					bind:value={globalState.getExportState.videoEndTime}
+				/>
 			</div>
 
 			<!-- Duration Preview -->
@@ -108,7 +115,9 @@
 	</div>
 
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.videoQualityOrientation()}</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">
+			{$LL.export.videoQualityOrientation()}
+		</h4>
 		<div class="bg-accent rounded-lg p-4 border border-color">
 			<p class="text-thirdly text-sm mb-4">
 				{$LL.export.setResolutionOrientation()}
@@ -266,7 +275,9 @@
 				</div>
 
 				<div class="mb-4">
-					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.exportPerformance()}</h4>
+					<h4 class="text-base font-medium text-secondary mb-1">
+						{$LL.export.exportPerformance()}
+					</h4>
 					<p class="text-thirdly text-sm">
 						{$LL.export.chooseCpuUsage()}
 					</p>
@@ -294,12 +305,46 @@
 							{$LL.export.parallelCaptureWorkersDescription()}
 						</p>
 					</div>
+
+					<div class="mb-4 rounded-lg border border-color bg-secondary p-4">
+						<label class="block text-sm font-medium text-primary mb-2" for="video-codec">
+							{$LL.export.videoCodec()}
+						</label>
+						<select
+							id="video-codec"
+							class="input w-full"
+							bind:value={globalState.settings.exportSettings.videoCodec}
+							disabled={globalState.getExportState.exportWithoutBackground}
+							onchange={() => void Settings.save()}
+						>
+							{#each videoCodecIds as codec (codec)}
+								<option value={codec}>
+									{codec === 'h264'
+										? $LL.export.h264Compatibility()
+										: $LL.export.h265SmallerFiles()}
+								</option>
+							{/each}
+						</select>
+						<p class="text-xs text-thirdly mt-2">
+							{$LL.export.videoCodecDescription()}
+						</p>
+					</div>
 				{/if}
 
 				<div class="grid grid-cols-1 gap-3">
 					{#each performanceProfileIds as id (id)}
-						{@const label = id === 'fastest' ? $LL.export.fastest() : id === 'balanced' ? $LL.export.balanced() : $LL.export.lowCpu()}
-						{@const desc = id === 'fastest' ? $LL.export.fastestDescription() : id === 'balanced' ? $LL.export.balancedDescription() : $LL.export.lowCpuDescription()}
+						{@const label =
+							id === 'fastest'
+								? $LL.export.fastest()
+								: id === 'balanced'
+									? $LL.export.balanced()
+									: $LL.export.lowCpu()}
+						{@const desc =
+							id === 'fastest'
+								? $LL.export.fastestDescription()
+								: id === 'balanced'
+									? $LL.export.balancedDescription()
+									: $LL.export.lowCpuDescription()}
 						<button
 							type="button"
 							class="rounded-xl border p-4 text-left transition-colors"

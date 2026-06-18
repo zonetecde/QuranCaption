@@ -15,7 +15,9 @@ use super::constants;
 use super::ffmpeg_runner;
 use super::ffmpeg_utils;
 use super::preprocess;
-use super::types::{CodecUsage, ExportPerformanceProfile, FfmpegProgressContext, VideoInput};
+use super::types::{
+    CodecUsage, ExportPerformanceProfile, ExportVideoCodec, FfmpegProgressContext, VideoInput,
+};
 
 // ---------------------------------------------------------------------------
 // Commande Tauri : export_video
@@ -57,6 +59,7 @@ pub async fn export_video(
     export_fade_duration_ms: Option<i32>,
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
+    video_codec: Option<ExportVideoCodec>,
     blank_timings: Option<Vec<i32>>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
@@ -285,6 +288,7 @@ pub async fn export_video(
             export_fade_duration_ms.unwrap_or(0),
             export_without_background.unwrap_or(false),
             transparent_export_format.as_deref(),
+            video_codec.unwrap_or(ExportVideoCodec::H264),
             performance_profile,
             app_handle,
         )
@@ -1027,6 +1031,31 @@ fn append_visible_h264_args(
     append_seek_friendly_gop_args(cmd, &vcodec, fps);
 }
 
+/// Ajoute les options vidéo visibles pour le codec final choisi.
+fn append_visible_video_args(
+    cmd: &mut Vec<String>,
+    video_codec: ExportVideoCodec,
+    prefer_hw: bool,
+    width: i32,
+    height: i32,
+    fps: i32,
+    performance_profile: ExportPerformanceProfile,
+) {
+    if video_codec == ExportVideoCodec::H265 {
+        let (vcodec, vparams, vextra) =
+            codec::choose_h265_codec(prefer_hw, width, height, performance_profile);
+        cmd.extend_from_slice(&["-c:v".to_string(), vcodec.clone()]);
+        if let Some(Some(preset)) = vextra.get("preset") {
+            cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
+        }
+        cmd.extend(vparams);
+        append_seek_friendly_gop_args(cmd, &vcodec, fps);
+        return;
+    }
+
+    append_visible_h264_args(cmd, prefer_hw, width, height, fps, performance_profile);
+}
+
 /// Indique si l'audio simple peut etre copie sans reencodage dans la sortie.
 fn can_stream_copy_simple_audio(audio_path: &str, out_path: &str) -> bool {
     let audio_ext = Path::new(audio_path)
@@ -1092,6 +1121,7 @@ fn run_fast_export(
     export_fade_duration_ms: i32,
     export_without_background: bool,
     transparent_export_format: Option<&str>,
+    video_codec: ExportVideoCodec,
     performance_profile: ExportPerformanceProfile,
     app_handle: tauri::AppHandle,
 ) -> ExportResult<()> {
@@ -1344,7 +1374,15 @@ fn run_fast_export(
             "-r".to_string(),
             fps.to_string(),
         ]);
-        append_visible_h264_args(&mut cmd, prefer_hw, w, h, fps, performance_profile);
+        append_visible_video_args(
+            &mut cmd,
+            video_codec,
+            prefer_hw,
+            w,
+            h,
+            fps,
+            performance_profile,
+        );
 
         if have_audio {
             cmd.extend_from_slice(&["-map".to_string(), format!("{}:a", audio_start_idx)]);
@@ -1604,8 +1642,11 @@ fn run_fast_export(
             "yuva420p".to_string(),
         ]);
     } else {
-        let (vcodec, vparams, vextra) =
-            codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Final, performance_profile);
+        let (vcodec, vparams, vextra) = if video_codec == ExportVideoCodec::H265 {
+            codec::choose_h265_codec(prefer_hw, w, h, performance_profile)
+        } else {
+            codec::choose_best_codec(prefer_hw, w, h, CodecUsage::Final, performance_profile)
+        };
         cmd.extend_from_slice(&["-c:v".to_string(), vcodec.clone()]);
         if let Some(Some(preset)) = vextra.get("preset") {
             cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
@@ -1735,6 +1776,7 @@ pub async fn concat_videos(
     export_fade_duration_ms: Option<i32>,
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
+    video_codec: Option<ExportVideoCodec>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
@@ -1773,6 +1815,7 @@ pub async fn concat_videos(
             .as_deref()
             .unwrap_or("mov_prores_4444")
     );
+    let video_codec = video_codec.unwrap_or(ExportVideoCodec::H264);
 
     let apply_video_fade =
         video_fade_in_enabled.unwrap_or(false) || video_fade_out_enabled.unwrap_or(false);
@@ -1975,16 +2018,25 @@ pub async fn concat_videos(
             "yuva420p".to_string(),
         ]);
     } else {
-        cmd.extend_from_slice(&[
-            "-c:v".to_string(),
-            "libx264".to_string(),
-            "-preset".to_string(),
-            "veryfast".to_string(),
-            "-crf".to_string(),
-            "18".to_string(),
-            "-pix_fmt".to_string(),
-            "yuv420p".to_string(),
-        ]);
+        if video_codec == ExportVideoCodec::H265 {
+            let (vcodec, vparams, vextra) = codec::choose_h265_codec(true, 0, 0, performance_profile);
+            cmd.extend_from_slice(&["-c:v".to_string(), vcodec]);
+            if let Some(Some(preset)) = vextra.get("preset") {
+                cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
+            }
+            cmd.extend(vparams);
+        } else {
+            cmd.extend_from_slice(&[
+                "-c:v".to_string(),
+                "libx264".to_string(),
+                "-preset".to_string(),
+                "veryfast".to_string(),
+                "-crf".to_string(),
+                "18".to_string(),
+                "-pix_fmt".to_string(),
+                "yuv420p".to_string(),
+            ]);
+        }
     }
 
     // Codec audio

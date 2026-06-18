@@ -1484,6 +1484,11 @@ const de = {
 		exportPerformance: 'Exportleistung',
 		chooseCpuUsage:
 			'Wählen Sie das passende Profil: schnelle Tests, sauberere finale Exporte oder geringere CPU-Auslastung.',
+		videoCodec: 'Videocodec',
+		h264Compatibility: 'H.264 - beste Kompatibilität',
+		h265SmallerFiles: 'H.265 / HEVC - kleinere Dateien',
+		videoCodecDescription:
+			'H.265 kann die Dateigröße reduzieren, aber H.264 bleibt die kompatibelste Option. Transparente Exporte verwenden ihren eigenen Codec.',
 		parallelCaptureWorkers: 'Parallele Capture-Worker',
 		parallelCaptureWorkersDescription:
 			'Anzahl ausgeblendeter WebViews fuer die PNG-Frame-Erfassung. Standard ist 4; 1 deaktiviert die parallele Erfassung.',

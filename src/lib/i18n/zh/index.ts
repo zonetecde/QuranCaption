@@ -1356,6 +1356,11 @@ const zh = {
 		movQtrleCompatibility: 'MOV (QTRLE alpha) 提高了与编辑工具的兼容性。',
 		exportPerformance: '导出性能',
 		chooseCpuUsage: '选择适合目标的配置：快速测试、更干净的最终导出，或更低的 CPU 占用。',
+		videoCodec: '视频编码',
+		h264Compatibility: 'H.264 - 最佳兼容性',
+		h265SmallerFiles: 'H.265 / HEVC - 更小文件',
+		videoCodecDescription:
+			'H.265 可以减小文件体积，但 H.264 兼容性最好。透明导出会使用自己的编码。',
 		parallelCaptureWorkers: '并行捕获 workers',
 		parallelCaptureWorkersDescription:
 			'用于 PNG 帧捕获的隐藏 WebViews 数量。默认值为 4；1 会禁用并行捕获。',

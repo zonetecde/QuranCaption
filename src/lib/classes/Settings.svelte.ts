@@ -66,6 +66,7 @@ export type ExportSettings = {
 	batchSizeMode: 'auto' | 'fixed';
 	batchSize: number;
 	parallelCaptureWorkers: number;
+	videoCodec: 'h264' | 'h265';
 };
 
 export type SavedVideoStylePreset = {
@@ -86,7 +87,8 @@ export default class Settings extends SerializableBase {
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
 		batchSizeMode: 'auto',
 		batchSize: 64,
-		parallelCaptureWorkers: 4
+		parallelCaptureWorkers: 4,
+		videoCodec: 'h264'
 	};
 
 	// État UI persistant
@@ -544,6 +546,14 @@ export default class Settings extends SerializableBase {
 				settings.exportSettings.parallelCaptureWorkers = normalizedParallelCaptureWorkers;
 				shouldSave = true;
 			}
+		}
+
+		if (
+			settings.exportSettings.videoCodec !== 'h264' &&
+			settings.exportSettings.videoCodec !== 'h265'
+		) {
+			settings.exportSettings.videoCodec = Settings.DEFAULT_EXPORT_SETTINGS.videoCodec;
+			shouldSave = true;
 		}
 
 		if ('chunkSize' in (settings.exportSettings as Record<string, unknown>)) {

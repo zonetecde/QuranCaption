@@ -591,6 +591,8 @@ const id: Translation = {
 		arabic: 'Arab',
 		translation: 'Terjemahan',
 		playbackSpeed: 'Kecepatan Playback',
+		moveTrackUp: 'Pindahkan track ke atas',
+		moveTrackDown: 'Pindahkan track ke bawah',
 		wbwPlaybackSpeed: 'Kecepatan Playback WBW',
 		displayOptions: 'Opsi Tampilan',
 		showWordTranslation: 'Tampilkan Terjemahan Kata',
@@ -609,6 +611,8 @@ const id: Translation = {
 			'Timestamp WBW berhasil dihitung untuk {enriched}/{total} subtitle{plural}.',
 		noWbwTimestampsComputed: 'Tidak ada timestamp WBW yang bisa dihitung. Silakan coba lagi.',
 		failedToComputeWbwTimestamps: 'Gagal menghitung timestamp WBW.',
+		crossfadePreviewNotice:
+			'Efek crossfade tidak ditampilkan di pratinjau video, tetapi akan muncul di video hasil ekspor.',
 		needVisualWalkthrough: 'Butuh panduan visual?',
 		walkthroughDescription: 'Berikut video singkat yang menunjukkan cara kerja editor subtitle:',
 		spaceToPlayPause:
@@ -774,6 +778,11 @@ const id: Translation = {
 		exportPerformance: 'Performa export',
 		chooseCpuUsage:
 			'Pilih profil yang sesuai dengan tujuan kamu: test cepat, final export lebih bersih, atau CPU lebih ringan.',
+		videoCodec: 'Kodek video',
+		h264Compatibility: 'H.264 - kompatibilitas terbaik',
+		h265SmallerFiles: 'H.265 / HEVC - file lebih kecil',
+		videoCodecDescription:
+			'H.265 dapat mengurangi ukuran file, tetapi H.264 tetap menjadi opsi paling kompatibel. Ekspor transparan menggunakan kodeknya sendiri.',
 		parallelCaptureWorkers: 'Parallel capture workers',
 		parallelCaptureWorkersDescription:
 			'Jumlah WebView tersembunyi yang dipakai untuk capture frame PNG. Default 4; nilai 1 menonaktifkan parallel capture.',

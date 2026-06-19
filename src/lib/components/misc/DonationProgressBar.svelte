@@ -1,15 +1,14 @@
 <script lang="ts">
 	import 'material-icons/iconfont/material-icons.css';
-	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { globalState } from '$lib/runes/main.svelte';
-	import Settings from '$lib/classes/Settings.svelte';
+	import Settings, { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
 	const DONATION_API_URL = 'https://api.qurancaption.com/donation/progress';
 	const CACHE_MS = 5 * 60 * 1000;
-	const BANNER_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+	const BANNER_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 
 	type DonationData = {
 		currentAmount: number;
@@ -81,13 +80,9 @@
 		}
 	}
 
-	async function handleDonateClick() {
-		try {
-			await openUrl('https://www.paypal.me/rayanestaszewski');
-		} catch (error) {
-			console.error('Failed to open PayPal:', error);
-			toast.error(get(LL).donation.unableToOpenPaypal());
-		}
+	function handleDonateClick() {
+		globalState.uiState.settingsTab = SettingsTab.SUPPORT;
+		globalState.uiState.isSettingsOpen = true;
 	}
 
 	$effect(() => {
@@ -100,95 +95,175 @@
 </script>
 
 {#if isVisible && !isLoading}
-	<div class="donation-banner fixed bottom-0 left-0 right-0 z-30">
-		<div class="flex items-center gap-3 sm:gap-4 px-4 py-2.5 max-w-screen-2xl mx-auto">
-			<!-- Mois + objectif -->
-			<div class="hidden md:flex items-center gap-2.5 min-w-0 flex-shrink-0">
-				<span class="material-icons-outlined text-accent-primary text-xl">volunteer_activism</span>
-				<div class="min-w-0 leading-tight">
-					<p class="text-[13px] font-semibold text-primary">{monthName} goal</p>
-					<p class="text-[11px] text-thirdly">{$LL.donation.donationsSupport()}</p>
+	<div class="donation-banner fixed z-[900]">
+		<div class="banner-content p-3.5 sm:p-4">
+			<div class="flex items-start gap-3">
+				<div class="banner-icon shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center">
+					<span class="material-icons-outlined text-2xl">volunteer_activism</span>
 				</div>
-			</div>
 
-			<!-- Barre de progression -->
-			<div class="flex-1 min-w-0">
-				<div class="flex items-baseline justify-between gap-2 mb-1">
-					<span class="text-[15px] font-mono font-bold text-primary tracking-tight">
-						${currentAmount.toFixed(0)}<span class="text-[12px] text-thirdly font-normal"
-							>/${goal}</span
+				<div class="min-w-0 flex-1">
+					<div class="flex items-center justify-between gap-3">
+						<p
+							class="flex flex-wrap items-center gap-x-2 text-[11px] font-bold uppercase text-accent-primary"
 						>
-					</span>
-					<span class="text-[13px] font-mono font-semibold text-accent-primary tabular-nums">
-						{percentage.toFixed(0)}%
-					</span>
+							<span>{$LL.donation.monthlyGoal()}</span>
+							<span>{monthName}</span>
+						</p>
+						<span class="progress-badge shrink-0 font-mono text-[12px] font-bold tabular-nums">
+							{percentage.toFixed(0)}%
+						</span>
+					</div>
+					<p class="mt-1 text-[15px] sm:text-base font-bold text-primary leading-tight">
+						{$LL.donation.supportFuture()}
+					</p>
+					<p class="mt-1 text-[12px] sm:text-[13px] text-secondary leading-snug">
+						{$LL.donation.donationsSupport()}
+					</p>
 				</div>
-				<div class="h-2 rounded-full bg-secondary/25 overflow-hidden border border-white/5">
-					<div
-						class="h-full rounded-full transition-all duration-700 ease-out"
-						class:bg-accent-primary={!isComplete}
-						class:bg-green-500={isComplete}
-						style="width: {percentage}%"
-					></div>
-				</div>
+
+				<!-- Fermer -->
+				<button
+					class="close-btn shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-thirdly hover:text-primary hover:bg-white/10 transition-colors"
+					onclick={dismissBanner}
+					aria-label={get(LL).common.close()}
+					title={get(LL).common.close()}
+				>
+					<span class="material-icons-outlined text-base">close</span>
+				</button>
 			</div>
 
-			<!-- Bouton don -->
-			<button
-				class="donate-btn shrink-0 flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200"
-				onclick={handleDonateClick}
-				aria-label={$LL.donation.donateToHelp()}
-			>
-				<span class="material-icons-outlined text-lg">favorite</span>
-				<span class="hidden sm:inline">{$LL.donation.makeDonation()}</span>
-			</button>
+			<div class="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
+				<div class="flex-1 min-w-0">
+					<span class="text-[12px] font-mono font-semibold text-primary tracking-tight">
+						{$LL.donation.donationProgress({
+							raised: `$${currentAmount.toFixed(0)}`,
+							goal: `$${goal}`
+						})}
+					</span>
+					<div class="progress-track mt-1.5 h-2.5 rounded-full overflow-hidden">
+						<div
+							class="progress-fill h-full rounded-full transition-all duration-700 ease-out"
+							class:complete={isComplete}
+							style="width: {percentage}%"
+						></div>
+					</div>
+				</div>
 
-			<!-- Fermer -->
-			<button
-				class="close-btn shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-thirdly hover:text-primary hover:bg-secondary/40 transition-colors"
-				onclick={dismissBanner}
-				aria-label={get(LL).common.close()}
-				title={get(LL).common.close()}
-			>
-				<span class="material-icons-outlined text-base">close</span>
-			</button>
+				<!-- Bouton don -->
+				<button
+					class="donate-btn shrink-0 w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
+					onclick={handleDonateClick}
+					aria-label={$LL.donation.donateToHelp()}
+				>
+					<span class="material-icons-outlined text-lg">favorite</span>
+					<span>{$LL.donation.makeDonation()}</span>
+				</button>
+			</div>
 		</div>
 	</div>
-
-	<div class="banner-spacer h-12 sm:h-[3.25rem]"></div>
 {/if}
 
 <style>
 	.donation-banner {
-		background: linear-gradient(
-			180deg,
-			color-mix(in srgb, var(--accent-primary) 6%, var(--bg-secondary)) 0%,
-			var(--bg-secondary) 100%
-		);
-		border-top: 1px solid color-mix(in srgb, var(--accent-primary) 20%, var(--border-color));
-		box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.35);
+		bottom: 0;
+		left: 50%;
+		width: min(calc(100vw - 1rem), 760px);
+		transform: translateX(-50%);
+		background:
+			linear-gradient(
+				180deg,
+				color-mix(in srgb, var(--accent-primary) 10%, var(--bg-secondary)) 0%,
+				var(--bg-secondary) 100%
+			),
+			var(--bg-secondary);
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 24%, var(--border-color));
+		border-bottom: 0;
+		border-radius: 1.25rem 1.25rem 0 0;
+		box-shadow:
+			0 -14px 42px rgba(0, 0, 0, 0.36),
+			inset 0 1px 0 rgba(255, 255, 255, 0.12);
+		overflow: hidden;
 		animation: bannerSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.donation-banner::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		background: linear-gradient(
+			90deg,
+			rgba(255, 255, 255, 0.08),
+			transparent 20%,
+			transparent 80%,
+			rgba(255, 255, 255, 0.05)
+		);
+	}
+
+	.banner-content {
+		position: relative;
+	}
+
+	.banner-icon {
+		background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+		color: var(--accent-primary);
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.12),
+			0 0 18px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+	}
+
+	.progress-badge {
+		padding: 0.25rem 0.5rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+		color: var(--accent-primary);
+	}
+
+	.progress-track {
+		background: rgba(255, 255, 255, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.28);
+	}
+
+	.progress-fill {
+		background: linear-gradient(
+			90deg,
+			var(--accent-primary),
+			color-mix(in srgb, var(--accent-primary) 55%, #ffffff)
+		);
+		box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary) 34%, transparent);
+	}
+
+	.progress-fill.complete {
+		background: linear-gradient(90deg, #16a34a, #84cc16);
+		box-shadow: 0 0 18px rgba(132, 204, 22, 0.45);
 	}
 
 	@keyframes bannerSlideUp {
 		from {
 			opacity: 0;
-			transform: translateY(100%);
+			transform: translate(-50%, 100%);
 		}
 		to {
 			opacity: 1;
-			transform: translateY(0);
+			transform: translate(-50%, 0);
 		}
 	}
 
 	.donate-btn {
 		background: var(--accent-primary);
-		border: 1px solid var(--accent-primary);
+		border: 1px solid rgba(255, 255, 255, 0.22);
 		color: var(--text-on-accent);
+		box-shadow:
+			0 10px 24px color-mix(in srgb, var(--accent-primary) 24%, transparent),
+			inset 0 1px 0 rgba(255, 255, 255, 0.22);
 	}
 
 	.donate-btn:hover {
-		box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary) 40%, transparent);
+		box-shadow:
+			0 12px 30px color-mix(in srgb, var(--accent-primary) 34%, transparent),
+			inset 0 1px 0 rgba(255, 255, 255, 0.28);
 		transform: translateY(-1px);
 	}
 </style>

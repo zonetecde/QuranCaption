@@ -81,6 +81,8 @@ const QUA_CATALOG_TTL_MS: Record<QuaCatalogKind, number> = {
 
 /** Fichier de cache persistant (dans appDataDir). */
 const QUA_CATALOG_CACHE_FILE = 'qua-recitations-cache.json';
+/** Seed embarqué dans `static/` pour éviter un premier chargement réseau bloquant. */
+const QUA_BUNDLED_CATALOG_CACHE_URL = '/qua/qua-recitations-cache.json';
 
 export class QuranicUniversalAudioService {
 	/** Tier 1 — cache mémoire : survit aux bascules de mode et ré-ouvertures du panneau. */
@@ -254,38 +256,74 @@ export class QuranicUniversalAudioService {
 	}
 
 	/**
-	 * Hydrate le cache mémoire depuis le fichier disque, une seule fois par session.
-	 * Toute erreur de lecture/parsing est non bloquante (on repart sans cache disque).
+	 * Hydrate le cache mémoire depuis le fichier disque ou le seed embarqué, une seule fois par session.
+	 * Toute erreur de lecture/parsing est non bloquante (on repart sans cache).
 	 * @returns {Promise<void>}
 	 */
 	private static hydrateFromDisk(): Promise<void> {
 		if (!this.hydration) {
 			this.hydration = (async () => {
+				let hydrated = false;
 				try {
 					const path = await this.cacheFilePath();
-					if (!(await exists(path))) {
-						return;
-					}
-					const parsed = JSON.parse(await readTextFile(path)) as Partial<
-						Record<QuaCatalogKind, CachedQuaCatalog>
-					>;
-					for (const kind of ['published', 'audio'] as QuaCatalogKind[]) {
-						const entry = parsed?.[kind];
-						if (
-							entry &&
-							typeof entry.fetchedAt === 'number' &&
-							Array.isArray(entry.recitations) &&
-							!this.memoryCache[kind]
-						) {
-							this.memoryCache[kind] = entry;
-						}
+					if (await exists(path)) {
+						this.hydrateMemoryCache(
+							JSON.parse(await readTextFile(path)) as Partial<
+								Record<QuaCatalogKind, CachedQuaCatalog>
+							>
+						);
+						hydrated = true;
 					}
 				} catch (error) {
 					console.error('Failed to read QUA catalog cache:', error);
 				}
+				if (!hydrated) {
+					await this.hydrateFromBundledCache();
+				}
 			})();
 		}
 		return this.hydration;
+	}
+
+	/**
+	 * Hydrate le cache mémoire depuis le seed statique et force sa revalidation future.
+	 * @returns {Promise<void>}
+	 */
+	private static async hydrateFromBundledCache(): Promise<void> {
+		try {
+			const response = await fetch(QUA_BUNDLED_CATALOG_CACHE_URL);
+			if (!response.ok) return;
+			const parsed = (await response.json()) as Partial<Record<QuaCatalogKind, CachedQuaCatalog>>;
+			this.hydrateMemoryCache(parsed, true);
+		} catch (error) {
+			console.error('Failed to read bundled QUA catalog cache:', error);
+		}
+	}
+
+	/**
+	 * Copie les entrées valides dans le cache mémoire.
+	 * @param {Partial<Record<QuaCatalogKind, CachedQuaCatalog>>} cache Cache parsé.
+	 * @param {boolean} forceStale Indique si les entrées doivent être revalidées en arrière-plan.
+	 * @returns {void}
+	 */
+	private static hydrateMemoryCache(
+		cache: Partial<Record<QuaCatalogKind, CachedQuaCatalog>>,
+		forceStale = false
+	): void {
+		for (const kind of ['published', 'audio'] as QuaCatalogKind[]) {
+			const entry = cache?.[kind];
+			if (
+				entry &&
+				typeof entry.fetchedAt === 'number' &&
+				Array.isArray(entry.recitations) &&
+				!this.memoryCache[kind]
+			) {
+				this.memoryCache[kind] = {
+					fetchedAt: forceStale ? 0 : entry.fetchedAt,
+					recitations: entry.recitations
+				};
+			}
+		}
 	}
 
 	/**

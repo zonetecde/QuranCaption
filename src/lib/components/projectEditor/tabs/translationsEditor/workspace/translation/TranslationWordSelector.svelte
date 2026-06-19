@@ -10,10 +10,12 @@
 
 	let {
 		words,
+		direction = 'ltr',
 		isWordSelected = () => false,
 		onSelection
 	}: {
 		words: TranslationWordSelectorItem[];
+		direction?: 'ltr' | 'rtl';
 		isWordSelected?: (wordIndex: number) => boolean;
 		onSelection: (startWordIndex: number, endWordIndex: number) => void;
 	} = $props();
@@ -99,6 +101,7 @@
 
 <div
 	class="translation-style-flow select-none"
+	dir={direction}
 	onmouseup={finishSelection}
 	onmouseleave={finishSelection}
 	role="presentation"

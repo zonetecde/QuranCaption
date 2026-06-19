@@ -44,6 +44,7 @@
 		() => translationsEditorState().isTranslationWbwMappingMode
 	);
 	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
+	const translationDirection = $derived(() => (edition.direction === 'rtl' ? 'rtl' : 'ltr'));
 
 	// Variables pour gérer le glisser-déposer
 	let isDragging = $state(false);
@@ -630,6 +631,7 @@
 					.isBruteForce
 					? 'opacity-[0.14] group-hover:opacity-[0.55]'
 					: 'opacity-20 group-hover:opacity-100'}"
+				dir={translationDirection()}
 				role="presentation"
 				onmouseup={handleGlobalMouseUp}
 				transition:slide
@@ -640,6 +642,18 @@
 					{@const isLastSelected = isSelected && i === translation().endWordIndex}
 					{@const isSingleSelected =
 						isSelected && translation().startWordIndex === translation().endWordIndex}
+					{@const selectedEdgeClass =
+						translationDirection() === 'rtl'
+							? isLastSelected
+								? 'translation-word-last-selected'
+								: isFirstSelected
+									? 'translation-word-first-selected'
+									: 'translation-word-middle-selected'
+							: isLastSelected
+								? 'translation-word-first-selected'
+								: isFirstSelected
+									? 'translation-word-last-selected'
+									: 'translation-word-middle-selected'}
 					{@const isPreviousSubtitleTranslation =
 						previousSubtitleTranslationStartIndex !== -1 &&
 						previousSubtitleTranslationStartIndex <= i &&
@@ -654,11 +668,7 @@
 								`translation-word-selected ${isPreviousSubtitleTranslation ? 'bg-purple-500/30! border-purple-400/70! hover:bg-purple-500/80! hover:border-purple-400/80!' : ''} text-[var(--text-on-selected-word)] ${
 									isSingleSelected
 										? 'translation-word-first-selected translation-word-last-selected'
-										: isLastSelected
-											? 'translation-word-first-selected'
-											: isFirstSelected
-												? 'translation-word-last-selected'
-												: 'translation-word-middle-selected'
+										: selectedEdgeClass
 								}`
 							: 'translation-word-not-selected text-secondary hover:bg-secondary hover:border-border-color hover:text-primary rounded-md'}
 						{isDragging ? 'select-none' : ''}"
@@ -743,6 +753,7 @@
 							</div>
 							<TranslationWordSelector
 								words={getTrimmedTranslationWords()}
+								direction={translationDirection()}
 								isWordSelected={(wordIndex) =>
 									isWbwUnitSelectedForArabicWord(arabicWordIndex, wordIndex)}
 								onSelection={(start, end) => applyWbwMappingSelection(arabicWordIndex, start, end)}
@@ -753,11 +764,13 @@
 			{:else if translation().type === 'verse' && isInlineStyleMode()}
 				<TranslationWordSelector
 					words={getTrimmedTranslationWords()}
+					direction={translationDirection()}
 					onSelection={applyInlineStylesFromSelection}
 				/>
 			{:else if translation().type === 'verse' && !translation().isBruteForce}
 				<p
 					class="text-sm font-medium whitespace-pre-line"
+					dir={translationDirection()}
 					ondblclick={() => {
 						ProjectHistoryManager.track('edit translation manually', () => {
 							(subtitle.translations[edition.name] as VerseTranslation).isBruteForce = true;
@@ -792,6 +805,7 @@
 					oninput={handleTranslationInput}
 					onblur={handleTranslationInputBlur}
 					class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
+					dir={translationDirection()}
 					placeholder={$LL.translations.enterTranslationHere()}
 				/>
 			{/if}

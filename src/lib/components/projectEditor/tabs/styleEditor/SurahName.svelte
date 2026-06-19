@@ -88,6 +88,15 @@
 		ChineseTraditional: '/translations/surahNames/zh_hant.json'
 	};
 
+	const surahTranslationTagLanguages: Record<string, SupportedTranslationLanguage> = {
+		en: 'English',
+		es: 'Spanish',
+		fr: 'French',
+		zh: 'ChineseSimplified',
+		zh_hant: 'ChineseTraditional',
+		'zh-hant': 'ChineseTraditional'
+	};
+
 	let supportedSurahTranslations: Record<SupportedTranslationLanguage, string[]> = $state({
 		English: [],
 		Spanish: [],
@@ -155,13 +164,17 @@
 		return defaultTranslationLanguage;
 	});
 
-	const surahTranslatedName = $derived(() => {
+	/**
+	 * Retourne le nom traduit de la sourate courante pour la langue demandée.
+	 * @param {SupportedTranslationLanguage} language Langue de traduction des noms de sourates.
+	 * @returns {string} Nom traduit, avec fallback anglais puis donnée Quran locale.
+	 */
+	function getSurahTranslatedName(language: SupportedTranslationLanguage): string {
 		const surahIndex = currentSurah() - 1;
 		if (surahIndex < 0 || surahIndex >= Quran.surahs.length) {
 			return '';
 		}
 
-		const language = preferredTranslationLanguage();
 		const translations = supportedSurahTranslations[language];
 		const translationFromPreferred = translations?.[surahIndex];
 
@@ -175,7 +188,34 @@
 		}
 
 		return Quran.surahs[surahIndex]?.translation ?? '';
+	}
+
+	const surahTranslatedName = $derived(() => {
+		return getSurahTranslatedName(preferredTranslationLanguage());
 	});
+
+	/**
+	 * Remplace les tags du format de nom de sourate par leurs valeurs courantes.
+	 * @returns {string} Format résolu pour la sourate affichée.
+	 */
+	function formatSurahName(): string {
+		return surahNameSettings()
+			.surahNameFormat.replace(/<translation-([a-z_-]+)>/gi, (_match: string, code: string) => {
+				const language = surahTranslationTagLanguages[code.toLowerCase()];
+				return language ? getSurahTranslatedName(language) : '';
+			})
+			.replace('<number>', currentSurah().toString())
+			.replace('<transliteration>', Quran.surahs[currentSurah() - 1].name)
+			.replace('<translation>', surahTranslatedName())
+			.replace(
+				'<min-range>',
+				VerseRange.getExportVerseRange().getRangeForSurah(currentSurah()).verseStart.toString()
+			)
+			.replace(
+				'<max-range>',
+				VerseRange.getExportVerseRange().getRangeForSurah(currentSurah()).verseEnd.toString()
+			);
+	}
 </script>
 
 {#if surahNameSettings().show && currentSurah() >= 1 && currentSurah() <= 114 && timedSurahOpacity() > 0}
@@ -203,18 +243,7 @@
 			style={`margin-top: ${-surahNameSettings().surahLatinSpacing}rem; opacity: ${surahNameSettings().showLatin ? 1 : 0};`}
 		>
 			<CompositeText compositeStyle={globalState.getStyle('global', 'surah-latin-text-style')!}>
-				{surahNameSettings()
-					.surahNameFormat.replace('<number>', currentSurah().toString())
-					.replace('<transliteration>', Quran.surahs[currentSurah() - 1].name)
-					.replace('<translation>', surahTranslatedName())
-					.replace(
-						'<min-range>',
-						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah()).verseStart.toString()
-					)
-					.replace(
-						'<max-range>',
-						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah()).verseEnd.toString()
-					)}
+				{formatSurahName()}
 			</CompositeText>
 		</div>
 	</div>

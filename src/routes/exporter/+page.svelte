@@ -197,6 +197,27 @@
 	}
 
 	/**
+	 * Retourne le mode de transition entre clips vidéo de fond.
+	 *
+	 * @returns {string} Mode de transition exporté vers Tauri.
+	 */
+	function getVideoClipTransitionMode(): string {
+		return String(globalState.getStyle('global', 'video-clip-transition')?.value ?? 'none');
+	}
+
+	/**
+	 * Retourne la durée des transitions entre clips vidéo de fond.
+	 *
+	 * @returns {number} Durée en millisecondes.
+	 */
+	function getVideoClipTransitionDurationMs(): number {
+		return Math.max(
+			0,
+			Number(globalState.getStyle('global', 'video-clip-transition-duration')?.value ?? 0)
+		);
+	}
+
+	/**
 	 * Contraint une progression dans l'intervalle [0, 100].
 	 * Évite les débordements visuels côté monitor.
 	 */
@@ -1370,6 +1391,9 @@
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
 				performanceProfile: globalState.getExportState.performanceProfile,
+				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
+				videoClipTransitionMode: getVideoClipTransitionMode(),
+				videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
@@ -1406,6 +1430,7 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
+				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
@@ -1732,6 +1757,9 @@
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.getExportState.performanceProfile,
+				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
+				videoClipTransitionMode: getVideoClipTransitionMode(),
+				videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat

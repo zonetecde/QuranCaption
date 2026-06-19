@@ -67,6 +67,8 @@ export type GlobalAnimationStyleName =
 	| 'video-dimension'
 	| 'fade-duration'
 	| 'video-and-audio-fade'
+	| 'video-clip-transition'
+	| 'video-clip-transition-duration'
 	| 'anti-collision'
 	| 'spacing';
 
@@ -122,6 +124,7 @@ export type WordByWordHighlightStyleName =
 	| 'enable-wbw-highlight'
 	| 'wbw-color'
 	| 'wbw-persist-color'
+	| 'wbw-reveal-specific-word-style'
 	| 'wbw-reveal-on-recitation'
 	| 'enable-wbw-background'
 	| 'enable-wbw-underline'
@@ -152,6 +155,7 @@ export type SurahNameStyleName =
 	| 'surah-name-vertical-position'
 	| 'surah-name-horizontal-position'
 	| 'surah-show-latin'
+	| 'surah-calligraphy-style'
 	| 'surah-size'
 	| 'surah-opacity'
 	| 'surah-latin-spacing'

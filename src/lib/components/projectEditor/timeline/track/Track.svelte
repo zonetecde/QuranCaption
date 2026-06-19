@@ -19,11 +19,19 @@
 	let {
 		track = $bindable(),
 		visibleRangeStartMs = 0,
-		visibleRangeEndMs = Number.POSITIVE_INFINITY
+		visibleRangeEndMs = Number.POSITIVE_INFINITY,
+		canMoveUp = false,
+		canMoveDown = false,
+		onMoveUp = () => {},
+		onMoveDown = () => {}
 	}: {
 		track: Track;
 		visibleRangeStartMs: number;
 		visibleRangeEndMs: number;
+		canMoveUp?: boolean;
+		canMoveDown?: boolean;
+		onMoveUp?: () => void;
+		onMoveDown?: () => void;
 	} = $props();
 
 	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
@@ -176,6 +184,26 @@
 		(track as SubtitleTrack).applyVisualMerge(quickMergeContextTarget.subtitlesToMerge, mode);
 		quickMergeContextTarget = null;
 	}
+
+	/**
+	 * Déplace la piste vers le haut sans propager le clic à la timeline.
+	 * @param {MouseEvent} event Evenement du bouton.
+	 * @returns {void}
+	 */
+	function handleMoveUp(event: MouseEvent): void {
+		event.stopPropagation();
+		onMoveUp();
+	}
+
+	/**
+	 * Déplace la piste vers le bas sans propager le clic à la timeline.
+	 * @param {MouseEvent} event Evenement du bouton.
+	 * @returns {void}
+	 */
+	function handleMoveDown(event: MouseEvent): void {
+		event.stopPropagation();
+		onMoveDown();
+	}
 </script>
 
 <div
@@ -188,6 +216,30 @@
 	>
 		<span class="material-icons text-base opacity-80">{track.getIcon()}</span>
 		<span class="text-[var(--text-secondary)] text-xs font-medium truncate">{track.getName()}</span>
+		<div class="track-order-buttons ml-auto flex flex-col gap-0.5 opacity-0 transition-opacity">
+			{#if canMoveUp}
+				<button
+					class="track-order-button"
+					type="button"
+					title={$LL.editor.moveTrackUp()}
+					aria-label={$LL.editor.moveTrackUp()}
+					onclick={handleMoveUp}
+				>
+					<span class="material-icons-outlined text-[15px]! leading-none">keyboard_arrow_up</span>
+				</button>
+			{/if}
+			{#if canMoveDown}
+				<button
+					class="track-order-button"
+					type="button"
+					title={$LL.editor.moveTrackDown()}
+					aria-label={$LL.editor.moveTrackDown()}
+					onclick={handleMoveDown}
+				>
+					<span class="material-icons-outlined text-[15px]! leading-none">keyboard_arrow_down</span>
+				</button>
+			{/if}
+		</div>
 
 		{#if track.type === TrackType.Audio}
 			<div class="absolute bottom-0 right-0.5 opacity-45 hover:opacity-100 transition-opacity">
@@ -251,7 +303,7 @@
 							/>
 						{/if}
 					{:else}
-						<ClipComponent {clip} {track} />
+						<ClipComponent {clip} {track} {clipIndex} />
 					{/if}
 				{/each}
 			</div>
@@ -301,6 +353,26 @@
 <style>
 	.flex-1:hover {
 		background: linear-gradient(90deg, rgba(88, 166, 255, 0.05) 0%, transparent 200px);
+	}
+
+	.track-left-part:hover .track-order-buttons {
+		opacity: 1;
+	}
+
+	.track-order-button {
+		display: flex;
+		height: 18px;
+		width: 18px;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
+	}
+
+	.track-order-button:hover {
+		color: var(--text-primary);
+		background: var(--bg-primary);
 	}
 
 	.timeline-quick-merge-button {

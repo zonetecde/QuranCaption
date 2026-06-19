@@ -330,6 +330,16 @@
 				"icon": "format_color_fill"
 			},
 			{
+				"id": "wbw-reveal-specific-word-style",
+				"name": "Reveal specific word style on recitation",
+				"description": "Hide custom word styles until their linked word is recited",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "format_paint"
+			},
+			{
 				"id": "enable-wbw-underline",
 				"name": "Enable underline",
 				"description": "Underline highlighted words",

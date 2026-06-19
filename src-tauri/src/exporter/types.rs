@@ -81,6 +81,28 @@ pub enum ExportPerformanceProfile {
     LowCpu,
 }
 
+/// Codec vidéo final demandé par l'utilisateur.
+#[derive(serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ExportVideoCodec {
+    /// H.264, meilleure compatibilité.
+    H264,
+    /// H.265/HEVC, fichiers souvent plus petits.
+    H265,
+}
+
+/// Transition entre deux clips vidéo de fond consécutifs.
+#[derive(serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum VideoClipTransitionMode {
+    /// Coupe directe entre les clips.
+    None,
+    /// Fondu du clip sortant vers le noir, puis fondu du clip entrant depuis le noir.
+    FadeThroughBlack,
+    /// Fondu croisé direct entre les deux clips.
+    Crossfade,
+}
+
 /// Contexte d'utilisation d'un codec vidéo.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CodecUsage {

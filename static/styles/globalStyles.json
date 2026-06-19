@@ -48,6 +48,30 @@
 				"icon": "slow_motion_video"
 			},
 			{
+				"id": "video-clip-transition",
+				"name": "Video Clip Transition",
+				"description": "Transition between timeline video clips.",
+				"value": "none",
+				"valueType": "select",
+				"options": ["none", "fade-through-black", "crossfade"],
+				"css": "",
+				"tailwind": false,
+				"icon": "movie_filter"
+			},
+			{
+				"id": "video-clip-transition-duration",
+				"name": "Video Clip Transition Duration",
+				"description": "Duration of video clip transitions in milliseconds.",
+				"value": 500,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 4000,
+				"step": 50,
+				"css": "",
+				"tailwind": false,
+				"icon": "timer"
+			},
+			{
 				"id": "anti-collision",
 				"name": "Subtitles Anti-Collision",
 				"description": "Prevent subtitle overlap",
@@ -276,6 +300,17 @@
 				"tailwind": false,
 
 				"icon": "translate"
+			},
+			{
+				"id": "surah-calligraphy-style",
+				"name": "Calligraphy Style",
+				"description": "Choose the Surah name calligraphy font",
+				"value": "Calligraphy 1",
+				"valueType": "select",
+				"options": ["Calligraphy 1", "Calligraphy 2"],
+				"css": "",
+				"tailwind": false,
+				"icon": "draw"
 			},
 			{
 				"id": "surah-size",

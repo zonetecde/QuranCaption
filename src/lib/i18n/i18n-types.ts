@@ -2349,6 +2349,14 @@ type RootTranslation = {
 		 */
 		soloTrack: string;
 		/**
+		 * M​o​v​e​ ​t​r​a​c​k​ ​u​p
+		 */
+		moveTrackUp: string;
+		/**
+		 * M​o​v​e​ ​t​r​a​c​k​ ​d​o​w​n
+		 */
+		moveTrackDown: string;
+		/**
 		 * T​r​a​c​k​ ​S​e​t​t​i​n​g​s
 		 */
 		trackSettings: string;
@@ -3161,6 +3169,10 @@ type RootTranslation = {
 		 * O​v​e​r​l​a​y​ ​a​p​p​l​i​e​d​ ​o​n​ ​t​h​i​s​ ​c​l​i​p
 		 */
 		overlayIndividualApplied: string;
+		/**
+		 * C​r​o​s​s​f​a​d​e​ ​i​s​ ​n​o​t​ ​s​h​o​w​n​ ​i​n​ ​t​h​e​ ​v​i​d​e​o​ ​p​r​e​v​i​e​w​,​ ​b​u​t​ ​i​t​ ​w​i​l​l​ ​b​e​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​.
+		 */
+		crossfadePreviewNotice: string;
 		/**
 		 * I​n​d​i​v​i​d​u​a​l​ ​s​t​y​l​e​s​ ​a​p​p​l​i​e​d​ ​o​n​ ​t​h​i​s​ ​c​l​i​p
 		 */
@@ -4230,6 +4242,10 @@ type RootTranslation = {
 			 */
 			'wbw-persist-color': string;
 			/**
+			 * R​e​v​e​a​l​ ​s​p​e​c​i​f​i​c​ ​w​o​r​d​ ​s​t​y​l​e​ ​o​n​ ​r​e​c​i​t​a​t​i​o​n
+			 */
+			'wbw-reveal-specific-word-style': string;
+			/**
 			 * E​n​a​b​l​e​ ​u​n​d​e​r​l​i​n​e
 			 */
 			'enable-wbw-underline': string;
@@ -4462,6 +4478,14 @@ type RootTranslation = {
 			 */
 			'video-and-audio-fade': string;
 			/**
+			 * V​i​d​e​o​ ​C​l​i​p​ ​T​r​a​n​s​i​t​i​o​n
+			 */
+			'video-clip-transition': string;
+			/**
+			 * V​i​d​e​o​ ​C​l​i​p​ ​T​r​a​n​s​i​t​i​o​n​ ​D​u​r​a​t​i​o​n
+			 */
+			'video-clip-transition-duration': string;
+			/**
 			 * S​u​b​t​i​t​l​e​s​ ​A​n​t​i​-​C​o​l​l​i​s​i​o​n
 			 */
 			'anti-collision': string;
@@ -4545,6 +4569,10 @@ type RootTranslation = {
 			 * S​h​o​w​ ​L​a​t​i​n
 			 */
 			'surah-show-latin': string;
+			/**
+			 * C​a​l​l​i​g​r​a​p​h​y​ ​S​t​y​l​e
+			 */
+			'surah-calligraphy-style': string;
 			/**
 			 * S​i​z​e
 			 */
@@ -4804,6 +4832,10 @@ type RootTranslation = {
 			 */
 			'wbw-persist-color': string;
 			/**
+			 * H​i​d​e​ ​c​u​s​t​o​m​ ​w​o​r​d​ ​s​t​y​l​e​s​ ​u​n​t​i​l​ ​t​h​e​i​r​ ​l​i​n​k​e​d​ ​w​o​r​d​ ​i​s​ ​r​e​c​i​t​e​d
+			 */
+			'wbw-reveal-specific-word-style': string;
+			/**
 			 * U​n​d​e​r​l​i​n​e​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
 			'enable-wbw-underline': string;
@@ -5036,6 +5068,14 @@ type RootTranslation = {
 			 */
 			'video-and-audio-fade': string;
 			/**
+			 * T​r​a​n​s​i​t​i​o​n​ ​b​e​t​w​e​e​n​ ​t​i​m​e​l​i​n​e​ ​v​i​d​e​o​ ​c​l​i​p​s​.
+			 */
+			'video-clip-transition': string;
+			/**
+			 * D​u​r​a​t​i​o​n​ ​o​f​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​r​a​n​s​i​t​i​o​n​s​ ​i​n​ ​m​i​l​l​i​s​e​c​o​n​d​s​.
+			 */
+			'video-clip-transition-duration': string;
+			/**
 			 * P​r​e​v​e​n​t​ ​s​u​b​t​i​t​l​e​ ​o​v​e​r​l​a​p
 			 */
 			'anti-collision': string;
@@ -5119,6 +5159,10 @@ type RootTranslation = {
 			 * S​h​o​w​ ​a​d​d​i​t​i​o​n​a​l​ ​L​a​t​i​n​ ​t​e​x​t​ ​(​s​e​e​ ​L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t​)
 			 */
 			'surah-show-latin': string;
+			/**
+			 * C​h​o​o​s​e​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​c​a​l​l​i​g​r​a​p​h​y​ ​f​o​n​t
+			 */
+			'surah-calligraphy-style': string;
 			/**
 			 * S​c​a​l​e​ ​s​i​z​e​ ​o​f​ ​S​u​r​a​h​ ​C​a​l​l​i​g​r​a​p​h​y
 			 */
@@ -5398,6 +5442,22 @@ type RootTranslation = {
 		 * P​i​c​k​ ​t​h​e​ ​p​r​o​f​i​l​e​ ​t​h​a​t​ ​m​a​t​c​h​e​s​ ​y​o​u​r​ ​g​o​a​l​:​ ​f​a​s​t​e​r​ ​t​e​s​t​s​,​ ​c​l​e​a​n​e​r​ ​f​i​n​a​l​ ​e​x​p​o​r​t​s​,​ ​o​r​ ​l​o​w​e​r​ ​C​P​U​ ​u​s​a​g​e​.
 		 */
 		chooseCpuUsage: string;
+		/**
+		 * V​i​d​e​o​ ​c​o​d​e​c
+		 */
+		videoCodec: string;
+		/**
+		 * H​.​2​6​4​ ​-​ ​b​e​s​t​ ​c​o​m​p​a​t​i​b​i​l​i​t​y
+		 */
+		h264Compatibility: string;
+		/**
+		 * H​.​2​6​5​ ​/​ ​H​E​V​C​ ​-​ ​s​m​a​l​l​e​r​ ​f​i​l​e​s
+		 */
+		h265SmallerFiles: string;
+		/**
+		 * H​.​2​6​5​ ​c​a​n​ ​r​e​d​u​c​e​ ​f​i​l​e​ ​s​i​z​e​,​ ​b​u​t​ ​H​.​2​6​4​ ​r​e​m​a​i​n​s​ ​t​h​e​ ​m​o​s​t​ ​c​o​m​p​a​t​i​b​l​e​ ​o​p​t​i​o​n​.​ ​T​r​a​n​s​p​a​r​e​n​t​ ​e​x​p​o​r​t​s​ ​u​s​e​ ​t​h​e​i​r​ ​o​w​n​ ​c​o​d​e​c​.
+		 */
+		videoCodecDescription: string;
 		/**
 		 * P​a​r​a​l​l​e​l​ ​c​a​p​t​u​r​e​ ​w​o​r​k​e​r​s
 		 */
@@ -11026,6 +11086,14 @@ export type TranslationFunctions = {
 		 */
 		soloTrack: () => LocalizedString;
 		/**
+		 * Move track up
+		 */
+		moveTrackUp: () => LocalizedString;
+		/**
+		 * Move track down
+		 */
+		moveTrackDown: () => LocalizedString;
+		/**
 		 * Track Settings
 		 */
 		trackSettings: () => LocalizedString;
@@ -11837,6 +11905,10 @@ export type TranslationFunctions = {
 		 * Overlay applied on this clip
 		 */
 		overlayIndividualApplied: () => LocalizedString;
+		/**
+		 * Crossfade is not shown in the video preview, but it will be present in the exported video.
+		 */
+		crossfadePreviewNotice: () => LocalizedString;
 		/**
 		 * Individual styles applied on this clip
 		 */
@@ -12879,6 +12951,10 @@ export type TranslationFunctions = {
 			 */
 			'wbw-persist-color': () => LocalizedString;
 			/**
+			 * Reveal specific word style on recitation
+			 */
+			'wbw-reveal-specific-word-style': () => LocalizedString;
+			/**
 			 * Enable underline
 			 */
 			'enable-wbw-underline': () => LocalizedString;
@@ -13111,6 +13187,14 @@ export type TranslationFunctions = {
 			 */
 			'video-and-audio-fade': () => LocalizedString;
 			/**
+			 * Video Clip Transition
+			 */
+			'video-clip-transition': () => LocalizedString;
+			/**
+			 * Video Clip Transition Duration
+			 */
+			'video-clip-transition-duration': () => LocalizedString;
+			/**
 			 * Subtitles Anti-Collision
 			 */
 			'anti-collision': () => LocalizedString;
@@ -13194,6 +13278,10 @@ export type TranslationFunctions = {
 			 * Show Latin
 			 */
 			'surah-show-latin': () => LocalizedString;
+			/**
+			 * Calligraphy Style
+			 */
+			'surah-calligraphy-style': () => LocalizedString;
 			/**
 			 * Size
 			 */
@@ -13453,6 +13541,10 @@ export type TranslationFunctions = {
 			 */
 			'wbw-persist-color': () => LocalizedString;
 			/**
+			 * Hide custom word styles until their linked word is recited
+			 */
+			'wbw-reveal-specific-word-style': () => LocalizedString;
+			/**
 			 * Underline highlighted words
 			 */
 			'enable-wbw-underline': () => LocalizedString;
@@ -13685,6 +13777,14 @@ export type TranslationFunctions = {
 			 */
 			'video-and-audio-fade': () => LocalizedString;
 			/**
+			 * Transition between timeline video clips.
+			 */
+			'video-clip-transition': () => LocalizedString;
+			/**
+			 * Duration of video clip transitions in milliseconds.
+			 */
+			'video-clip-transition-duration': () => LocalizedString;
+			/**
 			 * Prevent subtitle overlap
 			 */
 			'anti-collision': () => LocalizedString;
@@ -13768,6 +13868,10 @@ export type TranslationFunctions = {
 			 * Show additional Latin text (see Latin Text Format)
 			 */
 			'surah-show-latin': () => LocalizedString;
+			/**
+			 * Choose the Surah name calligraphy font
+			 */
+			'surah-calligraphy-style': () => LocalizedString;
 			/**
 			 * Scale size of Surah Calligraphy
 			 */
@@ -14047,6 +14151,22 @@ export type TranslationFunctions = {
 		 * Pick the profile that matches your goal: faster tests, cleaner final exports, or lower CPU usage.
 		 */
 		chooseCpuUsage: () => LocalizedString;
+		/**
+		 * Video codec
+		 */
+		videoCodec: () => LocalizedString;
+		/**
+		 * H.264 - best compatibility
+		 */
+		h264Compatibility: () => LocalizedString;
+		/**
+		 * H.265 / HEVC - smaller files
+		 */
+		h265SmallerFiles: () => LocalizedString;
+		/**
+		 * H.265 can reduce file size, but H.264 remains the most compatible option. Transparent exports use their own codec.
+		 */
+		videoCodecDescription: () => LocalizedString;
 		/**
 		 * Parallel capture workers
 		 */

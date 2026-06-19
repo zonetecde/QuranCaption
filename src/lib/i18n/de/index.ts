@@ -632,6 +632,8 @@ const de = {
 		muteTrack: 'Spur stummschalten',
 		unmuteTrack: 'Stummschaltung aufheben',
 		soloTrack: 'Solo-Spur',
+		moveTrackUp: 'Spur nach oben verschieben',
+		moveTrackDown: 'Spur nach unten verschieben',
 		trackSettings: 'Spureinstellungen',
 		addTrack: 'Spur hinzufügen',
 		removeTrack: 'Spur entfernen',
@@ -873,6 +875,8 @@ const de = {
 		experimentalFallbackHintShort:
 			'Experimentelle Fallback-Modelle des alten lokalen offenen Workflows. Sie verwenden nicht den vollständigen phonetischen Pfad von Muaalem und können weniger zuverlässig sein.',
 		overlayIndividualApplied: 'Überlagerung auf diesen Clip angewendet',
+		crossfadePreviewNotice:
+			'Der Crossfade wird in der Videovorschau nicht angezeigt, ist aber im exportierten Video vorhanden.',
 		subtitleIndividualStyles: 'Individuelle Stile auf diesen Clip angewendet',
 		subtitles: 'Untertitel',
 		minWordsLabel: 'Min. Wörter',
@@ -1151,6 +1155,7 @@ const de = {
 			'enable-wbw-highlight': 'WBW-Hervorhebung aktivieren',
 			'wbw-color': 'Wort-für-Wort-Farbe',
 			'wbw-persist-color': 'Hervorgehobene Wörter beibehalten',
+			'wbw-reveal-specific-word-style': 'Wortstil bei Rezitation enthüllen',
 			'enable-wbw-underline': 'Unterstreichung aktivieren',
 			'wbw-underline-thickness': 'Dicke der Unterstreichung',
 			'enable-wbw-glow': 'WBW-Leuchten aktivieren',
@@ -1209,6 +1214,8 @@ const de = {
 			'video-dimension': 'Videoqualität und -ausrichtung',
 			'fade-duration': 'Ein-/Ausblendedauer der Untertitel',
 			'video-and-audio-fade': 'Video- und Audio-Ein-/Ausblendung',
+			'video-clip-transition': 'Übergang zwischen Videoclips',
+			'video-clip-transition-duration': 'Dauer des Übergangs zwischen Videoclips',
 			'anti-collision': 'Untertitel-Kollisionsvermeidung',
 			spacing: 'Untertitel-Abstand',
 			overlay: 'Überlagerung',
@@ -1230,6 +1237,7 @@ const de = {
 			'surah-name-format': 'Lateinisches Textformat',
 			'surah-show-arabic': 'Auf Arabisch anzeigen',
 			'surah-show-latin': 'Auf Lateinisch anzeigen',
+			'surah-calligraphy-style': 'Kalligraphiestil',
 			'surah-size': 'Größe',
 			'surah-latin-spacing': 'Abstand',
 			'surah-opacity': 'Deckkraft',
@@ -1305,6 +1313,8 @@ const de = {
 			'enable-wbw-highlight': 'Zeitgesteuerte Wort-für-Wort-Hervorhebung ein- oder ausschalten',
 			'wbw-color': 'Auf hervorgehobene Wörter angewendete Farbe',
 			'wbw-persist-color': 'Zuvor hervorgehobene Wörter nach ihrer Rezitation farbig halten',
+			'wbw-reveal-specific-word-style':
+				'Benutzerdefinierte Wortstile verbergen, bis das verknüpfte Wort rezitiert wird',
 			'enable-wbw-underline': 'Hervorgehobene Wörter unterstreichen',
 			'wbw-underline-thickness': 'Dicke der WBW-Unterstreichung in Pixeln',
 			'enable-wbw-glow': 'Leuchten um hervorgehobene Wörter hinzufügen',
@@ -1370,6 +1380,8 @@ const de = {
 			'video-dimension': 'Videoqualität und -ausrichtung',
 			'fade-duration': 'Dauer des Ein-/Ausblendeffekts in Millisekunden',
 			'video-and-audio-fade': 'Ein-/Ausblendung für Video und Audio beim Export konfigurieren.',
+			'video-clip-transition': 'Übergang zwischen den Videoclips in der Timeline.',
+			'video-clip-transition-duration': 'Dauer der Übergänge zwischen Videoclips in Millisekunden.',
 			'anti-collision': 'Überlappung von Untertiteln verhindern',
 			spacing: 'Mindestabstand zwischen Untertiteln (in Pixel)',
 			overlay: 'Farbüberlagerung zum Video hinzufügen',
@@ -1397,6 +1409,7 @@ const de = {
 				'Anzeigeformat des Surennamens. Verwenden Sie die Tags <number>, <transliteration>, <translation>, <min-range> und <max-range> zur Anpassung.',
 			'surah-show-arabic': 'Surennamen auf Arabisch anzeigen',
 			'surah-show-latin': 'Zusätzlichen lateinischen Text anzeigen (siehe Lateinisches Textformat)',
+			'surah-calligraphy-style': 'Kalligraphie-Schrift für den Surennamen auswählen',
 			'surah-size': 'Skalierung der Suren-Kalligraphie',
 			'surah-latin-spacing':
 				'Abstand zwischen arabischem Surennamen und seinem lateinischen Äquivalent anpassen',
@@ -1486,6 +1499,11 @@ const de = {
 		exportPerformance: 'Exportleistung',
 		chooseCpuUsage:
 			'Wählen Sie das passende Profil: schnelle Tests, sauberere finale Exporte oder geringere CPU-Auslastung.',
+		videoCodec: 'Videocodec',
+		h264Compatibility: 'H.264 - beste Kompatibilität',
+		h265SmallerFiles: 'H.265 / HEVC - kleinere Dateien',
+		videoCodecDescription:
+			'H.265 kann die Dateigröße reduzieren, aber H.264 bleibt die kompatibelste Option. Transparente Exporte verwenden ihren eigenen Codec.',
 		parallelCaptureWorkers: 'Parallele Capture-Worker',
 		parallelCaptureWorkersDescription:
 			'Anzahl ausgeblendeter WebViews fuer die PNG-Frame-Erfassung. Standard ist 4; 1 deaktiviert die parallele Erfassung.',

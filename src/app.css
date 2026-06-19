@@ -42,6 +42,13 @@
 }
 
 @font-face {
+	font-family: 'Surahs2';
+	src: url('/Surahs2.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
 	font-family: 'QPC2BSML';
 	src: url('/QPC2/fonts/QPC2BSML.ttf') format('truetype');
 	font-weight: normal;

@@ -12,6 +12,7 @@ import {
 	WBW_TRANSLATION_LANGUAGES,
 	type WbwTranslationLanguageCode
 } from '$lib/services/WbwTranslationService';
+import { TrackType } from './enums';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -65,6 +66,7 @@ export type ExportSettings = {
 	batchSizeMode: 'auto' | 'fixed';
 	batchSize: number;
 	parallelCaptureWorkers: number;
+	videoCodec: 'h264' | 'h265';
 };
 
 export type SavedVideoStylePreset = {
@@ -85,7 +87,8 @@ export default class Settings extends SerializableBase {
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
 		batchSizeMode: 'auto',
 		batchSize: 64,
-		parallelCaptureWorkers: 4
+		parallelCaptureWorkers: 4,
+		videoCodec: 'h264'
 	};
 
 	// État UI persistant
@@ -104,6 +107,12 @@ export default class Settings extends SerializableBase {
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
 		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
+		timelineTrackOrder: [
+			TrackType.CustomClip,
+			TrackType.Subtitle,
+			TrackType.Video,
+			TrackType.Audio
+		] as TrackType[],
 		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
 		hasSeenTour: false,
@@ -425,6 +434,15 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.showTimelineWheelHints = true;
 			shouldSave = true;
 		}
+		if (!Array.isArray(settings.persistentUiState.timelineTrackOrder)) {
+			settings.persistentUiState.timelineTrackOrder = [
+				TrackType.CustomClip,
+				TrackType.Subtitle,
+				TrackType.Video,
+				TrackType.Audio
+			];
+			shouldSave = true;
+		}
 		if (typeof settings.persistentUiState.desktopNotificationsEnabled !== 'boolean') {
 			settings.persistentUiState.desktopNotificationsEnabled = true;
 			shouldSave = true;
@@ -528,6 +546,14 @@ export default class Settings extends SerializableBase {
 				settings.exportSettings.parallelCaptureWorkers = normalizedParallelCaptureWorkers;
 				shouldSave = true;
 			}
+		}
+
+		if (
+			settings.exportSettings.videoCodec !== 'h264' &&
+			settings.exportSettings.videoCodec !== 'h265'
+		) {
+			settings.exportSettings.videoCodec = Settings.DEFAULT_EXPORT_SETTINGS.videoCodec;
+			shouldSave = true;
 		}
 
 		if ('chunkSize' in (settings.exportSettings as Record<string, unknown>)) {

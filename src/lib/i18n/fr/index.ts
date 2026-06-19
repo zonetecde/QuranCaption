@@ -811,6 +811,12 @@ const fr = {
 			'★ signifie que le minutage officiel des versets peut être chargé automatiquement après le téléchargement.',
 		selectSurah: 'Sélectionner une sourate',
 		surah: 'Sourate',
+		quaModeAudioSegments: 'Audio + segments',
+		quaModeAudioOnly: 'Audio seul',
+		quaCalloutSegments: 'Segments pré-calculés et révisés à la main, avec horodatage mot à mot.',
+		quaCalloutAudioOnly:
+			'Téléchargez l’audio de plus de 1000 récitateurs depuis des serveurs du monde entier.',
+		quaContribute: 'Aidez à ajouter plus de récitateurs',
 		projectAssetsLabel: 'Éléments du projet',
 		addAssetLabel: 'Ajouter un élément',
 		dragAndDropFilesHere: 'Glissez-déposez des fichiers ici',

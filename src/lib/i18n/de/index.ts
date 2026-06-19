@@ -810,6 +810,13 @@ const de = {
 			'★ bedeutet, dass die offizielle Verszeitmessung nach dem Herunterladen automatisch geladen werden kann.',
 		selectSurah: 'Sure auswählen',
 		surah: 'Sure',
+		quaModeAudioSegments: 'Audio + Segmente',
+		quaModeAudioOnly: 'Nur Audio',
+		quaCalloutSegments:
+			'Von Menschen geprüfte, vorberechnete Segmente mit Wort-für-Wort-Zeitstempeln.',
+		quaCalloutAudioOnly:
+			'Lade Audio von über 1000 Rezitatoren von Servern aus dem ganzen Web herunter.',
+		quaContribute: 'Hilf mit, weitere Rezitatoren beizutragen',
 		projectAssetsLabel: 'Projektelemente',
 		addAssetLabel: 'Element hinzufügen',
 		dragAndDropFilesHere: 'Dateien hierher ziehen',

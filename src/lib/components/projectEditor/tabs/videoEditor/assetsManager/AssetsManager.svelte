@@ -1,5 +1,5 @@
 <script lang="ts">
-	import DownloadFromQuranSourceSection from './DownloadFromQuranSourceSection.svelte';
+	import DownloadFromQuranicUniversalAudioSection from './DownloadFromQuranicUniversalAudioSection.svelte';
 	import DownloadFromYouTubeSection from './DownloadFromYouTubeSection.svelte';
 	import ProjectAssetSection from './ProjectAssetSection.svelte';
 	import StockMediaLibrary from './StockMediaLibrary.svelte';
@@ -44,7 +44,7 @@
 			{get(LL).editor.stockMedia()}
 		</button>
 
-		<DownloadFromQuranSourceSection />
+		<DownloadFromQuranicUniversalAudioSection />
 		<DownloadFromYouTubeSection />
 	{/if}
 </div>

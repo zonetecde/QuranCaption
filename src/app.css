@@ -494,6 +494,15 @@ body {
 	--translation-overlap-decoration: rgba(216, 180, 254, 0.76);
 }
 
+:is(.theme-polar-ice, .theme-desert-gold, .theme-vintage-paper, .theme-minimal-zen) .text-red-100 {
+	color: #b91c1c;
+}
+
+:is(.theme-polar-ice, .theme-desert-gold, .theme-vintage-paper, .theme-minimal-zen)
+	.text-red-100\/80 {
+	color: rgba(185, 28, 28, 0.8);
+}
+
 /* Pour tout les p, hN, span etc empecher la selection de texte */
 * {
 	user-select: none;

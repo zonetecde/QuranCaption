@@ -150,4 +150,30 @@ describe('style editor visual merge actions', () => {
 
 		expect(component.container.textContent).not.toContain('Visual merge');
 	});
+
+	test('selects the first available translation when opening the translation styles', async () => {
+		const projectEditorState = new ProjectEditorState();
+		projectEditorState.stylesEditor.currentSelectionTranslation = '';
+
+		globalState.currentProject = {
+			projectEditorState,
+			content: {
+				timeline: new Timeline([new SubtitleTrack()]),
+				projectTranslation: {
+					addedTranslationEditions: [
+						{ name: 'first-translation', author: 'First translation' },
+						{ name: 'second-translation', author: 'Second translation' }
+					]
+				},
+				videoStyle: createMockVideoStyle()
+			}
+		} as never;
+
+		const component = render(StyleEditorSettings);
+		await component.getByRole('button', { name: 'Translation' }).click();
+
+		await vi.waitFor(() => {
+			expect(projectEditorState.stylesEditor.currentSelectionTranslation).toBe('first-translation');
+		});
+	});
 });

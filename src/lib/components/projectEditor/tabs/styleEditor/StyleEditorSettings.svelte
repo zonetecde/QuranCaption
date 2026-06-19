@@ -87,15 +87,6 @@
 		stylesContainer!.scrollTop =
 			globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition;
 
-		if (
-			globalState.getStylesState.currentSelectionTranslation === '' &&
-			globalState.getProjectTranslation.addedTranslationEditions.length > 0
-		) {
-			// Par défaut, on sélectionne la première traduction ajoutée
-			globalState.getStylesState.currentSelectionTranslation =
-				globalState.getProjectTranslation.addedTranslationEditions[0].name;
-		}
-
 		// S'il manque des styles à une traduction, on les ajoute
 		for (const translation of globalState.getProjectTranslation.addedTranslationEditions) {
 			if (globalState.getVideoStyle.doesTargetStyleExist(translation.name)) continue;
@@ -103,6 +94,20 @@
 			await globalState.getVideoStyle.addStylesForEdition(translation.name);
 		}
 	});
+
+	/**
+	 * Sélectionne la première traduction disponible si la sélection courante est vide ou invalide.
+	 * @returns {void}
+	 */
+	function ensureCurrentTranslationSelection(): void {
+		const translations = globalState.getProjectTranslation.addedTranslationEditions;
+		if (translations.length === 0) return;
+
+		const currentTranslation = globalState.getStylesState.currentSelectionTranslation;
+		if (translations.some((translation) => translation.name === currentTranslation)) return;
+
+		globalState.getStylesState.currentSelectionTranslation = translations[0].name;
+	}
 
 	function clearSearch() {
 		globalState.getStylesState.searchQuery = '';
@@ -285,6 +290,12 @@
 
 			globalState.getStylesState.scrollAndHighlight = null;
 		}
+	});
+
+	$effect(() => {
+		if (globalState.getStylesState.currentSelection !== 'translation') return;
+
+		ensureCurrentTranslationSelection();
 	});
 </script>
 

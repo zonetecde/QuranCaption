@@ -6,7 +6,6 @@
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
 	import DonationProgressBar from '$lib/components/misc/DonationProgressBar.svelte';
 	import ProjectEditor from '$lib/components/projectEditor/ProjectEditor.svelte';
-	import TitleBar from '$lib/components/TitleBar.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { discordService } from '$lib/services/DiscordService';
@@ -115,12 +114,8 @@
 <Toaster />
 
 <div class="flex flex-col h-screen overflow-hidden">
-	<!-- Barre de titre fixe -->
-	<TitleBar />
-
-	<!-- Zone de contenu avec scroll -->
 	<main
-		class={`flex-1 overflow-auto mt-10 ${
+		class={`flex-1 overflow-auto ${
 			globalState.currentProject === null && globalState.currentPage === 'home'
 				? 'home-scroll-host'
 				: ''

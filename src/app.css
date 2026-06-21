@@ -598,8 +598,7 @@ body {
 
 .modal-wrapper {
 	position: fixed;
-	top: 2.25rem;
-	padding-bottom: 2.25rem;
+	top: 0;
 	left: 0;
 	width: 100vw;
 	height: 100vh;

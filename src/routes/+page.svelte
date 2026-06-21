@@ -23,6 +23,22 @@
 	let isHandlingCloseRequest = false;
 	let unlistenCloseRequest: (() => void) | undefined;
 
+	/**
+	 * Synchronise l'orientation Android courante dans l'etat global partage.
+	 */
+	function syncAndroidViewport(): void {
+		if (typeof window === 'undefined') return;
+
+		const width = window.innerWidth;
+		const height = window.innerHeight;
+
+		globalState.uiState.androidViewport = {
+			width,
+			height,
+			orientation: width > height ? 'landscape' : 'portrait'
+		};
+	}
+
 	async function cancelOngoingExports() {
 		const ongoingExports = ExportService.currentlyExportingProjects();
 		await Promise.all(ongoingExports.map((exportation) => exportation.cancelExport()));
@@ -60,6 +76,15 @@
 		}
 	}
 
+	onMount(() => {
+		syncAndroidViewport();
+		window.addEventListener('resize', syncAndroidViewport);
+
+		return () => {
+			window.removeEventListener('resize', syncAndroidViewport);
+		};
+	});
+
 	onMount(async () => {
 		// Init le gestionnaire de shortcuts
 		ShortcutService.init();
@@ -94,7 +119,13 @@
 	<TitleBar />
 
 	<!-- Zone de contenu avec scroll -->
-	<main class="flex-1 overflow-auto mt-10">
+	<main
+		class={`flex-1 overflow-auto mt-10 ${
+			globalState.currentProject === null && globalState.currentPage === 'home'
+				? 'home-scroll-host'
+				: ''
+		}`}
+	>
 		{#if globalState.currentProject !== null}
 			<ProjectEditor />
 		{:else if globalState.currentPage === 'ai-video'}
@@ -137,3 +168,14 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.home-scroll-host {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+
+	.home-scroll-host::-webkit-scrollbar {
+		display: none;
+	}
+</style>

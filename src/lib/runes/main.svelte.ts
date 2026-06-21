@@ -23,6 +23,7 @@ import { getChineseMetadataLanguage } from '$lib/services/ChineseTranslationHelp
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
 export type AppPage = 'home' | 'ai-video';
+export type AndroidOrientation = 'portrait' | 'landscape';
 
 class GlobalState {
 	// Liste des détails des projets de l'utilisateur
@@ -145,6 +146,11 @@ class GlobalState {
 		selectedStatuses: Status.getAllStatuses(),
 		filteredProjects: [] as ProjectDetail[],
 		searchQuery: '',
+		androidViewport: {
+			width: 0,
+			height: 0,
+			orientation: 'portrait' as AndroidOrientation
+		},
 		settingsTab: 'support' as
 			| 'shortcuts'
 			| 'theme'
@@ -369,6 +375,14 @@ class GlobalState {
 
 	closeAllMenus() {
 		currentMenu.set(null);
+	}
+
+	get isAndroidPortrait() {
+		return this.uiState.androidViewport.orientation === 'portrait';
+	}
+
+	get isAndroidLandscape() {
+		return this.uiState.androidViewport.orientation === 'landscape';
 	}
 }
 

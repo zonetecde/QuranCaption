@@ -56,7 +56,7 @@
 
 	// Pagination locale de la liste visible
 	let currentPage = $state(1);
-	let windowWidth = $state(typeof window === 'undefined' ? 1536 : window.innerWidth);
+	let mobileExplorerOpen = $state(false);
 	let explorerSelection = $state<ExplorerSelection>(ALL_PROJECTS_SELECTION);
 	let currentSortProperty = $state<keyof ProjectDetail>('updatedAt');
 	let isSortAscending = $state(false);
@@ -237,20 +237,21 @@
 	function selectExplorerNode(selection: ExplorerSelection) {
 		explorerSelection = selection;
 		currentPage = 1;
+		mobileExplorerOpen = false;
 	}
 
 	/**
 	 * Keeps the "5 rows max" rule consistent between list and responsive grid layouts.
 	 */
 	function getProjectsPerPage(): number {
-		if ((globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list') {
-			return 5;
-		}
-
-		if (windowWidth >= 1536) return 16;
-		if (windowWidth >= 1280) return 15;
-		if (windowWidth >= 768) return 8;
 		return 5;
+	}
+
+	/**
+	 * Opens or closes the mobile explorer drawer.
+	 */
+	function toggleMobileExplorer() {
+		mobileExplorerOpen = !mobileExplorerOpen;
 	}
 
 	function clearDragState() {
@@ -374,9 +375,8 @@
 	});
 
 	$effect(() => {
-		// Toute modification de recherche ou de mode d'affichage repart de la première page.
+		// Toute modification de recherche repart de la première page.
 		globalState.uiState.searchQuery;
-		globalState.settings?.persistentUiState.projectCardView;
 		currentPage = 1;
 	});
 
@@ -388,6 +388,12 @@
 	});
 
 	$effect(() => {
+		if (globalState.isAndroidLandscape) {
+			mobileExplorerOpen = false;
+		}
+	});
+
+	$effect(() => {
 		currentSortProperty;
 		isSortAscending;
 		explorerSelection;
@@ -395,19 +401,12 @@
 	});
 
 	onMount(() => {
-		function handleResize() {
-			windowWidth = window.innerWidth;
-		}
-
-		handleResize();
 		window.addEventListener('pointermove', handlePointerMove);
 		window.addEventListener('pointerup', handlePointerUp);
-		window.addEventListener('resize', handleResize);
 
 		return () => {
 			window.removeEventListener('pointermove', handlePointerMove);
 			window.removeEventListener('pointerup', handlePointerUp);
-			window.removeEventListener('resize', handleResize);
 		};
 	});
 
@@ -492,17 +491,20 @@
 	}
 </script>
 
-<div class="flex min-h-full flex-col overflow-auto overflow-x-hidden">
-	<div class="mb-8 mt-8 flex-grow px-4 xl:px-12 xl:mt-14">
-		<div placeholder="Upper section" class="flex gap-4 flex-row items-center">
-			<section>
-				<h2 class="text-4xl font-bold">{$LL.home.welcomeBack()}</h2>
+<div class="home-page flex min-h-full flex-col overflow-auto overflow-x-hidden">
+	<div class="mb-8 mt-6 flex-grow px-4 sm:px-5 lg:px-8 xl:mt-14 xl:px-12">
+		<div
+			placeholder="Upper section"
+			class="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center"
+		>
+			<section class="min-w-0">
+				<h2 class="text-3xl font-bold sm:text-4xl">{$LL.home.welcomeBack()}</h2>
 				<h4 class="text-secondary">{$LL.home.letsCreate()}</h4>
 			</section>
-			<section class="ml-auto flex flex-wrap gap-3 xl:gap-x-4">
+			<section class="flex w-full gap-3 sm:w-auto lg:ml-auto xl:gap-x-4">
 				<button
 					data-tour-id="new-project-button"
-					class="btn-accent btn-icon h-12 px-4 xl:px-7"
+					class="btn-accent btn-icon h-12 min-w-0 flex-1 justify-center px-4 sm:flex-none sm:px-5 xl:px-7"
 					onclick={newProjectButtonClick}
 				>
 					<span class="material-icons-outlined mr-2">add_circle_outline</span>
@@ -511,24 +513,33 @@
 				<!-- <button class="btn btn-icon h-12 px-4 xl:px-7">
 					<span class="material-icons-outlined mr-2">auto_awesome</span> {$LL.home.aiVideo()}
 				</button> -->
-				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
-					<span class="material-icons-outlined mr-2">file_upload</span>
-					{$LL.home.importProject()}
+				<button
+					class="btn btn-icon h-12 w-12 shrink-0 justify-center px-0"
+					type="button"
+					aria-label={$LL.home.importProject()}
+					title={$LL.home.importProject()}
+					onclick={importProject}
+				>
+					<span class="material-icons-outlined">file_upload</span>
 				</button>
 			</section>
 		</div>
 
 		<div
-			class="mt-8 grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)] items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[280px_minmax(0,1fr)]"
+			class={`mt-6 grid items-start gap-6 ${
+				globalState.isAndroidLandscape ? 'grid-cols-[240px_minmax(0,1fr)]' : 'grid-cols-1'
+			}`}
 		>
-			<div>
-				<ProjectExplorerSidebar
-					tree={explorerTree}
-					selection={explorerSelection}
-					{activeDropNodeId}
-					onSelectionChange={selectExplorerNode}
-				/>
-			</div>
+			{#if globalState.isAndroidLandscape}
+				<div>
+					<ProjectExplorerSidebar
+						tree={explorerTree}
+						selection={explorerSelection}
+						{activeDropNodeId}
+						onSelectionChange={selectExplorerNode}
+					/>
+				</div>
+			{/if}
 
 			<section class="min-w-0">
 				<div
@@ -565,10 +576,23 @@
 						{/if}
 					</div>
 
-					<div class="flex flex-wrap items-center gap-3 xl:justify-end">
+					<div class="flex flex-col gap-3 xl:justify-end">
+						<!-- {#if globalState.isAndroidPortrait}
+							<button
+								class="btn btn-icon h-10 self-start px-3"
+								type="button"
+								aria-label={$LL.home.projectExplorer()}
+								title={$LL.home.projectExplorer()}
+								onclick={toggleMobileExplorer}
+							>
+								<span class="material-icons-outlined text-base">folder_open</span>
+								<span>{$LL.home.projectExplorer()}</span>
+							</button>
+						{/if} -->
+
 						{#if totalPages > 1}
 							<div
-								class="flex h-10 items-center gap-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-2 text-sm text-[var(--text-secondary)]"
+								class="flex h-10 items-center gap-1 self-start rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-2 text-sm text-[var(--text-secondary)]"
 							>
 								<button
 									class="btn-icon flex h-8 w-8 items-center justify-center rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
@@ -594,56 +618,45 @@
 							</div>
 						{/if}
 
-						<InputWithIcon
-							icon="search"
-							placeholder={$LL.home.searchProjects()}
-							classes="w-full md:w-64"
-							bind:value={globalState.uiState.searchQuery}
-						/>
+						<div class="flex w-full min-w-0 items-center gap-2 xl:w-auto">
+							<div class="min-w-0 flex-1">
+								<InputWithIcon
+									icon="search"
+									placeholder={$LL.home.searchProjects()}
+									classes="w-full min-w-0"
+									bind:value={globalState.uiState.searchQuery}
+								/>
+							</div>
 
-						<div class="relative">
-							<button class="filter-button btn text-sm p-2 btn-icon" onclick={toggleFilterMenu}>
-								<span class="material-icons-outlined">filter_list</span>
-							</button>
-							<FilterMenu
-								bind:isVisible={filterMenuVisible}
-								bind:selectedStatuses={globalState.uiState.selectedStatuses}
-								onFilter={handleFilter}
-							/>
+							<div class="relative h-10 w-10 shrink-0">
+								<button
+									class="filter-button btn btn-icon h-10 w-10 p-0 flex justify-center"
+									onclick={toggleFilterMenu}
+								>
+									<span class="material-icons-outlined">filter_list</span>
+								</button>
+								<FilterMenu
+									bind:isVisible={filterMenuVisible}
+									bind:selectedStatuses={globalState.uiState.selectedStatuses}
+									onFilter={handleFilter}
+								/>
+							</div>
+
+							<div class="relative h-10 w-10 shrink-0">
+								<button
+									class="sort-button btn btn-icon h-10 w-10 p-0 flex justify-center"
+									onclick={toggleSortMenu}
+								>
+									<span class="material-icons-outlined">import_export</span>
+								</button>
+								<SortMenu
+									bind:isVisible={sortMenuVisible}
+									currentProperty={currentSortProperty}
+									ascending={isSortAscending}
+									onSort={handleSort}
+								/>
+							</div>
 						</div>
-
-						<div class="relative">
-							<button class="sort-button btn text-sm p-2 btn-icon" onclick={toggleSortMenu}>
-								<span class="material-icons-outlined">import_export</span>
-							</button>
-							<SortMenu
-								bind:isVisible={sortMenuVisible}
-								currentProperty={currentSortProperty}
-								ascending={isSortAscending}
-								onSort={handleSort}
-							/>
-						</div>
-
-						<!-- bouton pour changer affichage grid/list -->
-						<button
-							class="view-button btn text-sm p-2 btn-icon"
-							type="button"
-							onclick={() => {
-								if (!globalState.settings) return;
-
-								globalState.settings.persistentUiState.projectCardView =
-									globalState.settings.persistentUiState.projectCardView === 'grid'
-										? 'list'
-										: 'grid';
-								Settings.save();
-							}}
-						>
-							<span class="material-icons-outlined">
-								{globalState.settings?.persistentUiState.projectCardView === 'list'
-									? 'view_agenda'
-									: 'view_module'}
-							</span>
-						</button>
 					</div>
 				</div>
 
@@ -658,11 +671,7 @@
 
 				{#await promise}
 					<div class="mt-6">
-						<ProjectDetailCardSkeleton
-							isListView={(globalState.settings?.persistentUiState.projectCardView ?? 'grid') ===
-								'list'}
-							count={8}
-						/>
+						<ProjectDetailCardSkeleton isListView={true} count={8} />
 					</div>
 				{:then}
 					{#if sortedSelectedProjects.length === 0}
@@ -684,16 +693,11 @@
 							{$LL.home.noProjectsMatchSearch({ query: globalState.uiState.searchQuery })}
 						</p>
 					{:else}
-						<div
-							placeholder="Project cards"
-							class={'mt-4 ' +
-								((globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
-									? 'grid grid-cols-1 gap-3'
-									: 'grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4')}
-						>
+						<div placeholder="Project cards" class="mt-4 grid grid-cols-1 gap-3">
 							{#each paginatedProjects as project (project.id)}
 								<ProjectDetailCard
 									projectDetail={project}
+									isListView={true}
 									isTutorial={project.name === 'Tutorial Project'}
 									draggable={true}
 									isActiveDrag={draggingProjectId === project.id}
@@ -710,6 +714,46 @@
 
 	<Footer />
 </div>
+
+{#if globalState.isAndroidPortrait && mobileExplorerOpen}
+	<button
+		type="button"
+		class="fixed inset-0 z-40 bg-black/45"
+		aria-label={$LL.home.projectExplorer()}
+		onclick={() => (mobileExplorerOpen = false)}
+	></button>
+
+	<aside
+		class="fixed inset-y-0 left-0 z-50 w-[min(88vw,22rem)] overflow-y-auto border-r border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-5 shadow-2xl"
+	>
+		<div class="mb-4 flex items-center justify-between gap-3">
+			<div>
+				<p class="text-sm font-semibold text-[var(--text-primary)]">
+					{$LL.home.projectExplorer()}
+				</p>
+				<p class="text-xs text-[var(--text-secondary)]">
+					{getSelectionDescription(explorerSelection, sortedSelectedProjects.length)}
+				</p>
+			</div>
+			<button
+				type="button"
+				class="btn-icon flex h-10 w-10 items-center justify-center rounded-xl text-[var(--text-secondary)]"
+				aria-label={$LL.home.collapse()}
+				title={$LL.home.collapse()}
+				onclick={() => (mobileExplorerOpen = false)}
+			>
+				<span class="material-icons-outlined">close</span>
+			</button>
+		</div>
+
+		<ProjectExplorerSidebar
+			tree={explorerTree}
+			selection={explorerSelection}
+			{activeDropNodeId}
+			onSelectionChange={selectExplorerNode}
+		/>
+	</aside>
+{/if}
 
 {#if draggingProject}
 	<div
@@ -736,3 +780,6 @@
 		<MigrationFromV2Modal close={() => (migrationFromV2ModalVisibility = false)} />
 	</div>
 {/if}
+
+<style>
+</style>

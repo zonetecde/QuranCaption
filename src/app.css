@@ -835,7 +835,7 @@ input[type='number']::-webkit-inner-spin-button:hover {
 
 /* Scroll bar */
 ::-webkit-scrollbar {
-	width: 8px;
+	width: 4px;
 	height: 10px;
 }
 

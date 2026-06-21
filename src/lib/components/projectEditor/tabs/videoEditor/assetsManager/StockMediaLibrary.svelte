@@ -10,7 +10,13 @@
 	import { SourceType } from '$lib/classes';
 	import toast from 'svelte-5-french-toast';
 
-	let { onBack }: { onBack: () => void } = $props();
+	let {
+		onBack,
+		hideHeader = false
+	}: {
+		onBack?: () => void;
+		hideHeader?: boolean;
+	} = $props();
 
 	const lib = $derived(globalState.stockMediaLibrary);
 	let searchQuery = $state('');
@@ -170,22 +176,25 @@
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-	<!-- Header avec bouton retour -->
-	<div class="flex items-center gap-3 border-b border-color px-3 py-3">
-		<button
-			class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-secondary transition-colors hover:bg-primary hover:text-primary"
-			type="button"
-			onclick={onBack}
-			aria-label={get(LL).editor.backToAssets()}
-		>
-			<span class="material-icons-outlined text-lg">arrow_back</span>
-		</button>
-		<div class="min-w-0 flex-1">
-			<h2 class="truncate text-lg font-semibold text-primary">
-				{get(LL).editor.stockMedia()}
-			</h2>
+	{#if !hideHeader}
+		<div class="flex items-center gap-3 border-b border-color px-3 py-3">
+			{#if onBack}
+				<button
+					class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-secondary transition-colors hover:bg-primary hover:text-primary"
+					type="button"
+					onclick={onBack}
+					aria-label={get(LL).editor.backToAssets()}
+				>
+					<span class="material-icons-outlined text-lg">arrow_back</span>
+				</button>
+			{/if}
+			<div class="min-w-0 flex-1">
+				<h2 class="truncate text-lg font-semibold text-primary">
+					{get(LL).editor.stockMedia()}
+				</h2>
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<div
 		class="min-h-0 flex-1 overflow-y-auto px-3 py-3 space-y-3"

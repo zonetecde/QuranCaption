@@ -9,8 +9,16 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
+	let {
+		compact = false,
+		buttonOnly = false
+	}: {
+		compact?: boolean;
+		buttonOnly?: boolean;
+	} = $props();
+
 	let unlisten: () => void;
-	let dropZone: HTMLDivElement;
+	let dropZone = $state<HTMLDivElement | undefined>(undefined);
 
 	onMount(async () => {
 		unlisten = await getCurrentWebview().onDragDropEvent((event) => {
@@ -69,22 +77,76 @@
 	}
 </script>
 
-<Section icon="folder_open" name={get(LL).editor.projectAssetsLabel()}>
+{#if compact}
+	<div
+		bind:this={dropZone}
+		class="flex items-center gap-2 overflow-x-auto overflow-y-hidden pb-1 project-assets-compact-bar"
+	>
+		{#each globalState.currentProject!.content.assets as asset (asset.id)}
+			<div class="project-assets-compact-chip" title={asset.fileName}>
+				<span class="material-icons text-[14px]">
+					{asset.type === 'video'
+						? 'video_library'
+						: asset.type === 'audio'
+							? 'music_note'
+							: 'image'}
+				</span>
+				<span class="truncate">{asset.fileName}</span>
+			</div>
+		{/each}
+	</div>
+{:else if buttonOnly}
 	<div bind:this={dropZone}>
 		<button
-			class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm mt-2 cursor-pointer transition-colors duration-200"
+			class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
 			type="button"
 			onclick={addAssetButtonClick}
 		>
-			<span class="material-icons mr-2 text-base">add_circle_outline</span>{get(
-				LL
-			).editor.addAssetLabel()}
+			<span class="material-icons mr-2 text-base">upload_file</span>{get(LL).editor.uploadFile()}
 		</button>
-
-		<div class="flex flex-col gap-2 mt-2">
-			{#each globalState.currentProject!.content.assets as asset (asset.id)}
-				<AssetViewer {asset} />
-			{/each}
-		</div>
 	</div>
-</Section>
+{:else}
+	<Section icon="folder_open" name={get(LL).editor.projectAssetsLabel()}>
+		<div bind:this={dropZone}>
+			<button
+				class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm mt-2 cursor-pointer transition-colors duration-200"
+				type="button"
+				onclick={addAssetButtonClick}
+			>
+				<span class="material-icons mr-2 text-base">add_circle_outline</span>{get(
+					LL
+				).editor.addAssetLabel()}
+			</button>
+
+			<div class="flex flex-col gap-2 mt-2">
+				{#each globalState.currentProject!.content.assets as asset (asset.id)}
+					<AssetViewer {asset} />
+				{/each}
+			</div>
+		</div>
+	</Section>
+{/if}
+
+<style>
+	.project-assets-compact-bar::-webkit-scrollbar {
+		display: none;
+	}
+
+	.project-assets-compact-chip {
+		display: inline-flex;
+		height: 30px;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 0.35rem;
+		border: 1px solid var(--border-color);
+		border-radius: 9999px;
+		background: var(--bg-primary);
+		color: var(--text-secondary);
+		font-size: 0.75rem;
+	}
+
+	.project-assets-compact-chip {
+		max-width: 180px;
+		padding: 0 0.7rem;
+	}
+</style>

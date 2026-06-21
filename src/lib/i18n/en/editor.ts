@@ -486,7 +486,7 @@ const editor = {
 	browserNoVideoSupport: 'Your browser does not support the video tag.',
 	preparingLabel: 'Preparing...',
 	finishedLabel: 'Finished',
-	downloadFromSocialMedia: 'Download from Social Media',
+	downloadFromSocialMedia: 'Social Media',
 	chooseMediaType: 'Choose media type to download',
 	downloadFromLink: 'Download from Link',
 	convertingToCbrProgress: 'Converting to CBR...',
@@ -800,7 +800,7 @@ const editor = {
 	askAi: 'Ask AI',
 	selectedCount: '{count} selected',
 
-	stockMedia: 'Stock Media',
+	stockMedia: 'Stock',
 	searchStockMedia: 'Search stock media...',
 	stockMediaSource: 'Source',
 	stockMediaType: 'Media type',

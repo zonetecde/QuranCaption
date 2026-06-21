@@ -19,6 +19,8 @@
 		type QuaRecitation
 	} from '$lib/services/QuranicUniversalAudioService';
 
+	let { compact = false }: { compact?: boolean } = $props();
+
 	const CONTRIBUTE_URL = 'https://huggingface.co/spaces/hetchyy/quranic-universal-audio';
 
 	/** Mode de la source : audio pré-aligné (segments) ou audio seul (catalogue étendu). */
@@ -265,7 +267,13 @@
 	}
 </script>
 
-<Section icon="verified" name="Quranic Universal Audio">
+<Section
+	icon="verified"
+	name="Quranic Universal Audio"
+	hideHeader={compact}
+	forceOpen={compact}
+	saveState={!compact}
+>
 	<div class="space-y-3">
 		<!-- Bascule de mode : audio + segments (défaut) vs audio seul. -->
 		<div class="grid grid-cols-2 gap-1 rounded-lg border border-color bg-secondary p-1">

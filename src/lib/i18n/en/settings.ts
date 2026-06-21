@@ -5,7 +5,7 @@ const settings = {
 	theme: 'Theme',
 	notifications: 'Notifications',
 	aiKey: 'AI Key',
-	stockMedia: 'Stock Media',
+	stockMedia: 'Stock',
 	quranComIntegration: 'Quran.com Integration',
 	backup: 'Backup',
 	support: 'Support',

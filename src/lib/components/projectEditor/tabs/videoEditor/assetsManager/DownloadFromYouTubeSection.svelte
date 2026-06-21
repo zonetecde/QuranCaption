@@ -10,6 +10,8 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
+	let { compact = false }: { compact?: boolean } = $props();
+
 	let url: string = $state('');
 	let type: string = $state('audio'); // Default to audio
 	let isDownloading: boolean = $state(false);
@@ -103,7 +105,13 @@
 	}
 </script>
 
-<Section icon="cloud_download" name={get(LL).editor.downloadFromSocialMedia()}>
+<Section
+	icon="cloud_download"
+	name={get(LL).editor.downloadFromSocialMedia()}
+	hideHeader={compact}
+	forceOpen={compact}
+	saveState={!compact}
+>
 	<!-- URL Input with enhanced styling -->
 	<div class="mt-4 space-y-4">
 		<div class="relative">

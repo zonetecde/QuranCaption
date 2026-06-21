@@ -88,7 +88,7 @@
 	.video-editor-assets-tray {
 		display: flex;
 		flex-shrink: 0;
-		min-height: 56px;
+		min-height: 40px;
 		max-height: min(36dvh, 360px);
 		flex-direction: column;
 		overflow: hidden;
@@ -99,7 +99,7 @@
 	}
 
 	.video-editor-assets-tray.collapsed {
-		max-height: 56px;
+		max-height: 40px;
 	}
 
 	.video-editor-assets-tray.library-open {
@@ -108,13 +108,13 @@
 
 	.video-editor-assets-toggle {
 		display: flex;
-		min-height: 56px;
+		min-height: 40px;
 		width: 100%;
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.75rem;
 		border-bottom: 1px solid var(--border-color);
-		padding: 0.875rem 1rem;
+		padding: 0.45rem 0.8rem;
 		color: var(--text-primary);
 	}
 
@@ -123,7 +123,7 @@
 		min-width: 0;
 		align-items: center;
 		gap: 0.625rem;
-		font-size: 0.95rem;
+		font-size: 0.8rem;
 		font-weight: 600;
 	}
 

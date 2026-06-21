@@ -2886,7 +2886,7 @@ type RootTranslation = {
 		 */
 		finishedLabel: string;
 		/**
-		 * D​o​w​n​l​o​a​d​ ​f​r​o​m​ ​S​o​c​i​a​l​ ​M​e​d​i​a
+		 * S​o​c​i​a​l​ ​M​e​d​i​a
 		 */
 		downloadFromSocialMedia: string;
 		/**
@@ -4067,7 +4067,7 @@ type RootTranslation = {
 		 */
 		selectedCount: RequiredParams<'count'>;
 		/**
-		 * S​t​o​c​k​ ​M​e​d​i​a
+		 * S​t​o​c​k
 		 */
 		stockMedia: string;
 		/**
@@ -6672,7 +6672,7 @@ type RootTranslation = {
 		 */
 		aiKey: string;
 		/**
-		 * S​t​o​c​k​ ​M​e​d​i​a
+		 * S​t​o​c​k
 		 */
 		stockMedia: string;
 		/**
@@ -11642,7 +11642,7 @@ export type TranslationFunctions = {
 		 */
 		finishedLabel: () => LocalizedString;
 		/**
-		 * Download from Social Media
+		 * Social Media
 		 */
 		downloadFromSocialMedia: () => LocalizedString;
 		/**
@@ -12798,7 +12798,7 @@ export type TranslationFunctions = {
 		 */
 		selectedCount: (arg: { count: unknown }) => LocalizedString;
 		/**
-		 * Stock Media
+		 * Stock
 		 */
 		stockMedia: () => LocalizedString;
 		/**
@@ -15382,7 +15382,7 @@ export type TranslationFunctions = {
 		 */
 		aiKey: () => LocalizedString;
 		/**
-		 * Stock Media
+		 * Stock
 		 */
 		stockMedia: () => LocalizedString;
 		/**

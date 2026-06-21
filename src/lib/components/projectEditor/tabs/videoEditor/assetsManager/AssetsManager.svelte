@@ -7,6 +7,8 @@
 	import { get } from 'svelte/store';
 	import { globalState } from '$lib/runes/main.svelte';
 
+	type AssetsTab = 'qua' | 'file' | 'social' | 'stock';
+
 	let {
 		stockMediaOpen = false,
 		showHeader = true,
@@ -16,6 +18,14 @@
 		showHeader?: boolean;
 		embedded?: boolean;
 	} = $props();
+
+	let activeTab = $state<AssetsTab>('qua');
+
+	$effect(() => {
+		if (stockMediaOpen) {
+			activeTab = 'stock';
+		}
+	});
 
 	function openStockMedia() {
 		globalState.stockMediaLibrary.libraryOpen = true;
@@ -32,30 +42,119 @@
 		embedded ? 'space-y-4 px-0 py-0' : 'border border-color rounded-lg py-6 px-2 space-y-6'
 	}`}
 >
-	{#if stockMediaOpen}
-		<StockMediaLibrary onBack={closeStockMedia} />
-	{:else}
-		{#if showHeader}
-			<div class="flex gap-x-2 items-center justify-center mb-6">
-				<span class="material-icons text-accent text-xl">movie</span>
-				<h2 class="text-xl font-bold text-primary">{get(LL).editor.videoEditorLabel()}</h2>
-			</div>
-		{/if}
-
-		<ProjectAssetSection />
-
-		<div class="border-t border-color"></div>
-
-		<button
-			class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm mt-4 cursor-pointer transition-colors duration-200"
-			type="button"
-			onclick={openStockMedia}
-		>
-			<span class="material-icons mr-2 text-base">public</span>
-			{get(LL).editor.stockMedia()}
-		</button>
-
-		<DownloadFromQuranicUniversalAudioSection />
-		<DownloadFromYouTubeSection />
+	{#if showHeader}
+		<div class="flex gap-x-2 items-center justify-center mb-6">
+			<span class="material-icons text-accent text-xl">movie</span>
+			<h2 class="text-xl font-bold text-primary">{get(LL).editor.videoEditorLabel()}</h2>
+		</div>
 	{/if}
+
+	<div class="assets-manager-shell">
+		<ProjectAssetSection compact />
+
+		<div class="assets-manager-tabs-row">
+			<button
+				class:active={activeTab === 'qua'}
+				class="assets-manager-tab"
+				type="button"
+				onclick={() => {
+					activeTab = 'qua';
+					closeStockMedia();
+				}}
+			>
+				QUA
+			</button>
+			<button
+				class:active={activeTab === 'file'}
+				class="assets-manager-tab"
+				type="button"
+				onclick={() => {
+					activeTab = 'file';
+					closeStockMedia();
+				}}
+			>
+				{$LL.common.upload()}
+			</button>
+			<button
+				class:active={activeTab === 'social'}
+				class="assets-manager-tab"
+				type="button"
+				onclick={() => {
+					activeTab = 'social';
+					closeStockMedia();
+				}}
+			>
+				{get(LL).editor.downloadFromSocialMedia()}
+			</button>
+			<button
+				class:active={activeTab === 'stock'}
+				class="assets-manager-tab"
+				type="button"
+				onclick={() => {
+					activeTab = 'stock';
+					openStockMedia();
+				}}
+			>
+				{get(LL).editor.stockMedia()}
+			</button>
+		</div>
+
+		<div class="assets-manager-panel">
+			{#if activeTab === 'qua'}
+				<DownloadFromQuranicUniversalAudioSection compact />
+			{:else if activeTab === 'file'}
+				<ProjectAssetSection buttonOnly />
+			{:else if activeTab === 'social'}
+				<DownloadFromYouTubeSection compact />
+			{:else if stockMediaOpen}
+				<StockMediaLibrary hideHeader />
+			{/if}
+		</div>
+	</div>
 </div>
+
+<style>
+	.assets-manager-shell {
+		display: flex;
+		flex-direction: column;
+		gap: 0.55rem;
+	}
+
+	.assets-manager-tabs-row {
+		display: flex;
+		gap: 0.45rem;
+		overflow-x: auto;
+		overflow-y: hidden;
+		padding-bottom: 0.1rem;
+	}
+
+	.assets-manager-tabs-row::-webkit-scrollbar {
+		display: none;
+	}
+
+	.assets-manager-panel {
+		min-height: 0;
+	}
+
+	.assets-manager-tab {
+		display: inline-flex;
+		height: 32px;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border-color);
+		border-radius: 9999px;
+		padding: 0 0.85rem;
+		background: var(--bg-primary);
+		color: var(--text-secondary);
+		font-size: 0.75rem;
+		font-weight: 600;
+		white-space: nowrap;
+	}
+
+	.assets-manager-tab.active {
+		border-color: var(--accent);
+		background: var(--bg-accent);
+		color: var(--text-primary);
+	}
+</style>

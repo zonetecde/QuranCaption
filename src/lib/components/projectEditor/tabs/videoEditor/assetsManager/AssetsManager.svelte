@@ -7,7 +7,15 @@
 	import { get } from 'svelte/store';
 	import { globalState } from '$lib/runes/main.svelte';
 
-	let { stockMediaOpen = false }: { stockMediaOpen?: boolean } = $props();
+	let {
+		stockMediaOpen = false,
+		showHeader = true,
+		embedded = false
+	}: {
+		stockMediaOpen?: boolean;
+		showHeader?: boolean;
+		embedded?: boolean;
+	} = $props();
 
 	function openStockMedia() {
 		globalState.stockMediaLibrary.libraryOpen = true;
@@ -20,16 +28,19 @@
 
 <div
 	data-tour-id="assets-manager"
-	class="bg-secondary h-full border border-color rounded-lg py-6 px-2 space-y-6 relative overflow-auto"
+	class={`bg-secondary h-full relative overflow-auto ${
+		embedded ? 'space-y-4 px-0 py-0' : 'border border-color rounded-lg py-6 px-2 space-y-6'
+	}`}
 >
 	{#if stockMediaOpen}
 		<StockMediaLibrary onBack={closeStockMedia} />
 	{:else}
-		<!-- En-tête avec icône -->
-		<div class="flex gap-x-2 items-center justify-center mb-6">
-			<span class="material-icons text-accent text-xl">movie</span>
-			<h2 class="text-xl font-bold text-primary">{get(LL).editor.videoEditorLabel()}</h2>
-		</div>
+		{#if showHeader}
+			<div class="flex gap-x-2 items-center justify-center mb-6">
+				<span class="material-icons text-accent text-xl">movie</span>
+				<h2 class="text-xl font-bold text-primary">{get(LL).editor.videoEditorLabel()}</h2>
+			</div>
+		{/if}
 
 		<ProjectAssetSection />
 

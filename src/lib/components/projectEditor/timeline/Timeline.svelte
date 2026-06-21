@@ -25,6 +25,8 @@
 	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
+	let { useSplitHeight = true }: { useSplitHeight?: boolean } = $props();
+
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
 		const longestClipEnd =
@@ -53,7 +55,7 @@
 			}
 	);
 
-	const TIMELINE_LEFT_HEADER_WIDTH_PX = 180;
+	let timelineLeftHeaderWidthPx = $derived(globalState.isAndroidPortrait ? 88 : 180);
 	const OVERSCAN_MS = 120000;
 
 	let timelineDiv: HTMLDivElement | null = null;
@@ -634,13 +636,10 @@
 		const viewportWidthPx = tracksViewportWidth;
 		const totalDurationMs = totalDuration().ms;
 
-		const viewportStartMs = Math.max(
-			0,
-			((scrollX - TIMELINE_LEFT_HEADER_WIDTH_PX) / safeZoom) * 1000
-		);
+		const viewportStartMs = Math.max(0, ((scrollX - timelineLeftHeaderWidthPx) / safeZoom) * 1000);
 		const viewportEndMs = Math.max(
 			viewportStartMs,
-			((scrollX + viewportWidthPx - TIMELINE_LEFT_HEADER_WIDTH_PX) / safeZoom) * 1000
+			((scrollX + viewportWidthPx - timelineLeftHeaderWidthPx) / safeZoom) * 1000
 		);
 
 		visibleRangeStartMs = Math.max(0, viewportStartMs - OVERSCAN_MS);
@@ -671,7 +670,8 @@
 		if (!timelineDiv) return;
 		// Calcule la position du curseur en pixels (même formule que le playhead)
 		const cursorPixelPosition =
-			(globalState.getTimelineState.cursorPosition / 1000) * timelineState().zoom + 180;
+			(globalState.getTimelineState.cursorPosition / 1000) * timelineState().zoom +
+			timelineLeftHeaderWidthPx;
 		// Centre le curseur dans la vue (soustrait la moitié de la largeur visible)
 		const viewportWidth = timelineDiv.clientWidth;
 		timelineDiv.scrollLeft = Math.max(0, cursorPixelPosition - viewportWidth / 2);
@@ -708,7 +708,7 @@
 			return;
 
 		const rect = target.getBoundingClientRect();
-		const clickX = event.clientX - rect.left - 180; // Soustrait la largeur du header
+		const clickX = event.clientX - rect.left - timelineLeftHeaderWidthPx; // Soustrait la largeur du header
 		const newPosition = Math.max(1, (clickX / timelineState().zoom) * 1000);
 
 		timelineState().cursorPosition = newPosition;
@@ -728,7 +728,7 @@
 		if (eventTarget instanceof Element && eventTarget.closest('.track-left-part')) return;
 
 		const rect = target.getBoundingClientRect();
-		const clickX = event.clientX - rect.left - 180; // Soustrait la largeur du header
+		const clickX = event.clientX - rect.left - timelineLeftHeaderWidthPx; // Soustrait la largeur du header
 		const newPosition = Math.max(1, (clickX / timelineState().zoom) * 1000);
 
 		timelineState().cursorPosition = newPosition;
@@ -740,7 +740,7 @@
 		if (!target) return;
 
 		const rect = target.getBoundingClientRect();
-		const clickX = event.clientX - rect.left - 180; // Soustrait la largeur du header
+		const clickX = event.clientX - rect.left - timelineLeftHeaderWidthPx; // Soustrait la largeur du header
 		const newPosition = Math.max(1, (clickX / timelineState().zoom) * 1000);
 
 		timelineState().cursorPosition = newPosition;
@@ -757,7 +757,7 @@
 		if (!target) return;
 
 		const rect = target.getBoundingClientRect();
-		const clickX = event.clientX - rect.left - 180; // Soustrait la largeur du header
+		const clickX = event.clientX - rect.left - timelineLeftHeaderWidthPx; // Soustrait la largeur du header
 		const newPosition = Math.max(1, (clickX / timelineState().zoom) * 1000);
 
 		timelineState().cursorPosition = newPosition;
@@ -907,21 +907,24 @@
 
 <section
 	class="overflow-hidden min-w-0 timeline-section flex-1 min-h-0"
-	style="height: {100 - globalState.currentProject!.projectEditorState.upperSectionHeight}%;"
+	style={useSplitHeight
+		? `height: ${100 - globalState.currentProject!.projectEditorState.upperSectionHeight}%;`
+		: ''}
 >
 	<div class="timeline-container select-none" onwheel={handleMouseWheelWheeling}>
 		<!-- Timeline Header -->
 		<div class="timeline-ruler" onscroll={syncScroll} bind:this={timelineDiv}>
 			<div
 				class="ruler-content"
-				style="width: {totalDuration().toSeconds() * timelineState().zoom + 180}px;"
+				style="width: {totalDuration().toSeconds() * timelineState().zoom +
+					timelineLeftHeaderWidthPx}px;"
 				onclick={handleRulerClick}
 				onmousemove={handleRulerDrag}
 				role="button"
 				tabindex="0"
 			>
 				<!-- Header spacer for alignment -->
-				<div class="ruler-header-spacer">
+				<div class="ruler-header-spacer" style="width: {timelineLeftHeaderWidthPx}px;">
 					<div class="ruler-zoom-controls">
 						<button
 							class="ruler-zoom-button"
@@ -957,7 +960,7 @@
 							class="time-marker"
 							class:major={getTimestampInterval(timelineState().zoom) >= 10 &&
 								i % (getTimestampInterval(timelineState().zoom) * 2) === 0}
-							style="left: {i * timelineState().zoom + 180}px;"
+							style="left: {i * timelineState().zoom + timelineLeftHeaderWidthPx}px;"
 						>
 							<div class="time-label z-5">
 								{new Duration(i * 1000).getFormattedTime(true)}
@@ -971,7 +974,7 @@
 				<div
 					class="playhead-ruler"
 					style="left: {(timelineState().cursorPosition / 1000) * timelineState().zoom +
-						180}px; opacity: {timelineState().showCursor ? 1 : 0};"
+						timelineLeftHeaderWidthPx}px; opacity: {timelineState().showCursor ? 1 : 0};"
 				>
 					<div class="playhead-handle"></div>
 				</div>
@@ -982,7 +985,8 @@
 		<div class="timeline-tracks" onscroll={syncScroll} id="timeline" bind:this={timelineTracksDiv}>
 			<div
 				class="tracks-content grid outline-none"
-				style="width: {totalDuration().toSeconds() * timelineState().zoom + 180}px;"
+				style="width: {totalDuration().toSeconds() * timelineState().zoom +
+					timelineLeftHeaderWidthPx}px;"
 				onclick={handleTimelineClick}
 				onmousemove={handleTimelineDrag}
 				role="button"
@@ -994,7 +998,7 @@
 						<div
 							class="grid-line"
 							class:major={shouldShowTimestamp(i, timelineState().zoom)}
-							style="left: {i * timelineState().zoom + 180}px;"
+							style="left: {i * timelineState().zoom + timelineLeftHeaderWidthPx}px;"
 						></div>
 					{/each}
 				</div>
@@ -1019,7 +1023,7 @@
 					class="playhead-cursor"
 					id="cursor"
 					style="left: {(timelineState().cursorPosition / 1000) * timelineState().zoom +
-						180}px; opacity: {timelineState().showCursor ? 1 : 0};"
+						timelineLeftHeaderWidthPx}px; opacity: {timelineState().showCursor ? 1 : 0};"
 				></div>
 
 				<!-- Export range overlay when in Export tab -->
@@ -1028,7 +1032,7 @@
 						class="export-range-overlay"
 						style="left: {(globalState.getExportState.videoStartTime / 1000) *
 							timelineState().zoom +
-							180}px; 
+							timelineLeftHeaderWidthPx}px; 
 							   width: {((globalState.getExportState.videoEndTime - globalState.getExportState.videoStartTime) /
 							1000) *
 							timelineState().zoom}px;"
@@ -1037,12 +1041,12 @@
 						class="export-range-border export-start"
 						style="left: {(globalState.getExportState.videoStartTime / 1000) *
 							timelineState().zoom +
-							180}px;"
+							timelineLeftHeaderWidthPx}px;"
 					></div>
 					<div
 						class="export-range-border export-end"
 						style="left: {(globalState.getExportState.videoEndTime / 1000) * timelineState().zoom +
-							180}px;"
+							timelineLeftHeaderWidthPx}px;"
 					></div>
 				{/if}
 			</div>
@@ -1086,7 +1090,6 @@
 		position: absolute;
 		left: 0;
 		top: 0;
-		width: 180px;
 		height: 100%;
 		background: var(--timeline-ruler-bg);
 		border-right: 1px solid var(--timeline-track-border);

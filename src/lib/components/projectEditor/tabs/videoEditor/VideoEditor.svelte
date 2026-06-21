@@ -1,39 +1,160 @@
 <script lang="ts">
 	import Timeline from '../../timeline/Timeline.svelte';
 	import VideoPreview from '../../videoPreview/VideoPreview.svelte';
-	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import AssetsManager from './assetsManager/AssetsManager.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { get } from 'svelte/store';
 
 	let stockMediaOpen = $derived(globalState.stockMediaLibrary.libraryOpen);
+	let assetsTrayExpanded = $state(true);
+
+	$effect(() => {
+		if (stockMediaOpen) {
+			assetsTrayExpanded = true;
+		}
+	});
 </script>
 
-<div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
-	<!-- Assets -->
-	<section
-		class={(stockMediaOpen ? '2xl:w-[600px] w-[500px]' : 'w-[300px]') +
-			' flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col transition-[width] duration-200'}
-	>
-		<AssetsManager {stockMediaOpen} />
+<div class="video-editor-mobile-shell">
+	<section class="video-editor-preview-shell">
+		<VideoPreview showControls useSplitHeight={false} />
 	</section>
-	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
-		<section class="w-full min-w-0 flex flex-col min-h-0">
-			<!-- Video preview -->
-			<VideoPreview showControls />
 
-			<DiviseurRedimensionnable />
+	<section
+		class="video-editor-assets-tray"
+		class:collapsed={!assetsTrayExpanded}
+		class:library-open={stockMediaOpen}
+	>
+		<button
+			class="video-editor-assets-toggle"
+			type="button"
+			aria-expanded={assetsTrayExpanded}
+			onclick={() => (assetsTrayExpanded = !assetsTrayExpanded)}
+		>
+			<span class="video-editor-assets-toggle-title">
+				<span class="material-icons text-[20px]">video_library</span>
+				<span>{get(LL).editor.assets()}</span>
+			</span>
+			<span class="material-icons text-[20px]">
+				{assetsTrayExpanded ? 'expand_more' : 'expand_less'}
+			</span>
+		</button>
 
-			<!-- Timeline -->
-			<Timeline />
+		<section class="video-editor-assets-content">
+			<AssetsManager {stockMediaOpen} showHeader={false} embedded />
 		</section>
 	</section>
-	<!-- Settings -->
-	<!-- <section
-		class="w-[250px] flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col border-l-2 border-color border-t-2"
-	>
-		<AssetsManager />
-	</section> -->
+
+	<section class="video-editor-timeline-shell">
+		<Timeline useSplitHeight={false} />
+	</section>
 </div>
 
 <style>
+	.video-editor-mobile-shell {
+		display: flex;
+		height: 100%;
+		min-height: 0;
+		width: 100%;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		overflow: hidden;
+	}
+
+	.video-editor-preview-shell,
+	.video-editor-timeline-shell {
+		display: flex;
+		min-height: 0;
+		overflow: hidden;
+		border: 1px solid var(--border-color);
+		border-radius: 12px;
+	}
+
+	.video-editor-preview-shell {
+		flex: 1 1 0;
+		flex-direction: column;
+		min-height: 220px;
+		background: var(--bg-primary);
+	}
+
+	.video-editor-timeline-shell {
+		flex: 1 1 0;
+		min-height: 220px;
+		background: var(--timeline-bg-primary);
+	}
+
+	.video-editor-assets-tray {
+		display: flex;
+		flex-shrink: 0;
+		min-height: 56px;
+		max-height: min(36dvh, 360px);
+		flex-direction: column;
+		overflow: hidden;
+		border: 1px solid var(--border-color);
+		border-radius: 12px;
+		background: var(--bg-secondary);
+		transition: max-height 0.2s ease;
+	}
+
+	.video-editor-assets-tray.collapsed {
+		max-height: 56px;
+	}
+
+	.video-editor-assets-tray.library-open {
+		max-height: min(46dvh, 460px);
+	}
+
+	.video-editor-assets-toggle {
+		display: flex;
+		min-height: 56px;
+		width: 100%;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		border-bottom: 1px solid var(--border-color);
+		padding: 0.875rem 1rem;
+		color: var(--text-primary);
+	}
+
+	.video-editor-assets-toggle-title {
+		display: inline-flex;
+		min-width: 0;
+		align-items: center;
+		gap: 0.625rem;
+		font-size: 0.95rem;
+		font-weight: 600;
+	}
+
+	.video-editor-assets-content {
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+		padding: 0.75rem;
+	}
+
+	.video-editor-assets-content :global([data-tour-id='assets-manager']) {
+		background: transparent;
+	}
+
+	@media (orientation: landscape) {
+		.video-editor-mobile-shell {
+			gap: 0.4rem;
+			padding: 0.4rem;
+		}
+
+		.video-editor-preview-shell,
+		.video-editor-timeline-shell {
+			min-height: 160px;
+		}
+
+		.video-editor-assets-tray {
+			max-height: min(42dvh, 300px);
+		}
+
+		.video-editor-assets-tray.library-open {
+			max-height: min(52dvh, 360px);
+		}
+	}
 </style>

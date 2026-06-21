@@ -37,7 +37,7 @@
 
 <div class="bg-primary h-10 w-full flex items-center justify-center relative pt-0.25 rounded-t-xl">
 	<!-- Timestamp dans la vidéo -->
-	<section class="absolute left-3 monospaced">
+	<section class="absolute left-3 monospaced text-xs">
 		{currentDuration()} / {videoDuration()}
 	</section>
 
@@ -75,7 +75,9 @@
 							!globalState.getVideoPreviewState.showAlignmentGrid)}
 					class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
 					class:active={isAlignmentGridVisible()}
-					title={isAlignmentGridVisible() ? $LL.editor.hideAlignmentGrid() : $LL.editor.showAlignmentGrid()}
+					title={isAlignmentGridVisible()
+						? $LL.editor.hideAlignmentGrid()
+						: $LL.editor.showAlignmentGrid()}
 				>
 					<span class="material-icons text-xl pt-0.25">
 						{isAlignmentGridVisible() ? 'grid_off' : 'grid_on'}

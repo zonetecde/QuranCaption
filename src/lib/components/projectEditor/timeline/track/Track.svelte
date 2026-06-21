@@ -34,6 +34,8 @@
 		onMoveDown?: () => void;
 	} = $props();
 
+	let trackLeftPartWidthPx = $derived(globalState.isAndroidPortrait ? 88 : 180);
+
 	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
 
 	let visibleCustomClips = $derived(() =>
@@ -207,15 +209,20 @@
 </script>
 
 <div
-	class="flex-1 min-h-[75px] border-b border-[var(--timeline-track-border)] relative select-none"
+	class="flex-1 min-h-[56px] border-b border-[var(--timeline-track-border)] relative select-none"
 	style="background: linear-gradient(90deg, var(--timeline-bg-accent) 0%, transparent 200px);"
 >
 	<div
-		class="left-0 top-0 bottom-0 w-[180px] h-full border-r border-[var(--timeline-track-border)] flex items-center px-3 gap-2 z-20 track-left-part sticky"
-		style="background: linear-gradient(135deg, var(--timeline-bg-accent) 0%, var(--timeline-bg-secondary) 100%);"
+		class="left-0 top-0 bottom-0 h-full border-r border-[var(--timeline-track-border)] flex items-center px-3 gap-2 z-20 track-left-part sticky"
+		style="width: {trackLeftPartWidthPx}px; background: linear-gradient(135deg, var(--timeline-bg-accent) 0%, var(--timeline-bg-secondary) 100%);"
 	>
 		<span class="material-icons text-base opacity-80">{track.getIcon()}</span>
-		<span class="text-[var(--text-secondary)] text-xs font-medium truncate">{track.getName()}</span>
+		<span
+			class="text-[var(--text-secondary)] text-xs font-medium truncate"
+			class:hidden={globalState.isAndroidPortrait}
+		>
+			{track.getName()}
+		</span>
 		<div class="track-order-buttons ml-auto flex flex-col gap-0.5 opacity-0 transition-opacity">
 			{#if canMoveUp}
 				<button
@@ -261,7 +268,7 @@
 			</div>
 		{/if}
 	</div>
-	<div class="absolute left-[180px] top-0 bottom-0 right-0 z-[5]">
+	<div class="absolute top-0 bottom-0 right-0 z-[5]" style="left: {trackLeftPartWidthPx}px;">
 		{#if track.type === TrackType.CustomClip}
 			{@const total = Math.max(getTimelineCustomClips().length, 1)}
 			<!-- Container relatif pour positionner chaque lane -->
@@ -311,7 +318,10 @@
 	</div>
 
 	{#if track.type === TrackType.Subtitle}
-		<div class="absolute left-[180px] top-0 bottom-0 right-0 z-10 pointer-events-none">
+		<div
+			class="absolute top-0 bottom-0 right-0 z-10 pointer-events-none"
+			style="left: {trackLeftPartWidthPx}px;"
+		>
 			{#each quickMergeButtons() as button (button.key)}
 				<button
 					class="timeline-quick-merge-button"

@@ -12,9 +12,11 @@
 	import VideoOverlay from './VideoOverlay.svelte';
 
 	let {
-		showControls
+		showControls,
+		useSplitHeight = true
 	}: {
 		showControls: boolean;
+		useSplitHeight?: boolean;
 	} = $props();
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
@@ -1010,8 +1012,9 @@
 
 <section
 	class="overflow-hidden min-h-0"
+	class:flex-1={!useSplitHeight}
 	id="video-preview-section"
-	style={showControls
+	style={showControls && useSplitHeight
 		? `height: ${globalState.currentProject!.projectEditorState.upperSectionHeight}%;`
 		: ''}
 >

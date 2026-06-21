@@ -30,9 +30,7 @@
 		// Vérifie que ni le nom ni le récitateur contiennent des chars interdit
 		// par windows pour les noms de fichiers
 		if (Utilities.isPathNotSafe(name) || Utilities.isPathNotSafe(reciter)) {
-			toast.error(
-				get(LL).home.projectNameInvalidCharacters()
-			);
+			toast.error(get(LL).home.projectNameInvalidCharacters());
 			return;
 		}
 
@@ -57,27 +55,27 @@
 </script>
 
 <div
-	class="bg-secondary border-color border rounded-2xl w-[700px] shadow-2xl shadow-black flex flex-col relative"
+	class="create-project-modal relative flex max-h-[min(92vh,48rem)] w-[min(100%-1.5rem,42rem)] flex-col overflow-hidden rounded-2xl border border-color bg-secondary shadow-2xl shadow-black"
 >
 	<div
-		class="bg-gradient-to-r from-accent to-bg-accent rounded-t-2xl px-6 py-6 border-b border-color"
+		class="rounded-t-2xl border-b border-color bg-gradient-to-r from-accent to-bg-accent px-4 py-4 sm:px-6 sm:py-5"
 	>
 		<div class="flex items-center justify-between">
-			<div class="flex items-center gap-4">
+			<div class="flex min-w-0 items-center gap-3 sm:gap-4">
 				<div
-					class="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center shadow-lg"
+					class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-primary shadow-lg sm:h-12 sm:w-12"
 				>
-					<span class="material-icons text-black text-xl">add_circle</span>
+					<span class="material-icons text-lg text-black sm:text-xl">add_circle</span>
 				</div>
-				<div>
-					<h2 class="text-2xl font-bold text-primary">{$LL.home.createNewProject()}</h2>
-					<p class="text-sm text-thirdly">{$LL.home.startYourProject()}</p>
+				<div class="min-w-0">
+					<h2 class="text-xl font-bold text-primary sm:text-2xl">{$LL.home.createNewProject()}</h2>
+					<p class="text-xs text-thirdly sm:text-sm">{$LL.home.startYourProject()}</p>
 				</div>
 			</div>
 
 			<!-- Close button -->
 			<button
-				class="w-10 h-10 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary group cursor-pointer"
+				class="group flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-secondary transition-all duration-200 hover:bg-[rgba(255,255,255,0.1)] hover:text-primary"
 				onclick={close}
 			>
 				<span class="material-icons text-lg group-hover:rotate-90 transition-transform duration-200"
@@ -87,7 +85,7 @@
 		</div>
 	</div>
 	<!-- Content -->
-	<div class="p-8 space-y-6">
+	<div class="flex-1 space-y-5 overflow-y-auto p-4 sm:space-y-6 sm:p-6">
 		<!-- Project Name Field -->
 		<div class="space-y-2">
 			<label for="name" class="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -100,7 +98,7 @@
 					name="name"
 					type="text"
 					maxlength={ProjectDetail.NAME_MAX_LENGTH}
-					class="w-full"
+					class="w-full pr-20"
 					placeholder={$LL.home.taraweehExample()}
 					autocomplete="off"
 					onkeydown={(event) => {
@@ -121,16 +119,18 @@
 			<AutocompleteInput
 				bind:value={reciter}
 				suggestions={RecitersManager.getRecitersWithCustomOnes()}
+				showEverything={true}
 				placeholder={$LL.home.searchReciters()}
 				maxlength={ProjectDetail.RECITER_MAX_LENGTH}
 				icon="person"
 				labelIcon="record_voice_over"
 				label={$LL.home.reciter()}
+				useModalSuggestions={true}
 				onEnterPress={createProjectButtonClick}
 			/>
 		</div>
 
-		<div class="space-y-2">
+		<!-- <div class="space-y-2">
 			<label for="project-type" class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">folder_special</span>
 				{$LL.home.type()}
@@ -151,26 +151,26 @@
 					expand_more
 				</span>
 			</div>
-		</div>
+		</div> -->
 	</div>
 
 	<!-- Footer -->
-	<div class="border-t border-color bg-primary px-8 py-6 rounded-b-2xl">
-		<div class="flex items-center justify-between">
+	<div class="rounded-b-2xl border-t border-color bg-primary px-4 py-4 sm:px-6 sm:py-5">
+		<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				<span class="material-icons text-accent-secondary">info</span>
 				<span>{$LL.home.fillInDetails()}</span>
 			</div>
 
-			<div class="flex gap-3">
+			<div class="flex flex-col-reverse gap-3 sm:flex-row">
 				<button
-					class="px-6 py-2.5 font-medium text-primary border border-color rounded-lg hover:bg-accent hover:border-accent-primary transition-all duration-200 cursor-pointer"
+					class="w-full rounded-lg border border-color px-6 py-2.5 font-medium text-primary transition-all duration-200 hover:bg-accent hover:border-accent-primary sm:w-auto"
 					onclick={close}
 				>
 					{$LL.common.cancel()}
 				</button>
 				<button
-					class="px-8 py-2.5 font-medium bg-accent-primary text-black rounded-lg hover:bg-blue-400 transition-all duration-200 flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+					class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-primary px-8 py-2.5 font-medium text-black shadow-lg transition-all duration-200 hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
 					onclick={createProjectButtonClick}
 					disabled={name.trim() === ''}
 				>
@@ -211,7 +211,7 @@
 	}
 
 	/* Modal entrance animation */
-	div[class*='bg-secondary border-color'] {
+	.create-project-modal {
 		animation: modalSlideIn 0.3s ease-out;
 	}
 

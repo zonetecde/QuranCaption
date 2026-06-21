@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import { onMount, tick } from 'svelte';
 
 	type Props = {
 		value: string;
@@ -12,6 +13,7 @@
 		labelIcon?: string;
 		icon: string;
 		focusOnMount?: boolean;
+		useModalSuggestions?: boolean;
 		onEnterPress?: () => void;
 		onSelect?: (value: string) => void;
 	};
@@ -27,6 +29,7 @@
 		labelIcon: _labelIcon,
 		icon,
 		focusOnMount,
+		useModalSuggestions = false,
 		onEnterPress,
 		onSelect
 	}: Props = $props();
@@ -49,6 +52,7 @@
 	});
 
 	let input: HTMLInputElement | undefined = $state(undefined);
+	let modalInput: HTMLInputElement | undefined = $state(undefined);
 	onMount(() => {
 		if (input && focusOnMount) {
 			input.focus();
@@ -59,6 +63,23 @@
 	let filteredSuggestions: { label: string; isCustom: boolean }[] = $state([]);
 	let showSuggestions: boolean = $state(false);
 	let selectedSuggestionIndex: number = $state(-1);
+	let openUpwards: boolean = $state(false);
+	let modalVisible: boolean = $state(false);
+
+	/**
+	 * Chooses the dropdown direction from the input position and available viewport space.
+	 */
+	function updateDropdownDirection() {
+		if (!input || typeof window === 'undefined') return;
+
+		const rect = input.getBoundingClientRect();
+		const availableAbove = rect.top;
+		const availableBelow = window.innerHeight - rect.bottom;
+		const estimatedDropdownHeight = Math.min(filteredSuggestions.length, 5) * 52 + 8;
+
+		openUpwards = availableBelow < estimatedDropdownHeight && availableAbove > availableBelow;
+	}
+
 	function normalizeText(text: string): string {
 		return text
 			.toLowerCase()
@@ -68,6 +89,23 @@
 			.replaceAll('.', '');
 	}
 
+	/**
+	 * Prepends the raw user input as a selectable custom option unless it already matches exactly.
+	 */
+	function withCustomFirstOption(
+		query: string,
+		items: { label: string; isCustom: boolean }[]
+	): { label: string; isCustom: boolean }[] {
+		const trimmedQuery = query.trim();
+		if (!trimmedQuery) return items;
+
+		const normalizedQuery = normalizeText(trimmedQuery);
+		const hasExactMatch = items.some((item) => normalizeText(item.label) === normalizedQuery);
+		if (hasExactMatch) return items;
+
+		return [{ label: trimmedQuery, isCustom: true }, ...items];
+	}
+
 	// Filter suggestions based on input
 	function updateSuggestions() {
 		if (!value.trim()) {
@@ -75,17 +113,45 @@
 				filteredSuggestions = suggestions;
 				showSuggestions = true;
 				selectedSuggestionIndex = 0;
+				updateDropdownDirection();
 			} else {
 				filteredSuggestions = [];
+				showSuggestions = false;
 			}
 			return;
 		}
 
 		const query = normalizeText(value);
-		filteredSuggestions = suggestions.filter((s) => normalizeText(s.label).includes(query));
+		filteredSuggestions = withCustomFirstOption(
+			value,
+			suggestions.filter((s) => normalizeText(s.label).includes(query))
+		);
 
 		showSuggestions = filteredSuggestions.length > 0;
 		selectedSuggestionIndex = 0;
+		updateDropdownDirection();
+	}
+
+	/**
+	 * Ouvre le panneau plein ecran pour une recherche plus stable sur mobile.
+	 */
+	async function openSuggestionsModal() {
+		if (!useModalSuggestions) return;
+
+		modalVisible = true;
+		updateSuggestions();
+		await tick();
+		modalInput?.focus();
+		modalInput?.select();
+	}
+
+	/**
+	 * Ferme le panneau de recherche et replie la liste.
+	 */
+	function closeSuggestionsModal() {
+		modalVisible = false;
+		showSuggestions = false;
+		selectedSuggestionIndex = -1;
 	}
 
 	// Handle suggestion selection
@@ -93,6 +159,7 @@
 		value = suggestion;
 		showSuggestions = false;
 		selectedSuggestionIndex = 0;
+		closeSuggestionsModal();
 		if (onSelect) {
 			onSelect(suggestion);
 		}
@@ -123,13 +190,19 @@
 				event.preventDefault();
 				if (selectedSuggestionIndex >= 0) {
 					selectSuggestion(filteredSuggestions[selectedSuggestionIndex].label);
+				} else if (useModalSuggestions && modalVisible && filteredSuggestions.length > 0) {
+					selectSuggestion(filteredSuggestions[0].label);
 				} else if (onEnterPress) {
 					onEnterPress();
 				}
 				break;
 			case 'Escape':
-				showSuggestions = false;
-				selectedSuggestionIndex = -1;
+				if (useModalSuggestions && modalVisible) {
+					closeSuggestionsModal();
+				} else {
+					showSuggestions = false;
+					selectedSuggestionIndex = -1;
+				}
 				break;
 		}
 	}
@@ -156,8 +229,14 @@
 			{maxlength}
 			class="w-full"
 			{placeholder}
+			readonly={useModalSuggestions}
 			autocomplete="off"
 			onclick={() => {
+				if (useModalSuggestions) {
+					void openSuggestionsModal();
+					return;
+				}
+
 				if (!showSuggestions) {
 					if (clearOnFocus) {
 						value = '';
@@ -168,6 +247,11 @@
 			oninput={updateSuggestions}
 			onkeydown={handleKeydown}
 			onfocus={() => {
+				if (useModalSuggestions) {
+					void openSuggestionsModal();
+					return;
+				}
+
 				if (clearOnFocus) {
 					value = '';
 				}
@@ -189,9 +273,11 @@
 			</div>
 		{/if}
 		<!-- Autocomplete Suggestions -->
-		{#if showSuggestions && filteredSuggestions.length > 0}
+		{#if !useModalSuggestions && showSuggestions && filteredSuggestions.length > 0}
 			<div
-				class="autocomplete-dropdown absolute top-full left-0 right-0 mt-1 bg-secondary border border-color rounded-lg shadow-2xl max-h-64 overflow-y-auto"
+				class={`autocomplete-dropdown absolute left-0 right-0 bg-secondary border border-color rounded-lg shadow-2xl max-h-64 overflow-y-auto ${
+					openUpwards ? 'bottom-full mb-1' : 'top-full mt-1'
+				}`}
 			>
 				{#each filteredSuggestions as suggestion, index (`${suggestion.label}-${index}`)}
 					<button
@@ -204,7 +290,7 @@
 						type="button"
 					>
 						<span class="material-icons text-accent-primary text-sm"
-							>{isStringSuggestionsMode ? icon : suggestion.isCustom ? 'star' : icon}</span
+							>{suggestion.isCustom ? 'edit' : icon}</span
 						>
 						<span class="text-primary font-medium">{suggestion.label}</span>
 					</button>
@@ -213,6 +299,71 @@
 		{/if}
 	</div>
 </div>
+
+{#if useModalSuggestions && modalVisible}
+	<div class="fixed inset-0 z-[1200] bg-black/55 backdrop-blur-sm">
+		<div class="flex h-full flex-col bg-primary">
+			<div class="border-b border-color px-4 py-4">
+				<div class="mb-3 flex items-center justify-between gap-3">
+					<div class="min-w-0">
+						<p class="truncate text-base font-semibold text-primary">
+							{label || $LL.common.search()}
+						</p>
+						<p class="text-xs text-thirdly">{$LL.common.pressEnterToConfirm()}</p>
+					</div>
+					<button
+						type="button"
+						class="btn h-10 w-10 shrink-0 rounded-full p-0"
+						aria-label={$LL.common.close()}
+						title={$LL.common.close()}
+						onclick={closeSuggestionsModal}
+					>
+						<span class="material-icons-outlined">close</span>
+					</button>
+				</div>
+
+				<input
+					bind:this={modalInput}
+					bind:value
+					type="text"
+					{maxlength}
+					class="w-full"
+					{placeholder}
+					autocomplete="off"
+					oninput={updateSuggestions}
+					onkeydown={handleKeydown}
+				/>
+			</div>
+
+			<div class="flex-1 overflow-y-auto p-3">
+				{#if filteredSuggestions.length > 0}
+					<div class="overflow-hidden rounded-xl border border-color bg-secondary">
+						{#each filteredSuggestions as suggestion, index (`modal-${suggestion.label}-${index}`)}
+							<button
+								class={`flex w-full items-center gap-3 border-b border-color px-4 py-3 text-left transition-colors duration-200 last:border-b-0 ${
+									index === selectedSuggestionIndex ? 'bg-accent' : 'hover:bg-accent'
+								}`}
+								onclick={() => selectSuggestion(suggestion.label)}
+								type="button"
+							>
+								<span class="material-icons text-sm text-accent-primary">
+									{suggestion.isCustom ? 'edit' : icon}
+								</span>
+								<span class="text-primary font-medium">{suggestion.label}</span>
+							</button>
+						{/each}
+					</div>
+				{:else}
+					<div
+						class="flex h-full items-center justify-center px-6 text-center text-sm text-thirdly"
+					>
+						<span>{placeholder || $LL.common.search()}</span>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	/* Autocomplete suggestions styling */

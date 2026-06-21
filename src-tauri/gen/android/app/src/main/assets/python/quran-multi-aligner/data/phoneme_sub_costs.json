@@ -1,0 +1,67 @@
+{
+  "_meta": {
+    "description": "Phoneme substitution costs for DP alignment. Keys are 'phA|phB' (sorted). Values are float costs (0-1). Default substitution cost is 1.0.",
+    "version": 1
+  },
+
+  "consonant_gemination": {
+    "b|bb": 0.25,
+    "t|tt": 0.25,
+    "d|dd": 0.25,
+    "f|ff": 0.25,
+    "h|hh": 0.25,
+    "j|jj": 0.25,
+    "k|kk": 0.25,
+    "l|ll": 0.25,
+    "q|qq": 0.25,
+    "r|rr": 0.25,
+    "s|ss": 0.25,
+    "w|ww": 0.25,
+    "x|xx": 0.25,
+    "z|zz": 0.25,
+    "ð|ðð": 0.25,
+    "θ|θθ": 0.25,
+    "ħ|ħħ": 0.25,
+    "ʃ|ʃʃ": 0.25,
+    "ʒ|ʒʒ": 0.25,
+    "ʕ|ʕʕ": 0.25,
+    "sˤ|sˤsˤ": 0.25,
+    "dˤ|dˤdˤ": 0.25,
+    "tˤ|tˤtˤ": 0.25,
+    "ðˤ|ðˤðˤ": 0.25
+  },
+
+  "emphatic_pairs": {
+    "a|aˤ": 0.25,
+    "a:|aˤ:": 0.25,
+    "r|rˤ": 0.25,
+    "rˤ|rˤrˤ": 0.25,
+    "r|rˤrˤ": 0.25,
+    "l|lˤlˤ": 0.25,
+    "ll|lˤlˤ": 0.25
+  },
+
+  "nasal_ghunnah": {
+    "m|m̃": 0.25,
+    "n|ñ": 0.25,
+    "n|ŋ": 0.25,
+    "ŋ|ñ": 0.25,
+    "ŋ|m̃": 0.25,
+    "j|j̃": 0.25,
+    "w|w̃": 0.25
+  },
+
+  "vowel_length": {
+    "a|a:": 0.25,
+    "aˤ|aˤ:": 0.25,
+    "a|aˤ:": 0.25,
+    "aˤ|a:": 0.25,
+    "i|i:": 0.25,
+    "u|u:": 0.25
+  },
+
+  "common_subs": {
+    "n|l": 0.25,
+    "n|m": 0.25
+  }
+}

@@ -1,0 +1,8 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "updater",
+	"description": "enables updater permissions on desktop only",
+	"windows": ["main", "*"],
+	"platforms": ["macOS", "windows", "linux"],
+	"permissions": ["updater:default"]
+}

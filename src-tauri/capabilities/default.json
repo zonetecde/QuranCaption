@@ -64,7 +64,6 @@
 		"core:window:allow-set-skip-taskbar",
 		"core:window:allow-set-always-on-top",
 		"core:window:allow-set-position",
-		"updater:default",
 		"process:allow-restart",
 		"core:window:allow-request-user-attention" 
 	]

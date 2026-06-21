@@ -1,0 +1,57 @@
+[project]
+name = "surah-splitter"
+version = "0.1.0"
+description = "A tool to split Surah audio files into individual Ayahs."
+keywords = [
+    "islamic",
+    "islam",
+    "quran",
+    "surah",
+    "ayah",
+    "audio",
+    "splitter",
+    "audio-processing",
+]
+license = { file = "LICENSE" }
+readme = { file = "README.md", content-type = "text/markdown" }
+authors = [
+    { name = "OdyAsh", email = "ashicsresources@gmail.com" }
+]
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # Below 2 libraries are only required if you'll run .ipynb
+    #   or .py files as notebooks using "# %%" VSCode cells.
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    # Core dependencies
+    "cyclopts>=3.17.0",
+    "loguru>=0.7.3",
+    "pydub>=0.25.1",
+    "rich>=14.0.0",
+    "whisperx>=3.4.2",
+    "torch>=2.7.1",
+    "torchvision>=0.22.1",
+    "torchaudio>=2.7.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+index-url = "https://pypi.org/simple/"
+# Tip: To know which `cuxxx` version to use below, run `nvidia-smi` command in a terminal (e.g., mine outputs 12.6, so I chose cu126).
+extra-index-url = ["https://download.pytorch.org/whl/cu126"]
+
+[tool.ruff]
+# General ruff configuration
+line-length = 127
+
+# Disable specific rules for specific files
+[tool.ruff.lint.per-file-ignores]
+"**/transcription_service.py" = ["E402"]  # Allow imports not at top of file in transcription_service.py
+
+
+[tool.ruff.format]
+# Disable auto-formatting for specific files
+exclude = ["src/surah_splitter/app/cli.py"]

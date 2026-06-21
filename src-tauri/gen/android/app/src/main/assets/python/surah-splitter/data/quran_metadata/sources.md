@@ -1,0 +1,1 @@
+NOTE: the `surah_to_simple_ayahs.json` file is generated from the `one_off_scripts/simple_ayahs_extractor.py` script which requires "[Quran_Arabic.csv](https://github.com/UBISOFT-1/Quran_Module/blob/master/Quran_Module/Quran_Arabic.csv)" file obtained from the

@@ -15,9 +15,8 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init());
-    let builder = if cfg!(debug_assertions) {
-        builder
-    } else {
+    #[cfg(all(desktop, not(debug_assertions)))]
+    let builder = {
         builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
@@ -26,6 +25,8 @@ pub fn run() {
             }
         }))
     };
+    #[cfg(any(mobile, debug_assertions))]
+    let builder = builder;
     let builder = invoke::register_invoke_handler(builder);
 
     builder

@@ -1,3 +1,4 @@
+#[cfg(desktop)]
 use tauri::Manager;
 
 /// Capture l'intégralité du contenu de la fenêtre principale via l'API native du système.
@@ -5,6 +6,7 @@ use tauri::Manager;
 /// Passe la fenêtre en plein écran au préalable pour que la preview vidéo occupe
 /// tout l'espace, puis capture l'intégralité du moniteur avec DXGI (Windows) / CGDisplay (macOS).
 #[tauri::command]
+#[cfg(desktop)]
 pub async fn capture_window_screenshot(app: tauri::AppHandle) -> Result<Vec<u8>, String> {
     let window = app
         .get_webview_window("main")
@@ -23,4 +25,11 @@ pub async fn capture_window_screenshot(app: tauri::AppHandle) -> Result<Vec<u8>,
         .map_err(|e| e.to_string())?;
 
     Ok(buffer)
+}
+
+/// Indique que la capture native de fenetre n'est pas encore disponible sur mobile.
+#[tauri::command]
+#[cfg(mobile)]
+pub async fn capture_window_screenshot(_app: tauri::AppHandle) -> Result<Vec<u8>, String> {
+    Err("Window screenshot capture is not available on Android yet.".to_string())
 }

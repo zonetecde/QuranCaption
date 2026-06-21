@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
+    #[cfg(desktop)]
     let _ = fix_path_env::fix();
     qurancaption_lib::run();
 }

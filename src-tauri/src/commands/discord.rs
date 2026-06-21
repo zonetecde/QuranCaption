@@ -1,7 +1,10 @@
+#[cfg(desktop)]
 use std::sync::{Arc, Mutex};
 
+#[cfg(desktop)]
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 
+#[cfg(desktop)]
 lazy_static::lazy_static! {
     /// Instance globale du client Discord RPC pour les commandes IPC.
     static ref DISCORD_CLIENT: Arc<Mutex<Option<DiscordIpcClient>>> = Arc::new(Mutex::new(None));
@@ -31,6 +34,7 @@ pub struct DiscordActivity {
 }
 
 /// Initialise la connexion Discord Rich Presence.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn init_discord_rpc(app_id: String) -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
@@ -45,6 +49,7 @@ pub async fn init_discord_rpc(app_id: String) -> Result<(), String> {
 }
 
 /// Met à jour la présence Discord active.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn update_discord_activity(activity_data: DiscordActivity) -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
@@ -103,6 +108,7 @@ pub async fn update_discord_activity(activity_data: DiscordActivity) -> Result<(
 }
 
 /// Efface la présence Discord en cours.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn clear_discord_activity() -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
@@ -115,6 +121,7 @@ pub async fn clear_discord_activity() -> Result<(), String> {
 }
 
 /// Ferme la connexion Discord RPC.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn close_discord_rpc() -> Result<(), String> {
     let mut client_guard = DISCORD_CLIENT.lock().map_err(|e| e.to_string())?;
@@ -122,5 +129,33 @@ pub async fn close_discord_rpc() -> Result<(), String> {
         client.close().map_err(|e| e.to_string())?;
         *client_guard = None;
     }
+    Ok(())
+}
+
+/// Ignore l'initialisation Discord RPC sur mobile.
+#[cfg(mobile)]
+#[tauri::command]
+pub async fn init_discord_rpc(_app_id: String) -> Result<(), String> {
+    Ok(())
+}
+
+/// Ignore les mises a jour Discord RPC sur mobile.
+#[cfg(mobile)]
+#[tauri::command]
+pub async fn update_discord_activity(_activity_data: DiscordActivity) -> Result<(), String> {
+    Ok(())
+}
+
+/// Ignore l'effacement Discord RPC sur mobile.
+#[cfg(mobile)]
+#[tauri::command]
+pub async fn clear_discord_activity() -> Result<(), String> {
+    Ok(())
+}
+
+/// Ignore la fermeture Discord RPC sur mobile.
+#[cfg(mobile)]
+#[tauri::command]
+pub async fn close_discord_rpc() -> Result<(), String> {
     Ok(())
 }

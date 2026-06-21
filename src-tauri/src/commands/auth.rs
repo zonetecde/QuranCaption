@@ -1,12 +1,20 @@
+#[cfg(desktop)]
 use keyring::{Entry, Error as KeyringError};
 
+#[cfg(desktop)]
 const SERVICE_NAME: &str = "QuranCaption";
+#[cfg(desktop)]
 const SESSION_KEY: &str = "quran_auth_session";
+#[cfg(desktop)]
 const PENDING_VERIFIER_KEY: &str = "quran_auth_pending_verifier";
+#[cfg(desktop)]
 const SESSION_CHUNK_KEY_PREFIX: &str = "quran_auth_session__chunk_";
+#[cfg(desktop)]
 const CHUNKED_SENTINEL_PREFIX: &str = "__chunked__:";
+#[cfg(desktop)]
 const MAX_SECURE_VALUE_UTF16_LEN: usize = 2_000;
 
+#[cfg(desktop)]
 fn normalize_key(key: &str) -> Result<String, String> {
     match key {
         SESSION_KEY | PENDING_VERIFIER_KEY => Ok(key.to_string()),
@@ -15,20 +23,24 @@ fn normalize_key(key: &str) -> Result<String, String> {
     }
 }
 
+#[cfg(desktop)]
 fn secure_entry(key: &str) -> Result<Entry, String> {
     let normalized = normalize_key(key)?;
     Entry::new(SERVICE_NAME, &normalized)
         .map_err(|error| format!("Failed to access the OS secure store: {error}"))
 }
 
+#[cfg(desktop)]
 fn chunk_key(index: usize) -> String {
     format!("{SESSION_CHUNK_KEY_PREFIX}{index}")
 }
 
+#[cfg(desktop)]
 fn parse_chunk_count(value: &str) -> Option<usize> {
     value.strip_prefix(CHUNKED_SENTINEL_PREFIX)?.parse().ok()
 }
 
+#[cfg(desktop)]
 fn split_into_utf16_chunks(value: &str, max_utf16_len: usize) -> Vec<String> {
     let mut chunks = Vec::new();
     let mut current = String::new();
@@ -53,12 +65,14 @@ fn split_into_utf16_chunks(value: &str, max_utf16_len: usize) -> Vec<String> {
     chunks
 }
 
+#[cfg(desktop)]
 fn set_single_secure_value(key: &str, value: &str) -> Result<(), String> {
     secure_entry(key)?
         .set_password(value)
         .map_err(|error| format!("Failed to write to the OS secure store: {error}"))
 }
 
+#[cfg(desktop)]
 fn get_single_secure_value(key: &str) -> Result<Option<String>, String> {
     match secure_entry(key)?.get_password() {
         Ok(value) => Ok(Some(value)),
@@ -67,6 +81,7 @@ fn get_single_secure_value(key: &str) -> Result<Option<String>, String> {
     }
 }
 
+#[cfg(desktop)]
 fn delete_single_secure_value(key: &str) -> Result<(), String> {
     match secure_entry(key)?.delete_credential() {
         Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
@@ -76,6 +91,7 @@ fn delete_single_secure_value(key: &str) -> Result<(), String> {
     }
 }
 
+#[cfg(desktop)]
 fn clear_chunked_session_parts_if_needed(existing_base_value: Option<&str>) -> Result<(), String> {
     let Some(chunk_count) = existing_base_value.and_then(parse_chunk_count) else {
         return Ok(());
@@ -89,6 +105,7 @@ fn clear_chunked_session_parts_if_needed(existing_base_value: Option<&str>) -> R
 }
 
 /// Stocke une valeur sensible dans le coffre-fort du système.
+#[cfg(desktop)]
 #[tauri::command]
 pub fn quran_auth_secure_set(key: String, value: String) -> Result<(), String> {
     let existing_base_value = get_single_secure_value(&key)?;
@@ -109,6 +126,7 @@ pub fn quran_auth_secure_set(key: String, value: String) -> Result<(), String> {
 }
 
 /// Lit une valeur sensible depuis le coffre-fort du système.
+#[cfg(desktop)]
 #[tauri::command]
 pub fn quran_auth_secure_get(key: String) -> Result<Option<String>, String> {
     let Some(value) = get_single_secure_value(&key)? else {
@@ -135,9 +153,31 @@ pub fn quran_auth_secure_get(key: String) -> Result<Option<String>, String> {
 }
 
 /// Supprime une valeur sensible depuis le coffre-fort du système.
+#[cfg(desktop)]
 #[tauri::command]
 pub fn quran_auth_secure_delete(key: String) -> Result<(), String> {
     let existing_base_value = get_single_secure_value(&key)?;
     clear_chunked_session_parts_if_needed(existing_base_value.as_deref())?;
     delete_single_secure_value(&key)
+}
+
+/// Indique que le stockage securise natif n'est pas encore implemente sur mobile.
+#[cfg(mobile)]
+#[tauri::command]
+pub fn quran_auth_secure_set(_key: String, _value: String) -> Result<(), String> {
+    Err("Secure storage is not available on Android yet.".to_string())
+}
+
+/// Retourne une session absente tant que le stockage securise mobile est desactive.
+#[cfg(mobile)]
+#[tauri::command]
+pub fn quran_auth_secure_get(_key: String) -> Result<Option<String>, String> {
+    Ok(None)
+}
+
+/// Ignore la suppression tant que le stockage securise mobile est desactive.
+#[cfg(mobile)]
+#[tauri::command]
+pub fn quran_auth_secure_delete(_key: String) -> Result<(), String> {
+    Ok(())
 }

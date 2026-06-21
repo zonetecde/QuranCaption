@@ -1,15 +1,23 @@
+#[cfg(desktop)]
 use std::collections::HashSet;
 use std::fs;
 use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
+#[cfg(desktop)]
+use std::path::Path;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(desktop)]
 use font_kit::file_type::FileType;
+#[cfg(desktop)]
 use font_kit::font::Font;
+#[cfg(desktop)]
 use font_kit::handle::Handle;
+#[cfg(desktop)]
 use font_kit::properties::Style;
+#[cfg(desktop)]
 use font_kit::source::SystemSource;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
@@ -85,6 +93,7 @@ pub fn get_duration(file_path: &str) -> Result<i64, String> {
 
 /// Retourne la liste des polices système disponibles (noms de familles uniques).
 #[tauri::command]
+#[cfg(desktop)]
 pub fn get_system_fonts() -> Result<Vec<String>, String> {
     let source = SystemSource::new();
     // all_families() is the most portable API and avoids loading every single font file.
@@ -112,11 +121,19 @@ pub fn get_system_fonts() -> Result<Vec<String>, String> {
     Ok(font_names)
 }
 
+/// Retourne une liste vide tant que l'enumeration des polices mobile est desactivee.
+#[tauri::command]
+#[cfg(mobile)]
+pub fn get_system_fonts() -> Result<Vec<String>, String> {
+    Ok(Vec::new())
+}
+
 /// Resolves selected system font families to concrete font files.
 ///
 /// The preview renderer can use `font-family: Some Installed Font` directly, but the export
 /// screenshotter needs URL-backed @font-face rules so it can embed the font in the cloned SVG.
 #[tauri::command]
+#[cfg(desktop)]
 pub fn get_system_font_sources(
     font_families: Vec<String>,
 ) -> Result<Vec<SystemFontSource>, String> {
@@ -161,6 +178,16 @@ pub fn get_system_font_sources(
     Ok(sources)
 }
 
+/// Retourne une liste vide tant que les sources de polices mobile sont desactivees.
+#[tauri::command]
+#[cfg(mobile)]
+pub fn get_system_font_sources(
+    _font_families: Vec<String>,
+) -> Result<Vec<SystemFontSource>, String> {
+    Ok(Vec::new())
+}
+
+#[cfg(desktop)]
 fn collect_font_sources_from_directory(
     directory: &Path,
     requested_families: &[String],
@@ -212,6 +239,7 @@ fn collect_font_sources_from_directory(
     }
 }
 
+#[cfg(desktop)]
 fn add_font_source_if_requested(
     path: &Path,
     font_index: u32,
@@ -269,6 +297,7 @@ fn add_font_source_if_requested(
     });
 }
 
+#[cfg(desktop)]
 fn font_weight_range_for_source(
     path: &Path,
     full_name: &str,
@@ -290,6 +319,7 @@ fn font_weight_range_for_source(
     }
 }
 
+#[cfg(desktop)]
 fn default_system_font_directories() -> Vec<PathBuf> {
     let mut directories = Vec::new();
 
@@ -331,6 +361,7 @@ fn default_system_font_directories() -> Vec<PathBuf> {
     directories
 }
 
+#[cfg(desktop)]
 fn is_supported_font_path(path: &Path) -> bool {
     let Some(extension) = path.extension() else {
         return false;
@@ -341,6 +372,7 @@ fn is_supported_font_path(path: &Path) -> bool {
     )
 }
 
+#[cfg(desktop)]
 fn font_format_for_path(path: &Path) -> Option<String> {
     let extension = path.extension()?.to_string_lossy().to_ascii_lowercase();
     match extension.as_str() {

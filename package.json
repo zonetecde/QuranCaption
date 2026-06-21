@@ -18,6 +18,10 @@
 		"test": "npm run test:unit -- --run",
 		"verify": "npm run check && npm run test",
 		"sync:indopak-quran": "node scripts/sync-indopak-quran.js",
+		"android:init": "tauri android init",
+		"android:dev": "tauri android dev",
+		"android:build": "tauri android build",
+		"android:run": "tauri android run",
 		"tauri": "tauri",
 		"typesafe-i18n": "typesafe-i18n"
 	},

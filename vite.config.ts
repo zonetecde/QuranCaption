@@ -4,9 +4,19 @@ import { defineConfig } from 'vite';
 
 const vitestBrowserHeadless =
 	Reflect.get(globalThis, 'process')?.env?.VITEST_BROWSER_HEADLESS !== 'false';
+const tauriDevHost = Reflect.get(globalThis, 'process')?.env?.TAURI_DEV_HOST;
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	server: {
+		host: tauriDevHost || false,
+		hmr: tauriDevHost
+			? {
+					protocol: 'ws',
+					host: tauriDevHost
+				}
+			: undefined
+	},
 	test: {
 		projects: [
 			{

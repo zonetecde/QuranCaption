@@ -104,9 +104,37 @@ capabilities:
 - `npm run tauri dev`: Start the Svelte dev server and launches the Tauri desktop window.
 - `npm run dev`: Starts ONLY the Vite development server (useful for browser-only debugging).
 - `npm run tauri build`: Build the production application.
+- `npm run android:init`: Initialize the generated Tauri Android project after Android Studio,
+  `ANDROID_HOME`, `NDK_HOME`, Java, and Rust Android targets are installed.
+- `npm run android:dev`: Launch the app on a connected Android device or emulator.
+- `npm run android:build`: Build the Android APK/AAB with Tauri Mobile.
+- `npm run android:run`: Run the production Android build on a device or emulator.
 - `npm run check`: Run Svelte-check for type-checking.
 - `npm run lint`: Lint the project using ESLint and Prettier.
 - `npm run test:unit`: Run unit tests with Vitest.
+
+### Android first-pass launch
+
+This first Android pass only targets compilation and launch. It does not redesign the UI, adapt the
+layout, or rewrite export/mobile media workflows.
+
+Run these commands after installing the official Tauri Android prerequisites:
+
+```bash
+npm install
+npm run android:init
+npm run android:dev
+```
+
+For release-style validation:
+
+```bash
+npm run android:build
+npm run android:run
+```
+
+Temporarily guarded on Android: OS secure storage, Discord Rich Presence, native window screenshot
+capture, and system font source enumeration. Desktop behavior for those features is unchanged.
 
 ### Svelte 5 & Runes
 

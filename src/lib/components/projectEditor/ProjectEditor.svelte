@@ -242,19 +242,21 @@
 </script>
 
 <div class="flex flex-col h-full bg-secondary min-h-0 overflow-hidden">
-	<Navigator />
+	<div class="min-h-0 flex-1 overflow-hidden">
+		{#if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.VideoEditor}
+			<VideoEditor />
+		{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.SubtitlesEditor}
+			<SubtitlesEditor />
+		{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Translations}
+			<TranslationsEditor />
+		{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Style}
+			<StyleEditor />
+		{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Export}
+			<Export />
+		{/if}
+	</div>
 
-	{#if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.VideoEditor}
-		<VideoEditor />
-	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.SubtitlesEditor}
-		<SubtitlesEditor />
-	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Translations}
-		<TranslationsEditor />
-	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Style}
-		<StyleEditor />
-	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Export}
-		<Export />
-	{/if}
+	<Navigator />
 
 	{#if searchOverlayVisible}
 		<ProjectSearchOverlay bind:this={searchOverlay} onClose={closeProjectSearch} />

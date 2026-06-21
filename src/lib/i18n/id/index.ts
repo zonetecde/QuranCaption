@@ -425,8 +425,8 @@ const id: Translation = {
 	},
 	editor: {
 		...baseEn.editor,
-		videoEditor: 'Editor video',
-		subtitlesEditor: 'Editor subtitle',
+		videoEditor: 'Video',
+		subtitlesEditor: 'Subtitle',
 		translations: 'Terjemahan',
 		style: 'Gaya',
 		export: 'Ekspor',
@@ -1065,8 +1065,8 @@ const id: Translation = {
 		audio: 'Audio',
 		subtitle: 'Subtitle',
 		unknown: 'Tidak diketahui',
-		videoEditor: 'Editor Video',
-		subtitlesEditor: 'Editor Subtitle',
+		videoEditor: 'Video',
+		subtitlesEditor: 'Subtitle',
 		translations: 'Terjemahan',
 		style: 'Gaya',
 		export: 'Ekspor'

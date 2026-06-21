@@ -1,6 +1,6 @@
 const editor = {
-	videoEditor: 'Video editor',
-	subtitlesEditor: 'Subtitles editor',
+	videoEditor: 'Video',
+	subtitlesEditor: 'Subtitles',
 	translations: 'Translations',
 	style: 'Style',
 	export: 'Export',

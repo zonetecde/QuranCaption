@@ -268,8 +268,8 @@ const zh = {
 		continue: '继续'
 	},
 	editor: {
-		videoEditor: '视频编辑器',
-		subtitlesEditor: '字幕编辑器',
+		videoEditor: '视频',
+		subtitlesEditor: '字幕',
 		translations: '翻译',
 		style: '样式',
 		export: '导出',
@@ -2046,8 +2046,8 @@ const zh = {
 		youtube: 'youtube',
 		mp3quran: 'mp3quran',
 		quranfoundation: 'quranfoundation',
-		videoEditor: '视频编辑器',
-		subtitlesEditor: '字幕编辑器',
+		videoEditor: '视频',
+		subtitlesEditor: '字幕',
 		translations: '翻译',
 		style: '样式',
 		export: '导出'

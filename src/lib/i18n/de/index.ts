@@ -282,8 +282,8 @@ const de = {
 		continue: 'Fortfahren'
 	},
 	editor: {
-		videoEditor: 'Video-Editor',
-		subtitlesEditor: 'Untertitel-Editor',
+		videoEditor: 'Video',
+		subtitlesEditor: 'Untertitel',
 		translations: 'Übersetzungen',
 		style: 'Stil',
 		export: 'Export',
@@ -2252,8 +2252,8 @@ const de = {
 		youtube: 'youtube',
 		mp3quran: 'mp3quran',
 		quranfoundation: 'quranfoundation',
-		videoEditor: 'Video-Editor',
-		subtitlesEditor: 'Untertitel-Editor',
+		videoEditor: 'Video',
+		subtitlesEditor: 'Untertitel',
 		translations: 'Übersetzungen',
 		style: 'Stil',
 		export: 'Export'

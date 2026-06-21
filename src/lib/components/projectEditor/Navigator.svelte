@@ -33,7 +33,7 @@
 	class="editor-bottom-nav w-full shrink-0 border-t border-color bg-primary/95 backdrop-blur-md"
 	aria-label="Project editor navigation"
 >
-	<div class="grid grid-cols-5 gap-1 px-2 py-2">
+	<div class="grid grid-cols-5 gap-1 px-2 py-1">
 		{#each tabs as tab (tab.value)}
 			<button
 				class="tab-button ring-0 outline-none flex flex-col items-center justify-center gap-1 {globalState
@@ -65,8 +65,7 @@
 	}
 
 	.tab-button {
-		min-height: 4rem;
-		padding: 0.45rem 0.35rem;
+		padding: 0.25rem 0.35rem;
 		border-radius: 0.85rem;
 		border: 1px solid transparent;
 		font-weight: 500;

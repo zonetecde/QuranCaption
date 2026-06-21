@@ -282,8 +282,8 @@ const fr = {
 		continue: 'Continuer'
 	},
 	editor: {
-		videoEditor: 'Éditeur vidéo',
-		subtitlesEditor: 'Éditeur de sous-titres',
+		videoEditor: 'Vidéo',
+		subtitlesEditor: 'Sous-titres',
 		translations: 'Traductions',
 		style: 'Style',
 		export: 'Export',
@@ -2278,8 +2278,8 @@ const fr = {
 		youtube: 'youtube',
 		mp3quran: 'mp3quran',
 		quranfoundation: 'quranfoundation',
-		videoEditor: 'Éditeur vidéo',
-		subtitlesEditor: 'Éditeur de sous-titres',
+		videoEditor: 'Vidéo',
+		subtitlesEditor: 'Sous-titres',
 		translations: 'Traductions',
 		style: 'Style',
 		export: 'Export'

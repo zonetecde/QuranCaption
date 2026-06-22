@@ -1,11 +1,8 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
-	import { fade } from 'svelte/transition';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import AiBoldModal from './modal/AiBoldModal.svelte';
-	import AiWbwTranslationModal from './modal/AiWbwTranslationModal.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
@@ -22,9 +19,6 @@
 			translationsEditorState().inlineStyleLineBreakEnabled ||
 			translationsEditorState().inlineStyleColorEnabled
 	);
-
-	let showAiBoldModal = $state(false);
-	let showAiWbwTranslationModal = $state(false);
 
 	function toggleStyle(
 		property:
@@ -160,7 +154,7 @@
 			<div class="space-y-4 p-4">
 				<button
 					class="w-full rounded-lg bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110"
-					onclick={() => (showAiWbwTranslationModal = true)}
+					onclick={() => void ModalManager.aiWbwTranslationModal()}
 				>
 					{$LL.editor.openAiWbwTranslationAssistant()}
 				</button>
@@ -335,7 +329,7 @@
 			<div class="space-y-4 p-4">
 				<button
 					class="w-full rounded-lg bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110"
-					onclick={() => (showAiBoldModal = true)}
+					onclick={() => void ModalManager.aiBoldModal()}
 				>
 					{$LL.editor.openAiBoldAssistant()}
 				</button>
@@ -343,15 +337,3 @@
 		</div>
 	{/if}
 </div>
-
-{#if showAiBoldModal}
-	<div class="modal-wrapper" transition:fade>
-		<AiBoldModal close={() => (showAiBoldModal = false)} />
-	</div>
-{/if}
-
-{#if showAiWbwTranslationModal}
-	<div class="modal-wrapper" transition:fade>
-		<AiWbwTranslationModal close={() => (showAiWbwTranslationModal = false)} />
-	</div>
-{/if}

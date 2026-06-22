@@ -168,12 +168,16 @@ function buildRequestPayload(
 	segments: AiWbwTranslationCandidate[]
 ): AiWbwTranslationBatch['request'] {
 	return {
-		segments: segments.map((segment) => ({
-			segmentIndex: segment.segmentIndex,
-			verseKey: segment.verseKey,
-			segmentArabic: segment.segmentArabic,
-			arabicWords: segment.arabicWords,
-			translationIndexed: segment.translationIndexed
+		s: segments.map((segment) => ({
+			i: segment.segmentIndex,
+			v: segment.verseKey,
+			a: segment.segmentArabic,
+			w: segment.arabicWords.map((word) => ({
+				i: word.index,
+				a: word.arabic,
+				h: word.helper
+			})),
+			t: segment.translationIndexed
 		}))
 	};
 }
@@ -196,8 +200,8 @@ function estimateBatchCost(
 > {
 	const serializedInput = JSON.stringify(requestPayload);
 	const serializedOutputCharBudget =
-		requestPayload.segments.reduce((total, segment) => {
-			return total + Math.max(96, segment.arabicWords.length * 112 + 64);
+		requestPayload.s.reduce((total, segment) => {
+			return total + Math.max(48, segment.w.length * 24 + 24);
 		}, 48) + 48;
 
 	const estimatedInputTokens = charsToTokens(APPROX_SYSTEM_PROMPT_CHARS + serializedInput.length);
@@ -423,9 +427,9 @@ function normalizeAiRanges(
 		}
 
 		const record = rawRange as Record<string, unknown>;
-		const arabicWordIndex = Number(record.arabicWordIndex);
-		const startUnitIndex = Number(record.startUnitIndex);
-		const endUnitIndex = Number(record.endUnitIndex);
+		const arabicWordIndex = Number(record.i ?? record.arabicWordIndex);
+		const startUnitIndex = Number(record.s ?? record.startUnitIndex);
+		const endUnitIndex = Number(record.e ?? record.endUnitIndex);
 
 		if (
 			!Number.isInteger(arabicWordIndex) ||
@@ -512,11 +516,12 @@ export function validateAiWbwTranslationBatchResult(
 		};
 	}
 
-	const segmentsValue = (parsed as Record<string, unknown>).segments;
+	const parsedRecord = parsed as Record<string, unknown>;
+	const segmentsValue = parsedRecord.s ?? parsedRecord.segments;
 	if (!Array.isArray(segmentsValue)) {
 		return {
 			validSegments,
-			errors: ['AI response is missing the "segments" array.']
+			errors: ['AI response is missing the "s" array.']
 		};
 	}
 
@@ -527,9 +532,10 @@ export function validateAiWbwTranslationBatchResult(
 			continue;
 		}
 
-		const segmentIndex = Number((segmentValue as Record<string, unknown>).segmentIndex);
+		const segmentRecord = segmentValue as Record<string, unknown>;
+		const segmentIndex = Number(segmentRecord.i ?? segmentRecord.segmentIndex);
 		if (!Number.isInteger(segmentIndex)) {
-			errors.push('AI response contains a segment without a valid segmentIndex.');
+			errors.push('AI response contains a segment without a valid i.');
 			continue;
 		}
 
@@ -545,7 +551,7 @@ export function validateAiWbwTranslationBatchResult(
 		}
 
 		const normalized = normalizeAiRanges(
-			(segmentValue as Record<string, unknown>).ranges,
+			segmentRecord.r ?? segmentRecord.ranges,
 			candidate.arabicWordCount,
 			candidate.translationUnits
 		);

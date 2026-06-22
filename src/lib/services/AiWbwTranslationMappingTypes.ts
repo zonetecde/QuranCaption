@@ -26,12 +26,19 @@ export type AiWbwTranslationCandidate = {
 };
 
 /** Payload minimal d'un segment envoyé au backend IA. */
+export type AiWbwTranslationBatchArabicWordPayload = {
+	i: number;
+	a: string;
+	h: string;
+};
+
+/** Payload compact d'un segment envoyé au backend IA. */
 export type AiWbwTranslationBatchSegmentPayload = {
-	segmentIndex: number;
-	verseKey: string;
-	segmentArabic: string;
-	arabicWords: AiWbwTranslationArabicWordPayload[];
-	translationIndexed: string;
+	i: number;
+	v: string;
+	a: string;
+	w: AiWbwTranslationBatchArabicWordPayload[];
+	t: string;
 };
 
 /** Batch complet prêt à être envoyé au backend IA. */
@@ -40,7 +47,7 @@ export type AiWbwTranslationBatch = {
 	wordCount: number;
 	segments: AiWbwTranslationCandidate[];
 	request: {
-		segments: AiWbwTranslationBatchSegmentPayload[];
+		s: AiWbwTranslationBatchSegmentPayload[];
 	};
 	estimatedInputTokens: number;
 	estimatedOutputTokens: number;

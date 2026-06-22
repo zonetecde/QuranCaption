@@ -5,6 +5,7 @@ import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 export type WordByWordHighlightState = {
 	enabled: boolean;
 	highlightEnabled: boolean;
+	showCurrentWordOnly: boolean;
 	activeWordIndex: number;
 	persistColor: boolean;
 	revealSpecificWordStyle: boolean;
@@ -39,8 +40,10 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
+	const showCurrentWordOnly = Boolean(getStyleValue('wbw-show-current-word-only'));
 
 	return (
+		showCurrentWordOnly ||
 		highlightEnabled ||
 		underlineEnabled ||
 		glowEnabled ||
@@ -58,6 +61,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 	return {
 		enabled: false,
 		highlightEnabled: false,
+		showCurrentWordOnly: false,
 		activeWordIndex: -1,
 		persistColor: false,
 		revealSpecificWordStyle: false,
@@ -124,6 +128,7 @@ export function getWordByWordHighlightState(params: {
 	}
 
 	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
+	const showCurrentWordOnly = Boolean(getStyleValue('wbw-show-current-word-only'));
 	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
 	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
 	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
@@ -156,20 +161,23 @@ export function getWordByWordHighlightState(params: {
 
 	return {
 		enabled: words.length > 0,
-		highlightEnabled,
+		highlightEnabled: showCurrentWordOnly ? false : highlightEnabled,
+		showCurrentWordOnly,
 		activeWordIndex,
-		persistColor: Boolean(getStyleValue('wbw-persist-color')),
-		revealSpecificWordStyle,
-		revealWordsOnRecitation,
-		alwaysShowVerseNumber: Boolean(getStyleValue('wbw-always-show-verse-number')),
+		persistColor: showCurrentWordOnly ? false : Boolean(getStyleValue('wbw-persist-color')),
+		revealSpecificWordStyle: showCurrentWordOnly ? false : revealSpecificWordStyle,
+		revealWordsOnRecitation: showCurrentWordOnly ? false : revealWordsOnRecitation,
+		alwaysShowVerseNumber: showCurrentWordOnly
+			? false
+			: Boolean(getStyleValue('wbw-always-show-verse-number')),
 		baseColor: String(getStyleValue('text-color') ?? ''),
 		verseNumberColor: String(getStyleValue('verse-number-color') ?? ''),
 		color: String(getStyleValue('wbw-color') ?? ''),
-		backgroundEnabled,
+		backgroundEnabled: showCurrentWordOnly ? false : backgroundEnabled,
 		backgroundColor: String(getStyleValue('wbw-bg-color') ?? ''),
-		underlineEnabled,
+		underlineEnabled: showCurrentWordOnly ? false : underlineEnabled,
 		underlineThickness: Number(getStyleValue('wbw-underline-thickness') ?? 1),
-		glowEnabled,
+		glowEnabled: showCurrentWordOnly ? false : glowEnabled,
 		glowColor: String(getStyleValue('wbw-glow-color') ?? ''),
 		glowBlur: Number(getStyleValue('wbw-glow-blur') ?? 10),
 		clipStartTimeS,

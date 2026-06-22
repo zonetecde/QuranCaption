@@ -581,7 +581,8 @@ const id: Translation = {
 			'overlay-opacity': 'Opasitas Overlay',
 			'background-overlay-mode': 'Mode Overlay',
 			'background-overlay-fade-intensity': 'Intensitas Fade',
-			'background-overlay-fade-coverage': 'Cakupan Fade'
+			'background-overlay-fade-coverage': 'Cakupan Fade',
+			'wbw-show-current-word-only': 'Tampilkan hanya kata saat ini'
 		},
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',

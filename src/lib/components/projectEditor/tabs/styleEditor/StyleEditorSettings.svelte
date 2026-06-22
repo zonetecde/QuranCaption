@@ -226,6 +226,11 @@
 	function isWordByWordStyleDisabled(categoryId: string, styleId: string): boolean {
 		if (categoryId !== 'word-by-word-highlight') return false;
 		const target = currentStyleTarget();
+		const showCurrentWordOnly = Boolean(
+			globalState.getStyle(target, 'wbw-show-current-word-only')?.value
+		);
+
+		if (showCurrentWordOnly && styleId !== 'wbw-show-current-word-only') return true;
 
 		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
 			return !Boolean(globalState.getStyle(target, 'enable-wbw-highlight')?.value);

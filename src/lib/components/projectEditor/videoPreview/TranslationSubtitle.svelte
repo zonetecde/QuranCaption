@@ -610,6 +610,18 @@
 		});
 	});
 
+	let visibleWbwSegments = $derived(() => {
+		const data = wbwRenderData();
+		const state = wbwState();
+		if (!data) return [];
+		if (!state.showCurrentWordOnly) return data.segments;
+		if (state.activeWordIndex < 0 || state.activeWordIndex >= data.words.length) return [];
+
+		return data.segments.filter((segment) =>
+			(segment.wbwWordIndexes ?? []).includes(state.activeWordIndex)
+		);
+	});
+
 	/** Padding horizontal pour le fond de cette traduction. */
 	let backgroundHorizontalPaddingCss = $derived(() => {
 		const referenceClip = translationReferenceClip();
@@ -642,7 +654,7 @@
 		{#if true}
 			{@const state = wbwState()}
 			{@const data = wbwRenderData()}
-			{#each state.enabled && data ? data.segments : visibleSegments() as segment (segment.key)}
+			{#each state.enabled && data ? visibleWbwSegments() : visibleSegments() as segment (segment.key)}
 				{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
 				{#if segmentStyle}
 					<span style={segmentStyle}>{segment.text}</span>

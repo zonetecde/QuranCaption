@@ -848,6 +848,7 @@ const editor = {
 		'reactive-font-size': 'Reactive Font Size',
 		'word-by-word-highlight': 'Word by word highlight',
 		'enable-wbw-highlight': 'Enable wbw highlight',
+		'wbw-show-current-word-only': 'Show current word only',
 		'wbw-color': 'Word-by-word color',
 		'wbw-persist-color': 'Persist highlighted words',
 		'wbw-reveal-specific-word-style': 'Reveal specific word style on recitation',
@@ -1002,6 +1003,7 @@ const editor = {
 		'word-by-word-highlight':
 			'Highlight Arabic words over time when word-by-word timestamps are available',
 		'enable-wbw-highlight': 'Enable or disable timed word-by-word highlighting',
+		'wbw-show-current-word-only': 'Show only the word currently being recited',
 		'wbw-color': 'Color applied to highlighted words',
 		'wbw-persist-color': 'Keep previously highlighted words colored after they have been read',
 		'wbw-reveal-specific-word-style': 'Hide custom word styles until their linked word is recited',

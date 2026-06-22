@@ -310,6 +310,16 @@
 				"icon": "toggle_on"
 			},
 			{
+				"id": "wbw-show-current-word-only",
+				"name": "Show current word only",
+				"description": "Show only the word currently being recited",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "filter_1"
+			},
+			{
 				"id": "wbw-color",
 				"name": "Word-by-word color",
 				"description": "Color applied to highlighted words",

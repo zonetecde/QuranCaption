@@ -122,6 +122,7 @@ export type AnimationStyleName = 'scale' | 'rotation';
 
 export type WordByWordHighlightStyleName =
 	| 'enable-wbw-highlight'
+	| 'wbw-show-current-word-only'
 	| 'wbw-color'
 	| 'wbw-persist-color'
 	| 'wbw-reveal-specific-word-style'

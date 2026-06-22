@@ -1161,6 +1161,7 @@ const fr = {
 			'reactive-font-size': 'Taille de police réactive',
 			'word-by-word-highlight': 'Surlignage mot par mot',
 			'enable-wbw-highlight': 'Activer le surlignage wbw',
+			'wbw-show-current-word-only': 'Afficher seulement le mot actuel',
 			'wbw-color': 'Couleur mot par mot',
 			'wbw-persist-color': 'Persistance des mots surlignés',
 			'wbw-reveal-specific-word-style': 'Révéler le style du mot à la récitation',
@@ -1320,6 +1321,7 @@ const fr = {
 			'word-by-word-highlight':
 				'Surligner les mots arabes au fil du temps lorsque les horodatages mot par mot sont disponibles',
 			'enable-wbw-highlight': 'Activer ou désactiver le surlignage chronométré mot par mot',
+			'wbw-show-current-word-only': 'Afficher uniquement le mot en cours de récitation',
 			'wbw-color': 'Couleur appliquée aux mots surlignés',
 			'wbw-persist-color': 'Garder les mots précédemment surlignés colorés après leur lecture',
 			'wbw-reveal-specific-word-style':

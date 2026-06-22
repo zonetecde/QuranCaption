@@ -558,18 +558,11 @@
 	 * @returns {boolean} true si le clip affiche seulement le mot courant.
 	 */
 	function shouldSplitCurrentWordOnlySubtitleForExport(clip: SubtitleClip): boolean {
-		const hasArabicCurrentWordOnly = Boolean(
+		return Boolean(
 			globalState.getVideoStyle
 				.getStylesOfTarget('arabic')
 				.getEffectiveValue('wbw-show-current-word-only' as StyleName, clip.id)
 		);
-		if (hasArabicCurrentWordOnly) return true;
-
-		return globalState.getProjectTranslation.addedTranslationEditions.some((edition) => {
-			if (!globalState.getVideoStyle.doesTargetStyleExist(edition.name)) return false;
-			const styles = globalState.getVideoStyle.getStylesOfTarget(edition.name);
-			return Boolean(styles.getEffectiveValue('wbw-show-current-word-only' as StyleName, clip.id));
-		});
 	}
 
 	/**

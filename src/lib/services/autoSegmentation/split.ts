@@ -314,9 +314,13 @@ export async function automaticSplitSubtitleAtWord(
 /**
  * Subdivise localement tous les sous-titres Quran dépassant les critères actifs.
  *
+ * @param {object} options Options de subdivision.
+ * @param {(clip: SubtitleClip) => boolean} options.shouldSplitClip Filtre optionnel des clips a subdiviser.
  * @returns {Promise<number>} Nombre de coupes appliquées.
  */
-export async function subdivideLongSubtitleSegments(): Promise<number> {
+export async function subdivideLongSubtitleSegments(
+	options: { shouldSplitClip?: (clip: SubtitleClip) => boolean } = {}
+): Promise<number> {
 	ProjectHistoryManager.begin('subdivide subtitles');
 	try {
 		const state = globalState.getSubtitlesEditorState;
@@ -337,6 +341,8 @@ export async function subdivideLongSubtitleSegments(): Promise<number> {
 				(left, right) => left.startTime - right.startTime
 			);
 			for (const clip of clips) {
+				if (options.shouldSplitClip && !options.shouldSplitClip(clip)) continue;
+
 				const splitWordIndex = await getAutomaticSplitWordIndex(
 					clip,
 					maxWords,

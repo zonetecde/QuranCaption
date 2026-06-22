@@ -42,6 +42,10 @@
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
+	import {
+		SUBDIVIDE_MAX_DURATION_DISABLED,
+		subdivideLongSubtitleSegments
+	} from '$lib/services/AutoSegmentation';
 	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -549,6 +553,51 @@
 	}
 
 	/**
+	 * Indique si un clip doit etre predecoupe en mots uniques pour l'export.
+	 * @param {SubtitleClip} clip Clip Quran a tester.
+	 * @returns {boolean} true si le clip affiche seulement le mot courant.
+	 */
+	function shouldSplitCurrentWordOnlySubtitleForExport(clip: SubtitleClip): boolean {
+		const hasArabicCurrentWordOnly = Boolean(
+			globalState.getVideoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('wbw-show-current-word-only' as StyleName, clip.id)
+		);
+		if (hasArabicCurrentWordOnly) return true;
+
+		return globalState.getProjectTranslation.addedTranslationEditions.some((edition) => {
+			if (!globalState.getVideoStyle.doesTargetStyleExist(edition.name)) return false;
+			const styles = globalState.getVideoStyle.getStylesOfTarget(edition.name);
+			return Boolean(styles.getEffectiveValue('wbw-show-current-word-only' as StyleName, clip.id));
+		});
+	}
+
+	/**
+	 * Simule le split UI avec max words = 1 et split aux stop signs desactive.
+	 * @returns {Promise<number>} Nombre de coupes appliquees.
+	 */
+	async function splitCurrentWordOnlySubtitlesForExport(): Promise<number> {
+		const state = globalState.getSubtitlesEditorState;
+		const previousMaxWords = state.subdivideMaxWordsPerSegment;
+		const previousMaxDuration = state.subdivideMaxDurationPerSegment;
+		const previousOnlySplitAtStopSigns = state.subdivideOnlySplitAtStopSigns;
+
+		state.subdivideMaxWordsPerSegment = 1;
+		state.subdivideMaxDurationPerSegment = SUBDIVIDE_MAX_DURATION_DISABLED + 1;
+		state.subdivideOnlySplitAtStopSigns = false;
+
+		try {
+			return await subdivideLongSubtitleSegments({
+				shouldSplitClip: shouldSplitCurrentWordOnlySubtitleForExport
+			});
+		} finally {
+			state.subdivideMaxWordsPerSegment = previousMaxWords;
+			state.subdivideMaxDurationPerSegment = previousMaxDuration;
+			state.subdivideOnlySplitAtStopSigns = previousOnlySplitAtStopSigns;
+		}
+	}
+
+	/**
 	 * Prepare la preview video pour rendre l'overlay en plein ecran export.
 	 * @returns {Promise<void>}
 	 */
@@ -657,10 +706,12 @@
 		}
 
 		await loadExportProject(id);
+		const currentWordOnlySplitCount = await splitCurrentWordOnlySubtitlesForExport();
 		await emitExportLog('info', 'Export project loaded', {
 			file: exportData?.finalFileName,
 			start: exportData?.videoStartTime,
-			end: exportData?.videoEndTime
+			end: exportData?.videoEndTime,
+			currentWordOnlySplitCount
 		});
 
 		await mkdir(await join(ExportService.exportFolder, exportId), {

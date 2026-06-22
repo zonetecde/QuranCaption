@@ -314,7 +314,7 @@ export function getWordByWordWordCss(
 	}
 
 	if (clampedProgress === 0 || fadeDurationMs < 0) {
-		if (state.revealWordsOnRecitation) {
+		if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
 			parts.push(`opacity: ${opacity};`);
 		}
 		return parts.join(' ');
@@ -335,7 +335,7 @@ export function getWordByWordWordCss(
 			`text-shadow: 0 0 ${glowBlur * 0.5}px ${glowColor}, 0 0 ${glowBlur}px ${glowColor}, 0 0 ${glowBlur * 1.5}px ${glowColor}, 0 0 ${glowBlur * 2}px ${glowColor};`
 		);
 	}
-	if (state.revealWordsOnRecitation) {
+	if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
 		parts.push(`opacity: ${opacity};`);
 	}
 	return parts.join(' ');
@@ -352,18 +352,39 @@ export function getWordByWordWordOpacity(
 	state: WordByWordHighlightState,
 	fadeDurationMs: number
 ): number {
-	if (!state.revealWordsOnRecitation || !state.enabled) return 1;
+	if ((!state.revealWordsOnRecitation && !state.showCurrentWordOnly) || !state.enabled) return 1;
 
 	const word = state.words[wordIndex];
 	if (!word) return 0;
-	if (wordIndex < state.activeWordIndex) return 1;
-	if (wordIndex > state.activeWordIndex) return 0;
-	if (state.activeWordIndex >= state.words.length) return 1;
-
 	const fadeDurationS = Math.max(0, fadeDurationMs) / 1000;
 	const currentTimeS = state.cursorTimeS;
 	const wordStartTimeS = state.clipStartTimeS + word.start;
 	const wordEndTimeS = state.clipStartTimeS + word.end;
+
+	if (state.showCurrentWordOnly) {
+		if (fadeDurationS === 0) {
+			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? 1 : 0;
+		}
+
+		const wordDurationS = Math.max(0, wordEndTimeS - wordStartTimeS);
+		const effectiveFadeDurationS = Math.min(fadeDurationS, wordDurationS / 2);
+		if (effectiveFadeDurationS <= 0) {
+			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? 1 : 0;
+		}
+
+		if (currentTimeS < wordStartTimeS || currentTimeS > wordEndTimeS) return 0;
+		if (currentTimeS <= wordStartTimeS + effectiveFadeDurationS) {
+			return Utilities.clamp01((currentTimeS - wordStartTimeS) / effectiveFadeDurationS);
+		}
+		if (currentTimeS >= wordEndTimeS - effectiveFadeDurationS) {
+			return Utilities.clamp01((wordEndTimeS - currentTimeS) / effectiveFadeDurationS);
+		}
+		return 1;
+	}
+
+	if (wordIndex < state.activeWordIndex) return 1;
+	if (wordIndex > state.activeWordIndex) return 0;
+	if (state.activeWordIndex >= state.words.length) return 1;
 
 	if (fadeDurationS === 0) {
 		return currentTimeS >= wordStartTimeS ? 1 : 0;

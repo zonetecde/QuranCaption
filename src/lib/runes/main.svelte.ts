@@ -285,7 +285,16 @@ class GlobalState {
 		this.shared.quickTimelineEditor.active = true;
 		this.shared.quickTimelineEditor.clipId = clipId;
 		this.shared.quickTimelineEditor.mode = mode;
-		translationsState.isInlineStyleMode = mode === 'wbw';
+		if (mode === 'wbw') {
+			const hasWbwMode =
+				translationsState.isInlineStyleMode || translationsState.isTranslationWbwMappingMode;
+			translationsState.isInlineStyleMode = hasWbwMode ? translationsState.isInlineStyleMode : true;
+			translationsState.isTranslationWbwMappingMode = hasWbwMode
+				? translationsState.isTranslationWbwMappingMode
+				: false;
+		} else {
+			translationsState.isInlineStyleMode = false;
+		}
 
 		if (mode === 'subtitle' || mode === 'wbwTimestamp') {
 			subtitlesEditorState.editSubtitle = this.getSubtitleTrack.getClipById(clipId) as

@@ -35,7 +35,7 @@
 			id: 'gemini',
 			label: 'Gemini',
 			endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-			model: '3.1-flash-lite',
+			model: 'gemini-3.1-flash-lite',
 			description: 'Google OpenAI-compatible'
 		},
 		{
@@ -138,7 +138,7 @@
 			<option value="gpt-5.4"></option>
 			<option value="gpt-5.4-mini"></option>
 			<option value="gpt-5.4-nano"></option>
-			<option value="3.1-flash-lite"></option>
+			<option value="gemini-3.1-flash-lite"></option>
 			<option value="gemini-2.5-flash"></option>
 			<option value="z-ai/glm-4.5-air:free"></option>
 			<option value="llama-3.3-70b-versatile"></option>

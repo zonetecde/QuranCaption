@@ -191,7 +191,7 @@
 
 	/**
 	 * Désactive les styles de timing (appearance/disappearance) des overlays globaux
-	 * `surah-name` et `reciter-name` lorsque leur style `*-always-show` vaut `true`.
+	 * lorsque leur style always-show vaut `true`.
 	 */
 	function isGlobalTimedOverlayStyleDisabled(categoryId: string, styleId: string): boolean {
 		const alwaysShowStyleId =
@@ -199,7 +199,9 @@
 				? 'surah-name-always-show'
 				: categoryId === 'reciter-name'
 					? 'reciter-name-always-show'
-					: null;
+					: categoryId === 'ayah-container'
+						? 'always-show'
+						: null;
 
 		const isTimingStyle =
 			(categoryId === 'surah-name' &&
@@ -207,7 +209,9 @@
 					styleId === 'surah-name-time-disappearance')) ||
 			(categoryId === 'reciter-name' &&
 				(styleId === 'reciter-name-time-appearance' ||
-					styleId === 'reciter-name-time-disappearance'));
+					styleId === 'reciter-name-time-disappearance')) ||
+			(categoryId === 'ayah-container' &&
+				(styleId === 'time-appearance' || styleId === 'time-disappearance'));
 
 		if (!alwaysShowStyleId || !isTimingStyle) return false;
 		return Boolean(globalState.getStyle('global', alwaysShowStyleId).value);

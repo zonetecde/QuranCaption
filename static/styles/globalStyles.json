@@ -571,6 +571,36 @@
 				"icon": "horizontal_rule"
 			},
 			{
+				"id": "always-show",
+				"name": "Always Show",
+				"description": "Always show the text (ignore timing)",
+				"value": true,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "visibility"
+			},
+			{
+				"id": "time-appearance",
+				"name": "Time Appearance",
+				"description": "Change the time where the text appears",
+				"value": 0,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
+				"id": "time-disappearance",
+				"name": "Time Disappearance",
+				"description": "Change the time where the text disappears",
+				"value": 10000,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
 				"id": "ayah-container-width",
 				"name": "Width",
 				"description": "Width of the container in percentage (stretches the image if ratio is not respected)",

@@ -1545,6 +1545,15 @@
 			});
 		}
 
+		if (Boolean(globalState.getStyle('global', 'ayah-container-image')?.value)) {
+			timedOverlayClips.push({
+				id: 'ayah-container',
+				startTime: globalState.getStyle('global', 'time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'always-show')!.value)
+			});
+		}
+
 		return timedOverlayClips;
 	}
 

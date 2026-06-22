@@ -565,11 +565,70 @@
 		);
 	}
 
+	type CurrentWordOnlySplitSource = {
+		startTime: number;
+		endTime: number;
+		surah: number;
+		verse: number;
+		startWordIndex: number;
+		endWordIndex: number;
+	};
+
+	/**
+	 * Retourne les clips sources a retrouver apres split pour merger leur traduction.
+	 * @returns {CurrentWordOnlySplitSource[]} Clips sources compatibles.
+	 */
+	function getCurrentWordOnlySplitSources(): CurrentWordOnlySplitSource[] {
+		return globalState.getSubtitleTrack.clips
+			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+			.filter(shouldSplitCurrentWordOnlySubtitleForExport)
+			.map((clip) => ({
+				startTime: clip.startTime,
+				endTime: clip.endTime,
+				surah: clip.surah,
+				verse: clip.verse,
+				startWordIndex: clip.startWordIndex,
+				endWordIndex: clip.endWordIndex
+			}));
+	}
+
+	/**
+	 * Applique un visual merge translation aux clips crees depuis chaque source splittee.
+	 * @param {CurrentWordOnlySplitSource[]} sources Clips sources captures avant le split.
+	 * @returns {number} Nombre de groupes mergees.
+	 */
+	function mergeSplitTranslationsForExport(sources: CurrentWordOnlySplitSource[]): number {
+		let mergeCount = 0;
+
+		for (const source of sources) {
+			const splitClips = globalState.getSubtitleTrack.clips.filter(
+				(clip): clip is SubtitleClip =>
+					clip instanceof SubtitleClip &&
+					clip.surah === source.surah &&
+					clip.verse === source.verse &&
+					clip.startTime >= source.startTime &&
+					clip.endTime <= source.endTime &&
+					clip.startWordIndex >= source.startWordIndex &&
+					clip.endWordIndex <= source.endWordIndex
+			);
+
+			if (splitClips.length <= 1) continue;
+			if (globalState.getSubtitleTrack.applyVisualMerge(splitClips, 'translation')) {
+				mergeCount += 1;
+			}
+		}
+
+		return mergeCount;
+	}
+
 	/**
 	 * Simule le split UI avec max words = 1 et split aux stop signs desactive.
 	 * @returns {Promise<number>} Nombre de coupes appliquees.
 	 */
 	async function splitCurrentWordOnlySubtitlesForExport(): Promise<number> {
+		const splitSources = getCurrentWordOnlySplitSources();
+		if (splitSources.length === 0) return 0;
+
 		const state = globalState.getSubtitlesEditorState;
 		const previousMaxWords = state.subdivideMaxWordsPerSegment;
 		const previousMaxDuration = state.subdivideMaxDurationPerSegment;
@@ -580,9 +639,15 @@
 		state.subdivideOnlySplitAtStopSigns = false;
 
 		try {
-			return await subdivideLongSubtitleSegments({
+			const splitCount = await subdivideLongSubtitleSegments({
 				shouldSplitClip: shouldSplitCurrentWordOnlySubtitleForExport
 			});
+			const translationMergeCount = mergeSplitTranslationsForExport(splitSources);
+			await emitExportLog('info', 'Current-word subtitles split and translation-merged', {
+				splitCount,
+				translationMergeCount
+			});
+			return splitCount;
 		} finally {
 			state.subdivideMaxWordsPerSegment = previousMaxWords;
 			state.subdivideMaxDurationPerSegment = previousMaxDuration;

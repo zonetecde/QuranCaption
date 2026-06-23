@@ -16,6 +16,7 @@
 		createPlainOverlaySegment,
 		getMergedClipsWithoutWordOverlap,
 		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
+		hasSharedMergedTranslation,
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
@@ -355,6 +356,10 @@
 
 		const group = currentVisualMergeGroup();
 		if (!group) {
+			cachedWbwRenderData = null;
+			return cachedWbwRenderData;
+		}
+		if (hasSharedMergedTranslation(group.clips, edition)) {
 			cachedWbwRenderData = null;
 			return cachedWbwRenderData;
 		}

@@ -569,47 +569,64 @@
 		);
 	}
 
+	type CurrentWordOnlySplitSource = {
+		id: number;
+		translations: SubtitleClip['translations'];
+	};
+
 	/**
-	 * Associe chaque clip a l'identifiant de son sous-titre original avant le split.
-	 * @returns {Map<number, number>} Identifiant source indexe par identifiant de clip.
+	 * Associe chaque clip a son sous-titre original et a ses traductions avant le split.
+	 * @returns {Map<number, CurrentWordOnlySplitSource>} Source indexee par identifiant de clip.
 	 */
-	function getCurrentWordOnlySplitSourceIds(): Map<number, number> {
+	function getCurrentWordOnlySplitSources(): Map<number, CurrentWordOnlySplitSource> {
 		return new Map(
 			globalState.getSubtitleTrack.clips
 				.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
 				.filter(shouldSplitCurrentWordOnlySubtitleForExport)
-				.map((clip) => [clip.id, clip.id])
+				.map((clip) => [
+					clip.id,
+					{
+						id: clip.id,
+						translations: clip.translations
+					}
+				])
 		);
 	}
 
 	/**
-	 * Propage l'identifiant source du clip gauche vers le clip droit cree par la coupe.
-	 * @param {Map<number, number>} sourceIdByClipId Identifiants sources suivis pendant le split.
+	 * Propage la source et ses traductions vers les deux clips issus de la coupe.
+	 * @param {Map<number, CurrentWordOnlySplitSource>} sourceByClipId Sources suivies pendant le split.
 	 * @param {SubtitleClip} leftClip Clip gauche conserve.
 	 * @param {SubtitleClip} rightClip Nouveau clip droit.
 	 * @returns {void}
 	 */
 	function trackCurrentWordOnlySplitSource(
-		sourceIdByClipId: Map<number, number>,
+		sourceByClipId: Map<number, CurrentWordOnlySplitSource>,
 		leftClip: SubtitleClip,
 		rightClip: SubtitleClip
 	): void {
-		const sourceId = sourceIdByClipId.get(leftClip.id);
-		if (sourceId !== undefined) sourceIdByClipId.set(rightClip.id, sourceId);
+		const source = sourceByClipId.get(leftClip.id);
+		if (!source) return;
+
+		sourceByClipId.set(rightClip.id, source);
+		leftClip.translations = source.translations;
+		rightClip.translations = source.translations;
 	}
 
 	/**
 	 * Applique un visual merge translation aux clips crees depuis chaque source splittee.
-	 * @param {Map<number, number>} sourceIdByClipId Identifiants sources des clips divises.
+	 * @param {Map<number, CurrentWordOnlySplitSource>} sourceByClipId Sources des clips divises.
 	 * @returns {number} Nombre de groupes mergees.
 	 */
-	function mergeSplitTranslationsForExport(sourceIdByClipId: Map<number, number>): number {
+	function mergeSplitTranslationsForExport(
+		sourceByClipId: Map<number, CurrentWordOnlySplitSource>
+	): number {
 		let mergeCount = 0;
 
-		for (const sourceId of new Set(sourceIdByClipId.values())) {
+		for (const source of new Set(sourceByClipId.values())) {
 			const splitClips = globalState.getSubtitleTrack.clips.filter(
 				(clip): clip is SubtitleClip =>
-					clip instanceof SubtitleClip && sourceIdByClipId.get(clip.id) === sourceId
+					clip instanceof SubtitleClip && sourceByClipId.get(clip.id)?.id === source.id
 			);
 
 			if (splitClips.length <= 1) continue;
@@ -626,8 +643,8 @@
 	 * @returns {Promise<number>} Nombre de coupes appliquees.
 	 */
 	async function splitCurrentWordOnlySubtitlesForExport(): Promise<number> {
-		const sourceIdByClipId = getCurrentWordOnlySplitSourceIds();
-		if (sourceIdByClipId.size === 0) return 0;
+		const sourceByClipId = getCurrentWordOnlySplitSources();
+		if (sourceByClipId.size === 0) return 0;
 
 		const state = globalState.getSubtitlesEditorState;
 		const previousMaxWords = state.subdivideMaxWordsPerSegment;
@@ -641,9 +658,9 @@
 		try {
 			const splitCount = await subdivideLongSubtitleSegments({
 				shouldSplitClip: shouldSplitCurrentWordOnlySubtitleForExport,
-				onSplit: trackCurrentWordOnlySplitSource.bind(null, sourceIdByClipId)
+				onSplit: trackCurrentWordOnlySplitSource.bind(null, sourceByClipId)
 			});
-			const translationMergeCount = mergeSplitTranslationsForExport(sourceIdByClipId);
+			const translationMergeCount = mergeSplitTranslationsForExport(sourceByClipId);
 			await emitExportLog('info', 'Current-word subtitles split and translation-merged', {
 				splitCount,
 				translationMergeCount

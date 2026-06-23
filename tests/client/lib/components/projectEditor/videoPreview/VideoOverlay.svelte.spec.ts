@@ -11,6 +11,7 @@ import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
+import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -1078,6 +1079,64 @@ describe('Word-by-word highlight', () => {
 		expect(arabicNode).not.toBeNull();
 		const wbwFlow = arabicNode!.querySelector('.arabic-wbw-flow');
 		expect(wbwFlow).toBeNull();
+	});
+
+	test('keeps grouped Minimal Quran words in current-word-only mode', async () => {
+		const minimalWords = [
+			'إِنّا',
+			'أَنذَرناكُم',
+			'عَذابًا',
+			'قَريبًا',
+			'يَومَ',
+			'يَنظُرُ',
+			'المَرءُ',
+			'ما',
+			'قَدَّمَت',
+			'يَداهُ',
+			'وَيَقولُ',
+			'الكافِرُ',
+			'يا لَيتَني',
+			'كُنتُ',
+			'تُرابًا'
+		];
+		vi.spyOn(MinimalQuranProvider, 'getVerseWordsSlice').mockReturnValue(minimalWords);
+		const clip = new SubtitleClip(
+			0,
+			1499,
+			78,
+			40,
+			0,
+			14,
+			Array.from({ length: 15 }, (_, index) => `word-${index}`).join(' '),
+			[],
+			true,
+			true
+		);
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '78:40:1',
+			refTo: '78:40:15',
+			matchedText: clip.text,
+			timeFrom: 0,
+			timeTo: 1.5,
+			words: minimalWords.map((_, index) => ({
+				location: `78:40:${index + 1}`,
+				start: index / 10,
+				end: (index + 1) / 10
+			}))
+		};
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 1250 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('mushaf-style', 'Minimal Quran');
+		arabicStyles.setStyle('wbw-show-current-word-only', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toBe(
+			'يا لَيتَني'
+		);
 	});
 
 	test('renders predefined subtitle text in a single segment', async () => {

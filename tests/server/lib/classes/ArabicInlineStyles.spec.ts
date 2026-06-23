@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 
 describe('arabic inline styles', () => {
 	const originalCurrentProject = globalState.currentProject;
@@ -157,6 +158,45 @@ describe('arabic inline styles', () => {
 			text: 'indopak text',
 			suffix: ' ٨',
 			suffixFontFamily: 'Hafs'
+		});
+	});
+
+	it('preserves Minimal Quran word groups in preview render parts', () => {
+		vi.mocked(globalState.getStyle).mockImplementation((_target, styleId) => {
+			switch (styleId) {
+				case 'show-verse-number':
+					return { value: false } as never;
+				case 'font-family':
+					return { value: 'Hafs' } as never;
+				case 'mushaf-style':
+					return { value: 'Minimal Quran' } as never;
+				default:
+					return { value: 0 } as never;
+			}
+		});
+		vi.spyOn(MinimalQuranProvider, 'getVerseWordsSlice').mockReturnValue([
+			'وَيَقولُ',
+			'الكافِرُ',
+			'يا لَيتَني',
+			'كُنتُ',
+			'تُرابًا'
+		]);
+		const clip = new SubtitleClip(
+			0,
+			1_000,
+			78,
+			40,
+			10,
+			14,
+			'uthmani words remain available as fallback',
+			[],
+			false,
+			true
+		);
+
+		expect(clip.getArabicRenderParts('preview')).toMatchObject({
+			text: 'وَيَقولُ الكافِرُ يا لَيتَني كُنتُ تُرابًا',
+			words: ['وَيَقولُ', 'الكافِرُ', 'يا لَيتَني', 'كُنتُ', 'تُرابًا']
 		});
 	});
 

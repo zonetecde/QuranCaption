@@ -411,7 +411,7 @@
 
 		for (const sourceClip of sourceClips) {
 			const displayParts = sourceClip.getArabicRenderParts('preview');
-			const visibleWords = displayParts.text.split(/\s+/).filter(Boolean);
+			const visibleWords = displayParts.words ?? displayParts.text.split(/\s+/).filter(Boolean);
 			const alignmentWords = sourceClip.alignmentMetadata?.words ?? [];
 			const visibleWordCount = Math.min(visibleWords.length, alignmentWords.length);
 			const visibleAlignmentWords =

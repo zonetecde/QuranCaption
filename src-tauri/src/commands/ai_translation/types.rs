@@ -53,6 +53,7 @@ pub struct AdvancedBoldBatchPayload {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedWbwTranslationBatchPayload {
+    #[serde(rename = "s", alias = "segments")]
     pub segments: Vec<AdvancedWbwTranslationSegmentPayload>,
 }
 
@@ -84,17 +85,25 @@ pub struct AdvancedBoldSegmentPayload {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedWbwTranslationArabicWordPayload {
+    #[serde(rename = "i", alias = "index")]
     pub index: i64,
+    #[serde(rename = "a", alias = "arabic")]
     pub arabic: String,
+    #[serde(rename = "h", alias = "helper")]
     pub helper: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedWbwTranslationSegmentPayload {
+    #[serde(rename = "i", alias = "segmentIndex")]
     pub segment_index: i64,
+    #[serde(rename = "v", alias = "verseKey")]
     pub verse_key: String,
+    #[serde(rename = "a", alias = "segmentArabic")]
     pub segment_arabic: String,
+    #[serde(rename = "w", alias = "arabicWords")]
     pub arabic_words: Vec<AdvancedWbwTranslationArabicWordPayload>,
+    #[serde(rename = "t", alias = "translationIndexed")]
     pub translation_indexed: String,
 }

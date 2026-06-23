@@ -111,10 +111,18 @@ const GLOBAL_RECITER_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
 	endStyleId: 'reciter-name-time-disappearance'
 });
 
+const GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
+	id: 'global-ayah-container',
+	label: 'Ayah Container',
+	alwaysShowStyleId: 'always-show',
+	startStyleId: 'time-appearance',
+	endStyleId: 'time-disappearance'
+});
+
 /**
  * Retourne la liste de clips à afficher dans la lane "custom clips":
  * - clips custom reels
- * - overlays globaux temporisés (Surah/Reciter uniquement, et seulement si always-show=false)
+ * - overlays globaux temporisés (seulement si always-show=false)
  */
 export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 	// Base: les clips custom reels existants (text/image).
@@ -138,6 +146,13 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		globalState.getStyle('global', 'reciter-name-always-show')?.value !== true
 	) {
 		clips.push(GLOBAL_RECITER_NAME_TIMELINE_CLIP);
+	}
+
+	if (
+		Boolean(globalState.getStyle('global', 'ayah-container-image')?.value) &&
+		globalState.getStyle('global', 'always-show')?.value !== true
+	) {
+		clips.push(GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP);
 	}
 
 	return clips;

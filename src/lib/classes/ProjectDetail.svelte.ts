@@ -159,7 +159,7 @@ export class ProjectDetail extends SerializableBase {
 				globalState.getExportState.videoStartTime,
 				globalState.getExportState.videoEndTime
 			).toStringForExportFile();
-		return finalFileName;
+		return finalFileName.replace(/[/\\:*?"<>|]/g, '');
 	}
 
 	static override fromJSON<T extends SerializableBase>(

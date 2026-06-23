@@ -528,7 +528,24 @@
 	let currentArabicPreviewGroups = $derived(() => {
 		const renderData = buildArabicWordByWordRenderData();
 		if (!renderData || !currentArabicWordByWordState().enabled) return [];
-		return renderData.groups;
+		const state = currentArabicWordByWordState();
+		if (!state.showCurrentWordOnly) return renderData.groups;
+		if (state.activeWordIndex < 0 || state.activeWordIndex >= renderData.words.length) return [];
+
+		return renderData.groups.flatMap((group) => {
+			const localIndex = state.activeWordIndex - group.startWordIndex;
+			const word = group.words[localIndex];
+			if (!word) return [];
+
+			return [
+				{
+					...group,
+					words: [word],
+					startWordIndex: state.activeWordIndex,
+					suffix: localIndex === group.words.length - 1 ? group.suffix : ''
+				}
+			];
+		});
 	});
 
 	// =========================================================================

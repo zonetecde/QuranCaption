@@ -75,6 +75,7 @@
 		'English',
 		'Spanish',
 		'French',
+		'Bengali',
 		'ChineseSimplified',
 		'ChineseTraditional'
 	] as const;
@@ -84,6 +85,7 @@
 		English: '/translations/surahNames/en.json',
 		Spanish: '/translations/surahNames/es.json',
 		French: '/translations/surahNames/fr.json',
+		Bengali: '/translations/surahNames/bn.json',
 		ChineseSimplified: '/translations/surahNames/zh.json',
 		ChineseTraditional: '/translations/surahNames/zh_hant.json'
 	};
@@ -92,6 +94,7 @@
 		en: 'English',
 		es: 'Spanish',
 		fr: 'French',
+		bn: 'Bengali',
 		zh: 'ChineseSimplified',
 		zh_hant: 'ChineseTraditional',
 		'zh-hant': 'ChineseTraditional'
@@ -101,6 +104,7 @@
 		English: [],
 		Spanish: [],
 		French: [],
+		Bengali: [],
 		ChineseSimplified: [],
 		ChineseTraditional: []
 	});

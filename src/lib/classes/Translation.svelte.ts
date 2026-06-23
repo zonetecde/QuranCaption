@@ -117,6 +117,7 @@ const VERSE_NUMBER_NUMERAL_SYSTEMS: Record<string, string> = {
 
 const CJK_TEXT_REGEX = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const WORD_TEXT_REGEX = /[\p{L}\p{N}]/u;
+const PUNCTUATION_ONLY_TEXT_REGEX = /^[^\p{L}\p{N}\s]+$/u;
 
 /**
  * Convertit les chiffres occidentaux d'un nombre vers le système demandé.
@@ -1038,6 +1039,7 @@ export class VerseTranslation extends Translation {
 
 		// Découpe robuste en unités lexicales, y compris pour les langues CJK.
 		const splitWords = (s: string) => getTranslationTrimUnits(s).map((unit) => unit.text);
+		const originalWords = splitWords(originalTranslationText);
 
 		type IndexedToken = { value: string; sourceWordIndex: number };
 		type MatchCandidate = {
@@ -1107,6 +1109,25 @@ export class VerseTranslation extends Translation {
 
 		const originalTokens = toIndexedTokens(originalTranslationText);
 
+		/**
+		 * Étend l'index de fin vers les ponctuations isolées qui suivent.
+		 *
+		 * @param {number} tokenEnd Index du dernier token normalisé matché.
+		 * @returns {number} Index de fin dans les unités de traduction originales.
+		 */
+		const getEndWordIndexWithFollowingPunctuation = (tokenEnd: number): number => {
+			let endWordIndex = originalTokens[tokenEnd].sourceWordIndex;
+
+			while (
+				endWordIndex < originalWords.length - 1 &&
+				PUNCTUATION_ONLY_TEXT_REGEX.test(originalWords[endWordIndex + 1].trim())
+			) {
+				endWordIndex++;
+			}
+
+			return endWordIndex;
+		};
+
 		const chooseBestCandidate = (candidates: MatchCandidate[]): MatchCandidate => {
 			const previousStart = this.startWordIndex ?? 0;
 			let bestCandidate = candidates[0];
@@ -1151,7 +1172,7 @@ export class VerseTranslation extends Translation {
 			originalTokens.every((token, i) => token.value === currentTokens[i].value);
 		if (sameNormalizedContent) {
 			this.startWordIndex = originalTokens[0].sourceWordIndex;
-			this.endWordIndex = originalTokens[originalTokens.length - 1].sourceWordIndex;
+			this.endWordIndex = getEndWordIndexWithFollowingPunctuation(originalTokens.length - 1);
 			this.isBruteForce = false;
 			return;
 		}
@@ -1206,14 +1227,14 @@ export class VerseTranslation extends Translation {
 
 			const bestFuzzyCandidate = chooseBestCandidate(fuzzyCandidates);
 			this.startWordIndex = originalTokens[bestFuzzyCandidate.tokenStart].sourceWordIndex;
-			this.endWordIndex = originalTokens[bestFuzzyCandidate.tokenEnd].sourceWordIndex;
+			this.endWordIndex = getEndWordIndexWithFollowingPunctuation(bestFuzzyCandidate.tokenEnd);
 			this.isBruteForce = false;
 			return;
 		}
 
 		const bestCandidate = chooseBestCandidate(candidates);
 		this.startWordIndex = originalTokens[bestCandidate.tokenStart].sourceWordIndex;
-		this.endWordIndex = originalTokens[bestCandidate.tokenEnd].sourceWordIndex;
+		this.endWordIndex = getEndWordIndexWithFollowingPunctuation(bestCandidate.tokenEnd);
 		this.isBruteForce = false;
 	}
 }

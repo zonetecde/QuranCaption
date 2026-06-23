@@ -1164,6 +1164,7 @@ const es = {
 			'reactive-font-size': 'Tamaño de fuente reactivo',
 			'word-by-word-highlight': 'Resaltado palabra por palabra',
 			'enable-wbw-highlight': 'Activar resaltado wbw',
+			'wbw-show-current-word-only': 'Mostrar solo la palabra actual',
 			'wbw-color': 'Color palabra por palabra',
 			'wbw-persist-color': 'Persistencia de palabras resaltadas',
 			'wbw-reveal-specific-word-style': 'Revelar estilo de palabra al recitar',
@@ -1322,6 +1323,7 @@ const es = {
 			'word-by-word-highlight':
 				'Resaltar palabras árabes a lo largo del tiempo cuando las marcas de tiempo palabra por palabra están disponibles',
 			'enable-wbw-highlight': 'Activar o desactivar el resaltado cronometrado palabra por palabra',
+			'wbw-show-current-word-only': 'Mostrar solo la palabra que se está recitando',
 			'wbw-color': 'Color aplicado a las palabras resaltadas',
 			'wbw-persist-color':
 				'Mantener las palabras previamente resaltadas coloreadas después de su lectura',

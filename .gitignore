@@ -51,3 +51,5 @@ __screenshots__
 # Codex
 .codex/AGENTS.md
 .opencode
+
+src-tauri/gen/android/*

@@ -9,6 +9,8 @@ import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
+import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
+import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
@@ -229,6 +231,54 @@ export default class ModalManager {
 					surah,
 					verse,
 					resolve: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale AI Bold au niveau de la page.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async aiBoldModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(AiBoldModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale AI WBW translation au niveau de la page.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async aiWbwTranslationModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(AiWbwTranslationModal, {
+				target: container,
+				props: {
+					close: () => {
 						unmount(modal);
 						container.remove();
 						resolve();

@@ -4254,6 +4254,10 @@ type RootTranslation = {
 			 */
 			'enable-wbw-highlight': string;
 			/**
+			 * S​h​o​w​ ​c​u​r​r​e​n​t​ ​w​o​r​d​ ​o​n​l​y
+			 */
+			'wbw-show-current-word-only': string;
+			/**
 			 * W​o​r​d​-​b​y​-​w​o​r​d​ ​c​o​l​o​r
 			 */
 			'wbw-color': string;
@@ -4843,6 +4847,10 @@ type RootTranslation = {
 			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​t​i​m​e​d​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​h​i​g​h​l​i​g​h​t​i​n​g
 			 */
 			'enable-wbw-highlight': string;
+			/**
+			 * S​h​o​w​ ​o​n​l​y​ ​t​h​e​ ​w​o​r​d​ ​c​u​r​r​e​n​t​l​y​ ​b​e​i​n​g​ ​r​e​c​i​t​e​d
+			 */
+			'wbw-show-current-word-only': string;
 			/**
 			 * C​o​l​o​r​ ​a​p​p​l​i​e​d​ ​t​o​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
@@ -12983,6 +12991,10 @@ export type TranslationFunctions = {
 			 */
 			'enable-wbw-highlight': () => LocalizedString;
 			/**
+			 * Show current word only
+			 */
+			'wbw-show-current-word-only': () => LocalizedString;
+			/**
 			 * Word-by-word color
 			 */
 			'wbw-color': () => LocalizedString;
@@ -13572,6 +13584,10 @@ export type TranslationFunctions = {
 			 * Enable or disable timed word-by-word highlighting
 			 */
 			'enable-wbw-highlight': () => LocalizedString;
+			/**
+			 * Show only the word currently being recited
+			 */
+			'wbw-show-current-word-only': () => LocalizedString;
 			/**
 			 * Color applied to highlighted words
 			 */

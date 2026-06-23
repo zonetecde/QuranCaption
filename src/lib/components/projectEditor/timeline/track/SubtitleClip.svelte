@@ -427,6 +427,8 @@
 	 * @returns {Promise<void>}
 	 */
 	async function editTranslationFromContextMenu(): Promise<void> {
+		globalState.currentProject!.projectEditorState.translationsEditor.isTranslationWbwMappingMode = false;
+		globalState.currentProject!.projectEditorState.translationsEditor.isInlineStyleMode = false;
 		await openQuickTimelineEditorFromContextMenu('translation');
 	}
 

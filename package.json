@@ -1,15 +1,15 @@
 {
 	"name": "qurancaption",
 	"private": true,
-	"version": "3.5.71",
+	"version": "3.5.83",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "node scripts/prepare.cjs",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write --ignore-unknown .",
 		"lint": "prettier --check --ignore-unknown . && eslint .",
 		"lint:fix": "prettier --write --ignore-unknown . && eslint . --fix",

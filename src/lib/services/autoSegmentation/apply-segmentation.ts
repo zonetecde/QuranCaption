@@ -213,16 +213,23 @@ async function materializeTemplate(
 		template.confidence
 	);
 	const clipDurationS = (endMs - startMs) / 1000;
+	const sourceStartS = template.segment.time_from ?? alignmentStartMs / 1000;
+	// Les mots MFA restent relatifs au segment source, même après découpage par verset.
+	const wordOffsetS = alignmentStartMs / 1000 - sourceStartS;
 	const clampedWords =
 		template.segmentWords.length > 0
-			? template.segmentWords.map((word, index, arr) => ({
-					...word,
-					start: index === 0 ? 0 : Math.max(0, Math.min(clipDurationS, word.start)),
-					end:
-						index === arr.length - 1
-							? clipDurationS
-							: Math.max(0, Math.min(clipDurationS, word.end))
-				}))
+			? template.segmentWords.map((word, index, arr) => {
+					const localStart = word.start - wordOffsetS;
+					const localEnd = word.end - wordOffsetS;
+					return {
+						...word,
+						start: index === 0 ? 0 : Math.max(0, Math.min(clipDurationS, localStart)),
+						end:
+							index === arr.length - 1
+								? clipDurationS
+								: Math.max(0, Math.min(clipDurationS, localEnd))
+					};
+				})
 			: template.segmentWords;
 	clip.alignmentMetadata = buildSubtitleAlignmentMetadata(
 		segmentationSource,

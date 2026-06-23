@@ -300,6 +300,16 @@
 		"icon": "lyrics",
 		"styles": [
 			{
+				"id": "wbw-show-current-word-only",
+				"name": "Show current word only",
+				"description": "Show only the word currently being recited",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "filter_1"
+			},
+			{
 				"id": "enable-wbw-highlight",
 				"name": "Enable wbw highlight",
 				"description": "Enable or disable timed word-by-word highlighting",

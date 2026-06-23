@@ -1160,6 +1160,7 @@ const de = {
 			'reactive-font-size': 'Reaktive Schriftgröße',
 			'word-by-word-highlight': 'Wort-für-Wort-Hervorhebung',
 			'enable-wbw-highlight': 'WBW-Hervorhebung aktivieren',
+			'wbw-show-current-word-only': 'Nur aktuelles Wort anzeigen',
 			'wbw-color': 'Wort-für-Wort-Farbe',
 			'wbw-persist-color': 'Hervorgehobene Wörter beibehalten',
 			'wbw-reveal-specific-word-style': 'Wortstil bei Rezitation enthüllen',
@@ -1318,6 +1319,7 @@ const de = {
 			'word-by-word-highlight':
 				'Arabische Wörter im Zeitverlauf hervorheben, wenn Wort-für-Wort-Zeitstempel verfügbar sind',
 			'enable-wbw-highlight': 'Zeitgesteuerte Wort-für-Wort-Hervorhebung ein- oder ausschalten',
+			'wbw-show-current-word-only': 'Nur das aktuell rezitierte Wort anzeigen',
 			'wbw-color': 'Auf hervorgehobene Wörter angewendete Farbe',
 			'wbw-persist-color': 'Zuvor hervorgehobene Wörter nach ihrer Rezitation farbig halten',
 			'wbw-reveal-specific-word-style':

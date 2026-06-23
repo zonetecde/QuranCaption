@@ -500,6 +500,7 @@
 
 			// Cas custom clip: synchroniser style et clip pour garder timeline/preview coherents.
 			if (currentStyleId === 'time-appearance') {
+				let didSyncCustomClip = false;
 				for (const customClip of (globalState.getCustomClipTrack?.clips || []) as CustomClip[]) {
 					const category = customClip.category;
 					if (!category) continue;
@@ -515,9 +516,10 @@
 						endStyle.value = endFallback;
 						customClip.setEndTime(endFallback);
 					}
+					didSyncCustomClip = true;
 					break;
 				}
-				return;
+				if (didSyncCustomClip) return;
 			}
 
 			// Cas style global (surah/reciter): simple mise a jour du style global.
@@ -535,6 +537,7 @@
 		const endFallback = cursorMs + 3000;
 
 		if (currentStyleId === 'time-disappearance') {
+			let didSyncCustomClip = false;
 			for (const customClip of (globalState.getCustomClipTrack?.clips || []) as CustomClip[]) {
 				const category = customClip.category;
 				if (!category) continue;
@@ -552,9 +555,10 @@
 					style.value = endFallback;
 					customClip.setEndTime(endFallback);
 				}
+				didSyncCustomClip = true;
 				break;
 			}
-			return;
+			if (didSyncCustomClip) return;
 		}
 
 		const globalBeginStyle = globalState.getStyle('global', beginStyleId);

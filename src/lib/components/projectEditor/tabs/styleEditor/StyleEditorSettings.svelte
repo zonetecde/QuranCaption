@@ -191,7 +191,7 @@
 
 	/**
 	 * Désactive les styles de timing (appearance/disappearance) des overlays globaux
-	 * `surah-name` et `reciter-name` lorsque leur style `*-always-show` vaut `true`.
+	 * lorsque leur style always-show vaut `true`.
 	 */
 	function isGlobalTimedOverlayStyleDisabled(categoryId: string, styleId: string): boolean {
 		const alwaysShowStyleId =
@@ -199,7 +199,9 @@
 				? 'surah-name-always-show'
 				: categoryId === 'reciter-name'
 					? 'reciter-name-always-show'
-					: null;
+					: categoryId === 'ayah-container'
+						? 'always-show'
+						: null;
 
 		const isTimingStyle =
 			(categoryId === 'surah-name' &&
@@ -207,7 +209,9 @@
 					styleId === 'surah-name-time-disappearance')) ||
 			(categoryId === 'reciter-name' &&
 				(styleId === 'reciter-name-time-appearance' ||
-					styleId === 'reciter-name-time-disappearance'));
+					styleId === 'reciter-name-time-disappearance')) ||
+			(categoryId === 'ayah-container' &&
+				(styleId === 'time-appearance' || styleId === 'time-disappearance'));
 
 		if (!alwaysShowStyleId || !isTimingStyle) return false;
 		return Boolean(globalState.getStyle('global', alwaysShowStyleId).value);
@@ -222,6 +226,11 @@
 	function isWordByWordStyleDisabled(categoryId: string, styleId: string): boolean {
 		if (categoryId !== 'word-by-word-highlight') return false;
 		const target = currentStyleTarget();
+		const showCurrentWordOnly = Boolean(
+			globalState.getStyle(target, 'wbw-show-current-word-only')?.value
+		);
+
+		if (showCurrentWordOnly && styleId !== 'wbw-show-current-word-only') return true;
 
 		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
 			return !Boolean(globalState.getStyle(target, 'enable-wbw-highlight')?.value);
@@ -615,7 +624,7 @@
 							Quatrième cas :
 							On empêche la modification du font-family style si on a pas "Uthmani" de sélectionné pour le style du mushaf, car Indopak et Tajweed ont des fonts spécifique
 								  -->
-								{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'decorative-brackets-font-family' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'mushaf-style' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.currentSelection === 'arabic' && style.id === 'font-family' && globalState.getStyle('arabic', 'mushaf-style')?.value !== 'Uthmani') && !(style.id === 'decorative-brackets-font-family' && !globalState.getStyle('arabic', 'show-decorative-brackets').value) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'mushaf-style' || style.id === 'decorative-brackets-font-family' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'max-line' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(category.id === 'word-by-word-highlight' && style.id === 'wbw-always-show-verse-number' && globalState.getStylesState.currentSelection !== 'arabic') && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
+								{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'decorative-brackets-font-family' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'mushaf-style' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.currentSelection === 'arabic' && style.id === 'font-family' && globalState.getStyle('arabic', 'mushaf-style')?.value !== 'Uthmani') && !(style.id === 'decorative-brackets-font-family' && !globalState.getStyle('arabic', 'show-decorative-brackets').value) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'mushaf-style' || style.id === 'decorative-brackets-font-family' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'max-line' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(category.id === 'word-by-word-highlight' && (style.id === 'wbw-always-show-verse-number' || style.id === 'wbw-show-current-word-only') && globalState.getStylesState.currentSelection !== 'arabic') && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
 									<!-- On veut désactiver certains style, comme par exemple
 							 - Si on a le style "Always Show" pour les customs text d'enable, alors on disable les styles permettant
 							 de set les propriétés de temps de début d'affichage et de fin d'affichage -->

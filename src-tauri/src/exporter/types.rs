@@ -96,6 +96,7 @@ pub enum ExportVideoCodec {
 #[serde(rename_all = "kebab-case")]
 pub enum VideoClipTransitionMode {
     /// Coupe directe entre les clips.
+    #[serde(alias = "")]
     None,
     /// Fondu du clip sortant vers le noir, puis fondu du clip entrant depuis le noir.
     FadeThroughBlack,

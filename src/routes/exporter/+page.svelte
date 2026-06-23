@@ -43,10 +43,6 @@
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
 	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
-	import {
-		SUBDIVIDE_MAX_DURATION_DISABLED,
-		subdivideLongSubtitleSegments
-	} from '$lib/services/AutoSegmentation';
 	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -557,123 +553,6 @@
 	}
 
 	/**
-	 * Indique si un clip doit etre predecoupe en mots uniques pour l'export.
-	 * @param {SubtitleClip} clip Clip Quran a tester.
-	 * @returns {boolean} true si le clip affiche seulement le mot courant.
-	 */
-	function shouldSplitCurrentWordOnlySubtitleForExport(clip: SubtitleClip): boolean {
-		return Boolean(
-			globalState.getVideoStyle
-				.getStylesOfTarget('arabic')
-				.getEffectiveValue('wbw-show-current-word-only' as StyleName, clip.id)
-		);
-	}
-
-	type CurrentWordOnlySplitSource = {
-		id: number;
-		translations: SubtitleClip['translations'];
-	};
-
-	/**
-	 * Associe chaque clip a son sous-titre original et a ses traductions avant le split.
-	 * @returns {Map<number, CurrentWordOnlySplitSource>} Source indexee par identifiant de clip.
-	 */
-	function getCurrentWordOnlySplitSources(): Map<number, CurrentWordOnlySplitSource> {
-		return new Map(
-			globalState.getSubtitleTrack.clips
-				.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
-				.filter(shouldSplitCurrentWordOnlySubtitleForExport)
-				.map((clip) => [
-					clip.id,
-					{
-						id: clip.id,
-						translations: clip.translations
-					}
-				])
-		);
-	}
-
-	/**
-	 * Propage la source et ses traductions vers les deux clips issus de la coupe.
-	 * @param {Map<number, CurrentWordOnlySplitSource>} sourceByClipId Sources suivies pendant le split.
-	 * @param {SubtitleClip} leftClip Clip gauche conserve.
-	 * @param {SubtitleClip} rightClip Nouveau clip droit.
-	 * @returns {void}
-	 */
-	function trackCurrentWordOnlySplitSource(
-		sourceByClipId: Map<number, CurrentWordOnlySplitSource>,
-		leftClip: SubtitleClip,
-		rightClip: SubtitleClip
-	): void {
-		const source = sourceByClipId.get(leftClip.id);
-		if (!source) return;
-
-		sourceByClipId.set(rightClip.id, source);
-		leftClip.translations = source.translations;
-		rightClip.translations = source.translations;
-	}
-
-	/**
-	 * Applique un visual merge translation aux clips crees depuis chaque source splittee.
-	 * @param {Map<number, CurrentWordOnlySplitSource>} sourceByClipId Sources des clips divises.
-	 * @returns {number} Nombre de groupes mergees.
-	 */
-	function mergeSplitTranslationsForExport(
-		sourceByClipId: Map<number, CurrentWordOnlySplitSource>
-	): number {
-		let mergeCount = 0;
-
-		for (const source of new Set(sourceByClipId.values())) {
-			const splitClips = globalState.getSubtitleTrack.clips.filter(
-				(clip): clip is SubtitleClip =>
-					clip instanceof SubtitleClip && sourceByClipId.get(clip.id)?.id === source.id
-			);
-
-			if (splitClips.length <= 1) continue;
-			if (globalState.getSubtitleTrack.applyVisualMerge(splitClips, 'translation')) {
-				mergeCount += 1;
-			}
-		}
-
-		return mergeCount;
-	}
-
-	/**
-	 * Simule le split UI avec max words = 1 et split aux stop signs desactive.
-	 * @returns {Promise<number>} Nombre de coupes appliquees.
-	 */
-	async function splitCurrentWordOnlySubtitlesForExport(): Promise<number> {
-		const sourceByClipId = getCurrentWordOnlySplitSources();
-		if (sourceByClipId.size === 0) return 0;
-
-		const state = globalState.getSubtitlesEditorState;
-		const previousMaxWords = state.subdivideMaxWordsPerSegment;
-		const previousMaxDuration = state.subdivideMaxDurationPerSegment;
-		const previousOnlySplitAtStopSigns = state.subdivideOnlySplitAtStopSigns;
-
-		state.subdivideMaxWordsPerSegment = 1;
-		state.subdivideMaxDurationPerSegment = SUBDIVIDE_MAX_DURATION_DISABLED + 1;
-		state.subdivideOnlySplitAtStopSigns = false;
-
-		try {
-			const splitCount = await subdivideLongSubtitleSegments({
-				shouldSplitClip: shouldSplitCurrentWordOnlySubtitleForExport,
-				onSplit: trackCurrentWordOnlySplitSource.bind(null, sourceByClipId)
-			});
-			const translationMergeCount = mergeSplitTranslationsForExport(sourceByClipId);
-			await emitExportLog('info', 'Current-word subtitles split and translation-merged', {
-				splitCount,
-				translationMergeCount
-			});
-			return splitCount;
-		} finally {
-			state.subdivideMaxWordsPerSegment = previousMaxWords;
-			state.subdivideMaxDurationPerSegment = previousMaxDuration;
-			state.subdivideOnlySplitAtStopSigns = previousOnlySplitAtStopSigns;
-		}
-	}
-
-	/**
 	 * Prepare la preview video pour rendre l'overlay en plein ecran export.
 	 * @returns {Promise<void>}
 	 */
@@ -782,12 +661,10 @@
 		}
 
 		await loadExportProject(id);
-		const currentWordOnlySplitCount = await splitCurrentWordOnlySubtitlesForExport();
 		await emitExportLog('info', 'Export project loaded', {
 			file: exportData?.finalFileName,
 			start: exportData?.videoStartTime,
-			end: exportData?.videoEndTime,
-			currentWordOnlySplitCount
+			end: exportData?.videoEndTime
 		});
 
 		await mkdir(await join(ExportService.exportFolder, exportId), {

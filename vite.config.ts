@@ -9,7 +9,9 @@ const tauriDevHost = Reflect.get(globalThis, 'process')?.env?.TAURI_DEV_HOST;
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
-		host: tauriDevHost || false,
+		port: 5173,
+		strictPort: true,
+		host: tauriDevHost || '0.0.0.0',
 		hmr: tauriDevHost
 			? {
 					protocol: 'ws',

@@ -53,3 +53,5 @@ __screenshots__
 .opencode
 
 src-tauri/gen/android/*
+src-tauri/gen/android/app/src/main/assets/python/
+src-tauri/gen/android/app/src/main/assets/python/quran-multi-aligner/docs

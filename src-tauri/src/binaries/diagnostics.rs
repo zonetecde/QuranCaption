@@ -5,6 +5,12 @@ pub struct BinaryResolutionAttempt {
     pub candidate: String,
     /// Source de la tentative (chemin embarque, PATH systeme, etc.).
     pub source: String,
+    /// Plateforme cible detectee au moment de la resolution.
+    pub platform: String,
+    /// Indique si le chemin existe sur le filesystem.
+    pub exists: bool,
+    /// Indique si le fichier porte un bit executable quand la plateforme l'expose.
+    pub is_executable: Option<bool>,
     /// Resultat de la tentative.
     pub outcome: String,
     /// Detail eventuel en cas d'erreur.

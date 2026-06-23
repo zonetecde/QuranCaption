@@ -50,3 +50,7 @@ keyring = { version = "3.6.2", features = ["apple-native", "windows-native", "sy
 screenshots = "0.8"
 tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }
 tauri-plugin-updater = "2"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+ndk-context = "0.1"

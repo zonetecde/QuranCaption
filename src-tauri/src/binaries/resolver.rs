@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -10,6 +11,11 @@ use super::diagnostics::{BinaryResolutionAttempt, BinaryResolveDebugInfo, Binary
 
 static RESOURCE_DIR: OnceLock<PathBuf> = OnceLock::new();
 
+/// Retourne le libelle de plateforme utilise dans les logs de resolution.
+fn platform_label() -> String {
+    format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
+}
+
 /// Initialise le repertoire de ressources utilise pour resoudre les binaires embarques.
 pub fn init_resource_dir(dir: PathBuf) {
     let _ = RESOURCE_DIR.set(dir);
@@ -17,87 +23,181 @@ pub fn init_resource_dir(dir: PathBuf) {
 
 /// Retourne la liste ordonnee des emplacements candidats pour un binaire donne.
 fn binary_candidates(bin: &str) -> Vec<PathBuf> {
-    let mut paths = vec![Path::new("binaries").join(bin)];
-    paths.push(Path::new("resources").join("binaries").join(bin));
-
-    if let Some(resource_dir) = RESOURCE_DIR.get() {
-        paths.push(resource_dir.join("binaries").join(bin));
-        paths.push(resource_dir.join("resources").join("binaries").join(bin));
+    #[cfg(target_os = "android")]
+    {
+        android_binary_candidates(bin)
     }
 
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            paths.push(dir.join("binaries").join(bin));
-            paths.push(dir.join("resources").join("binaries").join(bin));
+    #[cfg(not(target_os = "android"))]
+    {
+        let mut paths = vec![Path::new("binaries").join(bin)];
+        paths.push(Path::new("resources").join("binaries").join(bin));
 
-            #[cfg(target_os = "macos")]
-            {
-                paths.push(dir.join("../Resources/binaries").join(bin));
+        if let Some(resource_dir) = RESOURCE_DIR.get() {
+            paths.push(resource_dir.join("binaries").join(bin));
+            paths.push(resource_dir.join("resources").join("binaries").join(bin));
+        }
+
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                paths.push(dir.join("binaries").join(bin));
+                paths.push(dir.join("resources").join("binaries").join(bin));
+
+                #[cfg(target_os = "macos")]
+                {
+                    paths.push(dir.join("../Resources/binaries").join(bin));
+                }
+
+                #[cfg(target_os = "linux")]
+                {
+                    let package = env!("CARGO_PKG_NAME");
+                    paths.push(dir.join(format!("../lib/{package}/binaries")).join(bin));
+                    paths.push(
+                        dir.join(format!("../lib/{package}/resources/binaries"))
+                            .join(bin),
+                    );
+                    paths.push(dir.join("../resources/binaries").join(bin));
+                }
             }
+        }
 
-            #[cfg(target_os = "linux")]
-            {
-                let package = env!("CARGO_PKG_NAME");
-                paths.push(dir.join(format!("../lib/{package}/binaries")).join(bin));
+        #[cfg(target_os = "linux")]
+        {
+            let package = env!("CARGO_PKG_NAME");
+            if let Ok(appdir) = std::env::var("APPDIR") {
                 paths.push(
-                    dir.join(format!("../lib/{package}/resources/binaries"))
+                    Path::new(&appdir)
+                        .join(format!("usr/lib/{package}/binaries"))
                         .join(bin),
                 );
-                paths.push(dir.join("../resources/binaries").join(bin));
+                paths.push(
+                    Path::new(&appdir)
+                        .join(format!("usr/lib/{package}/resources/binaries"))
+                        .join(bin),
+                );
+                paths.push(Path::new(&appdir).join("usr/resources/binaries").join(bin));
             }
-        }
-    }
 
-    #[cfg(target_os = "linux")]
-    {
-        let package = env!("CARGO_PKG_NAME");
-        if let Ok(appdir) = std::env::var("APPDIR") {
             paths.push(
-                Path::new(&appdir)
-                    .join(format!("usr/lib/{package}/binaries"))
+                Path::new("/usr/lib")
+                    .join(package)
+                    .join("binaries")
                     .join(bin),
             );
             paths.push(
-                Path::new(&appdir)
-                    .join(format!("usr/lib/{package}/resources/binaries"))
+                Path::new("/usr/lib")
+                    .join(package)
+                    .join("resources")
+                    .join("binaries")
                     .join(bin),
             );
-            paths.push(Path::new(&appdir).join("usr/resources/binaries").join(bin));
+            paths.push(Path::new("/usr/lib/resources/binaries").join(bin));
+            paths.push(Path::new("/usr/local/bin").join(bin));
+            paths.push(Path::new("/usr/bin").join(bin));
+            paths.push(Path::new("/bin").join(bin));
         }
 
-        paths.push(
-            Path::new("/usr/lib")
-                .join(package)
-                .join("binaries")
-                .join(bin),
-        );
-        paths.push(
-            Path::new("/usr/lib")
-                .join(package)
-                .join("resources")
-                .join("binaries")
-                .join(bin),
-        );
-        paths.push(Path::new("/usr/lib/resources/binaries").join(bin));
-        paths.push(Path::new("/usr/local/bin").join(bin));
-        paths.push(Path::new("/usr/bin").join(bin));
-        paths.push(Path::new("/bin").join(bin));
+        #[cfg(target_os = "macos")]
+        {
+            paths.push(Path::new("/opt/homebrew/bin").join(bin));
+            paths.push(Path::new("/usr/local/bin").join(bin));
+            paths.push(Path::new("/opt/local/bin").join(bin));
+        }
+
+        if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+            paths.push(Path::new(&manifest_dir).join("binaries").join(bin));
+            paths.push(
+                Path::new(&manifest_dir)
+                    .join("resources")
+                    .join("binaries")
+                    .join(bin),
+            );
+        }
+
+        dedupe_paths(paths)
+    }
+}
+
+/// Retourne le nom de lib native utilise pour embarquer un executable Android.
+#[cfg(target_os = "android")]
+fn android_exec_library_name(bin: &str) -> String {
+    format!("lib{}_exec.so", bin)
+}
+
+/// Retourne l'ABI Android correspondant a la cible Rust courante.
+#[cfg(target_os = "android")]
+fn android_abi() -> &'static str {
+    #[cfg(target_arch = "aarch64")]
+    {
+        return "arm64-v8a";
+    }
+    #[cfg(target_arch = "arm")]
+    {
+        return "armeabi-v7a";
+    }
+    #[cfg(target_arch = "x86")]
+    {
+        return "x86";
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        return "x86_64";
+    }
+    #[allow(unreachable_code)]
+    "unknown"
+}
+
+/// Trouve les dossiers natifs extraits par Android a partir des bibliotheques chargees.
+#[cfg(target_os = "android")]
+fn android_native_library_dirs() -> Vec<PathBuf> {
+    let maps = fs::read_to_string("/proc/self/maps").unwrap_or_default();
+    let mut preferred = Vec::new();
+    let mut fallback = Vec::new();
+
+    for line in maps.lines() {
+        let Some(path_text) = line.split_whitespace().last() else {
+            continue;
+        };
+        if !path_text.ends_with(".so") || !path_text.contains("/lib/") {
+            continue;
+        }
+        let path = Path::new(path_text);
+        let Some(parent) = path.parent() else {
+            continue;
+        };
+        if path_text.contains("libqurancaption") {
+            preferred.push(parent.to_path_buf());
+        } else {
+            fallback.push(parent.to_path_buf());
+        }
     }
 
-    #[cfg(target_os = "macos")]
-    {
-        paths.push(Path::new("/opt/homebrew/bin").join(bin));
-        paths.push(Path::new("/usr/local/bin").join(bin));
-        paths.push(Path::new("/opt/local/bin").join(bin));
+    preferred.extend(fallback);
+    dedupe_paths(preferred)
+}
+
+/// Retourne les emplacements Android valides pour ffmpeg/ffprobe.
+#[cfg(target_os = "android")]
+fn android_binary_candidates(bin: &str) -> Vec<PathBuf> {
+    let native_name = android_exec_library_name(bin);
+    let abi = android_abi();
+    let mut paths = Vec::new();
+
+    for dir in android_native_library_dirs() {
+        paths.push(dir.join(&native_name));
     }
 
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        paths.push(Path::new(&manifest_dir).join("binaries").join(bin));
         paths.push(
             Path::new(&manifest_dir)
-                .join("resources")
-                .join("binaries")
-                .join(bin),
+                .join("gen")
+                .join("android")
+                .join("app")
+                .join("src")
+                .join("main")
+                .join("jniLibs")
+                .join(abi)
+                .join(&native_name),
         );
     }
 
@@ -115,6 +215,23 @@ fn dedupe_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
         }
     }
     deduped
+}
+
+/// Indique si un chemin porte un bit executable quand le filesystem l'expose.
+fn is_executable_path(path: &Path) -> Option<bool> {
+    let metadata = fs::metadata(path).ok()?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        return Some(metadata.permissions().mode() & 0o111 != 0);
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = metadata;
+        None
+    }
 }
 
 /// Retourne la premiere ligne non vide d'un texte.
@@ -170,9 +287,23 @@ fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, S
     cmd.args(probe_args);
     configure_command_no_window(&mut cmd);
 
+    println!(
+        "[binaries][{}] probing {} at {} with args {:?}",
+        platform_label(),
+        binary_name,
+        binary,
+        probe_args
+    );
+
     match cmd.output() {
         Ok(output) => {
             if output.status.success() {
+                println!(
+                    "[binaries][{}] {} executable ok: {}",
+                    platform_label(),
+                    binary_name,
+                    binary
+                );
                 Ok(())
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
@@ -183,6 +314,13 @@ fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, S
                 } else {
                     detail
                 };
+                println!(
+                    "[binaries][{}] {} probe failed at {}: {}",
+                    platform_label(),
+                    binary_name,
+                    binary,
+                    detail
+                );
                 Err((
                     "exec_failed".to_string(),
                     if detail.is_empty() {
@@ -195,8 +333,36 @@ fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, S
         }
         Err(error) => {
             let (outcome, detail) = classify_spawn_error(&error);
+            println!(
+                "[binaries][{}] {} spawn failed at {}: {} ({})",
+                platform_label(),
+                binary_name,
+                binary,
+                detail,
+                outcome
+            );
             Err((outcome.to_string(), detail))
         }
+    }
+}
+
+/// Construit une tentative de resolution avec les metadonnees de diagnostic.
+fn binary_attempt(
+    candidate: String,
+    source: &str,
+    outcome: &str,
+    detail: Option<String>,
+    exists: bool,
+    is_executable: Option<bool>,
+) -> BinaryResolutionAttempt {
+    BinaryResolutionAttempt {
+        candidate,
+        source: source.to_string(),
+        platform: platform_label(),
+        exists,
+        is_executable,
+        outcome: outcome.to_string(),
+        detail,
     }
 }
 
@@ -212,81 +378,127 @@ fn resolve_binary_with_attempts(
 
     let mut attempts = Vec::new();
 
+    println!(
+        "[binaries][{}] resolving {} (candidate name: {})",
+        platform_label(),
+        name,
+        bin
+    );
+
     for path in binary_candidates(&bin) {
         if path.exists() {
             let canonical = path.canonicalize().unwrap_or(path);
             let candidate = canonical.to_string_lossy().to_string();
+            let is_executable = is_executable_path(&canonical);
+            println!(
+                "[binaries][{}] candidate {} source=bundled_or_known_path exists=true executable={:?}",
+                platform_label(),
+                candidate,
+                is_executable
+            );
             match test_binary_version(&candidate, name) {
                 Ok(()) => {
-                    attempts.push(BinaryResolutionAttempt {
-                        candidate: candidate.clone(),
-                        source: "bundled_or_known_path".to_string(),
-                        outcome: "ok".to_string(),
-                        detail: None,
-                    });
+                    attempts.push(binary_attempt(
+                        candidate.clone(),
+                        "bundled_or_known_path",
+                        "ok",
+                        None,
+                        true,
+                        is_executable,
+                    ));
                     return Ok((candidate, attempts));
                 }
                 Err((outcome, detail)) => {
-                    attempts.push(BinaryResolutionAttempt {
+                    attempts.push(binary_attempt(
                         candidate,
-                        source: "bundled_or_known_path".to_string(),
-                        outcome,
-                        detail: Some(detail),
-                    });
+                        "bundled_or_known_path",
+                        &outcome,
+                        Some(detail),
+                        true,
+                        is_executable,
+                    ));
                 }
             }
         } else {
-            attempts.push(BinaryResolutionAttempt {
-                candidate: path.to_string_lossy().to_string(),
-                source: "bundled_or_known_path".to_string(),
-                outcome: "missing".to_string(),
-                detail: None,
-            });
+            println!(
+                "[binaries][{}] candidate {} source=bundled_or_known_path exists=false executable=None",
+                platform_label(),
+                path.to_string_lossy()
+            );
+            attempts.push(binary_attempt(
+                path.to_string_lossy().to_string(),
+                "bundled_or_known_path",
+                "missing",
+                None,
+                false,
+                None,
+            ));
         }
     }
 
-    let base = bin.strip_suffix(".exe").unwrap_or(&bin);
-    for candidate in [bin.as_str(), base] {
-        match test_binary_version(candidate, name) {
-            Ok(()) => {
-                attempts.push(BinaryResolutionAttempt {
-                    candidate: candidate.to_string(),
-                    source: "system_path".to_string(),
-                    outcome: "ok".to_string(),
-                    detail: None,
-                });
-                return Ok((candidate.to_string(), attempts));
-            }
-            Err((outcome, detail)) => {
-                attempts.push(BinaryResolutionAttempt {
-                    candidate: candidate.to_string(),
-                    source: "system_path".to_string(),
-                    outcome,
-                    detail: Some(detail),
-                });
+    #[cfg(not(target_os = "android"))]
+    {
+        let base = bin.strip_suffix(".exe").unwrap_or(&bin);
+        for candidate in [bin.as_str(), base] {
+            match test_binary_version(candidate, name) {
+                Ok(()) => {
+                    attempts.push(binary_attempt(
+                        candidate.to_string(),
+                        "system_path",
+                        "ok",
+                        None,
+                        true,
+                        None,
+                    ));
+                    return Ok((candidate.to_string(), attempts));
+                }
+                Err((outcome, detail)) => {
+                    attempts.push(binary_attempt(
+                        candidate.to_string(),
+                        "system_path",
+                        &outcome,
+                        Some(detail),
+                        false,
+                        None,
+                    ));
+                }
             }
         }
+
+        let has_not_executable = attempts.iter().any(|a| a.outcome == "not_executable");
+        let has_exec_failed = attempts.iter().any(|a| a.outcome == "exec_failed");
+        let details = attempts
+            .iter()
+            .find_map(|a| a.detail.clone())
+            .unwrap_or_else(|| format!("No usable binary found for {name}"));
+        let code = if has_not_executable {
+            "BINARY_NOT_EXECUTABLE"
+        } else if has_exec_failed {
+            "BINARY_EXEC_FAILED"
+        } else {
+            "BINARY_NOT_FOUND"
+        };
+
+        Err(BinaryResolveError {
+            code: code.to_string(),
+            details,
+            attempts,
+        })
     }
 
-    let has_not_executable = attempts.iter().any(|a| a.outcome == "not_executable");
-    let has_exec_failed = attempts.iter().any(|a| a.outcome == "exec_failed");
-    let details = attempts
-        .iter()
-        .find_map(|a| a.detail.clone())
-        .unwrap_or_else(|| format!("No usable binary found for {name}"));
-    let code = if has_not_executable {
-        "BINARY_NOT_EXECUTABLE"
-    } else if has_exec_failed {
-        "BINARY_EXEC_FAILED"
-    } else {
-        "BINARY_NOT_FOUND"
-    };
-
-    Err(BinaryResolveError {
-        code: code.to_string(),
-        details,
-        attempts,
-    })
+    #[cfg(target_os = "android")]
+    {
+        let details = format!(
+            "No Android executable found for {name}. Package ABI-specific binaries as jniLibs/<abi>/{} (current ABI: {}). Assets and desktop .exe files are not executable on Android.",
+            android_exec_library_name(name),
+            android_abi()
+        );
+        Err(BinaryResolveError {
+            code: "BINARY_NOT_FOUND".to_string(),
+            details,
+            attempts,
+        })
+    }
 }
 
 /// Retourne le chemin du binaire ou une erreur structuree.

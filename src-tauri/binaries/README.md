@@ -24,3 +24,13 @@ Download the files **without extensions** and place them in binaries:
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)
 
 > ⚠️ Make sure the files are executable (`chmod +x`).
+
+**For Android**
+Do not place Android FFmpeg binaries in this desktop `binaries/` folder. Android
+must use ABI-specific executables from `src-tauri/android-binaries/<abi>/` named:
+
+- `libffmpeg_exec.so`
+- `libffprobe_exec.so`
+
+They must be real Android native executables for the target ABI. Desktop `.exe`
+files or desktop Linux/macOS binaries cannot run on Android.

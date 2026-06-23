@@ -1,5 +1,8 @@
 /// Commandes IA de trimming/traduction.
 pub mod ai_translation;
+#[cfg(target_os = "android")]
+/// Helpers multimédia natifs Android.
+pub mod android_media;
 /// Commandes d'authentification sécurisée Quran.com.
 pub mod auth;
 /// Commandes de diagnostic des binaires.

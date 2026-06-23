@@ -43,7 +43,7 @@ pub struct SystemFontSource {
     pub font_style: String,
 }
 
-/// Retourne la durée d'un média en millisecondes via ffprobe.
+/// Retourne la durée d'un média en millisecondes.
 #[tauri::command]
 pub fn get_duration(file_path: &str) -> Result<i64, String> {
     let file_path = path_utils::normalize_existing_path(file_path);
@@ -51,6 +51,28 @@ pub fn get_duration(file_path: &str) -> Result<i64, String> {
         return Ok(-1);
     }
 
+    get_duration_from_path(&file_path)
+}
+
+/// Retourne la durée d'un média en millisecondes depuis un chemin normalisé.
+///
+/// @param file_path Chemin normalisé du fichier média.
+/// @returns Durée du média en millisecondes.
+#[cfg(target_os = "android")]
+fn get_duration_from_path(file_path: &std::path::Path) -> Result<i64, String> {
+    println!(
+        "[android-media] probing duration without ffprobe: {}",
+        file_path.to_string_lossy()
+    );
+    super::android_media::get_duration_ms(file_path)
+}
+
+/// Retourne la durée d'un média en millisecondes depuis un chemin normalisé.
+///
+/// @param file_path Chemin normalisé du fichier média.
+/// @returns Durée du média en millisecondes.
+#[cfg(not(target_os = "android"))]
+fn get_duration_from_path(file_path: &std::path::Path) -> Result<i64, String> {
     let ffprobe_path = match binaries::resolve_binary_detailed("ffprobe") {
         Ok(p) => p,
         Err(err) => return Err(map_ffprobe_resolve_error(err)),
@@ -528,6 +550,17 @@ pub fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String
         return Err(format!("File not found: {}", file_path_str));
     }
 
+    #[cfg(target_os = "android")]
+    match super::android_media::get_video_dimensions(&file_path) {
+        Ok((width, height)) => {
+            return Ok(serde_json::json!({ "width": width, "height": height }));
+        }
+        Err(error) => println!(
+            "[android-media] video dimension probe failed for {}: {}. Falling back to ffprobe.",
+            file_path_str, error
+        ),
+    }
+
     let ffprobe_path =
         binaries::resolve_binary_detailed("ffprobe").map_err(map_ffprobe_resolve_error)?;
     let mut cmd = Command::new(&ffprobe_path);
@@ -579,6 +612,18 @@ pub fn is_constant_bitrate(file_path: String) -> Result<bool, String> {
     let file_path_str = file_path.to_string_lossy().to_string();
     if !file_path.exists() {
         return Err(format!("File not found: {}", file_path_str));
+    }
+
+    #[cfg(target_os = "android")]
+    let skip_ffprobe_on_android = true;
+    #[cfg(not(target_os = "android"))]
+    let skip_ffprobe_on_android = false;
+    if skip_ffprobe_on_android {
+        println!(
+            "[android-media] Skipping ffprobe CBR probe on Android for {}.",
+            file_path_str
+        );
+        return Ok(true);
     }
 
     let ffprobe_path =
@@ -1074,6 +1119,18 @@ pub fn audio_timestamp_stretch_ms(file_path: String) -> Result<i64, String> {
     let file_path_str = file_path.to_string_lossy().to_string();
     if !file_path.exists() {
         return Err(format!("File not found: {}", file_path_str));
+    }
+
+    #[cfg(target_os = "android")]
+    let skip_ffprobe_on_android = true;
+    #[cfg(not(target_os = "android"))]
+    let skip_ffprobe_on_android = false;
+    if skip_ffprobe_on_android {
+        println!(
+            "[android-media] Skipping ffprobe timestamp stretch probe on Android for {}.",
+            file_path_str
+        );
+        return Ok(0);
     }
 
     let ffprobe_path =

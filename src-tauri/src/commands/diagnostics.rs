@@ -12,6 +12,8 @@ const FFPROBE_EXEC_FAILED_ERROR_PREFIX: &str = "FFPROBE_EXEC_FAILED:";
 pub struct BinaryDiagnosticResult {
     /// Nom logique du binaire.
     pub name: String,
+    /// Plateforme detectee pour la resolution.
+    pub platform: String,
     /// Chemin résolu si disponible.
     pub resolved_path: Option<String>,
     /// Code d'erreur stable si échec.
@@ -75,6 +77,7 @@ pub fn diagnose_media_binaries() -> Vec<BinaryDiagnosticResult> {
                 .and_then(get_binary_version_line);
             BinaryDiagnosticResult {
                 name: debug.name,
+                platform: format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH),
                 resolved_path: debug.resolved_path,
                 error_code: debug.error_code,
                 error_details: debug.error_details,

@@ -54,6 +54,7 @@
 	});
 
 	let wavesurfer: WaveSurfer | undefined;
+	let waveformElement: HTMLDivElement | undefined = $state(undefined);
 
 	/**
 	 * Libère la waveform si son fichier doit être remplacé.
@@ -69,11 +70,42 @@
 		wavesurfer = undefined;
 	}
 
+	/**
+	 * Retourne la hauteur actuelle du conteneur de waveform.
+	 * @returns {number | 'auto'} Hauteur à appliquer à WaveSurfer.
+	 */
+	function getWaveformHeight(): number | 'auto' {
+		const height = waveformElement?.clientHeight ?? 0;
+		return height > 0 ? height : 'auto';
+	}
+
+	/**
+	 * Ajuste la waveform à la hauteur visible du clip audio.
+	 * @returns {void}
+	 */
+	function resizeWaveformToContainer(): void {
+		if (!wavesurfer || !waveformElement) return;
+
+		const height = getWaveformHeight();
+		if (height === 'auto') return;
+
+		wavesurfer.setOptions({ height });
+	}
+
 	onMount(() => {
 		window.addEventListener('qurancaption-release-asset-media', releaseWaveformForAsset);
 		return () => {
 			window.removeEventListener('qurancaption-release-asset-media', releaseWaveformForAsset);
 		};
+	});
+
+	$effect(() => {
+		if (!waveformElement) return;
+
+		const resizeObserver = new ResizeObserver(resizeWaveformToContainer);
+		resizeObserver.observe(waveformElement);
+
+		return () => resizeObserver.disconnect();
 	});
 
 	$effect(() => {
@@ -96,24 +128,26 @@
 					const peaks = await WaveformService.getPeaks(asset.filePath);
 
 					wavesurfer = WaveSurfer.create({
-						container: '#clip-' + clip.id,
+						container: waveformElement ?? '#clip-' + clip.id,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
 						url: file,
 						peaks: [peaks], // Pass peaks to avoid decoding
 						duration: asset.duration.ms / 1000,
-						height: 'auto'
+						height: getWaveformHeight()
 					});
+					resizeWaveformToContainer();
 				} catch (e) {
 					console.error('Failed to load waveform:', e);
 					// Fallback to normal loading if backend fails
 					wavesurfer = WaveSurfer.create({
-						container: '#clip-' + clip.id,
+						container: waveformElement ?? '#clip-' + clip.id,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
 						url: file,
-						height: 'auto'
+						height: getWaveformHeight()
 					});
+					resizeWaveformToContainer();
 				}
 			});
 		}
@@ -227,7 +261,7 @@
 	{/if}
 
 	{#if (asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
-		<div class="h-full w-full" id={'clip-' + clip.id}></div>
+		<div class="h-full w-full" id={'clip-' + clip.id} bind:this={waveformElement}></div>
 	{:else if asset.duration.ms >= 45 * 60 * 1000 && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
 		<div class="h-full w-full" onclick={() => (clip.showWaveform = true)}>
 			{get(LL).editor.clickToGenerateWaveform()}

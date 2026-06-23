@@ -25,7 +25,15 @@
 	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
-	let { useSplitHeight = true }: { useSplitHeight?: boolean } = $props();
+	let {
+		useSplitHeight = true,
+		visibleTrackTypes = null,
+		fitTracksToHeight = false
+	}: {
+		useSplitHeight?: boolean;
+		visibleTrackTypes?: TrackType[] | null;
+		fitTracksToHeight?: boolean;
+	} = $props();
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
@@ -76,6 +84,7 @@
 			.currentProject!.content.timeline.tracks.map((track, index) => ({ track, index }))
 			.filter(
 				({ track }) =>
+					(!visibleTrackTypes || visibleTrackTypes.includes(track.type)) &&
 					!(track.type === TrackType.CustomClip && getTimelineCustomClips().length === 0)
 			)
 			.sort((a, b) => {
@@ -985,6 +994,7 @@
 		<div class="timeline-tracks" onscroll={syncScroll} id="timeline" bind:this={timelineTracksDiv}>
 			<div
 				class="tracks-content grid outline-none"
+				class:fit-tracks-to-height={fitTracksToHeight}
 				style="width: {totalDuration().toSeconds() * timelineState().zoom +
 					timelineLeftHeaderWidthPx}px;"
 				onclick={handleTimelineClick}
@@ -1004,12 +1014,13 @@
 				</div>
 
 				<!-- Track lanes -->
-				<div class="track-lanes">
+				<div class="track-lanes" class:fit-tracks-to-height={fitTracksToHeight}>
 					{#each orderedTrackItems() as { track, index }, displayIndex (track.type)}
 						<TrackComponent
 							bind:track={globalState.currentProject!.content.timeline.tracks[index]}
 							{visibleRangeStartMs}
 							{visibleRangeEndMs}
+							fitAvailableHeight={fitTracksToHeight}
 							canMoveUp={displayIndex > 0}
 							canMoveDown={displayIndex < orderedTrackItems().length - 1}
 							onMoveUp={() => void moveTimelineTrack(track, -1)}
@@ -1208,6 +1219,10 @@
 		cursor: crosshair;
 	}
 
+	.tracks-content.fit-tracks-to-height {
+		height: calc(100% - 4px);
+	}
+
 	/* Timeline Grid */
 	.timeline-grid {
 		position: absolute;
@@ -1238,6 +1253,11 @@
 		z-index: 1;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.track-lanes.fit-tracks-to-height {
+		height: 100%;
+		min-height: 0;
 	}
 
 	/* Main Playhead Cursor */

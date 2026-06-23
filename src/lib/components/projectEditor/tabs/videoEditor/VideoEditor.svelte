@@ -4,6 +4,7 @@
 	import AssetsManager from './assetsManager/AssetsManager.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { TrackType } from '$lib/classes';
 	import { get } from 'svelte/store';
 
 	let stockMediaOpen = $derived(globalState.stockMediaLibrary.libraryOpen);
@@ -22,8 +23,19 @@
 	</section>
 
 	<section
+		class="video-editor-timeline-shell"
+		class:assets-expanded={assetsTrayExpanded || stockMediaOpen}
+	>
+		<Timeline
+			useSplitHeight={false}
+			visibleTrackTypes={[TrackType.Video, TrackType.Audio]}
+			fitTracksToHeight
+		/>
+	</section>
+
+	<section
 		class="video-editor-assets-tray"
-		class:collapsed={!assetsTrayExpanded}
+		class:expanded={assetsTrayExpanded}
 		class:library-open={stockMediaOpen}
 	>
 		<button
@@ -44,10 +56,6 @@
 		<section class="video-editor-assets-content">
 			<AssetsManager {stockMediaOpen} showHeader={false} embedded />
 		</section>
-	</section>
-
-	<section class="video-editor-timeline-shell">
-		<Timeline useSplitHeight={false} />
 	</section>
 </div>
 
@@ -85,25 +93,28 @@
 		background: var(--timeline-bg-primary);
 	}
 
+	.video-editor-timeline-shell.assets-expanded {
+		min-height: 110px;
+	}
+
 	.video-editor-assets-tray {
 		display: flex;
 		flex-shrink: 0;
-		min-height: 40px;
-		max-height: min(36dvh, 360px);
+		height: min(32dvh, 280px);
 		flex-direction: column;
 		overflow: hidden;
 		border: 1px solid var(--border-color);
 		border-radius: 12px;
 		background: var(--bg-secondary);
-		transition: max-height 0.2s ease;
+		transition: height 0.2s ease;
 	}
 
-	.video-editor-assets-tray.collapsed {
-		max-height: 40px;
+	.video-editor-assets-tray.expanded {
+		height: min(48dvh, 420px);
 	}
 
 	.video-editor-assets-tray.library-open {
-		max-height: min(46dvh, 460px);
+		height: min(46dvh, 460px);
 	}
 
 	.video-editor-assets-toggle {
@@ -130,7 +141,7 @@
 	.video-editor-assets-content {
 		flex: 1;
 		min-height: 0;
-		overflow: hidden;
+		overflow: auto;
 		padding: 0.75rem;
 	}
 
@@ -149,12 +160,20 @@
 			min-height: 160px;
 		}
 
+		.video-editor-timeline-shell.assets-expanded {
+			min-height: 90px;
+		}
+
 		.video-editor-assets-tray {
-			max-height: min(42dvh, 300px);
+			height: min(30dvh, 220px);
+		}
+
+		.video-editor-assets-tray.expanded {
+			height: min(45dvh, 330px);
 		}
 
 		.video-editor-assets-tray.library-open {
-			max-height: min(52dvh, 360px);
+			height: min(52dvh, 360px);
 		}
 	}
 </style>

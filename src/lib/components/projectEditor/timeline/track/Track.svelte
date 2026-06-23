@@ -20,6 +20,7 @@
 		track = $bindable(),
 		visibleRangeStartMs = 0,
 		visibleRangeEndMs = Number.POSITIVE_INFINITY,
+		fitAvailableHeight = false,
 		canMoveUp = false,
 		canMoveDown = false,
 		onMoveUp = () => {},
@@ -28,6 +29,7 @@
 		track: Track;
 		visibleRangeStartMs: number;
 		visibleRangeEndMs: number;
+		fitAvailableHeight?: boolean;
 		canMoveUp?: boolean;
 		canMoveDown?: boolean;
 		onMoveUp?: () => void;
@@ -209,7 +211,7 @@
 </script>
 
 <div
-	class="flex-1 min-h-[56px] border-b border-[var(--timeline-track-border)] relative select-none"
+	class={`flex-1 ${fitAvailableHeight ? 'min-h-0' : 'min-h-[56px]'} border-b border-[var(--timeline-track-border)] relative select-none`}
 	style="background: linear-gradient(90deg, var(--timeline-bg-accent) 0%, transparent 200px);"
 >
 	<div

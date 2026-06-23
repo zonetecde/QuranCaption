@@ -655,6 +655,7 @@ export function buildExportCaptureJobPlan({
 
 	let base = -fadeDuration;
 	for (const timing of timings.uniqueSorted) {
+		let nextImageIndexOffset = 0;
 		if (timings.hiddenArabicTextTimings?.has(timing)) {
 			const imageIndex = Math.max(Math.round(timing - rangeStart + base), 0);
 			const job: ExportFrameCaptureJob = {
@@ -676,9 +677,11 @@ export function buildExportCaptureJobPlan({
 			);
 			workerBuckets[bucketIndex].push(job);
 			base += fadeDuration;
+			// Le backend retranche le fade precedent du segment suivant; l'offset ne vaut que pour le mot visible qui suit.
+			nextImageIndexOffset = fadeDuration;
 		}
 
-		const imageIndex = Math.max(Math.round(timing - rangeStart + base), 0);
+		const imageIndex = Math.max(Math.round(timing - rangeStart + base + nextImageIndexOffset), 0);
 		const blankTimingInfo = hasTiming(timings.blankImgs, timing);
 		const isBlankImage = isBlankCaptureTiming(timing);
 

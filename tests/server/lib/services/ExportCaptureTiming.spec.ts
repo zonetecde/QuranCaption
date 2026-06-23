@@ -736,7 +736,7 @@ describe('calculateCaptureTimingsForRange', () => {
 			timings: result,
 			rangeStart: 0,
 			rangeEnd: 1_000,
-			fadeDuration: 100,
+			fadeDuration: 250,
 			workerCount: 1,
 			isBlankCaptureTiming: (timing) =>
 				hasTiming(result.blankImgs, timing).hasIt ||
@@ -749,5 +749,7 @@ describe('calculateCaptureTimingsForRange', () => {
 			expect.objectContaining({ timing: 400, captureTiming: 400, hideArabicText: true }),
 			expect.objectContaining({ timing: 400, captureTiming: 401, hideArabicText: false })
 		]);
+		expect(jobsAt400[1].imageIndex - jobsAt400[0].imageIndex).toBe(500);
+		expect(plan.captureJobs.find((job) => job.timing === 700)?.imageIndex).toBe(1_700);
 	});
 });

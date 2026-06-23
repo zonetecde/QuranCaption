@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
 	calculateCaptureTimingsForRange,
 	buildExportCaptureJobPlan,
+	getExportWordByWordHighlightTimings,
+	getExportWordByWordHiddenArabicTimings,
 	getTimedOverlayStateAt,
 	hasBlankImg,
 	hasTiming,
 	resolveCurrentSurahFromClips,
 	type ExportSubtitleCaptureClip,
+	type ExportSubtitleWbwSourceClip,
 	type ExportTimedOverlayCaptureClip
 } from '$lib/services/ExportCaptureTiming';
 
@@ -16,9 +19,20 @@ function subtitle(
 	endTime: number,
 	surah: number,
 	visualMergeGroupId: string | null = null,
-	visualMergeMode: ExportSubtitleCaptureClip['visualMergeMode'] = null
+	visualMergeMode: ExportSubtitleCaptureClip['visualMergeMode'] = null,
+	wbwHighlightTimings?: number[],
+	wbwHiddenArabicTimings?: number[]
 ): ExportSubtitleCaptureClip {
-	return { startTime, endTime, surah, kind: 'subtitle', visualMergeGroupId, visualMergeMode };
+	return {
+		startTime,
+		endTime,
+		surah,
+		kind: 'subtitle',
+		visualMergeGroupId,
+		visualMergeMode,
+		wbwHighlightTimings,
+		wbwHiddenArabicTimings
+	};
 }
 
 function silence(startTime: number, endTime: number): ExportSubtitleCaptureClip {
@@ -237,6 +251,202 @@ describe('getTimedOverlayStateAt', () => {
 		const verseNumber = timedOverlay('verse-number', 0, 1_000, false, (timing) => timing >= 200);
 		expect(getTimedOverlayStateAt(100, [verseNumber])).toBe('');
 		expect(getTimedOverlayStateAt(300, [verseNumber])).toBe('verse-number-0-1000');
+	});
+});
+
+describe('getExportWordByWordHighlightTimings', () => {
+	it('does not add invisible intermediate captures when current-word-only is disabled', () => {
+		const clip: ExportSubtitleWbwSourceClip = {
+			id: 1,
+			startTime: 0,
+			endTime: 1_000,
+			visualMergeGroupId: null,
+			visualMergeMode: null,
+			alignmentMetadata: {
+				timeFrom: 0,
+				words: [
+					{ location: '1:1:1', start: 0.1, end: 0.4 },
+					{ location: '1:1:2', start: 0.7, end: 0.9 }
+				]
+			}
+		};
+
+		expect(
+			getExportWordByWordHighlightTimings({
+				clip,
+				subtitleClips: [clip],
+				isWbwEnabledForClipId: () => true,
+				isShowCurrentWordOnlyEnabledForClipId: () => false
+			})
+		).toEqual([100, 700]);
+	});
+
+	it('adds visible word captures and invisible intermediate captures in current-word-only mode', () => {
+		const clip: ExportSubtitleWbwSourceClip = {
+			id: 1,
+			startTime: 0,
+			endTime: 1_000,
+			visualMergeGroupId: null,
+			visualMergeMode: null,
+			alignmentMetadata: {
+				timeFrom: 0,
+				words: [
+					{ location: '1:1:1', start: 0.1, end: 0.4 },
+					{ location: '1:1:2', start: 0.7, end: 0.9 }
+				]
+			}
+		};
+
+		expect(
+			getExportWordByWordHighlightTimings({
+				clip,
+				subtitleClips: [clip],
+				isWbwEnabledForClipId: () => true,
+				isShowCurrentWordOnlyEnabledForClipId: () => true
+			})
+		).toEqual([100, 400, 700]);
+		expect(
+			getExportWordByWordHiddenArabicTimings({
+				clip,
+				subtitleClips: [clip],
+				isWbwEnabledForClipId: () => true,
+				isShowCurrentWordOnlyEnabledForClipId: () => true
+			})
+		).toEqual([400]);
+	});
+
+	it('keeps a hidden arabic capture when a word ends exactly as the next one starts', () => {
+		const clip: ExportSubtitleWbwSourceClip = {
+			id: 1,
+			startTime: 0,
+			endTime: 1_000,
+			visualMergeGroupId: null,
+			visualMergeMode: null,
+			alignmentMetadata: {
+				timeFrom: 0,
+				words: [
+					{ location: '1:1:1', start: 0.1, end: 0.4 },
+					{ location: '1:1:2', start: 0.4, end: 0.7 }
+				]
+			}
+		};
+
+		expect(
+			getExportWordByWordHiddenArabicTimings({
+				clip,
+				subtitleClips: [clip],
+				isWbwEnabledForClipId: () => true,
+				isShowCurrentWordOnlyEnabledForClipId: () => true
+			})
+		).toEqual([400]);
+	});
+
+	it('keeps current-word-only timings sorted, unique and bounded to the source clip', () => {
+		const clip: ExportSubtitleWbwSourceClip = {
+			id: 1,
+			startTime: 1_000,
+			endTime: 2_000,
+			visualMergeGroupId: null,
+			visualMergeMode: null,
+			alignmentMetadata: {
+				timeFrom: 1,
+				words: [
+					{ location: '1:1:1', start: -0.1, end: 0.2 },
+					{ location: '1:1:2', start: 0.2, end: 0.4 },
+					{ location: '1:1:3', start: 0.6, end: 1.3 }
+				]
+			}
+		};
+
+		expect(
+			getExportWordByWordHighlightTimings({
+				clip,
+				subtitleClips: [clip],
+				isWbwEnabledForClipId: () => true,
+				isShowCurrentWordOnlyEnabledForClipId: () => true
+			})
+		).toEqual([1_200, 1_400, 1_600]);
+		expect(
+			getExportWordByWordHiddenArabicTimings({
+				clip,
+				subtitleClips: [clip],
+				isWbwEnabledForClipId: () => true,
+				isShowCurrentWordOnlyEnabledForClipId: () => true
+			})
+		).toEqual([1_200, 1_400]);
+	});
+
+	it('respects current-word-only overrides per clip', () => {
+		const firstClip: ExportSubtitleWbwSourceClip = {
+			id: 1,
+			startTime: 0,
+			endTime: 1_000,
+			visualMergeGroupId: null,
+			visualMergeMode: null,
+			alignmentMetadata: {
+				timeFrom: 0,
+				words: [
+					{ location: '1:1:1', start: 0.1, end: 0.3 },
+					{ location: '1:1:2', start: 0.5, end: 0.7 }
+				]
+			}
+		};
+		const secondClip: ExportSubtitleWbwSourceClip = {
+			id: 2,
+			startTime: 1_000,
+			endTime: 2_000,
+			visualMergeGroupId: null,
+			visualMergeMode: null,
+			alignmentMetadata: {
+				timeFrom: 1,
+				words: [
+					{ location: '1:2:1', start: 0.1, end: 0.3 },
+					{ location: '1:2:2', start: 0.5, end: 0.7 }
+				]
+			}
+		};
+		const showCurrentWordOnlyClipIds = new Set([2]);
+
+		const getTimings = (clip: ExportSubtitleWbwSourceClip) =>
+			getExportWordByWordHighlightTimings({
+				clip,
+				subtitleClips: [firstClip, secondClip],
+				isWbwEnabledForClipId: () => true,
+				isShowCurrentWordOnlyEnabledForClipId: (clipId) => showCurrentWordOnlyClipIds.has(clipId)
+			});
+
+		expect(getTimings(firstClip)).toEqual([100, 500]);
+		expect(getTimings(secondClip)).toEqual([1_100, 1_300, 1_500]);
+	});
+
+	it('does not mutate subtitle clips when preparing WBW export timings', () => {
+		const clip: ExportSubtitleWbwSourceClip = {
+			id: 1,
+			startTime: 0,
+			endTime: 1_000,
+			visualMergeGroupId: null,
+			visualMergeMode: null,
+			alignmentMetadata: {
+				timeFrom: 0,
+				words: [
+					{ location: '1:1:1', start: 0.1, end: 0.4 },
+					{ location: '1:1:2', start: 0.7, end: 0.9 }
+				]
+			}
+		};
+		const subtitleClips = [clip];
+		const before = JSON.stringify(subtitleClips);
+
+		getExportWordByWordHighlightTimings({
+			clip,
+			subtitleClips,
+			isWbwEnabledForClipId: () => true,
+			isShowCurrentWordOnlyEnabledForClipId: () => true
+		});
+
+		expect(JSON.stringify(subtitleClips)).toBe(before);
+		expect(subtitleClips).toHaveLength(1);
+		expect(subtitleClips[0]).toBe(clip);
 	});
 });
 
@@ -490,5 +700,54 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.uniqueSorted).toEqual(expect.arrayContaining([1_401, 10_161, 11_170, 12_071]));
 		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 10_161 });
 		expect(result.blankImgs[blankKey(1)]).toContain(11_170);
+	});
+
+	it('marks current-word-only intermediate captures to hide only arabic text', () => {
+		const result = calculateTimings([subtitle(0, 1_000, 1, null, null, [100, 400, 700], [400])]);
+		const plan = buildExportCaptureJobPlan({
+			timings: result,
+			rangeStart: 0,
+			rangeEnd: 1_000,
+			fadeDuration: 100,
+			workerCount: 1,
+			isBlankCaptureTiming: (timing) =>
+				hasTiming(result.blankImgs, timing).hasIt ||
+				Object.values(result.imgWithNothingShown).includes(timing),
+			getReusableBlankFileName: () => null
+		});
+
+		expect(plan.captureJobs).toContainEqual(
+			expect.objectContaining({
+				kind: 'capture',
+				timing: 400,
+				captureTiming: 400,
+				isBlankImage: false,
+				hideArabicText: true
+			})
+		);
+		expect(result.hiddenArabicTextTimings).toEqual(new Set([400]));
+		expect(hasTiming(result.blankImgs, 400)).toEqual({ hasIt: false, key: null, surah: null });
+		expect(Object.values(result.imgWithNothingShown)).not.toContain(400);
+	});
+
+	it('keeps both hidden-arabic and visible-word captures when they share the same timing', () => {
+		const result = calculateTimings([subtitle(0, 1_000, 1, null, null, [100, 400, 700], [400])]);
+		const plan = buildExportCaptureJobPlan({
+			timings: result,
+			rangeStart: 0,
+			rangeEnd: 1_000,
+			fadeDuration: 100,
+			workerCount: 1,
+			isBlankCaptureTiming: (timing) =>
+				hasTiming(result.blankImgs, timing).hasIt ||
+				Object.values(result.imgWithNothingShown).includes(timing),
+			getReusableBlankFileName: () => null
+		});
+		const jobsAt400 = plan.captureJobs.filter((job) => job.timing === 400);
+
+		expect(jobsAt400).toEqual([
+			expect.objectContaining({ timing: 400, captureTiming: 400, hideArabicText: true }),
+			expect.objectContaining({ timing: 400, captureTiming: 401, hideArabicText: false })
+		]);
 	});
 });

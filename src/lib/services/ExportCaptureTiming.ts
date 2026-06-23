@@ -42,6 +42,7 @@ export type ExportSubtitleCaptureClip = {
 	 * highlight au bon moment.
 	 */
 	wbwHighlightTimings?: number[];
+	wbwHiddenArabicTimings?: number[];
 };
 
 export type ExportSubtitleWbwSourceClip = Pick<
@@ -58,6 +59,7 @@ export type ExportSubtitleWbwTimingOptions = {
 	clip: ExportSubtitleWbwSourceClip;
 	subtitleClips: ExportSubtitleWbwSourceClip[];
 	isWbwEnabledForClipId: (clipId: number) => boolean;
+	isShowCurrentWordOnlyEnabledForClipId?: (clipId: number) => boolean;
 };
 
 export type ExportTimedOverlayCaptureClip = {
@@ -133,26 +135,81 @@ function getSubtitleMergeGroupClips(
 export function getExportWordByWordHighlightTimings({
 	clip,
 	subtitleClips,
-	isWbwEnabledForClipId
+	isWbwEnabledForClipId,
+	isShowCurrentWordOnlyEnabledForClipId = () => false
 }: ExportSubtitleWbwTimingOptions): number[] | undefined {
 	if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return undefined;
 
 	const mergedClips = getSubtitleMergeGroupClips(clip, subtitleClips);
-	const referenceClip = mergedClips[0] ?? clip;
-	if (!isWbwEnabledForClipId(referenceClip.id)) return undefined;
+	if (!mergedClips.some((sourceClip) => isWbwEnabledForClipId(sourceClip.id))) return undefined;
 
 	const timings = mergedClips.flatMap((sourceClip) => {
 		if ((sourceClip.alignmentMetadata?.words.length ?? 0) === 0) return [];
+		if (!isWbwEnabledForClipId(sourceClip.id)) return [];
 
 		const baseTimeS = sourceClip.alignmentMetadata?.timeFrom ?? sourceClip.startTime / 1000;
-		return (sourceClip.alignmentMetadata?.words ?? [])
+		const words = sourceClip.alignmentMetadata?.words ?? [];
+		const wordStartTimings = words
 			.map((word: SegmentationWordTimestamp) => Math.round((baseTimeS + word.start) * 1000))
 			.filter((timing: number) => timing >= sourceClip.startTime && timing <= sourceClip.endTime);
+
+		if (!isShowCurrentWordOnlyEnabledForClipId(sourceClip.id)) return wordStartTimings;
+
+		return [
+			...wordStartTimings,
+			...getExportWordByWordHiddenArabicTimings({
+				clip: sourceClip,
+				subtitleClips: [sourceClip],
+				isWbwEnabledForClipId,
+				isShowCurrentWordOnlyEnabledForClipId
+			})
+		];
 	});
 
 	return timings.length > 0
 		? Array.from(new Set<number>(timings)).sort((a, b) => a - b)
 		: undefined;
+}
+
+/**
+ * Retourne les timings WBW ou seul le texte arabe doit être masqué pendant l'export.
+ *
+ * Ces timings correspondent à la fin exacte d'un mot quand un trou existe avant le mot suivant.
+ *
+ * @param {ExportSubtitleWbwTimingOptions} options Options de résolution des timings WBW.
+ * @returns {number[]} Timings absolus en millisecondes.
+ */
+export function getExportWordByWordHiddenArabicTimings({
+	clip,
+	subtitleClips,
+	isWbwEnabledForClipId,
+	isShowCurrentWordOnlyEnabledForClipId = () => false
+}: ExportSubtitleWbwTimingOptions): number[] {
+	if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return [];
+
+	const mergedClips = getSubtitleMergeGroupClips(clip, subtitleClips);
+	const timings = mergedClips.flatMap((sourceClip) => {
+		if ((sourceClip.alignmentMetadata?.words.length ?? 0) === 0) return [];
+		if (!isWbwEnabledForClipId(sourceClip.id)) return [];
+		if (!isShowCurrentWordOnlyEnabledForClipId(sourceClip.id)) return [];
+
+		const baseTimeS = sourceClip.alignmentMetadata?.timeFrom ?? sourceClip.startTime / 1000;
+		const words = sourceClip.alignmentMetadata?.words ?? [];
+
+		return words
+			.slice(0, -1)
+			.map((word, index) => {
+				const timing = (baseTimeS + word.end) * 1000;
+				const nextWordStartMs = (baseTimeS + words[index + 1].start) * 1000;
+				return timing <= nextWordStartMs ? timing : null;
+			})
+			.filter(
+				(timing): timing is number =>
+					timing !== null && timing >= sourceClip.startTime && timing <= sourceClip.endTime
+			);
+	});
+
+	return Array.from(new Set<number>(timings)).sort((a, b) => a - b);
 }
 
 /**
@@ -340,6 +397,8 @@ export type ExportCaptureTimingResult = {
 	duplicableTimings: Map<number, number>;
 	exactCaptureTimings: Set<number>;
 	exactCaptureTimingValues: Map<number, number>;
+	hiddenArabicTextTimings?: Set<number>;
+	hiddenArabicTextTimingValues?: Map<number, number>;
 };
 
 export type ExportFrameCaptureJob = {
@@ -350,6 +409,7 @@ export type ExportFrameCaptureJob = {
 	fileName: string;
 	isBlankImage: boolean;
 	reusableBlankFileName: string | null;
+	hideArabicText: boolean;
 };
 
 export type ExportFrameCopyJob = {
@@ -405,6 +465,8 @@ export function calculateCaptureTimingsForRange({
 	// sinon on tombe dans le trou entre deux clips merges.
 	const exactCaptureTimings: Set<number> = new Set();
 	const exactCaptureTimingValues: Map<number, number> = new Map();
+	const hiddenArabicTextTimings: Set<number> = new Set();
+	const hiddenArabicTextTimingValues: Map<number, number> = new Map();
 
 	function add(t: number | undefined | null) {
 		if (t == null) return;
@@ -450,10 +512,19 @@ export function calculateCaptureTimingsForRange({
 			const wbwHighlightTimings = (clip.wbwHighlightTimings ?? []).filter(
 				(timing) => timing >= startTime && timing <= endTime
 			);
+			const wbwHiddenArabicTimings = (clip.wbwHiddenArabicTimings ?? []).filter(
+				(timing) => timing >= startTime && timing <= endTime
+			);
 			const hasWbwHighlightTimings = wbwHighlightTimings.length > 0;
 
 			for (const timing of wbwHighlightTimings) {
 				add(timing);
+			}
+			for (const timing of wbwHiddenArabicTimings) {
+				const roundedTiming = Math.round(timing);
+				add(timing);
+				hiddenArabicTextTimings.add(roundedTiming);
+				hiddenArabicTextTimingValues.set(roundedTiming, timing);
 			}
 
 			// Vérifier si on peut optimiser les captures pour ce sous-titre
@@ -548,7 +619,9 @@ export function calculateCaptureTimingsForRange({
 		blankImgs,
 		duplicableTimings,
 		exactCaptureTimings,
-		exactCaptureTimingValues
+		exactCaptureTimingValues,
+		hiddenArabicTextTimings,
+		hiddenArabicTextTimingValues
 	};
 }
 
@@ -582,6 +655,29 @@ export function buildExportCaptureJobPlan({
 
 	let base = -fadeDuration;
 	for (const timing of timings.uniqueSorted) {
+		if (timings.hiddenArabicTextTimings?.has(timing)) {
+			const imageIndex = Math.max(Math.round(timing - rangeStart + base), 0);
+			const job: ExportFrameCaptureJob = {
+				kind: 'capture',
+				timing,
+				captureTiming: timings.hiddenArabicTextTimingValues?.get(timing) ?? timing,
+				imageIndex,
+				fileName: `${imageIndex}`,
+				isBlankImage: false,
+				reusableBlankFileName: getReusableBlankFileName(timing),
+				hideArabicText: true
+			};
+			captureJobs.push(job);
+
+			const rangeDuration = Math.max(1, rangeEnd - rangeStart);
+			const bucketIndex = Math.min(
+				normalizedWorkerCount - 1,
+				Math.max(0, Math.floor(((timing - rangeStart) / rangeDuration) * normalizedWorkerCount))
+			);
+			workerBuckets[bucketIndex].push(job);
+			base += fadeDuration;
+		}
+
 		const imageIndex = Math.max(Math.round(timing - rangeStart + base), 0);
 		const blankTimingInfo = hasTiming(timings.blankImgs, timing);
 		const isBlankImage = isBlankCaptureTiming(timing);
@@ -626,7 +722,8 @@ export function buildExportCaptureJobPlan({
 				imageIndex,
 				fileName: `${imageIndex}`,
 				isBlankImage,
-				reusableBlankFileName: isBlankImage ? null : getReusableBlankFileName(timing)
+				reusableBlankFileName: isBlankImage ? null : getReusableBlankFileName(timing),
+				hideArabicText: false
 			};
 			captureJobs.push(job);
 

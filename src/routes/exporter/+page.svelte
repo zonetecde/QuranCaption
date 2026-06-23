@@ -27,6 +27,7 @@
 	import {
 		calculateCaptureTimingsForRange,
 		getExportWordByWordHighlightTimings as getExportWordByWordHighlightTimingsUtil,
+		getExportWordByWordHiddenArabicTimings as getExportWordByWordHiddenArabicTimingsUtil,
 		getBlankImageFileName,
 		getBlankVisualStateKey,
 		hasTiming,
@@ -34,6 +35,7 @@
 		type ExportTimedOverlayCaptureClip,
 		type ExportSubtitleCaptureClip,
 		type ExportSubtitleWbwSourceClip,
+		type ExportSubtitleWbwTimingOptions,
 		type ExportCaptureTimingResult,
 		type ExportFrameCaptureJob,
 		type ExportFrameCopyJob,
@@ -944,7 +946,8 @@
 			captureTiming: job.captureTiming,
 			file: job.fileName,
 			subfolder,
-			reusableBlank: job.reusableBlankFileName
+			reusableBlank: job.reusableBlankFileName,
+			hideArabicText: job.hideArabicText
 		});
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
@@ -955,7 +958,7 @@
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
-		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName);
+		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName, job.hideArabicText);
 		await emitExportLog('info', 'Frame captured', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -1566,6 +1569,8 @@
 			(clip) => {
 				const wbwHighlightTimings =
 					clip instanceof SubtitleClip ? getExportWordByWordHighlightTimings(clip) : undefined;
+				const wbwHiddenArabicTimings =
+					clip instanceof SubtitleClip ? getExportWordByWordHiddenArabicTimings(clip) : undefined;
 
 				return {
 					id: clip.id,
@@ -1591,7 +1596,8 @@
 							clip.visualMergeMode === null)
 							? clip.visualMergeMode
 							: undefined,
-					wbwHighlightTimings
+					wbwHighlightTimings,
+					wbwHiddenArabicTimings
 				};
 			}
 		);
@@ -1607,16 +1613,11 @@
 	}
 
 	/**
-	 * Retourne les timings WBW à capturer pour l'export d'un clip.
-	 *
-	 * Pour un merge visuel arabe, la résolution finale est faite dans
-	 * `ExportCaptureTiming.getExportWordByWordHighlightTimings()`: le helper agrège les timings
-	 * de tout le groupe afin que les mots partagés puissent être recapturés sur chaque clip.
-	 *
+	 * Prépare les options communes pour les helpers WBW d'export.
 	 * @param {SubtitleClip} clip Clip Quran à inspecter.
-	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 * @returns {ExportSubtitleWbwTimingOptions} Options prêtes pour les helpers de timing.
 	 */
-	function getExportWordByWordHighlightTimings(clip: SubtitleClip): number[] | undefined {
+	function getExportWordByWordTimingOptions(clip: SubtitleClip): ExportSubtitleWbwTimingOptions {
 		const subtitleClips = globalState.getSubtitleTrack.clips.filter(
 			(candidate): candidate is SubtitleClip => candidate instanceof SubtitleClip
 		);
@@ -1639,7 +1640,7 @@
 			alignmentMetadata: candidate.alignmentMetadata
 		}));
 
-		const arabicTimings = getExportWordByWordHighlightTimingsUtil({
+		return {
 			clip: exportClip,
 			subtitleClips: exportSubtitleClips,
 			isWbwEnabledForClipId: (clipId) =>
@@ -1647,12 +1648,50 @@
 					globalState.getVideoStyle
 						.getStylesOfTarget('arabic')
 						.getEffectiveValue(styleId as StyleName, clipId)
+				),
+			isShowCurrentWordOnlyEnabledForClipId: (clipId) =>
+				Boolean(
+					globalState.getVideoStyle
+						.getStylesOfTarget('arabic')
+						.getEffectiveValue('wbw-show-current-word-only', clipId)
 				)
-		});
+		};
+	}
+
+	/**
+	 * Retourne les timings WBW à capturer pour l'export d'un clip.
+	 *
+	 * Pour un merge visuel arabe, la résolution finale est faite dans
+	 * `ExportCaptureTiming.getExportWordByWordHighlightTimings()`: le helper agrège les timings
+	 * de tout le groupe afin que les mots partagés puissent être recapturés sur chaque clip.
+	 *
+	 * @param {SubtitleClip} clip Clip Quran à inspecter.
+	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 */
+	function getExportWordByWordHighlightTimings(clip: SubtitleClip): number[] | undefined {
+		const subtitleClips = globalState.getSubtitleTrack.clips.filter(
+			(candidate): candidate is SubtitleClip => candidate instanceof SubtitleClip
+		);
+
+		const arabicTimings = getExportWordByWordHighlightTimingsUtil(
+			getExportWordByWordTimingOptions(clip)
+		);
 
 		const translationTimings = getExportTranslationWordByWordHighlightTimings(clip, subtitleClips);
 		const timings = [...(arabicTimings ?? []), ...(translationTimings ?? [])];
 		return timings.length > 0 ? Array.from(new Set(timings)).sort((a, b) => a - b) : undefined;
+	}
+
+	/**
+	 * Retourne les timings WBW ou le texte arabe doit être forcé invisible pendant l'export.
+	 * @param {SubtitleClip} clip Clip Quran à inspecter.
+	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 */
+	function getExportWordByWordHiddenArabicTimings(clip: SubtitleClip): number[] | undefined {
+		const timings = getExportWordByWordHiddenArabicTimingsUtil(
+			getExportWordByWordTimingOptions(clip)
+		);
+		return timings.length > 0 ? timings : undefined;
 	}
 
 	/**
@@ -1823,7 +1862,8 @@
 	async function takeScreenshot(
 		fileName: string,
 		subfolder: string | null = null,
-		reusableBlankFileName: string | null = null
+		reusableBlankFileName: string | null = null,
+		hideArabicText: boolean = false
 	) {
 		// L'element a transformer en image
 		const node = document.getElementById('overlay')!;
@@ -1832,6 +1872,7 @@
 		// afin d'éviter une capture en cours de fade-in, et masquer les sous-titres (arabe/traduction).
 		const isBlankScreenshot = fileName.startsWith('blank_');
 		const forcedOverlayElements: { el: HTMLElement; prev: string }[] = [];
+		const forcedArabicTextElements: { el: HTMLElement; prev: string }[] = [];
 		if (isBlankScreenshot) {
 			node.querySelectorAll<HTMLElement>('[data-overlay-max-opacity]').forEach((el) => {
 				forcedOverlayElements.push({ el, prev: el.style.opacity });
@@ -1842,6 +1883,12 @@
 				if (el) forcedOverlayElements.push({ el, prev: el.style.opacity });
 				if (el) el.style.opacity = '0';
 			}
+		}
+		if (hideArabicText) {
+			node.querySelectorAll<HTMLElement>('#subtitles-container .arabic *').forEach((el) => {
+				forcedArabicTextElements.push({ el, prev: el.style.visibility });
+				el.style.visibility = 'hidden';
+			});
 		}
 
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
@@ -1933,6 +1980,9 @@
 			// Restaurer l'opacité originale des overlays forcés
 			for (const { el, prev } of forcedOverlayElements) {
 				el.style.opacity = prev;
+			}
+			for (const { el, prev } of forcedArabicTextElements) {
+				el.style.visibility = prev;
 			}
 		}
 	}

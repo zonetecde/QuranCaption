@@ -542,6 +542,7 @@ const es = {
 			'Su medio usa tasa de bits variable (VBR). Esto puede causar inconsistencias de temporización durante la edición de video. Convierta a tasa de bits constante (CBR) para mejores resultados.',
 		tajweedRequiresInternet:
 			'El tajweed requiere conexión a Internet. Verifique su conexión e intente de nuevo.',
+		minimalQuran: 'Corán minimal',
 		noSubtitlesToShift:
 			'No hay subtítulos que comiencen en este momento o después \u2014 nada que desplazar.',
 		cannotShiftBackward:

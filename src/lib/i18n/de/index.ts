@@ -541,6 +541,7 @@ const de = {
 			'Ihr Medium verwendet variable Bitrate (VBR). Dies kann zu Zeitinkonsistenzen bei der Videobearbeitung führen. Konvertieren Sie in konstante Bitrate (CBR) für bessere Ergebnisse.',
 		tajweedRequiresInternet:
 			'Tajweed erfordert eine Internetverbindung. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
+		minimalQuran: 'Minimaler Koran',
 		noSubtitlesToShift:
 			'Keine Untertitel, die zu diesem Zeitpunkt oder danach beginnen — nichts zu verschieben.',
 		cannotShiftBackward:

@@ -235,6 +235,7 @@ const editor = {
 		'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. Convert to constant bitrate (CBR) for better results.',
 	tajweedRequiresInternet:
 		'Tajweed requires an internet connection. Please check your connection and try again.',
+	minimalQuran: 'Minimal Quran',
 	noSubtitlesToShift: 'No subtitles starting at or after that time \u2014 nothing to shift.',
 	cannotShiftBackward:
 		'Cannot shift backward: the subtitle before the cutoff would become too short.',

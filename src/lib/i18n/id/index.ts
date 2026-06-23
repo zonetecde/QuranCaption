@@ -425,6 +425,7 @@ const id: Translation = {
 	},
 	editor: {
 		...baseEn.editor,
+		minimalQuran: "Al-Qur'an Minimal",
 		videoEditor: 'Editor video',
 		subtitlesEditor: 'Editor subtitle',
 		translations: 'Terjemahan',

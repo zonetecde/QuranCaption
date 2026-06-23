@@ -18,6 +18,7 @@ import type { Category, StyleName } from './VideoStyle.svelte';
 import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 import SoosiProvider from '$lib/services/SoosiProvider';
+import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
@@ -31,6 +32,7 @@ type ClipType =
 
 type ArabicRenderParts = {
 	text: string;
+	words?: string[];
 	suffix: string;
 	suffixFontFamily: string | null;
 };
@@ -493,6 +495,22 @@ export class SubtitleClip extends ClipWithTranslation {
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
 
+		if (mushafStyle === 'Minimal Quran') {
+			const words =
+				MinimalQuranProvider.getVerseWordsSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex
+				) ?? undefined;
+			return {
+				text: words?.join(' ') ?? this.text,
+				words,
+				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
+				suffixFontFamily: null
+			};
+		}
+
 		if (mushafStyle === 'Soosi') {
 			const soosiText = SoosiProvider.getVerseSlice(
 				this.surah,
@@ -576,6 +594,19 @@ export class SubtitleClip extends ClipWithTranslation {
 		// En fonction de la police d'écriture, renvoie le bon texte
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+
+		if (mushafStyle === 'Minimal Quran') {
+			const minimalText =
+				MinimalQuranProvider.getVerseSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex
+				) ?? this.text;
+			return globalState.getStyle('arabic', 'show-verse-number').value
+				? this.getTextWithVerseNumber(minimalText)
+				: minimalText;
+		}
 
 		if (mushafStyle === 'Soosi') {
 			const soosiText =

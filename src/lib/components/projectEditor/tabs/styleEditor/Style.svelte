@@ -750,7 +750,9 @@
 							{/await}
 						{:else}
 							{#each style.options || [] as option (`${option}`)}
-								<option value={option}>{option}</option>
+								<option value={option}
+									>{option === 'Minimal Quran' ? $LL.editor.minimalQuran() : option}</option
+								>
 							{/each}
 						{/if}
 					</select>

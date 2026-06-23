@@ -544,6 +544,7 @@ const fr = {
 			'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors du montage vidéo. Convertissez en débit binaire constant (CBR) pour de meilleurs résultats.',
 		tajweedRequiresInternet:
 			'Le tajweed nécessite une connexion Internet. Veuillez vérifier votre connexion et réessayer.',
+		minimalQuran: 'Coran minimal',
 		noSubtitlesToShift: 'Aucun sous-titre commençant à ce moment ou après \u2014 rien à décaler.',
 		cannotShiftBackward:
 			'Impossible de décaler vers l\u2019arrière\u00a0: le sous-titre avant la coupure deviendrait trop court.',

@@ -1968,6 +1968,10 @@ type RootTranslation = {
 		 */
 		tajweedRequiresInternet: string;
 		/**
+		 * M​i​n​i​m​a​l​ ​Q​u​r​a​n
+		 */
+		minimalQuran: string;
+		/**
 		 * N​o​ ​s​u​b​t​i​t​l​e​s​ ​s​t​a​r​t​i​n​g​ ​a​t​ ​o​r​ ​a​f​t​e​r​ ​t​h​a​t​ ​t​i​m​e​ ​—​ ​n​o​t​h​i​n​g​ ​t​o​ ​s​h​i​f​t​.
 		 */
 		noSubtitlesToShift: string;
@@ -10741,6 +10745,10 @@ export type TranslationFunctions = {
 		 * Tajweed requires an internet connection. Please check your connection and try again.
 		 */
 		tajweedRequiresInternet: () => LocalizedString;
+		/**
+		 * Minimal Quran
+		 */
+		minimalQuran: () => LocalizedString;
 		/**
 		 * No subtitles starting at or after that time — nothing to shift.
 		 */

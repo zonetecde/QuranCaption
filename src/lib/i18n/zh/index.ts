@@ -494,6 +494,7 @@ const zh = {
 		variableBitrateWarning:
 			'您的媒体使用可变比特率（VBR）。这可能在视频编辑时导致时间不一致。请转换为恒定比特率（CBR）以获得更好的结果。',
 		tajweedRequiresInternet: 'Tajweed 需要互联网连接。请检查您的连接并重试。',
+		minimalQuran: '简明古兰经',
 		noSubtitlesToShift: '没有从此时间或之后开始的字幕 \u2014 无需移动。',
 		cannotShiftBackward: '无法向后移动：截断点之前的字幕将变得太短。',
 		nativeTimingsConfirm: '此音频包含官方原生时间信息。是否将其添加到时间轴并立即加载字幕？',

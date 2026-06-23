@@ -42,6 +42,7 @@
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
+	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 	import {
 		SUBDIVIDE_MAX_DURATION_DISABLED,
 		subdivideLongSubtitleSegments
@@ -547,6 +548,9 @@
 		removeHiddenTranslationsFromExportProject();
 		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi') {
 			await SoosiProvider.prefetch();
+		}
+		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Minimal Quran') {
+			await MinimalQuranProvider.prefetch();
 		}
 
 		exportData = ExportService.findExportById(Number(id))!;

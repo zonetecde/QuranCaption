@@ -27,13 +27,12 @@
 		asset: Asset;
 	} = $props();
 
-	let isHovered = $state(false);
 	let isRedownloading = $state(false);
 	let isConvertingToCBR = $state(false);
 	let cbrProgress = $state(0);
 	let cbrProgressStatus = $state('');
 	let mediaKey = $state(0);
-	let isExpanded = $derived(isHovered || isConvertingToCBR);
+	let isExpanded = $derived(false);
 
 	function assetTypeLabel(type: string): string {
 		const ll = get(LL);
@@ -75,20 +74,16 @@
 		}
 
 		if (asset.type !== AssetType.Image && asset.hasDurationLoadError()) {
-			toast.error(
-				asset.getDurationLoadErrorMessage() ||
-					get(LL).editor.unableToAnalyzeMedia(),
-				{
-					duration: 7000
-				}
-			);
+			toast.error(asset.getDurationLoadErrorMessage() || get(LL).editor.unableToAnalyzeMedia(), {
+				duration: 7000
+			});
 			return;
 		}
 
 		if (asset.duration.isNull() && asset.type !== AssetType.Image) {
-		toast.error(get(LL).editor.unableToLoadDuration(), {
-			duration: 5000
-		});
+			toast.error(get(LL).editor.unableToLoadDuration(), {
+				duration: 5000
+			});
 			return;
 		}
 
@@ -196,11 +191,14 @@
 
 				asset.updateFilePath(fullPath);
 				mediaKey++; // Force re-render of audio/video element
-			toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
-		}
-	} catch (error) {
+				toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
+			}
+		} catch (error) {
 			console.error('Re-download error:', error);
-			toast.error(get(LL).editor.errorRedownloading({ error: String(error) }), { id: toastId, duration: 5000 });
+			toast.error(get(LL).editor.errorRedownloading({ error: String(error) }), {
+				id: toastId,
+				duration: 5000
+			});
 		} finally {
 			isRedownloading = false;
 		}
@@ -212,10 +210,11 @@
 	       bg-accent hover:border-[var(--accent-primary)] hover:shadow-xl hover:shadow-blue-500/10 hover:scale-[1.02] group"
 	role="button"
 	tabindex="0"
-	onmouseenter={() => (isHovered = true)}
-	onmouseleave={() => (isHovered = false)}
 >
-	<div class="flex flex-row gap-3 items-center relative">
+	<div
+		class="flex flex-row gap-3 items-center relative"
+		onmousedown={() => (isExpanded = !isExpanded)}
+	>
 		<div
 			class="flex-shrink-0 p-2 rounded-lg bg-accent transition-colors duration-300
 		            group-hover:bg-[var(--accent-primary)] group-hover:text-black"
@@ -242,8 +241,9 @@
 		<!-- warning icon -->
 		{#if !asset.exists}
 			<div class="flex-shrink-0 p-1 rounded-full bg-red-500/20 border border-red-500/30">
-				<span class="material-icons text-lg text-red-400" title={get(LL).editor.fileNotFoundOnDiskLabel()}
-					>warning</span
+				<span
+					class="material-icons text-lg text-red-400"
+					title={get(LL).editor.fileNotFoundOnDiskLabel()}>warning</span
 				>
 			</div>
 		{/if}
@@ -293,7 +293,7 @@
 			<!-- Action Buttons -->
 			<div class="flex flex-wrap gap-2">
 				{#if asset.exists}
-					<button
+					<!-- <button
 						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
 						       hover:scale-105 transition-all duration-200"
 						onclick={async () => {
@@ -302,7 +302,7 @@
 					>
 						<span class="material-icons text-lg">folder_open</span>
 						{get(LL).editor.openDirectoryLabel()}
-					</button>
+					</button> -->
 					<!-- turn into constant bitrate -->
 					<button
 						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
@@ -319,7 +319,7 @@
 						{/if}
 					</button>
 
-					{#if asset.type !== AssetType.Image}
+					<!-- {#if asset.type !== AssetType.Image}
 						<button
 							class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
 							       hover:scale-105 transition-all duration-200"
@@ -328,7 +328,7 @@
 							<span class="material-icons text-lg">content_cut</span>
 							{get(LL).editor.trimLabel()}
 						</button>
-					{/if}
+					{/if} -->
 				{:else}
 					<button
 						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
@@ -336,7 +336,7 @@
 						onclick={relocateAsset}
 					>
 						<span class="material-icons text-lg">folder_open</span>
-							{get(LL).editor.relocateLabel()}
+						{get(LL).editor.relocateLabel()}
 					</button>
 					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
 						<button
@@ -404,7 +404,9 @@
 			<!-- Timeline Actions -->
 			{#if asset.exists}
 				<div data-tour-id="asset-timeline-actions" class="space-y-2 pt-2 border-t border-color">
-					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">{get(LL).editor.addToTimelineLabel()}</h4>
+					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">
+						{get(LL).editor.addToTimelineLabel()}
+					</h4>
 					{#if asset.type === AssetType.Video}
 						<div class="space-y-2">
 							<button

@@ -741,6 +741,7 @@ const zh = {
 		quaCalloutSegments: '经人工审核的预计算分段，带逐字时间戳。',
 		quaCalloutAudioOnly: '从全网各服务器下载 1000+ 位诵读者的音频。',
 		quaContribute: '帮助贡献更多诵读者',
+		quranUniversalAudio: 'Quran Universal Audio',
 		projectAssetsLabel: '项目素材',
 		addAssetLabel: '添加素材',
 		dragAndDropFilesHere: '将文件拖放到此处',

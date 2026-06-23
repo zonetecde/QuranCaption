@@ -510,6 +510,7 @@ const editor = {
 	quaCalloutSegments: 'Human reviewed pre-computed segments with wbw timestamps.',
 	quaCalloutAudioOnly: 'Download audio for 1000+ reciters sourced from servers across the web.',
 	quaContribute: 'Help contribute more reciters',
+	quranUniversalAudio: 'Quran Universal Audio',
 	projectAssetsLabel: 'Project Assets',
 	addAssetLabel: 'Add Asset',
 	dragAndDropFilesHere: 'Drag and drop files here',

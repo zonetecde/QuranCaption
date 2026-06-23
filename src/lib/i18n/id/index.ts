@@ -634,6 +634,7 @@ const id: Translation = {
 		quaCalloutSegments: 'Segmen pra-hitung yang ditinjau manusia, dengan timestamp kata demi kata.',
 		quaCalloutAudioOnly: 'Unduh audio untuk 1000+ Qari dari berbagai server di seluruh web.',
 		quaContribute: 'Bantu tambahkan lebih banyak Qari',
+		quranUniversalAudio: 'Quran Universal Audio',
 		videoOnly: 'Video Saja',
 		audioOnly: 'Audio Saja',
 		downloadFromSocialMedia: 'Media sosial',

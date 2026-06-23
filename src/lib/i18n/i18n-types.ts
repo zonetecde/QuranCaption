@@ -2978,6 +2978,10 @@ type RootTranslation = {
 		 */
 		quaContribute: string;
 		/**
+		 * Q​u​r​a​n​ ​U​n​i​v​e​r​s​a​l​ ​A​u​d​i​o
+		 */
+		quranUniversalAudio: string;
+		/**
 		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s
 		 */
 		projectAssetsLabel: string;
@@ -11741,6 +11745,10 @@ export type TranslationFunctions = {
 		 * Help contribute more reciters
 		 */
 		quaContribute: () => LocalizedString;
+		/**
+		 * Quran Universal Audio
+		 */
+		quranUniversalAudio: () => LocalizedString;
 		/**
 		 * Project Assets
 		 */

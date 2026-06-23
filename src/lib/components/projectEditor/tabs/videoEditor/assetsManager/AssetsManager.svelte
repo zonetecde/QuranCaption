@@ -20,12 +20,33 @@
 	} = $props();
 
 	let activeTab = $state<AssetsTab>('qua');
+	let showSourceTabs = $state(false);
 
 	$effect(() => {
 		if (stockMediaOpen) {
+			showSourceTabs = true;
 			activeTab = 'stock';
 		}
 	});
+
+	/**
+	 * Révèle les sources d'import et sélectionne Quran Universal Audio par défaut.
+	 * @returns {void}
+	 */
+	function revealSourceTabs(): void {
+		showSourceTabs = true;
+		activeTab = 'qua';
+		closeStockMedia();
+	}
+
+	/**
+	 * Revient à la liste des assets du projet et masque les sources d'import.
+	 * @returns {void}
+	 */
+	function showProjectAssets(): void {
+		showSourceTabs = false;
+		closeStockMedia();
+	}
 
 	function openStockMedia() {
 		globalState.stockMediaLibrary.libraryOpen = true;
@@ -50,57 +71,68 @@
 	{/if}
 
 	<div class="assets-manager-shell">
-		<ProjectAssetSection compact />
-
-		<div class="assets-manager-tabs-row">
-			<button
-				class:active={activeTab === 'qua'}
-				class="assets-manager-tab"
-				type="button"
-				onclick={() => {
-					activeTab = 'qua';
-					closeStockMedia();
-				}}
-			>
-				QUA
-			</button>
-			<button
-				class:active={activeTab === 'file'}
-				class="assets-manager-tab"
-				type="button"
-				onclick={() => {
-					activeTab = 'file';
-					closeStockMedia();
-				}}
-			>
-				{$LL.common.upload()}
-			</button>
-			<button
-				class:active={activeTab === 'social'}
-				class="assets-manager-tab"
-				type="button"
-				onclick={() => {
-					activeTab = 'social';
-					closeStockMedia();
-				}}
-			>
-				{get(LL).editor.downloadFromSocialMedia()}
-			</button>
-			<button
-				class:active={activeTab === 'stock'}
-				class="assets-manager-tab"
-				type="button"
-				onclick={() => {
-					activeTab = 'stock';
-					openStockMedia();
-				}}
-			>
-				{get(LL).editor.stockMedia()}
-			</button>
-		</div>
+		{#if showSourceTabs}
+			<div class="assets-manager-tabs-row">
+				<button
+					class="assets-manager-tab assets-manager-tab-back"
+					type="button"
+					aria-label={$LL.common.back()}
+					title={$LL.common.back()}
+					onclick={showProjectAssets}
+				>
+					<span class="material-icons text-[18px]">arrow_back</span>
+				</button>
+				<button
+					class:active={activeTab === 'qua'}
+					class="assets-manager-tab"
+					type="button"
+					onclick={() => {
+						activeTab = 'qua';
+						closeStockMedia();
+					}}
+				>
+					{get(LL).editor.quranUniversalAudio()}
+				</button>
+				<button
+					class:active={activeTab === 'file'}
+					class="assets-manager-tab"
+					type="button"
+					onclick={() => {
+						activeTab = 'file';
+						closeStockMedia();
+					}}
+				>
+					{$LL.common.upload()}
+				</button>
+				<button
+					class:active={activeTab === 'social'}
+					class="assets-manager-tab"
+					type="button"
+					onclick={() => {
+						activeTab = 'social';
+						closeStockMedia();
+					}}
+				>
+					{get(LL).editor.downloadFromSocialMedia()}
+				</button>
+				<button
+					class:active={activeTab === 'stock'}
+					class="assets-manager-tab"
+					type="button"
+					onclick={() => {
+						activeTab = 'stock';
+						openStockMedia();
+					}}
+				>
+					{get(LL).editor.stockMedia()}
+				</button>
+			</div>
+		{/if}
 
 		<div class="assets-manager-panel">
-			{#if activeTab === 'qua'}
+			{#if !showSourceTabs}
+				<ProjectAssetSection plainList onRevealSources={revealSourceTabs} />
+			{:else if activeTab === 'qua'}
 				<DownloadFromQuranicUniversalAudioSection compact />
 			{:else if activeTab === 'file'}
 				<ProjectAssetSection buttonOnly />
@@ -156,5 +188,10 @@
 		border-color: var(--accent);
 		background: var(--bg-accent);
 		color: var(--text-primary);
+	}
+
+	.assets-manager-tab-back {
+		width: 32px;
+		padding: 0;
 	}
 </style>

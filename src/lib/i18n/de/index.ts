@@ -817,6 +817,7 @@ const de = {
 		quaCalloutAudioOnly:
 			'Lade Audio von über 1000 Rezitatoren von Servern aus dem ganzen Web herunter.',
 		quaContribute: 'Hilf mit, weitere Rezitatoren beizutragen',
+		quranUniversalAudio: 'Quran Universal Audio',
 		projectAssetsLabel: 'Projektelemente',
 		addAssetLabel: 'Element hinzufügen',
 		dragAndDropFilesHere: 'Dateien hierher ziehen',

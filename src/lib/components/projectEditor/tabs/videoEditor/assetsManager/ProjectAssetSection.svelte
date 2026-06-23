@@ -11,10 +11,14 @@
 
 	let {
 		compact = false,
-		buttonOnly = false
+		buttonOnly = false,
+		plainList = false,
+		onRevealSources
 	}: {
 		compact?: boolean;
 		buttonOnly?: boolean;
+		plainList?: boolean;
+		onRevealSources?: (() => void) | undefined;
 	} = $props();
 
 	let unlisten: () => void;
@@ -105,6 +109,25 @@
 			<span class="material-icons mr-2 text-base">upload_file</span>{get(LL).editor.uploadFile()}
 		</button>
 	</div>
+{:else if plainList}
+	<div bind:this={dropZone} class="project-assets-plain-list">
+		<div class="flex flex-col gap-2">
+			{#each globalState.currentProject!.content.assets as asset (asset.id)}
+				<AssetViewer {asset} />
+			{/each}
+		</div>
+
+		<button
+			class="project-assets-floating-add px-6"
+			type="button"
+			aria-label={get(LL).editor.addAssetLabel()}
+			title={get(LL).editor.addAssetLabel()}
+			onclick={() => onRevealSources?.()}
+		>
+			<span class="material-icons text-[18px]">add</span>
+			{get(LL).editor.addAssetLabel()}
+		</button>
+	</div>
 {:else}
 	<Section icon="folder_open" name={get(LL).editor.projectAssetsLabel()}>
 		<div bind:this={dropZone}>
@@ -148,5 +171,26 @@
 	.project-assets-compact-chip {
 		max-width: 180px;
 		padding: 0 0.7rem;
+	}
+
+	.project-assets-plain-list {
+		position: relative;
+		padding-bottom: 3rem;
+	}
+
+	.project-assets-floating-add {
+		position: absolute;
+		left: 50%;
+		transform: translateX(-50%);
+		bottom: 0;
+		display: inline-flex;
+		height: 2.25rem;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--accent);
+		border-radius: 9999px;
+		background: var(--bg-accent);
+		color: var(--text-primary);
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
 	}
 </style>

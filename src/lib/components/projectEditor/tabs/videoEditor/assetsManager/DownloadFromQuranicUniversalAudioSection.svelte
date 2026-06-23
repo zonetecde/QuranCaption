@@ -275,6 +275,40 @@
 	saveState={!compact}
 >
 	<div class="space-y-3">
+		<!-- Callout : message dépendant du mode + lien de contribution. -->
+		{#if mode === 'audio_only'}
+			<div
+				class="flex items-start gap-1.5 rounded-md border border-blue-500/15 bg-blue-500/5 px-2.5 py-1.5"
+			>
+				<span class="material-icons text-[13px] text-blue-500">public</span>
+				<p class="text-[10px] leading-snug text-secondary/80">
+					{get(LL).editor.quaCalloutAudioOnly()}
+					<button
+						type="button"
+						class="font-medium text-[var(--accent-primary)] underline hover:opacity-80"
+						onclick={() => void openUrl(CONTRIBUTE_URL)}
+					>
+						{get(LL).editor.quaContribute()}
+					</button>
+				</p>
+			</div>
+		{:else}
+			<div
+				class="flex items-start gap-1.5 rounded-md border border-green-500/15 bg-green-500/5 px-2.5 py-1.5"
+			>
+				<p class="text-[10px] leading-snug text-secondary/80">
+					{get(LL).editor.quaCalloutSegments()}
+					<button
+						type="button"
+						class="font-medium text-[var(--accent-primary)] underline hover:opacity-80"
+						onclick={() => void openUrl(CONTRIBUTE_URL)}
+					>
+						{get(LL).editor.quaContribute()}
+					</button>
+				</p>
+			</div>
+		{/if}
+
 		<!-- Bascule de mode : audio + segments (défaut) vs audio seul. -->
 		<div class="grid grid-cols-2 gap-1 rounded-lg border border-color bg-secondary p-1">
 			<button
@@ -300,41 +334,6 @@
 				{get(LL).editor.quaModeAudioOnly()}
 			</button>
 		</div>
-
-		<!-- Callout : message dépendant du mode + lien de contribution. -->
-		{#if mode === 'audio_only'}
-			<div
-				class="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2"
-			>
-				<span class="material-icons text-base text-blue-500">public</span>
-				<p class="text-[11px] leading-relaxed text-secondary/90">
-					{get(LL).editor.quaCalloutAudioOnly()}
-					<button
-						type="button"
-						class="font-semibold text-[var(--accent-primary)] underline hover:opacity-80"
-						onclick={() => void openUrl(CONTRIBUTE_URL)}
-					>
-						{get(LL).editor.quaContribute()}
-					</button>
-				</p>
-			</div>
-		{:else}
-			<div
-				class="flex items-start gap-2 rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2"
-			>
-				<span class="material-icons text-base text-green-500">verified</span>
-				<p class="text-[11px] leading-relaxed text-secondary/90">
-					{get(LL).editor.quaCalloutSegments()}
-					<button
-						type="button"
-						class="font-semibold text-[var(--accent-primary)] underline hover:opacity-80"
-						onclick={() => void openUrl(CONTRIBUTE_URL)}
-					>
-						{get(LL).editor.quaContribute()}
-					</button>
-				</p>
-			</div>
-		{/if}
 
 		<div class="space-y-2">
 			<label for="qua-recitation-select" class="text-sm font-medium text-secondary">
@@ -406,21 +405,6 @@
 
 			<!-- Options sous-titres (compactes — panneau latéral étroit). -->
 			<div class="space-y-2 rounded-lg border border-color px-3 py-2.5 text-xs">
-				<label class="flex items-start gap-2 text-secondary">
-					<input
-						type="checkbox"
-						checked
-						disabled
-						class="mt-0.5 accent-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
-					/>
-					<span class="leading-snug">
-						<span class="font-medium text-primary">Include wbw timestamps</span>
-						<span class="block text-[11px] text-thirdly">
-							Always on here — per-word timings for finer splitting/editing.
-						</span>
-					</span>
-				</label>
-
 				<label class="flex items-center gap-2 text-secondary">
 					<input
 						type="checkbox"

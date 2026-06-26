@@ -681,6 +681,7 @@
 			verticalStyleId: 'vertical-position',
 			horizontalStyleId: 'horizontal-position'
 		}}
+		dir="rtl"
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
 		style="opacity: {subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>

@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
-	import Settings from '$lib/classes/Settings.svelte';
+	import Settings, { type PerformanceProfile } from '$lib/classes/Settings.svelte';
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
@@ -10,7 +10,6 @@
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 
-	type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
 	type VideoCodec = 'h264' | 'h265';
 
 	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
@@ -28,6 +27,17 @@
 			1,
 			Math.min(8, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 4))
 		);
+		await Settings.save();
+	}
+
+	/**
+	 * Sauvegarde le profil de performance global de l'export video.
+	 * @param {PerformanceProfile} profile Profil selectionne.
+	 * @returns {Promise<void>}
+	 */
+	async function savePerformanceProfile(profile: PerformanceProfile): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.performanceProfile = profile;
 		await Settings.save();
 	}
 
@@ -329,42 +339,41 @@
 							{$LL.export.videoCodecDescription()}
 						</p>
 					</div>
-				{/if}
 
-				<div class="grid grid-cols-1 gap-3">
-					{#each performanceProfileIds as id (id)}
-						{@const label =
-							id === 'fastest'
-								? $LL.export.fastest()
-								: id === 'balanced'
-									? $LL.export.balanced()
-									: $LL.export.lowCpu()}
-						{@const desc =
-							id === 'fastest'
-								? $LL.export.fastestDescription()
-								: id === 'balanced'
-									? $LL.export.balancedDescription()
-									: $LL.export.lowCpuDescription()}
-						<button
-							type="button"
-							class="rounded-xl border p-4 text-left transition-colors"
-							class:border-accent-primary={globalState.getExportState.performanceProfile === id}
-							class:bg-secondary={globalState.getExportState.performanceProfile === id}
-							class:border-color={globalState.getExportState.performanceProfile !== id}
-							onclick={() => {
-								globalState.getExportState.performanceProfile = id;
-							}}
-						>
-							<div class="flex items-center justify-between gap-3">
-								<p class="text-sm font-medium text-primary">{label}</p>
-								{#if globalState.getExportState.performanceProfile === id}
-									<span class="material-icons text-accent-primary text-lg">check_circle</span>
-								{/if}
-							</div>
-							<p class="mt-1 text-xs text-thirdly">{desc}</p>
-						</button>
-					{/each}
-				</div>
+					<div class="grid grid-cols-1 gap-3">
+						{#each performanceProfileIds as id (id)}
+							{@const label =
+								id === 'fastest'
+									? $LL.export.fastest()
+									: id === 'balanced'
+										? $LL.export.balanced()
+										: $LL.export.lowCpu()}
+							{@const desc =
+								id === 'fastest'
+									? $LL.export.fastestDescription()
+									: id === 'balanced'
+										? $LL.export.balancedDescription()
+										: $LL.export.lowCpuDescription()}
+							<button
+								type="button"
+								class="rounded-xl border p-4 text-left transition-colors"
+								class:border-accent-primary={globalState.settings.exportSettings
+									.performanceProfile === id}
+								class:bg-secondary={globalState.settings.exportSettings.performanceProfile === id}
+								class:border-color={globalState.settings.exportSettings.performanceProfile !== id}
+								onclick={() => void savePerformanceProfile(id)}
+							>
+								<div class="flex items-center justify-between gap-3">
+									<p class="text-sm font-medium text-primary">{label}</p>
+									{#if globalState.settings.exportSettings.performanceProfile === id}
+										<span class="material-icons text-accent-primary text-lg">check_circle</span>
+									{/if}
+								</div>
+								<p class="mt-1 text-xs text-thirdly">{desc}</p>
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>

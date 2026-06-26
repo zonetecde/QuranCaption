@@ -50,6 +50,8 @@ export type StockMediaSettings = {
 	pixabayApiKey: string;
 };
 
+export type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
+
 export type AITranslationSettings = {
 	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
 	openAiApiKey: string;
@@ -67,6 +69,7 @@ export type ExportSettings = {
 	batchSize: number;
 	parallelCaptureWorkers: number;
 	videoCodec: 'h264' | 'h265';
+	performanceProfile: PerformanceProfile;
 };
 
 export type SavedVideoStylePreset = {
@@ -88,7 +91,8 @@ export default class Settings extends SerializableBase {
 		batchSizeMode: 'auto',
 		batchSize: 64,
 		parallelCaptureWorkers: 4,
-		videoCodec: 'h264'
+		videoCodec: 'h264',
+		performanceProfile: 'balanced'
 	};
 
 	// État UI persistant
@@ -553,6 +557,16 @@ export default class Settings extends SerializableBase {
 			settings.exportSettings.videoCodec !== 'h265'
 		) {
 			settings.exportSettings.videoCodec = Settings.DEFAULT_EXPORT_SETTINGS.videoCodec;
+			shouldSave = true;
+		}
+
+		if (
+			settings.exportSettings.performanceProfile !== 'fastest' &&
+			settings.exportSettings.performanceProfile !== 'balanced' &&
+			settings.exportSettings.performanceProfile !== 'low_cpu'
+		) {
+			settings.exportSettings.performanceProfile =
+				Settings.DEFAULT_EXPORT_SETTINGS.performanceProfile;
 			shouldSave = true;
 		}
 

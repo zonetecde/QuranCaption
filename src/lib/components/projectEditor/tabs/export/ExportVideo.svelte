@@ -249,42 +249,6 @@
 		{#if showAdvancedSettings}
 			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
 				<div class="mb-4">
-					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
-					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
-						<input
-							type="checkbox"
-							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-							bind:checked={globalState.getExportState.exportWithoutBackground}
-						/>
-						<span class="text-sm text-primary">
-							{$LL.export.exportWithoutBackground()}
-							<span class="block text-xs text-thirdly mt-1">
-								{$LL.export.rendersOnlyOverlay()}
-							</span>
-						</span>
-					</label>
-
-					{#if globalState.getExportState.exportWithoutBackground}
-						<div class="mt-3">
-							<label class="block text-sm text-primary mb-2" for="transparent-export-format">
-								{$LL.export.transparentExportFormat()}
-							</label>
-							<select
-								id="transparent-export-format"
-								class="input w-full"
-								bind:value={globalState.getExportState.transparentExportFormat}
-							>
-								<option value="mov_prores_4444">{$LL.export.movQtrleRecommended()}</option>
-								<option value="webm_vp9_alpha">{$LL.export.webmVp9()}</option>
-							</select>
-							<p class="text-xs text-thirdly mt-2">
-								{$LL.export.movQtrleCompatibility()}
-							</p>
-						</div>
-					{/if}
-				</div>
-
-				<div class="mb-4">
 					<h4 class="text-base font-medium text-secondary mb-1">
 						{$LL.export.exportPerformance()}
 					</h4>
@@ -374,6 +338,42 @@
 						{/each}
 					</div>
 				{/if}
+
+				<div class="mb-4 mt-4">
+					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
+					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
+						<input
+							type="checkbox"
+							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+							bind:checked={globalState.getExportState.exportWithoutBackground}
+						/>
+						<span class="text-sm text-primary">
+							{$LL.export.exportWithoutBackground()}
+							<span class="block text-xs text-thirdly mt-1">
+								{$LL.export.rendersOnlyOverlay()}
+							</span>
+						</span>
+					</label>
+
+					{#if globalState.getExportState.exportWithoutBackground}
+						<div class="">
+							<label class="block text-sm text-primary mb-2" for="transparent-export-format">
+								{$LL.export.transparentExportFormat()}
+							</label>
+							<select
+								id="transparent-export-format"
+								class="input w-full"
+								bind:value={globalState.getExportState.transparentExportFormat}
+							>
+								<option value="mov_prores_4444">{$LL.export.movQtrleRecommended()}</option>
+								<option value="webm_vp9_alpha">{$LL.export.webmVp9()}</option>
+							</select>
+							<p class="text-xs text-thirdly mt-2">
+								{$LL.export.movQtrleCompatibility()}
+							</p>
+						</div>
+					{/if}
+				</div>
 			</div>
 		{/if}
 	</div>

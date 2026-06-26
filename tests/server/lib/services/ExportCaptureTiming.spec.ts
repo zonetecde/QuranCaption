@@ -527,6 +527,26 @@ describe('calculateCaptureTimingsForRange', () => {
 		expect(result.blankImgs).toEqual({});
 	});
 
+	it('captures blanks instead of reusing them while a subtitle background overlay is visible', () => {
+		const result = calculateTimings(
+			[subtitle(0, 500, 1), subtitle(900, 1_200, 1)],
+			[
+				{
+					id: 'arabic-background-container',
+					startTime: 100,
+					endTime: 1_000,
+					alwaysShow: false,
+					preventBlankReuse: true
+				}
+			]
+		);
+
+		expect(result.uniqueSorted).toContain(500);
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_200 });
+		expect(result.blankImgs).toEqual({});
+		expect(hasTiming(result.blankImgs, 500)).toEqual({ hasIt: false, key: null, surah: null });
+	});
+
 	it('does register a blank image when the overlapping overlay is always-show', () => {
 		const result = calculateTimings([subtitle(0, 500, 1)], [customText(3, 100, 700, true)]);
 

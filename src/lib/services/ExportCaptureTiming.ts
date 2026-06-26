@@ -68,6 +68,7 @@ export type ExportTimedOverlayCaptureClip = {
 	endTime?: number | null;
 	alwaysShow: boolean;
 	captureBoundariesWhenAlwaysShow?: boolean;
+	preventBlankReuse?: boolean;
 	isVisibleAt?: (timing: number) => boolean;
 };
 
@@ -97,6 +98,21 @@ function isTimedOverlayVisibleAt(
 	if (timing < clip.startTime || timing > clip.endTime) return false;
 	if (clip.isVisibleAt && !clip.isVisibleAt(timing)) return false;
 	return true;
+}
+
+/**
+ * Indique si un overlay visible interdit la réutilisation d'une frame blank.
+ * @param {number} timing Timing à tester.
+ * @param {ExportTimedOverlayCaptureClip[]} timedOverlayClips Overlays temporisés.
+ * @returns {boolean} `true` si la blank doit être capturée normalement.
+ */
+function hasBlankReuseBlockingOverlayAt(
+	timing: number,
+	timedOverlayClips: ExportTimedOverlayCaptureClip[]
+): boolean {
+	return timedOverlayClips.some(
+		(clip) => clip.preventBlankReuse && isTimedOverlayVisibleAt(clip, timing, false)
+	);
 }
 
 function isArabicVisualMergeClip(clip: ExportSubtitleWbwSourceClip): boolean {
@@ -476,6 +492,11 @@ export function calculateCaptureTimingsForRange({
 
 	function registerBlankTiming(timing: number, surah: number, visualStateTiming: number = timing) {
 		const roundedTiming = Math.round(timing);
+		if (hasBlankReuseBlockingOverlayAt(visualStateTiming, timedOverlayClips)) {
+			add(roundedTiming);
+			return;
+		}
+
 		const blankVisualStateKey = getBlankVisualStateKey(surah, visualStateTiming, timedOverlayClips);
 
 		if (imgWithNothingShown[blankVisualStateKey] === undefined) {

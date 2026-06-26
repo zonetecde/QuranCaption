@@ -562,6 +562,36 @@
 				"icon": "toggle_on"
 			},
 			{
+				"id": "always-show",
+				"name": "Always Show",
+				"description": "Always show the background (ignore timing)",
+				"value": true,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "visibility"
+			},
+			{
+				"id": "time-appearance",
+				"name": "Time Appearance",
+				"description": "Change the time where the background appears",
+				"value": 0,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
+				"id": "time-disappearance",
+				"name": "Time Disappearance",
+				"description": "Change the time where the background disappears",
+				"value": 10000,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
 				"id": "background-color",
 				"name": "Background Color",
 				"description": "Add a background color behind the text",

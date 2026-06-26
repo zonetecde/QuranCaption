@@ -41,6 +41,7 @@
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
+	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 	import {
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
 		getReferenceClipForTarget as getReferenceClipForTargetUtil,
@@ -366,6 +367,22 @@
 		}
 
 		return maxOpacity;
+	});
+
+	let backgroundOpacity = $derived((target: string) => {
+		const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+		const alwaysShowStyle = styles.findStyle('always-show');
+		if (!alwaysShowStyle) return 1;
+
+		const clipId = getBackgroundClipIdForTarget(target);
+		return getTimedOverlayOpacity({
+			alwaysShow: Boolean(styles.getEffectiveValue('always-show', clipId)),
+			maxOpacity: 1,
+			currentTime: getTimelineSettings().cursorPosition,
+			fadeDuration: fadeDuration(),
+			startTime: Number(styles.getEffectiveValue('time-appearance', clipId)),
+			endTime: Number(styles.getEffectiveValue('time-disappearance', clipId))
+		});
 	});
 
 	/**
@@ -1079,7 +1096,7 @@
 	<!-- Couche 3.5 : Ayah Container (au-dessus de l'overlay, en-dessous des sous-titres) -->
 	<AyahContainer />
 
-	<!-- Couche 4 : Fonds des sous-titres (toujours visibles) -->
+	<!-- Couche 4 : Fonds des sous-titres -->
 	<div
 		id="subtitles-backgrounds"
 		class="absolute inset-0 z-1 flex flex-col items-center justify-center"
@@ -1091,7 +1108,7 @@
 				helperStyles('arabic')}
 			style="{getCss('arabic', getBackgroundClipIdForTarget('arabic'))}; {getRuntimeLayoutCss(
 				'arabic'
-			)}"
+			)} opacity: {backgroundOpacity('arabic')};"
 		></div>
 
 		<!-- Fonds des traductions -->
@@ -1104,7 +1121,7 @@
 						helperStyles(edition)}
 					style="{getCss(edition, getBackgroundClipIdForTarget(edition))}; {getRuntimeLayoutCss(
 						edition
-					)}"
+					)} opacity: {backgroundOpacity(edition)};"
 				></div>
 			{/if}
 		{/each}

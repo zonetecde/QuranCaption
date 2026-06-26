@@ -100,6 +100,9 @@ export type PositioningStyleName =
 
 export type BackgroundStyleName =
 	| 'background-enable'
+	| 'always-show'
+	| 'time-appearance'
+	| 'time-disappearance'
 	| 'background-color'
 	| 'background-opacity'
 	| 'border-radius'

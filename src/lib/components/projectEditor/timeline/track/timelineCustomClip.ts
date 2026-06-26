@@ -12,6 +12,7 @@ const CUSTOM_CLIP_SNAP_DISTANCE_PX = 8;
 type GlobalTimedOverlayConfig = {
 	id: string;
 	label: string;
+	target?: string;
 	alwaysShowStyleId: StyleName;
 	startStyleId: StyleName;
 	endStyleId: StyleName;
@@ -29,6 +30,7 @@ export class GlobalTimedOverlayTimelineClip {
 	readonly canRemove = false;
 	readonly category = undefined;
 
+	private readonly target: string;
 	private readonly alwaysShowStyleId: StyleName;
 	private readonly startStyleId: StyleName;
 	private readonly endStyleId: StyleName;
@@ -36,17 +38,24 @@ export class GlobalTimedOverlayTimelineClip {
 	constructor(config: GlobalTimedOverlayConfig) {
 		this.id = config.id;
 		this.label = config.label;
+		this.target = config.target ?? 'global';
 		this.alwaysShowStyleId = config.alwaysShowStyleId;
 		this.startStyleId = config.startStyleId;
 		this.endStyleId = config.endStyleId;
 	}
 
 	get startTime(): number {
-		return Number(globalState.getStyle('global', this.startStyleId).value ?? 0);
+		return Number(
+			globalState.getVideoStyle.getStylesOfTarget(this.target).findStyle(this.startStyleId)
+				?.value ?? 0
+		);
 	}
 
 	get endTime(): number {
-		return Number(globalState.getStyle('global', this.endStyleId).value ?? 0);
+		return Number(
+			globalState.getVideoStyle.getStylesOfTarget(this.target).findStyle(this.endStyleId)?.value ??
+				0
+		);
 	}
 
 	get duration(): number {
@@ -54,25 +63,37 @@ export class GlobalTimedOverlayTimelineClip {
 	}
 
 	getAlwaysShow(): boolean {
-		return Boolean(globalState.getStyle('global', this.alwaysShowStyleId).value);
+		return Boolean(
+			globalState.getVideoStyle.getStylesOfTarget(this.target).findStyle(this.alwaysShowStyleId)
+				?.value
+		);
 	}
 
 	setStartTime(newStartTime: number) {
 		if (this.endTime < newStartTime) return;
-		globalState.getStyle('global', this.startStyleId).value = newStartTime;
+		const style = globalState.getVideoStyle
+			.getStylesOfTarget(this.target)
+			.findStyle(this.startStyleId);
+		if (style) style.value = newStartTime;
 		globalState.updateVideoPreviewUI();
 	}
 
 	setEndTime(newEndTime: number) {
 		if (newEndTime < this.startTime) return;
-		globalState.getStyle('global', this.endStyleId).value = newEndTime;
+		const style = globalState.getVideoStyle
+			.getStylesOfTarget(this.target)
+			.findStyle(this.endStyleId);
+		if (style) style.value = newEndTime;
 		globalState.updateVideoPreviewUI();
 	}
 
 	setStyle(styleId: StyleName, value: string | number | boolean) {
 		// Pour cet adaptateur, seul le toggle always-show est gerable ici.
 		if (styleId === 'always-show') {
-			globalState.getStyle('global', this.alwaysShowStyleId).value = value as boolean;
+			const style = globalState.getVideoStyle
+				.getStylesOfTarget(this.target)
+				.findStyle(this.alwaysShowStyleId);
+			if (style) style.value = value as boolean;
 			globalState.updateVideoPreviewUI();
 		}
 	}
@@ -153,6 +174,24 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		globalState.getStyle('global', 'always-show')?.value !== true
 	) {
 		clips.push(GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP);
+	}
+
+	for (const stylesData of globalState.getVideoStyle.styles) {
+		if (stylesData.target === 'global') continue;
+		if (stylesData.findStyle('background-enable')?.value !== true) continue;
+		if (stylesData.findStyle('always-show')?.value === true) continue;
+
+		clips.push(
+			new GlobalTimedOverlayTimelineClip({
+				id: `${stylesData.target}-background-container`,
+				label:
+					stylesData.target === 'arabic' ? 'Arabic Background' : `${stylesData.target} Background`,
+				target: stylesData.target,
+				alwaysShowStyleId: 'always-show',
+				startStyleId: 'time-appearance',
+				endStyleId: 'time-disappearance'
+			})
+		);
 	}
 
 	return clips;

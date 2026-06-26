@@ -522,6 +522,19 @@
 				if (didSyncCustomClip) return;
 			}
 
+			if (target && target !== 'global') {
+				const targetEndStyle = globalState.getVideoStyle
+					.getStylesOfTarget(target)
+					.findStyle(endStyleId);
+				if (targetEndStyle) {
+					const currentEnd = Number(targetEndStyle.value ?? 0);
+					if (cursorMs > currentEnd) {
+						targetEndStyle.value = endFallback;
+					}
+					return;
+				}
+			}
+
 			// Cas style global (surah/reciter): simple mise a jour du style global.
 			const globalEndStyle = globalState.getStyle('global', endStyleId);
 			const currentEnd = Number(globalEndStyle.value ?? 0);
@@ -559,6 +572,20 @@
 				break;
 			}
 			if (didSyncCustomClip) return;
+		}
+
+		if (target && target !== 'global') {
+			const targetBeginStyle = globalState.getVideoStyle
+				.getStylesOfTarget(target)
+				.findStyle(beginStyleId);
+			if (targetBeginStyle) {
+				const currentBegin = Number(targetBeginStyle.value ?? 0);
+				if (cursorMs < currentBegin) {
+					targetBeginStyle.value = cursorMs;
+					style.value = endFallback;
+				}
+				return;
+			}
 		}
 
 		const globalBeginStyle = globalState.getStyle('global', beginStyleId);

@@ -1561,6 +1561,20 @@
 			});
 		}
 
+		for (const stylesData of globalState.getVideoStyle.styles) {
+			if (stylesData.target === 'global') continue;
+			if (stylesData.findStyle('background-enable')?.value !== true) continue;
+			if (stylesData.findStyle('always-show')?.value === true) continue;
+
+			timedOverlayClips.push({
+				id: `${stylesData.target}-background-container`,
+				startTime: stylesData.findStyle('time-appearance')?.value as number,
+				endTime: stylesData.findStyle('time-disappearance')?.value as number,
+				alwaysShow: false,
+				preventBlankReuse: true
+			});
+		}
+
 		return timedOverlayClips;
 	}
 
@@ -1874,11 +1888,15 @@
 		const forcedOverlayElements: { el: HTMLElement; prev: string }[] = [];
 		const forcedArabicTextElements: { el: HTMLElement; prev: string }[] = [];
 		if (isBlankScreenshot) {
+			const keepSubtitleBackgrounds = hasVisibleSubtitleBackground(node);
 			node.querySelectorAll<HTMLElement>('[data-overlay-max-opacity]').forEach((el) => {
 				forcedOverlayElements.push({ el, prev: el.style.opacity });
 				el.style.opacity = el.dataset.overlayMaxOpacity!;
 			});
-			for (const id of ['subtitles-container', 'subtitles-backgrounds']) {
+			for (const id of [
+				'subtitles-container',
+				...(keepSubtitleBackgrounds ? [] : ['subtitles-backgrounds'])
+			]) {
 				const el = node.querySelector<HTMLElement>(`#${id}`);
 				if (el) forcedOverlayElements.push({ el, prev: el.style.opacity });
 				if (el) el.style.opacity = '0';

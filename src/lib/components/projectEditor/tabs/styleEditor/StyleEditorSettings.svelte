@@ -632,6 +632,9 @@
 										(category.id.includes('custom-text') &&
 											category.getStyle('always-show')?.value &&
 											(style.id === 'time-appearance' || style.id === 'time-disappearance')) ||
+										(category.id === 'background' &&
+											category.getStyle('always-show')?.value &&
+											(style.id === 'time-appearance' || style.id === 'time-disappearance')) ||
 										isGlobalTimedOverlayStyleDisabled(category.id, style.id) ||
 										isWordByWordStyleDisabled(category.id, style.id) ||
 										(category.id === 'word-by-word-highlight' &&

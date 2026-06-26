@@ -641,6 +641,17 @@
 		return Boolean(styles.getEffectiveValue('show-subtitles', referenceClip?.id));
 	});
 
+	let shouldForceRtlJustify = $derived(() => {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) return false;
+
+		const referenceClip = arabicReferenceClip();
+		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		return (
+			String(styles.getEffectiveValue('horizontal-text-alignment', referenceClip?.id)) === 'justify'
+		);
+	});
+
 	/** CSS de capture qui garde le `display: block` attendu par modern-screenshot. */
 	let exportCaptureLayoutCss = $derived(() => {
 		if (!isArabicSubtitleVisible()) return '';
@@ -681,7 +692,7 @@
 			verticalStyleId: 'vertical-position',
 			horizontalStyleId: 'horizontal-position'
 		}}
-		dir="rtl"
+		dir={shouldForceRtlJustify() ? 'rtl' : undefined}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
 		style="opacity: {subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>

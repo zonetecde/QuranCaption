@@ -2503,6 +2503,8 @@ const fr = {
 		exportedFileNotFound:
 			'Le fichier exporté est introuvable. Il a peut-être été déplacé ou supprimé.',
 		errorCopiedToClipboard: 'Erreur copiée dans le presse-papier',
+		subtitleLayoutTimeoutAdvice:
+			'L\u2019export a expir\u00e9 pendant la pr\u00e9paration d\u2019une frame de sous-titre. Le nombre de workers de capture parall\u00e8le est actuellement r\u00e9gl\u00e9 sur {workers}. R\u00e9duisez-le dans Param\u00e8tres avanc\u00e9s, sous Exporter la vid\u00e9o, puis relancez l\u2019export.',
 		failedToCopyError: 'Échec de copie de l\u2019erreur'
 	}
 } as Translation;

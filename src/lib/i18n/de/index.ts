@@ -2477,6 +2477,8 @@ const de = {
 		exportedFileNotFound:
 			'Die exportierte Datei wurde nicht gefunden. Sie wurde möglicherweise verschoben oder gelöscht.',
 		errorCopiedToClipboard: 'Fehler in die Zwischenablage kopiert',
+		subtitleLayoutTimeoutAdvice:
+			'Der Export hat beim Vorbereiten eines Untertitel-Frames zu lange gedauert. Parallele Capture-Worker ist derzeit auf {workers} gesetzt. Reduzieren Sie den Wert in Erweiterte Einstellungen unter Video exportieren und starten Sie den Export erneut.',
 		failedToCopyError: 'Fehler konnte nicht kopiert werden'
 	}
 } as Translation;

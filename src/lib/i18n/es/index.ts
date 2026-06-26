@@ -2480,6 +2480,8 @@ const es = {
 		exportedFileNotFound:
 			'El archivo exportado no se encuentra. Puede haber sido movido o eliminado.',
 		errorCopiedToClipboard: 'Error copiado al portapapeles',
+		subtitleLayoutTimeoutAdvice:
+			'La exportaci\u00f3n agot\u00f3 el tiempo de espera al preparar un frame de subt\u00edtulos. Workers de captura paralela est\u00e1 configurado actualmente en {workers}. Red\u00fazcalo en Configuraci\u00f3n avanzada debajo de Exportar video y vuelva a exportar.',
 		failedToCopyError: 'Error al copiar el error'
 	}
 } as Translation;

@@ -1160,10 +1160,8 @@ const id: Translation = {
 		fileNotFound: 'File tidak ditemukan',
 		exportedFileNotFound: 'File hasil export tidak ditemukan. Mungkin sudah dipindah atau dihapus.',
 		errorCopiedToClipboard: 'Error disalin ke clipboard',
-		subtitleLayoutTimeoutAdvice:
-			'Export kehabisan waktu saat menyiapkan frame subtitle. Parallel capture workers saat ini diatur ke {workers}. Kurangi nilainya di Advanced Settings di bawah Export Video, lalu export lagi.',
 		failedToCopyError: 'Gagal menyalin error'
-	} as Translation['exporterMonitor'] & { subtitleLayoutTimeoutAdvice: string },
+	},
 	donation: {
 		...baseEn.donation,
 		supportFuture: 'Dukung masa depan Quran Caption.',

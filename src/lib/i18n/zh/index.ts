@@ -2251,8 +2251,6 @@ const zh = {
 		fileNotFound: '文件未找到',
 		exportedFileNotFound: '导出的文件未找到。可能已被移动或删除。',
 		errorCopiedToClipboard: '错误已复制到剪贴板',
-		subtitleLayoutTimeoutAdvice:
-			'导出在准备字幕帧时超时。并行捕获 workers 当前设置为 {workers}。请在"导出视频"下方的"高级设置"中降低该值，然后重新导出。',
 		failedToCopyError: '复制错误失败'
 	}
 } as Translation;

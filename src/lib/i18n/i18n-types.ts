@@ -8841,11 +8841,6 @@ type RootTranslation = {
 		 */
 		errorCopiedToClipboard: string;
 		/**
-		 * T​h​e​ ​e​x​p​o​r​t​ ​t​i​m​e​d​ ​o​u​t​ ​w​h​i​l​e​ ​p​r​e​p​a​r​i​n​g​ ​a​ ​s​u​b​t​i​t​l​e​ ​f​r​a​m​e​.​ ​P​a​r​a​l​l​e​l​ ​c​a​p​t​u​r​e​ ​w​o​r​k​e​r​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​s​e​t​ ​t​o​ ​{​w​o​r​k​e​r​s​}​.​ ​R​e​d​u​c​e​ ​i​t​ ​i​n​ ​A​d​v​a​n​c​e​d​ ​S​e​t​t​i​n​g​s​ ​b​e​l​o​w​ ​E​x​p​o​r​t​ ​V​i​d​e​o​,​ ​t​h​e​n​ ​e​x​p​o​r​t​ ​a​g​a​i​n​.
-		 * @param {unknown} workers
-		 */
-		subtitleLayoutTimeoutAdvice: RequiredParams<'workers'>;
-		/**
 		 * F​a​i​l​e​d​ ​t​o​ ​c​o​p​y​ ​e​r​r​o​r
 		 */
 		failedToCopyError: string;
@@ -17543,10 +17538,6 @@ export type TranslationFunctions = {
 		 * Error copied to clipboard
 		 */
 		errorCopiedToClipboard: () => LocalizedString;
-		/**
-		 * The export timed out while preparing a subtitle frame. Parallel capture workers is currently set to {workers}. Reduce it in Advanced Settings below Export Video, then export again.
-		 */
-		subtitleLayoutTimeoutAdvice: (arg: { workers: unknown }) => LocalizedString;
 		/**
 		 * Failed to copy error
 		 */

@@ -15,7 +15,6 @@
 		writeFile,
 		remove,
 		readFile,
-		stat,
 		readDir
 	} from '@tauri-apps/plugin-fs';
 	import { appDataDir, join } from '@tauri-apps/api/path';
@@ -85,9 +84,6 @@
 	const WORKER_ERROR_EVENT = 'export-capture-worker-error';
 	const EXPORT_LOG_EVENT = 'export-log-main';
 	const WORKER_READY_TIMEOUT_MS = 45_000;
-	const CAPTURE_FILE_READY_TIMEOUT_MS = 5_000;
-	const SUBTITLE_LAYOUT_TIMEOUT_MESSAGE = 'Timeout waiting for subtitle layout';
-	const CAPTURE_FILE_NOT_WRITTEN_MESSAGE = 'Capture file was not written';
 
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
@@ -699,7 +695,7 @@
 				exportId: Number(exportId),
 				progress: 100,
 				currentState: ExportState.Error,
-				errorLog: formatExportErrorLog(error)
+				errorLog: JSON.stringify(error, Object.getOwnPropertyNames(error))
 			} as ExportProgress);
 		}
 	});
@@ -875,43 +871,6 @@
 	}
 
 	/**
-	 * Indique si une erreur de capture peut etre corrigee en reduisant les workers.
-	 * @param {unknown} error Erreur a inspecter.
-	 * @returns {boolean} true si l'erreur correspond a une capture instable.
-	 */
-	function isParallelCaptureAdviceError(error: unknown): boolean {
-		const message = error instanceof Error ? error.message : String(error ?? '');
-		const stack = error instanceof Error ? (error.stack ?? '') : '';
-		return (
-			message.includes(SUBTITLE_LAYOUT_TIMEOUT_MESSAGE) ||
-			stack.includes(SUBTITLE_LAYOUT_TIMEOUT_MESSAGE) ||
-			message.includes(CAPTURE_FILE_NOT_WRITTEN_MESSAGE) ||
-			stack.includes(CAPTURE_FILE_NOT_WRITTEN_MESSAGE)
-		);
-	}
-
-	/**
-	 * Formate une erreur pour l'Export Monitor avec un conseil actionnable si possible.
-	 * @param {unknown} error Erreur a afficher.
-	 * @returns {string} Log d'erreur affiche dans le monitor.
-	 */
-	function formatExportErrorLog(error: unknown): string {
-		const technicalLog =
-			JSON.stringify(error, Object.getOwnPropertyNames(error)) ?? String(error ?? '');
-
-		if (!isParallelCaptureAdviceError(error)) return technicalLog;
-
-		const exporterMonitorMessages = get(LL).exporterMonitor as unknown as {
-			subtitleLayoutTimeoutAdvice: (params: { workers: number }) => string;
-		};
-		const advice = exporterMonitorMessages.subtitleLayoutTimeoutAdvice({
-			workers: getParallelCaptureWorkerCount()
-		});
-
-		return `${advice}\n\n${technicalLog}`;
-	}
-
-	/**
 	 * Construit le plan de jobs d'images a partir des timings existants.
 	 * @param {ExportCaptureTimingResult} timings Resultat du calcul de timings.
 	 * @param {number} rangeStart Debut de la plage exportee.
@@ -958,14 +917,13 @@
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
-		await wait(job.captureTiming, false);
+		await wait(job.captureTiming);
 		await emitExportLog('info', 'Blank source layout ready', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
 		await takeScreenshot(job.fileName);
-		await waitForCaptureFile(job.fileName, null);
 		await emitExportLog('info', 'Blank source captured', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -994,14 +952,13 @@
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
-		await wait(job.captureTiming, job.isBlankImage ? false : undefined);
+		await wait(job.captureTiming);
 		await emitExportLog('info', 'Frame layout ready', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
 		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName, job.hideArabicText);
-		await waitForCaptureFile(job.fileName, subfolder);
 		await emitExportLog('info', 'Frame captured', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -1509,7 +1466,7 @@
 				exportId: Number(exportId),
 				progress: 100,
 				currentState: ExportState.Error,
-				errorLog: formatExportErrorLog(e)
+				errorLog: JSON.stringify(e, Object.getOwnPropertyNames(e))
 			} as ExportProgress);
 			throw e;
 		}
@@ -1878,7 +1835,7 @@
 				exportId: Number(exportId),
 				progress: 100,
 				currentState: ExportState.Error,
-				errorLog: formatExportErrorLog(e)
+				errorLog: JSON.stringify(e, Object.getOwnPropertyNames(e))
 			} as ExportProgress);
 			throw e;
 		}
@@ -2049,48 +2006,6 @@
 	}
 
 	/**
-	 * Retourne le chemin AppData du PNG capture par un job d'export.
-	 * @param {string} fileName Nom du fichier sans extension.
-	 * @param {string | null} subfolder Sous-dossier de segment, ou null.
-	 * @returns {Promise<string>} Chemin relatif a AppData.
-	 */
-	async function getCaptureFilePath(fileName: string, subfolder: string | null): Promise<string> {
-		const pathComponents = [ExportService.exportFolder, exportId];
-		if (subfolder) pathComponents.push(subfolder);
-		pathComponents.push(fileName + '.png');
-		return await join(...pathComponents);
-	}
-
-	/**
-	 * Attend que le PNG capture existe et soit non vide avant de valider un job.
-	 * @param {string} fileName Nom du fichier sans extension.
-	 * @param {string | null} subfolder Sous-dossier de segment, ou null.
-	 * @returns {Promise<void>}
-	 */
-	async function waitForCaptureFile(fileName: string, subfolder: string | null): Promise<void> {
-		const filePath = await getCaptureFilePath(fileName, subfolder);
-		const startTime = Date.now();
-
-		while (Date.now() - startTime <= CAPTURE_FILE_READY_TIMEOUT_MS) {
-			try {
-				const info = await stat(filePath, { baseDir: BaseDirectory.AppData });
-				if (info.isFile && info.size > 0) return;
-			} catch {
-				// Le fichier peut ne pas etre encore visible juste apres writeFile.
-			}
-
-			await new Promise((resolve) => setTimeout(resolve, 50));
-		}
-
-		await emitExportLog('error', 'Capture file not ready', {
-			file: fileName,
-			subfolder,
-			path: filePath
-		});
-		throw new Error(`Capture file was not written: ${filePath}`);
-	}
-
-	/**
 	 * Duplique un screenshot existant vers un nouveau fichier
 	 * @param sourceFileName Le nom du fichier source (sans extension)
 	 * @param targetFileName Le nom du fichier cible (sans extension)
@@ -2194,19 +2109,16 @@
 	/**
 	 * Attend que le layout de sous-titres soit stable avant une capture.
 	 * @param {number} timing Timing capture courant.
-	 * @param {boolean | undefined} expectedSubtitlePresence Presence attendue d'un sous-titre.
 	 * @returns {Promise<void>} Promise resolue quand la capture peut commencer.
 	 */
-	async function wait(timing: number, expectedSubtitlePresence?: boolean) {
+	async function wait(timing: number) {
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
 
 		await waitForAnimationFrame();
 
 		const timingKey = String(Math.round(timing));
-		const expectsSubtitle =
-			expectedSubtitlePresence ??
-			Boolean(globalState.getSubtitleTrack.getCurrentSubtitleToDisplay());
+		const expectsSubtitle = Boolean(globalState.getSubtitleTrack.getCurrentSubtitleToDisplay());
 		const startTime = Date.now();
 		const timeout = 10_000;
 		await emitExportLog('info', 'Layout wait started', {

@@ -7,8 +7,6 @@ const exporterMonitor = {
 	exportedFileNotFound:
 		'The exported file could not be found. It might have been moved or deleted.',
 	errorCopiedToClipboard: 'Error copied to clipboard',
-	subtitleLayoutTimeoutAdvice:
-		'The export timed out while preparing a subtitle frame. Parallel capture workers is currently set to {workers}. Reduce it in Advanced Settings below Export Video, then export again.',
 	failedToCopyError: 'Failed to copy error'
 };
 

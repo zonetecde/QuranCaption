@@ -2146,7 +2146,7 @@
 			expectsSubtitle &&
 			(!subtitlesContainer || !isSubtitleLayoutReady(subtitlesContainer, timingKey))
 		) {
-			await emitExportLog('error', 'Layout wait timed out', {
+			await emitExportLog('warn', 'Layout wait timed out, continuing capture', {
 				timing,
 				timingKey,
 				expectsSubtitle,
@@ -2154,14 +2154,13 @@
 				layoutTiming: subtitlesContainer?.dataset.exportLayoutTiming,
 				layoutState: subtitlesContainer?.dataset.exportLayoutState
 			});
-			throw new Error(`Timeout waiting for subtitle layout at ${timing}ms.`);
 		}
 		if (
 			!expectsSubtitle &&
 			subtitlesContainer &&
 			!isSubtitleLayoutReady(subtitlesContainer, timingKey)
 		) {
-			await emitExportLog('error', 'Layout clear wait timed out', {
+			await emitExportLog('warn', 'Layout clear wait timed out, continuing capture', {
 				timing,
 				timingKey,
 				expectsSubtitle,
@@ -2169,7 +2168,6 @@
 				layoutTiming: subtitlesContainer.dataset.exportLayoutTiming,
 				layoutState: subtitlesContainer.dataset.exportLayoutState
 			});
-			throw new Error(`Timeout waiting for subtitles to clear at ${timing}ms.`);
 		}
 		await emitExportLog('info', 'Layout wait ready', {
 			timing,

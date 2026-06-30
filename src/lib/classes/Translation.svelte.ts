@@ -162,7 +162,7 @@ export function getTranslationTrimUnits(text: string): TranslationTrimUnit[] {
 	let index = 0;
 	for (const char of Array.from(normalizedText)) {
 		const endIndex = index + char.length;
-		if (WORD_TEXT_REGEX.test(char)) {
+		if (WORD_TEXT_REGEX.test(char) || PUNCTUATION_ONLY_TEXT_REGEX.test(char)) {
 			units.push({
 				text: char,
 				startIndex: index,
@@ -534,7 +534,7 @@ export function buildTranslationInlineTextSegments(
 				? previousFlags
 				: EMPTY_INLINE_STYLE_FLAGS;
 
-		if (previousFlags.lineBreak) continue;
+		if (previousFlags.lineBreak && /^\s+$/.test(token.text)) continue;
 		pushText(token.text, whitespaceFlags);
 	}
 

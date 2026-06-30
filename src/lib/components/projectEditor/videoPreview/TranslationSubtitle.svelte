@@ -285,7 +285,7 @@
 		let previousWordFlags: TranslationInlineStyleFlags | null = null;
 		for (let index = 0; index < tokens.length; index++) {
 			const token = tokens[index];
-			if (!token.isWord && previousWordFlags?.lineBreak) continue;
+			if (!token.isWord && previousWordFlags?.lineBreak && /^\s+$/.test(token.text)) continue;
 			const flags =
 				token.isWord && token.wordIndex !== null
 					? getInlineStyleFlagsForWordIndex(translation.inlineStyleRuns ?? [], token.wordIndex)

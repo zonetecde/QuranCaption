@@ -92,8 +92,8 @@ describe('VerseTranslation.tryRecalculateTranslationIndexes', () => {
 		translation.tryRecalculateTranslationIndexes(edition, '1:2');
 
 		expect(translation.isBruteForce).toBe(false);
-		expect(translation.startWordIndex).toBe(4);
-		expect(translation.endWordIndex).toBe(7);
+		expect(translation.startWordIndex).toBe(5);
+		expect(translation.endWordIndex).toBe(9);
 	});
 });
 
@@ -118,7 +118,24 @@ describe('translation trim units', () => {
 	it('slices Chinese text without inserting spaces', () => {
 		const text = '一切赞颂，全归安拉，养育众世界的主，';
 
-		expect(sliceTranslationTrimUnits(text, 4, 7)).toBe('全归安拉，');
+		expect(sliceTranslationTrimUnits(text, 5, 9)).toBe('全归安拉，');
+	});
+
+	it('keeps Chinese punctuation as selectable units', () => {
+		const units = getTranslationTrimUnits('一切讚頌，全歸安拉，');
+
+		expect(units.map((unit) => unit.text)).toEqual([
+			'一',
+			'切',
+			'讚',
+			'頌',
+			'，',
+			'全',
+			'歸',
+			'安',
+			'拉',
+			'，'
+		]);
 	});
 
 	it('keeps space-separated text behavior', () => {
@@ -382,6 +399,44 @@ describe('translation inline style runs', () => {
 			},
 			{
 				text: 'three',
+				bold: false,
+				italic: false,
+				underline: false,
+				color: null
+			}
+		]);
+	});
+
+	it('keeps Chinese punctuation before an inline line break', () => {
+		const segments = buildTranslationInlineTextSegments('一切讚頌，全歸安拉，養育眾世界的主，', [
+			{
+				startWordIndex: 9,
+				endWordIndex: 9,
+				bold: false,
+				italic: false,
+				underline: false,
+				lineBreak: true
+			}
+		]);
+
+		expect(segments).toEqual([
+			{
+				text: '一切讚頌，全歸安拉',
+				bold: false,
+				italic: false,
+				underline: false,
+				color: null
+			},
+			{
+				text: '，',
+				bold: false,
+				italic: false,
+				underline: false,
+				lineBreak: true,
+				color: null
+			},
+			{
+				text: '養育眾世界的主，',
 				bold: false,
 				italic: false,
 				underline: false,

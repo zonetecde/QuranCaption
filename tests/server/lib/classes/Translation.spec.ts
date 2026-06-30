@@ -95,6 +95,24 @@ describe('VerseTranslation.tryRecalculateTranslationIndexes', () => {
 		expect(translation.startWordIndex).toBe(5);
 		expect(translation.endWordIndex).toBe(9);
 	});
+
+	it('keeps Chinese opening quotes with the following trimmed segment', () => {
+		mockSourceTranslation('主說：「穆薩啊！你把它扔下。」');
+
+		const firstTranslation = new VerseTranslation('主說', 'to review');
+		firstTranslation.tryRecalculateTranslationIndexes(edition, '20:19');
+
+		expect(firstTranslation.isBruteForce).toBe(false);
+		expect(firstTranslation.startWordIndex).toBe(0);
+		expect(firstTranslation.endWordIndex).toBe(2);
+
+		const secondTranslation = new VerseTranslation('穆薩啊！你把它扔下。', 'to review');
+		secondTranslation.tryRecalculateTranslationIndexes(edition, '20:19');
+
+		expect(secondTranslation.isBruteForce).toBe(false);
+		expect(secondTranslation.startWordIndex).toBe(3);
+		expect(secondTranslation.endWordIndex).toBe(14);
+	});
 });
 
 describe('translation trim units', () => {

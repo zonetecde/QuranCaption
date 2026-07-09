@@ -488,7 +488,8 @@
 				bestProgress > 0 ||
 				state.underlineEnabled ||
 				state.revealWordsOnRecitation ||
-				state.currentWordCustomCss.trim()
+				state.currentWordCustomCss.trim() ||
+				state.currentWordOpacityEnabled
 			) {
 				wbwCss = getWordByWordWordCss(bestIndex, state, bestProgress, wbwPreviewFadeDuration());
 			}
@@ -615,6 +616,7 @@
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
 			words: data?.words ?? [],
 			clipStartTimeS: data?.clipStartTimeS,
+			baseOpacity: subtitleOpacity,
 			getStyleValue: (styleId) =>
 				referenceClip ? styles.getEffectiveValue(styleId as never, referenceClip.id) : false
 		});
@@ -658,7 +660,7 @@
 		horizontalStyleId: 'horizontal-position'
 	}}
 	class={`translation absolute subtitle select-none z-10 ${edition} ${tailwind} ${helperStyles}`}
-	style={`opacity: ${subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
+	style={`opacity: ${wbwState().enabled ? 1 : subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
 >
 	<span class="translation-inline-flow">
 		{#if true}

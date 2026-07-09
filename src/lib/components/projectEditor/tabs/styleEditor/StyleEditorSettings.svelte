@@ -237,9 +237,15 @@
 		if (
 			showCurrentWordOnly &&
 			styleId !== 'wbw-show-current-word-only' &&
-			styleId !== 'wbw-current-word-custom-css'
+			styleId !== 'wbw-current-word-custom-css' &&
+			styleId !== 'enable-wbw-current-word-opacity' &&
+			styleId !== 'wbw-current-word-opacity'
 		)
 			return true;
+
+		if (styleId === 'wbw-current-word-opacity') {
+			return !Boolean(globalState.getStyle(target, 'enable-wbw-current-word-opacity')?.value);
+		}
 
 		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
 			return !Boolean(globalState.getStyle(target, 'enable-wbw-highlight')?.value);

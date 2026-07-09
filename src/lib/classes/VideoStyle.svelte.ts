@@ -138,7 +138,9 @@ export type WordByWordHighlightStyleName =
 	| 'wbw-glow-blur'
 	| 'wbw-underline-thickness'
 	| 'wbw-always-show-verse-number'
-	| 'wbw-current-word-custom-css';
+	| 'enable-wbw-current-word-opacity'
+	| 'wbw-current-word-custom-css'
+	| 'wbw-current-word-opacity';
 
 export type OverlayStyleName =
 	| 'overlay-enable'

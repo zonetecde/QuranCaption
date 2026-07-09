@@ -4318,6 +4318,14 @@ type RootTranslation = {
 			 */
 			'wbw-current-word-custom-css': string;
 			/**
+			 * E​n​a​b​l​e​ ​c​u​r​r​e​n​t​ ​w​o​r​d​ ​o​p​a​c​i​t​y
+			 */
+			'enable-wbw-current-word-opacity': string;
+			/**
+			 * C​u​r​r​e​n​t​ ​w​o​r​d​ ​o​p​a​c​i​t​y
+			 */
+			'wbw-current-word-opacity': string;
+			/**
 			 * P​o​s​i​t​i​o​n​ ​&​ ​L​a​y​o​u​t
 			 */
 			positioning: string;
@@ -4915,6 +4923,14 @@ type RootTranslation = {
 			 * C​u​s​t​o​m​ ​C​S​S​ ​a​p​p​l​i​e​d​ ​t​o​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​W​B​W​ ​w​o​r​d
 			 */
 			'wbw-current-word-custom-css': string;
+			/**
+			 * O​v​e​r​r​i​d​e​ ​t​h​e​ ​o​p​a​c​i​t​y​ ​o​f​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​W​B​W​ ​w​o​r​d
+			 */
+			'enable-wbw-current-word-opacity': string;
+			/**
+			 * O​p​a​c​i​t​y​ ​a​p​p​l​i​e​d​ ​t​o​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​W​B​W​ ​w​o​r​d
+			 */
+			'wbw-current-word-opacity': string;
 			/**
 			 * C​o​n​t​r​o​l​ ​t​h​e​ ​p​o​s​i​t​i​o​n​ ​a​n​d​ ​s​p​a​c​i​n​g​ ​o​f​ ​s​u​b​t​i​t​l​e​s​ ​o​n​ ​s​c​r​e​e​n
 			 */
@@ -13071,6 +13087,14 @@ export type TranslationFunctions = {
 			 */
 			'wbw-current-word-custom-css': () => LocalizedString;
 			/**
+			 * Enable current word opacity
+			 */
+			'enable-wbw-current-word-opacity': () => LocalizedString;
+			/**
+			 * Current word opacity
+			 */
+			'wbw-current-word-opacity': () => LocalizedString;
+			/**
 			 * Position & Layout
 			 */
 			positioning: () => LocalizedString;
@@ -13668,6 +13692,14 @@ export type TranslationFunctions = {
 			 * Custom CSS applied to the current WBW word
 			 */
 			'wbw-current-word-custom-css': () => LocalizedString;
+			/**
+			 * Override the opacity of the current WBW word
+			 */
+			'enable-wbw-current-word-opacity': () => LocalizedString;
+			/**
+			 * Opacity applied to the current WBW word
+			 */
+			'wbw-current-word-opacity': () => LocalizedString;
 			/**
 			 * Control the position and spacing of subtitles on screen
 			 */

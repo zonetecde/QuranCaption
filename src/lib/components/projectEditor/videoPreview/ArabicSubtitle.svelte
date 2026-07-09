@@ -522,6 +522,7 @@
 					)
 					.filter((word): word is SegmentationWordTimestamp => word !== null) ?? [],
 			clipStartTimeS: renderData?.clipStartTimeS,
+			baseOpacity: subtitleOpacity,
 			getStyleValue: (styleId) =>
 				styleReferenceClip
 					? arabicStyles.getEffectiveValue(styleId as never, styleReferenceClip.id)
@@ -699,7 +700,9 @@
 		}}
 		dir={shouldForceRtlJustify() ? 'rtl' : undefined}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
-		style="opacity: {subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
+		style="opacity: {wbwState().enabled
+			? 1
+			: subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>
 		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
 			{@const subtitle = currentSubtitle()}
@@ -751,7 +754,8 @@
 										: getWordByWordWordOpacity(
 												group.startWordIndex + group.words.length - 1,
 												state,
-												wbwPreviewFadeDuration()
+												wbwPreviewFadeDuration(),
+												false
 											)}
 									{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
 									{@const lastWordProgress = computeWordByWordHighlightProgress(
@@ -827,7 +831,8 @@
 									: getWordByWordWordOpacity(
 											group.startWordIndex + group.words.length - 1,
 											state,
-											wbwPreviewFadeDuration()
+											wbwPreviewFadeDuration(),
+											false
 										)}
 								{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
 								{@const lastWordProgress = computeWordByWordHighlightProgress(

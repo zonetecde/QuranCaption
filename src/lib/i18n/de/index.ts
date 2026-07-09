@@ -1176,6 +1176,8 @@ const de = {
 			'enable-wbw-background': 'WBW-Hintergrund aktivieren',
 			'wbw-bg-color': 'Hintergrundfarbe',
 			'wbw-current-word-custom-css': 'Benutzerdefiniertes CSS (aktuelles Wort)',
+			'enable-wbw-current-word-opacity': 'Deckkraft des aktuellen Wortes aktivieren',
+			'wbw-current-word-opacity': 'Deckkraft des aktuellen Wortes',
 			positioning: 'Position und Layout',
 			'reactive-y-position': 'Reaktive Y-Position',
 			'vertical-position': 'Vertikale Position',
@@ -1339,6 +1341,8 @@ const de = {
 			'enable-wbw-background': 'Hintergrundfarbe hinter hervorgehobenen Wörtern aktivieren',
 			'wbw-bg-color': 'Auf hervorgehobene Wörter angewendete Hintergrundfarbe',
 			'wbw-current-word-custom-css': 'Benutzerdefiniertes CSS für das aktuelle WBW-Wort',
+			'enable-wbw-current-word-opacity': 'Deckkraft des aktuellen WBW-Wortes überschreiben',
+			'wbw-current-word-opacity': 'Deckkraft für das aktuelle WBW-Wort',
 			positioning: 'Position und Abstand der Untertitel auf dem Bildschirm steuern',
 			'reactive-y-position':
 				'Wird verwendet, wenn « Text anpassen » nicht festgelegt ist, um die Y-Position je nach anderen Untertiteln anzupassen, um Überlappungen zu vermeiden',

@@ -585,12 +585,16 @@ const id: Translation = {
 			'background-overlay-fade-coverage': 'Cakupan Fade',
 			'word-by-word-highlight': 'Efek WBW',
 			'wbw-show-current-word-only': 'Tampilkan hanya kata saat ini',
-			'wbw-current-word-custom-css': 'CSS kustom (kata saat ini)'
+			'wbw-current-word-custom-css': 'CSS kustom (kata saat ini)',
+			'enable-wbw-current-word-opacity': 'Aktifkan opasitas kata saat ini',
+			'wbw-current-word-opacity': 'Opasitas kata saat ini'
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
 			'word-by-word-highlight': 'Terapkan efek kata demi kata saat timestamp WBW tersedia',
-			'wbw-current-word-custom-css': 'CSS kustom yang diterapkan ke kata WBW saat ini'
+			'wbw-current-word-custom-css': 'CSS kustom yang diterapkan ke kata WBW saat ini',
+			'enable-wbw-current-word-opacity': 'Timpa opasitas kata WBW saat ini',
+			'wbw-current-word-opacity': 'Opasitas yang diterapkan ke kata WBW saat ini'
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',

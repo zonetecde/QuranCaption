@@ -1177,6 +1177,8 @@ const fr = {
 			'enable-wbw-background': 'Activer l\u2019arrière-plan wbw',
 			'wbw-bg-color': 'Couleur d\u2019arrière-plan',
 			'wbw-current-word-custom-css': 'CSS personnalisé (mot actuel)',
+			'enable-wbw-current-word-opacity': 'Activer l’opacité du mot actuel',
+			'wbw-current-word-opacity': 'Opacité du mot actuel',
 			positioning: 'Position et disposition',
 			'reactive-y-position': 'Position Y réactive',
 			'vertical-position': 'Position verticale',
@@ -1342,6 +1344,8 @@ const fr = {
 				'Activer une couleur d\u2019arrière-plan derrière les mots surlignés',
 			'wbw-bg-color': 'Couleur d\u2019arrière-plan appliquée aux mots surlignés',
 			'wbw-current-word-custom-css': 'CSS personnalisé appliqué au mot WBW actuel',
+			'enable-wbw-current-word-opacity': 'Remplacer l’opacité du mot WBW actuel',
+			'wbw-current-word-opacity': 'Opacité appliquée au mot WBW actuel',
 			positioning: 'Contrôler la position et l\u2019espacement des sous-titres à l\u2019écran',
 			'reactive-y-position':
 				'Utilisé si \u00ab\u00a0Ajuster le texte\u00a0\u00bb n\u2019est pas défini pour ajuster la position Y selon les autres sous-titres afin d\u2019éviter les chevauchements',

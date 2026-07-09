@@ -11,6 +11,7 @@ export type WordByWordHighlightState = {
 	revealSpecificWordStyle: boolean;
 	revealWordsOnRecitation: boolean;
 	alwaysShowVerseNumber: boolean;
+	baseOpacity: number;
 	baseColor: string;
 	verseNumberColor: string;
 	color: string;
@@ -21,7 +22,9 @@ export type WordByWordHighlightState = {
 	glowEnabled: boolean;
 	glowColor: string;
 	glowBlur: number;
+	currentWordOpacityEnabled: boolean;
 	currentWordCustomCss: string;
+	currentWordOpacity: number;
 	clipStartTimeS: number;
 	cursorTimeS: number;
 	words: SegmentationWordTimestamp[];
@@ -43,6 +46,7 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const showCurrentWordOnly = Boolean(getStyleValue('wbw-show-current-word-only'));
 	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '').trim();
+	const currentWordOpacityEnabled = Boolean(getStyleValue('enable-wbw-current-word-opacity'));
 
 	return (
 		showCurrentWordOnly ||
@@ -52,7 +56,8 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 		revealSpecificWordStyle ||
 		revealWordsOnRecitation ||
 		backgroundEnabled ||
-		currentWordCustomCss.length > 0
+		currentWordCustomCss.length > 0 ||
+		currentWordOpacityEnabled
 	);
 }
 
@@ -70,6 +75,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		revealSpecificWordStyle: false,
 		revealWordsOnRecitation: false,
 		alwaysShowVerseNumber: false,
+		baseOpacity: 1,
 		baseColor: '',
 		verseNumberColor: '',
 		color: '',
@@ -80,7 +86,9 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		glowEnabled: false,
 		glowColor: '',
 		glowBlur: 10,
+		currentWordOpacityEnabled: false,
 		currentWordCustomCss: '',
+		currentWordOpacity: 1,
 		clipStartTimeS: 0,
 		cursorTimeS: 0,
 		words: []
@@ -123,6 +131,7 @@ export function getWordByWordHighlightState(params: {
 	getStyleValue: ResolveStyleValue;
 	words?: SegmentationWordTimestamp[];
 	clipStartTimeS?: number;
+	baseOpacity?: number;
 }): WordByWordHighlightState {
 	const { subtitle, isArabicMerged, cursorTimeS, getStyleValue } = params;
 	const words = params.words ?? subtitle?.alignmentMetadata?.words ?? [];
@@ -139,7 +148,12 @@ export function getWordByWordHighlightState(params: {
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
+	const currentWordOpacityEnabled = Boolean(getStyleValue('enable-wbw-current-word-opacity'));
 	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '');
+	const currentWordOpacityValue = Number(getStyleValue('wbw-current-word-opacity') ?? 1);
+	const currentWordOpacity = Number.isFinite(currentWordOpacityValue)
+		? Utilities.clamp01(currentWordOpacityValue)
+		: 1;
 	if (!isEnabled) return getDisabledWordByWordHighlightState();
 
 	const wbwTimingEpsilonS = 0.0005;
@@ -175,6 +189,7 @@ export function getWordByWordHighlightState(params: {
 		alwaysShowVerseNumber: showCurrentWordOnly
 			? false
 			: Boolean(getStyleValue('wbw-always-show-verse-number')),
+		baseOpacity: Utilities.clamp01(Number(params.baseOpacity ?? 1)),
 		baseColor: String(getStyleValue('text-color') ?? ''),
 		verseNumberColor: String(getStyleValue('verse-number-color') ?? ''),
 		color: String(getStyleValue('wbw-color') ?? ''),
@@ -185,7 +200,9 @@ export function getWordByWordHighlightState(params: {
 		glowEnabled: showCurrentWordOnly ? false : glowEnabled,
 		glowColor: String(getStyleValue('wbw-glow-color') ?? ''),
 		glowBlur: Number(getStyleValue('wbw-glow-blur') ?? 10),
+		currentWordOpacityEnabled,
 		currentWordCustomCss,
+		currentWordOpacity,
 		clipStartTimeS,
 		cursorTimeS,
 		words
@@ -309,9 +326,14 @@ export function getWordByWordWordCss(
 ): string {
 	const parts: string[] = [];
 	const clampedProgress = Utilities.clamp01(highlightProgress);
-	const opacity = getWordByWordWordOpacity(wordIndex, state, fadeDurationMs);
+	const opacity = getWordByWordWordOpacity(wordIndex, state, fadeDurationMs, true, clampedProgress);
 	const effectiveBaseColor = baseColorOverride ?? state.baseColor;
 	const customCss = wordIndex === state.activeWordIndex ? state.currentWordCustomCss : '';
+	const shouldWriteOpacity =
+		state.revealWordsOnRecitation ||
+		state.showCurrentWordOnly ||
+		state.currentWordOpacityEnabled ||
+		state.baseOpacity !== 1;
 
 	if (state.underlineEnabled) {
 		parts.push('text-decoration-line: underline;');
@@ -321,7 +343,7 @@ export function getWordByWordWordCss(
 	}
 
 	if (clampedProgress === 0 || fadeDurationMs < 0) {
-		if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
+		if (shouldWriteOpacity) {
 			parts.push(`opacity: ${opacity};`);
 		}
 		if (customCss.trim()) parts.push(customCss);
@@ -343,7 +365,7 @@ export function getWordByWordWordCss(
 			`text-shadow: 0 0 ${glowBlur * 0.5}px ${glowColor}, 0 0 ${glowBlur}px ${glowColor}, 0 0 ${glowBlur * 1.5}px ${glowColor}, 0 0 ${glowBlur * 2}px ${glowColor};`
 		);
 	}
-	if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
+	if (shouldWriteOpacity) {
 		parts.push(`opacity: ${opacity};`);
 	}
 	if (customCss.trim()) parts.push(customCss);
@@ -354,14 +376,25 @@ export function getWordByWordWordCss(
  * Retourne l'opacité à appliquer à un mot WBW selon son état de recitation.
  * @param {WordByWordHighlightState} state Etat de highlight courant.
  * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
+ * @param {boolean} useCurrentWordOpacity Indique si l'opacité custom du mot courant doit être appliquée.
+ * @param {number | null} highlightProgress Progression WBW à utiliser pour interpoler l'opacité custom.
  * @returns {number} Opacité normalisée entre 0 et 1.
  */
 export function getWordByWordWordOpacity(
 	wordIndex: number,
 	state: WordByWordHighlightState,
-	fadeDurationMs: number
+	fadeDurationMs: number,
+	useCurrentWordOpacity: boolean = true,
+	highlightProgress: number | null = null
 ): number {
-	if ((!state.revealWordsOnRecitation && !state.showCurrentWordOnly) || !state.enabled) return 1;
+	if (!state.enabled) return 1;
+
+	const activeWordOpacity =
+		useCurrentWordOpacity && state.currentWordOpacityEnabled
+			? state.baseOpacity +
+				(state.currentWordOpacity - state.baseOpacity) * Utilities.clamp01(highlightProgress ?? 0)
+			: state.baseOpacity;
+	if (!state.revealWordsOnRecitation && !state.showCurrentWordOnly) return activeWordOpacity;
 
 	const word = state.words[wordIndex];
 	if (!word) return 0;
@@ -372,37 +405,43 @@ export function getWordByWordWordOpacity(
 
 	if (state.showCurrentWordOnly) {
 		if (fadeDurationS === 0) {
-			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? 1 : 0;
+			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? activeWordOpacity : 0;
 		}
 
 		const wordDurationS = Math.max(0, wordEndTimeS - wordStartTimeS);
 		const effectiveFadeDurationS = Math.min(fadeDurationS, wordDurationS / 2);
 		if (effectiveFadeDurationS <= 0) {
-			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? 1 : 0;
+			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? activeWordOpacity : 0;
 		}
 
 		if (currentTimeS < wordStartTimeS || currentTimeS > wordEndTimeS) return 0;
 		if (currentTimeS <= wordStartTimeS + effectiveFadeDurationS) {
-			return Utilities.clamp01((currentTimeS - wordStartTimeS) / effectiveFadeDurationS);
+			return (
+				Utilities.clamp01((currentTimeS - wordStartTimeS) / effectiveFadeDurationS) *
+				activeWordOpacity
+			);
 		}
 		if (currentTimeS >= wordEndTimeS - effectiveFadeDurationS) {
-			return Utilities.clamp01((wordEndTimeS - currentTimeS) / effectiveFadeDurationS);
+			return (
+				Utilities.clamp01((wordEndTimeS - currentTimeS) / effectiveFadeDurationS) *
+				activeWordOpacity
+			);
 		}
-		return 1;
+		return activeWordOpacity;
 	}
 
-	if (wordIndex < state.activeWordIndex) return 1;
+	if (wordIndex < state.activeWordIndex) return state.baseOpacity;
 	if (wordIndex > state.activeWordIndex) return 0;
-	if (state.activeWordIndex >= state.words.length) return 1;
+	if (state.activeWordIndex >= state.words.length) return state.baseOpacity;
 
 	if (fadeDurationS === 0) {
-		return currentTimeS >= wordStartTimeS ? 1 : 0;
+		return currentTimeS >= wordStartTimeS ? activeWordOpacity : 0;
 	}
 
 	if (currentTimeS < wordStartTimeS) return 0;
 	if (currentTimeS <= wordStartTimeS + fadeDurationS) {
-		return Utilities.clamp01((currentTimeS - wordStartTimeS) / fadeDurationS);
+		return Utilities.clamp01((currentTimeS - wordStartTimeS) / fadeDurationS) * activeWordOpacity;
 	}
-	if (currentTimeS <= wordEndTimeS) return 1;
-	return 1;
+	if (currentTimeS <= wordEndTimeS) return activeWordOpacity;
+	return activeWordOpacity;
 }

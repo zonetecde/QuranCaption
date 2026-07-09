@@ -1180,6 +1180,8 @@ const es = {
 			'enable-wbw-background': 'Activar fondo wbw',
 			'wbw-bg-color': 'Color de fondo',
 			'wbw-current-word-custom-css': 'CSS personalizado (palabra actual)',
+			'enable-wbw-current-word-opacity': 'Activar opacidad de la palabra actual',
+			'wbw-current-word-opacity': 'Opacidad de la palabra actual',
 			positioning: 'Posición y disposición',
 			'reactive-y-position': 'Posición Y reactiva',
 			'vertical-position': 'Posición vertical',
@@ -1344,6 +1346,8 @@ const es = {
 			'enable-wbw-background': 'Activar un color de fondo detrás de las palabras resaltadas',
 			'wbw-bg-color': 'Color de fondo aplicado a las palabras resaltadas',
 			'wbw-current-word-custom-css': 'CSS personalizado aplicado a la palabra WBW actual',
+			'enable-wbw-current-word-opacity': 'Sobrescribir la opacidad de la palabra WBW actual',
+			'wbw-current-word-opacity': 'Opacidad aplicada a la palabra WBW actual',
 			positioning: 'Controlar la posición y el espaciado de los subtítulos en pantalla',
 			'reactive-y-position':
 				'Usado si \u00ab\u00a0Ajustar texto\u00a0\u00bb no está configurado para ajustar la posición Y según otros subtítulos para evitar superposiciones',

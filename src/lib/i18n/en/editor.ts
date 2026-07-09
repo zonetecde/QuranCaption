@@ -864,6 +864,8 @@ const editor = {
 		'enable-wbw-background': 'Enable wbw background',
 		'wbw-bg-color': 'Background color',
 		'wbw-current-word-custom-css': 'Custom CSS (current word)',
+		'enable-wbw-current-word-opacity': 'Enable current word opacity',
+		'wbw-current-word-opacity': 'Current word opacity',
 		positioning: 'Position & Layout',
 		'reactive-y-position': 'Reactive Y Position',
 		'vertical-position': 'Vertical Position',
@@ -1021,6 +1023,8 @@ const editor = {
 		'enable-wbw-background': 'Enable a background color behind highlighted words',
 		'wbw-bg-color': 'Background color applied to highlighted words',
 		'wbw-current-word-custom-css': 'Custom CSS applied to the current WBW word',
+		'enable-wbw-current-word-opacity': 'Override the opacity of the current WBW word',
+		'wbw-current-word-opacity': 'Opacity applied to the current WBW word',
 		positioning: 'Control the position and spacing of subtitles on screen',
 		'reactive-y-position':
 			"Used if the 'Make Text Fit' feature is not set to adjust Y position based on other subtitles positions so that they do not overlap",

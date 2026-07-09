@@ -7,7 +7,11 @@
 	import PresetLibrary from './presets/components/PresetLibrary.svelte';
 	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
-	import { ClipWithTranslation, type VisualMergeMode } from '$lib/classes/Clip.svelte';
+	import {
+		ClipWithTranslation,
+		CustomImageClip,
+		type VisualMergeMode
+	} from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import {
@@ -689,6 +693,30 @@
 							contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
 							classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
 						>
+							{#snippet headerActions()}
+								<button
+									type="button"
+									class="flex items-center justify-center size-8 text-secondary hover:text-danger-color rounded"
+									title={customTextClip instanceof CustomImageClip
+										? ((
+												$LL.editor as typeof $LL.editor & { removeCustomImage?: () => string }
+											).removeCustomImage?.() ??
+											`${$LL.common.remove()} ${$LL.editor.customImage()}`)
+										: $LL.editor.removeCustomText()}
+									aria-label={customTextClip instanceof CustomImageClip
+										? ((
+												$LL.editor as typeof $LL.editor & { removeCustomImage?: () => string }
+											).removeCustomImage?.() ??
+											`${$LL.common.remove()} ${$LL.editor.customImage()}`)
+										: $LL.editor.removeCustomText()}
+									onclick={(event) => {
+										event.stopPropagation();
+										globalState.getCustomClipTrack.removeClip(Number(customTextClip.id));
+									}}
+								>
+									<span class="material-icons-outlined text-base">delete_outline</span>
+								</button>
+							{/snippet}
 							{#each category.styles as style (style.id)}
 								{#if matchesStyleSearch(style)}
 									{@const toDisable =

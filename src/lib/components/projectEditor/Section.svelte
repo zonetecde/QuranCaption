@@ -9,6 +9,7 @@
 		icon,
 		classes,
 		contentClasses,
+		headerActions,
 		children,
 		dataCategory,
 		saveState = true,
@@ -18,6 +19,7 @@
 		icon: string;
 		classes?: string;
 		contentClasses?: string;
+		headerActions?: Snippet;
 		children: Snippet;
 		dataCategory?: string;
 		saveState?: boolean;
@@ -64,9 +66,15 @@
 				>
 			{/if}
 		</h3>
+		{#if headerActions}
+			<div class="ml-auto flex items-center">
+				{@render headerActions()}
+			</div>
+		{/if}
 		<!-- dropdownicon -->
 		<button
-			class={'flex items-center ml-auto cursor-pointer transition-all duration-100 ' +
+			class={'flex items-center cursor-pointer transition-all duration-100 ' +
+				(headerActions ? '' : 'ml-auto ') +
 				(extended ? 'rotate-180' : '')}
 		>
 			<span class="material-icons text-4xl! text-accent-primary">arrow_drop_down</span>

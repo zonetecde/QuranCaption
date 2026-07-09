@@ -4,6 +4,28 @@
 		"name": "General",
 		"description": "General styling options for subtitles",
 		"icon": "settings",
+		"ui": {
+			"panel": { "id": "essentials", "icon": "text_fields", "label": "text", "order": 0, "categoryOrder": 0 },
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["show-subtitles", "mushaf-style", "text-direction"]
+				},
+				{
+					"id": "verseNumber",
+					"styleIds": [
+						"show-verse-number",
+						"verse-number-format",
+						"verse-number-position",
+						"verse-number-numeral-system"
+					]
+				},
+				{
+					"id": "decorations",
+					"styleIds": ["show-decorative-brackets", "decorative-brackets-font-family"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-subtitles",
@@ -126,6 +148,35 @@
 		"name": "Text Styling",
 		"description": "Control the appearance and formatting of subtitle text",
 		"icon": "text_fields",
+		"ui": {
+			"panel": { "id": "essentials", "icon": "text_fields", "label": "text", "order": 0, "categoryOrder": 1 },
+			"groups": [
+				{
+					"id": "typography",
+					"styleIds": [
+						"font-family",
+						"font-size",
+						"font-weight",
+						"enable-italic",
+						"text-transform"
+					]
+				},
+				{
+					"id": "colors",
+					"styleIds": ["text-color", "verse-number-color", "opacity"]
+				},
+				{
+					"id": "spacing",
+					"styleIds": [
+						"letter-spacing",
+						"word-spacing",
+						"line-height",
+						"max-height",
+						"max-line"
+					]
+				}
+			]
+		},
 		"styles": [
 		{
 			"id": "text-color",
@@ -298,6 +349,42 @@
 		"name": "WBW Effect",
 		"description": "Apply timed word-by-word effects when WBW timestamps are available",
 		"icon": "lyrics",
+		"ui": {
+			"panel": { "id": "word-by-word", "icon": "format_paint", "label": "word-by-word-highlight", "order": 4, "categoryOrder": 0 },
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": [
+						"wbw-show-current-word-only",
+						"wbw-reveal-on-recitation",
+						"wbw-always-show-verse-number",
+						"wbw-reveal-specific-word-style"
+					]
+				},
+				{
+					"id": "colors",
+					"styleIds": ["enable-wbw-highlight", "wbw-color", "wbw-persist-color"]
+				},
+				{
+					"id": "decorations",
+					"styleIds": [
+						"enable-wbw-underline",
+						"wbw-underline-thickness",
+						"enable-wbw-glow",
+						"wbw-glow-color",
+						"wbw-glow-blur",
+						"enable-wbw-background",
+						"wbw-bg-color",
+						"enable-wbw-current-word-opacity",
+						"wbw-current-word-opacity"
+					]
+				},
+				{
+					"id": "advanced",
+					"styleIds": ["wbw-current-word-custom-css"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "wbw-show-current-word-only",
@@ -485,6 +572,9 @@
 		"name": "Position & Layout",
 		"description": "Control the position and spacing of subtitles on screen",
 		"icon": "open_with",
+		"ui": {
+			"panel": { "id": "layout", "icon": "open_with", "label": "positioning", "order": 1, "categoryOrder": 0 }
+		},
 		"styles": [
 			{
 				"id": "reactive-y-position",
@@ -582,6 +672,25 @@
 		"name": "Background & Container",
 		"description": "Style the background and container of subtitles",
 		"icon": "square",
+		"ui": {
+			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 0 },
+			"headerStyle": "background-enable",
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["background-enable", "background-color", "background-opacity"]
+				},
+				{
+					"id": "layout",
+					"styleIds": ["border-radius", "background-horizontal-padding"]
+				},
+				{
+					"id": "timing",
+					"styleIds": ["always-show", "time-appearance", "time-disappearance"]
+				},
+				{ "id": "advanced", "styleIds": ["background-css"] }
+			]
+		},
 		"styles": [
 			{
 				"id": "background-enable",
@@ -687,6 +796,10 @@
 		"name": "Container Border",
 		"description": "Add borders around subtitle containers",
 		"icon": "border_all",
+		"ui": {
+			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 1 },
+			"headerStyle": "border-enable"
+		},
 		"styles": [
 			{
 				"id": "border-enable",
@@ -746,6 +859,10 @@
 		"name": "Shadow Effects",
 		"description": "Add shadow effects to text and containers",
 		"icon": "filter_drama",
+		"ui": {
+			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 2 },
+			"headerStyle": "shadow-enable"
+		},
 		"styles": [
 			{
 				"id": "shadow-enable",
@@ -808,6 +925,10 @@
 		"name": "Text Outline",
 		"description": "Add outlines and strokes around text",
 		"icon": "border_outer",
+		"ui": {
+			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 3 },
+			"headerStyle": "outline-enable"
+		},
 		"styles": [
 			{
 				"id": "outline-enable",
@@ -849,6 +970,10 @@
 		"name": "Text Glow",
 		"description": "Add a glow effect to the text",
 		"icon": "wb_incandescent",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 0 },
+			"headerStyle": "text-glow-enable"
+		},
 		"styles": [
 			{
 				"id": "text-glow-enable",
@@ -889,6 +1014,10 @@
 		"name": "Neon Effect",
 		"description": "Add a neon light effect to the text",
 		"icon": "light_mode",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 1 },
+			"headerStyle": "text-neon-enable"
+		},
 		"styles": [
 			{
 				"id": "text-neon-enable",
@@ -929,6 +1058,9 @@
 		"name": "Visual Effects",
 		"description": "Add visual effects and filters to enhance subtitle appearance",
 		"icon": "auto_fix_high",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 2 }
+		},
 		"styles": [
 			{
 				"id": "opacity",
@@ -986,6 +1118,9 @@
 		"name": "Animation & Transitions",
 		"description": "Add motion and transition effects to subtitles",
 		"icon": "animation",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 3 }
+		},
 		"styles": [
 			{
 				"id": "scale",
@@ -1018,6 +1153,9 @@
 		"name": "Custom CSS",
 		"description": "Add your own custom CSS to fully customize subtitle appearance",
 		"icon": "code",
+		"ui": {
+			"panel": { "id": "advanced", "icon": "code", "label": "custom-css", "order": 5, "categoryOrder": 0 }
+		},
 		"styles": [
 			{
 				"id": "custom-css",

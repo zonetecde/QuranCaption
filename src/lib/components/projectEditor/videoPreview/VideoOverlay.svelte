@@ -408,8 +408,8 @@
 	 * Classes CSS d'aide visuelle pour l'édition de style.
 	 *
 	 * Quand on édite une cible dans l'onglet Style, on ajoute une classe
-	 * de fond semi-transparent si les sections "width" ou "max-height"
-	 * sont en mode étendu (pour visualiser les contraintes).
+	 * de fond semi-transparent pendant le survol des contrôles "width"
+	 * ou "max-height" afin de visualiser leurs contraintes.
 	 *
 	 * @param target - Cible de style.
 	 * @returns Classes CSS additionnelles.
@@ -424,10 +424,8 @@
 			let classes = ' ';
 
 			if (
-				globalState.getSectionsState['width'] &&
-				globalState.getSectionsState['max-height'] &&
-				(globalState.getSectionsState['width'].extended ||
-					globalState.getSectionsState['max-height'].extended)
+				globalState.hoveredStylePreviewHelper === 'width' ||
+				globalState.hoveredStylePreviewHelper === 'max-height'
 			) {
 				classes += 'bg-[#11A2AF]/50 ';
 			}

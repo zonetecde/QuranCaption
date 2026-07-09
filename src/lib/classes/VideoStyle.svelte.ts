@@ -237,6 +237,25 @@ export type StyleName =
 	| VerseNumberStyleName
 	| AyahContainerStyleName;
 
+export type StyleEditorPanelMetadata = {
+	id: string;
+	icon: string;
+	label: string;
+	order: number;
+	categoryOrder: number;
+};
+
+export type StyleEditorGroupMetadata = {
+	id: string;
+	styleIds: string[];
+};
+
+export type StyleCategoryUiMetadata = {
+	panel: StyleEditorPanelMetadata;
+	groups?: StyleEditorGroupMetadata[];
+	headerStyle?: string;
+};
+
 type RawStyle = Partial<Style> & { id: string };
 type RawCategory = Partial<Category> & { id: string; styles?: RawStyle[] };
 
@@ -390,18 +409,34 @@ export class Category extends SerializableBase {
 	description: string = '';
 	icon: string = '';
 	styles: Style[] = $state([]);
+	declare ui?: StyleCategoryUiMetadata;
 
 	constructor(init?: Partial<Category>) {
 		super();
 		if (!init) return;
 		// assign simples
-		const { styles, ...rest } = init;
+		const { styles, ui, ...rest } = init;
 		Object.assign(this, rest);
+		this.setUiMetadata(ui);
 
 		// s'assurer que les styles sont des instances de Style
 		if (Array.isArray(styles)) {
 			this.styles = styles.map((s) => (s instanceof Style ? s : new Style(s)));
 		}
+	}
+
+	/**
+	 * Attache les métadonnées d'éditeur sans les sérialiser dans le projet.
+	 * @param {StyleCategoryUiMetadata | undefined} ui Métadonnées issues du JSON statique.
+	 * @returns {void}
+	 */
+	setUiMetadata(ui: StyleCategoryUiMetadata | undefined): void {
+		Object.defineProperty(this, 'ui', {
+			configurable: true,
+			enumerable: false,
+			writable: true,
+			value: ui
+		});
 	}
 
 	getStyle(styleId: StyleName): Style | undefined {
@@ -861,6 +896,42 @@ export class VideoStyle extends SerializableBase {
 
 	constructor() {
 		super();
+	}
+
+	/**
+	 * Recharge la configuration visuelle de l'éditeur depuis les JSON statiques.
+	 * @returns {Promise<void>}
+	 */
+	async hydrateStyleEditorUiMetadata(): Promise<void> {
+		const [globalDefaults, subtitleDefaults] = (await Promise.all([
+			fetch('./styles/globalStyles.json').then((response) => response.json()),
+			fetch('./styles/styles.json').then((response) => response.json())
+		])) as [RawCategory[], RawCategory[]];
+
+		for (const stylesData of this.styles) {
+			const defaults = stylesData.target === 'global' ? globalDefaults : subtitleDefaults;
+			for (const category of stylesData.categories) {
+				category.setUiMetadata(defaults.find((candidate) => candidate.id === category.id)?.ui);
+			}
+		}
+	}
+
+	/**
+	 * Recopie les métadonnées UI non persistées lors d'une restauration undo/redo.
+	 * @param {VideoStyle} source Styles du projet actuellement chargé.
+	 * @returns {void}
+	 */
+	copyStyleEditorUiMetadataFrom(source: VideoStyle): void {
+		for (const stylesData of this.styles) {
+			const sourceStyles = source.styles.find(
+				(candidate) => candidate.target === stylesData.target
+			);
+			for (const category of stylesData.categories) {
+				category.setUiMetadata(
+					sourceStyles?.categories.find((candidate) => candidate.id === category.id)?.ui
+				);
+			}
+		}
 	}
 
 	/**

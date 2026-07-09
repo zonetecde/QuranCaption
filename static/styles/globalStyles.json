@@ -4,6 +4,21 @@
 		"name": "General Settings",
 		"description": "Configure general settings for the video",
 		"icon": "animation",
+		"ui": {
+			"panel": { "id": "video", "icon": "movie", "label": "general", "order": 0, "categoryOrder": 0 },
+			"groups": [
+				{ "id": "layout", "styleIds": ["video-dimension"] },
+				{ "id": "spacing", "styleIds": ["anti-collision", "spacing"] },
+				{
+					"id": "timing",
+					"styleIds": ["fade-duration", "video-and-audio-fade"]
+				},
+				{
+					"id": "transitions",
+					"styleIds": ["video-clip-transition", "video-clip-transition-duration"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "video-dimension",
@@ -101,6 +116,25 @@
 		"name": "Overlay",
 		"description": "Add a color overlay on top of the video",
 		"icon": "layers",
+		"ui": {
+			"panel": { "id": "overlay", "icon": "layers", "label": "overlay", "order": 1, "categoryOrder": 0 },
+			"headerStyle": "overlay-enable",
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["overlay-enable", "overlay-color", "overlay-opacity", "overlay-blur"]
+				},
+				{
+					"id": "effects",
+					"styleIds": [
+						"background-overlay-mode",
+						"background-overlay-fade-intensity",
+						"background-overlay-fade-coverage"
+					]
+				},
+				{ "id": "advanced", "styleIds": ["overlay-custom-css"] }
+			]
+		},
 		"styles": [
 			{
 				"id": "overlay-enable",
@@ -202,6 +236,42 @@
 		"name": "Surah Name",
 		"description": "Control display of the Surah name",
 		"icon": "title",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 0 },
+			"headerStyle": "show-surah-name",
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["show-surah-name", "surah-show-arabic", "surah-show-latin"]
+				},
+				{
+					"id": "typography",
+					"styleIds": [
+						"surah-name-format",
+						"surah-calligraphy-style",
+						"surah-size",
+						"surah-latin-spacing",
+						"surah-latin-text-style"
+					]
+				},
+				{
+					"id": "layout",
+					"styleIds": [
+						"surah-name-vertical-position",
+						"surah-name-horizontal-position",
+						"surah-opacity"
+					]
+				},
+				{
+					"id": "timing",
+					"styleIds": [
+						"surah-name-always-show",
+						"surah-name-time-appearance",
+						"surah-name-time-disappearance"
+					]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-surah-name",
@@ -369,6 +439,46 @@
 		"name": "Reciter Name",
 		"description": "Control display of the Reciter name",
 		"icon": "person",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 1 },
+			"headerStyle": "show-reciter-name",
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": [
+						"show-reciter-name",
+						"reciter-name",
+						"reciter-show-arabic",
+						"reciter-show-latin"
+					]
+				},
+				{
+					"id": "typography",
+					"styleIds": [
+						"reciter-name-format",
+						"reciter-size",
+						"reciter-latin-spacing",
+						"reciter-latin-text-style"
+					]
+				},
+				{
+					"id": "layout",
+					"styleIds": [
+						"reciter-name-vertical-position",
+						"reciter-name-horizontal-position",
+						"reciter-opacity"
+					]
+				},
+				{
+					"id": "timing",
+					"styleIds": [
+						"reciter-name-always-show",
+						"reciter-name-time-appearance",
+						"reciter-name-time-disappearance"
+					]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-reciter-name",
@@ -534,6 +644,28 @@
 		"name": "Ayah Container",
 		"description": "Add a decorative background image behind the ayah",
 		"icon": "gradient",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 2 },
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["ayah-container-image", "ayah-container-stretch"]
+				},
+				{
+					"id": "layout",
+					"styleIds": [
+						"ayah-container-vertical-position",
+						"ayah-container-horizontal-position",
+						"ayah-container-width",
+						"ayah-container-height"
+					]
+				},
+				{
+					"id": "timing",
+					"styleIds": ["always-show", "time-appearance", "time-disappearance"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "ayah-container-image",
@@ -643,6 +775,21 @@
 		"name": "Verse Number (Separated From Text)",
 		"description": "Control display of the Verse number",
 		"icon": "format_list_numbered",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 3 },
+			"headerStyle": "show-verse-number",
+			"groups": [
+				{ "id": "basics", "styleIds": ["show-verse-number"] },
+				{
+					"id": "typography",
+					"styleIds": ["verse-number-format", "verse-number-text-style"]
+				},
+				{
+					"id": "layout",
+					"styleIds": ["verse-number-vertical-position", "verse-number-horizontal-position"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-verse-number",

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+	import { invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
@@ -24,15 +24,30 @@
 	const LL_ = get(LL);
 	let systemFontsPromise: Promise<string[]> | null = null;
 
+	/**
+	 * Lit une microcopie ajoutée au dictionnaire de style en attendant la génération i18n du hook.
+	 * @param {'mixedValue' | 'localOverride'} key Clé de microcopie à résoudre.
+	 * @returns {string} Texte localisé.
+	 */
+	function getStyleUiCopy(key: 'mixedValue' | 'localOverride'): string {
+		return (get(LL).style as unknown as Record<'mixedValue' | 'localOverride', () => string>)[
+			key
+		]();
+	}
+
 	let {
 		style,
 		target,
 		disabled,
+		showControl = false,
+		headerControl = false,
 		applyValueSimple
 	}: {
 		style: Style;
 		target?: string;
 		disabled: boolean;
+		showControl?: boolean;
+		headerControl?: boolean;
 		applyValueSimple: (value: Style['value']) => void;
 	} = $props();
 
@@ -132,6 +147,10 @@
 		globalState.getSectionsState[style.id] = {
 			extended: extended
 		};
+	});
+
+	$effect(() => {
+		if (showControl) extended = true;
 	});
 
 	// Initialize orientation and quality based on current dimensions
@@ -428,6 +447,9 @@
 
 	onDestroy(() => {
 		commitColorHistoryTransaction();
+		if (globalState.hoveredStylePreviewHelper === style.id) {
+			globalState.hoveredStylePreviewHelper = null;
+		}
 	});
 
 	/**
@@ -455,7 +477,7 @@
 			return dimension.width + 'x' + dimension.height;
 		} else if (style.valueType === 'fade') {
 			const fadeValue = getFadeValue();
-			return `${fadeValue.audioFadeInEnabled || fadeValue.audioFadeOutEnabled || fadeValue.videoFadeOutEnabled || fadeValue.videoFadeInEnabled ? LL_.common.enabled() + ' - ' + fadeValue.fadeDurationMs + LL_.common.ms() : LL_.common.disabled()}`;
+			return `${hasFadeEnabled(fadeValue) ? LL_.common.enabled() + ' - ' + fadeValue.fadeDurationMs + LL_.common.ms() : LL_.common.disabled()}`;
 		} else if (style.valueType === 'ayah-image') {
 			return style.value ? String(style.value) : LL_.common.none();
 		} else return String(style.value);
@@ -463,6 +485,20 @@
 
 	function getFadeValue(): FadeValue {
 		return asFadeValue(style.value);
+	}
+
+	/**
+	 * Indique si au moins un fondu est activé.
+	 * @param {FadeValue} fadeValue Paramètres de fondu à vérifier.
+	 * @returns {boolean} `true` si une durée de fondu est utile.
+	 */
+	function hasFadeEnabled(fadeValue: FadeValue): boolean {
+		return (
+			fadeValue.audioFadeInEnabled ||
+			fadeValue.audioFadeOutEnabled ||
+			fadeValue.videoFadeOutEnabled ||
+			fadeValue.videoFadeInEnabled
+		);
 	}
 
 	function updateFadeValue(partial: Partial<FadeValue>) {
@@ -597,562 +633,701 @@
 	}
 </script>
 
-<div
-	class={'flex flex-col duration-150 rounded-xl overflow-hidden ' +
-		(extended ? 'bg-accent/40 ring-1 ring-color my-2' : 'hover:bg-accent/20') +
-		(isMixed()
-			? ' border border-fuchsia-400/60'
-			: isOverridden()
-				? ' border border-amber-400/60'
-				: ' border border-transparent')}
->
-	<!-- Header -->
+{#if headerControl}
+	<div class="flex items-center gap-1" class:opacity-50={disabled}>
+		{#if selectedClipIds().length > 0 && (isOverridden() || isMixed())}
+			<button
+				type="button"
+				class="grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-[var(--bg-accent)] hover:text-primary"
+				title={$LL.editor.resetOverrideSelection()}
+				onclick={(event) => {
+					event.stopPropagation();
+					clearOverride();
+				}}
+			>
+				<span class="material-icons-outlined text-[16px]!">restart_alt</span>
+			</button>
+		{/if}
+		<label
+			class="inline-flex origin-right scale-75 cursor-pointer select-none items-center"
+			title={getStyleName(style.id, get(LL))}
+		>
+			<input
+				type="checkbox"
+				class="peer sr-only"
+				aria-label={getStyleName(style.id, get(LL))}
+				checked={Boolean(inputValue)}
+				indeterminate={isMixed()}
+				{disabled}
+				onchange={(event) => applyValue((event.target as HTMLInputElement).checked)}
+			/>
+			<div
+				class="relative h-6 w-11 rounded-full border border-color bg-[var(--bg-accent)]
+					transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
+					peer-indeterminate:bg-fuchsia-500 peer-checked:[&>span]:translate-x-5
+					peer-indeterminate:[&>span]:translate-x-2.5"
+			>
+				<span
+					class="absolute left-1 top-0.75 h-4 w-4 rounded-full bg-white shadow transition-transform duration-150"
+				></span>
+			</div>
+		</label>
+	</div>
+{:else}
 	<div
-		class={'flex items-center justify-between py-1.25 px-2 cursor-pointer select-none ' +
-			(extended ? 'border-b border-color ' : '') +
-			(disabled ? 'opacity-50 pointer-events-none' : '')}
-		onclick={() => {
-			// Impossible d'étendre un style booléen, comme on a le switch directement pour le mettre en true/false
-			if (style.valueType !== 'boolean') extended = !extended;
-			else applyValue(!inputValue);
+		class={'style-control flex flex-col duration-150 ' +
+			(showControl
+				? 'style-control-direct '
+				: 'rounded-xl overflow-hidden ' +
+					(extended
+						? 'bg-[var(--bg-accent)]/20 ring-1 ring-[var(--border-color)]'
+						: 'hover:bg-[var(--bg-accent)]/20')) +
+			(showControl
+				? isMixed()
+					? ' style-control-direct-mixed'
+					: isOverridden()
+						? ' style-control-direct-overridden'
+						: ''
+				: isMixed()
+					? ' border border-fuchsia-400/60'
+					: isOverridden()
+						? ' border border-amber-400/60'
+						: ' border border-transparent') +
+			(showControl && style.valueType === 'number' ? ' style-control-number' : '') +
+			(disabled ? ' opacity-50 pointer-events-none' : '')}
+		onmouseenter={() => {
+			if (style.id === 'width' || style.id === 'max-height') {
+				globalState.hoveredStylePreviewHelper = style.id as StyleName;
+			}
+		}}
+		onmouseleave={() => {
+			if (globalState.hoveredStylePreviewHelper === style.id) {
+				globalState.hoveredStylePreviewHelper = null;
+			}
 		}}
 	>
-		<div class="flex items-center gap-2">
-			<span class="material-icons-outlined text-[20px]! text-secondary">{style.icon}</span>
-			<span class="text-sm text-primary font-medium">{getStyleName(style.id, get(LL))}</span>
-		</div>
-		{#key selectedClipIds().length + String(inputValue)}
-			<div class="flex items-center gap-2 text-xs text-secondary">
-				{#if selectedClipIds().length > 0}
-					{#if getEffectiveForSelection().mixed}
-						<span
-							class="px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-200 border border-fuchsia-400/40 flex items-center gap-1"
+		<!-- Header -->
+		<div
+			class={'flex items-center justify-between select-none ' +
+				(showControl
+					? 'style-control-direct-header '
+					: 'py-1.25 px-2 ' + (extended ? 'border-b border-color ' : '')) +
+				(showControl ? '' : 'cursor-pointer')}
+			title={showControl ? getStyleDescription(style.id, get(LL)) : undefined}
+			onclick={() => {
+				if (showControl) return;
+				// Impossible d'étendre un style booléen, comme on a le switch directement pour le mettre en true/false
+				if (style.valueType !== 'boolean') extended = !extended;
+				else applyValue(!inputValue);
+			}}
+		>
+			<div class="flex items-center gap-2">
+				<span
+					class={'material-icons-outlined text-secondary ' +
+						(showControl ? 'text-[18px]!' : 'text-[20px]!')}>{style.icon}</span
+				>
+				<span class="text-sm text-primary font-medium">{getStyleName(style.id, get(LL))}</span>
+			</div>
+			{#key selectedClipIds().length + String(inputValue)}
+				<div class="flex items-center gap-2 text-xs text-secondary">
+					{#if selectedClipIds().length > 0}
+						{#if getEffectiveForSelection().mixed}
+							<span
+								class="px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-200 border border-fuchsia-400/40 flex items-center gap-1"
+							>
+								<span class="material-icons-outlined text-[12px]">scatter_plot</span>
+								{getStyleUiCopy('mixedValue')}
+							</span>
+						{:else if getEffectiveForSelection().overridden}
+							<span
+								class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 border border-amber-400/40 flex items-center gap-1 cursor-auto"
+							>
+								<span class="material-icons-outlined text-[12px]">auto_fix_high</span>
+								{getStyleUiCopy('localOverride')}:
+								<span style={getHeaderPreviewStyle()}>{getEffectiveForSelection().value}</span>
+							</span>
+						{:else}
+							<span style={getHeaderPreviewStyle()}>{String(inputValue)}</span>
+						{/if}
+					{:else if style.valueType === 'time' && !showControl}
+						<span>{msToTimeValue(Number(inputValue))}</span>
+					{:else if style.valueType === 'boolean'}
+						<label
+							class="inline-flex items-center cursor-pointer select-none scale-75 origin-right"
 						>
-							<span class="material-icons-outlined text-[12px]">scatter_plot</span>
-							mixte
-						</span>
-					{:else if getEffectiveForSelection().overridden}
-						<span
-							class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 border border-amber-400/40 flex items-center gap-1 cursor-auto"
-						>
-							<span class="material-icons-outlined text-[12px]">auto_fix_high</span>
-							override:
-							<span style={getHeaderPreviewStyle()}>{getEffectiveForSelection().value}</span>
-						</span>
-					{:else}
-						<span style={getHeaderPreviewStyle()}>{String(inputValue)}</span>
-					{/if}
-				{:else if style.valueType === 'time'}
-					<span>{msToTimeValue(Number(inputValue))}</span>
-				{:else if style.valueType === 'boolean'}
-					<label class="inline-flex items-center cursor-pointer select-none scale-75 origin-right">
-						<input
-							type="checkbox"
-							class="sr-only peer"
-							checked={Boolean(inputValue)}
-							onchange={(e) => applyValue((e.target as HTMLInputElement).checked)}
-						/>
-						<div
-							class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
+							<input
+								type="checkbox"
+								class="sr-only peer"
+								checked={Boolean(inputValue)}
+								onchange={(e) => applyValue((e.target as HTMLInputElement).checked)}
+							/>
+							<div
+								class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
 			transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
 			peer-checked:[&>span]:translate-x-5"
-						>
-							<span
-								class="absolute left-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
-				transition-transform duration-150"
 							>
-							</span>
-						</div>
-					</label>
-				{:else}
-					<span class="truncate max-w-[140px]" style={getHeaderPreviewStyle()}
-						>{getStyleValue()}</span
-					>
+								<span
+									class="absolute left-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
+				transition-transform duration-150"
+								>
+								</span>
+							</div>
+						</label>
+					{:else if !showControl}
+						<span class="truncate max-w-[140px]" style={getHeaderPreviewStyle()}
+							>{getStyleValue()}</span
+						>
+					{/if}
+
+					{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed)}
+						<button
+							class="ml-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
+							title={$LL.editor.resetOverrideSelection()}
+							onclick={(e) => {
+								e.stopPropagation();
+								clearOverride();
+							}}
+						>
+							<span class="material-icons-outlined text-[12px]">restart_alt</span>
+							{$LL.common.reset()}
+						</button>
+					{/if}
+				</div>
+			{/key}
+		</div>
+
+		{#if (extended || showControl) && style.valueType !== 'boolean'}
+			<div class={showControl ? 'style-control-direct-body' : 'my-2 px-2'} transition:slide>
+				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'reciter'].includes(style.valueType)}
+					<p class="text-xs text-secondary mb-2 flex items-center gap-1">
+						<span class="material-icons-outlined text-[12px]">info</span>
+						{getStyleDescription(style.id, get(LL))}
+					</p>
 				{/if}
 
-				{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed)}
-					<button
-						class="ml-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
-						title={$LL.editor.resetOverrideSelection()}
-						onclick={(e) => {
-							e.stopPropagation();
-							clearOverride();
-						}}
-					>
-						<span class="material-icons-outlined text-[12px]">restart_alt</span>
-						{$LL.common.reset()}
-					</button>
-				{/if}
-			</div>
-		{/key}
-	</div>
-
-	{#if extended}
-		<div class="my-2 px-2" transition:slide>
-			<p class="text-xs text-secondary mb-2 flex items-center gap-1">
-				<span class="material-icons-outlined text-[12px]">info</span>
-				{getStyleDescription(style.id, get(LL))}
-			</p>
-
-			<!-- Modificateur de valeur -->
-			{#if style.valueType === 'number'}
-				<div class="flex gap-x-2 items-center">
-					<input
-						class="w-full accent-accent"
-						type="range"
-						min={style.valueMin}
-						max={style.valueMax}
-						step={style.step || 1}
-						value={inputValue}
-						onpointerdown={() => ProjectHistoryManager.begin('adjust style slider')}
-						onpointerup={() => ProjectHistoryManager.commit()}
-						onblur={() => ProjectHistoryManager.commit()}
-						oninput={(e) => {
-							inputValue = (e.target as HTMLInputElement).value;
-							applyValue((e.target as HTMLInputElement).value);
-						}}
-					/>
-
-					<!-- met aussi un input number -->
-					<div class="relative">
+				<!-- Modificateur de valeur -->
+				{#if style.valueType === 'number'}
+					<div class="flex gap-x-2 items-center">
 						<input
-							type="number"
+							class="w-full accent-accent"
+							type="range"
 							min={style.valueMin}
 							max={style.valueMax}
 							step={style.step || 1}
 							value={inputValue}
+							onpointerdown={() => ProjectHistoryManager.begin('adjust style slider')}
+							onpointerup={() => ProjectHistoryManager.commit()}
+							onblur={() => ProjectHistoryManager.commit()}
 							oninput={(e) => {
 								inputValue = (e.target as HTMLInputElement).value;
 								applyValue((e.target as HTMLInputElement).value);
 							}}
-							class="w-24"
 						/>
-					</div>
-				</div>
-			{:else if style.valueType === 'color'}
-				<div class="flex gap-x-2 items-center">
-					<input
-						type="color"
-						value={String(inputValue)}
-						class="w-full h-8 rounded"
-						oninput={(e) => applyColorPickerValue((e.target as HTMLInputElement).value)}
-						onblur={commitColorHistoryTransaction}
-						onchange={commitColorHistoryTransaction}
-					/>
-					<div class="relative">
-						<input
-							type="text"
-							value={String(inputValue)}
-							class="w-24"
-							oninput={(e) => applyValue((e.target as HTMLInputElement).value)}
-						/>
-					</div>
-				</div>
-			{:else if style.valueType === 'select'}
-				<div class="relative">
-					<select
-						class="w-full mt-1"
-						value={String(inputValue)}
-						onchange={(e) => {
-							void applySelectValue((e.target as HTMLSelectElement).value);
-						}}
-					>
-						{#if style.id === 'font-family'}
-							{#await getSystemFonts()}
-								<option value="" disabled selected>{$LL.editor.loadingFonts()}</option>
-							{:then fontsRaw}
-								{@const fonts = fontsRaw as string[]}
-								<option value="QPC2">Uthamic Mushaf QPC2</option>
-								<option value="QPC1">Uthamic Mushaf QPC1</option>
-								<option value="Hafs">Hafs</option>
-								<option value="IndoPak">IndoPak</option>
-								<option value="Soosi">Soosi (Abu Amr)</option>
-								{#each fonts as font (`${font}`)}
-									<option value={font}>{font}</option>
-								{/each}
-							{:catch error}
-								<option value="" disabled
-									>{$LL.editor.errorLoadingFonts({ error: error.message })}</option
-								>
-							{/await}
-						{:else}
-							{#each style.options || [] as option (`${option}`)}
-								<option value={option}
-									>{option === 'Minimal Quran' ? $LL.editor.minimalQuran() : option}</option
-								>
-							{/each}
-						{/if}
-					</select>
-				</div>
-			{:else if style.valueType === 'brackets-font'}
-				<div class="relative">
-					<select
-						class="w-full mt-1"
-						style="font-family: 'QPC2BSML', serif;"
-						value={String(inputValue)}
-						onchange={(e) => {
-							applyValue((e.target as HTMLSelectElement).value);
-						}}
-					>
-						{#each style.options || [] as option (`${option}`)}
-							<option value={option} style="font-family: 'QPC2BSML', serif;">{option}</option>
-						{/each}
-					</select>
-				</div>
-			{:else if style.valueType === 'text'}
-				{#if style.id.includes('css')}
-					<div class="relative">
-						<textarea
-							value={String(inputValue)}
-							class="w-full mono"
-							rows="5"
-							oninput={(e) => applyValue((e.target as HTMLTextAreaElement).value)}
-						></textarea>
-					</div>
-				{:else}
-					<div class="relative">
-						<input
-							type="text"
-							value={String(inputValue)}
-							class="w-full mono"
-							oninput={(e) => applyValue((e.target as HTMLInputElement).value)}
-						/>
-					</div>
-				{/if}
-			{:else if style.valueType === 'time'}
-				<div class="relative flex flex-row gap-x-2 items-center">
-					<input
-						type="time"
-						class="w-full"
-						oninput={(e) => {
-							// Convertis en ms et applique
-							const timeString = (e.target as HTMLInputElement).value;
-							const [hh, mm, ss] = timeString.split(':').map(Number);
-							const totalSeconds = hh * 3600 + mm * 60 + ss;
-							applyValue(totalSeconds * 1000);
-						}}
-						value={msToTimeValue(style.value as number)}
-					/>
-					<span>{$LL.export.orText()}</span>
-					<button
-						class="btn-accent text-sm py-1 min-w-[150px]"
-						title={$LL.editor.usePreviewCursorTime()}
-						onclick={() => {
-							const currentPreviewTime = globalState.getTimelineState.cursorPosition;
-							applyValue(currentPreviewTime);
-							syncTimeRangeAfterPreviewCursor(currentPreviewTime);
-						}}
-					>
-						{$LL.editor.usePreviewCursorTime()}
-					</button>
-				</div>
-			{:else if style.valueType === 'reciter'}
-				{@const reciter = RecitersManager.getReciterObject(
-					globalState.currentProject!.detail.reciter
-				)}
-				<div class="flex flex-col gap-x-2">
-					<EditableText
-						text="Enter project reciter"
-						bind:value={globalState.currentProject!.detail.reciter}
-						maxLength={ProjectDetail.RECITER_MAX_LENGTH}
-						placeholder={globalState.currentProject!.detail.reciter}
-						textClasses="font-semibold"
-						action={async () => {
-							await ProjectService.saveDetail(globalState.currentProject!.detail); // Sauvegarde le projet
-						}}
-						inputType="reciters"
-					/>
 
-					{#if reciter.number !== -1}
-						<p class="reciters-font text-3xl -mr-3 text-center">
-							{reciter.number}
-						</p>
-					{:else}
-						<p class="text-sm mt-2 text-yellow-500">
-							<span class="material-icons align-middle text-[18px]!">block</span>
-							{$LL.editor.arabicCalligraphyUnavailable()}
-						</p>
-					{/if}
-				</div>
-			{:else if style.valueType === 'file'}
-				<div class="flex flex-col gap-4">
-					<div class="flex flex-col gap-2">
-						<button
-							type="button"
-							onclick={selectFile}
-							class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
-							{disabled}
-						>
-							<span class="material-icons mr-2 text-base">folder_open</span>
-							Pick an image
-						</button>
+						<!-- met aussi un input number -->
+						<div class="relative">
+							<input
+								type="number"
+								min={style.valueMin}
+								max={style.valueMax}
+								step={style.step || 1}
+								value={inputValue}
+								oninput={(e) => {
+									inputValue = (e.target as HTMLInputElement).value;
+									applyValue((e.target as HTMLInputElement).value);
+								}}
+								class="w-20"
+							/>
+						</div>
 					</div>
-					{#if selectedFilePath}
-						<div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-md">
-							<p class="text-sm text-gray-700 dark:text-gray-300 font-mono break-all">
-								{selectedFilePath}
-							</p>
+				{:else if style.valueType === 'color'}
+					<div class="flex gap-x-2 items-center">
+						<input
+							type="color"
+							value={String(inputValue)}
+							class="style-color-picker"
+							oninput={(e) => applyColorPickerValue((e.target as HTMLInputElement).value)}
+							onblur={commitColorHistoryTransaction}
+							onchange={commitColorHistoryTransaction}
+						/>
+						<div class="relative flex-1">
+							<input
+								type="text"
+								value={String(inputValue)}
+								class="w-full mono"
+								oninput={(e) => applyValue((e.target as HTMLInputElement).value)}
+							/>
+						</div>
+					</div>
+				{:else if style.valueType === 'select'}
+					<div class="relative">
+						<select
+							class="w-full"
+							value={String(inputValue)}
+							onchange={(e) => {
+								void applySelectValue((e.target as HTMLSelectElement).value);
+							}}
+						>
+							{#if style.id === 'font-family'}
+								{#await getSystemFonts()}
+									<option value="" disabled selected>{$LL.editor.loadingFonts()}</option>
+								{:then fontsRaw}
+									{@const fonts = fontsRaw as string[]}
+									<option value="QPC2">Uthamic Mushaf QPC2</option>
+									<option value="QPC1">Uthamic Mushaf QPC1</option>
+									<option value="Hafs">Hafs</option>
+									<option value="IndoPak">IndoPak</option>
+									<option value="Soosi">Soosi (Abu Amr)</option>
+									{#each fonts as font (`${font}`)}
+										<option value={font}>{font}</option>
+									{/each}
+								{:catch error}
+									<option value="" disabled
+										>{$LL.editor.errorLoadingFonts({ error: error.message })}</option
+									>
+								{/await}
+							{:else}
+								{#each style.options || [] as option (`${option}`)}
+									<option value={option}
+										>{option === 'Minimal Quran' ? $LL.editor.minimalQuran() : option}</option
+									>
+								{/each}
+							{/if}
+						</select>
+					</div>
+				{:else if style.valueType === 'brackets-font'}
+					<div class="relative">
+						<select
+							class="w-full"
+							style="font-family: 'QPC2BSML', serif;"
+							value={String(inputValue)}
+							onchange={(e) => {
+								applyValue((e.target as HTMLSelectElement).value);
+							}}
+						>
+							{#each style.options || [] as option (`${option}`)}
+								<option value={option} style="font-family: 'QPC2BSML', serif;">{option}</option>
+							{/each}
+						</select>
+					</div>
+				{:else if style.valueType === 'text'}
+					{#if style.id.includes('css')}
+						<div class="relative">
+							<textarea
+								value={String(inputValue)}
+								class="w-full mono"
+								rows="5"
+								oninput={(e) => applyValue((e.target as HTMLTextAreaElement).value)}
+							></textarea>
+						</div>
+					{:else}
+						<div class="relative">
+							<input
+								type="text"
+								value={String(inputValue)}
+								class="w-full mono"
+								oninput={(e) => applyValue((e.target as HTMLInputElement).value)}
+							/>
 						</div>
 					{/if}
-				</div>
-			{:else if style.valueType === 'ayah-image'}
-				<div class="flex flex-col gap-3">
-					<p class="text-xs text-secondary flex items-center gap-1">
-						<span class="material-icons-outlined text-[12px]">info</span>
-						New banners made by @isaglace on Discord.
-					</p>
-
-					<div class="grid grid-cols-2 gap-2">
+				{:else if style.valueType === 'time'}
+					<div class="relative flex flex-row gap-x-2 items-center">
+						<input
+							type="time"
+							class="w-full"
+							oninput={(e) => {
+								// Convertis en ms et applique
+								const timeString = (e.target as HTMLInputElement).value;
+								const [hh, mm, ss] = timeString.split(':').map(Number);
+								const totalSeconds = hh * 3600 + mm * 60 + ss;
+								applyValue(totalSeconds * 1000);
+							}}
+							value={msToTimeValue(style.value as number)}
+						/>
+						<span>{$LL.export.orText()}</span>
 						<button
-							type="button"
-							onclick={selectFile}
-							class="btn-accent w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
-							{disabled}
+							class="btn-accent text-sm py-1 min-w-[150px]"
+							title={$LL.editor.usePreviewCursorTime()}
+							onclick={() => {
+								const currentPreviewTime = globalState.getTimelineState.cursorPosition;
+								applyValue(currentPreviewTime);
+								syncTimeRangeAfterPreviewCursor(currentPreviewTime);
+							}}
 						>
-							<span class="material-icons mr-2 text-base">folder_open</span>
-							{#if style.value && !ayahContainerImages.includes(String(style.value))}
-								{String(style.value).split('\\').pop()}
-							{:else}
-								{$LL.common.import()}
-							{/if}
-						</button>
-
-						<button
-							type="button"
-							onclick={() => applyValue('')}
-							class={'w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200 ' +
-								(style.value === ''
-									? 'bg-accent/60 ring-1 ring-color'
-									: 'bg-gray-100 dark:bg-gray-800')}
-						>
-							<span class="material-icons mr-2 text-base">hide_image</span>
-							{$LL.common.none()}
+							{$LL.editor.usePreviewCursorTime()}
 						</button>
 					</div>
-					<div class="grid grid-cols-4 gap-2">
-						{#each ayahContainerImages as img (img)}
-							{@const selected = String(style.value) === img}
+				{:else if style.valueType === 'reciter'}
+					{@const reciter = RecitersManager.getReciterObject(
+						globalState.currentProject!.detail.reciter
+					)}
+					<div class="flex flex-col gap-x-2">
+						<EditableText
+							text="Enter project reciter"
+							bind:value={globalState.currentProject!.detail.reciter}
+							maxLength={ProjectDetail.RECITER_MAX_LENGTH}
+							placeholder={globalState.currentProject!.detail.reciter}
+							textClasses="font-semibold"
+							action={async () => {
+								await ProjectService.saveDetail(globalState.currentProject!.detail); // Sauvegarde le projet
+							}}
+							inputType="reciters"
+						/>
+
+						{#if reciter.number !== -1}
+							<p class="reciters-font text-3xl -mr-3 text-center">
+								{reciter.number}
+							</p>
+						{:else}
+							<p class="text-sm mt-2 text-yellow-500">
+								<span class="material-icons align-middle text-[18px]!">block</span>
+								{$LL.editor.arabicCalligraphyUnavailable()}
+							</p>
+						{/if}
+					</div>
+				{:else if style.valueType === 'file'}
+					<div class="flex flex-col gap-4">
+						<div class="flex flex-col gap-2">
 							<button
 								type="button"
-								onclick={() => applyValue(img)}
-								class={'relative aspect-video rounded-md overflow-hidden border-2 transition-all duration-150 cursor-pointer ' +
-									(selected
-										? 'ring-2 ring-[var(--accent-primary)] border-accent scale-105'
-										: 'border-color hover:border-accent/50')}
+								onclick={selectFile}
+								class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
+								{disabled}
 							>
-								<img
-									src={'/ayah-container/' + img}
-									alt={img}
-									class="w-full h-full object-cover"
-									loading="lazy"
-								/>
-								{#if selected}
-									<span
-										class="absolute top-1 right-1 material-icons text-[16px]! text-white drop-shadow-md"
-									>
-										check_circle
-									</span>
+								<span class="material-icons mr-2 text-base">folder_open</span>
+								Pick an image
+							</button>
+						</div>
+						{#if selectedFilePath}
+							<div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-md">
+								<p class="text-sm text-gray-700 dark:text-gray-300 font-mono break-all">
+									{selectedFilePath}
+								</p>
+							</div>
+						{/if}
+					</div>
+				{:else if style.valueType === 'ayah-image'}
+					<div class="flex flex-col gap-3">
+						<p class="text-xs text-secondary flex items-center gap-1">
+							<span class="material-icons-outlined text-[12px]">info</span>
+							New banners made by @isaglace on Discord.
+						</p>
+
+						<div class="grid grid-cols-2 gap-2">
+							<button
+								type="button"
+								onclick={selectFile}
+								class="btn-accent w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
+								{disabled}
+							>
+								<span class="material-icons mr-2 text-base">folder_open</span>
+								{#if style.value && !ayahContainerImages.includes(String(style.value))}
+									{String(style.value).split('\\').pop()}
+								{:else}
+									{$LL.common.import()}
 								{/if}
 							</button>
+
+							<button
+								type="button"
+								onclick={() => applyValue('')}
+								class={'w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200 ' +
+									(style.value === ''
+										? 'bg-[var(--bg-accent)]/60 ring-1 ring-color'
+										: 'bg-gray-100 dark:bg-gray-800')}
+							>
+								<span class="material-icons mr-2 text-base">hide_image</span>
+								{$LL.common.none()}
+							</button>
+						</div>
+						<div class="grid grid-cols-4 gap-2">
+							{#each ayahContainerImages as img (img)}
+								{@const selected = String(style.value) === img}
+								<button
+									type="button"
+									onclick={() => applyValue(img)}
+									class={'relative aspect-video rounded-md overflow-hidden border-2 transition-all duration-150 cursor-pointer ' +
+										(selected
+											? 'ring-2 ring-[var(--accent-primary)] border-accent scale-105'
+											: 'border-color hover:border-accent/50')}
+								>
+									<img
+										src={'/ayah-container/' + img}
+										alt={img}
+										class="w-full h-full object-cover"
+										loading="lazy"
+									/>
+									{#if selected}
+										<span
+											class="absolute top-1 right-1 material-icons text-[16px]! text-white drop-shadow-md"
+										>
+											check_circle
+										</span>
+									{/if}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{:else if style.valueType === 'dimension'}
+					<div class="flex flex-col gap-4">
+						<!-- Orientation Selection -->
+						<div class="flex flex-col gap-2">
+							<p class="text-sm font-medium">Orientation:</p>
+							<div class="flex gap-4">
+								{#each [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as orientation (orientation.value)}
+									<label class="flex items-center gap-2 cursor-pointer">
+										<input
+											type="radio"
+											name="orientation"
+											value={orientation.value}
+											bind:group={selectedOrientation}
+											class="accent-accent"
+										/>
+										<span class="text-sm">{orientation.label}</span>
+									</label>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Quality Selection -->
+						<div class="flex flex-col gap-2">
+							<p class="text-sm font-medium">Quality:</p>
+							<div class="flex gap-4 flex-wrap">
+								{#each [{ value: '720p', label: '720p', width: 1280, height: 720 }, { value: '1080p', label: '1080p', width: 1920, height: 1080 }, { value: '1440p', label: '1440p (2K)', width: 2560, height: 1440 }, { value: '2160p', label: '2160p (4K)', width: 3840, height: 2160 }] as quality (quality.value)}
+									<label class="flex items-center gap-2 cursor-pointer">
+										<input
+											type="radio"
+											name="quality"
+											value={quality.value}
+											bind:group={selectedQuality}
+											class="accent-accent"
+										/>
+										<span class="text-sm">{quality.label}</span>
+									</label>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Apply Button -->
+						<button
+							class="btn-accent w-full py-2 mt-2"
+							onclick={() => applySelectedDimensions()}
+							disabled={!selectedOrientation || !selectedQuality}
+						>
+							Apply {getPreviewResolution()}
+						</button>
+
+						<!-- Custom Dimensions -->
+						<div class="flex flex-col gap-2">
+							<p class="text-sm font-medium">Custom dimensions:</p>
+							<div class="flex flex-row items-center gap-x-2">
+								<input
+									type="number"
+									class="w-full"
+									oninput={(e) => {
+										const width = parseInt((e.target as HTMLInputElement).value);
+										const height = asDimensionValue(style.value).height;
+										applyValue({ width, height });
+									}}
+									value={asDimensionValue(style.value).width}
+									min="256"
+									max="7680"
+								/>
+								<span>×</span>
+								<input
+									type="number"
+									class="w-full"
+									oninput={(e) => {
+										const width = asDimensionValue(style.value).width;
+										const height = parseInt((e.target as HTMLInputElement).value);
+										applyValue({ width, height });
+									}}
+									value={asDimensionValue(style.value).height}
+									min="144"
+									max="4320"
+								/>
+							</div>
+						</div>
+					</div>
+				{:else if style.valueType === 'fade'}
+					{@const fadeValue = getFadeValue()}
+					<div class="flex flex-col gap-4">
+						<!-- Note: fade effects apply only to exported videos and are not shown in the preview -->
+						<div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+							<p class="text-sm text-gray-700 dark:text-gray-300">
+								Note: Fade effects are applied only to exported videos and will not appear in the
+								preview.
+							</p>
+						</div>
+
+						<div class="flex flex-col gap-2">
+							<p class="text-sm font-medium">Fade In:</p>
+							<div class="flex gap-4">
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="checkbox"
+										class="accent-accent"
+										checked={fadeValue.videoFadeInEnabled}
+										onchange={(e) => {
+											updateFadeValue({
+												videoFadeInEnabled: (e.target as HTMLInputElement).checked
+											});
+										}}
+									/>
+									<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
+									<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
+								</label>
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="checkbox"
+										class="accent-accent"
+										checked={fadeValue.audioFadeInEnabled}
+										onchange={(e) => {
+											updateFadeValue({
+												audioFadeInEnabled: (e.target as HTMLInputElement).checked
+											});
+										}}
+									/>
+									<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span
+									>
+									<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
+								</label>
+							</div>
+						</div>
+
+						<div class="flex flex-col gap-2">
+							<p class="text-sm font-medium">Fade Out:</p>
+							<div class="flex gap-4">
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="checkbox"
+										class="accent-accent"
+										checked={fadeValue.videoFadeOutEnabled}
+										onchange={(e) => {
+											updateFadeValue({
+												videoFadeOutEnabled: (e.target as HTMLInputElement).checked
+											});
+										}}
+									/>
+									<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
+									<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
+								</label>
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="checkbox"
+										class="accent-accent"
+										checked={fadeValue.audioFadeOutEnabled}
+										onchange={(e) => {
+											updateFadeValue({
+												audioFadeOutEnabled: (e.target as HTMLInputElement).checked
+											});
+										}}
+									/>
+									<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span
+									>
+									<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
+								</label>
+							</div>
+						</div>
+
+						{#if hasFadeEnabled(fadeValue)}
+							<div class="flex flex-col gap-2">
+								<p class="text-sm font-medium">Fade Duration:</p>
+								<input
+									type="number"
+									class="w-full"
+									min="0"
+									max="10000"
+									step="100"
+									value={fadeValue.fadeDurationMs}
+									oninput={(e) => {
+										updateFadeValue({
+											fadeDurationMs: Math.max(
+												0,
+												parseInt((e.target as HTMLInputElement).value || '0', 10)
+											)
+										});
+									}}
+								/>
+							</div>
+						{/if}
+					</div>
+				{:else if style.valueType === 'composite'}
+					<div class="style-control-list">
+						{#each globalState.getVideoStyle
+							.getStylesOfTarget(target!)
+							.getCompositeStyles(style.id as StyleName) as subStyle (subStyle.id)}
+							<StyleComponent
+								style={subStyle}
+								target={style.id}
+								disabled={false}
+								showControl
+								applyValueSimple={(v) => {
+									subStyle.value = v;
+								}}
+							/>
 						{/each}
 					</div>
-				</div>
-			{:else if style.valueType === 'dimension'}
-				<div class="flex flex-col gap-4">
-					<!-- Orientation Selection -->
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Orientation:</p>
-						<div class="flex gap-4">
-							{#each [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as orientation (orientation.value)}
-								<label class="flex items-center gap-2 cursor-pointer">
-									<input
-										type="radio"
-										name="orientation"
-										value={orientation.value}
-										bind:group={selectedOrientation}
-										class="accent-accent"
-									/>
-									<span class="text-sm">{orientation.label}</span>
-								</label>
-							{/each}
-						</div>
-					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
+{/if}
 
-					<!-- Quality Selection -->
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Quality:</p>
-						<div class="flex gap-4 flex-wrap">
-							{#each [{ value: '720p', label: '720p', width: 1280, height: 720 }, { value: '1080p', label: '1080p', width: 1920, height: 1080 }, { value: '1440p', label: '1440p (2K)', width: 2560, height: 1440 }, { value: '2160p', label: '2160p (4K)', width: 3840, height: 2160 }] as quality (quality.value)}
-								<label class="flex items-center gap-2 cursor-pointer">
-									<input
-										type="radio"
-										name="quality"
-										value={quality.value}
-										bind:group={selectedQuality}
-										class="accent-accent"
-									/>
-									<span class="text-sm">{quality.label}</span>
-								</label>
-							{/each}
-						</div>
-					</div>
+<style>
+	.style-control-direct {
+		border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+		background: transparent;
+	}
 
-					<!-- Apply Button -->
-					<button
-						class="btn-accent w-full py-2 mt-2"
-						onclick={() => applySelectedDimensions()}
-						disabled={!selectedOrientation || !selectedQuality}
-					>
-						Apply {getPreviewResolution()}
-					</button>
+	.style-control-direct-header {
+		min-height: 2.6rem;
+		padding: 0.55rem 0.15rem;
+	}
 
-					<!-- Custom Dimensions -->
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Custom dimensions:</p>
-						<div class="flex flex-row items-center gap-x-2">
-							<input
-								type="number"
-								class="w-full"
-								oninput={(e) => {
-									const width = parseInt((e.target as HTMLInputElement).value);
-									const height = asDimensionValue(style.value).height;
-									applyValue({ width, height });
-								}}
-								value={asDimensionValue(style.value).width}
-								min="256"
-								max="7680"
-							/>
-							<span>×</span>
-							<input
-								type="number"
-								class="w-full"
-								oninput={(e) => {
-									const width = asDimensionValue(style.value).width;
-									const height = parseInt((e.target as HTMLInputElement).value);
-									applyValue({ width, height });
-								}}
-								value={asDimensionValue(style.value).height}
-								min="144"
-								max="4320"
-							/>
-						</div>
-					</div>
-				</div>
-			{:else if style.valueType === 'fade'}
-				{@const fadeValue = getFadeValue()}
-				<div class="flex flex-col gap-4">
-					<!-- Note: fade effects apply only to exported videos and are not shown in the preview -->
-					<div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
-						<p class="text-sm text-gray-700 dark:text-gray-300">
-							Note: Fade effects are applied only to exported videos and will not appear in the
-							preview.
-						</p>
-					</div>
+	.style-control-direct-body {
+		padding: 0.1rem 0.15rem 0.75rem;
+	}
 
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Fade Duration:</p>
-						<input
-							type="number"
-							class="w-full"
-							min="0"
-							max="10000"
-							step="100"
-							value={fadeValue.fadeDurationMs}
-							oninput={(e) => {
-								updateFadeValue({
-									fadeDurationMs: Math.max(
-										0,
-										parseInt((e.target as HTMLInputElement).value || '0', 10)
-									)
-								});
-							}}
-						/>
-					</div>
+	.style-control-number .style-control-direct-header {
+		min-height: 2.25rem;
+		padding: 0.45rem 0.15rem 0.2rem;
+	}
 
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Fade In:</p>
-						<div class="flex gap-4">
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.videoFadeInEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											videoFadeInEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
-								<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
-							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.audioFadeInEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											audioFadeInEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
-								<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
-							</label>
-						</div>
-					</div>
+	.style-control-number .style-control-direct-body {
+		padding-top: 0;
+	}
 
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Fade Out:</p>
-						<div class="flex gap-4">
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.videoFadeOutEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											videoFadeOutEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
-								<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
-							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.audioFadeOutEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											audioFadeOutEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
-								<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
-							</label>
-						</div>
-					</div>
-				</div>
-			{:else if style.valueType === 'composite'}
-				<div class="flex flex-col gap-2">
-					{#each globalState.getVideoStyle
-						.getStylesOfTarget(target!)
-						.getCompositeStyles(style.id as StyleName) as subStyle (subStyle.id)}
-						<StyleComponent
-							style={subStyle}
-							target={style.id}
-							disabled={false}
-							applyValueSimple={(v) => {
-								subStyle.value = v;
-							}}
-						/>
-					{/each}
-				</div>
-			{/if}
-		</div>
-	{/if}
-</div>
+	.style-control-direct-mixed,
+	.style-control-direct-overridden {
+		padding-left: 0.4rem;
+	}
+
+	.style-control-direct-mixed {
+		border-left: 2px solid rgb(232 121 249 / 70%);
+	}
+
+	.style-control-direct-overridden {
+		border-left: 2px solid rgb(251 191 36 / 70%);
+	}
+
+	.style-color-picker {
+		width: 2.75rem;
+		height: 2.1rem;
+		flex-shrink: 0;
+		cursor: pointer;
+		border: 1px solid var(--border-color);
+		border-radius: 0.5rem;
+		background: var(--bg-accent);
+		padding: 0.15rem;
+	}
+
+	.style-control-list {
+		display: flex;
+		flex-direction: column;
+	}
+
+	:global(.style-control-list > .style-control-direct:last-child) {
+		border-bottom: 0;
+	}
+</style>

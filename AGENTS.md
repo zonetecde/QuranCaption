@@ -23,6 +23,9 @@ Rules:
 - When implementing a feature that mutates project state (style changes, clip edits, translations,
   etc.), always wrap it with `ProjectHistoryManager` (`.track()`, `.begin()`/`.commit()`, or
   `.trackAsync()`) so it supports undo/redo.
+- Before adding, moving, renaming, or changing a video style or its editor layout, read
+  `documentations/style-json.md` and follow its JSON metadata, localization, dependency, undo/redo,
+  and migration checklist.
 - Stop at the requested scope. Do not add extra improvements.
 - When several solutions are possible, choose the most minimal one that is correct and maintainable.
 

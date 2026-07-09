@@ -111,7 +111,25 @@ const style = {
 	wbwStep1:
 		'1. Add them with AI-Segmentation and make sure to enable Include word-by-word timestamps.',
 	wbwStep2:
-		'2. Or add them manually in the Subtitles Editor by holding E with the cursor over a subtitle.'
+		'2. Or add them manually in the Subtitles Editor by holding E with the cursor over a subtitle.',
+	onScreenElements: 'On-screen elements',
+	customElements: 'Custom elements',
+	noCustomElements: 'No custom elements yet. Add text or an image to begin.',
+	noMatchingStyles: 'No styles match your search.',
+	mixedValue: 'Mixed values',
+	localOverride: 'Local change',
+	fontControlledByMushaf: 'This font is controlled by the selected Mushaf.',
+	groupBasics: 'Basics',
+	groupTypography: 'Typography',
+	groupColors: 'Colors',
+	groupSpacing: 'Spacing',
+	groupLayout: 'Layout',
+	groupTiming: 'Timing',
+	groupEffects: 'Effects',
+	groupAdvanced: 'Advanced',
+	groupVerseNumber: 'Verse number',
+	groupDecorations: 'Decorations',
+	groupTransitions: 'Transitions'
 };
 
 export default style;

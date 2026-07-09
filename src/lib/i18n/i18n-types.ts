@@ -1602,7 +1602,7 @@ type RootTranslation = {
 		 */
 		videoClipsSelected: RequiredParams<'count' | 'plural'>;
 		/**
-		 * C​l​i​c​k​ ​a​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​a​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​o​ ​s​e​l​e​c​t​ ​o​n​l​y​ ​i​t​.​ ​S​h​i​f​t​+​c​l​i​c​k​ ​s​e​l​e​c​t​s​ ​a​d​d​i​t​i​o​n​a​l​ ​i​t​e​m​s​.
+		 * C​l​i​c​k​ ​a​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​o​ ​s​e​l​e​c​t​ ​i​t​.​ ​C​t​r​l​/​C​m​d​+​c​l​i​c​k​ ​s​e​l​e​c​t​s​ ​a​d​d​i​t​i​o​n​a​l​ ​i​t​e​m​s​.
 		 */
 		clickToSelect: string;
 		/**
@@ -6685,6 +6685,78 @@ type RootTranslation = {
 		 * 2​.​ ​O​r​ ​a​d​d​ ​t​h​e​m​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r​ ​b​y​ ​h​o​l​d​i​n​g​ ​E​ ​w​i​t​h​ ​t​h​e​ ​c​u​r​s​o​r​ ​o​v​e​r​ ​a​ ​s​u​b​t​i​t​l​e​.
 		 */
 		wbwStep2: string;
+		/**
+		 * O​n​-​s​c​r​e​e​n​ ​e​l​e​m​e​n​t​s
+		 */
+		onScreenElements: string;
+		/**
+		 * C​u​s​t​o​m​ ​e​l​e​m​e​n​t​s
+		 */
+		customElements: string;
+		/**
+		 * N​o​ ​c​u​s​t​o​m​ ​e​l​e​m​e​n​t​s​ ​y​e​t​.​ ​A​d​d​ ​t​e​x​t​ ​o​r​ ​a​n​ ​i​m​a​g​e​ ​t​o​ ​b​e​g​i​n​.
+		 */
+		noCustomElements: string;
+		/**
+		 * N​o​ ​s​t​y​l​e​s​ ​m​a​t​c​h​ ​y​o​u​r​ ​s​e​a​r​c​h​.
+		 */
+		noMatchingStyles: string;
+		/**
+		 * M​i​x​e​d​ ​v​a​l​u​e​s
+		 */
+		mixedValue: string;
+		/**
+		 * L​o​c​a​l​ ​c​h​a​n​g​e
+		 */
+		localOverride: string;
+		/**
+		 * T​h​i​s​ ​f​o​n​t​ ​i​s​ ​c​o​n​t​r​o​l​l​e​d​ ​b​y​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​M​u​s​h​a​f​.
+		 */
+		fontControlledByMushaf: string;
+		/**
+		 * B​a​s​i​c​s
+		 */
+		groupBasics: string;
+		/**
+		 * T​y​p​o​g​r​a​p​h​y
+		 */
+		groupTypography: string;
+		/**
+		 * C​o​l​o​r​s
+		 */
+		groupColors: string;
+		/**
+		 * S​p​a​c​i​n​g
+		 */
+		groupSpacing: string;
+		/**
+		 * L​a​y​o​u​t
+		 */
+		groupLayout: string;
+		/**
+		 * T​i​m​i​n​g
+		 */
+		groupTiming: string;
+		/**
+		 * E​f​f​e​c​t​s
+		 */
+		groupEffects: string;
+		/**
+		 * A​d​v​a​n​c​e​d
+		 */
+		groupAdvanced: string;
+		/**
+		 * V​e​r​s​e​ ​n​u​m​b​e​r
+		 */
+		groupVerseNumber: string;
+		/**
+		 * D​e​c​o​r​a​t​i​o​n​s
+		 */
+		groupDecorations: string;
+		/**
+		 * T​r​a​n​s​i​t​i​o​n​s
+		 */
+		groupTransitions: string;
 	};
 	settings: {
 		/**
@@ -10414,7 +10486,7 @@ export type TranslationFunctions = {
 		 */
 		videoClipsSelected: (arg: { count: unknown; plural: unknown }) => LocalizedString;
 		/**
-		 * Click a subtitle or a video clip to select only it. Shift+click selects additional items.
+		 * Click a subtitle or video clip to select it. Ctrl/Cmd+click selects additional items.
 		 */
 		clickToSelect: () => LocalizedString;
 		/**
@@ -15435,6 +15507,78 @@ export type TranslationFunctions = {
 		 * 2. Or add them manually in the Subtitles Editor by holding E with the cursor over a subtitle.
 		 */
 		wbwStep2: () => LocalizedString;
+		/**
+		 * On-screen elements
+		 */
+		onScreenElements: () => LocalizedString;
+		/**
+		 * Custom elements
+		 */
+		customElements: () => LocalizedString;
+		/**
+		 * No custom elements yet. Add text or an image to begin.
+		 */
+		noCustomElements: () => LocalizedString;
+		/**
+		 * No styles match your search.
+		 */
+		noMatchingStyles: () => LocalizedString;
+		/**
+		 * Mixed values
+		 */
+		mixedValue: () => LocalizedString;
+		/**
+		 * Local change
+		 */
+		localOverride: () => LocalizedString;
+		/**
+		 * This font is controlled by the selected Mushaf.
+		 */
+		fontControlledByMushaf: () => LocalizedString;
+		/**
+		 * Basics
+		 */
+		groupBasics: () => LocalizedString;
+		/**
+		 * Typography
+		 */
+		groupTypography: () => LocalizedString;
+		/**
+		 * Colors
+		 */
+		groupColors: () => LocalizedString;
+		/**
+		 * Spacing
+		 */
+		groupSpacing: () => LocalizedString;
+		/**
+		 * Layout
+		 */
+		groupLayout: () => LocalizedString;
+		/**
+		 * Timing
+		 */
+		groupTiming: () => LocalizedString;
+		/**
+		 * Effects
+		 */
+		groupEffects: () => LocalizedString;
+		/**
+		 * Advanced
+		 */
+		groupAdvanced: () => LocalizedString;
+		/**
+		 * Verse number
+		 */
+		groupVerseNumber: () => LocalizedString;
+		/**
+		 * Decorations
+		 */
+		groupDecorations: () => LocalizedString;
+		/**
+		 * Transitions
+		 */
+		groupTransitions: () => LocalizedString;
 	};
 	settings: {
 		/**

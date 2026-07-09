@@ -599,7 +599,7 @@ const id: Translation = {
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',
 		clickToSelect:
-			'Klik subtitle atau clip video untuk memilihnya saja. Shift+klik memilih item tambahan.',
+			'Klik subtitle atau clip video untuk memilihnya. Ctrl/Cmd+klik memilih item tambahan.',
 		global: 'Global',
 		arabic: 'Arab',
 		translation: 'Terjemahan',
@@ -1013,8 +1013,26 @@ const id: Translation = {
 		wbwStep1:
 			'1. Tambahkan lewat AI-Segmentation dan pastikan Include word-by-word timestamps aktif.',
 		wbwStep2:
-			'2. Atau tambahkan manual di Subtitles Editor dengan menahan E saat cursor berada di atas subtitle.'
-	},
+			'2. Atau tambahkan manual di Subtitles Editor dengan menahan E saat cursor berada di atas subtitle.',
+		onScreenElements: 'Elemen di layar',
+		customElements: 'Elemen kustom',
+		noCustomElements: 'Belum ada elemen kustom. Tambahkan teks atau gambar untuk memulai.',
+		noMatchingStyles: 'Tidak ada style yang cocok dengan pencarianmu.',
+		mixedValue: 'Nilai berbeda',
+		localOverride: 'Perubahan lokal',
+		fontControlledByMushaf: 'Font ini dikontrol oleh Mushaf yang dipilih.',
+		groupBasics: 'Dasar',
+		groupTypography: 'Tipografi',
+		groupColors: 'Warna',
+		groupSpacing: 'Jarak',
+		groupLayout: 'Tata letak',
+		groupTiming: 'Waktu',
+		groupEffects: 'Efek',
+		groupAdvanced: 'Lanjutan',
+		groupVerseNumber: 'Nomor ayat',
+		groupDecorations: 'Dekorasi',
+		groupTransitions: 'Transisi'
+	} as Translation['style'] & Record<string, string>,
 	tools: {
 		...baseEn.tools,
 		hifzRepetition: 'Hifz Repetition',

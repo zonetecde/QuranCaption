@@ -437,7 +437,7 @@ const es = {
 		videoClipsSelected:
 			'{count}\u00a0clip de video{plural} seleccionado{plural}. Los estilos de superposición solo se aplicarán a estos clips.',
 		clickToSelect:
-			'Haga clic en un subtítulo o clip de video para seleccionarlo individualmente. Shift+clic selecciona elementos adicionales.',
+			'Haga clic en un subtítulo o clip de video para seleccionarlo. Ctrl/Cmd+clic selecciona elementos adicionales.',
 		cannotEditGlobalWithSelection:
 			'No puede editar estilos globales cuando hay clips de subtítulos seleccionados. Limpie la selección para editar estilos globales.',
 		backgroundVisibilityHint:
@@ -1863,7 +1863,25 @@ const es = {
 		wbwStep1:
 			'1. Agréguelas con la segmentación IA y asegúrese de activar Incluir marcas de tiempo palabra por palabra.',
 		wbwStep2:
-			'2. O agréguelas manualmente en el editor de subtítulos manteniendo E con el cursor sobre un subtítulo.'
+			'2. O agréguelas manualmente en el editor de subtítulos manteniendo E con el cursor sobre un subtítulo.',
+		onScreenElements: 'Elementos en pantalla',
+		customElements: 'Elementos personalizados',
+		noCustomElements: 'Aún no hay elementos personalizados. Añade texto o una imagen para empezar.',
+		noMatchingStyles: 'Ningún estilo coincide con tu búsqueda.',
+		mixedValue: 'Valores diferentes',
+		localOverride: 'Cambio local',
+		fontControlledByMushaf: 'Esta fuente está controlada por el Mushaf seleccionado.',
+		groupBasics: 'Básico',
+		groupTypography: 'Tipografía',
+		groupColors: 'Colores',
+		groupSpacing: 'Espaciado',
+		groupLayout: 'Disposición',
+		groupTiming: 'Tiempo',
+		groupEffects: 'Efectos',
+		groupAdvanced: 'Avanzado',
+		groupVerseNumber: 'Número de aleya',
+		groupDecorations: 'Decoraciones',
+		groupTransitions: 'Transiciones'
 	},
 	settings: {
 		settings: 'Configuración',

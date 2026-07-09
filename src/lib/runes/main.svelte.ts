@@ -25,6 +25,9 @@ export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwT
 export type AppPage = 'home' | 'ai-video';
 
 class GlobalState {
+	// Style dont la contrainte est temporairement visualisée dans la preview.
+	hoveredStylePreviewHelper: StyleName | null = $state(null);
+
 	// Liste des détails des projets de l'utilisateur
 	userProjectsDetails: ProjectDetail[] = $state([]);
 

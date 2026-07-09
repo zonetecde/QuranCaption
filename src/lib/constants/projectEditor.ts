@@ -1,0 +1,1 @@
+export const DEFAULT_STYLE_PANEL_WIDTH = 438;

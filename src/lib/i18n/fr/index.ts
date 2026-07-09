@@ -436,7 +436,7 @@ const fr = {
 		videoClipsSelected:
 			'{count}\u00a0clip vidéo{plural} sélectionné{plural}. Les styles de superposition s\u2019appliqueront uniquement à ces clips.',
 		clickToSelect:
-			'Cliquez sur un sous-titre ou un clip vidéo pour le sélectionner uniquement. Shift+clic sélectionne des éléments supplémentaires.',
+			'Cliquez sur un sous-titre ou un clip vidéo pour le sélectionner. Ctrl/Cmd+clic sélectionne des éléments supplémentaires.',
 		cannotEditGlobalWithSelection:
 			'Vous ne pouvez pas modifier les styles globaux lorsque des clips de sous-titres sont sélectionnés. Effacez la sélection pour modifier les styles globaux.',
 		backgroundVisibilityHint:
@@ -1883,7 +1883,25 @@ const fr = {
 		wbwStep1:
 			'1. Ajoutez-les avec la segmentation IA et assurez-vous d\u2019activer Inclure les horodatages mot par mot.',
 		wbwStep2:
-			'2. Ou ajoutez-les manuellement dans l\u2019éditeur de sous-titres en maintenant E avec le curseur sur un sous-titre.'
+			'2. Ou ajoutez-les manuellement dans l\u2019éditeur de sous-titres en maintenant E avec le curseur sur un sous-titre.',
+		onScreenElements: 'Éléments à l’écran',
+		customElements: 'Éléments personnalisés',
+		noCustomElements: 'Aucun élément personnalisé. Ajoutez un texte ou une image pour commencer.',
+		noMatchingStyles: 'Aucun style ne correspond à votre recherche.',
+		mixedValue: 'Valeurs différentes',
+		localOverride: 'Modification locale',
+		fontControlledByMushaf: 'Cette police est contrôlée par le Mushaf sélectionné.',
+		groupBasics: 'Essentiel',
+		groupTypography: 'Typographie',
+		groupColors: 'Couleurs',
+		groupSpacing: 'Espacement',
+		groupLayout: 'Disposition',
+		groupTiming: 'Temps',
+		groupEffects: 'Effets',
+		groupAdvanced: 'Avancé',
+		groupVerseNumber: 'Numéro de verset',
+		groupDecorations: 'Décorations',
+		groupTransitions: 'Transitions'
 	},
 	settings: {
 		settings: 'Paramètres',

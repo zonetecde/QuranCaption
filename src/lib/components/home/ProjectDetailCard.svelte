@@ -95,7 +95,9 @@
 
 	async function openProjectButtonClick() {
 		// Ouvre le projet
-		globalState.currentProject = await ProjectService.load(projectDetail.id);
+		const project = await ProjectService.load(projectDetail.id);
+		await MigrationService.HydrateStyleEditorUiMetadata(project);
+		globalState.currentProject = project;
 
 		// Migration si besoin
 		MigrationService.FromQC313ToQC314();
@@ -237,8 +239,8 @@
 									onclick={() => selectStatus(s)}
 								>
 									<span class="w-3 h-3 rounded-full" style={`background-color: ${s.color}`}
-								></span>{getStatusLabel(s, get(LL))}
-							</li>
+									></span>{getStatusLabel(s, get(LL))}
+								</li>
 							{/each}
 						</ul>
 					{/if}
@@ -263,10 +265,12 @@
 			{/if}
 
 			<p class="text-xs text-[var(--text-secondary)] mb-1">
-				{$LL.home.durationLabel()} {projectDetail.duration.getFormattedTime(false)}
+				{$LL.home.durationLabel()}
+				{projectDetail.duration.getFormattedTime(false)}
 			</p>
 			<p class="text-xs text-[var(--text-secondary)] mb-3 verserange">
-				{$LL.home.versesLabel()} <span class="font-medium text-[var(--text-primary)]"
+				{$LL.home.versesLabel()}
+				<span class="font-medium text-[var(--text-primary)]"
 					>{projectDetail.verseRange.toString()}</span
 				>
 			</p>
@@ -360,12 +364,14 @@
 <ContextMenu bind:this={contextMenu}>
 	<Item on:click={exportProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">file_download</span>{$LL.home.exportProject()}
+			<span class="material-icons-outlined text-sm mr-1">file_download</span
+			>{$LL.home.exportProject()}
 		</div></Item
 	>
 	<Item on:click={duplicateProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">content_copy</span>{$LL.home.duplicateProject()}
+			<span class="material-icons-outlined text-sm mr-1">content_copy</span
+			>{$LL.home.duplicateProject()}
 		</div></Item
 	>
 	<Item on:click={deleteProjectButtonClick}

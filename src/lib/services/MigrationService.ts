@@ -196,6 +196,15 @@ function inferProjectTypeFromTitle(title: string): ProjectType {
 
 export default class MigrationService {
 	/**
+	 * Recharge les métadonnées UI non persistées des styles à l'ouverture d'un projet.
+	 * @param {Project} project Projet chargé avant son affichage.
+	 * @returns {Promise<void>}
+	 */
+	static async HydrateStyleEditorUiMetadata(project: Project): Promise<void> {
+		await project.content.videoStyle.hydrateStyleEditorUiMetadata();
+	}
+
+	/**
 	 * Migre les donnees de Quran Caption 3.1.0 a Quran Caption 3.1.1
 	 * > Ajout d'un shortcut pour ajouter un custom text clip facilement.
 	 */
@@ -632,9 +641,7 @@ export default class MigrationService {
 
 			// Deuxième migration : on a désormais une arborescence de projets
 			// Du coup on demande si on veut pas avoir un premier tri intelligent sur ces projets
-			const confirmed = await ModalManager.confirmModal(
-				get(LL).settings.migrationUpdateMessage()
-			);
+			const confirmed = await ModalManager.confirmModal(get(LL).settings.migrationUpdateMessage());
 			if (confirmed) {
 				this.organizeExistingProjectsIntoSubCategories();
 			}

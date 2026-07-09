@@ -135,6 +135,7 @@ export class ProjectHistoryManager {
 	 */
 	private static restoreSnapshot(snapshot: ProjectSnapshot): void {
 		const previousEditorState = globalState.currentProject?.projectEditorState;
+		const previousVideoStyle = globalState.currentProject?.content.videoStyle;
 		const previousPreviewState = previousEditorState?.videoPreview;
 		const currentTab = previousEditorState?.currentTab;
 		const callbacks: RuntimeVideoPreviewCallbacks | null = previousPreviewState
@@ -151,6 +152,9 @@ export class ProjectHistoryManager {
 
 		const restored = projectConstructor.fromJSON(JSON.parse(snapshot));
 		if (currentTab) restored.projectEditorState.currentTab = currentTab;
+		if (previousVideoStyle) {
+			restored.content.videoStyle.copyStyleEditorUiMetadataFrom(previousVideoStyle);
+		}
 		this.restoreRuntimeCallbacks(restored, callbacks);
 
 		this.isRestoring = true;

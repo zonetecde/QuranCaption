@@ -435,7 +435,7 @@ const de = {
 		videoClipsSelected:
 			'{count} Videoclip{plural} ausgewählt. Überlagerungsstile werden nur auf diese Clips angewendet.',
 		clickToSelect:
-			'Klicken Sie auf einen Untertitel oder Videoclip, um nur diesen auszuwählen. Shift+Klick wählt weitere Elemente aus.',
+			'Klicken Sie auf einen Untertitel oder Videoclip, um ihn auszuwählen. Strg/Cmd+Klick wählt weitere Elemente aus.',
 		cannotEditGlobalWithSelection:
 			'Sie können globale Stile nicht bearbeiten, wenn Untertitel-Clips ausgewählt sind. Heben Sie die Auswahl auf, um globale Stile zu bearbeiten.',
 		backgroundVisibilityHint:
@@ -1857,7 +1857,26 @@ const de = {
 		wbwStep1:
 			'1. Fügen Sie sie mit KI-Segmentierung hinzu und stellen Sie sicher, dass Wort-für-Wort-Zeitstempel einbeziehen aktiviert ist.',
 		wbwStep2:
-			'2. Oder fügen Sie sie manuell im Untertitel-Editor hinzu, indem Sie E gedrückt halten, während der Cursor auf einem Untertitel ist.'
+			'2. Oder fügen Sie sie manuell im Untertitel-Editor hinzu, indem Sie E gedrückt halten, während der Cursor auf einem Untertitel ist.',
+		onScreenElements: 'Bildschirmelemente',
+		customElements: 'Benutzerdefinierte Elemente',
+		noCustomElements:
+			'Noch keine benutzerdefinierten Elemente. Fügen Sie zuerst Text oder ein Bild hinzu.',
+		noMatchingStyles: 'Keine Stile entsprechen Ihrer Suche.',
+		mixedValue: 'Unterschiedliche Werte',
+		localOverride: 'Lokale Änderung',
+		fontControlledByMushaf: 'Diese Schrift wird vom ausgewählten Mushaf gesteuert.',
+		groupBasics: 'Grundlagen',
+		groupTypography: 'Typografie',
+		groupColors: 'Farben',
+		groupSpacing: 'Abstände',
+		groupLayout: 'Layout',
+		groupTiming: 'Zeitsteuerung',
+		groupEffects: 'Effekte',
+		groupAdvanced: 'Erweitert',
+		groupVerseNumber: 'Versnummer',
+		groupDecorations: 'Dekorationen',
+		groupTransitions: 'Übergänge'
 	},
 	settings: {
 		settings: 'Einstellungen',

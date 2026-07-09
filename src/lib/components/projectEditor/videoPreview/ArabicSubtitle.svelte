@@ -413,11 +413,16 @@
 			const displayParts = sourceClip.getArabicRenderParts('preview');
 			const visibleWords = displayParts.words ?? displayParts.text.split(/\s+/).filter(Boolean);
 			const alignmentWords = sourceClip.alignmentMetadata?.words ?? [];
-			const visibleWordCount = Math.min(visibleWords.length, alignmentWords.length);
+			const dedupedAlignmentWords = alignmentWords.filter(
+				(word, index, words) =>
+					!word.location ||
+					words.findIndex((candidate) => candidate.location === word.location) === index
+			);
+			const visibleWordCount = Math.min(visibleWords.length, dedupedAlignmentWords.length);
 			const visibleAlignmentWords =
 				visibleWordCount > 0
-					? alignmentWords.slice(alignmentWords.length - visibleWordCount)
-					: alignmentWords.slice();
+					? dedupedAlignmentWords.slice(dedupedAlignmentWords.length - visibleWordCount)
+					: dedupedAlignmentWords.slice();
 			const clipOffsetS = shouldUseMergedSource
 				? (sourceClip.startTime - mergedGroup!.startTime) / 1000
 				: 0;

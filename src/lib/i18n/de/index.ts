@@ -832,6 +832,7 @@ const de = {
 		loopUntilTheEnd: 'Bis zum Ende wiederholen',
 		removeClip: 'Clip entfernen',
 		removeCustomText: 'Benutzerdefinierten Text entfernen',
+		removeCustomImage: 'Benutzerdefiniertes Bild entfernen',
 		toggleAlwaysShow: 'Stil « Immer anzeigen » umschalten',
 		editStyleContext: 'Stil bearbeiten',
 		editSubtitleContext: 'Untertitel bearbeiten',

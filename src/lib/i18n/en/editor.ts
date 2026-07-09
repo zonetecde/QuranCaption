@@ -525,6 +525,7 @@ const editor = {
 	loopUntilTheEnd: 'Loop until the end',
 	removeClip: 'Remove clip',
 	removeCustomText: 'Remove Custom Text',
+	removeCustomImage: 'Remove Custom Image',
 	toggleAlwaysShow: 'Toggle "Always Show" style',
 	editStyleContext: 'Edit style',
 	editSubtitleContext: 'Edit subtitle',

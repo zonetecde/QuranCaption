@@ -3038,6 +3038,10 @@ type RootTranslation = {
 		 */
 		removeCustomText: string;
 		/**
+		 * R​e​m​o​v​e​ ​C​u​s​t​o​m​ ​I​m​a​g​e
+		 */
+		removeCustomImage: string;
+		/**
 		 * T​o​g​g​l​e​ ​"​A​l​w​a​y​s​ ​S​h​o​w​"​ ​s​t​y​l​e
 		 */
 		toggleAlwaysShow: string;
@@ -11805,6 +11809,10 @@ export type TranslationFunctions = {
 		 * Remove Custom Text
 		 */
 		removeCustomText: () => LocalizedString;
+		/**
+		 * Remove Custom Image
+		 */
+		removeCustomImage: () => LocalizedString;
 		/**
 		 * Toggle "Always Show" style
 		 */

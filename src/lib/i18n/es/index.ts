@@ -833,6 +833,7 @@ const es = {
 		loopUntilTheEnd: 'Repetir hasta el final',
 		removeClip: 'Eliminar clip',
 		removeCustomText: 'Eliminar texto personalizado',
+		removeCustomImage: 'Eliminar imagen personalizada',
 		toggleAlwaysShow: 'Alternar estilo \u00ab\u00a0Mostrar siempre\u00a0\u00bb',
 		editStyleContext: 'Editar estilo',
 		editSubtitleContext: 'Editar subtítulo',

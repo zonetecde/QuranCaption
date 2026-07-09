@@ -756,6 +756,7 @@ const zh = {
 		loopUntilTheEnd: '循环至结束',
 		removeClip: '删除片段',
 		removeCustomText: '删除自定义文本',
+		removeCustomImage: '删除自定义图片',
 		toggleAlwaysShow: '切换\u300c始终显示\u300d样式',
 		editStyleContext: '编辑样式',
 		editSubtitleContext: '编辑字幕',

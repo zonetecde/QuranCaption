@@ -832,6 +832,7 @@ const fr = {
 		loopUntilTheEnd: 'Boucler jusqu\u2019à la fin',
 		removeClip: 'Supprimer le clip',
 		removeCustomText: 'Supprimer le texte personnalisé',
+		removeCustomImage: 'Supprimer l\u2019image personnalisée',
 		toggleAlwaysShow: 'Basculer le style \u00ab\u00a0Toujours afficher\u00a0\u00bb',
 		editStyleContext: 'Modifier le style',
 		editSubtitleContext: 'Modifier le sous-titre',

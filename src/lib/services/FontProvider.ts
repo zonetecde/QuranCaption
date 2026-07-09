@@ -1,5 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { getQpcGlyphIndexesForWord, getQpcVerseNumberGlyphIndex } from './QpcGlyphWordOverrides';
 
 type SystemFontSource = {
 	family: string;
@@ -158,25 +159,60 @@ export class QPCFontProvider {
 			return '';
 		}
 
-		let str = '';
-		for (let i = startWord + 1; i <= endWord + 1; i++) {
-			const key = `${surah}:${verse}:${i}`;
-			const glyph = glyphs[key];
-			if (glyph) {
-				str += glyph + ' ';
-			}
-		}
+		let str = QPCFontProvider.getQuranVerseGlyphWords(
+			surah,
+			verse,
+			startWord,
+			endWord,
+			qpcVersion
+		).join(' ');
 
 		// Si on veut inclure le numéro de verset
 		if (isLastWords && globalState.getStyle('arabic', 'show-verse-number')!.value) {
-			const key = `${surah}:${verse}:${endWord + 2}`;
+			const verseNumberGlyphIndex = getQpcVerseNumberGlyphIndex(surah, verse, endWord);
+			const key = `${surah}:${verse}:${verseNumberGlyphIndex + 1}`;
 			const glyph = glyphs[key];
 			if (glyph) {
-				str += glyph; // Ajoute le symbole du numéro de verset
+				str += (str ? ' ' : '') + glyph; // Ajoute le symbole du numéro de verset
 			}
 		}
 
 		return str.trim();
+	}
+
+	/**
+	 * Retourne les glyphes QPC regroupes par mot logique Uthmani.
+	 * @param {number} surah Numero de sourate.
+	 * @param {number} verse Numero de verset.
+	 * @param {number} startWord Index 0-based du premier mot logique.
+	 * @param {number} endWord Index 0-based du dernier mot logique.
+	 * @param {'1' | '2'} qpcVersion Version QPC a utiliser.
+	 * @returns {string[]} Glyphes regroupes par mot logique.
+	 */
+	static getQuranVerseGlyphWords(
+		surah: number,
+		verse: number,
+		startWord: number,
+		endWord: number,
+		qpcVersion: '1' | '2' = '2'
+	): string[] {
+		const glyphs = qpcVersion === '1' ? QPCFontProvider.qpc1Glyphs : QPCFontProvider.qpc2Glyphs;
+		if (!glyphs) {
+			void QPCFontProvider.loadQPC2Data();
+			return [];
+		}
+
+		const words: string[] = [];
+		for (let wordIndex = startWord; wordIndex <= endWord; wordIndex++) {
+			const wordGlyph = getQpcGlyphIndexesForWord(surah, verse, wordIndex)
+				.map((glyphIndex) => glyphs[`${surah}:${verse}:${glyphIndex + 1}`])
+				.filter((glyph): glyph is string => Boolean(glyph))
+				.join('');
+
+			if (wordGlyph) words.push(wordGlyph);
+		}
+
+		return words;
 	}
 
 	static getBasmalaGlyph(version: '1' | '2'): string {

@@ -546,15 +546,17 @@ export class SubtitleClip extends ClipWithTranslation {
 		const qpcVersion: '1' | '2' =
 			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
 
+		const words = QPCFontProvider.getQuranVerseGlyphWords(
+			this.surah,
+			this.verse,
+			this.startWordIndex,
+			this.endWordIndex,
+			qpcVersion
+		);
+
 		return {
-			text: QPCFontProvider.getQuranVerseGlyph(
-				this.surah,
-				this.verse,
-				this.startWordIndex,
-				this.endWordIndex,
-				false,
-				qpcVersion
-			),
+			text: words.join(' '),
+			words,
 			suffix: showVerseNumber
 				? ` ${QPCFontProvider.getQuranVerseGlyph(
 						this.surah,

@@ -601,8 +601,9 @@
 					subfolder: data.subfolder
 				});
 				let completed = 0;
+				const retryJobs: ExportFrameCaptureJob[] = [];
 				for (const job of data.jobs) {
-					await captureFrameJob(job, data.subfolder);
+					if (await captureFrameJob(job, data.subfolder)) retryJobs.push(job);
 					completed += 1;
 					await emitToCoordinator(WORKER_PROGRESS_EVENT, {
 						exportId,
@@ -610,6 +611,15 @@
 						completed,
 						total: data.jobs.length
 					} satisfies CaptureWorkerProgressPayload);
+				}
+				if (retryJobs.length > 0) {
+					await emitExportLog('warn', 'Capture worker retrying layout timeouts', {
+						workerId,
+						jobs: retryJobs.length
+					});
+					for (const job of retryJobs) {
+						await captureFrameJob(job, data.subfolder);
+					}
 				}
 
 				await emitToCoordinator(WORKER_COMPLETE_EVENT, {
@@ -906,9 +916,9 @@
 	/**
 	 * Capture une image blank source partagee entre les workers.
 	 * @param {ExportBlankSourceJob} job Job blank source.
-	 * @returns {Promise<void>}
+	 * @returns {Promise<boolean>} true si la capture a continue apres un timeout de layout.
 	 */
-	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<void> {
+	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<boolean> {
 		await emitExportLog('info', 'Blank source capture waiting', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -917,8 +927,8 @@
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
-		await wait(job.captureTiming);
-		await emitExportLog('info', 'Blank source layout ready', {
+		const layoutTimedOut = await wait(job.captureTiming);
+		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Blank source layout wait completed', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
@@ -929,18 +939,19 @@
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
+		return layoutTimedOut;
 	}
 
 	/**
 	 * Capture une frame numerotee avec la preview du renderer courant.
 	 * @param {ExportFrameCaptureJob} job Job de capture.
 	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
-	 * @returns {Promise<void>}
+	 * @returns {Promise<boolean>} true si la capture a continue apres un timeout de layout.
 	 */
 	async function captureFrameJob(
 		job: ExportFrameCaptureJob,
 		subfolder: string | null
-	): Promise<void> {
+	): Promise<boolean> {
 		await emitExportLog('info', 'Frame capture waiting', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -952,8 +963,8 @@
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
-		await wait(job.captureTiming);
-		await emitExportLog('info', 'Frame layout ready', {
+		const layoutTimedOut = await wait(job.captureTiming);
+		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Frame layout wait completed', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
@@ -964,6 +975,7 @@
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
+		return layoutTimedOut;
 	}
 
 	/**
@@ -982,13 +994,23 @@
 			jobs: jobs.length,
 			subfolder
 		});
+		const retryJobs: ExportFrameCaptureJob[] = [];
 		for (let index = 0; index < jobs.length; index++) {
 			const job = jobs[index];
-			await captureFrameJob(job, subfolder);
+			if (await captureFrameJob(job, subfolder)) retryJobs.push(job);
 			onProgress(index + 1, job.timing);
 
 			if ((index + 1) % 20 === 0) {
 				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+		}
+		if (retryJobs.length > 0) {
+			await emitExportLog('warn', 'Serial capture retrying layout timeouts', {
+				jobs: retryJobs.length,
+				subfolder
+			});
+			for (const job of retryJobs) {
+				await captureFrameJob(job, subfolder);
 			}
 		}
 		await emitExportLog('info', 'Serial capture completed', {
@@ -1257,10 +1279,20 @@
 			onProgress(lastReportedCompleted, totalJobs, timing);
 		};
 
+		const retryBlankSourceJobs: ExportBlankSourceJob[] = [];
 		for (const job of plan.blankSourceJobs) {
-			await captureBlankSourceJob(job);
+			if (await captureBlankSourceJob(job)) retryBlankSourceJobs.push(job);
 			completed += 1;
 			reportProgress(completed, job.timing);
+		}
+		if (retryBlankSourceJobs.length > 0) {
+			await emitExportLog('warn', 'Retrying blank source layout timeouts', {
+				jobs: retryBlankSourceJobs.length,
+				subfolder
+			});
+			for (const job of retryBlankSourceJobs) {
+				await captureBlankSourceJob(job);
+			}
 		}
 
 		const completedBeforeCaptures = completed;
@@ -2109,9 +2141,9 @@
 	/**
 	 * Attend que le layout de sous-titres soit stable avant une capture.
 	 * @param {number} timing Timing capture courant.
-	 * @returns {Promise<void>} Promise resolue quand la capture peut commencer.
+	 * @returns {Promise<boolean>} true si l'attente a atteint le timeout.
 	 */
-	async function wait(timing: number) {
+	async function wait(timing: number): Promise<boolean> {
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
 
@@ -2142,10 +2174,12 @@
 		}
 
 		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+		let layoutTimedOut = false;
 		if (
 			expectsSubtitle &&
 			(!subtitlesContainer || !isSubtitleLayoutReady(subtitlesContainer, timingKey))
 		) {
+			layoutTimedOut = true;
 			await emitExportLog('warn', 'Layout wait timed out, continuing capture', {
 				timing,
 				timingKey,
@@ -2160,6 +2194,7 @@
 			subtitlesContainer &&
 			!isSubtitleLayoutReady(subtitlesContainer, timingKey)
 		) {
+			layoutTimedOut = true;
 			await emitExportLog('warn', 'Layout clear wait timed out, continuing capture', {
 				timing,
 				timingKey,
@@ -2169,7 +2204,7 @@
 				layoutState: subtitlesContainer.dataset.exportLayoutState
 			});
 		}
-		await emitExportLog('info', 'Layout wait ready', {
+		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Layout wait completed', {
 			timing,
 			timingKey,
 			expectsSubtitle,
@@ -2182,6 +2217,7 @@
 		await waitForAnimationFrame();
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
 		await emitExportLog('info', 'Fonts ready for capture', { timing });
+		return layoutTimedOut;
 	}
 </script>
 

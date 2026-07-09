@@ -1164,7 +1164,7 @@ const es = {
 			'max-height': 'Altura máx. (ajustar texto)',
 			'max-line': 'Líneas máx.',
 			'reactive-font-size': 'Tamaño de fuente reactivo',
-			'word-by-word-highlight': 'Resaltado palabra por palabra',
+			'word-by-word-highlight': 'Efecto WBW',
 			'enable-wbw-highlight': 'Activar resaltado wbw',
 			'wbw-show-current-word-only': 'Mostrar solo la palabra actual',
 			'wbw-color': 'Color palabra por palabra',
@@ -1179,6 +1179,7 @@ const es = {
 			'wbw-always-show-verse-number': 'Mostrar siempre el número de versículo',
 			'enable-wbw-background': 'Activar fondo wbw',
 			'wbw-bg-color': 'Color de fondo',
+			'wbw-current-word-custom-css': 'CSS personalizado (palabra actual)',
 			positioning: 'Posición y disposición',
 			'reactive-y-position': 'Posición Y reactiva',
 			'vertical-position': 'Posición vertical',
@@ -1323,7 +1324,7 @@ const es = {
 			'reactive-font-size':
 				'Usado por la función \u00ab\u00a0Ajustar texto\u00a0\u00bb para ajustar el tamaño de fuente según el contenedor',
 			'word-by-word-highlight':
-				'Resaltar palabras árabes a lo largo del tiempo cuando las marcas de tiempo palabra por palabra están disponibles',
+				'Aplicar efectos palabra por palabra cuando hay marcas de tiempo WBW disponibles',
 			'enable-wbw-highlight': 'Activar o desactivar el resaltado cronometrado palabra por palabra',
 			'wbw-show-current-word-only': 'Mostrar solo la palabra que se está recitando',
 			'wbw-color': 'Color aplicado a las palabras resaltadas',
@@ -1342,6 +1343,7 @@ const es = {
 				'Mantener el número de versículo visible permanentemente durante el resaltado palabra por palabra. Desactivado, el número aparece con la última palabra del versículo.',
 			'enable-wbw-background': 'Activar un color de fondo detrás de las palabras resaltadas',
 			'wbw-bg-color': 'Color de fondo aplicado a las palabras resaltadas',
+			'wbw-current-word-custom-css': 'CSS personalizado aplicado a la palabra WBW actual',
 			positioning: 'Controlar la posición y el espaciado de los subtítulos en pantalla',
 			'reactive-y-position':
 				'Usado si \u00ab\u00a0Ajustar texto\u00a0\u00bb no está configurado para ajustar la posición Y según otros subtítulos para evitar superposiciones',

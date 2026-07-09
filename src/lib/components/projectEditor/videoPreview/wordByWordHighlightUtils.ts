@@ -21,6 +21,7 @@ export type WordByWordHighlightState = {
 	glowEnabled: boolean;
 	glowColor: string;
 	glowBlur: number;
+	currentWordCustomCss: string;
 	clipStartTimeS: number;
 	cursorTimeS: number;
 	words: SegmentationWordTimestamp[];
@@ -41,6 +42,7 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const showCurrentWordOnly = Boolean(getStyleValue('wbw-show-current-word-only'));
+	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '').trim();
 
 	return (
 		showCurrentWordOnly ||
@@ -49,7 +51,8 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 		glowEnabled ||
 		revealSpecificWordStyle ||
 		revealWordsOnRecitation ||
-		backgroundEnabled
+		backgroundEnabled ||
+		currentWordCustomCss.length > 0
 	);
 }
 
@@ -77,6 +80,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		glowEnabled: false,
 		glowColor: '',
 		glowBlur: 10,
+		currentWordCustomCss: '',
 		clipStartTimeS: 0,
 		cursorTimeS: 0,
 		words: []
@@ -135,6 +139,7 @@ export function getWordByWordHighlightState(params: {
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
+	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '');
 	if (!isEnabled) return getDisabledWordByWordHighlightState();
 
 	const wbwTimingEpsilonS = 0.0005;
@@ -180,6 +185,7 @@ export function getWordByWordHighlightState(params: {
 		glowEnabled: showCurrentWordOnly ? false : glowEnabled,
 		glowColor: String(getStyleValue('wbw-glow-color') ?? ''),
 		glowBlur: Number(getStyleValue('wbw-glow-blur') ?? 10),
+		currentWordCustomCss,
 		clipStartTimeS,
 		cursorTimeS,
 		words
@@ -305,6 +311,7 @@ export function getWordByWordWordCss(
 	const clampedProgress = Utilities.clamp01(highlightProgress);
 	const opacity = getWordByWordWordOpacity(wordIndex, state, fadeDurationMs);
 	const effectiveBaseColor = baseColorOverride ?? state.baseColor;
+	const customCss = wordIndex === state.activeWordIndex ? state.currentWordCustomCss : '';
 
 	if (state.underlineEnabled) {
 		parts.push('text-decoration-line: underline;');
@@ -317,6 +324,7 @@ export function getWordByWordWordCss(
 		if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
 			parts.push(`opacity: ${opacity};`);
 		}
+		if (customCss.trim()) parts.push(customCss);
 		return parts.join(' ');
 	}
 
@@ -338,6 +346,7 @@ export function getWordByWordWordCss(
 	if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
 		parts.push(`opacity: ${opacity};`);
 	}
+	if (customCss.trim()) parts.push(customCss);
 	return parts.join(' ');
 }
 

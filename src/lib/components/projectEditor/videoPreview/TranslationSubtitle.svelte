@@ -484,7 +484,12 @@
 				}
 			}
 
-			if (bestProgress > 0 || state.underlineEnabled || state.revealWordsOnRecitation) {
+			if (
+				bestProgress > 0 ||
+				state.underlineEnabled ||
+				state.revealWordsOnRecitation ||
+				state.currentWordCustomCss.trim()
+			) {
 				wbwCss = getWordByWordWordCss(bestIndex, state, bestProgress, wbwPreviewFadeDuration());
 			}
 			inlineRevealProgress = getInlineStyleRevealProgress(wbwWordIndexes, bestProgress, state);

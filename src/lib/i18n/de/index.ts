@@ -1160,7 +1160,7 @@ const de = {
 			'max-height': 'Max. Höhe (Text anpassen)',
 			'max-line': 'Max. Zeilen',
 			'reactive-font-size': 'Reaktive Schriftgröße',
-			'word-by-word-highlight': 'Wort-für-Wort-Hervorhebung',
+			'word-by-word-highlight': 'WBW-Effekt',
 			'enable-wbw-highlight': 'WBW-Hervorhebung aktivieren',
 			'wbw-show-current-word-only': 'Nur aktuelles Wort anzeigen',
 			'wbw-color': 'Wort-für-Wort-Farbe',
@@ -1175,6 +1175,7 @@ const de = {
 			'wbw-always-show-verse-number': 'Versnummer immer anzeigen',
 			'enable-wbw-background': 'WBW-Hintergrund aktivieren',
 			'wbw-bg-color': 'Hintergrundfarbe',
+			'wbw-current-word-custom-css': 'Benutzerdefiniertes CSS (aktuelles Wort)',
 			positioning: 'Position und Layout',
 			'reactive-y-position': 'Reaktive Y-Position',
 			'vertical-position': 'Vertikale Position',
@@ -1319,7 +1320,7 @@ const de = {
 			'reactive-font-size':
 				'Wird von der Funktion « Text anpassen » verwendet, um die Schriftgröße an den Container anzupassen',
 			'word-by-word-highlight':
-				'Arabische Wörter im Zeitverlauf hervorheben, wenn Wort-für-Wort-Zeitstempel verfügbar sind',
+				'Zeitgesteuerte Wort-für-Wort-Effekte anwenden, wenn WBW-Zeitstempel verfügbar sind',
 			'enable-wbw-highlight': 'Zeitgesteuerte Wort-für-Wort-Hervorhebung ein- oder ausschalten',
 			'wbw-show-current-word-only': 'Nur das aktuell rezitierte Wort anzeigen',
 			'wbw-color': 'Auf hervorgehobene Wörter angewendete Farbe',
@@ -1337,6 +1338,7 @@ const de = {
 				'Versnummer während der Wort-für-Wort-Hervorhebung dauerhaft sichtbar halten. Deaktiviert erscheint die Nummer mit dem letzten Wort des Verses.',
 			'enable-wbw-background': 'Hintergrundfarbe hinter hervorgehobenen Wörtern aktivieren',
 			'wbw-bg-color': 'Auf hervorgehobene Wörter angewendete Hintergrundfarbe',
+			'wbw-current-word-custom-css': 'Benutzerdefiniertes CSS für das aktuelle WBW-Wort',
 			positioning: 'Position und Abstand der Untertitel auf dem Bildschirm steuern',
 			'reactive-y-position':
 				'Wird verwendet, wenn « Text anpassen » nicht festgelegt ist, um die Y-Position je nach anderen Untertiteln anzupassen, um Überlappungen zu vermeiden',

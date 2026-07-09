@@ -1161,7 +1161,7 @@ const fr = {
 			'max-height': 'Hauteur max. (ajuster le texte)',
 			'max-line': 'Lignes max.',
 			'reactive-font-size': 'Taille de police réactive',
-			'word-by-word-highlight': 'Surlignage mot par mot',
+			'word-by-word-highlight': 'Effet WBW',
 			'enable-wbw-highlight': 'Activer le surlignage wbw',
 			'wbw-show-current-word-only': 'Afficher seulement le mot actuel',
 			'wbw-color': 'Couleur mot par mot',
@@ -1176,6 +1176,7 @@ const fr = {
 			'wbw-always-show-verse-number': 'Toujours afficher le numéro de verset',
 			'enable-wbw-background': 'Activer l\u2019arrière-plan wbw',
 			'wbw-bg-color': 'Couleur d\u2019arrière-plan',
+			'wbw-current-word-custom-css': 'CSS personnalisé (mot actuel)',
 			positioning: 'Position et disposition',
 			'reactive-y-position': 'Position Y réactive',
 			'vertical-position': 'Position verticale',
@@ -1321,7 +1322,7 @@ const fr = {
 			'reactive-font-size':
 				'Utilisé par la fonctionnalité \u00ab\u00a0Ajuster le texte\u00a0\u00bb pour ajuster la taille de police en fonction du conteneur',
 			'word-by-word-highlight':
-				'Surligner les mots arabes au fil du temps lorsque les horodatages mot par mot sont disponibles',
+				'Appliquer des effets mot par mot quand les horodatages WBW sont disponibles',
 			'enable-wbw-highlight': 'Activer ou désactiver le surlignage chronométré mot par mot',
 			'wbw-show-current-word-only': 'Afficher uniquement le mot en cours de récitation',
 			'wbw-color': 'Couleur appliquée aux mots surlignés',
@@ -1340,6 +1341,7 @@ const fr = {
 			'enable-wbw-background':
 				'Activer une couleur d\u2019arrière-plan derrière les mots surlignés',
 			'wbw-bg-color': 'Couleur d\u2019arrière-plan appliquée aux mots surlignés',
+			'wbw-current-word-custom-css': 'CSS personnalisé appliqué au mot WBW actuel',
 			positioning: 'Contrôler la position et l\u2019espacement des sous-titres à l\u2019écran',
 			'reactive-y-position':
 				'Utilisé si \u00ab\u00a0Ajuster le texte\u00a0\u00bb n\u2019est pas défini pour ajuster la position Y selon les autres sous-titres afin d\u2019éviter les chevauchements',

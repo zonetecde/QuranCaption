@@ -583,8 +583,15 @@ const id: Translation = {
 			'background-overlay-mode': 'Mode Overlay',
 			'background-overlay-fade-intensity': 'Intensitas Fade',
 			'background-overlay-fade-coverage': 'Cakupan Fade',
-			'wbw-show-current-word-only': 'Tampilkan hanya kata saat ini'
-		},
+			'word-by-word-highlight': 'Efek WBW',
+			'wbw-show-current-word-only': 'Tampilkan hanya kata saat ini',
+			'wbw-current-word-custom-css': 'CSS kustom (kata saat ini)'
+		} as Translation['editor']['styleName'],
+		styleDescription: {
+			...baseEn.editor.styleDescription,
+			'word-by-word-highlight': 'Terapkan efek kata demi kata saat timestamp WBW tersedia',
+			'wbw-current-word-custom-css': 'CSS kustom yang diterapkan ke kata WBW saat ini'
+		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',
 		clickToSelect:

@@ -295,8 +295,8 @@
 	},
 	{
 		"id": "word-by-word-highlight",
-		"name": "Word by word highlight",
-		"description": "Highlight Arabic words over time when word-by-word timestamps are available",
+		"name": "WBW Effect",
+		"description": "Apply timed word-by-word effects when WBW timestamps are available",
 		"icon": "lyrics",
 		"styles": [
 			{
@@ -444,6 +444,16 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "highlight"
+			},
+			{
+				"id": "wbw-current-word-custom-css",
+				"name": "Custom CSS (current word)",
+				"description": "Custom CSS applied to the current WBW word",
+				"value": "",
+				"valueType": "text",
+				"css": "",
+				"tailwind": false,
+				"icon": "code"
 			}
 		
 		]

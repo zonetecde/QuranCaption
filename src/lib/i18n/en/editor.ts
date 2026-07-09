@@ -848,7 +848,7 @@ const editor = {
 		'max-height': 'Max Height (Make Text Fit)',
 		'max-line': 'Max Line',
 		'reactive-font-size': 'Reactive Font Size',
-		'word-by-word-highlight': 'Word by word highlight',
+		'word-by-word-highlight': 'WBW Effect',
 		'enable-wbw-highlight': 'Enable wbw highlight',
 		'wbw-show-current-word-only': 'Show current word only',
 		'wbw-color': 'Word-by-word color',
@@ -863,6 +863,7 @@ const editor = {
 		'wbw-always-show-verse-number': 'Always Show Verse Number',
 		'enable-wbw-background': 'Enable wbw background',
 		'wbw-bg-color': 'Background color',
+		'wbw-current-word-custom-css': 'Custom CSS (current word)',
 		positioning: 'Position & Layout',
 		'reactive-y-position': 'Reactive Y Position',
 		'vertical-position': 'Vertical Position',
@@ -1002,8 +1003,7 @@ const editor = {
 		'max-line': 'Limit text to a maximum number of rendered lines. Infinite = no limit.',
 		'reactive-font-size':
 			"Used by the 'Make Text Fit' feature to adjust font size based on container size",
-		'word-by-word-highlight':
-			'Highlight Arabic words over time when word-by-word timestamps are available',
+		'word-by-word-highlight': 'Apply timed word-by-word effects when WBW timestamps are available',
 		'enable-wbw-highlight': 'Enable or disable timed word-by-word highlighting',
 		'wbw-show-current-word-only': 'Show only the word currently being recited',
 		'wbw-color': 'Color applied to highlighted words',
@@ -1020,6 +1020,7 @@ const editor = {
 			'Keep the verse number visible at all times during word-by-word highlighting. When disabled, the verse number fades in together with the last word of the verse.',
 		'enable-wbw-background': 'Enable a background color behind highlighted words',
 		'wbw-bg-color': 'Background color applied to highlighted words',
+		'wbw-current-word-custom-css': 'Custom CSS applied to the current WBW word',
 		positioning: 'Control the position and spacing of subtitles on screen',
 		'reactive-y-position':
 			"Used if the 'Make Text Fit' feature is not set to adjust Y position based on other subtitles positions so that they do not overlap",

@@ -4254,7 +4254,7 @@ type RootTranslation = {
 			 */
 			'reactive-font-size': string;
 			/**
-			 * W​o​r​d​ ​b​y​ ​w​o​r​d​ ​h​i​g​h​l​i​g​h​t
+			 * W​B​W​ ​E​f​f​e​c​t
 			 */
 			'word-by-word-highlight': string;
 			/**
@@ -4313,6 +4313,10 @@ type RootTranslation = {
 			 * B​a​c​k​g​r​o​u​n​d​ ​c​o​l​o​r
 			 */
 			'wbw-bg-color': string;
+			/**
+			 * C​u​s​t​o​m​ ​C​S​S​ ​(​c​u​r​r​e​n​t​ ​w​o​r​d​)
+			 */
+			'wbw-current-word-custom-css': string;
 			/**
 			 * P​o​s​i​t​i​o​n​ ​&​ ​L​a​y​o​u​t
 			 */
@@ -4848,7 +4852,7 @@ type RootTranslation = {
 			 */
 			'reactive-font-size': string;
 			/**
-			 * H​i​g​h​l​i​g​h​t​ ​A​r​a​b​i​c​ ​w​o​r​d​s​ ​o​v​e​r​ ​t​i​m​e​ ​w​h​e​n​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e
+			 * A​p​p​l​y​ ​t​i​m​e​d​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​e​f​f​e​c​t​s​ ​w​h​e​n​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e
 			 */
 			'word-by-word-highlight': string;
 			/**
@@ -4907,6 +4911,10 @@ type RootTranslation = {
 			 * B​a​c​k​g​r​o​u​n​d​ ​c​o​l​o​r​ ​a​p​p​l​i​e​d​ ​t​o​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
 			'wbw-bg-color': string;
+			/**
+			 * C​u​s​t​o​m​ ​C​S​S​ ​a​p​p​l​i​e​d​ ​t​o​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​W​B​W​ ​w​o​r​d
+			 */
+			'wbw-current-word-custom-css': string;
 			/**
 			 * C​o​n​t​r​o​l​ ​t​h​e​ ​p​o​s​i​t​i​o​n​ ​a​n​d​ ​s​p​a​c​i​n​g​ ​o​f​ ​s​u​b​t​i​t​l​e​s​ ​o​n​ ​s​c​r​e​e​n
 			 */
@@ -12999,7 +13007,7 @@ export type TranslationFunctions = {
 			 */
 			'reactive-font-size': () => LocalizedString;
 			/**
-			 * Word by word highlight
+			 * WBW Effect
 			 */
 			'word-by-word-highlight': () => LocalizedString;
 			/**
@@ -13058,6 +13066,10 @@ export type TranslationFunctions = {
 			 * Background color
 			 */
 			'wbw-bg-color': () => LocalizedString;
+			/**
+			 * Custom CSS (current word)
+			 */
+			'wbw-current-word-custom-css': () => LocalizedString;
 			/**
 			 * Position & Layout
 			 */
@@ -13593,7 +13605,7 @@ export type TranslationFunctions = {
 			 */
 			'reactive-font-size': () => LocalizedString;
 			/**
-			 * Highlight Arabic words over time when word-by-word timestamps are available
+			 * Apply timed word-by-word effects when WBW timestamps are available
 			 */
 			'word-by-word-highlight': () => LocalizedString;
 			/**
@@ -13652,6 +13664,10 @@ export type TranslationFunctions = {
 			 * Background color applied to highlighted words
 			 */
 			'wbw-bg-color': () => LocalizedString;
+			/**
+			 * Custom CSS applied to the current WBW word
+			 */
+			'wbw-current-word-custom-css': () => LocalizedString;
 			/**
 			 * Control the position and spacing of subtitles on screen
 			 */

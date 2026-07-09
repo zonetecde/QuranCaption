@@ -234,7 +234,12 @@
 			globalState.getStyle(target, 'wbw-show-current-word-only')?.value
 		);
 
-		if (showCurrentWordOnly && styleId !== 'wbw-show-current-word-only') return true;
+		if (
+			showCurrentWordOnly &&
+			styleId !== 'wbw-show-current-word-only' &&
+			styleId !== 'wbw-current-word-custom-css'
+		)
+			return true;
 
 		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
 			return !Boolean(globalState.getStyle(target, 'enable-wbw-highlight')?.value);

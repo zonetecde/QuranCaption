@@ -447,6 +447,8 @@ const fr = {
 		resetOverrideSelection: 'Réinitialiser le remplacement pour la sélection',
 		loadingFonts: 'Chargement des polices...',
 		errorLoadingFonts: 'Erreur de chargement des polices\u00a0: {error}',
+		searchFonts: 'Rechercher une police...',
+		noFontsFound: 'Aucune police trouvée',
 		usePreviewCursorTime: 'Utiliser le temps du curseur d\u2019aperçu',
 		arabicCalligraphyUnavailable:
 			'La calligraphie arabe n\u2019est pas disponible pour ce récitateur.',

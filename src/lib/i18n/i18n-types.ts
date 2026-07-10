@@ -1639,6 +1639,14 @@ type RootTranslation = {
 		 */
 		errorLoadingFonts: RequiredParams<'error'>;
 		/**
+		 * S​e​a​r​c​h​ ​f​o​n​t​s​.​.​.
+		 */
+		searchFonts: string;
+		/**
+		 * N​o​ ​f​o​n​t​s​ ​f​o​u​n​d
+		 */
+		noFontsFound: string;
+		/**
 		 * U​s​e​ ​p​r​e​v​i​e​w​ ​c​u​r​s​o​r​ ​t​i​m​e
 		 */
 		usePreviewCursorTime: string;
@@ -10521,6 +10529,14 @@ export type TranslationFunctions = {
 		 * Error loading fonts: {error}
 		 */
 		errorLoadingFonts: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Search fonts...
+		 */
+		searchFonts: () => LocalizedString;
+		/**
+		 * No fonts found
+		 */
+		noFontsFound: () => LocalizedString;
 		/**
 		 * Use preview cursor time
 		 */

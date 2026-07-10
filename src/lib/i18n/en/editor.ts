@@ -144,6 +144,8 @@ const editor = {
 	resetOverrideSelection: 'Reset override for selection',
 	loadingFonts: 'Loading fonts...',
 	errorLoadingFonts: 'Error loading fonts: {error}',
+	searchFonts: 'Search fonts...',
+	noFontsFound: 'No fonts found',
 	usePreviewCursorTime: 'Use preview cursor time',
 	arabicCalligraphyUnavailable: 'Arabic calligraphy is not available for this reciter.',
 	videoFadeLabel: 'Video',

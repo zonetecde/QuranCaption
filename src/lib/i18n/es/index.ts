@@ -448,6 +448,8 @@ const es = {
 		resetOverrideSelection: 'Restablecer la anulación para la selección',
 		loadingFonts: 'Cargando fuentes...',
 		errorLoadingFonts: 'Error al cargar fuentes\u00a0: {error}',
+		searchFonts: 'Buscar fuentes...',
+		noFontsFound: 'No se encontraron fuentes',
 		usePreviewCursorTime: 'Usar el tiempo del cursor de vista previa',
 		arabicCalligraphyUnavailable: 'La caligrafía árabe no está disponible para este recitador.',
 		videoFadeLabel: 'Video',

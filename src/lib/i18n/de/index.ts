@@ -446,6 +446,8 @@ const de = {
 		resetOverrideSelection: 'Überschreibung für Auswahl zurücksetzen',
 		loadingFonts: 'Schriftarten werden geladen...',
 		errorLoadingFonts: 'Fehler beim Laden der Schriftarten: {error}',
+		searchFonts: 'Schriftarten suchen...',
+		noFontsFound: 'Keine Schriftarten gefunden',
 		usePreviewCursorTime: 'Zeit des Vorschau-Cursors verwenden',
 		arabicCalligraphyUnavailable:
 			'Arabische Kalligraphie ist für diesen Rezitator nicht verfügbar.',

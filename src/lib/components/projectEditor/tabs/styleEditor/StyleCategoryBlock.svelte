@@ -190,7 +190,7 @@
 	}
 	.style-inline-hint {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		gap: 0.4rem;
 		margin: 0 0 0.5rem;
 		padding: 0.45rem 0.5rem;

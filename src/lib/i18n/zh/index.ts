@@ -409,6 +409,8 @@ const zh = {
 		resetOverrideSelection: '重置选择的覆盖',
 		loadingFonts: '加载字体...',
 		errorLoadingFonts: '加载字体时出错：{error}',
+		searchFonts: '搜索字体...',
+		noFontsFound: '未找到字体',
 		usePreviewCursorTime: '使用预览光标时间',
 		arabicCalligraphyUnavailable: '此诵读家不提供阿拉伯书法。',
 		videoFadeLabel: '视频',

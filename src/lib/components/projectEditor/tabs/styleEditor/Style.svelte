@@ -16,6 +16,7 @@
 	import DimensionControl from './controls/DimensionControl.svelte';
 	import FadeControl from './controls/FadeControl.svelte';
 	import FileControl from './controls/FileControl.svelte';
+	import FontFamilyControl from './controls/FontFamilyControl.svelte';
 	import NumberControl from './controls/NumberControl.svelte';
 	import ReciterControl from './controls/ReciterControl.svelte';
 	import SelectControl from './controls/SelectControl.svelte';
@@ -581,6 +582,8 @@
 					<NumberControl {style} value={inputValue} onChange={applyValue} />
 				{:else if style.valueType === 'color'}
 					<ColorControl value={inputValue} onChange={applyValue} />
+				{:else if style.id === 'font-family'}
+					<FontFamilyControl value={inputValue} onChange={applySelectValue} />
 				{:else if style.valueType === 'select'}
 					<SelectControl {style} value={inputValue} onChange={applySelectValue} />
 				{:else if style.valueType === 'brackets-font'}

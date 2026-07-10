@@ -197,6 +197,8 @@ puis à l’union globale `StyleName` si une nouvelle union est créée.
 ### 3. Définir le contrôle et le rendu
 
 - Choisissez le bon `valueType`.
+- Réutilisez le composant correspondant dans `styleEditor/controls`. Un nouveau `valueType` exige un
+  composant dédié et son branchement minimal dans `Style.svelte`.
 - Ajoutez les limites et le `step` pour un nombre.
 - Ajoutez toutes les `options` pour un select.
 - Vérifiez l’unité attendue par le rendu : pixels, millisecondes, ratio de `0` à `1`, etc.

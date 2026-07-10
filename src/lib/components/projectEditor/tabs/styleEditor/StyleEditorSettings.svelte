@@ -2,62 +2,26 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { onMount, tick } from 'svelte';
-	import StyleComponent from './Style.svelte';
 	import PresetLibrary from './presets/components/PresetLibrary.svelte';
 	import { CustomTextClip } from '$lib/classes';
-	import {
-		ClipWithTranslation,
-		CustomImageClip,
-		type VisualMergeMode
-	} from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import type { Category, Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
-	import ModalManager from '$lib/components/modals/ModalManager';
-	import {
-		canMergeArabicVisualModes,
-		getActiveVisualMergeGroupId,
-		getActiveVisualMergeMode
-	} from './visualMergeStyleUtils';
 	import { getStyleName } from '$lib/i18n/styleMapper';
 	import { get } from 'svelte/store';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import CustomContentPanel from './CustomContentPanel.svelte';
+	import StyleCategoryBlock from './StyleCategoryBlock.svelte';
+	import StyleEditorHeader from './StyleEditorHeader.svelte';
+	import { getVisibleCustomStyles } from './customContentStyleUtils';
+	import type {
+		StyleControlGroup,
+		StyleGroupCopyKey,
+		StylePanel,
+		StyleUiCopyKey
+	} from './styleEditorTypes';
 
 	type FeatureState = 'active' | 'inactive' | 'mixed';
-
-	type StylePanel = {
-		id: string;
-		icon: string;
-		label: string;
-		categoryIds: string[];
-		order?: number;
-		customContent?: boolean;
-	};
-
-	type StyleGroupCopyKey =
-		| 'groupBasics'
-		| 'groupTypography'
-		| 'groupColors'
-		| 'groupSpacing'
-		| 'groupLayout'
-		| 'groupTiming'
-		| 'groupEffects'
-		| 'groupAdvanced'
-		| 'groupVerseNumber'
-		| 'groupDecorations'
-		| 'groupTransitions';
-
-	type StyleControlGroup = {
-		label?: StyleGroupCopyKey;
-		styles: Style[];
-	};
-
-	type StyleUiCopyKey =
-		| 'onScreenElements'
-		| 'customElements'
-		| 'noCustomElements'
-		| 'noMatchingStyles'
-		| 'fontControlledByMushaf'
-		| StyleGroupCopyKey;
 
 	let {
 		presetLibraryOpen,
@@ -90,30 +54,6 @@
 
 		return stylePanels().filter((panel) => panelHasSearchResult(panel));
 	});
-
-	const visualMergeSelection = $derived(() =>
-		globalState.getSubtitleTrack.getVisualMergeSelection(
-			globalState.getStylesState.selectedSubtitles
-		)
-	);
-
-	const activeVisualMergeMode = $derived(() =>
-		getActiveVisualMergeMode(
-			globalState.getStylesState.selectedSubtitles,
-			globalState.getSubtitleTrack
-		)
-	);
-
-	const activeVisualMergeGroupId = $derived(() =>
-		getActiveVisualMergeGroupId(
-			globalState.getStylesState.selectedSubtitles,
-			activeVisualMergeMode()
-		)
-	);
-
-	const canMergeArabicModes = $derived(() =>
-		canMergeArabicVisualModes(visualMergeSelection(), globalState.getSubtitleTrack)
-	);
 
 	onMount(async () => {
 		// Assure la présence des nouveaux styles ajoutés par les updates.
@@ -706,7 +646,7 @@
 		if (panel.customContent) {
 			return globalState.getCustomClipTrack.clips.some((clip) => {
 				const category = (clip as CustomTextClip).category;
-				return !!category && getVisibleCustomStyles(category).length > 0;
+				return !!category && getVisibleCustomStyles(category, styleSearchQuery()).length > 0;
 			});
 		}
 
@@ -717,124 +657,6 @@
 				(!!headerStyle && matchesStyleSearch(headerStyle, category))
 			);
 		});
-	}
-
-	/**
-	 * Applique un merge visuel sur la sélection courante.
-	 * @param {VisualMergeMode} mode Mode de merge choisi.
-	 * @returns {void}
-	 */
-	function applyVisualMerge(mode: VisualMergeMode): void {
-		globalState.getSubtitleTrack.applyVisualMerge(
-			globalState.getStylesState.selectedSubtitles,
-			mode
-		);
-	}
-
-	/**
-	 * Retourne la classe du bouton de merge selon le mode actif.
-	 * @param {VisualMergeMode} mode Mode représenté par le bouton.
-	 * @returns {string} Classes CSS à appliquer.
-	 */
-	function getMergeButtonClass(mode: VisualMergeMode): string {
-		return (
-			'py-1.5 2xl:text-sm text-xs 2xl:px-2 ' +
-			(activeVisualMergeMode() === mode ? 'btn-accent' : 'btn')
-		);
-	}
-
-	/**
-	 * Retire le merge visuel du groupe actuellement sélectionné.
-	 * @returns {void}
-	 */
-	function unmergeSelectedVisualGroup(): void {
-		const groupId = activeVisualMergeGroupId();
-		if (!groupId) return;
-		globalState.getSubtitleTrack.unmergeVisualGroup(groupId);
-	}
-
-	/**
-	 * Détermine si un style d'un élément personnalisé doit être masqué.
-	 * @param {Category} category Catégorie de l'élément personnalisé.
-	 * @param {Style} style Style évalué.
-	 * @returns {boolean} `true` si le style est actuellement inutile.
-	 */
-	function isCustomStyleInactive(category: Category, style: Style): boolean {
-		if (
-			['time-appearance', 'time-disappearance'].includes(style.id) &&
-			Boolean(category.getStyle('always-show')?.value)
-		)
-			return true;
-
-		if (
-			category.id.startsWith('custom-image') &&
-			style.id !== 'filepath' &&
-			!category.getStyle('filepath')?.value
-		)
-			return true;
-
-		return style.id === 'above-overlay' && !globalState.getStyle('global', 'overlay-enable')?.value;
-	}
-
-	/**
-	 * Retourne les styles visibles d'un élément personnalisé.
-	 * @param {Category} category Catégorie de l'élément personnalisé.
-	 * @returns {Style[]} Styles à afficher.
-	 */
-	function getVisibleCustomStyles(category: Category): Style[] {
-		return category.styles.filter(
-			(style) => matchesStyleSearch(style, category) && !isCustomStyleInactive(category, style)
-		);
-	}
-
-	/**
-	 * Applique un style personnalisé en conservant les timings cohérents avec la timeline.
-	 * @param {Category} category Catégorie de l'élément personnalisé.
-	 * @param {Style} style Style modifié.
-	 * @param {Style['value']} value Valeur à appliquer.
-	 * @returns {void}
-	 */
-	function applyCustomStyleValue(category: Category, style: Style, value: Style['value']): void {
-		const targetCustomClip = globalState.getCustomClipTrack.getCustomClipWithId(category.id);
-		if (!targetCustomClip) {
-			style.value = value;
-			return;
-		}
-
-		if (style.id === 'time-appearance' && typeof value === 'number') {
-			const endStyle = category.getStyle('time-disappearance');
-			const currentEnd = Number(endStyle?.value ?? 0);
-
-			if (value > currentEnd) {
-				const endFallback = value + 3000;
-				if (endStyle) endStyle.value = endFallback;
-				targetCustomClip.setEndTime(endFallback);
-			}
-
-			targetCustomClip.setStartTime(value);
-			style.value = value;
-			return;
-		}
-
-		if (style.id === 'time-disappearance' && typeof value === 'number') {
-			const beginStyle = category.getStyle('time-appearance');
-			const currentBegin = Number(beginStyle?.value ?? 0);
-
-			if (value < currentBegin) {
-				const endFallback = value + 3000;
-				if (beginStyle) beginStyle.value = value;
-				targetCustomClip.setStartTime(value);
-				targetCustomClip.setEndTime(endFallback);
-				style.value = endFallback;
-				return;
-			}
-
-			targetCustomClip.setEndTime(value);
-			style.value = value;
-			return;
-		}
-
-		style.value = value;
 	}
 
 	$effect(() => {
@@ -875,229 +697,7 @@
 	{#if presetLibraryOpen}
 		<PresetLibrary onBack={closePresetLibrary} />
 	{:else}
-		<header class="flex items-center gap-2 px-3 pt-3 pb-2">
-			<div
-				class="size-9 rounded-lg bg-accent/15 text-accent flex items-center justify-center shrink-0"
-			>
-				<span class="material-icons-outlined text-[22px]!">auto_fix_high</span>
-			</div>
-			<div class="min-w-0">
-				<h2 class="text-base font-semibold text-primary tracking-wide">
-					{$LL.style.styleEditor()}
-				</h2>
-				<p class="text-[11px] text-secondary truncate">{$LL.editor.chooseTarget()}</p>
-			</div>
-			<button
-				type="button"
-				class="btn-accent ml-auto flex items-center gap-1.5 px-2.5 py-1.5 text-xs shrink-0"
-				onclick={openPresetLibrary}
-				title={$LL.editor.saveStylesTooltip()}
-			>
-				<span class="material-icons-outlined text-[18px]!">style</span>
-				{$LL.editor.presetsLabel()}
-			</button>
-		</header>
-
-		<div class="px-3 pb-3 space-y-2.5 border-b border-color bg-[var(--bg-primary)]/45">
-			<div data-tour-id="style-subtabs" class="grid grid-cols-3 gap-1.5">
-				{#each ['global', 'arabic', 'translation'] as selection (selection)}
-					<button
-						type="button"
-						aria-pressed={globalState.getStylesState.currentSelection === selection}
-						onclick={() => {
-							globalState.getStylesState.currentSelection = selection as
-								| 'global'
-								| 'arabic'
-								| 'translation';
-						}}
-						class={'style-target-tab ' +
-							(globalState.getStylesState.currentSelection === selection
-								? 'style-target-tab-active'
-								: '')}
-						title={selection === 'arabic'
-							? $LL.editor.arabic()
-							: selection === 'translation'
-								? $LL.editor.translation()
-								: $LL.status.video()}
-					>
-						<span class="material-icons-outlined text-[16px]!">
-							{selection === 'global'
-								? 'movie'
-								: selection === 'arabic'
-									? 'text_fields'
-									: 'translate'}
-						</span>
-						<span class="truncate">
-							{selection === 'arabic'
-								? $LL.editor.arabic()
-								: selection === 'translation'
-									? $LL.editor.translation()
-									: $LL.status.video()}
-						</span>
-					</button>
-				{/each}
-			</div>
-
-			{#if globalState.getStylesState.currentSelection === 'translation'}
-				{#if globalState.getProjectTranslation.addedTranslationEditions.length > 0}
-					<label class="flex items-center gap-2">
-						<span class="material-icons-outlined text-secondary text-sm">translate</span>
-						<select
-							class="flex-1 text-sm"
-							aria-label={$LL.editor.selectTranslation()}
-							bind:value={globalState.getStylesState.currentSelectionTranslation}
-						>
-							{#each globalState.getProjectTranslation.addedTranslationEditions as translation (translation.name)}
-								<option value={translation.name}>{translation.author}</option>
-							{/each}
-						</select>
-					</label>
-				{:else}
-					<p class="text-secondary text-xs text-center py-1">{$LL.editor.noTranslationsYet()}</p>
-				{/if}
-			{/if}
-
-			<div class="relative">
-				<span
-					class="material-icons-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary text-sm"
-					>search</span
-				>
-				<input
-					type="search"
-					placeholder={$LL.style.searchStyles()}
-					aria-label={$LL.style.searchStyles()}
-					class="w-full pl-9! pr-8 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] focus:ring-1 focus:ring-white/20 text-sm"
-					bind:value={globalState.getStylesState.searchQuery}
-				/>
-				{#if globalState.getStylesState.searchQuery}
-					<button
-						type="button"
-						title={$LL.editor.clearSearch()}
-						aria-label={$LL.editor.clearSearch()}
-						onclick={clearSearch}
-						class="absolute right-2 top-1/2 -translate-y-1/2 text-secondary hover:text-primary"
-					>
-						<span class="material-icons-outlined text-sm">close</span>
-					</button>
-				{/if}
-			</div>
-
-			{#if globalState.getStylesState.selectedSubtitles.length > 0}
-				<div class="style-selection-context">
-					<span class="material-icons-outlined text-base">select_all</span>
-					<p class="min-w-0 flex-1 text-xs leading-snug">
-						{$LL.editor.subtitlesSelected({
-							count: globalState.getStylesState.selectedSubtitles.length,
-							plural: globalState.getStylesState.selectedSubtitles.length > 1 ? 's' : ''
-						})}
-					</p>
-					<button
-						type="button"
-						class="text-secondary hover:text-primary"
-						title={$LL.editor.clearSelection()}
-						aria-label={$LL.editor.clearSelection()}
-						onclick={() => globalState.getStylesState.clearSelection()}
-					>
-						<span class="material-icons-outlined text-base">close</span>
-					</button>
-				</div>
-
-				{#if visualMergeSelection() && canMergeArabicModes()}
-					<div class="rounded-lg border border-emerald-400/30 bg-emerald-500/8 px-2.5 py-2">
-						<div class="flex items-start gap-2 text-xs text-[var(--text-primary)]">
-							<span class="material-icons-outlined text-base mt-0.5">merge_type</span>
-							<div class="min-w-0">
-								<p class="font-medium">{$LL.editor.visualMerge()}</p>
-								<p class="mt-0.5 leading-relaxed text-secondary">
-									{$LL.editor.visualMergeDescription()}
-								</p>
-							</div>
-						</div>
-						<div class="mt-2 grid grid-cols-3 gap-1.5">
-							<button
-								type="button"
-								data-testid="Merge Arabic"
-								class={getMergeButtonClass('arabic')}
-								onclick={() => applyVisualMerge('arabic')}
-							>
-								{$LL.editor.arabic()}
-							</button>
-							<button
-								type="button"
-								data-testid="Merge Translation"
-								class={getMergeButtonClass('translation')}
-								onclick={() => applyVisualMerge('translation')}
-							>
-								{$LL.editor.translation()}
-							</button>
-							<button
-								type="button"
-								data-testid="Merge Both"
-								class={getMergeButtonClass('both')}
-								onclick={() => applyVisualMerge('both')}
-							>
-								{$LL.editor.both()}
-							</button>
-						</div>
-						{#if activeVisualMergeGroupId()}
-							<button
-								type="button"
-								class="btn mt-2 w-full py-1.5 text-xs"
-								onclick={unmergeSelectedVisualGroup}
-							>
-								{$LL.editor.unmergeGroup()}
-							</button>
-						{/if}
-					</div>
-				{/if}
-			{:else if globalState.getStylesState.selectedVideos.length > 0}
-				<div class="style-selection-context">
-					<span class="material-icons-outlined text-base">movie</span>
-					<p class="min-w-0 flex-1 text-xs leading-snug">
-						{$LL.editor.videoClipsSelected({
-							count: globalState.getStylesState.selectedVideos.length,
-							plural: globalState.getStylesState.selectedVideos.length > 1 ? 's' : ''
-						})}
-					</p>
-					<button
-						type="button"
-						class="text-secondary hover:text-primary"
-						title={$LL.editor.clearSelection()}
-						aria-label={$LL.editor.clearSelection()}
-						onclick={() => globalState.getStylesState.clearSelection()}
-					>
-						<span class="material-icons-outlined text-base">close</span>
-					</button>
-				</div>
-			{:else}
-				<div
-					class="flex items-start gap-2 rounded-lg border border-sky-400/25 bg-sky-500/7 px-2.5 py-1.5 text-[var(--text-primary)]"
-				>
-					<span class="material-icons-outlined text-sm mt-0.5">info</span>
-					<p class="text-[11px] leading-relaxed">{$LL.editor.clickToSelect()}</p>
-				</div>
-			{/if}
-
-			{#if !(globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0) && !(globalState.getStylesState.currentSelection === 'translation' && globalState.getProjectTranslation.addedTranslationEditions.length === 0)}
-				<div class="style-panel-tabs" aria-label={$LL.style.styleEditor()}>
-					{#each stylePanels() as panel (panel.id)}
-						<button
-							type="button"
-							aria-pressed={globalState.getStylesState.currentPanel === panel.id}
-							class={'style-panel-tab ' +
-								(globalState.getStylesState.currentPanel === panel.id
-									? 'style-panel-tab-active'
-									: '')}
-							onclick={() => selectPanel(panel.id)}
-						>
-							<span class="material-icons-outlined text-[16px]!">{panel.icon}</span>
-							<span>{getPanelLabel(panel)}</span>
-						</button>
-					{/each}
-				</div>
-			{/if}
-		</div>
-
+		<StyleEditorHeader panels={stylePanels()} {openPresetLibrary} {getPanelLabel} {selectPanel} />
 		<div
 			class="style-settings-scroll flex-1 min-h-0 overflow-y-auto px-3 py-3"
 			bind:this={stylesContainer}
@@ -1139,180 +739,26 @@
 						{/if}
 
 						{#if panel.customContent}
-							{#if globalState.getCustomClipTrack.clips.length === 0}
-								<div class="style-empty-state mb-3">
-									<span class="material-icons-outlined text-xl">add_photo_alternate</span>
-									<p>{getStyleUiCopy('noCustomElements')}</p>
-								</div>
-							{/if}
-
-							{#each globalState.getCustomClipTrack.clips as customClip (customClip.id)}
-								{@const category = (customClip as CustomTextClip).category}
-								{#if category && getVisibleCustomStyles(category).length > 0}
-									<div class="style-category-block style-custom-card" data-category={category.id}>
-										<div class="style-category-heading">
-											<div class="flex min-w-0 items-center gap-2">
-												<span class="material-icons-outlined text-accent text-[18px]!">
-													{customClip instanceof CustomImageClip ? 'image' : 'title'}
-												</span>
-												<h4>{getStyleName(category.id, get(LL))}</h4>
-											</div>
-											<button
-												type="button"
-												class="text-secondary hover:text-danger-color"
-												title={customClip instanceof CustomImageClip
-													? ((
-															$LL.editor as typeof $LL.editor & { removeCustomImage?: () => string }
-														).removeCustomImage?.() ??
-														`${$LL.common.remove()} ${$LL.editor.customImage()}`)
-													: $LL.editor.removeCustomText()}
-												onclick={() =>
-													globalState.getCustomClipTrack.removeClip(Number(customClip.id))}
-											>
-												<span class="material-icons-outlined text-[18px]!">delete_outline</span>
-											</button>
-										</div>
-										<div class="style-control-list">
-											{#each getVisibleCustomStyles(category) as style (style.id)}
-												<StyleComponent
-													{style}
-													showControl
-													disabled={false}
-													applyValueSimple={(value) =>
-														applyCustomStyleValue(category, style, value)}
-												/>
-											{/each}
-										</div>
-									</div>
-								{/if}
-							{/each}
-
-							<div class="grid grid-cols-2 gap-2 mt-3">
-								<button
-									type="button"
-									class="btn-accent px-2 py-2 flex items-center justify-center gap-1 text-xs"
-									onclick={() => void globalState.getVideoStyle.addCustomClip('text')}
-									title={$LL.editor.addCustomText()}
-								>
-									<span class="material-icons-outlined text-sm">add</span>
-									{$LL.editor.customText()}
-								</button>
-								<button
-									type="button"
-									class="btn-accent px-2 py-2 flex items-center justify-center gap-1 text-xs"
-									onclick={() => void globalState.getVideoStyle.addCustomClip('image')}
-									title={$LL.editor.customImage()}
-								>
-									<span class="material-icons-outlined text-sm">add</span>
-									{$LL.editor.customImage()}
-								</button>
-							</div>
+							<CustomContentPanel />
 						{:else}
 							{#each getPanelCategories(panel) as category (category.id)}
 								{@const visibleStyles = getVisibleStyles(category)}
 								{@const styleGroups = getStyleControlGroups(category, visibleStyles)}
 								{@const headerStyle = getCategoryHeaderStyle(category)}
 								{#if visibleStyles.length > 0 || (headerStyle && (styleSearchQuery() === '' || matchesStyleSearch(headerStyle, category))) || category.id === 'word-by-word-highlight'}
-									<div
-										class="style-category-block"
-										class:style-category-block-collapsed={!!headerStyle &&
-											visibleStyles.length === 0}
-										data-category={category.id}
-									>
-										<div class="style-category-heading">
-											<span class="material-icons-outlined text-accent text-[18px]!"
-												>{category.icon}</span
-											>
-											<h4>{getStyleName(category.id, get(LL)) || category.name}</h4>
-											{#if headerStyle}
-												<div class="style-category-header-control">
-													<StyleComponent
-														style={headerStyle}
-														target={currentStyleTarget()}
-														disabled={isStyleDisabled(category, headerStyle)}
-														headerControl
-														applyValueSimple={(value) => {
-															headerStyle.value = value as typeof headerStyle.value;
-														}}
-													/>
-												</div>
-											{/if}
-										</div>
-
-										{#if category.id === 'background' && isFeatureEnabled('background-enable', category)}
-											<div class="style-inline-hint">
-												<span class="material-icons-outlined text-sm">info</span>
-												<p>{$LL.editor.backgroundVisibilityHint()}</p>
-											</div>
-										{/if}
-
-										{#if category.id === 'text' && isMushafFontLocked()}
-											<div class="style-inline-hint">
-												<span class="material-icons-outlined text-sm">lock</span>
-												<p>{getStyleUiCopy('fontControlledByMushaf')}</p>
-											</div>
-										{/if}
-
-										{#if category.id === 'word-by-word-highlight' && getWordByWordHintTarget()}
-											<div class="style-inline-hint style-inline-hint-warning">
-												<span class="material-icons-outlined text-sm">info</span>
-												<div>
-													{#if getWordByWordHintTarget() === 'translation'}
-														<p>{$LL.style.translationWbwMissingMappingInfo()}</p>
-													{:else}
-														<p>{$LL.style.wbwMissingInfo()}</p>
-														<p class="mt-1">{$LL.style.wbwStep1()}</p>
-														<p class="mt-1">{$LL.style.wbwStep2()}</p>
-													{/if}
-												</div>
-											</div>
-										{/if}
-
-										<div class="style-control-groups">
-											{#each styleGroups as group}
-												<div class="style-control-group">
-													{#if group.label}
-														<div class="style-control-group-heading">
-															<span>{getStyleUiCopy(group.label)}</span>
-														</div>
-													{/if}
-													<div class="style-control-list">
-														{#each group.styles as style (style.id)}
-															<StyleComponent
-																{style}
-																target={currentStyleTarget()}
-																showControl
-																disabled={isStyleDisabled(category, style)}
-																applyValueSimple={(value) => {
-																	style.value = value as typeof style.value;
-																}}
-															/>
-														{/each}
-													</div>
-												</div>
-											{/each}
-										</div>
-
-										{#if category.id === 'general' && currentStyleTarget() === 'global' && styleSearchQuery() === ''}
-											<div
-												class="mt-2 border-t border-color pt-2 flex items-center justify-between gap-3"
-											>
-												<div class="min-w-0">
-													<p class="text-sm font-medium text-primary">{$LL.style.hifzMode()}</p>
-													<p class="text-xs leading-relaxed text-secondary mt-0.5">
-														{$LL.style.createMemorizationVideos()}
-													</p>
-												</div>
-												<button
-													type="button"
-													class="btn py-1.5 px-2 text-xs shrink-0"
-													onclick={() => void ModalManager.hifzRepetitionModal()}
-												>
-													{$LL.style.enableHifzMode()}
-												</button>
-											</div>
-										{/if}
-									</div>
+									<StyleCategoryBlock
+										{category}
+										{visibleStyles}
+										{styleGroups}
+										{headerStyle}
+										target={currentStyleTarget()}
+										searchActive={styleSearchQuery() !== ''}
+										mushafFontLocked={isMushafFontLocked()}
+										wordByWordHint={getWordByWordHintTarget()}
+										{isStyleDisabled}
+										{isFeatureEnabled}
+										{getStyleUiCopy}
+									/>
 								{/if}
 							{/each}
 						{/if}
@@ -1324,92 +770,6 @@
 </div>
 
 <style>
-	.style-target-tab {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.35rem;
-		min-width: 0;
-		border: 1px solid var(--border-color);
-		border-radius: 0.55rem;
-		padding: 0.45rem 0.35rem;
-		background: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
-		color: var(--text-secondary);
-		font-size: 0.75rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: 150ms ease;
-	}
-
-	.style-target-tab:hover {
-		background: var(--bg-accent);
-		color: var(--text-primary);
-	}
-
-	.style-target-tab-active {
-		border-color: color-mix(in srgb, var(--accent-primary) 70%, var(--border-color));
-		background: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-secondary));
-		color: var(--accent-primary);
-	}
-
-	.style-selection-context {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, var(--border-color));
-		border-radius: 0.55rem;
-		padding: 0.4rem 0.5rem;
-		background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
-		color: var(--text-secondary);
-	}
-
-	.style-panel-tabs {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.35rem;
-	}
-
-	.style-panel-tab {
-		display: flex;
-		align-items: center;
-		justify-content: flex-start;
-		gap: 0.35rem;
-		width: 100%;
-		min-width: 0;
-		border: 1px solid transparent;
-		border-radius: 0.6rem;
-		padding: 0.45rem 0.55rem;
-		background: var(--bg-accent);
-		color: var(--text-secondary);
-		font-size: 0.7rem;
-		font-weight: 600;
-		line-height: 1.2;
-		text-align: left;
-		cursor: pointer;
-		transition: 150ms ease;
-	}
-
-	.style-panel-tab > span:last-child {
-		min-width: 0;
-		overflow-wrap: anywhere;
-	}
-
-	.style-panel-tab:hover {
-		color: var(--text-primary);
-		border-color: var(--border-color);
-	}
-
-	.style-panel-tab-active {
-		background: var(--accent-primary);
-		border-color: var(--accent-primary);
-		color: var(--text-on-accent);
-	}
-
-	.style-panel-tab-active:hover {
-		border-color: var(--accent-primary);
-		color: var(--text-on-accent);
-	}
-
 	.style-panel-content {
 		display: flex;
 		flex-direction: column;
@@ -1425,113 +785,18 @@
 		color: var(--text-primary);
 	}
 
-	.style-category-block {
-		border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
-		border-radius: 0.75rem;
-		padding: 0.65rem 0.7rem 0.2rem;
-		background: color-mix(in srgb, var(--bg-secondary) 62%, transparent);
-		transition:
-			border-color 200ms ease,
-			background 200ms ease;
-	}
-
-	.style-category-block.highlight {
+	:global(.style-category-block.highlight) {
 		border-color: #facc15;
 		background: color-mix(in srgb, #facc15 12%, var(--bg-secondary));
 	}
 
-	.style-category-block-collapsed {
-		padding-bottom: 0.65rem;
-	}
-
-	.style-category-block-collapsed .style-category-heading {
-		margin-bottom: 0;
-		padding-bottom: 0;
-		border-bottom: 0;
-	}
-
-	.style-category-block-collapsed .style-control-groups {
-		display: none;
-	}
-
-	.style-category-heading {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 0.1rem;
-		padding: 0 0.05rem 0.55rem;
-		border-bottom: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
-	}
-
-	.style-category-heading h4 {
-		min-width: 0;
-		font-size: 0.8rem;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-
-	.style-category-header-control {
-		margin-left: auto;
-	}
-
-	.style-control-list {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.style-control-groups {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.style-control-group-heading {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		padding: 0.45rem 0.15rem 0.1rem;
-		color: var(--text-thirdly);
-		font-size: 0.625rem;
-		font-weight: 700;
-		letter-spacing: 0.065em;
-		text-transform: uppercase;
-	}
-
-	.style-control-group-heading::after {
-		content: '';
-		min-width: 1rem;
-		height: 1px;
-		flex: 1;
-		background: color-mix(in srgb, var(--border-color) 45%, transparent);
-	}
-
-	.style-inline-hint {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.4rem;
-		margin: 0 0 0.5rem;
-		padding: 0.45rem 0.5rem;
-		border: 1px solid rgb(56 189 248 / 30%);
-		border-radius: 0.5rem;
-		background: rgb(14 165 233 / 8%);
-		color: var(--text-secondary);
-		font-size: 0.7rem;
-		line-height: 1.35;
-	}
-
-	.style-inline-hint-warning {
-		border-color: rgb(251 191 36 / 35%);
-		background: rgb(245 158 11 / 9%);
-		color: var(--text-primary);
-	}
-
 	.style-empty-state {
 		display: flex;
+		min-height: 8rem;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		gap: 0.45rem;
-		min-height: 8rem;
 		padding: 1rem;
 		border: 1px dashed var(--border-color);
 		border-radius: 0.75rem;
@@ -1539,19 +804,5 @@
 		color: var(--text-secondary);
 		font-size: 0.8rem;
 		text-align: center;
-	}
-
-	.style-custom-card {
-		background: color-mix(in srgb, var(--accent-primary) 4%, var(--bg-secondary));
-	}
-
-	@media (max-width: 420px), (max-height: 760px) {
-		.style-target-tab span:last-child {
-			display: none;
-		}
-
-		.style-target-tab {
-			padding-inline: 0.35rem;
-		}
 	}
 </style>

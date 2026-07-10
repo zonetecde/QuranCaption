@@ -153,7 +153,8 @@
 			>search</span
 		>
 		<input
-			type="search"
+			type="text"
+			role="searchbox"
 			placeholder={$LL.style.searchStyles()}
 			aria-label={$LL.style.searchStyles()}
 			class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1.5 pr-8 pl-9! text-sm focus:ring-1 focus:ring-white/20"

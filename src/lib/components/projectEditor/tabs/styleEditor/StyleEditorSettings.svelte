@@ -546,7 +546,13 @@
 	 */
 	function getDisplayCategoryStyles(category: Category): Style[] {
 		const categories = getCategoriesToDisplay();
-		const groupedStyleIds = category.ui?.groups?.flatMap((group) => group.styleIds) ?? [];
+		const localStyleIds = new Set(category.styles.map((style) => style.id));
+		const groupedStyleIds =
+			category.ui?.groups?.flatMap((group) =>
+				group.styleIds.filter(
+					(styleId) => styleSearchQuery() === '' || !group.shared || localStyleIds.has(styleId)
+				)
+			) ?? [];
 		const groupedStyles = groupedStyleIds.flatMap((styleId) => {
 			const style = categories
 				.flatMap((candidate) => candidate.styles)

@@ -120,7 +120,8 @@ Par défaut, référencer un style dans une autre catégorie le retire de sa cat
 groupe peut déclarer `"shared": true` pour conserver volontairement le contrôle dans sa catégorie
 d'origine et l'afficher également dans la catégorie visuelle. Les deux contrôles modifient alors la
 même instance de style. Réservez ce partage aux prérequis utiles dans plusieurs contextes et évitez
-les duplications accidentelles.
+les duplications accidentelles. Pendant une recherche, seule l'occurrence de la catégorie d'origine
+est affichée afin de ne pas répéter le même résultat.
 
 ### `ui.headerStyle`
 

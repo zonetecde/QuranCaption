@@ -760,7 +760,7 @@
 						class="style-panel-content"
 						aria-label={getPanelLabel(panel)}
 					>
-						{#if styleSearchQuery() !== ''}
+						{#if styleSearchQuery() !== '' && panel.customContent}
 							<div class="style-panel-result-heading">
 								<span class="material-icons-outlined text-accent text-[18px]!">{panel.icon}</span>
 								<h3>{getPanelLabel(panel)}</h3>

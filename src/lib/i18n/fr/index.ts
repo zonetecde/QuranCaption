@@ -449,6 +449,9 @@ const fr = {
 		errorLoadingFonts: 'Erreur de chargement des polices\u00a0: {error}',
 		searchFonts: 'Rechercher une police...',
 		noFontsFound: 'Aucune police trouvée',
+		importFontFromFile: 'Importer depuis un fichier',
+		fontFiles: 'Fichiers de police',
+		fontImportError: 'Ce fichier de police n’a pas pu être importé.',
 		usePreviewCursorTime: 'Utiliser le temps du curseur d\u2019aperçu',
 		arabicCalligraphyUnavailable:
 			'La calligraphie arabe n\u2019est pas disponible pour ce récitateur.',

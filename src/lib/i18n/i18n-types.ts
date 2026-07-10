@@ -1647,6 +1647,18 @@ type RootTranslation = {
 		 */
 		noFontsFound: string;
 		/**
+		 * I​m​p​o​r​t​ ​f​r​o​m​ ​f​i​l​e
+		 */
+		importFontFromFile: string;
+		/**
+		 * F​o​n​t​ ​f​i​l​e​s
+		 */
+		fontFiles: string;
+		/**
+		 * T​h​i​s​ ​f​o​n​t​ ​f​i​l​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​i​m​p​o​r​t​e​d​.
+		 */
+		fontImportError: string;
+		/**
 		 * U​s​e​ ​p​r​e​v​i​e​w​ ​c​u​r​s​o​r​ ​t​i​m​e
 		 */
 		usePreviewCursorTime: string;
@@ -10537,6 +10549,18 @@ export type TranslationFunctions = {
 		 * No fonts found
 		 */
 		noFontsFound: () => LocalizedString;
+		/**
+		 * Import from file
+		 */
+		importFontFromFile: () => LocalizedString;
+		/**
+		 * Font files
+		 */
+		fontFiles: () => LocalizedString;
+		/**
+		 * This font file could not be imported.
+		 */
+		fontImportError: () => LocalizedString;
 		/**
 		 * Use preview cursor time
 		 */

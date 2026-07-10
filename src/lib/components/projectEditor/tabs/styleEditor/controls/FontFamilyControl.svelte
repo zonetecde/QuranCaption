@@ -1,18 +1,25 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
+	import { open } from '@tauri-apps/plugin-dialog';
 	import { tick } from 'svelte';
 	import { get } from 'svelte/store';
+	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
-	import QPCFontProvider from '$lib/services/FontProvider';
+	import QPCFontProvider, { type ImportedFont } from '$lib/services/FontProvider';
 	import type { StyleControlValue } from './types';
 
-	type FontPreview = 'latin' | 'arabic' | 'qpc1' | 'qpc2';
+	type FontPreview = 'latin' | 'arabic' | 'qpc1' | 'qpc2' | 'imported';
 	type FontOption = {
 		value: string;
 		label: string;
 		preview: FontPreview;
 	};
-	type FontControlCopyKey = 'searchFonts' | 'noFontsFound';
+	type FontControlCopyKey =
+		| 'searchFonts'
+		| 'noFontsFound'
+		| 'importFontFromFile'
+		| 'fontFiles'
+		| 'fontImportError';
 
 	const LATIN_PREVIEW = 'In the name of Allah, the Most Gracious, the Most Merciful';
 	const ARABIC_PREVIEW = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
@@ -30,11 +37,15 @@
 		$props();
 
 	let isOpen = $state(false);
+	let isImporting = $state(false);
 	let searchQuery = $state('');
+	let importedFonts: ImportedFont[] = $state([]);
 	let searchInput: HTMLInputElement | undefined = $state();
 	let triggerButton: HTMLButtonElement | undefined = $state();
 	const selectedLabel = $derived(
-		BUILTIN_FONTS.find((font) => font.value === String(value))?.label ?? String(value)
+		importedFonts.find((font) => font.family === String(value))?.label ??
+			BUILTIN_FONTS.find((font) => font.value === String(value))?.label ??
+			String(value)
 	);
 
 	/**
@@ -44,8 +55,12 @@
 	function getAvailableFonts(): Promise<string[]> {
 		availableFontsPromise ??= Promise.all([
 			invoke<string[]>('get_system_fonts'),
-			QPCFontProvider.loadQPC2Data()
-		]).then(([fonts]) => fonts);
+			QPCFontProvider.loadQPC2Data(),
+			QPCFontProvider.loadImportedFonts()
+		]).then(([fonts, , loadedImportedFonts]) => {
+			importedFonts = loadedImportedFonts;
+			return fonts;
+		});
 		return availableFontsPromise;
 	}
 
@@ -66,6 +81,11 @@
 	function getFilteredFonts(systemFonts: string[]): FontOption[] {
 		const query = searchQuery.trim().toLocaleLowerCase();
 		const fonts = [
+			...importedFonts.map((font) => ({
+				value: font.family,
+				label: font.label,
+				preview: 'imported' as const
+			})),
 			...BUILTIN_FONTS,
 			...systemFonts
 				.filter((font) => !BUILTIN_FONT_VALUES.has(font))
@@ -148,6 +168,37 @@
 		closePanel();
 		triggerButton?.focus();
 	}
+
+	/**
+	 * Sélectionne, importe et applique une police locale.
+	 * @returns {Promise<void>} Promesse résolue après la tentative d’import.
+	 */
+	async function importFont(): Promise<void> {
+		if (isImporting) return;
+		const sourcePath = await open({
+			multiple: false,
+			directory: false,
+			filters: [
+				{
+					name: getFontControlCopy('fontFiles'),
+					extensions: ['ttf', 'otf', 'woff', 'woff2']
+				}
+			]
+		});
+		if (!sourcePath || Array.isArray(sourcePath)) return;
+
+		isImporting = true;
+		try {
+			const font = await QPCFontProvider.importFontFromFile(sourcePath);
+			importedFonts = [...importedFonts, font].sort((a, b) => a.label.localeCompare(b.label));
+			selectFont(font.family);
+		} catch (error) {
+			console.error('Could not import font file.', error);
+			toast.error(getFontControlCopy('fontImportError'));
+		} finally {
+			isImporting = false;
+		}
+	}
 </script>
 
 <svelte:window onclick={closePanel} onkeydown={handleWindowKeydown} />
@@ -190,7 +241,19 @@
 				</div>
 			</div>
 
-			<div class="max-h-80 overflow-y-auto p-1" role="listbox">
+			<div class="max-h-80 overflow-y-auto p-1">
+				<button
+					type="button"
+					class="flex w-full items-center gap-2 rounded-lg border-b border-color px-3 py-2.5 text-left text-sm font-semibold text-accent transition-colors hover:bg-[var(--bg-accent)] disabled:cursor-wait disabled:opacity-60"
+					disabled={isImporting}
+					onclick={importFont}
+				>
+					<span class="material-icons-outlined text-[18px]!">upload_file</span>
+					<span>
+						{isImporting ? $LL.common.loading() : getFontControlCopy('importFontFromFile')}
+					</span>
+				</button>
+
 				{#await getAvailableFonts()}
 					<p class="px-3 py-4 text-center text-sm text-secondary">{$LL.editor.loadingFonts()}</p>
 				{:then systemFonts}
@@ -200,31 +263,49 @@
 							{getFontControlCopy('noFontsFound')}
 						</p>
 					{:else}
-						{#each fonts as font (font.value)}
-							<button
-								type="button"
-								role="option"
-								aria-selected={font.value === String(value)}
-								class="group flex w-full flex-col gap-1 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--bg-accent)] aria-selected:bg-[color-mix(in_srgb,var(--accent-primary)_18%,var(--bg-secondary))]"
-								onclick={() => selectFont(font.value)}
-							>
-								<span
-									class="flex w-full items-center justify-between gap-2 text-xs font-semibold text-primary"
+						<div role="listbox">
+							{#each fonts as font (font.value)}
+								<button
+									type="button"
+									role="option"
+									aria-selected={font.value === String(value)}
+									class="group flex w-full flex-col gap-1 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--bg-accent)] aria-selected:bg-[color-mix(in_srgb,var(--accent-primary)_18%,var(--bg-secondary))]"
+									onclick={() => selectFont(font.value)}
 								>
-									<span class="truncate">{font.label}</span>
-									{#if font.value === String(value)}
-										<span class="material-icons-outlined text-[16px]! text-accent">check</span>
+									<span
+										class="flex w-full items-center justify-between gap-2 text-xs font-semibold text-primary"
+									>
+										<span class="truncate">{font.label}</span>
+										{#if font.value === String(value)}
+											<span class="material-icons-outlined text-[16px]! text-accent">check</span>
+										{/if}
+									</span>
+									{#if font.preview === 'imported'}
+										<span
+											class="w-full truncate text-base leading-6 text-secondary group-hover:text-primary"
+											style:font-family={getPreviewFontFamily(font)}
+										>
+											{LATIN_PREVIEW}
+										</span>
+										<span
+											class="w-full truncate text-base leading-6 text-secondary group-hover:text-primary"
+											dir="rtl"
+											style:font-family={getPreviewFontFamily(font)}
+										>
+											{ARABIC_PREVIEW}
+										</span>
+									{:else}
+										<span
+											class="w-full truncate text-base leading-7 text-secondary group-hover:text-primary"
+											dir={font.preview === 'latin' ? 'ltr' : 'rtl'}
+											style:font-family={getPreviewFontFamily(font)}
+										>
+											{getPreviewText(font)}
+										</span>
 									{/if}
-								</span>
-								<span
-									class="w-full truncate text-base leading-7 text-secondary group-hover:text-primary"
-									dir={font.preview === 'latin' ? 'ltr' : 'rtl'}
-									style:font-family={getPreviewFontFamily(font)}
-								>
-									{getPreviewText(font)}
-								</span>
-							</button>
-						{/each}
+								</button>
+							{/each}
+						</div>
 					{/if}
 				{:catch error}
 					<p class="px-3 py-4 text-center text-sm text-secondary">

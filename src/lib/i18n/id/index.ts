@@ -427,7 +427,10 @@ const id: Translation = {
 		...baseEn.editor,
 		...({
 			searchFonts: 'Cari font...',
-			noFontsFound: 'Font tidak ditemukan'
+			noFontsFound: 'Font tidak ditemukan',
+			importFontFromFile: 'Impor dari file',
+			fontFiles: 'File font',
+			fontImportError: 'File font ini tidak dapat diimpor.'
 		} as Record<string, string>),
 		minimalQuran: "Al-Qur'an Minimal",
 		videoEditor: 'Editor video',

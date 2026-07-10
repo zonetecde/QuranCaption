@@ -448,6 +448,9 @@ const de = {
 		errorLoadingFonts: 'Fehler beim Laden der Schriftarten: {error}',
 		searchFonts: 'Schriftarten suchen...',
 		noFontsFound: 'Keine Schriftarten gefunden',
+		importFontFromFile: 'Aus Datei importieren',
+		fontFiles: 'Schriftdateien',
+		fontImportError: 'Diese Schriftdatei konnte nicht importiert werden.',
 		usePreviewCursorTime: 'Zeit des Vorschau-Cursors verwenden',
 		arabicCalligraphyUnavailable:
 			'Arabische Kalligraphie ist für diesen Rezitator nicht verfügbar.',

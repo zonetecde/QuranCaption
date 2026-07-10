@@ -677,11 +677,16 @@
 			"headerStyle": "background-enable",
 			"groups": [
 				{
+					"id": "layout",
+					"styleIds": ["max-height", "width"],
+					"shared": true
+				},
+				{
 					"id": "basics",
 					"styleIds": ["background-enable", "background-color", "background-opacity"]
 				},
 				{
-					"id": "layout",
+					"id": "spacing",
 					"styleIds": ["border-radius", "background-horizontal-padding"]
 				},
 				{

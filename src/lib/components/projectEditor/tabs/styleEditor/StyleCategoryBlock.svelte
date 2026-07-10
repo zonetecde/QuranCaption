@@ -15,9 +15,9 @@
 		target,
 		searchActive,
 		mushafFontLocked,
+		backgroundRequiresMaxHeight,
 		wordByWordHint,
 		isStyleDisabled,
-		isFeatureEnabled,
 		getStyleUiCopy
 	}: {
 		category: Category;
@@ -27,9 +27,9 @@
 		target: string;
 		searchActive: boolean;
 		mushafFontLocked: boolean;
+		backgroundRequiresMaxHeight: boolean;
 		wordByWordHint: 'arabic' | 'translation' | null;
 		isStyleDisabled: (category: Category, style: Style) => boolean;
-		isFeatureEnabled: (styleId: string, category?: Category) => boolean;
 		getStyleUiCopy: (key: StyleUiCopyKey) => string;
 	} = $props();
 </script>
@@ -55,8 +55,8 @@
 		{/if}
 	</div>
 
-	{#if category.id === 'background' && isFeatureEnabled('background-enable', category)}
-		<div class="style-inline-hint">
+	{#if backgroundRequiresMaxHeight}
+		<div class="style-inline-hint style-inline-hint-warning">
 			<span class="material-icons-outlined text-sm">info</span>
 			<p>{$LL.editor.backgroundVisibilityHint()}</p>
 		</div>

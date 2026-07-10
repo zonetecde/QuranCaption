@@ -248,6 +248,7 @@ export type StyleEditorPanelMetadata = {
 export type StyleEditorGroupMetadata = {
 	id: string;
 	styleIds: string[];
+	shared?: boolean;
 };
 
 export type StyleCategoryUiMetadata = {

@@ -116,8 +116,11 @@ le groupe `colors` de la catégorie `text`.
 Cela modifie uniquement son emplacement dans l’éditeur. Sa catégorie technique, sa valeur et son
 rendu restent inchangés.
 
-Un identifiant de style ne doit être revendiqué visuellement que par une seule catégorie. Le placer
-dans les groupes de plusieurs catégories afficherait le même contrôle plusieurs fois.
+Par défaut, référencer un style dans une autre catégorie le retire de sa catégorie technique. Un
+groupe peut déclarer `"shared": true` pour conserver volontairement le contrôle dans sa catégorie
+d'origine et l'afficher également dans la catégorie visuelle. Les deux contrôles modifient alors la
+même instance de style. Réservez ce partage aux prérequis utiles dans plusieurs contextes et évitez
+les duplications accidentelles.
 
 ### `ui.headerStyle`
 
@@ -209,8 +212,8 @@ puis à l’union globale `StyleName` si une nouvelle union est créée.
 ### 4. Placer le contrôle dans l’éditeur
 
 - Ajoutez son identifiant au `styleIds` du groupe approprié.
-- Pour un style affiché dans une autre catégorie, référencez-le uniquement dans le groupe de la
-  catégorie visuelle cible.
+- Pour déplacer visuellement un style, référencez-le dans le groupe de la catégorie cible.
+- Pour l'afficher aussi dans sa catégorie d'origine, ajoutez `"shared": true` au groupe cible.
 - Pour un toggle pilotant toute la catégorie, utilisez `ui.headerStyle`.
 - Si vous ajoutez une nouvelle catégorie, renseignez tous les champs de `ui.panel`.
 - Si vous ajoutez un panneau, choisissez des `order` cohérents et une clé `label` traduisible.
@@ -281,7 +284,7 @@ persistante.
 - Chaque `categoryOrder` est unique dans son panneau.
 - Chaque `styleIds` référence un style existant dans le même fichier JSON.
 - Chaque `headerStyle` référence un booléen de sa propre catégorie.
-- Un style déplacé visuellement n’est pas référencé par plusieurs catégories.
+- Les styles partagés entre plusieurs catégories utilisent explicitement `shared: true`.
 - Le nom et la description existent dans toutes les langues.
 - Le type TypeScript de l’identifiant a été mis à jour.
 - Les dépendances et le rendu CSS/export ont été vérifiés.
@@ -296,7 +299,7 @@ persistante.
 - Changer `value` en pensant modifier les anciens projets : cette valeur est principalement un
   défaut pour les nouveaux styles/projets.
 - Déplacer physiquement un style entre catégories pour un besoin uniquement visuel.
-- Déclarer le même style dans plusieurs groupes visuels.
+- Déclarer le même style dans plusieurs groupes visuels sans `shared: true` explicite.
 - Utiliser `headerStyle` avec un style non booléen.
 - Oublier la règle de dépendance qui masque les sous-réglages inutiles.
 - Ajouter une catégorie sans `ui.panel`, puis chercher pourquoi elle n’apparaît pas.

@@ -250,6 +250,14 @@
 	}
 
 	/**
+	 * Indique si au moins une valeur effective de hauteur maximale est nulle.
+	 * @returns {boolean} `true` lorsque le fond ne peut pas être rendu correctement.
+	 */
+	function isBackgroundMaxHeightMissing(): boolean {
+		return getEffectiveStyleValues('max-height').some((value) => Number(value) === 0);
+	}
+
+	/**
 	 * Vérifie si un style ou sa catégorie correspond à la recherche courante.
 	 * @param {Style} style Style évalué.
 	 * @param {Category} category Catégorie du style.
@@ -474,7 +482,10 @@
 		}
 
 		if (category.id === 'background') {
-			if (id !== 'background-enable' && !isFeatureEnabled('background-enable', category))
+			if (
+				!['background-enable', 'max-height', 'width'].includes(id) &&
+				!isFeatureEnabled('background-enable', category)
+			)
 				return true;
 			if (
 				['time-appearance', 'time-disappearance'].includes(id) &&
@@ -545,7 +556,12 @@
 		const stylesClaimedByAnotherCategory = new Set(
 			categories
 				.filter((candidate) => candidate.id !== category.id)
-				.flatMap((candidate) => candidate.ui?.groups?.flatMap((group) => group.styleIds) ?? [])
+				.flatMap(
+					(candidate) =>
+						candidate.ui?.groups
+							?.filter((group) => !group.shared)
+							.flatMap((group) => group.styleIds) ?? []
+				)
 		);
 		const localStyles = category.styles.filter(
 			(style) => !stylesClaimedByAnotherCategory.has(style.id)
@@ -568,7 +584,11 @@
 		return styles.filter((style) => {
 			if (style.id === headerStyleId) return false;
 			if (isStyleUnsupported(category, style) || !matchesStyleSearch(style, category)) return false;
-			return styleSearchQuery() !== '' || !isStyleInactiveByDependency(category, style);
+			return (
+				styleSearchQuery() !== '' ||
+				(category.id === 'background' && isBackgroundMaxHeightMissing()) ||
+				!isStyleInactiveByDependency(category, style)
+			);
 		});
 	}
 
@@ -633,6 +653,9 @@
 	function isStyleDisabled(category: Category, style: Style): boolean {
 		return (
 			(style.id === 'font-family' && isMushafFontLocked()) ||
+			(category.id === 'background' &&
+				!['max-height', 'width'].includes(style.id) &&
+				isBackgroundMaxHeightMissing()) ||
 			(styleSearchQuery() !== '' && isStyleInactiveByDependency(category, style))
 		);
 	}
@@ -754,9 +777,10 @@
 										target={currentStyleTarget()}
 										searchActive={styleSearchQuery() !== ''}
 										mushafFontLocked={isMushafFontLocked()}
+										backgroundRequiresMaxHeight={category.id === 'background' &&
+											isBackgroundMaxHeightMissing()}
 										wordByWordHint={getWordByWordHintTarget()}
 										{isStyleDisabled}
-										{isFeatureEnabled}
 										{getStyleUiCopy}
 									/>
 								{/if}

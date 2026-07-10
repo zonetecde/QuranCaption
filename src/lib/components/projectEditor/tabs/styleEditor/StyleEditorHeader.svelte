@@ -260,12 +260,12 @@
 			</button>
 		</div>
 	{:else}
-		<div
+		<!-- <div
 			class="flex items-start gap-2 rounded-lg border border-sky-400/25 bg-sky-500/7 px-2.5 py-1.5 text-[var(--text-primary)]"
 		>
 			<span class="material-icons-outlined mt-0.5 text-sm">info</span>
 			<p class="text-[11px] leading-relaxed">{$LL.editor.clickToSelect()}</p>
-		</div>
+		</div> -->
 	{/if}
 
 	{#if !(globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0) && !(globalState.getStylesState.currentSelection === 'translation' && globalState.getProjectTranslation.addedTranslationEditions.length === 0)}

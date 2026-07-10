@@ -356,13 +356,13 @@
 		border-color: var(--border-color);
 	}
 	.style-panel-tab-active {
-		background: var(--accent-primary);
+		background: color-mix(in srgb, var(--accent-primary) 28%, var(--bg-secondary));
 		border-color: var(--accent-primary);
-		color: var(--text-on-accent);
+		color: var(--text-primary);
 	}
 	.style-panel-tab-active:hover {
 		border-color: var(--accent-primary);
-		color: var(--text-on-accent);
+		color: var(--text-primary);
 	}
 	@media (max-width: 420px), (max-height: 760px) {
 		.style-target-tab span:last-child {

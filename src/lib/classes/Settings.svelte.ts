@@ -13,6 +13,10 @@ import {
 	type WbwTranslationLanguageCode
 } from '$lib/services/WbwTranslationService';
 import { TrackType } from './enums';
+import {
+	DEFAULT_PROJECT_EDITOR_LAYOUT,
+	type ProjectEditorLayout
+} from '$lib/constants/projectEditor';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -111,6 +115,7 @@ export default class Settings extends SerializableBase {
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
 		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
+		projectEditorLayout: { ...DEFAULT_PROJECT_EDITOR_LAYOUT } as ProjectEditorLayout,
 		timelineTrackOrder: [
 			TrackType.CustomClip,
 			TrackType.Subtitle,
@@ -433,6 +438,37 @@ export default class Settings extends SerializableBase {
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
 			settings.exportSettings = {} as ExportSettings;
 			shouldSave = true;
+		}
+		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
+			| Partial<ProjectEditorLayout>
+			| undefined;
+		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
+			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+			shouldSave = true;
+		} else {
+			const usesPreviousDefaults =
+				projectEditorLayout.upperSectionHeight === 68 &&
+				projectEditorLayout.videoEditorPanelWidth === 300 &&
+				projectEditorLayout.stylePanelWidth === 438 &&
+				projectEditorLayout.subtitlesEditorLeftPanelWidth === 225 &&
+				projectEditorLayout.subtitlesEditorRightPanelWidth === 200 &&
+				projectEditorLayout.translationsEditorLeftPanelWidth === 230 &&
+				projectEditorLayout.translationsEditorRightPanelWidth === 330 &&
+				projectEditorLayout.exportPanelWidth === 350;
+
+			if (usesPreviousDefaults) {
+				settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+				shouldSave = true;
+			} else {
+				for (const key of Object.keys(DEFAULT_PROJECT_EDITOR_LAYOUT) as Array<
+					keyof ProjectEditorLayout
+				>) {
+					if (typeof projectEditorLayout[key] !== 'number') {
+						projectEditorLayout[key] = DEFAULT_PROJECT_EDITOR_LAYOUT[key];
+						shouldSave = true;
+					}
+				}
+			}
 		}
 		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
 			settings.persistentUiState.showTimelineWheelHints = true;

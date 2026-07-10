@@ -7,7 +7,7 @@
 <section
 	data-tour-id="verse-picker-area"
 	class="overflow-hidden min-h-0 bg-primary border border-color rounded-lg shadow-lg"
-	style="height: {globalState.currentProject!.projectEditorState.upperSectionHeight}%;"
+	style="height: {globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;"
 >
 	<div class="w-full h-full flex flex-col p-4">
 		<!-- Sélecteur de verset -->

@@ -1197,13 +1197,6 @@ export class VideoStyle extends SerializableBase {
 				globalState.currentProject!.content.timeline.addTrack(new CustomTextTrack());
 			}
 
-			// Si on a la hauteur de section du hauter par défaut (68), alors ajouter la track
-			// `custom text` rendra invisible la track `audio`. Augmente donc la hauteur de la
-			// timeline afin qu'elle soit visible
-			if (globalState.currentProject!.projectEditorState.upperSectionHeight === 68) {
-				globalState.currentProject!.projectEditorState.upperSectionHeight = 60;
-			}
-
 			// Ajoute le custom text au projet
 			const customTextCategory =
 				clipType === 'text'

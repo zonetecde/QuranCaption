@@ -13,7 +13,6 @@ import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import type { StoredSegmentationContext } from '$lib/services/AutoSegmentation';
-import { DEFAULT_STYLE_PANEL_WIDTH } from '$lib/constants/projectEditor';
 
 /**
  * État de l'éditeur de projet, utilisé pour gérer l'interface utilisateur et les interactions
@@ -50,12 +49,6 @@ export class ProjectEditorState extends SerializableBase {
 
 	// Export
 	export: ExportState = $state(new ExportState());
-
-	// Hauteur de la section supérieure dans chaque onglet
-	upperSectionHeight: number = $state(68);
-
-	// Largeur du panneau de style
-	stylePanelWidth: number = $state(DEFAULT_STYLE_PANEL_WIDTH);
 }
 
 export class StylesEditorState extends SerializableBase {

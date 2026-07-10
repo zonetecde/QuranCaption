@@ -73,15 +73,13 @@
 		return globalState
 			.currentProject!.content.timeline.tracks.map((track, index) => ({ track, index }))
 			.filter(
-				({ track }) => !(track.type === TrackType.CustomClip && getTimelineCustomClips().length === 0)
+				({ track }) =>
+					!(track.type === TrackType.CustomClip && getTimelineCustomClips().length === 0)
 			)
 			.sort((a, b) => {
 				const aIndex = order.indexOf(a.track.type);
 				const bIndex = order.indexOf(b.track.type);
-				return (
-					(aIndex === -1 ? order.length : aIndex) -
-					(bIndex === -1 ? order.length : bIndex)
-				);
+				return (aIndex === -1 ? order.length : aIndex) - (bIndex === -1 ? order.length : bIndex);
 			});
 	});
 
@@ -909,7 +907,8 @@
 
 <section
 	class="overflow-hidden min-w-0 timeline-section flex-1 min-h-0"
-	style="height: {100 - globalState.currentProject!.projectEditorState.upperSectionHeight}%;"
+	style="height: {100 -
+		globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;"
 >
 	<div class="timeline-container select-none" onwheel={handleMouseWheelWheeling}>
 		<!-- Timeline Header -->

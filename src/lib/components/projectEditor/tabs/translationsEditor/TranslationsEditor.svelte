@@ -6,6 +6,9 @@
 	import TranslationsEditorSettings from './leftPanel/TranslationsEditorSettings.svelte';
 	import Workspace from './workspace/Workspace.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
+	import { globalState } from '$lib/runes/main.svelte';
+	import { PROJECT_EDITOR_PANEL_WIDTHS } from '$lib/constants/projectEditor';
 
 	let addTranslationModalVisibility = $state(false);
 </script>
@@ -13,13 +16,23 @@
 <div class="relative flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
 	<!-- Assets -->
 	<section
-		class="w-[230px] 2xl:w-[310px] flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
+		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
+		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorLeftPanelWidth}px;`}
 	>
 		<TranslationsEditorSettings
 			setAddTranslationModalVisibility={(visible: boolean) =>
 				(addTranslationModalVisibility = visible)}
 		/>
 	</section>
+	<DiviseurRedimensionnable
+		orientation="vertical"
+		bind:value={
+			globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorLeftPanelWidth
+		}
+		min={PROJECT_EDITOR_PANEL_WIDTHS.translationsLeft.min}
+		max={PROJECT_EDITOR_PANEL_WIDTHS.translationsLeft.max}
+		dataTestId="translations-left-panel-resizer"
+	/>
 	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
 		<section class="w-full min-w-0 flex flex-col min-h-0">
 			<Workspace
@@ -29,8 +42,20 @@
 		</section>
 	</section>
 
+	<DiviseurRedimensionnable
+		orientation="vertical"
+		bind:value={
+			globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorRightPanelWidth
+		}
+		min={PROJECT_EDITOR_PANEL_WIDTHS.translationsRight.min}
+		max={PROJECT_EDITOR_PANEL_WIDTHS.translationsRight.max}
+		reverse
+		class="hidden 2xl:block"
+		dataTestId="translations-right-panel-resizer"
+	/>
 	<section
-		class="hidden 2xl:flex w-[330px] flex-shrink-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
+		class="hidden 2xl:flex flex-shrink-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
+		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorRightPanelWidth}px;`}
 	>
 		<TranslationInlineStylePanel />
 	</section>

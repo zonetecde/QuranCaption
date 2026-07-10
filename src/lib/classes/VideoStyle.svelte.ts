@@ -1126,6 +1126,7 @@ export class VideoStyle extends SerializableBase {
 				hasChanges = true;
 				continue;
 			}
+			targetCategory.setUiMetadata(defaultCategoryRaw.ui);
 
 			for (const defaultStyleRaw of defaultCategoryRaw.styles || []) {
 				const existingStyle = targetCategory.styles.find((s) => s.id === defaultStyleRaw.id);

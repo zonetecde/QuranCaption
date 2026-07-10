@@ -730,7 +730,31 @@
 			</div>
 			{#key selectedClipIds().length + String(inputValue)}
 				<div class="flex items-center gap-2 text-xs text-secondary">
-					{#if selectedClipIds().length > 0}
+					{#if style.valueType === 'boolean'}
+						<label
+							class="inline-flex items-center cursor-pointer select-none scale-75 origin-right"
+						>
+							<input
+								type="checkbox"
+								class="sr-only peer"
+								checked={Boolean(inputValue)}
+								indeterminate={isMixed()}
+								onchange={(e) => applyValue((e.target as HTMLInputElement).checked)}
+							/>
+							<div
+								class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
+			transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
+			peer-indeterminate:bg-fuchsia-500 peer-checked:[&>span]:translate-x-5
+			peer-indeterminate:[&>span]:translate-x-2.5"
+							>
+								<span
+									class="absolute left-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
+				transition-transform duration-150"
+								>
+								</span>
+							</div>
+						</label>
+					{:else if selectedClipIds().length > 0}
 						{#if getEffectiveForSelection().mixed}
 							<span
 								class="px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-200 border border-fuchsia-400/40 flex items-center gap-1"
@@ -751,28 +775,6 @@
 						{/if}
 					{:else if style.valueType === 'time' && !showControl}
 						<span>{msToTimeValue(Number(inputValue))}</span>
-					{:else if style.valueType === 'boolean'}
-						<label
-							class="inline-flex items-center cursor-pointer select-none scale-75 origin-right"
-						>
-							<input
-								type="checkbox"
-								class="sr-only peer"
-								checked={Boolean(inputValue)}
-								onchange={(e) => applyValue((e.target as HTMLInputElement).checked)}
-							/>
-							<div
-								class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
-			transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
-			peer-checked:[&>span]:translate-x-5"
-							>
-								<span
-									class="absolute left-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
-				transition-transform duration-150"
-								>
-								</span>
-							</div>
-						</label>
 					{:else if !showControl}
 						<span class="truncate max-w-[140px]" style={getHeaderPreviewStyle()}
 							>{getStyleValue()}</span

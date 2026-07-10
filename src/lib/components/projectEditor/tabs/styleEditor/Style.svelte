@@ -850,7 +850,7 @@
 							onblur={commitColorHistoryTransaction}
 							onchange={commitColorHistoryTransaction}
 						/>
-						<div class="relative flex-1">
+						<div class="relative w-24 shrink-0">
 							<input
 								type="text"
 								value={String(inputValue)}
@@ -1312,9 +1312,10 @@
 	}
 
 	.style-color-picker {
-		width: 2.75rem;
+		width: auto;
+		min-width: 0;
 		height: 2.1rem;
-		flex-shrink: 0;
+		flex: 1;
 		cursor: pointer;
 		border: 1px solid var(--border-color);
 		border-radius: 0.5rem;

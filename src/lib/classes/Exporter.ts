@@ -210,8 +210,30 @@ export default class Exporter {
 			text: string;
 		}[] = [];
 
-		// Sauvegarde la police d'écriture originale pour la restaurer après l'export
+		// Sauvegarde les styles pour les restaurer après l'export
 		let originalFontFamily: string | null = null;
+		let originalShowVerseNumber: boolean | null = null;
+
+		// Synchronise les styles avec les paramètres d'export avant la boucle,
+		// car getText() se base sur les styles (font-family, show-verse-number)
+		// qui peuvent être désynchronisés des paramètres d'export.
+		if (settings.includedTargets.includes('arabic')) {
+			const fontStyle = globalState.getStyle('arabic', 'font-family')!;
+			if (
+				es.arabicTextFormat === 'Plain' &&
+				(fontStyle.value === 'QPC1' || fontStyle.value === 'QPC2')
+			) {
+				originalFontFamily = fontStyle.value;
+				fontStyle.value = 'Hafs';
+			}
+
+			const showVerseStyle = globalState.getStyle('arabic', 'show-verse-number')!;
+			const desiredShowVerse = Boolean(es.exportVerseNumbers['arabic']);
+			if (showVerseStyle.value !== desiredShowVerse) {
+				originalShowVerseNumber = showVerseStyle.value as boolean;
+				showVerseStyle.value = desiredShowVerse;
+			}
+		}
 
 		for (const subtitle of globalState.getSubtitleTrack.clips) {
 			// Skip les clips silencieux ou sans texte
@@ -225,15 +247,6 @@ export default class Exporter {
 
 			for (const target of settings.includedTargets) {
 				if (target === 'arabic') {
-					// Si le format arabe est "Plain", on force temporairement la police à Hafs
-					// pour que getText() retourne le texte brut au lieu des glyphes QPC.
-					if (es.arabicTextFormat === 'Plain') {
-						const fontStyle = globalState.getStyle('arabic', 'font-family')!;
-						if (fontStyle.value === 'QPC1' || fontStyle.value === 'QPC2') {
-							originalFontFamily ??= fontStyle.value;
-							fontStyle.value = 'Hafs';
-						}
-					}
 					text += subtitle.getText();
 				} else {
 					if (subtitle instanceof SubtitleClip)
@@ -252,9 +265,12 @@ export default class Exporter {
 			});
 		}
 
-		// Restaure la police d'écriture originale si elle a été modifiée
+		// Restaure les styles modifiés
 		if (originalFontFamily !== null) {
 			globalState.getStyle('arabic', 'font-family')!.value = originalFontFamily;
+		}
+		if (originalShowVerseNumber !== null) {
+			globalState.getStyle('arabic', 'show-verse-number')!.value = originalShowVerseNumber;
 		}
 
 		const fileContent = SubtitleFileContentGenerator.generateSubtitleFile(

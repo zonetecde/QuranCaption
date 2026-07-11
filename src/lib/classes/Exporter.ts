@@ -210,6 +210,9 @@ export default class Exporter {
 			text: string;
 		}[] = [];
 
+		// Sauvegarde la police d'écriture originale pour la restaurer après l'export
+		let originalFontFamily: string | null = null;
+
 		for (const subtitle of globalState.getSubtitleTrack.clips) {
 			// Skip les clips silencieux ou sans texte
 			if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
@@ -222,6 +225,15 @@ export default class Exporter {
 
 			for (const target of settings.includedTargets) {
 				if (target === 'arabic') {
+					// Si le format arabe est "Plain", on force temporairement la police à Hafs
+					// pour que getText() retourne le texte brut au lieu des glyphes QPC.
+					if (es.arabicTextFormat === 'Plain') {
+						const fontStyle = globalState.getStyle('arabic', 'font-family')!;
+						if (fontStyle.value === 'QPC1' || fontStyle.value === 'QPC2') {
+							originalFontFamily ??= fontStyle.value;
+							fontStyle.value = 'Hafs';
+						}
+					}
 					text += subtitle.getText();
 				} else {
 					if (subtitle instanceof SubtitleClip)
@@ -238,6 +250,11 @@ export default class Exporter {
 				endTimeMs: endTime,
 				text: text.trim()
 			});
+		}
+
+		// Restaure la police d'écriture originale si elle a été modifiée
+		if (originalFontFamily !== null) {
+			globalState.getStyle('arabic', 'font-family')!.value = originalFontFamily;
 		}
 
 		const fileContent = SubtitleFileContentGenerator.generateSubtitleFile(

@@ -603,7 +603,7 @@ type RootTranslation = {
 		 */
 		welcomeBack: string;
 		/**
-		 * L​e​t​'​s​ ​c​r​e​a​t​e​ ​s​o​m​e​t​h​i​n​g​ ​a​m​a​z​i​n​g​ ​t​o​d​a​y​.
+		 * L​e​t​'​s​ ​t​r​a​n​s​c​r​i​b​e​ ​s​o​m​e​t​h​i​n​g​ ​m​e​a​n​i​n​g​f​u​l​ ​t​o​d​a​y​.
 		 */
 		letsCreate: string;
 		/**
@@ -647,7 +647,7 @@ type RootTranslation = {
 		 */
 		noProjectsYet: string;
 		/**
-		 * N​o​ ​p​r​o​j​e​c​t​s​ ​e​x​i​s​t​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​f​o​l​d​e​r​.​ ​T​r​y​ ​a​n​o​t​h​e​r​ ​r​e​c​i​t​e​r​ ​o​r​ ​s​t​a​t​u​s​ ​f​i​l​t​e​r​.
+		 * N​o​ ​p​r​o​j​e​c​t​s​ ​e​x​i​s​t​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​f​o​l​d​e​r​.​ ​T​r​y​ ​a​n​o​t​h​e​r​ ​s​p​e​a​k​e​r​ ​o​r​ ​s​t​a​t​u​s​ ​f​i​l​t​e​r​.
 		 */
 		noProjectsInFolder: string;
 		/**
@@ -660,12 +660,12 @@ type RootTranslation = {
 		 */
 		dragHint: string;
 		/**
-		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​a​c​r​o​s​s​ ​e​v​e​r​y​ ​r​e​c​i​t​e​r​ ​f​o​l​d​e​r
+		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​a​c​r​o​s​s​ ​e​v​e​r​y​ ​s​p​e​a​k​e​r​ ​f​o​l​d​e​r
 		 * @param {unknown} count
 		 */
 		projectsAcrossAll: RequiredParams<'count'>;
 		/**
-		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​f​o​r​ ​t​h​i​s​ ​r​e​c​i​t​e​r
+		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​f​o​r​ ​t​h​i​s​ ​s​p​e​a​k​e​r
 		 * @param {unknown} count
 		 */
 		projectsForReciter: RequiredParams<'count'>;
@@ -699,19 +699,19 @@ type RootTranslation = {
 		 */
 		projectName: string;
 		/**
-		 * R​e​c​i​t​e​r
+		 * S​p​e​a​k​e​r
 		 */
 		reciter: string;
 		/**
-		 * T​y​p​e
+		 * C​o​n​t​e​n​t​ ​T​y​p​e
 		 */
 		type: string;
 		/**
-		 * T​a​r​a​w​e​e​h​ ​2​7​t​h​ ​n​i​g​h​t
+		 * F​r​i​d​a​y​ ​k​h​u​t​b​a​h​ ​—​ ​P​a​t​i​e​n​c​e
 		 */
 		taraweehExample: string;
 		/**
-		 * S​t​a​r​t​ ​t​y​p​i​n​g​ ​t​o​ ​s​e​a​r​c​h​ ​r​e​c​i​t​e​r​s​.​.​.
+		 * E​n​t​e​r​ ​o​r​ ​s​e​a​r​c​h​ ​s​p​e​a​k​e​r​s​.​.​.
 		 */
 		searchReciters: string;
 		/**
@@ -727,7 +727,7 @@ type RootTranslation = {
 		 */
 		projectNameCannotBeEmpty: string;
 		/**
-		 * P​r​o​j​e​c​t​ ​n​a​m​e​ ​a​n​d​ ​R​e​c​i​t​e​r​ ​c​a​n​n​o​t​ ​c​o​n​t​a​i​n​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​c​h​a​r​a​c​t​e​r​s​:​ ​<​ ​>​ ​:​ ​"​ ​/​ ​\​ ​|​ ​?​ ​*
+		 * P​r​o​j​e​c​t​ ​n​a​m​e​ ​a​n​d​ ​S​p​e​a​k​e​r​ ​c​a​n​n​o​t​ ​c​o​n​t​a​i​n​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​c​h​a​r​a​c​t​e​r​s​:​ ​<​ ​>​ ​:​ ​"​ ​/​ ​\​ ​|​ ​?​ ​*
 		 */
 		projectNameInvalidCharacters: string;
 		/**
@@ -772,11 +772,11 @@ type RootTranslation = {
 		 */
 		projectNamePlaceholder: string;
 		/**
-		 * E​n​t​e​r​ ​p​r​o​j​e​c​t​ ​r​e​c​i​t​e​r
+		 * E​n​t​e​r​ ​p​r​o​j​e​c​t​ ​s​p​e​a​k​e​r
 		 */
 		projectReciterPlaceholder: string;
 		/**
-		 * R​e​c​i​t​e​r​:
+		 * S​p​e​a​k​e​r​:
 		 */
 		reciterLabel: string;
 		/**
@@ -784,7 +784,7 @@ type RootTranslation = {
 		 */
 		durationLabel: string;
 		/**
-		 * V​e​r​s​e​s​:
+		 * T​r​a​n​s​c​r​i​p​t​:
 		 */
 		versesLabel: string;
 		/**
@@ -796,7 +796,7 @@ type RootTranslation = {
 		 */
 		showDetails: string;
 		/**
-		 * C​a​p​t​i​o​n​i​n​g
+		 * T​r​a​n​s​c​r​i​p​t​i​o​n
 		 */
 		captioning: string;
 		/**
@@ -8110,29 +8110,29 @@ type RootTranslation = {
 		 */
 		exported: string;
 		/**
-		 * T​a​r​a​w​e​e​h
+		 * L​e​c​t​u​r​e​ ​/​ ​C​o​u​r​s​e
 		 */
-		taraweeh: string;
+		lectureCourse: string;
 		/**
-		 * P​r​a​y​e​r
+		 * K​h​u​t​b​a​h
 		 */
-		prayer: string;
+		khutbah: string;
 		/**
-		 * S​t​u​d​i​o
+		 * R​e​m​i​n​d​e​r
 		 */
-		studio: string;
+		reminder: string;
 		/**
-		 * O​l​d​ ​r​e​c​o​r​d​i​n​g​s
+		 * C​o​n​f​e​r​e​n​c​e​ ​/​ ​P​o​d​c​a​s​t
 		 */
-		oldRecordings: string;
+		conferencePodcast: string;
 		/**
-		 * R​a​r​e​ ​r​e​c​i​t​a​t​i​o​n
+		 * P​o​e​m​ ​/​ ​N​a​s​h​e​e​d
 		 */
-		rareRecitation: string;
+		poemNasheed: string;
 		/**
-		 * O​t​h​e​r​s
+		 * O​t​h​e​r
 		 */
-		others: string;
+		other: string;
 		/**
 		 * V​i​d​e​o
 		 */
@@ -9540,7 +9540,7 @@ export type TranslationFunctions = {
 		 */
 		welcomeBack: () => LocalizedString;
 		/**
-		 * Let's create something amazing today.
+		 * Let's transcribe something meaningful today.
 		 */
 		letsCreate: () => LocalizedString;
 		/**
@@ -9584,7 +9584,7 @@ export type TranslationFunctions = {
 		 */
 		noProjectsYet: () => LocalizedString;
 		/**
-		 * No projects exist in the current folder. Try another reciter or status filter.
+		 * No projects exist in the current folder. Try another speaker or status filter.
 		 */
 		noProjectsInFolder: () => LocalizedString;
 		/**
@@ -9596,11 +9596,11 @@ export type TranslationFunctions = {
 		 */
 		dragHint: () => LocalizedString;
 		/**
-		 * {count} project(s) across every reciter folder
+		 * {count} project(s) across every speaker folder
 		 */
 		projectsAcrossAll: (arg: { count: unknown }) => LocalizedString;
 		/**
-		 * {count} project(s) for this reciter
+		 * {count} project(s) for this speaker
 		 */
 		projectsForReciter: (arg: { count: unknown }) => LocalizedString;
 		/**
@@ -9628,19 +9628,19 @@ export type TranslationFunctions = {
 		 */
 		projectName: () => LocalizedString;
 		/**
-		 * Reciter
+		 * Speaker
 		 */
 		reciter: () => LocalizedString;
 		/**
-		 * Type
+		 * Content Type
 		 */
 		type: () => LocalizedString;
 		/**
-		 * Taraweeh 27th night
+		 * Friday khutbah — Patience
 		 */
 		taraweehExample: () => LocalizedString;
 		/**
-		 * Start typing to search reciters...
+		 * Enter or search speakers...
 		 */
 		searchReciters: () => LocalizedString;
 		/**
@@ -9656,7 +9656,7 @@ export type TranslationFunctions = {
 		 */
 		projectNameCannotBeEmpty: () => LocalizedString;
 		/**
-		 * Project name and Reciter cannot contain the following characters: < > : " / \ | ? *
+		 * Project name and Speaker cannot contain the following characters: < > : " / \ | ? *
 		 */
 		projectNameInvalidCharacters: () => LocalizedString;
 		/**
@@ -9700,11 +9700,11 @@ export type TranslationFunctions = {
 		 */
 		projectNamePlaceholder: () => LocalizedString;
 		/**
-		 * Enter project reciter
+		 * Enter project speaker
 		 */
 		projectReciterPlaceholder: () => LocalizedString;
 		/**
-		 * Reciter:
+		 * Speaker:
 		 */
 		reciterLabel: () => LocalizedString;
 		/**
@@ -9712,7 +9712,7 @@ export type TranslationFunctions = {
 		 */
 		durationLabel: () => LocalizedString;
 		/**
-		 * Verses:
+		 * Transcript:
 		 */
 		versesLabel: () => LocalizedString;
 		/**
@@ -9724,7 +9724,7 @@ export type TranslationFunctions = {
 		 */
 		showDetails: () => LocalizedString;
 		/**
-		 * Captioning
+		 * Transcription
 		 */
 		captioning: () => LocalizedString;
 		/**
@@ -16939,29 +16939,29 @@ export type TranslationFunctions = {
 		 */
 		exported: () => LocalizedString;
 		/**
-		 * Taraweeh
+		 * Lecture / Course
 		 */
-		taraweeh: () => LocalizedString;
+		lectureCourse: () => LocalizedString;
 		/**
-		 * Prayer
+		 * Khutbah
 		 */
-		prayer: () => LocalizedString;
+		khutbah: () => LocalizedString;
 		/**
-		 * Studio
+		 * Reminder
 		 */
-		studio: () => LocalizedString;
+		reminder: () => LocalizedString;
 		/**
-		 * Old recordings
+		 * Conference / Podcast
 		 */
-		oldRecordings: () => LocalizedString;
+		conferencePodcast: () => LocalizedString;
 		/**
-		 * Rare recitation
+		 * Poem / Nasheed
 		 */
-		rareRecitation: () => LocalizedString;
+		poemNasheed: () => LocalizedString;
 		/**
-		 * Others
+		 * Other
 		 */
-		others: () => LocalizedString;
+		other: () => LocalizedString;
 		/**
 		 * Video
 		 */

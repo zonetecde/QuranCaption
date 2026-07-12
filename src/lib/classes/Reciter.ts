@@ -49,8 +49,8 @@ export default class RecitersManager {
 		// Ajoute aussi tout les récitateurs des autres projets qui sont "custom"
 		if (globalState.userProjectsDetails) {
 			globalState.userProjectsDetails.forEach((project) => {
-				if (project.reciter && !reciters.find((r) => r.label === project.reciter)) {
-					reciters.push({ label: project.reciter, isCustom: true });
+				if (project.speaker && !reciters.find((r) => r.label === project.speaker)) {
+					reciters.push({ label: project.speaker, isCustom: true });
 				}
 			});
 		}

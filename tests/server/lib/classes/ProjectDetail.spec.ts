@@ -2,45 +2,41 @@ import { describe, expect, it } from 'vitest';
 
 import { ProjectDetail } from '$lib/classes';
 
-describe('ProjectDetail project type', () => {
-	it('defaults new projects to Others', () => {
-		const detail = new ProjectDetail('Night 27', 'Muhammad Al Luhaidan');
+describe('ProjectDetail metadata', () => {
+	it('defaults new projects to Lecture / Course', () => {
+		const detail = new ProjectDetail('The importance of intention', 'Shaykh Ahmad');
 
-		expect(detail.projectType).toBe('Others');
+		expect(detail.projectType).toBe('Lecture / Course');
 	});
 
-	it('loads old serialized projects without projectType as Others', () => {
-		const detail = new ProjectDetail('Night 27', 'Muhammad Al Luhaidan');
-		const serialized = detail.toJSON() as Record<string, unknown>;
-		delete serialized.projectType;
+	it('uses Unknown speaker when no speaker is provided', () => {
+		const detail = new ProjectDetail('Friday khutbah', '');
 
-		const restored = ProjectDetail.fromJSON(serialized) as ProjectDetail;
-
-		expect(restored.projectType).toBe('Others');
+		expect(detail.speaker).toBe('Unknown speaker');
 	});
 
-	it('normalizes legacy project type values from serialized data', () => {
-		const detail = new ProjectDetail('Night 27', 'Muhammad Al Luhaidan');
+	it('rejects unsupported project types when deserializing', () => {
+		const detail = new ProjectDetail('Friday khutbah', 'Shaykh Ahmad');
 		const serialized = {
 			...(detail.toJSON() as Record<string, unknown>),
-			projectType: 'salat'
+			projectType: 'Unsupported type'
 		};
 
 		const restored = ProjectDetail.fromJSON(serialized) as ProjectDetail;
 
-		expect(restored.projectType).toBe('Prayer');
+		expect(restored.projectType).toBe('Lecture / Course');
 	});
 
-	it('matches search queries against the project type', () => {
+	it('matches search queries against speaker and content type', () => {
 		const detail = new ProjectDetail(
-			'Taraweeh 27th night',
-			'Muhammad Al Luhaidan',
+			'Patience during hardship',
+			'Shaykh Ahmad',
 			undefined,
 			undefined,
-			'Rare recitation'
+			'Khutbah'
 		);
 
-		expect(detail.matchSearchQuery('rare')).toBe(true);
-		expect(detail.matchSearchQuery('recitation')).toBe(true);
+		expect(detail.matchSearchQuery('ahmad')).toBe(true);
+		expect(detail.matchSearchQuery('khutbah')).toBe(true);
 	});
 });

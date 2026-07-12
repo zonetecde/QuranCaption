@@ -44,7 +44,6 @@
 			{get(LL).editor.stockMedia()}
 		</button>
 
-		<DownloadFromQuranicUniversalAudioSection />
 		<DownloadFromYouTubeSection />
 	{/if}
 </div>

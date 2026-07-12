@@ -4,7 +4,6 @@ import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import { VersionService } from '$lib/services/VersionService.svelte';
-import MigrationService from '$lib/services/MigrationService';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
 import type { ProjectDetail } from './ProjectDetail.svelte';
 import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
@@ -532,19 +531,6 @@ export default class Settings extends SerializableBase {
 
 			shouldSave = true;
 		}
-
-		// Migration des paramètres si besoin
-		MigrationService.FromQC310ToQC311();
-		MigrationService.FromQC315ToQC316();
-		MigrationService.FromQC327ToQC328();
-		MigrationService.FromQC331ToQC332();
-		MigrationService.FromQC332ToQC333();
-		MigrationService.FromQC333ToQC334();
-		MigrationService.FromQC334ToQC335();
-		MigrationService.FromQC339ToQC340();
-		MigrationService.FromQC343ToQC344();
-		MigrationService.FromQC347ToQC348();
-		MigrationService.FromQC348ToQC349();
 
 		if (
 			typeof settings.exportSettings.batchSize !== 'number' ||

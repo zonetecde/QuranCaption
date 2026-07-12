@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { getProjectTypeLabel } from '$lib/i18n/statusMapper';
 	import type { ProjectDetail } from '$lib/classes';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { PROJECT_TYPE_OPTIONS, type ProjectType } from '$lib/types/projectType';
@@ -73,7 +75,7 @@
 			data-no-drag
 		>
 			<span class="material-icons-outlined text-xs">folder_special</span>
-			{projectDetail.projectType}
+			{getProjectTypeLabel(projectDetail.projectType, get(LL))}
 		</button>
 
 		{#if isOpen}
@@ -84,7 +86,7 @@
 			>
 				{#each PROJECT_TYPE_OPTIONS as option (option)}
 					<li class={getOptionClass(option)} onclick={() => selectProjectType(option)}>
-						{option}
+						{getProjectTypeLabel(option, get(LL))}
 					</li>
 				{/each}
 			</ul>
@@ -98,7 +100,7 @@
 			type="button"
 			onclick={toggle}
 		>
-			<span>{projectDetail.projectType}</span>
+			<span>{getProjectTypeLabel(projectDetail.projectType, get(LL))}</span>
 			<span
 				class="material-icons-outlined text-[12px] opacity-50 transition-opacity group-hover:opacity-80"
 			>
@@ -114,7 +116,7 @@
 			>
 				{#each PROJECT_TYPE_OPTIONS as option (option)}
 					<li class={getOptionClass(option)} onclick={() => selectProjectType(option)}>
-						{option}
+						{getProjectTypeLabel(option, get(LL))}
 					</li>
 				{/each}
 			</ul>

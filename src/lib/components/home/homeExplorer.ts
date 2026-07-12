@@ -4,9 +4,9 @@ import { DEFAULT_PROJECT_TYPE, PROJECT_TYPE_OPTIONS } from '$lib/types/projectTy
 
 export type ExplorerSelection =
 	| { kind: 'all' }
-	| { kind: 'reciter'; reciter: string }
-	| { kind: 'type'; reciter: string; projectType: ProjectType }
-	| { kind: 'year'; reciter: string; projectType: ProjectType; year: string };
+	| { kind: 'speaker'; speaker: string }
+	| { kind: 'type'; speaker: string; projectType: ProjectType }
+	| { kind: 'year'; speaker: string; projectType: ProjectType; year: string };
 
 export type ProjectExplorerYearNode = {
 	id: string;
@@ -14,7 +14,7 @@ export type ProjectExplorerYearNode = {
 	label: string;
 	year: string;
 	projectType: ProjectType;
-	reciter: string;
+	speaker: string;
 	count: number;
 };
 
@@ -23,59 +23,61 @@ export type ProjectExplorerTypeNode = {
 	kind: 'type';
 	label: ProjectType;
 	projectType: ProjectType;
-	reciter: string;
+	speaker: string;
 	count: number;
 	years: ProjectExplorerYearNode[];
 };
 
-export type ProjectExplorerReciterNode = {
+export type ProjectExplorerSpeakerNode = {
 	id: string;
-	kind: 'reciter';
+	kind: 'speaker';
 	label: string;
-	reciter: string;
+	speaker: string;
 	count: number;
 	types: ProjectExplorerTypeNode[];
 };
 
 export type ProjectExplorerTree = {
 	totalCount: number;
-	reciters: ProjectExplorerReciterNode[];
+	speakers: ProjectExplorerSpeakerNode[];
 };
 
 export const ALL_PROJECTS_SELECTION: ExplorerSelection = { kind: 'all' };
 
 /**
- * Builds the left explorer tree from the currently status-filtered project set.
+ * Construit l'arborescence de l'accueil à partir des projets filtrés par statut.
+ * @param {ProjectDetail[]} projects - Les projets visibles dans l'explorateur.
+ * @returns {ProjectExplorerTree} L'arborescence regroupée par intervenant et type de contenu.
  */
 export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExplorerTree {
-	const groupedByReciter = new Map<string, ProjectDetail[]>();
+	const groupedBySpeaker = new Map<string, ProjectDetail[]>();
 
 	for (const project of projects) {
-		const reciter = project.reciter?.trim() || 'not set';
-		const reciterProjects = groupedByReciter.get(reciter);
-		if (reciterProjects) {
-			reciterProjects.push(project);
+		const speaker = project.speaker?.trim() || 'Unknown speaker';
+		const speakerProjects = groupedBySpeaker.get(speaker);
+		if (speakerProjects) {
+			speakerProjects.push(project);
 		} else {
-			groupedByReciter.set(reciter, [project]);
+			groupedBySpeaker.set(speaker, [project]);
 		}
 	}
 
-	const reciters = Array.from(groupedByReciter.entries())
-		.sort(([leftReciter, leftProjects], [rightReciter, rightProjects]) => {
+	const speakers = Array.from(groupedBySpeaker.entries())
+		.sort(([leftSpeaker, leftProjects], [rightSpeaker, rightProjects]) => {
 			if (rightProjects.length !== leftProjects.length) {
 				return rightProjects.length - leftProjects.length;
 			}
 
-			return leftReciter.localeCompare(rightReciter, undefined, { sensitivity: 'base' });
+			return leftSpeaker.localeCompare(rightSpeaker, undefined, { sensitivity: 'base' });
 		})
-		.map(([reciter, reciterProjects]) => ({
-			id: `reciter:${reciter}`,
-			kind: 'reciter' as const,
-			label: reciter,
-			reciter,
-			count: reciterProjects.length,
+		.map(([speaker, speakerProjects]) => ({
+			id: `speaker:${speaker}`,
+			kind: 'speaker' as const,
+			label: speaker,
+			speaker,
+			count: speakerProjects.length,
 			types: PROJECT_TYPE_OPTIONS.map((projectType) => {
-				const typeProjects = reciterProjects.filter(
+				const typeProjects = speakerProjects.filter(
 					(project) => getProjectType(project) === projectType
 				);
 				const groupedByYear = new Map<string, number>();
@@ -88,21 +90,21 @@ export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExpl
 				const years = Array.from(groupedByYear.entries())
 					.sort(([leftYear], [rightYear]) => Number(rightYear) - Number(leftYear))
 					.map(([year, count]) => ({
-						id: `year:${reciter}:${projectType}:${year}`,
+						id: `year:${speaker}:${projectType}:${year}`,
 						kind: 'year' as const,
 						label: year,
 						year,
 						projectType,
-						reciter,
+						speaker,
 						count
 					}));
 
 				return {
-					id: `type:${reciter}:${projectType}`,
+					id: `type:${speaker}:${projectType}`,
 					kind: 'type' as const,
 					label: projectType,
 					projectType,
-					reciter,
+					speaker,
 					count: typeProjects.length,
 					years
 				};
@@ -111,10 +113,16 @@ export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExpl
 
 	return {
 		totalCount: projects.length,
-		reciters
+		speakers
 	};
 }
 
+/**
+ * Filtre les projets selon le dossier actif de l'explorateur.
+ * @param {ProjectDetail[]} projects - Les projets à filtrer.
+ * @param {ExplorerSelection} selection - Le dossier sélectionné.
+ * @returns {ProjectDetail[]} Les projets présents dans le dossier.
+ */
 export function filterProjectsForSelection(
 	projects: ProjectDetail[],
 	selection: ExplorerSelection
@@ -122,17 +130,17 @@ export function filterProjectsForSelection(
 	switch (selection.kind) {
 		case 'all':
 			return projects;
-		case 'reciter':
-			return projects.filter((project) => project.reciter === selection.reciter);
+		case 'speaker':
+			return projects.filter((project) => project.speaker === selection.speaker);
 		case 'type':
 			return projects.filter(
 				(project) =>
-					project.reciter === selection.reciter && getProjectType(project) === selection.projectType
+					project.speaker === selection.speaker && getProjectType(project) === selection.projectType
 			);
 		case 'year':
 			return projects.filter(
 				(project) =>
-					project.reciter === selection.reciter &&
+					project.speaker === selection.speaker &&
 					getProjectType(project) === selection.projectType &&
 					extractProjectYear(project.name) === selection.year
 			);
@@ -140,7 +148,10 @@ export function filterProjectsForSelection(
 }
 
 /**
- * Used by the sidebar to decide which folder row should render as active.
+ * Indique si un dossier de l'explorateur correspond à la sélection active.
+ * @param {ExplorerSelection} selection - La sélection active.
+ * @param {ExplorerSelection} target - Le dossier à comparer.
+ * @returns {boolean} Vrai lorsque les deux sélections correspondent.
  */
 export function isSelectionActive(
 	selection: ExplorerSelection,
@@ -154,17 +165,17 @@ export function isSelectionActive(
 		return true;
 	}
 
-	if (selection.kind === 'reciter' && target.kind === 'reciter') {
-		return selection.reciter === target.reciter;
+	if (selection.kind === 'speaker' && target.kind === 'speaker') {
+		return selection.speaker === target.speaker;
 	}
 
 	if (selection.kind === 'type' && target.kind === 'type') {
-		return selection.reciter === target.reciter && selection.projectType === target.projectType;
+		return selection.speaker === target.speaker && selection.projectType === target.projectType;
 	}
 
 	if (selection.kind === 'year' && target.kind === 'year') {
 		return (
-			selection.reciter === target.reciter &&
+			selection.speaker === target.speaker &&
 			selection.projectType === target.projectType &&
 			selection.year === target.year
 		);
@@ -174,44 +185,47 @@ export function isSelectionActive(
 }
 
 /**
- * Dropping on a reciter resets the type to the default folder.
+ * Résout les métadonnées à appliquer lors du déplacement d'un projet dans l'explorateur.
+ * @param {ExplorerSelection} target - Le dossier de destination.
+ * @returns {{ speaker: string; projectType: ProjectType } | null} Les métadonnées à appliquer.
  */
 export function resolveDropTargetUpdate(
 	target: ExplorerSelection
-): { reciter: string; projectType: ProjectType } | null {
+): { speaker: string; projectType: ProjectType } | null {
 	switch (target.kind) {
 		case 'all':
 			return null;
-		case 'reciter':
+		case 'speaker':
 			return {
-				reciter: target.reciter,
+				speaker: target.speaker,
 				projectType: DEFAULT_PROJECT_TYPE
 			};
 		case 'type':
 			return {
-				reciter: target.reciter,
+				speaker: target.speaker,
 				projectType: target.projectType
 			};
 		case 'year':
 			return {
-				reciter: target.reciter,
+				speaker: target.speaker,
 				projectType: target.projectType
 			};
 	}
 }
 
 /**
- * Normalizes legacy or missing values when the explorer reads project metadata.
+ * Retourne le type de contenu d'un projet.
+ * @param {Pick<ProjectDetail, 'projectType'>} project - Les métadonnées du projet.
+ * @returns {ProjectType} Le type de contenu du projet.
  */
 export function getProjectType(project: Pick<ProjectDetail, 'projectType'>): ProjectType {
 	return project.projectType ?? DEFAULT_PROJECT_TYPE;
 }
 
 /**
- * Extracts the first recognizable Gregorian or Hijri year from a project name.
- * Supported ranges:
- * - Gregorian: 1900..2100
- * - Hijri: 1300..1700
+ * Extrait la première année grégorienne ou hégirienne reconnaissable du nom d'un projet.
+ * @param {string | null | undefined} projectName - Le nom du projet.
+ * @returns {string | null} L'année trouvée, ou null.
  */
 export function extractProjectYear(projectName: string | null | undefined): string | null {
 	if (!projectName) return null;

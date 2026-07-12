@@ -422,7 +422,7 @@ export default class Exporter {
 				project: {
 					id: projectData.detail.id,
 					name: projectData.detail.name,
-					reciter: projectData.detail.reciter
+					speaker: projectData.detail.speaker
 				},
 				exportedAt: new Date().toISOString(),
 				segmentCount: segments.length,

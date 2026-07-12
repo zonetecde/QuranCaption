@@ -21,19 +21,19 @@ export function getStatusLabel(status: Status, LL: TranslationFunctions): string
 }
 
 /**
- * Retourne le libellé i18n correspondant au type de projet.
- * @param {string} type - Le type de projet (Taraweeh, Prayer, etc.).
+ * Retourne le libellé i18n correspondant au type de projet Minbar Studio.
+ * @param {string} type - Le type de contenu du projet.
  * @param {TranslationFunctions} LL - Les fonctions de traduction.
  * @returns {string} Le libellé traduit, ou le type brut si non trouvé.
  */
 export function getProjectTypeLabel(type: string, LL: TranslationFunctions): string {
 	const keyMap: Record<string, keyof TranslationFunctions['status']> = {
-		Taraweeh: 'taraweeh',
-		Prayer: 'prayer',
-		Studio: 'studio',
-		'Old recordings': 'oldRecordings',
-		'Rare recitation': 'rareRecitation',
-		Others: 'others'
+		'Lecture / Course': 'lectureCourse',
+		Khutbah: 'khutbah',
+		Reminder: 'reminder',
+		'Conference / Podcast': 'conferencePodcast',
+		'Poem / Nasheed': 'poemNasheed',
+		Other: 'other'
 	};
 	const key = keyMap[type];
 	return key ? LL.status[key]() : type;

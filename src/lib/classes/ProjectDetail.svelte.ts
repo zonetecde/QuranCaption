@@ -15,19 +15,19 @@ import {
 
 export class ProjectDetail extends SerializableBase {
 	static NAME_MAX_LENGTH: number = 50;
-	static RECITER_MAX_LENGTH: number = 35;
+	static SPEAKER_MAX_LENGTH: number = 50;
 
 	id: number;
 
 	name: string;
-	reciter: string;
+	speaker: string;
 	projectType: ProjectType;
 	createdAt: Date;
 	updatedAt: Date;
 
 	verseRange: VerseRange;
 	duration: Duration;
-	percentageCaptioned: number;
+	transcriptionProgress: number;
 	status: Status;
 
 	// Format : author: percentage
@@ -36,11 +36,11 @@ export class ProjectDetail extends SerializableBase {
 	/**
 	 * Crée une nouvelle instance de ProjectDetail
 	 * @param name Nom du projet
-	 * @param reciter Nom du réciteur
+	 * @param speaker Nom de l'intervenant
 	 */
 	constructor(
 		name: string,
-		reciter: string,
+		speaker: string,
 		createdAt?: Date,
 		updatedAt?: Date,
 		projectType: ProjectType = DEFAULT_PROJECT_TYPE
@@ -50,12 +50,12 @@ export class ProjectDetail extends SerializableBase {
 		this.id = Utilities.randomId();
 
 		this.name = $state(name);
-		this.reciter = $state(reciter || 'not set');
+		this.speaker = $state(speaker || 'Unknown speaker');
 		this.projectType = $state(normalizeProjectType(projectType));
 		this.createdAt = $state(createdAt || new Date());
 		this.updatedAt = $state(updatedAt || new Date());
 
-		this.percentageCaptioned = $state(0);
+		this.transcriptionProgress = $state(0);
 		this.status = $state(Status.NOT_SET);
 		this.duration = new Duration(0);
 		this.verseRange = new VerseRange();
@@ -75,21 +75,21 @@ export class ProjectDetail extends SerializableBase {
 	 */
 	public updateVideoDetailAttributes() {
 		this.duration = new Duration(globalState.getAudioTrack.getDuration().ms || 0);
-		this.updateVideoPercentageCaptioned();
+		this.updateTranscriptionProgress();
 		this.updateVerseRange();
 	}
 
-	private updateVideoPercentageCaptioned() {
-		const captionedDuration = globalState.getSubtitleTrack.getDuration().ms || 0;
+	private updateTranscriptionProgress() {
+		const transcribedDuration = globalState.getSubtitleTrack.getDuration().ms || 0;
 
 		const totalDuration = globalState.getAudioTrack.getDuration().ms || 0;
 
-		let percentage = (captionedDuration / totalDuration) * 100;
+		let percentage = (transcribedDuration / totalDuration) * 100;
 		if (percentage >= 97) {
 			percentage = 100;
 		}
 
-		globalState.currentProject!.detail.percentageCaptioned = Math.floor(percentage);
+		globalState.currentProject!.detail.transcriptionProgress = Math.floor(percentage);
 	}
 
 	private updateVerseRange() {
@@ -129,7 +129,7 @@ export class ProjectDetail extends SerializableBase {
 	}
 
 	matchSearchQuery(searchQuery: string): boolean {
-		const normalizedProjectInfo = `${this.name} ${this.reciter} ${this.projectType} ${this.verseRange.toString()}`;
+		const normalizedProjectInfo = `${this.name} ${this.speaker} ${this.projectType}`;
 		return this.normalize(normalizedProjectInfo).includes(this.normalize(searchQuery));
 	}
 
@@ -148,17 +148,11 @@ export class ProjectDetail extends SerializableBase {
 			return sanitized;
 		}
 
-		// Nom du projet (Nom du récitateur) - Al Insan 12-21, XXX
 		const finalFileName =
 			globalState.currentProject!.detail.name +
-			' ' +
-			(globalState.currentProject!.detail.reciter
-				? '(' + globalState.currentProject!.detail.reciter + ') - '
-				: '- ') +
-			VerseRange.getVerseRange(
-				globalState.getExportState.videoStartTime,
-				globalState.getExportState.videoEndTime
-			).toStringForExportFile();
+			(globalState.currentProject!.detail.speaker
+				? ` (${globalState.currentProject!.detail.speaker})`
+				: '');
 		return finalFileName.replace(/[/\\:*?"<>|]/g, '');
 	}
 
@@ -168,7 +162,7 @@ export class ProjectDetail extends SerializableBase {
 	): T {
 		const detail = super.fromJSON.call(this, data) as T;
 		if (detail instanceof ProjectDetail) {
-			detail.reciter = detail.reciter || 'not set';
+			detail.speaker = detail.speaker || 'Unknown speaker';
 			detail.projectType = normalizeProjectType(detail.projectType);
 		}
 		return detail;

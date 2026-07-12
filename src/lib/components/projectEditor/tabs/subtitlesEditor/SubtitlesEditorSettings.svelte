@@ -81,9 +81,7 @@
 		// Si on veut changer le sous-titre en Qur'an
 		if (presetChoice === "Qur'an") {
 			// Alors on explique à l'utilisateur qu'il doit sélectionner les mots
-			await ModalManager.confirmModal(
-				$LL.editor.makeQuranSubtitleConfirm()
-			);
+			await ModalManager.confirmModal($LL.editor.makeQuranSubtitleConfirm());
 		} else {
 			// Sinon on applique le changement de sous-titre
 			const subtitleTrack = globalState.getSubtitleTrack;
@@ -274,7 +272,9 @@
 								>
 								{$LL.editor.wbwTutorialBoundaries()}
 							</p>
-							<p class="text-[11px] text-yellow-100/90"><strong>{$LL.editor.wbwTutorialEscape()}</strong></p>
+							<p class="text-[11px] text-yellow-100/90">
+								<strong>{$LL.editor.wbwTutorialEscape()}</strong>
+							</p>
 						</div>
 					{/if}
 				</div>
@@ -437,14 +437,14 @@
 				<div class="flex items-center justify-between mb-2">
 					<span class="text-sm text-secondary">{$LL.editor.completion()}</span>
 					<span class="text-sm font-bold text-accent">
-						{globalState.currentProject!.detail.percentageCaptioned}%
+						{globalState.currentProject!.detail.transcriptionProgress}%
 					</span>
 				</div>
 				<div class="w-full bg-secondary rounded-full h-3 relative overflow-hidden">
 					<div
 						class="bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] h-full rounded-full
 					       transition-all duration-500 ease-out relative"
-						style="width: {globalState.currentProject!.detail.percentageCaptioned}%"
+						style="width: {globalState.currentProject!.detail.transcriptionProgress}%"
 					>
 						<div class="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
 					</div>

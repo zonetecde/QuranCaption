@@ -21,7 +21,7 @@
 		action?: () => void;
 		parentClasses?: string;
 		textClasses?: string;
-		inputType?: 'text' | 'reciters';
+		inputType?: 'text' | 'speakers';
 		disabled?: boolean;
 	} = $props();
 

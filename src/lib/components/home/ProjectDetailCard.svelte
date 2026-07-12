@@ -12,7 +12,6 @@
 	import ProjectTypeSelector from './ProjectTypeSelector.svelte';
 	import { Status } from '$lib/classes/Status';
 	import { slide } from 'svelte/transition';
-	import MigrationService from '$lib/services/MigrationService';
 	import { discordService } from '$lib/services/DiscordService';
 	import { onDestroy } from 'svelte';
 	import Exporter from '$lib/classes/Exporter';
@@ -96,13 +95,7 @@
 	async function openProjectButtonClick() {
 		// Ouvre le projet
 		const project = await ProjectService.load(projectDetail.id);
-		await MigrationService.HydrateStyleEditorUiMetadata(project);
 		globalState.currentProject = project;
-
-		// Migration si besoin
-		MigrationService.FromQC313ToQC314();
-		MigrationService.FromQC326ToQC327();
-		MigrationService.FromQC334ToQC335_2();
 
 		// Discord Rich Presence
 		discordService.setEditingState();
@@ -250,14 +243,14 @@
 				{$LL.home.reciterLabel()}
 				<EditableText
 					text={$LL.home.projectReciterPlaceholder()}
-					bind:value={projectDetail.reciter}
-					maxLength={ProjectDetail.RECITER_MAX_LENGTH}
-					placeholder={projectDetail.reciter}
+					bind:value={projectDetail.speaker}
+					maxLength={ProjectDetail.SPEAKER_MAX_LENGTH}
+					placeholder={projectDetail.speaker}
 					textClasses="font-semibold"
 					action={async () => {
 						await ProjectService.saveDetail(projectDetail); // Sauvegarde le projet
 					}}
-					inputType="reciters"
+					inputType="speakers"
 				/>
 			</div>
 			{#if globalState.settings!.persistentUiState.projectCardView === 'list'}
@@ -267,12 +260,6 @@
 			<p class="text-xs text-[var(--text-secondary)] mb-1">
 				{$LL.home.durationLabel()}
 				{projectDetail.duration.getFormattedTime(false)}
-			</p>
-			<p class="text-xs text-[var(--text-secondary)] mb-3 verserange">
-				{$LL.home.versesLabel()}
-				<span class="font-medium text-[var(--text-primary)]"
-					>{projectDetail.verseRange.toString()}</span
-				>
 			</p>
 
 			<!-- Bouton discret pour basculer les détails -->
@@ -300,13 +287,13 @@
 						<div class="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
 							<span>{$LL.home.captioning()}</span>
 							<span class="font-medium text-[var(--text-primary)]"
-								>{projectDetail.percentageCaptioned}%</span
+								>{projectDetail.transcriptionProgress}%</span
 							>
 						</div>
 						<div class="bg-[var(--border-color)] rounded h-2 overflow-hidden">
 							<div
 								class="bg-[var(--accent-primary)] h-full rounded transition-all duration-300 ease-in-out"
-								style="width: {projectDetail.percentageCaptioned}%;"
+								style="width: {projectDetail.transcriptionProgress}%;"
 							></div>
 						</div>
 					</div>
@@ -384,13 +371,5 @@
 <style>
 	.rotate-180 {
 		transform: rotate(180deg);
-	}
-
-	.verserange {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
 	}
 </style>

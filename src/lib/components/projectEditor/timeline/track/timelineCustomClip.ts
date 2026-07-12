@@ -163,7 +163,7 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 	// Reciter Name: même règle, avec garde-fou si reciter non défini.
 	if (
 		globalState.getStyle('global', 'show-reciter-name')?.value === true &&
-		globalState.currentProject?.detail.reciter !== 'not set' &&
+		globalState.currentProject?.detail.speaker !== 'Unknown speaker' &&
 		globalState.getStyle('global', 'reciter-name-always-show')?.value !== true
 	) {
 		clips.push(GLOBAL_RECITER_NAME_TIMELINE_CLIP);

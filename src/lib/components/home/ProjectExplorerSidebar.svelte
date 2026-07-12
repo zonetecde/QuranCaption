@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { getProjectTypeLabel } from '$lib/i18n/statusMapper';
 	import {
 		ALL_PROJECTS_SELECTION,
 		isSelectionActive,
@@ -19,16 +21,25 @@
 		onSelectionChange: (selection: ExplorerSelection) => void;
 	} = $props();
 
-	let expandedReciters = $state<Set<string>>(new Set());
+	let expandedSpeakers = $state<Set<string>>(new Set());
 	let expandedTypes = $state<Set<string>>(new Set());
 	let lastSelectionKey = $state<string>('all');
 
-	function getTypeKey(reciter: string, projectType: string): string {
-		return `${reciter}:${projectType}`;
+	/**
+	 * Construit la clé interne d'un dossier de type de contenu.
+	 * @param {string} speaker - Le nom de l'intervenant.
+	 * @param {string} projectType - Le type de contenu.
+	 * @returns {string} La clé du dossier.
+	 */
+	function getTypeKey(speaker: string, projectType: string): string {
+		return `${speaker}:${projectType}`;
 	}
 
 	/**
-	 * Avoids rewriting the set when nothing actually changed.
+	 * Compare deux ensembles sans les recréer inutilement.
+	 * @param {Set<string>} left - Le premier ensemble.
+	 * @param {Set<string>} right - Le second ensemble.
+	 * @returns {boolean} Vrai lorsque les ensembles sont identiques.
 	 */
 	function areSetsEqual(left: Set<string>, right: Set<string>): boolean {
 		if (left.size !== right.size) return false;
@@ -38,31 +49,35 @@
 		return true;
 	}
 
-	function getSelectionKey(selection: ExplorerSelection): string {
-		switch (selection.kind) {
+	/**
+	 * Sérialise une sélection pour détecter ses changements.
+	 * @param {ExplorerSelection} currentSelection - La sélection à sérialiser.
+	 * @returns {string} La clé de sélection.
+	 */
+	function getSelectionKey(currentSelection: ExplorerSelection): string {
+		switch (currentSelection.kind) {
 			case 'all':
 				return 'all';
-			case 'reciter':
-				return `reciter:${selection.reciter}`;
+			case 'speaker':
+				return `speaker:${currentSelection.speaker}`;
 			case 'type':
-				return `type:${selection.reciter}:${selection.projectType}`;
+				return `type:${currentSelection.speaker}:${currentSelection.projectType}`;
 			case 'year':
-				return `year:${selection.reciter}:${selection.projectType}:${selection.year}`;
+				return `year:${currentSelection.speaker}:${currentSelection.projectType}:${currentSelection.year}`;
 		}
 	}
 
 	$effect(() => {
-		// Keeps the open state valid when the tree changes and auto-expands the newly selected branch.
-		const validReciters = new Set(tree.reciters.map((node) => node.reciter));
+		const validSpeakers = new Set(tree.speakers.map((node) => node.speaker));
 		const validTypeKeys = new Set(
-			tree.reciters.flatMap((reciterNode) =>
-				reciterNode.types
+			tree.speakers.flatMap((speakerNode) =>
+				speakerNode.types
 					.filter((typeNode) => typeNode.years.length > 0)
-					.map((typeNode) => getTypeKey(typeNode.reciter, typeNode.projectType))
+					.map((typeNode) => getTypeKey(typeNode.speaker, typeNode.projectType))
 			)
 		);
-		const nextExpandedReciters = new Set(
-			Array.from(expandedReciters).filter((reciter) => validReciters.has(reciter))
+		const nextExpandedSpeakers = new Set(
+			Array.from(expandedSpeakers).filter((speaker) => validSpeakers.has(speaker))
 		);
 		const nextExpandedTypes = new Set(
 			Array.from(expandedTypes).filter((typeKey) => validTypeKeys.has(typeKey))
@@ -71,40 +86,56 @@
 		const selectionKey = getSelectionKey(selection);
 		if (
 			selectionKey !== lastSelectionKey &&
-			(selection.kind === 'reciter' || selection.kind === 'type' || selection.kind === 'year')
+			(selection.kind === 'speaker' || selection.kind === 'type' || selection.kind === 'year')
 		) {
-			nextExpandedReciters.add(selection.reciter);
+			nextExpandedSpeakers.add(selection.speaker);
 			if (selection.kind === 'type' || selection.kind === 'year') {
-				nextExpandedTypes.add(getTypeKey(selection.reciter, selection.projectType));
+				nextExpandedTypes.add(getTypeKey(selection.speaker, selection.projectType));
 			}
 		}
 
 		lastSelectionKey = selectionKey;
 
-		if (!areSetsEqual(expandedReciters, nextExpandedReciters)) {
-			expandedReciters = nextExpandedReciters;
+		if (!areSetsEqual(expandedSpeakers, nextExpandedSpeakers)) {
+			expandedSpeakers = nextExpandedSpeakers;
 		}
 		if (!areSetsEqual(expandedTypes, nextExpandedTypes)) {
 			expandedTypes = nextExpandedTypes;
 		}
 	});
 
-	function toggleReciter(reciter: string) {
-		const next = new Set(expandedReciters);
-		if (next.has(reciter)) {
-			next.delete(reciter);
+	/**
+	 * Ouvre ou ferme le dossier d'un intervenant.
+	 * @param {string} speaker - Le nom de l'intervenant.
+	 * @returns {void}
+	 */
+	function toggleSpeaker(speaker: string) {
+		const next = new Set(expandedSpeakers);
+		if (next.has(speaker)) {
+			next.delete(speaker);
 		} else {
-			next.add(reciter);
+			next.add(speaker);
 		}
-		expandedReciters = next;
+		expandedSpeakers = next;
 	}
 
-	function isExpanded(reciter: string): boolean {
-		return expandedReciters.has(reciter);
+	/**
+	 * Indique si le dossier d'un intervenant est ouvert.
+	 * @param {string} speaker - Le nom de l'intervenant.
+	 * @returns {boolean} Vrai lorsque le dossier est ouvert.
+	 */
+	function isExpanded(speaker: string): boolean {
+		return expandedSpeakers.has(speaker);
 	}
 
-	function toggleType(reciter: string, projectType: string) {
-		const typeKey = getTypeKey(reciter, projectType);
+	/**
+	 * Ouvre ou ferme un dossier de type de contenu.
+	 * @param {string} speaker - Le nom de l'intervenant.
+	 * @param {string} projectType - Le type de contenu.
+	 * @returns {void}
+	 */
+	function toggleType(speaker: string, projectType: string) {
+		const typeKey = getTypeKey(speaker, projectType);
 		const next = new Set(expandedTypes);
 		if (next.has(typeKey)) {
 			next.delete(typeKey);
@@ -114,17 +145,34 @@
 		expandedTypes = next;
 	}
 
-	function isTypeExpanded(reciter: string, projectType: string): boolean {
-		return expandedTypes.has(getTypeKey(reciter, projectType));
+	/**
+	 * Indique si un dossier de type de contenu est ouvert.
+	 * @param {string} speaker - Le nom de l'intervenant.
+	 * @param {string} projectType - Le type de contenu.
+	 * @returns {boolean} Vrai lorsque le dossier est ouvert.
+	 */
+	function isTypeExpanded(speaker: string, projectType: string): boolean {
+		return expandedTypes.has(getTypeKey(speaker, projectType));
 	}
 
-	function handleToggleClick(event: MouseEvent, reciter: string) {
+	/**
+	 * Gère le clic sur la flèche d'un intervenant.
+	 * @param {MouseEvent} event - L'événement de clic.
+	 * @param {string} speaker - Le nom de l'intervenant.
+	 * @returns {void}
+	 */
+	function handleToggleClick(event: MouseEvent, speaker: string) {
 		event.stopPropagation();
-		toggleReciter(reciter);
+		toggleSpeaker(speaker);
 	}
 
-	function handleReciterClick(reciter: string) {
-		onSelectionChange({ kind: 'reciter', reciter });
+	/**
+	 * Sélectionne le dossier d'un intervenant.
+	 * @param {string} speaker - Le nom de l'intervenant.
+	 * @returns {void}
+	 */
+	function handleSpeakerClick(speaker: string) {
+		onSelectionChange({ kind: 'speaker', speaker });
 	}
 </script>
 
@@ -146,20 +194,20 @@
 			<span class="tree-count">{tree.totalCount}</span>
 		</button>
 
-		{#each tree.reciters as reciterNode (reciterNode.id)}
+		{#each tree.speakers as speakerNode (speakerNode.id)}
 			<div class="tree-group">
 				<div
-					class={`tree-row reciter-row ${isSelectionActive(selection, { kind: 'reciter', reciter: reciterNode.reciter }) ? 'active' : ''} ${activeDropNodeId === reciterNode.id ? 'drop-target' : ''}`}
+					class={`tree-row speaker-row ${isSelectionActive(selection, { kind: 'speaker', speaker: speakerNode.speaker }) ? 'active' : ''} ${activeDropNodeId === speakerNode.id ? 'drop-target' : ''}`}
 				>
 					<button
 						type="button"
 						class="tree-toggle"
-						data-explorer-toggle={reciterNode.reciter}
-					title={isExpanded(reciterNode.reciter) ? $LL.home.collapse() : $LL.home.expand()}
-					onclick={(event) => handleToggleClick(event, reciterNode.reciter)}
+						data-explorer-toggle={speakerNode.speaker}
+						title={isExpanded(speakerNode.speaker) ? $LL.home.collapse() : $LL.home.expand()}
+						onclick={(event) => handleToggleClick(event, speakerNode.speaker)}
 					>
 						<span
-							class={`material-icons-outlined tree-chevron ${isExpanded(reciterNode.reciter) ? 'expanded' : ''}`}
+							class={`material-icons-outlined tree-chevron ${isExpanded(speakerNode.speaker) ? 'expanded' : ''}`}
 						>
 							chevron_right
 						</span>
@@ -168,35 +216,35 @@
 					<button
 						type="button"
 						class="tree-select"
-						data-explorer-node={`reciter:${reciterNode.reciter}`}
-						onclick={() => handleReciterClick(reciterNode.reciter)}
+						data-explorer-node={`speaker:${speakerNode.speaker}`}
+						onclick={() => handleSpeakerClick(speakerNode.speaker)}
 					>
-						<span class="material-icons-outlined tree-icon">folder_open</span>
-						<span class="tree-name">{reciterNode.label}</span>
-						<span class="tree-count">{reciterNode.count}</span>
+						<span class="material-icons-outlined tree-icon">record_voice_over</span>
+						<span class="tree-name">{speakerNode.label}</span>
+						<span class="tree-count">{speakerNode.count}</span>
 					</button>
 				</div>
 
-				{#if isExpanded(reciterNode.reciter)}
+				{#if isExpanded(speakerNode.speaker)}
 					<div class="tree-children">
-						{#each reciterNode.types as typeNode (typeNode.id)}
+						{#each speakerNode.types as typeNode (typeNode.id)}
 							{#if typeNode.years.length === 0}
 								<button
 									type="button"
 									class={`tree-row child-row ${
 										isSelectionActive(selection, {
 											kind: 'type',
-											reciter: typeNode.reciter,
+											speaker: typeNode.speaker,
 											projectType: typeNode.projectType
 										})
 											? 'active'
 											: ''
 									} ${activeDropNodeId === typeNode.id ? 'drop-target' : ''}`}
-									data-explorer-node={`type:${typeNode.reciter}:${typeNode.projectType}`}
+									data-explorer-node={`type:${typeNode.speaker}:${typeNode.projectType}`}
 									onclick={() =>
 										onSelectionChange({
 											kind: 'type',
-											reciter: typeNode.reciter,
+											speaker: typeNode.speaker,
 											projectType: typeNode.projectType
 										})}
 								>
@@ -204,7 +252,7 @@
 										<span class="tree-branch-line"></span>
 										<span class="tree-branch-dot"></span>
 									</span>
-									<span class="tree-name">{typeNode.label}</span>
+									<span class="tree-name">{getProjectTypeLabel(typeNode.label, get(LL))}</span>
 									<span class="tree-count">{typeNode.count}</span>
 								</button>
 							{:else}
@@ -213,7 +261,7 @@
 										class={`tree-row child-row ${
 											isSelectionActive(selection, {
 												kind: 'type',
-												reciter: typeNode.reciter,
+												speaker: typeNode.speaker,
 												projectType: typeNode.projectType
 											})
 												? 'active'
@@ -225,17 +273,17 @@
 											<button
 												type="button"
 												class="tree-mini-toggle"
-											title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
-												? $LL.home.collapse()
-												: $LL.home.expand()}
+												title={isTypeExpanded(typeNode.speaker, typeNode.projectType)
+													? $LL.home.collapse()
+													: $LL.home.expand()}
 												onclick={(event) => {
 													event.stopPropagation();
-													toggleType(typeNode.reciter, typeNode.projectType);
+													toggleType(typeNode.speaker, typeNode.projectType);
 												}}
 											>
 												<span
 													class={`material-icons-outlined tree-chevron ${
-														isTypeExpanded(typeNode.reciter, typeNode.projectType) ? 'expanded' : ''
+														isTypeExpanded(typeNode.speaker, typeNode.projectType) ? 'expanded' : ''
 													}`}
 												>
 													chevron_right
@@ -245,20 +293,20 @@
 										<button
 											type="button"
 											class="tree-select"
-											data-explorer-node={`type:${typeNode.reciter}:${typeNode.projectType}`}
+											data-explorer-node={`type:${typeNode.speaker}:${typeNode.projectType}`}
 											onclick={() =>
 												onSelectionChange({
 													kind: 'type',
-													reciter: typeNode.reciter,
+													speaker: typeNode.speaker,
 													projectType: typeNode.projectType
 												})}
 										>
-											<span class="tree-name">{typeNode.label}</span>
+											<span class="tree-name">{getProjectTypeLabel(typeNode.label, get(LL))}</span>
 											<span class="tree-count">{typeNode.count}</span>
 										</button>
 									</div>
 
-									{#if isTypeExpanded(typeNode.reciter, typeNode.projectType)}
+									{#if isTypeExpanded(typeNode.speaker, typeNode.projectType)}
 										<div class="tree-year-children">
 											{#each typeNode.years as yearNode (yearNode.id)}
 												<button
@@ -266,18 +314,18 @@
 													class={`tree-row child-row ${
 														isSelectionActive(selection, {
 															kind: 'year',
-															reciter: yearNode.reciter,
+															speaker: yearNode.speaker,
 															projectType: yearNode.projectType,
 															year: yearNode.year
 														})
 															? 'active'
 															: ''
 													} ${activeDropNodeId === yearNode.id ? 'drop-target' : ''}`}
-													data-explorer-node={`year:${yearNode.reciter}:${yearNode.projectType}:${yearNode.year}`}
+													data-explorer-node={`year:${yearNode.speaker}:${yearNode.projectType}:${yearNode.year}`}
 													onclick={() =>
 														onSelectionChange({
 															kind: 'year',
-															reciter: yearNode.reciter,
+															speaker: yearNode.speaker,
 															projectType: yearNode.projectType,
 															year: yearNode.year
 														})}
@@ -407,7 +455,7 @@
 		color: inherit;
 	}
 
-	.reciter-row {
+	.speaker-row {
 		display: grid;
 		grid-template-columns: 1.75rem minmax(0, 1fr);
 		gap: 0.5rem;

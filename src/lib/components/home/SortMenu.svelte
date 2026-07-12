@@ -18,7 +18,7 @@
 		{ key: 'updatedAt' as keyof ProjectDetail, label: get(LL).home.lastUpdated() },
 		{ key: 'createdAt' as keyof ProjectDetail, label: get(LL).home.createdAt() },
 		{ key: 'name' as keyof ProjectDetail, label: get(LL).common.name() },
-		{ key: 'reciter' as keyof ProjectDetail, label: get(LL).home.reciter() },
+		{ key: 'speaker' as keyof ProjectDetail, label: get(LL).home.reciter() },
 		{ key: 'duration' as keyof ProjectDetail, label: get(LL).home.duration() }
 	]);
 

@@ -219,7 +219,7 @@ export function setupSubtitlesEditorProjectFixture(
 		},
 		detail: {
 			updateVideoDetailAttributes,
-			percentageCaptioned: 0,
+			transcriptionProgress: 0,
 			translations: {}
 		}
 	} as unknown as Project;

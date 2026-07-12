@@ -77,12 +77,12 @@ class DiscordService {
 	async setEditingState(): Promise<void> {
 		if (!globalState.currentProject) return;
 
-		const { name, reciter } = globalState.currentProject.detail;
+		const { name, speaker } = globalState.currentProject.detail;
 		await this.updateActivity({
 			details: get(LL).settings.creatingQuranVideo(),
 			state:
-				reciter && reciter !== 'not set'
-					? get(LL).settings.workingOnProject({ name, reciter })
+				speaker && speaker !== 'Unknown speaker'
+					? get(LL).settings.workingOnProject({ name, reciter: speaker })
 					: `Working on ${name}`,
 			large_image_key: 'logo',
 			large_image_text: 'Minbar Studio',

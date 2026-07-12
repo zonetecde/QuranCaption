@@ -100,7 +100,7 @@ export default class ModalManager {
 		defaultText: string = '',
 		maxlength: number = 100,
 		placeholder: string = get(LL).common.enterTextHere(),
-		inputType: 'text' | 'reciters' = 'text'
+		inputType: 'text' | 'speakers' = 'text'
 	): Promise<string> {
 		return new Promise<string>((resolve) => {
 			// Créer un conteneur pour le modal

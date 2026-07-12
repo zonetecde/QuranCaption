@@ -104,7 +104,7 @@ export async function createAiVideoProject(): Promise<void> {
 			snapshot.reciterName,
 			undefined,
 			undefined,
-			'Others'
+			'Other'
 		);
 		const content = await ProjectContent.getDefaultProjectContent();
 		const project = new Project(projectDetail, content);

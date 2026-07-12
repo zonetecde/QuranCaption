@@ -264,7 +264,7 @@
 		if (style.valueType === 'composite') {
 			return LL_.common.details();
 		} else if (style.valueType === 'reciter') {
-			return globalState.currentProject!.detail.reciter || LL_.common.none();
+			return globalState.currentProject!.detail.speaker || LL_.common.none();
 		} else if (style.valueType === 'dimension') {
 			const dimension = asDimensionValue(style.value);
 			return dimension.width + 'x' + dimension.height;

@@ -1574,7 +1574,7 @@
 
 		if (
 			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
-			globalState.currentProject?.detail.reciter !== 'not set'
+			globalState.currentProject?.detail.speaker !== 'Unknown speaker'
 		) {
 			timedOverlayClips.push({
 				id: 'reciter-name',

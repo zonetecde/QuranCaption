@@ -5,9 +5,9 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
-	import RecitersManager from '$lib/classes/Reciter';
 	import { discordService } from '$lib/services/DiscordService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { getProjectTypeLabel } from '$lib/i18n/statusMapper';
 	import {
 		DEFAULT_PROJECT_TYPE,
 		PROJECT_TYPE_OPTIONS,
@@ -17,8 +17,19 @@
 	let { close } = $props();
 
 	let name: string = $state('');
-	let reciter: string = $state('');
+	let speaker: string = $state('');
 	let projectType: ProjectType = $state(DEFAULT_PROJECT_TYPE);
+	let speakerSuggestions = $derived(
+		Array.from(
+			new Set(
+				globalState.userProjectsDetails
+					.map((project) => project.speaker.trim())
+					.filter(
+						(projectSpeaker) => projectSpeaker.length > 0 && projectSpeaker !== 'Unknown speaker'
+					)
+			)
+		)
+	);
 
 	async function createProjectButtonClick() {
 		// Vérifie que le nom du projet n'est pas vide
@@ -27,21 +38,18 @@
 			return;
 		}
 
-		// Vérifie que ni le nom ni le récitateur contiennent des chars interdit
-		// par windows pour les noms de fichiers
-		if (Utilities.isPathNotSafe(name) || Utilities.isPathNotSafe(reciter)) {
-			toast.error(
-				get(LL).home.projectNameInvalidCharacters()
-			);
+		// Vérifie que le nom du projet et celui de l'intervenant sont sûrs pour un nom de fichier.
+		if (Utilities.isPathNotSafe(name) || Utilities.isPathNotSafe(speaker)) {
+			toast.error(get(LL).home.projectNameInvalidCharacters());
 			return;
 		}
 
 		let project = new Project(
-			new ProjectDetail(name.trim(), reciter.trim(), undefined, undefined, projectType),
+			new ProjectDetail(name.trim(), speaker.trim(), undefined, undefined, projectType),
 			await ProjectContent.getDefaultProjectContent()
 		);
 
-		AnalyticsService.trackProjectCreated(name.trim(), reciter.trim(), projectType);
+		AnalyticsService.trackProjectCreated(name.trim(), speaker.trim(), projectType);
 
 		// Sauvegarde le projet sur le disque
 		await project.save();
@@ -116,13 +124,13 @@
 				</div>
 			</div>
 		</div>
-		<!-- Reciter Field with Autocomplete -->
+		<!-- Speaker Field with Autocomplete -->
 		<div style="position: relative; z-index: 1000;">
 			<AutocompleteInput
-				bind:value={reciter}
-				suggestions={RecitersManager.getRecitersWithCustomOnes()}
+				bind:value={speaker}
+				suggestions={speakerSuggestions}
 				placeholder={$LL.home.searchReciters()}
-				maxlength={ProjectDetail.RECITER_MAX_LENGTH}
+				maxlength={ProjectDetail.SPEAKER_MAX_LENGTH}
 				icon="person"
 				labelIcon="record_voice_over"
 				label={$LL.home.reciter()}
@@ -142,7 +150,7 @@
 					class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary shadow-inner"
 				>
 					{#each PROJECT_TYPE_OPTIONS as option (option)}
-						<option value={option}>{option}</option>
+						<option value={option}>{getProjectTypeLabel(option, get(LL))}</option>
 					{/each}
 				</select>
 				<span

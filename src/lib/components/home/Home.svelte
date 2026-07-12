@@ -15,7 +15,6 @@
 	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import MigrationService from '$lib/services/MigrationService';
 
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -26,7 +25,6 @@
 	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
 	import ProjectExplorerSidebar from './ProjectExplorerSidebar.svelte';
 	import CreateProjectModal from './modals/CreateProjectModal.svelte';
-	import MigrationFromV2Modal from './modals/MigrationFromV2Modal.svelte';
 	import {
 		ALL_PROJECTS_SELECTION,
 		buildProjectExplorerTree,
@@ -41,7 +39,6 @@
 		type DragPointer
 	} from './dragUtils';
 
-	let migrationFromV2ModalVisibility = $state(false);
 	let createNewProjectModalVisible = $state(false);
 
 	// Etats pour les menus de filtrage et tri
@@ -164,13 +161,13 @@
 
 	function isSelectionAvailable(selection: ExplorerSelection, projects: ProjectDetail[]): boolean {
 		if (selection.kind === 'all') return true;
-		if (selection.kind === 'reciter') {
-			return projects.some((project) => project.reciter === selection.reciter);
+		if (selection.kind === 'speaker') {
+			return projects.some((project) => project.speaker === selection.speaker);
 		}
 
-		// Type folders always exist under a visible reciter node, even when their project count is 0.
+		// Type folders always exist under a visible speaker node, even when their project count is 0.
 		if (selection.kind === 'type') {
-			return projects.some((project) => project.reciter === selection.reciter);
+			return projects.some((project) => project.speaker === selection.speaker);
 		}
 
 		// Year nodes only exist when at least one project matches that year bucket.
@@ -182,7 +179,7 @@
 			return get(LL).home.projectsAcrossAll({ count });
 		}
 
-		if (selection.kind === 'reciter') {
+		if (selection.kind === 'speaker') {
 			return get(LL).home.projectsForReciter({ count });
 		}
 
@@ -197,17 +194,17 @@
 		switch (selection.kind) {
 			case 'all':
 				return [{ label: get(LL).home.allProjects() }];
-			case 'reciter':
+			case 'speaker':
 				return [
 					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
-					{ label: selection.reciter }
+					{ label: selection.speaker }
 				];
 			case 'type':
 				return [
 					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
 					{
-						label: selection.reciter,
-						target: { kind: 'reciter', reciter: selection.reciter }
+						label: selection.speaker,
+						target: { kind: 'speaker', speaker: selection.speaker }
 					},
 					{ label: selection.projectType }
 				];
@@ -215,14 +212,14 @@
 				return [
 					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
 					{
-						label: selection.reciter,
-						target: { kind: 'reciter', reciter: selection.reciter }
+						label: selection.speaker,
+						target: { kind: 'speaker', speaker: selection.speaker }
 					},
 					{
 						label: selection.projectType,
 						target: {
 							kind: 'type',
-							reciter: selection.reciter,
+							speaker: selection.speaker,
 							projectType: selection.projectType
 						}
 					},
@@ -299,7 +296,7 @@
 	}
 
 	/**
-	 * Persists reciter/type changes after a folder drop and clears the transient drag state.
+	 * Persists speaker/type changes after a folder drop and clears the transient drag state.
 	 */
 	async function handleProjectDrop(target: ExplorerSelection) {
 		if (draggingProjectId === null) return;
@@ -315,9 +312,9 @@
 		const update = resolveDropTargetUpdate(target);
 		if (
 			update &&
-			(project.reciter !== update.reciter || project.projectType !== update.projectType)
+			(project.speaker !== update.speaker || project.projectType !== update.projectType)
 		) {
-			project.reciter = update.reciter;
+			project.speaker = update.speaker;
 			project.projectType = update.projectType;
 			await ProjectService.saveDetail(project, false);
 		}
@@ -440,18 +437,6 @@
 			).detail;
 		} else {
 			promise = ProjectService.loadUserProjectsDetails();
-		}
-
-		if (promise) {
-			promise.then(async () => {
-				// Vérifie si des données de Minbar Studio 2 sont présentes
-				if (
-					(await MigrationService.hasQCV2Data()) &&
-					globalState.userProjectsDetails.length === 0
-				) {
-					migrationFromV2ModalVisibility = true;
-				}
-			});
 		}
 
 		if (globalState.settings && !globalState.settings.persistentUiState.hasSeenTour) {
@@ -720,7 +705,7 @@
 			{draggingProject.name}
 		</p>
 		<p class="mt-1 text-xs text-[var(--text-secondary)]">
-			{draggingProject.reciter} • {draggingProject.projectType}
+			{draggingProject.speaker} • {draggingProject.projectType}
 		</p>
 	</div>
 {/if}
@@ -728,11 +713,5 @@
 {#if createNewProjectModalVisible}
 	<div class="modal-wrapper" transition:fade>
 		<CreateProjectModal close={() => (createNewProjectModalVisible = false)} />
-	</div>
-{/if}
-
-{#if migrationFromV2ModalVisibility}
-	<div class="modal-wrapper" transition:fade>
-		<MigrationFromV2Modal close={() => (migrationFromV2ModalVisibility = false)} />
 	</div>
 {/if}

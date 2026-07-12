@@ -6,7 +6,7 @@
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 
 	const reciter = $derived(() => {
-		return RecitersManager.getReciterObject(globalState.currentProject!.detail.reciter);
+		return RecitersManager.getReciterObject(globalState.currentProject!.detail.speaker);
 	});
 
 	const fadeDuration = $derived(() => {

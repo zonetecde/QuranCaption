@@ -95,10 +95,10 @@ export class AnalyticsService {
 
 	// Specific typed events
 
-	static trackProjectCreated(name: string, reciterId: string, projectType?: string) {
+	static trackProjectCreated(name: string, speaker: string, projectType?: string) {
 		this.track('project_created', {
 			project_name: name,
-			reciter_id: reciterId,
+			speaker,
 			project_type: projectType
 		});
 	}

@@ -21,14 +21,14 @@ describe('dragUtils', () => {
 
 	it('maps explorer node ids back to explorer selections', () => {
 		expect(getExplorerSelectionFromNodeId('all')).toEqual(ALL_PROJECTS_SELECTION);
-		expect(getExplorerSelectionFromNodeId('reciter:Yasser Al Dosari')).toEqual({
-			kind: 'reciter',
-			reciter: 'Yasser Al Dosari'
+		expect(getExplorerSelectionFromNodeId('speaker:Shaykh Ahmad')).toEqual({
+			kind: 'speaker',
+			speaker: 'Shaykh Ahmad'
 		});
-		expect(getExplorerSelectionFromNodeId('type:Yasser Al Dosari:salat')).toEqual({
+		expect(getExplorerSelectionFromNodeId('type:Shaykh Ahmad:Khutbah')).toEqual({
 			kind: 'type',
-			reciter: 'Yasser Al Dosari',
-			projectType: 'Prayer'
+			speaker: 'Shaykh Ahmad',
+			projectType: 'Khutbah'
 		});
 		expect(getExplorerSelectionFromNodeId('unknown')).toBeNull();
 	});

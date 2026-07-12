@@ -6,26 +6,26 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 
-	const reciter = $derived(
-		RecitersManager.getReciterObject(globalState.currentProject!.detail.reciter)
+	const speakerCalligraphy = $derived(
+		RecitersManager.getReciterObject(globalState.currentProject!.detail.speaker)
 	);
 </script>
 
 <div class="flex flex-col gap-x-2">
 	<EditableText
-		text="Enter project reciter"
-		bind:value={globalState.currentProject!.detail.reciter}
-		maxLength={ProjectDetail.RECITER_MAX_LENGTH}
-		placeholder={globalState.currentProject!.detail.reciter}
+		text={$LL.home.projectReciterPlaceholder()}
+		bind:value={globalState.currentProject!.detail.speaker}
+		maxLength={ProjectDetail.SPEAKER_MAX_LENGTH}
+		placeholder={globalState.currentProject!.detail.speaker}
 		textClasses="font-semibold"
 		action={async () => {
 			await ProjectService.saveDetail(globalState.currentProject!.detail);
 		}}
-		inputType="reciters"
+		inputType="speakers"
 	/>
 
-	{#if reciter.number !== -1}
-		<p class="reciters-font -mr-3 text-center text-3xl">{reciter.number}</p>
+	{#if speakerCalligraphy.number !== -1}
+		<p class="reciters-font -mr-3 text-center text-3xl">{speakerCalligraphy.number}</p>
 	{:else}
 		<p class="mt-2 text-sm text-yellow-500">
 			<span class="material-icons text-[18px]! align-middle">block</span>

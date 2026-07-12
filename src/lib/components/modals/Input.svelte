@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import AutocompleteInput from '../misc/AutocompleteInput.svelte';
-	import RecitersManager from '$lib/classes/Reciter';
+	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectDetail } from '$lib/classes';
 
 	let input: HTMLInputElement | undefined = $state(undefined);
@@ -27,11 +27,20 @@
 		defaultText?: string;
 		maxlength?: number;
 		placeholder?: string;
-		inputType?: 'text' | 'reciters';
+		inputType?: 'text' | 'speakers';
 		resolve: (result: string) => void;
 	} = $props();
 
 	let inputValue: string = $state(defaultText);
+	let speakerSuggestions = $derived(
+		Array.from(
+			new Set(
+				globalState.userProjectsDetails
+					.map((project) => project.speaker.trim())
+					.filter((speaker) => speaker.length > 0 && speaker !== 'Unknown speaker')
+			)
+		)
+	);
 
 	function handleConfirm() {
 		resolve(inputValue.trim());
@@ -83,12 +92,12 @@
 						{inputValue.length}/{maxlength}
 					</span>
 				</div>
-			{:else if inputType === 'reciters'}
+			{:else if inputType === 'speakers'}
 				<AutocompleteInput
 					bind:value={inputValue}
-					suggestions={RecitersManager.reciters.map((r) => r.latin)}
+					suggestions={speakerSuggestions}
 					placeholder={$LL.home.searchReciters()}
-					maxlength={ProjectDetail.RECITER_MAX_LENGTH}
+					maxlength={ProjectDetail.SPEAKER_MAX_LENGTH}
 					icon="person"
 					labelIcon="record_voice_over"
 					label={$LL.home.reciter()}

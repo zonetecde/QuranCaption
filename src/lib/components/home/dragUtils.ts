@@ -7,7 +7,9 @@ export type DragPointer = {
 };
 
 /**
- * Keeps drag-preview coordinates serializable and independent from the full event object.
+ * Conserve les coordonnées de l'aperçu de déplacement sans garder l'événement complet.
+ * @param {Pick<PointerEvent, 'clientX' | 'clientY'>} event - L'événement de pointeur.
+ * @returns {DragPointer} Les coordonnées du pointeur.
  */
 export function getDragPointerPosition(
 	event: Pick<PointerEvent, 'clientX' | 'clientY'>
@@ -19,7 +21,9 @@ export function getDragPointerPosition(
 }
 
 /**
- * Reads the logical explorer node id from the hovered DOM node, if any.
+ * Lit l'identifiant logique du dossier survolé dans l'explorateur.
+ * @param {Element | null} element - L'élément actuellement survolé.
+ * @returns {string | null} L'identifiant du dossier, ou null.
  */
 export function getExplorerNodeIdFromElement(element: Element | null): string | null {
 	const node = element?.closest('[data-explorer-node]');
@@ -27,7 +31,9 @@ export function getExplorerNodeIdFromElement(element: Element | null): string | 
 }
 
 /**
- * Converts serialized node ids back to the selection model used by the homepage.
+ * Convertit un identifiant de dossier en sélection d'explorateur.
+ * @param {string | null | undefined} nodeId - L'identifiant sérialisé du dossier.
+ * @returns {ExplorerSelection | null} La sélection correspondante.
  */
 export function getExplorerSelectionFromNodeId(
 	nodeId: string | null | undefined
@@ -36,21 +42,21 @@ export function getExplorerSelectionFromNodeId(
 		return ALL_PROJECTS_SELECTION;
 	}
 
-	if (nodeId.startsWith('reciter:')) {
-		return { kind: 'reciter', reciter: nodeId.slice('reciter:'.length) };
+	if (nodeId.startsWith('speaker:')) {
+		return { kind: 'speaker', speaker: nodeId.slice('speaker:'.length) };
 	}
 
 	if (nodeId.startsWith('type:')) {
-		const [, reciter, projectType] = nodeId.split(':');
-		if (reciter && projectType) {
-			return { kind: 'type', reciter, projectType: normalizeProjectType(projectType) };
+		const [, speaker, projectType] = nodeId.split(':');
+		if (speaker && projectType) {
+			return { kind: 'type', speaker, projectType: normalizeProjectType(projectType) };
 		}
 	}
 
 	if (nodeId.startsWith('year:')) {
-		const [, reciter, projectType, year] = nodeId.split(':');
-		if (reciter && projectType && year) {
-			return { kind: 'year', reciter, projectType: normalizeProjectType(projectType), year };
+		const [, speaker, projectType, year] = nodeId.split(':');
+		if (speaker && projectType && year) {
+			return { kind: 'year', speaker, projectType: normalizeProjectType(projectType), year };
 		}
 	}
 
@@ -58,7 +64,9 @@ export function getExplorerSelectionFromNodeId(
 }
 
 /**
- * Convenience helper for pointer-up handling on the homepage.
+ * Lit directement la sélection d'explorateur depuis l'élément survolé.
+ * @param {Element | null} element - L'élément actuellement survolé.
+ * @returns {ExplorerSelection | null} La sélection correspondante.
  */
 export function getExplorerSelectionFromElement(element: Element | null): ExplorerSelection | null {
 	return getExplorerSelectionFromNodeId(getExplorerNodeIdFromElement(element));

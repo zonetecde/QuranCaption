@@ -8,6 +8,7 @@
 	import ExportMonitor from './ExportMonitor.svelte';
 	import ModalManager from './modals/ModalManager';
 	import { discordService } from '$lib/services/DiscordService';
+	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { slide, fade } from 'svelte/transition';
 	import Settings from './settings/Settings.svelte';
 	import TitleBarTools from './TitleBarTools.svelte';
@@ -95,6 +96,21 @@
 			<img class="text-indigo-400 w-8 pb-0.25" alt="Logo" src="favicon.png" />
 			<h1 class="text-lg font-semibold text-primary pt-0.75">Quran Caption</h1>
 		</button>
+
+		{#if VersionService.latestUpdate?.hasUpdate}
+			<button
+				class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
+				type="button"
+				onclick={() => ModalManager.newUpdateModal(VersionService.latestUpdate!)}
+				aria-label={$LL.home.updateAvailableTitle()}
+			>
+				<span class="material-icons pt-2">system_update</span>
+				<p
+					class="absolute top-1.25 right-1.5 w-2.5 h-2.5 rounded-full bg-blue-400 outline outline-blue-600 animate-pulse"
+				></p>
+			</button>
+		{/if}
+
 		{#if globalState.currentProject}
 			<div class="flex items-center gap-1">
 				<button
@@ -150,6 +166,7 @@
 			</button>
 			<TitleBarTools />
 		{/if}
+
 		<button
 			id="help-popover-button"
 			class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"

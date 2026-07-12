@@ -266,7 +266,7 @@ pub async fn install_local_segmentation_deps(
         .collect::<Vec<_>>()
         .join("\n");
     let filtered_requirements_path = std::env::temp_dir().join(format!(
-        "qurancaption_requirements_{}.txt",
+        "minbarstudio_requirements_{}.txt",
         selected_engine.as_key()
     ));
     fs::write(&filtered_requirements_path, filtered_requirements).map_err(|e| {

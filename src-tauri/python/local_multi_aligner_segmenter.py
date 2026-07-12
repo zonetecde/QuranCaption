@@ -185,7 +185,7 @@ def validate_local_data_pickles(status_writer=None) -> Optional[str]:
             emit("data", f"Repairing local data file: {file_name}...")
             request = urllib.request.Request(
                 url,
-                headers={"User-Agent": "QuranCaption/3"},
+                headers={"User-Agent": "MinbarStudio/1"},
                 method="GET",
             )
             with urllib.request.urlopen(request, timeout=120) as response:

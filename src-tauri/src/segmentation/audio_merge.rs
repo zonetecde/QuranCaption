@@ -45,7 +45,7 @@ pub(crate) fn merge_audio_clips_for_segmentation(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let merged_path = std::env::temp_dir().join(format!("qurancaption-seg-merged-{}.wav", stamp));
+    let merged_path = std::env::temp_dir().join(format!("minbarstudio-seg-merged-{}.wav", stamp));
     let guard = TempFileGuard(merged_path.clone());
 
     // Construction dynamique d'un filtre ffmpeg pour trim + delay + mix.

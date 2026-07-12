@@ -36,7 +36,7 @@ type QdcChapterAudioResponse = {
 };
 
 export class QdcRecitationService {
-	/** Récupère la liste des récitations QDC via le proxy Quran Caption. */
+	/** Récupère la liste des récitations QDC via le proxy Minbar Studio. */
 	static async getRecitations(): Promise<QdcRecitation[]> {
 		try {
 			const response = await fetch(

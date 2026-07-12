@@ -1,7 +1,7 @@
 const tour = {
 	stepCreateProjectTitle: 'Create a new project',
 	stepCreateProjectDesc:
-		'This button lets you create a new Quran Caption project from scratch. You can import audio, video, or download recitations.',
+		'This button lets you create a new Minbar Studio project from scratch. You can import audio, video, or download recitations.',
 	stepOpenTutorialTitle: 'Open the tutorial project',
 	stepOpenTutorialDesc:
 		'A tutorial project with Surah Al-Fatihah by Yasser Al-Dosari has been created for you. Click its card to open it and follow along.',

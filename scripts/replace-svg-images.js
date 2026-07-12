@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
 
-const folder = 'C:\\Users\\zonedetec\\Documents\\source\\tauri\\QuranCaption-2\\static\\surah-imgs';
+const folder = 'C:\\Users\\zonedetec\\Documents\\source\\tauri\\MinbarStudio-2\\static\\surah-imgs';
 const renderScale = 4; // augmente la précision du calcul (4x)
 
 function parseViewBox(svg) {

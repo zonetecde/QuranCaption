@@ -9,7 +9,7 @@ import type {
 export type BaseTranslation = BaseTranslationType;
 export type BaseLocale = 'en';
 
-export type Locales = 'de' | 'en' | 'es' | 'fr' | 'id' | 'zh';
+export type Locales = 'en';
 
 export type Translation = RootTranslation;
 
@@ -355,7 +355,7 @@ type RootTranslation = {
 		 */
 		ratingHelps: string;
 		/**
-		 * S​h​a​r​e​ ​i​d​e​a​s​ ​o​r​ ​i​s​s​u​e​s​ ​s​o​ ​w​e​ ​c​a​n​ ​i​m​p​r​o​v​e​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​.
+		 * S​h​a​r​e​ ​i​d​e​a​s​ ​o​r​ ​i​s​s​u​e​s​ ​s​o​ ​w​e​ ​c​a​n​ ​i​m​p​r​o​v​e​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​.
 		 */
 		shareIdeas: string;
 		/**
@@ -421,7 +421,7 @@ type RootTranslation = {
 		 */
 		needHelpJoin: string;
 		/**
-		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​D​i​s​c​o​r​d​ ​s​e​r​v​e​r
+		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​D​i​s​c​o​r​d​ ​s​e​r​v​e​r
 		 */
 		quranCaptionDiscord: string;
 		/**
@@ -691,7 +691,7 @@ type RootTranslation = {
 		 */
 		createNewProject: string;
 		/**
-		 * S​t​a​r​t​ ​y​o​u​r​ ​Q​u​r​a​n​ ​c​a​p​t​i​o​n​ ​p​r​o​j​e​c​t
+		 * S​t​a​r​t​ ​y​o​u​r​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​p​r​o​j​e​c​t
 		 */
 		startYourProject: string;
 		/**
@@ -927,7 +927,7 @@ type RootTranslation = {
 		 */
 		assistanceDescription: string;
 		/**
-		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​O​v​e​r​v​i​e​w
+		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​O​v​e​r​v​i​e​w
 		 */
 		quranCaptionOverview: string;
 		/**
@@ -1050,7 +1050,7 @@ type RootTranslation = {
 		 */
 		projectsFailedToImport: RequiredParams<'count'>;
 		/**
-		 * Y​o​u​r​ ​p​r​o​j​e​c​t​s​ ​h​a​v​e​ ​b​e​e​n​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​i​m​p​o​r​t​e​d​ ​t​o​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​V​3
+		 * Y​o​u​r​ ​p​r​o​j​e​c​t​s​ ​h​a​v​e​ ​b​e​e​n​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​i​m​p​o​r​t​e​d​ ​t​o​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​3
 		 */
 		projectsImportedV3: string;
 		/**
@@ -6896,7 +6896,7 @@ type RootTranslation = {
 		 */
 		taskbarAttention: string;
 		/**
-		 * I​f​ ​y​o​u​ ​e​n​j​o​y​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​,​ ​a​ ​d​o​n​a​t​i​o​n​ ​h​e​l​p​s​ ​m​a​i​n​t​a​i​n​ ​a​n​d​ ​i​m​p​r​o​v​e​ ​t​h​e​ ​a​p​p​.
+		 * I​f​ ​y​o​u​ ​e​n​j​o​y​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​,​ ​a​ ​d​o​n​a​t​i​o​n​ ​h​e​l​p​s​ ​m​a​i​n​t​a​i​n​ ​a​n​d​ ​i​m​p​r​o​v​e​ ​t​h​e​ ​a​p​p​.
 		 */
 		supportMessage: string;
 		/**
@@ -7013,7 +7013,7 @@ type RootTranslation = {
 		 */
 		unableToOpenProjectsFolder: string;
 		/**
-		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​c​o​u​l​d​ ​n​o​t​ ​o​p​e​n​ ​t​h​e​ ​p​r​o​j​e​c​t​s​ ​d​i​r​e​c​t​o​r​y​ ​o​n​ ​t​h​i​s​ ​s​y​s​t​e​m​.
+		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​c​o​u​l​d​ ​n​o​t​ ​o​p​e​n​ ​t​h​e​ ​p​r​o​j​e​c​t​s​ ​d​i​r​e​c​t​o​r​y​ ​o​n​ ​t​h​i​s​ ​s​y​s​t​e​m​.
 		 */
 		couldNotOpenProjectsDir: string;
 		/**
@@ -7172,7 +7172,7 @@ type RootTranslation = {
 		 */
 		organizeProjectFolders: string;
 		/**
-		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​i​s​ ​a​ ​d​e​s​k​t​o​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​t​h​a​t​ ​t​r​a​n​s​f​o​r​m​s​ ​Q​u​r​a​n​i​c​ ​r​e​c​i​t​a​t​i​o​n​s​ ​i​n​t​o​ ​b​e​a​u​t​i​f​u​l​l​y​ ​c​a​p​t​i​o​n​e​d​ ​v​i​d​e​o​s​.​ ​I​t​ ​c​o​m​b​i​n​e​s​ ​a​u​d​i​o​ ​p​r​o​c​e​s​s​i​n​g​ ​w​i​t​h​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​ ​t​o​ ​c​r​e​a​t​e​ ​p​r​o​f​e​s​s​i​o​n​a​l​-​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​d​ ​v​i​d​e​o​s​ ​f​o​r​ ​s​h​a​r​i​n​g​,​ ​l​e​a​r​n​i​n​g​,​ ​a​n​d​ ​d​a​w​a​h​.
+		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​i​s​ ​a​ ​d​e​s​k​t​o​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​t​h​a​t​ ​t​r​a​n​s​f​o​r​m​s​ ​Q​u​r​a​n​i​c​ ​r​e​c​i​t​a​t​i​o​n​s​ ​i​n​t​o​ ​b​e​a​u​t​i​f​u​l​l​y​ ​c​a​p​t​i​o​n​e​d​ ​v​i​d​e​o​s​.​ ​I​t​ ​c​o​m​b​i​n​e​s​ ​a​u​d​i​o​ ​p​r​o​c​e​s​s​i​n​g​ ​w​i​t​h​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​ ​t​o​ ​c​r​e​a​t​e​ ​p​r​o​f​e​s​s​i​o​n​a​l​-​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​d​ ​v​i​d​e​o​s​ ​f​o​r​ ​s​h​a​r​i​n​g​,​ ​l​e​a​r​n​i​n​g​,​ ​a​n​d​ ​d​a​w​a​h​.
 		 */
 		aboutDescription: string;
 		/**
@@ -7210,7 +7210,7 @@ type RootTranslation = {
 		 */
 		finishLoginBrowser: string;
 		/**
-		 * Y​o​u​ ​a​r​e​ ​c​u​r​r​e​n​t​l​y​ ​u​s​i​n​g​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​w​i​t​h​o​u​t​ ​a​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​.
+		 * Y​o​u​ ​a​r​e​ ​c​u​r​r​e​n​t​l​y​ ​u​s​i​n​g​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​w​i​t​h​o​u​t​ ​a​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​.
 		 */
 		notConnectedMessage: string;
 		/**
@@ -7260,7 +7260,7 @@ type RootTranslation = {
 		 */
 		videoExportFailed: string;
 		/**
-		 * U​s​i​n​g​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n
+		 * U​s​i​n​g​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o
 		 */
 		usingQuranCaption: string;
 		/**
@@ -7665,7 +7665,7 @@ type RootTranslation = {
 		 */
 		stepCreateProjectTitle: string;
 		/**
-		 * T​h​i​s​ ​b​u​t​t​o​n​ ​l​e​t​s​ ​y​o​u​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​p​r​o​j​e​c​t​ ​f​r​o​m​ ​s​c​r​a​t​c​h​.​ ​Y​o​u​ ​c​a​n​ ​i​m​p​o​r​t​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​r​e​c​i​t​a​t​i​o​n​s​.
+		 * T​h​i​s​ ​b​u​t​t​o​n​ ​l​e​t​s​ ​y​o​u​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​p​r​o​j​e​c​t​ ​f​r​o​m​ ​s​c​r​a​t​c​h​.​ ​Y​o​u​ ​c​a​n​ ​i​m​p​o​r​t​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​r​e​c​i​t​a​t​i​o​n​s​.
 		 */
 		stepCreateProjectDesc: string;
 		/**
@@ -7868,7 +7868,7 @@ type RootTranslation = {
 		 */
 		newVersionAvailable: string;
 		/**
-		 * A​ ​n​e​w​ ​v​e​r​s​i​o​n​ ​o​f​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.​ ​W​o​u​l​d​ ​y​o​u​ ​l​i​k​e​ ​t​o​ ​u​p​d​a​t​e​ ​n​o​w​?
+		 * A​ ​n​e​w​ ​v​e​r​s​i​o​n​ ​o​f​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.​ ​W​o​u​l​d​ ​y​o​u​ ​l​i​k​e​ ​t​o​ ​u​p​d​a​t​e​ ​n​o​w​?
 		 */
 		newVersionDescription: string;
 		/**
@@ -8200,7 +8200,7 @@ type RootTranslation = {
 		 */
 		migratingProjects: string;
 		/**
-		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​V​3​ ​M​i​g​r​a​t​i​o​n
+		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​3​ ​M​i​g​r​a​t​i​o​n
 		 */
 		v3Migration: string;
 		/**
@@ -8220,7 +8220,7 @@ type RootTranslation = {
 		 */
 		projectsFound: string;
 		/**
-		 * R​e​a​d​y​ ​t​o​ ​b​e​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​V​2
+		 * R​e​a​d​y​ ​t​o​ ​b​e​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​2
 		 */
 		readyToImport: string;
 		/**
@@ -8276,7 +8276,7 @@ type RootTranslation = {
 		 */
 		processing: string;
 		/**
-		 * C​o​u​l​d​ ​n​o​t​ ​f​i​n​d​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​V​2​ ​d​a​t​a​ ​d​i​r​e​c​t​o​r​y
+		 * C​o​u​l​d​ ​n​o​t​ ​f​i​n​d​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​2​ ​d​a​t​a​ ​d​i​r​e​c​t​o​r​y
 		 */
 		couldNotFindV2Data: string;
 		/**
@@ -8295,7 +8295,7 @@ type RootTranslation = {
 		 */
 		aiVideo: string;
 		/**
-		 * G​e​n​e​r​a​t​e​ ​a​ ​Q​u​r​a​n​ ​c​a​p​t​i​o​n​e​d​ ​v​i​d​e​o​ ​f​r​o​m​ ​a​ ​Y​o​u​T​u​b​e​ ​l​i​n​k​ ​o​r​ ​y​o​u​r​ ​o​w​n​ ​a​u​d​i​o
+		 * G​e​n​e​r​a​t​e​ ​a​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​e​d​ ​v​i​d​e​o​ ​f​r​o​m​ ​a​ ​Y​o​u​T​u​b​e​ ​l​i​n​k​ ​o​r​ ​y​o​u​r​ ​o​w​n​ ​a​u​d​i​o
 		 */
 		aiVideoDescription: string;
 		/**
@@ -8836,7 +8836,7 @@ type RootTranslation = {
 	};
 	donation: {
 		/**
-		 * S​u​p​p​o​r​t​ ​t​h​e​ ​f​u​t​u​r​e​ ​o​f​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​.
+		 * S​u​p​p​o​r​t​ ​t​h​e​ ​f​u​t​u​r​e​ ​o​f​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​.
 		 */
 		supportFuture: string;
 		/**
@@ -9306,7 +9306,7 @@ export type TranslationFunctions = {
 		 */
 		ratingHelps: () => LocalizedString;
 		/**
-		 * Share ideas or issues so we can improve Quran Caption.
+		 * Share ideas or issues so we can improve Minbar Studio.
 		 */
 		shareIdeas: () => LocalizedString;
 		/**
@@ -9370,7 +9370,7 @@ export type TranslationFunctions = {
 		 */
 		needHelpJoin: () => LocalizedString;
 		/**
-		 * Quran Caption Discord server
+		 * Minbar Studio Discord server
 		 */
 		quranCaptionDiscord: () => LocalizedString;
 		/**
@@ -9620,7 +9620,7 @@ export type TranslationFunctions = {
 		 */
 		createNewProject: () => LocalizedString;
 		/**
-		 * Start your Quran caption project
+		 * Start your Minbar Studio project
 		 */
 		startYourProject: () => LocalizedString;
 		/**
@@ -9852,7 +9852,7 @@ export type TranslationFunctions = {
 		 */
 		assistanceDescription: () => LocalizedString;
 		/**
-		 * Quran Caption Overview
+		 * Minbar Studio Overview
 		 */
 		quranCaptionOverview: () => LocalizedString;
 		/**
@@ -9972,7 +9972,7 @@ export type TranslationFunctions = {
 		 */
 		projectsFailedToImport: (arg: { count: unknown }) => LocalizedString;
 		/**
-		 * Your projects have been successfully imported to Quran Caption V3
+		 * Your projects have been successfully imported to Minbar Studio V3
 		 */
 		projectsImportedV3: () => LocalizedString;
 		/**
@@ -15738,7 +15738,7 @@ export type TranslationFunctions = {
 		 */
 		taskbarAttention: () => LocalizedString;
 		/**
-		 * If you enjoy Quran Caption, a donation helps maintain and improve the app.
+		 * If you enjoy Minbar Studio, a donation helps maintain and improve the app.
 		 */
 		supportMessage: () => LocalizedString;
 		/**
@@ -15854,7 +15854,7 @@ export type TranslationFunctions = {
 		 */
 		unableToOpenProjectsFolder: () => LocalizedString;
 		/**
-		 * Quran Caption could not open the projects directory on this system.
+		 * Minbar Studio could not open the projects directory on this system.
 		 */
 		couldNotOpenProjectsDir: () => LocalizedString;
 		/**
@@ -16010,7 +16010,7 @@ export type TranslationFunctions = {
 		 */
 		organizeProjectFolders: () => LocalizedString;
 		/**
-		 * Quran Caption is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.
+		 * Minbar Studio is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.
 		 */
 		aboutDescription: () => LocalizedString;
 		/**
@@ -16046,7 +16046,7 @@ export type TranslationFunctions = {
 		 */
 		finishLoginBrowser: () => LocalizedString;
 		/**
-		 * You are currently using Quran Caption without a Quran.com account.
+		 * You are currently using Minbar Studio without a Quran.com account.
 		 */
 		notConnectedMessage: () => LocalizedString;
 		/**
@@ -16094,7 +16094,7 @@ export type TranslationFunctions = {
 		 */
 		videoExportFailed: () => LocalizedString;
 		/**
-		 * Using Quran Caption
+		 * Using Minbar Studio
 		 */
 		usingQuranCaption: () => LocalizedString;
 		/**
@@ -16496,7 +16496,7 @@ export type TranslationFunctions = {
 		 */
 		stepCreateProjectTitle: () => LocalizedString;
 		/**
-		 * This button lets you create a new Quran Caption project from scratch. You can import audio, video, or download recitations.
+		 * This button lets you create a new Minbar Studio project from scratch. You can import audio, video, or download recitations.
 		 */
 		stepCreateProjectDesc: () => LocalizedString;
 		/**
@@ -16698,7 +16698,7 @@ export type TranslationFunctions = {
 		 */
 		newVersionAvailable: () => LocalizedString;
 		/**
-		 * A new version of Quran Caption is available. Would you like to update now?
+		 * A new version of Minbar Studio is available. Would you like to update now?
 		 */
 		newVersionDescription: () => LocalizedString;
 		/**
@@ -17029,7 +17029,7 @@ export type TranslationFunctions = {
 		 */
 		migratingProjects: () => LocalizedString;
 		/**
-		 * Quran Caption V3 Migration
+		 * Minbar Studio V3 Migration
 		 */
 		v3Migration: () => LocalizedString;
 		/**
@@ -17049,7 +17049,7 @@ export type TranslationFunctions = {
 		 */
 		projectsFound: () => LocalizedString;
 		/**
-		 * Ready to be imported from Quran Caption V2
+		 * Ready to be imported from Minbar Studio V2
 		 */
 		readyToImport: () => LocalizedString;
 		/**
@@ -17105,7 +17105,7 @@ export type TranslationFunctions = {
 		 */
 		processing: () => LocalizedString;
 		/**
-		 * Could not find Quran Caption V2 data directory
+		 * Could not find Minbar Studio V2 data directory
 		 */
 		couldNotFindV2Data: () => LocalizedString;
 		/**
@@ -17123,7 +17123,7 @@ export type TranslationFunctions = {
 		 */
 		aiVideo: () => LocalizedString;
 		/**
-		 * Generate a Quran captioned video from a YouTube link or your own audio
+		 * Generate a Minbar Studioed video from a YouTube link or your own audio
 		 */
 		aiVideoDescription: () => LocalizedString;
 		/**
@@ -17657,7 +17657,7 @@ export type TranslationFunctions = {
 	};
 	donation: {
 		/**
-		 * Support the future of Quran Caption.
+		 * Support the future of Minbar Studio.
 		 */
 		supportFuture: () => LocalizedString;
 		/**

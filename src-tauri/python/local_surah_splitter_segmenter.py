@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pipeline locale Surah Splitter pour la segmentation QuranCaption."""
+"""Pipeline locale Surah Splitter pour la segmentation Minbar Studio."""
 
 from __future__ import annotations
 
@@ -91,7 +91,7 @@ def clean_reference_words(matcher, text: str) -> list[str]:
 
 
 def build_reference_words(matcher, reference_ayahs: list[str], ayah_numbers: Optional[list[int]]) -> list:
-    """Reconstruit la liste des mots de référence avec leurs positions QuranCaption."""
+    """Reconstruit la liste des mots de référence avec leurs positions Minbar Studio."""
     return matcher._extract_reference_words(reference_ayahs, ayah_numbers)
 
 
@@ -185,7 +185,7 @@ def build_segments(
     include_wbw_timestamps: bool,
     matcher,
 ) -> list[dict]:
-    """Transforme le résultat Surah Splitter en segments compatibles QuranCaption."""
+    """Transforme le résultat Surah Splitter en segments compatibles Minbar Studio."""
     word_spans = matching_result.get("word_spans", [])
     ayah_order = ayah_numbers or list(range(1, len(reference_ayahs) + 1))
     text_by_ayah = dict(zip(ayah_order, reference_ayahs))

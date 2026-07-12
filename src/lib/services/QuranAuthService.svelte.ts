@@ -654,9 +654,7 @@ class QuranAuthService {
 
 		const clientId = this.getSessionClientId(session, accessToken);
 		if (!clientId) {
-			throw new Error(
-				get(LL).settings.clientIdMissing()
-			);
+			throw new Error(get(LL).settings.clientIdMissing());
 		}
 
 		return { accessToken, clientId };
@@ -701,7 +699,7 @@ class QuranAuthService {
 
 function isQuranAuthCallbackUrl(url: URL): boolean {
 	return (
-		url.protocol === 'qurancaption:' && url.hostname === 'oauth' && url.pathname === '/callback'
+		url.protocol === 'minbarstudio:' && url.hostname === 'oauth' && url.pathname === '/callback'
 	);
 }
 

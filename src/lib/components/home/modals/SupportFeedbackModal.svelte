@@ -85,10 +85,10 @@
 			endpoint.searchParams.set(
 				'subject',
 				activeTab === 'review'
-					? 'Quran Caption Review'
+					? 'Minbar Studio Review'
 					: feedbackType === 'bug'
-						? 'Quran Caption Bug Report'
-						: 'Quran Caption Feature Request'
+						? 'Minbar Studio Bug Report'
+						: 'Minbar Studio Feature Request'
 			);
 			endpoint.searchParams.set('email', trimmedEmail);
 			endpoint.searchParams.set(
@@ -101,7 +101,9 @@
 			await invoke('send_http_get', { url: endpoint.toString() });
 
 			toast.success(
-				activeTab === 'review' ? get(LL).common.thanksForReview() : get(LL).common.thanksForFeedback()
+				activeTab === 'review'
+					? get(LL).common.thanksForReview()
+					: get(LL).common.thanksForFeedback()
 			);
 			closeModal();
 		} catch (error) {
@@ -137,13 +139,13 @@
 					</div>
 					<div>
 						<h2 class="text-2xl font-bold text-primary">
-							{activeTab === 'review' ? $LL.common.leaveReview() : $LL.common.featureRequestBugReport()}
+							{activeTab === 'review'
+								? $LL.common.leaveReview()
+								: $LL.common.featureRequestBugReport()}
 						</h2>
 
 						<p class="text-sm text-thirdly">
-							{activeTab === 'review'
-								? $LL.common.ratingHelps()
-								: $LL.common.shareIdeas()}
+							{activeTab === 'review' ? $LL.common.ratingHelps() : $LL.common.shareIdeas()}
 						</p>
 					</div>
 				</div>
@@ -320,10 +322,16 @@
 						class="px-6 py-2.5 font-medium bg-accent-primary text-black rounded-lg hover:bg-blue-400 transition-all duration-200 flex items-center gap-2 shadow-lg cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 						onclick={submit}
 						disabled={!canSubmit}
-						aria-label={activeTab === 'review' ? $LL.common.sendReview() : $LL.common.sendFeedback()}
+						aria-label={activeTab === 'review'
+							? $LL.common.sendReview()
+							: $LL.common.sendFeedback()}
 					>
 						<span class="material-icons text-base">send</span>
-						{isSubmitting ? $LL.common.sending() : activeTab === 'review' ? $LL.common.sendReview() : $LL.common.sendFeedback()}
+						{isSubmitting
+							? $LL.common.sending()
+							: activeTab === 'review'
+								? $LL.common.sendReview()
+								: $LL.common.sendFeedback()}
 					</button>
 				</div>
 			</div>

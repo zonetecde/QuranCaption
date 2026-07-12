@@ -18,7 +18,7 @@ def get_data_path():
 
     # Fallback to AppData
     appdata = os.environ.get('APPDATA', os.path.expanduser('~'))
-    return Path(appdata) / 'QuranCaption' / 'segmentation_data'
+    return Path(appdata) / 'MinbarStudio' / 'segmentation_data'
 
 
 # Port for local development

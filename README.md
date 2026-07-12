@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://qurancaption.com/icon.png" width="100" alt="Quran Caption logo" />
+<img src="https://qurancaption.com/icon.png" width="100" alt="Minbar Studio logo" />
 
-<h1>Quran Caption</h1>
+<h1>Minbar Studio</h1>
 
 <p><strong>Create captioned Quran videos — AI-powered subtitles, 40+ languages, full visual control.</strong></p>
 
@@ -18,7 +18,7 @@
     <img src="https://img.shields.io/badge/⬇ Download-Free-brightgreen?style=for-the-badge" alt="Download" />
   </a>
   <a href="https://qurancaption.com/documentation">
-    <img src="https://img.shields.io/badge/📘 Documentation-qurancaption.com-blue?style=for-the-badge" alt="Docs" />
+    <img src="https://img.shields.io/badge/📘 Documentation-minbarstudio.com-blue?style=for-the-badge" alt="Docs" />
   </a>
   <a href="https://discord.gg/Hxfqq2QA2J">
     <img src="https://img.shields.io/badge/💬 Discord-Join-5865F2?style=for-the-badge" alt="Discord" />
@@ -34,9 +34,9 @@
 
 ---
 
-## What is Quran Caption?
+## What is Minbar Studio?
 
-Quran Caption is a desktop video editor built specifically for Quranic recitations. Upload an audio
+Minbar Studio is a desktop video editor built specifically for Quranic recitations. Upload an audio
 or video file, let the AI generate perfectly-timed subtitles, pick your translation(s), customize
 the look, and export — ready for YouTube, TikTok, or Instagram.
 
@@ -48,7 +48,7 @@ No video editing experience required.
 
 ### 🤖 AI Subtitle Generation
 
-Drop in any recitation and Quran Caption automatically segments it verse by verse. The AI handles:
+Drop in any recitation and Minbar Studio automatically segments it verse by verse. The AI handles:
 
 - Mid-verse cuts
 - Silence detection
@@ -85,11 +85,11 @@ Output videos optimized for any platform — YouTube, Instagram Reels, TikTok, a
 
 ## Screenshots
 
-<img width="1920" alt="Quran Caption editor" src="https://github.com/user-attachments/assets/3875c5c9-2537-414c-a7cc-973e306fb302" />
+<img width="1920" alt="Minbar Studio editor" src="https://github.com/user-attachments/assets/3875c5c9-2537-414c-a7cc-973e306fb302" />
 
-<img width="1920" alt="Quran Caption translations panel" src="https://github.com/user-attachments/assets/f2ec1ddc-14bc-4b54-8a2d-5e7aea83458f" />
+<img width="1920" alt="Minbar Studio translations panel" src="https://github.com/user-attachments/assets/f2ec1ddc-14bc-4b54-8a2d-5e7aea83458f" />
 
-<img width="1920" alt="Quran Caption customization" src="https://github.com/user-attachments/assets/0119f716-f918-48d6-9b23-38530a65ae51" />
+<img width="1920" alt="Minbar Studio customization" src="https://github.com/user-attachments/assets/0119f716-f918-48d6-9b23-38530a65ae51" />
 
 ---
 
@@ -97,7 +97,7 @@ Output videos optimized for any platform — YouTube, Instagram Reels, TikTok, a
 
 | Platform                         | Link                                                                                                                  |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 🪟 Windows                       | [Direct download (.exe)](https://github.com/zonetecde/QuranCaption/releases/latest/download/QuranCaption.Windows.exe) |
+| 🪟 Windows                       | [Direct download (.exe)](https://github.com/zonetecde/QuranCaption/releases/latest/download/MinbarStudio.Windows.exe) |
 | 🍎 macOS (Apple Silicon & Intel) | [Installation guide](https://qurancaption.com/documentation/download-and-installation)                                |
 | 🐧 Linux (Ubuntu, Debian, Arch)  | [Installation guide](https://qurancaption.com/documentation/download-and-installation)                                |
 
@@ -107,9 +107,9 @@ Free and open source. Always.
 
 ## Trusted by creators
 
-Quran Caption is used by channels from small community pages to dedicated Quran media teams:
+Minbar Studio is used by channels from small community pages to dedicated Quran media teams:
 
-[@QuranCaption](https://www.youtube.com/@QuranCaption) ·
+[@MinbarStudio](https://www.youtube.com/@QuranCaption) ·
 [@SimpleQuran-tv](https://www.youtube.com/@SimpleQuran-tv) ·
 [@curlyhairedmuslim](https://www.youtube.com/@curlyhairedmuslim) ·
 [@quran.español](https://www.youtube.com/@quran.español) ·
@@ -136,7 +136,7 @@ Quran Caption is used by channels from small community pages to dedicated Quran 
 
 Full documentation — installation, features, style editor, export settings — at:
 
-**[qurancaption.com/documentation](https://qurancaption.com/documentation)**
+**[minbarstudio.com/documentation](https://qurancaption.com/documentation)**
 
 ---
 

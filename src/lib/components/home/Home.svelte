@@ -444,7 +444,7 @@
 
 		if (promise) {
 			promise.then(async () => {
-				// Vérifie si des données de Quran Caption 2 sont présentes
+				// Vérifie si des données de Minbar Studio 2 sont présentes
 				if (
 					(await MigrationService.hasQCV2Data()) &&
 					globalState.userProjectsDetails.length === 0

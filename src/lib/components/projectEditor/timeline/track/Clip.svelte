@@ -70,9 +70,9 @@
 	}
 
 	onMount(() => {
-		window.addEventListener('qurancaption-release-asset-media', releaseWaveformForAsset);
+		window.addEventListener('minbarstudio-release-asset-media', releaseWaveformForAsset);
 		return () => {
-			window.removeEventListener('qurancaption-release-asset-media', releaseWaveformForAsset);
+			window.removeEventListener('minbarstudio-release-asset-media', releaseWaveformForAsset);
 		};
 	});
 

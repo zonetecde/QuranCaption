@@ -28,7 +28,7 @@ pub(crate) fn prepare_multi_requirements_file(
         })
         .collect();
 
-    let patched_path = std::env::temp_dir().join("qurancaption_multi_requirements_patched.txt");
+    let patched_path = std::env::temp_dir().join("minbarstudio_multi_requirements_patched.txt");
     fs::write(&patched_path, patched_lines.join("\n")).map_err(|e| {
         format!(
             "Failed to write patched multi-aligner requirements '{}': {}",
@@ -43,7 +43,7 @@ pub(crate) fn prepare_multi_requirements_file(
 pub(crate) fn prepare_windows_safe_quranic_phonemizer_source(
     python_exe: &Path,
 ) -> Result<std::path::PathBuf, String> {
-    let source_root = std::env::temp_dir().join("qurancaption_quranic_phonemizer_1b6a8cc");
+    let source_root = std::env::temp_dir().join("minbarstudio_quranic_phonemizer_1b6a8cc");
     let setup_py = source_root.join("setup.py");
     if setup_py.exists() {
         return Ok(source_root);

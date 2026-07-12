@@ -1,8 +1,8 @@
 {
 	"$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-	"productName": "Quran Caption",
-	"version": "3.6.11",
-	"identifier": "com.qurancaption",
+	"productName": "Minbar Studio",
+	"version": "1.0.0",
+	"identifier": "com.minbarstudio",
 	"build": {
 		"frontendDist": "../build",
 		"devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
 	"app": {
 		"windows": [
 			{
-				"title": "Quran Caption",
+				"title": "Minbar Studio",
 				"height": 768,
 				"width": 1024,
 				"minWidth": 1024,
@@ -126,7 +126,7 @@
 		"deep-link": {
 			"desktop": {
 				"schemes": [
-					"qurancaption"
+					"minbarstudio"
 				]
 			}
 		},

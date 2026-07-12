@@ -42,7 +42,7 @@ type QdcChapterTranslationsResponse = {
 };
 
 /**
- * Gère les traductions Quran.com API exposées via le website Quran Caption.
+ * Gère les traductions Quran.com API exposées via le website Minbar Studio.
  */
 export class QdcTranslationService {
 	/**

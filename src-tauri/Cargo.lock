@@ -2759,6 +2759,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "minbar-studio"
+version = "1.0.0"
+dependencies = [
+ "bytes",
+ "dirs",
+ "discord-rich-presence",
+ "fix-path-env",
+ "font-kit",
+ "futures-util",
+ "image",
+ "keyring",
+ "lazy_static",
+ "log",
+ "md5",
+ "rayon",
+ "regex",
+ "reqwest 0.12.20",
+ "screenshots",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-deep-link",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-log",
+ "tauri-plugin-notification",
+ "tauri-plugin-opener",
+ "tauri-plugin-process",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-store",
+ "tauri-plugin-updater",
+ "tokio",
+]
+
+[[package]]
 name = "minisign-verify"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3747,43 +3784,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "qurancaption"
-version = "3.6.13"
-dependencies = [
- "bytes",
- "dirs",
- "discord-rich-presence",
- "fix-path-env",
- "font-kit",
- "futures-util",
- "image",
- "keyring",
- "lazy_static",
- "log",
- "md5",
- "rayon",
- "regex",
- "reqwest 0.12.20",
- "screenshots",
- "serde",
- "serde_json",
- "sysinfo",
- "tauri",
- "tauri-build",
- "tauri-plugin-deep-link",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-log",
- "tauri-plugin-notification",
- "tauri-plugin-opener",
- "tauri-plugin-process",
- "tauri-plugin-single-instance",
- "tauri-plugin-store",
- "tauri-plugin-updater",
- "tokio",
 ]
 
 [[package]]

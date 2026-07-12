@@ -1,7 +1,7 @@
 use reqwest::header::{AUTHORIZATION, USER_AGENT};
 use serde::{Deserialize, Serialize};
 
-const USER_AGENT_VALUE: &str = "QuranCaption/3";
+const USER_AGENT_VALUE: &str = "MinbarStudio/3";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StockMediaItem {

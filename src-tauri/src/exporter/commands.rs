@@ -412,7 +412,7 @@ fn create_temp_export_dir(export_id: &str) -> ExportResult<TempExportDir> {
         })
         .collect();
     let path = std::env::temp_dir().join(format!(
-        "qurancaption-fast-export-{}-{}-{}",
+        "minbarstudio-fast-export-{}-{}-{}",
         safe_export_id,
         std::process::id(),
         nonce

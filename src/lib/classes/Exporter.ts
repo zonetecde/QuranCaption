@@ -290,7 +290,7 @@ export default class Exporter {
 		const customFileName = es.customFileName.trim().replace(/[/\\:*?"<>|]/g, '_');
 		const fileName = customFileName
 			? `${customFileName}.${extension}`
-			: `qurancaption_subtitles_${projectName}.${extension}`;
+			: `minbarstudio_subtitles_${projectName}.${extension}`;
 		await ExportFileService.saveTextFile(fileName, fileContent, 'Subtitles');
 	}
 	static async exportProjectData(project?: Project | null) {
@@ -303,7 +303,7 @@ export default class Exporter {
 
 		const json = JSON.stringify(projectData, null, 2);
 		const projectName = ExportFileService.getProjectNameForFile();
-		const fileName = `qurancaption_project_${projectName}.json`;
+		const fileName = `minbarstudio_project_${projectName}.json`;
 		await ExportFileService.saveTextFile(fileName, json, 'Project data');
 	}
 
@@ -432,7 +432,7 @@ export default class Exporter {
 			2
 		);
 		const projectName = ExportFileService.getProjectNameForFile();
-		const fileName = `qurancaption_subtitles_data_${projectName}.json`;
+		const fileName = `minbarstudio_subtitles_data_${projectName}.json`;
 		try {
 			await ExportFileService.saveTextFile(fileName, json, 'Subtitle JSON');
 		} catch (error) {
@@ -454,7 +454,7 @@ export default class Exporter {
 		}
 
 		await ExportFileService.saveTextFile(
-			`qurancaption_backup_${Date.now()}.json`,
+			`minbarstudio_backup_${Date.now()}.json`,
 			JSON.stringify(projects),
 			'Project backup'
 		);
@@ -543,7 +543,7 @@ export default class Exporter {
 			.replace(/[/\\:*?"<>|]/g, '_');
 		const fileName = customFileName
 			? `${customFileName}.txt`
-			: `qurancaption_chapters_${projectName}.txt`;
+			: `minbarstudio_chapters_${projectName}.txt`;
 		await ExportFileService.saveTextFile(fileName, fileContent, 'YouTube chapters');
 	}
 

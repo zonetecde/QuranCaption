@@ -130,7 +130,7 @@ pub(crate) async fn stream_ai_response(
     let request_builder = if is_openrouter_endpoint(endpoint) {
         request_builder
             .header("HTTP-Referer", "https://qurancaption.app")
-            .header("X-OpenRouter-Title", "QuranCaption")
+            .header("X-OpenRouter-Title", "MinbarStudio")
     } else {
         request_builder
     };

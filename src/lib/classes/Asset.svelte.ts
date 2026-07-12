@@ -214,10 +214,7 @@ export class Asset extends SerializableBase {
 			})) as boolean;
 			if (isConstant) return;
 
-			toast(
-				get(LL).editor.variableBitrateWarning(),
-				{ duration: 18000, position: 'bottom-left' }
-			);
+			toast(get(LL).editor.variableBitrateWarning(), { duration: 18000, position: 'bottom-left' });
 		} catch (error) {
 			console.warn('Unable to detect bitrate mode for asset:', error);
 		}
@@ -448,7 +445,7 @@ export class Asset extends SerializableBase {
 		const instructions = this.getFfmpegInstallInstructions();
 
 		if (code === 'FFPROBE_NOT_FOUND') {
-			return `FFprobe could not be found. QuranCaption needs FFmpeg (ffmpeg + ffprobe).\n\n${instructions}`;
+			return `FFprobe could not be found. MinbarStudio needs FFmpeg (ffmpeg + ffprobe).\n\n${instructions}`;
 		}
 
 		if (code === 'FFPROBE_NOT_EXECUTABLE') {

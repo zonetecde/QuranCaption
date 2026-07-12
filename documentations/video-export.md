@@ -11,7 +11,8 @@ utilise par defaut dans `src-tauri/src/exporter/commands.rs`.
   materialises en captures.
 - `src-tauri/src/exporter/commands.rs`: scan des PNG, generation du plan TGA, graphe FFmpeg final,
   mux audio/video.
-- `src-tauri/src/exporter/codec.rs`: detection et selection des codecs (NVENC, QSV, AMF, VideoToolbox).
+- `src-tauri/src/exporter/codec.rs`: detection et selection des codecs (NVENC, QSV, AMF,
+  VideoToolbox).
 - `src-tauri/src/exporter/preprocess.rs`: pretraitement des videos de fond, cache.
 - `src-tauri/src/exporter/filter_graph.rs`: ancien graphe de fallback, conserve pour les cas qui ne
   passent pas par le chemin rapide.
@@ -130,6 +131,7 @@ premultiply -> overlay alpha=premultiplied
 ### Pretraitement
 
 Le pretraitement (`preprocess.rs`) produit une video normalisee:
+
 - resolution finale exacte (scale + pad contain);
 - bon aspect ratio (pad black bars);
 - bon FPS;
@@ -137,7 +139,7 @@ Le pretraitement (`preprocess.rs`) produit une video normalisee:
 - blur optionnel (`gblur`);
 - encodage dans un fichier MP4 intermediaire.
 
-Le resultat est mis en cache dans `%TEMP%/qurancaption-preproc`.
+Le resultat est mis en cache dans `%TEMP%/minbarstudio-preproc`.
 
 ### Voie directe single-pass
 
@@ -157,9 +159,9 @@ Log correspondant:
 
 ### Fond normalise (cache)
 
-Quand le cache est disponible, la video prenormalisee est utilisee directement.
-Le graphe final ne reapplique **pas** `scale` ni `pad` puisque la video est deja aux bonnes
-dimensions. Seuls `trim` et `setpts` sont appliques.
+Quand le cache est disponible, la video prenormalisee est utilisee directement. Le graphe final ne
+reapplique **pas** `scale` ni `pad` puisque la video est deja aux bonnes dimensions. Seuls `trim` et
+`setpts` sont appliques.
 
 Logs correspondants:
 
@@ -172,9 +174,9 @@ Logs correspondants:
 
 ### Fallback
 
-En cas d'echec du pretraitement, la video originale est utilisee comme fallback.
-Dans ce cas, elle n'est pas normalisee et le graphe final applique la chaine complete
-(`scale`, `pad`, `fps`, `setsar`).
+En cas d'echec du pretraitement, la video originale est utilisee comme fallback. Dans ce cas, elle
+n'est pas normalisee et le graphe final applique la chaine complete (`scale`, `pad`, `fps`,
+`setsar`).
 
 Log correspondant:
 
@@ -201,33 +203,35 @@ Log:
 
 ### Video bouclee
 
-Les videos bouclees (`loop_until_audio_end=true`) passent **toujours** par le pretraitement
-complet (pas de voie directe). Le cache est utilise quand il est valide.
+Les videos bouclees (`loop_until_audio_end=true`) passent **toujours** par le pretraitement complet
+(pas de voie directe). Le cache est utilise quand il est valide.
 
 ## Selection des codecs
 
 La selection des codecs (`codec.rs`) prend en compte:
+
 - le profil de performance (`Fastest`, `Balanced`, `LowCpu`);
 - la resolution (standard ou haute resolution);
 - le contexte d'utilisation (`Intermediate` pour le pretraitement, `Final` pour l'export).
 
 ### Comportement en haute resolution
 
-| Profil   | Resolution >= 2560x1440                      |
-|----------|----------------------------------------------|
+| Profil   | Resolution >= 2560x1440                                       |
+| -------- | ------------------------------------------------------------- |
 | Fastest  | Encodeurs materiels autorises (NVENC, QSV, AMF, VideoToolbox) |
-| Balanced | libx264 force (sauf VideoToolbox sur macOS)  |
-| LowCpu   | libx264 force (sauf VideoToolbox sur macOS)  |
+| Balanced | libx264 force (sauf VideoToolbox sur macOS)                   |
+| LowCpu   | libx264 force (sauf VideoToolbox sur macOS)                   |
 
-En profil `Fastest`, NVENC, QSV et AMF peuvent etre utilises meme en 1440p ou 4K.
-Le test reel de disponibilite NVENC reste utilise avant toute selection.
+En profil `Fastest`, NVENC, QSV et AMF peuvent etre utilises meme en 1440p ou 4K. Le test reel de
+disponibilite NVENC reste utilise avant toute selection.
 
 ### Parametres par encodeur
 
 - **NVENC**: `-preset p1 -tune ll -rc constqp -qp 18` (passe finale), `-preset fast` (intermediaire)
 - **VideoToolbox**: bitrate variable selon la resolution, `-allow_sw 1`
 - **QSV/AMF**: parametres par defaut
-- **libx264**: `-crf 16 -preset veryfast` (finale), `-crf 14 -preset veryfast` (intermediaire, haute resolution)
+- **libx264**: `-crf 16 -preset veryfast` (finale), `-crf 14 -preset veryfast` (intermediaire, haute
+  resolution)
 
 ### Log de selection
 
@@ -239,13 +243,15 @@ Le test reel de disponibilite NVENC reste utilise avant toute selection.
 ### Fallback
 
 Quand aucun encodeur materiel n'est disponible, `libx264` est utilise avec:
+
 - `-preset ultrafast -crf 22 -tune zerolatency -bf 0`
 
 ## Cache de pretraitement
 
-Le cache est stocke dans `%TEMP%/qurancaption-preproc`.
+Le cache est stocke dans `%TEMP%/minbarstudio-preproc`.
 
 La cle de cache inclut:
+
 - le chemin source;
 - la date de modification du fichier source (pour detecter un fichier remplace au meme chemin);
 - la taille de sortie;
@@ -256,8 +262,8 @@ La cle de cache inclut:
 - le mode loop;
 - la version du pipeline de pretraitement (`fit-v8`).
 
-Le contenu complet du fichier source n'est **pas** hashe a chaque export.
-La cle est construite avec `md5` d'une chaine representative.
+Le contenu complet du fichier source n'est **pas** hashe a chaque export. La cle est construite avec
+`md5` d'une chaine representative.
 
 ## Export transparent
 

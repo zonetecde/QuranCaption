@@ -1,6 +1,6 @@
 use keyring::{Entry, Error as KeyringError};
 
-const SERVICE_NAME: &str = "QuranCaption";
+const SERVICE_NAME: &str = "MinbarStudio";
 const SESSION_KEY: &str = "quran_auth_session";
 const PENDING_VERIFIER_KEY: &str = "quran_auth_pending_verifier";
 const SESSION_CHUNK_KEY_PREFIX: &str = "quran_auth_session__chunk_";

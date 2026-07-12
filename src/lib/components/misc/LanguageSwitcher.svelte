@@ -13,14 +13,7 @@
 		}
 	}
 
-	const languageOptions: { value: Locales; label: string }[] = [
-		{ value: 'en', label: 'English' },
-		{ value: 'fr', label: 'Fran\u00e7ais' },
-		{ value: 'de', label: 'Deutsch' },
-		{ value: 'es', label: 'Espa\u00f1ol' },
-		{ value: 'id', label: 'Indonesia' },
-		{ value: 'zh', label: '\u4e2d\u6587' }
-	];
+	const languageOptions: { value: Locales; label: string }[] = [{ value: 'en', label: 'English' }];
 </script>
 
 <div class="flex flex-col gap-1.5">

@@ -14,7 +14,7 @@ import type { Formatters, Locales, Translations, TranslationFunctions } from './
 
 export const baseLocale: Locales = 'en';
 
-export const locales: Locales[] = ['de', 'en', 'es', 'fr', 'id', 'zh'];
+export const locales: Locales[] = ['en'];
 
 export const isLocale = (locale: string): locale is Locales => locales.includes(locale as Locales);
 

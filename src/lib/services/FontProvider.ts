@@ -104,7 +104,7 @@ export class QPCFontProvider {
 
 	/**
 	 * Charge toutes les polices de la bibliothèque globale dans le document courant.
-	 * @returns {Promise<ImportedFont[]>} Polices valides disponibles dans Quran Caption.
+	 * @returns {Promise<ImportedFont[]>} Polices valides disponibles dans Minbar Studio.
 	 */
 	static loadImportedFonts(): Promise<ImportedFont[]> {
 		QPCFontProvider.importedFontsPromise ??= (async () => {

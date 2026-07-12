@@ -75,20 +75,16 @@
 		}
 
 		if (asset.type !== AssetType.Image && asset.hasDurationLoadError()) {
-			toast.error(
-				asset.getDurationLoadErrorMessage() ||
-					get(LL).editor.unableToAnalyzeMedia(),
-				{
-					duration: 7000
-				}
-			);
+			toast.error(asset.getDurationLoadErrorMessage() || get(LL).editor.unableToAnalyzeMedia(), {
+				duration: 7000
+			});
 			return;
 		}
 
 		if (asset.duration.isNull() && asset.type !== AssetType.Image) {
-		toast.error(get(LL).editor.unableToLoadDuration(), {
-			duration: 5000
-		});
+			toast.error(get(LL).editor.unableToLoadDuration(), {
+				duration: 5000
+			});
 			return;
 		}
 
@@ -122,7 +118,7 @@
 			});
 
 			window.dispatchEvent(
-				new CustomEvent('qurancaption-release-asset-media', {
+				new CustomEvent('minbarstudio-release-asset-media', {
 					detail: { filePath: asset.filePath }
 				})
 			);
@@ -196,11 +192,14 @@
 
 				asset.updateFilePath(fullPath);
 				mediaKey++; // Force re-render of audio/video element
-			toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
-		}
-	} catch (error) {
+				toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
+			}
+		} catch (error) {
 			console.error('Re-download error:', error);
-			toast.error(get(LL).editor.errorRedownloading({ error: String(error) }), { id: toastId, duration: 5000 });
+			toast.error(get(LL).editor.errorRedownloading({ error: String(error) }), {
+				id: toastId,
+				duration: 5000
+			});
 		} finally {
 			isRedownloading = false;
 		}
@@ -242,8 +241,9 @@
 		<!-- warning icon -->
 		{#if !asset.exists}
 			<div class="flex-shrink-0 p-1 rounded-full bg-red-500/20 border border-red-500/30">
-				<span class="material-icons text-lg text-red-400" title={get(LL).editor.fileNotFoundOnDiskLabel()}
-					>warning</span
+				<span
+					class="material-icons text-lg text-red-400"
+					title={get(LL).editor.fileNotFoundOnDiskLabel()}>warning</span
 				>
 			</div>
 		{/if}
@@ -336,7 +336,7 @@
 						onclick={relocateAsset}
 					>
 						<span class="material-icons text-lg">folder_open</span>
-							{get(LL).editor.relocateLabel()}
+						{get(LL).editor.relocateLabel()}
 					</button>
 					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
 						<button
@@ -404,7 +404,9 @@
 			<!-- Timeline Actions -->
 			{#if asset.exists}
 				<div data-tour-id="asset-timeline-actions" class="space-y-2 pt-2 border-t border-color">
-					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">{get(LL).editor.addToTimelineLabel()}</h4>
+					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">
+						{get(LL).editor.addToTimelineLabel()}
+					</h4>
 					{#if asset.type === AssetType.Video}
 						<div class="space-y-2">
 							<button

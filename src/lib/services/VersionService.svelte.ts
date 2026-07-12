@@ -173,7 +173,7 @@ class VersionService {
 		try {
 			// récupère jusqu'à 100 releases (ajuster la pagination si besoin)
 			const response = await fetch(
-				'https://api.github.com/repos/zonetecde/qurancaption/releases?per_page=100'
+				'https://api.github.com/repos/zonetecde/QuranCaption/releases?per_page=100'
 			);
 			if (!response.ok) {
 				throw new Error('Failed to fetch releases');

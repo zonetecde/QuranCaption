@@ -67,7 +67,7 @@ class DiscordService {
 			details: get(LL).settings.usingQuranCaption(),
 			state: get(LL).settings.atHomeMenu(),
 			large_image_key: 'logo',
-			large_image_text: 'Quran Caption',
+			large_image_text: 'Minbar Studio',
 			small_image_key: 'idle',
 			small_image_text: get(LL).settings.idle(),
 			start_timestamp: this.startTimestamp || undefined
@@ -81,9 +81,11 @@ class DiscordService {
 		await this.updateActivity({
 			details: get(LL).settings.creatingQuranVideo(),
 			state:
-				reciter && reciter !== 'not set' ? get(LL).settings.workingOnProject({ name, reciter }) : `Working on ${name}`,
+				reciter && reciter !== 'not set'
+					? get(LL).settings.workingOnProject({ name, reciter })
+					: `Working on ${name}`,
 			large_image_key: 'logo',
-			large_image_text: 'Quran Caption',
+			large_image_text: 'Minbar Studio',
 			small_image_key: 'edit',
 			small_image_text: get(LL).settings.captioningStatus(),
 			start_timestamp: this.startTimestamp || undefined

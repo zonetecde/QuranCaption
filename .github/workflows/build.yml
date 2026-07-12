@@ -29,19 +29,19 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             args: '--target aarch64-apple-darwin --bundles app,dmg'
-            assetNamePattern: 'QuranCaption.MacOS.ARM[ext]'
+            assetNamePattern: 'MinbarStudio.MacOS.ARM[ext]'
           - os: macos-15-intel
             target: x86_64-apple-darwin
             args: '--target x86_64-apple-darwin --bundles app,dmg'
-            assetNamePattern: 'QuranCaption.MacOS.Intel[ext]'
+            assetNamePattern: 'MinbarStudio.MacOS.Intel[ext]'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             args: '--bundles nsis'
-            assetNamePattern: 'QuranCaption.Windows[ext]'
+            assetNamePattern: 'MinbarStudio.Windows[ext]'
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             args: '--bundles appimage,deb'
-            assetNamePattern: 'QuranCaption.Linux[ext]'
+            assetNamePattern: 'MinbarStudio.Linux[ext]'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -194,7 +194,7 @@ jobs:
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
         with:
           tagName: ${{ inputs.tag }}
-          releaseName: 'Quran Caption ${{ inputs.tag }}'
+          releaseName: 'Minbar Studio ${{ inputs.tag }}'
           releaseBody: 'See the changelog below for details.'
           releaseDraft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}

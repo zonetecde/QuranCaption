@@ -24,6 +24,6 @@
 				label={$LL.home.donateViaPaypal()}
 			/>
 		</div>
-		<p class="mb-1">© 2026 Quran Caption. Made by Rayane STASZEWSKI.</p>
+		<p class="mb-1">© 2026 Minbar Studio. Made by Rayane STASZEWSKI.</p>
 	</div>
 </footer>

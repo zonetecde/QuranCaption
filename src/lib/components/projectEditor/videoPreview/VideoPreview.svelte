@@ -203,14 +203,14 @@
 		}
 
 		window.removeEventListener('resize', resizeVideoToFitScreen);
-		window.removeEventListener('qurancaption-release-asset-media', releaseAssetMedia);
+		window.removeEventListener('minbarstudio-release-asset-media', releaseAssetMedia);
 	});
 
 	// === CYCLE DE VIE DU COMPOSANT ===
 	onMount(() => {
 		resizeVideoToFitScreen(); // Redimensionne initial
 		window.addEventListener('resize', resizeVideoToFitScreen); // Écoute le redimensionnement de fenêtre
-		window.addEventListener('qurancaption-release-asset-media', releaseAssetMedia);
+		window.addEventListener('minbarstudio-release-asset-media', releaseAssetMedia);
 
 		// Force la synchronisation initiale vidéo/audio avec la position du curseur
 		triggerVideoAndAudioToFitCursor();
@@ -999,7 +999,7 @@
 	}
 
 	onMount(() => {
-		// Si Quran Caption a été quitté en fullscreen, on enlève le fullscreen.
+		// Si Minbar Studio a été quitté en fullscreen, on enlève le fullscreen.
 		if (globalState.getVideoPreviewState.isFullscreen) {
 			globalState.getVideoPreviewState.toggleFullScreen();
 		}

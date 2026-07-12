@@ -3,5 +3,5 @@
 
 fn main() {
     let _ = fix_path_env::fix();
-    qurancaption_lib::run();
+    minbar_studio_lib::run();
 }

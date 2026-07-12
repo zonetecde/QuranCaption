@@ -157,7 +157,7 @@ fn create_silent_source_audio(
     duration_s: f64,
 ) -> Result<(PathBuf, TempFileGuard), String> {
     let duration_s = duration_s.max(0.001);
-    let (path, guard) = create_temp_file_path("qurancaption-hifz-silence", "wav")?;
+    let (path, guard) = create_temp_file_path("minbarstudio-hifz-silence", "wav")?;
 
     let mut cmd = Command::new(ffmpeg_path);
     cmd.args([
@@ -230,7 +230,7 @@ pub async fn generate_hifz_audio(
     let output_duration_s = (output_duration_ms.max(1) as f64) / 1000.0;
 
     let (filter_script_path, _filter_script_guard) =
-        create_temp_file_path("qurancaption-hifz-filter", "txt")?;
+        create_temp_file_path("minbarstudio-hifz-filter", "txt")?;
     fs::write(&filter_script_path, filter_graph)
         .map_err(|e| format!("Failed to write Hifz filter script: {}", e))?;
 

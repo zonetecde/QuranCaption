@@ -1,6 +1,6 @@
 # Styles vidéo : schéma JSON et ajout d’un nouveau style
 
-Cette documentation décrit la source de vérité des styles vidéo de Quran Caption et les étapes à
+Cette documentation décrit la source de vérité des styles vidéo de Minbar Studio et les étapes à
 suivre pour ajouter ou modifier un style sans casser l’éditeur, les anciens projets ou l’export.
 
 ## Fichiers concernés

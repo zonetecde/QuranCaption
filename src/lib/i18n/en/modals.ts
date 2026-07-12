@@ -16,7 +16,7 @@ const modals = {
 	save: 'Save',
 	newVersionAvailable: 'New Version Available',
 	newVersionDescription:
-		'A new version of Quran Caption is available. Would you like to update now?',
+		'A new version of Minbar Studio is available. Would you like to update now?',
 	updateNow: 'Update Now',
 	remindLater: 'Remind Later',
 	restartRequired: 'Restart Required',

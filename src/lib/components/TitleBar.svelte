@@ -94,7 +94,7 @@
 			}}
 		>
 			<img class="text-indigo-400 w-8 pb-0.25" alt="Logo" src="favicon.png" />
-			<h1 class="text-lg font-semibold text-primary pt-0.75">Quran Caption</h1>
+			<h1 class="text-lg font-semibold text-primary pt-0.75">Minbar Studio</h1>
 		</button>
 
 		{#if VersionService.latestUpdate?.hasUpdate}

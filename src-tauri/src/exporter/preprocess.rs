@@ -297,7 +297,7 @@ pub fn create_video_from_image(
 ///
 /// Parcourt les `video_inputs`, calcule les segments pertinents selon `start_time_ms`
 /// et `duration_ms`, puis appelle `ffmpeg_preprocess_video` (ou `create_video_from_image`
-/// pour une image seule). Les résultats sont mis en cache dans `%TEMP%/qurancaption-preproc`.
+/// pour une image seule). Les résultats sont mis en cache dans `%TEMP%/minbarstudio-preproc`.
 ///
 /// # Retourne
 /// La liste des chemins vers les vidéos prétraitées, dans l'ordre.
@@ -316,7 +316,7 @@ pub fn preprocess_background_videos(
     app_handle: &tauri::AppHandle,
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
-    let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
+    let cache_dir = std::env::temp_dir().join("minbarstudio-preproc");
     let preproc_cache_version = "fit-v9-profile";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);

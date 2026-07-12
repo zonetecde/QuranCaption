@@ -1,12 +1,12 @@
 const migration = {
 	migrationComplete: 'Migration Complete!',
 	migratingProjects: 'Migrating Projects...',
-	v3Migration: 'Quran Caption V3 Migration',
+	v3Migration: 'Minbar Studio V3 Migration',
 	projectsImported: 'Your projects have been imported',
 	pleaseWaitImporting: 'Please wait while we import your projects',
 	importV2ToV3: 'Import your V2 projects to V3',
 	projectsFound: 'Projects Found',
-	readyToImport: 'Ready to be imported from Quran Caption V2',
+	readyToImport: 'Ready to be imported from Minbar Studio V2',
 	whatWillBeImported: 'What will be imported',
 	projectAssets: 'Project assets and timeline',
 	projectAssetsDesc: 'All your audio/video files and subtitle timing',
@@ -21,7 +21,7 @@ const migration = {
 		'An active internet connection is needed to download reciter data and Quran text during migration.',
 	importProgress: 'Import Progress',
 	processing: 'Processing:',
-	couldNotFindV2Data: 'Could not find Quran Caption V2 data directory',
+	couldNotFindV2Data: 'Could not find Minbar Studio V2 data directory',
 	failedToImport: 'Failed to import: {name}',
 	migrationFailed: 'Migration process failed. Please try again.'
 };

@@ -407,7 +407,7 @@ fn prepare_audio_for_mfa_direct(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("qurancaption-mfa-{}.wav", stamp));
+    let temp_path = std::env::temp_dir().join(format!("minbarstudio-mfa-{}.wav", stamp));
     let temp_guard = TempFileGuard(temp_path.clone());
 
     // Fenêtre temporelle optionnelle: l'audio préparé est en coordonnées timeline, donc on
@@ -697,7 +697,7 @@ pub async fn segment_quran_audio(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("qurancaption-seg-{}.ogg", stamp));
+    let temp_path = std::env::temp_dir().join(format!("minbarstudio-seg-{}.ogg", stamp));
     let _temp_guard = TempFileGuard(temp_path.clone());
 
     let mut cmd = Command::new(&ffmpeg_path);

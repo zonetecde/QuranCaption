@@ -95,7 +95,7 @@ fn run_local_segmentation_script(
         .map_err(|e| e.to_string())?
         .as_millis();
     let temp_path = std::env::temp_dir().join(format!(
-        "qurancaption-local-{}-{}.wav",
+        "minbarstudio-local-{}-{}.wav",
         engine.as_key(),
         stamp
     ));

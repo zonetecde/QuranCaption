@@ -1193,7 +1193,7 @@ pub fn render_ffmpeg_filter_complex_single(
     // Option de test : force un crash FFmpeg pour valider la gestion d'erreur
     if FORCE_EXPORT_CRASH_FOR_TEST {
         cmd.extend_from_slice(&[
-            "-qurancaption_force_export_crash".to_string(),
+            "-minbarstudio_force_export_crash".to_string(),
             "1".to_string(),
         ]);
     }

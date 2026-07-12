@@ -598,19 +598,19 @@
 									{#each existingSpeakerNames() as speakerName (speakerName)}
 										<div class="group/saved-speaker relative inline-flex">
 											<span
-												class="rounded-full border border-color bg-secondary py-1.5 pl-3 pr-8 text-xs font-semibold text-secondary"
+												class="rounded-full border border-color bg-secondary py-1.5 px-3 text-xs font-semibold text-secondary"
 											>
 												{speakerName}
 											</span>
 											{#if canRemoveProjectSpeaker(speakerName)}
 												<button
 													type="button"
-													class="absolute right-1 top-1/2 flex h-5 w-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full opacity-0 transition hover:bg-accent hover:text-primary group-hover/saved-speaker:opacity-100 focus:opacity-100"
+													class="absolute -right-1 top-1 border-2 border-color flex h-5 w-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full opacity-0 transition hover:bg-accent hover:text-primary group-hover/saved-speaker:opacity-100 focus:opacity-100"
 													onclick={() => void removeAvailableSpeaker(speakerName)}
 													aria-label={`Remove ${speakerName}`}
 													title={`Remove ${speakerName} from the project`}
 												>
-													<span class="material-icons text-xs">close</span>
+													<span class="material-icons text-xs!">close</span>
 												</button>
 											{/if}
 										</div>

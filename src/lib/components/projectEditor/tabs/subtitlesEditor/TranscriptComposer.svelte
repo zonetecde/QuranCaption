@@ -2,6 +2,11 @@
 	import { SubtitleClip } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import {
+		canRemoveProjectSpeaker,
+		getVisibleProjectSpeakers,
+		requestProjectSpeakerRemoval
+	} from '$lib/services/SpeakerLibrary';
 	import { onDestroy, tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
@@ -17,31 +22,11 @@
 		return clip instanceof SubtitleClip ? clip : null;
 	});
 
-	const availableSpeakers = $derived(() => {
-		const values = [
-			globalState.currentProject?.detail.speaker ?? '',
-			...editorState().additionalSpeakers,
-			...globalState.getSubtitleTrack.clips
-				.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
-				.map((clip) => clip.speaker)
-		];
-		const seen = new Set<string>();
-
-		return values.filter((value) => {
-			const normalized = value.trim();
-			const key = normalized.toLocaleLowerCase();
-			if (!normalized || seen.has(key)) return false;
-			seen.add(key);
-			return true;
-		});
-	});
+	const availableSpeakers = $derived(() => getVisibleProjectSpeakers());
 
 	$effect(() => {
-		if (!editorState().selectedSpeaker.trim()) {
-			editorState().selectedSpeaker =
-				globalState.currentProject?.detail.speaker?.trim() ||
-				availableSpeakers()[0] ||
-				'Unknown speaker';
+		if (!editorState().selectedSpeaker.trim() && availableSpeakers()[0]) {
+			editorState().selectedSpeaker = availableSpeakers()[0];
 		}
 	});
 
@@ -64,6 +49,14 @@
 	function selectSpeaker(value: string): void {
 		editorState().selectedSpeaker = value.trim();
 		void tick().then(() => transcriptInput?.focus());
+	}
+
+	async function deleteSpeaker(event: MouseEvent, value: string): Promise<void> {
+		event.preventDefault();
+		event.stopPropagation();
+		await requestProjectSpeakerRemoval(value);
+		await tick();
+		transcriptInput?.focus();
 	}
 
 	function cancelEditing(): void {
@@ -188,17 +181,33 @@
 
 		<div class="flex flex-wrap items-center gap-2">
 			{#each availableSpeakers() as candidate (candidate)}
-				<button
-					type="button"
-					class={`cursor-pointer rounded-full border px-4 py-2 text-sm font-semibold transition ${
-						editorState().selectedSpeaker.toLocaleLowerCase() === candidate.toLocaleLowerCase()
-							? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-black shadow-sm'
-							: 'border-color bg-secondary text-secondary hover:border-[var(--accent-primary)] hover:bg-accent hover:text-primary'
-					}`}
-					onclick={() => selectSpeaker(candidate)}
-				>
-					{candidate}
-				</button>
+				<div class="group/speaker relative inline-flex">
+					<button
+						type="button"
+						class={`cursor-pointer rounded-full border py-2 px-4 text-sm font-semibold transition ${
+							editorState().selectedSpeaker.toLocaleLowerCase() === candidate.toLocaleLowerCase()
+								? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-black shadow-sm'
+								: 'border-color bg-secondary text-secondary hover:border-[var(--accent-primary)] hover:bg-accent hover:text-primary'
+						}`}
+						onclick={() => selectSpeaker(candidate)}
+					>
+						{candidate}
+					</button>
+					{#if canRemoveProjectSpeaker(candidate)}
+						<button
+							type="button"
+							class={'absolute -right-1 top-1 bg-secondary border-2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full opacity-0 transition hover:bg-black/15 group-hover/speaker:opacity-100 focus:opacity-100 ' +
+								(editorState().selectedSpeaker === candidate
+									? 'border-[var(--accent-primary)]'
+									: 'border-color')}
+							onclick={(event) => void deleteSpeaker(event, candidate)}
+							aria-label={`Remove ${candidate}`}
+							title={`Remove ${candidate} from the project`}
+						>
+							<span class="material-icons text-sm!">close</span>
+						</button>
+					{/if}
+				</div>
 			{/each}
 		</div>
 	</div>

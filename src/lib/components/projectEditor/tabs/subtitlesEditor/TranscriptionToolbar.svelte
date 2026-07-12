@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { SubtitleClip } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { addProjectSpeaker, getVisibleProjectSpeakers } from '$lib/services/SpeakerLibrary';
 	import { tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
@@ -10,24 +10,7 @@
 	let newSpeaker = $state('');
 	let speakerInput: HTMLInputElement | null = $state(null);
 
-	const knownSpeakers = $derived(() => {
-		const values = [
-			globalState.currentProject?.detail.speaker ?? '',
-			...globalState.getSubtitlesEditorState.additionalSpeakers,
-			...globalState.getSubtitleTrack.clips
-				.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
-				.map((clip) => clip.speaker)
-		];
-		const seen = new Set<string>();
-
-		return values.filter((value) => {
-			const normalized = value.trim();
-			const key = normalized.toLocaleLowerCase();
-			if (!normalized || seen.has(key)) return false;
-			seen.add(key);
-			return true;
-		});
-	});
+	const knownSpeakers = $derived(() => getVisibleProjectSpeakers());
 
 	async function openSpeakerInput(): Promise<void> {
 		isAddingSpeaker = true;
@@ -55,9 +38,10 @@
 			return;
 		}
 
-		globalState.getSubtitlesEditorState.additionalSpeakers.push(normalized);
-		globalState.getSubtitlesEditorState.selectedSpeaker = normalized;
-		toast.success(get(LL).editor.speakerAdded({ speaker: normalized }));
+		const addedSpeaker = addProjectSpeaker(normalized);
+		if (!addedSpeaker) return;
+		globalState.getSubtitlesEditorState.selectedSpeaker = addedSpeaker;
+		toast.success(get(LL).editor.speakerAdded({ speaker: addedSpeaker }));
 		closeSpeakerInput();
 	}
 

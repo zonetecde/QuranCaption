@@ -25,7 +25,7 @@ export enum SourceType {
 
 export enum ProjectEditorTabs {
 	VideoEditor = 'Video editor',
-	SubtitlesEditor = 'Subtitles editor',
+	Transcription = 'Transcription',
 	Translations = 'Translations',
 	Style = 'Style',
 	Export = 'Export'

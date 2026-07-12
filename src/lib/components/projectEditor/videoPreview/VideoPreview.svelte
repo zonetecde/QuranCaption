@@ -294,8 +294,7 @@
 		}
 		if (
 			!globalState.shared.wbwEdit.active &&
-			globalState.currentProject?.projectEditorState.currentTab !==
-				ProjectEditorTabs.SubtitlesEditor
+			globalState.currentProject?.projectEditorState.currentTab !== ProjectEditorTabs.Transcription
 		) {
 			speed = 1; // Réinitialise la vitesse si on n'est pas dans l'éditeur de sous-titres
 		}
@@ -1005,6 +1004,9 @@
 		}
 
 		globalState.getVideoPreviewState.togglePlayPause = togglePlayPause;
+		globalState.getVideoPreviewState.setTemporaryPlaybackSpeed = (enabled: boolean) => {
+			setPlaybackSpeed(enabled ? getSpeed() + 1 : getSpeed());
+		};
 	});
 </script>
 

@@ -21,7 +21,7 @@ const status = {
 	mp3quran: 'mp3quran',
 	quranfoundation: 'quranfoundation',
 	videoEditor: 'Video editor',
-	subtitlesEditor: 'Subtitles editor',
+	transcription: 'Transcription',
 	translations: 'Translations',
 	style: 'Style',
 	export: 'Export'

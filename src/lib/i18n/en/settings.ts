@@ -148,7 +148,7 @@ const settings = {
 	apiResponseEmpty: 'Quran Foundation API response was empty.',
 	shortcutCat: {
 		VIDEO_PREVIEW: 'Video Preview',
-		SUBTITLES_EDITOR: 'Subtitles Editor',
+		SUBTITLES_EDITOR: 'Transcription',
 		PREDEFINED_SUBTITLES: 'Pre-defined Subtitles',
 		TIMELINE: 'Timeline'
 	},

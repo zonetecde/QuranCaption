@@ -1,23 +1,16 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import VersePicker from './VersePicker.svelte';
-	import WordsSelector from './WordsSelector.svelte';
+	import TranscriptComposer from './TranscriptComposer.svelte';
+	import TranscriptionToolbar from './TranscriptionToolbar.svelte';
 </script>
 
 <section
-	data-tour-id="verse-picker-area"
-	class="overflow-hidden min-h-0 bg-primary border border-color rounded-lg shadow-lg"
+	data-tour-id="transcription-composer-area"
+	class="flex min-h-0 flex-col overflow-hidden rounded-lg border border-color bg-primary shadow-lg"
 	style="height: {globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;"
 >
-	<div class="w-full h-full flex flex-col p-4">
-		<!-- Sélecteur de verset -->
-		<div class="flex-shrink-0 mb-4">
-			<VersePicker />
-		</div>
-
-		<!-- Affichage des mots du verset - prend toute la hauteur restante -->
-		<div class="flex-1 min-h-0">
-			<WordsSelector />
-		</div>
+	<TranscriptionToolbar />
+	<div class="min-h-0 flex-1">
+		<TranscriptComposer />
 	</div>
 </section>

@@ -184,7 +184,7 @@ export default class Settings extends SerializableBase {
 			description: 'Controls for video playback and preview'
 		},
 		SUBTITLES_EDITOR: {
-			name: 'Subtitles Editor',
+			name: 'Transcription',
 			icon: 'subtitles',
 			description: 'Controls for editing and managing subtitles'
 		},

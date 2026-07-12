@@ -1104,9 +1104,156 @@ type RootTranslation = {
 		 */
 		videoEditor: string;
 		/**
-		 * S​u​b​t​i​t​l​e​s​ ​e​d​i​t​o​r
+		 * T​r​a​n​s​c​r​i​p​t​i​o​n
 		 */
-		subtitlesEditor: string;
+		transcription: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​s
+		 */
+		transcriptSegments: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​ ​t​e​x​t
+		 */
+		transcriptText: string;
+		/**
+		 * T​y​p​e​ ​w​h​a​t​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​s​a​y​s​.​.​.
+		 */
+		transcriptPlaceholder: string;
+		/**
+		 * S​p​e​a​k​e​r
+		 */
+		speaker: string;
+		/**
+		 * S​e​l​e​c​t​ ​o​r​ ​e​n​t​e​r​ ​a​ ​s​p​e​a​k​e​r
+		 */
+		selectSpeaker: string;
+		/**
+		 * A​d​d​ ​“​{​s​p​e​a​k​e​r​}​”
+		 * @param {unknown} speaker
+		 */
+		addSpeakerOption: RequiredParams<'speaker'>;
+		/**
+		 * A​d​d​ ​s​p​e​a​k​e​r
+		 */
+		addSpeaker: string;
+		/**
+		 * S​p​e​a​k​e​r​ ​n​a​m​e
+		 */
+		newSpeakerPlaceholder: string;
+		/**
+		 * {​s​p​e​a​k​e​r​}​ ​a​d​d​e​d​.
+		 * @param {unknown} speaker
+		 */
+		speakerAdded: RequiredParams<'speaker'>;
+		/**
+		 * {​s​p​e​a​k​e​r​}​ ​s​e​l​e​c​t​e​d​.
+		 * @param {unknown} speaker
+		 */
+		speakerSelected: RequiredParams<'speaker'>;
+		/**
+		 * H​o​w​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​o​r​k​s
+		 */
+		transcriptionHelpTitle: string;
+		/**
+		 * C​r​e​a​t​e​ ​o​n​e​ ​t​i​m​e​d​ ​s​e​g​m​e​n​t​ ​f​o​r​ ​e​a​c​h​ ​s​p​o​k​e​n​ ​p​a​s​s​a​g​e​.​ ​T​h​e​ ​s​e​g​m​e​n​t​ ​s​t​a​r​t​s​ ​a​f​t​e​r​ ​t​h​e​ ​p​r​e​v​i​o​u​s​ ​o​n​e​ ​a​n​d​ ​e​n​d​s​ ​a​t​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​p​l​a​y​h​e​a​d​ ​p​o​s​i​t​i​o​n​.
+		 */
+		transcriptionHelpDescription: string;
+		/**
+		 * M​o​v​e​ ​t​h​e​ ​p​l​a​y​h​e​a​d​ ​t​o​ ​t​h​e​ ​e​n​d​ ​o​f​ ​t​h​e​ ​p​a​s​s​a​g​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​t​r​a​n​s​c​r​i​b​e​.
+		 */
+		transcriptionHelpPlayhead: string;
+		/**
+		 * S​e​l​e​c​t​ ​t​h​e​ ​p​e​r​s​o​n​ ​w​h​o​ ​i​s​ ​s​p​e​a​k​i​n​g​,​ ​o​r​ ​a​d​d​ ​a​ ​n​e​w​ ​s​p​e​a​k​e​r​.
+		 */
+		transcriptionHelpSpeaker: string;
+		/**
+		 * W​r​i​t​e​ ​e​x​a​c​t​l​y​ ​w​h​a​t​ ​w​a​s​ ​s​a​i​d​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​t​o​ ​s​a​v​e​ ​t​h​e​ ​s​e​g​m​e​n​t​.
+		 */
+		transcriptionHelpText: string;
+		/**
+		 * S​h​o​r​t​c​u​t​s
+		 */
+		transcriptionShortcuts: string;
+		/**
+		 * S​a​v​e​ ​t​h​e​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t
+		 */
+		saveTranscriptShortcut: string;
+		/**
+		 * I​n​s​e​r​t​ ​a​ ​n​e​w​ ​l​i​n​e
+		 */
+		newLineShortcut: string;
+		/**
+		 * P​l​a​y​ ​o​r​ ​p​a​u​s​e​ ​w​h​i​l​e​ ​t​y​p​i​n​g
+		 */
+		playPauseShortcut: string;
+		/**
+		 * M​o​v​e​ ​b​a​c​k​w​a​r​d​ ​b​y​ ​2​ ​s​e​c​o​n​d​s​ ​w​h​i​l​e​ ​t​y​p​i​n​g
+		 */
+		seekBackwardShortcut: string;
+		/**
+		 * M​o​v​e​ ​f​o​r​w​a​r​d​ ​b​y​ ​2​ ​s​e​c​o​n​d​s​ ​w​h​i​l​e​ ​t​y​p​i​n​g
+		 */
+		seekForwardShortcut: string;
+		/**
+		 * T​e​m​p​o​r​a​r​i​l​y​ ​i​n​c​r​e​a​s​e​ ​p​l​a​y​b​a​c​k​ ​s​p​e​e​d​ ​w​h​i​l​e​ ​t​y​p​i​n​g
+		 */
+		temporarySpeedShortcut: string;
+		/**
+		 * A​d​d​ ​t​r​a​n​s​c​r​i​p​t
+		 */
+		addTranscript: string;
+		/**
+		 * U​p​d​a​t​e​ ​t​r​a​n​s​c​r​i​p​t
+		 */
+		updateTranscript: string;
+		/**
+		 * E​d​i​t​i​n​g​ ​t​r​a​n​s​c​r​i​p​t
+		 */
+		editingTranscript: string;
+		/**
+		 * C​a​n​c​e​l​ ​e​d​i​t​i​n​g
+		 */
+		cancelEditing: string;
+		/**
+		 * M​o​v​e​ ​t​h​e​ ​p​l​a​y​h​e​a​d​ ​t​o​ ​t​h​e​ ​e​n​d​ ​o​f​ ​t​h​e​ ​s​p​o​k​e​n​ ​s​e​g​m​e​n​t​,​ ​t​y​p​e​ ​t​h​e​ ​t​r​a​n​s​c​r​i​p​t​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​.
+		 */
+		transcriptionHint: string;
+		/**
+		 * E​n​t​e​r​ ​t​o​ ​s​a​v​e​ ​·​ ​S​h​i​f​t​+​E​n​t​e​r​ ​f​o​r​ ​a​ ​n​e​w​ ​l​i​n​e​ ​·​ ​C​t​r​l​+​S​p​a​c​e​ ​o​r​ ​S​h​i​f​t​+​S​p​a​c​e​ ​t​o​ ​p​l​a​y​/​p​a​u​s​e
+		 */
+		transcriptKeyboardHint: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​p​r​o​g​r​e​s​s
+		 */
+		transcriptionProgress: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​ ​a​d​d​e​d​.
+		 */
+		transcriptAdded: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​ ​u​p​d​a​t​e​d​.
+		 */
+		transcriptUpdated: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​ ​t​e​x​t​ ​c​a​n​n​o​t​ ​b​e​ ​e​m​p​t​y​.
+		 */
+		transcriptCannotBeEmpty: string;
+		/**
+		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​o​r​ ​e​n​t​e​r​ ​a​ ​s​p​e​a​k​e​r​.
+		 */
+		speakerCannotBeEmpty: string;
+		/**
+		 * A​I​ ​t​r​a​n​s​c​r​i​p​t​i​o​n
+		 */
+		aiTranscription: string;
+		/**
+		 * A​I​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​l​a​t​e​r
+		 */
+		aiTranscriptionComingSoon: string;
+		/**
+		 * F​o​r​ ​n​o​w​,​ ​u​s​e​ ​t​h​e​ ​m​a​n​u​a​l​ ​c​o​m​p​o​s​e​r​ ​t​o​ ​c​r​e​a​t​e​ ​a​n​d​ ​e​d​i​t​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​s​.
+		 */
+		aiTranscriptionComingSoonDescription: string;
 		/**
 		 * T​r​a​n​s​l​a​t​i​o​n​s
 		 */
@@ -1440,9 +1587,9 @@ type RootTranslation = {
 		 */
 		autoSegmentButton: string;
 		/**
-		 * S​u​b​t​i​t​l​e​s​ ​e​d​i​t​o​r​ ​w​a​l​k​t​h​r​o​u​g​h
+		 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​a​l​k​t​h​r​o​u​g​h
 		 */
-		subtitlesEditorWalkthrough: string;
+		transcriptionWalkthrough: string;
 		/**
 		 * S​u​r​a​h​:
 		 */
@@ -6702,7 +6849,7 @@ type RootTranslation = {
 		 */
 		wbwStep1: string;
 		/**
-		 * 2​.​ ​O​r​ ​a​d​d​ ​t​h​e​m​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r​ ​b​y​ ​h​o​l​d​i​n​g​ ​E​ ​w​i​t​h​ ​t​h​e​ ​c​u​r​s​o​r​ ​o​v​e​r​ ​a​ ​s​u​b​t​i​t​l​e​.
+		 * 2​.​ ​O​r​ ​a​d​d​ ​t​h​e​m​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​T​r​a​n​s​c​r​i​p​t​i​o​n​ ​b​y​ ​s​e​l​e​c​t​i​n​g​ ​a​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​.
 		 */
 		wbwStep2: string;
 		/**
@@ -7340,7 +7487,7 @@ type RootTranslation = {
 			 */
 			VIDEO_PREVIEW: string;
 			/**
-			 * S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r
+			 * T​r​a​n​s​c​r​i​p​t​i​o​n
 			 */
 			SUBTITLES_EDITOR: string;
 			/**
@@ -7693,11 +7840,11 @@ type RootTranslation = {
 		 */
 		stepAddToTimelineDesc: string;
 		/**
-		 * G​o​ ​t​o​ ​S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r
+		 * G​o​ ​t​o​ ​T​r​a​n​s​c​r​i​p​t​i​o​n
 		 */
 		stepSubtitlesEditorTitle: string;
 		/**
-		 * H​e​a​d​ ​t​o​ ​t​h​e​ ​S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r​ ​t​o​ ​s​t​a​r​t​ ​a​d​d​i​n​g​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​.​ ​T​h​i​s​ ​i​s​ ​w​h​e​r​e​ ​y​o​u​ ​a​l​i​g​n​ ​e​a​c​h​ ​v​e​r​s​e​ ​w​i​t​h​ ​t​h​e​ ​a​u​d​i​o​.
+		 * H​e​a​d​ ​t​o​ ​T​r​a​n​s​c​r​i​p​t​i​o​n​ ​t​o​ ​a​d​d​ ​w​h​a​t​ ​e​a​c​h​ ​s​p​e​a​k​e​r​ ​s​a​y​s​ ​a​n​d​ ​a​l​i​g​n​ ​e​v​e​r​y​ ​s​e​g​m​e​n​t​ ​w​i​t​h​ ​t​h​e​ ​a​u​d​i​o​.
 		 */
 		stepSubtitlesEditorDesc: string;
 		/**
@@ -7781,7 +7928,7 @@ type RootTranslation = {
 		 */
 		hintHoverAndAdd: string;
 		/**
-		 * C​l​i​c​k​ ​t​h​e​ ​"​S​u​b​t​i​t​l​e​s​ ​e​d​i​t​o​r​"​ ​t​a​b​ ​t​o​ ​c​o​n​t​i​n​u​e
+		 * C​l​i​c​k​ ​t​h​e​ ​"​T​r​a​n​s​c​r​i​p​t​i​o​n​"​ ​t​a​b​ ​t​o​ ​c​o​n​t​i​n​u​e
 		 */
 		hintClickSubtitlesTab: string;
 		/**
@@ -8174,9 +8321,9 @@ type RootTranslation = {
 		 */
 		videoEditor: string;
 		/**
-		 * S​u​b​t​i​t​l​e​s​ ​e​d​i​t​o​r
+		 * T​r​a​n​s​c​r​i​p​t​i​o​n
 		 */
-		subtitlesEditor: string;
+		transcription: string;
 		/**
 		 * T​r​a​n​s​l​a​t​i​o​n​s
 		 */
@@ -10026,9 +10173,153 @@ export type TranslationFunctions = {
 		 */
 		videoEditor: () => LocalizedString;
 		/**
-		 * Subtitles editor
+		 * Transcription
 		 */
-		subtitlesEditor: () => LocalizedString;
+		transcription: () => LocalizedString;
+		/**
+		 * Transcript segments
+		 */
+		transcriptSegments: () => LocalizedString;
+		/**
+		 * Transcript text
+		 */
+		transcriptText: () => LocalizedString;
+		/**
+		 * Type what the speaker says...
+		 */
+		transcriptPlaceholder: () => LocalizedString;
+		/**
+		 * Speaker
+		 */
+		speaker: () => LocalizedString;
+		/**
+		 * Select or enter a speaker
+		 */
+		selectSpeaker: () => LocalizedString;
+		/**
+		 * Add “{speaker}”
+		 */
+		addSpeakerOption: (arg: { speaker: unknown }) => LocalizedString;
+		/**
+		 * Add speaker
+		 */
+		addSpeaker: () => LocalizedString;
+		/**
+		 * Speaker name
+		 */
+		newSpeakerPlaceholder: () => LocalizedString;
+		/**
+		 * {speaker} added.
+		 */
+		speakerAdded: (arg: { speaker: unknown }) => LocalizedString;
+		/**
+		 * {speaker} selected.
+		 */
+		speakerSelected: (arg: { speaker: unknown }) => LocalizedString;
+		/**
+		 * How transcription works
+		 */
+		transcriptionHelpTitle: () => LocalizedString;
+		/**
+		 * Create one timed segment for each spoken passage. The segment starts after the previous one and ends at the current playhead position.
+		 */
+		transcriptionHelpDescription: () => LocalizedString;
+		/**
+		 * Move the playhead to the end of the passage you want to transcribe.
+		 */
+		transcriptionHelpPlayhead: () => LocalizedString;
+		/**
+		 * Select the person who is speaking, or add a new speaker.
+		 */
+		transcriptionHelpSpeaker: () => LocalizedString;
+		/**
+		 * Write exactly what was said, then press Enter to save the segment.
+		 */
+		transcriptionHelpText: () => LocalizedString;
+		/**
+		 * Shortcuts
+		 */
+		transcriptionShortcuts: () => LocalizedString;
+		/**
+		 * Save the transcript segment
+		 */
+		saveTranscriptShortcut: () => LocalizedString;
+		/**
+		 * Insert a new line
+		 */
+		newLineShortcut: () => LocalizedString;
+		/**
+		 * Play or pause while typing
+		 */
+		playPauseShortcut: () => LocalizedString;
+		/**
+		 * Move backward by 2 seconds while typing
+		 */
+		seekBackwardShortcut: () => LocalizedString;
+		/**
+		 * Move forward by 2 seconds while typing
+		 */
+		seekForwardShortcut: () => LocalizedString;
+		/**
+		 * Temporarily increase playback speed while typing
+		 */
+		temporarySpeedShortcut: () => LocalizedString;
+		/**
+		 * Add transcript
+		 */
+		addTranscript: () => LocalizedString;
+		/**
+		 * Update transcript
+		 */
+		updateTranscript: () => LocalizedString;
+		/**
+		 * Editing transcript
+		 */
+		editingTranscript: () => LocalizedString;
+		/**
+		 * Cancel editing
+		 */
+		cancelEditing: () => LocalizedString;
+		/**
+		 * Move the playhead to the end of the spoken segment, type the transcript, then press Enter.
+		 */
+		transcriptionHint: () => LocalizedString;
+		/**
+		 * Enter to save · Shift+Enter for a new line · Ctrl+Space or Shift+Space to play/pause
+		 */
+		transcriptKeyboardHint: () => LocalizedString;
+		/**
+		 * Transcription progress
+		 */
+		transcriptionProgress: () => LocalizedString;
+		/**
+		 * Transcript segment added.
+		 */
+		transcriptAdded: () => LocalizedString;
+		/**
+		 * Transcript segment updated.
+		 */
+		transcriptUpdated: () => LocalizedString;
+		/**
+		 * Transcript text cannot be empty.
+		 */
+		transcriptCannotBeEmpty: () => LocalizedString;
+		/**
+		 * Please select or enter a speaker.
+		 */
+		speakerCannotBeEmpty: () => LocalizedString;
+		/**
+		 * AI transcription
+		 */
+		aiTranscription: () => LocalizedString;
+		/**
+		 * AI transcription will be added later
+		 */
+		aiTranscriptionComingSoon: () => LocalizedString;
+		/**
+		 * For now, use the manual composer to create and edit transcript segments.
+		 */
+		aiTranscriptionComingSoonDescription: () => LocalizedString;
 		/**
 		 * Translations
 		 */
@@ -10350,9 +10641,9 @@ export type TranslationFunctions = {
 		 */
 		autoSegmentButton: () => LocalizedString;
 		/**
-		 * Subtitles editor walkthrough
+		 * Transcription walkthrough
 		 */
-		subtitlesEditorWalkthrough: () => LocalizedString;
+		transcriptionWalkthrough: () => LocalizedString;
 		/**
 		 * Surah:
 		 */
@@ -15544,7 +15835,7 @@ export type TranslationFunctions = {
 		 */
 		wbwStep1: () => LocalizedString;
 		/**
-		 * 2. Or add them manually in the Subtitles Editor by holding E with the cursor over a subtitle.
+		 * 2. Or add them manually in Transcription by selecting a transcript segment.
 		 */
 		wbwStep2: () => LocalizedString;
 		/**
@@ -16171,7 +16462,7 @@ export type TranslationFunctions = {
 			 */
 			VIDEO_PREVIEW: () => LocalizedString;
 			/**
-			 * Subtitles Editor
+			 * Transcription
 			 */
 			SUBTITLES_EDITOR: () => LocalizedString;
 			/**
@@ -16524,11 +16815,11 @@ export type TranslationFunctions = {
 		 */
 		stepAddToTimelineDesc: () => LocalizedString;
 		/**
-		 * Go to Subtitles Editor
+		 * Go to Transcription
 		 */
 		stepSubtitlesEditorTitle: () => LocalizedString;
 		/**
-		 * Head to the Subtitles Editor to start adding Quranic text. This is where you align each verse with the audio.
+		 * Head to Transcription to add what each speaker says and align every segment with the audio.
 		 */
 		stepSubtitlesEditorDesc: () => LocalizedString;
 		/**
@@ -16612,7 +16903,7 @@ export type TranslationFunctions = {
 		 */
 		hintHoverAndAdd: () => LocalizedString;
 		/**
-		 * Click the "Subtitles editor" tab to continue
+		 * Click the "Transcription" tab to continue
 		 */
 		hintClickSubtitlesTab: () => LocalizedString;
 		/**
@@ -17003,9 +17294,9 @@ export type TranslationFunctions = {
 		 */
 		videoEditor: () => LocalizedString;
 		/**
-		 * Subtitles editor
+		 * Transcription
 		 */
-		subtitlesEditor: () => LocalizedString;
+		transcription: () => LocalizedString;
 		/**
 		 * Translations
 		 */

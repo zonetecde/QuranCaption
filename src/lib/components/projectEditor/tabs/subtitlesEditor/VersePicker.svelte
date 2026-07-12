@@ -73,7 +73,7 @@
 						<iframe
 							class="w-full aspect-video"
 							src="https://www.youtube.com/embed/vCRUjzATRDk?start=35"
-							title={$LL.editor.subtitlesEditorWalkthrough()}
+							title={$LL.editor.transcriptionWalkthrough()}
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 							allowfullscreen
 						></iframe>

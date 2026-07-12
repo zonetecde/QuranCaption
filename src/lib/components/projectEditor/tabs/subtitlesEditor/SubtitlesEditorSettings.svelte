@@ -1,518 +1,73 @@
 <script lang="ts">
-	import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
-	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
-	import ModalManager from '$lib/components/modals/ModalManager';
-	import { globalState } from '$lib/runes/main.svelte';
-	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
-	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
-	import SegmentsToReview from './SegmentsToReview.svelte';
-	import MarkLongSubtitles from './MarkLongSubtitles.svelte';
-	import MarkMissingWbwTimestamps from './MarkMissingWbwTimestamps.svelte';
-	import SplitLongSubtitles from './SplitLongSubtitles.svelte';
-
-	import { fade } from 'svelte/transition';
-	import { onDestroy, onMount } from 'svelte';
-	import toast from 'svelte-5-french-toast';
+	import { SubtitleClip } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
+	import { globalState } from '$lib/runes/main.svelte';
 
-	let presetChoice: string = $state('');
-	let autoSegmentationModalVisible = $state(false);
-
-	type SpecialPreset =
-		| 'Silence'
-		| 'Basmala'
-		| "Isti'adha"
-		| 'Amin'
-		| 'Takbir'
-		| 'Tahmeed'
-		| 'Tasleem'
-		| 'Sadaqa';
-
-	function isSpecialPreset(value: string): value is SpecialPreset {
-		return (
-			value === 'Silence' ||
-			value === 'Basmala' ||
-			value === "Isti'adha" ||
-			value === 'Amin' ||
-			value === 'Takbir' ||
-			value === 'Tahmeed' ||
-			value === 'Tasleem' ||
-			value === 'Sadaqa'
-		);
-	}
-
-	function isEditableSubtitle(
-		clip: { type?: string } | null
-	): clip is SubtitleClip | PredefinedSubtitleClip | SilenceClip {
-		return (
-			!!clip &&
-			(clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle' || clip.type === 'Silence')
-		);
-	}
-
-	$effect(() => {
-		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-		if (editSubtitle) {
-			switch (editSubtitle.type) {
-				case 'Silence':
-					presetChoice = 'Silence';
-					break;
-				case 'Pre-defined Subtitle': {
-					const predefinedSubtitle = editSubtitle as PredefinedSubtitleClip;
-					const normalizedType = canonicalizePredefinedSubtitleType(
-						predefinedSubtitle.predefinedSubtitleType
-					);
-					presetChoice = normalizedType === 'Other' ? '' : normalizedType;
-					break;
-				}
-				case 'Subtitle':
-					presetChoice = "Qur'an";
-					break;
-				default:
-					presetChoice = '';
-			}
-		} else {
-			presetChoice = '';
-		}
-	});
-
-	async function applySubtitleChanges() {
-		// Si on veut changer le sous-titre en Qur'an
-		if (presetChoice === "Qur'an") {
-			// Alors on explique à l'utilisateur qu'il doit sélectionner les mots
-			await ModalManager.confirmModal($LL.editor.makeQuranSubtitleConfirm());
-		} else {
-			// Sinon on applique le changement de sous-titre
-			const subtitleTrack = globalState.getSubtitleTrack;
-			const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-			if (!isSpecialPreset(presetChoice) || !isEditableSubtitle(editSubtitle)) {
-				return;
-			}
-			subtitleTrack.editSubtitleToSpecial(editSubtitle, presetChoice);
-
-			// Si un ID de sous-titre suivant est en attente (après une division), on passe à ce sous-titre
-			const pendingId = globalState.getSubtitlesEditorState.pendingSplitEditNextId;
-			if (pendingId && editSubtitle.id !== pendingId) {
-				const nextClip = subtitleTrack.getClipById(pendingId);
-				globalState.getSubtitlesEditorState.editSubtitle = nextClip ?? null;
-			} else {
-				globalState.getSubtitlesEditorState.editSubtitle = null;
-			}
-			globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
-		}
-	}
-
-	function handleEditModeShortcut(event: KeyboardEvent) {
-		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-		if (!isEditableSubtitle(editSubtitle)) return;
-
-		if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-			return;
-		}
-
-		const key = event.key.toLowerCase();
-		let newPreset: string | null = null;
-
-		if (key === 's') newPreset = 'Silence';
-		else if (key === 'b') newPreset = 'Basmala';
-		else if (key === 'i') newPreset = "Isti'adha";
-
-		if (!newPreset) return;
-
-		event.preventDefault();
-		event.stopPropagation();
-		event.stopImmediatePropagation();
-
-		presetChoice = newPreset;
-		void applySubtitleChanges();
-	}
-
-	onMount(() => {
-		document.addEventListener('keydown', handleEditModeShortcut, true);
-	});
-
-	onDestroy(() => {
-		document.removeEventListener('keydown', handleEditModeShortcut, true);
-	});
-
-	/**
-	 * Ouvre le mode d'edition WBW manuel pour le sous-titre courant.
-	 *
-	 * @returns {Promise<void>}
-	 */
-	async function openManualWbwEditMode(): Promise<void> {
-		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-		if (!(editSubtitle instanceof SubtitleClip)) return;
-
-		const success = await enterManualWordByWordEdit(editSubtitle);
-		if (!success) {
-			toast.error(get(LL).editor.cannotEnterWordEditMode());
-		}
-	}
-
-	/**
-	 * Retourne le raccourci d'édition configuré par l'utilisateur sous forme lisible.
-	 *
-	 * @returns {string} Raccourci formate pour l'UI.
-	 */
-	function getEditShortcutLabel(): string {
-		const keys = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys ?? [];
-		if (keys.length === 0) return get(LL).editor.editKey();
-		return keys.map((key) => key.toUpperCase()).join(' + ');
-	}
-
-	/**
-	 * Retourne le label lisible d'un raccourci configuré.
-	 *
-	 * @param {string[] | undefined} keys Liste des touches configurées.
-	 * @param {string} fallback Texte de repli si aucune touche n'est définie.
-	 * @returns {string} Raccourci formaté pour l'UI.
-	 */
-	function formatShortcutLabel(keys: string[] | undefined, fallback: string): string {
-		if (!keys || keys.length === 0) return fallback;
-		return keys.map((key) => key.toUpperCase()).join(' / ');
-	}
+	const transcriptCount = $derived(
+		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
+	);
 </script>
 
 <div
-	class="bg-secondary h-full min-h-0 overflow-y-auto border border-color rounded-lg py-6 px-3 space-y-6 border-r-0 overflow-x-hidden"
+	class="h-full min-h-0 space-y-6 overflow-y-auto rounded-lg border border-r-0 border-color bg-secondary px-3 py-6"
 >
-	<!-- Header with icon -->
-	<div class="flex gap-x-2 items-center justify-center">
-		<span class="material-icons text-accent text-xl">subtitles</span>
-		<h2 class="text-xl font-bold text-primary">{$LL.editor.subtitlesEditor()}</h2>
+	<div class="flex items-center justify-center gap-2">
+		<span class="material-icons text-xl text-accent">record_voice_over</span>
+		<h2 class="text-xl font-bold text-primary">{$LL.editor.transcription()}</h2>
 	</div>
 
-	{#if globalState.getSubtitlesEditorState.editSubtitle}
-		<!-- Subtitle editing mode -->
-		<div class="space-y-2">
-			<div
-				class="rounded-xl border border-[var(--border-color)]/60 bg-gradient-to-br from-secondary to-secondary/60 backdrop-blur-sm p-2 shadow-inner"
-			>
-				<div class="flex items-start gap-3">
-					<div class="xl:space-y-1">
-						<h3 class="text-lg font-semibold text-primary tracking-wide flex items-center gap-2">
-							{$LL.editor.editingSubtitle()}
-							<span
-								class="px-2 py-0.5 text-[10px] uppercase rounded-full bg-accent-primary/15 text-accent-primary border border-accent-primary/30"
-								>{$LL.editor.editingActive()}</span
-							>
-						</h3>
-						<p class="text-xs leading-relaxed text-secondary">
-							{$LL.editor.editingHelpText()}
-						</p>
-					</div>
-				</div>
-			</div>
-
-			{#if globalState.getSubtitlesEditorState.editSubtitle instanceof SubtitleClip}
-				<div
-					class="rounded-lg border border-[var(--border-color)]/60 bg-secondary/40 p-2 space-y-3"
-				>
-					<p class="text-sm font-semibold text-primary">{$LL.editor.wordByWordEdit()}</p>
-
-					<div class="flex items-center justify-between gap-2 -mt-2">
-						<div>
-							<p class="text-[11px] text-secondary">
-								{$LL.editor.wbwManualDescription()}
-							</p>
-						</div>
-
-						{#if globalState.shared.wbwEdit.active}
-							<button
-								class="flex items-center gap-2 px-3 py-2 rounded-md border border-yellow-400/40 text-yellow-200 text-xs hover:bg-yellow-400/10 transition cursor-pointer"
-								onclick={() => exitManualWordByWordEdit()}
-							>
-								<span class="material-icons text-base">close</span>
-								{$LL.editor.exit()}
-							</button>
-						{:else}
-							<button
-								class="flex items-center gap-2 px-3 py-2 rounded-md border border-yellow-400/30 text-yellow-200 text-xs hover:bg-yellow-400/10 transition cursor-pointer"
-								onclick={openManualWbwEditMode}
-							>
-								<span class="material-icons text-base">timeline</span>
-								{$LL.editor.editWbw()}
-							</button>
-						{/if}
-					</div>
-
-					<p class="text-[9px] -mt-1 text-secondary">
-						{$LL.editor.wbwShortcutNote({ shortcut: getEditShortcutLabel() })}
-					</p>
-
-					{#if globalState.shared.wbwEdit.active}
-						<div class="rounded-md bg-yellow-400/8 border border-yellow-400/15 p-1 -mx-1 space-y-2">
-							<p class="text-[11px] text-yellow-100/90">{$LL.editor.wbwTutorialTitle()}</p>
-							<div class="relative w-full overflow-hidden rounded-md" style="padding-top: 56.25%;">
-								<iframe
-									class="absolute inset-0 h-full w-full"
-									src="https://www.youtube.com/embed/HGhMKZjuKFo"
-									title={$LL.editor.wbwTutorialIframeTitle()}
-									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-									allowfullscreen
-								></iframe>
-							</div>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong>{$LL.editor.wbwTutorialEnter()}</strong>
-							</p>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong>{$LL.editor.wbwTutorialArrows()}</strong>
-							</p>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong
-									>{formatShortcutLabel(
-										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START.keys,
-										'n'
-									)}/{formatShortcutLabel(
-										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END.keys,
-										'm'
-									)}:</strong
-								>
-								{$LL.editor.wbwTutorialBoundaries()}
-							</p>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong>{$LL.editor.wbwTutorialEscape()}</strong>
-							</p>
-						</div>
-					{/if}
-				</div>
-			{/if}
-
-			{#if globalState.shared.wbwEdit.active}
-				<!-- Playback Speed Section -->
-				<div class="space-y-3 my-5">
-					<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.wbwPlaybackSpeed()}</h3>
-					<div class="flex items-center justify-center gap-1 2xl:gap-2">
-						{#each [0.25, 0.5, 0.75, 1, 1.25] as speed (speed)}
-							<button
-								class="px-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer hover:scale-105 border {globalState
-									.getSubtitlesEditorState.wbwPlaybackSpeed === speed
-									? 'bg-accent-primary text-black border-transparent shadow-lg shadow-blue-500/25'
-									: 'bg-secondary text-secondary border-color hover:bg-accent hover:text-primary hover:border-[var(--accent-primary)]'}"
-								onclick={() => {
-									globalState.getSubtitlesEditorState.wbwPlaybackSpeed = speed;
-								}}
-							>
-								{speed}x
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			{#if !globalState.shared.wbwEdit.active}
-				<!-- Presets -->
-				<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pr-1 pt-1">
-					<div class="grid grid-cols-2 gap-3">
-						{#each [{ label: "Qur'an", shortcut: $LL.editor.selectWordsEnter(), icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: $LL.common.none(), icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: $LL.common.none(), icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: $LL.common.none(), icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: $LL.common.none(), icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: $LL.common.none(), icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset (preset.label)}
-							<button
-								class="group relative overflow-hidden rounded-lg border transition-all duration-300 focus:outline-none cursor-pointer {presetChoice ===
-								preset.label
-									? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/30'
-									: 'border-[var(--border-color)]/50 bg-secondary/70 hover:shadow-lg hover:shadow-accent-primary/20'} focus:ring-2 focus:ring-accent-primary/60"
-								onclick={() => {
-									presetChoice = preset.label;
-								}}
-							>
-								<div
-									class="absolute inset-0 bg-gradient-to-br transition-opacity duration-300 {preset.gradient} {presetChoice ===
-									preset.label
-										? 'opacity-75'
-										: 'opacity-0 group-hover:opacity-90'}"
-								></div>
-								<div class="relative flex flex-col items-center justify-center py-4 gap-1">
-									<span
-										class="material-icons text-xl transition-all duration-300 {presetChoice ===
-										preset.label
-											? 'text-white scale-110'
-											: 'text-accent-primary group-hover:scale-110 group-hover:text-white'}"
-									>
-										{preset.icon}
-									</span>
-									<span
-										class="text-xs font-medium tracking-wide transition-all duration-300 {presetChoice ===
-										preset.label
-											? 'text-white'
-											: 'text-secondary group-hover:text-white'}"
-									>
-										{preset.label}
-									</span>
-									<span
-										class="text-[9px] opacity-45 uppercase tracking-wide transition-all duration-300 {presetChoice ===
-										preset.label
-											? 'text-white/90'
-											: 'text-secondary/70 group-hover:text-white/90'}"
-									>
-										{preset.shortcut}
-									</span>
-								</div>
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Actions -->
-			<div class="flex items-center justify-center gap-4 pt-2">
+	<div class="space-y-3">
+		<h3 class="text-sm font-medium text-secondary">{$LL.editor.playbackSpeed()}</h3>
+		<div class="flex flex-wrap items-center justify-center gap-2">
+			{#each [0.75, 1, 1.25, 1.5, 1.75, 2] as speed (speed)}
 				<button
-					class="flex items-center gap-2 px-3 py-2 rounded-md bg-accent-primary text-black text-xs font-semibold tracking-wide hover:brightness-110 transition cursor-pointer"
-					onclick={applySubtitleChanges}
-				>
-					<span class="material-icons text-base">done</span>
-					{$LL.common.apply()}
-				</button>
-				<button
-					class="flex items-center gap-2 px-3 py-2 rounded-md border border-color text-secondary text-xs hover:bg-secondary/60 transition cursor-pointer"
-					onclick={() => {
-						globalState.getSubtitlesEditorState.editSubtitle = null;
-						globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
-					}}
-				>
-					<span class="material-icons text-base">close</span>
-					{$LL.common.cancel()}
-				</button>
-			</div>
-		</div>
-	{:else}
-		<!-- Playback Speed Section -->
-		<div class="space-y-3">
-			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.playbackSpeed()}</h3>
-			<div class="flex items-center justify-center gap-1 2xl:gap-2">
-				{#each [0.75, 1, 1.5, 1.75, 2] as speed (speed)}
-					<button
-						class="px-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer hover:scale-105 border {globalState
-							.currentProject!.projectEditorState.subtitlesEditor.playbackSpeed === speed
-							? 'bg-accent-primary text-black border-transparent shadow-lg shadow-blue-500/25'
-							: 'bg-secondary text-secondary border-color hover:bg-accent hover:text-primary hover:border-[var(--accent-primary)]'}"
-						onclick={() => {
-							globalState.getSubtitlesEditorState.playbackSpeed = speed;
-						}}
-					>
-						{speed}x
-					</button>
-				{/each}
-			</div>
-		</div>
-
-		<!-- Options Section -->
-		<div class="space-y-4">
-			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.displayOptions()}</h3>
-
-			<div class="bg-accent rounded-lg p-4 space-y-4">
-				<div class="flex items-center justify-between">
-					<label class="text-sm font-medium text-primary cursor-pointer" for="showWordTranslation">
-						{$LL.editor.showWordTranslation()}
-					</label>
-					<input
-						id="showWordTranslation"
-						type="checkbox"
-						bind:checked={globalState.getSubtitlesEditorState.showWordTranslation}
-						class="w-5 h-5"
-					/>
-				</div>
-
-				<div class="flex items-center justify-between">
-					<label
-						class="text-sm font-medium text-primary cursor-pointer"
-						for="showWordTransliteration"
-					>
-						{$LL.editor.showWordTransliteration()}
-					</label>
-					<input
-						id="showWordTransliteration"
-						type="checkbox"
-						bind:checked={globalState.getSubtitlesEditorState.showWordTransliteration}
-						class="w-5 h-5"
-					/>
-				</div>
-			</div>
-		</div>
-
-		<!-- Progress Section -->
-		<div class="space-y-3">
-			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.captionProgress()}</h3>
-			<div class="bg-accent rounded-lg p-4">
-				<div class="flex items-center justify-between mb-2">
-					<span class="text-sm text-secondary">{$LL.editor.completion()}</span>
-					<span class="text-sm font-bold text-accent">
-						{globalState.currentProject!.detail.transcriptionProgress}%
-					</span>
-				</div>
-				<div class="w-full bg-secondary rounded-full h-3 relative overflow-hidden">
-					<div
-						class="bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] h-full rounded-full
-					       transition-all duration-500 ease-out relative"
-						style="width: {globalState.currentProject!.detail.transcriptionProgress}%"
-					>
-						<div class="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div class="space-y-4">
-			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.aiAssistedSegmentation()}</h3>
-			<div class="bg-accent rounded-lg p-4 space-y-3">
-				<button
-					data-tour-id="auto-segment-button"
-					class="btn-accent w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2"
 					type="button"
-					title={$LL.editor.autoSegmentButton()}
-					onclick={() => (autoSegmentationModalVisible = true)}
+					class="cursor-pointer rounded-lg border px-2.5 py-2 text-sm font-medium transition-all hover:scale-105 {globalState
+						.getSubtitlesEditorState.playbackSpeed === speed
+						? 'border-transparent bg-accent-primary text-black shadow-lg shadow-blue-500/25'
+						: 'border-color bg-secondary text-secondary hover:border-[var(--accent-primary)] hover:bg-accent hover:text-primary'}"
+					onclick={() => (globalState.getSubtitlesEditorState.playbackSpeed = speed)}
 				>
-					<span class="material-icons text-base">auto_awesome</span>
-					{$LL.editor.autoSegment()}
+					{speed}x
 				</button>
-			</div>
+			{/each}
 		</div>
-
-		{#if (globalState.getAudioTrack?.clips || []).some((c) => c instanceof AssetClip && (globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.nativeTiming || globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran))}
-			<div class="space-y-4">
-				<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.nativeTiming()}</h3>
-				<div class="bg-accent rounded-lg p-4 space-y-3">
-					<button
-						class="w-full px-3 py-2 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[var(--accent-primary)]/20 transition cursor-pointer"
-						type="button"
-						onclick={async () => {
-							const { runNativeSegmentation } = await import('$lib/services/AutoSegmentation');
-							await runNativeSegmentation();
-						}}
-					>
-						{$LL.editor.loadSubtitlesNativeTiming()}
-					</button>
-				</div>
-			</div>
-		{/if}
-
-		<div class="space-y-3">
-			<SegmentsToReview />
-			<MarkLongSubtitles />
-			<MarkMissingWbwTimestamps />
-			<SplitLongSubtitles />
-		</div>
-	{/if}
-</div>
-
-{#if autoSegmentationModalVisible}
-	<div class="modal-wrapper" transition:fade>
-		<AutoSegmentationModal close={() => (autoSegmentationModalVisible = false)} />
 	</div>
-{/if}
 
-<style>
-	.animate-pulse {
-		animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-	}
+	<div class="space-y-3">
+		<h3 class="text-sm font-medium text-secondary">{$LL.editor.transcriptionProgress()}</h3>
+		<div class="space-y-3 rounded-lg bg-accent p-4">
+			<div class="flex items-center justify-between">
+				<span class="text-sm text-secondary">{$LL.editor.completion()}</span>
+				<span class="text-sm font-bold text-accent">
+					{globalState.currentProject!.detail.transcriptionProgress}%
+				</span>
+			</div>
+			<div class="relative h-3 w-full overflow-hidden rounded-full bg-secondary">
+				<div
+					class="h-full rounded-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] transition-all duration-500"
+					style="width: {globalState.currentProject!.detail.transcriptionProgress}%"
+				></div>
+			</div>
+			<div
+				class="flex items-center justify-between border-t border-color pt-3 text-xs text-secondary"
+			>
+				<span>{$LL.editor.transcriptSegments()}</span>
+				<span class="rounded-md bg-primary px-2 py-1 font-semibold text-primary"
+					>{transcriptCount}</span
+				>
+			</div>
+		</div>
+	</div>
 
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0;
-		}
-	}
-</style>
+	<div class="space-y-3">
+		<h3 class="text-sm font-medium text-secondary">{$LL.editor.aiTranscription()}</h3>
+		<div class="rounded-lg border border-dashed border-color bg-accent/50 p-4 text-center">
+			<span class="material-icons mb-2 text-2xl text-thirdly">auto_awesome</span>
+			<p class="text-sm font-semibold text-primary">{$LL.editor.aiTranscriptionComingSoon()}</p>
+			<p class="mt-1 text-xs leading-relaxed text-secondary">
+				{$LL.editor.aiTranscriptionComingSoonDescription()}
+			</p>
+		</div>
+	</div>
+</div>

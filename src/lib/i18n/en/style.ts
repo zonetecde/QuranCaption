@@ -110,8 +110,7 @@ const style = {
 		'Translation word-by-word styles need at least one WBW translation mapping in the translations editor.',
 	wbwStep1:
 		'1. Add them with AI-Segmentation and make sure to enable Include word-by-word timestamps.',
-	wbwStep2:
-		'2. Or add them manually in the Subtitles Editor by holding E with the cursor over a subtitle.',
+	wbwStep2: '2. Or add them manually in Transcription by selecting a transcript segment.',
 	onScreenElements: 'On-screen elements',
 	customElements: 'Custom elements',
 	noCustomElements: 'No custom elements yet. Add text or an image to begin.',

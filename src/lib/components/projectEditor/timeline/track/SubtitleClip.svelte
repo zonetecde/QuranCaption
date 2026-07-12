@@ -370,7 +370,7 @@
 		});
 	}
 
-	// Sur clic gauche, ouvre l'édition si l'on est dans Subtitles Editor sinon gère la sélection Style
+	// Sur clic gauche, ouvre l'édition si l'on est dans Transcription, sinon gère la sélection Style.
 	function handleClipClick(event: MouseEvent) {
 		if (suppressNextClick) {
 			suppressNextClick = false;
@@ -385,7 +385,7 @@
 		markClipAsVerified(clip);
 
 		const currentTab = globalState.currentProject!.projectEditorState.currentTab;
-		if (currentTab === ProjectEditorTabs.SubtitlesEditor) {
+		if (currentTab === ProjectEditorTabs.Transcription && clip instanceof SubtitleClip) {
 			editSubtitle();
 		} else {
 			clipClicked(event);
@@ -680,7 +680,7 @@
 			</div></Item
 		>
 	{/if}
-	{#if globalState.currentProject!.projectEditorState.currentTab === 'Subtitles editor' && clip.type !== 'Subtitle'}
+	{#if globalState.currentProject!.projectEditorState.currentTab === 'Transcription' && clip.type === 'Subtitle'}
 		<Item on:click={editSubtitle}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">edit</span

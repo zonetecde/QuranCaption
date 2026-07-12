@@ -246,7 +246,7 @@
 
 	{#if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.VideoEditor}
 		<VideoEditor />
-	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.SubtitlesEditor}
+	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Transcription}
 		<SubtitlesEditor />
 	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Translations}
 		<TranslationsEditor />

@@ -6,8 +6,16 @@
 
 	let tabs = $state([
 		{ name: get(LL).status.videoEditor(), icon: 'edit', value: ProjectEditorTabs.VideoEditor },
-		{ name: get(LL).status.subtitlesEditor(), icon: 'subtitles', value: ProjectEditorTabs.SubtitlesEditor },
-		{ name: get(LL).status.translations(), icon: 'translate', value: ProjectEditorTabs.Translations },
+		{
+			name: get(LL).status.transcription(),
+			icon: 'record_voice_over',
+			value: ProjectEditorTabs.Transcription
+		},
+		{
+			name: get(LL).status.translations(),
+			icon: 'translate',
+			value: ProjectEditorTabs.Translations
+		},
 		{ name: get(LL).status.style(), icon: 'auto_fix_high', value: ProjectEditorTabs.Style },
 		{ name: get(LL).status.export(), icon: 'upload_file', value: ProjectEditorTabs.Export }
 	]);
@@ -30,7 +38,7 @@
 				: ''}"
 			type="button"
 			onclick={() => setActiveTab(tab.value)}
-			data-tour-id={tab.value === ProjectEditorTabs.SubtitlesEditor
+			data-tour-id={tab.value === ProjectEditorTabs.Transcription
 				? 'nav-tab-subtitles'
 				: tab.value === ProjectEditorTabs.Translations
 					? 'nav-tab-translations'

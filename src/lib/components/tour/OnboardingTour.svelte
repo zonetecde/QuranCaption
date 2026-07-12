@@ -68,7 +68,7 @@
 			advanceMode: 'auto',
 			advanceCondition: () =>
 				globalState.currentProject?.projectEditorState.currentTab ===
-				ProjectEditorTabs.SubtitlesEditor,
+				ProjectEditorTabs.Transcription,
 			allowSpotlightClick: true,
 			hint: $LL.tour.hintClickSubtitlesTab()
 		},

@@ -20,12 +20,11 @@ import { Quran, type Verse } from './Quran.js';
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import { Translation, VerseTranslation } from './Translation.svelte.js';
+import { Translation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
-import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export type VisualMergeSelection = {
@@ -1104,97 +1103,70 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
-	 * Modifie un sous-titre existant ou le transforme en sous-titre normal s'il s'agit d'un sous-titre pré-défini.
-	 * Si le sous-titre est déjà un sous-titre normal, il est simplement modifié.
-	 * @param subtitle Le sous-titre à modifier ou transformer.
-	 * @param verse Le nouveau verset du sous-titre.
-	 * @param firstWordIndex Le nouvel index du premier mot du sous-titre.
-	 * @param lastWordIndex Le nouvel index du dernier mot du sous-titre.
-	 * @param surah Le nouveau numéro de la sourate du sous-titre.
+	 * Ajoute un segment de transcription entre la fin de la piste et la position actuelle du curseur.
+	 * @param {string} text Texte prononcé.
+	 * @param {string} speaker Intervenant associé au segment.
+	 * @returns {boolean} `true` lorsque le segment a été ajouté.
 	 */
-	async editSubtitle(
-		subtitle: SubtitleClip | PredefinedSubtitleClip | SilenceClip | ClipWithTranslation | null,
-		verse: Verse,
-		firstWordIndex: number,
-		lastWordIndex: number,
-		surah: number
-	) {
-		ProjectHistoryManager.begin('edit subtitle');
+	addTranscript(text: string, speaker: string): boolean {
+		const normalizedText = text.trim();
+		const normalizedSpeaker = speaker.trim();
+		if (!normalizedText) {
+			toast.error(get(LL).editor.transcriptCannotBeEmpty());
+			return false;
+		}
+		if (!normalizedSpeaker) {
+			toast.error(get(LL).editor.speakerCannotBeEmpty());
+			return false;
+		}
+
+		ProjectHistoryManager.begin('add transcript');
 		try {
-			if (subtitle instanceof SubtitleClip && subtitle.visualMergeGroupId) {
-				this.unmergeVisualGroup(subtitle.visualMergeGroupId, false);
+			const startTime = this.getDuration().ms + 1;
+			const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? -1;
+			if (endTime < startTime) {
+				toast.error(get(LL).editor.endTimeMustBeGreater());
+				return false;
 			}
 
-			// Modifie le sous-titre existant
-			// Si c'est un sous-titre pré-défini, on le transforme en sous-titre normal (ex: de silence en Qur'an)
-			if (subtitle?.type !== 'Subtitle') {
-				// Transforme le sous-titre en sous-titre normal
+			this.clips.push(new SubtitleClip(startTime, endTime, normalizedText, normalizedSpeaker));
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
 
-				const subtitlesProperties = await this.getSubtitlesProperties(
-					verse,
-					firstWordIndex,
-					lastWordIndex,
-					surah
-				);
+	/**
+	 * Met à jour le texte et l'intervenant d'un segment de transcription.
+	 * @param {SubtitleClip} clip Segment à modifier.
+	 * @param {string} text Nouveau texte.
+	 * @param {string} speaker Nouvel intervenant.
+	 * @returns {boolean} `true` lorsque le segment a été modifié.
+	 */
+	editTranscript(clip: SubtitleClip, text: string, speaker: string): boolean {
+		const normalizedText = text.trim();
+		const normalizedSpeaker = speaker.trim();
+		if (!normalizedText) {
+			toast.error(get(LL).editor.transcriptCannotBeEmpty());
+			return false;
+		}
+		if (!normalizedSpeaker) {
+			toast.error(get(LL).editor.speakerCannotBeEmpty());
+			return false;
+		}
 
-				const newSubtitleClip = new SubtitleClip(
-					subtitle!.startTime,
-					subtitle!.endTime,
-					surah,
-					verse.id,
-					firstWordIndex,
-					lastWordIndex,
-					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex),
-					verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
-					subtitlesProperties.isFullVerse, // isFullVerse
-					subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-					subtitlesProperties.translations, // translations
-					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
-				);
-				if (subtitle instanceof ClipWithTranslation) {
-					newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
-				}
-
-				// Remplace l'ancien clip par le nouveau dans le tableau clips
-				const clipIndex = this.clips.findIndex((clip) => clip.id === subtitle!.id);
-				if (clipIndex !== -1) {
-					this.clips[clipIndex] = newSubtitleClip;
-				}
-
-				subtitle = newSubtitleClip;
-			} else if (subtitle instanceof SubtitleClip) {
-				// Si c'est déjà un sous-titre normal, on le modifie
-				subtitle.verse = verse.id;
-				subtitle.surah = surah;
-				subtitle.startWordIndex = firstWordIndex;
-				subtitle.endWordIndex = lastWordIndex;
-				subtitle.text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
-				subtitle.indopakText = verse.getArabicTextBetweenTwoIndexes(
-					firstWordIndex,
-					lastWordIndex,
-					'indopak'
-				);
-				subtitle.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
-					firstWordIndex,
-					lastWordIndex
-				);
-				const subtitlesProperties = await this.getSubtitlesProperties(
-					verse,
-					firstWordIndex,
-					lastWordIndex,
-					surah
-				);
-				subtitle.isFullVerse = subtitlesProperties.isFullVerse;
-				subtitle.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
-				subtitle.translations = subtitlesProperties.translations;
-				subtitle.clearArabicInlineStyles();
+		ProjectHistoryManager.begin('edit transcript');
+		try {
+			if (clip.visualMergeGroupId) this.unmergeVisualGroup(clip.visualMergeGroupId, false);
+			const textChanged = clip.text !== normalizedText;
+			clip.text = normalizedText;
+			clip.speaker = normalizedSpeaker;
+			if (textChanged) {
+				clip.clearArabicInlineStyles();
+				clip.alignmentMetadata = null;
 			}
-
-			if (subtitle instanceof SubtitleClip) {
-				subtitle.markAsManualEdit();
-				// La plage de mots a changé : on régénère les timestamps WBW en arrière-plan.
-				scheduleWbwRealign([subtitle], { reason: 'text' });
-			}
+			clip.markAsManualEdit();
+			return true;
 		} finally {
 			ProjectHistoryManager.commit();
 		}
@@ -1315,101 +1287,6 @@ export class SubtitleTrack extends Track {
 		} finally {
 			ProjectHistoryManager.commit();
 		}
-	}
-
-	async addSubtitle(
-		verse: Verse,
-		firstWordIndex: number,
-		lastWordIndex: number,
-		surah: number
-	): Promise<boolean> {
-		ProjectHistoryManager.begin('add subtitle');
-		try {
-			const arabicText = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
-			const indopakText = verse.getArabicTextBetweenTwoIndexes(
-				firstWordIndex,
-				lastWordIndex,
-				'indopak'
-			);
-			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
-				firstWordIndex,
-				lastWordIndex
-			);
-
-			const startTime = this.getDuration().ms + 1;
-			const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition || -1;
-
-			if (endTime < startTime) {
-				toast.error(get(LL).editor.endTimeMustBeGreater());
-				return false;
-			}
-
-			const subtitlesProperties = await this.getSubtitlesProperties(
-				verse,
-				firstWordIndex,
-				lastWordIndex,
-				surah
-			);
-
-			this.clips.push(
-				new SubtitleClip(
-					startTime,
-					endTime,
-					surah,
-					verse.id,
-					firstWordIndex,
-					lastWordIndex,
-					arabicText,
-					wbwTranslation,
-					subtitlesProperties.isFullVerse, // isFullVerse
-					subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-					subtitlesProperties.translations, // translations
-					indopakText
-				)
-			);
-
-			return true;
-		} finally {
-			ProjectHistoryManager.commit();
-		}
-	}
-
-	/**
-	 * À partir d'un verset et d'une plage de mots, extrait les propriétés des sous-titres.
-	 * @param verse Le verset à analyser.
-	 * @param firstWordIndex L'index du premier mot de la plage.
-	 * @param lastWordIndex L'index du dernier mot de la plage.
-	 * @param surah Le numéro de la sourate.
-	 * @returns Un objet contenant les propriétés des sous-titres.
-	 * @returns {isFullVerse, isLastWordsOfVerse, translations}
-	 */
-	async getSubtitlesProperties(
-		verse: Verse,
-		firstWordIndex: number,
-		lastWordIndex: number,
-		surah: number
-	): Promise<{
-		isFullVerse: boolean;
-		isLastWordsOfVerse: boolean;
-		translations: { [key: string]: VerseTranslation };
-	}> {
-		const isFullVerse = verse.words.length === lastWordIndex - firstWordIndex + 1;
-		const isLastWordsOfVerse = verse.words.length - lastWordIndex - 1 === 0;
-
-		// Prépare les traductions du sous-titre
-		let translations: { [key: string]: VerseTranslation } = {};
-		if (globalState.currentProject)
-			translations = await globalState.getProjectTranslation.getTranslations(
-				surah,
-				verse.id,
-				isFullVerse
-			);
-
-		return {
-			isFullVerse,
-			isLastWordsOfVerse,
-			translations
-		};
 	}
 
 	/**

@@ -1,18 +1,11 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import {
-	AssetClip,
-	ClipWithTranslation,
-	PredefinedSubtitleClip,
-	SilenceClip,
-	SubtitleClip
-} from './Clip.svelte';
+import { AssetClip, PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import { ProjectEditorTabs } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { globalState } from '$lib/runes/main.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import type { StoredSegmentationContext } from '$lib/services/AutoSegmentation';
 
 /**
  * État de l'éditeur de projet, utilisé pour gérer l'interface utilisateur et les interactions
@@ -38,7 +31,7 @@ export class ProjectEditorState extends SerializableBase {
 	// Video preview
 	videoPreview: VideoPreviewState = $state(new VideoPreviewState());
 
-	// Subtitles editor
+	// Transcription editor
 	subtitlesEditor: SubtitlesEditorState = $state(new SubtitlesEditorState());
 
 	// Translations editor
@@ -265,8 +258,9 @@ export class VideoPreviewState extends SerializableBase {
 	// Indique si on doit mute la vidéo
 	showVideosAndAudios: boolean = $state(false);
 
-	// Fonction pour toggle play/pause, sera définie par le composant VideoPreview
+	// Fonctions de contrôle, définies par le composant VideoPreview.
 	togglePlayPause: () => void = () => {};
+	setTemporaryPlaybackSpeed: (enabled: boolean) => void = () => {};
 
 	// Fonction pour scroll la timeline à la position du curseur, sera définie par le composant Timeline
 	scrollTimelineToCursor: () => void = () => {};
@@ -291,64 +285,27 @@ export class VideoPreviewState extends SerializableBase {
 }
 
 export class SubtitlesEditorState extends SerializableBase {
-	// Indique la sourate actuellement sélectionnée dans l'éditeur de sous-titres
-	selectedSurah: number = $state(1);
-
-	// Indique le numéro du verset actuellement sélectionné dans l'éditeur de sous-titres
-	selectedVerse: number = $state(1);
-
-	// Indique l'index du premier mot actuellement sélectionné dans l'éditeur de sous-titres
-	startWordIndex: number = $state(0);
-
-	// Indique l'index du dernier mot actuellement sélectionné dans l'éditeur de sous-titres
-	endWordIndex: number = $state(0);
-
-	// Playback speed
+	// Vitesse de lecture utilisée pendant la transcription manuelle.
 	playbackSpeed: number = $state(1.0);
 
-	// Playback speed dédiée au mode WBW
-	wbwPlaybackSpeed: number = $state(0.75);
+	// Intervenant actuellement sélectionné dans le composer.
+	selectedSpeaker: string = $state('');
 
-	// Affiche la traduction des mots
-	showWordTranslation: boolean = $state(true);
+	// Intervenants ajoutés manuellement avant leur première utilisation dans un segment.
+	additionalSpeakers: string[] = $state([]);
 
-	// Affiche la translittération des mots
-	showWordTransliteration: boolean = $state(false);
+	// Segment de transcription actuellement sélectionné pour édition.
+	editSubtitle: SubtitleClip | null = $state(null);
 
-	// Indique le sous-titre à éditer dans l'éditeur de sous-titres (null si aucun)
-	editSubtitle: SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation | SilenceClip | null =
-		$state(null);
-
-	// Si défini, passe automatiquement au clip suivant après la prochaine validation d'édition.
+	// Si défini, passe au segment suivant après une opération de division.
 	pendingSplitEditNextId: number | null = $state(null);
 
-	// Nombre initial de segments à review (set lors de l'auto-segmentation)
-	// Utilisé pour afficher la barre de progression des segments à review
-	initialLowConfidenceCount: number = $state(0);
-
-	// Filtre par nombre de mots minimum dans la liste des sous-titres
+	// Filtre par nombre de mots minimum dans la liste des segments.
 	minWordCount: number = $state(0);
 
-	// Seuil utilisé pour marquer les segments trop longs.
+	// Seuils génériques conservés pour les futurs outils de revue des transcriptions.
 	longSegmentMinWords: number = $state(12);
 	longSegmentMaxWords: number = $state(999);
-
-	// Contexte courant permettant de rejouer des réajustements depuis la segmentation.
-	segmentationContext: StoredSegmentationContext = $state({
-		audioId: null,
-		source: null,
-		effectiveMode: null,
-		modelName: null,
-		device: null,
-		includeWbwTimestamps: true,
-		alignedSegments: []
-	});
-
-	// Paramètres du panneau de subdivision des segments longs.
-	subdivideMaxVersesPerSegment: number = $state(1);
-	subdivideMaxWordsPerSegment: number = $state(30);
-	subdivideMaxDurationPerSegment: number = $state(30);
-	subdivideOnlySplitAtStopSigns: boolean = $state(true);
 }
 
 export class TranslationsEditorState extends SerializableBase {

@@ -76,7 +76,6 @@ export class ProjectDetail extends SerializableBase {
 	public updateVideoDetailAttributes() {
 		this.duration = new Duration(globalState.getAudioTrack.getDuration().ms || 0);
 		this.updateTranscriptionProgress();
-		this.updateVerseRange();
 	}
 
 	private updateTranscriptionProgress() {
@@ -84,7 +83,7 @@ export class ProjectDetail extends SerializableBase {
 
 		const totalDuration = globalState.getAudioTrack.getDuration().ms || 0;
 
-		let percentage = (transcribedDuration / totalDuration) * 100;
+		let percentage = totalDuration > 0 ? (transcribedDuration / totalDuration) * 100 : 0;
 		if (percentage >= 97) {
 			percentage = 100;
 		}

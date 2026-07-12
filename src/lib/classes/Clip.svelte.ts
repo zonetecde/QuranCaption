@@ -15,11 +15,7 @@ import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
 import type { Category, StyleName } from './VideoStyle.svelte';
-import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
-import SoosiProvider from '$lib/services/SoosiProvider';
-import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
-import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 type ClipType =
@@ -35,6 +31,20 @@ type ArabicRenderParts = {
 	words?: string[];
 	suffix: string;
 	suffixFontFamily: string | null;
+};
+
+export type TranscriptWordTiming = {
+	word: string;
+	start: number;
+	end: number;
+	confidence?: number;
+};
+
+export type TranscriptAlignmentMetadata = {
+	source: 'api' | 'local' | 'import' | 'manual';
+	timeFrom: number;
+	timeTo: number;
+	words: TranscriptWordTiming[];
 };
 
 export type VisualMergeMode = 'arabic' | 'translation' | 'both';
@@ -191,7 +201,6 @@ export class ClipWithTranslation extends Clip {
 	arabicInlineStyleRuns: TranslationInlineStyleRun[] = $state([]);
 	associatedImagePath: string | null = $state(null);
 	needsLongReview: boolean = $state(false); // Vrai si le segment a été marqué comme trop long.
-	needsWbwTimestampReview: boolean = $state(false); // Vrai si le segment n'a pas de timestamps WBW.
 	comeFromIA: boolean = $state(false);
 	confidence: number | null = $state(null); // Entre 0 et 1
 	needsReview: boolean = $state(false); // Vrai si c'est un segment à low-confidence et qu'il n'a pas encore été reviewé
@@ -240,7 +249,7 @@ export class ClipWithTranslation extends Clip {
 	/**
 	 * Retourne les parties du texte arabe à afficher.
 	 * Par défaut, les clips texte simples utilisent toujours `this.text`.
-	 * `SubtitleClip` override cette méthode pour gérer les rendus Quran/QPC/IndoPak.
+	 * Les segments de transcription utilisent ce rendu texte générique.
 	 */
 	getArabicRenderParts(_mode: 'editor' | 'preview' = 'editor'): ArabicRenderParts {
 		return {
@@ -300,7 +309,7 @@ export class ClipWithTranslation extends Clip {
 	}
 }
 
-export type ReviewIssueCategory = 'coverage' | 'wbw-timestamps' | 'long' | 'low-confidence';
+export type ReviewIssueCategory = 'coverage' | 'long' | 'low-confidence';
 
 /**
  * Retourne `true` si le clip porte au moins un indicateur de revue actif.
@@ -309,13 +318,7 @@ export type ReviewIssueCategory = 'coverage' | 'wbw-timestamps' | 'long' | 'low-
  * @returns {boolean} `true` si le clip doit etre considere comme reviewable.
  */
 export function hasClipReviewIssue(clip: ClipWithTranslation | null | undefined): boolean {
-	return (
-		!!clip &&
-		(clip.needsCoverageReview ||
-			clip.needsWbwTimestampReview ||
-			clip.needsLongReview ||
-			clip.needsReview)
-	);
+	return !!clip && (clip.needsCoverageReview || clip.needsLongReview || clip.needsReview);
 }
 
 /**
@@ -331,7 +334,6 @@ export function getClipPrimaryReviewIssueCategory(
 	if (clip.needsCoverageReview) return 'coverage';
 	if (clip.needsReview) return 'low-confidence';
 	if (clip.needsLongReview) return 'long';
-	if (clip.needsWbwTimestampReview) return 'wbw-timestamps';
 	return null;
 }
 
@@ -357,382 +359,96 @@ export function markClipAsVerified(clip: ClipWithTranslation | null | undefined)
 }
 
 export class SubtitleClip extends ClipWithTranslation {
-	surah: number;
-	verse: number;
-	startWordIndex: number;
-	endWordIndex: number;
-	indopakText: string;
-	private isHydratingIndopakText = false;
-	alignmentMetadata: SubtitleAlignmentMetadata | null = $state(null);
-	// Vrai si l'utilisateur a édité manuellement les timings WBW (protège du re-MFA automatique).
-	wbwTimestampsManuallyEdited: boolean = $state(false);
+	speaker: string = $state('Unknown speaker');
+	alignmentMetadata: TranscriptAlignmentMetadata | null = $state(null);
 	visualMergeGroupId: string | null = $state(null);
 	visualMergeMode: VisualMergeMode | null = $state(null);
-	wbwTranslation: string[]; // Traduction mot à mot
-	isFullVerse: boolean; // Indique si ce clip contient l'intégralité du verset
-	isLastWordsOfVerse: boolean; // Indique si ce clip contient les derniers mots du verset
 
 	constructor(
-		startTime: number,
-		endTime: number,
-		surah: number,
-		verse: number,
-		startWordIndex: number,
-		endWordIndex: number,
-		text: string,
-		wbwTranslation: string[],
-		isFullVerse: boolean,
-		isLastWordsOfVerse: boolean,
+		startTime: number = 0,
+		endTime: number = 0,
+		text: string = '',
+		speaker: string = 'Unknown speaker',
 		translations: { [key: string]: Translation } = {},
-		indopakSegmentText?: string,
 		comeFromIA: boolean = false,
-		confidence: number | null = null
+		confidence: number | null = null,
+		alignmentMetadata: TranscriptAlignmentMetadata | null = null
 	) {
 		super(text, startTime, endTime, 'Subtitle', translations, comeFromIA, confidence);
-		this.surah = $state(surah);
-		this.verse = $state(verse);
-		this.startWordIndex = $state(startWordIndex);
-		this.endWordIndex = $state(endWordIndex);
-		this.indopakText = $state(indopakSegmentText ?? text);
-		this.translations = translations;
-		this.wbwTranslation = $state(wbwTranslation);
-		this.isFullVerse = $state(isFullVerse);
-		this.isLastWordsOfVerse = $state(isLastWordsOfVerse);
+		this.speaker = speaker.trim() || 'Unknown speaker';
+		this.alignmentMetadata = alignmentMetadata;
 	}
 
-	/**
-	 * Invalide les métadonnées d'alignement quand le clip devient manuel.
-	 */
-	override markAsManualEdit() {
-		super.markAsManualEdit();
-		// Un changement de contenu (texte/plage de mots) invalide une éventuelle édition manuelle WBW.
-		this.wbwTimestampsManuallyEdited = false;
-		if (!this.alignmentMetadata) return;
-
-		this.alignmentMetadata = null;
-		const currentContext = globalState.getSubtitlesEditorState.segmentationContext;
-		globalState.getSubtitlesEditorState.segmentationContext = {
-			...currentContext,
-			audioId: null,
-			alignedSegments: []
-		};
-	}
-
-	/**
-	 * Associe ce clip a un groupe de merge visuel.
-	 * @param {string} groupId Identifiant du groupe.
-	 * @param {VisualMergeMode} mode Mode de merge applique.
-	 * @returns {void}
-	 */
 	setVisualMerge(groupId: string, mode: VisualMergeMode): void {
 		this.visualMergeGroupId = groupId;
 		this.visualMergeMode = mode;
 	}
 
-	/**
-	 * Retire le merge visuel de ce clip.
-	 * @returns {void}
-	 */
 	clearVisualMerge(): void {
 		this.visualMergeGroupId = null;
 		this.visualMergeMode = null;
 	}
 
-	/**
-	 * Indique si le clip appartient a un groupe de merge visuel.
-	 * @returns {boolean} `true` si le clip est merge visuellement.
-	 */
 	isVisuallyMerged(): boolean {
 		return !!this.visualMergeGroupId && !!this.visualMergeMode;
 	}
 
-	/**
-	 * Retourne la clé du verset au format "Surah:Verse".
-	 * @returns La clé du verset.
-	 */
-	getVerseKey(): string {
-		return `${this.surah}:${this.verse}`;
-	}
-
-	getTextWithVerseNumber(text: string = this.text): string {
-		if (this.isLastWordsOfVerse) {
-			const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
-			// Indopak may lack the ornamental verse-number glyph,
-			// so the number is rendered with Hafs in a nested span.
-			if (mushafStyle === 'Indopak')
-				return `<span style="direction: rtl; unicode-bidi: isolate;">${text} <span style="font-family:Hafs;">${this.latinToArabicNumbers(this.verse)}</span></span>`;
-			else return text + ` ${this.latinToArabicNumbers(this.verse)}`;
-		}
-		return text;
-	}
-
-	private latinToArabicNumbers(n: number): string {
-		return n.toString().replace(/\d/g, (digit) => {
-			const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-			return arabicDigits[parseInt(digit, 10)];
-		});
-	}
-
-	/**
-	 * Retourne les parties du texte arabe à afficher.
-	 * - `editor`: toujours le texte Uthmani brut du segment
-	 * - `preview`: respecte la police arabe active (QPC, Indopak, etc.)
-	 *
-	 * Le numéro de verset est renvoyé à part pour éviter de lui appliquer les styles inline.
-	 */
-	getArabicRenderParts(mode: 'editor' | 'preview' = 'editor'): ArabicRenderParts {
-		const showVerseNumber =
-			this.isLastWordsOfVerse && Boolean(globalState.getStyle('arabic', 'show-verse-number').value);
-
-		if (mode === 'editor') {
-			return {
-				text: this.text,
-				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
-				suffixFontFamily: null
-			};
-		}
-
-		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
-		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
-
-		if (mushafStyle === 'Minimal Quran') {
-			const words =
-				MinimalQuranProvider.getVerseWordsSlice(
-					this.surah,
-					this.verse,
-					this.startWordIndex,
-					this.endWordIndex
-				) ?? undefined;
-			return {
-				text: words?.join(' ') ?? this.text,
-				words,
-				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
-				suffixFontFamily: null
-			};
-		}
-
-		if (mushafStyle === 'Soosi') {
-			const soosiText = SoosiProvider.getVerseSlice(
-				this.surah,
-				this.verse,
-				this.startWordIndex,
-				this.endWordIndex,
-				this.isLastWordsOfVerse
-			);
-			return {
-				text: soosiText ?? this.text,
-				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
-				suffixFontFamily: showVerseNumber ? 'Hafs' : null
-			};
-		}
-
-		const shouldUseQpcGlyphs =
-			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
-
-		if (!shouldUseQpcGlyphs) {
-			if (mushafStyle === 'Indopak' && !this.indopakText) {
-				// L'éditeur peut demander un rendu preview avant que le texte IndoPak soit hydraté.
-				void this.hydrateIndopakTextFromLocalQuran();
-			}
-
-			return {
-				text: mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text,
-				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
-				// En mode IndoPak, le numéro de verset reste rendu avec Hafs comme avant.
-				suffixFontFamily: showVerseNumber && mushafStyle === 'Indopak' ? 'Hafs' : null
-			};
-		}
-
-		const qpcVersion: '1' | '2' =
-			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
-
-		const words = QPCFontProvider.getQuranVerseGlyphWords(
-			this.surah,
-			this.verse,
-			this.startWordIndex,
-			this.endWordIndex,
-			qpcVersion
-		);
-
-		return {
-			text: words.join(' '),
-			words,
-			suffix: showVerseNumber
-				? ` ${QPCFontProvider.getQuranVerseGlyph(
-						this.surah,
-						this.verse,
-						this.endWordIndex + 1,
-						this.endWordIndex,
-						true,
-						qpcVersion
-					)}`.trimEnd()
-				: '',
-			suffixFontFamily: null
-		};
-	}
-
-	private async hydrateIndopakTextFromLocalQuran() {
-		if (this.isHydratingIndopakText || this.indopakText) return;
-		this.isHydratingIndopakText = true;
-
-		try {
-			const verse = await Quran.getVerse(this.surah, this.verse);
-			if (!verse) return;
-
-			this.indopakText = verse.getArabicTextBetweenTwoIndexes(
-				this.startWordIndex,
-				this.endWordIndex,
-				'indopak'
-			);
-			globalState.updateVideoPreviewUI();
-		} catch {
-			// Keep silent: fallback text remains available.
-		} finally {
-			this.isHydratingIndopakText = false;
-		}
-	}
-
-	override getText(): string {
-		// En fonction de la police d'écriture, renvoie le bon texte
-		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
-		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
-
-		if (mushafStyle === 'Minimal Quran') {
-			const minimalText =
-				MinimalQuranProvider.getVerseSlice(
-					this.surah,
-					this.verse,
-					this.startWordIndex,
-					this.endWordIndex
-				) ?? this.text;
-			return globalState.getStyle('arabic', 'show-verse-number').value
-				? this.getTextWithVerseNumber(minimalText)
-				: minimalText;
-		}
-
-		if (mushafStyle === 'Soosi') {
-			const soosiText =
-				SoosiProvider.getVerseSlice(
-					this.surah,
-					this.verse,
-					this.startWordIndex,
-					this.endWordIndex,
-					this.isLastWordsOfVerse
-				) ?? this.text;
-			if (globalState.getStyle('arabic', 'show-verse-number').value)
-				return `${soosiText} ${this.latinToArabicNumbers(this.verse)}`;
-			return soosiText;
-		}
-
-		// Les polices QPC1, QPC2 et Tajweed utilisent des glyphes. Tajweed utilise les glyphes de QPC2.
-		const shouldUseQpcGlyphs =
-			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
-
-		if (!shouldUseQpcGlyphs) {
-			if (mushafStyle === 'Indopak' && !this.indopakText) {
-				void this.hydrateIndopakTextFromLocalQuran();
-			}
-
-			const baseText = mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text;
-
-			if (globalState.getStyle('arabic', 'show-verse-number').value)
-				return this.getTextWithVerseNumber(baseText);
-			else return baseText;
-		}
-
-		// Tajweed utilise les glyphes de QPC2
-		const qpcVersion: '1' | '2' =
-			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
-
-		return QPCFontProvider.getQuranVerseGlyph(
-			this.surah,
-			this.verse,
-			this.startWordIndex,
-			this.endWordIndex,
-			this.isLastWordsOfVerse,
-			qpcVersion
-		);
-	}
-
-	/**
-	 * Normalise les timings WBW pour qu'ils restent dans la durée du clip.
-	 * @param {SubtitleAlignmentMetadata['words']} words Timings WBW à normaliser.
-	 * @param {number} clipDurationS Durée actuelle du clip en secondes.
-	 * @param {boolean} pinLastWordToEnd Indique si le dernier mot doit finir à la fin du clip.
-	 * @returns {SubtitleAlignmentMetadata['words']} Timings WBW normalisés.
-	 */
-	private normalizeAlignmentWordsForClipDuration(
-		words: SubtitleAlignmentMetadata['words'],
-		clipDurationS: number,
+	private normalizeWordTimings(
+		words: TranscriptWordTiming[],
+		clipDurationSeconds: number,
 		pinLastWordToEnd: boolean
-	): SubtitleAlignmentMetadata['words'] {
+	): TranscriptWordTiming[] {
 		let previousEnd = 0;
 
 		return words.map((word, index) => {
 			const isFirstWord = index === 0;
 			const isLastWord = index === words.length - 1;
-			const start = isFirstWord ? 0 : Math.max(previousEnd, Math.min(clipDurationS, word.start));
-			const targetEnd = pinLastWordToEnd && isLastWord ? clipDurationS : word.end;
-			const end = Math.max(start, Math.min(clipDurationS, targetEnd));
+			const start = isFirstWord
+				? 0
+				: Math.max(previousEnd, Math.min(clipDurationSeconds, word.start));
+			const requestedEnd = pinLastWordToEnd && isLastWord ? clipDurationSeconds : word.end;
+			const end = Math.max(start, Math.min(clipDurationSeconds, requestedEnd));
 			previousEnd = end;
 
-			return {
-				...word,
-				start,
-				end
-			};
+			return { ...word, start, end };
 		});
 	}
 
-	/**
-	 * Recale les timings WBW après un changement de début du sous-titre.
-	 * @param {number} previousStartTime Ancien début du clip en millisecondes.
-	 * @returns {void}
-	 */
-	private retimeAlignmentMetadataAfterStartChange(previousStartTime: number): void {
+	private retimeAlignmentAfterStartChange(previousStartTime: number): void {
 		if (!this.alignmentMetadata) return;
 
-		const clipDurationS = Math.max(0, (this.endTime - this.startTime) / 1000);
-		const offsetS = (previousStartTime - this.startTime) / 1000;
+		const clipDurationSeconds = Math.max(0, (this.endTime - this.startTime) / 1000);
+		const offsetSeconds = (previousStartTime - this.startTime) / 1000;
 		const shiftedWords = this.alignmentMetadata.words.map((word, index) => ({
 			...word,
-			start: index === 0 ? 0 : word.start + offsetS,
-			end: word.end + offsetS
+			start: index === 0 ? 0 : word.start + offsetSeconds,
+			end: word.end + offsetSeconds
 		}));
 
 		this.alignmentMetadata = {
 			...this.alignmentMetadata,
 			timeFrom: this.startTime / 1000,
 			timeTo: this.endTime / 1000,
-			words: this.normalizeAlignmentWordsForClipDuration(shiftedWords, clipDurationS, false)
+			words: this.normalizeWordTimings(shiftedWords, clipDurationSeconds, false)
 		};
 	}
 
-	/**
-	 * Recale les timings WBW après un changement de fin du sous-titre.
-	 * @returns {void}
-	 */
-	private retimeAlignmentMetadataAfterEndChange(): void {
+	private retimeAlignmentAfterEndChange(): void {
 		if (!this.alignmentMetadata) return;
 
-		const clipDurationS = Math.max(0, (this.endTime - this.startTime) / 1000);
+		const clipDurationSeconds = Math.max(0, (this.endTime - this.startTime) / 1000);
 		this.alignmentMetadata = {
 			...this.alignmentMetadata,
 			timeFrom: this.startTime / 1000,
 			timeTo: this.endTime / 1000,
-			words: this.normalizeAlignmentWordsForClipDuration(
-				this.alignmentMetadata.words,
-				clipDurationS,
-				true
-			)
+			words: this.normalizeWordTimings(this.alignmentMetadata.words, clipDurationSeconds, true)
 		};
 	}
 
 	override setEndTime(newEndTime: number) {
 		super.setEndTime(newEndTime);
-		// Si la modification a bien été prise en compte (pas d'erreur dans le super)
 		if (this.endTime === newEndTime) {
-			this.retimeAlignmentMetadataAfterEndChange();
+			this.retimeAlignmentAfterEndChange();
 			super.markAsManualEdit();
 		}
 	}
@@ -740,70 +456,52 @@ export class SubtitleClip extends ClipWithTranslation {
 	override setStartTime(newStartTime: number) {
 		const previousStartTime = this.startTime;
 		super.setStartTime(newStartTime);
-		// Si la modification a bien été prise en compte (pas d'erreur dans le super)
 		if (this.startTime === newStartTime) {
-			this.retimeAlignmentMetadataAfterStartChange(previousStartTime);
+			this.retimeAlignmentAfterStartChange(previousStartTime);
 			super.markAsManualEdit();
 		}
 	}
 
-	// Utilise pour les ajustements automatiques qui ne doivent pas annuler l'origine IA.
 	setStartTimeSilently(newStartTime: number) {
 		const previousStartTime = this.startTime;
 		super.setStartTime(newStartTime);
 		if (this.startTime === newStartTime) {
-			this.retimeAlignmentMetadataAfterStartChange(previousStartTime);
+			this.retimeAlignmentAfterStartChange(previousStartTime);
 		}
 	}
 
-	// Utilise pour les ajustements automatiques qui ne doivent pas annuler l'origine IA.
 	setEndTimeSilently(newEndTime: number) {
 		super.setEndTime(newEndTime);
 		if (this.endTime === newEndTime) {
-			this.retimeAlignmentMetadataAfterEndChange();
+			this.retimeAlignmentAfterEndChange();
 		}
 	}
 
-	/**
-	 * Crée un clone du clip avec de nouveaux timestamps.
-	 * @param newStartTime Le nouveau temps de début.
-	 * @param newEndTime Le nouveau temps de fin.
-	 * @returns Un nouveau SubtitleClip avec les mêmes propriétés mais des timestamps différents.
-	 */
 	cloneWithTimes(newStartTime: number, newEndTime: number): SubtitleClip {
 		const clonedClip = new SubtitleClip(
 			newStartTime,
 			newEndTime,
-			this.surah,
-			this.verse,
-			this.startWordIndex,
-			this.endWordIndex,
 			this.text,
-			JSON.parse(JSON.stringify(this.wbwTranslation)),
-			this.isFullVerse,
-			this.isLastWordsOfVerse,
+			this.speaker,
 			Object.fromEntries(
-				Object.entries(this.translations).map(([key, t]) => [
+				Object.entries(this.translations).map(([key, translation]) => [
 					key,
-					typeof t.clone === 'function' ? t.clone() : JSON.parse(JSON.stringify(t))
+					typeof translation.clone === 'function'
+						? translation.clone()
+						: JSON.parse(JSON.stringify(translation))
 				])
-			)
+			),
+			this.comeFromIA,
+			this.confidence,
+			this.alignmentMetadata ? JSON.parse(JSON.stringify(this.alignmentMetadata)) : null
 		);
 
-		clonedClip.indopakText = this.indopakText;
 		clonedClip.arabicInlineStyleRuns = JSON.parse(JSON.stringify(this.arabicInlineStyleRuns ?? []));
 		clonedClip.associatedImagePath = this.associatedImagePath;
 		clonedClip.needsLongReview = this.needsLongReview;
-		clonedClip.needsWbwTimestampReview = this.needsWbwTimestampReview;
 		clonedClip.needsReview = this.needsReview;
 		clonedClip.needsCoverageReview = this.needsCoverageReview;
 		clonedClip.hasBeenVerified = this.hasBeenVerified;
-		clonedClip.comeFromIA = this.comeFromIA;
-		clonedClip.confidence = this.confidence;
-		clonedClip.alignmentMetadata = this.alignmentMetadata
-			? JSON.parse(JSON.stringify(this.alignmentMetadata))
-			: null;
-		clonedClip.wbwTimestampsManuallyEdited = this.wbwTimestampsManuallyEdited;
 		clonedClip.visualMergeGroupId = this.visualMergeGroupId;
 		clonedClip.visualMergeMode = this.visualMergeMode;
 		return clonedClip;

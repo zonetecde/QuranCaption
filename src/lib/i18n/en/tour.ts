@@ -11,9 +11,9 @@ const tour = {
 	stepAddToTimelineTitle: 'Add to the timeline',
 	stepAddToTimelineDesc:
 		'Hover over the asset card in the list on the left, then click "Add to Timeline". This places the recitation into the main editing area.',
-	stepSubtitlesEditorTitle: 'Go to Subtitles Editor',
+	stepSubtitlesEditorTitle: 'Go to Transcription',
 	stepSubtitlesEditorDesc:
-		'Head to the Subtitles Editor to start adding Quranic text. This is where you align each verse with the audio.',
+		'Head to Transcription to add what each speaker says and align every segment with the audio.',
 	stepManualSegmentationTitle: 'Manual segmentation',
 	stepManualSegmentationDesc:
 		'Subtitles are added in real time as the recitation plays. Type or select a verse, and it will appear at the current playback position.',
@@ -42,7 +42,7 @@ const tour = {
 		'Use the range inputs to select the time range, choose quality, and click Export to create your final video.',
 	hintClickTutorialCard: 'Click the tutorial project card to continue',
 	hintHoverAndAdd: 'Hover the asset and click "Add to Timeline" to continue',
-	hintClickSubtitlesTab: 'Click the "Subtitles editor" tab to continue',
+	hintClickSubtitlesTab: 'Click the "Transcription" tab to continue',
 	hintClickTranslationsTab: 'Click the "Translations" tab to continue',
 	hintClickStyleTab: 'Click the "Style" tab to continue',
 	hintClickExportTab: 'Click the "Export" tab to continue',

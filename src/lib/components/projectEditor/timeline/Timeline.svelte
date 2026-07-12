@@ -153,7 +153,7 @@
 				// only if we are on the subtitles editor tab
 				if (
 					globalState.currentProject?.projectEditorState.currentTab ===
-					ProjectEditorTabs.SubtitlesEditor
+					ProjectEditorTabs.Transcription
 				) {
 					globalState.getSubtitlesEditorState.editSubtitle = clipToSplit;
 					const nextClip = subtitleTrack.getClipAfter(clipToSplit.id);

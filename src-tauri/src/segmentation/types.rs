@@ -90,6 +90,8 @@ pub enum LocalSegmentationEngine {
     MuaalemLocal,
     /// Pipeline locale Surah Splitter basee sur WhisperX et detection d'ayahs.
     SurahSplitter,
+    /// Transcription generique WhisperX avec diarisation pyannote.
+    Transcription,
 }
 
 impl LocalSegmentationEngine {
@@ -102,8 +104,9 @@ impl LocalSegmentationEngine {
                 Ok(Self::MuaalemLocal)
             }
             "surah_splitter" | "surah-splitter" => Ok(Self::SurahSplitter),
+            "transcription" | "whisperx" | "whisperx_transcription" => Ok(Self::Transcription),
             _ => Err(format!(
-                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'muaalem', or 'surah_splitter'.",
+                "Unknown local engine '{}'. Expected 'legacy', 'multi', 'muaalem', 'surah_splitter', or 'transcription'.",
                 raw
             )),
         }
@@ -116,6 +119,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "multi",
             Self::MuaalemLocal => "muaalem",
             Self::SurahSplitter => "surah_splitter",
+            Self::Transcription => "transcription",
         }
     }
 
@@ -126,6 +130,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "Multi-Aligner",
             Self::MuaalemLocal => "Muaalem Local",
             Self::SurahSplitter => "Surah Splitter",
+            Self::Transcription => "WhisperX Transcription",
         }
     }
 
@@ -136,6 +141,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
             Self::MuaalemLocal => "python/muaalem_requirements.txt",
             Self::SurahSplitter => "python/surah_splitter_requirements.txt",
+            Self::Transcription => "python/whisperx_requirements.txt",
         }
     }
 
@@ -146,6 +152,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
             Self::MuaalemLocal => "python/local_muaalem_segmenter.py",
             Self::SurahSplitter => "python/local_surah_splitter_segmenter.py",
+            Self::Transcription => "python/whisperx_transcriber.py",
         }
     }
 
@@ -187,6 +194,14 @@ impl LocalSegmentationEngine {
                 "loguru",
                 "rich",
                 "pydub",
+            ],
+            Self::Transcription => &[
+                "torch",
+                "torchaudio",
+                "whisperx",
+                "faster_whisper",
+                "pyannote.audio",
+                "huggingface_hub",
             ],
         }
     }

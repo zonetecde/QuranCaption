@@ -10,8 +10,9 @@ use super::data_files::{
     validate_multi_aligner_data_file,
 };
 use super::python_env::{
-    apply_hf_token_env, create_venv_if_missing, get_venv_python_exe, resolve_python_resource_path,
-    resolve_system_python, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
+    apply_hf_token_env, create_managed_venv_if_missing, create_venv_if_missing,
+    get_venv_python_exe, read_python_version, resolve_python_resource_path, resolve_system_python,
+    MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
 };
 use super::requirements::{
     prepare_multi_requirements_file, prepare_windows_safe_quranic_phonemizer_source,
@@ -88,24 +89,45 @@ pub async fn install_local_segmentation_deps(
         let _ = app_handle.emit("install-status", serde_json::json!({ "message": message }));
     };
 
-    // Validate system Python and prepare the dedicated venv.
-    let system_python = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR)
-        .map_err(|e| {
+    let venv_dir = if matches!(selected_engine, LocalSegmentationEngine::Transcription) {
+        // The Minbar Studio transcription engine owns its Python runtime completely.
+        emit_status("Preparing Minbar Studio managed Python runtime...");
+        emit_status(&format!(
+            "Preparing {} local environment...",
+            selected_engine.as_label()
+        ));
+        create_managed_venv_if_missing(&app_handle, selected_engine).await?
+    } else {
+        // Keep historical Quran engines on their previous system-Python workflow.
+        let system_python = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR)
+            .map_err(|e| {
             format!(
                 "Python {}.{}+ is required to install local dependencies: {}",
                 MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR, e
             )
         })?;
-    emit_status(&format!(
-        "Using Python {}.{}.{} ({})",
-        system_python.major, system_python.minor, system_python.patch, system_python.executable
-    ));
-    emit_status(&format!(
-        "Preparing {} local environment...",
-        selected_engine.as_label()
-    ));
-    let venv_dir = create_venv_if_missing(&app_handle, selected_engine)?;
+        emit_status(&format!(
+            "Using Python {}.{}.{} ({})",
+            system_python.major, system_python.minor, system_python.patch, system_python.executable
+        ));
+        emit_status(&format!(
+            "Preparing {} local environment...",
+            selected_engine.as_label()
+        ));
+        create_venv_if_missing(&app_handle, selected_engine)?
+    };
     let python_exe = get_venv_python_exe(&venv_dir);
+    if matches!(selected_engine, LocalSegmentationEngine::Transcription) {
+        if let Some((major, minor, patch)) = read_python_version(&python_exe) {
+            emit_status(&format!(
+                "Using managed Python {}.{}.{} ({})",
+                major,
+                minor,
+                patch,
+                python_exe.to_string_lossy()
+            ));
+        }
+    }
     let normalized_hf_token = hf_token
         .as_ref()
         .map(|token| token.trim().to_string())
@@ -147,7 +169,99 @@ pub async fn install_local_segmentation_deps(
         "Failed to upgrade pip",
     )?;
 
-    if cfg!(target_os = "windows") {
+    if matches!(selected_engine, LocalSegmentationEngine::Transcription) {
+        const TORCH: &str = "torch==2.8.0";
+        const TORCHVISION: &str = "torchvision==0.23.0";
+        const TORCHAUDIO: &str = "torchaudio==2.8.0";
+
+        if cfg!(target_os = "windows") || cfg!(target_os = "linux") {
+            emit_status("Installing WhisperX-compatible PyTorch (CPU fallback available)...");
+            let mut cuda_installed = false;
+            let mut nvidia_cmd = Command::new("nvidia-smi");
+            configure_command_no_window(&mut nvidia_cmd);
+            let has_nvidia = nvidia_cmd
+                .output()
+                .map(|output| output.status.success())
+                .unwrap_or(false);
+
+            if has_nvidia {
+                for index_url in [
+                    "https://download.pytorch.org/whl/cu126",
+                    "https://download.pytorch.org/whl/cu128",
+                ] {
+                    emit_status(&format!(
+                        "Trying WhisperX-compatible CUDA PyTorch from {}...",
+                        index_url
+                    ));
+                    let result = run_python_cmd(
+                        &[
+                            "-m",
+                            "pip",
+                            "install",
+                            "--upgrade",
+                            TORCH,
+                            TORCHVISION,
+                            TORCHAUDIO,
+                            "--index-url",
+                            index_url,
+                            "--quiet",
+                        ],
+                        "Failed to install WhisperX-compatible CUDA PyTorch",
+                    );
+                    if result.is_ok() {
+                        let mut verify_cuda = Command::new(&python_exe);
+                        verify_cuda.args([
+                            "-c",
+                            "import torch; assert torch.__version__.startswith('2.8.'); assert torch.cuda.is_available(), 'cuda not available'",
+                        ]);
+                        configure_command_no_window(&mut verify_cuda);
+                        if verify_cuda
+                            .output()
+                            .map(|output| output.status.success())
+                            .unwrap_or(false)
+                        {
+                            cuda_installed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if !cuda_installed {
+                emit_status("Installing WhisperX-compatible PyTorch CPU build...");
+                run_python_cmd(
+                    &[
+                        "-m",
+                        "pip",
+                        "install",
+                        "--upgrade",
+                        TORCH,
+                        TORCHVISION,
+                        TORCHAUDIO,
+                        "--index-url",
+                        "https://download.pytorch.org/whl/cpu",
+                        "--quiet",
+                    ],
+                    "Failed to install WhisperX-compatible CPU PyTorch",
+                )?;
+            }
+        } else {
+            emit_status("Installing WhisperX-compatible PyTorch...");
+            run_python_cmd(
+                &[
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    TORCH,
+                    TORCHVISION,
+                    TORCHAUDIO,
+                    "--quiet",
+                ],
+                "Failed to install WhisperX-compatible PyTorch",
+            )?;
+        }
+    } else if cfg!(target_os = "windows") {
         emit_status("Installing PyTorch (CPU fallback available)...");
         let mut cuda_installed = false;
         let mut nvidia_cmd = Command::new("nvidia-smi");

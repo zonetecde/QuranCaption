@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SubtitleClip } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 
 	const transcriptCount = $derived(
@@ -62,12 +63,23 @@
 
 	<div class="space-y-3">
 		<h3 class="text-sm font-medium text-secondary">{$LL.editor.aiTranscription()}</h3>
-		<div class="rounded-lg border border-dashed border-color bg-accent/50 p-4 text-center">
-			<span class="material-icons mb-2 text-2xl text-thirdly">auto_awesome</span>
-			<p class="text-sm font-semibold text-primary">{$LL.editor.aiTranscriptionComingSoon()}</p>
+		<button
+			type="button"
+			class="group w-full cursor-pointer rounded-lg border border-color bg-accent/50 p-4 text-center transition hover:border-[var(--accent-primary)] hover:bg-accent"
+			onclick={() => void ModalManager.aiTranscriptionModal()}
+		>
+			<span
+				class="material-icons mb-2 text-2xl text-accent-primary transition group-hover:scale-110"
+				>auto_awesome</span
+			>
+			<p class="text-sm font-semibold text-primary">Transcribe with WhisperX</p>
 			<p class="mt-1 text-xs leading-relaxed text-secondary">
-				{$LL.editor.aiTranscriptionComingSoonDescription()}
+				Detect speakers, align every word and create transcript segments automatically.
 			</p>
-		</div>
+			<span class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-accent-primary">
+				Open AI transcription
+				<span class="material-icons text-sm">arrow_forward</span>
+			</span>
+		</button>
 	</div>
 </div>

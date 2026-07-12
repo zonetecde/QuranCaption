@@ -233,6 +233,48 @@ pub async fn segment_quran_audio_local_surah_splitter(
     .await
 }
 
+/// Verifie si le runtime local WhisperX est pret.
+#[tauri::command]
+pub async fn check_ai_transcription_ready(
+    app_handle: tauri::AppHandle,
+) -> Result<serde_json::Value, String> {
+    segmentation::check_ai_transcription_ready(app_handle).await
+}
+
+/// Transcrit et diarise l'audio courant avec WhisperX + pyannote.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn transcribe_audio_local_whisperx(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    model: Option<String>,
+    language: Option<String>,
+    device: Option<String>,
+    hf_token: Option<String>,
+    min_speakers: Option<u32>,
+    max_speakers: Option<u32>,
+    batch_size: Option<u32>,
+    max_words: Option<u32>,
+    max_chars: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    segmentation::transcribe_audio_local_whisperx(
+        app_handle,
+        audio_path,
+        audio_clips,
+        model,
+        language,
+        device,
+        hf_token,
+        min_speakers,
+        max_speakers,
+        batch_size,
+        max_words,
+        max_chars,
+    )
+    .await
+}
+
 /// Genere une nouvelle piste audio Hifz en repetant chaque segment fourni.
 #[tauri::command]
 pub async fn generate_hifz_audio(

@@ -11,6 +11,8 @@ use super::types::LocalSegmentationEngine;
 
 pub(crate) const MIN_LOCAL_PYTHON_MAJOR: u8 = 3;
 pub(crate) const MIN_LOCAL_PYTHON_MINOR: u8 = 10;
+const MANAGED_PYTHON_VERSION: &str = "3.12";
+const UV_VERSION: &str = "0.11.28";
 
 #[derive(Clone, Debug)]
 pub(crate) struct PythonInterpreter {
@@ -191,6 +193,119 @@ pub(crate) fn resolve_python_resource_path(
     }
 }
 
+/// Retourne le dossier racine du runtime Python gere par Minbar Studio.
+pub(crate) fn get_managed_python_root(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let runtime_root = app_data_dir.join("python_runtime");
+    fs::create_dir_all(&runtime_root).map_err(|e| {
+        format!(
+            "Failed to create managed Python runtime directory '{}': {}",
+            runtime_root.to_string_lossy(),
+            e
+        )
+    })?;
+    Ok(runtime_root)
+}
+
+fn get_uv_executable_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let uv_dir = get_managed_python_root(app_handle)?.join("uv");
+    Ok(if cfg!(target_os = "windows") {
+        uv_dir.join("uv.exe")
+    } else {
+        uv_dir.join("uv")
+    })
+}
+
+/// Telecharge uv dans le dossier de donnees de l'application sans modifier le PATH utilisateur.
+pub(crate) async fn ensure_managed_uv(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let uv_exe = get_uv_executable_path(app_handle)?;
+    if uv_exe.exists() {
+        return Ok(uv_exe);
+    }
+
+    let uv_dir = uv_exe
+        .parent()
+        .ok_or("Unable to resolve uv installation directory")?;
+    fs::create_dir_all(uv_dir).map_err(|e| {
+        format!(
+            "Failed to create uv installation directory '{}': {}",
+            uv_dir.to_string_lossy(),
+            e
+        )
+    })?;
+
+    let installer_url = if cfg!(target_os = "windows") {
+        format!("https://astral.sh/uv/{}/install.ps1", UV_VERSION)
+    } else {
+        format!("https://astral.sh/uv/{}/install.sh", UV_VERSION)
+    };
+    let response = reqwest::get(&installer_url)
+        .await
+        .map_err(|e| format!("Failed to download the managed Python installer: {}", e))?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "Failed to download the managed Python installer: HTTP {}",
+            response.status()
+        ));
+    }
+    let script_bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read the managed Python installer: {}", e))?;
+    let script_path = std::env::temp_dir().join(if cfg!(target_os = "windows") {
+        format!("minbarstudio-uv-{}.ps1", UV_VERSION)
+    } else {
+        format!("minbarstudio-uv-{}.sh", UV_VERSION)
+    });
+    fs::write(&script_path, script_bytes).map_err(|e| {
+        format!(
+            "Failed to write managed Python installer '{}': {}",
+            script_path.to_string_lossy(),
+            e
+        )
+    })?;
+
+    let mut command = if cfg!(target_os = "windows") {
+        let mut cmd = Command::new("powershell.exe");
+        cmd.args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            script_path.to_string_lossy().as_ref(),
+        ]);
+        cmd
+    } else {
+        let mut cmd = Command::new("sh");
+        cmd.arg(script_path.to_string_lossy().as_ref());
+        cmd
+    };
+    command.env("UV_UNMANAGED_INSTALL", uv_dir);
+    command.env("UV_NO_MODIFY_PATH", "1");
+    configure_command_no_window(&mut command);
+    let output = command
+        .output()
+        .map_err(|e| format!("Failed to launch the managed Python installer: {}", e))?;
+    let _ = fs::remove_file(&script_path);
+    if !output.status.success() {
+        return Err(format!(
+            "Managed Python installer failed: {}",
+            sanitize_cmd_error(&output)
+        ));
+    }
+    if !uv_exe.exists() {
+        return Err(format!(
+            "uv was installed but its executable was not found at {}",
+            uv_exe.to_string_lossy()
+        ));
+    }
+    Ok(uv_exe)
+}
+
 /// Retourne le dossier racine contenant tous les environnements virtuels locaux.
 pub(crate) fn get_local_venv_root(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app_handle
@@ -292,6 +407,81 @@ pub(crate) fn run_python_any_import_check(python_exe: &Path, candidates: &[&str]
         }
     }
     false
+}
+
+/// Cree un environnement virtuel avec le runtime Python gere par l'application.
+pub(crate) async fn create_managed_venv_if_missing(
+    app_handle: &tauri::AppHandle,
+    engine: LocalSegmentationEngine,
+) -> Result<PathBuf, String> {
+    let venv_dir = get_engine_venv_path(app_handle, engine)?;
+    let python_exe = get_venv_python_exe(&venv_dir);
+
+    if python_exe.exists() {
+        if let Some((major, minor, _)) = read_python_version(&python_exe) {
+            if python_version_meets_min(
+                major,
+                minor,
+                MIN_LOCAL_PYTHON_MAJOR,
+                MIN_LOCAL_PYTHON_MINOR,
+            ) {
+                return Ok(venv_dir);
+            }
+        }
+        fs::remove_dir_all(&venv_dir).map_err(|e| {
+            format!(
+                "Failed to replace incompatible Python environment for {}: {}",
+                engine.as_label(),
+                e
+            )
+        })?;
+    }
+
+    let uv_exe = ensure_managed_uv(app_handle).await?;
+    let runtime_root = get_managed_python_root(app_handle)?;
+    let python_install_dir = runtime_root.join("python");
+    let cache_dir = runtime_root.join("cache");
+    fs::create_dir_all(&python_install_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&cache_dir).map_err(|e| e.to_string())?;
+
+    let mut command = Command::new(&uv_exe);
+    command.args([
+        "venv",
+        "--python",
+        MANAGED_PYTHON_VERSION,
+        "--seed",
+        venv_dir.to_string_lossy().as_ref(),
+    ]);
+    command.env("UV_PYTHON_INSTALL_DIR", &python_install_dir);
+    command.env("UV_CACHE_DIR", &cache_dir);
+    command.env("UV_PYTHON_DOWNLOADS", "automatic");
+    command.env("UV_PYTHON_PREFERENCE", "only-managed");
+    command.env("UV_NO_PROGRESS", "1");
+    command.env("UV_NO_MODIFY_PATH", "1");
+    configure_command_no_window(&mut command);
+
+    let output = command.output().map_err(|e| {
+        format!(
+            "Failed to create the managed Python environment for {}: {}",
+            engine.as_label(),
+            e
+        )
+    })?;
+    if !output.status.success() {
+        return Err(format!(
+            "Failed to create the managed Python environment for {}: {}",
+            engine.as_label(),
+            sanitize_cmd_error(&output)
+        ));
+    }
+    if !python_exe.exists() {
+        return Err(format!(
+            "Managed Python environment created for {} but Python was not found at {}",
+            engine.as_label(),
+            python_exe.to_string_lossy()
+        ));
+    }
+    Ok(venv_dir)
 }
 
 /// Creates an engine venv if needed and returns its directory.

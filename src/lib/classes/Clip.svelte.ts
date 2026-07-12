@@ -47,6 +47,40 @@ export type TranscriptAlignmentMetadata = {
 	words: TranscriptWordTiming[];
 };
 
+/**
+ * Normalise des timestamps mot par mot pour couvrir toute la durée du segment sans trou.
+ * Le premier mot commence à 0, chaque frontière est partagée par deux mots consécutifs,
+ * et le dernier mot se termine exactement à la fin du segment.
+ */
+export function normalizeTranscriptWordTimings(
+	words: TranscriptWordTiming[],
+	clipDurationSeconds: number
+): TranscriptWordTiming[] {
+	const duration = Number.isFinite(clipDurationSeconds) ? Math.max(0, clipDurationSeconds) : 0;
+	if (words.length === 0) return [];
+
+	const sanitized = words.map((word) => {
+		const rawStart = Number.isFinite(word.start) ? word.start : 0;
+		const rawEnd = Number.isFinite(word.end) ? word.end : rawStart;
+		const start = Math.max(0, Math.min(duration, rawStart));
+		const end = Math.max(start, Math.min(duration, rawEnd));
+		return { ...word, start, end };
+	});
+
+	let sharedBoundary = 0;
+	return sanitized.map((word, index) => {
+		const isLastWord = index === sanitized.length - 1;
+		const nextWord = sanitized[index + 1];
+		const boundaryCandidate = nextWord ? (word.end + nextWord.start) / 2 : duration;
+		const end = isLastWord
+			? duration
+			: Math.max(sharedBoundary, Math.min(duration, boundaryCandidate));
+		const normalized = { ...word, start: sharedBoundary, end };
+		sharedBoundary = end;
+		return normalized;
+	});
+}
+
 export type VisualMergeMode = 'arabic' | 'translation' | 'both';
 
 export class Clip extends SerializableBase {
@@ -376,7 +410,34 @@ export class SubtitleClip extends ClipWithTranslation {
 	) {
 		super(text, startTime, endTime, 'Subtitle', translations, comeFromIA, confidence);
 		this.speaker = speaker.trim() || 'Unknown speaker';
-		this.alignmentMetadata = alignmentMetadata;
+		this.alignmentMetadata = alignmentMetadata
+			? {
+					...alignmentMetadata,
+					words: normalizeTranscriptWordTimings(
+						alignmentMetadata.words,
+						Math.max(0, (endTime - startTime) / 1000)
+					)
+				}
+			: null;
+	}
+
+	static override fromJSON<T extends SerializableBase>(
+		this: any,
+		data: Record<string, unknown>
+	): T {
+		const clip = super.fromJSON.call(this, data) as T;
+		if (clip instanceof SubtitleClip && clip.alignmentMetadata) {
+			clip.alignmentMetadata = {
+				...clip.alignmentMetadata,
+				timeFrom: clip.startTime / 1000,
+				timeTo: clip.endTime / 1000,
+				words: normalizeTranscriptWordTimings(
+					clip.alignmentMetadata.words,
+					Math.max(0, (clip.endTime - clip.startTime) / 1000)
+				)
+			};
+		}
+		return clip;
 	}
 
 	setVisualMerge(groupId: string, mode: VisualMergeMode): void {
@@ -391,27 +452,6 @@ export class SubtitleClip extends ClipWithTranslation {
 
 	isVisuallyMerged(): boolean {
 		return !!this.visualMergeGroupId && !!this.visualMergeMode;
-	}
-
-	private normalizeWordTimings(
-		words: TranscriptWordTiming[],
-		clipDurationSeconds: number,
-		pinLastWordToEnd: boolean
-	): TranscriptWordTiming[] {
-		let previousEnd = 0;
-
-		return words.map((word, index) => {
-			const isFirstWord = index === 0;
-			const isLastWord = index === words.length - 1;
-			const start = isFirstWord
-				? 0
-				: Math.max(previousEnd, Math.min(clipDurationSeconds, word.start));
-			const requestedEnd = pinLastWordToEnd && isLastWord ? clipDurationSeconds : word.end;
-			const end = Math.max(start, Math.min(clipDurationSeconds, requestedEnd));
-			previousEnd = end;
-
-			return { ...word, start, end };
-		});
 	}
 
 	private retimeAlignmentAfterStartChange(previousStartTime: number): void {
@@ -429,7 +469,7 @@ export class SubtitleClip extends ClipWithTranslation {
 			...this.alignmentMetadata,
 			timeFrom: this.startTime / 1000,
 			timeTo: this.endTime / 1000,
-			words: this.normalizeWordTimings(shiftedWords, clipDurationSeconds, false)
+			words: normalizeTranscriptWordTimings(shiftedWords, clipDurationSeconds)
 		};
 	}
 
@@ -441,7 +481,7 @@ export class SubtitleClip extends ClipWithTranslation {
 			...this.alignmentMetadata,
 			timeFrom: this.startTime / 1000,
 			timeTo: this.endTime / 1000,
-			words: this.normalizeWordTimings(this.alignmentMetadata.words, clipDurationSeconds, true)
+			words: normalizeTranscriptWordTimings(this.alignmentMetadata.words, clipDurationSeconds)
 		};
 	}
 

@@ -4,7 +4,7 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 use crate::binaries;
 use crate::path_utils;
@@ -16,6 +16,47 @@ use super::python_env::{
     apply_hf_token_env, resolve_engine_python_exe, resolve_python_resource_path,
 };
 use super::types::{LocalSegmentationEngine, SegmentationAudioClip};
+
+const TRANSCRIPTION_RESULT_PREFIX: &str = "MINBAR_RESULT:";
+const TRANSCRIPTION_ERROR_PREFIX: &str = "MINBAR_ERROR:";
+
+/// Extrait le payload JSON d'un worker Python, même si une dépendance a écrit des logs sur stdout.
+fn parse_python_json_output(
+    stdout: &str,
+    engine: LocalSegmentationEngine,
+) -> Result<serde_json::Value, String> {
+    let trimmed = stdout.trim();
+    if trimmed.is_empty() {
+        return Err("Python returned an empty stdout payload".to_string());
+    }
+
+    if matches!(engine, LocalSegmentationEngine::Transcription) {
+        for line in trimmed.lines().rev() {
+            let line = line.trim();
+            if let Some(payload) = line.strip_prefix(TRANSCRIPTION_RESULT_PREFIX) {
+                return serde_json::from_str(payload)
+                    .map_err(|error| format!("Invalid transcription result JSON: {}", error));
+            }
+            if let Some(payload) = line.strip_prefix(TRANSCRIPTION_ERROR_PREFIX) {
+                return serde_json::from_str(payload)
+                    .map_err(|error| format!("Invalid transcription error JSON: {}", error));
+            }
+        }
+    }
+
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(trimmed) {
+        return Ok(value);
+    }
+
+    // Compatibility fallback for older workers polluted by a progress line.
+    for line in trimmed.lines().rev() {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(line.trim()) {
+            return Ok(value);
+        }
+    }
+
+    Err("No valid JSON payload was found in Python stdout".to_string())
+}
 
 /// ExÃ©cute le script Python local d'un moteur donnÃ© et retourne le JSON de segmentation.
 fn run_local_segmentation_script(
@@ -62,7 +103,9 @@ fn run_local_segmentation_script(
                 idx, clip.path, clip.start_ms, clip.end_ms
             );
         }
-        let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
+        let needs_merge = matches!(engine, LocalSegmentationEngine::Transcription)
+            || clips.len() > 1
+            || clips[0].start_ms > 0;
         if needs_merge {
             let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
             _merged_guard = Some(guard);
@@ -198,10 +241,28 @@ fn run_local_segmentation_script(
     // ExÃ©cution Python + thread de lecture stderr pour status/events de progression.
     let mut cmd = Command::new(&python_exe);
     cmd.args(&args);
+    cmd.env("PYTHONUTF8", "1");
+    cmd.env("PYTHONIOENCODING", "utf-8");
     if let Some(token) = hf_token {
         if !token.trim().is_empty() {
             apply_hf_token_env(&mut cmd, token.trim());
         }
+    }
+    if matches!(engine, LocalSegmentationEngine::Transcription) {
+        let model_cache = app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("ai_models");
+        let hf_home = model_cache.join("huggingface");
+        let torch_home = model_cache.join("torch");
+        let nltk_data = model_cache.join("nltk");
+        fs::create_dir_all(&hf_home).map_err(|e| e.to_string())?;
+        fs::create_dir_all(&torch_home).map_err(|e| e.to_string())?;
+        fs::create_dir_all(&nltk_data).map_err(|e| e.to_string())?;
+        cmd.env("HF_HOME", hf_home);
+        cmd.env("TORCH_HOME", torch_home);
+        cmd.env("NLTK_DATA", nltk_data);
     }
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
@@ -269,18 +330,18 @@ fn run_local_segmentation_script(
             "[segmentation][local][debug] python stdout bytes={} (success path)",
             output.stdout.len()
         );
-        let result: serde_json::Value = serde_json::from_str(&stdout).map_err(|e| {
+        let result = parse_python_json_output(&stdout, engine).map_err(|error| {
             let stderr_text = stderr_lines
                 .lock()
                 .ok()
                 .map(|lines| lines.join("\n"))
                 .unwrap_or_default();
             if stderr_text.trim().is_empty() {
-                format!("Failed to parse Python output: {}", e)
+                format!("Failed to parse Python output: {}", error)
             } else {
                 format!(
                     "Failed to parse Python output: {} (stderr: {})",
-                    e, stderr_text
+                    error, stderr_text
                 )
             }
         })?;
@@ -313,7 +374,7 @@ fn run_local_segmentation_script(
                 stderr_text
             );
         }
-        if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+        if let Ok(error_json) = parse_python_json_output(&stdout, engine) {
             if let Some(error) = error_json.get("error") {
                 return Err(error.as_str().unwrap_or("Unknown error").to_string());
             }
@@ -540,5 +601,79 @@ pub async fn segment_quran_audio_local_surah_splitter(
         pad_ms,
         extra_args,
         None,
+    )
+}
+
+/// Transcrit la timeline audio avec WhisperX et attribue chaque mot a une voix pyannote.
+pub async fn transcribe_audio_local_whisperx(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    model: Option<String>,
+    language: Option<String>,
+    device: Option<String>,
+    hf_token: Option<String>,
+    min_speakers: Option<u32>,
+    max_speakers: Option<u32>,
+    batch_size: Option<u32>,
+    max_words: Option<u32>,
+    max_chars: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    let token = hf_token
+        .as_ref()
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "A Hugging Face read token is required for pyannote speaker diarization.".to_string()
+        })?;
+
+    let selected_model = model.unwrap_or_else(|| "medium".to_string());
+    let selected_language = language.unwrap_or_else(|| "auto".to_string());
+    let selected_device = device.unwrap_or_else(|| "AUTO".to_string()).to_uppercase();
+    if !matches!(selected_device.as_str(), "AUTO" | "GPU" | "CPU") {
+        return Err(format!(
+            "Invalid transcription device '{}'. Expected AUTO, GPU, or CPU.",
+            selected_device
+        ));
+    }
+    if let (Some(min), Some(max)) = (min_speakers, max_speakers) {
+        if min > max {
+            return Err("Minimum speaker count cannot exceed maximum speaker count.".to_string());
+        }
+    }
+
+    let mut extra_args = vec![
+        "--model".to_string(),
+        selected_model,
+        "--language".to_string(),
+        selected_language,
+        "--device".to_string(),
+        selected_device,
+        "--batch-size".to_string(),
+        batch_size.unwrap_or(8).clamp(1, 64).to_string(),
+        "--max-words".to_string(),
+        max_words.unwrap_or(14).clamp(2, 80).to_string(),
+        "--max-chars".to_string(),
+        max_chars.unwrap_or(90).clamp(20, 500).to_string(),
+    ];
+    if let Some(value) = min_speakers.filter(|value| *value > 0) {
+        extra_args.push("--min-speakers".to_string());
+        extra_args.push(value.to_string());
+    }
+    if let Some(value) = max_speakers.filter(|value| *value > 0) {
+        extra_args.push("--max-speakers".to_string());
+        extra_args.push(value.to_string());
+    }
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::Transcription,
+        audio_path,
+        audio_clips,
+        None,
+        None,
+        None,
+        extra_args,
+        Some(token.to_string()),
     )
 }

@@ -125,6 +125,60 @@ except Exception as e:
 }
 
 /// VÃ©rifie l'Ã©tat de prÃ©paration des moteurs de segmentation locale.
+/// Verifie uniquement le runtime WhisperX de transcription Minbar Studio.
+pub async fn check_ai_transcription_ready(
+    app_handle: tauri::AppHandle,
+) -> Result<serde_json::Value, String> {
+    use tokio::time::{timeout, Duration};
+
+    timeout(
+        Duration::from_secs(20),
+        tokio::task::spawn_blocking(move || {
+            let venv = get_engine_venv_path(&app_handle, LocalSegmentationEngine::Transcription);
+            let venv = match venv {
+                Ok(path) => path,
+                Err(error) => {
+                    return serde_json::json!({
+                        "ready": false,
+                        "venvExists": false,
+                        "packagesInstalled": false,
+                        "message": format!("Unable to resolve the transcription environment: {}", error)
+                    });
+                }
+            };
+            let python = get_venv_python_exe(&venv);
+            let venv_exists = python.exists();
+            let (imports_ok, missing_modules) = run_python_import_check(
+                &python,
+                LocalSegmentationEngine::Transcription.required_import_modules(),
+            );
+            serde_json::json!({
+                "ready": venv_exists && imports_ok,
+                "venvExists": venv_exists,
+                "packagesInstalled": imports_ok,
+                "missingModules": missing_modules,
+                "message": if venv_exists && imports_ok {
+                    "WhisperX transcription is ready".to_string()
+                } else if !venv_exists {
+                    "WhisperX and managed Python are not installed yet".to_string()
+                } else {
+                    format!(
+                        "The WhisperX environment is incomplete{}",
+                        if missing_modules.is_empty() {
+                            "".to_string()
+                        } else {
+                            format!(" (missing: {})", missing_modules.join(", "))
+                        }
+                    )
+                }
+            })
+        }),
+    )
+    .await
+    .map_err(|_| "WhisperX status check timed out".to_string())?
+    .map_err(|error| format!("WhisperX status check failed: {}", error))
+}
+
 pub async fn check_local_segmentation_ready(
     app_handle: tauri::AppHandle,
     hf_token: Option<String>,

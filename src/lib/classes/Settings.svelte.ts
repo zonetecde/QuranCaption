@@ -48,6 +48,19 @@ export type AutoSegmentationSettings = {
 	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
 };
 
+export type AITranscriptionSettings = {
+	model: 'small' | 'medium' | 'large-v3' | 'large-v3-turbo';
+	language: string;
+	device: 'AUTO' | 'GPU' | 'CPU';
+	hfToken: string;
+	minSpeakers: number | null;
+	maxSpeakers: number | null;
+	batchSize: number;
+	maxWordsPerSegment: number;
+	maxCharsPerSegment: number;
+	replaceExisting: boolean;
+};
+
 export type StockMediaSettings = {
 	pexelsApiKey: string;
 	pixabayApiKey: string;
@@ -153,6 +166,19 @@ export default class Settings extends SerializableBase {
 		fillBySilence: true,
 		extendBeforeSilence: false,
 		extendBeforeSilenceMs: 50
+	});
+
+	aiTranscriptionSettings = $state<AITranscriptionSettings>({
+		model: 'medium',
+		language: 'auto',
+		device: 'AUTO',
+		hfToken: '',
+		minSpeakers: null,
+		maxSpeakers: null,
+		batchSize: 8,
+		maxWordsPerSegment: 14,
+		maxCharsPerSegment: 90,
+		replaceExisting: true
 	});
 
 	aiTranslationSettings = $state<AITranslationSettings>({

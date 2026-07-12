@@ -1,0 +1,4 @@
+# Minbar Studio local transcription runtime
+# PyTorch is installed separately by the Rust installer so the best CUDA/CPU build can be selected.
+whisperx==3.8.6
+huggingface-hub>=0.34,<1

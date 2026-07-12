@@ -19,6 +19,6 @@ pub use hifz::{generate_hifz_audio, GeneratedHifzAudio};
 pub use install::install_local_segmentation_deps;
 pub use local::{
     segment_quran_audio_local, segment_quran_audio_local_muaalem, segment_quran_audio_local_multi,
-    segment_quran_audio_local_surah_splitter,
+    segment_quran_audio_local_surah_splitter, transcribe_audio_local_whisperx,
 };
-pub use status::check_local_segmentation_ready;
+pub use status::{check_ai_transcription_ready, check_local_segmentation_ready};

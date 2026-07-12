@@ -83,10 +83,10 @@
 	<div class="rounded-lg border border-sky-400/25 bg-sky-500/10 p-3 space-y-3">
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex items-center gap-1.5">
-				<span class="material-icons text-sky-300 text-sm">flag</span>
+				<span class="material-icons text-primary text-sm">flag</span>
 				<span class="text-xs text-secondary">{$LL.editor.markMissingWbw()}</span>
 			</div>
-			<span class="text-xs font-bold text-sky-300"
+			<span class="text-xs font-bold text-primary"
 				>{get(LL).editor.markedCount({ count: missingWbwSegmentsMarkedCount })}</span
 			>
 		</div>
@@ -105,14 +105,14 @@
 
 		<div class="space-y-2">
 			<button
-				class="w-full px-2 py-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+				class="w-full px-2 py-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-primary font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed"
 				type="button"
 				onclick={handleComputeWbwTimestamps}
 				disabled={isComputing}
 			>
 				{#if isComputing}
 					<span
-						class="h-3.5 w-3.5 rounded-full border-2 border-emerald-200 border-t-transparent animate-spin"
+						class="h-3.5 w-3.5 rounded-full border-2 border-[var(--text-primary)] border-t-transparent animate-spin"
 					></span>
 				{:else}
 					<span class="material-icons text-sm!">auto_awesome</span>
@@ -123,7 +123,7 @@
 
 		<div class="grid grid-cols-3 gap-2">
 			<button
-				class="px-2 py-1.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-200 font-medium flex items-center justify-center gap-1.5 hover:bg-sky-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed {missingWbwSegmentsMarkedCount <=
+				class="px-2 py-1.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-primary font-medium flex items-center justify-center gap-1.5 hover:bg-sky-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed {missingWbwSegmentsMarkedCount <=
 				0
 					? 'col-span-3'
 					: 'col-span-2'}"

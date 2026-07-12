@@ -781,14 +781,20 @@
 			loop: true, // Répète en boucle pour simuler une lecture continue
 			volume: 0, // Volume à 0 pour être réellement silencieux
 			onplay: () => {
-				isPlaying = true;
-				globalState.getVideoPreviewState.isPlaying = true;
+				// Protection: si l'utilisateur a déjà mis pause avant que Howl
+				// ait fini de charger, on ne démarre pas la lecture.
+				if (!isPlaying) {
+					audioHowl?.pause();
+					return;
+				}
 
 				// Démarre la mise à jour du curseur
 				if (!audioUpdateInterval) {
 					audioUpdateInterval = setInterval(() => {
 						// Avance le curseur manuellement de 10ms à chaque intervalle
-						getTimelineSettings().cursorPosition += 10;
+						if (isPlaying) {
+							getTimelineSettings().cursorPosition += 10;
+						}
 					}, 10);
 				}
 			},
@@ -812,6 +818,8 @@
 		// Vérification de la présence de médias
 		if (!currentVideo() && !currentAudio()) {
 			// Si aucun média, joue silent.ogg pour simuler une lecture
+			isPlaying = true;
+			globalState.getVideoPreviewState.isPlaying = true;
 			playSilentAudio();
 			return;
 		}

@@ -210,6 +210,31 @@ export default class Exporter {
 			text: string;
 		}[] = [];
 
+		// Sauvegarde les styles pour les restaurer après l'export
+		let originalFontFamily: string | null = null;
+		let originalShowVerseNumber: boolean | null = null;
+
+		// Synchronise les styles avec les paramètres d'export avant la boucle,
+		// car getText() se base sur les styles (font-family, show-verse-number)
+		// qui peuvent être désynchronisés des paramètres d'export.
+		if (settings.includedTargets.includes('arabic')) {
+			const fontStyle = globalState.getStyle('arabic', 'font-family')!;
+			if (
+				es.arabicTextFormat === 'Plain' &&
+				(fontStyle.value === 'QPC1' || fontStyle.value === 'QPC2')
+			) {
+				originalFontFamily = fontStyle.value;
+				fontStyle.value = 'Hafs';
+			}
+
+			const showVerseStyle = globalState.getStyle('arabic', 'show-verse-number')!;
+			const desiredShowVerse = Boolean(es.exportVerseNumbers['arabic']);
+			if (showVerseStyle.value !== desiredShowVerse) {
+				originalShowVerseNumber = showVerseStyle.value as boolean;
+				showVerseStyle.value = desiredShowVerse;
+			}
+		}
+
 		for (const subtitle of globalState.getSubtitleTrack.clips) {
 			// Skip les clips silencieux ou sans texte
 			if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
@@ -238,6 +263,14 @@ export default class Exporter {
 				endTimeMs: endTime,
 				text: text.trim()
 			});
+		}
+
+		// Restaure les styles modifiés
+		if (originalFontFamily !== null) {
+			globalState.getStyle('arabic', 'font-family')!.value = originalFontFamily;
+		}
+		if (originalShowVerseNumber !== null) {
+			globalState.getStyle('arabic', 'show-verse-number')!.value = originalShowVerseNumber;
 		}
 
 		const fileContent = SubtitleFileContentGenerator.generateSubtitleFile(

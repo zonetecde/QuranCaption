@@ -28,6 +28,7 @@
 		type AITranscriptionRuntimeStatus,
 		type SpeakerNameMap
 	} from '$lib/services/AITranscription';
+	import { cleanupAITranscript } from '$lib/services/AITranscriptCleanup';
 
 	let { close } = $props<{ close: () => void }>();
 	const settings = globalState.settings!.aiTranscriptionSettings;
@@ -35,7 +36,8 @@
 		{ label: 'Setup', icon: 'download' },
 		{ label: 'Model & speakers', icon: 'tune' },
 		{ label: 'Transcribe', icon: 'graphic_eq' },
-		{ label: 'Name speakers', icon: 'groups' }
+		{ label: 'Name speakers', icon: 'groups' },
+		{ label: get(LL).editor.transcriptCleanupStep(), icon: 'auto_fix_high' }
 	];
 
 	let currentStep = $state(0);
@@ -55,6 +57,13 @@
 	let newSpeakerInput: HTMLInputElement | null = $state(null);
 	let statusUnlisten: UnlistenFn | null = null;
 	let installUnlisten: UnlistenFn | null = null;
+	let cleanupChunkUnlisten: UnlistenFn | null = null;
+	let cleanupRunning = $state(false);
+	let cleanupCompleted = $state(false);
+	let cleanupMessage = $state('');
+	let cleanupErrors = $state<string[]>([]);
+	let cleanupBatchId = $state('');
+	let streamedCleanupResponse = $state('');
 
 	const audioAvailable = $derived(globalState.getAudioTrack.clips.length > 0);
 	const existingSubtitleCount = $derived(
@@ -101,6 +110,8 @@
 		if (running || !runtimeStatus?.ready || !settings.hfToken.trim()) return;
 		running = true;
 		result = null;
+		cleanupCompleted = false;
+		cleanupErrors = [];
 		speakerMap = {};
 		errorMessage = '';
 		runMessage = 'Preparing audio...';
@@ -140,6 +151,90 @@
 		await saveAITranscriptionSettings();
 		toast.success(`Applied ${count} transcript segments with word timestamps.`);
 		close();
+	}
+
+	/**
+	 * Ouvre l'étape de nettoyage après validation des noms de voix.
+	 * @returns {void}
+	 */
+	function openTranscriptCleanup(): void {
+		for (const speakerId of result?.speakers ?? []) {
+			if (!speakerMap[speakerId]?.trim()) {
+				errorMessage = get(LL).editor.chooseSpeakerBeforeCleanup({ speaker: speakerId });
+				return;
+			}
+		}
+		errorMessage = '';
+		currentStep = 4;
+	}
+
+	/**
+	 * Nettoie les segments WhisperX et valide les références Quran retournées.
+	 * @returns {Promise<void>} Promesse résolue après tous les batches.
+	 */
+	async function startTranscriptCleanup(): Promise<void> {
+		if (!result || cleanupRunning) return;
+		const aiSettings = globalState.settings!.aiTranslationSettings;
+		const apiKey = aiSettings.openAiApiKey.trim();
+		const endpoint = aiSettings.textAiApiEndpoint.trim();
+		if (!apiKey) {
+			errorMessage = get(LL).translations.configureAiKeyFirst();
+			return;
+		}
+		if (!endpoint) {
+			errorMessage = get(LL).translations.configureTextAiFirst();
+			return;
+		}
+
+		cleanupRunning = true;
+		cleanupCompleted = false;
+		cleanupErrors = [];
+		streamedCleanupResponse = '';
+		errorMessage = '';
+		await saveAITranscriptionSettings();
+		try {
+			cleanupChunkUnlisten = await listen<{
+				batchId: string;
+				accumulatedText: string;
+			}>('ai-transcript-cleanup-chunk', (event) => {
+				if (event.payload.batchId === cleanupBatchId) {
+					streamedCleanupResponse = event.payload.accumulatedText;
+				}
+			});
+			const report = await cleanupAITranscript(result, {
+				apiKey,
+				endpoint,
+				model: aiSettings.advancedTrimModel,
+				reasoningEffort: aiSettings.advancedTrimReasoningEffort,
+				addDiacritics: settings.addDiacritics,
+				speakerMap,
+				onProgress: (current, total, batchId) => {
+					cleanupBatchId = batchId;
+					streamedCleanupResponse = '';
+					cleanupMessage = get(LL).editor.transcriptCleanupBatchProgress({ current, total });
+				}
+			});
+			result = report.result;
+			cleanupErrors = report.errors;
+			cleanupCompleted = true;
+			cleanupMessage =
+				report.errors.length > 0
+					? get(LL).editor.transcriptCleanupCompletedWithIssues({
+							cleaned: report.processedSegments,
+							total: report.totalSegments,
+							errors: report.totalSegments - report.processedSegments
+						})
+					: get(LL).editor.transcriptCleanupCompleted({
+							cleaned: report.processedSegments,
+							total: report.totalSegments
+						});
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : String(error);
+		} finally {
+			cleanupChunkUnlisten?.();
+			cleanupChunkUnlisten = null;
+			cleanupRunning = false;
+		}
 	}
 
 	function getSpeakerExamples(speakerId: string): AITranscriptionResult['segments'] {
@@ -243,13 +338,14 @@
 	}
 
 	function closeSafely(): void {
-		if (!running && !installing) close();
+		if (!running && !installing && !cleanupRunning) close();
 	}
 
 	onMount(() => void refreshRuntime());
 	onDestroy(() => {
 		statusUnlisten?.();
 		installUnlisten?.();
+		cleanupChunkUnlisten?.();
 	});
 </script>
 
@@ -746,6 +842,71 @@
 							></label
 						>
 					</section>
+				{:else if currentStep === 4 && result}
+					<section class="space-y-6">
+						<div>
+							<h3 class="text-lg font-bold text-primary">
+								{get(LL).editor.transcriptCleanupTitle()}
+							</h3>
+							<p class="mt-1 text-sm text-secondary">
+								{get(LL).editor.transcriptCleanupDescription()}
+							</p>
+						</div>
+						<label
+							class="flex cursor-pointer items-start gap-3 rounded-xl border border-color bg-primary p-4"
+						>
+							<input
+								type="checkbox"
+								class="mt-1"
+								bind:checked={settings.addDiacritics}
+								onchange={() => {
+									cleanupCompleted = false;
+									cleanupMessage = '';
+									cleanupErrors = [];
+								}}
+								disabled={cleanupRunning}
+							/>
+							<span class="font-semibold text-primary">{get(LL).editor.addArabicDiacritics()}</span>
+						</label>
+						<div class="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+							<div class="flex items-start gap-3">
+								<span class="material-icons mt-0.5 text-lg text-blue-300">verified</span>
+								<p class="text-xs leading-relaxed text-secondary">
+									{get(LL).editor.transcriptCleanupMarkersInfo()}
+								</p>
+							</div>
+						</div>
+						{#if cleanupRunning || cleanupMessage}
+							<div class="rounded-xl border border-color bg-primary p-5">
+								<div class="flex items-center gap-3">
+									<span
+										class={`material-icons ${cleanupRunning ? 'animate-spin text-accent-primary' : cleanupErrors.length > 0 ? 'text-yellow-400' : 'text-green-400'}`}
+									>
+										{cleanupRunning
+											? 'sync'
+											: cleanupErrors.length > 0
+												? 'warning'
+												: 'check_circle'}
+									</span>
+									<p class="text-sm text-secondary">{cleanupMessage}</p>
+								</div>
+								<div class="mt-4 rounded-lg border border-color bg-secondary p-3">
+									<div
+										class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
+									>
+										<span class="material-icons text-sm">stream</span>
+										<span>{get(LL).editor.currentStreamedResponse()}</span>
+									</div>
+									<textarea
+										readonly
+										bind:value={streamedCleanupResponse}
+										class="h-40 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
+										placeholder={get(LL).translations.streamingResponsePlaceholder()}
+									></textarea>
+								</div>
+							</div>
+						{/if}
+					</section>
 				{/if}
 
 				{#if errorMessage}<div
@@ -763,21 +924,34 @@
 
 	<footer class="flex items-center justify-between border-t border-color bg-primary px-6 py-4">
 		<p class="text-xs text-thirdly">
-			All processing stays local except model downloads from Hugging Face.
+			{get(LL).editor.transcriptionDataPrivacy()}
 		</p>
 		<div class="flex items-center gap-2">
 			{#if currentStep > 0}<button
 					type="button"
 					class="btn cursor-pointer px-4 py-2 text-sm disabled:opacity-40"
 					onclick={() => (currentStep -= 1)}
-					disabled={running || installing}>Back</button
+					disabled={running || installing || cleanupRunning}>Back</button
 				>{/if}
 			{#if currentStep < 2}<button
 					type="button"
 					class="btn-accent cursor-pointer px-4 py-2 text-sm disabled:opacity-40"
 					onclick={() => (currentStep += 1)}
-					disabled={!canGoNext() || running || installing}>Next</button
+					disabled={!canGoNext() || running || installing || cleanupRunning}>Next</button
 				>{:else if currentStep === 3 && result}<button
+					type="button"
+					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold"
+					onclick={openTranscriptCleanup}
+					><span class="material-icons text-lg">arrow_forward</span>{get(LL).common.next()}</button
+				>{:else if currentStep === 4 && result && !cleanupCompleted}<button
+					type="button"
+					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold disabled:opacity-50"
+					onclick={() => void startTranscriptCleanup()}
+					disabled={cleanupRunning}
+					><span class="material-icons text-lg">auto_fix_high</span>{cleanupRunning
+						? get(LL).editor.cleaningTranscript()
+						: get(LL).editor.cleanTranscript()}</button
+				>{:else if currentStep === 4 && result}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold"
 					onclick={() => void applyResult()}

@@ -45,6 +45,7 @@
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
 	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+	import { prefetchTranscriptReferences } from '$lib/services/TranscriptReferenceService';
 	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -550,6 +551,7 @@
 		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Minimal Quran') {
 			await MinimalQuranProvider.prefetch();
 		}
+		await prefetchTranscriptReferences(globalState.getSubtitleClips.map((clip) => clip.text));
 
 		exportData = ExportService.findExportById(Number(id))!;
 	}

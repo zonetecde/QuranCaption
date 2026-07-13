@@ -38,6 +38,22 @@ const editor = {
 	transcriptCannotBeEmpty: 'Transcript text cannot be empty.',
 	speakerCannotBeEmpty: 'Please select or enter a speaker.',
 	aiTranscription: 'AI transcription',
+	transcriptCleanupStep: 'Quotes & cleanup',
+	transcriptCleanupTitle: 'Clean the transcript and detect quotations',
+	transcriptCleanupDescription:
+		'The configured text AI reviews every subtitle, detects Quran passages and verbatim quotations, and only corrects unmistakable transcription errors.',
+	addArabicDiacritics: 'Add Arabic diacritics',
+	transcriptCleanupMarkersInfo:
+		'Quran passages are stored as validated references. Other verbatim quotations remain wrapped for editing and are displayed without braces in the video.',
+	chooseSpeakerBeforeCleanup: 'Choose a name for {speaker} before cleaning the transcription.',
+	cleanTranscript: 'Clean transcript',
+	cleaningTranscript: 'Cleaning transcript...',
+	transcriptCleanupBatchProgress: 'Processing batch {current} of {total}...',
+	transcriptCleanupCompleted: 'Cleaned {cleaned} of {total} subtitle segments.',
+	transcriptCleanupCompletedWithIssues:
+		'Cleaned {cleaned} of {total} subtitle segments. {errors} segment(s) kept their original text after validation.',
+	transcriptionDataPrivacy:
+		'WhisperX stays local. Transcript cleanup is sent to your configured text AI provider.',
 	aiTranscriptionComingSoon: 'AI transcription will be added later',
 	aiTranscriptionComingSoonDescription:
 		'For now, use the manual composer to create and edit transcript segments.',

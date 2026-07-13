@@ -10,6 +10,10 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import QPCFontProvider from '$lib/services/FontProvider';
+	import {
+		getTranscriptReferenceRenderParts,
+		hasTranscriptReferenceMarkers
+	} from '$lib/services/TranscriptReferenceService';
 	import { untrack } from 'svelte';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
@@ -198,6 +202,18 @@
 		if (subtitle instanceof PredefinedSubtitleClip) {
 			return [createPlainOverlaySegment(`${keyPrefix}-arabic`, subtitle.getText())];
 		}
+		if (subtitle instanceof SubtitleClip) {
+			const referenceParts = getTranscriptReferenceRenderParts(
+				subtitle.text,
+				String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
+				String(globalState.getStyle('arabic', 'font-family')?.value ?? 'Hafs')
+			);
+			if (referenceParts) {
+				return referenceParts.map((part, index) =>
+					createPlainOverlaySegment(`${keyPrefix}-reference-${index}`, part.text, part.extraCss)
+				);
+			}
+		}
 
 		const displayParts = subtitle.getArabicRenderParts('preview');
 		const perClipFontCss = subtitle instanceof SubtitleClip ? getSubtitleQpcFontCss(subtitle) : '';
@@ -382,6 +398,7 @@
 	function buildArabicWordByWordRenderData(): ArabicWordByWordRenderData | null {
 		const subtitle = currentSubtitle();
 		if (!(subtitle instanceof SubtitleClip)) return null;
+		if (hasTranscriptReferenceMarkers(subtitle.text)) return null;
 
 		const mergedGroup = currentVisualMergeGroup();
 		const sourceClips =

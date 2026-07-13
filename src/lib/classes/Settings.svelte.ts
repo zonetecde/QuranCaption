@@ -59,6 +59,7 @@ export type AITranscriptionSettings = {
 	minSilenceDuration: number;
 	maxWordsPerSegment: number;
 	maxCharsPerSegment: number;
+	addDiacritics: boolean;
 	replaceExisting: boolean;
 };
 
@@ -180,6 +181,7 @@ export default class Settings extends SerializableBase {
 		minSilenceDuration: 1.2,
 		maxWordsPerSegment: 14,
 		maxCharsPerSegment: 90,
+		addDiacritics: false,
 		replaceExisting: true
 	});
 
@@ -535,6 +537,10 @@ export default class Settings extends SerializableBase {
 			!Number.isFinite(settings.aiTranscriptionSettings.minSilenceDuration)
 		) {
 			settings.aiTranscriptionSettings.minSilenceDuration = 1.2;
+			shouldSave = true;
+		}
+		if (typeof settings.aiTranscriptionSettings.addDiacritics !== 'boolean') {
+			settings.aiTranscriptionSettings.addDiacritics = false;
 			shouldSave = true;
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {

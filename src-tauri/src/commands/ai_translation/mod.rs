@@ -14,6 +14,7 @@ use self::sse::{
 pub(crate) mod bold;
 pub(crate) mod prompts;
 pub(crate) mod sse;
+pub(crate) mod transcript_cleanup;
 pub(crate) mod trim;
 pub(crate) mod types;
 pub(crate) mod wbw_translation;

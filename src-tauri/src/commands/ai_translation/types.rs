@@ -38,6 +38,18 @@ pub struct AdvancedWbwTranslationCommandRequest {
     pub batch: AdvancedWbwTranslationBatchPayload,
 }
 
+/// Requête pour le nettoyage et la détection de citations d'une transcription.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranscriptCleanupCommandRequest {
+    pub api_key: String,
+    pub endpoint: String,
+    pub model: String,
+    pub reasoning_effort: String,
+    pub batch_id: String,
+    pub batch: TranscriptCleanupBatchPayload,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimBatchPayload {
@@ -55,6 +67,21 @@ pub struct AdvancedBoldBatchPayload {
 pub struct AdvancedWbwTranslationBatchPayload {
     #[serde(rename = "s", alias = "segments")]
     pub segments: Vec<AdvancedWbwTranslationSegmentPayload>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranscriptCleanupBatchPayload {
+    pub add_diacritics: bool,
+    #[serde(rename = "s", alias = "segments")]
+    pub segments: Vec<TranscriptCleanupSegmentPayload>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TranscriptCleanupSegmentPayload {
+    pub i: i64,
+    pub p: String,
+    pub t: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

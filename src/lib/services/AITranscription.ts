@@ -190,7 +190,9 @@ export function applyAITranscription(
 	ProjectHistoryManager.begin('apply AI transcription');
 	try {
 		const preservedClips = replaceExisting
-			? track.clips.filter((clip) => !(clip instanceof SubtitleClip))
+			? track.clips.filter(
+					(clip) => !(clip instanceof SubtitleClip) && !(clip instanceof SilenceClip)
+				)
 			: track.clips;
 		track.clips = [...preservedClips, ...generatedWithSilences].sort(
 			(a, b) => a.startTime - b.startTime

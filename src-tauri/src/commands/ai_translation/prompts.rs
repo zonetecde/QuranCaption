@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 
 use super::types::{
     AdvancedBoldBatchPayload, AdvancedTrimBatchPayload, AdvancedWbwTranslationBatchPayload,
+    TranscriptCleanupBatchPayload,
 };
 
 pub const DEFAULT_TEXT_AI_ENDPOINT: &str = "https://api.openai.com/v1/responses";
@@ -61,6 +62,24 @@ Rules:
 - For Chinese or other text without spaces, the indexed units may be characters. Treat them exactly like selectable units.
 - Compact response keys: root `s` = segments, segment `i` = segment index, segment `r` = ranges, range `i` = Arabic word index, range `s` = start unit index, range `e` = end unit index.
 - Return JSON only, matching the schema exactly.
+"#;
+
+pub const TRANSCRIPT_CLEANUP_SYSTEM_PROMPT: &str = r#"You carefully clean Islamic lecture transcript subtitles and identify verbatim quotations.
+
+Rules:
+- Preserve every input segment index and return exactly one rewritten text for every segment.
+- Preserve the original language, meaning, subtitle boundaries, and speaker wording.
+- Correct a Whisper transcription error only when the correction is unquestionably certain from context.
+- Never summarize, translate, invent, or remove content.
+- If addDiacritics is true, add appropriate Arabic diacritics to ordinary Arabic text. If false, do not add diacritics unless already present.
+- When spoken words quote the Quran, replace only the quoted Quran words with `{{SS:VV}}` for a complete verse or `{{SS:VV:START-END}}` for a partial verse.
+- Quran word indexes are 1-based and inclusive. START=1 means the first word of the verse.
+- Verify the surah, verse, and exact word range conservatively. Do not create a Quran marker when uncertain.
+- When text is a verbatim non-Quran quotation such as a hadith or a scholar's words, wrap only the quoted words in `{{` and `}}`.
+- Do not wrap paraphrases, common expressions, or uncertain quotations.
+- A quotation may span multiple subtitle segments. Mark the exact quoted portion in each affected segment.
+- Never nest markers. Never put explanatory text inside a Quran marker.
+- Return JSON only, matching the schema exactly. Compact keys: root `s`, segment index `i`, rewritten text `t`.
 "#;
 
 // ---------------------------------------------------------------------------
@@ -180,6 +199,29 @@ pub fn build_wbw_translation_response_schema() -> Value {
     })
 }
 
+/// Schéma JSON de réponse pour le nettoyage d'une transcription.
+pub fn build_transcript_cleanup_response_schema() -> Value {
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "s": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "i": { "type": "integer" },
+                        "t": { "type": "string" }
+                    },
+                    "required": ["i", "t"]
+                }
+            }
+        },
+        "required": ["s"]
+    })
+}
+
 // ---------------------------------------------------------------------------
 // User prompt builders
 // ---------------------------------------------------------------------------
@@ -267,6 +309,26 @@ pub fn build_wbw_translation_user_prompt(
          {}\n\n\
          Batch JSON:\n{}",
         note_block, batch_json
+    ))
+}
+
+/// Construit le prompt utilisateur pour un batch de nettoyage de transcription.
+pub fn build_transcript_cleanup_user_prompt(
+    batch: &TranscriptCleanupBatchPayload,
+) -> Result<String, String> {
+    let batch_json = serde_json::to_string_pretty(batch)
+        .map_err(|error| format!("Failed to serialize batch: {}", error))?;
+
+    Ok(format!(
+        "Rewrite every transcript segment and return JSON only.\n\
+         Return exactly {{\"s\":[{{\"i\":0,\"t\":\"rewritten text\"}}]}}.\n\
+         Input keys: `addDiacritics` controls Arabic diacritics; `s` contains ordered segments; `i` is the stable segment index; `p` is the assigned speaker; `t` is the Whisper text.\n\
+         Use adjacent segments as context, but keep each output under its original `i`.\n\
+         Quran markers must be exact and use 1-based inclusive word indexes.\n\
+         Non-Quran verbatim quotations must keep their text inside double braces.\n\
+         Return every input `i` exactly once.\n\n\
+         Batch JSON:\n{}",
+        batch_json
     ))
 }
 

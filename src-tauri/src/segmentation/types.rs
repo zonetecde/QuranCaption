@@ -199,6 +199,7 @@ impl LocalSegmentationEngine {
                 "torch",
                 "torchaudio",
                 "whisperx",
+                "qwen_asr",
                 "faster_whisper",
                 "pyannote.audio",
                 "huggingface_hub",

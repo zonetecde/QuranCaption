@@ -414,7 +414,9 @@
 								>
 								<div class="min-w-0 flex-1">
 									<p class="font-semibold text-primary">
-										{runtimeStatus?.ready ? 'WhisperX is ready' : 'WhisperX runtime required'}
+										{$LL.editor.aiTranscription()} · {runtimeStatus?.ready
+											? $LL.common.done()
+											: $LL.common.required()}
 									</p>
 									<p class="mt-1 text-xs text-secondary">
 										{checkingRuntime
@@ -490,9 +492,15 @@
 						</div>
 						<div class="grid gap-5 md:grid-cols-2">
 							<label class="space-y-2"
-								><span class="text-sm font-semibold text-primary">Whisper model</span><select
+								><span class="text-sm font-semibold text-primary">{$LL.aiVideo.model()}</span
+								><select
 									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
 									bind:value={settings.model}
+									onchange={() => {
+										if (settings.model === 'qwen3-asr-1.7b') settings.language = 'ar';
+									}}
+									><option value="qwen3-asr-1.7b"
+										>Qwen3-ASR 1.7B — {$LL.editor.bestLocalAccuracy()}</option
 									><option value="small">Small — fastest</option><option value="medium"
 										>Medium — recommended</option
 									><option value="large-v3">Large v3 — highest quality</option><option
@@ -502,8 +510,9 @@
 							>
 							<label class="space-y-2"
 								><span class="text-sm font-semibold text-primary">Language</span><select
-									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
+									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary disabled:cursor-not-allowed disabled:opacity-60"
 									bind:value={settings.language}
+									disabled={settings.model === 'qwen3-asr-1.7b'}
 									>{#each WHISPER_LANGUAGE_OPTIONS as option (option.code)}<option
 											value={option.code}>{option.label}</option
 										>{/each}</select
@@ -613,7 +622,9 @@
 						<div class="grid gap-3 sm:grid-cols-3">
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Model</p>
-								<p class="mt-1 font-semibold text-primary">{settings.model}</p>
+								<p class="mt-1 font-semibold text-primary">
+									{settings.model === 'qwen3-asr-1.7b' ? 'Qwen3-ASR 1.7B' : settings.model}
+								</p>
 							</div>
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Language</p>

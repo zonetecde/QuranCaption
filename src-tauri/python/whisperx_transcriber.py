@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""WhisperX + pyannote transcription worker for Minbar Studio.
+"""Local ASR, WhisperX alignment and pyannote worker for Minbar Studio.
 
 The process writes progress events to stderr as `STATUS:<json>` and emits one
 JSON result to stdout. All timestamps in the result are absolute seconds on the
@@ -32,6 +32,9 @@ configure_utf8_streams()
 
 RESULT_PREFIX = "MINBAR_RESULT:"
 ERROR_PREFIX = "MINBAR_ERROR:"
+QWEN_MODEL_OPTION = "qwen3-asr-1.7b"
+QWEN_MODEL_ID = "Qwen/Qwen3-ASR-1.7B"
+AUDIO_SAMPLE_RATE = 16_000
 
 # WhisperX gives pyannote an in-memory waveform, so its optional TorchCodec
 # decoder is not used by this worker even when the package emits this warning.
@@ -224,37 +227,173 @@ def release_device_memory() -> None:
         pass
 
 
-def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> dict[str, Any]:
+def build_diarization_chunks(
+    diarized_segments: Any,
+    audio_duration: float,
+    max_gap: float,
+    max_duration: float = 30.0,
+) -> list[tuple[float, float]]:
+    """Merge pyannote speech turns into stable ASR-sized audio chunks."""
+    turns: list[tuple[float, float]] = []
+    for _, row in diarized_segments.iterrows():
+        start = finite_number(row.get("start"))
+        end = finite_number(row.get("end"))
+        if start is None or end is None or end <= start:
+            continue
+        turns.append((max(0.0, start), min(audio_duration, end)))
+
+    chunks: list[list[float]] = []
+    for start, end in sorted(turns):
+        if end <= start:
+            continue
+        if not chunks:
+            chunks.append([start, end])
+            continue
+
+        previous = chunks[-1]
+        merged_end = max(previous[1], end)
+        if start - previous[1] <= max_gap and merged_end - previous[0] <= max_duration:
+            previous[1] = merged_end
+        else:
+            chunks.append([start, end])
+
+    return [(start, end) for start, end in chunks]
+
+
+def transcribe_qwen_chunks(
+    args: argparse.Namespace,
+    audio: Any,
+    chunks: list[tuple[float, float]],
+    selected_device: str,
+) -> list[dict[str, Any]]:
+    """Transcribe Arabic speech chunks with Qwen3-ASR and preserve their absolute bounds."""
     import torch
+    from qwen_asr import Qwen3ASRModel
+
+    if args.language.lower() not in ("auto", "ar"):
+        raise RuntimeError("Qwen3-ASR is currently integrated for Arabic transcription only.")
+
+    if selected_device == "cuda":
+        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        device_map = "cuda:0"
+        inference_batch_size = max(1, min(args.batch_size, 4))
+    else:
+        dtype = torch.float32
+        device_map = "cpu"
+        inference_batch_size = 1
+
+    emit_status("Loading Qwen3-ASR 1.7B...", 34)
+    model = Qwen3ASRModel.from_pretrained(
+        QWEN_MODEL_ID,
+        dtype=dtype,
+        device_map=device_map,
+        max_inference_batch_size=inference_batch_size,
+        max_new_tokens=512,
+    )
+
+    output: list[dict[str, Any]] = []
+    prepared: list[tuple[float, float, Any]] = []
+    for start, end in chunks:
+        start_index = max(0, round(start * AUDIO_SAMPLE_RATE))
+        end_index = min(len(audio), round(end * AUDIO_SAMPLE_RATE))
+        if end_index - start_index < AUDIO_SAMPLE_RATE // 10:
+            continue
+        prepared.append((start, end, audio[start_index:end_index]))
+
+    if not prepared:
+        raise RuntimeError("pyannote did not detect any transcribable Arabic speech regions.")
+
+    for offset in range(0, len(prepared), inference_batch_size):
+        batch = prepared[offset : offset + inference_batch_size]
+        results = model.transcribe(
+            audio=[(clip, AUDIO_SAMPLE_RATE) for _, _, clip in batch],
+            language=["Arabic"] * len(batch),
+        )
+        if not isinstance(results, (list, tuple)):
+            results = [results]
+        if len(results) != len(batch):
+            raise RuntimeError("Qwen3-ASR returned an unexpected number of transcription results.")
+
+        for (start, end, _), result in zip(batch, results):
+            text = result.get("text") if isinstance(result, dict) else getattr(result, "text", "")
+            normalized_text = str(text or "").strip()
+            if normalized_text:
+                output.append({"start": start, "end": end, "text": normalized_text})
+
+        completed = min(len(prepared), offset + len(batch))
+        emit_status(
+            "Transcribing Arabic with Qwen3-ASR...",
+            38 + (completed / len(prepared) * 17),
+        )
+
+    del model
+    release_device_memory()
+    if not output:
+        raise RuntimeError("Qwen3-ASR did not detect any transcribable Arabic speech.")
+    return output
+
+
+def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> dict[str, Any]:
     import whisperx
     from whisperx.diarize import DiarizationPipeline
 
     compute_type = "float16" if selected_device == "cuda" else "int8"
     language = None if args.language.lower() == "auto" else args.language.lower()
     batch_size = max(1, args.batch_size)
-
-    emit_status(f"Loading WhisperX model {args.model} on {selected_device}...", 8)
-    model = whisperx.load_model(
-        args.model,
-        selected_device,
-        compute_type=compute_type,
-        language=language,
-    )
+    use_qwen = args.model == QWEN_MODEL_OPTION
     audio = whisperx.load_audio(args.audio_path)
 
-    emit_status("Transcribing speech...", 22)
-    result = model.transcribe(
-        audio,
-        batch_size=batch_size,
-        progress_callback=lambda value: emit_status(
-            "Transcribing speech...", 22 + (float(value) * 0.32)
-        ),
-    )
-    detected_language = str(result.get("language") or language or "unknown")
-    del model
-    release_device_memory()
-    if not result.get("segments"):
-        raise RuntimeError("WhisperX did not detect any transcribable speech in the project audio.")
+    diarization_kwargs: dict[str, int] = {}
+    if args.min_speakers and args.min_speakers > 0:
+        diarization_kwargs["min_speakers"] = args.min_speakers
+    if args.max_speakers and args.max_speakers > 0:
+        diarization_kwargs["max_speakers"] = args.max_speakers
+
+    diarized_segments = None
+    if use_qwen:
+        emit_status("Detecting speech regions and speaker voices...", 8)
+        diarization = DiarizationPipeline(token=token, device=selected_device)
+        diarized_segments = diarization(
+            audio,
+            progress_callback=lambda value: emit_status(
+                "Detecting speech regions and speaker voices...", 8 + (float(value) * 0.22)
+            ),
+            **diarization_kwargs,
+        )
+        del diarization
+        release_device_memory()
+
+        chunks = build_diarization_chunks(
+            diarized_segments,
+            len(audio) / AUDIO_SAMPLE_RATE,
+            max_gap=max(0.1, args.max_gap),
+        )
+        result = {
+            "segments": transcribe_qwen_chunks(args, audio, chunks, selected_device),
+        }
+        detected_language = "ar"
+    else:
+        emit_status(f"Loading WhisperX model {args.model} on {selected_device}...", 8)
+        model = whisperx.load_model(
+            args.model,
+            selected_device,
+            compute_type=compute_type,
+            language=language,
+        )
+
+        emit_status("Transcribing speech...", 22)
+        result = model.transcribe(
+            audio,
+            batch_size=batch_size,
+            progress_callback=lambda value: emit_status(
+                "Transcribing speech...", 22 + (float(value) * 0.32)
+            ),
+        )
+        detected_language = str(result.get("language") or language or "unknown")
+        del model
+        release_device_memory()
+        if not result.get("segments"):
+            raise RuntimeError("WhisperX did not detect any transcribable speech in the project audio.")
 
     emit_status(f"Aligning {detected_language} words...", 56)
     alignment_warning: str | None = None
@@ -288,23 +427,22 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
         }
         release_device_memory()
 
-    emit_status("Detecting and matching speaker voices...", 72)
-    diarization = DiarizationPipeline(token=token, device=selected_device)
-    diarization_kwargs: dict[str, int] = {}
-    if args.min_speakers and args.min_speakers > 0:
-        diarization_kwargs["min_speakers"] = args.min_speakers
-    if args.max_speakers and args.max_speakers > 0:
-        diarization_kwargs["max_speakers"] = args.max_speakers
-    diarized_segments = diarization(
-        audio,
-        progress_callback=lambda value: emit_status(
-            "Detecting and matching speaker voices...", 72 + (float(value) * 0.18)
-        ),
-        **diarization_kwargs,
-    )
+    if diarized_segments is None:
+        emit_status("Detecting and matching speaker voices...", 72)
+        diarization = DiarizationPipeline(token=token, device=selected_device)
+        diarized_segments = diarization(
+            audio,
+            progress_callback=lambda value: emit_status(
+                "Detecting and matching speaker voices...", 72 + (float(value) * 0.18)
+            ),
+            **diarization_kwargs,
+        )
+        del diarization
+        release_device_memory()
+    else:
+        emit_status("Matching aligned words to detected voices...", 89)
+
     with_speakers = whisperx.assign_word_speakers(diarized_segments, aligned, fill_nearest=True)
-    del diarization
-    release_device_memory()
 
     emit_status("Creating subtitle-sized transcript segments...", 91)
     subtitles = split_words_into_subtitles(

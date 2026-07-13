@@ -49,7 +49,7 @@ export type AutoSegmentationSettings = {
 };
 
 export type AITranscriptionSettings = {
-	model: 'small' | 'medium' | 'large-v3' | 'large-v3-turbo';
+	model: 'small' | 'medium' | 'large-v3' | 'large-v3-turbo' | 'qwen3-asr-1.7b';
 	language: string;
 	device: 'AUTO' | 'GPU' | 'CPU';
 	hfToken: string;

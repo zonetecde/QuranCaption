@@ -14,10 +14,20 @@ export type QuranTranscriptReference = {
 
 export type TranscriptReferenceRenderPart = {
 	text: string;
+	words?: string[];
+	suffix?: string;
+	suffixFontFamily?: string | null;
 	isQuran: boolean;
 	isCitation: boolean;
 	quranReference?: QuranTranscriptReference;
 	extraCss: string;
+};
+
+export type TranscriptReferenceLogicalPart = {
+	text: string;
+	referenceType: 'quran' | 'citation' | null;
+	quranReference?: QuranTranscriptReference;
+	wordCount: number | null;
 };
 
 const verseCache = new Map<string, Verse>();
@@ -46,6 +56,84 @@ export function parseQuranTranscriptReference(value: string): QuranTranscriptRef
  */
 export function hasTranscriptReferenceMarkers(text: string): boolean {
 	return /\{\{[^{}]+\}\}/.test(text);
+}
+
+/**
+ * Compte les unités textuelles séparées par des espaces.
+ * Les mots Quran composés sont comptés depuis leur plage canonique, pas avec cette fonction.
+ * @param {string} text Texte ordinaire ou citation.
+ * @returns {number} Nombre d'unités non vides.
+ */
+function countSpacedWords(text: string): number {
+	return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Retourne le nombre de mots canoniques couvert par une référence Quran.
+ * Pour un verset complet, le corpus doit déjà être chargé dans le cache.
+ * @param {QuranTranscriptReference} reference Référence à inspecter.
+ * @returns {number | null} Nombre de mots, ou `null` tant que le verset n'est pas chargé.
+ */
+export function getQuranTranscriptReferenceWordCount(
+	reference: QuranTranscriptReference
+): number | null {
+	if (reference.startWord !== null && reference.endWord !== null) {
+		return reference.endWord - reference.startWord + 1;
+	}
+	return verseCache.get(`${reference.surah}:${reference.verse}`)?.words.length ?? null;
+}
+
+/**
+ * Décompose un texte de transcription en portions logiques sans rendre les marqueurs.
+ * Les comptes retournés correspondent aux unités de `alignmentMetadata.words`.
+ * @param {string} text Texte source contenant éventuellement des `{{...}}`.
+ * @returns {TranscriptReferenceLogicalPart[] | null} Portions ordonnées, ou `null` sans marqueur.
+ */
+export function getTranscriptReferenceLogicalParts(
+	text: string
+): TranscriptReferenceLogicalPart[] | null {
+	if (!hasTranscriptReferenceMarkers(text)) return null;
+
+	const parts: TranscriptReferenceLogicalPart[] = [];
+	let cursor = 0;
+	for (const match of text.matchAll(MARKER_REGEX)) {
+		if (match.index > cursor) {
+			const plainText = text.slice(cursor, match.index);
+			parts.push({
+				text: plainText,
+				referenceType: null,
+				wordCount: countSpacedWords(plainText)
+			});
+		}
+
+		const value = match[1].trim();
+		const reference = parseQuranTranscriptReference(value);
+		if (reference) {
+			parts.push({
+				text: value,
+				referenceType: 'quran',
+				quranReference: reference,
+				wordCount: getQuranTranscriptReferenceWordCount(reference)
+			});
+		} else {
+			parts.push({
+				text: value,
+				referenceType: 'citation',
+				wordCount: countSpacedWords(value)
+			});
+		}
+		cursor = match.index + match[0].length;
+	}
+
+	if (cursor < text.length) {
+		const plainText = text.slice(cursor);
+		parts.push({
+			text: plainText,
+			referenceType: null,
+			wordCount: countSpacedWords(plainText)
+		});
+	}
+	return parts;
 }
 
 /**
@@ -148,6 +236,8 @@ function buildQuranRenderPart(
 	if (mushafStyle === 'Indopak') {
 		return {
 			text: verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex, 'indopak') + verseNumber,
+			suffix: verseNumber,
+			suffixFontFamily: null,
 			isQuran: true,
 			isCitation: false,
 			quranReference: reference,
@@ -158,18 +248,19 @@ function buildQuranRenderPart(
 	const qpcVersion = fontFamily === 'QPC1' ? '1' : fontFamily === 'QPC2' ? '2' : null;
 	if (mushafStyle === 'Tajweed' || qpcVersion) {
 		const version = qpcVersion ?? '2';
-		const glyph = QPCFontProvider.getQuranVerseGlyph(
+		const glyphWords = QPCFontProvider.getQuranVerseGlyphWords(
 			reference.surah,
 			reference.verse,
 			startIndex,
 			endIndex,
-			endIndex === verse.words.length - 1,
 			version
 		);
-		if (!glyph) {
+		if (glyphWords.length !== endIndex - startIndex + 1) {
 			void QPCFontProvider.loadQPC2Data().then(() => globalState.updateVideoPreviewUI());
 			return {
 				text: uthmani + verseNumber,
+				suffix: verseNumber,
+				suffixFontFamily: null,
 				isQuran: true,
 				isCitation: false,
 				quranReference: reference,
@@ -180,8 +271,21 @@ function buildQuranRenderPart(
 			mushafStyle === 'Tajweed'
 				? `${QPCFontProvider.getTajweedFontNameForVerse(reference.surah, reference.verse)}, ${QPCFontProvider.getFontNameForVerse(reference.surah, reference.verse, '2')}`
 				: QPCFontProvider.getFontNameForVerse(reference.surah, reference.verse, version);
+		const verseNumberGlyph =
+			showVerseNumber && endIndex === verse.words.length - 1
+				? QPCFontProvider.getQuranVerseNumberGlyph(
+						reference.surah,
+						reference.verse,
+						endIndex,
+						version
+					)
+				: '';
+		const suffix = verseNumberGlyph ? ` ${verseNumberGlyph}` : '';
 		return {
-			text: glyph,
+			text: glyphWords.join(' ') + suffix,
+			words: glyphWords,
+			suffix,
+			suffixFontFamily: font,
 			isQuran: true,
 			isCitation: false,
 			quranReference: reference,
@@ -191,6 +295,8 @@ function buildQuranRenderPart(
 
 	return {
 		text: uthmani + verseNumber,
+		suffix: verseNumber,
+		suffixFontFamily: null,
 		isQuran: true,
 		isCitation: false,
 		quranReference: reference,

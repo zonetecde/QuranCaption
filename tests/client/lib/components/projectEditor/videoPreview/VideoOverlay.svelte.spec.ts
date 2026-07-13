@@ -12,6 +12,7 @@ import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+import { prefetchTranscriptReferences } from '$lib/services/TranscriptReferenceService';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -175,6 +176,33 @@ function createVerseSubtitle(
 	return new SubtitleClip(startTime, endTime, surah, verse, 0, 1, arabicText, [], false, false, {
 		english: new VerseTranslation(translationText, 'reviewed')
 	});
+}
+
+function createTimedTranscriptSubtitle(
+	text: string,
+	words: string[],
+	durationMs: number = words.length * 1000
+): SubtitleClip {
+	return new SubtitleClip(
+		0,
+		durationMs,
+		text,
+		'Speaker',
+		{ english: new VerseTranslation('Transcript translation', 'reviewed') },
+		false,
+		null,
+		{
+			source: 'local',
+			timeFrom: 0,
+			timeTo: durationMs / 1000,
+			words: words.map((word, index) => ({
+				word,
+				start: index,
+				end: index + 1,
+				confidence: 0.9
+			}))
+		}
+	);
 }
 
 function applyVisualMerge(
@@ -425,6 +453,139 @@ describe('Video overlay subtitle preview', () => {
 		expect(citation?.getAttribute('dir')).toBe('rtl');
 		expect(citation?.getAttribute('style')).toContain('unicode-bidi: isolate');
 		expect(citation?.textContent).toBe('ولمَّا ماتَ أظلمَ منها كل شيء،');
+	});
+
+	test('keeps WBW highlight enabled across a quoted passage', async () => {
+		const clip = createTimedTranscriptSubtitle('قال {{إنما الأعمال بالنيات.}}', [
+			'قال',
+			'إنما',
+			'الأعمال',
+			'بالنيات'
+		]);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 2500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('enable-wbw-highlight', true);
+		arabicStyles.setStyle('wbw-color', '#ff0000');
+		arabicStyles.setStyle('text-color', '#ffffff');
+		arabicStyles.setStyle('enable-wbw-background', true);
+		arabicStyles.setStyle('wbw-bg-color', '#0000ff');
+		arabicStyles.setStyle('enable-wbw-underline', true);
+		arabicStyles.setStyle('wbw-underline-thickness', 3);
+		arabicStyles.setStyle('enable-wbw-glow', true);
+		arabicStyles.setStyle('wbw-glow-color', '#00ff00');
+		arabicStyles.setStyle('wbw-glow-blur', 8);
+		fixture.videoStyle.getStylesOfTarget('arabic-citation').setStyle('text-color', '#ffff00');
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const flow = component.container.querySelector(
+			'#subtitles-container .arabic.subtitle .arabic-wbw-flow'
+		);
+		const citationGroup = component.container.querySelector(
+			'#subtitles-container .arabic.subtitle .arabic-wbw-group[style*="arabic-citation"]'
+		);
+		const words = flow?.querySelectorAll('.arabic-wbw-group > span:not([style*="verse-number"])');
+
+		expect(flow).not.toBeNull();
+		expect(citationGroup).not.toBeNull();
+		expect(normalizeText(flow?.textContent)).toBe('قال إنما الأعمال بالنيات.');
+		expect(words?.length).toBe(4);
+		const activeWordStyle = Array.from(words ?? [])
+			.map((word) => word.getAttribute('style') ?? '')
+			.find((style) => style.includes('background-color:'));
+		expect(activeWordStyle).toContain('color:');
+		expect(activeWordStyle).toContain('background-color:');
+		expect(activeWordStyle).toContain('text-decoration-line: underline');
+		expect(activeWordStyle).toContain('text-shadow:');
+	});
+
+	test('keeps WBW highlight enabled across a Quran reference', async () => {
+		const clip = createTimedTranscriptSubtitle('فقال {{53:5}}', [
+			'فقال',
+			'عَلَّمَهُ',
+			'شَديدُ',
+			'القُوىٰ'
+		]);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 2500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('enable-wbw-highlight', true);
+		arabicStyles.setStyle('wbw-color', '#ff0000');
+		arabicStyles.setStyle('text-color', '#ffffff');
+		fixture.videoStyle.getStylesOfTarget('arabic-quran').setStyle('text-color', '#00ff00');
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const flow = component.container.querySelector(
+			'#subtitles-container .arabic.subtitle .arabic-wbw-flow'
+		);
+		const quranGroup = component.container.querySelector(
+			'#subtitles-container .arabic.subtitle .arabic-wbw-group[style*="arabic-quran"]'
+		);
+
+		expect(flow).not.toBeNull();
+		expect(quranGroup).not.toBeNull();
+		expect(normalizeText(flow?.textContent)).toBe('فقال عَلَّمَهُ شَديدُ القُوىٰ');
+		expect(quranGroup?.querySelectorAll(':scope > span').length).toBe(3);
+		expect(
+			Array.from(quranGroup?.querySelectorAll(':scope > span') ?? []).some((word) =>
+				word.getAttribute('style')?.includes('color:')
+			)
+		).toBe(true);
+	});
+
+	test('keeps QPC2 glyphs and the verse-number glyph on Quran references with WBW', async () => {
+		seedQpc2PreviewFixture();
+		const clip = createTimedTranscriptSubtitle('{{1:1:3-4}}', ['الرَّحمٰنِ', 'الرَّحيمِ']);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 1500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('enable-wbw-highlight', true);
+		const quranStyles = fixture.videoStyle.getStylesOfTarget('arabic-quran');
+		quranStyles.setStyle('font-family', 'QPC2');
+		quranStyles.setStyle('show-verse-number', true);
+		await prefetchTranscriptReferences([clip.text]);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		await settleOverlay();
+
+		const quranGroup = component.container.querySelector(
+			'#subtitles-container .arabic.subtitle .arabic-wbw-group[style*="arabic-quran"]'
+		);
+		const directSpans = Array.from(quranGroup?.querySelectorAll(':scope > span') ?? []);
+		const wordSpans = directSpans.filter((span) => span.textContent?.trim() !== 'ﱅ');
+		const verseNumberSpan = directSpans.find((span) => span.textContent?.trim() === 'ﱅ');
+
+		expect(wordSpans.map((span) => span.textContent?.trim())).toEqual(['ﱃ', 'ﱄ']);
+		expect(quranGroup?.getAttribute('style')).toContain('font-family: QPC2_p001');
+		expect(verseNumberSpan).toBeDefined();
+		expect(verseNumberSpan?.getAttribute('style')).toContain('font-family: QPC2_p001');
+		expect(verseNumberSpan?.getAttribute('style')).toContain('color: var(--verse-number-color)');
+	});
+
+	test('keeps WBW timings aligned across consecutive Quran markers', async () => {
+		const clip = createTimedTranscriptSubtitle('{{37:104:3-3}} {{37:105:1-3}}', [
+			'يا إِبراهيمُ',
+			'قَد',
+			'صَدَّقتَ',
+			'الرُّؤيا'
+		]);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 2500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('enable-wbw-highlight', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const flow = component.container.querySelector(
+			'#subtitles-container .arabic.subtitle .arabic-wbw-flow'
+		);
+		const quranGroups = flow?.querySelectorAll('.arabic-wbw-group[style*="arabic-quran"]');
+		const timedWords = flow?.querySelectorAll('.arabic-wbw-group > span:not([style*="QPC2BSML"])');
+
+		expect(flow).not.toBeNull();
+		expect(quranGroups?.length).toBe(2);
+		expect(normalizeText(flow?.textContent)).toBe('يا إِبراهيمُ قَد صَدَّقتَ الرُّؤيا');
+		expect(timedWords?.length).toBe(4);
 	});
 
 	test('keeps the subtitle container visible when playback advances within the new subtitle', async () => {

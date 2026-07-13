@@ -10,9 +10,10 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import {
+		getTranscriptReferenceLogicalParts,
 		getTranscriptReferenceRenderParts,
-		hasTranscriptReferenceMarkers,
-		parseQuranTranscriptReference
+		parseQuranTranscriptReference,
+		type QuranTranscriptReference
 	} from '$lib/services/TranscriptReferenceService';
 	import { untrack } from 'svelte';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
@@ -163,7 +164,10 @@
 	 * @param {-1 | 1} direction Sous-titre précédent ou suivant.
 	 * @returns {boolean} `true` si les deux plages sont consécutives dans le même verset.
 	 */
-	function isQuranReferenceContinued(segment: OverlayTextSegment, direction: -1 | 1): boolean {
+	function isQuranReferenceContinued(
+		segment: Pick<OverlayTextSegment, 'quranReference' | 'sourceClipId'>,
+		direction: -1 | 1
+	): boolean {
 		const reference = segment.quranReference;
 		if (!reference || !segment.sourceClipId) return false;
 
@@ -319,25 +323,36 @@
 	// Rendu Word-By-Word (WBW)
 	// =========================================================================
 
+	/** Mot rendu avec un ou plusieurs timings WBW. */
+	type ArabicWordByWordEntry = {
+		text: string;
+		timings: SegmentationWordTimestamp[];
+		flags: TranslationInlineStyleFlags;
+	};
+
+	/** Groupe visuel continu partageant le même style de référence. */
+	type ArabicWordByWordGroup = {
+		words: ArabicWordByWordEntry[];
+		startWordIndex: number;
+		suffix: string;
+		suffixFontFamily: string | null;
+		extraCss: string;
+		baseColor: string | null;
+		referenceType?: 'quran' | 'citation';
+		quranReference?: QuranTranscriptReference;
+		sourceClipId: number;
+	};
+
 	/** Structure de données pour le rendu WBW arabe. */
 	type ArabicWordByWordRenderData = {
-		words: Array<{
-			text: string;
-			timings: SegmentationWordTimestamp[];
-			flags: TranslationInlineStyleFlags;
-		}>;
-		groups: Array<{
-			words: Array<{
-				text: string;
-				timings: SegmentationWordTimestamp[];
-				flags: TranslationInlineStyleFlags;
-			}>;
-			startWordIndex: number;
-			suffix: string;
-			suffixFontFamily: string | null;
-			extraCss: string;
-		}>;
+		words: ArabicWordByWordEntry[];
+		groups: ArabicWordByWordGroup[];
 		clipStartTimeS: number;
+	};
+
+	/** Description d'un groupe avant association de ses timings. */
+	type ArabicWordByWordGroupDefinition = Omit<ArabicWordByWordGroup, 'words' | 'startWordIndex'> & {
+		wordTexts: string[];
 	};
 
 	/**
@@ -428,6 +443,131 @@
 		};
 	}
 
+	/** Sépare un texte affiché en unités WBW non vides. */
+	function splitVisibleWords(text: string): string[] {
+		return text.trim().split(/\s+/).filter(Boolean);
+	}
+
+	/**
+	 * Extrait un éventuel numéro de verset ajouté au texte Quran rendu.
+	 * @param {string} text Texte Quran déjà résolu.
+	 * @returns {{ text: string; suffix: string }} Texte sans suffixe et suffixe séparé.
+	 */
+	function splitRenderedQuranSuffix(text: string): { text: string; suffix: string } {
+		const match = /^(.*?)(\s+۝\d+)\s*$/u.exec(text.trim());
+		return match ? { text: match[1].trim(), suffix: match[2] } : { text: text.trim(), suffix: '' };
+	}
+
+	/**
+	 * Construit les groupes visibles d'un clip en conservant les styles Quran/citation.
+	 * Le nombre total d'unités doit correspondre exactement aux timings disponibles.
+	 */
+	function buildClipWordGroupDefinitions(
+		sourceClip: SubtitleClip,
+		alignmentWordTexts: string[]
+	): ArabicWordByWordGroupDefinition[] | null {
+		const logicalParts = getTranscriptReferenceLogicalParts(sourceClip.text);
+		if (!logicalParts) {
+			const displayParts = sourceClip.getArabicRenderParts('preview');
+			const visibleWords = displayParts.words ?? splitVisibleWords(displayParts.text);
+			if (visibleWords.length !== alignmentWordTexts.length) return null;
+			return [
+				{
+					wordTexts: visibleWords,
+					suffix: displayParts.suffix,
+					suffixFontFamily: displayParts.suffixFontFamily,
+					extraCss: '',
+					baseColor: null,
+					sourceClipId: sourceClip.id
+				}
+			];
+		}
+
+		const renderedParts =
+			getTranscriptReferenceRenderParts(
+				sourceClip.text,
+				String(globalState.getStyle('arabic-quran', 'mushaf-style')?.value ?? 'Uthmani'),
+				String(globalState.getStyle('arabic-quran', 'font-family')?.value ?? 'Hafs')
+			) ?? [];
+		const counts = logicalParts.map((part) => part.wordCount);
+		const unknownIndexes = counts.flatMap((count, index) => (count === null ? [index] : []));
+		const knownCount = counts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
+
+		if (unknownIndexes.length === 1) {
+			counts[unknownIndexes[0]] = alignmentWordTexts.length - knownCount;
+		} else if (unknownIndexes.length > 1) {
+			for (const index of unknownIndexes) {
+				const rendered = renderedParts[index];
+				const renderedText = rendered?.isQuran ? splitRenderedQuranSuffix(rendered.text).text : '';
+				const renderedCount = splitVisibleWords(renderedText).length;
+				if (renderedCount <= 0) return null;
+				counts[index] = renderedCount;
+			}
+		}
+
+		if (counts.some((count) => count === null || count < 0)) return null;
+		if (
+			counts.reduce<number>((sum, count) => sum + Number(count), 0) !== alignmentWordTexts.length
+		) {
+			return null;
+		}
+
+		const definitions: ArabicWordByWordGroupDefinition[] = [];
+		let wordCursor = 0;
+		for (const [index, part] of logicalParts.entries()) {
+			const wordCount = Number(counts[index]);
+			if (wordCount === 0) continue;
+			const alignedWords = alignmentWordTexts.slice(wordCursor, wordCursor + wordCount);
+			const renderedPart = renderedParts[index];
+			let wordTexts = alignedWords;
+			let suffix = '';
+			let suffixFontFamily: string | null = null;
+
+			if (part.referenceType === 'quran') {
+				const renderedQuran = renderedPart?.isQuran
+					? splitRenderedQuranSuffix(renderedPart.text)
+					: { text: '', suffix: '' };
+				const renderedWords =
+					renderedPart?.isQuran && renderedPart.words
+						? renderedPart.words
+						: splitVisibleWords(renderedQuran.text);
+				if (renderedPart?.isQuran && renderedWords.length === wordCount) {
+					wordTexts = renderedWords;
+				}
+				suffix = renderedPart?.suffix ?? renderedQuran.suffix;
+				suffixFontFamily = renderedPart?.suffixFontFamily ?? null;
+			} else {
+				const sourceWords = splitVisibleWords(part.text);
+				if (sourceWords.length === wordCount) wordTexts = sourceWords;
+			}
+
+			const referenceCss = part.referenceType
+				? getReferenceStyleCss(part.referenceType, sourceClip.id)
+				: '';
+			const referenceBaseColor = part.referenceType
+				? String(
+						globalState.getVideoStyle
+							.getStylesOfTarget(
+								part.referenceType === 'quran' ? 'arabic-quran' : 'arabic-citation'
+							)
+							.getEffectiveValue('text-color', sourceClip.id) ?? ''
+					)
+				: null;
+			definitions.push({
+				wordTexts,
+				suffix,
+				suffixFontFamily,
+				extraCss: `${referenceCss} ${renderedPart?.extraCss ?? ''}`.trim(),
+				baseColor: referenceBaseColor,
+				referenceType: part.referenceType ?? undefined,
+				quranReference: part.quranReference,
+				sourceClipId: sourceClip.id
+			});
+			wordCursor += wordCount;
+		}
+		return wordCursor === alignmentWordTexts.length ? definitions : null;
+	}
+
 	/**
 	 * Construit les données de rendu WBW pour le sous-titre arabe courant.
 	 *
@@ -440,7 +580,6 @@
 	function buildArabicWordByWordRenderData(): ArabicWordByWordRenderData | null {
 		const subtitle = currentSubtitle();
 		if (!(subtitle instanceof SubtitleClip)) return null;
-		if (hasTranscriptReferenceMarkers(subtitle.text)) return null;
 
 		const mergedGroup = currentVisualMergeGroup();
 		const sourceClips =
@@ -453,7 +592,6 @@
 			isArabicMerged() &&
 			mergedGroup.clips.every((clip) => (clip.alignmentMetadata?.words.length ?? 0) > 0);
 
-		// Vérifie si le rendu WBW est possible
 		if (mergedGroup && isArabicMerged() && !shouldUseMergedSource) return null;
 		if (!shouldUseMergedSource && (subtitle.alignmentMetadata?.words.length ?? 0) === 0) {
 			return null;
@@ -462,38 +600,33 @@
 		const clipStartTimeS = shouldUseMergedSource
 			? mergedGroup!.startTime / 1000
 			: (subtitle.alignmentMetadata?.timeFrom ?? 0);
-
-		const words: ArabicWordByWordRenderData['words'] = [];
-		const groups: ArabicWordByWordRenderData['groups'] = [];
-		let totalWordCount = 0;
+		const words: ArabicWordByWordEntry[] = [];
+		const groups: ArabicWordByWordGroup[] = [];
 		let visibleWordTexts: string[] = [];
 
 		for (const sourceClip of sourceClips) {
-			const displayParts = sourceClip.getArabicRenderParts('preview');
-			const visibleWords = displayParts.words ?? displayParts.text.split(/\s+/).filter(Boolean);
 			const alignmentWords = sourceClip.alignmentMetadata?.words ?? [];
 			const dedupedAlignmentWords = alignmentWords.filter(
-				(word, index, words) =>
+				(word, index, candidates) =>
+					!('location' in word) ||
 					!word.location ||
-					words.findIndex((candidate) => candidate.location === word.location) === index
+					candidates.findIndex(
+						(candidate) => 'location' in candidate && candidate.location === word.location
+					) === index
 			);
-			const visibleWordCount = Math.min(visibleWords.length, dedupedAlignmentWords.length);
-			const visibleAlignmentWords =
-				visibleWordCount > 0
-					? dedupedAlignmentWords.slice(dedupedAlignmentWords.length - visibleWordCount)
-					: dedupedAlignmentWords.slice();
+			if (dedupedAlignmentWords.length === 0) continue;
+
+			const alignmentWordTexts = dedupedAlignmentWords.map((word) => word.word?.trim() ?? '');
+			if (alignmentWordTexts.some((word) => !word)) return null;
+			const groupDefinitions = buildClipWordGroupDefinitions(sourceClip, alignmentWordTexts);
+			if (!groupDefinitions) return null;
+			const clipVisibleWords = groupDefinitions.flatMap((group) => group.wordTexts);
+			if (clipVisibleWords.length !== dedupedAlignmentWords.length) return null;
+
 			const clipOffsetS = shouldUseMergedSource
 				? (sourceClip.startTime - mergedGroup!.startTime) / 1000
 				: 0;
-			const sourceWordCount = sourceClip.text.split(/\s+/).filter(Boolean).length;
-			const inlineWordOffset = Math.max(0, sourceWordCount - visibleWords.length);
-
-			if (visibleWords.length === 0) {
-				continue;
-			}
-
-			// Ajuste les timings avec l'offset du clip dans le groupe
-			const timingCandidates = visibleAlignmentWords.map(
+			const timingCandidates = dedupedAlignmentWords.map(
 				(word) =>
 					({
 						...word,
@@ -502,55 +635,72 @@
 						clipId: sourceClip.id
 					}) as SegmentationWordTimestamp & { clipId: number }
 			);
+			const hasReferenceParts = getTranscriptReferenceLogicalParts(sourceClip.text) !== null;
+			const sourceWordCount = splitVisibleWords(sourceClip.text).length;
+			const inlineWordOffset = Math.max(0, sourceWordCount - clipVisibleWords.length);
+			const getWordFlags = (wordIndex: number): TranslationInlineStyleFlags =>
+				hasReferenceParts
+					? EMPTY_INLINE_STYLE_FLAGS
+					: getInlineStyleFlagsForWordIndex(
+							sourceClip.arabicInlineStyleRuns,
+							inlineWordOffset + wordIndex
+						);
 
-			const overlapCount = countWordOverlap(visibleWordTexts, visibleWords);
+			const overlapCount = countWordOverlap(visibleWordTexts, clipVisibleWords);
 			const clampedOverlapCount = Math.min(overlapCount, timingCandidates.length);
-
-			// Ajoute les timings aux mots qui se chevauchent
-			for (let i = 0; i < clampedOverlapCount; i++) {
-				const wordEntry = words[words.length - clampedOverlapCount + i];
+			for (let index = 0; index < clampedOverlapCount; index += 1) {
+				const wordEntry = words[words.length - clampedOverlapCount + index];
 				if (!wordEntry) continue;
-				wordEntry.timings.push(timingCandidates[i]);
-				wordEntry.flags = mergeInlineStyleFlags(
-					wordEntry.flags,
-					getInlineStyleFlagsForWordIndex(sourceClip.arabicInlineStyleRuns, inlineWordOffset + i)
-				);
+				wordEntry.timings.push(timingCandidates[index]);
+				wordEntry.flags = mergeInlineStyleFlags(wordEntry.flags, getWordFlags(index));
 			}
 
-			const groupWords: ArabicWordByWordRenderData['groups'][number]['words'] = [];
-			for (let i = clampedOverlapCount; i < visibleWords.length; i++) {
-				const wordEntry = {
-					text: visibleWords[i],
-					timings: [timingCandidates[i]],
-					flags: getInlineStyleFlagsForWordIndex(
-						sourceClip.arabicInlineStyleRuns,
-						inlineWordOffset + i
-					)
-				};
-				words.push(wordEntry);
-				groupWords.push(wordEntry);
+			let clipWordIndex = 0;
+			let remainingOverlap = clampedOverlapCount;
+			for (const definition of groupDefinitions) {
+				const skippedWords = Math.min(remainingOverlap, definition.wordTexts.length);
+				clipWordIndex += skippedWords;
+				remainingOverlap -= skippedWords;
+				const groupWords: ArabicWordByWordEntry[] = [];
+				const startWordIndex = words.length;
+
+				for (
+					let localIndex = skippedWords;
+					localIndex < definition.wordTexts.length;
+					localIndex += 1
+				) {
+					const timing = timingCandidates[clipWordIndex];
+					if (!timing) return null;
+					const wordEntry: ArabicWordByWordEntry = {
+						text: definition.wordTexts[localIndex],
+						timings: [timing],
+						flags: getWordFlags(clipWordIndex)
+					};
+					words.push(wordEntry);
+					groupWords.push(wordEntry);
+					clipWordIndex += 1;
+				}
+
+				if (groupWords.length > 0) {
+					groups.push({
+						words: groupWords,
+						startWordIndex,
+						suffix: definition.suffix,
+						suffixFontFamily: definition.suffixFontFamily,
+						extraCss: definition.extraCss,
+						baseColor: definition.baseColor,
+						referenceType: definition.referenceType,
+						quranReference: definition.quranReference,
+						sourceClipId: definition.sourceClipId
+					});
+				}
 			}
-
-			const group = {
-				words: groupWords,
-				startWordIndex: totalWordCount,
-				suffix: displayParts.suffix,
-				suffixFontFamily: displayParts.suffixFontFamily,
-				extraCss: ''
-			};
-
-			groups.push(group);
-			totalWordCount += groupWords.length;
+			if (clipWordIndex !== timingCandidates.length) return null;
 			visibleWordTexts = words.map((word) => word.text);
 		}
 
-		if (groups.length === 0) return null;
-
-		return {
-			words,
-			groups,
-			clipStartTimeS
-		};
+		if (groups.length === 0 || words.length === 0) return null;
+		return { words, groups, clipStartTimeS };
 	}
 
 	/** État du highlight WBW courant. */
@@ -623,19 +773,22 @@
 	 * @param {WordByWordHighlightState} state État WBW courant.
 	 * @param {number} highlightProgress Progression du highlight.
 	 * @param {TranslationInlineStyleFlags} flags Flags inline du mot.
+	 * @param {string | null} baseColor Couleur de base propre au groupe de référence.
 	 * @returns {string} CSS inline final.
 	 */
 	function getCombinedWordByWordCss(
 		wordIndex: number,
 		state: WordByWordHighlightState,
 		highlightProgress: number,
-		flags: TranslationInlineStyleFlags
+		flags: TranslationInlineStyleFlags,
+		baseColor: string | null
 	): string {
 		const wbwCss = buildWordByWordWordCss(
 			wordIndex,
 			state,
 			highlightProgress,
-			wbwPreviewFadeDuration()
+			wbwPreviewFadeDuration(),
+			baseColor || undefined
 		);
 		const inlineCss = getRevealedInlineStyleCss(wordIndex, state, highlightProgress, flags);
 		return `${wbwCss} ${inlineCss}`.trim();
@@ -778,6 +931,13 @@
 							dir="rtl"
 							style="unicode-bidi: isolate; {group.extraCss}"
 						>
+							{#if group.referenceType === 'quran' && showDecorativeBrackets()}
+								{@const glyphs = bracketGlyphs()}
+								{@const bracketStyle = `${group.extraCss} ${getDecorativeBracketCss()}`.trim()}
+								{#if !isQuranReferenceContinued(group, -1)}
+									<span style={bracketStyle}>{glyphs.closing}</span>
+								{/if}
+							{/if}
 							{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
 								{@const wordIndex = group.startWordIndex + i}
 								{@const highlightProgress = computeWordByWordHighlightProgress(
@@ -790,7 +950,8 @@
 										wordIndex,
 										state,
 										highlightProgress,
-										wordEntry.flags
+										wordEntry.flags,
+										group.baseColor
 									)}
 								>
 									{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
@@ -833,6 +994,13 @@
 								>
 									{group.suffix}
 								</span>
+							{/if}
+							{#if group.referenceType === 'quran' && showDecorativeBrackets()}
+								{@const glyphs = bracketGlyphs()}
+								{@const bracketStyle = `${group.extraCss} ${getDecorativeBracketCss()}`.trim()}
+								{#if !isQuranReferenceContinued(group, 1)}
+									<span style={bracketStyle}>{glyphs.opening}</span>
+								{/if}
 							{/if}
 						</span>
 						{#if groupIndex < groups.length - 1}&nbsp;{/if}

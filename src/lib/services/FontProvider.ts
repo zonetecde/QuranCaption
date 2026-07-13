@@ -340,6 +340,30 @@ export class QPCFontProvider {
 	}
 
 	/**
+	 * Retourne uniquement le glyphe QPC du numéro de verset.
+	 * @param {number} surah Numéro de sourate.
+	 * @param {number} verse Numéro de verset.
+	 * @param {number} lastWordIndex Index 0-based du dernier mot logique.
+	 * @param {'1' | '2'} qpcVersion Version QPC à utiliser.
+	 * @returns {string} Glyphe du numéro, ou une chaîne vide s'il est indisponible.
+	 */
+	static getQuranVerseNumberGlyph(
+		surah: number,
+		verse: number,
+		lastWordIndex: number,
+		qpcVersion: '1' | '2' = '2'
+	): string {
+		const glyphs = qpcVersion === '1' ? QPCFontProvider.qpc1Glyphs : QPCFontProvider.qpc2Glyphs;
+		if (!glyphs) {
+			void QPCFontProvider.loadQPC2Data();
+			return '';
+		}
+
+		const verseNumberGlyphIndex = getQpcVerseNumberGlyphIndex(surah, verse, lastWordIndex);
+		return glyphs[`${surah}:${verse}:${verseNumberGlyphIndex + 1}`] ?? '';
+	}
+
+	/**
 	 * Retourne les glyphes QPC regroupes par mot logique Uthmani.
 	 * @param {number} surah Numero de sourate.
 	 * @param {number} verse Numero de verset.

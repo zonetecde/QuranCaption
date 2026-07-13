@@ -592,6 +592,7 @@ export class StylesData extends SerializableBase {
 				// Cas particulier: pour la police d'écriture QPC1 ou QPC2, alors on met la bonne
 				// police d'écriture en fonction du verset
 				if (
+					this.target === 'arabic' &&
 					style.id === 'font-family' &&
 					(String(effectiveValue) === 'QPC1' || String(effectiveValue) === 'QPC2') &&
 					clipId
@@ -942,21 +943,33 @@ export class VideoStyle extends SerializableBase {
 	static async getDefaultVideoStyle(): Promise<VideoStyle> {
 		// Créer un nouveau objet VideoStyle
 		const videoStyle = new VideoStyle();
+		const subtitleStyles = await (await fetch('./styles/styles.json')).json();
 
 		// Ajoute les styles par défaut pour chaque target
 		videoStyle.styles.push(
 			new StylesData('global', await (await fetch('./styles/globalStyles.json')).json())
 		);
-		videoStyle.styles.push(
-			new StylesData('arabic', await (await fetch('./styles/styles.json')).json())
-		);
+		videoStyle.styles.push(new StylesData('arabic', subtitleStyles));
+		videoStyle.styles.push(new StylesData('arabic-quran', subtitleStyles));
+		videoStyle.styles.push(new StylesData('arabic-citation', subtitleStyles));
 
 		// Set les styles par défaut pour l'arabe
-		videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'QPC2');
+		videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'Noto Sans Arabic');
 		// videoStyle.getStylesOfTarget('arabic').setStyle('max-height', 220); // Une ligne max
 		videoStyle.getStylesOfTarget('arabic').setStyle('line-height', 1.6);
 		videoStyle.getStylesOfTarget('arabic').setStyle('font-size', 90);
 		videoStyle.getStylesOfTarget('arabic').setStyle('vertical-position', -110);
+		videoStyle.getStylesOfTarget('arabic-quran').setStyle('font-family', 'QPC2');
+		videoStyle.getStylesOfTarget('arabic-quran').setStyle('text-color', '#ffffff');
+		videoStyle.getStylesOfTarget('arabic-quran').setStyle('text-glow-enable', true);
+		videoStyle.getStylesOfTarget('arabic-quran').setStyle('text-glow-color', '#ffffff');
+		videoStyle.getStylesOfTarget('arabic-quran').setStyle('text-glow-blur', 50);
+		videoStyle.getStylesOfTarget('arabic-quran').setStyle('font-size', 90);
+		videoStyle.getStylesOfTarget('arabic-quran').setStyle('line-height', 1.6);
+		videoStyle.getStylesOfTarget('arabic-citation').setStyle('font-family', 'Noto Sans Arabic');
+		videoStyle.getStylesOfTarget('arabic-citation').setStyle('text-color', '#f7ff8a');
+		videoStyle.getStylesOfTarget('arabic-citation').setStyle('font-size', 90);
+		videoStyle.getStylesOfTarget('arabic-citation').setStyle('line-height', 1.6);
 
 		// Load les styles composites
 		await videoStyle.getStylesOfTarget('global').loadCompositeStyles();
@@ -1041,12 +1054,33 @@ export class VideoStyle extends SerializableBase {
 		hasChanges = this.mergeMissingStylesForTarget('global', globalDefaults) || hasChanges;
 
 		const subtitleDefaults = await (await fetch('./styles/styles.json')).json();
+		const missingQuranStyles = !this.doesTargetStyleExist('arabic-quran');
+		const missingCitationStyles = !this.doesTargetStyleExist('arabic-citation');
+		for (const target of ['arabic-quran', 'arabic-citation']) {
+			hasChanges = this.mergeMissingStylesForTarget(target, subtitleDefaults) || hasChanges;
+		}
+		if (missingQuranStyles) {
+			this.getStylesOfTarget('arabic-quran').setStyle('font-family', 'QPC2');
+			this.getStylesOfTarget('arabic-quran').setStyle('text-color', '#ffffff');
+			this.getStylesOfTarget('arabic-quran').setStyle('text-glow-enable', true);
+			this.getStylesOfTarget('arabic-quran').setStyle('text-glow-color', '#ffffff');
+			this.getStylesOfTarget('arabic-quran').setStyle('text-glow-blur', 50);
+			this.getStylesOfTarget('arabic-quran').setStyle('font-size', 90);
+			this.getStylesOfTarget('arabic-quran').setStyle('line-height', 1.6);
+		}
+		if (missingCitationStyles) {
+			this.getStylesOfTarget('arabic-citation').setStyle('font-family', 'Noto Sans Arabic');
+			this.getStylesOfTarget('arabic-citation').setStyle('text-color', '#f7ff8a');
+			this.getStylesOfTarget('arabic-citation').setStyle('font-size', 90);
+			this.getStylesOfTarget('arabic-citation').setStyle('line-height', 1.6);
+		}
 		for (const stylesData of this.styles) {
 			if (stylesData.target === 'global') continue;
-			const targetDefaults =
-				stylesData.target === 'arabic'
-					? subtitleDefaults
-					: getNonArabicSubtitleCategories(subtitleDefaults);
+			const targetDefaults = ['arabic', 'arabic-quran', 'arabic-citation'].includes(
+				stylesData.target
+			)
+				? subtitleDefaults
+				: getNonArabicSubtitleCategories(subtitleDefaults);
 			hasChanges =
 				this.mergeMissingStylesForTarget(stylesData.target, targetDefaults) || hasChanges;
 		}

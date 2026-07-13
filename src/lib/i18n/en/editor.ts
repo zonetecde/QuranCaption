@@ -176,6 +176,10 @@ const editor = {
 	saveStylesCommunityPresets: 'Save styles & Community presets',
 	chooseTarget: 'Choose a target',
 	selectTranslation: 'Select translation',
+	selectArabicContent: 'Select Arabic content',
+	normalText: 'Normal text',
+	quranPassages: 'Quran',
+	citations: 'Citations (hadith, etc.)',
 	noTranslationsYet: 'You have no translations yet.',
 	clearSearch: 'Clear search',
 	subtitlesSelected:
@@ -1040,7 +1044,7 @@ const editor = {
 		'show-subtitles': 'Toggle the visibility of subtitles',
 		'show-verse-number': 'Toggle the visibility of verse numbers',
 		'text-direction': 'Set the text direction to Right-to-Left',
-		'show-decorative-brackets': 'Wrap Arabic subtitle text with decorative brackets',
+		'show-decorative-brackets': 'Wrap Quran passages with decorative brackets',
 		'decorative-brackets-font-family':
 			'Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.',
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',

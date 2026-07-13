@@ -54,6 +54,9 @@ export class StylesEditorState extends SerializableBase {
 	// Indique quelle traduction est actuellement sélectionnée dans l'éditeur de styles
 	currentSelectionTranslation: string = $state('');
 
+	// Indique quel type de texte arabe est actuellement ciblé dans l'éditeur de styles
+	currentSelectionArabic: 'arabic' | 'arabic-quran' | 'arabic-citation' = $state('arabic');
+
 	// Indique la requête de recherche actuelle dans l'éditeur de styles
 	searchQuery: string = $state('');
 
@@ -70,9 +73,8 @@ export class StylesEditorState extends SerializableBase {
 	scrollAndHighlight: string | null = $state(null);
 
 	getCurrentSelection(): 'global' | 'arabic' | string {
-		if (this.currentSelection === 'global' || this.currentSelection === 'arabic') {
-			return this.currentSelection;
-		}
+		if (this.currentSelection === 'global') return this.currentSelection;
+		if (this.currentSelection === 'arabic') return this.currentSelectionArabic;
 		return this.currentSelectionTranslation;
 	}
 

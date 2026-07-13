@@ -22,6 +22,13 @@
 	} from './styleEditorTypes';
 
 	type FeatureState = 'active' | 'inactive' | 'mixed';
+	const REFERENCE_STYLE_CATEGORY_IDS = new Set(['text', 'text-glow', 'text-neon', 'effects']);
+	const QURAN_ONLY_STYLE_IDS = new Set([
+		'mushaf-style',
+		'show-verse-number',
+		'show-decorative-brackets',
+		'decorative-brackets-font-family'
+	]);
 
 	let {
 		presetLibraryOpen,
@@ -93,6 +100,14 @@
 	function getCategoriesToDisplay(): Category[] {
 		const target = currentStyleTarget();
 		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
+		if (target === 'arabic-quran') {
+			return categories.filter(
+				(category) => category.id === 'general' || REFERENCE_STYLE_CATEGORY_IDS.has(category.id)
+			);
+		}
+		if (target === 'arabic-citation') {
+			return categories.filter((category) => REFERENCE_STYLE_CATEGORY_IDS.has(category.id));
+		}
 
 		// Les sélections de clips vidéo ne peuvent modifier que l'overlay.
 		if (target === 'global' && globalState.getStylesState.selectedVideos.length > 0) {
@@ -312,6 +327,7 @@
 	 */
 	function isStyleUnsupported(category: Category, style: Style): boolean {
 		const selection = globalState.getStylesState.currentSelection;
+		const target = currentStyleTarget();
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
 
 		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;
@@ -327,9 +343,13 @@
 		)
 			return true;
 
-		if (style.id === 'show-decorative-brackets' && selection !== 'arabic') return true;
-		if (style.id === 'decorative-brackets-font-family' && selection !== 'arabic') return true;
-		if (style.id === 'mushaf-style' && selection !== 'arabic') return true;
+		if (QURAN_ONLY_STYLE_IDS.has(style.id) && target !== 'arabic-quran') return true;
+		if (
+			target === 'arabic-quran' &&
+			category.id === 'general' &&
+			!QURAN_ONLY_STYLE_IDS.has(style.id)
+		)
+			return true;
 
 		if (
 			style.id === 'decorative-brackets-font-family' &&
@@ -371,9 +391,9 @@
 	 */
 	function isMushafFontLocked(): boolean {
 		return (
-			globalState.getStylesState.currentSelection === 'arabic' &&
+			currentStyleTarget() === 'arabic-quran' &&
 			!['Uthmani', 'Minimal Quran'].includes(
-				String(globalState.getStyle('arabic', 'mushaf-style')?.value)
+				String(globalState.getStyle('arabic-quran', 'mushaf-style')?.value)
 			)
 		);
 	}

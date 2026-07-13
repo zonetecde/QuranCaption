@@ -145,6 +145,19 @@
 		{:else}
 			<p class="py-1 text-center text-xs text-secondary">{$LL.editor.noTranslationsYet()}</p>
 		{/if}
+	{:else if globalState.getStylesState.currentSelection === 'arabic'}
+		<label class="flex items-center gap-2">
+			<span class="material-icons-outlined text-sm text-secondary">format_quote</span>
+			<select
+				class="flex-1 text-sm"
+				aria-label={$LL.editor.selectArabicContent()}
+				bind:value={globalState.getStylesState.currentSelectionArabic}
+			>
+				<option value="arabic">{$LL.editor.normalText()}</option>
+				<option value="arabic-quran">{$LL.editor.quranPassages()}</option>
+				<option value="arabic-citation">{$LL.editor.citations()}</option>
+			</select>
+		</label>
 	{/if}
 
 	<div class="relative">

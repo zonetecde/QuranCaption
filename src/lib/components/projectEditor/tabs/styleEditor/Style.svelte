@@ -192,8 +192,8 @@
 		ProjectHistoryManager.begin('set select style');
 		try {
 			// Style global arabe (non-overridable): choix du mushaf
-			if (target === 'arabic' && style.id === 'mushaf-style') {
-				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+			if (target === 'arabic-quran' && style.id === 'mushaf-style') {
+				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic-quran');
 				arabicStyles.setStyle('mushaf-style', value);
 
 				if (value === 'Indopak') {
@@ -212,8 +212,12 @@
 			}
 
 			// Si l'utilisateur choisit explicitement la police IndoPak, synchroniser le style mushaf.
-			if (target === 'arabic' && style.id === 'font-family' && selectedClipIds().length === 0) {
-				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+			if (
+				target === 'arabic-quran' &&
+				style.id === 'font-family' &&
+				selectedClipIds().length === 0
+			) {
+				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic-quran');
 				if (value === 'IndoPak') {
 					arabicStyles.setStyle('mushaf-style', 'Indopak');
 				} else if (value === 'Soosi') {

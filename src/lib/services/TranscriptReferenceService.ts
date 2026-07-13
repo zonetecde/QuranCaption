@@ -15,6 +15,8 @@ export type QuranTranscriptReference = {
 export type TranscriptReferenceRenderPart = {
 	text: string;
 	isQuran: boolean;
+	isCitation: boolean;
+	quranReference?: QuranTranscriptReference;
 	extraCss: string;
 };
 
@@ -77,6 +79,10 @@ async function loadReferencedVerse(surah: number, verse: number): Promise<Verse 
  * @returns {Promise<string | null>} Première erreur rencontrée ou `null`.
  */
 export async function validateTranscriptQuranReferences(text: string): Promise<string | null> {
+	const textWithoutCompleteMarkers = text.replace(MARKER_REGEX, '');
+	if (textWithoutCompleteMarkers.includes('{{') || textWithoutCompleteMarkers.includes('}}')) {
+		return 'Reference markers must open and close inside the same subtitle segment.';
+	}
 	for (const match of text.matchAll(MARKER_REGEX)) {
 		const value = match[1].trim();
 		const reference = parseQuranTranscriptReference(value);
@@ -136,11 +142,15 @@ function buildQuranRenderPart(
 	const startIndex = (reference.startWord ?? 1) - 1;
 	const endIndex = (reference.endWord ?? verse.words.length) - 1;
 	const uthmani = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
+	const showVerseNumber = Boolean(globalState.getStyle('arabic-quran', 'show-verse-number').value);
+	const verseNumber = showVerseNumber && endIndex === verse.words.length - 1 ? ` ۝${verse.id}` : '';
 
 	if (mushafStyle === 'Indopak') {
 		return {
-			text: verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex, 'indopak'),
+			text: verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex, 'indopak') + verseNumber,
 			isQuran: true,
+			isCitation: false,
+			quranReference: reference,
 			extraCss: 'font-family: IndoPak, sans-serif; unicode-bidi: isolate;'
 		};
 	}
@@ -158,7 +168,13 @@ function buildQuranRenderPart(
 		);
 		if (!glyph) {
 			void QPCFontProvider.loadQPC2Data().then(() => globalState.updateVideoPreviewUI());
-			return { text: uthmani, isQuran: true, extraCss: 'font-family: Hafs, sans-serif;' };
+			return {
+				text: uthmani + verseNumber,
+				isQuran: true,
+				isCitation: false,
+				quranReference: reference,
+				extraCss: 'font-family: Hafs, sans-serif;'
+			};
 		}
 		const font =
 			mushafStyle === 'Tajweed'
@@ -167,11 +183,19 @@ function buildQuranRenderPart(
 		return {
 			text: glyph,
 			isQuran: true,
+			isCitation: false,
+			quranReference: reference,
 			extraCss: `font-family: ${font}; unicode-bidi: isolate;`
 		};
 	}
 
-	return { text: uthmani, isQuran: true, extraCss: 'unicode-bidi: isolate;' };
+	return {
+		text: uthmani + verseNumber,
+		isQuran: true,
+		isCitation: false,
+		quranReference: reference,
+		extraCss: 'unicode-bidi: isolate;'
+	};
 }
 
 /**
@@ -189,20 +213,22 @@ export function getTranscriptReferenceRenderParts(
 	if (!hasTranscriptReferenceMarkers(text)) return null;
 
 	const parts: TranscriptReferenceRenderPart[] = [];
-	const plainCss =
-		mushafStyle === 'Tajweed' || fontFamily === 'QPC1' || fontFamily === 'QPC2'
-			? 'font-family: Hafs, sans-serif;'
-			: '';
+	const plainCss = '';
 	let cursor = 0;
 	for (const match of text.matchAll(MARKER_REGEX)) {
 		if (match.index > cursor) {
-			parts.push({ text: text.slice(cursor, match.index), isQuran: false, extraCss: plainCss });
+			parts.push({
+				text: text.slice(cursor, match.index),
+				isQuran: false,
+				isCitation: false,
+				extraCss: plainCss
+			});
 		}
 
 		const value = match[1].trim();
 		const reference = parseQuranTranscriptReference(value);
 		if (!reference) {
-			parts.push({ text: value, isQuran: false, extraCss: plainCss });
+			parts.push({ text: value, isQuran: false, isCitation: true, extraCss: plainCss });
 		} else {
 			const verse = verseCache.get(`${reference.surah}:${reference.verse}`);
 			if (verse) {
@@ -211,14 +237,19 @@ export function getTranscriptReferenceRenderParts(
 				void loadReferencedVerse(reference.surah, reference.verse).then(() =>
 					globalState.updateVideoPreviewUI()
 				);
-				parts.push({ text: match[0], isQuran: false, extraCss: plainCss });
+				parts.push({ text: match[0], isQuran: false, isCitation: false, extraCss: plainCss });
 			}
 		}
 		cursor = match.index + match[0].length;
 	}
 
 	if (cursor < text.length) {
-		parts.push({ text: text.slice(cursor), isQuran: false, extraCss: plainCss });
+		parts.push({
+			text: text.slice(cursor),
+			isQuran: false,
+			isCitation: false,
+			extraCss: plainCss
+		});
 	}
 	return parts;
 }

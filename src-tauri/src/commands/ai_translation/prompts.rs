@@ -71,6 +71,7 @@ Rules:
 - Preserve the original language, meaning, subtitle boundaries, and speaker wording.
 - Correct a Whisper transcription error only when the correction is unquestionably certain from context.
 - Never summarize, translate, invent, or remove content.
+- Replace a salutation for Prophet Muhammad with `ﷺ` only when it is used as the usual brief formula immediately after mentioning him, including clear Whisper variants of `sallallahu alayhi wa sallam` or `صلى الله عليه وسلم`. Do not replace it when the speaker is quoting, teaching, explaining, or otherwise specifically discussing the wording of the salutation itself.
 - If addDiacritics is true, add appropriate Arabic diacritics to ordinary Arabic text. If false, do not add diacritics unless already present.
 - When spoken words quote the Quran, replace only the quoted Quran words with `{{SS:VV}}` for a complete verse or `{{SS:VV:START-END}}` for a partial verse.
 - Quran word indexes are 1-based and inclusive. START=1 means the first word of the verse.
@@ -78,6 +79,7 @@ Rules:
 - When text is a verbatim non-Quran quotation such as a hadith or a scholar's words, wrap only the quoted words in `{{` and `}}`.
 - Do not wrap paraphrases, common expressions, or uncertain quotations.
 - A quotation may span multiple subtitle segments. Mark the exact quoted portion in each affected segment.
+- Every marker must open and close inside the same subtitle segment. Never carry `{{` or `}}` across segment boundaries: close the marker at the end of one segment and open a new complete marker in the next segment when the quotation continues.
 - Never nest markers. Never put explanatory text inside a Quran marker.
 - Return JSON only, matching the schema exactly. Compact keys: root `s`, segment index `i`, rewritten text `t`.
 "#;
@@ -326,6 +328,7 @@ pub fn build_transcript_cleanup_user_prompt(
          Use adjacent segments as context, but keep each output under its original `i`.\n\
          Quran markers must be exact and use 1-based inclusive word indexes.\n\
          Non-Quran verbatim quotations must keep their text inside double braces.\n\
+         Every marker must contain both `{{` and `}}` inside the same segment, reopening a new marker when a quotation continues in the next segment.\n\
          Return every input `i` exactly once.\n\n\
          Batch JSON:\n{}",
         batch_json

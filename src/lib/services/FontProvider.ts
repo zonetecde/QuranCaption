@@ -327,7 +327,7 @@ export class QPCFontProvider {
 		).join(' ');
 
 		// Si on veut inclure le numéro de verset
-		if (isLastWords && globalState.getStyle('arabic', 'show-verse-number')!.value) {
+		if (isLastWords && globalState.getStyle('arabic-quran', 'show-verse-number')!.value) {
 			const verseNumberGlyphIndex = getQpcVerseNumberGlyphIndex(surah, verse, endWord);
 			const key = `${surah}:${verse}:${verseNumberGlyphIndex + 1}`;
 			const glyph = glyphs[key];
@@ -561,6 +561,7 @@ export class QPCFontProvider {
 	private static isAppProvidedFontFamily(fontFamily: string): boolean {
 		return (
 			fontFamily.startsWith('QCImported-') ||
+			fontFamily === 'Noto Sans Arabic' ||
 			fontFamily === 'Hafs' ||
 			fontFamily === 'IndoPak' ||
 			fontFamily === 'Soosi' ||

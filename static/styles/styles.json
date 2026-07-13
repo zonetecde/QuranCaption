@@ -60,8 +60,8 @@
 			{
 				"id": "show-decorative-brackets",
 				"name": "Decorative Brackets",
-				"description": "Wrap Arabic subtitle text with decorative brackets",
-				"value": false,
+				"description": "Wrap Quran passages with decorative brackets",
+				"value": true,
 				"valueType": "boolean",
 				"css": "",
 				"tailwind": false,

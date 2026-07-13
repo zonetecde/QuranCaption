@@ -10,12 +10,16 @@ import {
 	type TranslationInlineStyleRun
 } from '$lib/classes/Translation.svelte';
 import type { VisualMergeGroup } from '$lib/classes/Track.svelte';
+import type { QuranTranscriptReference } from '$lib/services/TranscriptReferenceService';
 
 export type OverlayTextSegment = {
 	key: string;
 	text: string;
 	flags: TranslationInlineStyleFlags;
 	extraCss?: string;
+	referenceType?: 'quran' | 'citation';
+	quranReference?: QuranTranscriptReference;
+	sourceClipId?: number;
 };
 
 /**
@@ -74,12 +78,18 @@ export function getBackgroundClipIdForTarget(
  * @param {string} key Clé stable du segment.
  * @param {string} text Texte à afficher.
  * @param {string} extraCss CSS additionnel éventuel.
+ * @param {'quran' | 'citation'} [referenceType] Type de référence éventuel.
+ * @param {QuranTranscriptReference} [quranReference] Référence Quran éventuelle.
+ * @param {number} [sourceClipId] Identifiant du clip source éventuel.
  * @returns {OverlayTextSegment} Segment prêt à rendre.
  */
 export function createPlainOverlaySegment(
 	key: string,
 	text: string,
-	extraCss: string = ''
+	extraCss: string = '',
+	referenceType?: 'quran' | 'citation',
+	quranReference?: QuranTranscriptReference,
+	sourceClipId?: number
 ): OverlayTextSegment {
 	return {
 		key,
@@ -90,7 +100,10 @@ export function createPlainOverlaySegment(
 			underline: false,
 			color: null
 		},
-		extraCss
+		extraCss,
+		referenceType,
+		quranReference,
+		sourceClipId
 	};
 }
 
@@ -119,6 +132,7 @@ export function joinOverlaySegmentGroups(
 function canMergeAdjacentSegments(first: OverlayTextSegment, second: OverlayTextSegment): boolean {
 	return (
 		first.extraCss === second.extraCss &&
+		first.referenceType === second.referenceType &&
 		first.flags.bold === second.flags.bold &&
 		first.flags.italic === second.flags.italic &&
 		first.flags.underline === second.flags.underline &&

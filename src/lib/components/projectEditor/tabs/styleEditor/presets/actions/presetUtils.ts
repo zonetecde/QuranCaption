@@ -241,7 +241,16 @@ export async function checkMissingFonts(styleData: VideoStyleFileData): Promise<
 	}
 
 	// Polices toujours disponibles (embarquées dans l'app)
-	const builtin = ['Hafs', 'IndoPak', 'Reciters', 'Surahs', 'Surahs2', 'QPC1BSML', 'QPC2BSML'];
+	const builtin = [
+		'Noto Sans Arabic',
+		'Hafs',
+		'IndoPak',
+		'Reciters',
+		'Surahs',
+		'Surahs2',
+		'QPC1BSML',
+		'QPC2BSML'
+	];
 	const isBuiltin = (font: string) =>
 		builtin.includes(font) ||
 		font.startsWith('QPC1') ||

@@ -9,10 +9,10 @@
 	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
-	import QPCFontProvider from '$lib/services/FontProvider';
 	import {
 		getTranscriptReferenceRenderParts,
-		hasTranscriptReferenceMarkers
+		hasTranscriptReferenceMarkers,
+		parseQuranTranscriptReference
 	} from '$lib/services/TranscriptReferenceService';
 	import { untrack } from 'svelte';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
@@ -105,12 +105,14 @@
 
 	/** Affiche-t-on les crochets décoratifs ? */
 	let showDecorativeBrackets = $derived(() => {
-		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
+		return Boolean(globalState.getStyle('arabic-quran', 'show-decorative-brackets').value);
 	});
 
 	/** Paire de glyphes brute pour les crochets décoratifs. */
 	let decorativeBracketsGlyphPair = $derived(() => {
-		return String(globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM');
+		return String(
+			globalState.getStyle('arabic-quran', 'decorative-brackets-font-family').value || 'LM'
+		);
 	});
 
 	// =========================================================================
@@ -123,6 +125,69 @@
 	 */
 	function getBracketGlyphs(): { opening: string; closing: string } {
 		return getDecorativeBracketGlyphs(decorativeBracketsGlyphPair());
+	}
+
+	/**
+	 * Génère uniquement les styles autorisés pour une référence arabe.
+	 * @param {'quran' | 'citation'} referenceType Type de portion ciblée.
+	 * @param {number} clipId Identifiant du clip pour les overrides locaux.
+	 * @returns {string} CSS à appliquer au span de référence.
+	 */
+	function getReferenceStyleCss(referenceType: 'quran' | 'citation', clipId: number): string {
+		const target = referenceType === 'quran' ? 'arabic-quran' : 'arabic-citation';
+		const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+		let referenceCss = styles.generateCSS(clipId, [
+			'general',
+			'word-by-word-highlight',
+			'positioning',
+			'background',
+			'border',
+			'shadow',
+			'outline',
+			'animation',
+			'custom-css'
+		]);
+		if (styles.getEffectiveValue('font-family', clipId) === 'Hafs') {
+			referenceCss += 'font-family: Hafs, sans-serif;';
+		}
+		const opacity = styles.getEffectiveValue('opacity', clipId);
+		if (opacity !== '' && Number.isFinite(Number(opacity))) {
+			referenceCss += `opacity: ${Number(opacity)};`;
+		}
+		return referenceCss;
+	}
+
+	/**
+	 * Indique si une plage Quran continue dans le sous-titre adjacent.
+	 * @param {OverlayTextSegment} segment Portion Quran affichée.
+	 * @param {-1 | 1} direction Sous-titre précédent ou suivant.
+	 * @returns {boolean} `true` si les deux plages sont consécutives dans le même verset.
+	 */
+	function isQuranReferenceContinued(segment: OverlayTextSegment, direction: -1 | 1): boolean {
+		const reference = segment.quranReference;
+		if (!reference || !segment.sourceClipId) return false;
+
+		const clips = globalState.getSubtitleTrack.clips;
+		const sourceIndex = clips.findIndex((clip) => clip.id === segment.sourceClipId);
+		if (sourceIndex < 0) return false;
+		const adjacentClip = clips
+			.slice(direction < 0 ? 0 : sourceIndex + 1, direction < 0 ? sourceIndex : undefined)
+			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+			.at(direction < 0 ? -1 : 0);
+		if (!adjacentClip) return false;
+
+		return Array.from(adjacentClip.text.matchAll(/\{\{([^{}]+)\}\}/g)).some((match) => {
+			const adjacentReference = parseQuranTranscriptReference(match[1]);
+			if (
+				!adjacentReference ||
+				adjacentReference.surah !== reference.surah ||
+				adjacentReference.verse !== reference.verse
+			)
+				return false;
+			return direction < 0
+				? reference.startWord !== null && adjacentReference.endWord === reference.startWord - 1
+				: reference.endWord !== null && adjacentReference.startWord === reference.endWord + 1;
+		});
 	}
 
 	/**
@@ -150,40 +215,6 @@
 	// =========================================================================
 
 	/**
-	 * Retourne le CSS `font-family` propre au verset du clip lorsque le mushaf
-	 * QPC1, QPC2 ou Tajweed est actif. Chaque page du mushaf a sa propre police,
-	 * donc chaque clip doit forcer la sienne via un span lors d'un merge visuel.
-	 *
-	 * @param subtitle - Clip Quran dont on veut la police de page.
-	 * @returns Chaîne CSS `font-family: ...;` ou chaîne vide.
-	 */
-	function getSubtitleQpcFontCss(subtitle: SubtitleClip): string {
-		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
-		const fontFamily = globalState.getStyle('arabic', 'font-family');
-
-		if (mushafStyle === 'Tajweed') {
-			const tajweedFont = QPCFontProvider.getTajweedFontNameForVerse(
-				subtitle.surah,
-				subtitle.verse
-			);
-			const qpc2Fallback = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '2');
-			return `font-family: ${tajweedFont}, ${qpc2Fallback};`;
-		}
-
-		if (fontFamily?.value === 'QPC1') {
-			const font = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '1');
-			return `font-family: ${font};`;
-		}
-
-		if (fontFamily?.value === 'QPC2') {
-			const font = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '2');
-			return `font-family: ${font};`;
-		}
-
-		return '';
-	}
-
-	/**
 	 * Convertit un clip en segments de texte pour l'overlay vidéo.
 	 *
 	 * Stratégie :
@@ -205,18 +236,29 @@
 		if (subtitle instanceof SubtitleClip) {
 			const referenceParts = getTranscriptReferenceRenderParts(
 				subtitle.text,
-				String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
-				String(globalState.getStyle('arabic', 'font-family')?.value ?? 'Hafs')
+				String(globalState.getStyle('arabic-quran', 'mushaf-style')?.value ?? 'Uthmani'),
+				String(globalState.getStyle('arabic-quran', 'font-family')?.value ?? 'Hafs')
 			);
 			if (referenceParts) {
-				return referenceParts.map((part, index) =>
-					createPlainOverlaySegment(`${keyPrefix}-reference-${index}`, part.text, part.extraCss)
-				);
+				return referenceParts.map((part, index) => {
+					const referenceType = part.isQuran ? 'quran' : part.isCitation ? 'citation' : undefined;
+					const referenceCss = referenceType
+						? getReferenceStyleCss(referenceType, subtitle.id)
+						: '';
+					return createPlainOverlaySegment(
+						`${keyPrefix}-reference-${index}`,
+						part.text,
+						`${referenceCss} ${part.extraCss}`.trim(),
+						referenceType,
+						part.quranReference,
+						subtitle.id
+					);
+				});
 			}
 		}
 
 		const displayParts = subtitle.getArabicRenderParts('preview');
-		const perClipFontCss = subtitle instanceof SubtitleClip ? getSubtitleQpcFontCss(subtitle) : '';
+		const perClipFontCss = '';
 		const suffixFontCss = displayParts.suffixFontFamily
 			? `font-family: ${displayParts.suffixFontFamily}; `
 			: perClipFontCss;
@@ -494,7 +536,7 @@
 				startWordIndex: totalWordCount,
 				suffix: displayParts.suffix,
 				suffixFontFamily: displayParts.suffixFontFamily,
-				extraCss: getSubtitleQpcFontCss(sourceClip)
+				extraCss: ''
 			};
 
 			groups.push(group);
@@ -726,92 +768,9 @@
 			{@const segments = arabicSegments()}
 			{@const groups = currentArabicPreviewGroups()}
 			{@const state = wbwState()}
-			{@const glyphs = bracketGlyphs()}
-			{@const showBrackets = showDecorativeBrackets()}
 
-			{#if showBrackets && ((state.enabled && groups.length > 0) || segments.some((segment) => segment.text.trim().length > 0))}
-				{@const bracketCss = getDecorativeBracketCss()}
-				<span style={bracketCss}>{glyphs.opening}</span>
-
-				{#if state.enabled && subtitle instanceof SubtitleClip}
-					<!-- Rendu WBW avec crochets décoratifs -->
-					<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
-						{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
-							<span
-								class="arabic-wbw-group"
-								dir="rtl"
-								style="unicode-bidi: isolate; {group.extraCss}"
-							>
-								{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
-									{@const wordIndex = group.startWordIndex + i}
-									{@const highlightProgress = computeWordByWordHighlightProgress(
-										wordIndex,
-										state,
-										wbwPreviewFadeDuration()
-									)}
-									<span
-										style={getCombinedWordByWordCss(
-											wordIndex,
-											state,
-											highlightProgress,
-											wordEntry.flags
-										)}
-									>
-										{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
-											? ' '
-											: ''}
-									</span>
-									{#if wordEntry.flags.lineBreak}
-										<br />
-									{/if}
-								{/each}
-								{#if group.suffix}
-									{@const suffixOpacity = state.alwaysShowVerseNumber
-										? 1
-										: getWordByWordWordOpacity(
-												group.startWordIndex + group.words.length - 1,
-												state,
-												wbwPreviewFadeDuration(),
-												false
-											)}
-									{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
-									{@const lastWordProgress = computeWordByWordHighlightProgress(
-										lastWordIndex,
-										state,
-										wbwPreviewFadeDuration()
-									)}
-									{@const lastWordWbwCss = buildWordByWordWordCss(
-										lastWordIndex,
-										state,
-										lastWordProgress,
-										wbwPreviewFadeDuration(),
-										state.verseNumberColor
-									)}
-									<span
-										style={(group.suffixFontFamily
-											? `font-family: ${group.suffixFontFamily}; `
-											: '') +
-											`color: var(--verse-number-color); ` +
-											lastWordWbwCss +
-											` opacity: ${suffixOpacity};`}
-									>
-										{group.suffix}
-									</span>
-								{/if}
-							</span>
-							{#if groupIndex < groups.length - 1}
-								{' '}
-							{/if}
-						{/each}
-					</span>
-				{:else}
-					<!-- Rendu standard avec crochets décoratifs -->
-					{@render overlaySegmentsContent(segments)}
-				{/if}
-
-				<span style={bracketCss}>{glyphs.closing}</span>
-			{:else if state.enabled && subtitle instanceof SubtitleClip}
-				<!-- Rendu WBW sans crochets décoratifs -->
+			{#if state.enabled && subtitle instanceof SubtitleClip}
+				<!-- Rendu WBW -->
 				<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
 					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 						<span
@@ -876,9 +835,7 @@
 								</span>
 							{/if}
 						</span>
-						{#if groupIndex < groups.length - 1}
-							{' '}
-						{/if}
+						{#if groupIndex < groups.length - 1}&nbsp;{/if}
 					{/each}
 				</span>
 			{:else}
@@ -890,10 +847,22 @@
 {/if}
 
 {#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
-	<span class="translation-inline-flow">
+	{@const hasQuranReference = segments.some((segment) => segment.referenceType === 'quran')}
+	<span class="translation-inline-flow" dir={hasQuranReference ? 'rtl' : undefined}>
 		{#each segments as segment (segment.key)}
 			{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
-			{#if segmentStyle}
+			{#if segment.referenceType === 'quran' && showDecorativeBrackets()}
+				{@const glyphs = bracketGlyphs()}
+				{@const bracketCss = getDecorativeBracketCss()}
+				{@const bracketStyle = `${segmentStyle} ${bracketCss}`.trim()}
+				{@const continuesPrevious = isQuranReferenceContinued(segment, -1)}
+				{@const continuesNext = isQuranReferenceContinued(segment, 1)}
+				<span dir="rtl" style="unicode-bidi: isolate;">
+					{#if !continuesPrevious}<span style={bracketStyle}>{glyphs.closing}</span>{/if}
+					<span style={segmentStyle}>{segment.text}</span>
+					{#if !continuesNext}<span style={bracketStyle}>{glyphs.opening}</span>{/if}
+				</span>
+			{:else if segmentStyle}
 				<span style={segmentStyle}>{segment.text}</span>
 			{:else}
 				{segment.text}

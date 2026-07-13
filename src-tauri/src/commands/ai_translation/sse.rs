@@ -67,6 +67,21 @@ pub fn extract_chat_completion_delta(payload: &Value) -> Option<&str> {
         .find_map(|choice| choice.get("delta")?.get("content")?.as_str())
 }
 
+/// Extrait le delta de raisonnement d'un chunk Chat Completions.
+pub fn extract_chat_completion_reasoning_delta(payload: &Value) -> Option<&str> {
+    payload
+        .get("choices")?
+        .as_array()?
+        .iter()
+        .find_map(|choice| {
+            let delta = choice.get("delta")?;
+            delta
+                .get("reasoning_content")
+                .or_else(|| delta.get("reasoning"))
+                .and_then(Value::as_str)
+        })
+}
+
 /// Extrait l'usage éventuel d'un chunk Chat Completions.
 pub fn extract_chat_completion_usage(payload: &Value) -> Option<Value> {
     payload

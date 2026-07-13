@@ -42,6 +42,23 @@ fn emit_transcript_cleanup_chunk(
     );
 }
 
+/// Émet les fragments de raisonnement du nettoyage de transcription.
+fn emit_transcript_cleanup_reasoning(
+    app_handle: &tauri::AppHandle,
+    batch_id: &str,
+    delta: &str,
+    accumulated_text: &str,
+) {
+    let _ = app_handle.emit(
+        "ai-transcript-cleanup-reasoning",
+        json!({
+            "batchId": batch_id,
+            "delta": delta,
+            "accumulatedText": accumulated_text
+        }),
+    );
+}
+
 #[tauri::command]
 /// Nettoie un batch de transcription et détecte ses citations via le provider IA texte.
 pub async fn run_ai_transcript_cleanup_batch_streaming(
@@ -56,7 +73,7 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
         return Err("AI API key is required.".to_string());
     }
     let endpoint = prompts::normalize_text_ai_endpoint(&request.endpoint)?;
-    if request.batch.segments.is_empty() {
+    if request.batch.words.is_empty() {
         return Err("Batch is empty.".to_string());
     }
 
@@ -66,6 +83,8 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
     let body = if is_chat_completions {
         prompts::build_chat_completions_body(
             &request.model,
+            &request.reasoning_effort,
+            &endpoint,
             prompts::TRANSCRIPT_CLEANUP_SYSTEM_PROMPT,
             &user_prompt,
         )
@@ -75,8 +94,8 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
             &request.reasoning_effort,
             prompts::TRANSCRIPT_CLEANUP_SYSTEM_PROMPT,
             &user_prompt,
-            "transcript_cleanup_batch",
-            "Cleaned transcript segments with validated quotation markers.",
+            "transcript_analysis_batch",
+            "Conservative transcript corrections, quotation ranges, punctuation and break hints.",
             &schema,
         )
     };
@@ -84,6 +103,7 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
     let callbacks = AiStreamCallbacks {
         emit_status: emit_transcript_cleanup_status,
         emit_chunk: emit_transcript_cleanup_chunk,
+        emit_reasoning: Some(emit_transcript_cleanup_reasoning),
     };
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {
         app_handle: &app_handle,
@@ -93,7 +113,7 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
         is_chat_completions,
         body: &body,
         callbacks: &callbacks,
-        generating_message: "Text AI provider is cleaning the transcript.",
+        generating_message: "Text AI provider is analyzing transcript words.",
     })
     .await?;
 

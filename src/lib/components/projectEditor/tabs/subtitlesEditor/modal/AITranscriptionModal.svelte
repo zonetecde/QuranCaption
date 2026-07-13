@@ -10,6 +10,11 @@
 		getWhisperLanguageLabel,
 		WHISPER_LANGUAGE_OPTIONS
 	} from '$lib/constants/whisperLanguages';
+	import {
+		getMatchingSubtitleLengthPreset,
+		SUBTITLE_LENGTH_PRESETS,
+		type BuiltInSubtitleLengthPreset
+	} from '$lib/constants/subtitleLengthPresets';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		addProjectSpeaker,
@@ -58,18 +63,52 @@
 	let statusUnlisten: UnlistenFn | null = null;
 	let installUnlisten: UnlistenFn | null = null;
 	let cleanupChunkUnlisten: UnlistenFn | null = null;
+	let cleanupReasoningUnlisten: UnlistenFn | null = null;
 	let cleanupRunning = $state(false);
 	let cleanupCompleted = $state(false);
 	let cleanupMessage = $state('');
 	let cleanupErrors = $state<string[]>([]);
 	let cleanupBatchId = $state('');
 	let streamedCleanupResponse = $state('');
+	let streamedCleanupReasoning = $state('');
+	let advancedSubtitleSettingsOpen = $state(false);
 
+	const subtitleLengthPresetEntries = Object.entries(SUBTITLE_LENGTH_PRESETS) as Array<
+		[BuiltInSubtitleLengthPreset, (typeof SUBTITLE_LENGTH_PRESETS)[BuiltInSubtitleLengthPreset]]
+	>;
+	const activeSubtitleLengthPreset = $derived.by(() =>
+		getMatchingSubtitleLengthPreset({
+			maxWords: settings.maxWordsPerSegment,
+			maxChars: settings.maxCharsPerSegment,
+			silenceSeconds: settings.minSilenceDuration
+		})
+	);
 	const audioAvailable = $derived(globalState.getAudioTrack.clips.length > 0);
 	const existingSubtitleCount = $derived(
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
 	);
 	const existingSpeakerNames = $derived(() => getVisibleProjectSpeakers());
+
+	/**
+	 * Applique un profil de longueur et ses trois paramètres associés.
+	 * @param {BuiltInSubtitleLengthPreset} preset Profil choisi.
+	 * @returns {void}
+	 */
+	function applySubtitleLengthPreset(preset: BuiltInSubtitleLengthPreset): void {
+		const definition = SUBTITLE_LENGTH_PRESETS[preset];
+		settings.subtitleLengthPreset = preset;
+		settings.maxWordsPerSegment = definition.maxWords;
+		settings.maxCharsPerSegment = definition.maxChars;
+		settings.minSilenceDuration = definition.silenceSeconds;
+	}
+
+	/**
+	 * Marque les valeurs avancées comme personnalisées.
+	 * @returns {void}
+	 */
+	function markSubtitleLengthAsCustom(): void {
+		settings.subtitleLengthPreset = 'custom';
+	}
 
 	async function refreshRuntime(): Promise<void> {
 		checkingRuntime = true;
@@ -169,7 +208,7 @@
 	}
 
 	/**
-	 * Nettoie les segments WhisperX et valide les références Quran retournées.
+	 * Prépare les mots transcrits, détecte le Quran et reconstruit les sous-titres.
 	 * @returns {Promise<void>} Promesse résolue après tous les batches.
 	 */
 	async function startTranscriptCleanup(): Promise<void> {
@@ -177,19 +216,14 @@
 		const aiSettings = globalState.settings!.aiTranslationSettings;
 		const apiKey = aiSettings.openAiApiKey.trim();
 		const endpoint = aiSettings.textAiApiEndpoint.trim();
-		if (!apiKey) {
-			errorMessage = get(LL).translations.configureAiKeyFirst();
-			return;
-		}
-		if (!endpoint) {
-			errorMessage = get(LL).translations.configureTextAiFirst();
-			return;
-		}
 
 		cleanupRunning = true;
 		cleanupCompleted = false;
 		cleanupErrors = [];
+		cleanupBatchId = '';
 		streamedCleanupResponse = '';
+		streamedCleanupReasoning = '';
+		cleanupMessage = get(LL).common.processing();
 		errorMessage = '';
 		await saveAITranscriptionSettings();
 		try {
@@ -201,16 +235,26 @@
 					streamedCleanupResponse = event.payload.accumulatedText;
 				}
 			});
+			cleanupReasoningUnlisten = await listen<{
+				batchId: string;
+				accumulatedText: string;
+			}>('ai-transcript-cleanup-reasoning', (event) => {
+				if (event.payload.batchId === cleanupBatchId) {
+					streamedCleanupReasoning = event.payload.accumulatedText;
+				}
+			});
 			const report = await cleanupAITranscript(result, {
 				apiKey,
 				endpoint,
 				model: aiSettings.advancedTrimModel,
 				reasoningEffort: aiSettings.advancedTrimReasoningEffort,
-				addDiacritics: settings.addDiacritics,
-				speakerMap,
+				maxWords: settings.maxWordsPerSegment,
+				maxChars: settings.maxCharsPerSegment,
+				maxGap: settings.minSilenceDuration,
 				onProgress: (current, total, batchId) => {
 					cleanupBatchId = batchId;
 					streamedCleanupResponse = '';
+					streamedCleanupReasoning = '';
 					cleanupMessage = get(LL).editor.transcriptCleanupBatchProgress({ current, total });
 				}
 			});
@@ -221,18 +265,20 @@
 				report.errors.length > 0
 					? get(LL).editor.transcriptCleanupCompletedWithIssues({
 							cleaned: report.processedSegments,
-							total: report.totalSegments,
-							errors: report.totalSegments - report.processedSegments
+							total: report.processedSegments,
+							errors: report.errors.length
 						})
 					: get(LL).editor.transcriptCleanupCompleted({
 							cleaned: report.processedSegments,
-							total: report.totalSegments
+							total: report.processedSegments
 						});
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : String(error);
 		} finally {
 			cleanupChunkUnlisten?.();
 			cleanupChunkUnlisten = null;
+			cleanupReasoningUnlisten?.();
+			cleanupReasoningUnlisten = null;
 			cleanupRunning = false;
 		}
 	}
@@ -341,11 +387,15 @@
 		if (!running && !installing && !cleanupRunning) close();
 	}
 
-	onMount(() => void refreshRuntime());
+	onMount(() => {
+		if (!settings.subtitleLengthPreset) applySubtitleLengthPreset('balanced');
+		void refreshRuntime();
+	});
 	onDestroy(() => {
 		statusUnlisten?.();
 		installUnlisten?.();
 		cleanupChunkUnlisten?.();
+		cleanupReasoningUnlisten?.();
 	});
 </script>
 
@@ -559,50 +609,118 @@
 							>
 						</div>
 						<div class="rounded-xl border border-color bg-primary p-5">
-							<h4 class="font-semibold text-primary">Subtitle sizing</h4>
-							<div class="mt-4 grid gap-4 md:grid-cols-2">
-								<label class="space-y-2"
-									><span class="text-xs text-secondary">Maximum words per segment</span><input
-										type="number"
-										min="2"
-										max="80"
-										class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
-										bind:value={settings.maxWordsPerSegment}
-									/></label
-								><label class="space-y-2"
-									><span class="text-xs text-secondary">Maximum characters per segment</span><input
-										type="number"
-										min="20"
-										max="500"
-										class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
-										bind:value={settings.maxCharsPerSegment}
-									/></label
-								>
-								<label class="space-y-2 md:col-span-2"
-									><div class="flex items-center justify-between gap-3">
-										<span class="text-xs text-secondary">{get(LL).editor.minSilenceLabel()}</span>
-										<div class="flex items-center gap-2">
-											<input
-												type="number"
-												min="0.1"
-												max="10"
-												step="0.1"
-												class="w-20 rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
-												bind:value={settings.minSilenceDuration}
-											/>
-											<span class="text-xs text-secondary">{get(LL).common.seconds()}</span>
-										</div>
-									</div>
-									<input
-										type="range"
-										min="0.1"
-										max="10"
-										step="0.1"
-										class="w-full"
-										bind:value={settings.minSilenceDuration}
-									/></label
-								>
+							<div class="flex items-start justify-between gap-4">
+								<div>
+									<h4 class="font-semibold text-primary">Subtitle length</h4>
+									<p class="mt-1 text-xs leading-relaxed text-secondary">
+										Choose how dense the generated subtitles should feel. These are preferred
+										limits, not rigid cutoffs.
+									</p>
+								</div>
+								{#if activeSubtitleLengthPreset === 'custom'}
+									<span
+										class="rounded-full border border-color bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary"
+										>Custom</span
+									>
+								{/if}
 							</div>
+							<div class="mt-4 grid gap-3 md:grid-cols-3">
+								{#each subtitleLengthPresetEntries as [preset, definition] (preset)}
+									<button
+										type="button"
+										aria-pressed={activeSubtitleLengthPreset === preset}
+										class={`cursor-pointer rounded-xl border p-4 text-left transition-all ${
+											activeSubtitleLengthPreset === preset
+												? 'border-accent-primary bg-accent-primary/15'
+												: 'border-color bg-secondary hover:border-accent-primary/50'
+										}`}
+										onclick={() => applySubtitleLengthPreset(preset)}
+									>
+										<div class="flex items-center justify-between gap-2">
+											<span class="text-sm font-semibold text-primary">{definition.label}</span>
+											{#if preset === 'balanced'}
+												<span
+													class="rounded-full bg-accent-primary/15 px-2 py-0.5 text-[10px] font-semibold text-accent-primary"
+													>Recommended</span
+												>
+											{/if}
+										</div>
+										<p class="mt-2 text-xs leading-relaxed text-secondary">
+											{definition.description}
+										</p>
+										<p class="mt-3 text-[11px] font-medium text-thirdly">
+											{definition.maxWords} words · {definition.maxChars} characters · {definition.silenceSeconds}s
+											pause
+										</p>
+									</button>
+								{/each}
+							</div>
+							<div class="mt-4 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
+								<p class="text-xs leading-relaxed text-secondary">
+									Minbar may slightly exceed the preferred length to preserve a complete idea, avoid
+									orphan words or keep a short Quran verse together.
+								</p>
+							</div>
+							<button
+								type="button"
+								class="mt-4 flex w-full cursor-pointer items-center justify-between rounded-lg px-1 py-2 text-left text-sm font-semibold text-secondary hover:text-primary"
+								onclick={() => (advancedSubtitleSettingsOpen = !advancedSubtitleSettingsOpen)}
+								aria-expanded={advancedSubtitleSettingsOpen}
+							>
+								<span>Advanced settings</span>
+								<span class="material-icons text-lg">
+									{advancedSubtitleSettingsOpen ? 'expand_less' : 'expand_more'}
+								</span>
+							</button>
+							{#if advancedSubtitleSettingsOpen}
+								<div class="mt-1 grid gap-4 border-t border-color pt-4 md:grid-cols-2">
+									<label class="space-y-2"
+										><span class="text-xs text-secondary">Preferred maximum words</span><input
+											type="number"
+											min="4"
+											max="40"
+											class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
+											bind:value={settings.maxWordsPerSegment}
+											oninput={markSubtitleLengthAsCustom}
+										/></label
+									><label class="space-y-2"
+										><span class="text-xs text-secondary">Preferred maximum characters</span><input
+											type="number"
+											min="30"
+											max="240"
+											class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
+											bind:value={settings.maxCharsPerSegment}
+											oninput={markSubtitleLengthAsCustom}
+										/></label
+									>
+									<label class="space-y-2 md:col-span-2"
+										><div class="flex items-center justify-between gap-3">
+											<span class="text-xs text-secondary">{get(LL).editor.minSilenceLabel()}</span>
+											<div class="flex items-center gap-2">
+												<input
+													type="number"
+													min="0.3"
+													max="4"
+													step="0.1"
+													class="w-20 rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
+													bind:value={settings.minSilenceDuration}
+													oninput={markSubtitleLengthAsCustom}
+												/>
+												<span class="text-xs text-secondary">{get(LL).common.seconds()}</span>
+											</div>
+										</div>
+										<input
+											type="range"
+											min="0.3"
+											max="4"
+											step="0.1"
+											class="w-full"
+											bind:value={settings.minSilenceDuration}
+											oninput={markSubtitleLengthAsCustom}
+										/></label
+									>
+								</div>
+							{/if}
 						</div>
 						{#if !audioAvailable}<p
 								class="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300"
@@ -863,22 +981,6 @@
 								{get(LL).editor.transcriptCleanupDescription()}
 							</p>
 						</div>
-						<label
-							class="flex cursor-pointer items-start gap-3 rounded-xl border border-color bg-primary p-4"
-						>
-							<input
-								type="checkbox"
-								class="mt-1"
-								bind:checked={settings.addDiacritics}
-								onchange={() => {
-									cleanupCompleted = false;
-									cleanupMessage = '';
-									cleanupErrors = [];
-								}}
-								disabled={cleanupRunning}
-							/>
-							<span class="font-semibold text-primary">{get(LL).editor.addArabicDiacritics()}</span>
-						</label>
 						<div class="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
 							<div class="flex items-start gap-3">
 								<span class="material-icons mt-0.5 text-lg text-blue-300">verified</span>
@@ -901,20 +1003,37 @@
 									</span>
 									<p class="text-sm text-secondary">{cleanupMessage}</p>
 								</div>
-								<div class="mt-4 rounded-lg border border-color bg-secondary p-3">
-									<div
-										class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
-									>
-										<span class="material-icons text-sm">stream</span>
-										<span>{get(LL).editor.currentStreamedResponse()}</span>
+								{#if cleanupBatchId}
+									<div class="mt-4 rounded-lg border border-color bg-secondary p-3">
+										{#if streamedCleanupReasoning}
+											<div class="mb-3">
+												<div
+													class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
+												>
+													<span class="material-icons text-sm">psychology</span>
+													<span>{get(LL).editor.currentStreamedReasoning()}</span>
+												</div>
+												<textarea
+													readonly
+													bind:value={streamedCleanupReasoning}
+													class="h-32 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
+												></textarea>
+											</div>
+										{/if}
+										<div
+											class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
+										>
+											<span class="material-icons text-sm">stream</span>
+											<span>{get(LL).editor.currentStreamedResponse()}</span>
+										</div>
+										<textarea
+											readonly
+											bind:value={streamedCleanupResponse}
+											class="h-40 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
+											placeholder={get(LL).translations.streamingResponsePlaceholder()}
+										></textarea>
 									</div>
-									<textarea
-										readonly
-										bind:value={streamedCleanupResponse}
-										class="h-40 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
-										placeholder={get(LL).translations.streamingResponsePlaceholder()}
-									></textarea>
-								</div>
+								{/if}
 							</div>
 						{/if}
 					</section>

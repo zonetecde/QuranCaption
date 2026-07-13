@@ -403,6 +403,30 @@ describe('Video overlay subtitle preview', () => {
 		QPCFontProvider.verseMappingV2 = undefined;
 	});
 
+	test('renders an Arabic citation in an isolated RTL context', async () => {
+		setupVideoOverlayFixture([
+			new SubtitleClip(0, 999, '{{ولمَّا ماتَ أظلمَ منها كل شيء،}}', 'Unknown speaker', {
+				english: new VerseTranslation('Citation translation', 'reviewed')
+			})
+		]);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const flow = component.container.querySelector(
+			'#subtitles-container .arabic.subtitle .translation-inline-flow'
+		) as HTMLElement | null;
+		const citation = getArabicInlineFlowSpans(component.container).find((span) =>
+			span.textContent?.includes('ولمَّا ماتَ')
+		);
+
+		expect(flow?.getAttribute('dir')).toBe('rtl');
+		expect(flow?.getAttribute('style')).toContain('unicode-bidi: plaintext');
+		expect(citation?.getAttribute('dir')).toBe('rtl');
+		expect(citation?.getAttribute('style')).toContain('unicode-bidi: isolate');
+		expect(citation?.textContent).toBe('ولمَّا ماتَ أظلمَ منها كل شيء،');
+	});
+
 	test('keeps the subtitle container visible when playback advances within the new subtitle', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[

@@ -7,8 +7,8 @@ use serde_json::{json, Value};
 use crate::commands::ai_translation::prompts::is_openrouter_endpoint;
 
 use self::sse::{
-    extract_chat_completion_delta, extract_chat_completion_usage, extract_completed_output_text,
-    SseAccumulator,
+    extract_chat_completion_delta, extract_chat_completion_reasoning_delta,
+    extract_chat_completion_usage, extract_completed_output_text, SseAccumulator,
 };
 
 pub(crate) mod bold;
@@ -74,6 +74,7 @@ pub(crate) fn normalize_usage(usage: &Value) -> Value {
 pub(crate) struct AiStreamCallbacks {
     pub emit_status: fn(&tauri::AppHandle, &str, &str, &str),
     pub emit_chunk: fn(&tauri::AppHandle, &str, &str, &str),
+    pub emit_reasoning: Option<fn(&tauri::AppHandle, &str, &str, &str)>,
 }
 
 /// Paramètres d'une requête de streaming IA.
@@ -153,6 +154,7 @@ pub(crate) async fn stream_ai_response(
     let mut accumulator = SseAccumulator::default();
     let mut buffered_bytes: Vec<u8> = Vec::new();
     let mut raw_text = String::new();
+    let mut reasoning_text = String::new();
     let mut usage: Option<Value> = None;
     let mut stream = response.bytes_stream();
     let mut saw_streaming_chunk = false;
@@ -204,6 +206,14 @@ pub(crate) async fn stream_ai_response(
                         (callbacks.emit_chunk)(app_handle, batch_id, delta, &raw_text);
                     }
                 }
+                if let Some(delta) = extract_chat_completion_reasoning_delta(&payload) {
+                    if !delta.is_empty() {
+                        reasoning_text.push_str(delta);
+                        if let Some(emit_reasoning) = callbacks.emit_reasoning {
+                            emit_reasoning(app_handle, batch_id, delta, &reasoning_text);
+                        }
+                    }
+                }
                 continue;
             }
 
@@ -240,6 +250,18 @@ pub(crate) async fn stream_ai_response(
                             );
                         }
                         (callbacks.emit_chunk)(app_handle, batch_id, delta, &raw_text);
+                    }
+                }
+                "response.reasoning_summary_text.delta" => {
+                    let delta = payload
+                        .get("delta")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default();
+                    if !delta.is_empty() {
+                        reasoning_text.push_str(delta);
+                        if let Some(emit_reasoning) = callbacks.emit_reasoning {
+                            emit_reasoning(app_handle, batch_id, delta, &reasoning_text);
+                        }
                     }
                 }
                 "response.refusal.delta" => {
@@ -282,6 +304,12 @@ pub(crate) async fn stream_ai_response(
                 }
                 if let Some(delta) = extract_chat_completion_delta(&payload) {
                     raw_text.push_str(delta);
+                }
+                if let Some(delta) = extract_chat_completion_reasoning_delta(&payload) {
+                    reasoning_text.push_str(delta);
+                    if let Some(emit_reasoning) = callbacks.emit_reasoning {
+                        emit_reasoning(app_handle, batch_id, delta, &reasoning_text);
+                    }
                 }
             } else if payload.get("type").and_then(Value::as_str) == Some("response.completed") {
                 usage = payload

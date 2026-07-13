@@ -78,6 +78,8 @@ pub async fn run_advanced_ai_trim_batch_streaming(
     let body = if is_chat_completions {
         prompts::build_chat_completions_body(
             &request.model,
+            &request.reasoning_effort,
+            &endpoint,
             prompts::ADVANCED_TRIM_SYSTEM_PROMPT,
             &user_prompt,
         )
@@ -97,6 +99,7 @@ pub async fn run_advanced_ai_trim_batch_streaming(
     let callbacks = AiStreamCallbacks {
         emit_status,
         emit_chunk,
+        emit_reasoning: None,
     };
 
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {

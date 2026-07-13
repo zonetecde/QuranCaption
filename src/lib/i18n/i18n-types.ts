@@ -1950,6 +1950,10 @@ type RootTranslation = {
 		 */
 		currentStreamedResponse: string;
 		/**
+		 * Current streamed reasoning
+		 */
+		currentStreamedReasoning: string;
+		/**
 		 * R​e​c​e​n​t​ ​a​c​t​i​v​i​t​y
 		 */
 		recentActivity: string;
@@ -10996,6 +11000,10 @@ export type TranslationFunctions = {
 		 * Current streamed response
 		 */
 		currentStreamedResponse: () => LocalizedString;
+		/**
+		 * Current streamed reasoning
+		 */
+		currentStreamedReasoning: () => LocalizedString;
 		/**
 		 * Recent activity
 		 */

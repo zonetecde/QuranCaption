@@ -848,7 +848,12 @@
 
 {#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
 	{@const hasQuranReference = segments.some((segment) => segment.referenceType === 'quran')}
-	<span class="translation-inline-flow" dir={hasQuranReference ? 'rtl' : undefined}>
+	{@const hasRtlText = segments.some((segment) => /[\u0590-\u08FF]/u.test(segment.text))}
+	<span
+		class="translation-inline-flow"
+		dir={hasQuranReference || hasRtlText ? 'rtl' : undefined}
+		style={hasRtlText ? 'unicode-bidi: plaintext;' : undefined}
+	>
 		{#each segments as segment (segment.key)}
 			{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
 			{#if segment.referenceType === 'quran' && showDecorativeBrackets()}
@@ -862,6 +867,8 @@
 					<span style={segmentStyle}>{segment.text}</span>
 					{#if !continuesNext}<span style={bracketStyle}>{glyphs.opening}</span>{/if}
 				</span>
+			{:else if segment.referenceType === 'citation'}
+				<span dir="rtl" style={`unicode-bidi: isolate; ${segmentStyle}`}>{segment.text}</span>
 			{:else if segmentStyle}
 				<span style={segmentStyle}>{segment.text}</span>
 			{:else}

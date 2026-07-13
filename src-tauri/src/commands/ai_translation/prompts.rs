@@ -64,24 +64,36 @@ Rules:
 - Return JSON only, matching the schema exactly.
 "#;
 
-pub const TRANSCRIPT_CLEANUP_SYSTEM_PROMPT: &str = r#"You carefully clean Islamic lecture transcript subtitles and identify verbatim quotations.
+pub const TRANSCRIPT_CLEANUP_SYSTEM_PROMPT: &str = r#"You analyze an indexed Islamic lecture transcript before subtitle segmentation.
+
+The application, not you, detects Quran references and creates all `{{SS:VV}}` markers. Words with `q=true` are already verified Quran and are immutable.
+
+Return only conservative structured operations over the provided word IDs.
 
 Rules:
-- Preserve every input segment index and return exactly one rewritten text for every segment.
-- Preserve the original language, meaning, subtitle boundaries, and speaker wording.
-- Correct a Whisper transcription error only when the correction is unquestionably certain from context.
-- Never summarize, translate, invent, or remove content.
-- Replace a salutation for Prophet Muhammad with `ﷺ` only when it is used as the usual brief formula immediately after mentioning him, including clear Whisper variants of `sallallahu alayhi wa sallam` or `صلى الله عليه وسلم`. Do not replace it when the speaker is quoting, teaching, explaining, or otherwise specifically discussing the wording of the salutation itself.
-- If addDiacritics is true, add appropriate Arabic diacritics to ordinary Arabic text. If false, do not add diacritics unless already present.
-- When spoken words quote the Quran, replace only the quoted Quran words with `{{SS:VV}}` for a complete verse or `{{SS:VV:START-END}}` for a partial verse.
-- Quran word indexes are 1-based and inclusive. START=1 means the first word of the verse.
-- Verify the surah, verse, and exact word range conservatively. Do not create a Quran marker when uncertain.
-- When text is a verbatim non-Quran quotation such as a hadith or a scholar's words, wrap only the quoted words in `{{` and `}}`.
-- Do not wrap paraphrases, common expressions, or uncertain quotations.
-- A quotation may span multiple subtitle segments. Mark the exact quoted portion in each affected segment.
-- Every marker must open and close inside the same subtitle segment. Never carry `{{` or `}}` across segment boundaries: close the marker at the end of one segment and open a new complete marker in the next segment when the quotation continues.
-- Never nest markers. Never put explanatory text inside a Quran marker.
-- Return JSON only, matching the schema exactly. Compact keys: root `s`, segment index `i`, rewritten text `t`.
+- Preserve the spoken language, meaning, word order, and speaker wording.
+- Never summarize, translate, invent, remove, or freely rewrite speech.
+- Never edit, quote, punctuate, or include a `q=true` word in any operation.
+- A correction is allowed only when the ASR error is unquestionably evident from the surrounding context. Use the smallest contiguous ID range possible.
+- Use confidence `high` only when the correction or quotation boundary is certain. The application applies only high-confidence operations.
+- You are the sole authority for detecting non-Quran quotations. The application will never infer a hadith or scholar quote from keywords, punctuation, or reporting verbs.
+- Detect only verbatim non-Quran quotations: a narrated hadith text, a scholar's exact words, or another unmistakable direct quotation.
+- `hadith` includes a Companion's or narrator's verbatim report concerning the Prophet ﷺ; it is not limited to words spoken directly by the Prophet. Do not verify, source, grade, authenticate, or identify the narration.
+- Treat reporting formulas and attributions such as `قال أنس`, `قال النبي`, `قال العالم`, `ذكر الشيخ`, or `روى فلان` as context outside the quotation. Begin at the first word belonging to the reported wording itself.
+- Determine both boundaries semantically. A period, comma, silence, conjunction, same topic, or same speaker is only supporting evidence and never decides a quote boundary by itself.
+- Continue through multiple clauses when they remain part of the same reported wording. Stop at the exact first word where the lecturer resumes explanation, commentary, argument, paraphrase, or application, even when that return begins with `و`, `ف`, `ثم`, or repeats the Prophet's name.
+- Do not extend a quotation merely because the following commentary discusses the same person or subject.
+- Before outputting each quote range, verify silently that: the attribution is excluded; the first included ID is genuinely quoted speech; the last included ID is the final quoted word before commentary resumes.
+- Indexed boundary example: for `0:قال 1:أنس 2:لما 3:جاء 4:النبي ... 12:ولما 13:مات ... 17:شيء، 18:وما 19:جاء 20:النبي ...`, the correct quotation is `{"s":2,"e":17,"k":"hadith","f":"high"}`. IDs 0-1 are attribution and IDs 18 onward are the lecturer's commentary.
+- Do not mark paraphrases, explanations, summaries, common religious expressions, or uncertain wording as quotations.
+- `scholar` means exact words attributed to a named or clearly identified scholar; `generic` means another unmistakable direct quotation.
+- Use `high` only when both the start and end boundaries are certain. If either boundary is uncertain, return `medium` or omit the quote; the application applies only `high` ranges.
+- Quote ranges may continue across batches. Return only the exact quoted portion visible in the current batch and rely on overlapping context to preserve the true boundary.
+- If verified Quran words (`q=true`) occur inside a larger reported passage, never include them in `q`; return separate non-Quran quote ranges on either side only when those ranges are independently certain.
+- Suggest natural semantic subtitle boundaries in `b`, preferably after complete clauses, sentences, commas, or meaningful pauses. Do not suggest a break after a conjunction, preposition, article, or other dependent fragment.
+- Add punctuation only when it is strongly supported by syntax and context. Return punctuation separately in `p`; never insert it into a correction unless it is part of the corrected token itself.
+- Replace a routine salutation immediately after mentioning Prophet Muhammad with `ﷺ` only when unquestionably certain and only through a correction operation. Do not do this when the wording of the salutation is itself being taught or quoted.
+- Return JSON only. Compact keys: `c` corrections, `q` quotation ranges, `b` preferred break-after IDs, `p` punctuation-after operations. Correction keys: `s`,`e`,`t`,`f`. Quote keys: `s`,`e`,`k`,`f`. Punctuation keys: `i`,`v`.
 "#;
 
 // ---------------------------------------------------------------------------
@@ -201,26 +213,58 @@ pub fn build_wbw_translation_response_schema() -> Value {
     })
 }
 
-/// Schéma JSON de réponse pour le nettoyage d'une transcription.
+/// Schéma JSON de réponse pour l'analyse structurée d'une transcription.
 pub fn build_transcript_cleanup_response_schema() -> Value {
     json!({
         "type": "object",
         "additionalProperties": false,
         "properties": {
-            "s": {
+            "c": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "s": { "type": "integer" },
+                        "e": { "type": "integer" },
+                        "t": { "type": "string" },
+                        "f": { "type": "string", "enum": ["high", "medium", "low"] }
+                    },
+                    "required": ["s", "e", "t", "f"]
+                }
+            },
+            "q": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "s": { "type": "integer" },
+                        "e": { "type": "integer" },
+                        "k": { "type": "string", "enum": ["hadith", "scholar", "generic"] },
+                        "f": { "type": "string", "enum": ["high", "medium", "low"] }
+                    },
+                    "required": ["s", "e", "k", "f"]
+                }
+            },
+            "b": {
+                "type": "array",
+                "items": { "type": "integer" }
+            },
+            "p": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
                         "i": { "type": "integer" },
-                        "t": { "type": "string" }
+                        "v": { "type": "string" }
                     },
-                    "required": ["i", "t"]
+                    "required": ["i", "v"]
                 }
             }
         },
-        "required": ["s"]
+        "required": ["c", "q", "b", "p"]
     })
 }
 
@@ -314,7 +358,7 @@ pub fn build_wbw_translation_user_prompt(
     ))
 }
 
-/// Construit le prompt utilisateur pour un batch de nettoyage de transcription.
+/// Construit le prompt utilisateur pour un batch d'analyse de transcription.
 pub fn build_transcript_cleanup_user_prompt(
     batch: &TranscriptCleanupBatchPayload,
 ) -> Result<String, String> {
@@ -322,14 +366,15 @@ pub fn build_transcript_cleanup_user_prompt(
         .map_err(|error| format!("Failed to serialize batch: {}", error))?;
 
     Ok(format!(
-        "Rewrite every transcript segment and return JSON only.\n\
-         Return exactly {{\"s\":[{{\"i\":0,\"t\":\"rewritten text\"}}]}}.\n\
-         Input keys: `addDiacritics` controls Arabic diacritics; `s` contains ordered segments; `i` is the stable segment index; `p` is the assigned speaker; `t` is the Whisper text.\n\
-         Use adjacent segments as context, but keep each output under its original `i`.\n\
-         Quran markers must be exact and use 1-based inclusive word indexes.\n\
-         Non-Quran verbatim quotations must keep their text inside double braces.\n\
-         Every marker must contain both `{{` and `}}` inside the same segment, reopening a new marker when a quotation continues in the next segment.\n\
-         Return every input `i` exactly once.\n\n\
+        "Analyze these ordered indexed words and return JSON only.\n\
+         Return exactly this shape: {{\"c\":[],\"q\":[],\"b\":[],\"p\":[]}}.\n\
+         Input keys: `w` is the ordered word array; word `i` is its stable ID; `p` is the speaker; `t` is the ASR token with punctuation when available; `q=true` means verified Quran and is immutable; `g` is the silence in seconds before the next word, or null at the batch end.\n\
+         Corrections: {{\"s\":firstId,\"e\":lastId,\"t\":\"replacement words\",\"f\":\"high|medium|low\"}}.\n\
+         Verbatim non-Quran quotations: {{\"s\":firstId,\"e\":lastId,\"k\":\"hadith|scholar|generic\",\"f\":\"high|medium|low\"}}. The range must exclude attribution and stop before commentary resumes.\n\
+         `b` contains IDs after which a natural complete-meaning subtitle break is preferred.\n\
+         `p` contains punctuation operations shaped {{\"i\":wordId,\"v\":\"،\"}}.\n\
+         Never output Quran references or braces. Never include a q=true word in `c`, `q`, or `p`.\n\
+         Empty arrays are correct when there is nothing certain to change or annotate.\n\n\
          Batch JSON:\n{}",
         batch_json
     ))
@@ -340,8 +385,14 @@ pub fn build_transcript_cleanup_user_prompt(
 // ---------------------------------------------------------------------------
 
 /// Construit un corps Chat Completions standard.
-pub fn build_chat_completions_body(model: &str, system_prompt: &str, user_prompt: &str) -> Value {
-    json!({
+pub fn build_chat_completions_body(
+    model: &str,
+    reasoning_effort: &str,
+    endpoint: &str,
+    system_prompt: &str,
+    user_prompt: &str,
+) -> Value {
+    let mut body = json!({
         "model": model,
         "stream": true,
         "messages": [
@@ -357,7 +408,17 @@ pub fn build_chat_completions_body(model: &str, system_prompt: &str, user_prompt
         "response_format": {
             "type": "json_object"
         }
-    })
+    });
+
+    if is_deepseek_endpoint(endpoint) {
+        let body = body
+            .as_object_mut()
+            .expect("Chat Completions body must be an object");
+        body.insert("reasoning_effort".to_string(), json!(reasoning_effort));
+        body.insert("thinking".to_string(), json!({ "type": "enabled" }));
+    }
+
+    body
 }
 
 /// Construit un corps Responses API avec schéma JSON strict.
@@ -395,7 +456,8 @@ pub fn build_responses_api_body(
             }
         ],
         "reasoning": {
-            "effort": reasoning_effort
+            "effort": reasoning_effort,
+            "summary": "auto"
         },
         "text": {
             "verbosity": "low",
@@ -433,6 +495,13 @@ pub fn normalize_text_ai_endpoint(endpoint: &str) -> Result<String, String> {
 pub fn is_chat_completions_endpoint(endpoint: &str) -> bool {
     reqwest::Url::parse(endpoint)
         .map(|url| url.path().ends_with("/chat/completions"))
+        .unwrap_or(false)
+}
+
+/// Indique si l'endpoint cible l'API directe DeepSeek.
+pub fn is_deepseek_endpoint(endpoint: &str) -> bool {
+    reqwest::Url::parse(endpoint)
+        .map(|url| url.host_str() == Some("api.deepseek.com"))
         .unwrap_or(false)
 }
 

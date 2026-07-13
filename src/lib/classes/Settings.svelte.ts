@@ -16,6 +16,12 @@ import {
 	DEFAULT_PROJECT_EDITOR_LAYOUT,
 	type ProjectEditorLayout
 } from '$lib/constants/projectEditor';
+import {
+	DEFAULT_SUBTITLE_LENGTH_PRESET,
+	isSubtitleLengthPreset,
+	SUBTITLE_LENGTH_PRESETS,
+	type SubtitleLengthPreset
+} from '$lib/constants/subtitleLengthPresets';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -56,10 +62,10 @@ export type AITranscriptionSettings = {
 	minSpeakers: number | null;
 	maxSpeakers: number | null;
 	batchSize: number;
+	subtitleLengthPreset: SubtitleLengthPreset;
 	minSilenceDuration: number;
 	maxWordsPerSegment: number;
 	maxCharsPerSegment: number;
-	addDiacritics: boolean;
 	replaceExisting: boolean;
 };
 
@@ -178,10 +184,10 @@ export default class Settings extends SerializableBase {
 		minSpeakers: null,
 		maxSpeakers: null,
 		batchSize: 8,
-		minSilenceDuration: 1.2,
-		maxWordsPerSegment: 14,
-		maxCharsPerSegment: 90,
-		addDiacritics: false,
+		subtitleLengthPreset: DEFAULT_SUBTITLE_LENGTH_PRESET,
+		minSilenceDuration: SUBTITLE_LENGTH_PRESETS.balanced.silenceSeconds,
+		maxWordsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxWords,
+		maxCharsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxChars,
 		replaceExisting: true
 	});
 
@@ -532,15 +538,46 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.language = 'en';
 			shouldSave = true;
 		}
-		if (
+		if (!isSubtitleLengthPreset(settings.aiTranscriptionSettings.subtitleLengthPreset)) {
+			const defaultLength = SUBTITLE_LENGTH_PRESETS[DEFAULT_SUBTITLE_LENGTH_PRESET];
+			settings.aiTranscriptionSettings.subtitleLengthPreset = DEFAULT_SUBTITLE_LENGTH_PRESET;
+			settings.aiTranscriptionSettings.maxWordsPerSegment = defaultLength.maxWords;
+			settings.aiTranscriptionSettings.maxCharsPerSegment = defaultLength.maxChars;
+			settings.aiTranscriptionSettings.minSilenceDuration = defaultLength.silenceSeconds;
+			shouldSave = true;
+		} else if (settings.aiTranscriptionSettings.subtitleLengthPreset !== 'custom') {
+			const preset = SUBTITLE_LENGTH_PRESETS[settings.aiTranscriptionSettings.subtitleLengthPreset];
+			if (
+				settings.aiTranscriptionSettings.maxWordsPerSegment !== preset.maxWords ||
+				settings.aiTranscriptionSettings.maxCharsPerSegment !== preset.maxChars ||
+				settings.aiTranscriptionSettings.minSilenceDuration !== preset.silenceSeconds
+			) {
+				settings.aiTranscriptionSettings.maxWordsPerSegment = preset.maxWords;
+				settings.aiTranscriptionSettings.maxCharsPerSegment = preset.maxChars;
+				settings.aiTranscriptionSettings.minSilenceDuration = preset.silenceSeconds;
+				shouldSave = true;
+			}
+		} else if (
+			typeof settings.aiTranscriptionSettings.maxWordsPerSegment !== 'number' ||
+			!Number.isFinite(settings.aiTranscriptionSettings.maxWordsPerSegment) ||
+			typeof settings.aiTranscriptionSettings.maxCharsPerSegment !== 'number' ||
+			!Number.isFinite(settings.aiTranscriptionSettings.maxCharsPerSegment) ||
 			typeof settings.aiTranscriptionSettings.minSilenceDuration !== 'number' ||
 			!Number.isFinite(settings.aiTranscriptionSettings.minSilenceDuration)
 		) {
-			settings.aiTranscriptionSettings.minSilenceDuration = 1.2;
+			const defaultLength = SUBTITLE_LENGTH_PRESETS[DEFAULT_SUBTITLE_LENGTH_PRESET];
+			settings.aiTranscriptionSettings.subtitleLengthPreset = DEFAULT_SUBTITLE_LENGTH_PRESET;
+			settings.aiTranscriptionSettings.maxWordsPerSegment = defaultLength.maxWords;
+			settings.aiTranscriptionSettings.maxCharsPerSegment = defaultLength.maxChars;
+			settings.aiTranscriptionSettings.minSilenceDuration = defaultLength.silenceSeconds;
 			shouldSave = true;
 		}
-		if (typeof settings.aiTranscriptionSettings.addDiacritics !== 'boolean') {
-			settings.aiTranscriptionSettings.addDiacritics = false;
+		const legacyTranscriptionSettings =
+			settings.aiTranscriptionSettings as AITranscriptionSettings & {
+				addDiacritics?: unknown;
+			};
+		if ('addDiacritics' in legacyTranscriptionSettings) {
+			delete legacyTranscriptionSettings.addDiacritics;
 			shouldSave = true;
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {

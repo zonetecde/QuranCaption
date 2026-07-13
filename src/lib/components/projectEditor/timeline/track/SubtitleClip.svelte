@@ -568,7 +568,7 @@
 							style={`left: ${marker.leftPercent}%; width: ${marker.widthPercent}%;`}
 							title={marker.label}
 						>
-							<span class="arabic">{marker.label}</span>
+							<span class="timeline-arabic">{marker.label}</span>
 						</div>
 					{/each}
 				</div>
@@ -611,7 +611,7 @@
 		<div class="absolute inset-0 z-5 flex px-2 py-2">
 			<div class="w-full h-full flex flex-col justify-center items-center gap-1">
 				<p
-					class="arabic truncate leading-tight text-center min-h-5 max-w-full overflow-hidden mt-1"
+					class="timeline-arabic truncate leading-tight text-center min-h-5 max-w-full overflow-hidden mt-1"
 					class:text-[var(--text-primary)]={!isSelected()}
 					class:text-[var(--text-on-selection)]={isSelected()}
 					dir="rtl"
@@ -788,6 +788,10 @@
 </ContextMenu>
 
 <style>
+	.timeline-arabic {
+		font-family: 'Noto Sans Arabic', sans-serif;
+	}
+
 	/* Formes pour l'indicateur de verset sans clip-path pour eviter les soucis de stacking */
 	.verse-indicator-start {
 		width: 0;

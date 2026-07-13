@@ -72,16 +72,17 @@ pub struct AdvancedWbwTranslationBatchPayload {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TranscriptCleanupBatchPayload {
-    pub add_diacritics: bool,
-    #[serde(rename = "s", alias = "segments")]
-    pub segments: Vec<TranscriptCleanupSegmentPayload>,
+    #[serde(rename = "w", alias = "words")]
+    pub words: Vec<TranscriptCleanupWordPayload>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct TranscriptCleanupSegmentPayload {
+pub struct TranscriptCleanupWordPayload {
     pub i: i64,
     pub p: String,
     pub t: String,
+    pub q: bool,
+    pub g: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

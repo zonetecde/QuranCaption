@@ -56,6 +56,7 @@ export type AITranscriptionSettings = {
 	minSpeakers: number | null;
 	maxSpeakers: number | null;
 	batchSize: number;
+	minSilenceDuration: number;
 	maxWordsPerSegment: number;
 	maxCharsPerSegment: number;
 	replaceExisting: boolean;
@@ -176,6 +177,7 @@ export default class Settings extends SerializableBase {
 		minSpeakers: null,
 		maxSpeakers: null,
 		batchSize: 8,
+		minSilenceDuration: 1.2,
 		maxWordsPerSegment: 14,
 		maxCharsPerSegment: 90,
 		replaceExisting: true
@@ -526,6 +528,13 @@ export default class Settings extends SerializableBase {
 		}
 		if (typeof settings.persistentUiState.language !== 'string') {
 			settings.persistentUiState.language = 'en';
+			shouldSave = true;
+		}
+		if (
+			typeof settings.aiTranscriptionSettings.minSilenceDuration !== 'number' ||
+			!Number.isFinite(settings.aiTranscriptionSettings.minSilenceDuration)
+		) {
+			settings.aiTranscriptionSettings.minSilenceDuration = 1.2;
 			shouldSave = true;
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {

@@ -255,6 +255,7 @@ pub async fn transcribe_audio_local_whisperx(
     min_speakers: Option<u32>,
     max_speakers: Option<u32>,
     batch_size: Option<u32>,
+    min_silence_duration: Option<f64>,
     max_words: Option<u32>,
     max_chars: Option<u32>,
 ) -> Result<serde_json::Value, String> {
@@ -269,6 +270,7 @@ pub async fn transcribe_audio_local_whisperx(
         min_speakers,
         max_speakers,
         batch_size,
+        min_silence_duration,
         max_words,
         max_chars,
     )

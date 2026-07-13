@@ -2636,7 +2636,7 @@ type RootTranslation = {
 		 */
 		addClipToStart: string;
 		/**
-		 * M​i​n​ ​S​i​l​e​n​c​e
+		 * M​i​n​ ​S​i​l​e​n​c​e​ ​D​u​r​a​t​i​o​n
 		 */
 		minSilenceLabel: string;
 		/**
@@ -11669,7 +11669,7 @@ export type TranslationFunctions = {
 		 */
 		addClipToStart: () => LocalizedString;
 		/**
-		 * Min Silence
+		 * Min Silence Duration
 		 */
 		minSilenceLabel: () => LocalizedString;
 		/**

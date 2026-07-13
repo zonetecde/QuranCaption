@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { SubtitleClip } from '$lib/classes';
+import { SilenceClip, SubtitleClip } from '$lib/classes';
 import {
 	normalizeTranscriptWordTimings,
 	type TranscriptAlignmentMetadata
@@ -86,6 +86,7 @@ export async function runAITranscription(
 		minSpeakers: settings.minSpeakers ?? undefined,
 		maxSpeakers: settings.maxSpeakers ?? undefined,
 		batchSize: settings.batchSize,
+		minSilenceDuration: settings.minSilenceDuration,
 		maxWords: settings.maxWordsPerSegment,
 		maxChars: settings.maxCharsPerSegment
 	})) as AITranscriptionResult;
@@ -177,13 +178,23 @@ export function applyAITranscription(
 	if (generated.length === 0) {
 		throw new Error('The AI transcription result does not contain any valid subtitle segment.');
 	}
+	const generatedWithSilences = generated.flatMap((clip, index) => {
+		const previous = generated[index - 1];
+		if (!previous) {
+			return clip.startTime > 0 ? [new SilenceClip(0, clip.startTime - 1), clip] : [clip];
+		}
+		if (clip.startTime <= previous.endTime + 1) return [clip];
+		return [new SilenceClip(previous.endTime + 1, clip.startTime - 1), clip];
+	});
 
 	ProjectHistoryManager.begin('apply AI transcription');
 	try {
 		const preservedClips = replaceExisting
 			? track.clips.filter((clip) => !(clip instanceof SubtitleClip))
 			: track.clips;
-		track.clips = [...preservedClips, ...generated].sort((a, b) => a.startTime - b.startTime);
+		track.clips = [...preservedClips, ...generatedWithSilences].sort(
+			(a, b) => a.startTime - b.startTime
+		);
 
 		const names = Array.from(
 			new Set(

@@ -2,6 +2,7 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onDestroy, onMount, tick } from 'svelte';
+	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { SubtitleClip } from '$lib/classes';
@@ -470,6 +471,30 @@
 										max="500"
 										class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
 										bind:value={settings.maxCharsPerSegment}
+									/></label
+								>
+								<label class="space-y-2 md:col-span-2"
+									><div class="flex items-center justify-between gap-3">
+										<span class="text-xs text-secondary">{get(LL).editor.minSilenceLabel()}</span>
+										<div class="flex items-center gap-2">
+											<input
+												type="number"
+												min="0.1"
+												max="10"
+												step="0.1"
+												class="w-20 rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
+												bind:value={settings.minSilenceDuration}
+											/>
+											<span class="text-xs text-secondary">{get(LL).common.seconds()}</span>
+										</div>
+									</div>
+									<input
+										type="range"
+										min="0.1"
+										max="10"
+										step="0.1"
+										class="w-full"
+										bind:value={settings.minSilenceDuration}
 									/></label
 								>
 							</div>

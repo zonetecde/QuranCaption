@@ -409,7 +409,7 @@ const editor = {
 	quickTimelineEditor: 'Quick Timeline Editor',
 	emptyTimeline: 'Timeline is empty',
 	addClipToStart: 'Add a clip to get started.',
-	minSilenceLabel: 'Min Silence',
+	minSilenceLabel: 'Min Silence Duration',
 	minSpeechLabel: 'Min Speech',
 	paddingLabel: 'Padding',
 	includeWbwTimestamps: 'Include word-by-word timestamps',

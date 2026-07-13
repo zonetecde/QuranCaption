@@ -65,7 +65,7 @@
 		<h3 class="text-sm font-medium text-secondary">{$LL.editor.aiTranscription()}</h3>
 		<button
 			type="button"
-			class="group w-full cursor-pointer rounded-lg border border-color bg-accent/50 p-4 text-center transition hover:border-[var(--accent-primary)] hover:bg-accent"
+			class="group w-full cursor-pointer rounded-lg border border-color bg-[var(--bg-accent)]/50 p-4 text-center transition hover:border-[var(--accent-primary)] hover:bg-accent"
 			onclick={() => void ModalManager.aiTranscriptionModal()}
 		>
 			<span

@@ -11,7 +11,7 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import toast from 'svelte-5-french-toast';
-	import AskIaModal from '../modal/AskIAModal.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
@@ -19,9 +19,6 @@
 
 	let { edition } = $props();
 	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
-
-	let showAskIAModal = $state(false);
-	let aiModalTranslationEdition: Edition | null = $state(null);
 
 	// Date de séparation QC1/QC2 utilisée quand on appuie sur Ctrl/Cmd.
 	// (only fetch QC2 projects)
@@ -244,10 +241,7 @@
 			</button>
 			<button
 				class="btn btn-icon w-full px-4 py-2 text-sm flex-1 flex flex-row justify-center mt-1.5"
-				onclick={() => {
-					showAskIAModal = true;
-					aiModalTranslationEdition = edition;
-				}}
+				onclick={() => void ModalManager.askTranslationModal(edition)}
 			>
 				<span class="material-icons text-base mr-2">auto_awesome</span>
 				{$LL.editor.askAi()}
@@ -270,9 +264,3 @@
 		{/if}
 	</Section>
 </div>
-
-{#if showAskIAModal && aiModalTranslationEdition}
-	<div class="modal-wrapper">
-		<AskIaModal close={() => (showAskIAModal = false)} edition={aiModalTranslationEdition} />
-	</div>
-{/if}

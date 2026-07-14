@@ -58,7 +58,8 @@
 		CustomClip,
 		PredefinedSubtitleClip,
 		SilenceClip,
-		SubtitleClip
+		SubtitleClip,
+		type PredefinedSubtitleType
 	} from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
@@ -85,6 +86,11 @@
 	const WORKER_ERROR_EVENT = 'export-capture-worker-error';
 	const EXPORT_LOG_EVENT = 'export-log-main';
 	const WORKER_READY_TIMEOUT_MS = 45_000;
+	const RETAINED_PREDEFINED_RECITATION_TYPES = new Set<PredefinedSubtitleType>([
+		'Basmala',
+		"Isti'adha",
+		'Amin'
+	]);
 
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
@@ -94,6 +100,7 @@
 	let hasCompletedCapturingFrames = false;
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
+	let captureWorkerWindows: WebviewWindow[] = [];
 
 	/**
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
@@ -586,15 +593,14 @@
 	}
 
 	/**
-	 * Execute le mode worker: attendre les jobs du coordinator, capturer, puis fermer.
+	 * Execute le mode worker et traite successivement les lots envoyés par le coordinator.
 	 * @param {number} workerId Index du worker courant.
 	 * @returns {Promise<void>}
 	 */
 	async function runCaptureWorker(workerId: number): Promise<void> {
-		const unlisten = await listen<CaptureWorkerStartPayload>(WORKER_START_EVENT, async (event) => {
+		await listen<CaptureWorkerStartPayload>(WORKER_START_EVENT, async (event) => {
 			const data = event.payload;
 			if (data.exportId !== exportId || data.workerId !== workerId) return;
-			unlisten();
 
 			try {
 				await emitExportLog('info', 'Capture worker started', {
@@ -642,8 +648,6 @@
 					workerId,
 					error: error instanceof Error ? error.message : String(error)
 				} satisfies CaptureWorkerErrorPayload);
-			} finally {
-				await getCurrentWebviewWindow().close();
 			}
 		});
 
@@ -699,6 +703,7 @@
 			await emitExportLog('info', 'Export started');
 			await startExport();
 		} catch (error) {
+			await closeCaptureWorkerWindows();
 			console.error('Export failed:', error);
 			await emitExportLog('error', 'Export failed', {
 				error: error instanceof Error ? error.message : String(error)
@@ -727,11 +732,20 @@
 			duration: totalDuration
 		});
 
-		const blurSegments = getBlurSegmentsForRange(exportStart, exportEnd);
+		const recitationRanges = globalState.getExportState.exportOnlyRecitation
+			? getRecitationRangesForExport(exportStart, exportEnd)
+			: [{ start: exportStart, end: exportEnd }];
+		if (recitationRanges.length === 0) {
+			throw new Error(get(LL).export.noRecitationInExportRange());
+		}
+
+		const blurSegments = recitationRanges.flatMap((range) =>
+			getBlurSegmentsForRange(range.start, range.end)
+		);
 		await emitExportLog('info', 'Blur segments computed', {
 			segments: blurSegments.length
 		});
-		if (blurSegments.length > 1) {
+		if (globalState.getExportState.exportOnlyRecitation || blurSegments.length > 1) {
 			await handleSegmentedExport(blurSegments, totalDuration);
 			return;
 		}
@@ -761,6 +775,71 @@
 			boundaries.push(clip.endTime + 1);
 		}
 		return boundaries;
+	}
+
+	/**
+	 * Regroupe les clips de récitation en plages et ajoute une marge autour des coupures.
+	 * @param {number} rangeStart Début de la plage d'export en millisecondes.
+	 * @param {number} rangeEnd Fin de la plage d'export en millisecondes.
+	 * @returns {TimeRange[]} Plages contenant la récitation et les marges de coupe.
+	 */
+	function getRecitationRangesForExport(rangeStart: number, rangeEnd: number): TimeRange[] {
+		const orderedClips = [...globalState.getSubtitleTrack.clips].sort(
+			(a, b) => a.startTime - b.startTime
+		);
+		const quranClips = orderedClips.filter(
+			(clip) =>
+				(clip instanceof SubtitleClip ||
+					(clip instanceof PredefinedSubtitleClip &&
+						RETAINED_PREDEFINED_RECITATION_TYPES.has(clip.predefinedSubtitleType))) &&
+				clip.endTime >= rangeStart &&
+				clip.startTime <= rangeEnd
+		);
+		const ranges: TimeRange[] = [];
+		const minimumSilenceMs = Math.max(
+			0,
+			globalState.getExportState.recitationMinimumSilenceMs ?? 3000
+		);
+
+		for (const clip of quranClips) {
+			const start = Math.max(rangeStart, clip.startTime);
+			const end = Math.min(rangeEnd, clip.endTime);
+			const current = ranges.at(-1);
+			if (!current) {
+				ranges.push({ start, end });
+				continue;
+			}
+
+			const containsPredefinedText = orderedClips.some(
+				(candidate) =>
+					candidate instanceof PredefinedSubtitleClip &&
+					!RETAINED_PREDEFINED_RECITATION_TYPES.has(candidate.predefinedSubtitleType) &&
+					candidate.startTime <= start &&
+					candidate.endTime >= current.end
+			);
+			if (!containsPredefinedText && start - current.end < minimumSilenceMs) {
+				current.end = Math.max(current.end, end);
+			} else {
+				ranges.push({ start, end });
+			}
+		}
+
+		const paddedRanges: TimeRange[] = [];
+		const cutMarginMs = Math.max(0, globalState.getExportState.recitationCutMarginMs ?? 350);
+		for (const range of ranges) {
+			const paddedRange = {
+				start: Math.max(rangeStart, range.start - cutMarginMs),
+				end: Math.min(rangeEnd, range.end + cutMarginMs)
+			};
+			const previous = paddedRanges.at(-1);
+			if (previous && paddedRange.start <= previous.end) {
+				previous.end = Math.max(previous.end, paddedRange.end);
+			} else {
+				paddedRanges.push(paddedRange);
+			}
+		}
+
+		return paddedRanges;
 	}
 
 	function getBlurSegmentsForRange(rangeStart: number, rangeEnd: number): BlurSegment[] {
@@ -801,6 +880,7 @@
 			);
 			segmentBlankImageIndexes.set(segmentIndex, blankTimings);
 		}
+		await closeCaptureWorkerWindows();
 
 		hasCompletedCapturingFrames = true;
 		refreshSecondarySegmentProgressVisibility();
@@ -1095,6 +1175,7 @@
 					}
 				})
 		);
+		captureWorkerWindows = [];
 	}
 
 	/**
@@ -1118,6 +1199,13 @@
 		const readyWorkers = new Set<number>();
 		const completeWorkers = new Set<number>();
 		const unlisteners: Array<() => void> = [];
+		const openWindowLabels = new Set((await getAllWindows()).map((window) => window.label));
+		const canReuseWorkers =
+			captureWorkerWindows.length === buckets.length &&
+			captureWorkerWindows.every((window) => openWindowLabels.has(window.label));
+		if (canReuseWorkers) {
+			for (let workerId = 0; workerId < buckets.length; workerId++) readyWorkers.add(workerId);
+		}
 		let readyTimeout: ReturnType<typeof setTimeout> | undefined;
 		let resolveReady: () => void = () => {};
 		let rejectReady: (error: Error) => void = () => {};
@@ -1127,6 +1215,10 @@
 		const readyPromise = new Promise<void>((resolve, reject) => {
 			resolveReady = resolve;
 			rejectReady = reject;
+			if (canReuseWorkers) {
+				resolve();
+				return;
+			}
 			readyTimeout = setTimeout(() => {
 				void emitExportLog('error', 'Timeout waiting for capture workers', {
 					ready: readyWorkers.size,
@@ -1200,13 +1292,17 @@
 			})
 		);
 
-		await closeCaptureWorkerWindows();
-		const workerWindows = await openCaptureWorkerWindows(buckets);
+		if (!canReuseWorkers) {
+			await closeCaptureWorkerWindows();
+			captureWorkerWindows = await openCaptureWorkerWindows(buckets);
+		} else {
+			await emitExportLog('info', 'Reusing capture workers', { workers: buckets.length });
+		}
 		try {
 			await readyPromise;
 			await emitExportLog('info', 'All capture workers ready', { workers: buckets.length });
 			await Promise.all(
-				workerWindows.map((w, workerId) =>
+				captureWorkerWindows.map((w, workerId) =>
 					w.emit(WORKER_START_EVENT, {
 						exportId,
 						workerId,
@@ -1221,7 +1317,6 @@
 		} finally {
 			if (readyTimeout) clearTimeout(readyTimeout);
 			for (const unlisten of unlisteners) unlisten();
-			await closeCaptureWorkerWindows();
 		}
 	}
 
@@ -1535,6 +1630,7 @@
 				totalTime: totalDuration
 			} as ExportProgress);
 		});
+		await closeCaptureWorkerWindows();
 
 		const normalizedBlankTimings = plan.blankImageIndexes;
 
@@ -1876,6 +1972,7 @@
 	}
 
 	async function finalCleanup() {
+		await closeCaptureWorkerWindows();
 		try {
 			// Supprime le dossier temporaire des images
 			await remove(await join(ExportService.exportFolder, exportId), {

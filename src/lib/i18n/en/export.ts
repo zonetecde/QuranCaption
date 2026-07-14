@@ -29,7 +29,17 @@ const export_ = {
 	exportButton: 'Export Video',
 	startExportDescription: 'Start the video export process with your selected time range',
 	advancedSettings: 'Advanced Settings',
-	controlExportPerformance: 'Choose the speed, quality, and CPU usage tradeoff for video export.',
+	controlExportPerformance: 'Configure recitation filtering, background, codec, and performance.',
+	exportOnlyRecitation: 'Export only recitation',
+	exportOnlyRecitationDescription:
+		"Exports the recitation while keeping the basmala, isti'adha, and Amin, and skips takbirs, taslim, other non-Quran passages, and long silences.",
+	recitationContent: 'Recitation content',
+	recitationCutMargin: 'Cut margin (ms)',
+	recitationCutMarginDescription:
+		'Keeps this amount of audio before and after each recitation cut.',
+	recitationMinimumSilence: 'Minimum silence for a cut (ms)',
+	recitationMinimumSilenceDescription: 'Shorter natural pauses stay in the export.',
+	noRecitationInExportRange: 'No Quran recitation was found in the selected export range.',
 	background: 'Background',
 	exportWithoutBackground: 'Export without background',
 	rendersOnlyOverlay: 'Renders only the overlay with transparency (alpha).',

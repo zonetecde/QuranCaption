@@ -791,8 +791,18 @@ const id: Translation = {
 		exportButton: 'Ekspor Video',
 		startExportDescription: 'Mulai proses export video dengan rentang waktu yang kamu pilih',
 		advancedSettings: 'Pengaturan lanjutan',
-		controlExportPerformance:
-			'Pilih tradeoff kecepatan, kualitas, dan penggunaan CPU untuk export video.',
+		controlExportPerformance: 'Atur filter tilawah, latar belakang, codec, dan performa.',
+		exportOnlyRecitation: 'Ekspor hanya tilawah',
+		exportOnlyRecitationDescription:
+			"Mengekspor tilawah dengan tetap menyertakan basmala, isti'adha, dan Amin, serta melewati takbir, taslim, bagian non-Qur\u2019an lainnya, dan jeda panjang.",
+		recitationContent: 'Konten tilawah',
+		recitationCutMargin: 'Margin potongan (ms)',
+		recitationCutMarginDescription:
+			'Mempertahankan durasi audio ini sebelum dan sesudah setiap potongan tilawah.',
+		recitationMinimumSilence: 'Jeda minimum untuk dipotong (ms)',
+		recitationMinimumSilenceDescription: 'Jeda alami yang lebih pendek tetap dipertahankan.',
+		noRecitationInExportRange:
+			'Tidak ada tilawah Al-Qur\u2019an yang ditemukan dalam rentang ekspor yang dipilih.',
 		background: 'Latar belakang',
 		exportWithoutBackground: 'Ekspor tanpa latar belakang',
 		rendersOnlyOverlay: 'Hanya merender overlay dengan transparansi (alpha).',

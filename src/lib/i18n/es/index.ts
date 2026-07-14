@@ -1514,7 +1514,18 @@ const es = {
 			'Iniciar el proceso de exportación de video con el rango temporal seleccionado',
 		advancedSettings: 'Configuración avanzada',
 		controlExportPerformance:
-			'Elija el equilibrio entre velocidad, calidad y uso de CPU para la exportación de video.',
+			'Configure el filtro de recitación, el fondo, el códec y el rendimiento.',
+		exportOnlyRecitation: 'Exportar solo la recitación',
+		exportOnlyRecitationDescription:
+			"Exporta la recitación conservando la basmala, la isti'adha y el Amín, y omite los takbirs, el taslim, otros pasajes no coránicos y los silencios largos.",
+		recitationContent: 'Contenido de la recitación',
+		recitationCutMargin: 'Margen de corte (ms)',
+		recitationCutMarginDescription:
+			'Conserva esta duración de audio antes y después de cada corte de recitación.',
+		recitationMinimumSilence: 'Silencio mínimo para un corte (ms)',
+		recitationMinimumSilenceDescription: 'Las pausas naturales más cortas se conservan.',
+		noRecitationInExportRange:
+			'No se encontró ninguna recitación del Corán en el intervalo de exportación seleccionado.',
 		background: 'Fondo',
 		exportWithoutBackground: 'Exportar sin fondo',
 		rendersOnlyOverlay: 'Renderiza solo la superposición con transparencia (alfa).',

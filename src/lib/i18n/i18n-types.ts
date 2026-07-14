@@ -5483,9 +5483,41 @@ type RootTranslation = {
 		 */
 		advancedSettings: string;
 		/**
-		 * C​h​o​o​s​e​ ​t​h​e​ ​s​p​e​e​d​,​ ​q​u​a​l​i​t​y​,​ ​a​n​d​ ​C​P​U​ ​u​s​a​g​e​ ​t​r​a​d​e​o​f​f​ ​f​o​r​ ​v​i​d​e​o​ ​e​x​p​o​r​t​.
+		 * C​o​n​f​i​g​u​r​e​ ​r​e​c​i​t​a​t​i​o​n​ ​f​i​l​t​e​r​i​n​g​,​ ​b​a​c​k​g​r​o​u​n​d​,​ ​c​o​d​e​c​,​ ​a​n​d​ ​p​e​r​f​o​r​m​a​n​c​e​.
 		 */
 		controlExportPerformance: string;
+		/**
+		 * E​x​p​o​r​t​ ​o​n​l​y​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		exportOnlyRecitation: string;
+		/**
+		 * E​x​p​o​r​t​s​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​ ​w​h​i​l​e​ ​k​e​e​p​i​n​g​ ​t​h​e​ ​b​a​s​m​a​l​a​,​ ​i​s​t​i​'​a​d​h​a​,​ ​a​n​d​ ​A​m​i​n​,​ ​a​n​d​ ​s​k​i​p​s​ ​t​a​k​b​i​r​s​,​ ​t​a​s​l​i​m​,​ ​o​t​h​e​r​ ​n​o​n​-​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​,​ ​a​n​d​ ​l​o​n​g​ ​s​i​l​e​n​c​e​s​.
+		 */
+		exportOnlyRecitationDescription: string;
+		/**
+		 * R​e​c​i​t​a​t​i​o​n​ ​c​o​n​t​e​n​t
+		 */
+		recitationContent: string;
+		/**
+		 * C​u​t​ ​m​a​r​g​i​n​ ​(​m​s​)
+		 */
+		recitationCutMargin: string;
+		/**
+		 * K​e​e​p​s​ ​t​h​i​s​ ​a​m​o​u​n​t​ ​o​f​ ​a​u​d​i​o​ ​b​e​f​o​r​e​ ​a​n​d​ ​a​f​t​e​r​ ​e​a​c​h​ ​r​e​c​i​t​a​t​i​o​n​ ​c​u​t​.
+		 */
+		recitationCutMarginDescription: string;
+		/**
+		 * M​i​n​i​m​u​m​ ​s​i​l​e​n​c​e​ ​f​o​r​ ​a​ ​c​u​t​ ​(​m​s​)
+		 */
+		recitationMinimumSilence: string;
+		/**
+		 * S​h​o​r​t​e​r​ ​n​a​t​u​r​a​l​ ​p​a​u​s​e​s​ ​s​t​a​y​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​.
+		 */
+		recitationMinimumSilenceDescription: string;
+		/**
+		 * N​o​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n​ ​w​a​s​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​e​x​p​o​r​t​ ​r​a​n​g​e​.
+		 */
+		noRecitationInExportRange: string;
 		/**
 		 * B​a​c​k​g​r​o​u​n​d
 		 */
@@ -14344,9 +14376,41 @@ export type TranslationFunctions = {
 		 */
 		advancedSettings: () => LocalizedString;
 		/**
-		 * Choose the speed, quality, and CPU usage tradeoff for video export.
+		 * Configure recitation filtering, background, codec, and performance.
 		 */
 		controlExportPerformance: () => LocalizedString;
+		/**
+		 * Export only recitation
+		 */
+		exportOnlyRecitation: () => LocalizedString;
+		/**
+		 * Exports the recitation while keeping the basmala, isti'adha, and Amin, and skips takbirs, taslim, other non-Quran passages, and long silences.
+		 */
+		exportOnlyRecitationDescription: () => LocalizedString;
+		/**
+		 * Recitation content
+		 */
+		recitationContent: () => LocalizedString;
+		/**
+		 * Cut margin (ms)
+		 */
+		recitationCutMargin: () => LocalizedString;
+		/**
+		 * Keeps this amount of audio before and after each recitation cut.
+		 */
+		recitationCutMarginDescription: () => LocalizedString;
+		/**
+		 * Minimum silence for a cut (ms)
+		 */
+		recitationMinimumSilence: () => LocalizedString;
+		/**
+		 * Shorter natural pauses stay in the export.
+		 */
+		recitationMinimumSilenceDescription: () => LocalizedString;
+		/**
+		 * No Quran recitation was found in the selected export range.
+		 */
+		noRecitationInExportRange: () => LocalizedString;
 		/**
 		 * Background
 		 */

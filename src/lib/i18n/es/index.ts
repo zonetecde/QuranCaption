@@ -544,7 +544,7 @@ const es = {
 		unableToAnalyzeMedia:
 			'No se pudo analizar este archivo multimedia. Verifique la instalación de FFmpeg/FFprobe.',
 		variableBitrateWarning:
-			'Su medio usa tasa de bits variable (VBR). Esto puede causar inconsistencias de temporización durante la edición de video. Convierta a tasa de bits constante (CBR) para mejores resultados.',
+			'Su medio usa tasa de bits variable (VBR). Esto puede causar inconsistencias de temporización durante la edición de video. Para convertirlo, vaya a la pestaña Editor de vídeo, haga clic en los tres puntos del elemento y luego en Convertir a CBR.',
 		tajweedRequiresInternet:
 			'El tajweed requiere conexión a Internet. Verifique su conexión e intente de nuevo.',
 		minimalQuran: 'Corán minimal',

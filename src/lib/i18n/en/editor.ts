@@ -237,7 +237,7 @@ const editor = {
 	unknownAudioError: 'An unknown error occurred while loading audio: {error}',
 	unableToAnalyzeMedia: 'Unable to analyze this media file. Please check FFmpeg/FFprobe setup.',
 	variableBitrateWarning:
-		'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. Convert to constant bitrate (CBR) for better results.',
+		'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. To convert it, go to the Video Editor tab, click the three dots on the asset, then click Convert to CBR.',
 	tajweedRequiresInternet:
 		'Tajweed requires an internet connection. Please check your connection and try again.',
 	minimalQuran: 'Minimal Quran',

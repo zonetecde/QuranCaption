@@ -1,5 +1,5 @@
 export const PROJECT_EDITOR_PANEL_WIDTHS = {
-	video: { default: 300, min: 240, max: 720, expandedMin: 500 },
+	video: { default: 360, min: 240, max: 720, expandedMin: 500 },
 	style: { default: 438, min: 280, max: 720, expandedMin: 600 },
 	subtitlesLeft: { default: 300, min: 180, max: 520 },
 	subtitlesRight: { default: 300, min: 180, max: 520 },

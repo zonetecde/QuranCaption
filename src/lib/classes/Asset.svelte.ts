@@ -11,6 +11,7 @@ import { Duration } from './index.js';
 import toast from 'svelte-5-french-toast';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager.js';
 import type { UnknownRecord } from '$lib/types/common.js';
 
 type DurationLoadState = 'idle' | 'loading' | 'success' | 'error';
@@ -130,6 +131,9 @@ export class Asset extends SerializableBase {
 				}
 				return;
 			}
+			if (globalState.currentProject!.projectEditorState.hasAnsweredVideoDimensionPrompt) {
+				return;
+			}
 
 			// Demande confirmation à l'utilisateur
 			const confirm = await ModalManager.confirmModal(
@@ -140,14 +144,19 @@ export class Asset extends SerializableBase {
 				true
 			);
 
-			if (confirm) {
-				if (assetDimensions.width > 0 && assetDimensions.height > 0) {
-					globalState.getStyle('global', 'video-dimension').value = {
-						width: assetDimensions.width,
-						height: assetDimensions.height
-					};
+			ProjectHistoryManager.track(
+				confirm ? 'set video dimensions from asset' : 'dismiss video dimensions prompt',
+				() => {
+					globalState.currentProject!.projectEditorState.hasAnsweredVideoDimensionPrompt = true;
+					if (!confirm) return;
+					if (assetDimensions.width > 0 && assetDimensions.height > 0) {
+						globalState.getStyle('global', 'video-dimension').value = {
+							width: assetDimensions.width,
+							height: assetDimensions.height
+						};
+					}
 				}
-			}
+			);
 		}
 	}
 
@@ -214,10 +223,7 @@ export class Asset extends SerializableBase {
 			})) as boolean;
 			if (isConstant) return;
 
-			toast(
-				get(LL).editor.variableBitrateWarning(),
-				{ duration: 18000, position: 'bottom-left' }
-			);
+			toast(get(LL).editor.variableBitrateWarning(), { duration: 18000, position: 'bottom-left' });
 		} catch (error) {
 			console.warn('Unable to detect bitrate mode for asset:', error);
 		}

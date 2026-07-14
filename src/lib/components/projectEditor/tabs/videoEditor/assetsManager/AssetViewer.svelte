@@ -2,8 +2,7 @@
 	import { AssetType, SourceType, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-	import { onMount, tick } from 'svelte';
-	import { slide } from 'svelte/transition';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { join } from '@tauri-apps/api/path';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -11,7 +10,10 @@
 	import toast from 'svelte-5-french-toast';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { ProjectService } from '$lib/services/ProjectService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
 
 	type CbrConversionProgressEvent = {
 		conversionRequestId: string;
@@ -22,18 +24,27 @@
 	};
 
 	let {
-		asset = $bindable()
+		asset = $bindable(),
+		selected = false,
+		onToggleSelection
 	}: {
 		asset: Asset;
+		selected?: boolean;
+		onToggleSelection: () => void;
 	} = $props();
 
-	let isHovered = $state(false);
+	let contextMenu: ContextMenu | undefined = $state(undefined);
+	let timelineContextMenu: ContextMenu | undefined = $state(undefined);
+	let contextMenuElement: HTMLElement | null = null;
+	let timelineContextMenuElement: HTMLElement | null = null;
+	let wasContextMenuOpenOnPointerDown = false;
+	let wasTimelineContextMenuOpenOnPointerDown = false;
+	let isPreviewOpen = $state(false);
 	let isRedownloading = $state(false);
 	let isConvertingToCBR = $state(false);
 	let cbrProgress = $state(0);
 	let cbrProgressStatus = $state('');
 	let mediaKey = $state(0);
-	let isExpanded = $derived(isHovered || isConvertingToCBR);
 
 	function assetTypeLabel(type: string): string {
 		const ll = get(LL);
@@ -45,6 +56,63 @@
 	onMount(async () => {
 		asset.checkExistence();
 	});
+
+	onDestroy(() => {
+		currentMenu.set(null);
+	});
+
+	/**
+	 * Sélectionne l'asset avec Ctrl/Cmd ou ouvre son aperçu avec un clic simple.
+	 * @param {MouseEvent} event Clic sur la zone principale de l'asset.
+	 * @returns {void}
+	 */
+	function handlePrimaryClick(event: MouseEvent): void {
+		if (event.ctrlKey || event.metaKey) {
+			onToggleSelection();
+			return;
+		}
+		isPreviewOpen = !isPreviewOpen;
+	}
+
+	/**
+	 * Ouvre ou ferme le menu d'actions de l'asset.
+	 * @param {MouseEvent} event Événement utilisé pour positionner le menu.
+	 * @returns {void}
+	 */
+	function openContextMenu(event: MouseEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+		const shouldClose =
+			wasContextMenuOpenOnPointerDown ||
+			(contextMenuElement !== null && get(currentMenu) === contextMenuElement);
+		wasContextMenuOpenOnPointerDown = false;
+		if (shouldClose) {
+			currentMenu.set(null);
+			return;
+		}
+		contextMenu?.show(event);
+		contextMenuElement = get(currentMenu) as HTMLElement | null;
+	}
+
+	/**
+	 * Ouvre ou ferme les modes d'ajout à la timeline de l'asset.
+	 * @param {MouseEvent} event Événement utilisé pour positionner le menu.
+	 * @returns {void}
+	 */
+	function openTimelineContextMenu(event: MouseEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+		const shouldClose =
+			wasTimelineContextMenuOpenOnPointerDown ||
+			(timelineContextMenuElement !== null && get(currentMenu) === timelineContextMenuElement);
+		wasTimelineContextMenuOpenOnPointerDown = false;
+		if (shouldClose) {
+			currentMenu.set(null);
+			return;
+		}
+		timelineContextMenu?.show(event);
+		timelineContextMenuElement = get(currentMenu) as HTMLElement | null;
+	}
 
 	function trimAsset() {
 		if (asset.type === AssetType.Image) {
@@ -75,20 +143,16 @@
 		}
 
 		if (asset.type !== AssetType.Image && asset.hasDurationLoadError()) {
-			toast.error(
-				asset.getDurationLoadErrorMessage() ||
-					get(LL).editor.unableToAnalyzeMedia(),
-				{
-					duration: 7000
-				}
-			);
+			toast.error(asset.getDurationLoadErrorMessage() || get(LL).editor.unableToAnalyzeMedia(), {
+				duration: 7000
+			});
 			return;
 		}
 
 		if (asset.duration.isNull() && asset.type !== AssetType.Image) {
-		toast.error(get(LL).editor.unableToLoadDuration(), {
-			duration: 5000
-		});
+			toast.error(get(LL).editor.unableToLoadDuration(), {
+				duration: 5000
+			});
 			return;
 		}
 
@@ -135,7 +199,10 @@
 				conversionRequestId
 			});
 
-			asset.reloadMedia();
+			ProjectHistoryManager.track('mark asset as constant bitrate', () => {
+				asset.metadata.skipConstantBitrateWarning = true;
+				asset.reloadMedia();
+			});
 			mediaKey++;
 			cbrProgress = 100;
 			cbrProgressStatus = get(LL).editor.finishedLabel();
@@ -196,63 +263,115 @@
 
 				asset.updateFilePath(fullPath);
 				mediaKey++; // Force re-render of audio/video element
-			toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
-		}
-	} catch (error) {
+				toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
+			}
+		} catch (error) {
 			console.error('Re-download error:', error);
-			toast.error(get(LL).editor.errorRedownloading({ error: String(error) }), { id: toastId, duration: 5000 });
+			toast.error(get(LL).editor.errorRedownloading({ error: String(error) }), {
+				id: toastId,
+				duration: 5000
+			});
 		} finally {
 			isRedownloading = false;
 		}
 	}
+
+	/**
+	 * Confirme puis retire l'asset du projet et éventuellement du disque.
+	 * @returns {Promise<void>}
+	 */
+	async function removeAsset(): Promise<void> {
+		const result = await ModalManager.deleteConfirmationModal(
+			get(LL).editor.removeAssetConfirm(),
+			asset.sourceType !== SourceType.Local
+		);
+		if (!result.confirmed) return;
+
+		if (result.deleteFile) {
+			try {
+				await invoke('delete_file', { path: asset.filePath });
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				toast.error(get(LL).editor.failedToDeleteFile({ error: errorMessage }));
+			}
+		}
+		globalState.currentProject?.content.removeAsset(asset);
+	}
 </script>
 
 <div
-	class="flex flex-col p-4 bg-secondary border border-color rounded-xl shadow-lg transition-all duration-300 select-none
-	       bg-accent hover:border-[var(--accent-primary)] hover:shadow-xl hover:shadow-blue-500/10 hover:scale-[1.02] group"
-	role="button"
-	tabindex="0"
-	onmouseenter={() => (isHovered = true)}
-	onmouseleave={() => (isHovered = false)}
+	class={`select-none rounded-md border bg-secondary transition-colors ${
+		selected
+			? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_0_1px_var(--accent-primary)]'
+			: 'border-color hover:border-[var(--accent-primary)]/50 hover:bg-black/10'
+	}`}
+	oncontextmenu={openContextMenu}
 >
-	<div class="flex flex-row gap-3 items-center relative">
-		<div
-			class="flex-shrink-0 p-2 rounded-lg bg-accent transition-colors duration-300
-		            group-hover:bg-[var(--accent-primary)] group-hover:text-black"
+	<div class="flex min-w-0 items-center gap-1 p-1.5">
+		<button
+			class="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1.5 py-1 text-left outline-none transition-colors hover:bg-white/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+			type="button"
+			title={asset.fileName}
+			onclick={handlePrimaryClick}
 		>
-			<span
-				class="material-icons text-3xl text-accent transition-colors duration-300
-			             group-hover:text-black"
-			>
-				{asset.type === 'video' ? 'video_library' : asset.type === 'audio' ? 'music_note' : 'image'}
+			<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-black/20">
+				<span class="material-icons text-lg! text-thirdly">
+					{asset.type === AssetType.Video
+						? 'video_library'
+						: asset.type === AssetType.Audio
+							? 'music_note'
+							: 'image'}
+				</span>
 			</span>
-		</div>
-		<div class="flex-1 min-w-0">
-			<p
-				class="text-sm font-semibold text-primary truncate group-hover:text-[var(--text-on-hover)] transition-colors duration-300"
-			>
-				{asset.fileName}
-			</p>
-			<p
-				class="text-xs text-thirdly mt-1 group-hover:text-[var(--text-secondary-on-hover)] transition-colors duration-300"
-			>
-				{assetTypeLabel(asset.type)}
-			</p>
-		</div>
-		<!-- warning icon -->
-		{#if !asset.exists}
-			<div class="flex-shrink-0 p-1 rounded-full bg-red-500/20 border border-red-500/30">
-				<span class="material-icons text-lg text-red-400" title={get(LL).editor.fileNotFoundOnDiskLabel()}
-					>warning</span
-				>
-			</div>
-		{/if}
+			<span class="min-w-0 flex-1">
+				<span class="block truncate text-sm font-medium text-primary">{asset.fileName}</span>
+				<span class="mt-0.5 flex items-center gap-1 truncate text-[11px] text-thirdly">
+					{assetTypeLabel(asset.type)}
+					{#if !asset.exists}
+						<span
+							class="material-icons text-sm text-red-400"
+							title={get(LL).editor.fileNotFoundOnDiskLabel()}>warning</span
+						>
+					{/if}
+				</span>
+			</span>
+			{#if selected}
+				<span class="material-icons shrink-0 text-lg! text-accent">check_circle</span>
+			{/if}
+		</button>
+		<button
+			data-tour-id="asset-timeline-actions"
+			class="btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+			type="button"
+			title={get(LL).editor.addToTimelineLabel()}
+			aria-label={get(LL).editor.addToTimelineLabel()}
+			disabled={!asset.exists}
+			onpointerdown={() =>
+				(wasTimelineContextMenuOpenOnPointerDown =
+					timelineContextMenuElement !== null && get(currentMenu) === timelineContextMenuElement)}
+			onclick={openTimelineContextMenu}
+		>
+			<span class="material-icons text-lg!">add_to_queue</span>
+		</button>
+		<button
+			class="btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+			type="button"
+			title={get(LL).common.actions()}
+			aria-label={get(LL).common.actions()}
+			onpointerdown={() =>
+				(wasContextMenuOpenOnPointerDown =
+					contextMenuElement !== null && get(currentMenu) === contextMenuElement)}
+			onclick={openContextMenu}
+		>
+			<span class="material-icons text-lg!">more_horiz</span>
+		</button>
 	</div>
-	{#if asset.type === AssetType.Audio}
-		{#if isExpanded}
-			<div transition:slide class="mt-4 p-3 bg-accent rounded-lg border border-color">
+
+	{#if isPreviewOpen && asset.exists}
+		<div class="border-t border-color p-1.5">
+			{#if asset.type === AssetType.Audio}
 				{#key mediaKey}
-					<audio class="w-full h-8 opacity-80" controls>
+					<audio class="h-8 w-full opacity-80" controls>
 						<source
 							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
 							type="audio/mp3"
@@ -260,13 +379,9 @@
 						{get(LL).editor.browserNoAudioSupport()}
 					</audio>
 				{/key}
-			</div>
-		{/if}
-	{:else if asset.type === AssetType.Video}
-		{#if isExpanded}
-			<div transition:slide class="mt-4 p-2 bg-accent rounded-lg border border-color">
+			{:else if asset.type === AssetType.Video}
 				{#key mediaKey}
-					<video class="w-full h-[180px] rounded-lg object-cover" controls>
+					<video class="h-[350px] w-full rounded-sm object-cover" controls>
 						<track kind="captions" />
 						<source
 							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
@@ -275,186 +390,118 @@
 						{get(LL).editor.browserNoVideoSupport()}
 					</video>
 				{/key}
-			</div>
-		{/if}
-	{:else if asset.type === AssetType.Image}
-		{#if isExpanded}
-			<div transition:slide class="mt-4 p-2 bg-accent rounded-lg border border-color">
+			{:else}
 				<img
-					class="w-full h-[180px] object-contain rounded-lg"
+					class="h-32 w-full rounded-sm object-contain"
 					src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
 					alt={asset.fileName}
 				/>
-			</div>
-		{/if}
-	{/if}
-	{#if isExpanded}
-		<div class="mt-4 space-y-3" transition:slide>
-			<!-- Action Buttons -->
-			<div class="flex flex-wrap gap-2">
-				{#if asset.exists}
-					<button
-						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
-						       hover:scale-105 transition-all duration-200"
-						onclick={async () => {
-							await asset.openParentDirectory();
-						}}
-					>
-						<span class="material-icons text-lg">folder_open</span>
-						{get(LL).editor.openDirectoryLabel()}
-					</button>
-					<!-- turn into constant bitrate -->
-					<button
-						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
-						       hover:scale-105 transition-all duration-200"
-						onclick={convertToCBR}
-						disabled={isConvertingToCBR}
-					>
-						{#if isConvertingToCBR}
-							<span class="material-icons text-lg animate-spin">sync</span>
-							{get(LL).editor.convertingLabel()}
-						{:else}
-							<span class="material-icons text-lg">speed</span>
-							{get(LL).editor.convertToCbrLabel()}
-						{/if}
-					</button>
-
-					{#if asset.type !== AssetType.Image}
-						<button
-							class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
-							       hover:scale-105 transition-all duration-200"
-							onclick={trimAsset}
-						>
-							<span class="material-icons text-lg">content_cut</span>
-							{get(LL).editor.trimLabel()}
-						</button>
-					{/if}
-				{:else}
-					<button
-						class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
-						       hover:scale-105 transition-all duration-200"
-						onclick={relocateAsset}
-					>
-						<span class="material-icons text-lg">folder_open</span>
-							{get(LL).editor.relocateLabel()}
-					</button>
-					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
-						<button
-							class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
-							       hover:scale-105 transition-all duration-200 text-green-400 hover:text-green-300
-							       hover:bg-green-500/10"
-							onclick={redownloadAsset}
-							disabled={isRedownloading}
-						>
-							{#if isRedownloading}
-								<span class="material-icons text-lg animate-spin">sync</span>
-								{get(LL).editor.downloadingLabel()}
-							{:else}
-								<span class="material-icons text-lg">cloud_download</span>
-								{get(LL).editor.redownloadLabel()}
-							{/if}
-						</button>
-					{/if}
-				{/if}
-
-				<button
-					class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
-					       hover:scale-105 transition-all duration-200 text-red-400 hover:text-red-300
-					       hover:bg-red-500/10"
-					onclick={async () => {
-						const result = await ModalManager.deleteConfirmationModal(
-							get(LL).editor.removeAssetConfirm(),
-							asset.sourceType !== SourceType.Local
-						);
-						if (result.confirmed) {
-							if (result.deleteFile) {
-								try {
-									await invoke('delete_file', { path: asset.filePath });
-								} catch (error) {
-									const errorMessage = error instanceof Error ? error.message : String(error);
-									toast.error(get(LL).editor.failedToDeleteFile({ error: errorMessage }));
-								}
-							}
-							globalState.currentProject?.content.removeAsset(asset);
-						}
-					}}
-				>
-					<span class="material-icons text-lg">delete</span>
-					{get(LL).common.remove()}
-				</button>
-			</div>
-			{#if isConvertingToCBR}
-				<div class="space-y-1">
-					<div class="flex items-center justify-between text-xs text-thirdly">
-						<span>{cbrProgressStatus || get(LL).editor.convertingToCbrProgress()}</span>
-						<span>{Math.round(cbrProgress)}%</span>
-					</div>
-					<div class="h-2 overflow-hidden rounded-full bg-black/30">
-						<div
-							class="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-200"
-							style={`width: ${cbrProgress}%`}
-						></div>
-					</div>
-					<p class="text-[11px] text-thirdly">
-						{get(LL).editor.convertCbrProgressHint()}
-					</p>
-				</div>
-			{/if}
-
-			<!-- Timeline Actions -->
-			{#if asset.exists}
-				<div data-tour-id="asset-timeline-actions" class="space-y-2 pt-2 border-t border-color">
-					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">{get(LL).editor.addToTimelineLabel()}</h4>
-					{#if asset.type === AssetType.Video}
-						<div class="space-y-2">
-							<button
-								class="btn-accent w-full flex items-center justify-center gap-2 text-sm font-medium
-								       py-3 px-4 rounded-lg hover:scale-[1.02] transition-all duration-200"
-								onclick={() => addInTheTimelineButtonClick(true, true)}
-							>
-								<span class="material-icons text-lg">video_library</span>
-								{get(LL).editor.videoAndAudio()}
-							</button>
-							<div class="grid grid-cols-2 gap-2">
-								<button
-									class="btn-accent flex items-center justify-center gap-2 text-xs font-medium
-									       py-2 px-3 rounded-lg hover:scale-[1.02] transition-all duration-200"
-									onclick={() => addInTheTimelineButtonClick(true, false)}
-								>
-									<span class="material-icons text-sm">videocam</span>
-									{get(LL).editor.videoOnly()}
-								</button>
-								<button
-									class="btn-accent flex items-center justify-center gap-2 text-xs font-medium
-									       py-2 px-3 rounded-lg hover:scale-[1.02] transition-all duration-200"
-									onclick={() => addInTheTimelineButtonClick(false, true)}
-								>
-									<span class="material-icons text-sm">music_note</span>
-									{get(LL).editor.audioOnly()}
-								</button>
-							</div>
-						</div>
-					{:else if asset.type === AssetType.Audio}
-						<button
-							class="btn-accent w-full flex items-center justify-center gap-2 text-sm font-medium
-							       py-3 px-4 rounded-lg hover:scale-[1.02] transition-all duration-200"
-							onclick={() => addInTheTimelineButtonClick(false, true)}
-						>
-							<span class="material-icons text-lg">music_note</span>
-							{get(LL).editor.addToTimelineLabel()}
-						</button>
-					{:else if asset.type === AssetType.Image}
-						<button
-							class="btn-accent w-full flex items-center justify-center gap-2 text-sm font-medium
-							       py-3 px-4 rounded-lg hover:scale-[1.02] transition-all duration-200"
-							onclick={() => addInTheTimelineButtonClick(true, false)}
-						>
-							<span class="material-icons text-lg">image</span>
-							{get(LL).editor.setAsBackground()}
-						</button>
-					{/if}
-				</div>
 			{/if}
 		</div>
 	{/if}
+
+	{#if isConvertingToCBR}
+		<div class="space-y-1 border-t border-color px-2 py-2">
+			<div class="flex items-center justify-between gap-2 text-[11px] text-thirdly">
+				<span class="truncate">{cbrProgressStatus || get(LL).editor.convertingToCbrProgress()}</span
+				>
+				<span>{Math.round(cbrProgress)}%</span>
+			</div>
+			<div class="h-1.5 overflow-hidden rounded-full bg-black/30">
+				<div
+					class="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-200"
+					style={`width: ${cbrProgress}%`}
+				></div>
+			</div>
+		</div>
+	{/if}
 </div>
+
+<ContextMenu bind:this={timelineContextMenu}>
+	<li class="pointer-events-none px-2 py-1 text-xs font-medium text-thirdly" role="presentation">
+		{get(LL).editor.addToTimelineLabel()}
+	</li>
+	{#if asset.type === AssetType.Video}
+		<Item on:click={() => addInTheTimelineButtonClick(true, true)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">video_library</span>
+				{get(LL).editor.videoAndAudio()}
+			</div>
+		</Item>
+		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">videocam</span>
+				{get(LL).editor.videoOnly()}
+			</div>
+		</Item>
+		<Item on:click={() => addInTheTimelineButtonClick(false, true)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">music_note</span>
+				{get(LL).editor.audioOnly()}
+			</div>
+		</Item>
+	{:else if asset.type === AssetType.Audio}
+		<Item on:click={() => addInTheTimelineButtonClick(false, true)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">music_note</span>
+				{get(LL).editor.audioOnly()}
+			</div>
+		</Item>
+	{:else}
+		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">image</span>
+				{get(LL).editor.setAsBackground()}
+			</div>
+		</Item>
+	{/if}
+</ContextMenu>
+
+<ContextMenu bind:this={contextMenu}>
+	{#if asset.exists}
+		<Item on:click={() => asset.openParentDirectory()}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">folder_open</span>
+				{get(LL).editor.openDirectoryLabel()}
+			</div>
+		</Item>
+		{#if asset.type !== AssetType.Image}
+			<Item on:click={trimAsset}>
+				<div class="btn-icon">
+					<span class="material-icons-outlined mr-1 text-sm">content_cut</span>
+					{get(LL).editor.trimLabel()}
+				</div>
+			</Item>
+			<Item on:click={convertToCBR}>
+				<div class="btn-icon">
+					<span class="material-icons-outlined mr-1 text-sm">speed</span>
+					{isConvertingToCBR
+						? get(LL).editor.convertingLabel()
+						: get(LL).editor.convertToCbrLabel()}
+				</div>
+			</Item>
+		{/if}
+	{:else}
+		<Item on:click={relocateAsset}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">folder_open</span>
+				{get(LL).editor.relocateLabel()}
+			</div>
+		</Item>
+		{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
+			<Item on:click={redownloadAsset}>
+				<div class="btn-icon">
+					<span class="material-icons-outlined mr-1 text-sm">cloud_download</span>
+					{isRedownloading ? get(LL).editor.downloadingLabel() : get(LL).editor.redownloadLabel()}
+				</div>
+			</Item>
+		{/if}
+	{/if}
+	<Divider />
+	<Item on:click={removeAsset}>
+		<div class="btn-icon danger-color">
+			<span class="material-icons-outlined mr-1 text-sm">delete</span>
+			{get(LL).common.remove()}
+		</div>
+	</Item>
+</ContextMenu>

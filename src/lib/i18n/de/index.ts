@@ -543,7 +543,7 @@ const de = {
 		unableToAnalyzeMedia:
 			'Diese Mediendatei kann nicht analysiert werden. Bitte überprüfen Sie Ihre FFmpeg/FFprobe-Installation.',
 		variableBitrateWarning:
-			'Ihr Medium verwendet variable Bitrate (VBR). Dies kann zu Zeitinkonsistenzen bei der Videobearbeitung führen. Konvertieren Sie in konstante Bitrate (CBR) für bessere Ergebnisse.',
+			'Ihr Medium verwendet variable Bitrate (VBR). Dies kann zu Zeitinkonsistenzen bei der Videobearbeitung führen. Um es zu konvertieren, wechseln Sie zum Tab Video-Editor, klicken Sie auf die drei Punkte des Elements und dann auf In CBR konvertieren.',
 		tajweedRequiresInternet:
 			'Tajweed erfordert eine Internetverbindung. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
 		minimalQuran: 'Minimaler Koran',

@@ -546,7 +546,7 @@ const fr = {
 		unableToAnalyzeMedia:
 			'Impossible d\u2019analyser ce fichier média. Veuillez vérifier l\u2019installation de FFmpeg/FFprobe.',
 		variableBitrateWarning:
-			'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors du montage vidéo. Convertissez en débit binaire constant (CBR) pour de meilleurs résultats.',
+			'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors du montage vidéo. Pour le convertir, allez dans l’onglet Éditeur vidéo, cliquez sur les trois points de l’élément, puis sur Convertir en CBR.',
 		tajweedRequiresInternet:
 			'Le tajweed nécessite une connexion Internet. Veuillez vérifier votre connexion et réessayer.',
 		minimalQuran: 'Coran minimal',

@@ -25,6 +25,9 @@ export class ProjectEditorState extends SerializableBase {
 	// Indique si on montre ou non l'indication "Drop your files here"
 	showDropScreen: boolean = $state(false);
 
+	// Indique si l'utilisateur a déjà répondu à la proposition d'adapter les dimensions au média.
+	hasAnsweredVideoDimensionPrompt: boolean = $state(false);
+
 	// Indique quelle(s) section(s) de l'éditeur sont étendues
 	sections: {
 		[name: string]: {

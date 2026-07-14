@@ -488,7 +488,7 @@ const id: Translation = {
 		assetConvertedSuccess: 'Aset berhasil dikonversi ke CBR. Media dimuat ulang.',
 		errorConvertingAsset: 'Error saat mengonversi aset ke CBR: {error}',
 		variableBitrateWarning:
-			'Media kamu memakai bitrate variabel (VBR). Ini bisa menyebabkan ketidakkonsistenan timing saat editing video. Ubah ke bitrate konstan (CBR) untuk hasil yang lebih baik.',
+			'Media kamu memakai bitrate variabel (VBR). Ini bisa menyebabkan ketidakkonsistenan timing saat editing video. Untuk mengonversinya, buka tab Editor Video, klik tiga titik pada aset, lalu klik Ubah ke CBR.',
 		vbrWarningTap: 'Ketuk untuk mengonversi ke CBR',
 		noNativeTimingAudio: 'Audio dengan native timing tidak ditemukan di timeline.',
 		noTimingDataFound: 'Data timing untuk Qari/surah ini tidak ditemukan.',

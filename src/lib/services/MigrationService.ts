@@ -196,6 +196,24 @@ function inferProjectTypeFromTitle(title: string): ProjectType {
 
 export default class MigrationService {
 	/**
+	 * Élargit le panneau vidéo pour les utilisateurs qui gardaient la largeur par défaut de 3.6.14.
+	 * @param {string} previousVersion Version enregistrée avant la mise à jour.
+	 * @returns {boolean} Vrai si la largeur a été migrée.
+	 */
+	static FromQC3614ToQC3615(previousVersion: string): boolean {
+		if (
+			previousVersion !== '3.6.14' ||
+			!globalState.settings ||
+			globalState.settings.persistentUiState.projectEditorLayout.videoEditorPanelWidth !== 300
+		) {
+			return false;
+		}
+
+		globalState.settings.persistentUiState.projectEditorLayout.videoEditorPanelWidth = 360;
+		return true;
+	}
+
+	/**
 	 * Recharge les métadonnées UI non persistées des styles à l'ouverture d'un projet.
 	 * @param {Project} project Projet chargé avant son affichage.
 	 * @returns {Promise<void>}

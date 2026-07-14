@@ -497,7 +497,7 @@ const zh = {
 		unknownAudioError: '加载音频时发生未知错误：{error}',
 		unableToAnalyzeMedia: '无法分析此媒体文件。请检查 FFmpeg/FFprobe 安装。',
 		variableBitrateWarning:
-			'您的媒体使用可变比特率（VBR）。这可能在视频编辑时导致时间不一致。请转换为恒定比特率（CBR）以获得更好的结果。',
+			'您的媒体使用可变比特率（VBR）。这可能在视频编辑时导致时间不一致。要转换它，请前往视频编辑器选项卡，点击素材上的三个点，然后点击转换为 CBR。',
 		tajweedRequiresInternet: 'Tajweed 需要互联网连接。请检查您的连接并重试。',
 		minimalQuran: '简明古兰经',
 		noSubtitlesToShift: '没有从此时间或之后开始的字幕 \u2014 无需移动。',

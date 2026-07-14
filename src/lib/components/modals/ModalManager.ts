@@ -12,6 +12,8 @@ import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
 import AITranscriptionModal from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/AITranscriptionModal.svelte';
+import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
+import type { Edition } from '$lib/classes';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
@@ -299,6 +301,31 @@ export default class ModalManager {
 			const modal = mount(AiWbwTranslationModal, {
 				target: container,
 				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale de traduction IA au niveau de la page.
+	 * @param {Edition} edition Édition de traduction à traiter.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async askTranslationModal(edition: Edition): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(AskIAModal, {
+				target: container,
+				props: {
+					edition,
 					close: () => {
 						unmount(modal);
 						container.remove();

@@ -42,6 +42,7 @@
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import QPCFontProvider from '$lib/services/FontProvider';
 	import {
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
 		getReferenceClipForTarget as getReferenceClipForTargetUtil,
@@ -968,6 +969,15 @@
 				const abortSignal = currentAbortController.signal;
 
 				try {
+					if (isExportCapturePreview()) {
+						await QPCFontProvider.waitForFontsInElement(
+							document.getElementById('subtitles-container')
+						);
+						if (abortSignal.aborted) return;
+						await tick();
+						await wait(abortSignal);
+					}
+
 					// Étape 1 : Réinitialise les positions Y réactives
 					resetRuntimeYOffsets(targets);
 
@@ -1044,9 +1054,8 @@
 				}
 			});
 
-			if (layoutCompleted) {
-				cacheRuntimeLayout(layoutKey, targets);
-			}
+			if (!layoutCompleted) return;
+			cacheRuntimeLayout(layoutKey, targets);
 
 			// Réaffiche les sous-titres
 			const currentSubtitlesContainer = document.getElementById('subtitles-container');

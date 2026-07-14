@@ -1,4 +1,5 @@
 import { globalState } from '$lib/runes/main.svelte';
+import type { SubtitleClip } from './Clip.svelte';
 import { SerializableBase } from './misc/SerializableBase';
 import { Quran } from './Quran';
 
@@ -27,6 +28,11 @@ export class VerseRange extends SerializableBase {
 		const parts: VersePart[] = [];
 
 		for (const subtitleClip of globalState.getSubtitleClips) {
+			const quranClip = subtitleClip as SubtitleClip & { surah?: unknown; verse?: unknown };
+			const surah = Number(quranClip.surah);
+			const verse = Number(quranClip.verse);
+			if (!Number.isInteger(surah) || !Number.isInteger(verse)) continue;
+
 			// Vérifie que le sous-titre est dans les limites du segment
 			// Laisse une marge de 1 seconde pour considérer le sous-titre comme sélectionné
 			if (!(subtitleClip.startTime >= startTime - 1000 && subtitleClip.endTime <= endTime + 1000)) {
@@ -34,19 +40,19 @@ export class VerseRange extends SerializableBase {
 			}
 
 			// Ajoute le sous-titre à la liste des parties
-			const existingPart = parts.find((p) => p.surah === subtitleClip.surah);
+			const existingPart = parts.find((p) => p.surah === surah);
 			if (existingPart) {
-				if (existingPart.verseEnd < subtitleClip.verse) {
-					existingPart.verseEnd = subtitleClip.verse;
+				if (existingPart.verseEnd < verse) {
+					existingPart.verseEnd = verse;
 				}
-				if (existingPart.verseStart > subtitleClip.verse) {
-					existingPart.verseStart = subtitleClip.verse;
+				if (existingPart.verseStart > verse) {
+					existingPart.verseStart = verse;
 				}
 			} else {
 				parts.push({
-					surah: subtitleClip.surah,
-					verseStart: subtitleClip.verse,
-					verseEnd: subtitleClip.verse
+					surah,
+					verseStart: verse,
+					verseEnd: verse
 				});
 			}
 		}
@@ -63,10 +69,10 @@ export class VerseRange extends SerializableBase {
 		}
 
 		return this.parts
-			.map(
-				(part) =>
-					`Surah ${Quran.getSurahsNames()[part.surah - 1].transliteration}: ${part.verseStart}${part.verseEnd !== part.verseStart ? '-' + part.verseEnd : ''}`
-			)
+			.map((part) => {
+				const surah = Quran.getSurahsNames().find((candidate) => candidate.id === part.surah);
+				return `Surah ${surah?.transliteration ?? part.surah}: ${part.verseStart}${part.verseEnd !== part.verseStart ? '-' + part.verseEnd : ''}`;
+			})
 			.join(', ');
 	}
 

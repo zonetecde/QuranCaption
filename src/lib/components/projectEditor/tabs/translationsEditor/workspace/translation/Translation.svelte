@@ -1,207 +1,518 @@
 <script lang="ts">
-	import { SubtitleClip, type Edition } from '$lib/classes';
+	import type { Edition } from '$lib/classes';
+	import type { SubtitleClip } from '$lib/classes/Clip.svelte';
 	import {
 		getInlineStyleCss,
 		getInlineStyleFlagsForWordIndex,
-		getTranslationTrimUnitCount,
 		getTranslationTrimUnits,
 		sliceTranslationTrimUnits,
 		tokenizeTranslationText,
-		type TranslationInlineStyleFlags,
-		type TranslationInlineTextSegment,
-		VerseTranslation
+		toggleTranslationInlineStyleRuns,
+		VerseTranslation,
+		type QuranTranslationSegment,
+		type TranslationInlineStyleFlags
 	} from '$lib/classes/Translation.svelte';
-	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
-	import { WbwTranslationService } from '$lib/services/WbwTranslationService';
-	import { onDestroy, onMount } from 'svelte';
-	import { slide } from 'svelte/transition';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { globalState } from '$lib/runes/main.svelte';
+	import {
+		getStructuredTranslationDraft,
+		serializeStructuredTranslation,
+		type StructuredTranslationAnchor,
+		type StructuredTranslationDraft
+	} from '$lib/services/StructuredTranslationService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import {
+		WbwTranslationService,
+		type WbwTranslationLanguageCode
+	} from '$lib/services/WbwTranslationService';
 	import { get } from 'svelte/store';
 	import TranslationWordSelector from './TranslationWordSelector.svelte';
 
-	const LL_ = get(LL);
-
-	let {
-		edition,
-		subtitle = $bindable<SubtitleClip>(),
-		previousSubtitle
-	}: {
-		edition: Edition;
-		subtitle: SubtitleClip;
-		previousSubtitle?: SubtitleClip;
-	} = $props();
-
-	let translation = $derived(() => {
-		return subtitle.getTranslation(edition) as VerseTranslation;
-	});
-
-	let translationsEditorState = $derived(
-		() => globalState.currentProject!.projectEditorState.translationsEditor
-	);
-	let isInlineStyleMode = $derived(() => translationsEditorState().isInlineStyleMode);
-	let isTranslationWbwMappingMode = $derived(
-		() => translationsEditorState().isTranslationWbwMappingMode
-	);
-	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
-	const translationDirection = $derived(() => (edition.direction === 'rtl' ? 'rtl' : 'ltr'));
-
-	// Variables pour gérer le glisser-déposer
-	let isDragging = $state(false);
-	let dragStartIndex = $state(-1);
-
-	let originalTranslation: string = $state('');
-	let originalTranslationUnits = $derived(() => getTranslationTrimUnits(originalTranslation));
-	let originalTranslationUnitCount = $derived(() =>
-		getTranslationTrimUnitCount(originalTranslation)
-	);
-	let translationInput: HTMLInputElement | null = $state(null);
-	let editableTranslationValue: string = $state('');
-
-	let previousSubtitleTranslationStartIndex: number = $state(-1);
-	let previousSubtitleTranslationEndIndex: number = $state(-1);
-	let manualReviewTimeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
-	let lastClickedWordIndex = $state(-1);
-	let isTrimHistoryTransaction = false;
-	let isTextHistoryTransaction = false;
-	let wasWbwMappingMode = false;
-
-	onMount(() => {
-		if (translation().type === 'verse') {
-			originalTranslation = globalState.getProjectTranslation.getVerseTranslation(
-				edition,
-				subtitle.getVerseKey()
-			);
-		}
-	});
-
-	onDestroy(() => {
-		if (manualReviewTimeoutId) {
-			clearTimeout(manualReviewTimeoutId);
-			manualReviewTimeoutId = undefined;
-		}
-		if (isTrimHistoryTransaction || isTextHistoryTransaction) {
-			ProjectHistoryManager.cancel();
-			isTrimHistoryTransaction = false;
-			isTextHistoryTransaction = false;
-		}
-	});
-
-	$effect(() => {
-		// Si le sous-titre d'avant est la continuité du verset:
-		if (
-			translation().type === 'verse' &&
-			previousSubtitle &&
-			previousSubtitle.type === 'Subtitle' &&
-			previousSubtitle.verse === subtitle.verse &&
-			previousSubtitle.surah === subtitle.surah
-		) {
-			const previousSubtitleTranslation = previousSubtitle.getTranslation(
-				edition
-			) as VerseTranslation;
-			// Alors on highlight toute la traduction du sous-titre précédent
-			const isTranslationLocked =
-				translation().isStatusComplete() && translation().status !== 'automatically trimmed';
-
-			// Met à jour les indices de début et de fin de la traduction du sous-titre précédent
-			if (
-				!(
-					previousSubtitleTranslation.startWordIndex === 0 &&
-					previousSubtitleTranslation.endWordIndex === originalTranslationUnitCount() - 1 &&
-					!previousSubtitleTranslation.isBruteForce
-				)
-			) {
-				previousSubtitleTranslationStartIndex = previousSubtitleTranslation.startWordIndex;
-				previousSubtitleTranslationEndIndex = previousSubtitleTranslation.endWordIndex;
-			}
-
-			// Si c'est la continuité du verset précédent, on met à jour la traduction
-			if (
-				previousSubtitle.endWordIndex + 1 === subtitle.startWordIndex && // Vérifie que le sous-titre précédent se termine juste avant le début du sous-titre actuel
-				previousSubtitleTranslation.status === 'reviewed' && // vérifie que la traduction du sous-titre précédent n'est pas vide
-				!previousSubtitleTranslation.isBruteForce // vérifie que la traduction du sous-titre précédent a été trimmed via l'outil
-			) {
-				// Commence la sélection de la traduction du verset actuel à celle de fin de la traduction du sous-titre précédent
-				if (!isTranslationLocked) {
-					translation().startWordIndex = previousSubtitleTranslationEndIndex + 1;
-					if (translation().startWordIndex > translation().endWordIndex) {
-						translation().endWordIndex = originalTranslationUnitCount() - 1;
-					}
-					updateTranslationText();
-
-					// Si c'est les derniers mots du verset, normalement le trim est fait automatiquement
-					// donc on met le status à 'automatically trimmed'
-					// sinon on le met à 'to review' car il faut encore trim la fin de la traduction
-					if (subtitle.isLastWordsOfVerse) {
-						translation().updateStatus('automatically trimmed', edition);
-					} else {
-						translation().updateStatus('to review', edition);
-					}
-				}
-			} else if (
-				previousSubtitleTranslation.status === 'reviewed' &&
-				subtitle.startWordIndex === previousSubtitle.startWordIndex &&
-				subtitle.endWordIndex === previousSubtitle.endWordIndex &&
-				!isTranslationLocked
-			) {
-				// Si c'est exactement la même sélection que le sous-titre précédent, alors on applique la même traduction que lui
-				translation().startWordIndex = previousSubtitleTranslation.startWordIndex;
-				translation().endWordIndex = previousSubtitleTranslation.endWordIndex;
-				translation().isBruteForce = previousSubtitleTranslation.isBruteForce;
-				translation().text = previousSubtitleTranslation.text;
-				translation().copyInlineStylesFrom(previousSubtitleTranslation);
-				translation().updateStatus('reviewed', edition);
-			}
-		}
-	});
-
-	type TranslationWordItem = {
+	type StyledTranslationWord = {
 		text: string;
 		wordIndex: number;
 		flags: TranslationInlineStyleFlags;
 		style: string;
 	};
 
-	let arabicWordCount = $derived(
-		() => subtitle.getArabicRenderParts().text.split(' ').filter(Boolean).length
+	type TranslationCopy = {
+		structuredTranslationHint: () => string;
+		freeTextBefore: () => string;
+		freeTextBetween: () => string;
+		freeTextAfter: () => string;
+		quranPassage: () => string;
+		quotationBlock: () => string;
+		protectedBlock: () => string;
+		manualTranslation: () => string;
+		editQuranRange: () => string;
+		fullVerse: () => string;
+		wordsRange: (args: { start: number; end: number }) => string;
+		quranTranslationMissing: () => string;
+	};
+
+	let {
+		edition,
+		subtitle
+	}: {
+		edition: Edition;
+		subtitle: SubtitleClip;
+		previousSubtitle?: SubtitleClip;
+	} = $props();
+
+	const copy = get(LL).translations as unknown as TranslationCopy;
+	const translationsEditorState = $derived(
+		() => globalState.currentProject!.projectEditorState.translationsEditor
 	);
-	let arabicWords = $derived(() => subtitle.getArabicRenderParts().text.split(' ').filter(Boolean));
-	let wbwTranslationWords = $state<string[]>([]);
-	let wbwTranslationRequestId = 0;
-	let wbwTranslationDirection = $derived(() =>
-		WbwTranslationService.getLanguageDirection(
-			globalState.settings?.persistentUiState.wbwTranslationLanguage ?? 'en'
+	const translation = $derived(() => subtitle.getTranslation(edition) as VerseTranslation);
+	const direction = $derived(() => (edition.direction === 'rtl' ? 'rtl' : 'ltr'));
+	const draft = $derived(() => getStructuredTranslationDraft(subtitle.text, translation().text));
+	const resolvedText = $derived(() =>
+		globalState.getProjectTranslation.resolveStructuredTranslationText(
+			edition,
+			subtitle,
+			translation()
 		)
 	);
-
-	$effect(() => {
-		const language = globalState.settings?.persistentUiState.wbwTranslationLanguage ?? 'en';
-		const requestId = ++wbwTranslationRequestId;
-
-		void WbwTranslationService.getWordsForRange(
-			language,
-			subtitle.surah,
-			subtitle.verse,
-			subtitle.startWordIndex,
-			subtitle.endWordIndex
-		)
-			.then((translatedWords) => {
-				if (requestId === wbwTranslationRequestId) {
-					wbwTranslationWords = translatedWords;
-				}
-			})
-			.catch(() => {
-				if (requestId === wbwTranslationRequestId) {
-					wbwTranslationWords = [];
-				}
-			});
-	});
+	const requestedQuranVerses = new Set<string>();
+	const requestedQuranWbwRanges = new Set<string>();
+	let quranWbwWordsByKey = $state<Record<string, string[]>>({});
+	let visibleOptionalFreeTextIndexes = $state<number[]>([]);
+	let expandedFullVerseAnchorIds = $state<string[]>([]);
+	let textHistoryActive = false;
+	let quranDragAnchorId = $state<string | null>(null);
+	let quranDragStartIndex = $state(-1);
+	let quranDragHistoryActive = false;
 
 	/**
-	 * Retourne les toggles de style actuellement actifs dans le panneau de droite.
+	 * Retourne le libellé d'une zone libre selon sa position autour des ancres.
+	 * @param {number} index Index de la zone libre.
+	 * @param {number} anchorCount Nombre total d'ancres.
+	 * @returns {string} Libellé localisé.
 	 */
-	function getCurrentInlineStyleFlags(): TranslationInlineStyleFlags {
-		return {
+	function getFreeTextLabel(index: number, anchorCount: number): string {
+		if (anchorCount === 0) return $LL.editor.subtitleTranslation();
+		if (index === 0) return copy.freeTextBefore();
+		if (index === anchorCount) return copy.freeTextAfter();
+		return copy.freeTextBetween();
+	}
+
+	/**
+	 * Indique si une zone libre est utile ou a été explicitement ouverte.
+	 * @param {number} index Index de la zone libre.
+	 * @returns {boolean} `true` lorsque le champ doit être affiché.
+	 */
+	function shouldShowFreeText(index: number): boolean {
+		if (draft().anchors.length === 0) return true;
+		return (
+			Boolean(draft().sourceFreeTexts[index]?.trim()) ||
+			Boolean(draft().freeTexts[index]?.trim()) ||
+			visibleOptionalFreeTextIndexes.includes(index)
+		);
+	}
+
+	/**
+	 * Affiche une zone libre optionnelle sans modifier la traduction.
+	 * @param {number} index Index de la zone libre.
+	 * @returns {void}
+	 */
+	function showOptionalFreeText(index: number): void {
+		if (visibleOptionalFreeTextIndexes.includes(index)) return;
+		visibleOptionalFreeTextIndexes = [...visibleOptionalFreeTextIndexes, index];
+	}
+
+	/**
+	 * Indique si une zone libre ne correspond à aucun texte source obligatoire.
+	 * @param {number} index Index de la zone libre.
+	 * @returns {boolean} `true` lorsque la zone peut être retirée.
+	 */
+	function isOptionalFreeText(index: number): boolean {
+		return draft().anchors.length > 0 && !draft().sourceFreeTexts[index]?.trim();
+	}
+
+	/**
+	 * Vide et masque une zone libre ajoutée manuellement.
+	 * @param {number} index Index de la zone libre.
+	 * @returns {void}
+	 */
+	function removeOptionalFreeText(index: number): void {
+		if (!isOptionalFreeText(index)) return;
+		if (draft().freeTexts[index]) {
+			ProjectHistoryManager.track('remove optional translation text', () => {
+				const nextDraft = getStructuredTranslationDraft(subtitle.text, translation().text);
+				nextDraft.freeTexts[index] = '';
+				saveDraft(nextDraft);
+			});
+		}
+		visibleOptionalFreeTextIndexes = visibleOptionalFreeTextIndexes.filter(
+			(visibleIndex) => visibleIndex !== index
+		);
+	}
+
+	/**
+	 * Affiche le sélecteur de plage d'un verset complet.
+	 * @param {string} anchorId Identifiant de l'ancre Quran.
+	 * @returns {void}
+	 */
+	function showFullVerseRangeSelector(anchorId: string): void {
+		if (expandedFullVerseAnchorIds.includes(anchorId)) return;
+		expandedFullVerseAnchorIds = [...expandedFullVerseAnchorIds, anchorId];
+	}
+
+	/**
+	 * Insère la bénédiction prophétique à la position du curseur avec Ctrl+S.
+	 * @param {KeyboardEvent} event Événement clavier du textarea.
+	 * @param {(value: string) => void} update Fonction de mise à jour du champ.
+	 * @returns {void}
+	 */
+	function handleBlessingShortcut(event: KeyboardEvent, update: (value: string) => void): void {
+		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
+		event.preventDefault();
+		const textarea = event.currentTarget as HTMLTextAreaElement;
+		const start = textarea.selectionStart ?? textarea.value.length;
+		const end = textarea.selectionEnd ?? start;
+		const nextValue = `${textarea.value.slice(0, start)}ﷺ${textarea.value.slice(end)}`;
+		update(nextValue);
+		requestAnimationFrame(() => {
+			textarea.focus();
+			textarea.setSelectionRange(start + 1, start + 1);
+		});
+	}
+
+	/**
+	 * Démarre une transaction d'historique pour une saisie textuelle continue.
+	 * @returns {void}
+	 */
+	function beginTextHistory(): void {
+		if (textHistoryActive) return;
+		ProjectHistoryManager.begin('edit structured translation');
+		textHistoryActive = true;
+	}
+
+	/**
+	 * Termine la transaction de saisie en cours.
+	 * @returns {void}
+	 */
+	function commitTextHistory(): void {
+		if (!textHistoryActive) return;
+		ProjectHistoryManager.commit();
+		textHistoryActive = false;
+	}
+
+	/**
+	 * Sauvegarde un brouillon segmenté et marque la traduction comme relue.
+	 * @param {StructuredTranslationDraft} nextDraft Brouillon modifié.
+	 * @returns {void}
+	 */
+	function saveDraft(nextDraft: StructuredTranslationDraft): void {
+		translation().setTextAndClearInlineStyles(serializeStructuredTranslation(nextDraft));
+		translation().clearWbwRanges();
+		translation().status = 'reviewed';
+		globalState.currentProject!.detail.updatePercentageTranslated(edition);
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Met à jour une zone de texte libre.
+	 * @param {number} index Index de la zone.
+	 * @param {string} value Nouveau texte.
+	 * @returns {void}
+	 */
+	function updateFreeText(index: number, value: string): void {
+		const nextDraft = getStructuredTranslationDraft(subtitle.text, translation().text);
+		nextDraft.freeTexts[index] = value;
+		saveDraft(nextDraft);
+	}
+
+	/**
+	 * Met à jour la traduction d'une citation protégée.
+	 * @param {number} index Index de l'ancre.
+	 * @param {string} value Texte traduit de la citation.
+	 * @returns {void}
+	 */
+	function updateCitation(index: number, value: string): void {
+		const nextDraft = getStructuredTranslationDraft(subtitle.text, translation().text);
+		nextDraft.anchors[index].value = value;
+		saveDraft(nextDraft);
+	}
+
+	/**
+	 * Retourne la traduction complète de l'édition pour une ancre Quran.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran.
+	 * @returns {string} Traduction complète du verset.
+	 */
+	function getQuranOriginal(anchor: StructuredTranslationAnchor): string {
+		const reference = anchor.quranReference;
+		if (!reference) return '';
+		return (
+			globalState.getProjectTranslation.versesTranslations[edition.name]?.[
+				`${reference.surah}:${reference.verse}`
+			] ?? ''
+		);
+	}
+
+	/**
+	 * Charge à la demande une traduction Quran ajoutée après la création de la langue.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran à charger.
+	 * @returns {void}
+	 */
+	function ensureQuranOriginal(anchor: StructuredTranslationAnchor): void {
+		const reference = anchor.quranReference;
+		const quranEdition = edition.quranEdition;
+		if (!reference || !quranEdition || getQuranOriginal(anchor)) return;
+		const verseKey = `${reference.surah}:${reference.verse}`;
+		if (requestedQuranVerses.has(verseKey)) return;
+		requestedQuranVerses.add(verseKey);
+
+		void globalState.getProjectTranslation
+			.downloadVerseTranslation(quranEdition, reference.surah, reference.verse)
+			.then((text) => {
+				if (!globalState.getProjectTranslation.versesTranslations[edition.name]) {
+					globalState.getProjectTranslation.versesTranslations[edition.name] = {};
+				}
+				globalState.getProjectTranslation.versesTranslations[edition.name][verseKey] = text;
+				globalState.updateVideoPreviewUI();
+			});
+	}
+
+	/**
+	 * Retourne la langue WBW choisie dans les paramètres de l'éditeur.
+	 * @returns {WbwTranslationLanguageCode} Code de langue WBW à utiliser.
+	 */
+	function getQuranWbwLanguageCode(): WbwTranslationLanguageCode {
+		return globalState.settings?.persistentUiState.wbwTranslationLanguage ?? 'en';
+	}
+
+	/**
+	 * Construit la clé de cache WBW d'une ancre Quran partielle.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran concernée.
+	 * @returns {string} Clé stable pour la plage et la langue.
+	 */
+	function getQuranWbwKey(anchor: StructuredTranslationAnchor): string {
+		return `${anchor.id}:${anchor.sourceValue}:${getQuranWbwLanguageCode()}`;
+	}
+
+	/**
+	 * Retourne les mots WBW déjà chargés pour une ancre Quran.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran concernée.
+	 * @returns {string[]} Traductions mot à mot de la plage citée.
+	 */
+	function getQuranWbwWords(anchor: StructuredTranslationAnchor): string[] {
+		return quranWbwWordsByKey[getQuranWbwKey(anchor)] ?? [];
+	}
+
+	/**
+	 * Charge les traductions mot à mot de la plage Quran réellement citée.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran partielle.
+	 * @returns {void}
+	 */
+	function ensureQuranWbwWords(anchor: StructuredTranslationAnchor): void {
+		const reference = anchor.quranReference;
+		if (!reference || reference.startWord === null || reference.endWord === null) {
+			return;
+		}
+
+		const key = getQuranWbwKey(anchor);
+		if (requestedQuranWbwRanges.has(key) || quranWbwWordsByKey[key]) return;
+		requestedQuranWbwRanges.add(key);
+
+		void WbwTranslationService.getWordsForRange(
+			getQuranWbwLanguageCode(),
+			reference.surah,
+			reference.verse,
+			reference.startWord - 1,
+			reference.endWord - 1
+		)
+			.then((words) => {
+				quranWbwWordsByKey = {
+					...quranWbwWordsByKey,
+					[key]: words.filter((word) => word.trim().length > 0)
+				};
+			})
+			.catch(() => requestedQuranWbwRanges.delete(key));
+	}
+
+	/**
+	 * Retourne les réglages persistants d'une ancre Quran.
+	 * @param {StructuredTranslationAnchor} anchor Ancre concernée.
+	 * @returns {QuranTranslationSegment} Réglages de sélection ou de traduction manuelle.
+	 */
+	function getQuranSettings(anchor: StructuredTranslationAnchor): QuranTranslationSegment {
+		const units = getTranslationTrimUnits(getQuranOriginal(anchor));
+		return translation().getQuranSegment(
+			anchor.id,
+			anchor.sourceValue,
+			Math.max(0, units.length - 1)
+		);
+	}
+
+	/**
+	 * Retourne les réglages persistants d'une ancre Quran pour une mutation utilisateur.
+	 * @param {StructuredTranslationAnchor} anchor Ancre concernée.
+	 * @returns {QuranTranslationSegment} Réglages persistants de l'occurrence.
+	 */
+	function getMutableQuranSettings(anchor: StructuredTranslationAnchor): QuranTranslationSegment {
+		const units = getTranslationTrimUnits(getQuranOriginal(anchor));
+		return translation().getOrCreateQuranSegment(
+			anchor.id,
+			anchor.sourceValue,
+			Math.max(0, units.length - 1)
+		);
+	}
+
+	/**
+	 * Retourne le texte Quran actuellement choisi pour une ancre.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran.
+	 * @returns {string} Traduction de l'édition ou remplacement manuel.
+	 */
+	function getSelectedQuranText(anchor: StructuredTranslationAnchor): string {
+		const settings = getQuranSettings(anchor);
+		if (settings.isBruteForce) return settings.manualText;
+		return sliceTranslationTrimUnits(
+			getQuranOriginal(anchor),
+			settings.startUnitIndex,
+			settings.endUnitIndex
+		);
+	}
+
+	/**
+	 * Applique une plage continue à une ancre Quran pendant une sélection souris.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran concernée.
+	 * @param {number} startUnitIndex Index de début.
+	 * @param {number} endUnitIndex Index de fin.
+	 * @returns {void}
+	 */
+	function updateQuranRange(
+		anchor: StructuredTranslationAnchor,
+		startUnitIndex: number,
+		endUnitIndex: number
+	): void {
+		const settings = getMutableQuranSettings(anchor);
+		settings.startUnitIndex = Math.min(startUnitIndex, endUnitIndex);
+		settings.endUnitIndex = Math.max(startUnitIndex, endUnitIndex);
+		settings.isBruteForce = false;
+		translation().clearInlineStyles();
+		translation().clearWbwRanges();
+		translation().status = 'reviewed';
+		globalState.currentProject!.detail.updatePercentageTranslated(edition);
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Démarre la sélection par glissement d'une traduction Quran.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran concernée.
+	 * @param {number} unitIndex Index du premier mot.
+	 * @param {MouseEvent} event Événement souris.
+	 * @returns {void}
+	 */
+	function beginQuranRangeDrag(
+		anchor: StructuredTranslationAnchor,
+		unitIndex: number,
+		event: MouseEvent
+	): void {
+		event.preventDefault();
+		ProjectHistoryManager.begin('select Quran translation range');
+		quranDragHistoryActive = true;
+		quranDragAnchorId = anchor.id;
+		quranDragStartIndex = unitIndex;
+		updateQuranRange(anchor, unitIndex, unitIndex);
+	}
+
+	/**
+	 * Étend la sélection Quran jusqu'au mot survolé.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran concernée.
+	 * @param {number} unitIndex Index actuellement survolé.
+	 * @returns {void}
+	 */
+	function extendQuranRangeDrag(anchor: StructuredTranslationAnchor, unitIndex: number): void {
+		if (quranDragAnchorId !== anchor.id || quranDragStartIndex < 0) return;
+		updateQuranRange(anchor, quranDragStartIndex, unitIndex);
+	}
+
+	/**
+	 * Termine la transaction de sélection Quran en cours.
+	 * @returns {void}
+	 */
+	function finishQuranRangeDrag(): void {
+		quranDragAnchorId = null;
+		quranDragStartIndex = -1;
+		if (!quranDragHistoryActive) return;
+		ProjectHistoryManager.commit();
+		quranDragHistoryActive = false;
+	}
+
+	/**
+	 * Sélectionne un seul mot Quran au clavier.
+	 * @param {StructuredTranslationAnchor} anchor Ancre Quran concernée.
+	 * @param {number} unitIndex Index du mot.
+	 * @returns {void}
+	 */
+	function selectSingleQuranUnit(anchor: StructuredTranslationAnchor, unitIndex: number): void {
+		ProjectHistoryManager.track('select Quran translation range', () => {
+			updateQuranRange(anchor, unitIndex, unitIndex);
+		});
+	}
+
+	/**
+	 * Active ou désactive la traduction manuelle d'une ancre Quran.
+	 * @param {StructuredTranslationAnchor} anchor Ancre concernée.
+	 * @param {boolean} manual État du mode manuel.
+	 * @returns {void}
+	 */
+	function setQuranManualMode(anchor: StructuredTranslationAnchor, manual: boolean): void {
+		ProjectHistoryManager.track('toggle manual Quran translation', () => {
+			const settings = getMutableQuranSettings(anchor);
+			if (manual && !settings.manualText) settings.manualText = getSelectedQuranText(anchor);
+			settings.isBruteForce = manual;
+			translation().clearInlineStyles();
+			translation().clearWbwRanges();
+			translation().updateStatus('to translate', edition);
+		});
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Met à jour le remplacement manuel d'une ancre Quran.
+	 * @param {StructuredTranslationAnchor} anchor Ancre concernée.
+	 * @param {string} value Nouveau texte manuel.
+	 * @returns {void}
+	 */
+	function updateQuranManualText(anchor: StructuredTranslationAnchor, value: string): void {
+		const settings = getMutableQuranSettings(anchor);
+		settings.manualText = value;
+		translation().clearInlineStyles();
+		translation().clearWbwRanges();
+		translation().updateStatus('reviewed', edition);
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Retourne les mots stylables de la traduction finale résolue.
+	 * @returns {StyledTranslationWord[]} Liste de mots et leurs styles actuels.
+	 */
+	function getStyledWords(): StyledTranslationWord[] {
+		return tokenizeTranslationText(resolvedText())
+			.filter((token) => token.isWord && token.wordIndex !== null)
+			.map((token) => ({
+				text: token.text,
+				wordIndex: token.wordIndex!,
+				flags: getInlineStyleFlagsForWordIndex(
+					translation().inlineStyleRuns ?? [],
+					token.wordIndex!
+				),
+				style: getInlineStyleCss(
+					getInlineStyleFlagsForWordIndex(translation().inlineStyleRuns ?? [], token.wordIndex!)
+				)
+			}));
+	}
+
+	/**
+	 * Applique les styles actifs du panneau droit sur une plage de mots résolus.
+	 * @param {number} start Index de début.
+	 * @param {number} end Index de fin.
+	 * @returns {void}
+	 */
+	function applyInlineStyles(start: number, end: number): void {
+		const flags: TranslationInlineStyleFlags = {
 			bold: translationsEditorState().inlineStyleBoldEnabled,
 			italic: translationsEditorState().inlineStyleItalicEnabled,
 			underline: translationsEditorState().inlineStyleUnderlineEnabled,
@@ -210,604 +521,324 @@
 				? translationsEditorState().inlineStyleColorValue
 				: null
 		};
-	}
-
-	/**
-	 * Indique si au moins un style (bold/italic/underline/new line) est actif.
-	 */
-	function hasActiveInlineStyleFlags(): boolean {
-		const flags = getCurrentInlineStyleFlags();
-		return (
-			flags.bold ||
-			flags.italic ||
-			flags.underline ||
-			Boolean(flags.lineBreak) ||
-			Boolean(flags.color)
-		);
-	}
-
-	/**
-	 * Tokenize la traduction trimmee et annote chaque mot avec ses styles inline.
-	 */
-	function getTrimmedTranslationWords(): TranslationWordItem[] {
-		const tokens = tokenizeTranslationText(translation().text);
-		return tokens
-			.filter((token): token is { text: string; isWord: true; wordIndex: number } =>
-				Boolean(token.isWord && token.wordIndex !== null)
-			)
-			.map((token) => ({
-				text: token.text,
-				wordIndex: token.wordIndex,
-				flags: getInlineStyleFlagsForWordIndex(
-					translation().inlineStyleRuns ?? [],
-					token.wordIndex
-				),
-				lineBreak: getInlineStyleFlagsForWordIndex(
-					translation().inlineStyleRuns ?? [],
-					token.wordIndex
-				).lineBreak,
-				style: getInlineStyleCss(
-					getInlineStyleFlagsForWordIndex(translation().inlineStyleRuns ?? [], token.wordIndex)
-				)
-			}));
-	}
-
-	/**
-	 * Construit la liste de segments texte/styles pour le rendu final de la traduction.
-	 */
-	function getStyledSegments(): TranslationInlineTextSegment[] {
-		return translation().getInlineStyledSegments();
-	}
-
-	/**
-	 * Retourne les ranges WBW valides pour le sous-titre courant.
-	 *
-	 * @returns {import('$lib/classes/Translation.svelte').TranslationWbwRange[]} Ranges normalisées.
-	 */
-	function getNormalizedWbwRanges() {
-		return translation().getNormalizedWbwRanges(arabicWordCount());
-	}
-
-	/**
-	 * Retourne la traduction mot à mot affichée pour un mot arabe.
-	 *
-	 * @param {number} arabicWordIndex Index local du mot arabe.
-	 * @returns {string} Traduction WBW ou libellé de secours.
-	 */
-	function getWbwHelperWordLabel(arabicWordIndex: number): string {
-		return (
-			wbwTranslationWords[arabicWordIndex] ||
-			LL_.editor.translationWbwActiveWord({ index: arabicWordIndex + 1 })
-		);
-	}
-
-	/**
-	 * Retourne les mappings WBW d'un mot arabe.
-	 *
-	 * @param {number} arabicWordIndex Index local du mot arabe.
-	 * @returns {import('$lib/classes/Translation.svelte').TranslationWbwRange[]} Ranges trouvées.
-	 */
-	function getWbwRangesForArabicWord(arabicWordIndex: number) {
-		return getNormalizedWbwRanges().filter((range) => range.arabicWordIndex === arabicWordIndex);
-	}
-
-	/**
-	 * Indique si une unité de traduction est liée à un mot arabe donné.
-	 *
-	 * @param {number} arabicWordIndex Index local du mot arabe.
-	 * @param {number} unitIndex Index de l'unité trim.
-	 * @returns {boolean} `true` si l'unité est mappée.
-	 */
-	function isWbwUnitMappedToArabicWord(arabicWordIndex: number, unitIndex: number): boolean {
-		return getWbwRangesForArabicWord(arabicWordIndex).some(
-			(range) => range.startUnitIndex <= unitIndex && unitIndex <= range.endUnitIndex
-		);
-	}
-
-	/**
-	 * Indique si l'unité doit apparaître sélectionnée sur une ligne WBW.
-	 *
-	 * @param {number} arabicWordIndex Index local du mot arabe.
-	 * @param {number} unitIndex Index de l'unité trim.
-	 * @returns {boolean} `true` si l'unité est sélectionnée ou déjà mappée.
-	 */
-	function isWbwUnitSelectedForArabicWord(arabicWordIndex: number, unitIndex: number): boolean {
-		return isWbwUnitMappedToArabicWord(arabicWordIndex, unitIndex);
-	}
-
-	/**
-	 * Retourne le prochain mot arabe non mappé à partir d'un index donné.
-	 *
-	 * @param {number} fromIndex Index de départ.
-	 * @returns {number} Index du prochain mot, ou un index borné si tout est mappé.
-	 */
-	function getNextUnmappedArabicWordIndex(fromIndex: number): number {
-		const mappedIndexes = new Set(getNormalizedWbwRanges().map((range) => range.arabicWordIndex));
-		for (let index = fromIndex; index < arabicWordCount(); index++) {
-			if (!mappedIndexes.has(index)) return index;
-		}
-		for (let index = 0; index < Math.min(fromIndex, arabicWordCount()); index++) {
-			if (!mappedIndexes.has(index)) return index;
-		}
-		return Math.max(0, Math.min(arabicWordCount() - 1, fromIndex - 1));
-	}
-
-	/**
-	 * Applique une plage sélectionnée au mapping WBW d'un mot arabe.
-	 *
-	 * @param {number} arabicWordIndex Index local du mot arabe.
-	 * @param {number} startUnitIndex Début inclusif de la plage sélectionnée.
-	 * @param {number} endUnitIndex Fin inclusive de la plage sélectionnée.
-	 * @returns {void}
-	 */
-	function applyWbwMappingSelection(
-		arabicWordIndex: number,
-		startUnitIndex: number,
-		endUnitIndex: number
-	): void {
-		if (translation().type !== 'verse' || !isTranslationWbwMappingMode()) return;
-
-		const start = Math.min(startUnitIndex, endUnitIndex);
-		const end = Math.max(startUnitIndex, endUnitIndex);
-		const shouldSelect = !isWbwUnitMappedToArabicWord(arabicWordIndex, start);
-
-		translationsEditorState().translationWbwActiveArabicWordIndex = arabicWordIndex;
-		ProjectHistoryManager.track('set translation wbw mapping', () => {
-			translation().setWbwUnitRangeSelection(arabicWordIndex, start, end, shouldSelect);
-		});
-	}
-
-	/**
-	 * Supprime le mapping du mot arabe actif.
-	 *
-	 * @returns {void}
-	 */
-	function clearCurrentWbwMapping(arabicWordIndex: number): void {
-		ProjectHistoryManager.track('clear translation wbw mapping', () => {
-			translation().clearWbwRange(arabicWordIndex);
-		});
-	}
-
-	/**
-	 * Supprime tous les mappings WBW de cette traduction.
-	 *
-	 * @returns {void}
-	 */
-	function clearAllWbwMappings(): void {
-		ProjectHistoryManager.track('clear all translation wbw mappings', () => {
-			translation().clearWbwRanges();
-		});
-		translationsEditorState().translationWbwActiveArabicWordIndex = 0;
-	}
-
-	/**
-	 * Applique (toggle) les styles actifs à la sélection courante puis nettoie la sélection.
-	 */
-	function applyInlineStylesFromSelection(startWordIndex: number, endWordIndex: number): void {
-		if (translation().type !== 'verse' || !isInlineStyleMode()) return;
-		const flags = getCurrentInlineStyleFlags();
-		// Rien a appliquer si aucun toggle n'est actif dans le panneau.
-		if (!hasActiveInlineStyleFlags()) return;
-
+		const wordCount = getStyledWords().length;
 		ProjectHistoryManager.track('style translation words', () => {
-			translation().toggleInlineStyles(startWordIndex, endWordIndex, flags);
+			translation().inlineStyleRuns = toggleTranslationInlineStyleRuns(
+				translation().inlineStyleRuns ?? [],
+				wordCount,
+				start,
+				end,
+				flags
+			);
 		});
-	}
-
-	function beginWordSelectionEditing(): void {
-		if (
-			translation().type !== 'verse' ||
-			!translation().isBruteForce ||
-			isInlineStyleMode() ||
-			isTranslationWbwMappingMode()
-		)
-			return;
-		translation().isBruteForce = false;
-	}
-
-	function wordClicked(i: number): void {
-		if (translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()) {
-			beginWordSelectionEditing();
-			if (i < translation().startWordIndex) {
-				// Si le mot est avant le début de la traduction, on le sélectionne
-				translation().startWordIndex = i;
-				translation().endWordIndex = i;
-			} else if (i > translation().endWordIndex) {
-				// Si le mot est après la fin de la traduction, on étend la sélection
-				translation().endWordIndex = i;
-			} else if (i >= translation().startWordIndex && i <= translation().endWordIndex) {
-				// Si le mot est déjà sélectionné, on arrête la traduction à ce mot SI
-				// il nécessite review, sinon reset les curseurs sur ce mot
-				translation().endWordIndex = i;
-				if (lastClickedWordIndex === i) {
-					translation().startWordIndex = i;
-				}
-			}
-
-			lastClickedWordIndex = i;
-
-			updateTranslationText();
-			translation().updateStatus('reviewed', edition);
-		}
-	}
-
-	function updateTranslationText(): void {
-		translation().setTextAndClearInlineStyles(
-			sliceTranslationTrimUnits(
-				originalTranslation,
-				translation().startWordIndex,
-				translation().endWordIndex
-			)
-		);
-	}
-
-	function handleMouseDown(i: number, event: MouseEvent): void {
-		if (translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()) {
-			beginWordSelectionEditing();
-			event.preventDefault();
-			ProjectHistoryManager.begin('trim translation');
-			isTrimHistoryTransaction = true;
-			isDragging = true;
-			dragStartIndex = i;
-			wordClicked(i);
-		}
-	}
-
-	function handleMouseEnter(i: number): void {
-		if (
-			isDragging &&
-			translation().type === 'verse' &&
-			!isInlineStyleMode() &&
-			!isTranslationWbwMappingMode()
-		) {
-			beginWordSelectionEditing();
-			const startIndex = Math.min(dragStartIndex, i);
-			const endIndex = Math.max(dragStartIndex, i);
-			translation().startWordIndex = startIndex;
-			translation().endWordIndex = endIndex;
-			updateTranslationText();
-		}
-	}
-
-	function handleMouseUp(): void {
-		const shouldFlush = isDragging;
-		isDragging = false;
-		dragStartIndex = -1;
-		if (shouldFlush) {
-			ProjectHistoryManager.commit();
-			isTrimHistoryTransaction = false;
-		}
-	}
-
-	// Gestionnaire global pour le mouseup
-	function handleGlobalMouseUp(): void {
-		if (isDragging) {
-			handleMouseUp();
-		}
-	}
-
-	/**
-	 * Convertis les vrais \\n en \\n pour affichage dans l'input traduction
-	 */
-	function escapeNewlinesForInput(value: string): string {
-		return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\\n');
-	}
-
-	/**
-	 * Convertit les \\n écrit brute en vrai \\n
-	 */
-	function normalizeInputToTranslation(value: string): string {
-		return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\n/g, '\n');
-	}
-
-	function handleTranslationInput(event: Event): void {
-		const rawValue = (event.target as HTMLInputElement).value;
-		editableTranslationValue = rawValue;
-
-		const translationValue = normalizeInputToTranslation(rawValue);
-		subtitle.translations[edition.name]?.setTextAndClearInlineStyles(translationValue);
-	}
-
-	/**
-	 * Demarre une transaction pour grouper l'edition texte de traduction.
-	 * @returns {void}
-	 */
-	function handleTranslationInputFocus(): void {
-		ProjectHistoryManager.begin('edit translation text');
-		isTextHistoryTransaction = true;
-	}
-
-	/**
-	 * Termine la transaction d'edition texte et envoie la telemetrie.
-	 * @returns {void}
-	 */
-	function handleTranslationInputBlur(): void {
-		if (isTextHistoryTransaction) {
-			ProjectHistoryManager.commit();
-			isTextHistoryTransaction = false;
-		}
+		globalState.updateVideoPreviewUI();
 	}
 
 	$effect(() => {
-		const sourceValue = String(subtitle.translations[edition.name]?.text ?? '');
-		const escapedValue = escapeNewlinesForInput(sourceValue);
-		if (editableTranslationValue !== escapedValue) {
-			editableTranslationValue = escapedValue;
-		}
-	});
-
-	$effect(() => {
-		if (!isTranslationWbwMappingMode()) {
-			wasWbwMappingMode = false;
-			return;
-		}
-		if (arabicWordCount() <= 0) return;
-		if (!wasWbwMappingMode) {
-			translationsEditorState().translationWbwActiveArabicWordIndex =
-				getNextUnmappedArabicWordIndex(0);
-			wasWbwMappingMode = true;
-			return;
-		}
-		const activeIndex = translationsEditorState().translationWbwActiveArabicWordIndex;
-		if (activeIndex < 0 || activeIndex >= arabicWordCount()) {
-			translationsEditorState().translationWbwActiveArabicWordIndex =
-				getNextUnmappedArabicWordIndex(0);
+		for (const anchor of draft().anchors) {
+			if (anchor.type !== 'quran') continue;
+			ensureQuranOriginal(anchor);
+			ensureQuranWbwWords(anchor);
 		}
 	});
 </script>
 
-<div
-	class="flex flex-col gap-3 mt-4 p-4 bg-accent border border-color rounded-lg transition-all duration-200 group"
-	onmouseleave={() => {
-		handleMouseUp();
-	}}
->
-	{#if translation()}
-		{@const status = translation().status}
-		{@const isCompleted = translation().isStatusComplete()}
+<svelte:window onmouseup={finishQuranRangeDrag} />
 
-		<!-- En-tête avec flag et info -->
-		<div class="flex items-center gap-3 pb-2 border-b border-color">
-			<div class="flex items-center gap-2">
-				{#if translationMetadata()?.flag}
-					<img src={translationMetadata()!.flag} alt={edition.language} class="w-5 h-5 rounded" />
-				{:else if translationMetadata()}
-					<div class="w-5 h-5 rounded-sm bg-black border border-color shrink-0"></div>
-				{/if}
-				<div>
-					<p class="text-primary text-sm font-medium">{edition.language}</p>
-					<p class="text-thirdly text-xs">{edition.author}</p>
-				</div>
-			</div>
+<div class="rounded-xl border border-color bg-accent p-4 transition-colors">
+	<div class="flex items-center gap-3 border-b border-color pb-3">
+		{#if globalState.getTranslationMetadata(edition.language)?.flag}
+			<img
+				src={globalState.getTranslationMetadata(edition.language)!.flag}
+				alt={edition.language}
+				class="h-5 w-5 rounded-sm"
+			/>
+		{/if}
+		<div class="min-w-0">
+			<p class="text-sm font-semibold text-primary">{edition.language}</p>
+			<p class="truncate text-xs text-thirdly">{edition.quranEdition?.author ?? ''}</p>
+		</div>
+		<div class="ml-auto flex items-center gap-2">
+			<span
+				class="rounded-full border px-2 py-1 text-xs {translation().isStatusComplete()
+					? 'border-green-500/30 bg-green-500/15 text-green-300'
+					: 'border-orange-500/30 bg-orange-500/15 text-orange-300'}"
+			>
+				{translation().status === 'completed by default'
+					? $LL.editor.completedByDefault()
+					: translation().status === 'reviewed'
+						? $LL.editor.reviewed()
+						: $LL.editor.toReview()}
+			</span>
+		</div>
+	</div>
 
-			<div class="ml-auto">
-				<div class="flex items-center gap-2">
-					<span class="text-xs text-secondary font-medium">{$LL.editor.statusLabel()}</span>
-					<div
-						class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 {status ===
-							'ai error' || status === 'error'
-							? 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/30'
-							: isCompleted
-								? 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30 hover:bg-green-500/30'
-								: 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 hover:bg-orange-500/30'}"
-					>
-						<div
-							class="w-1.5 h-1.5 rounded-full {status === 'ai error' || status === 'error'
-								? 'bg-red-500'
-								: isCompleted
-									? 'bg-green-500'
-									: 'bg-orange-500'}"
-						></div>
-						{#if status === 'completed by default'}
-							{$LL.editor.completedByDefault()}
-						{:else if status === 'automatically trimmed'}
-							{$LL.editor.automaticallyTrimmed()}
-						{:else if status === 'fetched'}
-							{$LL.editor.fetched()}
-						{:else if status === 'to review'}
-							{$LL.editor.toReview()}
-						{:else if status === 'reviewed'}
-							{$LL.editor.reviewed()}
-						{:else if status === 'ai trimmed'}
-							{$LL.editor.aiTrimmed()}
-						{:else if status === 'ai error'}
-							{$LL.editor.aiError()}
-						{:else if status === 'error'}
-							{$LL.editor.errorStatus()}
-						{:else if status === 'undefined'}
-							{$LL.editor.undefinedStatus()}
-						{:else}
-							{status}
+	{#if translationsEditorState().isInlineStyleMode}
+		<div class="mt-4 rounded-lg border border-color bg-secondary p-3">
+			<p class="mb-3 whitespace-pre-line text-sm text-primary" dir={direction()}>
+				{resolvedText()}
+			</p>
+			<TranslationWordSelector
+				words={getStyledWords()}
+				direction={direction()}
+				onSelection={applyInlineStyles}
+			/>
+		</div>
+	{:else}
+		<div class="mt-4 space-y-3" dir={direction()}>
+			{#each draft().anchors as anchor, anchorIndex (anchor.id)}
+				{#if shouldShowFreeText(anchorIndex)}
+					<div class="relative">
+						<label class="block">
+							<span
+								class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-thirdly"
+							>
+								{getFreeTextLabel(anchorIndex, draft().anchors.length)}
+							</span>
+							<textarea
+								value={draft().freeTexts[anchorIndex]}
+								onfocus={beginTextHistory}
+								oninput={(event) => updateFreeText(anchorIndex, event.currentTarget.value)}
+								onkeydown={(event) =>
+									handleBlessingShortcut(event, (value) => updateFreeText(anchorIndex, value))}
+								onblur={commitTextHistory}
+								rows="2"
+								class="w-full resize-y rounded-lg border border-dashed border-color bg-secondary px-3 py-2 text-sm text-primary"
+								placeholder={$LL.translations.enterTranslationHere()}
+							></textarea>
+						</label>
+						{#if isOptionalFreeText(anchorIndex)}
+							<button
+								type="button"
+								class="absolute right-0 -top-1 rounded p-0.5 text-thirdly opacity-15 transition hover:bg-secondary hover:opacity-70"
+								aria-label={`${$LL.common.remove()} ${getFreeTextLabel(anchorIndex, draft().anchors.length)}`}
+								onclick={() => removeOptionalFreeText(anchorIndex)}
+							>
+								<span class="material-icons text-sm">close</span>
+							</button>
 						{/if}
 					</div>
-				</div>
-			</div>
-		</div>
-
-		{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
-			<!-- Affiche la traduction complète du verset mot à mot -->
-			<div
-				class="flex flex-row select-none flex-wrap items-center gap-y-1 duration-300 {translation()
-					.isBruteForce
-					? 'opacity-[0.14] group-hover:opacity-[0.55]'
-					: 'opacity-20 group-hover:opacity-100'}"
-				dir={translationDirection()}
-				role="presentation"
-				onmouseup={handleGlobalMouseUp}
-				transition:slide
-			>
-				{#each originalTranslationUnits() as unit, i (`${i}-${unit.text}`)}
-					{@const isSelected = translation().startWordIndex <= i && i <= translation().endWordIndex}
-					{@const isFirstSelected = isSelected && i === translation().startWordIndex}
-					{@const isLastSelected = isSelected && i === translation().endWordIndex}
-					{@const isSingleSelected =
-						isSelected && translation().startWordIndex === translation().endWordIndex}
-					{@const selectedEdgeClass =
-						translationDirection() === 'rtl'
-							? isLastSelected
-								? 'translation-word-last-selected'
-								: isFirstSelected
-									? 'translation-word-first-selected'
-									: 'translation-word-middle-selected'
-							: isLastSelected
-								? 'translation-word-first-selected'
-								: isFirstSelected
-									? 'translation-word-last-selected'
-									: 'translation-word-middle-selected'}
-					{@const isPreviousSubtitleTranslation =
-						previousSubtitleTranslationStartIndex !== -1 &&
-						previousSubtitleTranslationStartIndex <= i &&
-						i <= previousSubtitleTranslationEndIndex}
+				{:else}
 					<button
-						class="translation-word text-sm cursor-pointer px-1 py-1 transition-all duration-200 border-2 border-transparent
-						{isPreviousSubtitleTranslation && !isSelected
-							? 'bg-yellow-500/10 hover:bg-yellow-500/20! hover:border-yellow-400/20! rounded-none border-yellow-400/10'
-							: ''}
-						{isSelected
-							? // Effet jaune si le mot est sélectionné alors que pourtant il ne devrait pas comme c'est la suite de la traduction du verset précédent
-								`translation-word-selected ${isPreviousSubtitleTranslation ? 'bg-purple-500/30! border-purple-400/70! hover:bg-purple-500/80! hover:border-purple-400/80!' : ''} text-[var(--text-on-selected-word)] ${
-									isSingleSelected
-										? 'translation-word-first-selected translation-word-last-selected'
-										: selectedEdgeClass
-								}`
-							: 'translation-word-not-selected text-secondary hover:bg-secondary hover:border-border-color hover:text-primary rounded-md'}
-						{isDragging ? 'select-none' : ''}"
-						onmousedown={(event) => handleMouseDown(i, event)}
-						onmouseenter={() => handleMouseEnter(i)}
-						ondragstart={(event) => event.preventDefault()}
+						type="button"
+						class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-30 transition hover:bg-secondary hover:opacity-100"
+						aria-label={`${$LL.common.add()} ${getFreeTextLabel(anchorIndex, draft().anchors.length)}`}
+						onclick={() => showOptionalFreeText(anchorIndex)}
 					>
-						{unit.text}
+						<span class="material-icons text-sm">add</span>
+						{getFreeTextLabel(anchorIndex, draft().anchors.length)}
 					</button>
-				{/each}
-			</div>
-		{/if}
+				{/if}
 
-		<!-- Indicateur de sélection - toujours visible -->
-		<div class="p-2 bg-secondary border border-color rounded-md relative">
-			{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
-				<!-- toggle: brute force -->
-				<label
-					class="absolute top-1 right-1.75 text-primary opacity-40 hover:opacity-100 duration-200 cursor-pointer"
-				>
-					<span class="text-xs">{$LL.editor.manuallyEdit()}</span>
-					<!-- prettier-ignore -->
-					<input
-						type="checkbox"
-						bind:checked={(subtitle.translations[edition.name] as VerseTranslation).isBruteForce}
-						onchange={(e) => {
-							ProjectHistoryManager.track('toggle manual translation edit', () => {
-								if ((e.target as HTMLInputElement).checked) {
-									translation().updateStatus('reviewed', edition);
-									setTimeout(() => {
-										if (translationInput) {
-											translationInput.focus();
-										}
-									}, 0);
-								} else {
-									updateTranslationText();
-								}
-							});
-						}}
-						class="w-2 h-2 scale-75 rounded"
-					/>
-				</label>
-			{/if}
+				{#if anchor.type === 'citation'}
+					<div class="rounded-xl border border-amber-500/35 bg-amber-500/8 p-3" dir={direction()}>
+						<div class="mb-2 flex items-center justify-between gap-3">
+							<div class="flex items-center gap-2">
+								<span class="material-icons-outlined text-amber-300">format_quote</span>
+								<div>
+									<p class="text-sm font-semibold text-primary">{copy.quotationBlock()}</p>
+								</div>
+							</div>
+						</div>
+						<textarea
+							value={anchor.value}
+							onfocus={beginTextHistory}
+							oninput={(event) => updateCitation(anchorIndex, event.currentTarget.value)}
+							onkeydown={(event) =>
+								handleBlessingShortcut(event, (value) => updateCitation(anchorIndex, value))}
+							onblur={commitTextHistory}
+							rows="3"
+							class="w-full resize-y rounded-lg border border-amber-500/25 bg-secondary px-3 py-2 text-sm text-primary"
+							placeholder={$LL.translations.enterTranslationHere()}
+						></textarea>
+					</div>
+				{:else}
+					{@const reference = anchor.quranReference}
+					{@const quranOriginal = getQuranOriginal(anchor)}
+					{@const units = getTranslationTrimUnits(quranOriginal)}
+					{@const settings = getQuranSettings(anchor)}
+					{@const quranWbwWords = getQuranWbwWords(anchor)}
+					{@const isFullVerse = reference?.startWord === null}
+					{@const lastUnitIndex = Math.max(0, units.length - 1)}
+					{@const hasCustomQuranRange =
+						settings.startUnitIndex > 0 || settings.endUnitIndex < lastUnitIndex}
+					{@const showQuranRangeSelector =
+						!isFullVerse || hasCustomQuranRange || expandedFullVerseAnchorIds.includes(anchor.id)}
+					<div
+						class="rounded-xl border border-emerald-500/35 bg-emerald-500/8 p-3"
+						dir={direction()}
+					>
+						<div class="flex flex-wrap items-center justify-between gap-3">
+							<div>
+								<p class="text-sm font-semibold text-primary">
+									{copy.quranPassage()}
+									{reference?.surah}:{reference?.verse}
+									{#if isFullVerse}
+										<span class="font-normal text-thirdly"> ({copy.fullVerse()})</span>
+									{:else}
+										<span class="ml-2 text-xs font-normal text-thirdly">
+											{copy.wordsRange({
+												start: reference?.startWord ?? 1,
+												end: reference?.endWord ?? 1
+											})}
+										</span>
+									{/if}
+								</p>
+								{#if !isFullVerse}
+									{#if quranWbwWords.length > 0}
+										<div
+											class="mt-0.5 flex max-w-xl flex-wrap items-center gap-x-1 text-[11px] text-thirdly opacity-65"
+											dir={WbwTranslationService.getLanguageDirection(getQuranWbwLanguageCode())}
+										>
+											<span class="material-icons-outlined text-xs! opacity-70">translate</span>
+											<span>{quranWbwWords.join(' · ')}</span>
+										</div>
+									{/if}
+								{/if}
+							</div>
+							<div class="flex items-center gap-3">
+								{#if isFullVerse && !showQuranRangeSelector}
+									<button
+										type="button"
+										class="flex items-center gap-1 text-xs text-thirdly opacity-55 transition hover:text-primary hover:opacity-100"
+										onclick={() => showFullVerseRangeSelector(anchor.id)}
+									>
+										<span class="material-icons text-sm">tune</span>
+										{copy.editQuranRange()}
+									</button>
+								{/if}
+								<label class="flex cursor-pointer items-center gap-2 text-xs text-secondary">
+									<input
+										type="checkbox"
+										checked={settings.isBruteForce}
+										onchange={(event) => setQuranManualMode(anchor, event.currentTarget.checked)}
+									/>
+									{copy.manualTranslation()}
+								</label>
+							</div>
+						</div>
 
-			<p class="text-xs text-thirdly mb-1">
-				{isTranslationWbwMappingMode()
-					? $LL.editor.translationWbwMapping()
-					: isInlineStyleMode()
-						? $LL.editor.styledSubtitleTranslation()
-						: $LL.editor.subtitleTranslation()}
-			</p>
+						{#if !quranOriginal}
+							<p class="mt-3 text-sm text-thirdly">{copy.quranTranslationMissing()}</p>
+						{:else if settings.isBruteForce}
+							<textarea
+								value={settings.manualText}
+								onfocus={beginTextHistory}
+								oninput={(event) => updateQuranManualText(anchor, event.currentTarget.value)}
+								onkeydown={(event) =>
+									handleBlessingShortcut(event, (value) => updateQuranManualText(anchor, value))}
+								onblur={commitTextHistory}
+								rows="3"
+								class="mt-3 w-full resize-y rounded-lg border border-emerald-500/25 bg-secondary px-3 py-2 text-sm text-primary"
+							></textarea>
+						{:else if isFullVerse && !showQuranRangeSelector}
+							<div class="mt-3 rounded-lg border border-emerald-400/35 bg-emerald-500/7 px-4 py-3">
+								<p class="whitespace-pre-line text-sm font-medium leading-relaxed text-primary">
+									{getSelectedQuranText(anchor)}
+								</p>
+							</div>
+						{:else}
+							<div class="mt-3 rounded-lg border border-color bg-secondary p-3">
+								<p class="mb-2 text-xs font-semibold text-thirdly">{copy.editQuranRange()}</p>
+								<div
+									class="flex select-none flex-wrap items-center gap-y-1"
+									role="presentation"
+									onmouseup={finishQuranRangeDrag}
+								>
+									{#each units as unit, unitIndex (`${anchor.id}-${unitIndex}-${unit.text}`)}
+										{@const isSelected =
+											settings.startUnitIndex <= unitIndex && unitIndex <= settings.endUnitIndex}
+										{@const isFirstSelected = isSelected && unitIndex === settings.startUnitIndex}
+										{@const isLastSelected = isSelected && unitIndex === settings.endUnitIndex}
+										{@const isSingleSelected =
+											isSelected && settings.startUnitIndex === settings.endUnitIndex}
+										{@const selectedEdgeClass =
+											direction() === 'rtl'
+												? isLastSelected
+													? 'translation-word-last-selected'
+													: isFirstSelected
+														? 'translation-word-first-selected'
+														: 'translation-word-middle-selected'
+												: isLastSelected
+													? 'translation-word-first-selected'
+													: isFirstSelected
+														? 'translation-word-last-selected'
+														: 'translation-word-middle-selected'}
+										<button
+											type="button"
+											class="translation-word cursor-pointer border-2 border-transparent px-1 py-1 text-sm transition-all duration-200 {isSelected
+												? `translation-word-selected text-[var(--text-on-selected-word)] ${
+														isSingleSelected
+															? 'translation-word-first-selected translation-word-last-selected'
+															: selectedEdgeClass
+													}`
+												: 'translation-word-not-selected rounded-md text-secondary'}"
+											onmousedown={(event) => beginQuranRangeDrag(anchor, unitIndex, event)}
+											onmouseenter={() => extendQuranRangeDrag(anchor, unitIndex)}
+											onkeydown={(event) => {
+												if (event.key === 'Enter' || event.key === ' ') {
+													event.preventDefault();
+													selectSingleQuranUnit(anchor, unitIndex);
+												}
+											}}
+											ondragstart={(event) => event.preventDefault()}
+										>
+											{unit.text}
+										</button>
+									{/each}
+								</div>
+								<p class="mt-3 whitespace-pre-line text-sm font-medium text-primary">
+									{getSelectedQuranText(anchor)}
+								</p>
+							</div>
+						{/if}
+					</div>
+				{/if}
+			{/each}
 
-			{#if translation().type === 'verse' && isTranslationWbwMappingMode()}
-				<div class="space-y-2">
-					<div class="flex justify-end">
+			{#if shouldShowFreeText(draft().anchors.length)}
+				<div class="relative">
+					<label class="block">
+						<span
+							class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-thirdly"
+						>
+							{getFreeTextLabel(draft().anchors.length, draft().anchors.length)}
+						</span>
+						<textarea
+							value={draft().freeTexts[draft().anchors.length]}
+							onfocus={beginTextHistory}
+							oninput={(event) => updateFreeText(draft().anchors.length, event.currentTarget.value)}
+							onkeydown={(event) =>
+								handleBlessingShortcut(event, (value) =>
+									updateFreeText(draft().anchors.length, value)
+								)}
+							onblur={commitTextHistory}
+							rows={draft().anchors.length === 0 ? 4 : 2}
+							class="w-full resize-y rounded-lg border border-dashed border-color bg-secondary px-3 py-2 text-sm text-primary"
+							placeholder={$LL.translations.enterTranslationHere()}
+						></textarea>
+					</label>
+					{#if isOptionalFreeText(draft().anchors.length)}
 						<button
 							type="button"
-							class="rounded-md border border-red-500/35 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10"
-							onclick={clearAllWbwMappings}
+							class="absolute right-0 -top-1 rounded p-0.5 text-thirdly opacity-15 transition hover:bg-secondary hover:opacity-70"
+							aria-label={`${$LL.common.remove()} ${getFreeTextLabel(draft().anchors.length, draft().anchors.length)}`}
+							onclick={() => removeOptionalFreeText(draft().anchors.length)}
 						>
-							{$LL.editor.clearAllWbwMappings()}
+							<span class="material-icons text-sm">close</span>
 						</button>
-					</div>
-					{#each arabicWords() as arabicWord, arabicWordIndex (`${subtitle.id}-wbw-map-${arabicWordIndex}-${arabicWord}`)}
-						<div class="rounded-lg border border-color bg-primary/30 px-3 py-2">
-							<div class="mb-2 flex items-center justify-between gap-3 text-xs text-secondary">
-								<div class="flex min-w-0 items-center gap-2">
-									<span class="font-semibold text-primary arabic text-base" dir="rtl">
-										{arabicWord}
-									</span>
-									<span class="shrink-0" dir={wbwTranslationDirection()}>
-										{getWbwHelperWordLabel(arabicWordIndex)}
-									</span>
-								</div>
-								<button
-									type="button"
-									class="shrink-0 rounded-md border border-color px-2 py-1 hover:bg-accent"
-									onclick={() => clearCurrentWbwMapping(arabicWordIndex)}
-								>
-									{$LL.editor.clearCurrentWbwMapping()}
-								</button>
-							</div>
-							<TranslationWordSelector
-								words={getTrimmedTranslationWords()}
-								direction={translationDirection()}
-								isWordSelected={(wordIndex) =>
-									isWbwUnitSelectedForArabicWord(arabicWordIndex, wordIndex)}
-								onSelection={(start, end) => applyWbwMappingSelection(arabicWordIndex, start, end)}
-							/>
-						</div>
-					{/each}
+					{/if}
 				</div>
-			{:else if translation().type === 'verse' && isInlineStyleMode()}
-				<TranslationWordSelector
-					words={getTrimmedTranslationWords()}
-					direction={translationDirection()}
-					onSelection={applyInlineStylesFromSelection}
-				/>
-			{:else if translation().type === 'verse' && !translation().isBruteForce}
-				<p
-					class="text-sm font-medium whitespace-pre-line"
-					dir={translationDirection()}
-					ondblclick={() => {
-						ProjectHistoryManager.track('edit translation manually', () => {
-							(subtitle.translations[edition.name] as VerseTranslation).isBruteForce = true;
-							translation().updateStatus('reviewed', edition);
-							// Met le focus sur l'input de traduction
-							setTimeout(() => {
-								if (translationInput) {
-									translationInput.focus();
-								}
-							}, 0);
-						});
-					}}
-				>
-					{#each getStyledSegments() as segment, index (`${index}-${segment.text}`)}
-						<span style={getInlineStyleCss(segment)}>
-							{segment.text}
-							{#if segment.lineBreak}
-								<span class="material-icons translation-inline-line-break" aria-hidden="true">
-									keyboard_return
-								</span>
-							{/if}
-						</span>
-					{/each}
-				</p>
 			{:else}
-				<!-- prettier-ignore -->
-				<input
-					bind:this={translationInput}
-					type="text"
-					value={editableTranslationValue}
-					onfocus={handleTranslationInputFocus}
-					oninput={handleTranslationInput}
-					onblur={handleTranslationInputBlur}
-					class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
-					dir={translationDirection()}
-					placeholder={$LL.translations.enterTranslationHere()}
-				/>
+				<button
+					type="button"
+					class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-30 transition hover:bg-secondary hover:opacity-100"
+					aria-label={`${$LL.common.add()} ${getFreeTextLabel(draft().anchors.length, draft().anchors.length)}`}
+					onclick={() => showOptionalFreeText(draft().anchors.length)}
+				>
+					<span class="material-icons text-sm">add</span>
+					{getFreeTextLabel(draft().anchors.length, draft().anchors.length)}
+				</button>
 			{/if}
 		</div>
 	{/if}
@@ -815,8 +846,8 @@
 
 <style>
 	.translation-word {
-		border-left: 0px solid var(--accent-primary);
-		border-right: 0px solid var(--accent-primary);
+		border-left: 0 solid var(--accent-primary);
+		border-right: 0 solid var(--accent-primary);
 	}
 
 	.translation-word-selected {
@@ -827,65 +858,31 @@
 
 	.translation-word-first-selected {
 		border-right: 2px solid var(--accent-primary);
-		border-left: 0px solid var(--accent-primary);
+		border-left: 0 solid var(--accent-primary);
 		border-radius: 0 8px 8px 0;
-		margin-left: 0;
 	}
 
 	.translation-word-last-selected {
 		border-left: 2px solid var(--accent-primary);
-		border-right: 0px solid var(--accent-primary);
+		border-right: 0 solid var(--accent-primary);
 		border-radius: 8px 0 0 8px;
-		margin-right: 0;
 	}
 
-	/* Si un seul mot est sélectionné, il doit avoir des bords arrondis partout */
 	.translation-word-first-selected.translation-word-last-selected {
-		border-radius: 8px;
 		border: 2px solid var(--accent-primary);
-		margin-left: 0;
-		margin-right: 0;
+		border-radius: 8px;
 	}
 
 	.translation-word-selected:hover {
+		position: relative;
+		z-index: 10;
 		background: var(--bg-accent);
 		color: var(--text-primary);
-		z-index: 10;
-		position: relative;
 	}
 
 	.translation-word-not-selected:hover {
 		background-color: var(--bg-accent);
 		border-color: var(--border-color);
 		color: var(--text-primary);
-	}
-
-	.translation-wbw-mapped {
-		background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
-		box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--accent-primary) 50%, transparent);
-	}
-
-	/* Style pour la traduction du sous-titre précédent */
-	.translation-word.bg-orange-500\/30 {
-		background-color: rgba(249, 115, 22, 0.2);
-		border-color: rgba(251, 146, 60, 0.3);
-		position: relative;
-	}
-
-	.translation-word.bg-orange-500\/30::after {
-		content: '';
-		position: absolute;
-		bottom: -2px;
-		left: 0;
-		right: 0;
-		height: 2px;
-		background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.6), transparent);
-	}
-
-	.translation-inline-line-break {
-		margin-left: 0.12em;
-		font-size: 0.95em;
-		vertical-align: -0.16em;
-		color: var(--accent-primary);
 	}
 </style>

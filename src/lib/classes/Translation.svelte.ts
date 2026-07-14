@@ -8,6 +8,7 @@ export type TranslationStatus =
 	| 'automatically trimmed'
 	| 'ai trimmed'
 	| 'to review'
+	| 'to translate'
 	| 'reviewed'
 	| 'ai error'
 	| 'error'
@@ -43,6 +44,16 @@ export type TranslationWbwRange = {
 	startUnitIndex: number;
 	endUnitIndex: number;
 };
+
+export type QuranTranslationSegment = {
+	reference: string;
+	startUnitIndex: number;
+	endUnitIndex: number;
+	isBruteForce: boolean;
+	manualText: string;
+};
+
+export type QuranTranslationSegments = Record<string, QuranTranslationSegment>;
 
 type TranslationTextToken = {
 	text: string;
@@ -680,6 +691,8 @@ export class VerseTranslation extends Translation {
 
 	// Ranges associant les mots arabes aux unités de traduction trim.
 	wbwRanges: TranslationWbwRange[] = $state([]);
+	quranSegments = $state<QuranTranslationSegments>({});
+	isStructuredTranslation = $state(false);
 
 	constructor(text: string, status: TranslationStatus) {
 		super(text, status);
@@ -691,6 +704,8 @@ export class VerseTranslation extends Translation {
 		this.isBruteForce = false;
 		this.inlineStyleRuns = [];
 		this.wbwRanges = [];
+		this.quranSegments = {};
+		this.isStructuredTranslation = false;
 		this.type = 'verse';
 	}
 
@@ -708,6 +723,66 @@ export class VerseTranslation extends Translation {
 	 */
 	clearWbwRanges(): void {
 		this.wbwRanges = [];
+	}
+
+	/**
+	 * Retourne les réglages normalisés d'une occurrence Quran sans modifier l'état.
+	 * @param {string} occurrenceId Identifiant stable de l'ancre dans le sous-titre.
+	 * @param {string} reference Référence Quran sérialisée.
+	 * @param {number} lastUnitIndex Dernier index disponible dans la traduction de l'édition.
+	 * @returns {QuranTranslationSegment} Réglages normalisés de l'occurrence.
+	 */
+	getQuranSegment(
+		occurrenceId: string,
+		reference: string,
+		lastUnitIndex: number
+	): QuranTranslationSegment {
+		const maxUnitIndex = Math.max(0, lastUnitIndex);
+		const existing = this.quranSegments?.[occurrenceId];
+		if (existing && existing.reference === reference) {
+			const startUnitIndex = Math.max(0, Math.min(existing.startUnitIndex, maxUnitIndex));
+			return {
+				...existing,
+				startUnitIndex,
+				endUnitIndex: Math.max(startUnitIndex, Math.min(existing.endUnitIndex, maxUnitIndex))
+			};
+		}
+
+		return {
+			reference,
+			startUnitIndex: 0,
+			endUnitIndex: maxUnitIndex,
+			isBruteForce: false,
+			manualText: ''
+		};
+	}
+
+	/**
+	 * Retourne ou initialise les réglages d'une occurrence Quran structurée.
+	 * @param {string} occurrenceId Identifiant stable de l'ancre dans le sous-titre.
+	 * @param {string} reference Référence Quran sérialisée.
+	 * @param {number} lastUnitIndex Dernier index disponible dans la traduction de l'édition.
+	 * @returns {QuranTranslationSegment} Réglages persistants de l'occurrence.
+	 */
+	getOrCreateQuranSegment(
+		occurrenceId: string,
+		reference: string,
+		lastUnitIndex: number
+	): QuranTranslationSegment {
+		const normalized = this.getQuranSegment(occurrenceId, reference, lastUnitIndex);
+		const existing = this.quranSegments?.[occurrenceId];
+		if (existing && existing.reference === reference) {
+			if (existing.startUnitIndex !== normalized.startUnitIndex) {
+				existing.startUnitIndex = normalized.startUnitIndex;
+			}
+			if (existing.endUnitIndex !== normalized.endUnitIndex) {
+				existing.endUnitIndex = normalized.endUnitIndex;
+			}
+			return existing;
+		}
+
+		this.quranSegments = { ...(this.quranSegments ?? {}), [occurrenceId]: normalized };
+		return normalized;
 	}
 
 	/**
@@ -965,45 +1040,14 @@ export class VerseTranslation extends Translation {
 		edition: string,
 		subtitle: SubtitleClip
 	): { prefix: string; text: string; suffix: string } {
-		const text = super.getText();
-		const position = globalState.getStyle(edition, 'verse-number-position').value;
-
-		if (
-			((subtitle.startWordIndex === 0 && position === 'before') ||
-				(subtitle.isLastWordsOfVerse && position === 'after')) &&
-			globalState.getStyle(edition, 'show-verse-number').value
-		) {
-			const numeralSystem = String(
-				globalState.getStyle(edition, 'verse-number-numeral-system')?.value ?? 'Western Arabic'
-			);
-			const verseNumber = formatVerseNumberNumerals(subtitle.verse, numeralSystem);
-			const format = String(globalState.getStyle(edition, 'verse-number-format').value).replace(
-				'<number>',
-				verseNumber
-			);
-
-			if (position === 'before' && subtitle.startWordIndex === 0) {
-				return {
-					prefix: format,
-					text,
-					suffix: ''
-				};
-			}
-
-			if (position === 'after' && subtitle.isLastWordsOfVerse) {
-				return {
-					prefix: '',
-					text,
-					suffix: format
-				};
-			}
-		}
-
-		return {
-			prefix: '',
-			text,
-			suffix: ''
-		};
+		const text = this.isStructuredTranslation
+			? globalState.getProjectTranslation.resolveStructuredTranslationText(
+					globalState.getProjectTranslation.getEditionFromName(edition),
+					subtitle,
+					this
+				)
+			: super.getText();
+		return { prefix: '', text, suffix: '' };
 	}
 
 	/**

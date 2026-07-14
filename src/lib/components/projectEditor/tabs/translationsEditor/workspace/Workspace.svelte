@@ -1,21 +1,17 @@
 <script lang="ts">
-	import {
-		PredefinedSubtitleClip,
-		SubtitleClip,
-		type ClipWithTranslation
-	} from '$lib/classes/Clip.svelte';
+	import { SubtitleClip } from '$lib/classes/Clip.svelte';
+	import { VerseTranslation } from '$lib/classes/Translation.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import {
+		getStructuredTranslationDraft,
+		serializeStructuredTranslation
+	} from '$lib/services/StructuredTranslationService';
+	import { onDestroy, onMount } from 'svelte';
+	import ArabicText from './ArabicText.svelte';
 	import NoTranslationsToShow from './NoTranslationsToShow.svelte';
 	import Translation from './translation/Translation.svelte';
-	import ArabicText from './ArabicText.svelte';
 	import { createWorkspaceLastRead } from './utils/lastRead.svelte';
-	import LL from '$lib/i18n/i18n-svelte';
-
-	function addTranslationButtonClick() {
-		// Affiche le pop-up pour ajouter une nouvelle traduction
-		setAddTranslationModalVisibility(true);
-	}
 
 	let {
 		setAddTranslationModalVisibility
@@ -23,115 +19,93 @@
 		setAddTranslationModalVisibility: (visible: boolean) => void;
 	} = $props();
 
-	let editionsToShowInEditor = $derived(() =>
-		globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
-			(edition) => edition.showInTranslationsEditor
+	const PAGE_SIZE = 10;
+	let visibleCount = $state(PAGE_SIZE);
+	const translationsEditorState = () =>
+		globalState.currentProject!.projectEditorState.translationsEditor;
+	const editionsToShow = $derived(() =>
+		globalState.getProjectTranslation.addedTranslationEditions.filter(
+			(language) => language.showInTranslationsEditor
 		)
 	);
 
-	// Le format est : { [sous-titreId]: [edition1, edition2, ...] }
-	let allowedTranslations: { [key: string]: string[] } = $state({});
+	/**
+	 * Garantit que chaque sous-titre possède une traduction structurée pour chaque langue.
+	 * @returns {void}
+	 */
+	function ensureSubtitleTranslations(): void {
+		globalState.getProjectTranslation.normalizeProjectLanguages();
+		const supportedStatuses = new Set([
+			'to translate',
+			'reviewed',
+			'completed by default',
+			'error'
+		]);
+		const filters = translationsEditorState().filters;
+		if (filters['to review'] !== undefined && filters['to translate'] === undefined) {
+			filters['to translate'] = filters['to review'];
+		}
+		delete filters['to review'];
 
-	// Pagination progressive
-	const PAGE_SIZE = 10;
-	let visibleCount = $state(PAGE_SIZE); // nombre actuel de sous-titres autorisés affichés
-	let previousSubtitleCache = new Map<number, SubtitleClip | null>();
+		for (const subtitle of globalState.getSubtitleClips) {
+			for (const language of globalState.getProjectTranslation.addedTranslationEditions) {
+				const existing = subtitle.translations[language.name];
+				if (!existing) {
+					subtitle.translations[language.name] =
+						globalState.getProjectTranslation.createTranslationForText(subtitle.text);
+					continue;
+				}
+				if (!(existing instanceof VerseTranslation)) continue;
 
-	$effect(() => {
-		const _ = globalState.getSubtitleTrack.clips.length;
-		previousSubtitleCache = new Map();
+				if (!existing.isStructuredTranslation) {
+					const migratedDraft = getStructuredTranslationDraft(subtitle.text, existing.text);
+					existing.text = serializeStructuredTranslation(migratedDraft);
+					existing.isStructuredTranslation = true;
+					existing.isBruteForce = true;
+					existing.clearInlineStyles();
+					existing.clearWbwRanges();
+				}
+				if (existing.status === 'to review') existing.status = 'to translate';
+				else if (!supportedStatuses.has(existing.status)) existing.status = 'to translate';
+			}
+		}
+	}
+
+	const subtitlesToShow = $derived(() => {
+		const search = translationsEditorState().searchQuery.trim().toLowerCase();
+		const filters = translationsEditorState().filters;
+		const visibleEditionNames = new Set(editionsToShow().map((language) => language.name));
+
+		return globalState.getSubtitleClips.filter((subtitle) => {
+			const visibleTranslations = Object.entries(subtitle.translations).filter(([name]) =>
+				visibleEditionNames.has(name)
+			);
+			if (visibleTranslations.length === 0) return false;
+
+			const matchesStatus = visibleTranslations.some(
+				([, translation]) => filters[translation.status]
+			);
+			if (!matchesStatus) return false;
+			if (!search) return true;
+
+			return (
+				subtitle.text.toLowerCase().includes(search) ||
+				visibleTranslations.some(([, translation]) =>
+					translation.text.toLowerCase().includes(search)
+				)
+			);
+		});
 	});
 
 	/**
-	 * Retourne le sous-titre Quran précédent avec cache local au workspace.
-	 * @param {number} currentIndex Index du clip courant.
-	 * @returns {SubtitleClip | null} Clip précédent, ou `null`.
-	 */
-	function getCachedPreviousSubtitle(currentIndex: number): SubtitleClip | null {
-		if (previousSubtitleCache.has(currentIndex)) {
-			return previousSubtitleCache.get(currentIndex) ?? null;
-		}
-
-		const previousClip = globalState.getSubtitleTrack.getSubtitleBefore(currentIndex);
-		const previousSubtitle = previousClip instanceof SubtitleClip ? previousClip : null;
-		previousSubtitleCache.set(currentIndex, previousSubtitle);
-		return previousSubtitle;
-	}
-
-	/**
-	 * Vérifie si le clip actuel a un chevauchement avec le clip précédent en arabe.
-	 * @param currentIndex L'index du clip actuel.
-	 */
-	function hasArabicOverlapWithPrevious(currentIndex: number): boolean {
-		const currentClip = globalState.getSubtitleTrack.clips[currentIndex];
-		if (!(currentClip instanceof SubtitleClip)) return false;
-
-		const previousClip = getCachedPreviousSubtitle(currentIndex);
-		if (!(previousClip instanceof SubtitleClip)) return false;
-
-		if (currentClip.surah !== previousClip.surah || currentClip.verse !== previousClip.verse) {
-			return false;
-		}
-
-		// Si les deux clips couvrent exactement les mêmes mots, ce n'est pas un overlap à traiter.
-		if (
-			currentClip.startWordIndex === previousClip.startWordIndex &&
-			currentClip.endWordIndex === previousClip.endWordIndex
-		) {
-			return false;
-		}
-
-		return currentClip.startWordIndex <= previousClip.endWordIndex;
-	}
-
-	/**
-	 * Récupère la fin de l'overlap arabe avec le clip précédent.
-	 * @param {number} currentIndex L'indice du clip actuel.
-	 */
-	function getArabicOverlapEndWithPrevious(currentIndex: number): number | null {
-		const currentClip = globalState.getSubtitleTrack.clips[currentIndex];
-		if (!(currentClip instanceof SubtitleClip)) return null;
-
-		const previousClip = getCachedPreviousSubtitle(currentIndex);
-		if (!(previousClip instanceof SubtitleClip)) return null;
-
-		if (currentClip.surah !== previousClip.surah || currentClip.verse !== previousClip.verse) {
-			return null;
-		}
-
-		if (
-			currentClip.startWordIndex < previousClip.startWordIndex ||
-			currentClip.startWordIndex > previousClip.endWordIndex
-		) {
-			return null;
-		}
-
-		// Récupère la fin de l'overlap arabe avec le clip précédent.
-		return Math.min(currentClip.endWordIndex, previousClip.endWordIndex);
-	}
-
-	function mergeEditions(existing: string[] | undefined, incoming: string[]): string[] {
-		if (!existing) return [...incoming];
-		return [...new Set([...existing, ...incoming])];
-	}
-
-	function translationsEditorState() {
-		return globalState.currentProject!.projectEditorState.translationsEditor;
-	}
-
-	/**
-	 * Récupère l'index du groupe auquel appartient un clip.
-	 * @param clipId L'ID du clip.
+	 * Retourne l'index visible d'un clip pour la reprise de lecture.
+	 * @param {number} clipId Identifiant du clip.
+	 * @returns {number} Index du clip ou `-1`.
 	 */
 	function getGroupIndexForClipId(clipId: number): number {
-		return subtitlesInGroups().findIndex((group) =>
-			group.some((index) => globalState.getSubtitleTrack.clips[index].id === clipId)
-		);
+		return subtitlesToShow().findIndex((clip) => clip.id === clipId);
 	}
 
-	/**
-	 * Setup du suivi de la dernière lecture.
-	 */
 	const lastRead = createWorkspaceLastRead({
 		getEditorState: translationsEditorState,
 		getGroupIndexForClipId,
@@ -142,114 +116,45 @@
 		saveProject: () => globalState.currentProject?.save(false)
 	});
 
-	let allSubtitlesInGroups = $derived(() => {
-		// Prends tout les sous-titres du projet et les groupes par verset (même surah:verse)
-		// Seulement ceux qui sont à la suite l'un à l'autre, sinon on crée un nouveau groupe
-		const groups: number[][] = [];
-		let currentGroup: number[] = [];
-		let lastSurah = -1;
-		let lastVerse = -1;
-
-		for (let index = 0; index < globalState.getSubtitleTrack.clips.length; index++) {
-			const subtitle = globalState.getSubtitleTrack.clips[index];
-			if (subtitle.type === 'Subtitle') {
-				const subtitleClip = subtitle as SubtitleClip;
-				// Si ce n'est pas le même verset que le précédent, on crée un nouveau groupe
-				if (subtitleClip.surah !== lastSurah || lastVerse !== subtitleClip.verse) {
-					if (currentGroup.length > 0) groups.push(currentGroup);
-					currentGroup = [index];
-					lastSurah = subtitleClip.surah;
-					lastVerse = subtitleClip.verse;
-				} else {
-					currentGroup.push(index);
-				}
-			} else if (subtitle.type === 'Pre-defined Subtitle') {
-				// Pour les Pre-defined Subtitle, on les ajoute à un nouveau groupe isolé
-				if (currentGroup.length > 0) {
-					groups.push(currentGroup);
-					currentGroup = [];
-					lastSurah = -1;
-					lastVerse = -1;
-				}
-				groups.push([index]);
-			}
-		}
-
-		// Ajoute le dernier groupe s'il n'est pas vide
-		if (currentGroup.length > 0) groups.push(currentGroup);
-		return groups;
-	});
-
-	let subtitlesInGroups = $derived(() => {
-		const allowedClipIds = new Set(Object.keys(allowedTranslations));
-		const onlyShowOverlappingSubtitles =
-			globalState.getTranslationsState.onlyShowOverlappingSubtitles;
-
-		// Mode overlap: n'affiche que les clips explicitement autorisés (overlap + contexte précédent)
-		if (onlyShowOverlappingSubtitles) {
-			return allSubtitlesInGroups()
-				.map((group) =>
-					group.filter((index) =>
-						allowedClipIds.has(String(globalState.getSubtitleTrack.clips[index].id))
-					)
-				)
-				.filter((group) => group.length > 0);
-		}
-
-		// Mode normal: si un clip du verset match, on affiche tout le groupe pour garder le contexte
-		return allSubtitlesInGroups().filter((group) =>
-			group.some((index) =>
-				allowedClipIds.has(String(globalState.getSubtitleTrack.clips[index].id))
-			)
-		);
-	});
-
-	// Réinitialise le compteur si les filtres changent et qu'on a moins d'éléments
-	$effect(() => {
-		const total = subtitlesInGroups().length;
-		if (visibleCount > total) {
-			visibleCount = total;
-		}
-		// Si on change complètement de filtre, on repart de 10 (optionnel)
-		if (total && visibleCount === 0) {
-			visibleCount = Math.min(PAGE_SIZE, total);
-		}
-	});
-
-	function loadMoreIfNeeded(container: HTMLElement) {
-		const threshold = 50; // px avant le bas
-		if (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold) {
-			const total = subtitlesInGroups().length;
-			if (visibleCount < total) {
-				visibleCount = Math.min(visibleCount + PAGE_SIZE, total);
-			}
-		}
+	/**
+	 * Charge la page suivante lorsque l'utilisateur atteint le bas du workspace.
+	 * @param {HTMLElement} container Conteneur scrollable.
+	 * @returns {void}
+	 */
+	function loadMoreIfNeeded(container: HTMLElement): void {
+		if (container.scrollTop + container.clientHeight < container.scrollHeight - 50) return;
+		visibleCount = Math.min(visibleCount + PAGE_SIZE, subtitlesToShow().length);
 	}
 
 	/**
-	 * Scroll le workspace vers un sous-titre demandé par la recherche projet.
-	 * @param {number} clipId ID du sous-titre cible.
+	 * Fait défiler le workspace vers un clip demandé par une autre partie de l'éditeur.
+	 * @param {number} clipId Identifiant du clip.
 	 * @returns {void}
 	 */
 	function scrollToRequestedClip(clipId: number): void {
-		const groupIndex = getGroupIndexForClipId(clipId);
-		if (groupIndex < 0) return;
-
-		const targetGroup = subtitlesInGroups()[groupIndex];
-		const firstClipId = targetGroup
-			? globalState.getSubtitleTrack.clips[targetGroup[0]].id
-			: clipId;
-
-		visibleCount = Math.max(visibleCount, groupIndex + 1);
+		const index = getGroupIndexForClipId(clipId);
+		if (index < 0) return;
+		visibleCount = Math.max(visibleCount, index + 1);
 		setTimeout(() => {
-			const target = lastRead.container?.querySelector(
-				`[data-translation-clip-id="${firstClipId}"]`
-			);
-			if (target instanceof HTMLElement) {
+			const target = lastRead.container?.querySelector(`[data-translation-clip-id="${clipId}"]`);
+			if (target instanceof HTMLElement)
 				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			}
 		}, 0);
 	}
+
+	$effect(() => {
+		const _clips = globalState.getSubtitleClips.map((clip) => `${clip.id}:${clip.text}`);
+		const _languages = globalState.getProjectTranslation.addedTranslationEditions.map(
+			(language) => language.name
+		);
+		ensureSubtitleTranslations();
+	});
+
+	$effect(() => {
+		const total = subtitlesToShow().length;
+		if (visibleCount > total) visibleCount = total;
+		if (total > 0 && visibleCount === 0) visibleCount = Math.min(PAGE_SIZE, total);
+	});
 
 	$effect(() => {
 		lastRead.tryResume();
@@ -258,151 +163,12 @@
 	$effect(() => {
 		const targetClipId = globalState.shared.translationScrollTargetClipId;
 		if (targetClipId === null) return;
-
 		scrollToRequestedClip(targetClipId);
 		globalState.shared.translationScrollTargetClipId = null;
 	});
 
-	$effect(() => {
-		// Permet de trigger la réactivité en forçant la lecture des status
-		for (const key in globalState.getTranslationsState.filters) {
-			const value = globalState.getTranslationsState.filters[key];
-			const _ = value;
-		}
-
-		// Aussi lorsqu'on ajoute/supprime une édition de traduction
-		for (const edition of globalState.currentProject!.content.projectTranslation
-			.addedTranslationEditions) {
-			const _ = edition.name;
-		}
-
-		// Lorsqu'on cache/montre une édition dans l'éditeur
-		for (const edition of editionsToShowInEditor()) {
-			const _ = edition.name;
-		}
-
-		// Lorsqu'on modifie la recherche
-		const search = globalState.getTranslationsState.searchQuery.toLowerCase().trim();
-
-		// Si on recherche au format "sourate:verset", on parse la recherche pour filtrer directement sur ces champs des clips
-		const isSurahVerseSearch = search.split(':').length === 2;
-		const parsedSurahVerse = (() => {
-			if (!isSurahVerseSearch) return null;
-			const [searchSurahRaw, searchVerseRaw] = search.split(':');
-			const searchSurah = searchSurahRaw?.trim();
-			const searchVerse = searchVerseRaw?.trim();
-			if (!searchSurah || !searchVerse) return null;
-			if (isNaN(Number(searchSurah)) || isNaN(Number(searchVerse))) return null;
-			return { searchSurah, searchVerse };
-		})();
-
-		// Met à jour les traductions à afficher en fonction des filtres
-		const filter = globalState.getTranslationsState.filters;
-		const onlyShowOverlappingSubtitles =
-			globalState.getTranslationsState.onlyShowOverlappingSubtitles;
-		const visibleEditions = editionsToShowInEditor().map((edition) => edition.name);
-		const visibleEditionSet = new Set(visibleEditions);
-
-		untrack(() => {
-			allowedTranslations = {};
-
-			for (let index = 0; index < globalState.getSubtitleTrack.clips.length; index += 1) {
-				const subtitle = globalState.getSubtitleTrack.clips[index];
-				if (subtitle.type !== 'Subtitle' && subtitle.type !== 'Pre-defined Subtitle') continue;
-
-				// Recherche au format "sourate:verset" => on filtre *les clips* directement sur ce couple
-				// (et on ne demande pas que les textes de traduction contiennent littéralement "s:v").
-				if (parsedSurahVerse) {
-					if (!(subtitle instanceof SubtitleClip)) {
-						// Les Pre-defined Subtitle n'ont pas (surah, verse)
-						continue;
-					}
-					if (
-						String(subtitle.surah) !== parsedSurahVerse.searchSurah ||
-						String(subtitle.verse) !== parsedSurahVerse.searchVerse
-					) {
-						continue;
-					}
-				}
-
-				const subtitleId = subtitle.id;
-				// Regarde ses traductions
-				const translations = (subtitle as ClipWithTranslation).translations;
-				let authorizedEditions: string[] = [];
-
-				if (translations) {
-					// Regarde s'il a des traductions correspondant au filtre
-					for (const key in translations) {
-						const translation = translations[key];
-
-						// Si son statut est dans le filtre
-						if (!filter[translation.status]) continue;
-
-						// Si on a une recherche, on regarde si le texte de la traduction contient la recherche
-						if (search) {
-							if (!parsedSurahVerse) {
-								const translationText = translation.text.toLowerCase();
-								if (!translationText.includes(search)) continue;
-							}
-						}
-
-						// Si on autorise son affichage dans l'éditeur
-						if (visibleEditionSet.has(key)) {
-							// On ajoute l'édition à la liste des traductions autorisées
-							authorizedEditions.push(key);
-						}
-					}
-				}
-
-				if (!onlyShowOverlappingSubtitles) {
-					if (authorizedEditions.length > 0) {
-						allowedTranslations[subtitleId] = authorizedEditions;
-					} else {
-						// Si aucune traduction n'est autorisée, on supprime l'entrée
-						delete allowedTranslations[subtitleId];
-					}
-					continue;
-				}
-
-				if (!(subtitle instanceof SubtitleClip)) {
-					delete allowedTranslations[subtitleId];
-					continue;
-				}
-
-				// Vérifie si le clip actuel a un chevauchement avec le clip précédent en arabe.
-				const hasOverlap = hasArabicOverlapWithPrevious(index);
-				if (authorizedEditions.length > 0 && hasOverlap) {
-					allowedTranslations[subtitleId] = mergeEditions(
-						allowedTranslations[subtitleId],
-						authorizedEditions
-					);
-
-					const previousSubtitle = getCachedPreviousSubtitle(index);
-					if (previousSubtitle) {
-						allowedTranslations[previousSubtitle.id] = mergeEditions(
-							allowedTranslations[previousSubtitle.id],
-							visibleEditions
-						);
-					}
-				} else {
-					delete allowedTranslations[subtitleId];
-				}
-			}
-
-			const total = Object.keys(allowedTranslations).length;
-			// Ajuste visibleCount si nécessaire
-			if (visibleCount > total) visibleCount = total;
-			if (visibleCount === 0 && total > 0) visibleCount = Math.min(PAGE_SIZE, total);
-		});
-	});
-
-	onMount(() => {
-		lastRead.init();
-	});
-
-	onDestroy(() => {
-		lastRead.cleanup();
-	});
+	onMount(() => lastRead.init());
+	onDestroy(() => lastRead.cleanup());
 </script>
 
 <section
@@ -410,14 +176,13 @@
 	class="min-h-0 bg-secondary border border-color rounded-lg shadow-lg h-full overflow-y-auto overflow-x-hidden"
 	id="translations-workspace"
 	bind:this={lastRead.container}
-	onscroll={(e) => {
-		// Sauvegarde la position du scroll
-		const el = e.target as HTMLElement;
-		loadMoreIfNeeded(el);
-		lastRead.scheduleViewportCapture(el);
+	onscroll={(event) => {
+		const container = event.currentTarget as HTMLElement;
+		loadMoreIfNeeded(container);
+		lastRead.scheduleViewportCapture(container);
 	}}
 >
-	{#if globalState.currentProject!.content.projectTranslation.addedTranslationEditions.length === 0}
+	{#if globalState.getProjectTranslation.addedTranslationEditions.length === 0}
 		<div class="flex items-center flex-col gap-6 justify-center h-full pb-10">
 			<div class="flex flex-col items-center gap-4">
 				<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center">
@@ -427,21 +192,19 @@
 					<h3 class="text-primary text-lg font-semibold mb-2">
 						{$LL.editor.noTranslationsYetHeading()}
 					</h3>
-					<p class="text-thirdly text-sm max-w-md">
-						{$LL.editor.startByAdding()}
-					</p>
+					<p class="text-thirdly text-sm max-w-md">{$LL.editor.startByAdding()}</p>
 				</div>
 			</div>
 			<button
-				class="btn-accent px-6 py-3 text-sm font-semibold rounded-lg flex items-center gap-2 hover:shadow-lg transition-all duration-200"
-				onclick={addTranslationButtonClick}
+				class="btn-accent px-6 py-3 text-sm font-semibold rounded-lg flex items-center gap-2"
+				onclick={() => setAddTranslationModalVisibility(true)}
 			>
 				<span class="material-icons text-base">add</span>
 				{$LL.translations.addTranslation()}
 			</button>
 		</div>
 	{:else}
-		<div class="flex min-h-full p-4 flex-col bg-secondary gap-y-3 h-full">
+		<div class="flex min-h-full p-4 flex-col bg-secondary gap-y-4">
 			{#if translationsEditorState().isInlineStyleMode}
 				<div
 					class="sticky top-0 z-20 flex items-start justify-between gap-3 rounded-xl border border-[var(--accent-primary)]/45 bg-[color-mix(in_srgb,var(--accent-primary)_14%,var(--bg-secondary))] px-4 py-3 text-primary shadow-lg backdrop-blur"
@@ -455,81 +218,37 @@
 							</p>
 						</div>
 					</div>
-					<div class="flex shrink-0 gap-2">
-						<button
-							class="btn-accent px-3 py-1.5 text-xs font-semibold"
-							onclick={() => (translationsEditorState().isInlineStyleMode = false)}
-						>
-							{$LL.editor.exitStyling()}
-						</button>
-					</div>
+					<button
+						class="btn-accent px-3 py-1.5 text-xs font-semibold"
+						onclick={() => (translationsEditorState().isInlineStyleMode = false)}
+					>
+						{$LL.editor.exitStyling()}
+					</button>
 				</div>
 			{/if}
 
-			{#if Object.keys(allowedTranslations).length === 0}
+			{#if subtitlesToShow().length === 0}
 				<NoTranslationsToShow />
 			{:else}
-				{#key visibleCount}
-					{#each subtitlesInGroups().slice(0, visibleCount) as group, groupIndex (`group-${group[0]}-${groupIndex}`)}
-						{@const firstClipInGroup = globalState.getSubtitleTrack.clips[group[0]] as
-							| SubtitleClip
-							| PredefinedSubtitleClip}
-						<div class="border border-color rounded px-4 py-4 text-primary relative space-y-7">
-							{#if firstClipInGroup instanceof SubtitleClip}
-								<!-- Affiche le numéro de verset en haut à gauche -->
-								<div
-									class="absolute top-0 left-0 bg-white/10 px-1 py-1 rounded-br-lg border-color border-l-0 border-t-0 border-1 text-sm"
-								>
-									{firstClipInGroup.surah}:{firstClipInGroup.verse}
-								</div>
-							{/if}
-
-							{#each group as clipIndex (globalState.getSubtitleTrack.clips[clipIndex].id)}
-								{@const _clipIndex = clipIndex}
-								{@const clip = globalState.getSubtitleTrack.clips[_clipIndex]}
-								<!-- clipIndex est l'index réel dans clips -->
-								<section
-									class="relative rounded-xl transition-all duration-500 {lastRead.highlightedClipId ===
-									clip.id
-										? 'bg-[var(--accent-primary)]/8 ring-1 p-3 ring-[var(--accent-primary)]/40 shadow-[0_0_0_1px_rgba(0,0,0,0.02)]'
-										: ''}"
-									data-translation-clip-id={clip.id}
-								>
-									{#if lastRead.highlightedClipId === clip.id}
-										<div
-											class="absolute left-6 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
-										>
-											{$LL.editor.lastRead()}
-										</div>
-									{/if}
-									<ArabicText
-										subtitle={clip as SubtitleClip | PredefinedSubtitleClip}
-										overlapEndWordIndex={getArabicOverlapEndWithPrevious(_clipIndex)}
-									/>
-									{#each editionsToShowInEditor() as edition (edition.name)}
-										{#key edition.name}
-											<Translation
-												{edition}
-												subtitle={globalState.getSubtitleTrack.clips[_clipIndex] as SubtitleClip}
-												previousSubtitle={_clipIndex > 0
-													? (globalState.getSubtitleTrack.getSubtitleBefore(
-															_clipIndex
-														) as SubtitleClip)
-													: undefined}
-											/>
-										{/key}
-									{/each}
-								</section>
+				{#each subtitlesToShow().slice(0, visibleCount) as clip (clip.id)}
+					<section
+						class="relative rounded-xl border border-color bg-primary/25 p-4 text-primary transition-all duration-300 {lastRead.highlightedClipId ===
+						clip.id
+							? 'ring-1 ring-[var(--accent-primary)]/50'
+							: ''}"
+						data-translation-clip-id={clip.id}
+					>
+						<ArabicText subtitle={clip as SubtitleClip} />
+						<div class="mt-4 space-y-3">
+							{#each editionsToShow() as edition (edition.name)}
+								<Translation {edition} subtitle={clip as SubtitleClip} />
 							{/each}
 						</div>
-
-						<!-- Séparateur entre chaque groupe du verset -->
-						<div class="w-full min-h-0.5 bg-[var(--accent-primary)]/40 my-2"></div>
-					{/each}
-					{#if visibleCount < subtitlesInGroups().length}
-						<div class="text-center py-4 text-thirdly text-sm">{$LL.editor.scrollingToLoad()}</div>
-					{/if}
-				{/key}
+					</section>
+				{/each}
+				{#if visibleCount < subtitlesToShow().length}
+					<div class="text-center py-4 text-thirdly text-sm">{$LL.editor.scrollingToLoad()}</div>
+				{/if}
 			{/if}
 		</div>
 	{/if}

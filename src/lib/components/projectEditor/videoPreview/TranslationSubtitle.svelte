@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import {
+		buildTranslationInlineTextSegments,
 		EMPTY_INLINE_STYLE_FLAGS,
 		getInlineStyleCss,
 		getInlineStyleFlagsForWordIndex,
@@ -170,7 +171,10 @@
 
 			// Segments avec styles inline
 			segments.push(
-				...verseTranslation.getInlineStyledSegments().map((segment, index) => ({
+				...buildTranslationInlineTextSegments(
+					textParts.text,
+					verseTranslation.inlineStyleRuns ?? []
+				).map((segment, index) => ({
 					key: `${editionName}-${subtitle.id}-${index}`,
 					text: segment.text,
 					flags: segment
@@ -266,6 +270,7 @@
 			wbwIndexByArabicWord.set(arabicWordIndex, wbwWordIndex);
 			words.push({
 				...timing,
+				location: timing.word,
 				start: timing.start + timingOffsetS,
 				end: timing.end + timingOffsetS
 			});
@@ -424,9 +429,8 @@
 					clip.id,
 					clip.startTime,
 					clip.endTime,
-					clip.startWordIndex,
-					clip.endWordIndex,
 					translation.text,
+					JSON.stringify(translation.quranSegments ?? {}),
 					translation.startWordIndex,
 					translation.endWordIndex,
 					JSON.stringify(translation.inlineStyleRuns ?? []),

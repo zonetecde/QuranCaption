@@ -20,7 +20,7 @@ const translations = {
 	noEligibleVerseBatch: 'No eligible verse batch was found for the selected range.',
 	liveResponseCopied: 'Live response copied.',
 	checkedSegmentsNoErrors: 'Checked {count} translation segment(s). No errors found.',
-	enterTranslationHere: 'Enter your translation here... (use \\n for line break)',
+	enterTranslationHere: 'Enter your translation here...',
 	streamingResponsePlaceholder: 'Streaming response will appear here...',
 	translationText: 'Translation text',
 	translationEditor: 'Translation Editor',
@@ -39,8 +39,8 @@ const translations = {
 	failedToAddTranslations: 'Failed to add translations to project',
 	failedToImportTxt: 'Failed to import translation from txt.',
 	editTranslations: 'Edit Translations',
-	addTranslation: 'Add Translation',
-	addTranslationHeading: 'Add Translation',
+	addTranslation: 'Add language',
+	addTranslationHeading: 'Add language',
 	searchLanguagesOrAuthors: 'Search languages or authors...',
 	recentTranslationsLabel: 'Recent Translations',
 	surahAndVerse: 'Surah {surah}, Verse {verse}',
@@ -76,7 +76,30 @@ const translations = {
 	arabicTextTab: 'Arabic Text',
 	translationTab: 'Translation',
 	verseKeyLabel: 'Verse Key',
-	searchVerse: 'Search verse...'
+	searchVerse: 'Search verse...',
+	addLanguageHeading: 'Add a translation language',
+	projectLanguage: 'Project language',
+	quranEdition: 'Associated Quran translation',
+	quranEditionDescription:
+		'This edition is used only for Quran passages detected inside the lesson.',
+	selectQuranEdition: 'Select a Quran translation edition',
+	languageAlreadyAdded: 'This language is already added to the project.',
+	noQuranEditionAvailable: 'No Quran translation edition is available for this language.',
+	addingLanguage: 'Adding language...',
+	structuredTranslationHint:
+		'Protected Quran and quotation blocks keep the same order as the Arabic source. Free text can be written before, between, or after them.',
+	freeTextBefore: 'Free text before',
+	freeTextBetween: 'Free text between blocks',
+	freeTextAfter: 'Free text after',
+	quranPassage: 'Quran passage',
+	quotationBlock: 'Quotation',
+	protectedBlock: 'Protected block',
+	manualTranslation: 'Manual translation',
+	editQuranRange: 'Edit translated range',
+	fullVerse: 'Full verse',
+	wordsRange: 'Words {start}–{end}',
+	quranTranslationMissing: 'The associated Quran translation could not be loaded.',
+	markAsReviewed: 'Mark as reviewed'
 };
 
 export default translations;

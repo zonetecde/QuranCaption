@@ -408,7 +408,12 @@ export class SubtitleClip extends ClipWithTranslation {
 		confidence: number | null = null,
 		alignmentMetadata: TranscriptAlignmentMetadata | null = null
 	) {
-		super(text, startTime, endTime, 'Subtitle', translations, comeFromIA, confidence);
+		const isDeserializationCall = arguments.length === 0;
+		const initialTranslations =
+			!isDeserializationCall && Object.keys(translations).length === 0 && globalState.currentProject
+				? globalState.getProjectTranslation.createTranslationsForSubtitleText(text)
+				: translations;
+		super(text, startTime, endTime, 'Subtitle', initialTranslations, comeFromIA, confidence);
 		this.speaker = speaker.trim() || 'Unknown speaker';
 		this.alignmentMetadata = alignmentMetadata
 			? {
@@ -666,10 +671,7 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		if (!isDeserializationCall && globalState.currentProject)
 			for (const edition of globalState.getProjectTranslation.addedTranslationEditions) {
 				translations[edition.name] =
-					globalState.getProjectTranslation.getPredefinedSubtitleTranslation(
-						edition,
-						canonicalType
-					);
+					globalState.getProjectTranslation.createTranslationForText(_text);
 			}
 
 		super(_text, startTime, endTime, 'Pre-defined Subtitle', translations, comeFromIA, confidence);

@@ -467,6 +467,7 @@ export default class Settings extends SerializableBase {
 
 		globalState.settings = Settings.fromJSON(settingsData) as Settings;
 		const settings = globalState.settings;
+		const previousVersion = settings.appVersion;
 		let shouldSave = false;
 
 		// Migrations ================

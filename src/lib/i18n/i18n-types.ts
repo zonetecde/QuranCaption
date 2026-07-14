@@ -2199,7 +2199,7 @@ type RootTranslation = {
 		 */
 		unableToAnalyzeMedia: string;
 		/**
-		 * Y​o​u​r​ ​m​e​d​i​a​ ​u​s​e​s​ ​v​a​r​i​a​b​l​e​ ​b​i​t​r​a​t​e​ ​(​V​B​R​)​.​ ​T​h​i​s​ ​m​a​y​ ​c​a​u​s​e​ ​t​i​m​i​n​g​ ​i​n​c​o​n​s​i​s​t​e​n​c​i​e​s​ ​d​u​r​i​n​g​ ​v​i​d​e​o​ ​e​d​i​t​i​n​g​.​ ​C​o​n​v​e​r​t​ ​t​o​ ​c​o​n​s​t​a​n​t​ ​b​i​t​r​a​t​e​ ​(​C​B​R​)​ ​f​o​r​ ​b​e​t​t​e​r​ ​r​e​s​u​l​t​s​.
+		 * Y​o​u​r​ ​m​e​d​i​a​ ​u​s​e​s​ ​v​a​r​i​a​b​l​e​ ​b​i​t​r​a​t​e​ ​(​V​B​R​)​.​ ​T​h​i​s​ ​m​a​y​ ​c​a​u​s​e​ ​t​i​m​i​n​g​ ​i​n​c​o​n​s​i​s​t​e​n​c​i​e​s​ ​d​u​r​i​n​g​ ​v​i​d​e​o​ ​e​d​i​t​i​n​g​.​ ​T​o​ ​c​o​n​v​e​r​t​ ​i​t​,​ ​g​o​ ​t​o​ ​t​h​e​ ​V​i​d​e​o​ ​E​d​i​t​o​r​ ​t​a​b​,​ ​c​l​i​c​k​ ​t​h​e​ ​t​h​r​e​e​ ​d​o​t​s​ ​o​n​ ​t​h​e​ ​a​s​s​e​t​,​ ​t​h​e​n​ ​c​l​i​c​k​ ​C​o​n​v​e​r​t​ ​t​o​ ​C​B​R​.
 		 */
 		variableBitrateWarning: string;
 		/**
@@ -11517,7 +11517,7 @@ export type TranslationFunctions = {
 		 */
 		unableToAnalyzeMedia: () => LocalizedString;
 		/**
-		 * Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. Convert to constant bitrate (CBR) for better results.
+		 * Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. To convert it, go to the Video Editor tab, click the three dots on the asset, then click Convert to CBR.
 		 */
 		variableBitrateWarning: () => LocalizedString;
 		/**

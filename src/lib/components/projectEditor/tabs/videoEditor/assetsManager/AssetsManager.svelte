@@ -20,15 +20,15 @@
 
 <div
 	data-tour-id="assets-manager"
-	class="bg-secondary h-full border border-color rounded-lg py-6 px-2 space-y-6 relative overflow-auto"
+	class="bg-secondary h-full border border-color rounded-lg px-3 py-3 space-y-4 relative overflow-auto"
 >
 	{#if stockMediaOpen}
 		<StockMediaLibrary onBack={closeStockMedia} />
 	{:else}
 		<!-- En-tête avec icône -->
-		<div class="flex gap-x-2 items-center justify-center mb-6">
-			<span class="material-icons text-accent text-xl">movie</span>
-			<h2 class="text-xl font-bold text-primary">{get(LL).editor.videoEditorLabel()}</h2>
+		<div class="flex items-center gap-x-2">
+			<span class="material-icons text-accent text-lg">movie</span>
+			<h2 class="text-base font-semibold text-primary">{get(LL).editor.videoEditorLabel()}</h2>
 		</div>
 
 		<ProjectAssetSection />
@@ -36,7 +36,7 @@
 		<div class="border-t border-color"></div>
 
 		<button
-			class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm mt-4 cursor-pointer transition-colors duration-200"
+			class="btn w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm mt-2 cursor-pointer transition-colors duration-200"
 			type="button"
 			onclick={openStockMedia}
 		>

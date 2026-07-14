@@ -300,7 +300,7 @@
 </script>
 
 <div
-	class={`select-none rounded-md border bg-secondary transition-colors ${
+	class={`group select-none rounded-md border bg-secondary transition-colors ${
 		selected
 			? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_0_1px_var(--accent-primary)]'
 			: 'border-color hover:border-[var(--accent-primary)]/50 hover:bg-black/10'
@@ -339,20 +339,30 @@
 				<span class="material-icons shrink-0 text-lg! text-accent">check_circle</span>
 			{/if}
 		</button>
-		<button
-			data-tour-id="asset-timeline-actions"
-			class="btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-			type="button"
-			title={get(LL).editor.addToTimelineLabel()}
-			aria-label={get(LL).editor.addToTimelineLabel()}
-			disabled={!asset.exists}
-			onpointerdown={() =>
-				(wasTimelineContextMenuOpenOnPointerDown =
-					timelineContextMenuElement !== null && get(currentMenu) === timelineContextMenuElement)}
-			onclick={openTimelineContextMenu}
-		>
-			<span class="material-icons text-lg!">add_to_queue</span>
-		</button>
+		<div class="relative flex shrink-0">
+			<span
+				class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded border border-[var(--text-on-accent)]/40 bg-[var(--accent-primary)] px-2 py-1 text-xs text-[var(--text-on-accent)] opacity-0 shadow-md transition-opacity group-hover:opacity-100"
+				role="tooltip"
+			>
+				{get(LL).editor.addToTimelineLabel()}
+				<span
+					class="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-b border-r border-[var(--text-on-accent)]/40 bg-[var(--accent-primary)]"
+				></span>
+			</span>
+			<button
+				data-tour-id="asset-timeline-actions"
+				class="btn-accent flex h-8 w-8 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+				type="button"
+				aria-label={get(LL).editor.addToTimelineLabel()}
+				disabled={!asset.exists}
+				onpointerdown={() =>
+					(wasTimelineContextMenuOpenOnPointerDown =
+						timelineContextMenuElement !== null && get(currentMenu) === timelineContextMenuElement)}
+				onclick={openTimelineContextMenu}
+			>
+				<span class="material-icons text-lg!">add_to_queue</span>
+			</button>
+		</div>
 		<button
 			class="btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
 			type="button"

@@ -27,6 +27,15 @@
 
 	const lightThemes: ThemeConfig[] = [
 		{
+			id: 'vintage-paper',
+			name: $LL.settings.themeSepiaPaper(),
+			mockBg: '#fffdf8',
+			mockTitlebar: '#ffffff',
+			mockAccent: '#a16207',
+			mockDots: 'rgba(0,0,0,0.1)',
+			mockText: 'rgba(0,0,0,0.1)'
+		},
+		{
 			id: 'polar-ice',
 			name: $LL.settings.themeLightIce(),
 			mockBg: '#f3f6f9',
@@ -92,15 +101,6 @@
 			mockBg: '#f4ecd8',
 			mockTitlebar: '#e4d8b9',
 			mockAccent: '#d4a017',
-			mockDots: 'rgba(0,0,0,0.2)',
-			mockText: 'rgba(0,0,0,0.2)'
-		},
-		{
-			id: 'vintage-paper',
-			name: $LL.settings.themeSepiaPaper(),
-			mockBg: '#f4ecd8',
-			mockTitlebar: '#e4d8b9',
-			mockAccent: '#8b4513',
 			mockDots: 'rgba(0,0,0,0.2)',
 			mockText: 'rgba(0,0,0,0.2)'
 		}

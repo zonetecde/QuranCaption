@@ -44,6 +44,7 @@
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
 	let activePanelCategoryIds = $state<Record<string, string>>({});
+	let stylesSchemaVersion = $state(0);
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
@@ -78,6 +79,8 @@
 		for (const translation of globalState.getProjectTranslation.addedTranslationEditions) {
 			await globalState.getVideoStyle.addStylesForEdition(translation.name);
 		}
+
+		stylesSchemaVersion += 1;
 	});
 
 	/**
@@ -99,6 +102,7 @@
 	 * @returns {Category[]} Catégories disponibles.
 	 */
 	function getCategoriesToDisplay(): Category[] {
+		const _ = stylesSchemaVersion;
 		const target = currentStyleTarget();
 		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
 		if (isQuranReferenceTarget()) {

@@ -865,7 +865,7 @@
 		"description": "Add shadow effects to text and containers",
 		"icon": "filter_drama",
 		"ui": {
-			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 2 },
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 2 },
 			"headerStyle": "shadow-enable"
 		},
 		"styles": [
@@ -1064,7 +1064,7 @@
 		"description": "Add visual effects and filters to enhance subtitle appearance",
 		"icon": "auto_fix_high",
 		"ui": {
-			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 2 }
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 3 }
 		},
 		"styles": [
 			{
@@ -1124,7 +1124,7 @@
 		"description": "Add motion and transition effects to subtitles",
 		"icon": "animation",
 		"ui": {
-			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 3 }
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 4 }
 		},
 		"styles": [
 			{

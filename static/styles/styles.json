@@ -168,13 +168,15 @@
 				{
 					"id": "spacing",
 					"styleIds": [
-						"letter-spacing",
-						"word-spacing",
-						"line-height",
-						"max-height",
-						"max-line"
-					]
-				}
+					"letter-spacing",
+					"word-spacing",
+					"line-height",
+					"max-height",
+					"max-line",
+					"vertical-text-alignment"
+				],
+				"shared": true
+			}
 			]
 		},
 		"styles": [
@@ -678,7 +680,7 @@
 			"groups": [
 				{
 					"id": "layout",
-					"styleIds": ["max-height", "width"],
+				"styleIds": ["max-height", "width", "vertical-text-alignment"],
 					"shared": true
 				},
 				{

@@ -243,6 +243,7 @@ export type StyleEditorPanelMetadata = {
 	label: string;
 	order: number;
 	categoryOrder: number;
+	categoryNavigation?: boolean;
 };
 
 export type StyleEditorGroupMetadata = {

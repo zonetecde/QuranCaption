@@ -1045,6 +1045,7 @@ const zh = {
 		styleName: {
 			general: '通用',
 			'show-subtitles': '显示字幕',
+			'verse-number': '经文编号',
 			'show-verse-number': '显示经文编号',
 			'text-direction': '从右到左',
 			'show-decorative-brackets': '装饰性括号',

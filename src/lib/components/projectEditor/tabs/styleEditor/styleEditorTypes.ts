@@ -6,6 +6,7 @@ export type StylePanel = {
 	label: string;
 	categoryIds: string[];
 	order?: number;
+	categoryNavigation?: boolean;
 	customContent?: boolean;
 };
 

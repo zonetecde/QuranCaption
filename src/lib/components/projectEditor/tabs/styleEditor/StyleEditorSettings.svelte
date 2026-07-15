@@ -34,6 +34,7 @@
 	} = $props();
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
+	let activePanelCategoryIds = $state<Record<string, string>>({});
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
@@ -117,6 +118,7 @@
 				icon: panelMetadata.icon,
 				label: panelMetadata.label,
 				order: panelMetadata.order,
+				categoryNavigation: panelMetadata.categoryNavigation,
 				categoryIds: []
 			};
 			panel.categoryIds.push(category.id);
@@ -151,6 +153,42 @@
 		return getCategoriesToDisplay()
 			.filter((category) => panel.categoryIds.includes(category.id))
 			.sort((a, b) => (a.ui?.panel.categoryOrder ?? 0) - (b.ui?.panel.categoryOrder ?? 0));
+	}
+
+	/**
+	 * Retourne la catégorie active d'un panneau possédant une sous-navigation.
+	 * @param {StylePanel} panel Panneau à résoudre.
+	 * @returns {string} Identifiant de la catégorie active.
+	 */
+	function getActivePanelCategoryId(panel: StylePanel): string {
+		const categories = getPanelCategories(panel);
+		const activeCategoryId = activePanelCategoryIds[panel.id];
+		return categories.some((category) => category.id === activeCategoryId)
+			? activeCategoryId
+			: (categories[0]?.id ?? '');
+	}
+
+	/**
+	 * Retourne les catégories à afficher selon la sous-navigation et la recherche.
+	 * @param {StylePanel} panel Panneau à filtrer.
+	 * @returns {Category[]} Catégories visibles dans le panneau.
+	 */
+	function getVisiblePanelCategories(panel: StylePanel): Category[] {
+		const categories = getPanelCategories(panel);
+		if (!panel.categoryNavigation || styleSearchQuery() !== '') return categories;
+
+		const activeCategoryId = getActivePanelCategoryId(panel);
+		return categories.filter((category) => category.id === activeCategoryId);
+	}
+
+	/**
+	 * Sélectionne une catégorie dans la sous-navigation d'un panneau.
+	 * @param {string} panelId Identifiant du panneau parent.
+	 * @param {string} categoryId Identifiant de la catégorie choisie.
+	 * @returns {void}
+	 */
+	function selectPanelCategory(panelId: string, categoryId: string): void {
+		activePanelCategoryIds[panelId] = categoryId;
 	}
 
 	/**
@@ -705,6 +743,7 @@
 
 		const panel = stylePanels().find((candidate) => candidate.categoryIds.includes(categoryId));
 		globalState.getStylesState.currentPanel = panel?.id ?? stylePanels()[0]?.id ?? '';
+		if (panel?.categoryNavigation) activePanelCategoryIds[panel.id] = categoryId;
 		globalState.getStylesState.searchQuery = '';
 
 		void tick().then(() => {
@@ -770,7 +809,26 @@
 						{#if panel.customContent}
 							<CustomContentPanel />
 						{:else}
-							{#each getPanelCategories(panel) as category (category.id)}
+							{#if panel.categoryNavigation && styleSearchQuery() === ''}
+								<div class="style-category-tabs" aria-label={getPanelLabel(panel)}>
+									{#each getPanelCategories(panel) as category (category.id)}
+										{@const categoryLabel = getStyleName(category.id, get(LL))}
+										<button
+											type="button"
+											aria-pressed={getActivePanelCategoryId(panel) === category.id}
+											class:style-category-tab-active={getActivePanelCategoryId(panel) ===
+												category.id}
+											class="style-category-tab"
+											onclick={() => selectPanelCategory(panel.id, category.id)}
+										>
+											<span class="material-icons-outlined text-[16px]!">{category.icon}</span>
+											<span>{categoryLabel}</span>
+										</button>
+									{/each}
+								</div>
+							{/if}
+
+							{#each getVisiblePanelCategories(panel) as category (category.id)}
 								{@const visibleStyles = getVisibleStyles(category)}
 								{@const styleGroups = getStyleControlGroups(category, visibleStyles)}
 								{@const headerStyle = getCategoryHeaderStyle(category)}
@@ -812,6 +870,50 @@
 		gap: 0.45rem;
 		font-size: 0.85rem;
 		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.style-category-tabs {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.35rem;
+		margin-bottom: 0.1rem;
+	}
+
+	.style-category-tab {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.35rem;
+		width: 100%;
+		min-width: 0;
+		border: 1px solid transparent;
+		border-radius: 0.6rem;
+		padding: 0.45rem 0.55rem;
+		background: var(--bg-accent);
+		color: var(--text-secondary);
+		font-size: 0.7rem;
+		font-weight: 600;
+		line-height: 1.2;
+		text-align: left;
+		cursor: pointer;
+		transition: 150ms ease;
+	}
+
+	.style-category-tab > span:last-child {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.style-category-tab:hover {
+		border-color: var(--border-color);
+		color: var(--text-primary);
+	}
+
+	.style-category-tab-active,
+	.style-category-tab-active:hover {
+		border-color: var(--accent-primary);
+		background: color-mix(in srgb, var(--accent-primary) 28%, var(--bg-secondary));
 		color: var(--text-primary);
 	}
 

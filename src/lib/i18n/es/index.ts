@@ -1145,6 +1145,7 @@ const es = {
 		styleName: {
 			general: 'General',
 			'show-subtitles': 'Mostrar subtítulos',
+			'verse-number': 'Número de versículo',
 			'show-verse-number': 'Mostrar número de versículo',
 			'text-direction': 'De derecha a izquierda',
 			'show-decorative-brackets': 'Paréntesis decorativos',

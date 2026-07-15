@@ -48,16 +48,17 @@ métadonnées `ui` des JSON.
 
 ### `ui.panel`
 
-| Champ           | Rôle                                                                                      |
-| --------------- | ----------------------------------------------------------------------------------------- |
-| `id`            | Identifiant stable du panneau. Les catégories partageant cet identifiant sont regroupées. |
-| `icon`          | Nom d’une Material Icon affichée dans l’onglet du panneau.                                |
-| `label`         | Clé de libellé. Elle est résolue dans `style`, puis dans `editor.styleName`.              |
-| `order`         | Position du panneau dans la barre horizontale.                                            |
-| `categoryOrder` | Position de la catégorie à l’intérieur de ce panneau.                                     |
+| Champ                | Rôle                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| `id`                 | Identifiant stable du panneau. Les catégories partageant cet identifiant sont regroupées. |
+| `icon`               | Nom d’une Material Icon affichée dans l’onglet du panneau.                                |
+| `label`              | Clé de libellé. Elle est résolue dans `style`, puis dans `editor.styleName`.              |
+| `order`              | Position du panneau dans la barre horizontale.                                            |
+| `categoryOrder`      | Position de la catégorie à l’intérieur de ce panneau.                                     |
+| `categoryNavigation` | Affiche les catégories du panneau dans une sous-navigation lorsqu’il vaut `true`.         |
 
-Toutes les catégories d’un même panneau doivent déclarer les mêmes `id`, `icon`, `label` et `order`.
-Leur `categoryOrder` doit être unique.
+Toutes les catégories d’un même panneau doivent déclarer les mêmes `id`, `icon`, `label`, `order` et
+`categoryNavigation`. Leur `categoryOrder` doit être unique.
 
 Une catégorie sans `ui.panel` n’apparaît pas dans la navigation standard de l’éditeur.
 

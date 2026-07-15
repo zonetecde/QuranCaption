@@ -579,6 +579,7 @@ const id: Translation = {
 		styleName: {
 			...baseEn.editor.styleName,
 			general: 'Umum',
+			'verse-number': 'Nomor Ayat',
 			'video-dimension': 'Kualitas & Orientasi Video',
 			'fade-duration': 'Durasi Fade Subtitle',
 			'video-and-audio-fade': 'Fade Video & Audio',

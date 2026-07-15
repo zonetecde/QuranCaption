@@ -1142,6 +1142,7 @@ const fr = {
 		styleName: {
 			general: 'Général',
 			'show-subtitles': 'Afficher les sous-titres',
+			'verse-number': 'Numéro de verset',
 			'show-verse-number': 'Afficher le numéro de verset',
 			'text-direction': 'De droite à gauche',
 			'show-decorative-brackets': 'Parenthèses décoratives',

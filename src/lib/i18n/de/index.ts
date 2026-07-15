@@ -1141,6 +1141,7 @@ const de = {
 		styleName: {
 			general: 'Allgemein',
 			'show-subtitles': 'Untertitel anzeigen',
+			'verse-number': 'Versnummer',
 			'show-verse-number': 'Versnummer anzeigen',
 			'text-direction': 'Von rechts nach links',
 			'show-decorative-brackets': 'Dekorative Klammern',

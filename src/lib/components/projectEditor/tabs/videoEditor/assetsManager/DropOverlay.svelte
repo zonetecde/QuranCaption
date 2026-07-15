@@ -4,6 +4,8 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
+	let { title, subtitle }: { title?: string; subtitle?: string } = $props();
+
 	$effect(() => {
 		if (
 			globalState.currentProject &&
@@ -27,8 +29,12 @@
 		<div class="drop-zone">
 			<div class="drop-zone-content">
 				<span class="material-icons upload-icon">cloud_upload</span>
-				<div class="text-white text-2xl font-semibold mb-2">{get(LL).editor.dropFilesHere()}</div>
-				<div class="text-gray-300 text-sm">{get(LL).editor.supportMediaTypes()}</div>
+				<div class="text-white text-2xl font-semibold mb-2">
+					{title ?? get(LL).editor.dropFilesHere()}
+				</div>
+				<div class="text-gray-300 text-sm">
+					{subtitle ?? get(LL).editor.supportMediaTypes()}
+				</div>
 
 				<!-- Corner decorations -->
 				<div class="corner corner-tl"></div>

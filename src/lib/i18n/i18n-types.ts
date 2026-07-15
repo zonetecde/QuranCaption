@@ -4397,6 +4397,10 @@ type RootTranslation = {
 			 */
 			'show-subtitles': string;
 			/**
+			 * V​e​r​s​e​ ​N​u​m​b​e​r
+			 */
+			'verse-number': string;
+			/**
 			 * S​h​o​w​ ​V​e​r​s​e​ ​N​u​m​b​e​r
 			 */
 			'show-verse-number': string;
@@ -13677,6 +13681,10 @@ export type TranslationFunctions = {
 			 * Show Subtitles
 			 */
 			'show-subtitles': () => LocalizedString;
+			/**
+			 * Verse Number
+			 */
+			'verse-number': () => LocalizedString;
 			/**
 			 * Show Verse Number
 			 */

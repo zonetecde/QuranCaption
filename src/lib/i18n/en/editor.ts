@@ -889,6 +889,7 @@ const editor = {
 	styleName: {
 		general: 'General',
 		'show-subtitles': 'Show Subtitles',
+		'verse-number': 'Verse Number',
 		'show-verse-number': 'Show Verse Number',
 		'text-direction': 'Right-to-Left',
 		'show-decorative-brackets': 'Decorative Brackets',

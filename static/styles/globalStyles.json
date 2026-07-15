@@ -237,7 +237,7 @@
 		"description": "Control display of the Surah name",
 		"icon": "title",
 		"ui": {
-			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 0 },
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 0, "categoryNavigation": true },
 			"headerStyle": "show-surah-name",
 			"groups": [
 				{
@@ -440,7 +440,7 @@
 		"description": "Control display of the Reciter name",
 		"icon": "person",
 		"ui": {
-			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 1 },
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 1, "categoryNavigation": true },
 			"headerStyle": "show-reciter-name",
 			"groups": [
 				{
@@ -645,7 +645,7 @@
 		"description": "Add a decorative background image behind the ayah",
 		"icon": "gradient",
 		"ui": {
-			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 2 },
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 3, "categoryNavigation": true },
 			"groups": [
 				{
 					"id": "basics",
@@ -776,7 +776,7 @@
 		"description": "Control display of the Verse number",
 		"icon": "format_list_numbered",
 		"ui": {
-			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 3 },
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 2, "categoryNavigation": true },
 			"headerStyle": "show-verse-number",
 			"groups": [
 				{ "id": "basics", "styleIds": ["show-verse-number"] },

@@ -19,7 +19,7 @@
 		initializeClassRegistry();
 	});
 
-	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'vintage-paper');
+	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');
 
 	// Restaure la locale sauvegardée dès que les settings sont chargés
 	$effect(() => {

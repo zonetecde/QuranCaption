@@ -25,7 +25,7 @@
 					type="button"
 					class="cursor-pointer rounded-lg border px-2.5 py-2 text-sm font-medium transition-all hover:scale-105 {globalState
 						.getSubtitlesEditorState.playbackSpeed === speed
-						? 'border-transparent bg-accent-primary text-[var(--text-on-accent)] shadow-lg shadow-blue-500/25'
+						? 'border-transparent bg-accent-primary text-black shadow-lg shadow-blue-500/25'
 						: 'border-color bg-secondary text-secondary hover:border-[var(--accent-primary)] hover:bg-accent hover:text-primary'}"
 					onclick={() => (globalState.getSubtitlesEditorState.playbackSpeed = speed)}
 				>

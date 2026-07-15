@@ -19,7 +19,7 @@ const settings = {
 	themeLightIce: 'Light & Ice',
 	themeLightMinimal: 'Light & Minimal',
 	themeSepiaGold: 'Sepia Gold',
-	themeSepiaPaper: 'Minbar Studio',
+	themeSepiaPaper: 'Sepia Paper',
 	themeDarkBlue: 'Dark & Blue',
 	themeDarkGreen: 'Dark & Green',
 	themeDarkNeon: 'Dark & Neon',

@@ -13,6 +13,7 @@
 		getTranscriptReferenceLogicalParts,
 		getTranscriptReferenceRenderParts,
 		parseQuranTranscriptReference,
+		prefetchTranscriptReferences,
 		type QuranTranscriptReference
 	} from '$lib/services/TranscriptReferenceService';
 	import { untrack } from 'svelte';
@@ -84,6 +85,17 @@
 		const _ = getTimelineSettings().cursorPosition;
 		return untrack(() => {
 			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
+		});
+	});
+
+	let referenceRenderVersion = $state(0);
+
+	$effect(() => {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) return;
+
+		void prefetchTranscriptReferences([subtitle.text]).then(() => {
+			referenceRenderVersion += 1;
 		});
 	});
 
@@ -847,7 +859,10 @@
 
 	let arabicReferenceClip = $derived(() => getArabicReferenceClip());
 
-	let arabicSegments = $derived(() => getVisibleArabicSegments());
+	let arabicSegments = $derived(() => {
+		const _ = referenceRenderVersion;
+		return getVisibleArabicSegments();
+	});
 
 	let wbwState = $derived(() => currentArabicWordByWordState());
 

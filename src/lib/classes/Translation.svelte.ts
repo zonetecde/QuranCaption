@@ -9,6 +9,7 @@ export type TranslationStatus =
 	| 'ai trimmed'
 	| 'to review'
 	| 'to translate'
+	| 'ai translated'
 	| 'reviewed'
 	| 'ai error'
 	| 'error'

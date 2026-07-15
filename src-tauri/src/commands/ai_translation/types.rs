@@ -50,6 +50,19 @@ pub struct TranscriptCleanupCommandRequest {
     pub batch: TranscriptCleanupBatchPayload,
 }
 
+/// Requête pour la traduction structurée d'un batch de sous-titres.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectTranslationCommandRequest {
+    pub api_key: String,
+    pub endpoint: String,
+    pub model: String,
+    pub reasoning_effort: String,
+    pub batch_id: String,
+    pub target_language: String,
+    pub batch: serde_json::Value,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimBatchPayload {

@@ -48,6 +48,7 @@
 		fullVerse: () => string;
 		wordsRange: (args: { start: number; end: number }) => string;
 		quranTranslationMissing: () => string;
+		aiTranslatedStatus: () => string;
 	};
 
 	let {
@@ -560,15 +561,19 @@
 		</div>
 		<div class="ml-auto flex items-center gap-2">
 			<span
-				class="rounded-full border px-2 py-1 text-xs {translation().isStatusComplete()
-					? 'border-green-500/30 bg-green-500/15 text-green-300'
-					: 'border-orange-500/30 bg-orange-500/15 text-orange-300'}"
+				class="rounded-full border px-2 py-1 text-xs {translation().status === 'ai translated'
+					? 'border-blue-500/30 bg-blue-500/15 text-blue-300'
+					: translation().isStatusComplete()
+						? 'border-green-500/30 bg-green-500/15 text-green-300'
+						: 'border-orange-500/30 bg-orange-500/15 text-orange-300'}"
 			>
 				{translation().status === 'completed by default'
 					? $LL.editor.completedByDefault()
-					: translation().status === 'reviewed'
-						? $LL.editor.reviewed()
-						: $LL.editor.toReview()}
+					: translation().status === 'ai translated'
+						? copy.aiTranslatedStatus()
+						: translation().status === 'reviewed'
+							? $LL.editor.reviewed()
+							: $LL.editor.toReview()}
 			</span>
 		</div>
 	</div>

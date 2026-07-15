@@ -243,9 +243,15 @@
 			bind:this={transcriptInput}
 			bind:value={transcriptText}
 			dir="auto"
-			class="min-h-48 flex-1 resize-none rounded-xl border border-color bg-secondary px-5 py-4 text-base leading-relaxed text-primary outline-none transition focus:border-[var(--accent-primary)]"
+			class="min-h-48 flex-1 resize-none rounded-xl border border-color bg-secondary px-5 py-4 text-xl! leading-relaxed text-primary outline-none transition focus:border-[var(--accent-primary)] noto-sans-arabic"
 			placeholder={$LL.editor.transcriptPlaceholder()}
 			onkeydown={handleTranscriptKeydown}
 		></textarea>
 	</div>
 </div>
+
+<style>
+	.noto-sans-arabic {
+		font-family: 'Noto Sans Arabic', sans-serif;
+	}
+</style>

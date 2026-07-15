@@ -64,6 +64,28 @@ Rules:
 - Return JSON only, matching the schema exactly.
 "#;
 
+pub const PROJECT_TRANSLATION_SYSTEM_PROMPT: &str = r#"You translate structured Arabic Islamic lecture subtitles into the requested target language.
+
+The application protects Quran passages and quotation anchors. Return structured values only; never return braces or rewrite Quran references.
+
+Rules:
+- Translate faithfully and naturally. Preserve meaning, names, Islamic terminology, tone, and the symbol ﷺ.
+- Never summarize, omit, explain, censor, authenticate, grade, or add information.
+- Input root keys: `b` is read-only context before, `i` is the target item array, and `a` is read-only context after.
+- Each target item has stable subtitle id `i`, source free-text slots `f`, and ordered anchors `a`.
+- Anchor `k=c` is a non-Quran quotation. Translate its source `s` and return it in `c` using the same anchor id.
+- Anchor `k=q` is Quran. Never translate it yourself and never return Quran text.
+- For Quran anchors, `f=true` means full verse and `l=true` means locked. Do not return a range for either.
+- For an editable partial Quran anchor, choose one contiguous 0-based range from the provided edition units `u` that best matches Arabic `a`, using English WBW helpers `w` when useful.
+- The translated free text may be redistributed among the available slots so grammar is natural around the protected anchors. Keep anchor order unchanged.
+- Return every target subtitle exactly once and return no context item.
+- Every target item must contain exactly the same number of free-text slots as the input.
+- Return every citation anchor exactly once. Return every editable partial Quran anchor exactly once and no other Quran range.
+- Generated free text and citation text must not contain `{{` or `}}`.
+- Compact output keys: root `i`; item `i` subtitle id, `f` translated free-text slots, `c` citation translations, `q` Quran ranges. Citation keys: `i`,`t`. Quran range keys: `i`,`s`,`e`.
+- Return JSON only, matching the schema exactly.
+"#;
+
 pub const TRANSCRIPT_CLEANUP_SYSTEM_PROMPT: &str = r#"You analyze an indexed Islamic lecture transcript before subtitle segmentation.
 
 The application, not you, detects Quran references and creates all `{{SS:VV}}` markers. Words with `q=true` are already verified Quran and are immutable.
@@ -214,6 +236,54 @@ pub fn build_wbw_translation_response_schema() -> Value {
 }
 
 /// Schéma JSON de réponse pour l'analyse structurée d'une transcription.
+pub fn build_project_translation_response_schema() -> Value {
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "i": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "i": { "type": "integer" },
+                        "f": { "type": "array", "items": { "type": "string" } },
+                        "c": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "i": { "type": "string" },
+                                    "t": { "type": "string" }
+                                },
+                                "required": ["i", "t"]
+                            }
+                        },
+                        "q": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "i": { "type": "string" },
+                                    "s": { "type": "integer" },
+                                    "e": { "type": "integer" }
+                                },
+                                "required": ["i", "s", "e"]
+                            }
+                        }
+                    },
+                    "required": ["i", "f", "c", "q"]
+                }
+            }
+        },
+        "required": ["i"]
+    })
+}
+
+/// Schéma JSON de réponse pour l'analyse structurée d'une transcription.
 pub fn build_transcript_cleanup_response_schema() -> Value {
     json!({
         "type": "object",
@@ -355,6 +425,25 @@ pub fn build_wbw_translation_user_prompt(
          {}\n\n\
          Batch JSON:\n{}",
         note_block, batch_json
+    ))
+}
+
+/// Construit le prompt utilisateur pour un batch d'analyse de transcription.
+pub fn build_project_translation_user_prompt(
+    target_language: &str,
+    batch: &Value,
+) -> Result<String, String> {
+    let batch_json = serde_json::to_string_pretty(batch)
+        .map_err(|error| format!("Failed to serialize project translation batch: {}", error))?;
+
+    Ok(format!(
+        "Translate the target items into {} and return JSON only.\n\
+         Return exactly this compact shape: {{\"i\":[{{\"i\":1,\"f\":[\"...\"],\"c\":[{{\"i\":\"citation-0\",\"t\":\"...\"}}],\"q\":[{{\"i\":\"quran-0\",\"s\":0,\"e\":4}}]}}]}}.\n\
+         `b` and `a` are context only and must never be returned.\n\
+         Keep every protected anchor in its original relative order by filling only free-text slots, citation texts, and editable Quran ranges.\n\n\
+         Batch JSON:\n{}",
+        target_language.trim(),
+        batch_json
     ))
 }
 

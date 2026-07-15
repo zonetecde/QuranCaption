@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
+	import type { Edition } from '$lib/classes';
 	import AddTranslationModal from './modal/AddTranslationModal.svelte';
+	import AskIAModal from './modal/AskIAModal.svelte';
 	import TranslationInlineStylePanel from './TranslationInlineStylePanel.svelte';
 	import MobileRightDrawer from '$lib/components/misc/MobileRightDrawer.svelte';
 	import TranslationsEditorSettings from './leftPanel/TranslationsEditorSettings.svelte';
@@ -11,6 +13,7 @@
 	import { PROJECT_EDITOR_PANEL_WIDTHS } from '$lib/constants/projectEditor';
 
 	let addTranslationModalVisibility = $state(false);
+	let aiTranslationEdition = $state<Edition | null>(null);
 </script>
 
 <div class="relative flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
@@ -22,6 +25,7 @@
 		<TranslationsEditorSettings
 			setAddTranslationModalVisibility={(visible: boolean) =>
 				(addTranslationModalVisibility = visible)}
+			setAiTranslationEdition={(edition: Edition) => (aiTranslationEdition = edition)}
 		/>
 	</section>
 	<DiviseurRedimensionnable
@@ -68,5 +72,11 @@
 {#if addTranslationModalVisibility}
 	<div class="modal-wrapper" transition:fade>
 		<AddTranslationModal close={() => (addTranslationModalVisibility = false)} />
+	</div>
+{/if}
+
+{#if aiTranslationEdition}
+	<div class="modal-wrapper" transition:fade>
+		<AskIAModal edition={aiTranslationEdition} close={() => (aiTranslationEdition = null)} />
 	</div>
 {/if}

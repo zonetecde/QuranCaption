@@ -37,6 +37,7 @@
 		globalState.getProjectTranslation.normalizeProjectLanguages();
 		const supportedStatuses = new Set([
 			'to translate',
+			'ai translated',
 			'reviewed',
 			'completed by default',
 			'error'

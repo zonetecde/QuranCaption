@@ -8,9 +8,16 @@
 
 	type TranslationCopy = {
 		quranEdition: () => string;
+		translateVideoWithAi: () => string;
 	};
 
-	let { edition }: { edition: Edition } = $props();
+	let {
+		edition,
+		onTranslateWithAi
+	}: {
+		edition: Edition;
+		onTranslateWithAi: () => void;
+	} = $props();
 	const copy = get(LL).translations as unknown as TranslationCopy;
 	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
 
@@ -73,6 +80,14 @@
 				{$LL.common.reset()}
 			</button>
 		</div>
+
+		<button
+			class="btn-accent mt-2 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold"
+			onclick={onTranslateWithAi}
+		>
+			<span class="material-icons text-base">auto_awesome</span>
+			{copy.translateVideoWithAi()}
+		</button>
 
 		{#if globalState.currentProject!.detail.translations[edition.language] !== undefined}
 			<div class="mt-3">

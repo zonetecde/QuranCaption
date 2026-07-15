@@ -7,6 +7,7 @@ import Settings from '$lib/classes/Settings.svelte';
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
+import EditionViewer from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/EditionViewer.svelte';
 import ArabicText from '$lib/components/projectEditor/tabs/translationsEditor/workspace/ArabicText.svelte';
 import Translation from '$lib/components/projectEditor/tabs/translationsEditor/workspace/translation/Translation.svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
@@ -54,7 +55,7 @@ describe('Structured translation editor', () => {
 		globalState.currentProject = {
 			projectEditorState: new ProjectEditorState(),
 			content: { projectTranslation, videoStyle: new VideoStyle() },
-			detail: { updatePercentageTranslated: vi.fn() }
+			detail: { translations: {}, updatePercentageTranslated: vi.fn() }
 		} as never;
 		vi.spyOn(ProjectHistoryManager, 'begin').mockImplementation(() => undefined);
 		vi.spyOn(ProjectHistoryManager, 'commit').mockImplementation(() => undefined);
@@ -84,6 +85,15 @@ describe('Structured translation editor', () => {
 		subtitle.translations[edition.name] = translation;
 		return subtitle;
 	}
+
+	test('opens AI video translation from the selected language card', async () => {
+		const onTranslateWithAi = vi.fn();
+		const component = render(EditionViewer, { props: { edition, onTranslateWithAi } });
+
+		await component.getByRole('button', { name: 'Translate video with AI' }).click();
+
+		expect(onTranslateWithAi).toHaveBeenCalledOnce();
+	});
 
 	test('shows only source-backed free text and inserts ﷺ with Ctrl+S', async () => {
 		const subtitle = createSubtitle('قال أنس: {{حديث}}', '{{}}');

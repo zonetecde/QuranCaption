@@ -1247,6 +1247,58 @@ type RootTranslation = {
 		 */
 		aiTranscription: string;
 		/**
+		 * P​r​e​p​a​r​e​ ​t​r​a​n​s​c​r​i​p​t
+		 */
+		transcriptCleanupStep: string;
+		/**
+		 * C​r​e​a​t​e​ ​c​l​e​a​n​,​ ​r​e​a​d​a​b​l​e​ ​s​u​b​t​i​t​l​e​s
+		 */
+		transcriptCleanupTitle: string;
+		/**
+		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​l​o​c​a​l​l​y​ ​d​e​t​e​c​t​s​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​,​ ​v​a​l​i​d​a​t​e​s​ ​t​h​e​i​r​ ​e​x​a​c​t​ ​w​o​r​d​ ​r​a​n​g​e​s​,​ ​a​n​d​ ​r​e​b​u​i​l​d​s​ ​n​a​t​u​r​a​l​ ​s​u​b​t​i​t​l​e​ ​b​o​u​n​d​a​r​i​e​s​.​ ​Y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​i​s​ ​o​p​t​i​o​n​a​l​ ​a​n​d​ ​o​n​l​y​ ​s​u​g​g​e​s​t​s​ ​c​e​r​t​a​i​n​ ​c​o​r​r​e​c​t​i​o​n​s​,​ ​p​u​n​c​t​u​a​t​i​o​n​,​ ​s​e​m​a​n​t​i​c​ ​b​r​e​a​k​s​,​ ​a​n​d​ ​v​e​r​b​a​t​i​m​ ​n​o​n​-​Q​u​r​a​n​ ​q​u​o​t​a​t​i​o​n​s​.
+		 */
+		transcriptCleanupDescription: string;
+		/**
+		 * Q​u​r​a​n​ ​m​a​r​k​e​r​s​ ​a​r​e​ ​c​r​e​a​t​e​d​ ​o​n​l​y​ ​f​r​o​m​ ​t​h​e​ ​b​u​n​d​l​e​d​ ​Q​u​r​a​n​ ​c​o​r​p​u​s​ ​a​n​d​ ​v​a​l​i​d​a​t​e​d​ ​w​o​r​d​ ​r​a​n​g​e​s​.​ ​V​e​r​b​a​t​i​m​ ​h​a​d​i​t​h​,​ ​s​c​h​o​l​a​r​,​ ​a​n​d​ ​o​t​h​e​r​ ​d​i​r​e​c​t​ ​q​u​o​t​a​t​i​o​n​s​ ​a​r​e​ ​d​e​t​e​c​t​e​d​ ​s​e​p​a​r​a​t​e​l​y​ ​a​n​d​ ​r​e​m​a​i​n​ ​w​r​a​p​p​e​d​ ​f​o​r​ ​e​d​i​t​i​n​g​.
+		 */
+		transcriptCleanupMarkersInfo: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​ ​n​a​m​e​ ​f​o​r​ ​{​s​p​e​a​k​e​r​}​ ​b​e​f​o​r​e​ ​c​l​e​a​n​i​n​g​ ​t​h​e​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​.
+		 * @param {unknown} speaker
+		 */
+		chooseSpeakerBeforeCleanup: RequiredParams<'speaker'>;
+		/**
+		 * C​l​e​a​n​ ​t​r​a​n​s​c​r​i​p​t
+		 */
+		cleanTranscript: string;
+		/**
+		 * C​l​e​a​n​i​n​g​ ​t​r​a​n​s​c​r​i​p​t​.​.​.
+		 */
+		cleaningTranscript: string;
+		/**
+		 * P​r​o​c​e​s​s​i​n​g​ ​b​a​t​c​h​ ​{​c​u​r​r​e​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}​.​.​.
+		 * @param {unknown} current
+		 * @param {unknown} total
+		 */
+		transcriptCleanupBatchProgress: RequiredParams<'current' | 'total'>;
+		/**
+		 * P​r​e​p​a​r​e​d​ ​{​c​l​e​a​n​e​d​}​ ​o​f​ ​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​s​.
+		 * @param {unknown} cleaned
+		 * @param {unknown} total
+		 */
+		transcriptCleanupCompleted: RequiredParams<'cleaned' | 'total'>;
+		/**
+		 * P​r​e​p​a​r​e​d​ ​{​c​l​e​a​n​e​d​}​ ​o​f​ ​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​s​.​ ​{​e​r​r​o​r​s​}​ ​w​a​r​n​i​n​g​(​s​)​ ​r​e​q​u​i​r​e​ ​r​e​v​i​e​w​.
+		 * @param {unknown} cleaned
+		 * @param {unknown} errors
+		 * @param {unknown} total
+		 */
+		transcriptCleanupCompletedWithIssues: RequiredParams<'cleaned' | 'errors' | 'total'>;
+		/**
+		 * A​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​Q​u​r​a​n​ ​m​a​t​c​h​i​n​g​,​ ​a​n​d​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​s​t​a​y​ ​l​o​c​a​l​.​ ​O​n​l​y​ ​i​n​d​e​x​e​d​ ​t​r​a​n​s​c​r​i​p​t​ ​w​o​r​d​s​ ​a​r​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​w​h​e​n​ ​o​n​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.
+		 */
+		transcriptionDataPrivacy: string;
+		/**
 		 * A​I​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​l​a​t​e​r
 		 */
 		aiTranscriptionComingSoon: string;
@@ -1701,6 +1753,22 @@ type RootTranslation = {
 		 */
 		selectTranslation: string;
 		/**
+		 * S​e​l​e​c​t​ ​A​r​a​b​i​c​ ​c​o​n​t​e​n​t
+		 */
+		selectArabicContent: string;
+		/**
+		 * N​o​r​m​a​l​ ​t​e​x​t
+		 */
+		normalText: string;
+		/**
+		 * Q​u​r​a​n
+		 */
+		quranPassages: string;
+		/**
+		 * C​i​t​a​t​i​o​n​s​ ​(​h​a​d​i​t​h​,​ ​e​t​c​.​)
+		 */
+		citations: string;
+		/**
 		 * Y​o​u​ ​h​a​v​e​ ​n​o​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​y​e​t​.
 		 */
 		noTranslationsYet: string;
@@ -1950,7 +2018,7 @@ type RootTranslation = {
 		 */
 		currentStreamedResponse: string;
 		/**
-		 * Current streamed reasoning
+		 * C​u​r​r​e​n​t​ ​s​t​r​e​a​m​e​d​ ​r​e​a​s​o​n​i​n​g
 		 */
 		currentStreamedReasoning: string;
 		/**
@@ -2640,7 +2708,7 @@ type RootTranslation = {
 		 */
 		addClipToStart: string;
 		/**
-		 * M​i​n​ ​S​i​l​e​n​c​e​ ​D​u​r​a​t​i​o​n
+		 * F​o​r​c​e​ ​s​p​l​i​t​ ​a​f​t​e​r​ ​s​i​l​e​n​c​e
 		 */
 		minSilenceLabel: string;
 		/**
@@ -3976,7 +4044,7 @@ type RootTranslation = {
 		 */
 		fetched: string;
 		/**
-		 * T​o​ ​r​e​v​i​e​w
+		 * T​o​ ​t​r​a​n​s​l​a​t​e
 		 */
 		toReview: string;
 		/**
@@ -4125,7 +4193,7 @@ type RootTranslation = {
 		 */
 		noTranslationsMatchSearch: string;
 		/**
-		 * A​d​d​ ​n​e​w​ ​t​r​a​n​s​l​a​t​i​o​n
+		 * A​d​d​ ​a​ ​l​a​n​g​u​a​g​e
 		 */
 		addNewTranslation: string;
 		/**
@@ -4173,11 +4241,11 @@ type RootTranslation = {
 		 */
 		markTranslationErrors: string;
 		/**
-		 * N​o​ ​m​a​t​c​h​i​n​g​ ​v​e​r​s​e​s
+		 * N​o​ ​m​a​t​c​h​i​n​g​ ​s​u​b​t​i​t​l​e​s
 		 */
 		filterNoResultsTitle: string;
 		/**
-		 * T​r​y​ ​a​d​j​u​s​t​i​n​g​ ​y​o​u​r​ ​f​i​l​t​e​r​s​ ​t​o​ ​s​e​e​ ​m​o​r​e​ ​v​e​r​s​e​s​.
+		 * T​r​y​ ​a​d​j​u​s​t​i​n​g​ ​y​o​u​r​ ​f​i​l​t​e​r​s​ ​t​o​ ​s​e​e​ ​m​o​r​e​ ​s​u​b​t​i​t​l​e​s​.
 		 */
 		filterNoResultsDescription: string;
 		/**
@@ -4189,15 +4257,15 @@ type RootTranslation = {
 		 */
 		resetAllFilters: string;
 		/**
-		 * S​h​o​w​ ​n​e​e​d​i​n​g​ ​r​e​v​i​e​w
+		 * S​h​o​w​ ​t​o​ ​t​r​a​n​s​l​a​t​e
 		 */
 		showNeedingReview: string;
 		/**
-		 * N​o​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​y​e​t
+		 * N​o​ ​t​r​a​n​s​l​a​t​i​o​n​ ​l​a​n​g​u​a​g​e​s​ ​y​e​t
 		 */
 		noTranslationsYetHeading: string;
 		/**
-		 * S​t​a​r​t​ ​b​y​ ​a​d​d​i​n​g​ ​a​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​o​ ​y​o​u​r​ ​p​r​o​j​e​c​t​.
+		 * S​t​a​r​t​ ​b​y​ ​a​d​d​i​n​g​ ​a​ ​l​a​n​g​u​a​g​e​ ​a​n​d​ ​a​s​s​o​c​i​a​t​i​n​g​ ​a​ ​Q​u​r​a​n​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​o​n​.
 		 */
 		startByAdding: string;
 		/**
@@ -4943,7 +5011,7 @@ type RootTranslation = {
 			 */
 			'text-direction': string;
 			/**
-			 * W​r​a​p​ ​A​r​a​b​i​c​ ​s​u​b​t​i​t​l​e​ ​t​e​x​t​ ​w​i​t​h​ ​d​e​c​o​r​a​t​i​v​e​ ​b​r​a​c​k​e​t​s
+			 * W​r​a​p​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​ ​w​i​t​h​ ​d​e​c​o​r​a​t​i​v​e​ ​b​r​a​c​k​e​t​s
 			 */
 			'show-decorative-brackets': string;
 			/**
@@ -6195,7 +6263,7 @@ type RootTranslation = {
 		 */
 		checkedSegmentsNoErrors: RequiredParams<'count'>;
 		/**
-		 * E​n​t​e​r​ ​y​o​u​r​ ​t​r​a​n​s​l​a​t​i​o​n​ ​h​e​r​e​.​.​.​ ​(​u​s​e​ ​\​n​ ​f​o​r​ ​l​i​n​e​ ​b​r​e​a​k​)
+		 * E​n​t​e​r​ ​y​o​u​r​ ​t​r​a​n​s​l​a​t​i​o​n​ ​h​e​r​e​.​.​.
 		 */
 		enterTranslationHere: string;
 		/**
@@ -6270,11 +6338,11 @@ type RootTranslation = {
 		 */
 		editTranslations: string;
 		/**
-		 * A​d​d​ ​T​r​a​n​s​l​a​t​i​o​n
+		 * A​d​d​ ​l​a​n​g​u​a​g​e
 		 */
 		addTranslation: string;
 		/**
-		 * A​d​d​ ​T​r​a​n​s​l​a​t​i​o​n
+		 * A​d​d​ ​l​a​n​g​u​a​g​e
 		 */
 		addTranslationHeading: string;
 		/**
@@ -6423,6 +6491,182 @@ type RootTranslation = {
 		 * S​e​a​r​c​h​ ​v​e​r​s​e​.​.​.
 		 */
 		searchVerse: string;
+		/**
+		 * A​d​d​ ​a​ ​t​r​a​n​s​l​a​t​i​o​n​ ​l​a​n​g​u​a​g​e
+		 */
+		addLanguageHeading: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​l​a​n​g​u​a​g​e
+		 */
+		projectLanguage: string;
+		/**
+		 * A​s​s​o​c​i​a​t​e​d​ ​Q​u​r​a​n​ ​t​r​a​n​s​l​a​t​i​o​n
+		 */
+		quranEdition: string;
+		/**
+		 * T​h​i​s​ ​e​d​i​t​i​o​n​ ​i​s​ ​u​s​e​d​ ​o​n​l​y​ ​f​o​r​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​ ​d​e​t​e​c​t​e​d​ ​i​n​s​i​d​e​ ​t​h​e​ ​l​e​s​s​o​n​.
+		 */
+		quranEditionDescription: string;
+		/**
+		 * S​e​l​e​c​t​ ​a​ ​Q​u​r​a​n​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​o​n
+		 */
+		selectQuranEdition: string;
+		/**
+		 * T​h​i​s​ ​l​a​n​g​u​a​g​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​.
+		 */
+		languageAlreadyAdded: string;
+		/**
+		 * N​o​ ​Q​u​r​a​n​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​t​h​i​s​ ​l​a​n​g​u​a​g​e​.
+		 */
+		noQuranEditionAvailable: string;
+		/**
+		 * A​d​d​i​n​g​ ​l​a​n​g​u​a​g​e​.​.​.
+		 */
+		addingLanguage: string;
+		/**
+		 * P​r​o​t​e​c​t​e​d​ ​Q​u​r​a​n​ ​a​n​d​ ​q​u​o​t​a​t​i​o​n​ ​b​l​o​c​k​s​ ​k​e​e​p​ ​t​h​e​ ​s​a​m​e​ ​o​r​d​e​r​ ​a​s​ ​t​h​e​ ​A​r​a​b​i​c​ ​s​o​u​r​c​e​.​ ​F​r​e​e​ ​t​e​x​t​ ​c​a​n​ ​b​e​ ​w​r​i​t​t​e​n​ ​b​e​f​o​r​e​,​ ​b​e​t​w​e​e​n​,​ ​o​r​ ​a​f​t​e​r​ ​t​h​e​m​.
+		 */
+		structuredTranslationHint: string;
+		/**
+		 * F​r​e​e​ ​t​e​x​t​ ​b​e​f​o​r​e
+		 */
+		freeTextBefore: string;
+		/**
+		 * F​r​e​e​ ​t​e​x​t​ ​b​e​t​w​e​e​n​ ​b​l​o​c​k​s
+		 */
+		freeTextBetween: string;
+		/**
+		 * F​r​e​e​ ​t​e​x​t​ ​a​f​t​e​r
+		 */
+		freeTextAfter: string;
+		/**
+		 * Q​u​r​a​n​ ​p​a​s​s​a​g​e
+		 */
+		quranPassage: string;
+		/**
+		 * Q​u​o​t​a​t​i​o​n
+		 */
+		quotationBlock: string;
+		/**
+		 * P​r​o​t​e​c​t​e​d​ ​b​l​o​c​k
+		 */
+		protectedBlock: string;
+		/**
+		 * M​a​n​u​a​l​ ​t​r​a​n​s​l​a​t​i​o​n
+		 */
+		manualTranslation: string;
+		/**
+		 * E​d​i​t​ ​t​r​a​n​s​l​a​t​e​d​ ​r​a​n​g​e
+		 */
+		editQuranRange: string;
+		/**
+		 * F​u​l​l​ ​v​e​r​s​e
+		 */
+		fullVerse: string;
+		/**
+		 * W​o​r​d​s​ ​{​s​t​a​r​t​}​–​{​e​n​d​}
+		 * @param {unknown} end
+		 * @param {unknown} start
+		 */
+		wordsRange: RequiredParams<'end' | 'start'>;
+		/**
+		 * T​h​e​ ​a​s​s​o​c​i​a​t​e​d​ ​Q​u​r​a​n​ ​t​r​a​n​s​l​a​t​i​o​n​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​l​o​a​d​e​d​.
+		 */
+		quranTranslationMissing: string;
+		/**
+		 * M​a​r​k​ ​a​s​ ​r​e​v​i​e​w​e​d
+		 */
+		markAsReviewed: string;
+		/**
+		 * T​r​a​n​s​l​a​t​e​ ​v​i​d​e​o​ ​w​i​t​h​ ​A​I
+		 */
+		translateVideoWithAi: string;
+		/**
+		 * A​I​ ​v​i​d​e​o​ ​t​r​a​n​s​l​a​t​i​o​n
+		 */
+		aiTranslationTitle: string;
+		/**
+		 * T​r​a​n​s​l​a​t​e​ ​t​h​e​ ​s​t​r​u​c​t​u​r​e​d​ ​s​u​b​t​i​t​l​e​s​ ​i​n​t​o​ ​{​l​a​n​g​u​a​g​e​}​.
+		 * @param {unknown} language
+		 */
+		aiTranslationSubtitle: RequiredParams<'language'>;
+		/**
+		 * A​I​ ​t​r​a​n​s​l​a​t​e​d
+		 */
+		aiTranslatedStatus: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​r​e​a​d​y​ ​t​o​ ​t​r​a​n​s​l​a​t​e
+		 * @param {unknown} count
+		 */
+		aiTranslationEligibleCount: RequiredParams<'count'>;
+		/**
+		 * N​o​ ​s​u​b​t​i​t​l​e​ ​c​u​r​r​e​n​t​l​y​ ​m​a​t​c​h​e​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​o​p​t​i​o​n​s​.
+		 */
+		aiTranslationNoEligible: string;
+		/**
+		 * R​e​t​r​y​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​i​n​ ​e​r​r​o​r
+		 */
+		aiTranslationRetryErrors: string;
+		/**
+		 * O​v​e​r​w​r​i​t​e​ ​A​I​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		aiTranslationOverwriteAi: string;
+		/**
+		 * O​v​e​r​w​r​i​t​e​ ​r​e​v​i​e​w​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		aiTranslationOverwriteReviewed: string;
+		/**
+		 * O​v​e​r​w​r​i​t​e​ ​m​a​n​u​a​l​ ​Q​u​r​a​n​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		aiTranslationOverwriteManualQuran: string;
+		/**
+		 * T​r​a​n​s​l​a​t​e​ ​v​i​d​e​o
+		 */
+		aiTranslationStart: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​s​t​r​u​c​t​u​r​e​d​ ​b​a​t​c​h​e​s​.​.​.
+		 */
+		aiTranslationPreparing: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​n​g​ ​b​a​t​c​h​ ​{​c​u​r​r​e​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}​.​.​.
+		 * @param {unknown} current
+		 * @param {unknown} total
+		 */
+		aiTranslationBatchProgress: RequiredParams<'current' | 'total'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​t​r​a​n​s​l​a​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y​.
+		 * @param {unknown} count
+		 */
+		aiTranslationCompleted: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​t​r​a​n​s​l​a​t​e​d​.
+		 * @param {unknown} count
+		 */
+		aiTranslationFailed: RequiredParams<'count'>;
+		/**
+		 * C​o​n​f​i​g​u​r​e​ ​t​h​e​ ​t​e​x​t​ ​A​I​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​,​ ​a​n​d​ ​A​P​I​ ​k​e​y​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​f​i​r​s​t​.
+		 */
+		aiTranslationProviderMissing: string;
+		/**
+		 * R​e​a​s​o​n​i​n​g​ ​m​o​d​e
+		 */
+		aiReasoningModeLabel: string;
+		/**
+		 * N​o​n​e
+		 */
+		aiReasoningNone: string;
+		/**
+		 * L​o​w
+		 */
+		aiReasoningLow: string;
+		/**
+		 * M​e​d​i​u​m
+		 */
+		aiReasoningMedium: string;
+		/**
+		 * H​i​g​h
+		 */
+		aiReasoningHigh: string;
 	};
 	style: {
 		/**
@@ -10317,6 +10561,54 @@ export type TranslationFunctions = {
 		 */
 		aiTranscription: () => LocalizedString;
 		/**
+		 * Prepare transcript
+		 */
+		transcriptCleanupStep: () => LocalizedString;
+		/**
+		 * Create clean, readable subtitles
+		 */
+		transcriptCleanupTitle: () => LocalizedString;
+		/**
+		 * Minbar Studio locally detects Quran passages, validates their exact word ranges, and rebuilds natural subtitle boundaries. Your configured text AI is optional and only suggests certain corrections, punctuation, semantic breaks, and verbatim non-Quran quotations.
+		 */
+		transcriptCleanupDescription: () => LocalizedString;
+		/**
+		 * Quran markers are created only from the bundled Quran corpus and validated word ranges. Verbatim hadith, scholar, and other direct quotations are detected separately and remain wrapped for editing.
+		 */
+		transcriptCleanupMarkersInfo: () => LocalizedString;
+		/**
+		 * Choose a name for {speaker} before cleaning the transcription.
+		 */
+		chooseSpeakerBeforeCleanup: (arg: { speaker: unknown }) => LocalizedString;
+		/**
+		 * Clean transcript
+		 */
+		cleanTranscript: () => LocalizedString;
+		/**
+		 * Cleaning transcript...
+		 */
+		cleaningTranscript: () => LocalizedString;
+		/**
+		 * Processing batch {current} of {total}...
+		 */
+		transcriptCleanupBatchProgress: (arg: { current: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * Prepared {cleaned} of {total} subtitle segments.
+		 */
+		transcriptCleanupCompleted: (arg: { cleaned: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * Prepared {cleaned} of {total} subtitle segments. {errors} warning(s) require review.
+		 */
+		transcriptCleanupCompletedWithIssues: (arg: {
+			cleaned: unknown;
+			errors: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * Audio transcription, Quran matching, and subtitle segmentation stay local. Only indexed transcript words are sent to your configured text AI provider when one is available.
+		 */
+		transcriptionDataPrivacy: () => LocalizedString;
+		/**
 		 * AI transcription will be added later
 		 */
 		aiTranscriptionComingSoon: () => LocalizedString;
@@ -10756,6 +11048,22 @@ export type TranslationFunctions = {
 		 * Select translation
 		 */
 		selectTranslation: () => LocalizedString;
+		/**
+		 * Select Arabic content
+		 */
+		selectArabicContent: () => LocalizedString;
+		/**
+		 * Normal text
+		 */
+		normalText: () => LocalizedString;
+		/**
+		 * Quran
+		 */
+		quranPassages: () => LocalizedString;
+		/**
+		 * Citations (hadith, etc.)
+		 */
+		citations: () => LocalizedString;
 		/**
 		 * You have no translations yet.
 		 */
@@ -11677,7 +11985,7 @@ export type TranslationFunctions = {
 		 */
 		addClipToStart: () => LocalizedString;
 		/**
-		 * Min Silence Duration
+		 * Force split after silence
 		 */
 		minSilenceLabel: () => LocalizedString;
 		/**
@@ -12993,7 +13301,7 @@ export type TranslationFunctions = {
 		 */
 		fetched: () => LocalizedString;
 		/**
-		 * To review
+		 * To translate
 		 */
 		toReview: () => LocalizedString;
 		/**
@@ -13137,7 +13445,7 @@ export type TranslationFunctions = {
 		 */
 		noTranslationsMatchSearch: () => LocalizedString;
 		/**
-		 * Add new translation
+		 * Add a language
 		 */
 		addNewTranslation: () => LocalizedString;
 		/**
@@ -13185,11 +13493,11 @@ export type TranslationFunctions = {
 		 */
 		markTranslationErrors: () => LocalizedString;
 		/**
-		 * No matching verses
+		 * No matching subtitles
 		 */
 		filterNoResultsTitle: () => LocalizedString;
 		/**
-		 * Try adjusting your filters to see more verses.
+		 * Try adjusting your filters to see more subtitles.
 		 */
 		filterNoResultsDescription: () => LocalizedString;
 		/**
@@ -13201,15 +13509,15 @@ export type TranslationFunctions = {
 		 */
 		resetAllFilters: () => LocalizedString;
 		/**
-		 * Show needing review
+		 * Show to translate
 		 */
 		showNeedingReview: () => LocalizedString;
 		/**
-		 * No translations yet
+		 * No translation languages yet
 		 */
 		noTranslationsYetHeading: () => LocalizedString;
 		/**
-		 * Start by adding a translation to your project.
+		 * Start by adding a language and associating a Quran translation edition.
 		 */
 		startByAdding: () => LocalizedString;
 		/**
@@ -13952,7 +14260,7 @@ export type TranslationFunctions = {
 			 */
 			'text-direction': () => LocalizedString;
 			/**
-			 * Wrap Arabic subtitle text with decorative brackets
+			 * Wrap Quran passages with decorative brackets
 			 */
 			'show-decorative-brackets': () => LocalizedString;
 			/**
@@ -15193,7 +15501,7 @@ export type TranslationFunctions = {
 		 */
 		checkedSegmentsNoErrors: (arg: { count: unknown }) => LocalizedString;
 		/**
-		 * Enter your translation here... (use \n for line break)
+		 * Enter your translation here...
 		 */
 		enterTranslationHere: () => LocalizedString;
 		/**
@@ -15265,11 +15573,11 @@ export type TranslationFunctions = {
 		 */
 		editTranslations: () => LocalizedString;
 		/**
-		 * Add Translation
+		 * Add language
 		 */
 		addTranslation: () => LocalizedString;
 		/**
-		 * Add Translation
+		 * Add language
 		 */
 		addTranslationHeading: () => LocalizedString;
 		/**
@@ -15416,6 +15724,174 @@ export type TranslationFunctions = {
 		 * Search verse...
 		 */
 		searchVerse: () => LocalizedString;
+		/**
+		 * Add a translation language
+		 */
+		addLanguageHeading: () => LocalizedString;
+		/**
+		 * Project language
+		 */
+		projectLanguage: () => LocalizedString;
+		/**
+		 * Associated Quran translation
+		 */
+		quranEdition: () => LocalizedString;
+		/**
+		 * This edition is used only for Quran passages detected inside the lesson.
+		 */
+		quranEditionDescription: () => LocalizedString;
+		/**
+		 * Select a Quran translation edition
+		 */
+		selectQuranEdition: () => LocalizedString;
+		/**
+		 * This language is already added to the project.
+		 */
+		languageAlreadyAdded: () => LocalizedString;
+		/**
+		 * No Quran translation edition is available for this language.
+		 */
+		noQuranEditionAvailable: () => LocalizedString;
+		/**
+		 * Adding language...
+		 */
+		addingLanguage: () => LocalizedString;
+		/**
+		 * Protected Quran and quotation blocks keep the same order as the Arabic source. Free text can be written before, between, or after them.
+		 */
+		structuredTranslationHint: () => LocalizedString;
+		/**
+		 * Free text before
+		 */
+		freeTextBefore: () => LocalizedString;
+		/**
+		 * Free text between blocks
+		 */
+		freeTextBetween: () => LocalizedString;
+		/**
+		 * Free text after
+		 */
+		freeTextAfter: () => LocalizedString;
+		/**
+		 * Quran passage
+		 */
+		quranPassage: () => LocalizedString;
+		/**
+		 * Quotation
+		 */
+		quotationBlock: () => LocalizedString;
+		/**
+		 * Protected block
+		 */
+		protectedBlock: () => LocalizedString;
+		/**
+		 * Manual translation
+		 */
+		manualTranslation: () => LocalizedString;
+		/**
+		 * Edit translated range
+		 */
+		editQuranRange: () => LocalizedString;
+		/**
+		 * Full verse
+		 */
+		fullVerse: () => LocalizedString;
+		/**
+		 * Words {start}–{end}
+		 */
+		wordsRange: (arg: { end: unknown; start: unknown }) => LocalizedString;
+		/**
+		 * The associated Quran translation could not be loaded.
+		 */
+		quranTranslationMissing: () => LocalizedString;
+		/**
+		 * Mark as reviewed
+		 */
+		markAsReviewed: () => LocalizedString;
+		/**
+		 * Translate video with AI
+		 */
+		translateVideoWithAi: () => LocalizedString;
+		/**
+		 * AI video translation
+		 */
+		aiTranslationTitle: () => LocalizedString;
+		/**
+		 * Translate the structured subtitles into {language}.
+		 */
+		aiTranslationSubtitle: (arg: { language: unknown }) => LocalizedString;
+		/**
+		 * AI translated
+		 */
+		aiTranslatedStatus: () => LocalizedString;
+		/**
+		 * {count} subtitle(s) ready to translate
+		 */
+		aiTranslationEligibleCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * No subtitle currently matches the selected options.
+		 */
+		aiTranslationNoEligible: () => LocalizedString;
+		/**
+		 * Retry translations in error
+		 */
+		aiTranslationRetryErrors: () => LocalizedString;
+		/**
+		 * Overwrite AI translations
+		 */
+		aiTranslationOverwriteAi: () => LocalizedString;
+		/**
+		 * Overwrite reviewed translations
+		 */
+		aiTranslationOverwriteReviewed: () => LocalizedString;
+		/**
+		 * Overwrite manual Quran translations
+		 */
+		aiTranslationOverwriteManualQuran: () => LocalizedString;
+		/**
+		 * Translate video
+		 */
+		aiTranslationStart: () => LocalizedString;
+		/**
+		 * Preparing structured batches...
+		 */
+		aiTranslationPreparing: () => LocalizedString;
+		/**
+		 * Translating batch {current} of {total}...
+		 */
+		aiTranslationBatchProgress: (arg: { current: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * {count} subtitle(s) translated successfully.
+		 */
+		aiTranslationCompleted: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} subtitle(s) could not be translated.
+		 */
+		aiTranslationFailed: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Configure the text AI endpoint, model, and API key in Settings first.
+		 */
+		aiTranslationProviderMissing: () => LocalizedString;
+		/**
+		 * Reasoning mode
+		 */
+		aiReasoningModeLabel: () => LocalizedString;
+		/**
+		 * None
+		 */
+		aiReasoningNone: () => LocalizedString;
+		/**
+		 * Low
+		 */
+		aiReasoningLow: () => LocalizedString;
+		/**
+		 * Medium
+		 */
+		aiReasoningMedium: () => LocalizedString;
+		/**
+		 * High
+		 */
+		aiReasoningHigh: () => LocalizedString;
 	};
 	style: {
 		/**

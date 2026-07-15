@@ -99,7 +99,29 @@ const translations = {
 	fullVerse: 'Full verse',
 	wordsRange: 'Words {start}–{end}',
 	quranTranslationMissing: 'The associated Quran translation could not be loaded.',
-	markAsReviewed: 'Mark as reviewed'
+	markAsReviewed: 'Mark as reviewed',
+	translateVideoWithAi: 'Translate video with AI',
+	aiTranslationTitle: 'AI video translation',
+	aiTranslationSubtitle: 'Translate the structured subtitles into {language}.',
+	aiTranslatedStatus: 'AI translated',
+	aiTranslationEligibleCount: '{count} subtitle(s) ready to translate',
+	aiTranslationNoEligible: 'No subtitle currently matches the selected options.',
+	aiTranslationRetryErrors: 'Retry translations in error',
+	aiTranslationOverwriteAi: 'Overwrite AI translations',
+	aiTranslationOverwriteReviewed: 'Overwrite reviewed translations',
+	aiTranslationOverwriteManualQuran: 'Overwrite manual Quran translations',
+	aiTranslationStart: 'Translate video',
+	aiTranslationPreparing: 'Preparing structured batches...',
+	aiTranslationBatchProgress: 'Translating batch {current} of {total}...',
+	aiTranslationCompleted: '{count} subtitle(s) translated successfully.',
+	aiTranslationFailed: '{count} subtitle(s) could not be translated.',
+	aiTranslationProviderMissing:
+		'Configure the text AI endpoint, model, and API key in Settings first.',
+	aiReasoningModeLabel: 'Reasoning mode',
+	aiReasoningNone: 'None',
+	aiReasoningLow: 'Low',
+	aiReasoningMedium: 'Medium',
+	aiReasoningHigh: 'High'
 };
 
 export default translations;

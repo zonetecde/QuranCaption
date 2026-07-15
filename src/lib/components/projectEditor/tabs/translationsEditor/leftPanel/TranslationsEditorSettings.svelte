@@ -1,21 +1,36 @@
 <script lang="ts">
 	import Settings from '$lib/classes/Settings.svelte';
+	import type { Edition } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
 	import { onDestroy } from 'svelte';
+	import { get } from 'svelte/store';
 	import EditionViewer from './EditionViewer.svelte';
 
+	type TranslationCopy = {
+		aiTranslatedStatus: () => string;
+	};
+
 	const SEARCH_DEBOUNCE_MS = 250;
+	const copy = get(LL).translations as unknown as TranslationCopy;
 	let {
-		setAddTranslationModalVisibility
+		setAddTranslationModalVisibility,
+		setAiTranslationEdition
 	}: {
 		setAddTranslationModalVisibility: (visible: boolean) => void;
+		setAiTranslationEdition: (edition: Edition) => void;
 	} = $props();
 
 	let localSearchQuery = $state(globalState.getTranslationsState.searchQuery);
 	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
-	const visibleStatuses = ['to translate', 'reviewed', 'completed by default', 'error'] as const;
+	const visibleStatuses = [
+		'to translate',
+		'ai translated',
+		'reviewed',
+		'completed by default',
+		'error'
+	] as const;
 
 	/**
 	 * Applique la recherche locale au workspace.
@@ -71,7 +86,7 @@
 
 		<div class="space-y-4">
 			{#each globalState.getProjectTranslation.addedTranslationEditions as edition (edition.name)}
-				<EditionViewer {edition} />
+				<EditionViewer {edition} onTranslateWithAi={() => setAiTranslationEdition(edition)} />
 			{/each}
 		</div>
 
@@ -154,11 +169,13 @@
 						<span class="min-w-0 flex-1 text-xs text-secondary font-medium">
 							{status === 'to translate'
 								? $LL.editor.toReview()
-								: status === 'reviewed'
-									? $LL.editor.reviewed()
-									: status === 'completed by default'
-										? $LL.editor.completedByDefault()
-										: $LL.editor.errorStatus()}
+								: status === 'ai translated'
+									? copy.aiTranslatedStatus()
+									: status === 'reviewed'
+										? $LL.editor.reviewed()
+										: status === 'completed by default'
+											? $LL.editor.completedByDefault()
+											: $LL.editor.errorStatus()}
 						</span>
 						<span class="rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-thirdly">
 							{countStatus(status)}
@@ -179,6 +196,7 @@
 					onclick={() =>
 						globalState.getTranslationsState.checkOnlyFilters([
 							'to translate',
+							'ai translated',
 							'reviewed',
 							'completed by default',
 							'error'

@@ -106,6 +106,7 @@ export default class Settings extends SerializableBase {
 		homeSortProperty: 'updatedAt' as keyof ProjectDetail,
 		homeSortAscending: false,
 		homeExplorerSelection: DEFAULT_HOME_EXPLORER_SELECTION as ExplorerSelection,
+		homeExplorerVisible: true,
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		lastClosedDonationPromptModal: new Date(0).toISOString(),

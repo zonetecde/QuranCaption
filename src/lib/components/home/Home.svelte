@@ -60,6 +60,7 @@
 	let explorerSelection = $state<ExplorerSelection>(ALL_PROJECTS_SELECTION);
 	let currentSortProperty = $state<keyof ProjectDetail>('updatedAt');
 	let isSortAscending = $state(false);
+	let isExplorerVisible = $state(true);
 	let homePreferencesInitialized = $state(false);
 
 	let promise: Promise<void | ProjectDetail[]> | undefined = $state(undefined);
@@ -89,6 +90,13 @@
 	function toggleSortMenu() {
 		sortMenuVisible = !sortMenuVisible;
 		filterMenuVisible = false;
+	}
+
+	/**
+	 * Bascule l'affichage de l'explorateur de projets.
+	 */
+	function toggleExplorerVisibility() {
+		isExplorerVisible = !isExplorerVisible;
 	}
 
 	/**
@@ -146,6 +154,7 @@
 		globalState.settings.persistentUiState.homeSortProperty = currentSortProperty;
 		globalState.settings.persistentUiState.homeSortAscending = isSortAscending;
 		globalState.settings.persistentUiState.homeExplorerSelection = explorerSelection;
+		globalState.settings.persistentUiState.homeExplorerVisible = isExplorerVisible;
 		Settings.save();
 	}
 
@@ -247,10 +256,10 @@
 			return 5;
 		}
 
-		if (windowWidth >= 1536) return 16;
-		if (windowWidth >= 1280) return 15;
-		if (windowWidth >= 768) return 8;
-		return 5;
+		if (windowWidth >= 1536) return isExplorerVisible ? 16 : 20;
+		if (windowWidth >= 1280) return isExplorerVisible ? 15 : 20;
+		if (windowWidth >= 768) return isExplorerVisible ? 8 : 12;
+		return isExplorerVisible ? 5 : 10;
 	}
 
 	function clearDragState() {
@@ -370,6 +379,7 @@
 		currentSortProperty = settings.persistentUiState.homeSortProperty ?? 'updatedAt';
 		isSortAscending = settings.persistentUiState.homeSortAscending ?? false;
 		explorerSelection = settings.persistentUiState.homeExplorerSelection ?? ALL_PROJECTS_SELECTION;
+		isExplorerVisible = settings.persistentUiState.homeExplorerVisible ?? true;
 		homePreferencesInitialized = true;
 	});
 
@@ -391,6 +401,7 @@
 		currentSortProperty;
 		isSortAscending;
 		explorerSelection;
+		isExplorerVisible;
 		persistHomePreferences();
 	});
 
@@ -519,16 +530,22 @@
 		</div>
 
 		<div
-			class="mt-8 grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)] items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[280px_minmax(0,1fr)]"
+			class={`mt-8 grid items-start gap-6 lg:gap-8 ${
+				isExplorerVisible
+					? 'grid-cols-[minmax(150px,220px)_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]'
+					: 'grid-cols-1'
+			}`}
 		>
-			<div>
-				<ProjectExplorerSidebar
-					tree={explorerTree}
-					selection={explorerSelection}
-					{activeDropNodeId}
-					onSelectionChange={selectExplorerNode}
-				/>
-			</div>
+			{#if isExplorerVisible}
+				<div>
+					<ProjectExplorerSidebar
+						tree={explorerTree}
+						selection={explorerSelection}
+						{activeDropNodeId}
+						onSelectionChange={selectExplorerNode}
+					/>
+				</div>
+			{/if}
 
 			<section class="min-w-0">
 				<div
@@ -624,6 +641,18 @@
 							/>
 						</div>
 
+						<button
+							class="btn btn-icon p-2 text-sm"
+							type="button"
+							onclick={toggleExplorerVisibility}
+							title={isExplorerVisible ? $LL.home.collapse() : $LL.home.expand()}
+							aria-label={isExplorerVisible ? $LL.home.collapse() : $LL.home.expand()}
+						>
+							<span class="material-icons-outlined">
+								{isExplorerVisible ? 'menu_open' : 'menu'}
+							</span>
+						</button>
+
 						<!-- bouton pour changer affichage grid/list -->
 						<button
 							class="view-button btn text-sm p-2 btn-icon"
@@ -689,7 +718,9 @@
 							class={'mt-4 ' +
 								((globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
 									? 'grid grid-cols-1 gap-3'
-									: 'grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4')}
+									: isExplorerVisible
+										? 'grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+										: 'grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5')}
 						>
 							{#each paginatedProjects as project (project.id)}
 								<ProjectDetailCard

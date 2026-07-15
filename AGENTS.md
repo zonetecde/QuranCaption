@@ -27,6 +27,7 @@ Rules:
   `documentations/style-json.md` and follow its JSON metadata, localization, dependency, undo/redo,
   and migration checklist.
 - Stop at the requested scope. Do not add extra improvements.
+- Never create a Git commit unless the user explicitly asks for it.
 - When several solutions are possible, choose the most minimal one that is correct and maintainable.
 
 Before coding:

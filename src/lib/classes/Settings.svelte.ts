@@ -146,7 +146,7 @@ export default class Settings extends SerializableBase {
 		themeIntensity: 100,
 		hasSeenTour: false,
 		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
-		theme: 'default' as
+		theme: 'vintage-paper' as
 			| 'default'
 			| 'emerald-forest'
 			| 'polar-ice'

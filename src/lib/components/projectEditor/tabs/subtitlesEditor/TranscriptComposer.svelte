@@ -186,7 +186,7 @@
 						type="button"
 						class={`cursor-pointer rounded-full border py-2 px-4 text-sm font-semibold transition ${
 							editorState().selectedSpeaker.toLocaleLowerCase() === candidate.toLocaleLowerCase()
-								? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-black shadow-sm'
+								? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[var(--text-on-accent)] shadow-sm'
 								: 'border-color bg-secondary text-secondary hover:border-[var(--accent-primary)] hover:bg-accent hover:text-primary'
 						}`}
 						onclick={() => selectSpeaker(candidate)}

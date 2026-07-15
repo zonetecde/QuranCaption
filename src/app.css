@@ -331,6 +331,8 @@ body {
 	--border-color: #c4b494;
 	--text-primary: #3d3420;
 	--text-secondary: #5c5036;
+	--text-thirdly: #5c5036;
+	--text-placeholder: #8d7a5d;
 	--accent-primary-raw: #8b4513;
 	--accent-secondary-raw: #5d2e0d;
 	--text-on-accent: #f4ecd8;
@@ -359,6 +361,30 @@ body {
 	--wbw-tooltip-text: var(--text-primary);
 	--translation-overlap-text: #7c3aed;
 	--translation-overlap-decoration: rgba(124, 58, 237, 0.5);
+}
+
+.theme-vintage-paper .text-amber-100 {
+	color: #7c4b00;
+}
+
+.theme-vintage-paper .text-amber-300 {
+	color: #9a5c00;
+}
+
+.theme-vintage-paper .text-emerald-100 {
+	color: #166534;
+}
+
+.theme-vintage-paper .text-blue-300 {
+	color: #1d4ed8;
+}
+
+.theme-vintage-paper .text-green-300 {
+	color: #146c43;
+}
+
+.theme-vintage-paper .text-orange-300 {
+	color: #b45309;
 }
 
 .theme-oled-stealth {

@@ -626,7 +626,7 @@
 				{:else}
 					<button
 						type="button"
-						class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-30 transition hover:bg-secondary hover:opacity-100"
+						class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-65 transition hover:bg-secondary hover:opacity-100"
 						aria-label={`${$LL.common.add()} ${getFreeTextLabel(anchorIndex, draft().anchors.length)}`}
 						onclick={() => showOptionalFreeText(anchorIndex)}
 					>
@@ -837,7 +837,7 @@
 			{:else}
 				<button
 					type="button"
-					class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-30 transition hover:bg-secondary hover:opacity-100"
+					class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-65 transition hover:bg-secondary hover:opacity-100"
 					aria-label={`${$LL.common.add()} ${getFreeTextLabel(draft().anchors.length, draft().anchors.length)}`}
 					onclick={() => showOptionalFreeText(draft().anchors.length)}
 				>

@@ -28,7 +28,7 @@
 	const lightThemes: ThemeConfig[] = [
 		{
 			id: 'polar-ice',
-			name: 'Light & Ice',
+			name: $LL.settings.themeLightIce(),
 			mockBg: '#f3f6f9',
 			mockTitlebar: '#ffffff',
 			mockAccent: '#6366f1',
@@ -37,7 +37,7 @@
 		},
 		{
 			id: 'minimal-zen',
-			name: 'Light & Minimal',
+			name: $LL.settings.themeLightMinimal(),
 			mockBg: '#f9f9f9',
 			mockAccent: '#111827',
 			mockDots: 'rgba(0,0,0,0.1)',
@@ -88,7 +88,7 @@
 	const sepiaThemes: ThemeConfig[] = [
 		{
 			id: 'desert-gold',
-			name: 'Sepia Gold',
+			name: $LL.settings.themeSepiaGold(),
 			mockBg: '#f4ecd8',
 			mockTitlebar: '#e4d8b9',
 			mockAccent: '#d4a017',
@@ -97,7 +97,7 @@
 		},
 		{
 			id: 'vintage-paper',
-			name: 'Sepia Paper',
+			name: $LL.settings.themeSepiaPaper(),
 			mockBg: '#f4ecd8',
 			mockTitlebar: '#e4d8b9',
 			mockAccent: '#8b4513',
@@ -109,7 +109,7 @@
 	const darkThemes: ThemeConfig[] = [
 		{
 			id: 'default',
-			name: 'Dark & Blue',
+			name: $LL.settings.themeDarkBlue(),
 			mockBg: '#0d1117',
 			mockTitlebar: '#161b22',
 			mockAccent: '#58a6ff',
@@ -117,21 +117,21 @@
 		},
 		{
 			id: 'emerald-forest',
-			name: 'Dark & Green',
+			name: $LL.settings.themeDarkGreen(),
 			mockBg: '#060908',
 			mockTitlebar: '#0c120e',
 			mockAccent: '#10b981'
 		},
 		{
 			id: 'oled-stealth',
-			name: 'Dark & Neon',
+			name: $LL.settings.themeDarkNeon(),
 			mockBg: '#000000',
 			mockAccent: '#00ff41',
 			mockDots: 'rgba(255,255,255,0.2)'
 		},
 		{
 			id: 'ethereal-glass',
-			name: 'Dark & Glass',
+			name: $LL.settings.themeDarkGlass(),
 			mockBg: 'rgba(15, 23, 42, 0.8)',
 			mockAccent: '#ec4899',
 			mockDots: 'rgba(255,255,255,0.2)',
@@ -139,7 +139,7 @@
 		},
 		{
 			id: 'inverted-minimal-zen',
-			name: 'Dark & White',
+			name: $LL.settings.themeDarkWhite(),
 			mockBg: '#111827',
 			mockAccent: '#ffffff',
 			mockDots: 'rgba(255,255,255,0.2)',

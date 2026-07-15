@@ -19,6 +19,8 @@ export type OverlayTextSegment = {
 	extraCss?: string;
 	referenceType?: 'quran' | 'citation';
 	quranReference?: QuranTranscriptReference;
+	verseNumber?: string;
+	verseNumberPosition?: 'before' | 'after';
 	sourceClipId?: number;
 };
 
@@ -133,6 +135,10 @@ function canMergeAdjacentSegments(first: OverlayTextSegment, second: OverlayText
 	return (
 		first.extraCss === second.extraCss &&
 		first.referenceType === second.referenceType &&
+		first.quranReference?.surah === second.quranReference?.surah &&
+		first.quranReference?.verse === second.quranReference?.verse &&
+		first.verseNumber === second.verseNumber &&
+		first.verseNumberPosition === second.verseNumberPosition &&
 		first.flags.bold === second.flags.bold &&
 		first.flags.italic === second.flags.italic &&
 		first.flags.underline === second.flags.underline &&

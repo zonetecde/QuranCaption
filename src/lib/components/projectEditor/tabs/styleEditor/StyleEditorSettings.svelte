@@ -23,11 +23,13 @@
 
 	type FeatureState = 'active' | 'inactive' | 'mixed';
 	const REFERENCE_STYLE_CATEGORY_IDS = new Set(['text', 'text-glow', 'text-neon', 'effects']);
-	const QURAN_ONLY_STYLE_IDS = new Set([
-		'mushaf-style',
+	const QURAN_REFERENCE_STYLE_IDS = new Set([
 		'show-verse-number',
 		'show-decorative-brackets',
-		'decorative-brackets-font-family'
+		'decorative-brackets-font-family',
+		'verse-number-format',
+		'verse-number-position',
+		'verse-number-numeral-system'
 	]);
 
 	let {
@@ -73,8 +75,6 @@
 
 		// S'il manque des styles à une traduction, on les ajoute.
 		for (const translation of globalState.getProjectTranslation.addedTranslationEditions) {
-			if (globalState.getVideoStyle.doesTargetStyleExist(translation.name)) continue;
-
 			await globalState.getVideoStyle.addStylesForEdition(translation.name);
 		}
 	});
@@ -100,12 +100,12 @@
 	function getCategoriesToDisplay(): Category[] {
 		const target = currentStyleTarget();
 		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
-		if (target === 'arabic-quran') {
+		if (isQuranReferenceTarget()) {
 			return categories.filter(
 				(category) => category.id === 'general' || REFERENCE_STYLE_CATEGORY_IDS.has(category.id)
 			);
 		}
-		if (target === 'arabic-citation') {
+		if (isCitationReferenceTarget()) {
 			return categories.filter((category) => REFERENCE_STYLE_CATEGORY_IDS.has(category.id));
 		}
 
@@ -115,6 +115,30 @@
 		}
 
 		return categories;
+	}
+
+	/**
+	 * Indique si la cible courante correspond à une référence Quran.
+	 * @returns {boolean} `true` pour les styles Quran arabes ou traduits.
+	 */
+	function isQuranReferenceTarget(): boolean {
+		return (
+			currentStyleTarget() === 'arabic-quran' ||
+			(globalState.getStylesState.currentSelection === 'translation' &&
+				globalState.getStylesState.currentSelectionTranslationContent === 'quran')
+		);
+	}
+
+	/**
+	 * Indique si la cible courante correspond à une citation.
+	 * @returns {boolean} `true` pour les styles de citation arabes ou traduits.
+	 */
+	function isCitationReferenceTarget(): boolean {
+		return (
+			currentStyleTarget() === 'arabic-citation' ||
+			(globalState.getStylesState.currentSelection === 'translation' &&
+				globalState.getStylesState.currentSelectionTranslationContent === 'citation')
+		);
 	}
 
 	/**
@@ -296,9 +320,9 @@
 	 * @returns {'arabic' | 'translation' | null} Type d'aide requis.
 	 */
 	function getWordByWordHintTarget(): 'arabic' | 'translation' | null {
-		const target = currentStyleTarget();
-		if (target === 'arabic' && !hasWordByWordTimestamps()) return 'arabic';
-		if (target !== 'global' && target !== 'arabic' && !hasTranslationWbwMappings()) {
+		const selection = globalState.getStylesState.currentSelection;
+		if (selection === 'arabic' && !hasWordByWordTimestamps()) return 'arabic';
+		if (selection === 'translation' && !hasTranslationWbwMappings()) {
 			return 'translation';
 		}
 		return null;
@@ -309,8 +333,8 @@
 	 * @returns {boolean} `true` si une range WBW existe pour cette édition.
 	 */
 	function hasTranslationWbwMappings(): boolean {
-		const target = currentStyleTarget();
-		if (target === 'global' || target === 'arabic') return false;
+		if (globalState.getStylesState.currentSelection !== 'translation') return false;
+		const target = globalState.getStylesState.currentSelectionTranslation;
 
 		return globalState.getSubtitleTrack.clips.some((clip) => {
 			if (!(clip instanceof ClipWithTranslation)) return false;
@@ -343,11 +367,13 @@
 		)
 			return true;
 
-		if (QURAN_ONLY_STYLE_IDS.has(style.id) && target !== 'arabic-quran') return true;
+		if (style.id === 'mushaf-style' && target !== 'arabic-quran') return true;
+		if (QURAN_REFERENCE_STYLE_IDS.has(style.id) && !isQuranReferenceTarget()) return true;
 		if (
-			target === 'arabic-quran' &&
+			isQuranReferenceTarget() &&
 			category.id === 'general' &&
-			!QURAN_ONLY_STYLE_IDS.has(style.id)
+			style.id !== 'mushaf-style' &&
+			!QURAN_REFERENCE_STYLE_IDS.has(style.id)
 		)
 			return true;
 

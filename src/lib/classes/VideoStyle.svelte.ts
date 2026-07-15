@@ -1023,24 +1023,40 @@ export class VideoStyle extends SerializableBase {
 	}
 
 	async addStylesForEdition(translationEdition: string) {
-		if (this.doesTargetStyleExist(translationEdition)) return;
-
 		const defaultStyles = getNonArabicSubtitleCategories(
 			await (await fetch('./styles/styles.json')).json()
 		);
 
-		const stylesData = new StylesData(
+		for (const target of [
 			translationEdition,
-			defaultStyles.map((category) => new Category(category))
-		);
+			`${translationEdition}-quran`,
+			`${translationEdition}-citation`
+		]) {
+			if (this.doesTargetStyleExist(target)) continue;
 
-		// Styles par défaut pour les traductions
-		stylesData.setStyle('font-family', 'Georgia'); // Définit la police par défaut
-		// stylesData.setStyle('max-height', 280); // 3 lignes max
-		stylesData.setStyle('font-size', 60); // Définit la taille de police par défaut
-		stylesData.setStyle('vertical-position', 70); // Définit la hauteur de ligne par défaut
+			const stylesData = new StylesData(
+				target,
+				defaultStyles.map((category) => new Category(category))
+			);
 
-		this.styles.push(stylesData);
+			// Styles par défaut pour les traductions
+			stylesData.setStyle('font-family', 'Georgia'); // Définit la police par défaut
+			// stylesData.setStyle('max-height', 280); // 3 lignes max
+			stylesData.setStyle('font-size', 60); // Définit la taille de police par défaut
+			stylesData.setStyle('vertical-position', 70); // Définit la hauteur de ligne par défaut
+			// Styles spécifiques pour les traductions du Coran et les citations
+			if (target === `${translationEdition}-quran`) {
+				stylesData.setStyle('text-color', '#ffffff');
+				stylesData.setStyle('text-glow-enable', true);
+				stylesData.setStyle('text-glow-color', '#ffffff');
+				stylesData.setStyle('text-glow-blur', 50);
+			}
+			if (target === `${translationEdition}-citation`) {
+				stylesData.setStyle('text-color', '#f7ff8a');
+			}
+
+			this.styles.push(stylesData);
+		}
 	}
 
 	/**

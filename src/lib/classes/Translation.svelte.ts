@@ -138,7 +138,7 @@ const OPENING_PUNCTUATION_ONLY_TEXT_REGEX = /^[「『“‘（(\[【《〈]+$/u;
  * @param {string} system Système de chiffres cible.
  * @returns {string} Nombre avec les chiffres convertis.
  */
-function formatVerseNumberNumerals(value: number, system: string): string {
+export function formatVerseNumberNumerals(value: number, system: string): string {
 	const digits =
 		VERSE_NUMBER_NUMERAL_SYSTEMS[system] ?? VERSE_NUMBER_NUMERAL_SYSTEMS['Western Arabic'];
 	return value.toString().replace(/\d/g, (digit) => digits[Number(digit)] ?? digit);

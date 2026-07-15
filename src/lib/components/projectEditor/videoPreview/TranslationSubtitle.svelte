@@ -3,8 +3,11 @@
 	import {
 		buildTranslationInlineTextSegments,
 		EMPTY_INLINE_STYLE_FLAGS,
+		formatVerseNumberNumerals,
 		getInlineStyleCss,
 		getInlineStyleFlagsForWordIndex,
+		getTranslationTrimUnits,
+		sliceTranslationTrimUnits,
 		type TranslationInlineStyleFlags,
 		tokenizeTranslationText,
 		VerseTranslation
@@ -12,6 +15,7 @@
 	import type { StyleCategoryName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
+	import { getStructuredTranslationDraft } from '$lib/services/StructuredTranslationService';
 	import { untrack } from 'svelte';
 	import {
 		createPlainOverlaySegment,
@@ -22,6 +26,10 @@
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
 	import { getBackgroundHorizontalPaddingCss } from './helpers/overlayCss';
+	import {
+		getDecorativeBracketCss,
+		getDecorativeBracketGlyphs
+	} from './helpers/decorativeBrackets';
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
 		type WordByWordHighlightState,
@@ -135,6 +143,137 @@
 	}
 
 	/**
+	 * Génère les styles limités à une référence Quran ou citation traduite.
+	 * @param {'quran' | 'citation'} referenceType Type de référence ciblée.
+	 * @param {number} clipId Identifiant du clip source.
+	 * @returns {string} CSS à appliquer au segment de référence.
+	 */
+	function getTranslationReferenceStyleCss(
+		referenceType: 'quran' | 'citation',
+		clipId: number
+	): string {
+		const styles = globalState.getVideoStyle.getStylesOfTarget(`${edition}-${referenceType}`);
+		let referenceCss = styles.generateCSS(clipId, [
+			'general',
+			'word-by-word-highlight',
+			'positioning',
+			'background',
+			'border',
+			'shadow',
+			'outline',
+			'animation',
+			'custom-css'
+		]);
+		if (styles.getEffectiveValue('font-family', clipId) === 'Hafs') {
+			referenceCss += 'font-family: Hafs, sans-serif;';
+		}
+		return referenceCss;
+	}
+
+	/**
+	 * Construit les portions affichables d'une traduction structurée.
+	 * @param {string} editionName Nom de l'édition.
+	 * @param {SubtitleClip} subtitle Clip source.
+	 * @param {VerseTranslation} translation Traduction structurée.
+	 * @returns {OverlayTextSegment[]} Texte normal, citations et passages Quran séparés.
+	 */
+	function getStructuredTranslationOverlaySegments(
+		editionName: string,
+		subtitle: SubtitleClip,
+		translation: VerseTranslation
+	): OverlayTextSegment[] {
+		const draft = getStructuredTranslationDraft(subtitle.text, translation.text);
+		const language = globalState.getProjectTranslation.getEditionFromName(editionName);
+		const quranStyles = globalState.getVideoStyle.getStylesOfTarget(`${editionName}-quran`);
+		const segments: OverlayTextSegment[] = [];
+
+		for (let index = 0; index < draft.anchors.length; index++) {
+			const freeText = draft.freeTexts[index] ?? '';
+			if (freeText) {
+				segments.push(
+					createPlainOverlaySegment(`${editionName}-${subtitle.id}-text-${index}`, freeText)
+				);
+			}
+
+			const anchor = draft.anchors[index];
+			if (anchor.type === 'citation') {
+				segments.push(
+					createPlainOverlaySegment(
+						`${editionName}-${subtitle.id}-${anchor.id}`,
+						anchor.value,
+						'',
+						'citation',
+						undefined,
+						subtitle.id
+					)
+				);
+				continue;
+			}
+
+			const reference = anchor.quranReference;
+			if (!reference) continue;
+			const verseKey = `${reference.surah}:${reference.verse}`;
+			const original =
+				globalState.getProjectTranslation.versesTranslations[language.name]?.[verseKey] ?? '';
+			const settings = translation.quranSegments?.[anchor.id];
+			const units = getTranslationTrimUnits(original);
+			const text = settings?.isBruteForce
+				? settings.manualText
+				: sliceTranslationTrimUnits(
+						original,
+						settings?.startUnitIndex ?? 0,
+						settings?.endUnitIndex ?? Math.max(0, units.length - 1)
+					);
+			const showVerseNumber = Boolean(
+				quranStyles.getEffectiveValue('show-verse-number', subtitle.id)
+			);
+			const verseNumberNumeralSystem = String(
+				quranStyles.getEffectiveValue('verse-number-numeral-system', subtitle.id) ??
+					'Western Arabic'
+			);
+			const verseNumber = showVerseNumber
+				? String(quranStyles.getEffectiveValue('verse-number-format', subtitle.id) ?? '<number>. ')
+						.replaceAll(
+							'<surah>',
+							formatVerseNumberNumerals(reference.surah, verseNumberNumeralSystem)
+						)
+						.replaceAll(
+							'<number>',
+							formatVerseNumberNumerals(reference.verse, verseNumberNumeralSystem)
+						)
+				: undefined;
+
+			segments.push({
+				...createPlainOverlaySegment(
+					`${editionName}-${subtitle.id}-${anchor.id}`,
+					text,
+					'',
+					'quran',
+					reference,
+					subtitle.id
+				),
+				verseNumber,
+				verseNumberPosition:
+					String(quranStyles.getEffectiveValue('verse-number-position', subtitle.id)) === 'after'
+						? 'after'
+						: 'before'
+			});
+		}
+
+		const trailingText = draft.freeTexts[draft.anchors.length] ?? '';
+		if (trailingText) {
+			segments.push(
+				createPlainOverlaySegment(
+					`${editionName}-${subtitle.id}-text-${draft.anchors.length}`,
+					trailingText
+				)
+			);
+		}
+
+		return segments;
+	}
+
+	/**
 	 * Génère les segments d'overlay pour une édition de traduction
 	 * appliquée à un clip donné.
 	 *
@@ -155,6 +294,9 @@
 
 		if (translation.type === 'verse') {
 			const verseTranslation = translation as VerseTranslation;
+			if (verseTranslation.isStructuredTranslation) {
+				return getStructuredTranslationOverlaySegments(editionName, subtitle, verseTranslation);
+			}
 			const textParts = verseTranslation.getFormattedTextParts(editionName, subtitle);
 			const segments: OverlayTextSegment[] = [];
 
@@ -219,7 +361,8 @@
 		timingOffsetS: number = 0
 	): TranslationWbwRenderData | null {
 		const translation = subtitle.translations[editionName];
-		if (!(translation instanceof VerseTranslation)) return null;
+		if (!(translation instanceof VerseTranslation) || translation.isStructuredTranslation)
+			return null;
 
 		const arabicWordCount = subtitle.getArabicRenderParts().text.split(' ').filter(Boolean).length;
 		const normalizedRanges = translation.getNormalizedWbwRanges(arabicWordCount);
@@ -500,7 +643,11 @@
 			inlineRevealProgress = getInlineStyleRevealProgress(wbwWordIndexes, bestProgress, state);
 		}
 
-		return `${wbwCss} ${getForcedRevealCss(segment, state, data)} ${getRevealedInlineStyleCss(segment, inlineRevealProgress, state)} ${segment.extraCss ?? ''}`.trim();
+		const referenceCss =
+			segment.referenceType && segment.sourceClipId
+				? getTranslationReferenceStyleCss(segment.referenceType, segment.sourceClipId)
+				: '';
+		return `${referenceCss} ${wbwCss} ${getForcedRevealCss(segment, state, data)} ${getRevealedInlineStyleCss(segment, inlineRevealProgress, state)} ${segment.extraCss ?? ''}`.trim();
 	}
 
 	/**
@@ -596,6 +743,32 @@
 		return segment.unitIndex <= maxRevealedUnitIndex ? 'opacity: 1;' : '';
 	}
 
+	/**
+	 * Indique si les crochets décoratifs sont visibles pour les passages Quran traduits.
+	 * @returns {boolean} `true` si les crochets sont activés.
+	 */
+	function showTranslationDecorativeBrackets(): boolean {
+		return Boolean(
+			globalState.getVideoStyle
+				.getStylesOfTarget(`${edition}-quran`)
+				.getEffectiveValue('show-decorative-brackets')
+		);
+	}
+
+	/**
+	 * Retourne la paire de crochets configurée pour les passages Quran traduits.
+	 * @returns {{ opening: string; closing: string }} Glyphes ouvrant et fermant.
+	 */
+	function getTranslationBracketGlyphs(): { opening: string; closing: string } {
+		return getDecorativeBracketGlyphs(
+			String(
+				globalState.getVideoStyle
+					.getStylesOfTarget(`${edition}-quran`)
+					.getEffectiveValue('decorative-brackets-font-family') || 'LM'
+			)
+		);
+	}
+
 	// =========================================================================
 	// Props dérivées pour le template
 	// =========================================================================
@@ -672,8 +845,34 @@
 			{@const data = wbwRenderData()}
 			{#each state.enabled && data ? visibleWbwSegments() : visibleSegments() as segment (segment.key)}
 				{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
-				{#if segmentStyle}
+				{#if segment.referenceType === 'quran' && showTranslationDecorativeBrackets()}
+					{@const glyphs = getTranslationBracketGlyphs()}
+					{@const bracketStyle = `${segmentStyle} ${getDecorativeBracketCss()}`.trim()}
+					<span style={bracketStyle}>{glyphs.opening}</span>
+					{#if segment.verseNumber && segment.verseNumberPosition === 'before'}
+						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+							>{segment.verseNumber}</span
+						>
+					{/if}
 					<span style={segmentStyle}>{segment.text}</span>
+					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
+						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+							>{segment.verseNumber}</span
+						>
+					{/if}
+					<span style={bracketStyle}>{glyphs.closing}</span>
+				{:else if segmentStyle}
+					{#if segment.verseNumber && segment.verseNumberPosition === 'before'}
+						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+							>{segment.verseNumber}</span
+						>
+					{/if}
+					<span style={segmentStyle}>{segment.text}</span>
+					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
+						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+							>{segment.verseNumber}</span
+						>
+					{/if}
 				{:else}
 					{segment.text}
 				{/if}

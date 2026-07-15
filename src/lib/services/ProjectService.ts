@@ -154,6 +154,10 @@ export class ProjectService {
 			project.content.videoStyle = await VideoStyle.getDefaultVideoStyle();
 		}
 
+		for (const translation of project.content.projectTranslation.addedTranslationEditions) {
+			await project.content.videoStyle.addStylesForEdition(translation.name);
+		}
+
 		return project;
 	}
 

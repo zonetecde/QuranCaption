@@ -1048,7 +1048,8 @@ const editor = {
 		'decorative-brackets-font-family':
 			'Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.',
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',
-		'verse-number-format': 'Change the format of verse numbers. Use <number> tag to customize.',
+		'verse-number-format':
+			'Change the format of verse numbers. Use <surah> for the surah and <number> for the verse.',
 		'verse-number-position': 'Set the position of verse numbers',
 		'verse-number-numeral-system': 'Choose how verse number digits are written in translations.',
 		'verse-number-vertical-position':

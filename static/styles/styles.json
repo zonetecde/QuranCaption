@@ -102,8 +102,8 @@
 			{
 				"id": "verse-number-format",
 				"name": "Verse Number Format",
-				"description": "Change the format of verse numbers. Use <number> tag to customize.",
-				"value": "<number>. ",
+				"description": "Change the format of verse numbers. Use <surah> for the surah and <number> for the verse.",
+				"value": "<surah>:<number>",
 				"valueType": "text",
 				"css": "",
 				"tailwind": false,

@@ -142,6 +142,18 @@
 					{/each}
 				</select>
 			</label>
+			<label class="flex items-center gap-2">
+				<span class="material-icons-outlined text-sm text-secondary">format_quote</span>
+				<select
+					class="flex-1 text-sm"
+					aria-label={$LL.editor.selectTranslation()}
+					bind:value={globalState.getStylesState.currentSelectionTranslationContent}
+				>
+					<option value="normal">{$LL.editor.normalText()}</option>
+					<option value="quran">{$LL.editor.quranPassages()}</option>
+					<option value="citation">{$LL.editor.citations()}</option>
+				</select>
+			</label>
 		{:else}
 			<p class="py-1 text-center text-xs text-secondary">{$LL.editor.noTranslationsYet()}</p>
 		{/if}

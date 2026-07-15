@@ -581,12 +581,24 @@ export class StylesData extends SerializableBase {
 
 				// Propriétés spécifiques à ignorer
 				if (style.id === 'font-family' && String(effectiveValue) === 'Hafs') continue; // Gérer par une classe Tailwind
+				if (
+					['line-height', 'max-height', 'max-line'].includes(style.id) &&
+					(this.target.endsWith('-quran') || this.target.endsWith('-citation'))
+				)
+					continue;
 				if (style.id === 'max-height' && effectiveValue === 0) {
 					const maxLineValue = Number(this.getEffectiveValue('max-line', clipId));
 					if (maxLineValue >= 1 && maxLineValue <= 4) continue;
 					break; // Ignore les propriétés après qui dépendent de max-height
 				}
-
+				if (style.id === 'max-height') {
+					css += `max-height: ${effectiveValue}px; height: ${effectiveValue}px;\n`;
+					continue;
+				}
+				if (style.id === 'font-size') {
+					css += `font-size: calc(${effectiveValue}px * var(--reactive-font-scale, 1));\n`;
+					continue;
+				}
 				if (style.tailwind) continue; // Ignore les styles Tailwind, qui sont appliqués différemment
 
 				// Cas particulier: pour la police d'écriture QPC1 ou QPC2, alors on met la bonne

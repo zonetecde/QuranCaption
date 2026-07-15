@@ -355,6 +355,11 @@
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
 
 		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;
+		if (
+			(isQuranReferenceTarget() || isCitationReferenceTarget()) &&
+			['line-height', 'max-height', 'max-line'].includes(style.id)
+		)
+			return true;
 
 		if (
 			selection === 'arabic' &&

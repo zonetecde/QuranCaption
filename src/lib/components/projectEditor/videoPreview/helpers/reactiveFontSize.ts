@@ -57,7 +57,7 @@ export async function applyReactiveFontSize(
 
 	if (
 		subtitles.length === 0 ||
-		!hasReactiveFontSizeViolation(subtitles, target, maxHeightValue, maxLineValue, marge)
+		!hasReactiveFontSizeViolation(subtitles, maxHeightValue, maxLineValue, marge)
 	) {
 		return;
 	}
@@ -73,7 +73,7 @@ export async function applyReactiveFontSize(
 		setReactiveFontSize(target, nextFontSize);
 		await wait(abortSignal);
 
-		if (hasReactiveFontSizeViolation(subtitles, target, maxHeightValue, maxLineValue, marge)) {
+		if (hasReactiveFontSizeViolation(subtitles, maxHeightValue, maxLineValue, marge)) {
 			maxFailingSize = nextFontSize;
 		} else {
 			minPassingSize = nextFontSize;
@@ -88,7 +88,6 @@ export async function applyReactiveFontSize(
  * Indique si au moins un sous-titre visible dépasse les contraintes de layout.
  *
  * @param subtitles - Éléments de sous-titre mesurés.
- * @param target - Target de style mesurée.
  * @param maxHeightValue - Hauteur maximale autorisée en pixels.
  * @param maxLineValue - Nombre maximal de lignes autorisées.
  * @param marge - Marge de tolérance verticale.
@@ -96,7 +95,6 @@ export async function applyReactiveFontSize(
  */
 function hasReactiveFontSizeViolation(
 	subtitles: Element[],
-	target: string,
 	maxHeightValue: number,
 	maxLineValue: number,
 	marge: number
@@ -106,7 +104,7 @@ function hasReactiveFontSizeViolation(
 	return subtitles.some((subtitle) => {
 		return (
 			(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
-			(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)
+			(hasMaxLineLimit && getRenderedLineCount(subtitle) > maxLineValue)
 		);
 	});
 }
@@ -155,20 +153,6 @@ function countDistinctLinePositions(rects: DOMRect[]): number {
 	}
 
 	return lineCenters.length;
-}
-
-/**
- * Retourne le compteur de lignes adapté au type de sous-titre.
- *
- * @param element - Élément dont le contenu texte doit être mesuré.
- * @param target - Target de style mesurée.
- * @returns Nombre de lignes à utiliser pour l'ajustement de taille.
- */
-function getReactiveFontSizeLineCount(element: Element, target: string): number {
-	if (target === 'arabic') return getRenderedLineCount(element);
-	if (!element.textContent?.trim()) return 0;
-
-	return getFallbackLineCount(element);
 }
 
 /**

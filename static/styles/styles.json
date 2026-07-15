@@ -206,7 +206,7 @@
 				"valueType": "number",
 				"valueMin": 16,
 				"valueMax": 200,
-				"css": "font-size: {value}px;",
+				"css": "font-size: calc({value}px * var(--reactive-font-scale, 1));",
 				"tailwind": false,
 				"icon": "format_size"
 			},

@@ -575,12 +575,22 @@
 	 */
 	function getRuntimeLayoutCss(target: string): string {
 		const layout = getRuntimeSubtitleLayout(target);
+		const referenceClip = getReferenceClipForTarget(target);
+		const initialFontSize = Number(
+			globalState.getVideoStyle
+				.getStylesOfTarget(target)
+				.getEffectiveValue('font-size', referenceClip?.id)
+		);
+		const fontScale =
+			layout.fontSize !== null && Number.isFinite(initialFontSize) && initialFontSize > 0
+				? layout.fontSize / initialFontSize
+				: 1;
 		const fontSizeCss =
 			layout.fontSize !== null ? `font-size: ${layout.fontSize}px !important;` : '';
 		const centerAlignmentCss = layout.forceCenterAlignment
 			? 'display: flex !important; align-items: center !important;'
 			: '';
-		return `--reactive-y-position: ${layout.yOffset}px; ${fontSizeCss} ${centerAlignmentCss}`;
+		return `--reactive-y-position: ${layout.yOffset}px; --reactive-font-scale: ${fontScale}; ${fontSizeCss} ${centerAlignmentCss}`;
 	}
 
 	/**

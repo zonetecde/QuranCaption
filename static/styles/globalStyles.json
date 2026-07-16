@@ -641,7 +641,7 @@
 	},
 	{
 		"id": "ayah-container",
-		"name": "Ayah Container",
+		"name": "Text Container",
 		"description": "Add a decorative background image behind the ayah",
 		"icon": "gradient",
 		"ui": {

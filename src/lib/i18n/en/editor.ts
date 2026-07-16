@@ -1023,7 +1023,7 @@ const editor = {
 		'reciter-latin-spacing': 'Spacing',
 		'reciter-opacity': 'Opacity',
 		'reciter-latin-text-style': 'Text Styles',
-		'ayah-container': 'Ayah Container',
+		'ayah-container': 'Text Container',
 		'ayah-container-image': 'Container Image',
 		'ayah-container-vertical-position': 'Vertical Position',
 		'ayah-container-horizontal-position': 'Horizontal Position',

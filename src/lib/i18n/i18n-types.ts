@@ -5027,7 +5027,7 @@ type RootTranslation = {
 			 */
 			'mushaf-style': string;
 			/**
-			 * C​h​a​n​g​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​.​ ​U​s​e​ ​<​n​u​m​b​e​r​>​ ​t​a​g​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 * C​h​a​n​g​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​.​ ​U​s​e​ ​<​s​u​r​a​h​>​ ​f​o​r​ ​t​h​e​ ​s​u​r​a​h​ ​a​n​d​ ​<​n​u​m​b​e​r​>​ ​f​o​r​ ​t​h​e​ ​v​e​r​s​e​.
 			 */
 			'verse-number-format': string;
 			/**
@@ -14312,7 +14312,7 @@ export type TranslationFunctions = {
 			 */
 			'mushaf-style': () => LocalizedString;
 			/**
-			 * Change the format of verse numbers. Use <number> tag to customize.
+			 * Change the format of verse numbers. Use <surah> for the surah and <number> for the verse.
 			 */
 			'verse-number-format': () => LocalizedString;
 			/**

@@ -392,6 +392,12 @@ export class ExportState extends SerializableBase {
 	// Indique si on exporte les numéros de verset ou pas
 	exportVerseNumbers: { [target: string]: boolean } = $state({});
 
+	// Indique si les numéros de verset sont ajoutés aux traductions exportées
+	exportTranslationVerseNumbers: boolean = $state(true);
+
+	// Indique si les versets arabes exportés sont entourés de parenthèses Unicode
+	exportArabicAyahParentheses: boolean = $state(true);
+
 	// Indique le format du texte arabe
 	arabicTextFormat: 'Plain' | 'V1' | 'V2' = $state('Plain');
 

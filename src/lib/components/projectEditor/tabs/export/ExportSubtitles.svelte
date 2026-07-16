@@ -19,6 +19,11 @@
 		'arabic',
 		...globalState.getProjectTranslation.addedTranslationEditions.map((e) => e.name)
 	]);
+	const hasIncludedTranslations = $derived(
+		subtitleExportTargets.some(
+			(target) => target !== 'arabic' && Boolean(globalState.getExportState.includedTarget[target])
+		)
+	);
 
 	onMount(() => {
 		for (const target of Object.keys(globalState.getExportState.includedTarget)) {
@@ -30,10 +35,10 @@
 
 		for (const target of subtitleExportTargets) {
 			// Si le target n'existe toujours pas dans globalState.getExportState.exportVerseNumbers, l'ajoute
-			if (!globalState.getExportState.exportVerseNumbers[target]) {
+			if (!(target in globalState.getExportState.exportVerseNumbers)) {
 				globalState.getExportState.exportVerseNumbers[target] = target === 'arabic' ? true : false; // Par défaut seul l'arabe a ses numéros de verset
 			}
-			if (!globalState.getExportState.includedTarget[target]) {
+			if (!(target in globalState.getExportState.includedTarget)) {
 				globalState.getExportState.includedTarget[target] = true; // Par défaut on exporte tout
 			}
 		}
@@ -93,10 +98,9 @@
 
 		<div class="space-y-4">
 			{#each subtitleExportTargets as target (target)}
-				{@const included = globalState.getExportState.includedTarget[target]}
 				<div class="bg-accent rounded-lg p-4 border border-color">
 					<!-- Main content checkbox -->
-					<div class="flex items-start gap-3 mb-3">
+					<div class="flex items-start gap-3">
 						<input
 							type="checkbox"
 							bind:checked={globalState.getExportState.includedTarget[target]}
@@ -116,114 +120,116 @@
 									{target === 'arabic'
 										? $LL.export.arabicTextDescription()
 										: $LL.export.translationByAuthor({
-												author: globalState.getProjectTranslation.getEditionFromName(target).author
+												author:
+													globalState.getProjectTranslation.getEditionFromName(target).quranEdition
+														?.author ?? ''
 											})}
 								</p>
 							</label>
 						</div>
 					</div>
-
-					<!-- Verse numbers option -->
-					<div class="ml-7 {!included ? 'opacity-50 pointer-events-none' : ''}">
-						<div class="flex items-start gap-3">
-							<input
-								type="checkbox"
-								bind:checked={globalState.getExportState.exportVerseNumbers[target]}
-								class="w-4 h-4 mt-0.5 rounded"
-								id="verse-numbers-{target}"
-								disabled={!included}
-								onchange={(event: Event) => {
-									const input = event.target as HTMLInputElement;
-									// Set le style 'show-verse-number' car les méthodes getText() se base dessus
-									// pour afficher les numéros de verset
-									globalState.getVideoStyle
-										.getStylesOfTarget(target)
-										.setStyle('show-verse-number', input.checked);
-								}}
-							/>
-							<div class="flex-1">
-								<label for="verse-numbers-{target}" class="cursor-pointer">
-									<span class="text-secondary text-sm">{$LL.export.includeVerseNumbers()}</span>
-									<p class="text-thirdly text-xs mt-1">
-										{#if target === 'arabic'}
-											{$LL.export.includeVerseNumbersAtEnd()}
-										{:else}
-											{$LL.export.includeVerseNumbersAtStart()}
-										{/if}
-									</p>
-								</label>
-							</div>
-						</div>
-					</div>
-
-					<!-- Arabic text format option (only for Arabic) -->
-					{#if target === 'arabic'}
-						<div class="mt-4 {!included ? 'opacity-50 pointer-events-none' : ''}">
-							<div class="space-y-2">
-								<span class="text-secondary text-sm font-medium"
-									>{$LL.export.arabicTextFormat()}</span
-								>
-								<p class="text-thirdly text-xs mb-3">
-									{$LL.export.arabicTextFormatDescription()}
-								</p>
-								<div class="flex gap-2">
-									{#each ['Plain', 'V1', 'V2'] as format (format)}
-										<label class="flex-1">
-											<input
-												type="radio"
-												name="arabic-format"
-												value={format}
-												bind:group={globalState.getExportState.arabicTextFormat}
-												class="sr-only"
-												disabled={!included}
-												onchange={(event: Event) => {
-													const input = event.target as HTMLInputElement;
-													// Modifie la police d'écriture dans la vidéo (car c'est elle
-													// qui détermine le texte sous-titre pour les polices QPC)
-													const fontFamily = globalState.getStyle('arabic', 'font-family')!.value;
-
-													if (
-														input.value === 'Plain' &&
-														(fontFamily === 'QPC1' || fontFamily === 'QPC2')
-													) {
-														globalState.getVideoStyle
-															.getStylesOfTarget('arabic')
-															.setStyle('font-family', 'Hafs');
-													} else if (input.value === 'V1' || input.value === 'V2') {
-														globalState.getVideoStyle
-															.getStylesOfTarget('arabic')
-															.setStyle('font-family', 'QPC' + input.value[1]);
-													}
-
-													globalState.updateVideoPreviewUI();
-												}}
-											/>
-											<div
-												class="cursor-pointer rounded-lg border px-3 py-2 text-center flex flex-col items-center justify-center text-sm font-medium transition-all duration-200 h-full {globalState
-													.getExportState.arabicTextFormat === format
-													? 'bg-accent-primary text-black border-accent-primary'
-													: 'bg-accent border-color text-secondary hover:border-accent-primary hover:text-primary'}"
-											>
-												{format === 'Plain' ? 'Plain' : `QPC ${format}`}
-												<div
-													class="text-xs mt-1 {globalState.getExportState.arabicTextFormat ===
-													format
-														? 'text-black/80'
-														: 'text-thirdly'}"
-												>
-													{arabicFormatDescriptions[format as 'Plain' | 'V1' | 'V2']()}
-												</div>
-											</div>
-										</label>
-									{/each}
-								</div>
-							</div>
-						</div>
-					{/if}
 				</div>
 			{/each}
 		</div>
 	</div>
+
+	<details class="mb-6 bg-accent rounded-lg border border-color p-4">
+		<summary class="cursor-pointer text-base font-medium text-secondary">
+			{$LL.export.advancedSettings()}
+		</summary>
+		<div class="mt-4 space-y-5">
+			<div
+				class={!globalState.getExportState.includedTarget.arabic
+					? 'opacity-50 pointer-events-none'
+					: ''}
+			>
+				<span class="text-secondary text-sm font-medium">{$LL.export.arabicTextFormat()}</span>
+				<p class="text-thirdly text-xs mt-1 mb-3">
+					{$LL.export.arabicTextFormatDescription()}
+				</p>
+				<div class="flex gap-2">
+					{#each ['Plain', 'V1', 'V2'] as format (format)}
+						<label class="flex-1">
+							<input
+								type="radio"
+								name="arabic-format"
+								value={format}
+								bind:group={globalState.getExportState.arabicTextFormat}
+								class="sr-only"
+								disabled={!globalState.getExportState.includedTarget.arabic}
+							/>
+							<div
+								class="cursor-pointer rounded-lg border px-3 py-2 text-center flex flex-col items-center justify-center text-sm font-medium transition-all duration-200 h-full {globalState
+									.getExportState.arabicTextFormat === format
+									? 'bg-accent-primary text-black border-accent-primary'
+									: 'bg-secondary border-color text-secondary hover:border-accent-primary hover:text-primary'}"
+							>
+								{format === 'Plain' ? $LL.export.simpleText() : `QPC ${format[1]}`}
+								<div
+									class="text-xs mt-1 {globalState.getExportState.arabicTextFormat === format
+										? 'text-black/80'
+										: 'text-thirdly'}"
+								>
+									{arabicFormatDescriptions[format as 'Plain' | 'V1' | 'V2']()}
+								</div>
+							</div>
+						</label>
+					{/each}
+				</div>
+			</div>
+
+			<div
+				class="flex items-start gap-3 {!globalState.getExportState.includedTarget.arabic
+					? 'opacity-50 pointer-events-none'
+					: ''}"
+			>
+				<input
+					type="checkbox"
+					bind:checked={globalState.getExportState.exportArabicAyahParentheses}
+					class="w-4 h-4 mt-0.5 rounded"
+					id="export-arabic-ayah-parentheses"
+					disabled={!globalState.getExportState.includedTarget.arabic}
+				/>
+				<label for="export-arabic-ayah-parentheses" class="cursor-pointer">
+					<span class="text-secondary text-sm">{$LL.export.includeVerseNumbers()}</span>
+				</label>
+			</div>
+
+			<div
+				class="flex items-start gap-3 {!globalState.getExportState.includedTarget.arabic
+					? 'opacity-50 pointer-events-none'
+					: ''}"
+			>
+				<input
+					type="checkbox"
+					bind:checked={globalState.getExportState.exportVerseNumbers.arabic}
+					class="w-4 h-4 mt-0.5 rounded"
+					id="export-arabic-verse-numbers"
+					disabled={!globalState.getExportState.includedTarget.arabic}
+				/>
+				<label for="export-arabic-verse-numbers" class="cursor-pointer">
+					<span class="text-secondary text-sm">{$LL.export.includeVerseNumbersAtEnd()}</span>
+				</label>
+			</div>
+
+			<div
+				class="flex items-start gap-3 {!hasIncludedTranslations
+					? 'opacity-50 pointer-events-none'
+					: ''}"
+			>
+				<input
+					type="checkbox"
+					bind:checked={globalState.getExportState.exportTranslationVerseNumbers}
+					class="w-4 h-4 mt-0.5 rounded"
+					id="export-translation-verse-numbers"
+					disabled={!hasIncludedTranslations}
+				/>
+				<label for="export-translation-verse-numbers" class="cursor-pointer">
+					<span class="text-secondary text-sm">{$LL.export.includeVerseNumbersAtStart()}</span>
+				</label>
+			</div>
+		</div>
+	</details>
 
 	<!-- Export Filename -->
 	<div class="mb-6">

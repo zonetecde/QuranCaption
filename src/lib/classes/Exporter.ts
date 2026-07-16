@@ -2,6 +2,11 @@ import { globalState } from '$lib/runes/main.svelte';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalPosition } from '@tauri-apps/api/dpi';
 import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
+import {
+	VerseTranslation,
+	getTranslationTrimUnits,
+	sliceTranslationTrimUnits
+} from './Translation.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
 import { Utilities } from './misc/Utilities';
@@ -12,8 +17,8 @@ import { BaseDirectory, join } from '@tauri-apps/api/path';
 import { exists, remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
-import SoosiProvider from '$lib/services/SoosiProvider';
-import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+import { formatTranscriptReferencesForExport } from '$lib/services/TranscriptReferenceService';
+import { getStructuredTranslationDraft } from '$lib/services/StructuredTranslationService';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
@@ -33,6 +38,62 @@ export type YouTubeChapterFormatValues = {
 	verseNumber: number;
 	verseTranslation: string;
 };
+
+/**
+ * Retourne le texte d'une traduction tel qu'il est affichÃ©, avec les numÃ©ros
+ * de verset optionnels pour les ancres Quran structurÃ©es.
+ * @param {string} edition Nom de l'Ã©dition de traduction.
+ * @param {SubtitleClip | PredefinedSubtitleClip} subtitle Sous-titre source.
+ * @param {boolean} includeVerseNumbers Ajoute le prÃ©fixe `ss:vv. ` aux passages Quran.
+ * @returns {string} Texte Ã  Ã©crire dans le fichier de sous-titres.
+ */
+function getSubtitleTranslationForExport(
+	edition: string,
+	subtitle: SubtitleClip | PredefinedSubtitleClip,
+	includeVerseNumbers: boolean,
+	includeAyahParentheses: boolean
+): string {
+	const translation = subtitle.getTranslation(edition);
+	if (
+		(!includeVerseNumbers && !includeAyahParentheses) ||
+		!(subtitle instanceof SubtitleClip) ||
+		!(translation instanceof VerseTranslation) ||
+		!translation.isStructuredTranslation
+	) {
+		return subtitle instanceof SubtitleClip
+			? translation.getText(edition, subtitle)
+			: translation.getText();
+	}
+
+	const draft = getStructuredTranslationDraft(subtitle.text, translation.text);
+	const editionTranslations = globalState.getProjectTranslation.versesTranslations[edition] ?? {};
+	let text = '';
+	for (let index = 0; index < draft.anchors.length; index++) {
+		text += draft.freeTexts[index] ?? '';
+		const anchor = draft.anchors[index];
+		if (anchor.type === 'citation') {
+			text += anchor.value;
+			continue;
+		}
+
+		const reference = anchor.quranReference;
+		if (!reference) continue;
+		const original = editionTranslations[`${reference.surah}:${reference.verse}`] ?? '';
+		const units = getTranslationTrimUnits(original);
+		const settings = translation.quranSegments?.[anchor.id];
+		const translationText = settings?.isBruteForce
+			? settings.manualText
+			: sliceTranslationTrimUnits(
+					original,
+					settings?.startUnitIndex ?? 0,
+					settings?.endUnitIndex ?? Math.max(0, units.length - 1)
+				);
+		const verseText = `${includeVerseNumbers ? `${reference.surah}:${reference.verse}. ` : ''}${translationText}`;
+		text += includeAyahParentheses ? `\uFD3F${verseText}\uFD3E` : verseText;
+	}
+
+	return text + (draft.freeTexts[draft.anchors.length] ?? '');
+}
 
 /**
  * Remplace les placeholders connus dans une ligne de chapitres YouTube.
@@ -195,45 +256,16 @@ export default class Exporter {
 			includedTargets: Object.entries(es.includedTarget)
 				.filter(([, included]) => included)
 				.map(([target]) => target),
-			exportVerseNumbers: es.exportVerseNumbers
+			includeArabicVerseNumbers: Boolean(es.exportVerseNumbers.arabic),
+			includeArabicAyahParentheses: es.exportArabicAyahParentheses,
+			includeTranslationVerseNumbers: es.exportTranslationVerseNumbers
 		};
-
-		if (settings.includedTargets.includes('arabic')) {
-			const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
-			if (mushafStyle === 'Soosi') await SoosiProvider.prefetch();
-			if (mushafStyle === 'Minimal Quran') await MinimalQuranProvider.prefetch();
-		}
 
 		const subtitles: {
 			startTimeMs: number;
 			endTimeMs: number;
 			text: string;
 		}[] = [];
-
-		// Sauvegarde les styles pour les restaurer après l'export
-		let originalFontFamily: string | null = null;
-		let originalShowVerseNumber: boolean | null = null;
-
-		// Synchronise les styles avec les paramètres d'export avant la boucle,
-		// car getText() se base sur les styles (font-family, show-verse-number)
-		// qui peuvent être désynchronisés des paramètres d'export.
-		if (settings.includedTargets.includes('arabic')) {
-			const fontStyle = globalState.getStyle('arabic', 'font-family')!;
-			if (
-				es.arabicTextFormat === 'Plain' &&
-				(fontStyle.value === 'QPC1' || fontStyle.value === 'QPC2')
-			) {
-				originalFontFamily = fontStyle.value;
-				fontStyle.value = 'Hafs';
-			}
-
-			const showVerseStyle = globalState.getStyle('arabic', 'show-verse-number')!;
-			const desiredShowVerse = Boolean(es.exportVerseNumbers['arabic']);
-			if (showVerseStyle.value !== desiredShowVerse) {
-				originalShowVerseNumber = showVerseStyle.value as boolean;
-				showVerseStyle.value = desiredShowVerse;
-			}
-		}
 
 		for (const subtitle of globalState.getSubtitleTrack.clips) {
 			// Skip les clips silencieux ou sans texte
@@ -247,10 +279,23 @@ export default class Exporter {
 
 			for (const target of settings.includedTargets) {
 				if (target === 'arabic') {
-					text += subtitle.getText();
+					text +=
+						subtitle instanceof SubtitleClip
+							? await formatTranscriptReferencesForExport(
+									subtitle.text,
+									es.arabicTextFormat,
+									settings.includeArabicVerseNumbers,
+									settings.includeArabicAyahParentheses
+								)
+							: subtitle.text;
 				} else {
 					if (subtitle instanceof SubtitleClip)
-						text += subtitle.getTranslation(target).getText(target, subtitle);
+						text += getSubtitleTranslationForExport(
+							target,
+							subtitle,
+							settings.includeTranslationVerseNumbers,
+							settings.includeArabicAyahParentheses
+						);
 					else if (subtitle instanceof PredefinedSubtitleClip)
 						text += subtitle.getTranslation(target).getText(); // Pas de numéro de verset, donc getText() suffit
 				}
@@ -265,14 +310,6 @@ export default class Exporter {
 			});
 		}
 
-		// Restaure les styles modifiés
-		if (originalFontFamily !== null) {
-			globalState.getStyle('arabic', 'font-family')!.value = originalFontFamily;
-		}
-		if (originalShowVerseNumber !== null) {
-			globalState.getStyle('arabic', 'show-verse-number')!.value = originalShowVerseNumber;
-		}
-
 		const fileContent = SubtitleFileContentGenerator.generateSubtitleFile(
 			subtitles,
 			settings.format
@@ -281,7 +318,14 @@ export default class Exporter {
 		AnalyticsService.trackSubtitlesExport(
 			settings.format,
 			settings.includedTargets,
-			settings.exportVerseNumbers,
+			Object.fromEntries(
+				settings.includedTargets.map((target) => [
+					target,
+					target === 'arabic'
+						? settings.includeArabicVerseNumbers
+						: settings.includeTranslationVerseNumbers
+				])
+			),
 			subtitles.length
 		);
 

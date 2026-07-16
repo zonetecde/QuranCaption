@@ -30,6 +30,8 @@ export type TranscriptReferenceLogicalPart = {
 	wordCount: number | null;
 };
 
+export type TranscriptReferenceExportFormat = 'Plain' | 'V1' | 'V2';
+
 const verseCache = new Map<string, Verse>();
 const versePromises = new Map<string, Promise<Verse | null>>();
 
@@ -211,6 +213,79 @@ export async function prefetchTranscriptReferences(texts: string[]): Promise<voi
 		...references.map((reference) => loadReferencedVerse(reference.surah, reference.verse)),
 		QPCFontProvider.loadQPC2Data()
 	]);
+}
+
+/**
+ * Formate les rÃ©fÃ©rences Quran pour un fichier de sous-titres, sans dÃ©pendre
+ * des styles actifs de la preview.
+ * @param {string} text Texte source contenant Ã©ventuellement des rÃ©fÃ©rences.
+ * @param {TranscriptReferenceExportFormat} format Format arabe demandÃ©.
+ * @param {boolean} includeVerseNumbers Inclut le numÃ©ro Ã  la fin des versets complets.
+ * @returns {Promise<string>} Texte prÃªt Ã  Ãªtre exportÃ©.
+ */
+export async function formatTranscriptReferencesForExport(
+	text: string,
+	format: TranscriptReferenceExportFormat,
+	includeVerseNumbers: boolean,
+	includeAyahParentheses: boolean
+): Promise<string> {
+	if (!hasTranscriptReferenceMarkers(text)) return text;
+	if (format !== 'Plain') await QPCFontProvider.loadQPC2Data();
+
+	let result = '';
+	let cursor = 0;
+	for (const match of text.matchAll(MARKER_REGEX)) {
+		result += text.slice(cursor, match.index);
+		const reference = parseQuranTranscriptReference(match[1]);
+		if (!reference) {
+			result += match[1].trim();
+			cursor = (match.index ?? 0) + match[0].length;
+			continue;
+		}
+
+		const verse = await loadReferencedVerse(reference.surah, reference.verse);
+		if (!verse) {
+			result += match[0];
+			cursor = (match.index ?? 0) + match[0].length;
+			continue;
+		}
+
+		const startIndex = (reference.startWord ?? 1) - 1;
+		const endIndex = (reference.endWord ?? verse.words.length) - 1;
+		const qpcVersion = format === 'V1' ? '1' : format === 'V2' ? '2' : null;
+		const glyphWords = qpcVersion
+			? QPCFontProvider.getQuranVerseGlyphWords(
+					reference.surah,
+					reference.verse,
+					startIndex,
+					endIndex,
+					qpcVersion
+				)
+			: [];
+		const verseText =
+			glyphWords.length === endIndex - startIndex + 1
+				? glyphWords.join(' ')
+				: verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
+		let verseNumber =
+			includeVerseNumbers && endIndex === verse.words.length - 1
+				? ` \uFD3F${verse.id
+						.toString()
+						.replace(/\d/g, (digit) => 'Ù Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨Ù©'[Number(digit)])}\uFD3E`
+				: '';
+		if (includeVerseNumbers && endIndex === verse.words.length - 1) {
+			verseNumber = ` ${verse.id
+				.toString()
+				.replace(/\d/g, (digit) => String.fromCharCode(0x0660 + Number(digit)))}`;
+		}
+		const isFullVerse = startIndex === 0 && endIndex === verse.words.length - 1;
+		result +=
+			includeAyahParentheses && isFullVerse
+				? `\uFD3F${verseText}${verseNumber}\uFD3E`
+				: verseText + verseNumber;
+		cursor = (match.index ?? 0) + match[0].length;
+	}
+
+	return result + text.slice(cursor);
 }
 
 /**

@@ -188,7 +188,7 @@ export default class Exporter {
 	 * Exporte le projet sous forme de sous-titres
 	 */
 	static async exportSubtitles() {
-		const es = globalState.getExportState;
+		const es = globalState.settings!.subtitleExportSettings;
 
 		const settings = {
 			format: es.subtitleFormat,
@@ -212,25 +212,31 @@ export default class Exporter {
 
 		// Sauvegarde les styles pour les restaurer après l'export
 		let originalFontFamily: string | null = null;
-		let originalShowVerseNumber: boolean | null = null;
+		const originalShowVerseNumbers: { target: string; value: boolean }[] = [];
 
 		// Synchronise les styles avec les paramètres d'export avant la boucle,
 		// car getText() se base sur les styles (font-family, show-verse-number)
 		// qui peuvent être désynchronisés des paramètres d'export.
 		if (settings.includedTargets.includes('arabic')) {
 			const fontStyle = globalState.getStyle('arabic', 'font-family')!;
-			if (
+			const exportFontFamily =
 				es.arabicTextFormat === 'Plain' &&
 				(fontStyle.value === 'QPC1' || fontStyle.value === 'QPC2')
-			) {
-				originalFontFamily = fontStyle.value;
-				fontStyle.value = 'Hafs';
+					? 'Hafs'
+					: es.arabicTextFormat === 'Plain'
+						? (fontStyle.value as string)
+						: `QPC${es.arabicTextFormat[1]}`;
+			if (fontStyle.value !== exportFontFamily) {
+				originalFontFamily = fontStyle.value as string;
+				fontStyle.value = exportFontFamily;
 			}
+		}
 
-			const showVerseStyle = globalState.getStyle('arabic', 'show-verse-number')!;
-			const desiredShowVerse = Boolean(es.exportVerseNumbers['arabic']);
-			if (showVerseStyle.value !== desiredShowVerse) {
-				originalShowVerseNumber = showVerseStyle.value as boolean;
+		for (const target of settings.includedTargets) {
+			const showVerseStyle = globalState.getStyle(target, 'show-verse-number');
+			const desiredShowVerse = Boolean(es.exportVerseNumbers[target]);
+			if (showVerseStyle && showVerseStyle.value !== desiredShowVerse) {
+				originalShowVerseNumbers.push({ target, value: showVerseStyle.value as boolean });
 				showVerseStyle.value = desiredShowVerse;
 			}
 		}
@@ -269,8 +275,8 @@ export default class Exporter {
 		if (originalFontFamily !== null) {
 			globalState.getStyle('arabic', 'font-family')!.value = originalFontFamily;
 		}
-		if (originalShowVerseNumber !== null) {
-			globalState.getStyle('arabic', 'show-verse-number')!.value = originalShowVerseNumber;
+		for (const { target, value } of originalShowVerseNumbers) {
+			globalState.getStyle(target, 'show-verse-number')!.value = value;
 		}
 
 		const fileContent = SubtitleFileContentGenerator.generateSubtitleFile(

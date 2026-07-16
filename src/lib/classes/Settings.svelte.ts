@@ -76,6 +76,14 @@ export type ExportSettings = {
 	performanceProfile: PerformanceProfile;
 };
 
+export type SubtitleExportSettings = {
+	subtitleFormat: 'SRT' | 'VTT';
+	includedTarget: Record<string, boolean>;
+	exportVerseNumbers: Record<string, boolean>;
+	arabicTextFormat: 'Plain' | 'V1' | 'V2';
+	customFileName: string;
+};
+
 export type SavedVideoStylePreset = {
 	id: number;
 	communityPresetId?: string;
@@ -175,6 +183,14 @@ export default class Settings extends SerializableBase {
 	});
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
+
+	subtitleExportSettings = $state<SubtitleExportSettings>({
+		subtitleFormat: 'SRT',
+		includedTarget: { arabic: true },
+		exportVerseNumbers: { arabic: true },
+		arabicTextFormat: 'Plain',
+		customFileName: ''
+	});
 
 	savedVideoStylePresets = $state<SavedVideoStylePreset[]>([]);
 
@@ -441,6 +457,16 @@ export default class Settings extends SerializableBase {
 			settings.exportSettings = {} as ExportSettings;
 			shouldSave = true;
 		}
+		if (!settings.subtitleExportSettings || typeof settings.subtitleExportSettings !== 'object') {
+			settings.subtitleExportSettings = {
+				subtitleFormat: 'SRT',
+				includedTarget: { arabic: true },
+				exportVerseNumbers: { arabic: true },
+				arabicTextFormat: 'Plain',
+				customFileName: ''
+			};
+			shouldSave = true;
+		}
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
 			| Partial<ProjectEditorLayout>
 			| undefined;
@@ -611,6 +637,34 @@ export default class Settings extends SerializableBase {
 
 		if ('chunkSize' in (settings.exportSettings as Record<string, unknown>)) {
 			delete (settings.exportSettings as Record<string, unknown>).chunkSize;
+			shouldSave = true;
+		}
+
+		if (
+			settings.subtitleExportSettings.subtitleFormat !== 'SRT' &&
+			settings.subtitleExportSettings.subtitleFormat !== 'VTT'
+		) {
+			settings.subtitleExportSettings.subtitleFormat = 'SRT';
+			shouldSave = true;
+		}
+		if (!settings.subtitleExportSettings.includedTarget) {
+			settings.subtitleExportSettings.includedTarget = {};
+			shouldSave = true;
+		}
+		if (!settings.subtitleExportSettings.exportVerseNumbers) {
+			settings.subtitleExportSettings.exportVerseNumbers = {};
+			shouldSave = true;
+		}
+		if (
+			settings.subtitleExportSettings.arabicTextFormat !== 'Plain' &&
+			settings.subtitleExportSettings.arabicTextFormat !== 'V1' &&
+			settings.subtitleExportSettings.arabicTextFormat !== 'V2'
+		) {
+			settings.subtitleExportSettings.arabicTextFormat = 'Plain';
+			shouldSave = true;
+		}
+		if (typeof settings.subtitleExportSettings.customFileName !== 'string') {
+			settings.subtitleExportSettings.customFileName = '';
 			shouldSave = true;
 		}
 

@@ -3,22 +3,23 @@ import { globalState } from '$lib/runes/main.svelte';
 import { getAutoSegmentationAudioClips } from './audio';
 import { computeWbwTimestampsForClipsSliced } from './review';
 import { AUTO_REALIGN_DEBOUNCE_MS, AUTO_REALIGN_TIMEOUT_MS, type RealignWindow } from './types';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 /**
  * Re-alignement WBW automatique et « abstrait » déclenché par les éditions de sous-titres.
  *
  * Quand l'utilisateur redimensionne un clip (au-delà d'un seuil) ou change sa plage de mots,
- * les timestamps WBW deviennent approximatifs (ou sont effacés). On relance ici MFA en arrière-plan
+ * les timestamps WBW deviennent approximatifs (ou sont effacés). On relance ici WhisperX en arrière-plan
  * sur les seuls segments touchés (tranche audio + un seul appel), avec un debounce, une coalescence
  * des groupes qui se chevauchent, et une sémantique « dernier gagne » par clip. Un statut réactif
- * par clip pilote l'animation de la barre de mots. En cas d'échec MFA : repli silencieux sur le
+ * par clip pilote l'animation de la barre de mots. En cas d'échec : repli silencieux sur le
  * comportement actuel (aucun toast, le clip garde son état post-édition).
  */
 
 export type AutoRealignStatus = 'idle' | 'computing';
 export type AutoRealignReason = 'drag' | 'text';
 
-/** Statut réactif par clipId (présence = re-MFA en cours), lu par la carte pour le spinner. */
+/** Statut réactif par clipId (présence = réalignement en cours), lu par la carte pour le spinner. */
 const statusByClipId = $state<Record<number, true>>({});
 
 /**
@@ -27,15 +28,19 @@ const statusByClipId = $state<Record<number, true>>({});
  */
 const clipGeneration = new Map<number, number>();
 
-/** Groupes en attente (debounce) indexés par clé = ids triés, pour grouper l'appel API. */
-type PendingGroup = { timer: ReturnType<typeof setTimeout>; clipIds: Set<number> };
+/** Groupes en attente (debounce) indexés par clé = ids triés, pour grouper l'alignement local. */
+type PendingGroup = {
+	timer: ReturnType<typeof setTimeout>;
+	clipIds: Set<number>;
+	trackHistory: boolean;
+};
 const pendingGroups = new Map<string, PendingGroup>();
 
 /**
  * Retourne le statut de re-alignement courant d'un clip.
  *
  * @param {number} clipId Identifiant du clip.
- * @returns {AutoRealignStatus} `'computing'` si un re-MFA est planifié/en cours, sinon `'idle'`.
+ * @returns {AutoRealignStatus} `'computing'` si un réalignement est planifié/en cours, sinon `'idle'`.
  */
 export function getAutoRealignStatus(clipId: number): AutoRealignStatus {
 	return statusByClipId[clipId] ? 'computing' : 'idle';
@@ -137,33 +142,35 @@ function clearStatusIfUnchanged(clipIds: Set<number>, genAtStart: Map<number, nu
 /**
  * Programme un re-alignement WBW en arrière-plan pour les clips donnés.
  *
- * Ignore les clips édités manuellement, sans audio, ou absents de la piste. Coalesce les groupes
- * qui se chevauchent et applique un debounce ; le spinner apparaît dès la planification. Seul le
- * dernier passage écrit/efface, par clip (« dernier gagne »).
+ * Ignore les clips absents ou sans audio. Les timings manuels restent protégés lors d'un drag, mais
+ * sont recalculés après un changement de texte. Le spinner apparaît dès la planification et seul
+ * le dernier passage écrit/efface, par clip (« dernier gagne »).
  *
  * @param {SubtitleClip[]} clips Clips touchés par l'édition (ex. clip redimensionné + voisin).
- * @param {{ reason: AutoRealignReason }} opts Origine du déclenchement (`'drag'` ou `'text'`).
+ * @param {{ reason: AutoRealignReason; trackHistory?: boolean }} opts Origine et historique.
  */
 export function scheduleWbwRealign(
 	clips: SubtitleClip[],
-	opts: { reason: AutoRealignReason }
+	opts: { reason: AutoRealignReason; trackHistory?: boolean }
 ): void {
-	void opts.reason; // Conservé pour un éventuel réglage par origine ; même comportement aujourd'hui.
-
-	const eligible = resolveLiveClips(clips).filter((clip) => !clip.wbwTimestampsManuallyEdited);
+	const eligible = resolveLiveClips(clips).filter(
+		(clip) => opts.reason === 'text' || !clip.wbwTimestampsManuallyEdited
+	);
 	if (eligible.length === 0) return;
 	// Rien à aligner s'il n'y a pas d'audio sur la timeline.
 	if (getAutoSegmentationAudioClips().length === 0) return;
 
 	const clipIds = new Set(eligible.map((clip) => clip.id));
+	let trackHistory = opts.trackHistory === true;
 
 	// Coalescence : fusionne tout groupe en attente partageant au moins un clip (ex. drags rapides
-	// d'un clip puis de son voisin) en un seul groupe contigu, pour un seul appel API.
+	// d'un clip puis de son voisin) en un seul groupe contigu, pour un seul alignement local.
 	for (const [key, pending] of pendingGroups) {
 		if (setsIntersect(pending.clipIds, clipIds)) {
 			clearTimeout(pending.timer);
 			pendingGroups.delete(key);
 			for (const id of pending.clipIds) clipIds.add(id);
+			trackHistory ||= pending.trackHistory;
 		}
 	}
 
@@ -171,19 +178,20 @@ export function scheduleWbwRealign(
 
 	const key = [...clipIds].sort((left, right) => left - right).join(',');
 	const timer = setTimeout(() => {
-		void runRealign(key, clipIds);
+		void runRealign(key, clipIds, trackHistory);
 	}, AUTO_REALIGN_DEBOUNCE_MS);
-	pendingGroups.set(key, { timer, clipIds });
+	pendingGroups.set(key, { timer, clipIds, trackHistory });
 }
 
 /**
- * Exécute le re-alignement d'un groupe : tranche l'audio, appelle MFA, écrit les mots (par clip).
+ * Exécute le re-alignement local d'un groupe : tranche l'audio puis écrit les mots par clip.
  *
  * @param {string} key Clé du groupe (ids triés).
  * @param {Set<number>} clipIds Identifiants des clips du groupe.
+ * @param {boolean} trackHistory Enregistre le recalcul comme action annulable.
  * @returns {Promise<void>}
  */
-async function runRealign(key: string, clipIds: Set<number>): Promise<void> {
+async function runRealign(key: string, clipIds: Set<number>, trackHistory: boolean): Promise<void> {
 	pendingGroups.delete(key);
 
 	const genAtStart = new Map<number, number>();
@@ -199,25 +207,33 @@ async function runRealign(key: string, clipIds: Set<number>): Promise<void> {
 
 	let watchdog: ReturnType<typeof setTimeout> | undefined;
 	try {
-		// Garde-fou : si l'appel MFA ne se résout jamais (serveur bloqué), on abandonne le passage
+		// Garde-fou : si WhisperX ne se résout jamais, on abandonne le passage
 		// pour garantir que le `finally` s'exécute et que le spinner finisse par s'effacer.
 		const timeout = new Promise<never>((_, reject) => {
 			watchdog = setTimeout(
-				() => reject(new Error('auto re-MFA timed out')),
+				() => reject(new Error('local WhisperX alignment timed out')),
 				AUTO_REALIGN_TIMEOUT_MS
 			);
 		});
-		await Promise.race([
-			computeWbwTimestampsForClipsSliced(clips, {
-				window,
-				// « Dernier gagne » par clip : on n'écrit pas un clip réédité depuis le début du passage.
-				shouldCommit: (clip) => clipGeneration.get(clip.id) === genAtStart.get(clip.id)
-			}),
-			timeout
-		]);
+		const compute = () =>
+			Promise.race([
+				computeWbwTimestampsForClipsSliced(clips, {
+					window,
+					// « Dernier gagne » par clip : on n'écrit pas un clip réédité depuis le début du passage.
+					shouldCommit: (clip) => clipGeneration.get(clip.id) === genAtStart.get(clip.id)
+				}),
+				timeout
+			]);
+		const { enriched } = trackHistory
+			? await ProjectHistoryManager.trackAsync('regenerate wbw timestamps', compute)
+			: await compute();
+		if (enriched > 0) {
+			globalState.currentProject?.detail.updateVideoDetailAttributes();
+			globalState.updateVideoPreviewUI();
+		}
 	} catch (error) {
 		// Repli silencieux : pas de toast, le clip garde son état post-édition.
-		console.warn('[AutoRealign] re-MFA failed (silent fallback):', error);
+		console.warn('[AutoRealign] local WhisperX alignment failed (silent fallback):', error);
 	} finally {
 		if (watchdog !== undefined) clearTimeout(watchdog);
 		clearStatusIfUnchanged(clipIds, genAtStart);

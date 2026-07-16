@@ -6,7 +6,7 @@
 
 <section
 	data-tour-id="transcription-composer-area"
-	class="flex min-h-0 flex-col overflow-hidden rounded-lg border border-color bg-primary shadow-lg"
+	class="relative flex min-h-0 flex-col overflow-hidden rounded-lg border border-color bg-primary shadow-lg"
 	style="height: {globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;"
 >
 	<TranscriptionToolbar />

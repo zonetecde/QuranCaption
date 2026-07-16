@@ -2,6 +2,7 @@
 	import { SubtitleClip } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { scheduleWbwRealign } from '$lib/services/AutoSegmentation';
 	import {
 		canRemoveProjectSpeaker,
 		getVisibleProjectSpeakers,
@@ -10,20 +11,21 @@
 	import { onDestroy, tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
+	import StructuredTranscriptEditor from './transcriptComposer/StructuredTranscriptEditor.svelte';
 
+	// État d'orchestration du segment actif; le brouillon structuré appartient au composant enfant.
 	let transcriptText = $state('');
-	let loadedEditId: number | null = null;
+	let loadedEditId: number | null = $state(null);
 	let transcriptInput: HTMLTextAreaElement | null = $state(null);
 
 	const editorState = $derived(() => globalState.getSubtitlesEditorState);
-
 	const editedTranscript = $derived(() => {
 		const clip = editorState().editSubtitle;
 		return clip instanceof SubtitleClip ? clip : null;
 	});
-
 	const availableSpeakers = $derived(() => getVisibleProjectSpeakers());
 
+	// Synchronise l'orchestration locale avec le segment choisi dans la timeline.
 	$effect(() => {
 		if (!editorState().selectedSpeaker.trim() && availableSpeakers()[0]) {
 			editorState().selectedSpeaker = availableSpeakers()[0];
@@ -81,6 +83,7 @@
 		}
 
 		const clip = editedTranscript();
+		const textChanged = clip?.text !== normalizedText;
 		const success = clip
 			? globalState.getSubtitleTrack.editTranscript(clip, normalizedText, normalizedSpeaker)
 			: globalState.getSubtitleTrack.addTranscript(normalizedText, normalizedSpeaker);
@@ -90,6 +93,7 @@
 		globalState.currentProject!.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
 		toast.success(clip ? get(LL).editor.transcriptUpdated() : get(LL).editor.transcriptAdded());
+		if (clip && textChanged) scheduleWbwRealign([clip], { reason: 'text' });
 
 		editorState().editSubtitle = null;
 		editorState().pendingSplitEditNextId = null;
@@ -100,9 +104,24 @@
 		transcriptInput?.focus();
 	}
 
+	// Les raccourcis de lecture restent au niveau du composeur afin de couvrir tous ses champs.
 	let temporarySpeedShortcutActive = false;
 
 	function handleComposerKeydown(event: KeyboardEvent): void {
+		if (
+			event.key === 'Enter' &&
+			editedTranscript() &&
+			!(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) &&
+			!(
+				event.target instanceof Element &&
+				event.target.closest('[data-structured-transcript-editor], [data-quran-passage-selector]')
+			)
+		) {
+			event.preventDefault();
+			void submitTranscript();
+			return;
+		}
+
 		const hasSupportedModifier =
 			(event.ctrlKey || event.shiftKey) && !event.altKey && !event.metaKey;
 		if (!hasSupportedModifier) return;
@@ -153,26 +172,11 @@
 			globalState.getVideoPreviewState.setTemporaryPlaybackSpeed(false);
 		}
 	});
-
-	function handleTranscriptKeydown(event: KeyboardEvent): void {
-		if (event.key === 'Enter' && !event.shiftKey) {
-			event.preventDefault();
-			void submitTranscript();
-			return;
-		}
-
-		if (event.key === 'Escape' && editedTranscript()) {
-			event.preventDefault();
-			cancelEditing();
-		}
-	}
 </script>
 
-<div
-	class="flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-5 lg:p-8"
-	onkeydown={handleComposerKeydown}
-	onkeyup={handleComposerKeyup}
->
+<svelte:window onkeydown={handleComposerKeydown} onkeyup={handleComposerKeyup} />
+
+<div class="flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-5 lg:p-8">
 	<div class="space-y-3">
 		<label class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-base text-accent-primary">person</span>
@@ -212,46 +216,13 @@
 		</div>
 	</div>
 
-	<div class="flex min-h-0 flex-1 flex-col gap-3">
-		<div class="flex items-center justify-between gap-3">
-			<label
-				for="transcript-text"
-				class="flex items-center gap-2 text-sm font-semibold text-primary"
-			>
-				<span class="material-icons text-base text-accent-primary">notes</span>
-				{$LL.editor.transcriptText()}
-			</label>
-
-			{#if editedTranscript()}
-				<div class="flex items-center gap-2 text-xs font-semibold text-accent-primary">
-					<span class="material-icons text-sm">edit</span>
-					{$LL.editor.editingTranscript()}
-					<button
-						type="button"
-						class="ml-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-secondary transition hover:bg-accent hover:text-primary"
-						onclick={cancelEditing}
-						aria-label={$LL.editor.cancelEditing()}
-					>
-						<span class="material-icons text-base">close</span>
-					</button>
-				</div>
-			{/if}
-		</div>
-
-		<textarea
-			id="transcript-text"
-			bind:this={transcriptInput}
+	{#key loadedEditId}
+		<StructuredTranscriptEditor
 			bind:value={transcriptText}
-			dir="auto"
-			class="min-h-48 flex-1 resize-none rounded-xl border border-color bg-secondary px-5 py-4 text-xl! leading-relaxed text-primary outline-none transition focus:border-[var(--accent-primary)] noto-sans-arabic"
-			placeholder={$LL.editor.transcriptPlaceholder()}
-			onkeydown={handleTranscriptKeydown}
-		></textarea>
-	</div>
+			bind:input={transcriptInput}
+			isEditing={Boolean(editedTranscript())}
+			onCancelEditing={cancelEditing}
+			onSubmit={submitTranscript}
+		/>
+	{/key}
 </div>
-
-<style>
-	.noto-sans-arabic {
-		font-family: 'Noto Sans Arabic', sans-serif;
-	}
-</style>

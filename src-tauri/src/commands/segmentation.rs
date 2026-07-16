@@ -47,27 +47,6 @@ pub async fn get_segmentation_mfa_timestamps_session(
     segmentation::mfa_timestamps_session(audio_id, segments, granularity).await
 }
 
-/// RÃ©cupÃ¨re les timestamps MFA directement depuis l'audio courant du projet.
-#[tauri::command]
-pub async fn get_segmentation_mfa_timestamps_direct(
-    audio_path: Option<String>,
-    audio_clips: Option<Vec<SegmentationAudioClip>>,
-    segments: serde_json::Value,
-    granularity: Option<String>,
-    window_start_ms: Option<i64>,
-    window_end_ms: Option<i64>,
-) -> Result<serde_json::Value, String> {
-    segmentation::mfa_timestamps_direct(
-        audio_path,
-        audio_clips,
-        segments,
-        granularity,
-        window_start_ms,
-        window_end_ms,
-    )
-    .await
-}
-
 /// Liste les récitations Preload disponibles (catalogue + chapitres) côté cloud.
 #[tauri::command]
 pub async fn preload_recitations() -> Result<serde_json::Value, String> {
@@ -101,10 +80,7 @@ pub async fn preload_audio_recitations() -> Result<serde_json::Value, String> {
 
 /// Récupère l'URL audio directe d'un chapitre audio-only (sans segments).
 #[tauri::command]
-pub async fn preload_audio(
-    recitation: String,
-    chapter: i64,
-) -> Result<serde_json::Value, String> {
+pub async fn preload_audio(recitation: String, chapter: i64) -> Result<serde_json::Value, String> {
     segmentation::preload_audio(recitation, chapter).await
 }
 
@@ -273,6 +249,32 @@ pub async fn transcribe_audio_local_whisperx(
         min_silence_duration,
         max_words,
         max_chars,
+    )
+    .await
+}
+
+/// Réaligne localement le texte connu de sous-titres avec WhisperX.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn align_transcript_words_local_whisperx(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    segments: serde_json::Value,
+    language: Option<String>,
+    device: Option<String>,
+    window_start_ms: Option<i64>,
+    window_end_ms: Option<i64>,
+) -> Result<serde_json::Value, String> {
+    segmentation::align_transcript_words_local_whisperx(
+        app_handle,
+        audio_path,
+        audio_clips,
+        segments,
+        language,
+        device,
+        window_start_ms,
+        window_end_ms,
     )
     .await
 }

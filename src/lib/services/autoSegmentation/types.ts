@@ -1,12 +1,12 @@
 import type { VerseRange } from '$lib/classes/VerseRange.svelte';
 
 export const SMALL_GAP_MS = 200;
-/** Seuil (ms) de déplacement de bord en dessous duquel un drag-resize ne déclenche pas de re-MFA. */
+/** Seuil (ms) de déplacement de bord en dessous duquel un drag-resize ne réaligne pas les mots. */
 export const AUTO_REALIGN_DRAG_THRESHOLD_MS = 200;
-/** Délai (ms) après relâchement de la souris avant de lancer le re-MFA automatique (debounce). */
+/** Délai (ms) après relâchement de la souris avant de lancer le réalignement automatique. */
 export const AUTO_REALIGN_DEBOUNCE_MS = 300;
 /**
- * Garde-fou (ms) : durée maximale d'un passage de re-MFA automatique avant abandon. Garantit que le
+ * Garde-fou (ms) : durée maximale d'un réalignement automatique avant abandon. Garantit que le
  * statut « computing » (spinner de la barre de mots) finit toujours par s'effacer, même si l'appel
  * MFA ne se résout jamais (serveur bloqué, etc.).
  */
@@ -22,7 +22,7 @@ export type SegmentationWordTimestamp = {
 	word?: string;
 };
 
-/** Fenêtre audio (ms, coordonnées timeline) pour un re-MFA tranché sur les segments édités. */
+/** Fenêtre audio (ms, coordonnées timeline) pour réaligner uniquement les segments édités. */
 export type RealignWindow = { startMs: number; endMs: number };
 
 export type SubtitleAlignmentMetadata = {

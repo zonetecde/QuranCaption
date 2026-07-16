@@ -1,8 +1,14 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { SubtitleClip } from '$lib/classes';
+import { normalizeTranscriptWordTimings } from '$lib/classes/Clip.svelte';
+import {
+	formatTranscriptReferencesForExport,
+	getQuranTranscriptReferenceWordCount,
+	getTranscriptReferenceLogicalParts
+} from '$lib/services/TranscriptReferenceService';
 import type { RealignWindow, SegmentationSegment } from './types';
-import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
-import { buildSubtitleAlignmentMetadata, refreshSegmentationContextFromTrack } from './context';
+import { getSegmentationWhisperXTimestamps } from './enrichment';
+import { refreshSegmentationContextFromTrack } from './context';
 
 /**
  * Compte le nombre de mots Quran couverts par un sous-titre.
@@ -125,10 +131,10 @@ export function clearWbwTimestampReview(): void {
 }
 
 /**
- * Calcule les timestamps WBW manquants via l'API du Universal Aligner (`/timestamps_direct`).
+ * Calcule les timestamps WBW manquants avec le runtime WhisperX local.
  *
  * Indépendant de la segmentation : construit un segment par sous-titre dépourvu de timestamps
- * (quelle que soit la façon dont le projet a été créé), demande l'alignement MFA à partir de
+ * (quelle que soit la façon dont le projet a été créé), demande l'alignement WhisperX à partir de
  * l'audio courant, puis réinjecte les mots dans chaque clip. Réutilise les métadonnées
  * d'alignement existantes quand elles sont présentes, sinon les dérive des références du clip.
  *
@@ -139,7 +145,7 @@ export async function computeMissingWbwTimestamps(): Promise<{ enriched: number;
 }
 
 /**
- * Calcule les timestamps WBW pour une liste de sous-titres donnée via `/timestamps_direct`.
+ * Calcule les timestamps WBW pour une liste de sous-titres avec le runtime WhisperX local.
  *
  * Variante ciblée de {@link computeMissingWbwTimestamps} : permet de (re)calculer les
  * timestamps d'un seul clip (menu contextuel) ou d'un sous-ensemble, sans toucher aux autres.
@@ -154,13 +160,40 @@ export async function computeWbwTimestampsForClips(
 	return computeWbwTimestampsForClipsSliced(clips, {});
 }
 
+type WbwAlignmentInput = {
+	matchedText: string;
+	refFrom: string | null;
+	refTo: string | null;
+};
+
+/**
+ * Résout le texte réellement prononcé et les bornes Quran d'un sous-titre structuré.
+ * @param {string} text Texte sérialisé du sous-titre.
+ * @returns {Promise<WbwAlignmentInput>} Entrée prête pour l'aligneur WBW.
+ */
+async function buildWbwAlignmentInput(text: string): Promise<WbwAlignmentInput> {
+	const matchedText = await formatTranscriptReferencesForExport(text, 'Plain', false, false);
+	const references = (getTranscriptReferenceLogicalParts(text) ?? []).flatMap((part) =>
+		part.quranReference ? [part.quranReference] : []
+	);
+	const first = references[0];
+	const last = references.at(-1);
+	if (!first || !last) return { matchedText, refFrom: null, refTo: null };
+
+	const lastWord = last.endWord ?? getQuranTranscriptReferenceWordCount(last) ?? 1;
+	return {
+		matchedText,
+		refFrom: `${first.surah}:${first.verse}:${first.startWord ?? 1}`,
+		refTo: `${last.surah}:${last.verse}:${lastWord}`
+	};
+}
+
 /**
  * Cœur du calcul WBW, avec tranche audio optionnelle et garde « dernier gagne ».
  *
- * Quand une fenêtre est fournie, seul l'audio `[startMs, endMs]` est téléversé et les temps des
- * segments envoyés à MFA sont recalés sur l'origine de la fenêtre ; les temps ABSOLUS (timeline)
- * restent écrits dans `alignmentMetadata`. Les mots renvoyés sont relatifs au segment, donc le
- * recalage sur la durée du clip est inchangé.
+ * Quand une fenêtre est fournie, seul l'audio `[startMs, endMs]` est transmis au worker local et les
+ * temps des segments sont recalés sur son origine. Les temps absolus restent persistés dans les
+ * métadonnées, tandis que les mots renvoyés restent relatifs à chaque sous-titre.
  *
  * @param {SubtitleClip[]} clips Sous-titres à (re)calculer.
  * @param {{ window?: RealignWindow; shouldCommit?: (clip: SubtitleClip) => boolean }} opts Options
@@ -175,15 +208,17 @@ export async function computeWbwTimestampsForClipsSliced(
 
 	const window = opts.window && opts.window.endMs > opts.window.startMs ? opts.window : undefined;
 	const baseS = window ? window.startMs / 1000 : 0;
+	const alignmentInputs = await Promise.all(clips.map((clip) => buildWbwAlignmentInput(clip.text)));
 
 	// Segments aux temps ABSOLUS (timeline) — réutilisés pour écrire les métadonnées.
 	const segments: SegmentationSegment[] = clips.map((clip, index) => {
 		const meta = clip.alignmentMetadata;
+		const input = alignmentInputs[index];
 		return {
 			segment: meta?.segment ?? index,
-			ref_from: meta?.refFrom || `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`,
-			ref_to: meta?.refTo || `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`,
-			matched_text: meta?.matchedText ?? clip.text,
+			ref_from: input.refFrom ?? meta?.refFrom ?? '',
+			ref_to: input.refTo ?? meta?.refTo ?? '',
+			matched_text: input.matchedText,
 			special_type: meta?.specialType,
 			time_from: meta?.timeFrom ?? clip.startTime / 1000,
 			time_to: meta?.timeTo ?? clip.endTime / 1000,
@@ -200,10 +235,7 @@ export async function computeWbwTimestampsForClipsSliced(
 			}))
 		: segments;
 
-	const response = await enrichSegmentationResponseWithWordTimestamps(
-		{ segments: requestSegments },
-		window
-	);
+	const response = await getSegmentationWhisperXTimestamps(requestSegments, window);
 	const enrichedSegments = response.segments ?? [];
 
 	let enriched = 0;
@@ -213,25 +245,32 @@ export async function computeWbwTimestampsForClipsSliced(
 		// « Dernier gagne » par clip : on n'écrase pas un clip réédité depuis le début de l'appel.
 		if (opts.shouldCommit && !opts.shouldCommit(clip)) return;
 
-		// Recale les mots sur la durée du clip, comme lors de l'application d'une segmentation.
+		// Applique les mêmes frontières continues que le post-traitement de la transcription complète.
 		const clipDurationS = (clip.endTime - clip.startTime) / 1000;
-		const clampedWords = words.map((word, position, arr) => ({
+		const normalizedTimings = normalizeTranscriptWordTimings(
+			words.map((word) => ({ ...word, word: word.word ?? word.location })),
+			clipDurationS
+		);
+		const normalizedWords = words.map((word, index) => ({
 			...word,
-			start: position === 0 ? 0 : Math.max(0, Math.min(clipDurationS, word.start)),
-			end:
-				position === arr.length - 1 ? clipDurationS : Math.max(0, Math.min(clipDurationS, word.end))
+			start: normalizedTimings[index].start,
+			end: normalizedTimings[index].end
 		}));
 
-		const metadata = buildSubtitleAlignmentMetadata(
-			clip.alignmentMetadata?.source ?? 'api',
-			segments[index],
-			clampedWords
-		);
-		if (metadata) {
-			clip.alignmentMetadata = metadata;
-			clip.needsWbwTimestampReview = false;
-			enriched += 1;
-		}
+		const segment = segments[index];
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: segment.segment ?? index,
+			refFrom: segment.ref_from ?? '',
+			refTo: segment.ref_to ?? '',
+			matchedText: segment.matched_text ?? clip.text,
+			specialType: segment.special_type,
+			timeFrom: segment.time_from ?? clip.startTime / 1000,
+			timeTo: segment.time_to ?? clip.endTime / 1000,
+			words: normalizedWords
+		};
+		clip.needsWbwTimestampReview = false;
+		enriched += 1;
 	});
 
 	if (enriched > 0) refreshSegmentationContextFromTrack(true);

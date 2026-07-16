@@ -136,6 +136,7 @@ export default class Settings extends SerializableBase {
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
 		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
+		transcriptFontSize: 16,
 		projectEditorLayout: { ...DEFAULT_PROJECT_EDITOR_LAYOUT } as ProjectEditorLayout,
 		timelineTrackOrder: [
 			TrackType.CustomClip,
@@ -283,9 +284,14 @@ export default class Settings extends SerializableBase {
 				description: 'Move selection to the previous word'
 			},
 			RESET_START_CURSOR: {
-				keys: ['r'],
+				keys: [],
 				name: 'Reset Start Cursor',
 				description: 'Put the start cursor on the end cursor position'
+			},
+			REGENERATE_WBW_TIMESTAMPS: {
+				keys: ['r'],
+				name: 'Regenerate WBW Timestamps',
+				description: 'Regenerate WBW timestamps for the subtitle under the timeline cursor'
 			},
 			SELECT_ALL_WORDS: {
 				keys: ['v'],
@@ -472,6 +478,21 @@ export default class Settings extends SerializableBase {
 		let shouldSave = false;
 
 		// Migrations ================
+		const subtitleShortcuts = settings.shortcuts.SUBTITLES_EDITOR;
+		if (!subtitleShortcuts.REGENERATE_WBW_TIMESTAMPS) {
+			subtitleShortcuts.REGENERATE_WBW_TIMESTAMPS = {
+				keys: ['r'],
+				name: 'Regenerate WBW Timestamps',
+				description: 'Regenerate WBW timestamps for the subtitle under the timeline cursor'
+			};
+			shouldSave = true;
+		}
+		if (subtitleShortcuts.RESET_START_CURSOR.keys.some((key) => key.toLowerCase() === 'r')) {
+			subtitleShortcuts.RESET_START_CURSOR.keys = subtitleShortcuts.RESET_START_CURSOR.keys.filter(
+				(key) => key.toLowerCase() !== 'r'
+			);
+			shouldSave = true;
+		}
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
 			settings.exportSettings = {} as ExportSettings;
 			shouldSave = true;
@@ -509,6 +530,15 @@ export default class Settings extends SerializableBase {
 		}
 		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
 			settings.persistentUiState.showTimelineWheelHints = true;
+			shouldSave = true;
+		}
+		if (
+			typeof settings.persistentUiState.transcriptFontSize !== 'number' ||
+			!Number.isFinite(settings.persistentUiState.transcriptFontSize) ||
+			settings.persistentUiState.transcriptFontSize < 12 ||
+			settings.persistentUiState.transcriptFontSize > 32
+		) {
+			settings.persistentUiState.transcriptFontSize = 16;
 			shouldSave = true;
 		}
 		if (!Array.isArray(settings.persistentUiState.timelineTrackOrder)) {

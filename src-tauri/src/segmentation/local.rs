@@ -69,6 +69,8 @@ fn run_local_segmentation_script(
     pad_ms: Option<u32>,
     mut extra_args: Vec<String>,
     hf_token: Option<String>,
+    window_start_ms: Option<i64>,
+    window_end_ms: Option<i64>,
 ) -> Result<serde_json::Value, String> {
     println!(
         "[segmentation][local][debug] engine={} min_silence_ms={:?} min_speech_ms={:?} pad_ms={:?} extra_args={:?} hf_token_present={}",
@@ -144,14 +146,24 @@ fn run_local_segmentation_script(
     ));
     let _temp_guard = TempFileGuard(temp_path.clone());
 
+    let window = match (window_start_ms, window_end_ms) {
+        (Some(start), Some(end)) if start >= 0 && end > start => Some((start, end)),
+        _ => None,
+    };
     let mut resample_cmd = Command::new(&ffmpeg_path);
+    resample_cmd.args(["-y", "-hide_banner", "-loglevel", "error"]);
+    if let Some((start_ms, _)) = window {
+        resample_cmd
+            .arg("-ss")
+            .arg(format!("{:.3}", start_ms as f64 / 1000.0));
+    }
+    resample_cmd.arg("-i").arg(&audio_path_str);
+    if let Some((start_ms, end_ms)) = window {
+        resample_cmd
+            .arg("-t")
+            .arg(format!("{:.3}", (end_ms - start_ms) as f64 / 1000.0));
+    }
     resample_cmd.args([
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-i",
-        &audio_path_str,
         "-ac",
         "1",
         "-ar",
@@ -416,6 +428,8 @@ pub async fn segment_quran_audio_local(
         pad_ms,
         extra_args,
         None,
+        None,
+        None,
     )
 }
 
@@ -475,6 +489,8 @@ pub async fn segment_quran_audio_local_multi(
         pad_ms,
         extra_args,
         hf_token,
+        None,
+        None,
     )
 }
 
@@ -538,6 +554,8 @@ pub async fn segment_quran_audio_local_muaalem(
         pad_ms,
         extra_args,
         None,
+        None,
+        None,
     )
 }
 
@@ -600,6 +618,8 @@ pub async fn segment_quran_audio_local_surah_splitter(
         min_speech_ms,
         pad_ms,
         extra_args,
+        None,
+        None,
         None,
     )
 }
@@ -681,5 +701,55 @@ pub async fn transcribe_audio_local_whisperx(
         None,
         extra_args,
         Some(token.to_string()),
+        None,
+        None,
+    )
+}
+
+/// Aligne localement le texte connu de sous-titres sur une tranche audio avec WhisperX.
+pub async fn align_transcript_words_local_whisperx(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    segments: serde_json::Value,
+    language: Option<String>,
+    device: Option<String>,
+    window_start_ms: Option<i64>,
+    window_end_ms: Option<i64>,
+) -> Result<serde_json::Value, String> {
+    if !segments.is_array() {
+        return Err("segments must be a JSON array.".to_string());
+    }
+
+    let selected_language = language.unwrap_or_else(|| "ar".to_string());
+    let selected_device = device.unwrap_or_else(|| "AUTO".to_string()).to_uppercase();
+    if !matches!(selected_device.as_str(), "AUTO" | "GPU" | "CPU") {
+        return Err(format!(
+            "Invalid transcription device '{}'. Expected AUTO, GPU, or CPU.",
+            selected_device
+        ));
+    }
+
+    let extra_args = vec![
+        "--language".to_string(),
+        selected_language,
+        "--device".to_string(),
+        selected_device,
+        "--align-segments-json".to_string(),
+        serde_json::to_string(&segments).map_err(|error| error.to_string())?,
+    ];
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::Transcription,
+        audio_path,
+        audio_clips,
+        None,
+        None,
+        None,
+        extra_args,
+        None,
+        window_start_ms,
+        window_end_ms,
     )
 }

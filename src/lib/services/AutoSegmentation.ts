@@ -67,7 +67,7 @@ export {
 } from './autoSegmentation/split';
 export {
 	getSegmentationMfaTimestampsSession,
-	getSegmentationMfaTimestampsDirect,
+	getSegmentationWhisperXTimestamps,
 	enrichSegmentationResponseWithWordTimestamps
 } from './autoSegmentation/enrichment';
 export { estimateSegmentationDuration } from './autoSegmentation/estimate';

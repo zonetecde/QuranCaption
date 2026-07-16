@@ -13,9 +13,6 @@ pub const QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL: &str =
 /// Endpoint MFA base sur une session cloud existante.
 pub const QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/timestamps";
-/// Endpoint MFA direct sur un fichier audio uploade.
-pub const QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/timestamps_direct";
 /// Endpoint de split des segments par contraintes (versets/mots/duree).
 pub const QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/split_segments";

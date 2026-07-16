@@ -70,6 +70,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-words", type=int, default=14)
     parser.add_argument("--max-chars", type=int, default=90)
     parser.add_argument("--max-gap", type=float, default=1.2)
+    parser.add_argument("--align-segments-json")
     return parser.parse_args()
 
 
@@ -465,6 +466,87 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
     }
 
 
+def run_forced_alignment(args: argparse.Namespace, selected_device: str) -> dict[str, Any]:
+    """Align caller-provided transcript segments without running ASR or diarization."""
+    import whisperx
+
+    requested_segments = json.loads(args.align_segments_json or "[]")
+    if not isinstance(requested_segments, list) or not requested_segments:
+        raise RuntimeError("At least one transcript segment is required for alignment.")
+
+    audio = whisperx.load_audio(args.audio_path)
+    duration = len(audio) / AUDIO_SAMPLE_RATE
+    language = args.language.lower()
+    if language == "auto":
+        language = "ar"
+
+    source_segments: list[dict[str, Any]] = []
+    normalized_requests: list[dict[str, Any]] = []
+    for index, item in enumerate(requested_segments):
+        if not isinstance(item, dict):
+            continue
+        start = finite_number(item.get("time_from"))
+        end = finite_number(item.get("time_to"))
+        text = str(item.get("matched_text") or "").strip()
+        if start is None or end is None or end <= start or not text:
+            continue
+        start = max(0.0, min(duration, start))
+        end = max(start, min(duration, end))
+        if end <= start:
+            continue
+        normalized_requests.append({**item, "segment": item.get("segment", index)})
+        source_segments.append({"start": start, "end": end, "text": text})
+
+    if not source_segments:
+        raise RuntimeError("No valid transcript segment was provided for alignment.")
+
+    emit_status(f"Aligning {language} transcript words...", 20)
+    align_model, align_metadata = whisperx.load_align_model(
+        language_code=language,
+        device=selected_device,
+    )
+    aligned = whisperx.align(
+        source_segments,
+        align_model,
+        align_metadata,
+        audio,
+        selected_device,
+        return_char_alignments=False,
+        progress_callback=lambda value: emit_status(
+            f"Aligning {language} transcript words...", 20 + (float(value) * 0.75)
+        ),
+    )
+    del align_model
+    release_device_memory()
+
+    aligned_segments = aligned.get("segments") or []
+    output_segments: list[dict[str, Any]] = []
+    for index, request in enumerate(normalized_requests):
+        source = source_segments[index]
+        aligned_segment = aligned_segments[index] if index < len(aligned_segments) else {}
+        words: list[dict[str, Any]] = []
+        for word_index, raw_word in enumerate(aligned_segment.get("words") or []):
+            if not isinstance(raw_word, dict):
+                continue
+            text = str(raw_word.get("word") or "").strip()
+            start = finite_number(raw_word.get("start"))
+            end = finite_number(raw_word.get("end"))
+            if not text or start is None or end is None or end <= start:
+                continue
+            words.append(
+                {
+                    "location": f"transcript:{request['segment']}:{word_index + 1}",
+                    "word": text,
+                    "start": round(max(0.0, start - source["start"]), 6),
+                    "end": round(max(0.0, end - source["start"]), 6),
+                }
+            )
+        output_segments.append({**request, "words": words})
+
+    emit_status("Transcript word alignment completed.", 100)
+    return {"language": language, "device": selected_device, "segments": output_segments}
+
+
 def main() -> None:
     args = parse_args()
     if not os.path.isfile(args.audio_path):
@@ -476,7 +558,7 @@ def main() -> None:
         or os.environ.get("HUGGING_FACE_HUB_TOKEN")
         or ""
     ).strip()
-    if not token:
+    if not token and not args.align_segments_json:
         fail(
             "A Hugging Face read token is required for pyannote speaker diarization. "
             "Accept the pyannote/speaker-diarization-community-1 conditions first."
@@ -495,12 +577,20 @@ def main() -> None:
         # and forward all incidental output to stderr.
         with contextlib.redirect_stdout(sys.stderr):
             try:
-                output = run_pipeline(args, selected_device, token)
+                output = (
+                    run_forced_alignment(args, selected_device)
+                    if args.align_segments_json
+                    else run_pipeline(args, selected_device, token)
+                )
             except Exception as first_error:
                 if requested in ("AUTO", "GPU") and selected_device == "cuda":
-                    emit_status("GPU transcription failed; retrying automatically on CPU...", 3)
+                    emit_status("GPU processing failed; retrying automatically on CPU...", 3)
                     release_device_memory()
-                    output = run_pipeline(args, "cpu", token)
+                    output = (
+                        run_forced_alignment(args, "cpu")
+                        if args.align_segments_json
+                        else run_pipeline(args, "cpu", token)
+                    )
                     output["gpuFallbackReason"] = str(first_error)
                 else:
                     raise

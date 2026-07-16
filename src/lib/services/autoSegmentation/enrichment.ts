@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
+import { globalState } from '$lib/runes/main.svelte';
 import type { RealignWindow, SegmentationResponse, SegmentationSegment } from './types';
-import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
+import { getAutoSegmentationAudioClips } from './audio';
 import { normalizeMfaSegments } from './parsing';
 
 /**
@@ -22,30 +23,33 @@ export async function getSegmentationMfaTimestampsSession(
 }
 
 /**
- * Récupère les timestamps MFA à partir de l'audio courant du projet.
+ * Aligne des segments connus avec le runtime WhisperX local de Minbar Studio.
  *
- * @param {SegmentationSegment[]} segments Segments à enrichir.
- * @returns {Promise<SegmentationResponse>} Réponse MFA normalisée.
+ * @param {SegmentationSegment[]} segments Segments et textes à aligner.
+ * @param {RealignWindow} [window] Tranche audio optionnelle en coordonnées timeline.
+ * @returns {Promise<SegmentationResponse>} Segments enrichis avec leurs mots horodatés.
  */
-export async function getSegmentationMfaTimestampsDirect(
+export async function getSegmentationWhisperXTimestamps(
 	segments: SegmentationSegment[],
 	window?: RealignWindow
 ): Promise<SegmentationResponse> {
-	const audioInfo = getAutoSegmentationAudioInfo();
 	const audioClips = getAutoSegmentationAudioClips();
-	if (!audioInfo || audioClips.length === 0) {
-		throw new Error('No audio clip found in the project.');
-	}
+	if (audioClips.length === 0) throw new Error('No audio clip found in the project.');
 
-	return (await invoke('get_segmentation_mfa_timestamps_direct', {
-		audioPath: audioInfo.filePath,
+	const transcriptionSettings = globalState.settings?.aiTranscriptionSettings;
+	return (await invoke('align_transcript_words_local_whisperx', {
+		audioPath: audioClips.length === 1 ? audioClips[0].filePath : undefined,
 		audioClips: audioClips.map((clip) => ({
 			path: clip.filePath,
 			startMs: clip.startMs,
 			endMs: clip.endMs
 		})),
 		segments,
-		granularity: 'words',
+		language:
+			transcriptionSettings?.language && transcriptionSettings.language !== 'auto'
+				? transcriptionSettings.language
+				: 'ar',
+		device: transcriptionSettings?.device ?? 'AUTO',
 		windowStartMs: window?.startMs,
 		windowEndMs: window?.endMs
 	})) as SegmentationResponse;
@@ -58,36 +62,34 @@ export async function getSegmentationMfaTimestampsDirect(
  * @returns {Promise<SegmentationResponse>} Réponse avec mots MFA si disponibles.
  */
 export async function enrichSegmentationResponseWithWordTimestamps(
-	response: SegmentationResponse,
-	window?: RealignWindow
+	response: SegmentationResponse
 ): Promise<SegmentationResponse> {
 	const segments = response.segments ?? [];
 	if (segments.length === 0) return response;
 	if (segments.every((segment) => (segment.words?.length ?? 0) > 0)) return response;
 
 	try {
-		let mfaSource: 'session' | 'direct';
+		let source: 'session' | 'local' = 'local';
 		let mfaResponse: SegmentationResponse;
 		if (response.audio_id) {
 			try {
-				mfaSource = 'session';
+				source = 'session';
 				mfaResponse = await getSegmentationMfaTimestampsSession(response.audio_id, segments);
 			} catch (error) {
 				console.warn(
-					'[AutoSegmentation] MFA session enrichment failed, falling back to direct MFA:',
+					'[AutoSegmentation] MFA session enrichment failed, falling back to local WhisperX:',
 					error
 				);
-				mfaSource = 'direct';
-				mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window);
+				source = 'local';
+				mfaResponse = await getSegmentationWhisperXTimestamps(segments);
 			}
 		} else {
-			mfaSource = 'direct';
-			mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window);
+			mfaResponse = await getSegmentationWhisperXTimestamps(segments);
 		}
 
 		const mfaSegments = normalizeMfaSegments(mfaResponse.segments ?? [], segments);
 		console.log('[AutoSegmentation] MFA timings payload:', {
-			source: mfaSource,
+			source,
 			audioId: response.audio_id ?? mfaResponse.audio_id ?? null,
 			segments: mfaSegments.map((segment) => ({
 				segment: segment.segment,
@@ -103,7 +105,7 @@ export async function enrichSegmentationResponseWithWordTimestamps(
 		});
 		if (mfaSegments.length === 0) {
 			console.warn('[AutoSegmentation] MFA enrichment returned no segments.', {
-				source: mfaSource,
+				source,
 				audioId: response.audio_id ?? mfaResponse.audio_id ?? null
 			});
 			return response;
@@ -142,7 +144,7 @@ export async function enrichSegmentationResponseWithWordTimestamps(
 			}));
 		if (segmentsWithoutWords.length > 0) {
 			console.warn('[AutoSegmentation] Some segments still have no MFA word timestamps.', {
-				source: mfaSource,
+				source,
 				segmentsWithoutWords
 			});
 		}

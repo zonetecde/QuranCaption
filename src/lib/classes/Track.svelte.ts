@@ -1036,7 +1036,10 @@ export class SubtitleTrack extends Track {
 			clip.speaker = normalizedSpeaker;
 			if (textChanged) {
 				clip.clearArabicInlineStyles();
-				clip.alignmentMetadata = null;
+				clip.alignmentMetadata = clip.alignmentMetadata
+					? { ...clip.alignmentMetadata, matchedText: normalizedText, words: [] }
+					: null;
+				clip.wbwTimestampsManuallyEdited = false;
 			}
 			clip.markAsManualEdit();
 			return true;

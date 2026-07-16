@@ -180,7 +180,7 @@
 	let didDrag = false;
 	let suppressNextClick = false;
 
-	// Animation de la barre de mots : vidée pendant le redimensionnement, spinner pendant le re-MFA.
+	// Animation de la barre de mots : vidée pendant le redimensionnement, spinner pendant WhisperX.
 	let isResizing = $state(false);
 	let dragBoundaryStartMs: number | null = null;
 	const realignStatus = $derived(
@@ -449,7 +449,7 @@
 	}
 
 	/**
-	 * Calcule à la demande les timestamps WBW pour ce seul sous-titre via l'API du Universal Aligner.
+	 * Calcule à la demande les timestamps WBW pour ce seul sous-titre avec WhisperX local.
 	 * @returns {Promise<void>}
 	 */
 	async function generateWbwTimestampsFromContextMenu(): Promise<void> {

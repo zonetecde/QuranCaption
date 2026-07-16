@@ -16,8 +16,7 @@ use crate::utils::temp_file::TempFileGuard;
 use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{
     SegmentationAudioClip, QURAN_MULTI_ALIGNER_BASE_URL, QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL,
-    QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL, QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL,
-    QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_CALL_URL,
+    QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL, QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_CALL_URL,
     QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_RECITATIONS_CALL_URL,
     QURAN_MULTI_ALIGNER_PRELOAD_RECITATIONS_CALL_URL,
     QURAN_MULTI_ALIGNER_PRELOAD_SEGMENTS_CALL_URL, QURAN_MULTI_ALIGNER_PROCESS_CALL_URL,
@@ -369,90 +368,6 @@ async fn call_gradio_endpoint(
     Ok(payload)
 }
 
-/// Prépare un fichier WAV 16kHz mono réutilisable pour l'endpoint MFA direct.
-fn prepare_audio_for_mfa_direct(
-    audio_path: Option<String>,
-    audio_clips: Option<Vec<SegmentationAudioClip>>,
-    window_start_ms: Option<i64>,
-    window_end_ms: Option<i64>,
-) -> Result<(std::path::PathBuf, TempFileGuard, Option<TempFileGuard>), String> {
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-
-    let mut merged_guard: Option<TempFileGuard> = None;
-    let source_audio_path =
-        if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
-            let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
-            if needs_merge {
-                let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
-                merged_guard = Some(guard);
-                merged_path
-            } else {
-                path_utils::normalize_existing_path(&clips[0].path)
-            }
-        } else if let Some(path) = audio_path.as_ref() {
-            path_utils::normalize_existing_path(path)
-        } else {
-            return Err("Audio file not found: missing audioPath/audioClips".to_string());
-        };
-
-    if !source_audio_path.exists() {
-        return Err(format!(
-            "Audio file not found: {}",
-            source_audio_path.to_string_lossy()
-        ));
-    }
-
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("minbarstudio-mfa-{}.wav", stamp));
-    let temp_guard = TempFileGuard(temp_path.clone());
-
-    // Fenêtre temporelle optionnelle: l'audio préparé est en coordonnées timeline, donc on
-    // n'extrait/téléverse que la tranche [start, end] demandée (re-MFA d'un segment édité).
-    let window = match (window_start_ms, window_end_ms) {
-        (Some(start), Some(end)) if end > start && start >= 0 => Some((start, end)),
-        _ => None,
-    };
-
-    let mut cmd = Command::new(&ffmpeg_path);
-    cmd.args(["-y", "-hide_banner", "-loglevel", "error"]);
-    if let Some((start_ms, _)) = window {
-        // -ss avant -i = seek d'entrée rapide.
-        cmd.arg("-ss")
-            .arg(format!("{:.3}", start_ms as f64 / 1000.0));
-    }
-    cmd.arg("-i")
-        .arg(source_audio_path.to_string_lossy().as_ref());
-    if let Some((start_ms, end_ms)) = window {
-        // -t après -i = durée conservée depuis le point de seek.
-        cmd.arg("-t")
-            .arg(format!("{:.3}", (end_ms - start_ms) as f64 / 1000.0));
-    }
-    cmd.args([
-        "-ac",
-        "1",
-        "-ar",
-        "16000",
-        "-c:a",
-        "pcm_s16le",
-        "-vn",
-        temp_path.to_string_lossy().as_ref(),
-    ]);
-    configure_command_no_window(&mut cmd);
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg error: {}", stderr));
-    }
-
-    Ok((temp_path, temp_guard, merged_guard))
-}
-
 /// Récupère les timestamps MFA pour une session cloud existante.
 pub async fn mfa_timestamps_session(
     audio_id: String,
@@ -582,52 +497,6 @@ pub async fn preload_audio(recitation: String, chapter: i64) -> Result<serde_jso
         QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_CALL_URL,
         "preload_audio",
         serde_json::json!([recitation, chapter]),
-    )
-    .await
-}
-
-/// Récupère les timestamps MFA à partir d'un fichier audio préparé côté app.
-pub async fn mfa_timestamps_direct(
-    audio_path: Option<String>,
-    audio_clips: Option<Vec<SegmentationAudioClip>>,
-    segments: serde_json::Value,
-    granularity: Option<String>,
-    window_start_ms: Option<i64>,
-    window_end_ms: Option<i64>,
-) -> Result<serde_json::Value, String> {
-    if !segments.is_array() {
-        return Err("segments must be a JSON array.".to_string());
-    }
-
-    let selected_granularity = match granularity.as_deref() {
-        Some("words+chars") => "words+chars",
-        _ => "words",
-    };
-
-    let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(20))
-        // Timeout global: évite qu'une requête MFA acceptée mais bloquée côté serveur
-        // ne pende indéfiniment (sinon le spinner de re-alignement reste figé côté UI).
-        .timeout(Duration::from_secs(5 * 60))
-        .build()
-        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
-
-    let (prepared_path, _temp_guard, _merged_guard) =
-        prepare_audio_for_mfa_direct(audio_path, audio_clips, window_start_ms, window_end_ms)?;
-    let uploaded_path =
-        upload_audio_file(&client, &prepared_path, "audio.wav", "audio/wav").await?;
-    let file_payload = serde_json::json!({
-        "path": uploaded_path,
-        "orig_name": "audio.wav",
-        "mime_type": "audio/wav",
-        "meta": { "_type": "gradio.FileData" }
-    });
-
-    call_gradio_endpoint(
-        &client,
-        QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL,
-        "timestamps_direct",
-        serde_json::json!([file_payload, segments, selected_granularity]),
     )
     .await
 }

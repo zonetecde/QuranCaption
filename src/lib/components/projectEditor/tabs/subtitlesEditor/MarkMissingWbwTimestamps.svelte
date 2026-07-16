@@ -19,7 +19,7 @@
 	let isComputing = $state(false);
 
 	/**
-	 * Calcule à la demande les timestamps WBW manquants via l'API du Universal Aligner.
+	 * Calcule à la demande les timestamps WBW manquants avec WhisperX local.
 	 */
 	async function handleComputeWbwTimestamps(): Promise<void> {
 		if (isComputing) return;

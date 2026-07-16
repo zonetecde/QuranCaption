@@ -358,7 +358,10 @@
 				onpointerdown={() =>
 					(wasTimelineContextMenuOpenOnPointerDown =
 						timelineContextMenuElement !== null && get(currentMenu) === timelineContextMenuElement)}
-				onclick={openTimelineContextMenu}
+				onclick={(event) =>
+					asset.type === AssetType.Audio
+						? addInTheTimelineButtonClick(false, true)
+						: openTimelineContextMenu(event)}
 			>
 				<span class="material-icons text-lg!">add_to_queue</span>
 			</button>

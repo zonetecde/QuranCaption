@@ -249,7 +249,7 @@ export default class Exporter {
 	 * Exporte le projet sous forme de sous-titres
 	 */
 	static async exportSubtitles() {
-		const es = globalState.getExportState;
+		const es = globalState.settings!.subtitleExportSettings;
 
 		const settings = {
 			format: es.subtitleFormat,

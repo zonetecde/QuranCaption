@@ -113,6 +113,16 @@ export type DefaultValuesSettings = {
 	projectCategories: string[];
 };
 
+export type SubtitleExportSettings = {
+	subtitleFormat: 'SRT' | 'VTT';
+	includedTarget: Record<string, boolean>;
+	exportVerseNumbers: Record<string, boolean>;
+	exportTranslationVerseNumbers: boolean;
+	exportArabicAyahParentheses: boolean;
+	arabicTextFormat: 'Plain' | 'V1' | 'V2';
+	customFileName: string;
+};
+
 export type SavedVideoStylePreset = {
 	id: number;
 	communityPresetId?: string;
@@ -237,6 +247,16 @@ export default class Settings extends SerializableBase {
 
 	defaultValuesSettings = $state<DefaultValuesSettings>({
 		projectCategories: [...PROJECT_TYPE_OPTIONS]
+	});
+
+	subtitleExportSettings = $state<SubtitleExportSettings>({
+		subtitleFormat: 'SRT',
+		includedTarget: { arabic: true },
+		exportVerseNumbers: { arabic: true },
+		exportTranslationVerseNumbers: true,
+		exportArabicAyahParentheses: true,
+		arabicTextFormat: 'Plain',
+		customFileName: ''
 	});
 
 	savedVideoStylePresets = $state<SavedVideoStylePreset[]>([]);
@@ -537,6 +557,52 @@ export default class Settings extends SerializableBase {
 				projectCategories: [...PROJECT_TYPE_OPTIONS]
 			};
 			shouldSave = true;
+		}
+		if (!settings.subtitleExportSettings || typeof settings.subtitleExportSettings !== 'object') {
+			settings.subtitleExportSettings = {
+				subtitleFormat: 'SRT',
+				includedTarget: { arabic: true },
+				exportVerseNumbers: { arabic: true },
+				exportTranslationVerseNumbers: true,
+				exportArabicAyahParentheses: true,
+				arabicTextFormat: 'Plain',
+				customFileName: ''
+			};
+			shouldSave = true;
+		} else {
+			const subtitleExportSettings = settings.subtitleExportSettings;
+			if (subtitleExportSettings.subtitleFormat !== 'SRT' && subtitleExportSettings.subtitleFormat !== 'VTT') {
+				subtitleExportSettings.subtitleFormat = 'SRT';
+				shouldSave = true;
+			}
+			if (!subtitleExportSettings.includedTarget) {
+				subtitleExportSettings.includedTarget = {};
+				shouldSave = true;
+			}
+			if (!subtitleExportSettings.exportVerseNumbers) {
+				subtitleExportSettings.exportVerseNumbers = {};
+				shouldSave = true;
+			}
+			if (
+				subtitleExportSettings.arabicTextFormat !== 'Plain' &&
+				subtitleExportSettings.arabicTextFormat !== 'V1' &&
+				subtitleExportSettings.arabicTextFormat !== 'V2'
+			) {
+				subtitleExportSettings.arabicTextFormat = 'Plain';
+				shouldSave = true;
+			}
+			if (typeof subtitleExportSettings.exportTranslationVerseNumbers !== 'boolean') {
+				subtitleExportSettings.exportTranslationVerseNumbers = true;
+				shouldSave = true;
+			}
+			if (typeof subtitleExportSettings.exportArabicAyahParentheses !== 'boolean') {
+				subtitleExportSettings.exportArabicAyahParentheses = true;
+				shouldSave = true;
+			}
+			if (typeof subtitleExportSettings.customFileName !== 'string') {
+				subtitleExportSettings.customFileName = '';
+				shouldSave = true;
+			}
 		}
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
 			| Partial<ProjectEditorLayout>

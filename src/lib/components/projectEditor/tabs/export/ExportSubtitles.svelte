@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
+	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
@@ -21,27 +22,31 @@
 	]);
 	const hasIncludedTranslations = $derived(
 		subtitleExportTargets.some(
-			(target) => target !== 'arabic' && Boolean(globalState.getExportState.includedTarget[target])
+			(target) =>
+				target !== 'arabic' &&
+				Boolean(globalState.settings?.subtitleExportSettings.includedTarget[target])
 		)
 	);
 
 	onMount(() => {
-		for (const target of Object.keys(globalState.getExportState.includedTarget)) {
+		const settings = globalState.settings!.subtitleExportSettings;
+		for (const target of Object.keys(settings.includedTarget)) {
 			if (!subtitleExportTargets.includes(target)) {
-				delete globalState.getExportState.includedTarget[target];
-				delete globalState.getExportState.exportVerseNumbers[target];
+				delete settings.includedTarget[target];
+				delete settings.exportVerseNumbers[target];
 			}
 		}
 
 		for (const target of subtitleExportTargets) {
-			// Si le target n'existe toujours pas dans globalState.getExportState.exportVerseNumbers, l'ajoute
-			if (!(target in globalState.getExportState.exportVerseNumbers)) {
-				globalState.getExportState.exportVerseNumbers[target] = target === 'arabic' ? true : false; // Par défaut seul l'arabe a ses numéros de verset
+			// Initialize settings for newly available subtitle targets.
+			if (!(target in settings.exportVerseNumbers)) {
+				settings.exportVerseNumbers[target] = target === 'arabic';
 			}
-			if (!(target in globalState.getExportState.includedTarget)) {
-				globalState.getExportState.includedTarget[target] = true; // Par défaut on exporte tout
+			if (!(target in settings.includedTarget)) {
+				settings.includedTarget[target] = true;
 			}
 		}
+		void Settings.save();
 	});
 </script>
 
@@ -65,7 +70,8 @@
 					type="radio"
 					name="subtitle-format"
 					value="SRT"
-					bind:group={globalState.getExportState.subtitleFormat}
+					bind:group={globalState.settings!.subtitleExportSettings.subtitleFormat}
+					onchange={() => void Settings.save()}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<span class="text-secondary group-hover:text-primary transition-colors">
@@ -78,7 +84,8 @@
 					type="radio"
 					name="subtitle-format"
 					value="VTT"
-					bind:group={globalState.getExportState.subtitleFormat}
+					bind:group={globalState.settings!.subtitleExportSettings.subtitleFormat}
+					onchange={() => void Settings.save()}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<span class="text-secondary group-hover:text-primary transition-colors">
@@ -103,7 +110,8 @@
 					<div class="flex items-start gap-3">
 						<input
 							type="checkbox"
-							bind:checked={globalState.getExportState.includedTarget[target]}
+							bind:checked={globalState.settings!.subtitleExportSettings.includedTarget[target]}
+							onchange={() => void Settings.save()}
 							class="w-4 h-4 mt-0.5 rounded"
 							id="include-{target}"
 						/>
@@ -139,7 +147,7 @@
 		</summary>
 		<div class="mt-4 space-y-5">
 			<div
-				class={!globalState.getExportState.includedTarget.arabic
+				class={!globalState.settings!.subtitleExportSettings.includedTarget.arabic
 					? 'opacity-50 pointer-events-none'
 					: ''}
 			>
@@ -154,19 +162,20 @@
 								type="radio"
 								name="arabic-format"
 								value={format}
-								bind:group={globalState.getExportState.arabicTextFormat}
+								bind:group={globalState.settings!.subtitleExportSettings.arabicTextFormat}
+								onchange={() => void Settings.save()}
 								class="sr-only"
-								disabled={!globalState.getExportState.includedTarget.arabic}
+								disabled={!globalState.settings!.subtitleExportSettings.includedTarget.arabic}
 							/>
 							<div
 								class="cursor-pointer rounded-lg border px-3 py-2 text-center flex flex-col items-center justify-center text-sm font-medium transition-all duration-200 h-full {globalState
-									.getExportState.arabicTextFormat === format
+									.settings!.subtitleExportSettings.arabicTextFormat === format
 									? 'bg-accent-primary text-black border-accent-primary'
 									: 'bg-secondary border-color text-secondary hover:border-accent-primary hover:text-primary'}"
 							>
 								{format === 'Plain' ? $LL.export.simpleText() : `QPC ${format[1]}`}
 								<div
-									class="text-xs mt-1 {globalState.getExportState.arabicTextFormat === format
+									class="text-xs mt-1 {globalState.settings!.subtitleExportSettings.arabicTextFormat === format
 										? 'text-black/80'
 										: 'text-thirdly'}"
 								>
@@ -179,16 +188,17 @@
 			</div>
 
 			<div
-				class="flex items-start gap-3 {!globalState.getExportState.includedTarget.arabic
+				class="flex items-start gap-3 {!globalState.settings!.subtitleExportSettings.includedTarget.arabic
 					? 'opacity-50 pointer-events-none'
 					: ''}"
 			>
 				<input
 					type="checkbox"
-					bind:checked={globalState.getExportState.exportArabicAyahParentheses}
+					bind:checked={globalState.settings!.subtitleExportSettings.exportArabicAyahParentheses}
+					onchange={() => void Settings.save()}
 					class="w-4 h-4 mt-0.5 rounded"
 					id="export-arabic-ayah-parentheses"
-					disabled={!globalState.getExportState.includedTarget.arabic}
+					disabled={!globalState.settings!.subtitleExportSettings.includedTarget.arabic}
 				/>
 				<label for="export-arabic-ayah-parentheses" class="cursor-pointer">
 					<span class="text-secondary text-sm">{$LL.export.includeVerseNumbers()}</span>
@@ -196,16 +206,17 @@
 			</div>
 
 			<div
-				class="flex items-start gap-3 {!globalState.getExportState.includedTarget.arabic
+				class="flex items-start gap-3 {!globalState.settings!.subtitleExportSettings.includedTarget.arabic
 					? 'opacity-50 pointer-events-none'
 					: ''}"
 			>
 				<input
 					type="checkbox"
-					bind:checked={globalState.getExportState.exportVerseNumbers.arabic}
+					bind:checked={globalState.settings!.subtitleExportSettings.exportVerseNumbers.arabic}
+					onchange={() => void Settings.save()}
 					class="w-4 h-4 mt-0.5 rounded"
 					id="export-arabic-verse-numbers"
-					disabled={!globalState.getExportState.includedTarget.arabic}
+					disabled={!globalState.settings!.subtitleExportSettings.includedTarget.arabic}
 				/>
 				<label for="export-arabic-verse-numbers" class="cursor-pointer">
 					<span class="text-secondary text-sm">{$LL.export.includeVerseNumbersAtEnd()}</span>
@@ -219,7 +230,8 @@
 			>
 				<input
 					type="checkbox"
-					bind:checked={globalState.getExportState.exportTranslationVerseNumbers}
+					bind:checked={globalState.settings!.subtitleExportSettings.exportTranslationVerseNumbers}
+					onchange={() => void Settings.save()}
 					class="w-4 h-4 mt-0.5 rounded"
 					id="export-translation-verse-numbers"
 					disabled={!hasIncludedTranslations}
@@ -244,7 +256,8 @@
 					type="text"
 					class="input w-full"
 					placeholder={globalState.currentProject?.detail.generateExportFileName()}
-					bind:value={globalState.getExportState.customFileName}
+					bind:value={globalState.settings!.subtitleExportSettings.customFileName}
+					onchange={() => void Settings.save()}
 				/>
 				<p class="text-thirdly text-xs italic">
 					{$LL.export.fileExtensionAddedAutomatically()}

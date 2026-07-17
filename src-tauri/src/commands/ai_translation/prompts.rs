@@ -499,7 +499,7 @@ pub fn build_chat_completions_body(
         }
     });
 
-    if is_deepseek_endpoint(endpoint) {
+    if is_deepseek_endpoint(endpoint) && reasoning_effort != "none" {
         let body = body
             .as_object_mut()
             .expect("Chat Completions body must be an object");
@@ -520,7 +520,7 @@ pub fn build_responses_api_body(
     schema_description: &str,
     schema: &Value,
 ) -> Value {
-    json!({
+    let mut body = json!({
         "model": model,
         "stream": true,
         "store": false,
@@ -544,10 +544,6 @@ pub fn build_responses_api_body(
                 ]
             }
         ],
-        "reasoning": {
-            "effort": reasoning_effort,
-            "summary": "auto"
-        },
         "text": {
             "verbosity": "low",
             "format": {
@@ -558,7 +554,19 @@ pub fn build_responses_api_body(
                 "schema": schema
             }
         }
-    })
+    });
+
+    // "none" is an application setting; the Responses API expects the field to be omitted.
+    if reasoning_effort != "none" {
+        body.as_object_mut()
+            .expect("Responses API body must be an object")
+            .insert(
+                "reasoning".to_string(),
+                json!({ "effort": reasoning_effort, "summary": "auto" }),
+            );
+    }
+
+    body
 }
 
 // ---------------------------------------------------------------------------

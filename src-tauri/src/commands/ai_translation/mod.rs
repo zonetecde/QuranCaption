@@ -42,9 +42,9 @@ pub(crate) fn validate_model(model: &str) -> Result<(), String> {
 /// Vérifie que l'effort de raisonnement est une valeur supportée.
 pub(crate) fn validate_reasoning_effort(reasoning_effort: &str) -> Result<(), String> {
     match reasoning_effort {
-        "none" | "low" | "medium" | "high" => Ok(()),
+        "none" | "minimal" | "low" | "medium" | "high" | "max" | "xhigh" => Ok(()),
         _ => Err(format!(
-            "Unsupported reasoning_effort '{}'. Expected none, low, medium, or high.",
+            "Unsupported reasoning_effort '{}'. Expected none, minimal, low, medium, high, max, or xhigh.",
             reasoning_effort
         )),
     }

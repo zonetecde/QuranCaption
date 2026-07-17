@@ -18,6 +18,7 @@ import {
 } from '$lib/services/StructuredTranslationService';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { WbwTranslationService } from '$lib/services/WbwTranslationService';
+import type { AIReasoningEffort } from '$lib/services/AIReasoning';
 
 const MAX_BATCH_WORDS = 450;
 const CONTEXT_CLIP_COUNT = 10;
@@ -706,14 +707,15 @@ export function applyAIProjectTranslationResults(
 
 /**
  * Exécute un batch de traduction structurée via la commande Tauri.
- * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: 'none' | 'low' | 'medium' | 'high'; targetLanguage: string; islamicTermMode: IslamicTermTranslationMode; batch: AIProjectTranslationBatch }} params Paramètres du provider, terminologie et batch.
+ * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: AIReasoningEffort; thinkingEnabled?: boolean | null; targetLanguage: string; islamicTermMode: IslamicTermTranslationMode; batch: AIProjectTranslationBatch }} params Paramètres du provider, terminologie et batch.
  * @returns {Promise<AIProjectTranslationBatchResponse>} Réponse structurée du backend.
  */
 export async function runAIProjectTranslationBatchStreaming(params: {
 	apiKey: string;
 	endpoint: string;
 	model: string;
-	reasoningEffort: 'none' | 'low' | 'medium' | 'high';
+	reasoningEffort: AIReasoningEffort;
+	thinkingEnabled?: boolean | null;
 	targetLanguage: string;
 	islamicTermMode: IslamicTermTranslationMode;
 	batch: AIProjectTranslationBatch;
@@ -724,6 +726,7 @@ export async function runAIProjectTranslationBatchStreaming(params: {
 			endpoint: params.endpoint,
 			model: params.model,
 			reasoningEffort: params.reasoningEffort,
+			thinkingEnabled: params.thinkingEnabled,
 			batchId: params.batch.batchId,
 			targetLanguage: params.targetLanguage,
 			islamicTermMode: params.islamicTermMode,

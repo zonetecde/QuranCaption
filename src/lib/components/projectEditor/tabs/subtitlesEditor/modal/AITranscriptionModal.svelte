@@ -34,6 +34,8 @@
 		cleanupAITranscript,
 		estimateTranscriptCleanupBatchCount
 	} from '$lib/services/AITranscriptCleanup';
+	import AIReasoningControls from '$lib/components/ai/AIReasoningControls.svelte';
+	import { resolveAIReasoning, type AIReasoningMode } from '$lib/services/AIReasoning';
 
 	let { close, cleanupOnly = false } = $props<{ close: () => void; cleanupOnly?: boolean }>();
 	const settings = globalState.settings!.aiTranscriptionSettings;
@@ -73,6 +75,22 @@
 	let streamedCleanupResponse = $state('');
 	let streamedCleanupReasoning = $state('');
 	let advancedSubtitleSettingsOpen = $state(false);
+
+	/**
+	 * Sauvegarde le mode de raisonnement propre au nettoyage du transcript.
+	 * @param {AIReasoningMode} value Nouveau mode.
+	 * @returns {void}
+	 */
+	function updateCleanupReasoningMode(value: AIReasoningMode): void {
+		const settings = globalState.settings!.aiTranslationSettings;
+		settings.transcriptCleanupReasoningMode = value;
+		settings.advancedTrimReasoningEffort = resolveAIReasoning(
+			settings.textAiApiEndpoint,
+			settings.advancedTrimModel,
+			value
+		).effort;
+		void saveAITranscriptionSettings();
+	}
 	let appliedClipIds = $state<number[]>([]);
 
 	const subtitleLengthPresetEntries = Object.entries(SUBTITLE_LENGTH_PRESETS) as Array<
@@ -314,6 +332,11 @@
 		errorMessage = '';
 		await saveAITranscriptionSettings();
 		try {
+			const reasoning = resolveAIReasoning(
+				endpoint,
+				model,
+				aiSettings.transcriptCleanupReasoningMode
+			);
 			cleanupChunkUnlisten = await listen<{
 				batchId: string;
 				accumulatedText: string;
@@ -334,7 +357,8 @@
 				apiKey,
 				endpoint,
 				model,
-				reasoningEffort: aiSettings.advancedTrimReasoningEffort,
+				reasoningEffort: reasoning.effort,
+				thinkingEnabled: reasoning.thinkingEnabled,
 				batchWords: activeTask.batchWords,
 				maxWords: settings.maxWordsPerSegment,
 				maxChars: settings.maxCharsPerSegment,
@@ -1131,23 +1155,14 @@
 							</div>
 						</div>
 						<div class="grid gap-4 rounded-xl border border-color bg-primary p-5 md:grid-cols-2">
-							<label class="space-y-2">
-								<span class="text-sm font-semibold text-primary"
-									>{get(LL).translations.aiReasoningModeLabel()}</span
-								>
-								<select
-									class="w-full rounded-lg border border-color bg-secondary px-3 py-2.5 text-primary"
-									bind:value={
-										globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort
-									}
-									onchange={() => void saveAITranscriptionSettings()}
-								>
-									<option value="none">{get(LL).translations.aiReasoningNone()}</option>
-									<option value="low">{get(LL).translations.aiReasoningLow()}</option>
-									<option value="medium">{get(LL).translations.aiReasoningMedium()}</option>
-									<option value="high">{get(LL).translations.aiReasoningHigh()}</option>
-								</select>
-							</label>
+							<AIReasoningControls
+								id="transcript-cleanup-reasoning-mode"
+								endpoint={globalState.settings!.aiTranslationSettings.textAiApiEndpoint}
+								model={globalState.settings!.aiTranslationSettings.advancedTrimModel}
+								mode={globalState.settings!.aiTranslationSettings.transcriptCleanupReasoningMode}
+								disabled={Boolean(globalState.getSubtitlesEditorState.aiTranscriptCleanup)}
+								onchange={updateCleanupReasoningMode}
+							/>
 							<label class="space-y-3">
 								<div class="flex items-center justify-between gap-3">
 									<span class="text-sm font-semibold text-primary"

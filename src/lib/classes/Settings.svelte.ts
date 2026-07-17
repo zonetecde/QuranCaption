@@ -22,6 +22,11 @@ import {
 	SUBTITLE_LENGTH_PRESETS,
 	type SubtitleLengthPreset
 } from '$lib/constants/subtitleLengthPresets';
+import {
+	isAIReasoningMode,
+	type AIReasoningEffort,
+	type AIReasoningMode
+} from '$lib/services/AIReasoning';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -84,7 +89,9 @@ export type AITranslationSettings = {
 	openAiApiKey: string;
 	textAiApiEndpoint: string;
 	advancedTrimModel: string;
-	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
+	advancedTrimReasoningEffort: AIReasoningEffort;
+	projectTranslationReasoningMode: AIReasoningMode;
+	transcriptCleanupReasoningMode: AIReasoningMode;
 	projectTranslationBatchWords: number;
 	projectTranslationIslamicTerms: IslamicTermTranslationMode;
 	advancedAlsoAskReviewed: boolean;
@@ -111,7 +118,7 @@ export type SavedVideoStylePreset = {
 	data: VideoStyleFileData;
 };
 
-const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
+const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const DEFAULT_HOME_EXPLORER_SELECTION: ExplorerSelection = { kind: 'all' };
 
 export default class Settings extends SerializableBase {
@@ -203,8 +210,10 @@ export default class Settings extends SerializableBase {
 		omitPromptPrefix: false,
 		openAiApiKey: '',
 		textAiApiEndpoint: DEFAULT_TEXT_AI_ENDPOINT,
-		advancedTrimModel: 'gpt-5.4',
+		advancedTrimModel: 'gpt-5.4-mini',
 		advancedTrimReasoningEffort: 'none',
+		projectTranslationReasoningMode: 'auto',
+		transcriptCleanupReasoningMode: 'auto',
 		projectTranslationBatchWords: 450,
 		projectTranslationIslamicTerms: 'both',
 		advancedAlsoAskReviewed: false,
@@ -639,6 +648,21 @@ export default class Settings extends SerializableBase {
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
+			shouldSave = true;
+		}
+		if (
+			settings.aiTranslationSettings.textAiApiEndpoint.includes('api.deepseek.com') &&
+			settings.aiTranslationSettings.advancedTrimModel === 'deepseek-chat'
+		) {
+			settings.aiTranslationSettings.advancedTrimModel = 'deepseek-v4-flash';
+			shouldSave = true;
+		}
+		if (!isAIReasoningMode(settings.aiTranslationSettings.projectTranslationReasoningMode)) {
+			settings.aiTranslationSettings.projectTranslationReasoningMode = 'auto';
+			shouldSave = true;
+		}
+		if (!isAIReasoningMode(settings.aiTranslationSettings.transcriptCleanupReasoningMode)) {
+			settings.aiTranslationSettings.transcriptCleanupReasoningMode = 'auto';
 			shouldSave = true;
 		}
 		const projectTranslationBatchWords = Math.min(

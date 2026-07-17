@@ -64,7 +64,7 @@ describe('AI translation modal', () => {
 		globalState.settings.aiTranslationSettings.textAiApiEndpoint =
 			'https://api.openai.com/v1/responses';
 		globalState.settings.aiTranslationSettings.advancedTrimModel = 'gpt-test';
-		globalState.settings.aiTranslationSettings.advancedTrimReasoningEffort = 'medium';
+		globalState.settings.aiTranslationSettings.projectTranslationReasoningMode = 'medium';
 		vi.spyOn(Settings, 'save').mockResolvedValue(undefined);
 		mocks.buildBatches.mockClear();
 		mocks.runBatch.mockClear();
@@ -117,7 +117,9 @@ describe('AI translation modal', () => {
 		expect(reasoningSelect.value).toBe('medium');
 		reasoningSelect.value = 'high';
 		reasoningSelect.dispatchEvent(new Event('change', { bubbles: true }));
-		expect(globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort).toBe('high');
+		expect(globalState.settings!.aiTranslationSettings.projectTranslationReasoningMode).toBe(
+			'high'
+		);
 		expect(Settings.save).toHaveBeenCalled();
 
 		const terminologySelect = component.container.querySelector<HTMLSelectElement>(

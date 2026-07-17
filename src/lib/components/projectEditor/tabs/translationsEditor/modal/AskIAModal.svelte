@@ -17,6 +17,8 @@
 	import { onDestroy, tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
+	import AIReasoningControls from '$lib/components/ai/AIReasoningControls.svelte';
+	import { resolveAIReasoning, type AIReasoningMode } from '$lib/services/AIReasoning';
 
 	type TranslationCopy = {
 		aiTranslationTitle: () => string;
@@ -40,14 +42,8 @@
 		aiTranslationCompleted: (args: { count: number }) => string;
 		aiTranslationFailed: (args: { count: number }) => string;
 		aiTranslationProviderMissing: () => string;
-		aiReasoningModeLabel: () => string;
-		aiReasoningNone: () => string;
-		aiReasoningLow: () => string;
-		aiReasoningMedium: () => string;
-		aiReasoningHigh: () => string;
 	};
 
-	type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
 	type StreamEventPayload = {
 		batchId: string;
 		accumulatedText: string;
@@ -121,12 +117,12 @@
 	}
 
 	/**
-	 * Met à jour et sauvegarde l'effort de raisonnement utilisé par le provider texte.
-	 * @param {ReasoningEffort} value Nouvel effort de raisonnement.
+	 * Met à jour et sauvegarde le mode de raisonnement de la traduction.
+	 * @param {AIReasoningMode} value Nouveau mode de raisonnement.
 	 * @returns {void}
 	 */
-	function updateReasoningMode(value: ReasoningEffort): void {
-		settings().advancedTrimReasoningEffort = value;
+	function updateReasoningMode(value: AIReasoningMode): void {
+		settings().projectTranslationReasoningMode = value;
 		void Settings.save();
 	}
 
@@ -241,11 +237,17 @@
 						total: batches.length
 					});
 					try {
+						const reasoning = resolveAIReasoning(
+							settings().textAiApiEndpoint,
+							settings().advancedTrimModel,
+							settings().projectTranslationReasoningMode
+						);
 						const response = await runAIProjectTranslationBatchStreaming({
 							apiKey: settings().openAiApiKey,
 							endpoint: settings().textAiApiEndpoint,
 							model: settings().advancedTrimModel,
-							reasoningEffort: settings().advancedTrimReasoningEffort,
+							reasoningEffort: reasoning.effort,
+							thinkingEnabled: reasoning.thinkingEnabled,
 							targetLanguage: edition.language,
 							islamicTermMode: settings().projectTranslationIslamicTerms,
 							batch
@@ -319,21 +321,14 @@
 				</p>
 			</div>
 			<div class="rounded-lg border border-color bg-accent p-3">
-				<label class="block text-xs text-thirdly" for="ai-translation-reasoning-mode">
-					{copy.aiReasoningModeLabel()}
-				</label>
-				<select
+				<AIReasoningControls
 					id="ai-translation-reasoning-mode"
-					class="mt-1 w-full rounded-md border border-color bg-secondary px-2 py-1.5 text-sm font-medium text-primary"
-					value={settings().advancedTrimReasoningEffort}
+					endpoint={settings().textAiApiEndpoint}
+					model={settings().advancedTrimModel}
+					mode={settings().projectTranslationReasoningMode}
 					disabled={isRunning}
-					onchange={(event) => updateReasoningMode(event.currentTarget.value as ReasoningEffort)}
-				>
-					<option value="none">{copy.aiReasoningNone()}</option>
-					<option value="low">{copy.aiReasoningLow()}</option>
-					<option value="medium">{copy.aiReasoningMedium()}</option>
-					<option value="high">{copy.aiReasoningHigh()}</option>
-				</select>
+					onchange={updateReasoningMode}
+				/>
 			</div>
 		</div>
 

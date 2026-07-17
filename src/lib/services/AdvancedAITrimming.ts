@@ -6,7 +6,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export type AdvancedTrimModel = string;
-export type AdvancedTrimReasoningEffort = 'none' | 'low' | 'medium' | 'high';
+export type AdvancedTrimReasoningEffort = import('$lib/services/AIReasoning').AIReasoningEffort;
 
 export type AdvancedTrimSegment = {
 	i: number;

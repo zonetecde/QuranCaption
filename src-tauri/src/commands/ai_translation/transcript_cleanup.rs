@@ -84,9 +84,13 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
         prompts::build_chat_completions_body(
             &request.model,
             &request.reasoning_effort,
+            request.thinking_enabled,
             &endpoint,
             prompts::TRANSCRIPT_CLEANUP_SYSTEM_PROMPT,
             &user_prompt,
+            "transcript_analysis_batch",
+            "Conservative transcript corrections, quotation ranges, punctuation and break hints.",
+            &schema,
         )
     } else {
         prompts::build_responses_api_body(

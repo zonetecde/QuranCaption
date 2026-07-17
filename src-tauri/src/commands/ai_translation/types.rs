@@ -46,6 +46,7 @@ pub struct TranscriptCleanupCommandRequest {
     pub endpoint: String,
     pub model: String,
     pub reasoning_effort: String,
+    pub thinking_enabled: Option<bool>,
     pub batch_id: String,
     pub batch: TranscriptCleanupBatchPayload,
 }
@@ -58,6 +59,7 @@ pub struct ProjectTranslationCommandRequest {
     pub endpoint: String,
     pub model: String,
     pub reasoning_effort: String,
+    pub thinking_enabled: Option<bool>,
     pub batch_id: String,
     pub target_language: String,
     pub islamic_term_mode: String,

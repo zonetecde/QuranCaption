@@ -96,9 +96,13 @@ pub async fn run_ai_project_translation_batch_streaming(
         prompts::build_chat_completions_body(
             &request.model,
             &request.reasoning_effort,
+            request.thinking_enabled,
             &endpoint,
             prompts::PROJECT_TRANSLATION_SYSTEM_PROMPT,
             &user_prompt,
+            "project_translation_batch",
+            "Structured lecture translations and Quran edition ranges.",
+            &schema,
         )
     } else {
         prompts::build_responses_api_body(

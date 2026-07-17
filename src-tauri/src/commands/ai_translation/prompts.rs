@@ -529,9 +529,13 @@ pub fn build_transcript_cleanup_user_prompt(
 pub fn build_chat_completions_body(
     model: &str,
     reasoning_effort: &str,
+    thinking_enabled: Option<bool>,
     endpoint: &str,
     system_prompt: &str,
     user_prompt: &str,
+    schema_name: &str,
+    schema_description: &str,
+    schema: &Value,
 ) -> Value {
     let mut body = json!({
         "model": model,
@@ -545,18 +549,61 @@ pub fn build_chat_completions_body(
                 "role": "user",
                 "content": user_prompt
             }
-        ],
-        "response_format": {
-            "type": "json_object"
-        }
+        ]
     });
 
-    if is_deepseek_endpoint(endpoint) && reasoning_effort != "none" {
+    {
         let body = body
             .as_object_mut()
             .expect("Chat Completions body must be an object");
-        body.insert("reasoning_effort".to_string(), json!(reasoning_effort));
-        body.insert("thinking".to_string(), json!({ "type": "enabled" }));
+        let supports_strict_schema = (endpoint.contains("api.openai.com")
+            && model.starts_with("gpt-5."))
+            || (endpoint.contains("generativelanguage.googleapis.com")
+                && model.starts_with("gemini-3"))
+            || (endpoint.contains("api.groq.com") && model.contains("gpt-oss"))
+            || (is_openrouter_endpoint(endpoint) && model == "z-ai/glm-4.7-flash");
+        body.insert(
+            "response_format".to_string(),
+            if supports_strict_schema {
+                json!({
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": schema_name,
+                        "description": schema_description,
+                        "strict": true,
+                        "schema": schema
+                    }
+                })
+            } else {
+                json!({ "type": "json_object" })
+            },
+        );
+        if is_deepseek_endpoint(endpoint) {
+            let enabled = thinking_enabled.unwrap_or(reasoning_effort != "none");
+            body.insert(
+                "thinking".to_string(),
+                json!({ "type": if enabled { "enabled" } else { "disabled" } }),
+            );
+            if enabled && reasoning_effort != "none" {
+                body.insert("reasoning_effort".to_string(), json!(reasoning_effort));
+            }
+        } else if is_openrouter_endpoint(endpoint) {
+            if supports_strict_schema {
+                body.insert(
+                    "provider".to_string(),
+                    json!({ "require_parameters": true }),
+                );
+            }
+            if let Some(enabled) = thinking_enabled {
+                let mut reasoning = json!({ "enabled": enabled, "exclude": true });
+                if enabled && reasoning_effort != "none" {
+                    reasoning["effort"] = json!(reasoning_effort);
+                }
+                body.insert("reasoning".to_string(), reasoning);
+            }
+        } else if reasoning_effort != "none" || endpoint.contains("api.openai.com") {
+            body.insert("reasoning_effort".to_string(), json!(reasoning_effort));
+        }
     }
 
     body

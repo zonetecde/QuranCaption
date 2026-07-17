@@ -1,9 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { AITranscriptionResult } from '$lib/services/AITranscription';
-import type {
-	AdvancedTrimModel,
-	AdvancedTrimReasoningEffort
-} from '$lib/services/AdvancedAITrimming';
+import type { AdvancedTrimModel } from '$lib/services/AdvancedAITrimming';
+import type { AIReasoningEffort } from '$lib/services/AIReasoning';
 import {
 	buildTimedTranscriptTokens,
 	finalizeTranscriptProcessing,
@@ -575,7 +573,7 @@ async function validateFinalQuranMarkers(result: AITranscriptionResult): Promise
 /**
  * Corrige, annote et re-segmente une transcription avec une IA textuelle facultative.
  * @param {AITranscriptionResult} result Résultat ASR courant.
- * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AdvancedTrimReasoningEffort; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onBatchComplete?: (report: TranscriptCleanupReport) => void | Promise<void> }} options Provider, reprise et contraintes.
+ * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onBatchComplete?: (report: TranscriptCleanupReport) => void | Promise<void> }} options Provider, reprise et contraintes.
  * @returns {Promise<TranscriptCleanupReport>} Transcription préparée et rapport.
  */
 export async function cleanupAITranscript(
@@ -584,7 +582,8 @@ export async function cleanupAITranscript(
 		apiKey?: string;
 		endpoint?: string;
 		model?: AdvancedTrimModel;
-		reasoningEffort?: AdvancedTrimReasoningEffort;
+		reasoningEffort?: AIReasoningEffort;
+		thinkingEnabled?: boolean | null;
 		batchWords?: number;
 		maxWords: number;
 		maxChars: number;
@@ -625,6 +624,7 @@ export async function cleanupAITranscript(
 					endpoint,
 					model,
 					reasoningEffort,
+					thinkingEnabled: options.thinkingEnabled,
 					batchId: batch.batchId,
 					batch: batch.request
 				}

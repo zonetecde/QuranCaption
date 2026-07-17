@@ -79,9 +79,13 @@ pub async fn run_advanced_ai_trim_batch_streaming(
         prompts::build_chat_completions_body(
             &request.model,
             &request.reasoning_effort,
+            None,
             &endpoint,
             prompts::ADVANCED_TRIM_SYSTEM_PROMPT,
             &user_prompt,
+            "translation_trim_batch",
+            "Reviewed translation segments for Quran verse ranges.",
+            &schema,
         )
     } else {
         prompts::build_responses_api_body(

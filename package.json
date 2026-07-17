@@ -67,6 +67,7 @@
 		"class-transformer": "^0.5.1",
 		"dom-to-image": "^2.6.0",
 		"dompurify": "^3.2.6",
+		"harfbuzzjs": "^0.10.3",
 		"howler": "^2.2.4",
 		"markdown-it": "^14.1.0",
 		"markdown-it-anchor": "^9.2.0",

@@ -1,8 +1,6 @@
 import type { VerseRange } from '$lib/classes/VerseRange.svelte';
 
 export const SMALL_GAP_MS = 200;
-/** Seuil (ms) de déplacement de bord en dessous duquel un drag-resize ne réaligne pas les mots. */
-export const AUTO_REALIGN_DRAG_THRESHOLD_MS = 200;
 /** Délai (ms) après relâchement de la souris avant de lancer le réalignement automatique. */
 export const AUTO_REALIGN_DEBOUNCE_MS = 300;
 /**

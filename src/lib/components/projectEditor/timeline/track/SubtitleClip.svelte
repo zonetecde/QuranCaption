@@ -18,8 +18,7 @@
 	import {
 		computeWbwTimestampsForClips,
 		scheduleWbwRealign,
-		getAutoRealignStatus,
-		AUTO_REALIGN_DRAG_THRESHOLD_MS
+		getAutoRealignStatus
 	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
 	import {
@@ -225,10 +224,14 @@
 		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return [];
 
 		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
-		return (clip.alignmentMetadata?.words ?? [])
+		const words = clip.alignmentMetadata?.words ?? [];
+		return words
 			.map((word, index) => {
 				const startPercent = (word.start * 1000 * 100) / clipDurationMs;
-				const endPercent = (word.end * 1000 * 100) / clipDurationMs;
+				// Une ancienne métadonnée peut précéder la normalisation : le dernier marqueur
+				// doit malgré tout couvrir visuellement jusqu'à la fin du clip.
+				const endPercent =
+					index === words.length - 1 ? 100 : (word.end * 1000 * 100) / clipDurationMs;
 				const leftPercent = Math.min(100, Math.max(0, startPercent));
 				const rightPercent = Math.min(100, Math.max(leftPercent, endPercent));
 				return {
@@ -247,7 +250,6 @@
 
 	// Animation de la barre de mots : vidée pendant le redimensionnement, spinner pendant WhisperX.
 	let isResizing = $state(false);
-	let dragBoundaryStartMs: number | null = null;
 	const realignStatus = $derived(
 		clip instanceof SubtitleClip ? getAutoRealignStatus(clip.id) : 'idle'
 	);
@@ -260,7 +262,6 @@
 			didDrag = false;
 			if (clip instanceof SubtitleClip) {
 				isResizing = true;
-				dragBoundaryStartMs = clip.startTime;
 			}
 			globalState.getTimelineState.showCursor = false;
 			document.addEventListener('mousemove', onLeftDragging);
@@ -286,14 +287,17 @@
 		}
 		if (clip instanceof SubtitleClip) {
 			isResizing = false;
-			const movedMs =
-				dragBoundaryStartMs === null ? 0 : Math.abs(clip.startTime - dragBoundaryStartMs);
-			dragBoundaryStartMs = null;
-			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
+			if (didDrag) {
 				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les deux.
 				const previous = (track as SubtitleTrack).getClipBefore(clip.id);
 				const group = previous instanceof SubtitleClip ? [previous, clip] : [clip];
 				scheduleWbwRealign(group, { reason: 'drag' });
+			}
+		} else if (clip.type === 'Silence' && didDrag) {
+			// Le silence n'a pas de mots : seul le sous-titre précédent voit sa fin modifiée.
+			const previous = (track as SubtitleTrack).getClipBefore(clip.id);
+			if (previous instanceof SubtitleClip) {
+				scheduleWbwRealign([previous], { reason: 'drag' });
 			}
 		}
 		if (didDrag) {
@@ -309,7 +313,6 @@
 		didDrag = false;
 		if (clip instanceof SubtitleClip) {
 			isResizing = true;
-			dragBoundaryStartMs = clip.endTime;
 		}
 		document.addEventListener('mousemove', onRightDragging);
 		document.addEventListener('mouseup', stopRightDragging);
@@ -334,14 +337,17 @@
 		}
 		if (clip instanceof SubtitleClip) {
 			isResizing = false;
-			const movedMs =
-				dragBoundaryStartMs === null ? 0 : Math.abs(clip.endTime - dragBoundaryStartMs);
-			dragBoundaryStartMs = null;
-			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
+			if (didDrag) {
 				// Un drag à droite recale aussi le début du clip suivant → réaligner les deux.
 				const next = (track as SubtitleTrack).getClipAfter(clip.id);
 				const group = next instanceof SubtitleClip ? [clip, next] : [clip];
 				scheduleWbwRealign(group, { reason: 'drag' });
+			}
+		} else if (clip.type === 'Silence' && didDrag) {
+			// Le silence n'a pas de mots : seul le sous-titre suivant voit son début modifié.
+			const next = (track as SubtitleTrack).getClipAfter(clip.id);
+			if (next instanceof SubtitleClip) {
+				scheduleWbwRealign([next], { reason: 'drag' });
 			}
 		}
 		if (didDrag) {

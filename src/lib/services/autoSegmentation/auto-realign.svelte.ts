@@ -8,7 +8,7 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
 /**
  * Re-alignement WBW automatique et « abstrait » déclenché par les éditions de sous-titres.
  *
- * Quand l'utilisateur redimensionne un clip (au-delà d'un seuil) ou change sa plage de mots,
+ * Quand l'utilisateur redimensionne un clip ou change sa plage de mots,
  * les timestamps WBW deviennent approximatifs (ou sont effacés). On relance ici WhisperX en arrière-plan
  * sur les seuls segments touchés (tranche audio + un seul appel), avec un debounce, une coalescence
  * des groupes qui se chevauchent, et une sémantique « dernier gagne » par clip. Un statut réactif
@@ -53,12 +53,8 @@ export function getAutoRealignStatus(clipId: number): AutoRealignStatus {
  * @returns {RealignWindow} Fenêtre `[startMs, endMs]` à trancher/téléverser.
  */
 export function computeRealignWindow(clips: SubtitleClip[]): RealignWindow {
-	const starts = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000) * 1000)
-	);
-	const ends = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeTo ?? clip.endTime / 1000) * 1000)
-	);
+	const starts = clips.map((clip) => clip.startTime);
+	const ends = clips.map((clip) => clip.endTime);
 	return { startMs: Math.min(...starts), endMs: Math.max(...ends) };
 }
 

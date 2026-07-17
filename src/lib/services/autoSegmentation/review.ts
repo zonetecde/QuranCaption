@@ -210,7 +210,7 @@ export async function computeWbwTimestampsForClipsSliced(
 	const baseS = window ? window.startMs / 1000 : 0;
 	const alignmentInputs = await Promise.all(clips.map((clip) => buildWbwAlignmentInput(clip.text)));
 
-	// Segments aux temps ABSOLUS (timeline) — réutilisés pour écrire les métadonnées.
+	// Les bornes actuelles du clip font foi : les métadonnées peuvent dater d'avant un resize.
 	const segments: SegmentationSegment[] = clips.map((clip, index) => {
 		const meta = clip.alignmentMetadata;
 		const input = alignmentInputs[index];
@@ -220,8 +220,8 @@ export async function computeWbwTimestampsForClipsSliced(
 			ref_to: input.refTo ?? meta?.refTo ?? '',
 			matched_text: input.matchedText,
 			special_type: meta?.specialType,
-			time_from: meta?.timeFrom ?? clip.startTime / 1000,
-			time_to: meta?.timeTo ?? clip.endTime / 1000,
+			time_from: clip.startTime / 1000,
+			time_to: clip.endTime / 1000,
 			words: []
 		};
 	});

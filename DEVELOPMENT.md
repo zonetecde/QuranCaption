@@ -147,7 +147,9 @@ returns a JSON with timestamps used to create `Clip` objects.
 
 Exporting is handled by combining:
 
-- **Frontend**: `modern-screenshot` for capturing styled verses as high-quality images.
+- **Frontend**: `modern-screenshot` for capturing styled verses as high-quality images. On Windows
+  and Linux, URL-backed system fonts are subset with HarfBuzz before capture so large font files are
+  not embedded in every SVG. See `documentations/system-font-export.md`.
 - **Backend (Rust)**: `ffmpeg` commands to assemble frames, audio, and background videos into the
   final output.
 

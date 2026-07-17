@@ -588,6 +588,10 @@ En mode export (`isExportCapturePreview = true`) :
   `display: inline`
 - Les segments sans styles inline sont concaténés avec leur suffixe pour éviter des coupures de span
   parasites dans `modern-screenshot`
+- Sous Windows et Linux, les polices système utilisées sont temporairement réduites aux caractères
+  visibles avant `domToBlob()`. Le DOM et ses alignements CSS restent inchangés. Voir
+  [Polices système et capture d'export](system-font-export.md).
+- macOS conserve son chemin spécifique qui redessine le texte sur canvas.
 
 ---
 
@@ -602,6 +606,7 @@ En mode export (`isExportCapturePreview = true`) :
 | `helpers/antiCollision.ts`       | Résolution des collisions entre sous-titres                                  |
 | `helpers/reactiveFontSize.ts`    | Ajustement réactif de la taille de police                                    |
 | `helpers/overlayCss.ts`          | CSS des effets d'overlay et padding de fond                                  |
+| `services/SystemFontSubset.ts`   | Réduction HarfBuzz des polices système avant les captures DOM                |
 | `helpers/decorativeBrackets.ts`  | Glyphes décoratifs pour les crochets arabes                                  |
 | `visualMergeOverlayUtils.ts`     | Utilitaires de fusion visuelle (segments, chevauchements)                    |
 | `wordByWordHighlightUtils.ts`    | Calcul de l'état et du CSS du highlight WBW                                  |

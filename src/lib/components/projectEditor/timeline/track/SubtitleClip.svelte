@@ -22,6 +22,13 @@
 		AUTO_REALIGN_DRAG_THRESHOLD_MS
 	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
+	import {
+		getTranslationTrimUnits,
+		sliceTranslationTrimUnits,
+		VerseTranslation
+	} from '$lib/classes/Translation.svelte';
+	import { getTranscriptReferenceRenderParts } from '$lib/services/TranscriptReferenceService';
+	import { getStructuredTranslationDraft } from '$lib/services/StructuredTranslationService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
@@ -41,6 +48,64 @@
 	// Vrai si ce sous-titre Quran n'a pas encore de timestamps mot à mot.
 	let isMissingWbwTimestamps = $derived(
 		clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) === 0
+	);
+
+	// Timeline clips keep their stored marker syntax, but render its readable content for editing context.
+	const displayedTextParts = $derived(() =>
+		getTranscriptReferenceRenderParts(clip.text, 'Uthmani', 'Hafs')
+	);
+
+	const displayedTranslationParts = $derived(() =>
+		Object.entries(clip.translations).map(([languageName, translation]) => {
+			if (
+				!(clip instanceof SubtitleClip) ||
+				!(translation instanceof VerseTranslation) ||
+				!translation.isStructuredTranslation
+			) {
+				return { languageName, text: translation.text, parts: null };
+			}
+
+			const language = globalState.getProjectTranslation.addedTranslationEditions.find(
+				(edition) => edition.name === languageName
+			);
+			if (!language) return { languageName, text: translation.text, parts: null };
+
+			const draft = getStructuredTranslationDraft(clip.text, translation.text);
+			const parts: { text: string; type: 'text' | 'quran' | 'citation' }[] = [];
+			for (let index = 0; index < draft.anchors.length; index++) {
+				const freeText = draft.freeTexts[index] ?? '';
+				if (freeText) parts.push({ text: freeText, type: 'text' });
+
+				const anchor = draft.anchors[index];
+				if (anchor.type === 'citation') {
+					parts.push({ text: anchor.value, type: 'citation' });
+					continue;
+				}
+
+				const reference = anchor.quranReference;
+				if (!reference) continue;
+				const original =
+					globalState.getProjectTranslation.versesTranslations[language.name]?.[
+						`${reference.surah}:${reference.verse}`
+					] ?? '';
+				const settings = translation.quranSegments?.[anchor.id];
+				const units = getTranslationTrimUnits(original);
+				parts.push({
+					text: settings?.isBruteForce
+						? settings.manualText
+						: sliceTranslationTrimUnits(
+								original,
+								settings?.startUnitIndex ?? 0,
+								settings?.endUnitIndex ?? Math.max(0, units.length - 1)
+							),
+					type: 'quran'
+				});
+			}
+
+			const trailingText = draft.freeTexts[draft.anchors.length] ?? '';
+			if (trailingText) parts.push({ text: trailingText, type: 'text' });
+			return { languageName, text: parts.map((part) => part.text).join(''), parts };
+		})
 	);
 
 	let positionLeft = $derived(() => {
@@ -616,19 +681,44 @@
 					class:text-[var(--text-on-selection)]={isSelected()}
 					dir="rtl"
 				>
-					{clip.text}
+					{#if displayedTextParts()}
+						{#each displayedTextParts() as part, index (`${part.text}-${index}`)}
+							<span
+								class:timeline-quran-reference={part.isQuran && !isSelected()}
+								class:timeline-quote-reference={part.isCitation && !isSelected()}
+								style={part.extraCss}
+								>{part.isQuran
+									? part.text
+											.replace('۝', '')
+											.replace(/\d/g, (digit) => '٠١٢٣٤٥٦٧٨٩'[Number(digit)])
+									: part.text}</span
+							>
+						{/each}
+					{:else}
+						{clip.text}
+					{/if}
 				</p>
 
 				{#if Object.keys(clip.translations).length > 0}
 					<div class="w-full flex flex-col items-center gap-0.5 -mt-1">
-						{#each Object.entries(clip.translations) as [lang, translation] (lang)}
+						{#each displayedTranslationParts() as translation (translation.languageName)}
 							<p
 								class="text-[11px] sm:text-[12px] truncate w-full font-medium mx-auto my-auto text-center italic"
 								class:text-[var(--text-secondary)]={!isSelected()}
 								class:text-[var(--text-on-selection)]={isSelected()}
 								title={translation.text}
 							>
-								{translation.text}
+								{#if translation.parts}
+									{#each translation.parts as part, index (`${part.type}-${part.text}-${index}`)}
+										<span
+											class:timeline-quran-reference={part.type === 'quran' && !isSelected()}
+											class:timeline-quote-reference={part.type === 'citation' && !isSelected()}
+											>{part.text}</span
+										>
+									{/each}
+								{:else}
+									{translation.text}
+								{/if}
 							</p>
 						{/each}
 					</div>
@@ -790,6 +880,15 @@
 <style>
 	.timeline-arabic {
 		font-family: 'Noto Sans Arabic', sans-serif;
+	}
+
+	.timeline-quran-reference {
+		font-family: 'Hafs', sans-serif;
+		color: #5eead4;
+	}
+
+	.timeline-quote-reference {
+		color: #fcd34d;
 	}
 
 	/* Formes pour l'indicateur de verset sans clip-path pour eviter les soucis de stacking */

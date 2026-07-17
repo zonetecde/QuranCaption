@@ -7,6 +7,7 @@
 	import {
 		applyAIProjectTranslationResults,
 		buildAIProjectTranslationBatches,
+		estimateAIProjectTranslationBatchCount,
 		getEligibleAIProjectTranslationSubtitles,
 		resolveAIProjectTranslationSuccessContext,
 		runAIProjectTranslationBatchStreaming,
@@ -22,6 +23,8 @@
 		aiTranslationTitle: () => string;
 		aiTranslationSubtitle: (args: { language: string }) => string;
 		aiTranslationEligibleCount: (args: { count: number }) => string;
+		aiTranslationBatchSize: () => string;
+		aiTranslationBatchPreview: (args: { count: number }) => string;
 		aiTranslationNoEligible: () => string;
 		aiTranslationRetryErrors: () => string;
 		aiTranslationOverwriteAi: () => string;
@@ -82,6 +85,13 @@
 	const progressPercent = $derived(() =>
 		totalBatches > 0 ? Math.round((completedBatches / totalBatches) * 100) : 0
 	);
+	const estimatedBatchCount = $derived(() =>
+		estimateAIProjectTranslationBatchCount(
+			edition,
+			options,
+			settings().projectTranslationBatchWords
+		)
+	);
 
 	$effect(() => {
 		if (!streamedReasoning) return;
@@ -113,6 +123,23 @@
 	function updateReasoningMode(value: ReasoningEffort): void {
 		settings().advancedTrimReasoningEffort = value;
 		void Settings.save();
+	}
+
+	/**
+	 * Sauvegarde la taille de batch de traduction choisie par l'utilisateur.
+	 * @returns {void}
+	 */
+	function saveBatchSize(): void {
+		void Settings.save();
+	}
+
+	/**
+	 * Met à jour la taille de batch affichée pendant le déplacement du slider.
+	 * @param {string} value Valeur brute du contrôle range.
+	 * @returns {void}
+	 */
+	function updateBatchSize(value: string): void {
+		settings().projectTranslationBatchWords = Number(value);
 	}
 
 	/**
@@ -168,7 +195,11 @@
 
 		try {
 			await startStreamListeners();
-			const batches = await buildAIProjectTranslationBatches(edition, options);
+			const batches = await buildAIProjectTranslationBatches(
+				edition,
+				options,
+				settings().projectTranslationBatchWords
+			);
 			totalBatches = batches.length;
 			if (batches.length === 0) {
 				currentMessage = copy.aiTranslationNoEligible();
@@ -277,6 +308,29 @@
 					<option value="high">{copy.aiReasoningHigh()}</option>
 				</select>
 			</div>
+		</div>
+
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<div class="flex items-center justify-between gap-3">
+				<span class="text-sm font-medium text-primary">{copy.aiTranslationBatchSize()}</span>
+				<span class="text-sm font-bold text-accent-primary">
+					{settings().projectTranslationBatchWords}
+				</span>
+			</div>
+			<input
+				type="range"
+				min="160"
+				max="640"
+				step="10"
+				class="mt-3 w-full"
+				value={settings().projectTranslationBatchWords}
+				disabled={isRunning}
+				oninput={(event) => updateBatchSize(event.currentTarget.value)}
+				onchange={saveBatchSize}
+			/>
+			<p class="mt-2 text-xs text-secondary">
+				{copy.aiTranslationBatchPreview({ count: estimatedBatchCount() })}
+			</p>
 		</div>
 
 		{#if !providerConfigured()}

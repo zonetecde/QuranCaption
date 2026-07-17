@@ -19,6 +19,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import {
 	applyAIProjectTranslationResults,
 	buildAIProjectTranslationBatches,
+	estimateAIProjectTranslationBatchCount,
 	resolveAIProjectTranslationSuccessContext,
 	validateAIProjectTranslationBatch,
 	type AIProjectTranslationBatch,
@@ -186,6 +187,18 @@ describe('AIProjectTranslationService', () => {
 			}),
 			expect.objectContaining({ i: 'citation-1', k: 'c', s: 'حديث' })
 		]);
+		expect(
+			estimateAIProjectTranslationBatchCount(
+				edition,
+				{
+					retryErrors: true,
+					overwriteAiTranslated: false,
+					overwriteReviewed: false,
+					overwriteManualQuran: false
+				},
+				160
+			)
+		).toBe(1);
 	});
 	test('accepts structured free text, citation translations and Quran ranges', () => {
 		const batch = createBatch();
@@ -228,6 +241,22 @@ describe('AIProjectTranslationService', () => {
 
 		expect(report.validItems).toEqual([]);
 		expect(report.errors).toContain(`Subtitle ${subtitleId}: invalid free text slots.`);
+	});
+
+	test('accepts omitted empty anchor arrays when the source has no editable anchors', () => {
+		const batch = createBatch();
+		const candidate = batch.candidates[0];
+		candidate.payload.a = [];
+		candidate.citationIds = [];
+		candidate.quranExpectations = [];
+		const subtitleId = candidate.subtitle.id;
+
+		const report = validateAIProjectTranslationBatch(batch, {
+			i: [{ i: subtitleId, f: ['Plain translation'] }]
+		});
+
+		expect(report.errors).toEqual([]);
+		expect(report.validItems).toHaveLength(1);
 	});
 
 	test('rejects Quran ranges outside the associated edition translation', () => {

@@ -118,6 +118,18 @@ function countWords(text: string): number {
 }
 
 /**
+ * Compte les mots source utilisés pour découper un sous-titre de traduction IA.
+ * @param {SubtitleClip} subtitle Sous-titre à inclure dans un batch.
+ * @returns {number} Nombre de mots pris en compte pour le découpage.
+ */
+function getTranslationBatchWordCount(subtitle: SubtitleClip): number {
+	const draft = getStructuredTranslationDraft(subtitle.text, '');
+	return countWords(
+		[...draft.sourceFreeTexts, ...draft.anchors.map((anchor) => anchor.sourceValue)].join(' ')
+	);
+}
+
+/**
  * Indique si une traduction doit être traitée selon les options choisies.
  * @param {VerseTranslation} translation Traduction existante.
  * @param {AIProjectTranslationOptions} options Options du workflow.
@@ -299,11 +311,6 @@ async function buildCandidate(
 	const quranExpectations = builtAnchors.flatMap((entry) =>
 		entry.expectation ? [entry.expectation] : []
 	);
-	const sourceText = [
-		...draft.sourceFreeTexts,
-		...draft.anchors.map((anchor) => anchor.sourceValue)
-	].join(' ');
-
 	return {
 		subtitle,
 		translation,
@@ -312,7 +319,7 @@ async function buildCandidate(
 			.filter((anchor) => anchor.type === 'citation')
 			.map((anchor) => anchor.id),
 		quranExpectations,
-		wordCount: countWords(sourceText)
+		wordCount: getTranslationBatchWordCount(subtitle)
 	};
 }
 
@@ -324,7 +331,8 @@ async function buildCandidate(
  */
 export async function buildAIProjectTranslationBatches(
 	edition: Edition,
-	options: AIProjectTranslationOptions
+	options: AIProjectTranslationOptions,
+	maxBatchWords: number = MAX_BATCH_WORDS
 ): Promise<AIProjectTranslationBatch[]> {
 	await MinimalQuranProvider.prefetch();
 	const subtitles = getEligibleAIProjectTranslationSubtitles(edition, options);
@@ -335,6 +343,7 @@ export async function buildAIProjectTranslationBatches(
 		(left, right) => left.startTime - right.startTime
 	);
 	const batches: AIProjectTranslationBatch[] = [];
+	const normalizedBatchWords = Math.max(1, Math.round(maxBatchWords));
 	let current: AIProjectTranslationCandidate[] = [];
 	let currentWords = 0;
 
@@ -365,7 +374,7 @@ export async function buildAIProjectTranslationBatches(
 	};
 
 	for (const candidate of candidates) {
-		if (current.length > 0 && currentWords + candidate.wordCount > MAX_BATCH_WORDS) {
+		if (current.length > 0 && currentWords + candidate.wordCount > normalizedBatchWords) {
 			pushCurrent();
 		}
 		current.push(candidate);
@@ -373,6 +382,34 @@ export async function buildAIProjectTranslationBatches(
 	}
 	pushCurrent();
 	return batches;
+}
+
+/**
+ * Estime le nombre de batches sans charger les données Quran nécessaires à l'exécution réelle.
+ * @param {Edition} edition Langue cible.
+ * @param {AIProjectTranslationOptions} options Options du workflow.
+ * @param {number} maxBatchWords Taille maximale d'un batch en mots.
+ * @returns {number} Nombre de batches qui seront créés.
+ */
+export function estimateAIProjectTranslationBatchCount(
+	edition: Edition,
+	options: AIProjectTranslationOptions,
+	maxBatchWords: number = MAX_BATCH_WORDS
+): number {
+	const normalizedBatchWords = Math.max(1, Math.round(maxBatchWords));
+	let batches = 0;
+	let currentWords = 0;
+
+	for (const subtitle of getEligibleAIProjectTranslationSubtitles(edition, options)) {
+		const wordCount = getTranslationBatchWordCount(subtitle);
+		if (currentWords > 0 && currentWords + wordCount > normalizedBatchWords) {
+			batches += 1;
+			currentWords = 0;
+		}
+		currentWords += wordCount;
+	}
+
+	return currentWords > 0 ? batches + 1 : batches;
 }
 
 /**
@@ -432,7 +469,7 @@ export function validateAIProjectTranslationBatch(
 			continue;
 		}
 
-		const citationValues = item.c;
+		const citationValues = item.c ?? (candidate.citationIds.length === 0 ? [] : null);
 		if (!Array.isArray(citationValues)) {
 			errors.push(`Subtitle ${id}: invalid citation payload.`);
 			continue;
@@ -463,12 +500,12 @@ export function validateAIProjectTranslationBatch(
 			continue;
 		}
 
-		const rawRanges = item.q;
+		const expectedRanges = candidate.quranExpectations.filter((expectation) => !expectation.locked);
+		const rawRanges = item.q ?? (expectedRanges.length === 0 ? [] : null);
 		if (!Array.isArray(rawRanges)) {
 			errors.push(`Subtitle ${id}: invalid Quran range payload.`);
 			continue;
 		}
-		const expectedRanges = candidate.quranExpectations.filter((expectation) => !expectation.locked);
 		const quranRanges: Record<string, { startUnitIndex: number; endUnitIndex: number }> = {};
 		for (const value of rawRanges) {
 			if (!value || typeof value !== 'object') {

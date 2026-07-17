@@ -83,6 +83,7 @@ export type AITranslationSettings = {
 	textAiApiEndpoint: string;
 	advancedTrimModel: string;
 	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
+	projectTranslationBatchWords: number;
 	advancedAlsoAskReviewed: boolean;
 	aiBoldCustomNote: string;
 	aiWbwTranslationCustomNote: string;
@@ -201,6 +202,7 @@ export default class Settings extends SerializableBase {
 		textAiApiEndpoint: DEFAULT_TEXT_AI_ENDPOINT,
 		advancedTrimModel: 'gpt-5.4',
 		advancedTrimReasoningEffort: 'none',
+		projectTranslationBatchWords: 450,
 		advancedAlsoAskReviewed: false,
 		aiBoldCustomNote: '',
 		aiWbwTranslationCustomNote: '',
@@ -633,6 +635,16 @@ export default class Settings extends SerializableBase {
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
+			shouldSave = true;
+		}
+		const projectTranslationBatchWords = Math.min(
+			640,
+			Math.max(160, Number(settings.aiTranslationSettings.projectTranslationBatchWords) || 450)
+		);
+		if (
+			settings.aiTranslationSettings.projectTranslationBatchWords !== projectTranslationBatchWords
+		) {
+			settings.aiTranslationSettings.projectTranslationBatchWords = projectTranslationBatchWords;
 			shouldSave = true;
 		}
 		if (typeof settings.aiTranslationSettings.aiWbwTranslationCustomNote !== 'string') {

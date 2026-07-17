@@ -105,6 +105,8 @@ const translations = {
 	aiTranslationSubtitle: 'Translate the structured subtitles into {language}.',
 	aiTranslatedStatus: 'AI translated',
 	aiTranslationEligibleCount: '{count} subtitle(s) ready to translate',
+	aiTranslationBatchSize: 'Batch size (words)',
+	aiTranslationBatchPreview: 'Estimated total: {count} batch(es).',
 	aiTranslationNoEligible: 'No subtitle currently matches the selected options.',
 	aiTranslationRetryErrors: 'Retry translations in error',
 	aiTranslationOverwriteAi: 'Overwrite AI translations',

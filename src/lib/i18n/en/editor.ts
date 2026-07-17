@@ -58,6 +58,16 @@ const editor = {
 	transcriptCleanupCompleted: 'Prepared {cleaned} of {total} subtitle segments.',
 	transcriptCleanupCompletedWithIssues:
 		'Prepared {cleaned} of {total} subtitle segments. {errors} warning(s) require review.',
+	transcriptCleanupBatchSize: 'Batch size (words)',
+	transcriptCleanupBatchPreview: 'Estimated total: {count} batch(es).',
+	pauseTranscriptCleanup: 'Pause after this batch',
+	pausingTranscriptCleanup: 'Pausing...',
+	resumeTranscriptCleanup: 'Resume cleanup',
+	transcriptCleanupPaused: 'Cleanup paused · {remaining} batch(es) remaining.',
+	cleanExistingTranscript: 'Clean existing transcript with AI',
+	cleanExistingTranscriptDescription:
+		'Run the optional AI cleanup now, or resume a cleanup saved with this project.',
+	transcriptCleanupRemaining: '{remaining} batch(es) remaining',
 	transcriptionDataPrivacy:
 		'Audio transcription, Quran matching, and subtitle segmentation stay local. Only indexed transcript words are sent to your configured text AI provider when one is available.',
 	aiTranscriptionComingSoon: 'AI transcription will be added later',

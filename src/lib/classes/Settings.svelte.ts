@@ -67,6 +67,7 @@ export type AITranscriptionSettings = {
 	maxWordsPerSegment: number;
 	maxCharsPerSegment: number;
 	replaceExisting: boolean;
+	cleanupBatchWords: number;
 };
 
 export type StockMediaSettings = {
@@ -190,7 +191,8 @@ export default class Settings extends SerializableBase {
 		minSilenceDuration: SUBTITLE_LENGTH_PRESETS.balanced.silenceSeconds,
 		maxWordsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxWords,
 		maxCharsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxChars,
-		replaceExisting: true
+		replaceExisting: true,
+		cleanupBatchWords: 160
 	});
 
 	aiTranslationSettings = $state<AITranslationSettings>({
@@ -607,9 +609,22 @@ export default class Settings extends SerializableBase {
 		const legacyTranscriptionSettings =
 			settings.aiTranscriptionSettings as AITranscriptionSettings & {
 				addDiacritics?: unknown;
+				cleanupReasoningEffort?: unknown;
 			};
 		if ('addDiacritics' in legacyTranscriptionSettings) {
 			delete legacyTranscriptionSettings.addDiacritics;
+			shouldSave = true;
+		}
+		if ('cleanupReasoningEffort' in legacyTranscriptionSettings) {
+			delete legacyTranscriptionSettings.cleanupReasoningEffort;
+			shouldSave = true;
+		}
+		const cleanupBatchWords = Math.min(
+			640,
+			Math.max(160, Number(settings.aiTranscriptionSettings.cleanupBatchWords) || 160)
+		);
+		if (settings.aiTranscriptionSettings.cleanupBatchWords !== cleanupBatchWords) {
+			settings.aiTranscriptionSettings.cleanupBatchWords = cleanupBatchWords;
 			shouldSave = true;
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {

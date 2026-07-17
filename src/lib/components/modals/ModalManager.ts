@@ -243,8 +243,12 @@ export default class ModalManager {
 		});
 	}
 
-	/** Ouvre le workflow WhisperX + pyannote de transcription locale. */
-	static async aiTranscriptionModal(): Promise<void> {
+	/**
+	 * Ouvre le workflow de transcription ou directement son nettoyage IA.
+	 * @param {boolean} cleanupOnly Ouvre uniquement le nettoyage des sous-titres existants.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async aiTranscriptionModal(cleanupOnly: boolean = false): Promise<void> {
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
@@ -257,7 +261,8 @@ export default class ModalManager {
 						unmount(modal);
 						container.remove();
 						resolve();
-					}
+					},
+					cleanupOnly
 				}
 			});
 		});

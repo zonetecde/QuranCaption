@@ -7,6 +7,7 @@
 	const transcriptCount = $derived(
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
 	);
+	const pendingCleanup = $derived(globalState.getSubtitlesEditorState.aiTranscriptCleanup);
 </script>
 
 <div
@@ -81,5 +82,33 @@
 				<span class="material-icons text-sm">arrow_forward</span>
 			</span>
 		</button>
+		{#if transcriptCount > 0}
+			<button
+				type="button"
+				class="group w-full cursor-pointer rounded-lg border border-color bg-primary p-3 text-left transition hover:border-[var(--accent-primary)] hover:bg-accent"
+				onclick={() => void ModalManager.aiTranscriptionModal(true)}
+			>
+				<div class="flex items-start gap-3">
+					<span class="material-icons text-xl text-accent-primary">auto_fix_high</span>
+					<div class="min-w-0">
+						<p class="text-sm font-semibold text-primary">
+							{pendingCleanup
+								? $LL.editor.resumeTranscriptCleanup()
+								: $LL.editor.cleanExistingTranscript()}
+						</p>
+						<p class="mt-1 text-xs leading-relaxed text-secondary">
+							{$LL.editor.cleanExistingTranscriptDescription()}
+						</p>
+						{#if pendingCleanup}
+							<p class="mt-2 text-xs font-semibold text-accent-primary">
+								{$LL.editor.transcriptCleanupRemaining({
+									remaining: pendingCleanup.totalBatches - pendingCleanup.nextBatchIndex
+								})}
+							</p>
+						{/if}
+					</div>
+				</div>
+			</button>
+		{/if}
 	</div>
 </div>

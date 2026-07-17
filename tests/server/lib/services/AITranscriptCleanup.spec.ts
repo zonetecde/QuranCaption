@@ -94,6 +94,14 @@ describe('AITranscriptCleanup batches', () => {
 		expect(batches[0].request.w[0].g).toBeCloseTo(0.2);
 		expect(batches[1].request.w.at(-1)?.g).toBeNull();
 	});
+
+	it('uses a larger requested batch size while preserving the context overlap', () => {
+		const tokens = Array.from({ length: 500 }, (_, id) => token(id, `word${id}`));
+		const batches = buildTranscriptCleanupBatches(tokens, 320);
+
+		expect(batches.map((batch) => batch.tokens.length)).toEqual([320, 220]);
+		expect(batches[1].tokens[0].id).toBe(280);
+	});
 });
 
 describe('AITranscriptCleanup response validation', () => {
@@ -162,6 +170,88 @@ describe('AITranscriptCleanup response validation', () => {
 });
 
 describe('AITranscriptCleanup complete service', () => {
+	it('pauses between batches and resumes from the saved batch index', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(JSON.stringify({ verses: {} }), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			)
+		);
+		invokeMock.mockResolvedValue({ parsed: {} });
+		const source = transcription(Array.from({ length: 300 }, (_, index) => `word${index}`));
+		const firstReports: number[] = [];
+		const paused = await cleanupAITranscript(source, {
+			apiKey: 'test-key',
+			endpoint: 'https://example.invalid/chat/completions',
+			model: 'deepseek-chat',
+			batchWords: 160,
+			maxWords: 14,
+			maxChars: 90,
+			maxGap: 1.2,
+			shouldPause: () => true,
+			onBatchComplete: (report) => {
+				firstReports.push(report.nextBatchIndex);
+			}
+		});
+
+		expect(paused.paused).toBe(true);
+		expect(paused.nextBatchIndex).toBe(1);
+		expect(paused.totalBatches).toBe(3);
+		expect(firstReports).toEqual([1]);
+
+		const resumed = await cleanupAITranscript(source, {
+			apiKey: 'test-key',
+			endpoint: 'https://example.invalid/chat/completions',
+			model: 'deepseek-chat',
+			batchWords: 160,
+			maxWords: 14,
+			maxChars: 90,
+			maxGap: 1.2,
+			resume: paused
+		});
+
+		expect(resumed.paused).toBe(false);
+		expect(resumed.nextBatchIndex).toBe(3);
+		expect(invokeMock).toHaveBeenCalledTimes(3);
+	});
+
+	it('stops on the current batch when the AI request fails', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(JSON.stringify({ verses: {} }), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			)
+		);
+		invokeMock.mockRejectedValue(new Error('provider unavailable'));
+		const onBatchComplete = vi.fn();
+
+		await expect(
+			cleanupAITranscript(
+				transcription(Array.from({ length: 300 }, (_, index) => `word${index}`)),
+				{
+					apiKey: 'test-key',
+					endpoint: 'https://example.invalid/chat/completions',
+					model: 'deepseek-chat',
+					batchWords: 160,
+					maxWords: 14,
+					maxChars: 90,
+					maxGap: 1.2,
+					onBatchComplete
+				}
+			)
+		).rejects.toThrow('AI transcript cleanup batch 1 failed: provider unavailable');
+		expect(invokeMock).toHaveBeenCalledOnce();
+		expect(onBatchComplete).not.toHaveBeenCalled();
+	});
+
 	it('sends indexed words to Tauri and applies the returned quotation range', async () => {
 		vi.stubGlobal(
 			'fetch',

@@ -6,6 +6,19 @@ import { globalState } from '$lib/runes/main.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import type { AITranscriptionResult, SpeakerNameMap } from '$lib/services/AITranscription';
+import type { TranscriptAiAnalysis } from '$lib/services/TranscriptPostProcessor';
+
+export type AITranscriptCleanupState = {
+	sourceResult: AITranscriptionResult;
+	speakerMap: SpeakerNameMap;
+	analyses: TranscriptAiAnalysis[];
+	errors: string[];
+	nextBatchIndex: number;
+	totalBatches: number;
+	batchWords: number;
+	appliedClipIds: number[];
+};
 
 /**
  * État de l'éditeur de projet, utilisé pour gérer l'interface utilisateur et les interactions
@@ -303,6 +316,9 @@ export class SubtitlesEditorState extends SerializableBase {
 
 	// Intervenants ajoutés manuellement avant leur première utilisation dans un segment.
 	additionalSpeakers: string[] = $state([]);
+
+	// Nettoyage IA interrompu, conservé avec le projet pour pouvoir le reprendre.
+	aiTranscriptCleanup: AITranscriptCleanupState | null = $state(null);
 
 	// Segment de transcription actuellement sélectionné pour édition.
 	editSubtitle: SubtitleClip | null = $state(null);

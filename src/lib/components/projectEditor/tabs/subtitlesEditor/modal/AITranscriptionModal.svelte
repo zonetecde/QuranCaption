@@ -24,6 +24,7 @@
 	} from '$lib/services/SpeakerLibrary';
 	import {
 		applyAITranscription,
+		buildAITranscriptionFromSubtitleTrack,
 		buildDefaultSpeakerMap,
 		checkAITranscriptionStatus,
 		installAITranscriptionRuntime,
@@ -33,9 +34,12 @@
 		type AITranscriptionRuntimeStatus,
 		type SpeakerNameMap
 	} from '$lib/services/AITranscription';
-	import { cleanupAITranscript } from '$lib/services/AITranscriptCleanup';
+	import {
+		cleanupAITranscript,
+		estimateTranscriptCleanupBatchCount
+	} from '$lib/services/AITranscriptCleanup';
 
-	let { close } = $props<{ close: () => void }>();
+	let { close, cleanupOnly = false } = $props<{ close: () => void; cleanupOnly?: boolean }>();
 	const settings = globalState.settings!.aiTranscriptionSettings;
 	const steps = [
 		{ label: 'Setup', icon: 'download' },
@@ -65,6 +69,7 @@
 	let cleanupChunkUnlisten: UnlistenFn | null = null;
 	let cleanupReasoningUnlisten: UnlistenFn | null = null;
 	let cleanupRunning = $state(false);
+	let cleanupPauseRequested = $state(false);
 	let cleanupCompleted = $state(false);
 	let cleanupMessage = $state('');
 	let cleanupErrors = $state<string[]>([]);
@@ -72,6 +77,7 @@
 	let streamedCleanupResponse = $state('');
 	let streamedCleanupReasoning = $state('');
 	let advancedSubtitleSettingsOpen = $state(false);
+	let appliedClipIds = $state<number[]>([]);
 
 	const subtitleLengthPresetEntries = Object.entries(SUBTITLE_LENGTH_PRESETS) as Array<
 		[BuiltInSubtitleLengthPreset, (typeof SUBTITLE_LENGTH_PRESETS)[BuiltInSubtitleLengthPreset]]
@@ -88,6 +94,9 @@
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
 	);
 	const existingSpeakerNames = $derived(() => getVisibleProjectSpeakers());
+	const cleanupBatchCount = $derived(
+		result ? estimateTranscriptCleanupBatchCount(result, settings.cleanupBatchWords) : 0
+	);
 
 	/**
 	 * Applique un profil de longueur et ses trois paramètres associés.
@@ -165,7 +174,11 @@
 		);
 		try {
 			result = await runAITranscription(settings);
+			globalState.getSubtitlesEditorState.aiTranscriptCleanup = null;
 			speakerMap = buildDefaultSpeakerMap(result);
+			const applied = applyAITranscription(result, speakerMap, settings.replaceExisting);
+			appliedClipIds = applied.clipIds;
+			await globalState.currentProject?.save(false);
 			currentStep = 3;
 			toast.success(`Transcribed ${result.segments.length} subtitle segments.`);
 		} catch (error) {
@@ -186,17 +199,30 @@
 				return;
 			}
 		}
-		const count = applyAITranscription(result, speakerMap, settings.replaceExisting);
+		if (cleanupCompleted) {
+			close();
+			return;
+		}
+		const applied = applyAITranscription(
+			result,
+			speakerMap,
+			settings.replaceExisting,
+			appliedClipIds
+		);
+		appliedClipIds = applied.clipIds;
 		await saveAITranscriptionSettings();
-		toast.success(`Applied ${count} transcript segments with word timestamps.`);
+		await globalState.currentProject?.save(false);
+		toast.success(`Applied ${applied.count} transcript segments with word timestamps.`);
 		close();
 	}
 
 	/**
 	 * Ouvre l'étape de nettoyage après validation des noms de voix.
-	 * @returns {void}
+	 * @returns {Promise<void>} Promesse résolue après l'application des noms de voix.
 	 */
-	function openTranscriptCleanup(): void {
+	async function openTranscriptCleanup(): Promise<void> {
+		const previewState = globalState.getVideoPreviewState;
+		if (previewState.isPlaying) previewState.togglePlayPause();
 		for (const speakerId of result?.speakers ?? []) {
 			if (!speakerMap[speakerId]?.trim()) {
 				errorMessage = get(LL).editor.chooseSpeakerBeforeCleanup({ speaker: speakerId });
@@ -204,7 +230,41 @@
 			}
 		}
 		errorMessage = '';
+		if (result) {
+			const applied = applyAITranscription(
+				result,
+				speakerMap,
+				settings.replaceExisting,
+				appliedClipIds
+			);
+			appliedClipIds = applied.clipIds;
+			await globalState.currentProject?.save(false);
+		}
 		currentStep = 4;
+	}
+
+	/**
+	 * Charge une reprise existante ou les sous-titres actuels pour un nettoyage après-coup.
+	 * @returns {void}
+	 */
+	function initializeCleanupOnly(): void {
+		currentStep = 4;
+		const pending = globalState.getSubtitlesEditorState.aiTranscriptCleanup;
+		if (pending) {
+			result = pending.sourceResult;
+			speakerMap = pending.speakerMap;
+			appliedClipIds = pending.appliedClipIds;
+			settings.cleanupBatchWords = pending.batchWords;
+			cleanupErrors = pending.errors;
+			cleanupMessage = get(LL).editor.transcriptCleanupPaused({
+				remaining: pending.totalBatches - pending.nextBatchIndex
+			});
+			return;
+		}
+		const snapshot = buildAITranscriptionFromSubtitleTrack();
+		result = snapshot.result;
+		speakerMap = snapshot.speakerMap;
+		appliedClipIds = snapshot.clipIds;
 	}
 
 	/**
@@ -214,10 +274,33 @@
 	async function startTranscriptCleanup(): Promise<void> {
 		if (!result || cleanupRunning) return;
 		const aiSettings = globalState.settings!.aiTranslationSettings;
+		const editorState = globalState.getSubtitlesEditorState;
 		const apiKey = aiSettings.openAiApiKey.trim();
 		const endpoint = aiSettings.textAiApiEndpoint.trim();
+		const model = aiSettings.advancedTrimModel.trim();
+		if (!apiKey || !endpoint || !model) {
+			errorMessage = get(LL).translations.aiTranslationProviderMissing();
+			return;
+		}
+		let task = editorState.aiTranscriptCleanup;
+		if (!task) {
+			task = {
+				sourceResult: result,
+				speakerMap: { ...speakerMap },
+				analyses: [],
+				errors: [],
+				nextBatchIndex: 0,
+				totalBatches: cleanupBatchCount,
+				batchWords: settings.cleanupBatchWords,
+				appliedClipIds: [...appliedClipIds]
+			};
+			editorState.aiTranscriptCleanup = task;
+			await globalState.currentProject?.save(false);
+		}
+		let activeTask = task;
 
 		cleanupRunning = true;
+		cleanupPauseRequested = false;
 		cleanupCompleted = false;
 		cleanupErrors = [];
 		cleanupBatchId = '';
@@ -243,24 +326,78 @@
 					streamedCleanupReasoning = event.payload.accumulatedText;
 				}
 			});
-			const report = await cleanupAITranscript(result, {
+			const report = await cleanupAITranscript(activeTask.sourceResult, {
 				apiKey,
 				endpoint,
-				model: aiSettings.advancedTrimModel,
+				model,
 				reasoningEffort: aiSettings.advancedTrimReasoningEffort,
+				batchWords: activeTask.batchWords,
 				maxWords: settings.maxWordsPerSegment,
 				maxChars: settings.maxCharsPerSegment,
 				maxGap: settings.minSilenceDuration,
+				resume: {
+					analyses: activeTask.analyses,
+					errors: activeTask.errors,
+					nextBatchIndex: activeTask.nextBatchIndex
+				},
+				shouldPause: () => cleanupPauseRequested,
 				onProgress: (current, total, batchId) => {
 					cleanupBatchId = batchId;
 					streamedCleanupResponse = '';
 					streamedCleanupReasoning = '';
 					cleanupMessage = get(LL).editor.transcriptCleanupBatchProgress({ current, total });
+				},
+				onBatchComplete: async (batchReport) => {
+					result = batchReport.result;
+					cleanupErrors = batchReport.errors;
+					const applied = applyAITranscription(
+						batchReport.result,
+						activeTask.speakerMap,
+						false,
+						activeTask.appliedClipIds
+					);
+					appliedClipIds = applied.clipIds;
+					activeTask = {
+						...activeTask,
+						analyses: batchReport.analyses,
+						errors: batchReport.errors,
+						nextBatchIndex: batchReport.nextBatchIndex,
+						totalBatches: batchReport.totalBatches,
+						appliedClipIds: applied.clipIds
+					};
+					editorState.aiTranscriptCleanup = activeTask;
+					await globalState.currentProject?.save(false);
 				}
 			});
 			result = report.result;
 			cleanupErrors = report.errors;
+			if (report.totalBatches === 0) {
+				const applied = applyAITranscription(
+					report.result,
+					activeTask.speakerMap,
+					false,
+					activeTask.appliedClipIds
+				);
+				appliedClipIds = applied.clipIds;
+			}
+			if (report.paused) {
+				activeTask = {
+					...activeTask,
+					analyses: report.analyses,
+					errors: report.errors,
+					nextBatchIndex: report.nextBatchIndex,
+					totalBatches: report.totalBatches,
+					appliedClipIds: [...appliedClipIds]
+				};
+				editorState.aiTranscriptCleanup = activeTask;
+				cleanupMessage = get(LL).editor.transcriptCleanupPaused({
+					remaining: report.totalBatches - report.nextBatchIndex
+				});
+				await globalState.currentProject?.save(false);
+				return;
+			}
 			cleanupCompleted = true;
+			editorState.aiTranscriptCleanup = null;
 			cleanupMessage =
 				report.errors.length > 0
 					? get(LL).editor.transcriptCleanupCompletedWithIssues({
@@ -272,6 +409,7 @@
 							cleaned: report.processedSegments,
 							total: report.processedSegments
 						});
+			await globalState.currentProject?.save(false);
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : String(error);
 		} finally {
@@ -281,6 +419,14 @@
 			cleanupReasoningUnlisten = null;
 			cleanupRunning = false;
 		}
+	}
+
+	/**
+	 * Demande l'arrêt du nettoyage après le batch en cours.
+	 * @returns {void}
+	 */
+	function pauseTranscriptCleanup(): void {
+		cleanupPauseRequested = true;
 	}
 
 	function getSpeakerExamples(speakerId: string): AITranscriptionResult['segments'] {
@@ -389,7 +535,8 @@
 
 	onMount(() => {
 		if (!settings.subtitleLengthPreset) applySubtitleLengthPreset('balanced');
-		void refreshRuntime();
+		if (cleanupOnly) initializeCleanupOnly();
+		else void refreshRuntime();
 	});
 	onDestroy(() => {
 		statusUnlisten?.();
@@ -416,7 +563,7 @@
 			type="button"
 			class="ml-auto flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-secondary transition hover:bg-accent hover:text-primary disabled:opacity-40"
 			onclick={closeSafely}
-			disabled={running || installing}
+			disabled={running || installing || cleanupRunning}
 			aria-label={$LL.common.close()}
 		>
 			<span class="material-icons">close</span>
@@ -424,22 +571,22 @@
 	</header>
 
 	<div class="flex min-h-0 flex-1">
-		<aside class="w-56 shrink-0 border-r border-color bg-primary/60 p-4">
-			<div class="space-y-2">
-				{#each steps as step, index (step.label)}
-					<button
-						type="button"
-						class={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${index === currentStep ? 'bg-accent text-primary' : 'text-secondary hover:bg-accent/60 hover:text-primary'} ${index > currentStep && !(index === 3 && result) ? 'cursor-default opacity-45' : 'cursor-pointer'}`}
-						onclick={() => {
-							if (index <= currentStep || (index === 3 && result)) currentStep = index;
-						}}
-					>
-						<span class="material-icons text-lg">{step.icon}</span>
-						<span>{step.label}</span>
-					</button>
-				{/each}
-			</div>
-		</aside>
+		{#if !cleanupOnly}<aside class="w-56 shrink-0 border-r border-color bg-primary/60 p-4">
+				<div class="space-y-2">
+					{#each steps as step, index (step.label)}
+						<button
+							type="button"
+							class={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${index === currentStep ? 'bg-accent text-primary' : 'text-secondary hover:bg-accent/60 hover:text-primary'} ${index > currentStep && !(index === 3 && result) ? 'cursor-default opacity-45' : 'cursor-pointer'}`}
+							onclick={() => {
+								if (index <= currentStep || (index === 3 && result)) currentStep = index;
+							}}
+						>
+							<span class="material-icons text-lg">{step.icon}</span>
+							<span>{step.label}</span>
+						</button>
+					{/each}
+				</div>
+			</aside>{/if}
 
 		<main class="min-w-0 flex-1 overflow-y-auto p-6">
 			<div class="mx-auto max-w-4xl space-y-6">
@@ -989,6 +1136,52 @@
 								</p>
 							</div>
 						</div>
+						<div class="grid gap-4 rounded-xl border border-color bg-primary p-5 md:grid-cols-2">
+							<label class="space-y-2">
+								<span class="text-sm font-semibold text-primary"
+									>{get(LL).translations.aiReasoningModeLabel()}</span
+								>
+								<select
+									class="w-full rounded-lg border border-color bg-secondary px-3 py-2.5 text-primary"
+									bind:value={
+										globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort
+									}
+									onchange={() => void saveAITranscriptionSettings()}
+								>
+									<option value="none">{get(LL).translations.aiReasoningNone()}</option>
+									<option value="low">{get(LL).translations.aiReasoningLow()}</option>
+									<option value="medium">{get(LL).translations.aiReasoningMedium()}</option>
+									<option value="high">{get(LL).translations.aiReasoningHigh()}</option>
+								</select>
+							</label>
+							<label class="space-y-3">
+								<div class="flex items-center justify-between gap-3">
+									<span class="text-sm font-semibold text-primary"
+										>{get(LL).editor.transcriptCleanupBatchSize()}</span
+									>
+									<span class="text-sm font-bold text-accent-primary"
+										>{settings.cleanupBatchWords}</span
+									>
+								</div>
+								<input
+									type="range"
+									min="160"
+									max="640"
+									step="40"
+									class="w-full"
+									bind:value={settings.cleanupBatchWords}
+									disabled={Boolean(globalState.getSubtitlesEditorState.aiTranscriptCleanup)}
+									onchange={() => void saveAITranscriptionSettings()}
+								/>
+								<p class="text-xs text-secondary">
+									{get(LL).editor.transcriptCleanupBatchPreview({
+										count:
+											globalState.getSubtitlesEditorState.aiTranscriptCleanup?.totalBatches ??
+											cleanupBatchCount
+									})}
+								</p>
+							</label>
+						</div>
 						{#if cleanupRunning || cleanupMessage}
 							<div class="rounded-xl border border-color bg-primary p-5">
 								<div class="flex items-center gap-3">
@@ -1057,7 +1250,7 @@
 			{get(LL).editor.transcriptionDataPrivacy()}
 		</p>
 		<div class="flex items-center gap-2">
-			{#if currentStep > 0}<button
+			{#if currentStep > 0 && !cleanupOnly}<button
 					type="button"
 					class="btn cursor-pointer px-4 py-2 text-sm disabled:opacity-40"
 					onclick={() => (currentStep -= 1)}
@@ -1071,21 +1264,27 @@
 				>{:else if currentStep === 3 && result}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold"
-					onclick={openTranscriptCleanup}
+					onclick={() => void openTranscriptCleanup()}
 					><span class="material-icons text-lg">arrow_forward</span>{get(LL).common.next()}</button
 				>{:else if currentStep === 4 && result && !cleanupCompleted}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold disabled:opacity-50"
-					onclick={() => void startTranscriptCleanup()}
-					disabled={cleanupRunning}
-					><span class="material-icons text-lg">auto_fix_high</span>{cleanupRunning
-						? get(LL).editor.cleaningTranscript()
-						: get(LL).editor.cleanTranscript()}</button
+					onclick={() =>
+						cleanupRunning ? pauseTranscriptCleanup() : void startTranscriptCleanup()}
+					disabled={cleanupPauseRequested}
+					><span class="material-icons text-lg">{cleanupRunning ? 'pause' : 'auto_fix_high'}</span
+					>{cleanupRunning
+						? cleanupPauseRequested
+							? get(LL).editor.pausingTranscriptCleanup()
+							: get(LL).editor.pauseTranscriptCleanup()
+						: globalState.getSubtitlesEditorState.aiTranscriptCleanup
+							? get(LL).editor.resumeTranscriptCleanup()
+							: get(LL).editor.cleanTranscript()}</button
 				>{:else if currentStep === 4 && result}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold"
 					onclick={() => void applyResult()}
-					><span class="material-icons text-lg">done_all</span>Apply transcription</button
+					><span class="material-icons text-lg">done_all</span>{get(LL).common.done()}</button
 				>{/if}
 		</div>
 	</footer>

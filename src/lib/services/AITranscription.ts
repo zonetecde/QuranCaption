@@ -52,6 +52,11 @@ export type AITranscriptionResult = {
 
 export type SpeakerNameMap = Record<string, string>;
 
+export type AppliedAITranscription = {
+	count: number;
+	clipIds: number[];
+};
+
 export async function checkAITranscriptionStatus(): Promise<AITranscriptionRuntimeStatus> {
 	return (await invoke('check_ai_transcription_ready')) as AITranscriptionRuntimeStatus;
 }
@@ -150,8 +155,9 @@ export function buildDefaultSpeakerMap(result: AITranscriptionResult): SpeakerNa
 export function applyAITranscription(
 	result: AITranscriptionResult,
 	speakerMap: SpeakerNameMap,
-	replaceExisting: boolean
-): number {
+	replaceExisting: boolean,
+	replaceClipIds: number[] = []
+): AppliedAITranscription {
 	const track = globalState.getSubtitleTrack;
 	const generated = result.segments
 		.map((segment) => {
@@ -189,11 +195,15 @@ export function applyAITranscription(
 
 	ProjectHistoryManager.begin('apply AI transcription');
 	try {
-		const preservedClips = replaceExisting
-			? track.clips.filter(
-					(clip) => !(clip instanceof SubtitleClip) && !(clip instanceof SilenceClip)
-				)
-			: track.clips;
+		const replacedIds = new Set(replaceClipIds);
+		const preservedClips =
+			replacedIds.size > 0
+				? track.clips.filter((clip) => !replacedIds.has(clip.id))
+				: replaceExisting
+					? track.clips.filter(
+							(clip) => !(clip instanceof SubtitleClip) && !(clip instanceof SilenceClip)
+						)
+					: track.clips;
 		track.clips = [...preservedClips, ...generatedWithSilences].sort(
 			(a, b) => a.startTime - b.startTime
 		);
@@ -212,10 +222,56 @@ export function applyAITranscription(
 		if (firstSpeaker) globalState.getSubtitlesEditorState.selectedSpeaker = firstSpeaker;
 		globalState.currentProject!.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
-		return generated.length;
+		return {
+			count: generated.length,
+			clipIds: generatedWithSilences.map((clip) => clip.id)
+		};
 	} finally {
 		ProjectHistoryManager.commit();
 	}
+}
+
+/**
+ * Convertit les sous-titres du projet en résultat compatible avec le nettoyage IA.
+ * @returns {{ result: AITranscriptionResult; speakerMap: SpeakerNameMap; clipIds: number[] }} Transcription et clips à remplacer progressivement.
+ */
+export function buildAITranscriptionFromSubtitleTrack(): {
+	result: AITranscriptionResult;
+	speakerMap: SpeakerNameMap;
+	clipIds: number[];
+} {
+	const clips = globalState.getSubtitleTrack.clips;
+	const subtitles = clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip);
+	const speakers = Array.from(new Set(subtitles.map((clip) => clip.speaker)));
+	return {
+		result: {
+			language: 'unknown',
+			device: 'project',
+			model: 'project',
+			segments: subtitles.map((clip) => ({
+				start: clip.startTime / 1000,
+				end: clip.endTime / 1000,
+				text: clip.text,
+				speaker: clip.speaker,
+				confidence: clip.confidence,
+				words: (clip.alignmentMetadata?.words ?? []).map((word) => ({
+					word: word.word,
+					start: clip.startTime / 1000 + word.start,
+					end: clip.startTime / 1000 + word.end,
+					confidence: word.confidence,
+					speaker: clip.speaker
+				}))
+			})),
+			speakers,
+			wordTimestampsAvailable: subtitles.some(
+				(clip) => (clip.alignmentMetadata?.words.length ?? 0) > 0
+			)
+		},
+		speakerMap: Object.fromEntries(speakers.map((speaker) => [speaker, speaker])),
+		clipIds: clips
+			.filter((clip) => clip instanceof SubtitleClip || clip instanceof SilenceClip)
+			.map((clip) => clip.id)
+	};
 }
 
 export async function saveAITranscriptionSettings(): Promise<void> {

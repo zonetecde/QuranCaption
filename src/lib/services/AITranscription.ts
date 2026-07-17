@@ -85,7 +85,7 @@ export async function runAITranscription(
 			endMs: clip.endMs
 		})),
 		model: settings.model,
-		language: settings.language,
+		language: 'ar',
 		device: settings.device,
 		hfToken: settings.hfToken,
 		minSpeakers: settings.minSpeakers ?? undefined,

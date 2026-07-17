@@ -7,10 +7,6 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { SubtitleClip } from '$lib/classes';
 	import {
-		getWhisperLanguageLabel,
-		WHISPER_LANGUAGE_OPTIONS
-	} from '$lib/constants/whisperLanguages';
-	import {
 		getMatchingSubtitleLengthPreset,
 		SUBTITLE_LENGTH_PRESETS,
 		type BuiltInSubtitleLengthPreset
@@ -173,7 +169,15 @@
 			}
 		);
 		try {
-			result = await runAITranscription(settings);
+			const transcription = await runAITranscription(settings);
+			runMessage = get(LL).editor.matchingQuranPassages();
+			const quranReport = await cleanupAITranscript(transcription, {
+				maxWords: settings.maxWordsPerSegment,
+				maxChars: settings.maxCharsPerSegment,
+				maxGap: settings.minSilenceDuration
+			});
+			result = quranReport.result;
+			cleanupErrors = quranReport.errors;
 			globalState.getSubtitlesEditorState.aiTranscriptCleanup = null;
 			speakerMap = buildDefaultSpeakerMap(result);
 			const applied = applyAITranscription(result, speakerMap, settings.replaceExisting);
@@ -684,7 +688,12 @@
 						<div>
 							<h3 class="text-lg font-bold text-primary">Transcription settings</h3>
 							<p class="mt-1 text-sm text-secondary">
-								Choose the quality, language and expected number of distinct voices.
+								Choose the quality and expected number of distinct voices.
+							</p>
+							<p
+								class="mt-3 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2.5 text-sm font-semibold text-yellow-300"
+							>
+								{$LL.editor.arabicAudioRequired()}
 							</p>
 						</div>
 						<div class="grid gap-5 md:grid-cols-2">
@@ -693,9 +702,6 @@
 								><select
 									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
 									bind:value={settings.model}
-									onchange={() => {
-										if (settings.model === 'qwen3-asr-1.7b') settings.language = 'ar';
-									}}
 									><option value="qwen3-asr-1.7b"
 										>Qwen3-ASR 1.7B — {$LL.editor.bestLocalAccuracy()}</option
 									><option value="small">Small — fastest</option><option value="medium"
@@ -706,16 +712,6 @@
 								></label
 							>
 							<label class="space-y-2"
-								><span class="text-sm font-semibold text-primary">Language</span><select
-									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary disabled:cursor-not-allowed disabled:opacity-60"
-									bind:value={settings.language}
-									disabled={settings.model === 'qwen3-asr-1.7b'}
-									>{#each WHISPER_LANGUAGE_OPTIONS as option (option.code)}<option
-											value={option.code}>{option.label}</option
-										>{/each}</select
-								></label
-							>
-							<label class="space-y-2 md:col-span-2"
 								><span class="text-sm font-semibold text-primary">Device</span><select
 									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
 									bind:value={settings.device}
@@ -893,9 +889,7 @@
 							</div>
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Language</p>
-								<p class="mt-1 font-semibold text-primary">
-									{getWhisperLanguageLabel(settings.language)}
-								</p>
+								<p class="mt-1 font-semibold text-primary">{$LL.editor.arabic()}</p>
 							</div>
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Speaker range</p>

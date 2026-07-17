@@ -630,7 +630,7 @@ pub async fn transcribe_audio_local_whisperx(
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     model: Option<String>,
-    language: Option<String>,
+    _language: Option<String>,
     device: Option<String>,
     hf_token: Option<String>,
     min_speakers: Option<u32>,
@@ -648,8 +648,8 @@ pub async fn transcribe_audio_local_whisperx(
             "A Hugging Face read token is required for pyannote speaker diarization.".to_string()
         })?;
 
-    let selected_model = model.unwrap_or_else(|| "medium".to_string());
-    let selected_language = language.unwrap_or_else(|| "auto".to_string());
+    let selected_model = model.unwrap_or_else(|| "qwen3-asr-1.7b".to_string());
+    let selected_language = "ar".to_string();
     let selected_device = device.unwrap_or_else(|| "AUTO".to_string()).to_uppercase();
     if !matches!(selected_device.as_str(), "AUTO" | "GPU" | "CPU") {
         return Err(format!(

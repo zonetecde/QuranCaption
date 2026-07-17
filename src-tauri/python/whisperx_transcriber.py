@@ -61,8 +61,8 @@ def fail(message: str) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Transcribe and diarize audio for Minbar Studio")
     parser.add_argument("audio_path")
-    parser.add_argument("--model", default="medium")
-    parser.add_argument("--language", default="auto")
+    parser.add_argument("--model", default=QWEN_MODEL_OPTION)
+    parser.add_argument("--language", default="ar")
     parser.add_argument("--device", choices=("AUTO", "GPU", "CPU"), default="AUTO")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--min-speakers", type=int)
@@ -339,7 +339,7 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
     from whisperx.diarize import DiarizationPipeline
 
     compute_type = "float16" if selected_device == "cuda" else "int8"
-    language = None if args.language.lower() == "auto" else args.language.lower()
+    language = "ar"
     batch_size = max(1, args.batch_size)
     use_qwen = args.model == QWEN_MODEL_OPTION
     audio = whisperx.load_audio(args.audio_path)

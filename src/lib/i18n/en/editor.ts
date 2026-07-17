@@ -45,6 +45,8 @@ const editor = {
 	transcriptCannotBeEmpty: 'Transcript text cannot be empty.',
 	speakerCannotBeEmpty: 'Please select or enter a speaker.',
 	aiTranscription: 'AI transcription',
+	arabicAudioRequired: 'The audio must be entirely in Arabic.',
+	matchingQuranPassages: 'Matching Quran passages...',
 	transcriptCleanupStep: 'Prepare transcript',
 	transcriptCleanupTitle: 'Create clean, readable subtitles',
 	transcriptCleanupDescription:

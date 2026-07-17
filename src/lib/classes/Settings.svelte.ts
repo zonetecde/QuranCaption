@@ -180,8 +180,8 @@ export default class Settings extends SerializableBase {
 	});
 
 	aiTranscriptionSettings = $state<AITranscriptionSettings>({
-		model: 'medium',
-		language: 'auto',
+		model: 'qwen3-asr-1.7b',
+		language: 'ar',
 		device: 'AUTO',
 		hfToken: '',
 		minSpeakers: null,
@@ -604,6 +604,10 @@ export default class Settings extends SerializableBase {
 			settings.aiTranscriptionSettings.maxWordsPerSegment = defaultLength.maxWords;
 			settings.aiTranscriptionSettings.maxCharsPerSegment = defaultLength.maxChars;
 			settings.aiTranscriptionSettings.minSilenceDuration = defaultLength.silenceSeconds;
+			shouldSave = true;
+		}
+		if (settings.aiTranscriptionSettings.language !== 'ar') {
+			settings.aiTranscriptionSettings.language = 'ar';
 			shouldSave = true;
 		}
 		const legacyTranscriptionSettings =

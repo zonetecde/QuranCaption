@@ -332,7 +332,7 @@ describe('AITranscriptCleanup complete service', () => {
 		expect(invokeMock).toHaveBeenCalledTimes(3);
 	});
 
-	it('stops on the current batch when the AI request fails', async () => {
+	it('stops scheduling new batches when a parallel AI request fails', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(
@@ -361,8 +361,58 @@ describe('AITranscriptCleanup complete service', () => {
 				}
 			)
 		).rejects.toThrow('AI transcript cleanup batch 1 failed: provider unavailable');
-		expect(invokeMock).toHaveBeenCalledOnce();
+		expect(invokeMock).toHaveBeenCalledTimes(3);
 		expect(onBatchComplete).not.toHaveBeenCalled();
+	});
+
+	it('starts the next batch as soon as a worker finishes its AI request', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(JSON.stringify({ verses: {} }), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			)
+		);
+		const releaseRequests: Array<() => void> = [];
+		let blockProgressiveSave = true;
+		let releaseProgressiveSave = (): void => undefined;
+		invokeMock.mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					releaseRequests.push(() => resolve({ parsed: {} }));
+				})
+		);
+
+		const cleanup = cleanupAITranscript(
+			transcription(Array.from({ length: 500 }, (_, index) => `word${index}`)),
+			{
+				apiKey: 'test-key',
+				endpoint: 'https://example.invalid/chat/completions',
+				model: 'deepseek-chat',
+				batchWords: 160,
+				maxWords: 14,
+				maxChars: 90,
+				maxGap: 1.2,
+				onBatchComplete: () => {
+					if (!blockProgressiveSave) return;
+					blockProgressiveSave = false;
+					return new Promise<void>((resolve) => {
+						releaseProgressiveSave = resolve;
+					});
+				}
+			}
+		);
+
+		await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(3));
+		releaseRequests[0]();
+		await vi.waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(4));
+		await vi.waitFor(() => expect(blockProgressiveSave).toBe(false));
+		releaseProgressiveSave();
+		for (const release of releaseRequests.slice(1)) release();
+		await cleanup;
 	});
 
 	it('sends indexed words to Tauri and applies the returned quotation range', async () => {

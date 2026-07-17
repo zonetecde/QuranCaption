@@ -193,6 +193,9 @@ describe('AI translation modal', () => {
 
 		await vi.waitFor(() => expect(mocks.runBatch).toHaveBeenCalledTimes(3));
 		expect(releaseBatch).toHaveLength(3);
+		for (let index = 1; index <= 4; index += 1) {
+			expect(component.container.textContent).toContain(`Batch ${index} of 4`);
+		}
 		releaseBatch[0]();
 		await vi.waitFor(() => expect(mocks.runBatch).toHaveBeenCalledTimes(4));
 		for (const release of releaseBatch.slice(1)) release();

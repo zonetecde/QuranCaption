@@ -14,10 +14,13 @@
 		type AIProjectTranslationOptions,
 		type AIProjectTranslationSuccess
 	} from '$lib/services/AIProjectTranslationService';
-	import { onDestroy, tick } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
 	import AIReasoningControls from '$lib/components/ai/AIReasoningControls.svelte';
+	import AIStreamBatchList, {
+		type AIStreamBatchState
+	} from '$lib/components/ai/AIStreamBatchList.svelte';
 	import { resolveAIReasoning, type AIReasoningMode } from '$lib/services/AIReasoning';
 
 	type TranslationCopy = {
@@ -66,11 +69,7 @@
 	let failedSubtitles = $state(0);
 	let errors = $state<string[]>([]);
 	let currentMessage = $state('');
-	let currentBatchId = $state('');
-	let streamedResponse = $state('');
-	let streamedReasoning = $state('');
-	let reasoningTextarea = $state<HTMLTextAreaElement>();
-	let responseTextarea = $state<HTMLTextAreaElement>();
+	let batchStreams = $state<Record<string, AIStreamBatchState>>({});
 	let unlistenFns: UnlistenFn[] = [];
 
 	const settings = $derived(() => globalState.settings!.aiTranslationSettings);
@@ -93,20 +92,9 @@
 			settings().projectTranslationBatchWords
 		)
 	);
-
-	$effect(() => {
-		if (!streamedReasoning) return;
-		void tick().then(() => {
-			if (reasoningTextarea) reasoningTextarea.scrollTop = reasoningTextarea.scrollHeight;
-		});
-	});
-
-	$effect(() => {
-		if (!streamedResponse) return;
-		void tick().then(() => {
-			if (responseTextarea) responseTextarea.scrollTop = responseTextarea.scrollHeight;
-		});
-	});
+	const streamedBatches = $derived(() =>
+		Object.values(batchStreams).sort((left, right) => left.index - right.index)
+	);
 
 	/**
 	 * Ferme le modal uniquement lorsqu'aucune traduction n'est en cours.
@@ -163,21 +151,19 @@
 	}
 
 	/**
-	 * Écoute le raisonnement et la réponse streamés du batch actif.
+	 * Écoute le raisonnement et la réponse de chaque batch actif.
 	 * @returns {Promise<void>} Promesse résolue lorsque les écouteurs sont installés.
 	 */
 	async function startStreamListeners(): Promise<void> {
 		stopStreamListeners();
 		unlistenFns = [
 			await listen<StreamEventPayload>('ai-project-translation-reasoning', (event) => {
-				if (event.payload.batchId === currentBatchId) {
-					streamedReasoning = event.payload.accumulatedText;
-				}
+				const batch = batchStreams[event.payload.batchId];
+				if (batch) batch.reasoning = event.payload.accumulatedText;
 			}),
 			await listen<StreamEventPayload>('ai-project-translation-chunk', (event) => {
-				if (event.payload.batchId === currentBatchId) {
-					streamedResponse = event.payload.accumulatedText;
-				}
+				const batch = batchStreams[event.payload.batchId];
+				if (batch) batch.response = event.payload.accumulatedText;
 			})
 		];
 	}
@@ -197,9 +183,7 @@
 		translatedSubtitles = 0;
 		failedSubtitles = 0;
 		errors = [];
-		currentBatchId = '';
-		streamedResponse = '';
-		streamedReasoning = '';
+		batchStreams = {};
 		currentMessage = copy.aiTranslationPreparing();
 
 		try {
@@ -210,6 +194,19 @@
 				settings().projectTranslationBatchWords
 			);
 			totalBatches = batches.length;
+			batchStreams = Object.fromEntries(
+				batches.map((batch, index) => [
+					batch.batchId,
+					{
+						batchId: batch.batchId,
+						index: index + 1,
+						total: batches.length,
+						status: 'pending',
+						reasoning: '',
+						response: ''
+					} satisfies AIStreamBatchState
+				])
+			);
 			if (batches.length === 0) {
 				currentMessage = copy.aiTranslationNoEligible();
 				return;
@@ -229,9 +226,7 @@
 					const batchIndex = nextBatchIndex;
 					nextBatchIndex += 1;
 					const batch = batches[batchIndex];
-					currentBatchId = batch.batchId;
-					streamedResponse = '';
-					streamedReasoning = '';
+					batchStreams[batch.batchId].status = 'running';
 					currentMessage = copy.aiTranslationBatchProgress({
 						current: batchIndex + 1,
 						total: batches.length
@@ -252,12 +247,14 @@
 							islamicTermMode: settings().projectTranslationIslamicTerms,
 							batch
 						});
-						if (currentBatchId === batch.batchId) streamedResponse = response.rawText;
+						batchStreams[batch.batchId].response = response.rawText;
+						batchStreams[batch.batchId].status = 'completed';
 						const validation = validateAIProjectTranslationBatch(batch, response.parsed);
 						batchSuccesses[batchIndex] = validation.validItems;
 						batchErrors[batchIndex] = validation.errors;
 						batchFailures[batchIndex] = batch.candidates.length - validation.validItems.length;
 					} catch (error) {
+						batchStreams[batch.batchId].status = 'failed';
 						batchFailures[batchIndex] = batch.candidates.length;
 						batchErrors[batchIndex] = [error instanceof Error ? error.message : String(error)];
 					}
@@ -437,34 +434,11 @@
 			</div>
 		{/if}
 
-		{#if currentBatchId && (isRunning || streamedReasoning || streamedResponse)}
-			<div class="rounded-lg border border-color bg-accent p-4">
-				{#if streamedReasoning}
-					<div class="mb-4">
-						<div class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly">
-							<span class="material-icons text-sm">psychology</span>
-							<span>{$LL.editor.currentStreamedReasoning()}</span>
-						</div>
-						<textarea
-							readonly
-							bind:this={reasoningTextarea}
-							bind:value={streamedReasoning}
-							class="h-32 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
-						></textarea>
-					</div>
-				{/if}
-				<div class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly">
-					<span class="material-icons text-sm">stream</span>
-					<span>{$LL.editor.currentStreamedResponse()}</span>
-				</div>
-				<textarea
-					readonly
-					bind:this={responseTextarea}
-					bind:value={streamedResponse}
-					class="h-40 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
-					placeholder={$LL.translations.streamingResponsePlaceholder()}
-				></textarea>
-			</div>
+		{#if streamedBatches().length > 0}
+			<AIStreamBatchList
+				batches={streamedBatches()}
+				placeholder={$LL.translations.streamingResponsePlaceholder()}
+			/>
 		{/if}
 
 		{#if errors.length > 0}

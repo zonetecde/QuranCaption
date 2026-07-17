@@ -35,6 +35,9 @@
 		estimateTranscriptCleanupBatchCount
 	} from '$lib/services/AITranscriptCleanup';
 	import AIReasoningControls from '$lib/components/ai/AIReasoningControls.svelte';
+	import AIStreamBatchList, {
+		type AIStreamBatchState
+	} from '$lib/components/ai/AIStreamBatchList.svelte';
 	import { resolveAIReasoning, type AIReasoningMode } from '$lib/services/AIReasoning';
 
 	let { close, cleanupOnly = false } = $props<{ close: () => void; cleanupOnly?: boolean }>();
@@ -71,9 +74,7 @@
 	let cleanupCompleted = $state(false);
 	let cleanupMessage = $state('');
 	let cleanupErrors = $state<string[]>([]);
-	let cleanupBatchId = $state('');
-	let streamedCleanupResponse = $state('');
-	let streamedCleanupReasoning = $state('');
+	let cleanupBatchStreams = $state<Record<string, AIStreamBatchState>>({});
 	let advancedSubtitleSettingsOpen = $state(false);
 
 	/**
@@ -110,6 +111,9 @@
 	const existingSpeakerNames = $derived(() => getVisibleProjectSpeakers());
 	const cleanupBatchCount = $derived(
 		result ? estimateTranscriptCleanupBatchCount(result, settings.cleanupBatchWords) : 0
+	);
+	const streamedCleanupBatches = $derived(() =>
+		Object.values(cleanupBatchStreams).sort((left, right) => left.index - right.index)
 	);
 
 	/**
@@ -325,9 +329,26 @@
 		cleanupPauseRequested = false;
 		cleanupCompleted = false;
 		cleanupErrors = [];
-		cleanupBatchId = '';
-		streamedCleanupResponse = '';
-		streamedCleanupReasoning = '';
+		cleanupBatchStreams = Object.fromEntries(
+			Array.from(
+				{ length: Math.max(0, activeTask.totalBatches - activeTask.nextBatchIndex) },
+				(_, index) => {
+					const batchIndex = activeTask.nextBatchIndex + index + 1;
+					const batchId = `pending-${batchIndex}`;
+					return [
+						batchId,
+						{
+							batchId,
+							index: batchIndex,
+							total: activeTask.totalBatches,
+							status: 'pending',
+							reasoning: '',
+							response: ''
+						} satisfies AIStreamBatchState
+					];
+				}
+			)
+		);
 		cleanupMessage = get(LL).common.processing();
 		errorMessage = '';
 		await saveAITranscriptionSettings();
@@ -341,17 +362,15 @@
 				batchId: string;
 				accumulatedText: string;
 			}>('ai-transcript-cleanup-chunk', (event) => {
-				if (event.payload.batchId === cleanupBatchId) {
-					streamedCleanupResponse = event.payload.accumulatedText;
-				}
+				const batch = cleanupBatchStreams[event.payload.batchId];
+				if (batch) batch.response = event.payload.accumulatedText;
 			});
 			cleanupReasoningUnlisten = await listen<{
 				batchId: string;
 				accumulatedText: string;
 			}>('ai-transcript-cleanup-reasoning', (event) => {
-				if (event.payload.batchId === cleanupBatchId) {
-					streamedCleanupReasoning = event.payload.accumulatedText;
-				}
+				const batch = cleanupBatchStreams[event.payload.batchId];
+				if (batch) batch.reasoning = event.payload.accumulatedText;
 			});
 			const report = await cleanupAITranscript(activeTask.sourceResult, {
 				apiKey,
@@ -370,12 +389,21 @@
 				},
 				shouldPause: () => cleanupPauseRequested,
 				onProgress: (current, total, batchId) => {
-					cleanupBatchId = batchId;
-					streamedCleanupResponse = '';
-					streamedCleanupReasoning = '';
+					delete cleanupBatchStreams[`pending-${current}`];
+					cleanupBatchStreams[batchId] = {
+						batchId,
+						index: current,
+						total,
+						status: 'running',
+						reasoning: '',
+						response: ''
+					};
 					cleanupMessage = get(LL).editor.transcriptCleanupBatchProgress({ current, total });
 				},
-				onBatchComplete: async (batchReport) => {
+				onBatchComplete: async (batchReport, batchId) => {
+					if (cleanupBatchStreams[batchId]) {
+						cleanupBatchStreams[batchId].status = 'completed';
+					}
 					result = batchReport.result;
 					cleanupErrors = batchReport.errors;
 					const applied = applyAITranscription(
@@ -439,6 +467,9 @@
 						});
 			await globalState.currentProject?.save(false);
 		} catch (error) {
+			for (const batch of Object.values(cleanupBatchStreams)) {
+				if (batch.status === 'running') batch.status = 'failed';
+			}
 			errorMessage = error instanceof Error ? error.message : String(error);
 		} finally {
 			cleanupChunkUnlisten?.();
@@ -1205,35 +1236,12 @@
 									</span>
 									<p class="text-sm text-secondary">{cleanupMessage}</p>
 								</div>
-								{#if cleanupBatchId}
-									<div class="mt-4 rounded-lg border border-color bg-secondary p-3">
-										{#if streamedCleanupReasoning}
-											<div class="mb-3">
-												<div
-													class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
-												>
-													<span class="material-icons text-sm">psychology</span>
-													<span>{get(LL).editor.currentStreamedReasoning()}</span>
-												</div>
-												<textarea
-													readonly
-													bind:value={streamedCleanupReasoning}
-													class="h-32 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
-												></textarea>
-											</div>
-										{/if}
-										<div
-											class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
-										>
-											<span class="material-icons text-sm">stream</span>
-											<span>{get(LL).editor.currentStreamedResponse()}</span>
-										</div>
-										<textarea
-											readonly
-											bind:value={streamedCleanupResponse}
-											class="h-40 w-full resize-none rounded-lg border border-color bg-primary p-3 font-mono text-xs leading-relaxed text-primary"
+								{#if streamedCleanupBatches().length > 0}
+									<div class="mt-4">
+										<AIStreamBatchList
+											batches={streamedCleanupBatches()}
 											placeholder={get(LL).translations.streamingResponsePlaceholder()}
-										></textarea>
+										/>
 									</div>
 								{/if}
 							</div>

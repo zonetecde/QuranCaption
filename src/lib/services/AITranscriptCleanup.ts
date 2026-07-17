@@ -20,6 +20,7 @@ import { validateTranscriptQuranReferences } from '$lib/services/TranscriptRefer
 
 export const DEFAULT_TRANSCRIPT_CLEANUP_BATCH_WORDS = 160;
 const BATCH_OVERLAP_WORDS = 40;
+const TRANSCRIPT_CLEANUP_CONCURRENCY = 3;
 
 type TranscriptAnalysisWordPayload = {
 	i: number;
@@ -573,7 +574,7 @@ async function validateFinalQuranMarkers(result: AITranscriptionResult): Promise
 /**
  * Corrige, annote et re-segmente une transcription avec une IA textuelle facultative.
  * @param {AITranscriptionResult} result Résultat ASR courant.
- * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onBatchComplete?: (report: TranscriptCleanupReport) => void | Promise<void> }} options Provider, reprise et contraintes.
+ * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void> }} options Provider, reprise et contraintes.
  * @returns {Promise<TranscriptCleanupReport>} Transcription préparée et rapport.
  */
 export async function cleanupAITranscript(
@@ -595,7 +596,7 @@ export async function cleanupAITranscript(
 		};
 		shouldPause?: () => boolean;
 		onProgress?: (current: number, total: number, batchId: string) => void;
-		onBatchComplete?: (report: TranscriptCleanupReport) => void | Promise<void>;
+		onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void>;
 	}
 ): Promise<TranscriptCleanupReport> {
 	const corpus = await loadQuranCorpus();
@@ -611,63 +612,98 @@ export async function cleanupAITranscript(
 		apiKey && endpoint && model
 			? buildTranscriptCleanupBatches(prepared.tokens, options.batchWords, sourceTokens)
 			: [];
-	let nextBatchIndex = Math.min(options.resume?.nextBatchIndex ?? 0, batches.length);
+	let nextBatchToSchedule = Math.min(options.resume?.nextBatchIndex ?? 0, batches.length);
+	let nextBatchIndex = nextBatchToSchedule;
 	let paused = false;
+	let startedThisRun = 0;
+	let completionQueue = Promise.resolve();
+	const completedBatchIndexes = new Set<number>();
+	const batchFailures: Array<Error | undefined> = batches.map(() => undefined);
 
-	for (let batchIndex = nextBatchIndex; batchIndex < batches.length; batchIndex += 1) {
-		const batch = batches[batchIndex];
-		options.onProgress?.(batchIndex + 1, batches.length, batch.batchId);
-		try {
-			const response = (await invoke('run_ai_transcript_cleanup_batch_streaming', {
-				request: {
-					apiKey,
-					endpoint,
-					model,
-					reasoningEffort,
-					thinkingEnabled: options.thinkingEnabled,
-					batchId: batch.batchId,
-					batch: batch.request
-				}
-			})) as TranscriptCleanupBatchResponse;
-			const validation = validateTranscriptCleanupBatch(batch, response.parsed);
-			analyses.push(validation.analysis);
-			errors.push(...validation.errors);
-		} catch (error) {
-			throw new Error(
-				`AI transcript cleanup batch ${batchIndex + 1} failed: ${error instanceof Error ? error.message : String(error)}`
-			);
-		}
-		nextBatchIndex = batchIndex + 1;
-		const progressiveAnalysis = mergeTranscriptAiAnalyses(analyses, prepared.tokens);
-		const progressive = finalizeTranscriptProcessing(
-			result,
-			prepared.tokens,
-			corpus,
-			progressiveAnalysis,
-			{
-				maxWords: Math.max(2, options.maxWords),
-				maxChars: Math.max(20, options.maxChars),
-				maxGap: Math.max(0.1, options.maxGap)
+	/**
+	 * Consomme les batches de review avec une concurrence limitée.
+	 * @returns {Promise<void>} Promesse résolue quand ce worker n'a plus de batch.
+	 */
+	async function runCleanupWorker(): Promise<void> {
+		while (nextBatchToSchedule < batches.length) {
+			if (batchFailures.some(Boolean)) return;
+			if (startedThisRun > 0 && options.shouldPause?.()) {
+				paused = nextBatchIndex < batches.length;
+				return;
 			}
-		);
-		await options.onBatchComplete?.({
-			result: progressive.result,
-			errors: [...errors],
-			processedSegments: progressive.generatedSegments,
-			totalSegments: progressive.originalSegments,
-			quranPassages: progressive.quranPassages,
-			quotePassages: progressive.quotePassages,
-			correctionsApplied: progressive.correctionsApplied,
-			analyses: [...analyses],
-			nextBatchIndex,
-			totalBatches: batches.length,
-			paused: false
-		});
-		if (options.shouldPause?.() && nextBatchIndex < batches.length) {
-			paused = true;
-			break;
+			const batchIndex = nextBatchToSchedule;
+			nextBatchToSchedule += 1;
+			startedThisRun += 1;
+			const batch = batches[batchIndex];
+			options.onProgress?.(batchIndex + 1, batches.length, batch.batchId);
+
+			let validation: ReturnType<typeof validateTranscriptCleanupBatch>;
+			try {
+				const response = (await invoke('run_ai_transcript_cleanup_batch_streaming', {
+					request: {
+						apiKey,
+						endpoint,
+						model,
+						reasoningEffort,
+						thinkingEnabled: options.thinkingEnabled,
+						batchId: batch.batchId,
+						batch: batch.request
+					}
+				})) as TranscriptCleanupBatchResponse;
+				validation = validateTranscriptCleanupBatch(batch, response.parsed);
+			} catch (error) {
+				batchFailures[batchIndex] = new Error(
+					`AI transcript cleanup batch ${batchIndex + 1} failed: ${error instanceof Error ? error.message : String(error)}`
+				);
+				return;
+			}
+
+			completionQueue = completionQueue.then(async () => {
+				analyses.push(validation.analysis);
+				errors.push(...validation.errors);
+				completedBatchIndexes.add(batchIndex);
+				while (completedBatchIndexes.has(nextBatchIndex)) nextBatchIndex += 1;
+				const progressiveAnalysis = mergeTranscriptAiAnalyses(analyses, prepared.tokens);
+				const progressive = finalizeTranscriptProcessing(
+					result,
+					prepared.tokens,
+					corpus,
+					progressiveAnalysis,
+					{
+						maxWords: Math.max(2, options.maxWords),
+						maxChars: Math.max(20, options.maxChars),
+						maxGap: Math.max(0.1, options.maxGap)
+					}
+				);
+				await options.onBatchComplete?.(
+					{
+						result: progressive.result,
+						errors: [...errors],
+						processedSegments: progressive.generatedSegments,
+						totalSegments: progressive.originalSegments,
+						quranPassages: progressive.quranPassages,
+						quotePassages: progressive.quotePassages,
+						correctionsApplied: progressive.correctionsApplied,
+						analyses: [...analyses],
+						nextBatchIndex,
+						totalBatches: batches.length,
+						paused: false
+					},
+					batch.batchId
+				);
+			});
 		}
 	}
+
+	await Promise.all(
+		Array.from(
+			{ length: Math.min(TRANSCRIPT_CLEANUP_CONCURRENCY, batches.length - nextBatchToSchedule) },
+			() => runCleanupWorker()
+		)
+	);
+	await completionQueue;
+	const failure = batchFailures.find((error) => error !== undefined);
+	if (failure) throw failure;
 
 	const analysis = mergeTranscriptAiAnalyses(analyses, prepared.tokens);
 	const settings: TranscriptProcessingSettings = {

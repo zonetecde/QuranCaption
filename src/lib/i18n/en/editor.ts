@@ -57,6 +57,7 @@ const editor = {
 	cleanTranscript: 'Clean transcript',
 	cleaningTranscript: 'Cleaning transcript...',
 	transcriptCleanupBatchProgress: 'Processing batch {current} of {total}...',
+	streamedBatchLabel: 'Batch {current} of {total}',
 	transcriptCleanupCompleted: 'Prepared {cleaned} of {total} subtitle segments.',
 	transcriptCleanupCompletedWithIssues:
 		'Prepared {cleaned} of {total} subtitle segments. {errors} warning(s) require review.',

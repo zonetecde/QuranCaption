@@ -1,5 +1,6 @@
 use std::fs::{self, OpenOptions};
 use std::io::Write;
+use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures_util::StreamExt;
@@ -11,8 +12,11 @@ use crate::commands::ai_translation::prompts::is_openrouter_endpoint;
 
 use self::sse::{
     extract_chat_completion_delta, extract_chat_completion_reasoning_delta,
-    extract_chat_completion_usage, extract_completed_output_text, SseAccumulator,
+    extract_chat_completion_usage, extract_completed_output_text, extract_completed_reasoning_text,
+    SseAccumulator,
 };
+
+static AI_EXCHANGE_LOG_LOCK: Mutex<()> = Mutex::new(());
 
 pub(crate) mod bold;
 pub(crate) mod prompts;
@@ -136,6 +140,9 @@ fn append_ai_exchange_log(
     let serialized = serde_json::to_string(&entry).map_err(|serialize_error| {
         format!("Failed to serialize AI log entry: {}", serialize_error)
     })?;
+    let _log_guard = AI_EXCHANGE_LOG_LOCK
+        .lock()
+        .map_err(|_| "Failed to lock AI exchange log.".to_string())?;
     let log_path = log_dir.join("ai-exchanges.jsonl");
     let mut file = OpenOptions::new()
         .create(true)
@@ -392,6 +399,15 @@ pub(crate) async fn stream_ai_response(
                         }
                     }
                 }
+                "response.reasoning_summary_text.done" => {
+                    if reasoning_text.is_empty() {
+                        reasoning_text = payload
+                            .get("text")
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .to_string();
+                    }
+                }
                 "response.refusal.delta" => {
                     let delta = payload
                         .get("delta")
@@ -411,6 +427,13 @@ pub(crate) async fn stream_ai_response(
                     if raw_text.trim().is_empty() {
                         if let Some(completed_text) = extract_completed_output_text(&payload) {
                             raw_text = completed_text;
+                        }
+                    }
+                    if reasoning_text.trim().is_empty() {
+                        if let Some(completed_reasoning) =
+                            extract_completed_reasoning_text(&payload)
+                        {
+                            reasoning_text = completed_reasoning;
                         }
                     }
                 }
@@ -447,6 +470,11 @@ pub(crate) async fn stream_ai_response(
                 if raw_text.trim().is_empty() {
                     if let Some(completed_text) = extract_completed_output_text(&payload) {
                         raw_text = completed_text;
+                    }
+                }
+                if reasoning_text.trim().is_empty() {
+                    if let Some(completed_reasoning) = extract_completed_reasoning_text(&payload) {
+                        reasoning_text = completed_reasoning;
                     }
                 }
             }

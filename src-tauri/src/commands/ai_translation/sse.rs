@@ -126,3 +126,18 @@ pub fn extract_completed_output_text(payload: &Value) -> Option<String> {
         Some(parts.join(""))
     }
 }
+
+/// Extrait le résumé de raisonnement complet d'une réponse Responses API.
+pub fn extract_completed_reasoning_text(payload: &Value) -> Option<String> {
+    let output = payload.get("response")?.get("output")?.as_array()?;
+    let parts = output
+        .iter()
+        .filter(|item| item.get("type").and_then(Value::as_str) == Some("reasoning"))
+        .filter_map(|item| item.get("summary").and_then(Value::as_array))
+        .flatten()
+        .filter_map(|summary| summary.get("text").and_then(Value::as_str))
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>();
+
+    (!parts.is_empty()).then(|| parts.join(""))
+}

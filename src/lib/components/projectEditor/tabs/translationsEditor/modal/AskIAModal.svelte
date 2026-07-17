@@ -9,7 +9,6 @@
 		buildAIProjectTranslationBatches,
 		estimateAIProjectTranslationBatchCount,
 		getEligibleAIProjectTranslationSubtitles,
-		resolveAIProjectTranslationSuccessContext,
 		runAIProjectTranslationBatchStreaming,
 		validateAIProjectTranslationBatch,
 		type AIProjectTranslationOptions,
@@ -53,6 +52,7 @@
 		batchId: string;
 		accumulatedText: string;
 	};
+	const PROJECT_TRANSLATION_CONCURRENCY = 3;
 
 	let { close, edition }: { close: () => void; edition: Edition } = $props();
 	const copy = get(LL).translations as unknown as TranslationCopy;
@@ -189,7 +189,7 @@
 	onDestroy(stopStreamListeners);
 
 	/**
-	 * Traduit les batches séquentiellement puis applique tous les résultats valides en une fois.
+	 * Traduit les batches avec une concurrence limitée puis applique les résultats dans leur ordre initial.
 	 * @returns {Promise<void>} Promesse résolue après l'application ou l'échec du workflow.
 	 */
 	async function translateVideo(): Promise<void> {
@@ -205,8 +205,6 @@
 		streamedResponse = '';
 		streamedReasoning = '';
 		currentMessage = copy.aiTranslationPreparing();
-		const successes: AIProjectTranslationSuccess[] = [];
-		const translatedContextById = new Map<number, string>();
 
 		try {
 			await startStreamListeners();
@@ -221,47 +219,58 @@
 				return;
 			}
 
-			for (const [batchIndex, batch] of batches.entries()) {
-				currentBatchId = batch.batchId;
-				streamedResponse = '';
-				streamedReasoning = '';
-				batch.request.b = batch.request.b.map((context, contextIndex) => ({
-					...context,
-					t:
-						translatedContextById.get(batch.beforeSubtitleIds[contextIndex] ?? context.i) ??
-						context.t
-				}));
-				currentMessage = copy.aiTranslationBatchProgress({
-					current: batchIndex + 1,
-					total: batches.length
-				});
-				try {
-					const response = await runAIProjectTranslationBatchStreaming({
-						apiKey: settings().openAiApiKey,
-						endpoint: settings().textAiApiEndpoint,
-						model: settings().advancedTrimModel,
-						reasoningEffort: settings().advancedTrimReasoningEffort,
-						targetLanguage: edition.language,
-						islamicTermMode: settings().projectTranslationIslamicTerms,
-						batch
+			const batchSuccesses: AIProjectTranslationSuccess[][] = batches.map(() => []);
+			const batchErrors: string[][] = batches.map(() => []);
+			const batchFailures = batches.map(() => 0);
+			let nextBatchIndex = 0;
+
+			/**
+			 * Consomme les batches disponibles jusqu'à épuisement de la file partagée.
+			 * @returns {Promise<void>} Promesse résolue lorsque ce worker n'a plus de batch.
+			 */
+			async function runTranslationWorker(): Promise<void> {
+				while (nextBatchIndex < batches.length) {
+					const batchIndex = nextBatchIndex;
+					nextBatchIndex += 1;
+					const batch = batches[batchIndex];
+					currentBatchId = batch.batchId;
+					streamedResponse = '';
+					streamedReasoning = '';
+					currentMessage = copy.aiTranslationBatchProgress({
+						current: batchIndex + 1,
+						total: batches.length
 					});
-					streamedResponse = response.rawText;
-					const validation = validateAIProjectTranslationBatch(batch, response.parsed);
-					successes.push(...validation.validItems);
-					for (const success of validation.validItems) {
-						translatedContextById.set(
-							success.candidate.subtitle.id,
-							resolveAIProjectTranslationSuccessContext(edition, success)
-						);
+					try {
+						const response = await runAIProjectTranslationBatchStreaming({
+							apiKey: settings().openAiApiKey,
+							endpoint: settings().textAiApiEndpoint,
+							model: settings().advancedTrimModel,
+							reasoningEffort: settings().advancedTrimReasoningEffort,
+							targetLanguage: edition.language,
+							islamicTermMode: settings().projectTranslationIslamicTerms,
+							batch
+						});
+						if (currentBatchId === batch.batchId) streamedResponse = response.rawText;
+						const validation = validateAIProjectTranslationBatch(batch, response.parsed);
+						batchSuccesses[batchIndex] = validation.validItems;
+						batchErrors[batchIndex] = validation.errors;
+						batchFailures[batchIndex] = batch.candidates.length - validation.validItems.length;
+					} catch (error) {
+						batchFailures[batchIndex] = batch.candidates.length;
+						batchErrors[batchIndex] = [error instanceof Error ? error.message : String(error)];
 					}
-					errors = [...errors, ...validation.errors];
-					failedSubtitles += batch.candidates.length - validation.validItems.length;
-				} catch (error) {
-					failedSubtitles += batch.candidates.length;
-					errors = [...errors, error instanceof Error ? error.message : String(error)];
+					completedBatches += 1;
 				}
-				completedBatches = batchIndex + 1;
 			}
+
+			await Promise.all(
+				Array.from({ length: Math.min(PROJECT_TRANSLATION_CONCURRENCY, batches.length) }, () =>
+					runTranslationWorker()
+				)
+			);
+			const successes = batchSuccesses.flat();
+			errors = batchErrors.flat();
+			failedSubtitles = batchFailures.reduce((total, count) => total + count, 0);
 
 			if (successes.length > 0) {
 				translatedSubtitles = applyAIProjectTranslationResults(

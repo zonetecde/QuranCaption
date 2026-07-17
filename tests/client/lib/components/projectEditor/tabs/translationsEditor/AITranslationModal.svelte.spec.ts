@@ -23,14 +23,14 @@ const mocks = vi.hoisted(() => {
 				wordCount: 1
 			}
 		]),
-		runBatch: vi.fn(async () => {
+		runBatch: vi.fn(async ({ batch }: { batch: { batchId: string } }) => {
 			listeners.get('ai-project-translation-reasoning')?.({
-				payload: { batchId: 'batch-1', accumulatedText: 'Reasoning live' }
+				payload: { batchId: batch.batchId, accumulatedText: 'Reasoning live' }
 			});
 			listeners.get('ai-project-translation-chunk')?.({
-				payload: { batchId: 'batch-1', accumulatedText: '{"i":[]}' }
+				payload: { batchId: batch.batchId, accumulatedText: '{"i":[]}' }
 			});
-			return { batchId: 'batch-1', rawText: '{"i":[]}', parsed: { i: [] } };
+			return { batchId: batch.batchId, rawText: '{"i":[]}', parsed: { i: [] } };
 		}),
 		validateBatch: vi.fn(() => ({ validItems: [], errors: [] }))
 	};
@@ -66,6 +66,9 @@ describe('AI translation modal', () => {
 		globalState.settings.aiTranslationSettings.advancedTrimModel = 'gpt-test';
 		globalState.settings.aiTranslationSettings.advancedTrimReasoningEffort = 'medium';
 		vi.spyOn(Settings, 'save').mockResolvedValue(undefined);
+		mocks.buildBatches.mockClear();
+		mocks.runBatch.mockClear();
+		mocks.validateBatch.mockClear();
 	});
 
 	afterEach(() => {
@@ -141,6 +144,57 @@ describe('AI translation modal', () => {
 			).map((textarea) => textarea.value);
 			expect(streamedValues).toContain('Reasoning live');
 			expect(streamedValues).toContain('{"i":[]}');
+			expect(
+				Array.from(component.container.querySelectorAll('button')).some((button) =>
+					button.textContent?.includes('Translate video')
+				)
+			).toBe(false);
+		});
+	});
+
+	test('runs at most three translation batches concurrently', async () => {
+		const batches = Array.from({ length: 4 }, (_, index) => ({
+			batchId: `batch-${index + 1}`,
+			candidates: [{}],
+			beforeSubtitleIds: [],
+			afterSubtitleIds: [],
+			request: { b: [], i: [], a: [] },
+			wordCount: 1
+		}));
+		const releaseBatch: Array<() => void> = [];
+		mocks.buildBatches.mockResolvedValueOnce(batches);
+		mocks.runBatch.mockImplementation(
+			({ batch }: { batch: { batchId: string } }) =>
+				new Promise((resolve) => {
+					releaseBatch.push(() =>
+						resolve({ batchId: batch.batchId, rawText: '{"i":[]}', parsed: { i: [] } })
+					);
+				})
+		);
+
+		const edition = new Edition(
+			'language-french',
+			'language-french',
+			'French',
+			'French',
+			'ltr',
+			'project-language',
+			'',
+			'',
+			''
+		);
+		const component = render(AskIAModal, { edition, close: vi.fn() });
+		const translateButton = Array.from(component.container.querySelectorAll('button')).find(
+			(button) => button.textContent?.includes('Translate video')
+		)!;
+		translateButton.click();
+
+		await vi.waitFor(() => expect(mocks.runBatch).toHaveBeenCalledTimes(3));
+		expect(releaseBatch).toHaveLength(3);
+		releaseBatch[0]();
+		await vi.waitFor(() => expect(mocks.runBatch).toHaveBeenCalledTimes(4));
+		for (const release of releaseBatch.slice(1)) release();
+		await vi.waitFor(() => {
 			expect(
 				Array.from(component.container.querySelectorAll('button')).some((button) =>
 					button.textContent?.includes('Translate video')

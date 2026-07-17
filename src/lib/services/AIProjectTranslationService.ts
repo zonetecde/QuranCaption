@@ -20,7 +20,7 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
 import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 
 const MAX_BATCH_WORDS = 450;
-const CONTEXT_CLIP_COUNT = 2;
+const CONTEXT_CLIP_COUNT = 10;
 
 export type AIProjectTranslationOptions = {
 	retryErrors: boolean;

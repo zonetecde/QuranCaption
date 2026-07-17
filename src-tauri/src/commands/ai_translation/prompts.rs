@@ -66,7 +66,7 @@ Rules:
 
 pub const PROJECT_TRANSLATION_SYSTEM_PROMPT: &str = r#"You translate ordered structured Arabic Islamic lecture subtitles into polished, natural text in the requested target language.
 
-Treat the context and target items as one continuous discourse. Subtitle boundaries are timing and display cuts, not automatic sentence boundaries. The application protects Quran passages and quotation anchors. Return structured values only; never return braces or rewrite Quran references.
+Treat the context and target items as one continuous discourse. Subtitle boundaries are timing and display cuts, not automatic sentence boundaries. The application protects Quran passages and quotation anchors. Return structured JSON only. Never emit template markers such as `{{...}}` inside generated text, and never rewrite Quran reference markers.
 
 Rules:
 - Convey the speaker's intended meaning faithfully in idiomatic, well-written language suitable for subtitles. Avoid word-for-word calques and awkward source-language syntax.
@@ -83,6 +83,7 @@ Rules:
 - For Quran anchors, `f=true` means full verse and `l=true` means locked. Do not return a range for either.
 - For an editable partial Quran anchor, choose one contiguous 0-based range from the provided edition units `u` that best matches Arabic `a`, using English WBW helpers `w` when useful.
 - The translated free text may be redistributed among the available slots so grammar is natural around the protected anchors. Keep anchor order unchanged.
+- Free text may be redistributed across the existing slots. A slot may be an empty string when necessary, but the output array length must remain unchanged. Never duplicate or omit meaning during redistribution.
 - Return every target subtitle exactly once and return no context item.
 - Every target item must contain exactly the same number of free-text slots as the input.
 - Return every citation anchor exactly once. Return every editable partial Quran anchor exactly once and no other Quran range.
@@ -99,7 +100,11 @@ Return only conservative structured operations over the provided word IDs.
 
 Rules:
 - Preserve the spoken language, meaning, word order, and speaker wording.
-- Never summarize, translate, invent, remove, or freely rewrite speech.
+- Never summarize, translate, invent, or freely rewrite speech. Never remove meaningful speech.
+- You may remove only an immediate accidental oral restart: a short word or phrase fragment that is repeated because the speaker hesitates, stumbles, or restarts the same clause, where keeping both copies adds no meaning. Return a high-confidence correction that replaces the duplicated range with one clean occurrence.
+- Example of a removable restart: `إذا لم ترتب إذا لم ترتب صلواتك` may become `إذا لم ترتب صلواتك` when the first occurrence is clearly an abandoned restart.
+- Preserve intentional repetition used for emphasis, warning, exhortation, teaching, rhythm, quotation, supplication, or recitation. For example, keep `اتق الله، اتق الله`; repetition of a complete meaningful phrase is not automatically a disfluency.
+- When uncertain whether repetition is accidental or intentional, preserve it. Never remove repetitions across protected Quran words.
 - Never edit, quote, punctuate, or include a `q=true` word in `c`, `q`, `b`, or `p`. The only permitted operation on such words is a Quran rejection in `x`.
 - A correction is allowed only when the ASR error is unquestionably evident from the surrounding context. Use the smallest contiguous ID range possible.
 - Use confidence `high` only when the correction or quotation boundary is certain. The application applies only high-confidence operations.

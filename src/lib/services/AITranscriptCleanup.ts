@@ -9,6 +9,7 @@ import {
 	finalizeTranscriptProcessing,
 	loadQuranCorpus,
 	prepareTranscriptForAnalysis,
+	isAllowedTranscriptPunctuation,
 	type ProcessedTranscriptToken,
 	type TranscriptAiAnalysis,
 	type TranscriptAiCorrection,
@@ -29,6 +30,9 @@ type TranscriptAnalysisWordPayload = {
 	q: boolean;
 	r: string | null;
 	o: string | null;
+	u: string | null;
+	a: boolean;
+	z: boolean;
 	g: number | null;
 };
 
@@ -69,6 +73,12 @@ type TranscriptCleanupBatchResponse = {
 	parsed: unknown;
 };
 
+type QuranCandidateMetadata = {
+	id: string;
+	isStart: boolean;
+	isEnd: boolean;
+};
+
 export type TranscriptCleanupReport = {
 	result: AITranscriptionResult;
 	errors: string[];
@@ -82,6 +92,39 @@ export type TranscriptCleanupReport = {
 	totalBatches: number;
 	paused: boolean;
 };
+
+/**
+ * Identifie les limites globales de chaque candidat Quran avant le découpage en batches.
+ * @param {ProcessedTranscriptToken[]} tokens Flux complet de mots préparés.
+ * @returns {Map<number, QuranCandidateMetadata>} Métadonnées indexées par identifiant de mot.
+ */
+function buildQuranCandidateMetadata(
+	tokens: ProcessedTranscriptToken[]
+): Map<number, QuranCandidateMetadata> {
+	const metadata = new Map<number, QuranCandidateMetadata>();
+	for (let start = 0; start < tokens.length; start += 1) {
+		if (!tokens[start].quran) continue;
+		const sourceKey = [...tokens[start].sourceIds].sort((left, right) => left - right).join(':');
+		let end = start;
+		while (
+			end + 1 < tokens.length &&
+			tokens[end + 1].quran &&
+			[...tokens[end + 1].sourceIds].sort((left, right) => left - right).join(':') === sourceKey
+		) {
+			end += 1;
+		}
+		const candidateId = `quran-${tokens[start].id}`;
+		for (let index = start; index <= end; index += 1) {
+			metadata.set(tokens[index].id, {
+				id: candidateId,
+				isStart: index === start,
+				isEnd: index === end
+			});
+		}
+		start = end;
+	}
+	return metadata;
+}
 
 /**
  * Construit des fenêtres chevauchantes de mots pour préserver le contexte aux limites de batch.
@@ -98,6 +141,7 @@ export function buildTranscriptCleanupBatches(
 	if (tokens.length === 0) return [];
 	const batches: TranscriptCleanupBatch[] = [];
 	const sourceById = new Map(sourceTokens.map((token) => [token.id, token]));
+	const quranCandidateByTokenId = buildQuranCandidateMetadata(tokens);
 	const normalizedBatchWords = Math.max(BATCH_OVERLAP_WORDS + 1, Math.round(batchWords));
 	const stride = Math.max(1, normalizedBatchWords - BATCH_OVERLAP_WORDS);
 	for (let start = 0; start < tokens.length; start += stride) {
@@ -109,14 +153,10 @@ export function buildTranscriptCleanupBatches(
 			tokens: batchTokens,
 			request: {
 				w: batchTokens.map((token, tokenIndex) => {
-					const previous = batchTokens[tokenIndex - 1];
 					const next = batchTokens[tokenIndex + 1];
-					const sourceKey = [...token.sourceIds].sort((a, b) => a - b).join(':');
-					const previousSourceKey = previous
-						? [...previous.sourceIds].sort((a, b) => a - b).join(':')
-						: '';
+					const candidate = quranCandidateByTokenId.get(token.id);
 					const originalPassage =
-						token.quran && sourceKey !== previousSourceKey
+						token.quran && candidate?.isStart
 							? token.sourceIds
 									.map((id) => sourceById.get(id))
 									.filter((source): source is ProcessedTranscriptToken => source !== undefined)
@@ -131,6 +171,9 @@ export function buildTranscriptCleanupBatches(
 						q: token.quran !== null,
 						r: token.quran ? `${token.quran.surah}:${token.quran.verse}` : null,
 						o: originalPassage || null,
+						u: candidate?.id ?? null,
+						a: candidate?.isStart ?? false,
+						z: candidate?.isEnd ?? false,
 						g: next ? Math.round(Math.max(0, next.start - token.end) * 1000) / 1000 : null
 					};
 				})
@@ -210,6 +253,7 @@ export function validateTranscriptCleanupBatch(
 	}
 	const record = parsed as Record<string, unknown>;
 	const order = new Map(batch.tokens.map((token, index) => [token.id, index]));
+	const payloadById = new Map(batch.request.w.map((word) => [word.i, word]));
 	const protectedIds = new Set(
 		batch.tokens.filter((token) => token.quran).map((token) => token.id)
 	);
@@ -241,9 +285,34 @@ export function validateTranscriptCleanupBatch(
 			analysis.corrections.push({ startId, endId, replacement, confidence });
 		}
 	}
+	const overlappingCorrections = new Set<number>();
+	for (let left = 0; left < analysis.corrections.length; left += 1) {
+		const leftStart = order.get(analysis.corrections[left].startId)!;
+		const leftEnd = order.get(analysis.corrections[left].endId)!;
+		for (let right = left + 1; right < analysis.corrections.length; right += 1) {
+			const rightStart = order.get(analysis.corrections[right].startId)!;
+			const rightEnd = order.get(analysis.corrections[right].endId)!;
+			if (leftStart <= rightEnd && rightStart <= leftEnd) {
+				overlappingCorrections.add(left);
+				overlappingCorrections.add(right);
+			}
+		}
+	}
+	if (overlappingCorrections.size > 0) {
+		errors.push('AI returned overlapping correction ranges.');
+		analysis.corrections = analysis.corrections.filter(
+			(_, index) => !overlappingCorrections.has(index)
+		);
+	}
+	const correctedIds = new Set<number>();
+	for (const correction of analysis.corrections) {
+		const start = order.get(correction.startId)!;
+		const end = order.get(correction.endId)!;
+		for (const token of batch.tokens.slice(start, end + 1)) correctedIds.add(token.id);
+	}
 
-	if (Array.isArray(record.q)) {
-		for (const raw of record.q) {
+	if (Array.isArray(record.quotes)) {
+		for (const raw of record.quotes) {
 			if (!raw || typeof raw !== 'object') continue;
 			const value = raw as Partial<CompactQuote>;
 			const startId = Number(value.s);
@@ -285,8 +354,18 @@ export function validateTranscriptCleanupBatch(
 			}
 			const start = order.get(startId)!;
 			const end = order.get(endId)!;
-			if (batch.tokens.slice(start, end + 1).some((token) => !protectedIds.has(token.id))) {
-				errors.push('AI attempted to reject a range containing non-Quran words.');
+			const selectedPayloads = batch.tokens
+				.slice(start, end + 1)
+				.map((token) => payloadById.get(token.id)!);
+			const candidateId = selectedPayloads[0]?.u;
+			if (
+				selectedPayloads.some((word) => !word.q) ||
+				!candidateId ||
+				selectedPayloads.some((word) => word.u !== candidateId) ||
+				!selectedPayloads[0].a ||
+				!selectedPayloads.at(-1)?.z
+			) {
+				errors.push('AI attempted to reject an incomplete Quran candidate.');
 				continue;
 			}
 			(analysis.quranRejections ??= []).push({ startId, endId, confidence });
@@ -296,7 +375,12 @@ export function validateTranscriptCleanupBatch(
 	if (Array.isArray(record.b)) {
 		for (const rawId of record.b) {
 			const id = Number(rawId);
-			if (Number.isInteger(id) && order.has(id) && !protectedIds.has(id)) {
+			if (
+				Number.isInteger(id) &&
+				order.has(id) &&
+				!correctedIds.has(id) &&
+				(!protectedIds.has(id) || payloadById.get(id)?.z)
+			) {
 				analysis.breakAfter.push(id);
 			}
 		}
@@ -307,12 +391,13 @@ export function validateTranscriptCleanupBatch(
 			if (!raw || typeof raw !== 'object') continue;
 			const value = raw as Partial<CompactPunctuation>;
 			const id = Number(value.i);
-			const punctuation = typeof value.v === 'string' ? value.v.trim() : '';
+			const punctuation = typeof value.v === 'string' ? value.v : '';
 			if (
 				Number.isInteger(id) &&
 				order.has(id) &&
 				!protectedIds.has(id) &&
-				/^[.,!?؟،؛:…]+$/u.test(punctuation)
+				!correctedIds.has(id) &&
+				isAllowedTranscriptPunctuation(punctuation)
 			) {
 				analysis.punctuationAfter.push({ id, value: punctuation });
 			}

@@ -98,6 +98,11 @@ pub struct TranscriptCleanupWordPayload {
     pub q: bool,
     pub r: Option<String>,
     pub o: Option<String>,
+    pub u: Option<String>,
+    #[serde(default)]
+    pub a: bool,
+    #[serde(default)]
+    pub z: bool,
     pub g: Option<f64>,
 }
 

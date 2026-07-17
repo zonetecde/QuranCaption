@@ -108,9 +108,14 @@ describe('AITranscriptCleanup batches', () => {
 		expect(batch.request.w[0]).toMatchObject({
 			q: true,
 			r: '21:107',
-			o: 'هو في الجنة'
+			o: 'هو في الجنة',
+			u: 'quran-10',
+			a: true,
+			z: false
 		});
 		expect(batch.request.w[1].o).toBeNull();
+		expect(batch.request.w[1]).toMatchObject({ u: 'quran-10', a: false, z: false });
+		expect(batch.request.w[2]).toMatchObject({ u: 'quran-10', a: false, z: true });
 	});
 
 	it('uses a larger requested batch size while preserving the context overlap', () => {
@@ -134,7 +139,7 @@ describe('AITranscriptCleanup response validation', () => {
 		const batch = buildTranscriptCleanupBatches(tokens)[0];
 		const validation = validateTranscriptCleanupBatch(batch, {
 			c: [{ s: 2, e: 2, t: 'لَمَّا', f: 'high' }],
-			q: [{ s: 2, e: 4, k: 'hadith', f: 'high' }],
+			quotes: [{ s: 2, e: 4, k: 'hadith', f: 'high' }],
 			b: [4],
 			p: [{ i: 4, v: '.' }]
 		});
@@ -152,10 +157,11 @@ describe('AITranscriptCleanup response validation', () => {
 
 	it('accepts a high-confidence rejection of an automatic Quran candidate', () => {
 		const tokens = [token(0, 'وما', true), token(1, 'أرسلناك', true)];
+		for (const entry of tokens) entry.sourceIds = [0, 1];
 		const batch = buildTranscriptCleanupBatches(tokens)[0];
 		const validation = validateTranscriptCleanupBatch(batch, {
 			c: [],
-			q: [],
+			quotes: [],
 			x: [{ s: 0, e: 1, f: 'high' }],
 			b: [],
 			p: []
@@ -169,11 +175,13 @@ describe('AITranscriptCleanup response validation', () => {
 
 	it('rejects every operation that attempts to rewrite protected Quran words', () => {
 		const tokens = [token(0, 'قال'), token(1, 'وما', true), token(2, 'أرسلناك', true)];
+		tokens[1].sourceIds = [1, 2];
+		tokens[2].sourceIds = [1, 2];
 		const batch = buildTranscriptCleanupBatches(tokens)[0];
 		const validation = validateTranscriptCleanupBatch(batch, {
 			c: [{ s: 1, e: 2, t: 'نص آخر', f: 'high' }],
-			q: [{ s: 1, e: 2, k: 'generic', f: 'high' }],
-			b: [2],
+			quotes: [{ s: 1, e: 2, k: 'generic', f: 'high' }],
+			b: [1],
 			p: [{ i: 2, v: '.' }]
 		});
 
@@ -188,7 +196,7 @@ describe('AITranscriptCleanup response validation', () => {
 		const batch = buildTranscriptCleanupBatches([token(0, 'قال'), token(1, 'العالم')])[0];
 		const validation = validateTranscriptCleanupBatch(batch, {
 			c: [{ s: 5, e: 8, t: 'missing', f: 'high' }],
-			q: [{ s: 0, e: 1, k: 'book', f: 'high' }],
+			quotes: [{ s: 0, e: 1, k: 'book', f: 'high' }],
 			b: [99],
 			p: [{ i: 0, v: '<script>' }]
 		});
@@ -201,6 +209,76 @@ describe('AITranscriptCleanup response validation', () => {
 		});
 		expect(validation.errors).toContain('AI returned an invalid correction operation.');
 		expect(validation.errors).toContain('AI returned an invalid quotation range.');
+	});
+
+	it('allows a break only after the final word of a protected Quran candidate', () => {
+		const tokens = [token(0, 'وما', true), token(1, 'أرسلناك', true)];
+		for (const entry of tokens) entry.sourceIds = [0, 1];
+		const batch = buildTranscriptCleanupBatches(tokens)[0];
+		const validation = validateTranscriptCleanupBatch(batch, {
+			c: [],
+			quotes: [],
+			x: [],
+			b: [0, 1],
+			p: []
+		});
+
+		expect(validation.analysis.breakAfter).toEqual([1]);
+	});
+
+	it('rejects partial Quran candidate rejections at a batch boundary', () => {
+		const tokens = Array.from({ length: 170 }, (_, id) => token(id, `word${id}`, id >= 150));
+		for (const entry of tokens.slice(150)) entry.sourceIds = [150, 169];
+		const batch = buildTranscriptCleanupBatches(tokens)[0];
+		const validation = validateTranscriptCleanupBatch(batch, {
+			c: [],
+			quotes: [],
+			x: [{ s: 150, e: 159, f: 'high' }],
+			b: [],
+			p: []
+		});
+
+		expect(validation.analysis.quranRejections).toBeUndefined();
+		expect(validation.errors).toContain('AI attempted to reject an incomplete Quran candidate.');
+	});
+
+	it('drops overlapping corrections and their conflicting annotations', () => {
+		const batch = buildTranscriptCleanupBatches([
+			token(0, 'une'),
+			token(1, 'phrase'),
+			token(2, 'test')
+		])[0];
+		const validation = validateTranscriptCleanupBatch(batch, {
+			c: [
+				{ s: 0, e: 1, t: 'une phrase', f: 'high' },
+				{ s: 1, e: 2, t: 'phrase test', f: 'high' }
+			],
+			quotes: [],
+			x: [],
+			b: [1],
+			p: [{ i: 1, v: '...' }]
+		});
+
+		expect(validation.analysis.corrections).toEqual([]);
+		expect(validation.analysis.punctuationAfter).toEqual([]);
+		expect(validation.errors).toContain('AI returned overlapping correction ranges.');
+	});
+
+	it('ignores breaks and punctuation attached to a corrected word', () => {
+		const batch = buildTranscriptCleanupBatches([token(0, 'une'), token(1, 'phrase')])[0];
+		const validation = validateTranscriptCleanupBatch(batch, {
+			c: [{ s: 0, e: 0, t: 'Une', f: 'high' }],
+			quotes: [],
+			x: [],
+			b: [0, 1],
+			p: [
+				{ i: 0, v: '.' },
+				{ i: 1, v: '.' }
+			]
+		});
+
+		expect(validation.analysis.breakAfter).toEqual([1]);
+		expect(validation.analysis.punctuationAfter).toEqual([{ id: 1, value: '.' }]);
 	});
 });
 
@@ -305,7 +383,7 @@ describe('AITranscriptCleanup complete service', () => {
 		invokeMock.mockResolvedValue({
 			parsed: {
 				c: [],
-				q: [{ s: 2, e: 4, k: 'hadith', f: 'high' }],
+				quotes: [{ s: 2, e: 4, k: 'hadith', f: 'high' }],
 				b: [4],
 				p: [{ i: 4, v: '.' }]
 			}
@@ -349,7 +427,7 @@ describe('AITranscriptCleanup complete service', () => {
 		invokeMock.mockResolvedValue({
 			parsed: {
 				c: [],
-				q: [{ s: 2, e: 17, k: 'hadith', f: 'high' }],
+				quotes: [{ s: 2, e: 17, k: 'hadith', f: 'high' }],
 				b: [11, 17, 26],
 				p: []
 			}

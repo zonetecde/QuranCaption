@@ -74,6 +74,17 @@ export type TranscriptAiAnalysis = {
 	punctuationAfter: TranscriptAiPunctuation[];
 };
 
+const ALLOWED_TRANSCRIPT_PUNCTUATION = new Set(['.', ',', ';', ':', '?', '!', '…', '،', '؛', '؟']);
+
+/**
+ * Vérifie qu'une ponctuation IA est un unique signe pris en charge.
+ * @param {string} value Ponctuation proposée.
+ * @returns {boolean} `true` lorsque le signe est autorisé.
+ */
+export function isAllowedTranscriptPunctuation(value: string): boolean {
+	return ALLOWED_TRANSCRIPT_PUNCTUATION.has(value);
+}
+
 export type QuranCorpusToken = {
 	text: string;
 	normalized: string;
@@ -995,7 +1006,7 @@ export function applyTranscriptAnnotations(
 		const indexes = findTokenIndexesBySourceRange(output, punctuation.id, punctuation.id);
 		const index = indexes.at(-1);
 		if (index === undefined || output[index].quran) continue;
-		if (/^[.,!?؟،؛:…]+$/u.test(punctuation.value)) {
+		if (isAllowedTranscriptPunctuation(punctuation.value)) {
 			output[index].punctuationAfter = punctuation.value;
 		}
 	}

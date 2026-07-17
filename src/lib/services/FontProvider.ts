@@ -3,6 +3,7 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { appDataDir, basename, extname, join } from '@tauri-apps/api/path';
 import { copyFile, exists, mkdir, readDir, remove } from '@tauri-apps/plugin-fs';
 import { getQpcGlyphIndexesForWord, getQpcVerseNumberGlyphIndex } from './QpcGlyphWordOverrides';
+import { getSystemFontSubsetDataUrl } from './SystemFontSubset';
 
 type SystemFontSource = {
 	family: string;
@@ -15,6 +16,11 @@ type SystemFontSource = {
 	fontWeight: number;
 	fontWeightRange: string | null;
 	fontStyle: string;
+};
+
+type RegisteredSystemFontFace = {
+	source: SystemFontSource;
+	style: HTMLStyleElement;
 };
 
 export type ImportedFont = {
@@ -33,6 +39,7 @@ export class QPCFontProvider {
 	static fontLoadPromises: Map<string, Promise<void>> = new Map();
 	static resolvedSystemFontFamilies: Set<string> = new Set();
 	static registeredSystemFontFaces: Set<string> = new Set();
+	static registeredSystemFontFaceRules: Map<string, RegisteredSystemFontFace> = new Map();
 	static importedFontsPromise: Promise<ImportedFont[]> | null = null;
 	private static readonly FONT_WAIT_TIMEOUT_MS = 1200;
 	private static readonly IMPORTED_FONTS_FOLDER = 'imported-fonts';
@@ -271,6 +278,61 @@ export class QPCFontProvider {
 			Array.from(fontFamilies).map((fontFamily) => this.waitForFontFamily(fontFamily))
 		);
 		await this.waitForNextPaint();
+	}
+
+	/**
+	 * Remplace temporairement les polices système par des sous-ensembles adaptés à la capture.
+	 * @param {Element | null | undefined} element Élément dont le texte sera capturé.
+	 * @returns {Promise<() => void>} Fonction restaurant les règles de police originales.
+	 */
+	static async applySystemFontSubsetsForScreenshot(
+		element: Element | null | undefined
+	): Promise<() => void> {
+		if (!element || typeof document === 'undefined') return () => {};
+
+		const textsByFamily = new Map<string, string>();
+		const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+		let textNode = walker.nextNode();
+		while (textNode) {
+			const text = textNode.textContent ?? '';
+			const parent = textNode.parentElement;
+			if (text.trim() && parent) {
+				const family = window
+					.getComputedStyle(parent)
+					.fontFamily.split(',')[0]
+					?.trim()
+					.replace(/^['"]|['"]$/g, '')
+					.toLowerCase();
+				if (family) textsByFamily.set(family, (textsByFamily.get(family) ?? '') + text);
+			}
+			textNode = walker.nextNode();
+		}
+
+		const originalRules = new Map<HTMLStyleElement, string>();
+		await Promise.all(
+			Array.from(this.registeredSystemFontFaceRules.values()).map(async ({ source, style }) => {
+				const text = textsByFamily.get(source.family.toLowerCase());
+				if (!text) return;
+
+				try {
+					const fontUrl = convertFileSrc(source.path);
+					const subsetUrl = await getSystemFontSubsetDataUrl(fontUrl, source.fontIndex, text);
+					originalRules.set(style, style.textContent ?? '');
+					style.textContent = this.getSystemFontFaceCss(source, subsetUrl, null);
+				} catch (error) {
+					console.warn('Could not subset system font before export capture.', error);
+				}
+			})
+		);
+
+		if (originalRules.size) {
+			await document.fonts.ready;
+			await this.waitForNextPaint();
+		}
+
+		return () => {
+			for (const [style, cssText] of originalRules) style.textContent = cssText;
+		};
 	}
 
 	static getFontNameForVerse(surah: number, verse: number, qpcVersion: '1' | '2'): string {
@@ -540,22 +602,36 @@ export class QPCFontProvider {
 		].join('|');
 		if (this.registeredSystemFontFaces.has(key)) return;
 
-		const fontUrl = convertFileSrc(source.path);
-		const format = source.format ? ` format("${this.escapeCssString(source.format)}")` : '';
+		const style = document.createElement('style');
+		style.textContent = this.getSystemFontFaceCss(source, convertFileSrc(source.path));
+		document.head.appendChild(style);
+		this.registeredSystemFontFaces.add(key);
+		this.registeredSystemFontFaceRules.set(key, { source, style });
+	}
+
+	/**
+	 * Construit une règle CSS pour une face de police système.
+	 * @param {SystemFontSource} source Métadonnées de la face.
+	 * @param {string} fontUrl URL du fichier ou du sous-ensemble.
+	 * @param {string | null | undefined} format Format CSS, ou `null` pour l'omettre.
+	 * @returns {string} Règle `@font-face` complète.
+	 */
+	private static getSystemFontFaceCss(
+		source: SystemFontSource,
+		fontUrl: string,
+		format: string | null | undefined = source.format
+	): string {
+		const formatHint = format ? ` format("${this.escapeCssString(format)}")` : '';
 		const fontWeight = this.normalizeCssFontWeight(source.fontWeight, source.fontWeightRange);
 		const fontStyle = this.normalizeCssFontStyle(source.fontStyle);
-		const style = document.createElement('style');
-
-		style.textContent = `
+		return `
 			@font-face {
 				font-family: "${this.escapeCssString(source.family)}";
-				src: url("${this.escapeCssString(fontUrl)}")${format};
+				src: url("${this.escapeCssString(fontUrl)}")${formatHint};
 				font-weight: ${fontWeight};
 				font-style: ${fontStyle};
 			}
 		`;
-		document.head.appendChild(style);
-		this.registeredSystemFontFaces.add(key);
 	}
 
 	private static isAppProvidedFontFamily(fontFamily: string): boolean {

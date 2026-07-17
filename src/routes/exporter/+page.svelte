@@ -2067,16 +2067,22 @@
 				scale
 			});
 			if (!useLiveTextCanvasCapture) {
-				const blob: Blob | null = await domToBlob(node, {
-					width: node.clientWidth * scale,
-					height: node.clientHeight * scale,
-					style: {
-						// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-						transform: 'scale(' + scale + ')',
-						transformOrigin: 'top left'
-					},
-					quality: 1
-				});
+				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
+				let blob: Blob | null = null;
+				try {
+					blob = await domToBlob(node, {
+						width: node.clientWidth * scale,
+						height: node.clientHeight * scale,
+						style: {
+							// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+							transform: 'scale(' + scale + ')',
+							transformOrigin: 'top left'
+						},
+						quality: 1
+					});
+				} finally {
+					restoreSystemFonts();
+				}
 
 				if (!blob) throw new Error('domToBlob returned null');
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import type { Edition } from '$lib/classes';
-	import Settings from '$lib/classes/Settings.svelte';
+	import Settings, { type IslamicTermTranslationMode } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -25,6 +25,11 @@
 		aiTranslationEligibleCount: (args: { count: number }) => string;
 		aiTranslationBatchSize: () => string;
 		aiTranslationBatchPreview: (args: { count: number }) => string;
+		aiTranslationIslamicTerms: () => string;
+		aiTranslationIslamicTermsDescription: () => string;
+		aiTranslationTermsTranslated: () => string;
+		aiTranslationTermsBoth: () => string;
+		aiTranslationTermsTransliterated: () => string;
 		aiTranslationNoEligible: () => string;
 		aiTranslationRetryErrors: () => string;
 		aiTranslationOverwriteAi: () => string;
@@ -134,6 +139,16 @@
 	}
 
 	/**
+	 * Sauvegarde la présentation choisie pour les termes islamiques arabes.
+	 * @param {IslamicTermTranslationMode} value Mode de traduction choisi.
+	 * @returns {void}
+	 */
+	function updateIslamicTermMode(value: IslamicTermTranslationMode): void {
+		settings().projectTranslationIslamicTerms = value;
+		void Settings.save();
+	}
+
+	/**
 	 * Met à jour la taille de batch affichée pendant le déplacement du slider.
 	 * @param {string} value Valeur brute du contrôle range.
 	 * @returns {void}
@@ -225,6 +240,7 @@
 						model: settings().advancedTrimModel,
 						reasoningEffort: settings().advancedTrimReasoningEffort,
 						targetLanguage: edition.language,
+						islamicTermMode: settings().projectTranslationIslamicTerms,
 						batch
 					});
 					streamedResponse = response.rawText;
@@ -308,6 +324,25 @@
 					<option value="high">{copy.aiReasoningHigh()}</option>
 				</select>
 			</div>
+		</div>
+
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<label class="block text-sm font-medium text-primary" for="ai-translation-islamic-terms">
+				{copy.aiTranslationIslamicTerms()}
+			</label>
+			<p class="mt-1 text-xs text-secondary">{copy.aiTranslationIslamicTermsDescription()}</p>
+			<select
+				id="ai-translation-islamic-terms"
+				class="mt-3 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
+				value={settings().projectTranslationIslamicTerms}
+				disabled={isRunning}
+				onchange={(event) =>
+					updateIslamicTermMode(event.currentTarget.value as IslamicTermTranslationMode)}
+			>
+				<option value="translated">{copy.aiTranslationTermsTranslated()}</option>
+				<option value="both">{copy.aiTranslationTermsBoth()}</option>
+				<option value="transliterated">{copy.aiTranslationTermsTransliterated()}</option>
+			</select>
 		</div>
 
 		<div class="rounded-lg border border-color bg-accent p-3">

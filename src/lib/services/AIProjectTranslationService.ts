@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Edition, SubtitleClip } from '$lib/classes';
+import type { IslamicTermTranslationMode } from '$lib/classes/Settings.svelte';
 import {
 	getTranslationTrimUnits,
 	sliceTranslationTrimUnits,
@@ -690,7 +691,7 @@ export function applyAIProjectTranslationResults(
 
 /**
  * Exécute un batch de traduction structurée via la commande Tauri.
- * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: 'none' | 'low' | 'medium' | 'high'; targetLanguage: string; batch: AIProjectTranslationBatch }} params Paramètres du provider et batch.
+ * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: 'none' | 'low' | 'medium' | 'high'; targetLanguage: string; islamicTermMode: IslamicTermTranslationMode; batch: AIProjectTranslationBatch }} params Paramètres du provider, terminologie et batch.
  * @returns {Promise<AIProjectTranslationBatchResponse>} Réponse structurée du backend.
  */
 export async function runAIProjectTranslationBatchStreaming(params: {
@@ -699,6 +700,7 @@ export async function runAIProjectTranslationBatchStreaming(params: {
 	model: string;
 	reasoningEffort: 'none' | 'low' | 'medium' | 'high';
 	targetLanguage: string;
+	islamicTermMode: IslamicTermTranslationMode;
 	batch: AIProjectTranslationBatch;
 }): Promise<AIProjectTranslationBatchResponse> {
 	return (await invoke('run_ai_project_translation_batch_streaming', {
@@ -709,6 +711,7 @@ export async function runAIProjectTranslationBatchStreaming(params: {
 			reasoningEffort: params.reasoningEffort,
 			batchId: params.batch.batchId,
 			targetLanguage: params.targetLanguage,
+			islamicTermMode: params.islamicTermMode,
 			batch: params.batch.request
 		}
 	})) as AIProjectTranslationBatchResponse;

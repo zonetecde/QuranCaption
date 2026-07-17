@@ -60,9 +60,16 @@ export type TranscriptAiPunctuation = {
 	value: string;
 };
 
+export type TranscriptAiQuranRejection = {
+	startId: number;
+	endId: number;
+	confidence: 'high' | 'medium' | 'low';
+};
+
 export type TranscriptAiAnalysis = {
 	corrections: TranscriptAiCorrection[];
 	quotes: TranscriptAiQuote[];
+	quranRejections?: TranscriptAiQuranRejection[];
 	breakAfter: number[];
 	punctuationAfter: TranscriptAiPunctuation[];
 };
@@ -907,6 +914,62 @@ export function applyTranscriptCorrections(
 }
 
 /**
+ * Restaure les mots ASR originaux lorsqu'un passage Quran automatique est rejeté avec certitude.
+ * @param {ProcessedTranscriptToken[]} tokens Flux contenant les passages Quran canoniques.
+ * @param {ProcessedTranscriptToken[]} sourceTokens Flux ASR original avant détection Quran.
+ * @param {TranscriptAiQuranRejection[]} rejections Rejets structurés retournés par l'IA.
+ * @returns {ProcessedTranscriptToken[]} Flux avec les faux passages Quran restaurés.
+ */
+export function applyQuranRejections(
+	tokens: ProcessedTranscriptToken[],
+	sourceTokens: ProcessedTranscriptToken[],
+	rejections: TranscriptAiQuranRejection[]
+): ProcessedTranscriptToken[] {
+	let output = [...tokens];
+	const sourceById = new Map(sourceTokens.map((token) => [token.id, token]));
+	const candidates = rejections
+		.filter((rejection) => rejection.confidence === 'high')
+		.map((rejection) => ({
+			start: output.findIndex((token) => token.id === rejection.startId),
+			end: output.findIndex((token) => token.id === rejection.endId)
+		}))
+		.filter(({ start, end }) => start >= 0 && end >= start)
+		.sort((left, right) => right.start - left.start);
+
+	for (const { start, end } of candidates) {
+		const selected = output.slice(start, end + 1);
+		if (selected.length === 0 || selected.some((token) => !token.quran)) continue;
+		const sourceIds = Array.from(new Set(selected.flatMap((token) => token.sourceIds))).sort(
+			(left, right) => left - right
+		);
+		const sourceKey = sourceIds.join(':');
+		let expandedStart = start;
+		let expandedEnd = end;
+		while (
+			expandedStart > 0 &&
+			output[expandedStart - 1].quran &&
+			[...output[expandedStart - 1].sourceIds].sort((a, b) => a - b).join(':') === sourceKey
+		) {
+			expandedStart -= 1;
+		}
+		while (
+			expandedEnd + 1 < output.length &&
+			output[expandedEnd + 1].quran &&
+			[...output[expandedEnd + 1].sourceIds].sort((a, b) => a - b).join(':') === sourceKey
+		) {
+			expandedEnd += 1;
+		}
+		const restored = sourceIds
+			.map((id) => sourceById.get(id))
+			.filter((token): token is ProcessedTranscriptToken => token !== undefined)
+			.map((token) => ({ ...token, quran: null, quoteId: null, quoteType: null }));
+		if (restored.length === 0) continue;
+		output.splice(expandedStart, expandedEnd - expandedStart + 1, ...restored);
+	}
+	return output;
+}
+
+/**
  * Applique les citations, ponctuations et préférences de coupure retournées par l'IA.
  * @param {ProcessedTranscriptToken[]} tokens Flux corrigé.
  * @param {TranscriptAiAnalysis} analysis Analyse structurée.
@@ -1201,7 +1264,12 @@ export function finalizeTranscriptProcessing(
 	const corrected = applyTranscriptCorrections(preparedTokens, analysis.corrections);
 	const postMatches = findQuranMatches(corrected.tokens, corpus);
 	const quranAware = canonicalizeQuranMatches(corrected.tokens, postMatches, corpus);
-	const annotated = applyTranscriptAnnotations(quranAware, analysis);
+	const reviewedQuran = applyQuranRejections(
+		quranAware,
+		buildTimedTranscriptTokens(source),
+		analysis.quranRejections ?? []
+	);
+	const annotated = applyTranscriptAnnotations(reviewedQuran, analysis);
 	const segments = segmentProcessedTranscript(annotated, settings);
 	const quoteIds = new Set(annotated.map((token) => token.quoteId).filter((id) => id !== null));
 	return {

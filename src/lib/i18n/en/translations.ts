@@ -107,6 +107,12 @@ const translations = {
 	aiTranslationEligibleCount: '{count} subtitle(s) ready to translate',
 	aiTranslationBatchSize: 'Batch size (words)',
 	aiTranslationBatchPreview: 'Estimated total: {count} batch(es).',
+	aiTranslationIslamicTerms: 'Arabic Islamic terminology',
+	aiTranslationIslamicTermsDescription:
+		'Choose how technical Arabic terms should appear throughout the translation.',
+	aiTranslationTermsTranslated: 'Translated term only — jurisprudence',
+	aiTranslationTermsBoth: 'Translated term + Arabic term — jurisprudence (fiqh)',
+	aiTranslationTermsTransliterated: 'Arabic term only — fiqh',
 	aiTranslationNoEligible: 'No subtitle currently matches the selected options.',
 	aiTranslationRetryErrors: 'Retry translations in error',
 	aiTranslationOverwriteAi: 'Overwrite AI translations',

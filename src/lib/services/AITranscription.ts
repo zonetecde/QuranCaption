@@ -184,6 +184,14 @@ export function applyAITranscription(
 	if (generated.length === 0) {
 		throw new Error('The AI transcription result does not contain any valid subtitle segment.');
 	}
+	for (const [index, clip] of generated.slice(0, -1).entries()) {
+		const next = generated[index + 1];
+		const silenceDurationMs = next.startTime - clip.endTime - 1;
+		if (silenceDurationMs > 0 && silenceDurationMs < 1000) {
+			clip.endTime = next.startTime - 1;
+			clip.duration = clip.endTime - clip.startTime;
+		}
+	}
 	const generatedWithSilences = generated.flatMap((clip, index) => {
 		const previous = generated[index - 1];
 		if (!previous) {

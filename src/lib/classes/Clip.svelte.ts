@@ -254,8 +254,8 @@ export class ClipWithTranslation extends Clip {
 		this.text = text;
 		this.comeFromIA = comeFromIA;
 		this.confidence = comeFromIA ? confidence : null;
-		// Le segment est marqué comme besoin de review si c'est un segment IA et qu'il a une confiance inférieure à 75%
-		this.needsReview = comeFromIA && confidence !== null && confidence <= 0.75;
+		// Le segment est marqué comme besoin de review uniquement lorsque la confiance IA est très faible.
+		this.needsReview = comeFromIA && confidence !== null && confidence <= 0.4;
 	}
 
 	markAsManualEdit() {

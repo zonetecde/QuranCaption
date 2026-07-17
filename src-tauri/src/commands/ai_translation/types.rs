@@ -60,6 +60,7 @@ pub struct ProjectTranslationCommandRequest {
     pub reasoning_effort: String,
     pub batch_id: String,
     pub target_language: String,
+    pub islamic_term_mode: String,
     pub batch: serde_json::Value,
 }
 
@@ -95,6 +96,8 @@ pub struct TranscriptCleanupWordPayload {
     pub p: String,
     pub t: String,
     pub q: bool,
+    pub r: Option<String>,
+    pub o: Option<String>,
     pub g: Option<f64>,
 }
 

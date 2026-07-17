@@ -85,8 +85,11 @@ pub async fn run_ai_project_translation_batch_streaming(
         return Err("Batch is empty.".to_string());
     }
 
-    let user_prompt =
-        prompts::build_project_translation_user_prompt(&request.target_language, &request.batch)?;
+    let user_prompt = prompts::build_project_translation_user_prompt(
+        &request.target_language,
+        &request.islamic_term_mode,
+        &request.batch,
+    )?;
     let schema = prompts::build_project_translation_response_schema();
     let is_chat_completions = prompts::is_chat_completions_endpoint(&endpoint);
     let body = if is_chat_completions {

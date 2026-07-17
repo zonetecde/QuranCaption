@@ -95,6 +95,24 @@ describe('AITranscriptCleanup batches', () => {
 		expect(batches[1].request.w.at(-1)?.g).toBeNull();
 	});
 
+	it('includes the original ASR passage for automatic Quran candidates', () => {
+		const sourceTokens = [token(0, 'هو'), token(1, 'في'), token(2, 'الجنة')];
+		const quranTokens = [
+			token(10, 'هُوَ', true),
+			token(11, 'فِي', true),
+			token(12, 'الْجَنَّةِ', true)
+		];
+		for (const entry of quranTokens) entry.sourceIds = [0, 1, 2];
+		const batch = buildTranscriptCleanupBatches(quranTokens, 160, sourceTokens)[0];
+
+		expect(batch.request.w[0]).toMatchObject({
+			q: true,
+			r: '21:107',
+			o: 'هو في الجنة'
+		});
+		expect(batch.request.w[1].o).toBeNull();
+	});
+
 	it('uses a larger requested batch size while preserving the context overlap', () => {
 		const tokens = Array.from({ length: 500 }, (_, id) => token(id, `word${id}`));
 		const batches = buildTranscriptCleanupBatches(tokens, 320);
@@ -130,6 +148,23 @@ describe('AITranscriptCleanup response validation', () => {
 		]);
 		expect(validation.analysis.breakAfter).toEqual([4]);
 		expect(validation.analysis.punctuationAfter).toEqual([{ id: 4, value: '.' }]);
+	});
+
+	it('accepts a high-confidence rejection of an automatic Quran candidate', () => {
+		const tokens = [token(0, 'وما', true), token(1, 'أرسلناك', true)];
+		const batch = buildTranscriptCleanupBatches(tokens)[0];
+		const validation = validateTranscriptCleanupBatch(batch, {
+			c: [],
+			q: [],
+			x: [{ s: 0, e: 1, f: 'high' }],
+			b: [],
+			p: []
+		});
+
+		expect(validation.errors).toEqual([]);
+		expect(validation.analysis.quranRejections).toEqual([
+			{ startId: 0, endId: 1, confidence: 'high' }
+		]);
 	});
 
 	it('rejects every operation that attempts to rewrite protected Quran words', () => {

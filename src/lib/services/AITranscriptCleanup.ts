@@ -5,6 +5,7 @@ import type {
 	AdvancedTrimReasoningEffort
 } from '$lib/services/AdvancedAITrimming';
 import {
+	buildTimedTranscriptTokens,
 	finalizeTranscriptProcessing,
 	loadQuranCorpus,
 	prepareTranscriptForAnalysis,
@@ -12,6 +13,7 @@ import {
 	type TranscriptAiAnalysis,
 	type TranscriptAiCorrection,
 	type TranscriptAiPunctuation,
+	type TranscriptAiQuranRejection,
 	type TranscriptAiQuote,
 	type TranscriptProcessingSettings
 } from '$lib/services/TranscriptPostProcessor';
@@ -25,6 +27,8 @@ type TranscriptAnalysisWordPayload = {
 	p: string;
 	t: string;
 	q: boolean;
+	r: string | null;
+	o: string | null;
 	g: number | null;
 };
 
@@ -47,6 +51,12 @@ type CompactQuote = {
 	s: number;
 	e: number;
 	k: 'hadith' | 'scholar' | 'generic';
+	f: 'high' | 'medium' | 'low';
+};
+
+type CompactQuranRejection = {
+	s: number;
+	e: number;
 	f: 'high' | 'medium' | 'low';
 };
 
@@ -77,14 +87,17 @@ export type TranscriptCleanupReport = {
  * Construit des fenêtres chevauchantes de mots pour préserver le contexte aux limites de batch.
  * @param {ProcessedTranscriptToken[]} tokens Mots horodatés à analyser.
  * @param {number} batchWords Nombre maximal de mots par batch.
+ * @param {ProcessedTranscriptToken[]} sourceTokens Mots ASR originaux avant remplacement Quran.
  * @returns {TranscriptCleanupBatch[]} Batches structurés pour le provider texte.
  */
 export function buildTranscriptCleanupBatches(
 	tokens: ProcessedTranscriptToken[],
-	batchWords: number = DEFAULT_TRANSCRIPT_CLEANUP_BATCH_WORDS
+	batchWords: number = DEFAULT_TRANSCRIPT_CLEANUP_BATCH_WORDS,
+	sourceTokens: ProcessedTranscriptToken[] = tokens
 ): TranscriptCleanupBatch[] {
 	if (tokens.length === 0) return [];
 	const batches: TranscriptCleanupBatch[] = [];
+	const sourceById = new Map(sourceTokens.map((token) => [token.id, token]));
 	const normalizedBatchWords = Math.max(BATCH_OVERLAP_WORDS + 1, Math.round(batchWords));
 	const stride = Math.max(1, normalizedBatchWords - BATCH_OVERLAP_WORDS);
 	for (let start = 0; start < tokens.length; start += stride) {
@@ -96,12 +109,28 @@ export function buildTranscriptCleanupBatches(
 			tokens: batchTokens,
 			request: {
 				w: batchTokens.map((token, tokenIndex) => {
+					const previous = batchTokens[tokenIndex - 1];
 					const next = batchTokens[tokenIndex + 1];
+					const sourceKey = [...token.sourceIds].sort((a, b) => a - b).join(':');
+					const previousSourceKey = previous
+						? [...previous.sourceIds].sort((a, b) => a - b).join(':')
+						: '';
+					const originalPassage =
+						token.quran && sourceKey !== previousSourceKey
+							? token.sourceIds
+									.map((id) => sourceById.get(id))
+									.filter((source): source is ProcessedTranscriptToken => source !== undefined)
+									.map((source) => `${source.text}${source.punctuationAfter}`)
+									.join(' ')
+									.trim()
+							: null;
 					return {
 						i: token.id,
 						p: token.speaker,
 						t: `${token.text}${token.punctuationAfter}`,
 						q: token.quran !== null,
+						r: token.quran ? `${token.quran.surah}:${token.quran.verse}` : null,
+						o: originalPassage || null,
 						g: next ? Math.round(Math.max(0, next.start - token.end) * 1000) / 1000 : null
 					};
 				})
@@ -235,6 +264,32 @@ export function validateTranscriptCleanupBatch(
 			const end = order.get(endId)!;
 			if (batch.tokens.slice(start, end + 1).some((token) => protectedIds.has(token.id))) continue;
 			analysis.quotes.push({ startId, endId, type, confidence });
+		}
+	}
+
+	if (Array.isArray(record.x)) {
+		for (const raw of record.x) {
+			if (!raw || typeof raw !== 'object') continue;
+			const value = raw as Partial<CompactQuranRejection>;
+			const startId = Number(value.s);
+			const endId = Number(value.e);
+			const confidence = parseConfidence(value.f);
+			if (
+				!Number.isInteger(startId) ||
+				!Number.isInteger(endId) ||
+				!confidence ||
+				!isValidIdRange(order, startId, endId)
+			) {
+				errors.push('AI returned an invalid Quran rejection range.');
+				continue;
+			}
+			const start = order.get(startId)!;
+			const end = order.get(endId)!;
+			if (batch.tokens.slice(start, end + 1).some((token) => !protectedIds.has(token.id))) {
+				errors.push('AI attempted to reject a range containing non-Quran words.');
+				continue;
+			}
+			(analysis.quranRejections ??= []).push({ startId, endId, confidence });
 		}
 	}
 
@@ -392,6 +447,14 @@ export function mergeTranscriptAiAnalyses(
 		values.add(item.value);
 		punctuationOptions.set(item.id, values);
 	}
+	const quranRejections = Array.from(
+		new Map(
+			analyses
+				.flatMap((analysis) => analysis.quranRejections ?? [])
+				.filter((rejection) => rejection.confidence === 'high')
+				.map((rejection) => [`${rejection.startId}:${rejection.endId}`, rejection])
+		).values()
+	);
 	return {
 		corrections: mergeCorrections(
 			analyses.flatMap((analysis) => analysis.corrections),
@@ -402,6 +465,7 @@ export function mergeTranscriptAiAnalyses(
 			order,
 			tokens
 		),
+		quranRejections,
 		breakAfter: Array.from(new Set(analyses.flatMap((analysis) => analysis.breakAfter))),
 		punctuationAfter: [...punctuationOptions.entries()].flatMap(([id, values]) =>
 			values.size === 1 ? [{ id, value: [...values][0] }] : []
@@ -451,6 +515,7 @@ export async function cleanupAITranscript(
 	}
 ): Promise<TranscriptCleanupReport> {
 	const corpus = await loadQuranCorpus();
+	const sourceTokens = buildTimedTranscriptTokens(result);
 	const prepared = prepareTranscriptForAnalysis(result, corpus);
 	const errors: string[] = [...(options.resume?.errors ?? [])];
 	const analyses: TranscriptAiAnalysis[] = [...(options.resume?.analyses ?? [])];
@@ -460,7 +525,7 @@ export async function cleanupAITranscript(
 	const reasoningEffort = options.reasoningEffort ?? 'none';
 	const batches =
 		apiKey && endpoint && model
-			? buildTranscriptCleanupBatches(prepared.tokens, options.batchWords)
+			? buildTranscriptCleanupBatches(prepared.tokens, options.batchWords, sourceTokens)
 			: [];
 	let nextBatchIndex = Math.min(options.resume?.nextBatchIndex ?? 0, batches.length);
 	let paused = false;

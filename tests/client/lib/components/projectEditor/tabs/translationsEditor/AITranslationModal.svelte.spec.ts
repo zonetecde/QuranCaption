@@ -46,6 +46,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 vi.mock('$lib/services/AIProjectTranslationService', () => ({
 	applyAIProjectTranslationResults: vi.fn(() => ({ appliedSubtitles: 0 })),
 	buildAIProjectTranslationBatches: mocks.buildBatches,
+	estimateAIProjectTranslationBatchCount: vi.fn(() => 1),
 	getEligibleAIProjectTranslationSubtitles: mocks.getEligible,
 	resolveAIProjectTranslationSuccessContext: vi.fn(() => ''),
 	runAIProjectTranslationBatchStreaming: mocks.runBatch,
@@ -114,12 +115,25 @@ describe('AI translation modal', () => {
 		expect(globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort).toBe('high');
 		expect(Settings.save).toHaveBeenCalled();
 
+		const terminologySelect = component.container.querySelector<HTMLSelectElement>(
+			'#ai-translation-islamic-terms'
+		)!;
+		expect(terminologySelect.value).toBe('both');
+		terminologySelect.value = 'translated';
+		terminologySelect.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(globalState.settings!.aiTranslationSettings.projectTranslationIslamicTerms).toBe(
+			'translated'
+		);
+
 		const translateButton = Array.from(component.container.querySelectorAll('button')).find(
 			(button) => button.textContent?.includes('Translate video')
 		)!;
 		translateButton.click();
 
 		await vi.waitFor(() => {
+			expect(mocks.runBatch).toHaveBeenCalledWith(
+				expect.objectContaining({ islamicTermMode: 'translated' })
+			);
 			const streamedValues = Array.from(
 				component.container.querySelectorAll<HTMLTextAreaElement>('textarea[readonly]')
 			).map((textarea) => textarea.value);

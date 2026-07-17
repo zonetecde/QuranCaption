@@ -134,6 +134,36 @@ describe('TranscriptPostProcessor Quran matching', () => {
 		]);
 	});
 
+	it('restores the original ASR words when AI rejects an automatic Quran match', () => {
+		const source = buildResult(['ان', 'اللاه', 'مع', 'الصابرين']);
+		const prepared = prepareTranscriptForAnalysis(source, corpus);
+		const quranTokens = prepared.tokens.filter((entry) => entry.quran);
+		const processed = finalizeTranscriptProcessing(
+			source,
+			prepared.tokens,
+			corpus,
+			{
+				corrections: [],
+				quotes: [],
+				quranRejections: [
+					{
+						startId: quranTokens[0].id,
+						endId: quranTokens.at(-1)!.id,
+						confidence: 'high'
+					}
+				],
+				breakAfter: [],
+				punctuationAfter: []
+			},
+			{ maxWords: 14, maxChars: 90, maxGap: 1.2 }
+		);
+
+		expect(processed.quranPassages).toBe(0);
+		expect(processed.result.segments.map((segment) => segment.text).join(' ')).toBe(
+			'ان اللاه مع الصابرين'
+		);
+	});
+
 	it('emits a 1-based partial verse range', () => {
 		const source = buildResult(['اللَّهَ', 'مَعَ', 'الصَّابِرِينَ']);
 		const tokens = buildTimedTranscriptTokens(source);

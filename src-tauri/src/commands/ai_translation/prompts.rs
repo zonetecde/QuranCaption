@@ -64,14 +64,19 @@ Rules:
 - Return JSON only, matching the schema exactly.
 "#;
 
-pub const PROJECT_TRANSLATION_SYSTEM_PROMPT: &str = r#"You translate structured Arabic Islamic lecture subtitles into the requested target language.
+pub const PROJECT_TRANSLATION_SYSTEM_PROMPT: &str = r#"You translate ordered structured Arabic Islamic lecture subtitles into polished, natural text in the requested target language.
 
-The application protects Quran passages and quotation anchors. Return structured values only; never return braces or rewrite Quran references.
+Treat the context and target items as one continuous discourse. Subtitle boundaries are timing and display cuts, not automatic sentence boundaries. The application protects Quran passages and quotation anchors. Return structured values only; never return braces or rewrite Quran references.
 
 Rules:
-- Translate faithfully and naturally. Preserve meaning, names, Islamic terminology, tone, and the symbol ﷺ.
-- Never summarize, omit, explain, censor, authenticate, grade, or add information.
-- Input root keys: `b` is read-only context before, `i` is the target item array, and `a` is read-only context after.
+- Convey the speaker's intended meaning faithfully in idiomatic, well-written language suitable for subtitles. Avoid word-for-word calques and awkward source-language syntax.
+- Preserve every substantive meaning, legal distinction, name, tone, and the symbol ﷺ. Never summarize, censor, authenticate, grade, explain, or add information.
+- Use surrounding context to resolve an obvious ASR corruption, false start, or accidental repeated fragment only when the intended wording is clear. When it is uncertain, translate conservatively instead of inventing meaning.
+- Determine punctuation and capitalization from the continuous sentence, not from subtitle boundaries. Never capitalize merely because an item or free-text slot starts. When a subtitle continues the previous sentence, begin with lowercase unless the target language itself requires a capital.
+- Do not force every subtitle to read as an independent sentence. A subtitle may begin or end with a grammatical continuation when the spoken sentence crosses the timing boundary.
+- Keep terminology, transliteration, spelling, apostrophes, and capitalization consistent throughout the batch and its context.
+- Follow the Islamic terminology mode supplied in the user prompt exactly. For common transliterated technical terms, use lowercase except at a true sentence start; retain capitals for proper names, places, Allah, and other target-language proper nouns.
+- Input root keys: `b` is read-only context before, `i` is the target item array, and `a` is read-only context after. Use both source `s` and existing target text `t` to preserve sentence continuity.
 - Each target item has stable subtitle id `i`, source free-text slots `f`, and ordered anchors `a`.
 - Anchor `k=c` is a non-Quran quotation. Translate its source `s` and return it in `c` using the same anchor id.
 - Anchor `k=q` is Quran. Never translate it yourself and never return Quran text.
@@ -88,14 +93,14 @@ Rules:
 
 pub const TRANSCRIPT_CLEANUP_SYSTEM_PROMPT: &str = r#"You analyze an indexed Islamic lecture transcript before subtitle segmentation.
 
-The application, not you, detects Quran references and creates all `{{SS:VV}}` markers. Words with `q=true` are already verified Quran and are immutable.
+The application detects Quran candidates automatically before your review and creates `{{SS:VV}}` markers from accepted candidates. Words with `q=true` are protected from normal edits, but the automatic Quran match may still be false.
 
 Return only conservative structured operations over the provided word IDs.
 
 Rules:
 - Preserve the spoken language, meaning, word order, and speaker wording.
 - Never summarize, translate, invent, remove, or freely rewrite speech.
-- Never edit, quote, punctuate, or include a `q=true` word in any operation.
+- Never edit, quote, punctuate, or include a `q=true` word in `c`, `q`, `b`, or `p`. The only permitted operation on such words is a Quran rejection in `x`.
 - A correction is allowed only when the ASR error is unquestionably evident from the surrounding context. Use the smallest contiguous ID range possible.
 - Use confidence `high` only when the correction or quotation boundary is certain. The application applies only high-confidence operations.
 - You are the sole authority for detecting non-Quran quotations. The application will never infer a hadith or scholar quote from keywords, punctuation, or reporting verbs.
@@ -111,11 +116,17 @@ Rules:
 - `scholar` means exact words attributed to a named or clearly identified scholar; `generic` means another unmistakable direct quotation.
 - Use `high` only when both the start and end boundaries are certain. If either boundary is uncertain, return `medium` or omit the quote; the application applies only `high` ranges.
 - Quote ranges may continue across batches. Return only the exact quoted portion visible in the current batch and rely on overlapping context to preserve the true boundary.
-- If verified Quran words (`q=true`) occur inside a larger reported passage, never include them in `q`; return separate non-Quran quote ranges on either side only when those ranges are independently certain.
-- Suggest natural semantic subtitle boundaries in `b`, preferably after complete clauses, sentences, commas, or meaningful pauses. Do not suggest a break after a conjunction, preposition, article, or other dependent fragment.
+- For `q=true`, `t` is the Quran text inserted by the local matcher, `r` is its Quran reference, and `o` on the first word of the candidate is the original ASR passage before replacement.
+- Reject a Quran candidate in `x` only when the original ASR wording and surrounding discourse make it highly certain that the detected passage is not Quran or that the matched verse is wrong.
+- A valid rejection must cover the complete contiguous Quran candidate visible in the batch. Do not reject a genuine partial recitation merely because it is incomplete, paraphrased around, or imperfectly recognized.
+- If confidence is not high, preserve the Quran candidate by omitting it from `x`.
+- If protected Quran words occur inside a larger reported passage, never include them in `q`; return separate non-Quran quote ranges on either side only when those ranges are independently certain.
+- Treat the ordered words as continuous discourse and suggest subtitle boundaries in `b` only where both sides remain natural and understandable.
+- Prefer boundaries after complete clauses, completed questions, list items, or meaningful pauses. Keep articles, prepositions, conjunctions, auxiliaries, negations, noun phrases, and verb complements with the words they depend on.
+- Never create an orphan fragment merely to meet a preferred length. Avoid splitting a short expression, enumeration, legal condition, question, or cause-and-effect relation across awkward boundaries; a slightly longer coherent subtitle is preferable.
 - Add punctuation only when it is strongly supported by syntax and context. Return punctuation separately in `p`; never insert it into a correction unless it is part of the corrected token itself.
 - Replace a routine salutation immediately after mentioning Prophet Muhammad with `ﷺ` only when unquestionably certain and only through a correction operation. Do not do this when the wording of the salutation is itself being taught or quoted.
-- Return JSON only. Compact keys: `c` corrections, `q` quotation ranges, `b` preferred break-after IDs, `p` punctuation-after operations. Correction keys: `s`,`e`,`t`,`f`. Quote keys: `s`,`e`,`k`,`f`. Punctuation keys: `i`,`v`.
+- Return JSON only. Compact keys: `c` corrections, `q` quotation ranges, `x` rejected automatic Quran ranges, `b` preferred break-after IDs, `p` punctuation-after operations. Correction keys: `s`,`e`,`t`,`f`. Quote keys: `s`,`e`,`k`,`f`. Quran rejection keys: `s`,`e`,`f`. Punctuation keys: `i`,`v`.
 "#;
 
 // ---------------------------------------------------------------------------
@@ -317,6 +328,19 @@ pub fn build_transcript_cleanup_response_schema() -> Value {
                     "required": ["s", "e", "k", "f"]
                 }
             },
+            "x": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "s": { "type": "integer" },
+                        "e": { "type": "integer" },
+                        "f": { "type": "string", "enum": ["high", "medium", "low"] }
+                    },
+                    "required": ["s", "e", "f"]
+                }
+            },
             "b": {
                 "type": "array",
                 "items": { "type": "integer" }
@@ -334,7 +358,7 @@ pub fn build_transcript_cleanup_response_schema() -> Value {
                 }
             }
         },
-        "required": ["c", "q", "b", "p"]
+        "required": ["c", "q", "x", "b", "p"]
     })
 }
 
@@ -431,18 +455,33 @@ pub fn build_wbw_translation_user_prompt(
 /// Construit le prompt utilisateur pour un batch d'analyse de transcription.
 pub fn build_project_translation_user_prompt(
     target_language: &str,
+    islamic_term_mode: &str,
     batch: &Value,
 ) -> Result<String, String> {
     let batch_json = serde_json::to_string_pretty(batch)
         .map_err(|error| format!("Failed to serialize project translation batch: {}", error))?;
+    let term_instruction = match islamic_term_mode {
+        "translated" => {
+            "Use only the natural target-language equivalent for Arabic Islamic technical terms; do not include a transliteration. Example in French: `jurisprudence islamique`."
+        }
+        "both" => {
+            "Use the natural target-language equivalent followed immediately by a consistent lowercase transliteration in parentheses. Example in French: `jurisprudence islamique (fiqh)`. Do not apply this parenthetical format to proper names."
+        }
+        "transliterated" => {
+            "Use only a consistent, readable transliteration for Arabic Islamic technical terms; do not add the translated equivalent. Example: `fiqh`."
+        }
+        _ => return Err("Invalid Islamic terminology mode.".to_string()),
+    };
 
     Ok(format!(
         "Translate the target items into {} and return JSON only.\n\
+         Islamic terminology mode: {}\n\
          Return exactly this compact shape: {{\"i\":[{{\"i\":1,\"f\":[\"...\"],\"c\":[{{\"i\":\"citation-0\",\"t\":\"...\"}}],\"q\":[{{\"i\":\"quran-0\",\"s\":0,\"e\":4}}]}}]}}.\n\
          `b` and `a` are context only and must never be returned.\n\
          Keep every protected anchor in its original relative order by filling only free-text slots, citation texts, and editable Quran ranges.\n\n\
          Batch JSON:\n{}",
         target_language.trim(),
+        term_instruction,
         batch_json
     ))
 }
@@ -456,13 +495,14 @@ pub fn build_transcript_cleanup_user_prompt(
 
     Ok(format!(
         "Analyze these ordered indexed words and return JSON only.\n\
-         Return exactly this shape: {{\"c\":[],\"q\":[],\"b\":[],\"p\":[]}}.\n\
-         Input keys: `w` is the ordered word array; word `i` is its stable ID; `p` is the speaker; `t` is the ASR token with punctuation when available; `q=true` means verified Quran and is immutable; `g` is the silence in seconds before the next word, or null at the batch end.\n\
+         Return exactly this shape: {{\"c\":[],\"q\":[],\"x\":[],\"b\":[],\"p\":[]}}.\n\
+         Input keys: `w` is the ordered word array; word `i` is its stable ID; `p` is the speaker; `t` is the current token with punctuation; `q=true` marks an automatic Quran candidate; `r` is its Quran reference; `o` is the original ASR passage on the candidate's first token; `g` is the silence in seconds before the next word, or null at the batch end.\n\
          Corrections: {{\"s\":firstId,\"e\":lastId,\"t\":\"replacement words\",\"f\":\"high|medium|low\"}}.\n\
          Verbatim non-Quran quotations: {{\"s\":firstId,\"e\":lastId,\"k\":\"hadith|scholar|generic\",\"f\":\"high|medium|low\"}}. The range must exclude attribution and stop before commentary resumes.\n\
+         False automatic Quran candidates: {{\"s\":firstQuranId,\"e\":lastQuranId,\"f\":\"high|medium|low\"}} in `x`; only high-confidence complete candidate ranges are applied.\n\
          `b` contains IDs after which a natural complete-meaning subtitle break is preferred.\n\
          `p` contains punctuation operations shaped {{\"i\":wordId,\"v\":\"،\"}}.\n\
-         Never output Quran references or braces. Never include a q=true word in `c`, `q`, or `p`.\n\
+         Never output Quran references or braces. Never include a q=true word in `c`, `q`, `b`, or `p`; use only `x` to reject a false automatic Quran match.\n\
          Empty arrays are correct when there is nothing certain to change or annotate.\n\n\
          Batch JSON:\n{}",
         batch_json

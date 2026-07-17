@@ -77,6 +77,8 @@ export type StockMediaSettings = {
 
 export type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
 
+export type IslamicTermTranslationMode = 'translated' | 'both' | 'transliterated';
+
 export type AITranslationSettings = {
 	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
 	openAiApiKey: string;
@@ -84,6 +86,7 @@ export type AITranslationSettings = {
 	advancedTrimModel: string;
 	advancedTrimReasoningEffort: 'none' | 'low' | 'medium' | 'high';
 	projectTranslationBatchWords: number;
+	projectTranslationIslamicTerms: IslamicTermTranslationMode;
 	advancedAlsoAskReviewed: boolean;
 	aiBoldCustomNote: string;
 	aiWbwTranslationCustomNote: string;
@@ -203,6 +206,7 @@ export default class Settings extends SerializableBase {
 		advancedTrimModel: 'gpt-5.4',
 		advancedTrimReasoningEffort: 'none',
 		projectTranslationBatchWords: 450,
+		projectTranslationIslamicTerms: 'both',
 		advancedAlsoAskReviewed: false,
 		aiBoldCustomNote: '',
 		aiWbwTranslationCustomNote: '',
@@ -645,6 +649,14 @@ export default class Settings extends SerializableBase {
 			settings.aiTranslationSettings.projectTranslationBatchWords !== projectTranslationBatchWords
 		) {
 			settings.aiTranslationSettings.projectTranslationBatchWords = projectTranslationBatchWords;
+			shouldSave = true;
+		}
+		if (
+			!['translated', 'both', 'transliterated'].includes(
+				settings.aiTranslationSettings.projectTranslationIslamicTerms
+			)
+		) {
+			settings.aiTranslationSettings.projectTranslationIslamicTerms = 'both';
 			shouldSave = true;
 		}
 		if (typeof settings.aiTranslationSettings.aiWbwTranslationCustomNote !== 'string') {

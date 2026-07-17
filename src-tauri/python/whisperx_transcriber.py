@@ -71,6 +71,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-chars", type=int, default=90)
     parser.add_argument("--max-gap", type=float, default=1.2)
     parser.add_argument("--align-segments-json")
+    parser.add_argument("--clip-only", action="store_true")
     return parser.parse_args()
 
 
@@ -466,6 +467,52 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
     }
 
 
+def run_clip_transcription(args: argparse.Namespace, selected_device: str) -> dict[str, Any]:
+    """Transcribe one bounded subtitle clip without diarization or word alignment."""
+    import whisperx
+
+    audio = whisperx.load_audio(args.audio_path)
+    if len(audio) < AUDIO_SAMPLE_RATE // 10:
+        raise RuntimeError("The subtitle audio range is too short to transcribe.")
+
+    language = args.language.lower()
+    if args.model == QWEN_MODEL_OPTION:
+        segments = transcribe_qwen_chunks(
+            args,
+            audio,
+            [(0.0, len(audio) / AUDIO_SAMPLE_RATE)],
+            selected_device,
+        )
+        detected_language = "ar"
+    else:
+        compute_type = "float16" if selected_device == "cuda" else "int8"
+        emit_status(f"Loading WhisperX model {args.model} on {selected_device}...", 12)
+        model = whisperx.load_model(
+            args.model,
+            selected_device,
+            compute_type=compute_type,
+            language=None if language == "auto" else language,
+        )
+        emit_status("Retranscribing subtitle audio...", 45)
+        result = model.transcribe(audio, batch_size=max(1, args.batch_size))
+        segments = [item for item in result.get("segments") or [] if isinstance(item, dict)]
+        detected_language = str(result.get("language") or language or "unknown")
+        del model
+        release_device_memory()
+
+    text = " ".join(str(item.get("text") or "").strip() for item in segments).strip()
+    if not text:
+        raise RuntimeError("The speech recognition model did not detect any text in this subtitle.")
+
+    emit_status("Subtitle retranscription completed.", 100)
+    return {
+        "text": text,
+        "language": detected_language,
+        "device": selected_device,
+        "model": args.model,
+    }
+
+
 def run_forced_alignment(args: argparse.Namespace, selected_device: str) -> dict[str, Any]:
     """Align caller-provided transcript segments without running ASR or diarization."""
     import whisperx
@@ -547,6 +594,17 @@ def run_forced_alignment(args: argparse.Namespace, selected_device: str) -> dict
     return {"language": language, "device": selected_device, "segments": output_segments}
 
 
+def run_requested_operation(
+    args: argparse.Namespace, selected_device: str, token: str
+) -> dict[str, Any]:
+    """Run the transcription operation selected by the command-line arguments."""
+    if args.align_segments_json:
+        return run_forced_alignment(args, selected_device)
+    if args.clip_only:
+        return run_clip_transcription(args, selected_device)
+    return run_pipeline(args, selected_device, token)
+
+
 def main() -> None:
     args = parse_args()
     if not os.path.isfile(args.audio_path):
@@ -558,7 +616,7 @@ def main() -> None:
         or os.environ.get("HUGGING_FACE_HUB_TOKEN")
         or ""
     ).strip()
-    if not token and not args.align_segments_json:
+    if not token and not args.align_segments_json and not args.clip_only:
         fail(
             "A Hugging Face read token is required for pyannote speaker diarization. "
             "Accept the pyannote/speaker-diarization-community-1 conditions first."
@@ -577,20 +635,12 @@ def main() -> None:
         # and forward all incidental output to stderr.
         with contextlib.redirect_stdout(sys.stderr):
             try:
-                output = (
-                    run_forced_alignment(args, selected_device)
-                    if args.align_segments_json
-                    else run_pipeline(args, selected_device, token)
-                )
+                output = run_requested_operation(args, selected_device, token)
             except Exception as first_error:
                 if requested in ("AUTO", "GPU") and selected_device == "cuda":
                     emit_status("GPU processing failed; retrying automatically on CPU...", 3)
                     release_device_memory()
-                    output = (
-                        run_forced_alignment(args, "cpu")
-                        if args.align_segments_json
-                        else run_pipeline(args, "cpu", token)
-                    )
+                    output = run_requested_operation(args, "cpu", token)
                     output["gpuFallbackReason"] = str(first_error)
                 else:
                     raise

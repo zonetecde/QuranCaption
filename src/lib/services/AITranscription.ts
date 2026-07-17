@@ -57,6 +57,15 @@ export type AppliedAITranscription = {
 	clipIds: number[];
 };
 
+export type SubtitleRetranscriptionCandidate = {
+	text: string;
+	language: string;
+	device: string;
+	model: AITranscriptionSettings['model'];
+};
+
+const SUBTITLE_RETRANSCRIPTION_PADDING_MS = 150;
+
 export async function checkAITranscriptionStatus(): Promise<AITranscriptionRuntimeStatus> {
 	return (await invoke('check_ai_transcription_ready')) as AITranscriptionRuntimeStatus;
 }
@@ -103,6 +112,35 @@ export async function runAITranscription(
 		throw new Error('WhisperX did not detect any transcribable speech in the project audio.');
 	}
 	return response;
+}
+
+/**
+ * Retranscrit la plage audio exacte d'un sous-titre avec un modèle local donné.
+ * @param {SubtitleClip} clip Sous-titre dont les bornes définissent la plage audio.
+ * @param {AITranscriptionSettings['model']} model Modèle local à utiliser.
+ * @returns {Promise<SubtitleRetranscriptionCandidate>} Texte candidat produit par le modèle.
+ */
+export async function runSubtitleRetranscription(
+	clip: SubtitleClip,
+	model: AITranscriptionSettings['model']
+): Promise<SubtitleRetranscriptionCandidate> {
+	const clips = getAutoSegmentationAudioClips();
+	if (clips.length === 0) throw new Error('No audio clip is available on the project timeline.');
+	const settings = globalState.settings!.aiTranscriptionSettings;
+
+	return (await invoke('retranscribe_subtitle_clip_local', {
+		audioPath: clips.length === 1 ? clips[0].filePath : undefined,
+		audioClips: clips.map((audioClip) => ({
+			path: audioClip.filePath,
+			startMs: audioClip.startMs,
+			endMs: audioClip.endMs
+		})),
+		model,
+		language: settings.language,
+		device: settings.device,
+		windowStartMs: Math.max(0, clip.startTime - SUBTITLE_RETRANSCRIPTION_PADDING_MS),
+		windowEndMs: clip.endTime + SUBTITLE_RETRANSCRIPTION_PADDING_MS
+	})) as SubtitleRetranscriptionCandidate;
 }
 
 function buildAlignmentMetadata(

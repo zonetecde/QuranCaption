@@ -12,8 +12,9 @@ import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
 import AITranscriptionModal from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/AITranscriptionModal.svelte';
+import SubtitleRetranscriptionModal from './SubtitleRetranscriptionModal.svelte';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
-import type { Edition } from '$lib/classes';
+import type { Edition, SubtitleClip } from '$lib/classes';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
@@ -263,6 +264,31 @@ export default class ModalManager {
 						resolve();
 					},
 					cleanupOnly
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre le comparateur de retranscriptions locales pour un sous-titre.
+	 * @param {SubtitleClip} clip Sous-titre à retranscrire.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async subtitleRetranscriptionModal(clip: SubtitleClip): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(SubtitleRetranscriptionModal, {
+				target: container,
+				props: {
+					clip,
+					resolve: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
 				}
 			});
 		});

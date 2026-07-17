@@ -253,6 +253,32 @@ pub async fn transcribe_audio_local_whisperx(
     .await
 }
 
+/// Retranscrit localement une seule plage de sous-titre avec le modèle demandé.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn retranscribe_subtitle_clip_local(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    model: String,
+    language: Option<String>,
+    device: Option<String>,
+    window_start_ms: i64,
+    window_end_ms: i64,
+) -> Result<serde_json::Value, String> {
+    segmentation::retranscribe_subtitle_clip_local(
+        app_handle,
+        audio_path,
+        audio_clips,
+        model,
+        language,
+        device,
+        window_start_ms,
+        window_end_ms,
+    )
+    .await
+}
+
 /// Réaligne localement le texte connu de sous-titres avec WhisperX.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]

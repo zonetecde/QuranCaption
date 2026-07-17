@@ -553,6 +553,17 @@
 		await openQuickTimelineEditorFromContextMenu('subtitle');
 	}
 
+	/**
+	 * Ouvre le comparateur de reconnaissance vocale locale pour le clip courant.
+	 * @returns {Promise<void>}
+	 */
+	async function retranscribeSubtitleFromContextMenu(): Promise<void> {
+		if (!(clip instanceof SubtitleClip)) return;
+		currentMenu.set(null);
+		await tick();
+		await ModalManager.subtitleRetranscriptionModal(clip);
+	}
+
 	async function bookmarkVerseFromContextMenu(): Promise<void> {
 		if (!canBookmarkWithQuran()) return;
 		if (!(clip instanceof SubtitleClip)) return;
@@ -852,6 +863,12 @@
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">subtitles</span
 				>{$LL.editor.editSubtitleContext()}
+			</div></Item
+		>
+		<Item on:click={retranscribeSubtitleFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">record_voice_over</span
+				>{$LL.editor.retranscribeSubtitleContext()}
 			</div></Item
 		>
 		<Item on:click={editTranslationFromContextMenu}

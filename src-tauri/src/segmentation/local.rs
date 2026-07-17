@@ -706,6 +706,62 @@ pub async fn transcribe_audio_local_whisperx(
     )
 }
 
+/// Retranscrit uniquement la plage audio d'un sous-titre sans lancer la diarisation.
+pub async fn retranscribe_subtitle_clip_local(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    model: String,
+    language: Option<String>,
+    device: Option<String>,
+    window_start_ms: i64,
+    window_end_ms: i64,
+) -> Result<serde_json::Value, String> {
+    if window_start_ms < 0 || window_end_ms <= window_start_ms {
+        return Err("Invalid subtitle audio range.".to_string());
+    }
+    if !matches!(
+        model.as_str(),
+        "small" | "medium" | "large-v3" | "large-v3-turbo" | "qwen3-asr-1.7b"
+    ) {
+        return Err(format!("Unsupported transcription model '{}'.", model));
+    }
+
+    let selected_device = device.unwrap_or_else(|| "AUTO".to_string()).to_uppercase();
+    if !matches!(selected_device.as_str(), "AUTO" | "GPU" | "CPU") {
+        return Err(format!(
+            "Invalid transcription device '{}'. Expected AUTO, GPU, or CPU.",
+            selected_device
+        ));
+    }
+
+    let extra_args = vec![
+        "--clip-only".to_string(),
+        "--model".to_string(),
+        model,
+        "--language".to_string(),
+        language.unwrap_or_else(|| "ar".to_string()),
+        "--device".to_string(),
+        selected_device,
+        "--batch-size".to_string(),
+        "1".to_string(),
+    ];
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::Transcription,
+        audio_path,
+        audio_clips,
+        None,
+        None,
+        None,
+        extra_args,
+        None,
+        Some(window_start_ms),
+        Some(window_end_ms),
+    )
+}
+
 /// Aligne localement le texte connu de sous-titres sur une tranche audio avec WhisperX.
 pub async fn align_transcript_words_local_whisperx(
     app_handle: tauri::AppHandle,

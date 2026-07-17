@@ -109,6 +109,7 @@ pub async fn run_advanced_ai_bold_batch_streaming(
 
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {
         app_handle: &app_handle,
+        operation: "bold_translation_words",
         batch_id: &batch_id,
         api_key,
         endpoint: &endpoint,

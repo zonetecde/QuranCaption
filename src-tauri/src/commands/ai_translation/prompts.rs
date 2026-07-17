@@ -77,7 +77,7 @@ Rules:
 - Keep terminology, transliteration, spelling, apostrophes, and capitalization consistent throughout the batch and its context.
 - Follow the Islamic terminology mode supplied in the user prompt exactly. For common transliterated technical terms, use lowercase except at a true sentence start; retain capitals for proper names, places, Allah, and other target-language proper nouns.
 - Input root keys: `b` is read-only context before, `i` is the target item array, and `a` is read-only context after. Use both source `s` and existing target text `t` to preserve sentence continuity.
-- Each target item has stable subtitle id `i`, source free-text slots `f`, and ordered anchors `a`.
+- Each target item has a compact batch-local index `i`, source free-text slots `f`, and ordered anchors `a`. Return that same small index; it is not a persistent project identifier.
 - Anchor `k=c` is a non-Quran quotation. Translate its source `s` and return it in `c` using the same anchor id.
 - Anchor `k=q` is Quran. Never translate it yourself and never return Quran text.
 - For Quran anchors, `f=true` means full verse and `l=true` means locked. Do not return a range for either.
@@ -465,7 +465,7 @@ pub fn build_project_translation_user_prompt(
             "Use only the natural target-language equivalent for Arabic Islamic technical terms; do not include a transliteration. Example in French: `jurisprudence islamique`."
         }
         "both" => {
-            "Use the natural target-language equivalent followed immediately by a consistent lowercase transliteration in parentheses. Example in French: `jurisprudence islamique (fiqh)`. Do not apply this parenthetical format to proper names."
+            "Use a genuine natural target-language translation followed immediately by a consistent lowercase transliteration in parentheses, but only when the two forms add distinct information. Example in French: `jurisprudence malikite (fiqh maliki)`. Never put one transliteration after another transliteration or repeat an almost identical borrowed form: write `Dhuhr`, `Asr`, `Maghrib`, or `Icha`, never `Dhuhr (dhouhr)`, `Asr (asr)`, `Maghrib (maghrib)`, or `Icha (icha)`. The text before parentheses must be an actual translation, so write `jurisprudence malikite (fiqh maliki)`, not `fiqh malikite (fiqh maliki)`. Do not apply this parenthetical format to proper names or terms already conventionally used in the target language in essentially the same form."
         }
         "transliterated" => {
             "Use only a consistent, readable transliteration for Arabic Islamic technical terms; do not add the translated equivalent. Example: `fiqh`."
@@ -476,7 +476,8 @@ pub fn build_project_translation_user_prompt(
     Ok(format!(
         "Translate the target items into {} and return JSON only.\n\
          Islamic terminology mode: {}\n\
-         Return exactly this compact shape: {{\"i\":[{{\"i\":1,\"f\":[\"...\"],\"c\":[{{\"i\":\"citation-0\",\"t\":\"...\"}}],\"q\":[{{\"i\":\"quran-0\",\"s\":0,\"e\":4}}]}}]}}.\n\
+         Return exactly this compact shape: {{\"i\":[{{\"i\":0,\"f\":[\"...\"],\"c\":[{{\"i\":\"citation-0\",\"t\":\"...\"}}],\"q\":[{{\"i\":\"quran-0\",\"s\":0,\"e\":4}}]}}]}}.\n\
+         All item `i` values are compact indexes local to this batch. Return each target index exactly as provided.\n\
          `b` and `a` are context only and must never be returned.\n\
          Keep every protected anchor in its original relative order by filling only free-text slots, citation texts, and editable Quran ranges.\n\n\
          Batch JSON:\n{}",

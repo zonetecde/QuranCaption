@@ -107,6 +107,7 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
     };
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {
         app_handle: &app_handle,
+        operation: "transcript_cleanup",
         batch_id: &request.batch_id,
         api_key,
         endpoint: &endpoint,

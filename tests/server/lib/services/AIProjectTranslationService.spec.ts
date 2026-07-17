@@ -80,6 +80,8 @@ function createBatch(): AIProjectTranslationBatch {
 	return {
 		batchId: 'test-batch',
 		candidates: [candidate],
+		beforeSubtitleIds: [],
+		afterSubtitleIds: [],
 		request: { b: [], i: [candidate.payload], a: [] },
 		wordCount: 8
 	};
@@ -174,8 +176,11 @@ describe('AIProjectTranslationService', () => {
 		});
 
 		expect(batches).toHaveLength(1);
-		expect(batches[0].request.b.map((item) => item.i)).toEqual([before.id]);
-		expect(batches[0].request.a.map((item) => item.i)).toEqual([after.id]);
+		expect(batches[0].beforeSubtitleIds).toEqual([before.id]);
+		expect(batches[0].afterSubtitleIds).toEqual([after.id]);
+		expect(batches[0].request.b.map((item) => item.i)).toEqual([-1]);
+		expect(batches[0].request.i.map((item) => item.i)).toEqual([0]);
+		expect(batches[0].request.a.map((item) => item.i)).toEqual([1]);
 		expect(batches[0].request.i[0].f).toEqual(['قال ', ' ثم ', '']);
 		expect(batches[0].request.i[0].a).toEqual([
 			expect.objectContaining({
@@ -200,6 +205,24 @@ describe('AIProjectTranslationService', () => {
 			)
 		).toBe(1);
 	});
+	test('maps compact batch indexes back to the persistent subtitle', () => {
+		const batch = createBatch();
+		batch.request.i[0] = { ...batch.request.i[0], i: 0 };
+		const report = validateAIProjectTranslationBatch(batch, {
+			i: [
+				{
+					i: 0,
+					f: ['', ' then ', ''],
+					c: [{ i: 'citation-1', t: 'Actions are judged by intentions.' }],
+					q: [{ i: 'quran-0', s: 1, e: 3 }]
+				}
+			]
+		});
+
+		expect(report.errors).toEqual([]);
+		expect(report.validItems[0].candidate.subtitle.id).toBe(batch.candidates[0].subtitle.id);
+	});
+
 	test('accepts structured free text, citation translations and Quran ranges', () => {
 		const batch = createBatch();
 		const subtitleId = batch.candidates[0].subtitle.id;

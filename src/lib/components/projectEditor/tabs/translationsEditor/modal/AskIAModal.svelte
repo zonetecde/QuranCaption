@@ -225,9 +225,11 @@
 				currentBatchId = batch.batchId;
 				streamedResponse = '';
 				streamedReasoning = '';
-				batch.request.b = batch.request.b.map((context) => ({
+				batch.request.b = batch.request.b.map((context, contextIndex) => ({
 					...context,
-					t: translatedContextById.get(context.i) ?? context.t
+					t:
+						translatedContextById.get(batch.beforeSubtitleIds[contextIndex] ?? context.i) ??
+						context.t
 				}));
 				currentMessage = copy.aiTranslationBatchProgress({
 					current: batchIndex + 1,

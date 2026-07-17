@@ -119,6 +119,7 @@ pub async fn run_ai_project_translation_batch_streaming(
     };
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {
         app_handle: &app_handle,
+        operation: "project_translation",
         batch_id: &request.batch_id,
         api_key,
         endpoint: &endpoint,

@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => {
 			{
 				batchId: 'batch-1',
 				candidates: [{}],
+				beforeSubtitleIds: [],
+				afterSubtitleIds: [],
 				request: { b: [], i: [], a: [] },
 				wordCount: 1
 			}

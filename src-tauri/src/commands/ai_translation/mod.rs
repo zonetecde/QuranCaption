@@ -1,8 +1,11 @@
-use std::time::Duration;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures_util::StreamExt;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde_json::{json, Value};
+use tauri::Manager;
 
 use crate::commands::ai_translation::prompts::is_openrouter_endpoint;
 
@@ -81,6 +84,7 @@ pub(crate) struct AiStreamCallbacks {
 /// Paramètres d'une requête de streaming IA.
 pub(crate) struct AiStreamRequest<'a> {
     pub app_handle: &'a tauri::AppHandle,
+    pub operation: &'a str,
     pub batch_id: &'a str,
     pub api_key: &'a str,
     pub endpoint: &'a str,
@@ -88,6 +92,88 @@ pub(crate) struct AiStreamRequest<'a> {
     pub body: &'a Value,
     pub callbacks: &'a AiStreamCallbacks,
     pub generating_message: &'a str,
+}
+
+/// Ajoute un échange IA complet au journal JSONL local sans jamais enregistrer la clé API.
+fn append_ai_exchange_log(
+    app_handle: &tauri::AppHandle,
+    operation: &str,
+    batch_id: &str,
+    endpoint: &str,
+    body: &Value,
+    reasoning: &str,
+    response: &str,
+    usage: Option<&Value>,
+    error: Option<&str>,
+) -> Result<(), String> {
+    let log_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|path_error| path_error.to_string())?
+        .join("logs");
+    fs::create_dir_all(&log_dir).map_err(|create_error| {
+        format!(
+            "Failed to create AI log directory '{}': {}",
+            log_dir.to_string_lossy(),
+            create_error
+        )
+    })?;
+    let timestamp_unix_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let entry = json!({
+        "timestampUnixMs": timestamp_unix_ms,
+        "operation": operation,
+        "batchId": batch_id,
+        "endpoint": endpoint,
+        "request": body,
+        "reasoning": reasoning,
+        "response": response,
+        "usage": usage,
+        "error": error
+    });
+    let serialized = serde_json::to_string(&entry).map_err(|serialize_error| {
+        format!("Failed to serialize AI log entry: {}", serialize_error)
+    })?;
+    let log_path = log_dir.join("ai-exchanges.jsonl");
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .map_err(|open_error| {
+            format!(
+                "Failed to open AI log file '{}': {}",
+                log_path.to_string_lossy(),
+                open_error
+            )
+        })?;
+    writeln!(file, "{}", serialized).map_err(|write_error| {
+        format!(
+            "Failed to write AI log file '{}': {}",
+            log_path.to_string_lossy(),
+            write_error
+        )
+    })
+}
+
+/// Enregistre un échange sans interrompre le workflow lorsque le journal est indisponible.
+fn append_ai_exchange_log_non_fatal(
+    app_handle: &tauri::AppHandle,
+    operation: &str,
+    batch_id: &str,
+    endpoint: &str,
+    body: &Value,
+    reasoning: &str,
+    response: &str,
+    usage: Option<&Value>,
+    error: Option<&str>,
+) {
+    if let Err(log_error) = append_ai_exchange_log(
+        app_handle, operation, batch_id, endpoint, body, reasoning, response, usage, error,
+    ) {
+        eprintln!("Failed to persist text AI exchange log: {}", log_error);
+    }
 }
 
 /// Envoie la requête HTTP et diffuse la réponse SSE vers le frontend.
@@ -98,6 +184,7 @@ pub(crate) async fn stream_ai_response(
 ) -> Result<(String, Option<Value>), String> {
     let AiStreamRequest {
         app_handle,
+        operation,
         batch_id,
         api_key,
         endpoint,
@@ -138,16 +225,40 @@ pub(crate) async fn stream_ai_response(
         request_builder
     };
 
-    let response = request_builder
-        .json(body)
-        .send()
-        .await
-        .map_err(|error| format!("Text AI request failed: {}", error))?;
+    let response = match request_builder.json(body).send().await {
+        Ok(response) => response,
+        Err(request_error) => {
+            let message = format!("Text AI request failed: {}", request_error);
+            append_ai_exchange_log_non_fatal(
+                app_handle,
+                operation,
+                batch_id,
+                endpoint,
+                body,
+                "",
+                "",
+                None,
+                Some(&message),
+            );
+            return Err(message);
+        }
+    };
 
     let status = response.status();
     if !status.is_success() {
         let error_body = response.text().await.unwrap_or_default();
         let message = format!("Text AI API error ({}): {}", status.as_u16(), error_body);
+        append_ai_exchange_log_non_fatal(
+            app_handle,
+            operation,
+            batch_id,
+            endpoint,
+            body,
+            "",
+            &error_body,
+            None,
+            Some(&message),
+        );
         (callbacks.emit_status)(app_handle, batch_id, "failed", &message);
         return Err(message);
     }
@@ -161,8 +272,24 @@ pub(crate) async fn stream_ai_response(
     let mut saw_streaming_chunk = false;
 
     while let Some(chunk_result) = stream.next().await {
-        let chunk =
-            chunk_result.map_err(|error| format!("Failed to read text AI stream: {}", error))?;
+        let chunk = match chunk_result {
+            Ok(chunk) => chunk,
+            Err(stream_error) => {
+                let message = format!("Failed to read text AI stream: {}", stream_error);
+                append_ai_exchange_log_non_fatal(
+                    app_handle,
+                    operation,
+                    batch_id,
+                    endpoint,
+                    body,
+                    &reasoning_text,
+                    &raw_text,
+                    usage.as_ref(),
+                    Some(&message),
+                );
+                return Err(message);
+            }
+        };
         if chunk.is_empty() {
             continue;
         }
@@ -326,5 +453,16 @@ pub(crate) async fn stream_ai_response(
         }
     }
 
+    append_ai_exchange_log_non_fatal(
+        app_handle,
+        operation,
+        batch_id,
+        endpoint,
+        body,
+        &reasoning_text,
+        &raw_text,
+        usage.as_ref(),
+        None,
+    );
     Ok((raw_text, usage))
 }

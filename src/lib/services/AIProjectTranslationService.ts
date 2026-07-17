@@ -56,6 +56,8 @@ export type AIProjectTranslationItemPayload = {
 export type AIProjectTranslationBatch = {
 	batchId: string;
 	candidates: AIProjectTranslationCandidate[];
+	beforeSubtitleIds: number[];
+	afterSubtitleIds: number[];
 	request: {
 		b: AIProjectTranslationContextItem[];
 		i: AIProjectTranslationItemPayload[];
@@ -354,18 +356,27 @@ export async function buildAIProjectTranslationBatches(
 		const lastIndex = allSubtitles.findIndex(
 			(subtitle) => subtitle.id === current[current.length - 1].subtitle.id
 		);
-		const before = allSubtitles
-			.slice(Math.max(0, firstIndex - CONTEXT_CLIP_COUNT), Math.max(0, firstIndex))
-			.map((subtitle) => buildContextItem(subtitle, edition));
-		const after = allSubtitles
-			.slice(lastIndex + 1, lastIndex + 1 + CONTEXT_CLIP_COUNT)
-			.map((subtitle) => buildContextItem(subtitle, edition));
+		const beforeSubtitles = allSubtitles.slice(
+			Math.max(0, firstIndex - CONTEXT_CLIP_COUNT),
+			Math.max(0, firstIndex)
+		);
+		const afterSubtitles = allSubtitles.slice(lastIndex + 1, lastIndex + 1 + CONTEXT_CLIP_COUNT);
+		const before = beforeSubtitles.map((subtitle, index) => ({
+			...buildContextItem(subtitle, edition),
+			i: index - beforeSubtitles.length
+		}));
+		const after = afterSubtitles.map((subtitle, index) => ({
+			...buildContextItem(subtitle, edition),
+			i: current.length + index
+		}));
 		batches.push({
 			batchId: `project-translation-${batches.length + 1}-${current[0].subtitle.id}`,
 			candidates: current,
+			beforeSubtitleIds: beforeSubtitles.map((subtitle) => subtitle.id),
+			afterSubtitleIds: afterSubtitles.map((subtitle) => subtitle.id),
 			request: {
 				b: before,
-				i: current.map((candidate) => candidate.payload),
+				i: current.map((candidate, index) => ({ ...candidate.payload, i: index })),
 				a: after
 			},
 			wordCount: currentWords
@@ -442,7 +453,10 @@ export function validateAIProjectTranslationBatch(
 		return { validItems, errors: ['AI response is missing the items array.'] };
 	}
 	const candidateById = new Map(
-		batch.candidates.map((candidate) => [candidate.subtitle.id, candidate])
+		batch.request.i.map((item, index) => [item.i, batch.candidates[index]])
+	);
+	const promptIdByCandidate = new Map(
+		batch.candidates.map((candidate, index) => [candidate, batch.request.i[index]?.i])
 	);
 	const seenIds = new Set<number>();
 
@@ -546,7 +560,8 @@ export function validateAIProjectTranslationBatch(
 	}
 
 	for (const candidate of batch.candidates) {
-		if (!seenIds.has(candidate.subtitle.id)) {
+		const promptId = promptIdByCandidate.get(candidate);
+		if (promptId === undefined || !seenIds.has(promptId)) {
 			errors.push(`Subtitle ${candidate.subtitle.id}: missing from AI response.`);
 		}
 	}

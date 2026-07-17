@@ -119,6 +119,7 @@ pub async fn run_advanced_ai_wbw_translation_batch_streaming(
 
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {
         app_handle: &app_handle,
+        operation: "word_by_word_translation",
         batch_id: &batch_id,
         api_key,
         endpoint: &endpoint,

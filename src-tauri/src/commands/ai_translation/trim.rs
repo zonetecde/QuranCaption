@@ -104,6 +104,7 @@ pub async fn run_advanced_ai_trim_batch_streaming(
 
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {
         app_handle: &app_handle,
+        operation: "quran_translation_trim",
         batch_id: &batch_id,
         api_key,
         endpoint: &endpoint,

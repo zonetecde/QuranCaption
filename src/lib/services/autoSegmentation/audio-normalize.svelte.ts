@@ -2,6 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
 import { Duration } from '$lib/classes';
 import type { Asset } from '$lib/classes';
+import type { Project } from '$lib/classes/Project';
+import { TrackType } from '$lib/classes/enums';
 import { WaveformService } from '$lib/services/WaveformService.svelte';
 
 /**
@@ -31,12 +33,11 @@ let normalizationPromise: Promise<void> | null = null;
 /**
  * Collecte les assets audio uniques référencés par la piste audio du projet.
  *
+ * @param {Project} project Projet dont les assets doivent être normalisés.
  * @returns {Asset[]} Assets audio distincts présents sur la timeline.
  */
-function collectAudioAssets(): Asset[] {
-	const project = globalState.currentProject;
-	const audioTrack = globalState.getAudioTrack;
-	if (!project || !audioTrack) return [];
+function collectAudioAssets(project: Project): Asset[] {
+	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio);
 
 	const seen = new Set<number>();
 	const assets: Asset[] = [];
@@ -108,7 +109,9 @@ export function beginAudioNormalizationIfNeeded(): void {
 	// Un passage est déjà en cours : on le laisse se terminer.
 	if (audioNormalizationStatus.active) return;
 
-	const assets = collectAudioAssets().filter(
+	const project = globalState.currentProject;
+	if (!project) return;
+	const assets = collectAudioAssets(project).filter(
 		(asset) => (asset.metadata as Record<string, unknown>).audioRetimeDone !== true
 	);
 	if (assets.length === 0) {
@@ -126,6 +129,18 @@ export function beginAudioNormalizationIfNeeded(): void {
 			audioNormalizationStatus.active = false;
 		}
 	})();
+}
+
+/**
+ * Normalise les assets audio d'un projet explicite sans modifier l'état UI global.
+ * @param {Project} project Projet traité en arrière-plan.
+ * @returns {Promise<void>} Promesse résolue après la normalisation éventuelle.
+ */
+export async function normalizeAudioForProject(project: Project): Promise<void> {
+	const assets = collectAudioAssets(project).filter(
+		(asset) => (asset.metadata as Record<string, unknown>).audioRetimeDone !== true
+	);
+	for (const asset of assets) await ensureAssetRetimed(asset);
 }
 
 /**

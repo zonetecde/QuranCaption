@@ -8,6 +8,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({ exists: vi.fn(), remove: vi.fn() }));
 import {
 	AssetType,
 	Batch,
+	createDefaultBatchSegmentationState,
 	Duration,
 	TrackType,
 	type Asset,
@@ -60,7 +61,8 @@ function createItem(order: number): BatchProjectItem {
 			resolvedAssetPath: null,
 			mode: null,
 			assetId: null
-		}
+		},
+		segmentation: createDefaultBatchSegmentationState()
 	};
 }
 

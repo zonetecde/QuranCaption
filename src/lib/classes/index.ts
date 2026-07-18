@@ -8,14 +8,22 @@ export { VideoStyle, Category, Style, StylesData } from './VideoStyle.svelte.js'
 export { ProjectContent } from './ProjectContent.svelte.js';
 export { ProjectEditorState } from './ProjectEditorState.svelte.js';
 export { Project } from './Project.js';
-export { Batch } from './Batch.js';
+export {
+	Batch,
+	createDefaultBatchSegmentationState,
+	isBatchProjectSegmentationVerified
+} from './Batch.js';
 export type {
 	BatchDetail,
 	BatchMediaMode,
 	BatchMediaState,
 	BatchMediaStatus,
 	BatchProjectItem,
-	BatchSource
+	BatchSource,
+	BatchSegmentationReviewCounts,
+	BatchSegmentationSettingsSnapshot,
+	BatchSegmentationState,
+	BatchSegmentationStatus
 } from './Batch.js';
 export { Timeline } from './Timeline.svelte.js';
 export { Track } from './Track.svelte.js';

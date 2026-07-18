@@ -5,8 +5,8 @@ import { Edition, Utilities } from '.';
 import { Duration } from './index.js';
 import { VerseRange } from './VerseRange.svelte';
 import { Status } from './Status';
-import type { ClipWithTranslation } from './Clip.svelte';
-import type { AssetTrack } from './Track.svelte';
+import type { ClipWithTranslation, SubtitleClip } from './Clip.svelte';
+import type { AssetTrack, SubtitleTrack } from './Track.svelte';
 import { VerseTranslation } from './Translation.svelte';
 import {
 	DEFAULT_PROJECT_TYPE,
@@ -99,6 +99,29 @@ export class ProjectDetail extends SerializableBase {
 	public updateMediaDetailAttributes(audioTrack: AssetTrack): void {
 		this.duration = new Duration(audioTrack.getDuration().ms || 0);
 		this.percentageCaptioned = 0;
+	}
+
+	/**
+	 * Met à jour les détails vidéo depuis les pistes explicites d'un projet.
+	 * @param {AssetTrack} audioTrack Piste audio du projet.
+	 * @param {SubtitleTrack} subtitleTrack Piste de sous-titres du projet.
+	 * @returns {void}
+	 */
+	public updateVideoDetailAttributesForTracks(
+		audioTrack: AssetTrack,
+		subtitleTrack: SubtitleTrack
+	): void {
+		const totalDuration = audioTrack.getDuration().ms || 0;
+		const captionedDuration = subtitleTrack.getDuration().ms || 0;
+		let percentage = totalDuration > 0 ? (captionedDuration / totalDuration) * 100 : 0;
+		if (percentage >= 97) percentage = 100;
+		this.duration = new Duration(totalDuration);
+		this.percentageCaptioned = Math.floor(percentage);
+		this.verseRange = VerseRange.getVerseRangeFromClips(
+			subtitleTrack.clips.filter((clip) => clip.type === 'Subtitle') as SubtitleClip[],
+			0,
+			captionedDuration
+		);
 	}
 
 	private updateVideoPercentageCaptioned() {

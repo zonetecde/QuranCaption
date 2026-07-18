@@ -1,4 +1,10 @@
-import { Batch, Utilities, type BatchDetail, type BatchProjectItem } from '$lib/classes';
+import {
+	Batch,
+	Utilities,
+	createDefaultBatchSegmentationState,
+	type BatchDetail,
+	type BatchProjectItem
+} from '$lib/classes';
 import type { ValidatedBatchRow } from '$lib/components/batch/batchCsv';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectService } from '$lib/services/ProjectService';
@@ -39,6 +45,7 @@ export class BatchService {
 		const batch = Batch.fromJSON(JSON.parse(await readTextFile(filePath))) as Batch;
 		if (batch.version !== 1) throw new Error(`Unsupported batch version: ${batch.version}`);
 		if (interruptedError) await this.normalizeInterruptedMedia(batch, interruptedError);
+		await this.normalizeInterruptedSegmentation(batch);
 		return batch;
 	}
 
@@ -54,6 +61,28 @@ export class BatchService {
 			if (project.media.status !== 'queued' && project.media.status !== 'processing') continue;
 			project.media.status = 'failed';
 			project.media.error = error;
+			changed = true;
+		}
+		if (changed) {
+			batch.updatedAt = new Date();
+			await this.save(batch);
+		}
+		return changed;
+	}
+
+	/**
+	 * Convertit les segmentations abandonnées en échecs relançables sans supprimer leurs clips.
+	 * @param {Batch} batch Batch venant d'être chargé.
+	 * @returns {Promise<boolean>} `true` lorsqu'une sauvegarde a été nécessaire.
+	 */
+	static async normalizeInterruptedSegmentation(batch: Batch): Promise<boolean> {
+		let changed = false;
+		for (const project of batch.projects) {
+			if (project.segmentation.status !== 'queued' && project.segmentation.status !== 'processing')
+				continue;
+			project.segmentation.status = 'failed';
+			project.segmentation.error = 'SEGMENTATION_INTERRUPTED';
+			project.segmentation.completedAt = new Date();
 			changed = true;
 		}
 		if (changed) {
@@ -142,7 +171,8 @@ export class BatchService {
 						resolvedAssetPath: null,
 						mode: null,
 						assetId: null
-					}
+					},
+					segmentation: createDefaultBatchSegmentationState()
 				};
 				batch.projects.push(item);
 			}

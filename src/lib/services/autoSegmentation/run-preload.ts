@@ -5,6 +5,10 @@ import { beginAudioNormalizationIfNeeded } from './audio-normalize.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import type { AutoSegmentationOptions, AutoSegmentationResult } from './types';
+import {
+	AutoSegmentationExecutionCoordinator,
+	getAutoSegmentationBusyMessage
+} from '$lib/services/AutoSegmentationExecutionCoordinator';
 
 /**
  * Applique les sous-titres à partir d'un payload Preload ("Quranic Universal Audio").
@@ -21,7 +25,7 @@ import type { AutoSegmentationOptions, AutoSegmentationResult } from './types';
  * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'>} options Options de post-processing.
  * @returns {Promise<AutoSegmentationResult | null>} Résumé du résultat ou null.
  */
-export async function applyPreloadSegmentsToProject(
+async function applyPreloadSegmentsToProjectCore(
 	payload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
@@ -72,5 +76,27 @@ export async function applyPreloadSegmentsToProject(
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		return { status: 'failed', message };
+	}
+}
+
+/**
+ * Applique un payload Preload au projet ouvert sous le verrou global de segmentation.
+ * @param {string | unknown} payload Réponse Preload brute.
+ * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'>} options Options de post-traitement.
+ * @returns {Promise<AutoSegmentationResult | null>} Résultat de l'application.
+ */
+export async function applyPreloadSegmentsToProject(
+	payload: string | unknown,
+	options: Pick<
+		AutoSegmentationOptions,
+		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
+	> = {}
+): Promise<AutoSegmentationResult | null> {
+	const release = AutoSegmentationExecutionCoordinator.tryAcquire('manual');
+	if (!release) return { status: 'failed', message: getAutoSegmentationBusyMessage() };
+	try {
+		return await applyPreloadSegmentsToProjectCore(payload, options);
+	} finally {
+		release();
 	}
 }

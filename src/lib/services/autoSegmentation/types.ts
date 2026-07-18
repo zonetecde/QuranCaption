@@ -263,6 +263,15 @@ export type ApplySegmentationResponseParams = {
 	device?: SegmentationDevice | null;
 	warningOverride?: string;
 	payloadForLog?: unknown;
+	project?: import('$lib/classes/Project').Project;
+	headless?: boolean;
+	audioNormalizationPromise?: Promise<void>;
+};
+
+export type AutoSegmentationExecutionOptions = {
+	overwriteExistingSubtitles?: boolean;
+	headless?: boolean;
+	onApplying?: () => void;
 };
 
 export type CoverageGapDependencies = {

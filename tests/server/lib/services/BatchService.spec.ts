@@ -21,7 +21,7 @@ vi.mock('@tauri-apps/api/path', () => ({
 	join: vi.fn(async (...parts: string[]) => parts.join('/').replaceAll('//', '/'))
 }));
 
-import { Batch } from '$lib/classes';
+import { Batch, createDefaultBatchSegmentationState } from '$lib/classes';
 import { BatchService } from '$lib/services/BatchService';
 import { ProjectService } from '$lib/services/ProjectService';
 
@@ -46,7 +46,8 @@ describe('BatchService persistence', () => {
 					resolvedAssetPath: null,
 					mode: 'audio_only',
 					assetId: null
-				}
+				},
+				segmentation: createDefaultBatchSegmentationState()
 			},
 			{
 				order: 1,
@@ -61,7 +62,8 @@ describe('BatchService persistence', () => {
 					resolvedAssetPath: '/assets/001.mp3',
 					mode: 'audio_only',
 					assetId: 99
-				}
+				},
+				segmentation: createDefaultBatchSegmentationState()
 			}
 		]);
 
@@ -94,9 +96,13 @@ describe('BatchService persistence', () => {
 
 		expect(batch.projects[0].media.mode).toBeNull();
 		expect(batch.projects[0].media.assetId).toBeNull();
+		expect(batch.projects[0].segmentation.status).toBe('not_started');
+		batch.projects[0].segmentation.status = 'processing';
 		await BatchService.save(batch);
 		const restored = await BatchService.load(batch.id, 'Interrupted');
 		expect(restored.projects[0].media.status).toBe('failed');
 		expect(restored.projects[0].media.error).toBe('Interrupted');
+		expect(restored.projects[0].segmentation.status).toBe('failed');
+		expect(restored.projects[0].segmentation.error).toBe('SEGMENTATION_INTERRUPTED');
 	});
 });

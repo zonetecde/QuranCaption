@@ -11,6 +11,10 @@ import ModalManager from '$lib/components/modals/ModalManager';
 import type { AutoSegmentationResult } from './types';
 import { closeSmallSubtitleGaps, insertSilenceClips } from './timeline';
 import { beginAudioNormalizationIfNeeded, awaitAudioNormalization } from './audio-normalize.svelte';
+import {
+	AutoSegmentationExecutionCoordinator,
+	getAutoSegmentationBusyMessage
+} from '$lib/services/AutoSegmentationExecutionCoordinator';
 
 /**
  * Gère le flux de segmentation "Native" en utilisant les données de timing
@@ -19,7 +23,7 @@ import { beginAudioNormalizationIfNeeded, awaitAudioNormalization } from './audi
  * @param {number} [targetAssetId] ID de l'asset audio cible (optionnel).
  * @returns {Promise<AutoSegmentationResult | null>} Résultat ou null.
  */
-export async function runNativeSegmentation(
+async function runNativeSegmentationCore(
 	targetAssetId?: number
 ): Promise<AutoSegmentationResult | null> {
 	const audioTrack = globalState.getAudioTrack;
@@ -249,7 +253,9 @@ export async function runNativeSegmentation(
 		globalState.updateVideoPreviewUI();
 		globalState.getSubtitlesEditorState.initialLowConfidenceCount = 0;
 
-		toast.success(get(LL).editor.appliedSubtitlesFromMp3Quran({ count: segmentsApplied }), { id: toastId });
+		toast.success(get(LL).editor.appliedSubtitlesFromMp3Quran({ count: segmentsApplied }), {
+			id: toastId
+		});
 
 		return {
 			status: 'completed',
@@ -262,5 +268,26 @@ export async function runNativeSegmentation(
 		console.error('Native segmentation error:', error);
 		toast.error(get(LL).editor.errorTiming({ error: String(error) }), { id: toastId });
 		return { status: 'failed', message: String(error) };
+	}
+}
+
+/**
+ * Lance la segmentation native du projet ouvert sous le verrou global partagé.
+ * @param {number} [targetAssetId] ID de l'asset audio cible.
+ * @returns {Promise<AutoSegmentationResult | null>} Résultat de la segmentation.
+ */
+export async function runNativeSegmentation(
+	targetAssetId?: number
+): Promise<AutoSegmentationResult | null> {
+	const release = AutoSegmentationExecutionCoordinator.tryAcquire('manual');
+	if (!release) {
+		const message = getAutoSegmentationBusyMessage();
+		toast.error(message);
+		return { status: 'failed', message };
+	}
+	try {
+		return await runNativeSegmentationCore(targetAssetId);
+	} finally {
+		release();
 	}
 }

@@ -27,6 +27,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import type { ProjectTranslation } from './ProjectTranslation.svelte.js';
 
 export type VisualMergeSelection = {
 	clips: SubtitleClip[];
@@ -1396,7 +1397,9 @@ export class SubtitleTrack extends Track {
 		verse: Verse,
 		firstWordIndex: number,
 		lastWordIndex: number,
-		surah: number
+		surah: number,
+		projectTranslation: ProjectTranslation | null = globalState.currentProject?.content
+			.projectTranslation ?? null
 	): Promise<{
 		isFullVerse: boolean;
 		isLastWordsOfVerse: boolean;
@@ -1407,12 +1410,8 @@ export class SubtitleTrack extends Track {
 
 		// Prépare les traductions du sous-titre
 		let translations: { [key: string]: VerseTranslation } = {};
-		if (globalState.currentProject)
-			translations = await globalState.getProjectTranslation.getTranslations(
-				surah,
-				verse.id,
-				isFullVerse
-			);
+		if (projectTranslation)
+			translations = await projectTranslation.getTranslations(surah, verse.id, isFullVerse);
 
 		return {
 			isFullVerse,

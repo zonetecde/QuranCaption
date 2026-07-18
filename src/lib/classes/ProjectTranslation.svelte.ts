@@ -392,22 +392,16 @@ export class ProjectTranslation extends SerializableBase {
 		[key: string]: VerseTranslation;
 	}> {
 		const translations: { [key: string]: VerseTranslation } = {};
-		if (globalState.getProjectTranslation.addedTranslationEditions.length > 0) {
-			for (const translationEdition of globalState.getProjectTranslation.addedTranslationEditions) {
-				const translation = await globalState.getProjectTranslation.downloadVerseTranslation(
-					translationEdition,
-					surah,
-					verse
-				);
+		if (this.addedTranslationEditions.length > 0) {
+			for (const translationEdition of this.addedTranslationEditions) {
+				const translation = await this.downloadVerseTranslation(translationEdition, surah, verse);
 
-				if (!globalState.getProjectTranslation.versesTranslations[translationEdition.name]) {
-					globalState.getProjectTranslation.versesTranslations[translationEdition.name] = {};
+				if (!this.versesTranslations[translationEdition.name]) {
+					this.versesTranslations[translationEdition.name] = {};
 				}
 
 				// Ajoute la traduction à l'objet translations
-				globalState.getProjectTranslation.versesTranslations[translationEdition.name][
-					surah + ':' + verse
-				] = translation;
+				this.versesTranslations[translationEdition.name][surah + ':' + verse] = translation;
 
 				translations[translationEdition.name] = new VerseTranslation(
 					translation,

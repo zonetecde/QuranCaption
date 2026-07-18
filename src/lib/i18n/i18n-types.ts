@@ -9349,6 +9349,280 @@ type RootTranslation = {
 		 */
 		globalProgress: RequiredParams<'progress'>;
 		/**
+		 * A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n
+		 */
+		aiSegmentation: string;
+		/**
+		 * N​o​t​ ​s​t​a​r​t​e​d
+		 */
+		segmentationNotStarted: string;
+		/**
+		 * Q​u​e​u​e​d
+		 */
+		segmentationQueued: string;
+		/**
+		 * P​r​o​c​e​s​s​i​n​g
+		 */
+		segmentationProcessing: string;
+		/**
+		 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​v​e​r​i​f​i​e​d
+		 */
+		segmentationAutoVerified: string;
+		/**
+		 * N​e​e​d​s​ ​r​e​v​i​e​w
+		 */
+		segmentationNeedsReview: string;
+		/**
+		 * M​a​n​u​a​l​l​y​ ​v​e​r​i​f​i​e​d
+		 */
+		segmentationManuallyVerified: string;
+		/**
+		 * F​a​i​l​e​d
+		 */
+		segmentationFailed: string;
+		/**
+		 * A​p​p​l​y​i​n​g​ ​s​e​g​m​e​n​t​s
+		 */
+		segmentationApplying: string;
+		/**
+		 * S​a​v​i​n​g​ ​p​r​o​j​e​c​t
+		 */
+		segmentationSaving: string;
+		/**
+		 * A​ ​b​a​t​c​h​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​r​u​n​n​i​n​g​.
+		 */
+		segmentationManualBlocked: string;
+		/**
+		 * A​n​o​t​h​e​r​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​u​n​n​i​n​g​.
+		 */
+		segmentationAlreadyRunning: string;
+		/**
+		 * T​h​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​o​p​e​r​a​t​i​o​n​ ​w​a​s​ ​i​n​t​e​r​r​u​p​t​e​d​ ​b​e​f​o​r​e​ ​c​o​m​p​l​e​t​i​o​n​.
+		 */
+		segmentationInterrupted: string;
+		/**
+		 * {​a​c​t​i​v​e​}​ ​a​c​t​i​v​e​ ​·​ ​{​c​o​m​p​l​e​t​e​d​}​ ​c​o​m​p​l​e​t​e​d​ ​·​ ​{​n​e​e​d​s​R​e​v​i​e​w​}​ ​n​e​e​d​ ​r​e​v​i​e​w​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d​ ​·​ ​{​r​e​m​a​i​n​i​n​g​}​ ​r​e​m​a​i​n​i​n​g
+		 * @param {unknown} active
+		 * @param {unknown} completed
+		 * @param {unknown} failed
+		 * @param {unknown} needsReview
+		 * @param {unknown} remaining
+		 */
+		segmentationQueueSummary: RequiredParams<
+			'active' | 'completed' | 'failed' | 'needsReview' | 'remaining'
+		>;
+		/**
+		 * B​a​t​c​h​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​c​o​m​p​l​e​t​e​d
+		 */
+		segmentationCompletedTitle: string;
+		/**
+		 * {​c​o​m​p​l​e​t​e​d​}​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​v​e​r​i​f​i​e​d​ ​·​ ​{​n​e​e​d​s​R​e​v​i​e​w​}​ ​n​e​e​d​ ​r​e​v​i​e​w​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d
+		 * @param {unknown} completed
+		 * @param {unknown} failed
+		 * @param {unknown} needsReview
+		 */
+		segmentationCompletedBody: RequiredParams<'completed' | 'failed' | 'needsReview'>;
+		/**
+		 * R​e​a​d​y​ ​f​o​r​ ​t​r​a​n​s​l​a​t​i​o​n​s​:​ ​{​r​e​a​d​y​}​ ​/​ ​{​t​o​t​a​l​}
+		 * @param {unknown} ready
+		 * @param {unknown} total
+		 */
+		readyForTranslations: RequiredParams<'ready' | 'total'>;
+		/**
+		 * R​e​v​i​e​w​ ​f​l​a​g​g​e​d​ ​p​r​o​j​e​c​t​s
+		 */
+		reviewFlaggedProjects: string;
+		/**
+		 * R​e​v​i​e​w
+		 */
+		reviewProject: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​s​e​g​m​e​n​t​(​s​)
+		 * @param {unknown} count
+		 */
+		segmentationSegments: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​i​s​s​u​e​(​s​)
+		 * @param {unknown} count
+		 */
+		segmentationIssues: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​c​o​v​e​r​a​g​e
+		 * @param {unknown} count
+		 */
+		segmentationCoverageCount: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​l​o​w​ ​c​o​n​f​i​d​e​n​c​e
+		 * @param {unknown} count
+		 */
+		segmentationLowConfidenceCount: RequiredParams<'count'>;
+		/**
+		 * {​c​o​v​e​r​a​g​e​}​ ​c​o​v​e​r​a​g​e​ ​·​ ​{​l​o​w​C​o​n​f​i​d​e​n​c​e​}​ ​l​o​w​ ​c​o​n​f​i​d​e​n​c​e​ ​·​ ​{​l​o​n​g​}​ ​l​o​n​g​ ​·​ ​{​w​b​w​}​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s
+		 * @param {unknown} coverage
+		 * @param {unknown} long
+		 * @param {unknown} lowConfidence
+		 * @param {unknown} wbw
+		 */
+		segmentationReviewTooltip: RequiredParams<'coverage' | 'long' | 'lowConfidence' | 'wbw'>;
+		/**
+		 * C​h​e​c​k​i​n​g​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​s​ ​a​n​d​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​e​n​g​i​n​e​.​.​.
+		 */
+		segmentationInspecting: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​(​s​)
+		 * @param {unknown} count
+		 */
+		segmentationSelectedCount: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​e​l​i​g​i​b​l​e​ ​p​r​o​j​e​c​t​(​s​)
+		 * @param {unknown} count
+		 */
+		segmentationEligibleCount: RequiredParams<'count'>;
+		/**
+		 * R​u​n​t​i​m​e​:​ ​{​v​a​l​u​e​}
+		 * @param {unknown} value
+		 */
+		segmentationRuntime: RequiredParams<'value'>;
+		/**
+		 * L​o​c​a​l
+		 */
+		segmentationRuntimeLocal: string;
+		/**
+		 * C​l​o​u​d
+		 */
+		segmentationRuntimeCloud: string;
+		/**
+		 * M​o​d​e​l​:​ ​{​v​a​l​u​e​}
+		 * @param {unknown} value
+		 */
+		segmentationModel: RequiredParams<'value'>;
+		/**
+		 * D​e​v​i​c​e​:​ ​{​v​a​l​u​e​}
+		 * @param {unknown} value
+		 */
+		segmentationDevice: RequiredParams<'value'>;
+		/**
+		 * N​o​t​ ​a​p​p​l​i​c​a​b​l​e
+		 */
+		notApplicable: string;
+		/**
+		 * W​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​:​ ​{​v​a​l​u​e​}
+		 * @param {unknown} value
+		 */
+		segmentationWbw: RequiredParams<'value'>;
+		/**
+		 * E​n​a​b​l​e​d
+		 */
+		enabled: string;
+		/**
+		 * D​i​s​a​b​l​e​d
+		 */
+		disabled: string;
+		/**
+		 * M​i​n​i​m​u​m​ ​s​i​l​e​n​c​e​:​ ​{​v​a​l​u​e​}​ ​m​s
+		 * @param {unknown} value
+		 */
+		segmentationMinSilence: RequiredParams<'value'>;
+		/**
+		 * M​i​n​i​m​u​m​ ​s​p​e​e​c​h​:​ ​{​v​a​l​u​e​}​ ​m​s
+		 * @param {unknown} value
+		 */
+		segmentationMinSpeech: RequiredParams<'value'>;
+		/**
+		 * P​a​d​d​i​n​g​:​ ​{​v​a​l​u​e​}​ ​m​s
+		 * @param {unknown} value
+		 */
+		segmentationPadding: RequiredParams<'value'>;
+		/**
+		 * G​a​p​s​ ​a​r​e​ ​f​i​l​l​e​d​ ​w​i​t​h​ ​s​i​l​e​n​c​e​ ​c​l​i​p​s​.
+		 */
+		segmentationFillSilence: string;
+		/**
+		 * S​u​b​t​i​t​l​e​s​ ​a​r​e​ ​e​x​t​e​n​d​e​d​ ​t​o​ ​f​i​l​l​ ​g​a​p​s​.
+		 */
+		segmentationFillExtend: string;
+		/**
+		 * T​h​e​ ​s​a​m​e​ ​s​a​v​e​d​ ​s​e​t​t​i​n​g​s​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​f​o​r​ ​t​h​e​ ​e​n​t​i​r​e​ ​r​u​n​.​
+		 */
+		segmentationSameSettings: string;
+		/**
+		 * P​r​o​j​e​c​t​s​ ​a​r​e​ ​p​r​o​c​e​s​s​e​d​ ​o​n​e​ ​a​t​ ​a​ ​t​i​m​e​.
+		 */
+		segmentationSequential: string;
+		/**
+		 * B​a​t​c​h​ ​r​e​q​u​i​r​e​s​ ​a​ ​c​l​o​u​d​ ​o​r​ ​l​o​c​a​l​ ​e​n​g​i​n​e​;​ ​H​F​ ​J​S​O​N​ ​i​s​ ​u​n​a​v​a​i​l​a​b​l​e​.
+		 */
+		segmentationErrorHF_JSON_UNSUPPORTED: string;
+		/**
+		 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​l​o​c​a​l​ ​e​n​g​i​n​e​ ​i​s​ ​u​n​a​v​a​i​l​a​b​l​e​.​ ​C​o​n​f​i​g​u​r​e​ ​i​t​ ​i​n​ ​t​h​e​ ​n​o​r​m​a​l​ ​A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​w​i​n​d​o​w​.
+		 */
+		segmentationErrorLOCAL_ENGINE_UNAVAILABLE: string;
+		/**
+		 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​e​n​g​i​n​e​ ​r​e​q​u​i​r​e​s​ ​a​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n​.​ ​C​o​n​f​i​g​u​r​e​ ​i​t​ ​i​n​ ​t​h​e​ ​n​o​r​m​a​l​ ​A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​w​i​n​d​o​w​.
+		 */
+		segmentationErrorHF_TOKEN_REQUIRED: string;
+		/**
+		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​s​e​t​t​i​n​g​s​ ​a​r​e​ ​u​n​a​v​a​i​l​a​b​l​e​.
+		 */
+		segmentationErrorSETTINGS_UNAVAILABLE: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​(​s​)​ ​a​l​r​e​a​d​y​ ​c​o​n​t​a​i​n​ ​s​u​b​t​i​t​l​e​s​.
+		 * @param {unknown} count
+		 */
+		segmentationExistingCount: RequiredParams<'count'>;
+		/**
+		 * R​e​p​l​a​c​e​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​t​h​e​s​e​ ​p​r​o​j​e​c​t​s
+		 */
+		segmentationReplaceExisting: string;
+		/**
+		 * A​ ​f​i​x​e​d​ ​s​u​r​a​h​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​c​o​n​f​i​g​u​r​e​d​.​ ​I​t​ ​w​o​u​l​d​ ​b​e​ ​a​p​p​l​i​e​d​ ​t​o​ ​e​v​e​r​y​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​.
+		 */
+		segmentationFixedSurahWarning: string;
+		/**
+		 * A​u​t​o​-​d​e​t​e​c​t​ ​f​o​r​ ​e​a​c​h​ ​p​r​o​j​e​c​t
+		 */
+		segmentationSurahAuto: string;
+		/**
+		 * U​s​e​ ​t​h​e​ ​c​o​n​f​i​g​u​r​e​d​ ​s​u​r​a​h​ ​f​o​r​ ​e​v​e​r​y​ ​p​r​o​j​e​c​t
+		 */
+		segmentationSurahFixed: string;
+		/**
+		 * I​g​n​o​r​e​d​ ​p​r​o​j​e​c​t​s
+		 */
+		segmentationIgnoredProjects: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​n​o​t​ ​f​o​u​n​d
+		 */
+		segmentationReasonPROJECT_MISSING: string;
+		/**
+		 * M​e​d​i​a​ ​i​s​ ​n​o​t​ ​r​e​a​d​y
+		 */
+		segmentationReasonMEDIA_NOT_READY: string;
+		/**
+		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​i​s​ ​a​l​r​e​a​d​y​ ​q​u​e​u​e​d​ ​o​r​ ​p​r​o​c​e​s​s​i​n​g
+		 */
+		segmentationReasonSEGMENTATION_IN_PROGRESS: string;
+		/**
+		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​i​s​ ​a​l​r​e​a​d​y​ ​v​a​l​i​d​a​t​e​d
+		 */
+		segmentationReasonALREADY_VALIDATED: string;
+		/**
+		 * T​h​e​ ​a​u​d​i​o​ ​t​r​a​c​k​ ​i​s​ ​e​m​p​t​y
+		 */
+		segmentationReasonAUDIO_TRACK_EMPTY: string;
+		/**
+		 * A​n​ ​a​u​d​i​o​ ​f​i​l​e​ ​i​s​ ​m​i​s​s​i​n​g
+		 */
+		segmentationReasonAUDIO_FILE_MISSING: string;
+		/**
+		 * E​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​r​e​q​u​i​r​e​ ​e​x​p​l​i​c​i​t​ ​r​e​p​l​a​c​e​m​e​n​t
+		 */
+		segmentationReasonEXISTING_SUBTITLES: string;
+		/**
+		 * S​t​a​r​t​ ​s​e​g​m​e​n​t​a​t​i​o​n
+		 */
+		startSegmentation: string;
+		/**
 		 * T​h​e​ ​m​e​d​i​a​ ​o​p​e​r​a​t​i​o​n​ ​w​a​s​ ​i​n​t​e​r​r​u​p​t​e​d​ ​b​e​f​o​r​e​ ​c​o​m​p​l​e​t​i​o​n​.
 		 */
 		mediaInterrupted: string;
@@ -18565,6 +18839,265 @@ export type TranslationFunctions = {
 		 * Overall progress: {progress}%
 		 */
 		globalProgress: (arg: { progress: unknown }) => LocalizedString;
+		/**
+		 * AI Segmentation
+		 */
+		aiSegmentation: () => LocalizedString;
+		/**
+		 * Not started
+		 */
+		segmentationNotStarted: () => LocalizedString;
+		/**
+		 * Queued
+		 */
+		segmentationQueued: () => LocalizedString;
+		/**
+		 * Processing
+		 */
+		segmentationProcessing: () => LocalizedString;
+		/**
+		 * Automatically verified
+		 */
+		segmentationAutoVerified: () => LocalizedString;
+		/**
+		 * Needs review
+		 */
+		segmentationNeedsReview: () => LocalizedString;
+		/**
+		 * Manually verified
+		 */
+		segmentationManuallyVerified: () => LocalizedString;
+		/**
+		 * Failed
+		 */
+		segmentationFailed: () => LocalizedString;
+		/**
+		 * Applying segments
+		 */
+		segmentationApplying: () => LocalizedString;
+		/**
+		 * Saving project
+		 */
+		segmentationSaving: () => LocalizedString;
+		/**
+		 * A batch segmentation is currently running.
+		 */
+		segmentationManualBlocked: () => LocalizedString;
+		/**
+		 * Another segmentation is already running.
+		 */
+		segmentationAlreadyRunning: () => LocalizedString;
+		/**
+		 * The segmentation operation was interrupted before completion.
+		 */
+		segmentationInterrupted: () => LocalizedString;
+		/**
+		 * {active} active · {completed} completed · {needsReview} need review · {failed} failed · {remaining} remaining
+		 */
+		segmentationQueueSummary: (arg: {
+			active: unknown;
+			completed: unknown;
+			failed: unknown;
+			needsReview: unknown;
+			remaining: unknown;
+		}) => LocalizedString;
+		/**
+		 * Batch segmentation completed
+		 */
+		segmentationCompletedTitle: () => LocalizedString;
+		/**
+		 * {completed} automatically verified · {needsReview} need review · {failed} failed
+		 */
+		segmentationCompletedBody: (arg: {
+			completed: unknown;
+			failed: unknown;
+			needsReview: unknown;
+		}) => LocalizedString;
+		/**
+		 * Ready for translations: {ready} / {total}
+		 */
+		readyForTranslations: (arg: { ready: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * Review flagged projects
+		 */
+		reviewFlaggedProjects: () => LocalizedString;
+		/**
+		 * Review
+		 */
+		reviewProject: () => LocalizedString;
+		/**
+		 * {count} segment(s)
+		 */
+		segmentationSegments: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} issue(s)
+		 */
+		segmentationIssues: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} coverage
+		 */
+		segmentationCoverageCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} low confidence
+		 */
+		segmentationLowConfidenceCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {coverage} coverage · {lowConfidence} low confidence · {long} long · {wbw} WBW timestamps
+		 */
+		segmentationReviewTooltip: (arg: {
+			coverage: unknown;
+			long: unknown;
+			lowConfidence: unknown;
+			wbw: unknown;
+		}) => LocalizedString;
+		/**
+		 * Checking selected projects and segmentation engine...
+		 */
+		segmentationInspecting: () => LocalizedString;
+		/**
+		 * {count} selected project(s)
+		 */
+		segmentationSelectedCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} eligible project(s)
+		 */
+		segmentationEligibleCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Runtime: {value}
+		 */
+		segmentationRuntime: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Local
+		 */
+		segmentationRuntimeLocal: () => LocalizedString;
+		/**
+		 * Cloud
+		 */
+		segmentationRuntimeCloud: () => LocalizedString;
+		/**
+		 * Model: {value}
+		 */
+		segmentationModel: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Device: {value}
+		 */
+		segmentationDevice: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Not applicable
+		 */
+		notApplicable: () => LocalizedString;
+		/**
+		 * Word-by-word timestamps: {value}
+		 */
+		segmentationWbw: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Enabled
+		 */
+		enabled: () => LocalizedString;
+		/**
+		 * Disabled
+		 */
+		disabled: () => LocalizedString;
+		/**
+		 * Minimum silence: {value} ms
+		 */
+		segmentationMinSilence: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Minimum speech: {value} ms
+		 */
+		segmentationMinSpeech: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Padding: {value} ms
+		 */
+		segmentationPadding: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Gaps are filled with silence clips.
+		 */
+		segmentationFillSilence: () => LocalizedString;
+		/**
+		 * Subtitles are extended to fill gaps.
+		 */
+		segmentationFillExtend: () => LocalizedString;
+		/**
+		 * The same saved settings will be used for the entire run.
+		 */
+		segmentationSameSettings: () => LocalizedString;
+		/**
+		 * Projects are processed one at a time.
+		 */
+		segmentationSequential: () => LocalizedString;
+		/**
+		 * Batch requires a cloud or local engine; HF JSON is unavailable.
+		 */
+		segmentationErrorHF_JSON_UNSUPPORTED: () => LocalizedString;
+		/**
+		 * The selected local engine is unavailable. Configure it in the normal AI Segmentation window.
+		 */
+		segmentationErrorLOCAL_ENGINE_UNAVAILABLE: () => LocalizedString;
+		/**
+		 * The selected engine requires a Hugging Face token. Configure it in the normal AI Segmentation window.
+		 */
+		segmentationErrorHF_TOKEN_REQUIRED: () => LocalizedString;
+		/**
+		 * Segmentation settings are unavailable.
+		 */
+		segmentationErrorSETTINGS_UNAVAILABLE: () => LocalizedString;
+		/**
+		 * {count} selected project(s) already contain subtitles.
+		 */
+		segmentationExistingCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Replace existing subtitles in these projects
+		 */
+		segmentationReplaceExisting: () => LocalizedString;
+		/**
+		 * A fixed surah is currently configured. It would be applied to every selected project.
+		 */
+		segmentationFixedSurahWarning: () => LocalizedString;
+		/**
+		 * Auto-detect for each project
+		 */
+		segmentationSurahAuto: () => LocalizedString;
+		/**
+		 * Use the configured surah for every project
+		 */
+		segmentationSurahFixed: () => LocalizedString;
+		/**
+		 * Ignored projects
+		 */
+		segmentationIgnoredProjects: () => LocalizedString;
+		/**
+		 * Project not found
+		 */
+		segmentationReasonPROJECT_MISSING: () => LocalizedString;
+		/**
+		 * Media is not ready
+		 */
+		segmentationReasonMEDIA_NOT_READY: () => LocalizedString;
+		/**
+		 * Segmentation is already queued or processing
+		 */
+		segmentationReasonSEGMENTATION_IN_PROGRESS: () => LocalizedString;
+		/**
+		 * Segmentation is already validated
+		 */
+		segmentationReasonALREADY_VALIDATED: () => LocalizedString;
+		/**
+		 * The audio track is empty
+		 */
+		segmentationReasonAUDIO_TRACK_EMPTY: () => LocalizedString;
+		/**
+		 * An audio file is missing
+		 */
+		segmentationReasonAUDIO_FILE_MISSING: () => LocalizedString;
+		/**
+		 * Existing subtitles require explicit replacement
+		 */
+		segmentationReasonEXISTING_SUBTITLES: () => LocalizedString;
+		/**
+		 * Start segmentation
+		 */
+		startSegmentation: () => LocalizedString;
 		/**
 		 * The media operation was interrupted before completion.
 		 */

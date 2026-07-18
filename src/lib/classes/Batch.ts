@@ -16,6 +16,74 @@ export interface BatchMediaState {
 	assetId: number | null;
 }
 
+export type BatchSegmentationStatus =
+	| 'not_started'
+	| 'queued'
+	| 'processing'
+	| 'auto_verified'
+	| 'needs_review'
+	| 'manually_verified'
+	| 'failed';
+
+export interface BatchSegmentationReviewCounts {
+	total: number;
+	pending: number;
+	lowConfidence: number;
+	coverage: number;
+	long: number;
+	wbwTimestamps: number;
+}
+
+export interface BatchSegmentationSettingsSnapshot {
+	runtime: string;
+	mode: string;
+	model: string;
+	device: string | null;
+	includeWbwTimestamps: boolean;
+	minSilenceMs: number;
+	minSpeechMs: number;
+	padMs: number;
+	fillBySilence: boolean;
+	extendBeforeSilence: boolean;
+	extendBeforeSilenceMs: number;
+	surahSplitterSurah: number | null;
+}
+
+export interface BatchSegmentationState {
+	status: BatchSegmentationStatus;
+	progress: number;
+	error: string | null;
+	segmentsApplied: number;
+	review: BatchSegmentationReviewCounts;
+	settingsSnapshot: BatchSegmentationSettingsSnapshot | null;
+	startedAt: Date | null;
+	completedAt: Date | null;
+}
+
+/**
+ * Crée l'état de segmentation rétrocompatible d'un projet Batch.
+ * @returns {BatchSegmentationState} État initial indépendant.
+ */
+export function createDefaultBatchSegmentationState(): BatchSegmentationState {
+	return {
+		status: 'not_started',
+		progress: 0,
+		error: null,
+		segmentsApplied: 0,
+		review: {
+			total: 0,
+			pending: 0,
+			lowConfidence: 0,
+			coverage: 0,
+			long: 0,
+			wbwTimestamps: 0
+		},
+		settingsSnapshot: null,
+		startedAt: null,
+		completedAt: null
+	};
+}
+
 export interface BatchProjectItem {
 	order: number;
 	projectId: number;
@@ -23,6 +91,18 @@ export interface BatchProjectItem {
 	reciter: string;
 	source: BatchSource;
 	media: BatchMediaState;
+	segmentation: BatchSegmentationState;
+}
+
+/**
+ * Indique si la segmentation d'un projet autorise les prochaines étapes Batch.
+ * @param {BatchProjectItem} item Projet Batch à vérifier.
+ * @returns {boolean} `true` après validation automatique ou manuelle.
+ */
+export function isBatchProjectSegmentationVerified(item: BatchProjectItem): boolean {
+	return (
+		item.segmentation.status === 'auto_verified' || item.segmentation.status === 'manually_verified'
+	);
 }
 
 export interface BatchDetail {
@@ -101,6 +181,7 @@ export class Batch extends SerializableBase {
 		const projects = Array.isArray(data.projects)
 			? data.projects.map((rawProject) => {
 					const project = rawProject as Partial<BatchProjectItem>;
+					const segmentation = project.segmentation ?? createDefaultBatchSegmentationState();
 					return {
 						order: Number(project.order),
 						projectId: Number(project.projectId),
@@ -114,6 +195,16 @@ export class Batch extends SerializableBase {
 							resolvedAssetPath: project.media?.resolvedAssetPath ?? null,
 							mode: project.media?.mode ?? null,
 							assetId: project.media?.assetId ?? null
+						},
+						segmentation: {
+							...createDefaultBatchSegmentationState(),
+							...segmentation,
+							review: {
+								...createDefaultBatchSegmentationState().review,
+								...(segmentation.review ?? {})
+							},
+							startedAt: segmentation.startedAt ? new Date(segmentation.startedAt) : null,
+							completedAt: segmentation.completedAt ? new Date(segmentation.completedAt) : null
 						}
 					};
 				})

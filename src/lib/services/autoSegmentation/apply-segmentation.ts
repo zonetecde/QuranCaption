@@ -28,16 +28,17 @@ import {
 	insertSilenceClips
 } from './timeline';
 import { awaitAudioNormalization } from './audio-normalize.svelte';
+import type { Project } from '$lib/classes/Project';
+import { TrackType } from '$lib/classes/enums';
+import type { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 
 /**
  * Marque les traductions d'un clip comme "to review".
  *
  * @param {SubtitleClip} clip Clip dont les traductions doivent être marquées.
  */
-function markClipTranslationsForReview(clip: SubtitleClip): void {
-	if (!globalState.currentProject) return;
-
-	const addedEditions = globalState.getProjectTranslation.addedTranslationEditions;
+function markClipTranslationsForReview(clip: SubtitleClip, project: Project): void {
+	const addedEditions = project.content.projectTranslation.addedTranslationEditions;
 	if (!addedEditions) return;
 
 	for (const edition of addedEditions) {
@@ -123,6 +124,8 @@ async function pushSubtitleTemplate(
  * @param {StoredAlignedSegment[]} storedAlignedSegments Tableau de segments alignés (muté).
  */
 async function materializeTemplate(
+	project: Project,
+	subtitleTrack: SubtitleTrack,
 	template: SegmentationClipTemplate,
 	startMs: number,
 	endMs: number,
@@ -141,8 +144,6 @@ async function materializeTemplate(
 		time_to: alignmentEndMs / 1000
 	};
 
-	const subtitleTrack = globalState.getSubtitleTrack;
-
 	if (template.kind === 'predefined') {
 		const clip = new PredefinedSubtitleClip(
 			startMs,
@@ -150,7 +151,8 @@ async function materializeTemplate(
 			template.predefinedType,
 			undefined,
 			true,
-			template.confidence
+			template.confidence,
+			project.content.projectTranslation
 		);
 		subtitleTrack.clips.push(clip);
 		const storedAlignedSegment = buildStoredAlignedSegment(
@@ -193,7 +195,8 @@ async function materializeTemplate(
 		template.verse,
 		template.startIndex,
 		template.endIndex,
-		template.surah
+		template.surah,
+		project.content.projectTranslation
 	);
 
 	const clip: SubtitleClip = new SubtitleClip(
@@ -240,7 +243,7 @@ async function materializeTemplate(
 	if (template.needsReview || template.needsCoverageReview) {
 		clip.needsReview = true;
 		if (template.needsCoverageReview) clip.needsCoverageReview = true;
-		markClipTranslationsForReview(clip);
+		markClipTranslationsForReview(clip, project);
 	}
 
 	subtitleTrack.clips.push(clip);
@@ -473,6 +476,9 @@ async function processCrossVerseSegment(
 export async function applySegmentationResponseToProject(
 	params: ApplySegmentationResponseParams
 ): Promise<AutoSegmentationResult> {
+	const project = params.project ?? globalState.currentProject;
+	if (!project) return { status: 'failed', message: 'No project is currently open.' };
+	const headless = params.headless ?? false;
 	const {
 		response,
 		fillBySilence,
@@ -490,7 +496,7 @@ export async function applySegmentationResponseToProject(
 		payloadForLog
 	} = params;
 
-	if (response.warning) {
+	if (response.warning && !headless) {
 		toast(response.warning);
 	}
 	if (response.error) {
@@ -506,9 +512,10 @@ export async function applySegmentationResponseToProject(
 	// Garde : s'assurer que le re-timing audio (lancé en parallèle) est terminé
 	// avant de matérialiser les clips, pour que les timestamps coïncident avec
 	// l'audio rejoué.
-	await awaitAudioNormalization();
+	if (params.audioNormalizationPromise) await params.audioNormalizationPromise;
+	else await awaitAudioNormalization();
 
-	const subtitleTrack = globalState.getSubtitleTrack;
+	const subtitleTrack = project.content.timeline.getFirstTrack(TrackType.Subtitle) as SubtitleTrack;
 	subtitleTrack.clips = [];
 	await Quran.load();
 
@@ -686,6 +693,8 @@ export async function applySegmentationResponseToProject(
 	// Matérialisation des templates
 	for (const template of clipTemplates) {
 		await materializeTemplate(
+			project,
+			subtitleTrack,
 			template,
 			template.originalStartMs,
 			template.originalEndMs,
@@ -736,11 +745,16 @@ export async function applySegmentationResponseToProject(
 	}
 
 	// Mise à jour de l'UI et du contexte
-	const verseRange: VerseRange = VerseRange.getVerseRange(0, subtitleTrack.getDuration().ms);
-	globalState.currentProject?.detail.updateVideoDetailAttributes();
-	globalState.updateVideoPreviewUI();
-	globalState.getSubtitlesEditorState.initialLowConfidenceCount = reviewSegments.value;
-	globalState.getSubtitlesEditorState.segmentationContext = {
+	const verseRange: VerseRange = VerseRange.getVerseRangeFromClips(
+		subtitleTrack.clips.filter((clip) => clip.type === 'Subtitle') as SubtitleClip[],
+		0,
+		subtitleTrack.getDuration().ms
+	);
+	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio) as AssetTrack;
+	project.detail.updateVideoDetailAttributesForTracks(audioTrack, subtitleTrack);
+	if (!headless) globalState.updateVideoPreviewUI();
+	project.projectEditorState.subtitlesEditor.initialLowConfidenceCount = reviewSegments.value;
+	project.projectEditorState.subtitlesEditor.segmentationContext = {
 		audioId: response.audio_id ?? null,
 		source: segmentationSource,
 		effectiveMode,

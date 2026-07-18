@@ -43,7 +43,8 @@
 	import { BatchCbrService, type BatchCbrQueueProgress } from '$lib/services/BatchCbrService';
 	import {
 		BatchTranslationService,
-		reconcileBatchTranslations
+		reconcileBatchTranslations,
+		type BatchTranslationQueueProgress
 	} from '$lib/services/BatchTranslationService';
 	import {
 		QdcTranslationService,
@@ -76,6 +77,15 @@
 	let segmentationQueueActive = $state(false);
 	let cbrQueueActive = $state(false);
 	let translationQueueActive = $state(false);
+	let translationProgress = $state<BatchTranslationQueueProgress>({
+		active: 0,
+		completed: 0,
+		failed: 0,
+		skipped: 0,
+		remaining: 0,
+		progress: 0,
+		total: 0
+	});
 	let showAddTranslationsModal = $state(false);
 	let showFetchTranslationsModal = $state(false);
 	let showReviewEditionModal = $state(false);
@@ -147,6 +157,7 @@
 	let exportInspection = $state<BatchExportEligibility[]>([]);
 	let exportOutputFolder = $state('');
 	let exportNonReadyProjects = $state(false);
+	let exportOnlyRecitation = $state(false);
 	let exportQueueActive = $state(false);
 	let deleteQueueActive = $state(false);
 	let exportProgress = $state<BatchExportProgress>({
@@ -282,10 +293,12 @@
 		)
 	);
 	let translationGlobalProgress = $derived(
-		Math.round(
-			activeTranslationStates.reduce((sum, state) => sum + (state?.progress ?? 0), 0) /
-				Math.max(projects.length, 1)
-		)
+		translationProgress.total > 0
+			? translationProgress.progress
+			: Math.round(
+					activeTranslationStates.reduce((sum, state) => sum + (state?.progress ?? 0), 0) /
+						Math.max(projects.length, 1)
+				)
 	);
 	let savedStylePresets = $derived(globalState.settings?.savedVideoStylePresets ?? []);
 	let selectedStylePreset = $derived(
@@ -384,6 +397,7 @@
 		exportInspection = [];
 		exportOutputFolder = '';
 		exportNonReadyProjects = false;
+		exportOnlyRecitation = false;
 		try {
 			exportInspection = await inspectBatchExportEligibility(batch.projects);
 		} finally {
@@ -427,7 +441,8 @@
 				batch,
 				exportInspection,
 				exportOutputFolder,
-				exportNonReadyProjects
+				exportNonReadyProjects,
+				exportOnlyRecitation
 			);
 			if (result.failed > 0 || skippedExports.length > 0) {
 				toast.error(batchMessage('someProjectsCouldNotBeExported'));
@@ -691,6 +706,7 @@
 		if (editions.length === 0) return;
 		showAddTranslationsModal = false;
 		translationQueueActive = true;
+		translationProgress.total = 0;
 		queueError = '';
 		selectActiveTranslationEdition(editions.at(-1)!.name, false);
 		const service = new BatchTranslationService({
@@ -741,11 +757,21 @@
 		queueError = '';
 		const editionName = activeTranslationEditionName;
 		const items = [...fetchEligibleProjects];
+		translationProgress = {
+			active: 0,
+			completed: 0,
+			failed: 0,
+			skipped: 0,
+			remaining: items.length,
+			progress: 0,
+			total: items.length
+		};
 		selectActiveTranslationEdition(editionName);
 		const service = new BatchTranslationService({
 			onUpdate: (item) => {
 				refreshProjectRow(item);
-			}
+			},
+			onProgress: (progress) => (translationProgress = progress)
 		});
 		try {
 			await service.fetchEdition(batch, items, editionName);
@@ -1343,14 +1369,22 @@
 			{#if translationQueueActive && activeTranslationEditionName}
 				<BatchProgressCard
 					summary={batchMessage('translationQueueSummary', {
-						completed: activeTranslationStates.filter(
-							(state) =>
-								state &&
-								['ready_to_fetch', 'auto_verified', 'needs_review', 'manually_verified'].includes(
-									state.status
-								)
-						).length,
-						total: projects.length
+						completed:
+							translationProgress.total > 0
+								? translationProgress.completed +
+									translationProgress.failed +
+									translationProgress.skipped
+								: activeTranslationStates.filter(
+										(state) =>
+											state &&
+											[
+												'ready_to_fetch',
+												'auto_verified',
+												'needs_review',
+												'manually_verified'
+											].includes(state.status)
+									).length,
+						total: translationProgress.total > 0 ? translationProgress.total : projects.length
 					})}
 					progress={translationGlobalProgress}
 				/>
@@ -1562,6 +1596,17 @@
 						</span>
 					</label>
 				{/if}
+				<label class="mt-4 flex gap-3 text-sm text-[var(--text-secondary)]">
+					<input type="checkbox" bind:checked={exportOnlyRecitation} />
+					<span>
+						<span class="block font-medium text-[var(--text-primary)]">
+							{$LL.export.exportOnlyRecitation()}
+						</span>
+						<span class="mt-1 block text-xs text-[var(--text-thirdly)]">
+							{$LL.export.exportOnlyRecitationDescription()}
+						</span>
+					</span>
+				</label>
 				<div class="mt-5">
 					<p class="mb-2 text-sm text-[var(--text-secondary)]">
 						{batchMessage('selectOutputFolder')}

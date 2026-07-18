@@ -122,4 +122,25 @@ describe('TranslationFetchService', () => {
 			errors: 1
 		});
 	});
+
+	it('reports progress while source projects are inspected', async () => {
+		const target = createProject(1, [createClip('Pending', 'to review')]);
+		const unrelated = createClip('Other verse', 'reviewed');
+		unrelated.surah = 2;
+		projectMocks.load.mockResolvedValue(createProject(2, [unrelated]));
+		const progress: number[] = [];
+
+		await fetchTranslationsFromOtherProjects({
+			targetProject: target,
+			edition,
+			sourceProjectDetails: [createDetail(2, '2026-01-02'), createDetail(3, '2026-01-01')],
+			onProgress: (value) => progress.push(value)
+		});
+
+		expect(progress[0]).toBe(0);
+		expect(progress).toContain(25);
+		expect(progress).toContain(50);
+		expect(progress).toContain(75);
+		expect(progress.at(-1)).toBe(100);
+	});
 });

@@ -28,7 +28,8 @@ import {
 import { globalState } from '$lib/runes/main.svelte';
 import {
 	BATCH_TRANSLATION_CONCURRENCY,
-	BatchTranslationService
+	BatchTranslationService,
+	type BatchTranslationQueueProgress
 } from '$lib/services/BatchTranslationService';
 
 const edition = new Edition('key', 'edition', 'Author', 'English', 'ltr', '', '', '', '');
@@ -249,5 +250,76 @@ describe('BatchTranslationService', () => {
 
 		expect(items[0].translations.edition.status).toBe('auto_verified');
 		expect(items[1].translations.edition.status).toBe('needs_review');
+	});
+
+	it('refills free fetch workers immediately and reports their aggregate progress', async () => {
+		const items = Array.from({ length: 4 }, (_, index) => createItem(index + 1));
+		for (const item of items) {
+			item.translations.edition = {
+				editionName: 'edition',
+				editionAuthor: 'Author',
+				editionLanguage: 'English',
+				status: 'ready_to_fetch',
+				progress: 100,
+				error: null,
+				review: { total: 1, complete: 0, pending: 1, fetched: 0, toReview: 1, errors: 0 },
+				addedAt: new Date(),
+				fetchedAt: null,
+				completedAt: null
+			};
+		}
+		const projects = items.map((item) => createProject(item.projectId, async () => undefined));
+		for (const project of projects) {
+			project.content.projectTranslation.addedTranslationEditions.push(edition);
+		}
+		projectMocks.load.mockImplementation(async (id: number) => projects[id - 1]);
+		const started: number[] = [];
+		const release = new Map<number, () => void>();
+		translationMocks.fetch.mockImplementation(
+			({
+				targetProject,
+				onProgress
+			}: {
+				targetProject: Project;
+				onProgress?: (progress: number) => void;
+			}) => {
+				started.push(targetProject.detail.id);
+				onProgress?.(50);
+				return new Promise((resolve) => {
+					release.set(targetProject.detail.id, () =>
+						resolve({
+							fetched: 1,
+							review: {
+								total: 1,
+								complete: 1,
+								pending: 0,
+								fetched: 1,
+								toReview: 0,
+								errors: 0
+							}
+						})
+					);
+				});
+			}
+		);
+		const progress: BatchTranslationQueueProgress[] = [];
+		const run = new BatchTranslationService({
+			onProgress: (value) => progress.push(value)
+		}).fetchEdition(new Batch('Batch', items, 10), items, 'edition');
+
+		await vi.waitFor(() => expect(started).toEqual([1, 2, 3]));
+		release.get(1)!();
+		await vi.waitFor(() => expect(started).toEqual([1, 2, 3, 4]));
+		for (const id of [2, 3, 4]) release.get(id)!();
+		await run;
+
+		expect(progress.some((value) => value.active === 3 && value.progress > 0)).toBe(true);
+		expect(progress.at(-1)).toMatchObject({
+			active: 0,
+			completed: 4,
+			remaining: 0,
+			progress: 100,
+			total: 4
+		});
 	});
 });

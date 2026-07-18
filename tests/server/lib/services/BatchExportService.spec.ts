@@ -53,15 +53,28 @@ function createItem(order: number, name: string = 'Same'): BatchProjectItem {
  * @returns {Project} Projet simulé.
  */
 function createProject(item: BatchProjectItem): Project {
-	return {
+	const project = {
 		detail: { id: item.projectId, name: item.projectName },
 		projectEditorState: {
 			export: {
+				exportOnlyRecitation: false,
+				recitationCutMarginMs: 25,
+				recitationMinimumSilenceMs: 500,
 				exportWithoutBackground: false,
 				transparentExportFormat: 'mov_prores_4444'
 			}
 		}
 	} as Project;
+	(project as unknown as { clone: () => Project }).clone = vi.fn(
+		() =>
+			({
+				...project,
+				projectEditorState: {
+					export: { ...project.projectEditorState.export }
+				}
+			}) as Project
+	);
+	return project;
 }
 
 describe('BatchExportService', () => {
@@ -140,6 +153,41 @@ describe('BatchExportService', () => {
 		expect(nonReady.export.status).toBe('completed');
 		expect(active.export.status).toBe('failed');
 		expect(missing.export.status).toBe('failed');
+	});
+
+	it('forces default recitation-only settings on export copies without changing projects', async () => {
+		const item = createItem(1, 'Recitation');
+		const project = createProject(item);
+		const queuedSettings: Array<Project['projectEditorState']['export']> = [];
+		const service = new BatchExportService({
+			saveProject: async () => undefined,
+			saveBatch: async () => undefined,
+			pathExists: async () => false,
+			queueProject: async (queuedProject) => {
+				queuedSettings.push(queuedProject.projectEditorState.export);
+				return queuedProject.detail.id;
+			},
+			waitForExport: async () => undefined
+		});
+
+		await service.run(
+			new Batch('Batch', [item]),
+			[{ item, project, reason: null }],
+			'/out',
+			false,
+			true
+		);
+
+		expect(queuedSettings[0]).toMatchObject({
+			exportOnlyRecitation: true,
+			recitationCutMarginMs: 350,
+			recitationMinimumSilenceMs: 3000
+		});
+		expect(project.projectEditorState.export).toMatchObject({
+			exportOnlyRecitation: false,
+			recitationCutMarginMs: 25,
+			recitationMinimumSilenceMs: 500
+		});
 	});
 
 	it('sanitizes forbidden filesystem characters without producing an empty name', () => {

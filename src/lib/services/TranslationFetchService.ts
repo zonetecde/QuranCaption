@@ -27,6 +27,7 @@ export interface FetchTranslationsOptions {
 	edition: Edition;
 	sourceProjectDetails: ProjectDetail[];
 	skipQC1Projects?: boolean;
+	onProgress?: (progress: number) => void;
 }
 
 export interface FetchTranslationResult {
@@ -98,7 +99,13 @@ export function getProjectTranslationReviewCounts(
 export async function fetchTranslationsFromOtherProjects(
 	options: FetchTranslationsOptions
 ): Promise<FetchTranslationResult> {
-	const { targetProject, edition, sourceProjectDetails, skipQC1Projects = false } = options;
+	const {
+		targetProject,
+		edition,
+		sourceProjectDetails,
+		skipQC1Projects = false,
+		onProgress
+	} = options;
 	const pendingByKey = new Map<string, SubtitleClip[]>();
 	const changedIds = new Set<number>();
 
@@ -118,12 +125,19 @@ export async function fetchTranslationsFromOtherProjects(
 		)
 		.slice()
 		.sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+	const totalSourcePasses = sources.length * 2;
+	let completedSourcePasses = 0;
+	let reportedProgress = totalSourcePasses === 0 ? 100 : 0;
+	onProgress?.(reportedProgress);
 
 	for (const allowedStatuses of [HIGH_PRIORITY_FETCH_STATUSES, LOW_PRIORITY_FETCH_STATUSES]) {
 		if (pendingByKey.size === 0) break;
 		for (const detail of sources) {
 			if (pendingByKey.size === 0) break;
 			const sourceProject = await ProjectService.load(detail.id);
+			completedSourcePasses++;
+			reportedProgress = Math.round((completedSourcePasses * 100) / totalSourcePasses);
+			onProgress?.(reportedProgress);
 			if (!sourceProject) continue;
 			for (const sourceClip of getProjectSubtitleClips(sourceProject)) {
 				const source = sourceClip.translations[edition.name] as VerseTranslation | undefined;
@@ -155,6 +169,7 @@ export async function fetchTranslationsFromOtherProjects(
 			}
 		}
 	}
+	if (reportedProgress < 100) onProgress?.(100);
 
 	if (changedIds.size > 0) {
 		markInvalidAdvancedTrimTranslations(edition, {

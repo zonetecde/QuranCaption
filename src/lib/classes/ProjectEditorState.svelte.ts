@@ -417,6 +417,9 @@ export class TranslationsEditorState extends SerializableBase {
 	}
 }
 
+export const DEFAULT_RECITATION_CUT_MARGIN_MS = 350;
+export const DEFAULT_RECITATION_MINIMUM_SILENCE_MS = 3000;
+
 export class ExportState extends SerializableBase {
 	// Indique le type d'export choisie
 	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' = $state('video');
@@ -449,8 +452,8 @@ export class ExportState extends SerializableBase {
 	videoEndTime: number = $state(0);
 	fps: number = $state(30);
 	exportOnlyRecitation: boolean = $state(false);
-	recitationCutMarginMs: number = $state(350);
-	recitationMinimumSilenceMs: number = $state(3000);
+	recitationCutMarginMs: number = $state(DEFAULT_RECITATION_CUT_MARGIN_MS);
+	recitationMinimumSilenceMs: number = $state(DEFAULT_RECITATION_MINIMUM_SILENCE_MS);
 	exportWithoutBackground: boolean = $state(false);
 	transparentExportFormat: 'mov_prores_4444' | 'webm_vp9_alpha' = $state('mov_prores_4444');
 	customFileName: string = $state('');

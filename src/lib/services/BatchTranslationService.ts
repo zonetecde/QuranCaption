@@ -25,6 +25,17 @@ export interface BatchTranslationServiceOptions {
 		editionName: string,
 		activity: BatchTranslationActivity
 	) => void;
+	onProgress?: (progress: BatchTranslationQueueProgress) => void;
+}
+
+export interface BatchTranslationQueueProgress {
+	active: number;
+	completed: number;
+	failed: number;
+	skipped: number;
+	remaining: number;
+	progress: number;
+	total: number;
 }
 
 export interface BatchTranslationRunResult {
@@ -78,6 +89,7 @@ async function runWithConcurrency<T>(
 
 export class BatchTranslationService {
 	private readonly onUpdate?: BatchTranslationServiceOptions['onUpdate'];
+	private readonly onProgress?: BatchTranslationServiceOptions['onProgress'];
 	private saveChain: Promise<void> = Promise.resolve();
 
 	/**
@@ -86,6 +98,7 @@ export class BatchTranslationService {
 	 */
 	constructor(options: BatchTranslationServiceOptions = {}) {
 		this.onUpdate = options.onUpdate;
+		this.onProgress = options.onProgress;
 	}
 
 	/**
@@ -216,14 +229,40 @@ export class BatchTranslationService {
 		editionName: string
 	): Promise<BatchTranslationRunResult> {
 		const result: BatchTranslationRunResult = { completed: 0, failed: 0, skipped: 0 };
+		const progressByProject = new Map(items.map((item) => [item.projectId, 0]));
+		let active = 0;
+		/**
+		 * Publie l'avancement agrégé des projets de cette exécution uniquement.
+		 * @returns {void}
+		 */
+		const reportProgress = (): void => {
+			const processed = result.completed + result.failed + result.skipped;
+			this.onProgress?.({
+				active,
+				completed: result.completed,
+				failed: result.failed,
+				skipped: result.skipped,
+				remaining: Math.max(items.length - active - processed, 0),
+				progress: Math.round(
+					[...progressByProject.values()].reduce((sum, progress) => sum + progress, 0) /
+						Math.max(items.length, 1)
+				),
+				total: items.length
+			});
+		};
+		reportProgress();
 		if (globalState.userProjectsDetails.length === 0)
 			await ProjectService.loadUserProjectsDetails();
 		await runWithConcurrency(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
 			const state = item.translations[editionName];
 			if (!state) {
 				result.skipped++;
+				progressByProject.set(item.projectId, 100);
+				reportProgress();
 				return;
 			}
+			active++;
+			reportProgress();
 			try {
 				const project = await ProjectService.load(item.projectId);
 				const edition = project.content.projectTranslation.addedTranslationEditions.find(
@@ -241,13 +280,21 @@ export class BatchTranslationService {
 				const fetchResult = await fetchTranslationsFromOtherProjects({
 					targetProject: project,
 					edition,
-					sourceProjectDetails: globalState.userProjectsDetails
+					sourceProjectDetails: globalState.userProjectsDetails,
+					onProgress: (progress) => {
+						state.progress = Math.round(progress * 0.9);
+						progressByProject.set(item.projectId, state.progress);
+						this.onUpdate?.(item, editionName, 'fetching');
+						reportProgress();
+					}
 				});
 				state.progress = 90;
+				progressByProject.set(item.projectId, state.progress);
 				state.review = fetchResult.review;
 				this.onUpdate?.(item, editionName, 'fetching');
 				project.content.projectTranslation.updateProjectPercentage(project, edition);
 				state.progress = 98;
+				progressByProject.set(item.projectId, state.progress);
 				this.onUpdate?.(item, editionName, 'saving');
 				await project.save();
 				state.status = state.review.pending === 0 ? 'auto_verified' : 'needs_review';
@@ -264,6 +311,10 @@ export class BatchTranslationService {
 				this.onUpdate?.(item, editionName, 'fetching');
 				await this.saveBatch(batch);
 				result.failed++;
+			} finally {
+				active--;
+				progressByProject.set(item.projectId, 100);
+				reportProgress();
 			}
 		});
 		await this.saveChain;

@@ -13,6 +13,10 @@ import Exporter from '$lib/classes/Exporter';
 import ExportService from './ExportService';
 import { BatchService } from './BatchService';
 import { ProjectService } from './ProjectService';
+import {
+	DEFAULT_RECITATION_CUT_MARGIN_MS,
+	DEFAULT_RECITATION_MINIMUM_SILENCE_MS
+} from '$lib/classes/ProjectEditorState.svelte';
 
 export const BATCH_EXPORT_CONCURRENCY = 1;
 
@@ -154,13 +158,15 @@ export class BatchExportService {
 	 * @param {BatchExportEligibility[]} inspection Résultats confirmés par l'utilisateur.
 	 * @param {string} outputFolder Dossier de sortie commun.
 	 * @param {boolean} includeNotReady Inclut les projets chargeables malgré leur avertissement.
+	 * @param {boolean} exportOnlyRecitation Force les réglages de récitation par défaut sur les copies exportées.
 	 * @returns {Promise<BatchExportProgress>} Résumé final.
 	 */
 	async run(
 		batch: Batch,
 		inspection: BatchExportEligibility[],
 		outputFolder: string,
-		includeNotReady: boolean = false
+		includeNotReady: boolean = false,
+		exportOnlyRecitation: boolean = false
 	): Promise<BatchExportProgress> {
 		const eligible = inspection
 			.filter(
@@ -214,7 +220,15 @@ export class BatchExportService {
 				);
 				const fileName = outputPath.split(/[/\\]/).at(-1)!;
 				item.export.outputPath = outputPath;
-				const exportId = await this.queueProject(project, fileName, outputPath);
+				const exportProject = exportOnlyRecitation ? project.clone() : project;
+				if (exportOnlyRecitation) {
+					exportProject.projectEditorState.export.exportOnlyRecitation = true;
+					exportProject.projectEditorState.export.recitationCutMarginMs =
+						DEFAULT_RECITATION_CUT_MARGIN_MS;
+					exportProject.projectEditorState.export.recitationMinimumSilenceMs =
+						DEFAULT_RECITATION_MINIMUM_SILENCE_MS;
+				}
+				const exportId = await this.queueProject(exportProject, fileName, outputPath);
 				await this.waitForExport(exportId, (progress) => {
 					item.export.progress = progress;
 					void this.persist(batch);

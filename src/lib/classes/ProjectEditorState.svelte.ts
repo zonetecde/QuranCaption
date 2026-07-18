@@ -70,6 +70,9 @@ export class StylesEditorState extends SerializableBase {
 	// Indique le panneau actuellement affiché dans l'éditeur de styles
 	currentPanel: string = $state('');
 
+	// Indique la catégorie active dans chaque panneau de l'éditeur de styles
+	activePanelCategoryIds: Record<string, string> = $state({});
+
 	// Indique les sous-titres actuellement sélectionnés dans l'éditeur de styles
 	selectedSubtitles: Array<SubtitleClip | PredefinedSubtitleClip> = $state([]);
 

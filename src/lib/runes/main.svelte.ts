@@ -27,8 +27,10 @@ export type AppPage = 'home' | 'ai-video' | 'batch-import' | 'batch-workspace';
 
 export interface BatchReviewSessionState {
 	active: boolean;
+	kind: 'segmentation' | 'translation' | null;
 	batchId: number | null;
 	currentProjectId: number | null;
+	editionName: string | null;
 	isNavigating: boolean;
 }
 
@@ -180,10 +182,13 @@ class GlobalState {
 		autoSegmentationWizard: null as unknown,
 		batchReview: {
 			active: false,
+			kind: null,
 			batchId: null,
 			currentProjectId: null,
+			editionName: null,
 			isNavigating: false
 		} as BatchReviewSessionState,
+		batchTranslationEditionName: null as string | null,
 		projectSearch: {
 			openRequest: 0
 		},

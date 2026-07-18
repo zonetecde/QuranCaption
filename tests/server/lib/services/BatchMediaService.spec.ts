@@ -62,7 +62,8 @@ function createItem(order: number): BatchProjectItem {
 			mode: null,
 			assetId: null
 		},
-		segmentation: createDefaultBatchSegmentationState()
+		segmentation: createDefaultBatchSegmentationState(),
+		translations: {}
 	};
 }
 

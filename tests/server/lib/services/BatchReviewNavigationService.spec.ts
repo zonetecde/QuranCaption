@@ -20,6 +20,7 @@ vi.mock('svelte-5-french-toast', () => ({
 import {
 	navigateBatchReview,
 	openBatchReviewProject,
+	openBatchTranslationReviewProject,
 	startBatchReview,
 	stopBatchReview
 } from '$lib/services/BatchReviewNavigationService';
@@ -27,10 +28,13 @@ import {
 	Batch,
 	ProjectEditorTabs,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchTranslationState,
+	SubtitleClip,
 	type BatchProjectItem,
 	type Project
 } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
 
 /**
  * Construit une ligne Batch signalée.
@@ -53,7 +57,8 @@ function createItem(id: number, order: number): BatchProjectItem {
 			mode: 'audio_only',
 			assetId: null
 		},
-		segmentation: createDefaultBatchSegmentationState()
+		segmentation: createDefaultBatchSegmentationState(),
+		translations: {}
 	};
 	item.segmentation.status = 'needs_review';
 	return item;
@@ -100,6 +105,75 @@ describe('Batch review navigation', () => {
 		expect(globalState.currentBatchId).toBe(10);
 		expect(globalState.currentProject).toBe(project);
 		expect(project.projectEditorState.currentTab).toBe(ProjectEditorTabs.SubtitlesEditor);
+	});
+
+	it('starts an edition-scoped translation review on the first incomplete clip', async () => {
+		const item = createItem(4, 1);
+		item.translations.edition = {
+			...createDefaultBatchTranslationState({
+				editionName: 'edition',
+				editionAuthor: 'Author',
+				editionLanguage: 'English'
+			}),
+			status: 'needs_review'
+		};
+		const clip = new SubtitleClip(0, 1000, 1, 1, 0, 0, 'Text', [], false, true);
+		clip.translations.edition = new VerseTranslation('Pending', 'to review');
+		const project = createProject(4, 10);
+		(
+			project as unknown as {
+				content: { timeline: { getFirstTrack: () => { clips: SubtitleClip[] } } };
+			}
+		).content = { timeline: { getFirstTrack: () => ({ clips: [clip] }) } };
+		project.projectEditorState.translationsEditor = {
+			checkOnlyFilters: vi.fn(),
+			searchQuery: 'old',
+			onlyShowOverlappingSubtitles: true
+		} as never;
+		batchMocks.load.mockResolvedValue(new Batch('Batch', [item], 10));
+		projectMocks.load.mockResolvedValue(project);
+
+		expect(await openBatchTranslationReviewProject(10, 4, 'edition')).toBe(true);
+
+		expect(project.projectEditorState.currentTab).toBe(ProjectEditorTabs.Translations);
+		expect(globalState.shared.batchReview).toMatchObject({
+			active: true,
+			kind: 'translation',
+			editionName: 'edition',
+			currentProjectId: 4
+		});
+		expect(globalState.shared.translationScrollTargetClipId).toBe(clip.id);
+	});
+
+	it('marks a completed translation review as manually verified before leaving', async () => {
+		const item = createItem(1, 1);
+		item.translations.edition = {
+			...createDefaultBatchTranslationState({
+				editionName: 'edition',
+				editionAuthor: 'Author',
+				editionLanguage: 'English'
+			}),
+			status: 'needs_review'
+		};
+		const clip = new SubtitleClip(0, 1000, 1, 1, 0, 0, 'Text', [], false, true);
+		clip.translations.edition = new VerseTranslation('Reviewed', 'reviewed');
+		const project = createProject(1, 10);
+		(
+			project as unknown as {
+				content: { timeline: { getFirstTrack: () => { clips: SubtitleClip[] } } };
+			}
+		).content = { timeline: { getFirstTrack: () => ({ clips: [clip] }) } };
+		const batch = new Batch('Batch', [item], 10);
+		batchMocks.load.mockResolvedValue(batch);
+		globalState.currentBatchId = 10;
+		globalState.currentProject = project;
+		startBatchReview(10, 1, 'translation', 'edition');
+
+		await navigateBatchReview('next');
+
+		expect(item.translations.edition.status).toBe('manually_verified');
+		expect(globalState.shared.batchReview.active).toBe(false);
+		expect(globalState.currentPage).toBe('batch-workspace');
 	});
 
 	it('manually verifies a resolved project before opening the next flagged one', async () => {

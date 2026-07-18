@@ -9713,6 +9713,153 @@ type RootTranslation = {
 		 * U​n​a​b​l​e​ ​t​o​ ​a​d​d​ ​t​h​e​ ​m​e​d​i​a​ ​t​o​ ​t​h​e​ ​a​u​d​i​o​ ​t​r​a​c​k​.
 		 */
 		errorAudioTrack: string;
+		/**
+		 * A​d​d​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​t​o​ ​p​r​o​j​e​c​t​s
+		 */
+		addTranslationsToProjects: string;
+		/**
+		 * F​e​t​c​h​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​f​r​o​m​ ​o​t​h​e​r​ ​p​r​o​j​e​c​t​s
+		 */
+		fetchTranslationsFromProjects: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​o​n​:
+		 */
+		translationEdition: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		translations: string;
+		/**
+		 * N​o​t​ ​a​d​d​e​d
+		 */
+		translationNotAdded: string;
+		/**
+		 * A​d​d​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		translationAdding: string;
+		/**
+		 * R​e​a​d​y​ ​t​o​ ​f​e​t​c​h
+		 */
+		translationReadyToFetch: string;
+		/**
+		 * F​e​t​c​h​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		translationFetching: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​s​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​v​e​r​i​f​i​e​d
+		 */
+		translationAutoVerified: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​s​ ​n​e​e​d​ ​r​e​v​i​e​w
+		 */
+		translationNeedsReview: string;
+		/**
+		 * M​a​n​u​a​l​l​y​ ​v​e​r​i​f​i​e​d
+		 */
+		translationManuallyVerified: string;
+		/**
+		 * F​a​i​l​e​d
+		 */
+		translationFailed: string;
+		/**
+		 * {​c​o​m​p​l​e​t​e​d​}​ ​/​ ​{​t​o​t​a​l​}​ ​p​r​o​j​e​c​t​(​s​)​ ​p​r​o​c​e​s​s​e​d
+		 * @param {unknown} completed
+		 * @param {unknown} total
+		 */
+		translationQueueSummary: RequiredParams<'completed' | 'total'>;
+		/**
+		 * {​c​o​m​p​l​e​t​e​}​/​{​t​o​t​a​l​}​ ​c​o​m​p​l​e​t​e​ ​·​ ​{​p​e​n​d​i​n​g​}​ ​r​e​m​a​i​n​i​n​g​ ​·​ ​{​f​e​t​c​h​e​d​}​ ​f​e​t​c​h​e​d
+		 * @param {unknown} complete
+		 * @param {unknown} fetched
+		 * @param {unknown} pending
+		 * @param {unknown} total
+		 */
+		translationCounts: RequiredParams<'complete' | 'fetched' | 'pending' | 'total'>;
+		/**
+		 * S​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​s​:​ ​{​c​o​u​n​t​}
+		 * @param {unknown} count
+		 */
+		translationSelectedProjects: RequiredParams<'count'>;
+		/**
+		 * E​l​i​g​i​b​l​e​ ​p​r​o​j​e​c​t​s​:​ ​{​c​o​u​n​t​}
+		 * @param {unknown} count
+		 */
+		translationEligibleProjects: RequiredParams<'count'>;
+		/**
+		 * I​n​s​p​e​c​t​i​n​g​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​s​…
+		 */
+		translationInspectingProjects: string;
+		/**
+		 * I​g​n​o​r​e​d​ ​p​r​o​j​e​c​t​s
+		 */
+		translationIgnoredProjects: string;
+		/**
+		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​i​s​ ​n​o​t​ ​v​e​r​i​f​i​e​d
+		 */
+		translationReasonSegmentation: string;
+		/**
+		 * T​h​e​ ​s​u​b​t​i​t​l​e​ ​t​r​a​c​k​ ​i​s​ ​e​m​p​t​y
+		 */
+		translationReasonSubtitles: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​n​o​t​ ​f​o​u​n​d​ ​o​r​ ​u​n​r​e​a​d​a​b​l​e
+		 */
+		translationReasonProject: string;
+		/**
+		 * S​e​a​r​c​h​ ​b​y​ ​l​a​n​g​u​a​g​e​ ​o​r​ ​a​u​t​h​o​r​…
+		 */
+		translationSearchEditions: string;
+		/**
+		 * E​d​i​t​i​o​n​ ​a​l​r​e​a​d​y​ ​a​d​d​e​d​ ​i​n​ ​{​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​(​s​)​.
+		 * @param {unknown} count
+		 */
+		translationAlreadyAddedCount: RequiredParams<'count'>;
+		/**
+		 * S​k​i​p​ ​p​r​o​j​e​c​t​s​ ​t​h​a​t​ ​a​l​r​e​a​d​y​ ​c​o​n​t​a​i​n​ ​t​h​i​s​ ​e​d​i​t​i​o​n
+		 */
+		translationSkipExisting: string;
+		/**
+		 * E​x​i​s​t​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​w​i​l​l​ ​b​e​ ​r​e​p​l​a​c​e​d​ ​i​n​ ​t​h​e​ ​a​f​f​e​c​t​e​d​ ​p​r​o​j​e​c​t​s​.
+		 */
+		translationReplaceWarning: string;
+		/**
+		 * A​d​d
+		 */
+		translationAdd: string;
+		/**
+		 * F​e​t​c​h
+		 */
+		translationFetch: string;
+		/**
+		 * P​e​n​d​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​s​:​ ​{​c​o​u​n​t​}
+		 * @param {unknown} count
+		 */
+		translationPendingCount: RequiredParams<'count'>;
+		/**
+		 * P​r​o​j​e​c​t​s​ ​w​i​t​h​o​u​t​ ​t​h​i​s​ ​e​d​i​t​i​o​n​:​ ​{​c​o​u​n​t​}
+		 * @param {unknown} count
+		 */
+		translationMissingEditionCount: RequiredParams<'count'>;
+		/**
+		 * R​e​v​i​e​w​ ​t​r​a​n​s​l​a​t​i​o​n​ ​p​r​o​j​e​c​t​s
+		 */
+		reviewTranslationProjects: string;
+		/**
+		 * A​l​l​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​f​o​r​ ​t​h​i​s​ ​e​d​i​t​i​o​n​ ​h​a​v​e​ ​b​e​e​n​ ​r​e​v​i​e​w​e​d​.
+		 */
+		translationReviewCompleted: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​o​p​e​r​a​t​i​o​n​ ​i​n​t​e​r​r​u​p​t​e​d
+		 */
+		translationInterrupted: string;
+		/**
+		 * S​e​l​e​c​t​ ​a​n​ ​e​d​i​t​i​o​n
+		 */
+		selectTranslationEdition: string;
+		/**
+		 * N​o​ ​c​o​m​m​o​n​ ​e​d​i​t​i​o​n​ ​f​o​u​n​d
+		 */
+		noCommonTranslationEdition: string;
 	};
 };
 
@@ -19249,6 +19396,147 @@ export type TranslationFunctions = {
 		 * Unable to add the media to the audio track.
 		 */
 		errorAudioTrack: () => LocalizedString;
+		/**
+		 * Add translations to projects
+		 */
+		addTranslationsToProjects: () => LocalizedString;
+		/**
+		 * Fetch translations from other projects
+		 */
+		fetchTranslationsFromProjects: () => LocalizedString;
+		/**
+		 * Translation edition:
+		 */
+		translationEdition: () => LocalizedString;
+		/**
+		 * Translations
+		 */
+		translations: () => LocalizedString;
+		/**
+		 * Not added
+		 */
+		translationNotAdded: () => LocalizedString;
+		/**
+		 * Adding translations
+		 */
+		translationAdding: () => LocalizedString;
+		/**
+		 * Ready to fetch
+		 */
+		translationReadyToFetch: () => LocalizedString;
+		/**
+		 * Fetching translations
+		 */
+		translationFetching: () => LocalizedString;
+		/**
+		 * Translations automatically verified
+		 */
+		translationAutoVerified: () => LocalizedString;
+		/**
+		 * Translations need review
+		 */
+		translationNeedsReview: () => LocalizedString;
+		/**
+		 * Manually verified
+		 */
+		translationManuallyVerified: () => LocalizedString;
+		/**
+		 * Failed
+		 */
+		translationFailed: () => LocalizedString;
+		/**
+		 * {completed} / {total} project(s) processed
+		 */
+		translationQueueSummary: (arg: { completed: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * {complete}/{total} complete · {pending} remaining · {fetched} fetched
+		 */
+		translationCounts: (arg: {
+			complete: unknown;
+			fetched: unknown;
+			pending: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * Selected projects: {count}
+		 */
+		translationSelectedProjects: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Eligible projects: {count}
+		 */
+		translationEligibleProjects: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Inspecting selected projects…
+		 */
+		translationInspectingProjects: () => LocalizedString;
+		/**
+		 * Ignored projects
+		 */
+		translationIgnoredProjects: () => LocalizedString;
+		/**
+		 * Segmentation is not verified
+		 */
+		translationReasonSegmentation: () => LocalizedString;
+		/**
+		 * The subtitle track is empty
+		 */
+		translationReasonSubtitles: () => LocalizedString;
+		/**
+		 * Project not found or unreadable
+		 */
+		translationReasonProject: () => LocalizedString;
+		/**
+		 * Search by language or author…
+		 */
+		translationSearchEditions: () => LocalizedString;
+		/**
+		 * Edition already added in {count} selected project(s).
+		 */
+		translationAlreadyAddedCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Skip projects that already contain this edition
+		 */
+		translationSkipExisting: () => LocalizedString;
+		/**
+		 * Existing translations will be replaced in the affected projects.
+		 */
+		translationReplaceWarning: () => LocalizedString;
+		/**
+		 * Add
+		 */
+		translationAdd: () => LocalizedString;
+		/**
+		 * Fetch
+		 */
+		translationFetch: () => LocalizedString;
+		/**
+		 * Pending translations: {count}
+		 */
+		translationPendingCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Projects without this edition: {count}
+		 */
+		translationMissingEditionCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Review translation projects
+		 */
+		reviewTranslationProjects: () => LocalizedString;
+		/**
+		 * All translations for this edition have been reviewed.
+		 */
+		translationReviewCompleted: () => LocalizedString;
+		/**
+		 * Translation operation interrupted
+		 */
+		translationInterrupted: () => LocalizedString;
+		/**
+		 * Select an edition
+		 */
+		selectTranslationEdition: () => LocalizedString;
+		/**
+		 * No common edition found
+		 */
+		noCommonTranslationEdition: () => LocalizedString;
 	};
 };
 

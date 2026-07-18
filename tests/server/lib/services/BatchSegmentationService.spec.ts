@@ -55,7 +55,8 @@ function createItem(order: number): BatchProjectItem {
 			mode: 'audio_only',
 			assetId: order
 		},
-		segmentation: createDefaultBatchSegmentationState()
+		segmentation: createDefaultBatchSegmentationState(),
+		translations: {}
 	};
 }
 

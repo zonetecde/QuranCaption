@@ -10,6 +10,7 @@ export { ProjectEditorState } from './ProjectEditorState.svelte.js';
 export { Project } from './Project.js';
 export {
 	Batch,
+	createDefaultBatchTranslationState,
 	createDefaultBatchSegmentationState,
 	isBatchProjectSegmentationVerified
 } from './Batch.js';
@@ -19,11 +20,14 @@ export type {
 	BatchMediaState,
 	BatchMediaStatus,
 	BatchProjectItem,
+	BatchProjectTranslationState,
 	BatchSource,
 	BatchSegmentationReviewCounts,
 	BatchSegmentationSettingsSnapshot,
 	BatchSegmentationState,
-	BatchSegmentationStatus
+	BatchSegmentationStatus,
+	BatchTranslationReviewCounts,
+	BatchTranslationStatus
 } from './Batch.js';
 export { Timeline } from './Timeline.svelte.js';
 export { Track } from './Track.svelte.js';

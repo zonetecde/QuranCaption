@@ -1020,8 +1020,13 @@ export class VerseTranslation extends Translation {
 	/**
 	 * Recalcule les indexes de début et de fin de la traduction dans le texte original en fonction du texte actuel
 	 */
-	tryRecalculateTranslationIndexes(edition: Edition, verseKey: string): void {
+	tryRecalculateTranslationIndexes(
+		edition: Edition,
+		verseKey: string,
+		projectTranslationText?: string
+	): void {
 		const originalTranslationText: string =
+			projectTranslationText ??
 			globalState.currentProject!.content.projectTranslation.getVerseTranslation(edition, verseKey);
 
 		if (!originalTranslationText) return;

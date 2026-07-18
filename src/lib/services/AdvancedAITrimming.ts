@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 
-import type { Edition, SubtitleClip } from '$lib/classes';
+import { SubtitleClip, TrackType, type Edition, type Project } from '$lib/classes';
 import { getTranslationTrimUnits, type VerseTranslation } from '$lib/classes/Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -106,6 +106,7 @@ export type AdvancedTrimErrorMarkReport = {
 
 export type AdvancedTrimErrorMarkOptions = {
 	shouldCheckTranslation?: (translation: VerseTranslation, subtitle: SubtitleClip) => boolean;
+	project?: Project;
 };
 
 export type AdvancedTrimCostEstimate = {
@@ -443,8 +444,16 @@ function isVerseAlreadyReviewed(subtitles: SubtitleClip[], edition: Edition): bo
 
 export function buildAdvancedTrimVerseCandidates(
 	edition: Edition,
-	includeReviewed: boolean
+	includeReviewed: boolean,
+	project?: Project
 ): AdvancedTrimVerseCandidate[] {
+	const projectTranslation =
+		project?.content.projectTranslation ?? globalState.getProjectTranslation;
+	const subtitleClips = project
+		? project.content.timeline
+				.getFirstTrack(TrackType.Subtitle)
+				.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+		: globalState.getSubtitleClips;
 	const allSubtitlesByVerse = new Map<string, SubtitleClip[]>();
 	const grouped = new Map<
 		string,
@@ -454,8 +463,8 @@ export function buildAdvancedTrimVerseCandidates(
 		}
 	>();
 
-	for (let i = 0; i < globalState.getSubtitleClips.length; i++) {
-		const subtitle = globalState.getSubtitleClips[i];
+	for (let i = 0; i < subtitleClips.length; i++) {
+		const subtitle = subtitleClips[i];
 		const verseKey = subtitle.getVerseKey();
 		const allSubtitles = allSubtitlesByVerse.get(verseKey);
 		if (allSubtitles) {
@@ -480,10 +489,7 @@ export function buildAdvancedTrimVerseCandidates(
 	return Array.from(grouped.entries())
 		.map(([verseKey, entry]) => {
 			const allVerseSubtitles = allSubtitlesByVerse.get(verseKey) ?? entry.subtitles;
-			const sourceTranslation = globalState.getProjectTranslation.getVerseTranslation(
-				edition,
-				verseKey
-			);
+			const sourceTranslation = projectTranslation.getVerseTranslation(edition, verseKey);
 			const segments = entry.subtitles.map((subtitle, segmentIndex) => {
 				const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
 				const isComplete = translation?.isStatusComplete() ?? false;
@@ -875,6 +881,7 @@ export function markInvalidAdvancedTrimTranslations(
 	edition: Edition,
 	options: AdvancedTrimErrorMarkOptions = {}
 ): AdvancedTrimErrorMarkReport {
+	if (options.project) return markInvalidAdvancedTrimTranslationsInternal(edition, options);
 	return ProjectHistoryManager.track('mark invalid translation trims', () =>
 		markInvalidAdvancedTrimTranslationsInternal(edition, options)
 	);
@@ -891,7 +898,7 @@ function markInvalidAdvancedTrimTranslationsInternal(
 	edition: Edition,
 	options: AdvancedTrimErrorMarkOptions = {}
 ): AdvancedTrimErrorMarkReport {
-	const candidates = buildAdvancedTrimVerseCandidates(edition, true);
+	const candidates = buildAdvancedTrimVerseCandidates(edition, true, options.project);
 	let checkedSegments = 0;
 	let markedSegments = 0;
 	let erroredVerses = 0;
@@ -913,7 +920,11 @@ function markInvalidAdvancedTrimTranslationsInternal(
 			)
 				continue;
 
-			verseTranslation.tryRecalculateTranslationIndexes(edition, candidate.verseKey);
+			verseTranslation.tryRecalculateTranslationIndexes(
+				edition,
+				candidate.verseKey,
+				candidate.sourceTranslation
+			);
 			checkedIndexes.add(index);
 			checkedSegments++;
 		}
@@ -930,7 +941,8 @@ function markInvalidAdvancedTrimTranslationsInternal(
 			if (!verseTranslation || !checkedIndexes.has(index)) continue;
 
 			verseTranslation.isBruteForce = ruleReport.remapFailedIndexes.has(index);
-			verseTranslation.updateStatus('error', edition);
+			if (options.project) verseTranslation.status = 'error';
+			else verseTranslation.updateStatus('error', edition);
 			markedSegments++;
 		}
 

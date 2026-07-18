@@ -22,12 +22,18 @@
 	}: {
 		setAddTranslationModalVisibility: (visible: boolean) => void;
 	} = $props();
+	const project = globalState.currentProject!;
 
-	let editionsToShowInEditor = $derived(() =>
-		globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
-			(edition) => edition.showInTranslationsEditor
-		)
-	);
+	let editionsToShowInEditor = $derived(() => {
+		const focusedEdition =
+			globalState.shared.batchReview.active && globalState.shared.batchReview.kind === 'translation'
+				? globalState.shared.batchReview.editionName
+				: null;
+		return globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
+			(edition) =>
+				focusedEdition ? edition.name === focusedEdition : edition.showInTranslationsEditor
+		);
+	});
 
 	// Le format est : { [sous-titreId]: [edition1, edition2, ...] }
 	let allowedTranslations: { [key: string]: string[] } = $state({});
@@ -116,7 +122,7 @@
 	}
 
 	function translationsEditorState() {
-		return globalState.currentProject!.projectEditorState.translationsEditor;
+		return project.projectEditorState.translationsEditor;
 	}
 
 	/**
@@ -137,9 +143,9 @@
 		getGroupIndexForClipId,
 		getVisibleCount: () => visibleCount,
 		setVisibleCount: (count) => {
-			visibleCount = count;
+			visibleCount = Math.min(count + PAGE_SIZE, subtitlesInGroups().length);
 		},
-		saveProject: () => globalState.currentProject?.save(false)
+		saveProject: () => project.save(false)
 	});
 
 	let allSubtitlesInGroups = $derived(() => {

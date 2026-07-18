@@ -1,6 +1,9 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { canonicalizePredefinedSubtitleType } from './Clip.svelte';
 import type { Edition } from './Edition';
+import type { Project } from './Project';
+import { TrackType } from './enums';
+import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import { SerializableBase } from './misc/SerializableBase';
 import { PredefinedSubtitleTranslation, VerseTranslation } from './Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
@@ -218,13 +221,29 @@ export class ProjectTranslation extends SerializableBase {
 	 * @returns Un objet contenant les traductions des sous-titres
 	 */
 	async getAllProjectSubtitlesTranslations(edition: Edition) {
+		return this.getAllProjectSubtitlesTranslationsForProject(globalState.currentProject!, edition);
+	}
+
+	/**
+	 * Récupère les textes requis par une édition pour un projet explicitement fourni.
+	 * @param {Project} project Projet dont les pistes doivent être inspectées.
+	 * @param {Edition} edition Édition à télécharger.
+	 * @returns {Promise<Record<string, string>>} Textes indexés par verset ou type prédéfini.
+	 */
+	async getAllProjectSubtitlesTranslationsForProject(
+		project: Project,
+		edition: Edition
+	): Promise<Record<string, string>> {
 		// Récupère toutes les traductions des sous-titres du projet pour une traduction donnée
 		const translations: { [key: string]: string } = {};
 		const translationMetadata = globalState.getTranslationMetadata(edition.language);
+		const clips = project.content.timeline.getFirstTrack(TrackType.Subtitle).clips;
 
 		const versesInProject = new Set<string>();
 
-		for (const predefinedSubtitle of globalState.getPredefinedSubtitleClips) {
+		for (const predefinedSubtitle of clips.filter(
+			(clip): clip is PredefinedSubtitleClip => clip instanceof PredefinedSubtitleClip
+		)) {
 			// Ajoute les versets des sous-titres pré-définis
 			const type = canonicalizePredefinedSubtitleType(predefinedSubtitle.predefinedSubtitleType);
 			if (!translationMetadata) continue;
@@ -247,7 +266,9 @@ export class ProjectTranslation extends SerializableBase {
 			}
 		}
 
-		for (const subtitle of globalState.getSubtitleClips) {
+		for (const subtitle of clips.filter(
+			(clip): clip is SubtitleClip => clip instanceof SubtitleClip
+		)) {
 			versesInProject.add(subtitle.getVerseKey());
 		}
 
@@ -273,13 +294,41 @@ export class ProjectTranslation extends SerializableBase {
 				get(LL).translations.translationAdded({ author: edition.author })
 			);
 			if (!response) return;
-		} else {
-			edition.showInTranslationsEditor = true; // Par défaut
+		}
+		await this.addTranslationToProject(
+			globalState.currentProject!,
+			edition,
+			downloadedTranslations,
+			{ replaceExisting: true }
+		);
+	}
+
+	/**
+	 * Ajoute une édition à un projet explicite sans dépendre du projet ouvert.
+	 * @param {Project} project Projet cible.
+	 * @param {Edition} edition Édition à ajouter.
+	 * @param {Record<string, string>} downloadedTranslations Textes téléchargés par verset.
+	 * @param {{ replaceExisting?: boolean }} options Politique appliquée si l'édition existe déjà.
+	 * @returns {Promise<boolean>} `true` si le projet a été modifié.
+	 */
+	async addTranslationToProject(
+		project: Project,
+		edition: Edition,
+		downloadedTranslations: Record<string, string>,
+		options: { replaceExisting?: boolean } = {}
+	): Promise<boolean> {
+		const alreadyAdded = this.addedTranslationEditions.some((item) => item.name === edition.name);
+		if (alreadyAdded && !options.replaceExisting) return false;
+		if (!alreadyAdded) {
+			edition.showInTranslationsEditor = true;
 			this.addedTranslationEditions.push(edition);
 		}
+		const clips = project.content.timeline.getFirstTrack(TrackType.Subtitle).clips;
 
 		// Pour chaque sous-titre du projet, ajoute la traduction correspondante
-		for (const subtitle of globalState.getSubtitleClips) {
+		for (const subtitle of clips.filter(
+			(clip): clip is SubtitleClip => clip instanceof SubtitleClip
+		)) {
 			// Récupère la traduction à partir du dictionnaire de traductions téléchargées
 			const verseKey = subtitle.getVerseKey();
 			const translationText =
@@ -299,7 +348,9 @@ export class ProjectTranslation extends SerializableBase {
 		}
 
 		// Ajoute maintenant la traduction des sous-titre pré-définis
-		for (const subtitle of globalState.getPredefinedSubtitleClips) {
+		for (const subtitle of clips.filter(
+			(clip): clip is PredefinedSubtitleClip => clip instanceof PredefinedSubtitleClip
+		)) {
 			subtitle.translations[edition.name] = this.getPredefinedSubtitleTranslation(
 				edition,
 				subtitle.predefinedSubtitleType
@@ -307,7 +358,30 @@ export class ProjectTranslation extends SerializableBase {
 		}
 
 		// Ajoute les styles de traduction par défaut
-		await globalState.getVideoStyle.addStylesForEdition(edition.name);
+		await project.content.videoStyle.addStylesForEdition(edition.name);
+		this.updateProjectPercentage(project, edition);
+		return true;
+	}
+
+	/**
+	 * Recalcule le résumé de complétion d'une édition dans un projet explicite.
+	 * @param {Project} project Projet contenant les traductions.
+	 * @param {Edition} edition Édition à résumer.
+	 * @returns {void}
+	 */
+	updateProjectPercentage(project: Project, edition: Edition): void {
+		let total = 0;
+		let completed = 0;
+		for (const clip of project.content.timeline.getFirstTrack(TrackType.Subtitle).clips) {
+			if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) continue;
+			const translation = clip.translations[edition.name];
+			if (!(translation instanceof VerseTranslation)) continue;
+			total++;
+			if (translation.isStatusComplete()) completed++;
+		}
+		project.detail.translations[edition.author] = Math.floor(
+			total > 0 ? (completed / total) * 100 : 0
+		);
 	}
 
 	getPredefinedSubtitleTranslation(edition: Edition, type: string): PredefinedSubtitleTranslation {

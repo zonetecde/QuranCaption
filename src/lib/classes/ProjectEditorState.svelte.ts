@@ -358,6 +358,9 @@ export class SubtitlesEditorState extends SerializableBase {
 }
 
 export class TranslationsEditorState extends SerializableBase {
+	// Indique la position du scroll dans l'éditeur de traductions
+	scrollPosition: number = $state(0);
+
 	// Indique si l'utilisateur montre les instructions pour utiliser l'IA
 	showAIInstructions: boolean = $state(false);
 

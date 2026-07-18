@@ -21,7 +21,11 @@ vi.mock('@tauri-apps/api/path', () => ({
 	join: vi.fn(async (...parts: string[]) => parts.join('/').replaceAll('//', '/'))
 }));
 
-import { Batch, createDefaultBatchSegmentationState } from '$lib/classes';
+import {
+	Batch,
+	createDefaultBatchSegmentationState,
+	createDefaultBatchTranslationState
+} from '$lib/classes';
 import { BatchService } from '$lib/services/BatchService';
 import { ProjectService } from '$lib/services/ProjectService';
 
@@ -47,7 +51,8 @@ describe('BatchService persistence', () => {
 					mode: 'audio_only',
 					assetId: null
 				},
-				segmentation: createDefaultBatchSegmentationState()
+				segmentation: createDefaultBatchSegmentationState(),
+				translations: {}
 			},
 			{
 				order: 1,
@@ -63,7 +68,8 @@ describe('BatchService persistence', () => {
 					mode: 'audio_only',
 					assetId: 99
 				},
-				segmentation: createDefaultBatchSegmentationState()
+				segmentation: createDefaultBatchSegmentationState(),
+				translations: {}
 			}
 		]);
 
@@ -97,12 +103,23 @@ describe('BatchService persistence', () => {
 		expect(batch.projects[0].media.mode).toBeNull();
 		expect(batch.projects[0].media.assetId).toBeNull();
 		expect(batch.projects[0].segmentation.status).toBe('not_started');
+		expect(batch.projects[0].translations).toEqual({});
 		batch.projects[0].segmentation.status = 'processing';
+		batch.projects[0].translations.edition = {
+			...createDefaultBatchTranslationState({
+				editionName: 'edition',
+				editionAuthor: 'Author',
+				editionLanguage: 'English'
+			}),
+			status: 'adding'
+		};
 		await BatchService.save(batch);
 		const restored = await BatchService.load(batch.id, 'Interrupted');
 		expect(restored.projects[0].media.status).toBe('failed');
 		expect(restored.projects[0].media.error).toBe('Interrupted');
 		expect(restored.projects[0].segmentation.status).toBe('failed');
 		expect(restored.projects[0].segmentation.error).toBe('SEGMENTATION_INTERRUPTED');
+		expect(restored.projects[0].translations.edition.status).toBe('failed');
+		expect(restored.projects[0].translations.edition.error).toBe('TRANSLATION_INTERRUPTED');
 	});
 });

@@ -1,11 +1,13 @@
 <script lang="ts">
 	import {
 		isBatchProjectSegmentationVerified,
+		type Edition,
 		type Batch,
 		type BatchMediaMode,
 		type BatchMediaStatus,
 		type BatchProjectItem,
-		type BatchSegmentationStatus
+		type BatchSegmentationStatus,
+		type BatchTranslationStatus
 	} from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -34,8 +36,20 @@
 	import { discordService } from '$lib/services/DiscordService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
-	import { openBatchReviewProject } from '$lib/services/BatchReviewNavigationService';
+	import {
+		openBatchReviewProject,
+		openBatchTranslationReviewProject
+	} from '$lib/services/BatchReviewNavigationService';
 	import { BatchCbrService, type BatchCbrQueueProgress } from '$lib/services/BatchCbrService';
+	import {
+		BatchTranslationService,
+		reconcileBatchTranslations
+	} from '$lib/services/BatchTranslationService';
+	import {
+		QdcTranslationService,
+		type TranslationLanguageData
+	} from '$lib/services/QdcTranslationService';
+	import { getProjectSubtitleClips } from '$lib/services/TranslationFetchService';
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
@@ -49,7 +63,27 @@
 	let queueActive = $state(false);
 	let segmentationQueueActive = $state(false);
 	let cbrQueueActive = $state(false);
+	let translationQueueActive = $state(false);
+	let showAddTranslationsModal = $state(false);
+	let showFetchTranslationsModal = $state(false);
+	let showReviewEditionModal = $state(false);
+	let translationModalLoading = $state(false);
+	let translationSearch = $state('');
+	let selectedTranslationEditionNames = $state<Set<string>>(new Set());
+	let skipExistingTranslations = $state(true);
+	let activeTranslationEditionName = $state<string | null>(
+		globalState.shared.batchTranslationEditionName
+	);
+	let translationInspection = $state<
+		Array<{
+			item: BatchProjectItem;
+			eligible: boolean;
+			reason: string | null;
+			existingEditions: string[];
+		}>
+	>([]);
 	let revision = $state(0);
+	let translationRowVersions = $state<Record<number, number>>({});
 	let activities = $state<Map<number, BatchMediaActivity>>(new Map());
 	let queueProgress = $state<BatchMediaQueueProgress>({
 		active: 0,
@@ -82,6 +116,7 @@
 		progress: 0,
 		total: 0
 	});
+	let qdcTranslations = $state<Record<string, TranslationLanguageData>>({});
 
 	let projects = $derived.by(() => {
 		revision;
@@ -124,12 +159,68 @@
 		projects.filter((project) => project.segmentation.status === 'needs_review')
 	);
 	let readyForTranslations = $derived(projects.filter(isBatchProjectSegmentationVerified).length);
+	let allSegmentationsVerified = $derived(
+		projects.length > 0 && projects.every(isBatchProjectSegmentationVerified)
+	);
+	let translationEditionNames = $derived(
+		Array.from(new Set(projects.flatMap((project) => Object.keys(project.translations))))
+	);
+	let translationStageActive = $derived(translationEditionNames.length > 0);
+	let activeTranslationStates = $derived(
+		activeTranslationEditionName
+			? projects.map((project) => project.translations[activeTranslationEditionName!])
+			: []
+	);
+	let translationEditionsNeedingReview = $derived(
+		translationEditionNames.filter((editionName) =>
+			projects.some((project) => project.translations[editionName]?.status === 'needs_review')
+		)
+	);
+	let allAvailableEditions = $derived.by(() => {
+		const editions = [
+			...Object.values(globalState.availableTranslations).flatMap((group) => group.translations),
+			...Object.values(qdcTranslations).flatMap((group) => group.translations)
+		];
+		return Array.from(new Map(editions.map((edition) => [edition.name, edition])).values());
+	});
+	let filteredAvailableEditions = $derived(
+		allAvailableEditions.filter((edition) =>
+			`${edition.author} ${edition.language}`
+				.toLowerCase()
+				.includes(translationSearch.toLowerCase())
+		)
+	);
+	let addEligibleProjects = $derived.by(() => {
+		const eligibleIds = new Set(
+			translationInspection
+				.filter((result) => result.eligible)
+				.map((result) => result.item.projectId)
+		);
+		return projects.filter((project) => eligibleIds.has(project.projectId));
+	});
+	let fetchEligibleProjects = $derived(
+		activeTranslationEditionName
+			? selectedProjects.filter((project) => !!project.translations[activeTranslationEditionName!])
+			: []
+	);
+	let fetchPendingCount = $derived(
+		activeTranslationEditionName
+			? fetchEligibleProjects.reduce(
+					(total, project) =>
+						total + project.translations[activeTranslationEditionName!].review.pending,
+					0
+				)
+			: 0
+	);
 	let allMediaCompleted = $derived(
 		projects.length > 0 && projects.every((project) => project.media.status === 'completed')
 	);
 	let segmentationStageActive = $derived(
 		segmentationQueueActive ||
 			projects.some((project) => project.segmentation.status !== 'not_started')
+	);
+	let incompatibleQueueActive = $derived(
+		queueActive || segmentationQueueActive || cbrQueueActive || translationQueueActive
 	);
 	let incompatibleProjects = $derived(
 		eligibleSelected.filter((project) => !isBatchMediaModeCompatible(project, selectedMode))
@@ -164,15 +255,13 @@
 	}
 
 	/**
-	 * Renouvelle l'identité d'une ligne mutée par un service pour rafraîchir le tableau indexé.
+	 * Rafraîchit le tableau sans remplacer la ligne encore mutée par le service.
 	 * @param {BatchProjectItem} project Projet dont l'état vient de changer.
 	 * @returns {void}
 	 */
 	function refreshProjectRow(project: BatchProjectItem): void {
-		if (!batch) return;
-		batch.projects = batch.projects.map((item) =>
-			item.projectId === project.projectId ? { ...project } : item
-		);
+		translationRowVersions[project.projectId] =
+			(translationRowVersions[project.projectId] ?? 0) + 1;
 		revision++;
 	}
 
@@ -290,6 +379,193 @@
 			return batchMessage('segmentationAlreadyRunning');
 		}
 		return errorValue ?? '';
+	}
+
+	/**
+	 * Traduit le statut d'une édition suivie dans une ligne Batch.
+	 * @param {BatchTranslationStatus} status Statut persistant.
+	 * @returns {string} Libellé localisé.
+	 */
+	function getTranslationStatusLabel(status: BatchTranslationStatus): string {
+		const keys: Record<BatchTranslationStatus, string> = {
+			not_added: 'translationNotAdded',
+			adding: 'translationAdding',
+			ready_to_fetch: 'translationReadyToFetch',
+			fetching: 'translationFetching',
+			auto_verified: 'translationAutoVerified',
+			needs_review: 'translationNeedsReview',
+			manually_verified: 'translationManuallyVerified',
+			failed: 'translationFailed'
+		};
+		return batchMessage(keys[status]);
+	}
+
+	/**
+	 * Rend active l'édition choisie dans le tableau et pour un éventuel retour de revue.
+	 * @param {string} editionName Nom de l'édition.
+	 * @param {boolean} updateSelection Réapplique la sélection par défaut de l'étape.
+	 * @returns {void}
+	 */
+	function selectActiveTranslationEdition(
+		editionName: string,
+		updateSelection: boolean = true
+	): void {
+		activeTranslationEditionName = editionName;
+		globalState.shared.batchTranslationEditionName = editionName;
+		if (updateSelection && allSegmentationsVerified) {
+			selectedIds = new Set(
+				projects
+					.filter((project) => {
+						const state = project.translations[editionName];
+						return !state || ['failed', 'ready_to_fetch', 'needs_review'].includes(state.status);
+					})
+					.map((project) => project.projectId)
+			);
+		}
+	}
+
+	/**
+	 * Ajoute ou retire une édition de la sélection du modal Batch.
+	 * @param {string} editionName Nom technique de l'édition.
+	 * @returns {void}
+	 */
+	function toggleTranslationEdition(editionName: string): void {
+		const next = new Set(selectedTranslationEditionNames);
+		if (next.has(editionName)) next.delete(editionName);
+		else next.add(editionName);
+		selectedTranslationEditionNames = next;
+	}
+
+	/**
+	 * Inspecte les projets sélectionnés avant d'ouvrir l'ajout d'éditions.
+	 * @returns {Promise<void>} Résolution après le chargement des projets sélectionnés.
+	 */
+	async function openAddTranslationsModal(): Promise<void> {
+		if (!allSegmentationsVerified || selectedProjects.length === 0 || incompatibleQueueActive)
+			return;
+		showAddTranslationsModal = true;
+		translationModalLoading = true;
+		translationSearch = '';
+		selectedTranslationEditionNames = new Set();
+		skipExistingTranslations = true;
+		translationInspection = [];
+		for (const item of selectedProjects) {
+			if (!isBatchProjectSegmentationVerified(item)) {
+				translationInspection.push({
+					item,
+					eligible: false,
+					reason: 'segmentation',
+					existingEditions: []
+				});
+				continue;
+			}
+			try {
+				const project = await ProjectService.load(item.projectId);
+				translationInspection.push({
+					item,
+					eligible: getProjectSubtitleClips(project).length > 0,
+					reason: getProjectSubtitleClips(project).length > 0 ? null : 'subtitles',
+					existingEditions: project.content.projectTranslation.addedTranslationEditions.map(
+						(edition) => edition.name
+					)
+				});
+			} catch {
+				translationInspection.push({
+					item,
+					eligible: false,
+					reason: 'project',
+					existingEditions: []
+				});
+			}
+		}
+		translationInspection = [...translationInspection];
+		translationModalLoading = false;
+	}
+
+	/**
+	 * Lance l'ajout borné des éditions sélectionnées aux projets éligibles.
+	 * @returns {Promise<void>} Résolution lorsque tous les workers sont terminés.
+	 */
+	async function startAddingTranslations(): Promise<void> {
+		if (!batch || addEligibleProjects.length === 0 || selectedTranslationEditionNames.size === 0)
+			return;
+		const editions = allAvailableEditions.filter((edition) =>
+			selectedTranslationEditionNames.has(edition.name)
+		);
+		if (editions.length === 0) return;
+		showAddTranslationsModal = false;
+		translationQueueActive = true;
+		queueError = '';
+		selectActiveTranslationEdition(editions.at(-1)!.name, false);
+		const service = new BatchTranslationService({
+			onUpdate: (item, editionName) => {
+				selectActiveTranslationEdition(editionName, false);
+				refreshProjectRow(item);
+			}
+		});
+		try {
+			await service.addEditions(batch, addEligibleProjects, editions, skipExistingTranslations);
+			batch = await BatchService.load(batch.id);
+			selectActiveTranslationEdition(editions.at(-1)!.name);
+			selectedIds = new Set(
+				batch.projects
+					.filter((item) => {
+						const state = item.translations[editions.at(-1)!.name];
+						return !state || state.status === 'failed' || state.status === 'ready_to_fetch';
+					})
+					.map((item) => item.projectId)
+			);
+		} catch (translationError) {
+			queueError = String(translationError);
+		} finally {
+			translationQueueActive = false;
+			revision++;
+			await BatchService.loadUserBatchesDetails();
+		}
+	}
+
+	/**
+	 * Ouvre la confirmation du Fetch pour l'édition active uniquement.
+	 * @returns {void}
+	 */
+	function openFetchTranslationsModal(): void {
+		if (!activeTranslationEditionName || selectedProjects.length === 0 || incompatibleQueueActive)
+			return;
+		showFetchTranslationsModal = true;
+	}
+
+	/**
+	 * Lance le Fetch borné pour l'édition active et les projets éligibles.
+	 * @returns {Promise<void>} Résolution lorsque tous les workers sont terminés.
+	 */
+	async function startFetchingTranslations(): Promise<void> {
+		if (!batch || !activeTranslationEditionName || fetchEligibleProjects.length === 0) return;
+		showFetchTranslationsModal = false;
+		translationQueueActive = true;
+		queueError = '';
+		const editionName = activeTranslationEditionName;
+		const items = [...fetchEligibleProjects];
+		selectActiveTranslationEdition(editionName);
+		const service = new BatchTranslationService({
+			onUpdate: (item) => {
+				refreshProjectRow(item);
+			}
+		});
+		try {
+			await service.fetchEdition(batch, items, editionName);
+			batch = await BatchService.load(batch.id);
+			selectedIds = new Set(
+				batch.projects
+					.filter((item) => item.translations[editionName]?.status === 'needs_review')
+					.map((item) => item.projectId)
+			);
+		} catch (translationError) {
+			queueError = String(translationError);
+		} finally {
+			translationQueueActive = false;
+			revision++;
+			await BatchService.loadUserBatchesDetails();
+		}
 	}
 
 	/**
@@ -510,7 +786,7 @@
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
 	 */
 	async function openProject(projectId: number): Promise<void> {
-		if (cbrQueueActive) return;
+		if (cbrQueueActive || translationQueueActive) return;
 		const item = projects.find((project) => project.projectId === projectId);
 		if (item?.media.status === 'processing' || item?.segmentation.status === 'processing') return;
 		globalState.currentProject = await ProjectService.load(projectId);
@@ -522,7 +798,7 @@
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture éventuelle.
 	 */
 	async function reviewFirstFlaggedProject(): Promise<void> {
-		if (cbrQueueActive) return;
+		if (cbrQueueActive || translationQueueActive) return;
 		const first = reviewProjects[0];
 		if (batch && first && (await openBatchReviewProject(batch.id, first.projectId))) {
 			discordService.setEditingState();
@@ -535,8 +811,37 @@
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
 	 */
 	async function reviewProject(projectId: number): Promise<void> {
-		if (!batch || cbrQueueActive) return;
+		if (!batch || cbrQueueActive || translationQueueActive) return;
 		if (await openBatchReviewProject(batch.id, projectId)) discordService.setEditingState();
+	}
+
+	/**
+	 * Ouvre une revue Batch pour l'édition active et la ligne choisie.
+	 * @param {number} projectId Identifiant du projet à vérifier.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
+	 */
+	async function reviewTranslationProject(projectId: number): Promise<void> {
+		if (!batch || !activeTranslationEditionName || incompatibleQueueActive) return;
+		if (await openBatchTranslationReviewProject(batch.id, projectId, activeTranslationEditionName))
+			discordService.setEditingState();
+	}
+
+	/**
+	 * Démarre directement la seule revue disponible ou demande l'édition à cibler.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture éventuelle.
+	 */
+	async function reviewTranslations(): Promise<void> {
+		if (translationEditionsNeedingReview.length === 0) return;
+		if (translationEditionsNeedingReview.length > 1) {
+			showReviewEditionModal = true;
+			return;
+		}
+		selectActiveTranslationEdition(translationEditionsNeedingReview[0]);
+		const first = projects.find(
+			(project) =>
+				project.translations[translationEditionsNeedingReview[0]]?.status === 'needs_review'
+		);
+		if (first) await reviewTranslationProject(first.projectId);
 	}
 
 	onMount(async () => {
@@ -545,16 +850,42 @@
 			return;
 		}
 		try {
-			batch = await BatchService.load(globalState.currentBatchId, batchMessage('mediaInterrupted'));
-			await reconcileBatchSegmentations(batch);
-			const defaults = batch.projects.filter(
-				(project) =>
+			const loadedBatch = await BatchService.load(
+				globalState.currentBatchId,
+				batchMessage('mediaInterrupted')
+			);
+			await reconcileBatchSegmentations(loadedBatch);
+			await reconcileBatchTranslations(loadedBatch);
+			batch = loadedBatch;
+			try {
+				qdcTranslations = await QdcTranslationService.getAvailableTranslations(
+					globalState.availableTranslations
+				);
+			} catch {
+				qdcTranslations = globalState.qdcAvailableTranslations;
+			}
+			const editionNames = Array.from(
+				new Set(batch.projects.flatMap((project) => Object.keys(project.translations)))
+			);
+			if (activeTranslationEditionName && editionNames.includes(activeTranslationEditionName)) {
+				selectActiveTranslationEdition(activeTranslationEditionName);
+			} else if (editionNames.length > 0) {
+				selectActiveTranslationEdition(editionNames[0]);
+			}
+			const defaults = batch.projects.filter((project) => {
+				if (batch!.projects.every(isBatchProjectSegmentationVerified)) {
+					if (!activeTranslationEditionName) return true;
+					const state = project.translations[activeTranslationEditionName];
+					return !state || ['failed', 'ready_to_fetch', 'needs_review'].includes(state.status);
+				}
+				return (
 					project.media.status === 'pending' ||
 					project.media.status === 'failed' ||
 					(project.media.status === 'completed' &&
 						(project.segmentation.status === 'not_started' ||
 							project.segmentation.status === 'failed'))
-			);
+				);
+			});
 			selectedIds = new Set(defaults.map((project) => project.projectId));
 			revision++;
 		} catch (loadError) {
@@ -592,7 +923,7 @@
 					<span class="text-sm text-[var(--text-secondary)]">
 						{batchMessage('selectedProjects', { count: selectedProjects.length })}
 					</span>
-					{#if !allMediaCompleted}
+					{#if !allMediaCompleted && !allSegmentationsVerified}
 						<button
 							class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
 							type="button"
@@ -606,7 +937,7 @@
 							<span class="leading-none">{batchMessage('importMedia')}</span>
 						</button>
 					{/if}
-					{#if allMediaCompleted}
+					{#if allMediaCompleted && !allSegmentationsVerified}
 						<button
 							class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-5"
 							type="button"
@@ -627,6 +958,28 @@
 						>
 							<span class="material-icons-outlined leading-none">auto_fix_high</span>
 							<span class="leading-none">{batchMessage('aiSegmentation')}</span>
+						</button>
+					{/if}
+					{#if allSegmentationsVerified}
+						<button
+							class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
+							type="button"
+							disabled={selectedProjects.length === 0 || incompatibleQueueActive}
+							onclick={openAddTranslationsModal}
+						>
+							<span class="material-icons-outlined leading-none">playlist_add</span>
+							<span class="leading-none">{batchMessage('addTranslationsToProjects')}</span>
+						</button>
+						<button
+							class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
+							type="button"
+							disabled={!activeTranslationEditionName ||
+								selectedProjects.length === 0 ||
+								incompatibleQueueActive}
+							onclick={openFetchTranslationsModal}
+						>
+							<span class="material-icons-outlined leading-none">cloud_sync</span>
+							<span class="leading-none">{batchMessage('fetchTranslationsFromProjects')}</span>
 						</button>
 					{/if}
 				</div>
@@ -710,6 +1063,49 @@
 					</p>
 				</section>
 			{/if}
+			{#if translationQueueActive && activeTranslationEditionName}
+				<section
+					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
+				>
+					<p class="text-sm text-[var(--text-secondary)]">
+						{batchMessage('translationQueueSummary', {
+							completed: activeTranslationStates.filter(
+								(state) =>
+									state &&
+									['ready_to_fetch', 'auto_verified', 'needs_review', 'manually_verified'].includes(
+										state.status
+									)
+							).length,
+							total: projects.length
+						})}
+					</p>
+					<div class="mt-3 h-2 overflow-hidden rounded bg-[var(--border-color)]">
+						<div
+							class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
+							style={`width: ${Math.round(activeTranslationStates.reduce((sum, state) => sum + (state?.progress ?? 0), 0) / Math.max(projects.length, 1))}%`}
+						></div>
+					</div>
+				</section>
+			{/if}
+			{#if translationEditionNames.length > 0}
+				<label class="flex max-w-md items-center gap-3 text-sm text-[var(--text-secondary)]">
+					<span>{batchMessage('translationEdition')}</span>
+					<select
+						class="min-w-56 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-[var(--text-primary)]"
+						value={activeTranslationEditionName ?? ''}
+						onchange={(event) =>
+							selectActiveTranslationEdition((event.currentTarget as HTMLSelectElement).value)}
+					>
+						{#each translationEditionNames as editionName (editionName)}
+							<option value={editionName}>
+								{projects.find((project) => project.translations[editionName])?.translations[
+									editionName
+								]?.editionAuthor ?? editionName}
+							</option>
+						{/each}
+					</select>
+				</label>
+			{/if}
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<p class="text-sm text-[var(--text-secondary)]">
 					{batchMessage('readyForTranslations', {
@@ -717,7 +1113,7 @@
 						total: projects.length
 					})}
 				</p>
-				{#if reviewProjects.length > 0}
+				{#if reviewProjects.length > 0 && !allSegmentationsVerified}
 					<button
 						class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
 						type="button"
@@ -726,6 +1122,17 @@
 					>
 						<span class="material-icons-outlined text-base leading-none">fact_check</span>
 						<span class="leading-none">{batchMessage('reviewFlaggedProjects')}</span>
+					</button>
+				{/if}
+				{#if translationEditionsNeedingReview.length > 0}
+					<button
+						class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
+						type="button"
+						disabled={incompatibleQueueActive}
+						onclick={reviewTranslations}
+					>
+						<span class="material-icons-outlined text-base leading-none">fact_check</span>
+						<span class="leading-none">{batchMessage('reviewTranslationProjects')}</span>
 					</button>
 				{/if}
 			</div>
@@ -750,7 +1157,9 @@
 								<th class="px-4 py-3">{$LL.batch.project()}</th>
 								<th class="px-4 py-3">{$LL.batch.reciter()}</th>
 								<th class="px-4 py-3">{$LL.batch.source()}</th>
-								{#if segmentationStageActive}
+								{#if translationStageActive}
+									<th class="min-w-64 px-4 py-3">{batchMessage('translations')}</th>
+								{:else if segmentationStageActive}
 									<th class="min-w-64 px-4 py-3">{batchMessage('aiSegmentation')}</th>
 								{:else}
 									<th class="min-w-56 px-4 py-3">{$LL.batch.media()}</th>
@@ -759,7 +1168,7 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-[var(--border-color)]">
-							{#each projects as project (project.projectId)}
+							{#each projects as project (`${project.projectId}-${translationRowVersions[project.projectId] ?? 0}`)}
 								<tr>
 									<td class="px-4 py-4">
 										<input
@@ -768,7 +1177,8 @@
 											checked={selectedIds.has(project.projectId)}
 											disabled={project.media.status === 'processing' ||
 												project.segmentation.status === 'processing' ||
-												cbrQueueActive}
+												cbrQueueActive ||
+												translationQueueActive}
 											aria-label={batchMessage('selectProject')}
 											onchange={() => toggleProject(project.projectId)}
 										/>
@@ -786,7 +1196,52 @@
 											<span class="truncate">{project.source.value}</span>
 										</div>
 									</td>
-									{#if segmentationStageActive}
+									{#if translationStageActive}
+										{@const translationState = activeTranslationEditionName
+											? project.translations[activeTranslationEditionName]
+											: undefined}
+										<td class="px-4 py-4">
+											{#if translationState}
+												<div
+													class="flex justify-between gap-3 text-xs text-[var(--text-secondary)]"
+												>
+													<span>{getTranslationStatusLabel(translationState.status)}</span>
+													{#if translationState.status === 'adding' || translationState.status === 'fetching'}
+														<span>{translationState.progress}%</span>
+													{/if}
+												</div>
+												{#if translationState.status === 'adding' || translationState.status === 'fetching'}
+													<div class="mt-2 h-2 overflow-hidden rounded bg-[var(--border-color)]">
+														<div
+															class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
+															style={`width: ${translationState.progress}%`}
+														></div>
+													</div>
+												{/if}
+												{#if translationState.review.total > 0}
+													<p class="mt-2 text-xs text-[var(--text-thirdly)]">
+														{batchMessage('translationCounts', {
+															complete: translationState.review.complete,
+															total: translationState.review.total,
+															pending: translationState.review.pending,
+															fetched: translationState.review.fetched
+														})}
+													</p>
+												{/if}
+												{#if translationState.error}
+													<p class="mt-2 max-w-80 break-words text-xs text-red-300">
+														{translationState.error === 'TRANSLATION_INTERRUPTED'
+															? batchMessage('translationInterrupted')
+															: translationState.error}
+													</p>
+												{/if}
+											{:else}
+												<span class="text-xs text-[var(--text-secondary)]">
+													{batchMessage('translationNotAdded')}
+												</span>
+											{/if}
+										</td>
+									{:else if segmentationStageActive}
 										<td class="px-4 py-4">
 											<div class="flex justify-between gap-3 text-xs text-[var(--text-secondary)]">
 												<span>{getSegmentationActivityLabel(project)}</span>
@@ -867,14 +1322,22 @@
 											type="button"
 											disabled={project.media.status === 'processing' ||
 												project.segmentation.status === 'processing' ||
-												cbrQueueActive}
+												cbrQueueActive ||
+												translationQueueActive}
 											onclick={() =>
-												project.segmentation.status === 'needs_review'
-													? reviewProject(project.projectId)
-													: openProject(project.projectId)}
+												activeTranslationEditionName &&
+												project.translations[activeTranslationEditionName]?.status ===
+													'needs_review'
+													? reviewTranslationProject(project.projectId)
+													: project.segmentation.status === 'needs_review'
+														? reviewProject(project.projectId)
+														: openProject(project.projectId)}
 										>
 											<span class="material-icons-outlined mr-2 text-base">open_in_new</span>
-											{project.segmentation.status === 'needs_review'
+											{(activeTranslationEditionName &&
+												project.translations[activeTranslationEditionName]?.status ===
+													'needs_review') ||
+											project.segmentation.status === 'needs_review'
 												? batchMessage('reviewProject')
 												: $LL.batch.openProject()}
 										</button>
@@ -976,6 +1439,198 @@
 				>
 					<span class="material-icons-outlined mr-2">download</span>
 					{batchMessage('startImport')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showAddTranslationsModal}
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4 py-6">
+		<div
+			class="max-h-full w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="batch-add-translations-title"
+		>
+			<h2
+				id="batch-add-translations-title"
+				class="text-xl font-semibold text-[var(--text-primary)]"
+			>
+				{batchMessage('addTranslationsToProjects')}
+			</h2>
+			<div class="mt-4 grid gap-3 sm:grid-cols-2">
+				<p class="rounded-xl bg-[var(--bg-accent)] p-4 text-sm text-[var(--text-secondary)]">
+					{batchMessage('translationSelectedProjects', { count: selectedProjects.length })}
+				</p>
+				<p class="rounded-xl bg-[var(--bg-accent)] p-4 text-sm text-[var(--text-secondary)]">
+					{batchMessage('translationEligibleProjects', { count: addEligibleProjects.length })}
+				</p>
+			</div>
+			{#if translationModalLoading}
+				<p class="mt-4 text-sm text-[var(--text-secondary)]">
+					{batchMessage('translationInspectingProjects')}
+				</p>
+			{:else}
+				{#if translationInspection.some((result) => !result.eligible)}
+					<div class="mt-4 rounded-xl border border-[var(--border-color)] p-4">
+						<p class="font-medium text-[var(--text-primary)]">
+							{batchMessage('translationIgnoredProjects')}
+						</p>
+						<ul class="mt-2 space-y-1 text-sm text-[var(--text-secondary)]">
+							{#each translationInspection.filter((result) => !result.eligible) as result (result.item.projectId)}
+								<li>
+									{result.item.projectName} — {batchMessage(
+										result.reason === 'segmentation'
+											? 'translationReasonSegmentation'
+											: result.reason === 'subtitles'
+												? 'translationReasonSubtitles'
+												: 'translationReasonProject'
+									)}
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+				<input
+					class="mt-4 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-[var(--text-primary)]"
+					placeholder={batchMessage('translationSearchEditions')}
+					bind:value={translationSearch}
+				/>
+				<div class="mt-3 max-h-72 space-y-2 overflow-y-auto">
+					{#each filteredAvailableEditions as edition (edition.name)}
+						<label
+							class="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border-color)] p-3 hover:border-[var(--accent-primary)]"
+						>
+							<input
+								type="checkbox"
+								checked={selectedTranslationEditionNames.has(edition.name)}
+								onchange={() => toggleTranslationEdition(edition.name)}
+							/>
+							<span class="min-w-0">
+								<span class="block truncate font-medium text-[var(--text-primary)]">
+									{edition.author}
+								</span>
+								<span class="text-xs text-[var(--text-thirdly)]">{edition.language}</span>
+							</span>
+						</label>
+					{/each}
+				</div>
+				{#if selectedTranslationEditionNames.size > 0}
+					<p class="mt-4 rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
+						{batchMessage('translationAlreadyAddedCount', {
+							count: translationInspection.filter(
+								(result) =>
+									result.eligible &&
+									Array.from(selectedTranslationEditionNames).some((editionName) =>
+										result.existingEditions.includes(editionName)
+									)
+							).length
+						})}
+					</p>
+				{/if}
+				<label class="mt-4 flex items-center gap-3 text-sm text-[var(--text-primary)]">
+					<input type="checkbox" bind:checked={skipExistingTranslations} />
+					<span>{batchMessage('translationSkipExisting')}</span>
+				</label>
+				{#if !skipExistingTranslations}
+					<p
+						class="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-3 text-sm text-amber-200"
+					>
+						{batchMessage('translationReplaceWarning')}
+					</p>
+				{/if}
+			{/if}
+			<div class="mt-6 flex justify-end gap-3">
+				<button
+					class="btn btn-icon h-10 px-4"
+					type="button"
+					onclick={() => (showAddTranslationsModal = false)}
+				>
+					{$LL.common.cancel()}
+				</button>
+				<button
+					class="btn btn-primary h-10 px-5"
+					type="button"
+					disabled={translationModalLoading ||
+						addEligibleProjects.length === 0 ||
+						selectedTranslationEditionNames.size === 0}
+					onclick={startAddingTranslations}
+				>
+					{batchMessage('translationAdd')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showFetchTranslationsModal && activeTranslationEditionName}
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">
+		<div
+			class="w-full max-w-xl rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="batch-fetch-translations-title"
+		>
+			<h2
+				id="batch-fetch-translations-title"
+				class="text-xl font-semibold text-[var(--text-primary)]"
+			>
+				{batchMessage('fetchTranslationsFromProjects')}
+			</h2>
+			<label class="mt-5 block text-sm text-[var(--text-secondary)]">
+				<span>{batchMessage('translationEdition')}</span>
+				<select
+					class="mt-2 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-[var(--text-primary)]"
+					value={activeTranslationEditionName}
+					onchange={(event) =>
+						selectActiveTranslationEdition((event.currentTarget as HTMLSelectElement).value)}
+				>
+					{#each translationEditionNames as editionName (editionName)}
+						<option value={editionName}>
+							{projects.find((project) => project.translations[editionName])?.translations[
+								editionName
+							]?.editionAuthor ?? editionName}
+						</option>
+					{/each}
+				</select>
+			</label>
+			<div
+				class="mt-5 space-y-2 rounded-xl bg-[var(--bg-accent)] p-4 text-sm text-[var(--text-secondary)]"
+			>
+				<p>{batchMessage('translationSelectedProjects', { count: selectedProjects.length })}</p>
+				<p>
+					{batchMessage('translationEligibleProjects', { count: fetchEligibleProjects.length })}
+				</p>
+				<p>{batchMessage('translationPendingCount', { count: fetchPendingCount })}</p>
+				<p>
+					{batchMessage('translationMissingEditionCount', {
+						count: selectedProjects.length - fetchEligibleProjects.length
+					})}
+				</p>
+			</div>
+			{#if selectedProjects.length > fetchEligibleProjects.length}
+				<ul class="mt-3 space-y-1 text-sm text-[var(--text-thirdly)]">
+					{#each selectedProjects.filter((project) => !project.translations[activeTranslationEditionName!]) as project (project.projectId)}
+						<li>{project.projectName}</li>
+					{/each}
+				</ul>
+			{/if}
+			<div class="mt-6 flex justify-end gap-3">
+				<button
+					class="btn btn-icon h-10 px-4"
+					type="button"
+					onclick={() => (showFetchTranslationsModal = false)}
+				>
+					{$LL.common.cancel()}
+				</button>
+				<button
+					class="btn btn-primary h-10 px-5"
+					type="button"
+					disabled={fetchEligibleProjects.length === 0}
+					onclick={startFetchingTranslations}
+				>
+					{batchMessage('translationFetch')}
 				</button>
 			</div>
 		</div>
@@ -1157,6 +1812,57 @@
 				>
 					<span class="material-icons-outlined mr-2">auto_fix_high</span>
 					{batchMessage('startSegmentation')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showReviewEditionModal}
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">
+		<div
+			class="w-full max-w-md rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="batch-review-edition-title"
+		>
+			<h2 id="batch-review-edition-title" class="text-xl font-semibold text-[var(--text-primary)]">
+				{batchMessage('selectTranslationEdition')}
+			</h2>
+			<div class="mt-4 space-y-2">
+				{#each translationEditionsNeedingReview as editionName (editionName)}
+					<button
+						class="btn flex w-full items-center justify-between px-4 py-3 text-left"
+						type="button"
+						onclick={async () => {
+							selectActiveTranslationEdition(editionName);
+							showReviewEditionModal = false;
+							const first = projects.find(
+								(project) => project.translations[editionName]?.status === 'needs_review'
+							);
+							if (first) await reviewTranslationProject(first.projectId);
+						}}
+					>
+						<span>
+							{projects.find((project) => project.translations[editionName])?.translations[
+								editionName
+							]?.editionAuthor ?? editionName}
+						</span>
+						<span class="text-xs text-[var(--text-thirdly)]">
+							{projects.filter(
+								(project) => project.translations[editionName]?.status === 'needs_review'
+							).length}
+						</span>
+					</button>
+				{/each}
+			</div>
+			<div class="mt-6 flex justify-end">
+				<button
+					class="btn btn-icon h-10 px-4"
+					type="button"
+					onclick={() => (showReviewEditionModal = false)}
+				>
+					{$LL.common.cancel()}
 				</button>
 			</div>
 		</div>

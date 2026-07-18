@@ -4,6 +4,7 @@ import { tick } from 'svelte';
 type LastReadEditorState = {
 	lastReadClipId: number | null;
 	lastReadUpdatedAt: string | null;
+	scrollPosition: number;
 };
 
 // Dépendances fournies par Workspace.svelte pour garder ce fichier réutilisable.
@@ -99,6 +100,12 @@ export function createWorkspaceLastRead(options: CreateWorkspaceLastReadOptions)
 
 	// Attend un peu avant de capturer pour éviter de spammer pendant le scroll.
 	function scheduleViewportCapture(targetContainer: HTMLElement): void {
+		const editorState = options.getEditorState();
+		if (editorState.scrollPosition !== targetContainer.scrollTop) {
+			editorState.scrollPosition = targetContainer.scrollTop;
+			scheduleSave();
+		}
+
 		const nearestClipId = getNearestVisibleClipId(targetContainer);
 		if (nearestClipId !== null) {
 			lastObservedViewportClipId = nearestClipId;
@@ -135,7 +142,12 @@ export function createWorkspaceLastRead(options: CreateWorkspaceLastReadOptions)
 		const target = container.querySelector<HTMLElement>(`[data-translation-clip-id="${clipId}"]`);
 		if (!target) return;
 
-		target.scrollIntoView({ block: 'center', behavior: 'auto' });
+		const scrollPosition = options.getEditorState().scrollPosition;
+		if (scrollPosition > 0) {
+			container.scrollTop = scrollPosition;
+		} else {
+			target.scrollIntoView({ block: 'center', behavior: 'auto' });
+		}
 		lastObservedViewportClipId = clipId;
 		highlightClip(clipId);
 		pendingResumeClipId = null;
@@ -153,7 +165,8 @@ export function createWorkspaceLastRead(options: CreateWorkspaceLastReadOptions)
 
 	// Initialise l'état au montage du composant.
 	function init(): void {
-		const lastReadClipId = options.getEditorState().lastReadClipId;
+		const editorState = options.getEditorState();
+		const lastReadClipId = editorState.lastReadClipId;
 		if (typeof lastReadClipId === 'number') {
 			pendingResumeClipId = lastReadClipId;
 			return;
@@ -161,6 +174,7 @@ export function createWorkspaceLastRead(options: CreateWorkspaceLastReadOptions)
 
 		void tick().then(() => {
 			if (container) {
+				container.scrollTop = editorState.scrollPosition;
 				captureFromViewport(container);
 			}
 		});
@@ -168,6 +182,10 @@ export function createWorkspaceLastRead(options: CreateWorkspaceLastReadOptions)
 
 	// Nettoie les timeouts et force une dernière sauvegarde si nécessaire.
 	function cleanup(): void {
+		if (container) {
+			options.getEditorState().scrollPosition = container.scrollTop;
+		}
+
 		if (captureTimeout) {
 			clearTimeout(captureTimeout);
 			captureTimeout = null;

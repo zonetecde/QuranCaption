@@ -60,6 +60,58 @@ export interface BatchSegmentationState {
 	completedAt: Date | null;
 }
 
+export type BatchTranslationStatus =
+	| 'not_added'
+	| 'adding'
+	| 'ready_to_fetch'
+	| 'fetching'
+	| 'auto_verified'
+	| 'needs_review'
+	| 'manually_verified'
+	| 'failed';
+
+export interface BatchTranslationReviewCounts {
+	total: number;
+	complete: number;
+	pending: number;
+	fetched: number;
+	toReview: number;
+	errors: number;
+}
+
+export interface BatchProjectTranslationState {
+	editionName: string;
+	editionAuthor: string;
+	editionLanguage: string;
+	status: BatchTranslationStatus;
+	progress: number;
+	error: string | null;
+	review: BatchTranslationReviewCounts;
+	addedAt: Date | null;
+	fetchedAt: Date | null;
+	completedAt: Date | null;
+}
+
+/**
+ * Crée l'état persistant d'une édition de traduction dans un projet Batch.
+ * @param {Pick<BatchProjectTranslationState, 'editionName' | 'editionAuthor' | 'editionLanguage'>} edition Métadonnées de l'édition.
+ * @returns {BatchProjectTranslationState} État initial sans texte de traduction.
+ */
+export function createDefaultBatchTranslationState(
+	edition: Pick<BatchProjectTranslationState, 'editionName' | 'editionAuthor' | 'editionLanguage'>
+): BatchProjectTranslationState {
+	return {
+		...edition,
+		status: 'not_added',
+		progress: 0,
+		error: null,
+		review: { total: 0, complete: 0, pending: 0, fetched: 0, toReview: 0, errors: 0 },
+		addedAt: null,
+		fetchedAt: null,
+		completedAt: null
+	};
+}
+
 /**
  * Crée l'état de segmentation rétrocompatible d'un projet Batch.
  * @returns {BatchSegmentationState} État initial indépendant.
@@ -92,6 +144,7 @@ export interface BatchProjectItem {
 	source: BatchSource;
 	media: BatchMediaState;
 	segmentation: BatchSegmentationState;
+	translations: Record<string, BatchProjectTranslationState>;
 }
 
 /**
@@ -182,6 +235,33 @@ export class Batch extends SerializableBase {
 			? data.projects.map((rawProject) => {
 					const project = rawProject as Partial<BatchProjectItem>;
 					const segmentation = project.segmentation ?? createDefaultBatchSegmentationState();
+					const translations = Object.fromEntries(
+						Object.entries(project.translations ?? {}).map(([editionName, rawState]) => {
+							const state = rawState as Partial<BatchProjectTranslationState>;
+							return [
+								editionName,
+								{
+									...createDefaultBatchTranslationState({
+										editionName,
+										editionAuthor: String(state.editionAuthor ?? ''),
+										editionLanguage: String(state.editionLanguage ?? '')
+									}),
+									...state,
+									review: {
+										...createDefaultBatchTranslationState({
+											editionName,
+											editionAuthor: '',
+											editionLanguage: ''
+										}).review,
+										...(state.review ?? {})
+									},
+									addedAt: state.addedAt ? new Date(state.addedAt) : null,
+									fetchedAt: state.fetchedAt ? new Date(state.fetchedAt) : null,
+									completedAt: state.completedAt ? new Date(state.completedAt) : null
+								}
+							];
+						})
+					);
 					return {
 						order: Number(project.order),
 						projectId: Number(project.projectId),
@@ -205,7 +285,8 @@ export class Batch extends SerializableBase {
 							},
 							startedAt: segmentation.startedAt ? new Date(segmentation.startedAt) : null,
 							completedAt: segmentation.completedAt ? new Date(segmentation.completedAt) : null
-						}
+						},
+						translations
 					};
 				})
 			: [];

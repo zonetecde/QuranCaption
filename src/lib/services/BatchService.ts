@@ -44,8 +44,11 @@ export class BatchService {
 		if (!(await exists(filePath))) throw new Error(`Batch with ID ${batchId} not found.`);
 		const batch = Batch.fromJSON(JSON.parse(await readTextFile(filePath))) as Batch;
 		if (batch.version !== 1) throw new Error(`Unsupported batch version: ${batch.version}`);
-		if (interruptedError) await this.normalizeInterruptedMedia(batch, interruptedError);
-		await this.normalizeInterruptedSegmentation(batch);
+		if (interruptedError) {
+			await this.normalizeInterruptedMedia(batch, interruptedError);
+			await this.normalizeInterruptedSegmentation(batch);
+			await this.normalizeInterruptedTranslations(batch);
+		}
 		return batch;
 	}
 
@@ -84,6 +87,29 @@ export class BatchService {
 			project.segmentation.error = 'SEGMENTATION_INTERRUPTED';
 			project.segmentation.completedAt = new Date();
 			changed = true;
+		}
+		if (changed) {
+			batch.updatedAt = new Date();
+			await this.save(batch);
+		}
+		return changed;
+	}
+
+	/**
+	 * Convertit les opérations de traduction abandonnées en échecs relançables.
+	 * @param {Batch} batch Batch venant d'être chargé.
+	 * @returns {Promise<boolean>} `true` lorsqu'une sauvegarde a été nécessaire.
+	 */
+	static async normalizeInterruptedTranslations(batch: Batch): Promise<boolean> {
+		let changed = false;
+		for (const project of batch.projects) {
+			for (const state of Object.values(project.translations)) {
+				if (state.status !== 'adding' && state.status !== 'fetching') continue;
+				state.status = 'failed';
+				state.error = 'TRANSLATION_INTERRUPTED';
+				state.progress = 0;
+				changed = true;
+			}
 		}
 		if (changed) {
 			batch.updatedAt = new Date();
@@ -172,7 +198,8 @@ export class BatchService {
 						mode: null,
 						assetId: null
 					},
-					segmentation: createDefaultBatchSegmentationState()
+					segmentation: createDefaultBatchSegmentationState(),
+					translations: {}
 				};
 				batch.projects.push(item);
 			}

@@ -4,6 +4,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { BatchService } from '$lib/services/BatchService';
 	import { getBatchSegmentationReviewCounts } from '$lib/services/BatchSegmentationReview';
+	import { getProjectTranslationReviewCounts } from '$lib/services/TranslationFetchService';
 	import {
 		leaveBatchReview,
 		navigateBatchReview,
@@ -14,33 +15,49 @@
 
 	let batch = $state<Batch | null>(null);
 	let currentId = $derived(globalState.shared.batchReview.currentProjectId);
+	let reviewKind = $derived(globalState.shared.batchReview.kind);
+	let editionName = $derived(globalState.shared.batchReview.editionName);
 	let currentIndex = $derived(
 		batch?.projects.findIndex((project) => project.projectId === currentId) ?? -1
 	);
 	let flagged = $derived(
-		batch?.projects.filter((project) => project.segmentation.status === 'needs_review') ?? []
+		batch?.projects.filter((project) =>
+			reviewKind === 'translation' && editionName
+				? project.translations[editionName]?.status === 'needs_review'
+				: project.segmentation.status === 'needs_review'
+		) ?? []
 	);
 	let flaggedIndex = $derived(flagged.findIndex((project) => project.projectId === currentId));
 	let hasPrevious = $derived(
 		currentIndex > 0 &&
 			(batch?.projects
 				.slice(0, currentIndex)
-				.some((project) => project.segmentation.status === 'needs_review') ??
+				.some((project) =>
+					reviewKind === 'translation' && editionName
+						? project.translations[editionName]?.status === 'needs_review'
+						: project.segmentation.status === 'needs_review'
+				) ??
 				false)
 	);
 	let hasNext = $derived(
 		currentIndex >= 0 &&
 			(batch?.projects
 				.slice(currentIndex + 1)
-				.some((project) => project.segmentation.status === 'needs_review') ??
+				.some((project) =>
+					reviewKind === 'translation' && editionName
+						? project.translations[editionName]?.status === 'needs_review'
+						: project.segmentation.status === 'needs_review'
+				) ??
 				false)
 	);
 	let currentReviewResolved = $derived(
 		globalState.currentProject
-			? (() => {
-					const review = getBatchSegmentationReviewCounts(globalState.currentProject!);
-					return review.lowConfidence === 0 && review.coverage === 0;
-				})()
+			? reviewKind === 'translation' && editionName
+				? getProjectTranslationReviewCounts(globalState.currentProject!, editionName).pending === 0
+				: (() => {
+						const review = getBatchSegmentationReviewCounts(globalState.currentProject!);
+						return review.lowConfidence === 0 && review.coverage === 0;
+					})()
 			: false
 	);
 	let canNavigateNext = $derived(hasNext || currentReviewResolved);
@@ -122,7 +139,9 @@
 		<span class="material-icons text-[20px]!">chevron_left</span>
 	</button>
 	<span class="max-w-64 truncate px-2 text-sm font-medium text-primary">
-		{globalState.currentProject?.detail.name ?? ''}
+		{globalState.currentProject?.detail.name ?? ''}{reviewKind === 'translation' && editionName
+			? ` · ${batch?.projects.find((project) => project.projectId === currentId)?.translations[editionName]?.editionAuthor ?? editionName}`
+			: ''}
 	</span>
 	<span
 		class="shrink-0 text-xs text-secondary"

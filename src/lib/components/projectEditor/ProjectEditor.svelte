@@ -249,7 +249,9 @@
 	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.SubtitlesEditor}
 		<SubtitlesEditor />
 	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Translations}
-		<TranslationsEditor />
+		{#key globalState.currentProject!.detail.id}
+			<TranslationsEditor />
+		{/key}
 	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Style}
 		<StyleEditor />
 	{:else if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.Export}

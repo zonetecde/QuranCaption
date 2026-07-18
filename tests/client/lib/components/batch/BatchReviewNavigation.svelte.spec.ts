@@ -49,7 +49,8 @@ function createItem(id: number, order: number): BatchProjectItem {
 			mode: 'audio_only',
 			assetId: null
 		},
-		segmentation: createDefaultBatchSegmentationState()
+		segmentation: createDefaultBatchSegmentationState(),
+		translations: {}
 	} satisfies BatchProjectItem;
 	item.segmentation.status = 'needs_review';
 	return item;

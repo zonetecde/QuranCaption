@@ -380,10 +380,18 @@
 			`${batch.name} ${batch.reciter ?? ''}`.toLowerCase().includes(query)
 		);
 	});
-	let homeCards = $derived.by((): HomeCard[] => [
-		...searchedBatches.map((detail) => ({ kind: 'batch' as const, detail })),
-		...searchedProjects.map((detail) => ({ kind: 'project' as const, detail }))
-	]);
+	let homeCards = $derived.by((): HomeCard[] => {
+		const cards: HomeCard[] = [
+			...searchedBatches.map((detail) => ({ kind: 'batch' as const, detail })),
+			...searchedProjects.map((detail) => ({ kind: 'project' as const, detail }))
+		];
+		if (currentSortProperty !== 'updatedAt') return cards;
+		// Sort after merging so batches and projects share the same last-updated order.
+		return cards.sort((left, right) => {
+			const difference = left.detail.updatedAt.getTime() - right.detail.updatedAt.getTime();
+			return isSortAscending ? difference : -difference;
+		});
+	});
 	let projectsPerPage = $derived.by(() => getProjectsPerPage());
 	let totalPages = $derived.by(() => Math.max(1, Math.ceil(homeCards.length / projectsPerPage)));
 	let paginatedHomeCards = $derived.by(() => {

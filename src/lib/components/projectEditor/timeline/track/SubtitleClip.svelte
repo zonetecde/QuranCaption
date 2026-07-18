@@ -17,6 +17,7 @@
 	import toast from 'svelte-5-french-toast';
 	import {
 		computeWbwTimestampsForClips,
+		isWbwTimestampClip,
 		scheduleWbwRealign,
 		getAutoRealignStatus,
 		AUTO_REALIGN_DRAG_THRESHOLD_MS
@@ -40,7 +41,7 @@
 
 	// Vrai si ce sous-titre Quran n'a pas encore de timestamps mot à mot.
 	let isMissingWbwTimestamps = $derived(
-		clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) === 0
+		isWbwTimestampClip(clip) && (clip.alignmentMetadata?.words.length ?? 0) === 0
 	);
 
 	let positionLeft = $derived(() => {
@@ -156,7 +157,7 @@
 	}
 
 	const wordBoundaryMarkers = $derived(() => {
-		if (!(clip instanceof SubtitleClip)) return [];
+		if (!isWbwTimestampClip(clip)) return [];
 		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return [];
 
 		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
@@ -453,7 +454,7 @@
 	 * @returns {Promise<void>}
 	 */
 	async function generateWbwTimestampsFromContextMenu(): Promise<void> {
-		if (!(clip instanceof SubtitleClip)) return;
+		if (!isWbwTimestampClip(clip)) return;
 
 		currentMenu.set(null);
 		await tick();
@@ -750,6 +751,15 @@
 			</div></Item
 		>
 	{/if}
+	{#if isMissingWbwTimestamps}
+		<Divider />
+		<Item on:click={generateWbwTimestampsFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">auto_awesome</span>Generate WBW
+				timestamps
+			</div></Item
+		>
+	{/if}
 	{#if clip.type === 'Subtitle'}
 		<Divider />
 		<Item on:click={editSubtitleFromQuickEditorContextMenu}
@@ -764,14 +774,6 @@
 				>{$LL.editor.editTranslationContext()}
 			</div></Item
 		>
-		{#if isMissingWbwTimestamps}
-			<Item on:click={generateWbwTimestampsFromContextMenu}
-				><div class="btn-icon">
-					<span class="material-icons-outlined text-sm mr-1">auto_awesome</span>Generate WBW
-					timestamps
-				</div></Item
-			>
-		{/if}
 		<Item on:click={editWbwTimestampFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">timeline</span

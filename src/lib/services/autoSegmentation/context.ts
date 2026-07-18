@@ -167,6 +167,23 @@ export function refreshSegmentationContextFromTrack(preserveAudioId: boolean): v
 			continue;
 		}
 
+		if (rawClip instanceof PredefinedSubtitleClip && rawClip.alignmentMetadata) {
+			const metadata = rawClip.alignmentMetadata;
+			alignedSegments.push({
+				clipId: rawClip.id,
+				type: 'Pre-defined Subtitle',
+				startMs: rawClip.startTime,
+				endMs: rawClip.endTime,
+				segment: metadata.segment,
+				refFrom: metadata.refFrom,
+				refTo: metadata.refTo,
+				matchedText: metadata.matchedText,
+				specialType: metadata.specialType,
+				words: metadata.words.map((word) => ({ ...word }))
+			});
+			continue;
+		}
+
 		if (rawClip instanceof PredefinedSubtitleClip) {
 			const existing = existingById.get(rawClip.id);
 			if (existing) {

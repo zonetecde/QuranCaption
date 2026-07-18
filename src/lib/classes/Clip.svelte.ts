@@ -908,6 +908,7 @@ export function getForcedFontForPredefinedSubtitle(
 
 export class PredefinedSubtitleClip extends ClipWithTranslation {
 	predefinedSubtitleType: PredefinedSubtitleType = $state('Other');
+	alignmentMetadata: SubtitleAlignmentMetadata | null = $state(null);
 
 	constructor(
 		startTime: number = 0,

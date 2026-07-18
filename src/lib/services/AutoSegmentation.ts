@@ -50,15 +50,13 @@ export {
 	getSubtitleClipsWithoutWbwTimestamps,
 	markSubtitlesWithoutWbwTimestampsForReview,
 	clearWbwTimestampReview,
+	computeRealignWindow,
 	computeMissingWbwTimestamps,
 	computeWbwTimestampsForClips,
-	computeWbwTimestampsForClipsSliced
+	computeWbwTimestampsForClipsSliced,
+	isWbwTimestampClip
 } from './autoSegmentation/review';
-export {
-	scheduleWbwRealign,
-	getAutoRealignStatus,
-	computeRealignWindow
-} from './autoSegmentation/auto-realign.svelte';
+export { scheduleWbwRealign, getAutoRealignStatus } from './autoSegmentation/auto-realign.svelte';
 export {
 	hydrateSubtitleClipRange,
 	splitSubtitleClipLocally,

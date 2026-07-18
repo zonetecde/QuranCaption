@@ -31,6 +31,8 @@ export interface BatchSegmentationQueueProgress {
 	needsReview: number;
 	failed: number;
 	remaining: number;
+	progress: number;
+	total: number;
 }
 
 export interface BatchSegmentationLiveStatus {
@@ -148,10 +150,21 @@ export async function inspectBatchSegmentationEligibility(
 export async function reconcileBatchSegmentations(batch: Batch): Promise<boolean> {
 	let changed = false;
 	for (const item of batch.projects.filter(
-		(project) => project.segmentation.status === 'needs_review'
+		(project) =>
+			project.segmentation.status === 'needs_review' ||
+			(project.media.status === 'completed' && project.segmentation.status === 'not_started')
 	)) {
 		try {
-			changed = (await reconcileBatchProjectSegmentation(batch, item)) || changed;
+			const project = await ProjectService.load(item.projectId);
+			if (item.segmentation.status === 'not_started') {
+				const context = project.projectEditorState.subtitlesEditor.segmentationContext;
+				if (!context.audioId || context.alignedSegments.length === 0) continue;
+				item.segmentation.progress = 100;
+				item.segmentation.segmentsApplied = context.alignedSegments.length;
+				item.segmentation.completedAt = project.detail.updatedAt;
+				changed = true;
+			}
+			changed = (await reconcileBatchProjectSegmentation(batch, item, project)) || changed;
 		} catch (error) {
 			console.warn(`Unable to reconcile batch project ${item.projectId}:`, error);
 		}
@@ -422,6 +435,7 @@ export class BatchSegmentationService {
 		const active = this.executionItems.filter(
 			(item) => item.segmentation.status === 'processing'
 		).length;
+		const total = this.executionItems.length;
 		return {
 			active,
 			completed: this.executionItems.filter((item) =>
@@ -430,7 +444,20 @@ export class BatchSegmentationService {
 			needsReview: this.executionItems.filter((item) => item.segmentation.status === 'needs_review')
 				.length,
 			failed: this.executionItems.filter((item) => item.segmentation.status === 'failed').length,
-			remaining: this.executionItems.filter((item) => item.segmentation.status === 'queued').length
+			remaining: this.executionItems.filter((item) => item.segmentation.status === 'queued').length,
+			progress: Math.round(
+				this.executionItems.reduce(
+					(sum, item) =>
+						sum +
+						(['auto_verified', 'needs_review', 'manually_verified', 'failed'].includes(
+							item.segmentation.status
+						)
+							? 100
+							: item.segmentation.progress),
+					0
+				) / Math.max(total, 1)
+			),
+			total
 		};
 	}
 

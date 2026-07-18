@@ -63,6 +63,8 @@
 	} from '$lib/services/BatchExportService';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import BatchProgressCard from './BatchProgressCard.svelte';
+	import BatchProjectTable from './BatchProjectTable.svelte';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -116,7 +118,9 @@
 		completed: 0,
 		needsReview: 0,
 		failed: 0,
-		remaining: 0
+		remaining: 0,
+		progress: 0,
+		total: 0
 	});
 	let cbrProgress = $state<BatchCbrQueueProgress>({
 		activeProjectId: null,
@@ -200,7 +204,6 @@
 	let translationEditionNames = $derived(
 		Array.from(new Set(projects.flatMap((project) => Object.keys(project.translations))))
 	);
-	let translationStageActive = $derived(translationEditionNames.length > 0);
 	let activeTranslationStates = $derived(
 		activeTranslationEditionName
 			? projects.map((project) => project.translations[activeTranslationEditionName!])
@@ -250,9 +253,13 @@
 	let allMediaCompleted = $derived(
 		projects.length > 0 && projects.every((project) => project.media.status === 'completed')
 	);
-	let segmentationStageActive = $derived(
-		segmentationQueueActive ||
-			projects.some((project) => project.segmentation.status !== 'not_started')
+	let activeProjectStage = $derived<'media' | 'segmentation' | 'translation'>(
+		translationEditionNames.length > 0
+			? 'translation'
+			: segmentationQueueActive ||
+				  projects.some((project) => project.segmentation.status !== 'not_started')
+				? 'segmentation'
+				: 'media'
 	);
 	let incompatibleQueueActive = $derived(
 		queueActive ||
@@ -264,6 +271,22 @@
 			deleteQueueActive
 	);
 	let globalOperationActive = $derived(styleQueueActive || exportQueueActive);
+	let styleGlobalProgress = $derived(
+		Math.round(
+			((styleProgress.completed + styleProgress.failed) * 100) / Math.max(styleProgress.total, 1)
+		)
+	);
+	let exportGlobalProgress = $derived(
+		Math.round(
+			((exportProgress.completed + exportProgress.failed) * 100) / Math.max(exportProgress.total, 1)
+		)
+	);
+	let translationGlobalProgress = $derived(
+		Math.round(
+			activeTranslationStates.reduce((sum, state) => sum + (state?.progress ?? 0), 0) /
+				Math.max(projects.length, 1)
+		)
+	);
 	let savedStylePresets = $derived(globalState.settings?.savedVideoStylePresets ?? []);
 	let selectedStylePreset = $derived(
 		savedStylePresets.find((preset) => preset.id === selectedStylePresetId) ?? null
@@ -858,8 +881,16 @@
 			completed: 0,
 			needsReview: 0,
 			failed: 0,
-			remaining: segmentationModalEligible.length
+			remaining: segmentationModalEligible.length,
+			progress: 0,
+			total: segmentationModalEligible.length
 		};
+		const eligibleProjectIds = new Set(
+			segmentationModalEligible.map((result) => result.item.projectId)
+		);
+		const eligibleProjects = batch.projects.filter((project) =>
+			eligibleProjectIds.has(project.projectId)
+		);
 		const service = new BatchSegmentationService({
 			onUpdate: (project, activity, progress, live) => {
 				segmentationActivities = new Map(segmentationActivities).set(project.projectId, activity);
@@ -869,12 +900,7 @@
 			}
 		});
 		try {
-			await service.run(
-				batch,
-				segmentationModalEligible.map((result) => result.item),
-				configuration,
-				replaceExistingSubtitles
-			);
+			await service.run(batch, eligibleProjects, configuration, replaceExistingSubtitles);
 			await notifyLongTaskCompletion({
 				title: batchMessage('segmentationCompletedTitle'),
 				body: batchMessage('segmentationCompletedBody', {
@@ -1021,6 +1047,24 @@
 		if (!batch || !activeTranslationEditionName || incompatibleQueueActive) return;
 		if (await openBatchTranslationReviewProject(batch.id, projectId, activeTranslationEditionName))
 			discordService.setEditingState();
+	}
+
+	/**
+	 * Ouvre une ligne dans le mode normal ou dans sa revue active.
+	 * @param {BatchProjectItem} project Ligne Batch choisie.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
+	 */
+	async function openProjectRow(project: BatchProjectItem): Promise<void> {
+		if (
+			activeTranslationEditionName &&
+			project.translations[activeTranslationEditionName]?.status === 'needs_review'
+		) {
+			await reviewTranslationProject(project.projectId);
+		} else if (project.segmentation.status === 'needs_review') {
+			await reviewProject(project.projectId);
+		} else {
+			await openProject(project.projectId);
+		}
 	}
 
 	/**
@@ -1236,126 +1280,80 @@
 				</p>
 			{/if}
 			{#if styleQueueActive}
-				<section
-					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]"
-				>
-					{batchMessage('applyingStyleProgress', {
+				<BatchProgressCard
+					summary={batchMessage('applyingStyleProgress', {
 						completed: styleProgress.completed,
 						total: styleProgress.total,
 						failed: styleProgress.failed
 					})}
-				</section>
+					progress={styleGlobalProgress}
+				/>
 			{/if}
 			{#if exportQueueActive}
-				<section
-					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]"
-				>
-					<p>
-						{batchMessage('exportingProjectsProgress', {
-							completed: exportProgress.completed,
-							total: exportProgress.total,
-							failed: exportProgress.failed
-						})}
-					</p>
-					{#if exportProgress.activeProjectName}
-						<p class="mt-1">
-							{batchMessage('currentExportProject', {
+				<BatchProgressCard
+					summary={batchMessage('exportingProjectsProgress', {
+						completed: exportProgress.completed,
+						total: exportProgress.total,
+						failed: exportProgress.failed
+					})}
+					progress={exportGlobalProgress}
+					detail={exportProgress.activeProjectName
+						? batchMessage('currentExportProject', {
 								project: exportProgress.activeProjectName
-							})}
-						</p>
-					{/if}
-				</section>
+							})
+						: null}
+				/>
 			{/if}
 			{#if queueActive}
-				<section
-					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
-				>
-					<div class="flex flex-wrap justify-between gap-2 text-sm text-[var(--text-secondary)]">
-						<span
-							>{batchMessage('queueSummary', {
-								active: queueProgress.active,
-								completed: queueProgress.completed,
-								failed: queueProgress.failed,
-								remaining: queueProgress.remaining
-							})}</span
-						>
-						<span>{batchMessage('globalProgress', { progress: queueProgress.progress })}</span>
-					</div>
-					<div class="mt-3 h-2 overflow-hidden rounded bg-[var(--border-color)]">
-						<div
-							class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
-							style={`width: ${queueProgress.progress}%`}
-						></div>
-					</div>
-				</section>
+				<BatchProgressCard
+					summary={batchMessage('queueSummary', {
+						active: queueProgress.active,
+						completed: queueProgress.completed,
+						failed: queueProgress.failed,
+						remaining: queueProgress.remaining
+					})}
+					progress={queueProgress.progress}
+				/>
 			{/if}
 			{#if cbrQueueActive}
-				<section
-					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
-				>
-					<div class="flex flex-wrap justify-between gap-2 text-sm text-[var(--text-secondary)]">
-						<span>
-							{cbrCurrentProject
-								? batchMessage('cbrConvertingProject', {
-										project: cbrCurrentProject.projectName
-									})
-								: batchMessage('cbrPreparing')}
-						</span>
-						<span>
-							{batchMessage('cbrQueueSummary', {
-								completed: cbrProgress.completed,
-								total: cbrProgress.total,
-								failed: cbrProgress.failed
-							})}
-							· {cbrProgress.progress}%
-						</span>
-					</div>
-					<div class="mt-3 h-2 overflow-hidden rounded bg-[var(--border-color)]">
-						<div
-							class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
-							style={`width: ${cbrProgress.progress}%`}
-						></div>
-					</div>
-				</section>
+				<BatchProgressCard
+					summary={cbrCurrentProject
+						? batchMessage('cbrConvertingProject', { project: cbrCurrentProject.projectName })
+						: batchMessage('cbrPreparing')}
+					progress={cbrProgress.progress}
+					detail={batchMessage('cbrQueueSummary', {
+						completed: cbrProgress.completed,
+						total: cbrProgress.total,
+						failed: cbrProgress.failed
+					})}
+				/>
 			{/if}
 			{#if segmentationQueueActive}
-				<section
-					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
-				>
-					<p class="text-sm text-[var(--text-secondary)]">
-						{batchMessage('segmentationQueueSummary', {
-							active: segmentationProgress.active,
-							completed: segmentationProgress.completed,
-							needsReview: segmentationProgress.needsReview,
-							failed: segmentationProgress.failed,
-							remaining: segmentationProgress.remaining
-						})}
-					</p>
-				</section>
+				<BatchProgressCard
+					summary={batchMessage('segmentationQueueSummary', {
+						active: segmentationProgress.active,
+						completed: segmentationProgress.completed,
+						needsReview: segmentationProgress.needsReview,
+						failed: segmentationProgress.failed,
+						remaining: segmentationProgress.remaining
+					})}
+					progress={segmentationProgress.progress}
+				/>
 			{/if}
 			{#if translationQueueActive && activeTranslationEditionName}
-				<section
-					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
-				>
-					<p class="text-sm text-[var(--text-secondary)]">
-						{batchMessage('translationQueueSummary', {
-							completed: activeTranslationStates.filter(
-								(state) =>
-									state &&
-									['ready_to_fetch', 'auto_verified', 'needs_review', 'manually_verified'].includes(
-										state.status
-									)
-							).length,
-							total: projects.length
-						})}
-					</p>
-					<div class="mt-3 h-2 overflow-hidden rounded bg-[var(--border-color)]">
-						<div
-							class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
-							style={`width: ${Math.round(activeTranslationStates.reduce((sum, state) => sum + (state?.progress ?? 0), 0) / Math.max(projects.length, 1))}%`}
-						></div>
-					</div>
-				</section>
+				<BatchProgressCard
+					summary={batchMessage('translationQueueSummary', {
+						completed: activeTranslationStates.filter(
+							(state) =>
+								state &&
+								['ready_to_fetch', 'auto_verified', 'needs_review', 'manually_verified'].includes(
+									state.status
+								)
+						).length,
+						total: projects.length
+					})}
+					progress={translationGlobalProgress}
+				/>
 			{/if}
 			{#if translationEditionNames.length > 0}
 				<label class="flex max-w-md items-center gap-3 text-sm text-[var(--text-secondary)]">
@@ -1418,219 +1416,25 @@
 				</div>
 			</div>
 
-			<section
-				class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl"
-			>
-				<div class="overflow-x-auto">
-					<table class="w-full text-left text-sm">
-						<thead class="bg-[var(--bg-accent)] text-[var(--text-secondary)]">
-							<tr>
-								<th class="px-4 py-3">
-									<input
-										type="checkbox"
-										class="rounded border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--accent-primary)]"
-										checked={allSelected}
-										aria-label={batchMessage('selectProject')}
-										onchange={toggleAll}
-									/>
-								</th>
-								<th class="px-4 py-3">#</th>
-								<th class="px-4 py-3">{$LL.batch.project()}</th>
-								<th class="px-4 py-3">{$LL.batch.reciter()}</th>
-								<th class="px-4 py-3">{$LL.batch.source()}</th>
-								{#if translationStageActive}
-									<th class="min-w-64 px-4 py-3">{batchMessage('translations')}</th>
-								{:else if segmentationStageActive}
-									<th class="min-w-64 px-4 py-3">{batchMessage('aiSegmentation')}</th>
-								{:else}
-									<th class="min-w-56 px-4 py-3">{$LL.batch.media()}</th>
-								{/if}
-								<th class="px-4 py-3">{$LL.batch.actions()}</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-[var(--border-color)]">
-							{#each projects as project (`${project.projectId}-${translationRowVersions[project.projectId] ?? 0}`)}
-								<tr>
-									<td class="px-4 py-4">
-										<input
-											type="checkbox"
-											class="rounded border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--accent-primary)]"
-											checked={selectedIds.has(project.projectId)}
-											disabled={project.media.status === 'processing' ||
-												project.segmentation.status === 'processing' ||
-												cbrQueueActive ||
-												translationQueueActive ||
-												globalOperationActive}
-											aria-label={batchMessage('selectProject')}
-											onchange={() => toggleProject(project.projectId)}
-										/>
-									</td>
-									<td class="px-4 py-4 text-[var(--text-thirdly)]">{project.order}</td>
-									<td class="px-4 py-4 font-medium text-[var(--text-primary)]">
-										{project.projectName}
-									</td>
-									<td class="px-4 py-4 text-[var(--text-secondary)]">{project.reciter}</td>
-									<td class="max-w-96 px-4 py-4 text-[var(--text-secondary)]">
-										<div class="flex items-center gap-2" title={project.source.value}>
-											<span class="material-icons-outlined text-base text-[var(--accent-primary)]">
-												{project.source.kind === 'url' ? 'link' : 'insert_drive_file'}
-											</span>
-											<span class="truncate">{project.source.value}</span>
-										</div>
-									</td>
-									{#if translationStageActive}
-										{@const translationState = activeTranslationEditionName
-											? project.translations[activeTranslationEditionName]
-											: undefined}
-										<td class="px-4 py-4">
-											{#if translationState}
-												<div
-													class="flex justify-between gap-3 text-xs text-[var(--text-secondary)]"
-												>
-													<span>{getTranslationStatusLabel(translationState.status)}</span>
-													{#if translationState.status === 'adding' || translationState.status === 'fetching'}
-														<span>{translationState.progress}%</span>
-													{/if}
-												</div>
-												{#if translationState.status === 'adding' || translationState.status === 'fetching'}
-													<div class="mt-2 h-2 overflow-hidden rounded bg-[var(--border-color)]">
-														<div
-															class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
-															style={`width: ${translationState.progress}%`}
-														></div>
-													</div>
-												{/if}
-												{#if translationState.review.total > 0}
-													<p class="mt-2 text-xs text-[var(--text-thirdly)]">
-														{batchMessage('translationCounts', {
-															complete: translationState.review.complete,
-															total: translationState.review.total,
-															pending: translationState.review.pending,
-															fetched: translationState.review.fetched
-														})}
-													</p>
-												{/if}
-												{#if translationState.error}
-													<p class="mt-2 max-w-80 break-words text-xs text-red-300">
-														{translationState.error === 'TRANSLATION_INTERRUPTED'
-															? batchMessage('translationInterrupted')
-															: translationState.error}
-													</p>
-												{/if}
-											{:else}
-												<span class="text-xs text-[var(--text-secondary)]">
-													{batchMessage('translationNotAdded')}
-												</span>
-											{/if}
-										</td>
-									{:else if segmentationStageActive}
-										<td class="px-4 py-4">
-											<div class="flex justify-between gap-3 text-xs text-[var(--text-secondary)]">
-												<span>{getSegmentationActivityLabel(project)}</span>
-												{#if project.segmentation.status === 'processing' || project.segmentation.progress > 0}
-													<span>{project.segmentation.progress}%</span>
-												{/if}
-											</div>
-											{#if project.segmentation.status === 'processing'}
-												<div class="mt-2 h-2 overflow-hidden rounded bg-[var(--border-color)]">
-													<div
-														class:animate-pulse={segmentationLive.get(project.projectId)
-															?.indeterminate}
-														class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
-														style={`width: ${segmentationLive.get(project.projectId)?.indeterminate ? 100 : project.segmentation.progress}%`}
-													></div>
-												</div>
-											{/if}
-											{#if project.segmentation.status === 'auto_verified' || project.segmentation.status === 'manually_verified'}
-												<p class="mt-2 text-xs text-[var(--text-thirdly)]">
-													{batchMessage('segmentationSegments', {
-														count: project.segmentation.segmentsApplied
-													})}
-												</p>
-											{:else if project.segmentation.status === 'needs_review'}
-												<p
-													class="mt-2 text-xs text-amber-300"
-													title={batchMessage('segmentationReviewTooltip', {
-														coverage: project.segmentation.review.coverage,
-														lowConfidence: project.segmentation.review.lowConfidence,
-														long: project.segmentation.review.long,
-														wbw: project.segmentation.review.wbwTimestamps
-													})}
-												>
-													{batchMessage('segmentationIssues', {
-														count: project.segmentation.review.pending
-													})}
-													· {batchMessage('segmentationCoverageCount', {
-														count: project.segmentation.review.coverage
-													})}
-													· {batchMessage('segmentationLowConfidenceCount', {
-														count: project.segmentation.review.lowConfidence
-													})}
-												</p>
-											{/if}
-											{#if project.segmentation.error}
-												<p class="mt-2 max-w-80 break-words text-xs text-red-300">
-													{getSegmentationError(project.segmentation.error)}
-												</p>
-											{/if}
-										</td>
-									{:else}
-										<td class="px-4 py-4">
-											<div class="flex justify-between text-xs text-[var(--text-secondary)]">
-												<span>{getActivityLabel(project)}</span>
-												<span>{project.media.progress}%</span>
-											</div>
-											<div class="mt-2 h-2 overflow-hidden rounded bg-[var(--border-color)]">
-												<div
-													class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
-													style={`width: ${project.media.progress}%`}
-												></div>
-											</div>
-											{#if project.media.mode}
-												<p class="mt-2 text-xs text-[var(--text-thirdly)]">
-													{batchMessage('mediaMode', { mode: getModeLabel(project.media.mode) })}
-												</p>
-											{/if}
-											{#if project.media.error}
-												<p class="mt-2 max-w-80 break-words text-xs text-red-300">
-													{project.media.error}
-												</p>
-											{/if}
-										</td>
-									{/if}
-									<td class="px-4 py-4">
-										<button
-											class="btn btn-icon h-9 px-3"
-											type="button"
-											disabled={project.media.status === 'processing' ||
-												project.segmentation.status === 'processing' ||
-												cbrQueueActive ||
-												translationQueueActive ||
-												globalOperationActive}
-											onclick={() =>
-												activeTranslationEditionName &&
-												project.translations[activeTranslationEditionName]?.status ===
-													'needs_review'
-													? reviewTranslationProject(project.projectId)
-													: project.segmentation.status === 'needs_review'
-														? reviewProject(project.projectId)
-														: openProject(project.projectId)}
-										>
-											<span class="material-icons-outlined mr-2 text-base">open_in_new</span>
-											{(activeTranslationEditionName &&
-												project.translations[activeTranslationEditionName]?.status ===
-													'needs_review') ||
-											project.segmentation.status === 'needs_review'
-												? batchMessage('reviewProject')
-												: $LL.batch.openProject()}
-										</button>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			</section>
+			<BatchProjectTable
+				{projects}
+				stage={activeProjectStage}
+				{activeTranslationEditionName}
+				{selectedIds}
+				{allSelected}
+				operationActive={cbrQueueActive || translationQueueActive || globalOperationActive}
+				{segmentationLive}
+				rowVersions={translationRowVersions}
+				{batchMessage}
+				getMediaActivityLabel={getActivityLabel}
+				{getModeLabel}
+				{getSegmentationActivityLabel}
+				{getSegmentationError}
+				{getTranslationStatusLabel}
+				onToggleAll={toggleAll}
+				onToggleProject={toggleProject}
+				onOpenProject={openProjectRow}
+			/>
 		{/if}
 	</div>
 </div>

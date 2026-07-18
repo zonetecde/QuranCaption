@@ -14,8 +14,14 @@ import {
 import type { Project } from '$lib/classes/Project';
 import { globalState } from '$lib/runes/main.svelte';
 import { AutoSegmentationExecutionCoordinator } from '$lib/services/AutoSegmentationExecutionCoordinator';
-import { BatchSegmentationService } from '$lib/services/BatchSegmentationService';
+import {
+	BatchSegmentationService,
+	reconcileBatchSegmentations,
+	type BatchSegmentationQueueProgress
+} from '$lib/services/BatchSegmentationService';
 import type { BatchSegmentationRunConfiguration } from '$lib/services/BatchSegmentationSettings';
+import { BatchService } from '$lib/services/BatchService';
+import { ProjectService } from '$lib/services/ProjectService';
 
 interface Deferred<T> {
 	promise: Promise<T>;
@@ -91,9 +97,13 @@ describe('BatchSegmentationService', () => {
 		let active = 0;
 		let maximumActive = 0;
 		const saves: string[] = [];
+		let latestProgress: BatchSegmentationQueueProgress | null = null;
 		const unlisten = vi.fn();
 		const service = new BatchSegmentationService({
 			listenStatus: async () => unlisten,
+			onUpdate: (_item, _activity, progress) => {
+				latestProgress = progress;
+			},
 			saveBatch: async (batch) => {
 				saves.push(batch.projects.map((item) => item.segmentation.status).join(','));
 			},
@@ -142,9 +152,42 @@ describe('BatchSegmentationService', () => {
 		expect(saves.length).toBeGreaterThan(5);
 		expect(unlisten).toHaveBeenCalledOnce();
 		expect(AutoSegmentationExecutionCoordinator.activeSource).toBeNull();
+		expect(latestProgress).toMatchObject({ progress: 100, total: 3 });
 		const finishedProgress = items[2].segmentation.progress;
 		service.handleStatus({ progress: 5 });
 		expect(items[2].segmentation.progress).toBe(finishedProgress);
+	});
+
+	it('recovers a completed segmentation from the saved project context', async () => {
+		const item = createItem(1);
+		const updatedAt = new Date('2026-07-18T20:00:00.000Z');
+		const project = {
+			detail: { updatedAt },
+			projectEditorState: {
+				subtitlesEditor: {
+					segmentationContext: {
+						audioId: 'audio',
+						alignedSegments: [{ clipId: 1 }, { clipId: 2 }]
+					}
+				}
+			},
+			content: { timeline: { getFirstTrack: () => ({ clips: [] }) } }
+		} as unknown as Project;
+		const loadProject = vi.spyOn(ProjectService, 'load').mockResolvedValue(project);
+		const saveBatch = vi.spyOn(BatchService, 'save').mockResolvedValue();
+		const batch = new Batch('Batch', [item]);
+
+		try {
+			expect(await reconcileBatchSegmentations(batch)).toBe(true);
+			expect(item.segmentation.status).toBe('auto_verified');
+			expect(item.segmentation.progress).toBe(100);
+			expect(item.segmentation.segmentsApplied).toBe(2);
+			expect(item.segmentation.completedAt).toEqual(updatedAt);
+			expect(saveBatch).toHaveBeenCalledWith(batch);
+		} finally {
+			loadProject.mockRestore();
+			saveBatch.mockRestore();
+		}
 	});
 
 	it('loads and saves the explicit project without replacing the global project', async () => {

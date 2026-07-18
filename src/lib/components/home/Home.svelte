@@ -559,7 +559,7 @@
 					{$LL.home.importProject()}
 				</button>
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={newBatchButtonClick}>
-					<span class="material-icons-outlined mr-2">dynamic_feed</span>
+					<span class="material-icons mr-2">dynamic_feed</span>
 					{$LL.batch.newBatch()}
 				</button>
 			</section>

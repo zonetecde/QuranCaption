@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Edition } from '$lib/classes';
+	import type { Edition, Project } from '$lib/classes';
 	import AiActivityLogCard from './shared/AiActivityLogCard.svelte';
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
 	import AiRunStatusCard from './shared/AiRunStatusCard.svelte';
@@ -25,7 +25,7 @@
 	import { runAiWorkerPool, type AiStreamWorker } from '$lib/services/AiWorkerPool';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 
 	type ActivityTone = 'info' | 'success' | 'error';
@@ -181,14 +181,21 @@
 		);
 	}
 
-	function refreshCandidates(resetRange: boolean = false): void {
+	function refreshCandidates(resetRange: boolean = false, project?: Project): void {
 		advancedCandidates = buildAdvancedTrimVerseCandidates(
 			edition,
-			aiSettings().advancedAlsoAskReviewed
+			aiSettings().advancedAlsoAskReviewed,
+			project
 		);
 		syncSelectionWindow(resetRange);
 		refreshBatchPreview();
 	}
+
+	$effect(() => {
+		const project = globalState.currentProject;
+		if (!project) return;
+		untrack(() => refreshCandidates(true, project));
+	});
 
 	function isBlockingError(message: string): boolean {
 		return /\b(401|402|403|429|500|502|503|504)\b/.test(message);
@@ -465,7 +472,6 @@
 	}
 
 	onMount(async () => {
-		refreshCandidates(true);
 		unlistenFns.push(
 			await listen('advanced-ai-trim-status', handleStatusEvent),
 			await listen('advanced-ai-trim-chunk', handleChunkEvent),

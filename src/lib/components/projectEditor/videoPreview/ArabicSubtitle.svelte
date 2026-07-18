@@ -14,7 +14,6 @@
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
 		createPlainOverlaySegment,
-		getMergedClipsWithoutWordOverlap,
 		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
@@ -306,13 +305,13 @@
 	 * Sélectionne le timing à utiliser pour un mot dans le clip courant.
 	 *
 	 * Priorités :
-	 * 1. Timing correspondant au clipId courant.
+	 * 1. Timing déjà commencé correspondant au clipId courant.
 	 * 2. Timing actif (curseur dans [start, end]).
 	 * 3. Dernier timing passé.
-	 * 4. Premier timing disponible.
+	 * 4. Timing futur du clip courant, puis premier timing disponible.
 	 *
 	 * @param timings - Timings disponibles pour ce mot.
-	 * @param cursorTimeS - Position du curseur en secondes.
+	 * @param cursorTimeS - Position du curseur en secondes dans le groupe fusionné.
 	 * @param currentClipId - ID du clip courant (pour le matching prioritaire).
 	 * @returns Le timing sélectionné, ou `null` si aucun.
 	 */
@@ -326,14 +325,14 @@
 		);
 		if (validTimings.length === 0) return null;
 
-		// Priorité 1 : timing correspondant au clip courant
-		if (currentClipId !== null) {
-			const currentClipTiming = validTimings.find(
-				(timing) =>
-					(timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
-			);
-			if (currentClipTiming) return currentClipTiming;
-		}
+		const currentClipTiming =
+			currentClipId === null
+				? undefined
+				: validTimings.find(
+						(timing) =>
+							(timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
+					);
+		if (currentClipTiming && currentClipTiming.start <= cursorTimeS) return currentClipTiming;
 
 		// Priorité 2 : timing actif
 		const activeTiming = validTimings.find(
@@ -347,8 +346,8 @@
 			return pastTimings[pastTimings.length - 1];
 		}
 
-		// Priorité 4 : premier timing
-		return validTimings[0];
+		// Priorité 4 : timing futur du clip courant, puis premier timing
+		return currentClipTiming ?? validTimings[0];
 	}
 
 	/**
@@ -384,10 +383,7 @@
 		if (!(subtitle instanceof SubtitleClip)) return null;
 
 		const mergedGroup = currentVisualMergeGroup();
-		const sourceClips =
-			mergedGroup && isArabicMerged()
-				? getMergedClipsWithoutWordOverlap(mergedGroup.clips)
-				: [subtitle];
+		const sourceClips = mergedGroup && isArabicMerged() ? mergedGroup.clips : [subtitle];
 
 		const shouldUseMergedSource =
 			mergedGroup &&
@@ -480,8 +476,10 @@
 				extraCss: getSubtitleQpcFontCss(sourceClip)
 			};
 
-			groups.push(group);
-			totalWordCount += groupWords.length;
+			if (groupWords.length > 0) {
+				groups.push(group);
+				totalWordCount += groupWords.length;
+			}
 			visibleWordTexts = words.map((word) => word.text);
 		}
 
@@ -516,7 +514,7 @@
 						(word) =>
 							selectWordTimingForCurrentClip(
 								word.timings,
-								getTimelineSettings().cursorPosition / 1000,
+								getTimelineSettings().cursorPosition / 1000 - (renderData?.clipStartTimeS ?? 0),
 								currentClipId
 							) ?? word.timings[0]
 					)

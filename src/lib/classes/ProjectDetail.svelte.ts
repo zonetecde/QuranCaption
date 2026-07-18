@@ -6,6 +6,7 @@ import { Duration } from './index.js';
 import { VerseRange } from './VerseRange.svelte';
 import { Status } from './Status';
 import type { ClipWithTranslation } from './Clip.svelte';
+import type { AssetTrack } from './Track.svelte';
 import { VerseTranslation } from './Translation.svelte';
 import {
 	DEFAULT_PROJECT_TYPE,
@@ -88,6 +89,16 @@ export class ProjectDetail extends SerializableBase {
 		this.duration = new Duration(globalState.getAudioTrack.getDuration().ms || 0);
 		this.updateVideoPercentageCaptioned();
 		this.updateVerseRange();
+	}
+
+	/**
+	 * Met à jour les détails média depuis une piste audio explicite.
+	 * @param {AssetTrack} audioTrack Piste du projet traité en arrière-plan.
+	 * @returns {void}
+	 */
+	public updateMediaDetailAttributes(audioTrack: AssetTrack): void {
+		this.duration = new Duration(audioTrack.getDuration().ms || 0);
+		this.percentageCaptioned = 0;
 	}
 
 	private updateVideoPercentageCaptioned() {

@@ -63,14 +63,34 @@ export class ProjectContent extends SerializableBase {
 		metadata: UnknownRecord = {}
 	): Asset | undefined {
 		return ProjectHistoryManager.track('add asset', () => {
-			const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
-			if (asset.type === AssetType.Unknown) {
+			const asset = this.addAssetHeadless(filePath, sourceUrl, sourceType, metadata);
+			if (!asset) {
 				toast.error(get(LL).editor.fileFormatNotSupported());
-				return undefined;
 			}
-			this.assets.unshift(asset);
 			return asset;
 		});
+	}
+
+	/**
+	 * Crée un asset sans historique ni effet d'interface.
+	 * @param {string} filePath Chemin du média.
+	 * @param {string | undefined} sourceUrl URL d'origine éventuelle.
+	 * @param {SourceType} sourceType Type de source.
+	 * @param {UnknownRecord} metadata Métadonnées de l'asset.
+	 * @returns {Asset | undefined} Asset ajouté, ou `undefined` si son format est inconnu.
+	 */
+	addAssetHeadless(
+		filePath: string,
+		sourceUrl?: string,
+		sourceType: SourceType = SourceType.Local,
+		metadata: UnknownRecord = {}
+	): Asset | undefined {
+		const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
+		if (asset.type === AssetType.Unknown) {
+			return undefined;
+		}
+		this.assets.unshift(asset);
+		return asset;
 	}
 
 	removeAsset(asset: Asset): void {

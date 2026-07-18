@@ -5,11 +5,15 @@ export type BatchSource = { kind: 'url'; value: string } | { kind: 'file'; value
 
 export type BatchMediaStatus = 'pending' | 'queued' | 'processing' | 'completed' | 'failed';
 
+export type BatchMediaMode = 'audio_only' | 'audio_video';
+
 export interface BatchMediaState {
 	status: BatchMediaStatus;
 	progress: number;
 	error: string | null;
 	resolvedAssetPath: string | null;
+	mode: BatchMediaMode | null;
+	assetId: number | null;
 }
 
 export interface BatchProjectItem {
@@ -107,7 +111,9 @@ export class Batch extends SerializableBase {
 							status: project.media?.status ?? 'pending',
 							progress: project.media?.progress ?? 0,
 							error: project.media?.error ?? null,
-							resolvedAssetPath: project.media?.resolvedAssetPath ?? null
+							resolvedAssetPath: project.media?.resolvedAssetPath ?? null,
+							mode: project.media?.mode ?? null,
+							assetId: project.media?.assetId ?? null
 						}
 					};
 				})

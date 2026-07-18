@@ -343,7 +343,40 @@ const de = {
 		processing: 'In Bearbeitung',
 		completed: 'Abgeschlossen',
 		failed: 'Fehlgeschlagen',
-		openProject: 'Projekt öffnen'
+		openProject: 'Projekt öffnen',
+		selectProject: 'Projekt auswählen',
+		selectedProjects: '{count} ausgewählt',
+		importMedia: 'Medien importieren',
+		importMediaTitle: 'Medien für diesen Batch importieren',
+		selectedForImport: '{count} Projekt(e) für den Import ausgewählt.',
+		completedIgnored: '{count} abgeschlossene(s) Projekt(e) werden übersprungen.',
+		audioOnly: 'Nur Audio',
+		audioOnlyDescription: 'Audio herunterladen oder importieren und zur Audiospur hinzufügen.',
+		audioVideo: 'Audio & Video',
+		audioVideoDescription:
+			'Ein Video mit Audio herunterladen oder importieren und zu beiden Spuren hinzufügen.',
+		audioOnlySummary:
+			'Eine Mediendatei wird zur Audiospur jedes ausgewählten Projekts hinzugefügt.',
+		audioVideoSummary:
+			'Ein Video-Asset wird von der Audio- und Videospur jedes ausgewählten Projekts verwendet.',
+		incompatibleAudioTitle: 'Lokale Audiodateien sind im Modus Audio & Video nicht kompatibel:',
+		startImport: 'Import starten',
+		downloading: 'Wird heruntergeladen',
+		copyingLocal: 'Lokale Datei wird kopiert',
+		addingTimeline: 'Wird zur Timeline hinzugefügt',
+		savingProject: 'Projekt wird gespeichert',
+		mediaMode: 'Modus: {mode}',
+		queueSummary:
+			'{active} aktiv · {completed} abgeschlossen · {failed} fehlgeschlagen · {remaining} verbleibend',
+		globalProgress: 'Gesamtfortschritt: {progress} %',
+		mediaInterrupted: 'Der Medienvorgang wurde vor dem Abschluss unterbrochen.',
+		errorLocalAudioVideo:
+			'Eine lokale Audiodatei kann nicht als Audio und Video importiert werden.',
+		errorImportedFileMissing: 'Die importierte Mediendatei ist nicht vorhanden.',
+		errorImportedUnsupported: 'Das importierte Medienformat wird nicht unterstützt.',
+		errorDuration: 'Die Mediendauer konnte nicht gelesen werden.',
+		errorVideoTrack: 'Das Medium konnte nicht zur Videospur hinzugefügt werden.',
+		errorAudioTrack: 'Das Medium konnte nicht zur Audiospur hinzugefügt werden.'
 	},
 	editor: {
 		videoEditor: 'Video-Editor',

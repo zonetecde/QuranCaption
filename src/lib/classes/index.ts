@@ -11,6 +11,7 @@ export { Project } from './Project.js';
 export { Batch } from './Batch.js';
 export type {
 	BatchDetail,
+	BatchMediaMode,
 	BatchMediaState,
 	BatchMediaStatus,
 	BatchProjectItem,

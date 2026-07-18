@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { AssetType, SourceType } from './enums.js';
+import { AssetType, SourceType, TrackType } from './enums.js';
 import { SerializableBase } from './misc/SerializableBase.js';
 import { Utilities } from './misc/Utilities.js';
 import { openPath } from '@tauri-apps/plugin-opener';
@@ -13,6 +13,8 @@ import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager.js';
 import type { UnknownRecord } from '$lib/types/common.js';
+import type { Project } from './Project.js';
+import type { AssetTrack } from './Track.svelte.js';
 
 type DurationLoadState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -160,6 +162,39 @@ export class Asset extends SerializableBase {
 		}
 	}
 
+	/**
+	 * Ajoute l'asset aux pistes d'un projet explicite sans historique ni effet d'interface.
+	 * @param {Project} project Projet à modifier en arrière-plan.
+	 * @param {boolean} asVideo Ajouter sur la piste vidéo.
+	 * @param {boolean} asAudio Ajouter sur la piste audio.
+	 * @returns {Promise<void>} Promesse résolue après l'ajout et l'adaptation des dimensions.
+	 */
+	async addToProjectTimeline(project: Project, asVideo: boolean, asAudio: boolean): Promise<void> {
+		const timeline = project.content.timeline;
+		const videoTrack = timeline.getFirstTrack(TrackType.Video) as AssetTrack;
+		const audioTrack = timeline.getFirstTrack(TrackType.Audio) as AssetTrack;
+		if (asVideo && videoTrack.addAssetHeadless(this) !== 'added') {
+			const message = Reflect.get(get(LL).batch, 'errorVideoTrack') as () => string;
+			throw new Error(message());
+		}
+		if (asAudio && audioTrack.addAssetHeadless(this) !== 'added') {
+			const message = Reflect.get(get(LL).batch, 'errorAudioTrack') as () => string;
+			throw new Error(message());
+		}
+
+		if (!asVideo || this.type !== AssetType.Video) return;
+		const dimensions = (await invoke('get_video_dimensions', {
+			filePath: this.filePath
+		})) as { width: number; height: number };
+		if (dimensions.width <= 0 || dimensions.height <= 0) return;
+		const dimensionStyle = project.content.videoStyle
+			.getStylesOfTarget('global')
+			.findStyle('video-dimension');
+		if (dimensionStyle) {
+			dimensionStyle.value = { width: dimensions.width, height: dimensions.height };
+		}
+	}
+
 	private normalizeFilePath(filePath: string): string {
 		// Nettoie le chemin en supprimant les doubles slashes et normalise les séparateurs
 		let normalized = filePath.replace(/\\/g, '/');
@@ -201,7 +236,9 @@ export class Asset extends SerializableBase {
 			if (ffprobeError) {
 				const message = this.getFfmpegErrorMessage(ffprobeError.code, ffprobeError.details);
 				this.durationLoadError = message;
-				await this.showMissingFfmpegModal(message);
+				if (this.metadata.suppressUiEffects !== true) {
+					await this.showMissingFfmpegModal(message);
+				}
 			} else {
 				this.durationLoadError = 'Unable to retrieve media duration. Please check the logs.';
 				console.error('Unable to retrieve media duration', error);

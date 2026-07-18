@@ -59,7 +59,37 @@ const batch = {
 	processing: 'Processing',
 	completed: 'Completed',
 	failed: 'Failed',
-	openProject: 'Open project'
+	openProject: 'Open project',
+	selectProject: 'Select project',
+	selectedProjects: '{count} selected',
+	importMedia: 'Import media',
+	importMediaTitle: 'Import media for this batch',
+	selectedForImport: '{count} project(s) selected for import.',
+	completedIgnored: '{count} completed project(s) will be ignored.',
+	audioOnly: 'Audio only',
+	audioOnlyDescription: 'Download or import the audio and add it to the audio track.',
+	audioVideo: 'Audio & video',
+	audioVideoDescription:
+		'Download or import one video with audio and add it to both timeline tracks.',
+	audioOnlySummary: 'One media file will be added to the audio track of every selected project.',
+	audioVideoSummary:
+		'One video asset will be shared by the audio and video tracks of every selected project.',
+	incompatibleAudioTitle: 'Local audio files cannot be imported in Audio & video mode:',
+	startImport: 'Start import',
+	downloading: 'Downloading',
+	copyingLocal: 'Copying local file',
+	addingTimeline: 'Adding to timeline',
+	savingProject: 'Saving project',
+	mediaMode: 'Mode: {mode}',
+	queueSummary: '{active} active · {completed} completed · {failed} failed · {remaining} remaining',
+	globalProgress: 'Overall progress: {progress}%',
+	mediaInterrupted: 'The media operation was interrupted before completion.',
+	errorLocalAudioVideo: 'A local audio file cannot be imported as audio and video.',
+	errorImportedFileMissing: 'The imported media file does not exist.',
+	errorImportedUnsupported: 'The imported media format is not supported.',
+	errorDuration: 'Unable to read the media duration.',
+	errorVideoTrack: 'Unable to add the media to the video track.',
+	errorAudioTrack: 'Unable to add the media to the audio track.'
 };
 
 export default batch;

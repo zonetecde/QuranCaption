@@ -69,40 +69,6 @@ fn parse_ytdlp_progress_percent(line: &str) -> Option<f64> {
     percent_str.parse::<f64>().ok()
 }
 
-fn find_latest_downloaded_file(download_path: &Path, extension: &str) -> Result<PathBuf, String> {
-    let mut latest_path: Option<PathBuf> = None;
-    let mut latest_modified = std::time::SystemTime::UNIX_EPOCH;
-
-    let entries =
-        fs::read_dir(download_path).map_err(|e| format!("Error reading directory: {}", e))?;
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
-        }
-
-        let has_extension = path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext| ext.eq_ignore_ascii_case(extension))
-            .unwrap_or(false);
-        if !has_extension {
-            continue;
-        }
-
-        let modified = entry
-            .metadata()
-            .and_then(|m| m.modified())
-            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-        if latest_path.is_none() || modified >= latest_modified {
-            latest_modified = modified;
-            latest_path = Some(path);
-        }
-    }
-
-    latest_path.ok_or_else(|| "Downloaded file not found".to_string())
-}
-
 fn find_downloaded_file_by_suffix(
     download_path: &Path,
     extension: &str,
@@ -318,9 +284,7 @@ pub async fn download_from_youtube(
         }
 
         let extension = if _type == "audio" { "mp3" } else { "mp4" };
-        match find_downloaded_file_by_suffix(&download_path_buf, extension, &download_request_id)
-            .or_else(|_| find_latest_downloaded_file(&download_path_buf, extension))
-        {
+        match find_downloaded_file_by_suffix(&download_path_buf, extension, &download_request_id) {
             Ok(path) => {
                 if _type == "video" {
                     // Je commente cette ligne car au final ça sert à rien

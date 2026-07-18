@@ -3,7 +3,7 @@ import en from '../en/index.js';
 
 const baseEn = en as unknown as Translation;
 
-const id: Translation = {
+const id = {
 	...baseEn,
 	common: {
 		...baseEn.common,
@@ -262,7 +262,35 @@ const id: Translation = {
 		processing: 'Diproses',
 		completed: 'Selesai',
 		failed: 'Gagal',
-		openProject: 'Buka proyek'
+		openProject: 'Buka proyek',
+		selectProject: 'Pilih proyek',
+		selectedProjects: '{count} dipilih',
+		importMedia: 'Impor media',
+		importMediaTitle: 'Impor media untuk batch ini',
+		selectedForImport: '{count} proyek dipilih untuk diimpor.',
+		completedIgnored: '{count} proyek selesai akan dilewati.',
+		audioOnly: 'Audio saja',
+		audioOnlyDescription: 'Unduh atau impor audio lalu tambahkan ke trek audio.',
+		audioVideo: 'Audio & video',
+		audioVideoDescription: 'Unduh atau impor satu video dengan audio lalu tambahkan ke kedua trek.',
+		audioOnlySummary: 'Satu file media akan ditambahkan ke trek audio setiap proyek terpilih.',
+		audioVideoSummary: 'Satu aset video akan dipakai bersama oleh trek audio dan video.',
+		incompatibleAudioTitle: 'File audio lokal tidak kompatibel dengan mode Audio & video:',
+		startImport: 'Mulai impor',
+		downloading: 'Mengunduh',
+		copyingLocal: 'Menyalin file lokal',
+		addingTimeline: 'Menambahkan ke linimasa',
+		savingProject: 'Menyimpan proyek',
+		mediaMode: 'Mode: {mode}',
+		queueSummary: '{active} aktif · {completed} selesai · {failed} gagal · {remaining} tersisa',
+		globalProgress: 'Progres keseluruhan: {progress}%',
+		mediaInterrupted: 'Operasi media terhenti sebelum selesai.',
+		errorLocalAudioVideo: 'File audio lokal tidak dapat diimpor sebagai audio dan video.',
+		errorImportedFileMissing: 'File media yang diimpor tidak ada.',
+		errorImportedUnsupported: 'Format media yang diimpor tidak didukung.',
+		errorDuration: 'Durasi media tidak dapat dibaca.',
+		errorVideoTrack: 'Media tidak dapat ditambahkan ke trek video.',
+		errorAudioTrack: 'Media tidak dapat ditambahkan ke trek audio.'
 	},
 	settings: {
 		...baseEn.settings,
@@ -1448,6 +1476,6 @@ const id: Translation = {
 		restartRequiredMessage: 'Aplikasi perlu restart untuk menerapkan update.',
 		restart: 'Restart'
 	}
-};
+} as Translation;
 
 export default id;

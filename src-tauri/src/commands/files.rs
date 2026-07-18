@@ -1,10 +1,24 @@
 use std::fs;
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Duration;
 
 use reqwest::header::{ACCEPT, ACCEPT_ENCODING, RANGE, USER_AGENT};
 use tokio::io::AsyncWriteExt;
 
 use crate::path_utils;
+use tauri::Emitter;
+
+/// Calcule un pourcentage de copie borné entre 0 et 100.
+///
+/// @param copied Nombre d'octets déjà copiés.
+/// @param total Taille totale du fichier.
+/// @returns Pourcentage de progression.
+fn copy_progress_percent(copied: u64, total: u64) -> u8 {
+    if total == 0 {
+        return 100;
+    }
+    ((copied.saturating_mul(100) / total).min(100)) as u8
+}
 
 /// Recherche dans le dossier téléchargements un fichier créé après `start_time`.
 #[tauri::command]
@@ -55,6 +69,102 @@ pub fn copy_file(source: String, destination: String) -> Result<(), String> {
     }
     fs::copy(&src, &dst).map_err(|e| format!("Failed to copy file: {}", e))?;
     Ok(())
+}
+
+/// Copie un fichier par blocs via un fichier temporaire et publie sa progression.
+///
+/// @param source_path Chemin du fichier source.
+/// @param destination_path Chemin final dans les assets du projet.
+/// @param copy_request_id Identifiant de corrélation de la copie.
+/// @param app_handle Gestionnaire Tauri utilisé pour publier la progression.
+/// @returns Chemin final après renommage du fichier temporaire.
+#[tauri::command]
+pub fn copy_file_with_progress(
+    source_path: String,
+    destination_path: String,
+    copy_request_id: String,
+    app_handle: tauri::AppHandle,
+) -> Result<String, String> {
+    let source = path_utils::normalize_existing_path(&source_path);
+    let destination = path_utils::normalize_output_path(&destination_path);
+    if !source.is_file() {
+        return Err("Source file not found".to_string());
+    }
+    if destination.exists() {
+        return Err("Destination file already exists".to_string());
+    }
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+
+    let mut temp_name = destination.as_os_str().to_os_string();
+    temp_name.push(".part");
+    let temp_path = std::path::PathBuf::from(temp_name);
+    let _ = fs::remove_file(&temp_path);
+
+    let result = (|| -> Result<(), String> {
+        let total = fs::metadata(&source)
+            .map_err(|error| error.to_string())?
+            .len();
+        let input = fs::File::open(&source).map_err(|error| error.to_string())?;
+        let output = fs::File::create(&temp_path).map_err(|error| error.to_string())?;
+        let mut reader = BufReader::new(input);
+        let mut writer = BufWriter::new(output);
+        let mut buffer = vec![0_u8; 256 * 1024];
+        let mut copied = 0_u64;
+        let mut last_progress = 0_u8;
+
+        let _ = app_handle.emit(
+            "batch-file-copy-progress",
+            serde_json::json!({
+                "copyRequestId": copy_request_id,
+                "progress": 0,
+                "status": "copying"
+            }),
+        );
+        loop {
+            let read = reader
+                .read(&mut buffer)
+                .map_err(|error| error.to_string())?;
+            if read == 0 {
+                break;
+            }
+            writer
+                .write_all(&buffer[..read])
+                .map_err(|error| error.to_string())?;
+            copied += read as u64;
+            let progress = copy_progress_percent(copied, total);
+            if progress >= last_progress.saturating_add(1) {
+                last_progress = progress;
+                let _ = app_handle.emit(
+                    "batch-file-copy-progress",
+                    serde_json::json!({
+                        "copyRequestId": copy_request_id,
+                        "progress": progress,
+                        "status": "copying"
+                    }),
+                );
+            }
+        }
+        writer.flush().map_err(|error| error.to_string())?;
+        fs::rename(&temp_path, &destination).map_err(|error| error.to_string())?;
+        Ok(())
+    })();
+
+    if let Err(error) = result {
+        let _ = fs::remove_file(&temp_path);
+        return Err(format!("Failed to copy file: {}", error));
+    }
+
+    let _ = app_handle.emit(
+        "batch-file-copy-progress",
+        serde_json::json!({
+            "copyRequestId": copy_request_id,
+            "progress": 100,
+            "status": "finished"
+        }),
+    );
+    Ok(destination.to_string_lossy().to_string())
 }
 
 /// Écrit un fichier texte en créant son dossier parent si nécessaire.
@@ -265,5 +375,18 @@ pub fn move_file(source: String, destination: String) -> Result<(), String> {
                 Err(e.to_string())
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::copy_progress_percent;
+
+    #[test]
+    fn copy_progress_is_bounded() {
+        assert_eq!(copy_progress_percent(0, 10), 0);
+        assert_eq!(copy_progress_percent(5, 10), 50);
+        assert_eq!(copy_progress_percent(20, 10), 100);
+        assert_eq!(copy_progress_percent(0, 0), 100);
     }
 }

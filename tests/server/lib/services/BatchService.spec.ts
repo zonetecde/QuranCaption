@@ -43,7 +43,9 @@ describe('BatchService persistence', () => {
 					status: 'processing',
 					progress: 42,
 					error: null,
-					resolvedAssetPath: null
+					resolvedAssetPath: null,
+					mode: 'audio_only',
+					assetId: null
 				}
 			},
 			{
@@ -56,7 +58,9 @@ describe('BatchService persistence', () => {
 					status: 'completed',
 					progress: 100,
 					error: null,
-					resolvedAssetPath: '/assets/001.mp3'
+					resolvedAssetPath: '/assets/001.mp3',
+					mode: 'audio_only',
+					assetId: 99
 				}
 			}
 		]);
@@ -67,5 +71,32 @@ describe('BatchService persistence', () => {
 		expect(restored.projects.map((project) => project.order)).toEqual([2, 1]);
 		expect(restored.projects[0].media).toEqual(batch.projects[0].media);
 		expect(restored.projects[1].media).toEqual(batch.projects[1].media);
+	});
+
+	it('normalizes old media fields and interrupted operations', async () => {
+		const batch = Batch.fromJSON({
+			version: 1,
+			id: 12,
+			name: 'Old batch',
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			projects: [
+				{
+					order: 1,
+					projectId: 1,
+					projectName: 'Project',
+					reciter: 'Reciter',
+					source: { kind: 'url', value: 'https://example.com' },
+					media: { status: 'queued', progress: 20, error: null, resolvedAssetPath: null }
+				}
+			]
+		}) as Batch;
+
+		expect(batch.projects[0].media.mode).toBeNull();
+		expect(batch.projects[0].media.assetId).toBeNull();
+		await BatchService.save(batch);
+		const restored = await BatchService.load(batch.id, 'Interrupted');
+		expect(restored.projects[0].media.status).toBe('failed');
+		expect(restored.projects[0].media.error).toBe('Interrupted');
 	});
 });

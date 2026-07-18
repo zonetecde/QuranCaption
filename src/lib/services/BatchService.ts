@@ -30,14 +30,37 @@ export class BatchService {
 	/**
 	 * Charge un manifeste de batch.
 	 * @param {number} batchId Identifiant du batch.
+	 * @param {string | undefined} interruptedError Message utilisé lors de l'ouverture du workspace.
 	 * @returns {Promise<Batch>} Batch désérialisé.
 	 */
-	static async load(batchId: number): Promise<Batch> {
+	static async load(batchId: number, interruptedError?: string): Promise<Batch> {
 		const filePath = await join(await this.getBatchesFolderPath(), `${batchId}.json`);
 		if (!(await exists(filePath))) throw new Error(`Batch with ID ${batchId} not found.`);
 		const batch = Batch.fromJSON(JSON.parse(await readTextFile(filePath))) as Batch;
 		if (batch.version !== 1) throw new Error(`Unsupported batch version: ${batch.version}`);
+		if (interruptedError) await this.normalizeInterruptedMedia(batch, interruptedError);
 		return batch;
+	}
+
+	/**
+	 * Convertit les opérations média abandonnées en échecs relançables.
+	 * @param {Batch} batch Batch venant d'être chargé.
+	 * @param {string} error Message localisé à conserver dans le manifeste.
+	 * @returns {Promise<boolean>} `true` lorsqu'une sauvegarde a été nécessaire.
+	 */
+	static async normalizeInterruptedMedia(batch: Batch, error: string): Promise<boolean> {
+		let changed = false;
+		for (const project of batch.projects) {
+			if (project.media.status !== 'queued' && project.media.status !== 'processing') continue;
+			project.media.status = 'failed';
+			project.media.error = error;
+			changed = true;
+		}
+		if (changed) {
+			batch.updatedAt = new Date();
+			await this.save(batch);
+		}
+		return changed;
 	}
 
 	/**
@@ -116,7 +139,9 @@ export class BatchService {
 						status: 'pending',
 						progress: 0,
 						error: null,
-						resolvedAssetPath: null
+						resolvedAssetPath: null,
+						mode: null,
+						assetId: null
 					}
 				};
 				batch.projects.push(item);

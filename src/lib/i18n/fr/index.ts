@@ -342,7 +342,39 @@ const fr = {
 		processing: 'En cours',
 		completed: 'Terminé',
 		failed: 'Échec',
-		openProject: 'Ouvrir le projet'
+		openProject: 'Ouvrir le projet',
+		selectProject: 'Sélectionner le projet',
+		selectedProjects: '{count} sélectionné(s)',
+		importMedia: 'Importer les médias',
+		importMediaTitle: 'Importer les médias de ce batch',
+		selectedForImport: '{count} projet(s) sélectionné(s) pour l’import.',
+		completedIgnored: '{count} projet(s) terminé(s) seront ignorés.',
+		audioOnly: 'Audio uniquement',
+		audioOnlyDescription: 'Télécharger ou importer l’audio et l’ajouter à la piste audio.',
+		audioVideo: 'Audio et vidéo',
+		audioVideoDescription:
+			'Télécharger ou importer une vidéo avec audio et l’ajouter aux deux pistes.',
+		audioOnlySummary: 'Un fichier média sera ajouté à la piste audio de chaque projet sélectionné.',
+		audioVideoSummary:
+			'Un seul asset vidéo sera partagé par les pistes audio et vidéo de chaque projet.',
+		incompatibleAudioTitle:
+			'Les fichiers audio locaux sont incompatibles avec le mode Audio et vidéo :',
+		startImport: 'Lancer l’import',
+		downloading: 'Téléchargement',
+		copyingLocal: 'Copie du fichier local',
+		addingTimeline: 'Ajout à la timeline',
+		savingProject: 'Sauvegarde du projet',
+		mediaMode: 'Mode : {mode}',
+		queueSummary:
+			'{active} actifs · {completed} terminés · {failed} en échec · {remaining} restants',
+		globalProgress: 'Progression globale : {progress} %',
+		mediaInterrupted: 'L’opération média a été interrompue avant sa fin.',
+		errorLocalAudioVideo: 'Un fichier audio local ne peut pas être importé en audio et vidéo.',
+		errorImportedFileMissing: 'Le fichier média importé n’existe pas.',
+		errorImportedUnsupported: 'Le format du média importé n’est pas pris en charge.',
+		errorDuration: 'Impossible de lire la durée du média.',
+		errorVideoTrack: 'Impossible d’ajouter le média à la piste vidéo.',
+		errorAudioTrack: 'Impossible d’ajouter le média à la piste audio.'
 	},
 	editor: {
 		videoEditor: 'Éditeur vidéo',

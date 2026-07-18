@@ -9255,6 +9255,127 @@ type RootTranslation = {
 		 * O​p​e​n​ ​p​r​o​j​e​c​t
 		 */
 		openProject: string;
+		/**
+		 * S​e​l​e​c​t​ ​p​r​o​j​e​c​t
+		 */
+		selectProject: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d
+		 * @param {unknown} count
+		 */
+		selectedProjects: RequiredParams<'count'>;
+		/**
+		 * I​m​p​o​r​t​ ​m​e​d​i​a
+		 */
+		importMedia: string;
+		/**
+		 * I​m​p​o​r​t​ ​m​e​d​i​a​ ​f​o​r​ ​t​h​i​s​ ​b​a​t​c​h
+		 */
+		importMediaTitle: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​s​e​l​e​c​t​e​d​ ​f​o​r​ ​i​m​p​o​r​t​.
+		 * @param {unknown} count
+		 */
+		selectedForImport: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​c​o​m​p​l​e​t​e​d​ ​p​r​o​j​e​c​t​(​s​)​ ​w​i​l​l​ ​b​e​ ​i​g​n​o​r​e​d​.
+		 * @param {unknown} count
+		 */
+		completedIgnored: RequiredParams<'count'>;
+		/**
+		 * A​u​d​i​o​ ​o​n​l​y
+		 */
+		audioOnly: string;
+		/**
+		 * D​o​w​n​l​o​a​d​ ​o​r​ ​i​m​p​o​r​t​ ​t​h​e​ ​a​u​d​i​o​ ​a​n​d​ ​a​d​d​ ​i​t​ ​t​o​ ​t​h​e​ ​a​u​d​i​o​ ​t​r​a​c​k​.
+		 */
+		audioOnlyDescription: string;
+		/**
+		 * A​u​d​i​o​ ​&​ ​v​i​d​e​o
+		 */
+		audioVideo: string;
+		/**
+		 * D​o​w​n​l​o​a​d​ ​o​r​ ​i​m​p​o​r​t​ ​o​n​e​ ​v​i​d​e​o​ ​w​i​t​h​ ​a​u​d​i​o​ ​a​n​d​ ​a​d​d​ ​i​t​ ​t​o​ ​b​o​t​h​ ​t​i​m​e​l​i​n​e​ ​t​r​a​c​k​s​.
+		 */
+		audioVideoDescription: string;
+		/**
+		 * O​n​e​ ​m​e​d​i​a​ ​f​i​l​e​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​a​u​d​i​o​ ​t​r​a​c​k​ ​o​f​ ​e​v​e​r​y​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​.
+		 */
+		audioOnlySummary: string;
+		/**
+		 * O​n​e​ ​v​i​d​e​o​ ​a​s​s​e​t​ ​w​i​l​l​ ​b​e​ ​s​h​a​r​e​d​ ​b​y​ ​t​h​e​ ​a​u​d​i​o​ ​a​n​d​ ​v​i​d​e​o​ ​t​r​a​c​k​s​ ​o​f​ ​e​v​e​r​y​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​.
+		 */
+		audioVideoSummary: string;
+		/**
+		 * L​o​c​a​l​ ​a​u​d​i​o​ ​f​i​l​e​s​ ​c​a​n​n​o​t​ ​b​e​ ​i​m​p​o​r​t​e​d​ ​i​n​ ​A​u​d​i​o​ ​&​ ​v​i​d​e​o​ ​m​o​d​e​:
+		 */
+		incompatibleAudioTitle: string;
+		/**
+		 * S​t​a​r​t​ ​i​m​p​o​r​t
+		 */
+		startImport: string;
+		/**
+		 * D​o​w​n​l​o​a​d​i​n​g
+		 */
+		downloading: string;
+		/**
+		 * C​o​p​y​i​n​g​ ​l​o​c​a​l​ ​f​i​l​e
+		 */
+		copyingLocal: string;
+		/**
+		 * A​d​d​i​n​g​ ​t​o​ ​t​i​m​e​l​i​n​e
+		 */
+		addingTimeline: string;
+		/**
+		 * S​a​v​i​n​g​ ​p​r​o​j​e​c​t
+		 */
+		savingProject: string;
+		/**
+		 * M​o​d​e​:​ ​{​m​o​d​e​}
+		 * @param {unknown} mode
+		 */
+		mediaMode: RequiredParams<'mode'>;
+		/**
+		 * {​a​c​t​i​v​e​}​ ​a​c​t​i​v​e​ ​·​ ​{​c​o​m​p​l​e​t​e​d​}​ ​c​o​m​p​l​e​t​e​d​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d​ ​·​ ​{​r​e​m​a​i​n​i​n​g​}​ ​r​e​m​a​i​n​i​n​g
+		 * @param {unknown} active
+		 * @param {unknown} completed
+		 * @param {unknown} failed
+		 * @param {unknown} remaining
+		 */
+		queueSummary: RequiredParams<'active' | 'completed' | 'failed' | 'remaining'>;
+		/**
+		 * O​v​e​r​a​l​l​ ​p​r​o​g​r​e​s​s​:​ ​{​p​r​o​g​r​e​s​s​}​%
+		 * @param {unknown} progress
+		 */
+		globalProgress: RequiredParams<'progress'>;
+		/**
+		 * T​h​e​ ​m​e​d​i​a​ ​o​p​e​r​a​t​i​o​n​ ​w​a​s​ ​i​n​t​e​r​r​u​p​t​e​d​ ​b​e​f​o​r​e​ ​c​o​m​p​l​e​t​i​o​n​.
+		 */
+		mediaInterrupted: string;
+		/**
+		 * A​ ​l​o​c​a​l​ ​a​u​d​i​o​ ​f​i​l​e​ ​c​a​n​n​o​t​ ​b​e​ ​i​m​p​o​r​t​e​d​ ​a​s​ ​a​u​d​i​o​ ​a​n​d​ ​v​i​d​e​o​.
+		 */
+		errorLocalAudioVideo: string;
+		/**
+		 * T​h​e​ ​i​m​p​o​r​t​e​d​ ​m​e​d​i​a​ ​f​i​l​e​ ​d​o​e​s​ ​n​o​t​ ​e​x​i​s​t​.
+		 */
+		errorImportedFileMissing: string;
+		/**
+		 * T​h​e​ ​i​m​p​o​r​t​e​d​ ​m​e​d​i​a​ ​f​o​r​m​a​t​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​.
+		 */
+		errorImportedUnsupported: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​r​e​a​d​ ​t​h​e​ ​m​e​d​i​a​ ​d​u​r​a​t​i​o​n​.
+		 */
+		errorDuration: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​a​d​d​ ​t​h​e​ ​m​e​d​i​a​ ​t​o​ ​t​h​e​ ​v​i​d​e​o​ ​t​r​a​c​k​.
+		 */
+		errorVideoTrack: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​a​d​d​ ​t​h​e​ ​m​e​d​i​a​ ​t​o​ ​t​h​e​ ​a​u​d​i​o​ ​t​r​a​c​k​.
+		 */
+		errorAudioTrack: string;
 	};
 };
 
@@ -18355,6 +18476,123 @@ export type TranslationFunctions = {
 		 * Open project
 		 */
 		openProject: () => LocalizedString;
+		/**
+		 * Select project
+		 */
+		selectProject: () => LocalizedString;
+		/**
+		 * {count} selected
+		 */
+		selectedProjects: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Import media
+		 */
+		importMedia: () => LocalizedString;
+		/**
+		 * Import media for this batch
+		 */
+		importMediaTitle: () => LocalizedString;
+		/**
+		 * {count} project(s) selected for import.
+		 */
+		selectedForImport: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} completed project(s) will be ignored.
+		 */
+		completedIgnored: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Audio only
+		 */
+		audioOnly: () => LocalizedString;
+		/**
+		 * Download or import the audio and add it to the audio track.
+		 */
+		audioOnlyDescription: () => LocalizedString;
+		/**
+		 * Audio & video
+		 */
+		audioVideo: () => LocalizedString;
+		/**
+		 * Download or import one video with audio and add it to both timeline tracks.
+		 */
+		audioVideoDescription: () => LocalizedString;
+		/**
+		 * One media file will be added to the audio track of every selected project.
+		 */
+		audioOnlySummary: () => LocalizedString;
+		/**
+		 * One video asset will be shared by the audio and video tracks of every selected project.
+		 */
+		audioVideoSummary: () => LocalizedString;
+		/**
+		 * Local audio files cannot be imported in Audio & video mode:
+		 */
+		incompatibleAudioTitle: () => LocalizedString;
+		/**
+		 * Start import
+		 */
+		startImport: () => LocalizedString;
+		/**
+		 * Downloading
+		 */
+		downloading: () => LocalizedString;
+		/**
+		 * Copying local file
+		 */
+		copyingLocal: () => LocalizedString;
+		/**
+		 * Adding to timeline
+		 */
+		addingTimeline: () => LocalizedString;
+		/**
+		 * Saving project
+		 */
+		savingProject: () => LocalizedString;
+		/**
+		 * Mode: {mode}
+		 */
+		mediaMode: (arg: { mode: unknown }) => LocalizedString;
+		/**
+		 * {active} active · {completed} completed · {failed} failed · {remaining} remaining
+		 */
+		queueSummary: (arg: {
+			active: unknown;
+			completed: unknown;
+			failed: unknown;
+			remaining: unknown;
+		}) => LocalizedString;
+		/**
+		 * Overall progress: {progress}%
+		 */
+		globalProgress: (arg: { progress: unknown }) => LocalizedString;
+		/**
+		 * The media operation was interrupted before completion.
+		 */
+		mediaInterrupted: () => LocalizedString;
+		/**
+		 * A local audio file cannot be imported as audio and video.
+		 */
+		errorLocalAudioVideo: () => LocalizedString;
+		/**
+		 * The imported media file does not exist.
+		 */
+		errorImportedFileMissing: () => LocalizedString;
+		/**
+		 * The imported media format is not supported.
+		 */
+		errorImportedUnsupported: () => LocalizedString;
+		/**
+		 * Unable to read the media duration.
+		 */
+		errorDuration: () => LocalizedString;
+		/**
+		 * Unable to add the media to the video track.
+		 */
+		errorVideoTrack: () => LocalizedString;
+		/**
+		 * Unable to add the media to the audio track.
+		 */
+		errorAudioTrack: () => LocalizedString;
 	};
 };
 

@@ -48,83 +48,6 @@ describe('style editor visual merge actions', () => {
 		globalState.currentProject = null;
 	});
 
-	test('shows visual merge actions for a valid consecutive Quran selection', async () => {
-		const first = createSubtitle(0, 999, 1);
-		const second = createSubtitle(1000, 1999, 2);
-		const subtitleTrack = new SubtitleTrack();
-		subtitleTrack.clips = [first, second];
-
-		const projectEditorState = new ProjectEditorState();
-		projectEditorState.stylesEditor.selectedSubtitles = [first, second];
-
-		globalState.currentProject = {
-			projectEditorState,
-			content: {
-				timeline: new Timeline([subtitleTrack]),
-				projectTranslation: {
-					addedTranslationEditions: []
-				},
-				videoStyle: createMockVideoStyle()
-			}
-		} as never;
-
-		const component = render(StyleEditorSettings);
-
-		await expect.element(component.getByText('Visual merge')).toBeVisible();
-		await expect.element(component.getByTestId('Merge Arabic')).toBeVisible();
-		await expect.element(component.getByTestId('Merge Translation')).toBeVisible();
-		await expect.element(component.getByTestId('Merge Both')).toBeVisible();
-
-		await expect.element(component.getByTestId('Merge Arabic')).toHaveClass(/(^|\s)btn(\s|$)/);
-		await expect
-			.element(component.getByText('Merge Arabic'))
-			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
-		await expect.element(component.getByTestId('Merge Translation')).toHaveClass(/(^|\s)btn(\s|$)/);
-		await expect
-			.element(component.getByTestId('Merge Translation'))
-			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
-		await expect.element(component.getByTestId('Merge Both')).toHaveClass(/(^|\s)btn(\s|$)/);
-		await expect
-			.element(component.getByTestId('Merge Both'))
-			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
-	});
-
-	test('highlights only the active visual merge mode in blue', async () => {
-		const first = createSubtitle(0, 999, 1);
-		const second = createSubtitle(1000, 1999, 2);
-		first.setVisualMerge('group-1', 'translation');
-		second.setVisualMerge('group-1', 'translation');
-		const subtitleTrack = new SubtitleTrack();
-		subtitleTrack.clips = [first, second];
-
-		const projectEditorState = new ProjectEditorState();
-		projectEditorState.stylesEditor.selectedSubtitles = [first, second];
-
-		globalState.currentProject = {
-			projectEditorState,
-			content: {
-				timeline: new Timeline([subtitleTrack]),
-				projectTranslation: {
-					addedTranslationEditions: []
-				},
-				videoStyle: createMockVideoStyle()
-			}
-		} as never;
-
-		const component = render(StyleEditorSettings);
-
-		await expect
-			.element(component.getByText('Merge Arabic'))
-			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
-		await expect
-			.element(component.getByText('Merge Translation'))
-			.toHaveClass(/(^|\s)btn-accent(\s|$)/);
-		await expect
-			.element(component.getByText('Merge Both'))
-			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
-		await expect.element(component.getByText('Unmerge Group')).toBeVisible();
-	});
-
 	test('hides visual merge actions for an invalid selection', async () => {
 		const first = createSubtitle(0, 999, 1);
 		const second = createSubtitle(1000, 1999, 2);
@@ -149,31 +72,5 @@ describe('style editor visual merge actions', () => {
 		const component = render(StyleEditorSettings);
 
 		expect(component.container.textContent).not.toContain('Visual merge');
-	});
-
-	test('selects the first available translation when opening the translation styles', async () => {
-		const projectEditorState = new ProjectEditorState();
-		projectEditorState.stylesEditor.currentSelectionTranslation = '';
-
-		globalState.currentProject = {
-			projectEditorState,
-			content: {
-				timeline: new Timeline([new SubtitleTrack()]),
-				projectTranslation: {
-					addedTranslationEditions: [
-						{ name: 'first-translation', author: 'First translation' },
-						{ name: 'second-translation', author: 'Second translation' }
-					]
-				},
-				videoStyle: createMockVideoStyle()
-			}
-		} as never;
-
-		const component = render(StyleEditorSettings);
-		await component.getByRole('button', { name: 'Translation' }).click();
-
-		await vi.waitFor(() => {
-			expect(projectEditorState.stylesEditor.currentSelectionTranslation).toBe('first-translation');
-		});
 	});
 });

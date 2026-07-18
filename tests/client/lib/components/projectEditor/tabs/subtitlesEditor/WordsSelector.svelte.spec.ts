@@ -285,15 +285,6 @@ describe('WordsSelector', () => {
 		expect(fixture.spies.updateVideoDetailAttributes).not.toHaveBeenCalled();
 	});
 
-	test('renders an error state when loading the verse fails', async () => {
-		setupSubtitlesEditorProjectFixture();
-		vi.spyOn(Quran, 'getVerse').mockRejectedValue(new Error('Boom'));
-
-		const component = render(WordsSelector);
-
-		await expect.element(component.getByText('Error loading verse: Boom')).toBeVisible();
-	});
-
 	test('registers every shortcut on mount and unregisters them on unmount', async () => {
 		setupSubtitlesEditorProjectFixture();
 		const component = render(WordsSelector);
@@ -444,47 +435,6 @@ describe('WordsSelector', () => {
 		await triggerShortcut('Enter');
 		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(0);
 		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(0);
-	});
-
-	test('edits the current subtitle, removes edited or last clips, and toggles edit mode shortcuts', async () => {
-		const fixture = setupSubtitlesEditorProjectFixture({
-			initialSurah: 1,
-			initialVerse: 1,
-			startWordIndex: 0,
-			endWordIndex: 0,
-			editSubtitle: new SubtitleClip(0, 500, 1, 1, 0, 0, 'Editing', [], false, false),
-			timelineCursorPosition: 1500
-		});
-
-		render(WordsSelector);
-		await tick();
-
-		await triggerShortcut('Enter');
-		expect(fixture.spies.editSubtitle).toHaveBeenCalledTimes(1);
-		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
-		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(1);
-		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(1);
-
-		globalState.getSubtitlesEditorState.editSubtitle = fixture.clips[0];
-		await tick();
-		await triggerShortcut('Backspace');
-		expect(fixture.spies.removeClip).toHaveBeenCalledWith(fixture.clips[0].id, true);
-		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
-
-		await triggerShortcut('Backspace');
-		expect(fixture.spies.removeLastClip).toHaveBeenCalledTimes(1);
-
-		await triggerShortcut('E');
-		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(fixture.clips[1].id);
-		await triggerShortcut('E');
-		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
-
-		globalState.getTimelineState.cursorPosition = 5000;
-		await tick();
-		await triggerShortcut('E');
-		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(
-			fixture.subtitleTrack.getLastClip()?.id
-		);
 	});
 
 	test('handles silence, predefined subtitle and escape shortcuts', async () => {

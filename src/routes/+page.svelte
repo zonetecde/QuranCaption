@@ -98,7 +98,9 @@
 	<!-- Zone de contenu avec scroll -->
 	<main class="flex-1 overflow-auto mt-10">
 		{#if globalState.currentProject !== null}
-			<ProjectEditor />
+			{#key globalState.currentProject.detail.id}
+				<ProjectEditor />
+			{/key}
 		{:else if globalState.currentPage === 'ai-video'}
 			<AiVideoPage />
 		{:else if globalState.currentPage === 'batch-import'}

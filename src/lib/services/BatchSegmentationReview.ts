@@ -50,9 +50,10 @@ export function classifyBatchSegmentationStatus(
 	previousStatus: BatchSegmentationStatus,
 	review: BatchSegmentationReviewCounts
 ): BatchSegmentationStatus {
-	if (review.pending > 0) return 'needs_review';
 	if (previousStatus === 'needs_review' || previousStatus === 'manually_verified') {
+		if (review.lowConfidence > 0 || review.coverage > 0) return 'needs_review';
 		return 'manually_verified';
 	}
+	if (review.pending > 0) return 'needs_review';
 	return 'auto_verified';
 }

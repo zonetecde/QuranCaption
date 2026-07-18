@@ -16,6 +16,11 @@
 		ProjectHistoryManager,
 		projectHistoryAvailability
 	} from '$lib/services/undoRedo/ProjectHistoryManager';
+	import BatchReviewNavigation from './batch/BatchReviewNavigation.svelte';
+	import {
+		isBatchReviewActive,
+		leaveBatchReview
+	} from '$lib/services/BatchReviewNavigationService';
 
 	let showHelpPopover = $state(false);
 
@@ -84,7 +89,9 @@
 			disabled={globalState.uiState.isTourActive}
 			onclick={async () => {
 				// go home
-				if (globalState.currentProject) {
+				if (isBatchReviewActive()) {
+					await leaveBatchReview('home');
+				} else if (globalState.currentProject) {
 					await globalState.currentProject?.save();
 					globalState.currentProject = null;
 				}
@@ -131,12 +138,16 @@
 				</button>
 			</div>
 
-			<EditableText
-				bind:value={globalState.currentProject.detail.name}
-				text={$LL.home.projectName()}
-				disabled={globalState.uiState.isTourActive}
-				parentClasses="absolute left-1/2 -translate-x-1/2 pr-[18px]"
-			></EditableText>
+			{#if isBatchReviewActive() && globalState.currentProject.detail.batchId === globalState.shared.batchReview.batchId}
+				<BatchReviewNavigation />
+			{:else}
+				<EditableText
+					bind:value={globalState.currentProject.detail.name}
+					text={$LL.home.projectName()}
+					disabled={globalState.uiState.isTourActive}
+					parentClasses="absolute left-1/2 -translate-x-1/2 pr-[18px]"
+				></EditableText>
+			{/if}
 		{/if}
 	</div>
 	<div class="flex items-center space-x-2">

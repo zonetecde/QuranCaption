@@ -63,4 +63,33 @@ describe('Batch segmentation review classification', () => {
 		);
 		expect(classifyBatchSegmentationStatus('auto_verified', correctedFlags)).toBe('auto_verified');
 	});
+
+	it('keeps needs_review until low-confidence and missing-word segments are verified', () => {
+		const stillPending = getBatchSegmentationReviewCounts(
+			createProject([
+				{ needsReview: true, hasBeenVerified: false },
+				{ needsCoverageReview: true, hasBeenVerified: true }
+			])
+		);
+		const allVerified = getBatchSegmentationReviewCounts(
+			createProject([
+				{ needsReview: true, hasBeenVerified: true },
+				{ needsCoverageReview: true, hasBeenVerified: true }
+			])
+		);
+
+		expect(classifyBatchSegmentationStatus('needs_review', stillPending)).toBe('needs_review');
+		expect(classifyBatchSegmentationStatus('needs_review', allVerified)).toBe('manually_verified');
+	});
+
+	it('does not block manual verification on non-critical review categories', () => {
+		const informationalFlags = getBatchSegmentationReviewCounts(
+			createProject([{ needsLongReview: true }, { needsWbwTimestampReview: true }])
+		);
+
+		expect(informationalFlags.pending).toBe(2);
+		expect(classifyBatchSegmentationStatus('needs_review', informationalFlags)).toBe(
+			'manually_verified'
+		);
+	});
 });

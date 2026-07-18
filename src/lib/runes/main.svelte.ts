@@ -25,6 +25,13 @@ export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwT
 
 export type AppPage = 'home' | 'ai-video' | 'batch-import' | 'batch-workspace';
 
+export interface BatchReviewSessionState {
+	active: boolean;
+	batchId: number | null;
+	currentProjectId: number | null;
+	isNavigating: boolean;
+}
+
 class GlobalState {
 	// Style dont la contrainte est temporairement visualisée dans la preview.
 	hoveredStylePreviewHelper: StyleName | null = $state(null);
@@ -171,6 +178,12 @@ class GlobalState {
 
 	shared = $state({
 		autoSegmentationWizard: null as unknown,
+		batchReview: {
+			active: false,
+			batchId: null,
+			currentProjectId: null,
+			isNavigating: false
+		} as BatchReviewSessionState,
 		projectSearch: {
 			openRequest: 0
 		},

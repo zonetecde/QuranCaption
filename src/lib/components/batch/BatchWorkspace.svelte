@@ -34,8 +34,11 @@
 	import { discordService } from '$lib/services/DiscordService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
+	import { openBatchReviewProject } from '$lib/services/BatchReviewNavigationService';
+	import { BatchCbrService, type BatchCbrQueueProgress } from '$lib/services/BatchCbrService';
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
+	import toast from 'svelte-5-french-toast';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -45,6 +48,7 @@
 	let selectedMode = $state<BatchMediaMode>('audio_only');
 	let queueActive = $state(false);
 	let segmentationQueueActive = $state(false);
+	let cbrQueueActive = $state(false);
 	let revision = $state(0);
 	let activities = $state<Map<number, BatchMediaActivity>>(new Map());
 	let queueProgress = $state<BatchMediaQueueProgress>({
@@ -69,6 +73,14 @@
 		needsReview: 0,
 		failed: 0,
 		remaining: 0
+	});
+	let cbrProgress = $state<BatchCbrQueueProgress>({
+		activeProjectId: null,
+		completed: 0,
+		failed: 0,
+		remaining: 0,
+		progress: 0,
+		total: 0
 	});
 
 	let projects = $derived.by(() => {
@@ -124,6 +136,9 @@
 	);
 	let allSelected = $derived(
 		projects.length > 0 && projects.every((project) => selectedIds.has(project.projectId))
+	);
+	let cbrCurrentProject = $derived(
+		projects.find((project) => project.projectId === cbrProgress.activeProjectId) ?? null
 	);
 
 	/**
@@ -457,11 +472,45 @@
 	}
 
 	/**
+	 * Convertit séquentiellement tous les médias principaux du Batch en CBR.
+	 * @returns {Promise<void>} Promesse résolue lorsque toute la queue est terminale.
+	 */
+	async function convertAllAudioToCbr(): Promise<void> {
+		if (!batch || !allMediaCompleted || cbrQueueActive) return;
+		cbrQueueActive = true;
+		queueError = '';
+		cbrProgress = {
+			activeProjectId: null,
+			completed: 0,
+			failed: 0,
+			remaining: projects.length,
+			progress: 0,
+			total: projects.length
+		};
+		const service = new BatchCbrService({
+			onUpdate: (_project, _activity, progress) => {
+				cbrProgress = progress;
+			}
+		});
+		try {
+			cbrProgress = await service.run(batch, projects);
+			if (cbrProgress.failed > 0) {
+				toast.error(batchMessage('cbrCompletedWithFailures', { failed: cbrProgress.failed }));
+			} else {
+				toast.success(batchMessage('cbrCompleted'));
+			}
+		} finally {
+			cbrQueueActive = false;
+		}
+	}
+
+	/**
 	 * Charge un projet enfant sans perdre l'identifiant du batch actif.
 	 * @param {number} projectId Identifiant du projet à ouvrir.
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
 	 */
 	async function openProject(projectId: number): Promise<void> {
+		if (cbrQueueActive) return;
 		const item = projects.find((project) => project.projectId === projectId);
 		if (item?.media.status === 'processing' || item?.segmentation.status === 'processing') return;
 		globalState.currentProject = await ProjectService.load(projectId);
@@ -473,8 +522,21 @@
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture éventuelle.
 	 */
 	async function reviewFirstFlaggedProject(): Promise<void> {
+		if (cbrQueueActive) return;
 		const first = reviewProjects[0];
-		if (first) await openProject(first.projectId);
+		if (batch && first && (await openBatchReviewProject(batch.id, first.projectId))) {
+			discordService.setEditingState();
+		}
+	}
+
+	/**
+	 * Ouvre une revue Batch à partir de la ligne signalée choisie.
+	 * @param {number} projectId Identifiant du projet à vérifier.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
+	 */
+	async function reviewProject(projectId: number): Promise<void> {
+		if (!batch || cbrQueueActive) return;
+		if (await openBatchReviewProject(batch.id, projectId)) discordService.setEditingState();
 	}
 
 	onMount(async () => {
@@ -534,22 +596,39 @@
 						<button
 							class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
 							type="button"
-							disabled={eligibleSelected.length === 0 || queueActive || segmentationQueueActive}
+							disabled={eligibleSelected.length === 0 ||
+								queueActive ||
+								segmentationQueueActive ||
+								cbrQueueActive}
 							onclick={openMediaModal}
 						>
 							<span class="material-icons-outlined leading-none">download</span>
 							<span class="leading-none">{batchMessage('importMedia')}</span>
 						</button>
 					{/if}
-					<button
-						class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
-						type="button"
-						disabled={segmentationSelected.length === 0 || queueActive || segmentationQueueActive}
-						onclick={openSegmentationModal}
-					>
-						<span class="material-icons-outlined leading-none">auto_fix_high</span>
-						<span class="leading-none">{batchMessage('aiSegmentation')}</span>
-					</button>
+					{#if allMediaCompleted}
+						<button
+							class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-5"
+							type="button"
+							disabled={queueActive || segmentationQueueActive || cbrQueueActive}
+							onclick={convertAllAudioToCbr}
+						>
+							<span class="material-icons-outlined leading-none">graphic_eq</span>
+							<span class="leading-none">{batchMessage('convertAllAudioToCbr')}</span>
+						</button>
+						<button
+							class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
+							type="button"
+							disabled={segmentationSelected.length === 0 ||
+								queueActive ||
+								segmentationQueueActive ||
+								cbrQueueActive}
+							onclick={openSegmentationModal}
+						>
+							<span class="material-icons-outlined leading-none">auto_fix_high</span>
+							<span class="leading-none">{batchMessage('aiSegmentation')}</span>
+						</button>
+					{/if}
 				</div>
 			{/if}
 		</header>
@@ -587,6 +666,35 @@
 					</div>
 				</section>
 			{/if}
+			{#if cbrQueueActive}
+				<section
+					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
+				>
+					<div class="flex flex-wrap justify-between gap-2 text-sm text-[var(--text-secondary)]">
+						<span>
+							{cbrCurrentProject
+								? batchMessage('cbrConvertingProject', {
+										project: cbrCurrentProject.projectName
+									})
+								: batchMessage('cbrPreparing')}
+						</span>
+						<span>
+							{batchMessage('cbrQueueSummary', {
+								completed: cbrProgress.completed,
+								total: cbrProgress.total,
+								failed: cbrProgress.failed
+							})}
+							· {cbrProgress.progress}%
+						</span>
+					</div>
+					<div class="mt-3 h-2 overflow-hidden rounded bg-[var(--border-color)]">
+						<div
+							class="h-full rounded bg-[var(--accent-primary)] transition-[width]"
+							style={`width: ${cbrProgress.progress}%`}
+						></div>
+					</div>
+				</section>
+			{/if}
 			{#if segmentationQueueActive}
 				<section
 					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
@@ -613,7 +721,7 @@
 					<button
 						class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
 						type="button"
-						disabled={segmentationQueueActive}
+						disabled={segmentationQueueActive || cbrQueueActive}
 						onclick={reviewFirstFlaggedProject}
 					>
 						<span class="material-icons-outlined text-base leading-none">fact_check</span>
@@ -659,7 +767,8 @@
 											class="rounded border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--accent-primary)]"
 											checked={selectedIds.has(project.projectId)}
 											disabled={project.media.status === 'processing' ||
-												project.segmentation.status === 'processing'}
+												project.segmentation.status === 'processing' ||
+												cbrQueueActive}
 											aria-label={batchMessage('selectProject')}
 											onchange={() => toggleProject(project.projectId)}
 										/>
@@ -757,8 +866,12 @@
 											class="btn btn-icon h-9 px-3"
 											type="button"
 											disabled={project.media.status === 'processing' ||
-												project.segmentation.status === 'processing'}
-											onclick={() => openProject(project.projectId)}
+												project.segmentation.status === 'processing' ||
+												cbrQueueActive}
+											onclick={() =>
+												project.segmentation.status === 'needs_review'
+													? reviewProject(project.projectId)
+													: openProject(project.projectId)}
 										>
 											<span class="material-icons-outlined mr-2 text-base">open_in_new</span>
 											{project.segmentation.status === 'needs_review'

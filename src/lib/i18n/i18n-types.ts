@@ -9349,6 +9349,39 @@ type RootTranslation = {
 		 */
 		globalProgress: RequiredParams<'progress'>;
 		/**
+		 * C​o​n​v​e​r​t​ ​a​l​l​ ​a​u​d​i​o​ ​t​o​ ​C​B​R
+		 */
+		convertAllAudioToCbr: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​C​B​R​ ​c​o​n​v​e​r​s​i​o​n​.​.​.
+		 */
+		cbrPreparing: string;
+		/**
+		 * C​o​n​v​e​r​t​i​n​g​ ​{​p​r​o​j​e​c​t​}
+		 * @param {unknown} project
+		 */
+		cbrConvertingProject: RequiredParams<'project'>;
+		/**
+		 * {​c​o​m​p​l​e​t​e​d​}​ ​/​ ​{​t​o​t​a​l​}​ ​c​o​n​v​e​r​t​e​d​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d
+		 * @param {unknown} completed
+		 * @param {unknown} failed
+		 * @param {unknown} total
+		 */
+		cbrQueueSummary: RequiredParams<'completed' | 'failed' | 'total'>;
+		/**
+		 * A​l​l​ ​B​a​t​c​h​ ​a​u​d​i​o​ ​i​s​ ​n​o​w​ ​C​B​R​.
+		 */
+		cbrCompleted: string;
+		/**
+		 * C​B​R​ ​c​o​n​v​e​r​s​i​o​n​ ​f​i​n​i​s​h​e​d​ ​w​i​t​h​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​u​r​e​(​s​)​.
+		 * @param {unknown} failed
+		 */
+		cbrCompletedWithFailures: RequiredParams<'failed'>;
+		/**
+		 * T​h​e​ ​i​m​p​o​r​t​e​d​ ​m​e​d​i​a​ ​a​s​s​e​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​o​u​n​d​.
+		 */
+		cbrAssetMissing: string;
+		/**
 		 * A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n
 		 */
 		aiSegmentation: string;
@@ -9436,6 +9469,36 @@ type RootTranslation = {
 		 * R​e​v​i​e​w
 		 */
 		reviewProject: string;
+		/**
+		 * P​r​e​v​i​o​u​s​ ​f​l​a​g​g​e​d​ ​p​r​o​j​e​c​t
+		 */
+		reviewPreviousProject: string;
+		/**
+		 * N​e​x​t​ ​f​l​a​g​g​e​d​ ​p​r​o​j​e​c​t
+		 */
+		reviewNextProject: string;
+		/**
+		 * B​a​c​k​ ​t​o​ ​b​a​t​c​h
+		 */
+		reviewBackToBatch: string;
+		/**
+		 * R​e​v​i​e​w​i​n​g​ ​p​r​o​j​e​c​t​ ​{​c​u​r​r​e​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}
+		 * @param {unknown} current
+		 * @param {unknown} total
+		 */
+		reviewingProject: RequiredParams<'current' | 'total'>;
+		/**
+		 * A​l​l​ ​f​l​a​g​g​e​d​ ​p​r​o​j​e​c​t​s​ ​h​a​v​e​ ​b​e​e​n​ ​r​e​v​i​e​w​e​d​.
+		 */
+		reviewCompleted: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​l​o​a​d​ ​t​h​e​ ​n​e​x​t​ ​p​r​o​j​e​c​t​.
+		 */
+		reviewUnableToLoadProject: string;
+		/**
+		 * B​a​t​c​h​ ​r​e​v​i​e​w​ ​s​e​s​s​i​o​n​ ​i​s​ ​n​o​ ​l​o​n​g​e​r​ ​v​a​l​i​d​.
+		 */
+		reviewSessionInvalid: string;
 		/**
 		 * {​c​o​u​n​t​}​ ​s​e​g​m​e​n​t​(​s​)
 		 * @param {unknown} count
@@ -18840,6 +18903,38 @@ export type TranslationFunctions = {
 		 */
 		globalProgress: (arg: { progress: unknown }) => LocalizedString;
 		/**
+		 * Convert all audio to CBR
+		 */
+		convertAllAudioToCbr: () => LocalizedString;
+		/**
+		 * Preparing CBR conversion...
+		 */
+		cbrPreparing: () => LocalizedString;
+		/**
+		 * Converting {project}
+		 */
+		cbrConvertingProject: (arg: { project: unknown }) => LocalizedString;
+		/**
+		 * {completed} / {total} converted · {failed} failed
+		 */
+		cbrQueueSummary: (arg: {
+			completed: unknown;
+			failed: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * All Batch audio is now CBR.
+		 */
+		cbrCompleted: () => LocalizedString;
+		/**
+		 * CBR conversion finished with {failed} failure(s).
+		 */
+		cbrCompletedWithFailures: (arg: { failed: unknown }) => LocalizedString;
+		/**
+		 * The imported media asset could not be found.
+		 */
+		cbrAssetMissing: () => LocalizedString;
+		/**
 		 * AI Segmentation
 		 */
 		aiSegmentation: () => LocalizedString;
@@ -18925,6 +19020,34 @@ export type TranslationFunctions = {
 		 * Review
 		 */
 		reviewProject: () => LocalizedString;
+		/**
+		 * Previous flagged project
+		 */
+		reviewPreviousProject: () => LocalizedString;
+		/**
+		 * Next flagged project
+		 */
+		reviewNextProject: () => LocalizedString;
+		/**
+		 * Back to batch
+		 */
+		reviewBackToBatch: () => LocalizedString;
+		/**
+		 * Reviewing project {current} of {total}
+		 */
+		reviewingProject: (arg: { current: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * All flagged projects have been reviewed.
+		 */
+		reviewCompleted: () => LocalizedString;
+		/**
+		 * Unable to load the next project.
+		 */
+		reviewUnableToLoadProject: () => LocalizedString;
+		/**
+		 * Batch review session is no longer valid.
+		 */
+		reviewSessionInvalid: () => LocalizedString;
 		/**
 		 * {count} segment(s)
 		 */

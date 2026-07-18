@@ -151,17 +151,7 @@ export async function reconcileBatchSegmentations(batch: Batch): Promise<boolean
 		(project) => project.segmentation.status === 'needs_review'
 	)) {
 		try {
-			const project = await ProjectService.load(item.projectId);
-			const review = getBatchSegmentationReviewCounts(project);
-			const status = classifyBatchSegmentationStatus(item.segmentation.status, review);
-			if (
-				status === item.segmentation.status &&
-				JSON.stringify(review) === JSON.stringify(item.segmentation.review)
-			)
-				continue;
-			item.segmentation.review = review;
-			item.segmentation.status = status;
-			changed = true;
+			changed = (await reconcileBatchProjectSegmentation(batch, item)) || changed;
 		} catch (error) {
 			console.warn(`Unable to reconcile batch project ${item.projectId}:`, error);
 		}
@@ -171,6 +161,32 @@ export async function reconcileBatchSegmentations(batch: Batch): Promise<boolean
 		await BatchService.save(batch);
 	}
 	return changed;
+}
+
+/**
+ * Réconcilie une seule ligne Batch depuis les vrais clips du projet correspondant.
+ * @param {Batch} batch Batch contenant la ligne.
+ * @param {BatchProjectItem} item Ligne à actualiser.
+ * @param {Project | undefined} project Projet déjà chargé, le cas échéant.
+ * @returns {Promise<boolean>} `true` lorsque le statut ou les compteurs ont changé.
+ */
+export async function reconcileBatchProjectSegmentation(
+	batch: Batch,
+	item: BatchProjectItem,
+	project?: Project
+): Promise<boolean> {
+	const loadedProject = project ?? (await ProjectService.load(item.projectId));
+	const review = getBatchSegmentationReviewCounts(loadedProject);
+	const status = classifyBatchSegmentationStatus(item.segmentation.status, review);
+	if (
+		status === item.segmentation.status &&
+		JSON.stringify(review) === JSON.stringify(item.segmentation.review)
+	)
+		return false;
+	item.segmentation.review = review;
+	item.segmentation.status = status;
+	batch.updatedAt = new Date();
+	return true;
 }
 
 export class BatchSegmentationService {

@@ -13,6 +13,11 @@ const segmentationMocks = vi.hoisted(() => ({
 	run: vi.fn(),
 	onUpdate: null as ((...args: unknown[]) => void) | null
 }));
+const reviewNavigationMocks = vi.hoisted(() => ({ open: vi.fn(async () => true) }));
+const cbrMocks = vi.hoisted(() => ({
+	run: vi.fn(),
+	onUpdate: null as ((...args: unknown[]) => void) | null
+}));
 
 vi.mock('$lib/services/BatchService', () => ({ BatchService: serviceMocks }));
 vi.mock('$lib/services/ProjectService', () => ({ ProjectService: { load: vi.fn() } }));
@@ -43,6 +48,32 @@ vi.mock('$lib/services/DiscordService', () => ({
 }));
 vi.mock('$lib/services/UserAttentionService', () => ({
 	notifyLongTaskCompletion: vi.fn(async () => undefined)
+}));
+vi.mock('$lib/services/BatchReviewNavigationService', () => ({
+	openBatchReviewProject: reviewNavigationMocks.open
+}));
+vi.mock('$lib/services/BatchCbrService', () => ({
+	BatchCbrService: class {
+		/**
+		 * Conserve le callback de progression fourni par le workspace.
+		 * @param {{ onUpdate?: (...args: unknown[]) => void }} options Options simulées.
+		 */
+		constructor(options: { onUpdate?: (...args: unknown[]) => void }) {
+			cbrMocks.onUpdate = options.onUpdate ?? null;
+		}
+
+		/**
+		 * Délègue l'exécution à la promesse contrôlée du test.
+		 * @param {unknown[]} args Arguments du workspace.
+		 * @returns {unknown} Résultat contrôlé.
+		 */
+		run(...args: unknown[]): unknown {
+			return cbrMocks.run(...args);
+		}
+	}
+}));
+vi.mock('svelte-5-french-toast', () => ({
+	default: { success: vi.fn(), error: vi.fn() }
 }));
 
 import { Batch, createDefaultBatchSegmentationState, type BatchProjectItem } from '$lib/classes';
@@ -91,6 +122,9 @@ describe('BatchWorkspace media import', () => {
 		segmentationMocks.inspect.mockReset();
 		segmentationMocks.run.mockReset();
 		segmentationMocks.onUpdate = null;
+		reviewNavigationMocks.open.mockClear();
+		cbrMocks.run.mockReset();
+		cbrMocks.onUpdate = null;
 	});
 
 	test('selects retryable rows and blocks video mode for local audio', async () => {
@@ -122,6 +156,7 @@ describe('BatchWorkspace media import', () => {
 
 		const importButton =
 			component.container.querySelector<HTMLButtonElement>('header .btn-accent')!;
+		expect(component.container.querySelector('header .btn-primary')).toBeNull();
 		await importButton.click();
 		let modal!: Element;
 		await vi.waitFor(() => {
@@ -217,5 +252,83 @@ describe('BatchWorkspace media import', () => {
 			expect(component.container.textContent).toContain('Automatically verified');
 			expect(component.container.textContent).toContain('Ready for translations: 1 / 1');
 		});
+	});
+
+	test('starts review from the first flagged project or the clicked row', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const first = createProject(1, 'completed', { kind: 'url', value: 'https://example.com/1' });
+		const second = createProject(4, 'completed', { kind: 'url', value: 'https://example.com/4' });
+		first.segmentation.status = 'needs_review';
+		second.segmentation.status = 'needs_review';
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', [first, second], 200));
+		globalState.currentBatchId = 200;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
+		);
+		const reviewButtons = Array.from(
+			component.container.querySelectorAll<HTMLButtonElement>('button')
+		).filter((button) => button.textContent?.includes('Review'));
+		await reviewButtons[0].click();
+		expect(reviewNavigationMocks.open).toHaveBeenLastCalledWith(200, 1);
+		await reviewButtons[2].click();
+		expect(reviewNavigationMocks.open).toHaveBeenLastCalledWith(200, 4);
+	});
+
+	test('shows Batch CBR progress after every media import is completed', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const project = createProject(1, 'completed', {
+			kind: 'url',
+			value: 'https://example.com/1'
+		});
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', [project], 300));
+		let finishCbr!: () => void;
+		cbrMocks.run.mockImplementation(async () => {
+			cbrMocks.onUpdate?.(project, 'converting', {
+				activeProjectId: 1,
+				completed: 0,
+				failed: 0,
+				remaining: 0,
+				progress: 45,
+				total: 1
+			});
+			await new Promise<void>((resolve) => {
+				finishCbr = resolve;
+			});
+			return {
+				activeProjectId: null,
+				completed: 1,
+				failed: 0,
+				remaining: 0,
+				progress: 100,
+				total: 1
+			};
+		});
+		globalState.currentBatchId = 300;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(1)
+		);
+		const cbrButton = Array.from(
+			component.container.querySelectorAll<HTMLButtonElement>('header button')
+		).find((button) => button.textContent?.includes('Convert all audio to CBR'))!;
+		expect(cbrButton).toBeDefined();
+		await cbrButton.click();
+
+		await vi.waitFor(() => {
+			expect(component.container.textContent).toContain('Converting Project 1');
+			expect(component.container.textContent).toContain('45%');
+			expect(
+				component.container.querySelector<HTMLButtonElement>('header .btn-primary')?.disabled
+			).toBe(true);
+		});
+		finishCbr();
+		await vi.waitFor(() =>
+			expect(component.container.textContent).not.toContain('Converting Project 1')
+		);
 	});
 });

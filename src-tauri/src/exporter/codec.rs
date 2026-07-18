@@ -318,7 +318,16 @@ pub fn choose_best_codec(
                     "[codec] usage={:?} profile={:?} resolution={}x{} selected={}",
                     usage, performance_profile, width, height, codec
                 );
-                let params = vec!["-pix_fmt".to_string(), "yuv420p".to_string()];
+                let mut params = vec!["-pix_fmt".to_string(), "yuv420p".to_string()];
+                // Le débit NVENC par défaut est insuffisant pour les fonds animés en Balanced.
+                if matches!(performance_profile, ExportPerformanceProfile::Balanced) {
+                    params.extend_from_slice(&[
+                        "-rc".to_string(),
+                        "constqp".to_string(),
+                        "-qp".to_string(),
+                        "14".to_string(),
+                    ]);
+                }
                 let mut extra = HashMap::new();
                 extra.insert("preset".to_string(), Some("fast".to_string()));
                 return (codec, params, extra);

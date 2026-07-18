@@ -253,7 +253,8 @@ pub fn create_video_from_image(
         cmd.arg(param);
     }
 
-    if codec.contains("nvenc") {
+    if codec.contains("nvenc") && !matches!(performance_profile, ExportPerformanceProfile::Balanced)
+    {
         cmd.args(&["-cq", "23"]);
     }
 
@@ -317,7 +318,7 @@ pub fn preprocess_background_videos(
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v9-profile";
+    let preproc_cache_version = "fit-v10-nvenc-quality";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);

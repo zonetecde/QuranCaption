@@ -240,7 +240,8 @@ disponibilite NVENC reste utilise avant toute selection.
 
 ### Parametres par encodeur
 
-- **NVENC**: `-preset p1 -tune ll -rc constqp -qp 18` (passe finale), `-preset fast` (intermediaire)
+- **NVENC**: `Balanced` utilise `-preset fast -rc constqp -qp 14`; les autres profils conservent les
+  reglages rapides existants
 - **VideoToolbox**: bitrate variable selon la resolution, `-allow_sw 1`
 - **QSV/AMF**: parametres par defaut
 - **libx264**: `-crf 16 -preset veryfast` (finale), `-crf 14 -preset veryfast` (intermediaire, haute
@@ -273,7 +274,7 @@ La cle de cache inclut:
 - le start offset;
 - la duree;
 - le mode loop;
-- la version du pipeline de pretraitement (`fit-v8`).
+- la version du pipeline de pretraitement (`fit-v10-nvenc-quality`).
 
 Le contenu complet du fichier source n'est **pas** hashe a chaque export. La cle est construite avec
 `md5` d'une chaine representative.

@@ -497,6 +497,23 @@ export default class Exporter {
 			get(LL).settings.projectBackup()
 		);
 	}
+
+	/**
+	 * Exporte un batch et tous ses projets dans le format de backup versionné.
+	 * @param {number} batchId Identifiant du batch à exporter.
+	 * @returns {Promise<void>} Promesse résolue après l'écriture du backup.
+	 */
+	static async backupBatch(batchId: number): Promise<void> {
+		const batch = await BatchService.load(batchId);
+		const projects = await Promise.all(
+			batch.projects.map((item) => ProjectService.load(item.projectId))
+		);
+		await ExportFileService.saveTextFile(
+			`qurancaption_batch_${batch.id}_${Date.now()}.json`,
+			JSON.stringify({ version: 2, projects, batches: [batch.toJSON()] }),
+			get(LL).settings.projectBackup()
+		);
+	}
 	static async exportYtbChapters() {
 		const choice = globalState.getExportState.ytbChaptersChoice;
 		const subtitlesClips: SubtitleClip[] = globalState.getSubtitleClips;

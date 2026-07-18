@@ -535,7 +535,12 @@ const de = {
 			'Projekte werden exportiert: {completed} / {total} abgeschlossen · {failed} fehlgeschlagen',
 		currentExportProject: 'Aktuelles Projekt: {project}',
 		allEligibleProjectsExported: 'Alle geeigneten Projekte wurden exportiert.',
-		someProjectsCouldNotBeExported: 'Einige Projekte konnten nicht exportiert werden.'
+		someProjectsCouldNotBeExported: 'Einige Projekte konnten nicht exportiert werden.',
+		batchActions: 'Batch-Aktionen',
+		exportBatch: 'Batch exportieren',
+		deleteBatch: 'Batch löschen',
+		deleteBatchConfirm:
+			'Möchten Sie den Batch „{name}“ wirklich löschen? Seine {count} Projekte werden ebenfalls dauerhaft gelöscht.'
 	},
 	editor: {
 		videoEditor: 'Video-Editor',

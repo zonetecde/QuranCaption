@@ -30,4 +30,25 @@ describe('BatchDetailCard', () => {
 		expect(globalState.currentBatchId).toBe(123);
 		expect(globalState.currentPage).toBe('batch-workspace');
 	});
+
+	test('opens batch actions without opening the workspace', async () => {
+		const component = render(BatchDetailCard, {
+			batchDetail: {
+				id: 123,
+				name: 'Complete Quran',
+				createdAt: new Date('2026-01-01T00:00:00.000Z'),
+				updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+				projectCount: 114,
+				reciter: 'Nasser Al-Qatami',
+				importedMediaCount: 0
+			}
+		});
+
+		await (component.container.querySelector('[data-batch-actions]') as HTMLButtonElement).click();
+
+		expect(globalState.currentBatchId).toBeNull();
+		expect(globalState.currentPage).toBe('home');
+		expect(document.body.textContent).toContain('file_download');
+		expect(document.body.textContent).toContain('delete');
+	});
 });

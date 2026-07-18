@@ -527,7 +527,12 @@ const es = {
 			'Exportando proyectos: {completed} / {total} completados · {failed} fallidos',
 		currentExportProject: 'Proyecto actual: {project}',
 		allEligibleProjectsExported: 'Todos los proyectos elegibles fueron exportados.',
-		someProjectsCouldNotBeExported: 'Algunos proyectos no pudieron exportarse.'
+		someProjectsCouldNotBeExported: 'Algunos proyectos no pudieron exportarse.',
+		batchActions: 'Acciones del lote',
+		exportBatch: 'Exportar lote',
+		deleteBatch: 'Eliminar lote',
+		deleteBatchConfirm:
+			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
 		videoEditor: 'Editor de video',

@@ -1,11 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
+import Exporter, {
 	DEFAULT_YTB_CHAPTERS_FORMAT,
 	formatYouTubeChapterLine,
 	resolveProjectVideoExportRange,
 	type YouTubeChapterFormatValues
 } from '$lib/classes/Exporter';
+import { Batch, type Project } from '$lib/classes';
+import { BatchService } from '$lib/services/BatchService';
+import { ProjectService } from '$lib/services/ProjectService';
+import ExportFileService from '$lib/services/ExportFileService';
+
+afterEach(() => vi.restoreAllMocks());
 
 const baseValues: YouTubeChapterFormatValues = {
 	timestamp: '0:03',
@@ -62,5 +68,30 @@ describe('Project video export range', () => {
 	it('uses the full audio duration when the project range is shorter than one second', () => {
 		expect(resolveProjectVideoExportRange(500, 1_400, 10_000)).toEqual([0, 10_000]);
 		expect(resolveProjectVideoExportRange(0, 0, 10_000)).toEqual([0, 10_000]);
+	});
+});
+
+describe('Batch backup', () => {
+	it('exports one batch and its projects in the version 2 backup format', async () => {
+		const batch = Batch.fromJSON({
+			version: 1,
+			id: 123,
+			name: 'Complete Quran',
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			projects: [{ order: 1, projectId: 456 }]
+		}) as Batch;
+		vi.spyOn(BatchService, 'load').mockResolvedValue(batch);
+		vi.spyOn(ProjectService, 'load').mockResolvedValue({ detail: { id: 456 } } as Project);
+		const saveBackup = vi
+			.spyOn(ExportFileService, 'saveTextFile')
+			.mockResolvedValue('/backup.json');
+
+		await Exporter.backupBatch(batch.id);
+
+		const backup = JSON.parse(saveBackup.mock.calls[0][1]);
+		expect(backup.version).toBe(2);
+		expect(backup.projects.map((project: Project) => project.detail.id)).toEqual([456]);
+		expect(backup.batches.map((savedBatch: Batch) => savedBatch.id)).toEqual([123]);
 	});
 });

@@ -2,8 +2,15 @@
 	import type { BatchDetail } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { BatchService } from '$lib/services/BatchService';
+	import Exporter from '$lib/classes/Exporter';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
+	import { currentMenu } from 'svelte-contextmenu/stores';
+	import { get } from 'svelte/store';
 
 	let { batchDetail }: { batchDetail: BatchDetail } = $props();
+	let contextMenu: ContextMenu | undefined = $state(undefined);
 	let isListView = $derived(
 		(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
 	);
@@ -16,6 +23,56 @@
 		globalState.currentBatchId = batchDetail.id;
 		globalState.currentPage = 'batch-workspace';
 	}
+
+	/**
+	 * Résout les traductions Batch ajoutées avant la génération i18n du pre-commit.
+	 * @param {string} key Clé du message Batch.
+	 * @param {Record<string, string | number>} params Paramètres éventuels du message.
+	 * @returns {string} Message localisé.
+	 */
+	function batchMessage(key: string, params: Record<string, string | number> = {}): string {
+		const translator = Reflect.get(get(LL).batch, key) as
+			| ((values?: Record<string, string | number>) => string)
+			| undefined;
+		return translator?.(params) ?? key;
+	}
+
+	/**
+	 * Ouvre le menu d'actions sans ouvrir le workspace du batch.
+	 * @param {MouseEvent} event Clic sur le bouton d'actions.
+	 * @returns {void}
+	 */
+	function openActionsMenu(event: MouseEvent): void {
+		event.stopPropagation();
+		contextMenu?.createHandler()(event);
+	}
+
+	/**
+	 * Exporte uniquement le batch sélectionné et ses projets.
+	 * @param {MouseEvent} event Clic sur l'action d'export.
+	 * @returns {Promise<void>} Promesse résolue après l'écriture du backup.
+	 */
+	async function exportBatch(event: MouseEvent): Promise<void> {
+		if (event.button !== 0) return;
+		await Exporter.backupBatch(batchDetail.id);
+	}
+
+	/**
+	 * Supprime le batch confirmé et tous les projets qu'il contient.
+	 * @param {MouseEvent} event Clic sur l'action de suppression.
+	 * @returns {Promise<void>} Promesse résolue après la suppression.
+	 */
+	async function deleteBatch(event: MouseEvent): Promise<void> {
+		if (event.button !== 0) return;
+		const confirmed = await ModalManager.confirmModal(
+			batchMessage('deleteBatchConfirm', {
+				name: batchDetail.name,
+				count: batchDetail.projectCount
+			})
+		);
+		if (confirmed) await BatchService.delete(batchDetail.id);
+		else currentMenu.set(null);
+	}
 </script>
 
 <div
@@ -25,7 +82,8 @@
 	tabindex="0"
 	onclick={openBatch}
 	onkeydown={(event) => {
-		if (event.key === 'Enter' || event.key === ' ') openBatch();
+		if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' '))
+			openBatch();
 	}}
 >
 	<div>
@@ -73,6 +131,41 @@
 			<span>{$LL.home.createdLabel()} {batchDetail.createdAt.toLocaleDateString()}</span>
 			<span>{$LL.home.updatedLabel()} {batchDetail.updatedAt.toLocaleDateString()}</span>
 		</div>
-		<div class="btn-accent py-2 text-center text-xs">{$LL.home.openProject()}</div>
+		<div class="flex items-center gap-2">
+			<button
+				class="btn-accent flex-grow py-2 text-center text-xs"
+				type="button"
+				onclick={(event) => {
+					event.stopPropagation();
+					openBatch();
+				}}
+			>
+				{$LL.home.openProject()}
+			</button>
+			<button
+				class="btn btn-secondary btn-sm flex items-center p-1.5"
+				type="button"
+				data-batch-actions
+				aria-label={batchMessage('batchActions')}
+				onclick={openActionsMenu}
+			>
+				<span class="material-icons-outlined text-sm">more_horiz</span>
+			</button>
+		</div>
 	</div>
 </div>
+
+<ContextMenu bind:this={contextMenu}>
+	<Item on:click={exportBatch}
+		><div class="btn-icon">
+			<span class="material-icons-outlined mr-1 text-sm">file_download</span>{batchMessage(
+				'exportBatch'
+			)}
+		</div></Item
+	>
+	<Item on:click={deleteBatch}
+		><div class="btn-icon danger-color">
+			<span class="material-icons-outlined mr-1 text-sm">delete</span>{batchMessage('deleteBatch')}
+		</div></Item
+	>
+</ContextMenu>

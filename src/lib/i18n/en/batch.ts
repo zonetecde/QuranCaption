@@ -242,7 +242,12 @@ const batch = {
 		'Exporting projects: {completed} / {total} completed · {failed} failed',
 	currentExportProject: 'Current project: {project}',
 	allEligibleProjectsExported: 'All eligible projects were exported.',
-	someProjectsCouldNotBeExported: 'Some projects could not be exported.'
+	someProjectsCouldNotBeExported: 'Some projects could not be exported.',
+	batchActions: 'Batch actions',
+	exportBatch: 'Export batch',
+	deleteBatch: 'Delete batch',
+	deleteBatchConfirm:
+		'Are you sure you want to delete the batch "{name}"? Its {count} project(s) will also be permanently deleted.'
 };
 
 export default batch;

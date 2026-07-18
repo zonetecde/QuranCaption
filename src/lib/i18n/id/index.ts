@@ -442,7 +442,12 @@ const id = {
 		exportingProjectsProgress: 'Mengekspor proyek: {completed} / {total} selesai · {failed} gagal',
 		currentExportProject: 'Proyek saat ini: {project}',
 		allEligibleProjectsExported: 'Semua proyek yang memenuhi syarat telah diekspor.',
-		someProjectsCouldNotBeExported: 'Beberapa proyek tidak dapat diekspor.'
+		someProjectsCouldNotBeExported: 'Beberapa proyek tidak dapat diekspor.',
+		batchActions: 'Aksi batch',
+		exportBatch: 'Ekspor batch',
+		deleteBatch: 'Hapus batch',
+		deleteBatchConfirm:
+			'Yakin ingin menghapus batch “{name}”? {count} proyek di dalamnya juga akan dihapus secara permanen.'
 	},
 	settings: {
 		...baseEn.settings,

@@ -505,7 +505,11 @@ const zh = {
 		exportingProjectsProgress: '正在导出项目：已完成 {completed} / {total} · {failed} 个失败',
 		currentExportProject: '当前项目：{project}',
 		allEligibleProjectsExported: '所有符合条件的项目均已导出。',
-		someProjectsCouldNotBeExported: '部分项目无法导出。'
+		someProjectsCouldNotBeExported: '部分项目无法导出。',
+		batchActions: '批次操作',
+		exportBatch: '导出批次',
+		deleteBatch: '删除批次',
+		deleteBatchConfirm: '确定要删除批次“{name}”吗？其中的 {count} 个项目也将被永久删除。'
 	},
 	editor: {
 		videoEditor: '视频编辑器',

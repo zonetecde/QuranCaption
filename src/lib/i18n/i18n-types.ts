@@ -10013,6 +10013,24 @@ type RootTranslation = {
 		 * S​o​m​e​ ​p​r​o​j​e​c​t​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​e​x​p​o​r​t​e​d​.
 		 */
 		someProjectsCouldNotBeExported: string;
+		/**
+		 * B​a​t​c​h​ ​a​c​t​i​o​n​s
+		 */
+		batchActions: string;
+		/**
+		 * E​x​p​o​r​t​ ​b​a​t​c​h
+		 */
+		exportBatch: string;
+		/**
+		 * D​e​l​e​t​e​ ​b​a​t​c​h
+		 */
+		deleteBatch: string;
+		/**
+		 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​t​h​e​ ​b​a​t​c​h​ ​"​{​n​a​m​e​}​"​?​ ​I​t​s​ ​{​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​w​i​l​l​ ​a​l​s​o​ ​b​e​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​d​.
+		 * @param {unknown} count
+		 * @param {unknown} name
+		 */
+		deleteBatchConfirm: RequiredParams<'count' | 'name'>;
 	};
 };
 
@@ -19838,6 +19856,22 @@ export type TranslationFunctions = {
 		 * Some projects could not be exported.
 		 */
 		someProjectsCouldNotBeExported: () => LocalizedString;
+		/**
+		 * Batch actions
+		 */
+		batchActions: () => LocalizedString;
+		/**
+		 * Export batch
+		 */
+		exportBatch: () => LocalizedString;
+		/**
+		 * Delete batch
+		 */
+		deleteBatch: () => LocalizedString;
+		/**
+		 * Are you sure you want to delete the batch "{name}"? Its {count} project(s) will also be permanently deleted.
+		 */
+		deleteBatchConfirm: (arg: { count: unknown; name: unknown }) => LocalizedString;
 	};
 };
 

@@ -102,6 +102,34 @@ describe('BatchService persistence', () => {
 		expect((await BatchService.load(batch.id)).name).toBe('Imported batch');
 	});
 
+	it('deletes every project before deleting its batch manifest', async () => {
+		const batch = Batch.fromJSON({
+			version: 1,
+			id: 123,
+			name: 'Delete batch',
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			projects: [
+				{
+					order: 1,
+					projectId: 456,
+					projectName: 'Project',
+					reciter: 'Reciter',
+					source: { kind: 'url', value: 'https://example.com' },
+					media: { status: 'completed', progress: 100 }
+				}
+			]
+		}) as Batch;
+		const deleteProject = vi.spyOn(ProjectService, 'delete').mockResolvedValue();
+		await BatchService.save(batch);
+
+		await BatchService.delete(batch.id);
+
+		expect(deleteProject).toHaveBeenCalledOnce();
+		expect(deleteProject).toHaveBeenCalledWith(456);
+		expect(storage.has(`/app-data/batches/${batch.id}.json`)).toBe(false);
+	});
+
 	it('accepts legacy project arrays and version 2 backups', () => {
 		const projects = [{ detail: { id: 1 } }];
 		const batches = [{ version: 1, id: 2 }];

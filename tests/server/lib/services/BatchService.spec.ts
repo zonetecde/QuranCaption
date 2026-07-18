@@ -130,6 +130,30 @@ describe('BatchService persistence', () => {
 		expect(storage.has(`/app-data/batches/${batch.id}.json`)).toBe(false);
 	});
 
+	it('deletes selected projects and updates the batch manifest', async () => {
+		const batch = Batch.fromJSON({
+			version: 1,
+			id: 124,
+			name: 'Update batch',
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			projects: [
+				{ order: 1, projectId: 10, projectName: 'First' },
+				{ order: 2, projectId: 20, projectName: 'Second' }
+			]
+		}) as Batch;
+		const deleteProject = vi.spyOn(ProjectService, 'delete').mockResolvedValue();
+		vi.spyOn(ProjectService, 'loadUserProjectsDetails').mockResolvedValue([]);
+		await BatchService.save(batch);
+
+		await BatchService.deleteProjects(batch, [20]);
+
+		expect(deleteProject).toHaveBeenCalledWith(20);
+		expect(
+			(await BatchService.load(batch.id)).projects.map((project) => project.projectId)
+		).toEqual([10]);
+	});
+
 	it('accepts legacy project arrays and version 2 backups', () => {
 		const projects = [{ detail: { id: 1 } }];
 		const batches = [{ version: 1, id: 2 }];

@@ -62,6 +62,9 @@ const batch = {
 	openProject: 'Open project',
 	selectProject: 'Select project',
 	selectedProjects: '{count} selected',
+	deleteSelectedProjects: 'Delete selected',
+	deleteSelectedProjectsConfirm:
+		'Are you sure you want to permanently delete the {count} selected project(s)?',
 	importMedia: 'Import media',
 	importMediaTitle: 'Import media for this batch',
 	selectedForImport: '{count} project(s) selected for import.',

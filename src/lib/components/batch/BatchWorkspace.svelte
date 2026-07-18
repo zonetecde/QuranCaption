@@ -62,6 +62,7 @@
 		type BatchExportProgress
 	} from '$lib/services/BatchExportService';
 	import { open } from '@tauri-apps/plugin-dialog';
+	import ModalManager from '$lib/components/modals/ModalManager';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -143,6 +144,7 @@
 	let exportOutputFolder = $state('');
 	let exportNonReadyProjects = $state(false);
 	let exportQueueActive = $state(false);
+	let deleteQueueActive = $state(false);
 	let exportProgress = $state<BatchExportProgress>({
 		activeProjectName: null,
 		completed: 0,
@@ -258,7 +260,8 @@
 			cbrQueueActive ||
 			translationQueueActive ||
 			styleQueueActive ||
-			exportQueueActive
+			exportQueueActive ||
+			deleteQueueActive
 	);
 	let globalOperationActive = $derived(styleQueueActive || exportQueueActive);
 	let savedStylePresets = $derived(globalState.settings?.savedVideoStylePresets ?? []);
@@ -762,6 +765,30 @@
 						.filter((project) => project.media.status !== 'processing')
 						.map((project) => project.projectId)
 				);
+	}
+
+	/**
+	 * Supprime définitivement les projets sélectionnés après confirmation.
+	 * @returns {Promise<void>} Promesse résolue après la mise à jour du batch.
+	 */
+	async function deleteSelectedProjects(): Promise<void> {
+		if (!batch || selectedProjects.length === 0 || incompatibleQueueActive) return;
+		const projectIds = selectedProjects.map((project) => project.projectId);
+		const confirmed = await ModalManager.confirmModal(
+			batchMessage('deleteSelectedProjectsConfirm', { count: projectIds.length })
+		);
+		if (!confirmed) return;
+		deleteQueueActive = true;
+		queueError = '';
+		try {
+			await BatchService.deleteProjects(batch, projectIds);
+			selectedIds = new Set();
+			revision++;
+		} catch (deleteError) {
+			queueError = String(deleteError);
+		} finally {
+			deleteQueueActive = false;
+		}
 	}
 
 	/**
@@ -1356,28 +1383,39 @@
 						total: projects.length
 					})}
 				</p>
-				{#if reviewProjects.length > 0 && !allSegmentationsVerified}
+				<div class="ml-auto flex flex-wrap items-center gap-3">
+					{#if reviewProjects.length > 0 && !allSegmentationsVerified}
+						<button
+							class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
+							type="button"
+							disabled={segmentationQueueActive || cbrQueueActive || globalOperationActive}
+							onclick={reviewFirstFlaggedProject}
+						>
+							<span class="material-icons-outlined text-base leading-none">fact_check</span>
+							<span class="leading-none">{batchMessage('reviewFlaggedProjects')}</span>
+						</button>
+					{/if}
+					{#if translationEditionsNeedingReview.length > 0}
+						<button
+							class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
+							type="button"
+							disabled={incompatibleQueueActive}
+							onclick={reviewTranslations}
+						>
+							<span class="material-icons-outlined text-base leading-none">fact_check</span>
+							<span class="leading-none">{batchMessage('reviewTranslationProjects')}</span>
+						</button>
+					{/if}
 					<button
-						class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
+						class="btn btn-icon danger-color inline-flex h-10 items-center justify-center gap-2 px-4"
 						type="button"
-						disabled={segmentationQueueActive || cbrQueueActive || globalOperationActive}
-						onclick={reviewFirstFlaggedProject}
+						disabled={selectedProjects.length === 0 || incompatibleQueueActive}
+						onclick={deleteSelectedProjects}
 					>
-						<span class="material-icons-outlined text-base leading-none">fact_check</span>
-						<span class="leading-none">{batchMessage('reviewFlaggedProjects')}</span>
+						<span class="material-icons-outlined leading-none">delete</span>
+						<span class="leading-none">{batchMessage('deleteSelectedProjects')}</span>
 					</button>
-				{/if}
-				{#if translationEditionsNeedingReview.length > 0}
-					<button
-						class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
-						type="button"
-						disabled={incompatibleQueueActive}
-						onclick={reviewTranslations}
-					>
-						<span class="material-icons-outlined text-base leading-none">fact_check</span>
-						<span class="leading-none">{batchMessage('reviewTranslationProjects')}</span>
-					</button>
-				{/if}
+				</div>
 			</div>
 
 			<section

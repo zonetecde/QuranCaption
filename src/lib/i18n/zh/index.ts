@@ -331,6 +331,8 @@ const zh = {
 		openProject: '打开项目',
 		selectProject: '选择项目',
 		selectedProjects: '已选择 {count} 个',
+		deleteSelectedProjects: '删除所选项目',
+		deleteSelectedProjectsConfirm: '确定要永久删除选中的 {count} 个项目吗？',
 		importMedia: '导入媒体',
 		importMediaTitle: '为此批次导入媒体',
 		selectedForImport: '已选择 {count} 个项目进行导入。',

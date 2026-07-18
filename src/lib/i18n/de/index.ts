@@ -346,6 +346,9 @@ const de = {
 		openProject: 'Projekt öffnen',
 		selectProject: 'Projekt auswählen',
 		selectedProjects: '{count} ausgewählt',
+		deleteSelectedProjects: 'Auswahl löschen',
+		deleteSelectedProjectsConfirm:
+			'Möchten Sie die {count} ausgewählten Projekte wirklich dauerhaft löschen?',
 		importMedia: 'Medien importieren',
 		importMediaTitle: 'Medien für diesen Batch importieren',
 		selectedForImport: '{count} Projekt(e) für den Import ausgewählt.',

@@ -247,6 +247,25 @@ export class BatchService {
 	}
 
 	/**
+	 * Supprime des projets d'un batch et sauvegarde son manifeste.
+	 * @param {Batch} batch Batch à modifier.
+	 * @param {number[]} projectIds Identifiants des projets à supprimer.
+	 * @returns {Promise<void>} Promesse résolue après la suppression et le rafraîchissement.
+	 */
+	static async deleteProjects(batch: Batch, projectIds: number[]): Promise<void> {
+		const selectedIds = new Set(projectIds);
+		await Promise.all(
+			batch.projects
+				.filter((project) => selectedIds.has(project.projectId))
+				.map((project) => ProjectService.delete(project.projectId))
+		);
+		batch.projects = batch.projects.filter((project) => !selectedIds.has(project.projectId));
+		batch.updatedAt = new Date();
+		await this.save(batch);
+		await Promise.all([ProjectService.loadUserProjectsDetails(), this.loadUserBatchesDetails()]);
+	}
+
+	/**
 	 * Charge les métadonnées légères de tous les batches pour la homepage.
 	 * @returns {Promise<BatchDetail[]>} Détails triés par dernière modification.
 	 */

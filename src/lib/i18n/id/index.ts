@@ -265,6 +265,8 @@ const id = {
 		openProject: 'Buka proyek',
 		selectProject: 'Pilih proyek',
 		selectedProjects: '{count} dipilih',
+		deleteSelectedProjects: 'Hapus yang dipilih',
+		deleteSelectedProjectsConfirm: 'Yakin ingin menghapus permanen {count} proyek yang dipilih?',
 		importMedia: 'Impor media',
 		importMediaTitle: 'Impor media untuk batch ini',
 		selectedForImport: '{count} proyek dipilih untuk diimpor.',

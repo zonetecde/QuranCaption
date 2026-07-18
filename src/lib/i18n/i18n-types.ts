@@ -9265,6 +9265,15 @@ type RootTranslation = {
 		 */
 		selectedProjects: RequiredParams<'count'>;
 		/**
+		 * D​e​l​e​t​e​ ​s​e​l​e​c​t​e​d
+		 */
+		deleteSelectedProjects: string;
+		/**
+		 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​e​ ​{​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​(​s​)​?
+		 * @param {unknown} count
+		 */
+		deleteSelectedProjectsConfirm: RequiredParams<'count'>;
+		/**
 		 * I​m​p​o​r​t​ ​m​e​d​i​a
 		 */
 		importMedia: string;
@@ -19139,6 +19148,14 @@ export type TranslationFunctions = {
 		 * {count} selected
 		 */
 		selectedProjects: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Delete selected
+		 */
+		deleteSelectedProjects: () => LocalizedString;
+		/**
+		 * Are you sure you want to permanently delete the {count} selected project(s)?
+		 */
+		deleteSelectedProjectsConfirm: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * Import media
 		 */

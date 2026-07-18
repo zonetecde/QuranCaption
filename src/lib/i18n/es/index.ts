@@ -345,6 +345,9 @@ const es = {
 		openProject: 'Abrir proyecto',
 		selectProject: 'Seleccionar proyecto',
 		selectedProjects: '{count} seleccionados',
+		deleteSelectedProjects: 'Eliminar seleccionados',
+		deleteSelectedProjectsConfirm:
+			'¿Seguro que desea eliminar permanentemente los {count} proyectos seleccionados?',
 		importMedia: 'Importar medios',
 		importMediaTitle: 'Importar medios para este lote',
 		selectedForImport: '{count} proyecto(s) seleccionados para importar.',

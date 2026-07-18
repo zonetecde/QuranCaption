@@ -1,5 +1,6 @@
 import type { Batch, BatchProjectItem, BatchSegmentationReviewCounts } from '$lib/classes';
 import type { Project } from '$lib/classes/Project';
+import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 import { TrackType } from '$lib/classes/enums';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { exists } from '@tauri-apps/plugin-fs';
@@ -152,16 +153,26 @@ export async function reconcileBatchSegmentations(batch: Batch): Promise<boolean
 	for (const item of batch.projects.filter(
 		(project) =>
 			project.segmentation.status === 'needs_review' ||
-			(project.media.status === 'completed' && project.segmentation.status === 'not_started')
+			(project.media.status === 'completed' &&
+				(project.segmentation.status === 'not_started' ||
+					(project.segmentation.status === 'auto_verified' &&
+						!project.segmentation.startedAt &&
+						!project.segmentation.settingsSnapshot)))
 	)) {
 		try {
 			const project = await ProjectService.load(item.projectId);
-			if (item.segmentation.status === 'not_started') {
-				const context = project.projectEditorState.subtitlesEditor.segmentationContext;
-				if (!context.audioId || context.alignedSegments.length === 0) continue;
+			const subtitleTrack = project.content.timeline.getFirstTrack(
+				TrackType.Subtitle
+			) as SubtitleTrack;
+			const subtitleCount = subtitleTrack.clips.filter(
+				(clip) => clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'
+			).length;
+			if (subtitleCount === 0) continue;
+			if (item.segmentation.status !== 'needs_review') {
 				item.segmentation.progress = 100;
-				item.segmentation.segmentsApplied = context.alignedSegments.length;
-				item.segmentation.completedAt = project.detail.updatedAt;
+				item.segmentation.segmentsApplied = subtitleCount;
+				item.segmentation.startedAt ??= project.detail.updatedAt;
+				item.segmentation.completedAt ??= project.detail.updatedAt;
 				changed = true;
 			}
 			changed = (await reconcileBatchProjectSegmentation(batch, item, project)) || changed;
@@ -190,7 +201,12 @@ export async function reconcileBatchProjectSegmentation(
 ): Promise<boolean> {
 	const loadedProject = project ?? (await ProjectService.load(item.projectId));
 	const review = getBatchSegmentationReviewCounts(loadedProject);
-	const status = classifyBatchSegmentationStatus(item.segmentation.status, review);
+	// Les statuts reconstruits sans snapshot n'ont jamais fait l'objet d'une revue manuelle.
+	const previousStatus =
+		item.segmentation.status === 'needs_review' && !item.segmentation.settingsSnapshot
+			? 'not_started'
+			: item.segmentation.status;
+	const status = classifyBatchSegmentationStatus(previousStatus, review);
 	if (
 		status === item.segmentation.status &&
 		JSON.stringify(review) === JSON.stringify(item.segmentation.review)

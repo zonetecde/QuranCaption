@@ -8,6 +8,7 @@ import {
 	createDefaultBatchSegmentationState,
 	createDefaultBatchExportState,
 	createDefaultBatchStyleState,
+	TrackType,
 	VerseRange,
 	type BatchProjectItem
 } from '$lib/classes';
@@ -158,20 +159,26 @@ describe('BatchSegmentationService', () => {
 		expect(items[2].segmentation.progress).toBe(finishedProgress);
 	});
 
-	it('recovers a completed segmentation from the saved project context', async () => {
+	it('recovers a completed segmentation from existing subtitles', async () => {
 		const item = createItem(1);
 		const updatedAt = new Date('2026-07-18T20:00:00.000Z');
+		const subtitleTrack = {
+			clips: [
+				{ type: 'Subtitle', needsReview: false },
+				{ type: 'Pre-defined Subtitle', needsReview: false }
+			]
+		};
 		const project = {
-			detail: { updatedAt },
-			projectEditorState: {
-				subtitlesEditor: {
-					segmentationContext: {
-						audioId: 'audio',
-						alignedSegments: [{ clipId: 1 }, { clipId: 2 }]
-					}
-				}
+			detail: {
+				updatedAt,
+				percentageCaptioned: 100
 			},
-			content: { timeline: { getFirstTrack: () => ({ clips: [] }) } }
+			content: {
+				timeline: {
+					getFirstTrack: (type: TrackType) =>
+						type === TrackType.Subtitle ? subtitleTrack : { clips: [] }
+				}
+			}
 		} as unknown as Project;
 		const loadProject = vi.spyOn(ProjectService, 'load').mockResolvedValue(project);
 		const saveBatch = vi.spyOn(BatchService, 'save').mockResolvedValue();
@@ -184,6 +191,66 @@ describe('BatchSegmentationService', () => {
 			expect(item.segmentation.segmentsApplied).toBe(2);
 			expect(item.segmentation.completedAt).toEqual(updatedAt);
 			expect(saveBatch).toHaveBeenCalledWith(batch);
+		} finally {
+			loadProject.mockRestore();
+			saveBatch.mockRestore();
+		}
+	});
+
+	it('keeps a project not started when it has no subtitle', async () => {
+		const item = createItem(1);
+		const project = {
+			content: {
+				timeline: {
+					getFirstTrack: () => ({ clips: [] })
+				}
+			}
+		} as unknown as Project;
+		const loadProject = vi.spyOn(ProjectService, 'load').mockResolvedValue(project);
+		const saveBatch = vi.spyOn(BatchService, 'save').mockResolvedValue();
+
+		try {
+			expect(await reconcileBatchSegmentations(new Batch('Batch', [item]))).toBe(false);
+			expect(item.segmentation.status).toBe('not_started');
+			expect(saveBatch).not.toHaveBeenCalled();
+		} finally {
+			loadProject.mockRestore();
+			saveBatch.mockRestore();
+		}
+	});
+
+	it('clears a recovered coverage review when no subtitle has a real flag', async () => {
+		const item = createItem(1);
+		item.segmentation.status = 'needs_review';
+		item.segmentation.review = {
+			total: 1,
+			pending: 1,
+			lowConfidence: 0,
+			coverage: 1,
+			long: 0,
+			wbwTimestamps: 0
+		};
+		const project = {
+			content: {
+				timeline: {
+					getFirstTrack: () => ({ clips: [{ type: 'Subtitle' }] })
+				}
+			}
+		} as unknown as Project;
+		const loadProject = vi.spyOn(ProjectService, 'load').mockResolvedValue(project);
+		const saveBatch = vi.spyOn(BatchService, 'save').mockResolvedValue();
+
+		try {
+			expect(await reconcileBatchSegmentations(new Batch('Batch', [item]))).toBe(true);
+			expect(item.segmentation.status).toBe('auto_verified');
+			expect(item.segmentation.review).toEqual({
+				total: 0,
+				pending: 0,
+				lowConfidence: 0,
+				coverage: 0,
+				long: 0,
+				wbwTimestamps: 0
+			});
 		} finally {
 			loadProject.mockRestore();
 			saveBatch.mockRestore();

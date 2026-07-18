@@ -1,5 +1,5 @@
 import { SerializableBase } from './misc/SerializableBase';
-import { Asset, Category, Style, StylesData, VerseRange, VideoStyle } from '.';
+import { Asset, Batch, Category, Style, StylesData, VerseRange, VideoStyle } from '.';
 import {
 	Clip,
 	SubtitleClip,
@@ -70,6 +70,7 @@ export function initializeClassRegistry() {
 	SerializableBase.registerClass('ProjectContent', ProjectContent);
 	SerializableBase.registerClass('Project', Project);
 	SerializableBase.registerClass('ProjectDetail', ProjectDetail);
+	SerializableBase.registerClass('Batch', Batch);
 	// Classes d'état
 	SerializableBase.registerClass('VideoPreviewState', VideoPreviewState);
 	SerializableBase.registerClass('ProjectEditorState', ProjectEditorState);

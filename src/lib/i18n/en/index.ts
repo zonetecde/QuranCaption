@@ -14,6 +14,7 @@ import migration from './migration';
 import aiVideo from './aiVideo';
 import donation from './donation';
 import exporterMonitor from './exporterMonitor';
+import batch from './batch';
 
 const en: BaseTranslation = {
 	common,
@@ -30,7 +31,8 @@ const en: BaseTranslation = {
 	migration,
 	aiVideo,
 	donation,
-	exporterMonitor
+	exporterMonitor,
+	batch
 };
 
 export default en;

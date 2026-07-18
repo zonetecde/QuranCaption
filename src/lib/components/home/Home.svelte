@@ -6,6 +6,7 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 
 	import type { ProjectDetail } from '$lib/classes/ProjectDetail.svelte';
+	import type { BatchDetail } from '$lib/classes';
 	import type { DurationWithMs } from '$lib/types/common';
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -16,6 +17,7 @@
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import MigrationService from '$lib/services/MigrationService';
+	import { BatchService } from '$lib/services/BatchService';
 
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -25,12 +27,14 @@
 	import ProjectDetailCard from './ProjectDetailCard.svelte';
 	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
 	import ProjectExplorerSidebar from './ProjectExplorerSidebar.svelte';
+	import BatchDetailCard from '../batch/BatchDetailCard.svelte';
 	import CreateProjectModal from './modals/CreateProjectModal.svelte';
 	import MigrationFromV2Modal from './modals/MigrationFromV2Modal.svelte';
 	import {
 		ALL_PROJECTS_SELECTION,
 		buildProjectExplorerTree,
 		filterProjectsForSelection,
+		filterStandaloneProjects,
 		resolveDropTargetUpdate,
 		type ExplorerSelection
 	} from './homeExplorer';
@@ -68,12 +72,23 @@
 		label: string;
 		target?: ExplorerSelection;
 	};
+	type HomeCard =
+		| { kind: 'project'; detail: ProjectDetail }
+		| { kind: 'batch'; detail: BatchDetail };
 
 	/**
 	 * Affiche le popup pour créer un nouveau projet.
 	 */
 	function newProjectButtonClick() {
 		createNewProjectModalVisible = true;
+	}
+
+	/**
+	 * Ouvre la page complète d'import de batch.
+	 * @returns {void}
+	 */
+	function newBatchButtonClick(): void {
+		globalState.currentPage = 'batch-import';
 	}
 
 	/**
@@ -122,6 +137,9 @@
 		return [...projects].sort((a, b) => {
 			let valueA = a[currentSortProperty];
 			let valueB = b[currentSortProperty];
+			if (valueA === null && valueB === null) return 0;
+			if (valueA === null) return isSortAscending ? -1 : 1;
+			if (valueB === null) return isSortAscending ? 1 : -1;
 
 			if (valueA instanceof Date && valueB instanceof Date) {
 				valueA = valueA.getTime();
@@ -166,7 +184,7 @@
 			return [];
 		}
 
-		return globalState.userProjectsDetails.filter((project) =>
+		return filterStandaloneProjects(globalState.userProjectsDetails).filter((project) =>
 			globalState.uiState.selectedStatuses.some((status) => status.status === project.status.status)
 		);
 	}
@@ -354,13 +372,23 @@
 			project.matchSearchQuery(globalState.uiState.searchQuery)
 		);
 	});
+	let searchedBatches = $derived.by(() => {
+		if (explorerSelection.kind !== 'all') return [];
+		const query = globalState.uiState.searchQuery.trim().toLowerCase();
+		if (!query) return globalState.userBatchDetails;
+		return globalState.userBatchDetails.filter((batch) =>
+			`${batch.name} ${batch.reciter ?? ''}`.toLowerCase().includes(query)
+		);
+	});
+	let homeCards = $derived.by((): HomeCard[] => [
+		...searchedBatches.map((detail) => ({ kind: 'batch' as const, detail })),
+		...searchedProjects.map((detail) => ({ kind: 'project' as const, detail }))
+	]);
 	let projectsPerPage = $derived.by(() => getProjectsPerPage());
-	let totalPages = $derived.by(() =>
-		Math.max(1, Math.ceil(searchedProjects.length / projectsPerPage))
-	);
-	let paginatedProjects = $derived.by(() => {
+	let totalPages = $derived.by(() => Math.max(1, Math.ceil(homeCards.length / projectsPerPage)));
+	let paginatedHomeCards = $derived.by(() => {
 		const startIndex = (currentPage - 1) * projectsPerPage;
-		return searchedProjects.slice(startIndex, startIndex + projectsPerPage);
+		return homeCards.slice(startIndex, startIndex + projectsPerPage);
 	});
 	let selectionBreadcrumb = $derived.by(() => getSelectionBreadcrumb(explorerSelection));
 
@@ -449,8 +477,12 @@
 			globalState.userProjectsDetails[0] = (
 				await ProjectService.load(globalState.userProjectsDetails[0].id, true)
 			).detail;
+			await BatchService.loadUserBatchesDetails();
 		} else {
-			promise = ProjectService.loadUserProjectsDetails();
+			promise = Promise.all([
+				ProjectService.loadUserProjectsDetails(),
+				BatchService.loadUserBatchesDetails()
+			]).then(() => undefined);
 		}
 
 		if (promise) {
@@ -525,6 +557,10 @@
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
 					<span class="material-icons-outlined mr-2">file_upload</span>
 					{$LL.home.importProject()}
+				</button>
+				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={newBatchButtonClick}>
+					<span class="material-icons-outlined mr-2">dynamic_feed</span>
+					{$LL.batch.newBatch()}
 				</button>
 			</section>
 		</div>
@@ -679,7 +715,7 @@
 				{#if globalState.uiState.searchQuery}
 					<p class="mt-3 text-sm text-[var(--text-secondary)]">
 						{$LL.home.showingResultsFor({
-							count: searchedProjects.length,
+							count: homeCards.length,
 							query: globalState.uiState.searchQuery
 						})}
 					</p>
@@ -694,12 +730,16 @@
 						/>
 					</div>
 				{:then}
-					{#if sortedSelectedProjects.length === 0}
-						{#if globalState.uiState.selectedStatuses.length === 0}
+					{#if homeCards.length === 0}
+						{#if globalState.uiState.searchQuery}
+							<p class="mt-4">
+								{$LL.home.noProjectsMatchSearch({ query: globalState.uiState.searchQuery })}
+							</p>
+						{:else if globalState.uiState.selectedStatuses.length === 0}
 							<p class="mt-4">
 								{$LL.home.noProjectsMatchFilter()}
 							</p>
-						{:else if globalState.userProjectsDetails.length === 0}
+						{:else if filterStandaloneProjects(globalState.userProjectsDetails).length === 0}
 							<p class="mt-4">
 								{$LL.home.noProjectsYet()}
 							</p>
@@ -708,10 +748,6 @@
 								{$LL.home.noProjectsInFolder()}
 							</p>
 						{/if}
-					{:else if searchedProjects.length === 0}
-						<p class="mt-4">
-							{$LL.home.noProjectsMatchSearch({ query: globalState.uiState.searchQuery })}
-						</p>
 					{:else}
 						<div
 							placeholder="Project cards"
@@ -722,15 +758,19 @@
 										? 'grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
 										: 'grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5')}
 						>
-							{#each paginatedProjects as project (project.id)}
-								<ProjectDetailCard
-									projectDetail={project}
-									isTutorial={project.name === 'Tutorial Project'}
-									draggable={true}
-									isActiveDrag={draggingProjectId === project.id}
-									onProjectDragStart={startProjectDrag}
-									onProjectDragEnd={clearDragState}
-								/>
+							{#each paginatedHomeCards as card (`${card.kind}-${card.detail.id}`)}
+								{#if card.kind === 'batch'}
+									<BatchDetailCard batchDetail={card.detail} />
+								{:else}
+									<ProjectDetailCard
+										projectDetail={card.detail}
+										isTutorial={card.detail.name === 'Tutorial Project'}
+										draggable={true}
+										isActiveDrag={draggingProjectId === card.detail.id}
+										onProjectDragStart={startProjectDrag}
+										onProjectDragEnd={clearDragState}
+									/>
+								{/if}
 							{/each}
 						</div>
 					{/if}

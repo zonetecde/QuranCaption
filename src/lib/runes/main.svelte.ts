@@ -4,6 +4,7 @@ import {
 	type Edition,
 	type Project,
 	type ProjectDetail,
+	type BatchDetail,
 	type PredefinedSubtitleClip,
 	ProjectTranslation
 } from '$lib/classes';
@@ -22,7 +23,7 @@ import { getChineseMetadataLanguage } from '$lib/services/ChineseTranslationHelp
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
-export type AppPage = 'home' | 'ai-video';
+export type AppPage = 'home' | 'ai-video' | 'batch-import' | 'batch-workspace';
 
 class GlobalState {
 	// Style dont la contrainte est temporairement visualisée dans la preview.
@@ -30,6 +31,12 @@ class GlobalState {
 
 	// Liste des détails des projets de l'utilisateur
 	userProjectsDetails: ProjectDetail[] = $state([]);
+
+	// Liste des métadonnées légères des batches de l'utilisateur
+	userBatchDetails: BatchDetail[] = $state([]);
+
+	// Batch actuellement ouvert dans le workspace
+	currentBatchId: number | null = $state(null);
 
 	// Projet actuellement sélectionné
 	currentProject: Project | null = $state(null);

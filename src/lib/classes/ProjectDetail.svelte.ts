@@ -24,6 +24,8 @@ export class ProjectDetail extends SerializableBase {
 	projectType: ProjectType;
 	createdAt: Date;
 	updatedAt: Date;
+	batchId: number | null;
+	batchOrder: number | null;
 
 	verseRange: VerseRange;
 	duration: Duration;
@@ -37,13 +39,20 @@ export class ProjectDetail extends SerializableBase {
 	 * Crée une nouvelle instance de ProjectDetail
 	 * @param name Nom du projet
 	 * @param reciter Nom du réciteur
+	 * @param createdAt Date de création éventuelle
+	 * @param updatedAt Date de modification éventuelle
+	 * @param projectType Type du projet
+	 * @param batchId Identifiant éventuel du batch parent
+	 * @param batchOrder Position éventuelle dans le batch parent
 	 */
 	constructor(
 		name: string,
 		reciter: string,
 		createdAt?: Date,
 		updatedAt?: Date,
-		projectType: ProjectType = DEFAULT_PROJECT_TYPE
+		projectType: ProjectType = DEFAULT_PROJECT_TYPE,
+		batchId: number | null = null,
+		batchOrder: number | null = null
 	) {
 		super();
 
@@ -54,6 +63,8 @@ export class ProjectDetail extends SerializableBase {
 		this.projectType = $state(normalizeProjectType(projectType));
 		this.createdAt = $state(createdAt || new Date());
 		this.updatedAt = $state(updatedAt || new Date());
+		this.batchId = $state(batchId);
+		this.batchOrder = $state(batchOrder);
 
 		this.percentageCaptioned = $state(0);
 		this.status = $state(Status.NOT_SET);
@@ -170,6 +181,8 @@ export class ProjectDetail extends SerializableBase {
 		if (detail instanceof ProjectDetail) {
 			detail.reciter = detail.reciter || 'not set';
 			detail.projectType = normalizeProjectType(detail.projectType);
+			detail.batchId = detail.batchId ?? null;
+			detail.batchOrder = detail.batchOrder ?? null;
 		}
 		return detail;
 	}

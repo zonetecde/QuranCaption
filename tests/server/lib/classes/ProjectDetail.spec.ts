@@ -43,4 +43,16 @@ describe('ProjectDetail project type', () => {
 		expect(detail.matchSearchQuery('rare')).toBe(true);
 		expect(detail.matchSearchQuery('recitation')).toBe(true);
 	});
+
+	it('loads old serialized projects without batch metadata', () => {
+		const detail = new ProjectDetail('Night 27', 'Muhammad Al Luhaidan');
+		const serialized = detail.toJSON() as Record<string, unknown>;
+		delete serialized.batchId;
+		delete serialized.batchOrder;
+
+		const restored = ProjectDetail.fromJSON(serialized) as ProjectDetail;
+
+		expect(restored.batchId).toBeNull();
+		expect(restored.batchOrder).toBeNull();
+	});
 });

@@ -9001,6 +9001,261 @@ type RootTranslation = {
 		 */
 		failedToCopyError: string;
 	};
+	batch: {
+		/**
+		 * N​e​w​ ​B​a​t​c​h
+		 */
+		newBatch: string;
+		/**
+		 * B​a​t​c​h​e​s
+		 */
+		batches: string;
+		/**
+		 * B​a​t​c​h
+		 */
+		batch: string;
+		/**
+		 * B​a​t​c​h​ ​n​a​m​e
+		 */
+		batchName: string;
+		/**
+		 * R​a​m​a​d​a​n​ ​r​e​c​i​t​a​t​i​o​n​s
+		 */
+		batchNamePlaceholder: string;
+		/**
+		 * I​m​p​o​r​t​ ​a​ ​b​a​t​c​h
+		 */
+		importTitle: string;
+		/**
+		 * V​a​l​i​d​a​t​e​ ​a​ ​C​S​V​ ​f​i​l​e​ ​b​e​f​o​r​e​ ​c​r​e​a​t​i​n​g​ ​i​t​s​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​p​r​o​j​e​c​t​s​.
+		 */
+		importDescription: string;
+		/**
+		 * B​a​c​k​ ​t​o​ ​H​o​m​e
+		 */
+		backToHome: string;
+		/**
+		 * C​S​V​ ​f​i​l​e
+		 */
+		csvFile: string;
+		/**
+		 * S​e​l​e​c​t​ ​C​S​V
+		 */
+		selectCsv: string;
+		/**
+		 * R​e​a​d​i​n​g​ ​C​S​V​.​.​.
+		 */
+		readingCsv: string;
+		/**
+		 * N​o​ ​C​S​V​ ​f​i​l​e​ ​s​e​l​e​c​t​e​d
+		 */
+		noCsvSelected: string;
+		/**
+		 * E​x​p​e​c​t​e​d​ ​c​o​l​u​m​n​s​:​ ​p​r​o​j​e​c​t​_​n​a​m​e​;​r​e​c​i​t​e​r​;​s​o​u​r​c​e
+		 */
+		csvFormatHelp: string;
+		/**
+		 * P​r​e​v​i​e​w
+		 */
+		preview: string;
+		/**
+		 * P​r​o​j​e​c​t
+		 */
+		project: string;
+		/**
+		 * R​e​c​i​t​e​r
+		 */
+		reciter: string;
+		/**
+		 * S​o​u​r​c​e​ ​t​y​p​e
+		 */
+		sourceType: string;
+		/**
+		 * S​o​u​r​c​e
+		 */
+		source: string;
+		/**
+		 * V​a​l​i​d​a​t​i​o​n
+		 */
+		validationStatus: string;
+		/**
+		 * U​R​L
+		 */
+		urlSource: string;
+		/**
+		 * L​o​c​a​l​ ​f​i​l​e
+		 */
+		localFileSource: string;
+		/**
+		 * V​a​l​i​d
+		 */
+		valid: string;
+		/**
+		 * I​n​v​a​l​i​d
+		 */
+		invalid: string;
+		/**
+		 * V​a​l​i​d​a​t​i​o​n​ ​e​r​r​o​r​s
+		 */
+		validationErrors: string;
+		/**
+		 * L​i​n​e​ ​{​l​i​n​e​}​:​ ​{​m​e​s​s​a​g​e​}
+		 * @param {unknown} line
+		 * @param {unknown} message
+		 */
+		lineError: RequiredParams<'line' | 'message'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)
+		 * @param {unknown} count
+		 */
+		projectsCount: RequiredParams<'count'>;
+		/**
+		 * M​u​l​t​i​p​l​e​ ​r​e​c​i​t​e​r​s
+		 */
+		multipleReciters: string;
+		/**
+		 * {​c​o​m​p​l​e​t​e​d​}​ ​/​ ​{​t​o​t​a​l​}​ ​m​e​d​i​a​ ​i​m​p​o​r​t​e​d
+		 * @param {unknown} completed
+		 * @param {unknown} total
+		 */
+		mediaImported: RequiredParams<'completed' | 'total'>;
+		/**
+		 * U​p​d​a​t​e​d​ ​{​d​a​t​e​}
+		 * @param {unknown} date
+		 */
+		updated: RequiredParams<'date'>;
+		/**
+		 * C​r​e​a​t​e​ ​B​a​t​c​h
+		 */
+		createBatch: string;
+		/**
+		 * C​r​e​a​t​i​n​g​ ​b​a​t​c​h​.​.​.
+		 */
+		creatingBatch: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​r​e​a​d​ ​t​h​e​ ​C​S​V​ ​f​i​l​e​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		readFailed: RequiredParams<'error'>;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​c​r​e​a​t​e​ ​t​h​e​ ​b​a​t​c​h​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		createFailed: RequiredParams<'error'>;
+		/**
+		 * T​h​e​ ​b​a​t​c​h​ ​n​a​m​e​ ​c​a​n​n​o​t​ ​b​e​ ​e​m​p​t​y​.
+		 */
+		errorBatchNameEmpty: string;
+		/**
+		 * T​h​e​ ​b​a​t​c​h​ ​n​a​m​e​ ​i​s​ ​t​o​o​ ​l​o​n​g​.
+		 */
+		errorBatchNameTooLong: string;
+		/**
+		 * T​h​e​ ​b​a​t​c​h​ ​n​a​m​e​ ​c​o​n​t​a​i​n​s​ ​a​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​.
+		 */
+		errorBatchNameUnsafe: string;
+		/**
+		 * e​x​p​e​c​t​e​d​ ​h​e​a​d​e​r​s​ ​p​r​o​j​e​c​t​_​n​a​m​e​,​ ​r​e​c​i​t​e​r​ ​a​n​d​ ​s​o​u​r​c​e​.
+		 */
+		errorInvalidHeader: string;
+		/**
+		 * o​n​e​ ​o​r​ ​m​o​r​e​ ​c​o​l​u​m​n​s​ ​a​r​e​ ​m​i​s​s​i​n​g​.
+		 */
+		errorMissingColumn: string;
+		/**
+		 * t​h​e​ ​l​i​n​e​ ​c​o​n​t​a​i​n​s​ ​t​o​o​ ​m​a​n​y​ ​n​o​n​-​e​m​p​t​y​ ​c​o​l​u​m​n​s​.
+		 */
+		errorTooManyColumns: string;
+		/**
+		 * t​h​e​ ​q​u​o​t​e​d​ ​C​S​V​ ​f​i​e​l​d​ ​i​s​ ​m​a​l​f​o​r​m​e​d​.
+		 */
+		errorMalformedCsv: string;
+		/**
+		 * t​h​e​ ​p​r​o​j​e​c​t​ ​n​a​m​e​ ​i​s​ ​e​m​p​t​y​.
+		 */
+		errorProjectNameEmpty: string;
+		/**
+		 * t​h​e​ ​r​e​c​i​t​e​r​ ​i​s​ ​e​m​p​t​y​.
+		 */
+		errorReciterEmpty: string;
+		/**
+		 * t​h​e​ ​s​o​u​r​c​e​ ​i​s​ ​e​m​p​t​y​.
+		 */
+		errorSourceEmpty: string;
+		/**
+		 * t​h​e​ ​p​r​o​j​e​c​t​ ​n​a​m​e​ ​i​s​ ​t​o​o​ ​l​o​n​g​.
+		 */
+		errorProjectNameTooLong: string;
+		/**
+		 * t​h​e​ ​r​e​c​i​t​e​r​ ​n​a​m​e​ ​i​s​ ​t​o​o​ ​l​o​n​g​.
+		 */
+		errorReciterTooLong: string;
+		/**
+		 * t​h​e​ ​p​r​o​j​e​c​t​ ​n​a​m​e​ ​c​o​n​t​a​i​n​s​ ​a​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​.
+		 */
+		errorProjectNameUnsafe: string;
+		/**
+		 * t​h​e​ ​r​e​c​i​t​e​r​ ​c​o​n​t​a​i​n​s​ ​a​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​.
+		 */
+		errorReciterUnsafe: string;
+		/**
+		 * t​h​e​ ​H​T​T​P​(​S​)​ ​U​R​L​ ​i​s​ ​i​n​v​a​l​i​d​.
+		 */
+		errorInvalidUrl: string;
+		/**
+		 * t​h​e​ ​l​o​c​a​l​ ​f​i​l​e​ ​c​a​n​n​o​t​ ​b​e​ ​f​o​u​n​d​.
+		 */
+		errorFileNotFound: string;
+		/**
+		 * t​h​e​ ​l​o​c​a​l​ ​f​i​l​e​ ​f​o​r​m​a​t​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​.
+		 */
+		errorUnsupportedMedia: string;
+		/**
+		 * N​o​ ​b​a​t​c​h​ ​i​s​ ​s​e​l​e​c​t​e​d​.
+		 */
+		noBatchSelected: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​l​o​a​d​ ​t​h​e​ ​b​a​t​c​h​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		loadFailed: RequiredParams<'error'>;
+		/**
+		 * L​o​a​d​i​n​g​ ​b​a​t​c​h​.​.​.
+		 */
+		loadingBatch: string;
+		/**
+		 * M​e​d​i​a
+		 */
+		media: string;
+		/**
+		 * A​c​t​i​o​n​s
+		 */
+		actions: string;
+		/**
+		 * N​o​t​ ​i​m​p​o​r​t​e​d
+		 */
+		notImported: string;
+		/**
+		 * Q​u​e​u​e​d
+		 */
+		queued: string;
+		/**
+		 * P​r​o​c​e​s​s​i​n​g
+		 */
+		processing: string;
+		/**
+		 * C​o​m​p​l​e​t​e​d
+		 */
+		completed: string;
+		/**
+		 * F​a​i​l​e​d
+		 */
+		failed: string;
+		/**
+		 * O​p​e​n​ ​p​r​o​j​e​c​t
+		 */
+		openProject: string;
+	};
 };
 
 export type TranslationFunctions = {
@@ -17854,6 +18109,252 @@ export type TranslationFunctions = {
 		 * Failed to copy error
 		 */
 		failedToCopyError: () => LocalizedString;
+	};
+	batch: {
+		/**
+		 * New Batch
+		 */
+		newBatch: () => LocalizedString;
+		/**
+		 * Batches
+		 */
+		batches: () => LocalizedString;
+		/**
+		 * Batch
+		 */
+		batch: () => LocalizedString;
+		/**
+		 * Batch name
+		 */
+		batchName: () => LocalizedString;
+		/**
+		 * Ramadan recitations
+		 */
+		batchNamePlaceholder: () => LocalizedString;
+		/**
+		 * Import a batch
+		 */
+		importTitle: () => LocalizedString;
+		/**
+		 * Validate a CSV file before creating its Quran Caption projects.
+		 */
+		importDescription: () => LocalizedString;
+		/**
+		 * Back to Home
+		 */
+		backToHome: () => LocalizedString;
+		/**
+		 * CSV file
+		 */
+		csvFile: () => LocalizedString;
+		/**
+		 * Select CSV
+		 */
+		selectCsv: () => LocalizedString;
+		/**
+		 * Reading CSV...
+		 */
+		readingCsv: () => LocalizedString;
+		/**
+		 * No CSV file selected
+		 */
+		noCsvSelected: () => LocalizedString;
+		/**
+		 * Expected columns: project_name;reciter;source
+		 */
+		csvFormatHelp: () => LocalizedString;
+		/**
+		 * Preview
+		 */
+		preview: () => LocalizedString;
+		/**
+		 * Project
+		 */
+		project: () => LocalizedString;
+		/**
+		 * Reciter
+		 */
+		reciter: () => LocalizedString;
+		/**
+		 * Source type
+		 */
+		sourceType: () => LocalizedString;
+		/**
+		 * Source
+		 */
+		source: () => LocalizedString;
+		/**
+		 * Validation
+		 */
+		validationStatus: () => LocalizedString;
+		/**
+		 * URL
+		 */
+		urlSource: () => LocalizedString;
+		/**
+		 * Local file
+		 */
+		localFileSource: () => LocalizedString;
+		/**
+		 * Valid
+		 */
+		valid: () => LocalizedString;
+		/**
+		 * Invalid
+		 */
+		invalid: () => LocalizedString;
+		/**
+		 * Validation errors
+		 */
+		validationErrors: () => LocalizedString;
+		/**
+		 * Line {line}: {message}
+		 */
+		lineError: (arg: { line: unknown; message: unknown }) => LocalizedString;
+		/**
+		 * {count} project(s)
+		 */
+		projectsCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Multiple reciters
+		 */
+		multipleReciters: () => LocalizedString;
+		/**
+		 * {completed} / {total} media imported
+		 */
+		mediaImported: (arg: { completed: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * Updated {date}
+		 */
+		updated: (arg: { date: unknown }) => LocalizedString;
+		/**
+		 * Create Batch
+		 */
+		createBatch: () => LocalizedString;
+		/**
+		 * Creating batch...
+		 */
+		creatingBatch: () => LocalizedString;
+		/**
+		 * Unable to read the CSV file: {error}
+		 */
+		readFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Unable to create the batch: {error}
+		 */
+		createFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * The batch name cannot be empty.
+		 */
+		errorBatchNameEmpty: () => LocalizedString;
+		/**
+		 * The batch name is too long.
+		 */
+		errorBatchNameTooLong: () => LocalizedString;
+		/**
+		 * The batch name contains a forbidden character.
+		 */
+		errorBatchNameUnsafe: () => LocalizedString;
+		/**
+		 * expected headers project_name, reciter and source.
+		 */
+		errorInvalidHeader: () => LocalizedString;
+		/**
+		 * one or more columns are missing.
+		 */
+		errorMissingColumn: () => LocalizedString;
+		/**
+		 * the line contains too many non-empty columns.
+		 */
+		errorTooManyColumns: () => LocalizedString;
+		/**
+		 * the quoted CSV field is malformed.
+		 */
+		errorMalformedCsv: () => LocalizedString;
+		/**
+		 * the project name is empty.
+		 */
+		errorProjectNameEmpty: () => LocalizedString;
+		/**
+		 * the reciter is empty.
+		 */
+		errorReciterEmpty: () => LocalizedString;
+		/**
+		 * the source is empty.
+		 */
+		errorSourceEmpty: () => LocalizedString;
+		/**
+		 * the project name is too long.
+		 */
+		errorProjectNameTooLong: () => LocalizedString;
+		/**
+		 * the reciter name is too long.
+		 */
+		errorReciterTooLong: () => LocalizedString;
+		/**
+		 * the project name contains a forbidden character.
+		 */
+		errorProjectNameUnsafe: () => LocalizedString;
+		/**
+		 * the reciter contains a forbidden character.
+		 */
+		errorReciterUnsafe: () => LocalizedString;
+		/**
+		 * the HTTP(S) URL is invalid.
+		 */
+		errorInvalidUrl: () => LocalizedString;
+		/**
+		 * the local file cannot be found.
+		 */
+		errorFileNotFound: () => LocalizedString;
+		/**
+		 * the local file format is not supported.
+		 */
+		errorUnsupportedMedia: () => LocalizedString;
+		/**
+		 * No batch is selected.
+		 */
+		noBatchSelected: () => LocalizedString;
+		/**
+		 * Unable to load the batch: {error}
+		 */
+		loadFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Loading batch...
+		 */
+		loadingBatch: () => LocalizedString;
+		/**
+		 * Media
+		 */
+		media: () => LocalizedString;
+		/**
+		 * Actions
+		 */
+		actions: () => LocalizedString;
+		/**
+		 * Not imported
+		 */
+		notImported: () => LocalizedString;
+		/**
+		 * Queued
+		 */
+		queued: () => LocalizedString;
+		/**
+		 * Processing
+		 */
+		processing: () => LocalizedString;
+		/**
+		 * Completed
+		 */
+		completed: () => LocalizedString;
+		/**
+		 * Failed
+		 */
+		failed: () => LocalizedString;
+		/**
+		 * Open project
+		 */
+		openProject: () => LocalizedString;
 	};
 };
 

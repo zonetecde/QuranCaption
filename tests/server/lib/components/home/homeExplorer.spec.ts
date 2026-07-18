@@ -6,6 +6,7 @@ import {
 	ALL_PROJECTS_SELECTION,
 	buildProjectExplorerTree,
 	filterProjectsForSelection,
+	filterStandaloneProjects,
 	resolveDropTargetUpdate
 } from '$lib/components/home/homeExplorer';
 
@@ -90,5 +91,14 @@ describe('homeExplorer helpers', () => {
 			reciter: 'Yasser Al Dosari',
 			projectType: 'Prayer'
 		});
+	});
+
+	it('hides projects represented by a parent batch', () => {
+		const standalone = createProject('A', 'Reciter', 'Others');
+		const batchChild = createProject('B', 'Reciter', 'Others');
+		batchChild.batchId = 123;
+		batchChild.batchOrder = 1;
+
+		expect(filterStandaloneProjects([standalone, batchChild])).toEqual([standalone]);
 	});
 });

@@ -45,6 +45,15 @@ export type ProjectExplorerTree = {
 export const ALL_PROJECTS_SELECTION: ExplorerSelection = { kind: 'all' };
 
 /**
+ * Exclut les projets représentés par leur carte de batch parente.
+ * @param {ProjectDetail[]} projects Détails de projets chargés.
+ * @returns {ProjectDetail[]} Projets autonomes affichables sur la homepage.
+ */
+export function filterStandaloneProjects(projects: ProjectDetail[]): ProjectDetail[] {
+	return projects.filter((project) => project.batchId === null);
+}
+
+/**
  * Builds the left explorer tree from the currently status-filtered project set.
  */
 export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExplorerTree {

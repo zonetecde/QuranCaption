@@ -1,8 +1,17 @@
-import { Project, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
+import { Project, ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import type { ImportedProjectPayload } from '$lib/types/project';
+import { DEFAULT_PROJECT_TYPE, type ProjectType } from '$lib/types/projectType';
+
+export interface CreateEmptyProjectOptions {
+	name: string;
+	reciter: string;
+	projectType?: ProjectType;
+	batchId?: number | null;
+	batchOrder?: number | null;
+}
 
 /**
  * Service pour gérer les projets.
@@ -80,6 +89,33 @@ export class ProjectService {
 
 	static async getProjectsFolderPath(): Promise<string> {
 		return this.ensureFolder(this.projectsFolder);
+	}
+
+	/**
+	 * Crée et sauvegarde un projet vide sans l'ouvrir.
+	 * @param {CreateEmptyProjectOptions} options Métadonnées du nouveau projet.
+	 * @returns {Promise<Project>} Projet créé et sauvegardé.
+	 */
+	static async createEmptyProject(options: CreateEmptyProjectOptions): Promise<Project> {
+		const project = new Project(
+			new ProjectDetail(
+				options.name.trim(),
+				options.reciter.trim(),
+				undefined,
+				undefined,
+				options.projectType ?? DEFAULT_PROJECT_TYPE,
+				options.batchId ?? null,
+				options.batchOrder ?? null
+			),
+			await ProjectContent.getDefaultProjectContent()
+		);
+		const projectsPath = await this.ensureFolder(this.projectsFolder);
+		while (await exists(await join(projectsPath, `${project.detail.id}.json`))) {
+			project.detail.id = Utilities.randomId();
+		}
+
+		await project.save();
+		return project;
 	}
 
 	/**

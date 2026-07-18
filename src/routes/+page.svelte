@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Home from '$lib/components/home/Home.svelte';
 	import AiVideoPage from '$lib/components/aiVideo/AiVideoPage.svelte';
+	import BatchImportPage from '$lib/components/batch/BatchImportPage.svelte';
+	import BatchWorkspace from '$lib/components/batch/BatchWorkspace.svelte';
 
 	import ExportService from '$lib/services/ExportService';
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
@@ -99,6 +101,10 @@
 			<ProjectEditor />
 		{:else if globalState.currentPage === 'ai-video'}
 			<AiVideoPage />
+		{:else if globalState.currentPage === 'batch-import'}
+			<BatchImportPage />
+		{:else if globalState.currentPage === 'batch-workspace'}
+			<BatchWorkspace />
 		{:else}
 			<Home />
 		{/if}

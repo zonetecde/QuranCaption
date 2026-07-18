@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Project, ProjectContent, ProjectDetail, Utilities } from '$lib/classes';
+	import { ProjectDetail, Utilities } from '$lib/classes';
+	import { ProjectService } from '$lib/services/ProjectService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -30,21 +31,13 @@
 		// Vérifie que ni le nom ni le récitateur contiennent des chars interdit
 		// par windows pour les noms de fichiers
 		if (Utilities.isPathNotSafe(name) || Utilities.isPathNotSafe(reciter)) {
-			toast.error(
-				get(LL).home.projectNameInvalidCharacters()
-			);
+			toast.error(get(LL).home.projectNameInvalidCharacters());
 			return;
 		}
 
-		let project = new Project(
-			new ProjectDetail(name.trim(), reciter.trim(), undefined, undefined, projectType),
-			await ProjectContent.getDefaultProjectContent()
-		);
-
 		AnalyticsService.trackProjectCreated(name.trim(), reciter.trim(), projectType);
 
-		// Sauvegarde le projet sur le disque
-		await project.save();
+		const project = await ProjectService.createEmptyProject({ name, reciter, projectType });
 
 		// Ouvre le projet
 		globalState.currentProject = project;

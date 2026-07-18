@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	DEFAULT_YTB_CHAPTERS_FORMAT,
 	formatYouTubeChapterLine,
+	resolveProjectVideoExportRange,
 	type YouTubeChapterFormatValues
 } from '$lib/classes/Exporter';
 
@@ -50,5 +51,16 @@ describe('YouTube chapter formatting', () => {
 		});
 
 		expect(line).toBe('0:03  <unknown>');
+	});
+});
+
+describe('Project video export range', () => {
+	it('keeps a project-specific range lasting at least one second', () => {
+		expect(resolveProjectVideoExportRange(1_250, 5_250, 10_000)).toEqual([1_250, 5_250]);
+	});
+
+	it('uses the full audio duration when the project range is shorter than one second', () => {
+		expect(resolveProjectVideoExportRange(500, 1_400, 10_000)).toEqual([0, 10_000]);
+		expect(resolveProjectVideoExportRange(0, 0, 10_000)).toEqual([0, 10_000]);
 	});
 });

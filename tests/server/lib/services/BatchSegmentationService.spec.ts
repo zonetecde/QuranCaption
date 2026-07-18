@@ -6,6 +6,8 @@ vi.mock('@tauri-apps/plugin-fs', () => ({ exists: vi.fn() }));
 import {
 	Batch,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchExportState,
+	createDefaultBatchStyleState,
 	VerseRange,
 	type BatchProjectItem
 } from '$lib/classes';
@@ -56,7 +58,9 @@ function createItem(order: number): BatchProjectItem {
 			assetId: order
 		},
 		segmentation: createDefaultBatchSegmentationState(),
-		translations: {}
+		translations: {},
+		style: createDefaultBatchStyleState(),
+		export: createDefaultBatchExportState()
 	};
 }
 

@@ -21,6 +21,7 @@ import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
 
 import type { Edition } from './Edition';
+import { TrackType } from './enums';
 
 export const DEFAULT_YTB_CHAPTERS_FORMAT = '<timestamp> Surah <surah-number>, Verse <verse-number>';
 
@@ -53,6 +54,31 @@ export function formatYouTubeChapterLine(
 		.replaceAll('<verse-arabic>', values.verseArabic)
 		.replaceAll('<verse-number>', values.verseNumber.toString())
 		.replaceAll('<verse-translation>', values.verseTranslation);
+}
+
+/**
+ * Conserve la plage d'export d'un projet si elle dure au moins une seconde.
+ * @param {number} videoStartTime Début d'export enregistré en millisecondes.
+ * @param {number} videoEndTime Fin d'export enregistrée en millisecondes.
+ * @param {number} audioDuration Durée audio totale en millisecondes.
+ * @returns {[number, number]} Plage enregistrée ou plage audio complète si elle est invalide.
+ */
+export function resolveProjectVideoExportRange(
+	videoStartTime: number,
+	videoEndTime: number,
+	audioDuration: number
+): [number, number] {
+	if (!Number.isFinite(audioDuration) || audioDuration <= 0)
+		throw new Error('INVALID_EXPORT_DURATION');
+	if (
+		Number.isFinite(videoStartTime) &&
+		Number.isFinite(videoEndTime) &&
+		videoStartTime >= 0 &&
+		videoEndTime <= audioDuration &&
+		videoEndTime - videoStartTime >= 1000
+	)
+		return [videoStartTime, videoEndTime];
+	return [0, audioDuration];
 }
 
 export default class Exporter {
@@ -638,14 +664,17 @@ export default class Exporter {
 			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
 
 		// Fait une copie du projet à l'état actuelle
-		const project = globalState.currentProject!.clone();
+		const sourceProject = globalState.currentProject!;
+		const project = sourceProject.clone();
 		project.detail.id = Number(exportId); // L'ID du projet est l'ID d'export
 
 		// Créer le fichier du projet dans le dossier Export afin que l'Exporter le récupère
 		await ExportService.saveProject(project);
 
 		// Ajoute à la liste des exports en cours
-		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable');
+		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
+			sourceProjectId: sourceProject.detail.id
+		});
 
 		// Ouvre le popup de monitor d'export
 		globalState.uiState.showExportMonitor = true;
@@ -657,5 +686,43 @@ export default class Exporter {
 		if (!shouldQueue) {
 			await Exporter.openExportWindow(exportId);
 		}
+	}
+
+	/**
+	 * Ajoute un projet explicite à la queue vidéo existante sans modifier le projet courant.
+	 * @param {Project} sourceProject Projet sauvegardé contenant ses propres réglages d'export.
+	 * @param {string} finalFileName Nom final déjà sécurisé.
+	 * @param {string} finalFilePath Chemin final réservé sans écrasement.
+	 * @returns {Promise<number>} Identifiant runtime visible dans l'Export Monitor.
+	 */
+	static async queueProjectVideo(
+		sourceProject: Project,
+		finalFileName: string,
+		finalFilePath: string
+	): Promise<number> {
+		const exportId = Utilities.randomId();
+		const shouldQueue =
+			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
+		const project = sourceProject.clone();
+		const exportSettings = project.projectEditorState.export;
+		const [videoStartTime, videoEndTime] = resolveProjectVideoExportRange(
+			exportSettings.videoStartTime,
+			exportSettings.videoEndTime,
+			project.content.timeline.getFirstTrack(TrackType.Audio).getDuration().ms
+		);
+		exportSettings.videoStartTime = videoStartTime;
+		exportSettings.videoEndTime = videoEndTime;
+		project.detail.id = exportId;
+		await ExportService.saveProject(project);
+		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
+			finalFileName,
+			finalFilePath,
+			exportLabel: sourceProject.detail.name,
+			sourceProjectId: sourceProject.detail.id
+		});
+		globalState.uiState.showExportMonitor = true;
+		Exporter.ensureBackgroundWorkersStarted();
+		if (!shouldQueue) await Exporter.openExportWindow(exportId.toString());
+		return exportId;
 	}
 }

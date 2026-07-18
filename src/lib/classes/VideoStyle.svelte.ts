@@ -16,6 +16,7 @@ import {
 	PredefinedSubtitleClip,
 	getForcedFontForPredefinedSubtitle
 } from './Clip.svelte';
+import type { ProjectContent } from './ProjectContent.svelte';
 
 export type StyleValueType =
 	| 'color'
@@ -1034,8 +1035,10 @@ export class VideoStyle extends SerializableBase {
 	/**
 	 * Merge les styles manquants avec les JSON par défaut, sans écraser les valeurs existantes.
 	 * Utile quand de nouveaux styles sont ajoutés dans une update.
+	 * @param {ProjectContent | undefined} projectContent Contenu explicite pour les clips personnalisés.
+	 * @returns {Promise<boolean>} `true` lorsque le schéma a été complété.
 	 */
-	async ensureStylesSchemaUpToDate(): Promise<boolean> {
+	async ensureStylesSchemaUpToDate(projectContent?: ProjectContent): Promise<boolean> {
 		let hasChanges = false;
 
 		const globalDefaults = await (await fetch('./styles/globalStyles.json')).json();
@@ -1062,7 +1065,12 @@ export class VideoStyle extends SerializableBase {
 		).json()) as RawStyle[];
 		const customTextDefaultStyles = customTextDefaults.styles || [];
 
-		for (const clip of globalState.getCustomClipTrack?.clips || []) {
+		const customClips = projectContent
+			? projectContent.timeline.doesTrackExist(TrackType.CustomClip)
+				? projectContent.timeline.getFirstTrack(TrackType.CustomClip).clips
+				: []
+			: globalState.getCustomClipTrack?.clips || [];
+		for (const clip of customClips) {
 			if (!(clip instanceof CustomTextClip) || !clip.category) continue;
 
 			for (const defaultStyle of customTextDefaultStyles) {
@@ -1301,14 +1309,22 @@ export class VideoStyle extends SerializableBase {
 		}
 	}
 
-	async importStyles(json: VideoStyleFileData) {
-		ProjectHistoryManager.begin('import styles');
+	/**
+	 * Importe un preset dans le style courant, éventuellement pour un projet chargé hors interface.
+	 * @param {VideoStyleFileData} json Données du preset.
+	 * @param {ProjectContent | undefined} projectContent Contenu explicite à modifier sans état global.
+	 * @returns {Promise<void>} Promesse résolue après la mise à jour du schéma.
+	 */
+	async importStyles(json: VideoStyleFileData, projectContent?: ProjectContent): Promise<void> {
+		if (!projectContent) ProjectHistoryManager.begin('import styles');
 		try {
 			// Crée une nouvelle instance VideoStyle à partir des données JSON
 			const importedVideoStyle = VideoStyle.fromJSON(
 				json.videoStyle as unknown as Record<string, unknown>
 			) as VideoStyle;
-			const currentProjectTranslations = globalState.getProjectTranslation.addedTranslationEditions;
+			const currentProjectTranslations = projectContent
+				? projectContent.projectTranslation.addedTranslationEditions
+				: globalState.getProjectTranslation.addedTranslationEditions;
 
 			// Gérer l'import des styles 'arabic' et 'global' (toujours override)
 			for (const importedStyle of importedVideoStyle.styles) {
@@ -1358,7 +1374,7 @@ export class VideoStyle extends SerializableBase {
 						importedStyle.target !== 'global'
 				);
 
-				if (!existsInImported) {
+				if (!existsInImported && !projectContent) {
 					// Cette traduction du projet n'existe pas dans le fichier importé
 					// Proposer d'appliquer les styles disponibles dans le fichier importé
 					const availableImportedTranslations = importedVideoStyle.styles.filter(
@@ -1396,7 +1412,8 @@ export class VideoStyle extends SerializableBase {
 			}
 
 			// Ajoute les customs text clips en créant des instances correctes
-			for (const clipData of json.customClips || json.customTextClips || []) {
+			for (const rawClipData of json.customClips || json.customTextClips || []) {
+				const clipData = structuredClone(rawClipData);
 				clipData.id = Utilities.randomId(); // Assure qu'il a un ID unique
 
 				// Crée une nouvelle instance CustomTextClip à partir des données JSON
@@ -1408,14 +1425,21 @@ export class VideoStyle extends SerializableBase {
 						: (CustomImageClip.fromJSON(
 								clipData as unknown as Record<string, unknown>
 							) as CustomImageClip);
-				globalState.getCustomClipTrack.clips.push(clip);
+				if (projectContent) {
+					if (!projectContent.timeline.doesTrackExist(TrackType.CustomClip)) {
+						projectContent.timeline.addTrack(new CustomTextTrack());
+					}
+					projectContent.timeline.getFirstTrack(TrackType.CustomClip).clips.push(clip);
+				} else {
+					globalState.getCustomClipTrack.clips.push(clip);
+				}
 			}
 
 			// Garantit que les styles ajoutes dans les nouvelles versions existent aussi apres import
 			// d'un ancien fichier de styles.
-			await this.ensureStylesSchemaUpToDate();
+			await this.ensureStylesSchemaUpToDate(projectContent);
 		} finally {
-			ProjectHistoryManager.commit();
+			if (!projectContent) ProjectHistoryManager.commit();
 		}
 	}
 

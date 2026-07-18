@@ -23,7 +23,9 @@ vi.mock('@tauri-apps/api/path', () => ({
 
 import {
 	Batch,
+	createDefaultBatchExportState,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchStyleState,
 	createDefaultBatchTranslationState
 } from '$lib/classes';
 import { BatchService } from '$lib/services/BatchService';
@@ -52,7 +54,9 @@ describe('BatchService persistence', () => {
 					assetId: null
 				},
 				segmentation: createDefaultBatchSegmentationState(),
-				translations: {}
+				translations: {},
+				style: createDefaultBatchStyleState(),
+				export: createDefaultBatchExportState()
 			},
 			{
 				order: 1,
@@ -69,7 +73,9 @@ describe('BatchService persistence', () => {
 					assetId: 99
 				},
 				segmentation: createDefaultBatchSegmentationState(),
-				translations: {}
+				translations: {},
+				style: createDefaultBatchStyleState(),
+				export: createDefaultBatchExportState()
 			}
 		]);
 
@@ -104,7 +110,11 @@ describe('BatchService persistence', () => {
 		expect(batch.projects[0].media.assetId).toBeNull();
 		expect(batch.projects[0].segmentation.status).toBe('not_started');
 		expect(batch.projects[0].translations).toEqual({});
+		expect(batch.projects[0].style).toEqual(createDefaultBatchStyleState());
+		expect(batch.projects[0].export).toEqual(createDefaultBatchExportState());
 		batch.projects[0].segmentation.status = 'processing';
+		batch.projects[0].style.status = 'processing';
+		batch.projects[0].export.status = 'queued';
 		batch.projects[0].translations.edition = {
 			...createDefaultBatchTranslationState({
 				editionName: 'edition',
@@ -121,5 +131,9 @@ describe('BatchService persistence', () => {
 		expect(restored.projects[0].segmentation.error).toBe('SEGMENTATION_INTERRUPTED');
 		expect(restored.projects[0].translations.edition.status).toBe('failed');
 		expect(restored.projects[0].translations.edition.error).toBe('TRANSLATION_INTERRUPTED');
+		expect(restored.projects[0].style.status).toBe('failed');
+		expect(restored.projects[0].style.error).toBe('STYLE_INTERRUPTED');
+		expect(restored.projects[0].export.status).toBe('failed');
+		expect(restored.projects[0].export.error).toBe('EXPORT_INTERRUPTED');
 	});
 });

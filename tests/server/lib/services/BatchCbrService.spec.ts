@@ -7,7 +7,13 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke: tauriMocks.invoke }));
 vi.mock('@tauri-apps/api/event', () => ({ listen: tauriMocks.listen }));
 vi.mock('$lib/services/ProjectService', () => ({ ProjectService: projectMocks }));
 
-import { Batch, createDefaultBatchSegmentationState, type BatchProjectItem } from '$lib/classes';
+import {
+	Batch,
+	createDefaultBatchExportState,
+	createDefaultBatchSegmentationState,
+	createDefaultBatchStyleState,
+	type BatchProjectItem
+} from '$lib/classes';
 import { BatchCbrService } from '$lib/services/BatchCbrService';
 
 /**
@@ -31,7 +37,9 @@ function createItem(order: number): BatchProjectItem {
 			assetId: order
 		},
 		segmentation: createDefaultBatchSegmentationState(),
-		translations: {}
+		translations: {},
+		style: createDefaultBatchStyleState(),
+		export: createDefaultBatchExportState()
 	};
 }
 

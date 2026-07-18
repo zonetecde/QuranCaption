@@ -1,7 +1,9 @@
 import {
 	Batch,
 	Utilities,
+	createDefaultBatchExportState,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchStyleState,
 	type BatchDetail,
 	type BatchProjectItem
 } from '$lib/classes';
@@ -48,6 +50,8 @@ export class BatchService {
 			await this.normalizeInterruptedMedia(batch, interruptedError);
 			await this.normalizeInterruptedSegmentation(batch);
 			await this.normalizeInterruptedTranslations(batch);
+			await this.normalizeInterruptedStyle(batch);
+			await this.normalizeInterruptedExport(batch);
 		}
 		return batch;
 	}
@@ -110,6 +114,48 @@ export class BatchService {
 				state.progress = 0;
 				changed = true;
 			}
+		}
+		if (changed) {
+			batch.updatedAt = new Date();
+			await this.save(batch);
+		}
+		return changed;
+	}
+
+	/**
+	 * Convertit une application de style abandonnée en échec relançable.
+	 * @param {Batch} batch Batch venant d'être chargé.
+	 * @returns {Promise<boolean>} `true` lorsqu'une sauvegarde a été nécessaire.
+	 */
+	static async normalizeInterruptedStyle(batch: Batch): Promise<boolean> {
+		let changed = false;
+		for (const project of batch.projects) {
+			if (project.style.status !== 'queued' && project.style.status !== 'processing') continue;
+			project.style.status = 'failed';
+			project.style.error = 'STYLE_INTERRUPTED';
+			project.style.progress = 0;
+			changed = true;
+		}
+		if (changed) {
+			batch.updatedAt = new Date();
+			await this.save(batch);
+		}
+		return changed;
+	}
+
+	/**
+	 * Convertit un export Batch abandonné en échec relançable.
+	 * @param {Batch} batch Batch venant d'être chargé.
+	 * @returns {Promise<boolean>} `true` lorsqu'une sauvegarde a été nécessaire.
+	 */
+	static async normalizeInterruptedExport(batch: Batch): Promise<boolean> {
+		let changed = false;
+		for (const project of batch.projects) {
+			if (project.export.status !== 'queued' && project.export.status !== 'processing') continue;
+			project.export.status = 'failed';
+			project.export.error = 'EXPORT_INTERRUPTED';
+			project.export.progress = 0;
+			changed = true;
 		}
 		if (changed) {
 			batch.updatedAt = new Date();
@@ -199,7 +245,9 @@ export class BatchService {
 						assetId: null
 					},
 					segmentation: createDefaultBatchSegmentationState(),
-					translations: {}
+					translations: {},
+					style: createDefaultBatchStyleState(),
+					export: createDefaultBatchExportState()
 				};
 				batch.projects.push(item);
 			}

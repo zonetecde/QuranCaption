@@ -20,6 +20,8 @@ import {
 	Batch,
 	Edition,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchExportState,
+	createDefaultBatchStyleState,
 	type BatchProjectItem,
 	type Project
 } from '$lib/classes';
@@ -63,7 +65,9 @@ function createItem(id: number): BatchProjectItem {
 			assetId: null
 		},
 		segmentation: createDefaultBatchSegmentationState(),
-		translations: {}
+		translations: {},
+		style: createDefaultBatchStyleState(),
+		export: createDefaultBatchExportState()
 	};
 	item.segmentation.status = 'auto_verified';
 	return item;

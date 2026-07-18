@@ -9,6 +9,8 @@ import {
 	AssetType,
 	Batch,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchExportState,
+	createDefaultBatchStyleState,
 	Duration,
 	TrackType,
 	type Asset,
@@ -63,7 +65,9 @@ function createItem(order: number): BatchProjectItem {
 			assetId: null
 		},
 		segmentation: createDefaultBatchSegmentationState(),
-		translations: {}
+		translations: {},
+		style: createDefaultBatchStyleState(),
+		export: createDefaultBatchExportState()
 	};
 }
 

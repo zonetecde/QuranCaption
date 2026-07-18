@@ -28,6 +28,8 @@ import {
 	Batch,
 	ProjectEditorTabs,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchExportState,
+	createDefaultBatchStyleState,
 	createDefaultBatchTranslationState,
 	SubtitleClip,
 	type BatchProjectItem,
@@ -58,7 +60,9 @@ function createItem(id: number, order: number): BatchProjectItem {
 			assetId: null
 		},
 		segmentation: createDefaultBatchSegmentationState(),
-		translations: {}
+		translations: {},
+		style: createDefaultBatchStyleState(),
+		export: createDefaultBatchExportState()
 	};
 	item.segmentation.status = 'needs_review';
 	return item;

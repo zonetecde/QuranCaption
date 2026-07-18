@@ -20,6 +20,8 @@ import {
 	Batch,
 	ProjectEditorTabs,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchExportState,
+	createDefaultBatchStyleState,
 	type BatchProjectItem,
 	type Project
 } from '$lib/classes';
@@ -50,7 +52,9 @@ function createItem(id: number, order: number): BatchProjectItem {
 			assetId: null
 		},
 		segmentation: createDefaultBatchSegmentationState(),
-		translations: {}
+		translations: {},
+		style: createDefaultBatchStyleState(),
+		export: createDefaultBatchExportState()
 	} satisfies BatchProjectItem;
 	item.segmentation.status = 'needs_review';
 	return item;

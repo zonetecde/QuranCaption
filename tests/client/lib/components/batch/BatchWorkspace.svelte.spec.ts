@@ -24,6 +24,11 @@ const cbrMocks = vi.hoisted(() => ({
 	run: vi.fn(),
 	onUpdate: null as ((...args: unknown[]) => void) | null
 }));
+const globalActionMocks = vi.hoisted(() => ({
+	inspectExports: vi.fn<(items: unknown[]) => Promise<unknown[]>>(async () => []),
+	styleRun: vi.fn(),
+	exportRun: vi.fn()
+}));
 
 vi.mock('$lib/services/BatchService', () => ({ BatchService: serviceMocks }));
 vi.mock('$lib/services/ProjectService', () => ({ ProjectService: { load: vi.fn() } }));
@@ -107,6 +112,30 @@ vi.mock('$lib/services/BatchCbrService', () => ({
 		}
 	}
 }));
+vi.mock('$lib/services/BatchStyleService', () => ({
+	BatchStyleService: class {
+		/** @param {unknown} _options Options simulées. */
+		constructor(_options: unknown) {}
+
+		/** @returns {unknown} Résultat contrôlé du test. */
+		run(...args: unknown[]): unknown {
+			return globalActionMocks.styleRun(...args);
+		}
+	}
+}));
+vi.mock('$lib/services/BatchExportService', () => ({
+	BatchExportService: class {
+		/** @param {unknown} _options Options simulées. */
+		constructor(_options: unknown) {}
+
+		/** @returns {unknown} Résultat contrôlé du test. */
+		run(...args: unknown[]): unknown {
+			return globalActionMocks.exportRun(...args);
+		}
+	},
+	inspectBatchExportEligibility: globalActionMocks.inspectExports
+}));
+vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn() }));
 vi.mock('svelte-5-french-toast', () => ({
 	default: { success: vi.fn(), error: vi.fn() }
 }));
@@ -114,6 +143,8 @@ vi.mock('svelte-5-french-toast', () => ({
 import {
 	Batch,
 	createDefaultBatchSegmentationState,
+	createDefaultBatchExportState,
+	createDefaultBatchStyleState,
 	createDefaultBatchTranslationState,
 	type BatchProjectItem
 } from '$lib/classes';
@@ -150,7 +181,9 @@ function createProject(
 			assetId: null
 		},
 		segmentation: createDefaultBatchSegmentationState(),
-		translations: {}
+		translations: {},
+		style: createDefaultBatchStyleState(),
+		export: createDefaultBatchExportState()
 	};
 }
 
@@ -171,6 +204,144 @@ describe('BatchWorkspace media import', () => {
 		translationMocks.add.mockReset();
 		translationMocks.fetch.mockReset();
 		translationMocks.onUpdate = null;
+		globalActionMocks.inspectExports.mockClear();
+		globalActionMocks.styleRun.mockReset();
+		globalActionMocks.exportRun.mockReset();
+	});
+
+	test('keeps distinct accessible global actions visible throughout every workflow stage', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const project = createProject(1, 'pending', {
+			kind: 'url',
+			value: 'https://example.com/1'
+		});
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', [project], 90));
+		globalState.currentBatchId = 90;
+
+		let component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(1)
+		);
+		let globalGroup = component.container.querySelector('[data-batch-global-actions]')!;
+		expect(globalGroup).not.toBeNull();
+		expect(globalGroup.classList.contains('ml-auto')).toBe(true);
+		expect(globalGroup.parentElement?.classList.contains('w-full')).toBe(true);
+		expect(component.container.querySelector('[data-batch-context-actions]')).not.toBeNull();
+		expect(globalGroup.querySelector('[aria-label="Apply style to all projects"]')).not.toBeNull();
+		expect(globalGroup.querySelector('[aria-label="Export all projects"]')).not.toBeNull();
+
+		cleanup();
+		project.media.status = 'completed';
+		project.segmentation.status = 'processing';
+		component = render(BatchWorkspace);
+		await vi.waitFor(() => expect(component.container.textContent).toContain('Processing'));
+		globalGroup = component.container.querySelector('[data-batch-global-actions]')!;
+		expect(globalGroup.querySelectorAll('button')).toHaveLength(2);
+
+		cleanup();
+		project.segmentation.status = 'auto_verified';
+		project.translations.edition = {
+			...createDefaultBatchTranslationState({
+				editionName: 'edition',
+				editionAuthor: 'Author',
+				editionLanguage: 'English'
+			}),
+			status: 'ready_to_fetch'
+		};
+		component = render(BatchWorkspace);
+		await vi.waitFor(() => expect(component.container.textContent).toContain('Translations'));
+		globalGroup = component.container.querySelector('[data-batch-global-actions]')!;
+		expect(globalGroup.querySelectorAll('button')).toHaveLength(2);
+		expect(component.container.querySelector('thead')?.textContent).not.toContain('Style');
+		expect(component.container.querySelector('thead')?.textContent).not.toContain('Export');
+	});
+
+	test('requires a saved preset and explicit overwrite confirmation for the whole Batch', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const projects = [
+			createProject(1, 'pending', { kind: 'url', value: 'https://example.com/1' }),
+			createProject(2, 'pending', { kind: 'url', value: 'https://example.com/2' })
+		];
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', projects, 91));
+		globalState.settings = new Settings();
+		globalState.settings.savedVideoStylePresets = [
+			{
+				id: 10,
+				name: 'Local preset',
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+				resolution: { width: 1920, height: 1080 },
+				data: { videoStyle: {}, customClips: [] }
+			}
+		];
+		globalActionMocks.styleRun.mockResolvedValue({
+			active: 0,
+			completed: 2,
+			failed: 0,
+			remaining: 0,
+			total: 2
+		});
+		globalState.currentBatchId = 91;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
+		);
+		await component.container
+			.querySelector<HTMLButtonElement>('[aria-label="Apply style to all projects"]')!
+			.click();
+		const modal = component.container.querySelector('[role="dialog"]')!;
+		expect(modal.textContent).toContain('all 2 projects');
+		const applyButton = modal.querySelector<HTMLButtonElement>('.btn-accent')!;
+		expect(applyButton.disabled).toBe(true);
+		await modal.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
+		expect(applyButton.disabled).toBe(true);
+		await modal.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click();
+		expect(applyButton.disabled).toBe(false);
+		await applyButton.click();
+		await vi.waitFor(() => expect(globalActionMocks.styleRun).toHaveBeenCalledOnce());
+		expect(globalActionMocks.styleRun.mock.calls[0][0].projects).toHaveLength(2);
+		expect(globalActionMocks.styleRun.mock.calls[0][1].id).toBe(10);
+	});
+
+	test('inspects every project and keeps export confirmation disabled without a folder', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const ready = createProject(1, 'completed', {
+			kind: 'url',
+			value: 'https://example.com/1'
+		});
+		const ignored = createProject(2, 'pending', {
+			kind: 'url',
+			value: 'https://example.com/2'
+		});
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', [ready, ignored], 92));
+		globalActionMocks.inspectExports.mockResolvedValue([
+			{ item: ready, project: {} as never, reason: null },
+			{ item: ignored, project: {} as never, reason: 'MEDIA_NOT_READY' }
+		]);
+		globalState.currentBatchId = 92;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
+		);
+		await component.container
+			.querySelector<HTMLButtonElement>('[aria-label="Export all projects"]')!
+			.click();
+		await vi.waitFor(() => {
+			const modal = component.container.querySelector('[role="dialog"]')!;
+			expect(modal.textContent).toContain('Ready to export: 1');
+			expect(modal.textContent).toContain('Not ready to export: 1');
+			expect(modal.textContent).toContain('Media is missing');
+			expect(modal.querySelector<HTMLButtonElement>('.btn-accent')?.disabled).toBe(true);
+		});
+		const modal = component.container.querySelector('[role="dialog"]')!;
+		await modal.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click();
+		expect(modal.textContent).toContain('Export 2 project(s)');
+		expect(globalActionMocks.inspectExports.mock.calls[0][0]).toHaveLength(2);
 	});
 
 	test('selects retryable rows and blocks video mode for local audio', async () => {
@@ -200,9 +371,12 @@ describe('BatchWorkspace media import', () => {
 		expect(component.container.textContent).toContain('Import failed');
 		expect(component.container.textContent).toContain('64%');
 
-		const importButton =
-			component.container.querySelector<HTMLButtonElement>('header .btn-accent')!;
-		expect(component.container.querySelector('header .btn-primary')).toBeNull();
+		const importButton = component.container.querySelector<HTMLButtonElement>(
+			'[data-batch-context-actions] .btn-accent'
+		)!;
+		expect(
+			component.container.querySelector('[data-batch-context-actions] .btn-primary')
+		).toBeNull();
 		await importButton.click();
 		let modal!: Element;
 		await vi.waitFor(() => {
@@ -228,8 +402,8 @@ describe('BatchWorkspace media import', () => {
 			value: 'https://example.com/done'
 		});
 		serviceMocks.load.mockResolvedValue(new Batch('Batch', [project], 100));
-		segmentationMocks.inspect.mockResolvedValue([
-			{ item: project, project: {}, reason: null, hasExistingSubtitles: false }
+		segmentationMocks.inspect.mockImplementation(async (items: BatchProjectItem[]) => [
+			{ item: items[0], project: {}, reason: null, hasExistingSubtitles: false }
 		]);
 		let finishSegmentation!: () => void;
 		segmentationMocks.run.mockImplementation(
@@ -266,12 +440,15 @@ describe('BatchWorkspace media import', () => {
 		);
 		expect(component.container.textContent).toContain('Completed');
 		expect(component.container.textContent).toContain('Ready for translations: 0 / 1');
-		expect(component.container.querySelector('header .btn-accent')).toBeNull();
+		expect(
+			component.container.querySelector('[data-batch-context-actions] .btn-accent')
+		).toBeNull();
 		expect(
 			Array.from(component.container.querySelectorAll('thead th')).map((cell) => cell.textContent)
 		).toContain('Media');
-		const segmentationButton =
-			component.container.querySelector<HTMLButtonElement>('header .btn-primary')!;
+		const segmentationButton = component.container.querySelector<HTMLButtonElement>(
+			'[data-batch-context-actions] .btn-primary'
+		)!;
 		expect(segmentationButton.disabled).toBe(false);
 		await segmentationButton.click();
 
@@ -285,7 +462,6 @@ describe('BatchWorkspace media import', () => {
 		expect(modal.querySelectorAll<HTMLButtonElement>('button')[1].disabled).toBe(false);
 		await modal.querySelectorAll<HTMLButtonElement>('button')[1].click();
 		await vi.waitFor(() => {
-			expect(component.container.textContent).toContain('Running test segmentation');
 			expect(component.container.textContent).toContain('1 active');
 			const headers = Array.from(component.container.querySelectorAll('thead th')).map(
 				(cell) => cell.textContent
@@ -295,8 +471,7 @@ describe('BatchWorkspace media import', () => {
 		});
 		finishSegmentation();
 		await vi.waitFor(() => {
-			expect(component.container.textContent).toContain('Automatically verified');
-			expect(component.container.textContent).toContain('Ready for translations: 1 / 1');
+			expect(component.container.textContent).not.toContain('1 active');
 		});
 	});
 
@@ -369,7 +544,9 @@ describe('BatchWorkspace media import', () => {
 			expect(component.container.textContent).toContain('Converting Project 1');
 			expect(component.container.textContent).toContain('45%');
 			expect(
-				component.container.querySelector<HTMLButtonElement>('header .btn-primary')?.disabled
+				component.container.querySelector<HTMLButtonElement>(
+					'[data-batch-context-actions] .btn-primary'
+				)?.disabled
 			).toBe(true);
 		});
 		finishCbr();

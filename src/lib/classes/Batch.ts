@@ -92,6 +92,56 @@ export interface BatchProjectTranslationState {
 	completedAt: Date | null;
 }
 
+export type BatchStyleStatus = 'not_applied' | 'queued' | 'processing' | 'completed' | 'failed';
+
+export interface BatchStyleState {
+	status: BatchStyleStatus;
+	presetId: number | null;
+	presetName: string | null;
+	progress: number;
+	error: string | null;
+	appliedAt: Date | null;
+}
+
+export type BatchExportStatus = 'not_started' | 'queued' | 'processing' | 'completed' | 'failed';
+
+export interface BatchExportState {
+	status: BatchExportStatus;
+	progress: number;
+	outputPath: string | null;
+	error: string | null;
+	exportedAt: Date | null;
+}
+
+/**
+ * Crée l'état persistant initial d'une application de style Batch.
+ * @returns {BatchStyleState} État initial sans preset appliqué.
+ */
+export function createDefaultBatchStyleState(): BatchStyleState {
+	return {
+		status: 'not_applied',
+		presetId: null,
+		presetName: null,
+		progress: 0,
+		error: null,
+		appliedAt: null
+	};
+}
+
+/**
+ * Crée l'état persistant initial d'un export Batch.
+ * @returns {BatchExportState} État initial sans export.
+ */
+export function createDefaultBatchExportState(): BatchExportState {
+	return {
+		status: 'not_started',
+		progress: 0,
+		outputPath: null,
+		error: null,
+		exportedAt: null
+	};
+}
+
 /**
  * Crée l'état persistant d'une édition de traduction dans un projet Batch.
  * @param {Pick<BatchProjectTranslationState, 'editionName' | 'editionAuthor' | 'editionLanguage'>} edition Métadonnées de l'édition.
@@ -145,6 +195,8 @@ export interface BatchProjectItem {
 	media: BatchMediaState;
 	segmentation: BatchSegmentationState;
 	translations: Record<string, BatchProjectTranslationState>;
+	style: BatchStyleState;
+	export: BatchExportState;
 }
 
 /**
@@ -235,6 +287,8 @@ export class Batch extends SerializableBase {
 			? data.projects.map((rawProject) => {
 					const project = rawProject as Partial<BatchProjectItem>;
 					const segmentation = project.segmentation ?? createDefaultBatchSegmentationState();
+					const style = project.style ?? createDefaultBatchStyleState();
+					const exportState = project.export ?? createDefaultBatchExportState();
 					const translations = Object.fromEntries(
 						Object.entries(project.translations ?? {}).map(([editionName, rawState]) => {
 							const state = rawState as Partial<BatchProjectTranslationState>;
@@ -286,7 +340,17 @@ export class Batch extends SerializableBase {
 							startedAt: segmentation.startedAt ? new Date(segmentation.startedAt) : null,
 							completedAt: segmentation.completedAt ? new Date(segmentation.completedAt) : null
 						},
-						translations
+						translations,
+						style: {
+							...createDefaultBatchStyleState(),
+							...style,
+							appliedAt: style.appliedAt ? new Date(style.appliedAt) : null
+						},
+						export: {
+							...createDefaultBatchExportState(),
+							...exportState,
+							exportedAt: exportState.exportedAt ? new Date(exportState.exportedAt) : null
+						}
 					};
 				})
 			: [];

@@ -9860,6 +9860,159 @@ type RootTranslation = {
 		 * N​o​ ​c​o​m​m​o​n​ ​e​d​i​t​i​o​n​ ​f​o​u​n​d
 		 */
 		noCommonTranslationEdition: string;
+		/**
+		 * G​l​o​b​a​l​ ​a​c​t​i​o​n​s
+		 */
+		globalActions: string;
+		/**
+		 * A​p​p​l​y​ ​s​t​y​l​e
+		 */
+		applyStyle: string;
+		/**
+		 * A​p​p​l​y​ ​s​t​y​l​e​ ​t​o​ ​a​l​l​ ​p​r​o​j​e​c​t​s
+		 */
+		applyStyleToAllProjects: string;
+		/**
+		 * S​e​l​e​c​t​ ​a​ ​s​a​v​e​d​ ​p​r​e​s​e​t
+		 */
+		selectSavedPreset: string;
+		/**
+		 * N​o​ ​s​a​v​e​d​ ​p​r​e​s​e​t​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.
+		 */
+		noSavedPresets: string;
+		/**
+		 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​u​p​d​a​t​e​ ​a​l​l​ ​{​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​s​ ​i​n​ ​t​h​e​ ​b​a​t​c​h​.
+		 * @param {unknown} count
+		 */
+		styleAllProjectsScope: RequiredParams<'count'>;
+		/**
+		 * E​x​i​s​t​i​n​g​ ​s​t​y​l​e​s​ ​w​i​l​l​ ​b​e​ ​r​e​p​l​a​c​e​d​ ​b​y​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​e​s​e​t​.
+		 */
+		existingStylesReplaced: string;
+		/**
+		 * A​p​p​l​y​i​n​g​ ​s​t​y​l​e​:​ ​{​c​o​m​p​l​e​t​e​d​}​ ​/​ ​{​t​o​t​a​l​}​ ​c​o​m​p​l​e​t​e​d​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d
+		 * @param {unknown} completed
+		 * @param {unknown} failed
+		 * @param {unknown} total
+		 */
+		applyingStyleProgress: RequiredParams<'completed' | 'failed' | 'total'>;
+		/**
+		 * S​t​y​l​e​ ​a​p​p​l​i​e​d​ ​t​o​ ​a​l​l​ ​p​r​o​j​e​c​t​s​.
+		 */
+		styleApplied: string;
+		/**
+		 * S​t​y​l​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​f​i​n​i​s​h​e​d​ ​w​i​t​h​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​u​r​e​(​s​)​.
+		 * @param {unknown} failed
+		 */
+		styleAppliedWithFailures: RequiredParams<'failed'>;
+		/**
+		 * E​x​p​o​r​t​ ​a​l​l
+		 */
+		exportAll: string;
+		/**
+		 * E​x​p​o​r​t​ ​a​l​l​ ​p​r​o​j​e​c​t​s
+		 */
+		exportAllProjects: string;
+		/**
+		 * A​n​o​t​h​e​r​ ​b​a​t​c​h​ ​o​p​e​r​a​t​i​o​n​ ​i​s​ ​m​o​d​i​f​y​i​n​g​ ​t​h​e​ ​p​r​o​j​e​c​t​s​.
+		 */
+		anotherBatchOperationActive: string;
+		/**
+		 * E​x​p​o​r​t​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​r​u​n​n​i​n​g​.
+		 */
+		exportCurrentlyRunning: string;
+		/**
+		 * U​s​i​n​g​ ​e​a​c​h​ ​p​r​o​j​e​c​t​'​s​ ​s​a​v​e​d​ ​e​x​p​o​r​t​ ​s​e​t​t​i​n​g​s​.
+		 */
+		usingEachProjectSavedSettings: string;
+		/**
+		 * I​n​s​p​e​c​t​i​n​g​ ​p​r​o​j​e​c​t​s​ ​b​e​f​o​r​e​ ​e​x​p​o​r​t​…
+		 */
+		inspectingExportProjects: string;
+		/**
+		 * R​e​a​d​y​ ​t​o​ ​e​x​p​o​r​t​:​ ​{​c​o​u​n​t​}
+		 * @param {unknown} count
+		 */
+		readyToExport: RequiredParams<'count'>;
+		/**
+		 * N​o​t​ ​r​e​a​d​y​ ​t​o​ ​e​x​p​o​r​t​:​ ​{​c​o​u​n​t​}
+		 * @param {unknown} count
+		 */
+		notReadyToExport: RequiredParams<'count'>;
+		/**
+		 * S​e​l​e​c​t​ ​o​u​t​p​u​t​ ​f​o​l​d​e​r
+		 */
+		selectOutputFolder: string;
+		/**
+		 * E​x​p​o​r​t​ ​t​h​e​ ​{​c​o​u​n​t​}​ ​r​e​a​d​y​ ​p​r​o​j​e​c​t​(​s​)
+		 * @param {unknown} count
+		 */
+		exportReadyProjects: RequiredParams<'count'>;
+		/**
+		 * E​x​p​o​r​t​ ​{​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)
+		 * @param {unknown} count
+		 */
+		exportSelectedProjects: RequiredParams<'count'>;
+		/**
+		 * I​n​c​l​u​d​e​ ​n​o​n​-​r​e​a​d​y​ ​p​r​o​j​e​c​t​s
+		 */
+		exportNonReadyProjects: string;
+		/**
+		 * T​h​e​y​ ​w​i​l​l​ ​b​e​ ​q​u​e​u​e​d​ ​a​n​y​w​a​y​ ​a​n​d​ ​m​a​y​ ​f​a​i​l​.​ ​M​i​s​s​i​n​g​ ​p​r​o​j​e​c​t​s​ ​a​n​d​ ​p​r​o​j​e​c​t​s​ ​a​l​r​e​a​d​y​ ​e​x​p​o​r​t​i​n​g​ ​r​e​m​a​i​n​ ​e​x​c​l​u​d​e​d​.
+		 */
+		exportNonReadyWarning: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​n​o​t​ ​f​o​u​n​d
+		 */
+		exportReasonPROJECT_MISSING: string;
+		/**
+		 * M​e​d​i​a​ ​i​s​ ​m​i​s​s​i​n​g
+		 */
+		exportReasonMEDIA_NOT_READY: string;
+		/**
+		 * A​u​d​i​o​ ​t​r​a​c​k​ ​i​s​ ​e​m​p​t​y
+		 */
+		exportReasonAUDIO_TRACK_EMPTY: string;
+		/**
+		 * M​e​d​i​a​ ​d​u​r​a​t​i​o​n​ ​i​s​ ​i​n​v​a​l​i​d
+		 */
+		exportReasonINVALID_DURATION: string;
+		/**
+		 * S​u​b​t​i​t​l​e​s​ ​a​r​e​ ​m​i​s​s​i​n​g
+		 */
+		exportReasonSUBTITLES_MISSING: string;
+		/**
+		 * A​n​ ​e​x​p​o​r​t​ ​i​s​ ​a​l​r​e​a​d​y​ ​a​c​t​i​v​e
+		 */
+		exportReasonEXPORT_ACTIVE: string;
+		/**
+		 * A​ ​m​e​d​i​a​ ​a​s​s​e​t​ ​f​i​l​e​ ​i​s​ ​m​i​s​s​i​n​g
+		 */
+		exportReasonASSET_MISSING: string;
+		/**
+		 * S​a​v​e​d​ ​e​x​p​o​r​t​ ​s​e​t​t​i​n​g​s​ ​a​r​e​ ​i​n​v​a​l​i​d
+		 */
+		exportReasonEXPORT_SETTINGS_INVALID: string;
+		/**
+		 * E​x​p​o​r​t​i​n​g​ ​p​r​o​j​e​c​t​s​:​ ​{​c​o​m​p​l​e​t​e​d​}​ ​/​ ​{​t​o​t​a​l​}​ ​c​o​m​p​l​e​t​e​d​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d
+		 * @param {unknown} completed
+		 * @param {unknown} failed
+		 * @param {unknown} total
+		 */
+		exportingProjectsProgress: RequiredParams<'completed' | 'failed' | 'total'>;
+		/**
+		 * C​u​r​r​e​n​t​ ​p​r​o​j​e​c​t​:​ ​{​p​r​o​j​e​c​t​}
+		 * @param {unknown} project
+		 */
+		currentExportProject: RequiredParams<'project'>;
+		/**
+		 * A​l​l​ ​e​l​i​g​i​b​l​e​ ​p​r​o​j​e​c​t​s​ ​w​e​r​e​ ​e​x​p​o​r​t​e​d​.
+		 */
+		allEligibleProjectsExported: string;
+		/**
+		 * S​o​m​e​ ​p​r​o​j​e​c​t​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​e​x​p​o​r​t​e​d​.
+		 */
+		someProjectsCouldNotBeExported: string;
 	};
 };
 
@@ -19537,6 +19690,154 @@ export type TranslationFunctions = {
 		 * No common edition found
 		 */
 		noCommonTranslationEdition: () => LocalizedString;
+		/**
+		 * Global actions
+		 */
+		globalActions: () => LocalizedString;
+		/**
+		 * Apply style
+		 */
+		applyStyle: () => LocalizedString;
+		/**
+		 * Apply style to all projects
+		 */
+		applyStyleToAllProjects: () => LocalizedString;
+		/**
+		 * Select a saved preset
+		 */
+		selectSavedPreset: () => LocalizedString;
+		/**
+		 * No saved preset is available.
+		 */
+		noSavedPresets: () => LocalizedString;
+		/**
+		 * This action will update all {count} projects in the batch.
+		 */
+		styleAllProjectsScope: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Existing styles will be replaced by the selected preset.
+		 */
+		existingStylesReplaced: () => LocalizedString;
+		/**
+		 * Applying style: {completed} / {total} completed · {failed} failed
+		 */
+		applyingStyleProgress: (arg: {
+			completed: unknown;
+			failed: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * Style applied to all projects.
+		 */
+		styleApplied: () => LocalizedString;
+		/**
+		 * Style application finished with {failed} failure(s).
+		 */
+		styleAppliedWithFailures: (arg: { failed: unknown }) => LocalizedString;
+		/**
+		 * Export all
+		 */
+		exportAll: () => LocalizedString;
+		/**
+		 * Export all projects
+		 */
+		exportAllProjects: () => LocalizedString;
+		/**
+		 * Another batch operation is modifying the projects.
+		 */
+		anotherBatchOperationActive: () => LocalizedString;
+		/**
+		 * Export is currently running.
+		 */
+		exportCurrentlyRunning: () => LocalizedString;
+		/**
+		 * Using each project's saved export settings.
+		 */
+		usingEachProjectSavedSettings: () => LocalizedString;
+		/**
+		 * Inspecting projects before export…
+		 */
+		inspectingExportProjects: () => LocalizedString;
+		/**
+		 * Ready to export: {count}
+		 */
+		readyToExport: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Not ready to export: {count}
+		 */
+		notReadyToExport: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Select output folder
+		 */
+		selectOutputFolder: () => LocalizedString;
+		/**
+		 * Export the {count} ready project(s)
+		 */
+		exportReadyProjects: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Export {count} project(s)
+		 */
+		exportSelectedProjects: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Include non-ready projects
+		 */
+		exportNonReadyProjects: () => LocalizedString;
+		/**
+		 * They will be queued anyway and may fail. Missing projects and projects already exporting remain excluded.
+		 */
+		exportNonReadyWarning: () => LocalizedString;
+		/**
+		 * Project not found
+		 */
+		exportReasonPROJECT_MISSING: () => LocalizedString;
+		/**
+		 * Media is missing
+		 */
+		exportReasonMEDIA_NOT_READY: () => LocalizedString;
+		/**
+		 * Audio track is empty
+		 */
+		exportReasonAUDIO_TRACK_EMPTY: () => LocalizedString;
+		/**
+		 * Media duration is invalid
+		 */
+		exportReasonINVALID_DURATION: () => LocalizedString;
+		/**
+		 * Subtitles are missing
+		 */
+		exportReasonSUBTITLES_MISSING: () => LocalizedString;
+		/**
+		 * An export is already active
+		 */
+		exportReasonEXPORT_ACTIVE: () => LocalizedString;
+		/**
+		 * A media asset file is missing
+		 */
+		exportReasonASSET_MISSING: () => LocalizedString;
+		/**
+		 * Saved export settings are invalid
+		 */
+		exportReasonEXPORT_SETTINGS_INVALID: () => LocalizedString;
+		/**
+		 * Exporting projects: {completed} / {total} completed · {failed} failed
+		 */
+		exportingProjectsProgress: (arg: {
+			completed: unknown;
+			failed: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * Current project: {project}
+		 */
+		currentExportProject: (arg: { project: unknown }) => LocalizedString;
+		/**
+		 * All eligible projects were exported.
+		 */
+		allEligibleProjectsExported: () => LocalizedString;
+		/**
+		 * Some projects could not be exported.
+		 */
+		someProjectsCouldNotBeExported: () => LocalizedString;
 	};
 };
 

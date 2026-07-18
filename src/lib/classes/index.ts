@@ -10,18 +10,24 @@ export { ProjectEditorState } from './ProjectEditorState.svelte.js';
 export { Project } from './Project.js';
 export {
 	Batch,
+	createDefaultBatchExportState,
+	createDefaultBatchStyleState,
 	createDefaultBatchTranslationState,
 	createDefaultBatchSegmentationState,
 	isBatchProjectSegmentationVerified
 } from './Batch.js';
 export type {
 	BatchDetail,
+	BatchExportState,
+	BatchExportStatus,
 	BatchMediaMode,
 	BatchMediaState,
 	BatchMediaStatus,
 	BatchProjectItem,
 	BatchProjectTranslationState,
 	BatchSource,
+	BatchStyleState,
+	BatchStyleStatus,
 	BatchSegmentationReviewCounts,
 	BatchSegmentationSettingsSnapshot,
 	BatchSegmentationState,

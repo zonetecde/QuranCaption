@@ -53,6 +53,15 @@
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
+	import type { SavedVideoStylePreset } from '$lib/classes/Settings.svelte';
+	import { BatchStyleService, type BatchStyleProgress } from '$lib/services/BatchStyleService';
+	import {
+		BatchExportService,
+		inspectBatchExportEligibility,
+		type BatchExportEligibility,
+		type BatchExportProgress
+	} from '$lib/services/BatchExportService';
+	import { open } from '@tauri-apps/plugin-dialog';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -117,6 +126,30 @@
 		total: 0
 	});
 	let qdcTranslations = $state<Record<string, TranslationLanguageData>>({});
+	let showStyleModal = $state(false);
+	let selectedStylePresetId = $state<number | null>(null);
+	let styleOverwriteConfirmed = $state(false);
+	let styleQueueActive = $state(false);
+	let styleProgress = $state<BatchStyleProgress>({
+		active: 0,
+		completed: 0,
+		failed: 0,
+		remaining: 0,
+		total: 0
+	});
+	let showExportModal = $state(false);
+	let exportModalLoading = $state(false);
+	let exportInspection = $state<BatchExportEligibility[]>([]);
+	let exportOutputFolder = $state('');
+	let exportNonReadyProjects = $state(false);
+	let exportQueueActive = $state(false);
+	let exportProgress = $state<BatchExportProgress>({
+		activeProjectName: null,
+		completed: 0,
+		failed: 0,
+		remaining: 0,
+		total: 0
+	});
 
 	let projects = $derived.by(() => {
 		revision;
@@ -220,7 +253,29 @@
 			projects.some((project) => project.segmentation.status !== 'not_started')
 	);
 	let incompatibleQueueActive = $derived(
-		queueActive || segmentationQueueActive || cbrQueueActive || translationQueueActive
+		queueActive ||
+			segmentationQueueActive ||
+			cbrQueueActive ||
+			translationQueueActive ||
+			styleQueueActive ||
+			exportQueueActive
+	);
+	let globalOperationActive = $derived(styleQueueActive || exportQueueActive);
+	let savedStylePresets = $derived(globalState.settings?.savedVideoStylePresets ?? []);
+	let selectedStylePreset = $derived(
+		savedStylePresets.find((preset) => preset.id === selectedStylePresetId) ?? null
+	);
+	let readyExports = $derived(exportInspection.filter((result) => result.reason === null));
+	let ignoredExports = $derived(exportInspection.filter((result) => result.reason !== null));
+	let exportCandidates = $derived(
+		exportInspection.filter(
+			(result) =>
+				result.reason === null ||
+				(exportNonReadyProjects && result.project !== null && result.reason !== 'EXPORT_ACTIVE')
+		)
+	);
+	let skippedExports = $derived(
+		exportInspection.filter((result) => !exportCandidates.includes(result))
 	);
 	let incompatibleProjects = $derived(
 		eligibleSelected.filter((project) => !isBatchMediaModeCompatible(project, selectedMode))
@@ -243,6 +298,121 @@
 			| ((values?: Record<string, string | number>) => string)
 			| undefined;
 		return translator?.(params) ?? key;
+	}
+
+	/**
+	 * Ouvre la sélection du preset global sans dépendre des projets cochés.
+	 * @returns {void}
+	 */
+	function openStyleModal(): void {
+		if (!batch || batch.projects.length === 0 || incompatibleQueueActive) return;
+		selectedStylePresetId = null;
+		styleOverwriteConfirmed = false;
+		showStyleModal = true;
+	}
+
+	/**
+	 * Applique le preset confirmé à l'ensemble du Batch.
+	 * @returns {Promise<void>} Promesse résolue après tous les projets.
+	 */
+	async function applyStyleToBatch(): Promise<void> {
+		if (!batch || !selectedStylePreset || !styleOverwriteConfirmed || incompatibleQueueActive)
+			return;
+		showStyleModal = false;
+		styleQueueActive = true;
+		styleProgress = {
+			active: 0,
+			completed: 0,
+			failed: 0,
+			remaining: batch.projects.length,
+			total: batch.projects.length
+		};
+		try {
+			const service = new BatchStyleService({
+				onUpdate: (item, progress) => {
+					styleProgress = progress;
+					refreshProjectRow(item);
+				}
+			});
+			const result = await service.run(batch, selectedStylePreset as SavedVideoStylePreset);
+			if (result.failed > 0) {
+				toast.error(batchMessage('styleAppliedWithFailures', { failed: result.failed }));
+			} else {
+				toast.success(batchMessage('styleApplied'));
+			}
+		} catch (styleError) {
+			queueError = String(styleError);
+		} finally {
+			styleQueueActive = false;
+		}
+	}
+
+	/**
+	 * Inspecte tout le Batch avant d'afficher la confirmation d'export.
+	 * @returns {Promise<void>} Promesse résolue lorsque les incompatibilités sont connues.
+	 */
+	async function openExportModal(): Promise<void> {
+		if (!batch || batch.projects.length === 0 || incompatibleQueueActive) return;
+		showExportModal = true;
+		exportModalLoading = true;
+		exportInspection = [];
+		exportOutputFolder = '';
+		exportNonReadyProjects = false;
+		try {
+			exportInspection = await inspectBatchExportEligibility(batch.projects);
+		} finally {
+			exportModalLoading = false;
+		}
+	}
+
+	/**
+	 * Sélectionne le dossier commun sans modifier le réglage d'export global.
+	 * @returns {Promise<void>} Promesse résolue après la boîte de dialogue native.
+	 */
+	async function selectBatchExportFolder(): Promise<void> {
+		const selected = await open({ directory: true, multiple: false });
+		if (typeof selected === 'string') exportOutputFolder = selected;
+	}
+
+	/**
+	 * Exporte séquentiellement les projets confirmés, prêts ou forcés par l'utilisateur.
+	 * @returns {Promise<void>} Promesse résolue après tous les exports sélectionnés.
+	 */
+	async function exportReadyProjects(): Promise<void> {
+		if (!batch || exportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
+			return;
+		showExportModal = false;
+		exportQueueActive = true;
+		exportProgress = {
+			activeProjectName: null,
+			completed: 0,
+			failed: 0,
+			remaining: exportCandidates.length,
+			total: exportCandidates.length
+		};
+		try {
+			const service = new BatchExportService({
+				onUpdate: (item, progress) => {
+					exportProgress = progress;
+					refreshProjectRow(item);
+				}
+			});
+			const result = await service.run(
+				batch,
+				exportInspection,
+				exportOutputFolder,
+				exportNonReadyProjects
+			);
+			if (result.failed > 0 || skippedExports.length > 0) {
+				toast.error(batchMessage('someProjectsCouldNotBeExported'));
+			} else {
+				toast.success(batchMessage('allEligibleProjectsExported'));
+			}
+		} catch (exportError) {
+			queueError = String(exportError);
+		} finally {
+			exportQueueActive = false;
+		}
 	}
 
 	/**
@@ -919,69 +1089,111 @@
 				{/if}
 			</div>
 			{#if batch}
-				<div class="flex items-center gap-3">
-					<span class="text-sm text-[var(--text-secondary)]">
-						{batchMessage('selectedProjects', { count: selectedProjects.length })}
-					</span>
-					{#if !allMediaCompleted && !allSegmentationsVerified}
+				<div class="flex w-full flex-wrap items-center gap-3">
+					<div class="flex flex-wrap items-center justify-end gap-3" data-batch-context-actions>
+						<span class="text-sm text-[var(--text-secondary)]">
+							{batchMessage('selectedProjects', { count: selectedProjects.length })}
+						</span>
+						{#if !allMediaCompleted && !allSegmentationsVerified}
+							<button
+								class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
+								type="button"
+								disabled={eligibleSelected.length === 0 ||
+									queueActive ||
+									segmentationQueueActive ||
+									cbrQueueActive ||
+									globalOperationActive}
+								onclick={openMediaModal}
+							>
+								<span class="material-icons-outlined leading-none">download</span>
+								<span class="leading-none">{batchMessage('importMedia')}</span>
+							</button>
+						{/if}
+						{#if allMediaCompleted && !allSegmentationsVerified}
+							<button
+								class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-5"
+								type="button"
+								disabled={queueActive ||
+									segmentationQueueActive ||
+									cbrQueueActive ||
+									globalOperationActive}
+								onclick={convertAllAudioToCbr}
+							>
+								<span class="material-icons-outlined leading-none">graphic_eq</span>
+								<span class="leading-none">{batchMessage('convertAllAudioToCbr')}</span>
+							</button>
+							<button
+								class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
+								type="button"
+								disabled={segmentationSelected.length === 0 ||
+									queueActive ||
+									segmentationQueueActive ||
+									cbrQueueActive ||
+									globalOperationActive}
+								onclick={openSegmentationModal}
+							>
+								<span class="material-icons-outlined leading-none">auto_fix_high</span>
+								<span class="leading-none">{batchMessage('aiSegmentation')}</span>
+							</button>
+						{/if}
+						{#if allSegmentationsVerified}
+							<button
+								class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
+								type="button"
+								disabled={selectedProjects.length === 0 || incompatibleQueueActive}
+								onclick={openAddTranslationsModal}
+							>
+								<span class="material-icons-outlined leading-none">playlist_add</span>
+								<span class="leading-none">{batchMessage('addTranslationsToProjects')}</span>
+							</button>
+							<button
+								class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
+								type="button"
+								disabled={!activeTranslationEditionName ||
+									selectedProjects.length === 0 ||
+									incompatibleQueueActive}
+								onclick={openFetchTranslationsModal}
+							>
+								<span class="material-icons-outlined leading-none">cloud_sync</span>
+								<span class="leading-none">{batchMessage('fetchTranslationsFromProjects')}</span>
+							</button>
+						{/if}
+					</div>
+					<div
+						class="ml-auto flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-1.5"
+						data-batch-global-actions
+						role="group"
+						aria-label={batchMessage('globalActions')}
+					>
 						<button
-							class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
+							class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-3"
 							type="button"
-							disabled={eligibleSelected.length === 0 ||
-								queueActive ||
-								segmentationQueueActive ||
-								cbrQueueActive}
-							onclick={openMediaModal}
+							disabled={batch.projects.length === 0 || incompatibleQueueActive}
+							title={incompatibleQueueActive
+								? batchMessage('anotherBatchOperationActive')
+								: batchMessage('applyStyleToAllProjects')}
+							aria-label={batchMessage('applyStyleToAllProjects')}
+							onclick={openStyleModal}
 						>
-							<span class="material-icons-outlined leading-none">download</span>
-							<span class="leading-none">{batchMessage('importMedia')}</span>
-						</button>
-					{/if}
-					{#if allMediaCompleted && !allSegmentationsVerified}
-						<button
-							class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-5"
-							type="button"
-							disabled={queueActive || segmentationQueueActive || cbrQueueActive}
-							onclick={convertAllAudioToCbr}
-						>
-							<span class="material-icons-outlined leading-none">graphic_eq</span>
-							<span class="leading-none">{batchMessage('convertAllAudioToCbr')}</span>
+							<span class="material-icons-outlined leading-none">palette</span>
+							<span class="hidden leading-none xl:inline">{batchMessage('applyStyle')}</span>
 						</button>
 						<button
-							class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
+							class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-3"
 							type="button"
-							disabled={segmentationSelected.length === 0 ||
-								queueActive ||
-								segmentationQueueActive ||
-								cbrQueueActive}
-							onclick={openSegmentationModal}
+							disabled={batch.projects.length === 0 || incompatibleQueueActive}
+							title={exportQueueActive
+								? batchMessage('exportCurrentlyRunning')
+								: incompatibleQueueActive
+									? batchMessage('anotherBatchOperationActive')
+									: batchMessage('exportAllProjects')}
+							aria-label={batchMessage('exportAllProjects')}
+							onclick={openExportModal}
 						>
-							<span class="material-icons-outlined leading-none">auto_fix_high</span>
-							<span class="leading-none">{batchMessage('aiSegmentation')}</span>
+							<span class="material-icons-outlined leading-none">file_download</span>
+							<span class="hidden leading-none xl:inline">{batchMessage('exportAll')}</span>
 						</button>
-					{/if}
-					{#if allSegmentationsVerified}
-						<button
-							class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
-							type="button"
-							disabled={selectedProjects.length === 0 || incompatibleQueueActive}
-							onclick={openAddTranslationsModal}
-						>
-							<span class="material-icons-outlined leading-none">playlist_add</span>
-							<span class="leading-none">{batchMessage('addTranslationsToProjects')}</span>
-						</button>
-						<button
-							class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
-							type="button"
-							disabled={!activeTranslationEditionName ||
-								selectedProjects.length === 0 ||
-								incompatibleQueueActive}
-							onclick={openFetchTranslationsModal}
-						>
-							<span class="material-icons-outlined leading-none">cloud_sync</span>
-							<span class="leading-none">{batchMessage('fetchTranslationsFromProjects')}</span>
-						</button>
-					{/if}
+					</div>
 				</div>
 			{/if}
 		</header>
@@ -995,6 +1207,37 @@
 				<p class="rounded-xl border border-red-400/40 bg-red-400/10 p-4 text-red-300">
 					{queueError}
 				</p>
+			{/if}
+			{#if styleQueueActive}
+				<section
+					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]"
+				>
+					{batchMessage('applyingStyleProgress', {
+						completed: styleProgress.completed,
+						total: styleProgress.total,
+						failed: styleProgress.failed
+					})}
+				</section>
+			{/if}
+			{#if exportQueueActive}
+				<section
+					class="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]"
+				>
+					<p>
+						{batchMessage('exportingProjectsProgress', {
+							completed: exportProgress.completed,
+							total: exportProgress.total,
+							failed: exportProgress.failed
+						})}
+					</p>
+					{#if exportProgress.activeProjectName}
+						<p class="mt-1">
+							{batchMessage('currentExportProject', {
+								project: exportProgress.activeProjectName
+							})}
+						</p>
+					{/if}
+				</section>
 			{/if}
 			{#if queueActive}
 				<section
@@ -1117,7 +1360,7 @@
 					<button
 						class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
 						type="button"
-						disabled={segmentationQueueActive || cbrQueueActive}
+						disabled={segmentationQueueActive || cbrQueueActive || globalOperationActive}
 						onclick={reviewFirstFlaggedProject}
 					>
 						<span class="material-icons-outlined text-base leading-none">fact_check</span>
@@ -1178,7 +1421,8 @@
 											disabled={project.media.status === 'processing' ||
 												project.segmentation.status === 'processing' ||
 												cbrQueueActive ||
-												translationQueueActive}
+												translationQueueActive ||
+												globalOperationActive}
 											aria-label={batchMessage('selectProject')}
 											onchange={() => toggleProject(project.projectId)}
 										/>
@@ -1323,7 +1567,8 @@
 											disabled={project.media.status === 'processing' ||
 												project.segmentation.status === 'processing' ||
 												cbrQueueActive ||
-												translationQueueActive}
+												translationQueueActive ||
+												globalOperationActive}
 											onclick={() =>
 												activeTranslationEditionName &&
 												project.translations[activeTranslationEditionName]?.status ===
@@ -1351,6 +1596,165 @@
 		{/if}
 	</div>
 </div>
+
+{#if showStyleModal && batch}
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">
+		<div
+			class="w-full max-w-xl rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="batch-style-title"
+		>
+			<h2 id="batch-style-title" class="text-xl font-semibold text-[var(--text-primary)]">
+				{batchMessage('applyStyleToAllProjects')}
+			</h2>
+			<p class="mt-2 text-sm text-[var(--text-secondary)]">
+				{batchMessage('selectSavedPreset')}
+			</p>
+			<div class="mt-5 max-h-72 space-y-2 overflow-y-auto">
+				{#each savedStylePresets as preset (preset.id)}
+					<label
+						class="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border-color)] p-3 hover:border-[var(--accent-primary)]"
+					>
+						<input
+							type="radio"
+							name="batch-style-preset"
+							value={preset.id}
+							bind:group={selectedStylePresetId}
+						/>
+						<span class="min-w-0">
+							<span class="block truncate font-medium text-[var(--text-primary)]"
+								>{preset.name}</span
+							>
+							<span class="block text-xs text-[var(--text-thirdly)]">
+								{preset.resolution.width} × {preset.resolution.height} · {new Date(
+									preset.updatedAt
+								).toLocaleDateString()}
+							</span>
+						</span>
+					</label>
+				{:else}
+					<p class="rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
+						{batchMessage('noSavedPresets')}
+					</p>
+				{/each}
+			</div>
+			<p class="mt-4 rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
+				{batchMessage('styleAllProjectsScope', { count: batch.projects.length })}
+			</p>
+			<label class="mt-4 flex gap-3 text-sm text-[var(--text-secondary)]">
+				<input type="checkbox" bind:checked={styleOverwriteConfirmed} />
+				<span>{batchMessage('existingStylesReplaced')}</span>
+			</label>
+			<div class="mt-6 flex justify-end gap-3">
+				<button
+					class="btn btn-icon h-10 px-4"
+					type="button"
+					onclick={() => (showStyleModal = false)}
+				>
+					{$LL.common.cancel()}
+				</button>
+				<button
+					class="btn-accent h-10 px-4"
+					type="button"
+					disabled={!selectedStylePreset || !styleOverwriteConfirmed}
+					onclick={applyStyleToBatch}
+				>
+					{batchMessage('applyStyle')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showExportModal && batch}
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">
+		<div
+			class="w-full max-w-2xl rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="batch-export-title"
+		>
+			<h2 id="batch-export-title" class="text-xl font-semibold text-[var(--text-primary)]">
+				{batchMessage('exportAllProjects')}
+			</h2>
+			<p class="mt-2 text-sm text-[var(--text-secondary)]">
+				{batchMessage('usingEachProjectSavedSettings')}
+			</p>
+			{#if exportModalLoading}
+				<p class="mt-5 rounded-lg bg-[var(--bg-accent)] p-4 text-[var(--text-secondary)]">
+					{batchMessage('inspectingExportProjects')}
+				</p>
+			{:else}
+				<div class="mt-5 grid grid-cols-2 gap-3">
+					<p class="rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
+						{batchMessage('readyToExport', { count: readyExports.length })}
+					</p>
+					<p class="rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
+						{batchMessage('notReadyToExport', { count: ignoredExports.length })}
+					</p>
+				</div>
+				{#if ignoredExports.length > 0}
+					<ul class="mt-3 max-h-44 space-y-1 overflow-y-auto text-sm text-[var(--text-secondary)]">
+						{#each ignoredExports as result (result.item.projectId)}
+							<li>
+								{result.item.projectName} — {batchMessage(`exportReason${result.reason}`)}
+							</li>
+						{/each}
+					</ul>
+					<label class="mt-4 flex gap-3 text-sm text-[var(--text-secondary)]">
+						<input
+							type="checkbox"
+							bind:checked={exportNonReadyProjects}
+							disabled={!ignoredExports.some(
+								(result) => result.project !== null && result.reason !== 'EXPORT_ACTIVE'
+							)}
+						/>
+						<span>
+							<span class="block font-medium text-[var(--text-primary)]">
+								{batchMessage('exportNonReadyProjects')}
+							</span>
+							<span class="mt-1 block text-xs text-[var(--text-thirdly)]">
+								{batchMessage('exportNonReadyWarning')}
+							</span>
+						</span>
+					</label>
+				{/if}
+				<div class="mt-5">
+					<p class="mb-2 text-sm text-[var(--text-secondary)]">
+						{batchMessage('selectOutputFolder')}
+					</p>
+					<button class="btn btn-icon h-10 px-4" type="button" onclick={selectBatchExportFolder}>
+						<span class="material-icons-outlined mr-2 text-base">folder_open</span>
+						{batchMessage('selectOutputFolder')}
+					</button>
+					{#if exportOutputFolder}
+						<p class="mt-2 break-all text-xs text-[var(--text-thirdly)]">{exportOutputFolder}</p>
+					{/if}
+				</div>
+			{/if}
+			<div class="mt-6 flex justify-end gap-3">
+				<button
+					class="btn btn-icon h-10 px-4"
+					type="button"
+					onclick={() => (showExportModal = false)}
+				>
+					{$LL.common.cancel()}
+				</button>
+				<button
+					class="btn-accent h-10 px-4"
+					type="button"
+					disabled={exportModalLoading || exportCandidates.length === 0 || !exportOutputFolder}
+					onclick={exportReadyProjects}
+				>
+					{batchMessage(exportNonReadyProjects ? 'exportSelectedProjects' : 'exportReadyProjects', {
+						count: exportCandidates.length
+					})}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 {#if showMediaModal}
 	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">

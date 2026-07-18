@@ -1,4 +1,4 @@
-import { VerseRange, type Project } from '$lib/classes';
+import { SubtitleClip, TrackType, VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
@@ -21,6 +21,13 @@ import { get } from 'svelte/store';
 function parseIsoDateMs(value: string): number | null {
 	const parsed = new Date(value).getTime();
 	return Number.isFinite(parsed) ? parsed : null;
+}
+
+export interface AddExportOptions {
+	finalFileName?: string;
+	finalFilePath?: string;
+	exportLabel?: string;
+	sourceProjectId?: number;
 }
 
 export default class ExportService {
@@ -66,9 +73,16 @@ export default class ExportService {
 
 	/**
 	 * Ajoute un projet à la liste des exports en cours.
-	 * @param project Le projet à ajouter
+	 * @param {Project} project Projet à ajouter.
+	 * @param {'recording' | 'stable'} mode État initial dans la queue existante.
+	 * @param {AddExportOptions} options Nom, chemin et métadonnées Batch éventuels.
+	 * @returns {Promise<void>} Promesse résolue après la persistance du monitor.
 	 */
-	static async addExport(project: Project, mode: 'recording' | 'stable' = 'stable') {
+	static async addExport(
+		project: Project,
+		mode: 'recording' | 'stable' = 'stable',
+		options: AddExportOptions = {}
+	) {
 		// Ajoute le projet à la liste des exports en cours
 
 		const videoExtension = project.projectEditorState.export.exportWithoutBackground
@@ -76,10 +90,12 @@ export default class ExportService {
 				? 'webm'
 				: 'mov'
 			: 'mp4';
-		const fileName = project.detail.generateExportFileName() + '.' + videoExtension;
-		let filePath = await join(await this.getExportFolder(), fileName);
+		const fileName =
+			options.finalFileName ?? project.detail.generateExportFileName() + '.' + videoExtension;
+		let filePath = options.finalFilePath ?? (await join(await this.getExportFolder(), fileName));
 
 		filePath = await this.checkIfFilePathTooLong(filePath);
+		if (options.finalFilePath && (await exists(filePath))) throw new Error('EXPORT_FILE_EXISTS');
 
 		console.log('Final export file path:', filePath);
 
@@ -88,18 +104,28 @@ export default class ExportService {
 				project.detail.id,
 				fileName,
 				filePath,
-				globalState.getStyle('global', 'video-dimension').value as {
+				(project.content.videoStyle.getStylesOfTarget('global')?.findStyle('video-dimension')
+					?.value as {
 					width: number;
 					height: number;
-				},
+				}) ?? { width: 1920, height: 1080 },
 				project.projectEditorState.export.videoStartTime,
 				project.projectEditorState.export.videoEndTime,
-				VerseRange.getVerseRange(
+				VerseRange.getVerseRangeFromClips(
+					project.content.timeline
+						.getFirstTrack(TrackType.Subtitle)
+						.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip),
 					project.projectEditorState.export.videoStartTime,
 					project.projectEditorState.export.videoEndTime
 				).toString(),
 				mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
-				project.projectEditorState.export.fps
+				project.projectEditorState.export.fps,
+				0,
+				0,
+				'',
+				ExportKind.Video,
+				options.exportLabel ?? '',
+				options.sourceProjectId ?? null
 			)
 		);
 

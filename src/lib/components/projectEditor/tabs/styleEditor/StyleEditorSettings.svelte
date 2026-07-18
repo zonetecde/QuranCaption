@@ -478,7 +478,13 @@
 			)
 				return true;
 			if (
-				['surah-name-format', 'surah-latin-spacing', 'surah-latin-text-style'].includes(id) &&
+				['surah-name-format', 'surah-latin-spacing'].includes(id) &&
+				!isFeatureEnabled('surah-show-latin', category)
+			)
+				return true;
+			if (
+				id === 'surah-latin-text-style' &&
+				!isFeatureEnabled('surah-show-arabic', category) &&
 				!isFeatureEnabled('surah-show-latin', category)
 			)
 				return true;

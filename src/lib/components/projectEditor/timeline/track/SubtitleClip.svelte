@@ -196,6 +196,8 @@
 			didDrag = false;
 			if (clip instanceof SubtitleClip) {
 				isResizing = true;
+			}
+			if (clip instanceof SubtitleClip || clip.type === 'Silence') {
 				dragBoundaryStartMs = clip.startTime;
 			}
 			globalState.getTimelineState.showCursor = false;
@@ -220,15 +222,16 @@
 		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
-		if (clip instanceof SubtitleClip) {
-			isResizing = false;
+		if (clip instanceof SubtitleClip || clip.type === 'Silence') {
+			if (clip instanceof SubtitleClip) isResizing = false;
 			const movedMs =
 				dragBoundaryStartMs === null ? 0 : Math.abs(clip.startTime - dragBoundaryStartMs);
 			dragBoundaryStartMs = null;
 			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
-				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les deux.
+				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les sous-titres touchés.
 				const previous = (track as SubtitleTrack).getClipBefore(clip.id);
-				const group = previous instanceof SubtitleClip ? [previous, clip] : [clip];
+				const group = clip instanceof SubtitleClip ? [clip] : [];
+				if (previous instanceof SubtitleClip) group.unshift(previous);
 				scheduleWbwRealign(group, { reason: 'drag' });
 			}
 		}
@@ -245,6 +248,8 @@
 		didDrag = false;
 		if (clip instanceof SubtitleClip) {
 			isResizing = true;
+		}
+		if (clip instanceof SubtitleClip || clip.type === 'Silence') {
 			dragBoundaryStartMs = clip.endTime;
 		}
 		document.addEventListener('mousemove', onRightDragging);
@@ -268,15 +273,16 @@
 		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
-		if (clip instanceof SubtitleClip) {
-			isResizing = false;
+		if (clip instanceof SubtitleClip || clip.type === 'Silence') {
+			if (clip instanceof SubtitleClip) isResizing = false;
 			const movedMs =
 				dragBoundaryStartMs === null ? 0 : Math.abs(clip.endTime - dragBoundaryStartMs);
 			dragBoundaryStartMs = null;
 			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
-				// Un drag à droite recale aussi le début du clip suivant → réaligner les deux.
+				// Un drag à droite recale aussi le début du clip suivant → réaligner les sous-titres touchés.
 				const next = (track as SubtitleTrack).getClipAfter(clip.id);
-				const group = next instanceof SubtitleClip ? [clip, next] : [clip];
+				const group = clip instanceof SubtitleClip ? [clip] : [];
+				if (next instanceof SubtitleClip) group.push(next);
 				scheduleWbwRealign(group, { reason: 'drag' });
 			}
 		}

@@ -3,6 +3,7 @@
 	import AiActivityLogCard from './shared/AiActivityLogCard.svelte';
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
 	import AiRunStatusCard from './shared/AiRunStatusCard.svelte';
+	import AiStreamingWorkerGrid from './shared/AiStreamingWorkerGrid.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -21,6 +22,7 @@
 
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
+	import { runAiWorkerPool, type AiStreamWorker } from '$lib/services/AiWorkerPool';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
@@ -43,6 +45,7 @@
 		batchId: string;
 		delta: string;
 		accumulatedText: string;
+		kind?: 'reasoning' | 'response';
 	};
 	type CompleteEventPayload = {
 		batchId: string;
@@ -60,6 +63,8 @@
 		rejectedVerses: number;
 	};
 
+	const AI_TRANSLATION_WORKER_COUNT = 3;
+
 	let { edition }: { edition: Edition } = $props();
 
 	let advancedCandidates: AdvancedTrimVerseCandidate[] = $state([]);
@@ -76,6 +81,7 @@
 
 	let selectedStartTimeMs: number = $state(0);
 	let selectedEndTimeMs: number = $state(0);
+	let maxBatchWords: number = $state(500);
 
 	let isRunning: boolean = $state(false);
 	let completedBatches: number = $state(0);
@@ -83,11 +89,7 @@
 	let failedVerses: number = $state(0);
 	let successfulBatches: number = $state(0);
 	let failedBatches: number = $state(0);
-	let currentBatchId: string = $state('');
-	let currentBatchStep: string = $state('idle');
-	let currentBatchLabel: string = $state('');
-	let currentBatchVerseKeys: string = $state('');
-	let streamedResponse: string = $state('');
+	let workers: AiStreamWorker[] = $state(createIdleWorkers());
 	let latestSummary: string = $state('');
 	let latestRunStats: LatestRunStats | null = $state(null);
 	let activityLog: ActivityEntry[] = $state([]);
@@ -97,6 +99,23 @@
 	let activityCounter = 0;
 	let activeBatchIds = new Set<string>();
 
+	/**
+	 * Crée les trois emplacements de workers affichés pendant le run.
+	 *
+	 * @returns {AiStreamWorker[]} Workers initialisés au repos.
+	 */
+	function createIdleWorkers(): AiStreamWorker[] {
+		return Array.from({ length: AI_TRANSLATION_WORKER_COUNT }, (_, index) => ({
+			workerId: index + 1,
+			batchId: '',
+			batchLabel: '',
+			step: 'idle',
+			reasoning: '',
+			response: '',
+			detail: ''
+		}));
+	}
+
 	function aiSettings() {
 		return globalState.settings!.aiTranslationSettings;
 	}
@@ -105,7 +124,7 @@
 		step: string,
 		message: string,
 		tone: ActivityTone = 'info',
-		batchId: string = currentBatchId
+		batchId: string = ''
 	): void {
 		activityCounter += 1;
 		activityLog = [
@@ -153,7 +172,8 @@
 			aiSettings().advancedTrimModel,
 			aiSettings().advancedTrimReasoningEffort,
 			selectedStartTimeMs,
-			selectedEndTimeMs
+			selectedEndTimeMs,
+			maxBatchWords
 		);
 		advancedEstimate = estimateAdvancedTrimCost(
 			advancedBatches,
@@ -180,11 +200,7 @@
 		failedVerses = 0;
 		successfulBatches = 0;
 		failedBatches = 0;
-		currentBatchId = '';
-		currentBatchStep = 'idle';
-		currentBatchLabel = '';
-		currentBatchVerseKeys = '';
-		streamedResponse = '';
+		workers = createIdleWorkers();
 		latestSummary = '';
 		latestRunStats = null;
 		activityLog = [];
@@ -196,8 +212,8 @@
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
 
-		currentBatchId = payload.batchId;
-		currentBatchStep = payload.step;
+		const worker = workers.find((item) => item.batchId === payload.batchId);
+		if (worker) worker.step = payload.step;
 		const tone: ActivityTone = payload.step === 'failed' ? 'error' : 'info';
 		addActivity(payload.step, payload.message, tone, payload.batchId);
 	}
@@ -205,16 +221,21 @@
 	function handleChunkEvent(event: { payload: ChunkEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
-		if (payload.batchId !== currentBatchId) return;
-		streamedResponse = payload.accumulatedText;
+		const worker = workers.find((item) => item.batchId === payload.batchId);
+		if (!worker) return;
+
+		if (payload.kind === 'reasoning') {
+			worker.reasoning = payload.accumulatedText;
+		} else {
+			worker.response = payload.accumulatedText;
+		}
 	}
 
 	function handleCompleteEvent(event: { payload: CompleteEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
-		if (payload.batchId === currentBatchId) {
-			streamedResponse = payload.rawText;
-		}
+		const worker = workers.find((item) => item.batchId === payload.batchId);
+		if (worker) worker.response = payload.rawText;
 		if (payload.usage) {
 			batchUsageById = {
 				...batchUsageById,
@@ -257,17 +278,18 @@
 			toast.error($LL.translations.configureTextAiFirst());
 			return;
 		}
-		if (advancedBatches.length === 0) {
+		const batches = [...advancedBatches];
+		if (batches.length === 0) {
 			toast.error($LL.translations.noEligibleVerseBatch());
 			return;
 		}
 
 		resetRunState();
 		isRunning = true;
-		activeBatchIds = new Set<string>(advancedBatches.map((batch) => batch.batchId));
+		activeBatchIds = new Set<string>(batches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
-			`Starting advanced trim for ${advancedEstimate.totalVerses} verse(s) across ${advancedBatches.length} batch(es).`
+			`Starting advanced trim for ${advancedEstimate.totalVerses} verse(s) across ${batches.length} batch(es).`
 		);
 
 		const reportLines: string[] = [];
@@ -276,110 +298,123 @@
 		let totalAiErrorSegments = 0;
 		let totalRejectedVerses = 0;
 
-		for (let batchIndex = 0; batchIndex < advancedBatches.length; batchIndex++) {
-			const batch = advancedBatches[batchIndex];
-			currentBatchId = batch.batchId;
-			currentBatchLabel = `Batch ${batchIndex + 1} / ${advancedBatches.length}`;
-			currentBatchVerseKeys = batch.verses.map((verse) => verse.verseKey).join(', ');
-			streamedResponse = '';
-
-			addActivity(
-				'queued',
-				`${currentBatchLabel}: ${batch.verses.length} verse(s), ${batch.wordCount} words.`,
-				'info',
-				batch.batchId
-			);
-
-			try {
-				const response = await runAdvancedTrimBatchStreaming({
-					apiKey,
-					endpoint,
-					model: aiSettings().advancedTrimModel,
-					reasoningEffort: aiSettings().advancedTrimReasoningEffort,
-					batchId: batch.batchId,
-					batch: batch.request
+		await runAiWorkerPool(
+			batches,
+			AI_TRANSLATION_WORKER_COUNT,
+			async (batch, batchIndex, workerIndex) => {
+				const worker = workers[workerIndex];
+				const batchLabel = $LL.editor.batchProgress({
+					current: batchIndex + 1,
+					total: batches.length
 				});
+				const verseKeys = batch.verses.map((verse) => verse.verseKey).join(', ');
+				worker.batchId = batch.batchId;
+				worker.batchLabel = batchLabel;
+				worker.step = 'queued';
+				worker.reasoning = '';
+				worker.response = '';
+				worker.detail = verseKeys;
 
-				streamedResponse = response.rawText;
-				addActivity('validating', `Validating ${currentBatchLabel}...`, 'info', batch.batchId);
+				addActivity(
+					'queued',
+					`${batchLabel}: ${batch.verses.length} verse(s), ${batch.wordCount} words.`,
+					'info',
+					batch.batchId
+				);
 
-				const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
-				const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
-				const validationFailedVerses = batch.verses.length - validation.validVerses.length;
+				try {
+					const response = await runAdvancedTrimBatchStreaming({
+						apiKey,
+						endpoint,
+						model: aiSettings().advancedTrimModel,
+						reasoningEffort: aiSettings().advancedTrimReasoningEffort,
+						batchId: batch.batchId,
+						batch: batch.request
+					});
 
-				if (validationFailedVerses === 0 && applyReport.erroredVerses === 0) {
-					successfulBatches++;
-				} else {
+					worker.response = response.rawText;
+					worker.step = 'validating';
+					addActivity('validating', `Validating ${batchLabel}...`, 'info', batch.batchId);
+
+					const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
+					const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
+					const validationFailedVerses = batch.verses.length - validation.validVerses.length;
+
+					if (validationFailedVerses === 0 && applyReport.erroredVerses === 0) {
+						successfulBatches++;
+						worker.step = 'completed';
+					} else {
+						failedBatches++;
+						worker.step = 'failed';
+					}
+
+					successfulVerses += applyReport.alignedVerses;
+					failedVerses += validationFailedVerses + applyReport.erroredVerses;
+					totalAiSetSegments += applyReport.appliedSegments;
+					totalAiErrorSegments += applyReport.erroredSegments;
+					totalRejectedVerses += validationFailedVerses;
+
+					if (applyReport.alignedVerses > 0) {
+						addActivity(
+							'applied',
+							`Applied ${applyReport.alignedVerses}/${batch.verses.length} fully aligned verse(s), ${applyReport.alignedSegments} aligned segment(s).`,
+							'success',
+							batch.batchId
+						);
+					}
+
+					if (validation.validVerses.length === 0) {
+						addActivity(
+							'failed',
+							'No verse from this batch passed validation.',
+							'error',
+							batch.batchId
+						);
+					}
+
+					if (applyReport.erroredSegments > 0) {
+						addActivity(
+							'failed',
+							`${applyReport.erroredSegments} segment(s) were kept but marked AI Error because word range remapping failed.`,
+							'error',
+							batch.batchId
+						);
+					}
+
+					if (validation.errors.length > 0) {
+						reportLines.push(`${batchLabel} (${verseKeys})`, ...validation.errors);
+						for (const error of validation.errors) {
+							addActivity('failed', error, 'error', batch.batchId);
+						}
+					}
+
+					if (applyReport.errors.length > 0) {
+						reportLines.push(...applyReport.errors);
+						for (const error of applyReport.errors) {
+							addActivity('failed', error, 'error', batch.batchId);
+						}
+					}
+				} catch (error) {
 					failedBatches++;
-				}
-
-				successfulVerses += applyReport.alignedVerses;
-				failedVerses += validationFailedVerses + applyReport.erroredVerses;
-				totalAiSetSegments += applyReport.appliedSegments;
-				totalAiErrorSegments += applyReport.erroredSegments;
-				totalRejectedVerses += validationFailedVerses;
-
-				if (applyReport.alignedVerses > 0) {
-					addActivity(
-						'applied',
-						`Applied ${applyReport.alignedVerses}/${batch.verses.length} fully aligned verse(s), ${applyReport.alignedSegments} aligned segment(s).`,
-						'success',
-						batch.batchId
-					);
-				}
-
-				if (validation.validVerses.length === 0) {
-					addActivity(
-						'failed',
-						'No verse from this batch passed validation.',
-						'error',
-						batch.batchId
-					);
-				}
-
-				if (applyReport.erroredSegments > 0) {
-					addActivity(
-						'failed',
-						`${applyReport.erroredSegments} segment(s) were kept but marked AI Error because word range remapping failed.`,
-						'error',
-						batch.batchId
-					);
-				}
-
-				if (validation.errors.length > 0) {
-					reportLines.push(`${currentBatchLabel} (${currentBatchVerseKeys})`, ...validation.errors);
-					for (const error of validation.errors) {
-						addActivity('failed', error, 'error', batch.batchId);
+					failedVerses += batch.verses.length;
+					worker.step = 'failed';
+					const message = error instanceof Error ? error.message : String(error);
+					reportLines.push(`${batchLabel} (${verseKeys})`, message);
+					addActivity('failed', message, 'error', batch.batchId);
+					if (isBlockingError(message)) {
+						blockingFailure = true;
 					}
+				} finally {
+					completedBatches++;
 				}
-
-				if (applyReport.errors.length > 0) {
-					reportLines.push(...applyReport.errors);
-					for (const error of applyReport.errors) {
-						addActivity('failed', error, 'error', batch.batchId);
-					}
-				}
-			} catch (error) {
-				failedBatches++;
-				failedVerses += batch.verses.length;
-				const message = error instanceof Error ? error.message : String(error);
-				reportLines.push(`${currentBatchLabel} (${currentBatchVerseKeys})`, message);
-				addActivity('failed', message, 'error', batch.batchId);
-				if (isBlockingError(message)) {
-					blockingFailure = true;
-					completedBatches = batchIndex + 1;
-					break;
-				}
-			}
-
-			completedBatches = batchIndex + 1;
-		}
+			},
+			() => blockingFailure
+		);
 
 		isRunning = false;
 		activeBatchIds = new Set<string>();
-		currentBatchStep = blockingFailure ? 'failed' : 'idle';
 		latestRunStats = {
-			totalBatches: advancedBatches.length,
+			totalBatches: batches.length,
 			successfulBatches,
 			failedBatches,
 			aiSetSegments: totalAiSetSegments,
@@ -388,7 +423,7 @@
 			versesWithIssues: failedVerses,
 			rejectedVerses: totalRejectedVerses
 		};
-		latestSummary = `${successfulBatches}/${advancedBatches.length} batch(es) were fully successful. ${totalAiSetSegments} segment(s) were set by AI, ${totalAiErrorSegments} segment(s) were marked AI Error and need review, and ${failedVerses} verse(s) had issues overall.`;
+		latestSummary = `${successfulBatches}/${batches.length} batch(es) were fully successful. ${totalAiSetSegments} segment(s) were set by AI, ${totalAiErrorSegments} segment(s) were marked AI Error and need review, and ${failedVerses} verse(s) had issues overall.`;
 
 		AnalyticsService.trackTranslationUsage({
 			range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
@@ -396,7 +431,7 @@
 			mode: 'advanced_trim',
 			model: aiSettings().advancedTrimModel,
 			reasoning_effort: aiSettings().advancedTrimReasoningEffort,
-			total_batches: advancedBatches.length,
+			total_batches: batches.length,
 			completed_batches: completedBatches,
 			successful_batches: successfulBatches,
 			failed_batches: failedBatches,
@@ -531,6 +566,33 @@
 						/>
 					{/if}
 
+					<div class="rounded-xl border border-color bg-secondary p-4">
+						<div class="mb-3 flex items-center justify-between gap-3">
+							<div class="flex items-center gap-2">
+								<span class="material-icons text-accent-primary">tune</span>
+								<span class="text-sm font-semibold text-primary">{$LL.editor.maxWords()}</span>
+							</div>
+							<span class="text-sm font-medium text-primary">
+								{maxBatchWords}
+								{$LL.editor.words()}
+							</span>
+						</div>
+						<input
+							type="range"
+							min="100"
+							max="1000"
+							step="50"
+							value={maxBatchWords}
+							aria-label={$LL.editor.maxWords()}
+							disabled={isRunning}
+							oninput={(event) => {
+								maxBatchWords = Number((event.currentTarget as HTMLInputElement).value);
+								refreshBatchPreview();
+							}}
+							class="w-full accent-[var(--accent-primary)] disabled:opacity-50"
+						/>
+					</div>
+
 					<AiBatchOverviewCard
 						title={$LL.editor.batchPreview()}
 						icon="analytics"
@@ -591,64 +653,36 @@
 
 						<AiRunStatusCard
 							title={$LL.editor.currentRun()}
-							subtitle={currentBatchLabel || 'Idle'}
+							subtitle={$LL.editor.batchProgress({
+								current: completedBatches,
+								total: advancedBatches.length
+							})}
 							progressPercent={getProgressPercent()}
 							metrics={[
-								{ label: 'Current step', value: currentBatchStep },
-								{ label: 'Usage', value: getActualUsageSummary() }
+								{
+									label: $LL.editor.progress(),
+									value: `${completedBatches}/${advancedBatches.length}`
+								},
+								{ label: $LL.editor.usage(), value: getActualUsageSummary() }
 							]}
 							progressTrackClass="bg-secondary"
 							progressBarClass="bg-accent-secondary"
 							containerClass="space-y-3"
 							metricCardClass="rounded-lg border border-color bg-secondary p-3"
-							detailLabel={currentBatchVerseKeys ? 'Current verses: ' : undefined}
-							detailText={currentBatchVerseKeys || undefined}
 						/>
 					</div>
 
-					<div class="rounded-xl border border-color bg-accent p-4">
-						<div class="mb-3 flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<span class="material-icons text-accent-primary">monitoring</span>
-								<h3 class="text-lg font-semibold text-primary">Live Activity & Response</h3>
-							</div>
-							<button
-								class="btn px-3 py-1.5 text-xs"
-								onclick={() => {
-									navigator.clipboard.writeText(streamedResponse);
-									toast.success($LL.translations.liveResponseCopied());
-								}}
-								disabled={!streamedResponse}
-							>
-								Copy Response
-							</button>
-						</div>
-
-						<div class="rounded-lg border border-color bg-secondary p-3">
-							<div
-								class="mb-2 flex items-center gap-2 text-xs uppercase tracking-wide text-thirdly"
-							>
-								<span class="material-icons text-sm">stream</span>
-								<span>{$LL.editor.currentStreamedResponse()}</span>
-							</div>
-							<textarea
-								readonly
-								bind:value={streamedResponse}
-								class="h-40 w-full resize-none rounded-lg border border-color bg-[var(--bg-primary)] p-3 font-mono text-xs leading-relaxed text-primary"
-								placeholder={$LL.translations.streamingResponsePlaceholder()}
-							></textarea>
-						</div>
-
-						<div class="mt-4">
-							<AiActivityLogCard
-								{activityLog}
-								title={$LL.editor.recentActivity()}
-								maxHeightClass="max-h-72"
-								containerClass=""
-							/>
-						</div>
-					</div>
+					<AiStreamingWorkerGrid {workers} columnsClass="grid-cols-1" textareaClass="h-20" />
 				</div>
+			</div>
+
+			<div class="rounded-xl border border-color bg-accent p-4">
+				<AiActivityLogCard
+					{activityLog}
+					title={$LL.editor.recentActivity()}
+					maxHeightClass="max-h-72"
+					containerClass=""
+				/>
 			</div>
 		</div>
 	{/if}

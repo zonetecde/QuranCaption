@@ -274,9 +274,14 @@ pub fn build_wbw_translation_user_prompt(
 // Body builders
 // ---------------------------------------------------------------------------
 
-/// Construit un corps Chat Completions standard.
-pub fn build_chat_completions_body(model: &str, system_prompt: &str, user_prompt: &str) -> Value {
-    json!({
+/// Construit un corps Chat Completions standard, avec raisonnement DeepSeek optionnel.
+pub fn build_chat_completions_body(
+    model: &str,
+    deepseek_reasoning_effort: Option<&str>,
+    system_prompt: &str,
+    user_prompt: &str,
+) -> Value {
+    let mut body = json!({
         "model": model,
         "stream": true,
         "messages": [
@@ -292,20 +297,32 @@ pub fn build_chat_completions_body(model: &str, system_prompt: &str, user_prompt
         "response_format": {
             "type": "json_object"
         }
-    })
+    });
+
+    if let Some(reasoning_effort) = deepseek_reasoning_effort {
+        let reasoning_enabled = reasoning_effort != "none";
+        body["thinking"] = json!({
+            "type": if reasoning_enabled { "enabled" } else { "disabled" }
+        });
+        if reasoning_enabled {
+            body["reasoning_effort"] = json!(reasoning_effort);
+        }
+    }
+
+    body
 }
 
 /// Construit un corps Responses API avec schéma JSON strict.
 pub fn build_responses_api_body(
     model: &str,
-    reasoning_effort: &str,
+    openai_reasoning_effort: Option<&str>,
     system_prompt: &str,
     user_prompt: &str,
     schema_name: &str,
     schema_description: &str,
     schema: &Value,
 ) -> Value {
-    json!({
+    let mut body = json!({
         "model": model,
         "stream": true,
         "store": false,
@@ -329,9 +346,6 @@ pub fn build_responses_api_body(
                 ]
             }
         ],
-        "reasoning": {
-            "effort": reasoning_effort
-        },
         "text": {
             "verbosity": "low",
             "format": {
@@ -342,7 +356,20 @@ pub fn build_responses_api_body(
                 "schema": schema
             }
         }
-    })
+    });
+
+    if let Some(reasoning_effort) = openai_reasoning_effort {
+        body["reasoning"] = if reasoning_effort == "none" {
+            json!({ "effort": reasoning_effort })
+        } else {
+            json!({
+                "effort": reasoning_effort,
+                "summary": "auto"
+            })
+        };
+    }
+
+    body
 }
 
 // ---------------------------------------------------------------------------
@@ -375,5 +402,19 @@ pub fn is_chat_completions_endpoint(endpoint: &str) -> bool {
 pub fn is_openrouter_endpoint(endpoint: &str) -> bool {
     reqwest::Url::parse(endpoint)
         .map(|url| url.host_str() == Some("openrouter.ai"))
+        .unwrap_or(false)
+}
+
+/// Indique si l'endpoint cible directement OpenAI.
+pub fn is_openai_endpoint(endpoint: &str) -> bool {
+    reqwest::Url::parse(endpoint)
+        .map(|url| url.host_str() == Some("api.openai.com"))
+        .unwrap_or(false)
+}
+
+/// Indique si l'endpoint cible directement DeepSeek.
+pub fn is_deepseek_endpoint(endpoint: &str) -> bool {
+    reqwest::Url::parse(endpoint)
+        .map(|url| url.host_str() == Some("api.deepseek.com"))
         .unwrap_or(false)
 }

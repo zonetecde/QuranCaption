@@ -56,7 +56,7 @@
 			id: 'deepseek',
 			label: 'DeepSeek',
 			endpoint: 'https://api.deepseek.com/chat/completions',
-			model: 'deepseek-chat',
+			model: 'deepseek-v4-flash',
 			description: 'DeepSeek chat preset'
 		}
 	];
@@ -142,7 +142,7 @@
 			<option value="gemini-2.5-flash"></option>
 			<option value="z-ai/glm-4.5-air:free"></option>
 			<option value="llama-3.3-70b-versatile"></option>
-			<option value="deepseek-chat"></option>
+			<option value="deepseek-v4-flash"></option>
 		</datalist>
 	</label>
 

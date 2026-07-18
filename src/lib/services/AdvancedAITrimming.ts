@@ -536,9 +536,13 @@ export function buildAdvancedTrimBatches(
 	model: AdvancedTrimModel,
 	reasoningEffort: AdvancedTrimReasoningEffort,
 	startTimeMs: number,
-	endTimeMs: number
+	endTimeMs: number,
+	maxBatchWords: number = MAX_BATCH_WORDS
 ): AdvancedTrimBatch[] {
 	if (candidates.length === 0) return [];
+	const batchWordLimit = Number.isFinite(maxBatchWords)
+		? Math.max(1, Math.floor(maxBatchWords))
+		: MAX_BATCH_WORDS;
 
 	const selected = candidates.filter(
 		(candidate) => candidate.startTime <= endTimeMs && candidate.endTime >= startTimeMs
@@ -568,7 +572,7 @@ export function buildAdvancedTrimBatches(
 
 	for (const candidate of selected) {
 		const verseWordCount = Math.max(candidate.wordCount, 1);
-		const wouldOverflow = current.length > 0 && currentWordCount + verseWordCount > MAX_BATCH_WORDS;
+		const wouldOverflow = current.length > 0 && currentWordCount + verseWordCount > batchWordLimit;
 
 		if (wouldOverflow) {
 			pushCurrentBatch();
@@ -577,7 +581,7 @@ export function buildAdvancedTrimBatches(
 		current.push(candidate);
 		currentWordCount += verseWordCount;
 
-		if (verseWordCount > MAX_BATCH_WORDS) {
+		if (verseWordCount > batchWordLimit) {
 			pushCurrentBatch();
 		}
 	}

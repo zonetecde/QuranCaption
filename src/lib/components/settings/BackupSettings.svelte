@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
 	import ModalManager from '$lib/components/modals/ModalManager';
-	import { ProjectService } from '$lib/services/ProjectService';
-	import type { ImportedProjectPayload } from '$lib/types/project';
+	import { ProjectService, parseProjectsBackup } from '$lib/services/ProjectService';
+	import { BatchService } from '$lib/services/BatchService';
 	import { invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
@@ -49,14 +49,18 @@
 
 		try {
 			const rawContent = await readTextFile(file);
-			const backupProjects = JSON.parse(rawContent.toString()) as ImportedProjectPayload[];
-			const result = await ProjectService.importProjectsBackup(backupProjects);
+			const backup = parseProjectsBackup(JSON.parse(rawContent.toString()));
+			const projectResult = await ProjectService.importProjectsBackup(backup.projects);
+			const batchResult = await BatchService.importBatchesBackup(backup.batches);
 
-			importSummary = `${result.imported} imported, ${result.skipped} skipped duplicates, ${result.invalid} invalid.`;
+			importSummary = get(LL).settings.backupImportFinished();
 
-			if (result.imported > 0) {
-				toast.success(get(LL).settings.importedProjects({ count: result.imported }));
-			} else if (result.skipped > 0 && result.invalid === 0) {
+			if (projectResult.imported > 0 || batchResult.imported > 0) {
+				toast.success(get(LL).settings.backupImportFinished());
+			} else if (
+				projectResult.skipped + batchResult.skipped > 0 &&
+				projectResult.invalid + batchResult.invalid === 0
+			) {
 				toast.success(get(LL).settings.backupLoadedAllPresent());
 			} else {
 				toast.success(get(LL).settings.backupImportFinished());

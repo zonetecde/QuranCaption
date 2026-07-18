@@ -13,6 +13,28 @@ export interface CreateEmptyProjectOptions {
 	batchOrder?: number | null;
 }
 
+export interface ParsedProjectsBackup {
+	projects: ImportedProjectPayload[];
+	batches: Record<string, unknown>[];
+}
+
+/**
+ * Accepte le format historique sous forme de tableau et le format versionné avec batches.
+ * @param {unknown} payload Contenu JSON brut de la sauvegarde.
+ * @returns {ParsedProjectsBackup} Collections de projets et de batches à importer.
+ */
+export function parseProjectsBackup(payload: unknown): ParsedProjectsBackup {
+	if (Array.isArray(payload)) return { projects: payload as ImportedProjectPayload[], batches: [] };
+	if (!payload || typeof payload !== 'object') throw new Error('Invalid backup file.');
+	const backup = payload as Record<string, unknown>;
+	if (backup.version !== 2 || !Array.isArray(backup.projects) || !Array.isArray(backup.batches))
+		throw new Error('Unsupported backup format.');
+	return {
+		projects: backup.projects as ImportedProjectPayload[],
+		batches: backup.batches as Record<string, unknown>[]
+	};
+}
+
 /**
  * Service pour gérer les projets.
  * Utilise JSONProjectStorage pour la persistance des données.

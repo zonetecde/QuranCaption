@@ -19,6 +19,7 @@ import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
+import { BatchService } from '$lib/services/BatchService';
 
 import type { Edition } from './Edition';
 import { TrackType } from './enums';
@@ -484,11 +485,16 @@ export default class Exporter {
 			const json = await ProjectService.load(project.id);
 			projects.push(json);
 		}
+		const batches = await BatchService.loadAll();
 
 		await ExportFileService.saveTextFile(
 			`qurancaption_backup_${Date.now()}.json`,
-			JSON.stringify(projects),
-			'Project backup'
+			JSON.stringify({
+				version: 2,
+				projects,
+				batches: batches.map((batch) => batch.toJSON())
+			}),
+			get(LL).settings.projectBackup()
 		);
 	}
 	static async exportYtbChapters() {

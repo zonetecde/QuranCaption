@@ -2191,28 +2191,29 @@ const es = {
 		leaveReview: 'Dejar una reseña',
 		featureBug: 'Función / Error',
 		joinDiscord: 'Unirse a Discord',
-		projectBackup: 'Copia de seguridad de proyectos',
+		projectBackup: 'Copia de seguridad de proyectos y lotes',
 		backupDescription:
-			'Exporte todos los proyectos en un solo archivo de copia de seguridad, o importe una copia de seguridad completa más tarde. Sus proyectos siempre se almacenan localmente en su máquina.',
+			'Exporte todos los proyectos y lotes en un solo archivo de copia de seguridad, o importe una copia completa más tarde. Sus datos siempre se almacenan localmente en su máquina.',
 		openProjectsFolder: 'Abrir carpeta de proyectos',
-		exportAllProjects: 'Exportar todos los proyectos',
+		exportAllProjects: 'Exportar todos los proyectos y lotes',
 		exportAllProjectsDescription:
-			'Cree una copia de seguridad JSON con todos los proyectos almacenados actualmente en la aplicación.',
+			'Cree una copia de seguridad JSON con todos los proyectos y lotes almacenados actualmente en la aplicación.',
 		useBeforeReinstalling:
 			'Use esto antes de reinstalar la aplicación, cambiar de máquina o conservar una copia completa sin conexión de su biblioteca de proyectos.',
 		exportingBackup: 'Exportando copia de seguridad...',
 		importBackup: 'Importar copia de seguridad',
 		importBackupDescription:
-			'Cargue todos los proyectos desde un archivo JSON de copia de seguridad. Los nuevos proyectos se agregarán sin eliminar los existentes.',
+			'Cargue todos los proyectos y lotes desde un archivo JSON de copia de seguridad. Los elementos nuevos se agregarán sin eliminar los existentes.',
 		importNonDestructive:
-			'La importación no es destructiva — todo nuevo proyecto encontrado en la copia de seguridad se agregará sin eliminar los existentes.',
+			'La importación no es destructiva — todo proyecto o lote nuevo encontrado en la copia se agregará sin eliminar los existentes.',
 		importingBackup: 'Importando copia de seguridad...',
 		backupExported: 'Copia de seguridad exportada con éxito.',
 		importedProjects: '{count} proyectos importados desde la copia de seguridad.',
-		backupLoadedAllPresent: 'Copia de seguridad cargada. Todos los proyectos ya estaban presentes.',
+		backupLoadedAllPresent:
+			'Copia de seguridad cargada. Todos los proyectos y lotes ya estaban presentes.',
 		backupImportFinished: 'Importación de copia de seguridad finalizada.',
 		backupExportFailed: 'Error al exportar la copia de seguridad',
-		unableToExportProjects: 'No se pudieron exportar todos los proyectos.',
+		unableToExportProjects: 'No se pudieron exportar todos los proyectos y lotes.',
 		backupImportFailed: 'Error al importar la copia de seguridad',
 		backupFileInvalid:
 			'El archivo de copia de seguridad seleccionado no es válido o está corrupto.',

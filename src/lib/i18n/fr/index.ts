@@ -2216,28 +2216,29 @@ const fr = {
 		leaveReview: 'Laisser un avis',
 		featureBug: 'Fonctionnalité / Bug',
 		joinDiscord: 'Rejoindre Discord',
-		projectBackup: 'Sauvegarde de projets',
+		projectBackup: 'Sauvegarde de projets et batches',
 		backupDescription:
-			'Exportez tous les projets dans un seul fichier de sauvegarde, ou importez une sauvegarde complète ultérieurement. Vos projets sont toujours stockés localement sur votre machine.',
+			'Exportez tous les projets et batches dans un seul fichier de sauvegarde, ou importez une sauvegarde complète ultérieurement. Vos données sont toujours stockées localement sur votre machine.',
 		openProjectsFolder: 'Ouvrir le dossier des projets',
-		exportAllProjects: 'Exporter tous les projets',
+		exportAllProjects: 'Exporter tous les projets et batches',
 		exportAllProjectsDescription:
-			'Créez une sauvegarde JSON contenant tous les projets actuellement stockés dans l\u2019application.',
+			'Créez une sauvegarde JSON contenant tous les projets et batches actuellement stockés dans l\u2019application.',
 		useBeforeReinstalling:
 			'Utilisez ceci avant de réinstaller l\u2019application, de changer de machine ou de conserver une copie hors ligne complète de votre bibliothèque de projets.',
 		exportingBackup: 'Export de la sauvegarde...',
 		importBackup: 'Importer une sauvegarde',
 		importBackupDescription:
-			'Chargez tous les projets depuis un fichier JSON de sauvegarde. Les nouveaux projets seront ajoutés sans supprimer les existants.',
+			'Chargez tous les projets et batches depuis un fichier JSON de sauvegarde. Les nouveaux éléments seront ajoutés sans supprimer les existants.',
 		importNonDestructive:
-			'L\u2019importation est non destructive \u2014 tout nouveau projet trouvé dans la sauvegarde sera ajouté sans supprimer les existants.',
+			'L\u2019importation est non destructive \u2014 tout nouveau projet ou batch trouvé dans la sauvegarde sera ajouté sans supprimer les existants.',
 		importingBackup: 'Importation de la sauvegarde...',
 		backupExported: 'Sauvegarde exportée avec succès.',
 		importedProjects: '{count}\u00a0projets importés depuis la sauvegarde.',
-		backupLoadedAllPresent: 'Sauvegarde chargée. Tous les projets étaient déjà présents.',
+		backupLoadedAllPresent:
+			'Sauvegarde chargée. Tous les projets et batches étaient déjà présents.',
 		backupImportFinished: 'Importation de la sauvegarde terminée.',
 		backupExportFailed: 'Échec de l\u2019export de la sauvegarde',
-		unableToExportProjects: 'Impossible d\u2019exporter tous les projets.',
+		unableToExportProjects: 'Impossible d\u2019exporter tous les projets et batches.',
 		backupImportFailed: 'Échec de l\u2019importation de la sauvegarde',
 		backupFileInvalid: 'Le fichier de sauvegarde sélectionné est invalide ou corrompu.',
 		unableToOpenProjectsFolder: 'Impossible d\u2019ouvrir le dossier des projets',

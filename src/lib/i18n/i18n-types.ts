@@ -6968,11 +6968,11 @@ type RootTranslation = {
 		 */
 		joinDiscord: string;
 		/**
-		 * P​r​o​j​e​c​t​ ​B​a​c​k​u​p
+		 * P​r​o​j​e​c​t​ ​a​n​d​ ​B​a​t​c​h​ ​B​a​c​k​u​p
 		 */
 		projectBackup: string;
 		/**
-		 * E​x​p​o​r​t​ ​a​l​l​ ​p​r​o​j​e​c​t​s​ ​i​n​t​o​ ​o​n​e​ ​b​a​c​k​u​p​ ​f​i​l​e​,​ ​o​r​ ​i​m​p​o​r​t​ ​a​ ​f​u​l​l​ ​b​a​c​k​u​p​ ​l​a​t​e​r​.​ ​Y​o​u​r​ ​p​r​o​j​e​c​t​s​ ​a​r​e​ ​a​l​w​a​y​s​ ​s​t​o​r​e​d​ ​l​o​c​a​l​l​y​ ​o​n​ ​y​o​u​r​ ​m​a​c​h​i​n​e​.
+		 * E​x​p​o​r​t​ ​a​l​l​ ​p​r​o​j​e​c​t​s​ ​a​n​d​ ​b​a​t​c​h​e​s​ ​i​n​t​o​ ​o​n​e​ ​b​a​c​k​u​p​ ​f​i​l​e​,​ ​o​r​ ​i​m​p​o​r​t​ ​a​ ​f​u​l​l​ ​b​a​c​k​u​p​ ​l​a​t​e​r​.​ ​Y​o​u​r​ ​d​a​t​a​ ​i​s​ ​a​l​w​a​y​s​ ​s​t​o​r​e​d​ ​l​o​c​a​l​l​y​ ​o​n​ ​y​o​u​r​ ​m​a​c​h​i​n​e​.
 		 */
 		backupDescription: string;
 		/**
@@ -6980,11 +6980,11 @@ type RootTranslation = {
 		 */
 		openProjectsFolder: string;
 		/**
-		 * E​x​p​o​r​t​ ​a​l​l​ ​p​r​o​j​e​c​t​s
+		 * E​x​p​o​r​t​ ​a​l​l​ ​p​r​o​j​e​c​t​s​ ​a​n​d​ ​b​a​t​c​h​e​s
 		 */
 		exportAllProjects: string;
 		/**
-		 * C​r​e​a​t​e​ ​o​n​e​ ​J​S​O​N​ ​b​a​c​k​u​p​ ​c​o​n​t​a​i​n​i​n​g​ ​e​v​e​r​y​ ​p​r​o​j​e​c​t​ ​c​u​r​r​e​n​t​l​y​ ​s​t​o​r​e​d​ ​i​n​ ​t​h​e​ ​a​p​p​.
+		 * C​r​e​a​t​e​ ​o​n​e​ ​J​S​O​N​ ​b​a​c​k​u​p​ ​c​o​n​t​a​i​n​i​n​g​ ​e​v​e​r​y​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​b​a​t​c​h​ ​c​u​r​r​e​n​t​l​y​ ​s​t​o​r​e​d​ ​i​n​ ​t​h​e​ ​a​p​p​.
 		 */
 		exportAllProjectsDescription: string;
 		/**
@@ -7000,11 +7000,11 @@ type RootTranslation = {
 		 */
 		importBackup: string;
 		/**
-		 * L​o​a​d​ ​e​v​e​r​y​ ​p​r​o​j​e​c​t​ ​f​r​o​m​ ​a​ ​b​a​c​k​u​p​ ​J​S​O​N​ ​f​i​l​e​.​ ​N​e​w​ ​p​r​o​j​e​c​t​s​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​w​i​t​h​o​u​t​ ​r​e​m​o​v​i​n​g​ ​e​x​i​s​t​i​n​g​ ​o​n​e​s​.
+		 * L​o​a​d​ ​e​v​e​r​y​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​b​a​t​c​h​ ​f​r​o​m​ ​a​ ​b​a​c​k​u​p​ ​J​S​O​N​ ​f​i​l​e​.​ ​N​e​w​ ​i​t​e​m​s​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​w​i​t​h​o​u​t​ ​r​e​m​o​v​i​n​g​ ​e​x​i​s​t​i​n​g​ ​o​n​e​s​.
 		 */
 		importBackupDescription: string;
 		/**
-		 * I​m​p​o​r​t​ ​i​s​ ​n​o​n​-​d​e​s​t​r​u​c​t​i​v​e​ ​—​ ​a​n​y​ ​n​e​w​ ​p​r​o​j​e​c​t​s​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​b​a​c​k​u​p​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​w​i​t​h​o​u​t​ ​r​e​m​o​v​i​n​g​ ​e​x​i​s​t​i​n​g​ ​o​n​e​s​.
+		 * I​m​p​o​r​t​ ​i​s​ ​n​o​n​-​d​e​s​t​r​u​c​t​i​v​e​ ​—​ ​a​n​y​ ​n​e​w​ ​p​r​o​j​e​c​t​s​ ​a​n​d​ ​b​a​t​c​h​e​s​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​b​a​c​k​u​p​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​w​i​t​h​o​u​t​ ​r​e​m​o​v​i​n​g​ ​e​x​i​s​t​i​n​g​ ​o​n​e​s​.
 		 */
 		importNonDestructive: string;
 		/**
@@ -7021,7 +7021,7 @@ type RootTranslation = {
 		 */
 		importedProjects: RequiredParams<'count'>;
 		/**
-		 * B​a​c​k​u​p​ ​l​o​a​d​e​d​.​ ​A​l​l​ ​p​r​o​j​e​c​t​s​ ​w​e​r​e​ ​a​l​r​e​a​d​y​ ​p​r​e​s​e​n​t​.
+		 * B​a​c​k​u​p​ ​l​o​a​d​e​d​.​ ​A​l​l​ ​p​r​o​j​e​c​t​s​ ​a​n​d​ ​b​a​t​c​h​e​s​ ​w​e​r​e​ ​a​l​r​e​a​d​y​ ​p​r​e​s​e​n​t​.
 		 */
 		backupLoadedAllPresent: string;
 		/**
@@ -7033,7 +7033,7 @@ type RootTranslation = {
 		 */
 		backupExportFailed: string;
 		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​e​x​p​o​r​t​ ​a​l​l​ ​p​r​o​j​e​c​t​s​.
+		 * U​n​a​b​l​e​ ​t​o​ ​e​x​p​o​r​t​ ​a​l​l​ ​p​r​o​j​e​c​t​s​ ​a​n​d​ ​b​a​t​c​h​e​s​.
 		 */
 		unableToExportProjects: string;
 		/**
@@ -16859,11 +16859,11 @@ export type TranslationFunctions = {
 		 */
 		joinDiscord: () => LocalizedString;
 		/**
-		 * Project Backup
+		 * Project and Batch Backup
 		 */
 		projectBackup: () => LocalizedString;
 		/**
-		 * Export all projects into one backup file, or import a full backup later. Your projects are always stored locally on your machine.
+		 * Export all projects and batches into one backup file, or import a full backup later. Your data is always stored locally on your machine.
 		 */
 		backupDescription: () => LocalizedString;
 		/**
@@ -16871,11 +16871,11 @@ export type TranslationFunctions = {
 		 */
 		openProjectsFolder: () => LocalizedString;
 		/**
-		 * Export all projects
+		 * Export all projects and batches
 		 */
 		exportAllProjects: () => LocalizedString;
 		/**
-		 * Create one JSON backup containing every project currently stored in the app.
+		 * Create one JSON backup containing every project and batch currently stored in the app.
 		 */
 		exportAllProjectsDescription: () => LocalizedString;
 		/**
@@ -16891,11 +16891,11 @@ export type TranslationFunctions = {
 		 */
 		importBackup: () => LocalizedString;
 		/**
-		 * Load every project from a backup JSON file. New projects will be added without removing existing ones.
+		 * Load every project and batch from a backup JSON file. New items will be added without removing existing ones.
 		 */
 		importBackupDescription: () => LocalizedString;
 		/**
-		 * Import is non-destructive — any new projects found in the backup will be added without removing existing ones.
+		 * Import is non-destructive — any new projects and batches found in the backup will be added without removing existing ones.
 		 */
 		importNonDestructive: () => LocalizedString;
 		/**
@@ -16911,7 +16911,7 @@ export type TranslationFunctions = {
 		 */
 		importedProjects: (arg: { count: unknown }) => LocalizedString;
 		/**
-		 * Backup loaded. All projects were already present.
+		 * Backup loaded. All projects and batches were already present.
 		 */
 		backupLoadedAllPresent: () => LocalizedString;
 		/**
@@ -16923,7 +16923,7 @@ export type TranslationFunctions = {
 		 */
 		backupExportFailed: () => LocalizedString;
 		/**
-		 * Unable to export all projects.
+		 * Unable to export all projects and batches.
 		 */
 		unableToExportProjects: () => LocalizedString;
 		/**

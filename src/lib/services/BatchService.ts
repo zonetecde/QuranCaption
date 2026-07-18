@@ -57,6 +57,70 @@ export class BatchService {
 	}
 
 	/**
+	 * Charge tous les manifests de batch sauvegardés.
+	 * @returns {Promise<Batch[]>} Batches restaurés dans leur format courant.
+	 */
+	static async loadAll(): Promise<Batch[]> {
+		const batchesPath = await this.getBatchesFolderPath();
+		const entries = await readDir(batchesPath);
+		const batches: Batch[] = [];
+		for (const entry of entries) {
+			if (!entry.isFile || !entry.name?.endsWith('.json')) continue;
+			const batchId = Number.parseInt(entry.name.replace('.json', ''), 10);
+			if (Number.isFinite(batchId)) batches.push(await this.load(batchId));
+		}
+		return batches;
+	}
+
+	/**
+	 * Importe des manifests de batch sans écraser ceux déjà présents.
+	 * @param {Record<string, unknown>[]} batches Données Batch désérialisées du backup.
+	 * @returns {Promise<{ imported: number; skipped: number; invalid: number }>} Résultat d'import.
+	 */
+	static async importBatchesBackup(batches: Record<string, unknown>[]): Promise<{
+		imported: number;
+		skipped: number;
+		invalid: number;
+	}> {
+		if (!Array.isArray(batches)) throw new Error('Backup batches must be an array.');
+		const batchesPath = await this.getBatchesFolderPath();
+		const entries = await readDir(batchesPath);
+		const existingIds = new Set(
+			entries
+				.filter((entry) => entry.isFile && entry.name?.endsWith('.json'))
+				.map((entry) => Number.parseInt(entry.name!.replace('.json', ''), 10))
+				.filter(Number.isFinite)
+		);
+		const seenBackupIds = new Set<number>();
+		let imported = 0;
+		let skipped = 0;
+		let invalid = 0;
+		for (const rawBatch of batches) {
+			const batchId = rawBatch?.id;
+			if (typeof batchId !== 'number' || !Number.isFinite(batchId)) {
+				invalid++;
+				continue;
+			}
+			if (existingIds.has(batchId) || seenBackupIds.has(batchId)) {
+				skipped++;
+				continue;
+			}
+			try {
+				const batch = Batch.fromJSON(rawBatch) as Batch;
+				await this.save(batch);
+				existingIds.add(batchId);
+				seenBackupIds.add(batchId);
+				imported++;
+			} catch (error) {
+				console.warn(`Failed to import backup batch ${batchId}:`, error);
+				invalid++;
+			}
+		}
+		await this.loadUserBatchesDetails();
+		return { imported, skipped, invalid };
+	}
+
+	/**
 	 * Convertit les opérations média abandonnées en échecs relançables.
 	 * @param {Batch} batch Batch venant d'être chargé.
 	 * @param {string} error Message localisé à conserver dans le manifeste.

@@ -29,7 +29,7 @@ import {
 	createDefaultBatchTranslationState
 } from '$lib/classes';
 import { BatchService } from '$lib/services/BatchService';
-import { ProjectService } from '$lib/services/ProjectService';
+import { ProjectService, parseProjectsBackup } from '$lib/services/ProjectService';
 
 describe('BatchService persistence', () => {
 	beforeEach(() => {
@@ -85,6 +85,32 @@ describe('BatchService persistence', () => {
 		expect(restored.projects.map((project) => project.order)).toEqual([2, 1]);
 		expect(restored.projects[0].media).toEqual(batch.projects[0].media);
 		expect(restored.projects[1].media).toEqual(batch.projects[1].media);
+		expect((await BatchService.loadAll()).map((savedBatch) => savedBatch.id)).toEqual([batch.id]);
+	});
+
+	it('imports batch manifests non-destructively', async () => {
+		const batch = new Batch('Imported batch');
+		const firstImport = await BatchService.importBatchesBackup([
+			batch.toJSON() as Record<string, unknown>
+		]);
+		const secondImport = await BatchService.importBatchesBackup([
+			batch.toJSON() as Record<string, unknown>
+		]);
+
+		expect(firstImport).toEqual({ imported: 1, skipped: 0, invalid: 0 });
+		expect(secondImport).toEqual({ imported: 0, skipped: 1, invalid: 0 });
+		expect((await BatchService.load(batch.id)).name).toBe('Imported batch');
+	});
+
+	it('accepts legacy project arrays and version 2 backups', () => {
+		const projects = [{ detail: { id: 1 } }];
+		const batches = [{ version: 1, id: 2 }];
+
+		expect(parseProjectsBackup(projects)).toEqual({ projects, batches: [] });
+		expect(parseProjectsBackup({ version: 2, projects, batches })).toEqual({
+			projects,
+			batches
+		});
 	});
 
 	it('normalizes old media fields and interrupted operations', async () => {

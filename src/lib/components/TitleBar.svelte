@@ -88,14 +88,20 @@
 			class="flex space-x-2 cursor-pointer"
 			disabled={globalState.uiState.isTourActive}
 			onclick={async () => {
-				// go home
 				if (isBatchReviewActive()) {
-					await leaveBatchReview('home');
-				} else if (globalState.currentProject) {
-					await globalState.currentProject?.save();
+					await leaveBatchReview('batch');
+					discordService.setIdleState();
+					return;
+				}
+
+				const project = globalState.currentProject;
+				const batchId = project?.detail.batchId ?? null;
+				if (project) {
+					await project.save();
 					globalState.currentProject = null;
 				}
-				globalState.currentPage = 'home';
+				globalState.currentBatchId = batchId;
+				globalState.currentPage = batchId === null ? 'home' : 'batch-workspace';
 				// Discord Rich Presence
 				discordService.setIdleState();
 			}}

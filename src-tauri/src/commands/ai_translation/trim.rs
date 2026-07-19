@@ -23,19 +23,12 @@ fn emit_status(app_handle: &tauri::AppHandle, batch_id: &str, step: &str, messag
     );
 }
 
-fn emit_chunk(
-    app_handle: &tauri::AppHandle,
-    batch_id: &str,
-    delta: &str,
-    accumulated_text: &str,
-    kind: &str,
-) {
+fn emit_chunk(app_handle: &tauri::AppHandle, batch_id: &str, delta: &str, kind: &str) {
     let _ = app_handle.emit(
         "advanced-ai-trim-chunk",
         json!({
             "batchId": batch_id,
             "delta": delta,
-            "accumulatedText": accumulated_text,
             "kind": kind
         }),
     );

@@ -75,7 +75,7 @@ pub(crate) fn normalize_usage(usage: &Value) -> Value {
 /// Callbacks d'émission spécifiques à chaque type d'opération IA.
 pub(crate) struct AiStreamCallbacks {
     pub emit_status: fn(&tauri::AppHandle, &str, &str, &str),
-    pub emit_chunk: fn(&tauri::AppHandle, &str, &str, &str, &str),
+    pub emit_chunk: fn(&tauri::AppHandle, &str, &str, &str),
 }
 
 /// Paramètres d'une requête de streaming IA.
@@ -207,13 +207,7 @@ pub(crate) async fn stream_ai_response(
                                     "Streaming AI response...",
                                 );
                             }
-                            (callbacks.emit_chunk)(
-                                app_handle,
-                                batch_id,
-                                delta,
-                                &reasoning_text,
-                                "reasoning",
-                            );
+                            (callbacks.emit_chunk)(app_handle, batch_id, delta, "reasoning");
                         }
                     }
                 }
@@ -230,7 +224,7 @@ pub(crate) async fn stream_ai_response(
                                 "Streaming AI response...",
                             );
                         }
-                        (callbacks.emit_chunk)(app_handle, batch_id, delta, &raw_text, "response");
+                        (callbacks.emit_chunk)(app_handle, batch_id, delta, "response");
                     }
                 }
                 continue;
@@ -268,13 +262,7 @@ pub(crate) async fn stream_ai_response(
                                 "Streaming AI response...",
                             );
                         }
-                        (callbacks.emit_chunk)(
-                            app_handle,
-                            batch_id,
-                            delta,
-                            &reasoning_text,
-                            "reasoning",
-                        );
+                        (callbacks.emit_chunk)(app_handle, batch_id, delta, "reasoning");
                     }
                 }
                 "response.output_text.delta" => {
@@ -293,7 +281,7 @@ pub(crate) async fn stream_ai_response(
                                 "Streaming AI response...",
                             );
                         }
-                        (callbacks.emit_chunk)(app_handle, batch_id, delta, &raw_text, "response");
+                        (callbacks.emit_chunk)(app_handle, batch_id, delta, "response");
                     }
                 }
                 "response.refusal.delta" => {
@@ -303,7 +291,7 @@ pub(crate) async fn stream_ai_response(
                         .unwrap_or_default();
                     if !delta.is_empty() {
                         raw_text.push_str(delta);
-                        (callbacks.emit_chunk)(app_handle, batch_id, delta, &raw_text, "response");
+                        (callbacks.emit_chunk)(app_handle, batch_id, delta, "response");
                     }
                 }
                 "response.completed" => {
@@ -323,7 +311,6 @@ pub(crate) async fn stream_ai_response(
                             (callbacks.emit_chunk)(
                                 app_handle,
                                 batch_id,
-                                &reasoning_text,
                                 &reasoning_text,
                                 "reasoning",
                             );
@@ -349,13 +336,7 @@ pub(crate) async fn stream_ai_response(
                 if streams_deepseek_reasoning {
                     if let Some(delta) = extract_chat_completion_reasoning_delta(&payload) {
                         reasoning_text.push_str(delta);
-                        (callbacks.emit_chunk)(
-                            app_handle,
-                            batch_id,
-                            delta,
-                            &reasoning_text,
-                            "reasoning",
-                        );
+                        (callbacks.emit_chunk)(app_handle, batch_id, delta, "reasoning");
                     }
                 }
                 if let Some(delta) = extract_chat_completion_delta(&payload) {
@@ -374,13 +355,7 @@ pub(crate) async fn stream_ai_response(
                 if streams_openai_reasoning && reasoning_text.is_empty() {
                     if let Some(summary) = extract_completed_reasoning_summary(&payload) {
                         reasoning_text = summary;
-                        (callbacks.emit_chunk)(
-                            app_handle,
-                            batch_id,
-                            &reasoning_text,
-                            &reasoning_text,
-                            "reasoning",
-                        );
+                        (callbacks.emit_chunk)(app_handle, batch_id, &reasoning_text, "reasoning");
                     }
                 }
             }

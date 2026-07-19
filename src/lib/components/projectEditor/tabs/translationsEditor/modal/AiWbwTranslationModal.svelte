@@ -31,7 +31,12 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
-	import { runAiWorkerPool, type AiStreamWorker } from '$lib/services/AiWorkerPool';
+	import {
+		AiStreamChunkBuffer,
+		runAiWorkerPool,
+		type AiStreamChunkUpdate,
+		type AiStreamWorker
+	} from '$lib/services/AiWorkerPool';
 
 	type ActivityEntry = WbwTranslationActivityEntry;
 	type StatusEventPayload = WbwTranslationStatusEventPayload;
@@ -113,6 +118,7 @@
 	let activityCounter = 0;
 	let activeBatchIds = new Set<string>();
 	let aiWbwTranslationNoteSaveTimeoutId: number | null = null;
+	const chunkBuffer = new AiStreamChunkBuffer(applyBufferedChunks);
 
 	/**
 	 * Crée les trois emplacements de workers affichés dans le modal.
@@ -238,6 +244,7 @@
 	 * @returns {void}
 	 */
 	function resetRunState(): void {
+		chunkBuffer.clear();
 		completedBatches = 0;
 		successfulBatches = 0;
 		failedBatches = 0;
@@ -248,6 +255,21 @@
 		activityLog = [];
 		batchUsageById = {};
 		activeBatchIds = new Set<string>();
+	}
+
+	/**
+	 * Ajoute les deltas regroupés aux workers correspondants.
+	 *
+	 * @param {AiStreamChunkUpdate[]} chunks Deltas regroupés par batch.
+	 * @returns {void}
+	 */
+	function applyBufferedChunks(chunks: AiStreamChunkUpdate[]): void {
+		for (const chunk of chunks) {
+			const worker = workers.find((item) => item.batchId === chunk.batchId);
+			if (!worker) continue;
+			worker.reasoning += chunk.reasoning;
+			worker.response += chunk.response;
+		}
 	}
 
 	/**
@@ -278,14 +300,7 @@
 	function handleChunkEvent(event: { payload: ChunkEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
-		const worker = workers.find((item) => item.batchId === payload.batchId);
-		if (!worker) return;
-
-		if (payload.kind === 'reasoning') {
-			worker.reasoning = payload.accumulatedText;
-		} else {
-			worker.response = payload.accumulatedText;
-		}
+		chunkBuffer.push(payload.batchId, payload.kind ?? 'response', payload.delta);
 	}
 
 	/**
@@ -297,6 +312,7 @@
 	function handleCompleteEvent(event: { payload: CompleteEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
+		chunkBuffer.flush();
 		const worker = workers.find((item) => item.batchId === payload.batchId);
 		if (worker) worker.response = payload.rawText;
 		if (payload.usage) {
@@ -418,6 +434,7 @@
 						batch: batch.request
 					});
 
+					chunkBuffer.flush();
 					worker.response = response.rawText;
 					worker.step = 'validating';
 					addActivity(
@@ -482,6 +499,7 @@
 						blockingFailure = true;
 					}
 				} finally {
+					chunkBuffer.flush();
 					completedBatches++;
 				}
 			},
@@ -538,6 +556,7 @@
 	});
 
 	onDestroy(() => {
+		chunkBuffer.clear();
 		if (aiWbwTranslationNoteSaveTimeoutId !== null) {
 			window.clearTimeout(aiWbwTranslationNoteSaveTimeoutId);
 			aiWbwTranslationNoteSaveTimeoutId = null;

@@ -34,7 +34,6 @@ pub(crate) fn emit_wbw_translation_chunk(
     app_handle: &tauri::AppHandle,
     batch_id: &str,
     delta: &str,
-    accumulated_text: &str,
     kind: &str,
 ) {
     let _ = app_handle.emit(
@@ -42,7 +41,6 @@ pub(crate) fn emit_wbw_translation_chunk(
         json!({
             "batchId": batch_id,
             "delta": delta,
-            "accumulatedText": accumulated_text,
             "kind": kind
         }),
     );

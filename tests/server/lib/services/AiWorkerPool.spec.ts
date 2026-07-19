@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+	AiStreamChunkBuffer,
 	formatAiWorkerOutput,
 	runAiWorkerPool,
 	scrollTextareaToBottom
@@ -55,5 +56,26 @@ describe('AiWorkerPool', () => {
 		expect(formatAiWorkerOutput({ reasoning: '', response: '{"segments":[]}' }, 'Reasoning')).toBe(
 			'{"segments":[]}'
 		);
+	});
+
+	it('groups streamed deltas before updating the workers', () => {
+		vi.useFakeTimers();
+		const flushed: Array<{ batchId: string; reasoning: string; response: string }> = [];
+		const buffer = new AiStreamChunkBuffer((chunks) => flushed.push(...chunks), 50);
+
+		buffer.push('batch-1', 'reasoning', 'Checking ');
+		buffer.push('batch-1', 'reasoning', 'ranges...');
+		buffer.push('batch-1', 'response', '{"segments":[]}');
+
+		expect(flushed).toEqual([]);
+		vi.advanceTimersByTime(50);
+		expect(flushed).toEqual([
+			{
+				batchId: 'batch-1',
+				reasoning: 'Checking ranges...',
+				response: '{"segments":[]}'
+			}
+		]);
+		vi.useRealTimers();
 	});
 });

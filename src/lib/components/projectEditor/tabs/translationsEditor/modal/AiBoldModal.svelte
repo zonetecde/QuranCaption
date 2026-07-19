@@ -39,7 +39,6 @@
 	type ChunkEventPayload = {
 		batchId: string;
 		delta: string;
-		accumulatedText: string;
 	};
 	type CompleteEventPayload = {
 		batchId: string;
@@ -215,7 +214,7 @@
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
 		if (payload.batchId !== currentBatchId) return;
-		streamedResponse = payload.accumulatedText;
+		streamedResponse += payload.delta;
 	}
 
 	function handleCompleteEvent(event: { payload: CompleteEventPayload }): void {

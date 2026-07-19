@@ -36,6 +36,71 @@ export async function runAiWorkerPool<T>(
 	);
 }
 
+export type AiStreamChunkKind = 'reasoning' | 'response';
+export type AiStreamChunkUpdate = {
+	batchId: string;
+	reasoning: string;
+	response: string;
+};
+
+/** Regroupe brièvement les deltas streamés avant de rafraîchir l'interface. */
+export class AiStreamChunkBuffer {
+	private pending = new Map<string, { reasoning: string; response: string }>();
+	private timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+	/**
+	 * Crée un buffer de deltas borné dans le temps.
+	 *
+	 * @param {(chunks: AiStreamChunkUpdate[]) => void} onFlush Traitement des deltas regroupés.
+	 * @param {number} delayMs Délai maximal avant le rafraîchissement.
+	 */
+	constructor(
+		private readonly onFlush: (chunks: AiStreamChunkUpdate[]) => void,
+		private readonly delayMs: number = 50
+	) {}
+
+	/**
+	 * Ajoute un delta au batch et au flux correspondants.
+	 *
+	 * @param {string} batchId Identifiant du batch.
+	 * @param {AiStreamChunkKind} kind Type de flux.
+	 * @param {string} delta Nouveau texte reçu.
+	 * @returns {void}
+	 */
+	push(batchId: string, kind: AiStreamChunkKind, delta: string): void {
+		const chunks = this.pending.get(batchId) ?? { reasoning: '', response: '' };
+		chunks[kind] += delta;
+		this.pending.set(batchId, chunks);
+		this.timeoutId ??= setTimeout(() => this.flush(), this.delayMs);
+	}
+
+	/**
+	 * Applique immédiatement les deltas en attente.
+	 *
+	 * @returns {void}
+	 */
+	flush(): void {
+		if (this.timeoutId !== null) clearTimeout(this.timeoutId);
+		this.timeoutId = null;
+		if (this.pending.size === 0) return;
+
+		const chunks = Array.from(this.pending, ([batchId, value]) => ({ batchId, ...value }));
+		this.pending.clear();
+		this.onFlush(chunks);
+	}
+
+	/**
+	 * Abandonne les deltas et le rafraîchissement en attente.
+	 *
+	 * @returns {void}
+	 */
+	clear(): void {
+		if (this.timeoutId !== null) clearTimeout(this.timeoutId);
+		this.timeoutId = null;
+		this.pending.clear();
+	}
+}
+
 /**
  * Réunit le raisonnement et la réponse d'un worker dans un même texte.
  *

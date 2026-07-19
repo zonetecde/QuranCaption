@@ -22,7 +22,12 @@
 
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
-	import { runAiWorkerPool, type AiStreamWorker } from '$lib/services/AiWorkerPool';
+	import {
+		AiStreamChunkBuffer,
+		runAiWorkerPool,
+		type AiStreamChunkUpdate,
+		type AiStreamWorker
+	} from '$lib/services/AiWorkerPool';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -44,7 +49,6 @@
 	type ChunkEventPayload = {
 		batchId: string;
 		delta: string;
-		accumulatedText: string;
 		kind?: 'reasoning' | 'response';
 	};
 	type CompleteEventPayload = {
@@ -98,6 +102,7 @@
 	let unlistenFns: UnlistenFn[] = [];
 	let activityCounter = 0;
 	let activeBatchIds = new Set<string>();
+	const chunkBuffer = new AiStreamChunkBuffer(applyBufferedChunks);
 
 	/**
 	 * Crée les trois emplacements de workers affichés pendant le run.
@@ -202,6 +207,7 @@
 	}
 
 	function resetRunState(): void {
+		chunkBuffer.clear();
 		completedBatches = 0;
 		successfulVerses = 0;
 		failedVerses = 0;
@@ -213,6 +219,21 @@
 		activityLog = [];
 		batchUsageById = {};
 		activeBatchIds = new Set<string>();
+	}
+
+	/**
+	 * Ajoute les deltas regroupés aux workers correspondants.
+	 *
+	 * @param {AiStreamChunkUpdate[]} chunks Deltas regroupés par batch.
+	 * @returns {void}
+	 */
+	function applyBufferedChunks(chunks: AiStreamChunkUpdate[]): void {
+		for (const chunk of chunks) {
+			const worker = workers.find((item) => item.batchId === chunk.batchId);
+			if (!worker) continue;
+			worker.reasoning += chunk.reasoning;
+			worker.response += chunk.response;
+		}
 	}
 
 	function handleStatusEvent(event: { payload: StatusEventPayload }): void {
@@ -228,19 +249,13 @@
 	function handleChunkEvent(event: { payload: ChunkEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
-		const worker = workers.find((item) => item.batchId === payload.batchId);
-		if (!worker) return;
-
-		if (payload.kind === 'reasoning') {
-			worker.reasoning = payload.accumulatedText;
-		} else {
-			worker.response = payload.accumulatedText;
-		}
+		chunkBuffer.push(payload.batchId, payload.kind ?? 'response', payload.delta);
 	}
 
 	function handleCompleteEvent(event: { payload: CompleteEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
+		chunkBuffer.flush();
 		const worker = workers.find((item) => item.batchId === payload.batchId);
 		if (worker) worker.response = payload.rawText;
 		if (payload.usage) {
@@ -339,6 +354,7 @@
 						batch: batch.request
 					});
 
+					chunkBuffer.flush();
 					worker.response = response.rawText;
 					worker.step = 'validating';
 					addActivity('validating', `Validating ${batchLabel}...`, 'info', batch.batchId);
@@ -412,6 +428,7 @@
 						blockingFailure = true;
 					}
 				} finally {
+					chunkBuffer.flush();
 					completedBatches++;
 				}
 			},
@@ -480,6 +497,7 @@
 	});
 
 	onDestroy(() => {
+		chunkBuffer.clear();
 		for (const unlisten of unlistenFns) {
 			unlisten();
 		}

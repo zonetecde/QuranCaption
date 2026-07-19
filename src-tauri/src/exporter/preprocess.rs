@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 use std::time::UNIX_EPOCH;
 
 use super::codec;
@@ -181,7 +180,7 @@ pub fn ffmpeg_preprocess_video(
 // ---------------------------------------------------------------------------
 
 /// Crée une vidéo à partir d'une image fixe, avec redimensionnement (cover/crop)
-/// et flou optionnel.
+/// et flou optionnel, en émettant la progression FFmpeg pour l'export courant.
 pub fn create_video_from_image(
     image_path: &str,
     output_path: &str,
@@ -192,7 +191,9 @@ pub fn create_video_from_image(
     prefer_hw: bool,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
-) -> Result<(), Box<dyn std::error::Error>> {
+    export_id: &str,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let dst_path = Path::new(output_path);
     if let Some(parent) = dst_path.parent() {
@@ -223,58 +224,67 @@ pub fn create_video_from_image(
         performance_profile,
     );
 
-    let mut cmd = Command::new(&ffmpeg_exe);
-    cmd.args(&[
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "warning",
-        "-loop",
-        "1",
-        "-i",
-        image_path,
-        "-vf",
-        &video_filter,
-        "-c:v",
-        &codec,
-        "-r",
-        &fps.to_string(),
-        "-t",
-        &format!("{:.6}", duration_s),
-    ]);
+    let mut cmd = vec![
+        ffmpeg_exe,
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "warning".to_string(),
+        "-nostats".to_string(),
+        "-progress".to_string(),
+        "pipe:2".to_string(),
+        "-loop".to_string(),
+        "1".to_string(),
+        "-i".to_string(),
+        image_path.to_string(),
+        "-vf".to_string(),
+        video_filter,
+        "-c:v".to_string(),
+        codec.clone(),
+        "-r".to_string(),
+        fps.to_string(),
+        "-t".to_string(),
+        format!("{:.6}", duration_s),
+    ];
 
-    codec::append_thread_cap(&mut cmd, performance_profile);
+    if let Some(thread_cap) = codec::compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
 
     if let Some(Some(preset)) = codec_extra.get("preset") {
-        cmd.arg("-preset").arg(preset);
+        cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
     }
 
-    for param in codec_params {
-        cmd.arg(param);
-    }
+    cmd.extend(codec_params);
 
     if codec.contains("nvenc") && !matches!(performance_profile, ExportPerformanceProfile::Balanced)
     {
-        cmd.args(&["-cq", "23"]);
+        cmd.extend_from_slice(&["-cq".to_string(), "23".to_string()]);
     }
 
-    cmd.arg(&tmp_output);
-
-    ffmpeg_utils::configure_command_no_window(&mut cmd);
+    cmd.push(tmp_output);
 
     println!(
         "[preproc][IMG] Création vidéo depuis image: {} -> {}",
         image_path, output_path
     );
-    println!("[preproc][IMG] Commande: {:?}", cmd);
-
-    let status = cmd.status()?;
-    if !status.success() {
+    let progress_context = Some(FfmpegProgressContext {
+        base_time_s: 0.0,
+        total_time_s: duration_s.max(0.001),
+        local_duration_s: duration_s.max(0.001),
+        suppress_error_event: false,
+        current_batch_size: None,
+    });
+    if let Err(error) = ffmpeg_runner::run_ffmpeg_command(
+        export_id,
+        &cmd,
+        progress_context,
+        Some("Processing Background"),
+        None,
+        app_handle,
+    ) {
         fs::remove_file(&tmp_path).ok();
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "FFmpeg image-to-video failed",
-        )));
+        return Err(error);
     }
 
     if !ffmpeg_utils::is_cached_video_valid(&tmp_path, duration_s.max(0.001)) {
@@ -407,6 +417,8 @@ pub fn preprocess_background_videos(
                 prefer_hw,
                 blur,
                 performance_profile,
+                export_id,
+                app_handle,
             ) {
                 Ok(_) => {
                     println!("[background] path=preprocessed-generated");

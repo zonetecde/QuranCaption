@@ -71,6 +71,7 @@
 	import BatchProgressCard from './BatchProgressCard.svelte';
 	import BatchProjectTable from './BatchProjectTable.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import MigrationService from '$lib/services/MigrationService';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -1135,7 +1136,9 @@
 		if (cbrQueueActive || translationQueueActive) return;
 		const item = projects.find((project) => project.projectId === projectId);
 		if (item?.media.status === 'processing' || item?.segmentation.status === 'processing') return;
-		globalState.currentProject = await ProjectService.load(projectId);
+		const project = await ProjectService.load(projectId);
+		await MigrationService.HydrateStyleEditorUiMetadata(project);
+		globalState.currentProject = project;
 		discordService.setEditingState();
 	}
 

@@ -11,6 +11,7 @@ import {
 	getProjectTranslationReviewCounts
 } from './TranslationFetchService';
 import type { VerseTranslation } from '$lib/classes/Translation.svelte';
+import MigrationService from './MigrationService';
 
 export type BatchReviewDirection = 'previous' | 'next';
 
@@ -85,6 +86,7 @@ async function loadReviewProject(
 	editionName: string | null = null
 ): Promise<Project> {
 	const project = await ProjectService.load(projectId);
+	await MigrationService.HydrateStyleEditorUiMetadata(project);
 	if (project.detail.batchId !== batchId) throw new Error('INVALID_BATCH_REVIEW_PROJECT');
 	project.projectEditorState.currentTab =
 		kind === 'translation' ? ProjectEditorTabs.Translations : ProjectEditorTabs.SubtitlesEditor;

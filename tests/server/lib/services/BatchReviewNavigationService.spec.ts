@@ -7,9 +7,13 @@ const batchMocks = vi.hoisted(() => ({
 }));
 const projectMocks = vi.hoisted(() => ({ load: vi.fn() }));
 const reviewMocks = vi.hoisted(() => ({ reconcile: vi.fn() }));
+const migrationMocks = vi.hoisted(() => ({ hydrate: vi.fn(async () => undefined) }));
 
 vi.mock('$lib/services/BatchService', () => ({ BatchService: batchMocks }));
 vi.mock('$lib/services/ProjectService', () => ({ ProjectService: projectMocks }));
+vi.mock('$lib/services/MigrationService', () => ({
+	default: { HydrateStyleEditorUiMetadata: migrationMocks.hydrate }
+}));
 vi.mock('$lib/services/BatchSegmentationService', () => ({
 	reconcileBatchProjectSegmentation: reviewMocks.reconcile
 }));
@@ -108,6 +112,7 @@ describe('Batch review navigation', () => {
 		});
 		expect(globalState.currentBatchId).toBe(10);
 		expect(globalState.currentProject).toBe(project);
+		expect(migrationMocks.hydrate).toHaveBeenCalledWith(project);
 		expect(project.projectEditorState.currentTab).toBe(ProjectEditorTabs.SubtitlesEditor);
 	});
 

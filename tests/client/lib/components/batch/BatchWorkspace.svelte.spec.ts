@@ -228,8 +228,10 @@ describe('BatchWorkspace media import', () => {
 		expect(globalGroup.classList.contains('ml-auto')).toBe(true);
 		expect(globalGroup.parentElement?.classList.contains('w-full')).toBe(true);
 		expect(component.container.querySelector('[data-batch-context-actions]')).not.toBeNull();
-		expect(globalGroup.querySelector('[aria-label="Apply style to all projects"]')).not.toBeNull();
-		expect(globalGroup.querySelector('[aria-label="Export all projects"]')).not.toBeNull();
+		expect(
+			globalGroup.querySelector('[aria-label="Apply style to selected projects"]')
+		).not.toBeNull();
+		expect(globalGroup.querySelector('[aria-label="Export 1 project(s)"]')).not.toBeNull();
 
 		cleanup();
 		project.media.status = 'completed';
@@ -237,7 +239,7 @@ describe('BatchWorkspace media import', () => {
 		component = render(BatchWorkspace);
 		await vi.waitFor(() => expect(component.container.textContent).toContain('Processing'));
 		globalGroup = component.container.querySelector('[data-batch-global-actions]')!;
-		expect(globalGroup.querySelectorAll('button')).toHaveLength(2);
+		expect(globalGroup.querySelectorAll('button')).toHaveLength(3);
 
 		cleanup();
 		project.segmentation.status = 'auto_verified';
@@ -252,12 +254,12 @@ describe('BatchWorkspace media import', () => {
 		component = render(BatchWorkspace);
 		await vi.waitFor(() => expect(component.container.textContent).toContain('Translations'));
 		globalGroup = component.container.querySelector('[data-batch-global-actions]')!;
-		expect(globalGroup.querySelectorAll('button')).toHaveLength(2);
+		expect(globalGroup.querySelectorAll('button')).toHaveLength(3);
 		expect(component.container.querySelector('thead')?.textContent).not.toContain('Style');
 		expect(component.container.querySelector('thead')?.textContent).not.toContain('Export');
 	});
 
-	test('requires a saved preset and explicit overwrite confirmation for the whole Batch', async () => {
+	test('applies a saved preset only to selected projects after confirmation', async () => {
 		loadLocale('en');
 		setLocale('en');
 		const projects = [
@@ -290,10 +292,13 @@ describe('BatchWorkspace media import', () => {
 			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
 		);
 		await component.container
-			.querySelector<HTMLButtonElement>('[aria-label="Apply style to all projects"]')!
+			.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]')[1]
+			.click();
+		await component.container
+			.querySelector<HTMLButtonElement>('[aria-label="Apply style to selected projects"]')!
 			.click();
 		const modal = component.container.querySelector('[role="dialog"]')!;
-		expect(modal.textContent).toContain('all 2 projects');
+		expect(modal.textContent).toContain('1 selected project');
 		const applyButton = modal.querySelector<HTMLButtonElement>('.btn-accent')!;
 		expect(applyButton.disabled).toBe(true);
 		await modal.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
@@ -303,10 +308,11 @@ describe('BatchWorkspace media import', () => {
 		await applyButton.click();
 		await vi.waitFor(() => expect(globalActionMocks.styleRun).toHaveBeenCalledOnce());
 		expect(globalActionMocks.styleRun.mock.calls[0][0].projects).toHaveLength(2);
-		expect(globalActionMocks.styleRun.mock.calls[0][1].id).toBe(10);
+		expect(globalActionMocks.styleRun.mock.calls[0][1]).toEqual([projects[0]]);
+		expect(globalActionMocks.styleRun.mock.calls[0][2].id).toBe(10);
 	});
 
-	test('inspects every project and keeps export confirmation disabled without a folder', async () => {
+	test('inspects only selected projects and keeps export confirmation disabled without a folder', async () => {
 		loadLocale('en');
 		setLocale('en');
 		const ready = createProject(1, 'completed', {
@@ -319,8 +325,7 @@ describe('BatchWorkspace media import', () => {
 		});
 		serviceMocks.load.mockResolvedValue(new Batch('Batch', [ready, ignored], 92));
 		globalActionMocks.inspectExports.mockResolvedValue([
-			{ item: ready, project: {} as never, reason: null },
-			{ item: ignored, project: {} as never, reason: 'MEDIA_NOT_READY' }
+			{ item: ready, project: {} as never, reason: null }
 		]);
 		globalState.currentBatchId = 92;
 
@@ -329,19 +334,18 @@ describe('BatchWorkspace media import', () => {
 			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
 		);
 		await component.container
-			.querySelector<HTMLButtonElement>('[aria-label="Export all projects"]')!
+			.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]')[1]
+			.click();
+		await component.container
+			.querySelector<HTMLButtonElement>('[aria-label="Export 1 project(s)"]')!
 			.click();
 		await vi.waitFor(() => {
 			const modal = component.container.querySelector('[role="dialog"]')!;
 			expect(modal.textContent).toContain('Ready to export: 1');
-			expect(modal.textContent).toContain('Not ready to export: 1');
-			expect(modal.textContent).toContain('Media is missing');
+			expect(modal.textContent).toContain('Not ready to export: 0');
 			expect(modal.querySelector<HTMLButtonElement>('.btn-accent')?.disabled).toBe(true);
 		});
-		const modal = component.container.querySelector('[role="dialog"]')!;
-		await modal.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click();
-		expect(modal.textContent).toContain('Export 2 project(s)');
-		expect(globalActionMocks.inspectExports.mock.calls[0][0]).toHaveLength(2);
+		expect(globalActionMocks.inspectExports.mock.calls[0][0]).toEqual([ready]);
 	});
 
 	test('selects retryable rows and blocks video mode for local audio', async () => {

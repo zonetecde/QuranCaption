@@ -62,7 +62,7 @@ describe('BatchStyleService', () => {
 			saveBatch: async () => undefined
 		});
 
-		await service.run(new Batch('Batch', [item]), preset);
+		await service.run(new Batch('Batch', [item]), [item], preset);
 		expect(importStyles).toHaveBeenCalledWith(preset.data, content);
 		expect(saveProject).toHaveBeenCalledWith(project);
 	});
@@ -92,7 +92,7 @@ describe('BatchStyleService', () => {
 		});
 
 		try {
-			const result = await service.run(new Batch('Batch', items), preset);
+			const result = await service.run(new Batch('Batch', items), items, preset);
 			expect(maximumActive).toBeLessThanOrEqual(BATCH_STYLE_CONCURRENCY);
 			expect(started).toEqual([1, 2, 3, 4, 5]);
 			expect(saved.sort((left, right) => left - right)).toEqual([1, 3, 4, 5]);
@@ -103,5 +103,24 @@ describe('BatchStyleService', () => {
 		} finally {
 			globalState.currentProject = null;
 		}
+	});
+
+	it('leaves unselected project style states untouched', async () => {
+		const selected = createItem(1);
+		const ignored = createItem(2);
+		const applied: number[] = [];
+		const service = new BatchStyleService({
+			loadProject: async (projectId) => ({ detail: { id: projectId } }) as Project,
+			applyPreset: async (project) => {
+				applied.push(project.detail.id);
+			},
+			saveProject: async () => undefined,
+			saveBatch: async () => undefined
+		});
+
+		await service.run(new Batch('Batch', [selected, ignored]), [selected], preset);
+
+		expect(applied).toEqual([selected.projectId]);
+		expect(ignored.style).toEqual(createDefaultBatchStyleState());
 	});
 });

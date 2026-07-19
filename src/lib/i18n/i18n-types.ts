@@ -9924,6 +9924,10 @@ type RootTranslation = {
 		 */
 		applyStyleToAllProjects: string;
 		/**
+		 * A​p​p​l​y​ ​s​t​y​l​e​ ​t​o​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​s
+		 */
+		applyStyleToSelectedProjects: string;
+		/**
 		 * S​e​l​e​c​t​ ​a​ ​s​a​v​e​d​ ​p​r​e​s​e​t
 		 */
 		selectSavedPreset: string;
@@ -9937,6 +9941,11 @@ type RootTranslation = {
 		 */
 		styleAllProjectsScope: RequiredParams<'count'>;
 		/**
+		 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​u​p​d​a​t​e​ ​t​h​e​ ​{​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​(​s​)​.
+		 * @param {unknown} count
+		 */
+		styleSelectedProjectsScope: RequiredParams<'count'>;
+		/**
 		 * E​x​i​s​t​i​n​g​ ​s​t​y​l​e​s​ ​w​i​l​l​ ​b​e​ ​r​e​p​l​a​c​e​d​ ​b​y​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​e​s​e​t​.
 		 */
 		existingStylesReplaced: string;
@@ -9948,7 +9957,7 @@ type RootTranslation = {
 		 */
 		applyingStyleProgress: RequiredParams<'completed' | 'failed' | 'total'>;
 		/**
-		 * S​t​y​l​e​ ​a​p​p​l​i​e​d​ ​t​o​ ​a​l​l​ ​p​r​o​j​e​c​t​s​.
+		 * S​t​y​l​e​ ​a​p​p​l​i​e​d​ ​t​o​ ​a​l​l​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​s​.
 		 */
 		styleApplied: string;
 		/**
@@ -19820,6 +19829,10 @@ export type TranslationFunctions = {
 		 */
 		applyStyleToAllProjects: () => LocalizedString;
 		/**
+		 * Apply style to selected projects
+		 */
+		applyStyleToSelectedProjects: () => LocalizedString;
+		/**
 		 * Select a saved preset
 		 */
 		selectSavedPreset: () => LocalizedString;
@@ -19831,6 +19844,10 @@ export type TranslationFunctions = {
 		 * This action will update all {count} projects in the batch.
 		 */
 		styleAllProjectsScope: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * This action will update the {count} selected project(s).
+		 */
+		styleSelectedProjectsScope: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * Existing styles will be replaced by the selected preset.
 		 */
@@ -19844,7 +19861,7 @@ export type TranslationFunctions = {
 			total: unknown;
 		}) => LocalizedString;
 		/**
-		 * Style applied to all projects.
+		 * Style applied to all selected projects.
 		 */
 		styleApplied: () => LocalizedString;
 		/**

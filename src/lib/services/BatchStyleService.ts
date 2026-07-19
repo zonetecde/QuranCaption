@@ -48,13 +48,18 @@ export class BatchStyleService {
 	}
 
 	/**
-	 * Applique un preset unique à tous les projets avec trois workers maximum.
+	 * Applique un preset unique aux projets fournis avec trois workers maximum.
 	 * @param {Batch} batch Batch complet à modifier.
+	 * @param {BatchProjectItem[]} selectedItems Projets cochés à modifier.
 	 * @param {SavedVideoStylePreset} preset Preset local sélectionné.
 	 * @returns {Promise<BatchStyleProgress>} Résumé final de l'exécution.
 	 */
-	async run(batch: Batch, preset: SavedVideoStylePreset): Promise<BatchStyleProgress> {
-		const items = [...batch.projects].sort((left, right) => left.order - right.order);
+	async run(
+		batch: Batch,
+		selectedItems: BatchProjectItem[],
+		preset: SavedVideoStylePreset
+	): Promise<BatchStyleProgress> {
+		const items = [...selectedItems].sort((left, right) => left.order - right.order);
 		for (const item of items) {
 			item.style = {
 				status: 'queued',

@@ -351,11 +351,11 @@
 	}
 
 	/**
-	 * Ouvre la sélection du preset global sans dépendre des projets cochés.
+	 * Ouvre la sélection du preset pour les projets cochés.
 	 * @returns {void}
 	 */
 	function openStyleModal(): void {
-		if (!batch || batch.projects.length === 0 || incompatibleQueueActive) return;
+		if (!batch || selectedProjects.length === 0 || incompatibleQueueActive) return;
 		selectedStylePresetId = null;
 		styleOverwriteConfirmed = false;
 		showStyleModal = true;
@@ -449,8 +449,8 @@
 	}
 
 	/**
-	 * Applique le preset confirmé à l'ensemble du Batch.
-	 * @returns {Promise<void>} Promesse résolue après tous les projets.
+	 * Applique le preset confirmé aux projets cochés.
+	 * @returns {Promise<void>} Promesse résolue après les projets sélectionnés.
 	 */
 	async function applyStyleToBatch(): Promise<void> {
 		if (!batch || !selectedStylePreset || !styleOverwriteConfirmed || incompatibleQueueActive)
@@ -461,8 +461,8 @@
 			active: 0,
 			completed: 0,
 			failed: 0,
-			remaining: batch.projects.length,
-			total: batch.projects.length
+			remaining: selectedProjects.length,
+			total: selectedProjects.length
 		};
 		try {
 			const service = new BatchStyleService({
@@ -471,7 +471,11 @@
 					refreshProjectRow(item);
 				}
 			});
-			const result = await service.run(batch, selectedStylePreset as SavedVideoStylePreset);
+			const result = await service.run(
+				batch,
+				selectedProjects,
+				selectedStylePreset as SavedVideoStylePreset
+			);
 			if (result.failed > 0) {
 				toast.error(batchMessage('styleAppliedWithFailures', { failed: result.failed }));
 			} else {
@@ -485,11 +489,11 @@
 	}
 
 	/**
-	 * Inspecte tout le Batch avant d'afficher la confirmation d'export.
+	 * Inspecte les projets cochés avant d'afficher la confirmation d'export.
 	 * @returns {Promise<void>} Promesse résolue lorsque les incompatibilités sont connues.
 	 */
 	async function openExportModal(): Promise<void> {
-		if (!batch || batch.projects.length === 0 || incompatibleQueueActive) return;
+		if (!batch || selectedProjects.length === 0 || incompatibleQueueActive) return;
 		showExportModal = true;
 		exportModalLoading = true;
 		exportInspection = [];
@@ -497,7 +501,7 @@
 		exportNonReadyProjects = false;
 		exportOnlyRecitation = false;
 		try {
-			exportInspection = await inspectBatchExportEligibility(batch.projects);
+			exportInspection = await inspectBatchExportEligibility(selectedProjects);
 		} finally {
 			exportModalLoading = false;
 		}
@@ -1378,11 +1382,11 @@
 						<button
 							class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-3"
 							type="button"
-							disabled={batch.projects.length === 0 || incompatibleQueueActive}
+							disabled={selectedProjects.length === 0 || incompatibleQueueActive}
 							title={incompatibleQueueActive
 								? batchMessage('anotherBatchOperationActive')
-								: batchMessage('applyStyleToAllProjects')}
-							aria-label={batchMessage('applyStyleToAllProjects')}
+								: batchMessage('applyStyleToSelectedProjects')}
+							aria-label={batchMessage('applyStyleToSelectedProjects')}
 							onclick={openStyleModal}
 						>
 							<span class="material-icons-outlined leading-none">palette</span>
@@ -1391,17 +1395,21 @@
 						<button
 							class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-3"
 							type="button"
-							disabled={batch.projects.length === 0 || incompatibleQueueActive}
+							disabled={selectedProjects.length === 0 || incompatibleQueueActive}
 							title={exportQueueActive
 								? batchMessage('exportCurrentlyRunning')
 								: incompatibleQueueActive
 									? batchMessage('anotherBatchOperationActive')
-									: batchMessage('exportAllProjects')}
-							aria-label={batchMessage('exportAllProjects')}
+									: batchMessage('exportSelectedProjects', {
+											count: selectedProjects.length
+										})}
+							aria-label={batchMessage('exportSelectedProjects', {
+								count: selectedProjects.length
+							})}
 							onclick={openExportModal}
 						>
 							<span class="material-icons-outlined leading-none">file_download</span>
-							<span class="hidden leading-none xl:inline">{batchMessage('exportAll')}</span>
+							<span class="hidden leading-none xl:inline">{$LL.common.export()}</span>
 						</button>
 					</div>
 				</div>
@@ -1640,7 +1648,7 @@
 			aria-labelledby="batch-style-title"
 		>
 			<h2 id="batch-style-title" class="text-xl font-semibold text-[var(--text-primary)]">
-				{batchMessage('applyStyleToAllProjects')}
+				{batchMessage('applyStyleToSelectedProjects')}
 			</h2>
 			<p class="mt-2 text-sm text-[var(--text-secondary)]">
 				{batchMessage('selectSavedPreset')}
@@ -1674,7 +1682,7 @@
 				{/each}
 			</div>
 			<p class="mt-4 rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
-				{batchMessage('styleAllProjectsScope', { count: batch.projects.length })}
+				{batchMessage('styleSelectedProjectsScope', { count: selectedProjects.length })}
 			</p>
 			<label class="mt-4 flex gap-3 text-sm text-[var(--text-secondary)]">
 				<input type="checkbox" bind:checked={styleOverwriteConfirmed} />
@@ -1710,7 +1718,7 @@
 			aria-labelledby="batch-export-title"
 		>
 			<h2 id="batch-export-title" class="text-xl font-semibold text-[var(--text-primary)]">
-				{batchMessage('exportAllProjects')}
+				{batchMessage('exportSelectedProjects', { count: selectedProjects.length })}
 			</h2>
 			<p class="mt-2 text-sm text-[var(--text-secondary)]">
 				{batchMessage('usingEachProjectSavedSettings')}

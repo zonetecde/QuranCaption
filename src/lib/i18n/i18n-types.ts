@@ -9874,6 +9874,48 @@ type RootTranslation = {
 		 */
 		globalActions: string;
 		/**
+		 * S​e​t​ ​b​a​c​k​g​r​o​u​n​d
+		 */
+		setBackground: string;
+		/**
+		 * S​e​t​ ​b​a​c​k​g​r​o​u​n​d​ ​f​o​r​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​s
+		 */
+		setBackgroundForSelectedProjects: string;
+		/**
+		 * R​e​p​l​a​c​e​ ​t​h​e​ ​v​i​d​e​o​ ​t​r​a​c​k​ ​o​f​ ​t​h​e​ ​{​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​(​s​)​.
+		 * @param {unknown} count
+		 */
+		setBackgroundScope: RequiredParams<'count'>;
+		/**
+		 * C​h​o​o​s​e​ ​a​n​ ​i​m​a​g​e
+		 */
+		chooseBackgroundImage: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​ ​v​i​d​e​o
+		 */
+		chooseBackgroundVideo: string;
+		/**
+		 * B​a​c​k​g​r​o​u​n​d​ ​i​m​a​g​e
+		 */
+		backgroundImage: string;
+		/**
+		 * B​a​c​k​g​r​o​u​n​d​ ​v​i​d​e​o
+		 */
+		backgroundVideo: string;
+		/**
+		 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​b​a​c​k​g​r​o​u​n​d​ ​f​i​l​e​ ​i​s​ ​i​n​v​a​l​i​d​.
+		 */
+		backgroundInvalidFile: string;
+		/**
+		 * B​a​c​k​g​r​o​u​n​d​ ​s​e​t​ ​f​o​r​ ​a​l​l​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​s​.
+		 */
+		backgroundSet: string;
+		/**
+		 * B​a​c​k​g​r​o​u​n​d​ ​r​e​p​l​a​c​e​m​e​n​t​ ​f​i​n​i​s​h​e​d​ ​w​i​t​h​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​u​r​e​(​s​)​.
+		 * @param {unknown} failed
+		 */
+		backgroundSetWithFailures: RequiredParams<'failed'>;
+		/**
 		 * A​p​p​l​y​ ​s​t​y​l​e
 		 */
 		applyStyle: string;
@@ -19729,6 +19771,46 @@ export type TranslationFunctions = {
 		 * Global actions
 		 */
 		globalActions: () => LocalizedString;
+		/**
+		 * Set background
+		 */
+		setBackground: () => LocalizedString;
+		/**
+		 * Set background for selected projects
+		 */
+		setBackgroundForSelectedProjects: () => LocalizedString;
+		/**
+		 * Replace the video track of the {count} selected project(s).
+		 */
+		setBackgroundScope: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Choose an image
+		 */
+		chooseBackgroundImage: () => LocalizedString;
+		/**
+		 * Choose a video
+		 */
+		chooseBackgroundVideo: () => LocalizedString;
+		/**
+		 * Background image
+		 */
+		backgroundImage: () => LocalizedString;
+		/**
+		 * Background video
+		 */
+		backgroundVideo: () => LocalizedString;
+		/**
+		 * The selected background file is invalid.
+		 */
+		backgroundInvalidFile: () => LocalizedString;
+		/**
+		 * Background set for all selected projects.
+		 */
+		backgroundSet: () => LocalizedString;
+		/**
+		 * Background replacement finished with {failed} failure(s).
+		 */
+		backgroundSetWithFailures: (arg: { failed: unknown }) => LocalizedString;
 		/**
 		 * Apply style
 		 */

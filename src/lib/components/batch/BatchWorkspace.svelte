@@ -1,6 +1,10 @@
 <script lang="ts">
 	import {
+		AssetClip,
+		AssetType,
 		isBatchProjectSegmentationVerified,
+		SourceType,
+		TrackType,
 		type Edition,
 		type Batch,
 		type BatchMediaMode,
@@ -66,6 +70,7 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import BatchProgressCard from './BatchProgressCard.svelte';
 	import BatchProjectTable from './BatchProjectTable.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -142,6 +147,8 @@
 	});
 	let qdcTranslations = $state<Record<string, TranslationLanguageData>>({});
 	let showStyleModal = $state(false);
+	let showBackgroundModal = $state(false);
+	let backgroundQueueActive = $state(false);
 	let selectedStylePresetId = $state<number | null>(null);
 	let styleOverwriteConfirmed = $state(false);
 	let styleQueueActive = $state(false);
@@ -277,11 +284,14 @@
 			segmentationQueueActive ||
 			cbrQueueActive ||
 			translationQueueActive ||
+			backgroundQueueActive ||
 			styleQueueActive ||
 			exportQueueActive ||
 			deleteQueueActive
 	);
-	let globalOperationActive = $derived(styleQueueActive || exportQueueActive);
+	let globalOperationActive = $derived(
+		backgroundQueueActive || styleQueueActive || exportQueueActive
+	);
 	let styleGlobalProgress = $derived(
 		Math.round(
 			((styleProgress.completed + styleProgress.failed) * 100) / Math.max(styleProgress.total, 1)
@@ -348,6 +358,93 @@
 		selectedStylePresetId = null;
 		styleOverwriteConfirmed = false;
 		showStyleModal = true;
+	}
+
+	/**
+	 * Ouvre le choix du type de fond pour les projets cochés.
+	 * @returns {void}
+	 */
+	function openBackgroundModal(): void {
+		if (selectedProjects.length === 0 || incompatibleQueueActive) return;
+		showBackgroundModal = true;
+	}
+
+	/**
+	 * Sélectionne puis remplace la piste vidéo des projets cochés par le fond choisi.
+	 * @param {AssetType.Image | AssetType.Video} type Type de fond à sélectionner.
+	 * @returns {Promise<void>} Promesse résolue après la sauvegarde des projets.
+	 */
+	async function setSelectedProjectsBackground(
+		type: AssetType.Image | AssetType.Video
+	): Promise<void> {
+		const filePath = await open({
+			multiple: false,
+			filters: [
+				{
+					name: batchMessage(type === AssetType.Image ? 'backgroundImage' : 'backgroundVideo'),
+					extensions:
+						type === AssetType.Image
+							? ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp']
+							: ['mp4', 'avi', 'mov', 'mkv', 'flv', 'webm']
+				}
+			]
+		});
+		if (typeof filePath !== 'string') return;
+
+		showBackgroundModal = false;
+		backgroundQueueActive = true;
+		queueError = '';
+		let failed = 0;
+		try {
+			for (const item of selectedProjects) {
+				try {
+					const project =
+						globalState.currentProject?.detail.id === item.projectId
+							? globalState.currentProject
+							: await ProjectService.load(item.projectId);
+					const replaceBackground = async (): Promise<void> => {
+						const asset = project.content.addAssetHeadless(filePath, undefined, SourceType.Local, {
+							suppressUiEffects: true,
+							skipConstantBitrateWarning: true
+						});
+						if (!asset || asset.type !== type)
+							throw new Error(batchMessage('backgroundInvalidFile'));
+						await asset.ensureDurationLoaded();
+						if (!asset.exists || asset.hasDurationLoadError()) {
+							throw new Error(batchMessage('backgroundInvalidFile'));
+						}
+						const videoTrack = project.content.timeline.getFirstTrack(TrackType.Video);
+						videoTrack.clips = [
+							new AssetClip(
+								0,
+								type === AssetType.Image
+									? 0
+									: project.content.timeline.getFirstTrack(TrackType.Audio).getDuration().ms,
+								asset.id
+							)
+						];
+						if (type === AssetType.Video) {
+							(videoTrack.clips[0] as AssetClip).loopUntilAudioEnd = true;
+						}
+						await ProjectService.save(project);
+					};
+					if (globalState.currentProject?.detail.id === project.detail.id) {
+						await ProjectHistoryManager.trackAsync('set batch background', replaceBackground);
+					} else {
+						await replaceBackground();
+					}
+				} catch {
+					failed++;
+				}
+			}
+			if (failed > 0) {
+				toast.error(batchMessage('backgroundSetWithFailures', { failed }));
+			} else {
+				toast.success(batchMessage('backgroundSet'));
+			}
+		} finally {
+			backgroundQueueActive = false;
+		}
 	}
 
 	/**
@@ -1265,6 +1362,19 @@
 						<button
 							class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-3"
 							type="button"
+							disabled={selectedProjects.length === 0 || incompatibleQueueActive}
+							title={incompatibleQueueActive
+								? batchMessage('anotherBatchOperationActive')
+								: batchMessage('setBackgroundForSelectedProjects')}
+							aria-label={batchMessage('setBackgroundForSelectedProjects')}
+							onclick={openBackgroundModal}
+						>
+							<span class="material-icons-outlined leading-none">wallpaper</span>
+							<span class="hidden leading-none xl:inline">{batchMessage('setBackground')}</span>
+						</button>
+						<button
+							class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-3"
+							type="button"
 							disabled={batch.projects.length === 0 || incompatibleQueueActive}
 							title={incompatibleQueueActive
 								? batchMessage('anotherBatchOperationActive')
@@ -1472,6 +1582,51 @@
 		{/if}
 	</div>
 </div>
+
+{#if showBackgroundModal}
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">
+		<div
+			class="w-full max-w-lg rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-2xl"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="batch-background-title"
+		>
+			<h2 id="batch-background-title" class="text-xl font-semibold text-[var(--text-primary)]">
+				{batchMessage('setBackground')}
+			</h2>
+			<p class="mt-2 text-sm text-[var(--text-secondary)]">
+				{batchMessage('setBackgroundScope', { count: selectedProjects.length })}
+			</p>
+			<div class="mt-5 grid gap-3 sm:grid-cols-2">
+				<button
+					class="btn btn-icon inline-flex min-h-20 items-center justify-center gap-3 px-4"
+					type="button"
+					onclick={() => setSelectedProjectsBackground(AssetType.Image)}
+				>
+					<span class="material-icons-outlined">image</span>
+					<span>{batchMessage('chooseBackgroundImage')}</span>
+				</button>
+				<button
+					class="btn btn-icon inline-flex min-h-20 items-center justify-center gap-3 px-4"
+					type="button"
+					onclick={() => setSelectedProjectsBackground(AssetType.Video)}
+				>
+					<span class="material-icons-outlined">movie</span>
+					<span>{batchMessage('chooseBackgroundVideo')}</span>
+				</button>
+			</div>
+			<div class="mt-6 flex justify-end">
+				<button
+					class="btn btn-icon h-10 px-4"
+					type="button"
+					onclick={() => (showBackgroundModal = false)}
+				>
+					{$LL.common.cancel()}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 {#if showStyleModal && batch}
 	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">

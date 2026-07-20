@@ -457,10 +457,9 @@ pub fn preprocess_background_videos(
         i64::MAX
     };
 
-    // Détection du cas "direct single pass": une seule vidéo, pas de blur, pas de loop
-    let can_direct_single_pass = video_inputs.len() == 1
-        && !video_inputs[0].loop_until_audio_end.unwrap_or(false)
-        && !blur.map_or(false, |b| b > 0.0);
+    // Détection du cas "direct single pass": une seule vidéo sans blur.
+    // La boucle est ignorée plus bas si la source couvre déjà toute la durée nécessaire.
+    let can_direct_single_pass = video_inputs.len() == 1 && !blur.map_or(false, |b| b > 0.0);
 
     // Parcourir les vidéos et extraire uniquement les segments pertinents
     let mut cum_start: i64 = 0;
@@ -564,7 +563,7 @@ pub fn preprocess_background_videos(
 
         let must_regenerate = !ffmpeg_utils::is_cached_video_valid(&dst, expected_duration_s);
 
-        // Voie directe simple : une seule vidéo sans blur ni loop, pas de cache
+        // Voie directe simple : une seule vidéo sans blur couvrant toute la durée, pas de cache
         if must_regenerate && can_direct_single_pass && idx == 0 {
             let src_duration_s = video_durations_ms[0] as f64 / 1000.0;
             let available_s = (src_duration_s - (start_within as f64 / 1000.0)).max(0.0);

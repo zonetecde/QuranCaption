@@ -542,7 +542,8 @@
 			shadow: 'shadow-enable',
 			outline: 'outline-enable',
 			'text-glow': 'text-glow-enable',
-			'text-neon': 'text-neon-enable'
+			'text-neon': 'text-neon-enable',
+			'line-background': 'line-background-enable'
 		};
 		const enabler = categoryEnablers[category.id];
 		if (enabler && id !== enabler && !isFeatureEnabled(enabler, category)) return true;

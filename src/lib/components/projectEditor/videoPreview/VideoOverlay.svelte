@@ -1201,6 +1201,27 @@
 <!-- ===================================================================== -->
 
 <style>
+	/** Clone le décor sur chaque fragment créé par le retour à la ligne automatique. */
+	:global(#subtitles-container .line-background) {
+		-webkit-box-decoration-break: clone;
+		box-decoration-break: clone;
+		padding-inline: calc(var(--line-background-height, 0px) / 2);
+		padding-block: calc(
+			var(--line-background-height) / 2 +
+				max(var(--line-background-position), calc(0px - var(--line-background-position)))
+		);
+		background:
+			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) left
+				calc(50% + var(--line-background-position)) / var(--line-background-height)
+				var(--line-background-height) no-repeat,
+			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) right
+				calc(50% + var(--line-background-position)) / var(--line-background-height)
+				var(--line-background-height) no-repeat,
+			linear-gradient(var(--line-background-color), var(--line-background-color)) center
+				calc(50% + var(--line-background-position)) / calc(100% - var(--line-background-height))
+				var(--line-background-height) no-repeat;
+	}
+
 	/**
 	 * Conteneur inline pour les segments de traduction.
 	 * `white-space: inherit` assure que le parent (qui a `pre-line`)

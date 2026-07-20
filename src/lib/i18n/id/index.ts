@@ -858,14 +858,24 @@ const id = {
 			'wbw-show-current-word-only': 'Tampilkan hanya kata saat ini',
 			'wbw-current-word-custom-css': 'CSS kustom (kata saat ini)',
 			'enable-wbw-current-word-opacity': 'Aktifkan opasitas kata saat ini',
-			'wbw-current-word-opacity': 'Opasitas kata saat ini'
+			'wbw-current-word-opacity': 'Opasitas kata saat ini',
+			'line-background': 'Latar per baris',
+			'line-background-enable': 'Aktifkan latar per baris',
+			'line-background-color': 'Warna bilah',
+			'line-background-position': 'Posisi bilah',
+			'line-background-height': 'Tinggi bilah'
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
 			'word-by-word-highlight': 'Terapkan efek kata demi kata saat timestamp WBW tersedia',
 			'wbw-current-word-custom-css': 'CSS kustom yang diterapkan ke kata WBW saat ini',
 			'enable-wbw-current-word-opacity': 'Timpa opasitas kata WBW saat ini',
-			'wbw-current-word-opacity': 'Opasitas yang diterapkan ke kata WBW saat ini'
+			'wbw-current-word-opacity': 'Opasitas yang diterapkan ke kata WBW saat ini',
+			'line-background': 'Tambahkan bilah latar membulat di belakang setiap baris subtitle',
+			'line-background-enable': 'Aktifkan atau nonaktifkan bilah latar di belakang setiap baris',
+			'line-background-color': 'Atur warna bilah latar',
+			'line-background-position': 'Atur posisi vertikal bilah terhadap teks',
+			'line-background-height': 'Atur tinggi bilah latar'
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',

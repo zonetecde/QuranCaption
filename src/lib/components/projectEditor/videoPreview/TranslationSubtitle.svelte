@@ -662,21 +662,24 @@
 	class={`translation absolute subtitle select-none z-10 ${edition} ${tailwind} ${helperStyles}`}
 	style={`opacity: ${wbwState().enabled ? 1 : subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
 >
+	<!-- Le wrapper externe porte le layout flex, le fond interne reste fragmentable par ligne. -->
 	<span class="translation-inline-flow">
-		{#if true}
-			{@const state = wbwState()}
-			{@const data = wbwRenderData()}
-			{#each state.enabled && data ? visibleWbwSegments() : visibleSegments() as segment (segment.key)}
-				{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
-				{#if segmentStyle}
-					<span style={segmentStyle}>{segment.text}</span>
-				{:else}
-					{segment.text}
-				{/if}
-				{#if segment.flags.lineBreak}
-					<br />
-				{/if}
-			{/each}
-		{/if}
+		<span class="line-background">
+			{#if true}
+				{@const state = wbwState()}
+				{@const data = wbwRenderData()}
+				{#each state.enabled && data ? visibleWbwSegments() : visibleSegments() as segment (segment.key)}
+					{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
+					{#if segmentStyle}
+						<span style={segmentStyle}>{segment.text}</span>
+					{:else}
+						{segment.text}
+					{/if}
+					{#if segment.flags.lineBreak}
+						<br />
+					{/if}
+				{/each}
+			{/if}
+		</span>
 	</span>
 </p>

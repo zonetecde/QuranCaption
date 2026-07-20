@@ -716,7 +716,7 @@
 
 				{#if state.enabled && subtitle instanceof SubtitleClip}
 					<!-- Rendu WBW avec crochets décoratifs -->
-					<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+					<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
 						{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 							<span
 								class="arabic-wbw-group"
@@ -793,7 +793,7 @@
 				<span style={bracketCss}>{glyphs.closing}</span>
 			{:else if state.enabled && subtitle instanceof SubtitleClip}
 				<!-- Rendu WBW sans crochets décoratifs -->
-				<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+				<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
 					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 						<span
 							class="arabic-wbw-group"
@@ -871,7 +871,7 @@
 {/if}
 
 {#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
-	<span class="translation-inline-flow">
+	<span class="translation-inline-flow line-background">
 		{#each segments as segment (segment.key)}
 			{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
 			{#if segmentStyle}

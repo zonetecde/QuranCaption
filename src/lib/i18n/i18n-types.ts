@@ -4498,6 +4498,26 @@ type RootTranslation = {
 			 */
 			'text-intensity': string;
 			/**
+			 * L​i​n​e​ ​B​a​c​k​g​r​o​u​n​d
+			 */
+			'line-background': string;
+			/**
+			 * E​n​a​b​l​e​ ​L​i​n​e​ ​B​a​c​k​g​r​o​u​n​d
+			 */
+			'line-background-enable': string;
+			/**
+			 * B​a​r​ ​C​o​l​o​r
+			 */
+			'line-background-color': string;
+			/**
+			 * B​a​r​ ​P​o​s​i​t​i​o​n
+			 */
+			'line-background-position': string;
+			/**
+			 * B​a​r​ ​H​e​i​g​h​t
+			 */
+			'line-background-height': string;
+			/**
 			 * V​i​s​u​a​l​ ​E​f​f​e​c​t​s
 			 */
 			effects: string;
@@ -5103,6 +5123,26 @@ type RootTranslation = {
 			 * S​e​t​ ​t​h​e​ ​i​n​t​e​n​s​i​t​y​ ​o​f​ ​t​h​e​ ​n​e​o​n​ ​e​f​f​e​c​t
 			 */
 			'text-intensity': string;
+			/**
+			 * A​d​d​ ​a​ ​r​o​u​n​d​e​d​ ​b​a​c​k​g​r​o​u​n​d​ ​b​a​r​ ​b​e​h​i​n​d​ ​e​a​c​h​ ​s​u​b​t​i​t​l​e​ ​l​i​n​e
+			 */
+			'line-background': string;
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​b​a​r​ ​b​e​h​i​n​d​ ​e​a​c​h​ ​s​u​b​t​i​t​l​e​ ​l​i​n​e
+			 */
+			'line-background-enable': string;
+			/**
+			 * S​e​t​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​b​a​r
+			 */
+			'line-background-color': string;
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​b​a​r​ ​r​e​l​a​t​i​v​e​ ​t​o​ ​t​h​e​ ​t​e​x​t
+			 */
+			'line-background-position': string;
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​h​e​i​g​h​t​ ​o​f​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​b​a​r
+			 */
+			'line-background-height': string;
 			/**
 			 * A​d​d​ ​v​i​s​u​a​l​ ​e​f​f​e​c​t​s​ ​a​n​d​ ​f​i​l​t​e​r​s​ ​t​o​ ​e​n​h​a​n​c​e​ ​s​u​b​t​i​t​l​e​ ​a​p​p​e​a​r​a​n​c​e
 			 */
@@ -14486,6 +14526,26 @@ export type TranslationFunctions = {
 			 */
 			'text-intensity': () => LocalizedString;
 			/**
+			 * Line Background
+			 */
+			'line-background': () => LocalizedString;
+			/**
+			 * Enable Line Background
+			 */
+			'line-background-enable': () => LocalizedString;
+			/**
+			 * Bar Color
+			 */
+			'line-background-color': () => LocalizedString;
+			/**
+			 * Bar Position
+			 */
+			'line-background-position': () => LocalizedString;
+			/**
+			 * Bar Height
+			 */
+			'line-background-height': () => LocalizedString;
+			/**
 			 * Visual Effects
 			 */
 			effects: () => LocalizedString;
@@ -15091,6 +15151,26 @@ export type TranslationFunctions = {
 			 * Set the intensity of the neon effect
 			 */
 			'text-intensity': () => LocalizedString;
+			/**
+			 * Add a rounded background bar behind each subtitle line
+			 */
+			'line-background': () => LocalizedString;
+			/**
+			 * Enable or disable the background bar behind each subtitle line
+			 */
+			'line-background-enable': () => LocalizedString;
+			/**
+			 * Set the color of the background bar
+			 */
+			'line-background-color': () => LocalizedString;
+			/**
+			 * Adjust the vertical position of the bar relative to the text
+			 */
+			'line-background-position': () => LocalizedString;
+			/**
+			 * Adjust the height of the background bar
+			 */
+			'line-background-height': () => LocalizedString;
 			/**
 			 * Add visual effects and filters to enhance subtitle appearance
 			 */

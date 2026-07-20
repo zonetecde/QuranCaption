@@ -557,7 +557,12 @@
 					'wbw-show-current-word-only',
 					'wbw-current-word-custom-css',
 					'enable-wbw-current-word-opacity',
-					'wbw-current-word-opacity'
+					'wbw-current-word-opacity',
+					'enable-wbw-line-background',
+					'wbw-line-background-color',
+					'wbw-line-background-position',
+					'wbw-line-background-height',
+					'wbw-line-background-padding'
 				].includes(id)
 			)
 				return true;
@@ -565,10 +570,26 @@
 			if (id === 'wbw-current-word-opacity') {
 				return !isFeatureEnabled('enable-wbw-current-word-opacity', category);
 			}
-			if (['wbw-color', 'wbw-persist-color'].includes(id)) {
+			if (id === 'wbw-color') {
 				return !isFeatureEnabled('enable-wbw-highlight', category);
 			}
+			if (id === 'wbw-persist-color') {
+				return (
+					!isFeatureEnabled('enable-wbw-highlight', category) &&
+					!isFeatureEnabled('enable-wbw-line-background', category)
+				);
+			}
 			if (id === 'wbw-bg-color') return !isFeatureEnabled('enable-wbw-background', category);
+			if (
+				[
+					'wbw-line-background-color',
+					'wbw-line-background-position',
+					'wbw-line-background-height',
+					'wbw-line-background-padding'
+				].includes(id)
+			) {
+				return !isFeatureEnabled('enable-wbw-line-background', category);
+			}
 			if (id === 'wbw-underline-thickness') {
 				return !isFeatureEnabled('enable-wbw-underline', category);
 			}
@@ -688,7 +709,9 @@
 
 		const remainingStyles = styles.filter((style) => stylesById.has(style.id));
 		if (remainingStyles.length > 0) {
-			groups.push({ label: 'groupAdvanced', styles: remainingStyles });
+			const advancedGroup = groups.find((group) => group.label === 'groupAdvanced');
+			if (advancedGroup) advancedGroup.styles.push(...remainingStyles);
+			else groups.push({ label: 'groupAdvanced', styles: remainingStyles });
 		}
 
 		return groups.length > 1 ? groups : [{ styles }];
@@ -706,6 +729,9 @@
 			(category.id === 'background' &&
 				!['max-height', 'width'].includes(style.id) &&
 				isBackgroundMaxHeightMissing()) ||
+			(category.id === 'word-by-word-highlight' &&
+				['wbw-line-background-position', 'wbw-line-background-height'].includes(style.id) &&
+				isFeatureEnabled('line-background-enable')) ||
 			(styleSearchQuery() !== '' && isStyleInactiveByDependency(category, style))
 		);
 	}

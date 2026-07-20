@@ -1453,6 +1453,11 @@ const es = {
 			'wbw-always-show-verse-number': 'Mostrar siempre el número de versículo',
 			'enable-wbw-background': 'Activar fondo wbw',
 			'wbw-bg-color': 'Color de fondo',
+			'enable-wbw-line-background': 'Activar barra WBW',
+			'wbw-line-background-color': 'Color de la barra WBW',
+			'wbw-line-background-position': 'Posición de la barra WBW',
+			'wbw-line-background-height': 'Altura de la barra WBW',
+			'wbw-line-background-padding': 'Espaciado horizontal de la barra WBW',
 			'wbw-current-word-custom-css': 'CSS personalizado (palabra actual)',
 			'enable-wbw-current-word-opacity': 'Activar opacidad de la palabra actual',
 			'wbw-current-word-opacity': 'Opacidad de la palabra actual',
@@ -1624,6 +1629,15 @@ const es = {
 				'Mantener el número de versículo visible permanentemente durante el resaltado palabra por palabra. Desactivado, el número aparece con la última palabra del versículo.',
 			'enable-wbw-background': 'Activar un color de fondo detrás de las palabras resaltadas',
 			'wbw-bg-color': 'Color de fondo aplicado a las palabras resaltadas',
+			'enable-wbw-line-background':
+				'Resaltar las palabras recitadas con el estilo de barra de fondo redondeada',
+			'wbw-line-background-color': 'Color de la barra aplicado a las palabras resaltadas',
+			'wbw-line-background-position':
+				'Ajustar la posición de la barra WBW cuando la barra global está desactivada',
+			'wbw-line-background-height':
+				'Ajustar la altura de la barra WBW cuando la barra global está desactivada',
+			'wbw-line-background-padding':
+				'Añadir el mismo espacio horizontal en ambos extremos de la barra WBW',
 			'wbw-current-word-custom-css': 'CSS personalizado aplicado a la palabra WBW actual',
 			'enable-wbw-current-word-opacity': 'Sobrescribir la opacidad de la palabra WBW actual',
 			'wbw-current-word-opacity': 'Opacidad aplicada a la palabra WBW actual',

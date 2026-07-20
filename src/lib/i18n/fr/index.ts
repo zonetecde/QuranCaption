@@ -1455,6 +1455,11 @@ const fr = {
 			'wbw-always-show-verse-number': 'Toujours afficher le numéro de verset',
 			'enable-wbw-background': 'Activer l\u2019arrière-plan wbw',
 			'wbw-bg-color': 'Couleur d\u2019arrière-plan',
+			'enable-wbw-line-background': 'Activer la barre WBW',
+			'wbw-line-background-color': 'Couleur de la barre WBW',
+			'wbw-line-background-position': 'Position de la barre WBW',
+			'wbw-line-background-height': 'Hauteur de la barre WBW',
+			'wbw-line-background-padding': 'Marge horizontale de la barre WBW',
 			'wbw-current-word-custom-css': 'CSS personnalisé (mot actuel)',
 			'enable-wbw-current-word-opacity': 'Activer l’opacité du mot actuel',
 			'wbw-current-word-opacity': 'Opacité du mot actuel',
@@ -1627,6 +1632,15 @@ const fr = {
 			'enable-wbw-background':
 				'Activer une couleur d\u2019arrière-plan derrière les mots surlignés',
 			'wbw-bg-color': 'Couleur d\u2019arrière-plan appliquée aux mots surlignés',
+			'enable-wbw-line-background':
+				'Surligner les mots récités avec le style de barre de fond arrondie',
+			'wbw-line-background-color': 'Couleur de la barre appliquée aux mots surlignés',
+			'wbw-line-background-position':
+				'Ajuster la position de la barre WBW lorsque la barre globale est désactivée',
+			'wbw-line-background-height':
+				'Ajuster la hauteur de la barre WBW lorsque la barre globale est désactivée',
+			'wbw-line-background-padding':
+				'Ajouter un espacement horizontal identique aux deux extrémités de la barre WBW',
 			'wbw-current-word-custom-css': 'CSS personnalisé appliqué au mot WBW actuel',
 			'enable-wbw-current-word-opacity': 'Remplacer l’opacité du mot WBW actuel',
 			'wbw-current-word-opacity': 'Opacité appliquée au mot WBW actuel',

@@ -4338,6 +4338,26 @@ type RootTranslation = {
 			 */
 			'wbw-bg-color': string;
 			/**
+			 * E​n​a​b​l​e​ ​W​B​W​ ​l​i​n​e​ ​b​a​c​k​g​r​o​u​n​d
+			 */
+			'enable-wbw-line-background': string;
+			/**
+			 * W​B​W​ ​b​a​r​ ​c​o​l​o​r
+			 */
+			'wbw-line-background-color': string;
+			/**
+			 * W​B​W​ ​b​a​r​ ​p​o​s​i​t​i​o​n
+			 */
+			'wbw-line-background-position': string;
+			/**
+			 * W​B​W​ ​b​a​r​ ​h​e​i​g​h​t
+			 */
+			'wbw-line-background-height': string;
+			/**
+			 * W​B​W​ ​h​o​r​i​z​o​n​t​a​l​ ​p​a​d​d​i​n​g
+			 */
+			'wbw-line-background-padding': string;
+			/**
 			 * C​u​s​t​o​m​ ​C​S​S​ ​(​c​u​r​r​e​n​t​ ​w​o​r​d​)
 			 */
 			'wbw-current-word-custom-css': string;
@@ -4963,6 +4983,26 @@ type RootTranslation = {
 			 * B​a​c​k​g​r​o​u​n​d​ ​c​o​l​o​r​ ​a​p​p​l​i​e​d​ ​t​o​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
 			'wbw-bg-color': string;
+			/**
+			 * H​i​g​h​l​i​g​h​t​ ​r​e​c​i​t​e​d​ ​w​o​r​d​s​ ​w​i​t​h​ ​t​h​e​ ​r​o​u​n​d​e​d​ ​l​i​n​e​ ​b​a​c​k​g​r​o​u​n​d​ ​s​t​y​l​e
+			 */
+			'enable-wbw-line-background': string;
+			/**
+			 * C​o​l​o​r​ ​a​p​p​l​i​e​d​ ​t​o​ ​t​h​e​ ​l​i​n​e​ ​b​a​c​k​g​r​o​u​n​d​ ​o​f​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 */
+			'wbw-line-background-color': string;
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​W​B​W​ ​b​a​r​ ​p​o​s​i​t​i​o​n​ ​w​h​e​n​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​l​i​n​e​ ​b​a​c​k​g​r​o​u​n​d​ ​i​s​ ​d​i​s​a​b​l​e​d
+			 */
+			'wbw-line-background-position': string;
+			/**
+			 * A​d​j​u​s​t​ ​t​h​e​ ​W​B​W​ ​b​a​r​ ​h​e​i​g​h​t​ ​w​h​e​n​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​l​i​n​e​ ​b​a​c​k​g​r​o​u​n​d​ ​i​s​ ​d​i​s​a​b​l​e​d
+			 */
+			'wbw-line-background-height': string;
+			/**
+			 * A​d​d​ ​e​q​u​a​l​ ​h​o​r​i​z​o​n​t​a​l​ ​s​p​a​c​i​n​g​ ​t​o​ ​b​o​t​h​ ​e​n​d​s​ ​o​f​ ​t​h​e​ ​W​B​W​ ​b​a​r
+			 */
+			'wbw-line-background-padding': string;
 			/**
 			 * C​u​s​t​o​m​ ​C​S​S​ ​a​p​p​l​i​e​d​ ​t​o​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​W​B​W​ ​w​o​r​d
 			 */
@@ -14366,6 +14406,26 @@ export type TranslationFunctions = {
 			 */
 			'wbw-bg-color': () => LocalizedString;
 			/**
+			 * Enable WBW line background
+			 */
+			'enable-wbw-line-background': () => LocalizedString;
+			/**
+			 * WBW bar color
+			 */
+			'wbw-line-background-color': () => LocalizedString;
+			/**
+			 * WBW bar position
+			 */
+			'wbw-line-background-position': () => LocalizedString;
+			/**
+			 * WBW bar height
+			 */
+			'wbw-line-background-height': () => LocalizedString;
+			/**
+			 * WBW horizontal padding
+			 */
+			'wbw-line-background-padding': () => LocalizedString;
+			/**
 			 * Custom CSS (current word)
 			 */
 			'wbw-current-word-custom-css': () => LocalizedString;
@@ -14991,6 +15051,26 @@ export type TranslationFunctions = {
 			 * Background color applied to highlighted words
 			 */
 			'wbw-bg-color': () => LocalizedString;
+			/**
+			 * Highlight recited words with the rounded line background style
+			 */
+			'enable-wbw-line-background': () => LocalizedString;
+			/**
+			 * Color applied to the line background of highlighted words
+			 */
+			'wbw-line-background-color': () => LocalizedString;
+			/**
+			 * Adjust the WBW bar position when the subtitle line background is disabled
+			 */
+			'wbw-line-background-position': () => LocalizedString;
+			/**
+			 * Adjust the WBW bar height when the subtitle line background is disabled
+			 */
+			'wbw-line-background-height': () => LocalizedString;
+			/**
+			 * Add equal horizontal spacing to both ends of the WBW bar
+			 */
+			'wbw-line-background-padding': () => LocalizedString;
 			/**
 			 * Custom CSS applied to the current WBW word
 			 */

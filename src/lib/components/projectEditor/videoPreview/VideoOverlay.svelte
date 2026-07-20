@@ -1203,6 +1203,8 @@
 <style>
 	/** Clone le décor sur chaque fragment créé par le retour à la ligne automatique. */
 	:global(#subtitles-container .line-background) {
+		position: relative;
+		z-index: 0;
 		-webkit-box-decoration-break: clone;
 		box-decoration-break: clone;
 		padding-inline: calc(var(--line-background-height, 0px) / 2);
@@ -1220,6 +1222,45 @@
 			linear-gradient(var(--line-background-color), var(--line-background-color)) center
 				calc(50% + var(--line-background-position)) / calc(100% - var(--line-background-height))
 				var(--line-background-height) no-repeat;
+	}
+
+	/** Dessine la barre WBW hors du flux pour qu'une position basse ne la coupe pas. */
+	:global(#subtitles-container .wbw-line-background) {
+		position: relative;
+	}
+
+	:global(#subtitles-container .wbw-line-background::before) {
+		position: absolute;
+		z-index: 0;
+		top: calc(50% + var(--wbw-line-background-position) - var(--wbw-line-background-height) / 2);
+		inset-inline: -0.15em;
+		height: var(--wbw-line-background-height);
+		background: var(--wbw-line-background-color);
+		content: '';
+		pointer-events: none;
+	}
+
+	/** Maintient tous les glyphes au-dessus des barres WBW voisines. */
+	:global(#subtitles-container .wbw-line-background-text) {
+		position: relative;
+		z-index: 1;
+	}
+
+	:global(#subtitles-container .wbw-line-background-single::before) {
+		inset-inline: calc(0px - var(--wbw-line-background-padding));
+		border-radius: 999px;
+	}
+
+	:global(#subtitles-container .wbw-line-background-start::before) {
+		inset-inline-start: calc(0px - var(--wbw-line-background-padding));
+		border-start-start-radius: 999px;
+		border-end-start-radius: 999px;
+	}
+
+	:global(#subtitles-container .wbw-line-background-end::before) {
+		inset-inline-end: calc(0px - var(--wbw-line-background-padding));
+		border-start-end-radius: 999px;
+		border-end-end-radius: 999px;
 	}
 
 	/**

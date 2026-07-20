@@ -1457,6 +1457,11 @@ const de = {
 			'wbw-always-show-verse-number': 'Versnummer immer anzeigen',
 			'enable-wbw-background': 'WBW-Hintergrund aktivieren',
 			'wbw-bg-color': 'Hintergrundfarbe',
+			'enable-wbw-line-background': 'WBW-Balken aktivieren',
+			'wbw-line-background-color': 'WBW-Balkenfarbe',
+			'wbw-line-background-position': 'WBW-Balkenposition',
+			'wbw-line-background-height': 'WBW-Balkenhöhe',
+			'wbw-line-background-padding': 'Horizontaler WBW-Balkenabstand',
 			'wbw-current-word-custom-css': 'Benutzerdefiniertes CSS (aktuelles Wort)',
 			'enable-wbw-current-word-opacity': 'Deckkraft des aktuellen Wortes aktivieren',
 			'wbw-current-word-opacity': 'Deckkraft des aktuellen Wortes',
@@ -1627,6 +1632,15 @@ const de = {
 				'Versnummer während der Wort-für-Wort-Hervorhebung dauerhaft sichtbar halten. Deaktiviert erscheint die Nummer mit dem letzten Wort des Verses.',
 			'enable-wbw-background': 'Hintergrundfarbe hinter hervorgehobenen Wörtern aktivieren',
 			'wbw-bg-color': 'Auf hervorgehobene Wörter angewendete Hintergrundfarbe',
+			'enable-wbw-line-background':
+				'Rezitierte Wörter mit dem abgerundeten Hintergrundbalken hervorheben',
+			'wbw-line-background-color': 'Balkenfarbe für hervorgehobene Wörter',
+			'wbw-line-background-position':
+				'Position des WBW-Balkens anpassen, wenn der globale Balken deaktiviert ist',
+			'wbw-line-background-height':
+				'Höhe des WBW-Balkens anpassen, wenn der globale Balken deaktiviert ist',
+			'wbw-line-background-padding':
+				'An beiden Enden des WBW-Balkens den gleichen horizontalen Abstand hinzufügen',
 			'wbw-current-word-custom-css': 'Benutzerdefiniertes CSS für das aktuelle WBW-Wort',
 			'enable-wbw-current-word-opacity': 'Deckkraft des aktuellen WBW-Wortes überschreiben',
 			'wbw-current-word-opacity': 'Deckkraft für das aktuelle WBW-Wort',

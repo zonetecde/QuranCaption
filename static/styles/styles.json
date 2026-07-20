@@ -377,6 +377,11 @@
 						"wbw-glow-blur",
 						"enable-wbw-background",
 						"wbw-bg-color",
+						"enable-wbw-line-background",
+						"wbw-line-background-color",
+						"wbw-line-background-position",
+						"wbw-line-background-height",
+						"wbw-line-background-padding",
 						"enable-wbw-current-word-opacity",
 						"wbw-current-word-opacity"
 					]
@@ -523,6 +528,65 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "highlight"
+			},
+			{
+				"id": "enable-wbw-line-background",
+				"name": "Enable WBW Line Background",
+				"description": "Highlight recited words with the rounded line background style",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "view_stream"
+			},
+			{
+				"id": "wbw-line-background-color",
+				"name": "WBW Bar Color",
+				"description": "Color applied to the line background of highlighted words",
+				"value": "#facc15",
+				"valueType": "color",
+				"css": "",
+				"tailwind": false,
+				"icon": "palette"
+			},
+			{
+				"id": "wbw-line-background-position",
+				"name": "WBW Bar Position",
+				"description": "Adjust the WBW bar position when the subtitle line background is disabled",
+				"value": 15,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "height"
+			},
+			{
+				"id": "wbw-line-background-height",
+				"name": "WBW Bar Height",
+				"description": "Adjust the WBW bar height when the subtitle line background is disabled",
+				"value": 50,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 200,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "line_weight"
+			},
+			{
+				"id": "wbw-line-background-padding",
+				"name": "WBW Bar Horizontal Padding",
+				"description": "Add equal horizontal spacing to both ends of the WBW bar",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "space_bar"
 			},
 			{
 				"id": "enable-wbw-current-word-opacity",

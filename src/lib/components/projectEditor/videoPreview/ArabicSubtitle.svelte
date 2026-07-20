@@ -22,6 +22,7 @@
 		type WordByWordHighlightState,
 		getWordByWordHighlightState as computeWordByWordHighlightState,
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
+		getWordByWordLineBackgroundClass,
 		getWordByWordWordCss as buildWordByWordWordCss,
 		getWordByWordWordOpacity,
 		interpolateCssColor
@@ -731,6 +732,12 @@
 										wbwPreviewFadeDuration()
 									)}
 									<span
+										class={getWordByWordLineBackgroundClass(
+											wordIndex,
+											state,
+											highlightProgress,
+											wbwPreviewFadeDuration()
+										)}
 										style={getCombinedWordByWordCss(
 											wordIndex,
 											state,
@@ -738,10 +745,11 @@
 											wordEntry.flags
 										)}
 									>
-										{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
-											? ' '
-											: ''}
+										<span class="wbw-line-background-text">
+											{wordEntry.text}
+										</span>
 									</span>
+									{i < group.words.length - 1 && !wordEntry.flags.lineBreak ? ' ' : ''}
 									{#if wordEntry.flags.lineBreak}
 										<br />
 									{/if}
@@ -769,6 +777,7 @@
 										state.verseNumberColor
 									)}
 									<span
+										class="wbw-line-background-text"
 										style={(group.suffixFontFamily
 											? `font-family: ${group.suffixFontFamily}; `
 											: '') +
@@ -808,6 +817,12 @@
 									wbwPreviewFadeDuration()
 								)}
 								<span
+									class={getWordByWordLineBackgroundClass(
+										wordIndex,
+										state,
+										highlightProgress,
+										wbwPreviewFadeDuration()
+									)}
 									style={getCombinedWordByWordCss(
 										wordIndex,
 										state,
@@ -815,10 +830,11 @@
 										wordEntry.flags
 									)}
 								>
-									{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
-										? ' '
-										: ''}
+									<span class="wbw-line-background-text">
+										{wordEntry.text}
+									</span>
 								</span>
+								{i < group.words.length - 1 && !wordEntry.flags.lineBreak ? ' ' : ''}
 								{#if wordEntry.flags.lineBreak}
 									<br />
 								{/if}
@@ -846,6 +862,7 @@
 									state.verseNumberColor
 								)}
 								<span
+									class="wbw-line-background-text"
 									style={(group.suffixFontFamily
 										? `font-family: ${group.suffixFontFamily}; `
 										: '') +

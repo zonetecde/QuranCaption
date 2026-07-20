@@ -17,6 +17,11 @@ export type WordByWordHighlightState = {
 	color: string;
 	backgroundEnabled: boolean;
 	backgroundColor: string;
+	lineBackgroundEnabled: boolean;
+	lineBackgroundColor: string;
+	lineBackgroundPosition: number;
+	lineBackgroundHeight: number;
+	lineBackgroundPadding: number;
 	underlineEnabled: boolean;
 	underlineThickness: number;
 	glowEnabled: boolean;
@@ -44,6 +49,7 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
+	const lineBackgroundEnabled = Boolean(getStyleValue('enable-wbw-line-background'));
 	const showCurrentWordOnly = Boolean(getStyleValue('wbw-show-current-word-only'));
 	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '').trim();
 	const currentWordOpacityEnabled = Boolean(getStyleValue('enable-wbw-current-word-opacity'));
@@ -56,6 +62,7 @@ export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): 
 		revealSpecificWordStyle ||
 		revealWordsOnRecitation ||
 		backgroundEnabled ||
+		lineBackgroundEnabled ||
 		currentWordCustomCss.length > 0 ||
 		currentWordOpacityEnabled
 	);
@@ -81,6 +88,11 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		color: '',
 		backgroundEnabled: false,
 		backgroundColor: '',
+		lineBackgroundEnabled: false,
+		lineBackgroundColor: '',
+		lineBackgroundPosition: 0,
+		lineBackgroundHeight: 1,
+		lineBackgroundPadding: 0,
 		underlineEnabled: false,
 		underlineThickness: 1,
 		glowEnabled: false,
@@ -147,6 +159,8 @@ export function getWordByWordHighlightState(params: {
 	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
+	const lineBackgroundEnabled = Boolean(getStyleValue('enable-wbw-line-background'));
+	const globalLineBackgroundEnabled = Boolean(getStyleValue('line-background-enable'));
 	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
 	const currentWordOpacityEnabled = Boolean(getStyleValue('enable-wbw-current-word-opacity'));
 	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '');
@@ -195,6 +209,22 @@ export function getWordByWordHighlightState(params: {
 		color: String(getStyleValue('wbw-color') ?? ''),
 		backgroundEnabled: showCurrentWordOnly ? false : backgroundEnabled,
 		backgroundColor: String(getStyleValue('wbw-bg-color') ?? ''),
+		lineBackgroundEnabled,
+		lineBackgroundColor: String(getStyleValue('wbw-line-background-color') ?? ''),
+		lineBackgroundPosition: Number(
+			getStyleValue(
+				globalLineBackgroundEnabled ? 'line-background-position' : 'wbw-line-background-position'
+			) ?? 0
+		),
+		lineBackgroundHeight: Math.max(
+			1,
+			Number(
+				getStyleValue(
+					globalLineBackgroundEnabled ? 'line-background-height' : 'wbw-line-background-height'
+				) ?? 1
+			)
+		),
+		lineBackgroundPadding: Math.max(0, Number(getStyleValue('wbw-line-background-padding') ?? 0)),
 		underlineEnabled: showCurrentWordOnly ? false : underlineEnabled,
 		underlineThickness: Number(getStyleValue('wbw-underline-thickness') ?? 1),
 		glowEnabled: showCurrentWordOnly ? false : glowEnabled,
@@ -358,6 +388,18 @@ export function getWordByWordWordCss(
 			`background-color: ${interpolateCssColor('', state.backgroundColor, clampedProgress)};`
 		);
 	}
+	if (
+		state.lineBackgroundEnabled &&
+		state.lineBackgroundColor &&
+		state.lineBackgroundColor !== '#00000000'
+	) {
+		parts.push(
+			`--wbw-line-background-color: ${interpolateCssColor('', state.lineBackgroundColor, clampedProgress)};`
+		);
+		parts.push(`--wbw-line-background-position: ${state.lineBackgroundPosition}px;`);
+		parts.push(`--wbw-line-background-height: ${state.lineBackgroundHeight}px;`);
+		parts.push(`--wbw-line-background-padding: ${state.lineBackgroundPadding}px;`);
+	}
 	if (state.glowEnabled && state.glowColor && state.glowColor !== '#00000000') {
 		const glowColor = interpolateCssColor('', state.glowColor, clampedProgress);
 		const glowBlur = Math.max(0, state.glowBlur);
@@ -370,6 +412,49 @@ export function getWordByWordWordCss(
 	}
 	if (customCss.trim()) parts.push(customCss);
 	return parts.join(' ');
+}
+
+/**
+ * Retourne les classes de barre WBW d'un mot selon ses voisins actuellement surlignés.
+ * @param {number} wordIndex Index du mot dans le clip.
+ * @param {WordByWordHighlightState} state Etat de highlight courant.
+ * @param {number} highlightProgress Progression du highlight entre 0 et 1.
+ * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
+ * @param {{ previous: boolean; next: boolean }} [connectedNeighbors] Connexions visuelles déjà résolues.
+ * @returns {string} Classes CSS de la barre WBW, ou chaîne vide.
+ */
+export function getWordByWordLineBackgroundClass(
+	wordIndex: number,
+	state: WordByWordHighlightState,
+	highlightProgress: number,
+	fadeDurationMs: number,
+	connectedNeighbors?: { previous: boolean; next: boolean }
+): string {
+	if (
+		!state.lineBackgroundEnabled ||
+		!state.lineBackgroundColor ||
+		state.lineBackgroundColor === '#00000000' ||
+		highlightProgress <= 0 ||
+		fadeDurationMs < 0
+	) {
+		return '';
+	}
+
+	if (!state.persistColor && !connectedNeighbors) {
+		return 'wbw-line-background wbw-line-background-single';
+	}
+
+	const hasPrevious =
+		connectedNeighbors?.previous ??
+		getWordByWordHighlightProgress(wordIndex - 1, state, fadeDurationMs) > 0;
+	const hasNext =
+		connectedNeighbors?.next ??
+		getWordByWordHighlightProgress(wordIndex + 1, state, fadeDurationMs) >= 1;
+
+	if (!hasPrevious && !hasNext) return 'wbw-line-background wbw-line-background-single';
+	if (!hasPrevious) return 'wbw-line-background wbw-line-background-start';
+	if (!hasNext) return 'wbw-line-background wbw-line-background-end';
+	return 'wbw-line-background';
 }
 
 /**

@@ -33,6 +33,7 @@
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
 		type WordByWordHighlightState,
+		getWordByWordLineBackgroundClass,
 		getWordByWordHighlightProgress,
 		getWordByWordHighlightState,
 		getWordByWordWordCss,
@@ -81,6 +82,11 @@
 		words: SegmentationWordTimestamp[];
 		clipStartTimeS: number;
 		maxRevealedUnitIndexByWordIndex: number[];
+	};
+
+	type TranslationWbwHighlight = {
+		wordIndex: number;
+		progress: number;
 	};
 
 	let cachedWbwRenderDataKey = '';
@@ -651,6 +657,93 @@
 	}
 
 	/**
+	 * Résout le mot WBW le plus avancé lié à un segment de traduction.
+	 * @param {TranslationWbwOverlaySegment} segment Segment à évaluer.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @returns {TranslationWbwHighlight | null} Mot et progression retenus, ou `null` sans mapping.
+	 */
+	function getTranslationSegmentHighlight(
+		segment: TranslationWbwOverlaySegment,
+		state: WordByWordHighlightState
+	): TranslationWbwHighlight | null {
+		const wbwWordIndexes = segment.wbwWordIndexes ?? [];
+		if (wbwWordIndexes.length === 0 || !state.enabled) return null;
+
+		let wordIndex = wbwWordIndexes[0];
+		let progress = 0;
+		for (const index of wbwWordIndexes) {
+			if (!shouldComputeWordByWordProgress(index, state)) continue;
+
+			const candidateProgress = getWordByWordHighlightProgress(
+				index,
+				state,
+				wbwPreviewFadeDuration()
+			);
+			if (candidateProgress > progress || progress === 0) {
+				wordIndex = index;
+				progress = candidateProgress;
+			}
+		}
+
+		return { wordIndex, progress };
+	}
+
+	/**
+	 * Retourne les classes de barre WBW d'un segment de traduction.
+	 * @param {number} segmentIndex Index du segment à évaluer.
+	 * @param {TranslationWbwOverlaySegment[]} segments Segments visibles dans l'ordre du texte.
+	 * @param {TranslationWbwOverlaySegment} segment Segment à évaluer.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @returns {string} Classes CSS de la barre WBW, ou chaîne vide.
+	 */
+	function getTranslationSegmentLineBackgroundClass(
+		segmentIndex: number,
+		segments: TranslationWbwOverlaySegment[],
+		segment: TranslationWbwOverlaySegment,
+		state: WordByWordHighlightState
+	): string {
+		const highlight = getTranslationSegmentHighlight(segment, state);
+		if (!highlight) return '';
+
+		let previousHighlight: TranslationWbwHighlight | null = null;
+		for (let index = segmentIndex - 1; index >= 0; index--) {
+			if (segments[index].flags.lineBreak) break;
+			previousHighlight = getTranslationSegmentHighlight(segments[index], state);
+			if (previousHighlight) break;
+		}
+
+		let nextHighlight: TranslationWbwHighlight | null = null;
+		if (!segment.flags.lineBreak) {
+			for (let index = segmentIndex + 1; index < segments.length; index++) {
+				nextHighlight = getTranslationSegmentHighlight(segments[index], state);
+				if (nextHighlight) break;
+				if (segments[index].flags.lineBreak) break;
+			}
+		}
+
+		/**
+		 * Indique si un segment voisin prolonge la barre courante.
+		 * @param {TranslationWbwHighlight | null} neighbor Highlight du voisin.
+		 * @returns {boolean} `true` si les deux segments doivent être raccordés.
+		 */
+		const isConnected = (neighbor: TranslationWbwHighlight | null): boolean =>
+			!!neighbor &&
+			neighbor.progress > 0 &&
+			(state.persistColor || neighbor.wordIndex === highlight.wordIndex);
+		return getWordByWordLineBackgroundClass(
+			highlight.wordIndex,
+			state,
+			highlight.progress,
+			wbwPreviewFadeDuration(),
+			{
+				previous: isConnected(previousHighlight),
+				next:
+					isConnected(nextHighlight) && (!state.persistColor || (nextHighlight?.progress ?? 0) >= 1)
+			}
+		);
+	}
+
+	/**
 	 * Indique si un mot peut avoir une progression WBW non nulle à cette frame.
 	 *
 	 * @param {number} wordIndex Index WBW à tester.
@@ -843,33 +936,44 @@
 		{#if true}
 			{@const state = wbwState()}
 			{@const data = wbwRenderData()}
-			{#each state.enabled && data ? visibleWbwSegments() : visibleSegments() as segment (segment.key)}
+			{@const renderedSegments = state.enabled && data ? visibleWbwSegments() : visibleSegments()}
+			{#each renderedSegments as segment, segmentIndex (segment.key)}
 				{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
+				{@const segmentClass = getTranslationSegmentLineBackgroundClass(
+					segmentIndex,
+					renderedSegments,
+					segment,
+					state
+				)}
 				{#if segment.referenceType === 'quran' && showTranslationDecorativeBrackets()}
 					{@const glyphs = getTranslationBracketGlyphs()}
 					{@const bracketStyle = `${segmentStyle} ${getDecorativeBracketCss()}`.trim()}
 					<span style={bracketStyle}>{glyphs.opening}</span>
 					{#if segment.verseNumber && segment.verseNumberPosition === 'before'}
-						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
 							>{segment.verseNumber}</span
 						>
 					{/if}
-					<span style={segmentStyle}>{segment.text}</span>
+					<span class={segmentClass} style={segmentStyle}>
+						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span>{:else}{segment.text}{/if}
+					</span>
 					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
-						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
 							>{segment.verseNumber}</span
 						>
 					{/if}
 					<span style={bracketStyle}>{glyphs.closing}</span>
 				{:else if segmentStyle}
 					{#if segment.verseNumber && segment.verseNumberPosition === 'before'}
-						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
 							>{segment.verseNumber}</span
 						>
 					{/if}
-					<span style={segmentStyle}>{segment.text}</span>
+					<span class={segmentClass} style={segmentStyle}>
+						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span>{:else}{segment.text}{/if}
+					</span>
 					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
-						<span style={`${segmentStyle} color: var(--verse-number-color);`}
+						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
 							>{segment.verseNumber}</span
 						>
 					{/if}

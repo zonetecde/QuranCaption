@@ -1266,6 +1266,159 @@ describe('Word-by-word highlight', () => {
 		expect(wbwFlow).toBeNull();
 	});
 
+	test('inherits global line geometry and rounds only persistent WBW sequence ends', async () => {
+		const clip = createVerseSubtitle(0, 2999, 'one two three', 'Translation');
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '1:1:1',
+			refTo: '1:1:3',
+			matchedText: clip.text,
+			timeFrom: 0,
+			timeTo: 3,
+			words: [
+				{ location: '1:1:1', start: 0, end: 1 },
+				{ location: '1:1:2', start: 1, end: 2 },
+				{ location: '1:1:3', start: 2, end: 3 }
+			]
+		};
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 2500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('enable-wbw-line-background', true);
+		arabicStyles.setStyle('wbw-line-background-color', '#ff0000');
+		arabicStyles.setStyle('wbw-line-background-height', 20);
+		arabicStyles.setStyle('wbw-persist-color', true);
+		arabicStyles.setStyle('line-background-enable', true);
+		arabicStyles.setStyle('line-background-height', 64);
+		arabicStyles.setStyle('line-background-position', 18);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const bars = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > .wbw-line-background')
+		);
+		expect(bars).toHaveLength(3);
+		expect(bars[0].classList.contains('wbw-line-background-start')).toBe(true);
+		expect(bars[1].className).toBe('wbw-line-background');
+		expect(bars[2].classList.contains('wbw-line-background-end')).toBe(true);
+		expect(bars[2].style.getPropertyValue('--wbw-line-background-height')).toBe('64px');
+		expect(bars[2].style.getPropertyValue('--wbw-line-background-position')).toBe('18px');
+	});
+
+	test('joins translation units mapped to the same current WBW word', async () => {
+		const clip = createVerseSubtitle(0, 1999, 'one two', 'Several translated words next');
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '1:1:1',
+			refTo: '1:1:2',
+			matchedText: clip.text,
+			timeFrom: 0,
+			timeTo: 2,
+			words: [
+				{ location: '1:1:1', start: 0, end: 1 },
+				{ location: '1:1:2', start: 1, end: 2 }
+			]
+		};
+		const translation = clip.translations.english as VerseTranslation;
+		translation.setWbwRange(0, 0, 2);
+		translation.setWbwRange(1, 3, 3);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
+		translationStyles.setStyle('enable-wbw-line-background', true);
+		translationStyles.setStyle('wbw-line-background-color', '#ff0000');
+		translationStyles.setStyle('wbw-line-background-height', 30);
+		translationStyles.setStyle('wbw-line-background-position', 10);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const bars = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.translation.english .wbw-line-background')
+		);
+		expect(bars).toHaveLength(3);
+		expect(bars[0].classList.contains('wbw-line-background-start')).toBe(true);
+		expect(bars[1].className).toBe('wbw-line-background');
+		expect(bars[2].classList.contains('wbw-line-background-end')).toBe(true);
+	});
+
+	test('re-highlights overlapping words in the next merged clip', async () => {
+		const firstClip = new SubtitleClip(0, 2999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false);
+		firstClip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '1:1:1',
+			refTo: '1:1:3',
+			matchedText: firstClip.text,
+			timeFrom: 0,
+			timeTo: 3,
+			words: [
+				{ location: '1:1:1', start: 0, end: 0.5 },
+				{ location: '1:1:2', start: 0.5, end: 1 },
+				{ location: '1:1:3', start: 1, end: 3 }
+			]
+		};
+		const secondClip = new SubtitleClip(3000, 5999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false);
+		secondClip.alignmentMetadata = {
+			source: 'local',
+			segment: 1,
+			refFrom: '1:1:2',
+			refTo: '1:1:4',
+			matchedText: secondClip.text,
+			timeFrom: 0,
+			timeTo: 3,
+			words: [
+				{ location: '1:1:2', start: 0, end: 0.75 },
+				{ location: '1:1:3', start: 0.75, end: 1.5 },
+				{ location: '1:1:4', start: 1.5, end: 3 }
+			]
+		};
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 3100 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('enable-wbw-highlight', true);
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('text-color', '#000000');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('wbw-color', '#ff0000');
+		fixture.videoStyle.getStylesOfTarget('global').setStyle('fade-duration', 200);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		let wordSpans = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > span')
+		);
+		expect(wordSpans.filter((span) => span.textContent?.trim() === 'w2')).toHaveLength(1);
+		const enteringWordColor = wordSpans.find((span) => span.textContent?.trim() === 'w2')?.style
+			.color;
+		const leavingWordColor = wordSpans.find((span) => span.textContent?.trim() === 'w3')?.style
+			.color;
+		expect(enteringWordColor).not.toBe('rgb(0, 0, 0)');
+		expect(enteringWordColor).not.toBe('rgb(255, 0, 0)');
+		expect(leavingWordColor).not.toBe('rgb(0, 0, 0)');
+		expect(leavingWordColor).not.toBe('rgb(255, 0, 0)');
+
+		await fixture.setCursor(3250);
+
+		wordSpans = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > span')
+		);
+		expect(wordSpans.find((span) => span.textContent?.trim() === 'w2')?.style.color).toBe(
+			'rgb(255, 0, 0)'
+		);
+
+		await fixture.setCursor(4000);
+
+		wordSpans = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > span')
+		);
+		expect(wordSpans.find((span) => span.textContent?.trim() === 'w2')?.style.color).not.toBe(
+			'rgb(255, 0, 0)'
+		);
+		expect(wordSpans.find((span) => span.textContent?.trim() === 'w3')?.style.color).toBe(
+			'rgb(255, 0, 0)'
+		);
+	});
+
 	test('keeps grouped Minimal Quran words in current-word-only mode', async () => {
 		const minimalWords = [
 			'إِنّا',

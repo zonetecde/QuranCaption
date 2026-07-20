@@ -939,7 +939,7 @@
 
 			{#if state.enabled && subtitle instanceof SubtitleClip}
 				<!-- Rendu WBW -->
-				<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+				<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
 					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 						<span
 							class="arabic-wbw-group"
@@ -1033,7 +1033,7 @@
 	{@const hasQuranReference = segments.some((segment) => segment.referenceType === 'quran')}
 	{@const hasRtlText = segments.some((segment) => /[\u0590-\u08FF]/u.test(segment.text))}
 	<span
-		class="translation-inline-flow"
+		class="translation-inline-flow line-background"
 		dir={hasQuranReference || hasRtlText ? 'rtl' : undefined}
 		style={hasRtlText ? 'unicode-bidi: plaintext;' : undefined}
 	>

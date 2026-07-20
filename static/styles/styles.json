@@ -867,7 +867,7 @@
 		"description": "Add shadow effects to text and containers",
 		"icon": "filter_drama",
 		"ui": {
-			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 2 },
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 3 },
 			"headerStyle": "shadow-enable"
 		},
 		"styles": [
@@ -973,6 +973,64 @@
 		]
 	},
 	{
+		"id": "line-background",
+		"name": "Line Background",
+		"description": "Add a rounded background bar behind each subtitle line",
+		"icon": "view_stream",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 2 },
+			"headerStyle": "line-background-enable"
+		},
+		"styles": [
+			{
+				"id": "line-background-enable",
+				"name": "Enable Line Background",
+				"description": "Enable or disable the background bar behind each subtitle line",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "toggle_on"
+			},
+			{
+				"id": "line-background-color",
+				"name": "Bar Color",
+				"description": "Set the color of the background bar",
+				"value": "#f5deb3",
+				"valueType": "color",
+				"css": "--line-background-color: {value};",
+				"tailwind": false,
+				"icon": "palette"
+			},
+			{
+				"id": "line-background-position",
+				"name": "Bar Position",
+				"description": "Adjust the vertical position of the background bar relative to the text",
+				"value": 15,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "--line-background-position: {value}px;",
+				"tailwind": false,
+				"icon": "height"
+			},
+			{
+				"id": "line-background-height",
+				"name": "Bar Height",
+				"description": "Adjust the height of the background bar",
+				"value": 50,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 200,
+				"step": 1,
+				"css": "--line-background-height: {value}px;",
+				"tailwind": false,
+				"icon": "line_weight"
+			}
+		]
+	},
+	{
 		"id": "text-glow",
 		"name": "Text Glow",
 		"description": "Add a glow effect to the text",
@@ -1066,7 +1124,7 @@
 		"description": "Add visual effects and filters to enhance subtitle appearance",
 		"icon": "auto_fix_high",
 		"ui": {
-			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 3 }
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 4 }
 		},
 		"styles": [
 			{
@@ -1126,7 +1184,7 @@
 		"description": "Add motion and transition effects to subtitles",
 		"icon": "animation",
 		"ui": {
-			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 4 }
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 5 }
 		},
 		"styles": [
 			{

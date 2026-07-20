@@ -40,6 +40,7 @@ export type StyleCategoryName =
 	| 'shadow'
 	| 'outline'
 	| 'border'
+	| 'line-background'
 	| 'effects'
 	| 'word-by-word-highlight'
 	| 'general'
@@ -120,6 +121,12 @@ export type OutlineStyleName = 'outline-enable' | 'text-outline' | 'text-outline
 export type BorderStyleName = 'border-enable' | 'border-width' | 'border-color' | 'border-style';
 
 export type EffectsStyleName = 'opacity' | 'blur' | 'brightness' | 'contrast';
+
+export type LineBackgroundStyleName =
+	| 'line-background-enable'
+	| 'line-background-color'
+	| 'line-background-position'
+	| 'line-background-height';
 
 export type AnimationStyleName = 'scale' | 'rotation';
 
@@ -226,6 +233,7 @@ export type StyleName =
 	| OutlineStyleName
 	| BorderStyleName
 	| EffectsStyleName
+	| LineBackgroundStyleName
 	| AnimationStyleName
 	| WordByWordHighlightStyleName
 	| OverlayStyleName

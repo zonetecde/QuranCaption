@@ -21,6 +21,7 @@
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
 	import {
 		buildBlurSegmentsForRange,
+		getRecitationRangesForExport,
 		type BlurSegment,
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
@@ -57,8 +58,7 @@
 		CustomClip,
 		PredefinedSubtitleClip,
 		SilenceClip,
-		SubtitleClip,
-		type PredefinedSubtitleType
+		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
@@ -85,12 +85,6 @@
 	const WORKER_ERROR_EVENT = 'export-capture-worker-error';
 	const EXPORT_LOG_EVENT = 'export-log-main';
 	const WORKER_READY_TIMEOUT_MS = 45_000;
-	const RETAINED_PREDEFINED_RECITATION_TYPES = new Set<PredefinedSubtitleType>([
-		'Basmala',
-		"Isti'adha",
-		'Amin'
-	]);
-
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
 	let isSegmentedVideoExport = false;
@@ -731,7 +725,13 @@
 		});
 
 		const recitationRanges = globalState.getExportState.exportOnlyRecitation
-			? getRecitationRangesForExport(exportStart, exportEnd)
+			? getRecitationRangesForExport(
+					globalState.getSubtitleTrack.clips,
+					exportStart,
+					exportEnd,
+					globalState.getExportState.recitationMinimumSilenceMs ?? 3000,
+					globalState.getExportState.recitationCutMarginMs ?? 350
+				)
 			: [{ start: exportStart, end: exportEnd }];
 		if (recitationRanges.length === 0) {
 			throw new Error(get(LL).export.noRecitationInExportRange());
@@ -773,71 +773,6 @@
 			boundaries.push(clip.endTime + 1);
 		}
 		return boundaries;
-	}
-
-	/**
-	 * Regroupe les clips de récitation en plages et ajoute une marge autour des coupures.
-	 * @param {number} rangeStart Début de la plage d'export en millisecondes.
-	 * @param {number} rangeEnd Fin de la plage d'export en millisecondes.
-	 * @returns {TimeRange[]} Plages contenant la récitation et les marges de coupe.
-	 */
-	function getRecitationRangesForExport(rangeStart: number, rangeEnd: number): TimeRange[] {
-		const orderedClips = [...globalState.getSubtitleTrack.clips].sort(
-			(a, b) => a.startTime - b.startTime
-		);
-		const quranClips = orderedClips.filter(
-			(clip) =>
-				(clip instanceof SubtitleClip ||
-					(clip instanceof PredefinedSubtitleClip &&
-						RETAINED_PREDEFINED_RECITATION_TYPES.has(clip.predefinedSubtitleType))) &&
-				clip.endTime >= rangeStart &&
-				clip.startTime <= rangeEnd
-		);
-		const ranges: TimeRange[] = [];
-		const minimumSilenceMs = Math.max(
-			0,
-			globalState.getExportState.recitationMinimumSilenceMs ?? 3000
-		);
-
-		for (const clip of quranClips) {
-			const start = Math.max(rangeStart, clip.startTime);
-			const end = Math.min(rangeEnd, clip.endTime);
-			const current = ranges.at(-1);
-			if (!current) {
-				ranges.push({ start, end });
-				continue;
-			}
-
-			const containsPredefinedText = orderedClips.some(
-				(candidate) =>
-					candidate instanceof PredefinedSubtitleClip &&
-					!RETAINED_PREDEFINED_RECITATION_TYPES.has(candidate.predefinedSubtitleType) &&
-					candidate.startTime <= start &&
-					candidate.endTime >= current.end
-			);
-			if (!containsPredefinedText && start - current.end < minimumSilenceMs) {
-				current.end = Math.max(current.end, end);
-			} else {
-				ranges.push({ start, end });
-			}
-		}
-
-		const paddedRanges: TimeRange[] = [];
-		const cutMarginMs = Math.max(0, globalState.getExportState.recitationCutMarginMs ?? 350);
-		for (const range of ranges) {
-			const paddedRange = {
-				start: Math.max(rangeStart, range.start - cutMarginMs),
-				end: Math.min(rangeEnd, range.end + cutMarginMs)
-			};
-			const previous = paddedRanges.at(-1);
-			if (previous && paddedRange.start <= previous.end) {
-				previous.end = Math.max(previous.end, paddedRange.end);
-			} else {
-				paddedRanges.push(paddedRange);
-			}
-		}
-
-		return paddedRanges;
 	}
 
 	function getBlurSegmentsForRange(rangeStart: number, rangeEnd: number): BlurSegment[] {

@@ -20,6 +20,10 @@ import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { BatchService } from '$lib/services/BatchService';
+import {
+	getRecitationRangesForExport,
+	mapTimeToExportRanges
+} from '$lib/services/OverlayBlurSegmentation';
 
 import type { Edition } from './Edition';
 import { TrackType } from './enums';
@@ -532,9 +536,28 @@ export default class Exporter {
 			if (hasEndBound && clip.startTime >= exportEnd) return false;
 			return true;
 		};
+		const recitationRangeEnd = hasEndBound
+			? exportEnd
+			: globalState.getSubtitleTrack.clips.reduce(
+					(maxEnd, clip) => Math.max(maxEnd, clip.endTime),
+					exportStart
+				);
+		const recitationRanges = globalState.getExportState.exportOnlyRecitation
+			? getRecitationRangesForExport(
+					globalState.getSubtitleTrack.clips,
+					exportStart,
+					recitationRangeEnd,
+					globalState.getExportState.recitationMinimumSilenceMs ?? 3000,
+					globalState.getExportState.recitationCutMarginMs ?? 350
+				)
+			: null;
 
 		const getTimeFormatted = (timeMs: number) =>
-			Exporter.formatTimeForYouTube(Math.max(0, timeMs - exportStart));
+			Exporter.formatTimeForYouTube(
+				recitationRanges
+					? mapTimeToExportRanges(timeMs, recitationRanges)
+					: Math.max(0, timeMs - exportStart)
+			);
 
 		if (!subtitlesClips || subtitlesClips.length === 0) {
 			console.error('No subtitle clips available for export.');

@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildBlurSegmentsForRange,
+	getRecitationRangesForExport,
+	mapTimeToExportRanges,
 	splitRangeByBoundaries
 } from '$lib/services/OverlayBlurSegmentation';
+import { SubtitleClip } from '$lib/classes/Clip.svelte';
 
 describe('splitRangeByBoundaries', () => {
 	it('splits a range using internal boundaries only', () => {
@@ -38,5 +41,32 @@ describe('buildBlurSegmentsForRange', () => {
 			time < 50 ? Number.NaN : Number.POSITIVE_INFINITY
 		);
 		expect(result).toEqual([{ start: 0, end: 100, blur: 0 }]);
+	});
+});
+
+describe('recitation export timeline', () => {
+	it('maps source timestamps after removed silence', () => {
+		const clips = [
+			new SubtitleClip(1000, 3000, 1, 1, 0, 0, 'a', [], true, true),
+			new SubtitleClip(7000, 9000, 1, 2, 0, 0, 'b', [], true, true)
+		];
+		const ranges = getRecitationRangesForExport(clips, 0, 10_000, 3000, 350);
+
+		expect(ranges).toEqual([
+			{ start: 650, end: 3350 },
+			{ start: 6650, end: 9350 }
+		]);
+		expect(mapTimeToExportRanges(7000, ranges)).toBe(3050);
+	});
+
+	it('keeps short silences in a single range', () => {
+		const clips = [
+			new SubtitleClip(1000, 3000, 1, 1, 0, 0, 'a', [], true, true),
+			new SubtitleClip(5000, 7000, 1, 2, 0, 0, 'b', [], true, true)
+		];
+
+		expect(getRecitationRangesForExport(clips, 0, 8000, 3000, 350)).toEqual([
+			{ start: 650, end: 7350 }
+		]);
 	});
 });

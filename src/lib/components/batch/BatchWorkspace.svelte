@@ -3,6 +3,7 @@
 		AssetClip,
 		AssetType,
 		isBatchProjectSegmentationVerified,
+		SubtitleClip,
 		SourceType,
 		TrackType,
 		type Edition,
@@ -166,6 +167,8 @@
 	let exportOutputFolder = $state('');
 	let exportNonReadyProjects = $state(false);
 	let exportOnlyRecitation = $state(false);
+	let exportModalTab = $state<'video' | 'youtube'>('video');
+	let youtubeChaptersChoice = $state<'Each Surah' | 'Each Verse'>('Each Surah');
 	let exportQueueActive = $state(false);
 	let deleteQueueActive = $state(false);
 	let exportProgress = $state<BatchExportProgress>({
@@ -326,6 +329,13 @@
 	);
 	let skippedExports = $derived(
 		exportInspection.filter((result) => !exportCandidates.includes(result))
+	);
+	let chapterExportCandidates = $derived(
+		exportInspection.filter((result) =>
+			result.project?.content.timeline
+				.getFirstTrack(TrackType.Subtitle)
+				.clips.some((clip) => clip instanceof SubtitleClip)
+		)
 	);
 	let incompatibleProjects = $derived(
 		eligibleSelected.filter((project) => !isBatchMediaModeCompatible(project, selectedMode))
@@ -500,6 +510,8 @@
 		exportOutputFolder = '';
 		exportNonReadyProjects = false;
 		exportOnlyRecitation = false;
+		exportModalTab = 'video';
+		youtubeChaptersChoice = 'Each Surah';
 		try {
 			exportInspection = await inspectBatchExportEligibility(selectedProjects);
 		} finally {
@@ -547,6 +559,46 @@
 				exportOnlyRecitation
 			);
 			if (result.failed > 0 || skippedExports.length > 0) {
+				toast.error(batchMessage('someProjectsCouldNotBeExported'));
+			} else {
+				toast.success(batchMessage('allEligibleProjectsExported'));
+			}
+		} catch (exportError) {
+			queueError = String(exportError);
+		} finally {
+			exportQueueActive = false;
+		}
+	}
+
+	/**
+	 * Exporte les chapitres YouTube des projets cochés dans le dossier commun.
+	 * @returns {Promise<void>} Promesse résolue après l'écriture de tous les fichiers.
+	 */
+	async function exportReadyYouTubeChapters(): Promise<void> {
+		if (chapterExportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
+			return;
+		showExportModal = false;
+		exportQueueActive = true;
+		exportProgress = {
+			activeProjectName: null,
+			completed: 0,
+			failed: 0,
+			remaining: chapterExportCandidates.length,
+			total: chapterExportCandidates.length
+		};
+		try {
+			const service = new BatchExportService({
+				onUpdate: (_item, progress) => {
+					exportProgress = progress;
+				}
+			});
+			const result = await service.runYouTubeChapters(
+				chapterExportCandidates,
+				exportOutputFolder,
+				youtubeChaptersChoice,
+				exportOnlyRecitation
+			);
+			if (result.failed > 0 || chapterExportCandidates.length < exportInspection.length) {
 				toast.error(batchMessage('someProjectsCouldNotBeExported'));
 			} else {
 				toast.success(batchMessage('allEligibleProjectsExported'));
@@ -1720,14 +1772,34 @@
 			<h2 id="batch-export-title" class="text-xl font-semibold text-[var(--text-primary)]">
 				{batchMessage('exportSelectedProjects', { count: selectedProjects.length })}
 			</h2>
-			<p class="mt-2 text-sm text-[var(--text-secondary)]">
-				{batchMessage('usingEachProjectSavedSettings')}
-			</p>
+			<div class="mt-5 grid grid-cols-2 rounded-lg bg-[var(--bg-accent)] p-1">
+				<button
+					class:btn-accent={exportModalTab === 'video'}
+					class="h-10 rounded-md px-4 text-sm"
+					type="button"
+					onclick={() => (exportModalTab = 'video')}
+				>
+					{$LL.export.videoExportOption()}
+				</button>
+				<button
+					class:btn-accent={exportModalTab === 'youtube'}
+					class="h-10 rounded-md px-4 text-sm"
+					type="button"
+					onclick={() => (exportModalTab = 'youtube')}
+				>
+					{$LL.export.youtubeChaptersOption()}
+				</button>
+			</div>
+			{#if exportModalTab === 'video'}
+				<p class="mt-3 text-sm text-[var(--text-secondary)]">
+					{batchMessage('usingEachProjectSavedSettings')}
+				</p>
+			{/if}
 			{#if exportModalLoading}
 				<p class="mt-5 rounded-lg bg-[var(--bg-accent)] p-4 text-[var(--text-secondary)]">
 					{batchMessage('inspectingExportProjects')}
 				</p>
-			{:else}
+			{:else if exportModalTab === 'video'}
 				<div class="mt-5 grid grid-cols-2 gap-3">
 					<p class="rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
 						{batchMessage('readyToExport', { count: readyExports.length })}
@@ -1762,6 +1834,47 @@
 						</span>
 					</label>
 				{/if}
+			{:else}
+				<div class="mt-5 space-y-3">
+					<label
+						class="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-accent)] p-4"
+					>
+						<input
+							type="radio"
+							name="batch-youtube-chapters"
+							value="Each Surah"
+							bind:group={youtubeChaptersChoice}
+						/>
+						<span>
+							<span class="block font-medium text-[var(--text-primary)]">
+								{$LL.export.chapterPerSurah()}
+							</span>
+							<span class="mt-1 block text-xs text-[var(--text-thirdly)]">
+								{$LL.export.chapterPerSurahDescription()}
+							</span>
+						</span>
+					</label>
+					<label
+						class="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-accent)] p-4"
+					>
+						<input
+							type="radio"
+							name="batch-youtube-chapters"
+							value="Each Verse"
+							bind:group={youtubeChaptersChoice}
+						/>
+						<span>
+							<span class="block font-medium text-[var(--text-primary)]">
+								{$LL.export.chapterPerVerse()}
+							</span>
+							<span class="mt-1 block text-xs text-[var(--text-thirdly)]">
+								{$LL.export.chapterPerVerseDescription()}
+							</span>
+						</span>
+					</label>
+				</div>
+			{/if}
+			{#if !exportModalLoading}
 				<label class="mt-4 flex gap-3 text-sm text-[var(--text-secondary)]">
 					<input type="checkbox" bind:checked={exportOnlyRecitation} />
 					<span>
@@ -1794,16 +1907,30 @@
 				>
 					{$LL.common.cancel()}
 				</button>
-				<button
-					class="btn-accent h-10 px-4"
-					type="button"
-					disabled={exportModalLoading || exportCandidates.length === 0 || !exportOutputFolder}
-					onclick={exportReadyProjects}
-				>
-					{batchMessage(exportNonReadyProjects ? 'exportSelectedProjects' : 'exportReadyProjects', {
-						count: exportCandidates.length
-					})}
-				</button>
+				{#if exportModalTab === 'video'}
+					<button
+						class="btn-accent h-10 px-4"
+						type="button"
+						disabled={exportModalLoading || exportCandidates.length === 0 || !exportOutputFolder}
+						onclick={exportReadyProjects}
+					>
+						{batchMessage(
+							exportNonReadyProjects ? 'exportSelectedProjects' : 'exportReadyProjects',
+							{ count: exportCandidates.length }
+						)}
+					</button>
+				{:else}
+					<button
+						class="btn-accent h-10 px-4"
+						type="button"
+						disabled={exportModalLoading ||
+							chapterExportCandidates.length === 0 ||
+							!exportOutputFolder}
+						onclick={exportReadyYouTubeChapters}
+					>
+						{$LL.export.exportYoutubeChaptersButton()}
+					</button>
+				{/if}
 			</div>
 		</div>
 	</div>

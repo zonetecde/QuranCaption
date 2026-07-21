@@ -1,5 +1,6 @@
 import {
 	AssetClip,
+	SubtitleClip,
 	TrackType,
 	type Batch,
 	type BatchProjectItem,
@@ -9,8 +10,9 @@ import { ExportState } from '$lib/classes/Exportation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { join } from '@tauri-apps/api/path';
 import { exists } from '@tauri-apps/plugin-fs';
-import Exporter from '$lib/classes/Exporter';
+import Exporter, { type YouTubeChaptersChoice } from '$lib/classes/Exporter';
 import ExportService from './ExportService';
+import ExportFileService from './ExportFileService';
 import { BatchService } from './BatchService';
 import { ProjectService } from './ProjectService';
 import {
@@ -53,6 +55,13 @@ export interface BatchExportServiceOptions {
 	queueProject?: (project: Project, fileName: string, outputPath: string) => Promise<number>;
 	waitForExport?: (exportId: number, onProgress: (progress: number) => void) => Promise<void>;
 	pathExists?: (path: string) => Promise<boolean>;
+	saveTextFile?: (
+		fileName: string,
+		content: string,
+		outputFolder: string,
+		exportLabel: string,
+		trackInExportMonitor: boolean
+	) => Promise<string>;
 	onUpdate?: BatchExportUpdate;
 }
 
@@ -136,6 +145,7 @@ export class BatchExportService {
 	private readonly queueProject: NonNullable<BatchExportServiceOptions['queueProject']>;
 	private readonly waitForExport: NonNullable<BatchExportServiceOptions['waitForExport']>;
 	private readonly pathExists: NonNullable<BatchExportServiceOptions['pathExists']>;
+	private readonly saveTextFile: NonNullable<BatchExportServiceOptions['saveTextFile']>;
 	private readonly onUpdate?: BatchExportUpdate;
 	private saveChain: Promise<void> = Promise.resolve();
 
@@ -149,7 +159,84 @@ export class BatchExportService {
 		this.queueProject = options.queueProject ?? Exporter.queueProjectVideo.bind(Exporter);
 		this.waitForExport = options.waitForExport ?? this.waitForRuntimeExport.bind(this);
 		this.pathExists = options.pathExists ?? exists;
+		this.saveTextFile =
+			options.saveTextFile ?? ExportFileService.saveTextFileToFolder.bind(ExportFileService);
 		this.onUpdate = options.onUpdate;
+	}
+
+	/**
+	 * Exporte un fichier de chapitres YouTube par projet chargé.
+	 * @param {BatchExportEligibility[]} inspection Projets sélectionnés déjà chargés.
+	 * @param {string} outputFolder Dossier de sortie commun.
+	 * @param {YouTubeChaptersChoice} choice Regroupement par sourate ou par verset.
+	 * @param {boolean} exportOnlyRecitation Retire les silences et passages hors récitation.
+	 * @returns {Promise<BatchExportProgress>} Résumé final.
+	 */
+	async runYouTubeChapters(
+		inspection: BatchExportEligibility[],
+		outputFolder: string,
+		choice: YouTubeChaptersChoice,
+		exportOnlyRecitation: boolean = false
+	): Promise<BatchExportProgress> {
+		const projects = inspection
+			.filter((result) => result.project !== null)
+			.sort((left, right) => left.item.order - right.item.order);
+		const reservedPaths = new Set<string>();
+		let completed = 0;
+		let failed = inspection.length - projects.length;
+		for (const [index, result] of projects.entries()) {
+			const project = result.project!;
+			this.notify(
+				result.item,
+				project.detail.name,
+				completed,
+				failed,
+				projects.length - index - 1,
+				inspection.length
+			);
+			try {
+				const surahCount = new Set(
+					project.content.timeline
+						.getFirstTrack(TrackType.Subtitle)
+						.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+						.map((clip) => clip.surah)
+				).size;
+				const chapters = await Exporter.generateYouTubeChapters(
+					project,
+					choice,
+					exportOnlyRecitation,
+					surahCount === 1
+						? '<timestamp> Verse <verse-number>'
+						: '<timestamp> Surah <surah-number>, Verse <verse-number>'
+				);
+				if (chapters.chapterCount === 0) throw new Error('SUBTITLES_MISSING');
+				const outputPath = await this.reserveOutputPath(
+					outputFolder,
+					`qurancaption_chapters_${sanitizeBatchExportFileName(result.item.projectName)}`,
+					'txt',
+					reservedPaths
+				);
+				await this.saveTextFile(
+					outputPath.split(/[/\\]/).at(-1)!,
+					chapters.content,
+					outputFolder,
+					'YouTube chapters',
+					false
+				);
+				completed++;
+			} catch {
+				failed++;
+			}
+			this.notify(
+				result.item,
+				null,
+				completed,
+				failed,
+				projects.length - index - 1,
+				inspection.length
+			);
+		}
+		return { activeProjectName: null, completed, failed, remaining: 0, total: inspection.length };
 	}
 
 	/**

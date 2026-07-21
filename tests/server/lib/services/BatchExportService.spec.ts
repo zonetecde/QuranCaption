@@ -9,6 +9,8 @@ import {
 	createDefaultBatchExportState,
 	createDefaultBatchSegmentationState,
 	createDefaultBatchStyleState,
+	SubtitleClip,
+	TrackType,
 	type BatchProjectItem,
 	type Project
 } from '$lib/classes';
@@ -18,6 +20,7 @@ import {
 	sanitizeBatchExportFileName,
 	type BatchExportEligibility
 } from '$lib/services/BatchExportService';
+import Exporter from '$lib/classes/Exporter';
 
 /**
  * Crée une ligne Batch exportable.
@@ -53,8 +56,14 @@ function createItem(order: number, name: string = 'Same'): BatchProjectItem {
  * @returns {Project} Projet simulé.
  */
 function createProject(item: BatchProjectItem): Project {
+	const subtitleClips = [new SubtitleClip(0, 1000, 1, 1, 0, 0, 'verse', [], true, true)];
 	const project = {
 		detail: { id: item.projectId, name: item.projectName },
+		content: {
+			timeline: {
+				getFirstTrack: () => ({ clips: subtitleClips })
+			}
+		},
 		projectEditorState: {
 			export: {
 				exportOnlyRecitation: false,
@@ -64,7 +73,7 @@ function createProject(item: BatchProjectItem): Project {
 				transparentExportFormat: 'mov_prores_4444'
 			}
 		}
-	} as Project;
+	} as unknown as Project;
 	(project as unknown as { clone: () => Project }).clone = vi.fn(
 		() =>
 			({
@@ -188,6 +197,78 @@ describe('BatchExportService', () => {
 			recitationCutMarginMs: 25,
 			recitationMinimumSilenceMs: 500
 		});
+	});
+
+	it('exports one YouTube chapters file per project with the selected options', async () => {
+		const items = [createItem(2, '002: Al/Baqara'), createItem(1, '001: Al/Fatiha')];
+		const inspection = items.map((item) => ({
+			item,
+			project: createProject(item),
+			reason: null
+		}));
+		inspection[0].project.content.timeline
+			.getFirstTrack(TrackType.Subtitle)
+			.clips.push(new SubtitleClip(1000, 2000, 2, 1, 0, 0, 'verse', [], true, true));
+		const generated: Array<{
+			id: number;
+			choice: string;
+			recitationOnly: boolean;
+			format: string | null;
+		}> = [];
+		vi.spyOn(Exporter, 'generateYouTubeChapters').mockImplementation(
+			async (project, choice, recitationOnly, format) => {
+				generated.push({
+					id: project.detail.id,
+					choice,
+					recitationOnly: recitationOnly ?? false,
+					format: format ?? null
+				});
+				return {
+					content: `chapters-${project.detail.id}`,
+					chapterCount: 1,
+					exportStart: 0,
+					exportEnd: 0
+				};
+			}
+		);
+		const saved: Array<{ fileName: string; content: string; tracked: boolean }> = [];
+		const service = new BatchExportService({
+			pathExists: async () => false,
+			saveTextFile: async (fileName, content, _folder, _label, tracked) => {
+				saved.push({ fileName, content, tracked });
+				return `/out/${fileName}`;
+			}
+		});
+
+		const result = await service.runYouTubeChapters(inspection, '/out', 'Each Verse', true);
+
+		expect(generated).toEqual([
+			{
+				id: 1,
+				choice: 'Each Verse',
+				recitationOnly: true,
+				format: '<timestamp> Verse <verse-number>'
+			},
+			{
+				id: 2,
+				choice: 'Each Verse',
+				recitationOnly: true,
+				format: '<timestamp> Surah <surah-number>, Verse <verse-number>'
+			}
+		]);
+		expect(saved).toEqual([
+			{
+				fileName: 'qurancaption_chapters_001_ Al_Fatiha.txt',
+				content: 'chapters-1',
+				tracked: false
+			},
+			{
+				fileName: 'qurancaption_chapters_002_ Al_Baqara.txt',
+				content: 'chapters-2',
+				tracked: false
+			}
+		]);
+		expect(result).toMatchObject({ completed: 2, failed: 0, total: 2 });
 	});
 
 	it('sanitizes forbidden filesystem characters without producing an empty name', () => {

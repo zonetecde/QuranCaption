@@ -30,6 +30,8 @@ import { TrackType } from './enums';
 
 export const DEFAULT_YTB_CHAPTERS_FORMAT = '<timestamp> Surah <surah-number>, Verse <verse-number>';
 
+export type YouTubeChaptersChoice = 'Each Surah' | 'Each Verse';
+
 export type YouTubeChapterFormatValues = {
 	timestamp: string;
 	surahNumber: number;
@@ -518,51 +520,72 @@ export default class Exporter {
 			get(LL).settings.projectBackup()
 		);
 	}
-	static async exportYtbChapters() {
-		const choice = globalState.getExportState.ytbChaptersChoice;
-		const subtitlesClips: SubtitleClip[] = globalState.getSubtitleClips;
-		const exportStart = globalState.getExportState.videoStartTime || 0;
-		const exportEnd = globalState.getExportState.videoEndTime || 0;
+	/**
+	 * Génère le contenu des chapitres YouTube d'un projet explicite.
+	 * @param {Project} project Projet source.
+	 * @param {YouTubeChaptersChoice} choice Regroupement par sourate ou par verset.
+	 * @param {boolean} exportOnlyRecitation Force le retrait des silences et passages hors récitation.
+	 * @param {string | null} formatOverride Format imposé à la place du réglage du projet.
+	 * @returns {Promise<{ content: string; chapterCount: number; exportStart: number; exportEnd: number }>} Contenu et métadonnées de l'export.
+	 */
+	static async generateYouTubeChapters(
+		project: Project,
+		choice: YouTubeChaptersChoice,
+		exportOnlyRecitation: boolean = false,
+		formatOverride: string | null = null
+	): Promise<{ content: string; chapterCount: number; exportStart: number; exportEnd: number }> {
+		const exportSettings = project.projectEditorState.export;
+		const subtitleTrack = project.content.timeline.getFirstTrack(TrackType.Subtitle);
+		const subtitlesClips = subtitleTrack.clips.filter(
+			(clip): clip is SubtitleClip => clip instanceof SubtitleClip
+		);
+		const exportStart = exportSettings.videoStartTime || 0;
+		const exportEnd = exportSettings.videoEndTime || 0;
 		const hasEndBound = exportEnd > exportStart;
 		const format =
-			globalState.getExportState.ytbChaptersFormat?.trim() || DEFAULT_YTB_CHAPTERS_FORMAT;
+			formatOverride?.trim() ||
+			exportSettings.ytbChaptersFormat?.trim() ||
+			DEFAULT_YTB_CHAPTERS_FORMAT;
 		const translationEdition =
-			globalState.getProjectTranslation.addedTranslationEditions.find(
-				(edition) => edition.name === globalState.getExportState.ytbChaptersTranslationEditionName
+			project.content.projectTranslation.addedTranslationEditions.find(
+				(edition) => edition.name === exportSettings.ytbChaptersTranslationEditionName
 			) ?? null;
 
-		const clipWithinExportRange = (clip: SubtitleClip) => {
+		/**
+		 * Indique si un clip chevauche la plage d'export enregistrée.
+		 * @param {SubtitleClip} clip Clip à vérifier.
+		 * @returns {boolean} Vrai lorsque le clip appartient à la plage.
+		 */
+		const clipWithinExportRange = (clip: SubtitleClip): boolean => {
 			if (clip.endTime <= exportStart) return false;
 			if (hasEndBound && clip.startTime >= exportEnd) return false;
 			return true;
 		};
 		const recitationRangeEnd = hasEndBound
 			? exportEnd
-			: globalState.getSubtitleTrack.clips.reduce(
-					(maxEnd, clip) => Math.max(maxEnd, clip.endTime),
-					exportStart
-				);
-		const recitationRanges = globalState.getExportState.exportOnlyRecitation
-			? getRecitationRangesForExport(
-					globalState.getSubtitleTrack.clips,
-					exportStart,
-					recitationRangeEnd,
-					globalState.getExportState.recitationMinimumSilenceMs ?? 3000,
-					globalState.getExportState.recitationCutMarginMs ?? 350
-				)
-			: null;
+			: subtitleTrack.clips.reduce((maxEnd, clip) => Math.max(maxEnd, clip.endTime), exportStart);
+		const recitationRanges =
+			exportOnlyRecitation || exportSettings.exportOnlyRecitation
+				? getRecitationRangesForExport(
+						subtitleTrack.clips,
+						exportStart,
+						recitationRangeEnd,
+						exportSettings.recitationMinimumSilenceMs ?? 3000,
+						exportSettings.recitationCutMarginMs ?? 350
+					)
+				: null;
 
-		const getTimeFormatted = (timeMs: number) =>
+		/**
+		 * Convertit un temps source vers le temps effectif des chapitres.
+		 * @param {number} timeMs Temps source en millisecondes.
+		 * @returns {string} Timestamp au format YouTube.
+		 */
+		const getTimeFormatted = (timeMs: number): string =>
 			Exporter.formatTimeForYouTube(
 				recitationRanges
 					? mapTimeToExportRanges(timeMs, recitationRanges)
 					: Math.max(0, timeMs - exportStart)
 			);
-
-		if (!subtitlesClips || subtitlesClips.length === 0) {
-			console.error('No subtitle clips available for export.');
-			return;
-		}
 
 		const chapters: string[] = [];
 
@@ -580,7 +603,8 @@ export default class Exporter {
 					const values = await Exporter.getYouTubeChapterFormatValues(
 						clip,
 						timeFormatted,
-						translationEdition
+						translationEdition,
+						project
 					);
 					chapters.push(formatYouTubeChapterLine(format, values));
 				}
@@ -600,7 +624,8 @@ export default class Exporter {
 					const values = await Exporter.getYouTubeChapterFormatValues(
 						clip,
 						timeFormatted,
-						translationEdition
+						translationEdition,
+						project
 					);
 					chapters.push(formatYouTubeChapterLine(format, values));
 				}
@@ -612,8 +637,31 @@ export default class Exporter {
 		for (const chapter of chapters) {
 			fileContent += `${chapter}\n`;
 		}
+		return { content: fileContent, chapterCount: chapters.length, exportStart, exportEnd };
+	}
 
-		AnalyticsService.trackYtbChaptersExport(choice, chapters.length, exportStart, exportEnd);
+	/**
+	 * Exporte les chapitres YouTube du projet courant.
+	 * @returns {Promise<void>} Promesse résolue après l'écriture du fichier.
+	 */
+	static async exportYtbChapters(): Promise<void> {
+		const choice = globalState.getExportState.ytbChaptersChoice;
+		const result = await Exporter.generateYouTubeChapters(
+			globalState.currentProject!,
+			choice,
+			globalState.getExportState.exportOnlyRecitation
+		);
+		if (result.chapterCount === 0) {
+			console.error('No subtitle clips available for export.');
+			return;
+		}
+
+		AnalyticsService.trackYtbChaptersExport(
+			choice,
+			result.chapterCount,
+			result.exportStart,
+			result.exportEnd
+		);
 
 		const projectName = ExportFileService.getProjectNameForFile();
 		const customFileName = globalState.getExportState.customFileName
@@ -622,7 +670,7 @@ export default class Exporter {
 		const fileName = customFileName
 			? `${customFileName}.txt`
 			: `qurancaption_chapters_${projectName}.txt`;
-		await ExportFileService.saveTextFile(fileName, fileContent, 'YouTube chapters');
+		await ExportFileService.saveTextFile(fileName, result.content, 'YouTube chapters');
 	}
 
 	/**
@@ -631,12 +679,14 @@ export default class Exporter {
 	 * @param {SubtitleClip} clip Clip source du chapitre.
 	 * @param {string} timestamp Timestamp YouTube deja normalise.
 	 * @param {Edition | null} translationEdition Edition de traduction selectionnee.
+	 * @param {Project} project Projet contenant les traductions.
 	 * @returns {Promise<YouTubeChapterFormatValues>} Valeurs de remplacement des placeholders.
 	 */
 	private static async getYouTubeChapterFormatValues(
 		clip: SubtitleClip,
 		timestamp: string,
-		translationEdition: Edition | null
+		translationEdition: Edition | null,
+		project: Project
 	): Promise<YouTubeChapterFormatValues> {
 		const surah = Quran.surahs[clip.surah - 1];
 		let verseArabic = clip.text;
@@ -649,7 +699,7 @@ export default class Exporter {
 			console.error('Unable to load full verse text for YouTube chapters:', error);
 		}
 		const verseTranslation = translationEdition
-			? globalState.getProjectTranslation.getVerseTranslation(
+			? project.content.projectTranslation.getVerseTranslation(
 					translationEdition,
 					clip.getVerseKey()
 				)

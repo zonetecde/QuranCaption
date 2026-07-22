@@ -6,7 +6,7 @@ import Exporter, {
 	resolveProjectVideoExportRange,
 	type YouTubeChapterFormatValues
 } from '$lib/classes/Exporter';
-import { Batch, type Project } from '$lib/classes';
+import { Batch, SubtitleClip, type Project } from '$lib/classes';
 import { BatchService } from '$lib/services/BatchService';
 import { ProjectService } from '$lib/services/ProjectService';
 import ExportFileService from '$lib/services/ExportFileService';
@@ -68,6 +68,24 @@ describe('Project video export range', () => {
 	it('uses the full audio duration when the project range is shorter than one second', () => {
 		expect(resolveProjectVideoExportRange(500, 1_400, 10_000)).toEqual([0, 10_000]);
 		expect(resolveProjectVideoExportRange(0, 0, 10_000)).toEqual([0, 10_000]);
+	});
+});
+
+describe('Subtitle JSON export', () => {
+	it('generates the same project-scoped JSON payload used by individual exports', () => {
+		const clip = new SubtitleClip(250, 1250, 1, 2, 0, 1, 'verse', [], true, true);
+		const project = {
+			detail: { id: 42, name: 'Al-Fatiha', reciter: 'Reciter' },
+			content: { timeline: { getFirstTrack: () => ({ clips: [clip] }) } }
+		} as unknown as Project;
+
+		const generated = Exporter.generateSubtitlesJson(project);
+		const payload = JSON.parse(generated.content);
+
+		expect(generated.segmentCount).toBe(1);
+		expect(payload.project).toEqual({ id: 42, name: 'Al-Fatiha', reciter: 'Reciter' });
+		expect(payload.segmentCount).toBe(1);
+		expect(payload.segments[0]).toMatchObject({ startTimeMs: 250, endTimeMs: 1250 });
 	});
 });
 

@@ -61,7 +61,7 @@ function createItem(order: number, name: string = 'Same'): BatchProjectItem {
 function createProject(item: BatchProjectItem): Project {
 	const subtitleClips = [new SubtitleClip(0, 1000, 1, 1, 0, 0, 'verse', [], true, true)];
 	const project = {
-		detail: { id: item.projectId, name: item.projectName },
+		detail: { id: item.projectId, name: item.projectName, reciter: item.reciter },
 		content: {
 			timeline: {
 				getFirstTrack: () => ({ clips: subtitleClips })
@@ -300,6 +300,45 @@ describe('BatchExportService', () => {
 			{
 				fileName: 'qurancaption_chapters_002_ Al_Baqara.txt',
 				content: 'chapters-2',
+				tracked: false
+			}
+		]);
+		expect(result).toMatchObject({ completed: 2, failed: 0, total: 2 });
+	});
+
+	it('exports one subtitles JSON file per project in Batch order', async () => {
+		const items = [createItem(2, '002: Al/Baqara'), createItem(1, '001: Al/Fatiha')];
+		const inspection = items.map((item) => ({
+			item,
+			project: createProject(item),
+			reason: null
+		}));
+		const generated: number[] = [];
+		vi.spyOn(Exporter, 'generateSubtitlesJson').mockImplementation((project) => {
+			generated.push(project.detail.id);
+			return { content: `subtitles-${project.detail.id}`, segmentCount: 1 };
+		});
+		const saved: Array<{ fileName: string; content: string; tracked: boolean }> = [];
+		const service = new BatchExportService({
+			pathExists: async () => false,
+			saveTextFile: async (fileName, content, _folder, _label, tracked) => {
+				saved.push({ fileName, content, tracked });
+				return `/out/${fileName}`;
+			}
+		});
+
+		const result = await service.runSubtitlesJson(inspection, '/out');
+
+		expect(generated).toEqual([1, 2]);
+		expect(saved).toEqual([
+			{
+				fileName: 'qurancaption_subtitles_data_001_ Al_Fatiha.json',
+				content: 'subtitles-1',
+				tracked: false
+			},
+			{
+				fileName: 'qurancaption_subtitles_data_002_ Al_Baqara.json',
+				content: 'subtitles-2',
 				tracked: false
 			}
 		]);

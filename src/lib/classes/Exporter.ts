@@ -347,18 +347,14 @@ export default class Exporter {
 	}
 
 	/**
-	 * Exporte uniquement les sous-titres Quran édités, avec les informations word-level utiles.
-	 * @returns {Promise<void>}
+	 * Génère le JSON des sous-titres Quran édités d'un projet.
+	 * @param {Project} projectData Projet dont les sous-titres doivent être sérialisés.
+	 * @returns {{ content: string; segmentCount: number }} JSON généré et nombre de segments.
 	 */
-	static async exportSubtitlesJson() {
-		const projectData = globalState.currentProject;
-		if (!projectData) {
-			console.error('No project data available for subtitle JSON export.');
-			return;
-		}
-
-		const segments = globalState.getSubtitleTrack.clips
-			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+	static generateSubtitlesJson(projectData: Project): { content: string; segmentCount: number } {
+		const segments = projectData.content.timeline
+			.getFirstTrack(TrackType.Subtitle)
+			.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
 			.map((clip, index) => {
 				const alignmentBaseTimeS = clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000;
 				const arabicWords = clip.text.trim().split(/\s+/).filter(Boolean);
@@ -456,24 +452,41 @@ export default class Exporter {
 				};
 			});
 
-		const json = JSON.stringify(
-			{
-				project: {
-					id: projectData.detail.id,
-					name: projectData.detail.name,
-					reciter: projectData.detail.reciter
+		return {
+			content: JSON.stringify(
+				{
+					project: {
+						id: projectData.detail.id,
+						name: projectData.detail.name,
+						reciter: projectData.detail.reciter
+					},
+					exportedAt: new Date().toISOString(),
+					segmentCount: segments.length,
+					segments
 				},
-				exportedAt: new Date().toISOString(),
-				segmentCount: segments.length,
-				segments
-			},
-			null,
-			2
-		);
+				null,
+				2
+			),
+			segmentCount: segments.length
+		};
+	}
+
+	/**
+	 * Exporte uniquement les sous-titres Quran édités, avec les informations word-level utiles.
+	 * @returns {Promise<void>}
+	 */
+	static async exportSubtitlesJson(): Promise<void> {
+		const projectData = globalState.currentProject;
+		if (!projectData) {
+			console.error('No project data available for subtitle JSON export.');
+			return;
+		}
+
+		const { content } = this.generateSubtitlesJson(projectData);
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_subtitles_data_${projectName}.json`;
 		try {
-			await ExportFileService.saveTextFile(fileName, json, 'Subtitle JSON');
+			await ExportFileService.saveTextFile(fileName, content, 'Subtitle JSON');
 		} catch (error) {
 			console.error('Unable to export subtitle JSON:', error);
 		}

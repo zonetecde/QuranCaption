@@ -241,6 +241,64 @@ export class BatchExportService {
 	}
 
 	/**
+	 * Exporte un fichier JSON de sous-titres par projet chargé.
+	 * @param {BatchExportEligibility[]} inspection Projets sélectionnés déjà chargés.
+	 * @param {string} outputFolder Dossier de sortie commun.
+	 * @returns {Promise<BatchExportProgress>} Résumé final.
+	 */
+	async runSubtitlesJson(
+		inspection: BatchExportEligibility[],
+		outputFolder: string
+	): Promise<BatchExportProgress> {
+		const projects = inspection
+			.filter((result) => result.project !== null)
+			.sort((left, right) => left.item.order - right.item.order);
+		const reservedPaths = new Set<string>();
+		let completed = 0;
+		let failed = inspection.length - projects.length;
+		for (const [index, result] of projects.entries()) {
+			const project = result.project!;
+			this.notify(
+				result.item,
+				project.detail.name,
+				completed,
+				failed,
+				projects.length - index - 1,
+				inspection.length
+			);
+			try {
+				const subtitles = Exporter.generateSubtitlesJson(project);
+				if (subtitles.segmentCount === 0) throw new Error('SUBTITLES_MISSING');
+				const outputPath = await this.reserveOutputPath(
+					outputFolder,
+					`qurancaption_subtitles_data_${sanitizeBatchExportFileName(result.item.projectName)}`,
+					'json',
+					reservedPaths
+				);
+				await this.saveTextFile(
+					outputPath.split(/[/\\]/).at(-1)!,
+					subtitles.content,
+					outputFolder,
+					'Subtitle JSON',
+					false
+				);
+				completed++;
+			} catch {
+				failed++;
+			}
+			this.notify(
+				result.item,
+				null,
+				completed,
+				failed,
+				projects.length - index - 1,
+				inspection.length
+			);
+		}
+		return { activeProjectName: null, completed, failed, remaining: 0, total: inspection.length };
+	}
+
+	/**
 	 * Exporte les projets éligibles un par un, sans arrêter la queue après un échec.
 	 * @param {Batch} batch Batch dont les statuts sont persistés.
 	 * @param {BatchExportEligibility[]} inspection Résultats confirmés par l'utilisateur.

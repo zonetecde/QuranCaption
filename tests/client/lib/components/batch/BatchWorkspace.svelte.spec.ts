@@ -146,6 +146,7 @@ import {
 	createDefaultBatchExportState,
 	createDefaultBatchStyleState,
 	createDefaultBatchTranslationState,
+	SubtitleClip,
 	type BatchProjectItem
 } from '$lib/classes';
 import BatchWorkspace from '$lib/components/batch/BatchWorkspace.svelte';
@@ -345,8 +346,15 @@ describe('BatchWorkspace media import', () => {
 			value: 'https://example.com/2'
 		});
 		serviceMocks.load.mockResolvedValue(new Batch('Batch', [ready, ignored], 92));
+		const subtitleClip = new SubtitleClip(0, 1000, 1, 1, 0, 0, 'verse', [], true, true);
 		globalActionMocks.inspectExports.mockResolvedValue([
-			{ item: ready, project: {} as never, reason: null }
+			{
+				item: ready,
+				project: {
+					content: { timeline: { getFirstTrack: () => ({ clips: [subtitleClip] }) } }
+				} as never,
+				reason: null
+			}
 		]);
 		globalState.currentBatchId = 92;
 
@@ -364,8 +372,20 @@ describe('BatchWorkspace media import', () => {
 			const modal = component.container.querySelector('[role="dialog"]')!;
 			expect(modal.textContent).toContain('Ready to export: 1');
 			expect(modal.textContent).toContain('Not ready to export: 0');
-			expect(modal.querySelector<HTMLButtonElement>('.btn-accent')?.disabled).toBe(true);
+			expect(modal.textContent).toContain('Subtitles');
+			expect(
+				Array.from(modal.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+					button.textContent?.includes('Export the 1 ready project')
+				)?.disabled
+			).toBe(true);
 		});
+		const subtitlesTab = Array.from(
+			component.container.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')
+		).find((button) => button.textContent?.trim() === 'Subtitles')!;
+		await subtitlesTab.click();
+		expect(component.container.querySelector('[role="dialog"]')?.textContent).toContain(
+			'Generate a compact word-level JSON'
+		);
 		expect(globalActionMocks.inspectExports.mock.calls[0][0]).toEqual([ready]);
 	});
 

@@ -58,6 +58,23 @@
 	}
 
 	/**
+	 * Dissout le batch confirmé en conservant ses projets séparément.
+	 * @param {MouseEvent} event Clic sur l'action de dissolution.
+	 * @returns {Promise<void>} Promesse résolue après la dissolution.
+	 */
+	async function dissolveBatch(event: MouseEvent): Promise<void> {
+		if (event.button !== 0) return;
+		const confirmed = await ModalManager.confirmModal(
+			batchMessage('dissolveBatchConfirm', {
+				name: batchDetail.name,
+				count: batchDetail.projectCount
+			})
+		);
+		if (confirmed) await BatchService.dissolve(batchDetail.id);
+		else currentMenu.set(null);
+	}
+
+	/**
 	 * Supprime le batch confirmé et tous les projets qu'il contient.
 	 * @param {MouseEvent} event Clic sur l'action de suppression.
 	 * @returns {Promise<void>} Promesse résolue après la suppression.
@@ -160,6 +177,13 @@
 		><div class="btn-icon">
 			<span class="material-icons-outlined mr-1 text-sm">file_download</span>{batchMessage(
 				'exportBatch'
+			)}
+		</div></Item
+	>
+	<Item on:click={dissolveBatch}
+		><div class="btn-icon">
+			<span class="material-icons-outlined mr-1 text-sm">call_split</span>{batchMessage(
+				'dissolveBatch'
 			)}
 		</div></Item
 	>

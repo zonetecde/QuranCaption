@@ -527,6 +527,9 @@ const zh = {
 		someProjectsCouldNotBeExported: '部分项目无法导出。',
 		batchActions: '批次操作',
 		exportBatch: '导出批次',
+		dissolveBatch: '解散批次',
+		dissolveBatchConfirm:
+			'确定要解散批次“{name}”吗？该批次将被移除，其中的 {count} 个项目仍会作为独立项目保留。',
 		deleteBatch: '删除批次',
 		deleteBatchConfirm: '确定要删除批次“{name}”吗？其中的 {count} 个项目也将被永久删除。'
 	},

@@ -10271,6 +10271,16 @@ type RootTranslation = {
 		 */
 		exportBatch: string;
 		/**
+		 * D​i​s​s​o​l​v​e​ ​b​a​t​c​h
+		 */
+		dissolveBatch: string;
+		/**
+		 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​s​o​l​v​e​ ​t​h​e​ ​b​a​t​c​h​ ​"​{​n​a​m​e​}​"​?​ ​T​h​e​ ​b​a​t​c​h​ ​w​i​l​l​ ​b​e​ ​r​e​m​o​v​e​d​ ​a​n​d​ ​i​t​s​ ​{​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​w​i​l​l​ ​r​e​m​a​i​n​ ​a​v​a​i​l​a​b​l​e​ ​a​s​ ​s​e​p​a​r​a​t​e​ ​p​r​o​j​e​c​t​s​.
+		 * @param {unknown} count
+		 * @param {unknown} name
+		 */
+		dissolveBatchConfirm: RequiredParams<'count' | 'name'>;
+		/**
 		 * D​e​l​e​t​e​ ​b​a​t​c​h
 		 */
 		deleteBatch: string;
@@ -20357,6 +20367,14 @@ export type TranslationFunctions = {
 		 * Export batch
 		 */
 		exportBatch: () => LocalizedString;
+		/**
+		 * Dissolve batch
+		 */
+		dissolveBatch: () => LocalizedString;
+		/**
+		 * Are you sure you want to dissolve the batch "{name}"? The batch will be removed and its {count} project(s) will remain available as separate projects.
+		 */
+		dissolveBatchConfirm: (arg: { count: unknown; name: unknown }) => LocalizedString;
 		/**
 		 * Delete batch
 		 */

@@ -130,6 +130,52 @@ describe('BatchService persistence', () => {
 		expect(storage.has(`/app-data/batches/${batch.id}.json`)).toBe(false);
 	});
 
+	it('dissolves a batch without deleting its projects', async () => {
+		const batch = Batch.fromJSON({
+			version: 1,
+			id: 125,
+			name: 'Dissolve batch',
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			projects: [
+				{ order: 1, projectId: 10, projectName: 'First' },
+				{ order: 2, projectId: 20, projectName: 'Second' }
+			]
+		}) as Batch;
+		const projects = new Map(
+			batch.projects.map((item) => [
+				item.projectId,
+				{
+					detail: {
+						batchId: batch.id,
+						batchOrder: item.order,
+						updateTimestamp: vi.fn()
+					}
+				}
+			])
+		);
+		const loadProject = vi
+			.spyOn(ProjectService, 'load')
+			.mockImplementation(async (projectId) => projects.get(projectId) as never);
+		const saveProject = vi.spyOn(ProjectService, 'save').mockResolvedValue();
+		const deleteProject = vi.spyOn(ProjectService, 'delete').mockResolvedValue();
+		vi.spyOn(ProjectService, 'loadUserProjectsDetails').mockResolvedValue([]);
+		await BatchService.save(batch);
+
+		await BatchService.dissolve(batch.id);
+
+		expect(loadProject).toHaveBeenCalledTimes(2);
+		expect(saveProject).toHaveBeenCalledTimes(2);
+		expect(deleteProject).not.toHaveBeenCalled();
+		expect(Array.from(projects.values()).every((project) => project.detail.batchId === null)).toBe(
+			true
+		);
+		expect(
+			Array.from(projects.values()).every((project) => project.detail.batchOrder === null)
+		).toBe(true);
+		expect(storage.has(`/app-data/batches/${batch.id}.json`)).toBe(false);
+	});
+
 	it('deletes selected projects and updates the batch manifest', async () => {
 		const batch = Batch.fromJSON({
 			version: 1,

@@ -560,6 +560,9 @@ const de = {
 		someProjectsCouldNotBeExported: 'Einige Projekte konnten nicht exportiert werden.',
 		batchActions: 'Batch-Aktionen',
 		exportBatch: 'Batch exportieren',
+		dissolveBatch: 'Batch auflösen',
+		dissolveBatchConfirm:
+			'Möchten Sie den Batch „{name}“ wirklich auflösen? Der Batch wird entfernt und seine {count} Projekte bleiben als separate Projekte verfügbar.',
 		deleteBatch: 'Batch löschen',
 		deleteBatchConfirm:
 			'Möchten Sie den Batch „{name}“ wirklich löschen? Seine {count} Projekte werden ebenfalls dauerhaft gelöscht.'

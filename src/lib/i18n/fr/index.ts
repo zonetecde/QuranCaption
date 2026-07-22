@@ -557,6 +557,9 @@ const fr = {
 		someProjectsCouldNotBeExported: 'Certains projets n’ont pas pu être exportés.',
 		batchActions: 'Actions du batch',
 		exportBatch: 'Exporter le batch',
+		dissolveBatch: 'Dissoudre le batch',
+		dissolveBatchConfirm:
+			'Êtes-vous sûr de vouloir dissoudre le batch « {name} » ? Le batch sera supprimé et ses {count} projet(s) resteront disponibles comme projets séparés.',
 		deleteBatch: 'Supprimer le batch',
 		deleteBatchConfirm:
 			'Êtes-vous sûr de vouloir supprimer le batch « {name} » ? Ses {count} projet(s) seront également supprimés définitivement.'

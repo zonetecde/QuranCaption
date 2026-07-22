@@ -465,6 +465,9 @@ const id = {
 		someProjectsCouldNotBeExported: 'Beberapa proyek tidak dapat diekspor.',
 		batchActions: 'Aksi batch',
 		exportBatch: 'Ekspor batch',
+		dissolveBatch: 'Pisahkan batch',
+		dissolveBatchConfirm:
+			'Yakin ingin memisahkan batch “{name}”? Batch akan dihapus dan {count} proyek di dalamnya akan tetap tersedia sebagai proyek terpisah.',
 		deleteBatch: 'Hapus batch',
 		deleteBatchConfirm:
 			'Yakin ingin menghapus batch “{name}”? {count} proyek di dalamnya juga akan dihapus secara permanen.'

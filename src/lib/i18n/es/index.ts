@@ -552,6 +552,9 @@ const es = {
 		someProjectsCouldNotBeExported: 'Algunos proyectos no pudieron exportarse.',
 		batchActions: 'Acciones del lote',
 		exportBatch: 'Exportar lote',
+		dissolveBatch: 'Disolver lote',
+		dissolveBatchConfirm:
+			'¿Seguro que desea disolver el lote «{name}»? El lote se eliminará y sus {count} proyectos seguirán disponibles como proyectos independientes.',
 		deleteBatch: 'Eliminar lote',
 		deleteBatchConfirm:
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'

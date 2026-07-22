@@ -265,6 +265,9 @@ const batch = {
 	someProjectsCouldNotBeExported: 'Some projects could not be exported.',
 	batchActions: 'Batch actions',
 	exportBatch: 'Export batch',
+	dissolveBatch: 'Dissolve batch',
+	dissolveBatchConfirm:
+		'Are you sure you want to dissolve the batch "{name}"? The batch will be removed and its {count} project(s) will remain available as separate projects.',
 	deleteBatch: 'Delete batch',
 	deleteBatchConfirm:
 		'Are you sure you want to delete the batch "{name}"? Its {count} project(s) will also be permanently deleted.'

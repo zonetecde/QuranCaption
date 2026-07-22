@@ -49,6 +49,7 @@ describe('BatchDetailCard', () => {
 		expect(globalState.currentBatchId).toBeNull();
 		expect(globalState.currentPage).toBe('home');
 		expect(document.body.textContent).toContain('file_download');
+		expect(document.body.textContent).toContain('call_split');
 		expect(document.body.textContent).toContain('delete');
 	});
 });

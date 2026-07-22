@@ -252,6 +252,34 @@ export class BatchService {
 	}
 
 	/**
+	 * Détache les projets d'un batch puis supprime uniquement son manifeste.
+	 * @param {number} batchId Identifiant du batch à dissoudre.
+	 * @returns {Promise<void>} Promesse résolue après le détachement des projets.
+	 */
+	static async dissolve(batchId: number): Promise<void> {
+		const filePath = await join(await this.getBatchesFolderPath(), `${batchId}.json`);
+		if (!(await exists(filePath))) return;
+		const batch = await this.load(batchId);
+		const projects = await Promise.all(
+			batch.projects.map((item) => ProjectService.load(item.projectId))
+		);
+		await Promise.all(
+			projects.map((project) => {
+				project.detail.batchId = null;
+				project.detail.batchOrder = null;
+				project.detail.updateTimestamp();
+				return ProjectService.save(project);
+			})
+		);
+		await remove(filePath);
+		globalState.userBatchDetails = globalState.userBatchDetails.filter(
+			(detail) => detail.id !== batchId
+		);
+		if (globalState.currentBatchId === batchId) globalState.currentBatchId = null;
+		await ProjectService.loadUserProjectsDetails();
+	}
+
+	/**
 	 * Supprime des projets d'un batch et sauvegarde son manifeste.
 	 * @param {Batch} batch Batch à modifier.
 	 * @param {number[]} projectIds Identifiants des projets à supprimer.

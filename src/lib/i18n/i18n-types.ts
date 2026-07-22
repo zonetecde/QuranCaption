@@ -4913,6 +4913,10 @@ type RootTranslation = {
 			 */
 			'video-frame-radius': string;
 			/**
+			 * E​d​g​e​ ​S​o​f​t​n​e​s​s
+			 */
+			'video-frame-softness': string;
+			/**
 			 * C​u​s​t​o​m​ ​C​S​S
 			 */
 			'overlay-custom-css': string;
@@ -5598,6 +5602,10 @@ type RootTranslation = {
 			 * R​o​u​n​d​ ​t​h​e​ ​i​n​n​e​r​ ​c​o​r​n​e​r​s​ ​o​f​ ​t​h​e​ ​v​i​d​e​o​ ​f​r​a​m​e​ ​a​s​ ​a​ ​p​e​r​c​e​n​t​a​g​e
 			 */
 			'video-frame-radius': string;
+			/**
+			 * S​o​f​t​e​n​ ​t​h​e​ ​i​n​n​e​r​ ​e​d​g​e​ ​o​f​ ​t​h​e​ ​v​i​d​e​o​ ​f​r​a​m​e​ ​a​s​ ​a​ ​p​e​r​c​e​n​t​a​g​e
+			 */
+			'video-frame-softness': string;
 			/**
 			 * A​d​d​ ​c​u​s​t​o​m​ ​C​S​S​ ​t​o​ ​t​h​e​ ​o​v​e​r​l​a​y​ ​(​e​.​g​.​,​ ​a​n​i​m​a​t​i​o​n​s​)
 			 */
@@ -14402,6 +14410,10 @@ export type TranslationFunctions = {
 			 */
 			'video-frame-radius': () => LocalizedString;
 			/**
+			 * Edge Softness
+			 */
+			'video-frame-softness': () => LocalizedString;
+			/**
 			 * Custom CSS
 			 */
 			'overlay-custom-css': () => LocalizedString;
@@ -15087,6 +15099,10 @@ export type TranslationFunctions = {
 			 * Round the inner corners of the video frame as a percentage
 			 */
 			'video-frame-radius': () => LocalizedString;
+			/**
+			 * Soften the inner edge of the video frame as a percentage
+			 */
+			'video-frame-softness': () => LocalizedString;
 			/**
 			 * Add custom CSS to the overlay (e.g., animations)
 			 */

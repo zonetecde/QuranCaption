@@ -520,7 +520,8 @@
 					'video-frame-color',
 					'video-frame-vertical-size',
 					'video-frame-horizontal-size',
-					'video-frame-radius'
+					'video-frame-radius',
+					'video-frame-softness'
 				].includes(id)
 			) {
 				return id !== 'video-frame-enable' && !isFeatureEnabled('video-frame-enable', category);

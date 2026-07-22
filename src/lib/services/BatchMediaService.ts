@@ -15,6 +15,7 @@ import { BatchService } from './BatchService';
 import { ProjectService } from './ProjectService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import { runBatchWorkerPool } from './BatchWorkerPool';
 
 export const BATCH_MEDIA_CONCURRENCY = 3;
 
@@ -156,18 +157,9 @@ export class BatchMediaService {
 			}
 			await this.saveNow();
 
-			let cursor = 0;
-			const workers = Array.from(
-				{ length: Math.min(BATCH_MEDIA_CONCURRENCY, this.executionItems.length) },
-				async () => {
-					while (true) {
-						const item = this.executionItems[cursor++];
-						if (!item) break;
-						await this.runItem(item, mode);
-					}
-				}
+			await runBatchWorkerPool(this.executionItems, BATCH_MEDIA_CONCURRENCY, async (item) =>
+				this.runItem(item, mode)
 			);
-			await Promise.all(workers);
 		} finally {
 			try {
 				await this.flushSave();

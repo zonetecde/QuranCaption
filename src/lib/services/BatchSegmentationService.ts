@@ -5,16 +5,16 @@ import { TrackType } from '$lib/classes/enums';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { exists } from '@tauri-apps/plugin-fs';
 import { AutoSegmentationExecutionCoordinator } from './AutoSegmentationExecutionCoordinator';
-import { getAutoSegmentationAudioClips } from './AutoSegmentation';
+import { getAutoSegmentationAudioClips, type AutoSegmentationResult } from './AutoSegmentation';
 import { runAutoSegmentationForProject } from './autoSegmentation/run-segmentation';
 import { BatchService } from './BatchService';
 import { ProjectService } from './ProjectService';
 import type { BatchSegmentationRunConfiguration } from './BatchSegmentationSettings';
-import type { AutoSegmentationResult } from './AutoSegmentation';
 import {
 	classifyBatchSegmentationStatus,
 	getBatchSegmentationReviewCounts
 } from './BatchSegmentationReview';
+import { runBatchWorkerPool } from './BatchWorkerPool';
 
 export const BATCH_SEGMENTATION_CONCURRENCY = 1;
 
@@ -307,18 +307,9 @@ export class BatchSegmentationService {
 				this.notify(item, 'queued');
 			}
 			await this.saveNow();
-			let cursor = 0;
-			const workers = Array.from(
-				{ length: Math.min(BATCH_SEGMENTATION_CONCURRENCY, this.executionItems.length) },
-				async () => {
-					while (true) {
-						const item = this.executionItems[cursor++];
-						if (!item) break;
-						await this.runItem(item, configuration, overwriteExistingSubtitles);
-					}
-				}
+			await runBatchWorkerPool(this.executionItems, BATCH_SEGMENTATION_CONCURRENCY, async (item) =>
+				this.runItem(item, configuration, overwriteExistingSubtitles)
 			);
-			await Promise.all(workers);
 		} finally {
 			this.activeItem = null;
 			unlisten?.();

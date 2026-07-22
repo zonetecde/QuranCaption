@@ -1,8 +1,13 @@
 <script lang="ts">
-	import type { BatchProjectItem, BatchProjectTranslationState } from '$lib/classes';
+	import type { BatchProjectItem } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
-	import type { BatchSegmentationLiveStatus } from '$lib/services/BatchSegmentationService';
+	import type { BatchMediaActivity } from '$lib/services/BatchMediaService';
+	import type {
+		BatchSegmentationActivity,
+		BatchSegmentationLiveStatus
+	} from '$lib/services/BatchSegmentationService';
 	import BatchProjectRow from './BatchProjectRow.svelte';
+	import { batchMessage } from './batchProjectPresentation';
 
 	let {
 		projects,
@@ -11,14 +16,10 @@
 		selectedIds,
 		allSelected,
 		operationActive,
+		mediaActivities,
+		segmentationActivities,
 		segmentationLive,
 		rowVersions,
-		batchMessage,
-		getMediaActivityLabel,
-		getModeLabel,
-		getSegmentationActivityLabel,
-		getSegmentationError,
-		getTranslationStatusLabel,
 		onToggleAll,
 		onToggleProject,
 		onOpenProject
@@ -29,14 +30,10 @@
 		selectedIds: Set<number>;
 		allSelected: boolean;
 		operationActive: boolean;
+		mediaActivities: Map<number, BatchMediaActivity>;
+		segmentationActivities: Map<number, BatchSegmentationActivity>;
 		segmentationLive: Map<number, BatchSegmentationLiveStatus>;
 		rowVersions: Record<number, number>;
-		batchMessage: (key: string, params?: Record<string, string | number>) => string;
-		getMediaActivityLabel: (project: BatchProjectItem) => string;
-		getModeLabel: (mode: BatchProjectItem['media']['mode']) => string;
-		getSegmentationActivityLabel: (project: BatchProjectItem) => string;
-		getSegmentationError: (error: string | null) => string;
-		getTranslationStatusLabel: (status: BatchProjectTranslationState['status']) => string;
 		onToggleAll: () => void;
 		onToggleProject: (projectId: number) => void;
 		onOpenProject: (project: BatchProjectItem) => void;
@@ -81,13 +78,9 @@
 						{activeTranslationEditionName}
 						selected={selectedIds.has(project.projectId)}
 						{operationActive}
+						mediaActivity={mediaActivities.get(project.projectId)}
+						segmentationActivity={segmentationActivities.get(project.projectId)}
 						segmentationLive={segmentationLive.get(project.projectId)}
-						{batchMessage}
-						{getMediaActivityLabel}
-						{getModeLabel}
-						{getSegmentationActivityLabel}
-						{getSegmentationError}
-						{getTranslationStatusLabel}
 						onToggle={onToggleProject}
 						onOpen={onOpenProject}
 					/>

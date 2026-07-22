@@ -132,6 +132,11 @@ vi.mock('$lib/services/BatchExportService', () => ({
 		run(...args: unknown[]): unknown {
 			return globalActionMocks.exportRun(...args);
 		}
+
+		/** @returns {unknown} Résultat contrôlé du test. */
+		runOperation(...args: unknown[]): unknown {
+			return globalActionMocks.exportRun(...args);
+		}
 	},
 	inspectBatchExportEligibility: globalActionMocks.inspectExports
 }));

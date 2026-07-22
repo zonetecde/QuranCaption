@@ -1,30 +1,34 @@
 <script lang="ts">
 	import type { BatchProjectItem, BatchProjectTranslationState } from '$lib/classes';
-	import type { BatchSegmentationLiveStatus } from '$lib/services/BatchSegmentationService';
+	import type { BatchMediaActivity } from '$lib/services/BatchMediaService';
+	import type {
+		BatchSegmentationActivity,
+		BatchSegmentationLiveStatus
+	} from '$lib/services/BatchSegmentationService';
 	import BatchProgressBar from './BatchProgressBar.svelte';
+	import {
+		batchMessage,
+		getBatchMediaActivityLabel,
+		getBatchMediaModeLabel,
+		getBatchSegmentationActivityLabel,
+		getBatchSegmentationError,
+		getBatchTranslationStatusLabel
+	} from './batchProjectPresentation';
 
 	let {
 		project,
 		stage,
 		translationState,
-		segmentationLive,
-		batchMessage,
-		getMediaActivityLabel,
-		getModeLabel,
-		getSegmentationActivityLabel,
-		getSegmentationError,
-		getTranslationStatusLabel
+		mediaActivity,
+		segmentationActivity,
+		segmentationLive
 	}: {
 		project: BatchProjectItem;
 		stage: 'media' | 'segmentation' | 'translation';
 		translationState?: BatchProjectTranslationState;
+		mediaActivity?: BatchMediaActivity;
+		segmentationActivity?: BatchSegmentationActivity;
 		segmentationLive?: BatchSegmentationLiveStatus;
-		batchMessage: (key: string, params?: Record<string, string | number>) => string;
-		getMediaActivityLabel: (project: BatchProjectItem) => string;
-		getModeLabel: (mode: BatchProjectItem['media']['mode']) => string;
-		getSegmentationActivityLabel: (project: BatchProjectItem) => string;
-		getSegmentationError: (error: string | null) => string;
-		getTranslationStatusLabel: (status: BatchProjectTranslationState['status']) => string;
 	} = $props();
 </script>
 
@@ -32,7 +36,7 @@
 	{#if stage === 'translation'}
 		{#if translationState}
 			<div class="flex justify-between gap-3 text-xs text-[var(--text-secondary)]">
-				<span>{getTranslationStatusLabel(translationState.status)}</span>
+				<span>{getBatchTranslationStatusLabel(translationState.status)}</span>
 				{#if translationState.status === 'adding' || translationState.status === 'fetching'}
 					<span>{translationState.progress}%</span>
 				{/if}
@@ -66,7 +70,9 @@
 		{/if}
 	{:else if stage === 'segmentation'}
 		<div class="flex justify-between gap-3 text-xs text-[var(--text-secondary)]">
-			<span>{getSegmentationActivityLabel(project)}</span>
+			<span
+				>{getBatchSegmentationActivityLabel(project, segmentationActivity, segmentationLive)}</span
+			>
 			{#if project.segmentation.status === 'processing' || project.segmentation.progress > 0}
 				<span>{project.segmentation.progress}%</span>
 			{/if}
@@ -108,12 +114,12 @@
 		{/if}
 		{#if project.segmentation.error}
 			<p class="mt-2 max-w-80 break-words text-xs text-red-300">
-				{getSegmentationError(project.segmentation.error)}
+				{getBatchSegmentationError(project.segmentation.error)}
 			</p>
 		{/if}
 	{:else}
 		<div class="flex justify-between text-xs text-[var(--text-secondary)]">
-			<span>{getMediaActivityLabel(project)}</span>
+			<span>{getBatchMediaActivityLabel(project, mediaActivity)}</span>
 			<span>{project.media.progress}%</span>
 		</div>
 		<div class="mt-2">
@@ -121,7 +127,7 @@
 		</div>
 		{#if project.media.mode}
 			<p class="mt-2 text-xs text-[var(--text-thirdly)]">
-				{batchMessage('mediaMode', { mode: getModeLabel(project.media.mode) })}
+				{batchMessage('mediaMode', { mode: getBatchMediaModeLabel(project.media.mode) })}
 			</p>
 		{/if}
 		{#if project.media.error}

@@ -2,6 +2,7 @@ import type { Batch, BatchProjectItem, Project } from '$lib/classes';
 import type { SavedVideoStylePreset } from '$lib/classes/Settings.svelte';
 import { BatchService } from './BatchService';
 import { ProjectService } from './ProjectService';
+import { runBatchWorkerPool } from './BatchWorkerPool';
 
 export const BATCH_STYLE_CONCURRENCY = 3;
 
@@ -72,18 +73,37 @@ export class BatchStyleService {
 		}
 		await this.persist(batch);
 
-		let cursor = 0;
 		let active = 0;
 		let completed = 0;
 		let failed = 0;
-		const workerCount = Math.min(BATCH_STYLE_CONCURRENCY, items.length);
-		const workers = Array.from({ length: workerCount }, async () => {
-			while (true) {
-				const item = items[cursor++];
-				if (!item) return;
-				active++;
-				item.style.status = 'processing';
-				item.style.progress = 10;
+		await runBatchWorkerPool(items, BATCH_STYLE_CONCURRENCY, async (item) => {
+			active++;
+			item.style.status = 'processing';
+			item.style.progress = 10;
+			this.notify(
+				item,
+				active,
+				completed,
+				failed,
+				items.length - completed - failed - active,
+				items.length
+			);
+			await this.persist(batch);
+			try {
+				const project = await this.loadProject(item.projectId);
+				await this.applyPreset(project, preset);
+				await this.saveProject(project);
+				item.style.status = 'completed';
+				item.style.progress = 100;
+				item.style.appliedAt = new Date();
+				completed++;
+			} catch (error) {
+				item.style.status = 'failed';
+				item.style.progress = 0;
+				item.style.error = String(error);
+				failed++;
+			} finally {
+				active--;
 				this.notify(
 					item,
 					active,
@@ -93,34 +113,8 @@ export class BatchStyleService {
 					items.length
 				);
 				await this.persist(batch);
-				try {
-					const project = await this.loadProject(item.projectId);
-					await this.applyPreset(project, preset);
-					await this.saveProject(project);
-					item.style.status = 'completed';
-					item.style.progress = 100;
-					item.style.appliedAt = new Date();
-					completed++;
-				} catch (error) {
-					item.style.status = 'failed';
-					item.style.progress = 0;
-					item.style.error = String(error);
-					failed++;
-				} finally {
-					active--;
-					this.notify(
-						item,
-						active,
-						completed,
-						failed,
-						items.length - completed - failed - active,
-						items.length
-					);
-					await this.persist(batch);
-				}
 			}
 		});
-		await Promise.all(workers);
 		await this.saveChain;
 		return { active: 0, completed, failed, remaining: 0, total: items.length };
 	}

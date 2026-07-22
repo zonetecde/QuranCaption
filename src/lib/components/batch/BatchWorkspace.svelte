@@ -6,13 +6,9 @@
 		SubtitleClip,
 		SourceType,
 		TrackType,
-		type Edition,
 		type Batch,
 		type BatchMediaMode,
-		type BatchMediaStatus,
-		type BatchProjectItem,
-		type BatchSegmentationStatus,
-		type BatchTranslationStatus
+		type BatchProjectItem
 	} from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -26,7 +22,6 @@
 	import {
 		BatchSegmentationService,
 		inspectBatchSegmentationEligibility,
-		reconcileBatchSegmentations,
 		type BatchSegmentationActivity,
 		type BatchSegmentationEligibility,
 		type BatchSegmentationLiveStatus,
@@ -48,7 +43,6 @@
 	import { BatchCbrService, type BatchCbrQueueProgress } from '$lib/services/BatchCbrService';
 	import {
 		BatchTranslationService,
-		reconcileBatchTranslations,
 		type BatchTranslationQueueProgress
 	} from '$lib/services/BatchTranslationService';
 	import {
@@ -65,6 +59,7 @@
 		BatchExportService,
 		inspectBatchExportEligibility,
 		type BatchExportEligibility,
+		type BatchExportOperation,
 		type BatchExportProgress
 	} from '$lib/services/BatchExportService';
 	import { open } from '@tauri-apps/plugin-dialog';
@@ -74,6 +69,8 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import MigrationService from '$lib/services/MigrationService';
 	import { BatchWorkspaceWorkflow } from '$lib/services/BatchWorkspaceWorkflow.svelte';
+	import { openBatchWorkspace } from '$lib/services/BatchWorkspaceOpeningService';
+	import { batchMessage, getBatchSegmentationError } from './batchProjectPresentation';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -152,7 +149,6 @@
 	let qdcTranslations = $state<Record<string, TranslationLanguageData>>({});
 	let showStyleModal = $state(false);
 	let showBackgroundModal = $state(false);
-	let backgroundQueueActive = $derived(workflow.isActive('background'));
 	let selectedStylePresetId = $state<number | null>(null);
 	let styleOverwriteConfirmed = $state(false);
 	let styleQueueActive = $derived(workflow.isActive('style'));
@@ -172,7 +168,6 @@
 	let exportModalTab = $state<'video' | 'youtube' | 'subtitles'>('video');
 	let youtubeChaptersChoice = $state<'Each Surah' | 'Each Verse'>('Each Surah');
 	let exportQueueActive = $derived(workflow.isActive('export'));
-	let deleteQueueActive = $derived(workflow.isActive('delete'));
 	let exportProgress = $state<BatchExportProgress>({
 		activeProjectName: null,
 		completed: 0,
@@ -182,7 +177,7 @@
 	});
 
 	let projects = $derived.by(() => {
-		revision;
+		void revision;
 		return batch ? [...batch.projects] : [];
 	});
 	let selectedProjects = $derived(workflow.getSelectedProjects(projects));
@@ -329,19 +324,6 @@
 	let cbrCurrentProject = $derived(
 		projects.find((project) => project.projectId === cbrProgress.activeProjectId) ?? null
 	);
-
-	/**
-	 * Résout une nouvelle traduction Batch sans dépendre des types générés au pre-commit.
-	 * @param {string} key Clé du message Batch.
-	 * @param {Record<string, string | number>} params Paramètres éventuels du message.
-	 * @returns {string} Message localisé.
-	 */
-	function batchMessage(key: string, params: Record<string, string | number> = {}): string {
-		const translator = Reflect.get(get(LL).batch, key) as
-			| ((values?: Record<string, string | number>) => string)
-			| undefined;
-		return translator?.(params) ?? key;
-	}
 
 	/**
 	 * Ouvre la sélection du preset pour les projets cochés.
@@ -512,111 +494,62 @@
 	}
 
 	/**
-	 * Exporte séquentiellement les projets confirmés, prêts ou forcés par l'utilisateur.
-	 * @returns {Promise<void>} Promesse résolue après tous les exports sélectionnés.
+	 * Exécute le format actif avec un cycle commun de progression et de résultat.
+	 * @returns {Promise<void>} Promesse résolue après les exports sélectionnés.
 	 */
-	async function exportReadyProjects(): Promise<void> {
-		if (!batch || exportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
-			return;
+	async function exportSelectedFormat(): Promise<void> {
+		if (!batch || !exportOutputFolder || incompatibleQueueActive) return;
+		const candidates =
+			exportModalTab === 'video'
+				? exportCandidates
+				: exportModalTab === 'youtube'
+					? chapterExportCandidates
+					: subtitleExportCandidates;
+		if (candidates.length === 0 || !workflow.begin('export')) return;
+		const operation: BatchExportOperation =
+			exportModalTab === 'video'
+				? {
+						kind: 'video',
+						batch,
+						inspection: exportInspection,
+						outputFolder: exportOutputFolder,
+						includeNotReady: exportNonReadyProjects,
+						exportOnlyRecitation
+					}
+				: exportModalTab === 'youtube'
+					? {
+							kind: 'youtube',
+							inspection: chapterExportCandidates,
+							outputFolder: exportOutputFolder,
+							choice: youtubeChaptersChoice,
+							exportOnlyRecitation
+						}
+					: {
+							kind: 'subtitles',
+							inspection: subtitleExportCandidates,
+							outputFolder: exportOutputFolder
+						};
 		showExportModal = false;
-		if (!workflow.begin('export')) return;
 		exportProgress = {
 			activeProjectName: null,
 			completed: 0,
 			failed: 0,
-			remaining: exportCandidates.length,
-			total: exportCandidates.length
+			remaining: candidates.length,
+			total: candidates.length
 		};
 		try {
 			const service = new BatchExportService({
 				onUpdate: (item, progress) => {
 					exportProgress = progress;
-					refreshProjectRow(item);
+					if (exportModalTab === 'video') refreshProjectRow(item);
 				}
 			});
-			const result = await service.run(
-				batch,
-				exportInspection,
-				exportOutputFolder,
-				exportNonReadyProjects,
-				exportOnlyRecitation
-			);
-			if (result.failed > 0 || skippedExports.length > 0) {
-				toast.error(batchMessage('someProjectsCouldNotBeExported'));
-			} else {
-				toast.success(batchMessage('allEligibleProjectsExported'));
-			}
-		} catch (exportError) {
-			queueError = String(exportError);
-		} finally {
-			workflow.finish('export');
-		}
-	}
-
-	/**
-	 * Exporte les chapitres YouTube des projets cochés dans le dossier commun.
-	 * @returns {Promise<void>} Promesse résolue après l'écriture de tous les fichiers.
-	 */
-	async function exportReadyYouTubeChapters(): Promise<void> {
-		if (chapterExportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
-			return;
-		showExportModal = false;
-		if (!workflow.begin('export')) return;
-		exportProgress = {
-			activeProjectName: null,
-			completed: 0,
-			failed: 0,
-			remaining: chapterExportCandidates.length,
-			total: chapterExportCandidates.length
-		};
-		try {
-			const service = new BatchExportService({
-				onUpdate: (_item, progress) => {
-					exportProgress = progress;
-				}
-			});
-			const result = await service.runYouTubeChapters(
-				chapterExportCandidates,
-				exportOutputFolder,
-				youtubeChaptersChoice,
-				exportOnlyRecitation
-			);
-			if (result.failed > 0 || chapterExportCandidates.length < exportInspection.length) {
-				toast.error(batchMessage('someProjectsCouldNotBeExported'));
-			} else {
-				toast.success(batchMessage('allEligibleProjectsExported'));
-			}
-		} catch (exportError) {
-			queueError = String(exportError);
-		} finally {
-			workflow.finish('export');
-		}
-	}
-
-	/**
-	 * Exporte le JSON des sous-titres des projets cochés dans le dossier commun.
-	 * @returns {Promise<void>} Promesse résolue après l'écriture de tous les fichiers.
-	 */
-	async function exportReadySubtitlesJson(): Promise<void> {
-		if (subtitleExportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
-			return;
-		showExportModal = false;
-		if (!workflow.begin('export')) return;
-		exportProgress = {
-			activeProjectName: null,
-			completed: 0,
-			failed: 0,
-			remaining: subtitleExportCandidates.length,
-			total: subtitleExportCandidates.length
-		};
-		try {
-			const service = new BatchExportService({
-				onUpdate: (_item, progress) => {
-					exportProgress = progress;
-				}
-			});
-			const result = await service.runSubtitlesJson(subtitleExportCandidates, exportOutputFolder);
-			if (result.failed > 0 || subtitleExportCandidates.length < exportInspection.length) {
+			const result = await service.runOperation(operation);
+			const skipped =
+				exportModalTab === 'video'
+					? skippedExports.length
+					: exportInspection.length - candidates.length;
+			if (result.failed > 0 || skipped > 0) {
 				toast.error(batchMessage('someProjectsCouldNotBeExported'));
 			} else {
 				toast.success(batchMessage('allEligibleProjectsExported'));
@@ -649,97 +582,6 @@
 	}
 
 	/**
-	 * Traduit l'état média persistant d'un projet du batch.
-	 * @param {BatchMediaStatus} status État média à afficher.
-	 * @returns {string} Libellé localisé.
-	 */
-	function getMediaLabel(status: BatchMediaStatus): string {
-		const messages = get(LL).batch;
-		switch (status) {
-			case 'pending':
-				return messages.notImported();
-			case 'queued':
-				return messages.queued();
-			case 'processing':
-				return messages.processing();
-			case 'completed':
-				return messages.completed();
-			case 'failed':
-				return messages.failed();
-		}
-	}
-
-	/**
-	 * Traduit l'activité temps réel d'une ligne en cours.
-	 * @param {BatchProjectItem} project Projet affiché.
-	 * @returns {string} Libellé de progression.
-	 */
-	function getActivityLabel(project: BatchProjectItem): string {
-		const activity = activities.get(project.projectId);
-		if (project.media.status !== 'processing' || !activity) {
-			return getMediaLabel(project.media.status);
-		}
-		switch (activity) {
-			case 'downloading':
-				return batchMessage('downloading');
-			case 'copying':
-				return batchMessage('copyingLocal');
-			case 'finalizing':
-				return batchMessage('addingTimeline');
-			case 'saving':
-				return batchMessage('savingProject');
-			default:
-				return getMediaLabel(project.media.status);
-		}
-	}
-
-	/**
-	 * Traduit le mode média persistant d'une ligne.
-	 * @param {BatchMediaMode | null} mode Mode à afficher.
-	 * @returns {string} Libellé localisé ou chaîne vide.
-	 */
-	function getModeLabel(mode: BatchMediaMode | null): string {
-		if (!mode) return '';
-		return batchMessage(mode === 'audio_only' ? 'audioOnly' : 'audioVideo');
-	}
-
-	/**
-	 * Traduit le statut persistant de segmentation.
-	 * @param {BatchSegmentationStatus} status Statut à afficher.
-	 * @returns {string} Libellé localisé.
-	 */
-	function getSegmentationLabel(status: BatchSegmentationStatus): string {
-		const keys: Record<BatchSegmentationStatus, string> = {
-			not_started: 'segmentationNotStarted',
-			queued: 'segmentationQueued',
-			processing: 'segmentationProcessing',
-			auto_verified: 'segmentationAutoVerified',
-			needs_review: 'segmentationNeedsReview',
-			manually_verified: 'segmentationManuallyVerified',
-			failed: 'segmentationFailed'
-		};
-		return batchMessage(keys[status]);
-	}
-
-	/**
-	 * Traduit l'activité de segmentation ou reprend le statut backend actif.
-	 * @param {BatchProjectItem} project Projet affiché.
-	 * @returns {string} Détail localisé ou backend.
-	 */
-	function getSegmentationActivityLabel(project: BatchProjectItem): string {
-		const live = segmentationLive.get(project.projectId);
-		if (project.segmentation.status === 'processing' && live?.message) return live.message;
-		const activity = segmentationActivities.get(project.projectId);
-		if (project.segmentation.status === 'processing' && activity === 'applying') {
-			return batchMessage('segmentationApplying');
-		}
-		if (project.segmentation.status === 'processing' && activity === 'saving') {
-			return batchMessage('segmentationSaving');
-		}
-		return getSegmentationLabel(project.segmentation.status);
-	}
-
-	/**
 	 * Traduit une raison technique d'inéligibilité au lancement.
 	 * @param {BatchSegmentationEligibility['reason']} reason Code stable.
 	 * @returns {string} Explication localisée.
@@ -747,40 +589,6 @@
 	function getEligibilityReason(reason: BatchSegmentationEligibility['reason']): string {
 		if (!reason) return '';
 		return batchMessage(`segmentationReason${reason}`);
-	}
-
-	/**
-	 * Traduit les erreurs techniques persistées connues.
-	 * @param {string | null} errorValue Erreur brute ou code stable.
-	 * @returns {string} Message affichable.
-	 */
-	function getSegmentationError(errorValue: string | null): string {
-		if (errorValue === 'SEGMENTATION_INTERRUPTED') {
-			return batchMessage('segmentationInterrupted');
-		}
-		if (errorValue === 'SEGMENTATION_ALREADY_RUNNING') {
-			return batchMessage('segmentationAlreadyRunning');
-		}
-		return errorValue ?? '';
-	}
-
-	/**
-	 * Traduit le statut d'une édition suivie dans une ligne Batch.
-	 * @param {BatchTranslationStatus} status Statut persistant.
-	 * @returns {string} Libellé localisé.
-	 */
-	function getTranslationStatusLabel(status: BatchTranslationStatus): string {
-		const keys: Record<BatchTranslationStatus, string> = {
-			not_added: 'translationNotAdded',
-			adding: 'translationAdding',
-			ready_to_fetch: 'translationReadyToFetch',
-			fetching: 'translationFetching',
-			auto_verified: 'translationAutoVerified',
-			needs_review: 'translationNeedsReview',
-			manually_verified: 'translationManuallyVerified',
-			failed: 'translationFailed'
-		};
-		return batchMessage(keys[status]);
 	}
 
 	/**
@@ -1095,7 +903,7 @@
 					.map((project) => project.projectId)
 			);
 		} catch (segmentationError) {
-			queueError = getSegmentationError(String(segmentationError).replace(/^Error:\s*/, ''));
+			queueError = getBatchSegmentationError(String(segmentationError).replace(/^Error:\s*/, ''));
 		} finally {
 			workflow.finish('segmentation');
 			revision++;
@@ -1268,12 +1076,10 @@
 			return;
 		}
 		try {
-			const loadedBatch = await BatchService.load(
+			const loadedBatch = await openBatchWorkspace(
 				globalState.currentBatchId,
 				batchMessage('mediaInterrupted')
 			);
-			await reconcileBatchSegmentations(loadedBatch);
-			await reconcileBatchTranslations(loadedBatch);
 			batch = loadedBatch;
 			try {
 				qdcTranslations = await QdcTranslationService.getAvailableTranslations(
@@ -1623,14 +1429,10 @@
 				{selectedIds}
 				{allSelected}
 				operationActive={cbrQueueActive || translationQueueActive || globalOperationActive}
+				mediaActivities={activities}
+				{segmentationActivities}
 				{segmentationLive}
 				rowVersions={translationRowVersions}
-				{batchMessage}
-				getMediaActivityLabel={getActivityLabel}
-				{getModeLabel}
-				{getSegmentationActivityLabel}
-				{getSegmentationError}
-				{getTranslationStatusLabel}
 				onToggleAll={toggleAll}
 				onToggleProject={toggleProject}
 				onOpenProject={openProjectRow}
@@ -1919,7 +1721,7 @@
 						class="btn-accent h-10 px-4"
 						type="button"
 						disabled={exportModalLoading || exportCandidates.length === 0 || !exportOutputFolder}
-						onclick={exportReadyProjects}
+						onclick={exportSelectedFormat}
 					>
 						{batchMessage(
 							exportNonReadyProjects ? 'exportSelectedProjects' : 'exportReadyProjects',
@@ -1933,7 +1735,7 @@
 						disabled={exportModalLoading ||
 							chapterExportCandidates.length === 0 ||
 							!exportOutputFolder}
-						onclick={exportReadyYouTubeChapters}
+						onclick={exportSelectedFormat}
 					>
 						{$LL.export.exportYoutubeChaptersButton()}
 					</button>
@@ -1944,7 +1746,7 @@
 						disabled={exportModalLoading ||
 							subtitleExportCandidates.length === 0 ||
 							!exportOutputFolder}
-						onclick={exportReadySubtitlesJson}
+						onclick={exportSelectedFormat}
 					>
 						{$LL.export.exportSubtitlesJsonButton()}
 					</button>

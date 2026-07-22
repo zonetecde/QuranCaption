@@ -1,8 +1,13 @@
 <script lang="ts">
-	import type { BatchProjectItem, BatchProjectTranslationState } from '$lib/classes';
+	import type { BatchProjectItem } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
-	import type { BatchSegmentationLiveStatus } from '$lib/services/BatchSegmentationService';
+	import type { BatchMediaActivity } from '$lib/services/BatchMediaService';
+	import type {
+		BatchSegmentationActivity,
+		BatchSegmentationLiveStatus
+	} from '$lib/services/BatchSegmentationService';
 	import BatchProjectStageCell from './BatchProjectStageCell.svelte';
+	import { batchMessage } from './batchProjectPresentation';
 
 	let {
 		project,
@@ -10,13 +15,9 @@
 		activeTranslationEditionName,
 		selected,
 		operationActive,
+		mediaActivity,
+		segmentationActivity,
 		segmentationLive,
-		batchMessage,
-		getMediaActivityLabel,
-		getModeLabel,
-		getSegmentationActivityLabel,
-		getSegmentationError,
-		getTranslationStatusLabel,
 		onToggle,
 		onOpen
 	}: {
@@ -25,13 +26,9 @@
 		activeTranslationEditionName: string | null;
 		selected: boolean;
 		operationActive: boolean;
+		mediaActivity?: BatchMediaActivity;
+		segmentationActivity?: BatchSegmentationActivity;
 		segmentationLive?: BatchSegmentationLiveStatus;
-		batchMessage: (key: string, params?: Record<string, string | number>) => string;
-		getMediaActivityLabel: (project: BatchProjectItem) => string;
-		getModeLabel: (mode: BatchProjectItem['media']['mode']) => string;
-		getSegmentationActivityLabel: (project: BatchProjectItem) => string;
-		getSegmentationError: (error: string | null) => string;
-		getTranslationStatusLabel: (status: BatchProjectTranslationState['status']) => string;
 		onToggle: (projectId: number) => void;
 		onOpen: (project: BatchProjectItem) => void;
 	} = $props();
@@ -72,13 +69,9 @@
 		{project}
 		{stage}
 		{translationState}
+		{mediaActivity}
+		{segmentationActivity}
 		{segmentationLive}
-		{batchMessage}
-		{getMediaActivityLabel}
-		{getModeLabel}
-		{getSegmentationActivityLabel}
-		{getSegmentationError}
-		{getTranslationStatusLabel}
 	/>
 	<td class="px-4 py-4">
 		<button

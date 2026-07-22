@@ -350,4 +350,19 @@ describe('BatchExportService', () => {
 		expect(sanitizeBatchExportFileName('...')).toBe('project');
 		expect(sanitizeBatchExportFileName('CON')).toBe('_CON');
 	});
+
+	it('routes a typed operation through the unified export interface', async () => {
+		const service = new BatchExportService();
+		const runSubtitlesJson = vi.spyOn(service, 'runSubtitlesJson').mockResolvedValue({
+			activeProjectName: null,
+			completed: 0,
+			failed: 0,
+			remaining: 0,
+			total: 0
+		});
+
+		await service.runOperation({ kind: 'subtitles', inspection: [], outputFolder: '/out' });
+
+		expect(runSubtitlesJson).toHaveBeenCalledWith([], '/out');
+	});
 });

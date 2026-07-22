@@ -49,6 +49,28 @@ export interface BatchExportProgress {
 	total: number;
 }
 
+export type BatchExportOperation =
+	| {
+			kind: 'video';
+			batch: Batch;
+			inspection: BatchExportEligibility[];
+			outputFolder: string;
+			includeNotReady: boolean;
+			exportOnlyRecitation: boolean;
+	  }
+	| {
+			kind: 'youtube';
+			inspection: BatchExportEligibility[];
+			outputFolder: string;
+			choice: YouTubeChaptersChoice;
+			exportOnlyRecitation: boolean;
+	  }
+	| {
+			kind: 'subtitles';
+			inspection: BatchExportEligibility[];
+			outputFolder: string;
+	  };
+
 type BatchExportUpdate = (item: BatchProjectItem, progress: BatchExportProgress) => void;
 
 export interface BatchExportServiceOptions {
@@ -74,10 +96,11 @@ export interface BatchExportServiceOptions {
  * @returns {string} Nom sûr et non vide.
  */
 export function sanitizeBatchExportFileName(name: string): string {
-	const sanitized = name
-		.replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
-		.replace(/[. ]+$/g, '')
-		.trim();
+	let safeName = '';
+	for (const character of name) {
+		safeName += character.charCodeAt(0) <= 31 || '<>:"/\\|?*'.includes(character) ? '_' : character;
+	}
+	const sanitized = safeName.replace(/[. ]+$/g, '').trim();
 	if (!sanitized) return 'project';
 	return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(sanitized)
 		? `_${sanitized}`
@@ -163,6 +186,33 @@ export class BatchExportService {
 		this.saveTextFile =
 			options.saveTextFile ?? ExportFileService.saveTextFileToFolder.bind(ExportFileService);
 		this.onUpdate = options.onUpdate;
+	}
+
+	/**
+	 * Exécute le format d'export Batch demandé derrière une interface unique.
+	 * @param {BatchExportOperation} operation Export confirmé par le workspace.
+	 * @returns {Promise<BatchExportProgress>} Résumé final de l'opération.
+	 */
+	runOperation(operation: BatchExportOperation): Promise<BatchExportProgress> {
+		switch (operation.kind) {
+			case 'video':
+				return this.run(
+					operation.batch,
+					operation.inspection,
+					operation.outputFolder,
+					operation.includeNotReady,
+					operation.exportOnlyRecitation
+				);
+			case 'youtube':
+				return this.runYouTubeChapters(
+					operation.inspection,
+					operation.outputFolder,
+					operation.choice,
+					operation.exportOnlyRecitation
+				);
+			case 'subtitles':
+				return this.runSubtitlesJson(operation.inspection, operation.outputFolder);
+		}
 	}
 
 	/**

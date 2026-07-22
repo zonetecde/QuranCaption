@@ -14,6 +14,7 @@ import {
 	getProjectSubtitleClips,
 	getProjectTranslationReviewCounts
 } from './TranslationFetchService';
+import { runBatchWorkerPool } from './BatchWorkerPool';
 
 export const BATCH_TRANSLATION_CONCURRENCY = 3;
 
@@ -61,29 +62,6 @@ function cloneEdition(edition: Edition): Edition {
 		edition.link,
 		edition.linkmin,
 		edition.showInTranslationsEditor
-	);
-}
-
-/**
- * Exécute un mapper avec une concurrence bornée en préservant l'ordre de prise en charge.
- * @param {T[]} items Éléments à traiter.
- * @param {number} concurrency Nombre maximal de workers.
- * @param {(item: T) => Promise<void>} mapper Traitement unitaire.
- * @returns {Promise<void>} Résolution après l'arrêt de tous les workers.
- */
-async function runWithConcurrency<T>(
-	items: T[],
-	concurrency: number,
-	mapper: (item: T) => Promise<void>
-): Promise<void> {
-	let cursor = 0;
-	await Promise.all(
-		Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-			while (cursor < items.length) {
-				const item = items[cursor++];
-				await mapper(item);
-			}
-		})
 	);
 }
 
@@ -141,7 +119,7 @@ export class BatchTranslationService {
 		skipExisting: boolean = true
 	): Promise<BatchTranslationRunResult> {
 		const result: BatchTranslationRunResult = { completed: 0, failed: 0, skipped: 0 };
-		await runWithConcurrency(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
+		await runBatchWorkerPool(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
 			if (!isBatchProjectSegmentationVerified(item)) {
 				result.skipped++;
 				return;
@@ -253,7 +231,7 @@ export class BatchTranslationService {
 		reportProgress();
 		if (globalState.userProjectsDetails.length === 0)
 			await ProjectService.loadUserProjectsDetails();
-		await runWithConcurrency(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
+		await runBatchWorkerPool(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
 			const state = item.translations[editionName];
 			if (!state) {
 				result.skipped++;

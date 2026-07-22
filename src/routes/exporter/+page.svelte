@@ -62,7 +62,11 @@
 		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
-	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
+	import {
+		isWordByWordVisualEnabled,
+		resolveOverlayVisualState,
+		resolveTimedVisualState
+	} from '$lib/services/StyleVisualResolver';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
 	// Affichage ou non des fenêtres
@@ -775,11 +779,8 @@
 		const roundedTime = Math.round(time);
 		const clip = globalState.getVideoTrack.getCurrentClip(roundedTime);
 		const clipId = clip?.id;
-		return Number(
-			globalState.getVideoStyle
-				.getStylesOfTarget('global')
-				.getEffectiveValue('overlay-blur', clipId)
-		);
+		return resolveOverlayVisualState(globalState.getVideoStyle.getStylesOfTarget('global'), clipId)
+			.blur;
 	}
 
 	function getVideoBlurBoundaries(rangeStart: number, rangeEnd: number): number[] {
@@ -1612,28 +1613,38 @@
 			};
 		});
 
-		if (globalState.getStyle('global', 'show-surah-name')!.value === true) {
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const surahName = resolveTimedVisualState(globalStyles, {
+			enabled: 'show-surah-name',
+			alwaysShow: 'surah-name-always-show',
+			startTime: 'surah-name-time-appearance',
+			endTime: 'surah-name-time-disappearance'
+		});
+		if (surahName.enabled) {
 			timedOverlayClips.push({
 				id: 'surah-name',
-				startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value)
+				startTime: surahName.startTime,
+				endTime: surahName.endTime,
+				alwaysShow: surahName.alwaysShow
 			});
 		}
 
-		if (
-			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
-			globalState.currentProject?.detail.reciter !== 'not set'
-		) {
+		const reciterName = resolveTimedVisualState(globalStyles, {
+			enabled: 'show-reciter-name',
+			alwaysShow: 'reciter-name-always-show',
+			startTime: 'reciter-name-time-appearance',
+			endTime: 'reciter-name-time-disappearance'
+		});
+		if (reciterName.enabled && globalState.currentProject?.detail.reciter !== 'not set') {
 			timedOverlayClips.push({
 				id: 'reciter-name',
-				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
+				startTime: reciterName.startTime,
+				endTime: reciterName.endTime,
+				alwaysShow: reciterName.alwaysShow
 			});
 		}
 
-		if (Boolean(globalState.getStyle('global', 'ayah-container-image')?.value)) {
+		if (globalState.getStyle('global', 'ayah-container-image')?.value) {
 			timedOverlayClips.push({
 				id: 'ayah-container',
 				startTime: globalState.getStyle('global', 'time-appearance')!.value as number,
@@ -1739,7 +1750,7 @@
 			clip: exportClip,
 			subtitleClips: exportSubtitleClips,
 			isWbwEnabledForClipId: (clipId) =>
-				isWordByWordHighlightEnabled((styleId) =>
+				isWordByWordVisualEnabled((styleId) =>
 					globalState.getVideoStyle
 						.getStylesOfTarget('arabic')
 						.getEffectiveValue(styleId as StyleName, clipId)
@@ -1824,7 +1835,7 @@
 
 				const styles = globalState.getVideoStyle.getStylesOfTarget(edition.name);
 				const isVisible = Boolean(styles.getEffectiveValue('show-subtitles', sourceClip.id));
-				const isWbwEnabled = isWordByWordHighlightEnabled((styleId) =>
+				const isWbwEnabled = isWordByWordVisualEnabled((styleId) =>
 					styles.getEffectiveValue(styleId as StyleName, sourceClip.id)
 				);
 				if (!isVisible || !isWbwEnabled) return [];

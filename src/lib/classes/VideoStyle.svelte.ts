@@ -11,12 +11,23 @@ import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
-import {
-	CustomImageClip,
-	PredefinedSubtitleClip,
-	getForcedFontForPredefinedSubtitle
-} from './Clip.svelte';
+import { PredefinedSubtitleClip, getForcedFontForPredefinedSubtitle } from './Clip.svelte';
 import type { ProjectContent } from './ProjectContent.svelte';
+import {
+	loadCompositeStyleDefinitions,
+	loadCustomStyleCategoryDefinition,
+	loadStyleCategoryDefinitions,
+	type RawCategoryDefinition
+} from '$lib/services/StyleDefinitionCatalog';
+import {
+	ensureCustomStyleSchema,
+	exportCustomStyleClips,
+	getCustomCompositeStyles
+} from '$lib/services/ProjectStyleContentService';
+import {
+	applyStylePresetToProject,
+	getPresetTranslationTargets
+} from '$lib/services/StylePresetApplicationService';
 
 export type StyleValueType =
 	| 'color'
@@ -273,15 +284,14 @@ export type StyleCategoryUiMetadata = {
 	headerStyle?: string;
 };
 
-type RawStyle = Partial<Style> & { id: string };
-type RawCategory = Partial<Category> & { id: string; styles?: RawStyle[] };
-
 /**
  * Retourne les catégories compatibles avec les traductions.
- * @param {RawCategory[]} categories Categories source.
- * @returns {RawCategory[]} Categories compatibles avec une traduction.
+ * @param {RawCategoryDefinition[]} categories Categories source.
+ * @returns {RawCategoryDefinition[]} Categories compatibles avec une traduction.
  */
-function getNonArabicSubtitleCategories(categories: RawCategory[]): RawCategory[] {
+function getNonArabicSubtitleCategories(
+	categories: RawCategoryDefinition[]
+): RawCategoryDefinition[] {
 	return categories;
 }
 
@@ -428,7 +438,7 @@ export class Category extends SerializableBase {
 	styles: Style[] = $state([]);
 	declare ui?: StyleCategoryUiMetadata;
 
-	constructor(init?: Partial<Category>) {
+	constructor(init?: Partial<Category> | RawCategoryDefinition) {
 		super();
 		if (!init) return;
 		// assign simples
@@ -477,9 +487,7 @@ export class Category extends SerializableBase {
 		for (const style of this.styles) {
 			if (style.valueType === 'composite' && !(style.value instanceof Array)) {
 				// Charge les styles composites (JSON brut)
-				const raw = (await (await fetch('./styles/compositeStyles.json')).json()) as Array<
-					Style | Partial<Style>
-				>;
+				const raw = await loadCompositeStyleDefinitions();
 				// Transforme chaque entrée en véritable instance de Style
 				style.value = raw.map((s) => (s instanceof Style ? s : new Style(s)));
 
@@ -500,7 +508,10 @@ export class StylesData extends SerializableBase {
 		{}
 	);
 
-	constructor(target: 'global' | 'arabic' | string, categories: Category[] = []) {
+	constructor(
+		target: 'global' | 'arabic' | string,
+		categories: Array<Category | RawCategoryDefinition> = []
+	) {
 		super();
 		this.target = target;
 		// S'assurer que chaque élément passé est bien une instance de Category
@@ -920,10 +931,10 @@ export class VideoStyle extends SerializableBase {
 	 * @returns {Promise<void>}
 	 */
 	async hydrateStyleEditorUiMetadata(): Promise<void> {
-		const [globalDefaults, subtitleDefaults] = (await Promise.all([
-			fetch('./styles/globalStyles.json').then((response) => response.json()),
-			fetch('./styles/styles.json').then((response) => response.json())
-		])) as [RawCategory[], RawCategory[]];
+		const [globalDefaults, subtitleDefaults] = await Promise.all([
+			loadStyleCategoryDefinitions('global'),
+			loadStyleCategoryDefinitions('subtitle')
+		]);
 
 		for (const stylesData of this.styles) {
 			const defaults = stylesData.target === 'global' ? globalDefaults : subtitleDefaults;
@@ -960,11 +971,9 @@ export class VideoStyle extends SerializableBase {
 		const videoStyle = new VideoStyle();
 
 		// Ajoute les styles par défaut pour chaque target
+		videoStyle.styles.push(new StylesData('global', await loadStyleCategoryDefinitions('global')));
 		videoStyle.styles.push(
-			new StylesData('global', await (await fetch('./styles/globalStyles.json')).json())
-		);
-		videoStyle.styles.push(
-			new StylesData('arabic', await (await fetch('./styles/styles.json')).json())
+			new StylesData('arabic', await loadStyleCategoryDefinitions('subtitle'))
 		);
 
 		// Set les styles par défaut pour l'arabe
@@ -1029,7 +1038,7 @@ export class VideoStyle extends SerializableBase {
 		if (this.doesTargetStyleExist(translationEdition)) return;
 
 		const defaultStyles = getNonArabicSubtitleCategories(
-			await (await fetch('./styles/styles.json')).json()
+			await loadStyleCategoryDefinitions('subtitle')
 		);
 
 		const stylesData = new StylesData(
@@ -1055,10 +1064,10 @@ export class VideoStyle extends SerializableBase {
 	async ensureStylesSchemaUpToDate(projectContent?: ProjectContent): Promise<boolean> {
 		let hasChanges = false;
 
-		const globalDefaults = await (await fetch('./styles/globalStyles.json')).json();
+		const globalDefaults = await loadStyleCategoryDefinitions('global');
 		hasChanges = this.mergeMissingStylesForTarget('global', globalDefaults) || hasChanges;
 
-		const subtitleDefaults = await (await fetch('./styles/styles.json')).json();
+		const subtitleDefaults = await loadStyleCategoryDefinitions('subtitle');
 		for (const stylesData of this.styles) {
 			if (stylesData.target === 'global') continue;
 			const targetDefaults =
@@ -1071,55 +1080,17 @@ export class VideoStyle extends SerializableBase {
 
 		// Migration minimale: ajouter tous les styles manquants de customText.json
 		// aux custom texts existants.
-		const customTextDefaults = (await (
-			await fetch('./styles/customText.json')
-		).json()) as RawCategory;
-		const compositeDefaults = (await (
-			await fetch('./styles/compositeStyles.json')
-		).json()) as RawStyle[];
-		const customTextDefaultStyles = customTextDefaults.styles || [];
-
-		const customClips = projectContent
-			? projectContent.timeline.doesTrackExist(TrackType.CustomClip)
-				? projectContent.timeline.getFirstTrack(TrackType.CustomClip).clips
-				: []
-			: globalState.getCustomClipTrack?.clips || [];
-		for (const clip of customClips) {
-			if (!(clip instanceof CustomTextClip) || !clip.category) continue;
-
-			for (const defaultStyle of customTextDefaultStyles) {
-				if (defaultStyle.id === 'custom-text-composite') {
-					const suffix = clip.category.id.startsWith('custom-text-')
-						? clip.category.id.slice('custom-text-'.length)
-						: '';
-					const resolvedCompositeId = suffix ? `custom-text-composite-${suffix}` : defaultStyle.id;
-
-					const hasCompositeStyle = clip.category.styles.some(
-						(s) =>
-							s.id === 'custom-text-composite' ||
-							s.id === resolvedCompositeId ||
-							s.id.startsWith('custom-text-composite-')
-					);
-
-					if (!hasCompositeStyle) {
-						clip.category.styles.push(
-							new Style({
-								...defaultStyle,
-								id: resolvedCompositeId,
-								value: compositeDefaults.map((s) => new Style(s))
-							})
-						);
-						hasChanges = true;
-					}
-					continue;
-				}
-
-				const hasStyle = clip.category.styles.some((s) => s.id === defaultStyle.id);
-				if (!hasStyle) {
-					clip.category.styles.push(new Style(defaultStyle));
-					hasChanges = true;
-				}
-			}
+		const customTextDefaults = await loadCustomStyleCategoryDefinition('text');
+		const compositeDefaults = await loadCompositeStyleDefinitions();
+		const content = projectContent ?? globalState.currentProject?.content;
+		if (content) {
+			hasChanges =
+				ensureCustomStyleSchema(
+					content,
+					customTextDefaults,
+					compositeDefaults,
+					(definition) => new Style(definition)
+				) || hasChanges;
 		}
 
 		return hasChanges;
@@ -1127,7 +1098,7 @@ export class VideoStyle extends SerializableBase {
 
 	private mergeMissingStylesForTarget(
 		target: string,
-		defaultCategoriesRaw: RawCategory[]
+		defaultCategoriesRaw: RawCategoryDefinition[]
 	): boolean {
 		let hasChanges = false;
 
@@ -1180,7 +1151,7 @@ export class VideoStyle extends SerializableBase {
 
 	async getDefaultCustomTextCategory(): Promise<Category> {
 		// Récupère le JSON brut
-		const raw = await (await fetch('./styles/customText.json')).json();
+		const raw = await loadCustomStyleCategoryDefinition('text');
 		// Instancie correctement la catégorie (ce constructeur instancie aussi les Style internes)
 		const category = new Category(raw);
 		// Ajoute un suffixe unique pour éviter collisions lorsque plusieurs custom texts sont ajoutés
@@ -1196,7 +1167,7 @@ export class VideoStyle extends SerializableBase {
 
 	async getDefaultCustomImageCategory(): Promise<Category> {
 		// Récupère le JSON brut
-		const raw = await (await fetch('./styles/customImage.json')).json();
+		const raw = await loadCustomStyleCategoryDefinition('image');
 		// Instancie correctement la catégorie (ce constructeur instancie aussi les Style internes)
 		const category = new Category(raw);
 		// Ajoute un suffixe unique pour éviter collisions lorsque plusieurs custom texts sont ajoutés
@@ -1260,46 +1231,52 @@ export class VideoStyle extends SerializableBase {
 	/**
 	 * Retourne les styles du style composite d'un custom text
 	 * @param customTextId L'id du customText
+	 * @param {ProjectContent | undefined} projectContent Projet explicite à parcourir.
 	 * @returns
 	 */
-	getCustomTextCompositeStyles(customTextId: string): Style[] {
-		for (const clip of globalState.getCustomClipTrack.clips) {
-			if (!(clip instanceof CustomTextClip)) continue;
-			const style = clip.category!.getStyle(customTextId as StyleName);
-			if (style) return style.value as Style[];
-		}
-		return [];
+	getCustomTextCompositeStyles(customTextId: string, projectContent?: ProjectContent): Style[] {
+		const content = projectContent ?? globalState.currentProject?.content;
+		return content ? getCustomCompositeStyles(content, customTextId) : [];
 	}
 
 	/**
 	 * Exporte les styles vers un fichier
 	 * @param includedExportClips Optionnellement, une liste des customs-text à inclure
+	 * @param {ProjectContent | undefined} projectContent Projet explicite lors d'un export headless.
 	 * @return Les données exportées en format JSON
 	 */
-	exportStylesData(includedExportClips: Set<number>): VideoStyleFileData {
+	exportStylesData(
+		includedExportClips: Set<number>,
+		projectContent?: ProjectContent
+	): VideoStyleFileData {
 		const serializedVideoStyle = JSON.parse(JSON.stringify(this)) as Record<string, unknown> & {
 			styles: Array<{ overrides: Record<string, unknown> }>;
 		};
 		const exportData: VideoStyleFileData = {
 			videoStyle: serializedVideoStyle,
-			customClips: []
+			customClips:
+				projectContent || globalState.currentProject
+					? exportCustomStyleClips(
+							projectContent ?? globalState.currentProject!.content,
+							includedExportClips
+						)
+					: []
 		};
 		// Enlève tout les overrides
 		for (const style of serializedVideoStyle.styles) {
 			style.overrides = {};
 		}
-		// Ajoute les customs texts clips
-		for (const clip of globalState.getCustomClipTrack.clips) {
-			if (includedExportClips.has(clip.id)) {
-				const _clip = JSON.parse(JSON.stringify(clip));
-				exportData.customClips.push(_clip);
-			}
-		}
 		return exportData;
 	}
 
-	exportStyles(includedExportClips: Set<number>): string {
-		return JSON.stringify(this.exportStylesData(includedExportClips), null, 2);
+	/**
+	 * Sérialise un preset de styles au format JSON historique.
+	 * @param {Set<number>} includedExportClips Contenus personnalisés à inclure.
+	 * @param {ProjectContent | undefined} projectContent Projet explicite lors d'un export headless.
+	 * @returns {string} Preset JSON formaté.
+	 */
+	exportStyles(includedExportClips: Set<number>, projectContent?: ProjectContent): string {
+		return JSON.stringify(this.exportStylesData(includedExportClips, projectContent), null, 2);
 	}
 
 	async importStylesFromFile() {
@@ -1332,126 +1309,31 @@ export class VideoStyle extends SerializableBase {
 	async importStyles(json: VideoStyleFileData, projectContent?: ProjectContent): Promise<void> {
 		if (!projectContent) ProjectHistoryManager.begin('import styles');
 		try {
-			// Crée une nouvelle instance VideoStyle à partir des données JSON
-			const importedVideoStyle = VideoStyle.fromJSON(
-				json.videoStyle as unknown as Record<string, unknown>
-			) as VideoStyle;
-			const currentProjectTranslations = projectContent
-				? projectContent.projectTranslation.addedTranslationEditions
-				: globalState.getProjectTranslation.addedTranslationEditions;
-
-			// Gérer l'import des styles 'arabic' et 'global' (toujours override)
-			for (const importedStyle of importedVideoStyle.styles) {
-				if (importedStyle.target === 'arabic' || importedStyle.target === 'global') {
-					// Override automatiquement les styles arabic et global
-					const existingStyle = this.getStylesOfTarget(importedStyle.target);
-					if (existingStyle) {
-						// Remplace complètement les styles existants
-						const index = this.styles.findIndex((s) => s.target === importedStyle.target);
-						if (index !== -1) {
-							this.styles[index] = importedStyle;
-						}
-					} else {
-						this.styles.push(importedStyle);
-					}
-				}
-			}
-
-			// Gérer l'import des traductions
-			for (const importedStyle of importedVideoStyle.styles) {
-				if (importedStyle.target === 'arabic' || importedStyle.target === 'global') continue;
-
-				// Chercher si cette traduction existe déjà dans le projet
-				const existingProjectTranslation = currentProjectTranslations.find(
-					(t) => t.name === importedStyle.target
-				);
-
-				if (existingProjectTranslation) {
-					// 1. Même traduction trouvée -> override automatiquement
-					const existingStyleIndex = this.styles.findIndex(
-						(s) => s.target === importedStyle.target
-					);
-					if (existingStyleIndex !== -1) {
-						this.styles[existingStyleIndex] = importedStyle;
-					} else {
-						this.styles.push(importedStyle);
-					}
-				}
-			}
-
-			// 3. Gérer les traductions du projet qui n'existent PAS dans le fichier importé
-			for (const projectTranslation of currentProjectTranslations) {
-				const existsInImported = importedVideoStyle.styles.some(
-					(importedStyle) =>
-						importedStyle.target === projectTranslation.name &&
-						importedStyle.target !== 'arabic' &&
-						importedStyle.target !== 'global'
-				);
-
-				if (!existsInImported && !projectContent) {
-					// Cette traduction du projet n'existe pas dans le fichier importé
-					// Proposer d'appliquer les styles disponibles dans le fichier importé
-					const availableImportedTranslations = importedVideoStyle.styles.filter(
-						(s) => s.target !== 'arabic' && s.target !== 'global'
-					);
-
-					for (const importedStyle of availableImportedTranslations) {
+			const content = projectContent ?? globalState.currentProject?.content;
+			if (!content) throw new Error('Cannot import styles without a project');
+			const translationAssignments: Record<string, string> = {};
+			if (!projectContent) {
+				const availableTargets = getPresetTranslationTargets(json);
+				for (const translation of content.projectTranslation.addedTranslationEditions) {
+					if (availableTargets.includes(translation.name)) continue;
+					for (const sourceTarget of availableTargets) {
 						const confirm = await ModalManager.confirmModal(
-							get(LL).translations.translationNoStyles({ name: projectTranslation.name }),
+							get(LL).translations.translationNoStyles({ name: translation.name }),
 							true
 						);
-
-						if (confirm) {
-							// Créer une copie du style importé avec le nouveau target
-							const newStyle = JSON.parse(JSON.stringify(importedStyle));
-							newStyle.target = projectTranslation.name;
-
-							// Ajouter ou remplacer le style pour cette traduction
-							const existingStyleIndex = this.styles.findIndex(
-								(s) => s.target === projectTranslation.name
-							);
-							const parsedStyle = StylesData.fromJSON(
-								newStyle as unknown as Record<string, unknown>
-							) as StylesData;
-							if (existingStyleIndex !== -1) {
-								this.styles[existingStyleIndex] = parsedStyle;
-							} else {
-								this.styles.push(parsedStyle);
-							}
-
-							break; // Arrêter dès qu'un style est appliqué
-						}
+						if (!confirm) continue;
+						translationAssignments[translation.name] = sourceTarget;
+						break;
 					}
 				}
 			}
 
-			// Ajoute les customs text clips en créant des instances correctes
-			for (const rawClipData of json.customClips || json.customTextClips || []) {
-				const clipData = structuredClone(rawClipData);
-				clipData.id = Utilities.randomId(); // Assure qu'il a un ID unique
-
-				// Crée une nouvelle instance CustomTextClip à partir des données JSON
-				const clip: CustomTextClip | CustomImageClip =
-					clipData.type === 'Custom Text'
-						? (CustomTextClip.fromJSON(
-								clipData as unknown as Record<string, unknown>
-							) as CustomTextClip)
-						: (CustomImageClip.fromJSON(
-								clipData as unknown as Record<string, unknown>
-							) as CustomImageClip);
-				if (projectContent) {
-					if (!projectContent.timeline.doesTrackExist(TrackType.CustomClip)) {
-						projectContent.timeline.addTrack(new CustomTextTrack());
-					}
-					projectContent.timeline.getFirstTrack(TrackType.CustomClip).clips.push(clip);
-				} else {
-					globalState.getCustomClipTrack.clips.push(clip);
-				}
-			}
-
-			// Garantit que les styles ajoutes dans les nouvelles versions existent aussi apres import
-			// d'un ancien fichier de styles.
-			await this.ensureStylesSchemaUpToDate(projectContent);
+			await applyStylePresetToProject({
+				videoStyle: this,
+				projectContent: content,
+				data: json,
+				translationAssignments
+			});
 		} finally {
 			if (!projectContent) ProjectHistoryManager.commit();
 		}

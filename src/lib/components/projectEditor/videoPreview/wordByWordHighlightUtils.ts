@@ -1,6 +1,11 @@
 import type { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Utilities } from '$lib/classes/misc/Utilities';
 import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+import {
+	isWordByWordVisualEnabled,
+	type ResolveStyleValue
+} from '$lib/services/StyleVisualResolver';
+export { isWordByWordVisualEnabled as isWordByWordHighlightEnabled } from '$lib/services/StyleVisualResolver';
 
 export type WordByWordHighlightState = {
 	enabled: boolean;
@@ -34,39 +39,6 @@ export type WordByWordHighlightState = {
 	cursorTimeS: number;
 	words: SegmentationWordTimestamp[];
 };
-
-type ResolveStyleValue = (styleId: string) => string | number | boolean;
-
-/**
- * Indique si au moins un effet WBW nécessite d'activer le rendu mot a mot.
- * @param {ResolveStyleValue} getStyleValue Lecteur de styles effectifs.
- * @returns {boolean} `true` si un effet WBW est actif.
- */
-export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): boolean {
-	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
-	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
-	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
-	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
-	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
-	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
-	const lineBackgroundEnabled = Boolean(getStyleValue('enable-wbw-line-background'));
-	const showCurrentWordOnly = Boolean(getStyleValue('wbw-show-current-word-only'));
-	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '').trim();
-	const currentWordOpacityEnabled = Boolean(getStyleValue('enable-wbw-current-word-opacity'));
-
-	return (
-		showCurrentWordOnly ||
-		highlightEnabled ||
-		underlineEnabled ||
-		glowEnabled ||
-		revealSpecificWordStyle ||
-		revealWordsOnRecitation ||
-		backgroundEnabled ||
-		lineBackgroundEnabled ||
-		currentWordCustomCss.length > 0 ||
-		currentWordOpacityEnabled
-	);
-}
 
 /**
  * Retourne l'état désactivé par défaut du highlight mot à mot.
@@ -161,7 +133,7 @@ export function getWordByWordHighlightState(params: {
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const lineBackgroundEnabled = Boolean(getStyleValue('enable-wbw-line-background'));
 	const globalLineBackgroundEnabled = Boolean(getStyleValue('line-background-enable'));
-	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
+	const isEnabled = isWordByWordVisualEnabled(getStyleValue);
 	const currentWordOpacityEnabled = Boolean(getStyleValue('enable-wbw-current-word-opacity'));
 	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '');
 	const currentWordOpacityValue = Number(getStyleValue('wbw-current-word-opacity') ?? 1);

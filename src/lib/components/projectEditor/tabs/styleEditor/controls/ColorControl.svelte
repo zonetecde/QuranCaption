@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { beginStyleMutation, commitStyleMutation } from '$lib/services/StyleMutationService';
 	import type { ApplyStyleControlValue, StyleControlValue } from './types';
 
 	let { value, onChange }: { value: StyleControlValue; onChange: ApplyStyleControlValue } =
@@ -13,7 +13,7 @@
 	 */
 	function beginHistoryTransaction(): void {
 		if (historyTransactionOpen) return;
-		ProjectHistoryManager.begin('set color style');
+		beginStyleMutation('set color style');
 		historyTransactionOpen = true;
 	}
 
@@ -23,7 +23,7 @@
 	 */
 	function commitHistoryTransaction(): void {
 		if (!historyTransactionOpen) return;
-		ProjectHistoryManager.commit();
+		commitStyleMutation();
 		historyTransactionOpen = false;
 	}
 

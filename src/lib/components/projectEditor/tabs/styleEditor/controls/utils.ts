@@ -1,43 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog';
-import type {
-	DimensionValue,
-	FadeValue
-} from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
-
-/**
- * Normalise une valeur de dimensions issue d'un style.
- * @param {unknown} value Valeur à normaliser.
- * @returns {DimensionValue} Dimensions exploitables par le contrôle.
- */
-export function asDimensionValue(value: unknown): DimensionValue {
-	if (
-		typeof value === 'object' &&
-		value !== null &&
-		'width' in value &&
-		'height' in value &&
-		typeof (value as DimensionValue).width === 'number' &&
-		typeof (value as DimensionValue).height === 'number'
-	) {
-		return value as DimensionValue;
-	}
-	return { width: 1920, height: 1080 };
-}
-
-/**
- * Normalise une valeur de fondu issue d'un style.
- * @param {unknown} value Valeur à normaliser.
- * @returns {FadeValue} Configuration de fondu complète.
- */
-export function asFadeValue(value: unknown): FadeValue {
-	const raw = (typeof value === 'object' && value !== null ? value : {}) as Partial<FadeValue>;
-	return {
-		fadeDurationMs: typeof raw.fadeDurationMs === 'number' ? raw.fadeDurationMs : 1000,
-		videoFadeInEnabled: !!raw.videoFadeInEnabled,
-		videoFadeOutEnabled: !!raw.videoFadeOutEnabled,
-		audioFadeInEnabled: !!raw.audioFadeInEnabled,
-		audioFadeOutEnabled: !!raw.audioFadeOutEnabled
-	};
-}
+import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
+export { asDimensionValue, asFadeValue } from '$lib/services/StyleMutationService';
 
 /**
  * Indique si au moins un fondu est actif.

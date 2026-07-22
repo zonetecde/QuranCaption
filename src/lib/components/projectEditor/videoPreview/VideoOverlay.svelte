@@ -56,6 +56,10 @@
 
 	// Helpers extraits
 	import { getOverlayLayerCss } from './helpers/overlayCss';
+	import {
+		resolveOverlayVisualState,
+		resolveTimedVisualState
+	} from '$lib/services/StyleVisualResolver';
 	import { applyReactiveFontSize } from './helpers/reactiveFontSize';
 	import { resolveSubtitleCollisions } from './helpers/antiCollision';
 
@@ -254,20 +258,7 @@
 	let overlaySettings = $derived(() => {
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
-		return {
-			enable: Boolean(globalStyles.getEffectiveValue('overlay-enable', clipId)),
-			blur: Number(globalStyles.getEffectiveValue('overlay-blur', clipId)),
-			opacity: Number(globalStyles.getEffectiveValue('overlay-opacity', clipId)),
-			color: String(globalStyles.getEffectiveValue('overlay-color', clipId)),
-			mode: String(globalStyles.getEffectiveValue('background-overlay-mode', clipId)),
-			fadeIntensity: Number(
-				globalStyles.getEffectiveValue('background-overlay-fade-intensity', clipId)
-			),
-			fadeCoverage: Number(
-				globalStyles.getEffectiveValue('background-overlay-fade-coverage', clipId)
-			),
-			customCSS: String(globalStyles.getEffectiveValue('overlay-custom-css', clipId))
-		};
+		return resolveOverlayVisualState(globalStyles, clipId);
 	});
 
 	// =========================================================================
@@ -376,13 +367,22 @@
 		if (!alwaysShowStyle) return 1;
 
 		const clipId = getBackgroundClipIdForTarget(target);
+		const timing = resolveTimedVisualState(
+			styles,
+			{
+				alwaysShow: 'always-show',
+				startTime: 'time-appearance',
+				endTime: 'time-disappearance'
+			},
+			clipId
+		);
 		return getTimedOverlayOpacity({
-			alwaysShow: Boolean(styles.getEffectiveValue('always-show', clipId)),
+			alwaysShow: timing.alwaysShow,
 			maxOpacity: 1,
 			currentTime: getTimelineSettings().cursorPosition,
 			fadeDuration: fadeDuration(),
-			startTime: Number(styles.getEffectiveValue('time-appearance', clipId)),
-			endTime: Number(styles.getEffectiveValue('time-disappearance', clipId))
+			startTime: timing.startTime,
+			endTime: timing.endTime
 		});
 	});
 

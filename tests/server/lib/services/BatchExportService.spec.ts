@@ -17,10 +17,13 @@ import {
 import {
 	BATCH_EXPORT_CONCURRENCY,
 	BatchExportService,
+	inspectBatchExportEligibility,
 	sanitizeBatchExportFileName,
 	type BatchExportEligibility
 } from '$lib/services/BatchExportService';
 import Exporter from '$lib/classes/Exporter';
+import { ProjectService } from '$lib/services/ProjectService';
+import { globalState } from '$lib/runes/main.svelte';
 
 /**
  * Crée une ligne Batch exportable.
@@ -87,6 +90,38 @@ function createProject(item: BatchProjectItem): Project {
 }
 
 describe('BatchExportService', () => {
+	it('uses the full audio duration when the saved export range is uninitialized', async () => {
+		const item = createItem(1, 'Uninitialized range');
+		const audioTrack = {
+			clips: [{}],
+			getDuration: () => ({ ms: 5000 })
+		};
+		const subtitleTrack = {
+			clips: [new SubtitleClip(0, 1000, 1, 1, 0, 0, 'verse', [], true, true)]
+		};
+		const project = {
+			content: {
+				assets: [],
+				timeline: {
+					tracks: [audioTrack, subtitleTrack],
+					getFirstTrack: (type: TrackType) =>
+						type === TrackType.Audio ? audioTrack : subtitleTrack
+				}
+			},
+			projectEditorState: {
+				export: { fps: 30, videoStartTime: 0, videoEndTime: 0 }
+			}
+		} as unknown as Project;
+		vi.spyOn(ProjectService, 'load').mockResolvedValue(project);
+		globalState.exportations = [];
+
+		const [inspection] = await inspectBatchExportEligibility([item]);
+
+		expect(inspection.reason).toBeNull();
+		expect(project.projectEditorState.export.videoStartTime).toBe(0);
+		expect(project.projectEditorState.export.videoEndTime).toBe(5000);
+	});
+
 	it('preserves Batch order, runs one export at a time and reserves collision-free paths', async () => {
 		expect(BATCH_EXPORT_CONCURRENCY).toBe(1);
 		const items = [createItem(2), createItem(1), createItem(3)];

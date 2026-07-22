@@ -10,7 +10,10 @@ import { ExportState } from '$lib/classes/Exportation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { join } from '@tauri-apps/api/path';
 import { exists } from '@tauri-apps/plugin-fs';
-import Exporter, { type YouTubeChaptersChoice } from '$lib/classes/Exporter';
+import Exporter, {
+	resolveProjectVideoExportRange,
+	type YouTubeChaptersChoice
+} from '$lib/classes/Exporter';
 import ExportService from './ExportService';
 import ExportFileService from './ExportFileService';
 import { BatchService } from './BatchService';
@@ -121,16 +124,14 @@ export async function inspectBatchExportEligibility(
 				!(await Promise.all(usedAssets.map((asset) => exists(asset.filePath)))).every(Boolean)
 			)
 				reason = 'ASSET_MISSING';
-			else if (
-				!Number.isFinite(settings.fps) ||
-				settings.fps <= 0 ||
-				!Number.isFinite(settings.videoStartTime) ||
-				!Number.isFinite(settings.videoEndTime) ||
-				settings.videoStartTime < 0 ||
-				settings.videoEndTime <= settings.videoStartTime ||
-				settings.videoEndTime > audioDuration
-			)
+			else if (!Number.isFinite(settings.fps) || settings.fps <= 0)
 				reason = 'EXPORT_SETTINGS_INVALID';
+			else
+				[settings.videoStartTime, settings.videoEndTime] = resolveProjectVideoExportRange(
+					settings.videoStartTime,
+					settings.videoEndTime,
+					audioDuration
+				);
 			results.push({ item, project, reason });
 		} catch {
 			results.push({ item, project: null, reason: 'PROJECT_MISSING' });

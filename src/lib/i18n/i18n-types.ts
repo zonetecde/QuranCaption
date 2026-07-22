@@ -4674,6 +4674,26 @@ type RootTranslation = {
 			 */
 			'overlay-blur': string;
 			/**
+			 * V​i​d​e​o​ ​F​r​a​m​e
+			 */
+			'video-frame-enable': string;
+			/**
+			 * F​r​a​m​e​ ​C​o​l​o​r
+			 */
+			'video-frame-color': string;
+			/**
+			 * T​o​p​ ​&​ ​B​o​t​t​o​m​ ​T​h​i​c​k​n​e​s​s
+			 */
+			'video-frame-vertical-size': string;
+			/**
+			 * L​e​f​t​ ​&​ ​R​i​g​h​t​ ​T​h​i​c​k​n​e​s​s
+			 */
+			'video-frame-horizontal-size': string;
+			/**
+			 * C​o​r​n​e​r​ ​R​o​u​n​d​n​e​s​s
+			 */
+			'video-frame-radius': string;
+			/**
 			 * C​u​s​t​o​m​ ​C​S​S
 			 */
 			'overlay-custom-css': string;
@@ -5339,6 +5359,26 @@ type RootTranslation = {
 			 * B​l​u​r​ ​l​e​v​e​l​ ​o​f​ ​t​h​e​ ​o​v​e​r​l​a​y
 			 */
 			'overlay-blur': string;
+			/**
+			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​a​ ​g​l​o​b​a​l​ ​f​r​a​m​e​ ​a​r​o​u​n​d​ ​t​h​e​ ​v​i​d​e​o
+			 */
+			'video-frame-enable': string;
+			/**
+			 * C​h​o​o​s​e​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​g​l​o​b​a​l​ ​v​i​d​e​o​ ​f​r​a​m​e
+			 */
+			'video-frame-color': string;
+			/**
+			 * S​e​t​ ​t​h​e​ ​t​o​p​ ​a​n​d​ ​b​o​t​t​o​m​ ​f​r​a​m​e​ ​t​h​i​c​k​n​e​s​s​ ​a​s​ ​a​ ​p​e​r​c​e​n​t​a​g​e
+			 */
+			'video-frame-vertical-size': string;
+			/**
+			 * S​e​t​ ​t​h​e​ ​l​e​f​t​ ​a​n​d​ ​r​i​g​h​t​ ​f​r​a​m​e​ ​t​h​i​c​k​n​e​s​s​ ​a​s​ ​a​ ​p​e​r​c​e​n​t​a​g​e
+			 */
+			'video-frame-horizontal-size': string;
+			/**
+			 * R​o​u​n​d​ ​t​h​e​ ​i​n​n​e​r​ ​c​o​r​n​e​r​s​ ​o​f​ ​t​h​e​ ​v​i​d​e​o​ ​f​r​a​m​e​ ​a​s​ ​a​ ​p​e​r​c​e​n​t​a​g​e
+			 */
+			'video-frame-radius': string;
 			/**
 			 * A​d​d​ ​c​u​s​t​o​m​ ​C​S​S​ ​t​o​ ​t​h​e​ ​o​v​e​r​l​a​y​ ​(​e​.​g​.​,​ ​a​n​i​m​a​t​i​o​n​s​)
 			 */
@@ -14893,6 +14933,26 @@ export type TranslationFunctions = {
 			 */
 			'overlay-blur': () => LocalizedString;
 			/**
+			 * Video Frame
+			 */
+			'video-frame-enable': () => LocalizedString;
+			/**
+			 * Frame Color
+			 */
+			'video-frame-color': () => LocalizedString;
+			/**
+			 * Top & Bottom Thickness
+			 */
+			'video-frame-vertical-size': () => LocalizedString;
+			/**
+			 * Left & Right Thickness
+			 */
+			'video-frame-horizontal-size': () => LocalizedString;
+			/**
+			 * Corner Roundness
+			 */
+			'video-frame-radius': () => LocalizedString;
+			/**
 			 * Custom CSS
 			 */
 			'overlay-custom-css': () => LocalizedString;
@@ -15558,6 +15618,26 @@ export type TranslationFunctions = {
 			 * Blur level of the overlay
 			 */
 			'overlay-blur': () => LocalizedString;
+			/**
+			 * Enable or disable a global frame around the video
+			 */
+			'video-frame-enable': () => LocalizedString;
+			/**
+			 * Choose the color of the global video frame
+			 */
+			'video-frame-color': () => LocalizedString;
+			/**
+			 * Set the top and bottom frame thickness as a percentage
+			 */
+			'video-frame-vertical-size': () => LocalizedString;
+			/**
+			 * Set the left and right frame thickness as a percentage
+			 */
+			'video-frame-horizontal-size': () => LocalizedString;
+			/**
+			 * Round the inner corners of the video frame as a percentage
+			 */
+			'video-frame-radius': () => LocalizedString;
 			/**
 			 * Add custom CSS to the overlay (e.g., animations)
 			 */

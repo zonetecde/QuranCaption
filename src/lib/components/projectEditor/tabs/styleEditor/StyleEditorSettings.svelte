@@ -461,6 +461,17 @@
 		}
 
 		if (category.id === 'overlay') {
+			if (
+				[
+					'video-frame-enable',
+					'video-frame-color',
+					'video-frame-vertical-size',
+					'video-frame-horizontal-size',
+					'video-frame-radius'
+				].includes(id)
+			) {
+				return id !== 'video-frame-enable' && !isFeatureEnabled('video-frame-enable', category);
+			}
 			if (id !== 'overlay-enable' && !isFeatureEnabled('overlay-enable', category)) return true;
 			if (
 				['background-overlay-fade-intensity', 'background-overlay-fade-coverage'].includes(id) &&

@@ -179,7 +179,12 @@ export type OverlayStyleName =
 	| 'background-overlay-fade-intensity'
 	| 'background-overlay-fade-coverage'
 	| 'overlay-custom-css'
-	| 'overlay-blur';
+	| 'overlay-blur'
+	| 'video-frame-enable'
+	| 'video-frame-color'
+	| 'video-frame-vertical-size'
+	| 'video-frame-horizontal-size'
+	| 'video-frame-radius';
 
 export type SurahNameStyleName =
 	| 'show-surah-name'

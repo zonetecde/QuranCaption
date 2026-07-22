@@ -1553,6 +1553,11 @@ const de = {
 			'background-overlay-fade-intensity': 'Überblendungsintensität',
 			'background-overlay-fade-coverage': 'Überblendungsabdeckung',
 			'overlay-blur': 'Überlagerungsunschärfe',
+			'video-frame-enable': 'Videorahmen',
+			'video-frame-color': 'Rahmenfarbe',
+			'video-frame-vertical-size': 'Stärke oben und unten',
+			'video-frame-horizontal-size': 'Stärke links und rechts',
+			'video-frame-radius': 'Eckenrundung',
 			'overlay-custom-css': 'Benutzerdefiniertes CSS',
 			'surah-name': 'Surename',
 			'show-surah-name': 'Surename anzeigen',
@@ -1745,6 +1750,11 @@ const de = {
 			'background-overlay-fade-coverage':
 				'Steuert den von der Überblendung genutzten vertikalen Bereich',
 			'overlay-blur': 'Unschärfegrad der Überlagerung',
+			'video-frame-enable': 'Einen globalen Rahmen um das Video ein- oder ausschalten',
+			'video-frame-color': 'Die Farbe des globalen Videorahmens auswählen',
+			'video-frame-vertical-size': 'Die Rahmenstärke oben und unten als Prozentsatz festlegen',
+			'video-frame-horizontal-size': 'Die Rahmenstärke links und rechts als Prozentsatz festlegen',
+			'video-frame-radius': 'Die inneren Ecken des Videorahmens prozentual abrunden',
 			'overlay-custom-css':
 				'Benutzerdefiniertes CSS zur Überlagerung hinzufügen (z. B. Animationen)',
 			'surah-name': 'Anzeige des Surennamens steuern',

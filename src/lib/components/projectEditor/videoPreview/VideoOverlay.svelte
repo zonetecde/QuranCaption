@@ -261,6 +261,41 @@
 		return resolveOverlayVisualState(globalStyles, clipId);
 	});
 
+	let videoFrameSettings = $derived.by(() => {
+		const verticalSize = Math.min(
+			45,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-vertical-size')?.value ?? 8))
+		);
+		const horizontalSize = Math.min(
+			45,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-horizontal-size')?.value ?? 8))
+		);
+		const radius = Math.min(
+			50,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-radius')?.value ?? 4))
+		);
+		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
+			| { width: number; height: number }
+			| undefined;
+		const width = Math.max(1, Number(dimensions?.width ?? 1920));
+		const height = Math.max(1, Number(dimensions?.height ?? 1080));
+		const innerWidth = width * (1 - horizontalSize / 50);
+		const innerHeight = height * (1 - verticalSize / 50);
+		const radiusPixels = (radius / 100) * Math.min(innerWidth, innerHeight);
+		const radiusX = (radiusPixels / width) * 100;
+		const radiusY = (radiusPixels / height) * 100;
+		const left = horizontalSize;
+		const top = verticalSize;
+		const right = 100 - horizontalSize;
+		const bottom = 100 - verticalSize;
+
+		return {
+			enable: Boolean(globalState.getStyle('global', 'video-frame-enable')?.value),
+			color: String(globalState.getStyle('global', 'video-frame-color')?.value ?? '#000000'),
+			path: `M 0 0 H 100 V 100 H 0 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
+		};
+	});
+
 	// =========================================================================
 	// Grille d'alignement
 	// =========================================================================
@@ -1194,6 +1229,23 @@
 			{/if}
 		{/each}
 	</div>
+
+	{#if videoFrameSettings.enable}
+		<!-- Le tracé pair-impair conserve une fenêtre transparente aux quatre angles identiques. -->
+		<svg
+			class="pointer-events-none absolute inset-0 z-20 h-full w-full"
+			viewBox="0 0 100 100"
+			preserveAspectRatio="none"
+			aria-hidden="true"
+		>
+			<path
+				d={videoFrameSettings.path}
+				fill={videoFrameSettings.color}
+				fill-rule="evenodd"
+				clip-rule="evenodd"
+			></path>
+		</svg>
+	{/if}
 </div>
 
 <!-- ===================================================================== -->

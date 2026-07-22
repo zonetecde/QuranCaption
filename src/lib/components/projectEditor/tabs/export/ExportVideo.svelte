@@ -133,8 +133,8 @@
 				/>
 			</div>
 
-			<!-- Duration Preview -->
-			<div class="mt-4 p-3 bg-secondary rounded-lg border border-color">
+			<!-- Export summary -->
+			<div class="mt-4 space-y-3 rounded-lg border border-color bg-secondary p-3">
 				<div class="flex items-center justify-between text-sm">
 					<span class="text-secondary">{$LL.export.exportDuration()}</span>
 					<span class="text-accent-primary font-medium">
@@ -147,11 +147,8 @@
 						)}
 					</span>
 				</div>
-			</div>
 
-			<!-- Verse Range Preview -->
-			<div class="mt-4 p-3 bg-secondary rounded-lg border border-color">
-				<div class="flex items-center justify-between text-sm">
+				<div class="flex items-center justify-between border-t border-color pt-3 text-sm">
 					<span class="text-secondary min-w-[150px]">{$LL.export.exportVerseRange()}</span>
 					<span class="text-accent-primary font-medium">
 						{VerseRange.getExportVerseRange().toString()}

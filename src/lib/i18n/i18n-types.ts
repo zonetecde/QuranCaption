@@ -4602,6 +4602,22 @@ type RootTranslation = {
 			 */
 			'video-dimension': string;
 			/**
+			 * F​i​l​l​ ​F​r​a​m​e
+			 */
+			'media-fill': string;
+			/**
+			 * Z​o​o​m
+			 */
+			'media-scale': string;
+			/**
+			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'media-position-x': string;
+			/**
+			 * V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'media-position-y': string;
+			/**
 			 * S​u​b​t​i​t​l​e​ ​F​a​d​e​ ​D​u​r​a​t​i​o​n
 			 */
 			'fade-duration': string;
@@ -5251,6 +5267,22 @@ type RootTranslation = {
 			 * Q​u​a​l​i​t​y​ ​a​n​d​ ​o​r​i​e​n​t​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​v​i​d​e​o
 			 */
 			'video-dimension': string;
+			/**
+			 * C​r​o​p​ ​b​a​c​k​g​r​o​u​n​d​ ​v​i​d​e​o​s​ ​a​n​d​ ​i​m​a​g​e​s​ ​t​o​ ​f​i​l​l​ ​t​h​e​ ​e​n​t​i​r​e​ ​f​r​a​m​e
+			 */
+			'media-fill': string;
+			/**
+			 * Z​o​o​m​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​a​f​t​e​r​ ​f​i​l​l​i​n​g​ ​t​h​e​ ​f​r​a​m​e
+			 */
+			'media-scale': string;
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​h​o​r​i​z​o​n​t​a​l​l​y​ ​r​e​l​a​t​i​v​e​ ​t​o​ ​t​h​e​ ​c​e​n​t​e​r
+			 */
+			'media-position-x': string;
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​v​e​r​t​i​c​a​l​l​y​ ​r​e​l​a​t​i​v​e​ ​t​o​ ​t​h​e​ ​c​e​n​t​e​r
+			 */
+			'media-position-y': string;
 			/**
 			 * D​u​r​a​t​i​o​n​ ​o​f​ ​f​a​d​e​ ​i​n​/​o​u​t​ ​e​f​f​e​c​t​ ​i​n​ ​m​i​l​l​i​s​e​c​o​n​d​s
 			 */
@@ -14789,6 +14821,22 @@ export type TranslationFunctions = {
 			 */
 			'video-dimension': () => LocalizedString;
 			/**
+			 * Fill Frame
+			 */
+			'media-fill': () => LocalizedString;
+			/**
+			 * Zoom
+			 */
+			'media-scale': () => LocalizedString;
+			/**
+			 * Horizontal Position
+			 */
+			'media-position-x': () => LocalizedString;
+			/**
+			 * Vertical Position
+			 */
+			'media-position-y': () => LocalizedString;
+			/**
 			 * Subtitle Fade Duration
 			 */
 			'fade-duration': () => LocalizedString;
@@ -15438,6 +15486,22 @@ export type TranslationFunctions = {
 			 * Quality and orientation of the video
 			 */
 			'video-dimension': () => LocalizedString;
+			/**
+			 * Crop background videos and images to fill the entire frame
+			 */
+			'media-fill': () => LocalizedString;
+			/**
+			 * Zoom the background media after filling the frame
+			 */
+			'media-scale': () => LocalizedString;
+			/**
+			 * Move the background media horizontally relative to the center
+			 */
+			'media-position-x': () => LocalizedString;
+			/**
+			 * Move the background media vertically relative to the center
+			 */
+			'media-position-y': () => LocalizedString;
 			/**
 			 * Duration of fade in/out effect in milliseconds
 			 */

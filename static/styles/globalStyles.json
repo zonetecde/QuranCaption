@@ -7,7 +7,16 @@
 		"ui": {
 			"panel": { "id": "video", "icon": "movie", "label": "general", "order": 0, "categoryOrder": 0 },
 			"groups": [
-				{ "id": "layout", "styleIds": ["video-dimension"] },
+				{
+					"id": "layout",
+					"styleIds": [
+						"video-dimension",
+						"media-fill",
+						"media-scale",
+						"media-position-x",
+						"media-position-y"
+					]
+				},
 				{ "id": "spacing", "styleIds": ["anti-collision", "spacing"] },
 				{
 					"id": "timing",
@@ -32,6 +41,55 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "screen_rotation"
+			},
+			{
+				"id": "media-fill",
+				"name": "Fill Frame",
+				"description": "Crop background videos and images to fill the entire frame",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "crop_free"
+			},
+			{
+				"id": "media-scale",
+				"name": "Zoom",
+				"description": "Zoom the background media after filling the frame",
+				"value": 100,
+				"valueType": "number",
+				"valueMin": 100,
+				"valueMax": 300,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "zoom_in"
+			},
+			{
+				"id": "media-position-x",
+				"name": "Horizontal Position",
+				"description": "Move the background media horizontally relative to the center",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_horiz"
+			},
+			{
+				"id": "media-position-y",
+				"name": "Vertical Position",
+				"description": "Move the background media vertically relative to the center",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_vert"
 			},
 			{
 				"id": "fade-duration",

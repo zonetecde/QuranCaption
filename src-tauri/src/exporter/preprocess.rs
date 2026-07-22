@@ -10,11 +10,42 @@ use super::types::{
     VideoInput,
 };
 
+/// Construit le filtre FFmpeg de cadrage partagé par les vidéos et images de fond.
+///
+/// Le mode normal conserve entièrement le média avec des bandes éventuelles. Le mode
+/// remplissage applique le zoom puis recadre selon une position relative au centre.
+pub fn build_background_fit_filter(
+    w: i32,
+    h: i32,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
+) -> String {
+    if !media_fill {
+        return format!(
+            "scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black",
+            w, h, w, h
+        );
+    }
+
+    let scale = (media_scale / 100.0).clamp(1.0, 3.0);
+    let scaled_w = ((w as f64 * scale).round() as i32).max(w);
+    let scaled_h = ((h as f64 * scale).round() as i32).max(h);
+    let position_x = ((media_position_x.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+    let position_y = ((media_position_y.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+
+    format!(
+        "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+        scaled_w, scaled_h, w, h, w, position_x, h, position_y
+    )
+}
+
 // ---------------------------------------------------------------------------
-// Pré-traitement vidéo (scale + pad + blur + fps)
+// Pré-traitement vidéo (cadrage + blur + fps)
 // ---------------------------------------------------------------------------
 
-/// Prétraite une vidéo source : redimensionne (contain), applique un flou optionnel,
+/// Prétraite une vidéo source : applique le cadrage demandé, puis un flou optionnel,
 /// ajuste le fps et découpe la plage temporelle demandée.
 ///
 /// # Paramètres
@@ -30,6 +61,10 @@ pub fn ffmpeg_preprocess_video(
     prefer_hw: bool,
     start_ms: Option<i32>,
     duration_ms: Option<i32>,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
     blur: Option<f64>,
     loop_video: bool,
     performance_profile: ExportPerformanceProfile,
@@ -51,11 +86,15 @@ pub fn ffmpeg_preprocess_video(
     let tmp_path = ffmpeg_utils::build_temp_output_path(dst_path);
     let tmp_output = tmp_path.to_string_lossy().to_string();
 
-    // Construction du filtre vidéo : scale → pad → blur optionnel → fps
-    let mut vf_parts = vec![
-        format!("scale=w={}:h={}:force_original_aspect_ratio=decrease", w, h),
-        format!("pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black", w, h),
-    ];
+    // Construction du filtre vidéo : cadrage → blur optionnel → fps
+    let mut vf_parts = vec![build_background_fit_filter(
+        w,
+        h,
+        media_fill,
+        media_scale,
+        media_position_x,
+        media_position_y,
+    )];
 
     // Ajouter le flou si spécifié et > 0
     if let Some(blur_value) = blur {
@@ -122,7 +161,7 @@ pub fn ffmpeg_preprocess_video(
     cmd.push(tmp_output);
 
     println!(
-        "[preproc] ffmpeg scale+pad (contain) -> {}",
+        "[preproc] ffmpeg cadrage du fond -> {}",
         Path::new(dst)
             .file_name()
             .unwrap_or_default()
@@ -179,7 +218,7 @@ pub fn ffmpeg_preprocess_video(
 // Création de vidéo à partir d'une image fixe
 // ---------------------------------------------------------------------------
 
-/// Crée une vidéo à partir d'une image fixe, avec redimensionnement (cover/crop)
+/// Crée une vidéo à partir d'une image fixe, avec le cadrage demandé
 /// et flou optionnel, en émettant la progression FFmpeg pour l'export courant.
 pub fn create_video_from_image(
     image_path: &str,
@@ -189,6 +228,10 @@ pub fn create_video_from_image(
     fps: i32,
     duration_s: f64,
     prefer_hw: bool,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
     export_id: &str,
@@ -202,11 +245,15 @@ pub fn create_video_from_image(
     let tmp_path = ffmpeg_utils::build_temp_output_path(dst_path);
     let tmp_output = tmp_path.to_string_lossy().to_string();
 
-    // Filtre : scale up → crop → blur optionnel
-    let mut vf_parts = vec![
-        format!("scale={}:{}:force_original_aspect_ratio=increase", w, h),
-        format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h),
-    ];
+    // Filtre : cadrage → blur optionnel
+    let mut vf_parts = vec![build_background_fit_filter(
+        w,
+        h,
+        media_fill,
+        media_scale,
+        media_position_x,
+        media_position_y,
+    )];
 
     if let Some(blur_value) = blur {
         if blur_value > 0.0 {
@@ -320,6 +367,10 @@ pub fn preprocess_background_videos(
     prefer_hw: bool,
     start_time_ms: i32,
     duration_ms: Option<i32>,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
     export_id: &str,
@@ -328,7 +379,7 @@ pub fn preprocess_background_videos(
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v10-nvenc-quality";
+    let preproc_cache_version = "fit-v11-media-layout";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);
@@ -381,7 +432,7 @@ pub fn preprocess_background_videos(
         };
         let mtime = file_mtime_sec(image_path);
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}{}",
+            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}",
             preproc_cache_version,
             image_path,
             w,
@@ -391,6 +442,10 @@ pub fn preprocess_background_videos(
             mtime,
             performance_profile,
             prefer_hw,
+            media_fill,
+            media_scale,
+            media_position_x,
+            media_position_y,
             blur_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
@@ -415,6 +470,10 @@ pub fn preprocess_background_videos(
                 fps,
                 duration_s,
                 prefer_hw,
+                media_fill,
+                media_scale,
+                media_position_x,
+                media_position_y,
                 blur,
                 performance_profile,
                 export_id,
@@ -459,7 +518,12 @@ pub fn preprocess_background_videos(
 
     // Détection du cas "direct single pass": une seule vidéo sans blur.
     // La boucle est ignorée plus bas si la source couvre déjà toute la durée nécessaire.
-    let can_direct_single_pass = video_inputs.len() == 1 && !blur.map_or(false, |b| b > 0.0);
+    let can_direct_single_pass = video_inputs.len() == 1
+        && !media_fill
+        && (media_scale - 100.0).abs() < f64::EPSILON
+        && media_position_x.abs() < f64::EPSILON
+        && media_position_y.abs() < f64::EPSILON
+        && !blur.map_or(false, |b| b > 0.0);
 
     // Parcourir les vidéos et extraire uniquement les segments pertinents
     let mut cum_start: i64 = 0;
@@ -542,7 +606,7 @@ pub fn preprocess_background_videos(
         let should_prefer_hw = prefer_hw && !(cfg!(target_os = "macos") && is_loop);
 
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}{}{}",
+            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}{}",
             preproc_cache_version,
             vid_path,
             w,
@@ -553,6 +617,10 @@ pub fn preprocess_background_videos(
             mtime,
             performance_profile,
             should_prefer_hw,
+            media_fill,
+            media_scale,
+            media_position_x,
+            media_position_y,
             blur_suffix,
             loop_suffix
         );
@@ -606,6 +674,10 @@ pub fn preprocess_background_videos(
                 should_prefer_hw,
                 Some(start_within as i32),
                 Some(take_ms as i32),
+                media_fill,
+                media_scale,
+                media_position_x,
+                media_position_y,
                 blur,
                 is_loop,
                 performance_profile,

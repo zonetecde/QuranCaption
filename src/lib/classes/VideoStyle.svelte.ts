@@ -79,6 +79,10 @@ export type GeneralStyleName =
 
 export type GlobalAnimationStyleName =
 	| 'video-dimension'
+	| 'media-fill'
+	| 'media-scale'
+	| 'media-position-x'
+	| 'media-position-y'
 	| 'fade-duration'
 	| 'video-and-audio-fade'
 	| 'video-clip-transition'

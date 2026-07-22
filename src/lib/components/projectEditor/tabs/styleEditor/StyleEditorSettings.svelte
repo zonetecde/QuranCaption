@@ -446,6 +446,9 @@
 			return true;
 
 		if (category.id === 'general') {
+			if (['media-scale', 'media-position-x', 'media-position-y'].includes(id)) {
+				return !isFeatureEnabled('media-fill', category);
+			}
 			if (id === 'video-clip-transition-duration') {
 				return (
 					!isFeatureEnabled('video-clip-transition', category) ||

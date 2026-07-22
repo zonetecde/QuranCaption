@@ -1531,6 +1531,10 @@ const es = {
 			rotation: 'Rotación',
 			'custom-css': 'CSS personalizado',
 			'video-dimension': 'Calidad y orientación del video',
+			'media-fill': 'Llenar el encuadre',
+			'media-scale': 'Zoom',
+			'media-position-x': 'Posición horizontal',
+			'media-position-y': 'Posición vertical',
 			'fade-duration': 'Duración del fundido de subtítulos',
 			'video-and-audio-fade': 'Fundido de video y audio',
 			'video-clip-transition': 'Transición entre clips de video',
@@ -1716,6 +1720,10 @@ const es = {
 			'custom-css':
 				'Escribir CSS personalizado para los subtítulos. Usar !important si es necesario.',
 			'video-dimension': 'Calidad y orientación del video',
+			'media-fill': 'Recortar los videos e imágenes de fondo para llenar todo el encuadre',
+			'media-scale': 'Ampliar el medio de fondo después de llenar el encuadre',
+			'media-position-x': 'Mover el medio de fondo horizontalmente respecto al centro',
+			'media-position-y': 'Mover el medio de fondo verticalmente respecto al centro',
 			'fade-duration': 'Duración del efecto de fundido entrada/salida en milisegundos',
 			'video-and-audio-fade':
 				'Configurar el fundido de entrada/salida para video y audio en la exportación.',

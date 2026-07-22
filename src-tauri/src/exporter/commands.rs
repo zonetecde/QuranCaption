@@ -40,6 +40,10 @@ use super::types::{
 /// * `audios` - Liste des fichiers audio à superposer.
 /// * `audio_volume` - Volume audio en pourcentage, entre 0 et 200.
 /// * `videos` - Liste des vidéos de fond.
+/// * `media_fill` - Recadre les vidéos et images afin de remplir le cadre.
+/// * `media_scale` - Zoom du média de fond en pourcentage.
+/// * `media_position_x` - Position horizontale relative au centre, entre -100 et 100.
+/// * `media_position_y` - Position verticale relative au centre, entre -100 et 100.
 /// * `blur` - Intensité du flou de fond.
 /// * `blank_timings` - Timestamps sans sous-titres (fond uniquement).
 #[tauri::command]
@@ -54,6 +58,10 @@ pub async fn export_video(
     audios: Option<Vec<String>>,
     audio_volume: Option<f64>,
     videos: Option<Vec<VideoInput>>,
+    media_fill: Option<bool>,
+    media_scale: Option<f64>,
+    media_position_x: Option<f64>,
+    media_position_y: Option<f64>,
     blur: Option<f64>,
     video_fade_in_enabled: Option<bool>,
     video_fade_out_enabled: Option<bool>,
@@ -270,6 +278,10 @@ pub async fn export_video(
     let app_handle = app.clone();
     let export_id_clone = export_id.clone();
     let audio_gain = (audio_volume.unwrap_or(100.0) / 100.0).clamp(0.0, 2.0);
+    let media_fill = media_fill.unwrap_or(false);
+    let media_scale = media_scale.unwrap_or(100.0).clamp(100.0, 300.0);
+    let media_position_x = media_position_x.unwrap_or(0.0).clamp(-100.0, 100.0);
+    let media_position_y = media_position_y.unwrap_or(0.0).clamp(-100.0, 100.0);
 
     // Lancement du rendu dans un thread bloquant (tokio::task::spawn_blocking)
     tokio::task::spawn_blocking(move || {
@@ -285,6 +297,10 @@ pub async fn export_video(
             &audios_vec,
             audio_gain,
             &videos_vec,
+            media_fill,
+            media_scale,
+            media_position_x,
+            media_position_y,
             true, // prefer_hw
             duration,
             blur,
@@ -1121,6 +1137,10 @@ fn run_fast_export(
     audio_paths: &[String],
     audio_gain: f64,
     video_inputs: &[VideoInput],
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
     prefer_hw: bool,
     duration_ms: Option<i32>,
     blur: Option<f64>,
@@ -1244,6 +1264,10 @@ fn run_fast_export(
             prefer_hw,
             start_time_ms,
             Some(full_duration_ms),
+            media_fill,
+            media_scale,
+            media_position_x,
+            media_position_y,
             blur,
             performance_profile,
             export_id,
@@ -1452,6 +1476,14 @@ fn run_fast_export(
         return Ok(());
     }
 
+    let background_fit_filter = preprocess::build_background_fit_filter(
+        w,
+        h,
+        media_fill,
+        media_scale,
+        media_position_x,
+        media_position_y,
+    );
     let mut filter_lines = Vec::new();
     filter_lines.push(format!(
         "[0:v]format=rgba,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black@0,fps={},trim=start=0:end={:.6},setpts=PTS-STARTPTS,setsar=1[overlay_raw]",
@@ -1508,8 +1540,11 @@ fn run_fast_export(
                 } else {
                     // Fallback: normaliser dans le graphe final
                     filter_lines.push(format!(
-                        "[{}:v]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,fps={},setsar=1[bg{}]",
-                        bg_start_idx + i, w, h, w, h, fps, i
+                        "[{}:v]setpts=PTS-STARTPTS,{},fps={},setsar=1[bg{}]",
+                        bg_start_idx + i,
+                        background_fit_filter,
+                        fps,
+                        i
                     ));
                     println!("[background] normalized=false idx={}", i);
                 }
@@ -1545,15 +1580,15 @@ fn run_fast_export(
                     // Background non normalisé (direct single pass ou fallback)
                     println!("[background] normalized=false (full filter chain)");
                     filter_lines.push(format!(
-                        "[{}]setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,fps={},setsar=1,trim=end={:.6}[bgtrim]",
-                        bg_label, w, h, w, h, fps, bg_trim_end
+                        "[{}]setpts=PTS-STARTPTS,{},fps={},setsar=1,trim=end={:.6}[bgtrim]",
+                        bg_label, background_fit_filter, fps, bg_trim_end
                     ));
                 }
             } else {
                 // Pas de background unique (ne devrait pas arriver)
                 filter_lines.push(format!(
-                    "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS,scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1[bgtrim]",
-                    bg_label, bg_trim_end, w, h, w, h
+                    "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS,{},setsar=1[bgtrim]",
+                    bg_label, bg_trim_end, background_fit_filter
                 ));
             }
 

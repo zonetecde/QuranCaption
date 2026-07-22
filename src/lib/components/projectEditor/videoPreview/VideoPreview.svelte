@@ -103,6 +103,33 @@
 		return clip instanceof AssetClip && clip.loopUntilAudioEnd;
 	});
 
+	let backgroundMediaStyle = $derived.by(() => {
+		if (!Boolean(globalState.getStyle('global', 'media-fill')?.value)) {
+			return 'width: 100% !important; height: 100% !important; object-fit: contain;';
+		}
+
+		const scale = Math.min(
+			3,
+			Math.max(1, Number(globalState.getStyle('global', 'media-scale')?.value ?? 100) / 100)
+		);
+		const positionX =
+			(Math.min(
+				100,
+				Math.max(-100, Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0))
+			) +
+				100) /
+			200;
+		const positionY =
+			(Math.min(
+				100,
+				Math.max(-100, Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0))
+			) +
+				100) /
+			200;
+
+		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: cover; object-position: ${positionX * 100}% ${positionY * 100}%;`;
+	});
+
 	// === ÉTATS LOCAUX ===
 	let videoElement = $state<HTMLVideoElement | null>(null); // Référence à l'élément <video> HTML
 	type VideoClipTransitionMode = 'none' | 'fade-through-black' | 'crossfade';
@@ -1127,7 +1154,7 @@
 		id="preview-container"
 	>
 		<!-- Conteneur de la prévisualisation vidéo avec mise à l'échelle -->
-		<div class="relative origin-top-left bg-black" id="preview">
+		<div class="relative origin-top-left overflow-hidden bg-black" id="preview">
 			{#if showAntiCollisionNotice}
 				<div
 					class="absolute left-6 top-6 z-30 flex max-w-[calc(100%_-_3rem)] items-center gap-4 rounded-lg border border-amber-500/45 bg-slate-900/85 px-5 py-3 text-[28px] leading-tight text-white/90 shadow-md backdrop-blur-sm"
@@ -1197,7 +1224,7 @@
 						muted
 						loop={isVideoLooping()}
 						onended={goNextVideo}
-						style={`opacity: ${transitionState.currentOpacity};`}
+						style={`${backgroundMediaStyle} opacity: ${transitionState.currentOpacity};`}
 					></video>
 					{#if transitionState.showCrossfadeNotice}
 						<div class="crossfade-preview-notice">{getCrossfadePreviewNotice()}</div>
@@ -1205,7 +1232,7 @@
 				{:else if currentImage()}
 					<img
 						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
-						class="w-full h-full object-cover"
+						style={backgroundMediaStyle}
 						alt=""
 					/>
 				{/if}

@@ -1533,6 +1533,10 @@ const fr = {
 			rotation: 'Rotation',
 			'custom-css': 'CSS personnalisé',
 			'video-dimension': 'Qualité et orientation de la vidéo',
+			'media-fill': 'Remplir le cadre',
+			'media-scale': 'Zoom',
+			'media-position-x': 'Position horizontale',
+			'media-position-y': 'Position verticale',
 			'fade-duration': 'Durée du fondu des sous-titres',
 			'video-and-audio-fade': 'Fondu vidéo et audio',
 			'video-clip-transition': 'Transition entre clips vidéo',
@@ -1721,6 +1725,10 @@ const fr = {
 			'custom-css':
 				'Écrire du CSS personnalisé pour les sous-titres. Utiliser !important si nécessaire.',
 			'video-dimension': 'Qualité et orientation de la vidéo',
+			'media-fill': 'Recadrer les vidéos et images de fond pour remplir tout le cadre',
+			'media-scale': 'Zoomer le média de fond après avoir rempli le cadre',
+			'media-position-x': 'Déplacer le média de fond horizontalement par rapport au centre',
+			'media-position-y': 'Déplacer le média de fond verticalement par rapport au centre',
 			'fade-duration': 'Durée de l\u2019effet de fondu entrée/sortie en millisecondes',
 			'video-and-audio-fade':
 				'Configurer le fondu d\u2019entrée/sortie pour la vidéo et l\u2019audio à l\u2019export.',

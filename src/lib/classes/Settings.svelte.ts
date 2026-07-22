@@ -149,6 +149,7 @@ export default class Settings extends SerializableBase {
 		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
 		transcriptFontSize: 16,
+		showAntiCollisionNotice: true,
 		projectEditorLayout: { ...DEFAULT_PROJECT_EDITOR_LAYOUT } as ProjectEditorLayout,
 		timelineTrackOrder: [
 			TrackType.CustomClip,
@@ -556,6 +557,10 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.transcriptFontSize > 32
 		) {
 			settings.persistentUiState.transcriptFontSize = 16;
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.showAntiCollisionNotice !== 'boolean') {
+			settings.persistentUiState.showAntiCollisionNotice = true;
 			shouldSave = true;
 		}
 		if (!Array.isArray(settings.persistentUiState.timelineTrackOrder)) {

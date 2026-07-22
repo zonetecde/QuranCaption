@@ -2333,6 +2333,26 @@ type RootTranslation = {
 		 */
 		dismissHints: string;
 		/**
+		 * S​u​b​t​i​t​l​e​ ​a​n​t​i​-​c​o​l​l​i​s​i​o​n​ ​i​s​ ​o​n
+		 */
+		antiCollisionNotice: string;
+		/**
+		 * i​s​ ​e​n​a​b​l​e​d​.​ ​I​t​ ​c​a​n​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​m​o​v​e​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​i​n​t​e​r​f​e​r​e​ ​w​i​t​h​ ​t​h​e​ ​e​x​a​c​t​ ​l​a​y​o​u​t​ ​y​o​u​ ​w​a​n​t​.​ ​Y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​i​t​ ​i​n​ ​t​h​e​ ​l​e​f​t​ ​p​a​n​e​l​.
+		 */
+		antiCollisionNoticeHelpEnabled: string;
+		/**
+		 * A​n​o​t​h​e​r​ ​s​o​l​u​t​i​o​n​ ​t​o​ ​p​r​e​v​e​n​t​ ​s​u​b​t​i​t​l​e​ ​o​v​e​r​l​a​p​ ​i​s​ ​t​o​ ​u​s​e​ ​t​h​e​ ​s​t​y​l​e​s
+		 */
+		antiCollisionNoticeHelpAlternative: string;
+		/**
+		 * a​n​d
+		 */
+		antiCollisionNoticeHelpAnd: string;
+		/**
+		 * f​o​r​ ​b​o​t​h​ ​A​r​a​b​i​c​ ​a​n​d​ ​t​r​a​n​s​l​a​t​i​o​n​s​.
+		 */
+		antiCollisionNoticeHelpTargets: string;
+		/**
 		 * S​i​l​e​n​t​ ​s​e​g​m​e​n​t
 		 */
 		silentSegment: string;
@@ -11648,6 +11668,26 @@ export type TranslationFunctions = {
 		 * Dismiss timeline wheel hints
 		 */
 		dismissHints: () => LocalizedString;
+		/**
+		 * Subtitle anti-collision is on
+		 */
+		antiCollisionNotice: () => LocalizedString;
+		/**
+		 * is enabled. It can automatically move subtitles and interfere with the exact layout you want. You can disable it in the left panel.
+		 */
+		antiCollisionNoticeHelpEnabled: () => LocalizedString;
+		/**
+		 * Another solution to prevent subtitle overlap is to use the styles
+		 */
+		antiCollisionNoticeHelpAlternative: () => LocalizedString;
+		/**
+		 * and
+		 */
+		antiCollisionNoticeHelpAnd: () => LocalizedString;
+		/**
+		 * for both Arabic and translations.
+		 */
+		antiCollisionNoticeHelpTargets: () => LocalizedString;
 		/**
 		 * Silent segment
 		 */

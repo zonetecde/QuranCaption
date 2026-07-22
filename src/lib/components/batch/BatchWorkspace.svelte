@@ -276,12 +276,14 @@
 		projects.length > 0 && projects.every((project) => project.media.status === 'completed')
 	);
 	let activeProjectStage = $derived<'media' | 'segmentation' | 'translation'>(
-		translationEditionNames.length > 0
-			? 'translation'
-			: segmentationQueueActive ||
-				  projects.some((project) => project.segmentation.status !== 'not_started')
-				? 'segmentation'
-				: 'media'
+		!allMediaCompleted
+			? 'media'
+			: translationEditionNames.length > 0
+				? 'translation'
+				: segmentationQueueActive ||
+					  projects.some((project) => project.segmentation.status !== 'not_started')
+					? 'segmentation'
+					: 'media'
 	);
 	let incompatibleQueueActive = $derived(
 		queueActive ||
@@ -1347,7 +1349,7 @@
 						<span class="text-sm text-[var(--text-secondary)]">
 							{batchMessage('selectedProjects', { count: selectedProjects.length })}
 						</span>
-						{#if !allMediaCompleted && !allSegmentationsVerified}
+						{#if !allMediaCompleted}
 							<button
 								class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
 								type="button"
@@ -1389,7 +1391,7 @@
 								<span class="leading-none">{batchMessage('aiSegmentation')}</span>
 							</button>
 						{/if}
-						{#if allSegmentationsVerified}
+						{#if allMediaCompleted && allSegmentationsVerified}
 							<button
 								class="btn-accent inline-flex h-11 items-center justify-center gap-2 px-5"
 								type="button"

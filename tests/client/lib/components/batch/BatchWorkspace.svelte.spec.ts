@@ -209,6 +209,27 @@ describe('BatchWorkspace media import', () => {
 		globalActionMocks.exportRun.mockReset();
 	});
 
+	test('keeps media import available when JSON subtitles are already verified', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const project = createProject(1, 'pending', {
+			kind: 'file',
+			value: 'C:\\Users\\User\\Desktop\\recitation.mp3'
+		});
+		project.segmentation.status = 'auto_verified';
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', [project], 89));
+		globalState.currentBatchId = 89;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(1)
+		);
+
+		expect(component.container.querySelector('thead')?.textContent).toContain('Media');
+		expect(component.container.textContent).toContain('Import media');
+		expect(component.container.textContent).not.toContain('Add translations to projects');
+	});
+
 	test('keeps distinct accessible global actions visible throughout every workflow stage', async () => {
 		loadLocale('en');
 		setLocale('en');

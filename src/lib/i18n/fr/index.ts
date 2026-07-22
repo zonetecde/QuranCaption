@@ -2235,6 +2235,18 @@ const fr = {
 		aiKey: 'Clé IA',
 		stockMedia: 'Banque de médias',
 		quranComIntegration: 'Intégration Quran.com',
+		defaultValues: 'Valeurs par défaut',
+		defaultValuesDescription:
+			'Choisissez les valeurs utilisées automatiquement lorsqu’un champ est vide.',
+		defaultExportFileName: 'Nom de fichier d’export par défaut',
+		defaultExportFileNameDescription:
+			'Personnalisez le format utilisé lorsque le champ Nom du fichier vidéo est vide.',
+		fileNamePlaceholders: 'Variables disponibles',
+		placeholderProjectName: 'Nom du projet',
+		placeholderReciter: 'Nom du récitateur',
+		placeholderVerseRange: 'Plage de versets exportée',
+		placeholderSurah: 'Noms des sourates exportées, séparés par des virgules',
+		placeholderSurahNumber: 'Numéros des sourates exportées, séparés par des virgules',
 		backup: 'Sauvegarde',
 		support: 'Assistance',
 		contact: 'Contact',

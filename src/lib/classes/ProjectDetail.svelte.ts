@@ -8,11 +8,13 @@ import { Status } from './Status';
 import type { ClipWithTranslation, SubtitleClip } from './Clip.svelte';
 import type { AssetTrack, SubtitleTrack } from './Track.svelte';
 import { VerseTranslation } from './Translation.svelte';
+import { Quran } from './Quran';
 import {
 	DEFAULT_PROJECT_TYPE,
 	normalizeProjectType,
 	type ProjectType
 } from '$lib/types/projectType';
+import { DEFAULT_EXPORT_FILE_NAME_FORMAT } from '$lib/constants/export';
 
 export class ProjectDetail extends SerializableBase {
 	static NAME_MAX_LENGTH: number = 50;
@@ -193,17 +195,28 @@ export class ProjectDetail extends SerializableBase {
 			return sanitized;
 		}
 
-		// Nom du projet (Nom du récitateur) - Al Insan 12-21, XXX
-		const finalFileName =
-			globalState.currentProject!.detail.name +
-			' ' +
-			(globalState.currentProject!.detail.reciter
-				? '(' + globalState.currentProject!.detail.reciter + ') - '
-				: '- ') +
-			VerseRange.getVerseRange(
-				globalState.getExportState.videoStartTime,
-				globalState.getExportState.videoEndTime
-			).toStringForExportFile();
+		const verseRange = VerseRange.getVerseRange(
+			globalState.getExportState.videoStartTime,
+			globalState.getExportState.videoEndTime
+		);
+		const surahNumbers = verseRange.parts.map((part) => part.surah);
+		const values = {
+			project_name: this.name,
+			reciter: this.reciter,
+			verse_range: verseRange.toStringForExportFile(),
+			surah: surahNumbers
+				.map((surahNumber) => Quran.getSurahsNames()[surahNumber - 1]?.transliteration)
+				.filter(Boolean)
+				.join(', '),
+			surah_number: surahNumbers.join(', ')
+		};
+		const format =
+			globalState.settings?.defaultValuesSettings.exportFileNameFormat.trim() ||
+			DEFAULT_EXPORT_FILE_NAME_FORMAT;
+		const finalFileName = Object.entries(values).reduce(
+			(fileName, [placeholder, value]) => fileName.replaceAll(`{${placeholder}}`, value),
+			format
+		);
 		return finalFileName.replace(/[/\\:*?"<>|]/g, '');
 	}
 

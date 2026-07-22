@@ -2214,6 +2214,18 @@ const de = {
 		aiKey: 'KI-Schlussel',
 		stockMedia: 'Stock-Medien',
 		quranComIntegration: 'Quran.com-Integration',
+		defaultValues: 'Standardwerte',
+		defaultValuesDescription:
+			'Legen Sie fest, welche Werte bei leeren Feldern automatisch verwendet werden.',
+		defaultExportFileName: 'Standardname der Exportdatei',
+		defaultExportFileNameDescription:
+			'Passen Sie das Format an, das bei einem leeren Feld für den Videodateinamen verwendet wird.',
+		fileNamePlaceholders: 'Verfügbare Platzhalter',
+		placeholderProjectName: 'Projektname',
+		placeholderReciter: 'Name des Rezitators',
+		placeholderVerseRange: 'Exportierter Versbereich',
+		placeholderSurah: 'Kommagetrennte Namen der exportierten Suren',
+		placeholderSurahNumber: 'Kommagetrennte Nummern der exportierten Suren',
 		backup: 'Backup',
 		support: 'Support',
 		contact: 'Kontakt',

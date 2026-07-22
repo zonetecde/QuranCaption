@@ -2210,6 +2210,18 @@ const es = {
 		aiKey: 'Clave IA',
 		stockMedia: 'Banco de medios',
 		quranComIntegration: 'Integración Quran.com',
+		defaultValues: 'Valores predeterminados',
+		defaultValuesDescription:
+			'Elija los valores utilizados automáticamente cuando un campo está vacío.',
+		defaultExportFileName: 'Nombre predeterminado del archivo de exportación',
+		defaultExportFileNameDescription:
+			'Personalice el formato utilizado cuando el campo Nombre del archivo de vídeo está vacío.',
+		fileNamePlaceholders: 'Marcadores disponibles',
+		placeholderProjectName: 'Nombre del proyecto',
+		placeholderReciter: 'Nombre del recitador',
+		placeholderVerseRange: 'Rango de versículos exportado',
+		placeholderSurah: 'Nombres de las suras exportadas, separados por comas',
+		placeholderSurahNumber: 'Números de las suras exportadas, separados por comas',
 		backup: 'Copia de seguridad',
 		support: 'Ayuda',
 		contact: 'Contacto',

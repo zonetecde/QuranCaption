@@ -7,6 +7,7 @@ import { VersionService } from '$lib/services/VersionService.svelte';
 import MigrationService from '$lib/services/MigrationService';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
 import type { ProjectDetail } from './ProjectDetail.svelte';
+import { DEFAULT_EXPORT_FILE_NAME_FORMAT } from '$lib/constants/export';
 import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
 import {
 	WBW_TRANSLATION_LANGUAGES,
@@ -74,6 +75,10 @@ export type ExportSettings = {
 	parallelCaptureWorkers: number;
 	videoCodec: 'h264' | 'h265';
 	performanceProfile: PerformanceProfile;
+};
+
+export type DefaultValuesSettings = {
+	exportFileNameFormat: string;
 };
 
 export type SubtitleExportSettings = {
@@ -184,6 +189,9 @@ export default class Settings extends SerializableBase {
 	});
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
+	defaultValuesSettings = $state<DefaultValuesSettings>({
+		exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT
+	});
 
 	subtitleExportSettings = $state<SubtitleExportSettings>({
 		subtitleFormat: 'SRT',
@@ -458,6 +466,15 @@ export default class Settings extends SerializableBase {
 			settings.exportSettings = {} as ExportSettings;
 			shouldSave = true;
 		}
+		if (!settings.defaultValuesSettings || typeof settings.defaultValuesSettings !== 'object') {
+			settings.defaultValuesSettings = {
+				exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT
+			};
+			shouldSave = true;
+		} else if (!settings.defaultValuesSettings.exportFileNameFormat?.trim()) {
+			settings.defaultValuesSettings.exportFileNameFormat = DEFAULT_EXPORT_FILE_NAME_FORMAT;
+			shouldSave = true;
+		}
 		if (!settings.subtitleExportSettings || typeof settings.subtitleExportSettings !== 'object') {
 			settings.subtitleExportSettings = {
 				subtitleFormat: 'SRT',
@@ -685,7 +702,7 @@ export enum SettingsTab {
 	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',
 	STOCK_MEDIA = 'stock-media',
-	QURAN_INTEGRATION = 'quran-integration',
+	DEFAULT_VALUES = 'default-values',
 	BACKUP = 'backup',
 	SUPPORT = 'support',
 	CONTACT = 'contact',

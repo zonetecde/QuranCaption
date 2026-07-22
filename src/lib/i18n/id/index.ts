@@ -483,6 +483,18 @@ const id = {
 		desktopNotifications: 'Notifikasi desktop',
 		aiKey: 'Kunci AI',
 		quranComIntegration: 'Integrasi Quran.com',
+		defaultValues: 'Nilai bawaan',
+		defaultValuesDescription:
+			'Pilih nilai yang digunakan otomatis saat suatu kolom dibiarkan kosong.',
+		defaultExportFileName: 'Nama bawaan file ekspor',
+		defaultExportFileNameDescription:
+			'Sesuaikan format yang digunakan saat kolom Nama File Video dibiarkan kosong.',
+		fileNamePlaceholders: 'Placeholder yang tersedia',
+		placeholderProjectName: 'Nama proyek',
+		placeholderReciter: 'Nama qari',
+		placeholderVerseRange: 'Rentang ayat yang diekspor',
+		placeholderSurah: 'Nama surah dalam ekspor, dipisahkan dengan koma',
+		placeholderSurahNumber: 'Nomor surah dalam ekspor, dipisahkan dengan koma',
 		showOsNotifications:
 			'Tampilkan notifikasi OS saat ekspor video, segmentasi AI, atau pemangkasan AI selesai.',
 		taskbarAttention: 'Sinyal perhatian taskbar tetap aktif meskipun notifikasi desktop dimatikan.',

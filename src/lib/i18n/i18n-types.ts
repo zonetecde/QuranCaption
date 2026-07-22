@@ -6956,6 +6956,46 @@ type RootTranslation = {
 		 */
 		quranComIntegration: string;
 		/**
+		 * D​e​f​a​u​l​t​ ​V​a​l​u​e​s
+		 */
+		defaultValues: string;
+		/**
+		 * C​h​o​o​s​e​ ​t​h​e​ ​v​a​l​u​e​s​ ​u​s​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​w​h​e​n​ ​a​ ​f​i​e​l​d​ ​i​s​ ​l​e​f​t​ ​e​m​p​t​y​.
+		 */
+		defaultValuesDescription: string;
+		/**
+		 * D​e​f​a​u​l​t​ ​e​x​p​o​r​t​ ​f​i​l​e​ ​n​a​m​e
+		 */
+		defaultExportFileName: string;
+		/**
+		 * C​u​s​t​o​m​i​z​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​u​s​e​d​ ​w​h​e​n​ ​t​h​e​ ​V​i​d​e​o​ ​F​i​l​e​ ​N​a​m​e​ ​f​i​e​l​d​ ​i​s​ ​l​e​f​t​ ​e​m​p​t​y​.
+		 */
+		defaultExportFileNameDescription: string;
+		/**
+		 * A​v​a​i​l​a​b​l​e​ ​p​l​a​c​e​h​o​l​d​e​r​s
+		 */
+		fileNamePlaceholders: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​n​a​m​e
+		 */
+		placeholderProjectName: string;
+		/**
+		 * R​e​c​i​t​e​r​ ​n​a​m​e
+		 */
+		placeholderReciter: string;
+		/**
+		 * E​x​p​o​r​t​e​d​ ​v​e​r​s​e​ ​r​a​n​g​e
+		 */
+		placeholderVerseRange: string;
+		/**
+		 * C​o​m​m​a​-​s​e​p​a​r​a​t​e​d​ ​n​a​m​e​s​ ​o​f​ ​t​h​e​ ​s​u​r​a​h​s​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t
+		 */
+		placeholderSurah: string;
+		/**
+		 * C​o​m​m​a​-​s​e​p​a​r​a​t​e​d​ ​s​u​r​a​h​ ​n​u​m​b​e​r​s​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t
+		 */
+		placeholderSurahNumber: string;
+		/**
 		 * B​a​c​k​u​p
 		 */
 		backup: string;
@@ -17032,6 +17072,46 @@ export type TranslationFunctions = {
 		 * Quran.com Integration
 		 */
 		quranComIntegration: () => LocalizedString;
+		/**
+		 * Default Values
+		 */
+		defaultValues: () => LocalizedString;
+		/**
+		 * Choose the values used automatically when a field is left empty.
+		 */
+		defaultValuesDescription: () => LocalizedString;
+		/**
+		 * Default export file name
+		 */
+		defaultExportFileName: () => LocalizedString;
+		/**
+		 * Customize the format used when the Video File Name field is left empty.
+		 */
+		defaultExportFileNameDescription: () => LocalizedString;
+		/**
+		 * Available placeholders
+		 */
+		fileNamePlaceholders: () => LocalizedString;
+		/**
+		 * Project name
+		 */
+		placeholderProjectName: () => LocalizedString;
+		/**
+		 * Reciter name
+		 */
+		placeholderReciter: () => LocalizedString;
+		/**
+		 * Exported verse range
+		 */
+		placeholderVerseRange: () => LocalizedString;
+		/**
+		 * Comma-separated names of the surahs in the export
+		 */
+		placeholderSurah: () => LocalizedString;
+		/**
+		 * Comma-separated surah numbers in the export
+		 */
+		placeholderSurahNumber: () => LocalizedString;
 		/**
 		 * Backup
 		 */

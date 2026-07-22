@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ProjectDetail } from '$lib/classes';
+import { ProjectDetail, VerseRange } from '$lib/classes';
+import Settings from '$lib/classes/Settings.svelte';
+import { Quran } from '$lib/classes/Quran';
+import { globalState } from '$lib/runes/main.svelte';
 
 describe('ProjectDetail project type', () => {
+	const originalSettings = globalState.settings;
+
+	afterEach(() => {
+		globalState.settings = originalSettings;
+		vi.restoreAllMocks();
+	});
+
 	it('defaults new projects to Others', () => {
 		const detail = new ProjectDetail('Night 27', 'Muhammad Al Luhaidan');
 
@@ -54,5 +64,32 @@ describe('ProjectDetail project type', () => {
 
 		expect(restored.batchId).toBeNull();
 		expect(restored.batchOrder).toBeNull();
+	});
+
+	it('formats the default export file name with the configured placeholders', () => {
+		globalState.settings = new Settings();
+		globalState.settings.defaultValuesSettings.exportFileNameFormat =
+			'{project_name} - {surah} ({surah_number}) - {reciter} - {verse_range}';
+		vi.spyOn(globalState, 'getExportState', 'get').mockReturnValue({
+			customFileName: '',
+			videoStartTime: 0,
+			videoEndTime: 1_000
+		} as never);
+		vi.spyOn(VerseRange, 'getVerseRange').mockReturnValue(
+			new VerseRange([
+				{ surah: 1, verseStart: 1, verseEnd: 7 },
+				{ surah: 2, verseStart: 1, verseEnd: 5 }
+			])
+		);
+		vi.spyOn(Quran, 'getSurahsNames').mockReturnValue([
+			{ id: 1, transliteration: 'Al-Fatiha' },
+			{ id: 2, transliteration: 'Al-Baqarah' }
+		]);
+
+		const detail = new ProjectDetail('My Project', 'Mishary Alafasy');
+
+		expect(detail.generateExportFileName()).toBe(
+			'My Project - Al-Fatiha, Al-Baqarah (1, 2) - Mishary Alafasy - Al-Fatiha 1-7, Al-Baqarah 1-5'
+		);
 	});
 });

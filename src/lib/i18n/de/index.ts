@@ -1558,6 +1558,7 @@ const de = {
 			'video-frame-vertical-size': 'Stärke oben und unten',
 			'video-frame-horizontal-size': 'Stärke links und rechts',
 			'video-frame-radius': 'Eckenrundung',
+			'video-frame-softness': 'Kantenglättung',
 			'overlay-custom-css': 'Benutzerdefiniertes CSS',
 			'surah-name': 'Surename',
 			'show-surah-name': 'Surename anzeigen',
@@ -1755,6 +1756,7 @@ const de = {
 			'video-frame-vertical-size': 'Die Rahmenstärke oben und unten als Prozentsatz festlegen',
 			'video-frame-horizontal-size': 'Die Rahmenstärke links und rechts als Prozentsatz festlegen',
 			'video-frame-radius': 'Die inneren Ecken des Videorahmens prozentual abrunden',
+			'video-frame-softness': 'Die innere Kante des Videorahmens prozentual weichzeichnen',
 			'overlay-custom-css':
 				'Benutzerdefiniertes CSS zur Überlagerung hinzufügen (z. B. Animationen)',
 			'surah-name': 'Anzeige des Surennamens steuern',

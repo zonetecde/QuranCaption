@@ -184,7 +184,8 @@ export type OverlayStyleName =
 	| 'video-frame-color'
 	| 'video-frame-vertical-size'
 	| 'video-frame-horizontal-size'
-	| 'video-frame-radius';
+	| 'video-frame-radius'
+	| 'video-frame-softness';
 
 export type SurahNameStyleName =
 	| 'show-surah-name'

@@ -274,6 +274,10 @@
 			50,
 			Math.max(0, Number(globalState.getStyle('global', 'video-frame-radius')?.value ?? 4))
 		);
+		const softness = Math.min(
+			5,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-softness')?.value ?? 0))
+		);
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
 			| { width: number; height: number }
 			| undefined;
@@ -284,6 +288,9 @@
 		const radiusPixels = (radius / 100) * Math.min(innerWidth, innerHeight);
 		const radiusX = (radiusPixels / width) * 100;
 		const radiusY = (radiusPixels / height) * 100;
+		const softnessPixels = (softness / 100) * Math.min(width, height);
+		const softnessX = (softnessPixels / width) * 100;
+		const softnessY = (softnessPixels / height) * 100;
 		const left = horizontalSize;
 		const top = verticalSize;
 		const right = 100 - horizontalSize;
@@ -292,7 +299,8 @@
 		return {
 			enable: Boolean(globalState.getStyle('global', 'video-frame-enable')?.value),
 			color: String(globalState.getStyle('global', 'video-frame-color')?.value ?? '#000000'),
-			path: `M 0 0 H 100 V 100 H 0 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
+			softness: `${softnessX} ${softnessY}`,
+			path: `M -100 -100 H 200 V 200 H -100 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
 		};
 	});
 
@@ -1238,9 +1246,23 @@
 			preserveAspectRatio="none"
 			aria-hidden="true"
 		>
+			<defs>
+				<filter
+					id="video-frame-softness-filter"
+					filterUnits="userSpaceOnUse"
+					x="-200"
+					y="-200"
+					width="500"
+					height="500"
+					color-interpolation-filters="sRGB"
+				>
+					<feGaussianBlur stdDeviation={videoFrameSettings.softness}></feGaussianBlur>
+				</filter>
+			</defs>
 			<path
 				d={videoFrameSettings.path}
 				fill={videoFrameSettings.color}
+				filter="url(#video-frame-softness-filter)"
 				fill-rule="evenodd"
 				clip-rule="evenodd"
 			></path>

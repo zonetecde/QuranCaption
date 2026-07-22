@@ -1554,6 +1554,7 @@ const es = {
 			'video-frame-vertical-size': 'Grosor superior e inferior',
 			'video-frame-horizontal-size': 'Grosor izquierdo y derecho',
 			'video-frame-radius': 'Redondez de las esquinas',
+			'video-frame-softness': 'Suavidad de los bordes',
 			'overlay-custom-css': 'CSS personalizado',
 			'surah-name': 'Nombre de la sura',
 			'show-surah-name': 'Mostrar nombre de la sura',
@@ -1753,6 +1754,7 @@ const es = {
 			'video-frame-horizontal-size':
 				'Definir como porcentaje el grosor izquierdo y derecho del marco',
 			'video-frame-radius': 'Redondear como porcentaje las esquinas interiores del marco',
+			'video-frame-softness': 'Suavizar como porcentaje el borde interior del marco de video',
 			'overlay-custom-css': 'Agregar CSS personalizado a la superposición (ej. animaciones)',
 			'surah-name': 'Controlar la visualización del nombre de la sura',
 			'show-surah-name': 'Mostrar u ocultar el nombre de la sura',

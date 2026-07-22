@@ -1556,6 +1556,7 @@ const fr = {
 			'video-frame-vertical-size': 'Épaisseur haut et bas',
 			'video-frame-horizontal-size': 'Épaisseur gauche et droite',
 			'video-frame-radius': 'Arrondi des angles',
+			'video-frame-softness': 'Lissage des bords',
 			'overlay-custom-css': 'CSS personnalisé',
 			'surah-name': 'Nom de la sourate',
 			'show-surah-name': 'Afficher le nom de la sourate',
@@ -1756,6 +1757,7 @@ const fr = {
 			'video-frame-horizontal-size':
 				'Définir en pourcentage l’épaisseur du cadre à gauche et à droite',
 			'video-frame-radius': 'Arrondir en pourcentage les angles intérieurs du cadre vidéo',
+			'video-frame-softness': 'Adoucir en pourcentage le bord intérieur du cadre vidéo',
 			'overlay-custom-css': 'Ajouter du CSS personnalisé à la superposition (ex. animations)',
 			'surah-name': 'Contrôler l\u2019affichage du nom de la sourate',
 			'show-surah-name': 'Afficher ou masquer le nom de la sourate',

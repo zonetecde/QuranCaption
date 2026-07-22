@@ -5296,7 +5296,7 @@ type RootTranslation = {
 			 */
 			'media-fill': string;
 			/**
-			 * Z​o​o​m​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​a​f​t​e​r​ ​f​i​l​l​i​n​g​ ​t​h​e​ ​f​r​a​m​e
+			 * Z​o​o​m​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a
 			 */
 			'media-scale': string;
 			/**
@@ -15563,7 +15563,7 @@ export type TranslationFunctions = {
 			 */
 			'media-fill': () => LocalizedString;
 			/**
-			 * Zoom the background media after filling the frame
+			 * Zoom the background media
 			 */
 			'media-scale': () => LocalizedString;
 			/**

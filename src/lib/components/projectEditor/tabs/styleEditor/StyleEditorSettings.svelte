@@ -352,6 +352,12 @@
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
 
 		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;
+		if (
+			category.id === 'general' &&
+			['media-fill', 'media-scale', 'media-position-x', 'media-position-y'].includes(style.id) &&
+			globalState.getVideoTrack.clips.length === 0
+		)
+			return true;
 
 		if (
 			selection === 'arabic' &&
@@ -446,9 +452,6 @@
 			return true;
 
 		if (category.id === 'general') {
-			if (['media-scale', 'media-position-x', 'media-position-y'].includes(id)) {
-				return !isFeatureEnabled('media-fill', category);
-			}
 			if (id === 'video-clip-transition-duration') {
 				return (
 					!isFeatureEnabled('video-clip-transition', category) ||

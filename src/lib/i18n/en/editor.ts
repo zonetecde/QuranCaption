@@ -1122,7 +1122,7 @@ const editor = {
 		'custom-css': 'Write any custom CSS for subtitles. Use !important if needed.',
 		'video-dimension': 'Quality and orientation of the video',
 		'media-fill': 'Crop background videos and images to fill the entire frame',
-		'media-scale': 'Zoom the background media after filling the frame',
+		'media-scale': 'Zoom the background media',
 		'media-position-x': 'Move the background media horizontally relative to the center',
 		'media-position-y': 'Move the background media vertically relative to the center',
 		'fade-duration': 'Duration of fade in/out effect in milliseconds',

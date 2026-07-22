@@ -1732,7 +1732,7 @@ const de = {
 				'Benutzerdefiniertes CSS für Untertitel schreiben. Bei Bedarf !important verwenden.',
 			'video-dimension': 'Videoqualität und -ausrichtung',
 			'media-fill': 'Hintergrundvideos und -bilder auf den gesamten Rahmen zuschneiden',
-			'media-scale': 'Das Hintergrundmedium nach dem Ausfüllen des Rahmens vergrößern',
+			'media-scale': 'Das Hintergrundmedium vergrößern',
 			'media-position-x': 'Das Hintergrundmedium relativ zur Mitte horizontal verschieben',
 			'media-position-y': 'Das Hintergrundmedium relativ zur Mitte vertikal verschieben',
 			'fade-duration': 'Dauer des Ein-/Ausblendeffekts in Millisekunden',

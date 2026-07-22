@@ -1595,7 +1595,7 @@ const zh = {
 			'custom-css': '为字幕编写自定义 CSS。必要时使用 !important。',
 			'video-dimension': '视频质量和方向',
 			'media-fill': '裁剪背景视频和图片以填满整个画面',
-			'media-scale': '填满画面后缩放背景媒体',
+			'media-scale': '缩放背景媒体',
 			'media-position-x': '相对于中心水平移动背景媒体',
 			'media-position-y': '相对于中心垂直移动背景媒体',
 			'fade-duration': '淡入/淡出效果的时长（毫秒）',

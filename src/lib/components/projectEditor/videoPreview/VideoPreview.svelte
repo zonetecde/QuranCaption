@@ -104,10 +104,7 @@
 	});
 
 	let backgroundMediaStyle = $derived.by(() => {
-		if (!Boolean(globalState.getStyle('global', 'media-fill')?.value)) {
-			return 'width: 100% !important; height: 100% !important; object-fit: contain;';
-		}
-
+		const mediaFill = Boolean(globalState.getStyle('global', 'media-fill')?.value);
 		const scale = Math.min(
 			3,
 			Math.max(1, Number(globalState.getStyle('global', 'media-scale')?.value ?? 100) / 100)
@@ -127,7 +124,7 @@
 				100) /
 			200;
 
-		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: cover; object-position: ${positionX * 100}% ${positionY * 100}%;`;
+		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${positionX * 100}% ${positionY * 100}%;`;
 	});
 
 	// === ÉTATS LOCAUX ===

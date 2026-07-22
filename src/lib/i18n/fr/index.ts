@@ -1732,7 +1732,7 @@ const fr = {
 				'Écrire du CSS personnalisé pour les sous-titres. Utiliser !important si nécessaire.',
 			'video-dimension': 'Qualité et orientation de la vidéo',
 			'media-fill': 'Recadrer les vidéos et images de fond pour remplir tout le cadre',
-			'media-scale': 'Zoomer le média de fond après avoir rempli le cadre',
+			'media-scale': 'Zoomer le média de fond',
 			'media-position-x': 'Déplacer le média de fond horizontalement par rapport au centre',
 			'media-position-y': 'Déplacer le média de fond verticalement par rapport au centre',
 			'fade-duration': 'Durée de l\u2019effet de fondu entrée/sortie en millisecondes',

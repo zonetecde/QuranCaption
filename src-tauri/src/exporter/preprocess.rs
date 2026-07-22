@@ -12,8 +12,8 @@ use super::types::{
 
 /// Construit le filtre FFmpeg de cadrage partagé par les vidéos et images de fond.
 ///
-/// Le mode normal conserve entièrement le média avec des bandes éventuelles. Le mode
-/// remplissage applique le zoom puis recadre selon une position relative au centre.
+/// Le mode normal conserve entièrement le média avec des bandes éventuelles. Les deux modes
+/// appliquent le zoom puis recadrent selon une position relative au centre.
 pub fn build_background_fit_filter(
     w: i32,
     h: i32,
@@ -22,18 +22,29 @@ pub fn build_background_fit_filter(
     media_position_x: f64,
     media_position_y: f64,
 ) -> String {
-    if !media_fill {
-        return format!(
-            "scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black",
-            w, h, w, h
-        );
-    }
-
     let scale = (media_scale / 100.0).clamp(1.0, 3.0);
     let scaled_w = ((w as f64 * scale).round() as i32).max(w);
     let scaled_h = ((h as f64 * scale).round() as i32).max(h);
     let position_x = ((media_position_x.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
     let position_y = ((media_position_y.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+
+    if !media_fill {
+        return format!(
+            "scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)*{:.6}:(oh-ih)*{:.6}:color=black,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+            scaled_w,
+            scaled_h,
+            scaled_w,
+            scaled_h,
+            position_x,
+            position_y,
+            w,
+            h,
+            w,
+            position_x,
+            h,
+            position_y
+        );
+    }
 
     format!(
         "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
@@ -379,7 +390,7 @@ pub fn preprocess_background_videos(
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v11-media-layout";
+    let preproc_cache_version = "fit-v12-media-layout";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);

@@ -55,7 +55,7 @@
 			{
 				"id": "media-scale",
 				"name": "Zoom",
-				"description": "Zoom the background media after filling the frame",
+				"description": "Zoom the background media",
 				"value": 100,
 				"valueType": "number",
 				"valueMin": 100,

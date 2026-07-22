@@ -912,7 +912,7 @@ const id = {
 		styleDescription: {
 			...baseEn.editor.styleDescription,
 			'media-fill': 'Pangkas video dan gambar latar agar memenuhi seluruh bingkai',
-			'media-scale': 'Perbesar media latar setelah memenuhi bingkai',
+			'media-scale': 'Perbesar media latar',
 			'media-position-x': 'Geser media latar secara horizontal dari posisi tengah',
 			'media-position-y': 'Geser media latar secara vertikal dari posisi tengah',
 			'video-frame-enable': 'Aktifkan atau nonaktifkan bingkai global di sekitar video',

@@ -1727,7 +1727,7 @@ const es = {
 				'Escribir CSS personalizado para los subtítulos. Usar !important si es necesario.',
 			'video-dimension': 'Calidad y orientación del video',
 			'media-fill': 'Recortar los videos e imágenes de fondo para llenar todo el encuadre',
-			'media-scale': 'Ampliar el medio de fondo después de llenar el encuadre',
+			'media-scale': 'Ampliar el medio de fondo',
 			'media-position-x': 'Mover el medio de fondo horizontalmente respecto al centro',
 			'media-position-y': 'Mover el medio de fondo verticalmente respecto al centro',
 			'fade-duration': 'Duración del efecto de fundido entrada/salida en milisegundos',

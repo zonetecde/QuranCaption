@@ -454,6 +454,8 @@ export class Track extends SerializableBase {
 }
 
 export class AssetTrack extends Track {
+	volumePercent: number = $state(100);
+
 	constructor(type: TrackType) {
 		super(type);
 	}

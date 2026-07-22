@@ -125,6 +125,11 @@
 		});
 	});
 
+	$effect(() => {
+		const volumePercent = globalState.getAudioTrack.volumePercent;
+		untrack(() => applyAudioVolume(volumePercent));
+	});
+
 	// Effect principal de synchronisation - se déclenche quand le curseur bouge
 	$effect(() => {
 		if (globalState.currentProject?.projectEditorState.timeline.movePreviewTo) {
@@ -547,7 +552,16 @@
 	}
 
 	// === GESTION AUDIO AVEC HOWLER ===
+	type BoostedMediaElement = HTMLMediaElement & {
+		__quranCaptionAudioBoost?: {
+			context: AudioContext;
+			source: MediaElementAudioSourceNode;
+			gain: GainNode;
+		};
+	};
+
 	let audioHowl: Howl | null = null; // Instance Howler pour la lecture audio
+	let audioBoostContext: AudioContext | null = null;
 	let isPlaying = $state(false); // État de lecture global
 	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
 	let audioSpeed = $state(1); // Vitesse de lecture audio
@@ -711,6 +725,53 @@
 	}
 
 	/**
+	 * Applique le volume de la piste à Howler, y compris au-delà de 100 %.
+	 * @param {number} volumePercent Volume demandé entre 0 et 200.
+	 * @returns {void}
+	 */
+	function applyAudioVolume(volumePercent: number): void {
+		if (!audioHowl) return;
+
+		const volume = Math.min(2, Math.max(0, volumePercent / 100));
+		audioHowl.volume(Math.min(1, volume));
+		const node = (
+			audioHowl as unknown as {
+				_sounds?: Array<{ _node?: GainNode | HTMLMediaElement }>;
+			}
+		)._sounds?.[0]?._node;
+
+		if (node instanceof HTMLMediaElement) {
+			const mediaElement = node as BoostedMediaElement;
+			if (mediaElement.crossOrigin !== 'anonymous') {
+				// Web Audio exige une requête CORS explicite pour les URLs du protocole asset Tauri.
+				mediaElement.crossOrigin = 'anonymous';
+				mediaElement.load();
+			}
+			let boost = mediaElement.__quranCaptionAudioBoost;
+			if (volume > 1 && !boost) {
+				try {
+					const context = new AudioContext();
+					const source = context.createMediaElementSource(mediaElement);
+					const gain = context.createGain();
+					source.connect(gain).connect(context.destination);
+					boost = { context, source, gain };
+					mediaElement.__quranCaptionAudioBoost = boost;
+				} catch (error) {
+					console.warn('Unable to amplify the reused HTML audio element:', error);
+					return;
+				}
+			}
+			if (boost) {
+				boost.gain.gain.value = Math.max(1, volume);
+				audioBoostContext = boost.context;
+			}
+			return;
+		}
+
+		if (node?.gain) node.gain.value = volume;
+	}
+
+	/**
 	 * Configure et initialise l'instance Howler pour l'audio actuel
 	 */
 	function setupAudio() {
@@ -733,6 +794,7 @@
 				html5: !isLinux, // Use Web Audio API only on Linux for better compatibility
 				rate: audioSpeed, // Vitesse de lecture initiale
 				onplay: () => {
+					void audioBoostContext?.resume();
 					// Synchronise la position dans l'audio avec la position du curseur
 					seekAudio(getCurrentAudioTimeToPlay());
 
@@ -794,6 +856,7 @@
 					goNextAudio();
 				}
 			});
+			applyAudioVolume(globalState.getAudioTrack.volumePercent);
 		}
 	}
 

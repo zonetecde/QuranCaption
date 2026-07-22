@@ -1471,6 +1471,7 @@
 				startTime: Math.round(segmentStart), // Le startTime pour l'audio/vidéo de fond
 				duration: Math.round(segmentDuration),
 				audios: audios,
+				audioVolume: globalState.getAudioTrack.volumePercent,
 				videos: videos,
 				blur: blur,
 				videoFadeInEnabled: false,
@@ -1907,6 +1908,7 @@
 				startTime: exportStart,
 				duration: Math.round(duration),
 				audios: audios,
+				audioVolume: globalState.getAudioTrack.volumePercent,
 				videos: videos,
 				blur: blur,
 				videoFadeInEnabled: exportFadeSettings.videoFadeInEnabled,

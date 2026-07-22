@@ -15,6 +15,8 @@
 	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AssetTrack } from '$lib/classes/Track.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
 		track = $bindable(),
@@ -204,6 +206,15 @@
 		event.stopPropagation();
 		onMoveDown();
 	}
+
+	/**
+	 * Met à jour le volume de la piste audio depuis le slider.
+	 * @param {Event} event Événement de saisie du slider.
+	 * @returns {void}
+	 */
+	function setAudioVolume(event: Event): void {
+		(track as AssetTrack).volumePercent = Number((event.currentTarget as HTMLInputElement).value);
+	}
 </script>
 
 <div
@@ -247,16 +258,32 @@
 					<input
 						type="checkbox"
 						bind:checked={globalState.settings!.persistentUiState.showWaveforms}
-						class="cursor-pointer"
-						title="Show waveforms"
+						class="cursor-pointer scale-75"
+						title={$LL.editor.showWaveformsLabel()}
 						id="show-waveforms-checkbox"
 					/>
 					<label
 						class="text-xs text-[var(--text-secondary)] cursor-pointer pt-1"
 						for="show-waveforms-checkbox"
 					>
-						<span class="material-icons">graphic_eq</span>
+						<span class="material-icons text-sm! -ml-1">graphic_eq</span>
 					</label>
+					<input
+						type="range"
+						min="0"
+						max="200"
+						step="1"
+						value={(track as AssetTrack).volumePercent}
+						class="w-16 cursor-pointer"
+						title={`${$LL.editor.volumeLabel()} ${(track as AssetTrack).volumePercent}%`}
+						aria-label={$LL.editor.volumeLabel()}
+						onfocus={() => ProjectHistoryManager.begin('set audio volume')}
+						oninput={setAudioVolume}
+						onblur={() => ProjectHistoryManager.commit()}
+					/>
+					<span class="w-8 text-right text-[10px] text-[var(--text-secondary)]">
+						{(track as AssetTrack).volumePercent}%
+					</span>
 				</section>
 			</div>
 		{/if}

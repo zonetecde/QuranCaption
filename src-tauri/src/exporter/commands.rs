@@ -38,6 +38,7 @@ use super::types::{
 /// * `start_time` - Début de la plage d'export (ms).
 /// * `duration` - Durée de l'export (ms). `None` = toute la timeline.
 /// * `audios` - Liste des fichiers audio à superposer.
+/// * `audio_volume` - Volume audio en pourcentage, entre 0 et 200.
 /// * `videos` - Liste des vidéos de fond.
 /// * `blur` - Intensité du flou de fond.
 /// * `blank_timings` - Timestamps sans sous-titres (fond uniquement).
@@ -51,6 +52,7 @@ pub async fn export_video(
     start_time: i32,
     duration: Option<i32>,
     audios: Option<Vec<String>>,
+    audio_volume: Option<f64>,
     videos: Option<Vec<VideoInput>>,
     blur: Option<f64>,
     video_fade_in_enabled: Option<bool>,
@@ -267,6 +269,7 @@ pub async fn export_video(
     }
     let app_handle = app.clone();
     let export_id_clone = export_id.clone();
+    let audio_gain = (audio_volume.unwrap_or(100.0) / 100.0).clamp(0.0, 2.0);
 
     // Lancement du rendu dans un thread bloquant (tokio::task::spawn_blocking)
     tokio::task::spawn_blocking(move || {
@@ -280,6 +283,7 @@ pub async fn export_video(
             fade_ms,
             start_time,
             &audios_vec,
+            audio_gain,
             &videos_vec,
             true, // prefer_hw
             duration,
@@ -1115,6 +1119,7 @@ fn run_fast_export(
     fade_duration_ms: i32,
     start_time_ms: i32,
     audio_paths: &[String],
+    audio_gain: f64,
     video_inputs: &[VideoInput],
     prefer_hw: bool,
     duration_ms: Option<i32>,
@@ -1401,7 +1406,17 @@ fn run_fast_export(
 
         if have_audio {
             cmd.extend_from_slice(&["-map".to_string(), format!("{}:a", audio_start_idx)]);
-            if can_stream_copy_simple_audio(&audio_paths[0], out_path) {
+            if (audio_gain - 1.0).abs() > 1e-6 {
+                println!("[fast_export] audio direct: volume={:.3}", audio_gain);
+                cmd.extend_from_slice(&[
+                    "-af".to_string(),
+                    format!("volume={:.6}", audio_gain),
+                    "-c:a".to_string(),
+                    "aac".to_string(),
+                    "-b:a".to_string(),
+                    "320k".to_string(),
+                ]);
+            } else if can_stream_copy_simple_audio(&audio_paths[0], out_path) {
                 println!("[fast_export] audio direct: copie sans reencodage");
                 cmd.extend_from_slice(&["-c:a".to_string(), "copy".to_string()]);
             } else {
@@ -1620,6 +1635,13 @@ fn run_fast_export(
                 current_audio_label, fade_out_start, export_fade_s
             ));
             current_audio_label = "afadeout".to_string();
+        }
+        if (audio_gain - 1.0).abs() > 1e-6 {
+            filter_lines.push(format!(
+                "[{}]volume={:.6}[avolume]",
+                current_audio_label, audio_gain
+            ));
+            current_audio_label = "avolume".to_string();
         }
         mapped_audio_label = Some(current_audio_label);
     }

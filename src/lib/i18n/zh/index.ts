@@ -611,6 +611,12 @@ const zh = {
 		zoomOut: '缩小',
 		zoomIn: '放大',
 		dismissHints: '忽略时间轴滚轮提示',
+		antiCollisionNotice: '字幕防碰撞已开启',
+		antiCollisionNoticeHelpEnabled:
+			'已开启。此样式会自动移动字幕，可能影响您想要的精确布局。您可以在左侧面板中将其关闭。',
+		antiCollisionNoticeHelpAlternative: '另一种避免字幕重叠的方法是使用以下样式：',
+		antiCollisionNoticeHelpAnd: '和',
+		antiCollisionNoticeHelpTargets: '，并同时应用于阿拉伯语和翻译字幕。',
 		silentSegment: '静音段落',
 		wordStyleColor: '词汇样式颜色',
 		uploadProgress: '上传进度',

@@ -276,6 +276,13 @@ const editor = {
 	zoomOut: 'Zoom out',
 	zoomIn: 'Zoom in',
 	dismissHints: 'Dismiss timeline wheel hints',
+	antiCollisionNotice: 'Subtitle anti-collision is on',
+	antiCollisionNoticeHelpEnabled:
+		'is enabled. It can automatically move subtitles and interfere with the exact layout you want. You can disable it in the left panel.',
+	antiCollisionNoticeHelpAlternative:
+		'Another solution to prevent subtitle overlap is to use the styles',
+	antiCollisionNoticeHelpAnd: 'and',
+	antiCollisionNoticeHelpTargets: 'for both Arabic and translations.',
 	silentSegment: 'Silent segment',
 	wordStyleColor: 'Word style color',
 	uploadProgress: 'Upload progress',

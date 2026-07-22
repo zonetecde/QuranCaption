@@ -657,6 +657,13 @@ const fr = {
 		zoomOut: 'Zoom arrière',
 		zoomIn: 'Zoom avant',
 		dismissHints: 'Ignorer les conseils de la molette de timeline',
+		antiCollisionNotice: 'L’anti-collision des sous-titres est activée',
+		antiCollisionNoticeHelpEnabled:
+			'est activé. Il peut déplacer automatiquement les sous-titres et perturber la mise en page précise souhaitée. Vous pouvez le désactiver dans le panneau de gauche.',
+		antiCollisionNoticeHelpAlternative:
+			'Une autre solution pour éviter le chevauchement des sous-titres consiste à utiliser les styles',
+		antiCollisionNoticeHelpAnd: 'et',
+		antiCollisionNoticeHelpTargets: 'pour l’arabe et les traductions.',
 		silentSegment: 'Segment silencieux',
 		wordStyleColor: 'Couleur de style de mot',
 		uploadProgress: 'Progression du téléversement',

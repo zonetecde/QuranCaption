@@ -659,6 +659,13 @@ const de = {
 		zoomOut: 'Herauszoomen',
 		zoomIn: 'Hereinzoomen',
 		dismissHints: 'Timeline-Mausrad-Hinweise ausblenden',
+		antiCollisionNotice: 'Untertitel-Kollisionsvermeidung ist aktiviert',
+		antiCollisionNoticeHelpEnabled:
+			'ist aktiviert. Dieser Stil kann Untertitel automatisch verschieben und das gewünschte genaue Layout beeinträchtigen. Sie können ihn im linken Bereich deaktivieren.',
+		antiCollisionNoticeHelpAlternative:
+			'Eine weitere Lösung zur Vermeidung von Untertitelüberlappungen ist die Verwendung der Stile',
+		antiCollisionNoticeHelpAnd: 'und',
+		antiCollisionNoticeHelpTargets: 'für Arabisch und Übersetzungen.',
 		silentSegment: 'Stilles Segment',
 		wordStyleColor: 'Wortstil-Farbe',
 		uploadProgress: 'Upload-Fortschritt',

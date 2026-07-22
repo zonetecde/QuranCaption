@@ -653,6 +653,13 @@ const es = {
 		zoomOut: 'Alejar',
 		zoomIn: 'Acercar',
 		dismissHints: 'Descartar consejos de la rueda de línea de tiempo',
+		antiCollisionNotice: 'La anti-colisión de subtítulos está activada',
+		antiCollisionNoticeHelpEnabled:
+			'está activado. Puede mover automáticamente los subtítulos e interferir con el diseño exacto que desea. Puede desactivarlo en el panel izquierdo.',
+		antiCollisionNoticeHelpAlternative:
+			'Otra solución para evitar la superposición de subtítulos es utilizar los estilos',
+		antiCollisionNoticeHelpAnd: 'y',
+		antiCollisionNoticeHelpTargets: 'tanto para el árabe como para las traducciones.',
 		silentSegment: 'Segmento silencioso',
 		wordStyleColor: 'Color de estilo de palabra',
 		uploadProgress: 'Progreso de subida',

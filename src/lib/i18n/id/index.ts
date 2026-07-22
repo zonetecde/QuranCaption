@@ -690,6 +690,13 @@ const id = {
 		...baseEn.editor,
 		...({
 			searchFonts: 'Cari font...',
+			antiCollisionNotice: 'Anti-tabrakan subtitle aktif',
+			antiCollisionNoticeHelpEnabled:
+				'sedang aktif. Gaya ini dapat memindahkan subtitle secara otomatis dan mengganggu tata letak persis yang Anda inginkan. Anda dapat menonaktifkannya di panel kiri.',
+			antiCollisionNoticeHelpAlternative:
+				'Solusi lain untuk mencegah subtitle bertumpuk adalah menggunakan gaya',
+			antiCollisionNoticeHelpAnd: 'dan',
+			antiCollisionNoticeHelpTargets: 'untuk bahasa Arab dan terjemahan.',
 			noFontsFound: 'Font tidak ditemukan',
 			importFontFromFile: 'Impor dari file',
 			fontFiles: 'File font',

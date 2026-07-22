@@ -1793,6 +1793,11 @@ const es = {
 		selectTimeRange: 'Seleccione el rango temporal de su video a exportar :',
 		startTime: 'Inicio',
 		endTime: 'Fin',
+		addSkip: 'Añadir un corte',
+		skip: 'Corte',
+		setSkipStartToCursor: 'Inicio en el cursor',
+		setSkipEndToCursor: 'Fin en el cursor',
+		removeSkip: 'Eliminar corte',
 		exportDuration: 'Duración de exportación :',
 		exportVerseRange: 'Rango de versículos a exportar :',
 		videoQualityOrientation: 'Calidad y orientación del video',
@@ -1828,6 +1833,8 @@ const es = {
 		recitationMinimumSilenceDescription: 'Las pausas naturales más cortas se conservan.',
 		noRecitationInExportRange:
 			'No se encontró ninguna recitación del Corán en el intervalo de exportación seleccionado.',
+		noContentAfterSkips:
+			'Los rangos omitidos cubren toda la exportación. Conserva al menos una sección.',
 		background: 'Fondo',
 		exportWithoutBackground: 'Exportar sin fondo',
 		rendersOnlyOverlay: 'Renderiza solo la superposición con transparencia (alfa).',

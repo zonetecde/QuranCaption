@@ -107,6 +107,38 @@ export function mapTimeToExportRanges(timeMs: number, ranges: TimeRange[]): numb
 	return elapsedMs;
 }
 
+/**
+ * Retire des plages temporelles d'une liste de segments conservés.
+ * @param {TimeRange[]} ranges Plages sources à conserver.
+ * @param {TimeRange[]} excludedRanges Plages à retirer, éventuellement superposées.
+ * @returns {TimeRange[]} Plages restantes, triées dans l'ordre de lecture.
+ */
+export function excludeTimeRanges(ranges: TimeRange[], excludedRanges: TimeRange[]): TimeRange[] {
+	let remainingRanges = ranges
+		.filter((range) => range.end > range.start)
+		.sort((a, b) => a.start - b.start)
+		.map((range) => ({ ...range }));
+
+	for (const excluded of excludedRanges
+		.filter((range) => range.end > range.start)
+		.sort((a, b) => a.start - b.start)) {
+		remainingRanges = remainingRanges.flatMap((range) => {
+			if (excluded.end <= range.start || excluded.start >= range.end) return [range];
+
+			const parts: TimeRange[] = [];
+			if (excluded.start > range.start) {
+				parts.push({ start: range.start, end: Math.min(excluded.start, range.end) });
+			}
+			if (excluded.end < range.end) {
+				parts.push({ start: Math.max(excluded.end, range.start), end: range.end });
+			}
+			return parts;
+		});
+	}
+
+	return remainingRanges;
+}
+
 function normalizeBlur(value: number): number {
 	if (!Number.isFinite(value)) return 0;
 	return value;

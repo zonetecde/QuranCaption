@@ -1045,6 +1045,21 @@
 						style="left: {(globalState.getExportState.videoEndTime / 1000) * timelineState().zoom +
 							180}px;"
 					></div>
+					{#each globalState.getExportState.skipRanges ?? [] as range}
+						<div
+							class="skip-range-overlay"
+							style="left: {(range.startTime / 1000) * timelineState().zoom + 180}px;
+								width: {(Math.max(0, range.endTime - range.startTime) / 1000) * timelineState().zoom}px;"
+						></div>
+						<div
+							class="skip-range-border skip-start"
+							style="left: {(range.startTime / 1000) * timelineState().zoom + 180}px;"
+						></div>
+						<div
+							class="skip-range-border skip-end"
+							style="left: {(range.endTime / 1000) * timelineState().zoom + 180}px;"
+						></div>
+					{/each}
 				{/if}
 			</div>
 		</div>
@@ -1331,5 +1346,43 @@
 		background: #22c55e;
 		clip-path: polygon(0 0, 100% 0, 50% 100%);
 		box-shadow: 0 2px 6px rgba(34, 197, 94, 0.4);
+	}
+
+	.skip-range-overlay {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		background: rgba(168, 85, 247, 0.28);
+		border: 1px solid rgba(168, 85, 247, 0.55);
+		border-radius: 4px;
+		z-index: 1;
+		pointer-events: none;
+	}
+
+	.skip-range-border {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 3px;
+		background: #a855f7;
+		z-index: 1;
+		pointer-events: none;
+		box-shadow: 0 0 8px rgba(168, 85, 247, 0.65);
+	}
+
+	.skip-range-border.skip-end {
+		margin-left: -3px;
+	}
+
+	.skip-range-border::after {
+		content: '';
+		position: absolute;
+		top: -6px;
+		left: -3px;
+		width: 9px;
+		height: 12px;
+		background: #a855f7;
+		clip-path: polygon(0 0, 100% 0, 50% 100%);
+		box-shadow: 0 2px 6px rgba(168, 85, 247, 0.5);
 	}
 </style>

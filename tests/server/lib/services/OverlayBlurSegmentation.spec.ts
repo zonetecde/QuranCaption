@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildBlurSegmentsForRange,
+	excludeTimeRanges,
 	getRecitationRangesForExport,
 	mapTimeToExportRanges,
 	splitRangeByBoundaries
@@ -41,6 +42,27 @@ describe('buildBlurSegmentsForRange', () => {
 			time < 50 ? Number.NaN : Number.POSITIVE_INFINITY
 		);
 		expect(result).toEqual([{ start: 0, end: 100, blur: 0 }]);
+	});
+});
+
+describe('excludeTimeRanges', () => {
+	it('removes multiple overlapping ranges from retained export segments', () => {
+		expect(
+			excludeTimeRanges(
+				[
+					{ start: 1000, end: 5000 },
+					{ start: 7000, end: 9000 }
+				],
+				[
+					{ start: 0, end: 1500 },
+					{ start: 3000, end: 4000 },
+					{ start: 3500, end: 7500 }
+				]
+			)
+		).toEqual([
+			{ start: 1500, end: 3000 },
+			{ start: 7500, end: 9000 }
+		]);
 	});
 });
 

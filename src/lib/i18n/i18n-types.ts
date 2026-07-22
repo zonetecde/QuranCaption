@@ -5519,6 +5519,26 @@ type RootTranslation = {
 		 */
 		endTime: string;
 		/**
+		 * A​d​d​ ​s​k​i​p​ ​r​a​n​g​e
+		 */
+		addSkip: string;
+		/**
+		 * S​k​i​p
+		 */
+		skip: string;
+		/**
+		 * S​e​t​ ​s​t​a​r​t​ ​t​o​ ​c​u​r​s​o​r
+		 */
+		setSkipStartToCursor: string;
+		/**
+		 * S​e​t​ ​e​n​d​ ​t​o​ ​c​u​r​s​o​r
+		 */
+		setSkipEndToCursor: string;
+		/**
+		 * R​e​m​o​v​e​ ​s​k​i​p
+		 */
+		removeSkip: string;
+		/**
 		 * E​x​p​o​r​t​ ​D​u​r​a​t​i​o​n​:
 		 */
 		exportDuration: string;
@@ -5630,6 +5650,10 @@ type RootTranslation = {
 		 * N​o​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n​ ​w​a​s​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​e​x​p​o​r​t​ ​r​a​n​g​e​.
 		 */
 		noRecitationInExportRange: string;
+		/**
+		 * T​h​e​ ​s​k​i​p​ ​r​a​n​g​e​s​ ​c​o​v​e​r​ ​t​h​e​ ​e​n​t​i​r​e​ ​e​x​p​o​r​t​.​ ​K​e​e​p​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​e​c​t​i​o​n​.
+		 */
+		noContentAfterSkips: string;
 		/**
 		 * B​a​c​k​g​r​o​u​n​d
 		 */
@@ -15655,6 +15679,26 @@ export type TranslationFunctions = {
 		 */
 		endTime: () => LocalizedString;
 		/**
+		 * Add skip range
+		 */
+		addSkip: () => LocalizedString;
+		/**
+		 * Skip
+		 */
+		skip: () => LocalizedString;
+		/**
+		 * Set start to cursor
+		 */
+		setSkipStartToCursor: () => LocalizedString;
+		/**
+		 * Set end to cursor
+		 */
+		setSkipEndToCursor: () => LocalizedString;
+		/**
+		 * Remove skip
+		 */
+		removeSkip: () => LocalizedString;
+		/**
 		 * Export Duration:
 		 */
 		exportDuration: () => LocalizedString;
@@ -15766,6 +15810,10 @@ export type TranslationFunctions = {
 		 * No Quran recitation was found in the selected export range.
 		 */
 		noRecitationInExportRange: () => LocalizedString;
+		/**
+		 * The skip ranges cover the entire export. Keep at least one section.
+		 */
+		noContentAfterSkips: () => LocalizedString;
 		/**
 		 * Background
 		 */

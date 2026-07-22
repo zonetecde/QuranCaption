@@ -1076,6 +1076,11 @@ const id = {
 		selectTimeRange: 'Pilih rentang waktu video yang ingin di-export:',
 		startTime: 'Waktu mulai',
 		endTime: 'Waktu selesai',
+		addSkip: 'Tambah potongan',
+		skip: 'Potongan',
+		setSkipStartToCursor: 'Awal di kursor',
+		setSkipEndToCursor: 'Akhir di kursor',
+		removeSkip: 'Hapus potongan',
 		exportDuration: 'Durasi export:',
 		exportVerseRange: 'Rentang ayat export:',
 		videoQualityOrientation: 'Kualitas & Orientasi Video',
@@ -1109,6 +1114,8 @@ const id = {
 		recitationMinimumSilenceDescription: 'Jeda alami yang lebih pendek tetap dipertahankan.',
 		noRecitationInExportRange:
 			'Tidak ada tilawah Al-Qur\u2019an yang ditemukan dalam rentang ekspor yang dipilih.',
+		noContentAfterSkips:
+			'Rentang yang dilewati mencakup seluruh ekspor. Sisakan setidaknya satu bagian.',
 		background: 'Latar belakang',
 		exportWithoutBackground: 'Ekspor tanpa latar belakang',
 		rendersOnlyOverlay: 'Hanya merender overlay dengan transparansi (alpha).',

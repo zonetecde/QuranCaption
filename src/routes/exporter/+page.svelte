@@ -21,6 +21,7 @@
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
 	import {
 		buildBlurSegmentsForRange,
+		excludeTimeRanges,
 		getRecitationRangesForExport,
 		type BlurSegment,
 		type TimeRange
@@ -715,15 +716,6 @@
 
 		const exportStart = Math.round(exportData.videoStartTime);
 		const exportEnd = Math.round(exportData.videoEndTime);
-		const totalDuration = exportEnd - exportStart;
-
-		console.log(`Export duration: ${totalDuration}ms (${totalDuration / 1000 / 60} minutes)`);
-		await emitExportLog('info', 'Export duration computed', {
-			start: exportStart,
-			end: exportEnd,
-			duration: totalDuration
-		});
-
 		const recitationRanges = globalState.getExportState.exportOnlyRecitation
 			? getRecitationRangesForExport(
 					globalState.getSubtitleTrack.clips,
@@ -736,14 +728,40 @@
 		if (recitationRanges.length === 0) {
 			throw new Error(get(LL).export.noRecitationInExportRange());
 		}
+		const exportRanges = excludeTimeRanges(
+			recitationRanges,
+			(globalState.getExportState.skipRanges ?? []).map((range) => ({
+				start: range.startTime,
+				end: range.endTime
+			}))
+		);
+		if (exportRanges.length === 0) {
+			const exportCopy = get(LL).export as unknown as { noContentAfterSkips: () => string };
+			throw new Error(exportCopy.noContentAfterSkips());
+		}
+		const totalDuration = exportRanges.reduce(
+			(duration, range) => duration + range.end - range.start,
+			0
+		);
 
-		const blurSegments = recitationRanges.flatMap((range) =>
+		console.log(`Export duration: ${totalDuration}ms (${totalDuration / 1000 / 60} minutes)`);
+		await emitExportLog('info', 'Export duration computed', {
+			start: exportStart,
+			end: exportEnd,
+			duration: totalDuration
+		});
+
+		const blurSegments = exportRanges.flatMap((range) =>
 			getBlurSegmentsForRange(range.start, range.end)
 		);
 		await emitExportLog('info', 'Blur segments computed', {
 			segments: blurSegments.length
 		});
-		if (globalState.getExportState.exportOnlyRecitation || blurSegments.length > 1) {
+		const hasCuts =
+			exportRanges.length !== 1 ||
+			exportRanges[0].start !== exportStart ||
+			exportRanges[0].end !== exportEnd;
+		if (hasCuts || blurSegments.length > 1) {
 			await handleSegmentedExport(blurSegments, totalDuration);
 			return;
 		}

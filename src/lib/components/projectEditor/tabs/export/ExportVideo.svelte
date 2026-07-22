@@ -336,6 +336,12 @@
 							class="input w-full"
 							placeholder={globalState.currentProject?.detail.generateExportFileName()}
 							bind:value={globalState.getExportState.customFileName}
+							onfocus={() => {
+								if (!globalState.getExportState.customFileName.trim()) {
+									globalState.getExportState.customFileName =
+										globalState.currentProject?.detail.generateExportFileName() ?? '';
+								}
+							}}
 						/>
 						<p class="text-thirdly text-xs italic">
 							{$LL.export.extensionAddedAutomatically()}

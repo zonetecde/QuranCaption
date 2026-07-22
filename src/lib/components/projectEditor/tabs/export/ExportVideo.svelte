@@ -10,6 +10,7 @@
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
 
 	type VideoCodec = 'h264' | 'h265';
 
@@ -17,6 +18,60 @@
 	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
 
 	let showAdvancedSettings = $state(false);
+	let skipCopy = $derived(
+		$LL.export as unknown as {
+			addSkip: () => string;
+			skip: () => string;
+			setSkipStartToCursor: () => string;
+			setSkipEndToCursor: () => string;
+			removeSkip: () => string;
+		}
+	);
+
+	/**
+	 * Ajoute une zone ignorée d'une seconde à la position du curseur.
+	 * @returns {void}
+	 */
+	function addSkipRange(): void {
+		const startTime = Math.max(0, Math.round(globalState.getTimelineState.cursorPosition));
+		ProjectHistoryManager.track('add export skip range', () => {
+			globalState.getExportState.skipRanges.push({ startTime, endTime: startTime + 1000 });
+		});
+	}
+
+	/**
+	 * Place une borne de zone ignorée sur le curseur de la timeline.
+	 * @param {ExportSkipRange} range Zone ignorée à modifier.
+	 * @param {'start' | 'end'} boundary Borne à déplacer.
+	 * @returns {void}
+	 */
+	function setSkipBoundary(range: ExportSkipRange, boundary: 'start' | 'end'): void {
+		const cursorTime = Math.max(0, Math.round(globalState.getTimelineState.cursorPosition));
+		ProjectHistoryManager.track(`set export skip ${boundary}`, () => {
+			if (boundary === 'start') {
+				range.startTime = cursorTime;
+				if (range.startTime >= range.endTime) range.endTime = range.startTime + 1000;
+				return;
+			}
+
+			range.endTime = cursorTime;
+			if (range.endTime <= range.startTime) {
+				range.startTime = Math.max(0, range.endTime - 1000);
+				if (range.endTime === range.startTime) range.endTime += 1000;
+			}
+		});
+	}
+
+	/**
+	 * Supprime une zone ignorée de l'export.
+	 * @param {number} index Index de la zone à supprimer.
+	 * @returns {void}
+	 */
+	function removeSkipRange(index: number): void {
+		ProjectHistoryManager.track('remove export skip range', () => {
+			globalState.getExportState.skipRanges.splice(index, 1);
+		});
+	}
 
 	/**
 	 * Normalise et sauvegarde le nombre de WebViews utilisees pour capturer les frames.
@@ -131,6 +186,54 @@
 					label={$LL.export.endTime()}
 					bind:value={globalState.getExportState.videoEndTime}
 				/>
+			</div>
+
+			<div class="mt-3 flex flex-col items-center justify-between">
+				<button
+					type="button"
+					class="w-full inline-flex items-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
+					onclick={addSkipRange}
+				>
+					<span class="material-icons text-[17px]!">add</span>
+					{skipCopy.addSkip()}
+				</button>
+
+				{#if (globalState.getExportState.skipRanges ?? []).length > 0}
+					<div class="mt-3 space-y-2 w-full">
+						{#each globalState.getExportState.skipRanges ?? [] as range, index}
+							<div class="rounded-md border border-violet-500/35 bg-violet-500/10 p-2.5">
+								<div class="mb-2 flex items-center justify-between gap-2">
+									<span class="text-xs font-medium text-violet-300">
+										{skipCopy.skip()}
+										{index + 1} · {formatDuration(range.startTime)}–{formatDuration(range.endTime)}
+									</span>
+									<button
+										type="button"
+										class="material-icons rounded p-0.5 text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
+										title={skipCopy.removeSkip()}
+										onclick={() => removeSkipRange(index)}>close</button
+									>
+								</div>
+								<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+									<button
+										type="button"
+										class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+										onclick={() => setSkipBoundary(range, 'start')}
+									>
+										{skipCopy.setSkipStartToCursor()}
+									</button>
+									<button
+										type="button"
+										class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+										onclick={() => setSkipBoundary(range, 'end')}
+									>
+										{skipCopy.setSkipEndToCursor()}
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</div>
 
 			<!-- Export summary -->

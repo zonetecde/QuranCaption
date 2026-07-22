@@ -389,6 +389,13 @@ export class TranslationsEditorState extends SerializableBase {
 	}
 }
 
+export const DEFAULT_RECITATION_CUT_MARGIN_MS = 350;
+export const DEFAULT_RECITATION_MINIMUM_SILENCE_MS = 3000;
+
+export interface ExportSkipRange {
+	startTime: number;
+	endTime: number;
+}
 export class ExportState extends SerializableBase {
 	// Indique le type d'export choisie
 	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' = $state('video');
@@ -425,6 +432,7 @@ export class ExportState extends SerializableBase {
 	// Indique la partie de la vidéo à exporter
 	videoStartTime: number = $state(0);
 	videoEndTime: number = $state(0);
+	skipRanges: ExportSkipRange[] = $state([]);
 	fps: number = $state(30);
 	exportOnlyRecitation: boolean = $state(false);
 	recitationCutMarginMs: number = $state(350);

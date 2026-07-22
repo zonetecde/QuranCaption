@@ -332,6 +332,7 @@ export async function reconcileBatchTranslations(batch: Batch): Promise<boolean>
 	for (const item of batch.projects) {
 		const states = Object.values(item.translations).filter(
 			(state) =>
+				state.status === 'ready_to_fetch' ||
 				state.status === 'needs_review' ||
 				state.review.total === 0 ||
 				state.error === 'TRANSLATION_INTERRUPTED'
@@ -358,6 +359,11 @@ export async function reconcileBatchTranslations(batch: Batch): Promise<boolean>
 					state.progress = 100;
 					state.addedAt ??= new Date();
 					state.completedAt = review.pending === 0 ? new Date() : null;
+					changed = true;
+				}
+				if (state.status === 'ready_to_fetch' && review.pending === 0) {
+					state.status = 'auto_verified';
+					state.completedAt = new Date();
 					changed = true;
 				}
 				if (state.status === 'needs_review' && review.pending === 0) {

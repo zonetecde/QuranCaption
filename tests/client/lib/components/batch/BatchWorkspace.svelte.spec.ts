@@ -645,6 +645,39 @@ describe('BatchWorkspace media import', () => {
 		);
 	});
 
+	test('selects every project when the active translation edition has no remaining action', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const projects = [
+			createProject(1, 'completed', { kind: 'url', value: 'https://example.com/1' }),
+			createProject(2, 'completed', { kind: 'url', value: 'https://example.com/2' })
+		];
+		for (const project of projects) {
+			project.segmentation.status = 'auto_verified';
+			project.translations.edition = {
+				...createDefaultBatchTranslationState({
+					editionName: 'edition',
+					editionAuthor: 'Author',
+					editionLanguage: 'English'
+				}),
+				status: 'auto_verified'
+			};
+		}
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', projects, 450));
+		globalState.currentBatchId = 450;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
+		);
+
+		const rowCheckboxes = component.container.querySelectorAll<HTMLInputElement>(
+			'tbody input[type="checkbox"]'
+		);
+		expect(Array.from(rowCheckboxes).every((checkbox) => checkbox.checked)).toBe(true);
+		expect(component.container.textContent).toContain('2 selected');
+	});
+
 	test('reloads final translation states immediately after fetch completion', async () => {
 		loadLocale('en');
 		setLocale('en');

@@ -816,14 +816,12 @@
 		activeTranslationEditionName = editionName;
 		globalState.shared.batchTranslationEditionName = editionName;
 		if (updateSelection && allSegmentationsVerified) {
-			selectedIds = new Set(
-				projects
-					.filter((project) => {
-						const state = project.translations[editionName];
-						return !state || ['failed', 'ready_to_fetch', 'needs_review'].includes(state.status);
-					})
-					.map((project) => project.projectId)
-			);
+			const actionableProjects = projects.filter((project) => {
+				const state = project.translations[editionName];
+				return !state || ['failed', 'ready_to_fetch', 'needs_review'].includes(state.status);
+			});
+			const defaults = actionableProjects.length > 0 ? actionableProjects : projects;
+			selectedIds = new Set(defaults.map((project) => project.projectId));
 		}
 	}
 
@@ -911,14 +909,6 @@
 			await service.addEditions(batch, addEligibleProjects, editions, skipExistingTranslations);
 			batch = await BatchService.load(batch.id);
 			selectActiveTranslationEdition(editions.at(-1)!.name);
-			selectedIds = new Set(
-				batch.projects
-					.filter((item) => {
-						const state = item.translations[editions.at(-1)!.name];
-						return !state || state.status === 'failed' || state.status === 'ready_to_fetch';
-					})
-					.map((item) => item.projectId)
-			);
 		} catch (translationError) {
 			queueError = String(translationError);
 		} finally {
@@ -968,11 +958,7 @@
 		try {
 			await service.fetchEdition(batch, items, editionName);
 			batch = await BatchService.load(batch.id);
-			selectedIds = new Set(
-				batch.projects
-					.filter((item) => item.translations[editionName]?.status === 'needs_review')
-					.map((item) => item.projectId)
-			);
+			selectActiveTranslationEdition(editionName);
 		} catch (translationError) {
 			queueError = String(translationError);
 		} finally {
@@ -1333,21 +1319,19 @@
 			} else if (editionNames.length > 0) {
 				selectActiveTranslationEdition(editionNames[0]);
 			}
-			const defaults = batch.projects.filter((project) => {
-				if (batch!.projects.every(isBatchProjectSegmentationVerified)) {
-					if (!activeTranslationEditionName) return true;
-					const state = project.translations[activeTranslationEditionName];
-					return !state || ['failed', 'ready_to_fetch', 'needs_review'].includes(state.status);
-				}
-				return (
-					project.media.status === 'pending' ||
-					project.media.status === 'failed' ||
-					(project.media.status === 'completed' &&
-						(project.segmentation.status === 'not_started' ||
-							project.segmentation.status === 'failed'))
+			if (!batch.projects.every(isBatchProjectSegmentationVerified)) {
+				const defaults = batch.projects.filter(
+					(project) =>
+						project.media.status === 'pending' ||
+						project.media.status === 'failed' ||
+						(project.media.status === 'completed' &&
+							(project.segmentation.status === 'not_started' ||
+								project.segmentation.status === 'failed'))
 				);
-			});
-			selectedIds = new Set(defaults.map((project) => project.projectId));
+				selectedIds = new Set(defaults.map((project) => project.projectId));
+			} else if (!activeTranslationEditionName) {
+				selectedIds = new Set(batch.projects.map((project) => project.projectId));
+			}
 			revision++;
 		} catch (loadError) {
 			error = get(LL).batch.loadFailed({ error: String(loadError) });

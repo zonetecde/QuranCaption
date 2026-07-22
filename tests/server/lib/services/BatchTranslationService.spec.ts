@@ -29,6 +29,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import {
 	BATCH_TRANSLATION_CONCURRENCY,
 	BatchTranslationService,
+	reconcileBatchTranslations,
 	type BatchTranslationQueueProgress
 } from '$lib/services/BatchTranslationService';
 
@@ -250,6 +251,41 @@ describe('BatchTranslationService', () => {
 
 		expect(items[0].translations.edition.status).toBe('auto_verified');
 		expect(items[1].translations.edition.status).toBe('needs_review');
+	});
+
+	it('reconciles a stale ready-to-fetch state when every translation is complete', async () => {
+		const item = createItem(1);
+		item.translations.edition = {
+			editionName: edition.name,
+			editionAuthor: edition.author,
+			editionLanguage: edition.language,
+			status: 'ready_to_fetch',
+			progress: 100,
+			error: null,
+			review: { total: 5, complete: 3, pending: 2, fetched: 3, toReview: 2, errors: 0 },
+			addedAt: new Date(),
+			fetchedAt: null,
+			completedAt: null
+		};
+		const project = createProject(1, async () => undefined);
+		project.content.projectTranslation.addedTranslationEditions.push(edition);
+		projectMocks.load.mockResolvedValue(project);
+		translationMocks.getCounts.mockReturnValue({
+			total: 5,
+			complete: 5,
+			pending: 0,
+			fetched: 3,
+			toReview: 0,
+			errors: 0
+		});
+		const batch = new Batch('Batch', [item], 10);
+
+		expect(await reconcileBatchTranslations(batch)).toBe(true);
+
+		expect(item.translations.edition.status).toBe('auto_verified');
+		expect(item.translations.edition.review.pending).toBe(0);
+		expect(item.translations.edition.completedAt).toBeInstanceOf(Date);
+		expect(batchMocks.save).toHaveBeenCalledWith(batch);
 	});
 
 	it('refills free fetch workers immediately and reports their aggregate progress', async () => {

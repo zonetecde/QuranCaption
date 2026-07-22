@@ -187,7 +187,12 @@
 					"styleIds": [
 						"background-overlay-mode",
 						"background-overlay-fade-intensity",
-						"background-overlay-fade-coverage"
+						"background-overlay-fade-coverage",
+						"video-frame-enable",
+						"video-frame-color",
+						"video-frame-vertical-size",
+						"video-frame-horizontal-size",
+						"video-frame-radius"
 					]
 				},
 				{ "id": "advanced", "styleIds": ["overlay-custom-css"] }
@@ -276,6 +281,65 @@
 				"css": "--overlay-blur: {value}px;",
 				"tailwind": false,
 				"icon": "blur_on"
+			},
+			{
+				"id": "video-frame-enable",
+				"name": "Video Frame",
+				"description": "Enable or disable a global frame around the video",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "crop_16_9"
+			},
+			{
+				"id": "video-frame-vertical-size",
+				"name": "Top & Bottom Thickness",
+				"description": "Set the top and bottom frame thickness as a percentage",
+				"value": 8,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 45,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "height"
+			},
+			{
+				"id": "video-frame-color",
+				"name": "Frame Color",
+				"description": "Choose the color of the global video frame",
+				"value": "#000000",
+				"valueType": "color",
+				"css": "",
+				"tailwind": false,
+				"icon": "palette"
+			},
+			{
+				"id": "video-frame-horizontal-size",
+				"name": "Left & Right Thickness",
+				"description": "Set the left and right frame thickness as a percentage",
+				"value": 8,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 45,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "width_normal"
+			},
+			{
+				"id": "video-frame-radius",
+				"name": "Corner Roundness",
+				"description": "Round the inner corners of the video frame as a percentage",
+				"value": 4,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 50,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "rounded_corner"
 			},
 			{
 				"id": "overlay-custom-css",

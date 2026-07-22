@@ -76,8 +76,4 @@
 			</button>
 		</div>
 	</div>
-
-	<p class="text-thirdly text-xs mt-1">
-		{$LL.export.formatHint()}
-	</p>
 </div>

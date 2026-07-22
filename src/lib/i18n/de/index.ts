@@ -1419,6 +1419,7 @@ const de = {
 			'show-subtitles': 'Untertitel anzeigen',
 			'verse-number': 'Versnummer',
 			'show-verse-number': 'Versnummer anzeigen',
+			'verse-number-new-line': 'Versnummer in neuer Zeile',
 			'text-direction': 'Von rechts nach links',
 			'show-decorative-brackets': 'Dekorative Klammern',
 			'decorative-brackets-font-family': 'Klammern-Stil',
@@ -1582,6 +1583,7 @@ const de = {
 			general: 'Allgemeine Stiloptionen für Untertitel',
 			'show-subtitles': 'Sichtbarkeit der Untertitel ein- oder ausschalten',
 			'show-verse-number': 'Sichtbarkeit der Versnummern ein- oder ausschalten',
+			'verse-number-new-line': 'Die Versnummer immer in einer neuen Zeile platzieren',
 			'text-direction': 'Textrichtung von rechts nach links festlegen',
 			'show-decorative-brackets': 'Arabischen Untertiteltext mit dekorativen Klammern umrahmen',
 			'decorative-brackets-font-family':

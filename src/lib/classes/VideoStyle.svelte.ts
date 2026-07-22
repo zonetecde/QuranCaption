@@ -57,6 +57,7 @@ export type StyleCategoryName =
 export type GeneralStyleName =
 	| 'show-subtitles'
 	| 'show-verse-number'
+	| 'verse-number-new-line'
 	| 'show-decorative-brackets'
 	| 'decorative-brackets-font-family'
 	| 'mushaf-style'

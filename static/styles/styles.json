@@ -15,6 +15,7 @@
 					"id": "verseNumber",
 					"styleIds": [
 						"show-verse-number",
+						"verse-number-new-line",
 						"verse-number-format",
 						"verse-number-position",
 						"verse-number-numeral-system"
@@ -46,6 +47,16 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "123"
+			},
+			{
+				"id": "verse-number-new-line",
+				"name": "Verse Number on New Line",
+				"description": "Always place the verse number on a new line",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "keyboard_return"
 			},
 			{
 				"id": "text-direction",

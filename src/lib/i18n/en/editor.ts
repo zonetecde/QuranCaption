@@ -831,6 +831,7 @@ const editor = {
 		'show-subtitles': 'Show Subtitles',
 		'verse-number': 'Verse Number',
 		'show-verse-number': 'Show Verse Number',
+		'verse-number-new-line': 'Verse Number on New Line',
 		'text-direction': 'Right-to-Left',
 		'show-decorative-brackets': 'Decorative Brackets',
 		'decorative-brackets-font-family': 'Decorative Brackets Style',
@@ -994,6 +995,7 @@ const editor = {
 		general: 'General styling options for subtitles',
 		'show-subtitles': 'Toggle the visibility of subtitles',
 		'show-verse-number': 'Toggle the visibility of verse numbers',
+		'verse-number-new-line': 'Always place the verse number on a new line',
 		'text-direction': 'Set the text direction to Right-to-Left',
 		'show-decorative-brackets': 'Wrap Arabic subtitle text with decorative brackets',
 		'decorative-brackets-font-family':

@@ -1415,6 +1415,7 @@ const es = {
 			'show-subtitles': 'Mostrar subtítulos',
 			'verse-number': 'Número de versículo',
 			'show-verse-number': 'Mostrar número de versículo',
+			'verse-number-new-line': 'Número de versículo en una nueva línea',
 			'text-direction': 'De derecha a izquierda',
 			'show-decorative-brackets': 'Paréntesis decorativos',
 			'decorative-brackets-font-family': 'Estilo de paréntesis',
@@ -1578,6 +1579,7 @@ const es = {
 			general: 'Opciones generales de estilo para los subtítulos',
 			'show-subtitles': 'Activar o desactivar la visibilidad de los subtítulos',
 			'show-verse-number': 'Activar o desactivar la visibilidad de los números de versículos',
+			'verse-number-new-line': 'Colocar siempre el número de versículo en una nueva línea',
 			'text-direction': 'Establecer la dirección del texto de derecha a izquierda',
 			'show-decorative-brackets':
 				'Enmarcar el texto árabe de los subtítulos con paréntesis decorativos',

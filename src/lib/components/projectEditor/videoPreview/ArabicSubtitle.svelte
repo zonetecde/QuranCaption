@@ -104,6 +104,10 @@
 		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
 	});
 
+	let verseNumberOnNewLine = $derived(() => {
+		return Boolean(globalState.getStyle('arabic', 'verse-number-new-line').value);
+	});
+
 	/** Paire de glyphes brute pour les crochets décoratifs. */
 	let decorativeBracketsGlyphPair = $derived(() => {
 		return String(globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM');
@@ -215,7 +219,7 @@
 				segments.push(
 					createPlainOverlaySegment(
 						`${keyPrefix}-suffix`,
-						displayParts.suffix,
+						verseNumberOnNewLine() ? displayParts.suffix.trimStart() : displayParts.suffix,
 						suffixFontCss + 'color: var(--verse-number-color);'
 					)
 				);
@@ -239,7 +243,7 @@
 			...baseSegments,
 			createPlainOverlaySegment(
 				`${keyPrefix}-suffix`,
-				displayParts.suffix,
+				verseNumberOnNewLine() ? displayParts.suffix.trimStart() : displayParts.suffix,
 				suffixFontCss + 'color: var(--verse-number-color);'
 			)
 		];
@@ -755,6 +759,7 @@
 									{/if}
 								{/each}
 								{#if group.suffix}
+									{#if verseNumberOnNewLine()}<br />{/if}
 									{@const suffixOpacity = state.alwaysShowVerseNumber
 										? 1
 										: getWordByWordWordOpacity(
@@ -785,7 +790,7 @@
 											lastWordWbwCss +
 											` opacity: ${suffixOpacity};`}
 									>
-										{group.suffix}
+										{verseNumberOnNewLine() ? group.suffix.trimStart() : group.suffix}
 									</span>
 								{/if}
 							</span>
@@ -840,6 +845,7 @@
 								{/if}
 							{/each}
 							{#if group.suffix}
+								{#if verseNumberOnNewLine()}<br />{/if}
 								{@const suffixOpacity = state.alwaysShowVerseNumber
 									? 1
 									: getWordByWordWordOpacity(
@@ -870,7 +876,7 @@
 										lastWordWbwCss +
 										` opacity: ${suffixOpacity};`}
 								>
-									{group.suffix}
+									{verseNumberOnNewLine() ? group.suffix.trimStart() : group.suffix}
 								</span>
 							{/if}
 						</span>
@@ -890,6 +896,7 @@
 {#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
 	<span class="translation-inline-flow line-background">
 		{#each segments as segment (segment.key)}
+			{#if verseNumberOnNewLine() && segment.key.endsWith('-suffix')}<br />{/if}
 			{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
 			{#if segmentStyle}
 				<span style={segmentStyle}>{segment.text}</span>

@@ -843,6 +843,7 @@ const id = {
 			...baseEn.editor.styleName,
 			general: 'Umum',
 			'verse-number': 'Nomor Ayat',
+			'verse-number-new-line': 'Nomor ayat di baris baru',
 			'video-dimension': 'Kualitas & Orientasi Video',
 			'fade-duration': 'Durasi Fade Subtitle',
 			'video-and-audio-fade': 'Fade Video & Audio',
@@ -872,6 +873,7 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			'verse-number-new-line': 'Selalu tempatkan nomor ayat di baris baru',
 			'word-by-word-highlight': 'Terapkan efek kata demi kata saat timestamp WBW tersedia',
 			'wbw-current-word-custom-css': 'CSS kustom yang diterapkan ke kata WBW saat ini',
 			'enable-wbw-current-word-opacity': 'Timpa opasitas kata WBW saat ini',

@@ -1305,6 +1305,7 @@ const zh = {
 			'show-subtitles': '显示字幕',
 			'verse-number': '经文编号',
 			'show-verse-number': '显示经文编号',
+			'verse-number-new-line': '经文编号另起一行',
 			'text-direction': '从右到左',
 			'show-decorative-brackets': '装饰性括号',
 			'decorative-brackets-font-family': '括号样式',
@@ -1468,6 +1469,7 @@ const zh = {
 			general: '字幕的通用样式选项',
 			'show-subtitles': '启用或禁用字幕可见性',
 			'show-verse-number': '启用或禁用经文编号可见性',
+			'verse-number-new-line': '始终将经文编号放在新的一行',
 			'text-direction': '将文本方向设置为从右到左',
 			'show-decorative-brackets': '用装饰性括号框住阿拉伯语字幕文本',
 			'decorative-brackets-font-family':

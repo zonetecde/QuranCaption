@@ -541,6 +541,20 @@ describe('Video overlay subtitle preview', () => {
 		]);
 	});
 
+	test('renders a line break before the arabic verse number when enabled', async () => {
+		const clip = createLastWordsQpcSubtitle(0, 999, 1, 1, 0, 1);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('show-verse-number', true);
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('verse-number-new-line', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const verseNumber = getArabicVerseNumberSpans(component.container)[0];
+		expect(verseNumber.textContent).toBe('١');
+		expect(verseNumber.previousElementSibling?.tagName).toBe('BR');
+	});
+
 	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {
 		seedQpc2PreviewFixture();
 		const firstClip = createLastWordsQpcSubtitle(0, 999, 1, 1, 0, 3);

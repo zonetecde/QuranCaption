@@ -4186,6 +4186,10 @@ type RootTranslation = {
 			 */
 			'show-verse-number': string;
 			/**
+			 * V​e​r​s​e​ ​N​u​m​b​e​r​ ​o​n​ ​N​e​w​ ​L​i​n​e
+			 */
+			'verse-number-new-line': string;
+			/**
 			 * R​i​g​h​t​-​t​o​-​L​e​f​t
 			 */
 			'text-direction': string;
@@ -4831,6 +4835,10 @@ type RootTranslation = {
 			 * T​o​g​g​l​e​ ​t​h​e​ ​v​i​s​i​b​i​l​i​t​y​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s
 			 */
 			'show-verse-number': string;
+			/**
+			 * A​l​w​a​y​s​ ​p​l​a​c​e​ ​t​h​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r​ ​o​n​ ​a​ ​n​e​w​ ​l​i​n​e
+			 */
+			'verse-number-new-line': string;
 			/**
 			 * S​e​t​ ​t​h​e​ ​t​e​x​t​ ​d​i​r​e​c​t​i​o​n​ ​t​o​ ​R​i​g​h​t​-​t​o​-​L​e​f​t
 			 */
@@ -14254,6 +14262,10 @@ export type TranslationFunctions = {
 			 */
 			'show-verse-number': () => LocalizedString;
 			/**
+			 * Verse Number on New Line
+			 */
+			'verse-number-new-line': () => LocalizedString;
+			/**
 			 * Right-to-Left
 			 */
 			'text-direction': () => LocalizedString;
@@ -14899,6 +14911,10 @@ export type TranslationFunctions = {
 			 * Toggle the visibility of verse numbers
 			 */
 			'show-verse-number': () => LocalizedString;
+			/**
+			 * Always place the verse number on a new line
+			 */
+			'verse-number-new-line': () => LocalizedString;
 			/**
 			 * Set the text direction to Right-to-Left
 			 */

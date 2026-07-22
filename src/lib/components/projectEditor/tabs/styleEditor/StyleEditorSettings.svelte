@@ -367,6 +367,7 @@
 		if (style.id === 'show-decorative-brackets' && selection !== 'arabic') return true;
 		if (style.id === 'decorative-brackets-font-family' && selection !== 'arabic') return true;
 		if (style.id === 'mushaf-style' && selection !== 'arabic') return true;
+		if (style.id === 'verse-number-new-line' && selection !== 'arabic') return true;
 
 		if (
 			style.id === 'decorative-brackets-font-family' &&
@@ -379,6 +380,7 @@
 			[
 				'show-subtitles',
 				'show-verse-number',
+				'verse-number-new-line',
 				'show-decorative-brackets',
 				'mushaf-style',
 				'decorative-brackets-font-family',
@@ -434,6 +436,7 @@
 			target !== 'global' &&
 			[
 				'verse-number-color',
+				'verse-number-new-line',
 				'verse-number-format',
 				'verse-number-position',
 				'verse-number-numeral-system'

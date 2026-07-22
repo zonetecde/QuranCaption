@@ -73,17 +73,19 @@
 	import BatchProjectTable from './BatchProjectTable.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import MigrationService from '$lib/services/MigrationService';
+	import { BatchWorkspaceWorkflow } from '$lib/services/BatchWorkspaceWorkflow.svelte';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
 	let queueError = $state('');
-	let selectedIds = $state<Set<number>>(new Set());
+	const workflow = new BatchWorkspaceWorkflow();
+	let selectedIds = $derived(workflow.selectedProjectIds);
 	let showMediaModal = $state(false);
 	let selectedMode = $state<BatchMediaMode>('audio_only');
-	let queueActive = $state(false);
-	let segmentationQueueActive = $state(false);
-	let cbrQueueActive = $state(false);
-	let translationQueueActive = $state(false);
+	let queueActive = $derived(workflow.isActive('media'));
+	let segmentationQueueActive = $derived(workflow.isActive('segmentation'));
+	let cbrQueueActive = $derived(workflow.isActive('cbr'));
+	let translationQueueActive = $derived(workflow.isActive('translation'));
 	let translationProgress = $state<BatchTranslationQueueProgress>({
 		active: 0,
 		completed: 0,
@@ -150,10 +152,10 @@
 	let qdcTranslations = $state<Record<string, TranslationLanguageData>>({});
 	let showStyleModal = $state(false);
 	let showBackgroundModal = $state(false);
-	let backgroundQueueActive = $state(false);
+	let backgroundQueueActive = $derived(workflow.isActive('background'));
 	let selectedStylePresetId = $state<number | null>(null);
 	let styleOverwriteConfirmed = $state(false);
-	let styleQueueActive = $state(false);
+	let styleQueueActive = $derived(workflow.isActive('style'));
 	let styleProgress = $state<BatchStyleProgress>({
 		active: 0,
 		completed: 0,
@@ -169,8 +171,8 @@
 	let exportOnlyRecitation = $state(false);
 	let exportModalTab = $state<'video' | 'youtube' | 'subtitles'>('video');
 	let youtubeChaptersChoice = $state<'Each Surah' | 'Each Verse'>('Each Surah');
-	let exportQueueActive = $state(false);
-	let deleteQueueActive = $state(false);
+	let exportQueueActive = $derived(workflow.isActive('export'));
+	let deleteQueueActive = $derived(workflow.isActive('delete'));
 	let exportProgress = $state<BatchExportProgress>({
 		activeProjectName: null,
 		completed: 0,
@@ -183,7 +185,7 @@
 		revision;
 		return batch ? [...batch.projects] : [];
 	});
-	let selectedProjects = $derived(projects.filter((project) => selectedIds.has(project.projectId)));
+	let selectedProjects = $derived(workflow.getSelectedProjects(projects));
 	let savedSegmentationSettings = $derived(globalState.settings?.autoSegmentationSettings ?? null);
 	let eligibleSelected = $derived(
 		selectedProjects.filter((project) => project.media.status !== 'completed')
@@ -275,29 +277,9 @@
 	let allMediaCompleted = $derived(
 		projects.length > 0 && projects.every((project) => project.media.status === 'completed')
 	);
-	let activeProjectStage = $derived<'media' | 'segmentation' | 'translation'>(
-		!allMediaCompleted
-			? 'media'
-			: translationEditionNames.length > 0
-				? 'translation'
-				: segmentationQueueActive ||
-					  projects.some((project) => project.segmentation.status !== 'not_started')
-					? 'segmentation'
-					: 'media'
-	);
-	let incompatibleQueueActive = $derived(
-		queueActive ||
-			segmentationQueueActive ||
-			cbrQueueActive ||
-			translationQueueActive ||
-			backgroundQueueActive ||
-			styleQueueActive ||
-			exportQueueActive ||
-			deleteQueueActive
-	);
-	let globalOperationActive = $derived(
-		backgroundQueueActive || styleQueueActive || exportQueueActive
-	);
+	let activeProjectStage = $derived(workflow.getActiveProjectStage(projects));
+	let incompatibleQueueActive = $derived(workflow.activeOperation !== null);
+	let globalOperationActive = $derived(workflow.isGlobalOperationActive());
 	let styleGlobalProgress = $derived(
 		Math.round(
 			((styleProgress.completed + styleProgress.failed) * 100) / Math.max(styleProgress.total, 1)
@@ -343,9 +325,7 @@
 	let incompatibleProjects = $derived(
 		eligibleSelected.filter((project) => !isBatchMediaModeCompatible(project, selectedMode))
 	);
-	let allSelected = $derived(
-		projects.length > 0 && projects.every((project) => selectedIds.has(project.projectId))
-	);
+	let allSelected = $derived(workflow.areAllProjectsSelected(projects));
 	let cbrCurrentProject = $derived(
 		projects.find((project) => project.projectId === cbrProgress.activeProjectId) ?? null
 	);
@@ -406,7 +386,7 @@
 		if (typeof filePath !== 'string') return;
 
 		showBackgroundModal = false;
-		backgroundQueueActive = true;
+		if (!workflow.begin('background')) return;
 		queueError = '';
 		let failed = 0;
 		try {
@@ -457,7 +437,7 @@
 				toast.success(batchMessage('backgroundSet'));
 			}
 		} finally {
-			backgroundQueueActive = false;
+			workflow.finish('background');
 		}
 	}
 
@@ -469,7 +449,7 @@
 		if (!batch || !selectedStylePreset || !styleOverwriteConfirmed || incompatibleQueueActive)
 			return;
 		showStyleModal = false;
-		styleQueueActive = true;
+		if (!workflow.begin('style')) return;
 		styleProgress = {
 			active: 0,
 			completed: 0,
@@ -497,7 +477,7 @@
 		} catch (styleError) {
 			queueError = String(styleError);
 		} finally {
-			styleQueueActive = false;
+			workflow.finish('style');
 		}
 	}
 
@@ -539,7 +519,7 @@
 		if (!batch || exportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
 			return;
 		showExportModal = false;
-		exportQueueActive = true;
+		if (!workflow.begin('export')) return;
 		exportProgress = {
 			activeProjectName: null,
 			completed: 0,
@@ -569,7 +549,7 @@
 		} catch (exportError) {
 			queueError = String(exportError);
 		} finally {
-			exportQueueActive = false;
+			workflow.finish('export');
 		}
 	}
 
@@ -581,7 +561,7 @@
 		if (chapterExportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
 			return;
 		showExportModal = false;
-		exportQueueActive = true;
+		if (!workflow.begin('export')) return;
 		exportProgress = {
 			activeProjectName: null,
 			completed: 0,
@@ -609,7 +589,7 @@
 		} catch (exportError) {
 			queueError = String(exportError);
 		} finally {
-			exportQueueActive = false;
+			workflow.finish('export');
 		}
 	}
 
@@ -621,7 +601,7 @@
 		if (subtitleExportCandidates.length === 0 || !exportOutputFolder || incompatibleQueueActive)
 			return;
 		showExportModal = false;
-		exportQueueActive = true;
+		if (!workflow.begin('export')) return;
 		exportProgress = {
 			activeProjectName: null,
 			completed: 0,
@@ -644,7 +624,7 @@
 		} catch (exportError) {
 			queueError = String(exportError);
 		} finally {
-			exportQueueActive = false;
+			workflow.finish('export');
 		}
 	}
 
@@ -821,7 +801,7 @@
 				return !state || ['failed', 'ready_to_fetch', 'needs_review'].includes(state.status);
 			});
 			const defaults = actionableProjects.length > 0 ? actionableProjects : projects;
-			selectedIds = new Set(defaults.map((project) => project.projectId));
+			workflow.replaceSelection(defaults.map((project) => project.projectId));
 		}
 	}
 
@@ -895,7 +875,7 @@
 		);
 		if (editions.length === 0) return;
 		showAddTranslationsModal = false;
-		translationQueueActive = true;
+		if (!workflow.begin('translation')) return;
 		translationProgress.total = 0;
 		queueError = '';
 		selectActiveTranslationEdition(editions.at(-1)!.name, false);
@@ -912,7 +892,7 @@
 		} catch (translationError) {
 			queueError = String(translationError);
 		} finally {
-			translationQueueActive = false;
+			workflow.finish('translation');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
 		}
@@ -935,7 +915,7 @@
 	async function startFetchingTranslations(): Promise<void> {
 		if (!batch || !activeTranslationEditionName || fetchEligibleProjects.length === 0) return;
 		showFetchTranslationsModal = false;
-		translationQueueActive = true;
+		if (!workflow.begin('translation')) return;
 		queueError = '';
 		const editionName = activeTranslationEditionName;
 		const items = [...fetchEligibleProjects];
@@ -962,7 +942,7 @@
 		} catch (translationError) {
 			queueError = String(translationError);
 		} finally {
-			translationQueueActive = false;
+			workflow.finish('translation');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
 		}
@@ -974,10 +954,7 @@
 	 * @returns {void}
 	 */
 	function toggleProject(projectId: number): void {
-		const next = new Set(selectedIds);
-		if (next.has(projectId)) next.delete(projectId);
-		else next.add(projectId);
-		selectedIds = next;
+		workflow.toggleProject(projectId);
 	}
 
 	/**
@@ -985,13 +962,7 @@
 	 * @returns {void}
 	 */
 	function toggleAll(): void {
-		selectedIds = allSelected
-			? new Set()
-			: new Set(
-					projects
-						.filter((project) => project.media.status !== 'processing')
-						.map((project) => project.projectId)
-				);
+		workflow.toggleAllProjects(projects);
 	}
 
 	/**
@@ -1005,16 +976,16 @@
 			batchMessage('deleteSelectedProjectsConfirm', { count: projectIds.length })
 		);
 		if (!confirmed) return;
-		deleteQueueActive = true;
+		if (!workflow.begin('delete')) return;
 		queueError = '';
 		try {
 			await BatchService.deleteProjects(batch, projectIds);
-			selectedIds = new Set();
+			workflow.replaceSelection([]);
 			revision++;
 		} catch (deleteError) {
 			queueError = String(deleteError);
 		} finally {
-			deleteQueueActive = false;
+			workflow.finish('delete');
 		}
 	}
 
@@ -1078,7 +1049,7 @@
 		);
 		segmentationConfiguration = configuration;
 		showSegmentationModal = false;
-		segmentationQueueActive = true;
+		if (!workflow.begin('segmentation')) return;
 		queueError = '';
 		segmentationProgress = {
 			active: 0,
@@ -1114,7 +1085,7 @@
 				}),
 				level: segmentationProgress.failed > 0 ? 'error' : 'success'
 			});
-			selectedIds = new Set(
+			workflow.replaceSelection(
 				batch.projects
 					.filter(
 						(project) =>
@@ -1126,7 +1097,7 @@
 		} catch (segmentationError) {
 			queueError = getSegmentationError(String(segmentationError).replace(/^Error:\s*/, ''));
 		} finally {
-			segmentationQueueActive = false;
+			workflow.finish('segmentation');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
 		}
@@ -1139,7 +1110,7 @@
 	async function startMediaImport(): Promise<void> {
 		if (!batch || incompatibleProjects.length > 0 || eligibleSelected.length === 0) return;
 		showMediaModal = false;
-		queueActive = true;
+		if (!workflow.begin('media')) return;
 		queueError = '';
 		queueProgress = {
 			active: 0,
@@ -1164,11 +1135,11 @@
 						(project.segmentation.status === 'not_started' ||
 							project.segmentation.status === 'failed'))
 			);
-			selectedIds = new Set(defaults.map((project) => project.projectId));
+			workflow.replaceSelection(defaults.map((project) => project.projectId));
 		} catch (importError) {
 			queueError = String(importError);
 		} finally {
-			queueActive = false;
+			workflow.finish('media');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
 		}
@@ -1180,7 +1151,7 @@
 	 */
 	async function convertAllAudioToCbr(): Promise<void> {
 		if (!batch || !allMediaCompleted || cbrQueueActive) return;
-		cbrQueueActive = true;
+		if (!workflow.begin('cbr')) return;
 		queueError = '';
 		cbrProgress = {
 			activeProjectId: null,
@@ -1203,7 +1174,7 @@
 				toast.success(batchMessage('cbrCompleted'));
 			}
 		} finally {
-			cbrQueueActive = false;
+			workflow.finish('cbr');
 		}
 	}
 
@@ -1328,9 +1299,9 @@
 							(project.segmentation.status === 'not_started' ||
 								project.segmentation.status === 'failed'))
 				);
-				selectedIds = new Set(defaults.map((project) => project.projectId));
+				workflow.replaceSelection(defaults.map((project) => project.projectId));
 			} else if (!activeTranslationEditionName) {
-				selectedIds = new Set(batch.projects.map((project) => project.projectId));
+				workflow.replaceSelection(batch.projects.map((project) => project.projectId));
 			}
 			revision++;
 		} catch (loadError) {

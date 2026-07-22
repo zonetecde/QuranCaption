@@ -28,23 +28,6 @@ pub fn build_background_fit_filter(
     let position_x = ((media_position_x.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
     let position_y = ((media_position_y.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
 
-    if !media_fill {
-        return format!(
-            "scale=w={}:h={}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={}:{}:(ow-iw)*{:.6}:(oh-ih)*{:.6}:color=black,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
-            scaled_w,
-            scaled_h,
-            scaled_w,
-            scaled_h,
-            position_x,
-            position_y,
-            w,
-            h,
-            w,
-            position_x,
-            h,
-            position_y
-        );
-    }
     format!(
         "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
         scaled_w, scaled_h, w, h, w, position_x, h, position_y
@@ -389,7 +372,7 @@ pub fn preprocess_background_videos(
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("minbarstudio-preproc");
-    let preproc_cache_version = "fit-v10-nvenc-quality";
+    let preproc_cache_version = "fit-v11-media-layout";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);

@@ -3,8 +3,8 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { BatchService } from '$lib/services/BatchService';
-	import { open } from '@tauri-apps/plugin-dialog';
-	import { readTextFile } from '@tauri-apps/plugin-fs';
+	import { open, save } from '@tauri-apps/plugin-dialog';
+	import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 	import { get } from 'svelte/store';
 	import {
 		parseBatchCsv,
@@ -22,6 +22,11 @@
 	let isReading = $state(false);
 	let isCreating = $state(false);
 	let creationError = $state('');
+	let templateCopy = $derived(
+		$LL.batch as unknown as {
+			downloadCsvTemplate: () => string;
+		}
+	);
 	let batchNameError = $derived(validateBatchName(batchName));
 	let canCreate = $derived(
 		fileName !== '' && rows.length > 0 && errors.length === 0 && !batchNameError && !isCreating
@@ -36,12 +41,40 @@
 	}
 
 	/**
+	 * Enregistre un modèle CSV UTF-8 contenant la colonne JSON optionnelle.
+	 * @returns {Promise<void>} Promesse résolue après l'enregistrement ou l'annulation.
+	 */
+	async function downloadCsvTemplate(): Promise<void> {
+		const filePath = await save({
+			defaultPath: 'qurancaption_batch_template.csv',
+			filters: [{ name: get(LL).batch.csvFile(), extensions: ['csv'] }]
+		});
+		if (!filePath) return;
+
+		try {
+			await writeTextFile(
+				filePath,
+				'\uFEFFproject_name;reciter;source;filepath_segmentation\nMy project;Reciter name;C:\\path\\to\\audio.mp3;C:\\path\\to\\segmentation.json\n'
+			);
+		} catch (error) {
+			const messages = get(LL).batch as unknown as {
+				templateSaveFailed: (args: { error: string }) => string;
+			};
+			creationError = messages.templateSaveFailed({ error: String(error) });
+		}
+	}
+
+	/**
 	 * Traduit un code d'erreur CSV en explication utilisateur.
 	 * @param {BatchCsvErrorCode} code Code d'erreur à traduire.
 	 * @returns {string} Message localisé.
 	 */
 	function getErrorMessage(code: BatchCsvErrorCode): string {
 		const messages = get(LL).batch;
+		const segmentationMessages = messages as unknown as {
+			errorSegmentationJsonFileNotFound: () => string;
+			errorInvalidSegmentationJson: () => string;
+		};
 		switch (code) {
 			case 'invalid-header':
 				return messages.errorInvalidHeader();
@@ -71,6 +104,10 @@
 				return messages.errorFileNotFound();
 			case 'unsupported-media':
 				return messages.errorUnsupportedMedia();
+			case 'segmentation-json-file-not-found':
+				return segmentationMessages.errorSegmentationJsonFileNotFound();
+			case 'invalid-segmentation-json':
+				return segmentationMessages.errorInvalidSegmentationJson();
 		}
 	}
 
@@ -181,9 +218,15 @@
 					</p>
 				</div>
 			</div>
-			<p class="mt-5 rounded-xl bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
-				{$LL.batch.csvFormatHelp()}
-			</p>
+			<div
+				class="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--bg-accent)] p-3"
+			>
+				<p class="text-sm text-[var(--text-secondary)]">{$LL.batch.csvFormatHelp()}</p>
+				<button class="btn btn-icon h-8 px-3 text-xs" type="button" onclick={downloadCsvTemplate}>
+					<span class="material-icons-outlined mr-1.5 text-base">download</span>
+					{templateCopy.downloadCsvTemplate()}
+				</button>
+			</div>
 		</section>
 
 		{#if creationError}
@@ -266,7 +309,7 @@
 				onclick={createBatch}
 				disabled={!canCreate}
 			>
-				<span class="material-icons-outlined mr-2">dynamic_feed</span>
+				<span class="material-icons mr-2">dynamic_feed</span>
 				{isCreating ? $LL.batch.creatingBatch() : $LL.batch.createBatch()}
 			</button>
 		</div>

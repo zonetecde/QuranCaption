@@ -13,6 +13,11 @@ import { ProjectService } from '$lib/services/ProjectService';
 import { DEFAULT_PROJECT_TYPE } from '$lib/types/projectType';
 import { join } from '@tauri-apps/api/path';
 import { exists, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
+import { runAutoSegmentationFromImportedJsonForProject } from './autoSegmentation/run-imported';
+import {
+	classifyBatchSegmentationStatus,
+	getBatchSegmentationReviewCounts
+} from './BatchSegmentationReview';
 
 export class BatchService {
 	private static batchesFolder = 'batches/';
@@ -321,6 +326,28 @@ export class BatchService {
 					batchOrder: row.order
 				});
 				createdProjectIds.push(project.detail.id);
+				const segmentation = createDefaultBatchSegmentationState();
+				if (row.segmentationJsonPath) {
+					const startedAt = new Date();
+					const result = await runAutoSegmentationFromImportedJsonForProject(
+						project,
+						await readTextFile(row.segmentationJsonPath)
+					);
+					if (!result || result.status !== 'completed') {
+						throw new Error(
+							result?.status === 'failed' ? result.message : 'SEGMENTATION_JSON_IMPORT_FAILED'
+						);
+					}
+					const review = getBatchSegmentationReviewCounts(project);
+					segmentation.status = classifyBatchSegmentationStatus('not_started', review);
+					segmentation.progress = 100;
+					segmentation.segmentsApplied = result.segmentsApplied;
+					segmentation.review = review;
+					segmentation.startedAt = startedAt;
+					segmentation.completedAt = new Date();
+					project.detail.updateTimestamp();
+					await ProjectService.save(project);
+				}
 				const item: BatchProjectItem = {
 					order: row.order,
 					projectId: project.detail.id,
@@ -335,7 +362,7 @@ export class BatchService {
 						mode: null,
 						assetId: null
 					},
-					segmentation: createDefaultBatchSegmentationState(),
+					segmentation,
 					translations: {},
 					style: createDefaultBatchStyleState(),
 					export: createDefaultBatchExportState()

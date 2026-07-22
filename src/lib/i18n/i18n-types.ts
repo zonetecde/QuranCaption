@@ -9223,9 +9223,13 @@ type RootTranslation = {
 		 */
 		noCsvSelected: string;
 		/**
-		 * E​x​p​e​c​t​e​d​ ​c​o​l​u​m​n​s​:​ ​p​r​o​j​e​c​t​_​n​a​m​e​;​r​e​c​i​t​e​r​;​s​o​u​r​c​e
+		 * E​x​p​e​c​t​e​d​ ​c​o​l​u​m​n​s​:​ ​p​r​o​j​e​c​t​_​n​a​m​e​;​r​e​c​i​t​e​r​;​s​o​u​r​c​e​;​f​i​l​e​p​a​t​h​_​s​e​g​m​e​n​t​a​t​i​o​n​ ​(​o​p​t​i​o​n​a​l​)
 		 */
 		csvFormatHelp: string;
+		/**
+		 * D​o​w​n​l​o​a​d​ ​C​S​V​ ​t​e​m​p​l​a​t​e
+		 */
+		downloadCsvTemplate: string;
 		/**
 		 * P​r​e​v​i​e​w
 		 */
@@ -9310,6 +9314,11 @@ type RootTranslation = {
 		 */
 		readFailed: RequiredParams<'error'>;
 		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​s​a​v​e​ ​t​h​e​ ​C​S​V​ ​t​e​m​p​l​a​t​e​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		templateSaveFailed: RequiredParams<'error'>;
+		/**
 		 * U​n​a​b​l​e​ ​t​o​ ​c​r​e​a​t​e​ ​t​h​e​ ​b​a​t​c​h​:​ ​{​e​r​r​o​r​}
 		 * @param {unknown} error
 		 */
@@ -9327,7 +9336,7 @@ type RootTranslation = {
 		 */
 		errorBatchNameUnsafe: string;
 		/**
-		 * e​x​p​e​c​t​e​d​ ​h​e​a​d​e​r​s​ ​p​r​o​j​e​c​t​_​n​a​m​e​,​ ​r​e​c​i​t​e​r​ ​a​n​d​ ​s​o​u​r​c​e​.
+		 * e​x​p​e​c​t​e​d​ ​h​e​a​d​e​r​s​ ​p​r​o​j​e​c​t​_​n​a​m​e​,​ ​r​e​c​i​t​e​r​,​ ​s​o​u​r​c​e​ ​a​n​d​ ​o​p​t​i​o​n​a​l​l​y​ ​f​i​l​e​p​a​t​h​_​s​e​g​m​e​n​t​a​t​i​o​n​.
 		 */
 		errorInvalidHeader: string;
 		/**
@@ -9382,6 +9391,14 @@ type RootTranslation = {
 		 * t​h​e​ ​l​o​c​a​l​ ​f​i​l​e​ ​f​o​r​m​a​t​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​.
 		 */
 		errorUnsupportedMedia: string;
+		/**
+		 * t​h​e​ ​A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​J​S​O​N​ ​f​i​l​e​ ​c​a​n​n​o​t​ ​b​e​ ​f​o​u​n​d​.
+		 */
+		errorSegmentationJsonFileNotFound: string;
+		/**
+		 * t​h​e​ ​A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​i​l​e​ ​i​s​ ​n​o​t​ ​a​ ​v​a​l​i​d​ ​s​u​p​p​o​r​t​e​d​ ​J​S​O​N​.
+		 */
+		errorInvalidSegmentationJson: string;
 		/**
 		 * N​o​ ​b​a​t​c​h​ ​i​s​ ​s​e​l​e​c​t​e​d​.
 		 */
@@ -19340,9 +19357,13 @@ export type TranslationFunctions = {
 		 */
 		noCsvSelected: () => LocalizedString;
 		/**
-		 * Expected columns: project_name;reciter;source
+		 * Expected columns: project_name;reciter;source;filepath_segmentation (optional)
 		 */
 		csvFormatHelp: () => LocalizedString;
+		/**
+		 * Download CSV template
+		 */
+		downloadCsvTemplate: () => LocalizedString;
 		/**
 		 * Preview
 		 */
@@ -19420,6 +19441,10 @@ export type TranslationFunctions = {
 		 */
 		readFailed: (arg: { error: unknown }) => LocalizedString;
 		/**
+		 * Unable to save the CSV template: {error}
+		 */
+		templateSaveFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
 		 * Unable to create the batch: {error}
 		 */
 		createFailed: (arg: { error: unknown }) => LocalizedString;
@@ -19436,7 +19461,7 @@ export type TranslationFunctions = {
 		 */
 		errorBatchNameUnsafe: () => LocalizedString;
 		/**
-		 * expected headers project_name, reciter and source.
+		 * expected headers project_name, reciter, source and optionally filepath_segmentation.
 		 */
 		errorInvalidHeader: () => LocalizedString;
 		/**
@@ -19491,6 +19516,14 @@ export type TranslationFunctions = {
 		 * the local file format is not supported.
 		 */
 		errorUnsupportedMedia: () => LocalizedString;
+		/**
+		 * the AI segmentation JSON file cannot be found.
+		 */
+		errorSegmentationJsonFileNotFound: () => LocalizedString;
+		/**
+		 * the AI segmentation file is not a valid supported JSON.
+		 */
+		errorInvalidSegmentationJson: () => LocalizedString;
 		/**
 		 * No batch is selected.
 		 */

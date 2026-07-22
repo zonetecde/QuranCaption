@@ -1,5 +1,6 @@
 import { Batch, ProjectDetail, Utilities, type BatchSource } from '$lib/classes';
-import { exists } from '@tauri-apps/plugin-fs';
+import { parseImportedSegmentationJson } from '$lib/services/autoSegmentation/parsing';
+import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 
 export type BatchCsvErrorCode =
 	| 'invalid-header'
@@ -15,7 +16,9 @@ export type BatchCsvErrorCode =
 	| 'reciter-unsafe'
 	| 'invalid-url'
 	| 'file-not-found'
-	| 'unsupported-media';
+	| 'unsupported-media'
+	| 'segmentation-json-file-not-found'
+	| 'invalid-segmentation-json';
 
 export interface BatchCsvError {
 	line: number;
@@ -27,6 +30,7 @@ export interface BatchCsvRow {
 	projectName: string;
 	reciter: string;
 	source: string;
+	segmentationJsonPath?: string;
 }
 
 export interface ValidatedBatchRow extends BatchCsvRow {
@@ -60,6 +64,7 @@ const SUPPORTED_MEDIA_EXTENSIONS = new Set([
 	'opus',
 	'wav'
 ]);
+const SEGMENTATION_JSON_COLUMN = 'filepath_segmentation';
 
 /**
  * Parse le CSV de batch sans créer de projet.
@@ -122,9 +127,11 @@ export function parseBatchCsv(content: string): BatchCsvParseResult {
 	const header = nonEmptyRecords.shift();
 	const normalizedHeader = header ? [...header.fields] : [];
 	while (normalizedHeader.length > 3 && normalizedHeader.at(-1) === '') normalizedHeader.pop();
+	const hasSegmentationJsonColumn = normalizedHeader[3] === SEGMENTATION_JSON_COLUMN;
 	if (
 		!header ||
-		normalizedHeader.length !== 3 ||
+		(normalizedHeader.length !== 3 &&
+			(normalizedHeader.length !== 4 || !hasSegmentationJsonColumn)) ||
 		normalizedHeader[0] !== 'project_name' ||
 		normalizedHeader[1] !== 'reciter' ||
 		normalizedHeader[2] !== 'source'
@@ -134,14 +141,15 @@ export function parseBatchCsv(content: string): BatchCsvParseResult {
 	}
 
 	const rows: BatchCsvRow[] = [];
+	const expectedColumnCount = hasSegmentationJsonColumn ? 4 : 3;
 	for (const record of nonEmptyRecords) {
 		const values = [...record.fields];
-		while (values.length > 3 && values.at(-1) === '') values.pop();
+		while (values.length > expectedColumnCount && values.at(-1) === '') values.pop();
 		if (values.length < 3) {
 			errors.push({ line: record.line, code: 'missing-column' });
 			continue;
 		}
-		if (values.length > 3) {
+		if (values.length > expectedColumnCount) {
 			errors.push({ line: record.line, code: 'too-many-columns' });
 			continue;
 		}
@@ -149,7 +157,8 @@ export function parseBatchCsv(content: string): BatchCsvParseResult {
 			line: record.line,
 			projectName: values[0],
 			reciter: values[1],
-			source: values[2]
+			source: values[2],
+			segmentationJsonPath: hasSegmentationJsonColumn ? (values[3] ?? '') : undefined
 		});
 	}
 
@@ -170,11 +179,13 @@ function isSupportedLocalMedia(filePath: string): boolean {
  * Valide toutes les lignes CSV avant la création du batch.
  * @param {BatchCsvRow[]} rows Lignes parsées dans l'ordre du CSV.
  * @param {(path: string) => Promise<boolean>} fileExists Vérificateur d'existence des fichiers.
+ * @param {(path: string) => Promise<string>} readFile Lecteur de fichier texte injecté pour les tests.
  * @returns {Promise<BatchCsvValidationResult>} Lignes enrichies et erreurs bloquantes.
  */
 export async function validateBatchRows(
 	rows: BatchCsvRow[],
-	fileExists: (path: string) => Promise<boolean> = exists
+	fileExists: (path: string) => Promise<boolean> = exists,
+	readFile: (path: string) => Promise<string> = readTextFile
 ): Promise<BatchCsvValidationResult> {
 	const validatedRows: ValidatedBatchRow[] = [];
 	const allErrors: BatchCsvError[] = [];
@@ -212,6 +223,19 @@ export async function validateBatchRows(
 			}
 			if (!isSupportedLocalMedia(row.source)) {
 				rowErrors.push({ line: row.line, code: 'unsupported-media' });
+			}
+		}
+
+		if (row.segmentationJsonPath) {
+			if (!(await fileExists(row.segmentationJsonPath))) {
+				rowErrors.push({ line: row.line, code: 'segmentation-json-file-not-found' });
+			} else {
+				try {
+					if (!row.segmentationJsonPath.toLowerCase().endsWith('.json')) throw new Error();
+					parseImportedSegmentationJson(await readFile(row.segmentationJsonPath));
+				} catch {
+					rowErrors.push({ line: row.line, code: 'invalid-segmentation-json' });
+				}
 			}
 		}
 

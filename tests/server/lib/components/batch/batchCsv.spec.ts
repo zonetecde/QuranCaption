@@ -14,6 +14,15 @@ describe('batch CSV parsing', () => {
 		expect(result.rows[1].source).toBe('C:\\Media\\b.mp3');
 	});
 
+	it('accepts the optional AI segmentation JSON path column', () => {
+		const result = parseBatchCsv(
+			'project_name;reciter;source;filepath_segmentation\nFirst;Reciter;C:\\Media\\a.mp3;C:\\Segments\\a.json'
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(result.rows[0].segmentationJsonPath).toBe('C:\\Segments\\a.json');
+	});
+
 	it.each([
 		['UTF-8 BOM', '\uFEFFproject_name;reciter;source\nA;B;https://example.com'],
 		['CRLF', 'project_name;reciter;source\r\nA;B;https://example.com\r\n'],
@@ -102,5 +111,64 @@ describe('batch CSV validation', () => {
 		);
 
 		expect(result.errors).toContainEqual({ line: 2, code: 'unsupported-media' });
+	});
+
+	it('validates an optional AI segmentation JSON file', async () => {
+		const result = await validateBatchRows(
+			[
+				{
+					line: 2,
+					projectName: 'Project',
+					reciter: 'Reciter',
+					source: 'C:\\media.mp3',
+					segmentationJsonPath: 'C:\\segments.json'
+				}
+			],
+			existingFile,
+			async () =>
+				JSON.stringify({
+					segments: [{ time_from: 0, time_to: 1, ref_from: '1:1:1', ref_to: '1:1:1' }]
+				})
+		);
+
+		expect(result.errors).toEqual([]);
+	});
+
+	it('rejects an invalid AI segmentation JSON file', async () => {
+		const result = await validateBatchRows(
+			[
+				{
+					line: 2,
+					projectName: 'Project',
+					reciter: 'Reciter',
+					source: 'C:\\media.mp3',
+					segmentationJsonPath: 'C:\\segments.json'
+				}
+			],
+			existingFile,
+			async () => '{}'
+		);
+
+		expect(result.errors).toContainEqual({ line: 2, code: 'invalid-segmentation-json' });
+	});
+
+	it('rejects a missing AI segmentation JSON file', async () => {
+		const result = await validateBatchRows(
+			[
+				{
+					line: 2,
+					projectName: 'Project',
+					reciter: 'Reciter',
+					source: 'https://example.com/audio',
+					segmentationJsonPath: 'C:\\missing.json'
+				}
+			],
+			async (path) => path !== 'C:\\missing.json'
+		);
+
+		expect(result.errors).toContainEqual({
+			line: 2,
+			code: 'segmentation-json-file-not-found'
+		});
 	});
 });

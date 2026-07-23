@@ -3,6 +3,9 @@ import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@ta
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import type { ImportedProjectPayload } from '$lib/types/project';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
+import toast from 'svelte-5-french-toast';
 
 /**
  * Service pour gérer les projets.
@@ -63,6 +66,7 @@ export class ProjectService {
 			return ProjectDetail.fromJSON(projectData.detail) as ProjectDetail;
 		} catch (error) {
 			console.warn(`Impossible de charger le projet ${projectId}:`, error);
+			toast.error(`${get(LL).home.projectFileInvalid()} (${fileName})`);
 			return null;
 		}
 	}

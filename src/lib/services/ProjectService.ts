@@ -4,6 +4,9 @@ import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import type { ImportedProjectPayload } from '$lib/types/project';
 import { DEFAULT_PROJECT_TYPE, type ProjectType } from '$lib/types/projectType';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
+import toast from 'svelte-5-french-toast';
 
 export interface CreateEmptyProjectOptions {
 	name: string;
@@ -94,6 +97,7 @@ export class ProjectService {
 			return ProjectDetail.fromJSON(projectData.detail) as ProjectDetail;
 		} catch (error) {
 			console.warn(`Impossible de charger le projet ${projectId}:`, error);
+			toast.error(`${get(LL).home.projectFileInvalid()} (${fileName})`);
 			return null;
 		}
 	}

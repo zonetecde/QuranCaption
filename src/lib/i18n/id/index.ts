@@ -888,6 +888,7 @@ const id = {
 			'background-overlay-fade-intensity': 'Intensitas Fade',
 			'background-overlay-fade-coverage': 'Cakupan Fade',
 			'video-frame-enable': 'Bingkai Video',
+			'video-frame-content-above': 'Konten di Atas Bingkai',
 			'video-frame-color': 'Warna Bingkai',
 			'video-frame-vertical-size': 'Ketebalan Atas & Bawah',
 			'video-frame-horizontal-size': 'Ketebalan Kiri & Kanan',
@@ -916,6 +917,8 @@ const id = {
 			'media-position-x': 'Geser media latar secara horizontal dari posisi tengah',
 			'media-position-y': 'Geser media latar secara vertikal dari posisi tengah',
 			'video-frame-enable': 'Aktifkan atau nonaktifkan bingkai global di sekitar video',
+			'video-frame-content-above':
+				'Tampilkan subtitle dan elemen visual di atas bingkai sambil mempertahankan overlay di bawahnya',
 			'video-frame-color': 'Pilih warna bingkai video global',
 			'video-frame-vertical-size': 'Atur ketebalan bingkai atas dan bawah dalam persentase',
 			'video-frame-horizontal-size': 'Atur ketebalan bingkai kiri dan kanan dalam persentase',

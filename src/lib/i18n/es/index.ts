@@ -1550,6 +1550,7 @@ const es = {
 			'background-overlay-fade-coverage': 'Cobertura del fundido',
 			'overlay-blur': 'Desenfoque de superposición',
 			'video-frame-enable': 'Marco de video',
+			'video-frame-content-above': 'Contenido sobre el marco',
 			'video-frame-color': 'Color del marco',
 			'video-frame-vertical-size': 'Grosor superior e inferior',
 			'video-frame-horizontal-size': 'Grosor izquierdo y derecho',
@@ -1748,6 +1749,8 @@ const es = {
 			'background-overlay-fade-coverage': 'Controla la zona vertical usada por el fundido',
 			'overlay-blur': 'Nivel de desenfoque de la superposición',
 			'video-frame-enable': 'Activar o desactivar un marco global alrededor del video',
+			'video-frame-content-above':
+				'Mostrar subtítulos y elementos visuales sobre el marco manteniendo la superposición debajo',
 			'video-frame-color': 'Elegir el color del marco global del video',
 			'video-frame-vertical-size':
 				'Definir como porcentaje el grosor superior e inferior del marco',

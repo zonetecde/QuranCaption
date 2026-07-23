@@ -298,6 +298,7 @@
 
 		return {
 			enable: Boolean(globalState.getStyle('global', 'video-frame-enable')?.value),
+			contentAbove: Boolean(globalState.getStyle('global', 'video-frame-content-above')?.value),
 			color: String(globalState.getStyle('global', 'video-frame-color')?.value ?? '#000000'),
 			softness: `${softnessX} ${softnessY}`,
 			path: `M -100 -100 H 200 V 200 H -100 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
@@ -1239,9 +1240,9 @@
 	</div>
 
 	{#if videoFrameSettings.enable}
-		<!-- Le tracé pair-impair conserve une fenêtre transparente aux quatre angles identiques. -->
+		<!-- À z-0, l'overlay déclaré avant reste dessous et les contenus à partir de z-1 passent dessus. -->
 		<svg
-			class="pointer-events-none absolute inset-0 z-20 h-full w-full"
+			class={`pointer-events-none absolute inset-0 h-full w-full ${videoFrameSettings.contentAbove ? 'z-0' : 'z-20'}`}
 			viewBox="0 0 100 100"
 			preserveAspectRatio="none"
 			aria-hidden="true"

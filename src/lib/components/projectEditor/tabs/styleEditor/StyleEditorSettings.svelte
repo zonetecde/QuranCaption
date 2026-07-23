@@ -467,6 +467,7 @@
 			if (
 				[
 					'video-frame-enable',
+					'video-frame-content-above',
 					'video-frame-color',
 					'video-frame-vertical-size',
 					'video-frame-horizontal-size',

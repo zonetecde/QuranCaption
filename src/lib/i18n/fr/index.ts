@@ -1552,6 +1552,7 @@ const fr = {
 			'background-overlay-fade-coverage': 'Couverture du fondu',
 			'overlay-blur': 'Flou de superposition',
 			'video-frame-enable': 'Cadre vidéo',
+			'video-frame-content-above': 'Contenu au-dessus du cadre',
 			'video-frame-color': 'Couleur du cadre',
 			'video-frame-vertical-size': 'Épaisseur haut et bas',
 			'video-frame-horizontal-size': 'Épaisseur gauche et droite',
@@ -1752,6 +1753,8 @@ const fr = {
 			'background-overlay-fade-coverage': 'Contrôle la zone verticale utilisée par le fondu',
 			'overlay-blur': 'Niveau de flou de la superposition',
 			'video-frame-enable': 'Activer ou désactiver un cadre global autour de la vidéo',
+			'video-frame-content-above':
+				'Afficher les sous-titres et les éléments visuels au-dessus du cadre tout en conservant la superposition en dessous',
 			'video-frame-color': 'Choisir la couleur du cadre global de la vidéo',
 			'video-frame-vertical-size': 'Définir en pourcentage l’épaisseur du cadre en haut et en bas',
 			'video-frame-horizontal-size':

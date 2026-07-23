@@ -1554,6 +1554,7 @@ const de = {
 			'background-overlay-fade-coverage': 'Überblendungsabdeckung',
 			'overlay-blur': 'Überlagerungsunschärfe',
 			'video-frame-enable': 'Videorahmen',
+			'video-frame-content-above': 'Inhalt über dem Rahmen',
 			'video-frame-color': 'Rahmenfarbe',
 			'video-frame-vertical-size': 'Stärke oben und unten',
 			'video-frame-horizontal-size': 'Stärke links und rechts',
@@ -1752,6 +1753,8 @@ const de = {
 				'Steuert den von der Überblendung genutzten vertikalen Bereich',
 			'overlay-blur': 'Unschärfegrad der Überlagerung',
 			'video-frame-enable': 'Einen globalen Rahmen um das Video ein- oder ausschalten',
+			'video-frame-content-above':
+				'Untertitel und visuelle Elemente über dem Rahmen anzeigen, während die Überlagerung darunter bleibt',
 			'video-frame-color': 'Die Farbe des globalen Videorahmens auswählen',
 			'video-frame-vertical-size': 'Die Rahmenstärke oben und unten als Prozentsatz festlegen',
 			'video-frame-horizontal-size': 'Die Rahmenstärke links und rechts als Prozentsatz festlegen',

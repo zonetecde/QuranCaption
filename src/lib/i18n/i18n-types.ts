@@ -4678,6 +4678,10 @@ type RootTranslation = {
 			 */
 			'video-frame-enable': string;
 			/**
+			 * C​o​n​t​e​n​t​ ​A​b​o​v​e​ ​F​r​a​m​e
+			 */
+			'video-frame-content-above': string;
+			/**
 			 * F​r​a​m​e​ ​C​o​l​o​r
 			 */
 			'video-frame-color': string;
@@ -5367,6 +5371,10 @@ type RootTranslation = {
 			 * E​n​a​b​l​e​ ​o​r​ ​d​i​s​a​b​l​e​ ​a​ ​g​l​o​b​a​l​ ​f​r​a​m​e​ ​a​r​o​u​n​d​ ​t​h​e​ ​v​i​d​e​o
 			 */
 			'video-frame-enable': string;
+			/**
+			 * D​i​s​p​l​a​y​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​v​i​s​u​a​l​ ​e​l​e​m​e​n​t​s​ ​a​b​o​v​e​ ​t​h​e​ ​f​r​a​m​e​ ​w​h​i​l​e​ ​k​e​e​p​i​n​g​ ​t​h​e​ ​o​v​e​r​l​a​y​ ​b​e​l​o​w​ ​i​t
+			 */
+			'video-frame-content-above': string;
 			/**
 			 * C​h​o​o​s​e​ ​t​h​e​ ​c​o​l​o​r​ ​o​f​ ​t​h​e​ ​g​l​o​b​a​l​ ​v​i​d​e​o​ ​f​r​a​m​e
 			 */
@@ -14945,6 +14953,10 @@ export type TranslationFunctions = {
 			 */
 			'video-frame-enable': () => LocalizedString;
 			/**
+			 * Content Above Frame
+			 */
+			'video-frame-content-above': () => LocalizedString;
+			/**
 			 * Frame Color
 			 */
 			'video-frame-color': () => LocalizedString;
@@ -15634,6 +15646,10 @@ export type TranslationFunctions = {
 			 * Enable or disable a global frame around the video
 			 */
 			'video-frame-enable': () => LocalizedString;
+			/**
+			 * Display subtitles and visual elements above the frame while keeping the overlay below it
+			 */
+			'video-frame-content-above': () => LocalizedString;
 			/**
 			 * Choose the color of the global video frame
 			 */

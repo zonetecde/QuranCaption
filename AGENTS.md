@@ -45,6 +45,8 @@ When done:
 - Prefer conventional commit style when it fits (for example: `fix(...)`, `feat(...)`,
   `refactor(...)`).
 - Make sure both commit messages describe the actual change, not a vague intention.
+- Describe both what was changed and the concrete behavior it enables, even when this makes the
+  message slightly longer.
 
 Code quality requirements:
 
@@ -59,3 +61,6 @@ Example:
 
 - English: `fix(export): black glitches are now gone`
 - French: `fix(export): suppression du glitch des vidéos noires`
+- English feature: `feat(style): added a style to allow video text to be above the framed overlay`
+- French feature:
+  `feat(style): ajout d’un style pour afficher le texte vidéo au-dessus de l’overlay encadré`

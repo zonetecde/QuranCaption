@@ -189,6 +189,7 @@
 						"background-overlay-fade-intensity",
 						"background-overlay-fade-coverage",
 						"video-frame-enable",
+						"video-frame-content-above",
 						"video-frame-color",
 						"video-frame-vertical-size",
 						"video-frame-horizontal-size",
@@ -292,6 +293,16 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "crop_16_9"
+			},
+			{
+				"id": "video-frame-content-above",
+				"name": "Content Above Frame",
+				"description": "Display subtitles and visual elements above the frame while keeping the overlay below it",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "flip_to_front"
 			},
 			{
 				"id": "video-frame-vertical-size",

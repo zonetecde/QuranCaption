@@ -956,6 +956,7 @@ const editor = {
 		'background-overlay-fade-coverage': 'Fade Coverage',
 		'overlay-blur': 'Overlay Blur',
 		'video-frame-enable': 'Video Frame',
+		'video-frame-content-above': 'Content Above Frame',
 		'video-frame-color': 'Frame Color',
 		'video-frame-vertical-size': 'Top & Bottom Thickness',
 		'video-frame-horizontal-size': 'Left & Right Thickness',
@@ -1141,6 +1142,8 @@ const editor = {
 			'Controls how much vertical area is used by fade versus non-fade zones',
 		'overlay-blur': 'Blur level of the overlay',
 		'video-frame-enable': 'Enable or disable a global frame around the video',
+		'video-frame-content-above':
+			'Display subtitles and visual elements above the frame while keeping the overlay below it',
 		'video-frame-color': 'Choose the color of the global video frame',
 		'video-frame-vertical-size': 'Set the top and bottom frame thickness as a percentage',
 		'video-frame-horizontal-size': 'Set the left and right frame thickness as a percentage',

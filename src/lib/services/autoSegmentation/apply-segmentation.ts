@@ -29,6 +29,9 @@ import {
 } from './timeline';
 import { awaitAudioNormalization } from './audio-normalize.svelte';
 
+const UI_YIELD_INTERVAL = 25;
+const yieldToUi = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 /**
  * Marque les traductions d'un clip comme "to review".
  *
@@ -133,7 +136,8 @@ async function materializeTemplate(
 	lowConfidenceSegments: { value: number },
 	coverageGapSegments: { value: number },
 	reviewSegments: { value: number },
-	storedAlignedSegments: StoredAlignedSegment[]
+	storedAlignedSegments: StoredAlignedSegment[],
+	targetClips: Array<SubtitleClip | PredefinedSubtitleClip>
 ): Promise<void> {
 	const alignmentSegment: SegmentationSegment = {
 		...template.segment,
@@ -152,7 +156,7 @@ async function materializeTemplate(
 			true,
 			template.confidence
 		);
-		subtitleTrack.clips.push(clip);
+		targetClips.push(clip);
 		const storedAlignedSegment = buildStoredAlignedSegment(
 			clip.id,
 			'Pre-defined Subtitle',
@@ -243,7 +247,7 @@ async function materializeTemplate(
 		markClipTranslationsForReview(clip);
 	}
 
-	subtitleTrack.clips.push(clip);
+	targetClips.push(clip);
 	const storedAlignedSegment = buildStoredAlignedSegment(
 		clip.id,
 		'Subtitle',
@@ -684,7 +688,10 @@ export async function applySegmentationResponseToProject(
 	}
 
 	// Matérialisation des templates
-	for (const template of clipTemplates) {
+	const builtClips: Array<SubtitleClip | PredefinedSubtitleClip> = [];
+	for (let templateIndex = 0; templateIndex < clipTemplates.length; templateIndex += 1) {
+		if (templateIndex > 0 && templateIndex % UI_YIELD_INTERVAL === 0) await yieldToUi();
+		const template = clipTemplates[templateIndex];
 		await materializeTemplate(
 			template,
 			template.originalStartMs,
@@ -696,40 +703,35 @@ export async function applySegmentationResponseToProject(
 			lowConfidenceSegments,
 			{ value: coverageGapSegmentsNum },
 			reviewSegments,
-			storedAlignedSegments
+			storedAlignedSegments,
+			builtClips
 		);
 	}
 	// Récupération du compteur coverage gap
 	coverageGapSegmentsNum = storedAlignedSegments.length > 0 ? 0 : coverageGapSegmentsNum; // reset - sera recalculé
 
 	// Post-processing de la timeline
-	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+	builtClips.sort((a, b) => a.startTime - b.startTime);
+	closeSmallSubtitleGaps(builtClips);
 
-	const subtitleClips = subtitleTrack.clips.filter(
-		(clip) => clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'
-	) as Array<SubtitleClip | PredefinedSubtitleClip>;
-	closeSmallSubtitleGaps(subtitleClips);
-
+	let finalClips: Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>;
 	if (fillBySilence) {
-		subtitleTrack.clips = insertSilenceClips(subtitleClips);
+		finalClips = insertSilenceClips(builtClips);
 		if (extendBeforeSilence && extendBeforeSilenceMs > 0) {
-			extendSubtitlesBeforeSilence(
-				subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
-				extendBeforeSilenceMs
-			);
+			extendSubtitlesBeforeSilence(finalClips, extendBeforeSilenceMs);
 		}
 	} else {
-		extendSubtitlesToFillGaps(subtitleClips);
-		subtitleTrack.clips = subtitleClips;
+		extendSubtitlesToFillGaps(builtClips);
+		finalClips = builtClips;
 	}
-	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+	finalClips.sort((a, b) => a.startTime - b.startTime);
+	subtitleTrack.clips = finalClips;
 
 	// Mise à jour des timestamps dans les segments alignés
+	const clipsById = new Map<number, (typeof subtitleTrack.clips)[number]>();
+	for (const clip of subtitleTrack.clips) clipsById.set(clip.id, clip);
 	for (const storedAlignedSegment of storedAlignedSegments) {
-		const clip = subtitleTrack.getClipById(storedAlignedSegment.clipId) as
-			| SubtitleClip
-			| PredefinedSubtitleClip
-			| null;
+		const clip = clipsById.get(storedAlignedSegment.clipId);
 		if (!clip) continue;
 		storedAlignedSegment.startMs = clip.startTime;
 		storedAlignedSegment.endMs = clip.endTime;

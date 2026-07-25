@@ -40,21 +40,22 @@ export type ApplyPreloadOptions = Pick<
 	timeOffsetMs?: number;
 };
 
-/** Décale (en place) tous les timestamps segment/mot de `offsetMs`. No-op si 0. */
+/**
+ * Décale (en place) les bornes de segment `time_from`/`time_to` de `offsetMs`.
+ * No-op si 0. Les timestamps de MOTS ne sont PAS touchés : ils sont relatifs au
+ * début de leur segment (voir apply-segmentation `segmentStartMsRaw + word.start`),
+ * donc ils suivent automatiquement le segment décalé — les décaler aussi
+ * doublerait l'offset et les pousserait hors de leur clip.
+ */
 function shiftSegmentTimestamps(response: { segments?: unknown[] }, offsetMs: number): void {
 	if (!offsetMs) return;
 	const offsetS = offsetMs / 1000;
 	for (const segment of (response.segments ?? []) as Array<{
 		time_from?: number;
 		time_to?: number;
-		words?: Array<{ start?: number; end?: number }>;
 	}>) {
 		if (typeof segment.time_from === 'number') segment.time_from += offsetS;
 		if (typeof segment.time_to === 'number') segment.time_to += offsetS;
-		for (const word of segment.words ?? []) {
-			if (typeof word.start === 'number') word.start += offsetS;
-			if (typeof word.end === 'number') word.end += offsetS;
-		}
 	}
 }
 

@@ -147,7 +147,12 @@ async function materializeTemplate(
 	lowConfidenceSegments: { value: number },
 	coverageGapSegments: { value: number },
 	reviewSegments: { value: number },
-	storedAlignedSegments: StoredAlignedSegment[]
+	storedAlignedSegments: StoredAlignedSegment[],
+	// Tableau plat de destination (PAS `subtitleTrack.clips` réactif) : on pousse
+	// dans un array simple puis on l'assigne une seule fois côté appelant. Pousser
+	// 1300+ clips dans le $state proxy déclenche autant de re-renders timeline →
+	// c'était 95% du temps d'application.
+	targetClips: Array<SubtitleClip | PredefinedSubtitleClip>
 ): Promise<void> {
 	const alignmentSegment: SegmentationSegment = {
 		...template.segment,
@@ -165,7 +170,7 @@ async function materializeTemplate(
 			template.confidence,
 			project.content.projectTranslation
 		);
-		subtitleTrack.clips.push(clip);
+		targetClips.push(clip);
 		const storedAlignedSegment = buildStoredAlignedSegment(
 			clip.id,
 			'Pre-defined Subtitle',
@@ -257,7 +262,7 @@ async function materializeTemplate(
 		markClipTranslationsForReview(clip, project);
 	}
 
-	subtitleTrack.clips.push(clip);
+	targetClips.push(clip);
 	const storedAlignedSegment = buildStoredAlignedSegment(
 		clip.id,
 		'Subtitle',
@@ -702,7 +707,8 @@ export async function applySegmentationResponseToProject(
 		};
 	}
 
-	// Matérialisation des templates
+	// Matérialisation dans un tableau plat (non réactif) — voir materializeTemplate.
+	const builtClips: Array<SubtitleClip | PredefinedSubtitleClip> = [];
 	for (let templateIndex = 0; templateIndex < clipTemplates.length; templateIndex += 1) {
 		if (templateIndex > 0 && templateIndex % UI_YIELD_INTERVAL === 0) await yieldToUi();
 		const template = clipTemplates[templateIndex];
@@ -719,33 +725,32 @@ export async function applySegmentationResponseToProject(
 			lowConfidenceSegments,
 			{ value: coverageGapSegmentsNum },
 			reviewSegments,
-			storedAlignedSegments
+			storedAlignedSegments,
+			builtClips
 		);
 	}
+
 	// Récupération du compteur coverage gap
 	coverageGapSegmentsNum = storedAlignedSegments.length > 0 ? 0 : coverageGapSegmentsNum; // reset - sera recalculé
 
-	// Post-processing de la timeline
-	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+	// Post-processing sur le tableau plat, puis UNE seule assignation réactive de
+	// `subtitleTrack.clips` : la timeline/preview ne se re-render qu'une fois au
+	// lieu d'une fois par clip.
+	builtClips.sort((a, b) => a.startTime - b.startTime);
+	closeSmallSubtitleGaps(builtClips);
 
-	const subtitleClips = subtitleTrack.clips.filter(
-		(clip) => clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'
-	) as Array<SubtitleClip | PredefinedSubtitleClip>;
-	closeSmallSubtitleGaps(subtitleClips);
-
+	let finalClips: Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>;
 	if (fillBySilence) {
-		subtitleTrack.clips = insertSilenceClips(subtitleClips);
+		finalClips = insertSilenceClips(builtClips);
 		if (extendBeforeSilence && extendBeforeSilenceMs > 0) {
-			extendSubtitlesBeforeSilence(
-				subtitleTrack.clips as Array<SubtitleClip | PredefinedSubtitleClip | SilenceClip>,
-				extendBeforeSilenceMs
-			);
+			extendSubtitlesBeforeSilence(finalClips, extendBeforeSilenceMs);
 		}
 	} else {
-		extendSubtitlesToFillGaps(subtitleClips);
-		subtitleTrack.clips = subtitleClips;
+		extendSubtitlesToFillGaps(builtClips);
+		finalClips = builtClips;
 	}
-	subtitleTrack.clips.sort((a, b) => a.startTime - b.startTime);
+	finalClips.sort((a, b) => a.startTime - b.startTime);
+	subtitleTrack.clips = finalClips;
 
 	// Mise à jour des timestamps dans les segments alignés.
 	// Index clip-par-id construit une seule fois : `getClipById` fait un scan

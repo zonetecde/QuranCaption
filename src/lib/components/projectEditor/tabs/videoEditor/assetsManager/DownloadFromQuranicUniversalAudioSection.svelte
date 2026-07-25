@@ -1,6 +1,6 @@
 <script lang="ts">
 	import toast from 'svelte-5-french-toast';
-	import { join } from '@tauri-apps/api/path';
+	import { exists, stat } from '@tauri-apps/plugin-fs';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onMount } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -18,7 +18,7 @@
 		downloadFileWithProgress,
 		type DownloadProgress
 	} from '$lib/services/DownloadWithProgress';
-	import { ProjectService } from '$lib/services/ProjectService';
+	import { quaCacheRelKey, resolveQuaCachePath } from '$lib/services/QuaAudioCache';
 	import {
 		QuranicUniversalAudioService,
 		type QuaRecitation
@@ -158,14 +158,19 @@
 	}
 
 	/**
-	 * Télécharge le mp3 du chapitre complet, l'ajoute comme asset puis le pose sur
-	 * la piste audio. Gère les toasts de progression ; relance l'erreur au caller.
+	 * Télécharge le mp3 du chapitre (ou le réutilise depuis le cache partagé QUA),
+	 * l'ajoute comme asset puis le pose sur la piste audio. `cacheKey` identifie de
+	 * façon déterministe l'audio (récitateur + sourate + plage) : un fichier déjà
+	 * présent est réutilisé tel quel, sans re-téléchargement ni copie par projet —
+	 * l'`Asset.filePath` pointe directement sur le fichier du cache. Gère les toasts
+	 * de progression ; relance l'erreur au caller.
 	 */
 	async function importChapterAudio(
 		audioUrl: string,
 		reciterName: string,
 		surahName: string,
-		assetMeta: Record<string, unknown>
+		assetMeta: Record<string, unknown>,
+		cacheKey: string
 	): Promise<void> {
 		const downloadingLabel = get(LL).editor.downloadingSurah({
 			surah: surahName,
@@ -175,21 +180,23 @@
 		downloadProgress = null;
 		const toastId = toast.loading(downloadingLabel);
 		try {
-			const downloadPath = await ProjectService.getAssetFolderForProject(
-				globalState.currentProject!.detail.id
-			);
-			const rawBaseName = `${reciterName} - ${surahName}`;
-			let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
-			if (!sanitizedBaseName) sanitizedBaseName = `surah-${selectedSurahId}`;
-			const fullPath = await join(downloadPath, `${sanitizedBaseName}.mp3`);
+			const cachePath = await resolveQuaCachePath(cacheKey);
 
-			const downloadedBytes = await downloadFileWithProgress(audioUrl, fullPath, (progress) => {
-				downloadProgress = progress;
-			});
+			// Cache hit → aucun HTTP : on lit juste la taille pour le toast.
+			let downloadedBytes: number;
+			let fromCache = false;
+			if (await exists(cachePath)) {
+				fromCache = true;
+				downloadedBytes = (await stat(cachePath)).size;
+			} else {
+				downloadedBytes = await downloadFileWithProgress(audioUrl, cachePath, (progress) => {
+					downloadProgress = progress;
+				});
+			}
 			downloadProgress = null;
 
 			const asset = globalState.currentProject!.content.addAsset(
-				fullPath,
+				cachePath,
 				audioUrl,
 				SourceType.QuranicUniversalAudio,
 				assetMeta
@@ -200,9 +207,11 @@
 			await asset.ensureDurationLoaded();
 			await asset.addToTimeline(false, true);
 
-			toast.success(`${get(LL).editor.downloadSuccessful()} (${bytesToMb(downloadedBytes)} MB)`, {
-				id: toastId
-			});
+			const cachedSuffix = fromCache ? ', cached' : '';
+			toast.success(
+				`${get(LL).editor.downloadSuccessful()} (${bytesToMb(downloadedBytes)} MB${cachedSuffix})`,
+				{ id: toastId }
+			);
 		} catch (error) {
 			toast.dismiss(toastId);
 			throw error;
@@ -235,14 +244,26 @@
 		// silence/isti'adha/basmala en tête de fichier avant la plage alignée). Le
 		// cap serveur qui renvoyait 400 sur les longues fenêtres a été retiré côté
 		// aligner, donc la fenêtre de clip complète stream sans limite de durée.
-		await importChapterAudio(audioUrl, reciterName, surahName, {
-			quranicUniversalAudio: {
-				recitation: selectedSlug,
+		await importChapterAudio(
+			audioUrl,
+			reciterName,
+			surahName,
+			{
+				quranicUniversalAudio: {
+					recitation: selectedSlug,
+					surah: selectedSurahId,
+					verseFrom: ayahFrom,
+					verseTo: ayahTo
+				}
+			},
+			// Clip des versets : la clé inclut la plage (octets dépendants de [from,to]).
+			quaCacheRelKey({
+				slug: selectedSlug,
 				surah: selectedSurahId,
 				verseFrom: ayahFrom,
 				verseTo: ayahTo
-			}
-		});
+			})
+		);
 
 		// Segments pré-alignés (sans ré-enrichissement MFA). Sur une longue sourate
 		// l'application des clips prend plusieurs secondes : le bouton passe en état
@@ -266,12 +287,19 @@
 			throw new Error('No audio is available for this recitation/chapter.');
 		}
 
-		await importChapterAudio(audioUrl, reciterName, surahName, {
-			quranicUniversalAudio: {
-				recitation: selectedSlug,
-				surah: selectedSurahId
-			}
-		});
+		await importChapterAudio(
+			audioUrl,
+			reciterName,
+			surahName,
+			{
+				quranicUniversalAudio: {
+					recitation: selectedSlug,
+					surah: selectedSurahId
+				}
+			},
+			// Fichier chapitre complet : clé sans plage de versets.
+			quaCacheRelKey({ slug: selectedSlug, surah: selectedSurahId })
+		);
 	}
 
 	/** Point d'entrée du bouton de téléchargement (route selon le mode courant). */

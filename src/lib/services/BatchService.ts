@@ -10,6 +10,7 @@ import {
 import type { ValidatedBatchRow } from '$lib/components/batch/batchCsv';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectService } from '$lib/services/ProjectService';
+import { pruneOrphanedQuaCache } from '$lib/services/QuaAudioCache';
 import { DEFAULT_PROJECT_TYPE } from '$lib/types/projectType';
 import { join } from '@tauri-apps/api/path';
 import { exists, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
@@ -242,7 +243,14 @@ export class BatchService {
 		const filePath = await join(await this.getBatchesFolderPath(), `${batchId}.json`);
 		if (!(await exists(filePath))) return;
 		const batch = await this.load(batchId);
-		await Promise.all(batch.projects.map((project) => ProjectService.delete(project.projectId)));
+		// Suppression concurrente : on désactive la purge par projet et on purge le
+		// cache QUA une seule fois après (évite course + rechargements O(n²)).
+		await Promise.all(
+			batch.projects.map((project) =>
+				ProjectService.delete(project.projectId, { sweepQuaCache: false })
+			)
+		);
+		await pruneOrphanedQuaCache();
 		await remove(filePath);
 		globalState.userBatchDetails = globalState.userBatchDetails.filter(
 			(detail) => detail.id !== batchId
@@ -287,11 +295,13 @@ export class BatchService {
 	 */
 	static async deleteProjects(batch: Batch, projectIds: number[]): Promise<void> {
 		const selectedIds = new Set(projectIds);
+		// Purge du cache QUA une seule fois après la suppression concurrente.
 		await Promise.all(
 			batch.projects
 				.filter((project) => selectedIds.has(project.projectId))
-				.map((project) => ProjectService.delete(project.projectId))
+				.map((project) => ProjectService.delete(project.projectId, { sweepQuaCache: false }))
 		);
+		await pruneOrphanedQuaCache();
 		batch.projects = batch.projects.filter((project) => !selectedIds.has(project.projectId));
 		batch.updatedAt = new Date();
 		await this.save(batch);

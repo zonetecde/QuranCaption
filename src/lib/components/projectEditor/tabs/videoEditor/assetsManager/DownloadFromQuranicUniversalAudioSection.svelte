@@ -228,16 +228,14 @@
 			throw new Error('No pre-aligned segments are available for this selection.');
 		}
 
-		// Le proxy renvoie une URL de clip (`?start_ms=&end_ms=`) et refuse (400
-		// « clip window too large ») les fenêtres trop longues — ce qui casse les
-		// récitations Mujawwad d'une sourate entière (plusieurs heures). Quand la
-		// sélection couvre toute la sourate depuis le début, le clip = le fichier
-		// complet : on télécharge directement le mp3 non tronqué, qui n'a pas de
-		// limite de fenêtre. Les timestamps restent absolus depuis 0 → inchangés.
-		const isFullSurah = ayahFrom === 1 && ayahTo === maxAyah;
-		const downloadUrl = isFullSurah ? audioUrl.split('?')[0] : audioUrl;
-
-		await importChapterAudio(downloadUrl, reciterName, surahName, {
+		// On télécharge l'URL de clip (`?start_ms=&end_ms=`) telle quelle : les
+		// timestamps des segments Preload sont RELATIFS au début de la fenêtre de
+		// clip (0 = start_ms), pas absolus depuis 0 du fichier chapitre. Télécharger
+		// le mp3 complet non tronqué décalait donc tout d'un offset constant (le
+		// silence/isti'adha/basmala en tête de fichier avant la plage alignée). Le
+		// cap serveur qui renvoyait 400 sur les longues fenêtres a été retiré côté
+		// aligner, donc la fenêtre de clip complète stream sans limite de durée.
+		await importChapterAudio(audioUrl, reciterName, surahName, {
 			quranicUniversalAudio: {
 				recitation: selectedSlug,
 				surah: selectedSurahId,

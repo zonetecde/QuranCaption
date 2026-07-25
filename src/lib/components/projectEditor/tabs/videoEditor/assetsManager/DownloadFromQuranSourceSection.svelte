@@ -6,17 +6,20 @@
 	import { get } from 'svelte/store';
 
 	import { SourceType } from '$lib/classes';
+	import type { Project } from '$lib/classes';
 	import { Quran } from '$lib/classes/Quran';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { runNativeSegmentation } from '$lib/services/AutoSegmentation';
+	import { bytesToMb, downloadFileWithProgress } from '$lib/services/DownloadWithProgress';
 	import {
-		bytesToMb,
-		downloadFileWithProgress,
-		type DownloadProgress
-	} from '$lib/services/DownloadWithProgress';
+		getAudioDownload,
+		runAudioDownload,
+		type AudioDownloadContext,
+		type AudioDownloadDone
+	} from '$lib/services/AudioDownloadStore.svelte';
 	import {
 		Mp3QuranService,
 		type Mp3QuranReciter,
@@ -50,9 +53,12 @@
 	let selectedOptionIndex = $state(-1);
 	let selectedSurahId = $state(-1);
 	let isLoadingReciters = $state(true);
-	let isDownloading = $state(false);
-	// Progression du téléchargement, affichée dans le bouton (pas de chiffre en toast).
-	let downloadProgress = $state<DownloadProgress | null>(null);
+
+	// État de téléchargement hébergé hors composant (store de module) : survit au
+	// démontage du Video Editor lors d'une bascule d'onglet/fenêtre dans QC.
+	const projectId = $derived(globalState.currentProject?.detail.id ?? -1);
+	const download = $derived(getAudioDownload(projectId, 'quranSource'));
+	const isDownloading = $derived(download.busy);
 	// Quran.com est l'onglet par défaut comme demandé.
 	let selectedSource = $state<'qdc' | 'mp3quran'>('qdc');
 
@@ -158,144 +164,165 @@
 		selectedSurahId = -1;
 	});
 
-	/**
-	 * Télécharge l'audio depuis la source active, ajoute l'asset au projet,
-	 * puis propose de charger les timings natifs si la source les fournit.
-	 */
-	async function downloadAsset(): Promise<void> {
-		if (selectedOptionIndex === -1 || selectedSurahId === -1) return;
+	/** Sélection figée au lancement du téléchargement (détachée des `$state` réactifs). */
+	type QuranSourceSelection = {
+		option: DownloadOption;
+		surahId: number;
+		surahName: string;
+		fileName: string;
+		formattedSurahId: string;
+	};
 
-		isDownloading = true;
-		const selectedOption = filteredDownloadOptions[selectedOptionIndex];
+	/**
+	 * Télécharge l'audio depuis la source active vers le dossier du projet ciblé, ajoute
+	 * l'asset, puis propose de charger les timings natifs si la source les fournit.
+	 *
+	 * `project` est capturé au lancement : le travail est détaché du composant, donc on
+	 * ne relit jamais `globalState.currentProject`.
+	 */
+	async function runQuranSourceDownload(
+		project: Project,
+		ctx: AudioDownloadContext,
+		sel: QuranSourceSelection
+	): Promise<AudioDownloadDone> {
+		const { option, surahId, surahName, fileName, formattedSurahId } = sel;
+		const downloadPath = await ProjectService.getAssetFolderForProject(project.detail.id);
+		const fullPath = await join(downloadPath, fileName);
+
+		let audioUrl = '';
+		let sourceType = SourceType.Mp3Quran;
+		let metadata: Record<string, unknown> = {};
+
+		if (option.source === 'mp3quran') {
+			// MP3Quran expose directement l'URL finale du mp3 par convention de dossier.
+			audioUrl = `${option.mp3Server}${formattedSurahId}.mp3`;
+			sourceType = SourceType.Mp3Quran;
+			if (option.supportsNativeTiming) {
+				metadata = {
+					mp3Quran: {
+						reciterId: option.mp3ReciterId,
+						moshafId: option.mp3MoshafId,
+						surahId
+					},
+					nativeTiming: {
+						provider: 'mp3quran',
+						reciterId: option.mp3ReciterId,
+						moshafId: option.mp3MoshafId,
+						surahId
+					}
+				};
+			}
+		} else {
+			// Pour QDC, on passe d'abord par le proxy Quran Caption pour ne pas exposer les clés.
+			const chapterAudio = await QdcRecitationService.getChapterAudio(
+				option.qdcRecitationId!,
+				surahId
+			);
+			if (!chapterAudio?.audio_url) {
+				throw new Error('Unable to fetch Quran.com audio URL for this recitation.');
+			}
+			// Certains audios QDC sont listés mais absents côté CDN. On le vérifie avant download.
+			const isAudioAvailable = await QdcRecitationService.isAudioUrlAvailable(
+				chapterAudio.audio_url
+			);
+			if (!isAudioAvailable) {
+				throw new Error(
+					'This Quran.com recitation is listed, but the source audio file is unavailable upstream for this surah.'
+				);
+			}
+			audioUrl = chapterAudio.audio_url;
+			sourceType = SourceType.QuranFoundation;
+			metadata = {
+				nativeTiming: {
+					provider: 'qdc',
+					recitationId: option.qdcRecitationId,
+					surahId
+				}
+			};
+		}
+
+		const downloadedBytes = await downloadFileWithProgress(audioUrl, fullPath, ctx.report);
+		ctx.report(null);
+
+		const projectContent = project.content;
+		projectContent.addAsset(fullPath, audioUrl, sourceType, metadata);
+
+		// Timings natifs optionnels : on ne les propose/applique que si le projet ciblé
+		// est toujours ouvert (la confirmation + segmentation lisent l'état global).
+		if (option.supportsNativeTiming && globalState.currentProject?.detail.id === project.detail.id) {
+			const normalizedFullPath = fullPath.replace(/\\/g, '/').replace(/\/+/g, '/');
+			const addedAsset = projectContent.assets.find(
+				(asset) => asset.filePath === normalizedFullPath
+			);
+
+			if (addedAsset) {
+				const confirmTimingLoad = await ModalManager.confirmModal(
+					get(LL).editor.nativeTimingsConfirm(),
+					true
+				);
+
+				if (confirmTimingLoad) {
+					await addedAsset.addToTimeline(false, true);
+					await runNativeSegmentation(addedAsset.id);
+				}
+			}
+		}
+
+		if (option.source === 'mp3quran') {
+			AnalyticsService.downloadFromMP3Quran(option.reciterName, surahName, fileName);
+		}
+		AnalyticsService.downloadRecitationAudio(
+			option.sourceLabel,
+			option.reciterName,
+			surahName,
+			fileName
+		);
+
+		return {
+			title: get(LL).editor.downloadSuccessful(),
+			body: `${surahName} · ${bytesToMb(downloadedBytes)} MB`
+		};
+	}
+
+	/**
+	 * Point d'entrée du bouton. Fige la sélection et le projet ciblé, puis délègue au
+	 * store de téléchargement (détaché du composant) : la bascule d'onglet/fenêtre dans
+	 * QC n'interrompt plus le téléchargement, et une notification annonce la fin.
+	 */
+	function onDownload(): void {
+		const project = globalState.currentProject;
+		if (!project || selectedOptionIndex === -1 || selectedSurahId === -1 || isDownloading) return;
+
+		const option = filteredDownloadOptions[selectedOptionIndex];
 		const formattedSurahId = selectedSurahId.toString().padStart(3, '0');
 		const surahName =
 			availableSurahs.find((surah) => surah.id === selectedSurahId)?.name.split(' (')[0] ??
 			`Surah ${formattedSurahId}`;
-		const rawBaseName = `${selectedOption.reciterName} - ${surahName}`;
+		const rawBaseName = `${option.reciterName} - ${surahName}`;
 		let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 		if (!sanitizedBaseName) {
 			sanitizedBaseName = `surah-${formattedSurahId}`;
 		}
 		const fileName = `${sanitizedBaseName}.mp3`;
 
-		let toastId: string | undefined;
+		const sel: QuranSourceSelection = {
+			option,
+			surahId: selectedSurahId,
+			surahName,
+			fileName,
+			formattedSurahId
+		};
 
-		try {
-			const downloadPath = await ProjectService.getAssetFolderForProject(
-				globalState.currentProject!.detail.id
-			);
-			const downloadingLabel = get(LL).editor.downloadingSurah({
-				surah: surahName.split('.')[1].trim(),
-				reciter: selectedOption.reciterName
-			});
-			toastId = toast.loading(downloadingLabel);
-
-			const fullPath = await join(downloadPath, fileName);
-
-			let audioUrl = '';
-			let sourceType = SourceType.Mp3Quran;
-			let metadata: Record<string, unknown> = {};
-
-			if (selectedOption.source === 'mp3quran') {
-				// MP3Quran expose directement l'URL finale du mp3 par convention de dossier.
-				audioUrl = `${selectedOption.mp3Server}${formattedSurahId}.mp3`;
-				sourceType = SourceType.Mp3Quran;
-				if (selectedOption.supportsNativeTiming) {
-					metadata = {
-						mp3Quran: {
-							reciterId: selectedOption.mp3ReciterId,
-							moshafId: selectedOption.mp3MoshafId,
-							surahId: selectedSurahId
-						},
-						nativeTiming: {
-							provider: 'mp3quran',
-							reciterId: selectedOption.mp3ReciterId,
-							moshafId: selectedOption.mp3MoshafId,
-							surahId: selectedSurahId
-						}
-					};
-				}
-			} else {
-				// Pour QDC, on passe d'abord par le proxy Quran Caption pour ne pas exposer les clés.
-				const chapterAudio = await QdcRecitationService.getChapterAudio(
-					selectedOption.qdcRecitationId!,
-					selectedSurahId
-				);
-				if (!chapterAudio?.audio_url) {
-					throw new Error('Unable to fetch Quran.com audio URL for this recitation.');
-				}
-				// Certains audios QDC sont listés mais absents côté CDN. On le vérifie avant download.
-				const isAudioAvailable = await QdcRecitationService.isAudioUrlAvailable(
-					chapterAudio.audio_url
-				);
-				if (!isAudioAvailable) {
-					throw new Error(
-						'This Quran.com recitation is listed, but the source audio file is unavailable upstream for this surah.'
-					);
-				}
-				audioUrl = chapterAudio.audio_url;
-				sourceType = SourceType.QuranFoundation;
-				metadata = {
-					nativeTiming: {
-						provider: 'qdc',
-						recitationId: selectedOption.qdcRecitationId,
-						surahId: selectedSurahId
-					}
-				};
-			}
-
-			downloadProgress = null;
-			const downloadedBytes = await downloadFileWithProgress(audioUrl, fullPath, (progress) => {
-				downloadProgress = progress;
-			});
-			downloadProgress = null;
-
-			const projectContent = globalState.currentProject!.content;
-			projectContent.addAsset(fullPath, audioUrl, sourceType, metadata);
-
-			toast.success(`${get(LL).editor.downloadSuccessful()} (${bytesToMb(downloadedBytes)} MB)`, {
-				id: toastId
-			});
-
-			if (selectedOption.supportsNativeTiming) {
-				// On retrouve l'asset fraîchement ajouté pour l'insérer dans la timeline si l'utilisateur accepte.
-				const normalizedFullPath = fullPath.replace(/\\/g, '/').replace(/\/+/g, '/');
-				const addedAsset = projectContent.assets.find(
-					(asset) => asset.filePath === normalizedFullPath
-				);
-
-				if (addedAsset) {
-					const confirmTimingLoad = await ModalManager.confirmModal(
-						get(LL).editor.nativeTimingsConfirm(),
-						true
-					);
-
-					if (confirmTimingLoad) {
-						await addedAsset.addToTimeline(false, true);
-						await runNativeSegmentation(addedAsset.id);
-					}
-				}
-			}
-
-			if (selectedOption.source === 'mp3quran') {
-				AnalyticsService.downloadFromMP3Quran(selectedOption.reciterName, surahName, fileName);
-			}
-			AnalyticsService.downloadRecitationAudio(
-				selectedOption.sourceLabel,
-				selectedOption.reciterName,
-				surahName,
-				fileName
-			);
-		} catch (error) {
-			console.error('Download error:', error);
-			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), {
-				id: toastId,
-				duration: 5000
-			});
-		} finally {
-			isDownloading = false;
-			downloadProgress = null;
-		}
+		void runAudioDownload({
+			projectId: project.detail.id,
+			section: 'quranSource',
+			label: get(LL).editor.downloadingSurah({
+				surah: surahName.split('.')[1]?.trim() ?? surahName,
+				reciter: option.reciterName
+			}),
+			errorTitle: get(LL).editor.downloadFailed(),
+			run: (ctx) => runQuranSourceDownload(project, ctx, sel)
+		});
 	}
 </script>
 
@@ -360,11 +387,11 @@
 
 		<DownloadButton
 			idleLabel={get(LL).editor.downloadAudio()}
-			busyLabel={get(LL).editor.downloadingLabel()}
+			busyLabel={download.label || get(LL).editor.downloadingLabel()}
 			busy={isDownloading}
 			disabled={selectedOptionIndex === -1 || selectedSurahId === -1 || isDownloading}
-			progress={downloadProgress}
-			onclick={downloadAsset}
+			progress={download.progress}
+			onclick={onDownload}
 		/>
 	</div>
 </Section>

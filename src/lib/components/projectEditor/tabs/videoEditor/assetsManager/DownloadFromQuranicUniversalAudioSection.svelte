@@ -12,12 +12,15 @@
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import DownloadButton from './DownloadButton.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import type { Project } from '$lib/classes';
 	import { applyPreloadSegmentsToProject } from '$lib/services/AutoSegmentation';
+	import { bytesToMb, downloadFileWithProgress } from '$lib/services/DownloadWithProgress';
 	import {
-		bytesToMb,
-		downloadFileWithProgress,
-		type DownloadProgress
-	} from '$lib/services/DownloadWithProgress';
+		getAudioDownload,
+		runAudioDownload,
+		type AudioDownloadContext,
+		type AudioDownloadDone
+	} from '$lib/services/AudioDownloadStore.svelte';
 	import { quaCacheRelKey, resolveQuaCachePath } from '$lib/services/QuaAudioCache';
 	import {
 		QuranicUniversalAudioService,
@@ -38,10 +41,13 @@
 	let ayahFrom = $state(1);
 	let ayahTo = $state(1);
 	let isLoadingRecitations = $state(true);
-	let isDownloading = $state(false);
-	// Progression + libellé de phase pilotant le bouton (aucun chiffre dans les toasts).
-	let downloadProgress = $state<DownloadProgress | null>(null);
-	let busyLabel = $state('');
+
+	// État de téléchargement hébergé hors composant (store de module) : survit au
+	// démontage du Video Editor lors d'une bascule d'onglet/fenêtre dans QC, donc
+	// le bouton retrouve sa progression et son état occupé au remontage.
+	const projectId = $derived(globalState.currentProject?.detail.id ?? -1);
+	const download = $derived(getAudioDownload(projectId, 'qua'));
+	const isDownloading = $derived(download.busy);
 
 	// Options de segmentation (reprend les défauts de l'assistant auto-segmentation).
 	// Les timestamps mot à mot sont toujours fournis par le Preload → case forcée/désactivée.
@@ -159,78 +165,85 @@
 
 	/**
 	 * Télécharge le mp3 du chapitre (ou le réutilise depuis le cache partagé QUA),
-	 * l'ajoute comme asset puis le pose sur la piste audio. `cacheKey` identifie de
-	 * façon déterministe l'audio (récitateur + sourate + plage) : un fichier déjà
-	 * présent est réutilisé tel quel, sans re-téléchargement ni copie par projet —
-	 * l'`Asset.filePath` pointe directement sur le fichier du cache. Gère les toasts
-	 * de progression ; relance l'erreur au caller.
+	 * l'ajoute comme asset du projet ciblé puis le pose sur la piste audio. `cacheKey`
+	 * identifie de façon déterministe l'audio (récitateur + sourate + plage) : un
+	 * fichier déjà présent est réutilisé tel quel, sans re-téléchargement ni copie par
+	 * projet — l'`Asset.filePath` pointe directement sur le fichier du cache.
+	 *
+	 * `project` est capturé au lancement : le travail est détaché du composant, donc on
+	 * ne relit jamais `globalState.currentProject` (l'utilisateur peut avoir changé de
+	 * projet entre-temps).
 	 */
 	async function importChapterAudio(
+		project: Project,
+		report: AudioDownloadContext['report'],
 		audioUrl: string,
-		reciterName: string,
-		surahName: string,
 		assetMeta: Record<string, unknown>,
 		cacheKey: string,
 		downloadUrl: string = audioUrl
-	): Promise<void> {
-		const downloadingLabel = get(LL).editor.downloadingSurah({
-			surah: surahName,
-			reciter: reciterName
-		});
-		busyLabel = downloadingLabel;
-		downloadProgress = null;
-		const toastId = toast.loading(downloadingLabel);
-		try {
-			const cachePath = await resolveQuaCachePath(cacheKey);
+	): Promise<{ bytes: number; fromCache: boolean }> {
+		const cachePath = await resolveQuaCachePath(cacheKey);
 
-			// Cache hit → aucun HTTP : on lit juste la taille pour le toast. Sinon on
-			// télécharge la fenêtre audio choisie (`downloadUrl`), en gardant l'URL
-			// serveur d'origine (`audioUrl`) comme provenance de l'asset.
-			let downloadedBytes: number;
-			let fromCache = false;
-			if (await exists(cachePath)) {
-				fromCache = true;
-				downloadedBytes = (await stat(cachePath)).size;
-			} else {
-				downloadedBytes = await downloadFileWithProgress(downloadUrl, cachePath, (progress) => {
-					downloadProgress = progress;
-				});
-			}
-			downloadProgress = null;
-
-			const asset = globalState.currentProject!.content.addAsset(
-				cachePath,
-				audioUrl,
-				SourceType.QuranicUniversalAudio,
-				assetMeta
-			);
-			if (!asset) {
-				throw new Error('Unable to add the downloaded audio as a project asset.');
-			}
-			await asset.ensureDurationLoaded();
-			await asset.addToTimeline(false, true);
-
-			const cachedSuffix = fromCache ? ', cached' : '';
-			toast.success(
-				`${get(LL).editor.downloadSuccessful()} (${bytesToMb(downloadedBytes)} MB${cachedSuffix})`,
-				{ id: toastId }
-			);
-		} catch (error) {
-			toast.dismiss(toastId);
-			throw error;
+		// Cache hit → aucun HTTP : on lit juste la taille. Sinon on télécharge la
+		// fenêtre audio choisie (`downloadUrl`), en gardant l'URL serveur d'origine
+		// (`audioUrl`) comme provenance de l'asset.
+		let bytes: number;
+		let fromCache = false;
+		if (await exists(cachePath)) {
+			fromCache = true;
+			bytes = (await stat(cachePath)).size;
+		} else {
+			bytes = await downloadFileWithProgress(downloadUrl, cachePath, report);
 		}
+		report(null);
+
+		const asset = project.content.addAsset(
+			cachePath,
+			audioUrl,
+			SourceType.QuranicUniversalAudio,
+			assetMeta
+		);
+		if (!asset) {
+			throw new Error('Unable to add the downloaded audio as a project asset.');
+		}
+		await asset.ensureDurationLoaded();
+		await asset.addToTimeline(false, true);
+
+		return { bytes, fromCache };
+	}
+
+	/** Sélection figée au lancement du téléchargement (détachée des `$state` réactifs). */
+	type QuaSelection = {
+		slug: string;
+		surahId: number;
+		surahName: string;
+		from: number;
+		to: number;
+		max: number;
+		fillBySilence: boolean;
+		extendBeforeSilence: boolean;
+		extendBeforeSilenceMs: number;
+	};
+
+	/** Construit le résumé de fin (titre + taille téléchargée) pour la notification. */
+	function downloadDone(surahName: string, bytes: number, fromCache: boolean): AudioDownloadDone {
+		return {
+			title: get(LL).editor.downloadSuccessful(),
+			body: `${surahName} · ${bytesToMb(bytes)} MB${fromCache ? ' (cached)' : ''}`
+		};
 	}
 
 	/** Audio + segments : télécharge le chapitre et applique les segments pré-alignés. */
-	async function downloadAndApply(): Promise<void> {
-		clampAyahRange();
-		const { reciterName, surahName } = currentNames();
-
+	async function downloadAndApply(
+		project: Project,
+		ctx: AudioDownloadContext,
+		sel: QuaSelection
+	): Promise<AudioDownloadDone> {
 		const payload = await QuranicUniversalAudioService.getSegments(
-			selectedSlug,
-			selectedSurahId,
-			ayahFrom,
-			ayahTo
+			sel.slug,
+			sel.surahId,
+			sel.from,
+			sel.to
 		);
 		const audioUrl = payload.audio_url ?? '';
 		if (!audioUrl) {
@@ -245,36 +258,40 @@
 		// fenêtre téléchargée aux frontières « spéciales » de la sourate — isti'adha
 		// /basmala de tête quand le verset 1 est inclus, clôture de fin quand le
 		// dernier verset l'est — puis on réaligne les sous-titres via un décalage.
-		const window = computeAudioWindow(audioUrl);
-		const downloadUrl = window.downloadUrl;
+		const window = computeAudioWindow(audioUrl, sel);
 
-		await importChapterAudio(
+		const { bytes, fromCache } = await importChapterAudio(
+			project,
+			ctx.report,
 			audioUrl,
-			reciterName,
-			surahName,
 			{
 				quranicUniversalAudio: {
-					recitation: selectedSlug,
-					surah: selectedSurahId,
-					verseFrom: ayahFrom,
-					verseTo: ayahTo
+					recitation: sel.slug,
+					surah: sel.surahId,
+					verseFrom: sel.from,
+					verseTo: sel.to
 				}
 			},
 			window.cacheKey,
-			downloadUrl
+			window.downloadUrl
 		);
 
-		// Segments pré-alignés (sans ré-enrichissement MFA). Sur une longue sourate
-		// l'application des clips prend plusieurs secondes : le bouton passe en état
-		// « Applying… » indéterminé (l'UI reste réactive grâce au yield coopératif).
-		busyLabel = 'Applying segments to the timeline…';
-		downloadProgress = null;
-		await applyPreloadSegmentsToProject(payload, {
-			fillBySilence,
-			extendBeforeSilence,
-			extendBeforeSilenceMs,
-			timeOffsetMs: window.timeOffsetMs
-		});
+		// Segments pré-alignés (sans ré-enrichissement MFA). L'application lit
+		// `globalState.currentProject` en interne : on ne l'applique que si le projet
+		// ciblé est toujours ouvert (sinon l'audio est ajouté, sans écraser un autre
+		// projet). Sur une longue sourate l'application prend plusieurs secondes : le
+		// bouton passe en état « Applying… » indéterminé.
+		if (globalState.currentProject?.detail.id === project.detail.id) {
+			ctx.setLabel('Applying segments to the timeline…');
+			await applyPreloadSegmentsToProject(payload, {
+				fillBySilence: sel.fillBySilence,
+				extendBeforeSilence: sel.extendBeforeSilence,
+				extendBeforeSilenceMs: sel.extendBeforeSilenceMs,
+				timeOffsetMs: window.timeOffsetMs
+			});
+		}
+
+		return downloadDone(sel.surahName, bytes, fromCache);
 	}
 
 	/** Borne haute « fin de fichier » : ffmpeg tronque à l'EOF réel (24 h en ms). */
@@ -288,7 +305,10 @@
 	 * @param audioUrl URL de clip renvoyée par le serveur (`?start_ms=&end_ms=`).
 	 * @returns URL à télécharger, clé de cache et décalage temporel des sous-titres.
 	 */
-	function computeAudioWindow(audioUrl: string): {
+	function computeAudioWindow(
+		audioUrl: string,
+		sel: QuaSelection
+	): {
 		downloadUrl: string;
 		cacheKey: string;
 		timeOffsetMs: number;
@@ -298,8 +318,8 @@
 		const origStart = Number.parseInt(params.get('start_ms') ?? '0', 10) || 0;
 		const origEnd = Number.parseInt(params.get('end_ms') ?? '0', 10) || 0;
 
-		const keepIntro = ayahFrom === 1; // le verset 1 amène l'isti'adha/basmala de tête.
-		const keepOutro = ayahTo === maxAyah; // le dernier verset amène la clôture de fin.
+		const keepIntro = sel.from === 1; // le verset 1 amène l'isti'adha/basmala de tête.
+		const keepOutro = sel.to === sel.max; // le dernier verset amène la clôture de fin.
 		const audioStart = keepIntro ? 0 : origStart;
 		const isFullSurah = keepIntro && keepOutro;
 
@@ -310,12 +330,12 @@
 			: `${base}?start_ms=${audioStart}&end_ms=${keepOutro ? AUDIO_END_SENTINEL_MS : origEnd}`;
 
 		const cacheKey = isFullSurah
-			? quaCacheRelKey({ slug: selectedSlug, surah: selectedSurahId })
+			? quaCacheRelKey({ slug: sel.slug, surah: sel.surahId })
 			: quaCacheRelKey({
-					slug: selectedSlug,
-					surah: selectedSurahId,
-					verseFrom: ayahFrom,
-					verseTo: ayahTo
+					slug: sel.slug,
+					surah: sel.surahId,
+					verseFrom: sel.from,
+					verseTo: sel.to
 				});
 
 		// Position d'un segment dans la fenêtre = temps relatif + (origStart − audioStart).
@@ -323,48 +343,68 @@
 	}
 
 	/** Audio seul : télécharge le chapitre complet, sans aucun segment. */
-	async function downloadAudioOnly(): Promise<void> {
-		const { reciterName, surahName } = currentNames();
-
-		const payload = await QuranicUniversalAudioService.getAudioUrl(selectedSlug, selectedSurahId);
+	async function downloadAudioOnly(
+		project: Project,
+		ctx: AudioDownloadContext,
+		sel: QuaSelection
+	): Promise<AudioDownloadDone> {
+		const payload = await QuranicUniversalAudioService.getAudioUrl(sel.slug, sel.surahId);
 		const audioUrl = payload.audio_url ?? '';
 		if (!audioUrl) {
 			throw new Error('No audio is available for this recitation/chapter.');
 		}
 
-		await importChapterAudio(
+		const { bytes, fromCache } = await importChapterAudio(
+			project,
+			ctx.report,
 			audioUrl,
-			reciterName,
-			surahName,
 			{
 				quranicUniversalAudio: {
-					recitation: selectedSlug,
-					surah: selectedSurahId
+					recitation: sel.slug,
+					surah: sel.surahId
 				}
 			},
 			// Fichier chapitre complet : clé sans plage de versets.
-			quaCacheRelKey({ slug: selectedSlug, surah: selectedSurahId })
+			quaCacheRelKey({ slug: sel.slug, surah: sel.surahId })
 		);
+
+		return downloadDone(sel.surahName, bytes, fromCache);
 	}
 
-	/** Point d'entrée du bouton de téléchargement (route selon le mode courant). */
-	async function onDownload(): Promise<void> {
-		if (!selectedSlug || selectedSurahId === -1 || isDownloading) return;
-		isDownloading = true;
-		try {
-			if (mode === 'audio_only') {
-				await downloadAudioOnly();
-			} else {
-				await downloadAndApply();
-			}
-		} catch (error) {
-			console.error('Quranic Universal Audio error:', error);
-			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), { duration: 5000 });
-		} finally {
-			isDownloading = false;
-			downloadProgress = null;
-			busyLabel = '';
-		}
+	/**
+	 * Point d'entrée du bouton. Fige la sélection et le projet ciblé, puis délègue au
+	 * store de téléchargement (détaché du composant) : la bascule d'onglet/fenêtre dans
+	 * QC n'interrompt plus le téléchargement, et une notification annonce la fin.
+	 */
+	function onDownload(): void {
+		const project = globalState.currentProject;
+		if (!project || !selectedSlug || selectedSurahId === -1 || isDownloading) return;
+
+		clampAyahRange();
+		const { reciterName, surahName } = currentNames();
+		const currentMode = mode;
+		const sel: QuaSelection = {
+			slug: selectedSlug,
+			surahId: selectedSurahId,
+			surahName,
+			from: ayahFrom,
+			to: ayahTo,
+			max: maxAyah,
+			fillBySilence,
+			extendBeforeSilence,
+			extendBeforeSilenceMs
+		};
+
+		void runAudioDownload({
+			projectId: project.detail.id,
+			section: 'qua',
+			label: get(LL).editor.downloadingSurah({ surah: surahName, reciter: reciterName }),
+			errorTitle: get(LL).editor.downloadFailed(),
+			run: (ctx) =>
+				currentMode === 'audio_only'
+					? downloadAudioOnly(project, ctx, sel)
+					: downloadAndApply(project, ctx, sel)
+		});
 	}
 </script>
 
@@ -552,10 +592,10 @@
 
 		<DownloadButton
 			idleLabel={get(LL).editor.downloadAudio()}
-			busyLabel={busyLabel || get(LL).editor.downloadingLabel()}
+			busyLabel={download.label || get(LL).editor.downloadingLabel()}
 			busy={isDownloading}
 			disabled={!selectedSlug || selectedSurahId === -1 || isDownloading}
-			progress={downloadProgress}
+			progress={download.progress}
 			onclick={onDownload}
 		/>
 	</div>

@@ -27,10 +27,12 @@
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
+		const project = globalState.currentProject;
 		const longestClipEnd =
-			globalState.currentProject?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
+			project?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
 
-		globalState.currentProject!.detail.duration = longestClipEnd;
+		// Pas de projet ouvert (fermeture/rechargement HMR) : ne pas déréférencer null.
+		if (project) project.detail.duration = longestClipEnd;
 
 		if (!longestClipEnd.isNull())
 			return new Duration(

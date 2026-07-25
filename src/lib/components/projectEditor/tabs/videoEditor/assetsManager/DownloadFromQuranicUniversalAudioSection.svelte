@@ -170,7 +170,8 @@
 		reciterName: string,
 		surahName: string,
 		assetMeta: Record<string, unknown>,
-		cacheKey: string
+		cacheKey: string,
+		downloadUrl: string = audioUrl
 	): Promise<void> {
 		const downloadingLabel = get(LL).editor.downloadingSurah({
 			surah: surahName,
@@ -182,14 +183,16 @@
 		try {
 			const cachePath = await resolveQuaCachePath(cacheKey);
 
-			// Cache hit → aucun HTTP : on lit juste la taille pour le toast.
+			// Cache hit → aucun HTTP : on lit juste la taille pour le toast. Sinon on
+			// télécharge la fenêtre audio choisie (`downloadUrl`), en gardant l'URL
+			// serveur d'origine (`audioUrl`) comme provenance de l'asset.
 			let downloadedBytes: number;
 			let fromCache = false;
 			if (await exists(cachePath)) {
 				fromCache = true;
 				downloadedBytes = (await stat(cachePath)).size;
 			} else {
-				downloadedBytes = await downloadFileWithProgress(audioUrl, cachePath, (progress) => {
+				downloadedBytes = await downloadFileWithProgress(downloadUrl, cachePath, (progress) => {
 					downloadProgress = progress;
 				});
 			}
@@ -237,13 +240,14 @@
 			throw new Error('No pre-aligned segments are available for this selection.');
 		}
 
-		// On télécharge l'URL de clip (`?start_ms=&end_ms=`) telle quelle : les
-		// timestamps des segments Preload sont RELATIFS au début de la fenêtre de
-		// clip (0 = start_ms), pas absolus depuis 0 du fichier chapitre. Télécharger
-		// le mp3 complet non tronqué décalait donc tout d'un offset constant (le
-		// silence/isti'adha/basmala en tête de fichier avant la plage alignée). Le
-		// cap serveur qui renvoyait 400 sur les longues fenêtres a été retiré côté
-		// aligner, donc la fenêtre de clip complète stream sans limite de durée.
+		// Les timestamps Preload sont RELATIFS au début de la fenêtre de clip
+		// (0 = start_ms). Plutôt que jeter l'audio hors de la plage, on élargit la
+		// fenêtre téléchargée aux frontières « spéciales » de la sourate — isti'adha
+		// /basmala de tête quand le verset 1 est inclus, clôture de fin quand le
+		// dernier verset l'est — puis on réaligne les sous-titres via un décalage.
+		const window = computeAudioWindow(audioUrl);
+		const downloadUrl = window.downloadUrl;
+
 		await importChapterAudio(
 			audioUrl,
 			reciterName,
@@ -256,13 +260,8 @@
 					verseTo: ayahTo
 				}
 			},
-			// Clip des versets : la clé inclut la plage (octets dépendants de [from,to]).
-			quaCacheRelKey({
-				slug: selectedSlug,
-				surah: selectedSurahId,
-				verseFrom: ayahFrom,
-				verseTo: ayahTo
-			})
+			window.cacheKey,
+			downloadUrl
 		);
 
 		// Segments pré-alignés (sans ré-enrichissement MFA). Sur une longue sourate
@@ -273,8 +272,54 @@
 		await applyPreloadSegmentsToProject(payload, {
 			fillBySilence,
 			extendBeforeSilence,
-			extendBeforeSilenceMs
+			extendBeforeSilenceMs,
+			timeOffsetMs: window.timeOffsetMs
 		});
+	}
+
+	/** Borne haute « fin de fichier » : ffmpeg tronque à l'EOF réel (24 h en ms). */
+	const AUDIO_END_SENTINEL_MS = 24 * 60 * 60 * 1000;
+
+	/**
+	 * Élargit la fenêtre de clip Preload aux frontières de sourate demandées, sans
+	 * jamais tronquer l'audio « spécial » : garde l'intro (isti'adha/basmala) quand
+	 * le verset 1 est dans la plage, et la clôture quand le dernier verset l'est.
+	 *
+	 * @param audioUrl URL de clip renvoyée par le serveur (`?start_ms=&end_ms=`).
+	 * @returns URL à télécharger, clé de cache et décalage temporel des sous-titres.
+	 */
+	function computeAudioWindow(audioUrl: string): {
+		downloadUrl: string;
+		cacheKey: string;
+		timeOffsetMs: number;
+	} {
+		const base = audioUrl.split('?')[0];
+		const params = new URL(audioUrl).searchParams;
+		const origStart = Number.parseInt(params.get('start_ms') ?? '0', 10) || 0;
+		const origEnd = Number.parseInt(params.get('end_ms') ?? '0', 10) || 0;
+
+		const keepIntro = ayahFrom === 1; // le verset 1 amène l'isti'adha/basmala de tête.
+		const keepOutro = ayahTo === maxAyah; // le dernier verset amène la clôture de fin.
+		const audioStart = keepIntro ? 0 : origStart;
+		const isFullSurah = keepIntro && keepOutro;
+
+		// Sourate entière → fichier chapitre complet non tronqué (mêmes octets que le
+		// mode audio seul → clé partagée `<slug>/<surah>.mp3`).
+		const downloadUrl = isFullSurah
+			? base
+			: `${base}?start_ms=${audioStart}&end_ms=${keepOutro ? AUDIO_END_SENTINEL_MS : origEnd}`;
+
+		const cacheKey = isFullSurah
+			? quaCacheRelKey({ slug: selectedSlug, surah: selectedSurahId })
+			: quaCacheRelKey({
+					slug: selectedSlug,
+					surah: selectedSurahId,
+					verseFrom: ayahFrom,
+					verseTo: ayahTo
+				});
+
+		// Position d'un segment dans la fenêtre = temps relatif + (origStart − audioStart).
+		return { downloadUrl, cacheKey, timeOffsetMs: origStart - audioStart };
 	}
 
 	/** Audio seul : télécharge le chapitre complet, sans aucun segment. */

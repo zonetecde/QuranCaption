@@ -9,6 +9,7 @@
 		getSubtitleClipsWithoutWbwTimestamps,
 		markSubtitlesWithoutWbwTimestampsForReview
 	} from '$lib/services/AutoSegmentation';
+	import { isWbwComputeBusy, runWbwCompute } from '$lib/services/WbwComputeStore.svelte';
 
 	let missingWbwSegmentsCount = $derived(getSubtitleClipsWithoutWbwTimestamps().length);
 	let missingWbwSegmentsMarkedCount = $derived(
@@ -16,39 +17,52 @@
 			.length
 	);
 
-	let isComputing = $state(false);
+	// Occupation hébergée hors composant (store de module) : survit au démontage du
+	// Subtitles Editor lors d'une bascule d'onglet/fenêtre dans QC, donc le bouton
+	// retrouve son état occupé au remontage et un double calcul est bloqué.
+	const projectId = $derived(globalState.currentProject?.detail.id ?? -1);
+	const isComputing = $derived(isWbwComputeBusy(projectId));
 
 	/**
 	 * Calcule à la demande les timestamps WBW manquants via l'API du Universal Aligner.
+	 *
+	 * Délègue au store (détaché du composant) : la bascule d'onglet/fenêtre dans QC
+	 * n'interrompt plus le calcul, et une notification annonce la fin. Les clips ciblés
+	 * sont capturés par référence à l'intérieur de `computeMissingWbwTimestamps`, donc
+	 * les résultats se posent sur les bons sous-titres même après une bascule.
 	 */
-	async function handleComputeWbwTimestamps(): Promise<void> {
-		if (isComputing) return;
-		const targetCount = missingWbwSegmentsCount;
-		if (targetCount <= 0) {
+	function handleComputeWbwTimestamps(): void {
+		const project = globalState.currentProject;
+		if (!project || isComputing) return;
+		if (missingWbwSegmentsCount <= 0) {
 			toast(get(LL).editor.noMissingWbw());
 			return;
 		}
 
-		isComputing = true;
-		try {
-			const { enriched, total } = await computeMissingWbwTimestamps();
-			if (enriched > 0) {
-				toast.success(
-					get(LL).editor.wbwTimestampsComputed({
-						enriched,
-						total,
-						plural: total > 1 ? 's' : ''
-					})
-				);
-			} else {
-				toast.error(get(LL).editor.noWbwTimestampsComputed());
+		const computeLabel = get(LL).editor.computeTimestamps();
+		void runWbwCompute({
+			projectId: project.detail.id,
+			errorTitle: get(LL).editor.failedToComputeWbwTimestamps(),
+			run: async () => {
+				const { enriched, total } = await computeMissingWbwTimestamps();
+				if (enriched > 0) {
+					return {
+						title: computeLabel,
+						body: get(LL).editor.wbwTimestampsComputed({
+							enriched,
+							total,
+							plural: total > 1 ? 's' : ''
+						}),
+						level: 'success'
+					};
+				}
+				return {
+					title: computeLabel,
+					body: get(LL).editor.noWbwTimestampsComputed(),
+					level: 'error'
+				};
 			}
-		} catch (error) {
-			console.error('[WBW] Failed to compute timestamps:', error);
-			toast.error(get(LL).editor.failedToComputeWbwTimestamps());
-		} finally {
-			isComputing = false;
-		}
+		});
 	}
 
 	/**

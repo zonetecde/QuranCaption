@@ -238,15 +238,16 @@
 				};
 			}
 
-			await invoke('download_file', {
+			const downloadedBytes = (await invoke('download_file', {
 				url: audioUrl,
 				path: fullPath
-			});
+			})) as number;
 
 			const projectContent = globalState.currentProject!.content;
 			projectContent.addAsset(fullPath, audioUrl, sourceType, metadata);
 
-			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
+			const sizeMb = (downloadedBytes / (1024 * 1024)).toFixed(1);
+			toast.success(`${get(LL).editor.downloadSuccessful()} (${sizeMb} MB)`, { id: toastId });
 
 			if (selectedOption.supportsNativeTiming) {
 				// On retrouve l'asset fraîchement ajouté pour l'insérer dans la timeline si l'utilisateur accepte.

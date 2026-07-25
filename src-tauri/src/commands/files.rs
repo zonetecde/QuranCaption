@@ -179,7 +179,7 @@ pub fn save_file(location: String, content: String) -> Result<(), String> {
 
 /// Télécharge un fichier HTTP puis l'écrit de manière asynchrone sur disque.
 #[tauri::command]
-pub async fn download_file(url: String, path: String) -> Result<(), String> {
+pub async fn download_file(url: String, path: String) -> Result<u64, String> {
     let path_buf = path_utils::normalize_output_path(&path);
     if let Some(parent) = path_buf.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
@@ -190,13 +190,19 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
     let temp_path = std::path::PathBuf::from(temp_os);
     let _ = tokio::fs::remove_file(&temp_path).await;
 
+    // Pas de timeout total : les longues sourates (>100 Mo) peuvent dépasser
+    // n'importe quelle limite fixe sur une connexion lente. On borne uniquement
+    // le temps d'inactivité entre deux lectures pour couper une connexion morte
+    // sans jamais tuer un téléchargement qui progresse encore.
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(15))
-        .timeout(Duration::from_secs(15 * 60))
+        .read_timeout(Duration::from_secs(120))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let max_retries = 3usize;
+    // 5 essais : laisse la place à un fallback « reprise Range échouée →
+    // repart d'un GET complet » sans épuiser les tentatives.
+    let max_retries = 5usize;
     let mut downloaded = 0u64;
     let mut last_error = String::new();
 
@@ -229,6 +235,13 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
                 max_retries,
                 response.status()
             );
+            // Certains hôtes (miroirs MP3Quran) rejettent une requête Range
+            // ouverte (`bytes=N-`) avec 400/416. Dans ce cas on abandonne la
+            // reprise partielle et on repart d'un GET complet à l'essai suivant.
+            if downloaded > 0 {
+                downloaded = 0;
+                let _ = tokio::fs::remove_file(&temp_path).await;
+            }
             continue;
         }
 
@@ -284,7 +297,7 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
             tokio::fs::rename(&temp_path, &path_buf)
                 .await
                 .map_err(|e| format!("Failed to finalize file: {}", e))?;
-            return Ok(());
+            return Ok(downloaded);
         }
     }
 

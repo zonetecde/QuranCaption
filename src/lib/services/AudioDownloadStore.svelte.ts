@@ -92,13 +92,21 @@ export async function runAudioDownload(params: {
 
 	try {
 		const done = await params.run(ctx);
-		await notifyLongTaskCompletion({ title: done.title, body: done.body, level: 'success' });
+		// Skip la notif système si la fenêtre est focus : la progression + fin sont déjà
+		// visibles dans le bouton. Utile surtout quand l'utilisateur est parti ailleurs.
+		await notifyLongTaskCompletion({
+			title: done.title,
+			body: done.body,
+			level: 'success',
+			skipWhenFocused: true
+		});
 	} catch (error) {
 		console.error('Audio download error:', error);
 		await notifyLongTaskCompletion({
 			title: params.errorTitle,
 			body: String(error),
-			level: 'error'
+			level: 'error',
+			skipWhenFocused: true
 		});
 	} finally {
 		entries[key] = { ...IDLE };

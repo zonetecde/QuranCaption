@@ -1,6 +1,5 @@
 <script lang="ts">
 	import toast from 'svelte-5-french-toast';
-	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
 	import { onMount } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -14,6 +13,11 @@
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { runNativeSegmentation } from '$lib/services/AutoSegmentation';
 	import {
+		bytesToMb,
+		downloadFileWithProgress,
+		type DownloadProgress
+	} from '$lib/services/DownloadWithProgress';
+	import {
 		Mp3QuranService,
 		type Mp3QuranReciter,
 		type TimingReciter
@@ -21,6 +25,7 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { QdcRecitationService, type QdcRecitation } from '$lib/services/QdcRecitationService';
 	import QuranSourceTabs from './QuranSourceTabs.svelte';
+	import DownloadButton from './DownloadButton.svelte';
 
 	type DownloadOption = {
 		source: 'mp3quran' | 'qdc';
@@ -46,6 +51,8 @@
 	let selectedSurahId = $state(-1);
 	let isLoadingReciters = $state(true);
 	let isDownloading = $state(false);
+	// Progression du téléchargement, affichée dans le bouton (pas de chiffre en toast).
+	let downloadProgress = $state<DownloadProgress | null>(null);
 	// Quran.com est l'onglet par défaut comme demandé.
 	let selectedSource = $state<'qdc' | 'mp3quran'>('qdc');
 
@@ -177,12 +184,11 @@
 			const downloadPath = await ProjectService.getAssetFolderForProject(
 				globalState.currentProject!.detail.id
 			);
-			toastId = toast.loading(
-				get(LL).editor.downloadingSurah({
-					surah: surahName.split('.')[1].trim(),
-					reciter: selectedOption.reciterName
-				})
-			);
+			const downloadingLabel = get(LL).editor.downloadingSurah({
+				surah: surahName.split('.')[1].trim(),
+				reciter: selectedOption.reciterName
+			});
+			toastId = toast.loading(downloadingLabel);
 
 			const fullPath = await join(downloadPath, fileName);
 
@@ -238,16 +244,18 @@
 				};
 			}
 
-			const downloadedBytes = (await invoke('download_file', {
-				url: audioUrl,
-				path: fullPath
-			})) as number;
+			downloadProgress = null;
+			const downloadedBytes = await downloadFileWithProgress(audioUrl, fullPath, (progress) => {
+				downloadProgress = progress;
+			});
+			downloadProgress = null;
 
 			const projectContent = globalState.currentProject!.content;
 			projectContent.addAsset(fullPath, audioUrl, sourceType, metadata);
 
-			const sizeMb = (downloadedBytes / (1024 * 1024)).toFixed(1);
-			toast.success(`${get(LL).editor.downloadSuccessful()} (${sizeMb} MB)`, { id: toastId });
+			toast.success(`${get(LL).editor.downloadSuccessful()} (${bytesToMb(downloadedBytes)} MB)`, {
+				id: toastId
+			});
 
 			if (selectedOption.supportsNativeTiming) {
 				// On retrouve l'asset fraîchement ajouté pour l'insérer dans la timeline si l'utilisateur accepte.
@@ -286,6 +294,7 @@
 			});
 		} finally {
 			isDownloading = false;
+			downloadProgress = null;
 		}
 	}
 </script>
@@ -349,19 +358,13 @@
 			</select>
 		</div>
 
-		<button
-			class="w-full btn-accent flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-xl relative overflow-hidden"
-			type="button"
-			onclick={downloadAsset}
+		<DownloadButton
+			idleLabel={get(LL).editor.downloadAudio()}
+			busyLabel={get(LL).editor.downloadingLabel()}
+			busy={isDownloading}
 			disabled={selectedOptionIndex === -1 || selectedSurahId === -1 || isDownloading}
-		>
-			{#if isDownloading}
-				<span class="material-icons animate-spin text-lg">sync</span>
-				<span>{get(LL).editor.downloadingLabel()}</span>
-			{:else}
-				<span class="material-icons text-lg">download</span>
-				<span>{get(LL).editor.downloadAudio()}</span>
-			{/if}
-		</button>
+			progress={downloadProgress}
+			onclick={downloadAsset}
+		/>
 	</div>
 </Section>

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import toast from 'svelte-5-french-toast';
-	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onMount } from 'svelte';
@@ -11,8 +10,14 @@
 	import { Quran, type Surah } from '$lib/classes/Quran';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
+	import DownloadButton from './DownloadButton.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { applyPreloadSegmentsToProject } from '$lib/services/AutoSegmentation';
+	import {
+		bytesToMb,
+		downloadFileWithProgress,
+		type DownloadProgress
+	} from '$lib/services/DownloadWithProgress';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import {
 		QuranicUniversalAudioService,
@@ -34,6 +39,9 @@
 	let ayahTo = $state(1);
 	let isLoadingRecitations = $state(true);
 	let isDownloading = $state(false);
+	// Progression + libellé de phase pilotant le bouton (aucun chiffre dans les toasts).
+	let downloadProgress = $state<DownloadProgress | null>(null);
+	let busyLabel = $state('');
 
 	// Options de segmentation (reprend les défauts de l'assistant auto-segmentation).
 	// Les timestamps mot à mot sont toujours fournis par le Preload → case forcée/désactivée.
@@ -159,9 +167,13 @@
 		surahName: string,
 		assetMeta: Record<string, unknown>
 	): Promise<void> {
-		const toastId = toast.loading(
-			get(LL).editor.downloadingSurah({ surah: surahName, reciter: reciterName })
-		);
+		const downloadingLabel = get(LL).editor.downloadingSurah({
+			surah: surahName,
+			reciter: reciterName
+		});
+		busyLabel = downloadingLabel;
+		downloadProgress = null;
+		const toastId = toast.loading(downloadingLabel);
 		try {
 			const downloadPath = await ProjectService.getAssetFolderForProject(
 				globalState.currentProject!.detail.id
@@ -171,7 +183,10 @@
 			if (!sanitizedBaseName) sanitizedBaseName = `surah-${selectedSurahId}`;
 			const fullPath = await join(downloadPath, `${sanitizedBaseName}.mp3`);
 
-			await invoke('download_file', { url: audioUrl, path: fullPath });
+			const downloadedBytes = await downloadFileWithProgress(audioUrl, fullPath, (progress) => {
+				downloadProgress = progress;
+			});
+			downloadProgress = null;
 
 			const asset = globalState.currentProject!.content.addAsset(
 				fullPath,
@@ -185,7 +200,9 @@
 			await asset.ensureDurationLoaded();
 			await asset.addToTimeline(false, true);
 
-			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
+			toast.success(`${get(LL).editor.downloadSuccessful()} (${bytesToMb(downloadedBytes)} MB)`, {
+				id: toastId
+			});
 		} catch (error) {
 			toast.dismiss(toastId);
 			throw error;
@@ -211,7 +228,16 @@
 			throw new Error('No pre-aligned segments are available for this selection.');
 		}
 
-		await importChapterAudio(audioUrl, reciterName, surahName, {
+		// Le proxy renvoie une URL de clip (`?start_ms=&end_ms=`) et refuse (400
+		// « clip window too large ») les fenêtres trop longues — ce qui casse les
+		// récitations Mujawwad d'une sourate entière (plusieurs heures). Quand la
+		// sélection couvre toute la sourate depuis le début, le clip = le fichier
+		// complet : on télécharge directement le mp3 non tronqué, qui n'a pas de
+		// limite de fenêtre. Les timestamps restent absolus depuis 0 → inchangés.
+		const isFullSurah = ayahFrom === 1 && ayahTo === maxAyah;
+		const downloadUrl = isFullSurah ? audioUrl.split('?')[0] : audioUrl;
+
+		await importChapterAudio(downloadUrl, reciterName, surahName, {
 			quranicUniversalAudio: {
 				recitation: selectedSlug,
 				surah: selectedSurahId,
@@ -220,7 +246,11 @@
 			}
 		});
 
-		// Segments pré-alignés (sans ré-enrichissement MFA).
+		// Segments pré-alignés (sans ré-enrichissement MFA). Sur une longue sourate
+		// l'application des clips prend plusieurs secondes : le bouton passe en état
+		// « Applying… » indéterminé (l'UI reste réactive grâce au yield coopératif).
+		busyLabel = 'Applying segments to the timeline…';
+		downloadProgress = null;
 		await applyPreloadSegmentsToProject(payload, {
 			fillBySilence,
 			extendBeforeSilence,
@@ -261,6 +291,8 @@
 			toast.error(get(LL).editor.errorDownloading({ error: String(error) }), { duration: 5000 });
 		} finally {
 			isDownloading = false;
+			downloadProgress = null;
+			busyLabel = '';
 		}
 	}
 </script>
@@ -447,19 +479,13 @@
 			</div>
 		{/if}
 
-		<button
-			class="btn-accent relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-			type="button"
-			onclick={onDownload}
+		<DownloadButton
+			idleLabel={get(LL).editor.downloadAudio()}
+			busyLabel={busyLabel || get(LL).editor.downloadingLabel()}
+			busy={isDownloading}
 			disabled={!selectedSlug || selectedSurahId === -1 || isDownloading}
-		>
-			{#if isDownloading}
-				<span class="material-icons animate-spin text-lg">sync</span>
-				<span>{get(LL).editor.downloadingLabel()}</span>
-			{:else}
-				<span class="material-icons text-lg">download</span>
-				<span>{get(LL).editor.downloadAudio()}</span>
-			{/if}
-		</button>
+			progress={downloadProgress}
+			onclick={onDownload}
+		/>
 	</div>
 </Section>

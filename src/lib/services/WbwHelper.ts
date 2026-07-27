@@ -16,6 +16,28 @@ export type ManualWordByWordDraftWord = SegmentationWordTimestamp & {
 	word: string;
 };
 
+/**
+ * Marqueurs « lettre muette » (petit zéro rond, U+06DF/U+06E0) de l'orthographe
+ * Hafs/QPC, posés sur l'alif muet de la واو الجماعة (قالوا۟, ءامنوا۟…). Le script
+ * livré par la source QUA les inclut ; le jeu de données Quran de QC ne les met pas
+ * (il marque le silence via U+06E1). Ils s'affichent comme un petit cercle flottant
+ * au-dessus du mot dans les strips wbw miniatures.
+ */
+const WBW_DISPLAY_STRIP_MARKERS = /[۟۠]/g;
+
+/**
+ * Retire les marqueurs de lettre muette pour l'AFFICHAGE des strips wbw miniatures
+ * uniquement (le texte réel du mot reste intact partout ailleurs — sous-titre,
+ * export). Uniformise le rendu entre les clips issus de QUA et ceux des sources
+ * natives, qui n'embarquent pas ce glyphe.
+ *
+ * @param {string} text Texte arabe du mot.
+ * @returns {string} Texte sans le petit zéro rond.
+ */
+export function stripWbwDisplayMarkers(text: string): string {
+	return text.replace(WBW_DISPLAY_STRIP_MARKERS, '');
+}
+
 type SubtitlesEditorState = typeof globalState.getSubtitlesEditorState;
 export type SubtitlesEditorStateAccessor = () => SubtitlesEditorState;
 

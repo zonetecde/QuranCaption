@@ -3,6 +3,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		getSubtitleClipDurationSeconds,
+		stripWbwDisplayMarkers,
 		updateManualWordByWordBoundary
 	} from '$lib/services/WbwHelper';
 	import { onDestroy } from 'svelte';
@@ -41,7 +42,8 @@
 
 			return {
 				location: word.location,
-				word: word.word,
+				// Retire le petit zéro rond « lettre muette » à l'affichage uniquement.
+				word: stripWbwDisplayMarkers(word.word),
 				start,
 				end,
 				leftPercent,

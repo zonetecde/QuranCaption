@@ -129,17 +129,32 @@ async function showDesktopNotification(title: string, body: string): Promise<voi
  * @param {string} params.title Titre de la notification.
  * @param {string} params.body Message de détail.
  * @param {'success' | 'error'} params.level Niveau de résultat.
+ * @param {boolean} [params.skipWhenFocused] N'affiche pas la notification système si la
+ *   fenêtre est déjà au premier plan (l'utilisateur voit déjà le résultat à l'écran).
+ *   La demande d'attention fenêtre reste envoyée (no-op quand focus). Défaut : false.
  * @returns {Promise<void>} Promise résolue après les tentatives d'attention et de notification.
  */
 export async function notifyLongTaskCompletion(params: {
 	title: string;
 	body: string;
 	level: AttentionLevel;
+	skipWhenFocused?: boolean;
 }): Promise<void> {
 	if (typeof window === 'undefined') return;
 
+	// Notification redondante quand la fenêtre est déjà focus : l'utilisateur voit le
+	// résultat en direct. Opt-in par appelant pour ne pas changer les autres flux.
+	let showNotification = true;
+	if (params.skipWhenFocused) {
+		try {
+			showNotification = !(await getCurrentWindow().isFocused());
+		} catch {
+			showNotification = true;
+		}
+	}
+
 	await Promise.allSettled([
 		requestWindowAttention(params.level),
-		showDesktopNotification(params.title, params.body)
+		showNotification ? showDesktopNotification(params.title, params.body) : Promise.resolve()
 	]);
 }

@@ -23,6 +23,7 @@
 		AUTO_REALIGN_DRAG_THRESHOLD_MS
 	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { stripWbwDisplayMarkers } from '$lib/services/WbwHelper';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
@@ -145,7 +146,8 @@
 	 * @returns {string} Texte lisible du mot.
 	 */
 	function getWordBoundaryLabel(word: { location: string; word?: string }): string {
-		const directLabel = String(word.word ?? '').trim();
+		// Retire le petit zéro rond « lettre muette » à l'affichage uniquement.
+		const directLabel = stripWbwDisplayMarkers(String(word.word ?? '').trim());
 		if (directLabel) return directLabel;
 		if (!(clip instanceof SubtitleClip)) return String(word.location ?? '').trim();
 

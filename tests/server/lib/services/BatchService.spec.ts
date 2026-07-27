@@ -126,7 +126,7 @@ describe('BatchService persistence', () => {
 		await BatchService.delete(batch.id);
 
 		expect(deleteProject).toHaveBeenCalledOnce();
-		expect(deleteProject).toHaveBeenCalledWith(456);
+		expect(deleteProject).toHaveBeenCalledWith(456, { sweepQuaCache: false });
 		expect(storage.has(`/app-data/batches/${batch.id}.json`)).toBe(false);
 	});
 
@@ -194,7 +194,7 @@ describe('BatchService persistence', () => {
 
 		await BatchService.deleteProjects(batch, [20]);
 
-		expect(deleteProject).toHaveBeenCalledWith(20);
+		expect(deleteProject).toHaveBeenCalledWith(20, { sweepQuaCache: false });
 		expect(
 			(await BatchService.load(batch.id)).projects.map((project) => project.projectId)
 		).toEqual([10]);

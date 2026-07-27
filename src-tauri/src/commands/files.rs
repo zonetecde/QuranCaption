@@ -1,8 +1,8 @@
 use std::fs;
 use std::io::{BufReader, BufWriter, Read, Write};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use reqwest::header::{ACCEPT, ACCEPT_ENCODING, RANGE, USER_AGENT};
+use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_RANGE, RANGE, USER_AGENT};
 use tokio::io::AsyncWriteExt;
 
 use crate::path_utils;
@@ -179,7 +179,12 @@ pub fn save_file(location: String, content: String) -> Result<(), String> {
 
 /// Télécharge un fichier HTTP puis l'écrit de manière asynchrone sur disque.
 #[tauri::command]
-pub async fn download_file(url: String, path: String) -> Result<(), String> {
+pub async fn download_file(
+    url: String,
+    path: String,
+    app_handle: tauri::AppHandle,
+    download_id: Option<String>,
+) -> Result<u64, String> {
     let path_buf = path_utils::normalize_output_path(&path);
     if let Some(parent) = path_buf.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
@@ -190,15 +195,39 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
     let temp_path = std::path::PathBuf::from(temp_os);
     let _ = tokio::fs::remove_file(&temp_path).await;
 
+    // Pas de timeout total : les longues sourates (>100 Mo) peuvent dépasser
+    // n'importe quelle limite fixe sur une connexion lente. On borne uniquement
+    // le temps d'inactivité entre deux lectures pour couper une connexion morte
+    // sans jamais tuer un téléchargement qui progresse encore.
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(15))
-        .timeout(Duration::from_secs(15 * 60))
+        .read_timeout(Duration::from_secs(120))
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let max_retries = 3usize;
+    // 5 essais : laisse la place à un fallback « reprise Range échouée →
+    // repart d'un GET complet » sans épuiser les tentatives.
+    let max_retries = 5usize;
     let mut downloaded = 0u64;
     let mut last_error = String::new();
+
+    // Progression : émise seulement si le caller fournit un `download_id`.
+    // `total` reste None quand l'hôte ne renvoie pas de Content-Length (ex. le
+    // proxy audio du space, transcodé à la volée) → l'UI affiche alors les Mo
+    // téléchargés sans pourcentage.
+    let mut total: Option<u64> = None;
+    let emit_progress = |downloaded: u64, total: Option<u64>| {
+        if let Some(id) = download_id.as_deref() {
+            let _ = app_handle.emit(
+                "download-progress",
+                serde_json::json!({
+                    "downloadId": id,
+                    "downloaded": downloaded,
+                    "total": total,
+                }),
+            );
+        }
+    };
 
     for attempt in 1..=max_retries {
         let mut request = client
@@ -229,12 +258,35 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
                 max_retries,
                 response.status()
             );
+            // Certains hôtes (miroirs MP3Quran) rejettent une requête Range
+            // ouverte (`bytes=N-`) avec 400/416. Dans ce cas on abandonne la
+            // reprise partielle et on repart d'un GET complet à l'essai suivant.
+            if downloaded > 0 {
+                downloaded = 0;
+                let _ = tokio::fs::remove_file(&temp_path).await;
+            }
             continue;
         }
 
         if downloaded > 0 && response.status() == reqwest::StatusCode::OK {
             downloaded = 0;
         }
+
+        // Taille totale : Content-Length sur un 200 complet, ou le total après
+        // le `/` d'un Content-Range sur une reprise 206. Absente sinon.
+        if total.is_none() {
+            total = if response.status() == reqwest::StatusCode::PARTIAL_CONTENT {
+                response
+                    .headers()
+                    .get(CONTENT_RANGE)
+                    .and_then(|value| value.to_str().ok())
+                    .and_then(|value| value.rsplit('/').next())
+                    .and_then(|value| value.trim().parse::<u64>().ok())
+            } else {
+                response.content_length().map(|len| downloaded + len)
+            };
+        }
+        emit_progress(downloaded, total);
 
         let mut file = if downloaded == 0 {
             tokio::fs::OpenOptions::new()
@@ -255,6 +307,7 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
 
         let mut response = response;
         let mut request_completed = false;
+        let mut last_emit = Instant::now();
         loop {
             match response.chunk().await {
                 Ok(Some(chunk)) => {
@@ -262,11 +315,17 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
                         .await
                         .map_err(|e| format!("Failed to write file: {}", e))?;
                     downloaded += chunk.len() as u64;
+                    // Throttle : au plus ~5 events/s pour ne pas noyer le front.
+                    if last_emit.elapsed() >= Duration::from_millis(200) {
+                        emit_progress(downloaded, total);
+                        last_emit = Instant::now();
+                    }
                 }
                 Ok(None) => {
                     file.flush()
                         .await
                         .map_err(|e| format!("Failed to flush file: {}", e))?;
+                    emit_progress(downloaded, total.or(Some(downloaded)));
                     request_completed = true;
                     break;
                 }
@@ -284,7 +343,7 @@ pub async fn download_file(url: String, path: String) -> Result<(), String> {
             tokio::fs::rename(&temp_path, &path_buf)
                 .await
                 .map_err(|e| format!("Failed to finalize file: {}", e))?;
-            return Ok(());
+            return Ok(downloaded);
         }
     }
 

@@ -2,6 +2,7 @@ import { Project, ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
+import { projectJsonReferencesQuaCache, pruneOrphanedQuaCache } from '$lib/services/QuaAudioCache';
 import type { ImportedProjectPayload } from '$lib/types/project';
 import { DEFAULT_PROJECT_TYPE, type ProjectType } from '$lib/types/projectType';
 import LL from '$lib/i18n/i18n-svelte';
@@ -222,13 +223,29 @@ export class ProjectService {
 	/**
 	 * Supprime un projet de l'ordinateur.
 	 * @param projectId L'id du projet à supprimer
+	 * @param options `sweepQuaCache` (défaut true) : après suppression, purge les
+	 *   fichiers du cache audio QUA que plus aucun projet ne référence. Les chemins
+	 *   de suppression en lot (BatchService) passent false et purgent une seule fois
+	 *   à la fin pour éviter une course + un rechargement O(n²) des JSON de projet.
 	 */
-	static async delete(projectId: number): Promise<void> {
+	static async delete(
+		projectId: number,
+		options: { sweepQuaCache?: boolean } = {}
+	): Promise<void> {
 		const projectsPath = await join(await appDataDir(), this.projectsFolder);
+
+		// Détecte AVANT suppression si ce projet référençait le cache QUA : la purge
+		// (coûteuse, scanne tous les projets) ne se déclenche que dans ce cas.
+		let referencedQuaCache = false;
 
 		try {
 			// Construis le chemin d'accès vers le projet
 			const filePath = await join(projectsPath, `${projectId}.json`);
+			try {
+				referencedQuaCache = projectJsonReferencesQuaCache(await readTextFile(filePath));
+			} catch {
+				// JSON illisible/déjà absent : rien à purger pour ce projet.
+			}
 			await remove(filePath);
 
 			// Supprime le dossier des assets associés au projet
@@ -236,6 +253,13 @@ export class ProjectService {
 			await remove(assetsPath, { recursive: true });
 		} catch (_e) {
 			// Le projet n'avait pas d'asset
+		}
+
+		// Purge « eager » du cache partagé : l'audio QUA vit hors du dossier par
+		// projet, donc le remove ci-dessus ne le touche pas. On supprime ici tout
+		// fichier de cache devenu orphelin (plus référencé par aucun projet).
+		if ((options.sweepQuaCache ?? true) && referencedQuaCache) {
+			await pruneOrphanedQuaCache();
 		}
 
 		// Le supprime de la liste des projets

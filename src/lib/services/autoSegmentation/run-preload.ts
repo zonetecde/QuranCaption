@@ -25,16 +25,48 @@ import {
  * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'>} options Options de post-processing.
  * @returns {Promise<AutoSegmentationResult | null>} Résumé du résultat ou null.
  */
+/** Options du flux Preload : options de segmentation + décalage temporel optionnel. */
+export type ApplyPreloadOptions = Pick<
+	AutoSegmentationOptions,
+	'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
+> & {
+	/**
+	 * Décalage (ms) ajouté à TOUS les timestamps de segments/mots avant application.
+	 * Les timestamps Preload sont relatifs au début de la fenêtre de clip demandée
+	 * (0 = `start_ms`). Quand on télécharge une fenêtre audio qui commence plus tôt
+	 * (ex. depuis 0 pour garder l'isti'adha/basmala quand le verset 1 est inclus),
+	 * ce décalage (`start_ms − audioStart`) réaligne les sous-titres sur l'audio.
+	 */
+	timeOffsetMs?: number;
+};
+
+/**
+ * Décale (en place) les bornes de segment `time_from`/`time_to` de `offsetMs`.
+ * No-op si 0. Les timestamps de MOTS ne sont PAS touchés : ils sont relatifs au
+ * début de leur segment (voir apply-segmentation `segmentStartMsRaw + word.start`),
+ * donc ils suivent automatiquement le segment décalé — les décaler aussi
+ * doublerait l'offset et les pousserait hors de leur clip.
+ */
+function shiftSegmentTimestamps(response: { segments?: unknown[] }, offsetMs: number): void {
+	if (!offsetMs) return;
+	const offsetS = offsetMs / 1000;
+	for (const segment of (response.segments ?? []) as Array<{
+		time_from?: number;
+		time_to?: number;
+	}>) {
+		if (typeof segment.time_from === 'number') segment.time_from += offsetS;
+		if (typeof segment.time_to === 'number') segment.time_to += offsetS;
+	}
+}
+
 async function applyPreloadSegmentsToProjectCore(
 	payload: string | unknown,
-	options: Pick<
-		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
-	> = {}
+	options: ApplyPreloadOptions = {}
 ): Promise<AutoSegmentationResult | null> {
 	const fillBySilence: boolean = options.fillBySilence ?? true;
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
+	const timeOffsetMs: number = options.timeOffsetMs ?? 0;
 
 	const audioInfo = getAutoSegmentationAudioInfo();
 	const audioClips = getAutoSegmentationAudioClips();
@@ -56,6 +88,8 @@ async function applyPreloadSegmentsToProjectCore(
 
 	try {
 		const parsed = parseImportedSegmentationJson(payload);
+		// Réaligne les timestamps sur la fenêtre audio réellement téléchargée.
+		shiftSegmentTimestamps(parsed.response, timeOffsetMs);
 		return await applySegmentationResponseToProject({
 			response: parsed.response,
 			fillBySilence,
@@ -87,10 +121,7 @@ async function applyPreloadSegmentsToProjectCore(
  */
 export async function applyPreloadSegmentsToProject(
 	payload: string | unknown,
-	options: Pick<
-		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
-	> = {}
+	options: ApplyPreloadOptions = {}
 ): Promise<AutoSegmentationResult | null> {
 	const release = AutoSegmentationExecutionCoordinator.tryAcquire('manual');
 	if (!release) return { status: 'failed', message: getAutoSegmentationBusyMessage() };

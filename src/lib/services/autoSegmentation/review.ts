@@ -213,26 +213,35 @@ export async function computeWbwTimestampsForClipsSliced(
 	const window = opts.window && opts.window.endMs > opts.window.startMs ? opts.window : undefined;
 	const baseS = window ? window.startMs / 1000 : 0;
 
-	// Segments aux temps ABSOLUS (timeline) — réutilisés pour écrire les métadonnées.
+	// Un segment de requête par CLIP, dérivé du clip lui-même (jamais du segment
+	// parent stocké dans ses métadonnées). Après un découpage multi-versets,
+	// plusieurs clips frères héritent du MÊME numéro de segment ET de la MÊME réf
+	// parent (voir apply-segmentation : `alignmentSegment = { ...template.segment }`
+	// avec le même `segment` passé à chaque part). Or le service nomme le WAV et le
+	// résultat de chaque segment `seg_{segment-1}` : des numéros dupliqués se
+	// recouvrent → un seul frère est aligné (contre la plage du parent), les autres
+	// ne reçoivent aucun mot. On reconstruit donc des segments UNIQUES et mono-verset.
 	const segments: SegmentationSegment[] = clips.map((clip, index) => {
 		const meta = clip.alignmentMetadata;
 		const specialType =
 			clip instanceof PredefinedSubtitleClip ? clip.predefinedSubtitleType : meta?.specialType;
+		// Réf du clip (mono-verset après découpage), pas la plage parent des métadonnées.
 		const refFrom =
-			meta?.refFrom ||
-			(clip instanceof PredefinedSubtitleClip
-				? specialType
-				: `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`);
+			clip instanceof PredefinedSubtitleClip
+				? (specialType ?? '')
+				: `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`;
 		const refTo =
-			meta?.refTo ||
-			(clip instanceof PredefinedSubtitleClip
-				? specialType
-				: `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`);
+			clip instanceof PredefinedSubtitleClip
+				? (specialType ?? '')
+				: `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`;
 		return {
-			segment: meta?.segment ?? index,
+			// Numéro unique 1-based par clip : le service dérive `seg_{segment-1}`,
+			// donc tout doublon collisionnerait ; l'ordre du tableau reste la clé de
+			// remontée des résultats (mapping par index côté enrichment).
+			segment: index + 1,
 			ref_from: refFrom,
 			ref_to: refTo,
-			matched_text: meta?.matchedText ?? clip.text,
+			matched_text: meta?.matchedText || clip.text,
 			special_type: specialType,
 			time_from: meta?.timeFrom ?? clip.startTime / 1000,
 			time_to: meta?.timeTo ?? clip.endTime / 1000,
@@ -274,9 +283,27 @@ export async function computeWbwTimestampsForClipsSliced(
 						: Math.max(0, Math.min(clipDurationS, word.end))
 			}));
 
+			// Préserve l'identité de métadonnée existante (segment/réf/temps d'origine) ;
+			// seuls les mots sont (re)calculés. Le segment de requête `segments[index]`
+			// utilise un numéro/réf reconstruits pour l'appel service et ne doit pas
+			// écraser l'identité persistée. Sans métadonnée préalable, on repart du
+			// segment dérivé (déjà mono-verset et unique).
+			const existing = clip.alignmentMetadata;
+			const persistSegment: SegmentationSegment = existing
+				? {
+						segment: existing.segment,
+						ref_from: existing.refFrom,
+						ref_to: existing.refTo,
+						matched_text: existing.matchedText,
+						special_type: existing.specialType,
+						time_from: existing.timeFrom,
+						time_to: existing.timeTo,
+						words: []
+					}
+				: segments[index];
 			const metadata = buildSubtitleAlignmentMetadata(
-				clip.alignmentMetadata?.source ?? 'api',
-				segments[index],
+				existing?.source ?? 'api',
+				persistSegment,
 				clampedWords
 			);
 			if (metadata) {

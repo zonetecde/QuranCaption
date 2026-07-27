@@ -13,6 +13,7 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 
 	type ExportTimingSnapshot = {
 		exportStartMs: number;
@@ -21,12 +22,51 @@
 		completedAtMs: number | null;
 	};
 
+	type YouTubePublicationState = {
+		status: 'uploading' | 'published' | 'failed';
+		progress: number;
+		url?: string;
+		error?: string;
+	};
+
 	const exportTimingSnapshots = new Map<number, ExportTimingSnapshot>();
 
 	// Variable réactive pour forcer les mises à jour
 	let currentTime = $state(Date.now());
 	let intervalId: ReturnType<typeof setInterval> | undefined;
 	let expandedLogsByExportId = $state<Record<number, boolean>>({});
+	let youtubePublications = $state<Record<number, YouTubePublicationState>>({});
+
+	/**
+	 * Résout un message localisé ajouté au moniteur d'exports.
+	 * @param {string} key Clé du message.
+	 * @returns {string} Texte localisé.
+	 */
+	function monitorMessage(key: string): string {
+		const translator = Reflect.get(get(LL).exporterMonitor, key) as (() => string) | undefined;
+		return translator?.() ?? key;
+	}
+
+	/**
+	 * Conserve l'état de publication YouTube d'un export.
+	 * @param {number} exportId Identifiant de l'export.
+	 * @param {YouTubePublicationState} update Nouvel état de publication.
+	 * @returns {void}
+	 */
+	function updateYouTubePublication(exportId: number, update: YouTubePublicationState): void {
+		youtubePublications[exportId] = update;
+	}
+
+	/**
+	 * Ouvre la modale YouTube via le gestionnaire global.
+	 * @param {Exportation} exportation Export vidéo à publier.
+	 * @returns {void}
+	 */
+	function openYouTubeUpload(exportation: Exportation): void {
+		void ModalManager.youtubeUploadModal(exportation, (update) =>
+			updateYouTubePublication(exportation.exportId, update)
+		);
+	}
 
 	// Fonction pour formater la durée en format lisible
 	function formatDuration(ms: number): string {
@@ -716,10 +756,37 @@
 
 						<!-- Export Success Info (if completed) -->
 						{#if exportation.currentState === ExportState.Exported}
+							{@const publication = youtubePublications[exportation.exportId]}
 							<div class="mt-2 p-1 bg-green-900/10 border border-green-600/30 rounded-lg">
 								<div class="flex items-center gap-2 text-green-200 text-sm mb-1">
 									<span class="material-icons text-sm">check_circle</span>
 									<span class="font-medium">{get(LL).export.exportCompleted()}</span>
+									{#if !isTextExport(exportation)}
+										{#if publication?.status === 'uploading'}
+											<span class="ml-auto text-[11px] text-green-100/60">
+												{monitorMessage('youtubePublishing')} · {publication.progress}%
+											</span>
+										{:else if publication?.status === 'published'}
+											<button
+												type="button"
+												class="ml-auto rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
+												onclick={() => publication.url && openUrl(publication.url)}
+											>
+												{monitorMessage('youtubePublished')}
+											</button>
+										{:else}
+											<button
+												type="button"
+												class="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
+												onclick={() => openYouTubeUpload(exportation)}
+											>
+												<span class="material-icons text-xs">upload</span>
+												{publication?.status === 'failed'
+													? monitorMessage('youtubeRetry')
+													: monitorMessage('youtubePublish')}
+											</button>
+										{/if}
+									{/if}
 								</div>
 								<div
 									class="text-green-100/80 text-xs flex gap-x-2"
@@ -732,6 +799,15 @@
 										{exportation.finalFilePath}</button
 									>
 								</div>
+								{#if publication?.error}
+									<p
+										class="mt-1 text-xs"
+										class:text-amber-300={publication.status === 'published'}
+										class:text-red-300={publication.status === 'failed'}
+									>
+										{publication.error}
+									</p>
+								{/if}
 							</div>
 						{/if}
 					</div>

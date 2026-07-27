@@ -15,6 +15,15 @@ import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/mo
 import type { Edition } from '$lib/classes';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
+import YouTubeUploadModal from '../YouTubeUploadModal.svelte';
+import type Exportation from '$lib/classes/Exportation.svelte';
+
+type YouTubePublicationUpdate = {
+	status: 'uploading' | 'published' | 'failed';
+	progress: number;
+	url?: string;
+	error?: string;
+};
 
 export default class ModalManager {
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
@@ -216,6 +225,37 @@ export default class ModalManager {
 						resolve();
 					},
 					initialAssetId
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale de publication YouTube pour un export terminé.
+	 *
+	 * @param {Exportation} exportation Export vidéo à publier.
+	 * @param {(update: YouTubePublicationUpdate) => void} onUpdate Callback de progression.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async youtubeUploadModal(
+		exportation: Exportation,
+		onUpdate: (update: YouTubePublicationUpdate) => void
+	): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(YouTubeUploadModal, {
+				target: container,
+				props: {
+					exportation,
+					onUpdate,
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
 				}
 			});
 		});

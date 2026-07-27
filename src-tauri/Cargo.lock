@@ -3751,8 +3751,9 @@ dependencies = [
 
 [[package]]
 name = "qurancaption"
-version = "3.6.51"
+version = "3.6.52"
 dependencies = [
+ "base64 0.22.1",
  "bytes",
  "dirs",
  "discord-rich-presence",
@@ -3764,12 +3765,14 @@ dependencies = [
  "lazy_static",
  "log",
  "md5",
+ "rand 0.9.1",
  "rayon",
  "regex",
  "reqwest 0.12.20",
  "screenshots",
  "serde",
  "serde_json",
+ "sha2",
  "sysinfo",
  "tauri",
  "tauri-build",

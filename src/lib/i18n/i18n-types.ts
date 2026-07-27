@@ -7084,6 +7084,22 @@ type RootTranslation = {
 		 */
 		defaultExportFileNameDescription: string;
 		/**
+		 * D​e​f​a​u​l​t​ ​Y​o​u​T​u​b​e​ ​m​e​t​a​d​a​t​a
+		 */
+		defaultYouTubeMetadata: string;
+		/**
+		 * P​r​e​-​f​i​l​l​ ​Y​o​u​T​u​b​e​ ​u​p​l​o​a​d​s​.​ ​L​e​a​v​e​ ​t​h​e​ ​t​i​t​l​e​ ​e​m​p​t​y​ ​t​o​ ​u​s​e​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​f​i​l​e​ ​n​a​m​e​.
+		 */
+		defaultYouTubeMetadataDescription: string;
+		/**
+		 * D​e​f​a​u​l​t​ ​v​i​d​e​o​ ​t​i​t​l​e
+		 */
+		defaultYouTubeTitle: string;
+		/**
+		 * D​e​f​a​u​l​t​ ​v​i​d​e​o​ ​d​e​s​c​r​i​p​t​i​o​n
+		 */
+		defaultYouTubeDescription: string;
+		/**
 		 * A​v​a​i​l​a​b​l​e​ ​p​l​a​c​e​h​o​l​d​e​r​s
 		 */
 		fileNamePlaceholders: string;
@@ -9260,6 +9276,182 @@ type RootTranslation = {
 		 * F​a​i​l​e​d​ ​t​o​ ​c​o​p​y​ ​e​r​r​o​r
 		 */
 		failedToCopyError: string;
+		/**
+		 * P​u​b​l​i​s​h​ ​t​o​ ​Y​o​u​T​u​b​e
+		 */
+		youtubePublish: string;
+		/**
+		 * U​p​l​o​a​d​i​n​g​ ​t​o​ ​Y​o​u​T​u​b​e
+		 */
+		youtubePublishing: string;
+		/**
+		 * P​u​b​l​i​s​h​e​d​ ​o​n​ ​Y​o​u​T​u​b​e
+		 */
+		youtubePublished: string;
+		/**
+		 * R​e​t​r​y​ ​Y​o​u​T​u​b​e​ ​u​p​l​o​a​d
+		 */
+		youtubeRetry: string;
+		/**
+		 * C​o​n​n​e​c​t​e​d​ ​Y​o​u​T​u​b​e​ ​a​c​c​o​u​n​t
+		 */
+		youtubeConnectedAccount: string;
+		/**
+		 * D​i​s​c​o​n​n​e​c​t
+		 */
+		youtubeDisconnect: string;
+		/**
+		 * C​o​n​n​e​c​t​i​n​g​…
+		 */
+		youtubeConnecting: string;
+		/**
+		 * C​o​n​n​e​c​t​ ​Y​o​u​T​u​b​e​ ​a​c​c​o​u​n​t
+		 */
+		youtubeConnect: string;
+		/**
+		 * T​i​t​l​e
+		 */
+		youtubeTitle: string;
+		/**
+		 * D​e​s​c​r​i​p​t​i​o​n
+		 */
+		youtubeDescription: string;
+		/**
+		 * I​n​s​e​r​t​ ​Y​o​u​T​u​b​e​ ​c​h​a​p​t​e​r​s
+		 */
+		youtubeInsertChapters: string;
+		/**
+		 * G​e​n​e​r​a​t​i​n​g​ ​c​h​a​p​t​e​r​s​…
+		 */
+		youtubeInsertingChapters: string;
+		/**
+		 * N​o​ ​Y​o​u​T​u​b​e​ ​c​h​a​p​t​e​r​s​ ​c​o​u​l​d​ ​b​e​ ​g​e​n​e​r​a​t​e​d​ ​f​o​r​ ​t​h​i​s​ ​e​x​p​o​r​t​.
+		 */
+		youtubeChaptersUnavailable: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​Y​o​u​T​u​b​e​ ​c​h​a​p​t​e​r​s​.
+		 */
+		youtubeChaptersInsertFailed: string;
+		/**
+		 * V​i​s​i​b​i​l​i​t​y
+		 */
+		youtubeVisibility: string;
+		/**
+		 * P​r​i​v​a​t​e
+		 */
+		youtubePrivate: string;
+		/**
+		 * U​n​l​i​s​t​e​d
+		 */
+		youtubeUnlisted: string;
+		/**
+		 * P​u​b​l​i​c
+		 */
+		youtubePublic: string;
+		/**
+		 * A​u​d​i​e​n​c​e
+		 */
+		youtubeAudience: string;
+		/**
+		 * N​o​,​ ​i​t​ ​i​s​ ​n​o​t​ ​m​a​d​e​ ​f​o​r​ ​k​i​d​s
+		 */
+		youtubeNotMadeForKids: string;
+		/**
+		 * Y​e​s​,​ ​i​t​ ​i​s​ ​m​a​d​e​ ​f​o​r​ ​k​i​d​s
+		 */
+		youtubeMadeForKids: string;
+		/**
+		 * S​c​h​e​d​u​l​e​ ​p​u​b​l​i​c​a​t​i​o​n
+		 */
+		youtubeSchedule: string;
+		/**
+		 * T​h​u​m​b​n​a​i​l
+		 */
+		youtubeThumbnail: string;
+		/**
+		 * O​p​t​i​o​n​a​l​ ​J​P​G​ ​o​r​ ​P​N​G​ ​f​i​l​e
+		 */
+		youtubeThumbnailOptional: string;
+		/**
+		 * B​r​o​w​s​e
+		 */
+		youtubeBrowse: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​u​p​l​o​a​d
+		 */
+		youtubeStagePreparing: string;
+		/**
+		 * U​p​l​o​a​d​i​n​g​ ​v​i​d​e​o
+		 */
+		youtubeStageUploading: string;
+		/**
+		 * U​p​l​o​a​d​i​n​g​ ​t​h​u​m​b​n​a​i​l
+		 */
+		youtubeStageThumbnail: string;
+		/**
+		 * U​p​l​o​a​d​ ​c​o​m​p​l​e​t​e​d
+		 */
+		youtubeStageCompleted: string;
+		/**
+		 * O​p​e​n​ ​v​i​d​e​o​ ​o​n​ ​Y​o​u​T​u​b​e
+		 */
+		youtubeOpenVideo: string;
+		/**
+		 * C​l​o​s​e
+		 */
+		youtubeClose: string;
+		/**
+		 * C​a​n​c​e​l
+		 */
+		youtubeCancel: string;
+		/**
+		 * U​p​l​o​a​d
+		 */
+		youtubeUpload: string;
+		/**
+		 * Y​o​u​T​u​b​e​ ​O​A​u​t​h​ ​i​s​ ​n​o​t​ ​c​o​n​f​i​g​u​r​e​d​ ​i​n​ ​t​h​i​s​ ​b​u​i​l​d​.
+		 */
+		youtubeNotConfigured: string;
+		/**
+		 * C​o​n​n​e​c​t​ ​a​ ​Y​o​u​T​u​b​e​ ​a​c​c​o​u​n​t​ ​b​e​f​o​r​e​ ​u​p​l​o​a​d​i​n​g​.
+		 */
+		youtubeNotConnected: string;
+		/**
+		 * G​o​o​g​l​e​ ​s​i​g​n​-​i​n​ ​t​i​m​e​d​ ​o​u​t​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
+		 */
+		youtubeOAuthTimeout: string;
+		/**
+		 * T​h​e​ ​t​i​t​l​e​ ​m​u​s​t​ ​c​o​n​t​a​i​n​ ​b​e​t​w​e​e​n​ ​1​ ​a​n​d​ ​1​0​0​ ​c​h​a​r​a​c​t​e​r​s​.
+		 */
+		youtubeInvalidTitle: string;
+		/**
+		 * T​h​e​ ​d​e​s​c​r​i​p​t​i​o​n​ ​c​a​n​n​o​t​ ​e​x​c​e​e​d​ ​5​,​0​0​0​ ​c​h​a​r​a​c​t​e​r​s​.
+		 */
+		youtubeInvalidDescription: string;
+		/**
+		 * S​e​l​e​c​t​ ​a​ ​v​a​l​i​d​ ​v​i​s​i​b​i​l​i​t​y​.
+		 */
+		youtubeInvalidVisibility: string;
+		/**
+		 * A​ ​s​c​h​e​d​u​l​e​d​ ​v​i​d​e​o​ ​m​u​s​t​ ​r​e​m​a​i​n​ ​p​r​i​v​a​t​e​ ​u​n​t​i​l​ ​p​u​b​l​i​c​a​t​i​o​n​.
+		 */
+		youtubeScheduleRequiresPrivate: string;
+		/**
+		 * T​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​o​u​n​d​.
+		 */
+		youtubeVideoNotFound: string;
+		/**
+		 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​t​h​u​m​b​n​a​i​l​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​o​u​n​d​.
+		 */
+		youtubeThumbnailNotFound: string;
+		/**
+		 * T​h​e​ ​t​h​u​m​b​n​a​i​l​ ​c​a​n​n​o​t​ ​e​x​c​e​e​d​ ​2​ ​M​B​.
+		 */
+		youtubeThumbnailTooLarge: string;
+		/**
+		 * T​h​e​ ​t​h​u​m​b​n​a​i​l​ ​m​u​s​t​ ​b​e​ ​a​ ​J​P​G​ ​o​r​ ​P​N​G​ ​f​i​l​e​.
+		 */
+		youtubeInvalidThumbnail: string;
 	};
 	batch: {
 		/**
@@ -17348,6 +17540,22 @@ export type TranslationFunctions = {
 		 */
 		defaultExportFileNameDescription: () => LocalizedString;
 		/**
+		 * Default YouTube metadata
+		 */
+		defaultYouTubeMetadata: () => LocalizedString;
+		/**
+		 * Pre-fill YouTube uploads. Leave the title empty to use the exported file name.
+		 */
+		defaultYouTubeMetadataDescription: () => LocalizedString;
+		/**
+		 * Default video title
+		 */
+		defaultYouTubeTitle: () => LocalizedString;
+		/**
+		 * Default video description
+		 */
+		defaultYouTubeDescription: () => LocalizedString;
+		/**
 		 * Available placeholders
 		 */
 		fileNamePlaceholders: () => LocalizedString;
@@ -19500,6 +19708,182 @@ export type TranslationFunctions = {
 		 * Failed to copy error
 		 */
 		failedToCopyError: () => LocalizedString;
+		/**
+		 * Publish to YouTube
+		 */
+		youtubePublish: () => LocalizedString;
+		/**
+		 * Uploading to YouTube
+		 */
+		youtubePublishing: () => LocalizedString;
+		/**
+		 * Published on YouTube
+		 */
+		youtubePublished: () => LocalizedString;
+		/**
+		 * Retry YouTube upload
+		 */
+		youtubeRetry: () => LocalizedString;
+		/**
+		 * Connected YouTube account
+		 */
+		youtubeConnectedAccount: () => LocalizedString;
+		/**
+		 * Disconnect
+		 */
+		youtubeDisconnect: () => LocalizedString;
+		/**
+		 * Connecting…
+		 */
+		youtubeConnecting: () => LocalizedString;
+		/**
+		 * Connect YouTube account
+		 */
+		youtubeConnect: () => LocalizedString;
+		/**
+		 * Title
+		 */
+		youtubeTitle: () => LocalizedString;
+		/**
+		 * Description
+		 */
+		youtubeDescription: () => LocalizedString;
+		/**
+		 * Insert YouTube chapters
+		 */
+		youtubeInsertChapters: () => LocalizedString;
+		/**
+		 * Generating chapters…
+		 */
+		youtubeInsertingChapters: () => LocalizedString;
+		/**
+		 * No YouTube chapters could be generated for this export.
+		 */
+		youtubeChaptersUnavailable: () => LocalizedString;
+		/**
+		 * Unable to generate the YouTube chapters.
+		 */
+		youtubeChaptersInsertFailed: () => LocalizedString;
+		/**
+		 * Visibility
+		 */
+		youtubeVisibility: () => LocalizedString;
+		/**
+		 * Private
+		 */
+		youtubePrivate: () => LocalizedString;
+		/**
+		 * Unlisted
+		 */
+		youtubeUnlisted: () => LocalizedString;
+		/**
+		 * Public
+		 */
+		youtubePublic: () => LocalizedString;
+		/**
+		 * Audience
+		 */
+		youtubeAudience: () => LocalizedString;
+		/**
+		 * No, it is not made for kids
+		 */
+		youtubeNotMadeForKids: () => LocalizedString;
+		/**
+		 * Yes, it is made for kids
+		 */
+		youtubeMadeForKids: () => LocalizedString;
+		/**
+		 * Schedule publication
+		 */
+		youtubeSchedule: () => LocalizedString;
+		/**
+		 * Thumbnail
+		 */
+		youtubeThumbnail: () => LocalizedString;
+		/**
+		 * Optional JPG or PNG file
+		 */
+		youtubeThumbnailOptional: () => LocalizedString;
+		/**
+		 * Browse
+		 */
+		youtubeBrowse: () => LocalizedString;
+		/**
+		 * Preparing upload
+		 */
+		youtubeStagePreparing: () => LocalizedString;
+		/**
+		 * Uploading video
+		 */
+		youtubeStageUploading: () => LocalizedString;
+		/**
+		 * Uploading thumbnail
+		 */
+		youtubeStageThumbnail: () => LocalizedString;
+		/**
+		 * Upload completed
+		 */
+		youtubeStageCompleted: () => LocalizedString;
+		/**
+		 * Open video on YouTube
+		 */
+		youtubeOpenVideo: () => LocalizedString;
+		/**
+		 * Close
+		 */
+		youtubeClose: () => LocalizedString;
+		/**
+		 * Cancel
+		 */
+		youtubeCancel: () => LocalizedString;
+		/**
+		 * Upload
+		 */
+		youtubeUpload: () => LocalizedString;
+		/**
+		 * YouTube OAuth is not configured in this build.
+		 */
+		youtubeNotConfigured: () => LocalizedString;
+		/**
+		 * Connect a YouTube account before uploading.
+		 */
+		youtubeNotConnected: () => LocalizedString;
+		/**
+		 * Google sign-in timed out. Please try again.
+		 */
+		youtubeOAuthTimeout: () => LocalizedString;
+		/**
+		 * The title must contain between 1 and 100 characters.
+		 */
+		youtubeInvalidTitle: () => LocalizedString;
+		/**
+		 * The description cannot exceed 5,000 characters.
+		 */
+		youtubeInvalidDescription: () => LocalizedString;
+		/**
+		 * Select a valid visibility.
+		 */
+		youtubeInvalidVisibility: () => LocalizedString;
+		/**
+		 * A scheduled video must remain private until publication.
+		 */
+		youtubeScheduleRequiresPrivate: () => LocalizedString;
+		/**
+		 * The exported video could not be found.
+		 */
+		youtubeVideoNotFound: () => LocalizedString;
+		/**
+		 * The selected thumbnail could not be found.
+		 */
+		youtubeThumbnailNotFound: () => LocalizedString;
+		/**
+		 * The thumbnail cannot exceed 2 MB.
+		 */
+		youtubeThumbnailTooLarge: () => LocalizedString;
+		/**
+		 * The thumbnail must be a JPG or PNG file.
+		 */
+		youtubeInvalidThumbnail: () => LocalizedString;
 	};
 	batch: {
 		/**

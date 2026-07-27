@@ -16,6 +16,10 @@
 			placeholderVerseRange: () => string;
 			placeholderSurah: () => string;
 			placeholderSurahNumber: () => string;
+			defaultYouTubeMetadata: () => string;
+			defaultYouTubeMetadataDescription: () => string;
+			defaultYouTubeTitle: () => string;
+			defaultYouTubeDescription: () => string;
 		}
 	);
 
@@ -37,6 +41,14 @@
 		if (!settings.defaultValuesSettings.exportFileNameFormat.trim()) {
 			settings.defaultValuesSettings.exportFileNameFormat = DEFAULT_EXPORT_FILE_NAME_FORMAT;
 		}
+		await Settings.save();
+	}
+
+	/**
+	 * Sauvegarde les métadonnées YouTube utilisées lors de l'ouverture du modal.
+	 * @returns {Promise<void>} Promesse résolue après la sauvegarde des paramètres.
+	 */
+	async function saveYouTubeMetadataDefaults(): Promise<void> {
 		await Settings.save();
 	}
 </script>
@@ -77,5 +89,34 @@
 				{/each}
 			</div>
 		</div>
+	</div>
+
+	<div class="space-y-4 rounded-2xl border border-color bg-primary p-5">
+		<div class="space-y-2">
+			<h4 class="text-sm font-semibold text-primary">{copy.defaultYouTubeMetadata()}</h4>
+			<p class="text-sm text-thirdly">{copy.defaultYouTubeMetadataDescription()}</p>
+		</div>
+
+		<label class="block space-y-2">
+			<span class="text-sm font-semibold text-primary">{copy.defaultYouTubeTitle()}</span>
+			<input
+				type="text"
+				maxlength="100"
+				class="input w-full"
+				bind:value={globalState.settings!.defaultValuesSettings.youtubeVideoTitle}
+				onchange={saveYouTubeMetadataDefaults}
+			/>
+		</label>
+
+		<label class="block space-y-2">
+			<span class="text-sm font-semibold text-primary">{copy.defaultYouTubeDescription()}</span>
+			<textarea
+				maxlength="5000"
+				rows="5"
+				class="min-h-28 w-full resize-y rounded-lg border border-color bg-accent px-3 py-2 text-sm text-primary outline-none focus:border-accent-primary"
+				bind:value={globalState.settings!.defaultValuesSettings.youtubeVideoDescription}
+				onchange={saveYouTubeMetadataDefaults}
+			></textarea>
+		</label>
 	</div>
 </div>

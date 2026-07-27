@@ -79,6 +79,8 @@ export type ExportSettings = {
 
 export type DefaultValuesSettings = {
 	exportFileNameFormat: string;
+	youtubeVideoTitle: string;
+	youtubeVideoDescription: string;
 };
 
 export type SubtitleExportSettings = {
@@ -190,7 +192,9 @@ export default class Settings extends SerializableBase {
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
 	defaultValuesSettings = $state<DefaultValuesSettings>({
-		exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT
+		exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
+		youtubeVideoTitle: '',
+		youtubeVideoDescription: ''
 	});
 
 	subtitleExportSettings = $state<SubtitleExportSettings>({
@@ -468,12 +472,24 @@ export default class Settings extends SerializableBase {
 		}
 		if (!settings.defaultValuesSettings || typeof settings.defaultValuesSettings !== 'object') {
 			settings.defaultValuesSettings = {
-				exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT
+				exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
+				youtubeVideoTitle: '',
+				youtubeVideoDescription: ''
 			};
 			shouldSave = true;
-		} else if (!settings.defaultValuesSettings.exportFileNameFormat?.trim()) {
-			settings.defaultValuesSettings.exportFileNameFormat = DEFAULT_EXPORT_FILE_NAME_FORMAT;
-			shouldSave = true;
+		} else {
+			if (!settings.defaultValuesSettings.exportFileNameFormat?.trim()) {
+				settings.defaultValuesSettings.exportFileNameFormat = DEFAULT_EXPORT_FILE_NAME_FORMAT;
+				shouldSave = true;
+			}
+			if (typeof settings.defaultValuesSettings.youtubeVideoTitle !== 'string') {
+				settings.defaultValuesSettings.youtubeVideoTitle = '';
+				shouldSave = true;
+			}
+			if (typeof settings.defaultValuesSettings.youtubeVideoDescription !== 'string') {
+				settings.defaultValuesSettings.youtubeVideoDescription = '';
+				shouldSave = true;
+			}
 		}
 		if (!settings.subtitleExportSettings || typeof settings.subtitleExportSettings !== 'object') {
 			settings.subtitleExportSettings = {

@@ -59,6 +59,10 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::screenshot::capture_window_screenshot,
         commands::waveform::get_audio_waveform,
         commands::diagnostics::diagnose_media_binaries,
+        commands::youtube::youtube_auth_status,
+        commands::youtube::youtube_connect,
+        commands::youtube::youtube_disconnect,
+        commands::youtube::youtube_upload_video,
         commands::stock_media::search_stock_media
     ])
 }

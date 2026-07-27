@@ -26,13 +26,17 @@
 		for (const clip of globalState.getSubtitleClips) {
 			if (clip instanceof SubtitleClip) {
 				uniqueSurahs.add(clip.surah);
-				if (uniqueSurahs.size > 1) {
+				if (uniqueSurahs.size > 3) {
 					break;
 				}
 			}
 		}
 
-		if (uniqueSurahs.size === 1 && globalState.getExportState.ytbChaptersChoice === 'Each Surah') {
+		if (
+			uniqueSurahs.size >= 1 &&
+			uniqueSurahs.size <= 3 &&
+			globalState.getExportState.ytbChaptersChoice === 'Each Surah'
+		) {
 			globalState.getExportState.ytbChaptersChoice = 'Each Verse';
 		}
 	});

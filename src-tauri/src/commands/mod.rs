@@ -20,3 +20,5 @@ pub mod segmentation;
 pub mod stock_media;
 /// Commandes d'analyse de forme d'onde.
 pub mod waveform;
+/// Commandes de connexion et publication YouTube.
+pub mod youtube;

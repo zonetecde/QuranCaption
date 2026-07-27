@@ -12,6 +12,11 @@ const settings = {
 	defaultExportFileName: 'Default export file name',
 	defaultExportFileNameDescription:
 		'Customize the format used when the Video File Name field is left empty.',
+	defaultYouTubeMetadata: 'Default YouTube metadata',
+	defaultYouTubeMetadataDescription:
+		'Pre-fill YouTube uploads. Leave the title empty to use the exported file name.',
+	defaultYouTubeTitle: 'Default video title',
+	defaultYouTubeDescription: 'Default video description',
 	fileNamePlaceholders: 'Available placeholders',
 	placeholderProjectName: 'Project name',
 	placeholderReciter: 'Reciter name',

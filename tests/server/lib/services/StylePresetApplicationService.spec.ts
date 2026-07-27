@@ -45,7 +45,9 @@ describe('StylePresetApplicationService', () => {
 		const data = {
 			videoStyle: JSON.parse(JSON.stringify(source)) as Record<string, unknown>,
 			customClips: [],
-			customTextClips: [JSON.parse(JSON.stringify(customClip)) as Record<string, unknown>]
+			customTextClips: [
+				new Proxy(JSON.parse(JSON.stringify(customClip)) as Record<string, unknown>, {})
+			]
 		};
 
 		const target = new VideoStyle();
@@ -62,7 +64,9 @@ describe('StylePresetApplicationService', () => {
 			translations,
 			target
 		);
-		vi.spyOn(target, 'ensureStylesSchemaUpToDate').mockResolvedValue(false);
+		const ensureStylesSchema = vi
+			.spyOn(target, 'ensureStylesSchemaUpToDate')
+			.mockResolvedValue(false);
 
 		await applyStylePresetToProject({
 			videoStyle: target,
@@ -78,6 +82,7 @@ describe('StylePresetApplicationService', () => {
 		expect(getCustomStyleClips(content)).toHaveLength(1);
 		expect(getCustomStyleClips(content)[0]).toBeInstanceOf(CustomTextClip);
 		expect(getCustomStyleClips(content)[0].id).not.toBe(customClip.id);
+		expect(ensureStylesSchema).toHaveBeenCalledOnce();
 		const importedClipId = getCustomStyleClips(content)[0].id;
 		const exported = target.exportStylesData(new Set([importedClipId]), content);
 		expect(exported.customClips).toHaveLength(1);

@@ -117,7 +117,7 @@ export function importCustomStyleClips(
 	}
 	const track = projectContent.timeline.getFirstTrack(TrackType.CustomClip);
 	for (const rawClip of rawClips) {
-		const clipData = structuredClone(rawClip);
+		const clipData = JSON.parse(JSON.stringify(rawClip)) as Record<string, unknown>;
 		clipData.id = Utilities.randomId();
 		const clip =
 			clipData.type === 'Custom Text'

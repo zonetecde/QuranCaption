@@ -96,6 +96,9 @@ export function getBatchSegmentationActivityLabel(
 	activity?: BatchSegmentationActivity,
 	live?: BatchSegmentationLiveStatus
 ): string {
+	if (project.segmentation.status === 'queued' && activity === 'waiting') {
+		return batchMessage('segmentationWaitingNextCloudRequest');
+	}
 	if (project.segmentation.status === 'processing' && live?.message) return live.message;
 	if (project.segmentation.status === 'processing' && activity === 'applying') {
 		return batchMessage('segmentationApplying');

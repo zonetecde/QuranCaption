@@ -352,6 +352,8 @@ const id = {
 		segmentationFillExtend: 'Subtitle diperpanjang untuk mengisi celah.',
 		segmentationSameSettings: 'Pengaturan tersimpan yang sama digunakan untuk seluruh proses. ',
 		segmentationSequential: 'Proyek diproses satu per satu.',
+		segmentationCloudSpacing: 'Permintaan cloud dimulai dengan jeda minimal dua menit.',
+		segmentationWaitingNextCloudRequest: 'Menunggu 2 menit sebelum permintaan cloud berikutnya',
 		segmentationErrorHF_JSON_UNSUPPORTED:
 			'Batch memerlukan mesin cloud atau lokal; HF JSON tidak tersedia.',
 		segmentationErrorLOCAL_ENGINE_UNAVAILABLE:

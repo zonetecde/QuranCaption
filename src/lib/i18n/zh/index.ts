@@ -416,6 +416,8 @@ const zh = {
 		segmentationFillExtend: '延长字幕以填补间隔。',
 		segmentationSameSettings: '整个运行过程将使用相同的已保存设置。',
 		segmentationSequential: '项目将逐个处理。',
+		segmentationCloudSpacing: '云端请求的启动间隔至少为两分钟。',
+		segmentationWaitingNextCloudRequest: '等待 2 分钟后发送下一个云端请求',
 		segmentationErrorHF_JSON_UNSUPPORTED: '批处理需要云端或本地引擎；无法使用 HF JSON。',
 		segmentationErrorLOCAL_ENGINE_UNAVAILABLE:
 			'所选本地引擎不可用。请在普通 AI 分段窗口中进行配置。',

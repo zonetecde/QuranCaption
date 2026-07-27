@@ -2131,7 +2131,11 @@
 
 				<p class="mt-4 rounded-lg bg-[var(--bg-accent)] p-3 text-sm text-[var(--text-secondary)]">
 					{batchMessage('segmentationSameSettings')}
-					{batchMessage('segmentationSequential')}
+					{batchMessage(
+						segmentationConfiguration?.mode === 'api'
+							? 'segmentationCloudSpacing'
+							: 'segmentationSequential'
+					)}
 				</p>
 
 				{#if segmentationRuntimeError}

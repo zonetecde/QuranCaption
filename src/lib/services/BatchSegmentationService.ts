@@ -17,9 +17,11 @@ import {
 import { runBatchWorkerPool } from './BatchWorkerPool';
 
 export const BATCH_SEGMENTATION_CONCURRENCY = 1;
+export const BATCH_CLOUD_SEGMENTATION_REQUEST_INTERVAL_MS = 120_000;
 
 export type BatchSegmentationActivity =
 	| 'queued'
+	| 'waiting'
 	| 'processing'
 	| 'applying'
 	| 'saving'
@@ -307,9 +309,25 @@ export class BatchSegmentationService {
 				this.notify(item, 'queued');
 			}
 			await this.saveNow();
-			await runBatchWorkerPool(this.executionItems, BATCH_SEGMENTATION_CONCURRENCY, async (item) =>
-				this.runItem(item, configuration, overwriteExistingSubtitles)
-			);
+			if (configuration.mode === 'api') {
+				const executions: Promise<void>[] = [];
+				for (const [index, item] of this.executionItems.entries()) {
+					if (index > 0) {
+						this.notify(item, 'waiting');
+						await new Promise((resolve) =>
+							setTimeout(resolve, BATCH_CLOUD_SEGMENTATION_REQUEST_INTERVAL_MS)
+						);
+					}
+					executions.push(this.runItem(item, configuration, overwriteExistingSubtitles));
+				}
+				await Promise.all(executions);
+			} else {
+				await runBatchWorkerPool(
+					this.executionItems,
+					BATCH_SEGMENTATION_CONCURRENCY,
+					async (item) => this.runItem(item, configuration, overwriteExistingSubtitles)
+				);
+			}
 		} finally {
 			this.activeItem = null;
 			unlisten?.();
@@ -388,8 +406,10 @@ export class BatchSegmentationService {
 			this.notify(item, 'failed');
 			await this.saveNow().catch(() => undefined);
 		} finally {
-			this.activeItem = null;
-			this.activeLive = { message: null, indeterminate: false };
+			if (this.activeItem === item) {
+				this.activeItem = null;
+				this.activeLive = { message: null, indeterminate: false };
+			}
 		}
 	}
 

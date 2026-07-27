@@ -90,6 +90,12 @@ const configuration = {
 	options: Object.freeze({})
 } satisfies BatchSegmentationRunConfiguration;
 
+const localConfiguration = {
+	...configuration,
+	snapshot: Object.freeze({ ...configuration.snapshot, runtime: 'local' }),
+	mode: 'local'
+} satisfies BatchSegmentationRunConfiguration;
+
 describe('BatchSegmentationService', () => {
 	it('runs sequentially, continues after failure and always releases its listener and lock', async () => {
 		const items = [createItem(2), createItem(1), createItem(3)];
@@ -131,7 +137,7 @@ describe('BatchSegmentationService', () => {
 			}
 		});
 		const batch = new Batch('Batch', items);
-		const run = service.run(batch, items, configuration, false);
+		const run = service.run(batch, items, localConfiguration, false);
 
 		await vi.waitFor(() => expect(started).toEqual([1]));
 		service.handleStatus({ message: 'Running', progress: 150 });
@@ -148,7 +154,7 @@ describe('BatchSegmentationService', () => {
 		expect(items.find((item) => item.projectId === 2)!.segmentation.status).toBe('auto_verified');
 		expect(items.find((item) => item.projectId === 3)!.segmentation.status).toBe('auto_verified');
 		expect(
-			items.every((item) => item.segmentation.settingsSnapshot === configuration.snapshot)
+			items.every((item) => item.segmentation.settingsSnapshot === localConfiguration.snapshot)
 		).toBe(true);
 		expect(saves.length).toBeGreaterThan(5);
 		expect(unlisten).toHaveBeenCalledOnce();
@@ -157,6 +163,51 @@ describe('BatchSegmentationService', () => {
 		const finishedProgress = items[2].segmentation.progress;
 		service.handleStatus({ progress: 5 });
 		expect(items[2].segmentation.progress).toBe(finishedProgress);
+	});
+
+	it('spaces cloud requests by two minutes without waiting for the previous result', async () => {
+		vi.useFakeTimers();
+		const items = [createItem(1), createItem(2)];
+		const controls = items.map(() => deferred<void>());
+		const started: number[] = [];
+		const activities: Array<[number, string]> = [];
+		const service = new BatchSegmentationService({
+			listenStatus: async () => () => undefined,
+			saveBatch: async () => undefined,
+			onUpdate: (item, activity) => activities.push([item.projectId, activity]),
+			processItem: async (item) => {
+				started.push(item.projectId);
+				await controls[item.projectId - 1].promise;
+				return {
+					segmentsApplied: 1,
+					review: {
+						total: 0,
+						pending: 0,
+						lowConfidence: 0,
+						coverage: 0,
+						long: 0,
+						wbwTimestamps: 0
+					}
+				};
+			}
+		});
+
+		try {
+			const run = service.run(new Batch('Batch', items), items, configuration, false);
+			await vi.advanceTimersByTimeAsync(0);
+			expect(started).toEqual([1]);
+			expect(activities).toContainEqual([2, 'waiting']);
+
+			await vi.advanceTimersByTimeAsync(119_999);
+			expect(started).toEqual([1]);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(started).toEqual([1, 2]);
+
+			controls.forEach((control) => control.resolve());
+			await run;
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('recovers a completed segmentation from existing subtitles', async () => {

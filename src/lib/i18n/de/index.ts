@@ -440,6 +440,9 @@ const de = {
 		segmentationSameSettings:
 			'Für den gesamten Lauf gelten dieselben gespeicherten Einstellungen. ',
 		segmentationSequential: 'Projekte werden einzeln verarbeitet.',
+		segmentationCloudSpacing:
+			'Cloud-Anfragen werden im Abstand von mindestens zwei Minuten gestartet.',
+		segmentationWaitingNextCloudRequest: '2 Minuten Wartezeit vor der nächsten Cloud-Anfrage',
 		segmentationErrorHF_JSON_UNSUPPORTED:
 			'Batch benötigt eine Cloud- oder lokale Engine; HF JSON ist nicht verfügbar.',
 		segmentationErrorLOCAL_ENGINE_UNAVAILABLE:

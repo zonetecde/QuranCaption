@@ -435,6 +435,10 @@ const es = {
 		segmentationFillExtend: 'Los subtítulos se extienden para rellenar los huecos.',
 		segmentationSameSettings: 'Se usarán los mismos ajustes guardados durante toda la ejecución. ',
 		segmentationSequential: 'Los proyectos se procesan uno por uno.',
+		segmentationCloudSpacing:
+			'Las solicitudes en la nube se inician con al menos dos minutos de diferencia.',
+		segmentationWaitingNextCloudRequest:
+			'Esperando 2 minutos antes de la siguiente solicitud en la nube',
 		segmentationErrorHF_JSON_UNSUPPORTED:
 			'El lote requiere un motor local o en la nube; HF JSON no está disponible.',
 		segmentationErrorLOCAL_ENGINE_UNAVAILABLE:

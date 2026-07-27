@@ -151,6 +151,8 @@ const batch = {
 	segmentationFillExtend: 'Subtitles are extended to fill gaps.',
 	segmentationSameSettings: 'The same saved settings will be used for the entire run. ',
 	segmentationSequential: 'Projects are processed one at a time.',
+	segmentationCloudSpacing: 'Cloud requests start at least two minutes apart.',
+	segmentationWaitingNextCloudRequest: 'Waiting 2 minutes before the next cloud request',
 	segmentationErrorHF_JSON_UNSUPPORTED:
 		'Batch requires a cloud or local engine; HF JSON is unavailable.',
 	segmentationErrorLOCAL_ENGINE_UNAVAILABLE:

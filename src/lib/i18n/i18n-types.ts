@@ -9899,6 +9899,14 @@ type RootTranslation = {
 		 */
 		segmentationSequential: string;
 		/**
+		 * C​l​o​u​d​ ​r​e​q​u​e​s​t​s​ ​s​t​a​r​t​ ​a​t​ ​l​e​a​s​t​ ​t​w​o​ ​m​i​n​u​t​e​s​ ​a​p​a​r​t​.
+		 */
+		segmentationCloudSpacing: string;
+		/**
+		 * W​a​i​t​i​n​g​ ​2​ ​m​i​n​u​t​e​s​ ​b​e​f​o​r​e​ ​t​h​e​ ​n​e​x​t​ ​c​l​o​u​d​ ​r​e​q​u​e​s​t
+		 */
+		segmentationWaitingNextCloudRequest: string;
+		/**
 		 * B​a​t​c​h​ ​r​e​q​u​i​r​e​s​ ​a​ ​c​l​o​u​d​ ​o​r​ ​l​o​c​a​l​ ​e​n​g​i​n​e​;​ ​H​F​ ​J​S​O​N​ ​i​s​ ​u​n​a​v​a​i​l​a​b​l​e​.
 		 */
 		segmentationErrorHF_JSON_UNSUPPORTED: string;
@@ -20098,6 +20106,14 @@ export type TranslationFunctions = {
 		 * Projects are processed one at a time.
 		 */
 		segmentationSequential: () => LocalizedString;
+		/**
+		 * Cloud requests start at least two minutes apart.
+		 */
+		segmentationCloudSpacing: () => LocalizedString;
+		/**
+		 * Waiting 2 minutes before the next cloud request
+		 */
+		segmentationWaitingNextCloudRequest: () => LocalizedString;
 		/**
 		 * Batch requires a cloud or local engine; HF JSON is unavailable.
 		 */

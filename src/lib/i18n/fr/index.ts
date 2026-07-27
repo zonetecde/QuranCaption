@@ -439,6 +439,9 @@ const fr = {
 		segmentationSameSettings:
 			'Les mêmes réglages sauvegardés seront utilisés pour toute l’exécution. ',
 		segmentationSequential: 'Les projets sont traités un par un.',
+		segmentationCloudSpacing:
+			'Les requêtes cloud sont lancées à au moins deux minutes d’intervalle.',
+		segmentationWaitingNextCloudRequest: 'Attente de 2 minutes avant la prochaine requête cloud',
 		segmentationErrorHF_JSON_UNSUPPORTED:
 			'Le Batch nécessite un moteur cloud ou local ; le JSON HF est indisponible.',
 		segmentationErrorLOCAL_ENGINE_UNAVAILABLE:

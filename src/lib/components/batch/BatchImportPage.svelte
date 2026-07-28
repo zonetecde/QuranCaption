@@ -128,7 +128,6 @@
 		try {
 			const filePath = Array.isArray(selected) ? selected[0] : selected;
 			fileName = filePath.split(/[\\/]/).at(-1) ?? filePath;
-			batchName = fileName.replace(/\.csv$/i, '');
 			const parsed = parseBatchCsv(await readTextFile(filePath));
 			const validated = await validateBatchRows(parsed.rows);
 			rows = validated.rows;

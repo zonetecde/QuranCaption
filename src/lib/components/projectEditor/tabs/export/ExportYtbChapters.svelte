@@ -153,8 +153,10 @@
 			<div class="flex items-start gap-3">
 				<div class="text-blue-400 text-lg flex-shrink-0">ℹ️</div>
 				<div>
-					<span class="text-blue-200 text-sm font-medium">{$LL.export.youtubeIntegration()}</span>
-					<p class="text-blue-100/80 text-xs mt-1">
+					<span class="text-[var(--text-primary)] text-sm font-medium"
+						>{$LL.export.youtubeIntegration()}</span
+					>
+					<p class="text-secondary text-xs mt-1">
 						{$LL.export.youtubeIntegrationDescription()}
 					</p>
 				</div>

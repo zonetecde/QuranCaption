@@ -88,6 +88,8 @@ Les identifiants de groupes actuellement supportés sont :
 - `layout`
 - `timing`
 - `effects`
+- `fade`
+- `videoFrame`
 - `advanced`
 - `verseNumber`
 - `decorations`

@@ -9,7 +9,8 @@ describe('StylesData overlay overrides on global target', () => {
 				id: 'overlay',
 				styles: [
 					new Style({ id: 'overlay-opacity', value: 0.65 }),
-					new Style({ id: 'overlay-enable', value: true })
+					new Style({ id: 'overlay-enable', value: true }),
+					new Style({ id: 'background-overlay-fade-softness', value: 1 })
 				]
 			}),
 			new Category({
@@ -22,9 +23,12 @@ describe('StylesData overlay overrides on global target', () => {
 	it('allows per-clip override for global overlay styles', () => {
 		const styles = createGlobalStylesData();
 		styles.setStyleForClips([1001], 'overlay-opacity', 0.3);
+		styles.setStyleForClips([1001], 'background-overlay-fade-softness', 0.25);
 
 		expect(styles.getEffectiveValue('overlay-opacity', 1001)).toBe(0.3);
 		expect(styles.getEffectiveValue('overlay-opacity', 1002)).toBe(0.65);
+		expect(styles.getEffectiveValue('background-overlay-fade-softness', 1001)).toBe(0.25);
+		expect(styles.getEffectiveValue('background-overlay-fade-softness', 1002)).toBe(1);
 		expect(styles.hasOverrideForAny([1001], 'overlay-opacity')).toBe(true);
 	});
 

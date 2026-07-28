@@ -266,6 +266,27 @@
 			fadeCoverage: Number(
 				globalStyles.getEffectiveValue('background-overlay-fade-coverage', clipId)
 			),
+			fadeSoftness: Number(
+				globalStyles.getEffectiveValue('background-overlay-fade-softness', clipId) || 1
+			),
+			fadeCurve: String(
+				globalStyles.getEffectiveValue('background-overlay-fade-curve', clipId) || 'linear'
+			),
+			fadeInvert: Boolean(
+				globalStyles.getEffectiveValue('background-overlay-fade-invert', clipId)
+			),
+			fadePositionX: Number(
+				globalStyles.getEffectiveValue('background-overlay-fade-position-x', clipId) || 0.5
+			),
+			fadePositionY: Number(
+				globalStyles.getEffectiveValue('background-overlay-fade-position-y', clipId) || 0.5
+			),
+			fadeWidth: Number(
+				globalStyles.getEffectiveValue('background-overlay-fade-width', clipId) || 1
+			),
+			fadeHeight: Number(
+				globalStyles.getEffectiveValue('background-overlay-fade-height', clipId) || 1
+			),
 			customCSS: String(globalStyles.getEffectiveValue('overlay-custom-css', clipId))
 		};
 	});

@@ -18,6 +18,8 @@ export type StyleGroupCopyKey =
 	| 'groupLayout'
 	| 'groupTiming'
 	| 'groupEffects'
+	| 'groupFade'
+	| 'groupVideoFrame'
 	| 'groupAdvanced'
 	| 'groupVerseNumber'
 	| 'groupDecorations'

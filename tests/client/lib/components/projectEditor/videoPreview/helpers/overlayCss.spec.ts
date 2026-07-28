@@ -15,6 +15,13 @@ function makeSettings(overrides: Partial<OverlaySettings> = {}): OverlaySettings
 		mode: 'uniform',
 		fadeIntensity: 0,
 		fadeCoverage: 0,
+		fadeSoftness: 1,
+		fadeCurve: 'linear',
+		fadeInvert: false,
+		fadePositionX: 0.5,
+		fadePositionY: 0.5,
+		fadeWidth: 1,
+		fadeHeight: 1,
 		customCSS: '',
 		...overrides
 	};
@@ -88,6 +95,149 @@ describe('overlayCss', () => {
 				makeSettings({ mode: 'fade-center', opacity: 1, color: '#000' })
 			);
 			expect(css).toContain('linear-gradient(to bottom');
+		});
+
+		test.each([
+			['uniform', 'background-color'],
+			['fade-up', 'linear-gradient(to bottom'],
+			['fade-down', 'linear-gradient(to bottom'],
+			['fade-center', 'linear-gradient(to bottom'],
+			['fade-left', 'linear-gradient(to right'],
+			['fade-right', 'linear-gradient(to left'],
+			['fade-left-right', 'linear-gradient(to right'],
+			['fade-top-bottom', 'linear-gradient(to bottom'],
+			['fade-four-corners', 'radial-gradient'],
+			['fade-four-sides', 'linear-gradient'],
+			['fade-vignette', 'radial-gradient'],
+			['fade-top-left', 'radial-gradient'],
+			['fade-top-right', 'radial-gradient'],
+			['fade-bottom-left', 'radial-gradient'],
+			['fade-bottom-right', 'radial-gradient']
+		])('mode %s : génère la géométrie attendue', (mode, expectedCss) => {
+			const css = getOverlayLayerCss(
+				makeSettings({
+					mode,
+					opacity: 0.8,
+					fadeIntensity: 1,
+					fadeCoverage: 0.75
+				})
+			);
+			expect(css).toContain(expectedCss);
+		});
+
+		test.each([
+			[
+				'fade-up',
+				'background: linear-gradient(to bottom, rgba(255, 0, 0, 0.5) 0%, rgba(255, 0, 0, 1) 30%, rgba(255, 0, 0, 1) 100%); opacity: 1;'
+			],
+			[
+				'fade-down',
+				'background: linear-gradient(to bottom, rgba(255, 0, 0, 1) 0%, rgba(255, 0, 0, 1) 70%, rgba(255, 0, 0, 0.5) 100%); opacity: 1;'
+			],
+			[
+				'fade-center',
+				'background: linear-gradient(to bottom, rgba(255, 0, 0, 0.5) 0%, rgba(255, 0, 0, 1) 15%, rgba(255, 0, 0, 1) 85%, rgba(255, 0, 0, 0.5) 100%); opacity: 1;'
+			]
+		])('mode historique %s : conserve son CSS par défaut', (mode, expectedCss) => {
+			expect(
+				getOverlayLayerCss(
+					makeSettings({
+						mode,
+						opacity: 1,
+						color: '#FF0000',
+						fadeIntensity: 0.5,
+						fadeCoverage: 0.3
+					})
+				)
+			).toBe(expectedCss);
+		});
+
+		test('inverse les zones fortes et légères', () => {
+			const normal = getOverlayLayerCss(
+				makeSettings({
+					mode: 'fade-left',
+					fadeIntensity: 1,
+					fadeCoverage: 1,
+					fadeInvert: false
+				})
+			);
+			const inverted = getOverlayLayerCss(
+				makeSettings({
+					mode: 'fade-left',
+					fadeIntensity: 1,
+					fadeCoverage: 1,
+					fadeInvert: true
+				})
+			);
+			expect(normal).toContain('rgba(0, 0, 0, 1) 0%');
+			expect(inverted).toContain('rgba(0, 0, 0, 0) 0%');
+		});
+
+		test.each([
+			['linear', 'rgba(0, 0, 0, 0.75) 25%'],
+			['ease-in', 'rgba(0, 0, 0, 0.9375) 25%'],
+			['ease-out', 'rgba(0, 0, 0, 0.5625) 25%'],
+			['smooth', 'rgba(0, 0, 0, 0.84375) 25%']
+		])('courbe %s : applique les stops normalisés', (fadeCurve, expectedStop) => {
+			const css = getOverlayLayerCss(
+				makeSettings({
+					mode: 'fade-left',
+					fadeIntensity: 1,
+					fadeCoverage: 1,
+					fadeCurve
+				})
+			);
+			expect(css).toContain(expectedStop);
+		});
+
+		test('courbe inconnue : revient à linear', () => {
+			const settings = {
+				mode: 'fade-left',
+				fadeIntensity: 1,
+				fadeCoverage: 1
+			};
+			expect(getOverlayLayerCss(makeSettings({ ...settings, fadeCurve: 'unknown' }))).toBe(
+				getOverlayLayerCss(makeSettings({ ...settings, fadeCurve: 'linear' }))
+			);
+		});
+
+		test('softness 0 crée une transition nette à la fin de la couverture', () => {
+			const css = getOverlayLayerCss(
+				makeSettings({
+					mode: 'fade-left',
+					fadeIntensity: 1,
+					fadeCoverage: 0.5,
+					fadeSoftness: 0
+				})
+			);
+			expect(css).toContain('rgba(0, 0, 0, 1) 50%');
+			expect(css).toContain('rgba(0, 0, 0, 0) 50%');
+		});
+
+		test('clamp la position et les dimensions de la vignette', () => {
+			const css = getOverlayLayerCss(
+				makeSettings({
+					mode: 'fade-vignette',
+					fadePositionX: -1,
+					fadePositionY: 2,
+					fadeWidth: 0,
+					fadeHeight: 5
+				})
+			);
+			expect(css).toContain('ellipse 5% 100% at 0% 100%');
+		});
+
+		test('distingue les quatre coins, les quatre côtés et la vignette', () => {
+			const corners = getOverlayLayerCss(makeSettings({ mode: 'fade-four-corners' }));
+			const sides = getOverlayLayerCss(makeSettings({ mode: 'fade-four-sides' }));
+			const vignette = getOverlayLayerCss(makeSettings({ mode: 'fade-vignette' }));
+
+			expect(corners).toContain('mask-size: 50% 50%');
+			expect(corners).toContain('left top, right top, left bottom, right bottom');
+			expect(sides).toContain('mask-composite: add');
+			expect(sides).not.toContain('border');
+			expect(vignette).toContain('radial-gradient(ellipse');
+			expect(vignette).not.toContain('mask-size: 50% 50%');
 		});
 
 		// --- Mode inconnu / fallback ---

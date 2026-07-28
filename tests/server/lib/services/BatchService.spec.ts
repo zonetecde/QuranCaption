@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storage = vi.hoisted(() => new Map<string, string>());
+const autoSegmentationMocks = vi.hoisted(() => ({
+	runImportedForProject: vi.fn()
+}));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(async (path: string) => storage.has(path)),
@@ -21,6 +24,10 @@ vi.mock('@tauri-apps/api/path', () => ({
 	join: vi.fn(async (...parts: string[]) => parts.join('/').replaceAll('//', '/'))
 }));
 
+vi.mock('$lib/services/autoSegmentation/run-imported', () => ({
+	runAutoSegmentationFromImportedJsonForProject: autoSegmentationMocks.runImportedForProject
+}));
+
 import {
 	Batch,
 	createDefaultBatchExportState,
@@ -28,13 +35,53 @@ import {
 	createDefaultBatchStyleState,
 	createDefaultBatchTranslationState
 } from '$lib/classes';
+import Settings from '$lib/classes/Settings.svelte';
+import { globalState } from '$lib/runes/main.svelte';
 import { BatchService } from '$lib/services/BatchService';
 import { ProjectService, parseProjectsBackup } from '$lib/services/ProjectService';
 
 describe('BatchService persistence', () => {
 	beforeEach(() => {
 		storage.clear();
+		autoSegmentationMocks.runImportedForProject.mockReset();
 		vi.spyOn(ProjectService, 'ensureFolder').mockResolvedValue('/app-data/batches');
+	});
+
+	it('uses saved post-processing settings when importing segmentation JSON', async () => {
+		const settings = new Settings();
+		settings.autoSegmentationSettings.fillBySilence = false;
+		settings.autoSegmentationSettings.extendBeforeSilence = false;
+		settings.autoSegmentationSettings.extendBeforeSilenceMs = 50;
+		globalState.settings = settings;
+		const project = { detail: { id: 456 } };
+		storage.set('/segments.json', '{}');
+		vi.spyOn(ProjectService, 'createEmptyProject').mockResolvedValue(project as never);
+		vi.spyOn(ProjectService, 'delete').mockResolvedValue();
+		autoSegmentationMocks.runImportedForProject.mockResolvedValue({
+			status: 'failed',
+			message: 'stop after capturing options'
+		});
+
+		await expect(
+			BatchService.createBatch('Batch', [
+				{
+					line: 2,
+					order: 1,
+					projectName: 'Project',
+					reciter: 'Reciter',
+					source: 'C:\\audio.mp3',
+					batchSource: { kind: 'file', value: 'C:\\audio.mp3' },
+					segmentationJsonPath: '/segments.json',
+					errors: []
+				}
+			])
+		).rejects.toThrow('stop after capturing options');
+
+		expect(autoSegmentationMocks.runImportedForProject).toHaveBeenCalledWith(project, '{}', {
+			fillBySilence: false,
+			extendBeforeSilence: false,
+			extendBeforeSilenceMs: 50
+		});
 	});
 
 	it('saves and reloads a batch while preserving order and media state', async () => {

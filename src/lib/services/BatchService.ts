@@ -367,9 +367,15 @@ export class BatchService {
 				const segmentation = createDefaultBatchSegmentationState();
 				if (row.segmentationJsonPath) {
 					const startedAt = new Date();
+					const settings = globalState.settings?.autoSegmentationSettings;
 					const result = await runAutoSegmentationFromImportedJsonForProject(
 						project,
-						await readTextFile(row.segmentationJsonPath)
+						await readTextFile(row.segmentationJsonPath),
+						{
+							fillBySilence: settings?.fillBySilence,
+							extendBeforeSilence: settings?.extendBeforeSilence,
+							extendBeforeSilenceMs: settings?.extendBeforeSilenceMs
+						}
 					);
 					if (!result || result.status !== 'completed') {
 						throw new Error(

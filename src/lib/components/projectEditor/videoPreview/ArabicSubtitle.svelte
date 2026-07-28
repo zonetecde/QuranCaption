@@ -23,8 +23,8 @@
 		getWordByWordHighlightState as computeWordByWordHighlightState,
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
 		getWordByWordLineBackgroundClass,
+		getWordByWordVerseNumberOpacity,
 		getWordByWordWordCss as buildWordByWordWordCss,
-		getWordByWordWordOpacity,
 		interpolateCssColor
 	} from './wordByWordHighlightUtils';
 	import {
@@ -760,18 +760,16 @@
 								{/each}
 								{#if group.suffix}
 									{#if verseNumberOnNewLine()}<br />{/if}
-									{@const suffixOpacity = state.alwaysShowVerseNumber
-										? 1
-										: getWordByWordWordOpacity(
-												group.startWordIndex + group.words.length - 1,
-												state,
-												wbwPreviewFadeDuration(),
-												false
-											)}
 									{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
 									{@const lastWordProgress = computeWordByWordHighlightProgress(
 										lastWordIndex,
 										state,
+										wbwPreviewFadeDuration()
+									)}
+									{@const suffixOpacity = getWordByWordVerseNumberOpacity(
+										lastWordIndex,
+										state,
+										lastWordProgress,
 										wbwPreviewFadeDuration()
 									)}
 									{@const lastWordWbwCss = buildWordByWordWordCss(
@@ -846,18 +844,16 @@
 							{/each}
 							{#if group.suffix}
 								{#if verseNumberOnNewLine()}<br />{/if}
-								{@const suffixOpacity = state.alwaysShowVerseNumber
-									? 1
-									: getWordByWordWordOpacity(
-											group.startWordIndex + group.words.length - 1,
-											state,
-											wbwPreviewFadeDuration(),
-											false
-										)}
 								{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
 								{@const lastWordProgress = computeWordByWordHighlightProgress(
 									lastWordIndex,
 									state,
+									wbwPreviewFadeDuration()
+								)}
+								{@const suffixOpacity = getWordByWordVerseNumberOpacity(
+									lastWordIndex,
+									state,
+									lastWordProgress,
 									wbwPreviewFadeDuration()
 								)}
 								{@const lastWordWbwCss = buildWordByWordWordCss(

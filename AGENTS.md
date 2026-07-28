@@ -45,8 +45,8 @@ When done:
 - Prefer conventional commit style when it fits (for example: `fix(...)`, `feat(...)`,
   `refactor(...)`).
 - Make sure both commit messages describe the actual change, not a vague intention.
-- Describe both what was changed and the concrete behavior it enables, even when this makes the
-  message slightly longer.
+- Always make both commit messages sufficiently detailed and explicit to describe what changed and
+  the concrete behavior it enables, even when this makes them longer.
 
 Code quality requirements:
 

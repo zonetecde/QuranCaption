@@ -502,3 +502,24 @@ export function getWordByWordWordOpacity(
 	if (currentTimeS <= wordEndTimeS) return activeWordOpacity;
 	return activeWordOpacity;
 }
+
+/**
+ * Retourne l'opacité du numéro de verset synchronisée avec le dernier mot.
+ * @param {number} wordIndex Index du dernier mot du verset.
+ * @param {WordByWordHighlightState} state État de highlight courant.
+ * @param {number} highlightProgress Progression WBW du dernier mot.
+ * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
+ * @returns {number} Opacité finale du numéro de verset.
+ */
+export function getWordByWordVerseNumberOpacity(
+	wordIndex: number,
+	state: WordByWordHighlightState,
+	highlightProgress: number,
+	fadeDurationMs: number
+): number {
+	if (!state.alwaysShowVerseNumber) {
+		return getWordByWordWordOpacity(wordIndex, state, fadeDurationMs, true, highlightProgress);
+	}
+	if (!state.currentWordOpacityEnabled) return 1;
+	return 1 + (state.currentWordOpacity - 1) * Utilities.clamp01(highlightProgress);
+}

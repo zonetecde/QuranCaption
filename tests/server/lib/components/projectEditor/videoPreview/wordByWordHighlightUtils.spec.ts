@@ -5,6 +5,7 @@ import {
 	getDisabledWordByWordHighlightState,
 	getWordByWordHighlightState,
 	getWordByWordLineBackgroundClass,
+	getWordByWordVerseNumberOpacity,
 	getWordByWordWordCss
 } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
 
@@ -119,5 +120,24 @@ describe('WBW line background', () => {
 
 		state.cursorTimeS = 2.2;
 		expect(getWordByWordLineBackgroundClass(1, state, 1, 200)).toBe('wbw-line-background');
+	});
+
+	it('applies the current-word opacity to the verse number with the last word', () => {
+		const state = {
+			...getDisabledWordByWordHighlightState(),
+			enabled: true,
+			activeWordIndex: 2,
+			baseOpacity: 1,
+			currentWordOpacityEnabled: true,
+			currentWordOpacity: 0.4,
+			words
+		};
+
+		expect(getWordByWordVerseNumberOpacity(2, state, 1, 0)).toBe(0.4);
+		expect(getWordByWordVerseNumberOpacity(2, state, 0, 0)).toBe(1);
+
+		state.alwaysShowVerseNumber = true;
+		expect(getWordByWordVerseNumberOpacity(2, state, 1, 0)).toBe(0.4);
+		expect(getWordByWordVerseNumberOpacity(2, state, 0, 0)).toBe(1);
 	});
 });

@@ -596,10 +596,14 @@
 				return !isFeatureEnabled('enable-wbw-highlight', category);
 			}
 			if (id === 'wbw-persist-color') {
-				return (
-					!isFeatureEnabled('enable-wbw-highlight', category) &&
-					!isFeatureEnabled('enable-wbw-line-background', category)
-				);
+				return ![
+					'enable-wbw-highlight',
+					'enable-wbw-underline',
+					'enable-wbw-glow',
+					'enable-wbw-background',
+					'enable-wbw-line-background',
+					'enable-wbw-current-word-opacity'
+				].some((styleId) => isFeatureEnabled(styleId, category));
 			}
 			if (id === 'wbw-bg-color') return !isFeatureEnabled('enable-wbw-background', category);
 			if (

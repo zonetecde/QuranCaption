@@ -371,12 +371,13 @@
 						"wbw-show-current-word-only",
 						"wbw-reveal-on-recitation",
 						"wbw-always-show-verse-number",
-						"wbw-reveal-specific-word-style"
+						"wbw-reveal-specific-word-style",
+						"wbw-persist-color"
 					]
 				},
 				{
 					"id": "colors",
-					"styleIds": ["enable-wbw-highlight", "wbw-color", "wbw-persist-color"]
+					"styleIds": ["enable-wbw-highlight", "wbw-color"]
 				},
 				{
 					"id": "decorations",
@@ -436,8 +437,8 @@
 			},
 			{
 				"id": "wbw-persist-color",
-				"name": "Persist highlighted words",
-				"description": "Keep previously highlighted words colored after they have been read",
+				"name": "Persist WBW effect",
+				"description": "Keep the active WBW effect on previously recited words",
 				"value": false,
 				"valueType": "boolean",
 				"css": "",

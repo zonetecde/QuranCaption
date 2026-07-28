@@ -4318,7 +4318,7 @@ type RootTranslation = {
 			 */
 			'wbw-color': string;
 			/**
-			 * P​e​r​s​i​s​t​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 * P​e​r​s​i​s​t​ ​W​B​W​ ​e​f​f​e​c​t
 			 */
 			'wbw-persist-color': string;
 			/**
@@ -5012,7 +5012,7 @@ type RootTranslation = {
 			 */
 			'wbw-color': string;
 			/**
-			 * K​e​e​p​ ​p​r​e​v​i​o​u​s​l​y​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s​ ​c​o​l​o​r​e​d​ ​a​f​t​e​r​ ​t​h​e​y​ ​h​a​v​e​ ​b​e​e​n​ ​r​e​a​d
+			 * K​e​e​p​ ​t​h​e​ ​a​c​t​i​v​e​ ​W​B​W​ ​e​f​f​e​c​t​ ​o​n​ ​p​r​e​v​i​o​u​s​l​y​ ​r​e​c​i​t​e​d​ ​w​o​r​d​s
 			 */
 			'wbw-persist-color': string;
 			/**
@@ -14793,7 +14793,7 @@ export type TranslationFunctions = {
 			 */
 			'wbw-color': () => LocalizedString;
 			/**
-			 * Persist highlighted words
+			 * Persist WBW effect
 			 */
 			'wbw-persist-color': () => LocalizedString;
 			/**
@@ -15487,7 +15487,7 @@ export type TranslationFunctions = {
 			 */
 			'wbw-color': () => LocalizedString;
 			/**
-			 * Keep previously highlighted words colored after they have been read
+			 * Keep the active WBW effect on previously recited words
 			 */
 			'wbw-persist-color': () => LocalizedString;
 			/**

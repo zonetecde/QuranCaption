@@ -183,11 +183,23 @@
 					"styleIds": ["overlay-enable", "overlay-color", "overlay-opacity", "overlay-blur"]
 				},
 				{
-					"id": "effects",
+					"id": "fade",
 					"styleIds": [
 						"background-overlay-mode",
 						"background-overlay-fade-intensity",
 						"background-overlay-fade-coverage",
+						"background-overlay-fade-softness",
+						"background-overlay-fade-curve",
+						"background-overlay-fade-invert",
+						"background-overlay-fade-position-x",
+						"background-overlay-fade-position-y",
+						"background-overlay-fade-width",
+						"background-overlay-fade-height"
+					]
+				},
+				{
+					"id": "videoFrame",
+					"styleIds": [
 						"video-frame-enable",
 						"video-frame-content-above",
 						"video-frame-color",
@@ -237,10 +249,26 @@
 			{
 				"id": "background-overlay-mode",
 				"name": "Overlay Mode",
-				"description": "Uniform or vertical fade (up, down, or center)",
+				"description": "Choose the direction or shape of the overlay fade",
 				"value": "uniform",
 				"valueType": "select",
-				"options": ["uniform", "fade-up", "fade-down", "fade-center"],
+				"options": [
+					"uniform",
+					"fade-up",
+					"fade-down",
+					"fade-center",
+					"fade-left",
+					"fade-right",
+					"fade-left-right",
+					"fade-top-bottom",
+					"fade-four-corners",
+					"fade-four-sides",
+					"fade-vignette",
+					"fade-top-left",
+					"fade-top-right",
+					"fade-bottom-left",
+					"fade-bottom-right"
+				],
 				"css": "",
 				"tailwind": false,
 				"icon": "gradient"
@@ -261,7 +289,7 @@
 			{
 				"id": "background-overlay-fade-coverage",
 				"name": "Fade Coverage",
-				"description": "Controls how much vertical area is used by fade versus non-fade zones",
+				"description": "Control how much of the overlay is occupied by the fade",
 				"value": 0.75,
 				"valueType": "number",
 				"valueMin": 0,
@@ -270,6 +298,92 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "gradient"
+			},
+			{
+				"id": "background-overlay-fade-softness",
+				"name": "Fade Softness",
+				"description": "Control how gradually the fade transitions between its light and strong areas",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "blur_linear"
+			},
+			{
+				"id": "background-overlay-fade-curve",
+				"name": "Fade Curve",
+				"description": "Choose how the fade opacity progresses through its transition",
+				"value": "linear",
+				"valueType": "select",
+				"options": ["linear", "ease-in", "ease-out", "smooth"],
+				"css": "",
+				"tailwind": false,
+				"icon": "ssid_chart"
+			},
+			{
+				"id": "background-overlay-fade-invert",
+				"name": "Invert Fade",
+				"description": "Swap the strong and light areas of the fade",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "invert_colors"
+			},
+			{
+				"id": "background-overlay-fade-position-x",
+				"name": "Fade Horizontal Position",
+				"description": "Move the center of the fade horizontally",
+				"value": 0.5,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_horiz"
+			},
+			{
+				"id": "background-overlay-fade-position-y",
+				"name": "Fade Vertical Position",
+				"description": "Move the center of the fade vertically",
+				"value": 0.5,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_vert"
+			},
+			{
+				"id": "background-overlay-fade-width",
+				"name": "Fade Width",
+				"description": "Control the horizontal size of radial and corner fades",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0.1,
+				"valueMax": 2,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "width_normal"
+			},
+			{
+				"id": "background-overlay-fade-height",
+				"name": "Fade Height",
+				"description": "Control the vertical size of radial and corner fades",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0.1,
+				"valueMax": 2,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "height"
 			},
 			{
 				"id": "overlay-blur",

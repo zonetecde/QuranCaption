@@ -126,6 +126,8 @@ const style = {
 	groupLayout: 'Layout',
 	groupTiming: 'Timing',
 	groupEffects: 'Effects',
+	groupFade: 'Fade',
+	groupVideoFrame: 'Video Frame',
 	groupAdvanced: 'Advanced',
 	groupVerseNumber: 'Verse number',
 	groupDecorations: 'Decorations',

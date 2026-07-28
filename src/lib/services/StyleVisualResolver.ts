@@ -8,6 +8,13 @@ export type OverlayVisualState = {
 	mode: string;
 	fadeIntensity: number;
 	fadeCoverage: number;
+	fadeSoftness: number;
+	fadeCurve: string;
+	fadeInvert: boolean;
+	fadePositionX: number;
+	fadePositionY: number;
+	fadeWidth: number;
+	fadeHeight: number;
 	customCSS: string;
 };
 
@@ -34,6 +41,13 @@ export type ResolveStyleValue = (styleId: string) => string | number | boolean;
  * @returns {OverlayVisualState} État unique consommable par l'aperçu et l'export.
  */
 export function resolveOverlayVisualState(styles: StylesData, clipId?: number): OverlayVisualState {
+	const fadeSoftness = styles.getEffectiveValue('background-overlay-fade-softness', clipId);
+	const fadeCurve = styles.getEffectiveValue('background-overlay-fade-curve', clipId);
+	const fadePositionX = styles.getEffectiveValue('background-overlay-fade-position-x', clipId);
+	const fadePositionY = styles.getEffectiveValue('background-overlay-fade-position-y', clipId);
+	const fadeWidth = styles.getEffectiveValue('background-overlay-fade-width', clipId);
+	const fadeHeight = styles.getEffectiveValue('background-overlay-fade-height', clipId);
+
 	return {
 		enable: Boolean(styles.getEffectiveValue('overlay-enable', clipId)),
 		blur: Number(styles.getEffectiveValue('overlay-blur', clipId)),
@@ -42,6 +56,13 @@ export function resolveOverlayVisualState(styles: StylesData, clipId?: number): 
 		mode: String(styles.getEffectiveValue('background-overlay-mode', clipId)),
 		fadeIntensity: Number(styles.getEffectiveValue('background-overlay-fade-intensity', clipId)),
 		fadeCoverage: Number(styles.getEffectiveValue('background-overlay-fade-coverage', clipId)),
+		fadeSoftness: fadeSoftness === '' ? 1 : Number(fadeSoftness),
+		fadeCurve: fadeCurve === '' ? 'linear' : String(fadeCurve),
+		fadeInvert: Boolean(styles.getEffectiveValue('background-overlay-fade-invert', clipId)),
+		fadePositionX: fadePositionX === '' ? 0.5 : Number(fadePositionX),
+		fadePositionY: fadePositionY === '' ? 0.5 : Number(fadePositionY),
+		fadeWidth: fadeWidth === '' ? 1 : Number(fadeWidth),
+		fadeHeight: fadeHeight === '' ? 1 : Number(fadeHeight),
 		customCSS: String(styles.getEffectiveValue('overlay-custom-css', clipId))
 	};
 }

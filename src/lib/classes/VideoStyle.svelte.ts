@@ -178,6 +178,13 @@ export type OverlayStyleName =
 	| 'background-overlay-mode'
 	| 'background-overlay-fade-intensity'
 	| 'background-overlay-fade-coverage'
+	| 'background-overlay-fade-softness'
+	| 'background-overlay-fade-curve'
+	| 'background-overlay-fade-invert'
+	| 'background-overlay-fade-position-x'
+	| 'background-overlay-fade-position-y'
+	| 'background-overlay-fade-width'
+	| 'background-overlay-fade-height'
 	| 'overlay-custom-css'
 	| 'overlay-blur'
 	| 'video-frame-enable'
@@ -313,6 +320,13 @@ const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
 	'background-overlay-mode',
 	'background-overlay-fade-intensity',
 	'background-overlay-fade-coverage',
+	'background-overlay-fade-softness',
+	'background-overlay-fade-curve',
+	'background-overlay-fade-invert',
+	'background-overlay-fade-position-x',
+	'background-overlay-fade-position-y',
+	'background-overlay-fade-width',
+	'background-overlay-fade-height',
 	'overlay-custom-css',
 	'overlay-blur'
 ]);

@@ -34,6 +34,22 @@ describe('style architecture modules', () => {
 		const legacy = VideoStyle.fromJSON({
 			styles: [
 				{
+					target: 'global',
+					categories: [
+						{
+							id: 'overlay',
+							styles: [
+								{
+									id: 'background-overlay-mode',
+									value: 'fade-up',
+									valueType: 'select',
+									options: ['uniform', 'fade-up', 'fade-down', 'fade-center']
+								}
+							]
+						}
+					]
+				},
+				{
 					target: 'arabic',
 					categories: [
 						{
@@ -47,7 +63,25 @@ describe('style architecture modules', () => {
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValueOnce({
-				json: async () => [{ id: 'general', styles: [{ id: 'fade-duration', value: 1000 }] }]
+				json: async () => [
+					{ id: 'general', styles: [{ id: 'fade-duration', value: 1000 }] },
+					{
+						id: 'overlay',
+						styles: [
+							{
+								id: 'background-overlay-mode',
+								value: 'uniform',
+								valueType: 'select',
+								options: ['uniform', 'fade-up', 'fade-down', 'fade-center', 'fade-four-sides']
+							},
+							{
+								id: 'background-overlay-fade-softness',
+								value: 1,
+								valueType: 'number'
+							}
+						]
+					}
+				]
 			})
 			.mockResolvedValueOnce({
 				json: async () => [
@@ -69,6 +103,13 @@ describe('style architecture modules', () => {
 
 		expect(legacy.getStylesOfTarget('arabic').findStyle('font-size')?.value).toBe(77);
 		expect(legacy.getStylesOfTarget('arabic').findStyle('text-color')?.value).toBe('#ffffff');
+		expect(legacy.getStylesOfTarget('global').findStyle('background-overlay-mode')).toMatchObject({
+			value: 'fade-up',
+			options: ['uniform', 'fade-up', 'fade-down', 'fade-center', 'fade-four-sides']
+		});
+		expect(
+			legacy.getStylesOfTarget('global').findStyle('background-overlay-fade-softness')?.value
+		).toBe(1);
 		expect(legacy.doesTargetStyleExist('global')).toBe(true);
 		expect(legacy.getStylesOfTarget('arabic').categories[0].ui?.panel.id).toBe('text');
 		expect(JSON.stringify(legacy)).not.toContain('"ui"');
@@ -86,6 +127,13 @@ describe('style architecture modules', () => {
 					new Style({ id: 'background-overlay-mode', value: 'uniform' }),
 					new Style({ id: 'background-overlay-fade-intensity', value: 0.8 }),
 					new Style({ id: 'background-overlay-fade-coverage', value: 60 }),
+					new Style({ id: 'background-overlay-fade-softness', value: 0.6 }),
+					new Style({ id: 'background-overlay-fade-curve', value: 'smooth' }),
+					new Style({ id: 'background-overlay-fade-invert', value: true }),
+					new Style({ id: 'background-overlay-fade-position-x', value: 0.4 }),
+					new Style({ id: 'background-overlay-fade-position-y', value: 0.7 }),
+					new Style({ id: 'background-overlay-fade-width', value: 1.2 }),
+					new Style({ id: 'background-overlay-fade-height', value: 0.8 }),
 					new Style({ id: 'overlay-custom-css', value: 'mix-blend-mode: multiply' })
 				]
 			}),
@@ -100,8 +148,19 @@ describe('style architecture modules', () => {
 			})
 		]);
 		styles.setStyleForClips([7], 'overlay-blur', 9);
+		styles.setStyleForClips([7], 'background-overlay-fade-width', 1.7);
 
-		expect(resolveOverlayVisualState(styles, 7)).toMatchObject({ enable: true, blur: 9 });
+		expect(resolveOverlayVisualState(styles, 7)).toMatchObject({
+			enable: true,
+			blur: 9,
+			fadeSoftness: 0.6,
+			fadeCurve: 'smooth',
+			fadeInvert: true,
+			fadePositionX: 0.4,
+			fadePositionY: 0.7,
+			fadeWidth: 1.7,
+			fadeHeight: 0.8
+		});
 		expect(
 			resolveTimedVisualState(styles, {
 				enabled: 'show-surah-name',

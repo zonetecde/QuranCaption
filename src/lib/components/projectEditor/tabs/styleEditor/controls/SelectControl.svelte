@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Style } from '$lib/classes/VideoStyle.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { getStyleName } from '$lib/i18n/styleMapper';
+	import { get } from 'svelte/store';
 	import type { StyleControlValue } from './types';
 
 	let {
@@ -16,7 +18,12 @@
 	onchange={(event) => onChange((event.target as HTMLSelectElement).value)}
 >
 	{#each style.options || [] as option (`${option}`)}
-		<option value={option}>{option === 'Minimal Quran' ? $LL.editor.minimalQuran() : option}</option
-		>
+		<option value={option}>
+			{style.id === 'background-overlay-mode' || style.id === 'background-overlay-fade-curve'
+				? getStyleName(String(option), get(LL))
+				: option === 'Minimal Quran'
+					? $LL.editor.minimalQuran()
+					: option}
+		</option>
 	{/each}
 </select>

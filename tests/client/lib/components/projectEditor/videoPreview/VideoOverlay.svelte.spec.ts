@@ -103,6 +103,13 @@ function createDefaultStyleValue(
 	if (styleId === 'background-overlay-mode') return 'uniform';
 	if (styleId === 'background-overlay-fade-intensity') return 0;
 	if (styleId === 'background-overlay-fade-coverage') return 0;
+	if (styleId === 'background-overlay-fade-softness') return 1;
+	if (styleId === 'background-overlay-fade-curve') return 'linear';
+	if (styleId === 'background-overlay-fade-invert') return false;
+	if (styleId === 'background-overlay-fade-position-x') return 0.5;
+	if (styleId === 'background-overlay-fade-position-y') return 0.5;
+	if (styleId === 'background-overlay-fade-width') return 1;
+	if (styleId === 'background-overlay-fade-height') return 1;
 	if (styleId === 'overlay-custom-css') return '';
 	if (styleId === 'enable-wbw-highlight') return false;
 	if (styleId === 'enable-wbw-background') return false;
@@ -830,6 +837,31 @@ describe('Overlay effect', () => {
 
 		const overlayEl = component.container.querySelector('#overlay > div[style*="linear-gradient"]');
 		expect(overlayEl).not.toBeNull();
+	});
+
+	test.each([
+		['fade-left', 'linear-gradient'],
+		['fade-four-corners', 'radial-gradient'],
+		['fade-four-sides', 'linear-gradient'],
+		['fade-vignette', 'radial-gradient']
+	])('applies the shared overlay renderer for %s mode', async (mode, gradientType) => {
+		const fixture = setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
+			{ cursorPosition: 500 }
+		);
+		const globalStyles = fixture.videoStyle.getStylesOfTarget('global');
+		globalStyles.setStyle('overlay-enable', true);
+		globalStyles.setStyle('background-overlay-mode', mode);
+		globalStyles.setStyle('overlay-opacity', 1);
+		globalStyles.setStyle('background-overlay-fade-intensity', 1);
+		globalStyles.setStyle('background-overlay-fade-coverage', 0.75);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(
+			component.container.querySelector(`#overlay > div[style*="${gradientType}"]`)
+		).not.toBeNull();
 	});
 });
 

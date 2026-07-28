@@ -478,10 +478,36 @@
 				return id !== 'video-frame-enable' && !isFeatureEnabled('video-frame-enable', category);
 			}
 			if (id !== 'overlay-enable' && !isFeatureEnabled('overlay-enable', category)) return true;
+			const overlayModes = getEffectiveStyleValues('background-overlay-mode', category).map(String);
 			if (
-				['background-overlay-fade-intensity', 'background-overlay-fade-coverage'].includes(id) &&
-				getEffectiveStyleValues('background-overlay-mode', category).every(
-					(value) => value === 'uniform'
+				[
+					'background-overlay-fade-intensity',
+					'background-overlay-fade-coverage',
+					'background-overlay-fade-softness',
+					'background-overlay-fade-curve',
+					'background-overlay-fade-invert',
+					'background-overlay-fade-position-x',
+					'background-overlay-fade-position-y',
+					'background-overlay-fade-width',
+					'background-overlay-fade-height'
+				].includes(id) &&
+				overlayModes.every((value) => value === 'uniform')
+			)
+				return true;
+			if (
+				['background-overlay-fade-position-x', 'background-overlay-fade-position-y'].includes(id) &&
+				overlayModes.every((value) => value !== 'fade-vignette')
+			)
+				return true;
+			if (
+				['background-overlay-fade-width', 'background-overlay-fade-height'].includes(id) &&
+				overlayModes.every(
+					(value) =>
+						value !== 'fade-vignette' &&
+						value !== 'fade-four-corners' &&
+						!['fade-top-left', 'fade-top-right', 'fade-bottom-left', 'fade-bottom-right'].includes(
+							value
+						)
 				)
 			)
 				return true;

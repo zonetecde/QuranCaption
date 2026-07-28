@@ -4670,6 +4670,110 @@ type RootTranslation = {
 			 */
 			'background-overlay-fade-coverage': string;
 			/**
+			 * F​a​d​e​ ​S​o​f​t​n​e​s​s
+			 */
+			'background-overlay-fade-softness': string;
+			/**
+			 * F​a​d​e​ ​C​u​r​v​e
+			 */
+			'background-overlay-fade-curve': string;
+			/**
+			 * I​n​v​e​r​t​ ​F​a​d​e
+			 */
+			'background-overlay-fade-invert': string;
+			/**
+			 * F​a​d​e​ ​H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'background-overlay-fade-position-x': string;
+			/**
+			 * F​a​d​e​ ​V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
+			 */
+			'background-overlay-fade-position-y': string;
+			/**
+			 * F​a​d​e​ ​W​i​d​t​h
+			 */
+			'background-overlay-fade-width': string;
+			/**
+			 * F​a​d​e​ ​H​e​i​g​h​t
+			 */
+			'background-overlay-fade-height': string;
+			/**
+			 * U​n​i​f​o​r​m
+			 */
+			uniform: string;
+			/**
+			 * F​a​d​e​ ​U​p
+			 */
+			'fade-up': string;
+			/**
+			 * F​a​d​e​ ​D​o​w​n
+			 */
+			'fade-down': string;
+			/**
+			 * C​e​n​t​e​r​ ​F​a​d​e
+			 */
+			'fade-center': string;
+			/**
+			 * L​e​f​t​ ​F​a​d​e
+			 */
+			'fade-left': string;
+			/**
+			 * R​i​g​h​t​ ​F​a​d​e
+			 */
+			'fade-right': string;
+			/**
+			 * L​e​f​t​ ​&​ ​R​i​g​h​t​ ​F​a​d​e
+			 */
+			'fade-left-right': string;
+			/**
+			 * T​o​p​ ​&​ ​B​o​t​t​o​m​ ​F​a​d​e
+			 */
+			'fade-top-bottom': string;
+			/**
+			 * F​o​u​r​-​C​o​r​n​e​r​ ​F​a​d​e
+			 */
+			'fade-four-corners': string;
+			/**
+			 * F​o​u​r​-​S​i​d​e​ ​F​a​d​e
+			 */
+			'fade-four-sides': string;
+			/**
+			 * V​i​g​n​e​t​t​e
+			 */
+			'fade-vignette': string;
+			/**
+			 * T​o​p​-​L​e​f​t​ ​C​o​r​n​e​r​ ​F​a​d​e
+			 */
+			'fade-top-left': string;
+			/**
+			 * T​o​p​-​R​i​g​h​t​ ​C​o​r​n​e​r​ ​F​a​d​e
+			 */
+			'fade-top-right': string;
+			/**
+			 * B​o​t​t​o​m​-​L​e​f​t​ ​C​o​r​n​e​r​ ​F​a​d​e
+			 */
+			'fade-bottom-left': string;
+			/**
+			 * B​o​t​t​o​m​-​R​i​g​h​t​ ​C​o​r​n​e​r​ ​F​a​d​e
+			 */
+			'fade-bottom-right': string;
+			/**
+			 * L​i​n​e​a​r
+			 */
+			linear: string;
+			/**
+			 * E​a​s​e​ ​I​n
+			 */
+			'ease-in': string;
+			/**
+			 * E​a​s​e​ ​O​u​t
+			 */
+			'ease-out': string;
+			/**
+			 * S​m​o​o​t​h
+			 */
+			smooth: string;
+			/**
 			 * O​v​e​r​l​a​y​ ​B​l​u​r
 			 */
 			'overlay-blur': string;
@@ -5352,7 +5456,7 @@ type RootTranslation = {
 			 */
 			'overlay-opacity': string;
 			/**
-			 * U​n​i​f​o​r​m​ ​o​r​ ​v​e​r​t​i​c​a​l​ ​f​a​d​e​ ​(​u​p​,​ ​d​o​w​n​,​ ​o​r​ ​c​e​n​t​e​r​)
+			 * C​h​o​o​s​e​ ​t​h​e​ ​d​i​r​e​c​t​i​o​n​ ​o​r​ ​s​h​a​p​e​ ​o​f​ ​t​h​e​ ​o​v​e​r​l​a​y​ ​f​a​d​e
 			 */
 			'background-overlay-mode': string;
 			/**
@@ -5360,9 +5464,37 @@ type RootTranslation = {
 			 */
 			'background-overlay-fade-intensity': string;
 			/**
-			 * C​o​n​t​r​o​l​s​ ​h​o​w​ ​m​u​c​h​ ​v​e​r​t​i​c​a​l​ ​a​r​e​a​ ​i​s​ ​u​s​e​d​ ​b​y​ ​f​a​d​e​ ​v​e​r​s​u​s​ ​n​o​n​-​f​a​d​e​ ​z​o​n​e​s
+			 * C​o​n​t​r​o​l​s​ ​h​o​w​ ​m​u​c​h​ ​o​f​ ​t​h​e​ ​o​v​e​r​l​a​y​ ​i​s​ ​o​c​c​u​p​i​e​d​ ​b​y​ ​t​h​e​ ​f​a​d​e
 			 */
 			'background-overlay-fade-coverage': string;
+			/**
+			 * C​o​n​t​r​o​l​s​ ​h​o​w​ ​g​r​a​d​u​a​l​l​y​ ​t​h​e​ ​f​a​d​e​ ​t​r​a​n​s​i​t​i​o​n​s​ ​b​e​t​w​e​e​n​ ​i​t​s​ ​l​i​g​h​t​ ​a​n​d​ ​s​t​r​o​n​g​ ​a​r​e​a​s
+			 */
+			'background-overlay-fade-softness': string;
+			/**
+			 * C​h​o​o​s​e​ ​h​o​w​ ​t​h​e​ ​f​a​d​e​ ​o​p​a​c​i​t​y​ ​p​r​o​g​r​e​s​s​e​s​ ​t​h​r​o​u​g​h​ ​i​t​s​ ​t​r​a​n​s​i​t​i​o​n
+			 */
+			'background-overlay-fade-curve': string;
+			/**
+			 * S​w​a​p​ ​t​h​e​ ​s​t​r​o​n​g​ ​a​n​d​ ​l​i​g​h​t​ ​a​r​e​a​s​ ​o​f​ ​t​h​e​ ​f​a​d​e
+			 */
+			'background-overlay-fade-invert': string;
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​c​e​n​t​e​r​ ​o​f​ ​t​h​e​ ​f​a​d​e​ ​h​o​r​i​z​o​n​t​a​l​l​y
+			 */
+			'background-overlay-fade-position-x': string;
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​c​e​n​t​e​r​ ​o​f​ ​t​h​e​ ​f​a​d​e​ ​v​e​r​t​i​c​a​l​l​y
+			 */
+			'background-overlay-fade-position-y': string;
+			/**
+			 * C​o​n​t​r​o​l​ ​t​h​e​ ​h​o​r​i​z​o​n​t​a​l​ ​s​i​z​e​ ​o​f​ ​r​a​d​i​a​l​ ​a​n​d​ ​c​o​r​n​e​r​ ​f​a​d​e​s
+			 */
+			'background-overlay-fade-width': string;
+			/**
+			 * C​o​n​t​r​o​l​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​s​i​z​e​ ​o​f​ ​r​a​d​i​a​l​ ​a​n​d​ ​c​o​r​n​e​r​ ​f​a​d​e​s
+			 */
+			'background-overlay-fade-height': string;
 			/**
 			 * B​l​u​r​ ​l​e​v​e​l​ ​o​f​ ​t​h​e​ ​o​v​e​r​l​a​y
 			 */
@@ -7017,6 +7149,14 @@ type RootTranslation = {
 		 * E​f​f​e​c​t​s
 		 */
 		groupEffects: string;
+		/**
+		 * F​a​d​e
+		 */
+		groupFade: string;
+		/**
+		 * V​i​d​e​o​ ​F​r​a​m​e
+		 */
+		groupVideoFrame: string;
 		/**
 		 * A​d​v​a​n​c​e​d
 		 */
@@ -15145,6 +15285,110 @@ export type TranslationFunctions = {
 			 */
 			'background-overlay-fade-coverage': () => LocalizedString;
 			/**
+			 * Fade Softness
+			 */
+			'background-overlay-fade-softness': () => LocalizedString;
+			/**
+			 * Fade Curve
+			 */
+			'background-overlay-fade-curve': () => LocalizedString;
+			/**
+			 * Invert Fade
+			 */
+			'background-overlay-fade-invert': () => LocalizedString;
+			/**
+			 * Fade Horizontal Position
+			 */
+			'background-overlay-fade-position-x': () => LocalizedString;
+			/**
+			 * Fade Vertical Position
+			 */
+			'background-overlay-fade-position-y': () => LocalizedString;
+			/**
+			 * Fade Width
+			 */
+			'background-overlay-fade-width': () => LocalizedString;
+			/**
+			 * Fade Height
+			 */
+			'background-overlay-fade-height': () => LocalizedString;
+			/**
+			 * Uniform
+			 */
+			uniform: () => LocalizedString;
+			/**
+			 * Fade Up
+			 */
+			'fade-up': () => LocalizedString;
+			/**
+			 * Fade Down
+			 */
+			'fade-down': () => LocalizedString;
+			/**
+			 * Center Fade
+			 */
+			'fade-center': () => LocalizedString;
+			/**
+			 * Left Fade
+			 */
+			'fade-left': () => LocalizedString;
+			/**
+			 * Right Fade
+			 */
+			'fade-right': () => LocalizedString;
+			/**
+			 * Left & Right Fade
+			 */
+			'fade-left-right': () => LocalizedString;
+			/**
+			 * Top & Bottom Fade
+			 */
+			'fade-top-bottom': () => LocalizedString;
+			/**
+			 * Four-Corner Fade
+			 */
+			'fade-four-corners': () => LocalizedString;
+			/**
+			 * Four-Side Fade
+			 */
+			'fade-four-sides': () => LocalizedString;
+			/**
+			 * Vignette
+			 */
+			'fade-vignette': () => LocalizedString;
+			/**
+			 * Top-Left Corner Fade
+			 */
+			'fade-top-left': () => LocalizedString;
+			/**
+			 * Top-Right Corner Fade
+			 */
+			'fade-top-right': () => LocalizedString;
+			/**
+			 * Bottom-Left Corner Fade
+			 */
+			'fade-bottom-left': () => LocalizedString;
+			/**
+			 * Bottom-Right Corner Fade
+			 */
+			'fade-bottom-right': () => LocalizedString;
+			/**
+			 * Linear
+			 */
+			linear: () => LocalizedString;
+			/**
+			 * Ease In
+			 */
+			'ease-in': () => LocalizedString;
+			/**
+			 * Ease Out
+			 */
+			'ease-out': () => LocalizedString;
+			/**
+			 * Smooth
+			 */
+			smooth: () => LocalizedString;
+			/**
 			 * Overlay Blur
 			 */
 			'overlay-blur': () => LocalizedString;
@@ -15827,7 +16071,7 @@ export type TranslationFunctions = {
 			 */
 			'overlay-opacity': () => LocalizedString;
 			/**
-			 * Uniform or vertical fade (up, down, or center)
+			 * Choose the direction or shape of the overlay fade
 			 */
 			'background-overlay-mode': () => LocalizedString;
 			/**
@@ -15835,9 +16079,37 @@ export type TranslationFunctions = {
 			 */
 			'background-overlay-fade-intensity': () => LocalizedString;
 			/**
-			 * Controls how much vertical area is used by fade versus non-fade zones
+			 * Controls how much of the overlay is occupied by the fade
 			 */
 			'background-overlay-fade-coverage': () => LocalizedString;
+			/**
+			 * Controls how gradually the fade transitions between its light and strong areas
+			 */
+			'background-overlay-fade-softness': () => LocalizedString;
+			/**
+			 * Choose how the fade opacity progresses through its transition
+			 */
+			'background-overlay-fade-curve': () => LocalizedString;
+			/**
+			 * Swap the strong and light areas of the fade
+			 */
+			'background-overlay-fade-invert': () => LocalizedString;
+			/**
+			 * Move the center of the fade horizontally
+			 */
+			'background-overlay-fade-position-x': () => LocalizedString;
+			/**
+			 * Move the center of the fade vertically
+			 */
+			'background-overlay-fade-position-y': () => LocalizedString;
+			/**
+			 * Control the horizontal size of radial and corner fades
+			 */
+			'background-overlay-fade-width': () => LocalizedString;
+			/**
+			 * Control the vertical size of radial and corner fades
+			 */
+			'background-overlay-fade-height': () => LocalizedString;
 			/**
 			 * Blur level of the overlay
 			 */
@@ -17473,6 +17745,14 @@ export type TranslationFunctions = {
 		 * Effects
 		 */
 		groupEffects: () => LocalizedString;
+		/**
+		 * Fade
+		 */
+		groupFade: () => LocalizedString;
+		/**
+		 * Video Frame
+		 */
+		groupVideoFrame: () => LocalizedString;
 		/**
 		 * Advanced
 		 */

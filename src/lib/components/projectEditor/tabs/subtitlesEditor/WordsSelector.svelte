@@ -748,7 +748,7 @@
 >
 	<div
 		class="min-h-full flex flex-row-reverse flex-wrap justify-start content-center xl:leading-[4.5rem] lg:leading-[3rem] leading-[2.5rem]
-	           px-6 text-4xl xl:text-5xl arabic py-4"
+	           px-6 text-[2rem] xl:text-5xl arabic py-4"
 		onmouseleave={stopWordDrag}
 	>
 		{#await selectedVerse() then verse}
@@ -765,7 +765,7 @@
 
 					<button
 						class="word-button flex h-fit flex-col outline-none text-center px-3 cursor-pointer
-					       transition-all border-2 duration-200 border-transparent py-3 -mx-0.5 select-none
+					       transition-all border-2 duration-200 border-transparent py-1.5 -mx-0.5 select-none
 					       {isSelected
 							? `word-selected text-[var(--text-on-selected-word)]  ${
 									isSingleSelected
@@ -783,14 +783,16 @@
 						oncontextmenu={(event) => handleWordContextMenu(index, event)}
 						ondragstart={(event) => event.preventDefault()}
 					>
-						<p class="text-center w-full font-medium">{word.arabic}</p>
+						<p class="text-center w-full font-medium leading-[1.65]">{word.arabic}</p>
 						{#if subtitlesEditorState().showWordTranslation}
-							<p class="xl:text-sm text-xs text-thirdly mt-1 font-normal opacity-80">
+							<p class="xl:text-sm text-[10px] text-thirdly font-normal leading-none opacity-80">
 								{word.translation}
 							</p>
 						{/if}
 						{#if subtitlesEditorState().showWordTransliteration}
-							<p class="xl:text-sm text-xs text-thirdly mt-0.5 font-normal opacity-70 italic">
+							<p
+								class="xl:text-sm text-[10px] text-thirdly font-normal leading-none opacity-70 italic"
+							>
 								{word.transliteration}
 							</p>
 						{/if}

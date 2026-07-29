@@ -38,8 +38,7 @@
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
 		const project = globalState.currentProject;
-		const longestClipEnd =
-			project?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
+		const longestClipEnd = project?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
 
 		// Pas de projet ouvert (fermeture/rechargement HMR) : ne pas déréférencer null.
 		if (project) project.detail.duration = longestClipEnd;
@@ -683,9 +682,11 @@
 		const cursorPixelPosition =
 			(globalState.getTimelineState.cursorPosition / 1000) * timelineState().zoom +
 			timelineLeftHeaderWidthPx;
-		// Centre le curseur dans la vue (soustrait la moitié de la largeur visible)
+		// Place le curseur légèrement à droite du centre de la zone visible des pistes.
 		const viewportWidth = timelineDiv.clientWidth;
-		timelineDiv.scrollLeft = Math.max(0, cursorPixelPosition - viewportWidth / 2);
+		const visiblePlayheadPosition =
+			timelineLeftHeaderWidthPx + (viewportWidth - timelineLeftHeaderWidthPx) * 0.35;
+		timelineDiv.scrollLeft = Math.max(0, cursorPixelPosition - visiblePlayheadPosition);
 	}
 
 	// Fonction pour déterminer l'intervalle d'affichage des timestamps selon le zoom
@@ -919,8 +920,9 @@
 <section
 	class="overflow-hidden min-w-0 timeline-section flex-1 min-h-0"
 	style={useSplitHeight
-		? `height: ${100 -
-				globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;`
+		? `height: ${
+				100 - globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight
+			}%;`
 		: ''}
 >
 	<div class="timeline-container select-none" onwheel={handleMouseWheelWheeling}>

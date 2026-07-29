@@ -170,26 +170,7 @@
 		if (getTimelineSettings().cursorPosition) {
 			untrack(() => {
 				if (!isPlaying) return;
-
-				// Scroll jusqu'à la position du curseur
-				const element = document.getElementById('cursor');
-				const timeline = document.getElementById('timeline');
-
-				if (element && timeline) {
-					// Met le scroll à 0
-					timeline.scrollLeft = 0;
-
-					// Récupère la position du curseur par rapport à la timeline
-					const cursorPositionRelativeToTimeline =
-						element.getBoundingClientRect().left - timeline.getBoundingClientRect().left;
-
-					const newScrollLeftPos = cursorPositionRelativeToTimeline - window.innerWidth / 2 + 300;
-
-					// Scroll pour suivre le curseur
-					timeline.scrollTo({
-						left: newScrollLeftPos
-					});
-				}
+				globalState.getVideoPreviewState.scrollTimelineToCursor();
 			});
 		}
 	});

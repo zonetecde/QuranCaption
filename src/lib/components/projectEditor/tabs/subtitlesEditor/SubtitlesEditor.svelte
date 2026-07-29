@@ -6,6 +6,7 @@
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import Timeline from '../../timeline/Timeline.svelte';
+	import VideoPreview from '../../videoPreview/VideoPreview.svelte';
 	import DropOverlay from '../videoEditor/assetsManager/DropOverlay.svelte';
 	import SubtitlesEditorSettings from './SubtitlesEditorSettings.svelte';
 	import SubtitlesList from './SubtitlesList.svelte';
@@ -248,6 +249,10 @@
 />
 
 <div class="subtitles-editor-mobile-shell">
+	<div class="playback-engine" aria-hidden="true">
+		<VideoPreview showControls={false} useSplitHeight={false} />
+	</div>
+
 	<section class="subtitles-editor-toolbar">
 		<button
 			class="drawer-toggle"
@@ -283,7 +288,11 @@
 	</section>
 
 	<section class="subtitles-editor-workspace">
-		<SubtitlesWorkspace useSplitHeight={false} showVersePicker={false} />
+		<SubtitlesWorkspace
+			useSplitHeight={false}
+			showVersePicker={false}
+			showPlaybackControls
+		/>
 	</section>
 
 	<section class="subtitles-editor-timeline">
@@ -340,7 +349,7 @@
 		onpointerdown={(event) => startDrawerGesture('right', event, true)}
 	>
 		<div class="h-full min-h-0 overflow-hidden">
-			<SubtitlesList />
+			<SubtitlesList autoScrollEnabled={rightDrawerOpen} />
 		</div>
 	</aside>
 </div>
@@ -367,6 +376,16 @@
 
 	.subtitles-editor-workspace {
 		flex: 1 1 0;
+	}
+
+	.playback-engine {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	.subtitles-editor-toolbar {

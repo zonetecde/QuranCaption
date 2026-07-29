@@ -8,6 +8,8 @@
 	const SUBTITLE_LIST_PAGE_SIZE = 80;
 	const SUBTITLE_AUTO_SCROLL_THROTTLE_MS = 250;
 
+	let { autoScrollEnabled = true }: { autoScrollEnabled?: boolean } = $props();
+
 	// div contenant tout les sous-titres
 	let subtitlesListElement: HTMLDivElement | null = $state(null);
 	let lastSubtitleId = 0;
@@ -100,7 +102,7 @@
 	$effect(() => {
 		// scroll sur le sous-titre actuellement en train d'être joué
 		const subtitleId = currentSubtitleId;
-		if (!subtitleId || !globalState.getVideoPreviewState.isPlaying) {
+		if (!autoScrollEnabled || !subtitleId || !globalState.getVideoPreviewState.isPlaying) {
 			return;
 		}
 		if (subtitleId === lastSubtitleId) {

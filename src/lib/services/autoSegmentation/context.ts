@@ -5,6 +5,7 @@ import type {
 	StoredSegmentationContext,
 	SubtitleAlignmentMetadata
 } from './types';
+import { parseVerseRef } from './verse-ref';
 import { globalState } from '$lib/runes/main.svelte';
 import { SubtitleClip, PredefinedSubtitleClip } from '$lib/classes';
 
@@ -56,6 +57,41 @@ export function filterWordsForVerse(
 	return words.filter(
 		(word) => typeof word.location === 'string' && word.location.startsWith(`${surah}:${verse}:`)
 	);
+}
+
+/**
+ * Sépare les mots lorsqu'une référence repart en arrière dans un même verset.
+ *
+ * @param {SegmentationWordTimestamp[]} words Liste de mots MFA dans l'ordre temporel.
+ * @returns {SegmentationWordTimestamp[][]} Séquences dont les références sont strictement croissantes.
+ */
+export function splitWordsAtReferenceReset(
+	words: SegmentationWordTimestamp[]
+): SegmentationWordTimestamp[][] {
+	const groups: SegmentationWordTimestamp[][] = [];
+	let currentGroup: SegmentationWordTimestamp[] = [];
+	let previousRef: ReturnType<typeof parseVerseRef> = null;
+
+	for (const word of words) {
+		const ref = parseVerseRef(word.location);
+		if (
+			currentGroup.length > 0 &&
+			ref &&
+			previousRef &&
+			ref.surah === previousRef.surah &&
+			ref.verse === previousRef.verse &&
+			ref.word <= previousRef.word
+		) {
+			groups.push(currentGroup);
+			currentGroup = [];
+		}
+
+		currentGroup.push(word);
+		previousRef = ref;
+	}
+
+	if (currentGroup.length > 0) groups.push(currentGroup);
+	return groups;
 }
 
 /**

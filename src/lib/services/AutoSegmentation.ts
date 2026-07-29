@@ -38,6 +38,7 @@ export {
 	createEmptySegmentationContext,
 	getSegmentWords,
 	filterWordsForVerse,
+	splitWordsAtReferenceReset,
 	buildSubtitleAlignmentMetadata,
 	buildStoredAlignedSegment,
 	refreshSegmentationContextFromTrack

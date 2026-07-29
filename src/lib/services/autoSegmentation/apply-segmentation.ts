@@ -19,7 +19,8 @@ import {
 	buildStoredAlignedSegment,
 	buildSubtitleAlignmentMetadata,
 	filterWordsForVerse,
-	getSegmentWords
+	getSegmentWords,
+	splitWordsAtReferenceReset
 } from './context';
 import {
 	closeSmallSubtitleGaps,
@@ -99,6 +100,42 @@ async function pushSubtitleTemplate(
 	} = clipParams;
 
 	if (!verse) return;
+	const segmentWords = filterWordsForVerse(getSegmentWords(segment), surah, verseNumber);
+	const wordGroups = splitWordsAtReferenceReset(segmentWords);
+	if (wordGroups.length > 1) {
+		const segmentStartMs = (segment.time_from ?? startMs / 1000) * 1000;
+		for (const words of wordGroups) {
+			const firstRef = parseVerseRef(words[0].location);
+			const lastRef = parseVerseRef(words[words.length - 1].location);
+			if (!firstRef || !lastRef) continue;
+
+			const groupStartIndex = Math.max(startIndex, firstRef.word - 1);
+			const groupEndIndex = Math.min(endIndex, lastRef.word - 1);
+			if (groupStartIndex > groupEndIndex) continue;
+
+			clipTemplates.push({
+				kind: 'subtitle',
+				segment,
+				originalStartMs: Math.max(startMs, Math.round(segmentStartMs + words[0].start * 1000)),
+				originalEndMs: Math.min(
+					endMs,
+					Math.round(segmentStartMs + words[words.length - 1].end * 1000)
+				),
+				surah,
+				verseNumber,
+				startIndex: groupStartIndex,
+				endIndex: groupEndIndex,
+				verse,
+				confidence,
+				isLowConfidence,
+				needsReview,
+				needsCoverageReview,
+				segmentWords: words
+			});
+		}
+		return;
+	}
+
 	clipTemplates.push({
 		kind: 'subtitle',
 		segment,
@@ -113,7 +150,7 @@ async function pushSubtitleTemplate(
 		isLowConfidence,
 		needsReview,
 		needsCoverageReview,
-		segmentWords: filterWordsForVerse(getSegmentWords(segment), surah, verseNumber)
+		segmentWords
 	});
 }
 

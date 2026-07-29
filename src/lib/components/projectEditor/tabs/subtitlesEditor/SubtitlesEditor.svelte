@@ -410,7 +410,7 @@
 	.drawer-backdrop {
 		position: absolute;
 		inset: 0;
-		z-index: 45;
+		z-index: 145;
 		background: rgb(0 0 0);
 	}
 
@@ -434,7 +434,7 @@
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		z-index: 50;
+		z-index: 150;
 		width: min(88vw, 360px);
 		overflow: hidden;
 		pointer-events: none;

@@ -2,6 +2,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+#[cfg(desktop)]
 use keyring::{Entry, Error as KeyringError};
 use rand::RngCore;
 use reqwest::{header, Client, StatusCode, Url};
@@ -12,6 +13,7 @@ use tauri_plugin_opener::OpenerExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
+#[cfg(desktop)]
 const SERVICE_NAME: &str = "QuranCaption";
 const REFRESH_TOKEN_KEY: &str = "youtube_refresh_token";
 const ACCOUNT_EMAIL_KEY: &str = "youtube_account_email";
@@ -77,12 +79,14 @@ fn credentials() -> Result<(&'static str, &'static str), String> {
 }
 
 /// Ouvre une entrée du coffre-fort du système.
+#[cfg(desktop)]
 fn secure_entry(key: &str) -> Result<Entry, String> {
     Entry::new(SERVICE_NAME, key)
         .map_err(|error| format!("Failed to access the OS secure store: {error}"))
 }
 
 /// Lit une valeur facultative dans le coffre-fort du système.
+#[cfg(desktop)]
 fn read_secure_value(key: &str) -> Result<Option<String>, String> {
     match secure_entry(key)?.get_password() {
         Ok(value) => Ok(Some(value)),
@@ -92,6 +96,7 @@ fn read_secure_value(key: &str) -> Result<Option<String>, String> {
 }
 
 /// Écrit une valeur dans le coffre-fort du système.
+#[cfg(desktop)]
 fn write_secure_value(key: &str, value: &str) -> Result<(), String> {
     secure_entry(key)?
         .set_password(value)
@@ -99,6 +104,7 @@ fn write_secure_value(key: &str, value: &str) -> Result<(), String> {
 }
 
 /// Supprime une valeur du coffre-fort du système.
+#[cfg(desktop)]
 fn delete_secure_value(key: &str) -> Result<(), String> {
     match secure_entry(key)?.delete_credential() {
         Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
@@ -106,6 +112,24 @@ fn delete_secure_value(key: &str) -> Result<(), String> {
             "Failed to delete from the OS secure store: {error}"
         )),
     }
+}
+
+/// Refuse l'accès au coffre-fort tant que l'intégration YouTube mobile est désactivée.
+#[cfg(mobile)]
+fn read_secure_value(_key: &str) -> Result<Option<String>, String> {
+    Err("YOUTUBE_UNSUPPORTED_PLATFORM".to_string())
+}
+
+/// Refuse l'écriture sécurisée tant que l'intégration YouTube mobile est désactivée.
+#[cfg(mobile)]
+fn write_secure_value(_key: &str, _value: &str) -> Result<(), String> {
+    Err("YOUTUBE_UNSUPPORTED_PLATFORM".to_string())
+}
+
+/// Refuse la suppression sécurisée tant que l'intégration YouTube mobile est désactivée.
+#[cfg(mobile)]
+fn delete_secure_value(_key: &str) -> Result<(), String> {
+    Err("YOUTUBE_UNSUPPORTED_PLATFORM".to_string())
 }
 
 /// Génère une valeur aléatoire compatible avec une URL.

@@ -10096,6 +10096,18 @@ type RootTranslation = {
 		 */
 		reviewNextProject: string;
 		/**
+		 * D​e​l​e​t​e​ ​c​u​r​r​e​n​t​ ​p​r​o​j​e​c​t
+		 */
+		reviewDeleteProject: string;
+		/**
+		 * P​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​p​r​o​j​e​c​t​ ​f​r​o​m​ ​t​h​i​s​ ​b​a​t​c​h​?
+		 */
+		reviewDeleteProjectConfirm: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​d​e​l​e​t​e​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​p​r​o​j​e​c​t​.
+		 */
+		reviewUnableToDeleteProject: string;
+		/**
 		 * B​a​c​k​ ​t​o​ ​b​a​t​c​h
 		 */
 		reviewBackToBatch: string;
@@ -20649,6 +20661,18 @@ export type TranslationFunctions = {
 		 * Next flagged project
 		 */
 		reviewNextProject: () => LocalizedString;
+		/**
+		 * Delete current project
+		 */
+		reviewDeleteProject: () => LocalizedString;
+		/**
+		 * Permanently delete the current project from this batch?
+		 */
+		reviewDeleteProjectConfirm: () => LocalizedString;
+		/**
+		 * Unable to delete the current project.
+		 */
+		reviewUnableToDeleteProject: () => LocalizedString;
 		/**
 		 * Back to batch
 		 */

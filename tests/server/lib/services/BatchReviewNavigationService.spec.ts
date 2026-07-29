@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const batchMocks = vi.hoisted(() => ({
 	load: vi.fn(),
 	save: vi.fn(async () => undefined),
+	deleteProjects: vi.fn(async (batch: Batch, projectIds: number[]) => {
+		const selectedIds = new Set(projectIds);
+		batch.projects = batch.projects.filter((project) => !selectedIds.has(project.projectId));
+	}),
 	loadUserBatchesDetails: vi.fn(async () => [])
 }));
 const projectMocks = vi.hoisted(() => ({ load: vi.fn() }));
@@ -22,6 +26,7 @@ vi.mock('svelte-5-french-toast', () => ({
 }));
 
 import {
+	deleteCurrentBatchReviewProject,
 	navigateBatchReview,
 	openBatchReviewProject,
 	openBatchTranslationReviewProject,
@@ -245,6 +250,42 @@ describe('Batch review navigation', () => {
 
 		await navigateBatchReview('next');
 
+		expect(globalState.shared.batchReview.active).toBe(false);
+		expect(globalState.currentProject).toBeNull();
+		expect(globalState.currentPage).toBe('batch-workspace');
+		expect(globalState.currentBatchId).toBe(10);
+	});
+
+	it('deletes the current project and opens the next flagged project', async () => {
+		const first = createItem(1, 1);
+		const second = createItem(4, 2);
+		const batch = new Batch('Batch', [first, second], 10);
+		const current = createProject(1, 10);
+		const next = createProject(4, 10);
+		batchMocks.load.mockResolvedValue(batch);
+		projectMocks.load.mockResolvedValue(next);
+		globalState.currentBatchId = 10;
+		globalState.currentProject = current;
+		startBatchReview(10, 1);
+
+		await deleteCurrentBatchReviewProject();
+
+		expect(batchMocks.deleteProjects).toHaveBeenCalledWith(batch, [1]);
+		expect(globalState.currentProject).toBe(next);
+		expect(globalState.shared.batchReview.currentProjectId).toBe(4);
+	});
+
+	it('returns to the batch workspace after deleting the final flagged project', async () => {
+		const item = createItem(1, 1);
+		const batch = new Batch('Batch', [item], 10);
+		batchMocks.load.mockResolvedValue(batch);
+		globalState.currentBatchId = 10;
+		globalState.currentProject = createProject(1, 10);
+		startBatchReview(10, 1);
+
+		await deleteCurrentBatchReviewProject();
+
+		expect(batchMocks.deleteProjects).toHaveBeenCalledWith(batch, [1]);
 		expect(globalState.shared.batchReview.active).toBe(false);
 		expect(globalState.currentProject).toBeNull();
 		expect(globalState.currentPage).toBe('batch-workspace');

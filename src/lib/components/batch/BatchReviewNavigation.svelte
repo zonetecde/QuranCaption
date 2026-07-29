@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { Batch } from '$lib/classes';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { BatchService } from '$lib/services/BatchService';
 	import { getBatchSegmentationReviewCounts } from '$lib/services/BatchSegmentationReview';
 	import { getProjectTranslationReviewCounts } from '$lib/services/TranslationFetchService';
 	import {
+		deleteCurrentBatchReviewProject,
 		leaveBatchReview,
 		navigateBatchReview,
 		type BatchReviewDirection
@@ -96,6 +98,17 @@
 	}
 
 	/**
+	 * Confirme la suppression du projet courant avant de poursuivre la revue.
+	 * @returns {Promise<void>}
+	 */
+	async function deleteCurrentProject(): Promise<void> {
+		const confirmed = await ModalManager.confirmModal(reviewMessage('reviewDeleteProjectConfirm'));
+		if (!confirmed) return;
+		await deleteCurrentBatchReviewProject();
+		if (globalState.shared.batchReview.active) await refreshBatch();
+	}
+
+	/**
 	 * Gère les raccourcis Alt + flèche hors saisie et hors modale.
 	 * @param {KeyboardEvent} event Événement clavier global.
 	 * @returns {void}
@@ -161,6 +174,16 @@
 		title={reviewMessage('reviewNextProject')}
 	>
 		<span class="material-icons text-[20px]!">chevron_right</span>
+	</button>
+	<button
+		class="ml-1 flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
+		type="button"
+		disabled={globalState.shared.batchReview.isNavigating}
+		onclick={deleteCurrentProject}
+		aria-label={reviewMessage('reviewDeleteProject')}
+		title={reviewMessage('reviewDeleteProject')}
+	>
+		<span class="material-icons text-[18px]!">delete</span>
 	</button>
 	<button
 		class="ml-1 flex h-7 w-7 items-center justify-center rounded text-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"

@@ -76,6 +76,7 @@
 	let error = $state('');
 	let queueError = $state('');
 	const workflow = new BatchWorkspaceWorkflow();
+	let selectionSaveQueue = Promise.resolve();
 	let selectedIds = $derived(workflow.selectedProjectIds);
 	let showMediaModal = $state(false);
 	let selectedMode = $state<BatchMediaMode>('audio_only');
@@ -582,6 +583,35 @@
 	}
 
 	/**
+	 * Sauvegarde la sélection courante dans le manifeste du Batch.
+	 * @returns {void}
+	 */
+	function persistProjectSelection(): void {
+		if (!batch) return;
+		const currentBatch = batch;
+		const selectedProjectIds = [...workflow.selectedProjectIds];
+		currentBatch.selectedProjectIds = selectedProjectIds;
+		selectionSaveQueue = selectionSaveQueue
+			.then(async () => {
+				currentBatch.selectedProjectIds = selectedProjectIds;
+				await BatchService.save(currentBatch);
+			})
+			.catch((selectionError) => {
+				queueError = String(selectionError);
+			});
+	}
+
+	/**
+	 * Remplace puis sauvegarde la sélection de projets.
+	 * @param {Iterable<number>} projectIds Identifiants à sélectionner.
+	 * @returns {void}
+	 */
+	function replaceProjectSelection(projectIds: Iterable<number>): void {
+		workflow.replaceSelection(projectIds);
+		persistProjectSelection();
+	}
+
+	/**
 	 * Traduit une raison technique d'inéligibilité au lancement.
 	 * @param {BatchSegmentationEligibility['reason']} reason Code stable.
 	 * @returns {string} Explication localisée.
@@ -609,7 +639,7 @@
 				return !state || ['failed', 'ready_to_fetch', 'needs_review'].includes(state.status);
 			});
 			const defaults = actionableProjects.length > 0 ? actionableProjects : projects;
-			workflow.replaceSelection(defaults.map((project) => project.projectId));
+			replaceProjectSelection(defaults.map((project) => project.projectId));
 		}
 	}
 
@@ -763,6 +793,7 @@
 	 */
 	function toggleProject(projectId: number): void {
 		workflow.toggleProject(projectId);
+		persistProjectSelection();
 	}
 
 	/**
@@ -771,6 +802,7 @@
 	 */
 	function toggleAll(): void {
 		workflow.toggleAllProjects(projects);
+		persistProjectSelection();
 	}
 
 	/**
@@ -893,7 +925,7 @@
 				}),
 				level: segmentationProgress.failed > 0 ? 'error' : 'success'
 			});
-			workflow.replaceSelection(
+			replaceProjectSelection(
 				batch.projects
 					.filter(
 						(project) =>
@@ -943,7 +975,7 @@
 						(project.segmentation.status === 'not_started' ||
 							project.segmentation.status === 'failed'))
 			);
-			workflow.replaceSelection(defaults.map((project) => project.projectId));
+			replaceProjectSelection(defaults.map((project) => project.projectId));
 		} catch (importError) {
 			queueError = String(importError);
 		} finally {
@@ -1091,12 +1123,25 @@
 			const editionNames = Array.from(
 				new Set(batch.projects.flatMap((project) => Object.keys(project.translations)))
 			);
+			const savedSelectedProjectIds = batch.selectedProjectIds;
 			if (activeTranslationEditionName && editionNames.includes(activeTranslationEditionName)) {
-				selectActiveTranslationEdition(activeTranslationEditionName);
+				selectActiveTranslationEdition(
+					activeTranslationEditionName,
+					savedSelectedProjectIds === null
+				);
 			} else if (editionNames.length > 0) {
-				selectActiveTranslationEdition(editionNames[0]);
+				selectActiveTranslationEdition(editionNames[0], savedSelectedProjectIds === null);
 			}
-			if (!batch.projects.every(isBatchProjectSegmentationVerified)) {
+			if (savedSelectedProjectIds !== null) {
+				const existingProjectIds = new Set(batch.projects.map((project) => project.projectId));
+				const restoredSelection = savedSelectedProjectIds.filter((projectId) =>
+					existingProjectIds.has(projectId)
+				);
+				workflow.replaceSelection(restoredSelection);
+				if (restoredSelection.length !== savedSelectedProjectIds.length) {
+					persistProjectSelection();
+				}
+			} else if (!batch.projects.every(isBatchProjectSegmentationVerified)) {
 				const defaults = batch.projects.filter(
 					(project) =>
 						project.media.status === 'pending' ||
@@ -1105,9 +1150,9 @@
 							(project.segmentation.status === 'not_started' ||
 								project.segmentation.status === 'failed'))
 				);
-				workflow.replaceSelection(defaults.map((project) => project.projectId));
+				replaceProjectSelection(defaults.map((project) => project.projectId));
 			} else if (!activeTranslationEditionName) {
-				workflow.replaceSelection(batch.projects.map((project) => project.projectId));
+				replaceProjectSelection(batch.projects.map((project) => project.projectId));
 			}
 			revision++;
 		} catch (loadError) {

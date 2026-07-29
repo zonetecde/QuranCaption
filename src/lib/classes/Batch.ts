@@ -229,6 +229,7 @@ export class Batch extends SerializableBase {
 	createdAt: Date;
 	updatedAt: Date;
 	projects: BatchProjectItem[];
+	selectedProjectIds: number[] | null;
 
 	/**
 	 * Crée un manifeste de batch persistant.
@@ -237,13 +238,15 @@ export class Batch extends SerializableBase {
 	 * @param {number} id Identifiant du batch.
 	 * @param {Date} createdAt Date de création.
 	 * @param {Date} updatedAt Date de dernière modification.
+	 * @param {number[] | null} selectedProjectIds Sélection sauvegardée, ou `null` pour un ancien manifeste.
 	 */
 	constructor(
 		name: string = '',
 		projects: BatchProjectItem[] = [],
 		id: number = Utilities.randomId(),
 		createdAt: Date = new Date(),
-		updatedAt: Date = createdAt
+		updatedAt: Date = createdAt,
+		selectedProjectIds: number[] | null = null
 	) {
 		super();
 		this.id = id;
@@ -251,6 +254,7 @@ export class Batch extends SerializableBase {
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
 		this.projects = projects;
+		this.selectedProjectIds = selectedProjectIds;
 	}
 
 	/**
@@ -360,7 +364,16 @@ export class Batch extends SerializableBase {
 			projects,
 			Number(data.id),
 			new Date(String(data.createdAt)),
-			new Date(String(data.updatedAt))
+			new Date(String(data.updatedAt)),
+			Array.isArray(data.selectedProjectIds)
+				? data.selectedProjectIds
+						.map(Number)
+						.filter(
+							(projectId) =>
+								Number.isFinite(projectId) &&
+								projects.some((project) => project.projectId === projectId)
+						)
+				: null
 		) as unknown as T;
 	}
 }

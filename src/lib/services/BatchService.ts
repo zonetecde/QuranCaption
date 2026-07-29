@@ -303,6 +303,11 @@ export class BatchService {
 		);
 		await pruneOrphanedQuaCache();
 		batch.projects = batch.projects.filter((project) => !selectedIds.has(project.projectId));
+		if (batch.selectedProjectIds !== null) {
+			batch.selectedProjectIds = batch.selectedProjectIds.filter(
+				(projectId) => !selectedIds.has(projectId)
+			);
+		}
 		batch.updatedAt = new Date();
 		await this.save(batch);
 		await Promise.all([ProjectService.loadUserProjectsDetails(), this.loadUserBatchesDetails()]);

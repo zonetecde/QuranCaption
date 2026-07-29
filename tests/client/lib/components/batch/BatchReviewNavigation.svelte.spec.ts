@@ -4,13 +4,19 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 const batchMocks = vi.hoisted(() => ({ load: vi.fn() }));
 const navigationMocks = vi.hoisted(() => ({
 	navigate: vi.fn(async () => undefined),
+	remove: vi.fn(async () => undefined),
 	leave: vi.fn(async () => undefined)
 }));
+const modalMocks = vi.hoisted(() => ({ confirm: vi.fn(async () => true) }));
 
 vi.mock('$lib/services/BatchService', () => ({ BatchService: batchMocks }));
 vi.mock('$lib/services/BatchReviewNavigationService', () => ({
 	navigateBatchReview: navigationMocks.navigate,
+	deleteCurrentBatchReviewProject: navigationMocks.remove,
 	leaveBatchReview: navigationMocks.leave
+}));
+vi.mock('$lib/components/modals/ModalManager', () => ({
+	default: { confirmModal: modalMocks.confirm }
 }));
 vi.mock('$lib/services/BatchSegmentationReview', () => ({
 	getBatchSegmentationReviewCounts: () => ({ pending: 1, lowConfidence: 1, coverage: 0 })
@@ -87,10 +93,14 @@ describe('BatchReviewNavigation', () => {
 		await vi.waitFor(() => expect(component.container.textContent).toContain('1 / 2'));
 		expect(component.container.textContent).toContain('058 — Al-Mujadilah');
 		const buttons = component.container.querySelectorAll<HTMLButtonElement>('button');
-		expect(buttons).toHaveLength(3);
+		expect(buttons).toHaveLength(4);
 		expect(buttons[0].disabled).toBe(true);
 		expect(buttons[1].disabled).toBe(false);
 		expect(buttons[2].disabled).toBe(false);
+		expect(buttons[3].disabled).toBe(false);
+		await buttons[2].click();
+		await vi.waitFor(() => expect(navigationMocks.remove).toHaveBeenCalledOnce());
+		expect(modalMocks.confirm).toHaveBeenCalledOnce();
 
 		globalState.shared.batchReview.isNavigating = true;
 		await vi.waitFor(() =>

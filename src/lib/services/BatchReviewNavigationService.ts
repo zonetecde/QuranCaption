@@ -282,6 +282,64 @@ export async function navigateBatchReview(direction: BatchReviewDirection): Prom
 }
 
 /**
+ * Supprime le projet courant puis ouvre le prochain projet signalé du Batch.
+ * @returns {Promise<void>} Résolution après suppression et navigation éventuelle.
+ */
+export async function deleteCurrentBatchReviewProject(): Promise<void> {
+	const session = globalState.shared.batchReview;
+	const project = globalState.currentProject;
+	if (!isBatchReviewActive() || session.isNavigating || !project) return;
+	const batchId = session.batchId;
+	if (
+		batchId === null ||
+		session.currentProjectId !== project.detail.id ||
+		globalState.currentBatchId !== batchId ||
+		project.detail.batchId !== batchId
+	)
+		return;
+	session.isNavigating = true;
+	try {
+		const batch = await BatchService.load(batchId);
+		const currentIndex = batch.projects.findIndex(
+			(candidate) => candidate.projectId === project.detail.id
+		);
+		if (currentIndex < 0) throw new Error('INVALID_BATCH_REVIEW_PROJECT');
+		const target = batch.projects
+			.slice(currentIndex + 1)
+			.find((candidate) =>
+				session.kind === 'translation' && session.editionName
+					? candidate.translations[session.editionName]?.status === 'needs_review'
+					: candidate.segmentation.status === 'needs_review'
+			);
+		const kind = session.kind ?? 'segmentation';
+		const editionName = session.editionName;
+		await BatchService.deleteProjects(batch, [project.detail.id]);
+		globalState.currentProject = null;
+		if (!target) {
+			stopBatchReview();
+			globalState.currentBatchId = batch.id;
+			globalState.currentPage = 'batch-workspace';
+			return;
+		}
+		globalState.currentProject = await loadReviewProject(
+			target.projectId,
+			batch.id,
+			kind,
+			editionName
+		);
+		session.currentProjectId = target.projectId;
+	} catch {
+		if (globalState.currentProject) {
+			toast.error(reviewMessage('reviewUnableToDeleteProject'));
+		} else {
+			await abortInvalidSession(batchId, reviewMessage('reviewUnableToLoadProject'));
+		}
+	} finally {
+		globalState.shared.batchReview.isNavigating = false;
+	}
+}
+
+/**
  * Sauvegarde la revue courante puis retourne au Batch ou à la homepage.
  * @param {'batch' | 'home'} destination Écran de sortie.
  * @returns {Promise<void>} Résolution après la sauvegarde et la réconciliation.

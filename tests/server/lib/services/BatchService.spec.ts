@@ -125,6 +125,7 @@ describe('BatchService persistence', () => {
 				export: createDefaultBatchExportState()
 			}
 		]);
+		batch.selectedProjectIds = [11];
 
 		await BatchService.save(batch);
 		const restored = await BatchService.load(batch.id);
@@ -132,6 +133,7 @@ describe('BatchService persistence', () => {
 		expect(restored.projects.map((project) => project.order)).toEqual([2, 1]);
 		expect(restored.projects[0].media).toEqual(batch.projects[0].media);
 		expect(restored.projects[1].media).toEqual(batch.projects[1].media);
+		expect(restored.selectedProjectIds).toEqual([11]);
 		expect((await BatchService.loadAll()).map((savedBatch) => savedBatch.id)).toEqual([batch.id]);
 	});
 
@@ -230,6 +232,7 @@ describe('BatchService persistence', () => {
 			name: 'Update batch',
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
+			selectedProjectIds: [10, 20],
 			projects: [
 				{ order: 1, projectId: 10, projectName: 'First' },
 				{ order: 2, projectId: 20, projectName: 'Second' }
@@ -245,6 +248,7 @@ describe('BatchService persistence', () => {
 		expect(
 			(await BatchService.load(batch.id)).projects.map((project) => project.projectId)
 		).toEqual([10]);
+		expect((await BatchService.load(batch.id)).selectedProjectIds).toEqual([10]);
 	});
 
 	it('accepts legacy project arrays and version 2 backups', () => {

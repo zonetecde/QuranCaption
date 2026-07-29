@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 const serviceMocks = vi.hoisted(() => ({
 	load: vi.fn(),
+	save: vi.fn(async () => undefined),
 	normalizeInterruptedMedia: vi.fn(async () => false),
 	normalizeInterruptedSegmentation: vi.fn(async () => false),
 	loadUserBatchesDetails: vi.fn(async () => [])
@@ -200,6 +201,7 @@ describe('BatchWorkspace media import', () => {
 		globalState.currentPage = 'home';
 		globalState.shared.batchTranslationEditionName = null;
 		serviceMocks.load.mockReset();
+		serviceMocks.save.mockClear();
 		segmentationMocks.inspect.mockReset();
 		segmentationMocks.run.mockReset();
 		segmentationMocks.onUpdate = null;
@@ -234,6 +236,30 @@ describe('BatchWorkspace media import', () => {
 		expect(component.container.querySelector('thead')?.textContent).toContain('Media');
 		expect(component.container.textContent).toContain('Import media');
 		expect(component.container.textContent).not.toContain('Add translations to projects');
+	});
+
+	test('restores the saved project selection when reopening a batch', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const projects = [
+			createProject(1, 'pending', { kind: 'url', value: 'https://example.com/1' }),
+			createProject(2, 'pending', { kind: 'url', value: 'https://example.com/2' })
+		];
+		const batch = new Batch('Batch', projects, 88);
+		batch.selectedProjectIds = [2];
+		serviceMocks.load.mockResolvedValue(batch);
+		globalState.currentBatchId = 88;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
+		);
+		const rowCheckboxes = component.container.querySelectorAll<HTMLInputElement>(
+			'tbody input[type="checkbox"]'
+		);
+
+		expect(rowCheckboxes[0].checked).toBe(false);
+		expect(rowCheckboxes[1].checked).toBe(true);
 	});
 
 	test('keeps distinct accessible global actions visible throughout every workflow stage', async () => {

@@ -419,7 +419,7 @@
 
 	.subtitles-editor-timeline {
 		position: relative;
-		flex: 0 0 min(32dvh, 260px);
+		flex: 0 0 min(32dvh, 230px);
 		border: 1px solid var(--border-color);
 		border-radius: 12px;
 		background: var(--timeline-bg-primary);
@@ -517,7 +517,7 @@
 		}
 
 		.subtitles-editor-timeline {
-			flex-basis: min(38dvh, 220px);
+			flex-basis: min(28.5dvh, 165px);
 		}
 	}
 </style>

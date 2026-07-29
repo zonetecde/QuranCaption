@@ -8,7 +8,9 @@ import android.os.Looper
 import androidx.annotation.Keep
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.SilenceMediaSource
 import com.arthenica.ffmpegkit.FFmpegKit
 import java.io.File
 import java.util.concurrent.CountDownLatch
@@ -76,7 +78,10 @@ class MainActivity : TauriActivity() {
     }
 }
 
+@UnstableApi
 private object NativeAudioPlayer {
+    private const val SILENCE_PATH = "__qurancaption_silence__"
+    private const val SILENCE_DURATION_US = 86_400_000_000L
     private val mainHandler = Handler(Looper.getMainLooper())
     private var applicationContext: Context? = null
     private var player: ExoPlayer? = null
@@ -110,6 +115,17 @@ private object NativeAudioPlayer {
             }
 
             loadedPath = path
+            if (path == SILENCE_PATH) {
+                currentPlayer.setMediaSource(
+                    SilenceMediaSource.Factory()
+                        .setDurationUs(SILENCE_DURATION_US)
+                        .createMediaSource(),
+                    positionMs.coerceAtLeast(0)
+                )
+                currentPlayer.prepare()
+                return@post
+            }
+
             currentPlayer.setMediaItem(
                 MediaItem.fromUri(Uri.fromFile(File(path))),
                 positionMs.coerceAtLeast(0)

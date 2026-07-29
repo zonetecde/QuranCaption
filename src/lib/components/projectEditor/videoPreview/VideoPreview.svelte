@@ -23,6 +23,7 @@
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
 	const isAndroid = /android/i.test(navigator?.userAgent ?? '');
+	const NATIVE_SILENCE_PATH = '__qurancaption_silence__';
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let antiCollisionNoticeCopy = $derived(
 		$LL.editor as unknown as {
@@ -434,7 +435,10 @@
 				.then((state) => {
 					nativeAudioPositionMs = state.positionMs;
 					const currentAudioClip = globalState.getAudioTrack?.getCurrentClip();
-					if (currentAudioClip) {
+					if (nativeAudioSilent) {
+						getTimelineSettings().cursorPosition =
+							nativeAudioTimelineStartMs + nativeAudioPositionMs;
+					} else if (currentAudioClip) {
 						getTimelineSettings().cursorPosition =
 							currentAudioClip.startTime + nativeAudioPositionMs;
 					}
@@ -603,6 +607,8 @@
 	let audioHowl: Howl | null = null; // Instance Howler pour la lecture audio
 	let nativeAudioActive = false;
 	let nativeAudioPositionMs = 0;
+	let nativeAudioTimelineStartMs = 0;
+	let nativeAudioSilent = false;
 	let nativeAudioPollPending = false;
 	let nativeAudioEndHandled = false;
 	let nativeAudioLoadPromise: Promise<unknown> | null = null;
@@ -842,7 +848,12 @@
 			clearInterval(audioUpdateInterval);
 			audioUpdateInterval = null;
 		}
+		if (!audioAsset && isAndroid && isPlaying) {
+			playSilentAudio();
+			return;
+		}
 		nativeAudioActive = isAndroid && Boolean(audioAsset);
+		nativeAudioSilent = false;
 		if (wasNativeAudioActive && !nativeAudioActive) {
 			void invoke('native_audio_release');
 		}
@@ -948,6 +959,33 @@
 	 * Simule la présence d'un asset et clip pour le bon fonctionnement
 	 */
 	function playSilentAudio() {
+		if (isAndroid) {
+			nativeAudioActive = true;
+			nativeAudioSilent = true;
+			nativeAudioTimelineStartMs = getTimelineSettings().cursorPosition;
+			nativeAudioPositionMs = 0;
+			nativeAudioEndHandled = false;
+			nativeAudioLoadPromise = invoke('native_audio_load', {
+				filePath: NATIVE_SILENCE_PATH,
+				positionMs: 0,
+				speed: audioSpeed,
+				volume: 0
+			});
+			void nativeAudioLoadPromise
+				.then(() => {
+					if (!isPlaying) return;
+					return invoke('native_audio_play', { positionMs: 0 });
+				})
+				.catch((error) => {
+					console.error('Media3 silence error:', error);
+					pause();
+				});
+			if (!audioUpdateInterval) {
+				audioUpdateInterval = setInterval(handleAudioTimeUpdate, 30);
+			}
+			return;
+		}
+
 		// Nettoie l'instance audio précédente
 		if (audioHowl) {
 			audioHowl.unload();
@@ -995,24 +1033,20 @@
 	 * @param fromButton - Indique si l'action vient du bouton play (pour afficher un toast si nécessaire)
 	 */
 	function play(_fromButton: boolean = false) {
+		isPlaying = true;
+		globalState.getVideoPreviewState.isPlaying = true;
+
 		// Vérification de la présence de médias
 		if (!currentVideo() && !currentAudio()) {
 			// Si aucun média, joue silent.ogg pour simuler une lecture
-			isPlaying = true;
-			globalState.getVideoPreviewState.isPlaying = true;
 			playSilentAudio();
 			return;
 		}
 
-		if (!currentAudio() && isVideoLooping()) {
+		if (!currentAudio() && (isAndroid || isVideoLooping())) {
 			playSilentAudio();
-		}
-
-		isPlaying = true;
-		globalState.getVideoPreviewState.isPlaying = true;
-
-		// Lance la lecture audio et vidéo simultanément
-		if (nativeAudioActive) {
+		} else if (nativeAudioActive) {
+			// Lance la lecture audio et vidéo simultanément
 			nativeAudioEndHandled = false;
 			nativeAudioPositionMs = getCurrentAudioTimeToPlay() * 1000;
 			void (nativeAudioLoadPromise ?? Promise.resolve())
@@ -1122,7 +1156,10 @@
 		}
 
 		if (nativeAudioActive) {
-			const positionMs = getCurrentAudioTimeToPlay() * 1000;
+			const positionMs = nativeAudioSilent ? 0 : getCurrentAudioTimeToPlay() * 1000;
+			if (nativeAudioSilent) {
+				nativeAudioTimelineStartMs = getTimelineSettings().cursorPosition;
+			}
 			nativeAudioPositionMs = positionMs;
 			void (nativeAudioLoadPromise ?? Promise.resolve()).then(() =>
 				invoke(shouldKeepPlaying && isPlaying ? 'native_audio_play' : 'native_audio_seek', {

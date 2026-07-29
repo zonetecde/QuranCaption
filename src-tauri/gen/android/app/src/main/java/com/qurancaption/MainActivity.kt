@@ -9,9 +9,11 @@ import androidx.annotation.Keep
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.arthenica.ffmpegkit.FFmpegKit
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import org.json.JSONObject
 
 class MainActivity : TauriActivity() {
     /**
@@ -56,6 +58,22 @@ class MainActivity : TauriActivity() {
     /** Transmet la libération audio JNI au lecteur Media3. */
     @Keep
     fun nativeAudioRelease() = NativeAudioPlayer.release()
+
+    /**
+     * Exécute une commande FFmpegKit transmise par Rust.
+     *
+     * @param arguments Arguments FFmpeg sans le nom du binaire.
+     * @return Résultat JSON contenant le code de retour et les logs.
+     */
+    @Keep
+    fun nativeFfmpegExecute(arguments: Array<String>): String {
+        val session = FFmpegKit.executeWithArguments(arguments)
+        return JSONObject()
+            .put("code", session.returnCode?.value ?: -1)
+            .put("output", session.output.orEmpty())
+            .put("failureStackTrace", session.failStackTrace.orEmpty())
+            .toString()
+    }
 }
 
 private object NativeAudioPlayer {

@@ -1,16 +1,14 @@
 use std::path::PathBuf;
-use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::commands::android_media::execute_ffmpeg;
 use crate::path_utils;
-use crate::utils::process::configure_command_no_window;
 use crate::utils::temp_file::TempFileGuard;
 
 use super::types::SegmentationAudioClip;
 
 /// Fusionne des clips audio temporels en un seul WAV mono 16-bit aligné sur la timeline.
 pub(crate) fn merge_audio_clips_for_segmentation(
-    ffmpeg_path: &str,
     clips: &[SegmentationAudioClip],
 ) -> Result<(PathBuf, TempFileGuard), String> {
     if clips.is_empty() {
@@ -49,10 +47,15 @@ pub(crate) fn merge_audio_clips_for_segmentation(
     let guard = TempFileGuard(merged_path.clone());
 
     // Construction dynamique d'un filtre ffmpeg pour trim + delay + mix.
-    let mut cmd = Command::new(ffmpeg_path);
-    cmd.args(["-y", "-hide_banner", "-loglevel", "error"]);
+    let mut args = vec![
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+    ];
     for (path, _, _) in &normalized {
-        cmd.arg("-i").arg(path.to_string_lossy().as_ref());
+        args.push("-i".to_string());
+        args.push(path.to_string_lossy().to_string());
     }
 
     let mut filters: Vec<String> = Vec::new();
@@ -78,25 +81,21 @@ pub(crate) fn merge_audio_clips_for_segmentation(
     ));
 
     let filter_complex = filters.join(";");
-    cmd.args([
-        "-filter_complex",
-        &filter_complex,
-        "-map",
-        "[mix]",
-        "-c:a",
-        "pcm_s16le",
-        "-t",
-        &format!("{:.6}", total_s),
-        merged_path.to_string_lossy().as_ref(),
+    args.extend([
+        "-filter_complex".to_string(),
+        filter_complex,
+        "-map".to_string(),
+        "[mix]".to_string(),
+        "-c:a".to_string(),
+        "pcm_s16le".to_string(),
+        "-t".to_string(),
+        format!("{:.6}", total_s),
+        merged_path.to_string_lossy().to_string(),
     ]);
-    configure_command_no_window(&mut cmd);
 
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg merge error: {}", stderr));
+    let output = execute_ffmpeg(&args)?;
+    if !output.success {
+        return Err(format!("ffmpeg merge error: {}", output.output));
     }
 
     Ok((merged_path, guard))

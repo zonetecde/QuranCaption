@@ -2,10 +2,82 @@ use std::path::Path;
 
 use jni::objects::{JLongArray, JObject, JString, JValue};
 use jni::JavaVM;
+use serde::Deserialize;
 
 const METADATA_KEY_DURATION: i32 = 9;
 const METADATA_KEY_VIDEO_WIDTH: i32 = 18;
 const METADATA_KEY_VIDEO_HEIGHT: i32 = 19;
+
+/// Résultat d'une commande FFmpegKit Android.
+pub struct AndroidFfmpegOutput {
+    pub success: bool,
+    pub output: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AndroidFfmpegResponse {
+    code: i32,
+    output: String,
+    failure_stack_trace: String,
+}
+
+/// Exécute FFmpegKit dans Android avec une liste d'arguments préservée.
+///
+/// @param arguments Arguments FFmpeg sans le nom du binaire.
+/// @returns Code de réussite et sortie complète de FFmpegKit.
+pub fn execute_ffmpeg(arguments: &[String]) -> Result<AndroidFfmpegOutput, String> {
+    let context = ndk_context::android_context();
+    let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }
+        .map_err(|e| format!("Unable to access Android JVM: {}", e))?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Unable to attach Android JVM thread: {}", e))?;
+    let string_class = env
+        .find_class("java/lang/String")
+        .map_err(|e| format!("Unable to resolve Android String class: {}", e))?;
+    let arguments_array = env
+        .new_object_array(arguments.len() as i32, string_class, JObject::null())
+        .map_err(|e| format!("Unable to allocate FFmpeg arguments: {}", e))?;
+
+    for (index, argument) in arguments.iter().enumerate() {
+        let value = env
+            .new_string(argument)
+            .map_err(|e| format!("Unable to encode FFmpeg argument: {}", e))?;
+        env.set_object_array_element(&arguments_array, index as i32, value)
+            .map_err(|e| format!("Unable to set FFmpeg argument: {}", e))?;
+    }
+
+    let arguments_object = JObject::from(arguments_array);
+    let activity = unsafe { JObject::from_raw(context.context().cast()) };
+    let response = env
+        .call_method(
+            &activity,
+            "nativeFfmpegExecute",
+            "([Ljava/lang/String;)Ljava/lang/String;",
+            &[JValue::Object(&arguments_object)],
+        )
+        .and_then(|value| value.l())
+        .map(JString::from)
+        .map_err(|e| format!("Unable to execute Android FFmpeg: {}", e))?;
+    let response: String = env
+        .get_string(&response)
+        .map(Into::into)
+        .map_err(|e| format!("Unable to read Android FFmpeg result: {}", e))?;
+    let response: AndroidFfmpegResponse = serde_json::from_str(&response)
+        .map_err(|e| format!("Unable to decode Android FFmpeg result: {}", e))?;
+    let output = if response.failure_stack_trace.is_empty() {
+        response.output
+    } else {
+        format!("{}\n{}", response.output, response.failure_stack_trace)
+    };
+
+    Ok(AndroidFfmpegOutput {
+        success: response.code == 0,
+        output,
+    })
+}
+
 pub struct AndroidAudioPlayer {
     vm: JavaVM,
 }

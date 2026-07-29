@@ -50,31 +50,35 @@
 	<section class="flex min-h-0 min-w-0 flex-1 flex-col">
 		<div class="flex-1 overflow-y-auto p-4">
 			<div class="mx-auto flex max-w-4xl flex-col gap-5">
-				<StepSettings />
+				{#if !wizard.isRunning && !wizard.result && !wizard.errorMessage}
+					<StepSettings />
+				{/if}
 				<ResultPanel />
 			</div>
 		</div>
 
-		<footer class="mobile-sheet-footer border-t border-color bg-primary px-4 py-3">
-			<div class="flex items-center justify-end gap-2">
-				{#if wizard.result?.status === 'completed'}
-					<button class="btn-accent px-4 py-2 text-sm" onclick={closeModal}
-						>{$LL.common.finish()}</button
-					>
-				{:else}
-					<button class="btn px-4 py-2 text-sm" onclick={closeModal}>{$LL.common.close()}</button>
-					<button
-						type="button"
-						class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-50"
-						onclick={() => void wizard.startSegmentation()}
-						disabled={!wizard.canStart() || wizard.isRunning}
-					>
-						<span class="material-icons text-base leading-none">play_arrow</span>
-						{$LL.editor.startSegmentation()}
-					</button>
-				{/if}
-			</div>
-		</footer>
+		{#if !wizard.isRunning}
+			<footer class="mobile-sheet-footer border-t border-color bg-primary px-4 py-3">
+				<div class="flex items-center justify-end gap-2">
+					{#if wizard.result?.status === 'completed'}
+						<button class="btn-accent px-4 py-2 text-sm" onclick={closeModal}
+							>{$LL.common.finish()}</button
+						>
+					{:else}
+						<button class="btn px-4 py-2 text-sm" onclick={closeModal}>{$LL.common.close()}</button>
+						<button
+							type="button"
+							class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-50"
+							onclick={() => void wizard.startSegmentation()}
+							disabled={!wizard.canStart()}
+						>
+							<span class="material-icons text-base leading-none">play_arrow</span>
+							{$LL.editor.startSegmentation()}
+						</button>
+					{/if}
+				</div>
+			</footer>
+		{/if}
 	</section>
 </div>
 

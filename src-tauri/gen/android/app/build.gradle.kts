@@ -72,6 +72,8 @@ rust {
 }
 
 dependencies {
+    implementation("dev.ffmpegkit-maintained:ffmpeg-kit-full:8.1.7")
+    implementation("com.arthenica:smart-exception-java:0.2.1")
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.webkit:webkit:1.6.1")
     implementation("androidx.appcompat:appcompat:1.6.1")

@@ -64,7 +64,7 @@ fn run_local_segmentation_script(
         }
         let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
         if needs_merge {
-            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(clips)?;
             _merged_guard = Some(guard);
             println!(
                 "[segmentation] Using merged audio for local: {}",

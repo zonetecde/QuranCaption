@@ -1,6 +1,5 @@
 use std::cmp::min;
 use std::fs;
-use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use bytes::Bytes;
@@ -8,9 +7,8 @@ use futures_util::{stream, StreamExt};
 use reqwest::multipart::{Form, Part};
 use tauri::Emitter;
 
-use crate::binaries;
+use crate::commands::android_media::execute_ffmpeg;
 use crate::path_utils;
-use crate::utils::process::configure_command_no_window;
 use crate::utils::temp_file::TempFileGuard;
 
 use super::audio_merge::merge_audio_clips_for_segmentation;
@@ -376,15 +374,12 @@ fn prepare_audio_for_mfa_direct(
     window_start_ms: Option<i64>,
     window_end_ms: Option<i64>,
 ) -> Result<(std::path::PathBuf, TempFileGuard, Option<TempFileGuard>), String> {
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-
     let mut merged_guard: Option<TempFileGuard> = None;
     let source_audio_path =
         if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
             let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
             if needs_merge {
-                let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+                let (merged_path, guard) = merge_audio_clips_for_segmentation(clips)?;
                 merged_guard = Some(guard);
                 merged_path
             } else {
@@ -417,37 +412,37 @@ fn prepare_audio_for_mfa_direct(
         _ => None,
     };
 
-    let mut cmd = Command::new(&ffmpeg_path);
-    cmd.args(["-y", "-hide_banner", "-loglevel", "error"]);
+    let mut args = vec![
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+    ];
     if let Some((start_ms, _)) = window {
         // -ss avant -i = seek d'entrée rapide.
-        cmd.arg("-ss")
-            .arg(format!("{:.3}", start_ms as f64 / 1000.0));
+        args.push("-ss".to_string());
+        args.push(format!("{:.3}", start_ms as f64 / 1000.0));
     }
-    cmd.arg("-i")
-        .arg(source_audio_path.to_string_lossy().as_ref());
+    args.push("-i".to_string());
+    args.push(source_audio_path.to_string_lossy().to_string());
     if let Some((start_ms, end_ms)) = window {
         // -t après -i = durée conservée depuis le point de seek.
-        cmd.arg("-t")
-            .arg(format!("{:.3}", (end_ms - start_ms) as f64 / 1000.0));
+        args.push("-t".to_string());
+        args.push(format!("{:.3}", (end_ms - start_ms) as f64 / 1000.0));
     }
-    cmd.args([
-        "-ac",
-        "1",
-        "-ar",
-        "16000",
-        "-c:a",
-        "pcm_s16le",
-        "-vn",
-        temp_path.to_string_lossy().as_ref(),
+    args.extend([
+        "-ac".to_string(),
+        "1".to_string(),
+        "-ar".to_string(),
+        "16000".to_string(),
+        "-c:a".to_string(),
+        "pcm_s16le".to_string(),
+        "-vn".to_string(),
+        temp_path.to_string_lossy().to_string(),
     ]);
-    configure_command_no_window(&mut cmd);
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg error: {}", stderr));
+    let output = execute_ffmpeg(&args)?;
+    if !output.success {
+        return Err(format!("ffmpeg error: {}", output.output));
     }
 
     Ok((temp_path, temp_guard, merged_guard))
@@ -656,8 +651,6 @@ pub async fn segment_quran_audio(
     );
 
     // Pré-traitement cloud: merge éventuel puis encodage OGG/Opus (pas de resample forcé).
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
     let mut _merged_guard: Option<TempFileGuard> = None;
     let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
         println!(
@@ -672,7 +665,7 @@ pub async fn segment_quran_audio(
         }
         let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
         if needs_merge {
-            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(clips)?;
             _merged_guard = Some(guard);
             println!(
                 "[segmentation] Using merged audio for cloud: {}",
@@ -700,30 +693,25 @@ pub async fn segment_quran_audio(
     let temp_path = std::env::temp_dir().join(format!("qurancaption-seg-{}.ogg", stamp));
     let _temp_guard = TempFileGuard(temp_path.clone());
 
-    let mut cmd = Command::new(&ffmpeg_path);
-    cmd.args([
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-i",
-        &audio_path_str,
-        "-c:a",
-        "libopus",
-        "-b:a",
-        "64k",
-        "-vbr",
-        "on",
-        "-vn",
-        temp_path.to_string_lossy().as_ref(),
-    ]);
-    configure_command_no_window(&mut cmd);
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("ffmpeg error: {}", stderr));
+    let args = vec![
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+        "-i".to_string(),
+        audio_path_str,
+        "-c:a".to_string(),
+        "libopus".to_string(),
+        "-b:a".to_string(),
+        "64k".to_string(),
+        "-vbr".to_string(),
+        "on".to_string(),
+        "-vn".to_string(),
+        temp_path.to_string_lossy().to_string(),
+    ];
+    let output = execute_ffmpeg(&args)?;
+    if !output.success {
+        return Err(format!("ffmpeg error: {}", output.output));
     }
     emit_cloud_status(
         &app_handle,

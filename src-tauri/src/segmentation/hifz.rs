@@ -129,12 +129,12 @@ fn create_temp_file_path(
 }
 
 fn resolve_source_audio_path(
-    ffmpeg_path: &str,
+    _ffmpeg_path: &str,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
 ) -> Result<(PathBuf, Vec<TempFileGuard>), String> {
     if let Some(clips) = audio_clips.filter(|clips| !clips.is_empty()) {
-        let (merged_path, guard) = merge_audio_clips_for_segmentation(ffmpeg_path, &clips)?;
+        let (merged_path, guard) = merge_audio_clips_for_segmentation(&clips)?;
         return Ok((merged_path, vec![guard]));
     }
 
